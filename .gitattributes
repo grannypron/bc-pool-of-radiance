@@ -1,0 +1,7 @@
+# Preserve DOS build-file bytes without Git newline conversion.
+# Maintain batch files with CRLF endings; -text preserves bytes but does not
+# validate or repair line endings written by an editor.
+*.bat -text
+
+# TPC reads these compiler switches directly under DOS.
+/src/TPC.CFG -text
