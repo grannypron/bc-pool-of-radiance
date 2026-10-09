@@ -1350,9 +1350,9 @@ begin
 end;
 
 { Let the player pick a character on the horizontal menu, starting from sel: End and Home (also keypad 1 and 7) cycle
-  next/previous through the creature list; Exit and Escape set sel to nil. Return, Exit and Select leave the loop. Does
-  not set the current character. Note: MenuHorizontal returns Escape as #0, not C_Keys.ESC, so Escape clears sel but
-  keeps looping. }
+  next/previous through the creature list. Return, Exit and Select leave the loop, Exit with sel nil. With addExit,
+  Escape (which MenuHorizontal returns as C_Keys.NONE) leaves like Exit; without it there is no way out but choosing,
+  and Escape is ignored (a script's WHO needs a character). Does not set the current character. }
 procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PCharRecord);
 var
   ch: Char;
@@ -1365,7 +1365,7 @@ begin
   exitStr := '';
   if addExit then
     exitStr := ' Exit';
-  while not (ch in [C_Keys.ENTER, C_Keys.ESC, 'E', 'S']) do
+  while not ((ch in [C_Keys.ENTER, C_Keys.ESC, 'E', 'S']) or ((ch = C_Keys.NONE) and addExit)) do
   begin
     CharHlp.DisplayParty(sel);
     if (GDVars.ifcState = C_Ifc.CAMPING) or (GDVars.ifcState = C_Ifc.LOOT) then
@@ -1393,7 +1393,7 @@ begin
             while p^.nextCharAddr <> nil do
               p := p^.nextCharAddr;
         end;
-      end else if (ch = 'E') or (ch = C_Keys.NONE) then
+      end else if ((ch = 'E') or (ch = C_Keys.NONE)) and addExit then
       p := nil;
     sel := p;
   end;
