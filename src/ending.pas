@@ -90,6 +90,8 @@ begin
   TextRend.PauseOnly;
   TextRend.PauseOnly;
   TextRend.PauseOnly;
+  { the game goes on after the ending }
+  Blit.FreePic(GDVars.finalPic);
   GDVars.ifcState := GDVars.savedIfc;
   CharHlp.DisplayNoncombatInterface;
 end;
