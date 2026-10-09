@@ -5,7 +5,7 @@ unit EclVm;
 interface
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
-  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money;
+  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
   and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
@@ -1473,39 +1473,41 @@ begin
   CharHlp.DisplayParty(GDVars.curChar);
 end;
 
-{ SPELL: look for spell var 1 in memorizedSpells[1..82] (slot 255 = not found) and write the slot to var 2's address and
-  idx to var 3's. Note: found is never initialized; when it starts False only the first creature is scanned (the scan
-  always sets found), leaving idx = 1. addr1 and addr2 are Bytes, so both addresses lose their high byte. }
+{ SPELL: find the first party member, in party order, who is okay and has spell var 1 memorized (not pending) in
+  memorizedSpells[1..20]. Write the slot to var 2's address as its index - 1, which is how scripts reach it through the
+  character window at $6B20 (SpecialWriteZ1 maps $6B20 to memorizedSpells[1]), and the member's party position (0 =
+  the first, as LOAD CHARACTER counts) to var 3's. With nobody found, the slot is 255. memorizedSpells[0] cannot be
+  reached through the window, so it is not searched. Kovel Mansion's locked chest uses it for "Cast Knock". }
 procedure EclSpell;
 var
   spellId: Byte;
   slot: Byte;
   idx: Byte;
+  k: Byte;
   p: Types.PCharRecord;
   found: Boolean;
-  addr1: Byte;
-  addr2: Byte;
+  addr1: Word;
+  addr2: Word;
 begin
   EclMenu.LoadEclVars(3);
   spellId := EclMenu.GetEclVar(1);
   addr1 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   addr2 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
-  slot := 1;
+  slot := 255;
   idx := 0;
+  found := False;
   p := GDVars.creatureList;
   while (p <> nil) and (not found) do begin
-    repeat
-      if p^.memorizedSpells[slot] = spellId then
-        found := True
-      else if slot <= 81 then
-        Inc(slot)
-      else begin
-        slot := 255;
-        found := True;
-      end;
-    until found;
-    p := p^.nextCharAddr;
-    Inc(idx);
+    if p^.status = C_Status.OKAY then
+      for k := 1 to SizeOf(p^.memorizedSpells) - 1 do
+        if (not found) and (p^.memorizedSpells[k] = spellId) then begin
+          found := True;
+          slot := k - 1;
+        end;
+    if not found then begin
+      p := p^.nextCharAddr;
+      Inc(idx);
+    end;
   end;
   EclMenu.WriteGbvm(addr1, slot);
   EclMenu.WriteGbvm(addr2, idx);
