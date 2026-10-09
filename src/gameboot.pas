@@ -21,6 +21,28 @@ var
   { POOL.CFG line 5 = 'F' }
   fullIntro: Boolean absolute GDVars.fullIntro;
 
+{ A POOL.CFG path made ready for file names to be appended: spaces trimmed, the current drive (or, for a relative path,
+  the current directory) put in front of a path without a drive letter, and a closing backslash. An empty path gives
+  the current directory. }
+function NormalizePath(path: String): String;
+var
+  cur: String;
+begin
+  while (Length(path) > 0) and (path[1] = ' ') do
+    Delete(path, 1, 1);
+  while (Length(path) > 0) and (path[Length(path)] = ' ') do
+    Dec(path[0]);
+  GetDir(0, cur);
+  if cur[Length(cur)] <> '\' then cur := cur + '\';
+  if (Length(path) < 2) or (path[2] <> ':') then
+    if (Length(path) > 0) and (path[1] = '\') then
+      path := Copy(cur, 1, 2) + path
+    else
+      path := cur + path;
+  if path[Length(path)] <> '\' then path := path + '\';
+  NormalizePath := path;
+end;
+
 { Game startup runs through this unit's initialization section. }
 begin
   DaxIo.OverlayPrompt;
@@ -93,9 +115,9 @@ begin
   HeapEnd := GDVars.gfxReserve;
   SoundDrv.SoundSuspend;
   ReadLn(GDVars.cfgText, GDVars.gameDir);
-  GDVars.gameDir := GDVars.gameDir;
+  GDVars.gameDir := NormalizePath(GDVars.gameDir);
   ReadLn(GDVars.cfgText, GDVars.dsSaveDirectory);
-  GDVars.dsSaveDirectory := GDVars.dsSaveDirectory;
+  GDVars.dsSaveDirectory := NormalizePath(GDVars.dsSaveDirectory);
   ReadLn(GDVars.cfgText, GDVars.cfgChar);
   if GDVars.cfgChar = 'F' then
     fullIntro := True
