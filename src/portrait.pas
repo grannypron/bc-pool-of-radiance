@@ -5,7 +5,7 @@ unit Portrait;
 
 interface
 
-uses Types, Crt, GDConsts, GDVars, Blit, GameIo, Border;
+uses Types, Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo;
 
 procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
 
@@ -14,6 +14,10 @@ procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Typ
 procedure FreeAnimation(var a: Types.TAnimRec);
 
 procedure DisplayCharPortrait;
+
+{ True when the player portraits can be shown on the current disk: on disk 3, whose HEAD3.DAX and BODY3.DAX hold them,
+  or on any disk once the merged HEAD.DAX and BODY.DAX are read in place of its own. }
+function PlayerPortraitsHere: Boolean;
 
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 
@@ -172,6 +176,15 @@ begin
     Portrait.LoadPortraitBufs(GDConsts.headTbl[portraitHead], GDConsts.bodyTbl[portraitBody]);
     Portrait.DisplayPortraitBufs(28, 1, True);
   end;
+end;
+
+function PlayerPortraitsHere: Boolean;
+var
+  diskCh: String[1];
+begin
+  Str(LongInt(GDVars.virtualDisk), diskCh);
+  PlayerPortraitsHere := (GDVars.virtualDisk = 3) or
+    ((DaxIo.ArchiveName('HEAD' + diskCh) = 'HEAD') and (DaxIo.ArchiveName('BODY' + diskCh) = 'BODY'));
 end;
 
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping
