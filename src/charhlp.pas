@@ -235,10 +235,10 @@ end;
   movement, each further 256-coin band steps down (9 / 6 / 3), and the result only ever lowers movementCur. }
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 var
-  over: Integer;
+  over: LongInt;
   movement: Byte;
 begin
-  over := creature^.encumbrance - CharHlp.WeightAllowance(creature);
+  over := LongInt(creature^.encumbrance) - CharHlp.WeightAllowance(creature);
   if over < 0 then
     over := 0;
   case over of
@@ -428,7 +428,7 @@ end;
 { Rebuild equipment slots and encumbrance, apply strength, dexterity and item adjustments, then calculate armor class,
   rear armor class (no Dexterity or shield), attack level (fighter level for a non-monster fighter, else 1) and
   movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of encumbrance, never leaving
-  less than the equipped items' weight. }
+  less than the equipped items' weight. The weight is summed in 32 bits and stored as at most 65535. }
 procedure RecalcStats(creature: Types.PCharRecord);
 var
   j: Byte;
@@ -440,7 +440,8 @@ var
   i: ShortInt;
   pad: Byte;
   c: ShortInt;
-  w: Word;
+  w: LongInt;
+  raw: LongInt;
   slot: 0..127;
   ringSave: ShortInt;
 begin
@@ -451,12 +452,12 @@ begin
   creature^.numberOfItems := 0;
   item := creature^.itemsAddr;
   creature^.handsEquipped := 0;
-  creature^.encumbrance := 0;
+  raw := 0;
   GDVars.gEquipWeight := 0;
   while item <> nil do begin
     Inc(creature^.numberOfItems);
     w := CharHlp.ItemWeight(item);
-    Inc(creature^.encumbrance, w);
+    Inc(raw, w);
     if item^.equipped <> 0 then begin
       Inc(GDVars.gEquipWeight, w);
       slot := GDVars.baseItems[item^.itemType].slot;
@@ -481,7 +482,7 @@ begin
     item := item^.next;
   end;
   for c := C_Money.COPPER to C_Money.JEWELRY do
-    creature^.encumbrance := creature^.encumbrance + creature^.coins[c];
+    Inc(raw, creature^.coins[c]);
   for j := 1 to 2 do begin
     creature^.curRollsA[j] := creature^.unarmedRollsA[j];
     creature^.curDiceA[j] := creature^.unarmedDiceA[j];
@@ -517,13 +518,16 @@ begin
   if magicBody then
     adj[3] := 0;
   if bag then begin
-    if creature^.encumbrance < 5000 then
-      creature^.encumbrance := 0
+    if raw < 5000 then
+      raw := 0
     else
-      Dec(creature^.encumbrance, 5000);
-    if creature^.encumbrance < GDVars.gEquipWeight then
-      creature^.encumbrance := GDVars.gEquipWeight;
+      Dec(raw, 5000);
+    if raw < GDVars.gEquipWeight then
+      raw := GDVars.gEquipWeight;
   end;
+  if raw > 65535 then
+    raw := 65535;
+  creature^.encumbrance := raw;
   CharHlp.EncumbranceAdjust(creature);
   if adj[4] < creature^.acCur then
     adj[4] := creature^.acCur;

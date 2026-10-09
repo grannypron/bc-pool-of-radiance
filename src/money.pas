@@ -6,7 +6,7 @@ interface
 
 uses Types, Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money;
 
-function CheckOverload(p: Types.PCharRecord; w: Word; var takable: Word): Boolean;
+function CheckOverload(p: Types.PCharRecord; w: LongInt; var takable: Word): Boolean;
 
 procedure PoolMoney;
 
@@ -78,7 +78,7 @@ end;
 
 { True, with the spare capacity in takable, when carrying w more coins would exceed capacity; else False with takable
   zero. }
-function CheckOverload(p: Types.PCharRecord; w: Word; var takable: Word): Boolean;
+function CheckOverload(p: Types.PCharRecord; w: LongInt; var takable: Word): Boolean;
 begin
   takable := Money.SpareCapacity(p);
   if w > takable then

@@ -906,7 +906,7 @@ end;
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 var
   f: Boolean;
-  w: Word;
+  w: LongInt;
   takable: Word;
 begin
   CharHlp.RecalcStats(creature);
