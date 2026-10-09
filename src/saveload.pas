@@ -128,11 +128,12 @@ begin
 end;
 
 { Create the save directory (path minus the trailing backslash); IOResult 5 (the directory already exists) counts as
-  success. Prompt for the save disk until MkDir succeeds. }
+  success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\ cannot be made and is left alone. }
 procedure CheckSaveDir;
 var
   ioRes: Integer;
 begin
+  if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
   repeat
     MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
     ioRes := IOResult;

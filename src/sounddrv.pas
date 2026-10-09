@@ -8,7 +8,7 @@ unit SoundDrv;
 interface
 
 { * Provides the time base for SoundDelay by reading the DOS clock.
-   @returns(Clock time in centiseconds. Note: minute times 6000 is computed in Word arithmetic and wraps.) }
+   @returns(Clock time in centiseconds.) }
 function SoundTime: LongInt;
 
 { * Paces sound cleanup without relying on the timer interrupt, which the sound driver may have hooked. Busy-waits
@@ -79,7 +79,7 @@ var
   hundredthSecond: Word;
 begin
   GetTime(hour, minute, second, hundredthSecond);
-  SoundTime := hour * 360000 + minute * 6000 + second * 100 + hundredthSecond;
+  SoundTime := hour * 360000 + LongInt(minute) * 6000 + second * 100 + hundredthSecond;
 end;
 
 procedure SoundDelay(centiseconds: Word);
