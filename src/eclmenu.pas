@@ -1080,7 +1080,7 @@ begin
 end;
 
 { "dies" when dmg > hpCur + 10, else the hit message (dmgStr holds at most 3 digits); then apply the damage, clear the
-  panel at (17,1)-(38,15) and redraw the party }
+  panel at (17,1)-(38,15) and redraw the party. A dead, stoned or gone character is left alone, with no message. }
 procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 var
   frameSizer: Byte;
@@ -1088,7 +1088,8 @@ var
   dmgStr: String[3];
   pause: Boolean;
 begin
-  if creature^.status = C_Status.DEAD then Exit;
+  { a dead, stoned or gone character takes no damage, as in CharHlp.InflictDamage }
+  if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   pause := False;
   Str(dmg, dmgStr);
   if creature^.hpCur + 10 < dmg then
