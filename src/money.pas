@@ -179,15 +179,14 @@ begin
   InputNumberMax := n;
 end;
 
-{ Move qty coins of mType from giver to rcv if rcv can carry them, else print 'Overloaded'. Note: the weight is removed
-  from giver and then added back to giver, not to rcv. }
+{ Move qty coins of mType, and their weight, from giver to rcv if rcv can carry them, else print 'Overloaded'. }
 procedure TradeMoney(var giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   if rcv^.encumbrance + qty <= Money.CarryingCapacity(rcv) then begin
     giver^.coins[mType] := giver^.coins[mType] - qty;
     Money.RemoveWeight(giver, qty);
     rcv^.coins[mType] := rcv^.coins[mType] + qty;
-    Money.AddWeight(giver, qty);
+    Money.AddWeight(rcv, qty);
   end else
     CharHlp.PrintBottomLine('Overloaded');
 end;
