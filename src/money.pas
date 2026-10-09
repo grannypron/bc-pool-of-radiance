@@ -456,9 +456,10 @@ begin
     save := p;
     ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 2, 2,
                                 15, 8, p, True, redraw, idx, sel);
-    if (sel = nil) or (ch = C_Keys.NONE) then
-      exitF := True
-    else begin
+    if (sel = nil) or (ch = C_Keys.NONE) then begin
+      MenuCore.FreeStringList(save);
+      exitF := True;
+    end else begin
       exitF := False;
       mType := Money.ParseMoneyType(sel^.name, numStr);
       numStr := 'How much ' + numStr + 'will you take? ';
