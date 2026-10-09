@@ -1,12 +1,12 @@
 { Main game loop and ECL script interpreter. }
-{$O+,F+,I-} { I/O checking is disabled for the interpreter's diagnostic output. }
+{$O+,F+}
 unit EclVm;
 
 interface
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Shop, EclMenu, Combat, Explore,
   Camp, CharGen, SaveLoad, Ending, GameTime, Money, FxEngine, MenuCore, MapView, Portrait, View3D, MapTiles, CharHlp,
-  Border, TextRend, DaxIo, GameIo, SoundDrv, C_Effect, C_Ecl, C_Class, C_Status, C_Ifc, C_Gbvm, C_Sound, C_Money;
+  Border, TextRend, DaxIo, GameIo, SoundDrv, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money;
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
   and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
@@ -378,13 +378,13 @@ begin
   if GDVars.dsGbvmType[1] < $80 then
     GDVars.gbStrings[1] := CharHlp.WordToString(EclMenu.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, False, GDVars.gbStrings[1])
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
+                                  False, GDVars.gbStrings[1])
   else begin
     GDVars.curRow := C_Msg.MESSAGE_TOP;
     GDVars.curCol := C_Msg.TEXT_LEFT;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, True, GDVars.gbStrings[1]);
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
+                                  True, GDVars.gbStrings[1]);
   end;
   GDVars.msgDelayFlag := 0;
 end;
@@ -417,48 +417,17 @@ begin
     GDVars.cmpFlags[1] := True;
 end;
 
-{ Step IP past the command at IP without running it, loading the opcode's operands; unlisted opcodes skip one byte }
-procedure SkipEclCmd;
-begin
-  GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
-  case GDVars.curOpcode of
-    C_Ecl.JUMP, C_Ecl.GOSUB, C_Ecl.LOAD_CHAR, C_Ecl.PICTURE, C_Ecl.PRINT, C_Ecl.PRINTCLEAR,
-        C_Ecl.PARTY_STR, C_Ecl.NEWECL, C_Ecl.CALL,
-    C_Ecl.FIND_ITEM, C_Ecl.CLOCK, C_Ecl.ADD_NPC, C_Ecl.RUN_PROGRAM, C_Ecl.WHO, C_Ecl.PROTECTION:
-      EclMenu.LoadEclVars(1);
-    C_Ecl.COMPARE, C_Ecl.RANDOM_NUMBER, C_Ecl.SAVE, C_Ecl.SETUP_MON, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR,
-        $1F, C_Ecl.PARTY_SURPR:
-      EclMenu.LoadEclVars(2);
-    C_Ecl.ADD..C_Ecl.MULTIPLY, C_Ecl.LOAD_MON, C_Ecl.LOADFILES, C_Ecl.ROB, C_Ecl.GETTABLE,
-        C_Ecl.BIT_AND, C_Ecl.BIT_OR, C_Ecl.SAVE_TABLE,
-    C_Ecl.LOADPIECES, C_Ecl.SPELL:
-      EclMenu.LoadEclVars(3);
-    C_Ecl.COMPARE_AND, C_Ecl.SURPRISE:
-      EclMenu.LoadEclVars(4);
-    C_Ecl.DAMAGE:
-      EclMenu.LoadEclVars(5);
-    C_Ecl.CHECK_PARTY, C_Ecl.PARLAY:
-      EclMenu.LoadEclVars(6);
-    C_Ecl.TREASURE:
-      EclMenu.LoadEclVars(8);
-    C_Ecl.ENCOUNTER:
-      EclMenu.LoadEclVars(14);
-  else
-    Inc(GDVars.eclIp);
-  end;
-end;
-
 { IF: skip the next command unless the comparison flag for this opcode is set }
 procedure EclIf;
 begin
   Inc(GDVars.eclIp);
   case GDVars.curOpcode of
-    C_Ecl.IF_EQ: if not GDVars.cmpFlags[0] then EclVm.SkipEclCmd;
-    C_Ecl.IF_NE: if not GDVars.cmpFlags[1] then EclVm.SkipEclCmd;
-    C_Ecl.IF_LT: if not GDVars.cmpFlags[2] then EclVm.SkipEclCmd;
-    C_Ecl.IF_GT: if not GDVars.cmpFlags[3] then EclVm.SkipEclCmd;
-    C_Ecl.IF_LE: if not GDVars.cmpFlags[4] then EclVm.SkipEclCmd;
-    C_Ecl.IF_GE: if not GDVars.cmpFlags[5] then EclVm.SkipEclCmd;
+    C_Ecl.IF_EQ: if not GDVars.cmpFlags[0] then EclMenu.SkipEclCmd;
+    C_Ecl.IF_NE: if not GDVars.cmpFlags[1] then EclMenu.SkipEclCmd;
+    C_Ecl.IF_LT: if not GDVars.cmpFlags[2] then EclMenu.SkipEclCmd;
+    C_Ecl.IF_GT: if not GDVars.cmpFlags[3] then EclMenu.SkipEclCmd;
+    C_Ecl.IF_LE: if not GDVars.cmpFlags[4] then EclMenu.SkipEclCmd;
+    C_Ecl.IF_GE: if not GDVars.cmpFlags[5] then EclMenu.SkipEclCmd;
   end;
 end;
 
@@ -484,7 +453,8 @@ end;
 
 { LOADFILES: load GEO map var 1 when view3dFlag <> 0, or the BACPAC tile set when view3dFlag = 0. LOADPIECES: load the
   wall sets in vars 1..3 (127 loads set 0; with both mapGraphics flags set only vars 1 and 3 are used); otherwise a 255
-  slot is left untouched. Once both have run on entering the main loop, draw the noncombat interface and the party. }
+  slot clears its wall-def cache entry. Once both have run on entering the main loop, draw the noncombat interface and
+  the party. }
 procedure EclLoadFiles;
 var
   f: array[1..3] of Byte;
@@ -513,7 +483,11 @@ begin
     end else
       for i := 1 to 3 do
         if f[i] <> 255 then
-          View3D.LoadWallSet(f[i], i);
+          View3D.LoadWallSet(f[i], i)
+        else begin
+          wallDefs[i].wallDefId := 65535;
+          wallDefs[i].symbolSlot := 65535;
+        end;
   end;
   if (GDVars.enteringLoop <> 0) and (GDVars.piecesLoaded <> 0) and (GDVars.mapLoaded <> 0) then begin
     CharHlp.DisplayNoncombatInterface;
@@ -605,8 +579,8 @@ begin
   head := list;
   GDVars.curCol := C_Msg.TEXT_LEFT;
   GDVars.curRow := C_Msg.MESSAGE_TOP;
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                LightGreen, True, msg);
+  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
+                                True, msg);
   while list <> nil do begin
     list^.name := GDVars.gbStrings[i];
     list^.inUse := 0;
@@ -615,8 +589,8 @@ begin
   end;
   list := head;
   idx := 0;
-  EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1,
-                          C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
+  EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1, C_Msg.TEXT_RIGHT,
+                          C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
   EclMenu.WriteGbvm(address, idx);
   MenuCore.FreeStringList(list);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
@@ -714,8 +688,7 @@ begin
       th := th - 39
     else
       th := 0;
-    strength := strength + (cleric * 4 + (hp + ac * 5 + th * 5 + mage * 8))
-                 div 10;
+    Inc(strength, (cleric * 4 + (hp + ac * 5 + th * 5 + mage * 8)) div 10);
     p := p^.nextCharAddr;
   end;
   address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
@@ -1077,30 +1050,6 @@ begin
   end;
 end;
 
-{ Highest/lowest movement in GDVars.creatureList (haste doubles, else slow halves); hiMove/loMove start from the head's
-  unadjusted movementCur, so that value always lies within the bounds. The list head is read before the nil check, so
-  callers must supply a nonempty list }
-procedure MoveExtremes(var hiMove, loMove: Byte);
-var
-  p: Types.PCharRecord;
-  effect: Types.PEffectRec;
-  m: Byte;
-begin
-  p := GDVars.creatureList;
-  hiMove := p^.movementCur;
-  loMove := p^.movementCur;
-  while p <> nil do begin
-    m := p^.movementCur;
-    if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
-      m := m * 2
-    else if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
-      m := m div 2;
-    if m > hiMove then hiMove := m;
-    if m < loMove then loMove := m;
-    p := p^.nextCharAddr;
-  end;
-end;
-
 { Run the encounter menu until combat, flight, parley or monster retreat ends it. WAIT and ADVANCE update the encounter
   and repeat; write the outcome to var 4's address: 0 = monsters flee, 1 = combat, 2 = party flees, 3 = parley }
 procedure EclEncounter;
@@ -1126,7 +1075,7 @@ begin
   GDVars.inEncMenu := 1;
   GDVars.bottomMsgCleared := 0;
   GDVars.msgDelayFlag := 1;
-  EclVm.MoveExtremes(hiMove, loMove);
+  EclMenu.MoveExtremes(hiMove, loMove);
   q := '';
   EclMenu.LoadEclVars(14);
   GDVars.monId := EclMenu.GetEclVar(1);
@@ -1177,8 +1126,8 @@ begin
     end;
     if msg = '' then
       clearW := False;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, clearW, msg);
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
+                                  clearW, msg);
     if (GDVars.zone1^[C_Gbvm.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0) then
       menu := '~COMBAT ~WAIT ~FLEE ~PARLAY'
     else
@@ -1203,7 +1152,8 @@ begin
           1: begin
             waited := True;
             TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                          LightGreen, True, 'Both sides wait.');
+                                          LightGreen, True,
+                                          'Both sides wait.');
           end;
           2: EclMenu.WriteGbvm(address, 2);
           3: begin
@@ -1213,7 +1163,8 @@ begin
                                      GDVars.dsMonsterFlags);
             end else
               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True, 'Both sides wait.');
+                                            LightGreen, True,
+                                            'Both sides wait.');
             waited := True;
           end;
           4:
@@ -1234,7 +1185,8 @@ begin
               GDVars.curCol := C_Msg.TEXT_LEFT;
               GDVars.curRow := C_Msg.MESSAGE_TOP;
               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True, 'The monsters flee.');
+                                            LightGreen, True,
+                                            'The monsters flee.');
             end else
               EclMenu.WriteGbvm(address, 1);
           1..4: begin
@@ -1242,7 +1194,8 @@ begin
             GDVars.curCol := C_Msg.TEXT_LEFT;
             GDVars.curRow := C_Msg.MESSAGE_TOP;
             TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                          LightGreen, True, 'The monsters flee.');
+                                          LightGreen, True,
+                                          'The monsters flee.');
           end;
         end;
       3:
@@ -1255,7 +1208,8 @@ begin
                                      GDVars.dsMonsterFlags);
             end else
               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True, 'Both sides wait.');
+                                            LightGreen, True,
+                                            'Both sides wait.');
             waited := True;
           end;
           2: EclMenu.WriteGbvm(address, 2);
@@ -1347,37 +1301,6 @@ begin
   TextRend.PauseOnly;
 end;
 
-{ Damage message + damage + party panel refresh; dead creatures are skipped. "dies" when dmg > hpCur + 10, else the hit
-  message (dmgStr holds at most 3 digits); then apply the damage, clear the panel at (17,1)-(38,15) and redraw the
-  party }
-procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
-var
-  frameSizer: Byte;
-  msg: String;
-  dmgStr: String[3];
-  pause: Boolean;
-begin
-  if creature^.status = C_Status.DEAD then Exit;
-  pause := False;
-  Str(dmg, dmgStr);
-  if creature^.hpCur + 10 < dmg then
-    msg := '  ' + creature^.name + ' dies. '
-  else
-    msg := '  ' + creature^.name + ' is hit for ' + dmgStr + ' points of damage.';
-  if GDVars.curRow > C_Msg.TEXT_BOTTOM then begin
-    GDVars.curRow := C_Msg.MESSAGE_TOP;
-    pause := True;
-    TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
-  end else
-    pause := False;
-  GDVars.curCol := C_Msg.TEXT_RIGHT;
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, White,
-                                pause, msg);
-  CharHlp.InflictDamage(creature, dmg);
-  TextRend.ClearRect(17, 1, 38, 15);
-  CharHlp.DisplayParty(GDVars.curChar);
-end;
-
 { DAMAGE: apply scripted damage, then check for total party defeat. Without attack bit 7, attack counts attack rolls
   against random members (value is passed to FxEngine.AttackRollNoAttacker) and damage is rerolled after each roll. With
   bit 7, bit 6 selects the whole party, bit 5 skips whole-party saves, and the low five bits modify the save. value bit
@@ -1423,21 +1346,21 @@ begin
     if allParty <> 0 then begin
       while p <> nil do begin
         if attack and $20 <> 0 then
-          EclVm.EclInflictDamage(dmg, p)
+          EclMenu.EclInflictDamage(dmg, p)
         else begin
           if not FxEngine.RollSavingThrow(p, saveType, saveMod) then
-            EclVm.EclInflictDamage(dmg, p);
+            EclMenu.EclInflictDamage(dmg, p);
         end;
         p := p^.nextCharAddr;
       end;
     end else if value and $80 <> 0 then begin
       if (saveType = 0) or (not FxEngine.RollSavingThrow(GDVars.curChar, saveType - 1, saveMod)) then
-        EclVm.EclInflictDamage(dmg, GDVars.curChar);
+        EclMenu.EclInflictDamage(dmg, GDVars.curChar);
     end else begin
       for i := 2 to count do
         p := p^.nextCharAddr;
       if not FxEngine.RollSavingThrow(p, saveType, saveMod) then
-        EclVm.EclInflictDamage(dmg, p);
+        EclMenu.EclInflictDamage(dmg, p);
     end;
   end else begin
     for i := 1 to attack do begin
@@ -1449,7 +1372,7 @@ begin
         Inc(k);
       end;
       if FxEngine.AttackRollNoAttacker(p, value) then
-        EclVm.EclInflictDamage(dmg, p);
+        EclMenu.EclInflictDamage(dmg, p);
       dmg := bonus + FxEngine.RollDice(dice, sides);
     end;
   end;
@@ -1532,7 +1455,6 @@ var
   dead: array[1..4] of Byte;
   id: Byte;
   morale: Byte;
-  dead2: array[1..8] of Byte;
 begin
   EclMenu.LoadEclVars(2);
   id := EclMenu.GetEclVar(1);
@@ -1551,7 +1473,7 @@ end;
 
 { SPELL: look for spell var 1 in memorizedSpells[1..82] (slot 255 = not found) and write the slot to var 2's address and
   idx to var 3's. Note: found is never initialized; when it starts False only the first creature is scanned (the scan
-  always sets found), leaving idx = 1. }
+  always sets found), leaving idx = 1. addr1 and addr2 are Bytes, so both addresses lose their high byte. }
 procedure EclSpell;
 var
   spellId: Byte;
@@ -1559,8 +1481,8 @@ var
   idx: Byte;
   p: Types.PCharRecord;
   found: Boolean;
-  addr1: Word;
-  addr2: Word;
+  addr1: Byte;
+  addr2: Byte;
 begin
   EclMenu.LoadEclVars(3);
   spellId := EclMenu.GetEclVar(1);
@@ -1691,11 +1613,9 @@ var
   i: Byte;
   c: Byte;
   done: Boolean;
-  s: String;
 begin
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
   GDVars.eclGraphics := False;
-  s := '';
   EclMenu.LoadEclVars(1);
   address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   i := 0;
@@ -1710,7 +1630,6 @@ begin
     a := address + i;
     c := EclMenu.ReadGbvm(a) + 1;
     if c > 1 then begin
-      s := s + CharHlp.ByteToString(c);
       TextRend.RenderChar(GDVars.curCol, GDVars.curRow, White, 1, c, 0);
       Inc(GDVars.curCol);
       Inc(i);
@@ -1720,8 +1639,8 @@ begin
   Inc(GDVars.curRow);
 end;
 
-{ Run the command at the IP (curOpcode). Note: an unhandled opcode such as $1F prints a diagnostic and leaves the IP
-  unchanged, so CallEclScript would run it forever. }
+{ Run the command at the IP (curOpcode). Note: an unhandled opcode such as $1F does nothing and leaves the IP unchanged,
+  so CallEclScript would run it forever. }
 procedure ExecNextEclCmd;
 begin
   case GDVars.curOpcode of
@@ -1774,10 +1693,6 @@ begin
     C_Ecl.SPELL: EclVm.EclSpell;
     C_Ecl.PROTECTION: EclVm.EclProtection;
     C_Ecl.CLEAR_BOX: EclVm.EclClearBox;
-  else begin
-    WriteLn('codeop = ', GDVars.curOpcode, ' last = ', GDVars.prevOpcode);
-    WriteLn('string = ', GDVars.gbStrings[1]);
-  end;
   end;
 end;
 
@@ -1795,9 +1710,9 @@ begin
 end;
 
 { Refresh the event byte, run the new script's on-load entry (scriptEntryAddrs[5]), and when view3dFlag = 0 set the
-  location type for the three wilderness scripts. On the central one, call Ending.YarashComplete once the Yarash pyramid
-  is done, whatever view3dFlag is. Redraw, then run scriptEntryAddrs[1] and the search entry. newEclFlag is cleared
-  before scriptEntryAddrs[1] runs, so this repeats while that entry itself runs NEWECL. }
+  location type for the three wilderness scripts (on the central one, call Ending.YarashComplete once the Yarash pyramid
+  is done). Redraw, then run scriptEntryAddrs[1] and the search entry. newEclFlag is cleared before scriptEntryAddrs[1]
+  runs, so this repeats while that entry itself runs NEWECL. }
 procedure NewEclDone;
 var
   savedCur: Types.PCharRecord;
@@ -1810,31 +1725,28 @@ begin
     GDVars.gLocType := C_Area.LOC_3D_MAP;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
     GDVars.ifcState := C_Ifc.INDOORS;
-    case GDVars.eclScriptId of
-      WILD_WEST_SCRIPT:
-        if GDVars.zone0^.view3dFlag = 0 then begin
+    if GDVars.zone0^.view3dFlag = 0 then
+      case GDVars.eclScriptId of
+        WILD_WEST_SCRIPT: begin
           GDVars.gLocType := C_Area.LOC_WILD_WEST;
           GDVars.ifcState := C_Ifc.OUTDOORS;
         end;
-      WILD_CENTRAL_SCRIPT: begin
-        if GDVars.zone0^.view3dFlag = 0 then begin
+        WILD_CENTRAL_SCRIPT: begin
           GDVars.gLocType := C_Area.LOC_WILD_CENTRAL;
           GDVars.ifcState := C_Ifc.OUTDOORS;
+          if (GDVars.zone0^.yarashMissionDone = 254) and (GDVars.zone0^.yarashPyramidLeft = 0) then
+            Ending.YarashComplete(True);
         end;
-        if (GDVars.zone0^.yarashMissionDone = 254) and (GDVars.zone0^.yarashPyramidLeft = 0) then
-          Ending.YarashComplete(True);
-      end;
-      WILD_EAST_SCRIPT:
-        if GDVars.zone0^.view3dFlag = 0 then begin
+        WILD_EAST_SCRIPT: begin
           GDVars.gLocType := C_Area.LOC_WILD_EAST;
           GDVars.ifcState := C_Ifc.OUTDOORS;
         end;
-    end;
+      end;
     if (GDVars.locTypePrev > C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP) then
       Border.DrawWindow(3, 3, 13, 13, 0, LightGreen, '');
     if (((GDVars.locTypePrev > C_Area.LOC_3D_MAP) or (GDVars.gLocType = C_Area.LOC_3D_MAP)) and
         (GDVars.filesLoaded <> 0)) or
-          ((GDVars.locTypePrev = C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP)) then
+        ((GDVars.locTypePrev = C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP)) then
       MapView.DisplayMapView;
     GDVars.newEclFlag := 0;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);

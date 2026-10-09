@@ -50,28 +50,28 @@ begin
   Str(GDVars.virtualDisk, GDVars.finalSfx);
   GDVars.savedIfc := GDVars.ifcState;
   GDVars.ifcState := C_Ifc.WON_GAME;
-  GDVars.finalPic := nil;
+  GDVars.finalPicSlot := nil;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');
   TextRend.DisplayString(1, 18, LightGreen, 'The spirit of Tyranthraxus flares up');
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
   CharHlp.DisplayNoncombatInterface;
-  Blit.LoadPic('FINAL' + GDVars.finalSfx, 1, False, 0, GDVars.finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+  Blit.LoadPic('FINAL' + GDVars.finalSfx, 1, False, 0, GDVars.finalPicSlot);
+  Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPicSlot, GDVars.dsViewImageBufferPtr);
   Ending.PlayFinalAnim(3, 5, 2, (10 - GDVars.gameDelay) * 5 div 2);
-  Blit.LoadPic('FINAL' + GDVars.finalSfx, 3, False, 0, GDVars.finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+  Blit.LoadPic('FINAL' + GDVars.finalSfx, 3, False, 0, GDVars.finalPicSlot);
+  Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPicSlot, GDVars.dsViewImageBufferPtr);
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 1 then begin
-    Blit.LoadPic('FINAL' + GDVars.finalSfx, 4, False, 0, GDVars.finalPic);
-    Blit.BlitTileClipped(0, 11, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.LoadPic('FINAL' + GDVars.finalSfx, 4, False, 0, GDVars.finalPicSlot);
+    Blit.BlitTileClipped(0, 11, 0, 0, GDVars.finalPicSlot, GDVars.dsViewImageBufferPtr);
   end;
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 2 then begin
-    Blit.LoadPic('FINAL' + GDVars.finalSfx, 5, False, 0, GDVars.finalPic);
-    Blit.BlitTileClipped(13, 9, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.LoadPic('FINAL' + GDVars.finalSfx, 5, False, 0, GDVars.finalPicSlot);
+    Blit.BlitTileClipped(13, 9, 0, 0, GDVars.finalPicSlot, GDVars.dsViewImageBufferPtr);
   end;
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 3 then begin
-    Blit.LoadPic('FINAL' + GDVars.finalSfx, 6, False, 0, GDVars.finalPic);
-    Blit.BlitTileClipped(0, 9, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.LoadPic('FINAL' + GDVars.finalSfx, 6, False, 0, GDVars.finalPicSlot);
+    Blit.BlitTileClipped(0, 9, 0, 0, GDVars.finalPicSlot, GDVars.dsViewImageBufferPtr);
   end;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');

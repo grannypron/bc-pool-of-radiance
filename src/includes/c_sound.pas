@@ -18,8 +18,6 @@ const
   MODE_DISABLED = 2;
   ECL_CUE = 7;
   RANGED_END = 8;
-  TITLE_THEME = 9;
-  BATTLE_STING = 10;
 
 implementation
 

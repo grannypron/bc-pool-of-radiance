@@ -142,10 +142,9 @@ end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). Remove
   animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
-  one. hpLoss is hpMax - hpRolled; if the reduced constitution is still 14 or more, it is divided by the summed
-  per-level constitution bonus and taken off both hpMax and hpCur when constitution is below 17 or the character has
-  fighter levels. Note: a constitution of 0 wraps, hpRolled above hpMax wraps hpLoss, a zero bonus sum divides by zero,
-  and hpCur (just set to 1) can wrap. }
+  one unless it is 0. hpLoss is hpMax - hpRolled (0 if negative); if the reduced constitution is still 14 or more, it is
+  divided by the summed per-level constitution bonus (skipped when that sum is 0) and taken off hpMax when constitution
+  is below 17 or the character has fighter levels. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -176,8 +175,12 @@ begin
         creature^.hpCur := 1;
         creature^.status := C_Status.OKAY;
         creature^.enabled := 1;
-        Dec(creature^.conCur);
-        hpLoss := creature^.hpMax - creature^.hpRolled;
+        if creature^.conCur > 0 then
+          Dec(creature^.conCur);
+        if creature^.hpMax > creature^.hpRolled then
+          hpLoss := creature^.hpMax - creature^.hpRolled
+        else
+          hpLoss := 0;
         hpBonus := 0;
         if creature^.conCur >= 14 then begin
           { 7 = High(classLevels) }
@@ -190,11 +193,10 @@ begin
               else
                 Inc(hpBonus, creature^.classLevels[i]);
             end;
-          hpLoss := hpLoss div hpBonus;
-          if (creature^.conCur < 17) or (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) then begin
+          if hpBonus > 0 then
+            hpLoss := hpLoss div hpBonus;
+          if (creature^.conCur < 17) or (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) then
             Dec(creature^.hpMax, hpLoss);
-            Dec(creature^.hpCur, hpLoss);
-          end;
         end;
       end;
     end;

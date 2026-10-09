@@ -122,8 +122,6 @@ var
 
   { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
   zone1B: Types.PFxengineZoneBytes absolute GDVars.zone1;
-  { save type of the current saving throw, 0..4 (the SAVE_ constants of C_Save and EffHndlr) }
-  gSaveType: Byte absolute GDVars.gSaveType;
   { effect handler table, indexed by effect id }
   effectHandlers: array[C_Effect.BLESS..C_Effect.READY_RING_INVIS] of Types.TEffectHandler
                              absolute GDVars.effectFns;
@@ -446,7 +444,7 @@ begin
     20: RollSavingThrow := True;
   else begin
     GDVars.gSaveRoll := GDVars.gSaveRoll + creature^.saveBonus + modifier;
-    gSaveType := saveType;
+    GDVars.gSaveType := saveType;
     FxEngine.TriggerEffectsWithCondition(C_Cond.SAVING_THROW, creature);
     if creature^.saves[saveType] <= GDVars.gSaveRoll then
       RollSavingThrow := True

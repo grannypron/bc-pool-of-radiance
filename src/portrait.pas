@@ -5,7 +5,7 @@ unit Portrait;
 
 interface
 
-uses Types, Blit, Crt, GDConsts, GDVars, DaxIo, GameIo, Border;
+uses Types, Crt, GDConsts, GDVars, Blit, DaxIo, GameIo, Border;
 
 procedure NoopPortrait;
 
@@ -64,10 +64,10 @@ begin
 end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that name/id pair is already the cached picture
-  (GDVars.picArcName/picArcId). PIC 1 is capped at 4 frames. One image buffer is allocated per frame, with no MaxAvail
-  guard. PIC and FINAL frames after the first are XORed with the first; an odd transp remaps LightMagenta to Black
-  outside CGA. Note: the XOR buffer is freed after every PIC or FINAL load, even one with zero frames, which never
-  allocated it. }
+  (GDVars.picArcName/picArcId). PIC 1 is capped at 4 frames. A frame is loaded only while MaxAvail >= 3900, and count
+  becomes the number loaded. PIC and FINAL frames after the first are XORed with the first; an odd transp remaps
+  LightMagenta to Black outside CGA. Note: a skipped frame's data after its 8-byte header is not stepped over, so the
+  frames after it are read from the wrong offset. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
 var
   sz: Word;
@@ -81,6 +81,7 @@ var
   j: Word;
   planeSz: Word;
   isPic: Boolean;
+  gotXor: Boolean;
   loaded: Byte;
 begin
   if (name = GDVars.picArcName) and (picId = GDVars.picArcId) then Exit;
@@ -92,12 +93,14 @@ begin
   DaxIo.LoadDax(name + diskCh, '.dax', picId, sz, buf);
   if sz = 0 then Exit;
   offset := 0;
+  gotXor := False;
   with a do begin
     count := buf^[offset];
     if (name = 'PIC') and (picId = 1) then
       if count > 4 then count := 4;
     Inc(offset);
     flag := 1;
+    loaded := 0;
     for f := 1 to count do begin
       Move(buf^[offset], frames[f].hdr, SizeOf(frames[f].hdr));
       Inc(offset, SizeOf(frames[f].hdr));
@@ -105,33 +108,38 @@ begin
       Inc(offset, SizeOf(h));
       Move(buf^[offset], w, SizeOf(w));
       Inc(offset, SizeOf(w));
-      Blit.AllocPic(h, w, 1, transp, frames[f].pic);
-      with frames[f].pic^ do begin
-        Move(buf^[offset], originX, SizeOf(originX));
-        Inc(offset, SizeOf(originX));
-        Move(buf^[offset], originY, SizeOf(originY));
-        Inc(offset, SizeOf(originY) + SizeOf(count));
-        Move(buf^[offset], map, SizeOf(map));
-        Inc(offset, SizeOf(map));
+      if MaxAvail >= 3900 then begin
+        Inc(loaded);
+        Blit.AllocPic(h, w, 1, transp, frames[f].pic);
+        with frames[f].pic^ do begin
+          Move(buf^[offset], originX, SizeOf(originX));
+          Inc(offset, SizeOf(originX));
+          Move(buf^[offset], originY, SizeOf(originY));
+          Inc(offset, SizeOf(originY) + SizeOf(count));
+          Move(buf^[offset], map, SizeOf(map));
+          Inc(offset, SizeOf(map));
+        end;
+        if displayMode = Types.vmCGA then
+          planeSz := frames[f].pic^.imgSize * 2 - 1
+        else
+          planeSz := frames[f].pic^.imgSize - 1;
+        if isPic then
+          if f = 1 then begin
+            GetMem(xorBuf, planeSz + 1);
+            Move(buf^[offset], xorBuf^, planeSz + 1);
+            gotXor := True;
+          end else
+            for j := offset to offset + planeSz do
+              buf^[j] := buf^[j] xor xorBuf^[j - offset];
+        Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[f].pic);
+        if (transp and 1 > 0) and (displayMode <> Types.vmCGA) then
+          Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[f].pic);
+        Inc(offset, planeSz + 1);
       end;
-      if displayMode = Types.vmCGA then
-        planeSz := frames[f].pic^.imgSize * 2 - 1
-      else
-        planeSz := frames[f].pic^.imgSize - 1;
-      if isPic then
-        if f = 1 then begin
-          GetMem(xorBuf, planeSz + 1);
-          Move(buf^[offset], xorBuf^, planeSz + 1);
-        end else
-          for j := offset to offset + planeSz do
-            buf^[j] := buf^[j] xor xorBuf^[j - offset];
-      Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[f].pic);
-      if (transp and 1 > 0) and (displayMode <> Types.vmCGA) then
-        Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[f].pic);
-      Inc(offset, planeSz + 1);
     end;
+    count := loaded;
   end;
-  if isPic then FreeMem(xorBuf, planeSz + 1);
+  if isPic and gotXor then FreeMem(xorBuf, planeSz + 1);
   FreeMem(buf, sz);
   GameIo.PollGameKeys;
 end;

@@ -424,6 +424,7 @@ begin
         while not Pathing.IsDirToward(x, y, GDVars.gTargetX, GDVars.gTargetY, k) do
           Inc(k);
         CbtMap.SetCreatureFacing(p, k, 1, 0);
+        SoundDrv.SoundSetAutoStop(0);
         case spell of
           { Fireball: 11 }
           47: SoundDrv.SoundCommand(soundIds[12]);
@@ -434,6 +435,7 @@ begin
           SoundDrv.SoundCommand(soundIds[3]);
         end;
         CharHlp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
+        SoundDrv.SoundSetAutoStop(10);
         if CbtMap.CombatIconVisible(p, 0) then begin
           CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 1, 1);
           CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 0, 0);
@@ -675,10 +677,12 @@ begin
     if GDVars.dsTargetCreaturePtr[i] <> nil then begin
       tgt := GDVars.dsTargetCreaturePtr[i];
       if i < GDVars.spellTargetCount then begin
+        SoundDrv.SoundSetAutoStop(0);
         SoundDrv.SoundCommand(soundIds[3]);
         CharHlp.BuildIconFacings(18);
         CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.curChar), CbtMap.CombatCellY(GDVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
+        SoundDrv.SoundSetAutoStop(10);
       end;
       saved := FxEngine.RollSavingThrow(tgt, GDConsts.spellTable[GDVars.dsCurrentSpellBeing].saveType, smod);
       if (tgt^.charType > 1) or (tgt^.iconDimensions > 1) then

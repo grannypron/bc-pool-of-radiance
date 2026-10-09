@@ -12,12 +12,8 @@ var
   eclStop: Byte;
   { NEWECL ran; the game loop then calls NewEclDone }
   newEclFlag: Byte;
-  { monsters added by LOAD MONSTER since CLEAR MONSTERS (max 63) }
-  creatureCnt: Byte;
   { LOAD CHARACTER ran; restore curChar from savedChar }
   restoreChar: Byte;
-  { curChar backup }
-  savedChar: Types.PCharRecord;
   { LOADFILES or LOADPIECES ran (not that loading succeeded) }
   filesLoaded: Byte;
   { first LOADFILES/LOADPIECES pair still to draw the interface }
@@ -26,6 +22,10 @@ var
   piecesLoaded: Byte;
   { LOADFILES ran (not that loading succeeded) }
   mapLoaded: Byte;
+  { monsters added by LOAD MONSTER since CLEAR MONSTERS (max 63) }
+  creatureCnt: Byte;
+  { curChar backup }
+  savedChar: Types.PCharRecord;
   { Combat outcome. }
   nonEscapedHostileFound: Boolean;
   partyFled: Boolean;
@@ -59,8 +59,8 @@ var
   gi2: Byte;
 
 var
-  { COMSPR transparency byte offset }
-  maskIdx: Word;
+  { unused }
+  dsUnidentifiedGameini2Prefix: array[0..1] of Byte;
   { OpenWithRetry result }
   itemsOk: Boolean;
   { directory saved across resource loading }
@@ -75,7 +75,7 @@ var
 var
   { Endgame. }
   { WinGame passes it by var to Blit.LoadPic }
-  finalPic: Types.PImgBuf;
+  finalPicSlot: Types.PImgBuf;
   { WinGame saves and restores ifcState }
   savedIfc: Byte;
   { virtual disk digit appended to the FINAL picture names }
@@ -214,6 +214,9 @@ var
   soundMode: Byte;
   { Copy of soundMode taken at suspend so the configured mode is not lost. }
   soundSaved: Byte;
+  { Nonzero: SoundDrv.SoundCommand waits a fixed delay after each command, then silences the voices and removes its
+    timer. Zero leaves the timer driver resident for persistent playback. }
+  soundAutoStop: Word;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
@@ -222,7 +225,7 @@ var
   { GameInit sets it to 1; otherwise unused }
   unidentified02: Word;
   { Save directory from line 4 of POOL.CFG. }
-  dsSaveDirectory: String;
+  dsSaveDirectory: String[255];
   { GameInit sets it to 1; otherwise unused }
   unidentified03: Word;
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
@@ -360,15 +363,7 @@ var
   { 3D-view color register C (floor/wall band) }
   dsWallColorC: Byte;
   { unused }
-  dsUnidentified27: array[0..1] of Byte;
-  { unused }
-  dsUnidentified59: array[0..9] of Byte;
-  { Current horizontal menu choice (1-indexed); unused }
-  dsCurrentHorizontalMenu: Byte;
-  { Extended scan-code flag; unused }
-  dsExtendedScanFlag: Byte;
-  { unused }
-  dsMenuAutoAnswer: array[0..57] of Byte;
+  dsUnidentified59: array[0..71] of Byte;
   { Map position, wall cache, animation and portrait cache }
   { automap shown in place of the 3D view }
   automapOn: Boolean;

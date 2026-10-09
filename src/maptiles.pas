@@ -6,7 +6,7 @@ unit MapTiles;
 
 interface
 
-uses Types, Blit, Crt, C_Tile, GDConsts, GDVars, GameIo, C_Dir;
+uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
 
 procedure NoopMaptiles;
 

@@ -1,5 +1,5 @@
 { Shared creature operations: statistics, equipment, inventory, damage, targeting and party display. }
-{$O+,F+}
+{$F-}
 unit CharHlp;
 
 interface
@@ -12,9 +12,11 @@ procedure PrintItemString(creature: Types.PCharRecord; item: Types.PItemRec; col
 
 procedure DisplayParty(hl: Types.PCharRecord);
 
+procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
+
 procedure PrintHitPoints(creature: Types.PCharRecord; col, row: Byte; hotPink: Boolean);
 
-procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
+procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; possessive: Boolean);
 
 procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 
@@ -22,21 +24,15 @@ function IsHelpless(creature: Types.PCharRecord): Boolean;
 
 procedure RecalcStats(creature: Types.PCharRecord);
 
-function LongIntToString(value: LongInt): String;
+function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
 
-function WordToString(value: Word): String;
+procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 
 function ByteToString(value: Byte): String;
 
-function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
+function WordToString(value: Word): String;
 
-function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
-
-function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
-
-function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
-
-function WeightAllowance(creature: Types.PCharRecord): Integer;
+function LongIntToString(value: LongInt): String;
 
 procedure RemoveSpell(spell: Byte);
 
@@ -46,11 +42,7 @@ procedure AddItemCopy(creature: Types.PCharRecord; item: Types.PItemRec);
 
 procedure PrintBottomLine(s: Types.TStr40);
 
-procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
-
 procedure ClearMessageWindow;
-
-procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; possessive: Boolean);
 
 procedure CopyIconFacing(cell, half, row: Byte; mirror: Boolean);
 
@@ -86,8 +78,6 @@ procedure PrintMiscInfo;
 
 procedure DisplayWildernessInterface;
 
-procedure NoopCharhlp;
-
 procedure DisplayCombatInterface;
 
 procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PCharRecord);
@@ -99,6 +89,14 @@ function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
 
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
+
+function WeightAllowance(creature: Types.PCharRecord): Integer;
+
+function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
+
+function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
+
+function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
 
 implementation
 
@@ -946,8 +944,9 @@ end;
 
 { Show "<name> <text>" with the damage or effect flash: build the facings from icon cell 23 (damage) or 22 (effect),
   scroll the creature on screen if needed, play the sound, print, then flash the four facing frames at the creature's
-  grid cell (gameDelay + 1 times for an effect, once for damage, which then waits for a key). Out of combat it is just
-  PrintNameString with a pause. }
+  grid cell (gameDelay + 1 times for an effect, once for damage, which then waits for a key).
+  SoundDrv.SoundSetAutoStop(0) keeps the sound driver resident during the flash, then 10 restores per-sound cleanup. Out
+  of combat it is just PrintNameString with a pause. }
 procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: Types.TStr40);
 var
   gx: ShortInt;
@@ -958,6 +957,7 @@ var
   reps: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
+    SoundDrv.SoundSetAutoStop(0);
     if effect then
       cell := 22
     else
@@ -983,6 +983,7 @@ begin
         Delay(70);
         Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
       end;
+    SoundDrv.SoundSetAutoStop(10);
     Blit.FlushView;
     if reps = 0 then
       TextRend.PauseOnly;
@@ -1403,11 +1404,6 @@ begin
             AtLevelCap := True;
     end;
   end;
-end;
-
-{ Intentionally empty stub; performs no work. }
-procedure NoopCharhlp;
-begin
 end;
 
 begin

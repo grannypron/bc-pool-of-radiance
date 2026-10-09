@@ -131,7 +131,7 @@ begin
             Money.SetTreasureCoinsInGold(pooled);
           end;
         end else
-          CharHlp.PrintBottomLine('Not enough money.');
+          CharHlp.PrintBottomLine('Not enough Money.');
       end;
     end;
   until done;
@@ -184,10 +184,10 @@ begin
                menu := '~Yes ~No';
                TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
                  C_Msg.TEXT_BOTTOM, LightGreen, True,
-'As you leave the shopkeeper says, "Excuse me but you have left some money here."  ');
+'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ');
                TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
                                              C_Msg.TEXT_BOTTOM, White, False,
-                                             'Do you want to go back and get your money?');
+                                             'Do you want to go back and get your Money?');
                ynIdx := EclMenu.MenuHorizontalCS(query, menu, LightMagenta, LightGreen, White,
                                                  False, False);
                if ynIdx = 1 then

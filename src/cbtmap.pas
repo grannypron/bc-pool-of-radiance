@@ -5,7 +5,7 @@ unit CbtMap;
 
 interface
 
-uses Types, Crt, C_Terr, GDConsts, GDVars, MapTiles, Blit, TextRend, Video, SoundDrv, C_Ifc, C_Dir, C_Sound;
+uses Types, Crt, C_Terr, GDConsts, GDVars, MapTiles, Blit, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound;
 
 { Empty placeholder routine. }
 procedure NoopCbtmap;
@@ -128,8 +128,8 @@ procedure SetCombatPalette;
 begin
   case Char(GDVars.videoMode) of
     #1: begin
-         Video.SetPaletteRegister(0, DarkGray);
-         Video.SetPaletteRegister(8, Black);
+         Blit.SetPaletteRegister(0, DarkGray);
+         Blit.SetPaletteRegister(8, Black);
        end;
   end;
 end;
@@ -138,8 +138,8 @@ procedure SetNoncombatPalette;
 begin
   case Char(GDVars.videoMode) of
     #1: begin
-         Video.SetPaletteRegister(0, Black);
-         Video.SetPaletteRegister(8, DarkGray);
+         Blit.SetPaletteRegister(0, Black);
+         Blit.SetPaletteRegister(8, DarkGray);
        end;
   end;
 end;
@@ -463,7 +463,8 @@ begin
 end;
 
 { Note: the scan loop tests downed[GDVars.dsCurrentPictureNumber] on every pass, not downed[k], so it only detects a
-  creature already registered as downed when that one entry holds it. }
+  creature already registered as downed when that one entry holds it. The early Exit skips the trailing
+  SoundDrv.SoundSetAutoStop(10). }
 procedure CreatureDowned(creature: Types.PCharRecord);
 var
   slot: Byte;
@@ -474,6 +475,7 @@ var
   cellY: ShortInt;
   pad: Integer;
 begin
+  SoundDrv.SoundSetAutoStop(0);
   if GDVars.ifcState <> C_Ifc.COMBAT then begin
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.DOWNED]);
     TextRend.PauseOnly;
@@ -513,6 +515,7 @@ begin
     creature^.combatAddr^.spellCast := 0;
     creature^.combatAddr^.guarding := 0;
   end;
+  SoundDrv.SoundSetAutoStop(10);
 end;
 
 { Non-combat: True, nothing else. Combat: places the creature at (x, y) (icon size = the low 7 bits of iconDimensions),
