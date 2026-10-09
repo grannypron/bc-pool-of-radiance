@@ -1,4 +1,5 @@
-# Build every push to main and every pull request; release every pushed version tag.
+# Build every push to main and every pull request; release every pushed version tag. Alongside, rebuild each SSI
+# release this repository reproduces (v1.1, v1.2, v1.3) from its tag and require SSI's exact bytes.
 #
 # A release can also be cut for a tag that predates this workflow: run it by hand (workflow_dispatch) with the tag.
 # The tag's src/ and build/ are built with the current scripts.
@@ -56,3 +57,24 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .forgejo/scripts/release.sh "$TAG"
+
+  reproduce:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: docker
+    container:
+      image: forge.schkerke.com/brian/dosbox-x-ci:1
+      credentials:
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    strategy:
+      matrix:
+        tag: [v1.1, v1.2, v1.3]
+    env:
+      TOOLS: /drive_d
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild ${{ matrix.tag }} and compare with SSI's release
+        run: .forgejo/scripts/reproduce.sh "${{ matrix.tag }}"

@@ -1,0 +1,8 @@
+# SSI's shipped files for each release this repository reproduces: tag, file, SHA-256.
+# The reproduce job builds each tag's source and requires these exact bytes.
+v1.1 START.EXE f15fd31ae489d765b4120624d172b070ea0c85b1e8ade954b58189a271cce48f
+v1.1 GAME.OVR cbb4cdc4d245e7a3abfc1c9d2323c93d146d67b061a04d1dea0b495c829247fe
+v1.2 START.EXE c4638eb5f02538c044858581d2dc1aa6cdc47772ca86f5bf2caf797754478cba
+v1.2 GAME.OVR 212245a8f66ed1dba1a472ddb61217067b7342b15f7ee9e91c9d0602a22ece1e
+v1.3 START.EXE d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd
+v1.3 GAME.OVR 14e2b132470cbae275d8d925ddeeb9e370fdc5a7cfd4564ea3212dd4956ca722
