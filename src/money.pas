@@ -24,9 +24,9 @@ procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
 
-procedure SetCreatureCoinsInGold(gp: Word);
+procedure SetCreatureCoinsInGold(gp: LongInt);
 
-procedure SetTreasureCoinsInGold(gp: Word);
+procedure SetTreasureCoinsInGold(gp: LongInt);
 
 function CoinValueInGold(m: Types.TMoney): LongInt;
 
@@ -91,23 +91,33 @@ begin
   CoinValueInGold := (total + 100) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
-{ Set curChar's coins to gp gold as gp div 5 platinum plus gp mod 5 gold. Only the five coin types are cleared; gems and
-  jewelry are kept. }
-procedure SetCreatureCoinsInGold(gp: Word);
+{ Set curChar's coins to gp gold as gp div 5 platinum plus the rest in gold. A character holds at most 65535 of each
+  coin, so platinum stops there and the rest goes to gold, which also stops at 65535. Only the five coin types are
+  cleared; gems and jewelry are kept. The coins' weight changes, so curChar's stats are recalculated. }
+procedure SetCreatureCoinsInGold(gp: LongInt);
 var
   i: ShortInt;
+  pp: LongInt;
+  rest: LongInt;
 begin
   for i := C_Money.COPPER to C_Money.PLATINUM do
     GDVars.curChar^.coins[i] := 0;
+  pp := gp div 5;
+  if pp > 65535 then
+    pp := 65535;
+  rest := gp - pp * 5;
+  if rest > 65535 then
+    rest := 65535;
   { platinum }
-  GDVars.curChar^.coins[C_Money.PLATINUM] := gp div 5;
+  GDVars.curChar^.coins[C_Money.PLATINUM] := pp;
   { gold }
-  GDVars.curChar^.coins[C_Money.GOLD] := gp mod 5;
+  GDVars.curChar^.coins[C_Money.GOLD] := rest;
+  CharHlp.RecalcStats(GDVars.curChar);
 end;
 
 { Set the treasure pool's coins to gp gold as gp div 5 platinum plus gp mod 5 gold. Only the five coin types are
   cleared; gems and jewelry are kept. }
-procedure SetTreasureCoinsInGold(gp: Word);
+procedure SetTreasureCoinsInGold(gp: LongInt);
 var
   i: ShortInt;
 begin
