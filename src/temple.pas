@@ -204,7 +204,9 @@ begin
 end;
 
 { NeutralizePoison: Checks for C_Effect.POISONED (55); for 1000 gp removes C_Effect.POISONED, C_Effect.SLOW_POISON_END
-  (22) and C_Effect.SLOW_POISON_HIT (15), in that order, with the effect lock set }
+  (22) and C_Effect.SLOW_POISON_HIT (15), in that order, with the effect lock set. Poison kills on the spot, so a
+  character the poison left dead is brought back with 1 hp, as RaiseDead does but without its cost in Constitution and
+  hit points. }
 procedure NeutralizePoison;
 var
   effect: Types.PEffectRec;
@@ -227,6 +229,11 @@ begin
       FxEngine.RemoveEffect(GDVars.curChar, C_Effect.SLOW_POISON_END, nil);
       FxEngine.RemoveEffect(GDVars.curChar, C_Effect.SLOW_POISON_HIT, nil);
       GDVars.effectLock := 0;
+      if found and (GDVars.curChar^.status = C_Status.DEAD) then begin
+        GDVars.curChar^.hpCur := 1;
+        GDVars.curChar^.status := C_Status.OKAY;
+        GDVars.curChar^.enabled := 1;
+      end;
     end;
   end;
 end;

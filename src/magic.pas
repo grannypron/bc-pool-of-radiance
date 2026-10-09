@@ -1431,16 +1431,25 @@ begin
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is Speedy');
 end;
 
-{ Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8 }
+{ Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8. Poison
+  kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison; where it
+  cannot stand yet (another creature on its cell) it gets up a minute later through C_Effect.HEAL_WAKE. }
 procedure KeoghtomsOintmentHandler;
 var
   pad: Byte;
+  tgt: Types.PCharRecord;
 begin
-  { Note: removing the poison does not undo the C_Status.DEAD that poisoning set }
-  if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.POISONED) then begin
+  tgt := GDVars.dsTargetCreaturePtr[1];
+  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.POISONED) then begin
     GDVars.effectLock := 1;
-    FxEngine.RemoveEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.SLOW_POISON_END, nil);
+    FxEngine.RemoveEffect(tgt, C_Effect.SLOW_POISON_END, nil);
     GDVars.effectLock := 0;
+    if tgt^.status = C_Status.DEAD then begin
+      if tgt^.hpCur = 0 then
+        tgt^.hpCur := 1;
+      if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
+        FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+    end;
   end else if not Magic.RemoveDiseaseEffects then begin
     if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(1, 4) + 8, False) then
       CharHlp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
