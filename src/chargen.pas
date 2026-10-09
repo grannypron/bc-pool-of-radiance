@@ -31,7 +31,7 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-function ConHpBonus(creature: Types.PCharRecord): ShortInt; forward;
+function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt; forward;
 
 function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 
@@ -630,7 +630,7 @@ begin
         too little) }
       hpRolled := CharGen.RollFirstLevelHp(creature, $FF);
       hpMax := hpRolled;
-      conB := CharGen.ConHpBonus(creature);
+      conB := CharGen.ConHpBonus(creature, $FF);
       if conB < 0 then begin
         if hpMax > Abs(conB) + clsCount then
           hpMax := (hpMax + conB) div clsCount
@@ -859,8 +859,8 @@ end;
   class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
   Applies the racial fighter (and half-elf cleric) level caps, and before the hall and experience checks clamps
   experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and restores
-  one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the Con
-  bonus) divided by the class count, at least 1. }
+  one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the
+  trained classes' Con bonus) divided by the class count, at least 1. }
 procedure TrainingMenu;
 var
   atCap: Boolean;
@@ -997,7 +997,7 @@ begin
     if gain = 0 then
       gain := 1;
     Inc(hpRolled, gain);
-    conB := CharGen.ConHpBonus(GDVars.curChar);
+    conB := CharGen.ConHpBonus(GDVars.curChar, trainable);
     gain := (rolled + conB) div clsCount;
     if gain < 1 then
       gain := 1;
@@ -1431,9 +1431,9 @@ begin
   CbtMap.SetNoncombatPalette;
 end;
 
-{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels, plus 1 at Con 17+ and 1 more at Con 18+ when
-  charClass is C_Class.FIGHTER (single-class fighters only) }
-function ConHpBonus(creature: Types.PCharRecord): ShortInt;
+{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
+  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is C_Class.FIGHTER (single-class fighters only) }
+function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
@@ -1442,7 +1442,7 @@ begin
   bonus := 0;
   with creature^ do
     for cls := 0 to 7 do
-      if classLevels[cls] > 0 then begin
+      if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
         Inc(bonus, GDConsts.conBonusTbl[stats[C_Abil.CONSTITUTION]]);
         if (stats[C_Abil.CONSTITUTION] > 16) and (charClass = C_Class.FIGHTER) then
           Inc(bonus);
@@ -1474,7 +1474,7 @@ begin
         end;
       end;
   end;
-  conB := CharGen.ConHpBonus(creature);
+  conB := CharGen.ConHpBonus(creature, $FF);
   if conB < 0 then begin
     if sum > Abs(conB) + clsCount then
       sum := (sum + conB) div clsCount
@@ -1515,7 +1515,7 @@ begin
       end;
   end;
   { Con bonus of curChar, not creature }
-  conB := CharGen.ConHpBonus(GDVars.curChar);
+  conB := CharGen.ConHpBonus(GDVars.curChar, $FF);
   if conB < 0 then begin
     if sum > Abs(conB) + clsCount then
       sum := (sum + conB) div clsCount
