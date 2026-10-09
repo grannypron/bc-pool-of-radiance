@@ -54,7 +54,6 @@ begin
         e := Types.PEffectRec(cur^.effectsAddr);
         tail := Types.PEffectRec(cur^.effectsAddr);
         prev := Types.PEffectRec(cur^.effectsAddr);
-        nxt := prev^.next;
         if cur^.effectsAddr <> nil then
           while tail^.next <> nil do tail := tail^.next;
         done := False;

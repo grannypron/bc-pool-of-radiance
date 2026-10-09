@@ -94,7 +94,8 @@ function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte
   GDVars.elementMask (Fire, Cold, Electricity, Acid, or "from Magic" when no bit but magic is set), apply it with
   CharHlp.InflictDamage and, in combat, clear castAllowed and lose any spell being cast. A creature it disables "Goes
   Down" (", and is Dying") or "is killed" (status 6..8); in combat the hpZeroEffects are removed, the C_Cond.HP_ZERO
-  (13) effects run and CbtMap.CreatureDowned is called if the creature is still disabled. }
+  (13) effects run and CbtMap.CreatureDowned is called if the creature is still disabled. A dead, stoned or gone
+  creature (a corpse a single-target spell was aimed at) is left alone. }
 procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
 
 { AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when a
@@ -240,8 +241,8 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.FLAME_TONGUE);
     end;
     C_Cond.WEAPON_DAMAGE_DEF: begin
-      FxEngine.TriggerEffect(creature, C_Effect.MIRROR_IMAGE); FxEngine.TriggerEffect(creature,
-          C_Effect.PROT_MISSILES);
+      { Mirror Image against weapons is CbtActs.DoAttack's }
+      FxEngine.TriggerEffect(creature, C_Effect.PROT_MISSILES);
       FxEngine.TriggerEffect(creature, C_Effect.KREEN_DODGE); FxEngine.TriggerEffect(creature,
           C_Effect.BOULDER_DODGE);
       FxEngine.TriggerEffect(creature, C_Effect.TROLL_HEAL); FxEngine.TriggerEffect(creature,
@@ -607,6 +608,7 @@ procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduct
 var
   s: String;
 begin
+  if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   GDVars.pendingDamage := damage;
   FxEngine.TriggerEffectsWithCondition(C_Cond.NONWEAPON_DAMAGE, creature);
   if saved then
