@@ -210,9 +210,10 @@ begin
     GDVars.loadedSave := 0;
 end;
 
-{ Clears the script zone first; the first 2 bytes of the block are skipped. The original retried the current disk
-  forever when the block was not there, which hung at "Loading...Please Wait". With the merged ECL.DAX in use, the disk
-  still moves to the one whose own ECL archive holds the script, as it does with the per-disk archives. }
+{ Clears the script zone first; the first 2 bytes of the block are skipped, and no more than the zone holds is copied.
+  The original retried the current disk forever when the block was not there, which hung at "Loading...Please Wait".
+  With the merged ECL.DAX in use, the disk still moves to the one whose own ECL archive holds the script, as it does
+  with the per-disk archives. }
 procedure LoadEclScript(scriptId: Byte);
 var
   d1: Word;
@@ -221,6 +222,7 @@ var
   sizeRead: Word;
   data: Types.PByteArr;
   disk: Byte;
+  n: Word;
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
   GDVars.dsSuppressingInsertDiskFlag := 0;
@@ -263,7 +265,10 @@ begin
       GameIo.ExitGame;
     end;
   end;
-  Move(data^[2], GDVars.zone3^, sizeRead - 2);
+  n := sizeRead - 2;
+  if n > SizeOf(Types.TZone3) then
+    n := SizeOf(Types.TZone3);
+  Move(data^[2], GDVars.zone3^, n);
   FreeMem(data, sizeRead);
   MenuCore.ClearBottomLine;
 end;
