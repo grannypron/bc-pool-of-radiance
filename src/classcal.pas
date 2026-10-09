@@ -19,18 +19,24 @@ implementation
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set fighter
   attacks (stored doubled: 3 above level 6, else 2; set for every character), and for cleric or magic-user levels above
   1 set the spell slots (clerics also get the Wisdom bonus and every cleric spell of a level with slots marked known).
-  Then call RecalcSaves and, if the character has thief levels, RecalcThiefSkills. }
+  The slot table fills only levels 2..6, the player cap, so a higher-level caster (Genheeris, a level 7 magic-user who
+  joins the party) takes the level 6 row. Then call RecalcSaves and, if the character has thief levels,
+  RecalcThiefSkills. }
 procedure RecalcBaseSkills(creature: Types.PCharRecord);
 var
   i: ShortInt;
   k: ShortInt;
   lvl: ShortInt;
+  slotLvl: ShortInt;
   m: Byte;
 begin
   creature^.thac0Base := 0;
   { 7 = High(classLevels) }
   for i := 0 to 7 do begin
     lvl := creature^.classLevels[i];
+    slotLvl := lvl;
+    if slotLvl > 6 then
+      slotLvl := 6;
     if GDConsts.thac0Tbl[i, lvl] > creature^.thac0Base then
       creature^.thac0Base := GDConsts.thac0Tbl[i, lvl];
     if creature^.levelHighest < lvl then
@@ -42,7 +48,7 @@ begin
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
-            creature^.clericSpells[k] := GDConsts.dsExperienceSpellsClass[C_Class.CLERIC].slots[lvl, k];
+            creature^.clericSpells[k] := GDConsts.dsExperienceSpellsClass[C_Class.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           { Mark known every cleric spell (castClass 0) of a level with slots. 56 = High(spellsKnown) }
           for m := 1 to 56 do
@@ -54,7 +60,7 @@ begin
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
-            creature^.mageSpells[k] := GDConsts.dsExperienceSpellsClass[C_Class.MAGE].slots[lvl, k];
+            creature^.mageSpells[k] := GDConsts.dsExperienceSpellsClass[C_Class.MAGE].slots[slotLvl, k];
     end;
   end;
   ClassCal.RecalcSaves(creature);
