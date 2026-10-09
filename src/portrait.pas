@@ -53,10 +53,10 @@ begin
 end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that name/id pair is already the cached picture
-  (GDVars.picArcName/picArcId). PIC 1 is capped at 4 frames. A frame is loaded only while MaxAvail >= 3900, and count
-  becomes the number loaded. PIC and FINAL frames after the first are XORed with the first; an odd transp remaps
-  LightMagenta to Black outside CGA. Note: a skipped frame's data after its 8-byte header is not stepped over, so the
-  frames after it are read from the wrong offset. }
+  (GDVars.picArcName/picArcId). PIC 1 is capped at 4 frames, and any picture at the 8 the record holds. A frame is
+  loaded only while MaxAvail >= 3900: loaded frames are stored in order and count becomes the number loaded, a skipped
+  frame's data is stepped over, and without room for the first frame (which the others are XORed with for PIC and
+  FINAL) nothing is loaded. An odd transp remaps LightMagenta to Black outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
 var
   sz: Word;
@@ -71,7 +71,10 @@ var
   planeSz: Word;
   isPic: Boolean;
   gotXor: Boolean;
+  xorSz: Word;
   loaded: Byte;
+  stop: Boolean;
+  fr: Types.PImgBuf;
 begin
   if (name = GDVars.picArcName) and (picId = GDVars.picArcId) then Exit;
   Portrait.FreeAnimation(a);
@@ -87,20 +90,23 @@ begin
     count := buf^[offset];
     if (name = 'PIC') and (picId = 1) then
       if count > 4 then count := 4;
+    if count > 8 then count := 8;
     Inc(offset);
     flag := 1;
     loaded := 0;
-    for f := 1 to count do begin
-      Move(buf^[offset], frames[f].hdr, SizeOf(frames[f].hdr));
-      Inc(offset, SizeOf(frames[f].hdr));
+    stop := False;
+    f := 1;
+    while (f <= count) and not stop do begin
+      Move(buf^[offset], frames[loaded + 1].hdr, SizeOf(frames[loaded + 1].hdr));
+      Inc(offset, SizeOf(frames[loaded + 1].hdr));
       Move(buf^[offset], h, SizeOf(h));
       Inc(offset, SizeOf(h));
       Move(buf^[offset], w, SizeOf(w));
       Inc(offset, SizeOf(w));
       if MaxAvail >= 3900 then begin
         Inc(loaded);
-        Blit.AllocPic(h, w, 1, transp, frames[f].pic);
-        with frames[f].pic^ do begin
+        Blit.AllocPic(h, w, 1, transp, frames[loaded].pic);
+        with frames[loaded].pic^ do begin
           Move(buf^[offset], originX, SizeOf(originX));
           Inc(offset, SizeOf(originX));
           Move(buf^[offset], originY, SizeOf(originY));
@@ -109,26 +115,33 @@ begin
           Inc(offset, SizeOf(map));
         end;
         if displayMode = Types.vmCGA then
-          planeSz := frames[f].pic^.imgSize * 2 - 1
+          planeSz := frames[loaded].pic^.imgSize * 2 - 1
         else
-          planeSz := frames[f].pic^.imgSize - 1;
+          planeSz := frames[loaded].pic^.imgSize - 1;
         if isPic then
           if f = 1 then begin
-            GetMem(xorBuf, planeSz + 1);
-            Move(buf^[offset], xorBuf^, planeSz + 1);
+            xorSz := planeSz + 1;
+            GetMem(xorBuf, xorSz);
+            Move(buf^[offset], xorBuf^, xorSz);
             gotXor := True;
           end else
             for j := offset to offset + planeSz do
               buf^[j] := buf^[j] xor xorBuf^[j - offset];
-        Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[f].pic);
+        Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[loaded].pic);
         if (transp and 1 > 0) and (displayMode <> Types.vmCGA) then
-          Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[f].pic);
+          Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
-      end;
+      end else if f = 1 then
+        { the other frames are drawn over, or XORed with, the first }
+        stop := True
+      else
+        { step over the frame: origin, count, colour map and h * w * 4 bytes of pixels }
+        Inc(offset, SizeOf(fr^.originX) + SizeOf(fr^.originY) + SizeOf(fr^.count) + SizeOf(fr^.map) + h * w * 4);
+      Inc(f);
     end;
     count := loaded;
   end;
-  if isPic and gotXor then FreeMem(xorBuf, planeSz + 1);
+  if isPic and gotXor then FreeMem(xorBuf, xorSz);
   FreeMem(buf, sz);
 end;
 
