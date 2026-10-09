@@ -12,20 +12,39 @@ function CampRest: Boolean;
 
 implementation
 
-
+{ Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit, in steps of at most 10
+  minutes, removing those that run out. Outside camp every creature is visited; in camp only those GDVars.effFlags marks
+  as still holding timed effects. Each step first ages the effects and notes the expiring ones, then removes those still
+  in the list, since a removal's handler can remove (and free) another effect. }
 procedure TimeOutEffects(count: Byte; tUnit: ShortInt);
+const
+  { expiring effects one creature can lose in one step; any more expire in the next step }
+  MAX_EXPIRING = 32;
 var
   u: ShortInt;
   i: Byte;
+  k: Byte;
   step: Byte;
   total: Word;
   cur: Types.PCharRecord;
-  done: Boolean;
   found: Boolean;
-  tail: Types.PEffectRec;
-  prev: Types.PEffectRec;
-  nxt: Types.PEffectRec;
   e: Types.PEffectRec;
+  expiring: array[1..MAX_EXPIRING] of Types.PEffectRec;
+  nExpiring: Byte;
+  again: Boolean;
+
+  { Whether eff is still in cur's effect list: an earlier removal's handler may have removed and freed it (Slow
+    Poison's end removes the poison's damage effect). }
+  function InList(eff: Types.PEffectRec): Boolean;
+  var
+    p: Types.PEffectRec;
+  begin
+    p := Types.PEffectRec(cur^.effectsAddr);
+    while (p <> nil) and (p <> eff) do
+      p := p^.next;
+    InList := p <> nil;
+  end;
+
 begin
   if GDVars.ifcState <> C_Ifc.CAMPING then
     FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1)
@@ -49,40 +68,35 @@ begin
     i := 1;
     cur := GDVars.creatureList;
     while cur <> nil do begin
-      if GDVars.effFlags[i] <> 0 then begin
-        GDVars.effFlags[i] := 0;
+      if (i > SizeOf(GDVars.effFlags)) or (GDVars.effFlags[i] <> 0) then begin
+        again := False;
+        { age the timed effects, and note those that run out in this step; 0 is permanent }
+        nExpiring := 0;
         e := Types.PEffectRec(cur^.effectsAddr);
-        tail := Types.PEffectRec(cur^.effectsAddr);
-        prev := Types.PEffectRec(cur^.effectsAddr);
-        if cur^.effectsAddr <> nil then
-          while tail^.next <> nil do tail := tail^.next;
-        done := False;
-        while (e <> nil) and not done do begin
-          if e = tail then done := True;
-          if e^.duration = 0 then
-            e := e^.next
-          else if step < e^.duration then begin
-            Dec(e^.duration, step);
-            GDVars.effFlags[i] := 1;
-            e := e^.next;
-          end else begin
-            nxt := e^.next;
-            FxEngine.RemoveEffect(cur, e^.id, e);
-            { prev is the list head when the removed effect was the head's successor; the walk then restarts at the
-              head, which is aged again in this step }
-            if prev = Types.PEffectRec(cur^.effectsAddr) then
-              e := Types.PEffectRec(cur^.effectsAddr)
-            else
-              e := nxt;
-          end;
-          prev := Types.PEffectRec(cur^.effectsAddr);
-          while (prev <> nil) and (prev <> e) and (prev^.next <> e) do
-            prev := prev^.next;
-        end;
         while e <> nil do begin
-          if e^.duration > 0 then GDVars.effFlags[i] := 1;
+          if e^.duration > 0 then
+            if step < e^.duration then begin
+              Dec(e^.duration, step);
+              again := True;
+            end else if nExpiring < MAX_EXPIRING then begin
+              Inc(nExpiring);
+              expiring[nExpiring] := e;
+            end else
+              again := True;
           e := e^.next;
         end;
+        { then remove them, skipping any an earlier removal has already taken away }
+        for k := 1 to nExpiring do
+          if InList(expiring[k]) then
+            FxEngine.RemoveEffect(cur, expiring[k]^.id, expiring[k]);
+        { a removal's handler can add effects too: the creature is visited again while any timed effect is left }
+        e := Types.PEffectRec(cur^.effectsAddr);
+        while (e <> nil) and not again do begin
+          if e^.duration > 0 then again := True;
+          e := e^.next;
+        end;
+        if i <= SizeOf(GDVars.effFlags) then
+          if again then GDVars.effFlags[i] := 1 else GDVars.effFlags[i] := 0;
       end;
       Inc(i);
       cur := cur^.nextCharAddr;
