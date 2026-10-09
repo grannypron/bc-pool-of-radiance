@@ -200,32 +200,39 @@ begin
   SanitizeFileName := name;
 end;
 
-{ Decode DAX run-length data. Controls 0..$7E copy the next b+1 bytes; $81..$FF repeat the next byte -b times. The
-  repeat loop reads once even for zero compressed length. Input and output bounds are unchecked; lenDecompressed is
-  unused. Note: controls $7F and $80 do not advance the input, so such data loops forever. }
+{ Decode DAX run-length data. Controls 0..$7E copy the next b+1 bytes; $81..$FF repeat the next byte -b times; $7F and
+  $80 are skipped, as Secret does. A run is cut short at the end of either buffer, and decoding stops when the input
+  runs out or lenDecompressed bytes have been written. }
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
 var
   srcIdx: Word;
   dstIdx: Word; b: ShortInt;
+  n: Word;
 begin
   srcIdx := 0;
   dstIdx := 0;
-  repeat
+  while (srcIdx < lenCompressed) and (dstIdx < lenDecompressed) do begin
     b := src^[srcIdx];
+    Inc(srcIdx);
     case b of
       0..$7E: begin
-        Move(src^[srcIdx + 1], dst^[dstIdx], b + 1);
-        Inc(srcIdx, b + 2);
-        Inc(dstIdx, b + 1);
+        n := b + 1;
+        if n > lenCompressed - srcIdx then n := lenCompressed - srcIdx;
+        if n > lenDecompressed - dstIdx then n := lenDecompressed - dstIdx;
+        Move(src^[srcIdx], dst^[dstIdx], n);
+        Inc(srcIdx, n);
+        Inc(dstIdx, n);
       end;
-      -127..-1: begin
-        b := -b;
-        FillChar(dst^[dstIdx], b, src^[srcIdx + 1]);
-        Inc(srcIdx, 2);
-        Inc(dstIdx, b);
-      end;
+      -127..-1:
+        if srcIdx < lenCompressed then begin
+          n := -b;
+          if n > lenDecompressed - dstIdx then n := lenDecompressed - dstIdx;
+          FillChar(dst^[dstIdx], n, src^[srcIdx]);
+          Inc(srcIdx);
+          Inc(dstIdx, n);
+        end;
     end;
-  until srcIdx >= lenCompressed;
+  end;
 end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
