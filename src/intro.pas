@@ -82,6 +82,7 @@ begin
   Intro.DelayOrKey(5);
   if GDVars.fullIntro = 0 then begin
     GDVars.gameDir := savedDir;
+    Blit.FreePic(pic);
     Exit;
   end;
   Blit.LoadPic('title', 2, False, 0, pic);
