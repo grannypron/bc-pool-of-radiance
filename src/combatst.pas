@@ -800,12 +800,7 @@ begin
         if (not GDVars.duelFlag) and (p^.combatAddr^.notPcNpc = 0) then begin
           x := GDVars.arenaLoc[slot].x;
           y := GDVars.arenaLoc[slot].y;
-          Inc(GDVars.downedCount);
-          GDVars.downed[GDVars.downedCount].terrain := GDVars.arenaPtr^.cells[y, x];
-          GDVars.arenaPtr^.cells[y, x] := C_Terr.CORPSE;
-          GDVars.downed[GDVars.downedCount].cr := p;
-          GDVars.downed[GDVars.downedCount].x := x;
-          GDVars.downed[GDVars.downedCount].y := y;
+          CbtMap.RegisterDowned(p, x, y);
         end;
       end;
       CbtMap.BuildArenaArrays;
