@@ -38,13 +38,11 @@ begin
   if c = 'Y' then begin
     charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
     if cost <= charGold then begin
-      Dec(charGold, cost);
-      Money.SetCreatureCoinsInGold(charGold);
+      Money.PayFromCreature(GDVars.curChar, cost);
     end else begin
       pooled := Money.CoinValueInGold(treasureMoney);
       if cost <= pooled then begin
-        Dec(pooled, cost);
-        Money.SetTreasureCoinsInGold(pooled);
+        Money.PayFromPool(cost);
       end else begin
         CharHlp.PrintBottomLine('Not enough money.');
         c := 'N';

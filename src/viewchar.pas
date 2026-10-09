@@ -691,14 +691,12 @@ begin
     charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
     if charGold >= 200 then begin
       paid := True;
-      Dec(charGold, 200);
-      Money.SetCreatureCoinsInGold(charGold);
+      Money.PayFromCreature(GDVars.curChar, 200);
     end else begin
       poolGold := Money.CoinValueInGold(treasureMoney);
       if poolGold >= 200 then begin
         paid := True;
-        Dec(poolGold, 200);
-        Money.SetTreasureCoinsInGold(poolGold);
+        Money.PayFromPool(200);
       end else
         CharHlp.PrintBottomLine('Not Enough Money');
     end;
@@ -925,7 +923,8 @@ begin
   GDVars.curChar := p;
 end;
 
-{ Value of the creature's five coin types in gold, rounded half up; gems and jewelry are excluded. }
+{ Value of the creature's five coin types in whole gold pieces (a part of a gold piece does not count, as in
+  Money.CoinValueInGold); gems and jewelry are excluded. }
 function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
 var
   sum: LongInt;
@@ -935,7 +934,7 @@ begin
   { the five coin types valued in dsCoinValuationCopper }
   for m := C_Money.COPPER to C_Money.PLATINUM do
     Inc(sum, GDConsts.dsCoinValuationCopper[m] * creature^.coins[m]);
-  CreatureCoinValueInGold := (sum + 100) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+  CreatureCoinValueInGold := sum div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a

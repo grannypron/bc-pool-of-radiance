@@ -5,7 +5,7 @@ unit CharGen;
 interface
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Race,
-  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money;
+  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money;
 
 procedure MainMenu;
 
@@ -38,8 +38,6 @@ function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 function HpMaximum(creature: Types.PCharRecord): Byte; forward;
 
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forward;
-
-procedure TakeCoins(gp: LongInt; creature: Types.PCharRecord); forward;
 
 procedure CustomizePortrait; forward;
 
@@ -979,7 +977,7 @@ begin
       Exit;
     CharHlp.PrintBottomLine('Congratulations...');
     if GDVars.stingMode = 0 then
-      CharGen.TakeCoins(1000, GDVars.curChar);
+      Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
     clsCount := 0;
     oldMage := classLevels[C_Class.LEVEL_MAGE];
     for cls := 0 to 7 do
@@ -1555,41 +1553,6 @@ begin
       Inc(sum, roll);
     end;
   RollFirstLevelHp := sum;
-end;
-
-{ TakeCoins: Deduct gp gold pieces from creature's coins. Works in copper (gp * 200), taking coins from copper upward
-  and rounding each type up (gp div value + 1, capped at what is held), then refunds any overshoot from platinum
-  downward. Note: if the purse cannot cover gp, i runs past 4: dsCoinValuationCopper reads into GDConsts.classNames and
-  coins on into gems, jewelry and beyond. }
-procedure TakeCoins(gp: LongInt; creature: Types.PCharRecord);
-var
-  amt: Word;
-  i: ShortInt;
-begin
-  { gold to copper-equivalent units }
-  gp := gp * 200;
-  i := C_Money.COPPER;
-  with creature^ do begin
-    { i can exceed dsCoinValuationCopper's extent }
-    while gp > 0 do begin
-      amt := gp div GDConsts.dsCoinValuationCopper[i] + 1;
-      if coins[i] < amt then
-        amt := coins[i];
-      Dec(gp, amt * GDConsts.dsCoinValuationCopper[i]);
-      Dec(coins[i], amt);
-      i := Succ(i);
-    end;
-    if gp < 0 then begin
-      gp := Abs(gp);
-      i := C_Money.PLATINUM;
-      while gp > 0 do begin
-        amt := gp div GDConsts.dsCoinValuationCopper[i];
-        Dec(gp, amt * GDConsts.dsCoinValuationCopper[i]);
-        Inc(coins[i], amt);
-        i := Pred(i);
-      end;
-    end;
-  end;
 end;
 
 end.

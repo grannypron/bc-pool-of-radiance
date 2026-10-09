@@ -118,16 +118,14 @@ begin
       if price <= charGold then begin
         Shop.GiveItemCopyToCreature(itemToBuy, failed);
         if not failed then begin
-          charGold := charGold - price;
-          Money.SetCreatureCoinsInGold(charGold);
+          Money.PayFromCreature(GDVars.curChar, price);
         end;
       end else begin
         pooled := Money.CoinValueInGold(treasureMoney);
         if price <= pooled then begin
           Shop.GiveItemCopyToCreature(itemToBuy, failed);
           if not failed then begin
-            pooled := pooled - price;
-            Money.SetTreasureCoinsInGold(pooled);
+            Money.PayFromPool(price);
           end;
         end else
           CharHlp.PrintBottomLine('Not enough Money.');
