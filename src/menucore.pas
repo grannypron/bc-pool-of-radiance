@@ -145,7 +145,7 @@ begin
   GDVars.extFlag := False;
   enterOk := (mCol <> 0) or (hlCol <> 0);
   ParseMenu(menu);
-  if GDVars.horizChoice > optCnt then
+  if (GDVars.horizChoice < 1) or (GDVars.horizChoice > optCnt) then
     GDVars.horizChoice := 1;
   mLen := Length(menu);
   ch := #0;

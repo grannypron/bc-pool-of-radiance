@@ -827,7 +827,9 @@ begin
   end;
 end;
 
-{ Horizontal menu with character selection; query is limited to 40 characters and menu text to 255. }
+{ Horizontal menu with character selection; query is limited to 40 characters and menu text to 255. Each script menu
+  starts with its first option highlighted, so Enter never takes a highlight another menu left behind; switching
+  characters keeps the highlight. }
 function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
 var
   opts: Types.TStr40;
@@ -836,6 +838,7 @@ var
   ext: Boolean;
 begin
   EclMenu.MenuToOptions(menu, opts);
+  GDVars.horizChoice := 1;
   repeat
     ch := MenuCore.MenuHorizontal(query, menu, qCol, mCol, hlCol, True, animate, ext);
     if ext then begin
