@@ -211,7 +211,8 @@ begin
 end;
 
 { Clears the script zone first; the first 2 bytes of the block are skipped. The original retried the current disk
-  forever when the block was not there, which hung at "Loading...Please Wait". }
+  forever when the block was not there, which hung at "Loading...Please Wait". With the merged ECL.DAX in use, the disk
+  still moves to the one whose own ECL archive holds the script, as it does with the per-disk archives. }
 procedure LoadEclScript(scriptId: Byte);
 var
   d1: Word;
@@ -226,6 +227,20 @@ begin
   MenuCore.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
   Str(GDVars.virtualDisk, s);
+  { the merged ECL.DAX holds every disk's scripts, so the search below would not run }
+  if DaxIo.ArchiveName('ECL' + s) <> 'ECL' + s then
+    if not DaxIo.DiskHasBlock('ECL' + s, scriptId) then begin
+      disk := 1;
+      while disk <= 8 do begin
+        Str(disk, s);
+        if DaxIo.DiskHasBlock('ECL' + s, scriptId) then begin
+          DaxIo.PushState(disk);
+          disk := 8;
+        end;
+        Inc(disk);
+      end;
+      Str(GDVars.virtualDisk, s);
+    end;
   DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
   if sizeRead < 2 then begin
     { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first
