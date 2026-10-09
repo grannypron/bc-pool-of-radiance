@@ -1407,13 +1407,13 @@ begin
   end;
 end;
 
-{ CLOCK: advance the clock by var 1. Note: GetEclVar is passed the unset v, not 1. }
+{ CLOCK: advance the clock by var 1, in minutes. }
 procedure EclClock;
 var
   v: Byte;
 begin
   EclMenu.LoadEclVars(1);
-  v := EclMenu.GetEclVar(v);
+  v := EclMenu.GetEclVar(1);
   GameTime.AdvanceTime(v, 1);
 end;
 
