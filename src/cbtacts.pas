@@ -4,17 +4,12 @@ unit CbtActs;
 
 interface
 
-uses Types, C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, SoundDrv, GameIo, TextRend, Border,
-  CharHlp, MenuCore, Pathing, CbtMap, ViewChar, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Status, C_Gbvm,
-  C_Dir, C_Sound, C_Spell;
+uses Types, C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect,
+  C_Equip, C_Keys, C_Class, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
 
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
 
 function CalcCreatureMovement(creature: Types.PCharRecord): Byte;
-
-procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte);
-
-procedure ProcessAttackResult(att, def: Types.PCharRecord; atkType, dmg, dmgDisp: Byte; isHit: Boolean);
 
 procedure CombatMoveCreature(creature: Types.PCharRecord; dir: Byte);
 
@@ -23,8 +18,6 @@ procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 function CombatFleeAttempt(creature: Types.PCharRecord): Boolean;
 
 procedure SetCurAttacksX2(creature: Types.PCharRecord);
-
-function AdjustedAttacks(n: Byte): Byte;
 
 function SweepAttempt(att, def: Types.PCharRecord): Boolean;
 
@@ -38,8 +31,6 @@ procedure NoteAttackDirection(att, def: Types.PCharRecord);
 
 procedure CombatAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
 
-procedure ModifyDefenseForDistance(att, def: Types.PCharRecord; var defense: Byte);
-
 function FindCureTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
@@ -50,11 +41,7 @@ function CheckAttackAlly(att, def: Types.PCharRecord): Boolean;
 
 procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk: Byte; var done: Boolean; var tgt);
 
-function IsBackstab(att, def: Types.PCharRecord): Boolean;
-
 function DirTowardTarget(creature, other: Types.PCharRecord): Byte;
-
-procedure RangedAttackAnim(att, def: Types.PCharRecord; weapon: Types.PItemRec);
 
 procedure CalcHostileHpPercent;
 
@@ -71,11 +58,23 @@ function StingVictoryCheat: Boolean;
 implementation
 
 
+procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte); forward;
+
+procedure ProcessAttackResult(att, def: Types.PCharRecord; atkType, dmg, dmgDisp: Byte; isHit: Boolean); forward;
+
 procedure GuardingAttacks(creature: Types.PCharRecord); forward;
+
+function AdjustedAttacks(n: Byte): Byte; forward;
 
 procedure DoAttack(att, def: Types.PCharRecord; fromBehind: Boolean; var done: Boolean); forward;
 
+procedure ModifyDefenseForDistance(att, def: Types.PCharRecord; var defense: Byte); forward;
+
 function PickSpellTarget(spell: Byte; ai: Boolean; ground: Byte; var tgt: Types.TAimTarget): Boolean; forward;
+
+function IsBackstab(att, def: Types.PCharRecord): Boolean; forward;
+
+procedure RangedAttackAnim(att, def: Types.PCharRecord; weapon: Types.PItemRec); forward;
 
 function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte): Char; forward;
 
@@ -147,7 +146,7 @@ begin
   if GDVars.pendingDamage < 0 then
     GDVars.pendingDamage := 0;
   if CbtActs.IsBackstab(att, def) then
-    GDVars.pendingDamage := GDVars.pendingDamage * (att^.classLevels[C_Class.LEVEL_THIEF] div 4 + 2);
+    GDVars.pendingDamage := GDVars.pendingDamage * (Word(att^.classLevels[C_Class.LEVEL_THIEF]) div 4 + 2);
   GDVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_DEF, def);
@@ -549,9 +548,9 @@ begin
   destroys := 6;
   attempts := FxEngine.RollDice(1, 12);
   roll := FxEngine.RollDice(1, 20);
-  case Types.TTurnLevel(creature^.classLevels[C_Class.LEVEL_CLERIC]) of
-    Types.tl1..Types.tl8: col := creature^.classLevels[C_Class.LEVEL_CLERIC];
-    Types.tl9..Types.tl13: col := 9;
+  case creature^.classLevels[C_Class.LEVEL_CLERIC] of
+    1..8: col := creature^.classLevels[C_Class.LEVEL_CLERIC];
+    9..13: col := 9;
   else
     col := 10;
   end;
@@ -837,8 +836,7 @@ begin
   best := nil;
   downIdx := 0;
   bestHp := 255;
-  { 8 = C_Dir.CENTER; own cell included }
-  for d := 0 to 8 do begin
+  for d := 0 to C_Dir.CENTER do begin
     nx := CbtMap.CombatCellX(creature) + GDConsts.dirDX[d];
     ny := CbtMap.CombatCellY(creature) + GDConsts.dirDY[d];
     CbtMap.GetArenaContents(nx, ny, crIdx, terrIdx);
@@ -910,8 +908,7 @@ begin
                 ok := False;
           end;
           if CharHlp.IsHelpless(p) then
-            { 4 = helplessFx's upper bound }
-            for i := 1 to 4 do
+            for i := 1 to SizeOf(GDConsts.helplessFx) div SizeOf(GDConsts.helplessFx[1]) do
               if GDConsts.spellTable[spell].effect = GDConsts.helplessFx[i] then
                 ok := False;
           if ok then begin

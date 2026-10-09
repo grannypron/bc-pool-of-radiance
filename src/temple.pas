@@ -4,8 +4,8 @@ unit Temple;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, Border, CharHlp, MenuCore, EclMenu, ViewChar, Money, Magic,
-  FxEngine, C_Effect, C_Keys, C_Class, C_Status, C_Ifc;
+uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
+  C_Status, C_Ifc;
 
 procedure TempleMainMenu;
 

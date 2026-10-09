@@ -7,10 +7,250 @@ unit EffHndlr;
 interface
 
 uses Types, C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine,
-  Debug, Pathing, CbtMap, CharHlp, TextRend, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align;
+  Debug, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align;
 
 { Install the effect handlers in GDVars.effectFns. Magic installs slot 88 (dragon breath) itself. }
 procedure InitEffectHandlers;
+
+procedure EffBless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffCurse(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffUndeadSlayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffTrainStart(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffFlameTongue(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 8, 45 }
+procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 9, 46 }
+procedure EffProtGood(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffResistCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 12, 38 }
+procedure EffExtraStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffFriends(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffSlowPoisonHit(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 16 (empty) }
+procedure EffReadMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffShield(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffResistFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffSilence(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffSlowPoisonEnd(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffSpiritHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffInvisible(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDwarfThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffEnfeeble(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffAnimateDead(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBlind(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDiseased(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffAlliedPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBestowCurse(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffCastStink(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffProtMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffSlowed(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDiseaseStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDiseaseHp(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDwarfAcGiant(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffGnomeAcBug(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffRotNoHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 31, 51, 52, 53 }
+procedure EffHelpless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 54 (empty) }
+procedure EffDragonAura(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 55 (empty) }
+procedure EffPoisoned(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffRingInvis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffMummyRot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffImmobile(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffTrollRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffPoisonHit0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffPoisonHit4(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffPoisonHit2(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffKreenPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffGhoulPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDriderPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffPoisonHitM2(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDustDisappear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffCamouflage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBloodDrain(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBloodAttach(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 77 (bite attach) }
+procedure EffBiteHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHealWake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffFireTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffAcidSquirt(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDragonFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffMummyFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffPetrifyGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDrainOne(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDrainTwo(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfBash(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffFightOn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNeedSilver(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffRegen3(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffCanFightOn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffTrollBurn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffTrollHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffTrollReturn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffGaseous(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffKreenDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffMagicRes50(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffMagicRes85(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNoSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNoParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNoCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNoFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfElec(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfPierce(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfMagical(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHolyWater(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNeedMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBoulderDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffMummyFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffSilverMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHalfElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffNoCharmPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffGazeBlock(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 128, 129, 130, 133, 134, 136, 138, 139 }
+procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffGauntlets(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffAlignedWeapon(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffBoulder(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
+{ eff 5, 13, 19, 24, 27, 60, 63, 92, 127 }
+procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 implementation
 
@@ -65,8 +305,8 @@ end;
 procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
 begin
   CharHlp.PrintNameString(creature, msg, 10, False);
-  case Char(creature^.status) of
-    Char(C_Status.STONED), Char(C_Status.DEAD), Char(C_Status.GONE): Exit;
+  case creature^.status of
+    C_Status.STONED, C_Status.DEAD, C_Status.GONE: Exit;
   end;
   creature^.status := status;
   creature^.enabled := 0;
@@ -946,9 +1186,9 @@ end;
 procedure EffBloodAttach(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  { duration 207 = 12 * 16 + 15: a 12 hp budget in the upper bits }
-  FxEngine.AddEffect(creature, C_Effect.BLOOD_DRAIN, 207, CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr),
-                     True);
+  { a 12 hp budget in the upper bits of the duration }
+  FxEngine.AddEffect(creature, C_Effect.BLOOD_DRAIN, 12 * 16 + 15,
+                     CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr), True);
   FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
   FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
 end;
@@ -1007,11 +1247,10 @@ begin
     if q^.enabled <> 0 then
       if CharHlp.EnemyTeam(creature) = q^.hostile then begin
         saved := FxEngine.RollSavingThrow(q, C_Save.SPELL, 0);
-        case Types.TFearLevel(q^.levelHighest) of
-          Types.fl0..Types.fl3: FxEngine.AddEffectWithMessage(q, C_Effect.PARALYSIS, 0, 12, False, True, saved,
-                                                              'is paralyzed with fear');
-          Types.fl4, Types.fl5: FxEngine.AddEffectWithMessage(q, C_Effect.CURSE, 0, 12, False, True, saved,
-                                                              'is weakened by fear');
+        case q^.levelHighest of
+          0..3: FxEngine.AddEffectWithMessage(q, C_Effect.PARALYSIS, 0, 12, False, True, saved,
+                                              'is paralyzed with fear');
+          4, 5: FxEngine.AddEffectWithMessage(q, C_Effect.CURSE, 0, 12, False, True, saved, 'is weakened by fear');
         end;
       end;
     q := q^.nextCharAddr;

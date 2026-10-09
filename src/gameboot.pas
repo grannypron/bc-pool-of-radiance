@@ -5,7 +5,7 @@ unit GameBoot;
 
 interface
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, DaxIo, GameIo, TextRend, Blit, SoundDrv;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv;
 
 implementation
 
@@ -15,15 +15,11 @@ const
   OVERLAY_BUF_BYTES = 100352;
 
 var
-  freePtrW: Types.TFreePtrW absolute FreePtr;
-  { free-range table front -- Move source }
-  freeRangeHead: Types.PFreeRange absolute FreePtr;
+  heapEndW: Types.THeapEndW absolute HeapEnd;
   { 0=CGA 1=EGA 2=Tandy }
   displayMode: Types.TVideoMode absolute GDVars.videoMode;
   { POOL.CFG line 5 = 'F' }
   fullIntro: Boolean absolute GDVars.fullIntro;
-  { Receives the FreePtr snapshot published to other units }
-  gfxReserve: Pointer absolute GDVars.dsReservedGraphicalAreaPtr;
 
 { Game startup runs through this unit's initialization section. }
 begin
@@ -63,11 +59,10 @@ begin
     end;
     'T': begin
       displayMode := Types.vmTandy;
-      { Move the free-list entry at FreePtr down by GFX_RESERVE_PARAS paragraphs, keeping its offset, then repoint
-        FreePtr at the copy }
-      GDVars.gfxRelocDest := Ptr(freePtrW.s - GFX_RESERVE_PARAS, freePtrW.o);
-      Move(freeRangeHead^, GDVars.gfxRelocDest^, SizeOf(Types.TFreeRange));
-      FreePtr := GDVars.gfxRelocDest;
+      { Lower HeapEnd by GFX_RESERVE_PARAS; the common code after the sound setting lowers it once more, so Tandy
+        reserves twice as much }
+      GDVars.gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
+      HeapEnd := GDVars.gfxReserve;
       Blit.SetVideoMode(9);
     end;
     else begin
@@ -93,9 +88,9 @@ begin
     'P': GDVars.soundMode := C_Sound.MODE_SPEAKER;
     else GDVars.soundMode := C_Sound.MODE_DISABLED;
   end;
-  { Set the minimum free-list size and publish FreePtr to other units through gfxReserve }
-  freePtrW.freeMin := 80;
-  gfxReserve := FreePtr;
+  { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
+  GDVars.gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
+  HeapEnd := GDVars.gfxReserve;
   SoundDrv.SoundSuspend;
   ReadLn(GDVars.cfgText, GDVars.gameDir);
   GDVars.gameDir := GDVars.gameDir;

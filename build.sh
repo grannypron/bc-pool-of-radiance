@@ -6,9 +6,10 @@
 #   ./build.sh --install    build, then copy the two files into drive_c/POOLRAD to play
 #
 # DOSBox-X runs build/build.bat with these drives:
-#   D:  $TOOLS/TP50             Turbo Pascal 5.0 (TPC.EXE, TURBO.TPL)
+#   D:  $TOOLS/<compiler>       Turbo Pascal (TPC.EXE, TURBO.TPL); build/toolchain names the folder, TP50 if absent
 #   E:  this repository         src\, build\ and obj\
 #   F:  $TOOLS/TASM             Turbo Assembler (TASM.EXE)
+#   G:  $TOOLS/EXEPACK          Microsoft EXEPACK (EXEPACK.EXE)
 # TOOLS is the folder holding the DOS toolchains, drive_c unless set (the CI image sets it to /drive_d).
 #
 # Everything the build needs is checked first; every missing piece is reported before the script stops.
@@ -19,7 +20,10 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 drive_c="$root/drive_c"
 game="$drive_c/POOLRAD"
 tools="${TOOLS:-$drive_c}"
-tp="$tools/TP50"
+# The source's compiler: build/toolchain holds a line like "compiler=TP6-1991".
+compiler="$(sed -n 's/^compiler=\([A-Za-z0-9._-]*\).*/\1/p' "$root/build/toolchain" 2> /dev/null | head -n 1)"
+compiler="${compiler:-TP50}"
+tp="$tools/$compiler"
 tasm="$tools/TASM"
 exepack="$tools/EXEPACK"
 dosbox_min="2025.02.01"
@@ -59,12 +63,12 @@ if [ $install -eq 1 ]; then
     need_file "$game/START.EXE" "the game's START.EXE, which --install replaces; copy it from your install."
     need_file "$game/GAME.OVR" "the game's GAME.OVR, which --install replaces; copy it from your install."
 fi
-need_dir "$tp" "Turbo Pascal 5.0, which compiles the game."
-need_file "$tp/TPC.EXE" "the Turbo Pascal 5.0 command-line compiler."
-need_file "$tp/TURBO.TPL" "the Turbo Pascal 5.0 runtime library, which TPC.EXE needs."
+need_dir "$tp" "Turbo Pascal ($compiler), which compiles the game."
+need_file "$tp/TPC.EXE" "the Turbo Pascal command-line compiler."
+need_file "$tp/TURBO.TPL" "the Turbo Pascal runtime library, which TPC.EXE needs."
 need_dir "$tasm" "Turbo Assembler, which assembles src/sounddrv.asm."
 need_file "$tasm/TASM.EXE" "the Turbo Assembler executable."
-need_dir "$exepack" "Microsoft EXEPACK."
+need_dir "$exepack" "Microsoft EXEPACK, which packs START.EXE."
 need_file "$exepack/EXEPACK.EXE" "the EXEPACK executable."
 
 # --- this repository ---------------------------------------------------------------------------
@@ -109,6 +113,7 @@ dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
     -c "mount d \"$tp\"" \
     -c "mount e \"$root\"" \
     -c "mount f \"$tasm\"" \
+    -c "mount g \"$exepack\"" \
     -c "e:" \
     -c "cd \\src" \
     -c "call \\build\\build.bat" \
@@ -124,6 +129,11 @@ fi
 if grep -qiE "^\*+(error|fatal)" "$root/build/logs/TASM.OUT" 2> /dev/null; then
     echo "build.sh: the assembler reported errors (build/logs/TASM.OUT):" >&2
     grep -iE "error|fatal" "$root/build/logs/TASM.OUT" >&2
+    failed=1
+fi
+if grep -qi "error" "$root/build/logs/PACK.OUT" 2> /dev/null; then
+    echo "build.sh: EXEPACK reported errors (build/logs/PACK.OUT):" >&2
+    grep -i "error" "$root/build/logs/PACK.OUT" >&2
     failed=1
 fi
 for f in START.EXE GAME.OVR; do

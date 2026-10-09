@@ -7,9 +7,6 @@ interface
 
 uses Crt, GDConsts, GDVars, Blit, GameIo;
 
-{ Does nothing }
-procedure Noop8x8;
-
 { Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> dsSymbolSetPtrs[setID] (with a transparency mask
   for color 13, hot pink), then call GameIo.PollGameKeys. No-op when setID is outside 0..4; on load failure prints the
   file name and fileID, waits for a key and quits to DOS }
@@ -74,10 +71,6 @@ begin
       Blit.ShowPic(col, row, GDVars.dsCurrent8x8SymbolPtr2);
     end;
   end;
-end;
-
-procedure Noop8x8;
-begin
 end;
 
 begin

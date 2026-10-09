@@ -119,7 +119,6 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 implementation
 
 var
-
   { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
   zone1B: Types.PFxengineZoneBytes absolute GDVars.zone1;
   { effect handler table, indexed by effect id }
@@ -611,9 +610,9 @@ begin
   GDVars.pendingDamage := damage;
   FxEngine.TriggerEffectsWithCondition(C_Cond.NONWEAPON_DAMAGE, creature);
   if saved then
-    case Char(saveReduction) of
-      #1: GDVars.pendingDamage := 0;
-      #2: GDVars.pendingDamage := Integer(GDVars.pendingDamage) div 2;
+    case saveReduction of
+      1: GDVars.pendingDamage := 0;
+      2: GDVars.pendingDamage := GDVars.pendingDamage div 2;
     end;
   if GDVars.pendingDamage > 0 then begin
     if GDVars.pendingDamage <> 1 then

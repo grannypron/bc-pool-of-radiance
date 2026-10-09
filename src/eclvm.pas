@@ -4,9 +4,8 @@ unit EclVm;
 
 interface
 
-uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Shop, EclMenu, Combat, Explore,
-  Camp, CharGen, SaveLoad, Ending, GameTime, Money, FxEngine, MenuCore, MapView, Portrait, View3D, MapTiles, CharHlp,
-  Border, TextRend, DaxIo, GameIo, SoundDrv, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money;
+uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
+  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money;
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
   and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
@@ -378,13 +377,15 @@ begin
   if GDVars.dsGbvmType[1] < $80 then
     GDVars.gbStrings[1] := CharHlp.WordToString(EclMenu.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  False, GDVars.gbStrings[1])
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                  LightGreen, False,
+                                  GDVars.gbStrings[1])
   else begin
     GDVars.curRow := C_Msg.MESSAGE_TOP;
     GDVars.curCol := C_Msg.TEXT_LEFT;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  True, GDVars.gbStrings[1]);
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                  LightGreen, True,
+                                  GDVars.gbStrings[1]);
   end;
   GDVars.msgDelayFlag := 0;
 end;
@@ -589,7 +590,8 @@ begin
   end;
   list := head;
   idx := 0;
-  EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1, C_Msg.TEXT_RIGHT,
+  EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1,
+                          C_Msg.TEXT_RIGHT,
                           C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
   EclMenu.WriteGbvm(address, idx);
   MenuCore.FreeStringList(list);
@@ -1000,7 +1002,7 @@ begin
         end;
         99, 100: itemId := 69;
       end;
-      Money.GenerateRandomItem(itemId, it);
+      Money.GenerateRandomItem(itemId, @it);
       if GDVars.treasureItems = nil then begin
         GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
         GDVars.treasureItems^ := it;
@@ -1126,8 +1128,8 @@ begin
     end;
     if msg = '' then
       clearW := False;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  clearW, msg);
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                  LightGreen, clearW, msg);
     if (GDVars.zone1^[C_Gbvm.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0) then
       menu := '~COMBAT ~WAIT ~FLEE ~PARLAY'
     else
@@ -1519,9 +1521,9 @@ begin
   EclMenu.LoadEclVars(1);
   address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   key := address - $7FFF;
-  case Integer(key) of
+  case key of
     { address $2C90 }
-    Integer($AC91): begin
+    $AC91: begin
       GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
       if GDVars.filesLoaded <> 0 then
         if GDVars.eclGraphics or GDVars.sprShown or GDVars.picRegionW or GDVars.movedParty or

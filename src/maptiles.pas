@@ -8,8 +8,6 @@ interface
 
 uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
 
-procedure NoopMaptiles;
-
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
@@ -27,11 +25,6 @@ var
                                         { icon animation frame pairs }
   { 0=CGA 1=EGA 2=Tandy }
   displayMode: Types.TVideoMode absolute GDVars.videoMode;
-
-{ Empty entry point; does nothing. }
-procedure NoopMaptiles;
-begin
-end;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy all its tiles into
   that buffer starting at tile slot mult. A mult above 127, the last slot, restores the video mode and ends the game

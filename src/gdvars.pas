@@ -57,10 +57,8 @@ var
   { Resource initialization. }
   { GameInit2 loop counter }
   gi2: Byte;
-
-var
   { unused }
-  dsUnidentifiedGameini2Prefix: array[0..1] of Byte;
+  unidentifiedPrefix: array[0..2] of Byte;
   { OpenWithRetry result }
   itemsOk: Boolean;
   { directory saved across resource loading }
@@ -75,7 +73,7 @@ var
 var
   { Endgame. }
   { WinGame passes it by var to Blit.LoadPic }
-  finalPicSlot: Types.PImgBuf;
+  finalPic: Types.PImgBuf;
   { WinGame saves and restores ifcState }
   savedIfc: Byte;
   { virtual disk digit appended to the FINAL picture names }
@@ -102,8 +100,8 @@ var
   { Equipment weight. }
   { equipped-items weight }
   gEquipWeight: Word;
-  { Tandy free-list relocation destination }
-  gfxRelocDest: Types.PFreeRange;
+  { lowered HeapEnd snapshot }
+  gfxReserve: Pointer;
   { POOL.CFG character input }
   cfgChar: Char;
   { POOL.CFG text input }
@@ -115,6 +113,8 @@ var
   { DaxIo.FileExists IOResult }
   ioErr: Integer;
   { Play session }
+  { nonzero makes HeapErr force a save; never set }
+  heapFailureSaveEnabled: Byte;
   { GameBoot writes 0/1, Intro tests zero }
   fullIntro: Byte;
   { word bank }
@@ -161,6 +161,8 @@ var
   partyDefeated: Boolean;
   { Delay in printing message to message window }
   msgDelayFlag: Byte;
+
+var
   { Video registers, pages and modes; view and icon buffers, dirty spans and row tables }
   { Register record handed to Dos.Intr for BIOS video calls; every unit calling the BIOS uses this one record. }
   dsInterruptRegisters: Registers;
@@ -385,10 +387,23 @@ var
   { Picture archive and menu state }
   { Current picture archive name. }
   picArcName: String[8];
+  { unused }
+  dsChampSavedPictureName: array[0..8] of Byte;
   { picture id loaded from picArcName; 255 invalidates the pair }
   picArcId: Byte;
+  { unused }
+  dsChampSavedPictureState: array[0..11] of Byte;
   { Zero-based position of the first visible list entry. }
   vertTop: Integer;
+  { Current horizontal menu choice, starting at 1. }
+  horizChoice: Byte;
+  { Extended scan-code flag. }
+  extFlag: Boolean;
+
+var
+  { Menu auto-answer }
+  { MenuCore views the head as Types.TMenuAuto }
+  dsMenuAutoAnswer: array[0..81] of Byte;
   { Spell casting and targeting }
   { Current item used for spell casting. }
   dsCurrentScrollPtr: Types.PItemRec;
@@ -437,6 +452,8 @@ var
   attackedAllies: Byte;
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
+  { unused }
+  dsUnidentified70: Byte;
   { Potential-target creature indices. }
   dsPotentialTargetCreature: array[1..72] of Byte;
   { Primary and secondary attack counts. }
@@ -452,8 +469,8 @@ var
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
   dsMoveIconSheet: Types.PImgBuf;
-
-var
+  { unused }
+  dsUnidentified60: array[0..301] of Byte;
   { ECL colour selectors and read registers }
   { Script-controlled wall color; script writes request a view redraw. }
   wallColorSel: Byte;
@@ -554,13 +571,8 @@ var
   inEncMenu: Byte;
   { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
   picIdShown: Byte;
-
-var
-  { Reserved graphics area }
-  { FreePtr as GameBoot leaves it at startup }
-  dsReservedGraphicalAreaPtr: Pointer;
   { unused }
-  dsUnidentified71: array[0..1] of Byte;
+  dsUnidentified37: array[0..3] of Byte;
 
 implementation
 

@@ -5,26 +5,17 @@ unit CbtMap;
 
 interface
 
-uses Types, Crt, C_Terr, GDConsts, GDVars, MapTiles, Blit, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound;
-
-{ Empty placeholder routine. }
-procedure NoopCbtmap;
+uses Types, Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound;
 
 { Map an icon tile to its cell offset from the upper-left corner. Return False for an inactive icon or an unused tile
   with a negative X offset. }
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
-
-{ Recompute every creature's view coordinates from its arena location and the view origin. }
-procedure CalcGridDeltas;
 
 { On EGA, swap palette registers 0 and 8 so the combat map background is dark gray and register 8 black. }
 procedure SetCombatPalette;
 
 { On EGA, restore palette register 0 to black and register 8 to dark gray. }
 procedure SetNoncombatPalette;
-
-{ Draw the cursor at arena cell (x, y) and redraw the creature standing there. }
-procedure DrawCursorCell(x, y: ShortInt);
 
 { Redraw one arena cell from scratch: repaint its terrain (the whole icon footprint when a creature stands there, via
   UpdateCombatMapTile), then the creature sprite if it is visible. (x, y) are arena coordinates. Combat.CreatureAction
@@ -93,9 +84,6 @@ function IsValidCreatureLoc(creature: Types.PCharRecord; x, y: Byte; moving: Boo
   is set; afterwards the cursor is reset to off with size 1. }
 procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; cursor: Boolean);
 
-{ Recenter and repaint the view buffer when (x, y) leaves the center band; True when it rebuilt. }
-function BuildViewBuffer(x, y: ShortInt; delta: Byte): Boolean;
-
 implementation
 
 
@@ -114,6 +102,7 @@ begin
     GetIconTileDelta := True;
 end;
 
+{ Recompute every creature's view coordinates from its arena location and the view origin. }
 procedure CalcGridDeltas;
 var
   i: Byte;
@@ -126,8 +115,8 @@ end;
 
 procedure SetCombatPalette;
 begin
-  case Char(GDVars.videoMode) of
-    #1: begin
+  case GDVars.videoMode of
+    1: begin
          Blit.SetPaletteRegister(0, DarkGray);
          Blit.SetPaletteRegister(8, Black);
        end;
@@ -136,8 +125,8 @@ end;
 
 procedure SetNoncombatPalette;
 begin
-  case Char(GDVars.videoMode) of
-    #1: begin
+  case GDVars.videoMode of
+    1: begin
          Blit.SetPaletteRegister(0, Black);
          Blit.SetPaletteRegister(8, DarkGray);
        end;
@@ -570,10 +559,6 @@ begin
   CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), delta, C_Dir.CENTER);
   GDVars.arenaPtr^.cursorOn := False;
   GDVars.arenaPtr^.cursorSize := 1;
-end;
-
-procedure NoopCbtmap;
-begin
 end;
 
 begin

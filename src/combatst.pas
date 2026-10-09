@@ -5,14 +5,13 @@ unit CombatSt;
 interface
 
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine,
-  MenuCore, Portrait, View3D, CbtMap, MapTiles, CharHlp, Blit, TextRend, GameIo, C_Ifc, C_Gbvm, C_Dir;
+  Portrait, View3D, MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir;
 
 procedure CombatStart;
 
 implementation
 
 var
-
   { The menu animation, released when combat starts. }
   animData: Types.TAnimRec absolute GDVars.animData;
 
@@ -159,43 +158,43 @@ var
       open := 0;
     for k := 1 to 4 do
       case k of
-        1: case Char(wallN) of
-             #0: case Char(wallW) of
-                  #0: c1 := 22;
-                  #3: c1 := 13;
-                  #1: if open <> 0 then c1 := 0 else c1 := 13;
+        1: case wallN of
+             0: case wallW of
+                  0: c1 := 22;
+                  3: c1 := 13;
+                  1: if open <> 0 then c1 := 0 else c1 := 13;
                 end;
-             #3, #1: if wallW = 0 then begin
+             3, 1: if wallW = 0 then begin
                      if open <> 0 then c1 := 15 else c1 := 5;
                    end else begin
                      if open <> 0 then c1 := 18 else c1 := 2;
                    end;
            end;
-        2: case Char(wallN) of
-             #0: c2 := 22;
-             #3: c2 := 17;
-             #1: c2 := 5;
+        2: case wallN of
+             0: c2 := 22;
+             3: c2 := 17;
+             1: c2 := 5;
            end;
-        3: case Char(wallW) of
-             #0: if wallN = 0 then
+        3: case wallW of
+             0: if wallN = 0 then
                   c3 := 22
                 else if open <> 0 then
                   c3 := 16
                 else
                   c3 := 10;
-             #3: if open <> 0 then c3 := 20 else c3 := 7;
-             #1: if open <> 0 then c3 := 1 else c3 := 3;
+             3: if open <> 0 then c3 := 20 else c3 := 7;
+             1: if open <> 0 then c3 := 1 else c3 := 3;
            end;
-        4: case Char(wallW) of
-             #0, #3: case Char(wallN) of
-                     #0: c4 := 22;
-                     #3: c4 := 23;
-                     #1: c4 := 10;
+        4: case wallW of
+             0, 3: case wallN of
+                     0: c4 := 22;
+                     3: c4 := 23;
+                     1: c4 := 10;
                    end;
-             #1: case Char(wallN) of
-                  #0: c4 := 13;
-                  #3: c4 := 21;
-                  #1: c4 := 6;
+             1: case wallN of
+                  0: c4 := 13;
+                  3: c4 := 21;
+                  1: c4 := 6;
                 end;
            end;
       end;
@@ -226,19 +225,19 @@ var
       open := 0;
     for k := 1 to 4 do
       case k of
-        1: case Char(wallN) of
-             #0: if kN = 1 then c1 := 4 else c1 := 22;
-             #3: c1 := 15;
-             #1: c1 := 5;
+        1: case wallN of
+             0: if kN = 1 then c1 := 4 else c1 := 22;
+             3: c1 := 15;
+             1: c1 := 5;
            end;
         2: if wallN = 0 then begin
-             case Char(kN) of
-               #0: c2 := 22;
-               #3: if (wallE = 0) and (kE <> 0) then
+             case kN of
+               0: c2 := 22;
+               3: if (wallE = 0) and (kE <> 0) then
                     c2 := 24
                   else
                     c2 := 1;
-               #1: if (wallE = 0) and (kE <> 0) then
+               1: if (wallE = 0) and (kE <> 0) then
                     c2 := 11
                   else
                     c2 := 3;
@@ -253,10 +252,10 @@ var
              else
                c2 := 19;
            end;
-        3: case Char(wallN) of
-             #0: c3 := 22;
-             #3: c3 := 16;
-             #1: c3 := 10;
+        3: case wallN of
+             0: c3 := 22;
+             3: c3 := 16;
+             1: c3 := 10;
            end;
         4: if wallN = 0 then begin
              if kN = 0 then

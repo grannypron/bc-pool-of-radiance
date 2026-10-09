@@ -30,9 +30,6 @@ function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Po
   creature's shortest distance and best facing, then sort by distance. }
 procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte; view: Pointer);
 
-{ Exchange-sort the target list ascending by doubled distance }
-procedure SortTargets;
-
 implementation
 
 function SignOf(v: Integer): Integer;

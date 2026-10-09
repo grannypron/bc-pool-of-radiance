@@ -4,9 +4,8 @@ unit EclMenu;
 
 interface
 
-uses Types, Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, Portrait, TextRend, DaxIo, CharHlp,
-  MenuCore, MapView, SaveLoad, ViewChar, FxEngine, View3D, MapTiles, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
-  C_Money;
+uses Types, Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLoad, ViewChar, C_Effect,
+  C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir, C_Money;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address. Note: $80 (string value) also reads the GBVM, at an address made of the
@@ -43,16 +42,6 @@ procedure DisplayMonster(sprId, picId, dist: Byte; var flags: Types.TMonFlags);
 { Join two bytes into a word. }
 function CombineBytesToWord(lowByte, highByte: Byte): Word;
 
-function DecodeGameCharacter(c: Byte): Char;
-
-function GbvmZone(address: Word): Byte;
-
-function FindCurCharIdx(creature: Types.PCharRecord): Byte;
-
-function SpecialReadZ1(address: Word; var found: Boolean): Word;
-
-procedure SpecialWriteZ1(address, value: Word);
-
 { Write value to a GBVM address; zone 1 also runs the special handler }
 procedure WriteGbvm(address, value: Word);
 
@@ -62,10 +51,6 @@ function ReadGbvm(address: Word): Word;
 { Write s to the GBVM as a C string ($6B00 = current character name, copied as a Pascal String into the char record
   instead) }
 procedure WriteGbvmString(address: Word; s: String);
-
-procedure ConvGbString(len, strIdx: Byte);
-
-procedure DerefGbString(strIdx: Byte; address: Word);
 
 { Horizontal '~'-hotkey menu; extended keys switch the current character. Returns the 0-based index of the pressed
   hotkey, 0 for Enter (only when enterOk) and 255 for a letter or digit that is not a hotkey }
@@ -111,6 +96,10 @@ implementation
 var
   { Monster sprite or close-up picture shown in the view window }
   animData: Types.TAnimRec absolute GDVars.animData;
+
+procedure ConvGbString(len, strIdx: Byte); forward;
+
+procedure DerefGbString(strIdx: Byte; address: Word); forward;
 
 { Var record at IP: +1 type, +2 low byte; types 1/2/3 take a third (high) byte; $80 = string value (packed 6-bit chars,
   low byte = packed byte count, decoded by ConvGbString); $81 = string reference (extra byte -> hi; the string at that
@@ -516,7 +505,7 @@ end;
 
 procedure WriteGbvm(address, value: Word);
 var
-  zone: ShortInt;
+  zone: Byte;
   ok: Boolean;
 begin
   zone := EclMenu.GbvmZone(address);
@@ -625,7 +614,7 @@ begin
           { sign-extends (ShortInt) }
           0: ReadGbvm := GDVars.gMapX;
           1: ReadGbvm := GDVars.gMapY;
-          2: ReadGbvm := Word(GDVars.gFacing) div 2;
+          2: ReadGbvm := GDVars.gFacing div 2;
           3: ReadGbvm := GDVars.wallAhead;
           4: ReadGbvm := GDVars.eventAtCell;
           { Wall color ($C059): write-only, result unassigned }
@@ -639,7 +628,7 @@ end;
   GBVM $6B00 instead sets the current character's name (String[15], so capped at 15). Zone 4 writes nothing }
 procedure WriteGbvmString(address: Word; s: String);
 var
-  zone: ShortInt;
+  zone: Byte;
   len: Byte;
   i: Byte;
 begin
@@ -728,7 +717,7 @@ end;
   cells); $6B00 selects the current character's name, and zone 4 gives '' }
 procedure DerefGbString(strIdx: Byte; address: Word);
 var
-  zone: ShortInt;
+  zone: Byte;
   i: Byte;
 begin
   zone := EclMenu.GbvmZone(address);

@@ -14,8 +14,6 @@ procedure RecalcSaves(creature: Types.PCharRecord);
 
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 
-procedure NoopClasscal;
-
 implementation
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set fighter
@@ -37,10 +35,10 @@ begin
       creature^.thac0Base := GDConsts.thac0Tbl[i, lvl];
     if creature^.levelHighest < lvl then
       creature^.levelHighest := lvl;
-    case Char(i) of
-      Char(C_Class.LEVEL_FIGHTER):
+    case i of
+      C_Class.LEVEL_FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
-      Char(C_Class.LEVEL_CLERIC):
+      C_Class.LEVEL_CLERIC:
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
@@ -52,7 +50,7 @@ begin
               if (castClass = 0) and (creature^.clericSpells[levelSp] > 0) then
                 creature^.spellsKnown[m] := 1;
         end;
-      Char(C_Class.LEVEL_MAGE):
+      C_Class.LEVEL_MAGE:
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
@@ -114,11 +112,6 @@ begin
         if j < 6 then
           thiefSkills[j] := thiefSkills[j] + GDConsts.dexAdj[dexCur, j];
       end;
-end;
-
-{ Empty entry point; does nothing. }
-procedure NoopClasscal;
-begin
 end;
 
 begin
