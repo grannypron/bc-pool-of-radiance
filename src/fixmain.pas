@@ -1,5 +1,5 @@
-{ Program entry: initialize the game, show the introduction and translation-wheel challenge, run CharGen's main menu,
-  then run the game loop and shut down. }
+{ Program entry: initialize the game, show the introduction, run CharGen's main menu, then run the game loop and shut
+  down. }
 {$F+}
 program FixMain;
 
@@ -10,11 +10,10 @@ uses Types,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclMenu, Shop, PostCbt, Temple,
-  EclVm, CopyProt, Intro, HeapErr;
+  EclVm, Intro, HeapErr;
 
 {$O HeapErr}
 {$O Intro}
-{$O CopyProt}
 {$O EclVm}
 {$O Temple}
 {$O PostCbt}
@@ -50,12 +49,9 @@ uses Types,
 
 begin
   GameInit.GameInit2;
-  { STING skips the introduction and translation-wheel challenge }
+  { STING skips the introduction }
   if ParamStr(1) <> 'STING' then
-  begin
     Intro.Introduction;
-    CopyProt.CopyProtection;
-  end;
   CharGen.MainMenu;
   View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
   EclVm.GameLoop;

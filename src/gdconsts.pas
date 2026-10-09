@@ -4,24 +4,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Rune, C_Gbvm;
-
-const
-  wheel: array[0..12] of Types.TWheelRec = (
-    (answer: 'BEWARE'; espruar: (29, 30); dethek: (108, 112); path: '- - - - -'),
-    (answer: 'ZOMBIE'; espruar: (91, 92); dethek: (77, C_Rune.NO_RUNE); path: '-..-..-..'),
-    (answer: 'NOTNOW'; espruar: (44, 45); dethek: (106, C_Rune.NO_RUNE); path: '.........'),
-    (answer: 'COPPER'; espruar: (9, 10); dethek: (67, C_Rune.NO_RUNE); path: '- - - - -'),
-    (answer: 'DRAGON'; espruar: (1, 2); dethek: (104, C_Rune.NO_RUNE); path: '-..-..-..'),
-    (answer: 'EFREET'; espruar: (17, 18); dethek: (109, C_Rune.NO_RUNE); path: '.........'),
-    (answer: 'FRIEND'; espruar: (23, 24); dethek: (63, C_Rune.NO_RUNE); path: '- - - - -'),
-    (answer: 'JUNGLE'; espruar: (25, 26); dethek: (78, C_Rune.NO_RUNE); path: '-..-..-..'),
-    (answer: 'KNIGHT'; espruar: (34, 35); dethek: (108, C_Rune.NO_RUNE); path: '.........'),
-    (answer: 'SAVIOR'; espruar: (46, 47); dethek: (66, C_Rune.NO_RUNE); path: '- - - - -'),
-    (answer: 'TEMPLE'; espruar: (54, 55); dethek: (75, C_Rune.NO_RUNE); path: '-..-..-..'),
-    (answer: 'VULCAN'; espruar: (52, 53); dethek: (110, C_Rune.NO_RUNE); path: '.........'),
-    (answer: 'WYVERN'; espruar: (44, 45); dethek: (71, C_Rune.NO_RUNE); path: '- - - - -')
-  );
+uses C_Gender, C_Class, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm;
 
 const
   { CureDisease }
