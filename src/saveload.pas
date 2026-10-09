@@ -686,6 +686,9 @@ begin
   MenuCore.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
   BlockRead(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), res);
+  { disks 1..8 only }
+  if not (GDVars.virtualDisk in [1..8]) then
+    GDVars.virtualDisk := 1;
   BlockRead(f, GDVars.zone0^, SizeOf(GDVars.zone0^), res);
   BlockRead(f, GDVars.zone1^, SizeOf(GDVars.zone1^), res);
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
@@ -739,6 +742,8 @@ begin
   GDVars.curChar := GDVars.creatureList;
   { the disk number SaveGame stored at C_Gbvm.DISK_NUM }
   GDVars.virtualDisk := zone1b^[$624];
+  if not (GDVars.virtualDisk in [1..8]) then
+    GDVars.virtualDisk := 1;
   if GDVars.gLocType < C_Area.LOC_WILD_WEST then
     View3D.Load3DMap(GDVars.zone0^.mapId.lo);
   if GDVars.gLocType > C_Area.LOC_3D_MAP then

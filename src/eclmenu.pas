@@ -213,7 +213,8 @@ end;
 { Clears the script zone first; the first 2 bytes of the block are skipped, and no more than the zone holds is copied.
   The original retried the current disk forever when the block was not there, which hung at "Loading...Please Wait".
   With the merged ECL.DAX in use, the disk still moves to the one whose own ECL archive holds the script, as it does
-  with the per-disk archives. }
+  with the per-disk archives. A current disk outside 1..8 has no archive or insert-disk prompt, so disk 1 is taken
+  first. }
 procedure LoadEclScript(scriptId: Byte);
 var
   d1: Word;
@@ -228,6 +229,8 @@ begin
   GDVars.dsSuppressingInsertDiskFlag := 0;
   MenuCore.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
+  if not (GDVars.virtualDisk in [1..8]) then
+    DaxIo.PushState(1);
   Str(GDVars.virtualDisk, s);
   { the merged ECL.DAX holds every disk's scripts, so the search below would not run }
   if DaxIo.ArchiveName('ECL' + s) <> 'ECL' + s then
@@ -526,7 +529,9 @@ begin
           GDVars.curChar^.quickfight := 1;
         end;
       end;
-    $312: DaxIo.PushState(value);
+    { disks 1..8 only }
+    $312:
+      if (value >= 1) and (value <= 8) then DaxIo.PushState(value);
     $322:
       if value > $80 then begin
         value := value and $7F;
