@@ -50,8 +50,12 @@ uses Types,
 begin
   GameInit.GameInit2;
   { STING skips the introduction }
-  if ParamStr(1) <> 'STING' then
+  if ParamStr(1) <> 'STING' then begin
     Intro.Introduction;
+    { the key that skipped the introduction is not a main-menu choice }
+    while KeyPressed do
+      GameIo.DiscardPendingKeys;
+  end;
   CharGen.MainMenu;
   View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
   EclVm.GameLoop;
