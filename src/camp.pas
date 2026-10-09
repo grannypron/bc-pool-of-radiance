@@ -278,8 +278,81 @@ begin
       end;
 end;
 
-{ Show the pending list first (Yes keeps it and skips selection, No clears it), then loop the spellbook menu, marking
-  picks as pending while slots remain. Confirm again at the end once the spellbook menu has run (idx <> -1). }
+{ Remember the current character's memorized and pending spells as its usual spells (SaveLoad.SetUsualSpells). }
+procedure RememberUsualSpells;
+var
+  spells: Types.TSpellSlots;
+  i: Byte;
+begin
+  for i := 0 to SizeOf(spells) - 1 do
+    spells[i] := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+  SaveLoad.SetUsualSpells(GDVars.curChar, spells);
+end;
+
+{ True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it cannot wrap
+  when level drain has left more spells memorized than slots, and levels past 3 have no slots. }
+function SlotFree(lvl, typ: ShortInt): Boolean;
+var
+  count: Integer;
+  i: Byte;
+  id: Byte;
+begin
+  SlotFree := False;
+  if (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1) then begin
+    count := 0;
+    for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do begin
+      id := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+      if (id >= 1) and (id <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
+        if (GDConsts.spellTable[id].levelSp = lvl) and (GDConsts.spellTable[id].castClassSp = typ) then
+          Inc(count);
+    end;
+    SlotFree := count < GDVars.curChar^.slots[typ, lvl];
+  end;
+end;
+
+{ Mark as pending each of the current character's usual spells that it lacks, still knows and has a free slot for, in
+  turn, so later ones see the slots the earlier ones took. }
+procedure QueueUsualSpells;
+var
+  usual: Types.TSpellSlots;
+  have: Types.TSpellSlots;
+  i: Byte;
+  j: Byte;
+  k: Byte;
+  id: Byte;
+  found: Boolean;
+begin
+  if SaveLoad.GetUsualSpells(GDVars.curChar, usual) then begin
+    for i := 0 to SizeOf(have) - 1 do
+      have[i] := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+    for i := 0 to SizeOf(usual) - 1 do begin
+      id := usual[i];
+      if (id > 0) and (id <= SizeOf(GDVars.curChar^.spellsKnown)) then begin
+        { a copy already memorized or pending covers this one }
+        found := False;
+        for j := 0 to SizeOf(have) - 1 do
+          if (not found) and (have[j] = id) then begin
+            have[j] := 0;
+            found := True;
+          end;
+        if (not found) and (GDVars.curChar^.spellsKnown[id] <> 0) then
+          if Camp.SlotFree(GDConsts.spellTable[id].levelSp, GDConsts.spellTable[id].castClassSp) then begin
+            k := 0;
+            while (k < SizeOf(GDVars.curChar^.memorizedSpells)) and (GDVars.curChar^.memorizedSpells[k] <> 0) do
+              Inc(k);
+            if k < SizeOf(GDVars.curChar^.memorizedSpells) then
+              GDVars.curChar^.memorizedSpells[k] := id + C_Spell.PENDING_FLAG;
+          end;
+      end;
+    end;
+    Camp.SortMemorizedSpells;
+  end;
+end;
+
+{ With nothing pending, first queue the character's usual spells that it lacks. Then show the pending list under the
+  question (Yes keeps it and skips selection, No clears it), so the usual spells are one keypress away and No leads to
+  choosing. Otherwise loop the spellbook menu, marking picks as pending while slots remain, and confirm again at the end
+  once the spellbook menu has run (idx <> -1). A confirmed list becomes the usual spells. }
 procedure CampMemorizeMenu;
 var
   done: Boolean;
@@ -288,17 +361,26 @@ var
   spellId: Byte;
   i: Byte;
   idx: Integer;
+  pending: Boolean;
 begin
   if Camp.CanDoSpellActivity(ACT_MEMORIZE) then begin
     done := False;
+    pending := False;
+    for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do
+      if GDVars.curChar^.memorizedSpells[i] > C_Spell.ID_MASK then
+        pending := True;
+    if not pending then
+      Camp.QueueUsualSpells;
     idx := -1;
-    spellId := ViewChar.SpellMenu(5, 0, idx, notEmpty);
+    spellId := ViewChar.SpellMenu(5, 5, idx, notEmpty);
     redraw := True;
     if notEmpty then begin
       if MenuCore.YesNoMenu('Memorize These Spells? ', Yellow, LightGreen, White) = 'N' then
         Camp.ResetMemorize(GDVars.curChar)
-      else
+      else begin
+        Camp.RememberUsualSpells;
         done := True;
+      end;
     end else
       redraw := False;
     idx := -1;
@@ -326,10 +408,12 @@ begin
     end;
     if idx <> -1 then begin
       idx := -1;
-      spellId := ViewChar.SpellMenu(5, 0, idx, notEmpty);
+      spellId := ViewChar.SpellMenu(5, 5, idx, notEmpty);
       if notEmpty then
         if MenuCore.YesNoMenu('Memorize these spells? ', Yellow, LightGreen, White) = 'N' then
-          Camp.ResetMemorize(GDVars.curChar);
+          Camp.ResetMemorize(GDVars.curChar)
+        else
+          Camp.RememberUsualSpells;
     end;
     if redraw then
       CharHlp.DisplayNoncombatInterface;

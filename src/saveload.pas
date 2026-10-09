@@ -1,6 +1,6 @@
 { Character files, saved games and party assembly. CHARLIST.TXT lists available characters; .cha/.itm/.spc files hold
-  their records, inventory and effects. SAVGAMx.DAT stores the world and party state, with party members in CHRDATxN.sav
-  files. }
+  their records, inventory and effects, and a .mem file their usual spells. SAVGAMx.DAT stores the world and party
+  state, with party members in CHRDATxN.sav files. }
 {$O+,F+,I-}
 unit SaveLoad;
 
@@ -24,12 +24,14 @@ procedure LoadCharIconAnim(loading: Boolean);
 
 { fname='' -> single-character save: re-add the name to CHARLIST.TXT and write <saveDir><sanitized-name>.cha/.itm/.spc;
   fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Old .itm/.spc files are erased first and
-  rewritten only for non-empty lists. Records are written raw, pointers included. }
+  rewritten only for non-empty lists. Records are written raw, pointers included. The .mem file beside them is
+  rewritten the same way, holding the character's usual spells when it has any. }
 procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
 
 { Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
-  then the item/effect lists are rebuilt from the .itm/.spc files when they exist. }
+  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, and the usual spells are read from
+  the .mem file (none when it is missing or not a usual-spells file for this character). }
 procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing CHA record exits the game); nil the list pointers, derive
@@ -41,13 +43,13 @@ procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 procedure AddCreatureToParty(id: Byte);
 
 { Load game: offer the existing SAVGAMA..J.DAT as a letter menu (Escape aborts), read the save file, reload each listed
-  character from its CHRDATxN.sav, delete their single-character files, reload icon anims, the 3D map and wall sets
-  ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set. }
+  character from its CHRDATxN.sav, delete their single-character files (.mem included), reload icon anims, the 3D map
+  and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set. }
 procedure LoadGame;
 
 { Save game: letter menu (Escape aborts), store wall slots, game speed, picture settings and disk number in the GBVM
-  zones, write SAVGAMx.DAT, SaveChar each party member as CHRDATxN.sav, delete their single-character files, set the
-  recently-saved flag. }
+  zones, write SAVGAMx.DAT, SaveChar each party member as CHRDATxN.sav, delete their single-character files (.mem
+  included), set the recently-saved flag. }
 procedure SaveGame;
 
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
@@ -57,6 +59,16 @@ procedure AddCharToParty(creature: Types.PCharRecord);
 { If name does not exist, offer 'Save and exit Insert disk #N'; on 'S' step the party back one square (0..15 wrap),
   restore the previous virtual disk, SaveGame and exit to DOS (GameIo.ExitGame). }
 procedure CheckFileElseQuit(name: Types.TPathStr);
+
+{ The character's usual spells: the spell IDs in its memorized and pending slots when it last confirmed memorizing,
+  pending flags stripped. Return False when none are remembered for it. }
+function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
+
+{ Remember spells as the character's usual spells. }
+procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
+
+{ Forget the character's usual spells; called before its record is freed or reused. }
+procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
 implementation
 
@@ -70,6 +82,160 @@ var
                                          { kept in zone 0 across saves }
 
 procedure CheckSaveDir; forward;
+
+const
+  { the number of characters whose usual spells are kept at once: the party's size }
+  USUAL_ENTRIES = 8;
+  { MEM_SIG and MEM_VERSION open every .mem file; a file without both is not read }
+  MEM_SIG = 'USPL';
+  MEM_VERSION = 1;
+
+type
+  { A .mem file: the usual spells, with the name and randByte of the character they belong to. }
+  TUsualSpellsFile = record
+    sig: string[4];
+    version: Byte;
+    name: string[15];
+    randByte: Byte;
+    spells: Types.TSpellSlots;
+  end;
+
+var
+  { Usual spells (GetUsualSpells), one entry per character, kept with the record and the name it belongs to; a nil
+    owner marks a free entry. }
+  usualOwner: array[1..USUAL_ENTRIES] of Types.PCharRecord;
+  usualName: array[1..USUAL_ENTRIES] of string[15];
+  usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
+
+{ The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
+function FindUsualEntry(creature: Types.PCharRecord): Byte;
+var
+  i: Byte;
+begin
+  FindUsualEntry := 0;
+  if creature <> nil then
+    for i := 1 to USUAL_ENTRIES do
+      if (usualOwner[i] = creature) and (usualName[i] = creature^.name) then
+        FindUsualEntry := i;
+end;
+
+{ True when creature is in the party list. }
+function InParty(creature: Types.PCharRecord): Boolean;
+var
+  p: Types.PCharRecord;
+begin
+  InParty := False;
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    if p = creature then
+      InParty := True;
+    p := p^.nextCharAddr;
+  end;
+end;
+
+function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
+var
+  i: Byte;
+begin
+  i := SaveLoad.FindUsualEntry(creature);
+  if i > 0 then
+    spells := usualSpells[i];
+  GetUsualSpells := i > 0;
+end;
+
+procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
+var
+  i: Byte;
+  j: Byte;
+begin
+  if creature = nil then Exit;
+  { a free entry, else one whose owner has left the party, else the first }
+  SaveLoad.ForgetUsualSpells(creature);
+  i := 0;
+  for j := USUAL_ENTRIES downto 1 do
+    if usualOwner[j] = nil then
+      i := j;
+  if i = 0 then
+    for j := USUAL_ENTRIES downto 1 do
+      if not SaveLoad.InParty(usualOwner[j]) then
+        i := j;
+  if i = 0 then
+    i := 1;
+  usualOwner[i] := creature;
+  usualName[i] := creature^.name;
+  usualSpells[i] := spells;
+end;
+
+procedure ForgetUsualSpells(creature: Types.PCharRecord);
+var
+  i: Byte;
+begin
+  for i := 1 to USUAL_ENTRIES do
+    if usualOwner[i] = creature then
+      usualOwner[i] := nil;
+end;
+
+{ Write the character's usual spells to <fn>.mem, erasing any old file first; nothing is written when it has none. A
+  failed write leaves a short file, which ReadUsualSpells ignores. }
+procedure WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
+var
+  f: file;
+  rec: TUsualSpellsFile;
+  ioRes: Integer;
+begin
+  if DaxIo.FileExists(fn + '.mem') then begin
+    Assign(f, fn + '.mem');
+    Erase(f);
+    ioRes := IOResult;
+  end;
+  FillChar(rec, SizeOf(rec), 0);
+  if SaveLoad.GetUsualSpells(creature, rec.spells) then begin
+    rec.sig := MEM_SIG;
+    rec.version := MEM_VERSION;
+    rec.name := creature^.name;
+    rec.randByte := creature^.randByte;
+    Assign(f, fn + '.mem');
+    Rewrite(f, 1);
+    if IOResult = 0 then begin
+      BlockWrite(f, rec, SizeOf(rec));
+      ioRes := IOResult;
+      Close(f);
+    end;
+  end;
+  { leave no I/O error behind for the next IOResult check }
+  ioRes := IOResult;
+end;
+
+{ Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
+  TUsualSpellsFile with this format's signature and version, made for a character of this name and randByte. }
+procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
+var
+  f: file;
+  rec: TUsualSpellsFile;
+  res: Word;
+  ok: Boolean;
+  ioRes: Integer;
+begin
+  SaveLoad.ForgetUsualSpells(creature);
+  Assign(f, fn + '.mem');
+  Reset(f, 1);
+  if IOResult = 0 then begin
+    ok := FileSize(f) = SizeOf(rec);
+    if IOResult <> 0 then
+      ok := False;
+    if ok then begin
+      BlockRead(f, rec, SizeOf(rec), res);
+      ok := (IOResult = 0) and (res = SizeOf(rec));
+    end;
+    Close(f);
+    ioRes := IOResult;
+    if ok then
+      ok := (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= 15) and
+            (rec.name = creature^.name) and (rec.randByte = creature^.randByte);
+    if ok then
+      SaveLoad.SetUsualSpells(creature, rec.spells);
+  end;
+end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
 procedure LoadCharlist(var list: Types.PItemRec);
@@ -281,6 +447,7 @@ begin
     end;
     Close(f);
   end;
+  SaveLoad.WriteUsualSpells(creature, fn);
 end;
 
 procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
@@ -337,6 +504,7 @@ begin
     until Eof(f);
     Close(f);
   end;
+  SaveLoad.ReadUsualSpells(creature, name);
 end;
 
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
@@ -539,7 +707,7 @@ begin
   creature := GDVars.creatureList;
   while creature <> nil do begin
     fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(creature^.name, '.'));
-    { The .itm and .spc files are erased only when the .cha file exists. }
+    { The .itm, .spc and .mem files are erased only when the .cha file exists. }
     if DaxIo.FileExists(fn + '.cha') then begin
       Assign(f, fn + '.cha');
       Erase(f);
@@ -549,6 +717,10 @@ begin
       end;
       if DaxIo.FileExists(fn + '.spc') then begin
         Assign(f, fn + '.spc');
+        Erase(f);
+      end;
+      if DaxIo.FileExists(fn + '.mem') then begin
+        Assign(f, fn + '.mem');
         Erase(f);
       end;
     end;
@@ -650,6 +822,10 @@ begin
       Assign(f, fn + '.spc');
       Erase(f);
     end;
+    if DaxIo.FileExists(fn + '.mem') then begin
+      Assign(f, fn + '.mem');
+      Erase(f);
+    end;
     p := p^.nextCharAddr;
   end;
   GDVars.recentSaved := 1;
@@ -680,4 +856,6 @@ begin
   end;
 end;
 
+begin
+  FillChar(usualOwner, SizeOf(usualOwner), 0);
 end.
