@@ -481,7 +481,8 @@ begin
   end;
 end;
 
-{ Special write handling for GBVM zone 1 (always in addition to the zone word write) }
+{ Special write handling for GBVM zone 1 (always in addition to the zone word write). A write to the current
+  character's coins recalculates its stats, so its encumbrance and movement follow. }
 procedure SpecialWriteZ1(address, value: Word);
 var
   t: Byte;
@@ -548,6 +549,9 @@ begin
         View3D.LoadWallSet(value, 3);
       end;
   end;
+  { $BB, $BD, $BF, $C1, $C3: copper to platinum }
+  if (address >= $BB) and (address <= $C3) and Odd(address) then
+    CharHlp.RecalcStats(GDVars.curChar);
 end;
 
 procedure WriteGbvm(address, value: Word);
