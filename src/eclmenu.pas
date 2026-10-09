@@ -988,7 +988,8 @@ begin
 end;
 
 { Heavy items are harder to steal: weight > 255 coins knocks 90 off the chance, > 24 knocks 50. Note: the penalties come
-  off chance itself, so they accumulate over the walk. }
+  off chance itself, so they accumulate over the walk. A readied item is unreadied before it is taken, so a ring's,
+  cloak's or gauntlets' effect goes with it, as ViewChar.ToggleReadyItem does. }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 var
   roll: Byte;
@@ -1010,8 +1011,14 @@ begin
     end;
     roll := FxEngine.RollDice(1, 100);
     nxt := item^.next;
-    if roll <= chance then
+    if roll <= chance then begin
+      if item^.equipped <> 0 then begin
+        item^.equipped := 0;
+        if item^.special > $7F then
+          FxEngine.CallEffectHandler(item^.special, creature, item, True);
+      end;
       CharHlp.RemoveItem(creature, item);
+    end;
     item := nxt;
   end;
 end;
