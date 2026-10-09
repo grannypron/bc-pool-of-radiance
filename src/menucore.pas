@@ -111,7 +111,7 @@ var
   enterOk: Boolean;
 
   { Split the menu into options: each starts at a digit or capital letter and ends two characters before the next one,
-    the last at the end of the menu. }
+    the last at the end of the menu. There are at most 20 options (opt's size); the 20th runs to the end of the menu. }
   procedure ParseMenu(m: Types.TStr40);
   var
     idx: Byte;
@@ -126,7 +126,7 @@ var
       if m[i] in ['0'..'9', 'A'..'Z'] then
         if opt[idx].first = 0 then
           opt[idx].first := i
-        else begin
+        else if idx < 20 then begin
           opt[idx].last := i - 2;
           Inc(idx);
           opt[idx].first := i;
@@ -243,8 +243,9 @@ begin
                 for i := 1 to mLen do
                   if menu[i] = ch then begin
                     done := True;
+                    { a hotkey past the 20th belongs to the 20th option }
                     j := 1;
-                    while opt[j].first <> i do
+                    while (j < optCnt) and (opt[j].first <> i) do
                       Inc(j);
                     GDVars.horizChoice := j;
                     DisplayOption(GDVars.horizChoice);
