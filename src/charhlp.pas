@@ -112,6 +112,10 @@ function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 
 function RawWeight(creature: Types.PCharRecord): LongInt;
 
+{ The weight of an item in coins: its weight is per piece, so a stack weighs weight * quantity (quantity 0 is a single
+  unstacked item). }
+function ItemWeight(item: Types.PItemRec): LongInt;
+
 implementation
 
 var
@@ -447,9 +451,7 @@ begin
   GDVars.gEquipWeight := 0;
   while item <> nil do begin
     Inc(creature^.numberOfItems);
-    w := item^.weight;
-    if item^.quantity > 0 then
-      w := item^.quantity * w;
+    w := CharHlp.ItemWeight(item);
     Inc(creature^.encumbrance, w);
     if item^.equipped <> 0 then begin
       Inc(GDVars.gEquipWeight, w);
@@ -698,15 +700,20 @@ begin
   w := 0;
   item := creature^.itemsAddr;
   while item <> nil do begin
-    if item^.quantity > 0 then
-      Inc(w, LongInt(item^.quantity) * item^.weight)
-    else
-      Inc(w, item^.weight);
+    Inc(w, CharHlp.ItemWeight(item));
     item := item^.next;
   end;
   for c := C_Money.COPPER to C_Money.JEWELRY do
     Inc(w, creature^.coins[c]);
   RawWeight := w;
+end;
+
+function ItemWeight(item: Types.PItemRec): LongInt;
+begin
+  if item^.quantity > 0 then
+    ItemWeight := LongInt(item^.quantity) * item^.weight
+  else
+    ItemWeight := item^.weight;
 end;
 
 { Clear the first memorized-spell slot holding spell on the current character. }

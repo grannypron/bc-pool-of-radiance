@@ -620,32 +620,17 @@ begin
   end;
 end;
 
-{ Offer half the item's value for it. A stack of arrows or quarrels is valued per bundle of 20 (the game's own Arrows +1
-  are 20 for 100 gp), so it is priced at quantity / 20 of that; any other stack is valued per item (3 Potions of
-  Healing at 400 each, 7 Gold Statuettes at 500 each), so it is priced at the full quantity, at most 65535. Pay as
-  platinum (price div 5) plus gold (price mod 5); when overloaded, the platinum the character cannot take goes to the
-  treasure pool. }
+{ Offer Money.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
+  quantity, so a single arrow fetches a twentieth of a bundle's price. Pay as platinum (price div 5) plus gold (price
+  mod 5); when overloaded, the platinum the character cannot take goes to the treasure pool. }
 procedure SellItem(item: Types.PItemRec);
 var
   price: Word;
   plat: Word;
   gold: Word;
   takable: Word;
-  total: LongInt;
 begin
-  price := 0;
-  if item^.value > 0 then
-    price := item^.value div 2;
-  if item^.quantity > 1 then begin
-    if (item^.itemType = 73) or (item^.itemType = 28) then
-      price := LongInt(price) * item^.quantity div 20
-    else begin
-      total := LongInt(price) * item^.quantity;
-      if total > 65535 then
-        total := 65535;
-      price := total;
-    end;
-  end;
+  price := Money.ItemSalePrice(item);
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
                                 'I''ll give you ' + CharHlp.WordToString(price) + ' gold pieces for your ' +
@@ -691,14 +676,12 @@ begin
     charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
     if charGold >= 200 then begin
       paid := True;
-      Dec(charGold, 200);
-      Money.SetCreatureCoinsInGold(charGold);
+      Money.PayFromCreature(GDVars.curChar, 200);
     end else begin
       poolGold := Money.CoinValueInGold(treasureMoney);
       if poolGold >= 200 then begin
         paid := True;
-        Dec(poolGold, 200);
-        Money.SetTreasureCoinsInGold(poolGold);
+        Money.PayFromPool(200);
       end else
         CharHlp.PrintBottomLine('Not Enough Money');
     end;
@@ -891,9 +874,7 @@ begin
   f := False;
   if creature^.numberOfItems > 15 then
     f := True;
-  w := item^.weight;
-  if item^.quantity > 0 then
-    w := w * item^.quantity;
+  w := CharHlp.ItemWeight(item);
   if Money.CheckOverload(creature, w, takable) then
     f := True;
   CannotCarryItem := f;
@@ -925,7 +906,8 @@ begin
   GDVars.curChar := p;
 end;
 
-{ Value of the creature's five coin types in gold, rounded half up; gems and jewelry are excluded. }
+{ Value of the creature's five coin types in whole gold pieces (a part of a gold piece does not count, as in
+  Money.CoinValueInGold); gems and jewelry are excluded. }
 function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
 var
   sum: LongInt;
@@ -935,7 +917,7 @@ begin
   { the five coin types valued in dsCoinValuationCopper }
   for m := C_Money.COPPER to C_Money.PLATINUM do
     Inc(sum, GDConsts.dsCoinValuationCopper[m] * creature^.coins[m]);
-  CreatureCoinValueInGold := (sum + 100) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+  CreatureCoinValueInGold := sum div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a

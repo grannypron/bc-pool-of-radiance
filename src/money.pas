@@ -24,13 +24,23 @@ procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
 
-procedure SetCreatureCoinsInGold(gp: LongInt);
+procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
-procedure SetTreasureCoinsInGold(gp: LongInt);
+procedure PayFromPool(gp: LongInt);
 
 function CoinValueInGold(m: Types.TMoney): LongInt;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
+
+{ How many pieces an item's value is for: ammunition (darts, quarrels and arrows) is valued per bundle of 20, as the
+  game's own 20 Arrows +1 for 100 gp are; anything else is valued per piece (3 Potions of Healing at 400 each). }
+function ItemBundle(item: Types.PItemRec): Byte;
+
+{ What an item or stack is worth in gold: value * quantity div ItemBundle (quantity 0 is a single unstacked item). }
+function ItemValue(item: Types.PItemRec): LongInt;
+
+{ What a shop pays for an item or stack: half its ItemValue, at most 65535. }
+function ItemSalePrice(item: Types.PItemRec): Word;
 
 procedure AppraiseMenu(var ok: Boolean);
 
@@ -79,8 +89,8 @@ begin
   end;
 end;
 
-{ Convert the five coin types to gold, rounding half up. Gems and jewelry are excluded. }
-function CoinValueInGold(m: Types.TMoney): LongInt;
+{ The copper value of the five coin types in m. }
+function CopperValue(var m: Types.TMoney): LongInt;
 var
   total: LongInt;
   i: ShortInt;
@@ -88,43 +98,56 @@ begin
   total := 0;
   for i := C_Money.COPPER to C_Money.PLATINUM do
     Inc(total, GDConsts.dsCoinValuationCopper[i] * m[i]);
-  CoinValueInGold := (total + 100) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+  CopperValue := total;
 end;
 
-{ Set curChar's coins to gp gold as gp div 5 platinum plus the rest in gold. A character holds at most 65535 of each
-  coin, so platinum stops there and the rest goes to gold, which also stops at 65535. Only the five coin types are
-  cleared; gems and jewelry are kept. The coins' weight changes, so curChar's stats are recalculated. }
-procedure SetCreatureCoinsInGold(gp: LongInt);
-var
-  i: ShortInt;
-  pp: LongInt;
-  rest: LongInt;
+{ The value of the five coin types in m in whole gold pieces; a part of a gold piece does not count, so 999 gp and an
+  electrum piece cannot pay 1000. }
+function CoinValueInGold(m: Types.TMoney): LongInt;
 begin
-  for i := C_Money.COPPER to C_Money.PLATINUM do
-    GDVars.curChar^.coins[i] := 0;
-  pp := gp div 5;
-  if pp > 65535 then
-    pp := 65535;
-  rest := gp - pp * 5;
-  if rest > 65535 then
-    rest := 65535;
-  { platinum }
-  GDVars.curChar^.coins[C_Money.PLATINUM] := pp;
-  { gold }
-  GDVars.curChar^.coins[C_Money.GOLD] := rest;
-  CharHlp.RecalcStats(GDVars.curChar);
+  CoinValueInGold := CopperValue(m) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
-{ Set the treasure pool's coins to gp gold as gp div 5 platinum plus gp mod 5 gold. Only the five coin types are
-  cleared; gems and jewelry are kept. }
-procedure SetTreasureCoinsInGold(gp: LongInt);
+{ Replace the five coin types in m with rem copper given as the largest coins, platinum first, each type at most cap.
+  Gems and jewelry are kept. A negative rem gives nothing; copper the caps cannot hold is lost (for a character, only
+  above about 393,000 gp). }
+procedure MakeChange(rem, cap: LongInt; var m: Types.TMoney);
 var
+  i: ShortInt;
+  n: LongInt;
+begin
+  if rem < 0 then
+    rem := 0;
+  for i := C_Money.PLATINUM downto C_Money.COPPER do begin
+    n := rem div GDConsts.dsCoinValuationCopper[i];
+    if n > cap then
+      n := cap;
+    m[i] := n;
+    Dec(rem, n * GDConsts.dsCoinValuationCopper[i]);
+  end;
+end;
+
+{ Pay gp gold pieces from the creature's coins, worked out in copper, with the change given back in the largest coins.
+  The caller has checked the creature can pay (ViewChar.CreatureCoinValueInGold); if not, every coin goes. The coins'
+  weight changes, so the creature's stats are recalculated. }
+procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
+var
+  m: Types.TMoney;
   i: ShortInt;
 begin
   for i := C_Money.COPPER to C_Money.PLATINUM do
-    treasureMoney[i] := 0;
-  treasureMoney[C_Money.PLATINUM] := gp div 5;
-  treasureMoney[C_Money.GOLD] := gp mod 5;
+    m[i] := creature^.coins[i];
+  MakeChange(CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], 65535, m);
+  for i := C_Money.COPPER to C_Money.PLATINUM do
+    creature^.coins[i] := m[i];
+  CharHlp.RecalcStats(creature);
+end;
+
+{ Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
+procedure PayFromPool(gp: LongInt);
+begin
+  MakeChange(CopperValue(treasureMoney) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], MaxLongInt,
+             treasureMoney);
 end;
 
 { Give pp platinum to the current character; whatever does not fit goes to the treasure pool. }
@@ -467,6 +490,34 @@ begin
     items := True;
 end;
 
+function ItemBundle(item: Types.PItemRec): Byte;
+begin
+  case item^.itemType of
+    9, 28, 73: ItemBundle := 20;
+    else ItemBundle := 1;
+  end;
+end;
+
+function ItemValue(item: Types.PItemRec): LongInt;
+var
+  q: LongInt;
+begin
+  q := item^.quantity;
+  if q = 0 then
+    q := 1;
+  ItemValue := LongInt(item^.value) * q div Money.ItemBundle(item);
+end;
+
+function ItemSalePrice(item: Types.PItemRec): Word;
+var
+  v: LongInt;
+begin
+  v := Money.ItemValue(item) div 2;
+  if v > 65535 then
+    v := 65535;
+  ItemSalePrice := v;
+end;
+
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;
 var
@@ -581,10 +632,19 @@ begin
             7: weight := 30;
             8, 77:
               weight := 10;
+            { ammunition: weight is per piece, as in every placed stack }
             9: begin
-                 weight := 25;
+                 weight := 5;
                  quantity := 5;
                end;
+            28: begin
+                  weight := 3;
+                  quantity := 10;
+                end;
+            73: begin
+                  weight := 4;
+                  quantity := 10;
+                end;
             10, 26, 36:
               weight := 60;
             11, 16, 25, 27, 41, 47:
@@ -613,7 +673,8 @@ begin
           { value in gp = plus * K }
           case itemType of
             59: value := Word(plus) * 2500;
-            73, 28: value := Word(plus) * 150;
+            { per bundle of 20 (ItemBundle) }
+            9, 28, 73: value := Word(plus) * 150;
             53, 54: value := Word(plus) * 3000;
             55, 56: value := Word(plus) * 3500;
             57: value := Word(plus) * 4000;

@@ -705,8 +705,7 @@ const
     { vertical bar }
     '|');
   { Character, money and item name strings; compass names }
-  { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. Note: when the purse runs short,
-    CharGen.TakeCoins indexes past the five rates into classNames, so keep classNames right after this table. }
+  { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. }
   dsCoinValuationCopper: array[C_Money.COPPER..C_Money.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
   { Class names, indexed by TCharRecord.charClass. }
