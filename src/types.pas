@@ -7,10 +7,8 @@ uses C_Gender, C_Save, C_Equip, C_Class, C_Abil, C_Money, C_Gbvm;
 
 type
 
-  { Shared string type. }
-  TStr40 = String[40];
-
   { Shared types. }
+  TStr40 = String[40];
   TBaseItemRec = record
     { equip slot }
     slot: Byte;
@@ -313,6 +311,8 @@ type
         { scroll spell slots }
         spells: array[1..3] of Byte);
   end;
+  PBytes = ^TBytes;
+  PImgBuf = ^TImgBuf;
   TArenaLoc = record
     { Arena coordinates. }
     x: ShortInt;
@@ -329,13 +329,8 @@ type
     hi: ShortInt;
   end;
   TBrkSet = set of ' '..'?';
-  { main-menu entry }
-  TChargenMenuItem = record
-    { first character is the hotkey }
-    name: string[40];
-    { MainMenu updates availability }
-    enabled: Byte;
-  end;
+  TBytes = array[0..65000] of Byte;
+  TColorMap = array[0..7] of Byte;
   TColorTab = array[0..15] of Byte;
   TCombatTarget = record
     { arena registration index }
@@ -351,6 +346,26 @@ type
     { cell Y offset }
     dy: ShortInt;
   end;
+  TImgBuf = record
+    { image height in pixels }
+    height: Word;
+    { image width in CHARS (x8 for pixels) }
+    width: Word;
+    { image placement X from DAX header }
+    originX: Word;
+    { image placement Y from DAX header }
+    originY: Word;
+    { images in buffer }
+    count: Byte;
+    { EGA->CGA colour map }
+    map: TColorMap;
+    { bytes in one image }
+    imgSize: Word;
+    { extra transparency space (default nil) }
+    transp: PBytes;
+    { image data (open-ended) }
+    data: array[0..32000] of Byte;
+  end;
   TInterruptRegisters = record
     ax: Word;
     bx: Word;
@@ -362,6 +377,23 @@ type
     ds: Word;
     es: Word;
     flags: Word;
+  end;
+  TKrynnClassRules = record
+    { class/item-usability masks }
+    createClassBits: array[0..7] of Byte;
+    unidentifiedByte: Byte;
+    { class selection masks }
+    classBits: array[0..7] of Byte;
+    unidentifiedTail: array[0..8] of Byte;
+    { hit-dice cap plus one }
+    maxClassLevels: array[0..7] of Byte;
+  end;
+  { main-menu entry }
+  TMenuItem = record
+    { first character is the hotkey }
+    name: string[40];
+    { MainMenu updates availability }
+    enabled: Byte;
   end;
   TName15 = string[15];
   TPortraitCacheSlot = record
@@ -451,8 +483,12 @@ type
       1: (segment: Word; minute: Word; turn: Word; hour: Word; day: Word; month: Word; year: Word);
   end;
   TGbvmSavedWalls = packed record
-    wallSetIds: array[1..3] of Word;
-    symbolSlots: array[1..3] of Word;
+    case Byte of
+      0: (wallSetIds: array[1..3] of Word;
+          symbolSlots: array[1..3] of Word);
+      1: (menuPrefix: array[1..5] of Word;
+          { Shares symbolSlots[3]. }
+          menuAnimation: Word);
   end;
   TGbvmWord = packed record
     case Byte of
@@ -512,30 +548,6 @@ type
   TGbvmZone1 = array[$6B00..$6EFF] of Word;
 
   { Blit types. }
-  PBytes = ^TBytes;
-  PImgBuf = ^TImgBuf;
-  TBytes = array[0..65000] of Byte;
-  TColorMap = array[0..7] of Byte;
-  TImgBuf = record
-    { image height in pixels }
-    height: Word;
-    { image width in CHARS (x8 for pixels) }
-    width: Word;
-    { image placement X from DAX header }
-    originX: Word;
-    { image placement Y from DAX header }
-    originY: Word;
-    { images in buffer }
-    count: Byte;
-    { EGA->CGA colour map }
-    map: TColorMap;
-    { bytes in one image }
-    imgSize: Word;
-    { extra transparency space (default nil) }
-    transp: PBytes;
-    { image data (open-ended) }
-    data: array[0..32000] of Byte;
-  end;
   TVideoMode = (vmCGA, vmEGA, vmTandy);
 
   { Border types. }
@@ -621,6 +633,8 @@ type
   end;
 
   { CharHlp types. }
+  PAcAdjust = ^TAcAdjust;
+  PBoolean = ^Boolean;
   TAcAdjust = array[0..4] of ShortInt;
   TZone1 = record
     { skips to searchFlags }
@@ -720,15 +734,9 @@ type
   TFxengineZoneBytes = array[0..2047] of Byte;
 
   { GameBoot types. }
-  PFreeRange = ^TFreeRange;
-  TFreePtrW = record
+  THeapEndW = record
     o: Word;
     s: Word;
-    freeMin: Word;
-  end;
-  TFreeRange = record
-    rangeStart: Pointer;
-    rangeEnd: Pointer;
   end;
 
   { GameInit types. }
@@ -749,7 +757,7 @@ type
 
   { MenuCore types. }
   TMFrame = record
-    { frame delay, 7 centiseconds per unit }
+    { frame delay, 1/10 s }
     time: LongInt;
     { frame image }
     pic: PImgBuf;
@@ -760,6 +768,16 @@ type
     { current frame, 1-based }
     current: Byte;
     frames: array[1..8] of TMFrame;
+  end;
+  TMenuAuto = record
+    { centiseconds before auto-answer, 0=off }
+    timeout: LongInt;
+    { the auto-answer key }
+    key: Char;
+  end;
+  TOptRange = record
+    first: Byte;
+    last: Byte;
   end;
 
   { Money types. }
@@ -880,18 +898,6 @@ type
 
   { Pointers for character helpers. }
   PZone1Rec = ^TZone1;
-
-  { Combat and character selection values. }
-  TTurnLevel = (tl0, tl1, tl2, tl3, tl4, tl5, tl6, tl7,
-                tl8, tl9, tl10, tl11, tl12, tl13);
-  TRace = (raceMonster, raceDwarf, raceElf, raceGnome,
-           raceHalfElf, raceHalfling, raceHalfOrc, raceHuman);
-  TClass = (clsCleric, clsDruid, clsFighter, clsPaladin, clsRanger, clsMage,
-            clsThief, clsMonk, clsClericFighter, clsClericFighterMage,
-            clsClericRanger, clsClericMage, clsClericThief, clsFighterMage,
-            clsFighterThief, clsFighterMageThief, clsMageThief);
-  TFearLevel = (fl0, fl1, fl2, fl3, fl4, fl5);
-  TSleepTier = (stier0, stier1, stier2, stier3, stier4, stier5);
 
 type
   TWheelRec = record

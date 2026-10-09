@@ -1,7 +1,7 @@
 # Build every push to main and every pull request; release every pushed version tag.
 #
 # A release can also be cut for a tag that predates this workflow: run it by hand (workflow_dispatch) with the tag.
-# The tag's src/ and build/build.bat are built with the current scripts.
+# The tag's src/ and build/ are built with the current scripts.
 
 name: build
 
@@ -38,7 +38,9 @@ jobs:
       - name: Use the dispatched tag's source
         if: github.event_name == 'workflow_dispatch'
         run: |
-          git checkout "$TAG" -- src build/build.bat
+          # The tag's whole src/ and build/, so a file only newer versions have (build/toolchain) can't leak in.
+          rm -rf src build
+          git checkout "$TAG" -- src build
           # Date the zip's files by the tag's commit, as a pushed tag would.
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
 

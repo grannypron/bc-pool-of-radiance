@@ -1,35 +1,43 @@
 { Combat AI: movement, equipment, spell selection, morale and automatic actions. }
+
 {$O+,F+}
 unit CombatAi;
 
 interface
 
-uses Types, C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, TextRend, GameIo, CharHlp,
-  MenuCore, Pathing, CbtMap, CbtActs, ViewChar, Magic, FxEngine, C_Effect, C_Equip, C_Class, C_Status, C_Gbvm, C_Dir,
-  C_Spell, C_Keys;
+uses Types, C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs,
+  ViewChar, FxEngine, C_Effect, C_Equip, C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys;
 
 { Run one AI-controlled turn for creature: check the keyboard (Space returns the party to manual control), reroll the
   approach pattern, check morale, then try in order an item's spell effect, a spell readied earlier
   (combatAddr^.spellCast), turning undead and a new spell, and otherwise re-equip and run the move/attack loop. }
 procedure CombatAiControl(creature: Types.PCharRecord);
 
-function TurnUndeadAI(creature: Types.PCharRecord): Boolean;
-
-function SelectItemToUse(creature: Types.PCharRecord): Boolean;
-
-function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
-
-function AiMoveAttack(creature: Types.PCharRecord): Boolean;
-
-function FinishRound(creature: Types.PCharRecord): Boolean;
-
-function CheckKeystroke(creature: Types.PCharRecord): Boolean;
-
-function CheckMorale(creature: Types.PCharRecord): Boolean;
-
-procedure EquipWeaponAndShield(creature: Types.PCharRecord);
-
 implementation
+
+function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
+
+function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean; forward;
+
+function SelectItemToUse(creature: Types.PCharRecord): Boolean; forward;
+
+function SelectSpellToCast(creature: Types.PCharRecord): Boolean; forward;
+
+function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean; forward;
+
+procedure AiMoveStep(creature: Types.PCharRecord); forward;
+
+function AiMoveAttack(creature: Types.PCharRecord): Boolean; forward;
+
+function FinishRound(creature: Types.PCharRecord): Boolean; forward;
+
+function CheckKeystroke(creature: Types.PCharRecord): Boolean; forward;
+
+function CheckMorale(creature: Types.PCharRecord): Boolean; forward;
+
+function CalcWeaponPriority(creature: Types.PCharRecord; item: Types.PItemRec): Byte; forward;
+
+procedure EquipWeaponAndShield(creature: Types.PCharRecord); forward;
 
 procedure CombatAiControl(creature: Types.PCharRecord);
 var
@@ -210,8 +218,7 @@ var
 begin
   count := 0;
   if creature^.combatAddr^.castAllowed <> 0 then
-    { 20 = High(memorizedSpells) }
-    for k := 0 to 20 do
+    for k := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
       if creature^.memorizedSpells[k] > 0 then begin
         list[count] := creature^.memorizedSpells[k];
         Inc(count);
@@ -312,7 +319,7 @@ begin
       creature^.combatAddr^.aiStance := FxEngine.RollDice(1, 2);
       { Hostiles flee along the party's facing (DIR_* 0, 2, 4, 6). Note: north gives 7 (NW) and south gives 3 (SE), so
         the result is not always a cardinal direction. }
-      dir := GDVars.gFacing - (GDVars.gFacing + 2) mod 4 div 2;
+      dir := GDVars.gFacing - Word((GDVars.gFacing + 2) mod 4) div 2;
       if creature^.hostile = 0 then
         { allies flee the other way }
         dir := dir + 4;

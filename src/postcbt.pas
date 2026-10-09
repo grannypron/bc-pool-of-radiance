@@ -4,8 +4,8 @@ unit PostCbt;
 
 interface
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, TextRend, Border, CharHlp, MenuCore, Shop, EclMenu,
-  CharGen, ViewChar, Money, Magic, FxEngine, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm, C_Money;
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc,
+  C_Gbvm, C_Money;
 
 { Wrap up a combat: settle the outcome, award experience, run the loot menus and free the combat state. }
 procedure PostCombat;
@@ -165,13 +165,13 @@ begin
     if not GDVars.partyDefeated then begin
       while (p <> nil) and (p^.combatAddr^.notPcNpc <> 1) do begin
         if not GDVars.partyFled then begin
-          case Char(p^.status) of
-            Char(C_Status.RUNNING): begin
+          case p^.status of
+            C_Status.RUNNING: begin
                  p^.status := C_Status.OKAY;
                  p^.enabled := 1;
                end;
-            Char(C_Status.DYING): p^.status := C_Status.UNCONSCIOUS;
-            Char(C_Status.UNCONSCIOUS): if p^.hpCur > 0 then begin
+            C_Status.DYING: p^.status := C_Status.UNCONSCIOUS;
+            C_Status.UNCONSCIOUS: if p^.hpCur > 0 then begin
                  p^.status := C_Status.OKAY;
                  p^.enabled := 1;
                end;

@@ -5,8 +5,7 @@ unit Camp;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, GameIo, TextRend, Border, CharHlp, MenuCore, CharGen, SaveLoad,
-  ViewChar, GameTime, Magic, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell;
+uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell;
 
 { Run the camp menu, preserving the interface state and clearing rest timers and pending spell activities. Return
   interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). }
@@ -221,9 +220,9 @@ begin
     row := 3;
     for typ := 0 to 1 do begin
       if canDo[typ] <> 0 then begin
-        case Char(typ) of
-          #0: s := '    Cleric Spells:';
-          #1: s := 'Magic-User Spells:';
+        case typ of
+          0: s := '    Cleric Spells:';
+          1: s := 'Magic-User Spells:';
         end;
         TextRend.DisplayString(1, row + 17, LightGreen, s);
         col := 19;

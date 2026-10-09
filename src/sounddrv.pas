@@ -12,7 +12,8 @@ interface
 function SoundTime: LongInt;
 
 { * Paces sound cleanup without relying on the timer interrupt, which the sound driver may have hooked. Busy-waits
-   against SoundTime. Note: a clock discontinuity can prolong the wait.
+   against SoundTime; ends early if a clock sample precedes the starting value, so a clock discontinuity cannot prolong
+   the wait.
    @param(centiseconds Number of centiseconds to wait.) }
 procedure SoundDelay(centiseconds: Word);
 
@@ -82,11 +83,15 @@ begin
 end;
 
 procedure SoundDelay(centiseconds: Word);
-var target: LongInt;
+var
+  target: LongInt;
+  now: LongInt;
 begin
   target := SoundDrv.SoundTime + centiseconds;
   repeat
-  until SoundDrv.SoundTime >= target;
+    now := SoundDrv.SoundTime;
+    if target - now > centiseconds then now := target + 1;
+  until now >= target;
 end;
 
 procedure SoundCommand(cmd: Word);
@@ -94,18 +99,17 @@ begin
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
   if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
   case cmd of
-    CMD_DISABLE:
-      begin
-        SoundDrv.ProgramTandyVoices(SILENT_TUNE);
-        SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
-        SoundDrv.SetSoundOutputEnabled(OUTPUT_DISABLED);
-      end;
+    CMD_DISABLE: begin
+      SoundDrv.ProgramTandyVoices(SILENT_TUNE);
+      SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
+      SoundDrv.SetSoundOutputEnabled(OUTPUT_DISABLED);
+    end;
     CMD_ENABLE: SoundDrv.SetSoundOutputEnabled(OUTPUT_ENABLED);
     CMD_STOP: begin SoundDrv.ProgramTandyVoices(SILENT_TUNE); SoundDrv.ProgramSpeakerVoices(SILENT_TUNE); end;
   else
-    case Char(GDVars.soundMode) of
-      Char(C_Sound.MODE_SPEAKER): SoundDrv.ProgramSpeakerVoices(cmd - 1);
-      Char(C_Sound.MODE_TANDY): SoundDrv.ProgramTandyVoices(cmd - 1);
+    case GDVars.soundMode of
+      C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(cmd - 1);
+      C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(cmd - 1);
     end;
   end;
   if GDVars.soundAutoStop > 0 then begin

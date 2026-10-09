@@ -1,12 +1,20 @@
 { Shared creature operations: statistics, equipment, inventory, damage, targeting and party display. }
-{$F-}
+{$O+,F+}
 unit CharHlp;
 
 interface
 
-uses Types, C_Area, C_Item, C_Msg, GDConsts, GDVars, Crt, SoundDrv, TextRend, Border, Blit,
-  MenuCore, MapView, Wilds, Portrait, Pathing, CbtMap, C_Effect, C_Equip, C_Race, C_Keys, C_Class, C_Status, C_Ifc,
-  C_Money;
+uses Types, Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap,
+  C_Effect, C_Equip, C_Race, C_Keys, C_Class, C_Status, C_Ifc, C_Money;
+
+procedure WeaponAdjust(creature: Types.PCharRecord);
+
+procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
+
+procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
+                            isMagicBody: Types.PBoolean);
+
+procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
 procedure PrintItemString(creature: Types.PCharRecord; item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
 
@@ -71,6 +79,8 @@ function EndActions(creature: Types.PCharRecord): Boolean;
 function Guard(creature: Types.PCharRecord): Boolean;
 
 function GetCasterLevel(spell: Byte): Byte;
+
+procedure DrawNoncombatWindows(inset: Boolean);
 
 procedure DisplayNoncombatInterface;
 
@@ -170,8 +180,8 @@ end;
   the creature's and its plus to adj[2], except a ring (slot 9), whose plus instead raises adj[3] to the best ring
   plus. Any other item keeps the best AC + plus in adj[4], setting isMagicBody when that new best is body armor (slot
   2) with a positive plus. }
-procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; var adj: Types.TAcAdjust;
-                            var isMagicBody: Boolean);
+procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
+                            isMagicBody: Types.PBoolean);
 var
   descr: Byte;
   slot: Byte;
@@ -181,20 +191,20 @@ begin
     descr := descr and $7F;
     slot := GDVars.baseItems[item^.itemType].slot;
     if slot = C_Equip.SHIELD then
-      adj[1] := descr + item^.plus
+      adj^[1] := descr + item^.plus
     else if descr = 0 then begin
       if slot = C_Equip.RING1 then begin
-        if item^.plus > adj[3] then
-          adj[3] := item^.plus;
+        if item^.plus > adj^[3] then
+          adj^[3] := item^.plus;
       end else
-        adj[2] := adj[2] + item^.plus;
+        adj^[2] := adj^[2] + item^.plus;
       creature^.saveBonus := creature^.saveBonus + item^.saveBonus;
     end else begin
-      if descr + item^.plus > adj[4] then begin
-        adj[4] := descr + item^.plus;
+      if descr + item^.plus > adj^[4] then begin
+        adj^[4] := descr + item^.plus;
         if item^.plus > 0 then
           if slot = C_Equip.ARMOR then
-            isMagicBody := True;
+            isMagicBody^ := True;
       end;
     end;
   end;
@@ -372,7 +382,7 @@ begin
     Inc(row, 2);
     col := 23;
     CharHlp.PrintItemString(creature, creature^.equipped[C_Equip.WEAPON], 0, 0, False, False);
-    TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 2, LightGreen, True,
+    TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
                                   creature^.equipped[C_Equip.WEAPON]^.name);
   end;
   row := GDVars.curRow + 1;
@@ -430,7 +440,7 @@ begin
     if item^.equipped <> 0 then begin
       Inc(GDVars.gEquipWeight, w);
       slot := GDVars.baseItems[item^.itemType].slot;
-      case Integer(Byte(slot)) of
+      case Byte(slot) of
         C_Equip.WEAPON..C_Equip.BOOTS: creature^.equipped[slot] := item;
         C_Equip.RING1:
           if creature^.equipped[C_Equip.RING1] <> nil then begin
@@ -475,7 +485,7 @@ begin
   while item <> nil do begin
     if item^.equipped <> 0 then begin
       CharHlp.ArmorMoveAdjust(creature, item);
-      CharHlp.ArmorAdjustHelper(creature, item, adj, magicBody);
+      CharHlp.ArmorAdjustHelper(creature, item, @adj, @magicBody);
     end;
     item := item^.next;
   end;
@@ -496,7 +506,7 @@ begin
   creature^.acCur := 0;
   for k := 0 to 4 do
     creature^.acCur := creature^.acCur + adj[k];
-  creature^.acBehind := adj[4] + adj[2] + adj[3] - 2;
+  creature^.acBehind := adj[4] + adj[2] + adj[3] - 1 - 1;
   if (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) and (creature^.race > C_Race.MONSTER) then
     creature^.attackLevel := creature^.classLevels[C_Class.LEVEL_FIGHTER]
   else
@@ -734,7 +744,8 @@ begin
     end;
     Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
     CharHlp.DisplayCreatureName(creature, 1, top + 1, False);
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 2, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True, s);
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1 + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True,
+                                  s);
   end;
   if pause then begin
     TextRend.PauseOnly;
@@ -1120,7 +1131,7 @@ begin
   i := 1;
   while (GDVars.creatureArr[GDVars.targetList[i].idx] <> other) and (i < GDVars.targetCount) do
     Inc(i);
-  CalcDistance := Integer(GDVars.targetList[i].dist) div 2;
+  CalcDistance := GDVars.targetList[i].dist shr 1;
   Move(saved, GDVars.targetList, SizeOf(GDVars.targetList));
 end;
 
@@ -1146,10 +1157,10 @@ end;
   special class), forced to 6 when cast from an item (GDVars.usingItem) unless the class is 2. }
 function GetCasterLevel(spell: Byte): Byte;
 begin
-  case Char(GDConsts.spellTable[spell].castClass) of
-    #0: GetCasterLevel := GDVars.curChar^.classLevels[C_Class.LEVEL_CLERIC];
-    #1: GetCasterLevel := GDVars.curChar^.classLevels[C_Class.LEVEL_MAGE];
-    #2: GetCasterLevel := 12;
+  case GDConsts.spellTable[spell].castClass of
+    0: GetCasterLevel := GDVars.curChar^.classLevels[C_Class.LEVEL_CLERIC];
+    1: GetCasterLevel := GDVars.curChar^.classLevels[C_Class.LEVEL_MAGE];
+    2: GetCasterLevel := 12;
   end;
   if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> 2) then
     GetCasterLevel := 6;
@@ -1171,36 +1182,36 @@ end;
   and party. }
 procedure DisplayNoncombatInterface;
 begin
-  case Char(GDVars.ifcState) of
-    #0: Border.DrawWindow(1, 1, 38, 22, 0, White, '');
-    #1: begin
-         CharHlp.DrawNoncombatWindows(True);
-         Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
-         Portrait.DisplayPortraitBufs(3, 3, True);
-       end;
-    #2: begin
-         CharHlp.DrawNoncombatWindows(True);
-         Portrait.LoadAnimation('PIC', 29, 0, gAnimData);
-         CharHlp.DisplayParty(GDVars.curChar);
-         CharHlp.PrintMiscInfo;
-       end;
-    #4: begin
-         CharHlp.DrawNoncombatWindows(True);
-         MapView.DisplayMapView;
-         CharHlp.DisplayParty(GDVars.curChar);
-         CharHlp.PrintMiscInfo;
-       end;
-    #3: begin
-         CharHlp.DrawNoncombatWindows(False);
-         MapView.DisplayMapView;
-         CharHlp.DisplayParty(GDVars.curChar);
-         CharHlp.PrintMiscInfo;
-       end;
-    #6: begin
-         CharHlp.DrawNoncombatWindows(True);
-         Portrait.LoadAnimation('PIC', 1, 0, gAnimData);
-         CharHlp.DisplayParty(GDVars.curChar);
-       end;
+  case GDVars.ifcState of
+    C_Ifc.MAIN_MENU: Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+    C_Ifc.SHOP_TEMPLE: begin
+      CharHlp.DrawNoncombatWindows(True);
+      Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
+      Portrait.DisplayPortraitBufs(3, 3, True);
+    end;
+    C_Ifc.CAMPING: begin
+      CharHlp.DrawNoncombatWindows(True);
+      Portrait.LoadAnimation('PIC', 29, 0, gAnimData);
+      CharHlp.DisplayParty(GDVars.curChar);
+      CharHlp.PrintMiscInfo;
+    end;
+    C_Ifc.INDOORS: begin
+      CharHlp.DrawNoncombatWindows(True);
+      MapView.DisplayMapView;
+      CharHlp.DisplayParty(GDVars.curChar);
+      CharHlp.PrintMiscInfo;
+    end;
+    C_Ifc.OUTDOORS: begin
+      CharHlp.DrawNoncombatWindows(False);
+      MapView.DisplayMapView;
+      CharHlp.DisplayParty(GDVars.curChar);
+      CharHlp.PrintMiscInfo;
+    end;
+    C_Ifc.LOOT: begin
+      CharHlp.DrawNoncombatWindows(True);
+      Portrait.LoadAnimation('PIC', 1, 0, gAnimData);
+      CharHlp.DisplayParty(GDVars.curChar);
+    end;
   end;
 end;
 
@@ -1379,26 +1390,26 @@ begin
     lvl := classLevels[cls];
     if lvl <= 0 then
       Exit;
-    case Char(race) of
-      Char(C_Race.DWARF):
+    case race of
+      C_Race.DWARF:
         if cls = C_Class.LEVEL_FIGHTER then
           if ((lvl = 8) and (strCur = 17)) or ((lvl = 7) and (strCur < 17)) then
             AtLevelCap := True;
-      Char(C_Race.ELF):
+      C_Race.ELF:
         if cls = C_Class.LEVEL_FIGHTER then
           if (lvl = 7) or ((lvl = 6) and (strCur = 17)) or ((lvl = 5) and (strCur < 17)) then
             AtLevelCap := True;
-      Char(C_Race.GNOME):
+      C_Race.GNOME:
         if cls = C_Class.LEVEL_FIGHTER then
           if (lvl = 6) or ((lvl = 5) and (strCur < 18)) then
             AtLevelCap := True;
-      Char(C_Race.HALFELF):
+      C_Race.HALFELF:
         if (cls = C_Class.LEVEL_CLERIC) and (lvl = 5) then
           AtLevelCap := True
         else if cls = C_Class.LEVEL_FIGHTER then
           if (lvl = 8) or ((lvl = 7) and (strCur = 17)) or ((lvl = 6) and (strCur < 17)) then
             AtLevelCap := True;
-      Char(C_Race.HALFLING):
+      C_Race.HALFLING:
         if cls = C_Class.LEVEL_FIGHTER then
           if (lvl = 6) or ((lvl = 5) and (strCur = 17)) or ((lvl = 4) and (strCur < 17)) then
             AtLevelCap := True;

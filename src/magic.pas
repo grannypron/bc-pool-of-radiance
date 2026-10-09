@@ -5,9 +5,9 @@ unit Magic;
 interface
 
 { Types supplies PCharRecord, PItemRec, PEffectRec and TStr40 for the declarations below. }
-uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, TextRend, Border,
-  CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Class, C_Status, C_Ifc,
-  C_Dir, C_Spell;
+uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Session, DaxIo,
+  TextRend, Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Class,
+  C_Status, C_Ifc, C_Dir, C_Spell;
 
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), anything else view only (no
@@ -61,6 +61,115 @@ procedure RemoveCurseSpell;
   dsRedrawInventoryMenuFlag. }
 procedure InitSpellFns;
 
+{ Spell handlers: each acts on GDVars.curChar, dsTargetCreaturePtr and dsCurrentSpellBeing; InitSpellFns maps spell IDs
+  to them }
+procedure BlessHandler;
+
+procedure CurseHandler;
+
+procedure CureLightWoundsHandler;
+
+procedure CauseLightWoundsHandler;
+
+procedure DetectionHandler;
+
+procedure ProtectionHandler;
+
+procedure ResistColdHandler;
+
+procedure BurningHandsHandler;
+
+procedure CharmPersonHandler;
+
+procedure EnlargeHandler;
+
+procedure ReduceHandler;
+
+procedure FriendsHandler;
+
+procedure MagicMissileHandler;
+
+procedure ShieldHandler;
+
+procedure ShockingGraspHandler;
+
+procedure SleepHandler;
+
+procedure HoldPersonHandler;
+
+procedure ResistFireHandler;
+
+procedure SilenceHandler;
+
+procedure SlowPoisonHandler;
+
+procedure SnakeCharmHandler;
+
+procedure SpiritualHammerHandler;
+
+procedure InvisibilityHandler;
+
+procedure KnockHandler;
+
+procedure MirrorImageHandler;
+
+procedure RayOfEnfeeblementHandler;
+
+procedure StinkingCloudHandler;
+
+procedure StrengthHandler;
+
+procedure AnimateDeadHandler;
+
+procedure CureBlindnessHandler;
+
+procedure CauseBlindnessHandler;
+
+procedure CureDiseaseHandler;
+
+procedure CauseDiseaseHandler;
+
+procedure DispelMagicHandler;
+
+procedure PrayerHandler;
+
+procedure BestowCurseHandler;
+
+procedure BlinkHandler;
+
+procedure FireballHandler;
+
+procedure HasteHandler;
+
+procedure LightningBoltHandler;
+
+procedure SlowHandler;
+
+procedure RestorationHandler;
+
+procedure PotionOfSpeedHandler;
+
+procedure KeoghtomsOintmentHandler;
+
+procedure GiantStrengthHandler;
+
+procedure JavelinOfLightningHandler;
+
+procedure WandParalyzationHandler;
+
+procedure PotionOfHealingHandler;
+
+procedure DustDisappearanceHandler;
+
+procedure WandMagicMissilesHandler;
+
+procedure UnusedSpellHandler;
+
+procedure ManualBodilyHealthHandler;
+
+{ Bronze dragon breath, installed as effect 88's handler, so it has FxEngine's effect-handler signature }
+procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+
 implementation
 
 var
@@ -73,6 +182,26 @@ var
                             absolute GDVars.spellFps;
   { slot-0 call view }
   castUI: Types.TCastUI absolute GDVars.spellFps;
+
+procedure AddSpellToList(spell: Byte); forward;
+
+procedure AddScrollSpells(forScribe: Boolean); forward;
+
+procedure AddAllScrollSpells(forScribe: Boolean); forward;
+
+function CalcSpellDuration(spell: Byte): Word; forward;
+
+procedure ResolveSpell(spell, eff: Byte; onRemove: Boolean; damage, elem: Byte; msg: Types.TStr40); forward;
+
+procedure CastOneSide(hostFlag: ShortInt; msg: Types.TStr40); forward;
+
+function RemoveDiseaseEffects: Boolean; forward;
+
+procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40); forward;
+
+procedure LightningAttackAt(x, y: ShortInt; damage: Byte; saveType: ShortInt; var blocked: Boolean); forward;
+
+procedure LightningPath(boltLen, damage: Byte; saveType: ShortInt; bounce: Boolean); forward;
 
 function SpellSelection(selType: Byte; var idx: Integer): Byte;
 var
@@ -632,12 +761,12 @@ begin
   GDVars.gMultiTarget := 1;
   GDVars.gSpellTemp1 := FxEngine.RollDice(4, 4);
   for i := 1 to GDVars.spellTargetCount do begin
-    case Types.TSleepTier(GDVars.dsTargetCreaturePtr[i]^.levelHighest) of
-      Types.stier0..Types.stier1: GDVars.gSpellTemp2 := 1;
-      Types.stier2: GDVars.gSpellTemp2 := 2;
-      Types.stier3: GDVars.gSpellTemp2 := 4;
-      Types.stier4: GDVars.gSpellTemp2 := 6;
-      Types.stier5: if GDVars.dsTargetCreaturePtr[i]^.race = C_Race.MONSTER then
+    case GDVars.dsTargetCreaturePtr[i]^.levelHighest of
+      0..1: GDVars.gSpellTemp2 := 1;
+      2: GDVars.gSpellTemp2 := 2;
+      3: GDVars.gSpellTemp2 := 4;
+      4: GDVars.gSpellTemp2 := 6;
+      5: if GDVars.dsTargetCreaturePtr[i]^.race = C_Race.MONSTER then
               GDVars.gSpellTemp2 := 10
             else
               GDVars.gSpellTemp2 := 20;
@@ -1451,7 +1580,7 @@ begin
   end else begin
     Border.ClearBox(1, 18, 38, 22);
     CharHlp.DisplayCreatureName(creature, 1, 19, False);
-    TextRend.DisplayString(Length(creature^.name) + 1 + 1, 19, LightGreen, msg);
+    TextRend.DisplayString(Length(creature^.name) + 2, 19, LightGreen, msg);
     TextRend.DisplayString(1, 20, LightGreen, GDConsts.spellNames[spell]);
     TextRend.PauseOnly;
     CharHlp.ClearMessageWindow;

@@ -1,11 +1,12 @@
 { Combat loop, initiative selection and manual-control menus. }
+
 {$O+,F+}
 unit Combat;
 
 interface
 
-uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, GameIo, Border, Blit, CharHlp, MenuCore, CbtMap,
-  CombatAi, CombatSt, CbtActs, ViewChar, GameTime, Magic, FxEngine, C_Keys, C_Class, C_Status, C_Ifc, C_Gbvm, C_Dir;
+uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys,
+  C_Class, C_Status, C_Ifc, C_Gbvm, C_Dir;
 
 procedure CombatMain;
 
@@ -254,8 +255,7 @@ begin
   if creature^.numberOfItems > 0 then
     menu := menu + 'Use ';
   hasSpell := False;
-  { 20 = High(memorizedSpells) }
-  for i := 0 to 20 do
+  for i := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
     if creature^.memorizedSpells[i] > 0 then
       hasSpell := True;
   if hasSpell and (creature^.combatAddr^.castAllowed <> 0)

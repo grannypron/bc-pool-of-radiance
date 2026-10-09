@@ -4,8 +4,7 @@ unit Shop;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, Border, CharHlp, MenuCore, EclMenu, ViewChar, Money, C_Keys,
-  C_Ifc;
+uses Types, Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc;
 
 procedure ShopMainMenu;
 

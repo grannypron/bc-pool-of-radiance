@@ -5,15 +5,9 @@ unit Portrait;
 
 interface
 
-uses Types, Crt, GDConsts, GDVars, Blit, DaxIo, GameIo, Border;
-
-procedure NoopPortrait;
+uses Types, Crt, GDConsts, GDVars, Blit, GameIo, Border;
 
 procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
-
-procedure DisplayPortraitHead(col, row: Byte; pic: Types.PImgBuf);
-
-procedure DisplayPortraitBody(col, row: Byte; pic: Types.PImgBuf);
 
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
 
@@ -32,11 +26,6 @@ implementation
 var
   { 0=CGA 1=EGA 2=Tandy }
   displayMode: Types.TVideoMode absolute GDVars.videoMode;
-
-{ Empty entry point; does nothing. }
-procedure NoopPortrait;
-begin
-end;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A

@@ -4,26 +4,15 @@ unit Money;
 
 interface
 
-uses Types, Crt, C_Npc, GDConsts, GDVars, MenuCore, GameIo, TextRend, Border, CharHlp, FxEngine, C_Keys,
-  C_Ifc, C_Money;
-
-function CarryingCapacity(p: Types.PCharRecord): Word;
-
-procedure RemoveWeight(p: Types.PCharRecord; w: Word);
-
-procedure AddWeight(p: Types.PCharRecord; w: Word);
+uses Types, Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money;
 
 function CheckOverload(p: Types.PCharRecord; w: Word; var takable: Word): Boolean;
 
 procedure PoolMoney;
 
-function CountPoolers: Byte;
-
 procedure ShareMoney;
 
 procedure TakeMoneyMenu;
-
-procedure GivePlatinum(pp: Word);
 
 function ParseMoneyType(s: String; var typeName: String): ShortInt;
 
@@ -41,7 +30,7 @@ procedure SetTreasureCoinsInGold(gp: Word);
 
 function CoinValueInGold(m: Types.TMoney): LongInt;
 
-procedure GenerateRandomItem(kind: Byte; var item: Types.TItemRec);
+procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
 procedure AppraiseMenu(var ok: Boolean);
 
@@ -483,7 +472,7 @@ end;
   plus from RandomBonus and given a weight and value by type. 61 and 62 are magic-user and clerical scrolls holding 1d3
   rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick a randomItemTemplates entry by its one-based
   word index into randItemW/randItemB. Any other kind gets only itemType and the defaults. }
-procedure GenerateRandomItem(kind: Byte; var item: Types.TItemRec);
+procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 var
   r: Byte;
   n: Byte;
@@ -492,9 +481,9 @@ var
   spell: Byte;
 begin
   { clear the whole item record }
-  FillChar(item, SizeOf(Types.TItemRec), 0);
+  FillChar(item^, SizeOf(Types.TItemRec), 0);
   templateWordIndex := 0;
-  with item do begin
+  with item^ do begin
     FillChar(spells, SizeOf(spells), 0);
     next := nil;
     equipped := 0;
@@ -611,14 +600,14 @@ begin
           end;
           { value in gp = plus * K }
           case itemType of
-            59: value := plus * 2500;
-            73, 28: value := plus * 150;
-            53, 54: value := plus * 3000;
-            55, 56: value := plus * 3500;
-            57: value := plus * 4000;
-            58: value := plus * 5000;
-            77: value := plus * 3000;
-            else value := plus * 2000;
+            59: value := Word(plus) * 2500;
+            73, 28: value := Word(plus) * 150;
+            53, 54: value := Word(plus) * 3000;
+            55, 56: value := Word(plus) * 3500;
+            57: value := Word(plus) * 4000;
+            58: value := Word(plus) * 5000;
+            77: value := Word(plus) * 3000;
+            else value := Word(plus) * 2000;
           end;
         end;
       { scrolls }
@@ -650,7 +639,7 @@ begin
                 3: spell := FxEngine.RollDice(1, 9) + 35;
               end;
             spells[j] := spell;
-            value := r * 300 + value;
+            value := Word(r) * 300 + value;
           end;
         end;
       63: templateWordIndex := 73;

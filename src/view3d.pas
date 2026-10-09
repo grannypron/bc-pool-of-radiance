@@ -4,17 +4,11 @@ unit View3D;
 
 interface
 
-uses Types, GDConsts, GDVars, Blit, DaxIo, GameIo, Sym8x8, C_Dir;
-
-{ Reserved entry point; does nothing }
-procedure NoopView3dA;
+uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir;
 
 { Stores the four 3D-view band colours (sky, horizon line, horizon band, floor). FixMain's boot sequence passes
   (11,0,7,6) for the default palette; MapView re-sets them for each 3D view }
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
-
-{ Fills the four 3D-view backdrop bands into the view buffer }
-procedure DrawBackdrop;
 
 { Wall type 0..15 (0 = no wall) on the given side of square (x, y) }
 function GetWallType(x, y: ShortInt; facing: Byte): Byte;
@@ -25,9 +19,6 @@ function GetBarrierType(x, y: ShortInt; facing: Byte): Byte;
 { Reads the square's EVENT byte; callers store the result in eventAtCell }
 function GetMapEvent(x, y: ShortInt): Byte;
 
-{ Flush the view buffer to the screen }
-procedure DisplayViewBuf;
-
 { The 3D wall renderer }
 procedure Display3DMapView(x, y: ShortInt; facing: Byte);
 
@@ -36,18 +27,6 @@ procedure LoadWallSet(fileId, wsSlot: Byte);
 
 { Load GEO map mapId into the 3D map }
 procedure Load3DMap(mapId: Byte);
-
-{ Reserved entry point; does nothing }
-procedure NoopView3dB;
-
-{ Draw the 11x11 automap }
-procedure DrawAutoMap(x, y: ShortInt; facing: Byte);
-
-{ Blit a view slot's symbol rectangle for a wall type }
-procedure DrawWallSlice(x, y: ShortInt; wallType, slot: Byte);
-
-{ True when (x, y) lies on the 16x16 map }
-function Valid3DCoords(x, y: ShortInt): Boolean;
 
 implementation
 
@@ -58,6 +37,8 @@ var
   wallSlices: Types.PWallSlices absolute GDVars.wallGfx;
   wallSetCache: array[1..3] of Types.TWallSetCache absolute GDVars.dsWallSetCache;
                 { three (wallDefId, symbolSlot) Integer pairs, wallDefId = -1 marking an invalidated slot }
+
+procedure DisplayViewBuf; forward;
 
 { DrawAutoMap: The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols
   260 + N|E*2|S*4|W*8 from the wall-TYPE nibbles, then the party arrow 256 + facing div 2. 256 is symSetFirst[4],
@@ -225,8 +206,8 @@ var
   fB: Byte;
   cxPos: Integer;
   cyPos: Integer;
-  dxF: Integer;
-  dyF: Integer;
+  dxF: Word;
+  dyF: Word;
   wx: Integer;
   wy: Integer;
   side: Byte;
@@ -520,16 +501,6 @@ begin
   Move(data^[offset], GDVars.map3d^.barriers, SizeOf(Types.TGeoPlane));
   FreeMem(data, sizeRead);
   GDVars.zone0^.mapId.value := mapId;
-end;
-
-{ Reserved entry point; does nothing }
-procedure NoopView3dA;
-begin
-end;
-
-{ Reserved entry point; does nothing }
-procedure NoopView3dB;
-begin
 end;
 
 begin

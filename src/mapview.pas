@@ -4,7 +4,7 @@ unit MapView;
 
 interface
 
-uses Crt, C_Area, GDConsts, GDVars, Blit, Wilds, View3D, MapTiles;
+uses Crt, C_Area, GDConsts, GDVars, Wilds, View3D;
 
 { Draw the 3D view (location type 1, or any location while zone0^.view3dFlag is set) or the wilderness map (types
   2..4) }
@@ -33,7 +33,7 @@ begin
   else if GDVars.zone0^.partyY.value < 35 then wy := 3
   else wy := 4;
   MapTiles.DrawIconAnimSprite(wx, wy, GDVars.gFacing, GDVars.dsWildAnimFrame mod 2,
-                              Integer(GDVars.dsWildAnimFrame) div 2 + 9);
+                              GDVars.dsWildAnimFrame div 2 + 9);
   GDVars.dsWildAnimFrame := (GDVars.dsWildAnimFrame + 1) mod 6;
   Blit.FlushView;
 end;
@@ -103,11 +103,11 @@ begin
       View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
     end;
     C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST: begin
-      wx := GDConsts.wildColOfs[loc] + GDVars.zone0^.partyX.value - 2;
+      wx := GDConsts.wildColOfs[loc] + GDVars.zone0^.partyX.value - 1 - 1;
       if wx < 0 then wx := 0;
       { last column origin for the 5-wide view }
       if wx > 39 then wx := 39;
-      wy := GDVars.zone0^.partyY.value - 2;
+      wy := GDVars.zone0^.partyY.value - 1 - 1;
       if wy < 0 then wy := 0;
       { last row origin for the 5-tall view }
       if wy > 31 then wy := 31;

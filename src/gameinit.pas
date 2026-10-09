@@ -4,8 +4,8 @@ unit GameInit;
 
 interface
 
-uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Session, SoundDrv, DaxIo, TextRend,
-  Blit, Sym8x8, MenuCore, MapTiles, Magic, EffHndlr, C_Dir;
+uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr,
+  C_Dir;
 
 procedure GameInit2;
 

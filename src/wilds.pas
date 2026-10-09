@@ -4,7 +4,7 @@ unit Wilds;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles;
+uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles, TextRend;
 
 { Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GDConsts.wildMap, apply the
   special-location overrides gated on zone-0 quest flags, and draw each 24x24 tile three character cells apart through

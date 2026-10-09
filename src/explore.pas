@@ -4,9 +4,8 @@ unit Explore;
 
 interface
 
-uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, TextRend, Border, CharHlp,
-  Blit, MenuCore, Portrait, Camp, ViewChar, GameTime, FxEngine, View3D, MapTiles, C_Ecl, C_Keys, C_Class, C_Status,
-  C_Gbvm, C_Dir, C_Sound, C_Spell;
+uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, View3D,
+  MapTiles, C_Ecl, C_Keys, C_Class, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
 
 procedure ResolveMovement;
 

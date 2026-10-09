@@ -30,7 +30,7 @@ function SanitizeFileName(name: string): Types.TStr40;
 
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
 
-function OpenDax(dirName, ext: Types.TStr20; var headerSize: Word; var f1, f2: file): Boolean;
+function OpenDax(dirName, ext: Types.TStr40; var headerSize: Word; var f1, f2: file): Boolean;
 
 procedure CloseDax(var f1, f2: file);
 
@@ -124,7 +124,7 @@ begin
 end;
 
 { I/O checking is off ($I-) across OverlayPrompt/OpenWithRetry/FileExists so IOResult is usable; it is back on ($I+) for
-  SanitizeString..DecompressDax and off again from OpenDax on }
+  the rest of the unit }
 {$I-}
 
 { Wait for GAME.OVR to be found, asking for the overlay disk and a key between tries. }
@@ -231,8 +231,7 @@ end;
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with insertDiskMsg for the current
   virtual disk, unless suppressInsertPrompt is set. }
-{$I-} { OpenWithRetry already succeeded, so the inner ops assume the file is present }
-function OpenDax(dirName, ext: Types.TStr20; var headerSize: Word; var f1, f2: file): Boolean;
+function OpenDax(dirName, ext: Types.TStr40; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
   if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':',

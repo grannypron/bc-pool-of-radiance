@@ -10,7 +10,6 @@ const
   GNOME = 3;
   HALFELF = 4;
   HALFLING = 5;
-  { Race value (TCharRecord.race) }
   HALFORC = 6;
   HUMAN = 7;
 
