@@ -594,7 +594,8 @@ begin
                           C_Msg.TEXT_RIGHT,
                           C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
   EclMenu.WriteGbvm(address, idx);
-  MenuCore.FreeStringList(list);
+  { the menu leaves list on the chosen line (nil on Escape), so free from the head }
+  MenuCore.FreeStringList(head);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
 end;
 
