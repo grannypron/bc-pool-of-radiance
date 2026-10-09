@@ -567,7 +567,8 @@ end;
 { Merge into item every other stack (quantity > 0) of curChar's with the same name components, type, plus, save bonus,
   curse, weight, charges, effect and special, and fewer than 2 charges. Save the next node before merging, since
   RemoveItem frees the current node. If the total would exceed 255, fill the destination to 255, keep the excess in the
-  current stack, and continue merging into that stack. }
+  current stack, and continue merging into that stack. An unstacked item (quantity 0) is left alone: merging into it
+  would start the count at 0 and lose the item itself. }
 procedure JoinItem(item: Types.PItemRec);
 var
   cur: Types.PItemRec;
@@ -575,6 +576,7 @@ var
   dst: Types.PItemRec;
   qty: Byte;
 begin
+  if item^.quantity = 0 then Exit;
   dst := item;
   qty := dst^.quantity;
   cur := GDVars.curChar^.itemsAddr;
