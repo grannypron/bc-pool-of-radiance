@@ -12,6 +12,8 @@ const
   NONE = 0;
   { spellFps[3] = CureLightWoundsHandler; the cure-targeting special case in the AI + manual cast paths }
   CURE_LIGHT_WOUNDS = 3;
+  { the magic-user's Charm Person, which a charming gaze applies }
+  CHARM_PERSON = 10;
 
 implementation
 
