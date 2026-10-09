@@ -870,12 +870,14 @@ begin
                 gem^.unidMask := 0;
                 p := GDVars.curChar^.itemsAddr;
                 if p = nil then
-                  p := gem
+                  GDVars.curChar^.itemsAddr := gem
                 else begin
                   while p^.next <> nil do
                     p := p^.next;
                   p^.next := gem;
                 end;
+                { the item count and weight checked for the next stone }
+                CharHlp.RecalcStats(GDVars.curChar);
               end else begin
                 value := value div 5;
                 Money.GivePlatinum(value);
@@ -921,12 +923,14 @@ begin
                 gem^.unidMask := 0;
                 p := GDVars.curChar^.itemsAddr;
                 if p = nil then
-                  p := gem
+                  GDVars.curChar^.itemsAddr := gem
                 else begin
                   while p^.next <> nil do
                     p := p^.next;
                   p^.next := gem;
                 end;
+                { the item count and weight checked for the next stone }
+                CharHlp.RecalcStats(GDVars.curChar);
               end else begin
                 value := value div 5;
                 Money.GivePlatinum(value);
