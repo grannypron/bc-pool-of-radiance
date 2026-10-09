@@ -127,6 +127,7 @@ end;
 procedure DetermineCombatResults;
 var
   p: Types.PCharRecord;
+  nxt: Types.PCharRecord;
   b: Boolean;
 begin
   GDVars.nonAnimCount := 0;
@@ -164,6 +165,8 @@ begin
     p := GDVars.creatureList;
     if not GDVars.partyDefeated then begin
       while (p <> nil) and (p^.combatAddr^.notPcNpc <> 1) do begin
+        { RemoveCreature below frees p }
+        nxt := p^.nextCharAddr;
         if not GDVars.partyFled then begin
           case p^.status of
             C_Status.RUNNING: begin
@@ -186,18 +189,20 @@ begin
             CharGen.RemoveCreature(False, True);
           end;
         end;
-        p := p^.nextCharAddr;
+        p := nxt;
       end;
     end else begin
       p := GDVars.creatureList;
       b := False;
       while (p <> nil) and not b do begin
+        { RemoveCreature frees p }
+        nxt := p^.nextCharAddr;
         if p^.combatAddr^.notPcNpc <> 1 then begin
           GDVars.curChar := p;
           CharGen.RemoveCreature(False, True);
         end else
           b := True;
-        p := p^.nextCharAddr;
+        p := nxt;
       end;
       GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
     end;
