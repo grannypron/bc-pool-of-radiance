@@ -650,7 +650,7 @@ begin
 end;
 
 { Mirror Image (eff 28). strength = images left; against a single-target spell (dsCurrentSpellBeing > 0, gMultiTarget =
-  0) an image absorbs it unless 1d(images + 1) rolls 1 }
+  0) an image absorbs it unless 1d(images + 1) rolls 1. Weapon hits are tested in CbtActs.DoAttack. }
 
 procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin

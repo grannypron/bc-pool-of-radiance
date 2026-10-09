@@ -615,8 +615,10 @@ end;
 { Resolve att's remaining attacks on def. A helpless defender is slain with one blow (hp + 5 damage) and all attacks are
   spent. Otherwise use the large-target dice against a large defender and pick the defense: backstab, acBehind - 2; from
   behind (fromBehind, or flanked by more than one attacker with att at its back and a flank spread above 4), the rear
-  AC. Add range penalties, roll the attacks from attackPhase down to 1 until def drops, and spend the sweep budget. With
-  no attacks left, att's actions end. }
+  AC. Add range penalties, roll the attacks from attackPhase down to 1 until def drops, and spend the sweep budget. A
+  hit on a defender with Mirror Image (C_Effect.MIRROR_IMAGE) strikes an image unless 1d(images + 1) rolls 1: it shows
+  as a miss, the defender loses the image and the blow does no damage and has no on-hit effects. With no attacks left,
+  att's actions end. }
 procedure DoAttack(att, def: Types.PCharRecord; fromBehind: Boolean; var done: Boolean);
 var
   base: Types.TBaseItemRec;
@@ -628,6 +630,7 @@ var
   startPhase: Byte;
   atkType: Byte;
   behindIdx: ShortInt;
+  image: Types.PEffectRec;
 begin
   behind := fromBehind;
   done := False;
@@ -691,16 +694,27 @@ begin
         att^.combatAddr^.attackPhase := phase;
         Inc(GDVars.attacksMade[phase]);
         if FxEngine.AttackRoll(att, def, defense) or CharHlp.IsHelpless(def) then begin
-          Inc(GDVars.hitsMade[phase]);
-          SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
           anyHit := True;
-          CbtActs.CalcWeaponDamage(att, def, phase);
-          CbtActs.ProcessAttackResult(att, def, atkType, GDVars.pendingDamage, GDVars.pendingDamage, True);
-          if def^.enabled <> 0 then
-            { C_Cond.HIT_PHASE_1/2 }
-            FxEngine.TriggerEffectsWithCondition(phase + 1, att);
-          if def^.enabled = 0 then
-            defDowned := True;
+          if CharHlp.HasEffect(def, C_Effect.MIRROR_IMAGE, image)
+             and (FxEngine.RollDice(1, image^.strength + 1) > 1) then begin
+            { the blow strikes an image }
+            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.MISS]);
+            CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
+            CharHlp.PrintNameString(def, 'lost an image', 10, True);
+            Dec(image^.strength);
+            if image^.strength = 0 then
+              FxEngine.RemoveEffect(def, C_Effect.MIRROR_IMAGE, nil);
+          end else begin
+            Inc(GDVars.hitsMade[phase]);
+            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
+            CbtActs.CalcWeaponDamage(att, def, phase);
+            CbtActs.ProcessAttackResult(att, def, atkType, GDVars.pendingDamage, GDVars.pendingDamage, True);
+            if def^.enabled <> 0 then
+              { C_Cond.HIT_PHASE_1/2 }
+              FxEngine.TriggerEffectsWithCondition(phase + 1, att);
+            if def^.enabled = 0 then
+              defDowned := True;
+          end;
         end;
       end;
     if not anyHit then begin
