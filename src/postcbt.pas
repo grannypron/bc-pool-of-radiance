@@ -116,6 +116,13 @@ begin
   end;
 end;
 
+{ True for a monster: notPcNpc = 1 in its combat record. A creature without a combat record counts as a party member;
+  a COMBAT with no monsters (a treasure-only pickup) reaches the results without giving the party combat records. }
+function IsMonster(p: Types.PCharRecord): Boolean;
+begin
+  IsMonster := (p^.combatAddr <> nil) and (p^.combatAddr^.notPcNpc = 1);
+end;
+
 { Classify the combat outcome. Outside a duel the party (the creatures before the first notPcNpc = 1 entry) is defeated
   unless some non-hostile, non-NPC member is Running, Animated or Okay; while C_Gbvm.MIRROR_DUEL is 1 any non-hostile,
   non-NPC member will do, so a lost mirror duel does not end the game. Any Animated or Okay member wins the combat and
@@ -134,7 +141,7 @@ begin
   GDVars.partyDefeated := True;
   GDVars.partyFled := False;
   p := GDVars.creatureList;
-  while (p <> nil) and (p^.combatAddr^.notPcNpc <> 1) do begin
+  while (p <> nil) and (not IsMonster(p)) do begin
     if p^.status = C_Status.RUNNING then
       GDVars.partyFled := True;
     p := p^.nextCharAddr;
@@ -144,7 +151,7 @@ begin
   GDVars.combatWon := False;
   p := GDVars.creatureList;
   if not GDVars.duelFlag then begin
-    while (p <> nil) and (p^.combatAddr^.notPcNpc <> 1) do begin
+    while (p <> nil) and (not IsMonster(p)) do begin
       { C_Npc.FLAG clear }
       if ((p^.status = C_Status.RUNNING) or (p^.status = C_Status.ANIMATED) or
           (p^.status = C_Status.OKAY) or
@@ -164,7 +171,7 @@ begin
     end;
     p := GDVars.creatureList;
     if not GDVars.partyDefeated then begin
-      while (p <> nil) and (p^.combatAddr^.notPcNpc <> 1) do begin
+      while (p <> nil) and (not IsMonster(p)) do begin
         { RemoveCreature below frees p }
         nxt := p^.nextCharAddr;
         if not GDVars.partyFled then begin
@@ -197,7 +204,7 @@ begin
       while (p <> nil) and not b do begin
         { RemoveCreature frees p }
         nxt := p^.nextCharAddr;
-        if p^.combatAddr^.notPcNpc <> 1 then begin
+        if not IsMonster(p) then begin
           GDVars.curChar := p;
           CharGen.RemoveCreature(False, True);
         end else
@@ -463,12 +470,12 @@ begin
   GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED] := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
-    if (p^.combatAddr^.notPcNpc = 1) or (p^.hostile = 1) then begin
+    if IsMonster(p) or (p^.hostile = 1) then begin
       if p^.enabled <> 1 then
         Inc(GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED]);
       next := p^.nextCharAddr;
       GDVars.curChar := p;
-      CharGen.RemoveCreature(p^.combatAddr^.notPcNpc = 1, True);
+      CharGen.RemoveCreature(IsMonster(p), True);
       p := next;
     end else begin
       if p^.combatAddr <> nil then begin
