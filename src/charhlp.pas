@@ -108,6 +108,10 @@ function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
 
 function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
 
+function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
+
+function RawWeight(creature: Types.PCharRecord): LongInt;
+
 implementation
 
 var
@@ -656,6 +660,42 @@ begin
   else
     WeightAllowance := 0;
   end;
+end;
+
+{ True when the creature has a Bag of Holding readied (name component 186 is 'Holding'). }
+function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
+var
+  item: Types.PItemRec;
+begin
+  HasBagOfHolding := False;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if (item^.equipped <> 0) and (item^.nameIds[1] = 186) then
+      HasBagOfHolding := True;
+    item := item^.next;
+  end;
+end;
+
+{ The creature's weight in coins before a Bag of Holding takes its share: every item (weight times quantity) and every
+  coin, gem and piece of jewelry, as RecalcStats adds them up. }
+function RawWeight(creature: Types.PCharRecord): LongInt;
+var
+  item: Types.PItemRec;
+  w: LongInt;
+  c: ShortInt;
+begin
+  w := 0;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if item^.quantity > 0 then
+      Inc(w, LongInt(item^.quantity) * item^.weight)
+    else
+      Inc(w, item^.weight);
+    item := item^.next;
+  end;
+  for c := C_Money.COPPER to C_Money.JEWELRY do
+    Inc(w, creature^.coins[c]);
+  RawWeight := w;
 end;
 
 { Clear the first memorized-spell slot holding spell on the current character. }
