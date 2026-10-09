@@ -997,8 +997,9 @@ begin
       repeat
         sel := ViewChar.SpellMenu(4, 4, idx, notEmpty);
       until (sel > 0) or (not notEmpty);
-      { Note: if no spell is offered, SpellMenu returns 0 and this writes spellsKnown[0], which lands on hpMax. }
-      spellsKnown[sel] := 1;
+      { SpellMenu returns 0 when there is no spell left to learn; spellsKnown starts at 1 }
+      if sel > 0 then
+        spellsKnown[sel] := 1;
     end;
     rolled := CharGen.RollFirstLevelHp(GDVars.curChar, trainable);
     gain := rolled div clsCount;
