@@ -681,7 +681,8 @@ begin
   end;
 end;
 
-{ ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience. Up and
+{ ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience and a
+  player race (the limits come from dsMinimumMaximumStatistics, Dwarf..Human; the hired Acolyte is race 0). Up and
   Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and hit-point limits. Keep
   recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit restores the saved
   attributes, strExc and hpMax. A lowered attribute stops at the higher of the racial and class minimums. }
@@ -718,7 +719,8 @@ var
   end;
 
 begin
-  if GDVars.curChar^.experience > 0 then begin
+  if (GDVars.curChar^.experience > 0) or (GDVars.curChar^.race < C_Race.DWARF) or
+      (GDVars.curChar^.race > C_Race.HUMAN) then begin
     TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow);
     Exit;
   end;
