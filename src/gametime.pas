@@ -231,6 +231,7 @@ begin
   sel := C_Time.TURNS;
   repeat
     GameTime.DisplayRestTime(sel);
+    MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('', 'Rest   daYs Hours Mins   Inc Dec   Exit', LightMagenta, LightGreen,
                                   White, True, False, ext);
     if ext then

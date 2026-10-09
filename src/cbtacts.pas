@@ -1304,6 +1304,7 @@ begin
   CbtMap.DisplayMapViewCentered(tgt, 3, True);
   CharHlp.CombatPrintCreatureInfo(tgt);
   repeat
+    MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('Aim:', menu, LightMagenta, LightGreen, White, True, False, ext);
     dir := C_Dir.CENTER;
     if ext then
@@ -1435,6 +1436,7 @@ begin
     menu := 'Center Exit';
     if valid then
       menu := 'Target ' + menu;
+    MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('(Use Cursor keys) ', menu, LightMagenta, LightGreen, White, True, False,
                                   GDVars.doneRoundFlag);
     case ch of

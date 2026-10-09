@@ -750,6 +750,7 @@ begin
   RedrawStat(True);
   with GDVars.curChar^ do begin
     repeat
+      MenuCore.arrowsToCaller := True;
       key := MenuCore.MenuHorizontal('Modify character: ', 'Keep Exit', LightMagenta, LightGreen,
                                      White, True, False, ext);
       RedrawStat(False);
