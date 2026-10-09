@@ -880,12 +880,13 @@ begin
   until exitFlag;
 end;
 
-{ True when the creature already holds 16 or more items, or the item's weight (times its quantity) would take its
-  encumbrance past its weight allowance + 1500. Recalculates the creature's stats first. }
+{ True when the creature already holds 16 or more items, or the item's weight (times its quantity) is more than it can
+  still carry (Money.CheckOverload, which counts a readied Bag of Holding). Recalculates the creature's stats first. }
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 var
   f: Boolean;
   w: Word;
+  takable: Word;
 begin
   CharHlp.RecalcStats(creature);
   f := False;
@@ -894,7 +895,7 @@ begin
   w := item^.weight;
   if item^.quantity > 0 then
     w := w * item^.quantity;
-  if creature^.encumbrance + w > CharHlp.WeightAllowance(creature) + 1500 then
+  if Money.CheckOverload(creature, w, takable) then
     f := True;
   CannotCarryItem := f;
 end;
