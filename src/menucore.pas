@@ -11,12 +11,12 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
   option (GDVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
-  current option. A hotkey (returned upper-cased, and made the current option) or space ends the menu; Enter returns #13
-  when mCol or hlCol is nonzero; Escape returns #0. With reinterpret, an extended key returns its scan code and digits
-  1-9 and backslash map to keypad scan codes, all with ext set. A nonzero menuAuto.timeout returns menuAuto.key once
-  that many ticks pass after the last animation frame change. The picture animates when animate is set or the GBVM
-  menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit); ext is copied to
-  GDVars.extFlag. }
+  current option. A hotkey (returned upper-cased, and made the current option) or space ends the menu; Enter, when mCol
+  or hlCol is nonzero, returns the current option's hotkey (#13 for a menu without options); Escape returns #0. With
+  reinterpret, an extended key returns its scan code and digits 1-9 and backslash map to keypad scan codes, all with ext
+  set. A nonzero menuAuto.timeout returns menuAuto.key once that many ticks pass after the last animation frame change.
+  The picture animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame
+  every pass and is cleared on exit); ext is copied to GDVars.extFlag. }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -78,8 +78,9 @@ begin
   ListCount := n;
 end;
 
-{ Highlight the menu's choice characters and select an item by keypress. }
-function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
+{ Highlight the menu's choice characters and select an item by keypress. With takeOption, Enter returns the current
+  option's hotkey, as Curse does; without it, or when the menu has no options, Enter returns #13. }
+function HorizontalMenu(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate, takeOption: Boolean;
                         var ext: Boolean): Char;
 var
   frameTick: LongInt;
@@ -191,7 +192,10 @@ begin
                  ch := C_Keys.NONE;
                end;
           C_Keys.ENTER: if enterOk then begin
-                 ch := C_Keys.ENTER;
+                 if takeOption and (opt[GDVars.horizChoice].first <> 0) then
+                   ch := menu[opt[GDVars.horizChoice].first]
+                 else
+                   ch := C_Keys.ENTER;
                  done := True;
                end;
           ',': begin
@@ -239,8 +243,14 @@ begin
     end;
   until done;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
-  MenuHorizontal := ch;
+  HorizontalMenu := ch;
   GDVars.extFlag := ext;
+end;
+
+function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
+                        var ext: Boolean): Char;
+begin
+  MenuHorizontal := MenuCore.HorizontalMenu(query, menu, qCol, mCol, hlCol, reinterpret, animate, True, ext);
 end;
 
 procedure ClearBottomLine;
@@ -484,7 +494,8 @@ begin
       end;
       if addExit then
         hMenu := hMenu + ' Exit';
-      ch := MenuCore.MenuHorizontal(query, hMenu, qCol, mCol, hlCol, True, False, ext);
+      { Enter stays #13 here: it takes the highlighted list entry, not a bottom-line option. }
+      ch := MenuCore.HorizontalMenu(query, hMenu, qCol, mCol, hlCol, True, False, False, ext);
       UnhighlightLine(idx);
       if ext then
         case ch of
