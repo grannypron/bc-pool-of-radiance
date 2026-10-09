@@ -1293,7 +1293,8 @@ begin
 end;
 
 { Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person
-  (save vs. spell at -2) without using a spell slot or action }
+  (save vs. spell at -2) without using a spell slot or action. The spell being cast is marked as Charm Person only while
+  the charm is applied, then restored: left at 10, it made later damage look like a spell's (Mirror Image absorbed it). }
 
 procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1301,6 +1302,7 @@ var
   effect: Types.PEffectRec;
   x: ShortInt;
   y: ShortInt;
+  savedSpell: Byte;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   x := CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr);
@@ -1316,6 +1318,7 @@ begin
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
   { Charm Person }
+  savedSpell := GDVars.dsCurrentSpellBeing;
   GDVars.dsCurrentSpellBeing := 10;
   FxEngine.AddEffectWithMessage(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, 0, creature^.hostile * 128 + 12,
                                 True, True,
@@ -1323,6 +1326,7 @@ begin
                                 'is charmed');
   if CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, effect) then
     FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.dsOtherCreatureCurrentPtr, effect, False);
+  GDVars.dsCurrentSpellBeing := savedSpell;
 end;
 
 { Drain levels from a creature; an animated creature is destroyed instead. For each level the creature loses hpMax div
