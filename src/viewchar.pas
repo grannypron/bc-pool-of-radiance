@@ -692,7 +692,6 @@ begin
     if charGold >= 200 then begin
       paid := True;
       Dec(charGold, 200);
-      { Note: only the low word of the remaining gold is passed on }
       Money.SetCreatureCoinsInGold(charGold);
     end else begin
       poolGold := Money.CoinValueInGold(treasureMoney);
