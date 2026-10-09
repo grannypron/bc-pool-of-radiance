@@ -6,6 +6,9 @@
 *.TPU
 *.OBJ
 *.OUT
+GPATH
+GRTAGS
+GTAGS
 
 # v1.2 and v1.3 sources, held until their pull requests.
 /hold/
