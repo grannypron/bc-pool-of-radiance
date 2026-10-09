@@ -28,7 +28,7 @@ end;
 function ConfirmCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
-  charGold: Word;
+  charGold: LongInt;
   pooled: LongInt;
 begin
   spell := spell + ' will only cost ' + CharHlp.WordToString(cost) + ' gold pieces.';
