@@ -387,8 +387,6 @@ begin
               classLevels[C_Class.LEVEL_MAGE] := 1; classLevels[C_Class.LEVEL_THIEF] := 1;
             end;
     end;
-    if classLevels[C_Class.LEVEL_THIEF] > 0 then
-      ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     itemLimits := 0;
     thac0Base := 0;
     for cls := 0 to 7 do
@@ -586,6 +584,9 @@ begin
         end;
       ViewChar.PrintStat(i, False);
     end;
+    { thief skills use the Dexterity just rolled }
+    if creature^.classLevels[C_Class.LEVEL_THIEF] > 0 then
+      ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     with creature^ do begin
       hpCur := hpMax;
       attacks := 2;
@@ -682,8 +683,8 @@ end;
 
 { ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience. Up and
   Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and hit-point limits. Keep
-  sets npcTreasureShare to 1; Exit restores the saved attributes, strExc and hpMax. A lowered attribute stops at the
-  higher of the racial and class minimums. }
+  recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit restores the saved
+  attributes, strExc and hpMax. A lowered attribute stops at the higher of the racial and class minimums. }
 procedure ModifyCharacterMenu;
 var
   savedStats: array[0..5] of Byte;
@@ -856,6 +857,8 @@ begin
       ViewChar.PrintCombatStats;
       RedrawStat(True);
     until (not ext) and (key = 'K');
+    if classLevels[C_Class.LEVEL_THIEF] > 0 then
+      ClassCal.RecalcThiefSkills(Types.PCharRecord(GDVars.curChar));
     GDVars.curChar^.npcTreasureShare := 1;
   end;
 end;
