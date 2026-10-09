@@ -31,7 +31,7 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-function ConHpBonus(creature: Types.PCharRecord): ShortInt; forward;
+function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt; forward;
 
 function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 
@@ -387,8 +387,6 @@ begin
               classLevels[C_Class.LEVEL_MAGE] := 1; classLevels[C_Class.LEVEL_THIEF] := 1;
             end;
     end;
-    if classLevels[C_Class.LEVEL_THIEF] > 0 then
-      ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     itemLimits := 0;
     thac0Base := 0;
     for cls := 0 to 7 do
@@ -586,6 +584,9 @@ begin
         end;
       ViewChar.PrintStat(i, False);
     end;
+    { thief skills use the Dexterity just rolled }
+    if creature^.classLevels[C_Class.LEVEL_THIEF] > 0 then
+      ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     with creature^ do begin
       hpCur := hpMax;
       attacks := 2;
@@ -630,7 +631,7 @@ begin
         too little) }
       hpRolled := CharGen.RollFirstLevelHp(creature, $FF);
       hpMax := hpRolled;
-      conB := CharGen.ConHpBonus(creature);
+      conB := CharGen.ConHpBonus(creature, $FF);
       if conB < 0 then begin
         if hpMax > Abs(conB) + clsCount then
           hpMax := (hpMax + conB) div clsCount
@@ -683,8 +684,8 @@ end;
 { ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience and a
   player race (the limits come from dsMinimumMaximumStatistics, Dwarf..Human; the hired Acolyte is race 0). Up and
   Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and hit-point limits. Keep
-  sets npcTreasureShare to 1; Exit restores the saved attributes, strExc and hpMax. A lowered attribute that falls below
-  the racial or class minimum is reset to the racial minimum, even when the class minimum is higher. }
+  recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit restores the saved
+  attributes, strExc and hpMax. A lowered attribute stops at the higher of the racial and class minimums. }
 procedure ModifyCharacterMenu;
 var
   savedStats: array[0..5] of Byte;
@@ -705,6 +706,16 @@ var
       ViewChar.PrintStat(statIdx, hotPink)
     else
       CharHlp.PrintHitPoints(Types.PCharRecord(GDVars.curChar), 4, 18, hotPink);
+  end;
+
+  { StatMinimum: The lowest value the selected attribute may be lowered to: racialMin, or the class minimum when that
+    is higher }
+  function StatMinimum(racialMin: Byte): Byte;
+  begin
+    if GDConsts.classMin[GDVars.curChar^.charClass, statIdx] > racialMin then
+      StatMinimum := GDConsts.classMin[GDVars.curChar^.charClass, statIdx]
+    else
+      StatMinimum := racialMin;
   end;
 
 begin
@@ -749,29 +760,25 @@ begin
                 C_Abil.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
                      Inc(stats[hold]);
-                   end else if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]) or
-                     (stats[hold] < GDConsts.classMin[charClass, C_Abil.STRENGTH]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp];
-                C_Abil.INTELLIGENCE: if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].intMin) or
-                  (stats[hold] < GDConsts.classMin[charClass, C_Abil.INTELLIGENCE]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].intMin;
+                   end else if stats[hold] <
+                       StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]);
+                C_Abil.INTELLIGENCE: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin);
                 C_Abil.WISDOM: begin
-                     if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].wisMin) or
-                         (stats[hold] < GDConsts.classMin[charClass, C_Abil.WISDOM]) then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].wisMin;
+                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin) then
+                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin);
                      { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
                        with no ceiling (they are 0 for a new first-level character) }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.DEXTERITY: if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].dexMin) or
-                  (stats[hold] < GDConsts.classMin[charClass, C_Abil.DEXTERITY]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].dexMin;
+                C_Abil.DEXTERITY: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin);
                 C_Abil.CONSTITUTION: begin
-                     if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].conMin) or
-                         (stats[hold] < GDConsts.classMin[charClass, C_Abil.CONSTITUTION]) then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].conMin;
+                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin) then
+                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin);
                      if CharGen.HpMaximum(GDVars.curChar) < hpMax then
                        hpMax := CharGen.HpMaximum(GDVars.curChar);
                      hpCur := hpMax;
@@ -779,9 +786,8 @@ begin
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
                    end;
-                C_Abil.CHARISMA: if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].chaMin) or
-                  (stats[hold] < GDConsts.classMin[charClass, C_Abil.CHARISMA]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].chaMin;
+                C_Abil.CHARISMA: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin);
               end;
             end else
             { HP row }
@@ -853,6 +859,8 @@ begin
       ViewChar.PrintCombatStats;
       RedrawStat(True);
     until (not ext) and (key = 'K');
+    if classLevels[C_Class.LEVEL_THIEF] > 0 then
+      ClassCal.RecalcThiefSkills(Types.PCharRecord(GDVars.curChar));
     GDVars.curChar^.npcTreasureShare := 1;
   end;
 end;
@@ -861,8 +869,8 @@ end;
   class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
   Applies the racial fighter (and half-elf cleric) level caps, and before the hall and experience checks clamps
   experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and restores
-  one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the Con
-  bonus) divided by the class count, at least 1. }
+  one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the
+  trained classes' Con bonus) divided by the class count, at least 1. }
 procedure TrainingMenu;
 var
   atCap: Boolean;
@@ -999,7 +1007,7 @@ begin
     if gain = 0 then
       gain := 1;
     Inc(hpRolled, gain);
-    conB := CharGen.ConHpBonus(GDVars.curChar);
+    conB := CharGen.ConHpBonus(GDVars.curChar, trainable);
     gain := (rolled + conB) div clsCount;
     if gain < 1 then
       gain := 1;
@@ -1433,9 +1441,9 @@ begin
   CbtMap.SetNoncombatPalette;
 end;
 
-{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels, plus 1 at Con 17+ and 1 more at Con 18+ when
-  charClass is C_Class.FIGHTER (single-class fighters only) }
-function ConHpBonus(creature: Types.PCharRecord): ShortInt;
+{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
+  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is C_Class.FIGHTER (single-class fighters only) }
+function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
@@ -1444,7 +1452,7 @@ begin
   bonus := 0;
   with creature^ do
     for cls := 0 to 7 do
-      if classLevels[cls] > 0 then begin
+      if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
         Inc(bonus, GDConsts.conBonusTbl[stats[C_Abil.CONSTITUTION]]);
         if (stats[C_Abil.CONSTITUTION] > 16) and (charClass = C_Class.FIGHTER) then
           Inc(bonus);
@@ -1476,7 +1484,7 @@ begin
         end;
       end;
   end;
-  conB := CharGen.ConHpBonus(creature);
+  conB := CharGen.ConHpBonus(creature, $FF);
   if conB < 0 then begin
     if sum > Abs(conB) + clsCount then
       sum := (sum + conB) div clsCount
@@ -1517,7 +1525,7 @@ begin
       end;
   end;
   { Con bonus of curChar, not creature }
-  conB := CharGen.ConHpBonus(GDVars.curChar);
+  conB := CharGen.ConHpBonus(GDVars.curChar, $FF);
   if conB < 0 then begin
     if sum > Abs(conB) + clsCount then
       sum := (sum + conB) div clsCount
