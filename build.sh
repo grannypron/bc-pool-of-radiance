@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #
-# build.sh -- build Pool of Radiance from src/ and install it into drive_c/POOLRAD.
+# build.sh -- build Pool of Radiance from src/ into obj/START.EXE and obj/GAME.OVR.
+#
+#   ./build.sh              build
+#   ./build.sh --install    build, then copy the two files into drive_c/POOLRAD to play
 #
 # DOSBox-X runs build/build.bat with these drives:
-#   C:  drive_c                 the game (C:\POOLRAD) and the DOS tools
-#   D:  drive_c/TP50            Turbo Pascal 5.0 (TPC.EXE, TURBO.TPL)
+#   D:  $TOOLS/TP50             Turbo Pascal 5.0 (TPC.EXE, TURBO.TPL)
 #   E:  this repository         src\, build\ and obj\
-#   F:  drive_c/TASM            Turbo Assembler (TASM.EXE)
-# The results, obj/START.EXE and obj/GAME.OVR, are then copied into drive_c/POOLRAD.
+#   F:  $TOOLS/TASM             Turbo Assembler (TASM.EXE)
+# TOOLS is the folder holding the DOS toolchains, drive_c unless set (the CI image sets it to /drive_d).
 #
 # Everything the build needs is checked first; every missing piece is reported before the script stops.
 
@@ -16,10 +18,19 @@ set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 drive_c="$root/drive_c"
 game="$drive_c/POOLRAD"
-tp="$drive_c/TP50"
-tasm="$drive_c/TASM"
-exepack="$drive_c/EXEPACK"
-dosbox_min="2026.08.31"
+tools="${TOOLS:-$drive_c}"
+tp="$tools/TP50"
+tasm="$tools/TASM"
+exepack="$tools/EXEPACK"
+dosbox_min="2025.02.01"
+
+install=0
+for arg in "$@"; do
+    case "$arg" in
+        --install) install=1 ;;
+        *) echo "build.sh: unknown option $arg (the only option is --install)" >&2; exit 2 ;;
+    esac
+done
 
 problems=()
 
@@ -36,12 +47,18 @@ need_file() {
     [ -f "$1" ] || problem "Missing file ${1#$root/}: $2"
 }
 
-# --- drive C and what it must hold -------------------------------------------------------------
+# --- the toolchains, and the game when installing ---------------------------------------------
 
-need_dir "$drive_c" "DOSBox-X mounts it as drive C:. Create it in the repository root, then add the game and tools below."
-need_dir "$game" "the Pool of Radiance install (named POOLRAD, with no version suffix). Copy a v1.1 install here."
-need_file "$game/START.EXE" "the game's START.EXE. The build replaces it; copy it from your Pool of Radiance install."
-need_file "$game/GAME.OVR" "the game's GAME.OVR. The build replaces it; copy it from your Pool of Radiance install."
+if [ -z "${TOOLS:-}" ]; then
+    need_dir "$drive_c" "it holds the DOS toolchains; create it in the repository root, or set TOOLS."
+else
+    need_dir "$tools" "TOOLS names it as the folder holding the DOS toolchains."
+fi
+if [ $install -eq 1 ]; then
+    need_dir "$game" "the Pool of Radiance install --install copies into (named POOLRAD, with no version suffix)."
+    need_file "$game/START.EXE" "the game's START.EXE, which --install replaces; copy it from your install."
+    need_file "$game/GAME.OVR" "the game's GAME.OVR, which --install replaces; copy it from your install."
+fi
 need_dir "$tp" "Turbo Pascal 5.0, which compiles the game."
 need_file "$tp/TPC.EXE" "the Turbo Pascal 5.0 command-line compiler."
 need_file "$tp/TURBO.TPL" "the Turbo Pascal 5.0 runtime library, which TPC.EXE needs."
@@ -89,7 +106,6 @@ rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
 
 echo "build.sh: compiling in DOSBox-X..."
 dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
-    -c "mount c \"$drive_c\"" \
     -c "mount d \"$tp\"" \
     -c "mount e \"$root\"" \
     -c "mount f \"$tasm\"" \
@@ -118,6 +134,10 @@ for f in START.EXE GAME.OVR; do
 done
 [ $failed -eq 0 ] || exit 1
 
+echo "build.sh: built:"
+(cd "$root/obj" && sha256sum START.EXE GAME.OVR | sed 's/^/  /')
+[ $install -eq 1 ] || exit 0
+
 # --- install -----------------------------------------------------------------------------------
 
 # Keep SSI's originals once, the first time a build replaces them.
@@ -128,5 +148,4 @@ if [ ! -d "$game/SSI" ]; then
 fi
 cp "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$game/"
 
-echo "build.sh: built and installed into drive_c/POOLRAD:"
-(cd "$root/obj" && sha256sum START.EXE GAME.OVR | sed 's/^/  /')
+echo "build.sh: installed into drive_c/POOLRAD"
