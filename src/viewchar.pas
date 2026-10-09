@@ -124,7 +124,7 @@ begin
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
   TextRend.DisplayString(8, row, LightGreen, GDConsts.statusStrs[GDVars.tempCr1^.status]);
-  if (GDVars.portraitsOn <> 0) and (GDVars.virtualDisk = 3) then
+  if (GDVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
 
