@@ -227,7 +227,7 @@ end;
 
 { Decode DAX run-length data. Controls 0..$7E copy the next b+1 bytes; $81..$FF repeat the next byte -b times; $7F and
   $80 are skipped, as Secret does. A run is cut short at the end of either buffer, and decoding stops when the input
-  runs out or lenDecompressed bytes have been written. }
+  runs out or lenDecompressed bytes have been written. Output the input did not reach is zeroed. }
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
 var
   srcIdx: Word;
@@ -258,6 +258,8 @@ begin
         end;
     end;
   end;
+  if dstIdx < lenDecompressed then
+    FillChar(dst^[dstIdx], lenDecompressed - dstIdx, 0);
 end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
@@ -395,8 +397,9 @@ end;
 { Find a DAX block by ID in gameDir + fileName + ext, read and decompress it into a new buffer of sizeRead bytes, then
   release the compressed buffer. A per-disk archive name of a data family whose merged archive is usable reads the
   merged archive instead (when that disk has its own per-disk archive), with fileID remapped where that disk's block was
-  stored under another id. Any directory entry scanned with a compressed size above 36000 shows a 'tempsize' prompt and
-  exits the game. Return sizeRead=0 and data=nil if the archive cannot be opened or the ID is absent. }
+  stored under another id. Only the bytes actually read are decoded, so a truncated archive yields a block zeroed past
+  what it holds. Any directory entry scanned with a compressed size above 36000 shows a 'tempsize' prompt and exits the
+  game. Return sizeRead=0 and data=nil if the archive cannot be opened or the ID is absent. }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var compSize: Word; offset: LongInt; id: Byte; n: Word;
     f1: file;
@@ -438,7 +441,8 @@ begin
     Seek(f1, hdrSize + offset);
     BlockRead(f1, GDVars.dsDaxCompressedFilePtr^, compSize, n);
     DaxIo.CloseDax(f1, f2);
-    DaxIo.DecompressDax(GDVars.dsDaxCompressedFilePtr, data, compSize, sizeRead);
+    { n, the bytes read: FreeRounded still needs compSize }
+    DaxIo.DecompressDax(GDVars.dsDaxCompressedFilePtr, data, n, sizeRead);
     DaxIo.FreeRounded(Pointer(GDVars.dsDaxCompressedFilePtr), compSize);
   end;
 end;
