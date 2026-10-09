@@ -102,12 +102,19 @@ end;
 
 { Set each thief skill to its base for the thief level plus the racial adjustment (a racial penalty larger than the base
   zeroes the skill), plus the Dexterity adjustment for skills 1..5, stopping at 0 (a Dexterity 9 human's Move Silently
-  would be -5). }
+  would be -5). dexAdj covers Dexterity 9..19, a thief's minimum to the highest racial maximum; a Dexterity outside
+  that range uses the nearer end. }
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 var
   j: Byte;
   total: Integer;
+  dex: Byte;
 begin
+  dex := creature^.dexCur;
+  if dex < 9 then
+    dex := 9
+  else if dex > 19 then
+    dex := 19;
   with creature^ do
     { 8 = High(thiefSkills) }
     for j := 1 to 8 do
@@ -118,7 +125,7 @@ begin
         total := GDConsts.thiefBase[classLevels[C_Class.LEVEL_THIEF], j] + GDConsts.raceAdj[race, j];
         { dexAdj covers skills 1..5 only }
         if j < 6 then
-          total := total + GDConsts.dexAdj[dexCur, j];
+          total := total + GDConsts.dexAdj[dex, j];
         if total < 0 then
           total := 0;
         thiefSkills[j] := total;
