@@ -743,9 +743,8 @@ end;
 
 { Trade coins from curChar to another character. The outer loop picks the recipient, starting from tempCr2; the inner
   loop lists curChar's nonzero coin types (linked backwards, so the highest type heads the list), lets the player pick a
-  type and an amount up to the holding, and hands it over with Money.TradeMoney, repeating while coins remain. Note:
-  escaping the coin menu ends the inner loop without assigning exitOuter, so on the first pass the outer loop's exit
-  depends on an uninitialized local. }
+  type and an amount up to the holding, and hands it over with Money.TradeMoney, repeating while coins remain.
+  Escaping the coin menu goes back to choosing the recipient. }
 procedure TradeTreasureMenu;
 var
   tgt: Types.PCharRecord;
@@ -808,9 +807,10 @@ begin
         redraw := True;
         ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12,
                                     7, 25, 13, p, True, redraw, idx, prev);
-        if prev = nil then
-          exitInner := True
-        else begin
+        if prev = nil then begin
+          exitInner := True;
+          exitOuter := False;
+        end else begin
           s2 := '';
           mType := Money.ParseMoneyType(prev^.name, s2);
           s2 := 'How much ' + s2 + 'will you trade? ';
