@@ -13,7 +13,8 @@ uses Types, Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLo
 function GetEclVar(idx: ShortInt): Word;
 
 { Read count ECL variables at the ECL IP into dsGbvmType/dsGbvmLowerByte/dsGbvmUpperByte, decoding string values and
-  string references into gbStrings. }
+  string references into gbStrings. Only the first 64 variables and 20 strings are kept (later strings overwrite the
+  20th); the IP still steps past them all. }
 procedure LoadEclVars(count: Byte);
 
 { Reset ECL state, read the five script entry addresses from the header at $9900 and, unless a saved game was just
@@ -50,7 +51,7 @@ procedure WriteGbvm(address, value: Word);
 function ReadGbvm(address: Word): Word;
 
 { Write s to the GBVM as a C string ($6B00 = current character name, copied as a Pascal String into the char record
-  instead) }
+  instead), shortened so that it and its terminator stay inside the zone }
 procedure WriteGbvmString(address: Word; s: String);
 
 { Horizontal '~'-hotkey menu; extended keys switch the current character. Returns the 0-based index of the pressed
@@ -111,32 +112,43 @@ var
   strIdx: Byte;
   v: Word;
   len: Word;
+  t: Byte;
+  lo: Byte;
+  hi: Byte;
 begin
   strIdx := 0;
   for i := 1 to count do begin
-    GDVars.dsGbvmType[i] := GDVars.zone3^[GDVars.eclIp + 1];
-    GDVars.dsGbvmLowerByte[i] := GDVars.zone3^[GDVars.eclIp + 2];
+    t := GDVars.zone3^[GDVars.eclIp + 1];
+    lo := GDVars.zone3^[GDVars.eclIp + 2];
     GDVars.eclIp := GDVars.eclIp + 2;
-    case GDVars.dsGbvmType[i] of
+    case t of
       1, 2, 3: begin
         Inc(GDVars.eclIp);
-        GDVars.dsGbvmUpperByte[i] := GDVars.zone3^[GDVars.eclIp];
+        hi := GDVars.zone3^[GDVars.eclIp];
       end;
       $80: begin
-        Inc(strIdx);
-        len := GDVars.dsGbvmLowerByte[i];
+        { 20 = High(gbStrings) }
+        if strIdx < 20 then Inc(strIdx);
+        len := lo;
         if len > 0 then
           EclMenu.ConvGbString(len, strIdx)
         else
           GDVars.gbStrings[strIdx] := '';
       end;
       $81: begin
-        Inc(strIdx);
+        if strIdx < 20 then Inc(strIdx);
         Inc(GDVars.eclIp);
-        GDVars.dsGbvmUpperByte[i] := GDVars.zone3^[GDVars.eclIp];
-        v := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[i], GDVars.dsGbvmUpperByte[i]);
+        hi := GDVars.zone3^[GDVars.eclIp];
+        v := EclMenu.CombineBytesToWord(lo, hi);
         EclMenu.DerefGbString(strIdx, v);
       end;
+    end;
+    { 64 = High(dsGbvmType); the upper byte is kept only for the types that carry one }
+    if i <= 64 then begin
+      GDVars.dsGbvmType[i] := t;
+      GDVars.dsGbvmLowerByte[i] := lo;
+      if (t in [1, 2, 3]) or (t = $81) then
+        GDVars.dsGbvmUpperByte[i] := hi;
     end;
   end;
   Inc(GDVars.eclIp);
@@ -719,9 +731,20 @@ var
   zone: Byte;
   len: Byte;
   i: Byte;
+  last: Word;
 begin
   zone := EclMenu.GbvmZone(address);
   len := Length(s);
+  { the zone's last address, which the terminator may take }
+  case zone of
+    0: last := $4CFF;
+    1: last := $6EFF;
+    2: last := $98FF;
+    3: last := $B6FF;
+  end;
+  if zone < 4 then
+    if last - address < len then
+      len := last - address;
   case zone of
     0: begin
       for i := 0 to len - 1 do
