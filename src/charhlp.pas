@@ -100,6 +100,10 @@ function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PI
 
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
+{ True when the creature has enough experience to train a level in some class: the training hall's own test (not at the
+  racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. }
+function CanTrain(creature: Types.PCharRecord): Boolean;
+
 function WeightAllowance(creature: Types.PCharRecord): Integer;
 
 function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
@@ -823,8 +827,8 @@ begin
     Border.ClearBox(C_Msg.TEXT_LEFT, 18, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
 end;
 
-{ Print the creature's name in light red (out of action, enabled = 0), yellow (hostile) or light cyan (friendly),
-  optionally followed by the possessive 's. }
+{ Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to
+  train) or light cyan (friendly), optionally followed by the possessive 's. }
 procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; possessive: Boolean);
 var
   color: Byte;
@@ -833,6 +837,9 @@ begin
     color := LightRed
   else if creature^.hostile = 1 then
     color := Yellow
+  else if CharHlp.CanTrain(creature) then
+    { ready to train, as in Pools of Darkness }
+    color := LightMagenta
   else
     color := LightCyan;
   TextRend.DisplayString(col, row, color, creature^.name);
@@ -1440,6 +1447,23 @@ begin
   end;
   if (sel <> nil) or (props = C_Item.PROP_DEX_MISSILE + C_Item.PROP_FIRES_AMMO) then
     FindDamagingRangedWeapon := True;
+end;
+
+function CanTrain(creature: Types.PCharRecord): Boolean;
+var
+  cls: ShortInt;
+  lvl: ShortInt;
+begin
+  CanTrain := False;
+  for cls := C_Class.LEVEL_CLERIC to C_Class.LEVEL_MONK do begin
+    lvl := creature^.classLevels[cls];
+    { xp[] runs to level 9 }
+    if (lvl > 0) and (lvl < 9) then
+      if not CharHlp.AtLevelCap(creature, cls) then
+        if GDConsts.dsExperienceSpellsClass[cls].xp[lvl + 1] > 0 then
+          if GDConsts.dsExperienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
+            CanTrain := True;
+  end;
 end;
 
 { Check the racial level limit for a class. Fighter caps increase with high strength; half-elf clerics stop at level 5.
