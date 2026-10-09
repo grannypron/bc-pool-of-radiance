@@ -1022,8 +1022,9 @@ begin
   end;
 end;
 
-{ ROB: take var 2 percent of the money and steal each item with a var 2 percent chance, from the current character or,
-  when var 1 is nonzero, from every member. Note: var 3 is read but unused. }
+{ ROB: take var 2 percent of the money (at most 100) and steal each item with a var 3 percent chance, from the current
+  character or, when var 1 is nonzero, from every member; each robbed character's stats are recalculated. v1.3 used
+  var 2 for the item chance as well, so a toll that only took coins (var 3 = 0) also stole items; Curse reads var 3. }
 procedure EclRob;
 var
   whole: Byte;
@@ -1036,17 +1037,21 @@ begin
   EclMenu.LoadEclVars(3);
   whole := EclMenu.GetEclVar(1);
   pct := EclMenu.GetEclVar(2);
+  if pct > 100 then
+    pct := 100;
   fraction := (100 - pct) / 100;
-  chance := EclMenu.GetEclVar(2);
+  chance := EclMenu.GetEclVar(3);
   if whole = 0 then begin
     EclMenu.RobMoney(fraction, GDVars.curChar);
     EclMenu.RobItems(chance, GDVars.curChar);
+    CharHlp.RecalcStats(GDVars.curChar);
   end else begin
     p := GDVars.creatureList;
     while p <> nil do begin
       inv := p^.itemsAddr;
       EclMenu.RobMoney(fraction, p);
       EclMenu.RobItems(chance, p);
+      CharHlp.RecalcStats(p);
       p := p^.nextCharAddr;
     end;
   end;
