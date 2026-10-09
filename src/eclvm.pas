@@ -1424,14 +1424,18 @@ begin
   end;
 end;
 
-{ CLOCK: advance the clock by var 1, in minutes. }
+{ CLOCK: advance the clock by var 1, in minutes, in steps of at most 255 (AdvanceTime takes a Byte). }
 procedure EclClock;
 var
-  v: Byte;
+  n: Word;
 begin
   EclMenu.LoadEclVars(1);
-  v := EclMenu.GetEclVar(1);
-  GameTime.AdvanceTime(v, 1);
+  n := EclMenu.GetEclVar(1);
+  while n > 255 do begin
+    GameTime.AdvanceTime(255, 1);
+    Dec(n, 255);
+  end;
+  GameTime.AdvanceTime(n, 1);
 end;
 
 { PRINTRETURN: move the message cursor to the start of the next line and clear protNewLine }
