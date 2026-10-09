@@ -20,7 +20,8 @@ procedure LoadEclVars(count: Byte);
   loaded, zero GBVM $4A00..$4A1F and $6E79..$6E82 }
 procedure EclInit;
 
-{ Load ECL script from ECL<disk>.dax block scriptId, retrying until at least 2 bytes come back }
+{ Load ECL script block scriptId from ECL<disk>.dax; a block missing from that disk is taken from the first disk that
+  has it, which becomes current, and a block on no disk stops the game with a message }
 procedure LoadEclScript(scriptId: Byte);
 
 { Allocate + load creature id, returning the record and its inventory/effects list heads }
@@ -209,23 +210,44 @@ begin
     GDVars.loadedSave := 0;
 end;
 
-{ Clears the script zone first; retries until the DAX block yields >= 2 bytes; the first 2 bytes are skipped }
+{ Clears the script zone first; the first 2 bytes of the block are skipped. The original retried the current disk
+  forever when the block was not there, which hung at "Loading...Please Wait". }
 procedure LoadEclScript(scriptId: Byte);
 var
   d1: Word;
   d2: Word;
-  s: String[1];
+  s: String[3];
   sizeRead: Word;
   data: Types.PByteArr;
+  disk: Byte;
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
   GDVars.dsSuppressingInsertDiskFlag := 0;
-  repeat
-    MenuCore.ClearBottomLine;
-    TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
-    Str(GDVars.virtualDisk, s);
-    DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
-  until sizeRead >= 2;
+  MenuCore.ClearBottomLine;
+  TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
+  Str(GDVars.virtualDisk, s);
+  DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
+  if sizeRead < 2 then begin
+    { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first
+      disk that has the block, without the insert-disk prompt }
+    GDVars.dsSuppressingInsertDiskFlag := 1;
+    disk := 1;
+    while (sizeRead < 2) and (disk <= 8) do begin
+      if disk <> GDVars.virtualDisk then begin
+        Str(disk, s);
+        DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
+        if sizeRead >= 2 then
+          DaxIo.PushState(disk);
+      end;
+      Inc(disk);
+    end;
+    GDVars.dsSuppressingInsertDiskFlag := 0;
+    if sizeRead < 2 then begin
+      Str(scriptId, s);
+      DaxIo.PromptBox(Yellow, 'Script area ' + s + ' is missing');
+      GameIo.ExitGame;
+    end;
+  end;
   Move(data^[2], GDVars.zone3^, sizeRead - 2);
   FreeMem(data, sizeRead);
   MenuCore.ClearBottomLine;
