@@ -920,8 +920,8 @@ begin
 end;
 
 { TREASURE: set the treasure money from vars 1..7 and add items by var 8: below $80 it selects an ITEM archive list,
-  $80+n generates n random items and 255 none. Item nodes are prepended. Note: a second roll of 48 or 49 picks no item
-  id and reuses the previous one. }
+  $80+n generates n random items and 255 none. Item nodes are prepended, and a trailing part record in the list is
+  ignored. Note: a second roll of 48 or 49 picks no item id and reuses the previous one. }
 procedure EclTreasure;
 var
   i: ShortInt;
@@ -952,7 +952,7 @@ begin
       GameIo.ExitGame;
     end;
     offset := 0;
-    repeat
+    while sizeRead - offset >= SizeOf(Types.TItemRec) do begin
       Move(data^[offset], it, SizeOf(Types.TItemRec));
       it.next := nil;
       Inc(offset, SizeOf(Types.TItemRec));
@@ -965,7 +965,7 @@ begin
         GDVars.treasureItems^ := it;
         GDVars.treasureItems^.next := tmp;
       end;
-    until offset >= sizeRead;
+    end;
     FreeMem(data, sizeRead);
   end else begin
     if tId = 255 then Exit;

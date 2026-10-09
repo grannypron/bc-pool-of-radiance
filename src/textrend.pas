@@ -118,16 +118,20 @@ begin
   TextRend.SetupEgaOtherPage(GDVars.pageNum);
 end;
 
-{ Load font block 201 from 8X8D1.DAX, copy it into gameFont and free the loader's buffer. Nothing is copied if the block
-  cannot be loaded. }
+{ Load font block 201 from 8X8D1.DAX, copy it into gameFont (no more than gameFont holds) and free the loader's buffer.
+  Nothing is copied if the block cannot be loaded. }
 procedure LoadGameFont;
 var
   compSize: Word;
   dataPtr: Types.PByteArr;
+  n: Word;
 begin
   DaxIo.LoadDax('8X8d1', '.dax', 201, compSize, dataPtr);
   if compSize = 0 then Exit;
-  Move(dataPtr^, GDVars.gameFont^, compSize);
+  n := compSize;
+  if n > SizeOf(Types.TFontArr) then
+    n := SizeOf(Types.TFontArr);
+  Move(dataPtr^, GDVars.gameFont^, n);
   FreeMem(dataPtr, compSize);
 end;
 

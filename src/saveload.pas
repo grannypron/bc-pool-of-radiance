@@ -34,8 +34,9 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
   the .mem file (none when it is missing or not a usual-spells file for this character). }
 procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
 
-{ Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing CHA record exits the game); nil the list pointers, derive
-  iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists. }
+{ Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
+  derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
+  ignoring a trailing part record. }
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
 { GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
@@ -520,7 +521,7 @@ var
 begin
   Str(GDVars.virtualDisk, numStr);
   DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
-  if size = 0 then begin
+  if size < SizeOf(Types.TCharRecord) then begin
     TextRend.DisplayAndPause(White, 'Unable to load monster');
     GameIo.ExitGame;
   end;
@@ -548,34 +549,38 @@ begin
   GDVars.dsSuppressingInsertDiskFlag := 1;
   DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
-    offset := 0;
-    GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
-    effect := creature^.effectsAddr;
-    repeat
-      Move(data^[offset], effect^, SizeOf(Types.TEffectRec));
-      effect^.next := nil;
-      Inc(offset, SizeOf(Types.TEffectRec));
-      if offset < size then begin
-        GetMem(effect^.next, SizeOf(Types.TEffectRec));
-        effect := effect^.next;
-      end;
-    until offset >= size;
+    if size >= SizeOf(Types.TEffectRec) then begin
+      offset := 0;
+      GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
+      effect := creature^.effectsAddr;
+      repeat
+        Move(data^[offset], effect^, SizeOf(Types.TEffectRec));
+        effect^.next := nil;
+        Inc(offset, SizeOf(Types.TEffectRec));
+        if size - offset >= SizeOf(Types.TEffectRec) then begin
+          GetMem(effect^.next, SizeOf(Types.TEffectRec));
+          effect := effect^.next;
+        end;
+      until size - offset < SizeOf(Types.TEffectRec);
+    end;
     FreeMem(data, size);
   end;
   DaxIo.LoadDax('MON' + numStr + 'ITM', '.dax', id, size, data);
   if size <> 0 then begin
-    offset := 0;
-    GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
-    item := creature^.itemsAddr;
-    repeat
-      Move(data^[offset], item^, SizeOf(Types.TItemRec));
-      item^.next := nil;
-      Inc(offset, SizeOf(Types.TItemRec));
-      if offset < size then begin
-        GetMem(item^.next, SizeOf(Types.TItemRec));
-        item := item^.next;
-      end;
-    until offset >= size;
+    if size >= SizeOf(Types.TItemRec) then begin
+      offset := 0;
+      GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
+      item := creature^.itemsAddr;
+      repeat
+        Move(data^[offset], item^, SizeOf(Types.TItemRec));
+        item^.next := nil;
+        Inc(offset, SizeOf(Types.TItemRec));
+        if size - offset >= SizeOf(Types.TItemRec) then begin
+          GetMem(item^.next, SizeOf(Types.TItemRec));
+          item := item^.next;
+        end;
+      until size - offset < SizeOf(Types.TItemRec);
+    end;
     FreeMem(data, size);
   end;
   GDVars.dsSuppressingInsertDiskFlag := 0;
