@@ -57,11 +57,11 @@ begin
   PartyHasClass := found;
 end;
 
-{ BashDoor: party members try in list order, on the AD&D Strength open-doors table, until one succeeds. BARRIER type 3
-  (barred door) uses the locked/barred/magically-held column: 18/91 to 25 roll, and each member below 18/91 clears
-  doorOpen[0] so Bash is not offered again at this door (later members still try this time). Otherwise the normal column
-  covers Strength 3 to 18/00. Success opens the barrier from both sides. Note: Strength 19 and above has no case in the
-  normal column and never succeeds. }
+{ BashDoor: Okay party members try in list order, on the AD&D Strength open-doors table, until one succeeds. BARRIER
+  type 3 (barred door) uses the locked/barred/magically-held column: 18/91 to 25 roll, and each member below 18/91
+  clears doorOpen[0] so Bash is not offered again at this door (later members still try this time). Otherwise the normal
+  column covers Strength 3 to 18/00. Success opens the barrier from both sides. Note: Strength 19 and above has no case
+  in the normal column and never succeeds. }
 function BashDoor: Boolean;
 var
   p: Types.PCharRecord;
@@ -70,6 +70,8 @@ begin
   success := False;
   p := GDVars.creatureList;
   while (p <> nil) and (not success) do begin
+    { only an Okay member can force the door }
+    if p^.status = C_Status.OKAY then
     with p^ do begin
       if View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) = 3 then begin
         case strCur of
@@ -149,13 +151,14 @@ begin
     FindMemorizedSpell := 255;
 end;
 
-{ Return the first party member with spellId memorized, or nil. }
+{ Return the first Okay party member with spellId memorized, or nil: a dead, unconscious or otherwise disabled member
+  cannot cast. }
 function FindCharWithSpell(spellId: Byte): Types.PCharRecord;
 var
   p: Types.PCharRecord;
 begin
   p := GDVars.creatureList;
-  while (p <> nil) and (Explore.FindMemorizedSpell(spellId, p) = 255) do
+  while (p <> nil) and ((p^.status <> C_Status.OKAY) or (Explore.FindMemorizedSpell(spellId, p) = 255)) do
     p := p^.nextCharAddr;
   FindCharWithSpell := p;
 end;
