@@ -1,5 +1,5 @@
 { The merged data archives: which per-disk archives each data family gathers into one archive, and the file checks the
-  game and DATABLD.EXE share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named
+  game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named
   in C_Data. }
 unit DataArc;
 
@@ -49,7 +49,7 @@ type
   end;
 
 const
-  { In DATABLD.EXE's build order. goldbox-re-tools' mergedax holds the same table. }
+  { In DataBld's build order. goldbox-re-tools' mergedax holds the same table. }
   families: array[1..C_Data.FAMILIES] of TFamily = (
     (prefix: 'ECL'; suffix: ''; merged: 'ECL'),
     (prefix: 'GEO'; suffix: ''; merged: 'GEO'),
