@@ -899,16 +899,6 @@ type
   { Pointers for character helpers. }
   PZone1Rec = ^TZone1;
 
-type
-  TWheelRec = record
-    answer: String[6];
-    { Outer-ring rune pair. }
-    espruar: array[1..2] of Byte;
-    { Inner-ring rune pair; NO_RUNE omits the second glyph. }
-    dethek: array[1..2] of Byte;
-    path: String[9];
-  end;
-
 implementation
 
 end.
