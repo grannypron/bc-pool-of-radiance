@@ -26,3 +26,6 @@ __pycache__/
 
 # DOSBox-X captures
 capture/
+
+# Release zips made by package.sh
+/dist/
