@@ -526,9 +526,9 @@ begin
 end;
 
 { Merge into item every other stack (quantity > 0) of curChar's with the same name components, type, plus, save bonus,
-  curse and weight and fewer than 2 charges. Save the next node before merging, since RemoveItem frees the current node.
-  If the total would exceed 255, fill the destination to 255, keep the excess in the current stack, and continue merging
-  into that stack. Note: the charges, effect and special tests compare cur with itself, so they always pass. }
+  curse, weight, charges, effect and special, and fewer than 2 charges. Save the next node before merging, since
+  RemoveItem frees the current node. If the total would exceed 255, fill the destination to 255, keep the excess in the
+  current stack, and continue merging into that stack. }
 procedure JoinItem(item: Types.PItemRec);
 var
   cur: Types.PItemRec;
@@ -544,8 +544,8 @@ begin
     if (cur <> dst) and (cur^.quantity > 0) and (cur^.nameIds[1] = dst^.nameIds[1]) and
         (cur^.nameIds[2] = dst^.nameIds[2]) and (cur^.nameIds[3] = dst^.nameIds[3]) and
         (cur^.itemType = dst^.itemType) and (cur^.plus = dst^.plus) and (cur^.saveBonus = dst^.saveBonus) and
-        (cur^.cursed = dst^.cursed) and (cur^.weight = dst^.weight) and (cur^.charges = cur^.charges) and
-        (cur^.charges < 2) and (cur^.effect = cur^.effect) and (cur^.special = cur^.special) then begin
+        (cur^.cursed = dst^.cursed) and (cur^.weight = dst^.weight) and (cur^.charges = dst^.charges) and
+        (cur^.charges < 2) and (cur^.effect = dst^.effect) and (cur^.special = dst^.special) then begin
       if qty + cur^.quantity <= 255 then begin
         Inc(qty, cur^.quantity);
         CharHlp.RemoveItem(GDVars.curChar, cur);
