@@ -93,7 +93,7 @@ end;
 
 { Set curChar's coins to gp gold as gp div 5 platinum plus the rest in gold. A character holds at most 65535 of each
   coin, so platinum stops there and the rest goes to gold, which also stops at 65535. Only the five coin types are
-  cleared; gems and jewelry are kept. }
+  cleared; gems and jewelry are kept. The coins' weight changes, so curChar's stats are recalculated. }
 procedure SetCreatureCoinsInGold(gp: LongInt);
 var
   i: ShortInt;
@@ -112,6 +112,7 @@ begin
   GDVars.curChar^.coins[C_Money.PLATINUM] := pp;
   { gold }
   GDVars.curChar^.coins[C_Money.GOLD] := rest;
+  CharHlp.RecalcStats(GDVars.curChar);
 end;
 
 { Set the treasure pool's coins to gp gold as gp div 5 platinum plus gp mod 5 gold. Only the five coin types are
