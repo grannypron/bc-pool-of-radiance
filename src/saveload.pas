@@ -56,7 +56,7 @@ procedure AddCharToParty(creature: Types.PCharRecord);
 
 { If name does not exist, offer 'Save and exit Insert disk #N'; on 'S' step the party back one square (0..15 wrap),
   restore the previous virtual disk, SaveGame and exit to DOS (GameIo.ExitGame). }
-procedure CheckFileElseQuit(name: Types.TStr40);
+procedure CheckFileElseQuit(name: Types.TPathStr);
 
 implementation
 
@@ -127,14 +127,22 @@ begin
   Close(f);
 end;
 
-{ Create the save directory (path minus the trailing backslash); IOResult 5 (the directory already exists) counts as
-  success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\ cannot be made and is left alone. }
+{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
+  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
+  cannot be made and is left alone. }
 procedure CheckSaveDir;
 var
   ioRes: Integer;
+  i: Byte;
 begin
   if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
   repeat
+    { each parent first, from the one below the root; its errors show again in the last MkDir }
+    for i := 4 to Length(GDVars.dsSaveDirectory) - 1 do
+      if GDVars.dsSaveDirectory[i] = '\' then begin
+        MkDir(Copy(GDVars.dsSaveDirectory, 1, i - 1));
+        ioRes := IOResult;
+      end;
     MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
     ioRes := IOResult;
     if (ioRes <> 0) and (ioRes <> 5) then
@@ -202,7 +210,7 @@ end;
 procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
 var
   f: file;
-  fn: Types.TStr40;
+  fn: Types.TPathStr;
   ext: String[4];
   res: Word;
   item: Types.PItemRec;
@@ -577,7 +585,7 @@ var
   n: Byte;
   p: Types.PCharRecord;
   numStr: String[1];
-  fn: Types.TStr40;
+  fn: Types.TPathStr;
   ext: Boolean;
   letter: Char;
   ioRes: Integer;
@@ -648,7 +656,7 @@ begin
   MenuCore.ClearBottomLine;
 end;
 
-procedure CheckFileElseQuit(name: Types.TStr40);
+procedure CheckFileElseQuit(name: Types.TPathStr);
 var
   msg: Types.TStr40;
   numStr: String[1];
