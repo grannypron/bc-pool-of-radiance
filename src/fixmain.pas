@@ -1,5 +1,5 @@
-{ Program entry: initialize the game, show the introduction, run CharGen's main menu, then run the game loop and shut
-  down. }
+{ Program entry: initialize the game, bring the merged data archives up to date, show the introduction, run CharGen's
+  main menu, then run the game loop and shut down. }
 {$F+}
 program FixMain;
 
@@ -10,10 +10,11 @@ uses Types,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclMenu, Shop, PostCbt, Temple,
-  EclVm, Intro, HeapErr;
+  EclVm, DataBld, Intro, HeapErr;
 
 {$O HeapErr}
 {$O Intro}
+{$O DataBld}
 {$O EclVm}
 {$O Temple}
 {$O PostCbt}
@@ -49,6 +50,7 @@ uses Types,
 
 begin
   GameInit.GameInit2;
+  DataBld.BuildDataFiles;
   { STING skips the introduction }
   if ParamStr(1) <> 'STING' then begin
     Intro.Introduction;

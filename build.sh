@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 #
-# build.sh -- build Pool of Radiance from src/ into obj/START.EXE and obj/GAME.OVR, and the data builder into
-# obj/DATABLD.EXE (from sources that have src/databld.pas).
+# build.sh -- build Pool of Radiance from src/ into obj/START.EXE and obj/GAME.OVR.
 #
 #   ./build.sh              build
-#   ./build.sh --install    build, then copy the files into drive_c/POOLRAD to play
+#   ./build.sh --install    build, then copy the two files into drive_c/POOLRAD to play
 #
 # DOSBox-X runs build/build.bat with these drives:
 #   D:  $TOOLS/<compiler>       Turbo Pascal (TPC.EXE, TURBO.TPL); build/toolchain names the folder, TP50 if absent
@@ -106,12 +105,8 @@ fi
 
 # --- build -------------------------------------------------------------------------------------
 
-# The files the build makes: DATABLD.EXE only from sources that have it (older tags do not).
-outputs=(START.EXE GAME.OVR)
-[ -f "$root/src/databld.pas" ] && outputs+=(DATABLD.EXE)
-
 mkdir -p "$root/obj" "$root/build/logs"
-rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root/obj/DATABLD.EXE" "$root"/build/logs/*.OUT
+rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
 
 echo "build.sh: compiling in DOSBox-X..."
 dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
@@ -131,11 +126,6 @@ if grep -qi "error" "$root/build/logs/TPC.OUT" 2> /dev/null; then
     grep -i -B1 -A2 "error" "$root/build/logs/TPC.OUT" >&2
     failed=1
 fi
-if grep -qi "error" "$root/build/logs/DATABLD.OUT" 2> /dev/null; then
-    echo "build.sh: the compiler reported errors in DATABLD.EXE (build/logs/DATABLD.OUT):" >&2
-    grep -i -B1 -A2 "error" "$root/build/logs/DATABLD.OUT" >&2
-    failed=1
-fi
 if grep -qiE "^\*+(error|fatal)" "$root/build/logs/TASM.OUT" 2> /dev/null; then
     echo "build.sh: the assembler reported errors (build/logs/TASM.OUT):" >&2
     grep -iE "error|fatal" "$root/build/logs/TASM.OUT" >&2
@@ -146,7 +136,7 @@ if grep -qi "error" "$root/build/logs/PACK.OUT" 2> /dev/null; then
     grep -i "error" "$root/build/logs/PACK.OUT" >&2
     failed=1
 fi
-for f in "${outputs[@]}"; do
+for f in START.EXE GAME.OVR; do
     if [ ! -f "$root/obj/$f" ]; then
         echo "build.sh: the build did not produce obj/$f; see build/logs." >&2
         failed=1
@@ -155,7 +145,7 @@ done
 [ $failed -eq 0 ] || exit 1
 
 echo "build.sh: built:"
-(cd "$root/obj" && sha256sum "${outputs[@]}" | sed 's/^/  /')
+(cd "$root/obj" && sha256sum START.EXE GAME.OVR | sed 's/^/  /')
 [ $install -eq 1 ] || exit 0
 
 # --- install -----------------------------------------------------------------------------------
@@ -166,8 +156,6 @@ if [ ! -d "$game/SSI" ]; then
     cp -p "$game/START.EXE" "$game/GAME.OVR" "$game/SSI/"
     echo "build.sh: kept the original START.EXE and GAME.OVR in drive_c/POOLRAD/SSI"
 fi
-for f in "${outputs[@]}"; do
-    cp "$root/obj/$f" "$game/"
-done
+cp "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$game/"
 
 echo "build.sh: installed into drive_c/POOLRAD"

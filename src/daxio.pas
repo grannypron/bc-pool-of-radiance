@@ -36,6 +36,15 @@ procedure CloseDax(var f1, f2: file);
 
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 
+{ True when the family's merged archive is whole, holds C_Data.VERSION and was built from the per-disk archives there
+  now (DaxIo.SourcesMatch). The answer is remembered until ResetArchiveCache; the first True also reads the archive's
+  remap entries. }
+function FamilyUsable(family: Byte): Boolean;
+
+{ Forget what FamilyUsable has found, so the next load looks at the merged archives afresh. DataBld calls it before
+  checking them at startup and after building them. }
+procedure ResetArchiveCache;
+
 { The archive a load of fileName (no extension) really opens: the merged archive of its data family when fileName names
   a per-disk archive that exists and the merged archive is usable, otherwise fileName itself. }
 function ArchiveName(fileName: Types.TStr20): Types.TStr20;
@@ -322,9 +331,6 @@ begin
   SourcesMatch := ok;
 end;
 
-{ True when the family's merged archive is whole, holds C_Data.VERSION and was built from the per-disk archives there
-  now (DaxIo.SourcesMatch). The answer is remembered for the rest of the run; the first True also reads the archive's
-  remap entries. }
 function FamilyUsable(family: Byte): Boolean;
 var
   size: Word;
@@ -364,6 +370,13 @@ begin
     end;
   end;
   FamilyUsable := familyState[family] = 1;
+end;
+
+procedure ResetArchiveCache;
+begin
+  FillChar(familyState, SizeOf(familyState), 0);
+  FillChar(familyDisks, SizeOf(familyDisks), 0);
+  remapCount := 0;
 end;
 
 { The id a load of id from the family's archive on disk reads in the merged archive. }
@@ -461,7 +474,5 @@ begin
 end;
 
 begin
-  FillChar(familyState, SizeOf(familyState), 0);
-  FillChar(familyDisks, SizeOf(familyDisks), 0);
-  remapCount := 0;
+  DaxIo.ResetArchiveCache;
 end.
