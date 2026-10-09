@@ -98,7 +98,7 @@ var
   c: Char;
   done: Boolean;
   price: Word;
-  charGold: Word;
+  charGold: LongInt;
   pooled: LongInt;
   failed: Boolean;
   cursor: Types.PItemRec;
