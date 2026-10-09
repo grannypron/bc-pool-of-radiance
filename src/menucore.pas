@@ -11,18 +11,22 @@ var
     returned without waiting for a key; a longer list runs the menu as usual so it can be paged. Every return clears
     it. }
   listOnly: Boolean;
+  { Set just before a MenuHorizontal call whose caller reads the Left and Right arrows itself (turning, moving, aiming,
+    adjusting a value); every return clears it. }
+  arrowsToCaller: Boolean;
 
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
   option (GDVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
-  current option. A hotkey (returned upper-cased, and made the current option) or space ends the menu; Enter, when mCol
-  or hlCol is nonzero, returns the current option's hotkey (#13 for a menu without options); Escape returns #0. With
-  reinterpret, an extended key returns its scan code and digits 1-9 and backslash map to keypad scan codes, all with ext
-  set. A nonzero menuAuto.timeout returns menuAuto.key once that many ticks pass after the last animation frame change.
-  The picture animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame
-  every pass and is cleared on exit); ext is copied to GDVars.extFlag. }
+  current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey (returned upper-cased, and
+  made the current option) or space ends the menu; Enter, when mCol or hlCol is nonzero, returns the current option's
+  hotkey (#13 for a menu without options); Escape returns #0. With reinterpret, any other extended key returns its scan
+  code and digits 1-9 and backslash map to keypad scan codes, all with ext set. A nonzero menuAuto.timeout returns
+  menuAuto.key once that many ticks pass after the last animation frame change. The picture animates when animate is
+  set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit); ext
+  is copied to GDVars.extFlag. }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -30,10 +34,11 @@ function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; rein
 procedure ClearBottomLine;
 
 { Vertical list menu in the box ulCol,ulRow..lrCol,lrRow with menu (plus Next/Prev/Exit as they apply) on the bottom
-  line. idx is zero-based; redraw requests repainting. Label rows have inUse set; they are drawn in qCol and skipped by
-  the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list also sets idx=0). Any other menu key
-  returns that key with sel set to the highlighted entry. With listOnly set, a list that fits on one page is drawn and
-  #0 returned with sel=nil at once. }
+  line. The Up arrow or Home moves the highlight up a line and the Down arrow or End moves it down, wrapping within the
+  page; Page Up and Page Down turn the page. idx is zero-based; redraw requests repainting. Label rows have inUse set;
+  they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list
+  also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a list
+  that fits on one page is drawn and #0 returned with sel=nil at once. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -148,6 +153,21 @@ var
     end;
   end;
 
+  { Make the next option current, or the previous one when toNext is clear, wrapping at the ends, and redraw. }
+  procedure StepOption(toNext: Boolean);
+  begin
+    if toNext then begin
+      if GDVars.horizChoice = optCnt then
+        GDVars.horizChoice := 1
+      else
+        Inc(GDVars.horizChoice);
+    end else if GDVars.horizChoice = 1 then
+      GDVars.horizChoice := optCnt
+    else
+      Dec(GDVars.horizChoice);
+    DisplayOption(GDVars.horizChoice);
+  end;
+
 begin
   GDVars.extFlag := False;
   enterOk := (mCol <> 0) or (hlCol <> 0);
@@ -183,11 +203,14 @@ begin
     end else if KeyPressed then begin
       ch := GameIo.ReadGameKey;
       if ch = #0 then
-      { #0 prefixes an extended key: the second ReadGameKey reads its scan code. It ends the menu (with ext set) only
-        with reinterpret; otherwise it is ignored. }
+      { #0 prefixes an extended key: the second ReadGameKey reads its scan code. Left and Right move the current option
+        unless the caller takes them; any other extended key ends the menu (with ext set) only with reinterpret, and is
+        otherwise ignored. }
       begin
         ch := GameIo.ReadGameKey;
-        if reinterpret then begin
+        if ((ch = C_Keys.LEFT) or (ch = C_Keys.RIGHT)) and not arrowsToCaller then
+          StepOption(ch = C_Keys.RIGHT)
+        else if reinterpret then begin
           ext := True;
           done := True;
         end;
@@ -205,20 +228,8 @@ begin
                    ch := C_Keys.ENTER;
                  done := True;
                end;
-          ',': begin
-                 if GDVars.horizChoice = 1 then
-                   GDVars.horizChoice := optCnt
-                 else
-                   Dec(GDVars.horizChoice);
-                 DisplayOption(GDVars.horizChoice);
-               end;
-          '.': begin
-                 if GDVars.horizChoice = optCnt then
-                   GDVars.horizChoice := 1
-                 else
-                   Inc(GDVars.horizChoice);
-                 DisplayOption(GDVars.horizChoice);
-               end;
+          ',': StepOption(False);
+          '.': StepOption(True);
         else begin
             ch := UpCase(ch);
             if ch in [' ', '0'..'9', 'A'..'Z'] then
@@ -249,6 +260,7 @@ begin
         end;
     end;
   until done;
+  arrowsToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
   GDVars.extFlag := ext;
@@ -515,10 +527,10 @@ begin
       UnhighlightLine(idx);
       if ext then
         case ch of
-          { Home = line up }
-          C_Keys.HOME: MoveLine(False);
-          { End = line down }
-          C_Keys.END_KEY: MoveLine(True);
+          { line up }
+          C_Keys.HOME, C_Keys.UP: MoveLine(False);
+          { line down }
+          C_Keys.END_KEY, C_Keys.DOWN: MoveLine(True);
           { Page Up = previous page, when Prev is offered }
           C_Keys.PGUP: if hasPrev then MovePage(False);
           { Page Down = next page, when Next is offered }
@@ -591,4 +603,5 @@ end;
 
 begin
   listOnly := False;
+  arrowsToCaller := False;
 end.

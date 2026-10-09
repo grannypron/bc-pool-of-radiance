@@ -339,6 +339,7 @@ begin
   while (creature^.combatAddr^.movement > 1) and (ch <> C_Keys.NONE)
         and (ch <> C_Keys.ENTER) do begin
     Border.ClearBox(24, 24, 39, 24);
+    MenuCore.arrowsToCaller := True;
     ch :=
       MenuCore.MenuHorizontal('Move/Attack, Move Left = ' + CharHlp.ByteToString(creature^.combatAddr^.movement div 2) +
       ' ', '', LightGreen, LightGreen, White, True, False, GDVars.doneRoundFlag);

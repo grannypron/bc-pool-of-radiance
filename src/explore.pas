@@ -289,6 +289,7 @@ begin
     C_Area.LOC_3D_MAP: begin
          done := False;
          repeat
+           MenuCore.arrowsToCaller := True;
            c := MenuCore.MenuHorizontal('', GDConsts.menu3D, LightMagenta, LightGreen, White, True, False,
                                         ext);
            if not ext then begin
@@ -354,6 +355,7 @@ begin
         end;
         done := False;
         repeat
+          MenuCore.arrowsToCaller := True;
           c := MenuCore.MenuHorizontal('', GDConsts.menuWild, LightMagenta, LightGreen, White, True, False,
                                        ext);
           if not ext then begin
