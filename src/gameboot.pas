@@ -49,6 +49,7 @@ begin
   end;
   if path[Length(path)] <> '\' then path := path + '\';
   if Length(path) > SizeOf(Types.TPathStr) - 1 - LONGEST_NAME then begin
+    Blit.RestoreVideoMode;
     WriteLn('POOL.CFG: this path is too long for DOS:');
     WriteLn(path);
     Halt;
