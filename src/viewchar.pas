@@ -620,25 +620,31 @@ begin
   end;
 end;
 
-{ Offer half the item's value for it; a stack of more than one is priced at quantity / 20 of that. Pay as platinum
-  (price div 5) plus gold (price mod 5); when overloaded, the platinum the character cannot take goes to the treasure
-  pool. Note: the arrows/quarrels test joins two inequalities with or, so it is always true and the full-quantity price
-  is never used. }
+{ Offer half the item's value for it. A stack of arrows or quarrels is valued per bundle of 20 (the game's own Arrows +1
+  are 20 for 100 gp), so it is priced at quantity / 20 of that; any other stack is valued per item (3 Potions of
+  Healing at 400 each, 7 Gold Statuettes at 500 each), so it is priced at the full quantity, at most 65535. Pay as
+  platinum (price div 5) plus gold (price mod 5); when overloaded, the platinum the character cannot take goes to the
+  treasure pool. }
 procedure SellItem(item: Types.PItemRec);
 var
   price: Word;
   plat: Word;
   gold: Word;
   takable: Word;
+  total: LongInt;
 begin
   price := 0;
   if item^.value > 0 then
     price := item^.value div 2;
   if item^.quantity > 1 then begin
-    if (item^.itemType <> 73) or (item^.itemType <> 28) then
-      price := price * item^.quantity div 20
-    else
-      price := price * item^.quantity;
+    if (item^.itemType = 73) or (item^.itemType = 28) then
+      price := LongInt(price) * item^.quantity div 20
+    else begin
+      total := LongInt(price) * item^.quantity;
+      if total > 65535 then
+        total := 65535;
+      price := total;
+    end;
   end;
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
