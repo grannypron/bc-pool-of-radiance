@@ -92,30 +92,31 @@ begin
 end;
 
 { Carry each clock component that has reached its GDConsts.unitScale limit into the next one (one carry per component
-  per call). A year component of 256 or more is left as is; every creature in GDVars.creatureList ages by one instead. }
-procedure ValidateClock(var clock: Types.TClock);
+  per call); the year has no limit. When ageOnYear is set, every creature in GDVars.creatureList ages by one as the
+  months carry into a new year. }
+procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
 var
   i: ShortInt;
   cur: Types.PCharRecord;
 begin
-  for i := 0 to 6 do
-    if clock[i] >= GDConsts.unitScale[i] then
-      if i <> C_Time.YEARS then begin
-        Inc(clock[Succ(i)]);
-        clock[i] := clock[i] - GDConsts.unitScale[i];
-      end else begin
+  for i := 0 to C_Time.MONTHS do
+    if clock[i] >= GDConsts.unitScale[i] then begin
+      Inc(clock[Succ(i)]);
+      clock[i] := clock[i] - GDConsts.unitScale[i];
+      if (i = C_Time.MONTHS) and ageOnYear then begin
         cur := GDVars.creatureList;
         while cur <> nil do begin
           Inc(cur^.age);
           cur := cur^.nextCharAddr;
         end;
       end;
+    end;
 end;
 
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99 }
 procedure ValidateRestTime;
 begin
-  GameTime.ValidateClock(GDVars.dsRestingTimeGbvm);
+  GameTime.ValidateClock(GDVars.dsRestingTimeGbvm, False);
   if GDVars.dsRestingTimeGbvm[C_Time.MONTHS] > 0 then begin
     Inc(GDVars.dsRestingTimeGbvm[C_Time.DAYS],
         GDConsts.unitScale[C_Time.DAYS] * GDVars.dsRestingTimeGbvm[C_Time.MONTHS]);
@@ -136,7 +137,7 @@ begin
     clock[i] := GDVars.zone0^.words[C_Gbvm.CLOCK + i];
   for j := 1 to amount do begin
     Inc(clock[tUnit]);
-    GameTime.ValidateClock(clock);
+    GameTime.ValidateClock(clock, True);
   end;
   for i := 0 to 6 do
     GDVars.zone0^.words[C_Gbvm.CLOCK + i] := clock[i];
