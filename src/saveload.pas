@@ -656,7 +656,7 @@ var
   f: file;
   i: Byte;
   creature: Types.PCharRecord;
-  fn: Types.TStr40;
+  fn: Types.TPathStr;
   res: Word;
   nChars: Byte;
   found: Boolean;
