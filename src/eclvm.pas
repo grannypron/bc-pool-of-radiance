@@ -1055,6 +1055,8 @@ begin
       p := p^.nextCharAddr;
     end;
   end;
+  { the party list shows the new armor class at once }
+  CharHlp.DisplayParty(GDVars.curChar);
 end;
 
 { Run the encounter menu until combat, flight, parley or monster retreat ends it. WAIT and ADVANCE update the encounter
