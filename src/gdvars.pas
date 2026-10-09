@@ -62,7 +62,7 @@ var
   { OpenWithRetry result }
   itemsOk: Boolean;
   { directory saved across resource loading }
-  savedDir: String[40];
+  savedDir: Types.TPathStr;
   { unused }
   unidentifiedDirectoryTail: array[0..1] of Byte;
   { ITEMS loading file record }

@@ -20,9 +20,9 @@ procedure PromptBox(attr: Byte; message: Types.TStr40);
 
 procedure OverlayPrompt;
 
-function OpenWithRetry(fileName, promptMsg: Types.TStr40; noPrompt: Char; var f: file): Boolean;
+function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Char; var f: file): Boolean;
 
-function FileExists(name: Types.TStr40): Boolean;
+function FileExists(name: Types.TPathStr): Boolean;
 
 function SanitizeString(src, del: string): string;
 
@@ -30,7 +30,7 @@ function SanitizeFileName(name: string): Types.TStr40;
 
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
 
-function OpenDax(dirName, ext: Types.TStr40; var headerSize: Word; var f1, f2: file): Boolean;
+function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 
 procedure CloseDax(var f1, f2: file);
 
@@ -44,7 +44,7 @@ implementation
 
 var
   { current data-path prefix string }
-  gameDir: String[64] absolute GDVars.gameDir;
+  gameDir: String absolute GDVars.gameDir;
   { OpenDax's suppress-prompt flag }
   suppressInsertPrompt: Char absolute GDVars.dsSuppressingInsertDiskFlag;
 
@@ -142,7 +142,7 @@ end;
 
 { OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), show promptMsg (attr 14)
   through PromptBox and retry. On success Assign+Reset the caller's untyped file f (recsize 1). Returns found }
-function OpenWithRetry(fileName, promptMsg: Types.TStr40; noPrompt: Char; var f: file): Boolean;
+function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Char; var f: file): Boolean;
 var found: Boolean;
 begin
   repeat
@@ -159,7 +159,7 @@ end;
 
 { FileExists: Assign/Reset(recsize 128)/Close the name and report success: IOResult (kept in ioErr) clean AND the name
   non-empty }
-function FileExists(name: Types.TStr40): Boolean;
+function FileExists(name: Types.TPathStr): Boolean;
 var f: file;
 begin
   Assign(f, name);
@@ -238,7 +238,7 @@ end;
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with insertDiskMsg for the current
   virtual disk, unless suppressInsertPrompt is set. }
-function OpenDax(dirName, ext: Types.TStr40; var headerSize: Word; var f1, f2: file): Boolean;
+function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
   if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':',

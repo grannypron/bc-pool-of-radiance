@@ -9,6 +9,8 @@ type
 
   { Shared types. }
   TStr40 = String[40];
+  { A DOS path with its file name, as Dos.PathStr: DOS allows 64 characters of directory after the drive, 79 in all. }
+  TPathStr = String[79];
   TBaseItemRec = record
     { equip slot }
     slot: Byte;
