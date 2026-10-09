@@ -108,6 +108,10 @@ function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
 
 function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
 
+function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
+
+function RawWeight(creature: Types.PCharRecord): LongInt;
+
 implementation
 
 var
@@ -124,7 +128,9 @@ var
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
   plus, and that of readied quarrels or arrows when the weapon fires them, is added to both. An elf gets a further +1
-  to-hit with a bow (item types 41..44), a long sword (36) or a short sword (37). }
+  to-hit with a bow (item types 41..44), a long sword (36) or a short sword (37). Type 45 is the Heavy Crossbow's row,
+  but the Fine Composite Long Bow is also built on it; it counts as a bow when its second name component is a bow's
+  name (41..44), which a Heavy Crossbow never carries. }
 procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
@@ -152,7 +158,8 @@ begin
       plus := plus + creature^.equipped[C_Equip.ARROW]^.plus;
   creature^.curModA[1] := creature^.curModA[1] + plus;
   if (creature^.race = C_Race.ELF) and
-      (((w^.itemType > 40) and (w^.itemType < 45)) or (w^.itemType = 37) or (w^.itemType = 36)) then
+      (((w^.itemType > 40) and (w^.itemType < 45)) or (w^.itemType = 37) or (w^.itemType = 36) or
+       ((w^.itemType = 45) and (w^.nameIds[2] in [41..44]))) then
     Inc(plus);
   creature^.thac0Cur := creature^.thac0Cur + plus;
   creature^.curRollsA[1] := GDVars.baseItems[wtype].dmgSmRolls;
@@ -664,6 +671,42 @@ begin
   else
     WeightAllowance := 0;
   end;
+end;
+
+{ True when the creature has a Bag of Holding readied (name component 186 is 'Holding'). }
+function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
+var
+  item: Types.PItemRec;
+begin
+  HasBagOfHolding := False;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if (item^.equipped <> 0) and (item^.nameIds[1] = 186) then
+      HasBagOfHolding := True;
+    item := item^.next;
+  end;
+end;
+
+{ The creature's weight in coins before a Bag of Holding takes its share: every item (weight times quantity) and every
+  coin, gem and piece of jewelry, as RecalcStats adds them up. }
+function RawWeight(creature: Types.PCharRecord): LongInt;
+var
+  item: Types.PItemRec;
+  w: LongInt;
+  c: ShortInt;
+begin
+  w := 0;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if item^.quantity > 0 then
+      Inc(w, LongInt(item^.quantity) * item^.weight)
+    else
+      Inc(w, item^.weight);
+    item := item^.next;
+  end;
+  for c := C_Money.COPPER to C_Money.JEWELRY do
+    Inc(w, creature^.coins[c]);
+  RawWeight := w;
 end;
 
 { Clear the first memorized-spell slot holding spell on the current character. }
