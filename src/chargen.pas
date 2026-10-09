@@ -41,8 +41,8 @@ function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forwar
 
 procedure CustomizePortrait; forward;
 
-{ FreeCreature: Free the combat record, every item, every effect node, then the record itself; the closing creature :=
-  nil clears only the local parameter }
+{ FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
+  spells; the closing creature := nil clears only the local parameter }
 procedure FreeCreature(creature: Types.PCharRecord);
 var
   hold: Types.PItemRec;
@@ -66,6 +66,7 @@ begin
       FreeMem(holdE, SizeOf(Types.TEffectRec));
     end;
   end;
+  SaveLoad.ForgetUsualSpells(creature);
   FreeMem(creature, SizeOf(Types.TCharRecord));
   creature := nil;
 end;

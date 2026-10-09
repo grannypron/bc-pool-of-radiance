@@ -6,6 +6,12 @@ interface
 
 uses Types, GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys;
 
+var
+  { Set just before a MenuVertical call that only shows its list: when the list fits on one page it is drawn and #0
+    returned without waiting for a key; a longer list runs the menu as usual so it can be paged. Every return clears
+    it. }
+  listOnly: Boolean;
+
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
@@ -26,7 +32,8 @@ procedure ClearBottomLine;
 { Vertical list menu in the box ulCol,ulRow..lrCol,lrRow with menu (plus Next/Prev/Exit as they apply) on the bottom
   line. idx is zero-based; redraw requests repainting. Label rows have inUse set; they are drawn in qCol and skipped by
   the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list also sets idx=0). Any other menu key
-  returns that key with sel set to the highlighted entry. }
+  returns that key with sel set to the highlighted entry. With listOnly set, a list that fits on one page is drawn and
+  #0 returned with sel=nil at once. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -446,6 +453,7 @@ var
 
 begin
   if list = nil then begin
+    listOnly := False;
     idx := 0;
     sel := nil;
     MenuVertical := C_Keys.NONE;
@@ -479,6 +487,14 @@ begin
     if redraw then
       DrawPage(GDVars.vertTop);
     redraw := False;
+    if listOnly then begin
+      listOnly := False;
+      if count <= rows then begin
+        sel := nil;
+        MenuVertical := C_Keys.NONE;
+        Exit;
+      end;
+    end;
     repeat
       HighlightLine(idx);
       hMenu := menu;
@@ -573,4 +589,6 @@ begin
   end;
 end;
 
+begin
+  listOnly := False;
 end.

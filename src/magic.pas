@@ -10,10 +10,11 @@ uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Session, DaxIo
   C_Status, C_Ifc, C_Dir, C_Spell;
 
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
-  (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), anything else view only (no
-  title or prompt). idx is the menu cursor and persists across calls; idx < 0 clears the window and resets idx to 0
-  (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit; scribe also sets GDVars.dsCurrentScrollPtr
-  to the chosen spell's scroll. Frees spellList before returning. }
+  (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
+  for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
+  idx is the menu cursor and persists across calls; idx < 0 clears the window and resets idx to 0 (cast and learn
+  always redraw). Returns the chosen spell id, or 0 for Exit; scribe also sets GDVars.dsCurrentScrollPtr to the chosen
+  spell's scroll. Frees spellList before returning. }
 function SpellSelection(selType: Byte; var idx: Integer): Byte;
 
 { Build spellList and spellIds for a spell menu. menuType: 0 memorized, 5 still being memorized (bit 7 set), 1 spell
@@ -246,6 +247,7 @@ begin
     redraw := True;
   sel := nil;
   repeat
+    MenuCore.listOnly := selType = 5;
     ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, 5, 38,
                                 bottomRow, GDVars.spellList, addExit, redraw, idx, sel);
   until ch in [C_Keys.NONE, C_Keys.ENTER, 'C', 'E', 'L', 'M', 'S'];
