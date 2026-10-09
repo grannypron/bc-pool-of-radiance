@@ -1664,5 +1664,4 @@ begin
   GDVars.effectFns[88] := @Magic.DragonBreathHandler;
 end;
 
-begin
 end.

@@ -1833,5 +1833,4 @@ begin
   GDVars.partyDefeated := False;
 end;
 
-begin
 end.

@@ -147,5 +147,4 @@ begin
   EffHndlr.InitEffectHandlers;
 end;
 
-begin
 end.

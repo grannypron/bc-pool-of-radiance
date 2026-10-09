@@ -552,7 +552,6 @@ begin
           begin end;
     end;
   end;
-  GameIo.PollGameKeys;
 end;
 
 { Check morale against the creature's own HP loss, then, for hostiles only, the group's remaining HP. A failed check
@@ -802,5 +801,4 @@ begin
     CharHlp.CombatPrintCreatureInfo(creature);
 end;
 
-begin
 end.

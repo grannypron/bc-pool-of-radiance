@@ -11,9 +11,6 @@ uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv;
   at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear. }
 function ReadGameKey: Char;
 
-{ Disabled: return at once without polling the keyboard. The polling loop is kept but unreachable }
-procedure PollGameKeys;
-
 { If input is pending, call ReadGameKey once and discard its result. That call may consume several bytes or leave an
   extended scan byte pending }
 procedure DiscardPendingKeys;
@@ -60,15 +57,6 @@ begin
   ReadGameKey := key;
 end;
 
-procedure PollGameKeys;
-var key: Char;
-begin
-  { Polling is disabled; the loop below is unreachable. }
-  Exit;
-  while KeyPressed do
-    key := GameIo.ReadGameKey;
-end;
-
 procedure DiscardPendingKeys;
 var key: Char;
 begin
@@ -76,5 +64,4 @@ begin
     key := GameIo.ReadGameKey;
 end;
 
-begin
 end.

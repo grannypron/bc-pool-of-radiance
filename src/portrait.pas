@@ -130,7 +130,6 @@ begin
   end;
   if isPic and gotXor then FreeMem(xorBuf, planeSz + 1);
   FreeMem(buf, sz);
-  GameIo.PollGameKeys;
 end;
 
 { Free every animation frame, clear the record and invalidate the picture cache. The loop counter is the shared
@@ -181,7 +180,6 @@ begin
       Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GDVars.dsPortraitCache[2].pic);
       GDVars.dsPortraitCache[2].pictureId := bodyId;
     end;
-  GameIo.PollGameKeys;
 end;
 
 { Draw the cached portrait at (col, row): head and body when both is True, the head alone otherwise. }
@@ -211,5 +209,4 @@ begin
   Blit.FlushView;
 end;
 
-begin
 end.

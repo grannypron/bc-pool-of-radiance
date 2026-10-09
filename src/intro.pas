@@ -20,7 +20,6 @@ begin
   deadline := start + 100 * seconds;
   repeat
   until (TextRend.GetTicks >= deadline) or KeyPressed;
-  GameIo.PollGameKeys;
 end;
 
 { Show the credits screen for 10 seconds or until a keypress. }
@@ -111,9 +110,7 @@ begin
       end;
     end;
   until KeyPressed or (TextRend.GetTicks >= deadline);
-  GameIo.PollGameKeys;
   Intro.Credits;
 end;
 
-begin
 end.

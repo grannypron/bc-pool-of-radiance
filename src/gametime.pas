@@ -478,5 +478,4 @@ begin
   GDVars.dsSuppressDrawingBorderFlag := 0;
 end;
 
-begin
 end.

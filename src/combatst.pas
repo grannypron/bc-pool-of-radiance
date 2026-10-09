@@ -876,5 +876,4 @@ begin
   GDVars.ifcState := C_Ifc.COMBAT;
 end;
 
-begin
 end.

@@ -187,7 +187,6 @@ begin
           'Q': begin
                  Combat.TurnOnAuto(creature);
                  MenuCore.ClearBottomLine;
-                 GameIo.PollGameKeys;
                  Delay(200);
                  done := True;
                  CombatAi.CombatAiControl(creature);
@@ -522,5 +521,4 @@ begin
   end;
 end;
 
-begin
 end.

@@ -283,5 +283,4 @@ begin
   Pathing.SortTargets;
 end;
 
-begin
 end.

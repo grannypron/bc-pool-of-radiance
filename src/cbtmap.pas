@@ -561,5 +561,4 @@ begin
   GDVars.arenaPtr^.cursorSize := 1;
 end;
 
-begin
 end.

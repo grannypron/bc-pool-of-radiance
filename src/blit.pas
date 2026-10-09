@@ -274,7 +274,6 @@ begin
   readOfs := SizeOf(TDaxPicHeader);
   Blit.ExpandPicFrames(data, readOfs, hasMask, transpColor, pic);
   FreeMem(data, dataSize);
-  GameIo.PollGameKeys;
 end;
 
 procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
@@ -1225,5 +1224,4 @@ begin
   Intr($10, GDVars.dsInterruptRegisters);
 end;
 
-begin
 end.

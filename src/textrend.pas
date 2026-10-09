@@ -322,7 +322,6 @@ begin
         GDVars.curCol := ulCol;
         GDVars.curRow := ulRow;
         TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
-        GameIo.PollGameKeys;
         TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
         PrintCharInWindow;
       end;
@@ -486,5 +485,4 @@ begin
   end;
 end;
 
-begin
 end.

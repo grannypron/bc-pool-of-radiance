@@ -8,7 +8,7 @@ interface
 uses Crt, GDConsts, GDVars, Blit, GameIo;
 
 { Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> dsSymbolSetPtrs[setID] (with a transparency mask
-  for color 13, hot pink), then call GameIo.PollGameKeys. No-op when setID is outside 0..4; on load failure prints the
+  for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the
   file name and fileID, waits for a key and quits to DOS }
 procedure Load8x8Set(fileID, setID: Byte);
 
@@ -39,7 +39,6 @@ begin
       Blit.RestoreVideoMode;
       GameIo.ExitGame;
     end;
-    GameIo.PollGameKeys;
   end;
 end;
 
@@ -73,5 +72,4 @@ begin
   end;
 end;
 
-begin
 end.

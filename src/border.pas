@@ -105,5 +105,4 @@ begin
     TextRend.DisplayString((ulCol + lrCol - Length(title)) div 2, ulRow, color, title);
 end;
 
-begin
 end.

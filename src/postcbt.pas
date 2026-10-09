@@ -571,5 +571,4 @@ begin
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := 0;
 end;
 
-begin
 end.
