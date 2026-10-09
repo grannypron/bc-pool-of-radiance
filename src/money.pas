@@ -270,6 +270,7 @@ end;
   walks the creatures with C_Npc.FLAG clear and, from jewelry (6) down to copper (0), gives each its share (or as much
   as fits, the rest joining the remainder) plus one remainder coin when the whole outstanding remainder would fit. Pass
   2 hands out the leftovers to every creature in list order up to capacity, and any excess returns to the treasure pool.
+  Shares and remainders are LongInt, as the pool is; with no creature to count, the pool is left as it is.
   Note: the divisor counts C_Npc.ANIMATED_PC creatures, which pass 1 skips, and not npc 1..$7F, which pass 1 pays. }
 procedure ShareMoney;
 var
@@ -278,13 +279,14 @@ var
   cnt: Byte;
   done: Boolean;
   takable: Word;
-  share: array[C_Money.COPPER..C_Money.JEWELRY] of Word;
-  rem: array[C_Money.COPPER..C_Money.JEWELRY] of Word;
+  share: array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
+  rem: array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
   i: ShortInt;
 begin
   p := GDVars.creatureList;
   done := False;
   cnt := Money.CountPoolers;
+  if cnt = 0 then Exit;
   FillChar(share, SizeOf(share), 0);
   FillChar(rem, SizeOf(rem), 0);
   for i := C_Money.COPPER to C_Money.JEWELRY do
@@ -413,7 +415,7 @@ begin
 end;
 
 { Build the money menu (copper first), prompt for an amount and take it from the treasure pool; repeat while money
-  remains. The prompt limit uses the low word of the available amount. Note: cnt is never initialised or read, and the
+  remains. The prompt limit is the available amount, at most 65535. Note: cnt is never initialised or read, and the
   list is freed only after a take, not when the menu is cancelled. }
 procedure TakeMoneyMenu;
 var
@@ -463,7 +465,11 @@ begin
       exitF := False;
       mType := Money.ParseMoneyType(sel^.name, numStr);
       numStr := 'How much ' + numStr + 'will you take? ';
-      n := Money.InputNumberMax(treasureMoneyLo[mType].lo, numStr, LightGreen);
+      if treasureMoney[mType] > 65535 then
+        n := 65535
+      else
+        n := treasureMoney[mType];
+      n := Money.InputNumberMax(n, numStr, LightGreen);
       Money.TakeMoney(GDVars.curChar, n, mType);
       MenuCore.FreeStringList(save);
       GDVars.treasureMoneyFlag := False;
