@@ -7,8 +7,10 @@ interface
 const
   { data families, each merged into one archive (DataArc's family table) }
   FAMILIES = 14;
+  { the script family's place in that table }
+  FAMILY_ECL = 1;
   { the archive layout and the data patches DATABLD.EXE applies; an archive holding another version is not used }
-  VERSION = 1;
+  VERSION = 2;
   { Reserved block ids, the last three blocks of a merged archive. The sources block lists, per per-disk archive read,
     its disk, file size and CRC-32; the remap block holds the collisions as triples (disk, original id, merged id); the
     version block holds VERSION and the CRC-32 of every byte of the file before that block's data. }

@@ -2,10 +2,12 @@
   data family's per-disk archives (ECL1-8.DAX, MON1-8CHA.DAX and so on; DataArc's family table) are gathered into one
   archive (ECL.DAX, MONCHA.DAX) that DaxIo.LoadDax reads in their place, so nothing is tied to the current disk. Blocks
   are copied packed, byte for byte. When two disks give one block id different contents, the first disk's block keeps
-  the id and the other is stored under a spare id, listed in the archive's remap block. Each archive records the size
-  and CRC-32 of every per-disk archive it was built from, and ends with its version and the CRC-32 of everything before
-  that. An archive that is whole, of this version, matches its CRC-32 and records the per-disk archives as they are now
-  is kept; any other is rebuilt. Each step goes to the screen and to DATABLD.LOG. The game's own files are only read. }
+  the id and the other is stored under a spare id, listed in the archive's remap block. A data patch fixes a known
+  fault in one block, only when the block still holds the bytes it replaces; adding one means bumping C_Data.VERSION.
+  Each archive records the size and CRC-32 of every per-disk archive it was built from, and ends with its version and
+  the CRC-32 of everything before that. An archive that is whole, of this version, matches its CRC-32 and records the
+  per-disk archives as they are now is kept; any other is rebuilt. Each step goes to the screen and to DATABLD.LOG. The
+  game's own files are only read. }
 {$I-}
 program DataBld;
 
@@ -30,6 +32,9 @@ const
   VERSION_RAW = 5;
   VERSION_PACKED = 6;
   LOG_NAME = 'DATABLD.LOG';
+  { the data patches: how many, and the bytes each replaces }
+  PATCH_COUNT = 1;
+  PATCH_SIZE = 87;
 
 type
   { A block: packed bytes in the per-disk archive of disk at file position start, or, with disk 0, in memory at mem. }
@@ -52,6 +57,34 @@ type
       1: (lo: Word; hi: Word);
   end;
   TSources = array[0..SOURCES_PACKED - 1] of Byte;
+  { A fix to one block: PATCH_SIZE bytes at offset in the decoded block id of the family's archive on disk. }
+  TPatch = record
+    family: Byte;
+    disk: Byte;
+    id: Byte;
+    offset: Word;
+  end;
+
+const
+  patches: array[1..PATCH_COUNT] of TPatch = (
+    { POR-0038, Kovel Mansion's weapons-pile ambush (ECL3 block 14, script addresses $AAB9-$AB0F): 0..7 thieves
+      killed give 5 1st-level thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level
+      and 17 gives 4, where the shipped script took the 1st-level count below zero or left it stale }
+    (family: C_Data.FAMILY_ECL; disk: 3; id: 14; offset: 4539));
+  patchOriginal: array[1..PATCH_COUNT, 0..PATCH_SIZE - 1] of Byte = ((
+    $04, $00, $05, $01, $45, $4A, $01, $79, $6E, $03, $01, $79, $6E, $00, $15, $1B,
+    $01, $01, $EE, $AA, $03, $01, $79, $6E, $00, $0C, $1A, $01, $01, $04, $AB, $05,
+    $00, $0C, $01, $79, $6E, $01, $7A, $6E, $05, $01, $7A, $6E, $00, $05, $01, $7B,
+    $6E, $01, $01, $10, $AB, $05, $00, $15, $01, $79, $6E, $01, $7A, $6E, $05, $01,
+    $7A, $6E, $00, $05, $01, $7A, $6E, $01, $01, $10, $AB, $09, $00, $05, $01, $7B,
+    $6E, $09, $00, $00, $01, $7A, $6E));
+  patchFixed: array[1..PATCH_COUNT, 0..PATCH_SIZE - 1] of Byte = ((
+    $09, $02, $05, $00, $01, $7B, $6E, $09, $02, $00, $00, $01, $7A, $6E, $03, $01,
+    $45, $4A, $00, $07, $1A, $01, $01, $10, $AB, $05, $00, $07, $01, $45, $4A, $01,
+    $7A, $6E, $05, $01, $7A, $6E, $00, $05, $01, $7B, $6E, $03, $01, $45, $4A, $00,
+    $0C, $1A, $01, $01, $10, $AB, $09, $02, $00, $00, $01, $7B, $6E, $05, $01, $45,
+    $4A, $00, $15, $01, $7A, $6E, $03, $01, $7A, $6E, $00, $05, $1A, $01, $01, $10,
+    $AB, $09, $00, $05, $01, $7A, $6E));
 
 var
   logFile: Text;
@@ -624,8 +657,116 @@ begin
   WriteArchive := ok;
 end;
 
-{ Build the family's merged archive from sources: choose ids, add the sources, remap and version blocks, write
-  <name>.$$$, read it back and rename it to <name>.DAX. False, with failNote set, on any failure. }
+{ Decode packedSize bytes of DAX run-length data at packedBuf into rawSize bytes at raw, as DaxIo.DecompressDax does:
+  controls 0..$7E copy the next b+1 bytes, $81..$FF repeat the next byte -b times, $7F and $80 are skipped; runs are cut
+  at the end of either buffer and output the input does not reach is zero. }
+procedure DecodeRuns(var packedBuf; packedSize: Word; var raw; rawSize: Word);
+var
+  i: Word;
+  o: Word;
+  b: Byte;
+  run: Word;
+begin
+  FillChar(raw, rawSize, 0);
+  i := 0;
+  o := 0;
+  while (i < packedSize) and (o < rawSize) do begin
+    b := TBytes(packedBuf)[i];
+    Inc(i);
+    if b <= $7E then begin
+      run := b + 1;
+      if run > packedSize - i then
+        run := packedSize - i;
+      if run > rawSize - o then
+        run := rawSize - o;
+      Move(TBytes(packedBuf)[i], TBytes(raw)[o], run);
+      Inc(i, run);
+      Inc(o, run);
+    end else if (b >= $81) and (i < packedSize) then begin
+      run := 256 - b;
+      if run > rawSize - o then
+        run := rawSize - o;
+      FillChar(TBytes(raw)[o], run, TBytes(packedBuf)[i]);
+      Inc(i);
+      Inc(o, run);
+    end;
+  end;
+end;
+
+{ Apply patch p to block b (decoded, its original bytes checked, the fix put in and the block repacked into memory), or
+  log why not. False, with failNote set, on a read error. }
+function ApplyPatch(fam: Byte; p: Byte; var b: TBlock): Boolean;
+var
+  f: file;
+  packedBuf: PBytes;
+  raw: PBytes;
+  k: Word;
+  ok: Boolean;
+  same: Boolean;
+begin
+  GetMem(packedBuf, b.packedSize);
+  GetMem(raw, b.rawSize);
+  lastError := 0;
+  Assign(f, SourcePath(fam, b.disk));
+  Reset(f, 1);
+  ok := IoOk;
+  if ok then begin
+    ok := ReadAt(f, b.start, packedBuf^, b.packedSize);
+    Close(f);
+    n := IOResult;
+  end;
+  if not ok then
+    Fail('reading ' + SourcePath(fam, b.disk) + ' for a patch: DOS error ' + NumStr(lastError))
+  else begin
+    DecodeRuns(packedBuf^, b.packedSize, raw^, b.rawSize);
+    same := LongInt(patches[p].offset) + PATCH_SIZE <= b.rawSize;
+    k := 0;
+    while same and (k < PATCH_SIZE) do begin
+      same := raw^[patches[p].offset + k] = patchOriginal[p, k];
+      Inc(k);
+    end;
+    if same then begin
+      for k := 0 to PATCH_SIZE - 1 do
+        raw^[patches[p].offset + k] := patchFixed[p, k];
+      b.disk := 0;
+      b.start := 0;
+      EncodeRuns(raw^, b.rawSize, b.mem, b.packedSize);
+      Progress(archiveName + '.DAX: patch applied');
+    end else
+      Progress(archiveName + '.DAX: patch skipped: original bytes differ');
+  end;
+  FreeMem(packedBuf, b.packedSize);
+  FreeMem(raw, b.rawSize);
+  ApplyPatch := ok;
+end;
+
+{ Apply the family's patches to the blocks taken from their disk. False, with failNote set, on a read error. }
+function ApplyPatches(fam: Byte): Boolean;
+var
+  p: Byte;
+  i: Word;
+  target: Word;
+  ok: Boolean;
+begin
+  ok := True;
+  for p := 1 to PATCH_COUNT do
+    if ok and (patches[p].family = fam) then begin
+      Progress(archiveName + '.DAX: fixing ' + SourcePath(fam, patches[p].disk) + ' block ' +
+               NumStr(patches[p].id));
+      target := 0;
+      for i := 1 to blockCount do
+        if (blocks^[i].id = patches[p].id) and (blocks^[i].disk = patches[p].disk) then
+          target := i;
+      if target = 0 then
+        Progress(archiveName + '.DAX: patch skipped: block not found')
+      else
+        ok := ApplyPatch(fam, p, blocks^[target]);
+    end;
+  ApplyPatches := ok;
+end;
+
+{ Build the family's merged archive from sources: choose ids, apply patches, add the sources, remap and version blocks,
+  write <name>.$$$, read it back and rename it to <name>.DAX. False, with failNote set, on any failure. }
 function BuildArchive(fam: Byte): Boolean;
 var
   table: array[0..3 * MAX_REMAPS - 1] of Byte;
@@ -637,6 +778,8 @@ var
   ok: Boolean;
 begin
   ok := ChooseIds(fam);
+  if ok then
+    ok := ApplyPatches(fam);
   if ok then begin
     AddMemoryBlock(C_Data.SOURCES_BLOCK, sourceList, sourceListLen);
     if remapCount > 0 then begin
