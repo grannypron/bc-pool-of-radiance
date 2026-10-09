@@ -5,7 +5,7 @@ unit ViewChar;
 interface
 
 uses Types, Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait,
-  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Status, C_Ifc, C_Abil, C_Money;
+  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
 
 procedure DisplayChar;
 
@@ -147,6 +147,44 @@ begin
     end;
 end;
 
+{ The More page for the current character, inside a border with one blank cell inside it all round: name, then the
+  five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20
+  always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
+  roll and are not included. Further pages go on its bottom-line menu. Runs until Exit or Escape; the caller redraws
+  the character sheet. }
+procedure MorePage;
+const
+  labels: array[C_Save.PARALYZE..C_Save.SPELL] of string[24] = (
+    'Paralysis, Poison, Death', 'Petrification, Polymorph', 'Rod, Staff, Wand', 'Breath Weapon', 'Spell');
+var
+  p: Types.PCharRecord;
+  i: ShortInt;
+  need: Integer;
+  s: Types.TStr40;
+  ch: Char;
+  ext: Boolean;
+begin
+  p := GDVars.curChar;
+  CharHlp.RecalcStats(p);
+  TextRend.ClearScreen;
+  Border.DrawBorder(1, 1, 38, 22, 0);
+  CharHlp.DisplayCreatureName(p, 2, 2, False);
+  TextRend.DisplayString(2, 4, White, 'Saving Throws');
+  for i := C_Save.PARALYZE to C_Save.SPELL do begin
+    need := p^.saves[i] - p^.saveBonus;
+    if need < 2 then
+      need := 2;
+    if need > 20 then
+      need := 20;
+    s := CharHlp.ByteToString(need);
+    TextRend.DisplayString(3, 6 + i, White, labels[i]);
+    TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
+  end;
+  repeat
+    ch := MenuCore.MenuHorizontal('More:', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+  until ch in [C_Keys.NONE, 'E'];
+end;
+
 { Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, encumbrance and
   movement (halved when Slowed, doubled when Hasted). }
 procedure PrintCombatStats;
@@ -259,7 +297,7 @@ begin
       s := s + 'Trade ';
     if hasMoney then
       s := s + 'Drop ';
-    s := s + 'Exit';
+    s := s + 'More Exit';
     ch := MenuCore.MenuHorizontal('View:', s, LightMagenta, LightGreen, White, False, False, ext);
     idx := -1;
     case ch of
@@ -270,8 +308,9 @@ begin
              ViewChar.DropMoneyMenu;
              ViewChar.PrintMoney;
            end;
+      'M': ViewChar.MorePage;
     end;
-    if not done and (ch in ['I', 'S', 'T']) then
+    if not done and (ch in ['I', 'S', 'T', 'M']) then
       ViewChar.DisplayChar;
   end;
   if GDVars.ifcState = C_Ifc.COMBAT then
