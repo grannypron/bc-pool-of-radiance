@@ -547,10 +547,11 @@ var
   i: Byte;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if GDVars.dsOtherCreatureCurrentPtr^.charType = 1 then
+  { charType 0 or 1: the monster data gives some listed foes type 0 (HOBGOBLIN LDR, GRISHNAK) }
+  if GDVars.dsOtherCreatureCurrentPtr^.charType <= 1 then
     if GDVars.dsOtherCreatureCurrentPtr^.iconDimensions = 1 then
-      { 4 = High(gnomeFoes) }
-      for i := 1 to 4 do
+      { 5 = High(gnomeFoes) }
+      for i := 1 to 5 do
         if GDVars.dsOtherCreatureCurrentPtr^.name = GDConsts.gnomeFoes[i] then
           Inc(GDVars.gAttackRoll);
 end;
@@ -641,10 +642,11 @@ var
   i: Byte;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if GDVars.dsOtherCreatureCurrentPtr^.charType = 1 then
+  { charType 0 or 1: the monster data gives some listed foes type 0 (HOBGOBLIN LDR, GRISHNAK) }
+  if GDVars.dsOtherCreatureCurrentPtr^.charType <= 1 then
     if GDVars.dsOtherCreatureCurrentPtr^.iconDimensions = 1 then
-      { 8 = High(dwarfFoes) }
-      for i := 1 to 8 do
+      { 11 = High(dwarfFoes) }
+      for i := 1 to 11 do
         if GDVars.dsOtherCreatureCurrentPtr^.name = GDConsts.dwarfFoes[i] then
           Inc(GDVars.gAttackRoll);
 end;
