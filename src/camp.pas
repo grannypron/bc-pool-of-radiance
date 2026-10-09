@@ -800,5 +800,4 @@ begin
   MenuCore.ClearBottomLine;
 end;
 
-begin
 end.

@@ -41,9 +41,6 @@ procedure EffFriends(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffSlowPoisonHit(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-{ eff 16 (empty) }
-procedure EffReadMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-
 procedure EffShield(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -100,12 +97,6 @@ procedure EffRotNoHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 
 { eff 31, 51, 52, 53 }
 procedure EffHelpless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-
-{ eff 54 (empty) }
-procedure EffDragonAura(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-
-{ eff 55 (empty) }
-procedure EffPoisoned(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffRingInvis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -249,7 +240,7 @@ procedure EffBoulder(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-{ eff 5, 13, 19, 24, 27, 60, 63, 92, 127 }
+{ The handler for effects whose presence is all that matters: eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127 }
 procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 implementation
@@ -534,12 +525,6 @@ begin
       if GDVars.ifcState <> C_Ifc.COMBAT then
         CharHlp.DisplayParty(GDVars.curChar);
     end;
-end;
-
-{ Read Magic (eff 16) -- empty }
-
-procedure EffReadMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-begin
 end;
 
 { Shield (eff 17) }
@@ -973,19 +958,6 @@ end;
 procedure EffHelpless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if CharHlp.EndActions(creature) then ;
-end;
-
-{ Dragon aura (eff 54): a milder dragon fear. The handler does nothing, so the effect only marks the creature (camp
-  lists it as Repulsed). The full fear effect is C_Effect.DRAGON_FEAR (81). }
-
-procedure EffDragonAura(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-begin
-end;
-
-{ Poisoned (eff 55) -- empty }
-
-procedure EffPoisoned(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-begin
 end;
 
 { Wearing Ring of Invisibility (eff 56) }
@@ -2022,7 +1994,7 @@ begin
     FxEngine.RemoveEffect(creature, C_Effect.SPIRIT_HAMMER, nil);
 end;
 
-{ the do-nothing handler (eff 5, 13, 19, 24, 27, 60, 63, 92, 127) }
+{ the do-nothing handler (eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127) }
 
 procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -2047,7 +2019,7 @@ begin
   effectHandlers[C_Effect.REDUCE] := EffHndlr.EffNull;
   effectHandlers[C_Effect.FRIENDS] := EffHndlr.EffFriends;
   effectHandlers[C_Effect.SLOW_POISON_HIT] := EffHndlr.EffSlowPoisonHit;
-  effectHandlers[C_Effect.READ_MAGIC] := EffHndlr.EffReadMagic;
+  effectHandlers[C_Effect.READ_MAGIC] := EffHndlr.EffNull;
   effectHandlers[C_Effect.SHIELD] := EffHndlr.EffShield;
   effectHandlers[C_Effect.GNOME_THAC0] := EffHndlr.EffGnomeThac0;
   effectHandlers[C_Effect.FIND_TRAPS] := EffHndlr.EffNull;
@@ -2085,8 +2057,9 @@ begin
   effectHandlers[C_Effect.SNAKE_CHARM] := EffHndlr.EffHelpless;
   effectHandlers[C_Effect.PARALYSIS] := EffHndlr.EffHelpless;
   effectHandlers[C_Effect.SLEEP] := EffHndlr.EffHelpless;
-  effectHandlers[C_Effect.DRAGON_AURA] := EffHndlr.EffDragonAura;
-  effectHandlers[C_Effect.POISONED] := EffHndlr.EffPoisoned;
+  { A milder dragon fear that only marks the creature (camp lists it as Repulsed); the full fear is DRAGON_FEAR. }
+  effectHandlers[C_Effect.DRAGON_AURA] := EffHndlr.EffNull;
+  effectHandlers[C_Effect.POISONED] := EffHndlr.EffNull;
   effectHandlers[C_Effect.RING_INVIS] := EffHndlr.EffRingInvis;
   effectHandlers[C_Effect.MUMMY_ROT] := EffHndlr.EffMummyRot;
   effectHandlers[C_Effect.IMMOBILE] := EffHndlr.EffImmobile;
@@ -2172,5 +2145,4 @@ begin
   effectHandlers[C_Effect.READY_RING_INVIS] := EffHndlr.EffReadyItem;
 end;
 
-begin
 end.

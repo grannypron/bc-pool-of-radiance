@@ -963,5 +963,4 @@ begin
     SpellMenu := 0;
 end;
 
-begin
 end.

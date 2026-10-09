@@ -307,5 +307,4 @@ begin
   GDVars.virtualDisk := GDVars.prevVirtualDisk;
 end;
 
-begin
 end.

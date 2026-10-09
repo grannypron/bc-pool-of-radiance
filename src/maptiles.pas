@@ -47,7 +47,6 @@ begin
   if GDVars.ds2dMapTilePtr <> nil then
     Move(pic^.data, GDVars.ds2dMapTilePtr^.data[offset], total);
   Blit.FreePic(pic);
-  GameIo.PollGameKeys;
 end;
 
 { Draw one 24x24 map tile into the view buffer at (col, row); tile IDs 128 and up come from the second tile set. }
@@ -102,7 +101,6 @@ begin
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, iconAnims[animIdx, 1]);
     Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False, iconAnims[animIdx, 1]);
   end;
-  GameIo.PollGameKeys;
 end;
 
 { Draw one icon-animation frame at character cell (col*3, row*3): copy the frame into a scratch buffer, mirrored for
@@ -130,5 +128,4 @@ begin
   Blit.FreePic(work);
 end;
 
-begin
 end.

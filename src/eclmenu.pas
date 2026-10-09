@@ -1040,5 +1040,4 @@ begin
   CharHlp.DisplayParty(GDVars.curChar);
 end;
 
-begin
 end.

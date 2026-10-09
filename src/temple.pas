@@ -409,5 +409,4 @@ begin
   until done;
 end;
 
-begin
 end.

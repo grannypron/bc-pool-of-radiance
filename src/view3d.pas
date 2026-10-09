@@ -503,5 +503,4 @@ begin
   GDVars.zone0^.mapId.value := mapId;
 end;
 
-begin
 end.

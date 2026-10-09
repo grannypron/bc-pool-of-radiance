@@ -731,5 +731,4 @@ begin
     ReviveDeadCreature := False;
 end;
 
-begin
 end.

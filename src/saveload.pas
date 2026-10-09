@@ -196,7 +196,6 @@ begin
   end;
   MapTiles.FreeIconAnim(11);
   DaxIo.PopState;
-  GameIo.PollGameKeys;
 end;
 
 procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
@@ -329,7 +328,6 @@ begin
     until Eof(f);
     Close(f);
   end;
-  GameIo.PollGameKeys;
 end;
 
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
@@ -404,7 +402,6 @@ begin
     FreeMem(data, size);
   end;
   GDVars.dsSuppressingInsertDiskFlag := 0;
-  GameIo.PollGameKeys;
 end;
 
 procedure AddCreatureToParty(id: Byte);
@@ -569,7 +566,6 @@ begin
     end;
   if GDVars.zone0^.yarashPyramidLeft <> 0 then
     Ending.YarashComplete(False);
-  GameIo.PollGameKeys;
   MenuCore.ClearBottomLine;
 end;
 
@@ -675,5 +671,4 @@ begin
   end;
 end;
 
-begin
 end.

@@ -30,5 +30,4 @@ begin
   end;
 end;
 
-begin
 end.

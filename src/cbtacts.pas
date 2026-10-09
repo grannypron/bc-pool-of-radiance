@@ -1353,7 +1353,6 @@ begin
     if cy > 24 then
       cy := 24;
     CbtMap.GetArenaContents(cx, cy, crIdx, terrIdx);
-    GameIo.PollGameKeys;
     valid := False;
     dist := 255;
     wx := cx;
@@ -1698,5 +1697,4 @@ begin
   CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_Dir.CENTER);
 end;
 
-begin
 end.

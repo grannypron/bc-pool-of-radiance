@@ -140,5 +140,4 @@ begin
   GDVars.soundAutoStop := autoStop;
 end;
 
-begin
 end.

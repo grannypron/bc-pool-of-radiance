@@ -46,7 +46,6 @@ begin
     TextRend.DisplayString(1, 13, LightRed, '     ' + GDConsts.wheel[index].path);
     TextRend.DisplayString(1, 14, LightGreen, 'READ FROM THE INSIDE TO THE OUTSIDE.');
 
-    GameIo.PollGameKeys;
     inputStr := TextRend.ReadString('INPUT THE CODE WORD: ', LightMagenta, SizeOf(GDConsts.wheel[0].answer) - 1);
 
     if inputStr = GDConsts.wheel[index].answer then
@@ -58,5 +57,4 @@ begin
   GameIo.ExitGame;
 end;
 
-begin
 end.
