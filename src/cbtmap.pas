@@ -480,8 +480,7 @@ begin
   GDVars.downed[free].y := y;
 end;
 
-{ The early Exit for a creature already in GDVars.downed (a corpse hit again) skips the trailing
-  SoundDrv.SoundSetAutoStop(10). }
+{ Mark a downed creature: in combat, draw its corpse and record it once in GDVars.downed (CbtMap.RegisterDowned). }
 procedure CreatureDowned(creature: Types.PCharRecord);
 var
   slot: Byte;
@@ -498,7 +497,12 @@ begin
     TextRend.PauseOnly;
   end else begin
     for k := 1 to GDVars.downedCount do
-      if GDVars.downed[k].cr = creature then Exit;
+      if GDVars.downed[k].cr = creature then begin
+        { already listed (a body hit again): put the sound timer back as the normal path does, or the BIOS clock
+          stays stopped and the next SoundDelay waits for ever }
+        SoundDrv.SoundSetAutoStop(10);
+        Exit;
+      end;
     slot := CbtMap.CombatSlot(creature);
     cellX := CbtMap.CombatCellX(creature);
     cellY := CbtMap.CombatCellY(creature);
