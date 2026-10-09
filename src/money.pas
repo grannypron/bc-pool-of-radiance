@@ -24,9 +24,9 @@ procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
 
-procedure SetCreatureCoinsInGold(gp: Word);
+procedure SetCreatureCoinsInGold(gp: LongInt);
 
-procedure SetTreasureCoinsInGold(gp: Word);
+procedure SetTreasureCoinsInGold(gp: LongInt);
 
 function CoinValueInGold(m: Types.TMoney): LongInt;
 
@@ -45,32 +45,35 @@ var
   randItemW: array[1..152] of Word absolute GDConsts.randomItemTemplates;
   randItemB: array[1..152] of Types.TWB absolute GDConsts.randomItemTemplates;
 
-{ Carrying capacity is the weight allowance plus 1500 coins. }
-function CarryingCapacity(p: Types.PCharRecord): Word;
+{ Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
+  against CharHlp.RawWeight, the weight before the bag takes its share. }
+function CarryingCapacity(p: Types.PCharRecord): LongInt;
 begin
-  CarryingCapacity := CharHlp.WeightAllowance(p) + 1500;
+  if CharHlp.HasBagOfHolding(p) then
+    CarryingCapacity := LongInt(CharHlp.WeightAllowance(p)) + 1500 + 5000
+  else
+    CarryingCapacity := LongInt(CharHlp.WeightAllowance(p)) + 1500;
 end;
 
-{ Subtract weight from the creature's encumbrance. }
-procedure RemoveWeight(p: Types.PCharRecord; w: Word);
+{ The coins the creature can still carry: its carrying capacity less its raw weight, or zero when it is full. }
+function SpareCapacity(p: Types.PCharRecord): Word;
+var
+  room: LongInt;
 begin
-  p^.encumbrance := p^.encumbrance - w;
-end;
-
-{ Add weight to the creature's encumbrance. }
-procedure AddWeight(p: Types.PCharRecord; w: Word);
-begin
-  p^.encumbrance := p^.encumbrance + w;
+  room := Money.CarryingCapacity(p) - CharHlp.RawWeight(p);
+  if room < 0 then
+    room := 0;
+  SpareCapacity := room;
 end;
 
 { True, with the spare capacity in takable, when carrying w more coins would exceed capacity; else False with takable
   zero. }
 function CheckOverload(p: Types.PCharRecord; w: Word; var takable: Word): Boolean;
 begin
-  if p^.encumbrance + w > Money.CarryingCapacity(p) then begin
-    CheckOverload := True;
-    takable := Money.CarryingCapacity(p) - p^.encumbrance;
-  end else begin
+  takable := Money.SpareCapacity(p);
+  if w > takable then
+    CheckOverload := True
+  else begin
     CheckOverload := False;
     takable := 0;
   end;
@@ -88,23 +91,33 @@ begin
   CoinValueInGold := (total + 100) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
-{ Set curChar's coins to gp gold as gp div 5 platinum plus gp mod 5 gold. Only the five coin types are cleared; gems and
-  jewelry are kept. }
-procedure SetCreatureCoinsInGold(gp: Word);
+{ Set curChar's coins to gp gold as gp div 5 platinum plus the rest in gold. A character holds at most 65535 of each
+  coin, so platinum stops there and the rest goes to gold, which also stops at 65535. Only the five coin types are
+  cleared; gems and jewelry are kept. The coins' weight changes, so curChar's stats are recalculated. }
+procedure SetCreatureCoinsInGold(gp: LongInt);
 var
   i: ShortInt;
+  pp: LongInt;
+  rest: LongInt;
 begin
   for i := C_Money.COPPER to C_Money.PLATINUM do
     GDVars.curChar^.coins[i] := 0;
+  pp := gp div 5;
+  if pp > 65535 then
+    pp := 65535;
+  rest := gp - pp * 5;
+  if rest > 65535 then
+    rest := 65535;
   { platinum }
-  GDVars.curChar^.coins[C_Money.PLATINUM] := gp div 5;
+  GDVars.curChar^.coins[C_Money.PLATINUM] := pp;
   { gold }
-  GDVars.curChar^.coins[C_Money.GOLD] := gp mod 5;
+  GDVars.curChar^.coins[C_Money.GOLD] := rest;
+  CharHlp.RecalcStats(GDVars.curChar);
 end;
 
 { Set the treasure pool's coins to gp gold as gp div 5 platinum plus gp mod 5 gold. Only the five coin types are
   cleared; gems and jewelry are kept. }
-procedure SetTreasureCoinsInGold(gp: Word);
+procedure SetTreasureCoinsInGold(gp: LongInt);
 var
   i: ShortInt;
 begin
@@ -122,11 +135,11 @@ begin
   if Money.CheckOverload(GDVars.curChar, pp, takable) then begin
     CharHlp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
     Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
-    Money.AddWeight(GDVars.curChar, takable);
+    CharHlp.RecalcStats(GDVars.curChar);
     treasureMoney[C_Money.PLATINUM] := pp + treasureMoney[C_Money.PLATINUM] - takable;
   end else begin
     Inc(GDVars.curChar^.coins[C_Money.PLATINUM], pp);
-    Money.AddWeight(GDVars.curChar, pp);
+    CharHlp.RecalcStats(GDVars.curChar);
   end;
 end;
 
@@ -182,11 +195,11 @@ end;
 { Move qty coins of mType, and their weight, from giver to rcv if rcv can carry them, else print 'Overloaded'. }
 procedure TradeMoney(var giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
-  if rcv^.encumbrance + qty <= Money.CarryingCapacity(rcv) then begin
+  if qty <= Money.SpareCapacity(rcv) then begin
     giver^.coins[mType] := giver^.coins[mType] - qty;
-    Money.RemoveWeight(giver, qty);
+    CharHlp.RecalcStats(giver);
     rcv^.coins[mType] := rcv^.coins[mType] + qty;
-    Money.AddWeight(rcv, qty);
+    CharHlp.RecalcStats(rcv);
   end else
     CharHlp.PrintBottomLine('Overloaded');
 end;
@@ -206,9 +219,9 @@ begin
       for i := C_Money.COPPER to C_Money.JEWELRY do begin
         mt := i;
         treasureMoney[mt] := p^.coins[mt] + treasureMoney[mt];
-        Money.RemoveWeight(p, p^.coins[mt]);
       end;
       FillChar(p^.coins, SizeOf(p^.coins), 0);
+      CharHlp.RecalcStats(p);
     end;
     p := p^.nextCharAddr;
   end;
@@ -266,17 +279,17 @@ begin
       for i := C_Money.JEWELRY downto C_Money.COPPER do
         if not Money.CheckOverload(p, share[i], takable) then begin
           p^.coins[i] := share[i] + p^.coins[i];
-          Money.AddWeight(p, share[i]);
+          CharHlp.RecalcStats(p);
           if rem[i] > 0 then
             if not Money.CheckOverload(p, rem[i], takable) then begin
               p^.coins[i] := p^.coins[i] + 1;
-              Money.AddWeight(p, 1);
+              CharHlp.RecalcStats(p);
               Dec(rem[i]);
             end;
         end else begin
           p^.coins[i] := p^.coins[i] + takable;
           rem[i] := rem[i] + share[i] - takable;
-          Money.AddWeight(p, takable);
+          CharHlp.RecalcStats(p);
         end;
     p := p^.nextCharAddr;
   end;
@@ -285,15 +298,15 @@ begin
     if rem[i] > 0 then begin
       p := GDVars.creatureList;
       while p <> nil do begin
-        takable := Money.CarryingCapacity(p) - p^.encumbrance;
+        takable := Money.SpareCapacity(p);
         if takable > 0 then
           if rem[i] > takable then begin
             p^.coins[i] := p^.coins[i] + takable;
-            Money.AddWeight(p, takable);
+            CharHlp.RecalcStats(p);
             rem[i] := rem[i] - takable;
           end else begin
             p^.coins[i] := p^.coins[i] + rem[i];
-            Money.AddWeight(p, rem[i]);
+            CharHlp.RecalcStats(p);
             rem[i] := 0;
           end;
         p := p^.nextCharAddr;
@@ -313,7 +326,7 @@ end;
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   p^.coins[mType] := p^.coins[mType] - qty;
-  Money.RemoveWeight(p, qty);
+  CharHlp.RecalcStats(p);
   if (GDVars.ifcState = C_Ifc.LOOT) or (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
     treasureMoney[mType] := treasureMoney[mType] + qty;
 end;
@@ -331,7 +344,7 @@ begin
       qty := treasureMoneyLo[mType].lo;
     treasureMoney[mType] := treasureMoney[mType] - qty;
     p^.coins[mType] := p^.coins[mType] + qty;
-    Money.AddWeight(p, qty);
+    CharHlp.RecalcStats(p);
   end;
 end;
 
