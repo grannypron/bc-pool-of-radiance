@@ -1776,6 +1776,7 @@ const
     (5, 10, 0, 5, 5),
     (10, 15, 5, 10, 10),
     (15, 20, 10, 12, 12));
+  { Racial ability limits, by race; the strength columns are by gender. Human women reach 18/00 like human men. }
   dsMinimumMaximumStatistics: array[1..7] of Types.TRuleRace = (
     (strMin: (8, 8); strMax: (18, 17); excMax: (99, 0); intMin: 3; intMax: 18;
      wisMin: 3; wisMax: 18; dexMin: 3; dexMax: 17; conMin: 12; conMax: 19; chaMin: 3; chaMax: 16),
@@ -1789,7 +1790,7 @@ const
      wisMin: 3; wisMax: 17; dexMin: 8; dexMax: 18; conMin: 10; conMax: 19; chaMin: 3; chaMax: 18),
     (strMin: (6, 6); strMax: (18, 18); excMax: (99, 75); intMin: 3; intMax: 17;
      wisMin: 3; wisMax: 14; dexMin: 3; dexMax: 17; conMin: 13; conMax: 19; chaMin: 3; chaMax: 12),
-    (strMin: (3, 3); strMax: (18, 18); excMax: (100, 50); intMin: 3; intMax: 18;
+    (strMin: (3, 3); strMax: (18, 18); excMax: (100, 100); intMin: 3; intMax: 18;
      wisMin: 3; wisMax: 18; dexMin: 3; dexMax: 18; conMin: 3; conMax: 18; chaMin: 3; chaMax: 18));
   { Column zero is a count; subsequent columns are class IDs }
   classesByRace: array[1..7, 0..11] of ShortInt = (
