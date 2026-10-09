@@ -682,8 +682,8 @@ end;
 
 { ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience. Up and
   Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and hit-point limits. Keep
-  sets npcTreasureShare to 1; Exit restores the saved attributes, strExc and hpMax. A lowered attribute that falls below
-  the racial or class minimum is reset to the racial minimum, even when the class minimum is higher. }
+  sets npcTreasureShare to 1; Exit restores the saved attributes, strExc and hpMax. A lowered attribute stops at the
+  higher of the racial and class minimums. }
 procedure ModifyCharacterMenu;
 var
   savedStats: array[0..5] of Byte;
@@ -704,6 +704,16 @@ var
       ViewChar.PrintStat(statIdx, hotPink)
     else
       CharHlp.PrintHitPoints(Types.PCharRecord(GDVars.curChar), 4, 18, hotPink);
+  end;
+
+  { StatMinimum: The lowest value the selected attribute may be lowered to: racialMin, or the class minimum when that
+    is higher }
+  function StatMinimum(racialMin: Byte): Byte;
+  begin
+    if GDConsts.classMin[GDVars.curChar^.charClass, statIdx] > racialMin then
+      StatMinimum := GDConsts.classMin[GDVars.curChar^.charClass, statIdx]
+    else
+      StatMinimum := racialMin;
   end;
 
 begin
@@ -747,29 +757,25 @@ begin
                 C_Abil.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
                      Inc(stats[hold]);
-                   end else if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]) or
-                     (stats[hold] < GDConsts.classMin[charClass, C_Abil.STRENGTH]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp];
-                C_Abil.INTELLIGENCE: if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].intMin) or
-                  (stats[hold] < GDConsts.classMin[charClass, C_Abil.INTELLIGENCE]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].intMin;
+                   end else if stats[hold] <
+                       StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]);
+                C_Abil.INTELLIGENCE: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin);
                 C_Abil.WISDOM: begin
-                     if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].wisMin) or
-                         (stats[hold] < GDConsts.classMin[charClass, C_Abil.WISDOM]) then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].wisMin;
+                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin) then
+                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin);
                      { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
                        with no ceiling (they are 0 for a new first-level character) }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.DEXTERITY: if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].dexMin) or
-                  (stats[hold] < GDConsts.classMin[charClass, C_Abil.DEXTERITY]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].dexMin;
+                C_Abil.DEXTERITY: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin);
                 C_Abil.CONSTITUTION: begin
-                     if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].conMin) or
-                         (stats[hold] < GDConsts.classMin[charClass, C_Abil.CONSTITUTION]) then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].conMin;
+                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin) then
+                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin);
                      if CharGen.HpMaximum(GDVars.curChar) < hpMax then
                        hpMax := CharGen.HpMaximum(GDVars.curChar);
                      hpCur := hpMax;
@@ -777,9 +783,8 @@ begin
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
                    end;
-                C_Abil.CHARISMA: if (stats[hold] < GDConsts.dsMinimumMaximumStatistics[race].chaMin) or
-                  (stats[hold] < GDConsts.classMin[charClass, C_Abil.CHARISMA]) then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].chaMin;
+                C_Abil.CHARISMA: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin) then
+                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin);
               end;
             end else
             { HP row }
