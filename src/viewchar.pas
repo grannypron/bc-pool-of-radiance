@@ -148,7 +148,7 @@ begin
 end;
 
 { Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, encumbrance and
-  movement. Note: the displayed movement is doubled when Slowed and halved when Hasted, the reverse of the effects. }
+  movement (halved when Slowed, doubled when Hasted). }
 procedure PrintCombatStats;
 var
   p: Types.PCharRecord;
@@ -180,9 +180,9 @@ begin
   TextRend.DisplayString(col + 12, row, LightGreen, CharHlp.WordToString(p^.encumbrance));
   mv := p^.movementCur;
   if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
-    mv := mv * 2;
-  if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
     mv := mv div 2;
+  if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
+    mv := mv * 2;
   TextRend.DisplayString(col + 3, row + 1, White, 'Movement   ');
   TextRend.DisplayString(col + 12, row + 1, LightGreen, CharHlp.ByteToString(mv));
 end;
