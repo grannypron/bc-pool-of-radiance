@@ -7,7 +7,7 @@ unit EffHndlr;
 interface
 
 uses Types, C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine,
-  Debug, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align;
+  Debug, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell;
 
 { Install the effect handlers in GDVars.effectFns. Magic installs slot 88 (dragon breath) itself. }
 procedure InitEffectHandlers;
@@ -1292,8 +1292,8 @@ begin
     EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.STONED, 'is Stoned');
 end;
 
-{ Charming gaze (eff 84): with a clear line to an attackable target, apply Charm Person (save vs. spell at -2) without
-  using a spell slot or action }
+{ Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person
+  (save vs. spell at -2) without using a spell slot or action }
 
 procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1306,6 +1306,8 @@ begin
   x := CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr);
   y := CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr);
   if not CbtActs.CanAttackTarget(creature, GDVars.dsOtherCreatureCurrentPtr) then Exit;
+  { the range budget in cells, read by WalkLine on entry: that of the Charm Person the gaze applies }
+  dist := GDConsts.spellTable[C_Spell.CHARM_PERSON].rangeFixed;
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
                           GDVars.arenaPtr) then Exit;
   CharHlp.PrintNameString(creature, 'Gazes...', 10, False);
