@@ -71,6 +71,11 @@ function CombatSlot(creature: Types.PCharRecord): Byte;
   cells. }
 procedure ProbeDirection(creature: Types.PCharRecord; dir: Byte; var crIdx, terrIdx: Byte);
 
+{ Record a downed party member's corpse at (x, y): the cell's terrain is kept and the cell becomes C_Terr.CORPSE (a
+  stinking cloud is left as it is). A creature already in GDVars.downed is not added again, and a slot cleared when its
+  creature got up is reused, so the eight slots are never overrun; with all eight in use the corpse is not recorded. }
+procedure RegisterDowned(creature: Types.PCharRecord; x, y: Byte);
+
 { Outside combat, play the downed sound and pause. In combat, flash the skull sprite over the creature, register a
   corpse (party side, notPcNpc = 0, only) and remove it from the arena. Rebuild the view and clear initiative, movement,
   casting and guarding state. }
@@ -451,8 +456,31 @@ begin
   end;
 end;
 
-{ Note: the scan loop tests downed[GDVars.dsCurrentPictureNumber] on every pass, not downed[k], so it only detects a
-  creature already registered as downed when that one entry holds it. The early Exit skips the trailing
+procedure RegisterDowned(creature: Types.PCharRecord; x, y: Byte);
+var
+  k: Byte;
+  free: Byte;
+begin
+  free := 0;
+  for k := 1 to GDVars.downedCount do
+    if GDVars.downed[k].cr = creature then
+      Exit
+    else if (GDVars.downed[k].cr = nil) and (free = 0) then
+      free := k;
+  if free = 0 then begin
+    if GDVars.downedCount >= 8 then Exit;
+    Inc(GDVars.downedCount);
+    free := GDVars.downedCount;
+  end;
+  GDVars.downed[free].terrain := GDVars.arenaPtr^.cells[y, x];
+  if GDVars.arenaPtr^.cells[y, x] <> C_Terr.STINK_CLOUD then
+    GDVars.arenaPtr^.cells[y, x] := C_Terr.CORPSE;
+  GDVars.downed[free].cr := creature;
+  GDVars.downed[free].x := x;
+  GDVars.downed[free].y := y;
+end;
+
+{ The early Exit for a creature already in GDVars.downed (a corpse hit again) skips the trailing
   SoundDrv.SoundSetAutoStop(10). }
 procedure CreatureDowned(creature: Types.PCharRecord);
 var
@@ -469,10 +497,8 @@ begin
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.DOWNED]);
     TextRend.PauseOnly;
   end else begin
-    k := 1;
-    while (k < 9) and (GDVars.downed[GDVars.dsCurrentPictureNumber].cr <> creature) do
-      Inc(k);
-    if k < 9 then Exit;
+    for k := 1 to GDVars.downedCount do
+      if GDVars.downed[k].cr = creature then Exit;
     slot := CbtMap.CombatSlot(creature);
     cellX := CbtMap.CombatCellX(creature);
     cellY := CbtMap.CombatCellY(creature);
@@ -484,15 +510,8 @@ begin
         Blit.BlitTileClipped((GDVars.gridX[slot] + tdx) * 3, (GDVars.gridY[slot] + tdy) * 3, 0, 5, iconAnims[24, 0],
                              GDVars.dsViewImageBufferPtr);
     Blit.FlushView;
-    if creature^.combatAddr^.notPcNpc = 0 then begin
-      Inc(GDVars.downedCount);
-      GDVars.downed[GDVars.downedCount].terrain := GDVars.arenaPtr^.cells[cellY, cellX];
-      if GDVars.arenaPtr^.cells[cellY, cellX] <> C_Terr.STINK_CLOUD then
-        GDVars.arenaPtr^.cells[cellY, cellX] := C_Terr.CORPSE;
-      GDVars.downed[GDVars.downedCount].cr := creature;
-      GDVars.downed[GDVars.downedCount].x := cellX;
-      GDVars.downed[GDVars.downedCount].y := cellY;
-    end;
+    if creature^.combatAddr^.notPcNpc = 0 then
+      CbtMap.RegisterDowned(creature, cellX, cellY);
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.DOWNED]);
     TextRend.PauseOnly;
     CbtMap.UpdateCombatMapTile(0, 0, slot);

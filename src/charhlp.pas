@@ -1094,8 +1094,10 @@ procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 var
   over: Byte;
   remain: Byte;
+  wasUp: Boolean;
 begin
   if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
+  wasUp := creature^.status in [C_Status.OKAY, C_Status.ANIMATED];
   over := 0;
   remain := 0;
   if creature^.hpCur >= dmg then
@@ -1114,7 +1116,9 @@ begin
     creature^.enabled := 0;
     creature^.hpCur := 0;
     if GDVars.ifcState = C_Ifc.COMBAT then begin
-      Dec(GDVars.teamCount[creature^.hostile]);
+      { a creature already down (dying or unconscious) left its team count when it fell }
+      if wasUp then
+        Dec(GDVars.teamCount[creature^.hostile]);
       creature^.combatAddr^.initiative := 0;
     end;
   end else
