@@ -1924,6 +1924,7 @@ var
   isOgre: Boolean;
   found: Boolean;
   q: Types.PEffectRec;
+  next: Types.PEffectRec;
 begin
   if removed then begin
     found := False;
@@ -1933,6 +1934,8 @@ begin
     else
       isOgre := False;
     while (q <> nil) and (found = False) do begin
+      { taken before RemoveEffect frees q }
+      next := q^.next;
       if q^.id = C_Effect.STRENGTH then begin
         FxEngine.StrengthEffectToStrength(q, base, exc);
         { Note: q^.id < $80 is always true here, since q^.id is C_Effect.STRENGTH. The $80 flag is kept in the strength
@@ -1942,7 +1945,7 @@ begin
           found := True;
         end;
       end;
-      q := q^.next;
+      q := next;
     end;
   end else begin
     if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) then

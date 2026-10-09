@@ -13,8 +13,8 @@ uses Types, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend, CharHlp, P
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 { Remove an effect node from the creature's list: eff when it is not nil, else the first node whose id is effId (nothing
-  happens if there is none). If the node's onRemove flag is set, effId's handler is first called with removed = True;
-  the node is then unlinked and freed. }
+  happens if there is none, or if eff is not in the list). If the node's onRemove flag is set, effId's handler is first
+  called with removed = True; the node is then unlinked and freed. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
 { Fire, on one creature, every effect id registered under condition cond (0..19, the COND_ constants of C_Cond and of
@@ -142,6 +142,12 @@ begin
     p := creature^.effectsAddr;
     while (p <> nil) and (p^.id <> effId) do
       p := p^.next;
+  end else begin
+    { a node not in the list would walk the unlink below off its end }
+    prev := creature^.effectsAddr;
+    while (prev <> nil) and (prev <> p) do
+      prev := prev^.next;
+    p := prev;
   end;
   if p = nil then Exit;
   if Types.PEffectRec(p)^.onRemove then
