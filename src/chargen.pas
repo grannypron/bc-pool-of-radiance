@@ -1441,18 +1441,26 @@ begin
 end;
 
 { ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
-  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is C_Class.FIGHTER (single-class fighters only) }
+  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is C_Class.FIGHTER (single-class fighters only).
+  The table covers Con 3..20; a Constitution outside it (Raise Dead takes a point each time, down to 0) uses the nearer
+  end, so Con 0..2 keep Con 3's penalty. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
   padB: Byte;
+  con: Byte;
 begin
   bonus := 0;
+  con := creature^.stats[C_Abil.CONSTITUTION];
+  if con < 3 then
+    con := 3
+  else if con > 20 then
+    con := 20;
   with creature^ do
     for cls := 0 to 7 do
       if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        Inc(bonus, GDConsts.conBonusTbl[stats[C_Abil.CONSTITUTION]]);
+        Inc(bonus, GDConsts.conBonusTbl[con]);
         if (stats[C_Abil.CONSTITUTION] > 16) and (charClass = C_Class.FIGHTER) then
           Inc(bonus);
         if (stats[C_Abil.CONSTITUTION] > 17) and (charClass = C_Class.FIGHTER) then
