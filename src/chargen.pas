@@ -693,12 +693,12 @@ begin
   end;
 end;
 
-{ ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience and a
-  player race (the limits come from dsMinimumMaximumStatistics, Dwarf..Human; the hired Acolyte is race 0). Up and
-  Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and hit-point limits. Keep
-  recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit restores the saved
-  attributes, strExc, hpMax and cleric spell slots. A lowered attribute stops at the higher of the racial and class
-  minimums. }
+{ ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience, a
+  player race (the limits come from dsMinimumMaximumStatistics, Dwarf..Human; the hired Acolyte is race 0) and a class
+  in classMin (0..16). Up and Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class
+  and hit-point limits. Keep recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit
+  restores the saved attributes, strExc, hpMax and cleric spell slots. A lowered attribute stops at the higher of the
+  racial and class minimums; one already at 0 is not lowered further, so it rises to that minimum. }
 procedure ModifyCharacterMenu;
 var
   savedStats: array[0..5] of Byte;
@@ -734,7 +734,8 @@ var
 
 begin
   if (GDVars.curChar^.experience > 0) or (GDVars.curChar^.race < C_Race.DWARF) or
-      (GDVars.curChar^.race > C_Race.HUMAN) then begin
+      (GDVars.curChar^.race > C_Race.HUMAN) or (GDVars.curChar^.charClass < 0) or
+      (GDVars.curChar^.charClass > 16) then begin
     TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow);
     Exit;
   end;
@@ -772,7 +773,8 @@ begin
           C_Keys.LEFT:
             if statIdx < 6 then begin
               hold := statIdx;
-              Dec(stats[hold]);
+              if stats[hold] > 0 then
+                Dec(stats[hold]);
               case hold of
                 C_Abil.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
