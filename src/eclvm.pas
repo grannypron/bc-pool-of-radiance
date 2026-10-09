@@ -438,8 +438,9 @@ begin
   end;
 end;
 
-{ NEWECL: remember the current script id, check that the script archive is available, load and initialize script var 1,
-  then stop the VM and set newEclFlag so the game loop runs its on-load entry (NewEclDone) }
+{ NEWECL: remember the current script id, check that the script archive is available (the merged ECL.DAX when it is in
+  use), load and initialize script var 1, then stop the VM and set newEclFlag so the game loop runs its on-load entry
+  (NewEclDone) }
 procedure EclNewEcl;
 var
   id: Byte;
@@ -450,7 +451,7 @@ begin
   id := EclMenu.GetEclVar(1);
   GDVars.eclScriptId := id;
   Str(GDVars.virtualDisk, s);
-  SaveLoad.CheckFileElseQuit(GDVars.gameDir + 'ECL' + s + '.dax');
+  SaveLoad.CheckFileElseQuit(GDVars.gameDir + DaxIo.ArchiveName('ECL' + s) + '.dax');
   EclMenu.LoadEclScript(id);
   { a NEWECL inside a subroutine leaves return addresses on the stack, and EclInit only clears the pointer }
   FreeEclStack;
