@@ -577,8 +577,42 @@ begin
   end;
 end;
 
-{ Zone 4 reads below $C04B are fixed registers; from $C04B they index party/view state (WriteGbvm splits at $BF68 but
-  reaches the same $C04B.. addresses). Unhandled zone-4 addresses leave the result unassigned }
+{ The party effects table scripts read at $4900..$497F: the party's effects in order (creatureList, then each creature's
+  effect list), at most 64 of them. Entry k ($4900 + k) is the effect id and $4940 + k the owner's party index, counted
+  from 0 as FindCurCharIdx counts; unused entries read 0. The 'THIEVES ONLY' well (ECL4.DAX block 2) scans it for
+  Feather Fall when a climber falls }
+function PartyEffectsTable(address: Word): Word;
+var
+  k: Word;
+  e: Word;
+  n: Byte;
+  p: Types.PCharRecord;
+  effect: Types.PEffectRec;
+begin
+  PartyEffectsTable := 0;
+  k := (address - $4900) mod $40;
+  e := 0;
+  n := 0;
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    effect := p^.effectsAddr;
+    while effect <> nil do begin
+      if e = k then
+        if address < $4940 then
+          PartyEffectsTable := effect^.id
+        else
+          PartyEffectsTable := n;
+      Inc(e);
+      effect := effect^.next;
+    end;
+    Inc(n);
+    p := p^.nextCharAddr;
+  end;
+end;
+
+{ Zone 0 reads of $4900..$497F come from the party's effects (PartyEffectsTable), the rest from storage. Zone 4 reads
+  below $C04B are fixed registers; from $C04B they index party/view state (WriteGbvm splits at $BF68 but reaches the
+  same $C04B.. addresses). Unhandled zone-4 addresses leave the result unassigned }
 function ReadGbvm(address: Word): Word;
 var
   zone: Byte;
@@ -589,7 +623,10 @@ begin
   found := False;
   case zone of
     0:
-      ReadGbvm := GDVars.zone0^.words[address];
+      if address <= $497F then
+        ReadGbvm := EclMenu.PartyEffectsTable(address)
+      else
+        ReadGbvm := GDVars.zone0^.words[address];
     1: begin
       ReadGbvm := EclMenu.SpecialReadZ1(address, found);
       if not found then
