@@ -38,6 +38,16 @@ var
 
 procedure CallEclScript(address: Word); forward;
 
+{ Free the whole GOSUB return stack. }
+procedure FreeEclStack;
+begin
+  while GDVars.dsEclStackTopPtr <> nil do begin
+    GDVars.dsEclStackSecondPtr := GDVars.dsEclStackTopPtr^.next;
+    FreeMem(GDVars.dsEclStackTopPtr, SizeOf(Types.TEclRet));
+    GDVars.dsEclStackTopPtr := GDVars.dsEclStackSecondPtr;
+  end;
+end;
+
 { EXIT: redraw the borders if PROTECTION text was shown, restore the backed-up current character, clear the graphic
   flags, stop the VM, step past the opcode, free the whole GOSUB return stack and park the message cursor }
 procedure EclExit;
@@ -56,11 +66,7 @@ begin
   GDVars.protTextShown := 0;
   GDVars.eclStop := 1;
   Inc(GDVars.eclIp);
-  while GDVars.dsEclStackTopPtr <> nil do begin
-    GDVars.dsEclStackSecondPtr := GDVars.dsEclStackTopPtr^.next;
-    FreeMem(GDVars.dsEclStackTopPtr, SizeOf(Types.TEclRet));
-    GDVars.dsEclStackTopPtr := GDVars.dsEclStackSecondPtr;
-  end;
+  FreeEclStack;
   GDVars.curRow := C_Msg.MESSAGE_TOP;
   GDVars.curCol := C_Msg.TEXT_LEFT;
   GDVars.dsEcl3dClearFlag := 0;
@@ -446,6 +452,8 @@ begin
   Str(GDVars.virtualDisk, s);
   SaveLoad.CheckFileElseQuit(GDVars.gameDir + 'ECL' + s + '.dax');
   EclMenu.LoadEclScript(id);
+  { a NEWECL inside a subroutine leaves return addresses on the stack, and EclInit only clears the pointer }
+  FreeEclStack;
   EclMenu.EclInit;
   GDVars.eclStop := 1;
   GDVars.newEclFlag := 1;
