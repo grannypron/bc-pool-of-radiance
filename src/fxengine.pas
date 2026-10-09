@@ -8,8 +8,8 @@ interface
 uses Types, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend, CharHlp, Pathing, CbtMap,
   C_Effect, C_Status, C_Ifc, C_Dir;
 
-{ Call the effect handler for effId (1..139) through GDVars.effectFns. p is the item or effect node the handler
-  concerns; removed is True when the item is being unreadied or the effect removed. }
+{ Call the effect handler for effId (1..139) through GDVars.effectFns; an id outside the table calls nothing. p is the
+  item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 { Remove an effect node from the creature's list: eff when it is not nil, else the first node whose id is effId (nothing
@@ -128,7 +128,8 @@ var
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  effectHandlers[effId](creature, p, removed);
+  if (effId >= C_Effect.BLESS) and (effId <= C_Effect.READY_RING_INVIS) then
+    effectHandlers[effId](creature, p, removed);
 end;
 
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
