@@ -1365,6 +1365,8 @@ begin
   exitStr := '';
   if addExit then
     exitStr := ' Exit';
+  { open on Select: the highlight is shared by every menu, and Enter takes it }
+  GDVars.horizChoice := 1;
   while not ((ch in [C_Keys.ENTER, C_Keys.ESC, 'E', 'S']) or ((ch = C_Keys.NONE) and addExit)) do
   begin
     CharHlp.DisplayParty(sel);
