@@ -76,13 +76,13 @@ function IsBackstab(att, def: Types.PCharRecord): Boolean; forward;
 
 procedure RangedAttackAnim(att, def: Types.PCharRecord; weapon: Types.PItemRec); forward;
 
-function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte): Char; forward;
+function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte; var dir: Byte): Char; forward;
 
 procedure ConfirmAttackTarget(cur, tgt: Types.PCharRecord; weaponMode: Byte; var done: Boolean;
                               var sel: Types.TAimTarget); forward;
 
-procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground: Byte; var done: Boolean;
-                          var sel: Types.TAimTarget); forward;
+procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground, startDir: Byte;
+                          var done: Boolean; var sel: Types.TAimTarget); forward;
 
 { Per-creature round reset: combat record flags, current attacks (SetCurAttacksX2, then the secondary attacks through
   AdjustedAttacks), the sweep budget, initiative (1d6 + missile dex adjustment, at least 1, -6 when surprised, 0 if
@@ -1254,20 +1254,39 @@ begin
   end;
 end;
 
+{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_Dir.CENTER for any
+  other key. }
+function DirOfKey(ch: Char): Byte;
+begin
+  case ch of
+    C_Keys.UP: DirOfKey := C_Dir.NORTH;
+    C_Keys.PGUP: DirOfKey := C_Dir.NORTHEAST;
+    C_Keys.RIGHT: DirOfKey := C_Dir.EAST;
+    C_Keys.PGDN: DirOfKey := C_Dir.SOUTHEAST;
+    C_Keys.DOWN: DirOfKey := C_Dir.SOUTH;
+    C_Keys.END_KEY: DirOfKey := C_Dir.SOUTHWEST;
+    C_Keys.LEFT: DirOfKey := C_Dir.WEST;
+    C_Keys.HOME: DirOfKey := C_Dir.NORTHWEST;
+  else
+    DirOfKey := C_Dir.CENTER;
+  end;
+end;
+
 { One aim-menu round on the target: center the view on it, show the range (weapon mode) and offer Target when it is in
   range (a weapon attack needs another creature, and a ranged weapon needs damaging ammunition plus either no adjacent
-  enemy or a throwable weapon), then Next/Prev/Manual/Center/Exit. ground is unused. }
-function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte): Char;
+  enemy or a throwable weapon), then Next/Prev/Manual/Center/Exit. A cursor key (keypad digits included) returns
+  through dir the direction it points, so the caller can switch to manual aim and move the cursor that way; any other
+  choice sets dir to C_Dir.CENTER. ground is unused. }
+function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte; var dir: Byte): Char;
 var
   menu: String[40];
   ext: Boolean;
   weapon: Types.PItemRec;
   dist: Byte;
-  dir: Byte;
+  ch: Char;
 begin
   menu := '';
   dist := CharHlp.CalcDistance(cur, tgt);
-  dir := CbtActs.DirTowardTarget(cur, tgt);
   if weaponMode <> 0 then
     TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + CharHlp.ByteToString(dist) + '  ');
   if dist <= range then begin
@@ -1284,8 +1303,13 @@ begin
   menu := 'Next Prev Manual ' + menu + 'Center Exit';
   CbtMap.DisplayMapViewCentered(tgt, 3, True);
   CharHlp.CombatPrintCreatureInfo(tgt);
-  AimTargetMenu := MenuCore.MenuHorizontal('Aim:', menu, LightMagenta, LightGreen, White, False, False,
-                                           ext);
+  repeat
+    ch := MenuCore.MenuHorizontal('Aim:', menu, LightMagenta, LightGreen, White, True, False, ext);
+    dir := C_Dir.CENTER;
+    if ext then
+      dir := CbtActs.DirOfKey(ch);
+  until (not ext) or (dir <> C_Dir.CENTER);
+  AimTargetMenu := ch;
 end;
 
 { Confirm an aim selection. weaponMode=1 performs a weapon attack; 0 selects a spell target. An attack on an ally needs
@@ -1325,11 +1349,12 @@ begin
     FillChar(sel, SizeOf(sel), 0);
 end;
 
-{ The free cursor aim: the arrow-key scans move a cell cursor (clamped to the arena) from underCursor's cell,
-  Pathing.WalkLine checks the line and range, Target/Enter takes a valid cell (a weapon attack goes through
-  ConfirmAttackTarget), Center recenters and Exit/Escape cancels. A bare cell is valid only when ground is set. }
-procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground: Byte; var done: Boolean;
-                          var sel: Types.TAimTarget);
+{ The free cursor aim: the arrow-key scans move a cell cursor (clamped to the arena) from underCursor's cell, after a
+  first step toward startDir (C_Dir.CENTER stays put), Pathing.WalkLine checks the line and range, Target/Enter takes a
+  valid cell (a weapon attack goes through ConfirmAttackTarget), Center recenters and Exit/Escape cancels. A bare cell
+  is valid only when ground is set. }
+procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground, startDir: Byte;
+                          var done: Boolean; var sel: Types.TAimTarget);
 var
   menu: String[40];
   ch: Char;
@@ -1349,7 +1374,7 @@ begin
   cx := CbtMap.CombatCellX(underCursor);
   cy := CbtMap.CombatCellY(underCursor);
   ch := ' ';
-  dir := C_Dir.CENTER;
+  dir := startDir;
   done := False;
   GDVars.arenaPtr^.cursorOn := True;
   GDVars.arenaPtr^.cursorSize := 1;
@@ -1434,14 +1459,6 @@ begin
             FillChar(sel, SizeOf(sel), 0);
           end;
         end;
-      C_Keys.UP: dir := C_Dir.NORTH;
-      C_Keys.PGUP: dir := C_Dir.NORTHEAST;
-      C_Keys.RIGHT: dir := C_Dir.EAST;
-      C_Keys.PGDN: dir := C_Dir.SOUTHEAST;
-      C_Keys.DOWN: dir := C_Dir.SOUTH;
-      C_Keys.END_KEY: dir := C_Dir.SOUTHWEST;
-      C_Keys.LEFT: dir := C_Dir.WEST;
-      C_Keys.HOME: dir := C_Dir.NORTHWEST;
       C_Keys.NONE, 'E':
         begin
           CbtMap.RedrawArenaCell(cx, cy);
@@ -1454,7 +1471,7 @@ begin
           dir := C_Dir.CENTER;
         end;
     else
-      dir := C_Dir.CENTER;
+      dir := CbtActs.DirOfKey(ch);
     end;
   end;
 end;
@@ -1476,6 +1493,7 @@ var
   nextY: ShortInt;
   p: Types.PCharRecord;
   ch: Char;
+  keyDir: Byte;
 
   { Build the parent routine's aiming list from targets within range 127. }
   procedure BuildAimTargets(c: Types.PCharRecord);
@@ -1539,7 +1557,10 @@ begin
     if not CbtActs.CanAttackTarget(creature, p) then
       p := AdvanceAimTarget(skipStep, False)
     else begin
-      ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, groundOk);
+      ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, groundOk, keyDir);
+      { a cursor key goes straight to manual aim }
+      if keyDir <> C_Dir.CENTER then
+        ch := 'M';
       case ch of
         'N':
           begin
@@ -1553,7 +1574,8 @@ begin
           end;
         'M':
           begin
-            CbtActs.ManualAimCursor(creature, p, effRange, weaponMode, groundOk, done, Types.TAimTarget(tgt));
+            CbtActs.ManualAimCursor(creature, p, effRange, weaponMode, groundOk, keyDir, done,
+                                    Types.TAimTarget(tgt));
             CharHlp.CopyIconFacing(25, 0, 0, False);
             BuildAimTargets(creature);
             menuStep := 0;
