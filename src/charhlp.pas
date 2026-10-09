@@ -12,7 +12,7 @@ procedure WeaponAdjust(creature: Types.PCharRecord);
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
 
 procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
-                            isMagicBody: Types.PBoolean);
+                            isMagicBody: Types.PBoolean; var ringSave: ShortInt);
 
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
@@ -185,10 +185,11 @@ end;
 { Fold one equipped item into the AC adjustment slots. Only items whose base acDescr >= 128 participate; descr's low 7
   bits are the item's own AC value. A shield (slot 1) sets adj[1] to AC + plus. An item with AC 0 adds its saveBonus to
   the creature's and its plus to adj[2], except a ring (slot 9), whose plus instead raises adj[3] to the best ring
-  plus. Any other item keeps the best AC + plus in adj[4], setting isMagicBody when that new best is body armor (slot
-  2) with a positive plus. }
+  plus, and whose plus or saveBonus, whichever is larger, raises ringSave to the best ring's save bonus (RecalcStats
+  adds it once). Any other item keeps the best AC + plus in adj[4], setting isMagicBody when that new best is body
+  armor (slot 2) with a positive plus. }
 procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
-                            isMagicBody: Types.PBoolean);
+                            isMagicBody: Types.PBoolean; var ringSave: ShortInt);
 var
   descr: Byte;
   slot: Byte;
@@ -203,9 +204,14 @@ begin
       if slot = C_Equip.RING1 then begin
         if item^.plus > adj^[3] then
           adj^[3] := item^.plus;
-      end else
+        if item^.plus > ringSave then
+          ringSave := item^.plus;
+        if item^.saveBonus > ringSave then
+          ringSave := item^.saveBonus;
+      end else begin
         adj^[2] := adj^[2] + item^.plus;
-      creature^.saveBonus := creature^.saveBonus + item^.saveBonus;
+        creature^.saveBonus := creature^.saveBonus + item^.saveBonus;
+      end;
     end else begin
       if descr + item^.plus > adj^[4] then begin
         adj^[4] := descr + item^.plus;
@@ -428,6 +434,7 @@ var
   c: ShortInt;
   w: Word;
   slot: 0..127;
+  ringSave: ShortInt;
 begin
   { rebuild every equipment slot from the readied items }
   for i := C_Equip.WEAPON to C_Equip.BOLT do
@@ -479,6 +486,7 @@ begin
     adj[k] := 0;
   magicBody := False;
   creature^.saveBonus := 0;
+  ringSave := 0;
   creature^.acCur := creature^.acBase;
   creature^.movementCur := creature^.movementBase;
   creature^.thac0Cur := creature^.thac0Base;
@@ -492,10 +500,13 @@ begin
   while item <> nil do begin
     if item^.equipped <> 0 then begin
       CharHlp.ArmorMoveAdjust(creature, item);
-      CharHlp.ArmorAdjustHelper(creature, item, @adj, @magicBody);
+      CharHlp.ArmorAdjustHelper(creature, item, @adj, @magicBody, ringSave);
     end;
     item := item^.next;
   end;
+  { a Ring of Protection guards saves as well as AC: the best ring counts once, and magical body armor cancels only
+    its AC }
+  creature^.saveBonus := creature^.saveBonus + ringSave;
   { rings do not add to magical body armor }
   if magicBody then
     adj[3] := 0;
