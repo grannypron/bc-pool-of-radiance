@@ -683,12 +683,14 @@ end;
   player race (the limits come from dsMinimumMaximumStatistics, Dwarf..Human; the hired Acolyte is race 0). Up and
   Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and hit-point limits. Keep
   recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit restores the saved
-  attributes, strExc and hpMax. A lowered attribute stops at the higher of the racial and class minimums. }
+  attributes, strExc, hpMax and cleric spell slots. A lowered attribute stops at the higher of the racial and class
+  minimums. }
 procedure ModifyCharacterMenu;
 var
   savedStats: array[0..5] of Byte;
   savedExc: Byte;
   savedHp: Byte;
+  savedClericSpells: array[1..3] of Byte;
   pad1: Byte;
   hold: ShortInt;
   key: Char;
@@ -726,6 +728,8 @@ begin
   Move(GDVars.curChar^.stats, savedStats, SizeOf(GDVars.curChar^.stats));
   savedExc := GDVars.curChar^.strExc;
   savedHp := GDVars.curChar^.hpMax;
+  { a Wisdom change recalculates the cleric spell slots }
+  Move(GDVars.curChar^.clericSpells, savedClericSpells, SizeOf(savedClericSpells));
   statIdx := 6;
   RedrawStat(False);
   statIdx := 0;
@@ -849,6 +853,7 @@ begin
               GDVars.curChar^.strExc := savedExc;
               GDVars.curChar^.hpMax := savedHp;
               GDVars.curChar^.hpCur := hpMax;
+              Move(savedClericSpells, GDVars.curChar^.clericSpells, SizeOf(savedClericSpells));
               CharHlp.RecalcStats(Types.PCharRecord(GDVars.curChar));
               Exit;
             end;
