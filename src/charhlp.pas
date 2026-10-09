@@ -1020,12 +1020,14 @@ end;
 
 { Apply damage and update status. More than nine points of overkill kills; lesser overkill leaves the creature dying.
   Exactly zero hit points leaves it unconscious, except an animated creature dies. A creature that is no longer okay or
-  animated is taken out of action, and in combat also out of its team count and the initiative order. }
+  animated is taken out of action, and in combat also out of its team count and the initiative order. A dead, stoned or
+  gone creature takes no damage, so a small hit on a corpse cannot turn it back into a dying one. }
 procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 var
   over: Byte;
   remain: Byte;
 begin
+  if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   over := 0;
   remain := 0;
   if creature^.hpCur >= dmg then
