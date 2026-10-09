@@ -1089,7 +1089,8 @@ begin
             if creature^.npc < C_Npc.FLAG then
               Inc(nonNpc);
           end else
-            FreeMem(creature, SizeOf(Types.TCharRecord));
+            { with the items and effects LoadChar read }
+            CharGen.FreeCreature(Types.PCharRecord(creature));
         end;
       end;
   until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7);
