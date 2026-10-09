@@ -797,7 +797,7 @@ begin
 end;
 
 { Hold Person (spells 23 and 49): save modifier -2 (cleric) or -3 (mage) for one target, -1 for two, 0 for three or
-  four. Targets are processed in reverse; each one after the first processed (i < spellTargetCount) gets its own
+  more. Targets are processed in reverse; each one after the first processed (i < spellTargetCount) gets its own
   projectile animation. Targets with charType > 1 or icon size > 1 always save. }
 procedure HoldPersonHandler;
 var
@@ -806,14 +806,14 @@ var
   i: Byte;
   smod: ShortInt;
 begin
-  { Note: outside 1..4 targets, smod is left uninitialized }
   case GDVars.spellTargetCount of
     1: if GDVars.dsCurrentSpellBeing = 23 then
          smod := -2
        else
          smod := -3;
     2: smod := -1;
-    3, 4: smod := 0;
+  else
+    smod := 0;
   end;
   for i := GDVars.spellTargetCount downto 1 do begin
     if GDVars.dsTargetCreaturePtr[i] <> nil then begin
