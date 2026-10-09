@@ -240,8 +240,8 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.FLAME_TONGUE);
     end;
     C_Cond.WEAPON_DAMAGE_DEF: begin
-      FxEngine.TriggerEffect(creature, C_Effect.MIRROR_IMAGE); FxEngine.TriggerEffect(creature,
-          C_Effect.PROT_MISSILES);
+      { Mirror Image against weapons is CbtActs.DoAttack's }
+      FxEngine.TriggerEffect(creature, C_Effect.PROT_MISSILES);
       FxEngine.TriggerEffect(creature, C_Effect.KREEN_DODGE); FxEngine.TriggerEffect(creature,
           C_Effect.BOULDER_DODGE);
       FxEngine.TriggerEffect(creature, C_Effect.TROLL_HEAL); FxEngine.TriggerEffect(creature,
