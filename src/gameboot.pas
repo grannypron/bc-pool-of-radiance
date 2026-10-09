@@ -23,8 +23,12 @@ var
 
 { A POOL.CFG path made ready for file names to be appended: spaces trimmed, the current drive (or, for a relative path,
   the current directory) put in front of a path without a drive letter, and a closing backslash. An empty path gives
-  the current directory. }
+  the current directory, and a drive alone (C:) the current directory on that drive. A path that leaves no room for a
+  file name within a DOS path (Types.TPathStr; the longest names, such as WALLDEF1.DAX, are 12 characters) stops the
+  game with a message. }
 function NormalizePath(path: String): String;
+const
+  LONGEST_NAME = 12;
 var
   cur: String;
 begin
@@ -32,14 +36,24 @@ begin
     Delete(path, 1, 1);
   while (Length(path) > 0) and (path[Length(path)] = ' ') do
     Dec(path[0]);
-  GetDir(0, cur);
-  if cur[Length(cur)] <> '\' then cur := cur + '\';
-  if (Length(path) < 2) or (path[2] <> ':') then
-    if (Length(path) > 0) and (path[1] = '\') then
-      path := Copy(cur, 1, 2) + path
-    else
-      path := cur + path;
+  if (Length(path) = 2) and (path[2] = ':') then
+    GetDir(Ord(UpCase(path[1])) - Ord('A') + 1, path)
+  else begin
+    GetDir(0, cur);
+    if cur[Length(cur)] <> '\' then cur := cur + '\';
+    if (Length(path) < 2) or (path[2] <> ':') then
+      if (Length(path) > 0) and (path[1] = '\') then
+        path := Copy(cur, 1, 2) + path
+      else
+        path := cur + path;
+  end;
   if path[Length(path)] <> '\' then path := path + '\';
+  if Length(path) > SizeOf(Types.TPathStr) - 1 - LONGEST_NAME then begin
+    Blit.RestoreVideoMode;
+    WriteLn('POOL.CFG: this path is too long for DOS:');
+    WriteLn(path);
+    Halt;
+  end;
   NormalizePath := path;
 end;
 

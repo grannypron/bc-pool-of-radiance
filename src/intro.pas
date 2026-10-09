@@ -70,7 +70,7 @@ var
   pic: Types.PImgBuf;
   rndAcc: LongInt;
   i: Byte;
-  savedDir: String[40];
+  savedDir: Types.TPathStr;
   deadline: LongInt;
 begin
   rndAcc := 0;
