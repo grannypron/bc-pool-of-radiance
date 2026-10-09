@@ -57,6 +57,11 @@ function StingVictoryCheat: Boolean;
 
 implementation
 
+const
+  { Combat sprite cells the spell-aim preview draws with: the lightning bolt, the effect sparkle and the damage burst }
+  SPRITE_LIGHTNING = 19;
+  SPRITE_SPARKLE = 22;
+  SPRITE_BURST = 23;
 
 procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte); forward;
 
@@ -948,7 +953,8 @@ end;
 
 { Combat's spellFps[0] callback: build the spell-target list from the low nibble of the spell's area. 0: the caster; 15:
   the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and 7 of the picked cell;
-  1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. }
+  1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the player aims, the
+  CbtMap spell-aim preview shows the cells the spell will reach. }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -956,6 +962,8 @@ var
   j: Byte;
   sel: Types.TAimTarget;
   dup: Boolean;
+  radius: Byte;
+  picked: Boolean;
 begin
   cast := True;
   GDVars.spellTargetCount := 0;
@@ -972,7 +980,11 @@ begin
     15:
       { the picked creature, or an area at the picked cell }
       begin
-        if CbtActs.PickSpellTarget(spell, b, 0, sel) then begin
+        if not b then
+          CbtMap.StartSpellPreview(Types.AimBlast, 0, SPRITE_SPARKLE);
+        picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
+        CbtMap.StopSpellPreview;
+        if picked then begin
           if GDVars.curChar^.combatAddr^.other <> nil then begin
             GDVars.dsTargetCreaturePtr[1] := GDVars.curChar^.combatAddr^.other;
             GDVars.spellTargetCount := 1;
@@ -991,7 +1003,25 @@ begin
     8..14:
       { fixed radius, ground OK }
       begin
-        if CbtActs.PickSpellTarget(spell, b, 1, sel) then begin
+        { Preview the spell while the player aims: Lightning Bolt's path, Stinking Cloud's 2x2 block (its handler
+          ignores the table radius), or the blast at the table radius (a fireball bursts in flame, and FireballHandler
+          uses radius 2 when view3dFlag is clear). }
+        if not b then begin
+          radius := GDConsts.spellTable[spell].area and 7;
+          if spell = C_Spell.LIGHTNING_BOLT then
+            CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING)
+          else if spell = C_Spell.STINKING_CLOUD then
+            CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE)
+          else if (spell = C_Spell.FIREBALL) or (spell = C_Spell.ITEM_FIREBALL) then begin
+            if GDVars.zone0^.view3dFlag = 0 then
+              radius := 2;
+            CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST);
+          end else
+            CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_SPARKLE);
+        end;
+        picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
+        CbtMap.StopSpellPreview;
+        if picked then begin
           Pathing.BuildTargetList(GDVars.gTargetX, GDVars.gTargetY, GDConsts.spellTable[spell].area and 7, 255, 1,
                                   GDVars.arenaPtr);
           for k := 1 to GDVars.targetCount do
@@ -1007,7 +1037,11 @@ begin
       remaining := (GDConsts.spellTable[spell].area and 3) + 1;
       k := 0;
       while remaining > 0 do begin
-        if CbtActs.PickSpellTarget(spell, b, 0, sel) then begin
+        if not b then
+          CbtMap.StartSpellPreview(Types.AimBlast, 0, SPRITE_SPARKLE);
+        picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
+        CbtMap.StopSpellPreview;
+        if picked then begin
           dup := False;
           for j := 1 to k do
             if GDVars.dsTargetCreaturePtr[j] = sel.cr then

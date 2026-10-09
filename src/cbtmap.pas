@@ -89,13 +89,267 @@ function IsValidCreatureLoc(creature: Types.PCharRecord; x, y: Byte; moving: Boo
   is set; afterwards the cursor is reset to off with size 1. }
 procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; cursor: Boolean);
 
+{ Spell-aim preview, for the player aiming a spell. Each time the cursor is drawn the preview restarts there: the cells
+  the spell will reach light up ring by ring outward from the cursor cell in combat sprite areaCell, hold, clear, and
+  the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
+  Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
+  Lightning Bolt's path from the cursor cell (Magic.TraceLightningBolt). AimCloud covers the passable cells of
+  Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead of areaCell. The
+  frames are drawn from MenuCore.MenuHorizontal's idle hook. }
+procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte);
+
+{ Advance the spell-aim preview by one frame once enough time has passed since the last one. }
+procedure TickSpellPreview;
+
+{ End the spell-aim preview: remove the idle hook and repaint every cell it drew over. }
+procedure StopSpellPreview;
+
 implementation
 
+uses Pathing, MenuCore, Magic;
+
+const
+  { The cursor sprite cell in iconAnims }
+  CURSOR_CELL = 25;
+  { Hundredths of a second between preview frames }
+  PREVIEW_PACE = 12;
+  { Frames the whole area stays lit, then blank frames before the next cycle }
+  PREVIEW_HOLD = 3;
+  PREVIEW_GAP = 2;
 
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
                                            { [24,0] = COMSPR 11 skull;
                                              [25] = the cursor sprite   }
+  { Spell-aim preview settings (StartSpellPreview). }
+  previewOn: Boolean;
+  previewRadius: Byte;
+  previewShape: Types.TAimShape;
+  areaArt: Byte;
+  { The cursor cell and footprint size the preview is aimed at; aimSet is clear until a cursor draw sets them. }
+  aimSet: Boolean;
+  aimX: ShortInt;
+  aimY: ShortInt;
+  aimSize: Byte;
+  { The cells the spell reaches and the ring (frame of the cycle) each lights up on. }
+  areaCount: Byte;
+  areaX: array[1..64] of ShortInt;
+  areaY: array[1..64] of ShortInt;
+  areaRing: array[1..64] of Byte;
+  ringCount: Byte;
+  { How many rings are lit now. }
+  ringsShown: Byte;
+  { Frame within the cycle and the tick count when it was drawn. }
+  frameNo: Byte;
+  lastTick: LongInt;
+
+{ True when arena cell (x, y) is under the preview's cursor footprint. }
+function InAimFootprint(x, y: ShortInt): Boolean;
+var
+  i: Byte;
+  tdx: ShortInt;
+  tdy: ShortInt;
+begin
+  InAimFootprint := False;
+  if aimSet then
+    for i := 0 to 3 do
+      if CbtMap.GetIconTileDelta(aimSize, i, tdx, tdy) then
+        if (aimX + tdx = x) and (aimY + tdy = y) then
+          InAimFootprint := True;
+end;
+
+{ Put back what belongs on top of a view cell after something was drawn there: the cursor box when the cell is under
+  the aim footprint, then the creature standing on the cell. relX, relY are the cell's view coordinates. }
+procedure DrawCellTop(x, y, relX, relY: ShortInt);
+var
+  c: Byte;
+  t: Byte;
+begin
+  if InAimFootprint(x, y) then
+    MapTiles.DrawIconAnimSprite(relX, relY, 0, 0, CURSOR_CELL);
+  CbtMap.GetArenaContents(x, y, c, t);
+  if c > 0 then
+    if CbtMap.CombatIconVisible(GDVars.creatureArr[c], 0) then
+      MapTiles.DrawIconAnimSprite(GDVars.gridX[c], GDVars.gridY[c], GDVars.creatureArr[c]^.combatAddr^.direction,
+                                  0, GDVars.creatureArr[c]^.orderNumber);
+end;
+
+{ Repaint arena cell (x, y), when it is in view, as it is without the preview. }
+procedure RepaintCell(x, y: ShortInt);
+var
+  relX: ShortInt;
+  relY: ShortInt;
+begin
+  relX := x - GDVars.arenaPtr^.ox;
+  relY := y - GDVars.arenaPtr^.oy;
+  if CbtMap.ViewCoordsValid(relX, relY) then begin
+    MapTiles.Copy2DTile(relX * 3, relY * 3, GDConsts.terrainInfo[GDVars.arenaPtr^.cells[y, x]].tileId, 0);
+    DrawCellTop(x, y, relX, relY);
+  end;
+end;
+
+{ Draw frame half of combat sprite art over arena cell (x, y), when it is in view; a facing of 4 or more mirrors it. }
+procedure DrawPreviewArt(x, y: ShortInt; art, facing, half: Byte);
+var
+  relX: ShortInt;
+  relY: ShortInt;
+begin
+  relX := x - GDVars.arenaPtr^.ox;
+  relY := y - GDVars.arenaPtr^.oy;
+  if CbtMap.ViewCoordsValid(relX, relY) then begin
+    MapTiles.DrawIconAnimSprite(relX, relY, facing, half, art);
+    DrawCellTop(x, y, relX, relY);
+  end;
+end;
+
+{ Light area cell i in frame half of the area art, or, for Stinking Cloud, as the cloud terrain it will become. }
+procedure DrawAreaCell(i, half: Byte);
+var
+  relX: ShortInt;
+  relY: ShortInt;
+begin
+  if previewShape = Types.AimCloud then begin
+    relX := areaX[i] - GDVars.arenaPtr^.ox;
+    relY := areaY[i] - GDVars.arenaPtr^.oy;
+    if CbtMap.ViewCoordsValid(relX, relY) then begin
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GDConsts.terrainInfo[C_Terr.STINK_CLOUD].tileId, 0);
+      DrawCellTop(areaX[i], areaY[i], relX, relY);
+    end;
+  end else
+    DrawPreviewArt(areaX[i], areaY[i], areaArt, 0, half);
+end;
+
+{ Repaint every lit area cell, leaving nothing of the preview on screen. }
+procedure EraseSpellPreview;
+var
+  i: Byte;
+begin
+  for i := 1 to areaCount do
+    if areaRing[i] < ringsShown then
+      RepaintCell(areaX[i], areaY[i]);
+  ringsShown := 0;
+end;
+
+{ Add an area cell lighting up on the given ring; cells past the table's end are dropped. }
+procedure AddAreaCell(x, y: ShortInt; ring: Byte);
+begin
+  if areaCount < SizeOf(areaX) then begin
+    Inc(areaCount);
+    areaX[areaCount] := x;
+    areaY[areaCount] := y;
+    areaRing[areaCount] := ring;
+    if ring >= ringCount then
+      ringCount := ring + 1;
+  end;
+end;
+
+{ Aim the preview at arena cell (x, y): work out the area and start the cycle over. }
+procedure RestartSpellPreview(x, y: ShortInt);
+var
+  bolt: Types.TCellList;
+  relX: ShortInt;
+  relY: ShortInt;
+  tx: ShortInt;
+  ty: ShortInt;
+  dist: Word;
+  i: Byte;
+  c: Byte;
+  t: Byte;
+begin
+  aimSet := True;
+  aimX := x;
+  aimY := y;
+  aimSize := GDVars.arenaPtr^.cursorSize;
+  areaCount := 0;
+  ringCount := 0;
+  case previewShape of
+    Types.AimBolt: begin
+         AddAreaCell(x, y, 0);
+         Magic.TraceLightningBolt(x, y, bolt);
+         { two cells a frame }
+         for i := 1 to bolt.count do
+           AddAreaCell(bolt.x[i], bolt.y[i], (i + 1) div 2);
+       end;
+    Types.AimCloud:
+      for i := 1 to 4 do begin
+        tx := x + GDConsts.dirDX[GDConsts.cloudDir[i]];
+        ty := y + GDConsts.dirDY[GDConsts.cloudDir[i]];
+        CbtMap.GetArenaContents(tx, ty, c, t);
+        { the aim cell first, then the other three }
+        if t > 0 then
+          if GDConsts.terrainInfo[t].cost < 255 then
+            AddAreaCell(tx, ty, Ord(i > 1));
+      end;
+  else
+    for relY := 0 to 6 do
+      for relX := 0 to 6 do begin
+        tx := GDVars.arenaPtr^.ox + relX;
+        ty := GDVars.arenaPtr^.oy + relY;
+        dist := previewRadius;
+        { on success dist returns the doubled distance, so dist div 2 is the ring }
+        if Pathing.WalkLine(x, y, tx, ty, dist, GDVars.arenaPtr) then
+          AddAreaCell(GDVars.arenaPtr^.ox + relX, GDVars.arenaPtr^.oy + relY, dist div 2);
+      end;
+  end;
+  frameNo := 0;
+  lastTick := TextRend.GetTicks - PREVIEW_PACE;
+end;
+
+procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte);
+begin
+  CbtMap.StopSpellPreview;
+  previewShape := shape;
+  previewRadius := radius;
+  areaArt := areaCell;
+  aimSet := False;
+  ringsShown := 0;
+  areaCount := 0;
+  previewOn := True;
+  MenuCore.idleHook := CbtMap.TickSpellPreview;
+end;
+
+procedure TickSpellPreview;
+var
+  now: LongInt;
+  ring: Byte;
+  i: Byte;
+begin
+  if not (previewOn and aimSet) then Exit;
+  now := TextRend.GetTicks;
+  { the tick count restarts at midnight }
+  if (now >= lastTick) and (now - lastTick < PREVIEW_PACE) then Exit;
+  lastTick := now;
+  ring := frameNo;
+  if ring <= ringCount then begin
+    { the newest ring shows the sprite's first frame; the ring before it settles into the second }
+    for i := 1 to areaCount do
+      if areaRing[i] + 1 = ring then begin
+        RepaintCell(areaX[i], areaY[i]);
+        DrawAreaCell(i, 1);
+      end else if areaRing[i] = ring then
+        DrawAreaCell(i, 0);
+    if ring < ringCount then
+      ringsShown := ring + 1;
+  end else if ring = ringCount + PREVIEW_HOLD then
+    EraseSpellPreview
+  else if ring >= ringCount + PREVIEW_HOLD + PREVIEW_GAP then begin
+    frameNo := 0;
+    Exit;
+  end;
+  Inc(frameNo);
+  Blit.FlushView;
+end;
+
+procedure StopSpellPreview;
+begin
+  if previewOn then begin
+    @MenuCore.idleHook := nil;
+    aimSet := False;
+    EraseSpellPreview;
+    Blit.FlushView;
+    previewOn := False;
+  end;
+end;
 
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 begin
@@ -150,6 +404,11 @@ var
   c: Byte;
   t: Byte;
 begin
+  { the cursor is moving: take the preview down, without redrawing the cursor where it was }
+  if previewOn then begin
+    aimSet := False;
+    EraseSpellPreview;
+  end;
   relX := x - GDVars.arenaPtr^.ox;
   relY := y - GDVars.arenaPtr^.oy;
   for i := 0 to 3 do begin
@@ -166,6 +425,8 @@ begin
     if CbtMap.CombatIconVisible(GDVars.creatureArr[c], 0) then
       MapTiles.DrawIconAnimSprite(GDVars.gridX[c], GDVars.gridY[c], GDVars.creatureArr[c]^.combatAddr^.direction,
                                   0, GDVars.creatureArr[c]^.orderNumber);
+  if previewOn and GDVars.arenaPtr^.cursorOn then
+    RestartSpellPreview(x, y);
 end;
 
 procedure RedrawArenaCell(x, y: ShortInt);
@@ -584,4 +845,7 @@ begin
   GDVars.arenaPtr^.cursorSize := 1;
 end;
 
+begin
+  previewOn := False;
+  aimSet := False;
 end.

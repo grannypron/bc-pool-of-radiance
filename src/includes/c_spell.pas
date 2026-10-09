@@ -14,6 +14,13 @@ const
   CURE_LIGHT_WOUNDS = 3;
   { the magic-user's Charm Person, which a charming gaze applies }
   CHARM_PERSON = 10;
+  { spellFps[34] = StinkingCloudHandler }
+  STINKING_CLOUD = 34;
+  { spellFps[47] and spellFps[64] (the item fireball) = FireballHandler }
+  FIREBALL = 47;
+  ITEM_FIREBALL = 64;
+  { spellFps[51] = LightningBoltHandler }
+  LIGHTNING_BOLT = 51;
 
 implementation
 

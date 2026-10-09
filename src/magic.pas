@@ -144,6 +144,10 @@ procedure HasteHandler;
 
 procedure LightningBoltHandler;
 
+{ The cells a Lightning Bolt aimed at (x, y) by GDVars.curChar would cross after the aim cell itself, in order, bounces
+  included, judged on the arena as it stands. Nothing is drawn or damaged. }
+procedure TraceLightningBolt(x, y: ShortInt; var cells: Types.TCellList);
+
 procedure SlowHandler;
 
 procedure RestorationHandler;
@@ -172,6 +176,10 @@ procedure ManualBodilyHealthHandler;
 procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 implementation
+
+const
+  { Lightning Bolt's length, in cells past the aim cell }
+  LIGHTNING_BOLT_CELLS = 8;
 
 var
   { Word view of GDConsts.soundIds -- commands, damage and the first eight combat ids: [3] = 2 (default cast), [9] = 8
@@ -203,6 +211,9 @@ procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40);
 procedure LightningAttackAt(x, y: ShortInt; damage: Byte; saveType: ShortInt; var blocked: Boolean); forward;
 
 procedure LightningPath(boltLen, damage: Byte; saveType: ShortInt; bounce: Boolean); forward;
+
+procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
+  forward;
 
 function SpellSelection(selType: Byte; var idx: Integer): Byte;
 var
@@ -1289,6 +1300,15 @@ end;
   caster costs 8 extra units. An off-map cell ends the bolt. }
 procedure LightningPath(boltLen, damage: Byte; saveType: ShortInt; bounce: Boolean);
 var
+  cells: Types.TCellList;
+begin
+  Magic.WalkBolt(boltLen, damage, saveType, bounce, False, cells);
+end;
+
+{ LightningPath's walk. With trace set it neither animates nor attacks: it lists every arena cell the bolt crosses in
+  cells and leaves GDVars.gTargetX/Y and GDVars.gMultiTarget as it found them. }
+procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
+var
   req: Types.TPathReq;
   req2: Types.TPathReq;
   x0: ShortInt;
@@ -1303,8 +1323,16 @@ var
   crIdx: Byte;
   terr: Byte;
   budget: Byte;
+  savedX: ShortInt;
+  savedY: ShortInt;
+  savedMulti: Byte;
 begin
-  CharHlp.BuildIconFacings(19);
+  cells.count := 0;
+  savedX := GDVars.gTargetX;
+  savedY := GDVars.gTargetY;
+  savedMulti := GDVars.gMultiTarget;
+  if not trace then
+    CharHlp.BuildIconFacings(19);
   CbtMap.GetArenaContents(GDVars.gTargetX, GDVars.gTargetY, prevCr, terr);
   sign := 1;
   x0 := CbtMap.CombatCellX(GDVars.curChar);
@@ -1329,14 +1357,26 @@ begin
         repeat
           valid := Pathing.NextPathStep(req);
           CbtMap.GetArenaContents(req.cx, req.cy, crIdx, terr);
+          if trace and valid and (terr <> 0) and (cells.count < SizeOf(cells.x)) then begin
+            Inc(cells.count);
+            cells.x[cells.count] := req.cx;
+            cells.y[cells.count] := req.cy;
+          end;
         until (valid = False) or ((crIdx > 0) and (crIdx <> prevCr)) or (terr = 0) or
             (GDConsts.terrainInfo[terr].cost > 1) or (req.dist >= budget);
       end;
       prevCr := crIdx;
       if terr = 0 then
         budget := 0;
-      CharHlp.CombatAnimateMovingIcon(prevX, prevY, req.cx, req.cy, 4, 50);
-      Magic.LightningAttackAt(req.cx, req.cy, damage, saveType, blocked);
+      if trace then begin
+        { LightningAttackAt's test }
+        blocked := False;
+        if terr > 0 then
+          blocked := GDConsts.terrainInfo[terr].cost = 255;
+      end else begin
+        CharHlp.CombatAnimateMovingIcon(prevX, prevY, req.cx, req.cy, 4, 50);
+        Magic.LightningAttackAt(req.cx, req.cy, damage, saveType, blocked);
+      end;
       if blocked then begin
         GDVars.gTargetX := req.cx;
         GDVars.gTargetY := req.cy;
@@ -1361,6 +1401,11 @@ begin
     until blocked or (budget = 0);
   end;
   GDVars.gMultiTarget := 0;
+  if trace then begin
+    GDVars.gTargetX := savedX;
+    GDVars.gTargetY := savedY;
+    GDVars.gMultiTarget := savedMulti;
+  end;
 end;
 
 { Lightning Bolt: caster-level d6 damage at the aim cell, then a bouncing bolt of 8 cells. }
@@ -1371,7 +1416,21 @@ var
 begin
   dmg := FxEngine.RollDice(CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), 6);
   Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, dmg, C_Save.SPELL, junk);
-  Magic.LightningPath(8, dmg, C_Save.SPELL, True);
+  Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_Save.SPELL, True);
+end;
+
+procedure TraceLightningBolt(x, y: ShortInt; var cells: Types.TCellList);
+var
+  savedX: ShortInt;
+  savedY: ShortInt;
+begin
+  savedX := GDVars.gTargetX;
+  savedY := GDVars.gTargetY;
+  GDVars.gTargetX := x;
+  GDVars.gTargetY := y;
+  Magic.WalkBolt(LIGHTNING_BOLT_CELLS, 0, C_Save.SPELL, True, True, cells);
+  GDVars.gTargetX := savedX;
+  GDVars.gTargetY := savedY;
 end;
 
 { Slow: the caster's enemies lose Hasted or are slowed (see HasteSlowLogic). }

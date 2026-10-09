@@ -554,6 +554,12 @@ type
   { Blit types. }
   TVideoMode = (vmCGA, vmEGA, vmTandy);
 
+  { A routine MenuCore.MenuHorizontal calls on every pass of its key wait. }
+  TIdleProc = procedure;
+  { The cells a spell reaches, for the spell-aim preview: a blast around the aim cell, Lightning Bolt's path from it, or
+    Stinking Cloud's 2x2 block with the aim cell at its upper left. }
+  TAimShape = (AimBlast, AimBolt, AimCloud);
+
   { Border types. }
   TCgaBank = array[0..99] of array[0..79] of Byte;
   TTandyBank = array[0..49] of array[0..159] of Byte;
@@ -574,6 +580,12 @@ type
     y: ShortInt;
     { reserved }
     pad: Byte;
+  end;
+  { Arena cells in the order something visits them, such as the cells a lightning bolt crosses. }
+  TCellList = record
+    count: Byte;
+    x: array[1..64] of ShortInt;
+    y: array[1..64] of ShortInt;
   end;
   { TCharRecord view: armor class and attacks as arrays }
   TAttackPhaseView = record

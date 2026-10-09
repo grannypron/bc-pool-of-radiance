@@ -14,6 +14,8 @@ var
   { Set just before a MenuHorizontal call whose caller reads the Left and Right arrows itself (turning, moving, aiming,
     adjusting a value); every return clears it. }
   arrowsToCaller: Boolean;
+  { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
+  idleHook: Types.TIdleProc;
 
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
@@ -186,6 +188,8 @@ begin
   qLen := Length(query) + 0;
   DisplayOption(GDVars.horizChoice);
   repeat
+    if @idleHook <> nil then
+      idleHook;
     if ((GDVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (anim.current > 0) then begin
       Portrait.DisplayImageBuf(3, 3, animate, anim.frames[anim.current].pic);
       if (TextRend.GetTicks - frameTick >= anim.frames[anim.current].time * 10)
@@ -604,4 +608,5 @@ end;
 begin
   listOnly := False;
   arrowsToCaller := False;
+  @idleHook := nil;
 end.
