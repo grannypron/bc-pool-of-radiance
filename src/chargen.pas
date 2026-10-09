@@ -950,11 +950,15 @@ begin
                    (stats[C_Abil.STRENGTH] < 17)) then
                  atCap := True;
         end;
-        if not atCap then
+        { xp[] runs to level 9 }
+        if (not atCap) and (lvl < 9) then
           if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (GDVars.stingMode <> 0) then
             if GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);
-              nextXp := GDConsts.dsExperienceSpellsClass[cls].xp[Succ(Succ(lvl))];
+              if lvl < 8 then
+                nextXp := GDConsts.dsExperienceSpellsClass[cls].xp[Succ(Succ(lvl))]
+              else
+                nextXp := 0;
               if nextXp > 0 then
                 if experience >= nextXp then
                   if nextXp > xpClamp then

@@ -1468,7 +1468,8 @@ begin
     { 7 = High(classLevels) }
     for cls := 0 to 7 do begin
       lvl := tgt^.classLevels[cls];
-      if (lvl > 0) and (lvl <= bestLvl) and (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
+      { xp[] runs to level 9 }
+      if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
           (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] < bestXp) and
           (not CharHlp.AtLevelCap(tgt, cls)) then begin
         bestLvl := lvl;
