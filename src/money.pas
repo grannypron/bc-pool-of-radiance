@@ -4,8 +4,8 @@ unit Money;
 
 interface
 
-uses Types, MenuCore, Crt, C_Npc, GDConsts, GDVars, GameIo, TextRend, Border, CharHlp, FxEngine,
-  C_Keys, C_Ifc, C_Money;
+uses Types, Crt, C_Npc, GDConsts, GDVars, MenuCore, GameIo, TextRend, Border, CharHlp, FxEngine, C_Keys,
+  C_Ifc, C_Money;
 
 function CarryingCapacity(p: Types.PCharRecord): Word;
 
@@ -131,7 +131,7 @@ var
   takable: Word;
 begin
   if Money.CheckOverload(GDVars.curChar, pp, takable) then begin
-    CharHlp.PrintBottomLine('Overloaded.  Money will be put in pool.');
+    CharHlp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
     Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
     Money.AddWeight(GDVars.curChar, takable);
     treasureMoney[C_Money.PLATINUM] := pp + treasureMoney[C_Money.PLATINUM] - takable;
@@ -330,8 +330,8 @@ begin
     treasureMoney[mType] := treasureMoney[mType] + qty;
 end;
 
-{ Take qty of mType from the pool, without checking the pool amount. The whole take is refused ('Overloaded') if qty
-  would overload; there is no partial take. }
+{ Take qty of mType from the pool; a qty above the pool amount is cut to the pool's low word. The whole take is refused
+  ('Overloaded') if the uncapped qty would overload; there is no partial take. }
 procedure TakeMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 var
   takable: Word;
@@ -339,6 +339,8 @@ begin
   if Money.CheckOverload(p, qty, takable) then
     CharHlp.PrintBottomLine('Overloaded')
   else begin
+    if qty > treasureMoney[mType] then
+      qty := treasureMoneyLo[mType].lo;
     treasureMoney[mType] := treasureMoney[mType] - qty;
     p^.coins[mType] := p^.coins[mType] + qty;
     Money.AddWeight(p, qty);
@@ -358,13 +360,13 @@ begin
   case s[i] of
     'G': if UpCase(s[i + 1]) = 'E' then begin
            ParseMoneyType := C_Money.GEMS;
-           typeName := 'gems ';
+           typeName := 'Gems ';
          end else begin
-           typeName := 'gold ';
+           typeName := 'Gold ';
            ParseMoneyType := C_Money.GOLD;
          end;
     'P': begin
-           typeName := 'platinum ';
+           typeName := 'Platinum ';
            ParseMoneyType := C_Money.PLATINUM;
          end;
     'E': begin
@@ -376,11 +378,11 @@ begin
            ParseMoneyType := C_Money.SILVER;
          end;
     'C': begin
-           typeName := 'copper ';
+           typeName := 'Copper ';
            ParseMoneyType := C_Money.COPPER;
          end;
     'J': begin
-           typeName := 'jewelry ';
+           typeName := 'Jewelry ';
            ParseMoneyType := C_Money.JEWELRY;
          end;
   end;
@@ -733,7 +735,7 @@ begin
   ok := True;
   if (GDVars.curChar^.coins[C_Money.GEMS] = 0) and
       (GDVars.curChar^.coins[C_Money.JEWELRY] = 0) then begin
-    CharHlp.PrintBottomLine('No gems or jewelry');
+    CharHlp.PrintBottomLine('No Gems or Jewelry');
     ok := False;
   end else
     repeat
@@ -750,8 +752,8 @@ begin
         end;
         case GDVars.curChar^.coins[C_Money.JEWELRY] of
           0: jwlStr := '';
-          1: jwlStr := jwlStr + ' piece of jewelry';
-          else jwlStr := jwlStr + ' pieces of jewelry';
+          1: jwlStr := jwlStr + ' piece of Jewelry';
+          else jwlStr := jwlStr + ' pieces of Jewelry';
         end;
         TextRend.ClearRect(1, 1, 38, 22);
         CharHlp.DisplayCreatureName(GDVars.curChar, 1, 1, False);
@@ -779,7 +781,7 @@ begin
                 100: value := 5000;
               end;
               Str(value, gemStr);
-              gemStr := 'The gem is valued at ' + gemStr + ' gp.';
+              gemStr := 'The Gem is Valued at ' + gemStr + ' gp.';
               TextRend.DisplayString(1, 12, White, gemStr);
               if Money.CheckOverload(GDVars.curChar, 1, takable)
                  or (GDVars.curChar^.numberOfItems >= 16) then begin
@@ -830,7 +832,7 @@ begin
                 91..100: value := Trunc(Random(10000)) + 2000;
               end;
               Str(value, jwlStr);
-              gemStr := 'The jewel is valued at ' + jwlStr + ' gp.';
+              gemStr := 'The Jewel is Valued at ' + jwlStr + ' gp.';
               TextRend.DisplayString(1, 12, White, gemStr);
               if Money.CheckOverload(GDVars.curChar, 1, takable)
                  or (GDVars.curChar^.numberOfItems >= 16) then begin

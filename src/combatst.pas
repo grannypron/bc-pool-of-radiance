@@ -5,13 +5,11 @@ unit CombatSt;
 interface
 
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine,
-  MenuCore, Portrait, View3D, CbtMap, MapTiles, CharHlp, Blit, TextRend, GameIo, SoundDrv, C_Ifc, C_Gbvm, C_Dir,
-  C_Sound;
+  MenuCore, Portrait, View3D, CbtMap, MapTiles, CharHlp, Blit, TextRend, GameIo, C_Ifc, C_Gbvm, C_Dir;
 
 procedure CombatStart;
 
 implementation
-
 
 var
 
@@ -834,10 +832,9 @@ begin
   prev^.nextCharAddr := nil;
 end;
 
-{ Prepare combat: release the animation and portrait pictures, play the battle sting on the Tandy chip, clear combat
-  state, build the arena, initialize and place creatures, and allocate the moving-icon frames. Centre the view on the
-  first creature, draw the combat interface, trigger start-of-combat effects and calculate the hostile hit-point
-  percentage. }
+{ Prepare combat: release the animation and portrait pictures, clear combat state, build the arena, initialize and place
+  creatures, and allocate the moving-icon frames. Centre the view on the first creature, draw the combat interface,
+  trigger start-of-combat effects and calculate the hostile hit-point percentage. }
 procedure CombatStart;
 var
   dead1: array[1..10] of Byte;
@@ -851,8 +848,6 @@ begin
   MenuCore.ClearBottomLine;
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
-  if GDVars.soundMode = C_Sound.MODE_TANDY then
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.BATTLE_STING]);
   GDVars.quickMagic := False;
   GDVars.roundCounter := 0;
   GDVars.gAttackRoll := 0;

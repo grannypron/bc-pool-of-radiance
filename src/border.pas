@@ -1,10 +1,10 @@
 { Text-window borders, rectangle clearing and centered titles. Borders use the 8x8 symbol set. }
-{$O+,F+}
+{$O-,F+}
 unit Border;
 
 interface
 
-uses Types, TextRend, Sym8x8, Video, Crt, C_Video, GDConsts, GDVars;
+uses Types, Crt, C_Video, GDConsts, GDVars, TextRend, Sym8x8;
 
 procedure DrawBorder(ulCol, ulRow, lrCol, lrRow: ShortInt; corner: Byte);
 
@@ -56,7 +56,7 @@ begin
   end;
 end;
 
-{ Clear a character-cell rectangle to black. EGA clears it on both pages through Video.FillRectEga. CGA clears 4
+{ Clear a character-cell rectangle to black. EGA clears it on both pages through TextRend.FillRectEga. CGA clears 4
   scanlines per character row in each of its 2 banks, 2 bytes per character; Tandy clears 2 scanlines per character row
   in each of its 4 banks, 4 bytes per character. }
 procedure ClearBox(ulCol, ulRow, lrCol, lrRow: ShortInt);
@@ -78,8 +78,8 @@ begin
       end;
     end;
     Types.vmEGA: begin
-      Video.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
-      Video.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
+      TextRend.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
+      TextRend.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
     end;
     Types.vmTandy: begin
       top := ulRow * 2;

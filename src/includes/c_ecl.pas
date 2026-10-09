@@ -1,13 +1,13 @@
-{ The ECL script entry-header slot. }
+{ ECL script opcodes, plus the search entry-header slot. }
 unit C_Ecl;
 
 interface
 
 const
   EXIT_SCRIPT = $00;
-  JUMP = $01;
   { Entry-header slot used for search and Look }
   ENTRY_SEARCH = 2;
+  JUMP = $01;
   GOSUB = $02;
   COMPARE = $03;
   ADD = $04;

@@ -1165,10 +1165,12 @@ begin
       pace := 20;
     end;
   end;
+  SoundDrv.SoundSetAutoStop(0);
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.RANGED_START]);
   CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
                                   CbtMap.CombatCellY(def), frames, pace);
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.RANGED_END]);
+  SoundDrv.SoundSetAutoStop(10);
 end;
 
 { Set hostileHpPct to the enabled hostiles' current HP as a percentage of all hostiles' maximum HP, rounded down to a

@@ -1,22 +1,28 @@
-{ Game-font text rendering, message-window input and centisecond timing. }
+{ Game-font text rendering, message-window input, centisecond timing, and the EGA page and fill helpers. }
 {$O+,F+}
 unit TextRend;
 
 interface
 
-uses Types, DaxIo, C_Video, C_Ega, GDConsts, GDVars, Crt, Dos, GameIo, Video, C_Keys;
+uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys;
 
-procedure NoopTextrend;
+procedure ResetEgaGC;
+
+procedure SetupEgaCurrentPage(page: Byte);
+
+procedure SetupEgaOtherPage(page: Byte);
+
+procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: ShortInt; page, color: Byte);
 
 procedure LoadGameFont;
 
-procedure DisplayString(col, row, color: Byte; source: string);
-
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 
-procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
-
 procedure PrintSpaces(col, row, color, count: Byte);
+
+procedure DisplayString(col, row, color: Byte; source: string);
+
+procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
 
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 
@@ -45,6 +51,72 @@ var
   tdyBA00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK1_SEG:$0000;
   tdyBC00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK2_SEG:$0000;
   tdyBE00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK3_SEG:$0000;
+
+{ Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
+procedure ResetEgaGC;
+begin
+  Port[C_Ega.GC_ADDR_PORT] := 0;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 1;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 2;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 3;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 4;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 5;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 7;
+  Port[C_Ega.GC_DATA_PORT] := $0F;
+  Port[C_Ega.GC_ADDR_PORT] := 8;
+  Port[C_Ega.GC_DATA_PORT] := $FF;
+  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+end;
+
+{ Make page the active display page (INT10 AH=5) and store its segment base, with a 512-paragraph stride, in egaCurPage.
+  GameBoot initializes both page selectors to 0; RenderChar then writes through both equal page segments. }
+procedure SetupEgaCurrentPage(page: Byte);
+begin
+  GDVars.dsInterruptRegisters.ah := 5;
+  GDVars.dsInterruptRegisters.al := page;
+  Intr($10, GDVars.dsInterruptRegisters);
+  GDVars.egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
+end;
+
+{ SetupEgaOtherPage: Store the other page's segment base in egaOtherPage using the same 512-paragraph stride, without a
+  BIOS call }
+procedure SetupEgaOtherPage(page: Byte);
+begin
+  GDVars.egaOtherPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
+end;
+
+{ Fill a character-cell rectangle on an EGA page using write mode 2. The fill goes through egaOtherPage, temporarily
+  pointed at page, and afterwards write mode 0 is restored and egaOtherPage is re-pointed at pageNum. }
+procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: ShortInt; page, color: Byte);
+var
+  savedPage: Byte;
+  dstOff: Word;
+  rowCount: Word;
+  i: Word;
+begin
+  savedPage := GDVars.pageNum;
+  dstOff := Word(ulRow) * 40 * 8 + ulCol;
+  rowCount := (lrRow - ulRow + 1) * 8 - 1;
+  TextRend.SetupEgaOtherPage(page);
+  TextRend.ResetEgaGC;
+  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
+  Port[C_Ega.GC_DATA_PORT] := 2;
+  for i := 0 to rowCount do begin
+    FillChar(Mem[GDVars.egaOtherPage: dstOff], lrCol - ulCol + 1, color);
+    Inc(dstOff, 40);
+  end;
+  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
+  Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
+  GDVars.pageNum := savedPage;
+  TextRend.SetupEgaOtherPage(GDVars.pageNum);
+end;
 
 { Load font block 201 from 8X8D1.DAX, copy it into gameFont and free the loader's buffer. Nothing is copied if the block
   cannot be loaded. }
@@ -348,8 +420,8 @@ begin
       FillChar(cgaB800, SizeOf(Types.TCgaBank), 0);
     end;
     Types.vmEGA: begin
-      Video.FillRectEga(0, 0, 39, 24, 0, Black);
-      Video.FillRectEga(0, 0, 39, 24, 1, Black);
+      TextRend.FillRectEga(0, 0, 39, 24, 0, Black);
+      TextRend.FillRectEga(0, 0, 39, 24, 1, Black);
     end;
     Types.vmTandy: begin
       FillChar(tdyB800, SizeOf(Types.TTandyBank), 0);
@@ -396,8 +468,8 @@ begin
       end;
     end;
     Types.vmEGA: begin
-      Video.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
-      Video.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
+      TextRend.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
+      TextRend.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
     end;
     Types.vmTandy: begin
       firstRow := ulRow * 2;
@@ -412,11 +484,6 @@ begin
       end;
     end;
   end;
-end;
-
-{ Reserved entry point; does nothing }
-procedure NoopTextrend;
-begin
 end;
 
 begin

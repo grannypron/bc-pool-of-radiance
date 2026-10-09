@@ -4,7 +4,7 @@ unit Explore;
 
 interface
 
-uses Types, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Crt, TextRend, Border, CharHlp,
+uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, TextRend, Border, CharHlp,
   Blit, MenuCore, Portrait, Camp, ViewChar, GameTime, FxEngine, View3D, MapTiles, C_Ecl, C_Keys, C_Class, C_Status,
   C_Gbvm, C_Dir, C_Sound, C_Spell;
 
@@ -209,13 +209,11 @@ begin
   end;
 end;
 
-{ MovePartyForward3D: play the step sound and pause briefly, step with 16x16 edge wrap, refresh wallAhead and
-  eventAtCell, reset the door flags and advance the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit
-  0) is on. }
+{ MovePartyForward3D: play the step sound, step with 16x16 edge wrap, refresh wallAhead and eventAtCell, reset the door
+  flags and advance the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit 0) is on. }
 procedure MovePartyForward3D;
 begin
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
-  Delay(50);
   Inc(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
   Inc(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
   if GDVars.gMapX < 0 then GDVars.gMapX := 15;
@@ -284,7 +282,8 @@ begin
     C_Area.LOC_3D_MAP: begin
          done := False;
          repeat
-           c := MenuCore.MenuHorizontal('', GDConsts.menu3D, LightMagenta, LightGreen, White, True, False, ext);
+           c := MenuCore.MenuHorizontal('', GDConsts.menu3D, LightMagenta, LightGreen, White, True, False,
+                                        ext);
            if not ext then begin
              case c of
                'A': if GDVars.zone0^.noAutomap = 0 then begin
@@ -348,7 +347,8 @@ begin
         end;
         done := False;
         repeat
-          c := MenuCore.MenuHorizontal('', GDConsts.menuWild, LightMagenta, LightGreen, White, True, False, ext);
+          c := MenuCore.MenuHorizontal('', GDConsts.menuWild, LightMagenta, LightGreen, White, True, False,
+                                       ext);
           if not ext then begin
             case c of
               'C': Camp.NoncombatCastMenu;
@@ -423,8 +423,8 @@ begin
                 if menuStr = ' Exit' then
                   Explore.ChangeBarrierImpassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing)
                 else begin
-                  c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen, White, False,
-                                                False, unusedExtendedKey);
+                  c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen,
+                                                White, False, False, unusedExtendedKey);
                   case c2 of
                     'B': moved := Explore.BashDoor;
                     'P': moved := Explore.PickLock;
@@ -444,8 +444,8 @@ begin
                 if menuStr = ' Exit' then
                   Explore.ChangeBarrierImpassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing)
                 else begin
-                  c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen, White, False,
-                                                False, unusedExtendedKey);
+                  c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen,
+                                                White, False, False, unusedExtendedKey);
                   case c2 of
                     'B': moved := Explore.BashDoor;
                     'P': GDVars.doorOpen[1] := 0;
@@ -454,11 +454,9 @@ begin
                 end;
               end;
          end;
-         { Note: the step sound plays here and again in MovePartyForward3D. }
-         if moved then begin
-           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
-           Explore.MovePartyForward3D;
-         end else
+         if moved then
+           Explore.MovePartyForward3D
+         else
            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
          CharHlp.PrintMiscInfo;
        end else

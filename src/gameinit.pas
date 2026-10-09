@@ -4,8 +4,8 @@ unit GameInit;
 
 interface
 
-uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Session, DaxIo, TextRend, Blit,
-  Video, Sym8x8, MenuCore, MapTiles, Magic, EffHndlr, C_Dir;
+uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Session, SoundDrv, DaxIo, TextRend,
+  Blit, Sym8x8, MenuCore, MapTiles, Magic, EffHndlr, C_Dir;
 
 procedure GameInit2;
 
@@ -13,7 +13,6 @@ implementation
 
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   wallCache: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
@@ -88,7 +87,7 @@ begin
   GDVars.creatureList := nil;
   GDVars.curChar := nil;
   GDVars.eclIp := $9900;
-  GDVars.gameDelay := 4;
+  GDVars.gameDelay := 1;
   GDVars.suppressContinuePrompt := 0;
   GDVars.virtualDisk := 1;
   GDVars.prevVirtualDisk := 1;
@@ -117,12 +116,8 @@ begin
   GDVars.ceilFloorColorSel := 232;
   GDVars.wallColorSel := 219;
   GDVars.inEncMenu := 0;
-  Blit.PrimeBlit;
-  Video.InitVideoPages;
-  { Install spell function pointers. }
-  Magic.InitSpellFns;
-  { Install effect function pointers. }
-  EffHndlr.InitEffectHandlers;
+  GDVars.soundAutoStop := 0;
+  SoundDrv.SoundSetAutoStop(100);
   GDVars.savedDir := GDVars.gameDir;
   GDVars.gameDir[0] := #0;
   TextRend.LoadGameFont;
@@ -135,36 +130,6 @@ begin
   for GDVars.gi2 := 0 to 11 do
     MapTiles.LoadIconAnim('COMSPR', GDVars.gi2, GDVars.gi2 + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
-  { Rebuild the transparency mask of both frames of icon animation 25: clear it, then copy the 24-pixel row mask into
-    every row except the first and last (the EGA mask is a quarter of imgSize). }
-  for GDVars.gi2 := 0 to 1 do
-    with iconAnims[25, GDVars.gi2]^ do
-      case displayMode of
-        Types.vmCGA: begin
-            FillChar(transp^, imgSize, 0);
-            GDVars.maskIdx := SizeOf(GDConsts.dsCombatCgaRowMask);
-            while imgSize - SizeOf(GDConsts.dsCombatCgaRowMask) > GDVars.maskIdx do begin
-              Move(GDConsts.dsCombatCgaRowMask, transp^[GDVars.maskIdx], SizeOf(GDConsts.dsCombatCgaRowMask));
-              Inc(GDVars.maskIdx, SizeOf(GDConsts.dsCombatCgaRowMask));
-            end;
-          end;
-        Types.vmEGA: begin
-            FillChar(transp^, imgSize div 4, 0);
-            GDVars.maskIdx := SizeOf(GDConsts.dsCombatEgaRowMask);
-            while imgSize div 4 - SizeOf(GDConsts.dsCombatEgaRowMask) > GDVars.maskIdx do begin
-              Move(GDConsts.dsCombatEgaRowMask, transp^[GDVars.maskIdx], SizeOf(GDConsts.dsCombatEgaRowMask));
-              Inc(GDVars.maskIdx, SizeOf(GDConsts.dsCombatEgaRowMask));
-            end;
-          end;
-        Types.vmTandy: begin
-            FillChar(transp^, imgSize, 0);
-            GDVars.maskIdx := SizeOf(GDConsts.dsCombatTandyRowMask);
-            while imgSize - SizeOf(GDConsts.dsCombatTandyRowMask) > GDVars.maskIdx do begin
-              Move(GDConsts.dsCombatTandyRowMask, transp^[GDVars.maskIdx], SizeOf(GDConsts.dsCombatTandyRowMask));
-              Inc(GDVars.maskIdx, SizeOf(GDConsts.dsCombatTandyRowMask));
-            end;
-          end;
-      end;
   GDVars.itemsOk := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':',
                                         #0, GDVars.itemsFile);
   Reset(GDVars.itemsFile, 1);
@@ -176,6 +141,10 @@ begin
   GDVars.gameDir := GDVars.savedDir;
   MenuCore.ClearBottomLine;
   Randomize;
+  { Install spell function pointers. }
+  Magic.InitSpellFns;
+  { Install effect function pointers. }
+  EffHndlr.InitEffectHandlers;
 end;
 
 begin

@@ -7,7 +7,7 @@ unit EffHndlr;
 interface
 
 uses Types, C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine,
-  Pathing, CbtMap, CharHlp, TextRend, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align;
+  Debug, Pathing, CbtMap, CharHlp, TextRend, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align;
 
 { Install the effect handlers in GDVars.effectFns. Magic installs slot 88 (dragon breath) itself. }
 procedure InitEffectHandlers;
@@ -33,8 +33,6 @@ var
   gHitsRound: array[0..1] of Byte
                             { hits this round }
                             absolute GDVars.hitsMade;
-  { save type 0..4 }
-  gSaveType: Byte absolute GDVars.gSaveType;
   effectHandlers: array[1..139] of Types.TEffectHandler
                             absolute GDVars.effectFns;
 
@@ -146,7 +144,7 @@ begin
 end;
 
 { Manual of Bodily Health training done (eff 7): +1 Constitution and the matching hit-point change; at Constitution 20
-  or more, add eff 62 (regeneration) for 60 minutes instead. Note: a zero hpBonus divides by zero. }
+  or more, add eff 62 (regeneration) for 60 minutes instead. }
 
 procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -172,6 +170,8 @@ begin
         Inc(hpBonus, creature^.classLevels[j] * 2)
       else
         Inc(hpBonus, creature^.classLevels[j]);
+  if hpBonus = 0 then
+    hpBonus := 1;
   hpGain := hpGain div hpBonus;
   if (creature^.conCur < 17) or (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) then begin
     Inc(creature^.hpMax, hpGain);
@@ -756,21 +756,23 @@ begin
 end;
 
 { Mummy rot degeneration (eff 57). strength upper nibble = the 1d6 countdown seeded by eff 87. Each firing costs 2
-  Charisma (not below 3); the creature re-arms for 43200 minutes while the count exceeds 1, then dies. Note: Charisma
-  below 2 wraps around instead of stopping at 3 }
+  Charisma (not below 3); the creature re-arms for 43200 minutes while the count exceeds 1, then dies }
 
 procedure EffMummyRot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.effectLock <> 0 then Exit;
   CharHlp.PrintNameString(creature, 'Rots...', 10, True);
-  Dec(creature^.chaCur, 2);
+  if creature^.chaCur > 2 then
+    Dec(creature^.chaCur, 2)
+  else
+    creature^.chaCur := 0;
   if creature^.chaCur < 3 then
     creature^.chaCur := 3;
   if Types.PEffectRec(p)^.strength div 16 > 1 then begin
     Dec(Types.PEffectRec(p)^.strength, $10);
     if EffHndlr.AddEffectIfNoLock(creature, C_Effect.MUMMY_ROT, Types.PEffectRec(p)^.strength, 43200) then ;
   end else
-    EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'Dies from rot');
+    EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'Dies rots away');
 end;
 
 { Immobile (eff 58) }
@@ -1172,6 +1174,7 @@ begin
       for j := 0 to 7 do
         Inc(totalLevels, creature^.classLevels[j]);
       hpPerLevel := creature^.hpMax div totalLevels;
+      Debug.PrintHpDebug('max,cur,lost', creature^.hpMax, creature^.hpCur, creature^.drainedHps);
       for k := 1 to hpPerLevel do begin
         if creature^.hpMax > 0 then
           Dec(creature^.hpMax);
@@ -1250,7 +1253,7 @@ procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 var
   bonus: Byte;
 begin
-  if gSaveType = C_Save.PARALYZE then begin
+  if GDVars.gSaveType = C_Save.PARALYZE then begin
     case creature^.conCur of
       4..6: bonus := 1;
       7..10: bonus := 2;
@@ -1320,7 +1323,7 @@ procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Bool
 var
   bonus: Byte;
 begin
-  if (gSaveType = C_Save.SPELL) or (gSaveType = C_Save.WAND) then begin
+  if (GDVars.gSaveType = C_Save.SPELL) or (GDVars.gSaveType = C_Save.WAND) then begin
     case creature^.conCur of
       4..6: bonus := 1;
       7..10: bonus := 2;
@@ -1479,7 +1482,7 @@ procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Bool
 begin
   EffHndlr.NullifyAttack(C_Effect.POISONED);
   EffHndlr.NullifyAttack(C_Effect.PARALYSIS);
-  if gSaveType = C_Save.PARALYZE then
+  if GDVars.gSaveType = C_Save.PARALYZE then
     GDVars.gSaveRoll := 100;
 end;
 
@@ -1652,7 +1655,7 @@ begin
   EffHndlr.NullifyAttack(C_Effect.SLEEP);
   EffHndlr.NullifyAttack(C_Effect.PARALYSIS);
   EffHndlr.NullifyAttack(C_Effect.POISONED);
-  if gSaveType = C_Save.PARALYZE then
+  if GDVars.gSaveType = C_Save.PARALYZE then
     GDVars.gSaveRoll := 100;
 end;
 

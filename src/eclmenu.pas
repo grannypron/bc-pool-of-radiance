@@ -4,8 +4,9 @@ unit EclMenu;
 
 interface
 
-uses Types, Portrait, Crt, C_Area, C_Npc, C_Save, GDConsts, GDVars, TextRend, DaxIo, CharHlp, MenuCore,
-  MapView, SaveLoad, ViewChar, FxEngine, View3D, MapTiles, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir, C_Money;
+uses Types, Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, Portrait, TextRend, DaxIo, CharHlp,
+  MenuCore, MapView, SaveLoad, ViewChar, FxEngine, View3D, MapTiles, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
+  C_Money;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address. Note: $80 (string value) also reads the GBVM, at an address made of the
@@ -19,8 +20,6 @@ procedure LoadEclVars(count: Byte);
 { Reset ECL state, read the five script entry addresses from the header at $9900 and, unless a saved game was just
   loaded, zero GBVM $4A00..$4A1F and $6E79..$6E82 }
 procedure EclInit;
-
-procedure NoopEclmenu;
 
 { Load ECL script from ECL<disk>.dax block scriptId, retrying until at least 2 bytes come back }
 procedure LoadEclScript(scriptId: Byte);
@@ -97,6 +96,15 @@ procedure RobMoney(fraction: Real; creature: Types.PCharRecord);
 
 { Chance% per item to steal it; heavy items (weight > 255 / > 24 coins) reduce the chance }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
+
+procedure SkipEclCmd;
+
+{ Highest/lowest movement in GDVars.creatureList (haste doubles, else slow halves); hiMove/loMove start from the head's
+  unadjusted movementCur, so that value always lies within the bounds }
+procedure MoveExtremes(var hiMove, loMove: Byte);
+
+{ Damage message + damage + party panel refresh; dead creatures are skipped }
+procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 implementation
 
@@ -887,7 +895,7 @@ begin
     p := p^.nextCharAddr;
   end;
   if mirror = 0 then Exit;
-  MapTiles.LoadIconAnim('cpic', 11, GDVars.gIconAnim);
+  MapTiles.LoadIconAnim('CPIC', 11, GDVars.gIconAnim);
   p := GDVars.creatureList;
   while p^.nextCharAddr <> nil do
     p := p^.nextCharAddr;
@@ -960,9 +968,87 @@ begin
   end;
 end;
 
-{ Intentionally empty stub; performs no work. }
-procedure NoopEclmenu;
+{ Step IP past the command at IP without running it, loading the opcode's operands; unlisted opcodes skip one byte }
+procedure SkipEclCmd;
 begin
+  GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
+  case GDVars.curOpcode of
+    C_Ecl.JUMP, C_Ecl.GOSUB, C_Ecl.LOAD_CHAR, C_Ecl.PICTURE, C_Ecl.PRINT, C_Ecl.PRINTCLEAR,
+        C_Ecl.PARTY_STR, C_Ecl.NEWECL, C_Ecl.CALL,
+    C_Ecl.FIND_ITEM, C_Ecl.CLOCK, C_Ecl.ADD_NPC, C_Ecl.RUN_PROGRAM, C_Ecl.WHO, C_Ecl.PROTECTION:
+      EclMenu.LoadEclVars(1);
+    C_Ecl.COMPARE, C_Ecl.RANDOM_NUMBER, C_Ecl.SAVE, C_Ecl.SETUP_MON, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR,
+        $1F, C_Ecl.PARTY_SURPR:
+      EclMenu.LoadEclVars(2);
+    C_Ecl.ADD..C_Ecl.MULTIPLY, C_Ecl.LOAD_MON, C_Ecl.LOADFILES, C_Ecl.ROB, C_Ecl.GETTABLE,
+        C_Ecl.BIT_AND, C_Ecl.BIT_OR, C_Ecl.SAVE_TABLE,
+    C_Ecl.LOADPIECES, C_Ecl.SPELL:
+      EclMenu.LoadEclVars(3);
+    C_Ecl.COMPARE_AND, C_Ecl.SURPRISE:
+      EclMenu.LoadEclVars(4);
+    C_Ecl.DAMAGE:
+      EclMenu.LoadEclVars(5);
+    C_Ecl.CHECK_PARTY, C_Ecl.PARLAY:
+      EclMenu.LoadEclVars(6);
+    C_Ecl.TREASURE:
+      EclMenu.LoadEclVars(8);
+    C_Ecl.ENCOUNTER:
+      EclMenu.LoadEclVars(14);
+  else
+    Inc(GDVars.eclIp);
+  end;
+end;
+
+{ The list head is read before the nil check, so callers must supply a nonempty list }
+procedure MoveExtremes(var hiMove, loMove: Byte);
+var
+  p: Types.PCharRecord;
+  effect: Types.PEffectRec;
+  m: Byte;
+begin
+  p := GDVars.creatureList;
+  hiMove := p^.movementCur;
+  loMove := p^.movementCur;
+  while p <> nil do begin
+    m := p^.movementCur;
+    if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
+      m := m * 2
+    else if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
+      m := m div 2;
+    if m > hiMove then hiMove := m;
+    if m < loMove then loMove := m;
+    p := p^.nextCharAddr;
+  end;
+end;
+
+{ "dies" when dmg > hpCur + 10, else the hit message (dmgStr holds at most 3 digits); then apply the damage, clear the
+  panel at (17,1)-(38,15) and redraw the party }
+procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
+var
+  frameSizer: Byte;
+  msg: String;
+  dmgStr: String[3];
+  pause: Boolean;
+begin
+  if creature^.status = C_Status.DEAD then Exit;
+  pause := False;
+  Str(dmg, dmgStr);
+  if creature^.hpCur + 10 < dmg then
+    msg := '  ' + creature^.name + ' dies. '
+  else
+    msg := '  ' + creature^.name + ' is hit FOR ' + dmgStr + ' points of Damage.';
+  if GDVars.curRow > C_Msg.TEXT_BOTTOM then begin
+    GDVars.curRow := C_Msg.MESSAGE_TOP;
+    pause := True;
+    TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
+  end else
+    pause := False;
+  GDVars.curCol := C_Msg.TEXT_RIGHT;
+  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                White, pause, msg);
+  CharHlp.InflictDamage(creature, dmg);
+  TextRend.ClearRect(17, 1, 38, 15);
+  CharHlp.DisplayParty(GDVars.curChar);
 end;
 
 begin
