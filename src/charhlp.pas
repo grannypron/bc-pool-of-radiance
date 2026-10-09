@@ -12,7 +12,7 @@ procedure WeaponAdjust(creature: Types.PCharRecord);
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
 
 procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
-                            isMagicBody: Types.PBoolean);
+                            isMagicBody: Types.PBoolean; var ringSave: ShortInt);
 
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
@@ -108,6 +108,10 @@ function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
 
 function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
 
+function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
+
+function RawWeight(creature: Types.PCharRecord): LongInt;
+
 implementation
 
 var
@@ -124,7 +128,9 @@ var
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
   plus, and that of readied quarrels or arrows when the weapon fires them, is added to both. An elf gets a further +1
-  to-hit with a bow (item types 41..44), a long sword (36) or a short sword (37). }
+  to-hit with a bow (item types 41..44), a long sword (36) or a short sword (37). Type 45 is the Heavy Crossbow's row,
+  but the Fine Composite Long Bow is also built on it; it counts as a bow when its second name component is a bow's
+  name (41..44), which a Heavy Crossbow never carries. }
 procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
@@ -152,7 +158,8 @@ begin
       plus := plus + creature^.equipped[C_Equip.ARROW]^.plus;
   creature^.curModA[1] := creature^.curModA[1] + plus;
   if (creature^.race = C_Race.ELF) and
-      (((w^.itemType > 40) and (w^.itemType < 45)) or (w^.itemType = 37) or (w^.itemType = 36)) then
+      (((w^.itemType > 40) and (w^.itemType < 45)) or (w^.itemType = 37) or (w^.itemType = 36) or
+       ((w^.itemType = 45) and (w^.nameIds[2] in [41..44]))) then
     Inc(plus);
   creature^.thac0Cur := creature^.thac0Cur + plus;
   creature^.curRollsA[1] := GDVars.baseItems[wtype].dmgSmRolls;
@@ -178,10 +185,11 @@ end;
 { Fold one equipped item into the AC adjustment slots. Only items whose base acDescr >= 128 participate; descr's low 7
   bits are the item's own AC value. A shield (slot 1) sets adj[1] to AC + plus. An item with AC 0 adds its saveBonus to
   the creature's and its plus to adj[2], except a ring (slot 9), whose plus instead raises adj[3] to the best ring
-  plus. Any other item keeps the best AC + plus in adj[4], setting isMagicBody when that new best is body armor (slot
-  2) with a positive plus. }
+  plus, and whose plus or saveBonus, whichever is larger, raises ringSave to the best ring's save bonus (RecalcStats
+  adds it once). Any other item keeps the best AC + plus in adj[4], setting isMagicBody when that new best is body
+  armor (slot 2) with a positive plus. }
 procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
-                            isMagicBody: Types.PBoolean);
+                            isMagicBody: Types.PBoolean; var ringSave: ShortInt);
 var
   descr: Byte;
   slot: Byte;
@@ -196,9 +204,14 @@ begin
       if slot = C_Equip.RING1 then begin
         if item^.plus > adj^[3] then
           adj^[3] := item^.plus;
-      end else
+        if item^.plus > ringSave then
+          ringSave := item^.plus;
+        if item^.saveBonus > ringSave then
+          ringSave := item^.saveBonus;
+      end else begin
         adj^[2] := adj^[2] + item^.plus;
-      creature^.saveBonus := creature^.saveBonus + item^.saveBonus;
+        creature^.saveBonus := creature^.saveBonus + item^.saveBonus;
+      end;
     end else begin
       if descr + item^.plus > adj^[4] then begin
         adj^[4] := descr + item^.plus;
@@ -421,6 +434,7 @@ var
   c: ShortInt;
   w: Word;
   slot: 0..127;
+  ringSave: ShortInt;
 begin
   { rebuild every equipment slot from the readied items }
   for i := C_Equip.WEAPON to C_Equip.BOLT do
@@ -472,6 +486,7 @@ begin
     adj[k] := 0;
   magicBody := False;
   creature^.saveBonus := 0;
+  ringSave := 0;
   creature^.acCur := creature^.acBase;
   creature^.movementCur := creature^.movementBase;
   creature^.thac0Cur := creature^.thac0Base;
@@ -485,10 +500,13 @@ begin
   while item <> nil do begin
     if item^.equipped <> 0 then begin
       CharHlp.ArmorMoveAdjust(creature, item);
-      CharHlp.ArmorAdjustHelper(creature, item, @adj, @magicBody);
+      CharHlp.ArmorAdjustHelper(creature, item, @adj, @magicBody, ringSave);
     end;
     item := item^.next;
   end;
+  { a Ring of Protection guards saves as well as AC: the best ring counts once, and magical body armor cancels only
+    its AC }
+  creature^.saveBonus := creature^.saveBonus + ringSave;
   { rings do not add to magical body armor }
   if magicBody then
     adj[3] := 0;
@@ -653,6 +671,42 @@ begin
   else
     WeightAllowance := 0;
   end;
+end;
+
+{ True when the creature has a Bag of Holding readied (name component 186 is 'Holding'). }
+function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
+var
+  item: Types.PItemRec;
+begin
+  HasBagOfHolding := False;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if (item^.equipped <> 0) and (item^.nameIds[1] = 186) then
+      HasBagOfHolding := True;
+    item := item^.next;
+  end;
+end;
+
+{ The creature's weight in coins before a Bag of Holding takes its share: every item (weight times quantity) and every
+  coin, gem and piece of jewelry, as RecalcStats adds them up. }
+function RawWeight(creature: Types.PCharRecord): LongInt;
+var
+  item: Types.PItemRec;
+  w: LongInt;
+  c: ShortInt;
+begin
+  w := 0;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if item^.quantity > 0 then
+      Inc(w, LongInt(item^.quantity) * item^.weight)
+    else
+      Inc(w, item^.weight);
+    item := item^.next;
+  end;
+  for c := C_Money.COPPER to C_Money.JEWELRY do
+    Inc(w, creature^.coins[c]);
+  RawWeight := w;
 end;
 
 { Clear the first memorized-spell slot holding spell on the current character. }
