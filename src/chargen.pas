@@ -268,8 +268,11 @@ begin
   repeat
     ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
                                 addExit, redraw, sel, m);
-    { Note: leaks the character and the string list. }
-    if ch = C_Keys.NONE then Exit;
+    if ch = C_Keys.NONE then begin
+      MenuCore.FreeStringList(list);
+      CharGen.FreeCreature(creature);
+      Exit;
+    end;
   until ch = C_Keys.ENTER;
   if sel = 6 then
     { 6 -> Human (7) }
@@ -326,8 +329,11 @@ begin
   repeat
     ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
                                 addExit, redraw, sel, m);
-    { Note: leaks the character and the string list. }
-    if ch = C_Keys.NONE then Exit;
+    if ch = C_Keys.NONE then begin
+      MenuCore.FreeStringList(list);
+      CharGen.FreeCreature(creature);
+      Exit;
+    end;
   until ch = C_Keys.ENTER;
   creature^.genderSp := sel - 1;
   { class }
@@ -347,8 +353,11 @@ begin
   repeat
     ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
                                 addExit, redraw, sel, m);
-    { Note: leaks the character and the string list. }
-    if ch = C_Keys.NONE then Exit;
+    if ch = C_Keys.NONE then begin
+      MenuCore.FreeStringList(list);
+      CharGen.FreeCreature(creature);
+      Exit;
+    end;
   until ch = C_Keys.ENTER;
   with creature^ do begin
     charClass := GDConsts.classesByRace[race, sel];
@@ -412,8 +421,11 @@ begin
   repeat
     ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
                                 addExit, redraw, sel, m);
-    { Note: leaks the character and the string list. }
-    if ch = C_Keys.NONE then Exit;
+    if ch = C_Keys.NONE then begin
+      MenuCore.FreeStringList(list);
+      CharGen.FreeCreature(creature);
+      Exit;
+    end;
   until ch = C_Keys.ENTER;
   creature^.alignment := GDConsts.alignByClass[creature^.charClass, sel];
   MenuCore.FreeStringList(list);
@@ -655,7 +667,8 @@ begin
   CharGen.CustomizeIcon;
   SaveLoad.SaveChar(Types.PCharRecord(creature), '');
   GDVars.curChar := savedCur;
-  FreeMem(creature, SizeOf(Types.TCharRecord));
+  { with its racial effects }
+  CharGen.FreeCreature(creature);
 end;
 
 { DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
