@@ -850,8 +850,9 @@ begin
 end;
 
 { Slow Poison: animated dead are skipped. A poisoned target (effect 55) has hpCur raised to at least 1, gets the spell's
-  effect at strength 255, runs the effect-78 (heal/wake) handler with removed = True, and gains effect 15 for 10 minutes
-  at strength 255. }
+  effect at strength 255, gets back up through FxEngine.ReviveDeadCreature (or, where it cannot stand yet, a minute
+  later through C_Effect.HEAL_WAKE, as under Keoghtom's Ointment), and gains effect 15 for 10 minutes at strength
+  255. }
 procedure SlowPoisonHandler;
 var
   effect: Types.PEffectRec;
@@ -864,7 +865,8 @@ begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 255, True, 0, 0, 'is affected');
-    FxEngine.CallEffectHandler(C_Effect.HEAL_WAKE, tgt, nil, True);
+    if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
+      FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
     FxEngine.AddEffect(tgt, C_Effect.SLOW_POISON_HIT, 10, 255, True);
   end;
 end;
