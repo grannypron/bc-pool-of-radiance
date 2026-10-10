@@ -1093,6 +1093,7 @@ var
   j: Byte;
   i: Byte;
   reps: Byte;
+  slot: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
     SoundDrv.SoundSetAutoStop(0);
@@ -1112,15 +1113,19 @@ begin
       reps := GDVars.gameDelay
     else
       reps := 0;
-    gx := GDVars.gridX[CbtMap.CombatSlot(creature)] * 3;
-    gy := GDVars.gridY[CbtMap.CombatSlot(creature)] * 3;
-    for i := 0 to reps do
-      for j := 0 to 3 do begin
-        Blit.BlitTileClipped(gx, gy, j, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
-        Blit.FlushView;
-        Delay(70);
-        Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
-      end;
+    slot := CbtMap.CombatSlot(creature);
+    { slot 0: not on the map, so there is no cell to flash }
+    if slot > 0 then begin
+      gx := GDVars.gridX[slot] * 3;
+      gy := GDVars.gridY[slot] * 3;
+      for i := 0 to reps do
+        for j := 0 to 3 do begin
+          Blit.BlitTileClipped(gx, gy, j, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+          Blit.FlushView;
+          Delay(70);
+          Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        end;
+    end;
     SoundDrv.SoundSetAutoStop(10);
     Blit.FlushView;
     if reps = 0 then

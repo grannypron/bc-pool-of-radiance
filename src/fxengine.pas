@@ -526,9 +526,12 @@ begin
   { a creature that fled (C_Status.RUNNING) keeps its hit points }
   if creature^.status <> C_Status.RUNNING then
     creature^.hpCur := 0;
-  CbtMap.UpdateCombatMapTile(0, 0, slot);
-  Blit.FlushView;
-  GDVars.arenaLoc[slot].size := 0;
+  { slot 0: not on the map, so there is no icon to erase }
+  if slot > 0 then begin
+    CbtMap.UpdateCombatMapTile(0, 0, slot);
+    Blit.FlushView;
+    GDVars.arenaLoc[slot].size := 0;
+  end;
   CbtMap.BuildArenaArrays;
   if CharHlp.EndActions(creature) then
     FxEngine.RemoveEffectsHp0(creature);

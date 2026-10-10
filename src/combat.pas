@@ -348,7 +348,9 @@ begin
       { Escape: undo }
       C_Keys.NONE: begin
                   creature^.combatAddr^.movement := savedMove;
-                  CbtMap.UpdateCombatMapTile(0, 0, CbtMap.CombatSlot(creature));
+                  { slot 0 (not on the map) would redraw view cell 0, 0 instead }
+                  if CbtMap.CombatSlot(creature) > 0 then
+                    CbtMap.UpdateCombatMapTile(0, 0, CbtMap.CombatSlot(creature));
                   { Put it back on its start cell; the turn ends if that cell is no longer free }
                   done := CbtMap.IsValidCreatureLoc(creature, startX, startY, False) = False;
                   CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_Dir.CENTER);
