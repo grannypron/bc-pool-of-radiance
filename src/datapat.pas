@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 43;
-  BYTE_COUNT = 1266;
+  PART_COUNT = 45;
+  BYTE_COUNT = 1284;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -138,7 +138,12 @@ const
     { POR-0049: at Stojanow Gate, refusing the bugbears' 15 gold (or not having it) and being told to 'come back when
       you've learned the rules' (script $AC32) made them hostile for good; they now become more suspicious, attitude
       2, so the party may come back }
-    (por: 49; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 4918; origLen: 1; newLen: 1));
+    (por: 49; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 4918; origLen: 1; newLen: 1),
+    { POR-0050: at Stojanow Gate, bugbears who unmasked the party as impostors (script $ACF8) never turned hostile,
+      so the wagon bluff could be tried again until it worked; they now set the hostile attitude, 3, in new code at
+      the end of the script }
+    (por: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 5114; origLen: 4; newLen: 4),
+    (por: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 6367; origLen: 0; newLen: 10));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -530,7 +535,14 @@ const
     { POR-0049, original }
     $03,
     { fixed: SAVE $02, [$4A78] }
-    $02);
+    $02,
+    { POR-0050 part 1, original }
+    $01, $01, $5D, $A7,                               { $ACF8 GOTO LA75D }
+    { fixed: on to new code at the end of the script }
+    $01, $01, $DD, $B1,                               { $ACF8 GOTO LB1DD }
+    { POR-0050 part 2, added at $B1DD: hostile from now on, then the weapons menu as before }
+    $09, $00, $03, $01, $78, $4A,                     { $B1DD SAVE $03, [$4A78] }
+    $01, $01, $5D, $A7);                              { $B1E3 GOTO LA75D }
 
 implementation
 
