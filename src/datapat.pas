@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 45;
-  BYTE_COUNT = 1284;
+  PART_COUNT = 46;
+  BYTE_COUNT = 1288;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -143,7 +143,10 @@ const
       so the wagon bluff could be tried again until it worked; they now set the hostile attitude, 3, in new code at
       the end of the script }
     (por: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 5114; origLen: 4; newLen: 4),
-    (por: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 6367; origLen: 0; newLen: 10));
+    (por: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 6367; origLen: 0; newLen: 10),
+    { POR-0051: Stojanow Gate's alarm (script $9C0C) set its end hour from the stray word [$9800] instead of the hour
+      it was raised, [$4A62], so it ended at once or never; it uses [$4A62] as Valjevo Castle's alarm does }
+    (por: 51; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 786; origLen: 2; newLen: 2));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -542,7 +545,11 @@ const
     $01, $01, $DD, $B1,                               { $ACF8 GOTO LB1DD }
     { POR-0050 part 2, added at $B1DD: hostile from now on, then the weapons menu as before }
     $09, $00, $03, $01, $78, $4A,                     { $B1DD SAVE $03, [$4A78] }
-    $01, $01, $5D, $A7);                              { $B1E3 GOTO LA75D }
+    $01, $01, $5D, $A7,                               { $B1E3 GOTO LA75D }
+    { POR-0051, original }
+    $00, $98,
+    { fixed: ADD $01, [$4A62], [$4A64] }
+    $62, $4A);
 
 implementation
 
