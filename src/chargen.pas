@@ -1188,19 +1188,23 @@ begin
                 Inc(nonNpc);
               p := p^.nextCharAddr;
             end;
-            { Add if not already in the party: a non-NPC (C_Npc.FLAG clear) while under 6 non-NPCs, or an NPC
-              (C_Npc.FLAG set) while the party is under 8 }
-            if (p = nil) and
-                (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or
-                 ((creature^.npc > $7F) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8))) then begin
+            { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
+              non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
+              ninth member. }
+            if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8) and
+                (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or (creature^.npc > $7F)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
               { C_Npc.FLAG clear }
               if creature^.npc < C_Npc.FLAG then
                 Inc(nonNpc);
-            end else
+            end else begin
+              { one the party has no room for keeps its roster line, which SaveCharlist would drop with the mark }
+              if p = nil then
+                m^.name := Copy(m^.name, 3, Length(m^.name) - 2);
               { with the items and effects LoadChar read }
               CharGen.FreeCreature(Types.PCharRecord(creature));
+            end;
           end;
         end;
       end;
