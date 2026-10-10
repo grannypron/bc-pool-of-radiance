@@ -98,6 +98,11 @@ function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte
   creature (a corpse a single-target spell was aimed at) is left alone. }
 procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
 
+{ InflictNonWeaponDamage, with no save, for an aligned item (eff 132) that shocks the creature readying it: in place
+  of "takes n points of damage" the message window shows "<item> shocks <name> for <n> damage, and has been
+  unequipped." with the item's displayed name, and waits for a key (CharHlp.PrintMessageWait). }
+procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; damage: Byte);
+
 { AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when a
   C_Cond.EFFECT_IMMUNITY (9) effect clears GDVars.pendingEffectId, or when saved and saveNegates are both True.
   Otherwise an existing node with the same id is removed first if it is timed and the new duration is longer, or if the
@@ -611,7 +616,10 @@ begin
   end;
 end;
 
-procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
+{ InflictNonWeaponDamage and InflictItemShock: shockItem nil prints the "takes n points of damage" line, else the
+  item's shock message. }
+procedure NonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean;
+                          shockItem: Types.PItemRec);
 var
   s: String;
 begin
@@ -637,7 +645,14 @@ begin
     { magic bit alone, or no element bit at all }
     if (GDVars.elementMask and 8) = GDVars.elementMask then
       s := s + 'from Magic';
-    CharHlp.PrintNameStringAnim(creature, False, s);
+    if shockItem = nil then
+      CharHlp.PrintNameStringAnim(creature, False, s)
+    else begin
+      { the item label ends in a space }
+      CharHlp.PrintItemString(creature, shockItem, 0, 0, False, False);
+      CharHlp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
+                               CharHlp.ByteToString(GDVars.pendingDamage) + ' damage, and has been unequipped.');
+    end;
     CharHlp.InflictDamage(creature, GDVars.pendingDamage);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       creature^.combatAddr^.castAllowed := 0;
@@ -668,6 +683,16 @@ begin
     end;
     CharHlp.ClearMessageWindow;
   end;
+end;
+
+procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
+begin
+  FxEngine.NonWeaponDamage(creature, damage, saveReduction, saved, nil);
+end;
+
+procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; damage: Byte);
+begin
+  FxEngine.NonWeaponDamage(creature, damage, 0, False, item);
 end;
 
 procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove,

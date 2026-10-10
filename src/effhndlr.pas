@@ -1973,7 +1973,7 @@ begin
 end;
 
 { Aligned weapon (eff 132). The item's effect byte holds the required alignment in its low nibble; a wielder of another
-  alignment has it unreadied and takes magic damage equal to the upper nibble }
+  alignment has it unreadied and takes magic damage equal to the upper nibble, with a message naming the item }
 
 procedure EffAlignedWeapon(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1988,7 +1988,7 @@ begin
     GDVars.elementMask := 8;
     if GDVars.ifcState = C_Ifc.COMBAT then
       CharHlp.DisplayCombatInterface;
-    FxEngine.InflictNonWeaponDamage(creature, dmg, 0, False);
+    FxEngine.InflictItemShock(creature, item, dmg);
     GDVars.dsRedrawInventoryMenuFlag := 1;
   end;
 end;
