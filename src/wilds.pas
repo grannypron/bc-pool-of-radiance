@@ -8,7 +8,7 @@ uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles, TextRend;
 
 { Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GDConsts.wildMap, apply the
   special-location overrides gated on zone-0 quest flags, and draw each 24x24 tile three character cells apart through
-  MapTiles.Copy2DTile. }
+  MapTiles.Copy2DTile. The corner is first moved so the 5x5 view lies inside the 44x36 map. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
 
 { Draw the empty bordered windows of the wilderness screen: two side by side at the top and the message area. }
@@ -48,6 +48,12 @@ var
   col: Byte;
   row: Byte;
 begin
+  if ulX < 0 then ulX := 0;
+  { last column origin for the 5-wide view }
+  if ulX > 39 then ulX := 39;
+  if ulY < 0 then ulY := 0;
+  { last row origin for the 5-tall view }
+  if ulY > 31 then ulY := 31;
   viewY := 0;
   for row := 0 to 4 do begin
     viewX := 0;
