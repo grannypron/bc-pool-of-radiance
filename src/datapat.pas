@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 24;
-  BYTE_COUNT = 962;
+  PART_COUNT = 25;
+  BYTE_COUNT = 966;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -81,6 +81,10 @@ const
       the ogre lives and the party is on a patrol square, and with the ogre dead the block is cleared }
     (por: 35; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 75; origLen: 14; newLen: 14),
     (por: 35; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 6213; origLen: 0; newLen: 65),
+    { POR-0036: the Ring of Feather Falling under the Wealthy Area's trap door (ITEM1 block 6, record 0) carries
+      effect 0 and special 0, so readying it gives no Feather Fall; it gets effect 27 and special 128, as a random
+      one has }
+    (por: 36; family: C_Data.FAMILY_ITEM; disk: 1; id: 6; size: 189; offset: 61; origLen: 2; newLen: 2),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -317,6 +321,10 @@ const
     $19,                                              { $B17C IF > }
     $09, $00, $00, $01, $D2, $6D,                     { $B17D SAVE $00, [$6DD2] }
     $00,                                              { $B183 EXIT }
+    { POR-0036, original }
+    $00, $00,
+    { fixed: effect 27 (Feather Fall), special 128 }
+    $1B, $80,
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
