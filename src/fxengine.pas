@@ -17,9 +17,8 @@ procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer
   called with removed = True; the node is then unlinked and freed. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
-{ Fire, on one creature, every effect id registered under condition cond (0..19, the COND_ constants of C_Cond and of
-  this unit). Each id goes through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49
-  carried by other creatures. }
+{ Fire, on one creature, every effect id registered under condition cond (0..19, the C_Cond constants). Each id goes
+  through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures. }
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 
 { Stinking-cloud check for an enabled creature: CbtMap.ProbeDirection (dir 8, its own cells) must report terrain 30
@@ -42,7 +41,8 @@ function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): 
 
 { d20 saving throw into GDVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
   creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_Cond.SAVING_THROW (12) effects run, and
-  the save succeeds when creature^.saves[saveType] <= the modified roll. }
+  the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_Save.PARALYZE..SPELL (an
+  ECL script supplies it) is rolled as C_Save.SPELL. }
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
 
 { Roll n dice with the given number of sides and return the total (0 when n = 0; the Byte sum wraps past 255). }
@@ -455,6 +455,8 @@ end;
 
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
 begin
+  if (saveType < C_Save.PARALYZE) or (saveType > C_Save.SPELL) then
+    saveType := C_Save.SPELL;
   GDVars.gSaveRoll := FxEngine.RollDice(1, 20);
   case GDVars.gSaveRoll of
     1: RollSavingThrow := False;
@@ -744,9 +746,11 @@ begin
     { bypassRot at full hit points: False }
     if bypassRot then Exit;
   end;
-  creature^.hpCur := creature^.hpCur + hp;
-  if creature^.hpCur > creature^.hpMax then
-    creature^.hpCur := creature^.hpMax;
+  { capped before the add, so the Byte hpCur cannot wrap past 255 }
+  if Word(creature^.hpCur) + hp > creature^.hpMax then
+    creature^.hpCur := creature^.hpMax
+  else
+    creature^.hpCur := creature^.hpCur + hp;
   if creature^.enabled = 0 then begin
     if creature^.status = C_Status.DYING then
       creature^.status := C_Status.UNCONSCIOUS;
