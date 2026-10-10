@@ -63,9 +63,10 @@ end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that name/id pair is already the cached picture
   (GDVars.picArcName/picArcId). PIC 1 is capped at 4 frames, and any picture at the 8 the record holds. A frame is
-  loaded only while MaxAvail >= 3900: loaded frames are stored in order and count becomes the number loaded, a skipped
-  frame's data is stepped over, and without room for the first frame (which the others are XORed with for PIC and
-  FINAL) nothing is loaded. An odd transp remaps LightMagenta to Black outside CGA. }
+  loaded only while MaxAvail is at least 3900 and covers what loading it allocates (FrameNeed): loaded frames are
+  stored in order and count becomes the number loaded, a skipped frame's data is stepped over, and without room for
+  the first frame (which the others are XORed with for PIC and FINAL) nothing is loaded. An odd transp remaps
+  LightMagenta to Black outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
 var
   sz: Word;
@@ -84,6 +85,36 @@ var
   loaded: Byte;
   stop: Boolean;
   fr: Types.PImgBuf;
+
+  { Bytes loading frame f of h rows by w columns allocates at once: the picture (Blit.AllocPic), its mask when transp
+    is odd and, outside CGA, RemapPic's scratch copy, and the XOR buffer for frame 1 of a PIC or FINAL; plus 8 per
+    allocation for the heap's rounding. }
+  function FrameNeed: LongInt;
+  var
+    frameSz: LongInt;
+    need: LongInt;
+  begin
+    frameSz := LongInt(h) * w * 2;
+    if displayMode <> Types.vmCGA then
+      frameSz := frameSz * 2;
+    need := SizeOf(fr^) - SizeOf(fr^.data) + frameSz + 8;
+    if transp and 1 > 0 then begin
+      if displayMode = Types.vmEGA then
+        Inc(need, frameSz div 4 + 8)
+      else
+        Inc(need, frameSz + 8);
+      if displayMode <> Types.vmCGA then
+        Inc(need, SizeOf(fr^) - SizeOf(fr^.data) + frameSz + 8);
+    end;
+    if isPic and (f = 1) then
+      { planeSz + 1: twice the frame on CGA }
+      if displayMode = Types.vmCGA then
+        Inc(need, frameSz * 2 + 8)
+      else
+        Inc(need, frameSz + 8);
+    FrameNeed := need;
+  end;
+
 begin
   if (name = GDVars.picArcName) and (picId = GDVars.picArcId) then Exit;
   Portrait.FreeAnimation(a);
@@ -112,7 +143,7 @@ begin
       Inc(offset, SizeOf(h));
       Move(buf^[offset], w, SizeOf(w));
       Inc(offset, SizeOf(w));
-      if MaxAvail >= 3900 then begin
+      if (MaxAvail >= 3900) and (MaxAvail >= FrameNeed) then begin
         Inc(loaded);
         Blit.AllocPic(h, w, 1, transp, frames[loaded].pic);
         with frames[loaded].pic^ do begin
