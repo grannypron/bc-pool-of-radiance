@@ -169,8 +169,8 @@ begin
   FindCharWithSpell := p;
 end;
 
-{ PartyCastsKnock: the first party member with Knock (C_Spell.KNOCK) memorized uses it, clearing that slot; False when
-  nobody has it. }
+{ PartyCastsKnock: the first party member with Knock (C_Spell.KNOCK) memorized uses it, clearing that slot, and the
+  barrier opens from both sides; False when nobody has it. }
 function PartyCastsKnock: Boolean;
 var
   p: Types.PCharRecord;
@@ -178,6 +178,9 @@ begin
   p := Explore.FindCharWithSpell(C_Spell.KNOCK);
   if p <> nil then begin
     p^.memorizedSpells[Explore.FindMemorizedSpell(C_Spell.KNOCK, p)] := 0;
+    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
+                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
     PartyCastsKnock := True;
   end else
     PartyCastsKnock := False;
