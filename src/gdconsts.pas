@@ -108,13 +108,14 @@ const
 const
   { CampOrderMenu }
   orderMenus: array[0..1] of String[40] = ('Select Exit', 'Place Exit');
-  { TCharRecord.itemLimits usability bit for each class slot, in classLevels (CLEVEL_) order }
+  { TCharRecord.itemLimits usability bit for each class slot, in classLevels (CLEVEL_) order. The ranger shares the
+    paladin's bit: the item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
   usabilityBit: array[0..7] of Byte = (
-    1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 7, 1 shl 0, 1 shl 2, 1 shl 5);
-  { Training-hall class bits (C_Gbvm.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladin, ranger and
-    monk combine two bits. }
+    1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
+  { Training-hall class bits (C_Gbvm.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
+    train with fighters; the monk combines two bits. }
   classBit: array[0..16] of Byte = (
-    2, 2, 8, 10, 10, 1, 4, 6, 16, 16, 16, 32, 32, 32, 64, 64, 64);
+    2, 2, 8, 8, 8, 1, 4, 6, 16, 16, 16, 32, 32, 32, 64, 64, 64);
 
 const
   { MainMenu }
@@ -1847,7 +1848,7 @@ const
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
      (base: 80; num: 5; sides: 4)),
     ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 30; num: 2; sides: 8),
+     (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
      (base: 22; num: 3; sides: 8)),
     ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
@@ -1870,24 +1871,26 @@ const
   { Str Int Wis Dex Con Cha }
   classMin: array[0..16, 0..5] of Byte = (
     (6, 6, 9, 0, 0, 0), (0, 0, 12, 0, 0, 15), (9, 0, 6, 6, 7, 0),
-    (13, 9, 12, 0, 9, 17), (0, 13, 14, 0, 14, 0), (0, 9, 6, 6, 0, 0),
+    (12, 9, 13, 0, 9, 17), (13, 13, 14, 0, 14, 0), (0, 9, 6, 6, 0, 0),
     (6, 6, 0, 9, 0, 0), (15, 0, 15, 15, 11, 0), (9, 0, 9, 0, 0, 0),
-    (9, 9, 9, 0, 0, 0), (0, 13, 14, 0, 14, 0), (0, 9, 9, 0, 0, 0),
+    (9, 9, 9, 0, 0, 0), (13, 13, 14, 0, 14, 0), (0, 9, 9, 0, 0, 0),
     (0, 0, 9, 9, 0, 0), (9, 9, 0, 0, 0, 0), (9, 0, 0, 9, 0, 0),
     (9, 9, 0, 9, 0, 0), (0, 9, 0, 9, 0, 0));
   { Column zero is a count; subsequent columns are alignment IDs }
   alignByClass: array[0..16, 0..9] of ShortInt = (
     (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (5, 1, 3, 4, 5, 7, 0, 0, 0, 0),
     (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
+    (3, 0, 3, 6, 0, 0, 0, 0, 0, 0), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
     (7, 1, 2, 3, 4, 5, 7, 8, 0, 0), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
     (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
+    (3, 0, 3, 6, 0, 0, 0, 0, 0, 0), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
     (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
     (7, 1, 2, 3, 4, 5, 7, 8, 0, 0), (7, 1, 2, 3, 4, 5, 7, 8, 0, 0),
     (7, 1, 2, 3, 4, 5, 7, 8, 0, 0));
   conBonusTbl: array[3..20] of ShortInt = (
     -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2);
+  { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
+    at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
   dsExperienceSpellsClass: array[0..7] of Types.TRuleXp = (
     (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
      slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
@@ -1895,9 +1898,9 @@ const
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (2001, 4001, 8001, 18001, 35001, 70001, 125001, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
+    (xp: (2751, 5501, 12001, 24001, 45001, 95001, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
-    (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
+    (xp: (2251, 4501, 10001, 20001, 40001, 90001, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (2501, 5001, 10001, 22501, 40001, -1, -1, -1);
      slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (4, 2, 1), (4, 2, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
@@ -1908,7 +1911,8 @@ const
   dsStartingGoldClass: array[0..7] of Types.TRuleGold = (
     (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
     (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
-  { ClassCal: Saving throws indexed by class-level slot (the CLEVEL_ order), level 1..9 and save column 0..4. }
+  { ClassCal: Saving throws indexed by class-level slot (the CLEVEL_ order), level 1..9 and save column 0..4. The
+    paladin's row is the fighter's less 2. }
   { class, level, save }
   saveTbl: array[0..7, 1..9, 0..4] of Byte = (
     ((10, 13, 14, 16, 15), (10, 13, 14, 16, 15), (10, 13, 14, 16, 15),
@@ -1920,9 +1924,9 @@ const
     ((14, 15, 16, 17, 17), (14, 15, 16, 17, 17), (13, 14, 15, 16, 16),
      (13, 14, 15, 16, 16), (11, 12, 13, 13, 14), (11, 12, 13, 13, 14),
      (10, 11, 12, 12, 13), (10, 11, 12, 12, 13), (8, 9, 10, 9, 11)),
-    ((14, 15, 16, 17, 17), (14, 15, 16, 17, 17), (13, 14, 15, 16, 16),
-     (13, 14, 15, 16, 16), (11, 12, 13, 13, 14), (11, 12, 13, 13, 14),
-     (10, 11, 12, 12, 13), (10, 11, 12, 12, 13), (8, 9, 10, 9, 11)),
+    ((12, 13, 14, 15, 15), (12, 13, 14, 15, 15), (11, 12, 13, 14, 14),
+     (11, 12, 13, 14, 14), (9, 10, 11, 11, 12), (9, 10, 11, 11, 12),
+     (8, 9, 10, 10, 11), (8, 9, 10, 10, 11), (6, 7, 8, 7, 9)),
     ((14, 15, 16, 17, 17), (14, 15, 16, 17, 17), (13, 14, 15, 16, 16),
      (13, 14, 15, 16, 16), (11, 12, 13, 13, 14), (11, 12, 13, 13, 14),
      (10, 11, 12, 12, 13), (10, 11, 12, 12, 13), (8, 9, 10, 9, 11)),
