@@ -1114,13 +1114,24 @@ begin
     FxEngine.AddEffect(creature, C_Effect.INVISIBLE, 1, 12, False);
 end;
 
-{ Blood drain (eff 75). strength = victim's creature index; duration's upper bits = the x16 damage budget }
+{ Blood drain (eff 75). strength = victim's creature index; duration's upper bits = the x16 damage budget. An index
+  outside creatureArr[1..arenaCount] (CombatSlot's 0 for a creature not in the arena) has no victim: the effect just
+  goes. }
 
 procedure EffBloodDrain(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
   dmg: Byte;
 begin
+  { 72 = High(creatureArr) }
+  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
+      (Types.PEffectRec(p)^.strength > 72) then begin
+    if not removed then begin
+      Types.PEffectRec(p)^.onRemove := False;
+      FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, p);
+    end;
+    Exit;
+  end;
   GDVars.dsOtherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
   if removed or (creature^.enabled = 0) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then begin
     FxEngine.RemoveEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);
@@ -1564,9 +1575,11 @@ end;
 
 procedure EffRegen3(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  Inc(creature^.hpCur, 3);
-  if creature^.hpCur > creature^.hpMax then
-    creature^.hpCur := creature^.hpMax;
+  { capped before the add, so hpCur 253..255 cannot wrap the Byte }
+  if Word(creature^.hpCur) + 3 > creature^.hpMax then
+    creature^.hpCur := creature^.hpMax
+  else
+    Inc(creature^.hpCur, 3);
 end;
 
 { Can fight on (eff 99). Revives a dying (with overkill < 6) or unconscious creature and grants eff 95 for 1d4+1
@@ -1728,18 +1741,17 @@ begin
     EffHndlr.NullifyAttack(0);
 end;
 
-{ Efreeti fire resistance (eff 113): -1 per die, minimum = dice count }
+{ Efreeti fire resistance (eff 113): -1 per die, minimum = dice count (damage already below it is left alone) }
 
 procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   i: Byte;
 begin
   if GDVars.elementMask and 1 <> 0 then
-    for i := 1 to GDVars.gDamageDice do begin
-      Dec(GDVars.pendingDamage);
-      if GDVars.pendingDamage < GDVars.gDamageDice then
-        GDVars.pendingDamage := GDVars.gDamageDice;
-    end;
+    for i := 1 to GDVars.gDamageDice do
+      { only above the floor, so damage of 0 cannot wrap the Byte to 255 }
+      if GDVars.pendingDamage > GDVars.gDamageDice then
+        Dec(GDVars.pendingDamage);
 end;
 
 { Half damage from electricity (eff 114) }
