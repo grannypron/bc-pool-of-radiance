@@ -467,7 +467,9 @@ begin
   idx := 0;
   vmRedraw := True;
   needRedraw := True;
-  while not (ch in [C_Keys.NONE, 'E']) and not done and (creature^.numberOfItems > 0) do begin
+  { the list as well as the count: a stale count over a nil list would never leave the loop }
+  while not (ch in [C_Keys.NONE, 'E']) and not done and (creature^.numberOfItems > 0) and
+      (creature^.itemsAddr <> nil) do begin
     itemCount := creature^.numberOfItems;
     if creature^.itemsAddr <> nil then begin
       s := 'Ready';
@@ -730,9 +732,19 @@ end;
   and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
   the user's actions. When done, consume the scroll spell, or use quantity and then charges; remove the item when its
   charges run out. announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
-  (Magic.PrintCastSpellMsg); Use names none. }
+  (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item data, does
+  nothing and leaves done clear. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
+var
+  id: Byte;
 begin
+  id := spell;
+  if not Magic.ItemReadable(item) and (spell > 56) then
+    id := spell - 23;
+  if (id < 1) or (id > SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then begin
+    done := False;
+    Exit;
+  end;
   if Magic.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
       (GDConsts.spellTable[spell].target = 0) then begin
     Magic.ShowCombatOnlySpell(spell);
