@@ -44,7 +44,7 @@ function WordToString(value: Word): String;
 
 function LongIntToString(value: LongInt): String;
 
-procedure RemoveSpell(spell: Byte);
+procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
@@ -751,16 +751,16 @@ begin
     ItemWeight := item^.weight;
 end;
 
-{ Clear the first memorized-spell slot holding spell on the current character. }
-procedure RemoveSpell(spell: Byte);
+{ Clear the first memorized-spell slot holding spell on the creature. }
+procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 var
   i: Byte;
 begin
   i := 0;
   { scan the memorized-spell slots, stopping after the first match }
   while i <= 20 do begin
-    if GDVars.curChar^.memorizedSpells[i] = spell then begin
-      GDVars.curChar^.memorizedSpells[i] := 0;
+    if creature^.memorizedSpells[i] = spell then begin
+      creature^.memorizedSpells[i] := 0;
       i := 21;
     end;
     Inc(i);

@@ -222,7 +222,7 @@ begin
     if def^.combatAddr^.spellCast > 0 then begin
       TextRend.PauseOnly;
       CharHlp.PrintNameString(def, 'lost a spell', 12, True);
-      CharHlp.RemoveSpell(def^.combatAddr^.spellCast);
+      CharHlp.RemoveSpell(def, def^.combatAddr^.spellCast);
       def^.combatAddr^.spellCast := 0;
     end else
       TextRend.PauseOnly;
