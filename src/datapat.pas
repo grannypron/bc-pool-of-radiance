@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 54;
-  BYTE_COUNT = 1431;
+  PART_COUNT = 56;
+  BYTE_COUNT = 1500;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -171,7 +171,12 @@ const
     { POR-0102: the Level 6 MU's Cloak of Displacement (MON2ITM block 82, record 3) is on the Cloak of Elvenkind's
       type, 67, whose AC descriptor leaves it out of AC and saves, with plus 8 and save bonus 0, so it gives nothing;
       it gets type 92, plus 2 and save bonus 2 }
-    (por: 102; family: C_Data.FAMILY_MONITM; disk: 2; id: 82; size: 315; offset: 235; origLen: 6; newLen: 6));
+    (por: 102; family: C_Data.FAMILY_MONITM; disk: 2; id: 82; size: 315; offset: 235; origLen: 6; newLen: 6),
+    { POR-0000: the New Phlan training hall's notice (script $9A74) directs magic users and clerics north and
+      fighters and rogues east, but says nothing of paladins and rangers, who train with the fighters; new code at
+      the end of the script adds a sentence for them }
+    (por: 0; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 488; origLen: 10; newLen: 10),
+    (por: 0; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 2171; origLen: 0; newLen: 49));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -621,7 +626,20 @@ const
     { POR-0102, original }
     $43, $AA, $A7, $58, $08, $00,
     { fixed: type 92, Cloak of Displacement, plus 2, save bonus 2 }
-    $5C, $AA, $A7, $58, $02, $02);
+    $5C, $AA, $A7, $58, $02, $02,
+    { POR-0000 part 1, original }
+    $04, $00, $01, $01, $00, $4A, $01, $00, $4A,      { $9AE6 ADD $01, [$4A00], [$4A00] }
+    $00,                                              { $9AEF EXIT }
+    { fixed: after the notice, on to new code at the end of the script }
+    $01, $01, $79, $A1,                               { $9AE6 GOTO LA179 }
+    $00, $00, $00, $00, $00, $00,
+    { POR-0000 part 2, added at $A179: the paladin and ranger sentence, then the notice is marked read as before }
+    { $A179 PRINT " PALADINS AND RANGERS TRAIN WITH THE FIGHTERS." }
+    $11, $80, $24, $82, $04, $01, $30, $11, $09, $39, $38, $01, $38, $48, $12, $04,
+    $E1, $C5, $49, $38, $14, $48, $12, $4E, $81, $72, $54, $22, $05, $08, $16, $01,
+    $89, $1C, $85, $05, $49, $3B, $80,
+    $04, $00, $01, $01, $00, $4A, $01, $00, $4A,      { $A1A0 ADD $01, [$4A00], [$4A00] }
+    $00);                                             { $A1A9 EXIT }
 
 implementation
 
