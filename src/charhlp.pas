@@ -943,7 +943,8 @@ end;
   window before the end, rescroll and repeat; at the end, draw the icon on the end cell. }
 procedure CombatAnimateMovingIcon(startX, startY, endX, endY: ShortInt; frames, pace: Byte);
 var
-  steps: array[0..147] of Byte;
+  { a 49-cell span takes 148 steps; the last slot stays 8 (no move) for the walk's read one past count }
+  steps: array[0..148] of Byte;
   req: Types.TPathReq;
   spare: Integer;
   n: Byte;
@@ -980,6 +981,9 @@ begin
     done := not Pathing.NextPathStep(req);
     steps[n] := req.step;
     Inc(n);
+    { a longer path than the arena allows is cut short }
+    if n >= SizeOf(steps) - 1 then
+      done := True;
   until done;
   count := n;
   if count < 2 then Exit;
