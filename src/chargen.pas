@@ -319,8 +319,8 @@ end;
 
 { CreateCharacterMenu: Choose race, gender, class and alignment, set the starting age, then roll attributes, hit points
   and gold until the player keeps the result; name the character, customize portrait and icon, save it with
-  SaveLoad.SaveChar and free it. Aborting a pick menu exits without freeing the character or string list. Note: only the
-  record itself is freed at the end; the racial effect nodes stay allocated. }
+  SaveLoad.SaveChar and free it. Aborting a pick menu frees the string list and the character before it exits; at the
+  end CharGen.FreeCreature frees the record with its racial effects. }
 procedure CreateCharacterMenu;
 var
   creature: Types.PCharRecord;
@@ -537,8 +537,8 @@ begin
   until ch = C_Keys.ENTER;
   creature^.alignment := GDConsts.alignByClass[creature^.charClass, sel];
   MenuCore.FreeStringList(list);
-  { Starting age: single classes (0..7) roll the age dice; multiclasses take base + sides * num (the dice maximum) of
-    one component class. }
+  { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
+    maximum) of one component class. }
   if creature^.charClass <= C_Class.MONK then
     with GDConsts.dsStartingAge[creature^.race, creature^.charClass] do
       creature^.age := FxEngine.RollDice(num, sides) + base

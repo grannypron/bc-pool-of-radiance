@@ -1828,29 +1828,29 @@ const
     (-1, -1, 6, -1, -1, -1, 0, -1),
     (-1, -1, -1, -1, -1, -1, -1, -1),
     (0, -1, 0, -1, -1, 0, 0, -1));
-  { race, class }
-  dsStartingAge: array[1..7, 0..6] of Types.TRuleAge = (
+  { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
+  dsStartingAge: array[1..7, 0..7] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 75; num: 3; sides: 6)),
+     (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
     ((base: 650; num: 10; sides: 10), (base: 0; num: 0; sides: 0), (base: 130; num: 5; sides: 6),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 150; num: 5; sides: 6),
-     (base: 100; num: 5; sides: 6)),
+     (base: 100; num: 5; sides: 6), (base: 0; num: 0; sides: 0)),
     ((base: 300; num: 3; sides: 12), (base: 0; num: 0; sides: 0), (base: 60; num: 5; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
-     (base: 80; num: 5; sides: 4)),
+     (base: 80; num: 5; sides: 4), (base: 0; num: 0; sides: 0)),
     ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
-     (base: 22; num: 3; sides: 8)),
+     (base: 22; num: 3; sides: 8), (base: 0; num: 0; sides: 0)),
     ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 40; num: 2; sides: 4)),
+     (base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
     ((base: 20; num: 1; sides: 4), (base: 0; num: 0; sides: 0), (base: 13; num: 1; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 20; num: 2; sides: 4)),
+     (base: 20; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
     ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
      (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 4),
-     (base: 18; num: 1; sides: 4)));
+     (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
   { age thresholds in years }
   ageCat: array[1..7, 1..5] of Word = (
     (50, 150, 250, 350, 450),
