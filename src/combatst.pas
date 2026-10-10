@@ -853,7 +853,8 @@ begin
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
   { the battle music runs until the first sound of the fight cuts it }
   SoundDrv.PlayMusic(C_Sound.MUSIC_BATTLE);
-  GDVars.quickMagic := False;
+  { the Quick Mode Magic setting; Alt-M changes it for this fight only }
+  GDVars.quickMagic := GDVars.quickMagicOn <> 0;
   GDVars.roundCounter := 0;
   GDVars.gAttackRoll := 0;
   GDVars.downedCount := 0;

@@ -17,6 +17,7 @@ procedure CustomizePortrait;
 
 implementation
 
+uses Options;
 
 var
 
@@ -79,10 +80,10 @@ begin
   creature := nil;
 end;
 
-{ MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, exit).
-  Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets ifcState to
-  4 (C_Ifc.INDOORS); Exit to DOS saves until recentSaved is set. J sets stingMode when the first command-line parameter
-  is STING. }
+{ MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
+  settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin
+  Adventuring sets ifcState to 4 (C_Ifc.INDOORS); Exit to DOS saves until recentSaved is set. Game Settings opens the
+  Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
 procedure MainMenu;
 const
   MENU_CREATE = 0;
@@ -95,7 +96,8 @@ const
   MENU_LOAD = 7;
   MENU_SAVE = 8;
   MENU_BEGIN = 9;
-  MENU_QUIT = 10;
+  MENU_SETTINGS = 10;
+  MENU_QUIT = 11;
 var
   i: Byte;
   ch: Char;
@@ -137,7 +139,7 @@ begin
         GDConsts.menuItems[MENU_BEGIN].enabled := 0;
       end;
       n := 0;
-      for i := 0 to 10 do
+      for i := MENU_CREATE to MENU_QUIT do
         if GDConsts.menuItems[i].enabled <> 0 then begin
           TextRend.DisplayString(2, n + 12, White, GDConsts.menuItems[i].name[1]);
           TextRend.DisplayString(3, n + 12, LightGreen,
@@ -191,6 +193,8 @@ begin
                MenuCore.ClearBottomLine;
                Exit;
              end;
+        'G': if GDConsts.menuItems[MENU_SETTINGS].enabled <> 0 then
+               Options.OptionsMenu;
         'E': if GDConsts.menuItems[MENU_QUIT].enabled <> 0 then
              begin
                ch := MenuCore.YesNoMenu('Quit to DOS ', Yellow, LightGreen, White);

@@ -108,8 +108,9 @@ const
   campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';
   { magic actions }
   magicMenu: String[40] = 'Cast Memorize Scribe Display Rest Exit';
-  { Char (the character's icon or portrait) took Icon's place: the bottom line has no room for a seventh choice }
-  alterMenu: String[40] = 'Order Drop Speed Char Prefs Exit';
+  { Char (the character's icon or portrait) took Icon's place: the bottom line has no room for a seventh choice.
+    Settings (S, free since Speed left for it) holds the game speed with the other settings. }
+  alterMenu: String[40] = 'Order Drop Char Settings Exit';
 
 const
   { CampOrderMenu }
@@ -125,9 +126,9 @@ const
 
 const
   { MainMenu }
-  menuKeys: String[40] = 'C D M T V A R L S B E J';
+  menuKeys: String[40] = 'C D M T V A R L S B G E J';
   { initial empty-roster state }
-  menuItems: array[0..10] of Types.TMenuItem = (
+  menuItems: array[0..11] of Types.TMenuItem = (
     (name: 'Create New Character'; enabled: 1),
     (name: 'Drop Character'; enabled: 0),
     (name: 'Modify Character'; enabled: 0),
@@ -138,6 +139,7 @@ const
     (name: 'Load Saved Game'; enabled: 1),
     (name: 'Save Current Game'; enabled: 0),
     (name: 'BEGIN Adventuring'; enabled: 0),
+    (name: 'Game Settings'; enabled: 1),
     (name: 'Exit to DOS'; enabled: 1));
 
 const

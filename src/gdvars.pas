@@ -130,7 +130,7 @@ var
   zone2: Types.PZone2;
   { script bytes }
   zone3: Types.PZone3;
-  { game speed, 0 = fastest 9 = slowest; SaveLoad keeps it in the GBVM gameSpeed word }
+  { game speed, 0 = fastest 9 = slowest; a setting in POOLOPT.CFG, and SaveLoad writes it to the GBVM gameSpeed word }
   gameDelay: Byte;
   { Five GBVM addresses loaded from the ECL entry header. [1] runs before movement and after on-load; [2] search/Look;
     [3] pre-camp; [4] camp interruption; [5] on-load }
@@ -148,8 +148,15 @@ var
   portraitsOn: Byte;
   { zero skips the close-up load when GameDat5.inEncMenu is nonzero }
   monsterPics: Byte;
-  { zero makes SoundDrv.PlayMusic do nothing; GameInit sets it, a saved game's settings word restores it }
+  { zero makes SoundDrv.PlayMusic do nothing }
   musicOn: Byte;
+  { the Sound setting: zero starts the game with sound off (soundMode disabled); GameIo.SetSound keeps it in step }
+  soundOn: Byte;
+  { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }
+  quickEnds: Byte;
+  { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic
+    over for that fight only }
+  quickMagicOn: Byte;
   { GameInit clears it; GameIo toggles it on STING Ctrl-D; nonzero enables PrintHpDebug }
   stingHpFlag: Byte;
   { main-menu load handoff; EclVm skips reload, EclMenu clears it }

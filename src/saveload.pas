@@ -34,9 +34,10 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
   then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
   trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
   usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file holds less
-  than a whole record or cannot be read; the caller then frees the record unused. A party member leaves Quick
-  (quickfight 0), so a loaded game or an added character starts under manual control; NPCs and animated creatures keep
-  quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. }
+  than a whole record or cannot be read; the caller then frees the record unused. While the Quick Ends With Fight
+  setting is on (GDVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game or an added character
+  starts under manual control; NPCs and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves
+  them. With the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
@@ -52,12 +53,13 @@ procedure AddCreatureToParty(id: Byte);
   hold it all is refused, with a message, before anything is read), reload each listed character, at most 8, from its
   CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files (.mem
   included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete when
-  the Yarash pyramid flag is set. }
+  the Yarash pyramid flag is set. The save's game speed and settings word are left in the GBVM zone: the game's own
+  settings stay as they are. }
 procedure LoadGame;
 
-{ Save game: letter menu (Escape aborts), store wall slots, game speed, picture settings and disk number in the GBVM
-  zones, write SAVGAMx.DAT, SaveChar each party member (the first 8) as CHRDATxN.sav, delete their single-character
-  files (.mem included), set the recently-saved flag. }
+{ Save game: letter menu (Escape aborts), store wall slots, game speed, picture and music settings (SSI's copies, which
+  loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT, SaveChar each party member (the first 8)
+  as CHRDATxN.sav, delete their single-character files (.mem included), set the recently-saved flag. }
 procedure SaveGame;
 
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
@@ -79,8 +81,6 @@ procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSl
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
 implementation
-
-uses SoundDrv;
 
 var
 
@@ -527,7 +527,7 @@ begin
   LoadChar := whole;
   if not whole then Exit;
   { C_Npc.FLAG clear }
-  if (creature^.npc < C_Npc.FLAG) and (creature^.status <> C_Status.ANIMATED) then
+  if (GDVars.quickEnds <> 0) and (creature^.npc < C_Npc.FLAG) and (creature^.status <> C_Status.ANIMATED) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
@@ -788,14 +788,7 @@ begin
   { names holds 8, the most a party has }
   if nChars > 8 then
     nChars := 8;
-  GDVars.monsterPics := (GDVars.zone0^.settings shr 1) and 1;
-  GDVars.portraitsOn := GDVars.zone0^.settings and 1;
-  GDVars.musicOn := 1 - (GDVars.zone0^.settings shr 2) and 1;
-  if GDVars.musicOn = 0 then SoundDrv.StopMusic;
-  GDVars.gameDelay := GDVars.zone0^.gameSpeed.lo;
-  { the speed menus' range }
-  if GDVars.gameDelay > 9 then
-    GDVars.gameDelay := 9;
+  { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
