@@ -186,19 +186,23 @@ end;
 { NeutralizePoison: Checks for C_Effect.POISONED (55); for 1000 gp removes C_Effect.POISONED, C_Effect.SLOW_POISON_END
   (22) and C_Effect.SLOW_POISON_HIT (15), in that order, with the effect lock set. Poison kills on the spot, so a
   character the poison left dead is brought back with 1 hp, as RaiseDead does but without its cost in Constitution and
-  hit points. }
+  hit points. A dead character still under Slow Poison was kept up through the poison and died of something else (a
+  wound, bleeding out), so it stays dead: that needs RaiseDead. }
 procedure NeutralizePoison;
 var
   effect: Types.PEffectRec;
   s: String;
   c: Char;
   found: Boolean;
+  slowed: Boolean;
 begin
   found := False;
   s := '';
   c := 'Y';
   if CharHlp.HasEffect(GDVars.curChar, C_Effect.POISONED, effect) then
     found := True;
+  slowed := CharHlp.HasEffect(GDVars.curChar, C_Effect.SLOW_POISON_END, effect) or
+            CharHlp.HasEffect(GDVars.curChar, C_Effect.SLOW_POISON_HIT, effect);
   if not found then
     c := Temple.ConfirmCureAnyway('is not poisoned.');
   if c = 'Y' then begin
@@ -209,7 +213,7 @@ begin
       FxEngine.RemoveEffect(GDVars.curChar, C_Effect.SLOW_POISON_END, nil);
       FxEngine.RemoveEffect(GDVars.curChar, C_Effect.SLOW_POISON_HIT, nil);
       GDVars.effectLock := 0;
-      if found and (GDVars.curChar^.status = C_Status.DEAD) then begin
+      if found and not slowed and (GDVars.curChar^.status = C_Status.DEAD) then begin
         GDVars.curChar^.hpCur := 1;
         GDVars.curChar^.status := C_Status.OKAY;
         GDVars.curChar^.enabled := 1;
