@@ -153,9 +153,9 @@ procedure AllocPic(height, width: Word; count: Byte; flag: Byte; var pic: Types.
 procedure FreePic(var pic: Types.PImgBuf);
 
 { Fills a rectangle of a destination buffer with one solid color and marks the touched scanlines dirty for FlushView.
-  The rectangle is clipped to the destination, so it may be partly off-screen. CGA and Tandy use packed fill bytes; EGA
-  fills four plane bytes per cell. Note: with a negative y, one row more than the visible part is filled and the bottom
-  edge is not checked.
+  The rectangle is clipped to the destination, so it may be partly off-screen; one wholly outside it fills nothing. CGA
+  and Tandy use packed fill bytes; EGA fills four plane bytes per cell. Note: with a negative y, one row more than the
+  visible part is filled and the bottom edge is not checked.
   @param(x Left edge, in character columns; may be negative.)
   @param(y Top edge, in scanlines; may be negative.)
   @param(width Rectangle width, in eight-pixel cells.)
@@ -396,6 +396,7 @@ var
   scanline: Word;
   screenOff: Word;
   useMask: Boolean;
+  i: Word;
 begin
   useMask := ((flag and 1) > 0) and (gfx^.transp <> nil);
   scanline := screenY * 8;
@@ -428,7 +429,7 @@ begin
             GDVars.spanScreenOfs[scanline] := screenOff;
             GDVars.spanFirstOfs[scanline] := destOff;
           end;
-          for GDVars.dsCurrentPictureNumber := 1 to rowBytes do begin
+          for i := 1 to rowBytes do begin
             dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[srcOff] or gfx^.data[srcOff];
             Inc(srcOff);
             Inc(destOff);
@@ -473,7 +474,7 @@ begin
             GDVars.spanScreenOfs[scanline] := screenOff;
             GDVars.spanFirstOfs[scanline] := destOff;
           end;
-          for GDVars.dsCurrentPictureNumber := 1 to rowBytes do begin
+          for i := 1 to rowBytes do begin
             dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[maskOff] or gfx^.data[srcOff];
             Inc(srcOff);
             Dec(planesLeft);
@@ -529,6 +530,7 @@ var
   screenOff: Word;
   useMask: Boolean;
   saveRequested: Boolean;
+  i: Word;
 begin
   if (gfx = nil) or (dest = nil) then Exit;
   useMask := ((flag and 1) > 0) and (gfx^.transp <> nil);
@@ -536,16 +538,16 @@ begin
   if GDVars.clipFlag <> 0 then begin
     if screenX < 0 then begin
       clipLeft := Abs(screenX);
-      if clipLeft > gfx^.width then Exit;
+      if clipLeft >= gfx^.width then Exit;
       leftSkip := 0;
     end else begin
       clipLeft := 0;
       leftSkip := screenX;
-      if leftSkip > dest^.width then Exit;
+      if leftSkip >= dest^.width then Exit;
     end;
     if dest^.width < screenX + gfx^.width then begin
       clipRight := screenX + gfx^.width - dest^.width;
-      if clipRight > gfx^.width then Exit;
+      if clipRight >= gfx^.width then Exit;
       rightSkip := 0;
     end else begin
       clipRight := 0;
@@ -619,7 +621,7 @@ begin
           Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
         Inc(saveOff, rowBytes);
         if useMask then begin
-          for GDVars.dsCurrentPictureNumber := 1 to rowBytes do begin
+          for i := 1 to rowBytes do begin
             dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[srcOff] or gfx^.data[srcOff];
             Inc(srcOff);
             Inc(destOff);
@@ -666,7 +668,7 @@ begin
           Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
         Inc(saveOff, rowBytes);
         if useMask then begin
-          for GDVars.dsCurrentPictureNumber := 1 to rowBytes do begin
+          for i := 1 to rowBytes do begin
             dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[maskOff] or gfx^.data[srcOff];
             Inc(srcOff);
             Dec(planesLeft);
@@ -982,14 +984,7 @@ begin
   scratchPic^.map := pic^.map;
   Move(pic^.data[srcOff], scratchPic^.data[dstOff], scratchPic^.count * scratchPic^.imgSize);
   for pairIdx := 0 to 15 do begin
-    with pic^ do begin
-      if frame < 0 then begin
-        frame := 0;
-        nFrames := count;
-      end else
-        nFrames := 1;
-      srcOff := frame * imgSize;
-    end;
+    srcOff := frame * pic^.imgSize;
     dstOff := 0;
     if fromColors[pairIdx] <> toColors[pairIdx] then
       with scratchPic^ do
@@ -1116,8 +1111,10 @@ var
   absRow: Word;
   screenOfs: Word;
   plane: Byte;
+  i: Word;
 begin
   if pic = nil then Exit;
+  if (x >= pic^.width) or (x + width <= 0) or (y >= pic^.height) or (y + height <= 0) then Exit;
   if x < 0 then begin
     clipLeft := Abs(x);
     clampedX := 0;
@@ -1199,7 +1196,7 @@ begin
           GDVars.spanScreenOfs[absRow] := screenOfs;
           GDVars.spanFirstOfs[absRow] := dstOff;
         end;
-        for GDVars.dsCurrentPictureNumber := 1 to runLen do begin
+        for i := 1 to runLen do begin
           Move(planeMask, pic^.data[dstOff], SizeOf(planeMask));
           Inc(dstOff, 4);
         end;
