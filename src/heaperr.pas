@@ -1,8 +1,6 @@
 {$O+,F+}
 
-{ Heap-allocation failure handler. When heapFailureSaveEnabled is nonzero it forces a save before returning to DOS.
-  Note: recentSaved is not cleared before the save attempt, so a flag still set from an earlier save ends the loop after
-  one attempt. }
+{ Heap-allocation failure handler. When heapFailureSaveEnabled is nonzero it forces a save before returning to DOS. }
 unit HeapErr;
 
 interface
@@ -36,6 +34,7 @@ begin
       TextRend.DisplayAndPause(Yellow, 'WARNING: Insufficient Memory');
       if GDVars.heapFailureSaveEnabled <> 0 then begin
         {* Attempt to save the game. Throws up the save game menu. *}
+        GDVars.recentSaved := 0;
         SaveLoad.SaveGame;
         exitFlag := GDVars.recentSaved;
       end else begin
