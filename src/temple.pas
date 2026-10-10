@@ -309,6 +309,8 @@ begin
   Border.DrawWindow(1, 1, 38, 22, 0, White, '');
   { the top divider row }
   Border.DrawWindow(1, 1, 38, 1, 0, White, '');
+  { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }
+  idx := 0;
   repeat
     s := GDVars.curChar^.name + ', how can we help you?';
     TextRend.DisplayString(1, 1, White, s);
