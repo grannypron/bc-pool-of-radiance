@@ -299,9 +299,9 @@ begin
   CombatSt.SprinkleRareFeatures;
 end;
 
-{ Map the wilderness terrain char under the party to a feature-class bitmask steering the random-arena generators; cls
-  stays uninitialized for an unmatched terrainChar. Once zone0^.yarashMissionDone is 255, bit 7 classes collapse to bit
-  0. }
+{ Map the wilderness terrain char under the party to a feature-class bitmask steering the random-arena generators; an
+  unmatched terrainChar (the special sites' tiles) is plain ground, $01. Once zone0^.yarashMissionDone is 255, bit 7
+  classes collapse to bit 0. }
 function TerrainClassOf: Byte;
 var
   cls: Byte;
@@ -312,9 +312,9 @@ begin
       cls := $01;
     168..177:
       cls := $21;
-    185, 188..192:
+    185, 187, 188..192:
       cls := $11;
-    3..4, 6..7, 8..9, 19..21, 23..25:
+    3..4, 5, 6..7, 8..9, 19..21, 23..25:
       cls := $03;
     3..4, 7, 10..18, 22, 26..36, 201..208:
       cls := $02;
@@ -341,7 +341,7 @@ begin
       cls := $08;
     87..90, 163, 224:
       cls := $88;
-    125, 124, 138, 140, 142, 143, 148, 150:
+    125, 124, 134, 138, 140, 142, 143, 148, 150:
       cls := $09;
     126..133, 229..231:
       cls := $28;
@@ -357,6 +357,8 @@ begin
       cls := $90;
     225..228, 234..237:
       cls := $A0;
+  else
+    cls := $01;
   end;
   if cls and $80 <> 0 then
     if GDVars.zone0^.yarashMissionDone = 255 then begin
