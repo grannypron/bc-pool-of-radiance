@@ -1347,7 +1347,7 @@ var
 
   { Which class to drain: scanning classes 0..7, take each one whose level is >= the best so far and whose XP table
     entry for that level is >= the best so far (or is the -1 "at cap" sentinel); later classes win ties. xpMin is left
-    at the chosen entry (0 for level 0 or 1). }
+    at the chosen entry (0 for level 0 or 1, level 9's above level 9). }
   function ClassToDrain: ShortInt;
   var
     jj: ShortInt;
@@ -1359,7 +1359,10 @@ var
     { 7 = High(classLevels) }
     for jj := 0 to 7 do begin
       lvl := creature^.classLevels[jj];
-      if lvl > 1 then
+      { xp[] runs to level 9; a level above it reads level 9's entry }
+      if lvl > 9 then
+        xpTry := GDConsts.dsExperienceSpellsClass[jj].xp[9]
+      else if lvl > 1 then
         xpTry := GDConsts.dsExperienceSpellsClass[jj].xp[lvl]
       else
         xpTry := 0;
