@@ -3,6 +3,10 @@
 #
 # A release can also be cut for a tag that predates this workflow: run it by hand (workflow_dispatch) with the tag.
 # The tag's src/ and build/ are built with the current scripts.
+#
+# Both jobs run in the CI image pinned by its digest (goldbox-runner's dosbox-x-ci:1 as pushed on 2026-10-08), so
+# rebuilding the image changes nothing here until the digest does. After pushing a new image, put its digest in both
+# jobs; docker buildx imagetools inspect forge.schkerke.com/brian/dosbox-x-ci:<tag> prints it.
 
 name: build
 
@@ -21,7 +25,7 @@ jobs:
   build:
     runs-on: docker
     container:
-      image: forge.schkerke.com/brian/dosbox-x-ci:1
+      image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
       credentials:
         username: ${{ secrets.REGISTRY_USER }}
         password: ${{ secrets.REGISTRY_TOKEN }}
@@ -62,7 +66,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch'
     runs-on: docker
     container:
-      image: forge.schkerke.com/brian/dosbox-x-ci:1
+      image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
       credentials:
         username: ${{ secrets.REGISTRY_USER }}
         password: ${{ secrets.REGISTRY_TOKEN }}
