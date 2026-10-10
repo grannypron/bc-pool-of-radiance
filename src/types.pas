@@ -715,6 +715,8 @@ type
   TPortSlot = record
     pictureId: Byte;
     pic: PImgBuf;
+    { virtual disk pictureId was loaded from }
+    disk: Byte;
   end;
 
   { DaxIo types. }

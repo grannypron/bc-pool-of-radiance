@@ -396,7 +396,7 @@ var
   { HEAD and BODY image caches. }
   dsPortraitCache: array[1..2] of Types.TPortSlot;
   { Picture archive and menu state }
-  { Current picture archive name. }
+  { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
   picArcName: String[8];
   { unused }
   dsChampSavedPictureName: array[0..8] of Byte;

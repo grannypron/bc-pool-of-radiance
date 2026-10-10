@@ -61,12 +61,12 @@ begin
   Portrait.DisplayImageBuf(col, row + 5, False, pic);
 end;
 
-{ Load picture picId of <name><disk>.DAX into a, unless that name/id pair is already the cached picture
-  (GDVars.picArcName/picArcId). PIC 1 is capped at 4 frames, and any picture at the 8 the record holds. A frame is
-  loaded only while MaxAvail is at least 3900 and covers what loading it allocates (FrameNeed): loaded frames are
-  stored in order and count becomes the number loaded, a skipped frame's data is stepped over, and without room for
-  the first frame (which the others are XORed with for PIC and FINAL) nothing is loaded. An odd transp remaps
-  LightMagenta to Black outside CGA. }
+{ Load picture picId of <name><disk>.DAX into a, unless that archive and id are already the cached picture
+  (GDVars.picArcName/picArcId); a load that finds nothing is not cached. PIC 1 is capped at 4 frames, and any picture
+  at the 8 the record holds. A frame is loaded only while MaxAvail is at least 3900 and covers what loading it
+  allocates (FrameNeed): loaded frames are stored in order and count becomes the number loaded, a skipped frame's data
+  is stepped over, and without room for the first frame (which the others are XORed with for PIC and FINAL) nothing is
+  loaded. An odd transp remaps LightMagenta to Black outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
 var
   sz: Word;
@@ -116,14 +116,14 @@ var
   end;
 
 begin
-  if (name = GDVars.picArcName) and (picId = GDVars.picArcId) then Exit;
-  Portrait.FreeAnimation(a);
-  GDVars.picArcName := name;
-  GDVars.picArcId := picId;
-  isPic := (name = 'PIC') or (name = 'FINAL');
   Str(LongInt(GDVars.virtualDisk), diskCh);
+  if (name + diskCh = GDVars.picArcName) and (picId = GDVars.picArcId) then Exit;
+  Portrait.FreeAnimation(a);
+  isPic := (name = 'PIC') or (name = 'FINAL');
   DaxIo.LoadDax(name + diskCh, '.dax', picId, sz, buf);
   if sz = 0 then Exit;
+  GDVars.picArcName := name + diskCh;
+  GDVars.picArcId := picId;
   offset := 0;
   gotXor := False;
   with a do begin
@@ -245,23 +245,31 @@ begin
 end;
 
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping
-  an id that is 255 or already loaded. }
+  an id that is 255 or already loaded from this disk. A load that finds nothing leaves its slot invalid (255). }
 procedure LoadPortraitBufs(headId, bodyId: Byte);
 var
   diskCh: String[1];
 begin
   Str(LongInt(GDVars.virtualDisk), diskCh);
   if headId <> 255 then
-    if (GDVars.dsPortraitCache[1].pictureId = 255) or (GDVars.dsPortraitCache[1].pictureId <> headId)
-    then begin
+    if (GDVars.dsPortraitCache[1].pictureId = 255) or (GDVars.dsPortraitCache[1].pictureId <> headId) or
+        (GDVars.dsPortraitCache[1].disk <> GDVars.virtualDisk) then begin
       Blit.LoadPic('HEAD' + diskCh, headId, False, 0, GDVars.dsPortraitCache[1].pic);
-      GDVars.dsPortraitCache[1].pictureId := headId;
+      if GDVars.dsPortraitCache[1].pic <> nil then begin
+        GDVars.dsPortraitCache[1].pictureId := headId;
+        GDVars.dsPortraitCache[1].disk := GDVars.virtualDisk;
+      end else
+        GDVars.dsPortraitCache[1].pictureId := 255;
     end;
   if bodyId <> 255 then
-    if (GDVars.dsPortraitCache[2].pictureId = 255) or (GDVars.dsPortraitCache[2].pictureId <> bodyId)
-    then begin
+    if (GDVars.dsPortraitCache[2].pictureId = 255) or (GDVars.dsPortraitCache[2].pictureId <> bodyId) or
+        (GDVars.dsPortraitCache[2].disk <> GDVars.virtualDisk) then begin
       Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GDVars.dsPortraitCache[2].pic);
-      GDVars.dsPortraitCache[2].pictureId := bodyId;
+      if GDVars.dsPortraitCache[2].pic <> nil then begin
+        GDVars.dsPortraitCache[2].pictureId := bodyId;
+        GDVars.dsPortraitCache[2].disk := GDVars.virtualDisk;
+      end else
+        GDVars.dsPortraitCache[2].pictureId := 255;
     end;
 end;
 
