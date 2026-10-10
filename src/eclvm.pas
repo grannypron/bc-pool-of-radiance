@@ -1483,16 +1483,20 @@ begin
 end;
 
 { ADD NPC: add creature var 1 to the party as an NPC whose npc byte is half the morale var 2 with bit 7 set. Monster id
-  24 joins as hostile, every other id as friendly. }
+  24 joins as hostile, every other id as friendly. A full party (8 members) takes nobody, and the current character is
+  left as it was. }
 procedure EclAddNpc;
 var
   dead: array[1..4] of Byte;
   id: Byte;
   morale: Byte;
+  partySize: Byte;
 begin
   EclMenu.LoadEclVars(2);
   id := EclMenu.GetEclVar(1);
+  partySize := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
   SaveLoad.AddCreatureToParty(id);
+  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] = partySize then Exit;
   morale := EclMenu.GetEclVar(2);
   morale := morale div 2;
   morale := morale or C_Npc.FLAG;
