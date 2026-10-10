@@ -8,6 +8,7 @@ CODE    SEGMENT BYTE PUBLIC 'CODE'
         ASSUME  CS:CODE, DS:CODE
         PUBLIC  InstallSoundTimer, UninstallSoundTimer
         PUBLIC  ProgramSpeakerVoices, ProgramTandyVoices, SetSoundOutputEnabled
+        PUBLIC  SoundTimerTicks, SoundTimerHooked
 
 ; ---------------------------------------------------------------------------
 ; Voice state. SSET writes fields by offset; voice_step advances them
@@ -1023,6 +1024,7 @@ tuneB19_v0:
 oldInt8Off      dw      0
 oldInt8Seg      dw      0
 hooked          db      0               ; nonzero while P_isr owns INT 8
+drvTicks        dw      0               ; P_isr's tick count, wrapping; SoundDelay's clock
 
 ; ---------------------------------------------------------------------------
 ; Playback routines.
@@ -1113,6 +1115,7 @@ P_isr:
         push    si
         mov     ax, CODE
         mov     ds, ax
+        inc     cs:[drvTicks]
         cmp     ds:[exitCount], 0
         jz      isr_tick
         dec     ds:[exitCount]
@@ -1625,6 +1628,16 @@ SetSoundOutputEnabled:
         pop     ax
         pop     bp
         retf    2
+
+; Pascal functions: the tick count P_isr keeps, in AX (one read, so a tick
+; cannot split it), and whether the timer is hooked, in AL.
+SoundTimerTicks:
+        mov     ax, cs:[drvTicks]
+        retf
+
+SoundTimerHooked:
+        mov     al, cs:[hooked]
+        retf
 
 CODE    ENDS
         END
