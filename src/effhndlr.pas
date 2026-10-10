@@ -1329,10 +1329,10 @@ begin
   GDVars.dsCurrentSpellBeing := savedSpell;
 end;
 
-{ Drain levels from a creature; an animated creature is destroyed instead. For each level the creature loses hpMax div
-  (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest level below 2) or loses a level
-  in the class picked by ClassToDrain, dying if its HP reached 0. Its highest level and experience are then reset from
-  that class. }
+{ Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
+  the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
+  level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0. Its highest level and
+  experience are then reset from that class. }
 
 procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
 var
@@ -1393,6 +1393,12 @@ begin
       { 7 = High(classLevels) }
       for j := 0 to 7 do
         Inc(totalLevels, creature^.classLevels[j]);
+      { a creature with no class levels (kobolds, bandits and other monsters) has no level to lose, and no divisor }
+      if totalLevels = 0 then begin
+        EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
+        creature^.hpMax := 0;
+        Exit;
+      end;
       hpPerLevel := creature^.hpMax div totalLevels;
       Debug.PrintHpDebug('max,cur,lost', creature^.hpMax, creature^.hpCur, creature^.drainedHps);
       for k := 1 to hpPerLevel do begin
