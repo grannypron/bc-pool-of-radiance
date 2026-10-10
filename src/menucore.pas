@@ -155,7 +155,8 @@ var
           TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
         else
           TextRend.RenderChar(qLen + i - 1, 24, mCol, 1, Ord(menu[i]), 1);
-      if qLen + mLen < 39 then
+      { columns qLen + mLen..39 are blanked, so a 39-column line still clears column 39 }
+      if qLen + mLen <= 39 then
         TextRend.RenderChar(qLen + mLen, 24, Black, 39 - mLen - qLen + 1, 32, 1);
     end;
   end;
