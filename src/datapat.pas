@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 52;
-  BYTE_COUNT = 1407;
+  PART_COUNT = 54;
+  BYTE_COUNT = 1431;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -163,7 +163,15 @@ const
     { POR-0070: the Wealthy Area's south walls at (4,15) and (11,15) could be walked through off the map, where no
       exit is set, and the game hung loading script area 255; both become solid }
     (por: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1014; origLen: 1; newLen: 1),
-    (por: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1021; origLen: 1; newLen: 1));
+    (por: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1021; origLen: 1; newLen: 1),
+    { POR-0102: every Cloak of Displacement gives +2 AC and +2 saves, as a random one (template 97: type 92, plus 2,
+      save bonus 2) does; the one with the basilisk's treasure (ITEM2 block 3, record 1) has save bonus 0, so it gets
+      2 }
+    (por: 102; family: C_Data.FAMILY_ITEM; disk: 2; id: 3; size: 252; offset: 109; origLen: 6; newLen: 6),
+    { POR-0102: the Level 6 MU's Cloak of Displacement (MON2ITM block 82, record 3) is on the Cloak of Elvenkind's
+      type, 67, whose AC descriptor leaves it out of AC and saves, with plus 8 and save bonus 0, so it gives nothing;
+      it gets type 92, plus 2 and save bonus 2 }
+    (por: 102; family: C_Data.FAMILY_MONITM; disk: 2; id: 82; size: 315; offset: 235; origLen: 6; newLen: 6));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -605,7 +613,15 @@ const
     { POR-0070 part 2, original }
     $10,
     { fixed: (11,15) south: solid }
-    $00);
+    $00,
+    { POR-0102, original }
+    $5C, $AA, $A7, $58, $02, $00,
+    { fixed: type 92, Cloak of Displacement, plus 2, save bonus 2 }
+    $5C, $AA, $A7, $58, $02, $02,
+    { POR-0102, original }
+    $43, $AA, $A7, $58, $08, $00,
+    { fixed: type 92, Cloak of Displacement, plus 2, save bonus 2 }
+    $5C, $AA, $A7, $58, $02, $02);
 
 implementation
 
