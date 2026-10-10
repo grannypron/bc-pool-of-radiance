@@ -1158,6 +1158,8 @@ begin
   idx := 0;
   m := list;
   redraw := True;
+  { the until clause reads nonNpc after every key, including Space and a party member's entry, which add nothing }
+  nonNpc := 0;
   repeat
     { Note: addExitU is never assigned, so MenuVertical gets whatever the stack holds. }
     key := MenuCore.MenuVertical('Add a character: ', 'Add Exit', LightMagenta, LightGreen, White,
