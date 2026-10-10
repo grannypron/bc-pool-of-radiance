@@ -1630,7 +1630,7 @@ end;
 
 { pct is the resist chance against an 11th-level caster, falling 5% per caster level below it: chance := pct - (11 -
   lvl) * 5, and a 1d100 roll <= chance nullifies. Only an effect under the immunity check or magic damage is resisted.
-  Note: the Byte chance wraps when negative, so a low enough caster level is always resisted. An item counts as a
+  A chance below zero is always resisted (the shipped Byte arithmetic got that by wrapping). An item counts as a
   6th-level caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the
   necklace and the javelin): at 12 the wand got past Tyranthraxus's resistance (eff 106), which stops every party
   spell. }
@@ -1638,12 +1638,14 @@ end;
 procedure MagicResistance(pct: Byte);
 var
   lvl: Byte;
-  chance: Byte;
+  chance: Integer;
 begin
   lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   if GDVars.usingItem and (lvl > 6) then
     lvl := 6;
-  chance := pct - (11 - lvl) * 5;
+  chance := Integer(pct) - (11 - Integer(lvl)) * 5;
+  if chance < 0 then
+    chance := 100;
   if (GDVars.pendingEffectId = 0) and (GDVars.elementMask and 8 = 0) then
     Exit;
   if FxEngine.RollDice(1, 100) <= chance then
