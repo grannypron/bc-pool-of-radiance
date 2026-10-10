@@ -2,8 +2,9 @@
   families are finished with a bar and the time left, and a row for each family with one cell per per-disk archive.
   The bar and the time left count bytes: each stale family's per-disk archives are read, then written and checked as
   its merged archive, and each of those three passes counts as the family's per-disk bytes. Only what changed is
-  drawn again. The screen is cleared when the build ends. With too little memory for it, nothing is drawn and every
-  call does nothing. }
+  drawn again. When the game folder cannot be written, the status lines give way to a warning, the families that
+  cannot be built show as failed, and the build's own calls draw nothing. The screen is cleared when the build ends.
+  With too little memory for it, nothing is drawn and every call does nothing. }
 {$O+,F+,I-}
 unit BldShow;
 
@@ -15,9 +16,9 @@ type
   { the families DataBld builds }
   TStaleList = array[1..C_Data.FAMILIES] of Boolean;
 
-{ Clear the screen and draw the display. A stale family's cells wait; any other family with per-disk archives shows them
-  done. }
-procedure Open(var stale: TStaleList);
+{ Clear the screen and draw the display. A stale family's cells wait, or, when the game folder cannot be written
+  (writable False), show it failed under a warning; any other family with per-disk archives shows them done. }
+procedure Open(var stale: TStaleList; writable: Boolean);
 
 { The family whose merged archive is made next. }
 procedure StartFamily(fam: Byte);
@@ -40,8 +41,8 @@ procedure Advance(bytes: Word);
 { The family is finished: built or kept (ok), or failed. }
 procedure EndFamily(fam: Byte; ok: Boolean);
 
-{ Show the finished display for a second, or, when a family failed, until a key is pressed, pointing to DATABLD.LOG when
-  it is there; then clear the screen. }
+{ Show the finished display for a second, or, when a family failed or the game folder cannot be written, until Enter
+  is pressed, pointing to DATABLD.LOG when it was written; then clear the screen. }
 procedure Finish(failed: Boolean);
 
 implementation
@@ -116,6 +117,14 @@ const
   { shown under the families when one failed, if DataBld could write its log }
   NOTE = 'See DATABLD.LOG';
   LOG_NAME = 'DATABLD.LOG';
+  { the hold's prompt on the bottom line, the game's own }
+  PROMPT = 'press <enter>/<return> to continue';
+  { shown in the status box when the game folder cannot be written: WARN_LABEL in light red, then WARN_TEXT }
+  WARN_ROW = 5;
+  WARN_LABEL = 'Warning:';
+  WARN_TEXT = ' Install folder is read only.';
+  WARN_NEXT_ROW = 7;
+  WARN_NEXT = 'Game data fixes will be unavailable.';
 
 type
   TPixelRow = array[0..7] of Byte;
@@ -146,6 +155,8 @@ type
     barPx: Word;
     nextPx: LongInt;
     finished: Byte;
+    { the game folder cannot be written: only the warning and the families are shown }
+    readOnly: Boolean;
     { BIOS ticks since Open, the last tick read, and when the time left was last shown }
     elapsed: LongInt;
     lastTick: LongInt;
@@ -511,12 +522,21 @@ begin
   BldShow.Recount;
 end;
 
-procedure Open(var stale: TStaleList);
+{ True while the display shows a build: it is open and the game folder can be written. }
+function Active: Boolean;
+begin
+  Active := st <> nil;
+  if st <> nil then
+    Active := not st^.readOnly;
+end;
+
+procedure Open(var stale: TStaleList; writable: Boolean);
 var
   fam: Byte;
   disk: Byte;
   n: Byte;
   f: Byte;
+  col: Byte;
   bytes: LongInt;
 begin
   st := nil;
@@ -551,33 +571,44 @@ begin
     st^.listed[fam] := stale[fam] or (n > 0);
   end;
   st^.lastTick := BldShow.TicksNow;
+  st^.readOnly := not writable;
   TextRend.ClearRect(0, 0, 39, 23);
   Border.DrawBorder(1, TITLE_ROW, 38, TITLE_ROW, 0);
   Border.DrawBorder(1, STATUS_TOP, 38, STATUS_BOTTOM, 0);
   Border.DrawBorder(1, PANEL_TOP, 38, PANEL_BOTTOM, 0);
   BldShow.DrawText(1 + (38 - Length(TITLE)) div 2, TITLE_ROW, White, TITLE);
-  BldShow.Status(FIELD_MAKE_LABEL, FIELD_MAKE, MAKE_ROW, 'Creating:', '');
-  BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, OVERALL_ROW, Yellow, BldShow.PadLeft('Overall:', LABEL_WIDTH));
-  BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, ETA_ROW, Yellow, BldShow.PadLeft('ETA:', LABEL_WIDTH));
-  BldShow.ShowCount;
-  st^.barPx := BAR_PX;
-  BldShow.ShowBar(0);
-  st^.nextPx := 1;
-  for fam := 1 to C_Data.FAMILIES do begin
-    if st^.listed[fam] then
-      BldShow.SetName(fam, NAME_SHOWN);
-    if stale[fam] then
-      BldShow.SetCells(fam, CELL_WAIT)
-    else
-      BldShow.SetCells(fam, CELL_DONE);
+  if st^.readOnly then begin
+    col := 1 + (38 - Length(WARN_LABEL + WARN_TEXT)) div 2;
+    BldShow.DrawText(col, WARN_ROW, LightRed, WARN_LABEL);
+    BldShow.DrawText(col + Length(WARN_LABEL), WARN_ROW, Yellow, WARN_TEXT);
+    BldShow.DrawText(1 + (38 - Length(WARN_NEXT)) div 2, WARN_NEXT_ROW, Yellow, WARN_NEXT);
+  end else begin
+    BldShow.Status(FIELD_MAKE_LABEL, FIELD_MAKE, MAKE_ROW, 'Creating:', '');
+    BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, OVERALL_ROW, Yellow, BldShow.PadLeft('Overall:', LABEL_WIDTH));
+    BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, ETA_ROW, Yellow, BldShow.PadLeft('ETA:', LABEL_WIDTH));
+    BldShow.ShowCount;
+    st^.barPx := BAR_PX;
+    BldShow.ShowBar(0);
+    st^.nextPx := 1;
   end;
+  for fam := 1 to C_Data.FAMILIES do
+    if not stale[fam] then begin
+      BldShow.SetName(fam, NAME_SHOWN);
+      BldShow.SetCells(fam, CELL_DONE);
+    end else if st^.readOnly then begin
+      BldShow.SetName(fam, NAME_FAILED);
+      BldShow.SetCells(fam, CELL_FAILED);
+    end else begin
+      BldShow.SetName(fam, NAME_SHOWN);
+      BldShow.SetCells(fam, CELL_WAIT);
+    end;
 end;
 
 procedure StartFamily(fam: Byte);
 var
   disk: Byte;
 begin
-  if (st = nil) or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
   st^.family := fam;
   st^.familyBytes := 0;
   for disk := 1 to SOURCE_DISKS do
@@ -592,7 +623,7 @@ procedure Reading(fam, disk: Byte);
 var
   d: Byte;
 begin
-  if (st = nil) or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
   for d := 1 to SOURCE_DISKS do
     if d < disk then
       BldShow.SetCell(fam, d, CELL_DONE)
@@ -604,7 +635,7 @@ end;
 
 procedure Fixing(fam, disk: Byte);
 begin
-  if (st = nil) or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
   BldShow.SetCells(fam, CELL_DONE);
   BldShow.Step('Fixing:', DataArc.SourceName(fam, disk) + '.DAX');
   BldShow.Tick;
@@ -612,7 +643,7 @@ end;
 
 procedure Writing(bytes: LongInt);
 begin
-  if st = nil then Exit;
+  if not BldShow.Active then Exit;
   BldShow.SetCells(st^.family, CELL_DONE);
   BldShow.Step('Writing:', DataArc.MergedName(st^.family) + '.DAX');
   BldShow.StartPhase(PHASE_WRITE, bytes);
@@ -620,14 +651,14 @@ end;
 
 procedure Checking;
 begin
-  if st = nil then Exit;
+  if not BldShow.Active then Exit;
   BldShow.Step('Checking:', DataArc.MergedName(st^.family) + '.DAX');
   BldShow.StartPhase(PHASE_CHECK, st^.phaseTotal);
 end;
 
 procedure Advance(bytes: Word);
 begin
-  if st = nil then Exit;
+  if not BldShow.Active then Exit;
   Inc(st^.phaseDone, bytes);
   if st^.phaseDone >= st^.phaseNext then
     BldShow.Recount
@@ -637,7 +668,7 @@ end;
 
 procedure EndFamily(fam: Byte; ok: Boolean);
 begin
-  if (st = nil) or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
   if ok then
     BldShow.SetCells(fam, CELL_DONE)
   else begin
@@ -653,19 +684,27 @@ end;
 procedure Finish(failed: Boolean);
 var
   start: LongInt;
+  key: Char;
 begin
   if st = nil then Exit;
-  BldShow.SetDone(st^.total);
-  BldShow.ShowBar(BAR_PX);
-  BldShow.Status(FIELD_MAKE_LABEL, FIELD_MAKE, MAKE_ROW, '', '');
-  BldShow.Step('', '');
-  BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, '0:00', COUNT_WIDTH);
-  if failed then begin
-    if DataArc.FileLength(GDVars.gameDir + LOG_NAME) > 0 then
+  if not st^.readOnly then begin
+    BldShow.SetDone(st^.total);
+    BldShow.ShowBar(BAR_PX);
+    BldShow.Status(FIELD_MAKE_LABEL, FIELD_MAKE, MAKE_ROW, '', '');
+    BldShow.Step('', '');
+    BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, '0:00', COUNT_WIDTH);
+  end;
+  if failed or st^.readOnly then begin
+    if not st^.readOnly and (DataArc.FileLength(GDVars.gameDir + LOG_NAME) > 0) then
       BldShow.DrawText(1 + (38 - Length(NOTE)) div 2, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;
-    TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
+    TextRend.PrintSpaces(0, 24, Black, 40);
+    TextRend.DisplayString(0, 24, White, PROMPT);
+    repeat
+      key := GameIo.ReadGameKey;
+    until key = #13;
+    TextRend.PrintSpaces(0, 24, Black, 40);
   end else begin
     start := st^.elapsed;
     while st^.elapsed - start < HOLD_TICKS do

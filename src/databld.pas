@@ -16,7 +16,8 @@ interface
 
 { Build every merged archive the game cannot use, then have DaxIo look at them afresh. Nothing is shown or written when
   every one is current. A family whose build fails is left without a merged archive, so the game reads its per-disk
-  archives; once the game folder cannot be written, the families after it wait for the next start. }
+  archives. Once the game folder cannot be written, whether before the first family or at a later write, the families
+  not yet built wait for the next start. }
 procedure BuildDataFiles;
 
 implementation
@@ -1165,13 +1166,18 @@ begin
     Assign(logFile, DataBld.GamePath(LOG_NAME));
     Rewrite(logFile);
     logOpen := IOResult = 0;
-    BldShow.Open(stale);
+    { the game folder is tried once before any family: when it cannot be written, every family waits }
+    writeNote := '';
+    failNote := '';
+    archiveName := 'DATABLD';
+    if DataBld.CanWrite then
+      DataBld.RemoveFile(archiveName + '.$$$');
+    BldShow.Open(stale, writeNote = '');
     DataBld.Progress('Please wait, constructing data files...');
     DataBld.LogLine('Merged data archives, version ' + DataBld.NumStr(C_Data.VERSION));
     builtCount := 0;
     keptCount := 0;
     failedCount := 0;
-    writeNote := '';
     crcTable := nil;
     if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + 1024 then
       writeNote := 'not enough memory'
