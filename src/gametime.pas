@@ -330,18 +330,21 @@ begin
 end;
 
 { The scribing counterpart of CheckMemorizeDone over the readable items' scroll spells queued for scribing (id > $80, in
-  TItemRec's spells[1..3]). Finishing one marks it known, removes it with Magic.RemoveSpellFromScroll and announces it.
-  Note: RemoveSpellFromScroll may free the scroll while the scan goes on reading it. }
+  TItemRec's spells[1..3]). Finishing one marks it known, removes it with Magic.RemoveSpellFromScroll and announces it;
+  a scroll freed with its last spell is left and the scan goes on with the next item. }
 function CheckScribeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   j: Byte;
   sp: Byte;
   lvl: Byte;
   item: Types.PItemRec;
+  nxt: Types.PItemRec;
+  held: Types.PItemRec;
 begin
   lvl := 0;
   item := creature^.itemsAddr;
   while (item <> nil) and (lvl = 0) do begin
+    nxt := item^.next;
     j := 1;
     if Magic.ItemReadable(item) then
       { 3 = High(TItemRec.spells) }
@@ -356,10 +359,16 @@ begin
             GameTime.DisplayRestTime(0);
             Magic.PrintCastSpellMsg(creature, 'has scribed', sp);
             done := True;
+            held := creature^.itemsAddr;
+            while (held <> nil) and (held <> item) do
+              held := held^.next;
+            { the scroll is gone }
+            if held = nil then
+              j := 3;
           end;
         Inc(j);
       end;
-    item := item^.next;
+    item := nxt;
   end;
   CheckScribeDone := lvl;
 end;
