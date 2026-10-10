@@ -260,7 +260,7 @@ var
   gHitsRound: array[0..1] of Byte
                             { hits this round }
                             absolute GDVars.hitsMade;
-  effectHandlers: array[1..139] of Types.TEffectHandler
+  effectHandlers: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler
                             absolute GDVars.effectFns;
 
 { Nullify the attack or effect: zero GDVars.pendingDamage and GDVars.pendingEffectId. effId 0 always matches; otherwise
@@ -2165,6 +2165,8 @@ begin
   effectHandlers[C_Effect.SPIRIT_HAMMER_GONE] := EffHndlr.EffHammerGone;
   effectHandlers[138] := EffHndlr.EffReadyItem;
   effectHandlers[C_Effect.READY_RING_INVIS] := EffHndlr.EffReadyItem;
+  effectHandlers[C_Effect.RECENT_HEAL] := EffHndlr.EffNull;
+  effectHandlers[C_Effect.RECENT_CURE] := EffHndlr.EffNull;
 end;
 
 end.

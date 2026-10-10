@@ -149,11 +149,99 @@ begin
     end;
 end;
 
+{ True when p is a paladin who can use a paladin's powers now: okay, and out of combat. }
+function PaladinReady(p: Types.PCharRecord): Boolean;
+begin
+  PaladinReady := (p^.charClass = C_Class.PALADIN) and (p^.status = C_Status.OKAY) and
+    (GDVars.ifcState <> C_Ifc.COMBAT);
+end;
+
+{ True when paladin p has not laid on hands in the last day. }
+function CanHeal(p: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_Effect.RECENT_HEAL, effect);
+end;
+
+{ True when paladin p has a cure left this week: one a week, and one more for every five levels after the first. The
+  week starts with the first cure (effect C_Effect.RECENT_CURE, whose strength counts the cures made). }
+function CanCure(p: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+  used: Byte;
+  allowed: ShortInt;
+begin
+  used := 0;
+  if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
+    used := effect^.strength;
+  allowed := (p^.classLevels[C_Class.LEVEL_PALADIN] - 1) div 5 + 1;
+  CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
+end;
+
+{ Lay on hands: paladin p restores 2 hit points per paladin level to the party member chosen, and cannot do so again
+  for a day (C_Effect.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
+procedure LayOnHands(p: Types.PCharRecord);
+var
+  tgt: Types.PCharRecord;
+begin
+  CharHlp.DisplayNoncombatInterface;
+  tgt := GDVars.creatureList;
+  CharHlp.SelectChar('Heal whom? ', True, tgt);
+  if tgt = nil then
+    Exit;
+  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Class.LEVEL_PALADIN] * 2, False) then
+    CharHlp.PrintBottomLine(tgt^.name + ' feels better')
+  else
+    CharHlp.PrintBottomLine(tgt^.name + ' is unaffected');
+  FxEngine.AddEffect(p, C_Effect.RECENT_HEAL, 1440, 255, False);
+end;
+
+{ Cure disease: paladin p removes the disease effects (GDConsts.cureDiseaseEffects) from the party member chosen, asking
+  first when there are none, and spends one of the week's cures: the first starts C_Effect.RECENT_CURE for 10080
+  minutes at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
+procedure CureDisease(p: Types.PCharRecord);
+var
+  tgt: Types.PCharRecord;
+  effect: Types.PEffectRec;
+  found: Boolean;
+  ch: Char;
+  i: Byte;
+begin
+  CharHlp.DisplayNoncombatInterface;
+  tgt := GDVars.creatureList;
+  CharHlp.SelectChar('Cure whom? ', True, tgt);
+  if tgt = nil then
+    Exit;
+  found := False;
+  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
+    if CharHlp.HasEffect(tgt, GDConsts.cureDiseaseEffects[i], effect) then
+      found := True;
+  ch := 'Y';
+  if not found then begin
+    CharHlp.PrintNameString(tgt, 'is not diseased', 0, False);
+    ch := MenuCore.YesNoMenu('cure anyway: ', LightMagenta, LightGreen, White);
+    CharHlp.ClearMessageWindow;
+  end;
+  if ch <> 'Y' then
+    Exit;
+  GDVars.effectLock := 1;
+  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
+    FxEngine.RemoveEffect(tgt, GDConsts.cureDiseaseEffects[i], nil);
+  GDVars.effectLock := 0;
+  if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
+    Inc(effect^.strength)
+  else
+    FxEngine.AddEffect(p, C_Effect.RECENT_CURE, 10080, 1, False);
+  CharHlp.PrintBottomLine(tgt^.name + ' is cured');
+end;
+
 { The More page for the current character, inside a border with one blank cell inside it all round: name, then the
   five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20
   always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
-  roll and are not included. Further pages go on its bottom-line menu. Runs until Exit or Escape; the caller redraws
-  the character sheet. }
+  roll and are not included. Further pages go on its bottom-line menu. Its menu offers a paladin Heal (lay on hands)
+  and Cure (cure disease) while each can be used; either one ends the page. Runs until Exit or Escape; the caller
+  redraws the character sheet. }
 procedure MorePage;
 const
   labels: array[C_Save.PARALYZE..C_Save.SPELL] of string[24] = (
@@ -183,8 +271,23 @@ begin
     TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
   end;
   repeat
-    ch := MenuCore.MenuHorizontal('More:', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
-  until ch in [C_Keys.NONE, 'E'];
+    s := '';
+    if ViewChar.CanHeal(p) then
+      s := s + 'Heal ';
+    if ViewChar.CanCure(p) then
+      s := s + 'Cure ';
+    ch := MenuCore.MenuHorizontal('More:', s + 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+    case ch of
+      'H': if ViewChar.CanHeal(p) then
+             ViewChar.LayOnHands(p)
+           else
+             ch := ' ';
+      'C': if ViewChar.CanCure(p) then
+             ViewChar.CureDisease(p)
+           else
+             ch := ' ';
+    end;
+  until ch in [C_Keys.NONE, 'E', 'H', 'C'];
 end;
 
 { Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, encumbrance and

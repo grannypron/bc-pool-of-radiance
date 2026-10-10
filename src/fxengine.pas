@@ -8,7 +8,7 @@ interface
 uses Types, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend, CharHlp, Pathing, CbtMap,
   C_Effect, C_Status, C_Ifc, C_Dir, C_Class;
 
-{ Call the effect handler for effId (1..139) through GDVars.effectFns; an id outside the table calls nothing. p is the
+{ Call the effect handler for effId (1..141) through GDVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -133,12 +133,12 @@ var
   { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
   zone1B: Types.PFxengineZoneBytes absolute GDVars.zone1;
   { effect handler table, indexed by effect id }
-  effectHandlers: array[C_Effect.BLESS..C_Effect.READY_RING_INVIS] of Types.TEffectHandler
+  effectHandlers: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler
                              absolute GDVars.effectFns;
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (effId >= C_Effect.BLESS) and (effId <= C_Effect.READY_RING_INVIS) then
+  if (effId >= C_Effect.BLESS) and (effId <= C_Effect.RECENT_CURE) then
     effectHandlers[effId](creature, p, removed);
 end;
 
