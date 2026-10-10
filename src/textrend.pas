@@ -381,8 +381,7 @@ begin
   ReadString := reply;
 end;
 
-{ Prompt for up to six characters until they parse as an integer in 0..65536. Note: the range test admits 65536, which
-  wraps to 0 in the Word result. }
+{ Prompt for up to six characters until they parse as an integer in 0..65535, the range of the Word result. }
 function InputUint16(query: Types.TStr40; color: Byte): Word;
 var
   num: LongInt;
@@ -393,7 +392,7 @@ begin
     reply := TextRend.ReadString(query, color, 6);
     Val(reply, num, code);
     if code = 0 then
-      if (num > 65536) or (num < 0) then code := 1;
+      if (num > 65535) or (num < 0) then code := 1;
   until code = 0;
   InputUint16 := num;
 end;
