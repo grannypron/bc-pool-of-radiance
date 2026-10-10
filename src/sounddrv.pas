@@ -1,7 +1,8 @@
 { PC-speaker and Tandy SN76489 sound controls and clock delays. SoundCommand selects tunes, output gating and optional
-  per-command cleanup. SoundSuspend saves the mode and silences the devices; SoundSetAutoStop controls the timer
-  driver's lifetime. SOUNDDRV.OBJ owns the timer sequencer, streams and device voice state; GameDat1 holds the current
-  and saved modes and the auto-stop setting. }
+  per-command cleanup. SoundSuspend saves the mode and silences the devices; PlayMusic and StopMusic start and end a
+  piece of music; SoundSetAutoStop controls the timer driver's lifetime. The timer stays hooked while a resident
+  window (auto-stop 0), a sound command or the music needs it. SOUNDDRV.OBJ owns the timer sequencer, streams and
+  device voice state; GameDat1 holds the current and saved modes and the auto-stop setting. }
 {$F+}
 unit SoundDrv;
 
@@ -18,21 +19,34 @@ function SoundTime: LongInt;
    @param(centiseconds Number of centiseconds to wait.) }
 procedure SoundDelay(centiseconds: Word);
 
-{ * Single entry point for sound: mutes or restores output, silences the devices, or starts a tune on whichever device
-   is configured. Does nothing when sound is disabled. With auto-stop on, hooks the timer driver first, then waits
-   10 centiseconds before silencing both devices and unhooking it.
+{ * Single entry point for sound effects: mutes or restores output, silences the devices, or starts a tune on whichever
+   device is configured. Does nothing when sound is disabled. Every command but CMD_ENABLE ends the music, which does
+   not resume. With auto-stop on, hooks the timer driver first, then waits 10 centiseconds before silencing both devices
+   and unhooking it.
    @param(cmd 0 silences both devices and disables output, 1 enables output, 255 silences both devices; other values
      select tune cmd minus one for the active device.) }
 procedure SoundCommand(cmd: Word);
 
-{ * Remembers the configured mode and, unless sound is disabled, hooks the timer driver, silences both devices and
-   unhooks it again so the game can leave sound idle. }
+{ * Remembers the configured mode and, unless sound is disabled, ends the music, hooks the timer driver, silences both
+   devices and unhooks it again so the game can leave sound idle. }
 procedure SoundSuspend;
+
+{ * Starts a piece of music on the configured device and keeps the timer driver hooked while it plays. The piece ends
+   by itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled.
+   @param(tune A music tune, C_Sound.MUSIC_TITLE and on.) }
+procedure PlayMusic(tune: Word);
+
+{ * Ends the music now and silences the configured device; unhooks the timer driver unless a resident window holds
+   it. }
+procedure StopMusic;
+
+{ * @returns(True while the piece PlayMusic started is still playing.) }
+function MusicPlaying: Boolean;
 
 { * Chooses between a resident timer driver with persistent playback and per-command cleanup that unhooks the driver
    after each sound.
    @param(autoStop Zero installs the timer; nonzero enables fixed-delay cleanup, and a zero-to-nonzero change
-     uninstalls it. When sound is disabled the setting is left unchanged.) }
+     uninstalls it unless music is playing. When sound is disabled the setting is left unchanged.) }
 procedure SoundSetAutoStop(autoStop: Word);
 
 implementation
@@ -88,6 +102,10 @@ function SoundTimerHooked: Boolean; external;
    @param(mode A C_Sound mode; MODE_DISABLED steps neither.) }
 procedure SetSoundDevice(mode: Word); external;
 
+{ * @param(voice A voice, 0 to 3.)
+   @returns(The tune that voice is still playing, 0 once its stream has ended.) }
+function SoundVoiceTune(voice: Word): Word; external;
+
 function SoundTime: LongInt;
 var
   hour: Word;
@@ -134,6 +152,7 @@ procedure SoundCommand(cmd: Word);
 begin
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
   SoundDrv.SetSoundDevice(GDVars.soundMode);
+  if cmd <> CMD_ENABLE then GDVars.musicTune := 0;
   if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
   case cmd of
     CMD_DISABLE: begin
@@ -149,7 +168,8 @@ begin
       C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(cmd - 1);
     end;
   end;
-  if GDVars.soundAutoStop > 0 then begin
+  { only CMD_ENABLE leaves music playing, and the music keeps the timer }
+  if (GDVars.soundAutoStop > 0) and not SoundDrv.MusicPlaying then begin
     SoundDrv.SoundDelay(10);
     SoundDrv.ProgramTandyVoices(SILENT_TUNE);
     SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
@@ -161,6 +181,7 @@ procedure SoundSuspend;
 begin
   GDVars.soundSaved := GDVars.soundMode;
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  GDVars.musicTune := 0;
   SoundDrv.SetSoundDevice(GDVars.soundMode);
   SoundDrv.InstallSoundTimer;
   SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
@@ -172,10 +193,40 @@ procedure SoundSetAutoStop(autoStop: Word);
 begin
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
   if autoStop > 0 then begin
-    if GDVars.soundAutoStop = 0 then SoundDrv.UninstallSoundTimer;
+    if (GDVars.soundAutoStop = 0) and not SoundDrv.MusicPlaying then SoundDrv.UninstallSoundTimer;
   end else
     SoundDrv.InstallSoundTimer;
   GDVars.soundAutoStop := autoStop;
+end;
+
+procedure PlayMusic(tune: Word);
+begin
+  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  SoundDrv.SetSoundDevice(GDVars.soundMode);
+  SoundDrv.InstallSoundTimer;
+  GDVars.musicTune := tune;
+  case GDVars.soundMode of
+    C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(tune);
+    C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(tune);
+  end;
+end;
+
+procedure StopMusic;
+begin
+  if GDVars.musicTune = 0 then Exit;
+  GDVars.musicTune := 0;
+  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  case GDVars.soundMode of
+    C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
+    C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(SILENT_TUNE);
+  end;
+  if GDVars.soundAutoStop > 0 then SoundDrv.UninstallSoundTimer;
+end;
+
+function MusicPlaying: Boolean;
+begin
+  MusicPlaying := (GDVars.musicTune <> 0) and SoundDrv.SoundTimerHooked and
+                  (SoundDrv.SoundVoiceTune(0) = GDVars.musicTune);
 end;
 
 { * Unhooks the timer on every way out of the program, Halt and run-time errors included: an INT 8 vector left pointing

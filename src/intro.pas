@@ -10,6 +10,8 @@ procedure Introduction;
 
 implementation
 
+uses C_Sound, SoundDrv;
+
 { Wait for the requested number of seconds or a keypress, whichever comes first. }
 procedure DelayOrKey(seconds: Word);
 var
@@ -83,6 +85,8 @@ begin
   GDVars.gameDir[0] := #0;
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);
+  { the title theme plays out by itself, under the credits or the menu }
+  SoundDrv.PlayMusic(C_Sound.MUSIC_TITLE);
   Intro.DelayOrKey(5);
   if GDVars.fullIntro = 0 then begin
     GDVars.gameDir := savedDir;

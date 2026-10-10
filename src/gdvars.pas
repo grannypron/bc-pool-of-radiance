@@ -225,6 +225,8 @@ var
   soundAutoStop: Word;
   { the exit procedure SoundDrv.SoundExit hands on to }
   soundExitSaved: Pointer;
+  { the music tune SoundDrv.PlayMusic started; 0 once it is stopped or an effect has ended it }
+  musicTune: Word;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
