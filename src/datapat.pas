@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 42;
-  BYTE_COUNT = 1264;
+  PART_COUNT = 43;
+  BYTE_COUNT = 1266;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -134,7 +134,11 @@ const
       had no armour and a magic-user scroll, the knight's tomb the paladin's plate, shield and lawful-good sword; the
       two item blocks trade places }
     (por: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 2788; origLen: 1; newLen: 1),
-    (por: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 5161; origLen: 1; newLen: 1));
+    (por: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 5161; origLen: 1; newLen: 1),
+    { POR-0049: at Stojanow Gate, refusing the bugbears' 15 gold (or not having it) and being told to 'come back when
+      you've learned the rules' (script $AC32) made them hostile for good; they now become more suspicious, attitude
+      2, so the party may come back }
+    (por: 49; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 4918; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -522,7 +526,11 @@ const
     { POR-0048 part 2, original }
     $1D,
     { fixed: the knight's tomb gives item block 26 }
-    $1A);
+    $1A,
+    { POR-0049, original }
+    $03,
+    { fixed: SAVE $02, [$4A78] }
+    $02);
 
 implementation
 
