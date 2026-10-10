@@ -257,9 +257,6 @@ const
 
 
 var
-  gHitsRound: array[0..1] of Byte
-                            { hits this round }
-                            absolute GDVars.hitsMade;
   effectHandlers: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler
                             absolute GDVars.effectFns;
 
@@ -809,9 +806,12 @@ begin
 end;
 
 { Avoid the attack with pct% chance, only when the attacker (GDVars.curChar) has a weapon equipped and is more than one
-  cell away: print "Avoids it", zero the damage, force a miss and take one hit off gHitsRound[0]. }
+  cell away: print "Avoids it", zero the damage, force a miss and take the hit back off hitsMade for the attacker's
+  current attack phase. }
 
 procedure AvoidRanged(creature: Types.PCharRecord; pct: Byte);
+var
+  phase: Byte;
 begin
   if GDVars.curChar^.equipped[C_Equip.WEAPON] <> nil then
     if CharHlp.CalcDistance(GDVars.curChar, creature) > 1 then
@@ -819,7 +819,11 @@ begin
         CharHlp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
         GDVars.gAttackRoll := -1;
-        Dec(gHitsRound[0]);
+        phase := GDVars.curChar^.combatAddr^.attackPhase;
+        { 1..2 = the bounds of hitsMade }
+        if (phase >= 1) and (phase <= 2) then
+          if GDVars.hitsMade[phase] > 0 then
+            Dec(GDVars.hitsMade[phase]);
       end;
 end;
 
