@@ -713,7 +713,7 @@ begin
 end;
 
 { Reorder the party through Select and Place modes. In Select mode extended keys pick a character; in Place mode Home
-  moves it up and End moves it down. Enter, P and S switch modes. }
+  moves it up and End moves it down. P and S switch modes; Enter takes the highlighted option. }
 procedure CampOrderMenu;
 var
   selected: ShortInt;
@@ -737,7 +737,7 @@ begin
         CharHlp.DisplayParty(GDVars.curChar);
       end;
     end else
-      if c in [C_Keys.ENTER, 'P', 'S'] then begin
+      if c in ['P', 'S'] then begin
         selected := Ord(selected = 0);
         if selected <> 0 then
           CharHlp.PrintNameString(GDVars.curChar, 'has been selected', 10, False)

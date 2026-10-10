@@ -220,7 +220,8 @@ begin
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
-  highlighted column (sel 2 = Mins, 3 = Hours, 4 = Days); Return = Rest. Inc/Dec on the Mins column steps by 5 minutes }
+  highlighted column (sel 2 = Mins, 3 = Hours, 4 = Days); Enter = the highlighted option. Inc/Dec on the Mins column
+  steps by 5 minutes }
 function CampRestMenu: Boolean;
 var
   ext: Boolean;
@@ -255,7 +256,6 @@ begin
       else
         ch := #88;
       end;
-    if ch = C_Keys.ENTER then ch := 'R';
     case ch of
       'R': CampRestMenu := True;
       'Y': sel := C_Time.DAYS;

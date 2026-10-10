@@ -1401,7 +1401,7 @@ begin
 end;
 
 { The free cursor aim: the arrow-key scans move a cell cursor (clamped to the arena) from underCursor's cell, after a
-  first step toward startDir (C_Dir.CENTER stays put), Pathing.WalkLine checks the line and range, Target/Enter takes a
+  first step toward startDir (C_Dir.CENTER stays put), Pathing.WalkLine checks the line and range, Target takes a
   valid cell (a weapon attack goes through ConfirmAttackTarget), Center recenters and Exit/Escape cancels. A bare cell
   is valid only when ground is set. }
 procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground, startDir: Byte;
@@ -1429,7 +1429,7 @@ begin
   done := False;
   GDVars.arenaPtr^.cursorOn := True;
   GDVars.arenaPtr^.cursorSize := 1;
-  while not (ch in [C_Keys.NONE, C_Keys.ENTER, 'E', 'T']) do
+  while not (ch in [C_Keys.NONE, 'E', 'T']) do
   begin
     CbtMap.ScrollView(cx, cy, 3, dir);
     Inc(cx, GDConsts.dirDX[dir]);
@@ -1490,7 +1490,7 @@ begin
     ch := MenuCore.MenuHorizontal('(Use Cursor keys) ', menu, LightMagenta, LightGreen, White, True, False,
                                   GDVars.doneRoundFlag);
     case ch of
-      C_Keys.ENTER, 'T':
+      'T':
         begin
           GDVars.arenaPtr^.cursorOn := False;
           if valid then begin
