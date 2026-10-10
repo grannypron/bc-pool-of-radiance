@@ -101,7 +101,8 @@ const
   campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';
   { magic actions }
   magicMenu: String[40] = 'Cast Memorize Scribe Display Rest Exit';
-  alterMenu: String[40] = 'Order Drop Speed Icon Pics Exit';
+  { Char (the character's icon or portrait) took Icon's place: the bottom line has no room for a seventh choice }
+  alterMenu: String[40] = 'Order Drop Speed Char Pics Exit';
 
 const
   { CampOrderMenu }

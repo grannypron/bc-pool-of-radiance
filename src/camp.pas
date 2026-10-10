@@ -18,7 +18,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses FxEngine;
+uses FxEngine, Portrait;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -805,8 +805,10 @@ begin
   CharHlp.ClearMessageWindow;
 end;
 
-{ Run the Alter menu ('Order Drop Speed Icon Pics Exit'). Pics opens a submenu that toggles the monster-graphics and
-  portraits flags. }
+{ Run the Alter menu ('Order Drop Speed Char Pics Exit'). Char opens a submenu for the current character's icon or
+  portrait; Portrait is offered only where the player portraits can be shown (Portrait.PlayerPortraitsHere). The
+  selection keys pick another character there too, as in Alter itself. Pics opens a submenu that toggles the
+  monster-graphics and portraits flags. }
 procedure CampAlterMenu;
 var
   c: Char;
@@ -826,10 +828,27 @@ begin
         'O': Camp.CampOrderMenu;
         'D': Camp.CampDropMenu;
         'S': Camp.CampSpeedMenu;
-        'I': begin
-               CharGen.CustomizeIcon;
-               CharHlp.DisplayNoncombatInterface;
-             end;
+        'C': repeat
+               if Portrait.PlayerPortraitsHere then
+                 s := 'Icon Portrait Exit'
+               else
+                 s := 'Icon Exit';
+               c2 := MenuCore.MenuHorizontal('Character: ', s, LightMagenta, LightGreen, White, True, True, ext);
+               if ext then begin
+                 ViewChar.SelectPrevNextChar(c2);
+                 CharHlp.DisplayParty(GDVars.curChar);
+               end else
+                 case c2 of
+                   'I': begin
+                          CharGen.CustomizeIcon;
+                          CharHlp.DisplayNoncombatInterface;
+                        end;
+                   'P': if Portrait.PlayerPortraitsHere then begin
+                          CharGen.CustomizePortrait;
+                          CharHlp.DisplayNoncombatInterface;
+                        end;
+                 end;
+             until (not ext) and (c2 in [C_Keys.NONE, 'E']);
         'P': repeat
                if GDVars.monsterPics <> 0 then
                  s := 'Monsters on  '
