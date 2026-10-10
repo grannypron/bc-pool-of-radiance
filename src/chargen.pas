@@ -474,8 +474,8 @@ begin
       creature^.stats[i] := 0;
       for j := 1 to 6 do begin
         roll := FxEngine.RollDice(3, 6);
-        { Note: k still holds 7 (human) from the race-list loop, so no racial adjustment applies. }
-        case k of
+        { racial adjustment; the racial limits below still apply }
+        case creature^.race of
           C_Race.DWARF: case i of
                C_Abil.CONSTITUTION: Inc(roll);
                C_Abil.CHARISMA: Dec(roll);
