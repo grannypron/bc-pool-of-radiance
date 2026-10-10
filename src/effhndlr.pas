@@ -911,12 +911,12 @@ procedure EffDwarfAcGiant(creature: Types.PCharRecord; p: Pointer; removed: Bool
 var
   i: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  { The attacker is curChar: its name is tested, as are its type and size, not that of the defender's own target }
   if GDVars.curChar^.charType = 1 then
     if GDVars.curChar^.iconDimensions and $7F = 2 then
       { 8 = High(giantNames) }
       for i := 1 to 8 do
-        if GDVars.dsOtherCreatureCurrentPtr^.name = giantNames[i] then
+        if GDVars.curChar^.name = giantNames[i] then
           Dec(GDVars.gAttackRoll, 4);
 end;
 
