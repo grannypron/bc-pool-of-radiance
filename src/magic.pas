@@ -567,12 +567,12 @@ begin
     { the scribe list marks the spells the character already knows }
     3: Magic.AddAllScrollSpells(False, MARK_KNOWN);
     6: Magic.AddAllScrollSpells(True, MARK_NONE);
-    { Note: for Restoration (spell 56, level 7) this reads slots[0, 7], past the 1..3 bound, which lands on xpAward's
-      low byte }
+    { only spells inside slots[0..1, 1..3]: Restoration (spell 56, level 7) would read slots[0, 7], xpAward's low byte }
     4: for i := 1 to 56 do
-         if (GDVars.curChar^.slots[GDConsts.spellTable[i].castClassSp, GDConsts.spellTable[i].levelSp] > 0) and
-             (GDVars.curChar^.spellsKnown[i] = 0) then
-           Magic.AddSpellToList(i, MARK_NONE);
+         with GDConsts.spellTable[i] do
+           if (castClassSp >= 0) and (castClassSp <= 1) and (levelSp >= 1) and (levelSp <= 3) then
+             if (GDVars.curChar^.slots[castClassSp, levelSp] > 0) and (GDVars.curChar^.spellsKnown[i] = 0) then
+               Magic.AddSpellToList(i, MARK_NONE);
   end;
   { a list of headings alone has nothing to pick: it counts as empty }
   p := GDVars.spellList;
