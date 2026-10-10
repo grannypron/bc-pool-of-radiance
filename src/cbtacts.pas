@@ -290,6 +290,11 @@ begin
   end;
   Dec(creature^.combatAddr^.movement, cost);
   slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then begin
+    { not on the map: nothing to move }
+    creature^.combatAddr^.movement := 0;
+    Exit;
+  end;
   x := GDVars.arenaLoc[slot].x;
   y := GDVars.arenaLoc[slot].y;
   nx := x + GDConsts.dirDX[dir];
@@ -338,6 +343,9 @@ var
 begin
   FillChar(adj, SizeOf(adj), 0);
   slot := CbtMap.CombatSlot(creature);
+  { not on the map: no step to probe }
+  if slot = 0 then
+    Exit;
   cntBefore := CharHlp.CountTargets(creature, 1);
   if cntBefore = 0 then
     Exit;
@@ -1824,6 +1832,7 @@ function StingVictoryCheat: Boolean;
 var
   done: Boolean;
   p: Types.PCharRecord;
+  slot: Byte;
 begin
   StingVictoryCheat := False;
   if ParamStr(1) <> 'STING' then
@@ -1835,7 +1844,10 @@ begin
     if p^.hostile = 1 then begin
       p^.enabled := 0;
       p^.status := C_Status.DEAD;
-      GDVars.arenaLoc[CbtMap.CombatSlot(p)].size := 0;
+      slot := CbtMap.CombatSlot(p);
+      { slot 0: not on the map }
+      if slot > 0 then
+        GDVars.arenaLoc[slot].size := 0;
     end;
     done := CharHlp.EndActions(p);
     p := p^.nextCharAddr;
