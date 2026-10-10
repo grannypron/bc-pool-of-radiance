@@ -158,7 +158,7 @@ begin
 end;
 
 { GetWallType: Wall-type nibble 0..15 (0 = no wall) for the facing, from wallsNE/wallsSW, with the same coordinate guard
-  and wrap as GetBarrierType }
+  and wrap as GetBarrierType; 0 for a facing that is not a cardinal direction }
 function GetWallType(x, y: ShortInt; facing: Byte): Byte;
 begin
   if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
@@ -168,6 +168,7 @@ begin
     if x < 0 then x := 15;
     if y > 15 then y := 0;
     if y < 0 then y := 15;
+    GetWallType := 0;
     case facing of
       C_Dir.NORTH: GetWallType := (GDVars.map3d^.wallsNE[y][x] and $F0) shr 4;
       C_Dir.EAST: GetWallType := GDVars.map3d^.wallsNE[y][x] and $0F;
@@ -414,11 +415,10 @@ end;
 
 { LoadWallSet: Loads WALLDEF<disk>.DAX record fileId into wallset slot wsSlot (1..3; each wall-def block fills one slot
   of 5 wall types, and further blocks fill the following slots), remaps every symbol >= symSetLast[0] (45) by wsSlot's
-  8x8-set base offset, loads the matching 8x8 set(s), and stamps the slot cache. The size guard counts whole blocks and
-  refuses a record whose whole blocks would run past slot 3. A multi-block load composes each 8x8-set id as fileId*10 +
-  i, with file 0 spelled as 10 for that product; the cache is stamped with fileId itself. Note: the guard does not count
-  a trailing partial block, but the copy loop still copies it as a whole block into the next slot, which can lie past
-  slot 3 }
+  8x8-set base offset, loads the matching 8x8 set(s), and stamps the slot cache. The size guard refuses a record that is
+  not whole blocks or whose blocks would run past slot 3. A multi-block load composes each 8x8-set id as fileId*10 + i,
+  with file 0 spelled as 10 for that product, so such a record above 25 is refused too; the cache is stamped with fileId
+  itself. }
 procedure LoadWallSet(fileId, wsSlot: Byte);
 var
   sizeRead: Word;
@@ -436,7 +436,9 @@ begin
   if (wsSlot < 1) or (wsSlot > 3) then Exit;
   Str(GDVars.virtualDisk, numStr);
   DaxIo.LoadDax('WALLDEF' + numStr, '.dax', fileId, sizeRead, data);
-  if (sizeRead = 0) or (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) then begin
+  if (sizeRead = 0) or (sizeRead mod SizeOf(Types.TView3dWallDef) <> 0) or
+      (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) or
+      ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
     Blit.RestoreVideoMode;
     WriteLn('Unable to load wallset in LoadWallSet.');
     ch := GameIo.ReadGameKey;
