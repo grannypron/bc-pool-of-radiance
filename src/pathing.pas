@@ -17,13 +17,14 @@ procedure PathFind(var req: Types.TPathReq);
 function NextPathStep(var req: Types.TPathReq): Boolean;
 
 { True when dir (0..7) is a best direction from (x,y) toward (tx,ty), by a 90-degree cone test around the cell one step
-  in dir; 8 or 255 (no direction) is always True. False if any coordinate is outside 0..49 / 0..24 }
+  in dir; 8 and above (no direction) is always True. False if any coordinate is outside 0..49 / 0..24 }
 function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
 
 { Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
   the doubled distance (2 per straight step, 3 per diagonal) exceeds dist * 2 + 1, or, when the arena's distMode is 0,
   at a cell whose terrain blocking exceeds the start cell's clearance. On failure, return the blocking cell in tx,ty and
-  the doubled distance in dist; reaching the target returns True with the doubled distance. }
+  the doubled distance in dist; reaching the target returns True with the doubled distance. An endpoint outside 0..49 /
+  0..24 fails at once, with dist 0 and tx,ty unchanged. }
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
 
 { Build the potential-target list by testing icon-tile pairs for direction, line of sight and range. Keep each
@@ -145,6 +146,11 @@ var
   stepped: Boolean;
   maxDist: Word;
 begin
+  if (x < 0) or (x > 49) or (y < 0) or (y > 24) or (tx < 0) or (tx > 49) or (ty < 0) or (ty > 24) then begin
+    dist := 0;
+    WalkLine := False;
+    Exit;
+  end;
   maxDist := dist * 2 + 1;
   walk.sx := x;
   walk.sy := y;
@@ -186,7 +192,7 @@ begin
     IsDirToward := False;
     Exit;
   end;
-  if dir = 255 then
+  if dir > C_Dir.CENTER then
     dir := C_Dir.CENTER;
   nx := x + GDConsts.dirDX[dir];
   ny := y + GDConsts.dirDY[dir];
@@ -194,8 +200,7 @@ begin
     IsDirToward := True;
     Exit;
   end;
-  { Test the 90-degree cone for the requested direction. Note: values 9..254 match no case arm and leave the result
-    undefined. }
+  { Test the 90-degree cone for the requested direction. }
   case dir of
     C_Dir.NORTH: IsDirToward := ((tx >= nx) and (ty <= (nx - tx) + ny)) or ((tx <= nx) and (ty <= (tx - nx) + ny));
     C_Dir.NORTHEAST: IsDirToward := ((tx >= nx) and (ty <= (nx - tx) + ny)) or
@@ -232,6 +237,7 @@ var
   tgY: array[0..3] of ShortInt;
   dist: Word;
   bestDist: Word;
+  last: Byte;
 begin
   for k := 0 to 3 do
     if CbtMap.GetIconTileDelta(size, k, dx8, dy8) then begin
@@ -240,10 +246,16 @@ begin
     end else
       myX[k] := -1;
   GDVars.targetCount := 0;
-  for i := 1 to GDVars.arenaCount do
+  { 72 = High(arenaLoc) = High(targetList) }
+  last := GDVars.arenaCount;
+  if last > 72 then
+    last := 72;
+  for i := 1 to last do
     if GDVars.arenaLoc[i].size > 0 then begin
       found := False;
       bestDist := 255;
+      bestK := 0;
+      bestJ := 0;
       for j := 0 to 3 do
         if CbtMap.GetIconTileDelta(GDVars.arenaLoc[i].size, j, dx8, dy8) then begin
           tgX[j] := GDVars.arenaLoc[i].x + dx8;
