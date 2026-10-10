@@ -1802,11 +1802,21 @@ end;
 { C_Effect.BITE_HOLD (74) handler; p is the effect, whose strength holds the victim's creature index. While the hold
   lasts, each trigger is one 3d4 bite on the victim as from behind, ending the creature's actions; a victim that drops
   ends the hold. On removal, or when either side is down, the victim loses C_Effect.IMMOBILE (58), and the hold itself
-  is removed (onRemove cleared first) unless it is already being removed. }
+  is removed (onRemove cleared first) unless it is already being removed. An index outside creatureArr[1..arenaCount]
+  (CombatSlot's 0 for a creature not in the arena) has no victim: the hold just goes, as in Effhndlr.EffBloodDrain. }
 procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
 begin
+  { 72 = High(creatureArr) }
+  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
+      (Types.PEffectRec(p)^.strength > 72) then begin
+    if not removed then begin
+      Types.PEffectRec(p)^.onRemove := False;
+      FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, p);
+    end;
+    Exit;
+  end;
   GDVars.dsOtherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
   if removed or (creature^.enabled = 0) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then begin
     FxEngine.RemoveEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);

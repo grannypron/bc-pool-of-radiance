@@ -1155,27 +1155,40 @@ begin
   end;
 end;
 
-{ Blood drain attachment (eff 76): add eff 75 on the attacker with a 12 hp budget and immobilize the target }
+{ Blood drain attachment (eff 76): add eff 75 on the attacker with a 12 hp budget and immobilize the target. A target
+  with no combat slot (none, or not on the map) is not drained. }
 
 procedure EffBloodAttach(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  slot: Byte;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if GDVars.dsOtherCreatureCurrentPtr = nil then
+    Exit;
+  slot := CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr);
+  if slot = 0 then
+    Exit;
   { a 12 hp budget in the upper bits of the duration }
-  FxEngine.AddEffect(creature, C_Effect.BLOOD_DRAIN, 12 * 16 + 15,
-                     CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr), True);
+  FxEngine.AddEffect(creature, C_Effect.BLOOD_DRAIN, 12 * 16 + 15, slot, True);
   FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
   FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
 end;
 
 { Bite attach (eff 77): add eff 74 (bite and hold, handled by CbtActs.BiteAndHold) on the biter and immobilize the
-  target. No effect on a target with Strength 19+ }
+  target. No effect on a target with Strength 19+, or with no combat slot (none, or not on the map) }
 
 procedure EffBiteHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  slot: Byte;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if GDVars.dsOtherCreatureCurrentPtr = nil then
+    Exit;
+  slot := CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr);
+  if slot = 0 then
+    Exit;
   if GDVars.dsOtherCreatureCurrentPtr^.strCur < 19 then begin
-    FxEngine.AddEffect(creature, C_Effect.BITE_HOLD, 0, CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr),
-                       True);
+    FxEngine.AddEffect(creature, C_Effect.BITE_HOLD, 0, slot, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
     FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
     CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is held fast', 10, True);
