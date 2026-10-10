@@ -128,6 +128,13 @@ function ItemWeight(item: Types.PItemRec): LongInt;
   fights as a warrior. }
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 
+{ The hit points Constitution con gives creature over all its hit dice, as creation and training bank them (CharGen's
+  ConHpBonus at each level): each class's GDConsts.conBonusTbl share, plus 1 at Con 17 and 1 more at 18 for a
+  single-class fighter, paladin or ranger, once per level (a ranger's level + 1), divided by the class count. A
+  Constitution outside the table's 3..20 uses the nearer end. The difference between two Constitutions is the
+  hit-point change a change of Constitution makes. }
+function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
+
 implementation
 
 var
@@ -1574,6 +1581,45 @@ begin
   if best < 0 then
     best := 0;
   WarriorLevel := best;
+end;
+
+function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
+var
+  total: Integer;
+  clsCount: Byte;
+  cls: ShortInt;
+  dice: Byte;
+  share: ShortInt;
+  warrior: Boolean;
+begin
+  total := 0;
+  clsCount := 0;
+  with creature^ do begin
+    warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
+    { 7 = High(classLevels) }
+    for cls := 0 to 7 do
+      if classLevels[cls] > 0 then begin
+        Inc(clsCount);
+        if con < 3 then
+          share := GDConsts.conBonusTbl[3]
+        else if con > 20 then
+          share := GDConsts.conBonusTbl[20]
+        else
+          share := GDConsts.conBonusTbl[con];
+        if (con > 16) and warrior then
+          Inc(share);
+        if (con > 17) and warrior then
+          Inc(share);
+        dice := classLevels[cls];
+        { a ranger's first level has two hit dice }
+        if cls = C_Class.LEVEL_RANGER then
+          Inc(dice);
+        Inc(total, dice * share);
+      end;
+  end;
+  if clsCount > 0 then
+    total := total div clsCount;
+  ConHpTotal := total;
 end;
 
 end.

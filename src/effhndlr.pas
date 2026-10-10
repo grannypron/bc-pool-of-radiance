@@ -370,14 +370,13 @@ begin
   GDVars.elementMask := 9;
 end;
 
-{ Manual of Bodily Health training done (eff 7): +1 Constitution and the matching hit-point change; at Constitution 20
-  or more, add eff 62 (regeneration) for 60 minutes instead. }
+{ Manual of Bodily Health training done (eff 7): +1 Constitution and the matching hit-point change, the Con table's
+  bonus at the new Constitution less the bonus at the old over every hit die (CharHlp.ConHpTotal), with hpMax capped at
+  255; at Constitution 20 or more, add eff 62 (regeneration) for 60 minutes instead. }
 
 procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
-  hpGain: Byte;
-  hpBonus: Byte;
-  j: ShortInt;
+  hpGain: Integer;
 begin
   CharHlp.PrintNameString(creature, 'is hardier', 10, True);
   Inc(creature^.conCur);
@@ -385,22 +384,10 @@ begin
     FxEngine.AddEffect(creature, C_Effect.CON_REGEN, 60, 255, True);
     Exit;
   end;
-  hpGain := creature^.hpMax - creature^.hpRolled;
-  hpBonus := 0;
-  if creature^.conCur < 15 then Exit;
-  { 7 = High(classLevels) }
-  for j := 0 to 7 do
-    if creature^.classLevels[j] > 0 then
-      if (j = C_Class.LEVEL_FIGHTER) or (j = C_Class.LEVEL_PALADIN) or (j = C_Class.LEVEL_RANGER) then
-        Inc(hpBonus, (creature^.conCur - 15) * creature^.classLevels[j])
-      else if creature^.conCur > 15 then
-        Inc(hpBonus, creature^.classLevels[j] * 2)
-      else
-        Inc(hpBonus, creature^.classLevels[j]);
-  if hpBonus = 0 then
-    hpBonus := 1;
-  hpGain := hpGain div hpBonus;
-  if (creature^.conCur < 17) or (CharHlp.WarriorLevel(creature) > 0) then begin
+  hpGain := CharHlp.ConHpTotal(creature, creature^.conCur) - CharHlp.ConHpTotal(creature, creature^.conCur - 1);
+  if hpGain > 255 - creature^.hpMax then
+    hpGain := 255 - creature^.hpMax;
+  if hpGain > 0 then begin
     Inc(creature^.hpMax, hpGain);
     Inc(creature^.hpCur, hpGain);
   end;
