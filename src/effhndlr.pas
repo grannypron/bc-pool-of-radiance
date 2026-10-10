@@ -1630,12 +1630,12 @@ begin
   EffHndlr.AvoidRanged(creature, 60);
 end;
 
-{ pct is the resist chance against an 11th-level caster, falling 5% per caster level below it: chance := pct - (11 -
-  lvl) * 5, and a 1d100 roll <= chance nullifies. Only an effect under the immunity check or magic damage is resisted.
-  A chance below zero is always resisted (the shipped Byte arithmetic got that by wrapping). An item counts as a
-  6th-level caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the
-  necklace and the javelin): at 12 the wand got past Tyranthraxus's resistance (eff 106), which stops every party
-  spell. }
+{ pct is the creature's magic resistance against an 11th-level caster. As in the DMG, it rises 5% for each caster level
+  below 11 and falls 5% for each level above: chance := pct + (11 - lvl) * 5, kept within 0..100, and a 1d100 roll <=
+  chance nullifies. Only an effect under the immunity check or magic damage is resisted. An item counts as a 6th-level
+  caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and
+  the javelin). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106 passing 15), so resistance
+  grew with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. }
 
 procedure MagicResistance(pct: Byte);
 var
@@ -1645,8 +1645,10 @@ begin
   lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   if GDVars.usingItem and (lvl > 6) then
     lvl := 6;
-  chance := Integer(pct) - (11 - Integer(lvl)) * 5;
+  chance := Integer(pct) + (11 - Integer(lvl)) * 5;
   if chance < 0 then
+    chance := 0
+  else if chance > 100 then
     chance := 100;
   if (GDVars.pendingEffectId = 0) and (GDVars.elementMask and 8 = 0) then
     Exit;
@@ -1661,11 +1663,11 @@ begin
   EffHndlr.MagicResistance(50);
 end;
 
-{ Magic resistance (eff 106). Note: it passes 15, so it resists 15% (not 85%) at the 11th-level baseline }
+{ Magic resistance 85% (eff 106) }
 
 procedure EffMagicRes85(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.MagicResistance(15);
+  EffHndlr.MagicResistance(85);
 end;
 
 { Elf 90% resistance to sleep/charm (eff 107) }
