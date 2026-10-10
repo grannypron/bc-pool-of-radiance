@@ -889,17 +889,23 @@ end;
 procedure EnlargeHandler;
 var
   enc: Byte;
+  lvl: Byte;
 begin
-  { Strength 18 with exceptional Strength 0, 1, 51, 76, 91 or 100 for caster levels 1..6 }
+  { Strength 18 with exceptional Strength 0, 1, 51, 76, 91 or 100 for caster levels 1..6; 100 above 6, 0 for level 0 }
   GDVars.gSpellTemp1 := 18;
-  { Other caster levels leave gSpellTemp2 unchanged }
-  case CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing) of
+  lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+  case lvl of
     1: GDVars.gSpellTemp2 := 0;
     2: GDVars.gSpellTemp2 := 1;
     3: GDVars.gSpellTemp2 := 51;
     4: GDVars.gSpellTemp2 := 76;
     5: GDVars.gSpellTemp2 := 91;
     6: GDVars.gSpellTemp2 := 100;
+  else
+    if lvl > 6 then
+      GDVars.gSpellTemp2 := 100
+    else
+      GDVars.gSpellTemp2 := 0;
   end;
   if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], GDVars.gSpellTemp1, GDVars.gSpellTemp2, enc) then
     CharHlp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
@@ -1194,8 +1200,8 @@ begin
 end;
 
 { Strength: add 1d4 for a mage, 1d6 for a cleric or thief, 1d8 for a fighter, paladin or ranger; when several classes
-  match, the last test wins. Above 18, those warriors turn each extra point into 10 points of exceptional Strength
-  (capped at 100) and others are held at 18. }
+  match, the last test wins, and with none of them nothing is added. Above 18, those warriors turn each extra point into
+  10 points of exceptional Strength (capped at 100) and others are held at 18. }
 procedure StrengthHandler;
 var
   tgt: Types.PCharRecord;
@@ -1205,6 +1211,7 @@ var
   enc: Byte;
 begin
   exStr := 0;
+  roll := 0;
   tgt := GDVars.dsTargetCreaturePtr[1];
   if tgt^.classLevels[C_Class.LEVEL_MAGE] > 0 then
     roll := FxEngine.RollDice(1, 4);
@@ -1212,7 +1219,6 @@ begin
     roll := FxEngine.RollDice(1, 6);
   if CharHlp.WarriorLevel(tgt) > 0 then
     roll := FxEngine.RollDice(1, 8);
-  { Note: no matching class leaves roll uninitialized }
   newStr := tgt^.strCur + roll;
   if newStr > 18 then begin
     if CharHlp.WarriorLevel(tgt) > 0 then begin
@@ -1640,7 +1646,7 @@ end;
 { Restoration: give back one drained level. hpMax, hpCur and hpRolled regain drainedHps div drainedLevels. Scanning
   classes 0..7, a class becomes the pick when its level is not above the current pick's, its next-level XP is nonzero
   and smaller, and it is not at its level cap. The pick gains a level and experience is raised to its next-level XP if
-  lower. }
+  lower; with no pick the hit points alone come back. }
 procedure RestorationHandler;
 var
   tgt: Types.PCharRecord;
@@ -1663,6 +1669,8 @@ begin
     bestLvl := 13;
     { sentinel above any table entry }
     bestXp := 10000000;
+    { no class picked yet }
+    bestCls := -1;
     { 7 = High(classLevels) }
     for cls := 0 to 7 do begin
       lvl := tgt^.classLevels[cls];
@@ -1675,10 +1683,11 @@ begin
         bestXp := GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)];
       end;
     end;
-    { Note: bestCls is uninitialized if no class qualified }
-    Inc(tgt^.classLevels[bestCls]);
-    if tgt^.experience < bestXp then
-      tgt^.experience := bestXp;
+    if bestCls >= 0 then begin
+      Inc(tgt^.classLevels[bestCls]);
+      if tgt^.experience < bestXp then
+        tgt^.experience := bestXp;
+    end;
     ClassCal.RecalcBaseSkills(tgt);
     CharHlp.PrintNameString(tgt, 'is restored', 10, True);
   end;
