@@ -200,9 +200,9 @@ begin
 end;
 
 { Choose a spell for an NPC, or for a PC while quick magic (Alt-M) is on, when an enemy team remains. The list holds
-  every nonzero memorizedSpells entry if castAllowed is set, including ones with bit 7 set (still being memorized). Over
-  1d7 passes the minimum aiPriority drops from 7, with three random picks per pass; the first spell DecideCastSpell
-  accepts goes to CbtActs.CastSpellCombat, whose result is returned. }
+  every memorizedSpells entry that names a spell in spellTable if castAllowed is set; one with bit 7 set (still being
+  memorized) or past the table is left out. Over 1d7 passes the minimum aiPriority drops from 7, with three random
+  picks per pass; the first spell DecideCastSpell accepts goes to CbtActs.CastSpellCombat, whose result is returned. }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
   list: array[0..20] of Byte;
@@ -220,7 +220,8 @@ begin
   count := 0;
   if creature^.combatAddr^.castAllowed <> 0 then
     for k := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
-      if creature^.memorizedSpells[k] > 0 then begin
+      { 67 = High(spellTable); a pending entry (bit 7) is above it too }
+      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= 67) then begin
         list[count] := creature^.memorizedSpells[k];
         Inc(count);
       end;
@@ -565,6 +566,7 @@ function CheckMorale(creature: Types.PCharRecord): Boolean;
 var
   enemyMove: Byte;
   moraleSave: Byte;
+  hpPct: Integer;
 begin
   CheckMorale := False;
   creature^.combatAddr^.fleeing := 0;
@@ -587,7 +589,12 @@ begin
   { Effects adjust morale here: Bless +5, Curse -5 floored at 0 (so a curse below 5 fails both checks), Charm sets 100
     and flips the creature's side on its first call. Bless and Curse also adjust the attack roll. }
   FxEngine.TriggerEffectsWithCondition(C_Cond.MORALE_CHECK, creature);
-  if (GDVars.dsCurrentMorale >= 100 - creature^.hpCur * 100 div creature^.hpMax)
+  { hpMax 0 counts as no hit points left }
+  if creature^.hpMax = 0 then
+    hpPct := 0
+  else
+    hpPct := creature^.hpCur * 100 div creature^.hpMax;
+  if (GDVars.dsCurrentMorale >= 100 - hpPct)
      and (GDVars.dsCurrentMorale <> 0) then
     { own-HP check holds }
     Exit;
@@ -786,7 +793,9 @@ begin
     { Over-handed: drop the shield, or the chosen weapon when there is no shield or the shield is cursed }
     if (creature^.equipped[C_Equip.SHIELD] = nil) or
         (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then begin
-      ViewChar.ToggleReadyItem(item);
+      { item is nil when no weapon was chosen }
+      if item <> nil then
+        ViewChar.ToggleReadyItem(item);
       changed := True;
     end else begin
       ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
