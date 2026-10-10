@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 28;
-  BYTE_COUNT = 984;
+  PART_COUNT = 31;
+  BYTE_COUNT = 990;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -94,7 +94,13 @@ const
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
-    (por: 38; family: C_Data.FAMILY_ECL; disk: 3; id: 14; size: 7332; offset: 4539; origLen: 87; newLen: 87));
+    (por: 38; family: C_Data.FAMILY_ECL; disk: 3; id: 14; size: 7332; offset: 4539; origLen: 87; newLen: 87),
+    { POR-0040: leaving the cleared Sorcerer's Pyramid (script $AE11, $AF2B, $AF3B) used the Valjevo commission state
+      [$4A9A] as its scratch flag and left it at $FF, so the council's Valjevo summons never came; the flag is now
+      the entry word [$4A1F], which this script uses nowhere else }
+    (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5397; origLen: 1; newLen: 1),
+    (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5681; origLen: 1; newLen: 1),
+    (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5697; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -377,7 +383,19 @@ const
     $03, $01, $7A, $6E, $00, $05,                     { $AAFF COMPARE [$6E7A], $05 }
     $1A,                                              { $AB05 IF <= }
     $01, $01, $10, $AB,                               { $AB06 GOTO LAB10 }
-    $09, $00, $05, $01, $7A, $6E);                    { $AB0A SAVE $05, [$6E7A] }
+    $09, $00, $05, $01, $7A, $6E,                     { $AB0A SAVE $05, [$6E7A] }
+    { POR-0040 part 1, original }
+    $9A,
+    { fixed: COMPARE [$4A1F], $01 }
+    $1F,
+    { POR-0040 part 2, original }
+    $9A,
+    { fixed: SAVE $01, [$4A1F] }
+    $1F,
+    { POR-0040 part 3, original }
+    $9A,
+    { fixed: SAVE $FF, [$4A1F] }
+    $1F);
 
 implementation
 
