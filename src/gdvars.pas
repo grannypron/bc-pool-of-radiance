@@ -4,7 +4,7 @@ unit GDVars;
 
 interface
 
-uses C_Money, Types, Dos, C_Effect, C_Gbvm;
+uses C_Money, Types, Dos, C_Effect, C_Gbvm, C_Spell;
 
 var
   { Script execution. }
@@ -92,7 +92,11 @@ var
   { the menu string list }
   spellList: Types.PItemRec;
   { spell ID per menu line }
-  spellIds: array[0..20] of Byte;
+  spellIds: array[0..C_Spell.LINE_LAST] of Byte;
+  { the scroll each Cast line reads from, nil for a memorized spell }
+  spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
+  { the scroll of the line SpellSelection returned, nil for a memorized spell or none }
+  castScroll: Types.PItemRec;
   scrollPtrs: array[0..48] of Types.PItemRec;
   scrollCount: Byte;
   gSpellTemp1: Byte;

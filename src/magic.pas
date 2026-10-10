@@ -13,14 +13,15 @@ uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Session, DaxIo
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
   idx is the menu cursor and persists across calls; idx < 0 clears the window and resets idx to 0 (cast and learn
-  always redraw). Returns the chosen spell id, or 0 for Exit; scribe also sets GDVars.dsCurrentScrollPtr to the chosen
-  spell's scroll. Frees spellList before returning. }
+  always redraw). Returns the chosen spell id, or 0 for Exit, and sets GDVars.castScroll to the chosen line's scroll in
+  spellScrolls (nil for Exit); scribe also sets GDVars.dsCurrentScrollPtr to the chosen spell's scroll. Frees spellList
+  before returning. }
 function SpellSelection(selType: Byte; var idx: Integer): Byte;
 
 { Build spellList and spellIds for a spell menu. menuType: 0 memorized, 5 still being memorized (bit 7 set), 1 spell
   book, 2 current scroll, 3 spells on every readable item, 6 scroll spells queued for scribing (bit 7 set), 4 spells
-  learnable on gaining a level (the character has slots of the spell's class and level and does not know it yet).
-  Returns True if the list is nonempty. }
+  learnable on gaining a level (the character has slots of the spell's class and level and does not know it yet), 7
+  the spells the character can cast now (AddAvailableSpells). Returns True if the list is nonempty. }
 function GenerateSpellList(menuType: Byte): Boolean;
 
 { Spell range: rangeFixed + rangeVar * caster level, using caster level 6 when GDVars.usingItem. A zero range with a
@@ -42,8 +43,20 @@ procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
   whether targets were picked. }
 procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
 
+{ Cast's refusal of a combat-only spell outside combat: show the spell's name and 'is a combat-only spell...' in the
+  message window. }
+procedure ShowCombatOnlySpell(spell: Byte);
+
 { True when it is non-nil and its base item's slot is 11, 12 or 13. }
 function ItemReadable(it: Pointer): Boolean;
+
+{ True when creature can read item's spells, that is when the scroll is identified. Read Magic (effect 16), or any
+  cleric level with a scroll whose base item slot is 12, identifies it first. }
+function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
+{ True when the creature may use items now (CharHlp.CanUseItems) and holds a scroll it can read and use with a spell on
+  it: the scroll spells the Cast list offers. }
+function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
 { Clear the last of the scroll's spell slots holding spell (bit 7 ignored) and decrement its spell-count name component,
   nameIds[2]; remove the item from cr once that drops below 210. Does nothing if no slot matches. }
@@ -187,6 +200,10 @@ const
   MARK_NOT_KNOWN = 2;
   KNOWN_MARK = '-';
   NOT_KNOWN_MARK = '+';
+  { a Cast line's scroll marker, in the indent column just before the spell name }
+  SCROLL_MARK = '-';
+  { the highest spell level in spellTable (Restoration's 7) }
+  SPELL_LEVEL_LAST = 7;
 
 var
   { Word view of GDConsts.soundIds -- commands, damage and the first eight combat ids: [3] = 2 (default cast), [9] = 8
@@ -206,6 +223,14 @@ function SpellMark(spell, mark: Byte): Char; forward;
 procedure AddScrollSpells(forScribe: Boolean; mark: Byte); forward;
 
 procedure AddAllScrollSpells(forScribe: Boolean; mark: Byte); forward;
+
+function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean; forward;
+
+function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte; forward;
+
+procedure AddScrollLine(item: Types.PItemRec; slot: Byte; var lines: Byte); forward;
+
+procedure AddAvailableSpells; forward;
 
 function CalcSpellDuration(spell: Byte): Word; forward;
 
@@ -278,10 +303,13 @@ begin
       Inc(count);
     p := p^.next;
   end;
-  if ch in [C_Keys.NONE, 'E'] then
+  GDVars.castScroll := nil;
+  if (ch in [C_Keys.NONE, 'E']) or (count > C_Spell.LINE_LAST) then
     SpellSelection := C_Spell.NONE
-  else
+  else begin
     SpellSelection := GDVars.spellIds[count];
+    GDVars.castScroll := GDVars.spellScrolls[count];
+  end;
   if selType = 3 then
     GDVars.dsCurrentScrollPtr := GDVars.scrollPtrs[count];
   MenuCore.FreeStringList(GDVars.spellList);
@@ -312,6 +340,9 @@ begin
         Inc(count);
       p := p^.next;
     end;
+    { a full list takes no more lines }
+    if count > C_Spell.LINE_LAST then
+      Exit;
     lastLevel := GDConsts.spellTable[GDVars.spellIds[count - 1]].levelSp;
     GetMem(p^.next, SizeOf(Types.TMenuNode));
     p := p^.next;
@@ -371,13 +402,8 @@ end;
 procedure AddScrollSpells(forScribe: Boolean; mark: Byte);
 var
   i: Byte;
-  effect: Types.PEffectRec;
 begin
-  if CharHlp.HasEffect(GDVars.curChar, C_Effect.READ_MAGIC, effect) or
-      ((GDVars.curChar^.classLevels[C_Class.LEVEL_CLERIC] > 0) and
-       (GDVars.baseItems[GDVars.dsCurrentScrollPtr^.itemType].slot = 12)) then
-    GDVars.dsCurrentScrollPtr^.unidMask := 0;
-  if GDVars.dsCurrentScrollPtr^.unidMask = 0 then
+  if Magic.ScrollLegible(GDVars.curChar, GDVars.dsCurrentScrollPtr) then
     { 3 = High(TItemRec.spells) }
     for i := 1 to 3 do begin
       if (forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
@@ -408,16 +434,104 @@ begin
   end;
 end;
 
+{ True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
+  two hands a readied scroll takes are not asked for. }
+function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+begin
+  CastableScroll := False;
+  if Magic.ItemReadable(item) then
+    if (item^.equipped <> 0) or (GDVars.baseItems[item^.itemType].classMask and creature^.itemLimits <> 0) then
+      CastableScroll := Magic.ScrollLegible(creature, item);
+end;
+
+{ The spell in item's spell slot (1..3), bit 7 ignored, or C_Spell.NONE when the slot is out of range or holds no
+  spell. }
+function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
+var
+  id: Byte;
+begin
+  ScrollSpellAt := C_Spell.NONE;
+  if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
+    id := item^.spells[slot] and C_Spell.ID_MASK;
+    if (id >= 1) and (id <= C_Spell.LAST) then
+      ScrollSpellAt := id;
+  end;
+end;
+
+{ Add the spell in item's slot to the Cast list as line number lines, with item in spellScrolls, and count the line.
+  SCROLL_MARK goes in the indent column before the name, in place of the '*' a spell queued for scribing gets. Nothing
+  is added once the list is full. }
+procedure AddScrollLine(item: Types.PItemRec; slot: Byte; var lines: Byte);
+var
+  p: Types.PItemRec;
+begin
+  if lines <= C_Spell.LINE_LAST then begin
+    Magic.AddSpellToList(item^.spells[slot], MARK_NONE);
+    GDVars.spellScrolls[lines] := item;
+    Inc(lines);
+    p := GDVars.spellList;
+    while p^.next <> nil do
+      p := p^.next;
+    if Length(p^.name) >= 2 then
+      p^.name[2] := SCROLL_MARK;
+  end;
+end;
+
+{ The Cast list, level by level: curChar's memorized spells (not those still being memorized), then a line for each
+  spell on each scroll curChar can read and use (CastableScroll), in inventory order, marked with SCROLL_MARK. In
+  combat the memorized spells need castAllowed, as the Cast command does, and the scroll spells CharHlp.CanUseItems, as
+  Use does. }
+procedure AddAvailableSpells;
+var
+  lvl: Byte;
+  i: Byte;
+  id: Byte;
+  lines: Byte;
+  memOk: Boolean;
+  scrollOk: Boolean;
+  item: Types.PItemRec;
+begin
+  memOk := (GDVars.ifcState <> C_Ifc.COMBAT) or (GDVars.curChar^.combatAddr^.castAllowed <> 0);
+  scrollOk := CharHlp.CanUseItems(GDVars.curChar);
+  lines := 0;
+  for lvl := 1 to SPELL_LEVEL_LAST do begin
+    if memOk then
+      for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do begin
+        id := GDVars.curChar^.memorizedSpells[i];
+        if (id >= 1) and (id <= C_Spell.LAST) then
+          if (GDConsts.spellTable[id].levelSp = lvl) and (lines <= C_Spell.LINE_LAST) then begin
+            Magic.AddSpellToList(id, MARK_NONE);
+            Inc(lines);
+          end;
+      end;
+    if scrollOk then begin
+      item := GDVars.curChar^.itemsAddr;
+      while item <> nil do begin
+        if Magic.CastableScroll(GDVars.curChar, item) then
+          for i := 1 to SizeOf(item^.spells) do begin
+            id := Magic.ScrollSpellAt(item, i);
+            if id <> C_Spell.NONE then
+              if GDConsts.spellTable[id].levelSp = lvl then
+                Magic.AddScrollLine(item, i, lines);
+          end;
+        item := item^.next;
+      end;
+    end;
+  end;
+end;
+
 function GenerateSpellList(menuType: Byte): Boolean;
 var
   i: Byte;
 begin
   GenerateSpellList := False;
   GDVars.spellList := nil;
-  { High(spellIds) }
-  for i := 0 to 20 do
+  for i := 0 to C_Spell.LINE_LAST do begin
     GDVars.spellIds[i] := 0;
+    GDVars.spellScrolls[i] := nil;
+  end;
   case menuType of
+    7: Magic.AddAvailableSpells;
     { High(memorizedSpells) }
     0: for i := 0 to 20 do
          if (GDVars.curChar^.memorizedSpells[i] > 0) and
@@ -583,8 +697,7 @@ begin
   ok := True;
   if (GDVars.ifcState <> C_Ifc.COMBAT) and (GDConsts.spellTable[spell].target = 0) then begin
     if GDVars.usingItem = False then begin
-      TextRend.DisplayString(1, 19, LightGreen, GDConsts.spellNames[spell]);
-      TextRend.DisplayString(1, 20, LightGreen, 'is a combat-only spell...');
+      Magic.ShowCombatOnlySpell(spell);
       if MenuCore.YesNoMenu('Lose it? ', LightMagenta, White, LightGreen) = 'Y' then
         CharHlp.RemoveSpell(spell);
     end else begin
@@ -650,6 +763,12 @@ begin
   CharHlp.ClearMessageWindow;
   if GDVars.ifcState = C_Ifc.COMBAT then
     Border.ClearBox(0, 23, 39, 23);
+end;
+
+procedure ShowCombatOnlySpell(spell: Byte);
+begin
+  TextRend.DisplayString(1, 19, LightGreen, GDConsts.spellNames[spell]);
+  TextRend.DisplayString(1, 20, LightGreen, 'is a combat-only spell...');
 end;
 
 { Bless and Curse: drop targets not on team hostFlag and, for Bless in combat, targets with an enemy within range 1;
@@ -1666,6 +1785,36 @@ begin
     ItemReadable := True
   else
     ItemReadable := False;
+end;
+
+function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
+      ((creature^.classLevels[C_Class.LEVEL_CLERIC] > 0) and (GDVars.baseItems[item^.itemType].slot = 12)) then
+    item^.unidMask := 0;
+  ScrollLegible := item^.unidMask = 0;
+end;
+
+function HasScrollSpells(creature: Types.PCharRecord): Boolean;
+var
+  item: Types.PItemRec;
+  i: Byte;
+  found: Boolean;
+begin
+  found := False;
+  if CharHlp.CanUseItems(creature) then begin
+    item := creature^.itemsAddr;
+    while (item <> nil) and not found do begin
+      if Magic.CastableScroll(creature, item) then
+        for i := 1 to SizeOf(item^.spells) do
+          if Magic.ScrollSpellAt(item, i) <> C_Spell.NONE then
+            found := True;
+      item := item^.next;
+    end;
+  end;
+  HasScrollSpells := found;
 end;
 
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
