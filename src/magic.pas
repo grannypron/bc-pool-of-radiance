@@ -180,10 +180,13 @@ implementation
 const
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;
-  { AddSpellToList's markers: none, or KNOWN_MARK in the indent column of a spell already in curChar's spell book }
+  { AddSpellToList's markers, in the indent column: none; KNOWN_MARK on a spell already in curChar's spell book; or
+    NOT_KNOWN_MARK on a spell curChar's classes could learn but its spell book lacks }
   MARK_NONE = 0;
   MARK_KNOWN = 1;
+  MARK_NOT_KNOWN = 2;
   KNOWN_MARK = '-';
+  NOT_KNOWN_MARK = '+';
 
 var
   { Word view of GDConsts.soundIds -- commands, damage and the first eight combat ids: [3] = 2 (default cast), [9] = 8
@@ -286,8 +289,8 @@ end;
 
 { Append spell to spellList, first adding a level heading entry (inUse = 1) when its spell level differs from the
   previous spell's. Bit 7 set (pending memorization or scribing) prefixes ' *'; otherwise the second column holds
-  SpellMark's character for mark (MARK_NONE or MARK_KNOWN). Stores spell and $7F in spellIds at the entry's selectable
-  index. }
+  SpellMark's character for mark (MARK_NONE, MARK_KNOWN or MARK_NOT_KNOWN). Stores spell and $7F in spellIds at the
+  entry's selectable index. }
 procedure AddSpellToList(spell, mark: Byte);
 var
   p: Types.PItemRec;
@@ -330,17 +333,36 @@ begin
   GDVars.spellIds[count] := spell and C_Spell.ID_MASK;
 end;
 
-{ The indent-column marker for spell (bit 7 ignored) on a spell list: KNOWN_MARK for MARK_KNOWN when curChar's spell
-  book has it, otherwise a blank. An ID outside the spell book (1..56) gets a blank. }
+{ The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
+  curChar's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell curChar's classes
+  could learn. A class could learn a spell of its own (castClass 0 needs a cleric level, castClass 1 a magic-user level)
+  at spell level 1..3, the levels a character has slots for, whatever the character's current level. An ID outside the
+  spell book (1..56) gets a blank. }
 function SpellMark(spell, mark: Byte): Char;
 var
   id: Byte;
+  learnable: Boolean;
 begin
   SpellMark := ' ';
   id := spell and C_Spell.ID_MASK;
-  if (mark = MARK_KNOWN) and (id >= 1) and (id <= SizeOf(GDVars.curChar^.spellsKnown)) then
-    if GDVars.curChar^.spellsKnown[id] <> 0 then
-      SpellMark := KNOWN_MARK;
+  if (id >= 1) and (id <= SizeOf(GDVars.curChar^.spellsKnown)) then
+    case mark of
+      MARK_KNOWN:
+        if GDVars.curChar^.spellsKnown[id] <> 0 then
+          SpellMark := KNOWN_MARK;
+      MARK_NOT_KNOWN:
+        if GDVars.curChar^.spellsKnown[id] = 0 then begin
+          learnable := False;
+          with GDConsts.spellTable[id] do
+            if (levelSp >= 1) and (levelSp <= 3) then
+              case castClassSp of
+                0: learnable := GDVars.curChar^.classLevels[C_Class.LEVEL_CLERIC] > 0;
+                1: learnable := GDVars.curChar^.classLevels[C_Class.LEVEL_MAGE] > 0;
+              end;
+          if learnable then
+            SpellMark := NOT_KNOWN_MARK;
+        end;
+    end;
 end;
 
 { Add dsCurrentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
@@ -409,7 +431,8 @@ begin
     1: for i := 1 to 55 do
          if GDVars.curChar^.spellsKnown[i] <> 0 then
            Magic.AddSpellToList(i, MARK_NONE);
-    2: Magic.AddScrollSpells(False, MARK_NONE);
+    { one scroll's list marks the spells the character could learn but does not know }
+    2: Magic.AddScrollSpells(False, MARK_NOT_KNOWN);
     { the scribe list marks the spells the character already knows }
     3: Magic.AddAllScrollSpells(False, MARK_KNOWN);
     6: Magic.AddAllScrollSpells(True, MARK_NONE);
