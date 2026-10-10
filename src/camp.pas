@@ -159,8 +159,8 @@ end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
   memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (ViewChar.UseItemSpell,
-  which asks 'Use it?' of a combat-only one), followed by Use's CharHlp.RecalcStats. An empty list prints 'has no
-  spells memorized'. }
+  which asks 'Use it?' of a combat-only one and otherwise names the spell as a memorized cast does), followed by Use's
+  CharHlp.RecalcStats. An empty list prints 'has no spells memorized'. }
 procedure NoncombatCastMenu;
 var
   idx: Integer;
@@ -185,7 +185,7 @@ begin
           Magic.CastSpellNC(spellId, False, True, castSel)
         else begin
           caster := GDVars.curChar;
-          ViewChar.UseItemSpell(GDVars.castScroll, spellId, castSel);
+          ViewChar.UseItemSpell(GDVars.castScroll, spellId, True, castSel);
           { recount the items and their weight, as Items > Use does: the scroll may be gone }
           CharHlp.RecalcStats(caster);
         end;

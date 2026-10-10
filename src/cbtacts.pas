@@ -1069,8 +1069,8 @@ end;
 { Pick (C_Spell.NONE: from the Cast list) and validate a spell, rejecting camp-only ones. A casting time (castTime div
   3) of 0 casts it now and ends the caster's actions; otherwise the caster "Begins Casting": spellCast holds the spell
   and initiative drops by the casting time (to at least 1), so it resolves on a later action. A scroll spell picked
-  from the list gets the same camp-only check, then is cast from its scroll as Use does (ViewChar.UseItemSpell),
-  followed by Use's stat and attack updates. }
+  from the list gets the same camp-only check, then is cast from its scroll as Use does (ViewChar.UseItemSpell), but
+  named as a memorized spell is, followed by Use's stat and attack updates. }
 procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
 var
   spellId: Byte;
@@ -1099,7 +1099,7 @@ begin
       scroll := nil;
     end;
   if scroll <> nil then begin
-    ViewChar.UseItemSpell(scroll, spellId, cast);
+    ViewChar.UseItemSpell(scroll, spellId, True, cast);
     CharHlp.RecalcStats(caster);
     CbtActs.SetCurAttacksX2(caster);
     if not cast then

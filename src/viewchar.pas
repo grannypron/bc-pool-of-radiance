@@ -23,7 +23,7 @@ procedure ToggleReadyItem(item: Types.PItemRec);
 
 procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
-procedure UseItemSpell(item: Types.PItemRec; spell: Byte; var done: Boolean);
+procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
@@ -619,15 +619,16 @@ begin
   if spell = 0 then
     done := False
   else
-    ViewChar.UseItemSpell(item, spell, done);
+    ViewChar.UseItemSpell(item, spell, False, done);
 end;
 
 { Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
   during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell)
   and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
   the user's actions. When done, consume the scroll spell, or use quantity and then charges; remove the item when its
-  charges run out. }
-procedure UseItemSpell(item: Types.PItemRec; spell: Byte; var done: Boolean);
+  charges run out. announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
+  (Magic.PrintCastSpellMsg); Use names none. }
+procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 begin
   if Magic.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
       (GDConsts.spellTable[spell].target = 0) then begin
@@ -654,6 +655,8 @@ begin
     CharHlp.ClearMessageWindow;
   end;
   GDVars.usingItem := True;
+  if announce then
+    Magic.PrintCastSpellMsg(GDVars.curChar, 'casts', spell);
   Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, done);
   GDVars.usingItem := False;
   if GDVars.ifcState = C_Ifc.COMBAT then
