@@ -66,7 +66,9 @@ end;
   at the 8 the record holds. A frame is loaded only while MaxAvail is at least 3900 and covers what loading it
   allocates (FrameNeed): loaded frames are stored in order and count becomes the number loaded, a skipped frame's data
   is stepped over, and without room for the first frame (which the others are XORed with for PIC and FINAL) nothing is
-  loaded. An odd transp remaps LightMagenta to Black outside CGA. }
+  loaded. A frame with no height or width, or one that runs past the block, ends the loading, keeping the frames before
+  it; a later frame is XORed only over as many bytes as the first frame has. An odd transp remaps LightMagenta to Black
+  outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
 var
   sz: Word;
@@ -82,6 +84,7 @@ var
   isPic: Boolean;
   gotXor: Boolean;
   xorSz: Word;
+  xorLast: Word;
   loaded: Byte;
   stop: Boolean;
   fr: Types.PImgBuf;
@@ -137,13 +140,24 @@ begin
     stop := False;
     f := 1;
     while (f <= count) and not stop do begin
-      Move(buf^[offset], frames[loaded + 1].hdr, SizeOf(frames[loaded + 1].hdr));
-      Inc(offset, SizeOf(frames[loaded + 1].hdr));
-      Move(buf^[offset], h, SizeOf(h));
-      Inc(offset, SizeOf(h));
-      Move(buf^[offset], w, SizeOf(w));
-      Inc(offset, SizeOf(w));
-      if (MaxAvail >= 3900) and (MaxAvail >= FrameNeed) then begin
+      { a truncated or corrupt archive: the frame's header must be in the block }
+      if LongInt(offset) + SizeOf(frames[1].hdr) + SizeOf(h) + SizeOf(w) > sz then
+        stop := True
+      else begin
+        Move(buf^[offset], frames[loaded + 1].hdr, SizeOf(frames[loaded + 1].hdr));
+        Inc(offset, SizeOf(frames[loaded + 1].hdr));
+        Move(buf^[offset], h, SizeOf(h));
+        Inc(offset, SizeOf(h));
+        Move(buf^[offset], w, SizeOf(w));
+        Inc(offset, SizeOf(w));
+        { and the rest of it and its h * w * 4 bytes of pixels, with neither size 0 }
+        if (h = 0) or (w = 0) or (LongInt(offset) + SizeOf(fr^.originX) + SizeOf(fr^.originY) + SizeOf(fr^.count) +
+            SizeOf(fr^.map) + LongInt(h) * w * 4 > sz) then
+          stop := True;
+      end;
+      if stop then
+        { the frames before it stay loaded }
+      else if (MaxAvail >= 3900) and (MaxAvail >= FrameNeed) then begin
         Inc(loaded);
         Blit.AllocPic(h, w, 1, transp, frames[loaded].pic);
         with frames[loaded].pic^ do begin
@@ -164,9 +178,14 @@ begin
             GetMem(xorBuf, xorSz);
             Move(buf^[offset], xorBuf^, xorSz);
             gotXor := True;
-          end else
-            for j := offset to offset + planeSz do
+          end else begin
+            { no further than the first frame's bytes, should a later frame be larger }
+            xorLast := planeSz;
+            if xorLast > xorSz - 1 then
+              xorLast := xorSz - 1;
+            for j := offset to offset + xorLast do
               buf^[j] := buf^[j] xor xorBuf^[j - offset];
+          end;
         Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[loaded].pic);
         if (transp and 1 > 0) and (displayMode <> Types.vmCGA) then
           Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
