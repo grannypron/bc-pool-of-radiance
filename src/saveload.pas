@@ -32,8 +32,9 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
   then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
   trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
-  usual-spells file for this character). }
-procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
+  usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file holds less
+  than a whole record or cannot be read; the caller then frees the record unused. }
+function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
   derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
@@ -45,8 +46,9 @@ procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 procedure AddCreatureToParty(id: Byte);
 
 { Load game: offer the existing SAVGAMA..J.DAT as a letter menu (Escape aborts), read the save file, reload each listed
-  character from its CHRDATxN.sav, delete their single-character files (.mem included), reload icon anims, the 3D map
-  and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set. }
+  character from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character
+  files (.mem included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run
+  Ending.YarashComplete when the Yarash pyramid flag is set. }
 procedure LoadGame;
 
 { Save game: letter menu (Escape aborts), store wall slots, game speed, picture settings and disk number in the GBVM
@@ -452,7 +454,7 @@ begin
   SaveLoad.WriteUsualSpells(creature, fn);
 end;
 
-procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
+function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 var
   f: file;
   res: Word;
@@ -475,12 +477,16 @@ begin
   else
     ext := '.cha';
   found := DaxIo.OpenWithRetry(name + ext, msg, #0, f);
+  res := 0;
   BlockRead(f, creature^, SizeOf(Types.TCharRecord), res);
+  whole := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
   creature^.nextCharAddr := nil;
   creature^.itemsAddr := nil;
   creature^.effectsAddr := nil;
   creature^.combatAddr := nil;
+  LoadChar := whole;
+  if not whole then Exit;
   if DaxIo.FileExists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
     item := nil;
@@ -725,8 +731,11 @@ begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
     if DaxIo.FileExists(GDVars.dsSaveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
-      SaveLoad.LoadChar(fn, creature, True, True);
-      SaveLoad.AddCharToParty(creature);
+      { a short or unreadable .sav is left out, as a missing one is }
+      if SaveLoad.LoadChar(fn, creature, True, True) then
+        SaveLoad.AddCharToParty(creature)
+      else
+        FreeMem(creature, SizeOf(Types.TCharRecord));
       SaveLoad.CheckSaveDir;
     end;
   end;
