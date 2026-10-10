@@ -1143,11 +1143,12 @@ end;
 
 { CustomizePortrait: The portrait picker, on its own bordered page. Three heads sit over three bodies; the middle
   column, framed, is the current pick and the others are the previous and next in GDConsts.headTbl/bodyTbl, wrapping
-  at the ends. Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Okay
-  (or Space, or Enter while Okay is the current option) shows the pick alone and asks whether it is ok: Yes keeps it,
-  No goes back to choosing. There is no way out but choosing a portrait. A head or body number outside its table starts
-  at 1. The caller redraws its screen afterwards. (SSI's picker cycled the head or body with H and B under the sheet's
-  portrait, forward only.) }
+  at the ends of the entries offered (Portrait.PlayerPortraitCount: all of them once the merged archives are read).
+  Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Okay (or Space, or
+  Enter while Okay is the current option) shows the pick alone and asks whether it is ok: Yes keeps it, No goes back to
+  choosing. There is no way out but choosing a portrait. A head or body number past the ones offered starts at 1. The
+  caller redraws its screen afterwards. (SSI's picker cycled the head or body with H and B under the sheet's portrait,
+  forward only.) }
 procedure CustomizePortrait;
 const
   PIC_COL: array[0..2] of Byte = (2, 14, 26);
@@ -1164,6 +1165,9 @@ var
   diskCh: String[1];
   i: Byte;
   step: Integer;
+  { how many heads and bodies are offered (Portrait.PlayerPortraitCount) }
+  nHeads: Byte;
+  nBodies: Byte;
 
   { Wrap: The table position k steps from cur in a table of n, wrapping at the ends }
   function Wrap(cur: Byte; k: Integer; n: Byte): Byte;
@@ -1179,12 +1183,10 @@ var
     with GDVars.curChar^ do
       for k := -1 to 1 do
         if body then begin
-          Blit.LoadPic('BODY' + diskCh, GDConsts.bodyTbl[Wrap(portraitBody, k, SizeOf(GDConsts.bodyTbl))], False, 0,
-                       bodies[k + 1]);
+          Blit.LoadPic('BODY' + diskCh, GDConsts.bodyTbl[Wrap(portraitBody, k, nBodies)], False, 0, bodies[k + 1]);
           Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW + 5, False, bodies[k + 1]);
         end else begin
-          Blit.LoadPic('HEAD' + diskCh, GDConsts.headTbl[Wrap(portraitHead, k, SizeOf(GDConsts.headTbl))], False, 0,
-                       heads[k + 1]);
+          Blit.LoadPic('HEAD' + diskCh, GDConsts.headTbl[Wrap(portraitHead, k, nHeads)], False, 0, heads[k + 1]);
           Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW, False, heads[k + 1]);
         end;
   end;
@@ -1207,29 +1209,31 @@ var
       Pad2 := CharHlp.ByteToString(n);
   end;
 
-  { ShowCounts: The "Head  7 of 14" and "Body  3 of 12" lines, the row being changed in white and the other in green }
+  { ShowCounts: The "Head  7 of 41" and "Body  3 of 21" lines, the row being changed in white and the other in green }
   procedure ShowCounts;
   var
     col: Byte;
   begin
     with GDVars.curChar^ do begin
       if onBody then col := LightGreen else col := White;
-      Centered(17, col, 'Head ' + Pad2(portraitHead) + ' of ' + CharHlp.ByteToString(SizeOf(GDConsts.headTbl)));
+      Centered(17, col, 'Head ' + Pad2(portraitHead) + ' of ' + CharHlp.ByteToString(nHeads));
       if onBody then col := White else col := LightGreen;
-      Centered(18, col, 'Body ' + Pad2(portraitBody) + ' of ' + CharHlp.ByteToString(SizeOf(GDConsts.bodyTbl)));
+      Centered(18, col, 'Body ' + Pad2(portraitBody) + ' of ' + CharHlp.ByteToString(nBodies));
     end;
   end;
 
 begin
   Str(LongInt(GDVars.virtualDisk), diskCh);
+  nHeads := Portrait.PlayerPortraitCount(False);
+  nBodies := Portrait.PlayerPortraitCount(True);
   for i := 0 to 2 do begin
     heads[i] := nil;
     bodies[i] := nil;
   end;
   with GDVars.curChar^ do begin
-    if (portraitHead = 0) or (portraitHead > SizeOf(GDConsts.headTbl)) then
+    if (portraitHead = 0) or (portraitHead > nHeads) then
       portraitHead := 1;
-    if (portraitBody = 0) or (portraitBody > SizeOf(GDConsts.bodyTbl)) then
+    if (portraitBody = 0) or (portraitBody > nBodies) then
       portraitBody := 1;
     TextRend.ClearScreen;
     Border.DrawBorder(1, 1, 38, 22, 0);
@@ -1278,9 +1282,9 @@ begin
         end;
       if step <> 0 then begin
         if onBody then
-          portraitBody := Wrap(portraitBody, step, SizeOf(GDConsts.bodyTbl))
+          portraitBody := Wrap(portraitBody, step, nBodies)
         else
-          portraitHead := Wrap(portraitHead, step, SizeOf(GDConsts.headTbl));
+          portraitHead := Wrap(portraitHead, step, nHeads);
         ShowRow(onBody);
       end;
     until done;
