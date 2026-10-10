@@ -28,7 +28,7 @@ const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
   MAX_BLOCKS = 512;
   { the most collisions one family may have }
-  MAX_REMAPS = 16;
+  MAX_REMAPS = C_Data.FAMILY_REMAPS;
   { bytes moved per read when copying, comparing or checksumming }
   CHUNK_SIZE = 4096;
   { per-disk archives are numbered 1 to SOURCE_DISKS }

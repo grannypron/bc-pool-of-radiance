@@ -23,6 +23,9 @@ const
   SOURCES_BLOCK = 253;
   REMAP_BLOCK = 254;
   VERSION_BLOCK = 255;
+  { the most collisions one family may have: DataBld builds no more into a merged archive's remap block, and DaxIo keeps
+    that many for every family }
+  FAMILY_REMAPS = 16;
   { the sources block's bytes per per-disk archive: disk, then file size and CRC-32 (4 bytes each, low byte first) }
   SOURCE_RECORD = 9;
 

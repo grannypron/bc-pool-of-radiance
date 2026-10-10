@@ -38,7 +38,7 @@ procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word;
 
 { True when the family's merged archive is whole, holds C_Data.VERSION and was built from the per-disk archives there
   now (DaxIo.SourcesMatch). The answer is remembered until ResetArchiveCache; the first True also reads the archive's
-  remap entries. }
+  remap entries, and is False instead when they do not all fit in the table (C_Data.FAMILY_REMAPS per family). }
 function FamilyUsable(family: Byte): Boolean;
 
 { Forget what FamilyUsable has found, so the next load looks at the merged archives afresh. DataBld calls it before
@@ -62,8 +62,8 @@ implementation
 uses C_Data, DataArc;
 
 const
-  { the most remap entries kept from all merged archives together }
-  MAX_REMAPS = 16;
+  { the most remap entries kept from all merged archives together: as many per family as DataBld builds }
+  MAX_REMAPS = C_Data.FAMILIES * C_Data.FAMILY_REMAPS;
 
 var
   { current data-path prefix string }
@@ -336,6 +336,7 @@ var
   size: Word;
   data: Types.PByteArr;
   i: Word;
+  first: Byte;
 begin
   if familyState[family] = 0 then begin
     familyState[family] := 2;
@@ -356,18 +357,25 @@ begin
     if familyState[family] = 1 then begin
       DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_Data.REMAP_BLOCK, size, data);
       if data <> nil then begin
+        first := remapCount;
         i := 0;
-        while (i + 2 < size) and (remapCount < MAX_REMAPS) do begin
+        while (i + 2 < size) and (familyState[family] = 1) do begin
           { an entry naming no disk, or a reserved id on either side, is skipped: a load is never sent to the merged
             archive's own blocks }
           if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_Data.SOURCES_BLOCK) and
-              (Byte(data^[i + 2]) < C_Data.SOURCES_BLOCK) then begin
-            Inc(remapCount);
-            remapFamily[remapCount] := family;
-            remapDisk[remapCount] := Byte(data^[i]);
-            remapFrom[remapCount] := Byte(data^[i + 1]);
-            remapTo[remapCount] := Byte(data^[i + 2]);
-          end;
+              (Byte(data^[i + 2]) < C_Data.SOURCES_BLOCK) then
+            if remapCount = MAX_REMAPS then begin
+              { more than the table holds: the family's entries are dropped and it reads its per-disk archives,
+                rather than reading other disks' blocks under the ids that did not fit }
+              familyState[family] := 2;
+              remapCount := first;
+            end else begin
+              Inc(remapCount);
+              remapFamily[remapCount] := family;
+              remapDisk[remapCount] := Byte(data^[i]);
+              remapFrom[remapCount] := Byte(data^[i + 1]);
+              remapTo[remapCount] := Byte(data^[i + 2]);
+            end;
           Inc(i, 3);
         end;
         FreeMem(data, size);
