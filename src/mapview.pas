@@ -17,12 +17,13 @@ implementation
 
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
-  are the last two columns and rows of GDConsts.wildMap. }
+  are the last two columns and rows of GDConsts.wildMap. Nothing is drawn outside a wilderness location. }
 procedure DisplayWildMapView;
 var
   wx: ShortInt;
   wy: Byte;
 begin
+  if not (GDVars.gLocType in [C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST]) then Exit;
   wx := GDConsts.wildColOfs[GDVars.gLocType] + GDVars.zone0^.partyX.value;
   if wx < 2 then
   else if wx < 42 then wx := 2
@@ -39,9 +40,9 @@ begin
 end;
 
 { Draw the current map view. For the 3D view, take the sky or ceiling color from the zone (its alternate color when the
-  cell's event value is above $7F), recompute the ceiling, floor and wall colors from their selectors while picRegionW
-  is set, and pass all four to View3D.SetView3DColors before View3D.Display3DMapView draws. For the wilderness, center
-  the 5x5 view on the party, clamped to the map, then draw the party icon. }
+  cell's event value is above $7F; a selector counts modulo 16), recompute the ceiling, floor and wall colors from their
+  selectors while picRegionW is set, and pass all four to View3D.SetView3DColors before View3D.Display3DMapView draws.
+  For the wilderness, center the 5x5 view on the party, clamped to the map, then draw the party icon. }
 procedure DisplayMapView;
 var
   wx: ShortInt;
@@ -89,9 +90,9 @@ begin
     C_Area.LOC_3D_MAP: begin
       GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
       if GDVars.eventAtCell > $7F then
-        GDVars.dsColorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.alternateSkyColor]
+        GDVars.dsColorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.alternateSkyColor and $0F]
       else
-        GDVars.dsColorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.skyCeilingColor];
+        GDVars.dsColorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.skyCeilingColor and $0F];
       if GDVars.picRegionW then begin
         GDVars.dsWallColorA := CeilColor(GDVars.ceilFloorColorSel);
         GDVars.dsWallColorB := FloorColor(GDVars.ceilFloorColorSel);
