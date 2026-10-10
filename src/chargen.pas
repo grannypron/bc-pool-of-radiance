@@ -1046,7 +1046,8 @@ end;
 
 { AddCharacterMenu: Pick characters from the CHARLIST.TXT roster (SaveLoad.LoadCharlist), load each with
   SaveLoad.LoadChar and add it to the party unless already there (same name and randByte) or its record is short or
-  unreadable: at most 6 non-NPCs and 8 members in all. Added entries get a leading '* ' and the roster is saved back. }
+  unreadable, which the bottom line reports as a damaged file until a key: at most 6 non-NPCs and 8 members in all.
+  Added entries get a leading '* ' and the roster is saved back. }
 procedure AddCharacterMenu;
 var
   list: Types.PItemRec;
@@ -1074,10 +1075,13 @@ begin
       begin
         GetMem(creature, SizeOf(Types.TCharRecord));
         nonNpc := 0;
-        { a short or unreadable .cha is not added and keeps its unmarked name }
-        if not SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False, True) then
-          FreeMem(creature, SizeOf(Types.TCharRecord))
-        else begin
+        { a short or unreadable .cha is not added and keeps its unmarked name; the bottom line says so until a key,
+          as the put-save-disk prompt does, with the name cut to fit the line }
+        if not SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False, True) then begin
+          FreeMem(creature, SizeOf(Types.TCharRecord));
+          TextRend.DisplayAndPause(Yellow, Copy(m^.name, 1, 21) + '''s file is damaged.');
+          Border.ClearBox(0, 24, 39, 24);
+        end else begin
           m^.name := '* ' + m^.name;
           if GDVars.creatureList = nil then begin
             GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
