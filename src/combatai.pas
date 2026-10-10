@@ -43,6 +43,7 @@ procedure CombatAiControl(creature: Types.PCharRecord);
 var
   stance: Byte;
   done: Boolean;
+  spell: Byte;
 begin
   done := CombatAi.CheckKeystroke(creature);
   MenuCore.ClearBottomLine;
@@ -68,9 +69,11 @@ begin
   if CombatAi.SelectItemToUse(creature) then
     done := CharHlp.EndActions(creature)
   else if creature^.combatAddr^.spellCast > 0 then begin
-    { A spell readied earlier resolves this segment. Combat's manual path zeroes spellCast before casting; here
-      CharHlp.EndActions below does it }
-    Magic.CastSpellNC(creature^.combatAddr^.spellCast, True, True, done);
+    { A spell readied earlier resolves this segment. spellCast is cleared first, as on Combat's manual path, so that
+      the caster hurt by its own spell does not lose a second copy of it }
+    spell := creature^.combatAddr^.spellCast;
+    creature^.combatAddr^.spellCast := 0;
+    Magic.CastSpellNC(spell, True, True, done);
     done := CharHlp.EndActions(creature);
   end else if CombatAi.TurnUndeadAI(creature) then
     done := CharHlp.EndActions(creature)
