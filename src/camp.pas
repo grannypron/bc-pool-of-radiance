@@ -18,7 +18,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses FxEngine, Portrait;
+uses FxEngine, Portrait, SoundDrv;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -810,11 +810,14 @@ begin
   CharHlp.ClearMessageWindow;
 end;
 
-{ Run the Alter menu ('Order Drop Speed Char Pics Exit'). Char opens a submenu for the current character's icon or
+{ Run the Alter menu ('Order Drop Speed Char Prefs Exit'). Char opens a submenu for the current character's icon or
   portrait; Portrait is offered only where the player portraits can be shown (Portrait.PlayerPortraitsHere). The
-  selection keys pick another character there too, as in Alter itself. Pics opens a submenu that toggles the
-  monster-graphics and portraits flags. }
+  selection keys pick another character there too, as in Alter itself. Prefs opens a screen that toggles the
+  monster pictures, the portraits and the music. }
 procedure CampAlterMenu;
+const
+  { a setting's value as the Prefs screen shows it }
+  ON_OFF: array[Boolean] of string[3] = ('off', 'on ');
 var
   c: Char;
   c2: Char;
@@ -823,7 +826,7 @@ var
 begin
   c := ' ';
   while not (c in [C_Keys.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Alter: ', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Alter:', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);
@@ -854,23 +857,25 @@ begin
                         end;
                  end;
              until (not ext) and (c2 in [C_Keys.NONE, 'E']);
-        'P': repeat
-               if GDVars.monsterPics <> 0 then
-                 s := 'Monsters on  '
-               else
-                 s := 'Monsters off  ';
-               if GDVars.portraitsOn <> 0 then
-                 s := s + 'Portraits on  '
-               else
-                 s := s + 'Portraits off  ';
-               s := s + 'Exit';
-               c2 := MenuCore.MenuHorizontal('', s, LightMagenta, LightGreen, White, False, True,
-                                             ext);
-               case c2 of
-                 'M': GDVars.monsterPics := Ord(GDVars.monsterPics = 0);
-                 'P': GDVars.portraitsOn := Ord(GDVars.portraitsOn = 0);
-               end;
-             until c2 in [C_Keys.NONE, 'E'];
+        'P': begin
+               CharHlp.ClearMessageWindow;
+               repeat
+                 TextRend.DisplayString(1, 18, LightGreen, 'Monsters   ' + ON_OFF[GDVars.monsterPics <> 0]);
+                 TextRend.DisplayString(1, 19, LightGreen, 'Portraits  ' + ON_OFF[GDVars.portraitsOn <> 0]);
+                 TextRend.DisplayString(1, 20, LightGreen, 'Music      ' + ON_OFF[GDVars.musicOn <> 0]);
+                 c2 := MenuCore.MenuHorizontal('Prefs:', 'Monsters Portraits mUsic Exit', LightMagenta, LightGreen,
+                                               White, False, True, ext);
+                 case c2 of
+                   'M': GDVars.monsterPics := Ord(GDVars.monsterPics = 0);
+                   'P': GDVars.portraitsOn := Ord(GDVars.portraitsOn = 0);
+                   'U': begin
+                          GDVars.musicOn := Ord(GDVars.musicOn = 0);
+                          if GDVars.musicOn = 0 then SoundDrv.StopMusic;
+                        end;
+                 end;
+               until c2 in [C_Keys.NONE, 'E'];
+               CharHlp.ClearMessageWindow;
+             end;
       end;
   end;
 end;

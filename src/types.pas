@@ -524,7 +524,7 @@ type
         gameSpeed: TGbvmWord;
         skyCeilingColor: Word;
         alternateSkyColor: Word;
-        { Twice the monster-picture flag plus the portrait flag. }
+        { Bit 0 the portrait flag, bit 1 the monster-picture flag, bit 2 set for music off (clear in older saves). }
         settings: Word;
         { Cleared on a fresh script entry. }
         entryWords: array[$4A00..$4A1F] of Word;

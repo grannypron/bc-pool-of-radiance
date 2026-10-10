@@ -148,6 +148,8 @@ var
   portraitsOn: Byte;
   { zero skips the close-up load when GameDat5.inEncMenu is nonzero }
   monsterPics: Byte;
+  { zero makes SoundDrv.PlayMusic do nothing; GameInit sets it, a saved game's settings word restores it }
+  musicOn: Byte;
   { GameInit clears it; GameIo toggles it on STING Ctrl-D; nonzero enables PrintHpDebug }
   stingHpFlag: Byte;
   { main-menu load handoff; EclVm skips reload, EclMenu clears it }

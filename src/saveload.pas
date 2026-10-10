@@ -78,6 +78,7 @@ procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
 implementation
 
+uses SoundDrv;
 
 var
 
@@ -728,8 +729,10 @@ begin
   BlockRead(f, nChars, SizeOf(nChars), res);
   BlockRead(f, names, SizeOf(names), res);
   Close(f);
-  GDVars.monsterPics := GDVars.zone0^.settings div 2;
+  GDVars.monsterPics := (GDVars.zone0^.settings shr 1) and 1;
   GDVars.portraitsOn := GDVars.zone0^.settings and 1;
+  GDVars.musicOn := 1 - (GDVars.zone0^.settings shr 2) and 1;
+  if GDVars.musicOn = 0 then SoundDrv.StopMusic;
   GDVars.gameDelay := GDVars.zone0^.gameSpeed.lo;
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
@@ -824,7 +827,7 @@ begin
     GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := wallSlots[n].symbolSlot;
   end;
   GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
-  GDVars.zone0^.settings := GDVars.monsterPics * 2 + GDVars.portraitsOn;
+  GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;
   GDVars.zone1^[C_Gbvm.DISK_NUM] := GDVars.virtualDisk;
   BlockWrite(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk));
   BlockWrite(f, GDVars.zone0^, SizeOf(GDVars.zone0^));
