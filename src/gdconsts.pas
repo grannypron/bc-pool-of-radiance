@@ -108,7 +108,7 @@ const
   { magic actions }
   magicMenu: String[40] = 'Cast Memorize Scribe Display Rest Exit';
   { Char (the character's icon or portrait) took Icon's place: the bottom line has no room for a seventh choice }
-  alterMenu: String[40] = 'Order Drop Speed Char Pics Exit';
+  alterMenu: String[40] = 'Order Drop Speed Char Prefs Exit';
 
 const
   { CampOrderMenu }

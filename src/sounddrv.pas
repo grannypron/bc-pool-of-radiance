@@ -32,7 +32,8 @@ procedure SoundCommand(cmd: Word);
 procedure SoundSuspend;
 
 { * Starts a piece of music on the configured device and keeps the timer driver hooked while it plays. The piece ends
-   by itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled.
+   by itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled or the Music
+   setting is off.
    @param(tune A music tune, C_Sound.MUSIC_TITLE and on.) }
 procedure PlayMusic(tune: Word);
 
@@ -201,7 +202,7 @@ end;
 
 procedure PlayMusic(tune: Word);
 begin
-  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  if (GDVars.soundMode = C_Sound.MODE_DISABLED) or (GDVars.musicOn = 0) then Exit;
   SoundDrv.SetSoundDevice(GDVars.soundMode);
   SoundDrv.InstallSoundTimer;
   GDVars.musicTune := tune;

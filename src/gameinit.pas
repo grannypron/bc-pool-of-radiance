@@ -80,6 +80,7 @@ begin
   end;
   GDVars.portraitsOn := 1;
   GDVars.monsterPics := 1;
+  GDVars.musicOn := 1;
   GDVars.stingHpFlag := 0;
   GDVars.msgDelayFlag := 1;
   GDVars.loadedSave := 0;
