@@ -109,8 +109,8 @@ begin
 end;
 
 { Replace the five coin types in m with rem copper given as the largest coins, platinum first, each type at most cap.
-  Gems and jewelry are kept. A negative rem gives nothing; copper the caps cannot hold is lost (for a character, only
-  above about 393,000 gp). }
+  Gems and jewelry are kept. A negative rem gives nothing; copper the caps cannot hold is lost. At a cap of 65535 that
+  takes more than 65535 of every type (about 429,581 gp), more than a character's Word-sized coins can hold. }
 procedure MakeChange(rem, cap: LongInt; var m: Types.TMoney);
 var
   i: ShortInt;
@@ -415,8 +415,7 @@ begin
 end;
 
 { Build the money menu (copper first), prompt for an amount and take it from the treasure pool; repeat while money
-  remains. The prompt limit is the available amount, at most 65535. Note: cnt is never initialised or read, and the
-  list is freed only after a take, not when the menu is cancelled. }
+  remains. The prompt limit is the available amount, at most 65535. Note: cnt is never initialised or read. }
 procedure TakeMoneyMenu;
 var
   i: ShortInt;
