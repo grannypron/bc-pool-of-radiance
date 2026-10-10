@@ -342,8 +342,11 @@ begin
       creature^.combatAddr^.fleeing := 0;
       done := CharHlp.EndActions(creature);
     end else begin
-      adjDir := (dir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt])
-                mod 8;
+      { attempt 6 is past aiDirOffsets' row: there is no step to take }
+      if attempt < 6 then
+        adjDir := (dir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
+      else
+        adjDir := dir;
       { nothing walkable }
       if (attempt = 6)
          { reversing }
