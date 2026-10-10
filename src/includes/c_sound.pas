@@ -18,6 +18,8 @@ const
   MODE_DISABLED = 2;
   ECL_CUE = 7;
   RANGED_END = 8;
+  { The title theme, a SoundDrv.PlayMusic tune. }
+  MUSIC_TITLE = 21;
 
 implementation
 

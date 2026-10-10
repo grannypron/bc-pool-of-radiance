@@ -8,7 +8,7 @@ CODE    SEGMENT BYTE PUBLIC 'CODE'
         ASSUME  CS:CODE, DS:CODE
         PUBLIC  InstallSoundTimer, UninstallSoundTimer
         PUBLIC  ProgramSpeakerVoices, ProgramTandyVoices, SetSoundOutputEnabled
-        PUBLIC  SoundTimerTicks, SoundTimerHooked, SetSoundDevice
+        PUBLIC  SoundTimerTicks, SoundTimerHooked, SetSoundDevice, SoundVoiceTune
 
 ; ---------------------------------------------------------------------------
 ; Voice state. SSET writes fields by offset; voice_step advances them
@@ -4224,6 +4224,19 @@ SetSoundDevice:
         mov     bp, sp
         mov     al, [bp+6]
         mov     cs:[device], al
+        pop     bp
+        retf    2
+
+; Pascal function: the tune voice [bp+6] (taken modulo 4) is still playing, in AX.
+SoundVoiceTune:
+        push    bp
+        mov     bp, sp
+        push    bx
+        mov     bx, [bp+6]
+        and     bx, 3
+        mov     al, cs:voiceTune[bx]
+        xor     ah, ah
+        pop     bx
         pop     bp
         retf    2
 
