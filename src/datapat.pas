@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 11;
-  BYTE_COUNT = 498;
+  PART_COUNT = 12;
+  BYTE_COUNT = 594;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -56,6 +56,10 @@ const
     { POR-0031: Podal Plaza's pre-camp entry (script $9914-$992A) set the on-mission rest (an interruption every 5
       minutes, 99%) and then overwrote it with the default (every 10 minutes, 16%); the default now comes first }
     (por: 31; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 22; origLen: 23; newLen: 23),
+    { POR-0032: Podal Plaza's random encounters (script $9DEE-$9E1D) added to the clearing count before looking at
+      the result, so fleeing counted as a win; the count now goes up only after a win ([$6DC7] = 0) while it is below
+      the mission's $40 }
+    (por: 32; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 1264; origLen: 48; newLen: 48),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -161,6 +165,31 @@ const
     $03, $01, $34, $4A, $00, $40,                     { $9920 COMPARE [$4A34], $40 }
     $1B,                                              { $9926 IF >= }
     $02, $01, $53, $99,                               { $9927 GOSUB L9953 }
+    { POR-0032, original }
+    $02, $01, $0C, $9E,                               { $9DEE GOSUB L9E0C }
+    $03, $01, $4F, $C0, $00, $7F,                     { $9DF2 COMPARE [$C04F], $7F }
+    $18,                                              { $9DF8 IF < }
+    $01, $01, $68, $9E,                               { $9DF9 GOTO L9E68 }
+    $03, $01, $C7, $6D, $00, $80,                     { $9DFD COMPARE [$6DC7], $80 }
+    $19,                                              { $9E03 IF > }
+    $01, $01, $23, $9E,                               { $9E04 GOTO L9E23 }
+    $01, $01, $1E, $9E,                               { $9E08 GOTO L9E1E }
+    $03, $01, $34, $4A, $00, $40,                     { $9E0C COMPARE [$4A34], $40 }
+    $1B,                                              { $9E12 IF >= }
+    $13,                                              { $9E13 RETURN }
+    $04, $00, $01, $01, $34, $4A, $01, $34, $4A,      { $9E14 ADD $01, [$4A34], [$4A34] }
+    $13,                                              { $9E1D RETURN }
+    { fixed }
+    $04, $01, $C7, $6D, $01, $34, $4A, $01, $79, $6E, { $9DEE ADD [$6DC7], [$4A34], [$6E79] }
+    $03, $01, $79, $6E, $00, $40,                     { $9DF8 COMPARE [$6E79], $40 }
+    $18,                                              { $9DFE IF < }
+    $04, $00, $01, $01, $34, $4A, $01, $34, $4A,      { $9DFF ADD $01, [$4A34], [$4A34] }
+    $03, $01, $4F, $C0, $00, $7F,                     { $9E08 COMPARE [$C04F], $7F }
+    $18,                                              { $9E0E IF < }
+    $01, $01, $68, $9E,                               { $9E0F GOTO L9E68 }
+    $03, $01, $C7, $6D, $00, $80,                     { $9E13 COMPARE [$6DC7], $80 }
+    $19,                                              { $9E19 IF > }
+    $01, $01, $23, $9E,                               { $9E1A GOTO L9E23 }
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
