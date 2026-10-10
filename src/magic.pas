@@ -180,6 +180,10 @@ implementation
 const
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;
+  { AddSpellToList's markers: none, or KNOWN_MARK in the indent column of a spell already in curChar's spell book }
+  MARK_NONE = 0;
+  MARK_KNOWN = 1;
+  KNOWN_MARK = '-';
 
 var
   { Word view of GDConsts.soundIds -- commands, damage and the first eight combat ids: [3] = 2 (default cast), [9] = 8
@@ -192,11 +196,13 @@ var
   { slot-0 call view }
   castUI: Types.TCastUI absolute GDVars.spellFps;
 
-procedure AddSpellToList(spell: Byte); forward;
+procedure AddSpellToList(spell, mark: Byte); forward;
 
-procedure AddScrollSpells(forScribe: Boolean); forward;
+function SpellMark(spell, mark: Byte): Char; forward;
 
-procedure AddAllScrollSpells(forScribe: Boolean); forward;
+procedure AddScrollSpells(forScribe: Boolean; mark: Byte); forward;
+
+procedure AddAllScrollSpells(forScribe: Boolean; mark: Byte); forward;
 
 function CalcSpellDuration(spell: Byte): Word; forward;
 
@@ -279,9 +285,10 @@ begin
 end;
 
 { Append spell to spellList, first adding a level heading entry (inUse = 1) when its spell level differs from the
-  previous spell's. Bit 7 set (pending memorization or scribing) prefixes ' *'. Stores spell and $7F in spellIds at the
-  entry's selectable index. }
-procedure AddSpellToList(spell: Byte);
+  previous spell's. Bit 7 set (pending memorization or scribing) prefixes ' *'; otherwise the second column holds
+  SpellMark's character for mark (MARK_NONE or MARK_KNOWN). Stores spell and $7F in spellIds at the entry's selectable
+  index. }
+procedure AddSpellToList(spell, mark: Byte);
 var
   p: Types.PItemRec;
   count: ShortInt;
@@ -317,16 +324,29 @@ begin
   if spell > C_Spell.ID_MASK then
     p^.name := ' *'
   else
-    p^.name := '  ';
+    p^.name := ' ' + Magic.SpellMark(spell, mark);
   p^.name := p^.name + GDConsts.spellNames[spell and C_Spell.ID_MASK];
   p^.inUse := 0;
   GDVars.spellIds[count] := spell and C_Spell.ID_MASK;
 end;
 
-{ Add dsCurrentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80) and record the
-  scroll in scrollPtrs for each. Read Magic (effect 16), or any cleric level with a scroll whose base item slot is 12,
-  identifies the scroll first; an unidentified scroll adds nothing. }
-procedure AddScrollSpells(forScribe: Boolean);
+{ The indent-column marker for spell (bit 7 ignored) on a spell list: KNOWN_MARK for MARK_KNOWN when curChar's spell
+  book has it, otherwise a blank. An ID outside the spell book (1..56) gets a blank. }
+function SpellMark(spell, mark: Byte): Char;
+var
+  id: Byte;
+begin
+  SpellMark := ' ';
+  id := spell and C_Spell.ID_MASK;
+  if (mark = MARK_KNOWN) and (id >= 1) and (id <= SizeOf(GDVars.curChar^.spellsKnown)) then
+    if GDVars.curChar^.spellsKnown[id] <> 0 then
+      SpellMark := KNOWN_MARK;
+end;
+
+{ Add dsCurrentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
+  and record the scroll in scrollPtrs for each. Read Magic (effect 16), or any cleric level with a scroll whose base
+  item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. }
+procedure AddScrollSpells(forScribe: Boolean; mark: Byte);
 var
   i: Byte;
   effect: Types.PEffectRec;
@@ -340,7 +360,7 @@ begin
     for i := 1 to 3 do begin
       if (forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
           (not forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > 0)) then begin
-        Magic.AddSpellToList(GDVars.dsCurrentScrollPtr^.spells[i]);
+        Magic.AddSpellToList(GDVars.dsCurrentScrollPtr^.spells[i], mark);
         GDVars.scrollPtrs[GDVars.scrollCount] := GDVars.dsCurrentScrollPtr;
         Inc(GDVars.scrollCount);
       end;
@@ -348,8 +368,9 @@ begin
 end;
 
 { Clear all 49 scrollPtrs and scrollCount, then walk curChar's inventory: each readable item becomes dsCurrentScrollPtr
-  and feeds AddScrollSpells. dsCurrentScrollPtr itself is the loop variable, so it ends as nil. }
-procedure AddAllScrollSpells(forScribe: Boolean);
+  and feeds AddScrollSpells with forScribe and mark. dsCurrentScrollPtr itself is the loop variable, so it ends as
+  nil. }
+procedure AddAllScrollSpells(forScribe: Boolean; mark: Byte);
 var
   i: Byte;
 begin
@@ -360,7 +381,7 @@ begin
   GDVars.dsCurrentScrollPtr := GDVars.curChar^.itemsAddr;
   while GDVars.dsCurrentScrollPtr <> nil do begin
     if Magic.ItemReadable(GDVars.dsCurrentScrollPtr) then
-      Magic.AddScrollSpells(forScribe);
+      Magic.AddScrollSpells(forScribe, mark);
     GDVars.dsCurrentScrollPtr := GDVars.dsCurrentScrollPtr^.next;
   end;
 end;
@@ -379,24 +400,25 @@ begin
     0: for i := 0 to 20 do
          if (GDVars.curChar^.memorizedSpells[i] > 0) and
              (GDVars.curChar^.memorizedSpells[i] < C_Spell.PENDING_FLAG) then
-           Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i]);
+           Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
     { High(memorizedSpells) }
     5: for i := 0 to 20 do
          if GDVars.curChar^.memorizedSpells[i] > C_Spell.ID_MASK then
-           Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i]);
+           Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
     { Note: 55 stops one short of High(spellsKnown) = 56 (Restoration), so the spell book never lists Restoration }
     1: for i := 1 to 55 do
          if GDVars.curChar^.spellsKnown[i] <> 0 then
-           Magic.AddSpellToList(i);
-    2: Magic.AddScrollSpells(False);
-    3: Magic.AddAllScrollSpells(False);
-    6: Magic.AddAllScrollSpells(True);
+           Magic.AddSpellToList(i, MARK_NONE);
+    2: Magic.AddScrollSpells(False, MARK_NONE);
+    { the scribe list marks the spells the character already knows }
+    3: Magic.AddAllScrollSpells(False, MARK_KNOWN);
+    6: Magic.AddAllScrollSpells(True, MARK_NONE);
     { Note: for Restoration (spell 56, level 7) this reads slots[0, 7], past the 1..3 bound, which lands on xpAward's
       low byte }
     4: for i := 1 to 56 do
          if (GDVars.curChar^.slots[GDConsts.spellTable[i].castClassSp, GDConsts.spellTable[i].levelSp] > 0) and
              (GDVars.curChar^.spellsKnown[i] = 0) then
-           Magic.AddSpellToList(i);
+           Magic.AddSpellToList(i, MARK_NONE);
   end;
   if GDVars.spellList <> nil then
     GenerateSpellList := True;
