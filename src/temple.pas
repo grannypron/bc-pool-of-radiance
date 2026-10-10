@@ -140,18 +140,15 @@ end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). Remove
   animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
-  one unless it is 0. hpLoss is hpMax - hpRolled (0 if negative); if the reduced constitution is still 14 or more, it is
-  divided by the summed per-level constitution bonus (skipped when that sum is 0) and taken off hpMax when constitution
-  is below 17 or the character has fighter, paladin or ranger levels. }
+  one unless it is 0. hpMax loses the hit points that point was worth, the Con table's bonus at the old Constitution
+  less the bonus at the new over every hit die (CharHlp.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
   s: String;
   c: Char;
   wasDead: Boolean;
-  hpLoss: Byte;
-  hpBonus: Byte;
-  i: ShortInt;
+  hpLoss: Integer;
   creature: Types.PCharRecord;
 begin
   creature := GDVars.curChar;
@@ -173,27 +170,12 @@ begin
         creature^.hpCur := 1;
         creature^.status := C_Status.OKAY;
         creature^.enabled := 1;
-        if creature^.conCur > 0 then
+        if creature^.conCur > 0 then begin
           Dec(creature^.conCur);
-        if creature^.hpMax > creature^.hpRolled then
-          hpLoss := creature^.hpMax - creature^.hpRolled
-        else
-          hpLoss := 0;
-        hpBonus := 0;
-        if creature^.conCur >= 14 then begin
-          { 7 = High(classLevels) }
-          for i := 0 to 7 do
-            if creature^.classLevels[i] > 0 then begin
-              if (i = C_Class.LEVEL_FIGHTER) or (i = C_Class.LEVEL_PALADIN) or (i = C_Class.LEVEL_RANGER) then
-                Inc(hpBonus, (creature^.conCur - 14) * creature^.classLevels[i])
-              else if creature^.conCur > 15 then
-                Inc(hpBonus, creature^.classLevels[i] * 2)
-              else
-                Inc(hpBonus, creature^.classLevels[i]);
-            end;
-          if hpBonus > 0 then
-            hpLoss := hpLoss div hpBonus;
-          if (creature^.conCur < 17) or (CharHlp.WarriorLevel(creature) > 0) then
+          hpLoss := CharHlp.ConHpTotal(creature, creature^.conCur + 1) - CharHlp.ConHpTotal(creature, creature^.conCur);
+          if hpLoss >= creature^.hpMax then
+            hpLoss := creature^.hpMax - 1;
+          if hpLoss > 0 then
             Dec(creature^.hpMax, hpLoss);
         end;
       end;
