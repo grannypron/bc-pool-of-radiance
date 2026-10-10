@@ -10,7 +10,7 @@ unit Blit;
 
 interface
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos, GameIo;
+uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos;
 
 type
   { An 8-pixel chunk as stored in a picture: two pixels to a byte, the first in the high nibble. }
@@ -41,7 +41,7 @@ procedure RestoreVideoMode;
 
 { Loads a picture from <name>.dax into a freshly allocated, display-ready image buffer, replacing any buffer already
   held in pic. If the file yields no data, pic is left nil. The raw data block is released once the image has been
-  expanded, and the keyboard is polled before returning.
+  expanded.
   @param(name Base file name, without the .dax extension.)
   @param(fileId Identifier passed to the DAX loader to select the block within the file.)
   @param(hasMask True to build a transparency mask for the picture.)
