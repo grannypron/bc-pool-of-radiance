@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 38;
-  BYTE_COUNT = 1226;
+  PART_COUNT = 39;
+  BYTE_COUNT = 1228;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -121,7 +121,11 @@ const
       entry 3 the same as before }
     (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 16; origLen: 2; newLen: 2),
     (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 2827; origLen: 2; newLen: 2),
-    (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 7463; origLen: 110; newLen: 110));
+    (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 7463; origLen: 110; newLen: 110),
+    { POR-0046: at the Zhentil Keep Outpost a party that beat the guards outside its quarters could walk west and
+      through the one-way wall at (2,0), never stepping on (4,1) where the dwarf and the commandant attack; (3,0)
+      gets the same event, 5, keeping its outdoor bit }
+    (por: 46; family: C_Data.FAMILY_GEO; disk: 6; id: 28; size: 1026; offset: 517; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -493,7 +497,11 @@ const
     $16,                                              { $B688 IF = }
     $01, $01, $64, $A6,                               { $B689 GOTO LA664 }
     $01, $01, $E7, $B5,                               { $B68D GOTO LB5E7 }
-    $00, $00);
+    $00, $00,
+    { POR-0046, original }
+    $80,
+    { fixed: event 5 }
+    $85);
 
 implementation
 
