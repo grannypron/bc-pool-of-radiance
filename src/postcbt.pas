@@ -461,7 +461,9 @@ begin
 end;
 
 { Monsters and hostile creatures are removed, counting the ones not enabled in C_Gbvm.MONSTERS_DEFEATED; the others get
-  their combat records freed. curChar is left at the list head. }
+  their combat records freed, and party members leave Quick (quickfight 0) so that the treasure screen and the next
+  combat find them under manual control. NPCs and animated creatures keep quickfight, as Space in combat leaves them.
+  curChar is left at the list head. }
 procedure PostCombatCreatureCleanup;
 var
   p: Types.PCharRecord;
@@ -482,6 +484,9 @@ begin
         FreeMem(p^.combatAddr, SizeOf(Types.TCombatRec));
         p^.combatAddr := nil;
       end;
+      { C_Npc.FLAG clear }
+      if (p^.npc < C_Npc.FLAG) and (p^.status <> C_Status.ANIMATED) then
+        p^.quickfight := 0;
       p := p^.nextCharAddr;
     end;
   end;
