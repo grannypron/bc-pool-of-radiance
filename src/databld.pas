@@ -37,6 +37,9 @@ const
   RUN_SIZE = 127;
   { the largest block packed into memory: its literal runs must fit in one heap block }
   MAX_ENCODED = 64000;
+  { the largest block DaxIo.LoadDax can read once packed: it ends the game on a packed size above 36000, and
+    35718 bytes pack to 35718 + 282 = 36000 }
+  MAX_LOADABLE = 35718;
   { the free space a merged archive is given beyond its per-disk archives together: its reserved blocks, a patched
     block packed larger than before, the disk's cluster rounding and the log }
   ROOM_MARGIN = 65536;
@@ -106,6 +109,8 @@ var
   lastError: Integer;
   { why the game folder could not be written, once it could not; the families after it are not tried }
   writeNote: TNote;
+  { set when there is not memory enough to build at all; no family is tried }
+  memNote: TNote;
   builtCount: Byte;
   keptCount: Byte;
   failedCount: Byte;
@@ -411,8 +416,8 @@ begin
   ReadSources := ok;
 end;
 
-{ True when blocks a and b, both in per-disk archives of the family, hold the same packed bytes. A read error sets
-  failNote. }
+{ True when blocks a and b, both in per-disk archives of the family, unpack to the same size and hold the same packed
+  bytes. A read error sets failNote. }
 function SameBlock(fam: Byte; var a, b: TBlock): Boolean;
 var
   fa: file;
@@ -424,7 +429,8 @@ var
   i: Word;
   same: Boolean;
 begin
-  same := a.packedSize = b.packedSize;
+  { the merged archive keeps one directory entry, rawSize included, for both }
+  same := (a.packedSize = b.packedSize) and (a.rawSize = b.rawSize);
   if same then begin
     lastError := 0;
     Assign(fa, DataBld.GamePath(DataBld.SourceName(fam, a.disk)));
@@ -746,13 +752,13 @@ begin
 end;
 
 { The most bytes a block of the family may hold once fixed: a script must fit the script buffer after its two-byte
-  leader. }
+  leader, and any other block must still pack small enough for LoadDax (MAX_LOADABLE). }
 function MaxRawSize(fam: Byte): Word;
 begin
   if fam = C_Data.FAMILY_ECL then
     MaxRawSize := 2 + SizeOf(Types.TZone3)
   else
-    MaxRawSize := MAX_ENCODED;
+    MaxRawSize := MAX_LOADABLE;
 end;
 
 { True when parts a and b name the same block. }
@@ -1100,8 +1106,8 @@ begin
 end;
 
 { Build the family's merged archive when the disk has room for it, unless the game folder could not be written for an
-  earlier one. Every outcome is logged. A family that fails is left without a merged archive, so the game reads its
-  per-disk archives. }
+  earlier one or there was not memory enough to start. Every outcome is logged. A family that fails is left without a
+  merged archive, so the game reads its per-disk archives. }
 procedure UpdateFamily(fam: Byte);
 var
   i: Word;
@@ -1112,6 +1118,8 @@ begin
   remapCount := 0;
   if writeNote <> '' then
     DataBld.Fail('not tried: ' + writeNote)
+  else if memNote <> '' then
+    DataBld.Fail('not tried: ' + memNote)
   else if DataBld.HasRoom(fam) and DataBld.CanWrite and DataBld.ReadSources(fam) then
     if sourceCount = 0 then begin
       DataBld.LogLine(archiveName + '.DAX skipped: no per-disk archives');
@@ -1163,6 +1171,7 @@ begin
     logOpen := IOResult = 0;
     { the game folder is tried once before any family: when it cannot be written, every family waits }
     writeNote := '';
+    memNote := '';
     failNote := '';
     archiveName := 'DATABLD';
     if DataBld.CanWrite then
@@ -1174,8 +1183,9 @@ begin
     keptCount := 0;
     failedCount := 0;
     crcTable := nil;
+    { kept apart from writeNote, which BldShow.Open was given above and which means the folder cannot be written }
     if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + 1024 then
-      writeNote := 'not enough memory'
+      memNote := 'not enough memory'
     else begin
       GetMem(crcTable, SizeOf(TCrcTable));
       GetMem(bufA, CHUNK_SIZE);
