@@ -499,6 +499,9 @@ begin
         if (GDConsts.classParts[charClass, slot] >= C_Class.LEVEL_CLERIC)
            and (GDConsts.classParts[charClass, slot] <= C_Class.LEVEL_MONK) then
           classLevels[GDConsts.classParts[charClass, slot]] := 1;
+    { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it }
+    if charClass = C_Class.PALADIN then
+      FxEngine.AddEffect(creature, C_Effect.PROT_EVIL, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
     for cls := 0 to 7 do

@@ -27,6 +27,10 @@ procedure CombatTurnUndead(creature: Types.PCharRecord);
 
 function FindTurnUndeadTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
+{ The cleric level the creature turns undead at: its cleric level, or its paladin level less 2 when that is higher, so
+  a paladin turns from level 3; 0 when it cannot turn. }
+function TurnLevel(creature: Types.PCharRecord): ShortInt;
+
 procedure NoteAttackDirection(att, def: Types.PCharRecord);
 
 procedure CombatAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
@@ -531,8 +535,8 @@ begin
   CanAttackTarget := GDVars.dsCurrentSuppressTargetingFlag = 0;
 end;
 
-{ Turn undead: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level undead first) until a
-  target resists. }
+{ Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
+  undead first) until a target resists. }
 procedure CombatTurnUndead(creature: Types.PCharRecord);
 var
   roll: Byte;
@@ -553,8 +557,8 @@ begin
   destroys := 6;
   attempts := FxEngine.RollDice(1, 12);
   roll := FxEngine.RollDice(1, 20);
-  case creature^.classLevels[C_Class.LEVEL_CLERIC] of
-    1..8: col := creature^.classLevels[C_Class.LEVEL_CLERIC];
+  case CbtActs.TurnLevel(creature) of
+    1..8: col := CbtActs.TurnLevel(creature);
     9..13: col := 9;
   else
     col := 10;
@@ -592,6 +596,18 @@ begin
   CharHlp.CountTeams;
   GDVars.doneRoundFlag := CharHlp.EndActions(creature);
   CharHlp.ClearMessageWindow;
+end;
+
+function TurnLevel(creature: Types.PCharRecord): ShortInt;
+var
+  lvl: ShortInt;
+begin
+  lvl := creature^.classLevels[C_Class.LEVEL_CLERIC];
+  if creature^.classLevels[C_Class.LEVEL_PALADIN] - 2 > lvl then
+    lvl := creature^.classLevels[C_Class.LEVEL_PALADIN] - 2;
+  if lvl < 0 then
+    lvl := 0;
+  TurnLevel := lvl;
 end;
 
 { The lowest-level unturned undead in the target list (any range); equal levels keep the earlier, nearer one. }

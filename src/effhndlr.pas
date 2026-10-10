@@ -1437,14 +1437,16 @@ begin
   EffHndlr.DrainLevels(creature^.combatAddr^.other, 2);
 end;
 
-{ Melee mummy rot (eff 87): unless the target has eff 50, add eff 50 and eff 57. Seeds eff 57's 1d6 countdown in the
-  upper nibble }
+{ Melee mummy rot (eff 87): unless the target has eff 50 or is immune to disease (FxEngine.DiseaseImmune), add eff 50
+  and eff 57. Seeds eff 57's 1d6 countdown in the upper nibble }
 
 procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if FxEngine.DiseaseImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL) then
+    Exit;
   if not CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, effect) then begin
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, 14400, 255, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.MUMMY_ROT, 43200,
