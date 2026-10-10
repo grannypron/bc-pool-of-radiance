@@ -473,6 +473,12 @@ begin
           CharHlp.PrintNameString(GDVars.curChar, 'has no copyable scrolls', 10, True)
         else
           redraw := True;
+      end else if (spellId > SizeOf(GDVars.curChar^.spellsKnown)) or (GDConsts.spellTable[spellId].levelSp < 1) or
+          (GDConsts.spellTable[spellId].levelSp > 3) or (GDConsts.spellTable[spellId].castClassSp < 0) or
+          (GDConsts.spellTable[spellId].castClassSp > 1) then begin
+        { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
+        redraw := True;
+        CharHlp.PrintBottomLine('You can not scribe that spell.');
       end else begin
         redraw := True;
         if GDVars.curChar^.spellsKnown[spellId] <> 0 then
@@ -491,9 +497,6 @@ begin
             p := p^.next;
           end;
           if found = False then begin
-            { Note: spell class and level are used as slot indices without validation. High-level or item-only spell IDs
-              can read beyond the slot table into xpAward or iconHead. Unlike the spell-list scan, this path accepts IDs
-              directly from scroll items. }
             if GDVars.curChar^.slots[GDConsts.spellTable[spellId].castClassSp,
                                        GDConsts.spellTable[spellId].levelSp] > 0
             then begin
@@ -881,11 +884,11 @@ begin
 end;
 
 { Fix, as in Curse of the Azure Bonds and Pools of Darkness: rest while the party's clerics cure and heal everyone.
-  Each cleric level-3 slot of an awake caster cures one condition -- disease first (Cure Disease also clears mummy
-  rot, which would block the healing), then blindness, then Bestow Curse. Each level-1 slot of an awake caster who
-  knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go to the
-  least busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with a
-  level-3 spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted
+  Each cleric level-3 slot of a conscious (status OKAY) caster cures one condition -- disease first (Cure Disease also
+  clears mummy rot, which would block the healing), then blindness, then Bestow Curse. Each level-1 slot of such a
+  caster who knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go
+  to the least busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with
+  a level-3 spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted
   reports a rest broken off by a scripted random interruption. }
 procedure CampFixMenu(var interrupted: Boolean);
 const
