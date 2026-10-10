@@ -1,6 +1,7 @@
 { The merged data archives: which per-disk archives each data family gathers into one archive, and the file checks the
   game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named
-  in C_Data. }
+  in C_Data. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a
+  missing one. }
 unit DataArc;
 
 interface
@@ -116,10 +117,14 @@ var
   n: Word;
   size: LongInt;
   ok: Boolean;
+  mode: Byte;
 begin
   ok := False;
   Assign(f, path);
+  mode := FileMode;
+  FileMode := 0;
   Reset(f, 1);
+  FileMode := mode;
   if IOResult = 0 then begin
     size := FileSize(f);
     BlockRead(f, dirSize, SizeOf(dirSize), n);
@@ -144,10 +149,14 @@ var
   n: Word;
   i: Word;
   found: Boolean;
+  mode: Byte;
 begin
   found := False;
   Assign(f, path);
+  mode := FileMode;
+  FileMode := 0;
   Reset(f, 1);
+  FileMode := mode;
   if IOResult = 0 then begin
     BlockRead(f, dirSize, SizeOf(dirSize), n);
     if (IOResult = 0) and (n = SizeOf(dirSize)) then begin
@@ -172,10 +181,14 @@ function FileLength(path: Types.TPathStr): LongInt;
 var
   f: file;
   size: LongInt;
+  mode: Byte;
 begin
   size := -1;
   Assign(f, path);
+  mode := FileMode;
+  FileMode := 0;
   Reset(f, 1);
+  FileMode := mode;
   if IOResult = 0 then begin
     size := FileSize(f);
     if IOResult <> 0 then
