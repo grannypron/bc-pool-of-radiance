@@ -1839,6 +1839,8 @@ var
   dummy: Boolean;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  { other is nil before the anhkheg's first target, and may be a creature since taken out of play }
+  if (GDVars.dsOtherCreatureCurrentPtr = nil) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then Exit;
   if FxEngine.RollDice(1, 100) > 25 then Exit;
   if CharHlp.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
   dummy := CharHlp.EndActions(creature);
