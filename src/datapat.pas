@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 34;
-  BYTE_COUNT = 996;
+  PART_COUNT = 35;
+  BYTE_COUNT = 998;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -111,7 +111,10 @@ const
     { POR-0043: Lizardman Keep's count of giant lizards still to come (script $99AD) subtracted the pool-treasure
       flags [$4A5E] instead of the giant lizards killed [$4A5F], so the catacomb ambush was always ten; it subtracts
       the kills }
-    (por: 43; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 177; origLen: 1; newLen: 1));
+    (por: 43; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 177; origLen: 1; newLen: 1),
+    { POR-0044: the Buccaneer Base slave pen (script $B4C7) tested a scratch word, not the heir's state, so it
+      offered the boy again after he was bought, rescued or lost; it tests [$4AA9] }
+    (por: 44; family: C_Data.FAMILY_ECL; disk: 6; id: 1; size: 7673; offset: 7115; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -418,7 +421,11 @@ const
     { POR-0043, original }
     $5E,
     { fixed: SUBTRACT [$4A5F], $0A, [$6E80] }
-    $5F);
+    $5F,
+    { POR-0044, original }
+    $0A,
+    { fixed: COMPARE [$4AA9], $00 }
+    $A9);
 
 implementation
 
