@@ -1795,15 +1795,16 @@ const
      wisMin: 3; wisMax: 14; dexMin: 3; dexMax: 17; conMin: 13; conMax: 19; chaMin: 3; chaMax: 12),
     (strMin: (3, 3); strMax: (18, 18); excMax: (100, 100); intMin: 3; intMax: 18;
      wisMin: 3; wisMax: 18; dexMin: 3; dexMax: 18; conMin: 3; conMax: 18; chaMin: 3; chaMax: 18));
-  { Column zero is a count; subsequent columns are class IDs }
-  classesByRace: array[1..7, 0..11] of ShortInt = (
-    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0),
-    (7, 2, 5, 6, 13, 14, 15, 16, 0, 0, 0, 0),
-    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0),
-    (11, 0, 2, 5, 6, 8, 9, 11, 13, 14, 15, 16),
-    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0),
-    (6, 0, 2, 6, 8, 12, 14, 0, 0, 0, 0, 0),
-    (4, 0, 2, 5, 6, 0, 0, 0, 0, 0, 0, 0));
+  { Column zero is a count; subsequent columns are class IDs, in the order the class menu lists them. Humans take
+    paladins and rangers, and half-elves rangers and cleric/rangers, in Curse's order. }
+  classesByRace: array[1..7, 0..13] of ShortInt = (
+    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (7, 2, 5, 6, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0),
+    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (13, 0, 2, 5, 6, 4, 8, 10, 9, 11, 13, 14, 15, 16),
+    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (6, 0, 2, 6, 8, 12, 14, 0, 0, 0, 0, 0, 0, 0),
+    (6, 0, 2, 5, 6, 3, 4, 0, 0, 0, 0, 0, 0, 0));
   { The classLevels indexes each class trains, in the order its name gives them; -1 fills a shorter list. }
   classParts: array[C_Class.CLERIC..C_Class.MAGE_THIEF, 1..3] of ShortInt = (
     (0, -1, -1), (1, -1, -1), (2, -1, -1), (3, -1, -1), (4, -1, -1), (5, -1, -1), (6, -1, -1), (7, -1, -1),
@@ -1818,16 +1819,16 @@ const
     (1, 0, 0, 0, 1, -2),
     (0, 0, 0, 0, 0, 0));
   { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
-    and -1 a class the race cannot take. A fighter's is the best case, with Strength 18. Half-orcs are not offered at
-    creation, so their row is empty. }
+    and -1 a class the race cannot take. A fighter's or ranger's is the best case, with Strength 18. Half-orcs are not
+    offered at creation, so their row is empty. }
   raceMaxLevel: array[C_Race.DWARF..C_Race.HUMAN, C_Class.LEVEL_CLERIC..C_Class.LEVEL_MONK] of ShortInt = (
     (-1, -1, 9, -1, -1, -1, 0, -1),
     (-1, -1, 7, -1, -1, 11, 0, -1),
     (-1, -1, 6, -1, -1, -1, 0, -1),
-    (5, -1, 8, -1, -1, 8, 0, -1),
+    (5, -1, 8, -1, 8, 8, 0, -1),
     (-1, -1, 6, -1, -1, -1, 0, -1),
     (-1, -1, -1, -1, -1, -1, -1, -1),
-    (0, -1, 0, -1, -1, 0, 0, -1));
+    (0, -1, 0, 0, 0, 0, 0, -1));
   { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
   dsStartingAge: array[1..7, 0..7] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),

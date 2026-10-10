@@ -5,7 +5,7 @@ unit CharGen;
 interface
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Race,
-  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money;
+  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align;
 
 procedure MainMenu;
 
@@ -217,7 +217,8 @@ end;
   (GDConsts.raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
   GDConsts.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
   which the note at the foot of the box says; a race without multiclasses shows neither the note nor the multiclass
-  heading. A race outside Dwarf..Human leaves the panes blank. }
+  heading. The note sits under the single classes, so the multiclasses may run on beside it to the foot of the box. A
+  race outside Dwarf..Human leaves the panes blank. }
 procedure ShowRaceInfo(race: ShortInt);
 const
   ABIL_LABELS: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
@@ -227,10 +228,12 @@ const
   ABIL_COL = 19;
   ADJ_COL = 23;
   HEADING_ROW = 11;
-  { the data starts a row below the headings and ends above the note's two rows }
+  { the data starts a row below the headings; the single classes end above the note's two rows, and the
+    multiclasses, right of the note, at the foot of the box }
   FIRST_ROW = 13;
   LAST_ROW = 19;
   NOTE_ROW = 20;
+  LAST_MULTI_ROW = 21;
   MAX_COL = 2;
   MAX_VALUE_COL = 3;
   CLASS_COL = 7;
@@ -269,8 +272,8 @@ begin
   FillChar(isSingle, SizeOf(isSingle), 0);
   hasMulti := False;
   cnt := GDConsts.classesByRace[race, 0];
-  if cnt > 11 then
-    cnt := 11;
+  if cnt > 13 then
+    cnt := 13;
   row := FIRST_ROW;
   for slot := 1 to cnt do begin
     cls := GDConsts.classesByRace[race, slot];
@@ -285,7 +288,7 @@ begin
           s := s + PART_ABBREVS[part];
         end;
       end;
-      if (cls > C_Class.MONK) and (row <= LAST_ROW) then begin
+      if (cls > C_Class.MONK) and (row <= LAST_MULTI_ROW) then begin
         hasMulti := True;
         TextRend.DisplayString(MULTI_COL, row, LightGreen, Copy(s, 1, LAST_COL - MULTI_COL + 1));
         Inc(row);
@@ -470,6 +473,9 @@ begin
   { class }
   MenuCore.FreeStringList(list);
   cnt := GDConsts.classesByRace[creature^.race, 0];
+  { the table's width }
+  if cnt > 13 then
+    cnt := 13;
   MenuCore.AllocStringList(cnt + 1, list);
   list^.inUse := 1;
   list^.name := 'Pick Class';
@@ -490,6 +496,8 @@ begin
       Exit;
     end;
   until ch = C_Keys.ENTER;
+  if (sel < 1) or (sel > cnt) then
+    sel := 1;
   with creature^ do begin
     charClass := GDConsts.classesByRace[race, sel];
     levelHighest := 1;
@@ -1139,6 +1147,10 @@ end;
 { AddCharacterMenu: Pick characters from the CHARLIST.TXT roster (SaveLoad.LoadCharlist), load each with
   SaveLoad.LoadChar and add it to the party unless already there (same name and randByte) or its record is short or
   unreadable, which the bottom line reports as a damaged file until a key: at most 6 non-NPCs and 8 members in all.
+  Curse's party rules also apply: a paladin does not join a party with an evil member, nor an evil character a party
+  with a paladin, and a party has at most 3 rangers. A character they refuse gets Curse's message on the bottom line
+  until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do
+  NPCs a script adds.
   Added entries get a leading '* ' and the roster is saved back. }
 procedure AddCharacterMenu;
 var
@@ -1150,6 +1162,11 @@ var
   key: Char;
   redraw: Boolean;
   nonNpc: Byte;
+  rangers: Byte;
+  hasEvil: Boolean;
+  paladin: Types.PCharRecord;
+  newEvil: Boolean;
+  newPaladin: Boolean;
 begin
   Border.ClearBox(1, 1, 38, 22);
   SaveLoad.LoadCharlist(list);
@@ -1181,17 +1198,42 @@ begin
             SaveLoad.AddCharToParty(Types.PCharRecord(creature));
             SaveLoad.LoadCharIconAnim(True);
           end else begin
+            rangers := 0;
+            hasEvil := False;
+            paladin := nil;
             p := GDVars.creatureList;
             while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
               { C_Npc.FLAG clear }
               if p^.npc < C_Npc.FLAG then
                 Inc(nonNpc);
+              if p^.classLevels[C_Class.LEVEL_RANGER] > 0 then
+                Inc(rangers);
+              if p^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL, C_Align.CHAOTIC_EVIL] then
+                hasEvil := True;
+              if p^.classLevels[C_Class.LEVEL_PALADIN] > 0 then
+                paladin := p;
               p := p^.nextCharAddr;
             end;
+            newPaladin := creature^.classLevels[C_Class.LEVEL_PALADIN] > 0;
+            newEvil := creature^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL, C_Align.CHAOTIC_EVIL];
+            if (p = nil) and
+                ((newPaladin and hasEvil) or ((creature^.classLevels[C_Class.LEVEL_RANGER] > 0) and (rangers >= 3)) or
+                 (newEvil and (paladin <> nil))) then begin
+              { refused by the party rules: unmarked, so it stays on the roster; the reason stays up until a key }
+              Delete(m^.name, 1, 2);
+              if newPaladin and hasEvil then
+                TextRend.DisplayAndPause(Yellow, 'paladins do not join with evil scum')
+              else if (creature^.classLevels[C_Class.LEVEL_RANGER] > 0) and (rangers >= 3) then
+                TextRend.DisplayAndPause(Yellow, 'too many rangers in party')
+              else
+                TextRend.DisplayAndPause(Yellow, paladin^.name + ' will tolerate no evil!');
+              Border.ClearBox(0, 24, 39, 24);
+              CharGen.FreeCreature(Types.PCharRecord(creature));
+            end
             { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
-            if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8) and
+            else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8) and
                 (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or (creature^.npc > $7F)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
