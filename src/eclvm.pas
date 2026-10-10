@@ -1686,8 +1686,9 @@ begin
   Inc(GDVars.curRow);
 end;
 
-{ Run the command at the IP (curOpcode). Note: an unhandled opcode such as $1F does nothing and leaves the IP unchanged,
-  so CallEclScript would run it forever. }
+{ Run the command at the IP (curOpcode). An opcode with no handler, such as $1F, is stepped over as SkipEclCmd steps over
+  it (its operands where SkipEclCmd knows them, otherwise the opcode byte alone); v1.3 left the IP on it, so
+  CallEclScript ran it forever. }
 procedure ExecNextEclCmd;
 begin
   case GDVars.curOpcode of
@@ -1740,6 +1741,8 @@ begin
     C_Ecl.SPELL: EclVm.EclSpell;
     C_Ecl.PROTECTION: EclVm.EclProtection;
     C_Ecl.CLEAR_BOX: EclVm.EclClearBox;
+  else
+    EclMenu.SkipEclCmd;
   end;
 end;
 
