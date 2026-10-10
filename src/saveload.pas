@@ -30,8 +30,9 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
 
 { Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
-  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, and the usual spells are read from
-  the .mem file (none when it is missing or not a usual-spells file for this character). }
+  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
+  trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
+  usual-spells file for this character). }
 procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
@@ -458,6 +459,9 @@ var
   ext: String[4];
   item: Types.PItemRec;
   effect: Types.PEffectRec;
+  newItem: Types.PItemRec;
+  newEffect: Types.PEffectRec;
+  whole: Boolean;
   msg: Types.TStr40;
   found: Boolean;
 begin
@@ -478,31 +482,45 @@ begin
   creature^.effectsAddr := nil;
   creature^.combatAddr := nil;
   if DaxIo.FileExists(name + '.itm') then begin
-    GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
-    item := creature^.itemsAddr;
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
-    repeat
-      BlockRead(f, item^, SizeOf(Types.TItemRec), res);
-      item^.next := nil;
-      if not Eof(f) then begin
-        GetMem(item^.next, SizeOf(Types.TItemRec));
-        item := item^.next;
-      end;
-    until Eof(f);
+    item := nil;
+    whole := True;
+    while whole and not Eof(f) do begin
+      GetMem(newItem, SizeOf(Types.TItemRec));
+      res := 0;
+      BlockRead(f, newItem^, SizeOf(Types.TItemRec), res);
+      whole := (IOResult = 0) and (res = SizeOf(Types.TItemRec));
+      if whole then begin
+        newItem^.next := nil;
+        if item = nil then
+          creature^.itemsAddr := newItem
+        else
+          item^.next := newItem;
+        item := newItem;
+      end else
+        FreeMem(newItem, SizeOf(Types.TItemRec));
+    end;
     Close(f);
   end;
   if DaxIo.FileExists(name + '.spc') then begin
-    GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
-    effect := creature^.effectsAddr;
     found := DaxIo.OpenWithRetry(name + '.spc', msg, #0, f);
-    repeat
-      BlockRead(f, effect^, SizeOf(Types.TEffectRec), res);
-      effect^.next := nil;
-      if not Eof(f) then begin
-        GetMem(effect^.next, SizeOf(Types.TEffectRec));
-        effect := effect^.next;
-      end;
-    until Eof(f);
+    effect := nil;
+    whole := True;
+    while whole and not Eof(f) do begin
+      GetMem(newEffect, SizeOf(Types.TEffectRec));
+      res := 0;
+      BlockRead(f, newEffect^, SizeOf(Types.TEffectRec), res);
+      whole := (IOResult = 0) and (res = SizeOf(Types.TEffectRec));
+      if whole then begin
+        newEffect^.next := nil;
+        if effect = nil then
+          creature^.effectsAddr := newEffect
+        else
+          effect^.next := newEffect;
+        effect := newEffect;
+      end else
+        FreeMem(newEffect, SizeOf(Types.TEffectRec));
+    end;
     Close(f);
   end;
   SaveLoad.ReadUsualSpells(creature, name);
