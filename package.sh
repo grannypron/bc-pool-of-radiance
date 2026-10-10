@@ -17,6 +17,14 @@ if [ $# -ne 1 ]; then
 fi
 version="$1"
 
+# README.TXT says the files are built from the source tagged $version. The release workflow's dispatch path builds the
+# tag's src/ in another commit's checkout and sets SOURCE_DATE_EPOCH, so the check is left to it there.
+if [ -z "${SOURCE_DATE_EPOCH:-}" ] \
+        && [ "$(git -C "$root" rev-parse -q --verify "refs/tags/$version^{commit}" 2> /dev/null)" \
+            != "$(git -C "$root" rev-parse -q --verify HEAD 2> /dev/null)" ]; then
+    echo "package.sh: warning: HEAD is not the commit tagged $version, which README.TXT names as the source." >&2
+fi
+
 for f in START.EXE GAME.OVR; do
     [ -f "$root/obj/$f" ] || { echo "package.sh: obj/$f is missing; run ./build.sh first." >&2; exit 1; }
 done
@@ -59,8 +67,11 @@ fi
 # DOS reads CRLF line endings.
 sed -i 's/$/\r/' "$stage/README.TXT" "$stage/SHA256.TXT"
 
-# Stamp every file with the commit's time, so the same source gives the same zip on any machine, on any day.
-stamp="${SOURCE_DATE_EPOCH:-$(git -C "$root" log -1 --format=%ct 2> /dev/null || date +%s)}"
+# Stamp every file with the commit's time and give it the same mode whatever the umask, so the same source gives the
+# same zip on any machine, on any day.
+stamp="${SOURCE_DATE_EPOCH:-$(git -C "$root" log -1 --format=%ct 2> /dev/null)}" || stamp=""
+[ -n "$stamp" ] || { echo "package.sh: cannot date the zip from git; set SOURCE_DATE_EPOCH." >&2; exit 1; }
+chmod 0644 "$stage"/*
 touch -d "@$stamp" "$stage"/*
 
 mkdir -p "$root/dist"
