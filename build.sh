@@ -5,6 +5,8 @@
 #   ./build.sh              build
 #   ./build.sh --install    build, then copy the two files into drive_c/POOLRAD to play
 #
+# --install replaces the play install in this checkout's drive_c/POOLRAD; scripts and worktrees should not pass it.
+#
 # DOSBox-X runs build/build.bat with these drives:
 #   D:  $TOOLS/<compiler>       Turbo Pascal (TPC.EXE, TURBO.TPL); build/toolchain names the folder, TP50 if absent
 #   E:  this repository         src\, build\ and obj\
@@ -150,12 +152,23 @@ echo "build.sh: built:"
 
 # --- install -----------------------------------------------------------------------------------
 
-# Keep SSI's originals once, the first time a build replaces them.
+# Keep SSI's originals once, the first time a build replaces them. Nothing is installed unless both are kept: SSI/
+# left half-filled would stop every later run from trying again.
 if [ ! -d "$game/SSI" ]; then
-    mkdir -p "$game/SSI"
-    cp -p "$game/START.EXE" "$game/GAME.OVR" "$game/SSI/"
+    if ! mkdir "$game/SSI"; then
+        echo "build.sh: could not create drive_c/POOLRAD/SSI for the originals; nothing installed." >&2
+        exit 1
+    fi
+    if ! cp -p "$game/START.EXE" "$game/GAME.OVR" "$game/SSI/"; then
+        rm -rf "$game/SSI"
+        echo "build.sh: could not back up the original START.EXE and GAME.OVR; nothing installed." >&2
+        exit 1
+    fi
     echo "build.sh: kept the original START.EXE and GAME.OVR in drive_c/POOLRAD/SSI"
 fi
-cp "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$game/"
+if ! cp "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$game/"; then
+    echo "build.sh: could not copy the build into drive_c/POOLRAD; the install there may be incomplete." >&2
+    exit 1
+fi
 
 echo "build.sh: installed into drive_c/POOLRAD"
