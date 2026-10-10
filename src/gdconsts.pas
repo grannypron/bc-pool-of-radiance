@@ -135,20 +135,6 @@ const
     (name: 'Exit to DOS'; enabled: 1));
 
 const
-  { CustomizeIcon }
-  iconMenus: array[1..5] of String[40] = (
-    { State 1: editor actions }
-    'Parts color-1 color-2 Size Exit',
-    { State 2: shape selection }
-    'Head Weapon Exit',
-    { State 3: colour part; xxxx becomes Hair or Face }
-    'Weapon Body xxxx Shield Arm Leg Exit',
-    { State 4: size, prefixed with Small or Large }
-    ' Keep Exit',
-    { State 5: cycle shape or colour }
-    'Next Prev Keep Exit');
-
-const
   { RollFirstLevelHp }
   { dice per class, used by creation and training }
   hpDice: array[0..7] of Byte = (

@@ -1391,294 +1391,628 @@ begin
   MenuCore.ClearBottomLine;
 end;
 
-{ CustomizeIcon: Icon editor for curChar: shape (head/weapon), part colours and size. Edits are previewed in icon-anim
-  slot 12 beside the old icon; Keep commits a sub-edit and Exit reverts it, and the result is copied back to slot
-  orderNumber. Repeats until the player accepts the icon. }
+{ CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the
+  icon's ready and action frames, Head and Weapon (each with its place among the shapes there are), Size, the seven
+  coloured parts ("1 2" beside the five with two colours) and, on the bottom line, Exit. Up and Down choose an item.
+  Enter on Size toggles small and large; on any other item it fills the right pane with a 4x4 grid of the icon with
+  each option of that item: every head, every weapon, or the part in each of the 16 colours. The arrows move the
+  game's cursor box (COMSPR 25, the square behind the active icon in combat) through the grid, turning the page past
+  its last or first row, and the ready and action frames on the left show the boxed option. Enter keeps it, Escape
+  goes back to the left with the icon as it was, and Space switches a two-colour part between colour 1 and colour 2.
+  Exit or Escape on the left asks whether the icon is ok: Yes ends the editor and No goes back to it. Only the field
+  chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a party member's icon in its slot (orderNumber)
+  is rebuilt at the end. A page's icons are kept, so moving the box loads at most one frame from CHEAD or CBODY.
+  (SSI's editor stepped through each choice with Next and Prev under an old and a new copy of the icon.) }
 procedure CustomizeIcon;
+const
+  { CHEAD and CBODY each hold 14 heads and 32 weapons per size }
+  NUM_HEADS = 14;
+  NUM_WEAPONS = 32;
+  NUM_COLORS = 16;
+  { the left pane's items, in Up and Down order }
+  ITEM_HEAD = 0;
+  ITEM_WEAPON = 1;
+  ITEM_SIZE = 2;
+  FIRST_PART = 3;
+  LAST_PART = 9;
+  ITEM_EXIT = 10;
+  ITEM_NAME: array[ITEM_HEAD..ITEM_EXIT] of String[6] = (
+    'Head', 'Weapon', 'Size', 'Weapon', 'Body', 'Hair', 'Face', 'Shield', 'Arm', 'Leg', 'Exit');
+  ITEM_COL: array[ITEM_HEAD..ITEM_EXIT] of Byte = (2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 0);
+  ITEM_ROW: array[ITEM_HEAD..ITEM_EXIT] of Byte = (8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 24);
+  { each part's iconColors1 slot }
+  PART_SLOT: array[FIRST_PART..LAST_PART] of Byte = (6, 1, 4, 4, 5, 2, 3);
+  { the nibble a one-colour part uses (0 low, 1 high), or 2 for a part with two colours }
+  PART_NIBBLE: array[FIRST_PART..LAST_PART] of Byte = (2, 2, 0, 1, 2, 2, 2);
+  COLOR_ROW = 12;
+  VALUE_COL = 10;
+  DIGIT_COL = 11;
+  READY_COL = 3;
+  ACTION_COL = 10;
+  PREVIEW_ROW = 3;
+  LABEL_ROW = 6;
+  GRID_COL: array[0..3] of Byte = (19, 24, 29, 34);
+  GRID_ROW: array[0..3] of Byte = (2, 6, 10, 14);
+  { the message panel's text rows, under its own border }
+  MSG_TOP = 18;
+  MSG_BOTTOM = 22;
+  { an icon frame: 24 pixel rows of 3 character cells }
+  ICON_H = 24;
+  ICON_W = 3;
+  PART_FILE: array[0..1] of String[5] = ('CHEAD', 'CBODY');
+  PART_COUNT: array[0..1] of Byte = (NUM_HEADS, NUM_WEAPONS);
+  { no block loaded; real blocks go up to 223 }
+  NO_BLOCK = 255;
 
 var
-  pad: Byte;
   key: Char;
   ext: Boolean;
-  savedHead: Byte;
-  savedBody: Byte;
-  savedSize: Byte;
-  savedOrd: Byte;
-  state: Byte;
-  sizeStr: string[5];
-  pad2: Byte;
-  savedCols: Types.TIconCols;
-  slot: Byte;
+  done: Boolean;
+  cur: Byte;
+  i: Byte;
+  j: Byte;
+  savedChoice: Byte;
+  { the icon shown: the stored one, or with the highlighted option while the grid is up }
+  tHead: Byte;
+  tBody: Byte;
+  tSize: Byte;
+  tCols: Types.TIconCols;
+  inGrid: Boolean;
+  { colour 1 or 2 (0 or 1) of a part with two colours }
   which: Byte;
-  loColor: Byte;
-  hiColor: Byte;
-  lastState: Byte;
-  partKey: Char;
+  pick: Byte;
+  { the last-loaded head and body of each frame, by DAX block }
+  loaded: array[0..1, 0..1] of Types.PImgBuf;
+  loadedBlock: array[0..1, 0..1] of Byte;
+  work: Types.PImgBuf;
+  cells: array[0..15] of Types.PImgBuf;
+  readyPic: Types.PImgBuf;
+  actionPic: Types.PImgBuf;
+  shownPic: Types.PImgBuf;
+  p: Types.PCharRecord;
 
-  { ShowIconFrames: Draw the ready and action frames of preview slot 12 at tiles (cx, cy) and (cx+3, cy), then flush the
-    view. CGA clears the region to cyan; EGA and Tandy clear it to black and draw backdrop slot 25 first. }
-  procedure ShowIconFrames(cx, cy: Byte);
+  { MaskSize: Bytes in pic's transparency mask: one plane, a quarter of imgSize, on EGA }
+  function MaskSize(pic: Types.PImgBuf): Word;
   begin
-    if GDVars.videoMode = 0 then
-      Blit.FillPicRect(cx * 3, cy * 24, 12, 24, Cyan, GDConsts.dsIconColorMap, GDVars.dsViewImageBufferPtr)
-    else begin
-      Blit.FillPicRect(cx * 3, cy * 24, 12, 24, Black, GDConsts.dsIconColorMap,
-                       GDVars.dsViewImageBufferPtr);
-      MapTiles.DrawIconAnimSprite(cx, cy, 0, 0, 25);
-      MapTiles.DrawIconAnimSprite(cx + 3, cy, 0, 1, 25);
-    end;
-    MapTiles.DrawIconAnimSprite(cx, cy, 0, 0, 12);
-    MapTiles.DrawIconAnimSprite(cx + 3, cy, 0, 1, 12);
-    Blit.FlushView;
+    if GDVars.videoMode = 1 then
+      MaskSize := pic^.imgSize div 4
+    else
+      MaskSize := pic^.imgSize;
   end;
 
-  { CopyIconPics: Copy both pics of anim slot src to dst (pixel data plus transparency plane, a quarter of imgSize on
-    EGA), optionally remapping the default icon colours to curChar's iconColors1 }
-  procedure CopyIconPics(src, dst: Byte; applyColors: Boolean);
+  { PartPic: Frame frame of head (kind 0) or weapon (kind 1) id at tSize, loaded from CHEAD or CBODY on disk 3 unless
+    it is the one loaded last; nil when id is past the ones there are or the block is missing }
+  function PartPic(kind, id, frame: Byte): Types.PImgBuf;
   var
-    i: Byte;
-    padN: Byte;
-    fromT: Types.TColorTab;
-    toT: Types.TColorTab;
-    sizeT: Word;
+    block: Byte;
   begin
-    sizeT := iconAnims[dst].pic0^.imgSize;
+    PartPic := nil;
+    if (kind > 1) or (frame > 1) then Exit;
+    if id >= PART_COUNT[kind] then Exit;
+    block := id + frame * 128;
+    if tSize = 2 then
+      Inc(block, 64);
+    if loadedBlock[kind, frame] <> block then begin
+      DaxIo.PushState(3);
+      Blit.LoadPic(PART_FILE[kind], block, True, 0, loaded[kind, frame]);
+      DaxIo.PopState;
+      loadedBlock[kind, frame] := block;
+    end;
+    PartPic := loaded[kind, frame];
+  end;
+
+  { Merge: OR src's pixels onto the top rows of work and AND their transparency masks, as SaveLoad.MergeIcon does (a
+    head is the top 8 or 10 rows of the icon) }
+  procedure Merge(src: Types.PImgBuf);
+  var
+    n: Word;
+  begin
+    if (src = nil) or (work = nil) then Exit;
+    if (src^.transp = nil) or (work^.transp = nil) then Exit;
+    if (src^.width <> work^.width) or (src^.imgSize = 0) or (src^.imgSize > work^.imgSize) then Exit;
+    for n := 0 to src^.imgSize - 1 do
+      work^.data[n] := work^.data[n] or src^.data[n];
+    for n := 0 to MaskSize(src) - 1 do
+      work^.transp^[n] := work^.transp^[n] and src^.transp^[n];
+    work^.map := src^.map;
+  end;
+
+  { Overlay: Draw src over dst through src's transparency mask }
+  procedure Overlay(src, dst: Types.PImgBuf);
+  var
+    n: Word;
+  begin
+    if (src = nil) or (dst = nil) then Exit;
+    if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
     if GDVars.videoMode = 1 then
-      sizeT := sizeT div 4;
-    Move(iconAnims[src].pic0^.data, iconAnims[dst].pic0^.data, iconAnims[dst].pic0^.imgSize);
-    Move(iconAnims[src].pic1^.data, iconAnims[dst].pic1^.data, iconAnims[dst].pic1^.imgSize);
-    Move(iconAnims[src].pic0^.transp^, iconAnims[dst].pic0^.transp^, sizeT);
-    Move(iconAnims[src].pic1^.transp^, iconAnims[dst].pic1^.transp^, sizeT);
-    if applyColors then begin
-      with GDVars.curChar^ do begin
-        for i := 0 to 15 do begin
-          fromT[i] := i;
-          toT[i] := i;
+      for n := 0 to dst^.imgSize - 1 do
+        dst^.data[n] := dst^.data[n] and src^.transp^[n shr 2] or src^.data[n]
+    else
+      for n := 0 to dst^.imgSize - 1 do
+        dst^.data[n] := dst^.data[n] and src^.transp^[n] or src^.data[n];
+  end;
+
+  { Recolor: Give every pixel of work the colour toT gives its own, as Blit.RemapPic does one colour at a time; EGA and
+    Tandy take one pass, which keeps a page of 16 icons quick on a slow machine }
+  procedure Recolor(var toT: Types.TColorTab);
+  var
+    n: Word;
+    k: Byte;
+    bit: Byte;
+    c: Byte;
+    fromT: Types.TColorTab;
+    q: array[0..3] of Byte;
+  begin
+    case GDVars.videoMode of
+      { four plane bytes per eight pixels; plane k holds bit k of each pixel's colour }
+      1: begin
+           n := 0;
+           while n + 3 < work^.imgSize do begin
+             for k := 0 to 3 do
+               q[k] := 0;
+             for bit := 0 to 7 do begin
+               c := ((work^.data[n] shr bit) and 1) or (((work^.data[n + 1] shr bit) and 1) shl 1) or
+                    (((work^.data[n + 2] shr bit) and 1) shl 2) or (((work^.data[n + 3] shr bit) and 1) shl 3);
+               c := toT[c];
+               for k := 0 to 3 do
+                 if (c and (1 shl k)) <> 0 then
+                   q[k] := q[k] or (1 shl bit);
+             end;
+             for k := 0 to 3 do
+               work^.data[n + k] := q[k];
+             Inc(n, 4);
+           end;
+         end;
+      { two pixels per byte }
+      2: for n := 0 to work^.imgSize - 1 do
+           work^.data[n] := (toT[work^.data[n] shr 4] shl 4) or toT[work^.data[n] and $F];
+    else
+      for k := 0 to 15 do
+        fromT[k] := k;
+      Blit.RemapPic(fromT, toT, 0, False, work);
+    end;
+  end;
+
+  { BuildIcon: Frame frame (0 ready, 1 action) of the icon with head h, weapon b and colours c at tSize into work,
+    with its transparency mask }
+  procedure BuildIcon(frame, h, b: Byte; var c: Types.TIconCols);
+  var
+    k: Byte;
+    toT: Types.TColorTab;
+  begin
+    if (work = nil) or (frame > 1) then Exit;
+    if work^.transp = nil then Exit;
+    FillChar(work^.data, work^.imgSize, 0);
+    FillChar(work^.transp^, MaskSize(work), $FF);
+    Merge(PartPic(1, b, frame));
+    Merge(PartPic(0, h, frame));
+    for k := 0 to 15 do
+      toT[k] := k;
+    for k := 1 to 6 do begin
+      toT[GDConsts.defIconCol[k] and $F] := c[k] and $F;
+      toT[(GDConsts.defIconCol[k] + 8) and $F] := c[k] shr 4;
+    end;
+    Recolor(toT);
+  end;
+
+  { Place: Draw icon frame frame (src, with its mask) into dst, in the game's cursor box (COMSPR 25 in slot 25; plain
+    cyan on CGA) when boxed and on the plain background otherwise }
+  procedure Place(src: Types.PImgBuf; frame: Byte; boxed: Boolean; dst: Types.PImgBuf);
+  begin
+    if dst = nil then Exit;
+    if boxed and (GDVars.videoMode = 0) then
+      FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.dsIconColorMap)])
+    else
+      FillChar(dst^.data, dst^.imgSize, 0);
+    if boxed and (GDVars.videoMode <> 0) then
+      if frame = 0 then
+        Overlay(iconAnims[25].pic0, dst)
+      else
+        Overlay(iconAnims[25].pic1, dst);
+    Overlay(src, dst);
+  end;
+
+  { Compose: Frame frame of the icon with head h, weapon b and colours c into dst, in the cursor box }
+  procedure Compose(frame, h, b: Byte; var c: Types.TIconCols; dst: Types.PImgBuf);
+  begin
+    BuildIcon(frame, h, b, c);
+    Place(work, frame, True, dst);
+  end;
+
+  { OptionCount: How many options the current item has }
+  function OptionCount: Byte;
+  begin
+    case cur of
+      ITEM_HEAD: OptionCount := NUM_HEADS;
+      ITEM_WEAPON: OptionCount := NUM_WEAPONS;
+    else
+      OptionCount := NUM_COLORS;
+    end;
+  end;
+
+  { PartNibble: The nibble of its slot the current part changes }
+  function PartNibble: Byte;
+  begin
+    PartNibble := 0;
+    if (cur >= FIRST_PART) and (cur <= LAST_PART) then
+      if PART_NIBBLE[cur] = 2 then
+        PartNibble := which
+      else
+        PartNibble := PART_NIBBLE[cur];
+  end;
+
+  { OptionState: Change h, b or c to option opt of the current item }
+  procedure OptionState(opt: Byte; var h, b: Byte; var c: Types.TIconCols);
+  var
+    slot: Byte;
+  begin
+    case cur of
+      ITEM_HEAD: h := opt;
+      ITEM_WEAPON: b := opt;
+      FIRST_PART..LAST_PART: begin
+          slot := PART_SLOT[cur];
+          if PartNibble = 0 then
+            c[slot] := c[slot] and $F0 or (opt and $F)
+          else
+            c[slot] := c[slot] and $0F or ((opt and $F) shl 4);
         end;
-        for i := 1 to 6 do begin
-          toT[GDConsts.defIconCol[i]] := iconColors1[i] and $F;
-          toT[GDConsts.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
+    end;
+  end;
+
+  { CurrentOption: The option of the current item the icon has now, or 0 when it has none of them }
+  function CurrentOption: Byte;
+  var
+    v: Byte;
+  begin
+    case cur of
+      ITEM_HEAD: v := tHead;
+      ITEM_WEAPON: v := tBody;
+    else
+      if PartNibble = 0 then
+        v := tCols[PART_SLOT[cur]] and $F
+      else
+        v := tCols[PART_SLOT[cur]] shr 4;
+    end;
+    if v >= OptionCount then
+      v := 0;
+    CurrentOption := v;
+  end;
+
+  { Counter: "n/count", n counting from 1, padded to five characters }
+  function Counter(v, count: Byte): Types.TStr40;
+  var
+    s: Types.TStr40;
+  begin
+    if v < count then
+      s := CharHlp.ByteToString(v + 1)
+    else
+      s := '?';
+    s := s + '/' + CharHlp.ByteToString(count);
+    while Length(s) < 5 do
+      s := s + ' ';
+    Counter := s;
+  end;
+
+  { DrawItem: Item k of the left pane and its value, white when it is the current item and green otherwise; in the
+    grid, the colour not being chosen is green }
+  procedure DrawItem(k: Byte);
+  var
+    col: Byte;
+    d1: Byte;
+    d2: Byte;
+  begin
+    if k > ITEM_EXIT then Exit;
+    if k = cur then col := White else col := LightGreen;
+    TextRend.DisplayString(ITEM_COL[k], ITEM_ROW[k], col, ITEM_NAME[k]);
+    case k of
+      ITEM_HEAD: TextRend.DisplayString(VALUE_COL, ITEM_ROW[k], col, Counter(tHead, NUM_HEADS));
+      ITEM_WEAPON: TextRend.DisplayString(VALUE_COL, ITEM_ROW[k], col, Counter(tBody, NUM_WEAPONS));
+      ITEM_SIZE: if tSize = 1 then
+                   TextRend.DisplayString(VALUE_COL, ITEM_ROW[k], col, 'Small')
+                 else
+                   TextRend.DisplayString(VALUE_COL, ITEM_ROW[k], col, 'Large');
+      FIRST_PART..LAST_PART:
+        if PART_NIBBLE[k] = 2 then begin
+          d1 := col;
+          d2 := col;
+          if inGrid and (k = cur) then
+            if which = 0 then
+              d2 := LightGreen
+            else
+              d1 := LightGreen;
+          TextRend.DisplayString(DIGIT_COL, ITEM_ROW[k], d1, '1');
+          TextRend.DisplayString(DIGIT_COL + 2, ITEM_ROW[k], d2, '2');
         end;
-      end;
-      Blit.RemapPic(fromT, toT, 0, False, iconAnims[dst].pic0);
-      Blit.RemapPic(fromT, toT, 0, False, iconAnims[dst].pic1);
+    end;
+  end;
+
+  { ShowCell: Draw grid cell k's icon, in the cursor box when it is the highlight and on the plain background
+    otherwise }
+  procedure ShowCell(k: Byte; boxed: Boolean);
+  begin
+    if (k > 15) or (cells[k] = nil) then Exit;
+    Place(cells[k], 0, boxed, shownPic);
+    Blit.ShowPic(GRID_COL[k mod 4], GRID_ROW[k div 4], shownPic);
+  end;
+
+  { DrawGrid: Compose and draw the page of options holding pick, one cell at a time }
+  procedure DrawGrid;
+  var
+    k: Byte;
+    opt: Integer;
+    h: Byte;
+    b: Byte;
+    c: Types.TIconCols;
+  begin
+    for k := 0 to 15 do begin
+      opt := (pick div 16) * 16 + k;
+      if opt < OptionCount then begin
+        h := tHead;
+        b := tBody;
+        c := tCols;
+        OptionState(opt, h, b, c);
+        BuildIcon(0, h, b, c);
+        if (cells[k] <> nil) and (work <> nil) and (cells[k]^.imgSize = work^.imgSize)
+           and (cells[k]^.transp <> nil) and (work^.transp <> nil) then begin
+          Move(work^.data, cells[k]^.data, work^.imgSize);
+          Move(work^.transp^, cells[k]^.transp^, MaskSize(work));
+        end;
+        ShowCell(k, opt = pick);
+      end else
+        Border.ClearBox(GRID_COL[k mod 4], GRID_ROW[k div 4], GRID_COL[k mod 4] + 2, GRID_ROW[k div 4] + 2);
+    end;
+  end;
+
+  { ShowPreviews: Draw the ready and action frames of the icon shown, in the cursor box; the ready frame of the
+    highlight is its cell's icon }
+  procedure ShowPreviews;
+  begin
+    if inGrid then
+      Place(cells[pick mod 16], 0, True, readyPic)
+    else
+      Compose(0, tHead, tBody, tCols, readyPic);
+    Blit.ShowPic(READY_COL, PREVIEW_ROW, readyPic);
+    Compose(1, tHead, tBody, tCols, actionPic);
+    Blit.ShowPic(ACTION_COL, PREVIEW_ROW, actionPic);
+  end;
+
+  { MsgLine: Print s centred in the message panel on row }
+  procedure MsgLine(row: Byte; s: Types.TStr40);
+  begin
+    if Length(s) > 21 then
+      s[0] := #21;
+    TextRend.DisplayString(18 + (21 - Length(s)) div 2, row, LightGreen, s);
+  end;
+
+  { ShowMessage: The message panel: what is being chosen and the keys, or nothing on the left }
+  procedure ShowMessage;
+  var
+    top: Byte;
+  begin
+    Border.ClearBox(18, MSG_TOP, 38, MSG_BOTTOM);
+    if not inGrid then Exit;
+    if (cur >= FIRST_PART) and (cur <= LAST_PART) and (PART_NIBBLE[cur] = 2) then
+      top := MSG_TOP
+    else
+      top := MSG_TOP + 1;
+    if cur >= FIRST_PART then
+      MsgLine(top, 'Choosing ' + ITEM_NAME[cur] + ' color')
+    else
+      MsgLine(top, 'Choosing ' + ITEM_NAME[cur]);
+    MsgLine(top + 1, 'Arrows to select,');
+    MsgLine(top + 2, 'Enter to choose');
+    if top = MSG_TOP then begin
+      MsgLine(top + 3, 'Space toggles');
+      MsgLine(top + 4, 'color 1/2');
+    end;
+  end;
+
+  { Revert: Make the icon shown the stored one; a size other than small reads as large }
+  procedure Revert;
+  begin
+    with GDVars.curChar^ do begin
+      tHead := iconHead;
+      tBody := iconBody;
+      if iconSize = 1 then tSize := 1 else tSize := 2;
+      tCols := iconColors1;
+    end;
+  end;
+
+  { MovePick: Move the highlight by an arrow key. Left and Right step through the options; Up and Down move a row,
+    turning the page past its first or last row and wrapping at the ends }
+  procedure MovePick(arrow: Char);
+  var
+    n: Integer;
+    v: Integer;
+  begin
+    n := OptionCount;
+    v := pick;
+    case arrow of
+      C_Keys.LEFT: if v > 0 then Dec(v) else v := n - 1;
+      C_Keys.RIGHT: if v < n - 1 then Inc(v) else v := 0;
+      C_Keys.DOWN: if v + 4 < n then
+                     Inc(v, 4)
+                   else if v div 4 < (n - 1) div 4 then
+                     v := n - 1
+                   else
+                     v := v mod 4;
+      C_Keys.UP: if v >= 4 then
+                   Dec(v, 4)
+                 else begin
+                   v := ((n - 1) div 4) * 4 + v;
+                   if v > n - 1 then
+                     Dec(v, 4);
+                 end;
+    end;
+    if (v >= 0) and (v < n) then
+      pick := v;
+  end;
+
+  { ChooseInGrid: Run the right pane for the current item until Enter keeps the highlighted option or Escape leaves
+    the icon as it was }
+  procedure ChooseInGrid;
+  var
+    old: Byte;
+    finished: Boolean;
+  begin
+    inGrid := True;
+    which := 0;
+    pick := CurrentOption;
+    DrawItem(cur);
+    ShowMessage;
+    DrawGrid;
+    ShowPreviews;
+    finished := False;
+    repeat
+      MenuCore.arrowsToCaller := True;
+      key := MenuCore.MenuHorizontal('', '', LightMagenta, LightGreen, White, True, False, ext);
+      if ext then begin
+        if key in [C_Keys.UP, C_Keys.DOWN, C_Keys.LEFT, C_Keys.RIGHT] then begin
+          old := pick;
+          MovePick(key);
+          if pick <> old then begin
+            OptionState(pick, tHead, tBody, tCols);
+            if pick div 16 <> old div 16 then
+              DrawGrid
+            else begin
+              ShowCell(old mod 16, False);
+              ShowCell(pick mod 16, True);
+            end;
+            DrawItem(cur);
+            ShowPreviews;
+          end;
+        end;
+      end else
+        case key of
+          C_Keys.ENTER: begin
+              with GDVars.curChar^ do
+                case cur of
+                  ITEM_HEAD: iconHead := tHead;
+                  ITEM_WEAPON: iconBody := tBody;
+                else
+                  iconColors1 := tCols;
+                end;
+              finished := True;
+            end;
+          C_Keys.NONE: begin
+              Revert;
+              finished := True;
+            end;
+          ' ': if (cur >= FIRST_PART) and (cur <= LAST_PART) and (PART_NIBBLE[cur] = 2) then begin
+              which := 1 - which;
+              pick := CurrentOption;
+              DrawItem(cur);
+              DrawGrid;
+            end;
+        end;
+    until finished;
+    inGrid := False;
+    Border.ClearBox(18, 1, 38, 16);
+    ShowMessage;
+    DrawItem(cur);
+    ShowPreviews;
+  end;
+
+  { Confirmed: Ask whether the icon is ok on the bottom line; on No, put Exit back there for more editing }
+  function Confirmed: Boolean;
+  begin
+    if MenuCore.YesNoMenu('Is this icon ok? ', LightMagenta, LightGreen, White) = 'Y' then
+      Confirmed := True
+    else begin
+      MenuCore.ClearBottomLine;
+      DrawItem(ITEM_EXIT);
+      Confirmed := False;
     end;
   end;
 
 begin
-  Border.DrawWindow(1, 1, 38, 22, 0, Black, '');
+  savedChoice := GDVars.horizChoice;
+  for i := 0 to 1 do
+    for j := 0 to 1 do begin
+      loaded[i, j] := nil;
+      loadedBlock[i, j] := NO_BLOCK;
+    end;
+  Blit.AllocPic(ICON_H, ICON_W, 1, 1, work);
+  for i := 0 to 15 do
+    Blit.AllocPic(ICON_H, ICON_W, 1, 1, cells[i]);
+  Blit.AllocPic(ICON_H, ICON_W, 1, 0, readyPic);
+  Blit.AllocPic(ICON_H, ICON_W, 1, 0, actionPic);
+  Blit.AllocPic(ICON_H, ICON_W, 1, 0, shownPic);
+  inGrid := False;
+  which := 0;
+  pick := 0;
+  cur := ITEM_HEAD;
+  Revert;
+  TextRend.ClearScreen;
   CbtMap.SetCombatPalette;
+  Border.DrawBorder(1, 1, 16, 22, 0);
+  Border.DrawBorder(18, 1, 38, 22, 0);
+  Border.DrawBorder(18, MSG_TOP, 38, MSG_BOTTOM, 0);
+  with GDVars.curChar^ do
+    if Length(name) <= 16 then
+      TextRend.DisplayString(1 + (16 - Length(name)) div 2, 1, LightGreen, name)
+    else
+      TextRend.DisplayString(1, 1, LightGreen, Copy(name, 1, 16));
+  TextRend.DisplayString(READY_COL - 1, LABEL_ROW, LightGreen, 'Ready');
+  TextRend.DisplayString(ACTION_COL - 1, LABEL_ROW, LightGreen, 'Action');
+  TextRend.DisplayString(2, COLOR_ROW, LightGreen, 'Color');
+  for i := ITEM_HEAD to ITEM_EXIT do
+    DrawItem(i);
+  ShowPreviews;
+  done := False;
   repeat
-    SaveLoad.LoadCharIconAnim(False);
-    with GDVars.curChar^ do begin
-      state := 1;
-      savedCols := iconColors1;
-      savedOrd := orderNumber;
-      orderNumber := 12;
-      SaveLoad.LoadCharIconAnim(False);
-      orderNumber := savedOrd;
-      savedHead := iconHead;
-      savedBody := iconBody;
-      savedSize := iconSize;
-      CopyIconPics(orderNumber, 12, True);
-      ShowIconFrames(1, 2);
-      TextRend.DisplayString(8, 6, White, 'old');
-      TextRend.DisplayString(3, 10, White, 'ready   action');
-      TextRend.DisplayString(8, 12, White, 'new');
-      TextRend.DisplayString(3, 16, White, 'ready   action');
-      repeat
-        ShowIconFrames(1, 4);
-        sizeStr := '';
-        if state = 4 then
-          if iconSize = 2 then
-            sizeStr := 'Small'
+    MenuCore.arrowsToCaller := True;
+    key := MenuCore.MenuHorizontal('', '', LightMagenta, LightGreen, White, True, False, ext);
+    if ext then begin
+      if key in [C_Keys.UP, C_Keys.DOWN] then begin
+        i := cur;
+        if key = C_Keys.UP then begin
+          if cur = ITEM_HEAD then cur := ITEM_EXIT else Dec(cur);
+        end else if cur = ITEM_EXIT then
+          cur := ITEM_HEAD
+        else
+          Inc(cur);
+        DrawItem(i);
+        DrawItem(cur);
+      end;
+    end else
+      case key of
+        C_Keys.ENTER: case cur of
+            ITEM_SIZE: begin
+                tSize := 3 - tSize;
+                GDVars.curChar^.iconSize := tSize;
+                DrawItem(cur);
+                ShowPreviews;
+              end;
+            ITEM_EXIT: done := Confirmed;
           else
-            sizeStr := 'Large';
-        key := MenuCore.MenuHorizontal('', sizeStr + GDConsts.iconMenus[state], LightMagenta, LightGreen,
-                                       White, False, False, ext);
-        if not ext then
-          case state of
-            { Parts color-1 color-2 Size Exit }
-            1: begin
-                 lastState := 1;
-                 case key of
-                   'P': state := 2;
-                   '1': begin
-                          state := 3;
-                          which := 0;
-                          Delete(GDConsts.iconMenus[3], 13, 4);
-                          Insert('Hair', GDConsts.iconMenus[3], 13);
-                        end;
-                   '2': begin
-                          state := 3;
-                          which := 1;
-                          Delete(GDConsts.iconMenus[3], 13, 4);
-                          Insert('Face', GDConsts.iconMenus[3], 13);
-                        end;
-                   'S': state := 4;
-                 end;
-               end;
-            { Head Weapon Exit }
-            2: begin
-                 lastState := 2;
-                 if key in [C_Keys.NONE, 'E'] then
-                   state := 1
-                 else begin
-                   partKey := key;
-                   state := 5;
-                 end;
-               end;
-            { part -> colour slot }
-            3: begin
-                 lastState := 3;
-                 case key of
-                   'W': slot := 6;
-                   'B': slot := 1;
-                   'H': slot := 4;
-                   'F': slot := 4;
-                   'S': slot := 5;
-                   'A': slot := 2;
-                   'L': slot := 3;
-                   else slot := 1;
-                 end;
-                 if key in [C_Keys.NONE, 'E'] then
-                   state := 1
-                 else
-                   state := 5;
-               end;
-            { size }
-            4: begin
-                 case key of
-                   'L': begin
-                          iconSize := 2;
-                          SaveLoad.LoadCharIconAnim(False);
-                        end;
-                   'S': begin
-                          iconSize := 1;
-                          SaveLoad.LoadCharIconAnim(False);
-                        end;
-                   'K': begin
-                          savedSize := iconSize;
-                          state := 1;
-                          key := ' ';
-                        end;
-                   'E', C_Keys.NONE:
-                        begin
-                          iconSize := savedSize;
-                          state := 1;
-                          key := ' ';
-                        end;
-                 end;
-                 SaveLoad.LoadCharIconAnim(False);
-               end;
-            5: case lastState of
-                 2: case partKey of
-                    'H':
-                    begin
-                      case key of
-                        'P': if iconHead > 0 then
-                               Dec(iconHead)
-                             else
-                               iconHead := 13;
-                        'N': if iconHead < 13 then
-                               Inc(iconHead)
-                             else
-                               iconHead := 0;
-                        'K': begin
-                               with GDVars.curChar^ do
-                                 savedHead := iconHead;
-                               state := lastState;
-                               key := ' ';
-                             end;
-                        'E', C_Keys.NONE:
-                             begin
-                               iconHead := savedHead;
-                               state := lastState;
-                               key := ' ';
-                             end;
-                      end;
-                      SaveLoad.LoadCharIconAnim(False);
-                    end;
-                    'W':
-                    begin
-                      case key of
-                        'P': if iconBody > 0 then
-                               Dec(iconBody)
-                             else
-                               iconBody := 31;
-                        'N': if iconBody < 31 then
-                               Inc(iconBody)
-                             else
-                               iconBody := 0;
-                        'K': begin
-                               with GDVars.curChar^ do
-                                 savedBody := iconBody;
-                               state := lastState;
-                               key := ' ';
-                             end;
-                        'E', C_Keys.NONE:
-                             begin
-                               iconBody := savedBody;
-                               state := lastState;
-                               key := ' ';
-                             end;
-                      end;
-                      SaveLoad.LoadCharIconAnim(False);
-                    end;
-                    end;
-                 3: begin
-                      loColor := iconColors1[slot] and $F;
-                      hiColor := (iconColors1[slot] and $F0) shr 4;
-                      case key of
-                        'N': begin
-                               if which <> 0 then
-                                 hiColor := (hiColor + 1) mod 16
-                               else
-                                 loColor := (loColor + 1) mod 16;
-                               iconColors1[slot] := hiColor shl 4 + loColor;
-                             end;
-                        'P': begin
-                               if which <> 0 then
-                                 hiColor := (hiColor - 1) and $F
-                               else
-                                 loColor := (loColor - 1) and $F;
-                               iconColors1[slot] := hiColor shl 4 + loColor;
-                             end;
-                        'K': begin
-                               savedCols := iconColors1;
-                               state := lastState;
-                               key := ' ';
-                             end;
-                        'E', C_Keys.NONE:
-                             begin
-                               iconColors1 := savedCols;
-                               state := lastState;
-                               key := ' ';
-                             end;
-                      end;
-                    end;
-               end;
+            ChooseInGrid;
           end;
-        CopyIconPics(orderNumber, 12, True);
-      until (lastState = 1) and (key in [C_Keys.NONE, 'E']);
-      iconHead := savedHead;
-      iconBody := savedBody;
-      iconSize := savedSize;
-      iconColors1 := savedCols;
-      CopyIconPics(orderNumber, 12, True);
-      { commit the preview }
-      CopyIconPics(12, orderNumber, False);
-    end;
-    MenuCore.ClearBottomLine;
-    MapTiles.FreeIconAnim(12);
-    if GDVars.gLocType > C_Area.LOC_3D_MAP then begin
-      { restore the party map icons }
+        C_Keys.NONE: done := Confirmed;
+      end;
+  until done;
+  for i := 0 to 1 do
+    for j := 0 to 1 do
+      Blit.FreePic(loaded[i, j]);
+  Blit.FreePic(work);
+  for i := 0 to 15 do
+    Blit.FreePic(cells[i]);
+  Blit.FreePic(readyPic);
+  Blit.FreePic(actionPic);
+  Blit.FreePic(shownPic);
+  { a party member's combat icon; a character being created has no slot of its own yet }
+  p := GDVars.creatureList;
+  while (p <> nil) and (p <> GDVars.curChar) do
+    p := p^.nextCharAddr;
+  if (p <> nil) and (GDVars.curChar^.orderNumber <= 7) then begin
+    SaveLoad.LoadCharIconAnim(True);
+    if GDVars.gLocType > C_Area.LOC_3D_MAP then
+      { the party map icon LoadCharIconAnim freed }
       MapTiles.LoadIconAnim('ICON', 0, 11);
-      MapTiles.LoadIconAnim('ICON', 1, 12);
-    end;
-    key := MenuCore.YesNoMenu('Is this icon ok? ', LightMagenta, LightGreen, White);
-  until key = 'Y';
+  end;
+  MenuCore.ClearBottomLine;
   CbtMap.SetNoncombatPalette;
+  GDVars.horizChoice := savedChoice;
 end;
 
 { ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
