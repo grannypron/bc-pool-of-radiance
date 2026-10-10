@@ -665,6 +665,8 @@ begin
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
   CharGen.CustomizePortrait;
+  { the icon editor draws over the sheet the picker cleared }
+  ViewChar.DisplayChar;
   CharGen.CustomizeIcon;
   SaveLoad.SaveChar(Types.PCharRecord(creature), '');
   GDVars.curChar := savedCur;
@@ -1139,40 +1141,153 @@ begin
   end;
 end;
 
-{ CustomizePortrait: Cycle portrait head 1..14 and body 1..12; Keep is the only way out, so the kept values are the
-  current ones }
+{ CustomizePortrait: The portrait picker, on its own bordered page. Three heads sit over three bodies; the middle
+  column, framed, is the current pick and the others are the previous and next in GDConsts.headTbl/bodyTbl, wrapping
+  at the ends. Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Okay
+  (or Space, or Enter while Okay is the current option) shows the pick alone and asks whether it is ok: Yes keeps it,
+  No goes back to choosing. There is no way out but choosing a portrait. A head or body number outside its table starts
+  at 1. The caller redraws its screen afterwards. (SSI's picker cycled the head or body with H and B under the sheet's
+  portrait, forward only.) }
 procedure CustomizePortrait;
+const
+  PIC_COL: array[0..2] of Byte = (2, 14, 26);
+  PIC_ROW = 4;
+  { the hint under the counts }
+  HINT_ROW = 20;
 var
   key: Char;
   ext: Boolean;
-  savedHead: Byte;
-  savedBody: Byte;
-begin
-  with GDVars.curChar^ do begin
-    savedHead := portraitHead;
-    savedBody := portraitBody;
-    repeat
-      Portrait.DisplayCharPortrait;
-      key := MenuCore.MenuHorizontal('', 'Head Body Keep', Black, White, LightGreen, False, False,
-                                     ext);
-      if not ext then
-        case key of
-          'H': if portraitHead < 14 then
-                 Inc(portraitHead)
-               else
-                 portraitHead := 1;
-          'B': if portraitBody < 12 then
-                 Inc(portraitBody)
-               else
-                 portraitBody := 1;
-          'K': begin
-                 savedHead := portraitHead;
-                 savedBody := portraitBody;
-               end;
+  onBody: Boolean;
+  done: Boolean;
+  heads: array[0..2] of Types.PImgBuf;
+  bodies: array[0..2] of Types.PImgBuf;
+  diskCh: String[1];
+  i: Byte;
+  step: Integer;
+
+  { Wrap: The table position k steps from cur in a table of n, wrapping at the ends }
+  function Wrap(cur: Byte; k: Integer; n: Byte): Byte;
+  begin
+    Wrap := ((Integer(cur) - 1 + k + n) mod n) + 1;
+  end;
+
+  { ShowRow: Load and draw the heads (or bodies) around the current pick }
+  procedure ShowRow(body: Boolean);
+  var
+    k: Integer;
+  begin
+    with GDVars.curChar^ do
+      for k := -1 to 1 do
+        if body then begin
+          Blit.LoadPic('BODY' + diskCh, GDConsts.bodyTbl[Wrap(portraitBody, k, SizeOf(GDConsts.bodyTbl))], False, 0,
+                       bodies[k + 1]);
+          Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW + 5, False, bodies[k + 1]);
+        end else begin
+          Blit.LoadPic('HEAD' + diskCh, GDConsts.headTbl[Wrap(portraitHead, k, SizeOf(GDConsts.headTbl))], False, 0,
+                       heads[k + 1]);
+          Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW, False, heads[k + 1]);
         end;
-    until key = 'K';
-    portraitHead := savedHead;
-    portraitBody := savedBody;
+  end;
+
+  { Centered: Print s centred between the margins (columns 2..37) on row, clearing the row first }
+  procedure Centered(row, color: Byte; s: Types.TStr40);
+  begin
+    Border.ClearBox(2, row, 37, row);
+    if Length(s) > 36 then
+      s[0] := #36;
+    TextRend.DisplayString(2 + (36 - Length(s)) div 2, row, color, s);
+  end;
+
+  { Pad2: n as two characters, a single digit led by a blank, so the counts keep their place as they change }
+  function Pad2(n: Byte): Types.TStr40;
+  begin
+    if n < 10 then
+      Pad2 := ' ' + CharHlp.ByteToString(n)
+    else
+      Pad2 := CharHlp.ByteToString(n);
+  end;
+
+  { ShowCounts: The "Head  7 of 14" and "Body  3 of 12" lines, the row being changed in white and the other in green }
+  procedure ShowCounts;
+  var
+    col: Byte;
+  begin
+    with GDVars.curChar^ do begin
+      if onBody then col := LightGreen else col := White;
+      Centered(17, col, 'Head ' + Pad2(portraitHead) + ' of ' + CharHlp.ByteToString(SizeOf(GDConsts.headTbl)));
+      if onBody then col := White else col := LightGreen;
+      Centered(18, col, 'Body ' + Pad2(portraitBody) + ' of ' + CharHlp.ByteToString(SizeOf(GDConsts.bodyTbl)));
+    end;
+  end;
+
+begin
+  Str(LongInt(GDVars.virtualDisk), diskCh);
+  for i := 0 to 2 do begin
+    heads[i] := nil;
+    bodies[i] := nil;
+  end;
+  with GDVars.curChar^ do begin
+    if (portraitHead = 0) or (portraitHead > SizeOf(GDConsts.headTbl)) then
+      portraitHead := 1;
+    if (portraitBody = 0) or (portraitBody > SizeOf(GDConsts.bodyTbl)) then
+      portraitBody := 1;
+    TextRend.ClearScreen;
+    Border.DrawBorder(1, 1, 38, 22, 0);
+    Centered(2, White, name);
+    Border.DrawBorder(PIC_COL[1], PIC_ROW, PIC_COL[1] + 10, PIC_ROW + 10, 0);
+    Centered(HINT_ROW, LightGreen, 'Arrow keys for selection');
+    ShowRow(False);
+    ShowRow(True);
+    onBody := False;
+    done := False;
+    { Okay, the fifth option }
+    GDVars.horizChoice := 5;
+    repeat
+      ShowCounts;
+      MenuCore.arrowsToCaller := True;
+      key := MenuCore.MenuHorizontal('Portrait: ', 'Head Body Next Prev Okay', LightMagenta, LightGreen, White,
+                                     True, False, ext);
+      { an extended key's scan code can equal a letter (Down is 80, 'P'), so the two are told apart by ext }
+      step := 0;
+      if ext then
+        case key of
+          C_Keys.UP, C_Keys.DOWN: onBody := not onBody;
+          C_Keys.LEFT: step := -1;
+          C_Keys.RIGHT: step := 1;
+        end
+      else
+        case key of
+          'N': step := 1;
+          'P': step := -1;
+          'H': onBody := False;
+          'B': onBody := True;
+          'O', ' ', C_Keys.ENTER: begin
+              { the pick alone: no neighbours, no counts }
+              Border.ClearBox(PIC_COL[0], PIC_ROW, PIC_COL[0] + 10, PIC_ROW + 10);
+              Border.ClearBox(PIC_COL[2], PIC_ROW, PIC_COL[2] + 10, PIC_ROW + 10);
+              Border.ClearBox(2, 17, 37, HINT_ROW);
+              if MenuCore.YesNoMenu('Is this portrait ok? ', LightMagenta, LightGreen, White) = 'Y' then
+                done := True
+              else begin
+                ShowRow(False);
+                ShowRow(True);
+                Centered(HINT_ROW, LightGreen, 'Arrow keys for selection');
+                GDVars.horizChoice := 5;
+              end;
+            end;
+        end;
+      if step <> 0 then begin
+        if onBody then
+          portraitBody := Wrap(portraitBody, step, SizeOf(GDConsts.bodyTbl))
+        else
+          portraitHead := Wrap(portraitHead, step, SizeOf(GDConsts.headTbl));
+        ShowRow(onBody);
+      end;
+    until done;
+  end;
+  for i := 0 to 2 do begin
+    Blit.FreePic(heads[i]);
+    Blit.FreePic(bodies[i]);
   end;
   MenuCore.ClearBottomLine;
 end;
