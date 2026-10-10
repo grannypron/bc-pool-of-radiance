@@ -401,8 +401,7 @@ begin
   key := GameIo.ReadGameKey;
 end;
 
-{ Return the DOS clock in centiseconds. Note: the minute product wraps at 16 bits before accumulation, so the value can
-  jump backward within an hour. }
+{ Return the DOS clock in centiseconds since midnight. }
 function GetTicks: LongInt;
 var
   h: Word;
@@ -411,7 +410,7 @@ var
   s100: Word;
 begin
   GetTime(h, m, s, s100);
-  GetTicks := LongInt(h) * 360000 + m * 6000 + s * 100 + s100;
+  GetTicks := LongInt(h) * 360000 + LongInt(m) * 6000 + s * 100 + s100;
 end;
 
 { Clear the whole screen to black: both EGA pages, or every CGA or Tandy bank. }

@@ -29,7 +29,8 @@ begin
   repeat
     Portrait.DisplayImageBuf(col, row, True, a.frames[a.flag].pic);
     tickNow := TextRend.GetTicks;
-    if tickNow - tickLast > LongInt(a.frames[a.flag].hdr) * (GDVars.gameDelay + 3) then begin
+    { the tick count restarts at midnight }
+    if (tickNow - tickLast > LongInt(a.frames[a.flag].hdr) * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
       Inc(a.flag);
       if a.flag > a.count then begin
         a.flag := 1;
