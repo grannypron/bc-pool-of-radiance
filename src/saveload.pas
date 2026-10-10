@@ -54,8 +54,8 @@ procedure AddCreatureToParty(id: Byte);
 procedure LoadGame;
 
 { Save game: letter menu (Escape aborts), store wall slots, game speed, picture settings and disk number in the GBVM
-  zones, write SAVGAMx.DAT, SaveChar each party member as CHRDATxN.sav, delete their single-character files (.mem
-  included), set the recently-saved flag. }
+  zones, write SAVGAMx.DAT, SaveChar each party member (the first 8) as CHRDATxN.sav, delete their single-character
+  files (.mem included), set the recently-saved flag. }
 procedure SaveGame;
 
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
@@ -837,9 +837,10 @@ begin
   BlockWrite(f, GDVars.gMapX, 5);
   BlockWrite(f, GDVars.gLocType, SizeOf(GDVars.gLocType));
   BlockWrite(f, GDVars.ifcState, SizeOf(GDVars.ifcState));
+  { names holds 8, the most a party has }
   n := 0;
   p := GDVars.creatureList;
-  while p <> nil do begin
+  while (p <> nil) and (n < 8) do begin
     Inc(n);
     Str(n, numStr);
     names[n] := 'CHRDAT' + letter + numStr;
@@ -850,7 +851,7 @@ begin
   Close(f);
   p := GDVars.creatureList;
   n := 0;
-  while p <> nil do begin
+  while (p <> nil) and (n < 8) do begin
     Inc(n);
     Str(n, numStr);
     SaveLoad.SaveChar(p, 'CHRDAT' + letter + numStr);
