@@ -20,6 +20,8 @@ const
   RANGED_END = 8;
   { The title theme, a SoundDrv.PlayMusic tune. }
   MUSIC_TITLE = 21;
+  { The battle music, a SoundDrv.PlayMusic tune. }
+  MUSIC_BATTLE = 22;
 
 implementation
 
