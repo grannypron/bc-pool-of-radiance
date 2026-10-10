@@ -116,7 +116,7 @@ begin
 end;
 
 { Return the current character's spell allowance for a class and level minus its memorized and pending spells of that
-  class and level. The Byte result wraps when more are memorized than allowed (e.g. after level drain). }
+  class and level, or 0 when as many or more are memorized than allowed (e.g. after level drain). }
 function SpellSlotsRemaining(lvl, typ: ShortInt): Byte;
 var
   count: Byte;
@@ -128,7 +128,10 @@ begin
       if (GDConsts.spellTable[GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK].levelSp = lvl) and
           (GDConsts.spellTable[GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK].castClassSp = typ) then
         Inc(count);
-  SpellSlotsRemaining := GDVars.curChar^.slots[typ, lvl] - count;
+  if count >= GDVars.curChar^.slots[typ, lvl] then
+    SpellSlotsRemaining := 0
+  else
+    SpellSlotsRemaining := GDVars.curChar^.slots[typ, lvl] - count;
 end;
 
 { Check whether the current character can cast, memorize or scribe. Anti-magic blocks casting; animated or disabled
@@ -302,8 +305,8 @@ begin
   SaveLoad.SetUsualSpells(GDVars.curChar, spells);
 end;
 
-{ True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it cannot wrap
-  when level drain has left more spells memorized than slots, and levels past 3 have no slots. }
+{ True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it bounds the
+  level (levels past 3 have no slots) and skips memorized ids outside the spell table. }
 function SlotFree(lvl, typ: ShortInt): Boolean;
 var
   count: Integer;
@@ -409,13 +412,14 @@ begin
         else if Camp.SpellSlotsRemaining(GDConsts.spellTable[spellId].levelSp,
                                          GDConsts.spellTable[spellId].castClassSp) > 0
         then begin
-          { Sorting puts empty spell slots first. Note: the remaining-slot count is a Byte and can underflow after level
-            drain; if the array is full, this unbounded search can run past it. }
+          { Sorting puts empty spell slots first; a full array takes nothing }
           i := 0;
-          while GDVars.curChar^.memorizedSpells[i] <> 0 do
+          while (i < SizeOf(GDVars.curChar^.memorizedSpells)) and (GDVars.curChar^.memorizedSpells[i] <> 0) do
             Inc(i);
-          GDVars.curChar^.memorizedSpells[i] := spellId + C_Spell.PENDING_FLAG;
-          Camp.SortMemorizedSpells;
+          if i < SizeOf(GDVars.curChar^.memorizedSpells) then begin
+            GDVars.curChar^.memorizedSpells[i] := spellId + C_Spell.PENDING_FLAG;
+            Camp.SortMemorizedSpells;
+          end;
         end;
       end;
     end;
