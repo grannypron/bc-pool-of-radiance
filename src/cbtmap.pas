@@ -158,20 +158,26 @@ begin
           InAimFootprint := True;
 end;
 
-{ Put back what belongs on top of a view cell after something was drawn there: the cursor box when the cell is under
-  the aim footprint, then the creature standing on the cell. relX, relY are the cell's view coordinates. }
-procedure DrawCellTop(x, y, relX, relY: ShortInt);
+{ Redraw the creature standing on arena cell (x, y), when its icon is visible. }
+procedure DrawCellCreature(x, y: ShortInt);
 var
   c: Byte;
   t: Byte;
 begin
-  if InAimFootprint(x, y) then
-    MapTiles.DrawIconAnimSprite(relX, relY, 0, 0, CURSOR_CELL);
   CbtMap.GetArenaContents(x, y, c, t);
   if c > 0 then
     if CbtMap.CombatIconVisible(GDVars.creatureArr[c], 0) then
       MapTiles.DrawIconAnimSprite(GDVars.gridX[c], GDVars.gridY[c], GDVars.creatureArr[c]^.combatAddr^.direction,
                                   0, GDVars.creatureArr[c]^.orderNumber);
+end;
+
+{ Put back what belongs on top of a view cell after its terrain was drawn: the cursor box when the cell is under the
+  aim footprint, then the creature standing on the cell. relX, relY are the cell's view coordinates. }
+procedure DrawCellTop(x, y, relX, relY: ShortInt);
+begin
+  if InAimFootprint(x, y) then
+    MapTiles.DrawIconAnimSprite(relX, relY, 0, 0, CURSOR_CELL);
+  DrawCellCreature(x, y);
 end;
 
 { Repaint arena cell (x, y), when it is in view, as it is without the preview. }
@@ -188,7 +194,9 @@ begin
   end;
 end;
 
-{ Draw frame half of combat sprite art over arena cell (x, y), when it is in view; a facing of 4 or more mirrors it. }
+{ Draw frame half of combat sprite art over arena cell (x, y), when it is in view; a facing of 4 or more mirrors it.
+  The creature on the cell is put back over the art, but the cursor box is not: under the aim footprint the cell
+  already shows the cursor box (DrawCursorCell, RepaintCell), so the art lies on top of it. }
 procedure DrawPreviewArt(x, y: ShortInt; art, facing, half: Byte);
 var
   relX: ShortInt;
@@ -198,7 +206,7 @@ begin
   relY := y - GDVars.arenaPtr^.oy;
   if CbtMap.ViewCoordsValid(relX, relY) then begin
     MapTiles.DrawIconAnimSprite(relX, relY, facing, half, art);
-    DrawCellTop(x, y, relX, relY);
+    DrawCellCreature(x, y);
   end;
 end;
 
