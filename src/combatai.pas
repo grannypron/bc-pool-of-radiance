@@ -88,13 +88,14 @@ begin
   end;
 end;
 
-{ Turn undead whenever creature is a cleric that has not tried this combat and a turnable undead target exists. }
+{ Turn undead whenever creature can turn (a cleric, or a paladin of level 3 or more) and has not tried this combat, and
+  a turnable undead target exists. }
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean;
 var
   tgt: Pointer;
 begin
   if (creature^.combatAddr^.usedTurnUndead = 0)
-     and (creature^.classLevels[C_Class.LEVEL_CLERIC] > 0)
+     and (CbtActs.TurnLevel(creature) > 0)
      and CbtActs.FindTurnUndeadTarget(creature, tgt) then begin
     TurnUndeadAI := True;
     CbtActs.CombatTurnUndead(creature);
