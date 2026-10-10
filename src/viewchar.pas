@@ -623,10 +623,21 @@ begin
 end;
 
 { Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
-  during the cast. In combat, a spell castable in combat (whenCast <> 0) ends the user's actions. When done, consume the
-  scroll spell, or use quantity and then charges; remove the item when its charges run out. }
+  during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell)
+  and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
+  the user's actions. When done, consume the scroll spell, or use quantity and then charges; remove the item when its
+  charges run out. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; var done: Boolean);
 begin
+  if Magic.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
+      (GDConsts.spellTable[spell].target = 0) then begin
+    Magic.ShowCombatOnlySpell(spell);
+    done := MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y';
+    CharHlp.ClearMessageWindow;
+    if done then
+      Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell);
+    Exit;
+  end;
   if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
     CharHlp.DisplayCombatInterface;
   if not Magic.ItemReadable(item) then begin
