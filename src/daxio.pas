@@ -358,11 +358,16 @@ begin
       if data <> nil then begin
         i := 0;
         while (i + 2 < size) and (remapCount < MAX_REMAPS) do begin
-          Inc(remapCount);
-          remapFamily[remapCount] := family;
-          remapDisk[remapCount] := Byte(data^[i]);
-          remapFrom[remapCount] := Byte(data^[i + 1]);
-          remapTo[remapCount] := Byte(data^[i + 2]);
+          { an entry naming no disk, or a reserved id on either side, is skipped: a load is never sent to the merged
+            archive's own blocks }
+          if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_Data.SOURCES_BLOCK) and
+              (Byte(data^[i + 2]) < C_Data.SOURCES_BLOCK) then begin
+            Inc(remapCount);
+            remapFamily[remapCount] := family;
+            remapDisk[remapCount] := Byte(data^[i]);
+            remapFrom[remapCount] := Byte(data^[i + 1]);
+            remapTo[remapCount] := Byte(data^[i + 2]);
+          end;
           Inc(i, 3);
         end;
         FreeMem(data, size);
