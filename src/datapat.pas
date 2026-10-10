@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 25;
-  BYTE_COUNT = 966;
+  PART_COUNT = 28;
+  BYTE_COUNT = 984;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -85,6 +85,12 @@ const
       effect 0 and special 0, so readying it gives no Feather Fall; it gets effect 27 and special 128, as a random
       one has }
     (por: 36; family: C_Data.FAMILY_ITEM; disk: 1; id: 6; size: 189; offset: 61; origLen: 2; newLen: 2),
+    { POR-0037: Restal at the bottom of the Textile House well (script $AE71-$AF0A) kept his 'already resealed' flag
+      in [$4A17], which entering the area clears, so he resealed and paid again on every visit; he now deals only
+      while the party holds the sealed chest ([$4AC8] = 1) and once a game, flagged in the unused [$4A76] }
+    (por: 37; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5491; origLen: 7; newLen: 7),
+    (por: 37; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5504; origLen: 1; newLen: 1),
+    (por: 37; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5644; origLen: 1; newLen: 1),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -325,6 +331,20 @@ const
     $00, $00,
     { fixed: effect 27 (Feather Fall), special 128 }
     $1B, $80,
+    { POR-0037 part 1, original }
+    $03, $01, $B8, $4A, $00, $FF,                     { $AE71 COMPARE [$4AB8], $FF }
+    $16,                                              { $AE77 IF = }
+    { fixed: the chest must be held unopened }
+    $03, $01, $C8, $4A, $00, $01,                     { $AE71 COMPARE [$4AC8], $01 }
+    $17,                                              { $AE77 IF <> }
+    { POR-0037 part 2, original }
+    $17,
+    { fixed: COMPARE [$4A76], $01 }
+    $76,
+    { POR-0037 part 3, original }
+    $17,
+    { fixed: SAVE $01, [$4A76] }
+    $76,
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
