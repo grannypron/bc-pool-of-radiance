@@ -11,9 +11,10 @@ interface
    @returns(Clock time in centiseconds.) }
 function SoundTime: LongInt;
 
-{ * Paces sound cleanup without relying on the timer interrupt, which the sound driver may have hooked. Busy-waits
-   against SoundTime; ends early if a clock sample precedes the starting value, so a clock discontinuity cannot prolong
-   the wait.
+{ * Paces sound cleanup. While the timer driver is hooked, counts its own ticks, so the wait does not depend on the
+   DOS clock, midnight or the BIOS handler the driver chains. Otherwise busy-waits against SoundTime, ending early if a
+   clock sample precedes the starting value or after MAX_CLOCK_PASSES samples, so neither a clock discontinuity nor a
+   stopped clock can prolong the wait.
    @param(centiseconds Number of centiseconds to wait.) }
 procedure SoundDelay(centiseconds: Word);
 
@@ -51,6 +52,10 @@ const
   OUTPUT_DISABLED = 0;
   { * Value passed to SetSoundOutputEnabled to allow output. }
   OUTPUT_ENABLED = 1;
+  { * Timer driver ticks in 1000 centiseconds: PIT ch0 runs at 1193182 / 5041 = 236.7 Hz while the driver is hooked. }
+  TICKS_PER_1000_CS = 2367;
+  { * SoundTime samples after which an unhooked SoundDelay gives up on a clock that does not move. }
+  MAX_CLOCK_PASSES = 60000;
 
 {$L SOUNDDRV.OBJ}
 { * Hooks the timer interrupt so the sequencer runs in the background. Does nothing while it is hooked already. }
@@ -72,6 +77,13 @@ procedure ProgramTandyVoices(tuneId: Word); external;
    @param(enabledValue OUTPUT_ENABLED or OUTPUT_DISABLED; only the low byte is used.) }
 procedure SetSoundOutputEnabled(enabledValue: Word); external;
 
+{ * The timer driver's tick count, which wraps at 65536.
+   @returns(Ticks the timer interrupt has run while hooked.) }
+function SoundTimerTicks: Word; external;
+
+{ * @returns(True while the timer driver owns the timer interrupt.) }
+function SoundTimerHooked: Boolean; external;
+
 function SoundTime: LongInt;
 var
   hour: Word;
@@ -87,11 +99,30 @@ procedure SoundDelay(centiseconds: Word);
 var
   target: LongInt;
   now: LongInt;
+  passes: Word;
+  ticks: LongInt;
+  elapsed: LongInt;
+  last: Word;
+  sample: Word;
 begin
+  if SoundDrv.SoundTimerHooked then begin
+    ticks := (LongInt(centiseconds) * TICKS_PER_1000_CS + 500) div 1000;
+    elapsed := 0;
+    last := SoundDrv.SoundTimerTicks;
+    while elapsed < ticks do begin
+      sample := SoundDrv.SoundTimerTicks;
+      elapsed := elapsed + Word(sample - last);
+      last := sample;
+    end;
+    Exit;
+  end;
   target := SoundDrv.SoundTime + centiseconds;
+  passes := 0;
   repeat
     now := SoundDrv.SoundTime;
     if target - now > centiseconds then now := target + 1;
+    Inc(passes);
+    if passes = MAX_CLOCK_PASSES then now := target;
   until now >= target;
 end;
 
