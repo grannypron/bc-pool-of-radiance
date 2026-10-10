@@ -11,12 +11,15 @@ introduction, the game gathers each kind into one file (`ECL.DAX`, `MONCHA.DAX` 
 reads those in place of the per-disk files. None of the game's data is in this repository or its releases: the
 combined files are built from the player's own copy.
 
-The first start builds all fourteen, which takes a little while, once. The bottom line says "Please wait, constructing
-data files..." and shows each step, and every step goes to `DATABLD.LOG` in the game folder. Later starts check the
-combined files and go straight on. A combined file is built again when it is missing, cut short or of another version,
-or when the per-disk files it lists are no longer there with the sizes it lists. The original files are only read. A
-kind whose file cannot be built (the game folder cannot be written, say) is read from its per-disk files as before, and
-`DATABLD.LOG` says why.
+The first start builds all fourteen, which takes a little while, once. A full screen shows the file being built and its
+step, how many of the fourteen are finished with a bar and the time left, and a row for each kind with a cell for each
+per-disk file. The bottom line says "Please wait, constructing data files..." and shows each step, and every step goes
+to `DATABLD.LOG` in the game folder. When a kind could not be built, its row turns red and the screen waits for Enter;
+when the game folder cannot be written at all, the screen says so in place of the progress, and nothing is built. Later
+starts check the combined files and go straight on. A combined file is built again when it is missing, cut short or of
+another version, or when the per-disk files it lists are no longer there with the sizes it lists. The original files are
+only read. A kind whose file cannot be built (the game folder cannot be written, say) is read from its per-disk files as
+before, and `DATABLD.LOG` says why.
 
 Each combined file ends with three blocks of its own: the size and CRC-32 of every original file it was built from, the
 blocks that two disks held under one number with different contents (stored under a spare number), and the format

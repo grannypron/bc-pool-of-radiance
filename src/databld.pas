@@ -7,8 +7,8 @@
   copied for the fixed disk alone.
   Each archive records the size and CRC-32 of every per-disk archive it was built from, and ends with its version and
   the CRC-32 of everything before that. An archive the game can use (DaxIo.FamilyUsable) is kept; any other is
-  rebuilt: written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and every step
-  goes to DATABLD.LOG. The game's own files are only read. }
+  rebuilt: written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and on
+  BldShow's full screen, and every step goes to DATABLD.LOG. The game's own files are only read. }
 {$O+,F+,I-}
 unit DataBld;
 
@@ -16,12 +16,13 @@ interface
 
 { Build every merged archive the game cannot use, then have DaxIo look at them afresh. Nothing is shown or written when
   every one is current. A family whose build fails is left without a merged archive, so the game reads its per-disk
-  archives; once the game folder cannot be written, the families after it wait for the next start. }
+  archives. Once the game folder cannot be written, whether before the first family or at a later write, the families
+  not yet built wait for the next start. }
 procedure BuildDataFiles;
 
 implementation
 
-uses Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore;
+uses Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore, BldShow;
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
@@ -245,6 +246,7 @@ begin
       part := size - pos;
     ok := DataBld.ReadAt(f, pos, bufA^, part);
     DataBld.AddCrc(c, bufA^, part);
+    BldShow.Advance(part);
     Inc(pos, part);
   end;
   crc := not c.value;
@@ -400,6 +402,7 @@ begin
       Reset(f, 1);
       if IOResult = 0 then begin
         DataBld.Progress(archiveName + '.DAX: reading ' + DataBld.SourceName(fam, disk));
+        BldShow.Reading(fam, disk);
         ok := DataBld.ReadSource(f, fam, disk);
         Close(f);
         n := IOResult;
@@ -611,6 +614,7 @@ begin
   if b.disk = 0 then begin
     BlockWrite(dst, b.mem^, b.packedSize);
     DataBld.AddCrc(crc, b.mem^, b.packedSize);
+    BldShow.Advance(b.packedSize);
     ok := DataBld.IoOk;
   end else begin
     Assign(src, DataBld.GamePath(DataBld.SourceName(fam, b.disk)));
@@ -627,6 +631,7 @@ begin
         if ok then begin
           BlockWrite(dst, bufA^, part);
           DataBld.AddCrc(crc, bufA^, part);
+          BldShow.Advance(part);
           ok := DataBld.IoOk;
         end;
         Inc(pos, part);
@@ -672,6 +677,7 @@ begin
       DataBld.AddCrc(crc, e, SizeOf(e));
       Inc(nextOffset, blocks^[i].packedSize);
     end;
+    BldShow.Writing(nextOffset);
     ok := DataBld.IoOk;
     i := 1;
     while ok and (i < blockCount) do begin
@@ -946,6 +952,7 @@ begin
   disk := DataPat.parts[first].disk;
   id := DataPat.parts[first].id;
   DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, disk) + ' block ' + DataBld.NumStr(id));
+  BldShow.Fixing(fam, disk);
   ok := True;
   fixed := False;
   held := False;
@@ -1080,6 +1087,7 @@ begin
   end;
   if ok then begin
     DataBld.Progress(archiveName + '.DAX: checking');
+    BldShow.Checking;
     ok := DataBld.ArchiveSound(DataBld.GamePath(archiveName + '.$$$'));
     if not ok then
       DataBld.Fail(archiveName + '.$$$ did not read back whole');
@@ -1138,7 +1146,7 @@ end;
 
 procedure BuildDataFiles;
 var
-  stale: array[1..C_Data.FAMILIES] of Boolean;
+  stale: BldShow.TStaleList;
   anyStale: Boolean;
   fam: Byte;
   oldFileMode: Byte;
@@ -1158,12 +1166,18 @@ begin
     Assign(logFile, DataBld.GamePath(LOG_NAME));
     Rewrite(logFile);
     logOpen := IOResult = 0;
+    { the game folder is tried once before any family: when it cannot be written, every family waits }
+    writeNote := '';
+    failNote := '';
+    archiveName := 'DATABLD';
+    if DataBld.CanWrite then
+      DataBld.RemoveFile(archiveName + '.$$$');
+    BldShow.Open(stale, writeNote = '');
     DataBld.Progress('Please wait, constructing data files...');
     DataBld.LogLine('Merged data archives, version ' + DataBld.NumStr(C_Data.VERSION));
     builtCount := 0;
     keptCount := 0;
     failedCount := 0;
-    writeNote := '';
     crcTable := nil;
     if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + 1024 then
       writeNote := 'not enough memory'
@@ -1176,9 +1190,11 @@ begin
       DataBld.InitCrcTable;
     end;
     for fam := 1 to C_Data.FAMILIES do
-      if stale[fam] then
-        DataBld.UpdateFamily(fam)
-      else if DataBld.HasFiles(fam) then begin
+      if stale[fam] then begin
+        BldShow.StartFamily(fam);
+        DataBld.UpdateFamily(fam);
+        BldShow.EndFamily(fam, failNote = '');
+      end else if DataBld.HasFiles(fam) then begin
         DataBld.LogLine(DataArc.MergedName(fam) + '.DAX up to date');
         Inc(keptCount);
       end;
@@ -1197,6 +1213,7 @@ begin
     n := IOResult;
     logOpen := False;
     MenuCore.ClearBottomLine;
+    BldShow.Finish(failedCount > 0);
     DaxIo.ResetArchiveCache;
   end;
   FileMode := oldFileMode;
