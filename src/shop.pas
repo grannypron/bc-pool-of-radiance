@@ -41,7 +41,10 @@ begin
     lenv := Length(tmp);
     for i := 1 to lenv do
       s[SizeOf(s) - 1 - lenv + i] := tmp[i];
+    { the name is cut short of the price, with a blank between, so it neither runs past s nor over the price }
     lenv := Length(p^.name);
+    if lenv > SizeOf(s) - 2 - Length(tmp) then
+      lenv := SizeOf(s) - 2 - Length(tmp);
     for i := 1 to lenv do
       s[i] := p^.name[i];
     p^.name := s;
