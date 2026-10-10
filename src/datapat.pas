@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 46;
-  BYTE_COUNT = 1288;
+  PART_COUNT = 48;
+  BYTE_COUNT = 1399;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -146,7 +146,12 @@ const
     (por: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 6367; origLen: 0; newLen: 10),
     { POR-0051: Stojanow Gate's alarm (script $9C0C) set its end hour from the stray word [$9800] instead of the hour
       it was raised, [$4A62], so it ended at once or never; it uses [$4A62] as Valjevo Castle's alarm does }
-    (por: 51; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 786; origLen: 2; newLen: 2));
+    (por: 51; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 786; origLen: 2; newLen: 2),
+    { POR-0052: Stojanow Gate's location 13 (script $B10F) always fought both tower garrisons, even one already
+      killed; new code at the end of the script loads only the surviving garrison, as the alarm fight does, then
+      fights as before }
+    (por: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6161; origLen: 6; newLen: 6),
+    (por: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6377; origLen: 0; newLen: 99));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -549,7 +554,30 @@ const
     { POR-0051, original }
     $00, $98,
     { fixed: ADD $01, [$4A62], [$4A64] }
-    $62, $4A);
+    $62, $4A,
+    { POR-0052 part 1, original }
+    $09, $00, $00, $01, $CB, $6D,                     { $B10F SAVE $00, [$6DCB] }
+    { fixed: the fight goes to $B1E7 }
+    $01, $01, $E7, $B1,                               { $B10F GOTO LB1E7 }
+    $00, $00,
+    { POR-0052 part 2, added at $B1E7: one garrison per tower still standing }
+    $09, $00, $00, $01, $CB, $6D,                     { $B1E7 SAVE $00, [$6DCB] }
+    $09, $00, $50, $01, $C6, $6D,                     { $B1ED SAVE $50, [$6DC6] }
+    $09, $00, $01, $01, $7B, $6E,                     { $B1F3 SAVE $01, [$6E7B] }
+    $2F, $01, $77, $4A, $00, $0C, $01, $82, $6E,      { $B1F9 AND [$4A77], $0C, [$6E82] }
+    $16,                                              { $B202 IF = }
+    $09, $00, $02, $01, $7B, $6E,                     { $B203 SAVE $02, [$6E7B] }
+    $09, $00, $18, $01, $7C, $6E,                     { $B209 SAVE $18, [$6E7C] }
+    $2F, $01, $77, $4A, $00, $08, $01, $82, $6E,      { $B20F AND [$4A77], $08, [$6E82] }
+    $17,                                              { $B218 IF <> }
+    $09, $00, $59, $01, $7C, $6E,                     { $B219 SAVE $59, [$6E7C] }
+    $02, $01, $E2, $9B,                               { $B21F GOSUB L9BE2 }
+    $1C,                                              { $B223 CLEARMONSTERS }
+    $0B, $01, $7C, $6E, $01, $7B, $6E, $00, $0E,      { $B224 LOAD MONSTER [$6E7C], [$6E7B], $0E }
+    $0B, $00, $35, $01, $7B, $6E, $00, $0B,           { $B22D LOAD MONSTER $35, [$6E7B], $0B }
+    $07, $01, $7B, $6E, $00, $03, $01, $7B, $6E,      { $B235 MULTIPLY [$6E7B], $03, [$6E7B] }
+    $0B, $00, $47, $01, $7B, $6E, $00, $47,           { $B23E LOAD MONSTER $47, [$6E7B], $47 }
+    $01, $01, $35, $B1);                              { $B246 GOTO LB135 }
 
 implementation
 
