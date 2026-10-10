@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 33;
-  BYTE_COUNT = 994;
+  PART_COUNT = 34;
+  BYTE_COUNT = 996;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -107,7 +107,11 @@ const
     { POR-0042: Lizardman Keep's 'press Return' prompt (script $9A64) wrote its answer into [$6E81], the old
       lizardman's record of which location the party is at, so a wrong friend-word at location 3 or 10 started
       location 1's fight; the prompt now writes [$6E7A], which nothing reads before setting it }
-    (por: 42; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 360; origLen: 1; newLen: 1));
+    (por: 42; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 360; origLen: 1; newLen: 1),
+    { POR-0043: Lizardman Keep's count of giant lizards still to come (script $99AD) subtracted the pool-treasure
+      flags [$4A5E] instead of the giant lizards killed [$4A5F], so the catacomb ambush was always ten; it subtracts
+      the kills }
+    (por: 43; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 177; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -410,7 +414,11 @@ const
     { POR-0042, original }
     $81,
     { fixed: HORIZONTAL MENU [$6E7A] }
-    $7A);
+    $7A,
+    { POR-0043, original }
+    $5E,
+    { fixed: SUBTRACT [$4A5F], $0A, [$6E80] }
+    $5F);
 
 implementation
 
