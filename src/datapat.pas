@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 49;
-  BYTE_COUNT = 1401;
+  PART_COUNT = 50;
+  BYTE_COUNT = 1403;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -155,7 +155,11 @@ const
     { POR-0054: the false Tyranthraxus in the hedge maze (script $A9EE) confessed to an abusive weak party and fought
       a strong one; the test is turned round, so a party strength and Charisma bonus of 85 or more gets the
       confession }
-    (por: 54; family: C_Data.FAMILY_ECL; disk: 5; id: 5; size: 4943; offset: 4336; origLen: 1; newLen: 1));
+    (por: 54; family: C_Data.FAMILY_ECL; disk: 5; id: 5; size: 4943; offset: 4336; origLen: 1; newLen: 1),
+    { POR-0055: beating Tyranthraxus in the Inner Tower (script $A81B) wrote its 'defeated' bit into the unused
+      [$4A72], so he, the messenger and Genheeris could be fought again; the bit goes into [$4A6D] as the tower's
+      other bits do }
+    (por: 55; family: C_Data.FAMILY_ECL; disk: 5; id: 7; size: 4105; offset: 3876; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -585,7 +589,11 @@ const
     { POR-0054, original }
     $1B,                                              { $A9EE IF >= }
     { fixed: IF < }
-    $18);                                             { $A9EE IF < }
+    $18,                                              { $A9EE IF < }
+    { POR-0055, original }
+    $72,
+    { fixed: OR [$4A6D], $10, [$4A6D] }
+    $6D);
 
 implementation
 
