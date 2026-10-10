@@ -12,7 +12,7 @@ implementation
 
 uses C_Sound, SoundDrv;
 
-{ Wait for the requested number of seconds or a keypress, whichever comes first. }
+{ Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);
 var
   start: LongInt;
@@ -27,7 +27,7 @@ begin
   until (now >= deadline) or (now < start) or KeyPressed;
 end;
 
-{ Show the credits screen for 10 seconds or until a keypress. }
+{ Show the credits screen for 10 seconds or until a keypress; a key still pending from the title ends it at once. }
 procedure Credits;
 begin
   Border.DrawWindow(1, 1, 38, 3, 0, Black, '');
@@ -69,7 +69,8 @@ begin
 end;
 
 { Show TITLE picture 1 for 5 seconds or until a key, with the game directory blanked while loading. With the full intro,
-  show picture 2 for another 5 seconds, flashing EGA palette register 1 at random, then the credits. }
+  show picture 2 for another 5 seconds, flashing EGA palette register 1 at random, then the credits. No screen reads
+  the key, so one key ends the screen it is pressed on and every screen after it; FixMain discards it afterwards. }
 procedure Introduction;
 var
   pic: Types.PImgBuf;
