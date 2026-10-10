@@ -1148,7 +1148,6 @@ var
   p: Types.PCharRecord;
   idx: Integer;
   key: Char;
-  addExitU: Boolean;
   redraw: Boolean;
   nonNpc: Byte;
 begin
@@ -1161,9 +1160,9 @@ begin
   { the until clause reads nonNpc after every key, including Space and a party member's entry, which add nothing }
   nonNpc := 0;
   repeat
-    { Note: addExitU is never assigned, so MenuVertical gets whatever the stack holds. }
+    { the menu string already holds Exit, so MenuVertical adds none }
     key := MenuCore.MenuVertical('Add a character: ', 'Add Exit', LightMagenta, LightGreen, White,
-                                 1, 2, 38, 22, list, addExitU, redraw, idx, m);
+                                 1, 2, 38, 22, list, False, redraw, idx, m);
     if (key = C_Keys.ENTER) or (key = 'A') then
       if m^.name[1] <> '*' then
       begin
