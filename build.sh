@@ -98,6 +98,8 @@ else
 fi
 command -v timeout > /dev/null 2>&1 \
     || problem "timeout (GNU coreutils) is not on PATH: build.sh uses it to stop a DOSBox-X that never exits."
+command -v flock > /dev/null 2>&1 \
+    || problem "flock (util-linux) is not on PATH: build.sh uses it to keep two builds in this checkout apart."
 
 if [ ${#problems[@]} -gt 0 ]; then
     echo "build.sh: cannot build. Fix these first:" >&2
@@ -109,14 +111,25 @@ fi
 
 # --- build -------------------------------------------------------------------------------------
 
+# One build at a time in this checkout: two would delete and write the same obj/, build/logs and src/*.TPU. gametools
+# takes the same lock (goldbox.treelock); a build it starts carries its token for this lock and goes ahead under it.
+lock="$root/.build.lock"
+token="${GOLDBOX_TREE_LOCK_TOKEN:-}"
+if [ -z "$token" ] || [ "${token%#*}" != "$(cd "$root" && pwd -P)/.build.lock" ] \
+        || [ "${token##*#}" != "$(cat "$lock" 2> /dev/null)" ]; then
+    exec 9<> "$lock"
+    flock -n 9 || { echo "build.sh: another build is running in this checkout (it holds .build.lock)." >&2; exit 1; }
+fi
+
 mkdir -p "$root/obj" "$root/build/logs"
 rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
 
 echo "build.sh: compiling in DOSBox-X..."
 # DOSBox-X's own messages go to build/logs/DOSBOX.OUT. A build takes seconds; one that has not finished in ten minutes
 # is stuck (DOSBox-X waiting at a prompt, say) and is stopped. --foreground keeps Ctrl-C reaching DOSBox-X.
+# -defaultconf: DOSBox-X's built-in settings, not the user's config file, so a local build runs as CI's does.
 dosbox_timeout=600
-timeout --foreground -k 10 $dosbox_timeout dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
+timeout --foreground -k 10 $dosbox_timeout dosbox-x -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
     -c "mount d \"$tp\"" \
     -c "mount e \"$root\"" \
     -c "mount f \"$tasm\"" \
@@ -139,10 +152,12 @@ if [ ! -f "$root/build/logs/TPC.OUT" ]; then
     tail -n 20 "$root/build/logs/DOSBOX.OUT" >&2
     exit 1
 fi
+# TPC reports "FILE.PAS(12): Error 3: ..."; TPC.OUT also names every file it opens, so a bare "error" is not enough.
+tpc_error='(^|\): )(Error|Fatal)'
 failed=0
-if grep -qi "error" "$root/build/logs/TPC.OUT" 2> /dev/null; then
+if grep -qE "$tpc_error" "$root/build/logs/TPC.OUT" 2> /dev/null; then
     echo "build.sh: the compiler reported errors (build/logs/TPC.OUT):" >&2
-    grep -i -B1 -A2 "error" "$root/build/logs/TPC.OUT" >&2
+    grep -E -B1 -A2 "$tpc_error" "$root/build/logs/TPC.OUT" >&2
     failed=1
 fi
 if grep -qiE "^\*+(error|fatal)" "$root/build/logs/TASM.OUT" 2> /dev/null; then
