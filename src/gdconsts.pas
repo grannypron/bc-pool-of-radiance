@@ -68,6 +68,11 @@ const
     'GOBLIN GUARD', 'HOBGOBLIN LDR', 'GRISHNAK');
   giantFoes: array[1..5] of Types.TName15 = (
     'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT');
+  { The giant class a ranger does extra damage to in melee: the game's monster names for kobolds, goblins, orcs,
+    hobgoblins, gnolls, bugbears, ettins, ogres, trolls and giants }
+  rangerFoes: array[1..16] of Types.TName15 = (
+    'KOBOLD', 'KOBOLD LEADER', 'GOBLIN GUARD', 'GOBLIN LEADER', 'ORC', 'ORC LEADER', 'HOBGOBLIN', 'HOBGOBLIN LDR',
+    'GNOLL', 'BUGBEAR', 'ETTIN', 'OGRE', 'OGRE LEADER', 'TROLL', 'HILL GIANT', 'FIRE GIANT');
   { Turning undead }
     { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
       d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
