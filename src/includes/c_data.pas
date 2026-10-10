@@ -1,5 +1,5 @@
-{ The merged data archives DataBld builds from the per-disk ones: the family count, the archive version and the
-  reserved block ids. goldbox-re-tools' mergedax holds the same values. }
+{ The merged data archives DataBld builds from the per-disk ones: the family count, the places of the families the data
+  patches touch, the archive version and the reserved block ids. goldbox-re-tools' mergedax holds the same values. }
 unit C_Data;
 
 interface
@@ -7,9 +7,15 @@ interface
 const
   { data families, each merged into one archive (DataArc's family table) }
   FAMILIES = 14;
-  { the script family's place in that table }
+  { places in that table: scripts, maps, placed items, monsters and monsters' items }
   FAMILY_ECL = 1;
-  { the archive layout and the data patches DataBld applies; an archive holding another version is not used }
+  FAMILY_GEO = 2;
+  FAMILY_ITEM = 9;
+  FAMILY_MONCHA = 10;
+  FAMILY_MONITM = 11;
+  { The archive layout and the data patches DataBld applies (DataPat). DaxIo.FamilyUsable rejects an archive holding
+    another version, so raising it makes the next start rebuild every family's archive, with the patches as they are
+    now. }
   VERSION = 2;
   { Reserved block ids, the last three blocks of a merged archive. The sources block lists, per per-disk archive read,
     its disk, file size and CRC-32; the remap block holds the collisions as triples (disk, original id, merged id); the

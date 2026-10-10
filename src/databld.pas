@@ -2,8 +2,9 @@
   family's per-disk archives (ECL1-8.DAX, MON1-8CHA.DAX and so on; DataArc's family table) are gathered into one
   archive (ECL.DAX, MONCHA.DAX) that DaxIo.LoadDax reads in their place, so nothing is tied to the current disk. Blocks
   are copied packed, byte for byte. When two disks give one block id different contents, the first disk's block keeps
-  the id and the other is stored under a spare id, listed in the archive's remap block. A data patch fixes a known
-  fault in one block, only when the block still holds the bytes it replaces; adding one means bumping C_Data.VERSION.
+  the id and the other is stored under a spare id, listed in the archive's remap block. The data fixes in DataPat are
+  then made, each only when its block still holds the bytes it replaces; a block that several disks share is first
+  copied for the fixed disk alone.
   Each archive records the size and CRC-32 of every per-disk archive it was built from, and ends with its version and
   the CRC-32 of everything before that. An archive the game can use (DaxIo.FamilyUsable) is kept; any other is
   rebuilt: written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and every step
@@ -20,7 +21,7 @@ procedure BuildDataFiles;
 
 implementation
 
-uses Crt, Dos, Types, C_Data, GDVars, DataArc, DaxIo, TextRend, MenuCore;
+uses Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore;
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
@@ -44,9 +45,6 @@ const
   VERSION_RAW = 5;
   VERSION_PACKED = 6;
   LOG_NAME = 'DATABLD.LOG';
-  { the data patches: how many, and the bytes each replaces }
-  PATCH_COUNT = 1;
-  PATCH_SIZE = 87;
 
 type
   { A block: packed bytes in the per-disk archive of disk at file position start, or, with disk 0, in memory at mem. }
@@ -77,34 +75,6 @@ type
   TSources = array[0..SOURCES_SIZE - 1] of Byte;
   { why a family failed, for the log }
   TNote = String[80];
-  { A fix to one block: PATCH_SIZE bytes at offset in the decoded block id of the family's archive on disk. }
-  TPatch = record
-    family: Byte;
-    disk: Byte;
-    id: Byte;
-    offset: Word;
-  end;
-
-const
-  patches: array[1..PATCH_COUNT] of TPatch = (
-    { POR-0038, Kovel Mansion's weapons-pile ambush (ECL3 block 14, script addresses $AAB9-$AB0F): 0..7 thieves
-      killed give 5 1st-level thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level
-      and 17 gives 4, where the shipped script took the 1st-level count below zero or left it stale }
-    (family: C_Data.FAMILY_ECL; disk: 3; id: 14; offset: 4539));
-  patchOriginal: array[1..PATCH_COUNT, 0..PATCH_SIZE - 1] of Byte = ((
-    $04, $00, $05, $01, $45, $4A, $01, $79, $6E, $03, $01, $79, $6E, $00, $15, $1B,
-    $01, $01, $EE, $AA, $03, $01, $79, $6E, $00, $0C, $1A, $01, $01, $04, $AB, $05,
-    $00, $0C, $01, $79, $6E, $01, $7A, $6E, $05, $01, $7A, $6E, $00, $05, $01, $7B,
-    $6E, $01, $01, $10, $AB, $05, $00, $15, $01, $79, $6E, $01, $7A, $6E, $05, $01,
-    $7A, $6E, $00, $05, $01, $7A, $6E, $01, $01, $10, $AB, $09, $00, $05, $01, $7B,
-    $6E, $09, $00, $00, $01, $7A, $6E));
-  patchFixed: array[1..PATCH_COUNT, 0..PATCH_SIZE - 1] of Byte = ((
-    $09, $02, $05, $00, $01, $7B, $6E, $09, $02, $00, $00, $01, $7A, $6E, $03, $01,
-    $45, $4A, $00, $07, $1A, $01, $01, $10, $AB, $05, $00, $07, $01, $45, $4A, $01,
-    $7A, $6E, $05, $01, $7A, $6E, $00, $05, $01, $7B, $6E, $03, $01, $45, $4A, $00,
-    $0C, $1A, $01, $01, $10, $AB, $09, $02, $00, $00, $01, $7B, $6E, $05, $01, $45,
-    $4A, $00, $15, $01, $7A, $6E, $03, $01, $7A, $6E, $00, $05, $1A, $01, $01, $10,
-    $AB, $09, $00, $05, $01, $7A, $6E));
 
 var
   logFile: Text;
@@ -763,88 +733,316 @@ begin
   end;
 end;
 
-{ Apply patch p to block b (decoded, its original bytes checked, the fix put in and the block repacked into memory), or
-  log why not. False, with failNote set, on a read error or when the memory for it is not there. }
-function ApplyPatch(fam: Byte; p: Byte; var b: TBlock): Boolean;
+{ 'POR-0038' for por 38. }
+function PorName(por: Word): Types.TStr20;
 var
-  f: file;
-  packedBuf: PBytes;
-  raw: PBytes;
-  oldPacked: Word;
-  k: Word;
-  ok: Boolean;
-  same: Boolean;
+  s: Types.TStr20;
 begin
-  ok := (b.packedSize > 0) and (b.rawSize > 0) and (b.rawSize <= MAX_ENCODED);
-  if not ok then
-    DataBld.Fail(DataBld.SourceName(fam, b.disk) + ' block ' + DataBld.NumStr(b.id) + ' cannot be patched')
+  s := DataBld.NumStr(por);
+  while Length(s) < 4 do
+    s := '0' + s;
+  PorName := 'POR-' + s;
+end;
+
+{ The most bytes a block of the family may hold once fixed: a script must fit the script buffer after its two-byte
+  leader. }
+function MaxRawSize(fam: Byte): Word;
+begin
+  if fam = C_Data.FAMILY_ECL then
+    MaxRawSize := 2 + SizeOf(Types.TZone3)
   else
-    ok := DataBld.Reserve(LongInt(b.packedSize) + b.rawSize + 8);
+    MaxRawSize := MAX_ENCODED;
+end;
+
+{ True when parts a and b name the same block. }
+function SameBlockPart(a, b: Word): Boolean;
+begin
+  SameBlockPart := (DataPat.parts[a].family = DataPat.parts[b].family) and
+                   (DataPat.parts[a].disk = DataPat.parts[b].disk) and (DataPat.parts[a].id = DataPat.parts[b].id);
+end;
+
+{ True when part b belongs to the same fix as part a: the same POR id and block. }
+function SameFix(a, b: Word): Boolean;
+begin
+  SameFix := (DataPat.parts[a].por = DataPat.parts[b].por) and DataBld.SameBlockPart(a, b);
+end;
+
+{ The remap entry for a load of block id from disk, or 0. }
+function RemapOf(disk, id: Byte): Word;
+var
+  r: Word;
+  found: Word;
+begin
+  found := 0;
+  for r := 1 to remapCount do
+    if (remapDisk[r] = disk) and (remapFrom[r] = id) then
+      found := r;
+  RemapOf := found;
+end;
+
+{ The block a load of block id from disk reads in the merged archive, as its blocks index; 0 when the per-disk archive
+  of disk has no block id. }
+function ResolveBlock(disk, id: Byte): Word;
+var
+  i: Word;
+  r: Word;
+  found: Word;
+  listed: Boolean;
+begin
+  found := 0;
+  r := DataBld.RemapOf(disk, id);
+  if r > 0 then
+    found := remapBlock[r]
+  else begin
+    listed := False;
+    for i := 1 to sourceCount do
+      if (sources^[i].disk = disk) and (sources^[i].id = id) then
+        listed := True;
+    { the first disk's block keeps the id; a spare id is never one a per-disk archive uses }
+    if listed then
+      for i := 1 to blockCount do
+        if blocks^[i].id = id then
+          found := i;
+  end;
+  ResolveBlock := found;
+end;
+
+{ True when a disk other than disk also reads block target for block id. }
+function BlockShared(disk, id: Byte; target: Word): Boolean;
+var
+  i: Word;
+  shared: Boolean;
+begin
+  shared := False;
+  for i := 1 to sourceCount do
+    if not shared and (sources^[i].id = id) and (sources^[i].disk <> disk) then
+      shared := DataBld.ResolveBlock(sources^[i].disk, id) = target;
+  BlockShared := shared;
+end;
+
+{ Give disk its own copy of block target, its block id, under a spare id with a remap entry, so that fixing the copy
+  changes nothing another disk reads. The copy's blocks index; 0, with why set, when the block is not in its per-disk
+  archive or the spare ids, the remap entries or the room for blocks have run out. }
+function SplitBlock(disk, id: Byte; target: Word; var why: TNote): Word;
+var
+  used: array[0..255] of Boolean;
+  i: Word;
+  r: Word;
+  spare: Word;
+begin
+  SplitBlock := 0;
+  FillChar(used, SizeOf(used), 0);
+  for i := 1 to sourceCount do
+    used[sources^[i].id] := True;
+  for i := 1 to blockCount do
+    used[blocks^[i].id] := True;
+  spare := 1;
+  while (spare < C_Data.SOURCES_BLOCK) and used[spare] do
+    Inc(spare);
+  r := DataBld.RemapOf(disk, id);
+  if blocks^[target].disk = 0 then
+    why := 'the block is not in its archive'
+  else if spare >= C_Data.SOURCES_BLOCK then
+    why := 'no spare block id left'
+  else if (r = 0) and (remapCount = MAX_REMAPS) then
+    why := 'too many collisions'
+  else if blockCount + 3 >= MAX_BLOCKS then
+    why := 'too many blocks'
+  else begin
+    Inc(blockCount);
+    blocks^[blockCount] := blocks^[target];
+    blocks^[blockCount].id := spare;
+    if r = 0 then begin
+      Inc(remapCount);
+      r := remapCount;
+      remapDisk[r] := disk;
+      remapFrom[r] := id;
+    end;
+    remapTo[r] := spare;
+    remapBlock[r] := blockCount;
+    SplitBlock := blockCount;
+  end;
+end;
+
+{ Make the fix whose first part is first, its bytes from patchBytes[pos] on, to the rawLen bytes at raw, building the
+  result in spare; both buffers hold room bytes. True when every part found the block at its size with its original
+  bytes and the result fits: raw and spare are then swapped, so raw holds the fixed block, and rawLen is its length.
+  Otherwise raw is unchanged and why says what did not match. }
+function ApplyFix(fam: Byte; first, pos: Word; var raw, spare: PBytes; room: Word; var rawLen: Word;
+                  var why: TNote): Boolean;
+var
+  part: DataPat.TPatchPart;
+  p: Word;
+  q: Word;
+  k: Word;
+  len: Word;
+  newLen: LongInt;
+  t: PBytes;
+  ok: Boolean;
+begin
+  Move(raw^, spare^, rawLen);
+  len := rawLen;
+  ok := True;
+  p := first;
+  q := pos;
+  while ok and (p <= DataPat.PART_COUNT) and DataBld.SameFix(first, p) do begin
+    part := DataPat.parts[p];
+    ok := (part.size = len) and (LongInt(part.offset) + part.origLen <= len) and
+          (LongInt(q) + part.origLen + part.newLen <= DataPat.BYTE_COUNT);
+    k := 0;
+    while ok and (k < part.origLen) do begin
+      ok := spare^[part.offset + k] = DataPat.patchBytes[q + k];
+      Inc(k);
+    end;
+    if not ok then
+      why := 'the block differs'
+    else begin
+      newLen := LongInt(len) - part.origLen + part.newLen;
+      ok := (newLen <= DataBld.MaxRawSize(fam)) and (newLen <= room);
+      if not ok then
+        why := 'the block would be too long'
+      else begin
+        Move(spare^[part.offset + part.origLen], spare^[part.offset + part.newLen], len - part.offset - part.origLen);
+        Move(DataPat.patchBytes[q + part.origLen], spare^[part.offset], part.newLen);
+        len := newLen;
+      end;
+    end;
+    Inc(q, part.origLen + part.newLen);
+    Inc(p);
+  end;
   if ok then begin
-    { EncodeRuns replaces b.packedSize; the buffer is freed with the size it was taken with }
-    oldPacked := b.packedSize;
-    GetMem(packedBuf, oldPacked);
-    GetMem(raw, b.rawSize);
+    t := raw;
+    raw := spare;
+    spare := t;
+    rawLen := len;
+  end;
+  ApplyFix := ok;
+end;
+
+{ Make every fix to the block part first names, in table order, the first one's bytes from patchBytes[pos] on: the
+  block is decoded, each fix made when its checks pass, and the result packed into memory. A block several disks read
+  is first copied for the fixed disk. Each fix is logged by its POR id. False, with failNote set, on a read error or
+  when the memory for the result is not there. }
+function PatchBlock(fam: Byte; first, pos: Word): Boolean;
+var
+  disk: Byte;
+  id: Byte;
+  target: Word;
+  room: LongInt;
+  rawLen: Word;
+  p: Word;
+  q: Word;
+  raw: PBytes;
+  spare: PBytes;
+  packedBuf: PBytes;
+  packedLen: Word;
+  f: file;
+  note: TNote;
+  why: TNote;
+  ok: Boolean;
+  fixed: Boolean;
+  held: Boolean;
+begin
+  disk := DataPat.parts[first].disk;
+  id := DataPat.parts[first].id;
+  DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, disk) + ' block ' + DataBld.NumStr(id));
+  ok := True;
+  fixed := False;
+  held := False;
+  note := '';
+  target := DataBld.ResolveBlock(disk, id);
+  if target = 0 then
+    note := 'the block is not there'
+  else if DataBld.BlockShared(disk, id, target) then
+    target := DataBld.SplitBlock(disk, id, target, note);
+  room := 0;
+  if target > 0 then begin
+    { room for the block grown by every part that names it }
+    room := blocks^[target].rawSize;
+    for p := first to DataPat.PART_COUNT do
+      if DataBld.SameBlockPart(first, p) then
+        Inc(room, DataPat.parts[p].newLen);
+    if room > MAX_ENCODED then
+      room := MAX_ENCODED;
+    if (blocks^[target].disk = 0) or (blocks^[target].packedSize = 0) or (blocks^[target].rawSize = 0) or
+        (blocks^[target].rawSize > MAX_ENCODED) then
+      note := 'the block cannot be patched'
+    else
+      ok := DataBld.Reserve(LongInt(blocks^[target].packedSize) + 2 * room + 24);
+  end;
+  if ok and (note = '') then begin
+    packedLen := blocks^[target].packedSize;
+    rawLen := blocks^[target].rawSize;
+    GetMem(packedBuf, packedLen);
+    GetMem(raw, room);
+    GetMem(spare, room);
+    held := True;
     lastError := 0;
-    Assign(f, DataBld.GamePath(DataBld.SourceName(fam, b.disk)));
+    Assign(f, DataBld.GamePath(DataBld.SourceName(fam, blocks^[target].disk)));
     Reset(f, 1);
     ok := DataBld.IoOk;
     if ok then begin
-      ok := DataBld.ReadAt(f, b.start, packedBuf^, oldPacked);
+      ok := DataBld.ReadAt(f, blocks^[target].start, packedBuf^, packedLen);
       Close(f);
       n := IOResult;
     end;
-    if not ok then
-      DataBld.Fail('reading ' + DataBld.SourceName(fam, b.disk) + ' for a patch: DOS error ' +
-                   DataBld.NumStr(lastError))
-    else begin
-      DataBld.DecodeRuns(packedBuf^, oldPacked, raw^, b.rawSize);
-      same := LongInt(patches[p].offset) + PATCH_SIZE <= b.rawSize;
-      k := 0;
-      while same and (k < PATCH_SIZE) do begin
-        same := raw^[patches[p].offset + k] = patchOriginal[p, k];
-        Inc(k);
-      end;
-      if same then begin
-        for k := 0 to PATCH_SIZE - 1 do
-          raw^[patches[p].offset + k] := patchFixed[p, k];
-        b.disk := 0;
-        b.start := 0;
-        DataBld.EncodeRuns(raw^, b.rawSize, b.mem, b.packedSize);
-        ok := failNote = '';
-        if ok then
-          DataBld.LogLine(archiveName + '.DAX: patch applied');
-      end else
-        DataBld.LogLine(archiveName + '.DAX: patch skipped: original bytes differ');
-    end;
-    FreeMem(raw, b.rawSize);
-    FreeMem(packedBuf, oldPacked);
+    if ok then
+      DataBld.DecodeRuns(packedBuf^, packedLen, raw^, rawLen)
+    else
+      DataBld.Fail('reading ' + DataBld.SourceName(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
+                   DataBld.NumStr(lastError));
+    FreeMem(packedBuf, packedLen);
   end;
-  ApplyPatch := ok;
+  if ok then begin
+    q := pos;
+    for p := first to DataPat.PART_COUNT do begin
+      if DataBld.SameBlockPart(first, p) and ((p = first) or not DataBld.SameFix(p - 1, p)) then
+        if note <> '' then
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.PorName(DataPat.parts[p].por) + ' skipped: ' + note)
+        else if DataBld.ApplyFix(fam, p, q, raw, spare, room, rawLen, why) then begin
+          fixed := True;
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.PorName(DataPat.parts[p].por) + ' applied');
+        end else
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.PorName(DataPat.parts[p].por) + ' skipped: ' + why);
+      Inc(q, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+    end;
+    if fixed then begin
+      blocks^[target].disk := 0;
+      blocks^[target].start := 0;
+      blocks^[target].rawSize := rawLen;
+      DataBld.EncodeRuns(raw^, rawLen, blocks^[target].mem, blocks^[target].packedSize);
+      ok := failNote = '';
+    end;
+  end;
+  if held then begin
+    FreeMem(spare, room);
+    FreeMem(raw, room);
+  end;
+  PatchBlock := ok;
 end;
 
-{ Apply the family's patches to the blocks taken from their disk. False, with failNote set, on a read error. }
+{ Make the family's fixes, block by block. False, with failNote set, on a read error or a shortage of memory. }
 function ApplyPatches(fam: Byte): Boolean;
 var
-  p: Byte;
-  i: Word;
-  target: Word;
+  p: Word;
+  q: Word;
+  pos: Word;
   ok: Boolean;
+  firstOnBlock: Boolean;
 begin
   ok := True;
-  for p := 1 to PATCH_COUNT do
-    if ok and (patches[p].family = fam) then begin
-      DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, patches[p].disk) + ' block ' +
-                       DataBld.NumStr(patches[p].id));
-      target := 0;
-      for i := 1 to blockCount do
-        if (blocks^[i].id = patches[p].id) and (blocks^[i].disk = patches[p].disk) then
-          target := i;
-      if target = 0 then
-        DataBld.LogLine(archiveName + '.DAX: patch skipped: block not found')
-      else
-        ok := DataBld.ApplyPatch(fam, p, blocks^[target]);
+  pos := 0;
+  for p := 1 to DataPat.PART_COUNT do begin
+    if ok and (DataPat.parts[p].family = fam) then begin
+      firstOnBlock := True;
+      for q := 1 to p - 1 do
+        if DataBld.SameBlockPart(q, p) then
+          firstOnBlock := False;
+      if firstOnBlock then
+        ok := DataBld.PatchBlock(fam, p, pos);
     end;
+    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+  end;
   ApplyPatches := ok;
 end;
 
