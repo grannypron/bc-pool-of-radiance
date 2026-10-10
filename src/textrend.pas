@@ -317,7 +317,8 @@ begin
       while (lineEnd + 1 < len) and (source[lineEnd + 1] in GDConsts.breakChars) do
         Inc(lineEnd);
     if lineEnd - idx + GDVars.curCol > lrCol then begin
-      if (lineEnd - idx + GDVars.curCol = lrCol) and (source[lineEnd] = ' ') then begin
+      { the word fits and only its trailing space hangs over the edge: print the word, then wrap }
+      if (lineEnd - idx + GDVars.curCol = lrCol + 1) and (source[lineEnd] = ' ') then begin
         Dec(lineEnd);
         PrintCharInWindow;
       end;
