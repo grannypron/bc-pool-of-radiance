@@ -932,7 +932,8 @@ end;
 
 { TREASURE: set the treasure money from vars 1..7 and add items by var 8: below $80 it selects an ITEM archive list,
   $80+n generates n random items and 255 none. Item nodes are prepended, and a trailing part record in the list is
-  ignored. Note: a second roll of 48 or 49 picks no item id and reuses the previous one. }
+  ignored. A second roll of 48 or 49 (empty entries in ITEMS, not items) is rolled again; v1.3 picked no item id for
+  it, so the item reused the previous item's id, or for the first item an uninitialised one. }
 procedure EclTreasure;
 var
   i: ShortInt;
@@ -985,7 +986,9 @@ begin
       roll := FxEngine.RollDice(1, 100);
       case roll of
         1..60: begin
-          roll2 := FxEngine.RollDice(1, 100);
+          repeat
+            roll2 := FxEngine.RollDice(1, 100);
+          until (roll2 <> 48) and (roll2 <> 49);
           case roll2 of
             1..47, 50..59:
               if roll2 = 45 then
