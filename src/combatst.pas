@@ -398,7 +398,8 @@ begin
     Dec(col);
   startCol := col;
   for row := 0 to 24 do begin
-    if col <= 49 then begin
+    { the pair takes col and col + 1; at col 49 the second would land in the next row's column 0 }
+    if col <= 48 then begin
       GDVars.arenaPtr^.cells[row, col] := 50;
       GDVars.arenaPtr^.cells[row, col + 1] := 51;
       if (FxEngine.RollDice(1, 20) = 1) or Odd(fordCnt) then
