@@ -668,7 +668,7 @@ begin
       creature^.combatAddr^.castAllowed := 0;
       if creature^.combatAddr^.spellCast > 0 then begin
         CharHlp.PrintNameString(creature, 'lost a spell', 12, True);
-        CharHlp.RemoveSpell(creature^.combatAddr^.spellCast);
+        CharHlp.RemoveSpell(creature, creature^.combatAddr^.spellCast);
         creature^.combatAddr^.spellCast := 0;
       end;
     end;

@@ -724,7 +724,7 @@ begin
     if GDVars.usingItem = False then begin
       Magic.ShowCombatOnlySpell(spell);
       if MenuCore.YesNoMenu('Lose it? ', LightMagenta, White, LightGreen) = 'Y' then
-        CharHlp.RemoveSpell(spell);
+        CharHlp.RemoveSpell(GDVars.curChar, spell);
     end else begin
       TextRend.DisplayString(1, 19, LightGreen, 'That Item');
       TextRend.DisplayString(1, 20, LightGreen, 'is a combat-only item...');
@@ -768,7 +768,7 @@ begin
       end;
       FxEngine.RemoveInvisibility(p);
       if GDVars.usingItem = False then
-        CharHlp.RemoveSpell(spell);
+        CharHlp.RemoveSpell(GDVars.curChar, spell);
       GDVars.dsCurrentSpellBeing := spell;
       spellFns[GDVars.dsCurrentSpellBeing];
       GDVars.dsCurrentSpellBeing := C_Spell.NONE;
@@ -780,7 +780,7 @@ begin
       begin
         CharHlp.PrintBottomLine('Spell Aborted');
         if GDVars.usingItem = False then
-          CharHlp.RemoveSpell(spell);
+          CharHlp.RemoveSpell(GDVars.curChar, spell);
         ok := False;
       end;
     end;
