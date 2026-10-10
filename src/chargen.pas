@@ -13,6 +13,8 @@ procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
 
 procedure CustomizeIcon;
 
+procedure CustomizePortrait;
+
 implementation
 
 
@@ -38,8 +40,6 @@ function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 function HpMaximum(creature: Types.PCharRecord): Byte; forward;
 
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forward;
-
-procedure CustomizePortrait; forward;
 
 { FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
   spells; the closing creature := nil clears only the local parameter }
