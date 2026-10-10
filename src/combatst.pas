@@ -11,6 +11,8 @@ procedure CombatStart;
 
 implementation
 
+uses C_Sound, SoundDrv;
+
 var
   { The menu animation, released when combat starts. }
   animData: Types.TAnimRec absolute GDVars.animData;
@@ -842,6 +844,8 @@ begin
   MenuCore.ClearBottomLine;
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
+  { the battle music runs until the first sound of the fight cuts it }
+  SoundDrv.PlayMusic(C_Sound.MUSIC_BATTLE);
   GDVars.quickMagic := False;
   GDVars.roundCounter := 0;
   GDVars.gAttackRoll := 0;
