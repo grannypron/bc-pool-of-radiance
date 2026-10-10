@@ -9,8 +9,9 @@ uses Types, C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtA
   ViewChar, FxEngine, C_Effect, C_Equip, C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys;
 
 { Run one AI-controlled turn for creature: check the keyboard (Space returns the party to manual control), reroll the
-  approach pattern, check morale, then try in order an item's spell effect, a spell readied earlier
-  (combatAddr^.spellCast), turning undead and a new spell, and otherwise re-equip and run the move/attack loop. }
+  approach pattern, check morale, then resolve a spell readied earlier (combatAddr^.spellCast) as the whole action, or
+  else try in order an item's spell effect, turning undead and a new spell, and otherwise re-equip and run the
+  move/attack loop. }
 procedure CombatAiControl(creature: Types.PCharRecord);
 
 implementation
@@ -66,16 +67,16 @@ begin
     CharHlp.PrintNameString(creature, 'flees in panic', 10, True);
   if done then
     Exit;
-  if CombatAi.SelectItemToUse(creature) then
-    done := CharHlp.EndActions(creature)
-  else if creature^.combatAddr^.spellCast > 0 then begin
-    { A spell readied earlier resolves this segment. spellCast is cleared first, as on Combat's manual path, so that
-      the caster hurt by its own spell does not lose a second copy of it }
+  if creature^.combatAddr^.spellCast > 0 then begin
+    { A spell readied earlier resolves this segment and is the whole action, as on Combat's manual path. spellCast is
+      cleared first, as there, so that the caster hurt by its own spell does not lose a second copy of it }
     spell := creature^.combatAddr^.spellCast;
     creature^.combatAddr^.spellCast := 0;
     Magic.CastSpellNC(spell, True, True, done);
     done := CharHlp.EndActions(creature);
-  end else if CombatAi.TurnUndeadAI(creature) then
+  end else if CombatAi.SelectItemToUse(creature) then
+    done := CharHlp.EndActions(creature)
+  else if CombatAi.TurnUndeadAI(creature) then
     done := CharHlp.EndActions(creature)
   else if CombatAi.SelectSpellToCast(creature) then
     done := True
