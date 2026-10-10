@@ -20,13 +20,13 @@ implementation
   until one succeeds) before quitting to DOS. When saving is disabled it just reports the failure and exits.
 
   @param(size Size in bytes of the failed request. Zero requests are ignored.)
-  @returns(Nothing meaningful, since the game exits before returning. Note: for a zero request the result is never
-  set.) }
+  @returns(0, which the heap manager treats as a failure; a real request never gets back, since the game exits.) }
 function HeapErrorHandler(size: Word): Integer;
 var
   { ** Loop terminator: set once a save succeeded or saving is disabled. }
   exitFlag: Byte;
 begin
+  HeapErrorHandler := 0;
   if size > 0 then begin
     exitFlag := 0;
 
