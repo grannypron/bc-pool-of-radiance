@@ -494,6 +494,7 @@ begin
     Exit;
   cnt := CharHlp.CountTargets(att, 1);
   weak := 0;
+  defIdx := 0;
   for i := 1 to cnt do begin
     p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
     if p = def then
@@ -501,6 +502,9 @@ begin
     if p^.levelHighest = 0 then
       Inc(weak);
   end;
+  { def is not in the enemy list (an ally, such as an animated corpse): no sweep }
+  if defIdx = 0 then
+    Exit;
   if weak <= att^.curAttacks then
     Exit;
   if weak > att^.combatAddr^.sweepBudget then
