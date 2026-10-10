@@ -48,10 +48,11 @@ procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
   LoadCharIconAnim(True). No-op when the party already has 8 members (C_Gbvm.PARTY_SIZE > 7). }
 procedure AddCreatureToParty(id: Byte);
 
-{ Load game: offer the existing SAVGAMA..J.DAT as a letter menu (Escape aborts), read the save file, reload each listed
-  character from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character
-  files (.mem included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run
-  Ending.YarashComplete when the Yarash pyramid flag is set. }
+{ Load game: offer the existing SAVGAMA..J.DAT as a letter menu (Escape aborts), read the save file (one too short to
+  hold it all is refused, with a message, before anything is read), reload each listed character, at most 8, from its
+  CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files (.mem
+  included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete when
+  the Yarash pyramid flag is set. }
 procedure LoadGame;
 
 { Save game: letter menu (Escape aborts), store wall slots, game speed, picture settings and disk number in the GBVM
@@ -735,6 +736,22 @@ begin
   found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
                                'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
   MenuCore.ClearBottomLine;
+  { a save shorter than everything read below is refused before any of it replaces the game in memory }
+  if found then begin
+    found := (IOResult = 0) and
+             (FileSize(f) >= LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
+                             SizeOf(GDVars.zone2^) + SizeOf(GDVars.zone3^) + 5 + SizeOf(GDVars.gLocType) +
+                             SizeOf(GDVars.ifcState) + SizeOf(nChars) + SizeOf(names)) and
+             (IOResult = 0);
+    if not found then
+      Close(f);
+    res := IOResult;
+  end;
+  if not found then begin
+    TextRend.DisplayAndPause(Yellow, 'Save game ' + letter + ' is damaged.');
+    MenuCore.ClearBottomLine;
+    Exit;
+  end;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
   BlockRead(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), res);
   { disks 1..8 only }
@@ -750,6 +767,10 @@ begin
   BlockRead(f, nChars, SizeOf(nChars), res);
   BlockRead(f, names, SizeOf(names), res);
   Close(f);
+  res := IOResult;
+  { names holds 8, the most a party has }
+  if nChars > 8 then
+    nChars := 8;
   GDVars.monsterPics := (GDVars.zone0^.settings shr 1) and 1;
   GDVars.portraitsOn := GDVars.zone0^.settings and 1;
   GDVars.musicOn := 1 - (GDVars.zone0^.settings shr 2) and 1;
