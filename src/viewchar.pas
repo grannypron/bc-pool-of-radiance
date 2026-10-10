@@ -23,6 +23,8 @@ procedure ToggleReadyItem(item: Types.PItemRec);
 
 procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
+procedure UseItemSpell(item: Types.PItemRec; spell: Byte; var done: Boolean);
+
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
 procedure SelectPrevNextChar(c: Char);
@@ -366,11 +368,7 @@ begin
     itemCount := creature^.numberOfItems;
     if creature^.itemsAddr <> nil then begin
       s := 'Ready';
-      { Use needs an able character outside an anti-magic area, and in combat one still allowed an item this round }
-      if (creature^.enabled <> 0) and (GDVars.zone0^.antimagic = 0) and
-          ((GDVars.ifcState = C_Ifc.CAMPING) or (GDVars.ifcState = C_Ifc.OUTDOORS) or
-           (GDVars.ifcState = C_Ifc.INDOORS) or
-           ((GDVars.ifcState = C_Ifc.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0))) then
+      if CharHlp.CanUseItems(creature) then
         s := s + ' Use';
       { party members may trade, and so may NPCs that are disabled or animated }
       if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
@@ -602,9 +600,7 @@ begin
   dst^.quantity := qty;
 end;
 
-{ Cast from a scroll (spell chosen from its list) or an effect-bearing item (effect > 56 maps to spell effect - 23),
-  setting usingItem during the cast. In combat, a spell castable in combat (whenCast <> 0) ends the user's actions. When
-  done, consume the scroll spell, or use quantity and then charges; remove the item when its charges run out. }
+{ Cast from a scroll (spell chosen from its list) or an effect-bearing item through UseItemSpell. }
 procedure UseItem(item: Types.PItemRec; var done: Boolean);
 var
   spell: Byte;
@@ -617,35 +613,40 @@ begin
   if Magic.ItemReadable(item) then begin
     GDVars.dsCurrentScrollPtr := item;
     spell := ViewChar.SpellMenu(2, 1, idx, notEmpty);
-  end else if (item^.effect > 0) and (item^.special < $80) then begin
-    GDVars.usingItem := True;
+  end else if (item^.effect > 0) and (item^.special < $80) then
     spell := item^.effect;
-  end;
   if spell = 0 then
     done := False
-  else begin
-    if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
-      CharHlp.DisplayCombatInterface;
-    if GDVars.usingItem then begin
-      if spell > 56 then
-        { item effect -> spell id }
-        Dec(spell, 23);
-      CharHlp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
-      if GDVars.ifcState = C_Ifc.COMBAT then begin
-        TextRend.DisplayString(0, 23, LightGreen, 'Item:');
-        CharHlp.PrintItemString(GDVars.curChar, item, 5, 23, False, True);
-      end else
-        CharHlp.PrintItemString(GDVars.curChar, item, 1, 22, False, True);
-      TextRend.PauseOnly;
-      CharHlp.ClearMessageWindow;
-    end;
-    GDVars.usingItem := True;
-    Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, done);
-    GDVars.usingItem := False;
-    if GDVars.ifcState = C_Ifc.COMBAT then
-      if GDConsts.spellTable[spell].whenCast <> 0 then
-        done := CharHlp.EndActions(GDVars.curChar);
+  else
+    ViewChar.UseItemSpell(item, spell, done);
+end;
+
+{ Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
+  during the cast. In combat, a spell castable in combat (whenCast <> 0) ends the user's actions. When done, consume the
+  scroll spell, or use quantity and then charges; remove the item when its charges run out. }
+procedure UseItemSpell(item: Types.PItemRec; spell: Byte; var done: Boolean);
+begin
+  if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
+    CharHlp.DisplayCombatInterface;
+  if not Magic.ItemReadable(item) then begin
+    if spell > 56 then
+      { item effect -> spell id }
+      Dec(spell, 23);
+    CharHlp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
+    if GDVars.ifcState = C_Ifc.COMBAT then begin
+      TextRend.DisplayString(0, 23, LightGreen, 'Item:');
+      CharHlp.PrintItemString(GDVars.curChar, item, 5, 23, False, True);
+    end else
+      CharHlp.PrintItemString(GDVars.curChar, item, 1, 22, False, True);
+    TextRend.PauseOnly;
+    CharHlp.ClearMessageWindow;
   end;
+  GDVars.usingItem := True;
+  Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, done);
+  GDVars.usingItem := False;
+  if GDVars.ifcState = C_Ifc.COMBAT then
+    if GDConsts.spellTable[spell].whenCast <> 0 then
+      done := CharHlp.EndActions(GDVars.curChar);
   if done then begin
     if Magic.ItemReadable(item) then
       Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell)
@@ -962,9 +963,9 @@ begin
 end;
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a
-  level, 5 to be memorized, 6 to be scribed) and run Magic.SpellSelection on it, returning the chosen spell, or 0 when
-  the list is empty. idx < 0 also draws the "<name>'s Spells ..." heading; notEmpty receives whether the list has
-  entries. }
+  level, 5 to be memorized, 6 to be scribed, 7 available to cast) and run Magic.SpellSelection on it, returning the
+  chosen spell, or 0 when the list is empty. idx < 0 also draws the "<name>'s Spells ..." heading ("<name>'s Available
+  Spells" for 7); notEmpty receives whether the list has entries. }
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 var
   s: Types.TStr40;
@@ -977,6 +978,7 @@ begin
     4: s := 'to choose from';
     5: s := 'to be memorized';
     6: s := 'to be scribed';
+    7: s := '';
   else
     s := '';
   end;
@@ -985,7 +987,11 @@ begin
     if idx < 0 then begin
       Border.DrawWindow(1, 1, 38, 1, 0, Black, '');
       CharHlp.DisplayCreatureName(GDVars.curChar, 1, 1, True);
-      TextRend.DisplayString(Length(GDVars.curChar^.name) + 4, 1, LightGreen, 'Spells ' + s);
+      if menuType = 7 then
+        s := 'Available Spells'
+      else
+        s := 'Spells ' + s;
+      TextRend.DisplayString(Length(GDVars.curChar^.name) + 4, 1, LightGreen, s);
     end;
     SpellMenu := Magic.SpellSelection(selType, idx);
   end else

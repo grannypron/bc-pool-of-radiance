@@ -76,6 +76,8 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 function EndActions(creature: Types.PCharRecord): Boolean;
 
+function CanUseItems(creature: Types.PCharRecord): Boolean;
+
 function Guard(creature: Types.PCharRecord): Boolean;
 
 function GetCasterLevel(spell: Byte): Byte;
@@ -1221,6 +1223,16 @@ begin
   creature^.combatAddr^.guarding := 0;
   creature^.combatAddr^.movement := 0;
   EndActions := True;
+end;
+
+{ True when the creature may use an item now: an able character outside an anti-magic area, in camp, outdoors or
+  indoors, or in combat while still allowed an item this round. }
+function CanUseItems(creature: Types.PCharRecord): Boolean;
+begin
+  CanUseItems := (creature^.enabled <> 0) and (GDVars.zone0^.antimagic = 0) and
+                 ((GDVars.ifcState = C_Ifc.CAMPING) or (GDVars.ifcState = C_Ifc.OUTDOORS) or
+                  (GDVars.ifcState = C_Ifc.INDOORS) or
+                  ((GDVars.ifcState = C_Ifc.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
 end;
 
 { End the creature's round, raise its guarding flag and announce it. Always returns True. }
