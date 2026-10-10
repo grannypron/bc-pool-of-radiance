@@ -1324,7 +1324,7 @@ begin
 end;
 
 { Dispel Magic: try every effect whose strength is below 255, with its low nibble as the effect's caster level: 50%, +5%
-  per caster level above it, -2% per level below. }
+  per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are left alone. }
 procedure DispelMagicHandler;
 var
   i: Byte;
@@ -1343,7 +1343,7 @@ begin
     effect := Types.PEffectRec(tgt^.effectsAddr);
     while effect <> nil do begin
       nxt := effect^.next;
-      if effect^.strength < 255 then begin
+      if (effect^.strength < 255) and not (effect^.id in [C_Effect.RECENT_HEAL, C_Effect.RECENT_CURE]) then begin
         { dispel treats the low nibble as caster level }
         GDVars.gSpellTemp2 := effect^.strength and $F;
         if cl > GDVars.gSpellTemp2 then

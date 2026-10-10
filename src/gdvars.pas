@@ -354,7 +354,7 @@ var
 var
   { Effect dispatch }
   { effect handlers, indexed by effect id }
-  effectFns: array[C_Effect.BLESS..C_Effect.READY_RING_INVIS] of Pointer;
+  effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Pointer;
   { 3D view }
   { shared pointer to wall symbol slices }
   wallGfx: Pointer;

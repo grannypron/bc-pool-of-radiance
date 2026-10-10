@@ -158,6 +158,10 @@ const
   SPIRIT_HAMMER_GONE = 137;
   { Ring of Invisibility, effect 56 }
   READY_RING_INVIS = 139;
+  { A paladin has laid on hands today. }
+  RECENT_HEAL = 140;
+  { A paladin's week of curing disease; the strength counts the cures made. }
+  RECENT_CURE = 141;
 
 implementation
 
