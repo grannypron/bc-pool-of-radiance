@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 1;
-  BYTE_COUNT = 174;
+  PART_COUNT = 2;
+  BYTE_COUNT = 178;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -32,11 +32,19 @@ type
 
 const
   parts: array[1..PART_COUNT] of TPatchPart = (
+    { POR-0020: the Flame Tongue +2 Long Sword placed in Valjevo Castle's well (ITEM5 block 36, record 0) carries
+      effect 22 and special 0, so readying it never adds the Flame Tongue effect and Use casts Find Traps; it gets
+      effect 6 (Flame Tongue) and special 130, a ready-item handler }
+    (por: 20; family: C_Data.FAMILY_ITEM; disk: 5; id: 36; size: 63; offset: 61; origLen: 2; newLen: 2),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
     (por: 38; family: C_Data.FAMILY_ECL; disk: 3; id: 14; size: 7332; offset: 4539; origLen: 87; newLen: 87));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
+    { POR-0020, original }
+    $16, $00,
+    { fixed: effect 6, special 130 }
+    $06, $82,
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
