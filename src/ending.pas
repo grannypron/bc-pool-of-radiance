@@ -12,7 +12,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-
+{ Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);
 var
   a: Types.TAnimRec;
@@ -24,6 +24,10 @@ begin
   tickLast := TextRend.GetTicks;
   FillChar(a, SizeOf(a), 0);
   Portrait.LoadAnimation('FINAL', picId, 2, a);
+  if a.count = 0 then begin
+    Portrait.FreeAnimation(a);
+    Exit;
+  end;
   Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.dsViewImageBufferPtr);
   Blit.FlushView;
   repeat

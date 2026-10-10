@@ -793,6 +793,9 @@ begin
   GDVars.musicOn := 1 - (GDVars.zone0^.settings shr 2) and 1;
   if GDVars.musicOn = 0 then SoundDrv.StopMusic;
   GDVars.gameDelay := GDVars.zone0^.gameSpeed.lo;
+  { the speed menus' range }
+  if GDVars.gameDelay > 9 then
+    GDVars.gameDelay := 9;
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
