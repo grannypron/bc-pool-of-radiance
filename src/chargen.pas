@@ -548,7 +548,9 @@ begin
         C_Class.CLERIC_FIGHTER_MAGE: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
                    GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
                        C_Class.CLERIC].num;
-        { C_Class.CLERIC_RANGER leaves age zero }
+        C_Class.CLERIC_RANGER: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
+                   GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
+                       C_Class.CLERIC].num;
         C_Class.CLERIC_MAGE: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
                    GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
                        C_Class.CLERIC].num;
@@ -602,7 +604,7 @@ begin
                  stats[i] := GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp];
                if stats[i] < GDConsts.classMin[charClass, i] then
                  stats[i] := GDConsts.classMin[charClass, i];
-               if (stats[C_Abil.STRENGTH] = 18) and (classLevels[C_Class.LEVEL_FIGHTER] > 0) then begin
+               if (stats[C_Abil.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
                  if GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] < strExc then
                    strExc := GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp];
@@ -912,7 +914,7 @@ begin
               Inc(stats[hold]);
               case hold of
                 C_Abil.STRENGTH: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp] then begin
-                     if (stats[hold] > 18) and (classLevels[C_Class.LEVEL_FIGHTER] > 0) and
+                     if (stats[hold] > 18) and (CharHlp.WarriorLevel(GDVars.curChar) > 0) and
                          (GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
                      stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp];
@@ -976,10 +978,10 @@ end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
   class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
-  Applies the racial fighter (and half-elf cleric) level caps, and before the hall and experience checks clamps
-  experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and restores
-  one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the
-  trained classes' Con bonus) divided by the class count, at least 1. }
+  Applies the racial fighter (and half-elf cleric and ranger) level caps, and before the hall and experience checks
+  clamps experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and
+  restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
+  hpMax, the trained classes' Con bonus) divided by the class count, at least 1. }
 procedure TrainingMenu;
 var
   atCap: Boolean;
@@ -1032,7 +1034,7 @@ begin
                  atCap := True;
           C_Race.HALFELF: if (cls = C_Class.LEVEL_CLERIC) and (lvl = 5) then
                atCap := True
-             else if cls = C_Class.LEVEL_FIGHTER then
+             else if (cls = C_Class.LEVEL_FIGHTER) or (cls = C_Class.LEVEL_RANGER) then
                if (lvl = 8) or ((lvl = 7) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 6) and
                    (stats[C_Abil.STRENGTH] < 17)) then
                  atCap := True;
