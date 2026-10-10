@@ -21,6 +21,12 @@ const
   CHARM_PERSON = 10;
   { spellFps[34] = StinkingCloudHandler }
   STINKING_CLOUD = 34;
+  { spellFps[37] = CureBlindnessHandler }
+  CURE_BLINDNESS = 37;
+  { spellFps[39] = CureDiseaseHandler }
+  CURE_DISEASE = 39;
+  { spellFps[43] = RemoveCurseSpell }
+  REMOVE_CURSE = 43;
   { spellFps[47] and spellFps[64] (the item fireball) = FireballHandler }
   FIREBALL = 47;
   ITEM_FIREBALL = 64;

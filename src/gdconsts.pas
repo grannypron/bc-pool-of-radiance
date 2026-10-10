@@ -98,7 +98,7 @@ const
   menuWild: String[40] = 'Cast View Encamp Search Look';
   { Camp menus }
   { camp actions }
-  campMenu: String[40] = 'Save View Magic Rest Alter Exit';
+  campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';
   { magic actions }
   magicMenu: String[40] = 'Cast Memorize Scribe Display Rest Exit';
   alterMenu: String[40] = 'Order Drop Speed Icon Pics Exit';

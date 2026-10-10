@@ -8,7 +8,7 @@ uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, M
 
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
-function CampRest: Boolean;
+function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
@@ -421,9 +421,10 @@ begin
   end;
 end;
 
-{ Let the player set the rest duration (CampRestMenu), then rest in five-minute ticks, advancing the clock, healing and
-  spell preparation. A keypress offers to stop. Returns True when a scripted random interruption ends the rest. }
-function CampRest: Boolean;
+{ Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
+  dsRestingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers
+  to stop. Returns True when a scripted random interruption ends the rest. }
+function CampRest(interactive: Boolean): Boolean;
 var
   cur: Types.PCharRecord;
   dead1: Pointer;
@@ -449,7 +450,10 @@ begin
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   GameTime.DisplayRestTime(0);
   GDVars.dsSuppressDrawingBorderFlag := 1;
-  stop := not GameTime.CampRestMenu;
+  if interactive then
+    stop := not GameTime.CampRestMenu
+  else
+    stop := False;
   while (not stop) and
       ((GDVars.dsRestingTimeGbvm[C_Time.DAYS] > 0) or (GDVars.dsRestingTimeGbvm[C_Time.HOURS] > 0) or
        (GDVars.dsRestingTimeGbvm[C_Time.TURNS] > 0) or (GDVars.dsRestingTimeGbvm[C_Time.MINUTES] > 0))

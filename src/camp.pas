@@ -1,4 +1,5 @@
-{ Camp menus for spell preparation, resting, party order and game settings. Also provides the noncombat Cast menu. }
+{ Camp menus for spell preparation, resting, Fix healing, party order and game settings. Also provides the noncombat
+  Cast menu. }
 
 {$O+,F+}
 unit Camp;
@@ -16,6 +17,8 @@ procedure CampMainMenu(var interrupted: Boolean);
 procedure NoncombatCastMenu;
 
 implementation
+
+uses FxEngine;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -265,7 +268,7 @@ begin
   GDVars.dsRestingTimeGbvm[3] := total div 60;
   GDVars.dsRestingTimeGbvm[2] := (total - 60 * GDVars.dsRestingTimeGbvm[3]) div 10;
   GDVars.dsRestingTimeGbvm[1] := total mod 10;
-  interrupted := GameTime.CampRest;
+  interrupted := GameTime.CampRest(True);
   FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
   CharHlp.PrintMiscInfo;
 end;
@@ -848,6 +851,192 @@ begin
   end;
 end;
 
+{ Fix, as in Curse of the Azure Bonds and Pools of Darkness: rest while the party's clerics cure and heal everyone.
+  Each cleric level-3 slot of an awake caster cures one condition -- disease first (Cure Disease also clears mummy
+  rot, which would block the healing), then blindness, then Bestow Curse. Each level-1 slot of an awake caster who
+  knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go to the
+  least busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with a
+  level-3 spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted
+  reports a rest broken off by a scripted random interruption. }
+procedure CampFixMenu(var interrupted: Boolean);
+const
+  { the members planned for; a longer creature list is not looked at past this }
+  MAX_PARTY = 8;
+  { Conditions, cured in this order. }
+  FIX_DISEASE = 1;
+  FIX_BLIND = 2;
+  FIX_CURSE = 3;
+var
+  members: array[1..MAX_PARTY] of Types.PCharRecord;
+  { Free level-1 (Cure Light Wounds) and level-3 slots, and the casts given to each member. }
+  l1Free: array[1..MAX_PARTY] of Byte;
+  l3Free: array[1..MAX_PARTY] of Byte;
+  l1Casts: array[1..MAX_PARTY] of Byte;
+  l3Casts: array[1..MAX_PARTY] of Byte;
+  cures: array[1..MAX_PARTY, FIX_DISEASE..FIX_CURSE] of Boolean;
+  p: Types.PCharRecord;
+  n: Byte;
+  i: Byte;
+  kind: Byte;
+  anyCure: Boolean;
+  need: Word;
+  wanted: Word;
+  healCasts: Word;
+  { counts the Cure Light Wounds rolls; a Word, as healCasts can pass 255 }
+  cast: Word;
+  healPool: Word;
+  total: Word;
+  hp: Word;
+  done: Boolean;
+
+  { Fix treats the statuses RestoreHitPoints accepts. }
+  function Treatable(creature: Types.PCharRecord): Boolean;
+  begin
+    Treatable := creature^.status in [C_Status.OKAY, C_Status.ANIMATED, C_Status.UNCONSCIOUS, C_Status.DYING];
+  end;
+
+  function HasCondition(creature: Types.PCharRecord; cond: Byte): Boolean;
+  var
+    effect: Types.PEffectRec;
+  begin
+    case cond of
+      FIX_DISEASE: HasCondition := CharHlp.HasEffect(creature, C_Effect.DISEASED, effect) or
+                                   CharHlp.HasEffect(creature, C_Effect.DISEASE_STR, effect) or
+                                   CharHlp.HasEffect(creature, C_Effect.ROT_NO_HEAL, effect);
+      FIX_BLIND: HasCondition := CharHlp.HasEffect(creature, C_Effect.BLIND, effect);
+    else
+      HasCondition := CharHlp.HasEffect(creature, C_Effect.BESTOW_CURSE, effect);
+    end;
+  end;
+
+  function CureSpell(cond: Byte): Byte;
+  begin
+    case cond of
+      FIX_DISEASE: CureSpell := C_Spell.CURE_DISEASE;
+      FIX_BLIND: CureSpell := C_Spell.CURE_BLINDNESS;
+    else
+      CureSpell := C_Spell.REMOVE_CURSE;
+    end;
+  end;
+
+  { Minutes member j needs to memorize its casts again. }
+  function CasterTime(j: Byte): Word;
+  var
+    t: Word;
+  begin
+    t := 0;
+    if l3Casts[j] > 0 then
+      t := 360
+    else if l1Casts[j] > 0 then
+      t := 240;
+    CasterTime := t + 15 * l1Casts[j] + 45 * l3Casts[j];
+  end;
+
+  { Give one cast to the least busy member with a free slot for it: spell 0 is Cure Light Wounds, any other spell a
+    level-3 cure the member must know. False when nobody can cast it. }
+  function Assign(spell: Byte): Boolean;
+  var
+    j: Byte;
+    best: Byte;
+    free: Boolean;
+  begin
+    best := 0;
+    for j := 1 to n do begin
+      if spell = 0 then
+        free := l1Free[j] > 0
+      else
+        free := (l3Free[j] > 0) and (members[j]^.spellsKnown[spell] <> 0);
+      if free then
+        if (best = 0) or (CasterTime(j) < CasterTime(best)) then best := j;
+    end;
+    if best <> 0 then
+      if spell = 0 then begin
+        Dec(l1Free[best]);
+        Inc(l1Casts[best]);
+      end else begin
+        Dec(l3Free[best]);
+        Inc(l3Casts[best]);
+      end;
+    Assign := best <> 0;
+  end;
+
+begin
+  interrupted := False;
+  n := 0;
+  need := 0;
+  p := GDVars.creatureList;
+  while (p <> nil) and (n < MAX_PARTY) do begin
+    Inc(n);
+    members[n] := p;
+    l1Free[n] := 0;
+    l3Free[n] := 0;
+    l1Casts[n] := 0;
+    l3Casts[n] := 0;
+    if p^.status = C_Status.OKAY then begin
+      if p^.spellsKnown[C_Spell.CURE_LIGHT_WOUNDS] <> 0 then l1Free[n] := p^.clericSpells[1];
+      l3Free[n] := p^.clericSpells[3];
+    end;
+    if Treatable(p) and (p^.hpCur < p^.hpMax) then Inc(need, p^.hpMax - p^.hpCur);
+    p := p^.nextCharAddr;
+  end;
+  { Plan the cures, then as many Cure Light Wounds as the wounds need at 4.5 hp each. }
+  anyCure := False;
+  for kind := FIX_DISEASE to FIX_CURSE do
+    for i := 1 to n do begin
+      cures[i, kind] := False;
+      if Treatable(members[i]) then
+        if HasCondition(members[i], kind) then
+          if Assign(CureSpell(kind)) then begin
+            cures[i, kind] := True;
+            anyCure := True;
+          end;
+    end;
+  wanted := (2 * need + 8) div 9;
+  healCasts := 0;
+  while healCasts < wanted do
+    if Assign(0) then
+      Inc(healCasts)
+    else
+      wanted := healCasts;
+  if (healCasts = 0) and not anyCure then Exit;
+  total := 0;
+  for i := 1 to n do
+    if total < CasterTime(i) then total := CasterTime(i);
+  FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+  GDVars.dsRestingTimeGbvm[C_Time.DAYS] := total div 1440;
+  GDVars.dsRestingTimeGbvm[C_Time.HOURS] := (total mod 1440) div 60;
+  GDVars.dsRestingTimeGbvm[C_Time.TURNS] := (total mod 60) div 10;
+  GDVars.dsRestingTimeGbvm[C_Time.MINUTES] := total mod 10;
+  interrupted := GameTime.CampRest(False);
+  done := (GDVars.dsRestingTimeGbvm[C_Time.DAYS] = 0) and (GDVars.dsRestingTimeGbvm[C_Time.HOURS] = 0) and
+          (GDVars.dsRestingTimeGbvm[C_Time.TURNS] = 0) and (GDVars.dsRestingTimeGbvm[C_Time.MINUTES] = 0);
+  FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+  if done and not interrupted then begin
+    for i := 1 to n do
+      for kind := FIX_DISEASE to FIX_CURSE do
+        if cures[i, kind] then begin
+          GDVars.dsTargetCreaturePtr[1] := members[i];
+          case kind of
+            FIX_DISEASE: Magic.CureDiseaseHandler;
+            FIX_BLIND: Magic.CureBlindnessHandler;
+            FIX_CURSE: Magic.RemoveCurseSpell;
+          end;
+        end;
+    healPool := 0;
+    for cast := 1 to healCasts do Inc(healPool, FxEngine.RollDice(1, 8));
+    for i := 1 to n do begin
+      p := members[i];
+      if Treatable(p) and (p^.hpCur < p^.hpMax) and (healPool > 0) then begin
+        hp := p^.hpMax - p^.hpCur;
+        if hp > healPool then hp := healPool;
+        if FxEngine.RestoreHitPoints(p, hp, False) then Dec(healPool, hp);
+      end;
+    end;
+  end;
+  CharHlp.DisplayParty(GDVars.curChar);
+  CharHlp.PrintMiscInfo;
+end;
+
 procedure CampMainMenu(var interrupted: Boolean);
 var
   savedIfc: Byte;
@@ -867,7 +1056,8 @@ begin
   interrupted := False;
   c := ' ';
   while (interrupted = False) and (not (c in [C_Keys.NONE, 'E'])) do begin
-    c := MenuCore.MenuHorizontal('Camp: ', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
+    { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse }
+    c := MenuCore.MenuHorizontal('Camp:', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);
@@ -883,6 +1073,7 @@ begin
         'M': Camp.CampMagicMenu(interrupted);
         'R': Camp.CampRestMenu(interrupted);
         'A': Camp.CampAlterMenu;
+        'F': Camp.CampFixMenu(interrupted);
       end;
   end;
   Camp.ResetPartySpellActivities;
