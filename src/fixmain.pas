@@ -10,11 +10,12 @@ uses Types,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclMenu, Shop, PostCbt, Temple,
-  EclVm, DataBld, Intro, HeapErr;
+  EclVm, BldShow, DataBld, Intro, HeapErr;
 
 {$O HeapErr}
 {$O Intro}
 {$O DataBld}
+{$O BldShow}
 {$O EclVm}
 {$O Temple}
 {$O PostCbt}

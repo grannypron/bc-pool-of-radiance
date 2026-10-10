@@ -48,12 +48,12 @@ The first time you start the game, it builds combined data files
 from your copy, one for each kind of data (ECL.DAX from ECL1.DAX to
 ECL8.DAX, MONCHA.DAX from MON1CHA.DAX to MON8CHA.DAX and so on,
 fourteen in all), and then reads them in place of the per-disk
-files. This takes a little while, once: the bottom line of the
-screen says "Please wait, constructing data files..." and shows each
-step, and DATABLD.LOG in the game folder lists them. Later starts
-keep the files and go straight on; a file that is missing, cut short
-or out of date is built again. Your original files are only read. If
-the game folder cannot be written, the game reads them as before.
+files. This takes a little while, once: the screen shows how far it
+has got and the time left, and DATABLD.LOG in the game folder lists
+every step. Later starts keep the files and go straight on; a file
+that is missing, cut short or out of date is built again. Your
+original files are only read. If the game folder cannot be written,
+the game reads them as before.
 EOF
 fi
 # DOS reads CRLF line endings.
