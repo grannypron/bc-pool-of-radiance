@@ -62,7 +62,9 @@ function StingVictoryCheat: Boolean;
 implementation
 
 const
-  { Combat sprite cells the spell-aim preview draws with: the lightning bolt, the effect sparkle and the damage burst }
+  { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
+    the damage burst }
+  SPRITE_MISSILE = 18;
   SPRITE_LIGHTNING = 19;
   SPRITE_SPARKLE = 22;
   SPRITE_BURST = 23;
@@ -967,6 +969,16 @@ begin
   end;
 end;
 
+{ The sprite cell the spell-aim preview marks a spell's cells with: the spell missile for a hostile spell (spellTable
+  offensive 1 and target 0), otherwise the sparkle. A spell outside the table sparkles. }
+function AimMarker(spell: Byte): Byte;
+begin
+  AimMarker := SPRITE_SPARKLE;
+  if (spell >= 1) and (spell <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
+    if (GDConsts.spellTable[spell].offensive = 1) and (GDConsts.spellTable[spell].target = 0) then
+      AimMarker := SPRITE_MISSILE;
+end;
+
 { Combat's spellFps[0] callback: build the spell-target list from the low nibble of the spell's area. 0: the caster; 15:
   the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and 7 of the picked cell;
   1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the player aims, the
@@ -997,7 +1009,7 @@ begin
       { the picked creature, or an area at the picked cell }
       begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, SPRITE_SPARKLE);
+          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell));
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
@@ -1033,7 +1045,7 @@ begin
               radius := 2;
             CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST);
           end else
-            CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_SPARKLE);
+            CbtMap.StartSpellPreview(Types.AimBlast, radius, CbtActs.AimMarker(spell));
         end;
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
@@ -1054,7 +1066,7 @@ begin
       k := 0;
       while remaining > 0 do begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, SPRITE_SPARKLE);
+          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell));
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
