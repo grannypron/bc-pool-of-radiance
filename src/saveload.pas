@@ -7,7 +7,7 @@ unit SaveLoad;
 interface
 
 uses Types, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal,
-  FxEngine, View3D, MapTiles, C_Race, C_Keys, C_Class, C_Ifc, C_Gbvm;
+  FxEngine, View3D, MapTiles, C_Race, C_Keys, C_Class, C_Ifc, C_Gbvm, C_Npc, C_Status;
 
 { Read <saveDir>charlist.txt into a fresh list of string nodes (the TItemRec prefix used by
   MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist. Names of characters currently in
@@ -33,7 +33,9 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
   then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
   trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
   usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file holds less
-  than a whole record or cannot be read; the caller then frees the record unused. }
+  than a whole record or cannot be read; the caller then frees the record unused. A party member leaves Quick
+  (quickfight 0), so a loaded game or an added character starts under manual control; NPCs and animated creatures keep
+  quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
@@ -487,6 +489,9 @@ begin
   creature^.combatAddr := nil;
   LoadChar := whole;
   if not whole then Exit;
+  { C_Npc.FLAG clear }
+  if (creature^.npc < C_Npc.FLAG) and (creature^.status <> C_Status.ANIMATED) then
+    creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
     item := nil;
