@@ -4,9 +4,12 @@
 # A release can also be cut for a tag that predates this workflow: run it by hand (workflow_dispatch) with the tag.
 # The tag's src/ and build/ are built with the current scripts.
 #
-# Both jobs run in the CI image pinned by its digest (goldbox-runner's dosbox-x-ci:1 as pushed on 2026-10-08), so
-# rebuilding the image changes nothing here until the digest does. After pushing a new image, put its digest in both
-# jobs; docker buildx imagetools inspect forge.schkerke.com/brian/dosbox-x-ci:<tag> prints it.
+# A release, pushed or dispatched, waits for both build and reproduce: a toolchain or image change that no longer
+# reproduces SSI's releases stops it before anything is published.
+#
+# Every job runs in the CI image pinned by its digest (goldbox-runner's dosbox-x-ci:1 as pushed on 2026-10-08), so
+# rebuilding the image changes nothing here until the digest does. After pushing a new image, put its digest in every
+# job; docker buildx imagetools inspect forge.schkerke.com/brian/dosbox-x-ci:<tag> prints it.
 
 name: build
 
@@ -34,9 +37,52 @@ jobs:
     env:
       # The DOS toolchains live in the image.
       TOOLS: /drive_d
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        run: ./build.sh
+
+  reproduce:
+    runs-on: docker
+    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    timeout-minutes: 20
+    container:
+      image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
+      credentials:
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    strategy:
+      matrix:
+        # Keep in step with the tags in .forgejo/ssi-releases.txt.
+        tag: [v1.1, v1.2, v1.3]
+    env:
+      TOOLS: /drive_d
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild ${{ matrix.tag }} and compare with SSI's release
+        run: .forgejo/scripts/reproduce.sh "${{ matrix.tag }}"
+
+  release:
+    needs: [build, reproduce]
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: docker
+    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    timeout-minutes: 20
+    container:
+      image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
+      credentials:
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    env:
+      TOOLS: /drive_d
       # The version being released: the dispatched tag, or the pushed one.
       TAG: ${{ inputs.tag || github.ref_name }}
-      RELEASE: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,38 +97,14 @@ jobs:
           # Date the zip's files by the tag's commit, as a pushed tag would.
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
 
+      # The same source and image as the build job; reproduce shows the build gives the same bytes every time.
       - name: Build
         run: ./build.sh
 
       - name: Package
-        if: env.RELEASE == 'true'
         run: ./package.sh "$TAG"
 
       - name: Release
-        if: env.RELEASE == 'true'
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .forgejo/scripts/release.sh "$TAG"
-
-  reproduce:
-    if: github.event_name != 'workflow_dispatch'
-    runs-on: docker
-    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
-    timeout-minutes: 20
-    container:
-      image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
-      credentials:
-        username: ${{ secrets.REGISTRY_USER }}
-        password: ${{ secrets.REGISTRY_TOKEN }}
-    strategy:
-      matrix:
-        tag: [v1.1, v1.2, v1.3]
-    env:
-      TOOLS: /drive_d
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Rebuild ${{ matrix.tag }} and compare with SSI's release
-        run: .forgejo/scripts/reproduce.sh "${{ matrix.tag }}"

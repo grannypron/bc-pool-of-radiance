@@ -1,5 +1,6 @@
 # SSI's shipped files for each release this repository reproduces: tag, file, SHA-256.
 # The reproduce job builds each tag's source and requires these exact bytes.
+# The reproduce job in .forgejo/workflows/build.yml lists these tags in its matrix: keep the two in step.
 # v1.3's GAME.OVR is SSI's file before the crack. GOG and Steam ship 872964a3..., which NOPs the copy-protection branch
 # (2 bytes), so a release built from the v1.3 tag brings the translation-wheel check back for GOG and Steam players.
 v1.1 START.EXE f15fd31ae489d765b4120624d172b070ea0c85b1e8ade954b58189a271cce48f
