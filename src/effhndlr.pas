@@ -257,10 +257,6 @@ const
 
 
 var
-  { 8-entry view over the 5-entry giantFoes. Note: EffDwarfAcGiant compares all 8 entries, so entries 6..8 read the
-    constants stored after giantFoes. }
-  giantNames: array[1..8] of Types.TName15 absolute GDConsts.giantFoes;
-
   gHitsRound: array[0..1] of Byte
                             { hits this round }
                             absolute GDVars.hitsMade;
@@ -916,9 +912,8 @@ begin
     1, HILL GIANT and FIRE GIANT type 2, TROLL type 10). }
   if GDVars.curChar^.charType in [0, 1, 2, 10] then
     if GDVars.curChar^.iconDimensions and $7F in [1, 2] then
-      { 8 = High(giantNames) }
-      for i := 1 to 8 do
-        if GDVars.curChar^.name = giantNames[i] then
+      for i := 1 to SizeOf(GDConsts.giantFoes) div SizeOf(GDConsts.giantFoes[1]) do
+        if GDVars.curChar^.name = GDConsts.giantFoes[i] then
           Dec(GDVars.gAttackRoll, 4);
 end;
 
