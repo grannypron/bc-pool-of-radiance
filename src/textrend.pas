@@ -51,6 +51,8 @@ var
   tdyBA00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK1_SEG:$0000;
   tdyBC00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK2_SEG:$0000;
   tdyBE00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK3_SEG:$0000;
+  { BIOS timer ticks since midnight }
+  biosTicks: LongInt absolute $0040:$006C;
 
 { Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
 procedure ResetEgaGC;
@@ -401,16 +403,21 @@ begin
   key := GameIo.ReadGameKey;
 end;
 
-{ Return the DOS clock in centiseconds since midnight. }
+{ Return the time since midnight in centiseconds, from the BIOS tick count (18.2 ticks a second, 5.4925 centiseconds
+  each), which restarts at 0 at midnight. The count is read until two reads agree, so a timer tick between the two words
+  of a read is not taken. No DOS call is made: the menus call this on every pass while they wait for a key. }
 function GetTicks: LongInt;
 var
-  h: Word;
-  m: Word;
-  s: Word;
-  s100: Word;
+  now: LongInt;
+  again: LongInt;
 begin
-  GetTime(h, m, s, s100);
-  GetTicks := LongInt(h) * 360000 + LongInt(m) * 6000 + s * 100 + s100;
+  again := biosTicks;
+  repeat
+    now := again;
+    again := biosTicks;
+  until now = again;
+  { split so the product stays in a LongInt for a whole day's count }
+  GetTicks := (now div 10000) * 54925 + (now mod 10000) * 54925 div 10000;
 end;
 
 { Clear the whole screen to black: both EGA pages, or every CGA or Tandy bank. }
