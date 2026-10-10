@@ -317,8 +317,8 @@ var
   { combat ends when a side is empty }
   teamCount: array[0..1] of Byte;
   { Effect resolution }
-  { modified saving-throw roll }
-  gSaveRoll: Byte;
+  { modified saving-throw roll; signed, so a penalty can take it below 0 }
+  gSaveRoll: Integer;
   { effect ID, cleared when immune }
   pendingEffectId: Byte;
   { damage before hit-point subtraction }
