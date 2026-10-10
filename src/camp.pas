@@ -1,5 +1,5 @@
-{ Camp menus for spell preparation, resting, Fix healing, party order and game settings. Also provides the noncombat
-  Cast menu. }
+{ Camp menus for spell preparation, resting, Fix healing, party order and the way to the Settings screen. Also provides
+  the noncombat Cast menu. }
 
 {$O+,F+}
 unit Camp;
@@ -18,7 +18,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses FxEngine, Portrait, SoundDrv;
+uses FxEngine, Portrait, Options;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -780,47 +780,11 @@ begin
     CharHlp.PrintNameString(GDVars.curChar, 'Breathes A sigh of relief', 10, True);
 end;
 
-{ Adjust game speed. Ordinary keys and arrows limit changes to 0..9; loaded values are not clamped. Up slows the game
-  and Down speeds it up. }
-procedure CampSpeedMenu;
-var
-  c: Char;
-  ext: Boolean;
-  menuStr: Types.TStr40;
-begin
-  repeat
-    TextRend.DisplayString(1, 18, LightGreen,
-                           'Game Speed = ' + CharHlp.ByteToString(GDVars.gameDelay) + ' (0=fastest 9=slowest)');
-    menuStr := '';
-    if GDVars.gameDelay > 0 then
-      menuStr := menuStr + ' Faster';
-    if GDVars.gameDelay < 9 then
-      menuStr := menuStr + ' Slower';
-    menuStr := menuStr + ' Exit';
-    c := MenuCore.MenuHorizontal('Game Speed:', menuStr, LightMagenta, LightGreen, White, True,
-                                 True, ext);
-    if ext then begin
-      case c of
-        C_Keys.DOWN: if GDVars.gameDelay > 0 then Dec(GDVars.gameDelay);
-        C_Keys.UP: if GDVars.gameDelay < 9 then Inc(GDVars.gameDelay);
-      end;
-    end else
-      case c of
-        'F': Dec(GDVars.gameDelay);
-        'S': Inc(GDVars.gameDelay);
-      end;
-  until c in [C_Keys.NONE, 'E'];
-  CharHlp.ClearMessageWindow;
-end;
-
-{ Run the Alter menu ('Order Drop Speed Char Prefs Exit'). Char opens a submenu for the current character's icon or
+{ Run the Alter menu ('Order Drop Char Settings Exit'). Char opens a submenu for the current character's icon or
   portrait; Portrait is offered only where the player portraits can be shown (Portrait.PlayerPortraitsHere). The
-  selection keys pick another character there too, as in Alter itself. Prefs opens a screen that toggles the
-  monster pictures, the portraits and the music. }
+  selection keys pick another character there too, as in Alter itself. Settings opens the Settings screen
+  (Options.OptionsMenu), which holds the game speed with the other settings. }
 procedure CampAlterMenu;
-const
-  { a setting's value as the Prefs screen shows it }
-  ON_OFF: array[Boolean] of string[3] = ('off', 'on ');
 var
   c: Char;
   c2: Char;
@@ -838,7 +802,6 @@ begin
       case c of
         'O': Camp.CampOrderMenu;
         'D': Camp.CampDropMenu;
-        'S': Camp.CampSpeedMenu;
         'C': repeat
                if Portrait.PlayerPortraitsHere then
                  s := 'Icon Portrait Exit'
@@ -860,24 +823,9 @@ begin
                         end;
                  end;
              until (not ext) and (c2 in [C_Keys.NONE, 'E']);
-        'P': begin
-               CharHlp.ClearMessageWindow;
-               repeat
-                 TextRend.DisplayString(1, 18, LightGreen, 'Monsters   ' + ON_OFF[GDVars.monsterPics <> 0]);
-                 TextRend.DisplayString(1, 19, LightGreen, 'Portraits  ' + ON_OFF[GDVars.portraitsOn <> 0]);
-                 TextRend.DisplayString(1, 20, LightGreen, 'Music      ' + ON_OFF[GDVars.musicOn <> 0]);
-                 c2 := MenuCore.MenuHorizontal('Prefs:', 'Monsters Portraits mUsic Exit', LightMagenta, LightGreen,
-                                               White, False, True, ext);
-                 case c2 of
-                   'M': GDVars.monsterPics := Ord(GDVars.monsterPics = 0);
-                   'P': GDVars.portraitsOn := Ord(GDVars.portraitsOn = 0);
-                   'U': begin
-                          GDVars.musicOn := Ord(GDVars.musicOn = 0);
-                          if GDVars.musicOn = 0 then SoundDrv.StopMusic;
-                        end;
-                 end;
-               until c2 in [C_Keys.NONE, 'E'];
-               CharHlp.ClearMessageWindow;
+        'S': begin
+               Options.OptionsMenu;
+               CharHlp.DisplayNoncombatInterface;
              end;
       end;
   end;

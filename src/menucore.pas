@@ -14,6 +14,9 @@ var
   { Set just before a MenuHorizontal call whose caller reads the Left and Right arrows itself (turning, moving, aiming,
     adjusting a value); every return clears it. }
   arrowsToCaller: Boolean;
+  { Set just before a MenuHorizontal call whose caller takes Enter itself (to change the highlighted line of a list):
+    Enter then returns C_Keys.ENTER in place of the current option's hotkey. Every return clears it. }
+  enterToCaller: Boolean;
   { Set just before a MenuVertical call whose caller shows something for the highlighted entry: a key that moves the
     highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
     call again. The call clears it. }
@@ -28,11 +31,11 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   option (GDVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
   current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey (returned upper-cased, and
   made the current option) or space ends the menu; Enter, when mCol or hlCol is nonzero, returns the current option's
-  hotkey (#13 for a menu without options); Escape returns #0. With reinterpret, any other extended key returns its scan
-  code and digits 1-9 and backslash map to keypad scan codes, all with ext set. A nonzero menuAuto.timeout returns
-  menuAuto.key once that many ticks pass after the last animation frame change. The picture animates when animate is
-  set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit); ext
-  is copied to GDVars.extFlag. }
+  hotkey (#13 for a menu without options, or while enterToCaller is set); Escape returns #0. With reinterpret, any
+  other extended key returns its scan code and digits 1-9 and backslash map to keypad scan codes, all with ext set. A
+  nonzero menuAuto.timeout returns menuAuto.key once that many ticks pass after the last animation frame change. The
+  picture animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every
+  pass and is cleared on exit); ext is copied to GDVars.extFlag. }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -235,7 +238,7 @@ begin
                  ch := C_Keys.NONE;
                end;
           C_Keys.ENTER: if enterOk then begin
-                 if takeOption and (opt[GDVars.horizChoice].first <> 0) then
+                 if takeOption and not enterToCaller and (opt[GDVars.horizChoice].first <> 0) then
                    ch := menu[opt[GDVars.horizChoice].first]
                  else
                    ch := C_Keys.ENTER;
@@ -275,6 +278,7 @@ begin
     end;
   until done;
   arrowsToCaller := False;
+  enterToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
   GDVars.extFlag := ext;

@@ -12,6 +12,8 @@ procedure CombatMain;
 
 implementation
 
+uses Options;
+
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
 
@@ -489,13 +491,16 @@ begin
   BandageDying := found;
 end;
 
-{ GameSpeed (n): Slower (offered below 9) raises gameDelay, Faster (offered above 0) lowers it, Exit or Escape leaves }
+{ GameSpeed (n): Slower (offered below 9) raises gameDelay, Faster (offered above 0) lowers it, Exit or Escape leaves.
+  The speed is a setting, so a change is written to POOLOPT.CFG on leaving (Options.SaveOptions). }
 procedure SpeedMenu;
 var
   menu: String[40];
   query: String[40];
   ch: Char;
+  speed: Byte;
 begin
+  speed := GDVars.gameDelay;
   ch := ' ';
   while not (ch in [C_Keys.NONE, 'E']) do
   begin
@@ -513,6 +518,8 @@ begin
       'F': Dec(GDVars.gameDelay);
     end;
   end;
+  if GDVars.gameDelay <> speed then
+    Options.SaveOptions;
 end;
 
 { Quick-fight on; drop a same-side locked target }

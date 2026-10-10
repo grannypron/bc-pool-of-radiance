@@ -11,13 +11,16 @@ procedure GameInit2;
 
 implementation
 
+uses Options;
+
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
   wallCache: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
-  defaults, then load the font, symbol sets, tile sets, combat icons and item table, seed the random numbers (with 1
-  when NORAND is the second argument) and install the spell and effect handlers. }
+  defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
+  (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
+  effect handlers. }
 procedure GameInit2;
 var
   ch: Char;
@@ -83,6 +86,9 @@ begin
   GDVars.portraitsOn := 1;
   GDVars.monsterPics := 1;
   GDVars.musicOn := 1;
+  GDVars.soundOn := 1;
+  GDVars.quickEnds := 1;
+  GDVars.quickMagicOn := 0;
   GDVars.stingHpFlag := 0;
   GDVars.msgDelayFlag := 1;
   GDVars.loadedSave := 0;
@@ -150,6 +156,8 @@ begin
   end;
   GDVars.gameDir := GDVars.savedDir;
   MenuCore.ClearBottomLine;
+  { the settings, over the defaults above, before the title music }
+  Options.LoadOptions;
   { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs
     given the same keys roll the same dice. }
   if ParamStr(2) = 'NORAND' then
