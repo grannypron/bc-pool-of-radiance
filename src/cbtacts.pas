@@ -148,8 +148,11 @@ begin
 end;
 
 { Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it by thief level div 4 + 2 on a
-  backstab, clear elementMask and fire the attacker's and defender's weapon-damage effect conditions. }
+  backstab, add the attacker's ranger level against a giant-class foe (GDConsts.rangerFoes) in melee, up to 255, clear
+  elementMask and fire the attacker's and defender's weapon-damage effect conditions. }
 procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte);
+var
+  i: Byte;
 begin
   GDVars.pendingDamage := att^.curModA[idx]
       + FxEngine.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]);
@@ -158,6 +161,13 @@ begin
     GDVars.pendingDamage := 0;
   if CbtActs.IsBackstab(att, def) then
     GDVars.pendingDamage := GDVars.pendingDamage * (Word(att^.classLevels[C_Class.LEVEL_THIEF]) div 4 + 2);
+  if (att^.classLevels[C_Class.LEVEL_RANGER] > 0) and (CharHlp.CalcDistance(att, def) <= 1) then
+    for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
+      if def^.name = GDConsts.rangerFoes[i] then
+        if GDVars.pendingDamage > 255 - att^.classLevels[C_Class.LEVEL_RANGER] then
+          GDVars.pendingDamage := 255
+        else
+          Inc(GDVars.pendingDamage, att^.classLevels[C_Class.LEVEL_RANGER]);
   GDVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_DEF, def);
