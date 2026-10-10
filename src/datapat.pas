@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 10;
-  BYTE_COUNT = 452;
+  PART_COUNT = 11;
+  BYTE_COUNT = 498;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -53,6 +53,9 @@ const
     (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1978; origLen: 10; newLen: 10),
     (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4483; origLen: 10; newLen: 10),
     (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4858; origLen: 10; newLen: 10),
+    { POR-0031: Podal Plaza's pre-camp entry (script $9914-$992A) set the on-mission rest (an interruption every 5
+      minutes, 99%) and then overwrote it with the default (every 10 minutes, 16%); the default now comes first }
+    (por: 31; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 22; origLen: 23; newLen: 23),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -146,6 +149,18 @@ const
     { fixed: event 14, likewise }
     $02, $01, $9C, $B6,                               { $ABF8 GOSUB LB69C }
     $09, $00, $FF, $01, $D0, $4A,                     { $ABFC SAVE $FF, [$4AD0] }
+    { POR-0031, original }
+    $03, $01, $34, $4A, $00, $40,                     { $9914 COMPARE [$4A34], $40 }
+    $1B,                                              { $991A IF >= }
+    $02, $01, $53, $99,                               { $991B GOSUB L9953 }
+    $09, $00, $02, $01, $D2, $6D,                     { $991F SAVE $02, [$6DD2] }
+    $09, $00, $10, $01, $D3, $6D,                     { $9925 SAVE $10, [$6DD3] }
+    { fixed }
+    $09, $00, $02, $01, $D2, $6D,                     { $9914 SAVE $02, [$6DD2] }
+    $09, $00, $10, $01, $D3, $6D,                     { $991A SAVE $10, [$6DD3] }
+    $03, $01, $34, $4A, $00, $40,                     { $9920 COMPARE [$4A34], $40 }
+    $1B,                                              { $9926 IF >= }
+    $02, $01, $53, $99,                               { $9927 GOSUB L9953 }
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
