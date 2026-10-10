@@ -1526,7 +1526,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if GDVars.baseItems[w^.itemType].wpnClass and (WPN_PIERCE or WPN_BASH) <> 0 then
+    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (WPN_PIERCE or WPN_BASH) <> 0 then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1770,8 +1770,8 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if (GDVars.baseItems[w^.itemType].wpnClass = WPN_SLASH) or
-        (GDVars.baseItems[w^.itemType].wpnClass and WPN_PIERCE <> 0) then
+    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = WPN_SLASH) or
+        (CharHlp.BaseItem(w^.itemType)^.wpnClass and WPN_PIERCE <> 0) then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 

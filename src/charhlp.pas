@@ -135,6 +135,12 @@ function WarriorLevel(creature: Types.PCharRecord): ShortInt;
   hit-point change a change of Constitution makes. }
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 
+{ The base item record for an item type: its GDVars.baseItems entry, or the zeroed GDVars.baseItemsOverflow for a type
+  past the table, which only damaged save or monster data can carry.
+  @param(itemType TItemRec.itemType.)
+  @returns(A pointer to the record; the caller does not change it.) }
+function BaseItem(itemType: Byte): Types.PBaseItemRec;
+
 implementation
 
 var
@@ -164,19 +170,19 @@ begin
   if w = nil then Exit;
   wtype := w^.itemType;
   creature^.thac0Cur := creature^.thac0Base;
-  if (GDVars.baseItems[wtype].props and C_Item.PROP_DEX_MISSILE) <> 0 then
+  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_DEX_MISSILE) <> 0 then
     creature^.thac0Cur := CharHlp.DexMissileAdjust(creature) + creature^.thac0Cur;
-  creature^.curModA[1] := GDVars.baseItems[wtype].dmgSmMod;
-  if (GDVars.baseItems[wtype].props and C_Item.PROP_STR_BONUS) <> 0 then begin
+  creature^.curModA[1] := CharHlp.BaseItem(wtype)^.dmgSmMod;
+  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_STR_BONUS) <> 0 then begin
     creature^.thac0Cur := CharHlp.StrToHitAdjust(creature) + creature^.thac0Cur;
     creature^.curModA[1] := CharHlp.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
   plus := w^.plus;
   { C_Item.PROP_QUARRELS: the weapon fires quarrels }
-  if GDVars.baseItems[wtype].props > $7F then
+  if CharHlp.BaseItem(wtype)^.props > $7F then
     if creature^.equipped[C_Equip.BOLT] <> nil then
       plus := plus + creature^.equipped[C_Equip.BOLT]^.plus;
-  if (GDVars.baseItems[wtype].props and C_Item.PROP_ARROWS) > 0 then
+  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_ARROWS) > 0 then
     if creature^.equipped[C_Equip.ARROW] <> nil then
       plus := plus + creature^.equipped[C_Equip.ARROW]^.plus;
   creature^.curModA[1] := creature^.curModA[1] + plus;
@@ -185,15 +191,15 @@ begin
        ((w^.itemType = 45) and (w^.nameIds[2] in [41..44]))) then
     Inc(plus);
   creature^.thac0Cur := creature^.thac0Cur + plus;
-  creature^.curRollsA[1] := GDVars.baseItems[wtype].dmgSmRolls;
-  creature^.curDiceA[1] := GDVars.baseItems[wtype].dmgSmDice;
+  creature^.curRollsA[1] := CharHlp.BaseItem(wtype)^.dmgSmRolls;
+  creature^.curDiceA[1] := CharHlp.BaseItem(wtype)^.dmgSmDice;
 end;
 
 { Body armor only (base slot 2): set current movement from the armor's weight (0..150 = base movement, 151..399 = 9,
   heavier = 6), then +3 if the armor has a nonzero plus and the movement is still <= 9. }
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
-  if GDVars.baseItems[item^.itemType].slot = C_Equip.ARMOR then begin
+  if CharHlp.BaseItem(item^.itemType)^.slot = C_Equip.ARMOR then begin
     case item^.weight of
       0..150: creature^.movementCur := creature^.movementBase;
       151..399: creature^.movementCur := 9;
@@ -217,10 +223,10 @@ var
   descr: Byte;
   slot: Byte;
 begin
-  descr := GDVars.baseItems[item^.itemType].acDescr;
+  descr := CharHlp.BaseItem(item^.itemType)^.acDescr;
   if descr > $7F then begin
     descr := descr and $7F;
-    slot := GDVars.baseItems[item^.itemType].slot;
+    slot := CharHlp.BaseItem(item^.itemType)^.slot;
     if slot = C_Equip.SHIELD then
       adj^[1] := descr + item^.plus
     else if descr = 0 then begin
@@ -475,7 +481,7 @@ begin
     Inc(raw, w);
     if item^.equipped <> 0 then begin
       Inc(GDVars.gEquipWeight, w);
-      slot := GDVars.baseItems[item^.itemType].slot;
+      slot := CharHlp.BaseItem(item^.itemType)^.slot;
       case Byte(slot) of
         C_Equip.WEAPON..C_Equip.BOOTS: creature^.equipped[slot] := item;
         C_Equip.RING1:
@@ -492,7 +498,7 @@ begin
       { Name component 186 is 'Holding' }
       if item^.nameIds[1] = 186 then
         bag := True;
-      creature^.handsEquipped := creature^.handsEquipped + GDVars.baseItems[item^.itemType].hands;
+      creature^.handsEquipped := creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands;
     end;
     item := item^.next;
   end;
@@ -1471,7 +1477,7 @@ end;
 function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
 begin
   if (creature^.equipped[C_Equip.WEAPON] <> nil) and
-      (GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].range > 1) then
+      (CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range > 1) then
     HasRangedWeapon := True
   else
     HasRangedWeapon := False;
@@ -1481,7 +1487,7 @@ end;
 function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 begin
   if CharHlp.HasRangedWeapon(creature) and
-      ((GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].props and
+      ((CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.props and
         C_Item.PROPS_THROWABLE) = C_Item.PROPS_THROWABLE) then
     HasThrowableWeapon := True
   else
@@ -1503,7 +1509,7 @@ begin
   sel := nil;
   props := 0;
   if w <> nil then begin
-    props := GDVars.baseItems[w^.itemType].props;
+    props := CharHlp.BaseItem(w^.itemType)^.props;
     if (props and C_Item.PROP_THROWN) <> 0 then
       sel := w;
     if (props and C_Item.PROP_FIRES_AMMO) <> 0 then begin
@@ -1623,6 +1629,15 @@ begin
   if clsCount > 0 then
     total := total div clsCount;
   ConHpTotal := total;
+end;
+
+function BaseItem(itemType: Byte): Types.PBaseItemRec;
+begin
+  { 127 = High(baseItems) }
+  if itemType > 127 then
+    BaseItem := @GDVars.baseItemsOverflow
+  else
+    BaseItem := @GDVars.baseItems[itemType];
 end;
 
 end.

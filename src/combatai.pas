@@ -178,7 +178,7 @@ begin
       item := creature^.itemsAddr;
       while (item <> nil) and (chosen = nil) do begin
         effect := item^.effect;
-        slot := GDVars.baseItems[item^.itemType].slot;
+        slot := CharHlp.BaseItem(item^.itemType)^.slot;
         if (not Magic.ItemReadable(item))
            and (item^.special < $80)
            and (item^.equipped <> 0)
@@ -432,7 +432,7 @@ begin
       inRange := False;
       weaponRange := 1;
       if creature^.equipped[C_Equip.WEAPON] <> nil then
-        weaponRange := GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].range - 1;
+        weaponRange := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1;
       if (weaponRange = 0) or (weaponRange = 255) then
         weaponRange := 1;
       { other is nil once AiMoveStep has dropped it }
@@ -628,7 +628,7 @@ var
   pri: Byte;
   base: Types.TBaseItemRec;
 begin
-  base := GDVars.baseItems[item^.itemType];
+  base := CharHlp.BaseItem(item^.itemType)^;
   pri := base.dmgSmDice * base.dmgSmRolls;
   if item^.plus > 0 then
     pri := pri + item^.plus * 8;
@@ -683,10 +683,10 @@ begin
   { stop counting the current weapon/shield hands }
   if creature^.equipped[C_Equip.WEAPON] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
-        - GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].hands;
+        - CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.hands;
   if creature^.equipped[C_Equip.SHIELD] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
-        - GDVars.baseItems[creature^.equipped[C_Equip.SHIELD]^.itemType].hands;
+        - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
   bestRanged := nil;
   bestMelee := nil;
   bestShield := nil;
@@ -699,24 +699,24 @@ begin
   while item <> nil do begin
     itType := item^.itemType;
     { weapon slot }
-    if GDVars.baseItems[itType].slot = C_Equip.WEAPON then
-      if (GDVars.baseItems[itType].classMask and creature^.itemLimits) <> 0 then begin
+    if CharHlp.BaseItem(itType)^.slot = C_Equip.WEAPON then
+      if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) <> 0 then begin
         pri := CombatAi.CalcWeaponPriority(creature, item);
-        if ((GDVars.baseItems[itType].props and C_Item.PROP_FIRES_AMMO) <> 0)
-           or ((GDVars.baseItems[itType].props and C_Item.PROP_THROWN) <> 0) then
+        if ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) <> 0)
+           or ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_THROWN) <> 0) then
           if pri > bestRangedPri then begin
             bestRanged := item;
             bestRangedPri := pri;
           end;
-        if (GDVars.baseItems[itType].props and C_Item.PROP_FIRES_AMMO) = 0 then
+        if (CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) = 0 then
           if pri > bestMeleePri then begin
             bestMelee := item;
             bestMeleePri := pri;
           end;
       end;
     { shield slot }
-    if GDVars.baseItems[itType].slot = C_Equip.SHIELD then
-      if (GDVars.baseItems[itType].classMask and creature^.itemLimits) > 0 then begin
+    if CharHlp.BaseItem(itType)^.slot = C_Equip.SHIELD then
+      if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) > 0 then begin
         if item^.plus >= 0 then
           pri := item^.plus + 1
         else
@@ -731,9 +731,9 @@ begin
   { trueRanged: range > 1 and both C_Item.PROPS_THROWABLE bits (thrown, Strength bonus); such a weapon is picked even
     with an enemy adjacent }
   if (bestRanged <> nil)
-     and (GDVars.baseItems[bestRanged^.itemType].range > 1)
+     and (CharHlp.BaseItem(bestRanged^.itemType)^.range > 1)
      and
-       ((GDVars.baseItems[bestRanged^.itemType].props and
+       ((CharHlp.BaseItem(bestRanged^.itemType)^.props and
          C_Item.PROPS_THROWABLE) = C_Item.PROPS_THROWABLE) then
     trueRanged := True
   else
@@ -742,7 +742,7 @@ begin
   ammo := nil;
   props := 0;
   if bestRanged <> nil then begin
-    props := GDVars.baseItems[bestRanged^.itemType].props;
+    props := CharHlp.BaseItem(bestRanged^.itemType)^.props;
     if (props and C_Item.PROP_THROWN) <> 0 then
       { thrown: is its own ammo }
       ammo := bestRanged;
@@ -777,7 +777,7 @@ begin
     if creature^.equipped[C_Equip.SHIELD] <> nil then
       if creature^.equipped[C_Equip.SHIELD]^.cursed = 0 then
         creature^.handsEquipped := creature^.handsEquipped
-            - GDVars.baseItems[creature^.equipped[C_Equip.SHIELD]^.itemType].hands;
+            - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
     if item <> nil then
       ViewChar.ToggleReadyItem(item);
     changed := True;

@@ -45,6 +45,7 @@ type
     { reserved }
     unkF: Byte;
   end;
+  PBaseItemRec = ^TBaseItemRec;
   PCharRecord = ^TCharRecord;
   PCombatRec = ^TCombatRec;
   PEffectRec = ^TEffectRec;
