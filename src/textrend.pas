@@ -103,6 +103,8 @@ var
   rowCount: Word;
   i: Word;
 begin
+  { the rectangle must lie on the 40 x 25 screen, corners in order }
+  if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
   savedPage := GDVars.pageNum;
   dstOff := Word(ulRow) * 40 * 8 + ulCol;
   rowCount := (lrRow - ulRow + 1) * 8 - 1;
@@ -138,10 +140,11 @@ begin
 end;
 
 { Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
-  through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded font;
-  later copies are not range-checked. CGA maps colors and writes packed pixels, EGA writes all four planes to both
-  pages, and Tandy packs two pixels per byte across four banks. Note: the CGA arm maps color through attrTable once per
-  copy, so with count > 1 every copy after the first uses a re-mapped color. }
+  through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded
+  font; later copies are not range-checked. A glyph index past the font draws nothing. CGA maps colors and writes
+  packed pixels, EGA writes all four planes to both pages, and Tandy packs two pixels per byte across four banks.
+  Note: the CGA arm maps color through attrTable once per copy, so with count > 1 every copy after the first uses a
+  re-mapped color. }
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 var
   i: Byte;
@@ -160,8 +163,10 @@ begin
   if (col > 39) or (row > 24) or (GDVars.gameFont = nil) then Exit;
   if isASCII <> 0 then
     charIdx := Ord(UpCase(Chr(ch))) mod 64
-  else
+  else begin
+    if ch >= SizeOf(Types.TFontArr) div SizeOf(GDVars.gameFont^[0]) then Exit;
     charIdx := ch;
+  end;
   for i := 1 to count do begin
     case displayMode of
       Types.vmCGA: begin
@@ -273,11 +278,11 @@ var
   lineEnd: Byte;
   pad: Byte;
 
-  { PrintCharInWindow: Flush source[idx..lineEnd] at the cursor, advancing idx/curCol; per-char Delay when slow text is
-    on }
+  { PrintCharInWindow: Flush source[idx..lineEnd] at the cursor, advancing idx/curCol, stopping at lrCol; per-char Delay
+    when slow text is on }
   procedure PrintCharInWindow;
   begin
-    while idx <= lineEnd do begin
+    while (idx <= lineEnd) and (GDVars.curCol <= lrCol) do begin
       TextRend.RenderChar(GDVars.curCol, GDVars.curRow, color, 1, Ord(source[idx]), 1);
       if GDVars.msgDelayFlag <> 0 then Delay(GDVars.gameDelay * 10);
       Inc(idx);
@@ -292,7 +297,7 @@ var
   end;
 
 begin
-  if (ulCol > 39) or (ulRow > 24) or (lrCol > 39) or (lrRow > 39) then Exit;
+  if (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
   if (GDVars.curCol < ulCol) or (GDVars.curCol > lrCol) or (GDVars.curRow < ulRow) or
       (GDVars.curRow > lrRow) then begin
     GDVars.curCol := ulCol;
@@ -316,6 +321,9 @@ begin
     if source[lineEnd] <> ' ' then
       while (lineEnd + 1 < len) and (source[lineEnd + 1] in GDConsts.breakChars) do
         Inc(lineEnd);
+    { a word wider than the window is split: what fits on this row now, the rest carried on to the next }
+    if (GDVars.curCol <= lrCol) and (lineEnd - idx + Ord(source[lineEnd] <> ' ') > width) then
+      lineEnd := idx + lrCol - GDVars.curCol;
     if lineEnd - idx + GDVars.curCol > lrCol then begin
       { the word fits and only its trailing space hangs over the edge: print the word, then wrap }
       if (lineEnd - idx + GDVars.curCol = lrCol + 1) and (source[lineEnd] = ' ') then begin
@@ -470,6 +478,8 @@ var
   byteCount: Word;
   row: Word;
 begin
+  { the rectangle must lie on the 40 x 25 screen, corners in order }
+  if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
   case displayMode of
     Types.vmCGA: begin
       firstRow := ulRow * 4;
