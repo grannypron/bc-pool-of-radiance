@@ -30,9 +30,11 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
 
 { Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
-  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, and the usual spells are read from
-  the .mem file (none when it is missing or not a usual-spells file for this character). }
-procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
+  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
+  trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
+  usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file holds less
+  than a whole record or cannot be read; the caller then frees the record unused. }
+function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
   derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
@@ -44,8 +46,9 @@ procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 procedure AddCreatureToParty(id: Byte);
 
 { Load game: offer the existing SAVGAMA..J.DAT as a letter menu (Escape aborts), read the save file, reload each listed
-  character from its CHRDATxN.sav, delete their single-character files (.mem included), reload icon anims, the 3D map
-  and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set. }
+  character from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character
+  files (.mem included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run
+  Ending.YarashComplete when the Yarash pyramid flag is set. }
 procedure LoadGame;
 
 { Save game: letter menu (Escape aborts), store wall slots, game speed, picture settings and disk number in the GBVM
@@ -451,13 +454,16 @@ begin
   SaveLoad.WriteUsualSpells(creature, fn);
 end;
 
-procedure LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean);
+function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 var
   f: file;
   res: Word;
   ext: String[4];
   item: Types.PItemRec;
   effect: Types.PEffectRec;
+  newItem: Types.PItemRec;
+  newEffect: Types.PEffectRec;
+  whole: Boolean;
   msg: Types.TStr40;
   found: Boolean;
 begin
@@ -471,38 +477,56 @@ begin
   else
     ext := '.cha';
   found := DaxIo.OpenWithRetry(name + ext, msg, #0, f);
+  res := 0;
   BlockRead(f, creature^, SizeOf(Types.TCharRecord), res);
+  whole := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
   creature^.nextCharAddr := nil;
   creature^.itemsAddr := nil;
   creature^.effectsAddr := nil;
   creature^.combatAddr := nil;
+  LoadChar := whole;
+  if not whole then Exit;
   if DaxIo.FileExists(name + '.itm') then begin
-    GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
-    item := creature^.itemsAddr;
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
-    repeat
-      BlockRead(f, item^, SizeOf(Types.TItemRec), res);
-      item^.next := nil;
-      if not Eof(f) then begin
-        GetMem(item^.next, SizeOf(Types.TItemRec));
-        item := item^.next;
-      end;
-    until Eof(f);
+    item := nil;
+    whole := True;
+    while whole and not Eof(f) do begin
+      GetMem(newItem, SizeOf(Types.TItemRec));
+      res := 0;
+      BlockRead(f, newItem^, SizeOf(Types.TItemRec), res);
+      whole := (IOResult = 0) and (res = SizeOf(Types.TItemRec));
+      if whole then begin
+        newItem^.next := nil;
+        if item = nil then
+          creature^.itemsAddr := newItem
+        else
+          item^.next := newItem;
+        item := newItem;
+      end else
+        FreeMem(newItem, SizeOf(Types.TItemRec));
+    end;
     Close(f);
   end;
   if DaxIo.FileExists(name + '.spc') then begin
-    GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
-    effect := creature^.effectsAddr;
     found := DaxIo.OpenWithRetry(name + '.spc', msg, #0, f);
-    repeat
-      BlockRead(f, effect^, SizeOf(Types.TEffectRec), res);
-      effect^.next := nil;
-      if not Eof(f) then begin
-        GetMem(effect^.next, SizeOf(Types.TEffectRec));
-        effect := effect^.next;
-      end;
-    until Eof(f);
+    effect := nil;
+    whole := True;
+    while whole and not Eof(f) do begin
+      GetMem(newEffect, SizeOf(Types.TEffectRec));
+      res := 0;
+      BlockRead(f, newEffect^, SizeOf(Types.TEffectRec), res);
+      whole := (IOResult = 0) and (res = SizeOf(Types.TEffectRec));
+      if whole then begin
+        newEffect^.next := nil;
+        if effect = nil then
+          creature^.effectsAddr := newEffect
+        else
+          effect^.next := newEffect;
+        effect := newEffect;
+      end else
+        FreeMem(newEffect, SizeOf(Types.TEffectRec));
+    end;
     Close(f);
   end;
   SaveLoad.ReadUsualSpells(creature, name);
@@ -707,8 +731,11 @@ begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
     if DaxIo.FileExists(GDVars.dsSaveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
-      SaveLoad.LoadChar(fn, creature, True, True);
-      SaveLoad.AddCharToParty(creature);
+      { a short or unreadable .sav is left out, as a missing one is }
+      if SaveLoad.LoadChar(fn, creature, True, True) then
+        SaveLoad.AddCharToParty(creature)
+      else
+        FreeMem(creature, SizeOf(Types.TCharRecord));
       SaveLoad.CheckSaveDir;
     end;
   end;

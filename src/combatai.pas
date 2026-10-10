@@ -508,9 +508,9 @@ begin
 end;
 
 { Handle a key pressed during AI turns: Alt-M toggles quick magic, Space returns every non-NPC, non-animated creature to
-  manual control (True when creature itself is now manual), Alt-X runs the STING victory cheat. Always polls the game
-  keys afterwards. Note: the case tests the key whether or not the extended-key prefix came first, so an unprefixed '2'
-  also toggles quick magic and an unprefixed '-' also runs the STING cheat. }
+  manual control (True when creature itself is now manual), Alt-X runs the STING victory cheat. Note: the case tests
+  the key whether or not the extended-key prefix came first, so an unprefixed '2' also toggles quick magic and an
+  unprefixed '-' also runs the STING cheat. }
 function CheckKeystroke(creature: Types.PCharRecord): Boolean;
 var
   p: Types.PCharRecord;

@@ -561,8 +561,8 @@ begin
   EclMenu.WriteGbvm(sum, v);
 end;
 
-{ VMENU: show the prompt, then a vertical menu of the var 3 strings that follow, and store the chosen index at var 1's
-  address }
+{ VMENU: show the prompt, then a vertical menu of the var 3 strings that follow (at most 20), and store the chosen
+  index at var 1's address }
 procedure EclVMenu;
 var
   count: Byte;
@@ -585,6 +585,9 @@ begin
   count := EclMenu.GetEclVar(3);
   Dec(GDVars.eclIp);
   EclMenu.LoadEclVars(count);
+  { 20 = High(gbStrings), the most strings LoadEclVars keeps }
+  if count > 20 then
+    count := 20;
   MenuCore.AllocStringList(count, list);
   head := list;
   GDVars.curCol := C_Msg.TEXT_LEFT;
@@ -608,9 +611,9 @@ begin
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
 end;
 
-{ HMENU: build a '~A ~B ~C' horizontal menu from the var 2 strings that follow and store the chosen index at var 1's
-  address. A single choice also accepts Enter, and the joystick wording of the continue prompt becomes the keyboard
-  wording. }
+{ HMENU: build a '~A ~B ~C' horizontal menu from the var 2 strings that follow (1 to 20) and store the chosen index at
+  var 1's address. A single choice also accepts Enter, and the joystick wording of the continue prompt becomes the
+  keyboard wording. }
 procedure EclHMenu;
 var
   count: Byte;
@@ -631,6 +634,11 @@ begin
   count := EclMenu.GetEclVar(2);
   Dec(GDVars.eclIp);
   EclMenu.LoadEclVars(count);
+  { 20 = High(gbStrings), the most strings LoadEclVars keeps; a count of 0 shows gbStrings[1] alone }
+  if count > 20 then
+    count := 20
+  else if count = 0 then
+    count := 1;
   menu := '';
   if count = 1 then begin
     enterOk := True;
@@ -890,8 +898,8 @@ begin
   CharHlp.DisplayNoncombatInterface;
 end;
 
-{ ONGOTO / ONGOSUB: jump to or call address number var 1 of the var 2 addresses that follow; a selector of var 2 or more
-  falls through past the list }
+{ ONGOTO / ONGOSUB: jump to or call address number var 1 of the var 2 addresses that follow (at most 64); a selector of
+  var 2 or more, or 64 or more, falls through past the list }
 procedure EclOnGoto;
 var
   sel: Byte;
@@ -906,6 +914,9 @@ begin
   count := EclMenu.GetEclVar(2);
   Dec(GDVars.eclIp);
   EclMenu.LoadEclVars(count);
+  { 64 = High(dsGbvmLowerByte), the most addresses LoadEclVars keeps; a selector past them falls through }
+  if count > 64 then
+    count := 64;
   i := 0;
   while (i < count) and (not done) do begin
     if sel = i then begin

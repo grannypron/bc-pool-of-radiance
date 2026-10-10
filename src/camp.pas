@@ -159,7 +159,8 @@ end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
   memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (ViewChar.UseItemSpell,
-  which asks 'Use it?' of a combat-only one). An empty list prints 'has no spells memorized'. }
+  which asks 'Use it?' of a combat-only one), followed by Use's CharHlp.RecalcStats. An empty list prints 'has no
+  spells memorized'. }
 procedure NoncombatCastMenu;
 var
   idx: Integer;
@@ -168,6 +169,7 @@ var
   { CastSpellNC's var out, unread }
   castSel: Boolean;
   spellId: Byte;
+  caster: Types.PCharRecord;
 begin
   redraw := False;
   idx := -1;
@@ -181,8 +183,12 @@ begin
         Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
         if GDVars.castScroll = nil then
           Magic.CastSpellNC(spellId, False, True, castSel)
-        else
+        else begin
+          caster := GDVars.curChar;
           ViewChar.UseItemSpell(GDVars.castScroll, spellId, castSel);
+          { recount the items and their weight, as Items > Use does: the scroll may be gone }
+          CharHlp.RecalcStats(caster);
+        end;
         idx := -1;
       end else begin
         if notEmpty then
@@ -707,7 +713,7 @@ begin
 end;
 
 { Reorder the party through Select and Place modes. In Select mode extended keys pick a character; in Place mode Home
-  moves it up and End moves it down. Enter, P and S switch modes. }
+  moves it up and End moves it down. P and S switch modes; Enter takes the highlighted option. }
 procedure CampOrderMenu;
 var
   selected: ShortInt;
@@ -731,7 +737,7 @@ begin
         CharHlp.DisplayParty(GDVars.curChar);
       end;
     end else
-      if c in [C_Keys.ENTER, 'P', 'S'] then begin
+      if c in ['P', 'S'] then begin
         selected := Ord(selected = 0);
         if selected <> 0 then
           CharHlp.PrintNameString(GDVars.curChar, 'has been selected', 10, False)
