@@ -91,6 +91,8 @@ jobs:
       - name: Use the dispatched tag's source
         if: github.event_name == 'workflow_dispatch'
         run: |
+          # Only a tag: release.sh would otherwise have Forgejo create a tag of that name (a branch's, say) on main.
+          git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
           # The tag's whole src/ and build/, so a file only newer versions have (build/toolchain) can't leak in.
           rm -rf src build
           git checkout "$TAG" -- src build
