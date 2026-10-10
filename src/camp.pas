@@ -158,9 +158,8 @@ begin
 end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
-  memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (ViewChar.UseItemSpell).
-  A combat-only scroll spell is only refused (Magic.ShowCombatOnlySpell, then a pause), leaving the scroll as it is. An
-  empty list prints 'has no spells memorized'. }
+  memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (ViewChar.UseItemSpell,
+  which asks 'Use it?' of a combat-only one). An empty list prints 'has no spells memorized'. }
 procedure NoncombatCastMenu;
 var
   idx: Integer;
@@ -182,11 +181,7 @@ begin
         Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
         if GDVars.castScroll = nil then
           Magic.CastSpellNC(spellId, False, True, castSel)
-        else if GDConsts.spellTable[spellId].target = 0 then begin
-          Magic.ShowCombatOnlySpell(spellId);
-          TextRend.PauseOnly;
-          CharHlp.ClearMessageWindow;
-        end else
+        else
           ViewChar.UseItemSpell(GDVars.castScroll, spellId, castSel);
         idx := -1;
       end else begin
