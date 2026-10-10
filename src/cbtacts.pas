@@ -808,8 +808,8 @@ begin
   Delay(100);
   if weapon <> nil then
     CbtActs.RangedAttackAnim(att, def, weapon);
-  { Note: no nil check on the equipped weapon. Base item 47 is the sling. }
-  if att^.equipped[C_Equip.WEAPON]^.itemType = 47 then
+  { base item 47 is the sling }
+  if (att^.equipped[C_Equip.WEAPON] <> nil) and (att^.equipped[C_Equip.WEAPON]^.itemType = 47) then
     CbtActs.RangedAttackAnim(att, def, att^.equipped[C_Equip.WEAPON]);
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
