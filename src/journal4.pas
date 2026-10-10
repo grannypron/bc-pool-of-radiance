@@ -1,0 +1,628 @@
+{ Journal text: journal entries 50 to 58 and tavern tales 1 to 23. Each item is held in runs of up to 9 lines joined by
+  #13, as string literals in code, so the text lives in the overlay and costs no data segment. JrnlList reads it a line
+  at a time. }
+{$O+,F+}
+unit Journal4;
+
+interface
+
+{ The number of display lines an item's text takes.
+  @param(index The item's place in the Journal list.)
+  @returns(The line count, or 0 for an item this unit does not hold.) }
+function LineCount(index: Integer): Integer;
+
+{ One run of an item's display lines.
+  @param(index The item's place in the Journal list.)
+  @param(chunk Which run of up to 9 lines, from 0.)
+  @returns(The run's lines separated by #13, or an empty string past the end.) }
+function TextChunk(index, chunk: Integer): string;
+
+implementation
+
+function LineCount(index: Integer): Integer;
+begin
+  case index of
+    68: LineCount := 42;
+    69: LineCount := 35;
+    70: LineCount := 22;
+    71: LineCount := 10;
+    72: LineCount := 35;
+    73: LineCount := 21;
+    74: LineCount := 10;
+    75: LineCount := 30;
+    76: LineCount := 4;
+    77: LineCount := 5;
+    78: LineCount := 5;
+    79: LineCount := 4;
+    80: LineCount := 5;
+    81: LineCount := 4;
+    82: LineCount := 5;
+    83: LineCount := 4;
+    84: LineCount := 3;
+    85: LineCount := 7;
+    86: LineCount := 5;
+    87: LineCount := 5;
+    88: LineCount := 6;
+    89: LineCount := 5;
+    90: LineCount := 5;
+    91: LineCount := 6;
+    92: LineCount := 3;
+    93: LineCount := 6;
+    94: LineCount := 7;
+    95: LineCount := 6;
+    96: LineCount := 7;
+    97: LineCount := 6;
+    98: LineCount := 6;
+    99: LineCount := 6;
+    else LineCount := 0;
+  end;
+end;
+
+function TextChunk(index, chunk: Integer): string;
+begin
+  TextChunk := '';
+  case index of
+    { Entry 50 }
+    68:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN OFFICIAL LOOKING NOTICE'#13 +
+            #13 +
+            '"ASSEMBLE A GROUP OF AT'#13 +
+            'LEAST 30 OF YOUR FOLLOWERS.'#13 +
+            'MEET UP WITH A HOBGOBLIN'#13 +
+            'ASSAULT FORCE AT THE SMALL'#13 +
+            'DOCKS TO THE WEST OF TOWN.'#13 +
+            'YOU AND YOUR GROUP WILL BE'#13 +
+            'UNDER THE COMMAND OF THE';
+        1:
+          TextChunk :=
+            'HOBGOBLIN LEADER. FOLLOW'#13 +
+            'HIS ORDERS. UPON COMPLETION'#13 +
+            'OF THE MISSION YOU WILL BE'#13 +
+            'REWARDED WITH FOOD,'#13 +
+            'TREASURE, AND MANY SLAVES."'#13 +
+            #13 +
+            'SIGNED,'#13 +
+            'THE BOSS'#13 +
+            '';
+        2:
+          TextChunk :=
+            'SCRIBBLED ON THE BACK OF'#13 +
+            'THESE ORDERS IS NORRIS THE'#13 +
+            'GRAY''S UNSENT REPLY TO THE'#13 +
+            'BOSS'#13 +
+            #13 +
+            '"I WILL NEVER FOLLOW THE'#13 +
+            'ORDERS OF A HOBGOBLIN. I'#13 +
+            'DON''T GO ON MISSIONS UNTIL'#13 +
+            'I KNOW EXACTLY WHAT WE''RE';
+        3:
+          TextChunk :=
+            'SUPPOSED TO DO. AND I DON''T'#13 +
+            'GO ON MISSIONS FOR AN'#13 +
+            'UNKNOWN AMOUNT OF "FOOD,'#13 +
+            'TREASURE, AND SLAVES". I DO'#13 +
+            'GO ON MISSIONS WHERE I AM'#13 +
+            'IN COMMAND; WHERE I KNOW'#13 +
+            'EXACTLY WHAT THE TARGET IS;'#13 +
+            'AND WHERE I KNOW EXACTLY'#13 +
+            'HOW MUCH I''LL GET PAID.';
+        4:
+          TextChunk :=
+            'DON''T SEND ME ANOTHER ORDER'#13 +
+            'UNTIL YOU CAN MEET MY'#13 +
+            'TERMS."'#13 +
+            #13 +
+            'SIGNED,'#13 +
+            'NORRIS THE GRAY';
+      end;
+    { Entry 51 }
+    69:
+      case chunk of
+        0:
+          TextChunk :=
+            'SEVERAL PIECES OF PAPER'#13 +
+            'WITH HIGHLY ORGANIZED'#13 +
+            'WRITING.'#13 +
+            #13 +
+            'FACT: BISHOP BRACCIO IS THE'#13 +
+            'HIGHEST RANKING RELIGIOUS'#13 +
+            'LEADER IN PHLAN. RUNS SMALL'#13 +
+            'TEMPLE IN CIVILIZED SECTION'#13 +
+            'OF CITY.';
+        1:
+          TextChunk :=
+            #13 +
+            'VAGUE RUMOR: BRACCIO IS'#13 +
+            'ACTUALLY A FRONT-MAN FOR A'#13 +
+            'POWERFUL HIGH PRIEST WHO'#13 +
+            'NEVER LEAVES THE SMALL'#13 +
+            'TEMPLE.'#13 +
+            #13 +
+            'STRONG RUMOR: BRACCIO IS'#13 +
+            'UNDER FIRE TO "DO';
+        2:
+          TextChunk :=
+            'SOMETHING" ABOUT THE UNDEAD'#13 +
+            'PROBLEM. SO LONG AS THE'#13 +
+            'UNDEAD WERE CAUSING THE'#13 +
+            'MONSTERS MORE TROUBLE THEN'#13 +
+            'THE SETTLERS, HE HAD OTHER,'#13 +
+            'MORE PRESSING, PROBLEMS.'#13 +
+            #13 +
+            'RUMOR: BRACCIO IS OPPOSED'#13 +
+            'TO THE TEMPLE TENDENCY TO';
+        3:
+          TextChunk :=
+            'SELL CLERICAL "MIRACLES";'#13 +
+            'BUT HE UNDERSTANDS THAT THE'#13 +
+            'TEMPLE NEEDS FUNDS. BRACCIO'#13 +
+            'WOULD RATHER PERFORM SUCH'#13 +
+            '"MIRACLES" IN EXCHANGE FOR'#13 +
+            'GOOD WORKS DONE IN THE NAME'#13 +
+            'OF THE CHURCH, NOT JUST FOR'#13 +
+            'MONEY OR ITEMS OF POWER.';
+      end;
+    { Entry 52 }
+    70:
+      case chunk of
+        0:
+          TextChunk :=
+            'DELIVERED IN CHILLINGLY'#13 +
+            'CLEAR TONES.'#13 +
+            #13 +
+            '"HEAR US IN OUR HOUR OF'#13 +
+            'NEED!" THE NOMAD'#13 +
+            'WITCHDOCTOR CRIES, "THIS'#13 +
+            'NIGHT WE FIGHT A GREAT'#13 +
+            'BATTLE. BY THE BREAKING OF'#13 +
+            'DAWN EITHER OUR ENEMIES';
+        1:
+          TextChunk :=
+            'WILL BE DEAD OR WE WILL'#13 +
+            'HAVE BEEN DESTROYED.'#13 +
+            #13 +
+            '"ACCEPT THE SACRIFICE OF'#13 +
+            'THESE OUTSIDERS AND GIVE US'#13 +
+            'THE STRENGTH TO DEFEAT THE'#13 +
+            'HORDES OF OUR ENEMIES. FILL'#13 +
+            'OUR LIMBS WITH YOUR FIRE,'#13 +
+            'AND FILL OUR MINDS WITH';
+        2:
+          TextChunk :=
+            'YOUR FURY. LET US VANQUISH'#13 +
+            'OUR ENEMIES JUST AS WE'#13 +
+            'VANQUISH THESE INVADERS WHO'#13 +
+            'HAVE COME AMONG US."';
+      end;
+    { Entry 53 }
+    71:
+      case chunk of
+        0:
+          TextChunk :=
+            'A CRUMPLED DISCARDED PIECE'#13 +
+            'OF PAPER, FULL OF RUB OUTS'#13 +
+            'AND SCRATCH OVERS.'#13 +
+            #13 +
+            'PRIESTS: 1'#13 +
+            'ACOLYTES: 4'#13 +
+            'OGRES: 1'#13 +
+            'HOBGOBLINS: 40'#13 +
+            'ORCS: 90';
+        1:
+          TextChunk :=
+            'GOBLIN SLAVES: 20';
+      end;
+    { Entry 54 }
+    72:
+      case chunk of
+        0:
+          TextChunk :=
+            'A PAGE FROM AN UNKNOWN'#13 +
+            'DIARY.'#13 +
+            #13 +
+            '"THEY STOLE MY MAP TO THE'#13 +
+            'POOL. SOMEHOW THEY KNEW'#13 +
+            'WHEN I WAS COMING AND'#13 +
+            'EXACTLY WHAT TO LOOK FOR.'#13 +
+            'THEY DIDN''T EVEN BOTHER TO'#13 +
+            'KILL ME; THEY SAID I WASN''T';
+        1:
+          TextChunk :=
+            'WORTH KILLING. THEY JUST'#13 +
+            'CRIPPLED MY LEGS, TOOK THE'#13 +
+            'MAP, AND RODE AWAY'#13 +
+            'LAUGHING.'#13 +
+            #13 +
+            '"AFTER THE ATTACK AND THE'#13 +
+            'RIGORS OF MY TREK ALL I'#13 +
+            'REMEMBER IS THAT THE POOL'#13 +
+            'IS IN THE DRAGONSPINE,';
+        2:
+          TextChunk :=
+            'NORTH AND WEST OF'#13 +
+            'SORCERER''S ISLAND. IT'#13 +
+            'SHINES JUST LIKE THEY SAID'#13 +
+            'IT WOULD. YOU CAN FEEL THE'#13 +
+            'POWER FLOWING OUT OF IT.'#13 +
+            'KINGS AND GENERALS HAVE'#13 +
+            'SEARCHED FOR THE POOL, AND'#13 +
+            'I HAD A MAP THAT LED RIGHT'#13 +
+            'TO IT.';
+        3:
+          TextChunk :=
+            #13 +
+            '"IF I EVER GET BACK THE USE'#13 +
+            'OF MY LEGS I''LL GO AFTER'#13 +
+            'THEM. I''LL GET BACK MY MAP.'#13 +
+            'I''LL GET TO THE POOL. AND'#13 +
+            'THIS TIME I''LL BATHE IN ITS'#13 +
+            'POWER. THEN I''LL TEACH'#13 +
+            'THEM. I''LL TEACH THEM ALL."';
+      end;
+    { Entry 55 }
+    73:
+      case chunk of
+        0:
+          TextChunk :=
+            'DELIVERED AS YOU SIT AROUND'#13 +
+            'THE CAMP FIRE.'#13 +
+            #13 +
+            '"YOU MUST BEWARE OF THE'#13 +
+            'MANY DANGERS IN THIS'#13 +
+            'REGION. SEVERAL DAYS WALK'#13 +
+            'TO THE WEST THERE IS THE'#13 +
+            'PYRAMID OF EVIL. IT HAS'#13 +
+            'BEEN LONG AVOIDED BY ALL';
+        1:
+          TextChunk :=
+            'SENSIBLE MEN. TO THE'#13 +
+            'SOUTHEAST IS A LAIR OF MANY'#13 +
+            'FEROCIOUS HOBGOBLINS. THE'#13 +
+            'AREAS TO THE SOUTHWEST, ARE'#13 +
+            'INHABITED BY EVIL MEN --'#13 +
+            'BUCCANEERS, MARAUDERS, AND'#13 +
+            'SOLDIERS OF AN EVIL EMPIRE'#13 +
+            'FAR TO THE WEST. AND ALL'#13 +
+            'GOOD FOLKS AVOID THE SWAMPS';
+        2:
+          TextChunk :=
+            'TO THE EAST. NOTHING BUT'#13 +
+            'DANGER GROWS IN THE'#13 +
+            'SWAMPS."';
+      end;
+    { Entry 56 }
+    74:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN UNSENT NOTE WRITTEN ON'#13 +
+            'STURDY PARCHMENT.'#13 +
+            #13 +
+            '"AN ACTIVE DRAGON HAS MADE'#13 +
+            'ITS HOME IN THE DRAGONSPINE'#13 +
+            'MOUNTAINS TO THE NORTHWEST.'#13 +
+            'KEEP SEARCH PARTIES AWAY'#13 +
+            'FROM THE AREA SO AS NOT TO'#13 +
+            'CATCH THE DRAGON''S';
+        1:
+          TextChunk :=
+            'ATTENTION."';
+      end;
+    { Entry 57 }
+    75:
+      case chunk of
+        0:
+          TextChunk :=
+            'A RATTY PIECE OF PARCHMENT'#13 +
+            'WITH LARGE WRITING ON ONE'#13 +
+            'SIDE.'#13 +
+            #13 +
+            '"OUR SPIES IN THE CITY'#13 +
+            'INFORM US THAT A PARTY OF'#13 +
+            'INVADERS WILL TRAVEL TO'#13 +
+            'SOKAL KEEP TO FREE IT. TO'#13 +
+            'COMBAT THESE INVADERS,';
+        1:
+          TextChunk :=
+            'ASSEMBLE A FORCE OF NO LESS'#13 +
+            'THAN THREE SQUADS. TRAVEL'#13 +
+            'BY BOAT FROM THE SMALL'#13 +
+            'DOCKS AT THE WEST OF TOWN'#13 +
+            'TO THORN ISLAND. MOVE'#13 +
+            'UNDETECTED TO SOKAL KEEP.'#13 +
+            'FIND THE ADVENTURERS IN OR'#13 +
+            'AROUND SOKAL KEEP. KILL'#13 +
+            'THEM BEFORE THEY CAN RETURN';
+        2:
+          TextChunk :=
+            'TO THE CITY COUNCIL WITH'#13 +
+            'INFORMATION ABOUT THE TRUE'#13 +
+            'SITUATION AT THE KEEP.'#13 +
+            'RETURN WITH THE INVADER''S'#13 +
+            'HEADS AS PROOF OF'#13 +
+            'COMPLETION OF YOUR MISSION.'#13 +
+            'UPON COMPLETION YOU WILL BE'#13 +
+            'REWARDED WITH FOOD,'#13 +
+            'TREASURE, AND MANY SLAVES."';
+        3:
+          TextChunk :=
+            #13 +
+            'SIGNED,'#13 +
+            'THE BOSS';
+      end;
+    { Entry 58 }
+    76:
+      case chunk of
+        0:
+          TextChunk :=
+            'A TATTERED PIECE OF'#13 +
+            'PARCHMENT'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+    { Tale 1 }
+    77:
+      case chunk of
+        0:
+          TextChunk :=
+            'FAR TO THE NORTHEAST, IN'#13 +
+            'THE MIDST OF A VAST SWAMP,'#13 +
+            'LIE THE UNINHABITED RUINS'#13 +
+            'OF A POWERFUL WIZARD''S'#13 +
+            'CASTLE.';
+      end;
+    { Tale 2 }
+    78:
+      case chunk of
+        0:
+          TextChunk :=
+            'A DRUNK BARD SITS IN A'#13 +
+            'CORNER OF THE TAVERN'#13 +
+            'SPINNING A SEEMINGLY'#13 +
+            'ENDLESS TALE, BUT NO ONE IS'#13 +
+            'LISTENING.';
+      end;
+    { Tale 3 }
+    79:
+      case chunk of
+        0:
+          TextChunk :=
+            'WELLS THROUGHOUT THE CITY'#13 +
+            'OFTEN PROVIDE ACCESS TO'#13 +
+            'HIDDEN DENS AND UNDERGROUND'#13 +
+            'PASSAGES.';
+      end;
+    { Tale 4 }
+    80:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN ANGLISH LORD COMMANDEERS'#13 +
+            'ONE CORNER OF THE BAR TO'#13 +
+            'LECTURE ON THE ULTIMATE'#13 +
+            'RANGE OF HIS ADVENTURES.'#13 +
+            'THE CROWD IGNORES HIM.';
+      end;
+    { Tale 5 }
+    81:
+      case chunk of
+        0:
+          TextChunk :=
+            'TO THE EAST OF PHLAN LIES A'#13 +
+            'GLEAMING CASTLE OF GOLD'#13 +
+            'THAT SHIFTS ITS LOCATION'#13 +
+            'FROM TIME TO TIME.';
+      end;
+    { Tale 6 }
+    82:
+      case chunk of
+        0:
+          TextChunk :=
+            'A WEIRD LOOKING WIZARD,'#13 +
+            'DRESSED ALL IN BLACK, SITS'#13 +
+            'ALONE AND MUMBLES INTO HIS'#13 +
+            'BEER, "I''LL RETURN NEXT'#13 +
+            'TIME AND SHOW THEM ALL!"';
+      end;
+    { Tale 7 }
+    83:
+      case chunk of
+        0:
+          TextChunk :=
+            'GREAT TREASURES ARE TO BE'#13 +
+            'FOUND ON THE BANKS OF THE'#13 +
+            'BARREN RIVER AS ONE'#13 +
+            'VENTURES NORTHWARD.';
+      end;
+    { Tale 8 }
+    84:
+      case chunk of
+        0:
+          TextChunk :=
+            'THE GRAVEYARD IS CONTROLLED'#13 +
+            'BY A VERY POWERFUL AND'#13 +
+            'CLEVER UNDEAD CREATURE.';
+      end;
+    { Tale 9 }
+    85:
+      case chunk of
+        0:
+          TextChunk :=
+            'A PUZZLED PATRON WITH A'#13 +
+            'LIMITED VOCABULARY'#13 +
+            'QUESTIONS EVERYONE HE COMES'#13 +
+            'ACROSS ABOUT HOW TO'#13 +
+            'COMPLETE A MANUSCRIPT DATED'#13 +
+            '1977 GUE. UNFORTUNATELY, NO'#13 +
+            'ONE CAN HELP HIM.';
+      end;
+    { Tale 10 }
+    86:
+      case chunk of
+        0:
+          TextChunk :=
+            'TO THE WEST LIVES A TRIBE'#13 +
+            'OF INSECT-MEN WHO WORSHIP'#13 +
+            'NORMAL MEN AND GIVE'#13 +
+            'VALUABLE GIFTS TO ALL WHO'#13 +
+            'VISIT THEM.';
+      end;
+    { Tale 11 }
+    87:
+      case chunk of
+        0:
+          TextChunk :=
+            'THE DRAGONSPINE MOUNTAINS'#13 +
+            'ARE INHABITED BY A RACE OF'#13 +
+            'EVIL DRAGONS WHO LURE'#13 +
+            'TRAVELERS TO THEIR LAIRS'#13 +
+            'AND SLAY THEM.';
+      end;
+    { Tale 12 }
+    88:
+      case chunk of
+        0:
+          TextChunk :=
+            'A BEDRAGGLED ADVENTURER'#13 +
+            'DECRIES, "THERE WAS A MAN'#13 +
+            'CALLED TURTLE, WALLS THAT'#13 +
+            'AREN''T THERE, LIVING'#13 +
+            'DAGGERS; I NEVER DID FIGURE'#13 +
+            'OUT WHAT WAS GOING ON!"';
+      end;
+    { Tale 13 }
+    89:
+      case chunk of
+        0:
+          TextChunk :=
+            'A MASTER THIEF HAS SET UP A'#13 +
+            'HIDDEN TRAINING GROUND DEEP'#13 +
+            'IN THE OLD CITY, RIGHT'#13 +
+            'UNDER THE NOSES OF'#13 +
+            'MONSTERS.';
+      end;
+    { Tale 14 }
+    90:
+      case chunk of
+        0:
+          TextChunk :=
+            'OGRES WHO LIVE TO THE EAST'#13 +
+            'OF PHLAN ARE HOLDING'#13 +
+            'CAPTIVE A PRINCESS FOR WHOM'#13 +
+            'A HUGE REWARD HAS BEEN'#13 +
+            'OFFERED.';
+      end;
+    { Tale 15 }
+    91:
+      case chunk of
+        0:
+          TextChunk :=
+            'THE MERCHANTS OF ZHENTIL'#13 +
+            'KEEP ARE SETTING UP A'#13 +
+            'TRADING BASE FAR TO THE'#13 +
+            'WEST OF PHLAN. THEY''RE'#13 +
+            'HIRING CARAVAN GUARDS FOR'#13 +
+            'GOOD WAGES.';
+      end;
+    { Tale 16 }
+    92:
+      case chunk of
+        0:
+          TextChunk :=
+            'BUCCANEERS OPERATE A SLAVE'#13 +
+            'AUCTION OUT OF A HIDDEN'#13 +
+            'CAMP NEAR STORMY BAY.';
+      end;
+    { Tale 17 }
+    93:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN OLD SAGE SITS IN A'#13 +
+            'CORNER WITH A DARK WIZARD.'#13 +
+            '"YOU''RE RIGHT," LAUGHS THE'#13 +
+            'SAGE, "THEY''LL DO ANYTHING'#13 +
+            'I TELL THEM TO, NO MATTER'#13 +
+            'HOW SILLY OR PHANTASTIC."';
+      end;
+    { Tale 18 }
+    94:
+      case chunk of
+        0:
+          TextChunk :=
+            'OFF TO THE EAST OF PHLAN'#13 +
+            'ROAMS A TRIBE OF MARAUDING'#13 +
+            'NOMADS. THEY HAVE BEEN'#13 +
+            'PILLAGING VILLAGES IN THE'#13 +
+            'PLAINS WITH THE HELP OF A'#13 +
+            'POWERFUL ARTIFACT THEY HAVE'#13 +
+            'DISCOVERED.';
+      end;
+    { Tale 19 }
+    95:
+      case chunk of
+        0:
+          TextChunk :=
+            'MIGHTY TRIBES OF WILD'#13 +
+            'DWARVES, THOUSANDS OF THEM,'#13 +
+            'ROAM THE DRAGONSPINE'#13 +
+            'MOUNTAINS, DESTROYING'#13 +
+            'VILLAGERS AND KILLING'#13 +
+            'TRAVELERS.';
+      end;
+    { Tale 20 }
+    96:
+      case chunk of
+        0:
+          TextChunk :=
+            '"I WAS TOTALLY CONFUSED; IT'#13 +
+            'WAS LIKE BEING LOST IN THE'#13 +
+            'DARKNESS," SIGHED THE'#13 +
+            'OVERWROUGHT ADVENTURER.'#13 +
+            '"RABBITS, HATS, BOWLING'#13 +
+            'BALLS? WHERE IN THE REALMS'#13 +
+            'WAS I?"';
+      end;
+    { Tale 21 }
+    97:
+      case chunk of
+        0:
+          TextChunk :=
+            'THE MONSTERS IN PHLAN ARE'#13 +
+            'LED BY ONE OF THE GENERALS'#13 +
+            'WHO SACKED THE CITY A'#13 +
+            'GENERATION AGO. THE GENERAL'#13 +
+            'HAS USED GREAT MAGIC TO'#13 +
+            'MAKE HIMSELF IMMORTAL.';
+      end;
+    { Tale 22 }
+    98:
+      case chunk of
+        0:
+          TextChunk :=
+            'A VAST FORTRESS OF KOBOLDS'#13 +
+            'DOMINATES THE WESTERN TIP'#13 +
+            'OF THE GREAT SWAMP. THESE'#13 +
+            'NORMALLY WEAK CREATURES'#13 +
+            'GROW TO GREAT SIZE AND HAVE'#13 +
+            'EXTRAORDINARY POWERS HERE.';
+      end;
+    { Tale 23 }
+    99:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN ANCIENT SILVER DRAGON'#13 +
+            'STILL LIVES UP IN THE'#13 +
+            'DRAGONSPINE MOUNTAINS. THE'#13 +
+            'DRAGON IS NOT EVIL AND WILL'#13 +
+            'HELP TRAVELERS WHO BATTLE'#13 +
+            'EVIL.';
+      end;
+  end;
+end;
+
+end.

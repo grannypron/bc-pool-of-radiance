@@ -1,0 +1,208 @@
+{ The Journal's list: the City Council's proclamations, the journal entries and the tavern tales, in the order the
+  Adventurer's Journal prints them, with each item's label and its text a line at a time. }
+
+{ An item is addressed by its place in the list, 1 to C_Jrnl.JOURNAL_COUNT. Its text is in the game font's capitals,
+  wrapped to C_Jrnl.JOURNAL_WIDTH columns, and read with TextLine from 1 to LineCount; a blank line separates
+  paragraphs. An item that is a picture in the book (IsImageOnly) holds its lead-in and a (PICTURE) line where the
+  picture goes, and a picture inside a text item is a (PICTURE: CAPTION) line. The text lives in the overlaid units
+  Journal1 to Journal4, and reading an item loads the one unit that holds it. }
+{$O+,F+}
+unit JrnlList;
+
+interface
+
+uses C_Jrnl, Journal1, Journal2, Journal3, Journal4;
+
+{ What kind of item this is.
+  @param(index The item's place in the list.)
+  @returns(One of C_Jrnl.KIND_PROCLAMATION, KIND_ENTRY or KIND_TALE, or KIND_NONE outside the list.) }
+function EntryKind(index: Integer): Byte;
+
+{ The number the book gives the item, which the game refers to.
+  @param(index The item's place in the list.)
+  @returns(The number, or 0 outside the list.) }
+function EntryNumber(index: Integer): Integer;
+
+{ The item's label for the list column: LIX (a proclamation's numeral), ENTRY 5 or TALE 1, at most 10 characters.
+  @param(index The item's place in the list.)
+  @returns(The label, or an empty string outside the list.) }
+function EntryLabel(index: Integer): string;
+
+{ The item's heading for the title box: PROCLAMATION LIX, JOURNAL ENTRY 11 or TAVERN TALE 1, at most
+  C_Jrnl.JOURNAL_WIDTH characters.
+  @param(index The item's place in the list.)
+  @returns(The title, or an empty string outside the list.) }
+function EntryTitle(index: Integer): string;
+
+{ Whether the item is a picture in the book, with no text but its lead-in.
+  @param(index The item's place in the list.)
+  @returns(True for a picture; False for a text item and outside the list.) }
+function IsImageOnly(index: Integer): Boolean;
+
+{ The number of display lines the item's text takes.
+  @param(index The item's place in the list.)
+  @returns(The line count, or 0 outside the list.) }
+function LineCount(index: Integer): Integer;
+
+{ One display line of an item's text.
+  @param(index The item's place in the list.)
+  @param(line The line, from 1 to LineCount.)
+  @returns(The line, or an empty string outside the item.) }
+function TextLine(index, line: Integer): string;
+
+implementation
+
+const
+  { Lines in each literal of the text units }
+  LINES_PER_CHUNK = 9;
+
+{ A number in capital Roman numerals, as the City Council numbers its proclamations.
+  @param(value The number, from 1.)
+  @returns(The numeral.) }
+function RomanNumeral(value: Integer): string;
+var
+  numeral: string;
+
+  { Appends symbol for as many times as amount goes into what is left of value. }
+  procedure Take(amount: Integer; symbol: string);
+  begin
+    while value >= amount do begin
+      numeral := numeral + symbol;
+      Dec(value, amount);
+    end;
+  end;
+
+begin
+  numeral := '';
+  Take(1000, 'M');
+  Take(900, 'CM');
+  Take(500, 'D');
+  Take(400, 'CD');
+  Take(100, 'C');
+  Take(90, 'XC');
+  Take(50, 'L');
+  Take(40, 'XL');
+  Take(10, 'X');
+  Take(9, 'IX');
+  Take(5, 'V');
+  Take(4, 'IV');
+  Take(1, 'I');
+  RomanNumeral := numeral;
+end;
+
+{ Fetches one run of an item's lines from the overlaid unit that holds it.
+  @param(index The item's place in the list.)
+  @param(chunk Which run of LINES_PER_CHUNK lines, from 0.)
+  @returns(The run's lines separated by #13, or an empty string outside the list.) }
+function TextChunk(index, chunk: Integer): string;
+begin
+  case index of
+    1..28: TextChunk := Journal1.TextChunk(index, chunk);
+    29..50: TextChunk := Journal2.TextChunk(index, chunk);
+    51..67: TextChunk := Journal3.TextChunk(index, chunk);
+    68..99: TextChunk := Journal4.TextChunk(index, chunk);
+    else TextChunk := '';
+  end;
+end;
+
+function EntryKind(index: Integer): Byte;
+begin
+  case index of
+    1..18: EntryKind := C_Jrnl.KIND_PROCLAMATION;
+    19..76: EntryKind := C_Jrnl.KIND_ENTRY;
+    77..99: EntryKind := C_Jrnl.KIND_TALE;
+    else EntryKind := C_Jrnl.KIND_NONE;
+  end;
+end;
+
+function EntryNumber(index: Integer): Integer;
+begin
+  case index of
+    1: EntryNumber := 59;
+    2: EntryNumber := 64;
+    3: EntryNumber := 78;
+    4: EntryNumber := 101;
+    5: EntryNumber := 109;
+    6: EntryNumber := 110;
+    7: EntryNumber := 114;
+    8: EntryNumber := 120;
+    9: EntryNumber := 126;
+    10: EntryNumber := 129;
+    11: EntryNumber := 134;
+    12: EntryNumber := 154;
+    13: EntryNumber := 156;
+    14: EntryNumber := 170;
+    15: EntryNumber := 190;
+    16: EntryNumber := 201;
+    17: EntryNumber := 204;
+    18: EntryNumber := 214;
+    19..76: EntryNumber := index - 18;
+    77..99: EntryNumber := index - 76;
+    else EntryNumber := 0;
+  end;
+end;
+
+function EntryLabel(index: Integer): string;
+var
+  digits: string[5];
+begin
+  Str(JrnlList.EntryNumber(index), digits);
+  case JrnlList.EntryKind(index) of
+    C_Jrnl.KIND_PROCLAMATION: EntryLabel := JrnlList.RomanNumeral(JrnlList.EntryNumber(index));
+    C_Jrnl.KIND_ENTRY: EntryLabel := 'ENTRY ' + digits;
+    C_Jrnl.KIND_TALE: EntryLabel := 'TALE ' + digits;
+    else EntryLabel := '';
+  end;
+end;
+
+function EntryTitle(index: Integer): string;
+var
+  digits: string[5];
+begin
+  Str(JrnlList.EntryNumber(index), digits);
+  case JrnlList.EntryKind(index) of
+    C_Jrnl.KIND_PROCLAMATION: EntryTitle := 'PROCLAMATION ' + JrnlList.RomanNumeral(JrnlList.EntryNumber(index));
+    C_Jrnl.KIND_ENTRY: EntryTitle := 'JOURNAL ENTRY ' + digits;
+    C_Jrnl.KIND_TALE: EntryTitle := 'TAVERN TALE ' + digits;
+    else EntryTitle := '';
+  end;
+end;
+
+function IsImageOnly(index: Integer): Boolean;
+begin
+  case index of
+    22, 28, 33, 40, 46, 47, 55, 59, 60, 76: IsImageOnly := True;
+    else IsImageOnly := False;
+  end;
+end;
+
+function LineCount(index: Integer): Integer;
+begin
+  case index of
+    1..28: LineCount := Journal1.LineCount(index);
+    29..50: LineCount := Journal2.LineCount(index);
+    51..67: LineCount := Journal3.LineCount(index);
+    68..99: LineCount := Journal4.LineCount(index);
+    else LineCount := 0;
+  end;
+end;
+
+function TextLine(index, line: Integer): string;
+var
+  chunk: string;
+  skip: Integer;
+  stop: Integer;
+begin
+  TextLine := '';
+  if (line >= 1) and (line <= JrnlList.LineCount(index)) then begin
+    chunk := JrnlList.TextChunk(index, (line - 1) div LINES_PER_CHUNK);
+    for skip := 1 to (line - 1) mod LINES_PER_CHUNK do
+      Delete(chunk, 1, Pos(#13, chunk));
+    stop := Pos(#13, chunk);
+    if stop > 0 then
+      Delete(chunk, stop, Length(chunk));
+    TextLine := chunk;
+  end;
+end;
+
+end.

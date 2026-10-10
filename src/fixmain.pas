@@ -9,6 +9,7 @@ uses Types,
   SoundDrv, Session, GameIo, DaxIo, TextRend, Blit, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
+  Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclMenu, Shop, PostCbt, Temple,
   EclVm, BldShow, DataBld, Intro, HeapErr;
 
@@ -28,6 +29,11 @@ uses Types,
 {$O EffHndlr}
 {$O CbtActs}
 {$O Explore}
+{$O JrnlView}
+{$O Journal4}
+{$O Journal3}
+{$O Journal2}
+{$O Journal1}
 {$O Camp}
 {$O CharGen}
 {$O SaveLoad}
