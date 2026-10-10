@@ -251,7 +251,8 @@ var
   { ITEMS catalogue }
   { Base item types, indexed by TItemRec.itemType. }
   baseItems: array[0..127] of Types.TBaseItemRec;
-  { Unused; the ITEMS read takes 129 records, and the last one lands here. }
+  { Zero. It keeps the ITEMS read's request for 129 records in bounds (the shipped ITEMS holds 128), and
+    CharHlp.BaseItem gives it for an item type past baseItems. }
   baseItemsOverflow: Types.TBaseItemRec;
   { Party pointers }
   { Current creature. }

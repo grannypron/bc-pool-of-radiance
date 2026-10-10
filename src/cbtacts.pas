@@ -440,7 +440,7 @@ begin
   saved := creature^.curAttacks;
   if CharHlp.HasRangedWeapon(creature) and CharHlp.FindDamagingRangedWeapon(creature, weapon) then begin
     ranged := True;
-    rof := GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].rateOfFire;
+    rof := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.rateOfFire;
     if rof < 2 then
       rof := 2;
     GDVars.dsCurrentAttackCurrent := rof;
@@ -711,7 +711,7 @@ begin
     if (att^.equipped[C_Equip.WEAPON] <> nil)
        and ((def^.iconDimensions > $80) or (def^.iconDimensions and 7 > 1)) then begin
       { large target: swap in the large-damage dice }
-      base := GDVars.baseItems[att^.equipped[C_Equip.WEAPON]^.itemType];
+      base := CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^;
       att^.curRollsA[1] := base.dmgLgRolls;
       att^.curDiceA[1] := base.dmgLgDice;
       att^.curModA[1] := att^.curModA[1] - base.dmgSmMod
@@ -869,7 +869,7 @@ var
 begin
   dist := CharHlp.CalcDistance(att, def);
   if CharHlp.HasRangedWeapon(att) then
-    subrange := (GDVars.baseItems[att^.equipped[C_Equip.WEAPON]^.itemType].range - 1)
+    subrange := (CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1)
         div 3
   else
     subrange := dist;
@@ -1651,7 +1651,7 @@ begin
   effRange := range;
   if effRange = 255 then
     if creature^.equipped[C_Equip.WEAPON] <> nil then
-      effRange := GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].range - 1
+      effRange := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1
     else
       effRange := 1;
   if (effRange = 0) or (effRange = 255) then

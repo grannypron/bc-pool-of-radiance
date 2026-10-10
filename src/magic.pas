@@ -452,7 +452,7 @@ function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Bool
 begin
   CastableScroll := False;
   if Magic.ItemReadable(item) then
-    if (item^.equipped <> 0) or (GDVars.baseItems[item^.itemType].classMask and creature^.itemLimits <> 0) then
+    if (item^.equipped <> 0) or (CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits <> 0) then
       CastableScroll := Magic.ScrollLegible(creature, item);
 end;
 
@@ -1821,8 +1821,8 @@ end;
 
 function ItemReadable(it: Pointer): Boolean;
 begin
-  if (it <> nil) and (GDVars.baseItems[Types.PItemRec(it)^.itemType].slot > 10) and
-      (GDVars.baseItems[Types.PItemRec(it)^.itemType].slot < 14) then
+  if (it <> nil) and (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot > 10) and
+      (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot < 14) then
     ItemReadable := True
   else
     ItemReadable := False;
@@ -1833,7 +1833,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
-      ((creature^.classLevels[C_Class.LEVEL_CLERIC] > 0) and (GDVars.baseItems[item^.itemType].slot = 12)) then
+      ((creature^.classLevels[C_Class.LEVEL_CLERIC] > 0) and (CharHlp.BaseItem(item^.itemType)^.slot = 12)) then
     item^.unidMask := 0;
   ScrollLegible := item^.unidMask = 0;
 end;

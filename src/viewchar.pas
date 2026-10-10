@@ -580,9 +580,9 @@ begin
     end;
   end else begin
     err := 0;
-    if creature^.handsEquipped + GDVars.baseItems[item^.itemType].hands > 2 then
+    if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then
       err := 3;
-    slot := GDVars.baseItems[item^.itemType].slot;
+    slot := CharHlp.BaseItem(item^.itemType)^.slot;
     { slots 0..8 each hold one item; a ring (slot 9) fails only when the second ring slot is taken }
     case Byte(slot) of
       C_Equip.WEAPON..C_Equip.BOOTS:
@@ -605,7 +605,7 @@ begin
         err := 2;
         slot := C_Equip.BOLT;
       end;
-    if GDVars.baseItems[item^.itemType].classMask and creature^.itemLimits = 0 then
+    if CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0 then
       err := 1;
     case err of
       0: begin
