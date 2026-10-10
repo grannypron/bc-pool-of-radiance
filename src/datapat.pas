@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 35;
-  BYTE_COUNT = 998;
+  PART_COUNT = 38;
+  BYTE_COUNT = 1226;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -114,7 +114,14 @@ const
     (por: 43; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 177; origLen: 1; newLen: 1),
     { POR-0044: the Buccaneer Base slave pen (script $B4C7) tested a scratch word, not the heir's state, so it
       offered the boy again after he was bought, rescued or lost; it tests [$4AA9] }
-    (por: 44; family: C_Data.FAMILY_ECL; disk: 6; id: 1; size: 7673; offset: 7115; origLen: 1; newLen: 1));
+    (por: 44; family: C_Data.FAMILY_ECL; disk: 6; id: 1; size: 7673; offset: 7115; origLen: 1; newLen: 1),
+    { POR-0045: the Zhentil Keep Outpost offered dinner after the party had fought the garrison or killed the
+      commandant: the quarters (script $A400) offer it only while neither has happened, and a rest after fighting the
+      guards brings four guards, not the dinner escort (entry 4). Entries 3 and 4 are rewritten in less room to fit,
+      entry 3 the same as before }
+    (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 16; origLen: 2; newLen: 2),
+    (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 2827; origLen: 2; newLen: 2),
+    (por: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 7463; origLen: 110; newLen: 110));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -425,7 +432,68 @@ const
     { POR-0044, original }
     $0A,
     { fixed: COMPARE [$4AA9], $00 }
-    $A9);
+    $A9,
+    { POR-0045 part 1, original }
+    $78, $B6,
+    { fixed: entry 4 moves to $B651 }
+    $51, $B6,
+    { POR-0045 part 2, original }
+    $64, $A6,
+    { fixed: the quarters before dinner go by the new check at $B67D }
+    $7D, $B6,
+    { POR-0045 part 3, original }
+    $03, $01, $B4, $4A, $00, $00,                     { $B625 COMPARE [$4AB4], $00 }
+    $17,                                              { $B62B IF <> }
+    $01, $01, $48, $B6,                               { $B62C GOTO LB648 }
+    $03, $01, $0E, $4A, $00, $00,                     { $B630 COMPARE [$4A0E], $00 }
+    $16,                                              { $B636 IF = }
+    $01, $01, $48, $B6,                               { $B637 GOTO LB648 }
+    $09, $00, $64, $01, $D3, $6D,                     { $B63B SAVE $64, [$6DD3] }
+    $09, $00, $01, $01, $D2, $6D,                     { $B641 SAVE $01, [$6DD2] }
+    $00,                                              { $B647 EXIT }
+    $03, $01, $B4, $4A, $00, $00,                     { $B648 COMPARE [$4AB4], $00 }
+    $17,                                              { $B64E IF <> }
+    $01, $01, $6B, $B6,                               { $B64F GOTO LB66B }
+    $03, $01, $10, $4A, $00, $00,                     { $B653 COMPARE [$4A10], $00 }
+    $17,                                              { $B659 IF <> }
+    $01, $01, $3B, $B6,                               { $B65A GOTO LB63B }
+    $09, $00, $A8, $01, $D2, $6D,                     { $B65E SAVE $A8, [$6DD2] }
+    $09, $00, $64, $01, $D3, $6D,                     { $B664 SAVE $64, [$6DD3] }
+    $00,                                              { $B66A EXIT }
+    $09, $00, $00, $01, $D2, $6D,                     { $B66B SAVE $00, [$6DD2] }
+    $09, $00, $01, $01, $D3, $6D,                     { $B671 SAVE $01, [$6DD3] }
+    $00,                                              { $B677 EXIT }
+    $09, $00, $00, $01, $D3, $6D,                     { $B678 SAVE $00, [$6DD3] }
+    $03, $01, $10, $4A, $00, $00,                     { $B67E COMPARE [$4A10], $00 }
+    $16,                                              { $B684 IF = }
+    $01, $01, $DF, $A6,                               { $B685 GOTO LA6DF }
+    $09, $00, $39, $01, $E1, $6D,                     { $B689 SAVE $39, [$6DE1] }
+    $01, $01, $3E, $9A,                               { $B68F GOTO L9A3E }
+    { fixed: entry 3, entry 4 and the quarters check, in the room entries 3 and 4 had }
+    $09, $00, $64, $01, $D3, $6D,                     { $B625 SAVE $64, [$6DD3] }
+    $09, $00, $A8, $01, $D2, $6D,                     { $B62B SAVE $A8, [$6DD2] }
+    $14, $01, $0E, $4A, $00, $00, $01, $10, $4A, $00, $00, { $B631 COMPARE AND [$4A0E], $00, [$4A10], $00 }
+    $17,                                              { $B63C IF <> }
+    $09, $00, $01, $01, $D2, $6D,                     { $B63D SAVE $01, [$6DD2] }
+    $03, $01, $B4, $4A, $00, $00,                     { $B643 COMPARE [$4AB4], $00 }
+    $17,                                              { $B649 IF <> }
+    $09, $00, $00, $01, $D2, $6D,                     { $B64A SAVE $00, [$6DD2] }
+    $00,                                              { $B650 EXIT }
+    $09, $00, $00, $01, $D3, $6D,                     { $B651 SAVE $00, [$6DD3] }
+    $03, $01, $10, $4A, $00, $00,                     { $B657 COMPARE [$4A10], $00 }
+    $17,                                              { $B65D IF <> }
+    $01, $01, $73, $B6,                               { $B65E GOTO LB673 }
+    $03, $01, $0E, $4A, $00, $00,                     { $B662 COMPARE [$4A0E], $00 }
+    $16,                                              { $B668 IF = }
+    $01, $01, $DF, $A6,                               { $B669 GOTO LA6DF }
+    $09, $00, $04, $01, $79, $6E,                     { $B66D SAVE $04, [$6E79] }
+    $09, $00, $39, $01, $E1, $6D,                     { $B673 SAVE $39, [$6DE1] }
+    $01, $01, $3E, $9A,                               { $B679 GOTO L9A3E }
+    $14, $01, $0E, $4A, $00, $00, $01, $B4, $4A, $00, $00, { $B67D COMPARE AND [$4A0E], $00, [$4AB4], $00 }
+    $16,                                              { $B688 IF = }
+    $01, $01, $64, $A6,                               { $B689 GOTO LA664 }
+    $01, $01, $E7, $B5,                               { $B68D GOTO LB5E7 }
+    $00, $00);
 
 implementation
 
