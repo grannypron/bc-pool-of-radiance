@@ -25,7 +25,8 @@ procedure LoadCharIconAnim(loading: Boolean);
 { fname='' -> single-character save: re-add the name to CHARLIST.TXT and write <saveDir><sanitized-name>.cha/.itm/.spc;
   fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Old .itm/.spc files are erased first and
   rewritten only for non-empty lists. Records are written raw, pointers included. The .mem file beside them is
-  rewritten the same way, holding the character's usual spells when it has any. }
+  rewritten the same way, holding the character's usual spells when it has any. A record, item or effect that cannot
+  be written (a full disk) is reported once on the bottom line, after every file has been tried and closed. }
 procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
 
 { Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
@@ -392,6 +393,7 @@ var
   p: Types.PItemRec;
   n: Types.PItemRec;
   ioRes: Integer;
+  ok: Boolean;
 begin
   { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current party
     member's old line and then appends this character's name unmarked. }
@@ -424,36 +426,55 @@ begin
     if ioRes <> 0 then
       TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
   until ioRes = 0;
-  BlockWrite(f, creature^, SizeOf(Types.TCharRecord));
+  { a write that fails (a full disk) is reported once, below, after every file has been tried and closed }
+  BlockWrite(f, creature^, SizeOf(Types.TCharRecord), res);
+  ok := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
+  ioRes := IOResult;
   if DaxIo.FileExists(fn + '.itm') then begin
     Assign(f, fn + '.itm');
     Erase(f);
+    ioRes := IOResult;
   end;
   if creature^.itemsAddr <> nil then begin
     Assign(f, fn + '.itm');
     Rewrite(f, 1);
-    item := creature^.itemsAddr;
-    while item <> nil do begin
-      BlockWrite(f, item^, SizeOf(Types.TItemRec));
-      item := item^.next;
-    end;
-    Close(f);
+    if IOResult = 0 then begin
+      item := creature^.itemsAddr;
+      while item <> nil do begin
+        BlockWrite(f, item^, SizeOf(Types.TItemRec), res);
+        if (IOResult <> 0) or (res <> SizeOf(Types.TItemRec)) then
+          ok := False;
+        item := item^.next;
+      end;
+      Close(f);
+      ioRes := IOResult;
+    end else
+      ok := False;
   end;
   if DaxIo.FileExists(fn + '.spc') then begin
     Assign(f, fn + '.spc');
     Erase(f);
+    ioRes := IOResult;
   end;
   if creature^.effectsAddr <> nil then begin
     Assign(f, fn + '.spc');
     Rewrite(f, 1);
-    effect := creature^.effectsAddr;
-    while effect <> nil do begin
-      BlockWrite(f, effect^, SizeOf(Types.TEffectRec));
-      effect := effect^.next;
-    end;
-    Close(f);
+    if IOResult = 0 then begin
+      effect := creature^.effectsAddr;
+      while effect <> nil do begin
+        BlockWrite(f, effect^, SizeOf(Types.TEffectRec), res);
+        if (IOResult <> 0) or (res <> SizeOf(Types.TEffectRec)) then
+          ok := False;
+        effect := effect^.next;
+      end;
+      Close(f);
+      ioRes := IOResult;
+    end else
+      ok := False;
   end;
+  if not ok then
+    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, 15) + ' in full.');
   SaveLoad.WriteUsualSpells(creature, fn);
 end;
 
