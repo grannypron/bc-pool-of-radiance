@@ -154,12 +154,15 @@ end;
 procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte);
 var
   i: Byte;
+  dmg: Integer;
 begin
-  GDVars.pendingDamage := att^.curModA[idx]
-      + FxEngine.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]);
-  { dead guard: pendingDamage is a Byte }
-  if GDVars.pendingDamage < 0 then
-    GDVars.pendingDamage := 0;
+  { summed as an Integer so that a negative modifier stops at 0 instead of wrapping in the Byte }
+  dmg := att^.curModA[idx] + FxEngine.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]);
+  if dmg < 0 then
+    dmg := 0;
+  if dmg > 255 then
+    dmg := 255;
+  GDVars.pendingDamage := dmg;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
     GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_Class.LEVEL_THIEF]) + 3) div 4 + 1);
@@ -563,6 +566,7 @@ var
   stop: Boolean;
   tgt: Pointer;
   col: ShortInt;
+  row: ShortInt;
 begin
   CharHlp.PrintNameString(creature, 'turns undead...', 10, False);
   MenuCore.ClearBottomLine;
@@ -581,7 +585,11 @@ begin
   end;
   while CbtActs.FindTurnUndeadTarget(creature, tgt) and (attempts > 0)
         and (stop = False) do begin
-    turnVal := GDConsts.turnTable[Types.PCharRecord(tgt)^.levelUndead, col];
+    { FindTurnUndeadTarget admits undead levels up to 12; the table's rows stop at 10 }
+    row := Types.PCharRecord(tgt)^.levelUndead;
+    if row > 10 then
+      row := 10;
+    turnVal := GDConsts.turnTable[row, col];
     if roll >= Abs(turnVal) then begin
       any := True;
       CbtMap.DisplayMapViewCentered(Types.PCharRecord(tgt), 3, False);
@@ -668,6 +676,7 @@ var
   atkType: Byte;
   behindIdx: ShortInt;
   image: Types.PEffectRec;
+  slay: Byte;
 begin
   behind := fromBehind;
   done := False;
@@ -681,11 +690,17 @@ begin
   att^.combatAddr^.madeAttack := 1;
   if CharHlp.IsHelpless(def) then begin
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
-    while Types.PAttackPhaseView(att)^.curAtt[att^.combatAddr^.attackPhase] = 0 do
-      { may run below the array bound }
+    { phase 1 is curAtt's lower bound }
+    while (att^.combatAddr^.attackPhase > 1)
+          and (Types.PAttackPhaseView(att)^.curAtt[att^.combatAddr^.attackPhase] = 0) do
       Dec(att^.combatAddr^.attackPhase);
     Inc(GDVars.attacksMade[att^.combatAddr^.attackPhase]);
-    CbtActs.ProcessAttackResult(att, def, 3, def^.hpCur + 5, 1, True);
+    { hp + 5, held to the Byte }
+    if def^.hpCur > 250 then
+      slay := 255
+    else
+      slay := def^.hpCur + 5;
+    CbtActs.ProcessAttackResult(att, def, 3, slay, 1, True);
     FxEngine.RemoveInvisibility(att);
     { 2 = curAtt's upper bound }
     for phase := 1 to 2 do
@@ -1296,7 +1311,8 @@ begin
     p := p^.nextCharAddr;
   end;
   if maxSum > 0 then
-    GDVars.hostileHpPct := curSum * 20 div maxSum * 5;
+    { LongInt: curSum * 20 passes a Word above 3276 }
+    GDVars.hostileHpPct := LongInt(curSum) * 20 div maxSum * 5;
 end;
 
 { The fastest enabled enemy's movement in whole moves (CalcCreatureMovement div 2); no range or line-of-sight check. }

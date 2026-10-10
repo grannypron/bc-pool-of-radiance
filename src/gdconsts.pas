@@ -76,7 +76,8 @@ const
   { Turning undead }
     { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
       d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
-      automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. }
+      automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. An undead
+      level above 10 (CbtActs.FindTurnUndeadTarget admits up to 12) is read from row 10. }
   turnTable: Types.TTurnUndeadTable = (
     { 1: Skeleton }
     (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
