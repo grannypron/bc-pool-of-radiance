@@ -12,10 +12,10 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-{ Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit, in steps of at most 10
-  minutes, removing those that run out. Outside camp every creature is visited; in camp only those GDVars.effFlags marks
-  as still holding timed effects. Each step first ages the effects and notes the expiring ones, then removes those still
-  in the list, since a removal's handler can remove (and free) another effect. }
+{ Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
+  in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
+  those GDVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
+  ones, then removes those still in the list, since a removal's handler can remove (and free) another effect. }
 procedure TimeOutEffects(count: Byte; tUnit: ShortInt);
 const
   { expiring effects one creature can lose in one step; any more expire in the next step }
@@ -25,11 +25,13 @@ var
   i: Byte;
   k: Byte;
   step: Byte;
-  total: Word;
+  total: LongInt;
   cur: Types.PCharRecord;
   found: Boolean;
   e: Types.PEffectRec;
   expiring: array[1..MAX_EXPIRING] of Types.PEffectRec;
+  expiringId: array[1..MAX_EXPIRING] of Byte;
+  expiringDuration: array[1..MAX_EXPIRING] of Word;
   nExpiring: Byte;
   again: Boolean;
 
@@ -59,6 +61,8 @@ begin
   end;
   total := count;
   u := tUnit;
+  if u = C_Time.SEGMENTS then
+    total := total div GDConsts.unitScale[C_Time.SEGMENTS];
   while u > 1 do begin
     total := GDConsts.unitScale[Pred(u)] * total;
     u := Pred(u);
@@ -81,13 +85,17 @@ begin
             end else if nExpiring < MAX_EXPIRING then begin
               Inc(nExpiring);
               expiring[nExpiring] := e;
+              expiringId[nExpiring] := e^.id;
+              expiringDuration[nExpiring] := e^.duration;
             end else
               again := True;
           e := e^.next;
         end;
-        { then remove them, skipping any an earlier removal has already taken away }
+        { then remove them, skipping any an earlier removal has already taken away; a node a handler allocated since
+          can reuse a freed one's address, so the id and duration must still match }
         for k := 1 to nExpiring do
-          if InList(expiring[k]) then
+          if InList(expiring[k]) and (expiring[k]^.id = expiringId[k]) and
+              (expiring[k]^.duration = expiringDuration[k]) then
             FxEngine.RemoveEffect(cur, expiring[k]^.id, expiring[k]);
         { a removal's handler can add effects too: the creature is visited again while any timed effect is left }
         e := Types.PEffectRec(cur^.effectsAddr);
@@ -305,7 +313,8 @@ end;
 
 { Scan the 21 memorized-spell slots; bit 7 set = still memorizing. With done already True, return the first pending
   spell's level; otherwise clear the bit (spell finished), announce it and set done, so the scan goes on to return the
-  next pending spell's level. Returns 0 when nothing (more) is pending. }
+  next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_Spell.LAST
+  is passed over. }
 function CheckMemorizeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   lvl: Byte;
@@ -315,7 +324,8 @@ begin
   i := 0;
   { 20 = High(memorizedSpells) }
   while (i <= 20) and (lvl = 0) do begin
-    if creature^.memorizedSpells[i] > $7F then
+    if (creature^.memorizedSpells[i] > $7F) and
+        (creature^.memorizedSpells[i] and C_Spell.ID_MASK in [1..C_Spell.LAST]) then
       if done then
         lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_Spell.ID_MASK].level
       else begin
@@ -331,7 +341,8 @@ end;
 
 { The scribing counterpart of CheckMemorizeDone over the readable items' scroll spells queued for scribing (id > $80, in
   TItemRec's spells[1..3]). Finishing one marks it known, removes it with Magic.RemoveSpellFromScroll and announces it;
-  a scroll freed with its last spell is left and the scan goes on with the next item. }
+  a scroll freed with its last spell is left and the scan goes on with the next item. A spell id outside 1..C_Spell.LAST
+  is passed over. }
 function CheckScribeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   j: Byte;
@@ -349,7 +360,7 @@ begin
     if Magic.ItemReadable(item) then
       { 3 = High(TItemRec.spells) }
       while (j <= 3) and (lvl = 0) do begin
-        if item^.spells[j] > $80 then
+        if (item^.spells[j] > $80) and (item^.spells[j] and C_Spell.ID_MASK <= C_Spell.LAST) then
           if done then
             lvl := GDConsts.spellTable[item^.spells[j] and C_Spell.ID_MASK].level
           else begin
@@ -385,7 +396,8 @@ var
 begin
   i := 1;
   cur := GDVars.creatureList;
-  while cur <> nil do begin
+  { the walk stops at the last prepTimers slot }
+  while (cur <> nil) and (i <= SizeOf(GDVars.prepTimers)) do begin
     Dec(GDVars.prepTimers[i]);
     if (GDVars.prepTimers[i] = 0) and (cur^.spellPrepTime = 0) then begin
       done := False;
@@ -421,7 +433,8 @@ begin
           done := True;
           lvl := GameTime.CheckScribeDone(cur, done);
           if lvl = 0 then lvl := GameTime.CheckMemorizeDone(cur, done);
-          GDVars.prepTimers[i] := lvl * 3;
+          if i <= SizeOf(GDVars.prepTimers) then
+            GDVars.prepTimers[i] := lvl * 3;
         end;
       end;
       cur := cur^.nextCharAddr;
@@ -448,7 +461,7 @@ begin
   dead3 := False;
   i := 1;
   cur := GDVars.creatureList;
-  while cur <> nil do begin
+  while (cur <> nil) and (i <= SizeOf(GDVars.prepTimers)) do begin
     GDVars.prepTimers[i] := 0;
     Inc(i);
     cur := cur^.nextCharAddr;
