@@ -739,15 +739,10 @@ begin
   end;
 end;
 
-{ 'POR-0038' for por 38. }
-function PorName(por: Word): Types.TStr20;
-var
-  s: Types.TStr20;
+{ '#38' for issue 38. }
+function IssueName(issue: Word): Types.TStr20;
 begin
-  s := DataBld.NumStr(por);
-  while Length(s) < 4 do
-    s := '0' + s;
-  PorName := 'POR-' + s;
+  IssueName := '#' + DataBld.NumStr(issue);
 end;
 
 { The most bytes a block of the family may hold once fixed: a script must fit the script buffer after its two-byte
@@ -767,10 +762,10 @@ begin
                    (DataPat.parts[a].disk = DataPat.parts[b].disk) and (DataPat.parts[a].id = DataPat.parts[b].id);
 end;
 
-{ True when part b belongs to the same fix as part a: the same POR id and block. }
+{ True when part b belongs to the same fix as part a: the same issue and block. }
 function SameFix(a, b: Word): Boolean;
 begin
-  SameFix := (DataPat.parts[a].por = DataPat.parts[b].por) and DataBld.SameBlockPart(a, b);
+  SameFix := (DataPat.parts[a].issue = DataPat.parts[b].issue) and DataBld.SameBlockPart(a, b);
 end;
 
 { The remap entry for a load of block id from disk, or 0. }
@@ -927,8 +922,8 @@ end;
 
 { Make every fix to the block part first names, in table order, the first one's bytes from patchBytes[pos] on: the
   block is decoded, each fix made when its checks pass, and the result packed into memory. A block several disks read
-  is first copied for the fixed disk. Each fix is logged by its POR id. False, with failNote set, on a read error or
-  when the memory for the result is not there. }
+  is first copied for the fixed disk. Each fix is logged by its issue number. False, with failNote set, on a read error
+  or when the memory for the result is not there. }
 function PatchBlock(fam: Byte; first, pos: Word): Boolean;
 var
   disk: Byte;
@@ -1005,12 +1000,12 @@ begin
     for p := first to DataPat.PART_COUNT do begin
       if DataBld.SameBlockPart(first, p) and ((p = first) or not DataBld.SameFix(p - 1, p)) then
         if note <> '' then
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.PorName(DataPat.parts[p].por) + ' skipped: ' + note)
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' skipped: ' + note)
         else if DataBld.ApplyFix(fam, p, q, raw, spare, room, rawLen, why) then begin
           fixed := True;
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.PorName(DataPat.parts[p].por) + ' applied');
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' applied');
         end else
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.PorName(DataPat.parts[p].por) + ' skipped: ' + why);
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' skipped: ' + why);
       Inc(q, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
     end;
     if fixed then begin
