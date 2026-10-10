@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 39;
-  BYTE_COUNT = 1228;
+  PART_COUNT = 40;
+  BYTE_COUNT = 1260;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -125,7 +125,11 @@ const
     { POR-0046: at the Zhentil Keep Outpost a party that beat the guards outside its quarters could walk west and
       through the one-way wall at (2,0), never stepping on (4,1) where the dwarf and the commandant attack; (3,0)
       gets the same event, 5, keeping its outdoor bit }
-    (por: 46; family: C_Data.FAMILY_GEO; disk: 6; id: 28; size: 1026; offset: 517; origLen: 1; newLen: 1));
+    (por: 46; family: C_Data.FAMILY_GEO; disk: 6; id: 28; size: 1026; offset: 517; origLen: 1; newLen: 1),
+    { POR-0047: the Zhentil Keep Outpost's commandant fight (MON6CHA block 86) uses a copy of Al-Hyam Dazid, whom the
+      party meets alive later in Valjevo Castle; disk 6's copy is renamed Zhentarim Mage, disk 5's Al-Hyam is
+      unchanged }
+    (por: 47; family: C_Data.FAMILY_MONCHA; disk: 6; id: 86; size: 285; offset: 0; origLen: 16; newLen: 16));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -501,7 +505,11 @@ const
     { POR-0046, original }
     $80,
     { fixed: event 5 }
-    $85);
+    $85,
+    { POR-0047, original }
+    $0D, $41, $4C, $2D, $48, $59, $41, $4D, $20, $44, $41, $5A, $49, $44, $00, $00,
+    { fixed: ZHENTARIM MAGE }
+    $0E, $5A, $48, $45, $4E, $54, $41, $52, $49, $4D, $20, $4D, $41, $47, $45, $00);
 
 implementation
 
