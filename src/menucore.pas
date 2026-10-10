@@ -558,8 +558,9 @@ begin
           C_Keys.PGDN: if hasNext then MovePage(True);
         end else
         case ch of
-          'P': MovePage(False);
-          'N': MovePage(True);
+          { as for Page Up and Page Down, only when the bottom line offers Prev or Next }
+          'P': if hasPrev then MovePage(False);
+          'N': if hasNext then MovePage(True);
           C_Keys.ESC, 'E', C_Keys.NONE:
             begin
               sel := nil;
