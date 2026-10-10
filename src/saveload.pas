@@ -777,6 +777,8 @@ begin
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
   BlockRead(f, GDVars.zone3^, SizeOf(GDVars.zone3^), res);
   BlockRead(f, GDVars.gMapX, 5, res);
+  { a cardinal facing only }
+  GDVars.gFacing := GDVars.gFacing and 6;
   BlockRead(f, GDVars.gLocType, SizeOf(GDVars.gLocType), res);
   BlockRead(f, GDVars.ifcState, SizeOf(GDVars.ifcState), res);
   BlockRead(f, nChars, SizeOf(nChars), res);
