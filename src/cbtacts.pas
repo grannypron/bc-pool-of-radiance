@@ -147,9 +147,10 @@ begin
   CalcCreatureMovement := GDVars.dsCurrentAttackCurrent;
 end;
 
-{ Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it by thief level div 4 + 2 on a
-  backstab, add the attacker's ranger level against a giant-class foe (GDConsts.rangerFoes) in melee, up to 255, clear
-  elementMask and fire the attacker's and defender's weapon-damage effect conditions. }
+{ Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it on a backstab by the AD&D band
+  for the thief level (x2 at 1-4, x3 at 5-8, x4 at 9-12), add the attacker's ranger level against a giant-class foe
+  (GDConsts.rangerFoes) in melee, up to 255, clear elementMask and fire the attacker's and defender's weapon-damage
+  effect conditions. }
 procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte);
 var
   i: Byte;
@@ -160,7 +161,8 @@ begin
   if GDVars.pendingDamage < 0 then
     GDVars.pendingDamage := 0;
   if CbtActs.IsBackstab(att, def) then
-    GDVars.pendingDamage := GDVars.pendingDamage * (Word(att^.classLevels[C_Class.LEVEL_THIEF]) div 4 + 2);
+    { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
+    GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_Class.LEVEL_THIEF]) + 3) div 4 + 1);
   if (att^.classLevels[C_Class.LEVEL_RANGER] > 0) and (CharHlp.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
       if def^.name = GDConsts.rangerFoes[i] then
