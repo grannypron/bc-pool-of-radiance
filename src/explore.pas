@@ -18,9 +18,10 @@ var
   animData: Types.TAnimRec absolute GDVars.animData;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
-  nibbles are untouched. }
+  nibbles are untouched, and coordinates outside 0..15 are ignored. }
 procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
 begin
+  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
   case facing of
     C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F;
     C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF;
