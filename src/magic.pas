@@ -325,7 +325,11 @@ begin
     GDVars.castScroll := GDVars.spellScrolls[count];
   end;
   if selType = 3 then
-    GDVars.dsCurrentScrollPtr := GDVars.scrollPtrs[count];
+    { 48 = High(scrollPtrs) }
+    if count <= 48 then
+      GDVars.dsCurrentScrollPtr := GDVars.scrollPtrs[count]
+    else
+      GDVars.dsCurrentScrollPtr := nil;
   MenuCore.FreeStringList(GDVars.spellList);
 end;
 
@@ -411,8 +415,8 @@ begin
 end;
 
 { Add dsCurrentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
-  and record the scroll in scrollPtrs for each. Read Magic (effect 16), or any cleric level with a scroll whose base
-  item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. }
+  and record the scroll in scrollPtrs for each while scrollPtrs has room. Read Magic (effect 16), or any cleric level
+  with a scroll whose base item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. }
 procedure AddScrollSpells(forScribe: Boolean; mark: Byte);
 var
   i: Byte;
@@ -423,23 +427,19 @@ begin
       if (forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
           (not forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > 0)) then begin
         Magic.AddSpellToList(GDVars.dsCurrentScrollPtr^.spells[i], mark);
-        GDVars.scrollPtrs[GDVars.scrollCount] := GDVars.dsCurrentScrollPtr;
-        Inc(GDVars.scrollCount);
+        { 48 = High(scrollPtrs) }
+        if GDVars.scrollCount <= 48 then begin
+          GDVars.scrollPtrs[GDVars.scrollCount] := GDVars.dsCurrentScrollPtr;
+          Inc(GDVars.scrollCount);
+        end;
       end;
     end;
 end;
 
-{ Clear all 49 scrollPtrs and scrollCount, then walk curChar's inventory: each readable item becomes dsCurrentScrollPtr
-  and feeds AddScrollSpells with forScribe and mark. dsCurrentScrollPtr itself is the loop variable, so it ends as
-  nil. }
+{ Walk curChar's inventory: each readable item becomes dsCurrentScrollPtr and feeds AddScrollSpells with forScribe and
+  mark. dsCurrentScrollPtr itself is the loop variable, so it ends as nil. }
 procedure AddAllScrollSpells(forScribe: Boolean; mark: Byte);
-var
-  i: Byte;
 begin
-  { High(scrollPtrs), 49 slots }
-  for i := 0 to 48 do
-    GDVars.scrollPtrs[i] := nil;
-  GDVars.scrollCount := 0;
   GDVars.dsCurrentScrollPtr := GDVars.curChar^.itemsAddr;
   while GDVars.dsCurrentScrollPtr <> nil do begin
     if Magic.ItemReadable(GDVars.dsCurrentScrollPtr) then
@@ -543,6 +543,10 @@ begin
     GDVars.spellIds[i] := 0;
     GDVars.spellScrolls[i] := nil;
   end;
+  { every list starts with no scrolls recorded: High(scrollPtrs), 49 slots }
+  for i := 0 to 48 do
+    GDVars.scrollPtrs[i] := nil;
+  GDVars.scrollCount := 0;
   case menuType of
     7: Magic.AddAvailableSpells;
     { High(memorizedSpells) }
