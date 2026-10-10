@@ -21,8 +21,9 @@ const
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
   div 20, electrum div 2, gold x1, platinum x5, gems x250, jewelry x2200), as does each taken item's positive plus x400
-  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonAnimCount. A mirror duel
-  instead awards 100 experience per level (levelHighest) of the current character. }
+  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonAnimCount, and the share is
+  0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
+  level (levelHighest) of the current character. }
 procedure DetermineLootExp(var share: LongInt);
 var
   p: Types.PCharRecord;
@@ -31,6 +32,7 @@ var
   q: Types.PItemRec;
   item: Types.PItemRec;
   cnt: Byte;
+  sharers: Integer;
 begin
   if GDVars.duelFlag and (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] <> 0) then
     share := GDVars.curChar^.levelHighest * 100
@@ -82,7 +84,11 @@ begin
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    share := expTotal div (GDVars.zone1^[C_Gbvm.PARTY_SIZE] - GDVars.nonAnimCount);
+    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - GDVars.nonAnimCount;
+    if sharers > 0 then
+      share := expTotal div sharers
+    else
+      share := 0;
   end;
 end;
 
