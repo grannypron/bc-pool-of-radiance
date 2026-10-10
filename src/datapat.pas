@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 2;
-  BYTE_COUNT = 178;
+  PART_COUNT = 4;
+  BYTE_COUNT = 182;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -36,6 +36,11 @@ const
       effect 22 and special 0, so readying it never adds the Flame Tongue effect and Use casts Find Traps; it gets
       effect 6 (Flame Tongue) and special 130, a ready-item handler }
     (por: 20; family: C_Data.FAMILY_ITEM; disk: 5; id: 36; size: 63; offset: 61; origLen: 2; newLen: 2),
+    { POR-0027: the arms shop's south door in New Phlan, north wall of (9,14) and south wall of (9,13), is wall type
+      3, so the night lock (a type-9 shop door seen from the street) never stops the party; both become type 9 like
+      every other shop door }
+    (por: 27; family: C_Data.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 235; origLen: 1; newLen: 1),
+    (por: 27; family: C_Data.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 475; origLen: 1; newLen: 1),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -45,6 +50,14 @@ const
     $16, $00,
     { fixed: effect 6, special 130 }
     $06, $82,
+    { POR-0027 part 1, original }
+    $30,
+    { fixed: (9,14) north: wall type 9 }
+    $90,
+    { POR-0027 part 2, original }
+    $30,
+    { fixed: (9,13) south: wall type 9 }
+    $90,
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
