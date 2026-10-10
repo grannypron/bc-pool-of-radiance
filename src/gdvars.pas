@@ -223,6 +223,8 @@ var
   { Nonzero: SoundDrv.SoundCommand waits a fixed delay after each command, then silences the voices and removes its
     timer. Zero leaves the timer driver resident for persistent playback. }
   soundAutoStop: Word;
+  { the exit procedure SoundDrv.SoundExit hands on to }
+  soundExitSaved: Pointer;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;

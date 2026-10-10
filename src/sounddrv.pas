@@ -53,18 +53,19 @@ const
   OUTPUT_ENABLED = 1;
 
 {$L SOUNDDRV.OBJ}
-{ * Hooks the timer interrupt so the sequencer runs in the background. }
+{ * Hooks the timer interrupt so the sequencer runs in the background. Does nothing while it is hooked already. }
 procedure InstallSoundTimer; external;
 
-{ * Restores the original timer interrupt and silences both devices. }
+{ * Restores the original timer interrupt and the BIOS timer rate, and silences both devices. Does nothing while the
+   timer is not hooked. }
 procedure UninstallSoundTimer; external;
 
 { * Loads a tune into the PC-speaker voices.
-   @param(tuneId Tune to play; SILENT_TUNE silences the voices.) }
+   @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
 procedure ProgramSpeakerVoices(tuneId: Word); external;
 
 { * Loads a tune into the Tandy SN76489 voices.
-   @param(tuneId Tune to play; SILENT_TUNE silences the voices.) }
+   @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
 procedure ProgramTandyVoices(tuneId: Word); external;
 
 { * Gates the sound output without disturbing the loaded tune.
@@ -140,4 +141,15 @@ begin
   GDVars.soundAutoStop := autoStop;
 end;
 
+{ * Unhooks the timer on every way out of the program, Halt and run-time errors included: an INT 8 vector left pointing
+   into a program that has ended crashes DOS at the next tick. }
+procedure SoundExit;
+begin
+  ExitProc := GDVars.soundExitSaved;
+  SoundDrv.UninstallSoundTimer;
+end;
+
+begin
+  GDVars.soundExitSaved := ExitProc;
+  ExitProc := @SoundDrv.SoundExit;
 end.

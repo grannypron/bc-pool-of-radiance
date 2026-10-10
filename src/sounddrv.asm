@@ -162,6 +162,7 @@ songTableA      dw      silentA,     silentA,     silentA,     silentA      ; tu
                 dw      tuneA18_v0,  silentA,     silentA,     silentA      ; tune 18
                 dw      tuneA19_v0,  silentA,     silentA,     silentA      ; tune 19
                 dw      tuneA20_v0,  0,           0,           0            ; tune 20
+SONG_ROWS_A     equ     ($ - songTableA) / 8
 
 ; Tandy rows include tone and noise streams.
 songTableB      dw      silentB,     silentB,     silentB,     silentB      ; tune  0
@@ -185,6 +186,7 @@ songTableB      dw      silentB,     silentB,     silentB,     silentB      ; tu
                 dw      tuneB18_v0,  silentB,     tuneB18_v2,  tuneB18_v3   ; tune 18
                 dw      tuneB19_v0,  silentB,     silentB,     silentB      ; tune 19
                 dw      tuneB20_v0,  silentB,     silentB,     silentB      ; tune 20
+SONG_ROWS_B     equ     ($ - songTableB) / 8
 
 ; ---------------------------------------------------------------------------
 ; LFO WAVEFORMS.  A voice picks one by pointing vfLfoTable at it; voice_step reads
@@ -1020,19 +1022,28 @@ tuneB19_v0:
 ; Saved BIOS timer vector, restored by UninstallSoundTimer.
 oldInt8Off      dw      0
 oldInt8Seg      dw      0
+hooked          db      0               ; nonzero while P_isr owns INT 8
 
 ; ---------------------------------------------------------------------------
 ; Playback routines.
 ; ---------------------------------------------------------------------------
-; Channel 0 retains the BIOS periodic low/high-byte setup. The control write
-; below selects channel 2; only the period writes address channel 0.
+; Both entries may be called again in the state they leave: a second hook would
+; keep P_isr as the handler to chain, and the BIOS clock would stop for good.
 InstallSoundTimer:
         push    ds
         push    es
         mov     ax, CODE
         mov     ds, ax
+        cmp     cs:[hooked], 0
+        jnz     ist_done
         mov     ax, 3508h               ; DOS get-vector, INT 8
         int     21h
+        mov     ax, es                  ; never keep P_isr itself as the handler to chain
+        cmp     ax, CODE
+        jnz     ist_save
+        cmp     bx, offset P_isr
+        jz      ist_pit
+ist_save:
         mov     cs:[oldInt8Off], bx     ; keep the handler we are displacing
         mov     cs:[oldInt8Seg], es
         push    ds
@@ -1042,18 +1053,26 @@ InstallSoundTimer:
         mov     ax, 2508h               ; DOS set-vector, INT 8
         int     21h
         pop     ds
-        mov     al, 0B6h                ; selects PIT ch2, lo/hi, mode 3; divisor below goes to ch0
+ist_pit:
+        mov     cs:[hooked], 1
+        mov     al, 0B6h                ; PIT ch2: lo/hi, mode 3, for the speaker
         out     43h, al
-        mov     ax, 13B1h               ; ch0 divisor 5041 under the inherited BIOS setup
+        mov     al, 36h                 ; PIT ch0: lo/hi, mode 3, then its divisor
+        out     43h, al
+        mov     ax, 13B1h               ; ch0 divisor 5041: 236.7 Hz
         out     40h, al
         mov     al, ah
         out     40h, al
+ist_done:
         pop     es
         pop     ds
         retf
 
 UninstallSoundTimer:
         push    ds
+        cmp     cs:[hooked], 0
+        jz      ust_done
+        mov     cs:[hooked], 0
         mov     ax, CODE
         mov     ds, ax
         push    ds
@@ -1063,9 +1082,10 @@ UninstallSoundTimer:
         mov     ax, 2508h               ; put the displaced handler back
         int     21h
         pop     ds
-        mov     ax, 0FFFFh              ; ch0 divisor 65535 under the inherited BIOS setup
+        mov     al, 36h                 ; PIT ch0: lo/hi, mode 3, then divisor 0
+        out     43h, al                 ;   (65536), the BIOS's own 18.2 Hz
+        xor     ax, ax
         out     40h, al
-        mov     al, ah
         out     40h, al
         in      al, 61h                 ; drop the speaker gate and the timer gate
         and     al, 0FCh
@@ -1078,6 +1098,7 @@ UninstallSoundTimer:
         out     0C0h, al
         mov     al, 0FFh
         out     0C0h, al
+ust_done:
         pop     ds
         retf
 
@@ -1498,6 +1519,10 @@ ProgramSpeakerVoices:
         mov     si, CODE
         mov     ds, si
         mov     si, [bp+6]              ; the tune id
+        cmp     si, SONG_ROWS_A         ; an id past the last row plays tune 0, silence
+        jb      vwa_tune
+        xor     si, si
+vwa_tune:
         mov     ds:[curTune], si
         add     si, si
         add     si, si
@@ -1546,6 +1571,10 @@ ProgramTandyVoices:
         mov     si, CODE
         mov     ds, si
         mov     si, [bp+6]
+        cmp     si, SONG_ROWS_B
+        jb      vwb_tune
+        xor     si, si
+vwb_tune:
         mov     ds:[curTune], si
         add     si, si
         add     si, si
