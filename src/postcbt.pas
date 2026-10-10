@@ -46,7 +46,7 @@ begin
         GDVars.nonEscapedHostileFound := True;
         for i := C_Money.COPPER to C_Money.JEWELRY do
           Inc(GDVars.treasureMoney[i], p^.coins[i]);
-        expTotal := expTotal + p^.xpAward + p^.xpBonusPerHp * p^.hpRolled;
+        expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
         if GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] <> 1 then
           while item <> nil do begin
             if (item^.value > 0) or ((cnt < 8) and (FxEngine.RollDice(1, 10) <= 3)) then begin
