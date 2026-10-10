@@ -434,7 +434,7 @@ begin
 end;
 
 { Rebuild equipment slots and encumbrance, apply strength, dexterity and item adjustments, then calculate armor class,
-  rear armor class (no Dexterity or shield), attack level (fighter level for a non-monster fighter, else 1) and
+  rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster warrior, else 1) and
   movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of encumbrance, never leaving
   less than the equipped items' weight. The weight is summed in 32 bits and stored as at most 65535. }
 procedure RecalcStats(creature: Types.PCharRecord);
@@ -543,8 +543,8 @@ begin
   for k := 0 to 4 do
     creature^.acCur := creature^.acCur + adj[k];
   creature^.acBehind := adj[4] + adj[2] + adj[3] - 1 - 1;
-  if (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) and (creature^.race > C_Race.MONSTER) then
-    creature^.attackLevel := creature^.classLevels[C_Class.LEVEL_FIGHTER]
+  if (CharHlp.WarriorLevel(creature) > 0) and (creature^.race > C_Race.MONSTER) then
+    creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
 end;
@@ -1524,8 +1524,8 @@ begin
   end;
 end;
 
-{ Check the racial level limit for a class. Fighter caps increase with high strength; half-elf clerics stop at level 5.
-  Monsters, half-orcs and humans have no limit here. }
+{ Check the racial level limit for a class. Fighter caps, and the half-elf ranger's, increase with high strength;
+  half-elf clerics stop at level 5. Monsters, half-orcs and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;
@@ -1551,7 +1551,7 @@ begin
       C_Race.HALFELF:
         if (cls = C_Class.LEVEL_CLERIC) and (lvl = 5) then
           AtLevelCap := True
-        else if cls = C_Class.LEVEL_FIGHTER then
+        else if (cls = C_Class.LEVEL_FIGHTER) or (cls = C_Class.LEVEL_RANGER) then
           if (lvl = 8) or ((lvl = 7) and (strCur = 17)) or ((lvl = 6) and (strCur < 17)) then
             AtLevelCap := True;
       C_Race.HALFLING:

@@ -16,12 +16,13 @@ procedure RecalcThiefSkills(creature: Types.PCharRecord);
 
 implementation
 
-{ Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set fighter
-  attacks (stored doubled: 3 above level 6, else 2; set for every character), and for cleric or magic-user levels above
-  1 set the spell slots (clerics also get the Wisdom bonus and every cleric spell of a level with slots marked known).
-  The slot table fills only levels 2..6, the player cap, so a higher-level caster (Genheeris, a level 7 magic-user who
-  joins the party) takes the level 6 row. thac0Tbl covers levels 0..10, and a level outside that uses the nearer end.
-  Then call RecalcSaves and, if the character has thief levels, RecalcThiefSkills. }
+{ Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
+  attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
+  character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
+  every cleric spell of a level with slots marked known). The slot table fills only levels 2..6, the player cap, so a
+  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. thac0Tbl covers
+  levels 0..10, and a level outside that uses the nearer end. Then call RecalcSaves and, if the character has thief
+  levels, RecalcThiefSkills. }
 procedure RecalcBaseSkills(creature: Types.PCharRecord);
 var
   i: ShortInt;
@@ -50,6 +51,11 @@ begin
     case i of
       C_Class.LEVEL_FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
+      { after the fighter's slot, so these only raise it }
+      C_Class.LEVEL_PALADIN:
+        if lvl > 6 then creature^.attacks := 3;
+      C_Class.LEVEL_RANGER:
+        if lvl > 7 then creature^.attacks := 3;
       C_Class.LEVEL_CLERIC:
         if lvl > 1 then begin
           { 3 = High(clericSpells) }

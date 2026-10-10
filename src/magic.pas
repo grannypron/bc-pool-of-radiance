@@ -1189,9 +1189,9 @@ begin
       FxEngine.ConsiderStinkingCloud(GDVars.creatureArr[crIdx[k]]);
 end;
 
-{ Strength: add 1d4 for a mage, 1d6 for a cleric or thief, 1d8 for a fighter; when several classes match, the last test
-  wins. Above 18, fighters turn each extra point into 10 points of exceptional Strength (capped at 100) and others are
-  held at 18. }
+{ Strength: add 1d4 for a mage, 1d6 for a cleric or thief, 1d8 for a fighter, paladin or ranger; when several classes
+  match, the last test wins. Above 18, those warriors turn each extra point into 10 points of exceptional Strength
+  (capped at 100) and others are held at 18. }
 procedure StrengthHandler;
 var
   tgt: Types.PCharRecord;
@@ -1206,12 +1206,12 @@ begin
     roll := FxEngine.RollDice(1, 4);
   if (tgt^.classLevels[C_Class.LEVEL_CLERIC] > 0) or (tgt^.classLevels[C_Class.LEVEL_THIEF] > 0) then
     roll := FxEngine.RollDice(1, 6);
-  if tgt^.classLevels[C_Class.LEVEL_FIGHTER] > 0 then
+  if CharHlp.WarriorLevel(tgt) > 0 then
     roll := FxEngine.RollDice(1, 8);
   { Note: no matching class leaves roll uninitialized }
   newStr := tgt^.strCur + roll;
   if newStr > 18 then begin
-    if tgt^.classLevels[C_Class.LEVEL_FIGHTER] > 0 then begin
+    if CharHlp.WarriorLevel(tgt) > 0 then begin
       { 10 exceptional points per point above 18 }
       exStr := tgt^.strExc + (newStr - 18) * 10;
       { Percentile cap 100 }

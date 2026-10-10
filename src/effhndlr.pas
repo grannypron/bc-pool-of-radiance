@@ -698,7 +698,7 @@ begin
   creature^.hostile := Types.PEffectRec(p)^.strength div 16;
   creature^.quickfight := 1;
   creature^.levelUndead := 0;
-  creature^.attackLevel := creature^.classLevels[C_Class.LEVEL_FIGHTER];
+  creature^.attackLevel := CharHlp.WarriorLevel(creature);
   creature^.movementBase := 12;
   if creature^.npc = C_Npc.ANIMATED_PC then
     creature^.npc := 0;

@@ -87,8 +87,9 @@ begin
 end;
 
 { Every enabled, non-Animated creature in the list gets exp. A single-class cleric, fighter, magic-user or thief whose
-  prime stat (Wis/Str/Int/Dex) is above PRIME_STAT_THRESHOLD (15) gets +10 pct; other single classes get exp unchanged;
-  two-class multiclasses get exp div 2, three-class (9 = C/F/M, 15 = F/M/T) exp div 3. }
+  prime stat (Wis/Str/Int/Dex) is above PRIME_STAT_THRESHOLD (15) gets +10 pct, as does a paladin with Str and Wis or a
+  ranger with Str, Int and Wis above it; other single classes get exp unchanged; two-class multiclasses get exp div 2,
+  three-class (9 = C/F/M, 15 = F/M/T) exp div 3. }
 procedure AwardExperience(experience: LongInt);
 var
   p: Types.PCharRecord;
@@ -101,6 +102,13 @@ begin
       case p^.charClass of
         C_Class.CLERIC: if p^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
         C_Class.FIGHTER: if p^.strCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+        C_Class.PALADIN:
+          if (p^.strCur > PRIME_STAT_THRESHOLD) and (p^.wisCur > PRIME_STAT_THRESHOLD) then
+            share := experience div 10 + experience;
+        C_Class.RANGER:
+          if (p^.strCur > PRIME_STAT_THRESHOLD) and (p^.intCur > PRIME_STAT_THRESHOLD) and
+              (p^.wisCur > PRIME_STAT_THRESHOLD) then
+            share := experience div 10 + experience;
         C_Class.MAGE: if p^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
         C_Class.THIEF: if p^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
         C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER..C_Class.FIGHTER_THIEF,
