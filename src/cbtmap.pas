@@ -362,7 +362,8 @@ end;
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 begin
   GetIconTileDelta := False;
-  if size = 0 then Exit;
+  { iconDelta's rows are sizes 1..4 }
+  if (size = 0) or (size > 4) then Exit;
   dx := GDConsts.iconDelta[size, idx].dx;
   dy := GDConsts.iconDelta[size, idx].dy;
   if dx >= 0 then
@@ -532,7 +533,8 @@ var
 begin
   CombatIconVisible := True;
   slot := CbtMap.CombatSlot(creature);
-  if GDVars.arenaLoc[slot].size = 0 then
+  { slot 0: not on the map }
+  if (slot = 0) or (GDVars.arenaLoc[slot].size = 0) then
     CombatIconVisible := False
   else
     for i := 0 to 3 do begin
@@ -638,6 +640,11 @@ var
   slot: Byte;
 begin
   slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then begin
+    { not on the map: nothing to draw }
+    creature^.combatAddr^.direction := dir;
+    Exit;
+  end;
   if not CbtMap.CombatIconVisible(creature, 1) then
     CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, C_Dir.CENTER);
   if (creature^.combatAddr^.direction div 4 <> dir div 4)
@@ -652,36 +659,52 @@ begin
     end;
 end;
 
+{ A creature not on the map (slot 0) gives cell 0, 0 and size 0. }
 function CombatCellX(creature: Types.PCharRecord): ShortInt;
+var
+  slot: Byte;
 begin
-  CombatCellX := GDVars.arenaLoc[CbtMap.CombatSlot(creature)].x;
+  slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then
+    CombatCellX := 0
+  else
+    CombatCellX := GDVars.arenaLoc[slot].x;
 end;
 
 function CombatCellY(creature: Types.PCharRecord): ShortInt;
+var
+  slot: Byte;
 begin
-  CombatCellY := GDVars.arenaLoc[CbtMap.CombatSlot(creature)].y;
+  slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then
+    CombatCellY := 0
+  else
+    CombatCellY := GDVars.arenaLoc[slot].y;
 end;
 
 function GetIconSize(creature: Types.PCharRecord): Byte;
+var
+  slot: Byte;
 begin
-  GetIconSize := GDVars.arenaLoc[CbtMap.CombatSlot(creature)].size;
+  slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then
+    GetIconSize := 0
+  else
+    GetIconSize := GDVars.arenaLoc[slot].size;
 end;
 
 function CombatSlot(creature: Types.PCharRecord): Byte;
 var
-  found: Boolean;
   i: Byte;
 begin
-  found := False;
   CombatSlot := 0;
-  i := 0;
-  repeat
-    Inc(i);
-    if GDVars.creatureArr[i] = creature then
-      found := True;
-  until found or (i = GDVars.arenaCount);
-  if found then
-    CombatSlot := i;
+  { 72 = High(creatureArr) }
+  for i := 1 to GDVars.arenaCount do
+    if i <= 72 then
+      if GDVars.creatureArr[i] = creature then begin
+        CombatSlot := i;
+        Exit;
+      end;
 end;
 
 procedure ProbeDirection(creature: Types.PCharRecord; dir: Byte; var crIdx, terrIdx: Byte);
@@ -702,6 +725,11 @@ begin
   terrIdx := 23;
   best := 1;
   slot := CbtMap.CombatSlot(creature);
+  if slot = 0 then begin
+    { not on the map: nothing to probe from }
+    terrIdx := 0;
+    Exit;
+  end;
   x := GDVars.arenaLoc[slot].x;
   y := GDVars.arenaLoc[slot].y;
   for i := 0 to 3 do begin
@@ -773,6 +801,11 @@ begin
         Exit;
       end;
     slot := CbtMap.CombatSlot(creature);
+    if slot = 0 then begin
+      { not on the map }
+      SoundDrv.SoundSetAutoStop(10);
+      Exit;
+    end;
     cellX := CbtMap.CombatCellX(creature);
     cellY := CbtMap.CombatCellY(creature);
     if not CbtMap.CombatIconVisible(creature, 1) then
@@ -788,7 +821,7 @@ begin
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.DOWNED]);
     TextRend.PauseOnly;
     CbtMap.UpdateCombatMapTile(0, 0, slot);
-    GDVars.arenaLoc[CbtMap.CombatSlot(creature)].size := 0;
+    GDVars.arenaLoc[slot].size := 0;
     CbtMap.BuildArenaArrays;
     CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 3, C_Dir.CENTER);
     creature^.combatAddr^.initiative := 0;
@@ -814,6 +847,9 @@ begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
     IsValidCreatureLoc := False;
     slot := CbtMap.CombatSlot(creature);
+    { not in the combat arrays }
+    if slot = 0 then
+      Exit;
     GDVars.arenaLoc[slot].size := creature^.iconDimensions and $7F;
     GDVars.arenaLoc[slot].x := x;
     GDVars.arenaLoc[slot].y := y;
@@ -847,7 +883,7 @@ end;
 procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; cursor: Boolean);
 begin
   GDVars.arenaPtr^.cursorOn := cursor;
-  GDVars.arenaPtr^.cursorSize := GDVars.arenaLoc[CbtMap.CombatSlot(creature)].size;
+  GDVars.arenaPtr^.cursorSize := CbtMap.GetIconSize(creature);
   CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), delta, C_Dir.CENTER);
   GDVars.arenaPtr^.cursorOn := False;
   GDVars.arenaPtr^.cursorSize := 1;
