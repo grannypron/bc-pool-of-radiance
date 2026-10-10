@@ -1327,8 +1327,9 @@ begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, True, 0, 0, 'is diseased');
 end;
 
-{ Dispel Magic: try every effect whose strength is below 255, with its low nibble as the effect's caster level: 50%, +5%
-  per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are left alone. }
+{ Dispel Magic: on each target, try every effect whose strength is below 255, with its low nibble as the effect's caster
+  level: 50%, +5% per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are
+  left alone. }
 procedure DispelMagicHandler;
 var
   i: Byte;
@@ -1342,9 +1343,15 @@ begin
   cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   for i := 1 to GDVars.spellTargetCount do begin
     removed := False;
-    { Note: uses dsTargetCreaturePtr[1] on every pass, whatever i is }
-    tgt := GDVars.dsTargetCreaturePtr[1];
-    effect := Types.PEffectRec(tgt^.effectsAddr);
+    { 72 = High(dsTargetCreaturePtr) }
+    if i <= 72 then
+      tgt := GDVars.dsTargetCreaturePtr[i]
+    else
+      tgt := nil;
+    if tgt <> nil then
+      effect := Types.PEffectRec(tgt^.effectsAddr)
+    else
+      effect := nil;
     while effect <> nil do begin
       nxt := effect^.next;
       if (effect^.strength < 255) and not (effect^.id in [C_Effect.RECENT_HEAL, C_Effect.RECENT_CURE]) then begin
