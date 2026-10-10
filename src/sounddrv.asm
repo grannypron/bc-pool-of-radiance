@@ -1,14 +1,14 @@
 ; PC-speaker and Tandy SN76489 timer sequencer, linked into SoundDrv by SOUNDDRV.OBJ.
 ; Owns voice blocks, tune streams, envelopes and modulation tables in CODE.
 ; Pascal far entries install/remove INT 8, load tunes and control the output gate.
-; Four voices per device are stepped; the speaker uses the first active voice.
+; Four voices of the configured device are stepped; the speaker uses the first active voice.
 ; The displaced BIOS handler runs every thirteenth tick.
 
 CODE    SEGMENT BYTE PUBLIC 'CODE'
         ASSUME  CS:CODE, DS:CODE
         PUBLIC  InstallSoundTimer, UninstallSoundTimer
         PUBLIC  ProgramSpeakerVoices, ProgramTandyVoices, SetSoundOutputEnabled
-        PUBLIC  SoundTimerTicks, SoundTimerHooked
+        PUBLIC  SoundTimerTicks, SoundTimerHooked, SetSoundDevice
 
 ; ---------------------------------------------------------------------------
 ; Voice state. SSET writes fields by offset; voice_step advances them
@@ -76,6 +76,10 @@ snGS3   equ 8740h    ; G#3 n=541
 ; ---------------------------------------------------------------------------
 ; Driver state.  The ISR and the voice writers reach all of it with DS = CODE.
 ; ---------------------------------------------------------------------------
+DEV_TANDY       equ     0               ; device values, as C_Sound's MODE_TANDY,
+DEV_SPEAKER     equ     1               ;   MODE_SPEAKER and MODE_DISABLED
+DEV_NONE        equ     2
+
 divCount        db      13              ; ticks left before the next BIOS INT 8 chain
 seqBusy         db      0               ; nonzero skips ISR sequencing during voice updates
 voiceLeft       db      0               ; voices still to visit this pass, 4 down to 1
@@ -96,6 +100,7 @@ seqRet          dw      0               ; the stream pointer SCALL saved -- one 
 voiceTune       db      0,0,0,0         ; tune id per voice; seq_end clears a voice's entry
                                         ;   when that voice runs out of stream
 outputOn        db      1               ; zero mutes output while the sequencers keep running
+device          db      DEV_NONE        ; the configured device, the only one the ISR ticks
 
 ; Duration table: 3:4 pairs double at each step. Notes carry explicit durations,
 ; so nothing reads this table.
@@ -1092,6 +1097,8 @@ UninstallSoundTimer:
         in      al, 61h                 ; drop the speaker gate and the timer gate
         and     al, 0FCh
         out     61h, al
+        cmp     cs:[device], DEV_TANDY  ; C0h is the SN76489 only on a Tandy
+        jnz     ust_done
         mov     al, 09Fh                ; full attenuation on the SN76489's
         out     0C0h, al                ;   three tone voices and its noise voice
         mov     al, 0BFh
@@ -1180,6 +1187,10 @@ isr_eoi:
 ; that came out of voice_step with a level and a duration left.  One channel, so
 ; once spkrVoice is set the rest of the pass cannot claim it.
 tick_spkr:
+        cmp     ds:[device], DEV_SPEAKER
+        jz      spkr_on
+        ret
+spkr_on:
         mov     bx, ds:[curTune]
         cmp     bx, 0
         jz      spkr_set
@@ -1228,6 +1239,10 @@ spkr_set:
 ; latch bytes 80h, 0A0h, 0C0h, 0E0h -- voice 0 to voice 2 are tone, and 0E0h is
 ; the noise voice, which takes no second period byte.
 tick_tandy:
+        cmp     ds:[device], DEV_TANDY
+        jz      tandy_on
+        ret
+tandy_on:
         mov     bx, ds:[curTune]
         cmp     bx, 0
         jz      tandy_off
@@ -1638,6 +1653,15 @@ SoundTimerTicks:
 SoundTimerHooked:
         mov     al, cs:[hooked]
         retf
+
+; Pascal procedure: the device the ISR ticks, a C_Sound mode in the low byte.
+SetSoundDevice:
+        push    bp
+        mov     bp, sp
+        mov     al, [bp+6]
+        mov     cs:[device], al
+        pop     bp
+        retf    2
 
 CODE    ENDS
         END

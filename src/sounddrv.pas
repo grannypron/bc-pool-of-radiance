@@ -61,8 +61,8 @@ const
 { * Hooks the timer interrupt so the sequencer runs in the background. Does nothing while it is hooked already. }
 procedure InstallSoundTimer; external;
 
-{ * Restores the original timer interrupt and the BIOS timer rate, and silences both devices. Does nothing while the
-   timer is not hooked. }
+{ * Restores the original timer interrupt and the BIOS timer rate, and silences the speaker and, when it is the
+   configured device, the Tandy chip. Does nothing while the timer is not hooked. }
 procedure UninstallSoundTimer; external;
 
 { * Loads a tune into the PC-speaker voices.
@@ -83,6 +83,10 @@ function SoundTimerTicks: Word; external;
 
 { * @returns(True while the timer driver owns the timer interrupt.) }
 function SoundTimerHooked: Boolean; external;
+
+{ * Chooses the device the timer driver steps and writes; the other device's voices are left alone.
+   @param(mode A C_Sound mode; MODE_DISABLED steps neither.) }
+procedure SetSoundDevice(mode: Word); external;
 
 function SoundTime: LongInt;
 var
@@ -129,6 +133,7 @@ end;
 procedure SoundCommand(cmd: Word);
 begin
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  SoundDrv.SetSoundDevice(GDVars.soundMode);
   if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
   case cmd of
     CMD_DISABLE: begin
@@ -156,6 +161,7 @@ procedure SoundSuspend;
 begin
   GDVars.soundSaved := GDVars.soundMode;
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  SoundDrv.SetSoundDevice(GDVars.soundMode);
   SoundDrv.InstallSoundTimer;
   SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
   SoundDrv.ProgramTandyVoices(SILENT_TUNE);
