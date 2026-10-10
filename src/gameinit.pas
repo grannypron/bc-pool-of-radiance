@@ -16,8 +16,8 @@ var
   wallCache: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
-  defaults, then load the font, symbol sets, tile sets, combat icons and item table and install the spell and effect
-  handlers. }
+  defaults, then load the font, symbol sets, tile sets, combat icons and item table, seed the random numbers (with 1
+  when NORAND is the second argument) and install the spell and effect handlers. }
 procedure GameInit2;
 begin
   GetMem(Session.dsGbvmZones[0], SizeOf(Types.TGbvmZone0State));
@@ -140,7 +140,12 @@ begin
   Close(GDVars.itemsFile);
   GDVars.gameDir := GDVars.savedDir;
   MenuCore.ClearBottomLine;
-  Randomize;
+  { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs
+    given the same keys roll the same dice. }
+  if ParamStr(2) = 'NORAND' then
+    RandSeed := 1
+  else
+    Randomize;
   { Install spell function pointers. }
   Magic.InitSpellFns;
   { Install effect function pointers. }
