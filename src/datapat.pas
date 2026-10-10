@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 22;
-  BYTE_COUNT = 869;
+  PART_COUNT = 24;
+  BYTE_COUNT = 962;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -76,6 +76,11 @@ const
     (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 728; origLen: 12; newLen: 12),
     (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 797; origLen: 12; newLen: 12),
     (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 6170; origLen: 0; newLen: 43),
+    { POR-0035: the Cadorna Textile House's pre-camp entry (script $9949) made rest safe only once the block was
+      cleared, so with nine encounters won a rest could be broken off with no fight; it is now also safe then unless
+      the ogre lives and the party is on a patrol square, and with the ogre dead the block is cleared }
+    (por: 35; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 75; origLen: 14; newLen: 14),
+    (por: 35; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 6213; origLen: 0; newLen: 65),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -288,6 +293,30 @@ const
     $16,                                              { $B138 IF = }
     $04, $00, $01, $01, $E4, $4A, $01, $E4, $4A,      { $B139 ADD $01, [$4AE4], [$4AE4] }
     $00,                                              { $B142 EXIT }
+    { POR-0035 part 1, original }
+    $03, $01, $E6, $4A, $00, $FD,                     { $9949 COMPARE [$4AE6], $FD }
+    $19,                                              { $994F IF > }
+    $09, $00, $00, $01, $D2, $6D,                     { $9950 SAVE $00, [$6DD2] }
+    $00,                                              { $9956 EXIT }
+    { fixed: on to new code at the end of the script }
+    $01, $01, $43, $B1,                               { $9949 GOTO LB143 }
+    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,
+    { POR-0035 part 2, added at $B143: with nine encounters won, clear the block if the ogre is dead and rest safely
+      unless a patrol can come; then the cleared-block check as before }
+    $03, $01, $E4, $4A, $00, $09,                     { $B143 COMPARE [$4AE4], $09 }
+    $18,                                              { $B149 IF < }
+    $01, $01, $76, $B1,                               { $B14A GOTO LB176 }
+    $03, $01, $75, $4A, $00, $FF,                     { $B14E COMPARE [$4A75], $FF }
+    $16,                                              { $B154 IF = }
+    $09, $00, $FE, $01, $E6, $4A,                     { $B155 SAVE $FE, [$4AE6] }
+    $2F, $00, $7F, $01, $4F, $C0, $01, $82, $6E,      { $B15B AND $7F, [$C04F], [$6E82] }
+    $14, $01, $82, $6E, $00, $16, $01, $75, $4A, $00, $00, { $B164 COMPARE AND [$6E82], $16, [$4A75], $00 }
+    $17,                                              { $B16F IF <> }
+    $09, $00, $00, $01, $D2, $6D,                     { $B170 SAVE $00, [$6DD2] }
+    $03, $01, $E6, $4A, $00, $FD,                     { $B176 COMPARE [$4AE6], $FD }
+    $19,                                              { $B17C IF > }
+    $09, $00, $00, $01, $D2, $6D,                     { $B17D SAVE $00, [$6DD2] }
+    $00,                                              { $B183 EXIT }
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
