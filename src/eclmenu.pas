@@ -825,39 +825,39 @@ begin
 end;
 
 { Copy the zero-terminated GBVM string at address into gbStrings[strIdx], one character per cell (the low byte of word
-  cells); $6B00 selects the current character's name, and zone 4 gives '' }
+  cells); $6B00 selects the current character's name, and zone 4 gives ''. The copy also stops at the zone's last
+  address and at 255 characters, as WriteGbvmString bounds the write side; v1.3 used a Byte offset that wrapped, so an
+  unterminated string hung the game. }
 procedure DerefGbString(strIdx: Byte; address: Word);
 var
   zone: Byte;
-  i: Byte;
+  last: Word;
+  a: Word;
+  c: Word;
 begin
   zone := EclMenu.GbvmZone(address);
   GDVars.gbStrings[strIdx] := '';
-  i := 0;
-  case zone of
-    0:
-      while GDVars.zone0^.words[address + i] <> 0 do begin
-        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(GDVars.zone0^.words[address + i]));
-        Inc(i);
+  if (zone = 1) and (address = $6B00) then
+    GDVars.gbStrings[strIdx] := GDVars.curChar^.name
+  else if zone < 4 then begin
+    case zone of
+      0: last := $4CFF;
+      1: last := $6EFF;
+      2: last := $98FF;
+      3: last := $B6FF;
+    end;
+    a := address;
+    repeat
+      case zone of
+        0: c := GDVars.zone0^.words[a];
+        1: c := GDVars.zone1^[a];
+        2: c := GDVars.zone2^[a];
+        3: c := GDVars.zone3^[a];
       end;
-    1:
-      if address = $6B00 then
-        GDVars.gbStrings[strIdx] := GDVars.curChar^.name
-      else
-        while GDVars.zone1^[address + i] <> 0 do begin
-          GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(GDVars.zone1^[address + i]));
-          Inc(i);
-        end;
-    2:
-      while GDVars.zone2^[address + i] <> 0 do begin
-        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(GDVars.zone2^[address + i]));
-        Inc(i);
-      end;
-    3:
-      while GDVars.zone3^[address + i] <> 0 do begin
-        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(GDVars.zone3^[address + i]));
-        Inc(i);
-      end;
+      if c <> 0 then
+        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(c));
+      Inc(a);
+    until (c = 0) or (a > last) or (Length(GDVars.gbStrings[strIdx]) = 255);
   end;
 end;
 
@@ -1078,22 +1078,40 @@ begin
   end;
 end;
 
-{ Step IP past the command at IP without running it, loading the opcode's operands; unlisted opcodes skip one byte }
+{ Step IP past the command at IP without running it, loading the opcode's operands as its handler does (VMENU, HMENU,
+  ONGOTO and ONGOSUB read a count and then that many more); unlisted opcodes skip one byte }
 procedure SkipEclCmd;
+var
+  count: Byte;
 begin
   GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
+  { v1.3 skipped 2 operands for SETUP MONSTER and 1 for ADD NPC, which take 3 and 2, and only the opcode byte of the
+    four commands with a count }
   case GDVars.curOpcode of
     C_Ecl.JUMP, C_Ecl.GOSUB, C_Ecl.LOAD_CHAR, C_Ecl.PICTURE, C_Ecl.PRINT, C_Ecl.PRINTCLEAR,
         C_Ecl.PARTY_STR, C_Ecl.NEWECL, C_Ecl.CALL,
-    C_Ecl.FIND_ITEM, C_Ecl.CLOCK, C_Ecl.ADD_NPC, C_Ecl.RUN_PROGRAM, C_Ecl.WHO, C_Ecl.PROTECTION:
+    C_Ecl.FIND_ITEM, C_Ecl.CLOCK, C_Ecl.RUN_PROGRAM, C_Ecl.WHO, C_Ecl.PROTECTION:
       EclMenu.LoadEclVars(1);
-    C_Ecl.COMPARE, C_Ecl.RANDOM_NUMBER, C_Ecl.SAVE, C_Ecl.SETUP_MON, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR,
-        $1F, C_Ecl.PARTY_SURPR:
+    C_Ecl.COMPARE, C_Ecl.RANDOM_NUMBER, C_Ecl.SAVE, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR,
+        $1F, C_Ecl.PARTY_SURPR, C_Ecl.ADD_NPC:
       EclMenu.LoadEclVars(2);
     C_Ecl.ADD..C_Ecl.MULTIPLY, C_Ecl.LOAD_MON, C_Ecl.LOADFILES, C_Ecl.ROB, C_Ecl.GETTABLE,
         C_Ecl.BIT_AND, C_Ecl.BIT_OR, C_Ecl.SAVE_TABLE,
-    C_Ecl.LOADPIECES, C_Ecl.SPELL:
+    C_Ecl.LOADPIECES, C_Ecl.SPELL, C_Ecl.SETUP_MON:
       EclMenu.LoadEclVars(3);
+    { the count is the last operand before the list, as EclVMenu, EclHMenu and EclOnGoto read it }
+    C_Ecl.VMENU: begin
+      EclMenu.LoadEclVars(3);
+      count := EclMenu.GetEclVar(3);
+      Dec(GDVars.eclIp);
+      EclMenu.LoadEclVars(count);
+    end;
+    C_Ecl.HMENU, C_Ecl.ONGOTO, C_Ecl.ONGOSUB: begin
+      EclMenu.LoadEclVars(2);
+      count := EclMenu.GetEclVar(2);
+      Dec(GDVars.eclIp);
+      EclMenu.LoadEclVars(count);
+    end;
     C_Ecl.COMPARE_AND, C_Ecl.SURPRISE:
       EclMenu.LoadEclVars(4);
     C_Ecl.DAMAGE:
