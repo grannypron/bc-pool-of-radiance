@@ -1045,8 +1045,8 @@ begin
 end;
 
 { AddCharacterMenu: Pick characters from the CHARLIST.TXT roster (SaveLoad.LoadCharlist), load each with
-  SaveLoad.LoadChar and add it to the party unless already there (same name and randByte): at most 6 non-NPCs and 8
-  members in all. Added entries get a leading '* ' and the roster is saved back. }
+  SaveLoad.LoadChar and add it to the party unless already there (same name and randByte) or its record is short or
+  unreadable: at most 6 non-NPCs and 8 members in all. Added entries get a leading '* ' and the roster is saved back. }
 procedure AddCharacterMenu;
 var
   list: Types.PItemRec;
@@ -1073,34 +1073,38 @@ begin
       if m^.name[1] <> '*' then
       begin
         GetMem(creature, SizeOf(Types.TCharRecord));
-        SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False, True);
-        m^.name := '* ' + m^.name;
         nonNpc := 0;
-        if GDVars.creatureList = nil then begin
-          GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
-          SaveLoad.AddCharToParty(Types.PCharRecord(creature));
-          SaveLoad.LoadCharIconAnim(True);
-        end else begin
-          p := GDVars.creatureList;
-          while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
-            { C_Npc.FLAG clear }
-            if p^.npc < C_Npc.FLAG then
-              Inc(nonNpc);
-            p := p^.nextCharAddr;
-          end;
-          { Add if not already in the party: a non-NPC (C_Npc.FLAG clear) while under 6 non-NPCs, or an NPC (C_Npc.FLAG
-            set) while the party is under 8 }
-          if (p = nil) and
-              (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or
-               ((creature^.npc > $7F) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8))) then begin
+        { a short or unreadable .cha is not added and keeps its unmarked name }
+        if not SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False, True) then
+          FreeMem(creature, SizeOf(Types.TCharRecord))
+        else begin
+          m^.name := '* ' + m^.name;
+          if GDVars.creatureList = nil then begin
+            GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
             SaveLoad.AddCharToParty(Types.PCharRecord(creature));
             SaveLoad.LoadCharIconAnim(True);
-            { C_Npc.FLAG clear }
-            if creature^.npc < C_Npc.FLAG then
-              Inc(nonNpc);
-          end else
-            { with the items and effects LoadChar read }
-            CharGen.FreeCreature(Types.PCharRecord(creature));
+          end else begin
+            p := GDVars.creatureList;
+            while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
+              { C_Npc.FLAG clear }
+              if p^.npc < C_Npc.FLAG then
+                Inc(nonNpc);
+              p := p^.nextCharAddr;
+            end;
+            { Add if not already in the party: a non-NPC (C_Npc.FLAG clear) while under 6 non-NPCs, or an NPC
+              (C_Npc.FLAG set) while the party is under 8 }
+            if (p = nil) and
+                (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or
+                 ((creature^.npc > $7F) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8))) then begin
+              SaveLoad.AddCharToParty(Types.PCharRecord(creature));
+              SaveLoad.LoadCharIconAnim(True);
+              { C_Npc.FLAG clear }
+              if creature^.npc < C_Npc.FLAG then
+                Inc(nonNpc);
+            end else
+              { with the items and effects LoadChar read }
+              CharGen.FreeCreature(Types.PCharRecord(creature));
+          end;
         end;
       end;
   until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7);
