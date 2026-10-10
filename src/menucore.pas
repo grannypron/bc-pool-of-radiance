@@ -14,6 +14,10 @@ var
   { Set just before a MenuHorizontal call whose caller reads the Left and Right arrows itself (turning, moving, aiming,
     adjusting a value); every return clears it. }
   arrowsToCaller: Boolean;
+  { Set just before a MenuVertical call whose caller shows something for the highlighted entry: a key that moves the
+    highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
+    call again. The call clears it. }
+  movesToCaller: Boolean;
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
 
@@ -40,7 +44,8 @@ procedure ClearBottomLine;
   page; Page Up and Page Down turn the page. idx is zero-based; redraw requests repainting. Label rows have inUse set;
   they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list
   also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a list
-  that fits on one page is drawn and #0 returned with sel=nil at once. }
+  that fits on one page is drawn and #0 returned with sel=nil at once. With movesToCaller set, a key that moves the
+  highlight returns too. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -297,6 +302,9 @@ var
   p: Types.PItemRec;
   headerCnt: Integer;
   total: Integer;
+  toCaller: Boolean;
+  oldIdx: Integer;
+  oldTop: Integer;
 
   { Last label (inUse) member among the first n, or the head when n = 0 and it is a label. The result is discarded by
     DrawPage. }
@@ -469,6 +477,8 @@ var
   end;
 
 begin
+  toCaller := movesToCaller;
+  movesToCaller := False;
   if list = nil then begin
     listOnly := False;
     idx := 0;
@@ -530,6 +540,8 @@ begin
       { Enter stays #13 here: it takes the highlighted list entry, not a bottom-line option. }
       ch := MenuCore.HorizontalMenu(query, hMenu, qCol, mCol, hlCol, True, False, False, ext);
       UnhighlightLine(idx);
+      oldIdx := idx;
+      oldTop := GDVars.vertTop;
       if ext then
         case ch of
           { line up }
@@ -556,6 +568,11 @@ begin
             Exit;
           end;
         end;
+      if toCaller and ((idx <> oldIdx) or (GDVars.vertTop <> oldTop)) then begin
+        sel := MenuCore.FindListMember(idx, list);
+        MenuVertical := ch;
+        Exit;
+      end;
     until False;
   end;
 end;
@@ -609,5 +626,6 @@ end;
 begin
   listOnly := False;
   arrowsToCaller := False;
+  movesToCaller := False;
   @idleHook := nil;
 end.

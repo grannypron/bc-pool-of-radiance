@@ -4,7 +4,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm;
+uses C_Gender, C_Class, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil;
 
 const
   { CureDisease }
@@ -1811,6 +1811,30 @@ const
     (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0),
     (6, 0, 2, 6, 8, 12, 14, 0, 0, 0, 0, 0),
     (4, 0, 2, 5, 6, 0, 0, 0, 0, 0, 0, 0));
+  { The classLevels indexes each class trains, in the order its name gives them; -1 fills a shorter list. }
+  classParts: array[C_Class.CLERIC..C_Class.MAGE_THIEF, 1..3] of ShortInt = (
+    (0, -1, -1), (1, -1, -1), (2, -1, -1), (3, -1, -1), (4, -1, -1), (5, -1, -1), (6, -1, -1), (7, -1, -1),
+    (0, 2, -1), (0, 2, 5), (0, 4, -1), (0, 5, -1), (0, 6, -1), (2, 5, -1), (2, 6, -1), (2, 5, 6), (5, 6, -1));
+  { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
+  raceAbilityAdj: array[C_Race.DWARF..C_Race.HUMAN, C_Abil.STRENGTH..C_Abil.CHARISMA] of ShortInt = (
+    (0, 0, 0, 0, 1, -1),
+    (0, 0, 0, 1, -1, 0),
+    (0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0),
+    (-1, 0, 0, 1, 0, 0),
+    (1, 0, 0, 0, 1, -2),
+    (0, 0, 0, 0, 0, 0));
+  { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
+    and -1 a class the race cannot take. A fighter's is the best case, with Strength 18. Half-orcs are not offered at
+    creation, so their row is empty. }
+  raceMaxLevel: array[C_Race.DWARF..C_Race.HUMAN, C_Class.LEVEL_CLERIC..C_Class.LEVEL_MONK] of ShortInt = (
+    (-1, -1, 9, -1, -1, -1, 0, -1),
+    (-1, -1, 7, -1, -1, 11, 0, -1),
+    (-1, -1, 6, -1, -1, -1, 0, -1),
+    (5, -1, 8, -1, -1, 8, 0, -1),
+    (-1, -1, 6, -1, -1, -1, 0, -1),
+    (-1, -1, -1, -1, -1, -1, -1, -1),
+    (0, -1, 0, -1, -1, 0, 0, -1));
   { race, class }
   dsStartingAge: array[1..7, 0..6] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
