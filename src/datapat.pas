@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 50;
-  BYTE_COUNT = 1403;
+  PART_COUNT = 52;
+  BYTE_COUNT = 1407;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -159,7 +159,11 @@ const
     { POR-0055: beating Tyranthraxus in the Inner Tower (script $A81B) wrote its 'defeated' bit into the unused
       [$4A72], so he, the messenger and Genheeris could be fought again; the bit goes into [$4A6D] as the tower's
       other bits do }
-    (por: 55; family: C_Data.FAMILY_ECL; disk: 5; id: 7; size: 4105; offset: 3876; origLen: 1; newLen: 1));
+    (por: 55; family: C_Data.FAMILY_ECL; disk: 5; id: 7; size: 4105; offset: 3876; origLen: 1; newLen: 1),
+    { POR-0070: the Wealthy Area's south walls at (4,15) and (11,15) could be walked through off the map, where no
+      exit is set, and the game hung loading script area 255; both become solid }
+    (por: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1014; origLen: 1; newLen: 1),
+    (por: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1021; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -593,7 +597,15 @@ const
     { POR-0055, original }
     $72,
     { fixed: OR [$4A6D], $10, [$4A6D] }
-    $6D);
+    $6D,
+    { POR-0070 part 1, original }
+    $10,
+    { fixed: (4,15) south: solid }
+    $00,
+    { POR-0070 part 2, original }
+    $10,
+    { fixed: (11,15) south: solid }
+    $00);
 
 implementation
 
