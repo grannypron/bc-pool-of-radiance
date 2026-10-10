@@ -431,9 +431,9 @@ begin
         weaponRange := GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].range - 1;
       if (weaponRange = 0) or (weaponRange = 255) then
         weaponRange := 1;
-      { Note: other may be nil, and is dereferenced before the nil check below. }
+      { other is nil once AiMoveStep has dropped it }
       target := creature^.combatAddr^.other;
-      if (target^.enabled = 0) or (target^.hostile = 0) then
+      if (target <> nil) and ((target^.enabled = 0) or (target^.hostile = 0)) then
         target := nil;
       if target <> nil then
         if CbtActs.CanAttackTarget(creature, target) then begin
