@@ -326,12 +326,16 @@ begin
 end;
 
 { OR src's pixels onto dst and AND the transparency masks. The CGA and Tandy masks are imgSize bytes; the EGA mask is
-  one plane, a quarter of imgSize, sized from iconAnims[11].pic0 rather than src. }
+  one plane, a quarter of imgSize, sized from iconAnims[11].pic0 rather than src. Nothing is merged when either picture
+  is missing (LoadPic leaves nil for a block that is not there) or src is empty. }
 procedure MergeIcon(src, dst: Types.PImgBuf);
 var
   n: Word;
   i: Word;
 begin
+  if (src = nil) or (dst = nil) then Exit;
+  { an empty picture would make the loops below run 65536 times }
+  if src^.imgSize = 0 then Exit;
   case GDVars.videoMode of
     0, 2:
       for i := 0 to src^.imgSize - 1 do begin
@@ -341,9 +345,12 @@ begin
     1: begin
       for i := 0 to src^.imgSize - 1 do
         dst^.data[i] := dst^.data[i] or src^.data[i];
-      n := iconAnims[11].pic0^.imgSize div 4 - 1;
-      for i := 0 to n do
-        dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
+      if iconAnims[11].pic0 <> nil then
+        if iconAnims[11].pic0^.imgSize >= 4 then begin
+          n := iconAnims[11].pic0^.imgSize div 4 - 1;
+          for i := 0 to n do
+            dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
+        end;
     end;
   end;
 end;
@@ -358,11 +365,18 @@ var
   toMap: Types.TColorTab;
   i: Byte;
   pad4: Byte;
+  height: Byte;
 begin
   DaxIo.PushState(3);
   with GDVars.curChar^ do begin
-    MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[iconSize], iconHead, 11);
-    MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[iconSize], iconBody, orderNumber);
+    { iconHeightSuffix is [1..2]; a monster's iconSize is 0 (LoadCreatureData sets it only for PC races), which v1.3
+      read past the table and took as the small set }
+    if iconSize = 2 then
+      height := 2
+    else
+      height := 1;
+    MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[height], iconHead, 11);
+    MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[height], iconBody, orderNumber);
     SaveLoad.MergeIcon(iconAnims[11].pic0, iconAnims[orderNumber].pic0);
     SaveLoad.MergeIcon(iconAnims[11].pic1, iconAnims[orderNumber].pic1);
     if loading then begin
@@ -653,8 +667,9 @@ begin
   with creature^ do begin
     randByte := Random(256);
     cnt := 0;
+    { classes holds 4; shipped monsters have at most 4 class levels set }
     for i := 0 to 6 do
-      if classLevels[i] > 0 then begin
+      if (classLevels[i] > 0) and (cnt < 4) then begin
         Inc(cnt);
         classes[cnt] := i;
       end;
