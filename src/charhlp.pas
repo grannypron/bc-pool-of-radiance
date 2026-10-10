@@ -36,6 +36,8 @@ function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
 
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 
+procedure PrintMessageWait(s: string);
+
 function ByteToString(value: Byte): String;
 
 function WordToString(value: Word): String;
@@ -828,6 +830,30 @@ begin
     TextRend.PauseOnly;
     CharHlp.ClearMessageWindow;
   end;
+end;
+
+{ Show s in the message window, as PrintNameString does but without the name line, then wait for a key at the
+  'Press any key to continue' prompt and clear the prompt. The window keeps the text, and curRow is left on its last
+  line. }
+procedure PrintMessageWait(s: string);
+var
+  top: Byte;
+begin
+  if GDVars.ifcState = C_Ifc.COMBAT then begin
+    Border.ClearBox(23, 10, 38, 21);
+    TextRend.DisplayMessageWindow(23, 10, 38, 21, LightGreen, True, s);
+  end else begin
+    if GDVars.dsSuppressDrawingBorderFlag <> 0 then
+      top := 18
+    else begin
+      top := C_Msg.MESSAGE_TOP;
+      Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+    end;
+    Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True, s);
+  end;
+  TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
+  Border.ClearBox(0, 24, 39, 24);
 end;
 
 { Clear whichever message window is active (combat or bottom), leaving its border alone. }
