@@ -23,6 +23,14 @@ var
   { pic0 and pic1 of each pair are the ready and action frames. }
   iconAnims: array[0..25] of Types.TIconPair absolute GDVars.dsIconAnimation;
 
+const
+  { The race screen's frames: the race list and the ability adjustments share rows 1..RACE_TOP_BOTTOM, on either side
+    of the border column RACE_SPLIT_COL; the classes and their maximum levels fill the box below. }
+  RACE_SPLIT_COL = 17;
+  RACE_TOP_BOTTOM = 8;
+  { the row of the first race, and of the first ability beside it }
+  RACE_LIST_ROW = 2;
+
 procedure CreateCharacterMenu; forward;
 
 procedure DropCharacterMenu; forward;
@@ -204,6 +212,111 @@ begin
   end;
 end;
 
+{ ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (GDConsts.raceAbilityAdj) beside the race
+  list, and below, the single classes the race may take with the rule book's maximum level in each
+  (GDConsts.raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
+  GDConsts.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
+  which the note at the foot of the box says; a race without multiclasses shows neither the note nor the multiclass
+  heading. A race outside Dwarf..Human leaves the panes blank. }
+procedure ShowRaceInfo(race: ShortInt);
+const
+  ABIL_LABELS: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
+  { by classLevels index }
+  PART_ABBREVS: array[C_Class.LEVEL_CLERIC..C_Class.LEVEL_MONK] of String[2] = (
+    'CL', 'DR', 'FI', 'PA', 'RA', 'MU', 'TH', 'MO');
+  ABIL_COL = 19;
+  ADJ_COL = 23;
+  HEADING_ROW = 11;
+  { the data starts a row below the headings and ends above the note's two rows }
+  FIRST_ROW = 13;
+  LAST_ROW = 19;
+  NOTE_ROW = 20;
+  MAX_COL = 2;
+  MAX_VALUE_COL = 3;
+  CLASS_COL = 7;
+  MULTI_COL = 21;
+  LAST_COL = 38;
+var
+  i: ShortInt;
+  slot: Byte;
+  cnt: Byte;
+  cls: ShortInt;
+  row: Byte;
+  adj: ShortInt;
+  s: String;
+  p: Byte;
+  part: ShortInt;
+  lvl: ShortInt;
+  hasMulti: Boolean;
+  isSingle: array[C_Class.LEVEL_CLERIC..C_Class.LEVEL_MONK] of Boolean;
+begin
+  Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_Abil.CHARISMA);
+  Border.ClearBox(1, HEADING_ROW, LAST_COL, NOTE_ROW + 1);
+  if (race < C_Race.DWARF) or (race > C_Race.HUMAN) then
+    Exit;
+  for i := C_Abil.STRENGTH to C_Abil.CHARISMA do begin
+    TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
+    adj := GDConsts.raceAbilityAdj[race, i];
+    if adj > 0 then
+      s := '+' + CharHlp.ByteToString(adj)
+    else if adj < 0 then
+      s := '-' + CharHlp.ByteToString(-adj)
+    else
+      s := ' 0';
+    TextRend.DisplayString(ADJ_COL, RACE_LIST_ROW + i, LightGreen, s);
+  end;
+  { the multiclasses on the right, noting every part as a single class }
+  FillChar(isSingle, SizeOf(isSingle), 0);
+  hasMulti := False;
+  cnt := GDConsts.classesByRace[race, 0];
+  if cnt > 11 then
+    cnt := 11;
+  row := FIRST_ROW;
+  for slot := 1 to cnt do begin
+    cls := GDConsts.classesByRace[race, slot];
+    if (cls >= C_Class.CLERIC) and (cls <= C_Class.MAGE_THIEF) then begin
+      s := '';
+      for p := 1 to 3 do begin
+        part := GDConsts.classParts[cls, p];
+        if (part >= C_Class.LEVEL_CLERIC) and (part <= C_Class.LEVEL_MONK) then begin
+          isSingle[part] := True;
+          if s <> '' then
+            s := s + '/';
+          s := s + PART_ABBREVS[part];
+        end;
+      end;
+      if (cls > C_Class.MONK) and (row <= LAST_ROW) then begin
+        hasMulti := True;
+        TextRend.DisplayString(MULTI_COL, row, LightGreen, Copy(s, 1, LAST_COL - MULTI_COL + 1));
+        Inc(row);
+      end;
+    end;
+  end;
+  TextRend.DisplayString(MAX_COL, HEADING_ROW, LightMagenta, 'Max');
+  TextRend.DisplayString(CLASS_COL, HEADING_ROW, LightMagenta, 'Class');
+  if hasMulti then
+    TextRend.DisplayString(MULTI_COL, HEADING_ROW, LightMagenta, 'Multiclasses');
+  { the single classes on the left; a single class's id is its classLevels index }
+  row := FIRST_ROW;
+  for part := C_Class.LEVEL_CLERIC to C_Class.LEVEL_MONK do
+    if isSingle[part] and (row <= LAST_ROW) then begin
+      lvl := GDConsts.raceMaxLevel[race, part];
+      if lvl = 0 then
+        s := 'U'
+      else if lvl > 0 then
+        s := CharHlp.ByteToString(lvl)
+      else
+        s := '-';
+      TextRend.DisplayString(MAX_VALUE_COL, row, LightGreen, s);
+      TextRend.DisplayString(CLASS_COL, row, LightGreen, Copy(GDConsts.classNames[part], 1, MULTI_COL - CLASS_COL - 1));
+      Inc(row);
+    end;
+  if hasMulti then begin
+    TextRend.DisplayString(MAX_COL, NOTE_ROW, LightGreen, 'Multiclass levels');
+    TextRend.DisplayString(MAX_COL + 2, NOTE_ROW + 1, LightGreen, 'are as above.');
+  end;
+end;
+
 { CreateCharacterMenu: Choose race, gender, class and alignment, set the starting age, then roll attributes, hit points
   and gold until the player keeps the result; name the character, customize portrait and icon, save it with
   SaveLoad.SaveChar and free it. Aborting a pick menu exits without freeing the character or string list. Note: only the
@@ -262,19 +375,36 @@ begin
               m^.name := '  ' + GDConsts.raceNames[k];
             end;
     end;
+  { the race screen: the bottom box goes first, so the top boxes' gold corners stay on the row they share with it }
+  Border.ClearBox(1, 1, 38, 22);
+  Border.DrawBorder(1, RACE_TOP_BOTTOM + 2, 38, 22, 0);
+  Border.DrawBorder(1, 1, RACE_SPLIT_COL - 1, RACE_TOP_BOTTOM, 0);
+  Border.DrawBorder(RACE_SPLIT_COL + 1, 1, 38, RACE_TOP_BOTTOM, 0);
+  CharGen.ShowRaceInfo(C_Race.DWARF);
   m := list;
   sel := 1;
+  { the list starts at Dwarf, with the label row above the box }
+  GDVars.vertTop := 1;
   redraw := True;
   addExit := True;
   repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
+    MenuCore.movesToCaller := True;
+    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, RACE_LIST_ROW, RACE_SPLIT_COL - 1,
+                                RACE_LIST_ROW + 5, list, addExit, redraw, sel, m);
     if ch = C_Keys.NONE then begin
       MenuCore.FreeStringList(list);
       CharGen.FreeCreature(creature);
       Exit;
     end;
+    if ch <> C_Keys.ENTER then
+      { 6 -> Human (7) }
+      if sel = 6 then
+        CharGen.ShowRaceInfo(C_Race.HUMAN)
+      else
+        CharGen.ShowRaceInfo(sel);
   until ch = C_Keys.ENTER;
+  { back to the one frame the following lists use }
+  Border.DrawWindow(1, 1, 38, 22, 0, Black, '');
   if sel = 6 then
     { 6 -> Human (7) }
     Inc(sel);
@@ -363,38 +493,12 @@ begin
   with creature^ do begin
     charClass := GDConsts.classesByRace[race, sel];
     levelHighest := 1;
-    case charClass of
-      C_Class.CLERIC..C_Class.MONK: classLevels[charClass] := 1;
-      C_Class.CLERIC_FIGHTER: begin
-              classLevels[C_Class.LEVEL_CLERIC] := 1; classLevels[C_Class.LEVEL_FIGHTER] := 1;
-            end;
-      C_Class.CLERIC_FIGHTER_MAGE: begin
-              classLevels[C_Class.LEVEL_CLERIC] := 1; classLevels[C_Class.LEVEL_FIGHTER] := 1;
-              classLevels[C_Class.LEVEL_MAGE] := 1;
-            end;
-      C_Class.CLERIC_RANGER: begin
-              classLevels[C_Class.LEVEL_CLERIC] := 1; classLevels[C_Class.LEVEL_RANGER] := 1;
-            end;
-      C_Class.CLERIC_MAGE: begin
-              classLevels[C_Class.LEVEL_CLERIC] := 1; classLevels[C_Class.LEVEL_MAGE] := 1;
-            end;
-      C_Class.CLERIC_THIEF: begin
-              classLevels[C_Class.LEVEL_CLERIC] := 1; classLevels[C_Class.LEVEL_THIEF] := 1;
-            end;
-      C_Class.FIGHTER_MAGE: begin
-              classLevels[C_Class.LEVEL_FIGHTER] := 1; classLevels[C_Class.LEVEL_MAGE] := 1;
-            end;
-      C_Class.FIGHTER_THIEF: begin
-              classLevels[C_Class.LEVEL_FIGHTER] := 1; classLevels[C_Class.LEVEL_THIEF] := 1;
-            end;
-      C_Class.FIGHTER_MAGE_THIEF: begin
-              classLevels[C_Class.LEVEL_FIGHTER] := 1; classLevels[C_Class.LEVEL_MAGE] := 1;
-              classLevels[C_Class.LEVEL_THIEF] := 1;
-            end;
-      C_Class.MAGE_THIEF: begin
-              classLevels[C_Class.LEVEL_MAGE] := 1; classLevels[C_Class.LEVEL_THIEF] := 1;
-            end;
-    end;
+    { first level in each part of the class }
+    if (charClass >= C_Class.CLERIC) and (charClass <= C_Class.MAGE_THIEF) then
+      for slot := 1 to 3 do
+        if (GDConsts.classParts[charClass, slot] >= C_Class.LEVEL_CLERIC)
+           and (GDConsts.classParts[charClass, slot] <= C_Class.LEVEL_MONK) then
+          classLevels[GDConsts.classParts[charClass, slot]] := 1;
     itemLimits := 0;
     thac0Base := 0;
     for cls := 0 to 7 do
@@ -475,25 +579,8 @@ begin
       for j := 1 to 6 do begin
         roll := FxEngine.RollDice(3, 6);
         { racial adjustment; the racial limits below still apply }
-        case creature^.race of
-          C_Race.DWARF: case i of
-               C_Abil.CONSTITUTION: Inc(roll);
-               C_Abil.CHARISMA: Dec(roll);
-             end;
-          C_Race.ELF: case i of
-               C_Abil.DEXTERITY: Inc(roll);
-               C_Abil.CONSTITUTION: Dec(roll);
-             end;
-          C_Race.HALFLING: case i of
-               C_Abil.STRENGTH: Dec(roll);
-               C_Abil.DEXTERITY: Inc(roll);
-             end;
-          C_Race.HALFORC: case i of
-               C_Abil.STRENGTH: Inc(roll);
-               C_Abil.CONSTITUTION: Inc(roll);
-               C_Abil.CHARISMA: Dec(roll, 2);
-             end;
-        end;
+        if (creature^.race >= C_Race.DWARF) and (creature^.race <= C_Race.HUMAN) then
+          roll := roll + GDConsts.raceAbilityAdj[creature^.race, i];
         if creature^.stats[i] < roll then
           creature^.stats[i] := roll;
       end;
