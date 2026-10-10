@@ -195,6 +195,9 @@ begin
   repeat
     if @idleHook <> nil then
       idleHook;
+    { the tick count restarts at midnight: restart the frame timer with it }
+    if TextRend.GetTicks < frameTick then
+      frameTick := TextRend.GetTicks;
     if ((GDVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (anim.current > 0) then begin
       Portrait.DisplayImageBuf(3, 3, animate, anim.frames[anim.current].pic);
       if (TextRend.GetTicks - frameTick >= anim.frames[anim.current].time * 10)

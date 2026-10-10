@@ -15,11 +15,14 @@ procedure DelayOrKey(seconds: Word);
 var
   start: LongInt;
   deadline: LongInt;
+  now: LongInt;
 begin
   start := TextRend.GetTicks;
   deadline := start + 100 * seconds;
   repeat
-  until (TextRend.GetTicks >= deadline) or KeyPressed;
+    now := TextRend.GetTicks;
+    { a reading below the start means the tick count restarted at midnight }
+  until (now >= deadline) or (now < start) or KeyPressed;
 end;
 
 { Show the credits screen for 10 seconds or until a keypress. }
@@ -72,6 +75,7 @@ var
   i: Byte;
   savedDir: Types.TPathStr;
   deadline: LongInt;
+  now: LongInt;
 begin
   rndAcc := 0;
   pic := nil;
@@ -110,7 +114,9 @@ begin
         end;
       end;
     end;
-  until KeyPressed or (TextRend.GetTicks >= deadline);
+    now := TextRend.GetTicks;
+    { a reading below the start means the tick count restarted at midnight }
+  until KeyPressed or (now >= deadline) or (now < deadline - 500);
   Intro.Credits;
 end;
 
