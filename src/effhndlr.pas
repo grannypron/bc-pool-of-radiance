@@ -391,7 +391,7 @@ begin
   { 7 = High(classLevels) }
   for j := 0 to 7 do
     if creature^.classLevels[j] > 0 then
-      if j = C_Class.LEVEL_FIGHTER then
+      if (j = C_Class.LEVEL_FIGHTER) or (j = C_Class.LEVEL_PALADIN) or (j = C_Class.LEVEL_RANGER) then
         Inc(hpBonus, (creature^.conCur - 15) * creature^.classLevels[j])
       else if creature^.conCur > 15 then
         Inc(hpBonus, creature^.classLevels[j] * 2)
@@ -400,7 +400,7 @@ begin
   if hpBonus = 0 then
     hpBonus := 1;
   hpGain := hpGain div hpBonus;
-  if (creature^.conCur < 17) or (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) then begin
+  if (creature^.conCur < 17) or (CharHlp.WarriorLevel(creature) > 0) then begin
     Inc(creature^.hpMax, hpGain);
     Inc(creature^.hpCur, hpGain);
   end;

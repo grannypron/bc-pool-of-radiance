@@ -142,7 +142,7 @@ end;
   animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
   one unless it is 0. hpLoss is hpMax - hpRolled (0 if negative); if the reduced constitution is still 14 or more, it is
   divided by the summed per-level constitution bonus (skipped when that sum is 0) and taken off hpMax when constitution
-  is below 17 or the character has fighter levels. }
+  is below 17 or the character has fighter, paladin or ranger levels. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -184,7 +184,7 @@ begin
           { 7 = High(classLevels) }
           for i := 0 to 7 do
             if creature^.classLevels[i] > 0 then begin
-              if i = C_Class.LEVEL_FIGHTER then
+              if (i = C_Class.LEVEL_FIGHTER) or (i = C_Class.LEVEL_PALADIN) or (i = C_Class.LEVEL_RANGER) then
                 Inc(hpBonus, (creature^.conCur - 14) * creature^.classLevels[i])
               else if creature^.conCur > 15 then
                 Inc(hpBonus, creature^.classLevels[i] * 2)
@@ -193,7 +193,7 @@ begin
             end;
           if hpBonus > 0 then
             hpLoss := hpLoss div hpBonus;
-          if (creature^.conCur < 17) or (creature^.classLevels[C_Class.LEVEL_FIGHTER] > 0) then
+          if (creature^.conCur < 17) or (CharHlp.WarriorLevel(creature) > 0) then
             Dec(creature^.hpMax, hpLoss);
         end;
       end;

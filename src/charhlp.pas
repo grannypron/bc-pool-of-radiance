@@ -124,6 +124,10 @@ function RawWeight(creature: Types.PCharRecord): LongInt;
   unstacked item). }
 function ItemWeight(item: Types.PItemRec): LongInt;
 
+{ The highest of the creature's fighter, paladin and ranger levels, or 0 when it has none: the level at which it
+  fights as a warrior. }
+function WarriorLevel(creature: Types.PCharRecord): ShortInt;
+
 implementation
 
 var
@@ -1556,6 +1560,20 @@ begin
             AtLevelCap := True;
     end;
   end;
+end;
+
+function WarriorLevel(creature: Types.PCharRecord): ShortInt;
+var
+  best: ShortInt;
+begin
+  best := creature^.classLevels[C_Class.LEVEL_FIGHTER];
+  if creature^.classLevels[C_Class.LEVEL_PALADIN] > best then
+    best := creature^.classLevels[C_Class.LEVEL_PALADIN];
+  if creature^.classLevels[C_Class.LEVEL_RANGER] > best then
+    best := creature^.classLevels[C_Class.LEVEL_RANGER];
+  if best < 0 then
+    best := 0;
+  WarriorLevel := best;
 end;
 
 end.

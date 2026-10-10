@@ -1682,15 +1682,18 @@ begin
 end;
 
 { ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
-  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is C_Class.FIGHTER (single-class fighters only).
-  The table covers Con 3..20; a Constitution outside it (Raise Dead takes a point each time, down to 0) uses the nearer
-  end, so Con 0..2 keep Con 3's penalty. }
+  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is a single-class fighter, paladin or ranger. A
+  first-level ranger counts its share twice, once for each of its two hit dice. The table covers Con 3..20; a
+  Constitution outside it (Raise Dead takes a point each time, down to 0) uses the nearer end, so Con 0..2 keep Con 3's
+  penalty. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
   padB: Byte;
   con: Byte;
+  share: ShortInt;
+  warrior: Boolean;
 begin
   bonus := 0;
   con := creature^.stats[C_Abil.CONSTITUTION];
@@ -1698,15 +1701,20 @@ begin
     con := 3
   else if con > 20 then
     con := 20;
-  with creature^ do
+  with creature^ do begin
+    warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
     for cls := 0 to 7 do
       if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        Inc(bonus, GDConsts.conBonusTbl[con]);
-        if (stats[C_Abil.CONSTITUTION] > 16) and (charClass = C_Class.FIGHTER) then
-          Inc(bonus);
-        if (stats[C_Abil.CONSTITUTION] > 17) and (charClass = C_Class.FIGHTER) then
-          Inc(bonus);
+        share := GDConsts.conBonusTbl[con];
+        if (stats[C_Abil.CONSTITUTION] > 16) and warrior then
+          Inc(share);
+        if (stats[C_Abil.CONSTITUTION] > 17) and warrior then
+          Inc(share);
+        if (cls = C_Class.LEVEL_RANGER) and (classLevels[cls] = 1) then
+          share := share * 2;
+        Inc(bonus, share);
       end;
+  end;
   ConHpBonus := bonus;
 end;
 
@@ -1784,19 +1792,25 @@ begin
   HpMaximum := sum;
 end;
 
-{ RollFirstLevelHp: Roll hpDice d hpSides for each class with levels whose classBit shares a bit with mask ($FF = all);
-  a class at level 1 gets at least hpSides * 2 div 3, two thirds of one die even for the two-dice ranger and monk }
+{ RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
+  hpDice d hpSides at level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as
+  the others do. A class at level 1 gets at least hpSides * 2 div 3, two thirds of one die even for the ranger and
+  monk. }
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
 
 var
   roll: Byte;
   sum: Byte;
   cls: ShortInt;
+  dice: Byte;
 begin
   sum := 0;
   for cls := 0 to 7 do
     if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-      roll := FxEngine.RollDice(GDConsts.hpDice[cls], GDConsts.hpSides[cls]);
+      dice := GDConsts.hpDice[cls];
+      if creature^.classLevels[cls] > 1 then
+        dice := 1;
+      roll := FxEngine.RollDice(dice, GDConsts.hpSides[cls]);
       if creature^.classLevels[cls] = 1 then
         if roll < GDConsts.hpSides[cls] * 2 div 3 then
           roll := GDConsts.hpSides[cls] * 2 div 3;
