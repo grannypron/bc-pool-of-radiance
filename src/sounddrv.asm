@@ -23,7 +23,7 @@ vfOutPeriod     dw      0       ; vfPeriod plus the LFO; this is what the chip g
 vfLevel         dw      0       ; output level
 vfLevelAdd      dw      0       ; added to vfLevel each tick
 vfTempo         dw      0       ; low byte scales duration; 0 or 1 leaves it unchanged
-vfReleaseLead   dw      0       ; release lead; unused
+vfReleaseLead   dw      0       ; ticks before a note ends at which its release starts
 vfTranspose     dw      0       ; added to a note's pitch before the octave reduction
 vfGateLen       dw      0       ; when it expires the envelope restarts at its 5th pair
 vfEnvBase       dw      0       ; base of this voice's (value,ticks) envelope list
@@ -1468,8 +1468,7 @@ seq_note:
         push    di
         mov     al, bl
         mov     cl, 5
-        shr     al, cl
-        mov     cl, al                  ; CL = the voice this note is for
+        shr     al, cl                  ; AL = the voice this note is for
         mul     ds:[blockSize]
         add     ax, ds:[voiceBase]
         mov     di, ax                  ; DI = that voice's block
@@ -1489,10 +1488,12 @@ sn_store:
         and     ax, 7Fh
         cmp     ax, REST
         jz      sn_tail
-        cmp     cl, 0                   ; DI was worked out for voice CL, but only
-        ja      sn_tail                 ;   voice 0 ever gets a pitch written
         mov     cx, [si].vfDuration
         mov     [di].vfDuration, cx
+        sub     cx, [di].vfReleaseLead  ; the release starts that many ticks early;
+        jnc     sn_gate                 ;   a lead longer than the note gives no
+        xor     cx, cx                  ;   release, as a gate of 0 does
+sn_gate:
         mov     [di].vfGateLen, cx
         add     ax, [di].vfTranspose
         mov     [di].vfEnvPos, 0
