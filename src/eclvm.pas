@@ -107,7 +107,7 @@ begin
 end;
 
 { ADD, SUBTRACT, DIVIDE, MULTIPLY: combine vars 1 and 2 and store the result at var 3's address. SUBTRACT computes var 2
-  - var 1. Note: DIVIDE does not check for a zero divisor. }
+  - var 1. DIVIDE by zero stores 0; v1.3 divided anyway and halted with runtime error 200. }
 procedure EclArith;
 var
   address: Word;
@@ -122,7 +122,11 @@ begin
   case GDVars.curOpcode of
     C_Ecl.ADD: r := v[1] + v[2];
     C_Ecl.SUBTRACT: r := v[2] - v[1];
-    C_Ecl.DIVIDE: r := v[1] div v[2];
+    C_Ecl.DIVIDE:
+      if v[2] = 0 then
+        r := 0
+      else
+        r := v[1] div v[2];
     C_Ecl.MULTIPLY: r := v[1] * v[2];
   end;
   EclMenu.WriteGbvm(address, r);
