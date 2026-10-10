@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 31;
-  BYTE_COUNT = 990;
+  PART_COUNT = 32;
+  BYTE_COUNT = 992;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -100,7 +100,10 @@ const
       the entry word [$4A1F], which this script uses nowhere else }
     (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5397; origLen: 1; newLen: 1),
     (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5681; origLen: 1; newLen: 1),
-    (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5697; origLen: 1; newLen: 1));
+    (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5697; origLen: 1; newLen: 1),
+    { POR-0041: the Nomad Camp shaman's Bracers AC 2 (MON7ITM block 43, record 1) are priced and named for AC 2 but
+      carry plus 6, which gives AC 4; the plus becomes 8 }
+    (por: 41; family: C_Data.FAMILY_MONITM; disk: 7; id: 43; size: 189; offset: 113; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -395,7 +398,11 @@ const
     { POR-0040 part 3, original }
     $9A,
     { fixed: SAVE $FF, [$4A1F] }
-    $1F);
+    $1F,
+    { POR-0041, original }
+    $06,
+    { fixed: plus 8 }
+    $08);
 
 implementation
 
