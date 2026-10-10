@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 48;
-  BYTE_COUNT = 1399;
+  PART_COUNT = 49;
+  BYTE_COUNT = 1401;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -151,7 +151,11 @@ const
       killed; new code at the end of the script loads only the surviving garrison, as the alarm fight does, then
       fights as before }
     (por: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6161; origLen: 6; newLen: 6),
-    (por: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6377; origLen: 0; newLen: 99));
+    (por: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6377; origLen: 0; newLen: 99),
+    { POR-0054: the false Tyranthraxus in the hedge maze (script $A9EE) confessed to an abusive weak party and fought
+      a strong one; the test is turned round, so a party strength and Charisma bonus of 85 or more gets the
+      confession }
+    (por: 54; family: C_Data.FAMILY_ECL; disk: 5; id: 5; size: 4943; offset: 4336; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -577,7 +581,11 @@ const
     $0B, $00, $35, $01, $7B, $6E, $00, $0B,           { $B22D LOAD MONSTER $35, [$6E7B], $0B }
     $07, $01, $7B, $6E, $00, $03, $01, $7B, $6E,      { $B235 MULTIPLY [$6E7B], $03, [$6E7B] }
     $0B, $00, $47, $01, $7B, $6E, $00, $47,           { $B23E LOAD MONSTER $47, [$6E7B], $47 }
-    $01, $01, $35, $B1);                              { $B246 GOTO LB135 }
+    $01, $01, $35, $B1,                               { $B246 GOTO LB135 }
+    { POR-0054, original }
+    $1B,                                              { $A9EE IF >= }
+    { fixed: IF < }
+    $18);                                             { $A9EE IF < }
 
 implementation
 
