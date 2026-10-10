@@ -45,8 +45,9 @@ function FamilyUsable(family: Byte): Boolean;
   checking them at startup and after building them. }
 procedure ResetArchiveCache;
 
-{ The archive a load of fileName (no extension) really opens: the merged archive of its data family when fileName names
-  a per-disk archive that exists and the merged archive is usable, otherwise fileName itself. }
+{ The archive a load of an ordinary block id from fileName (no extension) really opens: the merged archive of its data
+  family when fileName names a per-disk archive that exists and the merged archive is usable, otherwise fileName
+  itself. A load of one of C_Data's reserved ids always opens fileName (LoadDax). }
 function ArchiveName(fileName: Types.TStr20): Types.TStr20;
 
 { True when the per-disk archive gameDir + fileName + '.DAX' itself, never a merged archive read in its place, lists
@@ -273,7 +274,8 @@ end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with insertDiskMsg for the current
-  virtual disk, unless suppressInsertPrompt is set. }
+  virtual disk, unless suppressInsertPrompt is set. False, with both handles closed, when the header size cannot be
+  read or the directory it gives runs past the end of the file, whose scan would never end. }
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
@@ -282,9 +284,14 @@ begin
     Assign(f2, dirName + ext);
     Reset(f2, 1);
     BlockRead(f2, headerSize, SizeOf(headerSize), nread);
-    Inc(headerSize, SizeOf(headerSize));
-    Seek(f1, headerSize);
-    OpenDax := True;
+    if (nread = SizeOf(headerSize)) and (LongInt(headerSize) + SizeOf(headerSize) <= FileSize(f2)) then begin
+      Inc(headerSize, SizeOf(headerSize));
+      Seek(f1, headerSize);
+      OpenDax := True;
+    end else begin
+      DaxIo.CloseDax(f1, f2);
+      OpenDax := False;
+    end;
   end else
     OpenDax := False;
 end;
@@ -433,6 +440,7 @@ var compSize: Word; offset: LongInt; id: Byte; n: Word;
     f2: file; hdrSize: Word; pad802: Byte; numStr: String[6];
     family: Byte;
     disk: Byte;
+    cut: Boolean;
 begin
   family := DataArc.MatchFamily(fileName, disk);
   { the reserved ids name the merged archive's own blocks, which no per-disk archive holds: such a load reads the
@@ -454,13 +462,15 @@ begin
     BlockRead(f2, sizeRead, SizeOf(sizeRead), n);
     { compressed size }
     BlockRead(f2, compSize, SizeOf(compSize), n);
-    if compSize > 36000 then begin
+    { an entry cut short by the end of the file ends the scan, unfound }
+    cut := n < SizeOf(compSize);
+    if not cut and (compSize > 36000) then begin
       Str(LongInt(compSize), numStr);
       DaxIo.PromptBox(Yellow, 'tempsize ' + numStr);
       GameIo.ExitGame;
     end;
-  until (id = fileID) or (FilePos(f2) >= hdrSize);
-  if id <> fileID then begin
+  until cut or (id = fileID) or (FilePos(f2) >= hdrSize);
+  if cut or (id <> fileID) then begin
     sizeRead := 0;
     data := nil;
     DaxIo.CloseDax(f1, f2);
