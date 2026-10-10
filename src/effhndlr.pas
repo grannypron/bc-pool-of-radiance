@@ -1002,19 +1002,20 @@ begin
   FxEngine.AddEffect(creature, C_Effect.REGEN3, 0, 255, False);
 end;
 
-{ Ring of Fire Resistance (eff 61): against fire, -2 damage per die (minimum 1 per die) and +4 to save; non-magical fire
-  is nullified }
+{ Ring of Fire Resistance (eff 61): against fire, -2 damage per die (minimum 1 per die, but never more than the damage
+  was) and +4 to save; non-magical fire is nullified }
 
 procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   i: Byte;
 begin
   if GDVars.elementMask and 1 <> 0 then begin
-    for i := 1 to GDVars.gDamageDice do begin
-      Dec(GDVars.pendingDamage, 2);
-      if GDVars.pendingDamage < GDVars.gDamageDice then
+    for i := 1 to GDVars.gDamageDice do
+      { floor before taking 2 off, so damage of 0 or 1 cannot wrap the Byte to 254 or 255 }
+      if GDVars.pendingDamage >= Word(GDVars.gDamageDice) + 2 then
+        Dec(GDVars.pendingDamage, 2)
+      else if GDVars.pendingDamage > GDVars.gDamageDice then
         GDVars.pendingDamage := GDVars.gDamageDice;
-    end;
     Inc(GDVars.gSaveRoll, 4);
     if GDVars.elementMask and 8 = 0 then
       EffHndlr.NullifyAttack(0);
