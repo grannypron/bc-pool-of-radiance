@@ -96,6 +96,8 @@ else
         problem "DOSBox-X $dosbox_version is too old: version $dosbox_min or later is needed."
     fi
 fi
+command -v timeout > /dev/null 2>&1 \
+    || problem "timeout (GNU coreutils) is not on PATH: build.sh uses it to stop a DOSBox-X that never exits."
 
 if [ ${#problems[@]} -gt 0 ]; then
     echo "build.sh: cannot build. Fix these first:" >&2
@@ -111,7 +113,10 @@ mkdir -p "$root/obj" "$root/build/logs"
 rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
 
 echo "build.sh: compiling in DOSBox-X..."
-dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
+# DOSBox-X's own messages go to build/logs/DOSBOX.OUT. A build takes seconds; one that has not finished in ten minutes
+# is stuck (DOSBox-X waiting at a prompt, say) and is stopped. --foreground keeps Ctrl-C reaching DOSBox-X.
+dosbox_timeout=600
+timeout --foreground -k 10 $dosbox_timeout dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
     -c "mount d \"$tp\"" \
     -c "mount e \"$root\"" \
     -c "mount f \"$tasm\"" \
@@ -119,9 +124,21 @@ dosbox-x -silent -exit -noautoexec -set "cpu cycles=max" \
     -c "e:" \
     -c "cd \\src" \
     -c "call \\build\\build.bat" \
-    -c "exit" > /dev/null 2>&1
+    -c "exit" > "$root/build/logs/DOSBOX.OUT" 2>&1
+dosbox_status=$?
 
-# DOSBox-X's own exit status says nothing about the build; the logs and the outputs do.
+# DOSBox-X's own exit status says nothing about the build; the logs and the outputs do. It does say when timeout
+# stopped it, and a missing TPC.OUT means build.bat never ran.
+if [ $dosbox_status -eq 124 ] || [ $dosbox_status -eq 137 ]; then
+    echo "build.sh: DOSBox-X had not finished after $dosbox_timeout seconds and was stopped;" \
+        "see build/logs/DOSBOX.OUT." >&2
+    exit 1
+fi
+if [ ! -f "$root/build/logs/TPC.OUT" ]; then
+    echo "build.sh: DOSBox-X did not run build.bat; see build/logs/DOSBOX.OUT:" >&2
+    tail -n 20 "$root/build/logs/DOSBOX.OUT" >&2
+    exit 1
+fi
 failed=0
 if grep -qi "error" "$root/build/logs/TPC.OUT" 2> /dev/null; then
     echo "build.sh: the compiler reported errors (build/logs/TPC.OUT):" >&2

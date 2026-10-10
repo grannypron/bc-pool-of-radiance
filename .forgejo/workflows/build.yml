@@ -24,6 +24,8 @@ on:
 jobs:
   build:
     runs-on: docker
+    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    timeout-minutes: 20
     container:
       image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
       credentials:
@@ -65,6 +67,8 @@ jobs:
   reproduce:
     if: github.event_name != 'workflow_dispatch'
     runs-on: docker
+    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    timeout-minutes: 20
     container:
       image: forge.schkerke.com/brian/dosbox-x-ci@sha256:f267bdbe5aab1f1d78128590da29e07c65bcf43dfc5d6c04f6cb6cca825fee71
       credentials:
