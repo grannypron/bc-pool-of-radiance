@@ -61,6 +61,7 @@ end;
   type 3 (barred door) uses the locked/barred/magically-held column: 18/91 to 25 roll, and each member below 18/91
   clears doorOpen[0] so Bash is not offered again at this door (later members still try this time). Otherwise the normal
   column covers Strength 3 to 25 (19 and above, from a Potion of Giant Strength, on the Players Handbook's odds).
+  Strength above 25 counts as 25 and exceptional strength above 100 as 18/00.
   Success opens the barrier from both sides. }
 function BashDoor: Boolean;
 var
@@ -77,7 +78,7 @@ begin
         case strCur of
           18: case strExc of
                  91..99: if FxEngine.RollDice(1, 6) = 1 then success := True;
-                 100: if FxEngine.RollDice(1, 6) <= 2 then success := True;
+                 100..255: if FxEngine.RollDice(1, 6) <= 2 then success := True;
                else
                  GDVars.doorOpen[0] := 0;
                end;
@@ -85,7 +86,7 @@ begin
           21, 22: if FxEngine.RollDice(1, 6) <= 4 then success := True;
           23: if FxEngine.RollDice(1, 6) <= 5 then success := True;
           24: if FxEngine.RollDice(1, 8) <= 7 then success := True;
-          25: success := True;
+          25..255: success := True;
         else
           GDVars.doorOpen[0] := 0;
         end;
@@ -97,13 +98,13 @@ begin
           18: case strExc of
                  0..50: if FxEngine.RollDice(1, 6) <= 3 then success := True;
                  51..99: if FxEngine.RollDice(1, 6) <= 4 then success := True;
-                 100: if FxEngine.RollDice(1, 6) <= 5 then success := True;
+                 100..255: if FxEngine.RollDice(1, 6) <= 5 then success := True;
                end;
           19, 20: if FxEngine.RollDice(1, 8) <= 7 then success := True;
           21: if FxEngine.RollDice(1, 10) <= 9 then success := True;
           22, 23: if FxEngine.RollDice(1, 12) <= 11 then success := True;
           24: if FxEngine.RollDice(1, 20) <= 19 then success := True;
-          25: if FxEngine.RollDice(1, 24) <= 23 then success := True;
+          25..255: if FxEngine.RollDice(1, 24) <= 23 then success := True;
         end;
     end;
     p := p^.nextCharAddr;

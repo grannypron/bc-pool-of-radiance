@@ -607,7 +607,8 @@ begin
   end;
 end;
 
-{ Map strCur (with exceptional strength at 18) onto the 0..30 combined strength scale used by the strength tables. }
+{ Map strCur (with exceptional strength at 18) onto the 0..30 combined strength scale used by the strength tables.
+  Strength above 25 counts as 25 and exceptional strength above 100 as 18/00. }
 function TranslatedStrength(creature: Types.PCharRecord): Byte;
 begin
   case creature^.strCur of
@@ -619,9 +620,12 @@ begin
         51..75: TranslatedStrength := 20;
         76..90: TranslatedStrength := 21;
         91..99: TranslatedStrength := 22;
-        100: TranslatedStrength := 23;
+      else
+        TranslatedStrength := 23;
       end;
     19..25: TranslatedStrength := creature^.strCur + 5;
+  else
+    TranslatedStrength := 30;
   end;
 end;
 
@@ -663,7 +667,8 @@ begin
     end;
 end;
 
-{ Strength's encumbrance allowance in coins; translated strength 1..7 gives a negative allowance, while 0 gives zero. }
+{ Strength's encumbrance allowance in coins; translated strength 1..7 gives a negative allowance, while 0 gives zero.
+  Strength 19 (translated 24) gets the AD&D 4500, not the 4000 its neighbours' formula gives. }
 function WeightAllowance(creature: Types.PCharRecord): Integer;
 var
   ts: Byte;
@@ -677,7 +682,8 @@ begin
     14..15: WeightAllowance := 200;
     16: WeightAllowance := 350;
     17..21: WeightAllowance := (ts - 17) * 250 + 500;
-    22..26: WeightAllowance := (ts - 22) * 1000 + 2000;
+    22, 23, 25, 26: WeightAllowance := (ts - 22) * 1000 + 2000;
+    24: WeightAllowance := 4500;
     27: WeightAllowance := 7500;
     28..30: WeightAllowance := (ts - 28) * 3000 + 9000;
   else
