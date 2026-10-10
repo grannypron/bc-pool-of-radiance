@@ -14,9 +14,8 @@ procedure Load8x8Set(fileID, setID: Byte);
 
 { Put 8x8 symbol: map symbol 1..286 to its set (symSetFirst) + local index. inCombat=True composites it into the view
   buffer with Blit.BlitTileCell (other = transparency flag); otherwise copies the glyph to the current-8x8 buffer and
-  draws it straight to the screen with Blit.ShowPic. Nothing is drawn if the set is not loaded. Symbol 0 or 287..32767
-  prints an error, waits for a key and quits to DOS. Note: a symbol above 32767 matches no case and uses an unset set
-  index }
+  draws it straight to the screen with Blit.ShowPic. Nothing is drawn if the set is not loaded, is not 8x1-cell glyphs,
+  or does not hold the symbol. Symbol 0 or above 286 prints an error, waits for a key and quits to DOS. }
 procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 
 implementation
@@ -53,7 +52,7 @@ begin
     116..185: setIdx := 2;
     186..255: setIdx := 3;
     256..286: setIdx := 4;
-    0, 287..32767: begin
+    0, 287..65535: begin
       Blit.RestoreVideoMode;
       WriteLn('Bad symbol number in Put8x8Symbol.');
       ch := GameIo.ReadGameKey;
@@ -62,6 +61,8 @@ begin
   end;
   if GDVars.dsSymbolSetPtrs[setIdx] <> nil then begin
     Dec(symbol, GDConsts.symSetFirst[setIdx]);
+    with GDVars.dsSymbolSetPtrs[setIdx]^ do
+      if (height <> 8) or (width <> 1) or (symbol >= count) then Exit;
     if inCombat then
       Blit.BlitTileCell(col, row, symbol, Ord(other), GDVars.dsSymbolSetPtrs[setIdx], GDVars.dsViewImageBufferPtr)
     else begin
