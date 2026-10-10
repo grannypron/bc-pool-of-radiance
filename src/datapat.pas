@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 32;
-  BYTE_COUNT = 992;
+  PART_COUNT = 33;
+  BYTE_COUNT = 994;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -103,7 +103,11 @@ const
     (por: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5697; origLen: 1; newLen: 1),
     { POR-0041: the Nomad Camp shaman's Bracers AC 2 (MON7ITM block 43, record 1) are priced and named for AC 2 but
       carry plus 6, which gives AC 4; the plus becomes 8 }
-    (por: 41; family: C_Data.FAMILY_MONITM; disk: 7; id: 43; size: 189; offset: 113; origLen: 1; newLen: 1));
+    (por: 41; family: C_Data.FAMILY_MONITM; disk: 7; id: 43; size: 189; offset: 113; origLen: 1; newLen: 1),
+    { POR-0042: Lizardman Keep's 'press Return' prompt (script $9A64) wrote its answer into [$6E81], the old
+      lizardman's record of which location the party is at, so a wrong friend-word at location 3 or 10 started
+      location 1's fight; the prompt now writes [$6E7A], which nothing reads before setting it }
+    (por: 42; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 360; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -402,7 +406,11 @@ const
     { POR-0041, original }
     $06,
     { fixed: plus 8 }
-    $08);
+    $08,
+    { POR-0042, original }
+    $81,
+    { fixed: HORIZONTAL MENU [$6E7A] }
+    $7A);
 
 implementation
 
