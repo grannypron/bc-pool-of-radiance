@@ -96,7 +96,7 @@ curTune         dw      0               ; tune id loaded; 0 = silent
 seqVoice        dw      0               ; the voice block seq_proc is running
 voiceBase       dw      0               ; block array of the device being ticked
 freqBase        dw      0               ; note table of the device being ticked
-seqRet          dw      0               ; the stream pointer SCALL saved -- one level only
+seqRet          dw      0               ; the stream pointer SCALL saved -- one level only; 0 = none
 voiceTune       db      0,0,0,0         ; tune id per voice; seq_end clears a voice's entry
                                         ;   when that voice runs out of stream
 outputOn        db      1               ; zero mutes output while the sequencers keep running
@@ -1451,7 +1451,14 @@ seq_e_set:
         ret
 seq_c_ret:                              ; 0FBh  SRET
         mov     di, ds:[seqRet]
+        mov     ds:[seqRet], 0          ; a return is used once
+        cmp     di, 0
+        jz      seq_r_none
         jmp     seq_loop
+seq_r_none:                             ; nothing to return to: end the voice
+        mov     si, ds:[seqVoice]       ;   rather than run from a stale pointer
+        mov     [si].vfDuration, 0
+        jmp     seq_end
 seq_c_call:                             ; 0FCh  SCALL
         mov     ax, [di]
         add     di, 2
