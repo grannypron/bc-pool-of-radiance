@@ -11,8 +11,8 @@ uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv;
   at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear. }
 function ReadGameKey: Char;
 
-{ If input is pending, call ReadGameKey once and discard its result. That call may consume several bytes or leave an
-  extended scan byte pending }
+{ If input is pending, call ReadGameKey once and discard its result. That call may consume several bytes; an extended
+  key's scan byte is then read and discarded too, so it is not taken for Ctrl-S. }
 procedure DiscardPendingKeys;
 
 { Restore the saved sound mode, send the stop command, set the saved video mode through the BIOS and exit to DOS. }
@@ -60,8 +60,11 @@ end;
 procedure DiscardPendingKeys;
 var key: Char;
 begin
-  if KeyPressed then
+  if KeyPressed then begin
     key := GameIo.ReadGameKey;
+    if (key = #0) and KeyPressed then
+      key := ReadKey;
+  end;
 end;
 
 end.
