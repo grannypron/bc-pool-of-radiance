@@ -508,7 +508,7 @@ begin
       if classLevels[cls] > 0 then begin
         if GDConsts.thac0Tbl[cls, classLevels[cls]] > thac0Base then
           thac0Base := GDConsts.thac0Tbl[cls, classLevels[cls]];
-        Inc(itemLimits, GDConsts.usabilityBit[cls]);
+        itemLimits := itemLimits or GDConsts.usabilityBit[cls];
       end;
   end;
   ClassCal.RecalcSaves(Types.PCharRecord(creature));
