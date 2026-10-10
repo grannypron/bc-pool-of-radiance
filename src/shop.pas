@@ -106,7 +106,8 @@ var
 begin
   itemToBuy := nil;
   cursor := GDVars.treasureItems;
-  idx := 1;
+  { MenuVertical counts idx from 0: open on the first item, as the loot Take menu does }
+  idx := 0;
   repeat
     Shop.ShopBuyItemSelection(c, itemToBuy, cursor, idx);
     if (c <> 'B') and (c <> C_Keys.ENTER) then
