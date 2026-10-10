@@ -1,0 +1,871 @@
+{ Journal text: journal entries 11 to 32. Each item is held in runs of up to 9 lines joined by #13, as string literals
+  in code, so the text lives in the overlay and costs no data segment. JrnlList reads it a line at a time. }
+{$O+,F+}
+unit Journal2;
+
+interface
+
+{ The number of display lines an item's text takes.
+  @param(index The item's place in the Journal list.)
+  @returns(The line count, or 0 for an item this unit does not hold.) }
+function LineCount(index: Integer): Integer;
+
+{ One run of an item's display lines.
+  @param(index The item's place in the Journal list.)
+  @param(chunk Which run of up to 9 lines, from 0.)
+  @returns(The run's lines separated by #13, or an empty string past the end.) }
+function TextChunk(index, chunk: Integer): string;
+
+implementation
+
+function LineCount(index: Integer): Integer;
+begin
+  case index of
+    29: LineCount := 37;
+    30: LineCount := 12;
+    31: LineCount := 38;
+    32: LineCount := 34;
+    33: LineCount := 4;
+    34: LineCount := 34;
+    35: LineCount := 17;
+    36: LineCount := 31;
+    37: LineCount := 14;
+    38: LineCount := 34;
+    39: LineCount := 33;
+    40: LineCount := 4;
+    41: LineCount := 28;
+    42: LineCount := 43;
+    43: LineCount := 40;
+    44: LineCount := 37;
+    45: LineCount := 32;
+    46: LineCount := 4;
+    47: LineCount := 4;
+    48: LineCount := 37;
+    49: LineCount := 35;
+    50: LineCount := 24;
+    else LineCount := 0;
+  end;
+end;
+
+function TextChunk(index, chunk: Integer): string;
+begin
+  TextChunk := '';
+  case index of
+    { Entry 11 }
+    29:
+      case chunk of
+        0:
+          TextChunk :=
+            'A MANGLED PAGE OF FINE'#13 +
+            'PAPER WITH ENTRIES WRITTEN'#13 +
+            'IN A VERY FINE HAND.'#13 +
+            #13 +
+            '"HE IS LIVID ABOUT THE'#13 +
+            'UNDEAD COMING OUT OF'#13 +
+            'VALHINGEN GRAVEYARD. THREE'#13 +
+            'TIMES HE HAS SENT ASSAULT'#13 +
+            'GROUPS, THREE TIMES NONE';
+        1:
+          TextChunk :=
+            'HAVE RETURNED. HE DARES NOT'#13 +
+            'SEND ANY OF THE PRIESTS OF'#13 +
+            'BANE TO CLEAR THE'#13 +
+            'GRAVEYARD. HE ASSUMES THAT'#13 +
+            'IF A PRIEST COULD WREST'#13 +
+            'CONTROL OF THE UNDEAD FROM'#13 +
+            'THEIR CURRENT MASTER, THAT'#13 +
+            'THE PRIEST WOULD THEN'#13 +
+            'BECOME A THREAT TO HIS';
+        2:
+          TextChunk :=
+            'POWER.'#13 +
+            #13 +
+            '"I SUGGESTED THAT IF WE'#13 +
+            'COULD NEUTRALIZE THE POWER'#13 +
+            'THAT LEADS THE UNDEAD, THAT'#13 +
+            'WE COULD THEN USE THE'#13 +
+            'UNDEAD AS A TOOL. HE'#13 +
+            'THOUGHT ON THIS AND THEN'#13 +
+            'ORDERED ME TO FIND OUT WHO';
+        3:
+          TextChunk :=
+            'OR WHAT IS IN CONTROL IN'#13 +
+            'VALHINGEN GRAVEYARD.'#13 +
+            'PRELIMINARY INVESTIGATION'#13 +
+            'SHOWS THAT THE GRAVEYARD IS'#13 +
+            'CONTROLLED BY A BEING OF'#13 +
+            'GREAT POWER, PERHAPS A'#13 +
+            'VAMPIRE OR A DEMON. I SHALL'#13 +
+            'EXPEND A FEW SCOUTS AND LOW'#13 +
+            'LEVEL PRIESTS TO FIND OUT';
+        4:
+          TextChunk :=
+            'MORE INFORMATION."';
+      end;
+    { Entry 12 }
+    30:
+      case chunk of
+        0:
+          TextChunk :=
+            'MESSAGE SCRATCHED INTO THE'#13 +
+            'WALL OVER THE POOL.'#13 +
+            #13 +
+            'BEWARE THE POWER OF THE'#13 +
+            'POOL.'#13 +
+            'DEATH TO THOSE UNWORTHY OF'#13 +
+            'THE GIFTS OF THE POOL.'#13 +
+            'POWER TO THOSE WHO WILL USE'#13 +
+            'THE GIFTS OF THE POOL';
+        1:
+          TextChunk :=
+            'WISELY.'#13 +
+            'BATHE IN THE POOL IF YOU'#13 +
+            'DARE.';
+      end;
+    { Entry 13 }
+    31:
+      case chunk of
+        0:
+          TextChunk :=
+            'A FLOWERY NOTE WRITTEN ON'#13 +
+            'STATIONARY EMBLAZONED WITH'#13 +
+            'THE SYMBOL OF THE CITY'#13 +
+            'COUNCIL OF NEW PHLAN.'#13 +
+            #13 +
+            '"WITH THE ARTIFACT AND'#13 +
+            'AGREEMENT IN THIS POUCH WE'#13 +
+            'HAVE MADE OUR FINAL'#13 +
+            'CONCESSIONS TO YOUR';
+        1:
+          TextChunk :=
+            'DEMANDS. WE HAVE GIVEN YOU'#13 +
+            'EVERYTHING YOU HAVE ASKED'#13 +
+            'FOR. THIS SHOULD SETTLE OUR'#13 +
+            'DIFFERENCES AND CEMENT OUR'#13 +
+            'ALLIANCE.'#13 +
+            #13 +
+            '"NOW THAT WE HAVE DELIVERED'#13 +
+            'OUR PART OF THE BARGAIN WE'#13 +
+            'WILL EXPECT YOU TO UPHOLD';
+        2:
+          TextChunk :=
+            'YOUR END. USE THIS'#13 +
+            'PROTECTED POUCH AND OUR'#13 +
+            'REPRESENTATIVES TO DELIVER'#13 +
+            'YOUR PART OF THE BARGAIN TO'#13 +
+            'THE CITY COUNCIL. REMEMBER'#13 +
+            'TO INCLUDE ALL OF THE'#13 +
+            'MAGICAL ITEMS WE AGREED'#13 +
+            'UPON.'#13 +
+            '';
+        3:
+          TextChunk :=
+            '"WITH THE BURIED RICHES IN'#13 +
+            'THE RECLAIMED PHLAN, AND'#13 +
+            'THE MIGHT OF ZHENTIL KEEP'#13 +
+            'WE WILL BE ABLE TO CONTROL'#13 +
+            'ALL OF THE NORTHERN SHORES'#13 +
+            'OF THE MOONSEA."'#13 +
+            #13 +
+            'SIGNED'#13 +
+            'PORPHYRYS CADORNA';
+        4:
+          TextChunk :=
+            'CITY COUNCIL'#13 +
+            'NEW PHLAN';
+      end;
+    { Entry 14 }
+    32:
+      case chunk of
+        0:
+          TextChunk :=
+            'SEVERAL PIECES OF PAPER'#13 +
+            'WITH HIGHLY ORGANIZED'#13 +
+            'WRITING.'#13 +
+            #13 +
+            'FACT: PORPHYRYS CADORNA IS'#13 +
+            'THE LAST KNOWN SURVIVING'#13 +
+            'MEMBER OF THE CADORNA CLAN.'#13 +
+            #13 +
+            'STRONG RUMOR: RISING STAR';
+        1:
+          TextChunk :=
+            'IN CITY POLITICS AND ON THE'#13 +
+            'CITY COUNCIL.'#13 +
+            #13 +
+            'RUMOR: VERY CHARMING, HAS'#13 +
+            'MANY ADMIRERS, BUT NO KNOWN'#13 +
+            'MATE.'#13 +
+            #13 +
+            'RUMOR: VINDICTIVE, LIKES TO'#13 +
+            'GET HIS OWN WAY AND';
+        2:
+          TextChunk :=
+            'REMEMBERS WHEN HE IS (IN'#13 +
+            'HIS MIND) DOUBLE CROSSED.'#13 +
+            #13 +
+            'FACT: HAS CONTACTED THIEVES'#13 +
+            'TO HAVE THEM GAIN HIM'#13 +
+            'INFORMATION ON THE POOL OF'#13 +
+            'RADIANCE.'#13 +
+            #13 +
+            'FACT: HAS HIRED A NUMBER OF';
+        3:
+          TextChunk :=
+            'MERCENARIES THROUGH THE'#13 +
+            'THIEVES (WE RECEIVED OUR'#13 +
+            'NORMAL CUT).'#13 +
+            #13 +
+            'VAGUE RUMOR: IS USING'#13 +
+            'MERCENARIES TO FIND POOL OF'#13 +
+            'RADIANCE.';
+      end;
+    { Entry 15 }
+    33:
+      case chunk of
+        0:
+          TextChunk :=
+            'A CLEAN MAP DRAWN WITH'#13 +
+            'EXACT LINES.'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+    { Entry 16 }
+    34:
+      case chunk of
+        0:
+          TextChunk :=
+            'TOLD IN A PROUD, HAUGHTY'#13 +
+            'VOICE.'#13 +
+            #13 +
+            '"I AM A PRINCESS OF A TRIBE'#13 +
+            'OF NOMADS TO THE NORTHWEST.'#13 +
+            'MY FATHER IS AN OLD FOOL.'#13 +
+            'HE WANTED ME TO MARRY KING'#13 +
+            'AL RASID, TO CEMENT AN'#13 +
+            'ALLIANCE. I HAD MORE';
+        1:
+          TextChunk :=
+            'IMPORTANT THINGS TO DO,'#13 +
+            'THAN BE TIED DOWN TO AN'#13 +
+            'AGING MONARCH. WHEN I'#13 +
+            'MARRY, IT SHALL BE TO'#13 +
+            'SOMEONE WHO HAS THE SAME'#13 +
+            'TASTE OF ADVENTURE AND THE'#13 +
+            'SAME SKILL WITH A SWORD.'#13 +
+            #13 +
+            '"WELL, FATHER WAS INSISTENT';
+        2:
+          TextChunk :=
+            'AND HIS SUBJECTS SUPPORTED'#13 +
+            'HIM, SO I LEFT TO SEEK MY'#13 +
+            'FORTUNE. KOBOLDS HAD BEEN'#13 +
+            'RAIDING OUR TENTS UPON'#13 +
+            'OCCASION, SO I HEADED THIS'#13 +
+            'WAY. IF I COULD END THE'#13 +
+            'THREAT, THEN I''D HAVE MORE'#13 +
+            'LEVERAGE WITH MY TRIBE.'#13 +
+            'HOWEVER, TWO NIGHTS AGO, I';
+        3:
+          TextChunk :=
+            'WAS AMBUSHED BY THESE WORMS'#13 +
+            '-- KNOCKED OUT AND BOUND'#13 +
+            'UP. I FINALLY GOT MYSELF'#13 +
+            'UNTIED A LITTLE WHILE AGO'#13 +
+            'AND WAS WORKING MY WAY OUT'#13 +
+            'OF THESE CAVES, WHEN YOU'#13 +
+            'SHOWED UP."';
+      end;
+    { Entry 17 }
+    35:
+      case chunk of
+        0:
+          TextChunk :=
+            'A QUICK NOTE ON AN OFTEN'#13 +
+            'USED PIECE OF PAPER.'#13 +
+            #13 +
+            '"I MUST FIND SOME HARDY'#13 +
+            'ALLIES IN CASE THIS MONSTER'#13 +
+            'FROM PHLAN SENDS HIS TROOPS'#13 +
+            'TO ATTACK MY ISLAND. I NEED'#13 +
+            'A SMALL, INTELLIGENT PARTY'#13 +
+            'WHO CAN MOVE THROUGH THE';
+        1:
+          TextChunk :=
+            'CIVILIZED AREAS WITHOUT'#13 +
+            'NOTICE, BUT WHO HAVE THE'#13 +
+            'SKILL TO TRAVERSE THE'#13 +
+            'UNCIVILIZED AREAS AND THE'#13 +
+            'WILDERNESS. I MUST WATCH'#13 +
+            'THE NEXT GROUPS TO COME TO'#13 +
+            'THE LAKE AND SEE IF ANY'#13 +
+            'WOULD MAKE PROPER ALLIES."';
+      end;
+    { Entry 18 }
+    36:
+      case chunk of
+        0:
+          TextChunk :=
+            'A RATTY PIECE OF PARCHMENT'#13 +
+            'WITH LARGE WRITING ON ONE'#13 +
+            'SIDE.'#13 +
+            #13 +
+            '"HOLD THE SOKAL KEEP ON'#13 +
+            'THORN ISLAND AT ALL COSTS.'#13 +
+            'IF ATTACKED, SACRIFICE YOUR'#13 +
+            'TROOPS AS NECESSARY TO HOLD'#13 +
+            'OUT UNTIL RELIEVED.';
+        1:
+          TextChunk :=
+            #13 +
+            '"IN YOUR DEPLOYMENT SET TWO'#13 +
+            'SQUADS OF HOBGOBLINS TO'#13 +
+            'PATROL THORN ISLAND AT ALL'#13 +
+            'TIMES. AT LEAST 2 SQUADS OF'#13 +
+            'ARCHERS ARE TO BE DEPLOYED'#13 +
+            'ON THE WALLS AT ALL TIMES.'#13 +
+            'LET THE PACK OF WARDOGS'#13 +
+            'LOOSE TO COVER THE ISLAND';
+        2:
+          TextChunk :=
+            'SEVERAL TIMES A DAY AT'#13 +
+            'RANDOM INTERVALS. SET PAIRS'#13 +
+            'OF KOBOLDS AS OBSERVERS IN'#13 +
+            'HIDDEN LOCATIONS AROUND THE'#13 +
+            'ISLAND.'#13 +
+            #13 +
+            'IF THORN ISLAND IS INVADED'#13 +
+            'IMMEDIATELY DISPATCH A'#13 +
+            'MESSAGE BACK TO THE CASTLE.';
+        3:
+          TextChunk :=
+            'WE WILL SEND OVER HOWEVER'#13 +
+            'MANY REINFORCEMENTS ARE'#13 +
+            'NECESSARY TO HOLD THE'#13 +
+            'ISLAND."';
+      end;
+    { Entry 19 }
+    37:
+      case chunk of
+        0:
+          TextChunk :=
+            'A BLACK BOUND TOME WRITTEN'#13 +
+            'IN A STRANGE HALTING HAND.'#13 +
+            #13 +
+            '"...AND SETTLED FOREMOST IN'#13 +
+            'THE HALL OF MINOR COURTIERS'#13 +
+            'WERE THE LESSER POWERS:'#13 +
+            'MARAM OF THE GREAT SPEAR;'#13 +
+            'HAASK, VOICE OF HARGUT;'#13 +
+            'TYRANTHRAXUS THE FLAMED';
+        1:
+          TextChunk :=
+            'ONE; BOREM OF THE LAKE OF'#13 +
+            'BOILING MUD; AND CAMNOD THE'#13 +
+            'UNSEEN. THESE TOO FELL DOWN'#13 +
+            'AND BECAME SERVANTS OF THE'#13 +
+            'GREAT LORD BANE."';
+      end;
+    { Entry 20 }
+    38:
+      case chunk of
+        0:
+          TextChunk :=
+            'TOLD IN A PAINED VOICE.'#13 +
+            #13 +
+            '"WE JUST GOT THE CUT'#13 +
+            'THROUGH TO THE BEASTIE''S'#13 +
+            'LAIR WHEN I INJURED MY LEG.'#13 +
+            'KING DECIDED THERE WASN''T'#13 +
+            'MUCH USE FER ME ANYMORE.'#13 +
+            'MADE ME A PROPOSITION'#13 +
+            'THOUGH. SAID IF I WENT INTO';
+        1:
+          TextChunk :=
+            'THE LAIR AND BROUGHT OUT'#13 +
+            'THE TREASURE, HE''D FEED ME'#13 +
+            'TILL I STOPPED BREATHIN''.'#13 +
+            'BEST DEAL I HAD, SO THEY'#13 +
+            'TOSSED ME DOWN HERE. NOT'#13 +
+            'BEIN'' A FOOL, I LIT OUT FOR'#13 +
+            'THE DEEPEST HIDEY-HOLE.'#13 +
+            'THANKFULLY THE BEASTIE WAS'#13 +
+            'ASLEEP. I CAN STILL MOVE';
+        2:
+          TextChunk :=
+            'REAL QUIET WHEN I MUST.'#13 +
+            #13 +
+            '"ANYWAY, IF THERE HASN''T'#13 +
+            'BEEN MUCH OF AN ALARM, THEN'#13 +
+            'DRUNKEN FERD MUST BE ON'#13 +
+            'WATCH AT THE ROCK. HE''S THE'#13 +
+            'KING''S SON, SO HE AIN''T'#13 +
+            'HERE WITH ME -- WORTHLESS'#13 +
+            'SOT. IF HE''S THERE, HE''S';
+        3:
+          TextChunk :=
+            'GOT LESS BRAINS THAN A'#13 +
+            'FERMENTED RAT, JUST ACT'#13 +
+            'OFFICIOUS AND HE''LL TAKE YA'#13 +
+            'TA THE KING. WOULDN''T MIND'#13 +
+            'HEARIN'' OF THAT TYRANT''S'#13 +
+            'DEMISE. YA SEEM JUST THE'#13 +
+            'TYPES TA DO IT TOO."';
+      end;
+    { Entry 21 }
+    39:
+      case chunk of
+        0:
+          TextChunk :=
+            'A CRUMBLING OLD BOOK; ONE'#13 +
+            'OF A MASSIVE SERIES.'#13 +
+            #13 +
+            '"AT THIS TIME THERE RULING'#13 +
+            'THE TWISTED ONES WAS A'#13 +
+            'POWERFUL GENERAL NAMED'#13 +
+            'TYRANTHRAXUS. HE STRODE'#13 +
+            'BEFORE HIS ARMIES CLOAKED'#13 +
+            'IN FLAME AND LED THE RIDERS';
+        1:
+          TextChunk :=
+            'OUT OF THE WASTE. AT HIS'#13 +
+            'HAND THE KINGDOM OF BARZE'#13 +
+            'WAS CONQUERED. TURNING'#13 +
+            'SOUTH HE LED HIS ARMY TO'#13 +
+            'CONQUER THE HORREB AND THE'#13 +
+            'VANE. TYRANTHRAXUS WAS A'#13 +
+            'CRUEL MAN AND LEVELED ALL'#13 +
+            'THAT HE HAD TAKEN,'#13 +
+            'MURDERING THE PRINCES OF';
+        2:
+          TextChunk :=
+            'THESE LANDS. BUT THE FLAME'#13 +
+            'THAT SURROUNDED HIM'#13 +
+            'CONSUMED HIM, DESTROYING'#13 +
+            'HIS BODY. FREED OF ITS'#13 +
+            'SHELL, IT FLEW AMONG THE'#13 +
+            'MEN OF HIS ARMY, LIGHTING'#13 +
+            'ON EACH AND CLAIMING IT. IT'#13 +
+            'WAS THEN WHEN BARON SCHODT'#13 +
+            'IMPRISONED TYRANTHRAXUS IN';
+        3:
+          TextChunk :=
+            'A VIAL OF WATER WHICH SHONE'#13 +
+            'LIKE THE LIGHT OF DAY. THIS'#13 +
+            'HE SANK IN THE WATERY'#13 +
+            'DEPTHS OF LAKE LONGREACH,'#13 +
+            'DEFEATING THE ARMIES'#13 +
+            'TYRANTHRAXUS HAD RAISED."';
+      end;
+    { Entry 22 }
+    40:
+      case chunk of
+        0:
+          TextChunk :=
+            'A NEW FOLDED CLOTH MAP'#13 +
+            'DRAWN IN WATERPROOF INK.'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+    { Entry 23 }
+    41:
+      case chunk of
+        0:
+          TextChunk :=
+            'SEVERAL PIECES OF PAPER'#13 +
+            'WITH HIGHLY ORGANIZED'#13 +
+            'WRITING.'#13 +
+            #13 +
+            'FACT: ULRICH EBERHARD IS'#13 +
+            'OLD, HARD HEADED IN EVERY'#13 +
+            'SENSE OF THE WORD, LEADER'#13 +
+            'OF THE INITIAL EXPEDITION'#13 +
+            'TO RETAKE PHLAN.';
+        1:
+          TextChunk :=
+            #13 +
+            'STRONG RUMOR: UNFAITHFUL TO'#13 +
+            'HIS WIFE, BUT SHE KNOWS,'#13 +
+            'THOUGH HE DOESN''T KNOW SHE'#13 +
+            'KNOWS.'#13 +
+            #13 +
+            'RUMOR: HATES MONSTERS, WITH'#13 +
+            'A PASSION; WOULD KILL EVERY'#13 +
+            'LAST ONE BEFORE';
+        2:
+          TextChunk :=
+            'SURRENDERING.'#13 +
+            #13 +
+            'VAGUE RUMOR: ANGRY ATTITUDE'#13 +
+            'IS A COVER; HE IS ACTUALLY'#13 +
+            'PAID BY THE BOSS.'#13 +
+            #13 +
+            'RUMOR: OPPOSES RISE OF'#13 +
+            'PORPHYRYS CADORNA AS A,'#13 +
+            '"YOUNG UPSTART WHO DOESN''T';
+        3:
+          TextChunk :=
+            'RESPECT HIS ELDERS!"';
+      end;
+    { Entry 24 }
+    42:
+      case chunk of
+        0:
+          TextChunk :=
+            'A PIECE OF OLD, EXPENSIVE'#13 +
+            'PAPER WRITTEN IN A DRIED'#13 +
+            'BROWN FLUID.'#13 +
+            #13 +
+            '"CURSED IS THE CHILD'#13 +
+            'PORPHYRYS. HE WHO WAS'#13 +
+            'VISITED BY THE SPIRIT OF'#13 +
+            'FIRE IN HIS CRADLE. HE WHO'#13 +
+            'BURNED HIS NURSEMAID, AND';
+        1:
+          TextChunk :=
+            'HE WHO CALLED THE ARMIES OF'#13 +
+            'THE NIGHT DOWN FROM THE'#13 +
+            'MOUNTAINS.'#13 +
+            #13 +
+            '"POSSESSED IS THE ONE'#13 +
+            'CALLED PORPHYRYS. WHEN THE'#13 +
+            'SPIRIT OF EVIL IS IN HIM'#13 +
+            'YOU CAN SEE THE FIRE IN HIS'#13 +
+            'EYES. WHEN HE IS POSSESSED,';
+        2:
+          TextChunk :=
+            'THE GROUND TREMBLES WITH'#13 +
+            'HIS POWER AND THE NEARBY'#13 +
+            'PLANTS WITHER AS IF EXPOSED'#13 +
+            'TO A GREAT HEAT.'#13 +
+            #13 +
+            '"NONE OF THE SERVANTS WILL'#13 +
+            'GO NEAR THE CHILD ANY MORE.'#13 +
+            'I THINK HE SHOULD HAVE BEEN'#13 +
+            'DROWNED AT BIRTH. BUT HIS';
+        3:
+          TextChunk :=
+            'MOTHER IS BLIND TO HIS'#13 +
+            'POSSESSION. SHE GUARDS HIM'#13 +
+            'LIKE A TIGRESS PROTECTING A'#13 +
+            'KITTEN. I THINK HE HAS'#13 +
+            'ENSORCERED HER.'#13 +
+            #13 +
+            '"FOR NOW WE HAVE NO CHOICE.'#13 +
+            'WE WILL EVACUATE THE CITY'#13 +
+            'BY SHIP ON THE MORROW. AND';
+        4:
+          TextChunk :=
+            'THE ACCURSED CHILD SHALL'#13 +
+            'COME ALONG. I SWEAR THAT HE'#13 +
+            'SMILES EVERY TIME THERE IS'#13 +
+            'AN EXPLOSION, OR ANYTIME'#13 +
+            'YOU HEAR A MAN SCREAM.'#13 +
+            'SAINTS PRESERVE US ALL FROM'#13 +
+            'THIS DEMON CHILD."';
+      end;
+    { Entry 25 }
+    43:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN OFFICIAL-LOOKING NOTICE.'#13 +
+            #13 +
+            '"THE NUMBER OF UNDEAD'#13 +
+            'CREEPING OUT OF THE'#13 +
+            'VALHINGEN GRAVEYARD IS'#13 +
+            'INCREASING. THESE UNDEAD'#13 +
+            'HAVE DISRUPTED TRAINING,'#13 +
+            'DESTROYED PROPERTY, AND'#13 +
+            'KILLED MANY OF OUR TROOPS.';
+        1:
+          TextChunk :=
+            'PATROLS HAVE BEEN SENT INTO'#13 +
+            'THE GRAVEYARD TO'#13 +
+            'RECONNOITER AND DETERMINE'#13 +
+            'THE SOURCE OF THE UNDEAD.'#13 +
+            'NONE HAVE RETURNED. UNDER'#13 +
+            'YOUR RESPONSIBILITIES AS A'#13 +
+            'PRIEST OF BANE IN THE CITY,'#13 +
+            'YOU MUST HELP COMBAT THE'#13 +
+            'MENACE.';
+        2:
+          TextChunk :=
+            #13 +
+            '"LEAD A GROUP OF ACOLYTES'#13 +
+            'INTO THE GRAVEYARD WITH THE'#13 +
+            'PURPOSE OF DISCOVERING THE'#13 +
+            'SOURCE AND LEADER OF THE'#13 +
+            'UNDEAD. IF YOUR GROUP CAN'#13 +
+            'ENGAGE AND DEFEAT THE'#13 +
+            'LEADER, OR DESTROY THE'#13 +
+            'SOURCE, DO SO. IF YOUR';
+        3:
+          TextChunk :=
+            'GROUP IS OUTMATCHED, RETURN'#13 +
+            'WITH YOUR INFORMATION SO'#13 +
+            'THAT WE CAN FORM AN ASSAULT'#13 +
+            'GROUP WITH CLERICS AND'#13 +
+            'TROOPS. UPON COMPLETION OF'#13 +
+            'THIS MISSION YOU WILL BE IN'#13 +
+            'LINE FOR PROMOTION TO THE'#13 +
+            'NEXT HIGHER RANK IN THE'#13 +
+            'HIERARCHY OF THE TEMPLE OF';
+        4:
+          TextChunk :=
+            'BANE IN PHLAN."'#13 +
+            #13 +
+            'SIGNED'#13 +
+            'THE BOSS';
+      end;
+    { Entry 26 }
+    44:
+      case chunk of
+        0:
+          TextChunk :=
+            'A SMALL BOUND BOOK.'#13 +
+            #13 +
+            '"I HAVE CHARTED THIS MAZE'#13 +
+            'AS CLOSELY AS I CAN. MY WAY'#13 +
+            'IS BLOCKED BY BOTH STONE'#13 +
+            'AND MYSTIC DEATH TRAPS.'#13 +
+            'YARASH MUST HAVE USED HIS'#13 +
+            'MAGIC TO ESCAPE THIS PLACE.'#13 +
+            'I CAN FIND NO OTHER WAY';
+        1:
+          TextChunk :=
+            'OUT."'#13 +
+            #13 +
+            '(PICTURE: MAP)'#13 +
+            #13 +
+            '"YARASH HAS BEEN BREEDING'#13 +
+            'CREATURES FOR INCREASED'#13 +
+            'FEROCITY. MOST OF HIS'#13 +
+            'EXPERIMENTS FAIL. FEW LIVE'#13 +
+            'LONG ENOUGH TO MATURE. NONE';
+        2:
+          TextChunk :=
+            'THAT MATURE HAVE YET BRED'#13 +
+            'TRUE. THE BODIES OF HIS'#13 +
+            'FAILURES ARE OFTEN USED AS'#13 +
+            'FOOD FOR HIS NEWER'#13 +
+            'CREATIONS.'#13 +
+            #13 +
+            '"I DO NOT KNOW WHAT YARASH'#13 +
+            'INTENDS TO DO WHEN HE'#13 +
+            'COMPLETES HIS HIDEOUS';
+        3:
+          TextChunk :=
+            'EXPERIMENTS. BUT I MUST'#13 +
+            'ASSUME THAT HE WILL TURN'#13 +
+            'HIS ABOMINATIONS LOOSE ON'#13 +
+            'THE WORLD. TO THESE'#13 +
+            'CREATURES YARASH WILL BE'#13 +
+            'THEIR CREATOR, PERHAPS EVEN'#13 +
+            'THEIR GOD! THE IDEA OF'#13 +
+            'YARASH AS A GOD TO ANYONE'#13 +
+            'SICKENS ME. I MUST FIND A';
+        4:
+          TextChunk :=
+            'WAY TO STOP HIM.';
+      end;
+    { Entry 27 }
+    45:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN IMPRESSIVE ANNOUNCEMENT.'#13 +
+            #13 +
+            '"BOUNTY OF 10,000 GOLD!'#13 +
+            #13 +
+            '"I WILL PAY 10,000 GOLD'#13 +
+            'PIECES FOR A LIVE SAHUAGIN!'#13 +
+            'I WILL PAY 1,000 GOLD'#13 +
+            'PIECES FOR A RECENTLY DEAD'#13 +
+            'SAHUAGIN IN GOOD CONDITION.';
+        1:
+          TextChunk :=
+            'I NEED A SPECIMEN OF THIS'#13 +
+            'MAN-LIKE SALT WATER AQUATIC'#13 +
+            'CREATURE FOR MY STUDIES.'#13 +
+            #13 +
+            '"BRING YOUR SPECIMEN TO THE'#13 +
+            'SHORE OF LAKE KUTO AND'#13 +
+            'BUILD A FIRE AS A SIGNAL.'#13 +
+            'YOUR SPECIMEN WILL BE'#13 +
+            'EXAMINED. IF IT IS TRULY A';
+        2:
+          TextChunk :=
+            'SAHUAGIN YOU COULD END UP'#13 +
+            'WITH 10,000 GOLD PIECES.'#13 +
+            'BUT BEWARE, I WILL KNOW ANY'#13 +
+            'FORGERIES, AND I WILL'#13 +
+            'PUNISH ANY ATTEMPT AT'#13 +
+            'DECEPTION.'#13 +
+            #13 +
+            '"SO, CAPTURE A LIVE'#13 +
+            'SAHUAGIN, BRING HIM TO LAKE';
+        3:
+          TextChunk :=
+            'KUTO, AND WALK AWAY A RICH'#13 +
+            'MAN!"'#13 +
+            #13 +
+            'SIGNED'#13 +
+            'YARASH THE SORCERER';
+      end;
+    { Entry 28 }
+    46:
+      case chunk of
+        0:
+          TextChunk :=
+            'A CRUDE MAP BURNED INTO AN'#13 +
+            'ANIMAL SKIN.'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+    { Entry 29 }
+    47:
+      case chunk of
+        0:
+          TextChunk :=
+            'A CLEAN MAP DRAWN WITH'#13 +
+            'EXACT LINES.'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+    { Entry 30 }
+    48:
+      case chunk of
+        0:
+          TextChunk :=
+            'CAREFULLY PREPARED NOTES.'#13 +
+            #13 +
+            'NOTE 1: "TYRANTHRAXUS IS'#13 +
+            'DEFINITELY A PRODUCT OF'#13 +
+            'IMMERSION IN THE POOL OF'#13 +
+            'RADIANCE. HIS EXTRAORDINARY'#13 +
+            'BRILLIANCE, VIGOR,'#13 +
+            'CHARISMA, AND POWER OF'#13 +
+            'COMMAND MUST BE A DIRECT';
+        1:
+          TextChunk :=
+            'RESULT OF EXPOSURE TO THE'#13 +
+            'EFFECTS OF THE POOL."'#13 +
+            #13 +
+            'NOTE 2: "THE POOL OF'#13 +
+            'RADIANCE MAY GRANT SPECIAL'#13 +
+            'MAGICAL ABILITIES.'#13 +
+            'TYRANTHRAXUS EXHIBITS A'#13 +
+            'FIERY AURA, OBVIOUSLY'#13 +
+            'MAGICAL. HE ALSO SEEMS TO';
+        2:
+          TextChunk :=
+            'HAVE EXTRAORDINARY MEANS OF'#13 +
+            'OBTAINING INFORMATION.'#13 +
+            'SPECIAL MAGICAL POWERS'#13 +
+            'GRANTED BY THE POOL WOULD'#13 +
+            'EXPLAIN BOTH THE AURA AND'#13 +
+            'THE EXTRA INFORMATION'#13 +
+            'GATHERING CAPABILITY."'#13 +
+            #13 +
+            'NOTE 3: "TYRANTHRAXUS TELLS';
+        3:
+          TextChunk :=
+            'STORIES ABOUT MOVING DOWN'#13 +
+            'FROM THE NORTH. THOUGH HE'#13 +
+            'NEVER MENTIONS THE POOL, I'#13 +
+            'GATHER THAT IT IS NORTHWEST'#13 +
+            'OF THE DRAGONSPINE'#13 +
+            'MOUNTAINS. STRANGELY, HE'#13 +
+            'OCCASIONALLY LETS SLIP THAT'#13 +
+            'HE IS NEVER FAR FROM THE'#13 +
+            'POOL, BUT THAT MUST BE A';
+        4:
+          TextChunk :=
+            'PARENTHETICAL REFERENCE."';
+      end;
+    { Entry 31 }
+    49:
+      case chunk of
+        0:
+          TextChunk :=
+            'TOLD IN QUIET, HISSING'#13 +
+            'SPEECH.'#13 +
+            #13 +
+            '"THANK YOU FOR SAVING MY'#13 +
+            'CHILDREN FROM THE MUTILATOR'#13 +
+            'YARASH. IN RETURN I WILL'#13 +
+            'AID YOU IN WHAT WAY I CAN,'#13 +
+            'THOUGH THAT MAY NOT BE'#13 +
+            'GREAT.';
+        1:
+          TextChunk :=
+            #13 +
+            '"I HAVE LOST MUCH OF MY'#13 +
+            'FOLLOWING TO YOUNG DRYTHH'#13 +
+            'WHO LISTENS TO THE FALSE'#13 +
+            'PROMISES OF TYRANTHRAXUS...'#13 +
+            'THAT IF HE BRINGS TROOPS TO'#13 +
+            'INVADE PHLAN, HE WILL RULE'#13 +
+            'THE RIVERBANKS.'#13 +
+            '';
+        2:
+          TextChunk :=
+            '"SO, DRYTHH AND HIS'#13 +
+            'FOLLOWERS HAVE BEEN PROVING'#13 +
+            'THEMSELVES IN RAIDS UPON'#13 +
+            'THE KOBOLD CAVES TO THE'#13 +
+            'SOUTHWEST AND THE HOBGOBLIN'#13 +
+            'CAVES TO THE SOUTH.'#13 +
+            #13 +
+            '"FOR SOME TIME MY FOLLOWERS'#13 +
+            'HAVE BEEN DISAPPEARING.';
+        3:
+          TextChunk :=
+            'BUT, WHEN YOU FREED MY'#13 +
+            'CHILDREN FROM THE CLUTCHES'#13 +
+            'OF THE EVIL YARASH MY'#13 +
+            'STATUS WAS INCREASED.'#13 +
+            'DRYTHH KEPT QUIET FOR A'#13 +
+            'TIME, BUT ONCE AGAIN THE'#13 +
+            'YOUNG WARRIORS LISTEN TO'#13 +
+            'HIM AND NOT TO ME."';
+      end;
+    { Entry 32 }
+    50:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN ANNOUNCEMENT ON RUGGED'#13 +
+            'PAPER WRITTEN IN LARGE'#13 +
+            'CLEAR SYMBOLS.'#13 +
+            #13 +
+            '"BE IT ANNOUNCED THAT MACE,'#13 +
+            'THE FORMER CLERIC OF OUR'#13 +
+            'LORD BANE, IS HEREBY'#13 +
+            'EJECTED FROM THE CHURCH.'#13 +
+            'HIS CRIMES INCLUDE REFUSAL';
+        1:
+          TextChunk :=
+            'TO FOLLOW TEMPLE DICTATES,'#13 +
+            'UNAUTHORIZED PERFORMANCE OF'#13 +
+            'MAJOR MIRACLES, AND THE'#13 +
+            'GREAT HERESY OF PLACING'#13 +
+            'OTHER GODS ABOVE OUR'#13 +
+            'ALMIGHTY LORD BANE.'#13 +
+            #13 +
+            '"ALL LOYAL FOLLOWERS OF'#13 +
+            'LORD BANE MUST REPORT';
+        2:
+          TextChunk :=
+            'MACE''S PRESENCE ON SIGHT.'#13 +
+            'HE IS TO BE CAPTURED,'#13 +
+            'BROUGHT BEFORE A LOYAL'#13 +
+            'TRIBUNAL FOR FAIR AND JUST'#13 +
+            'JUDGMENT, AND THEN BURNED'#13 +
+            'AT THE STAKE."';
+      end;
+  end;
+end;
+
+end.

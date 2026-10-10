@@ -1,0 +1,844 @@
+{ Journal text: proclamations LIX to CCXIV and journal entries 1 to 10. Each item is held in runs of up to 9 lines
+  joined by #13, as string literals in code, so the text lives in the overlay and costs no data segment. JrnlList reads
+  it a line at a time. }
+{$O+,F+}
+unit Journal1;
+
+interface
+
+{ The number of display lines an item's text takes.
+  @param(index The item's place in the Journal list.)
+  @returns(The line count, or 0 for an item this unit does not hold.) }
+function LineCount(index: Integer): Integer;
+
+{ One run of an item's display lines.
+  @param(index The item's place in the Journal list.)
+  @param(chunk Which run of up to 9 lines, from 0.)
+  @returns(The run's lines separated by #13, or an empty string past the end.) }
+function TextChunk(index, chunk: Integer): string;
+
+implementation
+
+function LineCount(index: Integer): Integer;
+begin
+  case index of
+    1: LineCount := 14;
+    2: LineCount := 13;
+    3: LineCount := 11;
+    4: LineCount := 15;
+    5: LineCount := 9;
+    6: LineCount := 11;
+    7: LineCount := 13;
+    8: LineCount := 16;
+    9: LineCount := 9;
+    10: LineCount := 15;
+    11: LineCount := 13;
+    12: LineCount := 15;
+    13: LineCount := 15;
+    14: LineCount := 17;
+    15: LineCount := 19;
+    16: LineCount := 15;
+    17: LineCount := 18;
+    18: LineCount := 15;
+    19: LineCount := 30;
+    20: LineCount := 19;
+    21: LineCount := 51;
+    22: LineCount := 3;
+    23: LineCount := 18;
+    24: LineCount := 22;
+    25: LineCount := 74;
+    26: LineCount := 22;
+    27: LineCount := 30;
+    28: LineCount := 4;
+    else LineCount := 0;
+  end;
+end;
+
+function TextChunk(index, chunk: Integer): string;
+begin
+  TextChunk := '';
+  case index of
+    { Proclamation LIX }
+    1:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'RECLAIMING THE REMAINING'#13 +
+            'BLOCKS OF THE CITY OF NEW'#13 +
+            'PHLAN. TO RECLAIM SAID'#13 +
+            'BLOCKS THEY MUST BE FIRST'#13 +
+            'CLEARED OF MONSTERS,'#13 +
+            'VERMIN, AND OTHER'#13 +
+            'UNCIVILIZED INHABITANTS. TO';
+        1:
+          TextChunk :=
+            'THIS END THE COUNCIL IS'#13 +
+            'OFFERING A REWARD TO ANY'#13 +
+            'PERSON OR GROUP WHO IS'#13 +
+            'RESPONSIBLE FOR CLEARING'#13 +
+            'ANY BLOCK OF THE OLD CITY.';
+      end;
+    { Proclamation LXIV }
+    2:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'ACQUIRING INFORMATION AS TO'#13 +
+            'THE DISPOSITION OF VARIOUS'#13 +
+            'FORMERLY-LIVING ENTITIES'#13 +
+            'RUMORED TO BE HARASSING'#13 +
+            'HONEST CITIZENS IN THE'#13 +
+            'VICINITY OF VALHIGEN'#13 +
+            'GRAVEYARD. A REWARD IS';
+        1:
+          TextChunk :=
+            'OFFERED TO ANY PERSON WHO'#13 +
+            'SHALL TRAVEL TO SAID'#13 +
+            'GRAVEYARD AND RETURN AN'#13 +
+            'EYE-WITNESS ACCOUNT.';
+      end;
+    { Proclamation LXXVIII }
+    3:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS OFFERING A'#13 +
+            'REWARD TO ANY PERSON OR'#13 +
+            'PERSONS WHO CAN PROVIDE'#13 +
+            'INFORMATION AS TO THE'#13 +
+            'DISPOSITION OF SEVERAL'#13 +
+            'COUNCIL AGENTS WHO HAVE'#13 +
+            'BEEN SENT TO INVESTIGATE'#13 +
+            'THE UNSEEMLY HAPPENINGS IN';
+        1:
+          TextChunk :=
+            'THE VICINITY OF VALHIGEN'#13 +
+            'GRAVEYARD.';
+      end;
+    { Proclamation CI }
+    4:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL, KNOWING THAT'#13 +
+            'COMMERCE IS THE LIFE''S'#13 +
+            'BLOOD OF NEW PHLAN, HAS'#13 +
+            'DECREED THAT SOKAL KEEP IS'#13 +
+            'TO BE CLEARED OF ALL'#13 +
+            'UNLAWFUL INHABITANTS. A'#13 +
+            'REWARD IS OFFERED TO THE'#13 +
+            'PERSON OR PERSONS WHO';
+        1:
+          TextChunk :=
+            'SUCCESSFULLY CARRY OUT THIS'#13 +
+            'COMMISSION. ALL INTERESTED'#13 +
+            'IN APPLYING FOR SAID'#13 +
+            'COMMISSION SHALL PRESENT'#13 +
+            'THEMSELVES TO THE CLERK OF'#13 +
+            'THE COUNCIL.';
+      end;
+    { Proclamation CIX }
+    5:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS OFFERING AN'#13 +
+            'INDUCEMENT TO ANY'#13 +
+            'INDIVIDUAL WHO SHALL SERVE'#13 +
+            'IN THE RESCUE FORCE FOR THE'#13 +
+            'MERCENARY BAND OF'#13 +
+            'TAIMALG-THE-INVINCIBLE'#13 +
+            'WHICH HAS DISAPPEARED'#13 +
+            'INSIDE VALHIGEN GRAVEYARD.';
+      end;
+    { Proclamation CX }
+    6:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS SEEKING A'#13 +
+            'STALWART BAND TO UNDERTAKE'#13 +
+            'A MISSION OF PARTICULAR'#13 +
+            'SENSITIVITY. ANY BRAVE AND'#13 +
+            'CLEVER BAND OF ADVENTURE'#13 +
+            'SEEKERS WHO ARE NOT ADVERSE'#13 +
+            'TO EARNING A LARGE REWARD'#13 +
+            'SHOULD PRESENT THEMSELVES';
+        1:
+          TextChunk :=
+            'TO THE COUNCIL CLERK FOR A'#13 +
+            'SPECIAL COMMISSION.';
+      end;
+    { Proclamation CXIV }
+    7:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS OFFERING A'#13 +
+            'SPECIAL REWARD FOR THE SAFE'#13 +
+            'RETURN OF THE HEIR TO THE'#13 +
+            'HOUSE OF BIVANT. SAID MINOR'#13 +
+            'WAS CARRIED OFF DURING A'#13 +
+            'BUCCANEER ATTACK ON THE'#13 +
+            'MERCHANT SHIP IN WHICH HE'#13 +
+            'WAS SAILING. APPLY TO THE';
+        1:
+          TextChunk :=
+            'COUNCIL CLERK FOR THE'#13 +
+            'COUNCIL''S COMMISSION AND'#13 +
+            'ADDITIONAL INFORMATION AS'#13 +
+            'TO THE ABDUCTION.';
+      end;
+    { Proclamation CXX }
+    8:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL HAS DECREED THAT'#13 +
+            'THE THREAT OF THE PIRATES'#13 +
+            'WHO PLAGUE EASTERN SHIPPING'#13 +
+            'TO NEW PHLAN WILL BE'#13 +
+            'ELIMINATED. THE COUNCIL'#13 +
+            'OFFERS A GENEROUS REWARD'#13 +
+            'FOR THE EXACT LOCATION OF'#13 +
+            'THE PIRATES STRONGHOLD IN';
+        1:
+          TextChunk :=
+            'THE TWILIGHT MARSH. AN EVEN'#13 +
+            'GREATER REWARD IS OFFERED'#13 +
+            'FOR THE ELIMINATION OF THE'#13 +
+            'PIRATES AS A THREAT TO'#13 +
+            'SHIPPING. APPLY TO THE'#13 +
+            'COUNCIL CLERK FOR A'#13 +
+            'COMMISSION.';
+      end;
+    { Proclamation CXXVI }
+    9:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS OFFERING A'#13 +
+            'REWARD FOR ALL BOOKS AND'#13 +
+            'TOMES CONTAINING'#13 +
+            'INFORMATION ABOUT THE FALL'#13 +
+            'OF PHLAN. THE AMOUNT OF'#13 +
+            'SAID REWARD TO BE DEPENDENT'#13 +
+            'UPON THE VALUE OF THE'#13 +
+            'INFORMATION PROVIDED.';
+      end;
+    { Proclamation CXXIX }
+    10:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL HAS DECREED THAT'#13 +
+            'THE FOUL POISONING OF THE'#13 +
+            'RIVER FORMERLY KNOWN AS'#13 +
+            'STOJANOW IS TO BE BROUGHT'#13 +
+            'TO AN END. ACCORDINGLY, A'#13 +
+            'REWARD IS OFFERED TO ANY'#13 +
+            'GROUP WHICH SHALL TRAVEL UP'#13 +
+            'THE RIVER CURRENTLY KNOWN';
+        1:
+          TextChunk :=
+            'AS BARREN, LOCATE THE'#13 +
+            'SOURCE OF ITS POISONING,'#13 +
+            'AND ELIMINATE SAID SOURCE.'#13 +
+            'A COMMISSION MAY BE'#13 +
+            'OBTAINED FROM THE COUNCIL'#13 +
+            'CLERK.';
+      end;
+    { Proclamation CXXXIV }
+    11:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL HAS DECLARED THOSE'#13 +
+            'INDIVIDUALS WHO HAVE TAKEN'#13 +
+            'UP RESIDENCE IN THE MANSION'#13 +
+            'OF THE FORMER KOVAL FAMILY'#13 +
+            'TO BE TRAITORS AND THIEVES.'#13 +
+            'BE IT FURTHER KNOWN THAT A'#13 +
+            'REWARD HAS BEEN OFFERED FOR'#13 +
+            'THE ELIMINATION OF THESE';
+        1:
+          TextChunk :=
+            'OUTLAWS. A COMMISSION TO'#13 +
+            'RID THE CITY OF THIS BLIGHT'#13 +
+            'MAY BE OBTAINED FROM THE'#13 +
+            'COUNCIL CLERK.';
+      end;
+    { Proclamation CLIV }
+    12:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL HAS PROCLAIMED A'#13 +
+            'GENEROUS BOUNTY FOR EACH'#13 +
+            'UNDEAD KILLED. BE IT ALSO'#13 +
+            'KNOWN THAT IN ADDITION TO'#13 +
+            'SAID BOUNTY, THE COUNCIL IS'#13 +
+            'WILLING TO PROVIDE A'#13 +
+            'SPECIAL ENCHANTED ITEM,'#13 +
+            'USEFUL IN THE DESTRUCTION';
+        1:
+          TextChunk :=
+            'OF UNDEAD, TO ANY GROUP OF'#13 +
+            'ADVENTURERS WHICH ACCEPTS'#13 +
+            'THE COMMISSION TO CLEANSE'#13 +
+            'VALHIGEN GRAVEYARD. APPLY'#13 +
+            'TO THE CITY CLERK FOR SAID'#13 +
+            'COMMISSION.';
+      end;
+    { Proclamation CLVI }
+    13:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS SEEKING A HEARTY'#13 +
+            'BAND TO UNDERTAKE A MISSION'#13 +
+            'TO RESCUE THE DUCHESS OF'#13 +
+            'MELVAUNT. THE DUCHESS IS'#13 +
+            'SUPPOSEDLY BEING HELD BY A'#13 +
+            'BAND OF OGRES IN A CAMP TO'#13 +
+            'THE NORTHEAST OF PHLAN. A'#13 +
+            'GENEROUS REWARD IS OFFERED';
+        1:
+          TextChunk :=
+            'FOR THE SAFE RETURN OF THE'#13 +
+            'DUCHESS. APPLY TO THE'#13 +
+            'COUNCIL CLERK FOR'#13 +
+            'COMMISSION AND ADDITIONAL'#13 +
+            'INFORMATION CONCERNING THE'#13 +
+            'ABDUCTION.';
+      end;
+    { Proclamation CLXX }
+    14:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'OBTAINING INFORMATION'#13 +
+            'CONCERNING BANDS OF INSECT'#13 +
+            'MEN KNOWN TO PLAGUE THE'#13 +
+            'GRASSY PLANES TO THE WEST'#13 +
+            'OF NEW PHLAN. SAID INSECT'#13 +
+            'MEN ARE A HAZARD TO'#13 +
+            'TRANSPORTATION TO AND FROM';
+        1:
+          TextChunk :=
+            'ZHENTIL KEEP. A REWARD IS'#13 +
+            'OFFERED TO ANY PERSON OR'#13 +
+            'PERSONS WHO RETURN WITH'#13 +
+            'COMPLETE INFORMATION ON THE'#13 +
+            'LOCATION, DISPOSITION, AND'#13 +
+            'INTENTIONS OF THE INSECT'#13 +
+            'MEN. APPLY TO THE COUNCIL'#13 +
+            'CLERK FOR A COMMISSION.';
+      end;
+    { Proclamation CXC }
+    15:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'OBTAINING INFORMATION ABOUT'#13 +
+            'THE DISPOSITION OF VARIOUS'#13 +
+            'HOBGOBLINS BELIEVED TO BE'#13 +
+            'GATHERING IN SUPPORT OF'#13 +
+            'FORCES BENT UPON THE'#13 +
+            'DESTRUCTION OF OUR FAIR'#13 +
+            'CITY. A GENEROUS REWARD IS';
+        1:
+          TextChunk :=
+            'OFFERED TO ANY WHO SHALL'#13 +
+            'SCOUT OUT THE DOINGS OF'#13 +
+            'THESE FOUL CREATURES AND'#13 +
+            'REPORT SUCH TO THE COUNCIL.'#13 +
+            'A LARGER REWARD IS OFFERED'#13 +
+            'IF THE MARSHALLING OF SAID'#13 +
+            'HOBGOBLINS CAN BE'#13 +
+            'PREVENTED. A COMMISSION MAY'#13 +
+            'BE OBTAINED FROM THE';
+        2:
+          TextChunk :=
+            'COUNCIL CLERK.';
+      end;
+    { Proclamation CCI }
+    16:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'CLEARING OBSTACLES TO'#13 +
+            'ESTABLISHING A TRADE ROUTE'#13 +
+            'TO THE EAST. SAID OBSTACLES'#13 +
+            'CURRENTLY INCLUDE AN'#13 +
+            'INFESTATION OF LIZARD MEN'#13 +
+            'IN THE SWAMPS TO THE EAST.'#13 +
+            'A REWARD IS OFFERED TO ANY';
+        1:
+          TextChunk :=
+            'WHO CAN LOCATE THE SOURCE'#13 +
+            'OF THE INFESTATION AND'#13 +
+            'REMOVE THE LIZARD MEN AS AN'#13 +
+            'OBSTACLE TO TRADE. A'#13 +
+            'COMMISSION MAY BE OBTAINED'#13 +
+            'FROM THE COUNCIL CLERK.';
+      end;
+    { Proclamation CCIV }
+    17:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'OBTAINING INFORMATION ABOUT'#13 +
+            'THE DISPOSITION OF VARIOUS'#13 +
+            'KOBOLDS CURRENTLY BELIEVED'#13 +
+            'TO BE GATHERING IN SUPPORT'#13 +
+            'OF FORCES AIMED ON THE'#13 +
+            'DESTRUCTION OF OUR FAIR'#13 +
+            'CITY. A GENEROUS REWARD IS';
+        1:
+          TextChunk :=
+            'OFFERED TO ANY WHO SHALL'#13 +
+            'SCOUT OUT THE DOINGS OF'#13 +
+            'THESE FOUL CREATURES AND'#13 +
+            'REPORT SUCH TO THE COUNCIL.'#13 +
+            'A LARGER REWARD IS OFFERED'#13 +
+            'IF THE MARSHALLING OF SAID'#13 +
+            'KOBOLDS CAN BE PREVENTED. A'#13 +
+            'COMMISSION MAY BE OBTAINED'#13 +
+            'FROM THE COUNCIL CLERK.';
+      end;
+    { Proclamation CCXIV }
+    18:
+      case chunk of
+        0:
+          TextChunk :=
+            'BE IT KNOWN THAT THE'#13 +
+            'COUNCIL IS INTERESTED IN'#13 +
+            'OBTAINING INFORMATION ABOUT'#13 +
+            'THE DISPOSITION OF A LARGE'#13 +
+            'NOMAD BAND CURRENTLY'#13 +
+            'BELIEVED SCOUTING THE'#13 +
+            'APPROACHES TO OUR FAIR'#13 +
+            'CITY. A GENEROUS REWARD IS'#13 +
+            'OFFERED TO ANY WHO CAN';
+        1:
+          TextChunk :=
+            'PREVENT SAID NOMADS FROM'#13 +
+            'JOINING WITH THE FORCE NOW'#13 +
+            'GATHERING TO ATTACK NEW'#13 +
+            'PHLAN. A COMMISSION MAY BE'#13 +
+            'OBTAINED FROM THE COUNCIL'#13 +
+            'CLERK.';
+      end;
+    { Entry 1 }
+    19:
+      case chunk of
+        0:
+          TextChunk :=
+            'A LOUD VOICE COMING FROM A'#13 +
+            'MAGIC MOUTH CAST ON A STONE'#13 +
+            'TABLET.'#13 +
+            #13 +
+            '"I AM YARASH THE SORCERER!'#13 +
+            #13 +
+            '"BE KNOWN THAT FOR EVERY'#13 +
+            'LIVING GIANT INSECT YOU'#13 +
+            'RETURN TO SORCERER''S ISLAND';
+        1:
+          TextChunk :=
+            'I WILL PAY A GENEROUS'#13 +
+            'BOUNTY, INCLUDING A WEAPON'#13 +
+            'EMPOWERED BY MAGIC. I WILL'#13 +
+            'PAY FOR GIANT INSECTS SUCH'#13 +
+            'AS THRI-KREEN, GIANT'#13 +
+            'MANTIS, AND ANHKHEG. THE'#13 +
+            'INSECTS MAY BE BOUND BY'#13 +
+            'MAGIC BUT DEAD INSECTS ARE'#13 +
+            'OF NO USE TO ME.';
+        2:
+          TextChunk :=
+            #13 +
+            '"BRING ANY BODIES TO THE'#13 +
+            'NORTHERN RIVER MOUTH ON'#13 +
+            'LAKE KUTO. CALL THE NAME OF'#13 +
+            '"YARASH" LOUDLY THREE TIMES'#13 +
+            'AND I SHALL COME. DO NOT'#13 +
+            'CALL UNLESS YOU HAVE'#13 +
+            'SOMETHING FOR ME. I SHALL'#13 +
+            'BE VERY ANGRY IF I AM';
+        3:
+          TextChunk :=
+            'DISTURBED WITHOUT CAUSE!'#13 +
+            #13 +
+            '"I AM YARASH THE SORCERER!"';
+      end;
+    { Entry 2 }
+    20:
+      case chunk of
+        0:
+          TextChunk :=
+            'TOLD IN A PAINFUL WHISPER.'#13 +
+            #13 +
+            '"I NEVER LIKED PAIN. LET ME'#13 +
+            'GO AN'' I''LL TELL YA OF THE'#13 +
+            'KOBOLD TREASURE HORDE. WE'#13 +
+            'ATTACKED A GOLD SHIPMENT'#13 +
+            'ONCE -- TOOK IT BY'#13 +
+            'SURPRISE. THIRTY TIMES MY'#13 +
+            'WEIGHT IN GOLD PIECES WERE';
+        1:
+          TextChunk :=
+            'TAKEN. WE KNEW IF WE WERE'#13 +
+            'RAIDED WE''D LOSE THE STUFF'#13 +
+            'IN THE TREASURE ROOM. SO WE'#13 +
+            'HID IT BEHIND A SECRET DOOR'#13 +
+            'IN THE WARRENS -- THAT''S'#13 +
+            'WHERE WE KEEP THE'#13 +
+            'WOMENFOLK. THEY TOSSED ME'#13 +
+            'IN HERE TA DIE, SO IT DON''T'#13 +
+            'DO NO HARM TA TELL YE. FIND';
+        2:
+          TextChunk :=
+            'IT AND GOOD RIDDANCE."';
+      end;
+    { Entry 3 }
+    21:
+      case chunk of
+        0:
+          TextChunk :=
+            'AN OLD LEATHER-BOUND BOOK,'#13 +
+            'WRITTEN WITH A SMALL, FIRM'#13 +
+            'HAND.'#13 +
+            #13 +
+            '"THE HORDES CAME AGAIN LAST'#13 +
+            'NIGHT. THEIR COORDINATION'#13 +
+            'WAS FRIGHTENING. UNDER THE'#13 +
+            'COVER OF DARKNESS, GOBLINS'#13 +
+            'AND KOBOLDS PUSHED BUNDLES';
+        1:
+          TextChunk :=
+            'OF STICKS TO WITHIN BOW'#13 +
+            'RANGE. THESE BUNDLES FORMED'#13 +
+            'A WALL THAT PROTECTED THE'#13 +
+            'SMALL ONES FROM OUR'#13 +
+            'ARCHERS. ONCE THE WALL WAS'#13 +
+            'ERECTED ORC ARCHERS TOOK UP'#13 +
+            'SAFE POSITIONS THERE AND'#13 +
+            'BEGIN PELTING THE CASTLE'#13 +
+            'WALLS WITH ARROWS.';
+        2:
+          TextChunk :=
+            #13 +
+            '"WE TRIED SHOOTING FLAMING'#13 +
+            'ARROWS AT THE WALL OF'#13 +
+            'STICKS TO SET IT AFIRE.'#13 +
+            'MONSTERS ARE NORMALLY'#13 +
+            'AFRAID OF FIRE. BUT THESE'#13 +
+            'MONSTERS SHOWED NO FEAR.'#13 +
+            'THEY SIMPLY SCOOPED DIRT ON'#13 +
+            'THE FLAMES TO PUT THEM OUT.';
+        3:
+          TextChunk :=
+            'BEFORE ALL THE FIRES WERE'#13 +
+            'OUT THEY HAD RESUMED FIRING'#13 +
+            'AT US. SURELY, SOME'#13 +
+            'UNNATURAL FORCE MUST HAVE'#13 +
+            'BEEN AT WORK TO WELD THESE'#13 +
+            'QUARLSOME BEASTS INTO AN'#13 +
+            'ORGANIZED FIGHTING FORCE.'#13 +
+            #13 +
+            '"I DO NOT KNOW IF WE CAN';
+        4:
+          TextChunk :=
+            'COMBAT THE MONSTERS'#13 +
+            'ONSLAUGHT MUCH LONGER. WE'#13 +
+            'LOST 12 MORE MEN LAST'#13 +
+            'NIGHT. THE MONSTERS SEEM TO'#13 +
+            'HAVE AN UNLIMITED NUMBER OF'#13 +
+            'REINFORCEMENTS. THE LAST'#13 +
+            'PRIEST OF TYR, FERRANN'#13 +
+            'MARTINEZ, SAYS HE HAS A WAY'#13 +
+            'TO PROTECT THE KEEP, BUT HE';
+        5:
+          TextChunk :=
+            'SAYS THAT IT''S SO TERRIBLE'#13 +
+            'THAT IT MAY ONLY BE USED AS'#13 +
+            'A LAST RESORT. UNLESS WE'#13 +
+            'RECEIVE REINFORCEMENTS'#13 +
+            'SHORTLY, FERRAN MARTINEZ IS'#13 +
+            'OUR ONLY HOPE."';
+      end;
+    { Entry 4 }
+    22:
+      case chunk of
+        0:
+          TextChunk :=
+            'A ROUGHLY DRAWN CLOTH MAP.'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+    { Entry 5 }
+    23:
+      case chunk of
+        0:
+          TextChunk :=
+            'A SMALL PIECE OF PARCHMENT'#13 +
+            'FOLDED INTO THE SPINE OF A'#13 +
+            'FAMILY''S HOLY BOOK.'#13 +
+            #13 +
+            '"THE FAMILY TREASURES ARE'#13 +
+            'BURIED IN THE TUNNELS'#13 +
+            'BENEATH KUTO''S WELL. CLIMB'#13 +
+            'DOWN THE WELL AND SEARCH'#13 +
+            'FOR A SECRET PASSAGE. IN';
+        1:
+          TextChunk :=
+            'THE PASSAGE THERE IS A'#13 +
+            'DANGEROUS TRAP. SEARCH THE'#13 +
+            'WALLS UNTIL YOU FIND THE'#13 +
+            'LEVER TO DISARM THE TRAP.'#13 +
+            'THEN PROCEED THROUGH THE'#13 +
+            'PASSAGE INTO AN ADJACENT'#13 +
+            'CHAMBER. THE TREASURES ARE'#13 +
+            'BURIED IN THE SOUTHWEST'#13 +
+            'CORNER."';
+      end;
+    { Entry 6 }
+    24:
+      case chunk of
+        0:
+          TextChunk :=
+            'A QUICKLY SCRATCHED NOTE.'#13 +
+            #13 +
+            '"SHOW THE BOSS''S SEAL TO'#13 +
+            'THE THRI-KREEN GUARDS. BE'#13 +
+            'CAREFUL, THEY ARE WARY OF'#13 +
+            'OUTSIDERS. KEEP YOUR HANDS'#13 +
+            'AWAY FROM YOUR WEAPONS NO'#13 +
+            'MATTER WHAT THEY DO.'#13 +
+            '';
+        1:
+          TextChunk :=
+            '"WITH THE SEAL YOU SHOULD'#13 +
+            'GAIN SAFE PASSAGE IN TO SEE'#13 +
+            'THE QUEEN. SHE WILL GIVE'#13 +
+            'YOU THE ARTIFACTS IN'#13 +
+            'EXCHANGE FOR THE SEAL AND'#13 +
+            'THE TREATY. DO NOT DO'#13 +
+            'ANYTHING TO GET HER MAD,'#13 +
+            'THE BUGS WOULD JUST AS SOON'#13 +
+            'KILL YOU AS LOOK AT YOU.';
+        2:
+          TextChunk :=
+            'ONCE YOU HAVE THE'#13 +
+            'ARTIFACTS, GET OUT OF THE'#13 +
+            'STINKING BURROW AND GET'#13 +
+            'BACK TO THE CASTLE."';
+      end;
+    { Entry 7 }
+    25:
+      case chunk of
+        0:
+          TextChunk :=
+            'A TIGHTLY BOUND SCROLL,'#13 +
+            'SEEMINGLY IMMUNE TO THE'#13 +
+            'RAVAGES OF TIME.'#13 +
+            #13 +
+            '"FOUNTAINS AND POOLS HOLD'#13 +
+            'GREAT POWER THAT CAN ONLY'#13 +
+            'BE REACHED BY PERFORMING'#13 +
+            'PROPER CEREMONIES. MOST'#13 +
+            'SURE OF THESE IS IMMERSION,';
+        1:
+          TextChunk :=
+            'FOR IN THIS WAY THE BATHER'#13 +
+            'SURRENDERS HIMSELF TO THE'#13 +
+            'SPIRIT OF THE WATER. THAT'#13 +
+            'SPIRIT, OR SOME PORTION OF'#13 +
+            'IT, ENTERS INTO THE BATHER,'#13 +
+            'WHEREBY HE GAINS GREAT'#13 +
+            'POWERS. WOE TO THE WEAK'#13 +
+            'WILLED WHOSE SPIRITS ARE'#13 +
+            'SURE TO BE CONSUMED BY';
+        2:
+          TextChunk :=
+            'SPIRITS THAT PUT EVEN THE'#13 +
+            'STRONG AT GREAT RISK. YURAX'#13 +
+            'HOLDS THAT THE FALLS OF'#13 +
+            'IXCE ARE GREATEST OF ALL'#13 +
+            'THESE. MORDEN WRITES THAT'#13 +
+            'THE POOL OF RADIANCE IS'#13 +
+            'GREATER STILL."'#13 +
+            #13 +
+            'LATER IN THE BOOK,';
+        3:
+          TextChunk :=
+            #13 +
+            '"PLACES OF MAGICAL POWER'#13 +
+            'ARE NOT NECESSARILY TIED TO'#13 +
+            'ONE PHYSICAL LOCATION.'#13 +
+            'POWER OFTEN MOVES FROM'#13 +
+            'PLANE TO PLANE ALONG THE'#13 +
+            'PATH OF LEAST RESISTANCE.'#13 +
+            'THE TERMINATION OF THE PATH'#13 +
+            'DETERMINES THE PLACE''S';
+        4:
+          TextChunk :=
+            'LOCATION ON THIS PLANE.'#13 +
+            'VOLATILE UPHEAVALS BETWEEN'#13 +
+            'THE PLANES MAY LEAD TO A'#13 +
+            'CHANGE IN THE PATH OF LEAST'#13 +
+            'RESISTANCE. THIS CAN CHANGE'#13 +
+            'WHERE THE PATH TERMINATES'#13 +
+            'ON THIS PLANE, THUS MOVING'#13 +
+            'THE PLACE OF POWER.'#13 +
+            '';
+        5:
+          TextChunk :=
+            '(PICTURE: LEGEND FOR ALL'#13 +
+            'MAPS)'#13 +
+            #13 +
+            '"SOME WHO WIELD STRONG'#13 +
+            'SUPERNATURAL FORCES CAN'#13 +
+            'BEND THE PATH LIKE AN'#13 +
+            'ENGINEER DAMMING A RIVER.'#13 +
+            'WHEN THE PATH IS BENT, IT'#13 +
+            'CAN TERMINATE IN A NEW';
+        6:
+          TextChunk :=
+            'LOCATION, MOVING THE PLACE'#13 +
+            'OF POWER ON THIS PLANE. IF'#13 +
+            'THE SUPERNATURAL FORCE THAT'#13 +
+            'BENT THE PATH IS REMOVED,'#13 +
+            'THE PATH WILL SNAP BACK TO'#13 +
+            'ITS ORIGINAL FORM AND THE'#13 +
+            'PLACE OF POWER WILL RETURN'#13 +
+            'TO ITS ORIGINAL LOCATION.'#13 +
+            'SUCH DISRUPTION CAN HAVE';
+        7:
+          TextChunk :=
+            'VIOLENT AND UNPREDICTABLE'#13 +
+            'RESULTS.'#13 +
+            #13 +
+            '"THUS, INTER-PLANAR'#13 +
+            'UPHEAVALS AND DIRECTED'#13 +
+            'SUPERNATURAL FORCES MAY'#13 +
+            'HOLD THE ANSWER TO THE'#13 +
+            'SEEMINGLY EVER-CHANGING'#13 +
+            'LOCATION OF PLACES OF';
+        8:
+          TextChunk :=
+            'POWER, SUCH AS THE POOL OF'#13 +
+            'RADIANCE."';
+      end;
+    { Entry 8 }
+    26:
+      case chunk of
+        0:
+          TextChunk :=
+            'A RUGGED POPULAR ACCOUNT OF'#13 +
+            'THE NORTHERN LANDS.'#13 +
+            #13 +
+            '"TEN DAYS RIDE NORTH OF THE'#13 +
+            'VARM IS A BARREN AND DEAD'#13 +
+            'COUNTRY CALLED THE LEEWAI,'#13 +
+            'LAND-IN-PAIN OR'#13 +
+            'LAND-OF-CAUSED-PAIN.'#13 +
+            'FURTHER TO THE SOUTH THIS';
+        1:
+          TextChunk :=
+            'PLACE IS KNOWN AS THE'#13 +
+            'TORTURED LAND. IT IS SAID'#13 +
+            'TO BE AN EVIL PLACE,'#13 +
+            'SHUNNED BY THE RIDERS. THEY'#13 +
+            'SPEAK LITTLE OF THIS LAND.'#13 +
+            'BUT, YEARLY, DURING CHES,'#13 +
+            'THEY MAKE A TRIP INTO ITS'#13 +
+            'HEART. THERE THEY GO TO'#13 +
+            'PRAISE THE SPIRIT OF A';
+        2:
+          TextChunk :=
+            'GLOWING SPRING. THIS THEY'#13 +
+            'HAVE DONE FOR AGES AND SO'#13 +
+            'SHALL THEY DO FOR YEARS TO'#13 +
+            'COME."';
+      end;
+    { Entry 9 }
+    27:
+      case chunk of
+        0:
+          TextChunk :=
+            'SEVERAL PIECES OF PAPER'#13 +
+            'WITH HIGHLY ORGANIZED'#13 +
+            'WRITING.'#13 +
+            #13 +
+            'FACT: JORAN ALBERACH IS A'#13 +
+            'SPECIAL ENVOY, FROM ZHENTIL'#13 +
+            'KEEP, TO THE CITY COUNCIL'#13 +
+            'OF NEW PHLAN.'#13 +
+            '';
+        1:
+          TextChunk :=
+            'STRONG RUMOR: HERE TO'#13 +
+            'NEGOTIATE A MILITARY'#13 +
+            'ASSISTANCE AGREEMENT'#13 +
+            'BETWEEN ZHENTIL KEEP AND'#13 +
+            'NEW PHLAN.'#13 +
+            #13 +
+            'RUMOR: ZHENTIL KEEP WANTS'#13 +
+            'AN ANCIENT POWERFUL'#13 +
+            'ARTIFACT IN RETURN FOR';
+        2:
+          TextChunk :=
+            'THEIR MILITARY COOPERATION.'#13 +
+            #13 +
+            'RUMOR: THE NEW PHLAN CITY'#13 +
+            'COUNCIL HAS SUCH AN'#13 +
+            'ARTIFACT THAT WAS FOUND IN'#13 +
+            'THE RUINS OF A RECENTLY'#13 +
+            'RECLAIMED BUILDING.'#13 +
+            #13 +
+            'VAGUE RUMOR: JORAN ALBERACH';
+        3:
+          TextChunk :=
+            'WANTS THE ARTIFACT FOR'#13 +
+            'HIMSELF, NOT FOR THE RULERS'#13 +
+            'OF ZHENTIL KEEP.';
+      end;
+    { Entry 10 }
+    28:
+      case chunk of
+        0:
+          TextChunk :=
+            'A CRUDE MAP SCRATCHED ONTO'#13 +
+            'AN OLD PIECE OF PARCHMENT.'#13 +
+            #13 +
+            '(PICTURE)';
+      end;
+  end;
+end;
+
+end.

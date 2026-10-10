@@ -94,9 +94,9 @@ const
     (99, 99, 99, 99, 99, 20, 16, 13, 10, 4));
   { Movement menus }
   { 3D exploration menu }
-  menu3D: String[40] = 'Area Cast View Encamp Search Look';
+  menu3D: String[40] = 'Area Cast View Encamp Search Look Jrnl';
   { wilderness exploration menu }
-  menuWild: String[40] = 'Cast View Encamp Search Look';
+  menuWild: String[40] = 'Cast View Encamp Search Look Jrnl';
   { Camp menus }
   { camp actions }
   campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';

@@ -4,7 +4,7 @@ unit Explore;
 
 interface
 
-uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, View3D,
+uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D,
   MapTiles, C_Ecl, C_Keys, C_Class, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
 
 procedure ResolveMovement;
@@ -302,6 +302,7 @@ begin
                       TextRend.PrintAndPause('Not Here', Yellow);
                'C': if GDVars.curChar^.status = C_Status.OKAY then Camp.NoncombatCastMenu;
                'V': ViewChar.ViewCharMenu(viewDone);
+               'J': JrnlView.JournalMenu;
                'E': done := True;
                'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
                'L': begin
@@ -363,6 +364,7 @@ begin
             case c of
               'C': Camp.NoncombatCastMenu;
               'V': ViewChar.ViewCharMenu(viewDone);
+              'J': JrnlView.JournalMenu;
               'E': done := True;
               'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
               'L': begin
