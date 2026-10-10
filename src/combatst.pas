@@ -760,9 +760,8 @@ begin
   CharHlp.CountTeams;
   removedCnt := 0;
   placedCnt := 0;
-  { Note: slots 73..255 run past arenaLoc's 72 entries (range checks are off), zeroing every fourth byte of the arena
-    arrays after it; BuildArenaArrays then rebuilds those. }
-  for slot := 1 to 255 do
+  { 72 = High(arenaLoc) }
+  for slot := 1 to 72 do
     GDVars.arenaLoc[slot].size := 0;
   CbtMap.BuildArenaArrays;
   GDVars.placeX[0] := 0;
