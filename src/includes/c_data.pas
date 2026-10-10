@@ -16,7 +16,7 @@ const
   { The archive layout and the data patches DataBld applies (DataPat). DaxIo.FamilyUsable rejects an archive holding
     another version, so raising it makes the next start rebuild every family's archive, with the patches as they are
     now. }
-  VERSION = 8;
+  VERSION = 9;
   { Reserved block ids, the last three blocks of a merged archive. The sources block lists, per per-disk archive read,
     its disk, file size and CRC-32; the remap block holds the collisions as triples (disk, original id, merged id); the
     version block holds VERSION and the CRC-32 of every byte of the file before that block's data. }

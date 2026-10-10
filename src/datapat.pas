@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 12;
-  BYTE_COUNT = 594;
+  PART_COUNT = 14;
+  BYTE_COUNT = 634;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -60,6 +60,11 @@ const
       the result, so fleeing counted as a win; the count now goes up only after a win ([$6DC7] = 0) while it is below
       the mission's $40 }
     (por: 32; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 1264; origLen: 48; newLen: 48),
+    { POR-0033: the Pitt's tavern brawl (script $AAA6) always brought back the buccaneer beaten in the duel, with his
+      Long Sword +1 and Chain Mail +1; the brawl now loads him only while [$4A37] = 0, from new code at the end of
+      the script }
+    (por: 33; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 4520; origLen: 7; newLen: 7),
+    (por: 33; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 6550; origLen: 0; newLen: 26),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -190,6 +195,18 @@ const
     $03, $01, $C7, $6D, $00, $80,                     { $9E13 COMPARE [$6DC7], $80 }
     $19,                                              { $9E19 IF > }
     $01, $01, $23, $9E,                               { $9E1A GOTO L9E23 }
+    { POR-0033 part 1, original }
+    $0B, $00, $29, $00, $01, $00, $10,                { $AAA6 LOAD MONSTER $29, $01, $10 }
+    { fixed }
+    $01, $01, $94, $B2,                               { $AAA6 GOTO LB294 }
+    $00, $00, $00,
+    { POR-0033 part 2, added at $B294: the buccaneer only before the duel, then the rest as before }
+    $03, $01, $37, $4A, $00, $00,                     { $B294 COMPARE [$4A37], $00 }
+    $16,                                              { $B29A IF = }
+    $0B, $00, $29, $00, $01, $00, $10,                { $B29B LOAD MONSTER $29, $01, $10 }
+    $0B, $00, $04, $00, $08, $00, $04,                { $B2A2 LOAD MONSTER $04, $08, $04 }
+    $24,                                              { $B2A9 COMBAT }
+    $01, $01, $B5, $AA,                               { $B2AA GOTO LAAB5 }
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
