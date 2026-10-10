@@ -60,11 +60,12 @@ const
     ((lo: 3; hi: 6), (lo: 4; hi: 7), (lo: 5; hi: 8), (lo: 6; hi: 9), (lo: 7; hi: 10), (lo: 8; hi: 10)),
     ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)));
   { Favoured enemies }
-  gnomeFoes: array[1..4] of Types.TName15 = (
-    'KOBOLD', 'KOBOLD LEADER', 'GOBLIN', 'GOBLIN LEADER');
-  dwarfFoes: array[1..8] of Types.TName15 = (
+  gnomeFoes: array[1..5] of Types.TName15 = (
+    'KOBOLD', 'KOBOLD LEADER', 'GOBLIN', 'GOBLIN LEADER', 'GOBLIN GUARD');
+  dwarfFoes: array[1..11] of Types.TName15 = (
     'ORC', 'ORC LEADER', 'GOBLIN', 'GOBLIN LEADER',
-    'HOBGOBLIN', 'HOBGOBLIN CHIEF', 'GAGOOL', 'MACE');
+    'HOBGOBLIN', 'HOBGOBLIN CHIEF', 'GAGOOL', 'MACE',
+    'GOBLIN GUARD', 'HOBGOBLIN LDR', 'GRISHNAK');
   giantFoes: array[1..5] of Types.TName15 = (
     'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT');
   { Turning undead }
