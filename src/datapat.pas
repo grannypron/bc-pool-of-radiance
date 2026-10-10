@@ -631,7 +631,7 @@ const
     $01, $01, $79, $A1,                               { $9AE6 GOTO LA179 }
     $00, $00, $00, $00, $00, $00,
     { #355 part 2, added at $A179: the paladin and ranger sentence, then the notice is marked read as before }
-    { $A179 PRINT " PALADINS AND RANGERS TRAIN WITH THE FIGHTERS." }
+    { $A179 PRINT "  PALADINS AND RANGERS TRAIN WITH THE FIGHTERS." }
     $11, $80, $24, $82, $04, $01, $30, $11, $09, $39, $38, $01, $38, $48, $12, $04,
     $E1, $C5, $49, $38, $14, $48, $12, $4E, $81, $72, $54, $22, $05, $08, $16, $01,
     $89, $1C, $85, $05, $49, $3B, $80,
