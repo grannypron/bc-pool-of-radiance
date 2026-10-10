@@ -508,14 +508,14 @@ begin
 end;
 
 { Each Okay NPC claims (npcTreasureShare and 7) shares, every other creature one share. Each coin type above 0 is cut
-  into that many shares and the NPCs' shares are removed (the per-share cut is held in a Byte). If any coin type was
-  cut, list the NPCs with a nonzero npcTreasureShare as taking their share. }
+  into that many shares and the NPCs' shares are removed. If any coin type was cut, list the NPCs with a nonzero
+  npcTreasureShare as taking their share. }
 procedure NpcTreasureShare;
 var
   p: Types.PCharRecord;
   npcShares: Byte;
   total: Byte;
-  cut: Byte;
+  cut: LongInt;
   row: Byte;
   i: ShortInt;
   tmp: String[8];
