@@ -1702,18 +1702,24 @@ end;
 
 { Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8. Poison
   kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison; where it
-  cannot stand yet (another creature on its cell) it gets up a minute later through C_Effect.HEAL_WAKE. }
+  cannot stand yet (another creature on its cell) it gets up a minute later through C_Effect.HEAL_WAKE. A dead target
+  still under Slow Poison was kept up through the poison and died of something else (a wound, bleeding out), so it
+  stays dead, as at the temple (Temple.NeutralizePoison). }
 procedure KeoghtomsOintmentHandler;
 var
   pad: Byte;
   tgt: Types.PCharRecord;
+  effect: Types.PEffectRec;
+  slowed: Boolean;
 begin
   tgt := GDVars.dsTargetCreaturePtr[1];
+  slowed := CharHlp.HasEffect(tgt, C_Effect.SLOW_POISON_END, effect) or
+            CharHlp.HasEffect(tgt, C_Effect.SLOW_POISON_HIT, effect);
   if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.POISONED) then begin
     GDVars.effectLock := 1;
     FxEngine.RemoveEffect(tgt, C_Effect.SLOW_POISON_END, nil);
     GDVars.effectLock := 0;
-    if tgt^.status = C_Status.DEAD then begin
+    if (tgt^.status = C_Status.DEAD) and not slowed then begin
       if tgt^.hpCur = 0 then
         tgt^.hpCur := 1;
       if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
