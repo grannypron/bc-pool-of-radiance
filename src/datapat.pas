@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 5;
-  BYTE_COUNT = 308;
+  PART_COUNT = 10;
+  BYTE_COUNT = 452;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -45,6 +45,14 @@ const
       point only while the 15 random encounters are not all fought, so fights that interrupt a rest stop earning
       clear points }
     (por: 28; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 6170; origLen: 63; newLen: 63),
+    { POR-0029: the Slums' clear-point routine (script $B69C) gives no point and returns from the script when the
+      party fled, and the four set encounters that marked themselves done before calling it call it first, so running
+      from a set encounter or from Ohlo neither counts nor removes the encounter }
+    (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 7582; origLen: 32; newLen: 32),
+    (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1391; origLen: 10; newLen: 10),
+    (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1978; origLen: 10; newLen: 10),
+    (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4483; origLen: 10; newLen: 10),
+    (por: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4858; origLen: 10; newLen: 10),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -94,6 +102,50 @@ const
     $01, $01, $50, $B2,                               { $B142 GOTO LB250 }
     $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,
     $00,
+    { POR-0029 part 1, original }
+    $03, $01, $BB, $4A, $00, $FE,                     { $B69C COMPARE [$4ABB], $FE }
+    $1B,                                              { $B6A2 IF >= }
+    $13,                                              { $B6A3 RETURN }
+    $04, $00, $01, $01, $BB, $4A, $01, $BB, $4A,      { $B6A4 ADD $01, [$4ABB], [$4ABB] }
+    $03, $01, $BB, $4A, $00, $19,                     { $B6AD COMPARE [$4ABB], $19 }
+    $18,                                              { $B6B3 IF < }
+    $13,                                              { $B6B4 RETURN }
+    $09, $00, $FE, $01, $BB, $4A,                     { $B6B5 SAVE $FE, [$4ABB] }
+    $13,                                              { $B6BB RETURN }
+    { fixed }
+    $03, $01, $C7, $6D, $00, $00,                     { $B69C COMPARE [$6DC7], $00 }
+    $17,                                              { $B6A2 IF <> }
+    $00,                                              { $B6A3 EXIT }
+    $03, $01, $BB, $4A, $00, $18,                     { $B6A4 COMPARE [$4ABB], $18 }
+    $18,                                              { $B6AA IF < }
+    $04, $00, $01, $01, $BB, $4A, $01, $BB, $4A,      { $B6AB ADD $01, [$4ABB], [$4ABB] }
+    $16,                                              { $B6B4 IF = }
+    $09, $00, $FE, $01, $BB, $4A,                     { $B6B5 SAVE $FE, [$4ABB] }
+    $13,                                              { $B6BB RETURN }
+    { POR-0029 part 2, original }
+    $09, $00, $FF, $01, $CA, $4A,                     { $9E6D SAVE $FF, [$4ACA] }
+    $02, $01, $9C, $B6,                               { $9E73 GOSUB LB69C }
+    { fixed: event 1 marks itself done after the clear point }
+    $02, $01, $9C, $B6,                               { $9E6D GOSUB LB69C }
+    $09, $00, $FF, $01, $CA, $4A,                     { $9E71 SAVE $FF, [$4ACA] }
+    { POR-0029 part 3, original }
+    $09, $00, $FF, $01, $81, $4A,                     { $A0B8 SAVE $FF, [$4A81] }
+    $02, $01, $9C, $B6,                               { $A0BE GOSUB LB69C }
+    { fixed: Ohlo, likewise }
+    $02, $01, $9C, $B6,                               { $A0B8 GOSUB LB69C }
+    $09, $00, $FF, $01, $81, $4A,                     { $A0BC SAVE $FF, [$4A81] }
+    { POR-0029 part 4, original }
+    $09, $00, $FA, $01, $CE, $4A,                     { $AA81 SAVE $FA, [$4ACE] }
+    $02, $01, $9C, $B6,                               { $AA87 GOSUB LB69C }
+    { fixed: event 10, likewise }
+    $02, $01, $9C, $B6,                               { $AA81 GOSUB LB69C }
+    $09, $00, $FA, $01, $CE, $4A,                     { $AA85 SAVE $FA, [$4ACE] }
+    { POR-0029 part 5, original }
+    $09, $00, $FF, $01, $D0, $4A,                     { $ABF8 SAVE $FF, [$4AD0] }
+    $02, $01, $9C, $B6,                               { $ABFE GOSUB LB69C }
+    { fixed: event 14, likewise }
+    $02, $01, $9C, $B6,                               { $ABF8 GOSUB LB69C }
+    $09, $00, $FF, $01, $D0, $4A,                     { $ABFC SAVE $FF, [$4AD0] }
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
