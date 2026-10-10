@@ -1,5 +1,7 @@
 # SSI's shipped files for each release this repository reproduces: tag, file, SHA-256.
 # The reproduce job builds each tag's source and requires these exact bytes.
+# v1.3's GAME.OVR is SSI's file before the crack. GOG and Steam ship 872964a3..., which NOPs the copy-protection branch
+# (2 bytes), so a release built from the v1.3 tag brings the translation-wheel check back for GOG and Steam players.
 v1.1 START.EXE f15fd31ae489d765b4120624d172b070ea0c85b1e8ade954b58189a271cce48f
 v1.1 GAME.OVR cbb4cdc4d245e7a3abfc1c9d2323c93d146d67b061a04d1dea0b495c829247fe
 v1.2 START.EXE c4638eb5f02538c044858581d2dc1aa6cdc47772ca86f5bf2caf797754478cba

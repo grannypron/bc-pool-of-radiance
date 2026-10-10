@@ -10,9 +10,6 @@ GPATH
 GRTAGS
 GTAGS
 
-# v1.2 and v1.3 sources, held until their pull requests.
-/hold/
-
 # The disassembly project's tooling and notes, which this repository does not carry.
 /AGENTS.md
 /CLAUDE.md
@@ -24,7 +21,7 @@ GTAGS
 /.claude/
 /.venv/
 /.pytest_cache/
-*.py
+/*.py
 __pycache__/
 
 # DOSBox-X captures

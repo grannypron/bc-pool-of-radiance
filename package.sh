@@ -30,6 +30,12 @@ for f in START.EXE GAME.OVR; do
 done
 
 name="pool-of-radiance-$version-dos"
+# The game version whose data the build expects: v1.1 and v1.2 are SSI's own; every later tag is built on v1.3.
+case "$version" in
+    v1.1) game="1.1" release="" ;;
+    v1.2) game="1.2" release="" ;;
+    *) game="1.3" release=" (the GOG and Steam release)" ;;
+esac
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
@@ -40,11 +46,12 @@ cat > "$stage/README.TXT" <<EOF
 Pool of Radiance $version for DOS
 =================================
 
-START.EXE and GAME.OVR, built from the source tagged $version.
+START.EXE and GAME.OVR, built from the source tagged $version, for
+Pool of Radiance $game$release.
 
 To install, back up START.EXE and GAME.OVR in your Pool of Radiance
-folder, then copy these two over them. The game's data files are not
-included: you need your own copy of Pool of Radiance.
+$game folder, then copy these two over them. The game's data files
+are not included: you need your own copy of Pool of Radiance.
 
 SHA256.TXT holds the SHA-256 of each file.
 EOF

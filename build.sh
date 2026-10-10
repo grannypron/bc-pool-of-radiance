@@ -12,7 +12,7 @@
 #   E:  this repository         src\, build\ and obj\
 #   F:  $TOOLS/TASM             Turbo Assembler (TASM.EXE)
 #   G:  $TOOLS/EXEPACK          Microsoft EXEPACK (EXEPACK.EXE)
-# TOOLS is the folder holding the DOS toolchains, drive_c unless set (the CI image sets it to /drive_d).
+# TOOLS is the folder holding the DOS toolchains, drive_c unless set (the CI workflow sets it to /drive_d).
 #
 # Everything the build needs is checked first; every missing piece is reported before the script stops.
 
