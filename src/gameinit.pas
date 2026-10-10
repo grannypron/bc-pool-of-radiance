@@ -19,6 +19,8 @@ var
   defaults, then load the font, symbol sets, tile sets, combat icons and item table, seed the random numbers (with 1
   when NORAND is the second argument) and install the spell and effect handlers. }
 procedure GameInit2;
+var
+  ch: Char;
 begin
   GetMem(Session.dsGbvmZones[0], SizeOf(Types.TGbvmZone0State));
   GetMem(Session.dsGbvmZones[1], SizeOf(Types.TGbvmZone1));
@@ -135,10 +137,17 @@ begin
                                         #0, GDVars.itemsFile);
   Reset(GDVars.itemsFile, 1);
   Seek(GDVars.itemsFile, 2);
-  { Note: this reads 129 records into the 128-entry item table, so the last one lands in the storage that follows it.
-    The returned byte count is not checked. }
+  { This asks for 129 records into the 128-entry item table; baseItemsOverflow after it keeps a 129th in bounds. The
+    file must hold the 128. }
   BlockRead(GDVars.itemsFile, GDVars.baseItems, 129 * SizeOf(Types.TBaseItemRec), GDVars.itemsRead);
   Close(GDVars.itemsFile);
+  if (IOResult <> 0) or (GDVars.itemsRead < 128 * SizeOf(Types.TBaseItemRec)) then begin
+    Blit.RestoreVideoMode;
+    WriteLn('Unable to read ITEMS.');
+    ch := GameIo.ReadGameKey;
+    Blit.RestoreVideoMode;
+    GameIo.ExitGame;
+  end;
   GDVars.gameDir := GDVars.savedDir;
   MenuCore.ClearBottomLine;
   { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs
