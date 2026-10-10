@@ -781,10 +781,10 @@ begin
 end;
 
 { Appraise the current character's gems and jewelry one at a time. Sell pays val div 5 in platinum through GivePlatinum
-  (the remainder is lost). Keep, offered when one more coin fits and the character has under 16 items, builds an
-  itemType 70 item worth the appraisal and appends it to the inventory. Note: with an empty inventory the new item is
-  assigned only to the local p and lost. CharHlp.RecalcStats runs every pass. ok is False only when there is nothing to
-  appraise. }
+  (the remainder is lost). Keep builds an itemType 70 item worth the appraisal and gives it to the appraiser or, when
+  the appraiser has no room (16 items, or one more coin would overload them), to the first other party member (not a
+  hired NPC) who has; the screen says which, and with no one to take it only Sell is offered. CharHlp.RecalcStats runs
+  every pass. ok is False only when there is nothing to appraise. }
 procedure AppraiseMenu(var ok: Boolean);
 var
   gemStr: String[40];
@@ -799,7 +799,71 @@ var
   gem: Types.PItemRec;
   exitF: Boolean;
   ext: Boolean;
-  mustSell: Boolean;
+
+  { True when the creature holds under 16 items and one more coin's weight would not overload it. Recalculates its
+    stats first. }
+  function HasRoom(creature: Types.PCharRecord): Boolean;
+  begin
+    CharHlp.RecalcStats(creature);
+    HasRoom := (creature^.numberOfItems < 16) and not Money.CheckOverload(creature, 1, takable);
+  end;
+
+  { Offer Sell, and Keep when someone has room, for the stone just appraised: name component nameId, worth gp. Keep
+    appends the stone to the holder's items; Sell pays gp div 5 in platinum. }
+  procedure SellOrKeep(nameId: Byte; worth: Word);
+  var
+    holder: Types.PCharRecord;
+    c: Types.PCharRecord;
+  begin
+    holder := nil;
+    if HasRoom(GDVars.curChar) then
+      holder := GDVars.curChar
+    else begin
+      TextRend.DisplayString(1, 14, White, GDVars.curChar^.name + ' doesn''t have space');
+      c := GDVars.creatureList;
+      while (c <> nil) and (holder = nil) do begin
+        { C_Npc.FLAG clear: a party member, not a hired NPC }
+        if (c <> GDVars.curChar) and (c^.npc < C_Npc.FLAG) and HasRoom(c) then
+          holder := c;
+        c := c^.nextCharAddr;
+      end;
+      if holder <> nil then
+        TextRend.DisplayString(1, 15, White, 'Keep will give to ' + holder^.name)
+      else
+        TextRend.DisplayString(1, 15, White, 'No one else has space either');
+    end;
+    if holder <> nil then
+      actionStr := 'Sell Keep'
+    else
+      actionStr := 'Sell';
+    ch := MenuCore.MenuHorizontal('You can: ', actionStr, LightMagenta, LightGreen, White, True, False, ext);
+    if (ch = 'K') and (holder <> nil) then begin
+      { a whole item record }
+      GetMem(gem, SizeOf(Types.TItemRec));
+      FillChar(gem^, SizeOf(Types.TItemRec), 0);
+      gem^.next := nil;
+      gem^.equipped := 0;
+      gem^.nameIds[3] := nameId;
+      gem^.nameIds[2] := 0;
+      gem^.nameIds[1] := 0;
+      gem^.itemType := 70;
+      gem^.value := worth;
+      gem^.weight := 1;
+      gem^.unidMask := 0;
+      p := holder^.itemsAddr;
+      if p = nil then
+        holder^.itemsAddr := gem
+      else begin
+        while p^.next <> nil do
+          p := p^.next;
+        p^.next := gem;
+      end;
+      { the holder's item count and weight }
+      CharHlp.RecalcStats(holder);
+    end else
+      Money.GivePlatinum(worth div 5);
+  end;
+
 begin
   ok := True;
   if (GDVars.curChar^.coins[C_Money.GEMS] = 0) and
@@ -831,11 +895,11 @@ begin
         TextRend.DisplayString(1, 10, White, jwlStr);
         menu := '';
         if GDVars.curChar^.coins[C_Money.GEMS] <> 0 then
-          menu := '  Gems';
+          menu := 'Gems ';
         if GDVars.curChar^.coins[C_Money.JEWELRY] <> 0 then
-          menu := menu + '  Jewelry';
-        menu := menu + ' Exit';
-        ch := MenuCore.MenuHorizontal('Appraise : ', menu, LightMagenta, LightGreen, White, True,
+          menu := menu + 'Jewelry ';
+        menu := menu + 'Exit';
+        ch := MenuCore.MenuHorizontal('Appraise: ', menu, LightMagenta, LightGreen, White, True,
                                       False, ext);
         case ch of
           'G': if GDVars.curChar^.coins[C_Money.GEMS] <> 0 then begin
@@ -852,43 +916,7 @@ begin
               Str(value, gemStr);
               gemStr := 'The Gem is Valued at ' + gemStr + ' gp.';
               TextRend.DisplayString(1, 12, White, gemStr);
-              if Money.CheckOverload(GDVars.curChar, 1, takable)
-                 or (GDVars.curChar^.numberOfItems >= 16) then begin
-                actionStr := 'Sell';
-                mustSell := True;
-              end else begin
-                actionStr := 'Sell Keep';
-                mustSell := False;
-              end;
-              ch := MenuCore.MenuHorizontal('You can : ', actionStr, LightMagenta, LightGreen,
-                                            White, True, False, ext);
-              if (ch = 'K') and (not mustSell) then begin
-                { a whole item record }
-                GetMem(gem, SizeOf(Types.TItemRec));
-                FillChar(gem^, SizeOf(Types.TItemRec), 0);
-                gem^.next := nil;
-                gem^.equipped := 0;
-                gem^.nameIds[3] := 101;
-                gem^.nameIds[2] := 0;
-                gem^.nameIds[1] := 0;
-                gem^.itemType := 70;
-                gem^.value := value;
-                gem^.weight := 1;
-                gem^.unidMask := 0;
-                p := GDVars.curChar^.itemsAddr;
-                if p = nil then
-                  GDVars.curChar^.itemsAddr := gem
-                else begin
-                  while p^.next <> nil do
-                    p := p^.next;
-                  p^.next := gem;
-                end;
-                { the item count and weight checked for the next stone }
-                CharHlp.RecalcStats(GDVars.curChar);
-              end else begin
-                value := value div 5;
-                Money.GivePlatinum(value);
-              end;
+              SellOrKeep(101, value);
             end;
           'J': if GDVars.curChar^.coins[C_Money.JEWELRY] <> 0 then begin
               Dec(GDVars.curChar^.coins[C_Money.JEWELRY]);
@@ -905,43 +933,7 @@ begin
               Str(value, jwlStr);
               gemStr := 'The Jewel is Valued at ' + jwlStr + ' gp.';
               TextRend.DisplayString(1, 12, White, gemStr);
-              if Money.CheckOverload(GDVars.curChar, 1, takable)
-                 or (GDVars.curChar^.numberOfItems >= 16) then begin
-                actionStr := 'Sell';
-                mustSell := True;
-              end else begin
-                actionStr := 'Sell Keep';
-                mustSell := False;
-              end;
-              ch := MenuCore.MenuHorizontal('You can : ', actionStr, LightMagenta, LightGreen,
-                                            White, True, False, ext);
-              if (ch = 'K') and (not mustSell) then begin
-                { a whole item record }
-                GetMem(gem, SizeOf(Types.TItemRec));
-                FillChar(gem^, SizeOf(Types.TItemRec), 0);
-                gem^.next := nil;
-                gem^.equipped := 0;
-                gem^.nameIds[3] := 214;
-                gem^.nameIds[2] := 0;
-                gem^.nameIds[1] := 0;
-                gem^.itemType := 70;
-                gem^.value := value;
-                gem^.weight := 1;
-                gem^.unidMask := 0;
-                p := GDVars.curChar^.itemsAddr;
-                if p = nil then
-                  GDVars.curChar^.itemsAddr := gem
-                else begin
-                  while p^.next <> nil do
-                    p := p^.next;
-                  p^.next := gem;
-                end;
-                { the item count and weight checked for the next stone }
-                CharHlp.RecalcStats(GDVars.curChar);
-              end else begin
-                value := value div 5;
-                Money.GivePlatinum(value);
-              end;
+              SellOrKeep(214, value);
             end;
           'E', C_Keys.NONE:
             exitF := True;
