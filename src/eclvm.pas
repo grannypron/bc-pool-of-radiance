@@ -17,6 +17,8 @@ implementation
 const
   { LOAD MONSTER adds no monsters beyond this count }
   MAX_LOADED_MONSTERS = 63;
+  { the last combat-icon slot (GDVars.dsIconAnimation is [0..25]); LOAD MONSTER adds no monsters past it }
+  LAST_ICON_SLOT = 25;
 
   { training hall (class bitmask in C_Gbvm.TRAIN_CLASS_MASK) }
   PROG_TRAINING = 0;
@@ -215,7 +217,7 @@ end;
 
 { LOAD MONSTER: load monster var 1 with EclMenu.InitCreature and append it to the creature list, then append var 2 - 1
   copies, each with its own copy of the item and effect lists (prepended, so in reverse order). All use the combat icon
-  var 3, loaded into the next icon slot. Stops at 63 monsters. }
+  var 3, loaded into the next icon slot. Stops at 63 monsters, and loads none when the icon slots are used up. }
 procedure EclLoadMon;
 var
   id: Byte;
@@ -238,8 +240,9 @@ begin
   savedCur := GDVars.curChar;
   i := 1;
   EclMenu.LoadEclVars(3);
-  { at most 63 monsters }
+  { at most 63 monsters, and an icon slot for them }
   if GDVars.creatureCnt >= MAX_LOADED_MONSTERS then Exit;
+  if GDVars.gIconAnim > LAST_ICON_SLOT then Exit;
   p := nil;
   q := nil;
   id := EclMenu.GetEclVar(1);
@@ -683,7 +686,8 @@ begin
 end;
 
 { PARTY STRENGTH: store the party's rating at var 1's address: (4*cleric + (hp + 5*(AC below 0) + 5*(THAC0 below 21)
-  + 8*mage)) div 10 per member, from the stored 60-biased AC and THAC0. Note: the Byte sum may overflow. }
+  + 8*mage)) div 10 per member, from the stored 60-biased AC and THAC0. The sum is capped at 255; v1.3 kept it in a
+  Byte, which wrapped. }
 procedure EclPartyStr;
 var
   hp: Byte;
@@ -691,7 +695,7 @@ var
   mage: Byte;
   cleric: Byte;
   ac: Byte;
-  strength: Byte;
+  strength: Word;
   address: Word;
   p: Types.PCharRecord;
 begin
@@ -716,6 +720,8 @@ begin
     p := p^.nextCharAddr;
   end;
   address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  if strength > 255 then
+    strength := 255;
   EclMenu.WriteGbvm(address, strength);
 end;
 
@@ -1652,12 +1658,13 @@ begin
 end;
 
 { PROTECTION: draw the text at var 1's address at the message cursor; each byte is one less than its game-font glyph,
-  and a zero byte ends it. After CLEAR BOX, text below row 13 moves into the 3D box and EXIT redraws its border. }
+  and a $00 or $FF byte ends it, as does the right edge of the text area. After CLEAR BOX, text below row 13 moves into
+  the 3D box and EXIT redraws its border. }
 procedure EclProtection;
 var
   address: Word;
   a: Word;
-  i: Byte;
+  i: Word;
   c: Byte;
   done: Boolean;
 begin
@@ -1682,7 +1689,8 @@ begin
       Inc(i);
     end else
       done := True;
-  until done;
+  { v1.3 stopped only at the end byte, with a Byte offset that wrapped, so text with none looped forever }
+  until done or (GDVars.curCol > C_Msg.TEXT_RIGHT);
   Inc(GDVars.curRow);
 end;
 
