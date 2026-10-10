@@ -60,7 +60,7 @@ procedure BuildIconFacings(cell: Byte);
 
 procedure CombatAnimateMovingIcon(startX, startY, endX, endY: ShortInt; frames, pace: Byte);
 
-procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: Types.TStr40);
+procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: string);
 
 function HasEffect(creature: Types.PCharRecord; id: Byte; var effect: Types.PEffectRec): Boolean;
 
@@ -1068,7 +1068,7 @@ end;
   grid cell (gameDelay + 1 times for an effect, once for damage, which then waits for a key).
   SoundDrv.SoundSetAutoStop(0) keeps the sound driver resident during the flash, then 10 restores per-sound cleanup. Out
   of combat it is just PrintNameString with a pause. }
-procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: Types.TStr40);
+procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: string);
 var
   gx: ShortInt;
   gy: ShortInt;
