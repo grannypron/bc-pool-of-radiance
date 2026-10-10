@@ -325,13 +325,17 @@ begin
       GDVars.curCol := ulCol;
       Inc(GDVars.curRow);
       FindNewIndex;
-      if (GDVars.curRow > lrRow) and (idx < len) then begin
+      { FindNewIndex stops at len, so text is still waiting when idx < len or source[len] is not a space; a last
+        one-character word waits too }
+      if (GDVars.curRow > lrRow) and ((idx < len) or (source[idx] <> ' ')) then begin
         GDVars.curCol := ulCol;
         GDVars.curRow := ulRow;
         TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
         TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
         PrintCharInWindow;
-      end;
+      end else if GDVars.curRow > lrRow then
+        { only a trailing space is left: nothing to print below the window }
+        Exit;
     end else
       PrintCharInWindow;
   until idx > len;
