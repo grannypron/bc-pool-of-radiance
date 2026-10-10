@@ -42,11 +42,11 @@ const
   WALLSLOT_ID = $4AF9;
   { saved wall-set symbol slots: base + 1..3 }
   WALLSLOT_SLOT = $4AFC;
+  { zone 1 ($6B00 bank: zone1) }
   { Script-visible game-memory address of the bitmask of trainable classes }
   TRAIN_CLASS_MASK = $6DA8;
   { requested monster distance (0..2) }
   MONSTER_DIST_REQ = $6DC0;
-  { zone 1 ($6B00 bank: zone1) }
   { actual monster distance (0..2) }
   MONSTER_DIST = $6DC1;
   { morale-check % threshold }
