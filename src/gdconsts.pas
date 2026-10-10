@@ -1220,12 +1220,20 @@ const
   { Effects that leave a creature helpless: Snake Charm, Paralysis, Sleep, Helpless }
   helplessFx: array[1..4] of Byte = (51, 52, 53, 31);
   { Portrait head and body tables }
-  { portraitHead -> HEAD DAX ID }
-  headTbl: array[1..14] of Byte = (
-    0, 8, 9, 13, 16, 18, 22, 34, 45, 51, 53, 57, 67, 68);
-  { portraitBody -> BODY DAX ID }
-  bodyTbl: array[1..12] of Byte = (
-    1, 2, 3, 4, 7, 8, 18, 24, 26, 33, 35, 37);
+  { portraitHead -> HEAD DAX ID: SSI's 14 player heads, then the other heads HEAD3.DAX holds, then the heads only the
+    other disks hold. New heads go at the end so the numbers saved characters carry keep their faces. }
+  headTbl: array[1..41] of Byte = (
+    0, 8, 9, 13, 16, 18, 22, 34, 45, 51, 53, 57, 67, 68,
+    24, 32, 42, 44, 55, 63, 71,
+    1, 3, 5, 6, 10, 11, 12, 14, 25, 48, 52, 54, 56, 59, 61, 62, 69, 70, 72, 74);
+  { portraitBody -> BODY DAX ID, extended the same way }
+  bodyTbl: array[1..21] of Byte = (
+    1, 2, 3, 4, 7, 8, 18, 24, 26, 33, 35, 37,
+    9, 31, 32, 34,
+    5, 6, 13, 25, 30);
+  { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
+  DISK3_HEADS = 21;
+  DISK3_BODIES = 16;
   { unused }
   dsUnidentified14: array[0..1] of Byte = (
     0, 1);

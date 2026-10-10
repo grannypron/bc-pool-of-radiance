@@ -19,6 +19,11 @@ procedure DisplayCharPortrait;
   or on any disk once the merged HEAD.DAX and BODY.DAX are read in place of its own. }
 function PlayerPortraitsHere: Boolean;
 
+{ How many GDConsts.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
+  all of them once the merged HEAD.DAX and BODY.DAX are read in place of its own, otherwise the ones HEAD3.DAX and
+  BODY3.DAX hold (GDConsts.DISK3_HEADS and DISK3_BODIES). }
+function PlayerPortraitCount(body: Boolean): Byte;
+
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 
 procedure LoadPortraitBufs(headId, bodyId: Byte);
@@ -162,13 +167,16 @@ begin
 end;
 
 { Draw a bordered window at the top right, then the current character's portrait in it, its head and body numbers mapped
-  through GDConsts.headTbl/bodyTbl. Does nothing when either number is 0. Note: s1 and s2 are built and never used. }
+  through GDConsts.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. Note: s1 and s2 are built
+  and never used. }
 procedure DisplayCharPortrait;
 var
   s1: String[3];
   s2: String[3];
 begin
-  if (GDVars.curChar^.portraitHead = 0) or (GDVars.curChar^.portraitBody = 0) then Exit;
+  with GDVars.curChar^ do
+    if (portraitHead = 0) or (portraitBody = 0) or (portraitHead > SizeOf(GDConsts.headTbl)) or
+        (portraitBody > SizeOf(GDConsts.bodyTbl)) then Exit;
   Border.DrawWindow(28, 1, 38, 11, 0, Black, '');
   with GDVars.curChar^ do begin
     Str(LongInt(GDConsts.headTbl[portraitHead]), s1);
@@ -178,13 +186,31 @@ begin
   end;
 end;
 
-function PlayerPortraitsHere: Boolean;
+{ True when this disk's HEAD and BODY loads read the merged HEAD.DAX and BODY.DAX, which hold every head and body. }
+function MergedPortraits: Boolean;
 var
   diskCh: String[1];
 begin
   Str(LongInt(GDVars.virtualDisk), diskCh);
-  PlayerPortraitsHere := (GDVars.virtualDisk = 3) or
-    ((DaxIo.ArchiveName('HEAD' + diskCh) = 'HEAD') and (DaxIo.ArchiveName('BODY' + diskCh) = 'BODY'));
+  MergedPortraits := (DaxIo.ArchiveName('HEAD' + diskCh) = 'HEAD') and (DaxIo.ArchiveName('BODY' + diskCh) = 'BODY');
+end;
+
+function PlayerPortraitsHere: Boolean;
+begin
+  PlayerPortraitsHere := (GDVars.virtualDisk = 3) or MergedPortraits;
+end;
+
+function PlayerPortraitCount(body: Boolean): Byte;
+begin
+  if MergedPortraits then begin
+    if body then
+      PlayerPortraitCount := SizeOf(GDConsts.bodyTbl)
+    else
+      PlayerPortraitCount := SizeOf(GDConsts.headTbl);
+  end else if body then
+    PlayerPortraitCount := GDConsts.DISK3_BODIES
+  else
+    PlayerPortraitCount := GDConsts.DISK3_HEADS;
 end;
 
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping
