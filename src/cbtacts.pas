@@ -423,8 +423,7 @@ end;
 { Set curAttacks for the round. Start from the weapon's rate of fire (at least 2) for a damaging ranged weapon, else the
   base attacks, both in half-attacks; apply haste/slow effects, then AdjustedAttacks (odd rounds round up, then halve)
   and cap a ranged weapon by its ammunition. Once an attack has been made the result is used only when it is below the
-  previous curAttacks (melee: below twice it); otherwise curAttacks keeps the base attacks value instead of the previous
-  one. }
+  previous curAttacks (melee: below twice it); otherwise curAttacks keeps the previous value. }
 procedure SetCurAttacksX2(creature: Types.PCharRecord);
 var
   adj: Byte;
@@ -436,7 +435,6 @@ var
 begin
   ranged := False;
   saved := creature^.curAttacks;
-  creature^.curAttacks := creature^.attacks;
   if CharHlp.HasRangedWeapon(creature) and CharHlp.FindDamagingRangedWeapon(creature, weapon) then begin
     ranged := True;
     rof := GDVars.baseItems[creature^.equipped[C_Equip.WEAPON]^.itemType].rateOfFire;
@@ -444,7 +442,7 @@ begin
       rof := 2;
     GDVars.dsCurrentAttackCurrent := rof;
   end else
-    GDVars.dsCurrentAttackCurrent := creature^.curAttacks;
+    GDVars.dsCurrentAttackCurrent := creature^.attacks;
   GDVars.dsCurrentCreatureCalculatingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
   adj := CbtActs.AdjustedAttacks(GDVars.dsCurrentAttackCurrent);
