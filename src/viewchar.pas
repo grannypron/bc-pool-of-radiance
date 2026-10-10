@@ -406,7 +406,8 @@ begin
       if sel <> nil then
         case ch of
           'R': ViewChar.ToggleReadyItem(sel);
-          'U': if sel^.equipped = 0 then
+          { a scroll the Cast list offers (Magic.CastableScroll) need not be readied; other items must be }
+          'U': if (sel^.equipped = 0) and not Magic.CastableScroll(creature, sel) then
                begin
                  CharHlp.PrintBottomLine('Must be Readied');
                  ch := ' ';
