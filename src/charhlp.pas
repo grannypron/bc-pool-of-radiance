@@ -1239,8 +1239,8 @@ begin
 end;
 
 { Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
-  Restore the previous list afterward. Stored distances are doubled, so halve the result. Note: targetCount is not
-  restored with the list. }
+  Restore the previous list afterward. Stored distances are doubled, so halve the result; 255 when other is not in the
+  list (nil, or off the map). Note: targetCount is not restored with the list. }
 function CalcDistance(creature, other: Types.PCharRecord): Byte;
 var
   saved: array[1..255] of Types.TCombatTarget;
@@ -1254,7 +1254,10 @@ begin
   i := 1;
   while (GDVars.creatureArr[GDVars.targetList[i].idx] <> other) and (i < GDVars.targetCount) do
     Inc(i);
-  CalcDistance := GDVars.targetList[i].dist shr 1;
+  if GDVars.creatureArr[GDVars.targetList[i].idx] = other then
+    CalcDistance := GDVars.targetList[i].dist shr 1
+  else
+    CalcDistance := 255;
   Move(saved, GDVars.targetList, SizeOf(GDVars.targetList));
 end;
 
