@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 40;
-  BYTE_COUNT = 1260;
+  PART_COUNT = 42;
+  BYTE_COUNT = 1264;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -129,7 +129,12 @@ const
     { POR-0047: the Zhentil Keep Outpost's commandant fight (MON6CHA block 86) uses a copy of Al-Hyam Dazid, whom the
       party meets alive later in Valjevo Castle; disk 6's copy is renamed Zhentarim Mage, disk 5's Al-Hyam is
       unchanged }
-    (por: 47; family: C_Data.FAMILY_MONCHA; disk: 6; id: 86; size: 285; offset: 0; origLen: 16; newLen: 16));
+    (por: 47; family: C_Data.FAMILY_MONCHA; disk: 6; id: 86; size: 285; offset: 0; origLen: 16; newLen: 16),
+    { POR-0048: the graveyard's two tombs (script $A3D2 and $AD17) gave each other's treasure: the paladin's crypt
+      had no armour and a magic-user scroll, the knight's tomb the paladin's plate, shield and lawful-good sword; the
+      two item blocks trade places }
+    (por: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 2788; origLen: 1; newLen: 1),
+    (por: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 5161; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { POR-0020, original }
     $16, $00,
@@ -509,7 +514,15 @@ const
     { POR-0047, original }
     $0D, $41, $4C, $2D, $48, $59, $41, $4D, $20, $44, $41, $5A, $49, $44, $00, $00,
     { fixed: ZHENTARIM MAGE }
-    $0E, $5A, $48, $45, $4E, $54, $41, $52, $49, $4D, $20, $4D, $41, $47, $45, $00);
+    $0E, $5A, $48, $45, $4E, $54, $41, $52, $49, $4D, $20, $4D, $41, $47, $45, $00,
+    { POR-0048 part 1, original }
+    $1A,
+    { fixed: the paladin's crypt gives item block 29 }
+    $1D,
+    { POR-0048 part 2, original }
+    $1D,
+    { fixed: the knight's tomb gives item block 26 }
+    $1A);
 
 implementation
 
