@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 14;
-  BYTE_COUNT = 634;
+  PART_COUNT = 22;
+  BYTE_COUNT = 869;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -65,6 +65,17 @@ const
       the script }
     (por: 33; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 4520; origLen: 7; newLen: 7),
     (por: 33; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 6550; origLen: 0; newLen: 26),
+    { POR-0034: the Cadorna Textile House counted a random encounter as it began (script $9A65), so fleeing it
+      counted toward clearing the block; the count now goes up after a won encounter, from new code at the end of the
+      script, and [$6E7C] tells the counted encounters from the uncounted hobgoblin patrol }
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 318; origLen: 4; newLen: 4),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 359; origLen: 32; newLen: 32),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 493; origLen: 12; newLen: 12),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 562; origLen: 12; newLen: 12),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 647; origLen: 12; newLen: 12),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 728; origLen: 12; newLen: 12),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 797; origLen: 12; newLen: 12),
+    (por: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 6170; origLen: 0; newLen: 43),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -207,6 +218,76 @@ const
     $0B, $00, $04, $00, $08, $00, $04,                { $B2A2 LOAD MONSTER $04, $08, $04 }
     $24,                                              { $B2A9 COMBAT }
     $01, $01, $B5, $AA,                               { $B2AA GOTO LAAB5 }
+    { POR-0034 part 1, original }
+    $01, $01, $85, $9A,                               { $9A3C GOTO L9A85 }
+    { fixed: the patrol goes by new code that marks it uncounted }
+    $01, $01, $18, $B1,                               { $9A3C GOTO LB118 }
+    { POR-0034 part 2, original }
+    $04, $00, $01, $01, $E4, $4A, $01, $E4, $4A,      { $9A65 ADD $01, [$4AE4], [$4AE4] }
+    $14, $01, $E4, $4A, $00, $0A, $01, $75, $4A, $00, $FF, { $9A6E COMPARE AND [$4AE4], $0A, [$4A75], $FF }
+    $17,                                              { $9A79 IF <> }
+    $01, $01, $85, $9A,                               { $9A7A GOTO L9A85 }
+    $09, $00, $FE, $01, $E6, $4A,                     { $9A7E SAVE $FE, [$4AE6] }
+    $00,                                              { $9A84 EXIT }
+    { fixed: a counted encounter, unless nine are won and the ogre is dead, which clears the block }
+    $09, $00, $01, $01, $7C, $6E,                     { $9A65 SAVE $01, [$6E7C] }
+    $14, $01, $E4, $4A, $00, $09, $01, $75, $4A, $00, $FF, { $9A6B COMPARE AND [$4AE4], $09, [$4A75], $FF }
+    $17,                                              { $9A76 IF <> }
+    $01, $01, $85, $9A,                               { $9A77 GOTO L9A85 }
+    $09, $00, $FE, $01, $E6, $4A,                     { $9A7B SAVE $FE, [$4AE6] }
+    $00,                                              { $9A81 EXIT }
+    $00, $00, $00,
+    { POR-0034 part 3, original }
+    $03, $01, $C7, $6D, $00, $80,                     { $9AEB COMPARE [$6DC7], $80 }
+    $19,                                              { $9AF1 IF > }
+    $01, $01, $FB, $9C,                               { $9AF2 GOTO L9CFB }
+    $00,                                              { $9AF6 EXIT }
+    { fixed: after the frogs, the new result code }
+    $01, $01, $22, $B1,                               { $9AEB GOTO LB122 }
+    $00, $00, $00, $00, $00, $00, $00, $00,
+    { POR-0034 part 4, original }
+    $03, $01, $C7, $6D, $00, $80,                     { $9B30 COMPARE [$6DC7], $80 }
+    $19,                                              { $9B36 IF > }
+    $01, $01, $FB, $9C,                               { $9B37 GOTO L9CFB }
+    $00,                                              { $9B3B EXIT }
+    { fixed: after the hobgoblins, likewise }
+    $01, $01, $22, $B1,                               { $9B30 GOTO LB122 }
+    $00, $00, $00, $00, $00, $00, $00, $00,
+    { POR-0034 part 5, original }
+    $03, $01, $C7, $6D, $00, $80,                     { $9B85 COMPARE [$6DC7], $80 }
+    $19,                                              { $9B8B IF > }
+    $01, $01, $FB, $9C,                               { $9B8C GOTO L9CFB }
+    $00,                                              { $9B90 EXIT }
+    { fixed: after the skeletons, likewise }
+    $01, $01, $22, $B1,                               { $9B85 GOTO LB122 }
+    $00, $00, $00, $00, $00, $00, $00, $00,
+    { POR-0034 part 6, original }
+    $03, $01, $C7, $6D, $00, $80,                     { $9BD6 COMPARE [$6DC7], $80 }
+    $19,                                              { $9BDC IF > }
+    $01, $01, $FB, $9C,                               { $9BDD GOTO L9CFB }
+    $00,                                              { $9BE1 EXIT }
+    { fixed: after the ghouls, likewise }
+    $01, $01, $22, $B1,                               { $9BD6 GOTO LB122 }
+    $00, $00, $00, $00, $00, $00, $00, $00,
+    { POR-0034 part 7, original }
+    $03, $01, $C7, $6D, $00, $80,                     { $9C1B COMPARE [$6DC7], $80 }
+    $19,                                              { $9C21 IF > }
+    $01, $01, $FB, $9C,                               { $9C22 GOTO L9CFB }
+    $00,                                              { $9C26 EXIT }
+    { fixed: after the scorpions, likewise }
+    $01, $01, $22, $B1,                               { $9C1B GOTO LB122 }
+    $00, $00, $00, $00, $00, $00, $00, $00,
+    { POR-0034 part 8, added at $B118: the patrol mark, then the result code: fled, run as before; won a counted
+      encounter, count it }
+    $09, $00, $00, $01, $7C, $6E,                     { $B118 SAVE $00, [$6E7C] }
+    $01, $01, $85, $9A,                               { $B11E GOTO L9A85 }
+    $03, $01, $C7, $6D, $00, $80,                     { $B122 COMPARE [$6DC7], $80 }
+    $19,                                              { $B128 IF > }
+    $01, $01, $FB, $9C,                               { $B129 GOTO L9CFB }
+    $14, $01, $C7, $6D, $00, $00, $01, $7C, $6E, $00, $01, { $B12D COMPARE AND [$6DC7], $00, [$6E7C], $01 }
+    $16,                                              { $B138 IF = }
+    $04, $00, $01, $01, $E4, $4A, $01, $E4, $4A,      { $B139 ADD $01, [$4AE4], [$4AE4] }
+    $00,                                              { $B142 EXIT }
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
