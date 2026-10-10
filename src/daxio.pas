@@ -358,11 +358,16 @@ begin
       if data <> nil then begin
         i := 0;
         while (i + 2 < size) and (remapCount < MAX_REMAPS) do begin
-          Inc(remapCount);
-          remapFamily[remapCount] := family;
-          remapDisk[remapCount] := Byte(data^[i]);
-          remapFrom[remapCount] := Byte(data^[i + 1]);
-          remapTo[remapCount] := Byte(data^[i + 2]);
+          { an entry naming no disk, or a reserved id on either side, is skipped: a load is never sent to the merged
+            archive's own blocks }
+          if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_Data.SOURCES_BLOCK) and
+              (Byte(data^[i + 2]) < C_Data.SOURCES_BLOCK) then begin
+            Inc(remapCount);
+            remapFamily[remapCount] := family;
+            remapDisk[remapCount] := Byte(data^[i]);
+            remapFrom[remapCount] := Byte(data^[i + 1]);
+            remapTo[remapCount] := Byte(data^[i + 2]);
+          end;
           Inc(i, 3);
         end;
         FreeMem(data, size);
@@ -409,10 +414,11 @@ end;
 
 { Find a DAX block by ID in gameDir + fileName + ext, read and decompress it into a new buffer of sizeRead bytes, then
   release the compressed buffer. A per-disk archive name of a data family whose merged archive is usable reads the
-  merged archive instead (when that disk has its own per-disk archive), with fileID remapped where that disk's block was
-  stored under another id. Only the bytes actually read are decoded, so a truncated archive yields a block zeroed past
-  what it holds. Any directory entry scanned with a compressed size above 36000 shows a 'tempsize' prompt and exits the
-  game. Return sizeRead=0 and data=nil if the archive cannot be opened or the ID is absent. }
+  merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_Data's reserved ids),
+  with fileID remapped where that disk's block was stored under another id. Only the bytes actually read are decoded,
+  so a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a compressed size
+  above 36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the archive cannot be
+  opened or the ID is absent. }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var compSize: Word; offset: LongInt; id: Byte; n: Word;
     f1: file;
@@ -421,7 +427,9 @@ var compSize: Word; offset: LongInt; id: Byte; n: Word;
     disk: Byte;
 begin
   family := DataArc.MatchFamily(fileName, disk);
-  if family > 0 then
+  { the reserved ids name the merged archive's own blocks, which no per-disk archive holds: such a load reads the
+    per-disk archive and finds nothing there, as it did before the merged archives }
+  if (family > 0) and (fileID < C_Data.SOURCES_BLOCK) then
     if DaxIo.FamilyUsable(family) and DaxIo.DiskHasSource(family, disk) then begin
       fileID := DaxIo.RemapId(family, disk, fileID);
       fileName := DataArc.MergedName(family);
