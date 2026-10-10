@@ -1462,7 +1462,7 @@ begin
     end;
 end;
 
-{ Con poison saving throw bonus (eff 90). Note: bonus is left unset for Constitution outside 4..20 }
+{ Con poison saving throw bonus (eff 90) }
 
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1475,6 +1475,9 @@ begin
       11..13: bonus := 3;
       14..17: bonus := 4;
       18..20: bonus := 5;
+    else
+      { +1 per 3 1/2 points of Constitution, the rule the table follows: 0 below 4, 6 at 21..24 }
+      bonus := Word(creature^.conCur) * 2 div 7;
     end;
     GDVars.gSaveRoll := GDVars.gSaveRoll + bonus;
   end;
@@ -1532,7 +1535,7 @@ begin
     GDVars.pendingDamage := 0;
 end;
 
-{ Con spell/wand save bonus (eff 97). Note: as in EffConPsnSave, bonus is left unset for Constitution outside 4..20 }
+{ Con spell/wand save bonus (eff 97), on EffConPsnSave's scale }
 
 procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1545,6 +1548,9 @@ begin
       11..13: bonus := 3;
       14..17: bonus := 4;
       18..20: bonus := 5;
+    else
+      { +1 per 3 1/2 points of Constitution, the rule the table follows: 0 below 4, 6 at 21..24 }
+      bonus := Word(creature^.conCur) * 2 div 7;
     end;
     GDVars.gSaveRoll := GDVars.gSaveRoll + bonus;
   end;
