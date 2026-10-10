@@ -751,6 +751,7 @@ var
   y: ShortInt;
   prev: Types.PCharRecord;
   p: Types.PCharRecord;
+  next: Types.PCharRecord;
   slot: Byte;
   g: Byte;
   d: Byte;
@@ -789,12 +790,16 @@ begin
     end;
   slot := 1;
   GDVars.arenaCount := 1;
-  prev := GDVars.creatureList;
+  prev := nil;
   p := GDVars.creatureList;
-  while p <> nil do begin
+  { 72 = High(arenaLoc): placing stops at the last slot, and the list is cut after the last creature placed }
+  while (p <> nil) and (slot <= 72) do begin
     GameIo.DiscardPendingKeys;
+    { read before a removal frees p }
+    next := p^.nextCharAddr;
     GDVars.creatureArr[slot] := p;
-    GDVars.team := p^.hostile;
+    { teamCount, teamRows and the placement tables have teams 0 and 1 }
+    GDVars.team := p^.hostile and 1;
     GDVars.arenaLoc[slot].slotIndex := slot;
     GDVars.arenaLoc[slot].size := p^.iconDimensions and 7;
     if CombatSt.FindPlacement(slot) then begin
@@ -818,16 +823,16 @@ begin
         GDVars.creatureArr[slot] := nil;
         GDVars.curChar := p;
         CharGen.RemoveCreature(True, False);
-        p := prev;
       end else begin
         prev := p;
         Inc(slot);
         Inc(GDVars.arenaCount);
       end;
     end;
-    p := p^.nextCharAddr;
+    p := next;
   end;
-  prev^.nextCharAddr := nil;
+  if prev <> nil then
+    prev^.nextCharAddr := nil;
 end;
 
 { Prepare combat: release the animation and portrait pictures, clear combat state, build the arena, initialize and place
