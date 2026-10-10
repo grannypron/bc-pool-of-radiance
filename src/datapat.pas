@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 4;
-  BYTE_COUNT = 182;
+  PART_COUNT = 5;
+  BYTE_COUNT = 308;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -41,6 +41,10 @@ const
       every other shop door }
     (por: 27; family: C_Data.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 235; origLen: 1; newLen: 1),
     (por: 27; family: C_Data.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 475; origLen: 1; newLen: 1),
+    { POR-0028: the Slums' random-encounter result (script $B118-$B156): a win counts the encounter and gives a clear
+      point only while the 15 random encounters are not all fought, so fights that interrupt a rest stop earning
+      clear points }
+    (por: 28; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 6170; origLen: 63; newLen: 63),
     { POR-0038: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level
       thieves, 8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where
       the shipped script took the 1st-level count below zero or left it stale }
@@ -58,6 +62,38 @@ const
     $30,
     { fixed: (9,13) south: wall type 9 }
     $90,
+    { POR-0028, original }
+    $03, $01, $C7, $6D, $00, $80,                     { $B118 COMPARE [$6DC7], $80 }
+    $19,                                              { $B11E IF > }
+    $01, $01, $25, $B2,                               { $B11F GOTO LB225 }
+    $03, $01, $C7, $6D, $00, $01,                     { $B123 COMPARE [$6DC7], $01 }
+    $18,                                              { $B129 IF < }
+    $04, $00, $01, $01, $80, $4A, $01, $80, $4A,      { $B12A ADD $01, [$4A80], [$4A80] }
+    $18,                                              { $B133 IF < }
+    $02, $01, $9C, $B6,                               { $B134 GOSUB LB69C }
+    $19,                                              { $B138 IF > }
+    $01, $01, $50, $B2,                               { $B139 GOTO LB250 }
+    $16,                                              { $B13D IF = }
+    $03, $01, $C8, $6D, $00, $00,                     { $B13E COMPARE [$6DC8], $00 }
+    $19,                                              { $B144 IF > }
+    $04, $00, $01, $01, $80, $4A, $01, $80, $4A,      { $B145 ADD $01, [$4A80], [$4A80] }
+    $19,                                              { $B14E IF > }
+    $02, $01, $9C, $B6,                               { $B14F GOSUB LB69C }
+    $01, $01, $50, $B2,                               { $B153 GOTO LB250 }
+    { fixed }
+    $03, $01, $C7, $6D, $00, $80,                     { $B118 COMPARE [$6DC7], $80 }
+    $19,                                              { $B11E IF > }
+    $01, $01, $25, $B2,                               { $B11F GOTO LB225 }
+    $03, $01, $C7, $6D, $00, $00,                     { $B123 COMPARE [$6DC7], $00 }
+    $17,                                              { $B129 IF <> }
+    $01, $01, $50, $B2,                               { $B12A GOTO LB250 }
+    $04, $00, $01, $01, $80, $4A, $01, $80, $4A,      { $B12E ADD $01, [$4A80], [$4A80] }
+    $03, $01, $80, $4A, $00, $0F,                     { $B137 COMPARE [$4A80], $0F }
+    $1A,                                              { $B13D IF <= }
+    $02, $01, $9C, $B6,                               { $B13E GOSUB LB69C }
+    $01, $01, $50, $B2,                               { $B142 GOTO LB250 }
+    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,
+    $00,
     { POR-0038, original }
     $04, $00, $05, $01, $45, $4A, $01, $79, $6E,      { $AAB9 ADD $05, [$4A45], [$6E79] }
     $03, $01, $79, $6E, $00, $15,                     { $AAC2 COMPARE [$6E79], $15 }
