@@ -897,7 +897,7 @@ type
   TView3dWallDef = array[1..5, 0..155] of Byte;
   TWallDefs = array[1..3] of TView3dWallDef;
   TWallSetCache = record
-    { Cached WALLDEF reload ID; LoadWallSet maps 10 to 0 }
+    { Cached WALLDEF reload ID }
     wallDefId: Integer;
     { Destination slot passed to Load8x8Set }
     symbolSlot: Integer;

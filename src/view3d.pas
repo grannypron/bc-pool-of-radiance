@@ -416,9 +416,9 @@ end;
   of 5 wall types, and further blocks fill the following slots), remaps every symbol >= symSetLast[0] (45) by wsSlot's
   8x8-set base offset, loads the matching 8x8 set(s), and stamps the slot cache. The size guard counts whole blocks and
   refuses a record whose whole blocks would run past slot 3. A multi-block load composes each 8x8-set id as fileId*10 +
-  i, with file 0 spelled as 10 for that product; fileId 10 is turned back into 0 before the cache is stamped, whatever
-  the block count. Note: the guard does not count a trailing partial block, but the copy loop still copies it as a whole
-  block into the next slot, which can lie past slot 3 }
+  i, with file 0 spelled as 10 for that product; the cache is stamped with fileId itself. Note: the guard does not count
+  a trailing partial block, but the copy loop still copies it as a whole block into the next slot, which can lie past
+  slot 3 }
 procedure LoadWallSet(fileId, wsSlot: Byte);
 var
   sizeRead: Word;
@@ -429,6 +429,7 @@ var
   i: Word;
   col: Integer;
   count: Byte;
+  setFile: Byte;
   numStr: String[1];
   ch: Char;
 begin
@@ -462,12 +463,14 @@ begin
             Inc(wallDefs^[wsSlot + i - 1][row][col], symOfs);
         end;
       if count > 1 then begin
-        if fileId = 0 then fileId := 10;
-        Sym8x8.Load8x8Set(fileId * 10 + i, wsSlot + i - 1);
+        if fileId = 0 then
+          setFile := 10
+        else
+          setFile := fileId;
+        Sym8x8.Load8x8Set(setFile * 10 + i, wsSlot + i - 1);
       end else
         Sym8x8.Load8x8Set(fileId, wsSlot + i - 1);
     end;
-  if fileId = 10 then fileId := 0;
   wallSetCache[wsSlot].wallDefId := fileId;
   wallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
