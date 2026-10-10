@@ -12,16 +12,17 @@ uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Session, DaxIo
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
-  idx is the menu cursor and persists across calls; idx < 0 clears the window and resets idx to 0 (cast and learn
-  always redraw). Returns the chosen spell id, or 0 for Exit, and sets GDVars.castScroll to the chosen line's scroll in
-  spellScrolls (nil for Exit); scribe also sets GDVars.dsCurrentScrollPtr to the chosen spell's scroll. Frees spellList
-  before returning. }
+  idx is the menu cursor and persists across calls; idx < 0 clears the window and opens at the top of the list on its
+  first spell (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit, and sets GDVars.castScroll
+  to the chosen line's scroll in spellScrolls (nil for Exit); scribe also sets GDVars.dsCurrentScrollPtr to the chosen
+  spell's scroll. Frees spellList before returning. }
 function SpellSelection(selType: Byte; var idx: Integer): Byte;
 
 { Build spellList and spellIds for a spell menu. menuType: 0 memorized, 5 still being memorized (bit 7 set), 1 spell
   book, 2 current scroll, 3 spells on every readable item, 6 scroll spells queued for scribing (bit 7 set), 4 spells
   learnable on gaining a level (the character has slots of the spell's class and level and does not know it yet), 7
-  the spells the character can cast now (AddAvailableSpells). Returns True if the list is nonempty. }
+  the spells the character can cast now (AddAvailableSpells). Returns True if the list has a spell; a list of level
+  headings alone is freed and counts as empty. }
 function GenerateSpellList(menuType: Byte): Boolean;
 
 { Spell range: rangeFixed + rangeVar * caster level, using caster level 6 when GDVars.usingItem. A zero range with a
@@ -289,7 +290,17 @@ begin
   if idx < 0 then begin
     Border.DrawWindow(1, 3, 38, bottomRow, 0, Black, '');
     redraw := True;
+    { open at the top of the list on its first spell, the line under the first level heading (MenuVertical, given the
+      heading, would wrap up to the page's last line) }
+    GDVars.vertTop := 0;
     idx := 0;
+    p := GDVars.spellList;
+    while (p <> nil) and (p^.inUse <> 0) do begin
+      p := p^.next;
+      Inc(idx);
+    end;
+    if p = nil then
+      idx := 0;
   end;
   if (selType = 4) or (selType = 1) then
     redraw := True;
@@ -524,6 +535,7 @@ end;
 function GenerateSpellList(menuType: Byte): Boolean;
 var
   i: Byte;
+  p: Types.PItemRec;
 begin
   GenerateSpellList := False;
   GDVars.spellList := nil;
@@ -558,8 +570,16 @@ begin
              (GDVars.curChar^.spellsKnown[i] = 0) then
            Magic.AddSpellToList(i, MARK_NONE);
   end;
-  if GDVars.spellList <> nil then
-    GenerateSpellList := True;
+  { a list of headings alone has nothing to pick: it counts as empty }
+  p := GDVars.spellList;
+  while (p <> nil) and (p^.inUse <> 0) do
+    p := p^.next;
+  if p <> nil then
+    GenerateSpellList := True
+  else if GDVars.spellList <> nil then begin
+    MenuCore.FreeStringList(GDVars.spellList);
+    GDVars.spellList := nil;
+  end;
 end;
 
 function CalcSpellRange(spell: Byte): Byte;
