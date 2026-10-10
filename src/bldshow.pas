@@ -181,22 +181,33 @@ begin
   NumStr := s;
 end;
 
-{ a * b div c for non-negative a, b and c, its operands halved until the product fits; 0 when c is not positive. }
+{ a * b div c for positive a, b and c; 0 when any of them is not positive. Until the product fits, the larger factor
+  and c are halved together; once c is down to 1 the halving is made up by doubling the result instead. }
 function MulDiv(a, b, c: LongInt): LongInt;
+var
+  doublings: Byte;
+  q: LongInt;
 begin
   if (a <= 0) or (b <= 0) or (c <= 0) then
     MulDiv := 0
   else begin
+    doublings := 0;
     while (a > 46340) or (b > 46340) do begin
       if a > b then
         a := a shr 1
       else
         b := b shr 1;
-      c := c shr 1;
+      if c > 1 then
+        c := c shr 1
+      else
+        Inc(doublings);
     end;
-    if c = 0 then
-      c := 1;
-    MulDiv := a * b div c;
+    q := a * b div c;
+    while doublings > 0 do begin
+      q := q * 2;
+      Dec(doublings);
+    end;
+    MulDiv := q;
   end;
 end;
 
