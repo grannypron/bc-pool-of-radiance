@@ -54,6 +54,11 @@ function ItemReadable(it: Pointer): Boolean;
   cleric level with a scroll whose base item slot is 12, identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
+{ True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
+  two hands a readied scroll takes are not asked for. The Cast list offers these scrolls' spells, and Items > Use takes
+  them unreadied. }
+function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
 { True when the creature may use items now (CharHlp.CanUseItems) and holds a scroll it can read and use with a spell on
   it: the scroll spells the Cast list offers. }
 function HasScrollSpells(creature: Types.PCharRecord): Boolean;
@@ -223,8 +228,6 @@ function SpellMark(spell, mark: Byte): Char; forward;
 procedure AddScrollSpells(forScribe: Boolean; mark: Byte); forward;
 
 procedure AddAllScrollSpells(forScribe: Boolean; mark: Byte); forward;
-
-function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean; forward;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte; forward;
 
@@ -434,8 +437,6 @@ begin
   end;
 end;
 
-{ True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
-  two hands a readied scroll takes are not asked for. }
 function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 begin
   CastableScroll := False;
