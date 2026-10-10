@@ -16,6 +16,9 @@ implementation
 
 const
   BORDER_SYM_BASE = 276;
+  { the 40x25 text grid }
+  LAST_COL = 39;
+  LAST_ROW = 24;
 
   { CGA and Tandy interleave scanlines across video-memory banks. Advancing a row changes the segment: CGA uses two
     banks and Tandy uses four. }
@@ -56,9 +59,10 @@ begin
   end;
 end;
 
-{ Clear a character-cell rectangle to black. EGA clears it on both pages through TextRend.FillRectEga. CGA clears 4
-  scanlines per character row in each of its 2 banks, 2 bytes per character; Tandy clears 2 scanlines per character row
-  in each of its 4 banks, 4 bytes per character. }
+{ Clear a character-cell rectangle to black. The rectangle is first cut to the 40x25 grid, and an empty one clears
+  nothing. EGA clears it on both pages through TextRend.FillRectEga. CGA clears 4 scanlines per character row in each of
+  its 2 banks, 2 bytes per character; Tandy clears 2 scanlines per character row in each of its 4 banks, 4 bytes per
+  character. }
 procedure ClearBox(ulCol, ulRow, lrCol, lrRow: ShortInt);
 var
   top: Word;
@@ -67,6 +71,11 @@ var
   rowBytes: Word;
   r: Word;
 begin
+  if ulCol < 0 then ulCol := 0;
+  if ulRow < 0 then ulRow := 0;
+  if lrCol > LAST_COL then lrCol := LAST_COL;
+  if lrRow > LAST_ROW then lrRow := LAST_ROW;
+  if (ulCol > lrCol) or (ulRow > lrRow) then Exit;
   case displayMode of
     Types.vmCGA: begin
       top := ulRow * 4;
