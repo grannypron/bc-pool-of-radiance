@@ -86,7 +86,7 @@ begin
           21, 22: if FxEngine.RollDice(1, 6) <= 4 then success := True;
           23: if FxEngine.RollDice(1, 6) <= 5 then success := True;
           24: if FxEngine.RollDice(1, 8) <= 7 then success := True;
-          25..255: success := True;
+          25..255: if FxEngine.RollDice(1, 10) <= 9 then success := True;
         else
           GDVars.doorOpen[0] := 0;
         end;
