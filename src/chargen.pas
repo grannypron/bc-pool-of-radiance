@@ -1300,8 +1300,8 @@ end;
 { CustomizePortrait: The portrait picker, on its own bordered page. Three heads sit over three bodies; the middle
   column, framed, is the current pick and the others are the previous and next in GDConsts.headTbl/bodyTbl, wrapping
   at the ends of the entries offered (Portrait.PlayerPortraitCount: all of them once the merged archives are read).
-  Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Okay (or Space, or
-  Enter while Okay is the current option) shows the pick alone and asks whether it is ok: Yes keeps it, No goes back to
+  Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Keep (or Space, or
+  Enter while Keep is the current option) shows the pick alone and asks whether it is ok: Yes keeps it, No goes back to
   choosing. There is no way out but choosing a portrait. A head or body number past the ones offered starts at 1. The
   caller redraws its screen afterwards. (SSI's picker cycled the head or body with H and B under the sheet's portrait,
   forward only.) }
@@ -1400,12 +1400,12 @@ begin
     ShowRow(True);
     onBody := False;
     done := False;
-    { Okay, the fifth option }
+    { Keep, the fifth option }
     GDVars.horizChoice := 5;
     repeat
       ShowCounts;
       MenuCore.arrowsToCaller := True;
-      key := MenuCore.MenuHorizontal('Portrait: ', 'Head Body Next Prev Okay', LightMagenta, LightGreen, White,
+      key := MenuCore.MenuHorizontal('Portrait: ', 'Head Body Next Prev Keep', LightMagenta, LightGreen, White,
                                      True, False, ext);
       { an extended key's scan code can equal a letter (Down is 80, 'P'), so the two are told apart by ext }
       step := 0;
@@ -1421,7 +1421,7 @@ begin
           'P': step := -1;
           'H': onBody := False;
           'B': onBody := True;
-          'O', ' ', C_Keys.ENTER: begin
+          'K', ' ', C_Keys.ENTER: begin
               { the pick alone: no neighbours, no counts }
               Border.ClearBox(PIC_COL[0], PIC_ROW, PIC_COL[0] + 10, PIC_ROW + 10);
               Border.ClearBox(PIC_COL[2], PIC_ROW, PIC_COL[2] + 10, PIC_ROW + 10);
