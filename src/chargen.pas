@@ -1454,16 +1454,18 @@ end;
 
 { CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the
   icon's ready and action frames, Head and Weapon (each with its place among the shapes there are), Size, the seven
-  coloured parts ("1 2" beside the five with two colours) and, on the bottom line, the menu: Exit, its E in the hotkey
-  colour. Up and Down choose an item, the menu being the last; Enter on the menu takes it, as E does.
+  coloured parts ("1 2" beside the five with two colours) and, on the bottom line, the menu: Keep and Exit. Up and Down
+  choose an item, the menu being the last; on the menu Left and Right choose Keep or Exit and Enter takes it, as K and
+  E do.
   Enter on Size toggles small and large; on any other item it fills the right pane with a 4x4 grid of the icon with
   each option of that item: every head, every weapon, or the part in each of the 16 colours. The arrows move the
   game's cursor box (COMSPR 25, the square behind the active icon in combat) through the grid, turning the page past
   its last or first row, and the ready and action frames on the left show the boxed option. Enter keeps it, Escape
   goes back to the left with the icon as it was, and Space switches a two-colour part between colour 1 and colour 2.
-  The menu is not offered while the grid is up. Exit or Escape on the left asks whether the icon is ok: Yes ends the
-  editor and No goes back to it. Only the field chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a
-  party member's icon in its slot (orderNumber) is rebuilt at the end. A page's icons are kept, so moving the box loads
+  The menu is not offered while the grid is up. Keep asks whether the icon is ok: Yes ends the editor with the icon as
+  it is and No goes back to it. Exit, or Escape on the left, ends the editor with the icon as it was when the editor
+  opened. Only the field chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a party member's icon in
+  its slot (orderNumber) is rebuilt at the end. A page's icons are kept, so moving the box loads
   at most one frame from CHEAD or CBODY.
   (SSI's editor stepped through each choice with Next and Prev under an old and a new copy of the icon.) }
 procedure CustomizeIcon;
@@ -1516,6 +1518,11 @@ var
   i: Byte;
   j: Byte;
   savedChoice: Byte;
+  { the icon as it was when the editor opened, which Exit puts back }
+  savedHead: Byte;
+  savedBody: Byte;
+  savedSize: Byte;
+  savedCols: Types.TIconCols;
   { the icon shown: the stored one, or with the highlighted option while the grid is up }
   tHead: Byte;
   tBody: Byte;
@@ -1979,7 +1986,8 @@ var
     ShowPreviews;
   end;
 
-  { Confirmed: Ask whether the icon is ok on the bottom line; on No, the menu comes back there for more editing }
+  { Confirmed: Ask whether the icon is ok on the bottom line; on No, the menu comes back there, on Keep, for more
+    editing }
   function Confirmed: Boolean;
   begin
     if MenuCore.YesNoMenu('Is this icon ok? ', LightMagenta, LightGreen, White) = 'Y' then
@@ -1992,6 +2000,12 @@ var
 
 begin
   savedChoice := GDVars.horizChoice;
+  with GDVars.curChar^ do begin
+    savedHead := iconHead;
+    savedBody := iconBody;
+    savedSize := iconSize;
+    savedCols := iconColors1;
+  end;
   for i := 0 to 1 do
     for j := 0 to 1 do begin
       loaded[i, j] := nil;
@@ -2031,7 +2045,7 @@ begin
       the option there }
     MenuCore.arrowsToCaller := cur <> ITEM_MENU;
     MenuCore.enterToCaller := cur <> ITEM_MENU;
-    key := MenuCore.MenuHorizontal('', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
+    key := MenuCore.MenuHorizontal('', 'Keep Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       if key in [C_Keys.UP, C_Keys.DOWN] then begin
         i := cur;
@@ -2056,7 +2070,16 @@ begin
           else
             ChooseInGrid;
           end;
-        'E', C_Keys.NONE: done := Confirmed;
+        'K': done := Confirmed;
+        'E', C_Keys.NONE: begin
+            with GDVars.curChar^ do begin
+              iconHead := savedHead;
+              iconBody := savedBody;
+              iconSize := savedSize;
+              iconColors1 := savedCols;
+            end;
+            done := True;
+          end;
       end;
   until done;
   for i := 0 to 1 do
