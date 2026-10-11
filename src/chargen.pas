@@ -2029,9 +2029,9 @@ begin
   Border.DrawBorder(18, MSG_TOP, 38, MSG_BOTTOM, 0);
   with GDVars.curChar^ do
     if Length(name) <= 16 then
-      TextRend.DisplayString(1 + (16 - Length(name)) div 2, 1, LightGreen, name)
+      TextRend.DisplayString(1 + (16 - Length(name)) div 2, 1, Cyan, name)
     else
-      TextRend.DisplayString(1, 1, LightGreen, Copy(name, 1, 16));
+      TextRend.DisplayString(1, 1, Cyan, Copy(name, 1, 16));
   TextRend.DisplayString(READY_COL - 1, LABEL_ROW, LightGreen, 'Ready');
   TextRend.DisplayString(ACTION_COL - 1, LABEL_ROW, LightGreen, 'Action');
   TextRend.DisplayString(2, COLOR_ROW, LightGreen, 'Color');
