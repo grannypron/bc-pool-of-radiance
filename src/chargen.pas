@@ -1499,6 +1499,8 @@ const
   LABEL_ROW = 6;
   GRID_COL: array[0..3] of Byte = (19, 24, 29, 34);
   GRID_ROW: array[0..3] of Byte = (2, 6, 10, 14);
+  { where "(more)" starts on a grid row: centred under the four columns }
+  MORE_COL = 25;
   { the message panel's text rows, under its own border }
   MSG_TOP = 18;
   MSG_BOTTOM = 22;
@@ -1701,6 +1703,48 @@ var
     end;
   end;
 
+  { PageSize: How many options the grid page starting at option first holds. Up to 16 options fit on one page; past
+    that the first page holds 12 above a "(more)" row, a later page puts a "(more)" row above them, and one with more
+    after it a second below, so it holds 12 when it is the last and 8 otherwise. Pages start on a multiple of 4, so an
+    option keeps its column. }
+  function PageSize(first: Byte): Byte;
+  var
+    n: Byte;
+  begin
+    n := OptionCount;
+    if n <= 16 then
+      PageSize := n
+    else if first = 0 then
+      PageSize := 12
+    else if n - first <= 12 then
+      PageSize := n - first
+    else
+      PageSize := 8;
+  end;
+
+  { PageFirst: The first option of the page holding option v }
+  function PageFirst(v: Byte): Byte;
+  var
+    first: Byte;
+  begin
+    first := 0;
+    while (first < OptionCount) and (v >= first + PageSize(first)) do
+      Inc(first, PageSize(first));
+    PageFirst := first;
+  end;
+
+  { CellOf: The grid cell (0..15) option v is drawn in, below the "(more)" row of a page after the first }
+  function CellOf(v: Byte): Byte;
+  var
+    first: Byte;
+  begin
+    first := PageFirst(v);
+    if first > 0 then
+      CellOf := v - first + 4
+    else
+      CellOf := v - first;
+  end;
+
   { PartNibble: The nibble of its slot the current part changes }
   function PartNibble: Byte;
   begin
@@ -1806,7 +1850,8 @@ var
     Blit.ShowPic(GRID_COL[k mod 4], GRID_ROW[k div 4], shownPic);
   end;
 
-  { DrawGrid: Compose and draw the page of options holding pick, one cell at a time }
+  { DrawGrid: Compose and draw the page of options holding pick, one cell at a time, with "(more)" on the top row when
+    there is a page before it and on the bottom row when there is one after it (the font has no arrows) }
   procedure DrawGrid;
   var
     k: Byte;
@@ -1814,10 +1859,23 @@ var
     h: Byte;
     b: Byte;
     c: Types.TIconCols;
+    first: Byte;
+    top: Byte;
+    moreBelow: Boolean;
   begin
+    first := PageFirst(pick);
+    if first > 0 then top := 4 else top := 0;
+    moreBelow := first + PageSize(first) < OptionCount;
+    { a page of several: "(more)" shows between the cells, so the whole grid is cleared first }
+    if OptionCount > 16 then
+      Border.ClearBox(18, GRID_ROW[0], 38, GRID_ROW[3] + 2);
     for k := 0 to 15 do begin
-      opt := (pick div 16) * 16 + k;
-      if opt < OptionCount then begin
+      opt := first + k - top;
+      if ((k < 4) and (top > 0)) or ((k >= 12) and moreBelow) then begin
+        { a "(more)" row, written at its first cell }
+        if k mod 4 = 0 then
+          TextRend.DisplayString(MORE_COL, GRID_ROW[k div 4] + 1, LightGreen, '(more)');
+      end else if opt < first + PageSize(first) then begin
         h := tHead;
         b := tBody;
         c := tCols;
@@ -1839,7 +1897,7 @@ var
   procedure ShowPreviews;
   begin
     if inGrid then
-      Place(cells[pick mod 16], 0, True, readyPic)
+      Place(cells[CellOf(pick)], 0, True, readyPic)
     else
       Compose(0, tHead, tBody, tCols, readyPic);
     Blit.ShowPic(READY_COL, PREVIEW_ROW, readyPic);
@@ -1945,11 +2003,11 @@ var
           MovePick(key);
           if pick <> old then begin
             OptionState(pick, tHead, tBody, tCols);
-            if pick div 16 <> old div 16 then
+            if PageFirst(pick) <> PageFirst(old) then
               DrawGrid
             else begin
-              ShowCell(old mod 16, False);
-              ShowCell(pick mod 16, True);
+              ShowCell(CellOf(old), False);
+              ShowCell(CellOf(pick), True);
             end;
             DrawItem(cur);
             ShowPreviews;
