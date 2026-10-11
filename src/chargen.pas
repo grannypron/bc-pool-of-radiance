@@ -1454,15 +1454,17 @@ end;
 
 { CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the
   icon's ready and action frames, Head and Weapon (each with its place among the shapes there are), Size, the seven
-  coloured parts ("1 2" beside the five with two colours) and, on the bottom line, Exit. Up and Down choose an item.
+  coloured parts ("1 2" beside the five with two colours) and, on the bottom line, the menu: Exit, its E in the hotkey
+  colour. Up and Down choose an item, the menu being the last; Enter on the menu takes it, as E does.
   Enter on Size toggles small and large; on any other item it fills the right pane with a 4x4 grid of the icon with
   each option of that item: every head, every weapon, or the part in each of the 16 colours. The arrows move the
   game's cursor box (COMSPR 25, the square behind the active icon in combat) through the grid, turning the page past
   its last or first row, and the ready and action frames on the left show the boxed option. Enter keeps it, Escape
   goes back to the left with the icon as it was, and Space switches a two-colour part between colour 1 and colour 2.
-  Exit or Escape on the left asks whether the icon is ok: Yes ends the editor and No goes back to it. Only the field
-  chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a party member's icon in its slot (orderNumber)
-  is rebuilt at the end. A page's icons are kept, so moving the box loads at most one frame from CHEAD or CBODY.
+  The menu is not offered while the grid is up. Exit or Escape on the left asks whether the icon is ok: Yes ends the
+  editor and No goes back to it. Only the field chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a
+  party member's icon in its slot (orderNumber) is rebuilt at the end. A page's icons are kept, so moving the box loads
+  at most one frame from CHEAD or CBODY.
   (SSI's editor stepped through each choice with Next and Prev under an old and a new copy of the icon.) }
 procedure CustomizeIcon;
 const
@@ -1476,11 +1478,12 @@ const
   ITEM_SIZE = 2;
   FIRST_PART = 3;
   LAST_PART = 9;
-  ITEM_EXIT = 10;
-  ITEM_NAME: array[ITEM_HEAD..ITEM_EXIT] of String[6] = (
-    'Head', 'Weapon', 'Size', 'Weapon', 'Body', 'Hair', 'Face', 'Shield', 'Arm', 'Leg', 'Exit');
-  ITEM_COL: array[ITEM_HEAD..ITEM_EXIT] of Byte = (2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 0);
-  ITEM_ROW: array[ITEM_HEAD..ITEM_EXIT] of Byte = (8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 24);
+  { the bottom line's menu, which MenuHorizontal draws }
+  ITEM_MENU = 10;
+  ITEM_NAME: array[ITEM_HEAD..LAST_PART] of String[6] = (
+    'Head', 'Weapon', 'Size', 'Weapon', 'Body', 'Hair', 'Face', 'Shield', 'Arm', 'Leg');
+  ITEM_COL: array[ITEM_HEAD..LAST_PART] of Byte = (2, 2, 2, 3, 3, 3, 3, 3, 3, 3);
+  ITEM_ROW: array[ITEM_HEAD..LAST_PART] of Byte = (8, 9, 10, 13, 14, 15, 16, 17, 18, 19);
   { each part's iconColors1 slot }
   PART_SLOT: array[FIRST_PART..LAST_PART] of Byte = (6, 1, 4, 4, 5, 2, 3);
   { the nibble a one-colour part uses (0 low, 1 high), or 2 for a part with two colours }
@@ -1755,14 +1758,14 @@ var
   end;
 
   { DrawItem: Item k of the left pane and its value, white when it is the current item and green otherwise; in the
-    grid, the colour not being chosen is green }
+    grid, the colour not being chosen is green. The menu (ITEM_MENU) is MenuHorizontal's to draw. }
   procedure DrawItem(k: Byte);
   var
     col: Byte;
     d1: Byte;
     d2: Byte;
   begin
-    if k > ITEM_EXIT then Exit;
+    if k > LAST_PART then Exit;
     if k = cur then col := White else col := LightGreen;
     TextRend.DisplayString(ITEM_COL[k], ITEM_ROW[k], col, ITEM_NAME[k]);
     case k of
@@ -1919,6 +1922,8 @@ var
     inGrid := True;
     which := 0;
     pick := CurrentOption;
+    { the menu's keys do nothing here }
+    MenuCore.ClearBottomLine;
     DrawItem(cur);
     ShowMessage;
     DrawGrid;
@@ -1974,14 +1979,13 @@ var
     ShowPreviews;
   end;
 
-  { Confirmed: Ask whether the icon is ok on the bottom line; on No, put Exit back there for more editing }
+  { Confirmed: Ask whether the icon is ok on the bottom line; on No, the menu comes back there for more editing }
   function Confirmed: Boolean;
   begin
     if MenuCore.YesNoMenu('Is this icon ok? ', LightMagenta, LightGreen, White) = 'Y' then
       Confirmed := True
     else begin
-      MenuCore.ClearBottomLine;
-      DrawItem(ITEM_EXIT);
+      GDVars.horizChoice := 1;
       Confirmed := False;
     end;
   end;
@@ -2017,19 +2021,23 @@ begin
   TextRend.DisplayString(READY_COL - 1, LABEL_ROW, LightGreen, 'Ready');
   TextRend.DisplayString(ACTION_COL - 1, LABEL_ROW, LightGreen, 'Action');
   TextRend.DisplayString(2, COLOR_ROW, LightGreen, 'Color');
-  for i := ITEM_HEAD to ITEM_EXIT do
+  for i := ITEM_HEAD to LAST_PART do
     DrawItem(i);
   ShowPreviews;
   done := False;
+  GDVars.horizChoice := 1;
   repeat
-    MenuCore.arrowsToCaller := True;
-    key := MenuCore.MenuHorizontal('', '', LightMagenta, LightGreen, White, True, False, ext);
+    { on the left pane the arrows and Enter come back here; on the menu Left and Right step through it and Enter takes
+      the option there }
+    MenuCore.arrowsToCaller := cur <> ITEM_MENU;
+    MenuCore.enterToCaller := cur <> ITEM_MENU;
+    key := MenuCore.MenuHorizontal('', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       if key in [C_Keys.UP, C_Keys.DOWN] then begin
         i := cur;
         if key = C_Keys.UP then begin
-          if cur = ITEM_HEAD then cur := ITEM_EXIT else Dec(cur);
-        end else if cur = ITEM_EXIT then
+          if cur = ITEM_HEAD then cur := ITEM_MENU else Dec(cur);
+        end else if cur = ITEM_MENU then
           cur := ITEM_HEAD
         else
           Inc(cur);
@@ -2045,11 +2053,10 @@ begin
                 DrawItem(cur);
                 ShowPreviews;
               end;
-            ITEM_EXIT: done := Confirmed;
           else
             ChooseInGrid;
           end;
-        C_Keys.NONE: done := Confirmed;
+        'E', C_Keys.NONE: done := Confirmed;
       end;
   until done;
   for i := 0 to 1 do
