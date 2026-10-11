@@ -671,8 +671,10 @@ end;
 { Merge into item every other stack (quantity > 0) of curChar's with the same name components, type, plus, save bonus,
   curse, weight, charges, effect and special, and fewer than 2 charges. Save the next node before merging, since
   RemoveItem frees the current node. If the total would exceed 255, fill the destination to 255, keep the excess in the
-  current stack, and continue merging into that stack. An unstacked item (quantity 0) is left alone: merging into it
-  would start the count at 0 and lose the item itself. }
+  current stack, and continue merging into that stack. A readied stack merged away leaves the stack it joins readied:
+  the two are the same item type, so the slot and hands it held pass over, and no more stacks end up readied than
+  before. An unstacked item (quantity 0) is left alone: merging into it would start the count at 0 and lose the item
+  itself. }
 procedure JoinItem(item: Types.PItemRec);
 var
   cur: Types.PItemRec;
@@ -693,6 +695,8 @@ begin
         (cur^.charges < 2) and (cur^.effect = dst^.effect) and (cur^.special = dst^.special) then begin
       if qty + cur^.quantity <= 255 then begin
         Inc(qty, cur^.quantity);
+        if cur^.equipped <> 0 then
+          dst^.equipped := cur^.equipped;
         CharHlp.RemoveItem(GDVars.curChar, cur);
       end else begin
         dst^.quantity := 255;
