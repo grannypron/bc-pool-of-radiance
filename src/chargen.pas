@@ -152,6 +152,11 @@ begin
                                   False, ext);
     MenuCore.ClearBottomLine;
     if ext then begin
+      { Up and Down step through the party as Home and End do; the menu has no other use for them }
+      if ch = C_Keys.UP then
+        ch := C_Keys.HOME
+      else if ch = C_Keys.DOWN then
+        ch := C_Keys.END_KEY;
       if ch in [C_Keys.HOME, C_Keys.END_KEY] then begin
         ViewChar.SelectPrevNextChar(ch);
         CharHlp.DisplayParty(Types.PCharRecord(GDVars.curChar));
