@@ -20,7 +20,8 @@ const
   RAISED = 6;
   POISONED = 7;
   ITEMS_LOOTED = 8;
-  { in copper: STATS shows it in gold }
+  { net, in copper (the Stats page shows gold): coin a member came away with from the loot after a fight, less what it
+    put back into it, so pooling and taking back again come to nothing; may be below zero }
   COIN_LOOTED = 9;
   SPELLS_CAST = 10;
   KNOCKED_DOWN = 11;
@@ -29,8 +30,8 @@ const
   { the kinds of creature a block keeps kills of; one past that goes under OTHER }
   KINDS = 48;
   { the counters' names, for the Stats page }
-  NAMES: array[1..STAT_COUNT] of string[16] = ('Kills', 'Damage done', 'Damage taken', 'Healing given',
-    'Healing taken', 'Raised', 'Poisoned', 'Items looted', 'Coin looted', 'Spells cast', 'Knocked down', 'Died');
+  NAMES: array[1..STAT_COUNT] of string[17] = ('Kills', 'Damage done', 'Damage taken', 'Healing given',
+    'Healing taken', 'Raised', 'Poisoned', 'Items looted', 'Coin looted (net)', 'Spells cast', 'Knocked down', 'Died');
 
 type
   TKill = record
@@ -70,8 +71,11 @@ procedure BledOut(creature: Types.PCharRecord);
   spell, is being resolved, or when byPower (a paladin's laying on of hands). }
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 
-{ Coin taken from the loot after a combat: n of money type mType, counted at its worth in copper. }
-procedure CoinLooted(creature: Types.PCharRecord; n: Word; mType: ShortInt);
+{ Around one action in the loot menu after a fight: MarkCoins notes each party member's coin (copper to platinum, at
+  its worth in copper), and SettleCoins adds what each has gained since, or takes off what it put back, to its Coin
+  looted (net) and the game's. }
+procedure MarkCoins;
+procedure SettleCoins;
 
 { Forget creature's block; called before its record is freed. }
 procedure Forget(creature: Types.PCharRecord);
@@ -110,6 +114,9 @@ var
   owner: array[1..ENTRIES] of Types.PCharRecord;
   ownerName: array[1..ENTRIES] of string[15];
   blocks: array[1..ENTRIES] of PStatBlock;
+  { MarkCoins's party, and each member's coin worth then }
+  marked: array[1..ENTRIES] of Types.PCharRecord;
+  markedWorth: array[1..ENTRIES] of LongInt;
   { the file record being read or written: here rather than on the stack, being a kilobyte }
   rec: TStatFile;
 
@@ -256,10 +263,62 @@ begin
     Stats.Count(actor, HEALED_GIVEN, hp);
 end;
 
-procedure CoinLooted(creature: Types.PCharRecord; n: Word; mType: ShortInt);
+{ counter plus n, n of either sign, held within -MaxLongInt..MaxLongInt }
+procedure AddSigned(var counter: LongInt; n: LongInt);
 begin
-  if (mType >= C_Money.COPPER) and (mType <= C_Money.PLATINUM) then
-    Stats.Count(creature, COIN_LOOTED, LongInt(n) * GDConsts.dsCoinValuationCopper[mType]);
+  if (n > 0) and (counter > MaxLongInt - n) then
+    counter := MaxLongInt
+  else if (n < 0) and (counter < -MaxLongInt - n) then
+    counter := -MaxLongInt
+  else
+    Inc(counter, n);
+end;
+
+{ creature's coin, copper to platinum, at its worth in copper }
+function CoinWorth(creature: Types.PCharRecord): LongInt;
+var
+  m: ShortInt;
+  w: LongInt;
+begin
+  w := 0;
+  for m := C_Money.COPPER to C_Money.PLATINUM do
+    Inc(w, LongInt(creature^.coins[m]) * GDConsts.dsCoinValuationCopper[m]);
+  CoinWorth := w;
+end;
+
+procedure MarkCoins;
+var
+  p: Types.PCharRecord;
+  n: Byte;
+begin
+  FillChar(marked, SizeOf(marked), 0);
+  p := GDVars.creatureList;
+  n := 0;
+  while (p <> nil) and (n < GDVars.zone1^[C_Gbvm.PARTY_SIZE]) and (n < ENTRIES) do begin
+    Inc(n);
+    marked[n] := p;
+    markedWorth[n] := Stats.CoinWorth(p);
+    p := p^.nextCharAddr;
+  end;
+end;
+
+procedure SettleCoins;
+var
+  n: Byte;
+  delta: LongInt;
+  b: PStatBlock;
+begin
+  for n := 1 to ENTRIES do
+    if (marked[n] <> nil) and Stats.IsPartyMember(marked[n]) then begin
+      delta := Stats.CoinWorth(marked[n]) - markedWorth[n];
+      if delta <> 0 then begin
+        b := Stats.BlockOf(marked[n]);
+        if b <> nil then
+          Stats.AddSigned(b^.counts[COIN_LOOTED], delta);
+        Stats.AddSigned(game.counts[COIN_LOOTED], delta);
+      end;
+    end;
+  FillChar(marked, SizeOf(marked), 0);
 end;
 
 procedure Forget(creature: Types.PCharRecord);
@@ -384,4 +443,5 @@ begin
   FillChar(owner, SizeOf(owner), 0);
   FillChar(blocks, SizeOf(blocks), 0);
   FillChar(game, SizeOf(game), 0);
+  FillChar(marked, SizeOf(marked), 0);
 end.

@@ -443,6 +443,8 @@ begin
     else if items then
       menu := 'View Take Pool' + tail;
     c := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, True, True, ext);
+    { the coin each party member gains or puts back here, Take, Share, Pool or Drop alike, is Coin looted (net) (#611) }
+    Stats.MarkCoins;
     case c of
       'V': ViewChar.ViewCharMenu(ext);
       'T': PostCbt.LootTakeMenu(treasure, items);
@@ -478,6 +480,7 @@ begin
              CharHlp.DisplayParty(GDVars.curChar);
            end;
     end;
+    Stats.SettleCoins;
   until done;
 end;
 
