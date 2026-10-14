@@ -17,7 +17,7 @@ procedure CustomizePortrait;
 
 implementation
 
-uses Options;
+uses Options, Stats;
 
 var
 
@@ -76,6 +76,7 @@ begin
     end;
   end;
   SaveLoad.ForgetUsualSpells(creature);
+  Stats.Forget(creature);
   FreeMem(creature, SizeOf(Types.TCharRecord));
   creature := nil;
 end;

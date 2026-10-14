@@ -16,6 +16,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
+uses Stats;
+
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
   PRIME_STAT_THRESHOLD = 15;
@@ -338,6 +340,9 @@ begin
     else begin
       done := False;
       Shop.GiveItemCopyToCreature(itemToTake, failed);
+      { loot after a fight, not the vault's own items (#611) }
+      if not failed and (GDVars.ifcState = C_Ifc.LOOT) then
+        Stats.Count(GDVars.curChar, Stats.ITEMS_LOOTED, 1);
       if not failed then begin
         p := GDVars.treasureItems;
         if p = itemToTake then

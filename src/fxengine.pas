@@ -129,6 +129,8 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
 implementation
 
+uses Stats;
+
 var
   { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
   zone1B: Types.PFxengineZoneBytes absolute GDVars.zone1;
@@ -497,6 +499,8 @@ var
   p: Types.PEffectRec;
   q: Types.PEffectRec;
 begin
+  if effId = C_Effect.POISONED then
+    Stats.Count(creature, Stats.POISONED, 1);
   GetMem(p, SizeOf(Types.TEffectRec));
   if creature^.effectsAddr = nil then
     creature^.effectsAddr := p
@@ -739,6 +743,7 @@ end;
 function RestoreHitPoints(creature: Types.PCharRecord; hp: Byte; bypassRot: Boolean): Boolean;
 var
   effect: Types.PEffectRec;
+  hpBefore: Byte;
 begin
   RestoreHitPoints := False;
   if not (creature^.status in [C_Status.OKAY, C_Status.ANIMATED, C_Status.UNCONSCIOUS,
@@ -749,11 +754,14 @@ begin
     { bypassRot at full hit points: False }
     if bypassRot then Exit;
   end;
+  hpBefore := creature^.hpCur;
   { capped before the add, so the Byte hpCur cannot wrap past 255 }
   if Word(creature^.hpCur) + hp > creature^.hpMax then
     creature^.hpCur := creature^.hpMax
   else
     creature^.hpCur := creature^.hpCur + hp;
+  { the statistics (#611): healing given only by a spell's or an item's caster }
+  Stats.Healed(GDVars.curChar, creature, creature^.hpCur - hpBefore, False);
   if creature^.enabled = 0 then begin
     if creature^.status = C_Status.DYING then
       creature^.status := C_Status.UNCONSCIOUS;

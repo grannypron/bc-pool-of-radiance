@@ -12,7 +12,7 @@ procedure CombatMain;
 
 implementation
 
-uses Options;
+uses Options, Stats;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -301,6 +301,7 @@ begin
       if p^.combatAddr^.overkill > 9 then
         { dead at -10 }
         p^.status := C_Status.DEAD;
+        Stats.BledOut(p);
     end;
     Inc(cnt);
     p := p^.nextCharAddr;

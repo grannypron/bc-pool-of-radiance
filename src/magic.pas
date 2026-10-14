@@ -196,6 +196,8 @@ procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: 
 
 implementation
 
+uses Stats;
+
 const
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;
@@ -767,8 +769,10 @@ begin
         end;
       end;
       FxEngine.RemoveInvisibility(p);
-      if GDVars.usingItem = False then
+      if GDVars.usingItem = False then begin
         CharHlp.RemoveSpell(GDVars.curChar, spell);
+        Stats.Count(p, Stats.SPELLS_CAST, 1);
+      end;
       GDVars.dsCurrentSpellBeing := spell;
       spellFns[GDVars.dsCurrentSpellBeing];
       GDVars.dsCurrentSpellBeing := C_Spell.NONE;

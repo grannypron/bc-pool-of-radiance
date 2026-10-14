@@ -105,7 +105,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault;
+uses SaveMenu, AreaName, CharGen, Vault, Stats;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -515,6 +515,7 @@ begin
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, 15) + ' in full.');
   SaveLoad.WriteUsualSpells(creature, fn);
+  Stats.WriteChar(creature, fn);
 end;
 
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
@@ -596,6 +597,7 @@ begin
     Close(f);
   end;
   SaveLoad.ReadUsualSpells(creature, name);
+  Stats.ReadChar(creature, name);
 end;
 
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
@@ -803,6 +805,8 @@ begin
   res := IOResult;
   { the vault left with this game is the session's vault now }
   Vault.RestoreFromSlot(letter);
+  { the game's statistics (#611); a save made before them starts from none }
+  Stats.ReadGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   { names holds 8, the most a party has }
   if nChars > 8 then
     nChars := 8;
@@ -837,6 +841,10 @@ begin
       end;
       if DaxIo.FileExists(fn + '.mem') then begin
         Assign(f, fn + '.mem');
+        Erase(f);
+      end;
+      if DaxIo.FileExists(fn + '.sts') then begin
+        Assign(f, fn + '.sts');
         Erase(f);
       end;
     end;
@@ -973,6 +981,7 @@ begin
   Close(f);
   SaveMenu.WriteSlotInfo(letter, desc, area);
   Vault.CommitToSlot(letter);
+  Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   p := GDVars.creatureList;
   n := 0;
   while (p <> nil) and (n < 8) do begin
@@ -994,6 +1003,10 @@ begin
     end;
     if DaxIo.FileExists(fn + '.mem') then begin
       Assign(f, fn + '.mem');
+      Erase(f);
+    end;
+    if DaxIo.FileExists(fn + '.sts') then begin
+      Assign(f, fn + '.sts');
       Erase(f);
     end;
     p := p^.nextCharAddr;

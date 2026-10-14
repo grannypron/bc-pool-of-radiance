@@ -46,6 +46,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
+uses Stats;
+
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
   { lo-word view }
@@ -471,6 +473,8 @@ begin
         n := treasureMoney[mType];
       n := Money.InputNumberMax(n, numStr, LightGreen);
       Money.TakeMoney(GDVars.curChar, n, mType);
+      if GDVars.ifcState = C_Ifc.LOOT then
+        Stats.CoinLooted(GDVars.curChar, n, mType);
       MenuCore.FreeStringList(save);
       GDVars.treasureMoneyFlag := False;
       exitF := True;

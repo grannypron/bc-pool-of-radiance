@@ -143,6 +143,8 @@ function BaseItem(itemType: Byte): Types.PBaseItemRec;
 
 implementation
 
+uses Stats;
+
 var
   { active renderer }
   displayMode: Types.TVideoMode absolute GDVars.videoMode;
@@ -1159,9 +1161,11 @@ var
   over: Byte;
   remain: Byte;
   wasUp: Boolean;
+  hpBefore: Byte;
 begin
   if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   wasUp := creature^.status in [C_Status.OKAY, C_Status.ANIMATED];
+  hpBefore := creature^.hpCur;
   over := 0;
   remain := 0;
   if creature^.hpCur >= dmg then
@@ -1187,6 +1191,8 @@ begin
     end;
   end else
     creature^.hpCur := remain;
+  { the statistics (#611), credited to the creature acting }
+  Stats.Damaged(GDVars.curChar, creature, hpBefore - creature^.hpCur, wasUp);
 end;
 
 { Announce that the creature is fully or partially healed, and refresh the party panel outside combat. }
