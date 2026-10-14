@@ -73,9 +73,10 @@ begin
   Intro.DelayOrKey(10);
 end;
 
-{ Show TITLE picture 1 for 5 seconds or until a key, with the game directory blanked while loading. With the full intro,
-  show picture 2 for another 5 seconds, flashing EGA palette register 1 at random, then the credits. No screen reads
-  the key, so one key ends the screen it is pressed on and every screen after it; FixMain discards it afterwards. }
+{ Show the Brazen Crows picture (RAVFULL.DAX, skipped when the file is missing) for 2 seconds, then TITLE picture 1 for
+  5 seconds or until a key, with the game directory blanked while loading. With the full intro, show picture 2 for
+  another 5 seconds, flashing EGA palette register 1 at random, then the credits. No screen reads the key, so one key
+  ends the screen it is pressed on and every screen after it; FixMain discards it afterwards. }
 procedure Introduction;
 var
   pic: Types.PImgBuf;
@@ -89,10 +90,13 @@ begin
   pic := nil;
   savedDir := GDVars.gameDir;
   GDVars.gameDir[0] := #0;
-  { Brazen Crows }
-  Blit.LoadPic('RAVFULL', 1, False, 0, pic);
-  Blit.ShowPic(0, 0, pic);
-  Intro.DelayOrKey(2);
+  { Brazen Crows, when its picture is there: it is not one of the game's own files, so without it the introduction
+    goes straight on to the title rather than asking for a disk }
+  if DaxIo.FileExists(GDVars.gameDir + 'RAVFULL.DAX') then begin
+    Blit.LoadPic('RAVFULL', 1, False, 0, pic);
+    Blit.ShowPic(0, 0, pic);
+    Intro.DelayOrKey(2);
+  end;
 
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);
