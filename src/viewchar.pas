@@ -236,12 +236,11 @@ begin
   CharHlp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
-{ The More page for the current character, inside a border with one blank cell inside it all round: name, then the
-  five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20
-  always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
-  roll and are not included. Further pages go on its bottom-line menu. Its menu offers a paladin Heal (lay on hands)
-  and Cure (cure disease) while each can be used; either one ends the page. Runs until Exit or Escape; the caller
-  redraws the character sheet. }
+{ The More Info page for the current character, inside a border with one blank cell inside it all round: name, then
+  the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a
+  20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
+  roll and are not included. Further pages go on its bottom-line menu. Runs until Exit or Escape; the caller redraws
+  the character sheet. }
 procedure MorePage;
 const
   labels: array[C_Save.PARALYZE..C_Save.SPELL] of string[24] = (
@@ -271,23 +270,17 @@ begin
     TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
   end;
   repeat
-    s := '';
-    if ViewChar.CanHeal(p) then
-      s := s + 'Heal ';
-    if ViewChar.CanCure(p) then
-      s := s + 'Cure ';
-    ch := MenuCore.MenuHorizontal('More: ', s + 'Exit', LightMagenta, LightGreen, White, False, False, ext);
-    case ch of
-      'H': if ViewChar.CanHeal(p) then
-             ViewChar.LayOnHands(p)
-           else
-             ch := ' ';
-      'C': if ViewChar.CanCure(p) then
-             ViewChar.CureDisease(p)
-           else
-             ch := ' ';
-    end;
-  until ch in [C_Keys.NONE, 'E', 'H', 'C'];
+    ch := MenuCore.MenuHorizontal('More Info: ', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+  until ch in [C_Keys.NONE, 'E'];
+end;
+
+{ Draw "More Info" under the character sheet's portrait frame (columns 28..38, rows 1..11), the M in white as a hotkey
+  is and the rest in light green. ViewCharMenu takes M through MenuCore.extraKeys. The rows below the frame hold nothing
+  else, so it is drawn whether or not a portrait is shown. }
+procedure DrawMoreInfoLabel;
+begin
+  TextRend.DisplayString(29, 13, White, 'M');
+  TextRend.DisplayString(30, 13, LightGreen, 'ore Info');
 end;
 
 { Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, encumbrance and
@@ -357,8 +350,10 @@ begin
   end;
 end;
 
-{ Run the character-sheet menu for items, spells, trading and dropping money, until Escape, Exit or done. Temporarily
-  use the noncombat palette when opened during combat. }
+{ Run the character-sheet menu for items, spells, trading and dropping money, a paladin's Heal (lay on hands) and Cure
+  (cure disease) while each can be used, and the More Info page (M, shown under the portrait rather than on the menu
+  line, which has no room for it), until Escape, Exit or done. The menu line has no prompt, as in Curse: with one, a
+  paladin holding items and money would not fit. Temporarily use the noncombat palette when opened during combat. }
 procedure ViewCharMenu(var done: Boolean);
 var
   ch: Char;
@@ -377,6 +372,7 @@ begin
   done := False;
   GDVars.tempCr2 := GDVars.curChar;
   ViewChar.DisplayChar;
+  ViewChar.DrawMoreInfoLabel;
   while not (ch in [C_Keys.NONE, 'E']) and not done do
   begin
     s := '';
@@ -402,8 +398,13 @@ begin
       s := s + 'Trade ';
     if hasMoney then
       s := s + 'Drop ';
-    s := s + 'More Exit';
-    ch := MenuCore.MenuHorizontal('View: ', s, LightMagenta, LightGreen, White, False, False, ext);
+    if ViewChar.CanHeal(GDVars.tempCr1) then
+      s := s + 'Heal ';
+    if ViewChar.CanCure(GDVars.tempCr1) then
+      s := s + 'Cure ';
+    s := s + 'Exit';
+    MenuCore.extraKeys := 'M';
+    ch := MenuCore.MenuHorizontal('', s, LightMagenta, LightGreen, White, False, False, ext);
     idx := -1;
     case ch of
       'I': ViewChar.UseItemMenu(done);
@@ -413,10 +414,16 @@ begin
              ViewChar.DropMoneyMenu;
              ViewChar.PrintMoney;
            end;
+      'H': if ViewChar.CanHeal(GDVars.tempCr1) then
+             ViewChar.LayOnHands(GDVars.tempCr1);
+      'C': if ViewChar.CanCure(GDVars.tempCr1) then
+             ViewChar.CureDisease(GDVars.tempCr1);
       'M': ViewChar.MorePage;
     end;
-    if not done and (ch in ['I', 'S', 'T', 'M']) then
+    if not done and (ch in ['I', 'S', 'T', 'H', 'C', 'M']) then begin
       ViewChar.DisplayChar;
+      ViewChar.DrawMoreInfoLabel;
+    end;
   end;
   if GDVars.ifcState = C_Ifc.COMBAT then
     CbtMap.SetCombatPalette;
