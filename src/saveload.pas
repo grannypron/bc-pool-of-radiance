@@ -49,17 +49,20 @@ procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
   LoadCharIconAnim(True). No-op when the party already has 8 members (C_Gbvm.PARTY_SIZE > 7). }
 procedure AddCreatureToParty(id: Byte);
 
-{ Load game: offer the existing SAVGAMA..J.DAT as a letter menu (Escape aborts), read the save file (one too short to
-  hold it all is refused, with a message, before anything is read), reload each listed character, at most 8, from its
-  CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files (.mem
-  included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete when
-  the Yarash pyramid flag is set. The save's game speed and settings word are left in the GBVM zone: the game's own
+{ Load game: offer the existing SAVGAMA..J.DAT on the full-screen SaveMenu (Escape aborts), read the save file (one too
+  short to hold it all is refused, with a message, before anything is read), reload each listed character, at most 8,
+  from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files
+  (.mem included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete
+  when the Yarash pyramid flag is set. The save's game speed and settings word are left in the GBVM zone: the game's own
   settings stay as they are. }
 procedure LoadGame;
 
-{ Save game: letter menu (Escape aborts), store wall slots, game speed, picture and music settings (SSI's copies, which
-  loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT, SaveChar each party member (the first 8)
-  as CHRDATxN.sav, delete their single-character files (.mem included), set the recently-saved flag. }
+{ Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
+  Escape on the menu aborts, Exit in the description popup goes back to the menu), store wall slots, game speed, picture
+  and music settings (SSI's copies, which loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT,
+  SaveChar each party member (the first 8) as CHRDATxN.sav, write the slot's description and the current area
+  (AreaName.CurrentArea) to SAVGAMx.INF, delete their single-character files (.mem included), set the recently-saved
+  flag. The caller redraws the screen. }
 procedure SaveGame;
 
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
@@ -81,6 +84,8 @@ procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSl
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
 implementation
+
+uses SaveMenu, AreaName;
 
 var
 
@@ -733,20 +738,9 @@ var
   nChars: Byte;
   found: Boolean;
   letter: Char;
-  ext: Boolean;
-  menu: String[20];
 begin
   SaveLoad.CheckSaveDir;
-  menu := '';
-  for letter := 'A' to 'J' do
-    if DaxIo.FileExists(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat') then
-      menu := menu + letter + ' ';
-  if Length(menu) = 0 then Exit;
-  repeat
-    letter := MenuCore.MenuHorizontal('Load Which Game: ', menu, LightMagenta, LightGreen, White,
-                                      False, False, ext);
-  until ((letter in ['A'..'J']) and DaxIo.FileExists(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat')) or
-      (letter = C_Keys.NONE);
+  letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
   if letter = C_Keys.NONE then Exit;
   found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
                                'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
@@ -858,16 +852,24 @@ var
   p: Types.PCharRecord;
   numStr: String[1];
   fn: Types.TPathStr;
-  ext: Boolean;
   letter: Char;
   ioRes: Integer;
+  desc: SaveMenu.TSlotDesc;
+  area: SaveMenu.TSlotArea;
+  oldArea: SaveMenu.TSlotArea;
+  ok: Boolean;
 begin
-  repeat
-    letter := MenuCore.MenuHorizontal('Save Which Game: ', 'A B C D E F G H I J', LightMagenta,
-                                      LightGreen, White, False, GDVars.ifcState = C_Ifc.CAMPING, ext);
-  until letter in [C_Keys.NONE, 'A'..'J'];
-  if letter = C_Keys.NONE then Exit;
   SaveLoad.CheckSaveDir;
+  area := AreaName.CurrentArea;
+  letter := C_Keys.NONE;
+  repeat
+    { back from the popup, the menu opens on the slot it was for }
+    letter := SaveMenu.ChooseSlot(True, letter);
+    if letter = C_Keys.NONE then Exit;
+    { an overwritten save's description is offered to edit }
+    ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
+    ok := SaveMenu.AskDescription(letter, area, desc);
+  until ok;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
     Rewrite(f, 1);
@@ -904,6 +906,7 @@ begin
   BlockWrite(f, n, SizeOf(n));
   BlockWrite(f, names, SizeOf(names));
   Close(f);
+  SaveMenu.WriteSlotInfo(letter, desc, area);
   p := GDVars.creatureList;
   n := 0;
   while (p <> nil) and (n < 8) do begin

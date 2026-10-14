@@ -1076,6 +1076,8 @@ begin
       case c of
         'S': begin
                SaveLoad.SaveGame;
+               { the save menu takes the whole screen }
+               CharHlp.DisplayNoncombatInterface;
                if MenuCore.YesNoMenu('Quit TO DOS ', Yellow, LightGreen, White) = 'Y' then
                  GameIo.ExitGame;
              end;
