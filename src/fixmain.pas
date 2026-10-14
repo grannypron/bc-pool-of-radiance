@@ -71,5 +71,12 @@ begin
   CharGen.MainMenu;
   View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
   EclVm.GameLoop;
+  { F8 on the map menu ends GameLoop to load the quick save; the loop then starts again on the loaded game, as it does
+    after a load from the main menu }
+  while Explore.quickLoadAsked do begin
+    Explore.quickLoadAsked := False;
+    SaveLoad.QuickLoad;
+    EclVm.GameLoop;
+  end;
   GameIo.ExitGame;
 end.

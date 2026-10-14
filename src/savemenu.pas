@@ -9,8 +9,8 @@ interface
 uses Types, Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys;
 
 const
-  { the saved-game slots, in the order the menu lists them }
-  SLOT_LETTERS = 'ABCDEFGHIJ';
+  { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
+  SLOT_LETTERS = 'ABCDEFGHIJQ';
   { the longest description and area name a slot keeps }
   DESC_LEN = 30;
   AREA_LEN = 18;

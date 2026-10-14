@@ -9,7 +9,7 @@ uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
   and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
-  party is defeated }
+  party is defeated or a quick load is asked for (Explore.quickLoadAsked) }
 procedure GameLoop;
 
 implementation
@@ -1851,7 +1851,7 @@ begin
     GDVars.savedChar := GDVars.curChar;
     GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
     while ((GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
-        (not GDVars.partyDefeated) do begin
+        (not GDVars.partyDefeated) and (not Explore.quickLoadAsked) do begin
       if UpCase(cmd) = 'E' then
         EclVm.EnterCamp
       else begin
@@ -1868,24 +1868,27 @@ begin
         GDVars.savedChar := GDVars.curChar;
       end;
     end;
-    if not GDVars.partyDefeated then
-      EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
-    if GDVars.newEclFlag <> 0 then
-      EclVm.NewEclDone
-    else if not GDVars.partyDefeated then begin
-      GDVars.zone0^.previousX := GDVars.gMapX;
-      GDVars.zone0^.previousY := GDVars.gMapY;
-      Explore.ResolveMovement;
-      MapView.DisplayMapView;
-      if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
-        SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
-      GDVars.eclGraphics := False;
-      GDVars.picDrawn := True;
-      EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+    { a quick load asked for on the map menu ends the loop at once: the program loads it and runs the loop again }
+    if not Explore.quickLoadAsked then begin
+      if not GDVars.partyDefeated then
+        EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
       if GDVars.newEclFlag <> 0 then
-        EclVm.NewEclDone;
+        EclVm.NewEclDone
+      else if not GDVars.partyDefeated then begin
+        GDVars.zone0^.previousX := GDVars.gMapX;
+        GDVars.zone0^.previousY := GDVars.gMapY;
+        Explore.ResolveMovement;
+        MapView.DisplayMapView;
+        if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
+          SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+        GDVars.eclGraphics := False;
+        GDVars.picDrawn := True;
+        EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+        if GDVars.newEclFlag <> 0 then
+          EclVm.NewEclDone;
+      end;
     end;
-  until GDVars.partyDefeated;
+  until GDVars.partyDefeated or Explore.quickLoadAsked;
   GDVars.partyDefeated := False;
 end;
 

@@ -11,8 +11,14 @@ procedure ResolveMovement;
 
 function MapMainMenu: Char;
 
+var
+  { Set by F8 on the map menu when there is a quick save to load: MapMainMenu returns, GameLoop returns, and the
+    program loads it (SaveLoad.QuickLoad) and runs GameLoop again; the program clears it. }
+  quickLoadAsked: Boolean;
+
 implementation
 
+uses SaveLoad;
 
 var
   animData: Types.TAnimRec absolute GDVars.animData;
@@ -277,9 +283,23 @@ begin
   end;
 end;
 
+{ F8 on the map menu: when the quick-save slot holds a game, set quickLoadAsked and return True, ending the menu so
+  GameLoop can return and the program load it; otherwise say there is none and return False. }
+function AskQuickLoad: Boolean;
+begin
+  AskQuickLoad := SaveLoad.QuickLoadable;
+  if SaveLoad.QuickLoadable then
+    quickLoadAsked := True
+  else begin
+    TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
+    MenuCore.ClearBottomLine;
+  end;
+end;
+
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
-  C_Gbvm.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), or an arrow scan
-  code: in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing. }
+  C_Gbvm.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
+  code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
+  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and the menu goes on. }
 function MapMainMenu: Char;
 var
   done: Boolean;
@@ -295,6 +315,7 @@ begin
          done := False;
          repeat
            MenuCore.arrowsToCaller := True;
+           MenuCore.quickKeysToCaller := True;
            c := MenuCore.MenuHorizontal('', GDConsts.menu3D, LightMagenta, LightGreen, White, True, False,
                                         ext);
            if not ext then begin
@@ -343,6 +364,8 @@ begin
                             GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                             View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                           end;
+               C_Keys.F5: SaveLoad.QuickSave;
+               C_Keys.F8: done := Explore.AskQuickLoad;
              else begin
                ViewChar.SelectPrevNextChar(c);
                CharHlp.DisplayParty(GDVars.curChar);
@@ -362,6 +385,7 @@ begin
         done := False;
         repeat
           MenuCore.arrowsToCaller := True;
+          MenuCore.quickKeysToCaller := True;
           c := MenuCore.MenuHorizontal('', GDConsts.menuWild, LightMagenta, LightGreen, White, True, False,
                                        ext);
           if not ext then begin
@@ -389,6 +413,11 @@ begin
               C_Keys.DOWN: GDVars.gFacing := C_Dir.SOUTH;
               { left arrow }
               C_Keys.LEFT: GDVars.gFacing := C_Dir.WEST;
+              C_Keys.F5: begin
+                           SaveLoad.QuickSave;
+                           done := False;
+                         end;
+              C_Keys.F8: done := Explore.AskQuickLoad;
             else begin
               ViewChar.SelectPrevNextChar(c);
               CharHlp.DisplayParty(GDVars.curChar);

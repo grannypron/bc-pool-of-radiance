@@ -25,6 +25,9 @@ const
   ALT_R = #19;
   ALT_X = #45;
   ALT_M = #50;
+  { quick save and quick load, on the map menu }
+  F5 = #63;
+  F8 = #66;
 
 implementation
 

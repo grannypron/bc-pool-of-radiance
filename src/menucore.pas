@@ -4,7 +4,7 @@ unit MenuCore;
 
 interface
 
-uses Types, GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys;
+uses Types, GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc;
 
 var
   { Set just before a MenuVertical call that only shows its list: when the list fits on one page it is drawn and #0
@@ -21,6 +21,10 @@ var
     screen above it, say): a letter or digit in it ends the menu and is returned upper-cased, as a hotkey is, without
     changing the current option. Every return clears it. }
   extraKeys: string[16];
+  { Set just before a MenuHorizontal call whose caller takes F5 and F8 (quick save and load) itself, as the map menu
+    does; every return clears it. Without it those keys end no menu: outside combat they say quick save and load are
+    unavailable here, and in combat they are ignored. }
+  quickKeysToCaller: Boolean;
   { Set just before a MenuVertical call whose caller shows something for the highlighted entry: a key that moves the
     highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
     call again. The call clears it. }
@@ -230,7 +234,15 @@ begin
         ch := GameIo.ReadGameKey;
         if ((ch = C_Keys.LEFT) or (ch = C_Keys.RIGHT)) and not arrowsToCaller then
           StepOption(ch = C_Keys.RIGHT)
-        else if reinterpret then begin
+        else if ((ch = C_Keys.F5) or (ch = C_Keys.F8)) and not quickKeysToCaller then begin
+          if GDVars.ifcState <> C_Ifc.COMBAT then begin
+            TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
+            TextRend.PrintSpaces(0, 24, Black, 40);
+            if Length(query) <> 0 then
+              TextRend.DisplayString(0, 24, qCol, query);
+            DisplayOption(GDVars.horizChoice);
+          end;
+        end else if reinterpret then begin
           ext := True;
           done := True;
         end;
@@ -286,6 +298,7 @@ begin
   arrowsToCaller := False;
   enterToCaller := False;
   extraKeys := '';
+  quickKeysToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
   GDVars.extFlag := ext;

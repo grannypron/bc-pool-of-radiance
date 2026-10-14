@@ -65,6 +65,21 @@ procedure LoadGame;
   flag. The caller redraws the screen. }
 procedure SaveGame;
 
+const
+  { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
+  QUICK_SLOT = 'Q';
+
+{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say so on the bottom line. Made from the
+  map menu, so the running script is recorded as the one the save reopens first. }
+procedure QuickSave;
+
+{ True when QUICK_SLOT holds a save file big enough to load. }
+function QuickLoadable: Boolean;
+
+{ Quick load, between two runs of EclVm.GameLoop: free the party (records, items, effects, usual spells and icon
+  animations), load QUICK_SLOT as LoadGame loads a slot, and set loadedSave so the next GameLoop resumes it. }
+procedure QuickLoad;
+
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
   party size and RecalcBaseSkills. }
 procedure AddCharToParty(creature: Types.PCharRecord);
@@ -85,7 +100,11 @@ procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
 implementation
 
-uses SaveMenu, AreaName;
+uses SaveMenu, AreaName, CharGen;
+
+type
+  { the party's names in a savgam file: the CHRDATxN files they are kept in }
+  TSaveNames = array[1..8] of Types.TStr40;
 
 var
 
@@ -727,9 +746,19 @@ begin
   ClassCal.RecalcBaseSkills(creature);
 end;
 
-procedure LoadGame;
+{ The least a savgam file holds: everything LoadSlot reads from it. }
+function SaveMinSize: LongInt;
+begin
+  SaveMinSize := LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
+                 SizeOf(GDVars.zone2^) + SizeOf(GDVars.zone3^) + 5 + SizeOf(GDVars.gLocType) + SizeOf(GDVars.ifcState) +
+                 SizeOf(Byte) + SizeOf(TSaveNames);
+end;
+
+{ Load saved game letter: the save file (one too short to hold it all is refused, with a message, before anything is
+  read), then each listed character, and the rest LoadGame describes. The party must be empty. }
+procedure LoadSlot(letter: Char);
 var
-  names: array[1..8] of Types.TStr40;
+  names: TSaveNames;
   f: file;
   i: Byte;
   creature: Types.PCharRecord;
@@ -737,21 +766,13 @@ var
   res: Word;
   nChars: Byte;
   found: Boolean;
-  letter: Char;
 begin
-  SaveLoad.CheckSaveDir;
-  letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
-  if letter = C_Keys.NONE then Exit;
   found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
                                'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
   MenuCore.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
-    found := (IOResult = 0) and
-             (FileSize(f) >= LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
-                             SizeOf(GDVars.zone2^) + SizeOf(GDVars.zone3^) + 5 + SizeOf(GDVars.gLocType) +
-                             SizeOf(GDVars.ifcState) + SizeOf(nChars) + SizeOf(names)) and
-             (IOResult = 0);
+    found := (IOResult = 0) and (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
     if not found then
       Close(f);
     res := IOResult;
@@ -844,32 +865,61 @@ begin
   MenuCore.ClearBottomLine;
 end;
 
-procedure SaveGame;
+procedure LoadGame;
 var
-  names: array[1..8] of Types.TStr40;
+  letter: Char;
+begin
+  SaveLoad.CheckSaveDir;
+  letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
+  if letter <> C_Keys.NONE then
+    SaveLoad.LoadSlot(letter);
+end;
+
+function QuickLoadable: Boolean;
+var
+  f: file;
+  mode: Byte;
+  ioRes: Integer;
+begin
+  QuickLoadable := False;
+  Assign(f, GDVars.dsSaveDirectory + 'savgam' + QUICK_SLOT + '.dat');
+  mode := FileMode;
+  FileMode := 0;
+  Reset(f, 1);
+  FileMode := mode;
+  if IOResult = 0 then begin
+    QuickLoadable := (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
+    Close(f);
+  end;
+  ioRes := IOResult;
+end;
+
+procedure QuickLoad;
+begin
+  { RemoveCreature frees the head of the list while it is curChar }
+  while GDVars.creatureList <> nil do begin
+    GDVars.curChar := GDVars.creatureList;
+    CharGen.RemoveCreature(False, True);
+  end;
+  GDVars.curChar := nil;
+  SaveLoad.LoadSlot(QUICK_SLOT);
+  { as CharGen.MainMenu does after a load: GameLoop keeps the loaded script }
+  GDVars.loadedSave := 1;
+  GDVars.locTypePrev := C_Area.LOC_3D_MAP;
+end;
+
+{ Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. }
+procedure SaveToSlot(letter: Char; desc: SaveMenu.TSlotDesc; area: SaveMenu.TSlotArea);
+var
+  names: TSaveNames;
   f: file;
   n: Byte;
   p: Types.PCharRecord;
   numStr: String[1];
   fn: Types.TPathStr;
-  letter: Char;
   ioRes: Integer;
-  desc: SaveMenu.TSlotDesc;
-  area: SaveMenu.TSlotArea;
-  oldArea: SaveMenu.TSlotArea;
-  ok: Boolean;
 begin
   SaveLoad.CheckSaveDir;
-  area := AreaName.CurrentArea;
-  letter := C_Keys.NONE;
-  repeat
-    { back from the popup, the menu opens on the slot it was for }
-    letter := SaveMenu.ChooseSlot(True, letter);
-    if letter = C_Keys.NONE then Exit;
-    { an overwritten save's description is offered to edit }
-    ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
-    ok := SaveMenu.AskDescription(letter, area, desc);
-  until ok;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
     Rewrite(f, 1);
@@ -933,6 +983,37 @@ begin
     p := p^.nextCharAddr;
   end;
   GDVars.recentSaved := 1;
+  MenuCore.ClearBottomLine;
+end;
+
+procedure SaveGame;
+var
+  letter: Char;
+  desc: SaveMenu.TSlotDesc;
+  area: SaveMenu.TSlotArea;
+  oldArea: SaveMenu.TSlotArea;
+  ok: Boolean;
+begin
+  SaveLoad.CheckSaveDir;
+  area := AreaName.CurrentArea;
+  letter := C_Keys.NONE;
+  repeat
+    { back from the popup, the menu opens on the slot it was for }
+    letter := SaveMenu.ChooseSlot(True, letter);
+    if letter = C_Keys.NONE then Exit;
+    { an overwritten save's description is offered to edit }
+    ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
+    ok := SaveMenu.AskDescription(letter, area, desc);
+  until ok;
+  SaveLoad.SaveToSlot(letter, desc, area);
+end;
+
+procedure QuickSave;
+begin
+  { GameLoop records the running script only once the map menu returns: a save made from it must have it now }
+  GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
+  SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea);
+  TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
   MenuCore.ClearBottomLine;
 end;
 
