@@ -5,7 +5,7 @@ unit CbtActs;
 interface
 
 uses Types, C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect,
-  C_Equip, C_Keys, C_Class, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
+  C_Equip, C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
 
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
 
@@ -165,14 +165,14 @@ begin
   GDVars.pendingDamage := dmg;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
-    GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_Class.LEVEL_THIEF]) + 3) div 4 + 1);
-  if (att^.classLevels[C_Class.LEVEL_RANGER] > 0) and (CharHlp.CalcDistance(att, def) <= 1) then
+    GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_Level.THIEF]) + 3) div 4 + 1);
+  if (att^.classLevels[C_Level.RANGER] > 0) and (CharHlp.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
       if def^.name = GDConsts.rangerFoes[i] then
-        if GDVars.pendingDamage > 255 - att^.classLevels[C_Class.LEVEL_RANGER] then
+        if GDVars.pendingDamage > 255 - att^.classLevels[C_Level.RANGER] then
           GDVars.pendingDamage := 255
         else
-          Inc(GDVars.pendingDamage, att^.classLevels[C_Class.LEVEL_RANGER]);
+          Inc(GDVars.pendingDamage, att^.classLevels[C_Level.RANGER]);
   GDVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_DEF, def);
@@ -634,9 +634,9 @@ function TurnLevel(creature: Types.PCharRecord): ShortInt;
 var
   lvl: ShortInt;
 begin
-  lvl := creature^.classLevels[C_Class.LEVEL_CLERIC];
-  if creature^.classLevels[C_Class.LEVEL_PALADIN] - 2 > lvl then
-    lvl := creature^.classLevels[C_Class.LEVEL_PALADIN] - 2;
+  lvl := creature^.classLevels[C_Level.CLERIC];
+  if creature^.classLevels[C_Level.PALADIN] - 2 > lvl then
+    lvl := creature^.classLevels[C_Level.PALADIN] - 2;
   if lvl < 0 then
     lvl := 0;
   TurnLevel := lvl;
@@ -1207,7 +1207,7 @@ begin
   if weapon <> nil then
     wItem := weapon^.itemType;
   armor := att^.equipped[C_Equip.ARMOR];
-  if att^.classLevels[C_Class.LEVEL_THIEF] > 0 then
+  if att^.classLevels[C_Level.THIEF] > 0 then
     { base item 50, Leather Armor }
     if (armor = nil) or (armor^.itemType = 50) then
       { Club, Dagger }
@@ -1421,7 +1421,7 @@ begin
   CharHlp.CombatPrintCreatureInfo(tgt);
   repeat
     MenuCore.arrowsToCaller := True;
-    ch := MenuCore.MenuHorizontal('Aim:', menu, LightMagenta, LightGreen, White, True, False, ext);
+    ch := MenuCore.MenuHorizontal('Aim: ', menu, LightMagenta, LightGreen, White, True, False, ext);
     dir := C_Dir.CENTER;
     if ext then
       dir := CbtActs.DirOfKey(ch);

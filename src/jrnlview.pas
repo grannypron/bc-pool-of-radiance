@@ -32,6 +32,9 @@ const
   BOTTOM_ROW = 22;
   TITLE_ROW = 1;
   TEXT_TOP = 3;
+  { the pane's text rows; an item longer than that gives up a row to "(more)" above a page with one before it and
+    below a page with one after it }
+  TEXT_ROWS = BOTTOM_ROW - TEXT_TOP + 1;
   { how long the highlight rests before the pane shows its item, in TextRend.GetTicks centiseconds }
   PREVIEW_DELAY = 25;
 
@@ -73,20 +76,49 @@ begin
   end;
 end;
 
-{ Clear the pane and draw the shown item's title, centered, and the lines of its current page. }
+{ Draw "(more)" centered on a row of the pane.
+  @param(row The pane's row.) }
+procedure DrawMore(row: Integer);
+begin
+  TextRend.DisplayString(PANE_LEFT + (PANE_RIGHT - PANE_LEFT + 1 - 6) div 2, row, White, '(more)');
+end;
+
+{ The shown item's first line on page p: past the first page, which holds TEXT_ROWS - 1 lines under a "(more)", each
+  page between holds TEXT_ROWS - 2 between two.
+  @param(p The page, from 1.) }
+function PageStart(p: Integer): Integer;
+begin
+  if p <= 1 then
+    PageStart := 1
+  else
+    PageStart := TEXT_ROWS + (p - 2) * (TEXT_ROWS - 2);
+end;
+
+{ Clear the pane and draw the shown item's title, centered, and the lines of its current page, with "(more)" on the
+  pane's top row when there is a page before it and on its bottom row when there is one after it. }
 procedure DrawPage;
 var
   title: string;
   line: Integer;
   row: Integer;
+  lastRow: Integer;
 begin
   Border.ClearBox(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW);
   Border.ClearBox(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW);
   title := Copy(JrnlList.EntryTitle(shown), 1, PANE_RIGHT - PANE_LEFT + 1);
   TextRend.DisplayString(PANE_LEFT + (PANE_RIGHT - PANE_LEFT + 1 - Length(title)) div 2, TITLE_ROW, White, title);
-  line := (page - 1) * (BOTTOM_ROW - TEXT_TOP + 1) + 1;
   row := TEXT_TOP;
-  while (row <= BOTTOM_ROW) and (line <= lines) do begin
+  lastRow := BOTTOM_ROW;
+  if page > 1 then begin
+    JrnlView.DrawMore(TEXT_TOP);
+    Inc(row);
+  end;
+  if page < pages then begin
+    JrnlView.DrawMore(BOTTOM_ROW);
+    Dec(lastRow);
+  end;
+  line := JrnlView.PageStart(page);
+  while (row <= lastRow) and (line <= lines) do begin
     TextRend.DisplayString(PANE_LEFT, row, LightGreen,
                            Copy(JrnlList.TextLine(shown, line), 1, PANE_RIGHT - PANE_LEFT + 1));
     Inc(line);
@@ -101,9 +133,14 @@ begin
   if shown <> sel then begin
     shown := sel;
     lines := JrnlList.LineCount(shown);
-    pages := (lines + BOTTOM_ROW - TEXT_TOP) div (BOTTOM_ROW - TEXT_TOP + 1);
-    if pages < 1 then
-      pages := 1;
+    { a page holds TEXT_ROWS lines alone, TEXT_ROWS - 1 first or last, and TEXT_ROWS - 2 between }
+    if lines <= TEXT_ROWS then
+      pages := 1
+    else begin
+      pages := 2;
+      while lines > JrnlView.PageStart(pages) + TEXT_ROWS - 2 do
+        Inc(pages);
+    end;
     page := 1;
     JrnlView.DrawPage;
   end else if page <> 1 then begin

@@ -5,7 +5,7 @@ unit EclVm;
 interface
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
-  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
+  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
   and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
@@ -706,8 +706,8 @@ begin
     hp := p^.hpCur;
     ac := p^.acCur;
     th := p^.thac0Cur;
-    mage := p^.classLevels[C_Class.LEVEL_MAGE];
-    cleric := p^.classLevels[C_Class.LEVEL_CLERIC];
+    mage := p^.classLevels[C_Level.MAGE];
+    cleric := p^.classLevels[C_Level.CLERIC];
     if ac > 60 then
       ac := ac - 60
     else

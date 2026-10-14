@@ -6,7 +6,7 @@ unit Camp;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell;
+uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level;
 
 { Run the camp menu, preserving the interface state and clearing rest timers and pending spell activities. Return
   interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). }
@@ -793,7 +793,7 @@ var
 begin
   c := ' ';
   while not (c in [C_Keys.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Alter:', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Alter: ', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);
@@ -837,7 +837,8 @@ end;
   caster who knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go
   to the least busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with
   a level-3 spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted
-  reports a rest broken off by a scripted random interruption. }
+  reports a rest broken off by a scripted random interruption. A party with no cleric, or with none conscious, is told
+  so and does not rest, as is a party with nothing Fix can treat or no slot to treat it with. }
 procedure CampFixMenu(var interrupted: Boolean);
 const
   { the members planned for; a longer creature list is not looked at past this }
@@ -859,6 +860,8 @@ var
   i: Byte;
   kind: Byte;
   anyCure: Boolean;
+  { set when a treatable member has a condition, cured or not }
+  anyCondition: Boolean;
   need: Word;
   wanted: Word;
   healCasts: Word;
@@ -868,6 +871,9 @@ var
   total: Word;
   hp: Word;
   done: Boolean;
+  { the members with cleric levels, and those of them conscious enough to cast }
+  clerics: Byte;
+  ableClerics: Byte;
 
   { Fix treats the statuses RestoreHitPoints accepts. }
   function Treatable(creature: Types.PCharRecord): Boolean;
@@ -944,6 +950,8 @@ begin
   interrupted := False;
   n := 0;
   need := 0;
+  clerics := 0;
+  ableClerics := 0;
   p := GDVars.creatureList;
   while (p <> nil) and (n < MAX_PARTY) do begin
     Inc(n);
@@ -952,6 +960,10 @@ begin
     l3Free[n] := 0;
     l1Casts[n] := 0;
     l3Casts[n] := 0;
+    if p^.classLevels[C_Level.CLERIC] > 0 then begin
+      Inc(clerics);
+      if p^.status = C_Status.OKAY then Inc(ableClerics);
+    end;
     if p^.status = C_Status.OKAY then begin
       if p^.spellsKnown[C_Spell.CURE_LIGHT_WOUNDS] <> 0 then l1Free[n] := p^.clericSpells[1];
       l3Free[n] := p^.clericSpells[3];
@@ -959,17 +971,28 @@ begin
     if Treatable(p) and (p^.hpCur < p^.hpMax) then Inc(need, p^.hpMax - p^.hpCur);
     p := p^.nextCharAddr;
   end;
+  if clerics = 0 then begin
+    CharHlp.PrintMessageWait('No clerics available to heal.');
+    Exit;
+  end;
+  if ableClerics = 0 then begin
+    CharHlp.PrintMessageWait('No cleric is in a condition to heal.');
+    Exit;
+  end;
   { Plan the cures, then as many Cure Light Wounds as the wounds need at 4.5 hp each. }
   anyCure := False;
+  anyCondition := False;
   for kind := FIX_DISEASE to FIX_CURSE do
     for i := 1 to n do begin
       cures[i, kind] := False;
       if Treatable(members[i]) then
-        if HasCondition(members[i], kind) then
+        if HasCondition(members[i], kind) then begin
+          anyCondition := True;
           if Assign(CureSpell(kind)) then begin
             cures[i, kind] := True;
             anyCure := True;
           end;
+        end;
     end;
   wanted := (2 * need + 8) div 9;
   healCasts := 0;
@@ -978,7 +1001,14 @@ begin
       Inc(healCasts)
     else
       wanted := healCasts;
-  if (healCasts = 0) and not anyCure then Exit;
+  if (healCasts = 0) and not anyCure then begin
+    { the dead and the like are not Fix's to treat, so they leave nothing to do }
+    if (need = 0) and not anyCondition then
+      CharHlp.PrintMessageWait('Further healing would do no good.')
+    else
+      CharHlp.PrintMessageWait('Further healing isn''t possible.');
+    Exit;
+  end;
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
@@ -1037,7 +1067,7 @@ begin
   c := ' ';
   while (interrupted = False) and (not (c in [C_Keys.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse }
-    c := MenuCore.MenuHorizontal('Camp:', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Camp: ', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);

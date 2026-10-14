@@ -331,11 +331,11 @@ begin
   n := 0;
   if ParamStr(1) = 'STING' then begin
     Inc(n);
-    notes[n] := 'STING';
+    notes[n] := 'STING ';
   end;
   if ParamStr(2) = 'NORAND' then begin
     Inc(n);
-    notes[n] := 'NORAND';
+    notes[n] := 'NORAND ';
   end;
   NoteOnRow := '';
   if (row <= SETTINGS_BOTTOM) and (SETTINGS_BOTTOM - row < n) then
@@ -434,7 +434,7 @@ begin
   Options.DrawInfo(CFG_TOP + 1, 'Sound Device', Options.DeviceName(GDVars.soundSaved));
   Options.DrawInfo(CFG_TOP + 2, 'Data Path', GDVars.gameDir);
   Options.DrawInfo(CFG_TOP + 3, 'Save Path', GDVars.dsSaveDirectory);
-  Options.DrawInfo(INFO_TOP, 'Version', BUILD_VERSION);
+  Options.DrawInfo(INFO_TOP, 'Version', GDConsts.GAME_VERSION);
   Options.DrawInfo(INFO_TOP + 1, 'Commit', BUILD_COMMIT);
   Options.DrawInfo(INFO_TOP + 2, 'Data', Options.DataLine);
   Options.DrawInfo(INFO_TOP + 3, 'Free Memory', Options.Grouped(MemAvail));
@@ -519,7 +519,7 @@ begin
     GDVars.horizChoice := 1;
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
-    ch := MenuCore.MenuHorizontal('Settings:', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
+    ch := MenuCore.MenuHorizontal('Settings: ', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then
       case ch of
         C_Keys.UP, C_Keys.HOME: if sel > 1 then

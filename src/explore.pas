@@ -5,7 +5,7 @@ unit Explore;
 interface
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D,
-  MapTiles, C_Ecl, C_Keys, C_Class, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
+  MapTiles, C_Ecl, C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
 
 procedure ResolveMovement;
 
@@ -430,7 +430,7 @@ begin
                 menuStr[0] := #0;
                 if GDVars.doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Class.LEVEL_THIEF) then
+                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Level.THIEF) then
                   menuStr := menuStr + ' Pick';
                 if (GDVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_Spell.KNOCK) <> nil)
                 then
@@ -452,9 +452,9 @@ begin
                 menuStr[0] := #0;
                 if GDVars.doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Class.LEVEL_THIEF) then
+                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Level.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GDVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_Class.LEVEL_MAGE) then
+                if (GDVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_Level.MAGE) then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';
                 if menuStr = ' Exit' then

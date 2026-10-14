@@ -5,7 +5,7 @@ unit GDVars;
 interface
 
 uses C_Money, Types, Dos, C_Effect, C_Gbvm, C_Spell;
-
+  
 var
   { Script execution. }
   { stop the VM and return control to the player }

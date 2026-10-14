@@ -4,7 +4,7 @@ unit ClassCal;
 
 interface
 
-uses Types, GDConsts, GDVars, C_Class, C_Race;
+uses Types, GDConsts, GDVars, C_Class, C_Level, C_Race;
 
 procedure RecalcBaseSkills(creature: Types.PCharRecord);
 
@@ -49,18 +49,18 @@ begin
     if creature^.levelHighest < lvl then
       creature^.levelHighest := lvl;
     case i of
-      C_Class.LEVEL_FIGHTER:
+      C_Level.FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
       { after the fighter's slot, so these only raise it }
-      C_Class.LEVEL_PALADIN:
+      C_Level.PALADIN:
         if lvl > 6 then creature^.attacks := 3;
-      C_Class.LEVEL_RANGER:
+      C_Level.RANGER:
         if lvl > 7 then creature^.attacks := 3;
-      C_Class.LEVEL_CLERIC:
+      C_Level.CLERIC:
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
-            creature^.clericSpells[k] := GDConsts.dsExperienceSpellsClass[C_Class.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GDConsts.dsExperienceSpellsClass[C_Level.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           { Mark known every cleric spell (castClass 0) of a level with slots; slots exist for levels 1..3 only.
             56 = High(spellsKnown) }
@@ -69,15 +69,15 @@ begin
               if (castClass = 0) and (levelSp >= 1) and (levelSp <= 3) and (creature^.clericSpells[levelSp] > 0) then
                 creature^.spellsKnown[m] := 1;
         end;
-      C_Class.LEVEL_MAGE:
+      C_Level.MAGE:
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
-            creature^.mageSpells[k] := GDConsts.dsExperienceSpellsClass[C_Class.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GDConsts.dsExperienceSpellsClass[C_Level.MAGE].slots[slotLvl, k];
     end;
   end;
   ClassCal.RecalcSaves(creature);
-  if creature^.classLevels[C_Class.LEVEL_THIEF] > 0 then
+  if creature^.classLevels[C_Level.THIEF] > 0 then
     ClassCal.RecalcThiefSkills(creature);
 end;
 
@@ -112,8 +112,8 @@ begin
         lvl := creature^.classLevels[k];
         if lvl > 9 then
           lvl := 9;
-        if creature^.saves[i] > GDConsts.saveTbl[k, lvl, i] then
-          creature^.saves[i] := GDConsts.saveTbl[k, lvl, i];
+        if creature^.saves[i] > GDConsts.saveTbl[k, lvl].values[i] then
+          creature^.saves[i] := GDConsts.saveTbl[k, lvl].values[i];
       end;
   end;
 end;
@@ -139,7 +139,7 @@ begin
   r := creature^.race;
   if (r < C_Race.DWARF) or (r > C_Race.HUMAN) then
     r := C_Race.HUMAN;
-  tl := creature^.classLevels[C_Class.LEVEL_THIEF];
+  tl := creature^.classLevels[C_Level.THIEF];
   if tl < 1 then
     Exit;
   if tl > 9 then
@@ -147,13 +147,14 @@ begin
   with creature^ do
     { 8 = High(thiefSkills) }
     for j := 1 to 8 do
-      if (GDConsts.raceAdj[r, j] < 0) and (Abs(GDConsts.raceAdj[r, j]) > GDConsts.thiefBase[tl, j]) then
+      if (GDConsts.raceAdj[r].values[j] < 0) and
+         (Abs(GDConsts.raceAdj[r].values[j]) > GDConsts.thiefBase[tl].values[j]) then
         thiefSkills[j] := 0
       else begin
-        total := GDConsts.thiefBase[tl, j] + GDConsts.raceAdj[r, j];
+        total := GDConsts.thiefBase[tl].values[j] + GDConsts.raceAdj[r].values[j];
         { dexAdj covers skills 1..5 only }
         if j < 6 then
-          total := total + GDConsts.dexAdj[dex, j];
+          total := total + GDConsts.dexAdj[dex].values[j];
         if total < 0 then
           total := 0;
         thiefSkills[j] := total;

@@ -3,7 +3,7 @@ unit Types;
 
 interface
 
-uses C_Gender, C_Save, C_Equip, C_Class, C_Abil, C_Money, C_Gbvm;
+uses C_Gender, C_Save, C_Equip, C_Level, C_Abil, C_Money, C_Gbvm;
 
 type
 
@@ -113,8 +113,8 @@ type
     unknown087: Byte;
     { Coins: copper, silver, electrum, gold, platinum, gems and jewelry. }
     coins: array[C_Money.COPPER..C_Money.JEWELRY] of Word;
-    { Class levels; indexed by CLEVEL_*. }
-    classLevels: array[C_Class.LEVEL_CLERIC..C_Class.LEVEL_MONK] of ShortInt;
+    { Class levels; indexed by C_Level. }
+    classLevels: array[C_Level.CLERIC..C_Level.MONK] of ShortInt;
     { Gender; see GENDER_*. }
     gender: Byte;
     charType: Byte;
@@ -443,6 +443,64 @@ type
     conMax: Byte;
     chaMin: Byte;
     chaMax: Byte;
+  end;
+  { thief abilities (GDConsts.thiefBase and raceAdj), by skill number or by name }
+  TRuleThief = packed record
+    case Byte of
+      0: (values: array[1..8] of ShortInt);
+      1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
+          hideShadows: ShortInt; hearNoise: ShortInt; climbWalls: ShortInt; readLanguages: ShortInt);
+  end;
+  { Dexterity adjustments to the first five thief abilities (GDConsts.dexAdj), by skill number or by name }
+  TRuleThiefDex = packed record
+    case Byte of
+      0: (values: array[1..5] of ShortInt);
+      1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
+          hideShadows: ShortInt);
+  end;
+  { classes a race can take (GDConsts.classesByRace), in class-menu order }
+  TRuleRaceClasses = record
+    count: ShortInt;
+    { class IDs; 0 fills past count }
+    classes: array[1..13] of ShortInt;
+  end;
+  { classLevels indexes a class trains (GDConsts.classParts), by position or by name; -1 fills a shorter list }
+  TRuleClassParts = packed record
+    case Byte of
+      0: (values: array[1..3] of ShortInt);
+      1: (first: ShortInt; second: ShortInt; third: ShortInt);
+  end;
+  { one value per ability (GDConsts.raceAbilityAdj and classMin), by C_Abil index or by name }
+  TRuleAbilities = packed record
+    case Byte of
+      0: (values: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of ShortInt);
+      1: (strength: ShortInt; intelligence: ShortInt; wisdom: ShortInt; dexterity: ShortInt; constitution: ShortInt;
+          charisma: ShortInt);
+  end;
+  { one value per classLevels index (GDConsts.raceMaxLevel), by index or by class name }
+  TRuleClassLevels = packed record
+    case Byte of
+      0: (values: array[C_Level.CLERIC..C_Level.MONK] of ShortInt);
+      1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
+          thief: ShortInt; monk: ShortInt);
+  end;
+  { the oldest age in each age category (GDConsts.ageCat), by category number or by name }
+  TRuleAgeCategories = packed record
+    case Byte of
+      0: (values: array[1..5] of Word);
+      1: (youngAdult: Word; mature: Word; middleAged: Word; old: Word; venerable: Word);
+  end;
+  { alignments a class can take (GDConsts.alignByClass), in alignment-menu order }
+  TRuleClassAlignments = record
+    count: ShortInt;
+    { alignment IDs; 0 fills past count }
+    alignments: array[1..9] of ShortInt;
+  end;
+  { saving throws (GDConsts.saveTbl), by C_Save index or by name }
+  TRuleSaves = packed record
+    case Byte of
+      0: (values: array[C_Save.PARALYZE..C_Save.SPELL] of Byte);
+      1: (paralyze: Byte; petrify: Byte; wand: Byte; breath: Byte; spell: Byte);
   end;
   TRuleXp = record
     { XP to reach level; -1 = unavailable }

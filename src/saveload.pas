@@ -7,7 +7,7 @@ unit SaveLoad;
 interface
 
 uses Types, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal,
-  FxEngine, View3D, MapTiles, C_Race, C_Keys, C_Class, C_Ifc, C_Gbvm, C_Npc, C_Status;
+  FxEngine, View3D, MapTiles, C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status;
 
 { Read <saveDir>charlist.txt into a fresh list of string nodes (the TItemRec prefix used by
   MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist. Names of characters currently in
@@ -675,13 +675,13 @@ begin
       end;
     if cnt = 0 then begin
       cnt := 1;
-      classes[cnt] := C_Class.LEVEL_FIGHTER;
+      classes[cnt] := C_Level.FIGHTER;
     end;
     cnt := FxEngine.RollDice(1, cnt);
     case classes[cnt] of
-      C_Class.LEVEL_CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, FxEngine.RollDice(1, 5)];
-      C_Class.LEVEL_MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, FxEngine.RollDice(1, 5)];
-      C_Class.LEVEL_THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, FxEngine.RollDice(1, 5)];
+      C_Level.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, FxEngine.RollDice(1, 5)];
+      C_Level.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, FxEngine.RollDice(1, 5)];
+      C_Level.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, FxEngine.RollDice(1, 5)];
       else portraitBody := GDConsts.npcFighterBodies[genderSp, FxEngine.RollDice(1, 5)];
     end;
     portraitHead := GDConsts.npcPortraitHeads[genderSp, FxEngine.RollDice(1, 8)];

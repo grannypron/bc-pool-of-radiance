@@ -5,7 +5,7 @@ unit ViewChar;
 interface
 
 uses Types, Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait,
-  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
+  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
 
 procedure DisplayChar;
 
@@ -102,7 +102,7 @@ begin
   multi := False;
   s := '';
   { one entry per class the character has levels in, joined with '/' }
-  for j := C_Class.LEVEL_CLERIC to C_Class.LEVEL_MONK do
+  for j := C_Level.CLERIC to C_Level.MONK do
     if GDVars.tempCr1^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
@@ -175,7 +175,7 @@ begin
   used := 0;
   if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
     used := effect^.strength;
-  allowed := (p^.classLevels[C_Class.LEVEL_PALADIN] - 1) div 5 + 1;
+  allowed := (p^.classLevels[C_Level.PALADIN] - 1) div 5 + 1;
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
@@ -190,7 +190,7 @@ begin
   CharHlp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
-  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Class.LEVEL_PALADIN] * 2, False) then
+  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then
     CharHlp.PrintBottomLine(tgt^.name + ' feels better')
   else
     CharHlp.PrintBottomLine(tgt^.name + ' is unaffected');
@@ -276,7 +276,7 @@ begin
       s := s + 'Heal ';
     if ViewChar.CanCure(p) then
       s := s + 'Cure ';
-    ch := MenuCore.MenuHorizontal('More:', s + 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+    ch := MenuCore.MenuHorizontal('More: ', s + 'Exit', LightMagenta, LightGreen, White, False, False, ext);
     case ch of
       'H': if ViewChar.CanHeal(p) then
              ViewChar.LayOnHands(p)
@@ -403,7 +403,7 @@ begin
     if hasMoney then
       s := s + 'Drop ';
     s := s + 'More Exit';
-    ch := MenuCore.MenuHorizontal('View:', s, LightMagenta, LightGreen, White, False, False, ext);
+    ch := MenuCore.MenuHorizontal('View: ', s, LightMagenta, LightGreen, White, False, False, ext);
     idx := -1;
     case ch of
       'I': ViewChar.UseItemMenu(done);
