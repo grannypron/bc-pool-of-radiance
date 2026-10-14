@@ -794,7 +794,8 @@ type
   end;
   TMonFlags = array[0..1] of Boolean;
   TZone2 = array[$9700..$98FF] of Word;
-  TZone3 = array[$9900..$B6FF] of Byte;
+  { the script buffer (C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST) }
+  TZone3 = array[C_Gbvm.SCRIPT_FIRST..C_Gbvm.SCRIPT_LAST] of Byte;
 
   { EclVm types. }
   TEclvmWallDef = record

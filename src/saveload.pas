@@ -69,8 +69,7 @@ const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
   QUICK_SLOT = 'Q';
 
-{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say so on the bottom line. Made from the
-  map menu, so the running script is recorded as the one the save reopens first. }
+{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say so on the bottom line. }
 procedure QuickSave;
 
 { True when QUICK_SLOT holds a save file big enough to load. }
@@ -751,8 +750,8 @@ end;
 function SaveMinSize: LongInt;
 begin
   SaveMinSize := LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
-                 SizeOf(GDVars.zone2^) + SizeOf(GDVars.zone3^) + 5 + SizeOf(GDVars.gLocType) + SizeOf(GDVars.ifcState) +
-                 SizeOf(Byte) + SizeOf(TSaveNames);
+                 SizeOf(GDVars.zone2^) + C_Gbvm.SAVED_SCRIPT_BYTES + 5 + SizeOf(GDVars.gLocType) +
+                 SizeOf(GDVars.ifcState) + SizeOf(Byte) + SizeOf(TSaveNames);
 end;
 
 { Load saved game letter: the save file (one too short to hold it all is refused, with a message, before anything is
@@ -791,7 +790,8 @@ begin
   BlockRead(f, GDVars.zone0^, SizeOf(GDVars.zone0^), res);
   BlockRead(f, GDVars.zone1^, SizeOf(GDVars.zone1^), res);
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
-  BlockRead(f, GDVars.zone3^, SizeOf(GDVars.zone3^), res);
+  { the script the save holds is passed over: GameLoop loads the area's script from the data (#609) }
+  Seek(f, FilePos(f) + C_Gbvm.SAVED_SCRIPT_BYTES);
   BlockRead(f, GDVars.gMapX, 5, res);
   { a cardinal facing only }
   GDVars.gFacing := GDVars.gFacing and 6;
@@ -930,6 +930,9 @@ var
   fn: Types.TPathStr;
   ioRes: Integer;
 begin
+  { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
+    leaves the old area's there until then }
+  GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   SaveLoad.CheckSaveDir;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
@@ -951,7 +954,8 @@ begin
   BlockWrite(f, GDVars.zone0^, SizeOf(GDVars.zone0^));
   BlockWrite(f, GDVars.zone1^, SizeOf(GDVars.zone1^));
   BlockWrite(f, GDVars.zone2^, SizeOf(GDVars.zone2^));
-  BlockWrite(f, GDVars.zone3^, SizeOf(GDVars.zone3^));
+  { SSI's part of the script buffer, so the file stays SSI's size }
+  BlockWrite(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES);
   BlockWrite(f, GDVars.gMapX, 5);
   BlockWrite(f, GDVars.gLocType, SizeOf(GDVars.gLocType));
   BlockWrite(f, GDVars.ifcState, SizeOf(GDVars.ifcState));
@@ -1022,8 +1026,6 @@ end;
 
 procedure QuickSave;
 begin
-  { GameLoop records the running script only once the map menu returns: a save made from it must have it now }
-  GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea);
   TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
   MenuCore.ClearBottomLine;

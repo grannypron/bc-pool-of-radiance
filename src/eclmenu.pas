@@ -395,15 +395,15 @@ begin
     DecodeGameCharacter := Chr(c + 64);
 end;
 
-{ GBVM zone of address: 0 = $4900..$4CFF, 1 = $6B00..$6EFF, 2 = $9700..$98FF, 3 = $9900..$B6FF (script), else 4 (special
-  registers) }
+{ GBVM zone of address: 0 = $4900..$4CFF, 1 = $6B00..$6EFF, 2 = $9700..$98FF, 3 = C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST
+  (script), else 4 (special registers) }
 function GbvmZone(address: Word): Byte;
 begin
   GbvmZone := 4;
   if (address >= $4900) and (address <= $4CFF) then GbvmZone := 0;
   if (address >= $6B00) and (address <= $6EFF) then GbvmZone := 1;
   if (address >= $9700) and (address <= $98FF) then GbvmZone := 2;
-  if (address >= $9900) and (address <= $B6FF) then GbvmZone := 3;
+  if (address >= C_Gbvm.SCRIPT_FIRST) and (address <= C_Gbvm.SCRIPT_LAST) then GbvmZone := 3;
 end;
 
 { Return the creature's zero-based index in GDVars.creatureList (the list length if it is absent) }
@@ -740,7 +740,7 @@ begin
     0: last := $4CFF;
     1: last := $6EFF;
     2: last := $98FF;
-    3: last := $B6FF;
+    3: last := C_Gbvm.SCRIPT_LAST;
   end;
   if zone < 4 then
     if last - address < len then
@@ -844,7 +844,7 @@ begin
       0: last := $4CFF;
       1: last := $6EFF;
       2: last := $98FF;
-      3: last := $B6FF;
+      3: last := C_Gbvm.SCRIPT_LAST;
     end;
     a := address;
     repeat
