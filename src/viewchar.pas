@@ -35,6 +35,8 @@ function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Bool
 
 implementation
 
+uses Vault;
+
 var
   { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
@@ -396,7 +398,10 @@ begin
         hasMoney and
         (GDVars.ifcState <> C_Ifc.COMBAT) then
       s := s + 'Trade ';
-    if hasMoney then
+    { in the vault, dropped money is deposited there (Money.DropMoney) }
+    if hasMoney and (GDVars.ifcState = C_Ifc.VAULT) then
+      s := s + 'Deposit '
+    else if hasMoney then
       s := s + 'Drop ';
     if ViewChar.CanHeal(GDVars.tempCr1) then
       s := s + 'Heal ';
@@ -486,7 +491,10 @@ begin
       if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
           (creature^.status = C_Status.ANIMATED)) and (GDVars.ifcState <> C_Ifc.COMBAT) then
         s := s + ' Trade';
-      s := s + ' Drop';
+      if GDVars.ifcState = C_Ifc.VAULT then
+        s := s + ' Deposit'
+      else
+        s := s + ' Drop';
       if creature^.numberOfItems < 16 then
         s := s + ' Halve';
       s := s + ' Join';
@@ -538,7 +546,14 @@ begin
                    ch := ' ';
                  needRedraw := True;
                end;
-          'D': if ViewChar.CheckItemAvail(sel) then
+          'D': if (GDVars.ifcState = C_Ifc.VAULT) and ViewChar.CheckItemAvail(sel) then begin
+                 { the vault keeps it, with the game it is saved with }
+                 if Vault.HasRoom then begin
+                   Vault.DepositItem(GDVars.curChar, sel);
+                   vmRedraw := True;
+                 end else
+                   TextRend.DisplayAndPause(Yellow, 'The vault is full.');
+               end else if ViewChar.CheckItemAvail(sel) then
                begin
                  CharHlp.PrintItemString(creature, sel, 0, 0, False, False);
                  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
@@ -1032,7 +1047,10 @@ begin
     else begin
       s2 := '';
       mType := Money.ParseMoneyType(prev^.name, s2);
-      s2 := 'How much ' + s2 + 'will you drop? ';
+      if GDVars.ifcState = C_Ifc.VAULT then
+        s2 := 'How much ' + s2 + 'will you deposit? '
+      else
+        s2 := 'How much ' + s2 + 'will you drop? ';
       amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
       Money.DropMoney(GDVars.curChar, amount, mType);
       exitFlag := True;

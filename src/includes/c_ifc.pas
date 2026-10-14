@@ -16,6 +16,8 @@ const
   COMBAT = 5;
   LOOT = 6;
   WON_GAME = 7;
+  { in the vault, The Hoarder's Respite (#606) }
+  VAULT = 8;
 
 implementation
 

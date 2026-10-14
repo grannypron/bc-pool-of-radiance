@@ -1328,14 +1328,15 @@ begin
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
 end;
 
-{ Redraw the screen for the current interface state: the main-menu frame; the shop or temple windows with the portrait;
+{ Redraw the screen for the current interface state: the main-menu frame; the shop, temple or vault windows with the
+  portrait;
   the camp picture, party and status line; the indoor or outdoor map view, party and status line; or the loot picture
   and party. }
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of
     C_Ifc.MAIN_MENU: Border.DrawWindow(1, 1, 38, 22, 0, White, '');
-    C_Ifc.SHOP_TEMPLE: begin
+    C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
       CharHlp.DrawNoncombatWindows(True);
       Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
       Portrait.DisplayPortraitBufs(3, 3, True);

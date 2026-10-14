@@ -53,16 +53,16 @@ procedure AddCreatureToParty(id: Byte);
   short to hold it all is refused, with a message, before anything is read), reload each listed character, at most 8,
   from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files
   (.mem included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete
-  when the Yarash pyramid flag is set. The save's game speed and settings word are left in the GBVM zone: the game's own
-  settings stay as they are. }
+  when the Yarash pyramid flag is set; the slot's vault becomes the session's (Vault.RestoreFromSlot). The save's game
+  speed and settings word are left in the GBVM zone: the game's own settings stay as they are. }
 procedure LoadGame;
 
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
   Escape on the menu aborts, Exit in the description popup goes back to the menu), store wall slots, game speed, picture
   and music settings (SSI's copies, which loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT,
   SaveChar each party member (the first 8) as CHRDATxN.sav, write the slot's description and the current area
-  (AreaName.CurrentArea) to SAVGAMx.INF, delete their single-character files (.mem included), set the recently-saved
-  flag. The caller redraws the screen. }
+  (AreaName.CurrentArea) to SAVGAMx.INF, copy the session vault to the slot (Vault.CommitToSlot), delete their
+  single-character files (.mem included), set the recently-saved flag. The caller redraws the screen. }
 procedure SaveGame;
 
 const
@@ -77,7 +77,8 @@ procedure QuickSave;
 function QuickLoadable: Boolean;
 
 { Quick load, between two runs of EclVm.GameLoop: free the party (records, items, effects, usual spells and icon
-  animations), load QUICK_SLOT as LoadGame loads a slot, and set loadedSave so the next GameLoop resumes it. }
+  animations), load QUICK_SLOT as LoadGame loads a slot, and set loadedSave so the next GameLoop resumes it. With no
+  loadable quick save it says so and frees nothing, and the next GameLoop resumes the game in memory. }
 procedure QuickLoad;
 
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
@@ -98,9 +99,14 @@ procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSl
 { Forget the character's usual spells; called before its record is freed or reused. }
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
+{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
+  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
+  cannot be made and is left alone. }
+procedure CheckSaveDir;
+
 implementation
 
-uses SaveMenu, AreaName, CharGen;
+uses SaveMenu, AreaName, CharGen, Vault;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -113,8 +119,6 @@ var
                                          { slot 11 = scratch head    }
   wallSlots: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
                                          { kept in zone 0 across saves }
-
-procedure CheckSaveDir; forward;
 
 const
   { the number of characters whose usual spells are kept at once: the party's size }
@@ -326,9 +330,6 @@ begin
   Close(f);
 end;
 
-{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
-  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
-  cannot be made and is left alone. }
 procedure CheckSaveDir;
 var
   ioRes: Integer;
@@ -800,6 +801,8 @@ begin
   BlockRead(f, names, SizeOf(names), res);
   Close(f);
   res := IOResult;
+  { the vault left with this game is the session's vault now }
+  Vault.RestoreFromSlot(letter);
   { names holds 8, the most a party has }
   if nChars > 8 then
     nChars := 8;
@@ -896,6 +899,14 @@ end;
 
 procedure QuickLoad;
 begin
+  { the party goes only when there is a game to replace it }
+  if not SaveLoad.QuickLoadable then begin
+    TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
+    MenuCore.ClearBottomLine;
+    { GameLoop resumes the game in memory, as after a load }
+    GDVars.loadedSave := 1;
+    Exit;
+  end;
   { RemoveCreature frees the head of the list while it is curChar }
   while GDVars.creatureList <> nil do begin
     GDVars.curChar := GDVars.creatureList;
@@ -957,6 +968,7 @@ begin
   BlockWrite(f, names, SizeOf(names));
   Close(f);
   SaveMenu.WriteSlotInfo(letter, desc, area);
+  Vault.CommitToSlot(letter);
   p := GDVars.creatureList;
   n := 0;
   while (p <> nil) and (n < 8) do begin

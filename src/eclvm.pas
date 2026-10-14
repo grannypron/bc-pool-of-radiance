@@ -14,6 +14,8 @@ procedure GameLoop;
 
 implementation
 
+uses Vault;
+
 const
   { LOAD MONSTER adds no monsters beyond this count }
   MAX_LOADED_MONSTERS = 63;
@@ -867,8 +869,9 @@ begin
   EclMenu.WriteGbvm(C_Gbvm.SURPRISE, result);
 end;
 
-{ COMBAT: with no monsters and no duel, enter the shop or temple when C_Gbvm.ENTER_SHOP or C_Gbvm.ENTER_TEMPLE is 1,
-  else run PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat. Afterwards restore the interface state. }
+{ COMBAT: with no monsters and no duel, enter the shop or temple when C_Gbvm.ENTER_SHOP or C_Gbvm.ENTER_TEMPLE is 1, or
+  the vault when C_Gbvm.ENTER_SHOP is 2, else run PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat.
+  Afterwards restore the interface state. }
 procedure EclCombat;
 var
   dist: Word;
@@ -878,6 +881,10 @@ begin
     if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 1 then begin
       GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
       Shop.ShopMainMenu;
+    end else if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 2 then begin
+      { New Phlan's vault, The Hoarder's Respite: the data patch for #606 stores 2 }
+      GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
+      Vault.VaultMenu;
     end else if GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = 1 then begin
       GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] := 0;
       Temple.TempleMainMenu;

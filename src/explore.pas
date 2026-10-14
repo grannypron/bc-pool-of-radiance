@@ -519,4 +519,6 @@ begin
   GDVars.dsPortraitCache[2].pictureId := 255;
 end;
 
+begin
+  quickLoadAsked := False;
 end.

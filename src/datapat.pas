@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 56;
-  BYTE_COUNT = 1500;
+  PART_COUNT = 58;
+  BYTE_COUNT = 1556;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -173,7 +173,13 @@ const
       and rogues east, but says nothing of paladins and rangers, who train with the fighters; new code at the end of
       the script adds a sentence for them }
     (issue: 355; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 488; origLen: 10; newLen: 10),
-    (issue: 355; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 2171; origLen: 0; newLen: 49));
+    (issue: 355; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 2171; origLen: 0; newLen: 49),
+    { #606: New Phlan's tavern at (8,9) becomes a vault, The Hoarder's Respite: event 20's address in the event table
+      (script $9B4C) goes to new code at the end of the script, which sends every other event-20 square on to the
+      tavern ($A2C6) as before, and at (8,9) does what the arms shop does (once a visit, the shopkeeper, the refusal
+      after an attack on the city watch) and enters the vault: [$6E6C] = 2, then COMBAT with no monsters }
+    (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 657; origLen: 2; newLen: 2),
+    (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 7473; origLen: 0; newLen: 52));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -636,7 +642,26 @@ const
     $E1, $C5, $49, $38, $14, $48, $12, $4E, $81, $72, $54, $22, $05, $08, $16, $01,
     $89, $1C, $85, $05, $49, $3B, $80,
     $04, $00, $01, $01, $00, $4A, $01, $00, $4A,      { $A1A0 ADD $01, [$4A00], [$4A00] }
-    $00);                                             { $A1A9 EXIT }
+    $00,                                              { $A1A9 EXIT }
+    { #606 part 1, original }
+    $C6, $A2,                                         { $9B8F ON GOTO [$9800] entry 20: LA2C6 }
+    { fixed: event 20 goes to new code at the end of the script }
+    $2F, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB62F }
+    { #606 part 2, added at $B62F: the tavern but at (8,9); there, as the arms shop, the shopkeeper, then the vault }
+    $14, $01, $4B, $C0, $00, $08, $01, $4C, $C0, $00, $09, { $B62F COMPARE AND [$C04B], $08, [$C04C], $09 }
+    $17,                                              { $B63A IF <> }
+    $01, $01, $C6, $A2,                               { $B63B GOTO LA2C6 }
+    $02, $01, $89, $AE,                               { $B63F GOSUB LAE89 }
+    $09, $00, $2A, $01, $E1, $6D,                     { $B643 SAVE $2A, [$6DE1] }
+    $0E, $00, $09,                                    { $B649 PICTURE $09 }
+    $03, $01, $C0, $4A, $00, $00,                     { $B64C COMPARE [$4AC0], $00 }
+    $19,                                              { $B652 IF > }
+    $01, $01, $1D, $AE,                               { $B653 GOTO LAE1D }
+    $1C,                                              { $B657 CLEARMONSTERS }
+    $09, $00, $02, $01, $6C, $6E,                     { $B658 SAVE $02, [$6E6C] }
+    $24,                                              { $B65E COMBAT }
+    $0E, $00, $FF,                                    { $B65F PICTURE $FF }
+    $00);                                             { $B662 EXIT }
 
 implementation
 

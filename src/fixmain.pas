@@ -11,8 +11,9 @@ uses Types,
   MenuCore, CharHlp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclMenu, Shop, PostCbt, Temple,
-  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName;
+  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault;
 
+{$O Vault}
 {$O AreaName}
 {$O SaveMenu}
 {$O HeapErr}
@@ -68,6 +69,8 @@ begin
     while KeyPressed do
       GameIo.DiscardPendingKeys;
   end;
+  { the vault of a game left unsaved last time is gone with it }
+  Vault.ForgetSessionVault;
   CharGen.MainMenu;
   View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
   EclVm.GameLoop;

@@ -656,5 +656,7 @@ begin
   listOnly := False;
   arrowsToCaller := False;
   movesToCaller := False;
+  extraKeys := '';
+  quickKeysToCaller := False;
   @idleHook := nil;
 end.
