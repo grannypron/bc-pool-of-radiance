@@ -56,7 +56,7 @@ procedure ClearBottomLine;
   they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list
   also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a list
   that fits on one page is drawn and #0 returned with sel=nil at once. With movesToCaller set, a key that moves the
-  highlight returns too. }
+  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -226,6 +226,13 @@ begin
       done := True;
     end else if KeyPressed then begin
       ch := GameIo.ReadGameKey;
+      { a STING pop-up (Ctrl-Y) wrote over the menu line }
+      if GDVars.bottomLineTaken then begin
+        GDVars.bottomLineTaken := False;
+        if Length(query) <> 0 then
+          TextRend.DisplayString(0, 24, qCol, query);
+        DisplayOption(GDVars.horizChoice);
+      end;
       if ch = #0 then
       { #0 prefixes an extended key: the second ReadGameKey reads its scan code. Left and Right move the current option
         unless the caller takes them; any other extended key ends the menu (with ext set) only with reinterpret, and is
@@ -333,6 +340,8 @@ var
   toCaller: Boolean;
   oldIdx: Integer;
   oldTop: Integer;
+  { the caller's extraKeys, given to every HorizontalMenu call }
+  keep: string[16];
 
   { Last label (inUse) member among the first n, or the head when n = 0 and it is a label. The result is discarded by
     DrawPage. }
@@ -505,6 +514,8 @@ var
   end;
 
 begin
+  keep := extraKeys;
+  extraKeys := '';
   toCaller := movesToCaller;
   movesToCaller := False;
   if list = nil then begin
@@ -566,6 +577,7 @@ begin
       if addExit then
         hMenu := hMenu + ' Exit';
       { Enter stays #13 here: it takes the highlighted list entry, not a bottom-line option. }
+      extraKeys := keep;
       ch := MenuCore.HorizontalMenu(query, hMenu, qCol, mCol, hlCol, True, False, False, ext);
       UnhighlightLine(idx);
       oldIdx := idx;

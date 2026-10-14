@@ -14,7 +14,7 @@ procedure GameLoop;
 
 implementation
 
-uses Vault;
+uses Vault, EclTrace;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -1769,6 +1769,9 @@ begin
   while (GDVars.eclStop = 0) and (not GDVars.partyDefeated) do begin
     GDVars.prevOpcode := GDVars.curOpcode;
     GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
+    { STING Ctrl-L's trace log (#612), as Curse writes it }
+    if GDVars.debugTraceEnabled then
+      WriteLn(GDVars.debugFile, EclTrace.OpName(GDVars.curOpcode));
     EclVm.ExecNextEclCmd;
   end;
   GDVars.eclStop := 0;

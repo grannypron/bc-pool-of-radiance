@@ -14,7 +14,8 @@ var
     Sound setting back. GameIo starts before the overlay manager and cannot use the overlaid Options itself. }
   saveSettings: TSettingsHook;
 
-{ Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-C) controls on that first byte. After a nonzero
+{ Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
+  byte. After a nonzero
   byte, drain pending input without repeating those controls and return the last byte read. An initial zero is returned
   at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear. Ctrl-S turns the Sound setting
   over (SetSound) and, once POOLOPT.CFG has been read, writes it back (saveSettings). }
@@ -34,14 +35,61 @@ procedure ExitGame;
 
 implementation
 
+uses Types, Overlay, TextRend;
+
+var
+  { ShowMemory is up: its own key waits do not open it again }
+  memShown: Boolean;
+
 procedure ExitGame;
 begin
+  if GDVars.debugTraceEnabled then
+    Close(GDVars.debugFile);
   GDVars.soundMode := GDVars.soundSaved;
   SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
   GDVars.dsInterruptRegisters.ah := 0;
   GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
   Intr($10, GDVars.dsInterruptRegisters);
   Halt(0);
+end;
+
+{ STING Ctrl-Z, as Curse does: each creature's effects to the trace log, one 'who: <name>  sp#: <id>' line each. }
+procedure DumpEffects;
+var
+  p: Types.PCharRecord;
+  e: Types.PEffectRec;
+begin
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    e := p^.effectsAddr;
+    while e <> nil do begin
+      WriteLn(GDVars.debugFile, 'who: ', p^.name, '  sp#: ', e^.id);
+      e := e^.next;
+    end;
+    p := p^.nextCharAddr;
+  end;
+end;
+
+{ n as a string. }
+function Num(n: LongInt): Types.TStr40;
+var
+  s: Types.TStr40;
+begin
+  Str(n, s);
+  Num := s;
+end;
+
+{ STING Ctrl-Y (#612): the overlay loads so far, the overlay buffer and its probation area, and the heap's free memory
+  and largest block, on the bottom line one after another, each until a key; the menu line is drawn again after. }
+procedure ShowMemory;
+begin
+  memShown := True;
+  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + GameIo.Num(GDVars.ovrLoads));
+  TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + GameIo.Num(OvrGetBuf) + ' retry ' + GameIo.Num(OvrGetRetry));
+  TextRend.DisplayAndPause(LightGreen, 'Heap free ' + GameIo.Num(MemAvail) + ' big ' + GameIo.Num(MaxAvail));
+  TextRend.PrintSpaces(0, 24, Black, 40);
+  GDVars.bottomLineTaken := True;
+  memShown := False;
 end;
 
 function ReadGameKey: Char;
@@ -58,6 +106,23 @@ begin
   if ParamStr(1) = 'STING' then begin
     if key = #4 then GDVars.stingHpFlag := Ord(GDVars.stingHpFlag = 0);
     if key = #3 then GameIo.ExitGame;
+    { Ctrl-L: the script trace log, Curse's Ctrl-D (here Ctrl-D stays the hit-point pop-up) }
+    if key = #12 then begin
+      GDVars.debugTraceEnabled := not GDVars.debugTraceEnabled;
+      if GDVars.debugTraceEnabled then begin
+        Assign(GDVars.debugFile, 'debug.txt');
+        {$I-}
+        Rewrite(GDVars.debugFile);
+        {$I+}
+        if IOResult <> 0 then
+          GDVars.debugTraceEnabled := False;
+      end else
+        Close(GDVars.debugFile);
+    end;
+    if (key = #26) and GDVars.debugTraceEnabled then
+      GameIo.DumpEffects;
+    if (key = #25) and not memShown then
+      GameIo.ShowMemory;
   end;
   if key <> #0 then
     while KeyPressed do
@@ -90,4 +155,6 @@ begin
   end;
 end;
 
+begin
+  memShown := False;
 end.

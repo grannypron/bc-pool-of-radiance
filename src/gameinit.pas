@@ -90,6 +90,8 @@ begin
   GDVars.quickEnds := 1;
   GDVars.quickMagicOn := 0;
   GDVars.stingHpFlag := 0;
+  GDVars.debugTraceEnabled := False;
+  GDVars.bottomLineTaken := False;
   GDVars.msgDelayFlag := 1;
   GDVars.loadedSave := 0;
   GDVars.restTicks := 0;

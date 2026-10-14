@@ -1401,6 +1401,9 @@ begin
     info := CharHlp.ByteToString(x) + ',' + CharHlp.ByteToString(y) + ' ';
   info := info + GDConsts.dirNames[GDVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
+  { the STING trace log is on (Ctrl-L), as Curse shows it }
+  if GDVars.debugTraceEnabled then
+    info := info + '*';
   if GDVars.ifcState = C_Ifc.CAMPING then
     info := info + ' camping'
   else if gbvmZone1^.searchFlags and 1 > 0 then

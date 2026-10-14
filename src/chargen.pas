@@ -212,10 +212,14 @@ begin
                  GameIo.ExitGame;
                end;
              end;
+        { free training, turned on and off as in Curse }
         'J': if ParamStr(1) = 'STING' then
              begin
-               GDVars.stingMode := 1;
-               CharHlp.PrintBottomLine('I Understand, master...');
+               GDVars.stingMode := Ord(GDVars.stingMode = 0);
+               if GDVars.stingMode <> 0 then
+                 CharHlp.PrintBottomLine('Free training on')
+               else
+                 CharHlp.PrintBottomLine('Free training off');
              end;
       end;
       redraw := True;

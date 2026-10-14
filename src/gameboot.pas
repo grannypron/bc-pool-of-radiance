@@ -20,6 +20,15 @@ var
   displayMode: Types.TVideoMode absolute GDVars.videoMode;
   { POOL.CFG line 5 = 'F' }
   fullIntro: Boolean absolute GDVars.fullIntro;
+  { the overlay manager's own read routine, which CountOvrRead calls }
+  ovrRead: OvrReadFunc;
+
+{ The overlay manager's read routine (OvrReadBuf), counting each overlay it loads in GDVars.ovrLoads (#612). }
+function CountOvrRead(ovrSeg: Word): Integer;
+begin
+  Inc(GDVars.ovrLoads);
+  CountOvrRead := ovrRead(ovrSeg);
+end;
 
 { A POOL.CFG path made ready for file names to be appended: spaces trimmed, the current drive (or, for a relative path,
   the current directory) put in front of a path without a drive letter, and a closing backslash. An empty path gives
@@ -61,6 +70,9 @@ end;
 begin
   DaxIo.OverlayPrompt;
   OvrInit('GAME.OVR');
+  GDVars.ovrLoads := 0;
+  ovrRead := OvrReadBuf;
+  OvrReadBuf := CountOvrRead;
   repeat
     Assign(GDVars.cfgFile, 'pool.cfg');
     Reset(GDVars.cfgFile, 128);
@@ -106,9 +118,12 @@ begin
       Blit.SetVideoMode(4);
     end;
   end;
-  if OVERLAY_BUF_BYTES - OvrGetBuf <= MemAvail then
-    OvrSetBuf(OVERLAY_BUF_BYTES)
-  else begin
+  if OVERLAY_BUF_BYTES - OvrGetBuf <= MemAvail then begin
+    OvrSetBuf(OVERLAY_BUF_BYTES);
+    { probation (#612): an overlay called while it sits in the last third of the buffer is kept rather than dropped,
+      so the units a stretch of play keeps calling stay loaded }
+    OvrSetRetry(OvrGetBuf div 3);
+  end else begin
     Blit.RestoreVideoMode;
     WriteLn('Not enough memory to run game.  You need ', OVERLAY_BUF_BYTES - OvrGetBuf, ' more bytes.');
     Halt;

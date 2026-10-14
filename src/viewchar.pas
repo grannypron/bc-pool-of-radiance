@@ -458,6 +458,46 @@ end;
 
 { Run curChar's inventory menu, offering actions according to the character's state and the current interface state,
   until Escape, done, or no items remain. }
+{ STING's raw item viewer (V in the Items menu, #612), Curse's ViewItemDetail: the item's type, name ids, plus, save
+  bonus, ready, identified mask, cursed, value, charges, effect and special, and its base type's large-creature damage
+  dice, until a key. The caller redraws the screen. }
+procedure ViewItemDetail(it: Types.PItemRec);
+const
+  labels: array[1..15] of string[13] = ('itemtype:', 'namenum(1):', 'namenum(2):', 'namenum(3):', 'plus:',
+    'plussave:', 'ready:', 'identified:', 'cursed:', 'value:', 'charges:', 'effect:', 'special:', 'dice large:',
+    'sides large:');
+var
+  v: array[1..15] of LongInt;
+  i: Byte;
+  s: Types.TStr40;
+begin
+  with it^ do begin
+    v[1] := itemType;
+    v[2] := nameIds[1];
+    v[3] := nameIds[2];
+    v[4] := nameIds[3];
+    v[5] := Byte(plus);
+    v[6] := Byte(saveBonus);
+    v[7] := equipped;
+    v[8] := unidMask;
+    v[9] := cursed;
+    v[10] := value;
+    v[11] := charges;
+    v[12] := effect;
+    v[13] := special;
+    v[14] := CharHlp.BaseItem(itemType)^.dmgLgRolls;
+    v[15] := CharHlp.BaseItem(itemType)^.dmgLgDice;
+  end;
+  TextRend.ClearScreen;
+  Border.DrawBorder(1, 1, 38, 22, 0);
+  for i := 1 to 15 do begin
+    Str(v[i], s);
+    TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
+    TextRend.DisplayString(20, i + 1, LightGreen, s);
+  end;
+  TextRend.DisplayAndPause(LightGreen, 'press a key');
+end;
+
 procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
@@ -521,10 +561,17 @@ begin
         needRedraw := False;
         GDVars.dsRedrawInventoryMenuFlag := 0;
       end;
+      { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
+      if ParamStr(1) = 'STING' then
+        MenuCore.extraKeys := 'V';
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
       if sel <> nil then
         case ch of
+          'V': if ParamStr(1) = 'STING' then begin
+                 ViewChar.ViewItemDetail(sel);
+                 needRedraw := True;
+               end;
           'R': ViewChar.ToggleReadyItem(sel);
           { a scroll the Cast list offers (Magic.CastableScroll) need not be readied; other items must be }
           'U': if (sel^.equipped = 0) and not Magic.CastableScroll(creature, sel) then
