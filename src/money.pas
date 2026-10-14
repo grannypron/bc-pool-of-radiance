@@ -346,13 +346,14 @@ begin
   end;
 end;
 
-{ Dropped money enters the treasure pool in a shop, temple or loot menu (C_Ifc.SHOP_TEMPLE, C_Ifc.LOOT). Elsewhere it is
+{ Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT,
+  C_Ifc.LOOT). Elsewhere it is
   discarded. }
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   p^.coins[mType] := p^.coins[mType] - qty;
   CharHlp.RecalcStats(p);
-  if (GDVars.ifcState = C_Ifc.LOOT) or (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
+  if (GDVars.ifcState = C_Ifc.LOOT) or (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) or (GDVars.ifcState = C_Ifc.VAULT) then
     treasureMoney[mType] := treasureMoney[mType] + qty;
 end;
 

@@ -5,7 +5,7 @@ unit CharHlp;
 interface
 
 uses Types, Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap,
-  C_Effect, C_Equip, C_Race, C_Keys, C_Class, C_Status, C_Ifc, C_Money;
+  C_Effect, C_Equip, C_Race, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money;
 
 procedure WeaponAdjust(creature: Types.PCharRecord);
 
@@ -1309,8 +1309,8 @@ end;
 function GetCasterLevel(spell: Byte): Byte;
 begin
   case GDConsts.spellTable[spell].castClass of
-    0: GetCasterLevel := GDVars.curChar^.classLevels[C_Class.LEVEL_CLERIC];
-    1: GetCasterLevel := GDVars.curChar^.classLevels[C_Class.LEVEL_MAGE];
+    0: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.CLERIC];
+    1: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.MAGE];
     2: GetCasterLevel := 12;
   end;
   if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> 2) then
@@ -1328,14 +1328,15 @@ begin
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
 end;
 
-{ Redraw the screen for the current interface state: the main-menu frame; the shop or temple windows with the portrait;
+{ Redraw the screen for the current interface state: the main-menu frame; the shop, temple or vault windows with the
+  portrait;
   the camp picture, party and status line; the indoor or outdoor map view, party and status line; or the loot picture
   and party. }
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of
     C_Ifc.MAIN_MENU: Border.DrawWindow(1, 1, 38, 22, 0, White, '');
-    C_Ifc.SHOP_TEMPLE: begin
+    C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
       CharHlp.DrawNoncombatWindows(True);
       Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
       Portrait.DisplayPortraitBufs(3, 3, True);
@@ -1538,7 +1539,7 @@ var
   lvl: ShortInt;
 begin
   CanTrain := False;
-  for cls := C_Class.LEVEL_CLERIC to C_Class.LEVEL_MONK do begin
+  for cls := C_Level.CLERIC to C_Level.MONK do begin
     lvl := creature^.classLevels[cls];
     { xp[] runs to level 9 }
     if (lvl > 0) and (lvl < 9) then
@@ -1562,25 +1563,25 @@ begin
       Exit;
     case race of
       C_Race.DWARF:
-        if cls = C_Class.LEVEL_FIGHTER then
+        if cls = C_Level.FIGHTER then
           if ((lvl = 8) and (strCur = 17)) or ((lvl = 7) and (strCur < 17)) then
             AtLevelCap := True;
       C_Race.ELF:
-        if cls = C_Class.LEVEL_FIGHTER then
+        if cls = C_Level.FIGHTER then
           if (lvl = 7) or ((lvl = 6) and (strCur = 17)) or ((lvl = 5) and (strCur < 17)) then
             AtLevelCap := True;
       C_Race.GNOME:
-        if cls = C_Class.LEVEL_FIGHTER then
+        if cls = C_Level.FIGHTER then
           if (lvl = 6) or ((lvl = 5) and (strCur < 18)) then
             AtLevelCap := True;
       C_Race.HALFELF:
-        if (cls = C_Class.LEVEL_CLERIC) and (lvl = 5) then
+        if (cls = C_Level.CLERIC) and (lvl = 5) then
           AtLevelCap := True
-        else if (cls = C_Class.LEVEL_FIGHTER) or (cls = C_Class.LEVEL_RANGER) then
+        else if (cls = C_Level.FIGHTER) or (cls = C_Level.RANGER) then
           if (lvl = 8) or ((lvl = 7) and (strCur = 17)) or ((lvl = 6) and (strCur < 17)) then
             AtLevelCap := True;
       C_Race.HALFLING:
-        if cls = C_Class.LEVEL_FIGHTER then
+        if cls = C_Level.FIGHTER then
           if (lvl = 6) or ((lvl = 5) and (strCur = 17)) or ((lvl = 4) and (strCur < 17)) then
             AtLevelCap := True;
     end;
@@ -1591,11 +1592,11 @@ function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 var
   best: ShortInt;
 begin
-  best := creature^.classLevels[C_Class.LEVEL_FIGHTER];
-  if creature^.classLevels[C_Class.LEVEL_PALADIN] > best then
-    best := creature^.classLevels[C_Class.LEVEL_PALADIN];
-  if creature^.classLevels[C_Class.LEVEL_RANGER] > best then
-    best := creature^.classLevels[C_Class.LEVEL_RANGER];
+  best := creature^.classLevels[C_Level.FIGHTER];
+  if creature^.classLevels[C_Level.PALADIN] > best then
+    best := creature^.classLevels[C_Level.PALADIN];
+  if creature^.classLevels[C_Level.RANGER] > best then
+    best := creature^.classLevels[C_Level.RANGER];
   if best < 0 then
     best := 0;
   WarriorLevel := best;
@@ -1630,7 +1631,7 @@ begin
           Inc(share);
         dice := classLevels[cls];
         { a ranger's first level has two hit dice }
-        if cls = C_Class.LEVEL_RANGER then
+        if cls = C_Level.RANGER then
           Inc(dice);
         Inc(total, dice * share);
       end;

@@ -5,14 +5,16 @@ unit EclVm;
 interface
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
-  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
+  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
   and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
-  party is defeated }
+  party is defeated or a quick load is asked for (Explore.quickLoadAsked) }
 procedure GameLoop;
 
 implementation
+
+uses Vault;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -706,8 +708,8 @@ begin
     hp := p^.hpCur;
     ac := p^.acCur;
     th := p^.thac0Cur;
-    mage := p^.classLevels[C_Class.LEVEL_MAGE];
-    cleric := p^.classLevels[C_Class.LEVEL_CLERIC];
+    mage := p^.classLevels[C_Level.MAGE];
+    cleric := p^.classLevels[C_Level.CLERIC];
     if ac > 60 then
       ac := ac - 60
     else
@@ -867,8 +869,9 @@ begin
   EclMenu.WriteGbvm(C_Gbvm.SURPRISE, result);
 end;
 
-{ COMBAT: with no monsters and no duel, enter the shop or temple when C_Gbvm.ENTER_SHOP or C_Gbvm.ENTER_TEMPLE is 1,
-  else run PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat. Afterwards restore the interface state. }
+{ COMBAT: with no monsters and no duel, enter the shop or temple when C_Gbvm.ENTER_SHOP or C_Gbvm.ENTER_TEMPLE is 1, or
+  the vault when C_Gbvm.ENTER_SHOP is 2, else run PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat.
+  Afterwards restore the interface state. }
 procedure EclCombat;
 var
   dist: Word;
@@ -878,6 +881,10 @@ begin
     if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 1 then begin
       GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
       Shop.ShopMainMenu;
+    end else if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 2 then begin
+      { New Phlan's vault, The Hoarder's Respite: the data patch for #606 stores 2 }
+      GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
+      Vault.VaultMenu;
     end else if GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = 1 then begin
       GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] := 0;
       Temple.TempleMainMenu;
@@ -1851,7 +1858,7 @@ begin
     GDVars.savedChar := GDVars.curChar;
     GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
     while ((GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
-        (not GDVars.partyDefeated) do begin
+        (not GDVars.partyDefeated) and (not Explore.quickLoadAsked) do begin
       if UpCase(cmd) = 'E' then
         EclVm.EnterCamp
       else begin
@@ -1868,24 +1875,27 @@ begin
         GDVars.savedChar := GDVars.curChar;
       end;
     end;
-    if not GDVars.partyDefeated then
-      EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
-    if GDVars.newEclFlag <> 0 then
-      EclVm.NewEclDone
-    else if not GDVars.partyDefeated then begin
-      GDVars.zone0^.previousX := GDVars.gMapX;
-      GDVars.zone0^.previousY := GDVars.gMapY;
-      Explore.ResolveMovement;
-      MapView.DisplayMapView;
-      if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
-        SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
-      GDVars.eclGraphics := False;
-      GDVars.picDrawn := True;
-      EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+    { a quick load asked for on the map menu ends the loop at once: the program loads it and runs the loop again }
+    if not Explore.quickLoadAsked then begin
+      if not GDVars.partyDefeated then
+        EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
       if GDVars.newEclFlag <> 0 then
-        EclVm.NewEclDone;
+        EclVm.NewEclDone
+      else if not GDVars.partyDefeated then begin
+        GDVars.zone0^.previousX := GDVars.gMapX;
+        GDVars.zone0^.previousY := GDVars.gMapY;
+        Explore.ResolveMovement;
+        MapView.DisplayMapView;
+        if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
+          SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+        GDVars.eclGraphics := False;
+        GDVars.picDrawn := True;
+        EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+        if GDVars.newEclFlag <> 0 then
+          EclVm.NewEclDone;
+      end;
     end;
-  until GDVars.partyDefeated;
+  until GDVars.partyDefeated or Explore.quickLoadAsked;
   GDVars.partyDefeated := False;
 end;
 

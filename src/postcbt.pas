@@ -10,6 +10,10 @@ uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, 
 { Wrap up a combat: settle the outcome, award experience, run the loot menus and free the combat state. }
 procedure PostCombat;
 
+{ With both money and items left, loop on a Money/Items/Exit menu; with only one kind left, go straight to the money or
+  item menu. }
+procedure LootTakeMenu(var treasure, items: Boolean);
+
 implementation
 
 const
@@ -354,8 +358,6 @@ begin
   CharHlp.DisplayNoncombatInterface;
 end;
 
-{ With both money and items left, loop on a Money/Items/Exit menu; with only one kind left, go straight to the money or
-  item menu. }
 procedure LootTakeMenu(var treasure, items: Boolean);
 var
   c: Char;

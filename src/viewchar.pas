@@ -5,7 +5,7 @@ unit ViewChar;
 interface
 
 uses Types, Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait,
-  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
+  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
 
 procedure DisplayChar;
 
@@ -34,6 +34,8 @@ function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
 implementation
+
+uses Vault;
 
 var
   { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }
@@ -102,7 +104,7 @@ begin
   multi := False;
   s := '';
   { one entry per class the character has levels in, joined with '/' }
-  for j := C_Class.LEVEL_CLERIC to C_Class.LEVEL_MONK do
+  for j := C_Level.CLERIC to C_Level.MONK do
     if GDVars.tempCr1^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
@@ -175,7 +177,7 @@ begin
   used := 0;
   if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
     used := effect^.strength;
-  allowed := (p^.classLevels[C_Class.LEVEL_PALADIN] - 1) div 5 + 1;
+  allowed := (p^.classLevels[C_Level.PALADIN] - 1) div 5 + 1;
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
@@ -190,7 +192,7 @@ begin
   CharHlp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
-  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Class.LEVEL_PALADIN] * 2, False) then
+  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then
     CharHlp.PrintBottomLine(tgt^.name + ' feels better')
   else
     CharHlp.PrintBottomLine(tgt^.name + ' is unaffected');
@@ -236,12 +238,11 @@ begin
   CharHlp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
-{ The More page for the current character, inside a border with one blank cell inside it all round: name, then the
-  five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20
-  always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
-  roll and are not included. Further pages go on its bottom-line menu. Its menu offers a paladin Heal (lay on hands)
-  and Cure (cure disease) while each can be used; either one ends the page. Runs until Exit or Escape; the caller
-  redraws the character sheet. }
+{ The More Info page for the current character, inside a border with one blank cell inside it all round: name, then
+  the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a
+  20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
+  roll and are not included. Further pages go on its bottom-line menu. Runs until Exit or Escape; the caller redraws
+  the character sheet. }
 procedure MorePage;
 const
   labels: array[C_Save.PARALYZE..C_Save.SPELL] of string[24] = (
@@ -271,23 +272,17 @@ begin
     TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
   end;
   repeat
-    s := '';
-    if ViewChar.CanHeal(p) then
-      s := s + 'Heal ';
-    if ViewChar.CanCure(p) then
-      s := s + 'Cure ';
-    ch := MenuCore.MenuHorizontal('More:', s + 'Exit', LightMagenta, LightGreen, White, False, False, ext);
-    case ch of
-      'H': if ViewChar.CanHeal(p) then
-             ViewChar.LayOnHands(p)
-           else
-             ch := ' ';
-      'C': if ViewChar.CanCure(p) then
-             ViewChar.CureDisease(p)
-           else
-             ch := ' ';
-    end;
-  until ch in [C_Keys.NONE, 'E', 'H', 'C'];
+    ch := MenuCore.MenuHorizontal('More Info: ', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+  until ch in [C_Keys.NONE, 'E'];
+end;
+
+{ Draw "More Info" under the character sheet's portrait frame (columns 28..38, rows 1..11), the M in white as a hotkey
+  is and the rest in light green. ViewCharMenu takes M through MenuCore.extraKeys. The rows below the frame hold nothing
+  else, so it is drawn whether or not a portrait is shown. }
+procedure DrawMoreInfoLabel;
+begin
+  TextRend.DisplayString(29, 13, White, 'M');
+  TextRend.DisplayString(30, 13, LightGreen, 'ore Info');
 end;
 
 { Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, encumbrance and
@@ -357,8 +352,10 @@ begin
   end;
 end;
 
-{ Run the character-sheet menu for items, spells, trading and dropping money, until Escape, Exit or done. Temporarily
-  use the noncombat palette when opened during combat. }
+{ Run the character-sheet menu for items, spells, trading and dropping money, a paladin's Heal (lay on hands) and Cure
+  (cure disease) while each can be used, and the More Info page (M, shown under the portrait rather than on the menu
+  line, which has no room for it), until Escape, Exit or done. The menu line has no prompt, as in Curse: with one, a
+  paladin holding items and money would not fit. Temporarily use the noncombat palette when opened during combat. }
 procedure ViewCharMenu(var done: Boolean);
 var
   ch: Char;
@@ -377,6 +374,7 @@ begin
   done := False;
   GDVars.tempCr2 := GDVars.curChar;
   ViewChar.DisplayChar;
+  ViewChar.DrawMoreInfoLabel;
   while not (ch in [C_Keys.NONE, 'E']) and not done do
   begin
     s := '';
@@ -400,10 +398,18 @@ begin
         hasMoney and
         (GDVars.ifcState <> C_Ifc.COMBAT) then
       s := s + 'Trade ';
-    if hasMoney then
+    { in the vault, dropped money is deposited there (Money.DropMoney) }
+    if hasMoney and (GDVars.ifcState = C_Ifc.VAULT) then
+      s := s + 'Deposit '
+    else if hasMoney then
       s := s + 'Drop ';
-    s := s + 'More Exit';
-    ch := MenuCore.MenuHorizontal('View:', s, LightMagenta, LightGreen, White, False, False, ext);
+    if ViewChar.CanHeal(GDVars.tempCr1) then
+      s := s + 'Heal ';
+    if ViewChar.CanCure(GDVars.tempCr1) then
+      s := s + 'Cure ';
+    s := s + 'Exit';
+    MenuCore.extraKeys := 'M';
+    ch := MenuCore.MenuHorizontal('', s, LightMagenta, LightGreen, White, False, False, ext);
     idx := -1;
     case ch of
       'I': ViewChar.UseItemMenu(done);
@@ -413,10 +419,16 @@ begin
              ViewChar.DropMoneyMenu;
              ViewChar.PrintMoney;
            end;
+      'H': if ViewChar.CanHeal(GDVars.tempCr1) then
+             ViewChar.LayOnHands(GDVars.tempCr1);
+      'C': if ViewChar.CanCure(GDVars.tempCr1) then
+             ViewChar.CureDisease(GDVars.tempCr1);
       'M': ViewChar.MorePage;
     end;
-    if not done and (ch in ['I', 'S', 'T', 'M']) then
+    if not done and (ch in ['I', 'S', 'T', 'H', 'C', 'M']) then begin
       ViewChar.DisplayChar;
+      ViewChar.DrawMoreInfoLabel;
+    end;
   end;
   if GDVars.ifcState = C_Ifc.COMBAT then
     CbtMap.SetCombatPalette;
@@ -479,7 +491,10 @@ begin
       if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
           (creature^.status = C_Status.ANIMATED)) and (GDVars.ifcState <> C_Ifc.COMBAT) then
         s := s + ' Trade';
-      s := s + ' Drop';
+      if GDVars.ifcState = C_Ifc.VAULT then
+        s := s + ' Deposit'
+      else
+        s := s + ' Drop';
       if creature^.numberOfItems < 16 then
         s := s + ' Halve';
       s := s + ' Join';
@@ -531,7 +546,14 @@ begin
                    ch := ' ';
                  needRedraw := True;
                end;
-          'D': if ViewChar.CheckItemAvail(sel) then
+          'D': if (GDVars.ifcState = C_Ifc.VAULT) and ViewChar.CheckItemAvail(sel) then begin
+                 { the vault keeps it, with the game it is saved with }
+                 if Vault.HasRoom then begin
+                   Vault.DepositItem(GDVars.curChar, sel);
+                   vmRedraw := True;
+                 end else
+                   TextRend.DisplayAndPause(Yellow, 'The vault is full.');
+               end else if ViewChar.CheckItemAvail(sel) then
                begin
                  CharHlp.PrintItemString(creature, sel, 0, 0, False, False);
                  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
@@ -1025,7 +1047,10 @@ begin
     else begin
       s2 := '';
       mType := Money.ParseMoneyType(prev^.name, s2);
-      s2 := 'How much ' + s2 + 'will you drop? ';
+      if GDVars.ifcState = C_Ifc.VAULT then
+        s2 := 'How much ' + s2 + 'will you deposit? '
+      else
+        s2 := 'How much ' + s2 + 'will you drop? ';
       amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
       Money.DropMoney(GDVars.curChar, amount, mType);
       exitFlag := True;

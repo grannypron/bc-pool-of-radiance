@@ -4,7 +4,7 @@ unit MenuCore;
 
 interface
 
-uses Types, GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys;
+uses Types, GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc;
 
 var
   { Set just before a MenuVertical call that only shows its list: when the list fits on one page it is drawn and #0
@@ -17,6 +17,14 @@ var
   { Set just before a MenuHorizontal call whose caller takes Enter itself (to change the highlighted line of a list):
     Enter then returns C_Keys.ENTER in place of the current option's hotkey. Every return clears it. }
   enterToCaller: Boolean;
+  { Set just before a MenuHorizontal call whose caller takes keys the menu line does not show (a letter drawn on the
+    screen above it, say): a letter or digit in it ends the menu and is returned upper-cased, as a hotkey is, without
+    changing the current option. Every return clears it. }
+  extraKeys: string[16];
+  { Set just before a MenuHorizontal call whose caller takes F5 and F8 (quick save and load) itself, as the map menu
+    does; every return clears it. Without it those keys end no menu: outside combat they say quick save and load are
+    unavailable here, and in combat they are ignored. }
+  quickKeysToCaller: Boolean;
   { Set just before a MenuVertical call whose caller shows something for the highlighted entry: a key that moves the
     highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
     call again. The call clears it. }
@@ -30,12 +38,12 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
   option (GDVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
   current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey (returned upper-cased, and
-  made the current option) or space ends the menu; Enter, when mCol or hlCol is nonzero, returns the current option's
-  hotkey (#13 for a menu without options, or while enterToCaller is set); Escape returns #0. With reinterpret, any
-  other extended key returns its scan code and digits 1-9 and backslash map to keypad scan codes, all with ext set. A
-  nonzero menuAuto.timeout returns menuAuto.key once that many ticks pass after the last animation frame change. The
-  picture animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every
-  pass and is cleared on exit); ext is copied to GDVars.extFlag. }
+  made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
+  is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
+  Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
+  keypad scan codes, all with ext set. A nonzero menuAuto.timeout returns menuAuto.key once that many ticks pass after
+  the last animation frame change. The picture animates when animate is set or the GBVM menuAnimation flag is nonzero
+  (that flag also advances a frame every pass and is cleared on exit); ext is copied to GDVars.extFlag. }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -226,7 +234,15 @@ begin
         ch := GameIo.ReadGameKey;
         if ((ch = C_Keys.LEFT) or (ch = C_Keys.RIGHT)) and not arrowsToCaller then
           StepOption(ch = C_Keys.RIGHT)
-        else if reinterpret then begin
+        else if ((ch = C_Keys.F5) or (ch = C_Keys.F8)) and not quickKeysToCaller then begin
+          if GDVars.ifcState <> C_Ifc.COMBAT then begin
+            TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
+            TextRend.PrintSpaces(0, 24, Black, 40);
+            if Length(query) <> 0 then
+              TextRend.DisplayString(0, 24, qCol, query);
+            DisplayOption(GDVars.horizChoice);
+          end;
+        end else if reinterpret then begin
           ext := True;
           done := True;
         end;
@@ -262,6 +278,8 @@ begin
                     GDVars.horizChoice := j;
                     DisplayOption(GDVars.horizChoice);
                   end;
+            if (ch <> ' ') and (Pos(ch, extraKeys) > 0) then
+              done := True;
             if reinterpret then
               if ch in ['1'..'9', '\'] then
               begin
@@ -279,6 +297,8 @@ begin
   until done;
   arrowsToCaller := False;
   enterToCaller := False;
+  extraKeys := '';
+  quickKeysToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
   GDVars.extFlag := ext;
@@ -636,5 +656,7 @@ begin
   listOnly := False;
   arrowsToCaller := False;
   movesToCaller := False;
+  extraKeys := '';
+  quickKeysToCaller := False;
   @idleHook := nil;
 end.

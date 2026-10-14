@@ -6,7 +6,7 @@ interface
 
 { C_Effect supplies the EFF_ effect ids }
 uses Types, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend, CharHlp, Pathing, CbtMap,
-  C_Effect, C_Status, C_Ifc, C_Dir, C_Class;
+  C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
 
 { Call the effect handler for effId (1..141) through GDVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
@@ -707,7 +707,7 @@ end;
 
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
-  DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_Class.LEVEL_PALADIN] > 0) and
+  DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_Level.PALADIN] > 0) and
     (effId in [C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT]);
 end;
 

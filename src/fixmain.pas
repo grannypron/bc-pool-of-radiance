@@ -11,8 +11,11 @@ uses Types,
   MenuCore, CharHlp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclMenu, Shop, PostCbt, Temple,
-  EclVm, BldShow, DataBld, Intro, HeapErr;
+  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault;
 
+{$O Vault}
+{$O AreaName}
+{$O SaveMenu}
 {$O HeapErr}
 {$O Intro}
 {$O DataBld}
@@ -66,8 +69,17 @@ begin
     while KeyPressed do
       GameIo.DiscardPendingKeys;
   end;
+  { the vault of a game left unsaved last time is gone with it }
+  Vault.ForgetSessionVault;
   CharGen.MainMenu;
   View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
   EclVm.GameLoop;
+  { F8 on the map menu ends GameLoop to load the quick save; the loop then starts again on the loaded game, as it does
+    after a load from the main menu }
+  while Explore.quickLoadAsked do begin
+    Explore.quickLoadAsked := False;
+    SaveLoad.QuickLoad;
+    EclVm.GameLoop;
+  end;
   GameIo.ExitGame;
 end.

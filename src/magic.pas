@@ -6,7 +6,7 @@ interface
 
 { Types supplies PCharRecord, PItemRec, PEffectRec and TStr40 for the declarations below. }
 uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Session, DaxIo,
-  TextRend, Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Class,
+  TextRend, Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level,
   C_Status, C_Ifc, C_Dir, C_Spell;
 
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
@@ -405,8 +405,8 @@ begin
           with GDConsts.spellTable[id] do
             if (levelSp >= 1) and (levelSp <= 3) then
               case castClassSp of
-                0: learnable := GDVars.curChar^.classLevels[C_Class.LEVEL_CLERIC] > 0;
-                1: learnable := GDVars.curChar^.classLevels[C_Class.LEVEL_MAGE] > 0;
+                0: learnable := GDVars.curChar^.classLevels[C_Level.CLERIC] > 0;
+                1: learnable := GDVars.curChar^.classLevels[C_Level.MAGE] > 0;
               end;
           if learnable then
             SpellMark := NOT_KNOWN_MARK;
@@ -1213,9 +1213,9 @@ begin
   exStr := 0;
   roll := 0;
   tgt := GDVars.dsTargetCreaturePtr[1];
-  if tgt^.classLevels[C_Class.LEVEL_MAGE] > 0 then
+  if tgt^.classLevels[C_Level.MAGE] > 0 then
     roll := FxEngine.RollDice(1, 4);
-  if (tgt^.classLevels[C_Class.LEVEL_CLERIC] > 0) or (tgt^.classLevels[C_Class.LEVEL_THIEF] > 0) then
+  if (tgt^.classLevels[C_Level.CLERIC] > 0) or (tgt^.classLevels[C_Level.THIEF] > 0) then
     roll := FxEngine.RollDice(1, 6);
   if CharHlp.WarriorLevel(tgt) > 0 then
     roll := FxEngine.RollDice(1, 8);
@@ -1839,7 +1839,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
-      ((creature^.classLevels[C_Class.LEVEL_CLERIC] > 0) and (CharHlp.BaseItem(item^.itemType)^.slot = 12)) then
+      ((creature^.classLevels[C_Level.CLERIC] > 0) and (CharHlp.BaseItem(item^.itemType)^.slot = 12)) then
     item^.unidMask := 0;
   ScrollLegible := item^.unidMask = 0;
 end;

@@ -4,7 +4,13 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil;
+uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil;
+
+{ BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
+{$I ..\OBJ\BUILDID.INC}
+
+const
+  GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';
 
 const
   { CureDisease }
@@ -115,9 +121,9 @@ const
 const
   { CampOrderMenu }
   orderMenus: array[0..1] of String[40] = ('Select Exit', 'Place Exit');
-  { TCharRecord.itemLimits usability bit for each class slot, in classLevels (CLEVEL_) order. The ranger shares the
-    paladin's bit: the item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
-  usabilityBit: array[0..7] of Byte = (
+  { TCharRecord.itemLimits usability bit for each class-level slot (C_Level). The ranger shares the paladin's bit: the
+    item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
+  usabilityBit: array[C_Level.CLERIC..C_Level.MONK] of Byte = (
     1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
   { Training-hall class bits (C_Gbvm.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
     train with fighters; the monk combines two bits. }
@@ -1210,24 +1216,29 @@ const
     (cost: 255; clearance: 0; blocking: 2; tileId: 33));
   { Footprint cells of an icon, by icon size and cell; a negative dx marks an absent cell }
   iconDelta: array[1..4, 0..3] of Types.TIconCoordinateDelta = (
-    ((dx: 0; dy: 0), (dx: -1; dy: -1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
-    ((dx: 0; dy: 0), (dx: 0; dy: 1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
-    ((dx: 0; dy: 0), (dx: 1; dy: 0), (dx: -1; dy: -1), (dx: -1; dy: -1)),
-    ((dx: 0; dy: 0), (dx: 1; dy: 0), (dx: 0; dy: 1), (dx: 1; dy: 1)));
+    ((dx:  0; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
+    ((dx:  0; dy:  0), (dx:  0; dy:  1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
+    ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1)),
+    ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx:  0; dy:  1), (dx:  1; dy:  1)));
   { Effects that leave a creature helpless: Snake Charm, Paralysis, Sleep, Helpless }
   helplessFx: array[1..4] of Byte = (51, 52, 53, 31);
   { Portrait head and body tables }
   { portraitHead -> HEAD DAX ID: SSI's 14 player heads, then the other heads HEAD3.DAX holds, then the heads only the
     other disks hold. New heads go at the end so the numbers saved characters carry keep their faces. }
   headTbl: array[1..41] of Byte = (
-    0, 8, 9, 13, 16, 18, 22, 34, 45, 51, 53, 57, 67, 68,
+     0,  8,  9, 13, 16, 18, 22, 
+    34, 45, 51, 53, 57, 67, 68,
     24, 32, 42, 44, 55, 63, 71,
-    1, 3, 5, 6, 10, 11, 12, 14, 25, 48, 52, 54, 56, 59, 61, 62, 69, 70, 72, 74);
+     1,  3,  5,  6, 10, 11, 12, 
+    14, 25, 48, 52, 54, 56, 59, 
+    61, 62, 69, 70, 72, 74
+  );
   { portraitBody -> BODY DAX ID, extended the same way }
   bodyTbl: array[1..21] of Byte = (
-    1, 2, 3, 4, 7, 8, 18, 24, 26, 33, 35, 37,
-    9, 31, 32, 34,
-    5, 6, 13, 25, 30);
+     1,  2,  3,  4,  7,  8, 18, 
+    24, 26, 33, 35, 37,  9, 31, 
+    32, 34,  5,  6, 13, 25, 30
+  );
   { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
   DISK3_HEADS = 21;
   DISK3_BODIES = 16;
@@ -1735,7 +1746,7 @@ const
 const
   { Class, race and level rules }
   { 60 - THAC0 }
-  thac0Tbl: array[0..7, 0..10] of Byte = (
+  thac0Tbl: array[C_Level.CLERIC..C_Level.MONK, 0..10] of Byte = (
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46),
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46),
     (40, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49),
@@ -1751,36 +1762,55 @@ const
     unidentifiedTail: ($10, $10, $10, $20, $20, $20, $40, $40, $40);
     maxClassLevels: (10, 15, 10, 10, 11, 12, 11, 10));
   defIconCol: array[1..6] of Byte = (1, 2, 3, 4, 6, 7);
-  thiefBase: array[1..9, 1..8] of Byte = (
-    (30, 25, 20, 15, 10, 10, 85, 0),
-    (35, 29, 25, 21, 15, 10, 86, 0),
-    (40, 33, 30, 27, 20, 15, 87, 0),
-    (45, 37, 35, 33, 25, 15, 88, 20),
-    (50, 42, 40, 40, 31, 20, 90, 25),
-    (55, 47, 45, 47, 37, 20, 92, 30),
-    (60, 52, 50, 55, 43, 25, 94, 35),
-    (65, 57, 55, 62, 49, 25, 96, 40),
-    (70, 62, 60, 70, 56, 30, 98, 45));
-  raceAdj: array[1..7, 1..8] of ShortInt = (
-    (0, 10, 15, 0, 0, 0, -10, -5),
-    (5, -5, 0, 5, 10, 5, 0, 0),
-    (0, 5, 10, 5, 5, 10, -15, 0),
-    (10, 0, 0, 0, 5, 0, 0, 0),
-    (5, 5, 5, 10, 15, 5, -15, -5),
-    (-5, 5, 5, 0, 0, 5, 5, -10),
-    (0, 0, 0, 0, 0, 0, 0, 0));
-  dexAdj: array[9..19, 1..5] of ShortInt = (
-    (-15, -10, -10, -20, -10),
-    (-10, -5, -10, -15, -5),
-    (-5, 0, -5, -10, 0),
-    (0, 0, 0, -5, 0),
-    (0, 0, 0, 0, 0),
-    (0, 0, 0, 0, 0),
-    (0, 0, 0, 0, 0),
-    (0, 5, 0, 0, 0),
-    (5, 10, 0, 5, 5),
-    (10, 15, 5, 10, 10),
-    (15, 20, 10, 12, 12));
+  { Base thief abilities by thief level }
+  thiefBase: array[1..9] of Types.TRuleThief = (
+    (pickPockets: 30; openLocks: 25; findTraps: 20; moveSilently: 15; hideShadows: 10;
+     hearNoise: 10; climbWalls: 85; readLanguages: 0),
+    (pickPockets: 35; openLocks: 29; findTraps: 25; moveSilently: 21; hideShadows: 15;
+     hearNoise: 10; climbWalls: 86; readLanguages: 0),
+    (pickPockets: 40; openLocks: 33; findTraps: 30; moveSilently: 27; hideShadows: 20;
+     hearNoise: 15; climbWalls: 87; readLanguages: 0),
+    (pickPockets: 45; openLocks: 37; findTraps: 35; moveSilently: 33; hideShadows: 25;
+     hearNoise: 15; climbWalls: 88; readLanguages: 20),
+    (pickPockets: 50; openLocks: 42; findTraps: 40; moveSilently: 40; hideShadows: 31;
+     hearNoise: 20; climbWalls: 90; readLanguages: 25),
+    (pickPockets: 55; openLocks: 47; findTraps: 45; moveSilently: 47; hideShadows: 37;
+     hearNoise: 20; climbWalls: 92; readLanguages: 30),
+    (pickPockets: 60; openLocks: 52; findTraps: 50; moveSilently: 55; hideShadows: 43;
+     hearNoise: 25; climbWalls: 94; readLanguages: 35),
+    (pickPockets: 65; openLocks: 57; findTraps: 55; moveSilently: 62; hideShadows: 49;
+     hearNoise: 25; climbWalls: 96; readLanguages: 40),
+    (pickPockets: 70; openLocks: 62; findTraps: 60; moveSilently: 70; hideShadows: 56;
+     hearNoise: 30; climbWalls: 98; readLanguages: 45));
+  { Racial thief ability adjustments: dwarf, elf, gnome, half-elf, halfling, half-orc, human }
+  raceAdj: array[1..7] of Types.TRuleThief = (
+    (pickPockets: 0; openLocks: 10; findTraps: 15; moveSilently: 0; hideShadows: 0;
+     hearNoise: 0; climbWalls: -10; readLanguages: -5),
+    (pickPockets: 5; openLocks: -5; findTraps: 0; moveSilently: 5; hideShadows: 10;
+     hearNoise: 5; climbWalls: 0; readLanguages: 0),
+    (pickPockets: 0; openLocks: 5; findTraps: 10; moveSilently: 5; hideShadows: 5;
+     hearNoise: 10; climbWalls: -15; readLanguages: 0),
+    (pickPockets: 10; openLocks: 0; findTraps: 0; moveSilently: 0; hideShadows: 5;
+     hearNoise: 0; climbWalls: 0; readLanguages: 0),
+    (pickPockets: 5; openLocks: 5; findTraps: 5; moveSilently: 10; hideShadows: 15;
+     hearNoise: 5; climbWalls: -15; readLanguages: -5),
+    (pickPockets: -5; openLocks: 5; findTraps: 5; moveSilently: 0; hideShadows: 0;
+     hearNoise: 5; climbWalls: 5; readLanguages: -10),
+    (pickPockets: 0; openLocks: 0; findTraps: 0; moveSilently: 0; hideShadows: 0;
+     hearNoise: 0; climbWalls: 0; readLanguages: 0));
+  { Dexterity thief ability adjustments for Dexterity 9..19 }
+  dexAdj: array[9..19] of Types.TRuleThiefDex = (
+    (pickPockets: -15; openLocks: -10; findTraps: -10; moveSilently: -20; hideShadows: -10),
+    (pickPockets: -10; openLocks:  -5; findTraps: -10; moveSilently: -15; hideShadows:  -5),
+    (pickPockets:  -5; openLocks:   0; findTraps:  -5; moveSilently: -10; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:  -5; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   0; openLocks:   5; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   5; openLocks:  10; findTraps:   0; moveSilently:   5; hideShadows:   5),
+    (pickPockets:  10; openLocks:  15; findTraps:   5; moveSilently:  10; hideShadows:  10),
+    (pickPockets:  15; openLocks:  20; findTraps:  10; moveSilently:  12; hideShadows:  12));
   { Racial ability limits, by race; the strength columns are by gender. Human women reach 18/00 like human men. }
   dsMinimumMaximumStatistics: array[1..7] of Types.TRuleRace = (
     (strMin: (8, 8); strMax: (18, 17); excMax: (99, 0); intMin: 3; intMax: 18;
@@ -1797,42 +1827,71 @@ const
      wisMin: 3; wisMax: 14; dexMin: 3; dexMax: 17; conMin: 13; conMax: 19; chaMin: 3; chaMax: 12),
     (strMin: (3, 3); strMax: (18, 18); excMax: (100, 100); intMin: 3; intMax: 18;
      wisMin: 3; wisMax: 18; dexMin: 3; dexMax: 18; conMin: 3; conMax: 18; chaMin: 3; chaMax: 18));
-  { Column zero is a count; subsequent columns are class IDs, in the order the class menu lists them. Humans take
+  { The classes each race can take, in the order the class menu lists them. Humans take
     paladins and rangers, and half-elves rangers and cleric/rangers, in Curse's order. }
-  classesByRace: array[1..7, 0..13] of ShortInt = (
-    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (7, 2, 5, 6, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0),
-    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (13, 0, 2, 5, 6, 4, 8, 10, 9, 11, 13, 14, 15, 16),
-    (3, 2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (6, 0, 2, 6, 8, 12, 14, 0, 0, 0, 0, 0, 0, 0),
-    (6, 0, 2, 5, 6, 3, 4, 0, 0, 0, 0, 0, 0, 0));
+  classesByRace: array[1..7] of Types.TRuleRaceClasses = (
+    { dwarf }
+    (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { elf }
+    (count: 7; classes: (2, 5, 6, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0)),
+    { gnome }
+    (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { half-elf }
+    (count: 13; classes: (0, 2, 5, 6, 4, 8, 10, 9, 11, 13, 14, 15, 16)),
+    { halfling }
+    (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { half-orc }
+    (count: 6; classes: (0, 2, 6, 8, 12, 14, 0, 0, 0, 0, 0, 0, 0)),
+    { human }
+    (count: 6; classes: (0, 2, 5, 6, 3, 4, 0, 0, 0, 0, 0, 0, 0)));
   { The classLevels indexes each class trains, in the order its name gives them; -1 fills a shorter list. }
-  classParts: array[C_Class.CLERIC..C_Class.MAGE_THIEF, 1..3] of ShortInt = (
-    (0, -1, -1), (1, -1, -1), (2, -1, -1), (3, -1, -1), (4, -1, -1), (5, -1, -1), (6, -1, -1), (7, -1, -1),
-    (0, 2, -1), (0, 2, 5), (0, 4, -1), (0, 5, -1), (0, 6, -1), (2, 5, -1), (2, 6, -1), (2, 5, 6), (5, 6, -1));
+  classParts: array[C_Class.CLERIC..C_Class.MAGE_THIEF] of Types.TRuleClassParts = (
+    (first: 0; second: -1; third: -1), { cleric }
+    (first: 1; second: -1; third: -1), { druid }
+    (first: 2; second: -1; third: -1), { fighter }
+    (first: 3; second: -1; third: -1), { paladin }
+    (first: 4; second: -1; third: -1), { ranger }
+    (first: 5; second: -1; third: -1), { magic-user }
+    (first: 6; second: -1; third: -1), { thief }
+    (first: 7; second: -1; third: -1), { monk }
+    (first: 0; second: 2; third: -1), { cleric/fighter }
+    (first: 0; second: 2; third: 5), { cleric/fighter/magic-user }
+    (first: 0; second: 4; third: -1), { cleric/ranger }
+    (first: 0; second: 5; third: -1), { cleric/magic-user }
+    (first: 0; second: 6; third: -1), { cleric/thief }
+    (first: 2; second: 5; third: -1), { fighter/magic-user }
+    (first: 2; second: 6; third: -1), { fighter/thief }
+    (first: 2; second: 5; third: 6), { fighter/magic-user/thief }
+    (first: 5; second: 6; third: -1)); { magic-user/thief }
   { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
-  raceAbilityAdj: array[C_Race.DWARF..C_Race.HUMAN, C_Abil.STRENGTH..C_Abil.CHARISMA] of ShortInt = (
-    (0, 0, 0, 0, 1, -1),
-    (0, 0, 0, 1, -1, 0),
-    (0, 0, 0, 0, 0, 0),
-    (0, 0, 0, 0, 0, 0),
-    (-1, 0, 0, 1, 0, 0),
-    (1, 0, 0, 0, 1, -2),
-    (0, 0, 0, 0, 0, 0));
+  raceAbilityAdj: array[C_Race.DWARF..C_Race.HUMAN] of Types.TRuleAbilities = (
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -1), { dwarf }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 1; constitution: -1; charisma: 0), { elf }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { gnome }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { half-elf }
+    (strength: -1; intelligence: 0; wisdom: 0; dexterity: 1; constitution: 0; charisma: 0), { halfling }
+    (strength: 1; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -2), { half-orc }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0)); { human }
   { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
     and -1 a class the race cannot take. A fighter's or ranger's is the best case, with Strength 18. Half-orcs are not
     offered at creation, so their row is empty. }
-  raceMaxLevel: array[C_Race.DWARF..C_Race.HUMAN, C_Class.LEVEL_CLERIC..C_Class.LEVEL_MONK] of ShortInt = (
-    (-1, -1, 9, -1, -1, -1, 0, -1),
-    (-1, -1, 7, -1, -1, 11, 0, -1),
-    (-1, -1, 6, -1, -1, -1, 0, -1),
-    (5, -1, 8, -1, 8, 8, 0, -1),
-    (-1, -1, 6, -1, -1, -1, 0, -1),
-    (-1, -1, -1, -1, -1, -1, -1, -1),
-    (0, -1, 0, 0, 0, 0, 0, -1));
+  raceMaxLevel: array[C_Race.DWARF..C_Race.HUMAN] of Types.TRuleClassLevels = (
+    { dwarf }
+    (cleric: -1; druid: -1; fighter: 9; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
+    { elf }
+    (cleric: -1; druid: -1; fighter: 7; paladin: -1; ranger: -1; mage: 11; thief: 0; monk: -1),
+    { gnome }
+    (cleric: -1; druid: -1; fighter: 6; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
+    { half-elf }
+    (cleric: 5; druid: -1; fighter: 8; paladin: -1; ranger: 8; mage: 8; thief: 0; monk: -1),
+    { halfling }
+    (cleric: -1; druid: -1; fighter: 6; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
+    { half-orc }
+    (cleric: -1; druid: -1; fighter: -1; paladin: -1; ranger: -1; mage: -1; thief: -1; monk: -1),
+    { human }
+    (cleric: 0; druid: -1; fighter: 0; paladin: 0; ranger: 0; mage: 0; thief: 0; monk: -1));
   { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
-  dsStartingAge: array[1..7, 0..7] of Types.TRuleAge = (
+  dsStartingAge: array[1..7, C_Class.CLERIC..C_Class.MONK] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
      (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
@@ -1854,39 +1913,105 @@ const
     ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
      (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 4),
      (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
-  { age thresholds in years }
-  ageCat: array[1..7, 1..5] of Word = (
-    (50, 150, 250, 350, 450),
-    (175, 550, 875, 1200, 1600),
-    (90, 300, 450, 600, 750),
-    (40, 100, 175, 250, 325),
-    (33, 68, 101, 144, 199),
-    (15, 30, 45, 60, 80),
-    (20, 40, 60, 90, 120));
-  { Str Int Wis Dex Con Cha }
-  classMin: array[0..16, 0..5] of Byte = (
-    (6, 6, 9, 0, 0, 0), (0, 0, 12, 0, 0, 15), (9, 0, 6, 6, 7, 0),
-    (12, 9, 13, 0, 9, 17), (13, 13, 14, 0, 14, 0), (0, 9, 6, 6, 0, 0),
-    (6, 6, 0, 9, 0, 0), (15, 0, 15, 15, 11, 0), (9, 0, 9, 0, 0, 0),
-    (9, 9, 9, 0, 0, 0), (13, 13, 14, 0, 14, 0), (0, 9, 9, 0, 0, 0),
-    (0, 0, 9, 9, 0, 0), (9, 9, 0, 0, 0, 0), (9, 0, 0, 9, 0, 0),
-    (9, 9, 0, 9, 0, 0), (0, 9, 0, 9, 0, 0));
-  { Column zero is a count; subsequent columns are alignment IDs }
-  alignByClass: array[0..16, 0..9] of ShortInt = (
-    (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (5, 1, 3, 4, 5, 7, 0, 0, 0, 0),
-    (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    (3, 0, 3, 6, 0, 0, 0, 0, 0, 0), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    (7, 1, 2, 3, 4, 5, 7, 8, 0, 0), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    (3, 0, 3, 6, 0, 0, 0, 0, 0, 0), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    (9, 0, 1, 2, 3, 4, 5, 6, 7, 8), (9, 0, 1, 2, 3, 4, 5, 6, 7, 8),
-    (7, 1, 2, 3, 4, 5, 7, 8, 0, 0), (7, 1, 2, 3, 4, 5, 7, 8, 0, 0),
-    (7, 1, 2, 3, 4, 5, 7, 8, 0, 0));
+  { The oldest age in each age category, in years, by race }
+  ageCat: array[1..7] of Types.TRuleAgeCategories = (
+    (youngAdult: 50; mature: 150; middleAged: 250; old: 350; venerable: 450), { dwarf }
+    (youngAdult: 175; mature: 550; middleAged: 875; old: 1200; venerable: 1600), { elf }
+    (youngAdult: 90; mature: 300; middleAged: 450; old: 600; venerable: 750), { gnome }
+    (youngAdult: 40; mature: 100; middleAged: 175; old: 250; venerable: 325), { half-elf }
+    (youngAdult: 33; mature: 68; middleAged: 101; old: 144; venerable: 199), { halfling }
+    (youngAdult: 15; mature: 30; middleAged: 45; old: 60; venerable: 80), { half-orc }
+    (youngAdult: 20; mature: 40; middleAged: 60; old: 90; venerable: 120)); { human }
+  { Ability minimums by class }
+  classMin: array[0..16] of Types.TRuleAbilities = (
+    { cleric }
+    (strength: 6; intelligence: 6; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
+    { druid }
+    (strength: 0; intelligence: 0; wisdom: 12; dexterity: 0; constitution: 0; charisma: 15),
+    { fighter }
+    (strength: 9; intelligence: 0; wisdom: 6; dexterity: 6; constitution: 7; charisma: 0),
+    { paladin }
+    (strength: 12; intelligence: 9; wisdom: 13; dexterity: 0; constitution: 9; charisma: 17),
+    { ranger }
+    (strength: 13; intelligence: 13; wisdom: 14; dexterity: 0; constitution: 14; charisma: 0),
+    { magic-user }
+    (strength: 0; intelligence: 9; wisdom: 6; dexterity: 6; constitution: 0; charisma: 0),
+    { thief }
+    (strength: 6; intelligence: 6; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
+    { monk }
+    (strength: 15; intelligence: 0; wisdom: 15; dexterity: 15; constitution: 11; charisma: 0),
+    { cleric/fighter }
+    (strength: 9; intelligence: 0; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
+    { cleric/fighter/magic-user }
+    (strength: 9; intelligence: 9; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
+    { cleric/ranger }
+    (strength: 13; intelligence: 13; wisdom: 14; dexterity: 0; constitution: 14; charisma: 0),
+    { cleric/magic-user }
+    (strength: 0; intelligence: 9; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
+    { cleric/thief }
+    (strength: 0; intelligence: 0; wisdom: 9; dexterity: 9; constitution: 0; charisma: 0),
+    { fighter/magic-user }
+    (strength: 9; intelligence: 9; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0),
+    { fighter/thief }
+    (strength: 9; intelligence: 0; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
+    { fighter/magic-user/thief }
+    (strength: 9; intelligence: 9; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
+    { magic-user/thief }
+    (strength: 0; intelligence: 9; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0));
+  { The alignments each class can take, in the order the alignment menu lists them }
+  alignByClass: array[0..16] of Types.TRuleClassAlignments = (
+    { cleric }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { druid }
+    (count: 5; alignments: (C_Align.LN, C_Align.NG, C_Align.TN, C_Align.NE, C_Align.CN, 0, 0, 0, 0)),
+    { fighter }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { paladin }
+    (count: 1; alignments: (C_Align.LG, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { ranger }
+    (count: 3; alignments: (C_Align.LG, C_Align.NG, C_Align.CG, 0, 0, 0, 0, 0, 0)),
+    { magic-user }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { thief }
+    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
+                            C_Align.CN, C_Align.CE, 0, 0)),
+    { monk }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { cleric/fighter }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { cleric/fighter/magic-user }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { cleric/ranger }
+    (count: 3; alignments: (C_Align.LG, C_Align.NG, C_Align.CG, 0, 0, 0, 0, 0, 0)),
+    { cleric/magic-user }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { cleric/thief }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { fighter/magic-user }
+    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
+                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    { fighter/thief }
+    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
+                            C_Align.CN, C_Align.CE, 0, 0)),
+    { fighter/magic-user/thief }
+    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
+                            C_Align.CN, C_Align.CE, 0, 0)),
+    { magic-user/thief }
+    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
+                            C_Align.CN, C_Align.CE, 0, 0)));
   conBonusTbl: array[3..20] of ShortInt = (
     -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2);
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
     at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
-  dsExperienceSpellsClass: array[0..7] of Types.TRuleXp = (
+  dsExperienceSpellsClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleXp = (
     (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
      slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
@@ -1903,37 +2028,92 @@ const
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))));
-  dsStartingGoldClass: array[0..7] of Types.TRuleGold = (
+  dsStartingGoldClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleGold = (
     (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
     (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
-  { ClassCal: Saving throws indexed by class-level slot (the CLEVEL_ order), level 1..9 and save column 0..4. The
-    paladin's row is the fighter's less 2. }
-  { class, level, save }
-  saveTbl: array[0..7, 1..9, 0..4] of Byte = (
-    ((10, 13, 14, 16, 15), (10, 13, 14, 16, 15), (10, 13, 14, 16, 15),
-     (9, 12, 13, 15, 14), (9, 12, 13, 15, 14), (9, 12, 13, 15, 14),
-     (7, 10, 11, 13, 12), (7, 10, 11, 13, 12), (7, 10, 11, 13, 12)),
-    ((10, 13, 14, 16, 15), (10, 13, 14, 16, 15), (10, 13, 14, 16, 15),
-     (9, 12, 13, 15, 14), (9, 12, 13, 15, 14), (9, 12, 13, 15, 14),
-     (7, 10, 11, 13, 12), (7, 10, 11, 13, 12), (7, 10, 11, 13, 12)),
-    ((14, 15, 16, 17, 17), (14, 15, 16, 17, 17), (13, 14, 15, 16, 16),
-     (13, 14, 15, 16, 16), (11, 12, 13, 13, 14), (11, 12, 13, 13, 14),
-     (10, 11, 12, 12, 13), (10, 11, 12, 12, 13), (8, 9, 10, 9, 11)),
-    ((12, 13, 14, 15, 15), (12, 13, 14, 15, 15), (11, 12, 13, 14, 14),
-     (11, 12, 13, 14, 14), (9, 10, 11, 11, 12), (9, 10, 11, 11, 12),
-     (8, 9, 10, 10, 11), (8, 9, 10, 10, 11), (6, 7, 8, 7, 9)),
-    ((14, 15, 16, 17, 17), (14, 15, 16, 17, 17), (13, 14, 15, 16, 16),
-     (13, 14, 15, 16, 16), (11, 12, 13, 13, 14), (11, 12, 13, 13, 14),
-     (10, 11, 12, 12, 13), (10, 11, 12, 12, 13), (8, 9, 10, 9, 11)),
-    ((14, 13, 11, 15, 12), (14, 13, 11, 15, 12), (14, 13, 11, 15, 12),
-     (14, 13, 11, 15, 12), (14, 13, 11, 15, 12), (13, 11, 9, 13, 10),
-     (13, 11, 9, 13, 10), (13, 11, 9, 13, 10), (13, 11, 9, 13, 10)),
-    ((13, 12, 14, 16, 15), (13, 12, 14, 16, 15), (13, 12, 14, 16, 15),
-     (13, 12, 14, 16, 15), (12, 11, 12, 15, 13), (12, 11, 12, 15, 13),
-     (12, 11, 12, 15, 13), (12, 11, 12, 15, 13), (11, 10, 10, 14, 11)),
-    ((13, 12, 14, 16, 15), (13, 12, 14, 16, 15), (13, 12, 14, 16, 15),
-     (13, 12, 14, 16, 15), (12, 11, 12, 15, 13), (12, 11, 12, 15, 13),
-     (12, 11, 12, 15, 13), (12, 11, 12, 15, 13), (11, 10, 10, 14, 11)));
+  { ClassCal: Saving throws indexed by class-level slot (C_Level), level 1..9 and save column 0..4. The paladin's row
+    is the fighter's less 2. }
+  saveTbl: array[C_Level.CLERIC..C_Level.MONK, 1..9] of Types.TRuleSaves = (
+    { cleric }
+    ((paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12)),
+    { druid }
+    ((paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12)),
+    { fighter }
+    ((paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 9; spell: 11)),
+    { paladin }
+    ((paralyze: 12; petrify: 13; wand: 14; breath: 15; spell: 15),
+     (paralyze: 12; petrify: 13; wand: 14; breath: 15; spell: 15),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 14; spell: 14),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 14; spell: 14),
+     (paralyze: 9; petrify: 10; wand: 11; breath: 11; spell: 12),
+     (paralyze: 9; petrify: 10; wand: 11; breath: 11; spell: 12),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 10; spell: 11),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 10; spell: 11),
+     (paralyze: 6; petrify: 7; wand: 8; breath: 7; spell: 9)),
+    { ranger }
+    ((paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 9; spell: 11)),
+    { magic-user }
+    ((paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10)),
+    { thief }
+    ((paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 11; petrify: 10; wand: 10; breath: 14; spell: 11)),
+    { monk }
+    ((paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 11; petrify: 10; wand: 10; breath: 14; spell: 11)));
 
 implementation
 
