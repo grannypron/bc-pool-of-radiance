@@ -535,7 +535,7 @@ begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
     msg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
   end else
-    msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':';
+    msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
   if savedGame then
     ext := '.sav'
   else

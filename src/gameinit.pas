@@ -141,7 +141,7 @@ begin
   for GDVars.gi2 := 0 to 11 do
     MapTiles.LoadIconAnim('COMSPR', GDVars.gi2, GDVars.gi2 + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
-  GDVars.itemsOk := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':',
+  GDVars.itemsOk := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
                                         #0, GDVars.itemsFile);
   Reset(GDVars.itemsFile, 1);
   Seek(GDVars.itemsFile, 2);
