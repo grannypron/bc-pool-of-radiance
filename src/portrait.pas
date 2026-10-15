@@ -215,20 +215,14 @@ begin
 end;
 
 { Draw a bordered window at the top right, then the current character's portrait in it, its head and body numbers mapped
-  through GDConsts.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. Note: s1 and s2 are built
-  and never used. }
+  through GDConsts.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. }
 procedure DisplayCharPortrait;
-var
-  s1: String[3];
-  s2: String[3];
 begin
   with GDVars.curChar^ do
     if (portraitHead = 0) or (portraitBody = 0) or (portraitHead > SizeOf(GDConsts.headTbl)) or
         (portraitBody > SizeOf(GDConsts.bodyTbl)) then Exit;
   Border.DrawWindow(28, 1, 38, 11, 0, Black, '');
   with GDVars.curChar^ do begin
-    Str(LongInt(GDConsts.headTbl[portraitHead]), s1);
-    Str(LongInt(GDConsts.bodyTbl[portraitBody]), s2);
     Portrait.LoadPortraitBufs(GDConsts.headTbl[portraitHead], GDConsts.bodyTbl[portraitBody]);
     Portrait.DisplayPortraitBufs(28, 1, True);
   end;

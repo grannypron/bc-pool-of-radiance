@@ -153,18 +153,17 @@ begin
   Inc(GDVars.eclIp);
 end;
 
-{ Note: the locals are named backwards: vHi holds the variable's lower byte and vLo its upper byte }
 function GetEclVar(idx: ShortInt): Word;
 var
-  vHi: Byte;
-  vLo: Byte;
+  lo: Byte;
+  hi: Byte;
 begin
-  vHi := GDVars.dsGbvmLowerByte[idx];
-  vLo := GDVars.dsGbvmUpperByte[idx];
+  lo := GDVars.dsGbvmLowerByte[idx];
+  hi := GDVars.dsGbvmUpperByte[idx];
   case GDVars.dsGbvmType[idx] of
-    0: GetEclVar := vHi;
-    1, 3, $80: GetEclVar := EclMenu.ReadGbvm(vLo * 256 + vHi);
-    2, $81: GetEclVar := EclMenu.CombineBytesToWord(vHi, vLo);
+    0: GetEclVar := lo;
+    1, 3, $80: GetEclVar := EclMenu.ReadGbvm(hi * 256 + lo);
+    2, $81: GetEclVar := EclMenu.CombineBytesToWord(lo, hi);
   end;
 end;
 

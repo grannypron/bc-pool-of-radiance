@@ -1981,9 +1981,9 @@ begin
       next := q^.next;
       if q^.id = C_Effect.STRENGTH then begin
         FxEngine.StrengthEffectToStrength(q, base, exc);
-        { Note: q^.id < $80 is always true here, since q^.id is C_Effect.STRENGTH. The $80 flag is kept in the strength
-          byte, which EffExtraStr tests }
-        if (isOgre and (q^.id < $80)) or ((base = 18) and (exc = 100) and (isOgre = False)) then begin
+        { SSI tested q^.id < $80 here, always true for C_Effect.STRENGTH: the $80 flag is in the strength byte, which
+          EffExtraStr tests. What the test came to is kept. }
+        if isOgre or ((base = 18) and (exc = 100)) then begin
           FxEngine.RemoveEffect(creature, C_Effect.STRENGTH, q);
           found := True;
         end;

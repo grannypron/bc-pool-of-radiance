@@ -454,7 +454,7 @@ begin
 end;
 
 { Build the money menu (copper first), prompt for an amount and take it from the treasure pool; repeat while money
-  remains. The prompt limit is the available amount, at most 65535. Note: cnt is never initialised or read. }
+  remains. The prompt limit is the available amount, at most 65535. }
 procedure TakeMoneyMenu;
 var
   i: ShortInt;
@@ -462,7 +462,6 @@ var
   p: Types.PItemRec;
   sel: Types.PItemRec;
   save: Types.PItemRec;
-  cnt: Word;
   idx: Integer;
   numStr: String;
   n: Word;
@@ -478,7 +477,6 @@ begin
     sel := nil;
     for i := C_Money.JEWELRY downto C_Money.COPPER do
       if GDVars.treasureMoney[i] > 0 then begin
-        Inc(cnt);
         if p = nil then begin
           GetMem(p, SizeOf(Types.TMenuNode));
           p^.next := nil;
