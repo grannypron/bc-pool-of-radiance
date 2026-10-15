@@ -1,0 +1,25 @@
+# Load saved game A, look at the party, camp, save into D with a description, and compare the files written.
+boot NORAND
+ignore POOL OF RADIANCE V
+# the save menu shows each file's time, which differs from run to run
+ignore \d{4}/\d\d/\d\d \d\d:\d\d
+wait RADIANCE
+press l
+checkpoint load-menu
+press a ret
+wait AREA
+checkpoint loaded
+press v
+checkpoint view
+press m
+checkpoint more-info
+press e esc
+wait AREA
+press e
+wait CAMP
+press s d ret
+checkpoint save-popup
+press t e s t ret o
+wait QUIT
+press n
+saves after-save

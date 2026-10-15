@@ -29,3 +29,6 @@ capture/
 
 # Release zips made by package.sh
 /dist/
+
+# Golden builds the behaviour regression compares against (tests/scenarios; goldbox-player tools/regress.py)
+/.golden/

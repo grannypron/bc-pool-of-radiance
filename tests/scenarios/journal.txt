@@ -1,0 +1,11 @@
+# The journal, from the map menu: its list and the first entry.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press l a ret
+wait AREA
+press j
+checkpoint journal
+press ret
+checkpoint entry
+press esc

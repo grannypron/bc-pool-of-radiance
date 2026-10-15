@@ -1,0 +1,20 @@
+# Create a human paladin with fixed dice, name him, keep his portrait and icon, and add him to the party.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press c
+checkpoint races
+press end end end end end ret
+checkpoint genders
+press ret
+checkpoint classes
+press end end end end ret ret
+checkpoint rolled
+press y a r n o l d ret
+checkpoint portrait
+press k y
+checkpoint icon
+press k y
+wait RADIANCE
+press a home a e
+checkpoint party

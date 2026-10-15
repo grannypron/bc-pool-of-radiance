@@ -1,0 +1,35 @@
+# Podal Plaza (save I): camp and rest three times, which under fixed dice brings orcs; fight them under Quick, then
+# take the loot and look at the statistics.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press l i ret
+wait AREA
+checkpoint podal-plaza
+press e
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait CAMP
+press r d i i i i i r
+wait QUICK 60
+checkpoint encounter
+press alt-q
+wait CONTINUE 180
+checkpoint won
+press n
+wait ENTER 60
+press ret
+wait TAKE 60
+checkpoint loot
+press t
+checkpoint take
+# the silver's amount, typed
+press ret 6 0 0 ret
+wait VIEW POOL
+checkpoint taken
+press v m s
+checkpoint stats
+press g
+checkpoint game-stats
