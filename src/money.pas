@@ -289,8 +289,8 @@ begin
   end;
 end;
 
-{ Count the creatures with npc = 0 or C_Npc.ANIMATED_PC, the ones PoolMoney empties. }
-function CountPoolers: Byte;
+{ Count the creatures ShareMoney's first pass pays: those without C_Npc.FLAG, hired NPCs among them. }
+function CountSharers: Byte;
 var
   p: Types.PCharRecord;
   n: Byte;
@@ -298,19 +298,20 @@ begin
   p := GDVars.creatureList;
   n := 0;
   while p <> nil do begin
-    if (p^.npc = 0) or (p^.npc = C_Npc.ANIMATED_PC) then
+    if not CharHlp.IsNpc(p) then
       Inc(n);
     p := p^.nextCharAddr;
   end;
-  CountPoolers := n;
+  CountSharers := n;
 end;
 
-{ Split the treasure pool. Each type's share is the pool amount div CountPoolers, with the remainder held back. Pass 1
+{ Split the treasure pool. Each type's share is the pool amount div CountSharers, with the remainder held back. Pass 1
   walks the creatures with C_Npc.FLAG clear and, from jewelry (6) down to copper (0), gives each its share (or as much
   as fits, the rest joining the remainder) plus one remainder coin when the whole outstanding remainder would fit. Pass
   2 hands out the leftovers to every creature in list order up to capacity, and any excess returns to the treasure pool.
-  Shares and remainders are LongInt, as the pool is; with no creature to count, the pool is left as it is.
-  Note: the divisor counts C_Npc.ANIMATED_PC creatures, which pass 1 skips, and not npc 1..$7F, which pass 1 pays. }
+  Shares and remainders are LongInt, as the pool is; with no creature to count, the pool is left as it is. SSI divided
+  by the creatures PoolMoney empties (npc 0 or C_Npc.ANIMATED_PC), so with a hired NPC along more shares were paid than
+  the pool held. }
 procedure ShareMoney;
 var
   p: Types.PCharRecord;
@@ -323,7 +324,7 @@ var
 begin
   p := GDVars.creatureList;
   done := False;
-  cnt := Money.CountPoolers;
+  cnt := Money.CountSharers;
   if cnt = 0 then Exit;
   FillChar(share, SizeOf(share), 0);
   FillChar(rem, SizeOf(rem), 0);
