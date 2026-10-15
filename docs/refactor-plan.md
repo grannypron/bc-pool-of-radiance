@@ -110,6 +110,10 @@ cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's gol
   layouts and the party display. Frees resident memory; measure overlay loads with Ctrl-Y.
 - **One typed view per shared global.** The wall cache is overlaid three ways, the icon animations two, `displayMode`
   five times. One view in `Types`; merge the duplicate zone pointer types. Save layout unchanged.
+  **Done**: `videoMode`, `treasureMoney`, `dsIconAnimation`, the wall-set cache, `animData` (one `TAnimRec`),
+  `effectFns`, the zones (Session and nine zone types gone; C_Gbvm names for the raw offsets) and four flags are
+  declared with their types in `GDVars`. Left: `spellFps` (two procedure types), View3D's two views of `wallGfx`,
+  Money's of the random-item templates.
 - **The interpreter**: the opcode dispatcher in its own unit; `EclMenu` split into variable access, game memory and
   menus; `Magic` and `EffHndlr` grouped by family.
 - **SSI quirks**: each `Note:` is fixed or labelled, one issue each.
