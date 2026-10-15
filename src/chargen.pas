@@ -214,7 +214,7 @@ begin
                end;
              end;
         { free training, turned on and off as in Curse }
-        'J': if ParamStr(1) = 'STING' then
+        'J': if GDVars.stingArg then
              begin
                GDVars.stingMode := Ord(GDVars.stingMode = 0);
                if GDVars.stingMode <> 0 then

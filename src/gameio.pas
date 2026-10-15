@@ -103,7 +103,7 @@ begin
     if @saveSettings <> nil then
       saveSettings;
   end;
-  if ParamStr(1) = 'STING' then begin
+  if GDVars.stingArg then begin
     if key = #4 then GDVars.stingHpFlag := Ord(GDVars.stingHpFlag = 0);
     if key = #3 then GameIo.ExitGame;
     { Ctrl-L: the script trace log, Curse's Ctrl-D (here Ctrl-D stays the hit-point pop-up) }

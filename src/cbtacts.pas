@@ -1847,7 +1847,7 @@ var
   slot: Byte;
 begin
   StingVictoryCheat := False;
-  if ParamStr(1) <> 'STING' then
+  if not GDVars.stingArg then
     Exit;
   StingVictoryCheat := True;
   CharHlp.PrintBottomLine('The Gods intervene!');

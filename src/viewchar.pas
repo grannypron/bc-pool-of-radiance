@@ -637,13 +637,13 @@ begin
         GDVars.dsRedrawInventoryMenuFlag := 0;
       end;
       { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
-      if ParamStr(1) = 'STING' then
+      if GDVars.stingArg then
         MenuCore.extraKeys := 'V';
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
       if sel <> nil then
         case ch of
-          'V': if ParamStr(1) = 'STING' then begin
+          'V': if GDVars.stingArg then begin
                  ViewChar.ViewItemDetail(sel);
                  needRedraw := True;
                end;

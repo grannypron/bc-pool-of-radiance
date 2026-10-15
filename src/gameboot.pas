@@ -70,6 +70,7 @@ end;
 
 { Game startup runs through this unit's initialization section. }
 begin
+  GDVars.stingArg := ParamStr(1) = 'STING';
   DaxIo.OverlayPrompt;
   OvrInit('GAME.OVR');
   GDVars.ovrLoads := 0;

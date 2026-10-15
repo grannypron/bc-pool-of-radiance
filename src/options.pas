@@ -330,7 +330,7 @@ var
   n: Byte;
 begin
   n := 0;
-  if ParamStr(1) = 'STING' then begin
+  if GDVars.stingArg then begin
     Inc(n);
     notes[n] := 'STING ';
   end;
