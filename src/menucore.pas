@@ -41,9 +41,10 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
   is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
   Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
-  keypad scan codes, all with ext set. A nonzero menuAuto.timeout returns menuAuto.key once that many ticks pass after
-  the last animation frame change. The picture animates when animate is set or the GBVM menuAnimation flag is nonzero
-  (that flag also advances a frame every pass and is cleared on exit); ext is copied to GDVars.extFlag. }
+  keypad scan codes, all with ext set. A nonzero GDVars.dsMenuAutoAnswer.timeout returns GDVars.dsMenuAutoAnswer.key
+  once that many ticks pass after the last animation frame change. The picture animates when animate is set or the GBVM
+  menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit); ext is copied to
+  GDVars.extFlag. }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -71,8 +72,6 @@ implementation
 
 uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
 
-var
-  menuAuto: Types.TMenuAuto absolute GDVars.dsMenuAutoAnswer;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -217,9 +216,9 @@ begin
         frameTick := TextRend.GetTicks;
       end;
     end;
-    if (menuAuto.timeout > 0)
-       and (TextRend.GetTicks - frameTick >= menuAuto.timeout) then begin
-      ch := menuAuto.key;
+    if (GDVars.dsMenuAutoAnswer.timeout > 0)
+       and (TextRend.GetTicks - frameTick >= GDVars.dsMenuAutoAnswer.timeout) then begin
+      ch := GDVars.dsMenuAutoAnswer.key;
       done := True;
     end else if KeyPressed then begin
       ch := GameIo.ReadGameKey;

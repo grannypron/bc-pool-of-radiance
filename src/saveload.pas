@@ -525,7 +525,7 @@ begin
     ext := '.sav'
   else
     ext := '.cha';
-  found := DaxIo.OpenWithRetry(name + ext, msg, #0, f);
+  found := DaxIo.OpenWithRetry(name + ext, msg, False, f);
   res := 0;
   BlockRead(f, creature^, SizeOf(Types.TCharRecord), res);
   whole := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
@@ -539,7 +539,7 @@ begin
   if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
-    found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
+    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, f);
     item := nil;
     whole := True;
     while whole and not Eof(f) do begin
@@ -560,7 +560,7 @@ begin
     Close(f);
   end;
   if DaxIo.FileExists(name + '.spc') then begin
-    found := DaxIo.OpenWithRetry(name + '.spc', msg, #0, f);
+    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, f);
     effect := nil;
     whole := True;
     while whole and not Eof(f) do begin
@@ -624,7 +624,7 @@ begin
     end;
   end;
   FreeMem(data, size);
-  GDVars.dsSuppressingInsertDiskFlag := 1;
+  GDVars.dsSuppressingInsertDiskFlag := True;
   DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
     if size >= SizeOf(Types.TEffectRec) then begin
@@ -661,7 +661,7 @@ begin
     end;
     FreeMem(data, size);
   end;
-  GDVars.dsSuppressingInsertDiskFlag := 0;
+  GDVars.dsSuppressingInsertDiskFlag := False;
 end;
 
 procedure AddCreatureToParty(id: Byte);
@@ -754,7 +754,7 @@ var
   nChars: Byte;
   found: Boolean;
 begin
-  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveLoad.SaveDiskMsg, #1, f);
+  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveLoad.SaveDiskMsg, True, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin

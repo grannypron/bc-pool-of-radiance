@@ -1970,7 +1970,7 @@ begin
   GDVars.spellFps[65] := @Magic.WandMagicMissilesHandler;
   GDVars.spellFps[66] := @Magic.UnusedSpellHandler;
   GDVars.spellFps[67] := @Magic.ManualBodilyHealthHandler;
-  GDVars.effectFns[88] := @Magic.DragonBreathHandler;
+  GDVars.effectFns[88] := Magic.DragonBreathHandler;
 end;
 
 end.

@@ -120,7 +120,7 @@ var
   { nonzero makes HeapErr force a save; never set }
   heapFailureSaveEnabled: Byte;
   { GameBoot writes 0/1, Intro tests zero }
-  fullIntro: Byte;
+  fullIntro: Boolean;
   { word bank }
   zone0: Types.PZone0State;
   { GBVM zone 1, indexed directly by GBVM address (the zone-1 GBVM_ constants) }
@@ -261,7 +261,7 @@ var
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
   gameDir: String;
   { Flag for suppressing insert disk prompt }
-  dsSuppressingInsertDiskFlag: Byte;
+  dsSuppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
   { Temporary compressed DAX data buffer. }
@@ -377,7 +377,7 @@ var
 var
   { Effect dispatch }
   { effect handlers, indexed by effect id }
-  effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Pointer;
+  effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler;
   { 3D view }
   { shared pointer to wall symbol slices }
   wallGfx: Pointer;
@@ -432,7 +432,7 @@ var
 var
   { Menu auto-answer }
   { MenuCore views the head as Types.TMenuAuto }
-  dsMenuAutoAnswer: array[0..81] of Byte;
+  dsMenuAutoAnswer: Types.TMenuAuto;
   { Spell casting and targeting }
   { Current item used for spell casting. }
   dsCurrentScrollPtr: Types.PItemRec;

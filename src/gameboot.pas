@@ -16,8 +16,6 @@ const
 
 var
   heapEndW: Types.THeapEndW absolute HeapEnd;
-  { POOL.CFG line 5 = 'F' }
-  fullIntro: Boolean absolute GDVars.fullIntro;
   { the overlay manager's own read routine, which CountOvrRead calls }
   ovrRead: OvrReadFunc;
 
@@ -148,8 +146,8 @@ begin
   GDVars.dsSaveDirectory := NormalizePath(GDVars.dsSaveDirectory);
   ReadLn(GDVars.cfgText, GDVars.cfgChar);
   if GDVars.cfgChar = 'F' then
-    fullIntro := True
+    GDVars.fullIntro := True
   else
-    fullIntro := False;
+    GDVars.fullIntro := False;
   Close(GDVars.cfgText);
 end.

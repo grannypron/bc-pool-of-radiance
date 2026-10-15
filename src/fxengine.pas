@@ -138,14 +138,11 @@ implementation
 
 uses Stats, StrUtil;
 
-var
-  effectHandlers: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler
-                             absolute GDVars.effectFns;
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if (effId >= C_Effect.BLESS) and (effId <= C_Effect.RECENT_CURE) then
-    effectHandlers[effId](creature, p, removed);
+    GDVars.effectFns[effId](creature, p, removed);
 end;
 
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);

@@ -97,7 +97,7 @@ begin
   { the title theme plays out by itself, under the credits or the menu }
   SoundDrv.PlayMusic(C_Sound.MUSIC_TITLE);
   Intro.DelayOrKey(5);
-  if GDVars.fullIntro = 0 then begin
+  if not GDVars.fullIntro then begin
     GDVars.gameDir := savedDir;
     Blit.FreePic(pic);
     Exit;

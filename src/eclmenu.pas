@@ -231,7 +231,7 @@ var
   n: Word;
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
-  GDVars.dsSuppressingInsertDiskFlag := 0;
+  GDVars.dsSuppressingInsertDiskFlag := False;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
   if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
@@ -255,7 +255,7 @@ begin
   if sizeRead < 2 then begin
     { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first
       disk that has the block, without the insert-disk prompt }
-    GDVars.dsSuppressingInsertDiskFlag := 1;
+    GDVars.dsSuppressingInsertDiskFlag := True;
     disk := 1;
     while (sizeRead < 2) and (disk <= 8) do begin
       if disk <> GDVars.virtualDisk then begin
@@ -266,7 +266,7 @@ begin
       end;
       Inc(disk);
     end;
-    GDVars.dsSuppressingInsertDiskFlag := 0;
+    GDVars.dsSuppressingInsertDiskFlag := False;
     if sizeRead < 2 then begin
       Str(scriptId, s);
       DaxIo.PromptBox(Yellow, 'Script area ' + s + ' is missing');

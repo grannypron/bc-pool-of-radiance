@@ -114,7 +114,7 @@ begin
   GDVars.partyDefeated := False;
   GDVars.clipFlag := 1;
   GDVars.sprShown := False;
-  GDVars.dsSuppressingInsertDiskFlag := 0;
+  GDVars.dsSuppressingInsertDiskFlag := False;
   GDVars.picArcName[0] := #0;
   GDVars.picArcId := 255;
   GDVars.recentSaved := 0;
@@ -136,7 +136,7 @@ begin
     MapTiles.LoadIconAnim('COMSPR', GDVars.gi2, GDVars.gi2 + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
   GDVars.itemsOk := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
-                                        #0, GDVars.itemsFile);
+                                        False, GDVars.itemsFile);
   Reset(GDVars.itemsFile, 1);
   Seek(GDVars.itemsFile, 2);
   { This asks for 129 records into the 128-entry item table; baseItemsOverflow after it keeps a 129th in bounds. The
