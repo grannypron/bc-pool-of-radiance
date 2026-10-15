@@ -15,6 +15,8 @@ procedure DisplayWildMapView;
 
 implementation
 
+uses Blit, MapTiles;
+
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
   are the last two columns and rows of GDConsts.wildMap. Nothing is drawn outside a wilderness location. }

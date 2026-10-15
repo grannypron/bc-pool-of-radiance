@@ -11,7 +11,7 @@ procedure CombatStart;
 
 implementation
 
-uses C_Sound, SoundDrv;
+uses C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend;
 
 var
   { The menu animation, released when combat starts. }

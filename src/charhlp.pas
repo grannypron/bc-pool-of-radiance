@@ -143,7 +143,7 @@ function BaseItem(itemType: Byte): Types.PBaseItemRec;
 
 implementation
 
-uses Stats;
+uses Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds;
 
 var
   { active renderer }

@@ -18,7 +18,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses FxEngine, Portrait, Options;
+uses FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }

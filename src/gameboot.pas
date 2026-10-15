@@ -9,6 +9,8 @@ uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundD
 
 implementation
 
+uses DaxIo, GameIo;
+
 const
   { graphics memory reserve: 16 KB in paragraphs }
   GFX_RESERVE_PARAS = 1024;

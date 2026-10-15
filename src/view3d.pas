@@ -30,6 +30,8 @@ procedure Load3DMap(mapId: Byte);
 
 implementation
 
+uses DaxIo, GameIo;
+
 var
   { 3D wall graphics ptr }
   wallDefs: Types.PWallDefs absolute GDVars.wallGfx;

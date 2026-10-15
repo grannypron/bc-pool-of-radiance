@@ -106,7 +106,7 @@ procedure StopSpellPreview;
 
 implementation
 
-uses Pathing, MenuCore, Magic;
+uses Pathing, MenuCore, Magic, Blit;
 
 const
   { The cursor sprite cell in iconAnims }

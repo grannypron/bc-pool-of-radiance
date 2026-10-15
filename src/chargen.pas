@@ -17,7 +17,7 @@ procedure CustomizePortrait;
 
 implementation
 
-uses Options, Stats;
+uses Options, Stats, Blit, CbtMap, CharHlp, ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend;
 
 var
 

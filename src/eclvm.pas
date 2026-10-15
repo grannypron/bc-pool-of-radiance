@@ -14,7 +14,8 @@ procedure GameLoop;
 
 implementation
 
-uses Vault, EclTrace;
+uses Vault, EclTrace, Border, Camp, EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad,
+  Shop, SoundDrv, TextRend, View3D;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }

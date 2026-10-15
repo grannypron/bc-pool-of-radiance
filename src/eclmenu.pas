@@ -95,6 +95,8 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 implementation
 
+uses CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
+
 var
   { Monster sprite or close-up picture shown in the view window }
   animData: Types.TAnimRec absolute GDVars.animData;

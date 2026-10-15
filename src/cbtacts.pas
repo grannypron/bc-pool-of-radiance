@@ -61,6 +61,8 @@ function StingVictoryCheat: Boolean;
 
 implementation
 
+uses Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend;
+
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
     the damage burst }

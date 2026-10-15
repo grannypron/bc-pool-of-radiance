@@ -11,7 +11,7 @@ procedure GameInit2;
 
 implementation
 
-uses Options;
+uses Options, Blit, DaxIo, GameIo, MenuCore, Session, SoundDrv, TextRend;
 
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;

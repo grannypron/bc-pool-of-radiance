@@ -72,6 +72,8 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
+uses TextRend;
+
 var
   menuAuto: Types.TMenuAuto absolute GDVars.dsMenuAutoAnswer;
   anim: Types.TMenuAnim absolute GDVars.animData;

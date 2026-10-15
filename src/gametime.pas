@@ -12,6 +12,8 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
+uses FxEngine;
+
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
   those GDVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring

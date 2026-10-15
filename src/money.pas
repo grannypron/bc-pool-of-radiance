@@ -46,6 +46,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
+uses GameIo, MenuCore;
+
 
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;

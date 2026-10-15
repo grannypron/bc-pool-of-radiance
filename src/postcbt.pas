@@ -16,7 +16,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Stats;
+uses Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar;
 
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }

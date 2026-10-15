@@ -245,6 +245,8 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 implementation
 
+uses CbtMap, CharHlp, Pathing, TextRend;
+
 const
 
 

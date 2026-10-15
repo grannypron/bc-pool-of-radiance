@@ -12,7 +12,7 @@ procedure CombatMain;
 
 implementation
 
-uses Options, Stats;
+uses Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;

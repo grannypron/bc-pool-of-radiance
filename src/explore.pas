@@ -18,7 +18,7 @@ var
 
 implementation
 
-uses SaveLoad;
+uses SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime, MenuCore, Portrait, TextRend;
 
 var
   animData: Types.TAnimRec absolute GDVars.animData;

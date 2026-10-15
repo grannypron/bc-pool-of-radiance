@@ -12,6 +12,8 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
+uses Blit, TextRend;
+
 { Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);
 var

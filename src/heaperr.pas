@@ -16,6 +16,8 @@ function HeapErrorHandler(size: Word): Integer;
 
 implementation
 
+uses GameIo, TextRend;
+
 { ** Warns the player about the low-memory condition and, when heap-failure saving is enabled, forces a save (repeating
   until one succeeds) before quitting to DOS. When saving is disabled it just reports the failure and exits.
 

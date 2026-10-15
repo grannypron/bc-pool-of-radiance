@@ -105,7 +105,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault, Stats;
+uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }

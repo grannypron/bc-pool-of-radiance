@@ -16,6 +16,8 @@ procedure CombatAiControl(creature: Types.PCharRecord);
 
 implementation
 
+uses CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend;
+
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
 function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean; forward;
