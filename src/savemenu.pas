@@ -41,7 +41,7 @@ procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 
 implementation
 
-uses StrUtil;
+uses StrUtil, FileUtil;
 
 const
   INFO_SIG = 'SINF';
@@ -89,62 +89,32 @@ end;
 
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
 var
-  f: file;
   rec: TSlotInfoFile;
-  res: Word;
   ok: Boolean;
-  mode: Byte;
-  ioRes: Integer;
 begin
   desc := '';
   area := '';
-  ok := False;
-  Assign(f, SaveMenu.SlotFile(letter, '.inf'));
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
-    ok := FileSize(f) = SizeOf(rec);
-    if IOResult <> 0 then
-      ok := False;
-    if ok then begin
-      BlockRead(f, rec, SizeOf(rec), res);
-      ok := (IOResult = 0) and (res = SizeOf(rec));
-    end;
-    Close(f);
-    ioRes := IOResult;
-    if ok then
-      ok := (rec.sig = INFO_SIG) and (rec.version = INFO_VERSION) and (Length(rec.desc) <= DESC_LEN) and
-            (Length(rec.area) <= AREA_LEN);
-    if ok then begin
-      desc := rec.desc;
-      area := rec.area;
-    end;
+  ok := FileUtil.ReadRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec)) and (rec.sig = INFO_SIG) and
+        (rec.version = INFO_VERSION) and (Length(rec.desc) <= DESC_LEN) and (Length(rec.area) <= AREA_LEN);
+  if ok then begin
+    desc := rec.desc;
+    area := rec.area;
   end;
   ReadSlotInfo := ok;
 end;
 
 procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 var
-  f: file;
   rec: TSlotInfoFile;
-  ioRes: Integer;
+  written: Boolean;
 begin
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := INFO_SIG;
   rec.version := INFO_VERSION;
   rec.desc := desc;
   rec.area := area;
-  Assign(f, SaveMenu.SlotFile(letter, '.inf'));
-  Rewrite(f, 1);
-  if IOResult = 0 then begin
-    BlockWrite(f, rec, SizeOf(rec));
-    ioRes := IOResult;
-    Close(f);
-  end;
-  { leave no I/O error behind for the next IOResult check }
-  ioRes := IOResult;
+  { a failed write leaves a short file, which ReadSlotInfo turns down }
+  written := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
 end;
 
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as
@@ -157,7 +127,6 @@ var
   t: LongInt;
   dt: DateTime;
   y: string[4];
-  mode: Byte;
   ioRes: Integer;
   script: Word;
   map: Types.TGbvmWord;
@@ -170,12 +139,7 @@ begin
   stamps[i] := '';
   descs[i] := '';
   areas[i] := '';
-  Assign(f, SaveMenu.SlotFile(letter, '.dat'));
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
+  if FileUtil.OpenReadOnly(f, SaveMenu.SlotFile(letter, '.dat')) then begin
     used[i] := True;
     GetFTime(f, t);
     if IOResult = 0 then begin

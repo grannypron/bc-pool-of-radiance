@@ -96,6 +96,8 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
+uses FileUtil;
+
 const
   ENTRIES = Types.MAX_PARTY;
   SIG = 'STAT';
@@ -335,23 +337,12 @@ begin
   FillChar(game, SizeOf(game), 0);
 end;
 
-procedure DeleteFile(name: Types.TPathStr);
-var
-  f: file;
-  ioRes: Integer;
-begin
-  Assign(f, name);
-  Erase(f);
-  ioRes := IOResult;
-end;
-
 procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
-  f: file;
   i: Byte;
-  ioRes: Integer;
+  written: Boolean;
 begin
-  Stats.DeleteFile(fn + '.sts');
+  FileUtil.DeleteFile(fn + '.sts');
   i := Stats.FindEntry(creature);
   if i = 0 then Exit;
   FillChar(rec, SizeOf(rec), 0);
@@ -360,44 +351,15 @@ begin
   rec.name := creature^.name;
   rec.randByte := creature^.randByte;
   rec.block := blocks[i]^;
-  Assign(f, fn + '.sts');
-  Rewrite(f, 1);
-  if IOResult = 0 then begin
-    BlockWrite(f, rec, SizeOf(rec));
-    ioRes := IOResult;
-    Close(f);
-  end;
-  ioRes := IOResult;
+  { a failed write leaves a short file, which ReadFile turns down }
+  written := FileUtil.WriteRecord(fn + '.sts', rec, SizeOf(rec));
 end;
 
 { Read a TStatFile from name into rec: True when it is whole and of this format. }
 function ReadFile(name: Types.TPathStr): Boolean;
-var
-  f: file;
-  n: Word;
-  ok: Boolean;
-  mode: Byte;
-  ioRes: Integer;
 begin
-  ok := False;
-  Assign(f, name);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
-    ok := FileSize(f) = SizeOf(rec);
-    if IOResult <> 0 then
-      ok := False;
-    if ok then begin
-      BlockRead(f, rec, SizeOf(rec), n);
-      ok := (IOResult = 0) and (n = SizeOf(rec));
-    end;
-    Close(f);
-    ioRes := IOResult;
-    ok := ok and (rec.sig = SIG) and (rec.version = VERSION) and (rec.block.kindCount <= KINDS);
-  end;
-  ReadFile := ok;
+  ReadFile := FileUtil.ReadRecord(name, rec, SizeOf(rec)) and (rec.sig = SIG) and (rec.version = VERSION) and
+              (rec.block.kindCount <= KINDS);
 end;
 
 procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
@@ -414,21 +376,13 @@ end;
 
 procedure WriteGame(fn: Types.TPathStr);
 var
-  f: file;
-  ioRes: Integer;
+  written: Boolean;
 begin
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := SIG;
   rec.version := VERSION;
   rec.block := game;
-  Assign(f, fn);
-  Rewrite(f, 1);
-  if IOResult = 0 then begin
-    BlockWrite(f, rec, SizeOf(rec));
-    ioRes := IOResult;
-    Close(f);
-  end;
-  ioRes := IOResult;
+  written := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
 end;
 
 procedure ReadGame(fn: Types.TPathStr);

@@ -36,7 +36,7 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
 implementation
 
-uses Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad;
+uses Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo, FileUtil;
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -61,16 +61,6 @@ begin
   SlotFile := GDVars.dsSaveDirectory + 'vault' + letter + '.dat';
 end;
 
-procedure DeleteFile(name: Types.TPathStr);
-var
-  f: file;
-  ioRes: Integer;
-begin
-  Assign(f, name);
-  Erase(f);
-  ioRes := IOResult;
-end;
-
 const
   { CopyOrDelete's buffer, taken from the heap: the stack is not the place for it }
   COPY_BUF = 512;
@@ -86,17 +76,11 @@ var
   buf: ^TCopyBuf;
   n: Word;
   w: Word;
-  mode: Byte;
   ok: Boolean;
   ioRes: Integer;
 begin
-  Assign(fIn, src);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(fIn, 1);
-  FileMode := mode;
-  if IOResult <> 0 then begin
-    Vault.DeleteFile(dst);
+  if not FileUtil.OpenReadOnly(fIn, src) then begin
+    FileUtil.DeleteFile(dst);
     Exit;
   end;
   Assign(fOut, dst);
@@ -123,7 +107,7 @@ end;
 
 procedure ForgetSessionVault;
 begin
-  Vault.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
+  FileUtil.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
 end;
 
 procedure CommitToSlot(letter: Char);
@@ -188,17 +172,11 @@ var
   head: TVaultHeader;
   item: Types.TItemRec;
   n: Word;
-  mode: Byte;
   ioRes: Integer;
 begin
   visited := 0;
   FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
-  Assign(f, GDVars.dsSaveDirectory + SESSION_FILE);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult <> 0 then
+  if not FileUtil.OpenReadOnly(f, GDVars.dsSaveDirectory + SESSION_FILE) then
     Exit;
   BlockRead(f, head, SizeOf(head), n);
   if (IOResult = 0) and (n = SizeOf(head)) and (head.sig = VAULT_SIG) and (head.version = VAULT_VERSION) then begin

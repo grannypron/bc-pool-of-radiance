@@ -105,7 +105,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp;
+uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp, FileUtil;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -142,6 +142,22 @@ var
   usualOwner: array[1..USUAL_ENTRIES] of Types.PCharRecord;
   usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
   usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
+
+{ A character's single-character files' path and base name, from its name: <saveDir><name>, sanitized for DOS. }
+function CharFileBase(name: String): Types.TPathStr;
+begin
+  CharFileBase := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
+end;
+
+{ Erase a character's single-character files <fn>.cha, .itm, .spc, .mem and .sts, those there are. }
+procedure EraseCharFiles(fn: Types.TPathStr);
+begin
+  FileUtil.DeleteFile(fn + '.cha');
+  FileUtil.DeleteFile(fn + '.itm');
+  FileUtil.DeleteFile(fn + '.spc');
+  FileUtil.DeleteFile(fn + '.mem');
+  FileUtil.DeleteFile(fn + '.sts');
+end;
 
 { The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
 function FindUsualEntry(creature: Types.PCharRecord): Byte;
@@ -215,62 +231,33 @@ end;
   failed write leaves a short file, which ReadUsualSpells ignores. }
 procedure WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
-  f: file;
   rec: TUsualSpellsFile;
-  ioRes: Integer;
+  written: Boolean;
 begin
-  if DaxIo.FileExists(fn + '.mem') then begin
-    Assign(f, fn + '.mem');
-    Erase(f);
-    ioRes := IOResult;
-  end;
+  FileUtil.DeleteFile(fn + '.mem');
   FillChar(rec, SizeOf(rec), 0);
   if SaveLoad.GetUsualSpells(creature, rec.spells) then begin
     rec.sig := MEM_SIG;
     rec.version := MEM_VERSION;
     rec.name := creature^.name;
     rec.randByte := creature^.randByte;
-    Assign(f, fn + '.mem');
-    Rewrite(f, 1);
-    if IOResult = 0 then begin
-      BlockWrite(f, rec, SizeOf(rec));
-      ioRes := IOResult;
-      Close(f);
-    end;
+    { a failed write leaves a short file, which ReadUsualSpells ignores }
+    written := FileUtil.WriteRecord(fn + '.mem', rec, SizeOf(rec));
   end;
-  { leave no I/O error behind for the next IOResult check }
-  ioRes := IOResult;
 end;
 
 { Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
   TUsualSpellsFile with this format's signature and version, made for a character of this name and randByte. }
 procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
-  f: file;
   rec: TUsualSpellsFile;
-  res: Word;
-  ok: Boolean;
-  ioRes: Integer;
 begin
   SaveLoad.ForgetUsualSpells(creature);
-  Assign(f, fn + '.mem');
-  Reset(f, 1);
-  if IOResult = 0 then begin
-    ok := FileSize(f) = SizeOf(rec);
-    if IOResult <> 0 then
-      ok := False;
-    if ok then begin
-      BlockRead(f, rec, SizeOf(rec), res);
-      ok := (IOResult = 0) and (res = SizeOf(rec));
-    end;
-    Close(f);
-    ioRes := IOResult;
-    if ok then
-      ok := (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
-            (rec.name = creature^.name) and (rec.randByte = creature^.randByte);
-    if ok then
+  { read-only, so a write-protected .mem is read too }
+  if FileUtil.ReadRecord(fn + '.mem', rec, SizeOf(rec)) then
+    if (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
+        (rec.name = creature^.name) and (rec.randByte = creature^.randByte) then
       SaveLoad.SetUsualSpells(creature, rec.spells);
-  end;
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -452,7 +439,7 @@ begin
     SaveLoad.SaveCharlist(list);
     MenuCore.FreeStringList(list);
     ext := '.cha';
-    fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(creature^.name, '.'));
+    fn := SaveLoad.CharFileBase(creature^.name);
   end else begin
     SaveLoad.CheckSaveDir;
     ext := '.sav';
@@ -477,11 +464,7 @@ begin
   ok := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
   ioRes := IOResult;
-  if DaxIo.FileExists(fn + '.itm') then begin
-    Assign(f, fn + '.itm');
-    Erase(f);
-    ioRes := IOResult;
-  end;
+  FileUtil.DeleteFile(fn + '.itm');
   if creature^.itemsAddr <> nil then begin
     Assign(f, fn + '.itm');
     Rewrite(f, 1);
@@ -500,11 +483,7 @@ begin
     end else
       ok := False;
   end;
-  if DaxIo.FileExists(fn + '.spc') then begin
-    Assign(f, fn + '.spc');
-    Erase(f);
-    ioRes := IOResult;
-  end;
+  FileUtil.DeleteFile(fn + '.spc');
   if creature^.effectsAddr <> nil then begin
     Assign(f, fn + '.spc');
     Rewrite(f, 1);
@@ -836,28 +815,10 @@ begin
   end;
   creature := GDVars.creatureList;
   while creature <> nil do begin
-    fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(creature^.name, '.'));
-    { The .itm, .spc and .mem files are erased only when the .cha file exists. }
-    if DaxIo.FileExists(fn + '.cha') then begin
-      Assign(f, fn + '.cha');
-      Erase(f);
-      if DaxIo.FileExists(fn + '.itm') then begin
-        Assign(f, fn + '.itm');
-        Erase(f);
-      end;
-      if DaxIo.FileExists(fn + '.spc') then begin
-        Assign(f, fn + '.spc');
-        Erase(f);
-      end;
-      if DaxIo.FileExists(fn + '.mem') then begin
-        Assign(f, fn + '.mem');
-        Erase(f);
-      end;
-      if DaxIo.FileExists(fn + '.sts') then begin
-        Assign(f, fn + '.sts');
-        Erase(f);
-      end;
-    end;
+    fn := SaveLoad.CharFileBase(creature^.name);
+    { only a character that has its own .cha file has the rest of the set }
+    if DaxIo.FileExists(fn + '.cha') then
+      SaveLoad.EraseCharFiles(fn);
     creature := creature^.nextCharAddr;
   end;
   GDVars.curChar := GDVars.creatureList;
@@ -1000,27 +961,7 @@ begin
     Inc(n);
     Str(n, numStr);
     SaveLoad.SaveChar(p, 'CHRDAT' + letter + numStr);
-    fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(p^.name, '.'));
-    if DaxIo.FileExists(fn + '.cha') then begin
-      Assign(f, fn + '.cha');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.itm') then begin
-      Assign(f, fn + '.itm');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.spc') then begin
-      Assign(f, fn + '.spc');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.mem') then begin
-      Assign(f, fn + '.mem');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.sts') then begin
-      Assign(f, fn + '.sts');
-      Erase(f);
-    end;
+    SaveLoad.EraseCharFiles(SaveLoad.CharFileBase(p^.name));
     p := p^.nextCharAddr;
   end;
   GDVars.recentSaved := 1;
