@@ -64,8 +64,9 @@ begin
   end;
   FillChar(GDVars.animData, SizeOf(GDVars.animData), 0);
   GDVars.treasureItems := nil;
-  { Clear the five bytes gMapX, gMapY, gFacing, wallAhead and eventAtCell. Position and facing are assigned below. }
-  FillChar(GDVars.gMapX, 5, 0);
+  { position and facing are assigned below }
+  GDVars.wallAhead := 0;
+  GDVars.eventAtCell := 0;
   GDVars.gMapX := 15;
   GDVars.gMapY := 1;
   GDVars.gFacing := C_Dir.WEST;
