@@ -113,7 +113,7 @@ begin
   Border.ClearBox(ulCol, ulRow, lrCol, lrRow);
   Border.DrawBorder(ulCol, ulRow, lrCol, lrRow, corner);
   if Length(title) <> 0 then
-    TextRend.DisplayString((ulCol + lrCol - Length(title)) div 2, ulRow, color, title);
+    TextRend.DisplayCentered(ulCol, lrCol - 1, ulRow, color, title);
 end;
 
 end.

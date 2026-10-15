@@ -1349,9 +1349,7 @@ var
   procedure Centered(row, color: Byte; s: Types.TStr40);
   begin
     Border.ClearBox(2, row, 37, row);
-    if Length(s) > 36 then
-      s[0] := #36;
-    TextRend.DisplayString(2 + (36 - Length(s)) div 2, row, color, s);
+    TextRend.DisplayCentered(2, 37, row, color, s);
   end;
 
   { ShowCounts: The "Head  7 of 41" and "Body  3 of 21" lines, the row being changed in white and the other in green }
@@ -1897,9 +1895,7 @@ var
   { MsgLine: Print s centred in the message panel on row }
   procedure MsgLine(row: Byte; s: Types.TStr40);
   begin
-    if Length(s) > 21 then
-      s[0] := #21;
-    TextRend.DisplayString(18 + (21 - Length(s)) div 2, row, LightGreen, s);
+    TextRend.DisplayCentered(18, 38, row, LightGreen, s);
   end;
 
   { ShowMessage: The message panel: what is being chosen and the keys, or nothing on the left }
@@ -2075,10 +2071,7 @@ begin
   Border.DrawBorder(18, 1, 38, 22, 0);
   Border.DrawBorder(18, MSG_TOP, 38, MSG_BOTTOM, 0);
   with GDVars.curChar^ do
-    if Length(name) <= 16 then
-      TextRend.DisplayString(1 + (16 - Length(name)) div 2, 1, Cyan, name)
-    else
-      TextRend.DisplayString(1, 1, Cyan, Copy(name, 1, 16));
+    TextRend.DisplayCentered(1, 16, 1, Cyan, name);
   TextRend.DisplayString(READY_COL - 1, LABEL_ROW, LightGreen, 'Ready');
   TextRend.DisplayString(ACTION_COL - 1, LABEL_ROW, LightGreen, 'Action');
   TextRend.DisplayString(2, COLOR_ROW, LightGreen, 'Color');

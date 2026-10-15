@@ -80,7 +80,7 @@ end;
   @param(row The pane's row.) }
 procedure DrawMore(row: Integer);
 begin
-  TextRend.DisplayString(PANE_LEFT + (PANE_RIGHT - PANE_LEFT + 1 - 6) div 2, row, White, '(more)');
+  TextRend.DisplayCentered(PANE_LEFT, PANE_RIGHT, row, White, '(more)');
 end;
 
 { The shown item's first line on page p: past the first page, which holds TEXT_ROWS - 1 lines under a "(more)", each
@@ -106,7 +106,7 @@ begin
   Border.ClearBox(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW);
   Border.ClearBox(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW);
   title := Copy(JrnlList.EntryTitle(shown), 1, PANE_RIGHT - PANE_LEFT + 1);
-  TextRend.DisplayString(PANE_LEFT + (PANE_RIGHT - PANE_LEFT + 1 - Length(title)) div 2, TITLE_ROW, White, title);
+  TextRend.DisplayCentered(PANE_LEFT, PANE_RIGHT, TITLE_ROW, White, title);
   row := TEXT_TOP;
   lastRow := BOTTOM_ROW;
   if page > 1 then begin

@@ -25,6 +25,9 @@ procedure ClearBottomLine;
 
 procedure DisplayString(col, row, color: Byte; source: string);
 
+{ Draw s centred between columns left and right (both included) on row, cut to that width first. }
+procedure DisplayCentered(left, right, row, color: Byte; s: string);
+
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
 
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
@@ -254,6 +257,16 @@ end;
 procedure ClearBottomLine;
 begin
   TextRend.PrintSpaces(0, 24, Black, 40);
+end;
+
+procedure DisplayCentered(left, right, row, color: Byte; s: string);
+var
+  width: Byte;
+begin
+  width := right - left + 1;
+  if Length(s) > width then
+    s[0] := Chr(width);
+  TextRend.DisplayString(left + (width - Length(s)) div 2, row, color, s);
 end;
 
 procedure PrintSpaces(col, row, color, count: Byte);

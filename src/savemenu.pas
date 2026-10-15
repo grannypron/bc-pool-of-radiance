@@ -165,7 +165,7 @@ end;
 { Draw "(more)" centered on row. }
 procedure DrawMore(row: Byte);
 begin
-  TextRend.DisplayString(1 + (38 - 6) div 2, row, White, '(more)');
+  TextRend.DisplayCentered(1, 38, row, White, '(more)');
 end;
 
 { Draw the slots from top, the selected one in white and the rest in light green, with "(more)" above when a slot is

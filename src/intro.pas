@@ -27,9 +27,6 @@ end;
 
 { Show the credits screen for 10 seconds or until a keypress; a key still pending from the title ends it at once. }
 procedure Credits;
-var
-  column_calc: Integer;
-
 begin
   Border.DrawWindow(1, 1, 38, 3, 0, Black, '');
   Border.DrawWindow(1, 5, 38, 23, 0, Black, '');
@@ -40,8 +37,7 @@ begin
   TextRend.DisplayString(1, 5, LightGreen, 'game created by:');
   TextRend.DisplayString(18, 5, Yellow, 'ssi special projects');
 
-  column_calc := ((40 - Length(GDConsts.GAME_VERSION)) div 2);
-  TextRend.DisplayString(column_calc, 6, LightCyan, GDConsts.GAME_VERSION);
+  TextRend.DisplayCentered(0, 39, 6, LightCyan, GDConsts.GAME_VERSION);
   TextRend.DisplayString(2, 7, Yellow, 'programming:');
   TextRend.DisplayString(20, 7, Yellow, 'original');
   TextRend.DisplayString(2, 8, LightCyan, 'scot bayless');

@@ -559,12 +559,12 @@ begin
   Border.DrawBorder(1, TITLE_ROW, 38, TITLE_ROW, 0);
   Border.DrawBorder(1, STATUS_TOP, 38, STATUS_BOTTOM, 0);
   Border.DrawBorder(1, PANEL_TOP, 38, PANEL_BOTTOM, 0);
-  BldShow.DrawText(1 + (38 - Length(TITLE)) div 2, TITLE_ROW, White, TITLE);
+  TextRend.DisplayCentered(1, 38, TITLE_ROW, White, TITLE);
   if st^.readOnly then begin
     col := 1 + (38 - Length(WARN_LABEL + WARN_TEXT)) div 2;
     BldShow.DrawText(col, WARN_ROW, LightRed, WARN_LABEL);
     BldShow.DrawText(col + Length(WARN_LABEL), WARN_ROW, Yellow, WARN_TEXT);
-    BldShow.DrawText(1 + (38 - Length(WARN_NEXT)) div 2, WARN_NEXT_ROW, Yellow, WARN_NEXT);
+    TextRend.DisplayCentered(1, 38, WARN_NEXT_ROW, Yellow, WARN_NEXT);
   end else begin
     BldShow.Status(FIELD_MAKE_LABEL, FIELD_MAKE, MAKE_ROW, 'Creating:', '');
     BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, OVERALL_ROW, Yellow, StrUtil.PadLeft('Overall:', LABEL_WIDTH));
@@ -679,7 +679,7 @@ begin
   end;
   if failed or st^.readOnly then begin
     if not st^.readOnly and (DataArc.FileLength(GDVars.gameDir + LOG_NAME) > 0) then
-      BldShow.DrawText(1 + (38 - Length(NOTE)) div 2, NOTE_ROW, LightRed, NOTE);
+      TextRend.DisplayCentered(1, 38, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;
     TextRend.ClearBottomLine;
