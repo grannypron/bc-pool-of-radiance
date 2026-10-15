@@ -1220,7 +1220,7 @@ begin
             p := GDVars.creatureList;
             while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
               { C_Npc.FLAG clear }
-              if p^.npc < C_Npc.FLAG then
+              if not CharHlp.IsNpc(p) then
                 Inc(nonNpc);
               if p^.classLevels[C_Level.RANGER] > 0 then
                 Inc(rangers);
@@ -1250,11 +1250,11 @@ begin
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
             else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8) and
-                (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or (creature^.npc > $7F)) then begin
+                (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
               { C_Npc.FLAG clear }
-              if creature^.npc < C_Npc.FLAG then
+              if not CharHlp.IsNpc(creature) then
                 Inc(nonNpc);
             end else begin
               { one the party has no room for keeps its roster line, which SaveCharlist would drop with the mark }

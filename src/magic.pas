@@ -1271,7 +1271,7 @@ begin
           for i := 0 to 20 do
             p^.memorizedSpells[i] := 0;
           { C_Npc.FLAG set }
-          if p^.npc > $7F then
+          if CharHlp.IsNpc(p) then
             p^.npc := C_Npc.ANIMATED_NPC
           else
             p^.npc := C_Npc.ANIMATED_PC;

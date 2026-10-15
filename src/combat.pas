@@ -207,7 +207,7 @@ begin
                  p := GDVars.creatureList;
                  while p <> nil do begin
                    { creatures with the NPC flag (high bit of npc) stay on quick-fight }
-                   if p^.npc < C_Npc.FLAG then
+                   if not CharHlp.IsNpc(p) then
                      p^.quickfight := 0;
                    p := p^.nextCharAddr;
                  end;

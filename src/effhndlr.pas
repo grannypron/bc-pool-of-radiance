@@ -440,7 +440,7 @@ begin
       creature^.hostile := Types.PEffectRec(p)^.strength div 128;
       creature^.quickfight := 1;
       { C_Npc.FLAG clear }
-      if creature^.npc <= $7F then
+      if not CharHlp.IsNpc(creature) then
         creature^.npc := C_Npc.ANIMATED_PC;
       creature^.combatAddr^.other := nil;
       CharHlp.CountTeams;

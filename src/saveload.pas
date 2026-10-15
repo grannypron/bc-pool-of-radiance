@@ -105,7 +105,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo;
+uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -566,8 +566,7 @@ begin
   creature^.combatAddr := nil;
   LoadChar := whole;
   if not whole then Exit;
-  { C_Npc.FLAG clear }
-  if (GDVars.quickEnds <> 0) and (creature^.npc < C_Npc.FLAG) and (creature^.status <> C_Status.ANIMATED) then
+  if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);

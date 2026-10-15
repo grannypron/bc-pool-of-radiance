@@ -72,7 +72,7 @@ begin
   Border.DrawBorder(1, 1, 38, 22, 0);
   CharHlp.DisplayCreatureName(GDVars.tempCr1, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
-  if GDVars.tempCr1^.npc > $7F then
+  if CharHlp.IsNpc(GDVars.tempCr1) then
     TextRend.DisplayString(Length(GDVars.tempCr1^.name) + 3, 1, LightGreen, '(NPC)');
   col := 1;
   s := GDConsts.genderNames[GDVars.tempCr1^.genderIdx];
@@ -473,10 +473,7 @@ begin
       s := s + 'Items ';
     if hasSpells then
       s := s + 'Spells ';
-    { party members may trade, and so may NPCs that are disabled or animated }
-    if ((GDVars.tempCr1^.npc < C_Npc.FLAG) or (GDVars.tempCr1^.enabled = 0) or
-        (GDVars.tempCr1^.status = C_Status.ANIMATED)) and
-        hasMoney and
+    if CharHlp.MayTrade(GDVars.tempCr1) and hasMoney and
         (GDVars.ifcState <> C_Ifc.COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
@@ -608,9 +605,7 @@ begin
       s := 'Ready';
       if CharHlp.CanUseItems(creature) then
         s := s + ' Use';
-      { party members may trade, and so may NPCs that are disabled or animated }
-      if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
-          (creature^.status = C_Status.ANIMATED)) and (GDVars.ifcState <> C_Ifc.COMBAT) then
+      if CharHlp.MayTrade(creature) and (GDVars.ifcState <> C_Ifc.COMBAT) then
         s := s + ' Trade';
       if GDVars.ifcState = C_Ifc.VAULT then
         s := s + ' Deposit'
@@ -619,9 +614,8 @@ begin
       if creature^.numberOfItems < 16 then
         s := s + ' Halve';
       s := s + ' Join';
-      { the same characters may sell, but only in a shop }
-      if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
-          (creature^.status = C_Status.ANIMATED)) and (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
+      { the characters that may trade may sell, but only in a shop }
+      if CharHlp.MayTrade(creature) and (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
         s := s + ' Sell';
       if GDVars.ifcState = C_Ifc.SHOP_TEMPLE then
         s := s + ' Id';

@@ -237,7 +237,7 @@ begin
   tries := 1;
   if count > 0 then
     { C_Npc.FLAG set }
-    if (creature^.npc > $7F) or GDVars.quickMagic then
+    if CharHlp.IsNpc(creature) or GDVars.quickMagic then
       if GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
         while (tries <= roll) and (chosen = 0) do begin
           inner := 1;
@@ -547,8 +547,7 @@ begin
         begin
           p := GDVars.creatureList;
           while p <> nil do begin
-            { C_Npc.FLAG clear }
-            if (p^.npc < C_Npc.FLAG) and (p^.status <> C_Status.ANIMATED) then
+            if CharHlp.ComesUnderPlayer(p) then
               p^.quickfight := 0;
             p := p^.nextCharAddr;
           end;
@@ -584,7 +583,7 @@ begin
     Exit;
   end;
   { C_Npc.FLAG clear }
-  if creature^.npc <= $7F then
+  if not CharHlp.IsNpc(creature) then
     { PCs never check morale }
     Exit;
   { packed morale rating }

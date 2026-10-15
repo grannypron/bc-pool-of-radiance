@@ -1362,7 +1362,7 @@ begin
     p := GDVars.creatureList;
     while p <> nil do begin
       { NPC flag (high bit) set }
-      if (p^.status = C_Status.OKAY) and (p^.npc > $7F) then begin
+      if (p^.status = C_Status.OKAY) and CharHlp.IsNpc(p) then begin
         p^.hostile := 1;
         p^.combatAddr^.other := nil;
       end;

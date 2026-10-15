@@ -175,7 +175,7 @@ begin
       { C_Npc.FLAG clear }
       if ((p^.status = C_Status.RUNNING) or (p^.status = C_Status.ANIMATED) or
           (p^.status = C_Status.OKAY) or
-          (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and (p^.npc < C_Npc.FLAG) then
+          (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
         GDVars.partyDefeated := False;
       if (p^.status = C_Status.ANIMATED) or (p^.status = C_Status.OKAY) then begin
         GDVars.combatWon := True;
@@ -508,8 +508,7 @@ begin
         FreeMem(p^.combatAddr, SizeOf(Types.TCombatRec));
         p^.combatAddr := nil;
       end;
-      { C_Npc.FLAG clear }
-      if (GDVars.quickEnds <> 0) and (p^.npc < C_Npc.FLAG) and (p^.status <> C_Status.ANIMATED) then
+      if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(p) then
         p^.quickfight := 0;
       p := p^.nextCharAddr;
     end;
@@ -539,7 +538,7 @@ begin
   total := 0;
   while p <> nil do begin
     { C_Npc.FLAG set }
-    if (p^.npc > $7F) and (p^.status = C_Status.OKAY) then begin
+    if CharHlp.IsNpc(p) and (p^.status = C_Status.OKAY) then begin
       Inc(npcShares, p^.npcTreasureShare and 7);
       Inc(total, p^.npcTreasureShare and 7);
     end else
@@ -559,7 +558,7 @@ begin
     row := 0;
     while p <> nil do begin
       { C_Npc.FLAG set }
-      if (p^.npc > $7F) and (p^.status = C_Status.OKAY) and (p^.npcTreasureShare > 0) then begin
+      if CharHlp.IsNpc(p) and (p^.status = C_Status.OKAY) and (p^.npcTreasureShare > 0) then begin
         TextRend.DisplayMessageWindow(5, row + 5, 34, 22, LightGreen, True,
                                       p^.name + ' takes and hides his share.');
         Inc(row, 2);
