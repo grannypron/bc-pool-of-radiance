@@ -153,9 +153,7 @@ end;
 { Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
   through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded
   font; later copies are not range-checked. A glyph index past the font draws nothing. CGA maps colors and writes
-  packed pixels, EGA writes all four planes to both pages, and Tandy packs two pixels per byte across four banks.
-  Note: the CGA arm maps color through attrTable once per copy, so with count > 1 every copy after the first uses a
-  re-mapped color. }
+  packed pixels, EGA writes all four planes to both pages, and Tandy packs two pixels per byte across four banks. }
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 var
   i: Byte;
@@ -177,10 +175,12 @@ begin
     if ch >= SizeOf(Types.TFontArr) div SizeOf(GDVars.gameFont^[0]) then Exit;
     charIdx := ch;
   end;
+  { CGA's colours, mapped once: SSI mapped them again for every copy, so the second copy on had the wrong colour }
+  if GDVars.videoMode = Types.vmCGA then
+    color := GDConsts.attrTable[color];
   for i := 1 to count do begin
     case GDVars.videoMode of
       Types.vmCGA: begin
-        color := GDConsts.attrTable[color];
         dstOff := row * 4;
         cnt := 0;
         for outerRow := 0 to 3 do begin

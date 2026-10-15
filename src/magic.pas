@@ -557,8 +557,8 @@ begin
     5: for i := 0 to Types.SPELL_SLOT_LAST do
          if GDVars.curChar^.memorizedSpells[i] > C_Spell.ID_MASK then
            Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
-    { Note: 55 stops one short of High(spellsKnown) = 56 (Restoration), so the spell book never lists Restoration }
-    1: for i := 1 to 55 do
+    { every known spell, Restoration (56) too: SSI stopped at 55 }
+    1: for i := 1 to SizeOf(GDVars.curChar^.spellsKnown) do
          if GDVars.curChar^.spellsKnown[i] <> 0 then
            Magic.AddSpellToList(i, MARK_NONE);
     { one scroll's list marks the spells the character could learn but does not know }
