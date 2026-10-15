@@ -1,7 +1,7 @@
 { Tests for Stats (#611): party membership, saturation, kills by kind, damage, healing and net coin. }
 program TStats;
 
-uses Types, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Stats, TestKit;
+uses Types, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -34,10 +34,10 @@ begin
   GDVars.creatureList := a;
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 2;
 
-  TestKit.Check(Stats.IsPartyMember(a), 'first member is in the party');
-  TestKit.Check(Stats.IsPartyMember(b), 'second member is in the party');
-  TestKit.Check(not Stats.IsPartyMember(monster), 'a monster after PARTY_SIZE is not');
-  TestKit.Check(not Stats.IsPartyMember(nil), 'nil is not');
+  TestKit.Check(Party.IsPartyMember(a), 'first member is in the party');
+  TestKit.Check(Party.IsPartyMember(b), 'second member is in the party');
+  TestKit.Check(not Party.IsPartyMember(monster), 'a monster after PARTY_SIZE is not');
+  TestKit.Check(not Party.IsPartyMember(nil), 'nil is not');
   TestKit.Check(Stats.BlockOf(monster) = nil, 'a monster has no block');
 
   { saturation }

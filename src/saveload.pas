@@ -106,7 +106,7 @@ implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, FxEngine, View3D, MapTiles,
   C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp,
-  FileUtil;
+  FileUtil, Party;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -192,20 +192,6 @@ begin
         FindUsualEntry := i;
 end;
 
-{ True when creature is in the party list. }
-function InParty(creature: Types.PCharRecord): Boolean;
-var
-  p: Types.PCharRecord;
-begin
-  InParty := False;
-  p := GDVars.creatureList;
-  while p <> nil do begin
-    if p = creature then
-      InParty := True;
-    p := p^.nextCharAddr;
-  end;
-end;
-
 function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
 var
   i: Byte;
@@ -230,7 +216,7 @@ begin
       i := j;
   if i = 0 then
     for j := USUAL_ENTRIES downto 1 do
-      if not SaveLoad.InParty(usualOwner[j]) then
+      if not Party.IsPartyMember(usualOwner[j]) then
         i := j;
   if i = 0 then
     i := 1;

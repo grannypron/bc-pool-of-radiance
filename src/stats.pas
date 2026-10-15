@@ -49,9 +49,6 @@ var
   { the game's totals: every count a party member makes }
   game: TStatBlock;
 
-{ True when creature is one of the party's PARTY_SIZE members, which lead GDVars.creatureList. }
-function IsPartyMember(creature: Types.PCharRecord): Boolean;
-
 { The block of party member creature, made empty the first time; nil for anyone else. }
 function BlockOf(creature: Types.PCharRecord): PStatBlock;
 
@@ -96,7 +93,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil;
+uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil, Party;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -158,25 +155,6 @@ begin
   Stats.AddTo(b.kills[i].count, 1);
 end;
 
-function IsPartyMember(creature: Types.PCharRecord): Boolean;
-var
-  p: Types.PCharRecord;
-  n: Integer;
-begin
-  IsPartyMember := False;
-  if creature = nil then Exit;
-  p := GDVars.creatureList;
-  n := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
-  while (p <> nil) and (n > 0) do begin
-    if p = creature then begin
-      IsPartyMember := True;
-      Exit;
-    end;
-    p := p^.nextCharAddr;
-    Dec(n);
-  end;
-end;
-
 function FindEntry(creature: Types.PCharRecord): Byte;
 var
   i: Byte;
@@ -210,7 +188,7 @@ var
   i: Byte;
 begin
   BlockOf := nil;
-  if not Stats.IsPartyMember(creature) then Exit;
+  if not Party.IsPartyMember(creature) then Exit;
   i := Stats.FindEntry(creature);
   if i = 0 then
     i := Stats.NewEntry(creature);
@@ -222,7 +200,7 @@ procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
 var
   b: PStatBlock;
 begin
-  if not Stats.IsPartyMember(creature) then Exit;
+  if not Party.IsPartyMember(creature) then Exit;
   b := Stats.BlockOf(creature);
   if b <> nil then
     Stats.AddTo(b^.counts[stat], n);
@@ -235,13 +213,13 @@ var
   down: Boolean;
 begin
   down := wasUp and not (victim^.status in [C_Status.OKAY, C_Status.ANIMATED]);
-  if Stats.IsPartyMember(victim) then begin
+  if Party.IsPartyMember(victim) then begin
     Stats.Count(victim, DAMAGE_TAKEN, hp);
     if down then
       Stats.Count(victim, KNOCKED_DOWN, 1);
     if victim^.status = C_Status.DEAD then
       Stats.Count(victim, DIED, 1);
-  end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Stats.IsPartyMember(actor) then begin
+  end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
     Stats.Count(actor, DAMAGE_DONE, hp);
     if down then begin
       Stats.Count(actor, KILLS, 1);
@@ -311,7 +289,7 @@ var
   b: PStatBlock;
 begin
   for n := 1 to ENTRIES do
-    if (marked[n] <> nil) and Stats.IsPartyMember(marked[n]) then begin
+    if (marked[n] <> nil) and Party.IsPartyMember(marked[n]) then begin
       delta := Stats.CoinWorth(marked[n]) - markedWorth[n];
       if delta <> 0 then begin
         b := Stats.BlockOf(marked[n]);
