@@ -162,8 +162,6 @@ uses Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, C
   StrUtil;
 
 var
-  { active renderer }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   { 26 loaded icon frame pairs }
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
   { zone-1 game state }
@@ -933,7 +931,7 @@ var
 begin
   stride := GDVars.dsMoveIconSheet^.imgSize;
   stride4 := stride;
-  if displayMode = Types.vmEGA then
+  if GDVars.videoMode = Types.vmEGA then
     stride4 := stride4 div 4;
   if mirror then begin
     Blit.AllocPic(24, 3, 1, 1, tmp);

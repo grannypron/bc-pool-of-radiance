@@ -56,7 +56,6 @@ implementation
 uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
 var
 
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   cgaB800: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK0_SEG:$0000;
   cgaBA00: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK1_SEG:$0000;
   tdyB800: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK0_SEG:$0000;
@@ -179,7 +178,7 @@ begin
     charIdx := ch;
   end;
   for i := 1 to count do begin
-    case displayMode of
+    case GDVars.videoMode of
       Types.vmCGA: begin
         color := GDConsts.attrTable[color];
         dstOff := row * 4;
@@ -466,7 +465,7 @@ end;
 { Clear the whole screen to black: both EGA pages, or every CGA or Tandy bank. }
 procedure ClearScreen;
 begin
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA: begin
       FillChar(cgaBA00, SizeOf(Types.TCgaBank), 0);
       FillChar(cgaB800, SizeOf(Types.TCgaBank), 0);
@@ -511,7 +510,7 @@ var
 begin
   { the rectangle must lie on the 40 x 25 screen, corners in order }
   if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA: begin
       firstRow := ulRow * 4;
       lastRow := lrRow * 4 + 3;

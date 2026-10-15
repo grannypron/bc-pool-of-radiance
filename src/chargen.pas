@@ -1526,7 +1526,7 @@ var
   { MaskSize: Bytes in pic's transparency mask: one plane, a quarter of imgSize, on EGA }
   function MaskSize(pic: Types.PImgBuf): Word;
   begin
-    if GDVars.videoMode = 1 then
+    if GDVars.videoMode = Types.vmEGA then
       MaskSize := pic^.imgSize div 4
     else
       MaskSize := pic^.imgSize;
@@ -1576,7 +1576,7 @@ var
   begin
     if (src = nil) or (dst = nil) then Exit;
     if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
-    if GDVars.videoMode = 1 then
+    if GDVars.videoMode = Types.vmEGA then
       for n := 0 to dst^.imgSize - 1 do
         dst^.data[n] := dst^.data[n] and src^.transp^[n shr 2] or src^.data[n]
     else
@@ -1597,7 +1597,7 @@ var
   begin
     case GDVars.videoMode of
       { four plane bytes per eight pixels; plane k holds bit k of each pixel's colour }
-      1: begin
+      Types.vmEGA: begin
            n := 0;
            while n + 3 < work^.imgSize do begin
              for k := 0 to 3 do
@@ -1616,7 +1616,7 @@ var
            end;
          end;
       { two pixels per byte }
-      2: for n := 0 to work^.imgSize - 1 do
+      Types.vmTandy: for n := 0 to work^.imgSize - 1 do
            work^.data[n] := (toT[work^.data[n] shr 4] shl 4) or toT[work^.data[n] and $F];
     else
       for k := 0 to 15 do
@@ -1652,11 +1652,11 @@ var
   procedure Place(src: Types.PImgBuf; frame: Byte; boxed: Boolean; dst: Types.PImgBuf);
   begin
     if dst = nil then Exit;
-    if boxed and (GDVars.videoMode = 0) then
+    if boxed and (GDVars.videoMode = Types.vmCGA) then
       FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.dsIconColorMap)])
     else
       FillChar(dst^.data, dst^.imgSize, 0);
-    if boxed and (GDVars.videoMode <> 0) then
+    if boxed and (GDVars.videoMode <> Types.vmCGA) then
       if frame = 0 then
         Overlay(iconAnims[25].pic0, dst)
       else

@@ -1253,7 +1253,7 @@ begin
   pace := 10;
   sym := 13;
   size := GDVars.dsMoveIconSheet^.imgSize;
-  if GDVars.videoMode = 1 then
+  if GDVars.videoMode = Types.vmEGA then
     size := size div 4;
   case weapon^.itemType of
     { straight-flying missiles: Dart, Javelin, Quarrel, Spear and Arrow }

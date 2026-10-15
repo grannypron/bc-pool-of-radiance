@@ -32,11 +32,7 @@ procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
 implementation
 
-
 uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo;
-var
-  { 0=CGA 1=EGA 2=Tandy }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A
@@ -100,20 +96,20 @@ var
     need: LongInt;
   begin
     frameSz := LongInt(h) * w * 2;
-    if displayMode <> Types.vmCGA then
+    if GDVars.videoMode <> Types.vmCGA then
       frameSz := frameSz * 2;
     need := SizeOf(fr^) - SizeOf(fr^.data) + frameSz + 8;
     if transp and 1 > 0 then begin
-      if displayMode = Types.vmEGA then
+      if GDVars.videoMode = Types.vmEGA then
         Inc(need, frameSz div 4 + 8)
       else
         Inc(need, frameSz + 8);
-      if displayMode <> Types.vmCGA then
+      if GDVars.videoMode <> Types.vmCGA then
         Inc(need, SizeOf(fr^) - SizeOf(fr^.data) + frameSz + 8);
     end;
     if isPic and (f = 1) then
       { planeSz + 1: twice the frame on CGA }
-      if displayMode = Types.vmCGA then
+      if GDVars.videoMode = Types.vmCGA then
         Inc(need, frameSz * 2 + 8)
       else
         Inc(need, frameSz + 8);
@@ -170,7 +166,7 @@ begin
           Move(buf^[offset], map, SizeOf(map));
           Inc(offset, SizeOf(map));
         end;
-        if displayMode = Types.vmCGA then
+        if GDVars.videoMode = Types.vmCGA then
           planeSz := frames[loaded].pic^.imgSize * 2 - 1
         else
           planeSz := frames[loaded].pic^.imgSize - 1;
@@ -189,7 +185,7 @@ begin
               buf^[j] := buf^[j] xor xorBuf^[j - offset];
           end;
         Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[loaded].pic);
-        if (transp and 1 > 0) and (displayMode <> Types.vmCGA) then
+        if (transp and 1 > 0) and (GDVars.videoMode <> Types.vmCGA) then
           Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
       end else if f = 1 then

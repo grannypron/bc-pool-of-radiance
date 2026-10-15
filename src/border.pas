@@ -26,8 +26,6 @@ const
     banks and Tandy uses four. }
 
 var
-  { 0=CGA 1=EGA 2=Tandy }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   cgaBank0: Types.TCgaBank absolute C_Video.GFX_BANK0_SEG:0;
   cgaBank1: Types.TCgaBank absolute C_Video.GFX_BANK1_SEG:0;
   tandyBank0: Types.TTandyBank absolute C_Video.GFX_BANK0_SEG:0;
@@ -78,7 +76,7 @@ begin
   if lrCol > LAST_COL then lrCol := LAST_COL;
   if lrRow > LAST_ROW then lrRow := LAST_ROW;
   if (ulCol > lrCol) or (ulRow > lrRow) then Exit;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA: begin
       top := ulRow * 4;
       bot := lrRow * 4 + 3;

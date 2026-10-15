@@ -355,12 +355,12 @@ begin
   { an empty picture would make the loops below run 65536 times }
   if src^.imgSize = 0 then Exit;
   case GDVars.videoMode of
-    0, 2:
+    Types.vmCGA, Types.vmTandy:
       for i := 0 to src^.imgSize - 1 do begin
         dst^.data[i] := dst^.data[i] or src^.data[i];
         dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
       end;
-    1: begin
+    Types.vmEGA: begin
       for i := 0 to src^.imgSize - 1 do
         dst^.data[i] := dst^.data[i] or src^.data[i];
       if iconAnims[11].pic0 <> nil then

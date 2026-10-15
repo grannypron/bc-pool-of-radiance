@@ -112,13 +112,13 @@ begin
   GDVars.dsInterruptRegisters.ah := 9;
   GDVars.dsInterruptRegisters.al := ch;
   GDVars.dsInterruptRegisters.bh := GDVars.pageMain;
-  if GDVars.videoMode = 0 then
+  if GDVars.videoMode = Types.vmCGA then
     GDVars.dsInterruptRegisters.bl := GDConsts.attrTable[attr]
   else
     GDVars.dsInterruptRegisters.bl := attr;
   GDVars.dsInterruptRegisters.cx := count;
   Intr($10, GDVars.dsInterruptRegisters);
-  if GDVars.videoMode = 1 then begin
+  if GDVars.videoMode = Types.vmEGA then begin
     GDVars.dsInterruptRegisters.ah := 2;
     GDVars.dsInterruptRegisters.bh := GDVars.pageNum;
     GDVars.dsInterruptRegisters.dh := row;

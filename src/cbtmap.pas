@@ -385,7 +385,7 @@ end;
 procedure SetCombatPalette;
 begin
   case GDVars.videoMode of
-    1: begin
+    Types.vmEGA: begin
          Blit.SetPaletteRegister(0, DarkGray);
          Blit.SetPaletteRegister(8, Black);
        end;
@@ -395,7 +395,7 @@ end;
 procedure SetNoncombatPalette;
 begin
   case GDVars.videoMode of
-    1: begin
+    Types.vmEGA: begin
          Blit.SetPaletteRegister(0, Black);
          Blit.SetPaletteRegister(8, DarkGray);
        end;

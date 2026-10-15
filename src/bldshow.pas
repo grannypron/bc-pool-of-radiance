@@ -170,7 +170,6 @@ const
   st: PShowState = nil;
 
 var
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   biosTicks: LongInt absolute $0040:$006C;
 
 { a * b div c for positive a, b and c; 0 when any of them is not positive. Until the product fits, the larger factor
@@ -221,7 +220,7 @@ var
 begin
   if (frame >= FRAMES) or (y > 7) then Exit;
   at := frame * st^.art^.imgSize;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmEGA:
       for plane := 0 to 3 do begin
         b := 0;
