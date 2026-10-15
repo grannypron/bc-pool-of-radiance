@@ -98,7 +98,8 @@ end;
 
 { WriteChar: Position the cursor (int10 AH=2) then write count copies of ch+attr (int10 AH=9) on the main page. In CGA
   mode (display mode 0) the attribute is first mapped through the 16-entry EGA->CGA table; in EGA mode (1) the pair is
-  repeated, unmapped, on the alternate page. Note: attr is not range-checked against that table }
+  repeated, unmapped, on the alternate page. Only attr's colour (low four bits) is mapped: SSI indexed the table with
+  the whole byte. }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
   GDVars.dsInterruptRegisters.ah := 2;
@@ -110,7 +111,7 @@ begin
   GDVars.dsInterruptRegisters.al := ch;
   GDVars.dsInterruptRegisters.bh := GDVars.pageMain;
   if GDVars.videoMode = Types.vmCGA then
-    GDVars.dsInterruptRegisters.bl := GDConsts.attrTable[attr]
+    GDVars.dsInterruptRegisters.bl := GDConsts.attrTable[attr and $0F]
   else
     GDVars.dsInterruptRegisters.bl := attr;
   GDVars.dsInterruptRegisters.cx := count;

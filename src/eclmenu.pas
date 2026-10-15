@@ -7,8 +7,8 @@ interface
 uses Types;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
-  $81 (string reference) gives its GBVM address. Note: $80 (string value) also reads the GBVM, at an address made of the
-  packed length as low byte and a stale upper byte. }
+  $81 (string reference) gives its GBVM address. SSI quirk, kept: $80 (string value) also reads the GBVM, at an address
+  made of the packed length as low byte and a stale upper byte; callers with a string value use its text instead. }
 function GetEclVar(idx: ShortInt): Word;
 
 { Read count ECL variables at the ECL IP into dsGbvmType/dsGbvmLowerByte/dsGbvmUpperByte, decoding string values and
@@ -1027,9 +1027,9 @@ begin
   creature^.coins[C_Money.JEWELRY] := Trunc(creature^.coins[C_Money.JEWELRY] * fraction);
 end;
 
-{ Heavy items are harder to steal: weight > 255 coins knocks 90 off the chance, > 24 knocks 50. Note: the penalties come
-  off chance itself, so they accumulate over the walk. A readied item is unreadied before it is taken, so a ring's,
-  cloak's or gauntlets' effect goes with it, as ViewChar.ToggleReadyItem does. }
+{ Heavy items are harder to steal: weight > 255 coins knocks 90 off the chance, > 24 knocks 50. SSI quirk, kept: the
+  penalties come off chance itself, so they accumulate over the walk. A readied item is unreadied before it is taken, so
+  a ring's, cloak's or gauntlets' effect goes with it, as ViewChar.ToggleReadyItem does. }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 var
   roll: Byte;

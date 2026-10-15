@@ -1127,9 +1127,8 @@ const
     commands: (255, 0, 1, 2);
     damage: 3;
     combat: (4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14));
-  { Insert-disk prompts }
-  { Insert-disk prompts, indexed by virtualDisk. Note: the index is not range-checked. }
-  insertDiskMsg: array[1..8] of string[29] = (
+  { Insert-disk prompts, indexed by virtualDisk, which SaveLoad and the ECL keep in 1..LAST_DISK }
+  insertDiskMsg: array[1..Types.LAST_DISK] of string[29] = (
     'Insert disk 1 in drive ',
     'Insert disk 2 in drive ',
     'Insert disk 3 in drive ',

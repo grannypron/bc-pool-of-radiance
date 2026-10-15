@@ -821,8 +821,8 @@ begin
 end;
 
 { SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE: 0 =
-  neither roll succeeded, 1 = only the first succeeded, 2 = the second succeeded. Note: when both succeed, the 3 set for
-  that case is overwritten by 2. }
+  neither roll succeeded, 1 = only the first succeeded, 2 = the second succeeded. SSI quirk, kept: when both succeed,
+  the 3 set for that case is overwritten by 2; the scripts' fights were tuned with it. }
 procedure EclSurprise;
 var
   r1: Byte;

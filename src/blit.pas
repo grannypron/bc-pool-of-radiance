@@ -154,8 +154,8 @@ procedure FreePic(var pic: Types.PImgBuf);
 
 { Fills a rectangle of a destination buffer with one solid color and marks the touched scanlines dirty for FlushView.
   The rectangle is clipped to the destination, so it may be partly off-screen; one wholly outside it fills nothing. CGA
-  and Tandy use packed fill bytes; EGA fills four plane bytes per cell. Note: with a negative y, one row more than the
-  visible part is filled and the bottom edge is not checked.
+  and Tandy use packed fill bytes; EGA fills four plane bytes per cell. SSI quirk, kept: with a negative y, one row
+  more than the visible part is filled and the bottom edge is not checked (no caller passes a negative y).
   @param(x Left edge, in character columns; may be negative.)
   @param(y Top edge, in scanlines; may be negative.)
   @param(width Rectangle width, in eight-pixel cells.)
