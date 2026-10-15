@@ -4,15 +4,14 @@ unit GameTime;
 
 interface
 
-uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Ifc, C_Gbvm, C_Spell;
-
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
 function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses FxEngine, StrUtil;
+uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Ifc, C_Gbvm, C_Spell,
+  FxEngine, StrUtil;
 
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only

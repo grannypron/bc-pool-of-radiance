@@ -4,9 +4,6 @@ unit EclVm;
 
 interface
 
-uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
-  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
-
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (a saved game's too) and
   initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
   party is defeated or a quick load is asked for (Explore.quickLoadAsked) }
@@ -14,8 +11,10 @@ procedure GameLoop;
 
 implementation
 
-uses Vault, EclTrace, Border, Camp, EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad,
-  Shop, SoundDrv, TextRend, View3D, StrUtil;
+uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
+  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
+  EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend,
+  View3D, StrUtil;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }

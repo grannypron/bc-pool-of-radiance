@@ -6,7 +6,7 @@ unit DataArc;
 
 interface
 
-uses Types, C_Data;
+uses Types;
 
 type
   { One DAX directory entry; offset counts from the end of the directory. }
@@ -41,6 +41,8 @@ function FileLength(path: Types.TPathStr): LongInt;
 
 implementation
 
+
+uses C_Data;
 type
   { A data family: its per-disk archives are <prefix><disk digit><suffix>.DAX, merged into <merged>.DAX. }
   TFamily = record

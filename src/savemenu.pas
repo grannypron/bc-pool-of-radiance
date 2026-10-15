@@ -6,8 +6,6 @@ unit SaveMenu;
 
 interface
 
-uses Types, Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys;
-
 const
   { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
   SLOT_LETTERS = 'ABCDEFGHIJQ';
@@ -41,7 +39,7 @@ procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 
 implementation
 
-uses StrUtil, FileUtil;
+uses Types, Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil;
 
 const
   INFO_SIG = 'SINF';

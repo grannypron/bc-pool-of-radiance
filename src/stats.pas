@@ -8,7 +8,7 @@ unit Stats;
 
 interface
 
-uses Types, GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money;
+uses Types;
 
 const
   { the counters, by index into TStatBlock.counts }
@@ -96,7 +96,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses FileUtil;
+uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil;
 
 const
   ENTRIES = Types.MAX_PARTY;

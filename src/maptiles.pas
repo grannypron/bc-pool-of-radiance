@@ -6,8 +6,6 @@ unit MapTiles;
 
 interface
 
-uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
-
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
@@ -20,6 +18,8 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
+
+uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
                                         { icon animation frame pairs }

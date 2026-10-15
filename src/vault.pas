@@ -7,7 +7,7 @@ unit Vault;
 
 interface
 
-uses Types, Crt, GDVars, C_Msg, C_Ifc, C_Keys;
+uses Types;
 
 const
   { the most items the vault holds }
@@ -36,7 +36,8 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
 implementation
 
-uses Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo, FileUtil;
+uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo,
+  FileUtil;
 
 const
   SESSION_FILE = 'tmpvault.dat';

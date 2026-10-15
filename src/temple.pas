@@ -4,14 +4,16 @@ unit Temple;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
-  C_Status, C_Ifc;
 
 procedure TempleMainMenu;
 
+{ The Heal menu: the cures and spells the temple sells, for the current character. }
+procedure HealMenu;
+
 implementation
 
-uses Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil;
+uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop;
 
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
@@ -346,63 +348,8 @@ end;
 { TempleMainMenu: Run the temple menu using the shared treasure state. H and P are told apart from the extended Up and
   Down scan codes by ext; the G and O codes (Home and End) cycle characters. }
 procedure TempleMainMenu;
-var
-  c: Char;
-  done: Boolean;
-  ext: Boolean;
-  menu: String[40];
-  hasMoney: Boolean;
-  hasItems: Boolean;
-  ynIdx: Byte;
-  apprOk: Boolean;
 begin
-  GDVars.ifcState := C_Ifc.SHOP_TEMPLE;
-  CharHlp.DisplayNoncombatInterface;
-  CharHlp.DisplayParty(GDVars.curChar);
-  FillChar(treasureMoney, SizeOf(Types.TMoney), 0);
-  GDVars.treasureMoneyFlag := False;
-  done := False;
-  repeat
-    Money.DetermineTreasure(hasMoney, hasItems);
-    if hasMoney then
-      menu := 'Heal View Take Pool Share Appraise Exit'
-    else
-      menu := 'Heal View Pool Appraise Exit';
-    c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
-    case c of
-      'H': if not ext then Temple.HealMenu;
-      'V': ViewChar.ViewCharMenu(ext);
-      'T': Money.TakeMoneyMenu;
-      'P': if not ext then Money.PoolMoney;
-      'S': Money.ShareMoney;
-      'A': Money.AppraiseMenu(apprOk);
-      'E': begin
-             Money.DetermineTreasure(hasMoney, hasItems);
-             if hasMoney then begin
-               menu := '~Yes ~No';
-               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                 C_Msg.TEXT_BOTTOM, LightGreen, True,
-'As you leave a priest says, "Excuse me but you have left some money here" ');
-               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                             LightGreen, True,
-                                             'Do you want to go back and retrieve your money?');
-               ynIdx := EclMenu.MenuHorizontalCS('', menu, LightMagenta, LightGreen, White, False, False);
-               if ynIdx = 1 then
-                 done := True
-               else
-                 TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-             end else
-               done := True;
-           end;
-      C_Keys.HOME: ViewChar.SelectPrevNextChar(c);
-      C_Keys.END_KEY: ViewChar.SelectPrevNextChar(c);
-    end;
-    case c of
-      'B', 'T': CharHlp.DisplayNoncombatInterface;
-      'A': if apprOk then CharHlp.DisplayNoncombatInterface;
-    end;
-    CharHlp.DisplayParty(GDVars.curChar);
-  until done;
+  Shop.CounterMenu(True);
 end;
 
 end.

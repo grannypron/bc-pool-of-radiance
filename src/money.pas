@@ -4,7 +4,7 @@ unit Money;
 
 interface
 
-uses Types, Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money;
+uses Types;
 
 function CheckOverload(p: Types.PCharRecord; w: LongInt; var takable: Word): Boolean;
 
@@ -23,6 +23,10 @@ procedure TradeMoney(var giver, rcv: Types.PCharRecord; qty: Word; mType: ShortI
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
+
+{ Leaving with treasure still on the table: show said in green, then ask (in white) whether to go back for it. True when
+  the party goes back (the message window is cleared for the menu again), False when it leaves. }
+function GoBackForIt(said, ask: String): Boolean;
 
 procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
@@ -46,7 +50,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses GameIo, MenuCore;
+uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore,
+  C_Msg, EclMenu;
 
 
 var
@@ -943,6 +948,21 @@ begin
         CharHlp.RecalcStats(GDVars.curChar);
       end;
     until exitF;
+end;
+
+function GoBackForIt(said, ask: String): Boolean;
+begin
+  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
+                                True, said);
+  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, White, False,
+                                ask);
+  { 0-based: 1 is No }
+  if EclMenu.MenuHorizontalCS('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
+    GoBackForIt := False
+  else begin
+    TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    GoBackForIt := True;
+  end;
 end;
 
 end.

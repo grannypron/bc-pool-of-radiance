@@ -5,14 +5,13 @@ unit Combat;
 
 interface
 
-uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys,
-  C_Class, C_Status, C_Ifc, C_Gbvm, C_Dir;
-
 procedure CombatMain;
 
 implementation
 
-uses Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar, TextRend, StrUtil;
+uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys, C_Class,
+  C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore,
+  ViewChar, TextRend, StrUtil;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;

@@ -5,8 +5,7 @@ unit CombatAi;
 
 interface
 
-uses Types, C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs,
-  ViewChar, FxEngine, C_Effect, C_Equip, C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys;
+uses Types;
 
 { Run one AI-controlled turn for creature: check the keyboard (Space returns the party to manual control), reroll the
   approach pattern, check morale, then resolve a spell readied earlier (combatAddr^.spellCast) as the whole action, or
@@ -16,7 +15,8 @@ procedure CombatAiControl(creature: Types.PCharRecord);
 
 implementation
 
-uses CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil;
+uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, ViewChar, FxEngine, C_Effect, C_Equip,
+  C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil;
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 

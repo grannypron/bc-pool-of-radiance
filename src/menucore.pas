@@ -4,7 +4,7 @@ unit MenuCore;
 
 interface
 
-uses Types, GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc;
+uses Types;
 
 var
   { Set just before a MenuVertical call that only shows its list: when the list fits on one page it is drawn and #0
@@ -69,7 +69,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses TextRend;
+uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
 
 var
   menuAuto: Types.TMenuAuto absolute GDVars.dsMenuAutoAnswer;

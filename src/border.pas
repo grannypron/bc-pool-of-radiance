@@ -4,7 +4,7 @@ unit Border;
 
 interface
 
-uses Types, Crt, C_Video, GDConsts, GDVars, TextRend, Sym8x8;
+uses Types;
 
 procedure DrawBorder(ulCol, ulRow, lrCol, lrRow: ShortInt; corner: Byte);
 
@@ -14,6 +14,8 @@ procedure DrawWindow(ulCol, ulRow, lrCol, lrRow: ShortInt; corner, color: Byte; 
 
 implementation
 
+
+uses Crt, C_Video, GDConsts, GDVars, TextRend, Sym8x8;
 const
   BORDER_SYM_BASE = 276;
   { the 40x25 text grid }

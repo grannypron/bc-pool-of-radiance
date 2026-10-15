@@ -6,8 +6,7 @@ unit SaveLoad;
 
 interface
 
-uses Types, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal,
-  FxEngine, View3D, MapTiles, C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status;
+uses Types;
 
 { Read <saveDir>charlist.txt into a fresh list of string nodes (the TItemRec prefix used by
   MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist. Names of characters currently in
@@ -105,7 +104,9 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp, FileUtil;
+uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, FxEngine, View3D, MapTiles,
+  C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp,
+  FileUtil;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }

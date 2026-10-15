@@ -4,15 +4,20 @@ unit Shop;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc;
+uses Types;
 
 procedure ShopMainMenu;
+
+{ The counter menu a shop and a temple share: Buy (a shop) or Heal (a temple), then View, Take, Pool, Share,
+  Appraise and Exit. Leaving with money on the counter asks first whether to go back for it. }
+procedure CounterMenu(atTemple: Boolean);
 
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Border, CharHlp, MenuCore, TextRend;
+uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
+  Temple;
 
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
@@ -142,16 +147,15 @@ end;
 
 { Main shop menu: buy, view, take, pool, share and appraise, with Take and Share offered only while there is pooled
   money. Leaving with money still in the pool asks whether to go back for it. }
-procedure ShopMainMenu;
+procedure CounterMenu(atTemple: Boolean);
 var
   menu: String[40];
-  query: String[1];
+  first: String[4];
   ext: Boolean;
   done: Boolean;
   c: Char;
   hasMoney: Boolean;
   hasItems: Boolean;
-  ynIdx: Byte;
   apprOk: Boolean;
   p: Types.PItemRec;
 begin
@@ -159,23 +163,29 @@ begin
   CharHlp.DisplayNoncombatInterface;
   CharHlp.DisplayParty(GDVars.curChar);
   FillChar(treasureMoney, SizeOf(Types.TMoney), 0);
-  query[0] := #0;
   GDVars.treasureMoneyFlag := False;
   done := False;
-  p := GDVars.treasureItems;
-  while p <> nil do begin
-    CharHlp.PrintItemString(nil, p, 0, 0, False, False);
-    p := p^.next;
+  if atTemple then
+    first := 'Heal'
+  else begin
+    first := 'Buy';
+    p := GDVars.treasureItems;
+    while p <> nil do begin
+      CharHlp.PrintItemString(nil, p, 0, 0, False, False);
+      p := p^.next;
+    end;
   end;
   repeat
     Money.DetermineTreasure(hasMoney, hasItems);
     if hasMoney then
-      menu := 'Buy View Take Pool Share Appraise Exit'
+      menu := first + ' View Take Pool Share Appraise Exit'
     else
-      menu := 'Buy View Pool Appraise Exit';
-    c := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, True, False, ext);
+      menu := first + ' View Pool Appraise Exit';
+    c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
+    { extended keys come back as letters too: H is the up arrow, B is F8, P the down arrow }
     case c of
-      'B': Shop.ShopBuyMenu;
+      'B': if not atTemple and not ext then Shop.ShopBuyMenu;
+      'H': if atTemple and not ext then Temple.HealMenu;
       'V': ViewChar.ViewCharMenu(ext);
       'T': Money.TakeMoneyMenu;
       'P': if not ext then Money.PoolMoney;
@@ -183,25 +193,17 @@ begin
       'A': Money.AppraiseMenu(apprOk);
       'E': begin
              Money.DetermineTreasure(hasMoney, hasItems);
-             if hasMoney then begin
-               menu := '~Yes ~No';
-               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                 C_Msg.TEXT_BOTTOM, LightGreen, True,
-'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ');
-               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                                             C_Msg.TEXT_BOTTOM, White, False,
-                                             'Do you want to go back and get your Money?');
-               ynIdx := EclMenu.MenuHorizontalCS(query, menu, LightMagenta, LightGreen, White,
-                                                 False, False);
-               if ynIdx = 1 then
-                 done := True
-               else
-                 TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-             end else
-               done := True;
+             if atTemple then
+               done := not hasMoney or
+                       not Money.GoBackForIt('As you leave a priest says, "Excuse me but you have left some money here" ',
+                                             'Do you want to go back and retrieve your money?')
+             else
+               done := not hasMoney or
+                       not Money.GoBackForIt(
+                         'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ',
+                         'Do you want to go back and get your Money?');
            end;
-      'G': ViewChar.SelectPrevNextChar(c);
-      'O': ViewChar.SelectPrevNextChar(c);
+      C_Keys.HOME, C_Keys.END_KEY: ViewChar.SelectPrevNextChar(c);
     end;
     case c of
       'B', 'T': CharHlp.DisplayNoncombatInterface;
@@ -209,6 +211,11 @@ begin
     end;
     CharHlp.DisplayParty(GDVars.curChar);
   until done;
+end;
+
+procedure ShopMainMenu;
+begin
+  Shop.CounterMenu(False);
 end;
 
 end.

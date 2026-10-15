@@ -4,13 +4,11 @@ unit Intro;
 
 interface
 
-uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border;
-
 procedure Introduction;
 
 implementation
 
-uses C_Sound, SoundDrv, DaxIo;
+uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border, C_Sound, SoundDrv, DaxIo;
 
 { Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);

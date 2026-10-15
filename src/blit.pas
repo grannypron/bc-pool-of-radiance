@@ -10,7 +10,7 @@ unit Blit;
 
 interface
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos;
+uses Types;
 
 type
   { An 8-pixel chunk as stored in a picture: two pixels to a byte, the first in the high nibble. }
@@ -173,6 +173,8 @@ procedure SetPaletteRegister(registerIndex, color: Byte);
 
 implementation
 
+
+uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos;
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
   GC_WRITE_MODE_1 = 1;

@@ -4,8 +4,7 @@ unit EclMenu;
 
 interface
 
-uses Types, Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLoad, ViewChar, C_Effect,
-  C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir, C_Money;
+uses Types;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address. Note: $80 (string value) also reads the GBVM, at an address made of the
@@ -95,7 +94,8 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 implementation
 
-uses CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
+uses Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLoad, ViewChar, C_Effect, C_Ecl, C_Keys,
+  C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
 
 var
   { Monster sprite or close-up picture shown in the view window }

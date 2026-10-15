@@ -4,8 +4,7 @@ unit CharHlp;
 
 interface
 
-uses Types, Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap,
-  C_Effect, C_Equip, C_Race, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money;
+uses Types;
 
 procedure WeaponAdjust(creature: Types.PCharRecord);
 
@@ -152,7 +151,9 @@ function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
 implementation
 
-uses Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc, StrUtil;
+uses Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Effect, C_Equip, C_Race,
+  C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money, Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc,
+  StrUtil;
 
 var
   { active renderer }

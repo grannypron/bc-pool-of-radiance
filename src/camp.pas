@@ -6,8 +6,6 @@ unit Camp;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level;
-
 { Run the camp menu, preserving the interface state and clearing rest timers and pending spell activities. Return
   interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). }
 procedure CampMainMenu(var interrupted: Boolean);
@@ -18,7 +16,8 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar,
+uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
+  FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar,
   StrUtil;
 
 const

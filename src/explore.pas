@@ -4,9 +4,6 @@ unit Explore;
 
 interface
 
-uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D,
-  MapTiles, C_Ecl, C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
-
 procedure ResolveMovement;
 
 function MapMainMenu: Char;
@@ -18,7 +15,9 @@ var
 
 implementation
 
-uses SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime, MenuCore, Portrait, TextRend;
+uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
+  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime,
+  MenuCore, Portrait, TextRend;
 
 var
   animData: Types.TAnimRec absolute GDVars.animData;

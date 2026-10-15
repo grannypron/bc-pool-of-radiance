@@ -4,8 +4,6 @@ unit View3D;
 
 interface
 
-uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir;
-
 { Stores the four 3D-view band colours (sky, horizon line, horizon band, floor). FixMain's boot sequence passes
   (11,0,7,6) for the default palette; MapView re-sets them for each 3D view }
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
@@ -34,7 +32,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses DaxIo, GameIo;
+uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo;
 
 var
   { 3D wall graphics ptr }

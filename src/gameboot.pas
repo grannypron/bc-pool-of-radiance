@@ -5,11 +5,9 @@ unit GameBoot;
 
 interface
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv;
-
 implementation
 
-uses DaxIo, GameIo;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv, DaxIo, GameIo;
 
 const
   { graphics memory reserve: 16 KB in paragraphs }

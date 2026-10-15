@@ -4,7 +4,7 @@ unit TextRend;
 
 interface
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys;
+uses Types;
 
 procedure ResetEgaGC;
 
@@ -45,6 +45,8 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
+
+uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys;
 var
 
   displayMode: Types.TVideoMode absolute GDVars.videoMode;

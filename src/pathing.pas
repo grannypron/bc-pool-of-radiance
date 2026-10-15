@@ -4,7 +4,7 @@ unit Pathing;
 
 interface
 
-uses Types, GDConsts, GDVars, CbtMap, C_Dir;
+uses Types;
 
 { Return the sign of an Integer: -1, 0 or 1. }
 function SignOf(v: Integer): Integer;
@@ -33,6 +33,8 @@ procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte;
 
 implementation
 
+
+uses GDConsts, GDVars, CbtMap, C_Dir;
 function SignOf(v: Integer): Integer;
 begin
   if v < 0 then

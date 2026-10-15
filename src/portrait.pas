@@ -5,7 +5,7 @@ unit Portrait;
 
 interface
 
-uses Types, Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo;
+uses Types;
 
 procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
 
@@ -32,6 +32,8 @@ procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
 implementation
 
+
+uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo;
 var
   { 0=CGA 1=EGA 2=Tandy }
   displayMode: Types.TVideoMode absolute GDVars.videoMode;

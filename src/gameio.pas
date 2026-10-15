@@ -4,8 +4,6 @@ unit GameIo;
 
 interface
 
-uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv;
-
 type
   TSettingsHook = procedure;
 
@@ -35,7 +33,7 @@ procedure ExitGame;
 
 implementation
 
-uses Types, Overlay, TextRend, StrUtil;
+uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types, Overlay, TextRend, StrUtil;
 
 var
   { ShowMemory is up: its own key waits do not open it again }

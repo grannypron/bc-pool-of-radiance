@@ -4,9 +4,6 @@ unit PostCbt;
 
 interface
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc,
-  C_Gbvm, C_Money;
-
 { Wrap up a combat: settle the outcome, award experience, run the loot menus and free the combat state. }
 procedure PostCombat;
 
@@ -16,7 +13,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar;
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
+  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar;
 
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
@@ -411,7 +409,6 @@ var
   done: Boolean;
   ext: Boolean;
   query: String[1];
-  ynIdx: Byte;
   i: Byte;
   detectSpell: Byte;
   hasDetect: Boolean;
@@ -452,23 +449,9 @@ begin
       'D': Magic.CastSpellNC(detectSpell, False, False, ext);
       'E', C_Keys.NONE: begin
                  Money.DetermineTreasure(treasure, items);
-                 if treasure or items then begin
-                   menu := '~Yes ~No';
-                   TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                                                 C_Msg.TEXT_BOTTOM, LightGreen, True,
-                                                 'There is still treasure left.  ');
-                   TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                                                 C_Msg.TEXT_BOTTOM, White, False,
-                                                 'Do you want to go back and claim your treasure?');
-                   ynIdx := EclMenu.MenuHorizontalCS(query, menu, LightMagenta, LightGreen, White,
-                                                     False, False);
-                   { 0-based: 1 = No leaves, anything else returns to the loot menu }
-                   if ynIdx = 1 then
-                     done := True
-                   else
-                     TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-                 end else
-                   done := True;
+                 done := not (treasure or items) or
+                         not Money.GoBackForIt('There is still treasure left.  ',
+                                               'Do you want to go back and claim your treasure?');
                end;
       'G': begin
              ViewChar.SelectPrevNextChar(c);

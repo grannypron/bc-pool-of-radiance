@@ -4,8 +4,7 @@ unit ViewChar;
 
 interface
 
-uses Types, Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait,
-  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
+uses Types;
 
 procedure DisplayChar;
 
@@ -35,7 +34,9 @@ function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Bool
 
 implementation
 
-uses Vault, Stats, StrUtil;
+uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
+  FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats,
+  StrUtil;
 
 var
   { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }

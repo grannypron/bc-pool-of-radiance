@@ -4,8 +4,7 @@ unit CbtActs;
 
 interface
 
-uses Types, C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect,
-  C_Equip, C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
+uses Types;
 
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
 
@@ -61,7 +60,8 @@ function StingVictoryCheat: Boolean;
 
 implementation
 
-uses Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil;
+uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect, C_Equip, C_Keys, C_Level,
+  C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
