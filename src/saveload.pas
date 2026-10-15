@@ -433,6 +433,10 @@ var
   n: Types.PItemRec;
   ioRes: Integer;
   ok: Boolean;
+  { the record as written: a copy with its pointers cleared, as below for each item and effect }
+  rec: Types.TCharRecord;
+  itemRec: Types.TItemRec;
+  effectRec: Types.TEffectRec;
 begin
   { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current party
     member's old line and then appends this character's name unmarked. }
@@ -465,8 +469,15 @@ begin
     if ioRes <> 0 then
       TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
   until ioRes = 0;
-  { a write that fails (a full disk) is reported once, below, after every file has been tried and closed }
-  BlockWrite(f, creature^, SizeOf(Types.TCharRecord), res);
+  { a write that fails (a full disk) is reported once, below, after every file has been tried and closed. The records
+    go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files and clears the
+    pointers it reads, so their values meant nothing, and a heap address made two saves of the same game differ. }
+  rec := creature^;
+  rec.effectsAddr := nil;
+  rec.itemsAddr := nil;
+  rec.nextCharAddr := nil;
+  rec.combatAddr := nil;
+  BlockWrite(f, rec, SizeOf(Types.TCharRecord), res);
   ok := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
   ioRes := IOResult;
@@ -481,7 +492,9 @@ begin
     if IOResult = 0 then begin
       item := creature^.itemsAddr;
       while item <> nil do begin
-        BlockWrite(f, item^, SizeOf(Types.TItemRec), res);
+        itemRec := item^;
+        itemRec.next := nil;
+        BlockWrite(f, itemRec, SizeOf(Types.TItemRec), res);
         if (IOResult <> 0) or (res <> SizeOf(Types.TItemRec)) then
           ok := False;
         item := item^.next;
@@ -502,7 +515,9 @@ begin
     if IOResult = 0 then begin
       effect := creature^.effectsAddr;
       while effect <> nil do begin
-        BlockWrite(f, effect^, SizeOf(Types.TEffectRec), res);
+        effectRec := effect^;
+        effectRec.next := nil;
+        BlockWrite(f, effectRec, SizeOf(Types.TEffectRec), res);
         if (IOResult <> 0) or (res <> SizeOf(Types.TEffectRec)) then
           ok := False;
         effect := effect^.next;
@@ -941,6 +956,8 @@ begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
+  { the names' unused characters too, so a save holds nothing left over in memory }
+  FillChar(names, SizeOf(names), 0);
   SaveLoad.CheckSaveDir;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
