@@ -108,6 +108,8 @@ cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's gol
 
 - **Split `CharHlp`**: a resident core (stats, inventory, damage, string helpers) and an overlaid unit for screen
   layouts and the party display. Frees resident memory; measure overlay loads with Ctrl-Y.
+  **Done**: `CharDisp` (overlaid) holds the 20 drawing routines; resident code went from 73,616 to 67,648 bytes. Ctrl-Y
+  counted 28 overlay loads at the first area screen against 27 before; combat was not measured.
 - **One typed view per shared global.** The wall cache is overlaid three ways, the icon animations two, `displayMode`
   five times. One view in `Types`; merge the duplicate zone pointer types. Save layout unchanged.
   **Done**: `videoMode`, `treasureMoney`, `dsIconAnimation`, the wall-set cache, `animData` (one `TAnimRec`),
