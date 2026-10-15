@@ -8,6 +8,8 @@
 # GOLDEN and CANDIDATE are folders holding START.EXE and GAME.OVR; CANDIDATE is obj/ (./build.sh's output) unless
 # given. Keep a golden build of the commit before a refactor, e.g. in .golden/<commit>/ (ignored by git):
 #   git stash; ./build.sh; mkdir -p .golden/$(git rev-parse --short HEAD); cp obj/START.EXE obj/GAME.OVR .golden/...
+# A change that makes saves differ in a way that is not behaviour (a heap address cleared, say) is applied to the golden
+# commit as well, and that build kept beside it with the patch (.golden/<commit>-eq/PATCH.diff).
 # With no SCENARIO, every tests/scenarios/*.txt runs. Needs goldbox-player's server running (systemctl --user status
 # gbplayer) and its checkout at GBPLAYER_HOME (~/repos/goldbox-player unless set). The golden build's results are kept
 # in GOLDEN/record.json and reused while the scenario and the build are unchanged, so after the first run only the
