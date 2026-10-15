@@ -244,7 +244,7 @@ procedure ResolveSpell(spell, eff: Byte; onRemove: Boolean; damage, elem: Byte; 
 
 procedure CastOneSide(hostFlag: ShortInt; msg: Types.TStr40); forward;
 
-function RemoveDiseaseEffects: Boolean; forward;
+function RemoveDiseaseEffects(tgt: Types.PCharRecord): Boolean; forward;
 
 procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40); forward;
 
@@ -1295,23 +1295,23 @@ begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is blind');
 end;
 
-{ Remove disease from dsTargetCreaturePtr[1] with effectLock held: Diseased, the Strength-draining disease (also
+{ Remove disease from tgt with effectLock held: Diseased, the Strength-draining disease (also
   dropping its hit-point and helpless effects) and rot (also dropping mummy rot). Returns True if any of the three was
   present. }
-function RemoveDiseaseEffects: Boolean;
+function RemoveDiseaseEffects(tgt: Types.PCharRecord): Boolean;
 begin
   RemoveDiseaseEffects := False;
   GDVars.effectLock := 1;
-  if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.DISEASED) then
+  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.DISEASED) then
     RemoveDiseaseEffects := True;
-  if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.DISEASE_STR) then begin
+  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.DISEASE_STR) then begin
     RemoveDiseaseEffects := True;
-    FxEngine.RemoveEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.DISEASE_HP, nil);
-    FxEngine.RemoveEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.HELPLESS, nil);
+    FxEngine.RemoveEffect(tgt, C_Effect.DISEASE_HP, nil);
+    FxEngine.RemoveEffect(tgt, C_Effect.HELPLESS, nil);
   end;
-  if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.ROT_NO_HEAL) then begin
+  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.ROT_NO_HEAL) then begin
     RemoveDiseaseEffects := True;
-    FxEngine.RemoveEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.MUMMY_ROT, nil);
+    FxEngine.RemoveEffect(tgt, C_Effect.MUMMY_ROT, nil);
   end;
   GDVars.effectLock := 0;
 end;
@@ -1321,7 +1321,7 @@ procedure CureDiseaseHandler;
 var
   junk: Boolean;
 begin
-  junk := Magic.RemoveDiseaseEffects;
+  junk := Magic.RemoveDiseaseEffects(GDVars.dsTargetCreaturePtr[1]);
 end;
 
 { Cause Disease: apply the spell's effect. }
@@ -1720,7 +1720,7 @@ begin
       if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
         FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
     end;
-  end else if not Magic.RemoveDiseaseEffects then begin
+  end else if not Magic.RemoveDiseaseEffects(tgt) then begin
     if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(1, 4) + 8, False) then
       CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
   end;
