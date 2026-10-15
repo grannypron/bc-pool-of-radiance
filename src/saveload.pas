@@ -453,13 +453,14 @@ begin
       TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
   until ioRes = 0;
   { a write that fails (a full disk) is reported once, below, after every file has been tried and closed. The records
-    go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files and clears the
-    pointers it reads, so their values meant nothing, and a heap address made two saves of the same game differ. }
+    go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files, and the equipment
+    slots from the items, so their values meant nothing, and a heap address made two saves of the same game differ. }
   rec := creature^;
   rec.effectsAddr := nil;
   rec.itemsAddr := nil;
   rec.nextCharAddr := nil;
   rec.combatAddr := nil;
+  FillChar(rec.equipped, SizeOf(rec.equipped), 0);
   BlockWrite(f, rec, SizeOf(Types.TCharRecord), res);
   ok := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
@@ -585,6 +586,8 @@ begin
     end;
     Close(f);
   end;
+  { the slots pointed into the heap of the game that saved them }
+  CharHlp.LinkEquipped(creature);
   SaveLoad.ReadUsualSpells(creature, name);
   Stats.ReadChar(creature, name);
 end;

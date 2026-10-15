@@ -30,6 +30,10 @@ procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
+{ Point creature's equipment slots at its readied items (RecalcStats does this first; a character just loaded needs it
+  alone). }
+procedure LinkEquipped(creature: Types.PCharRecord);
+
 procedure RecalcStats(creature: Types.PCharRecord);
 
 function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
@@ -451,40 +455,19 @@ begin
       IsHelpless := True;
 end;
 
-{ Rebuild equipment slots and encumbrance, apply strength, dexterity and item adjustments, then calculate armor class,
-  rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster warrior, else 1) and
-  movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of encumbrance, never leaving
-  less than the equipped items' weight. The weight is summed in 32 bits and stored as at most 65535. }
-procedure RecalcStats(creature: Types.PCharRecord);
+{ Point creature's equipment slots at its readied items, every other slot nil: a second ring goes in RING2, arrows
+  (item type 73) and bolts (28) in their own slots as well as their base item's. }
+procedure LinkEquipped(creature: Types.PCharRecord);
 var
-  j: Byte;
-  k: ShortInt;
-  item: Types.PItemRec;
-  magicBody: Boolean;
-  bag: Boolean;
-  adj: Types.TAcAdjust;
   i: ShortInt;
-  c: ShortInt;
-  w: LongInt;
-  raw: LongInt;
+  item: Types.PItemRec;
   slot: 0..127;
-  ringSave: ShortInt;
 begin
-  { rebuild every equipment slot from the readied items }
   for i := C_Equip.WEAPON to C_Equip.BOLT do
     creature^.equipped[i] := nil;
-  bag := False;
-  creature^.numberOfItems := 0;
   item := creature^.itemsAddr;
-  creature^.handsEquipped := 0;
-  raw := 0;
-  GDVars.gEquipWeight := 0;
   while item <> nil do begin
-    Inc(creature^.numberOfItems);
-    w := CharHlp.ItemWeight(item);
-    Inc(raw, w);
     if item^.equipped <> 0 then begin
-      Inc(GDVars.gEquipWeight, w);
       slot := CharHlp.BaseItem(item^.itemType)^.slot;
       case Byte(slot) of
         C_Equip.WEAPON..C_Equip.BOOTS: creature^.equipped[slot] := item;
@@ -499,6 +482,42 @@ begin
         creature^.equipped[C_Equip.ARROW] := item;
       if item^.itemType = 28 then
         creature^.equipped[C_Equip.BOLT] := item;
+    end;
+    item := item^.next;
+  end;
+end;
+
+{ Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
+  calculate armor class, rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster
+  warrior, else 1) and movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of
+  encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32 bits and stored as at most
+  65535. }
+procedure RecalcStats(creature: Types.PCharRecord);
+var
+  j: Byte;
+  k: ShortInt;
+  item: Types.PItemRec;
+  magicBody: Boolean;
+  bag: Boolean;
+  adj: Types.TAcAdjust;
+  c: ShortInt;
+  w: LongInt;
+  raw: LongInt;
+  ringSave: ShortInt;
+begin
+  CharHlp.LinkEquipped(creature);
+  bag := False;
+  creature^.numberOfItems := 0;
+  item := creature^.itemsAddr;
+  creature^.handsEquipped := 0;
+  raw := 0;
+  GDVars.gEquipWeight := 0;
+  while item <> nil do begin
+    Inc(creature^.numberOfItems);
+    w := CharHlp.ItemWeight(item);
+    Inc(raw, w);
+    if item^.equipped <> 0 then begin
+      Inc(GDVars.gEquipWeight, w);
       { Name component 186 is 'Holding' }
       if item^.nameIds[1] = 186 then
         bag := True;
