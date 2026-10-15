@@ -710,12 +710,12 @@ begin
       BldShow.DrawText(1 + (38 - Length(NOTE)) div 2, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;
-    TextRend.PrintSpaces(0, 24, Black, 40);
+    TextRend.ClearBottomLine;
     TextRend.DisplayString(0, 24, White, PROMPT);
     repeat
       key := GameIo.ReadGameKey;
     until key = #13;
-    TextRend.PrintSpaces(0, 24, Black, 40);
+    TextRend.ClearBottomLine;
   end else begin
     start := st^.elapsed;
     while st^.elapsed - start < HOLD_TICKS do

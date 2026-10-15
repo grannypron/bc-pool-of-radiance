@@ -848,7 +848,7 @@ begin
   Blit.FreePic(GDVars.dsPortraitCache[2].pic);
   GDVars.dsPortraitCache[1].pictureId := 255;
   GDVars.dsPortraitCache[2].pictureId := 255;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
   { the battle music runs until the first sound of the fight cuts it }

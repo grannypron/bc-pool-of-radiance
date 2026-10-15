@@ -241,7 +241,7 @@ var
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
   GDVars.dsSuppressingInsertDiskFlag := 0;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
   if not (GDVars.virtualDisk in [1..8]) then
     DaxIo.PushState(1);
@@ -287,7 +287,7 @@ begin
     n := SizeOf(Types.TZone3);
   Move(data^[2], GDVars.zone3^, n);
   FreeMem(data, sizeRead);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure InitCreature(id: Byte; var creature: Types.PCharRecord; var inv: Types.PItemRec;

@@ -12,7 +12,7 @@ procedure CombatMain;
 
 implementation
 
-uses Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar;
+uses Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar, TextRend;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -188,7 +188,7 @@ begin
                end;
           'Q': begin
                  Combat.TurnOnAuto(creature);
-                 MenuCore.ClearBottomLine;
+                 TextRend.ClearBottomLine;
                  Delay(200);
                  done := True;
                  CombatAi.CombatAiControl(creature);
@@ -220,7 +220,7 @@ begin
                         Combat.TurnOnAuto(p);
                         p := p^.nextCharAddr;
                       end;
-                      MenuCore.ClearBottomLine;
+                      TextRend.ClearBottomLine;
                       Delay(200);
                       done := True;
                     end;

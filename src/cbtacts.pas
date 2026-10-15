@@ -579,7 +579,7 @@ var
   row: ShortInt;
 begin
   CharHlp.PrintNameString(creature, 'turns undead...', 10, False);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   any := False;
   stop := False;

@@ -131,7 +131,7 @@ end;
 { Show s on the bottom line (its first 40 characters) and log it. }
 procedure Progress(s: string);
 begin
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, Copy(s, 1, 40));
   DataBld.LogLine(s);
 end;
@@ -1217,7 +1217,7 @@ begin
       Close(logFile);
     n := IOResult;
     logOpen := False;
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     BldShow.Finish(failedCount > 0);
     DaxIo.ResetArchiveCache;
   end;

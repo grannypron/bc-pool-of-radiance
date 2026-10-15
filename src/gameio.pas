@@ -87,7 +87,7 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + GameIo.Num(GDVars.ovrLoads));
   TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + GameIo.Num(OvrGetBuf) + ' retry ' + GameIo.Num(OvrGetRetry));
   TextRend.DisplayAndPause(LightGreen, 'Heap free ' + GameIo.Num(MemAvail) + ' big ' + GameIo.Num(MaxAvail));
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   GDVars.bottomLineTaken := True;
   memShown := False;
 end;

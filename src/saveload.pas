@@ -785,7 +785,7 @@ var
 begin
   found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
                                'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
     found := (IOResult = 0) and (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
@@ -795,7 +795,7 @@ begin
   end;
   if not found then begin
     TextRend.DisplayAndPause(Yellow, 'Save game ' + letter + ' is damaged.');
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     Exit;
   end;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
@@ -887,7 +887,7 @@ begin
     end;
   if GDVars.zone0^.yarashPyramidLeft <> 0 then
     Ending.YarashComplete(False);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure LoadGame;
@@ -924,7 +924,7 @@ begin
   { the party goes only when there is a game to replace it }
   if not SaveLoad.QuickLoadable then begin
     TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     { GameLoop resumes the game in memory, as after a load }
     GDVars.loadedSave := 1;
     Exit;
@@ -965,7 +965,7 @@ begin
     if ioRes <> 0 then
       TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
   until ioRes = 0;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   for n := 1 to 3 do begin
     GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := wallSlots[n].wallDefId;
@@ -1028,7 +1028,7 @@ begin
     p := p^.nextCharAddr;
   end;
   GDVars.recentSaved := 1;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure SaveGame;
@@ -1057,7 +1057,7 @@ procedure QuickSave;
 begin
   SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea);
   TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure CheckFileElseQuit(name: Types.TPathStr);

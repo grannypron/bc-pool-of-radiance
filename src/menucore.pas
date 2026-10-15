@@ -47,9 +47,6 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
-{ Blank the bottom text line. }
-procedure ClearBottomLine;
-
 { Vertical list menu in the box ulCol,ulRow..lrCol,lrRow with menu (plus Next/Prev/Exit as they apply) on the bottom
   line. The Up arrow or Home moves the highlight up a line and the Down arrow or End moves it down, wrapping within the
   page; Page Up and Page Down turn the page. idx is zero-based; redraw requests repainting. Label rows have inUse set;
@@ -246,7 +243,7 @@ begin
         else if ((ch = C_Keys.F5) or (ch = C_Keys.F8)) and not quickKeysToCaller then begin
           if GDVars.ifcState <> C_Ifc.COMBAT then begin
             TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
-            TextRend.PrintSpaces(0, 24, Black, 40);
+            TextRend.ClearBottomLine;
             if Length(query) <> 0 then
               TextRend.DisplayString(0, 24, qCol, query);
             DisplayOption(GDVars.horizChoice);
@@ -317,11 +314,6 @@ function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; rein
                         var ext: Boolean): Char;
 begin
   MenuHorizontal := MenuCore.HorizontalMenu(query, menu, qCol, mCol, hlCol, reinterpret, animate, True, ext);
-end;
-
-procedure ClearBottomLine;
-begin
-  TextRend.PrintSpaces(0, 24, Black, 40);
 end;
 
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;

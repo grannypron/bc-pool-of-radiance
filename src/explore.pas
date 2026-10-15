@@ -292,7 +292,7 @@ begin
     quickLoadAsked := True
   else begin
     TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
   end;
 end;
 

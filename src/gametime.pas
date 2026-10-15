@@ -487,7 +487,7 @@ begin
       if MenuCore.YesNoMenu('Stop Resting? ', LightMagenta, LightGreen, White) = 'Y' then
         stop := True
       else
-        MenuCore.ClearBottomLine;
+        TextRend.ClearBottomLine;
     end;
     if not stop then begin
       GameTime.DecrementRestTime(5, C_Time.MINUTES);

@@ -20,6 +20,9 @@ procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 
 procedure PrintSpaces(col, row, color, count: Byte);
 
+{ Blank the bottom text line, row 24, where menus and prompts go. Resident, so combat clearing it loads no overlay. }
+procedure ClearBottomLine;
+
 procedure DisplayString(col, row, color: Byte; source: string);
 
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
@@ -247,6 +250,11 @@ begin
 end;
 
 { Draw count spaces from (col, row); an off-screen start is ignored. }
+procedure ClearBottomLine;
+begin
+  TextRend.PrintSpaces(0, 24, Black, 40);
+end;
+
 procedure PrintSpaces(col, row, color, count: Byte);
 begin
   if (col < 0) or (col > 39) or (row < 0) or (row > 24) then Exit;
@@ -362,7 +370,7 @@ var
   reply: string;
   key: Char;
 begin
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, query);
   col := Length(query);
   reply := '';
@@ -383,7 +391,7 @@ begin
         end;
     end;
   until (key = C_Keys.ENTER) or (key = C_Keys.ESC);
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   for col := 1 to Length(reply) do
     reply[col] := UpCase(reply[col]);
   ReadString := reply;
@@ -410,7 +418,7 @@ procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
 var
   key: Char;
 begin
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, msg);
   key := GameIo.ReadGameKey;
 end;
@@ -457,10 +465,10 @@ end;
   the param order is (msg, color) -- reversed vs DisplayAndPause }
 procedure PrintAndPause(msg: Types.TStr40; color: Byte);
 begin
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, msg);
   TextRend.PauseOnly;
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
 end;
 
 { PauseOnly: Crt.Delay scaled by the shared text delay: gameDelay * 225 ms }

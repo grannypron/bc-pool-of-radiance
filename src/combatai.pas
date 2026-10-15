@@ -49,7 +49,7 @@ var
   spell: Byte;
 begin
   done := CombatAi.CheckKeystroke(creature);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   CharHlp.ClearMessageWindow;
   if creature^.enabled = 0 then
     done := CharHlp.EndActions(creature);

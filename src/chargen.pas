@@ -153,7 +153,7 @@ begin
 
     ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, MAGENTA, Black, Black, 
             True, False, ext);
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     if ext then begin
       { Up and Down step through the party as Home and End do; the menu has no other use for them }
       if ch = C_Keys.UP then
@@ -198,7 +198,7 @@ begin
         'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GDVars.creatureList <> nil) then
              begin
                GDVars.ifcState := stateB;
-               MenuCore.ClearBottomLine;
+               TextRend.ClearBottomLine;
                Exit;
              end;
         'G': if GDConsts.menuItems[MENU_SETTINGS].enabled <> 0 then
@@ -1456,7 +1456,7 @@ begin
     Blit.FreePic(heads[i]);
     Blit.FreePic(bodies[i]);
   end;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 { CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the
@@ -1995,7 +1995,7 @@ var
     which := 0;
     pick := CurrentOption;
     { the menu's keys do nothing here }
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     DrawItem(cur);
     ShowMessage;
     DrawGrid;
@@ -2166,7 +2166,7 @@ begin
       { the party map icon LoadCharIconAnim freed }
       MapTiles.LoadIconAnim('ICON', 0, 11);
   end;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   CbtMap.SetNoncombatPalette;
   GDVars.horizChoice := savedChoice;
 end;

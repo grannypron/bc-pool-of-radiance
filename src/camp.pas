@@ -1093,7 +1093,7 @@ begin
   GDVars.ifcState := savedIfc;
   CharHlp.PrintMiscInfo;
   CharHlp.ClearMessageWindow;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 end.

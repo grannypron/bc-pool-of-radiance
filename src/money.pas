@@ -183,7 +183,7 @@ var
   code: Integer;
   n: Word;
 begin
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, query);
   qLen := Length(query);
   col := qLen;
@@ -210,7 +210,7 @@ begin
         end;
     end;
   until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   if ch = C_Keys.ESC then
     n := 0
   else
