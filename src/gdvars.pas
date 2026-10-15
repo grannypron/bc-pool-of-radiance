@@ -333,7 +333,7 @@ var
 var
   { Treasure }
   { copper through jewelry }
-  treasureMoney: array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
+  treasureMoney: Types.TMoney;
   { consumers use PItemRec views }
   treasureItems: Types.PItemRec;
   { Combatants per side }

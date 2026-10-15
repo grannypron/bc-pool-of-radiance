@@ -19,9 +19,6 @@ implementation
 uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
   Temple;
 
-var
-  treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
-
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
   to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.PrintItemString. Returns
   the menu key in c and the highlighted item in itemToBuy; cursor and idx carry the menu position from one call to the
@@ -153,7 +150,7 @@ begin
   GDVars.ifcState := C_Ifc.SHOP_TEMPLE;
   CharHlp.DisplayNoncombatInterface;
   CharHlp.DisplayParty(GDVars.curChar);
-  FillChar(treasureMoney, SizeOf(Types.TMoney), 0);
+  FillChar(GDVars.treasureMoney, SizeOf(Types.TMoney), 0);
   GDVars.treasureMoneyFlag := False;
   done := False;
   if atTemple then

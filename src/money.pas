@@ -73,9 +73,6 @@ uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, 
 
 
 var
-  treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
-  { lo-word view }
-  treasureMoneyLo: array[C_Money.COPPER..C_Money.JEWELRY] of Types.TLoW absolute GDVars.treasureMoney;
   { 19 * 8 Words, addressed by a one-based word index (template n starts at 8n - 7). Index 144 is not a template start:
     it spans the last word of template 18 and the first seven of template 19. }
   randItemW: array[1..152] of Word absolute GDConsts.randomItemTemplates;
@@ -189,8 +186,8 @@ end;
 { Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
 procedure PayFromPool(gp: LongInt);
 begin
-  MakeChange(CopperValue(treasureMoney) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], MaxLongInt,
-             treasureMoney);
+  MakeChange(CopperValue(GDVars.treasureMoney) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], MaxLongInt,
+             GDVars.treasureMoney);
 end;
 
 { Give pp platinum to the current character; whatever does not fit goes to the treasure pool. }
@@ -202,7 +199,7 @@ begin
     CharHlp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
     Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
     CharHlp.RecalcStats(GDVars.curChar);
-    treasureMoney[C_Money.PLATINUM] := pp + treasureMoney[C_Money.PLATINUM] - takable;
+    GDVars.treasureMoney[C_Money.PLATINUM] := pp + GDVars.treasureMoney[C_Money.PLATINUM] - takable;
   end else begin
     Inc(GDVars.curChar^.coins[C_Money.PLATINUM], pp);
     CharHlp.RecalcStats(GDVars.curChar);
@@ -283,7 +280,7 @@ begin
     if (p^.npc = 0) or (p^.npc = C_Npc.ANIMATED_PC) then begin
       for i := C_Money.COPPER to C_Money.JEWELRY do begin
         mt := i;
-        treasureMoney[mt] := p^.coins[mt] + treasureMoney[mt];
+        GDVars.treasureMoney[mt] := p^.coins[mt] + GDVars.treasureMoney[mt];
       end;
       FillChar(p^.coins, SizeOf(p^.coins), 0);
       CharHlp.RecalcStats(p);
@@ -331,9 +328,9 @@ begin
   FillChar(share, SizeOf(share), 0);
   FillChar(rem, SizeOf(rem), 0);
   for i := C_Money.COPPER to C_Money.JEWELRY do
-    if treasureMoney[i] > 0 then begin
-      share[i] := treasureMoney[i] div cnt;
-      rem[i] := treasureMoney[i] mod cnt;
+    if GDVars.treasureMoney[i] > 0 then begin
+      share[i] := GDVars.treasureMoney[i] div cnt;
+      rem[i] := GDVars.treasureMoney[i] mod cnt;
     end else begin
       share[i] := 0;
       rem[i] := 0;
@@ -381,8 +378,8 @@ begin
   { return the rest to the pool }
   GDVars.treasureMoneyFlag := False;
   for i := C_Money.COPPER to C_Money.JEWELRY do begin
-    treasureMoney[i] := rem[i];
-    if treasureMoney[i] <> 0 then
+    GDVars.treasureMoney[i] := rem[i];
+    if GDVars.treasureMoney[i] <> 0 then
       GDVars.treasureMoneyFlag := True;
   end;
 end;
@@ -395,7 +392,7 @@ begin
   p^.coins[mType] := p^.coins[mType] - qty;
   CharHlp.RecalcStats(p);
   if (GDVars.ifcState = C_Ifc.LOOT) or (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) or (GDVars.ifcState = C_Ifc.VAULT) then
-    treasureMoney[mType] := treasureMoney[mType] + qty;
+    GDVars.treasureMoney[mType] := GDVars.treasureMoney[mType] + qty;
 end;
 
 { Take qty of mType from the pool; a qty above the pool amount is cut to the pool's low word. The whole take is refused
@@ -407,9 +404,9 @@ begin
   if Money.CheckOverload(p, qty, takable) then
     CharHlp.PrintBottomLine('Overloaded')
   else begin
-    if qty > treasureMoney[mType] then
-      qty := treasureMoneyLo[mType].lo;
-    treasureMoney[mType] := treasureMoney[mType] - qty;
+    if qty > GDVars.treasureMoney[mType] then
+      qty := Word(GDVars.treasureMoney[mType]);
+    GDVars.treasureMoney[mType] := GDVars.treasureMoney[mType] - qty;
     p^.coins[mType] := p^.coins[mType] + qty;
     CharHlp.RecalcStats(p);
   end;
@@ -480,7 +477,7 @@ begin
     p := nil;
     sel := nil;
     for i := C_Money.JEWELRY downto C_Money.COPPER do
-      if treasureMoney[i] > 0 then begin
+      if GDVars.treasureMoney[i] > 0 then begin
         Inc(cnt);
         if p = nil then begin
           GetMem(p, SizeOf(Types.TMenuNode));
@@ -490,7 +487,7 @@ begin
           GetMem(p, SizeOf(Types.TMenuNode));
           p^.next := sel;
         end;
-        Str(treasureMoney[i], numStr);
+        Str(GDVars.treasureMoney[i], numStr);
         p^.name := GDConsts.moneyNames[i] + ' ' + numStr;
         p^.inUse := 0;
       end;
@@ -505,17 +502,17 @@ begin
       exitF := False;
       mType := Money.ParseMoneyType(sel^.name, numStr);
       numStr := 'How much ' + numStr + 'will you take? ';
-      if treasureMoney[mType] > 65535 then
+      if GDVars.treasureMoney[mType] > 65535 then
         n := 65535
       else
-        n := treasureMoney[mType];
+        n := GDVars.treasureMoney[mType];
       n := Money.InputNumberMax(n, numStr, LightGreen);
       Money.TakeMoney(GDVars.curChar, n, mType);
       MenuCore.FreeStringList(save);
       GDVars.treasureMoneyFlag := False;
       exitF := True;
       for i := C_Money.COPPER to C_Money.JEWELRY do
-        if treasureMoney[i] > 0 then begin
+        if GDVars.treasureMoney[i] > 0 then begin
           GDVars.treasureMoneyFlag := True;
           exitF := False;
         end;
@@ -531,7 +528,7 @@ begin
   treasure := False;
   items := False;
   for i := C_Money.COPPER to C_Money.JEWELRY do
-    if treasureMoney[i] <> 0 then
+    if GDVars.treasureMoney[i] <> 0 then
       treasure := True;
   if GDVars.treasureItems <> nil then
     items := True;
@@ -1000,7 +997,7 @@ function WhoPays(gp: LongInt): Byte;
 begin
   if gp <= Money.CreatureGold(GDVars.curChar) then
     WhoPays := PAY_CHARACTER
-  else if gp <= Money.CoinValueInGold(treasureMoney) then
+  else if gp <= Money.CoinValueInGold(GDVars.treasureMoney) then
     WhoPays := PAY_POOL
   else
     WhoPays := PAY_NOBODY;

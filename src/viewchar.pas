@@ -37,10 +37,6 @@ uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, P
   FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats,
   StrUtil;
 
-var
-  { the party's treasure pool, as a TMoney }
-  treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
-
 procedure ItemTradeMenu(item: Types.PItemRec); forward;
 
 procedure HalveItem(item: Types.PItemRec); forward;
@@ -952,7 +948,7 @@ begin
         Inc(GDVars.curChar^.coins[C_Money.PLATINUM], plat)
       else begin
         Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
-        Inc(treasureMoney[C_Money.PLATINUM], plat - takable);
+        Inc(GDVars.treasureMoney[C_Money.PLATINUM], plat - takable);
       end;
       { added even when overloaded }
       Inc(GDVars.curChar^.coins[C_Money.GOLD], gold);
