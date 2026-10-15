@@ -38,12 +38,6 @@ procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pau
 
 procedure PrintMessageWait(s: string);
 
-function ByteToString(value: Byte): String;
-
-function WordToString(value: Word): String;
-
-function LongIntToString(value: LongInt): String;
-
 procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -154,7 +148,7 @@ function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
 implementation
 
-uses Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc;
+uses Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc, StrUtil;
 
 var
   { active renderer }
@@ -317,7 +311,7 @@ begin
     if (item^.plus > 0) or (item^.saveBonus > 0) or (item^.cursed <> 0) then
       item^.name := item^.name + '*' + ' ';
   if item^.quantity > 0 then
-    item^.name := item^.name + CharHlp.ByteToString(item^.quantity) + ' ';
+    item^.name := item^.name + StrUtil.NumStr(item^.quantity) + ' ';
   mask := 0;
   for i := 1 to 3 do
     if item^.nameIds[i] <> 0 then
@@ -394,7 +388,7 @@ procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
 var
   s: String;
 begin
-  s := CharHlp.ByteToString(Abs(creature^.acCur - 60));
+  s := StrUtil.NumStr(Abs(creature^.acCur - 60));
   if creature^.acCur > 60 then
     s := '-' + s;
   TextRend.DisplayString(col, row, LightGreen, s);
@@ -412,7 +406,7 @@ begin
     color := LightGreen;
   if hotPink then
     color := LightMagenta;
-  TextRend.DisplayString(col, row, color, CharHlp.ByteToString(creature^.hpCur));
+  TextRend.DisplayString(col, row, color, StrUtil.NumStr(creature^.hpCur));
 end;
 
 { Show the creature's name, hit points, armor class, equipped weapon and status in the combat information panel. }
@@ -570,33 +564,6 @@ begin
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
-end;
-
-{ Return value as a decimal string. }
-function ByteToString(value: Byte): String;
-var
-  s: String;
-begin
-  Str(value, s);
-  ByteToString := s;
-end;
-
-{ Return value as a decimal string. }
-function WordToString(value: Word): String;
-var
-  s: String;
-begin
-  Str(value, s);
-  WordToString := s;
-end;
-
-{ Return value as a decimal string. }
-function LongIntToString(value: LongInt): String;
-var
-  s: String;
-begin
-  Str(value, s);
-  LongIntToString := s;
 end;
 
 { Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
@@ -1403,16 +1370,12 @@ begin
     if GDVars.gLocType = C_Area.LOC_WILD_EAST then
       Inc(x, 26);
   end;
-  hrs := CharHlp.WordToString(GDVars.zone0^.clock.hour);
-  if Length(hrs) < 2 then
-    hrs := '0' + hrs;
+  hrs := StrUtil.ZeroPad2(GDVars.zone0^.clock.hour);
   { A turn is ten minutes and the minute counter rolls over at ten, so turn * 10 + minute is the minute of the hour (see
     GDConsts.unitScale). }
-  mins := CharHlp.WordToString(10 * GDVars.zone0^.clock.turn + GDVars.zone0^.clock.minute);
-  if Length(mins) < 2 then
-    mins := '0' + mins;
+  mins := StrUtil.ZeroPad2(10 * GDVars.zone0^.clock.turn + GDVars.zone0^.clock.minute);
   if GDVars.zone0^.noAutomap = 0 then
-    info := CharHlp.ByteToString(x) + ',' + CharHlp.ByteToString(y) + ' ';
+    info := StrUtil.NumStr(x) + ',' + StrUtil.NumStr(y) + ' ';
   info := info + GDConsts.dirNames[GDVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
   { the STING trace log is on (Ctrl-L), as Curse shows it }

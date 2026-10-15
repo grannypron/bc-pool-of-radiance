@@ -61,7 +61,7 @@ function StingVictoryCheat: Boolean;
 
 implementation
 
-uses Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend;
+uses Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
@@ -205,7 +205,7 @@ begin
     if atkType = 3 then
       verb := 'with one cruel blow'
     else begin
-      verb := verb + 'Hitting for ' + CharHlp.ByteToString(dmgDisp);
+      verb := verb + 'Hitting for ' + StrUtil.NumStr(dmgDisp);
       if dmgDisp = 1 then
         verb := verb + ' point '
       else
@@ -1402,7 +1402,7 @@ begin
   menu := '';
   dist := CharHlp.CalcDistance(cur, tgt);
   if weaponMode <> 0 then
-    TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + CharHlp.ByteToString(dist) + '  ');
+    TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist) + '  ');
   if dist <= range then begin
     if weaponMode = 0 then
       menu := 'Target '
@@ -1513,7 +1513,7 @@ begin
     if Pathing.WalkLine(CbtMap.CombatCellX(cur), CbtMap.CombatCellY(cur), wx, wy, dist, GDVars.arenaPtr) then begin
       valid := True;
       if weaponMode <> 0 then
-        TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + CharHlp.WordToString(dist div 2) + '  ');
+        TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist div 2) + '  ');
     end else if weaponMode <> 0 then
       Border.ClearBox(0, 23, 39, 23);
     dist := dist div 2;

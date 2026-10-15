@@ -245,7 +245,7 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 implementation
 
-uses CbtMap, CharHlp, Pathing, TextRend;
+uses CbtMap, CharHlp, Pathing, TextRend, StrUtil;
 
 const
 
@@ -1394,7 +1394,7 @@ var
 
 begin
   if levels > 1 then
-    numStr := CharHlp.ByteToString(levels) + ' levels'
+    numStr := StrUtil.NumStr(levels) + ' levels'
   else
     numStr := 'a level';
   CharHlp.PrintNameString(creature, 'is drained ' + numStr, 10, True);

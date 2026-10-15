@@ -15,7 +15,7 @@ procedure GameLoop;
 implementation
 
 uses Vault, EclTrace, Border, Camp, EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad,
-  Shop, SoundDrv, TextRend, View3D;
+  Shop, SoundDrv, TextRend, View3D, StrUtil;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -388,7 +388,7 @@ begin
   GDVars.bottomMsgCleared := 0;
   GDVars.msgDelayFlag := 1;
   if GDVars.dsGbvmType[1] < $80 then
-    GDVars.gbStrings[1] := CharHlp.WordToString(EclMenu.GetEclVar(1));
+    GDVars.gbStrings[1] := StrUtil.NumStr(EclMenu.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
     TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
                                   LightGreen, False,

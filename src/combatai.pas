@@ -16,7 +16,7 @@ procedure CombatAiControl(creature: Types.PCharRecord);
 
 implementation
 
-uses CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend;
+uses CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil;
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
@@ -310,7 +310,7 @@ var
   done: Boolean;
 begin
   TextRend.DisplayString(0, 24, LightGreen,
-                         'Move/Attack, Move Left = ' + CharHlp.ByteToString(creature^.combatAddr^.movement div 2) +
+                         'Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +
                            ' ');
   if CombatAi.CheckKeystroke(creature) then
     Exit;

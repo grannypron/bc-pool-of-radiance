@@ -22,7 +22,7 @@ procedure BuildDataFiles;
 
 implementation
 
-uses Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore, BldShow;
+uses Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore, BldShow, StrUtil;
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
@@ -134,14 +134,6 @@ begin
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, Copy(s, 1, 40));
   DataBld.LogLine(s);
-end;
-
-function NumStr(n: LongInt): Types.TStr20;
-var
-  s: Types.TStr20;
-begin
-  Str(n, s);
-  NumStr := s;
 end;
 
 { Note why the family failed, unless an earlier step already has. }
@@ -313,7 +305,7 @@ begin
   if (Length(GDVars.gameDir) >= 2) and (GDVars.gameDir[2] = ':') and (UpCase(GDVars.gameDir[1]) in ['A'..'Z']) then
     free := DiskFree(Ord(UpCase(GDVars.gameDir[1])) - Ord('A') + 1);
   if (free >= 0) and (free < need) then
-    DataBld.Fail('not enough room on the disk: ' + DataBld.NumStr(need) + ' bytes wanted, ' + DataBld.NumStr(free) +
+    DataBld.Fail('not enough room on the disk: ' + StrUtil.NumStr(need) + ' bytes wanted, ' + StrUtil.NumStr(free) +
                  ' free');
   HasRoom := (free < 0) or (free >= need);
 end;
@@ -334,7 +326,7 @@ begin
     ok := DataBld.IoOk;
   end;
   if not ok then
-    DataBld.FailWriting('writing ' + archiveName + '.$$$: DOS error ' + DataBld.NumStr(lastError));
+    DataBld.FailWriting('writing ' + archiveName + '.$$$: DOS error ' + StrUtil.NumStr(lastError));
   CanWrite := ok;
 end;
 
@@ -384,7 +376,7 @@ begin
   end;
   if not ok then
     if lastError <> 0 then
-      DataBld.Fail('reading ' + DataBld.SourceName(fam, disk) + ': DOS error ' + DataBld.NumStr(lastError))
+      DataBld.Fail('reading ' + DataBld.SourceName(fam, disk) + ': DOS error ' + StrUtil.NumStr(lastError))
     else
       DataBld.Fail(DataBld.SourceName(fam, disk) + ' is damaged');
   ReadSource := ok;
@@ -464,7 +456,7 @@ begin
     end;
     n := IOResult;
     if lastError <> 0 then begin
-      DataBld.Fail('comparing ' + DataBld.SourceName(fam, b.disk) + ': DOS error ' + DataBld.NumStr(lastError));
+      DataBld.Fail('comparing ' + DataBld.SourceName(fam, b.disk) + ': DOS error ' + StrUtil.NumStr(lastError));
       same := False;
     end;
   end;
@@ -703,7 +695,7 @@ begin
   end;
   if not ok then
     if lastError <> 0 then
-      DataBld.FailWriting('writing ' + archiveName + '.$$$: DOS error ' + DataBld.NumStr(lastError))
+      DataBld.FailWriting('writing ' + archiveName + '.$$$: DOS error ' + StrUtil.NumStr(lastError))
     else
       DataBld.FailWriting('writing ' + archiveName + '.$$$');
   WriteArchive := ok;
@@ -748,7 +740,7 @@ end;
 { '#38' for issue 38. }
 function IssueName(issue: Word): Types.TStr20;
 begin
-  IssueName := '#' + DataBld.NumStr(issue);
+  IssueName := '#' + StrUtil.NumStr(issue);
 end;
 
 { The most bytes a block of the family may hold once fixed: a script must fit the script buffer after its two-byte
@@ -952,7 +944,7 @@ var
 begin
   disk := DataPat.parts[first].disk;
   id := DataPat.parts[first].id;
-  DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, disk) + ' block ' + DataBld.NumStr(id));
+  DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, disk) + ' block ' + StrUtil.NumStr(id));
   BldShow.Fixing(fam, disk);
   ok := True;
   fixed := False;
@@ -998,7 +990,7 @@ begin
       DataBld.DecodeRuns(packedBuf^, packedLen, raw^, rawLen)
     else
       DataBld.Fail('reading ' + DataBld.SourceName(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
-                   DataBld.NumStr(lastError));
+                   StrUtil.NumStr(lastError));
     FreeMem(packedBuf, packedLen);
   end;
   if ok then begin
@@ -1100,7 +1092,7 @@ begin
     Rename(f, DataBld.GamePath(archiveName + '.DAX'));
     ok := DataBld.IoOk;
     if not ok then
-      DataBld.FailWriting('renaming ' + archiveName + '.$$$: DOS error ' + DataBld.NumStr(lastError));
+      DataBld.FailWriting('renaming ' + archiveName + '.$$$: DOS error ' + StrUtil.NumStr(lastError));
   end;
   BuildArchive := ok;
 end;
@@ -1128,11 +1120,11 @@ begin
     end else begin
       for i := 1 to sourceCount do
         if sources^[i].id >= C_Data.SOURCES_BLOCK then
-          DataBld.Fail('a per-disk archive uses block ' + DataBld.NumStr(sources^[i].id));
+          DataBld.Fail('a per-disk archive uses block ' + StrUtil.NumStr(sources^[i].id));
       if failNote = '' then
         if DataBld.BuildArchive(fam) then begin
-          DataBld.LogLine(archiveName + '.DAX built: ' + DataBld.NumStr(blockCount) + ' blocks, ' +
-                          DataBld.NumStr(remapCount) + ' collisions');
+          DataBld.LogLine(archiveName + '.DAX built: ' + StrUtil.NumStr(blockCount) + ' blocks, ' +
+                          StrUtil.NumStr(remapCount) + ' collisions');
           Inc(builtCount);
         end;
     end;
@@ -1178,7 +1170,7 @@ begin
       DataBld.RemoveFile(archiveName + '.$$$');
     BldShow.Open(stale, writeNote = '');
     DataBld.Progress('Please wait, constructing data files...');
-    DataBld.LogLine('Merged data archives, version ' + DataBld.NumStr(C_Data.VERSION));
+    DataBld.LogLine('Merged data archives, version ' + StrUtil.NumStr(C_Data.VERSION));
     builtCount := 0;
     keptCount := 0;
     failedCount := 0;
@@ -1211,8 +1203,8 @@ begin
       FreeMem(crcTable, SizeOf(TCrcTable));
       crcTable := nil;
     end;
-    DataBld.LogLine('Done: ' + DataBld.NumStr(builtCount) + ' built, ' + DataBld.NumStr(keptCount) +
-                    ' up to date, ' + DataBld.NumStr(failedCount) + ' failed.');
+    DataBld.LogLine('Done: ' + StrUtil.NumStr(builtCount) + ' built, ' + StrUtil.NumStr(keptCount) +
+                    ' up to date, ' + StrUtil.NumStr(failedCount) + ' failed.');
     if logOpen then
       Close(logFile);
     n := IOResult;

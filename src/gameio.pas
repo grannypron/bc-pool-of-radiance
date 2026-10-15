@@ -35,7 +35,7 @@ procedure ExitGame;
 
 implementation
 
-uses Types, Overlay, TextRend;
+uses Types, Overlay, TextRend, StrUtil;
 
 var
   { ShowMemory is up: its own key waits do not open it again }
@@ -70,23 +70,15 @@ begin
   end;
 end;
 
-{ n as a string. }
-function Num(n: LongInt): Types.TStr40;
-var
-  s: Types.TStr40;
-begin
-  Str(n, s);
-  Num := s;
-end;
-
 { STING Ctrl-Y (#612): the overlay loads so far, the overlay buffer and its probation area, and the heap's free memory
   and largest block, on the bottom line one after another, each until a key; the menu line is drawn again after. }
 procedure ShowMemory;
 begin
   memShown := True;
-  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + GameIo.Num(GDVars.ovrLoads));
-  TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + GameIo.Num(OvrGetBuf) + ' retry ' + GameIo.Num(OvrGetRetry));
-  TextRend.DisplayAndPause(LightGreen, 'Heap free ' + GameIo.Num(MemAvail) + ' big ' + GameIo.Num(MaxAvail));
+  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GDVars.ovrLoads));
+  TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
+                                       StrUtil.NumStr(OvrGetRetry));
+  TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
   TextRend.ClearBottomLine;
   GDVars.bottomLineTaken := True;
   memShown := False;

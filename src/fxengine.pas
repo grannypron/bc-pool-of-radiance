@@ -129,7 +129,7 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
 implementation
 
-uses Stats;
+uses Stats, StrUtil;
 
 var
   { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
@@ -647,7 +647,7 @@ begin
     end;
   if GDVars.pendingDamage > 0 then begin
     if GDVars.pendingDamage <> 1 then
-      s := 'takes ' + CharHlp.ByteToString(GDVars.pendingDamage) + ' points of damage '
+      s := 'takes ' + StrUtil.NumStr(GDVars.pendingDamage) + ' points of damage '
     else
       s := 'takes 1 point of damage ';
     case GDVars.elementMask and $F7 of
@@ -665,7 +665,7 @@ begin
       { the item label ends in a space }
       CharHlp.PrintItemString(creature, shockItem, 0, 0, False, False);
       CharHlp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
-                               CharHlp.ByteToString(GDVars.pendingDamage) + ' damage, and has been unequipped.');
+                               StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
     end;
     CharHlp.InflictDamage(creature, GDVars.pendingDamage);
     if GDVars.ifcState = C_Ifc.COMBAT then begin

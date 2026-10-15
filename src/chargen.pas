@@ -17,7 +17,7 @@ procedure CustomizePortrait;
 
 implementation
 
-uses Options, Stats, Blit, CbtMap, CharHlp, ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend;
+uses Options, Stats, Blit, CbtMap, CharHlp, ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil;
 
 var
 
@@ -276,9 +276,9 @@ begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
     adj := GDConsts.raceAbilityAdj[race].values[i];
     if adj > 0 then
-      s := '+' + CharHlp.ByteToString(adj)
+      s := '+' + StrUtil.NumStr(adj)
     else if adj < 0 then
-      s := '-' + CharHlp.ByteToString(-adj)
+      s := '-' + StrUtil.NumStr(-adj)
     else
       s := ' 0';
     TextRend.DisplayString(ADJ_COL, RACE_LIST_ROW + i, LightGreen, s);
@@ -322,7 +322,7 @@ begin
       if lvl = 0 then
         s := 'U'
       else if lvl > 0 then
-        s := CharHlp.ByteToString(lvl)
+        s := StrUtil.NumStr(lvl)
       else
         s := '-';
       TextRend.DisplayString(MAX_VALUE_COL, row, LightGreen, s);
@@ -1102,11 +1102,11 @@ begin
           Inc(row);
           if row = 5 then
             TextRend.DisplayString(6, row, LightGreen,
-                                   '    a level ' + CharHlp.ByteToString(classLevels[cls] + 1) + ' ' +
+                                   '    a level ' + StrUtil.NumStr(classLevels[cls] + 1) + ' ' +
                                      GDConsts.classNames[cls])
           else
             TextRend.DisplayString(6, row, LightGreen,
-                                   'and a level ' + CharHlp.ByteToString(classLevels[cls] + 1) + ' ' +
+                                   'and a level ' + StrUtil.NumStr(classLevels[cls] + 1) + ' ' +
                                      GDConsts.classNames[cls]);
         end;
     if MenuCore.YesNoMenu('Do you wish to train? ', LightMagenta, LightGreen, White) <> 'Y' then
@@ -1355,15 +1355,6 @@ var
     TextRend.DisplayString(2 + (36 - Length(s)) div 2, row, color, s);
   end;
 
-  { Pad2: n as two characters, a single digit led by a blank, so the counts keep their place as they change }
-  function Pad2(n: Byte): Types.TStr40;
-  begin
-    if n < 10 then
-      Pad2 := ' ' + CharHlp.ByteToString(n)
-    else
-      Pad2 := CharHlp.ByteToString(n);
-  end;
-
   { ShowCounts: The "Head  7 of 41" and "Body  3 of 21" lines, the row being changed in white and the other in green }
   procedure ShowCounts;
   var
@@ -1371,9 +1362,9 @@ var
   begin
     with GDVars.curChar^ do begin
       if onBody then col := LightGreen else col := White;
-      Centered(17, col, 'Head ' + Pad2(portraitHead) + ' of ' + CharHlp.ByteToString(nHeads));
+      Centered(17, col, 'Head ' + StrUtil.PadLeft(StrUtil.NumStr(portraitHead), 2) + ' of ' + StrUtil.NumStr(nHeads));
       if onBody then col := White else col := LightGreen;
-      Centered(18, col, 'Body ' + Pad2(portraitBody) + ' of ' + CharHlp.ByteToString(nBodies));
+      Centered(18, col, 'Body ' + StrUtil.PadLeft(StrUtil.NumStr(portraitBody), 2) + ' of ' + StrUtil.NumStr(nBodies));
     end;
   end;
 
@@ -1798,10 +1789,10 @@ var
     s: Types.TStr40;
   begin
     if v < count then
-      s := CharHlp.ByteToString(v + 1)
+      s := StrUtil.NumStr(v + 1)
     else
       s := '?';
-    s := s + '/' + CharHlp.ByteToString(count);
+    s := s + '/' + StrUtil.NumStr(count);
     while Length(s) < 5 do
       s := s + ' ';
     Counter := s;

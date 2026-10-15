@@ -41,6 +41,8 @@ procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 
 implementation
 
+uses StrUtil;
+
 const
   INFO_SIG = 'SINF';
   INFO_VERSION = 1;
@@ -145,17 +147,6 @@ begin
   ioRes := IOResult;
 end;
 
-{ n as two digits, zero-padded. }
-function Two(n: Word): Types.TStr8;
-var
-  s: Types.TStr8;
-begin
-  Str(n, s);
-  if Length(s) < 2 then
-    s := '0' + s;
-  Two := s;
-end;
-
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as
   YYYY/MM/DD hh:mm), and its description and area. A save with no slot-info file (one made before the menu kept them)
   has no description, and its area is read from the save itself: the GBVM previousScriptId and mapId in its zone 0,
@@ -191,8 +182,8 @@ begin
       times[i] := t;
       UnpackTime(t, dt);
       Str(dt.Year, y);
-      stamps[i] := y + '/' + SaveMenu.Two(dt.Month) + '/' + SaveMenu.Two(dt.Day) + ' ' + SaveMenu.Two(dt.Hour) + ':' +
-                   SaveMenu.Two(dt.Min);
+      stamps[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day) + ' ' +
+                   StrUtil.ZeroPad2(dt.Hour) + ':' + StrUtil.ZeroPad2(dt.Min);
     end;
     if not SaveMenu.ReadSlotInfo(letter, descs[i], areas[i]) then begin
       Seek(f, 1 + Ofs(GDVars.zone0^.previousScriptId) - Ofs(GDVars.zone0^));

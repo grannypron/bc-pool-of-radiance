@@ -35,7 +35,7 @@ function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Bool
 
 implementation
 
-uses Vault, Stats;
+uses Vault, Stats, StrUtil;
 
 var
   { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }
@@ -79,7 +79,7 @@ begin
   s := GDConsts.raceNames[GDVars.tempCr1^.race];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
-  TextRend.DisplayString(col, 3, White, 'Age ' + CharHlp.WordToString(GDVars.tempCr1^.age));
+  TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(GDVars.tempCr1^.age));
   s := GDConsts.alignNames[GDVars.tempCr1^.alignmentIdx];
   TextRend.DisplayString(1, 4, White, s);
   s := GDConsts.classNames[GDVars.tempCr1^.charClass];
@@ -106,11 +106,11 @@ begin
     if GDVars.tempCr1^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
-      s := s + CharHlp.ByteToString(GDVars.tempCr1^.classLevels[j]);
+      s := s + StrUtil.NumStr(GDVars.tempCr1^.classLevels[j]);
       multi := True;
     end;
   TextRend.DisplayString(7, 15, White, s);
-  TextRend.DisplayString(17, 15, White, 'Exp ' + CharHlp.LongIntToString(GDVars.tempCr1^.experience));
+  TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(GDVars.tempCr1^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
   if GDVars.tempCr1^.equipped[C_Equip.WEAPON] <> nil then begin
@@ -144,7 +144,7 @@ begin
     if GDVars.curChar^.coins[m] > 0 then begin
       s := GDConsts.moneyNames[m];
       TextRend.DisplayString(20 - Length(s), row, LightGreen, s);
-      TextRend.DisplayString(21, row, LightGreen, CharHlp.WordToString(GDVars.curChar^.coins[m]));
+      TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GDVars.curChar^.coins[m]));
       Inc(row);
     end;
 end;
@@ -342,7 +342,7 @@ begin
       need := 2;
     if need > 20 then
       need := 20;
-    s := CharHlp.ByteToString(need);
+    s := StrUtil.NumStr(need);
     TextRend.DisplayString(3, 6 + i, White, labels[i]);
     TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
   end;
@@ -384,24 +384,24 @@ begin
   CharHlp.PrintHitPoints(p, 4, row + 1, False);
   col := 8;
   TextRend.DisplayString(col + 1, row, White, 'THAC0   ');
-  TextRend.DisplayString(col + 7, row, LightGreen, CharHlp.ByteToString(60 - p^.thac0Cur));
-  s := CharHlp.ByteToString(p^.curRollsA[1]) + 'd' + CharHlp.ByteToString(p^.curDiceA[1]);
+  TextRend.DisplayString(col + 7, row, LightGreen, StrUtil.NumStr(60 - p^.thac0Cur));
+  s := StrUtil.NumStr(p^.curRollsA[1]) + 'd' + StrUtil.NumStr(p^.curDiceA[1]);
   if p^.curModA[1] > 0 then
-    s := s + '+' + CharHlp.ByteToString(p^.curModA[1]);
+    s := s + '+' + StrUtil.NumStr(p^.curModA[1]);
   if p^.curModA[1] < 0 then
-    s := s + '-' + CharHlp.ByteToString(Abs(p^.curModA[1]));
+    s := s + '-' + StrUtil.NumStr(Abs(p^.curModA[1]));
   TextRend.DisplayString(col, row + 1, White, 'Damage        ');
   TextRend.DisplayString(col + 7, row + 1, LightGreen, s);
   col := 22;
   TextRend.DisplayString(col, row, White, 'Encumbrance      ');
-  TextRend.DisplayString(col + 12, row, LightGreen, CharHlp.WordToString(p^.encumbrance));
+  TextRend.DisplayString(col + 12, row, LightGreen, StrUtil.NumStr(p^.encumbrance));
   mv := p^.movementCur;
   if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
     mv := mv div 2;
   if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
     mv := mv * 2;
   TextRend.DisplayString(col + 3, row + 1, White, 'Movement   ');
-  TextRend.DisplayString(col + 12, row + 1, LightGreen, CharHlp.ByteToString(mv));
+  TextRend.DisplayString(col + 12, row + 1, LightGreen, StrUtil.NumStr(mv));
 end;
 
 { Print stat statIdx (0..5) of curChar in light green, or light magenta while modifying. Strength 18 with exceptional
@@ -420,13 +420,10 @@ begin
   Border.ClearBox(col, statIdx + 7, 11, statIdx + 7);
   if GDVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
-  TextRend.DisplayString(col, statIdx + 7, hlCol, CharHlp.ByteToString(GDVars.curChar^.stats[statIdx]));
+  TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GDVars.curChar^.stats[statIdx]));
   if (statIdx = C_Abil.STRENGTH) and (GDVars.curChar^.strCur = 18) and (GDVars.curChar^.strExc > 0) then begin
-    s := CharHlp.ByteToString(GDVars.curChar^.strExc);
-    if GDVars.curChar^.strExc < 10 then
-      s := '0' + s;
-    if GDVars.curChar^.strExc = 100 then
-      s := '00';
+    { 100 shows as 00 }
+    s := StrUtil.ZeroPad2(GDVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');
   end;
 end;
@@ -948,7 +945,7 @@ begin
   price := Money.ItemSalePrice(item);
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                'I''ll give you ' + CharHlp.WordToString(price) + ' gold pieces for your ' +
+                                'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' +
                                   item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin

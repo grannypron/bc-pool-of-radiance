@@ -11,7 +11,7 @@ procedure TempleMainMenu;
 
 implementation
 
-uses Stats, Border, CharHlp, MenuCore, ViewChar;
+uses Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil;
 
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
@@ -33,7 +33,7 @@ var
   charGold: LongInt;
   pooled: LongInt;
 begin
-  spell := spell + ' will only cost ' + CharHlp.WordToString(cost) + ' gold pieces.';
+  spell := spell + ' will only cost ' + StrUtil.NumStr(cost) + ' gold pieces.';
   TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
                                 True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
