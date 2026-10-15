@@ -108,8 +108,7 @@ var
   c: Char;
   done: Boolean;
   price: Word;
-  charGold: LongInt;
-  pooled: LongInt;
+  payer: Byte;
   failed: Boolean;
   cursor: Types.PItemRec;
   idx: Integer;
@@ -125,21 +124,13 @@ begin
     else begin
       done := False;
       price := itemToBuy^.value;
-      charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
-      if price <= charGold then begin
+      payer := Money.WhoPays(price);
+      if payer = Money.PAY_NOBODY then
+        CharHlp.PrintBottomLine('Not enough money.')
+      else begin
         Shop.GiveItemCopyToCreature(itemToBuy, failed);
-        if not failed then begin
-          Money.PayFromCreature(GDVars.curChar, price);
-        end;
-      end else begin
-        pooled := Money.CoinValueInGold(treasureMoney);
-        if price <= pooled then begin
-          Shop.GiveItemCopyToCreature(itemToBuy, failed);
-          if not failed then begin
-            Money.PayFromPool(price);
-          end;
-        end else
-          CharHlp.PrintBottomLine('Not enough Money.');
+        if not failed then
+          Money.PayBy(payer, price);
       end;
     end;
   until done;

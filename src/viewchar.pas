@@ -28,7 +28,6 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 procedure SelectPrevNextChar(c: Char);
 
-function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
 
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
@@ -39,7 +38,7 @@ uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, P
   StrUtil;
 
 var
-  { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }
+  { the party's treasure pool, as a TMoney }
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
 
 procedure ItemTradeMenu(item: Types.PItemRec); forward;
@@ -979,8 +978,6 @@ end;
   and gold), else from the treasure pool. newInfo is set, never cleared, when identification reveals new information. }
 procedure IdentifyItem(item: Types.PItemRec; var newInfo: Boolean);
 var
-  charGold: LongInt;
-  poolGold: LongInt;
   paid: Boolean;
 begin
   paid := False;
@@ -988,18 +985,7 @@ begin
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
-    if charGold >= 200 then begin
-      paid := True;
-      Money.PayFromCreature(GDVars.curChar, 200);
-    end else begin
-      poolGold := Money.CoinValueInGold(treasureMoney);
-      if poolGold >= 200 then begin
-        paid := True;
-        Money.PayFromPool(200);
-      end else
-        CharHlp.PrintBottomLine('Not Enough Money');
-    end;
+    paid := Money.PayGold(200);
   end;
   if paid then begin
     if item^.unidMask = 0 then
@@ -1221,20 +1207,6 @@ begin
       p := GDVars.creatureList;
     end;
   GDVars.curChar := p;
-end;
-
-{ Value of the creature's five coin types in whole gold pieces (a part of a gold piece does not count, as in
-  Money.CoinValueInGold); gems and jewelry are excluded. }
-function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
-var
-  sum: LongInt;
-  m: ShortInt;
-begin
-  sum := 0;
-  { the five coin types valued in dsCoinValuationCopper }
-  for m := C_Money.COPPER to C_Money.PLATINUM do
-    Inc(sum, GDConsts.dsCoinValuationCopper[m] * creature^.coins[m]);
-  CreatureCoinValueInGold := sum div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a

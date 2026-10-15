@@ -15,9 +15,6 @@ implementation
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
   C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop;
 
-var
-  treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
-
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
 begin
@@ -32,25 +29,13 @@ end;
 function ConfirmCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
-  charGold: LongInt;
-  pooled: LongInt;
 begin
   spell := spell + ' will only cost ' + StrUtil.NumStr(cost) + ' gold pieces.';
   TextRend.ShowMessage(LightGreen, True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
   if c = 'Y' then begin
-    charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
-    if cost <= charGold then begin
-      Money.PayFromCreature(GDVars.curChar, cost);
-    end else begin
-      pooled := Money.CoinValueInGold(treasureMoney);
-      if cost <= pooled then begin
-        Money.PayFromPool(cost);
-      end else begin
-        CharHlp.PrintBottomLine('Not enough money.');
-        c := 'N';
-      end;
-    end;
+    if not Money.PayGold(cost) then
+      c := 'N';
   end;
   if c = 'Y' then begin
     CharHlp.ClearMessageWindow;

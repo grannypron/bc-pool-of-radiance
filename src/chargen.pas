@@ -1026,7 +1026,7 @@ begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;
-  if (ViewChar.CreatureCoinValueInGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
+  if (Money.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
     TextRend.PrintAndPause('Training costs 1000 gp.', Yellow);
     Exit;
   end;
