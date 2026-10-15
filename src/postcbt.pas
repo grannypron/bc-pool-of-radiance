@@ -296,9 +296,6 @@ procedure LootTakeItemSelection(var c: Char; var itemToTake: Types.PItemRec; var
                                 var idx: Integer);
 var
   head: Types.PItemRec;
-  tmp: String[16];
-  lenv: Byte;
-  i: Byte;
   { seeded True so MenuVertical paints the list; MenuVertical clears it }
   redraw: Boolean;
   p: Types.PItemRec;
@@ -403,7 +400,6 @@ procedure LootMenu;
 var
   treasure: Boolean;
   items: Boolean;
-  frameSizer: Boolean;
   menu: String;
   c: Char;
   done: Boolean;
@@ -509,7 +505,6 @@ var
   cut: LongInt;
   row: Byte;
   i: ShortInt;
-  tmp: String[8];
   took: Boolean;
   ext: Boolean;
   c: Char;
@@ -556,9 +551,6 @@ end;
   offer loot and free the leftover treasure items; on defeat, set C_Gbvm.COMBAT_RESULT to $80 and show the game-over
   screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel. }
 procedure PostCombat;
-var
-  p: Types.PItemRec;
-  q: Types.PItemRec;
 begin
   GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := 0;
   GDVars.nonEscapedHostileFound := False;
@@ -569,13 +561,7 @@ begin
     PostCbt.NpcTreasureShare;
     PostCbt.PostCombatSummary(GDVars.expShare);
     PostCbt.LootMenu;
-    p := GDVars.treasureItems;
-    while p <> nil do begin
-      q := p;
-      p := p^.next;
-      FreeMem(q, SizeOf(Types.TItemRec));
-    end;
-    GDVars.treasureItems := nil;
+    CharHlp.FreeItemList(GDVars.treasureItems);
   end else begin
     GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $80;
     Border.DrawWindow(1, 1, 38, 22, 0, White, 'The END!');

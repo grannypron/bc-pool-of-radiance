@@ -71,8 +71,6 @@ end;
 
 { Release both frame buffers of icon-animation slot animIdx; a slot past the table is ignored. }
 procedure FreeIconAnim(animIdx: Byte);
-var
-  i: Integer;
 begin
   { 25 = High(iconAnims) }
   if animIdx > 25 then Exit;
@@ -89,7 +87,6 @@ end;
 procedure LoadIconAnim(name: string; fileId, animIdx: Byte);
 var
   suffix: string[1];
-  ch: Char;
 begin
   { 25 = High(iconAnims) }
   if animIdx > 25 then Exit;

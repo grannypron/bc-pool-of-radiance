@@ -317,7 +317,6 @@ end;
 procedure ShareMoney;
 var
   p: Types.PCharRecord;
-  deadP: Types.PCharRecord;
   cnt: Byte;
   done: Boolean;
   takable: Word;
@@ -463,7 +462,6 @@ procedure TakeMoneyMenu;
 var
   i: ShortInt;
   mType: ShortInt;
-  deadW: Word;
   p: Types.PItemRec;
   sel: Types.PItemRec;
   save: Types.PItemRec;

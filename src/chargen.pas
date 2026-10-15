@@ -53,20 +53,13 @@ function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forwar
   spells; the closing creature := nil clears only the local parameter }
 procedure FreeCreature(creature: Types.PCharRecord);
 var
-  hold: Types.PItemRec;
-  item: Types.PItemRec;
   holdE: Types.PEffectRec;
   effect: Types.PEffectRec;
 begin
   with creature^ do begin
     if (combatAddr <> nil) then
       FreeMem(combatAddr, SizeOf(Types.TCombatRec));
-    item := itemsAddr;
-    while item <> nil do begin
-      hold := item;
-      item := item^.next;
-      FreeMem(hold, SizeOf(Types.TItemRec));
-    end;
+    CharHlp.FreeItemList(itemsAddr);
     effect := effectsAddr;
     while effect <> nil do begin
       holdE := effect;
@@ -106,7 +99,6 @@ var
   n: ShortInt;
   redraw: Boolean;
   stateB: Byte;
-  version: String[40];
 begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
@@ -2155,7 +2147,6 @@ function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
-  padB: Byte;
   con: Byte;
   share: ShortInt;
   warrior: Boolean;

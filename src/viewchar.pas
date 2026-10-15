@@ -585,7 +585,6 @@ var
   p: Types.PItemRec;
   sel: Types.PItemRec;
   idx: Integer;
-  deadP: Types.PItemRec;
   creature: Types.PCharRecord;
   itemCount: Byte;
 begin

@@ -228,9 +228,6 @@ begin
 end;
 
 procedure SetVideoMode(mode: Byte);
-var
-  { Unused in this version; see the other implementations of this routine. }
-  oldMode: Word;
 begin
   GDVars.savedVideoMode := GDVars.curVideoMode;
   GDVars.dsInterruptRegisters.ah := 0;
@@ -255,8 +252,6 @@ var
   dataSize: Word;
   readOfs: Word;
   data: Types.PByteArr;
-  { Unused in this version; see the other implementations of this routine. }
-  frame: Byte;
 begin
   if pic <> nil then Blit.FreePic(pic);
   DaxIo.LoadDax(name, '.dax', fileId, dataSize, data);
@@ -281,7 +276,6 @@ end;
 procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
                           pic: Types.PImgBuf);
 var
-  header: array[0..16] of Byte;
   chunk: TChunk;
   frame: Byte;
   col: Word;
@@ -880,8 +874,6 @@ var
   srcOff: Word;
   dstOff: Word;
   dstBase: Word;
-  { Unused in this version; see the other implementations of this routine. }
-  plane: Word;
 begin
   case displayMode of
     Types.vmCGA:
@@ -963,8 +955,6 @@ var
   match: Byte;
   planeMask: array[0..3] of Byte;
   plane: Byte;
-  { Unused in this version; see the other implementations of this routine. }
-  cellByte: Byte;
   pixPos: Byte;
   rowBytes: Word;
   fromHigh: Byte;

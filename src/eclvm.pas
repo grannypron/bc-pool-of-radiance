@@ -665,19 +665,12 @@ end;
 
 { CLEAR MONSTERS: forget the loaded monsters, reset the monster icon slot, and clear the treasure money and items }
 procedure EclClearMon;
-var
-  nxt: Types.PItemRec;
 begin
   Inc(GDVars.eclIp);
   GDVars.creatureCnt := 0;
   GDVars.monstersOn := 0;
   GDVars.gIconAnim := 8;
-  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
-  while GDVars.treasureItems <> nil do begin
-    nxt := GDVars.treasureItems^.next;
-    FreeMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-    GDVars.treasureItems := nxt;
-  end;
+  CharHlp.ClearTreasure;
 end;
 
 { PARTY STRENGTH: store the party's rating at var 1's address: (4*cleric + (hp + 5*(AC below 0) + 5*(THAC0 below 21)
@@ -948,7 +941,6 @@ var
   i: ShortInt;
   tId: Byte;
   j: Byte;
-  deadStr: String[22];
   it: Types.TItemRec;
   tmp: Types.PItemRec;
   walk: Types.PItemRec;

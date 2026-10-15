@@ -228,14 +228,7 @@ begin
   ioRes := IOResult;
   if ioRes <> 0 then
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not written.');
-  p := GDVars.treasureItems;
-  while p <> nil do begin
-    next := p^.next;
-    FreeMem(p, SizeOf(Types.TItemRec));
-    p := next;
-  end;
-  GDVars.treasureItems := nil;
-  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
+  CharHlp.ClearTreasure;
 end;
 
 procedure VaultMenu;

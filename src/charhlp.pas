@@ -45,6 +45,12 @@ procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
+{ Free every item in list and leave it nil. }
+procedure FreeItemList(var list: Types.PItemRec);
+
+{ Empty the treasure on the table: free its items and zero its money. }
+procedure ClearTreasure;
+
 procedure AddItemCopy(creature: Types.PCharRecord; item: Types.PItemRec);
 
 procedure PrintBottomLine(s: Types.TStr40);
@@ -764,6 +770,23 @@ begin
   end;
 end;
 
+procedure FreeItemList(var list: Types.PItemRec);
+var
+  next: Types.PItemRec;
+begin
+  while list <> nil do begin
+    next := list^.next;
+    FreeMem(list, SizeOf(Types.TItemRec));
+    list := next;
+  end;
+end;
+
+procedure ClearTreasure;
+begin
+  CharHlp.FreeItemList(GDVars.treasureItems);
+  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
+end;
+
 { Unlink an item from the creature's inventory list and free it; a nil item or one not in the list only gets an error
   message. }
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -943,11 +966,9 @@ var
   { a 49-cell span takes 148 steps; the last slot stays 8 (no move) for the walk's read one past count }
   steps: array[0..148] of Byte;
   req: Types.TPathReq;
-  spare: Integer;
   n: Byte;
   count: Byte;
   frame: Byte;
-  spare2: Byte;
   lastPass: Boolean;
   done: Boolean;
   camX: ShortInt;

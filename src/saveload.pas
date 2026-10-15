@@ -688,7 +688,6 @@ end;
 procedure AddCreatureToParty(id: Byte);
 
 var
-  junk: Pointer;
   creature: Types.PCharRecord;
   cnt: Byte;
   i: ShortInt;
@@ -923,7 +922,6 @@ var
   n: Byte;
   p: Types.PCharRecord;
   numStr: String[1];
-  fn: Types.TPathStr;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }

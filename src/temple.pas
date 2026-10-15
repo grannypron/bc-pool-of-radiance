@@ -247,7 +247,6 @@ end;
   := 1 }
 procedure StoneToFlesh;
 var
-  effect: Types.PEffectRec;
   s: String;
   c: Char;
 begin

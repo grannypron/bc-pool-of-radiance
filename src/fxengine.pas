@@ -220,8 +220,6 @@ begin
 end;
 
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
-var
-  effect: Types.PEffectRec;
 begin
   case cond of
     C_Cond.ATTACKER_VETO: FxEngine.TriggerEffect(creature, C_Effect.GAZE_BLOCK);
@@ -719,7 +717,6 @@ procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes
                                saveNegates, saved: Boolean; msg: Types.TStr40);
 var
   effect: Types.PEffectRec;
-  frameSizer: Byte;
 begin
   GDVars.pendingEffectId := effId;
   FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);

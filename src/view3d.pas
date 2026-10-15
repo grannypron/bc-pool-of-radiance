@@ -59,7 +59,6 @@ var
   mx: ShortInt;
   my: ShortInt;
   sym: Word;
-  junk: String;
 begin
   xLo := x - 5;
   if xLo < 0 then xLo := 0;
