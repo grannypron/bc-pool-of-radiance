@@ -13,8 +13,8 @@ implementation
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
-  EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend,
-  View3D, StrUtil;
+  EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
+  StrUtil, EclVars, CharDisp;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -35,10 +35,6 @@ const
   { location type 4, Eastern Wilderness }
   WILD_EAST_SCRIPT = 27;
 
-var
-  { Typed views of GameDat3 storage: the wall-set cache slots and the PICTURE animation }
-  wallDefs: array[1..3] of Types.TEclvmWallDef absolute GDVars.dsWallSetCache;
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 procedure CallEclScript(address: Word); forward;
 
@@ -79,14 +75,14 @@ end;
 { GOTO: jump to var 1's address }
 procedure EclGoto;
 begin
-  EclMenu.LoadEclVars(1);
-  GDVars.eclIp := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  EclVars.LoadEclVars(1);
+  GDVars.eclIp := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
 end;
 
 { GOSUB: push the return address and jump to var 1's address }
 procedure EclGosubCmd;
 begin
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   EclMenu.EclGosub(1);
 end;
 
@@ -98,14 +94,14 @@ var
   s1: String;
   s2: String;
 begin
-  EclMenu.LoadEclVars(2);
+  EclVars.LoadEclVars(2);
   if (GDVars.dsGbvmType[1] >= $80) or (GDVars.dsGbvmType[2] >= $80) then begin
     s1 := GDVars.gbStrings[1];
     s2 := GDVars.gbStrings[2];
     EclMenu.EclCompareStr(s1, s2);
   end else begin
-    v1 := EclMenu.GetEclVar(1);
-    v2 := EclMenu.GetEclVar(2);
+    v1 := EclVars.GetEclVar(1);
+    v2 := EclVars.GetEclVar(2);
     EclMenu.EclCompareInt(v1, v2);
   end;
 end;
@@ -119,10 +115,10 @@ var
   i: ShortInt;
   r: Word;
 begin
-  EclMenu.LoadEclVars(3);
+  EclVars.LoadEclVars(3);
   for i := 1 to 2 do
-    v[i] := EclMenu.GetEclVar(i);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
+    v[i] := EclVars.GetEclVar(i);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
   case GDVars.curOpcode of
     C_Ecl.ADD: r := v[1] + v[2];
     C_Ecl.SUBTRACT: r := v[2] - v[1];
@@ -133,7 +129,7 @@ begin
         r := v[1] div v[2];
     C_Ecl.MULTIPLY: r := v[1] * v[2];
   end;
-  EclMenu.WriteGbvm(address, r);
+  EclVars.WriteGbvm(address, r);
 end;
 
 { RANDOM: store a random number from 0 to var 1 (0 to 254 when var 1 is 255) at var 2's address }
@@ -143,12 +139,12 @@ var
   roll: Byte;
   address: Word;
 begin
-  EclMenu.LoadEclVars(2);
-  n := EclMenu.GetEclVar(1);
+  EclVars.LoadEclVars(2);
+  n := EclVars.GetEclVar(1);
   if n < 255 then Inc(n);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   roll := Trunc(Random(n));
-  EclMenu.WriteGbvm(address, roll);
+  EclVars.WriteGbvm(address, roll);
 end;
 
 { SAVE: store var 1, a number or a string (type bit 7 set), at var 2's address }
@@ -157,13 +153,13 @@ var
   v: Word;
   address: Word;
 begin
-  EclMenu.LoadEclVars(2);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  EclVars.LoadEclVars(2);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   if GDVars.dsGbvmType[1] < $80 then begin
-    v := EclMenu.GetEclVar(1);
-    EclMenu.WriteGbvm(address, v);
+    v := EclVars.GetEclVar(1);
+    EclVars.WriteGbvm(address, v);
   end else
-    EclMenu.WriteGbvmString(address, GDVars.gbStrings[1]);
+    EclVars.WriteGbvmString(address, GDVars.gbStrings[1]);
 end;
 
 { LOAD CHARACTER: make creature number var 1 (low seven bits, 0 = the first) current; EXIT and PROGRAM restore the
@@ -176,9 +172,9 @@ var
   flag80: Byte;
 begin
   GDVars.restoreChar := 1;
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   i := 0;
-  idx := EclMenu.GetEclVar(1);
+  idx := EclVars.GetEclVar(1);
   p := GDVars.creatureList;
   flag80 := idx and $80;
   idx := idx and $7F;
@@ -193,7 +189,7 @@ begin
     if GDVars.savedChar = GDVars.curChar then
       GDVars.restoreChar := 0;
     CharGen.RemoveCreature(False, True);
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
     GDVars.dumpCr6C00 := False;
     GDVars.dumpCr6B00 := False;
   end;
@@ -203,10 +199,10 @@ end;
   MaxMonsterDist), then draw the monster }
 procedure EclSetupMon;
 begin
-  EclMenu.LoadEclVars(3);
-  GDVars.monId := EclMenu.GetEclVar(1);
-  GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclMenu.GetEclVar(2);
-  GDVars.monPicId := EclMenu.GetEclVar(3);
+  EclVars.LoadEclVars(3);
+  GDVars.monId := EclVars.GetEclVar(1);
+  GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
+  GDVars.monPicId := EclVars.GetEclVar(3);
   GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   if GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
     GDVars.zone1^[C_Gbvm.MONSTER_DIST] := GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ];
@@ -238,20 +234,20 @@ var
 begin
   savedCur := GDVars.curChar;
   i := 1;
-  EclMenu.LoadEclVars(3);
+  EclVars.LoadEclVars(3);
   { at most 63 monsters, and an icon slot for them }
   if GDVars.creatureCnt >= MAX_LOADED_MONSTERS then Exit;
   if GDVars.gIconAnim > LAST_ICON_SLOT then Exit;
   p := nil;
   q := nil;
-  id := EclMenu.GetEclVar(1);
+  id := EclVars.GetEclVar(1);
   EclMenu.InitCreature(id, creature, item, ef);
   tmpl := creature^;
   invHead := item;
   effHead := ef;
-  count := EclMenu.GetEclVar(2);
+  count := EclVars.GetEclVar(2);
   if count <= 0 then count := 1;
-  picId := EclMenu.GetEclVar(3);
+  picId := EclVars.GetEclVar(3);
   p := GDVars.creatureList;
   nm := 'CPIC';
   MapTiles.LoadIconAnim(nm, picId, GDVars.gIconAnim);
@@ -325,16 +321,16 @@ procedure EclPicture;
 var
   picId: Byte;
 begin
-  EclMenu.LoadEclVars(1);
-  picId := EclMenu.GetEclVar(1);
+  EclVars.LoadEclVars(1);
+  picId := EclVars.GetEclVar(1);
   if (GDVars.zone0^.view3dFlag = 0) and (picId <> 255) then
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
   if picId <> 255 then begin
     GDVars.dsMonsterFlags[1] := True;
     GDVars.eclGraphics := True;
     if GDVars.zone1^[C_Gbvm.PIC_LOADING] = 255 then begin
-      Portrait.LoadAnimation('PIC', picId, 0, animData);
-      Portrait.DisplayImageBuf(3, 3, True, animData.frames[1].pic);
+      Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);
+      Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[1].pic);
     end else
       EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]), picId);
   end else begin
@@ -357,11 +353,11 @@ var
   v: Word;
   address: Word;
 begin
-  EclMenu.LoadEclVars(2);
+  EclVars.LoadEclVars(2);
   q := '';
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   v := TextRend.InputUint16(q, LightGreen);
-  EclMenu.WriteGbvm(address, v);
+  EclVars.WriteGbvm(address, v);
 end;
 
 { INPUT STRING: read up to 40 characters into var 2's address; an empty answer is stored as one space }
@@ -371,23 +367,23 @@ var
   address: Word;
   s: String;
 begin
-  EclMenu.LoadEclVars(2);
+  EclVars.LoadEclVars(2);
   q := '';
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   s := TextRend.ReadString(q, LightGreen, 40);
   if s = '' then s := ' ';
-  EclMenu.WriteGbvmString(address, s);
+  EclVars.WriteGbvmString(address, s);
 end;
 
 { PRINT / PRINTCLEAR: show var 1 (a number is converted to text) in the message window. PRINTCLEAR clears the window and
   starts at its top. }
 procedure EclPrint;
 begin
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   GDVars.bottomMsgCleared := 0;
   GDVars.msgDelayFlag := 1;
   if GDVars.dsGbvmType[1] < $80 then
-    GDVars.gbStrings[1] := StrUtil.NumStr(EclMenu.GetEclVar(1));
+    GDVars.gbStrings[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
     TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings[1])
   else begin
@@ -419,9 +415,9 @@ var
   i: Byte;
 begin
   FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
-  EclMenu.LoadEclVars(4);
+  EclVars.LoadEclVars(4);
   for i := 1 to 4 do
-    v[i] := EclMenu.GetEclVar(i);
+    v[i] := EclVars.GetEclVar(i);
   if (v[1] = v[2]) and (v[3] = v[4]) then
     GDVars.cmpFlags[0] := True
   else
@@ -433,12 +429,12 @@ procedure EclIf;
 begin
   Inc(GDVars.eclIp);
   case GDVars.curOpcode of
-    C_Ecl.IF_EQ: if not GDVars.cmpFlags[0] then EclMenu.SkipEclCmd;
-    C_Ecl.IF_NE: if not GDVars.cmpFlags[1] then EclMenu.SkipEclCmd;
-    C_Ecl.IF_LT: if not GDVars.cmpFlags[2] then EclMenu.SkipEclCmd;
-    C_Ecl.IF_GT: if not GDVars.cmpFlags[3] then EclMenu.SkipEclCmd;
-    C_Ecl.IF_LE: if not GDVars.cmpFlags[4] then EclMenu.SkipEclCmd;
-    C_Ecl.IF_GE: if not GDVars.cmpFlags[5] then EclMenu.SkipEclCmd;
+    C_Ecl.IF_EQ: if not GDVars.cmpFlags[0] then EclVars.SkipEclCmd;
+    C_Ecl.IF_NE: if not GDVars.cmpFlags[1] then EclVars.SkipEclCmd;
+    C_Ecl.IF_LT: if not GDVars.cmpFlags[2] then EclVars.SkipEclCmd;
+    C_Ecl.IF_GT: if not GDVars.cmpFlags[3] then EclVars.SkipEclCmd;
+    C_Ecl.IF_LE: if not GDVars.cmpFlags[4] then EclVars.SkipEclCmd;
+    C_Ecl.IF_GE: if not GDVars.cmpFlags[5] then EclVars.SkipEclCmd;
   end;
 end;
 
@@ -450,9 +446,9 @@ var
   id: Byte;
   s: String[1];
 begin
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
-  id := EclMenu.GetEclVar(1);
+  id := EclVars.GetEclVar(1);
   GDVars.eclScriptId := id;
   Str(GDVars.virtualDisk, s);
   SaveLoad.CheckFileElseQuit(GDVars.gameDir + DaxIo.ArchiveName('ECL' + s) + '.dax');
@@ -474,10 +470,10 @@ var
   f: array[1..3] of Byte;
   i: Byte;
 begin
-  EclMenu.LoadEclVars(3);
+  EclVars.LoadEclVars(3);
   GDVars.filesLoaded := 1;
   for i := 1 to 3 do
-    f[i] := EclMenu.GetEclVar(i);
+    f[i] := EclVars.GetEclVar(i);
   if GDVars.curOpcode = C_Ecl.LOADFILES then begin
     GDVars.mapLoaded := 1;
     if (f[1] <> 255) and (f[1] <> 127) and (GDVars.zone0^.view3dFlag <> 0) then begin
@@ -499,13 +495,13 @@ begin
         if f[i] <> 255 then
           View3D.LoadWallSet(f[i], i)
         else begin
-          wallDefs[i].wallDefId := 65535;
-          wallDefs[i].symbolSlot := 65535;
+          GDVars.dsWallSetCache[i].wallDefId := -1;
+          GDVars.dsWallSetCache[i].symbolSlot := -1;
         end;
   end;
   if (GDVars.enteringLoop <> 0) and (GDVars.piecesLoaded <> 0) and (GDVars.mapLoaded <> 0) then begin
-    CharHlp.DisplayNoncombatInterface;
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayNoncombatInterface;
+    CharDisp.DisplayParty(GDVars.curChar);
     GDVars.enteringLoop := 0;
   end;
 end;
@@ -519,16 +515,16 @@ var
   v1: Word;
   r: Byte;
 begin
-  EclMenu.LoadEclVars(3);
-  v1 := EclMenu.GetEclVar(1);
-  v2 := EclMenu.GetEclVar(2);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
+  EclVars.LoadEclVars(3);
+  v1 := EclVars.GetEclVar(1);
+  v2 := EclVars.GetEclVar(2);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
   if GDVars.curOpcode = C_Ecl.BIT_AND then
     r := v1 and v2
   else
     r := v1 or v2;
   EclMenu.EclCompareInt(0, r);
-  EclMenu.WriteGbvm(address, r);
+  EclVars.WriteGbvm(address, r);
 end;
 
 { GETTABLE: read the value at var 1's address + var 2 into var 3's address }
@@ -540,13 +536,13 @@ var
   v: Word;
   idx: Byte;
 begin
-  EclMenu.LoadEclVars(3);
-  addr1 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  idx := EclMenu.GetEclVar(2);
-  addr2 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
+  EclVars.LoadEclVars(3);
+  addr1 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  idx := EclVars.GetEclVar(2);
+  addr2 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
   sum := addr1 + idx;
-  v := EclMenu.ReadGbvm(sum);
-  EclMenu.WriteGbvm(addr2, v);
+  v := EclVars.ReadGbvm(sum);
+  EclVars.WriteGbvm(addr2, v);
 end;
 
 { SAVETABLE: store var 1 at var 2's address + var 3 }
@@ -557,12 +553,12 @@ var
   v: Word;
   sum: Word;
 begin
-  EclMenu.LoadEclVars(3);
-  v := EclMenu.GetEclVar(1);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
-  idx := EclMenu.GetEclVar(3);
+  EclVars.LoadEclVars(3);
+  v := EclVars.GetEclVar(1);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  idx := EclVars.GetEclVar(3);
   sum := address + idx;
-  EclMenu.WriteGbvm(sum, v);
+  EclVars.WriteGbvm(sum, v);
 end;
 
 { VMENU: show the prompt, then a vertical menu of the var 3 strings that follow (at most 20), and store the chosen
@@ -583,12 +579,12 @@ begin
   redraw := True;
   q := '';
   i := 1;
-  EclMenu.LoadEclVars(3);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  EclVars.LoadEclVars(3);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   msg := GDVars.gbStrings[1];
-  count := EclMenu.GetEclVar(3);
+  count := EclVars.GetEclVar(3);
   Dec(GDVars.eclIp);
-  EclMenu.LoadEclVars(count);
+  EclVars.LoadEclVars(count);
   { 20 = High(gbStrings), the most strings LoadEclVars keeps }
   if count > 20 then
     count := 20;
@@ -608,7 +604,7 @@ begin
   EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1,
                           C_Msg.TEXT_RIGHT,
                           C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
-  EclMenu.WriteGbvm(address, idx);
+  EclVars.WriteGbvm(address, idx);
   { the menu leaves list on the chosen line (nil on Escape), so free from the head }
   MenuCore.FreeStringList(head);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
@@ -632,11 +628,11 @@ var
 begin
   q := '';
   menu := '';
-  EclMenu.LoadEclVars(2);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  count := EclMenu.GetEclVar(2);
+  EclVars.LoadEclVars(2);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  count := EclVars.GetEclVar(2);
   Dec(GDVars.eclIp);
-  EclMenu.LoadEclVars(count);
+  EclVars.LoadEclVars(count);
   { 20 = High(gbStrings), the most strings LoadEclVars keeps; a count of 0 shows gbStrings[1] alone }
   if count > 20 then
     count := 20
@@ -659,7 +655,7 @@ begin
     menu := menu + '~' + GDVars.gbStrings[i] + ' ';
   menu := menu + '~' + GDVars.gbStrings[count];
   ch := EclMenu.MenuHorizontalCS(q, menu, LightMagenta, mCol, hlCol, enterOk, anim);
-  EclMenu.WriteGbvm(address, ch);
+  EclVars.WriteGbvm(address, ch);
   TextRend.ClearRect(0, 24, 39, 24);
 end;
 
@@ -687,7 +683,7 @@ var
   address: Word;
   p: Types.PCharRecord;
 begin
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   strength := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
@@ -707,10 +703,10 @@ begin
     Inc(strength, (cleric * 4 + (hp + ac * 5 + th * 5 + mage * 8)) div 10);
     p := p^.nextCharAddr;
   end;
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   if strength > 255 then
     strength := 255;
-  EclMenu.WriteGbvm(address, strength);
+  EclVars.WriteGbvm(address, strength);
 end;
 
 { CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = $6BA7 (thiefSkills[3]) or $6C1B
@@ -734,25 +730,25 @@ var
   { Store the three results and the found flag at the addresses of vars 3..6 }
   procedure Write4Gbvm;
   begin
-    EclMenu.WriteGbvm(addr1, outv[1]);
-    EclMenu.WriteGbvm(addr2, outv[2]);
-    EclMenu.WriteGbvm(addr3, outv[3]);
-    EclMenu.WriteGbvm(addr4, ShortInt(found));
+    EclVars.WriteGbvm(addr1, outv[1]);
+    EclVars.WriteGbvm(addr2, outv[2]);
+    EclVars.WriteGbvm(addr3, outv[3]);
+    EclVars.WriteGbvm(addr4, ShortInt(found));
   end;
 
 begin
-  EclMenu.LoadEclVars(6);
+  EclVars.LoadEclVars(6);
   p := GDVars.creatureList;
   found := False;
   if GDVars.dsGbvmType[1] = 1 then
-    attr := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1])
+    attr := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1])
   else
-    attr := EclMenu.GetEclVar(1);
-  effId := EclMenu.GetEclVar(2);
-  addr1 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
-  addr2 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[4], GDVars.dsGbvmUpperByte[4]);
-  addr3 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[5], GDVars.dsGbvmUpperByte[5]);
-  addr4 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[6], GDVars.dsGbvmUpperByte[6]);
+    attr := EclVars.GetEclVar(1);
+  effId := EclVars.GetEclVar(2);
+  addr1 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
+  addr2 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[4], GDVars.dsGbvmUpperByte[4]);
+  addr3 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[5], GDVars.dsGbvmUpperByte[5]);
+  addr4 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[6], GDVars.dsGbvmUpperByte[6]);
   sum := 0;
   count := 0;
   outv[1] := 255;
@@ -806,7 +802,7 @@ var
   addr1: Word;
   addr2: Word;
 begin
-  EclMenu.LoadEclVars(2);
+  EclVars.LoadEclVars(2);
   p := GDVars.creatureList;
   mod1 := 0;
   mod2 := 0;
@@ -818,15 +814,15 @@ begin
     end;
     p := p^.nextCharAddr;
   end;
-  addr1 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  addr2 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
-  EclMenu.WriteGbvm(addr1, mod1);
-  EclMenu.WriteGbvm(addr2, mod2);
+  addr1 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  addr2 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  EclVars.WriteGbvm(addr1, mod1);
+  EclVars.WriteGbvm(addr2, mod2);
 end;
 
 { SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE: 0 =
-  neither roll succeeded, 1 = only the first succeeded, 2 = the second succeeded. Note: when both succeed, the 3 set for
-  that case is overwritten by 2. }
+  neither roll succeeded, 1 = only the first succeeded, 2 = the second succeeded. SSI quirk, kept: when both succeed,
+  the 3 set for that case is overwritten by 2; the scripts' fights were tuned with it. }
 procedure EclSurprise;
 var
   r1: Byte;
@@ -837,10 +833,10 @@ var
   t1: ShortInt;
   t2: ShortInt;
 begin
-  EclMenu.LoadEclVars(4);
+  EclVars.LoadEclVars(4);
   result := 0;
   for i := 1 to 4 do
-    v[i] := EclMenu.GetEclVar(i);
+    v[i] := EclVars.GetEclVar(i);
   t1 := v[4] + 2 - v[1];
   t2 := v[2] + 2 - v[3];
   r1 := FxEngine.RollDice(1, 6);
@@ -852,7 +848,7 @@ begin
       result := 1;
   if r2 <= t2 then
     result := 2;
-  EclMenu.WriteGbvm(C_Gbvm.SURPRISE, result);
+  EclVars.WriteGbvm(C_Gbvm.SURPRISE, result);
 end;
 
 { COMBAT: with no monsters and no duel, enter the shop or temple when C_Gbvm.ENTER_SHOP or C_Gbvm.ENTER_TEMPLE is 1, or
@@ -898,7 +894,7 @@ begin
   GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1;
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
   GDVars.eclGraphics := False;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 { ONGOTO / ONGOSUB: jump to or call address number var 1 of the var 2 addresses that follow (at most 64); a selector of
@@ -911,11 +907,11 @@ var
   done: Boolean;
 begin
   done := False;
-  EclMenu.LoadEclVars(2);
-  sel := EclMenu.GetEclVar(1);
-  count := EclMenu.GetEclVar(2);
+  EclVars.LoadEclVars(2);
+  sel := EclVars.GetEclVar(1);
+  count := EclVars.GetEclVar(2);
   Dec(GDVars.eclIp);
-  EclMenu.LoadEclVars(count);
+  EclVars.LoadEclVars(count);
   { 64 = High(dsGbvmLowerByte), the most addresses LoadEclVars keeps; a selector past them falls through }
   if count > 64 then
     count := 64;
@@ -923,7 +919,7 @@ begin
   while (i < count) and (not done) do begin
     if sel = i then begin
       if GDVars.curOpcode = C_Ecl.ONGOTO then
-        GDVars.eclIp := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[i + 1], GDVars.dsGbvmUpperByte[i + 1])
+        GDVars.eclIp := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[i + 1], GDVars.dsGbvmUpperByte[i + 1])
       else
         EclMenu.EclGosub(i + 1);
       done := True;
@@ -953,10 +949,10 @@ var
   s: String[1];
   data: Types.PByteArr;
 begin
-  EclMenu.LoadEclVars(8);
+  EclVars.LoadEclVars(8);
   for i := C_Money.COPPER to C_Money.JEWELRY do
-    GDVars.treasureMoney[i] := EclMenu.GetEclVar(Byte(i) + 1);
-  tId := EclMenu.GetEclVar(8);
+    GDVars.treasureMoney[i] := EclVars.GetEclVar(Byte(i) + 1);
+  tId := EclVars.GetEclVar(8);
   if tId < $80 then begin
     Str(GDVars.virtualDisk, s);
     DaxIo.LoadDax('ITEM' + s, '.dax', tId, sizeRead, data);
@@ -1059,13 +1055,13 @@ var
   inv: Types.PItemRec;
   fraction: Real;
 begin
-  EclMenu.LoadEclVars(3);
-  whole := EclMenu.GetEclVar(1);
-  pct := EclMenu.GetEclVar(2);
+  EclVars.LoadEclVars(3);
+  whole := EclVars.GetEclVar(1);
+  pct := EclVars.GetEclVar(2);
   if pct > 100 then
     pct := 100;
   fraction := (100 - pct) / 100;
-  chance := EclMenu.GetEclVar(3);
+  chance := EclVars.GetEclVar(3);
   if whole = 0 then begin
     EclMenu.RobMoney(fraction, GDVars.curChar);
     EclMenu.RobItems(chance, GDVars.curChar);
@@ -1081,7 +1077,7 @@ begin
     end;
   end;
   { the party list shows the new armor class at once }
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { Run the encounter menu until combat, flight, parley or monster retreat ends it. WAIT and ADVANCE update the encounter
@@ -1111,17 +1107,17 @@ begin
   GDVars.msgDelayFlag := 1;
   EclMenu.MoveExtremes(hiMove, loMove);
   q := '';
-  EclMenu.LoadEclVars(14);
-  GDVars.monId := EclMenu.GetEclVar(1);
-  GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclMenu.GetEclVar(2);
-  GDVars.monPicId := EclMenu.GetEclVar(3);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[4], GDVars.dsGbvmUpperByte[4]);
+  EclVars.LoadEclVars(14);
+  GDVars.monId := EclVars.GetEclVar(1);
+  GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
+  GDVars.monPicId := EclVars.GetEclVar(3);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[4], GDVars.dsGbvmUpperByte[4]);
   for i := 0 to 4 do
-    resp[i] := EclMenu.GetEclVar(i + 5);
+    resp[i] := EclVars.GetEclVar(i + 5);
   for i := 1 to 3 do
     msgs[i] := GDVars.gbStrings[i];
-  fleePar := EclMenu.GetEclVar(13);
-  fleeMon := EclMenu.GetEclVar(14);
+  fleePar := EclVars.GetEclVar(13);
+  fleeMon := EclVars.GetEclVar(14);
   GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   if GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
     GDVars.zone1^[C_Gbvm.MONSTER_DIST] := GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ];
@@ -1172,21 +1168,21 @@ begin
     case choice of
       0:
         if sel <> 2 then
-          EclMenu.WriteGbvm(address, 1)
+          EclVars.WriteGbvm(address, 1)
         else begin
           if loMove >= fleePar then
-            EclMenu.WriteGbvm(address, 2)
+            EclVars.WriteGbvm(address, 2)
           else
-            EclMenu.WriteGbvm(address, 1);
+            EclVars.WriteGbvm(address, 1);
         end;
       1:
         case sel of
-          0: EclMenu.WriteGbvm(address, 1);
+          0: EclVars.WriteGbvm(address, 1);
           1: begin
             waited := True;
             TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
           end;
-          2: EclMenu.WriteGbvm(address, 2);
+          2: EclVars.WriteGbvm(address, 2);
           3: begin
             if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
               Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
@@ -1198,7 +1194,7 @@ begin
           end;
           4:
             if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
-              EclMenu.WriteGbvm(address, 3)
+              EclVars.WriteGbvm(address, 3)
             else begin
               Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
@@ -1210,14 +1206,14 @@ begin
         case sel of
           0:
             if fleeMon > hiMove then begin
-              EclMenu.WriteGbvm(address, 0);
+              EclVars.WriteGbvm(address, 0);
               GDVars.curCol := C_Msg.TEXT_LEFT;
               GDVars.curRow := C_Msg.MESSAGE_TOP;
               TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
             end else
-              EclMenu.WriteGbvm(address, 1);
+              EclVars.WriteGbvm(address, 1);
           1..4: begin
-            EclMenu.WriteGbvm(address, 0);
+            EclVars.WriteGbvm(address, 0);
             GDVars.curCol := C_Msg.TEXT_LEFT;
             GDVars.curRow := C_Msg.MESSAGE_TOP;
             TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
@@ -1225,7 +1221,7 @@ begin
         end;
       3:
         case sel of
-          0: EclMenu.WriteGbvm(address, 1);
+          0: EclVars.WriteGbvm(address, 1);
           1, 3: begin
             if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
               Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
@@ -1235,10 +1231,10 @@ begin
               TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
             waited := True;
           end;
-          2: EclMenu.WriteGbvm(address, 2);
+          2: EclVars.WriteGbvm(address, 2);
           4:
             if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
-              EclMenu.WriteGbvm(address, 3)
+              EclVars.WriteGbvm(address, 3)
             else begin
               Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
@@ -1248,17 +1244,17 @@ begin
         end;
       4:
         case sel of
-          0: EclMenu.WriteGbvm(address, 1);
+          0: EclVars.WriteGbvm(address, 1);
           1, 3, 4:
             if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
-              EclMenu.WriteGbvm(address, 3)
+              EclVars.WriteGbvm(address, 3)
             else begin
               Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                                      GDVars.dsMonsterFlags);
               waited := True;
             end;
-          2: EclMenu.WriteGbvm(address, 2);
+          2: EclVars.WriteGbvm(address, 2);
         end;
     end;
   until not waited;
@@ -1277,15 +1273,15 @@ var
   address: Word;
   space: Char;
 begin
-  EclMenu.LoadEclVars(6);
+  EclVars.LoadEclVars(6);
   space := ' ';
   for i := 0 to 4 do
-    v[i] := EclMenu.GetEclVar(i + 1);
+    v[i] := EclVars.GetEclVar(i + 1);
   sel := EclMenu.MenuHorizontalCS(space, '~HAUGHTY ~SLY ~NICE ~MEEK ~ABUSIVE', LightMagenta, LightGreen,
                                   White, False, False);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[6], GDVars.dsGbvmUpperByte[6]);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[6], GDVars.dsGbvmUpperByte[6]);
   v5 := v[sel];
-  EclMenu.WriteGbvm(address, v5);
+  EclVars.WriteGbvm(address, v5);
 end;
 
 { FIND ITEM: set the eq comparison flag (else ne) if any party member carries an item of type var 1 }
@@ -1296,9 +1292,9 @@ var
   item: Types.PItemRec;
   found: Boolean;
 begin
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   found := False;
-  itemType := EclMenu.GetEclVar(1);
+  itemType := EclVars.GetEclVar(1);
   FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
   GDVars.cmpFlags[1] := True;
   p := GDVars.creatureList;
@@ -1351,12 +1347,12 @@ begin
   dead19 := 0;
   allParty := 0;
   p := GDVars.creatureList;
-  EclMenu.LoadEclVars(5);
-  attack := EclMenu.GetEclVar(1);
-  dice := EclMenu.GetEclVar(2);
-  sides := EclMenu.GetEclVar(3);
-  bonus := EclMenu.GetEclVar(4);
-  value := EclMenu.GetEclVar(5);
+  EclVars.LoadEclVars(5);
+  attack := EclVars.GetEclVar(1);
+  dice := EclVars.GetEclVar(2);
+  sides := EclVars.GetEclVar(3);
+  bonus := EclVars.GetEclVar(4);
+  value := EclVars.GetEclVar(5);
   dmg := bonus + FxEngine.RollDice(dice, sides);
   if attack and $40 <> 0 then
     allParty := 1
@@ -1432,8 +1428,8 @@ procedure EclClock;
 var
   n: Word;
 begin
-  EclMenu.LoadEclVars(1);
-  n := EclMenu.GetEclVar(1);
+  EclVars.LoadEclVars(1);
+  n := EclVars.GetEclVar(1);
   while n > 255 do begin
     GameTime.AdvanceTime(255, 1);
     Dec(n, 255);
@@ -1468,10 +1464,10 @@ procedure EclWho;
 var
   msg: String;
 begin
-  EclMenu.LoadEclVars(1);
+  EclVars.LoadEclVars(1);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   msg := GDVars.gbStrings[1];
-  CharHlp.SelectChar(msg, False, GDVars.curChar);
+  CharDisp.SelectChar(msg, False, GDVars.curChar);
 end;
 
 { ADD NPC: add creature var 1 to the party as an NPC whose npc byte is half the morale var 2 with bit 7 set. Monster id
@@ -1483,12 +1479,12 @@ var
   morale: Byte;
   partySize: Byte;
 begin
-  EclMenu.LoadEclVars(2);
-  id := EclMenu.GetEclVar(1);
+  EclVars.LoadEclVars(2);
+  id := EclVars.GetEclVar(1);
   partySize := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
   SaveLoad.AddCreatureToParty(id);
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] = partySize then Exit;
-  morale := EclMenu.GetEclVar(2);
+  morale := EclVars.GetEclVar(2);
   morale := morale div 2;
   morale := morale or C_Npc.FLAG;
   GDVars.curChar^.npc := morale;
@@ -1497,7 +1493,7 @@ begin
   else
     GDVars.curChar^.hostile := 1;
   CharHlp.RecalcStats(GDVars.curChar);
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { SPELL: find the first party member, in party order, who is okay and has spell var 1 memorized (not pending) in
@@ -1516,10 +1512,10 @@ var
   addr1: Word;
   addr2: Word;
 begin
-  EclMenu.LoadEclVars(3);
-  spellId := EclMenu.GetEclVar(1);
-  addr1 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
-  addr2 := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
+  EclVars.LoadEclVars(3);
+  spellId := EclVars.GetEclVar(1);
+  addr1 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
+  addr2 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[3], GDVars.dsGbvmUpperByte[3]);
   slot := 255;
   idx := 0;
   found := False;
@@ -1536,8 +1532,8 @@ begin
       Inc(idx);
     end;
   end;
-  EclMenu.WriteGbvm(addr1, slot);
-  EclMenu.WriteGbvm(addr2, idx);
+  EclVars.WriteGbvm(addr1, slot);
+  EclVars.WriteGbvm(addr2, idx);
 end;
 
 { CALL: dispatch ECL service calls by address: refresh the view, start a duel or solo fight, play a sound, step forward
@@ -1547,8 +1543,8 @@ var
   address: Word;
   key: Word;
 begin
-  EclMenu.LoadEclVars(1);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  EclVars.LoadEclVars(1);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   key := address - $7FFF;
   case key of
     { address $2C90 }
@@ -1558,7 +1554,7 @@ begin
         if GDVars.eclGraphics or GDVars.sprShown or GDVars.picRegionW or GDVars.movedParty or
             GDVars.redrawSky then begin
           MapView.DisplayMapView;
-          CharHlp.PrintMiscInfo;
+          CharDisp.PrintMiscInfo;
           GDVars.redrawSky := False;
           GDVars.picRegionW := False;
           GDVars.movedParty := False;
@@ -1599,7 +1595,7 @@ begin
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[3]);
   Camp.CampMainMenu(interrupted);
   if interrupted then begin
-    CharHlp.DisplayNoncombatInterface;
+    CharDisp.DisplayNoncombatInterface;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[4]);
   end;
   MapView.DisplayMapView;
@@ -1617,12 +1613,12 @@ begin
     GDVars.curChar := GDVars.savedChar;
     GDVars.restoreChar := 0;
   end;
-  EclMenu.LoadEclVars(1);
-  v := EclMenu.GetEclVar(1);
+  EclVars.LoadEclVars(1);
+  v := EclVars.GetEclVar(1);
   case v of
     PROG_TRAINING: begin
       CharGen.MainMenu;
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
     end;
     PROG_WIN_GAME:
       Ending.WinGame;
@@ -1648,8 +1644,8 @@ var
 begin
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
   GDVars.eclGraphics := False;
-  EclMenu.LoadEclVars(1);
-  address := EclMenu.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  EclVars.LoadEclVars(1);
+  address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   i := 0;
   done := False;
   if (GDVars.dsEcl3dClearFlag <> 0) and (GDVars.curRow > 13) then begin
@@ -1660,7 +1656,7 @@ begin
   GDVars.protNewLine := 1;
   repeat
     a := address + i;
-    c := EclMenu.ReadGbvm(a) + 1;
+    c := EclVars.ReadGbvm(a) + 1;
     if c > 1 then begin
       TextRend.RenderChar(GDVars.curCol, GDVars.curRow, White, 1, c, 0);
       Inc(GDVars.curCol);
@@ -1728,7 +1724,7 @@ begin
     C_Ecl.PROTECTION: EclVm.EclProtection;
     C_Ecl.CLEAR_BOX: EclVm.EclClearBox;
   else
-    EclMenu.SkipEclCmd;
+    EclVars.SkipEclCmd;
   end;
 end;
 
@@ -1792,7 +1788,7 @@ begin
     if GDVars.newEclFlag = 0 then begin
       EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
       GDVars.curChar := savedCur;
-      CharHlp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GDVars.curChar);
     end;
   until GDVars.newEclFlag = 0;
 end;
@@ -1822,7 +1818,7 @@ begin
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
   if GDVars.ifcState <> C_Ifc.OUTDOORS then begin
     if GDVars.enteringLoop = 1 then begin
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
       GDVars.enteringLoop := 0;
     end;
     MapView.DisplayMapView;

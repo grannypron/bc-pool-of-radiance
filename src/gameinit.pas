@@ -9,11 +9,8 @@ procedure GameInit2;
 implementation
 
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, Session, SoundDrv, TextRend;
+  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm;
 
-var
-  iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
-  wallCache: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
   defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
@@ -23,10 +20,10 @@ procedure GameInit2;
 var
   ch: Char;
 begin
-  GetMem(Session.dsGbvmZones[0], SizeOf(Types.TGbvmZone0State));
-  GetMem(Session.dsGbvmZones[1], SizeOf(Types.TGbvmZone1));
-  GetMem(Session.dsGbvmZones[2], SizeOf(Types.TZone2));
-  GetMem(Session.dsGbvmZones[3], SizeOf(Types.TZone3));
+  GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
+  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
+  GetMem(GDVars.zone2, SizeOf(GDVars.zone2^));
+  GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(GDVars.wallGfx, SizeOf(Types.TWallDefs));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));
@@ -56,30 +53,31 @@ begin
   end;
   FillChar(GDVars.dsSymbolSetPtrs, SizeOf(GDVars.dsSymbolSetPtrs), 0);
   FillChar(GDVars.ds2dMapTilePtr, SizeOf(GDVars.ds2dMapTilePtr) + SizeOf(GDVars.ds2dMapTilePtr2), 0);
-  FillChar(Types.PGbvmZone0State(Session.dsGbvmZones[0])^, SizeOf(Types.TGbvmZone0State), 0);
-  FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[1])^, SizeOf(Types.TGbvmZone1), 0);
-  FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[2])^, SizeOf(Types.TZone2), 0);
-  FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[3])^, SizeOf(Types.TZone3), 0);
-  FillChar(iconAnims, SizeOf(iconAnims), 0);
+  FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
+  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
+  FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
+  FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
+  FillChar(GDVars.dsIconAnimation, SizeOf(GDVars.dsIconAnimation), 0);
   for GDVars.gi2 := 1 to 2 do begin
     GDVars.dsPortraitCache[GDVars.gi2].pictureId := 255;
     GDVars.dsPortraitCache[GDVars.gi2].pic := nil;
   end;
   FillChar(GDVars.animData, SizeOf(GDVars.animData), 0);
   GDVars.treasureItems := nil;
-  { Clear the five bytes gMapX, gMapY, gFacing, wallAhead and eventAtCell. Position and facing are assigned below. }
-  FillChar(GDVars.gMapX, 5, 0);
+  { position and facing are assigned below }
+  GDVars.wallAhead := 0;
+  GDVars.eventAtCell := 0;
   GDVars.gMapX := 15;
   GDVars.gMapY := 1;
   GDVars.gFacing := C_Dir.WEST;
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   { WALLDEF reload ID 0, symbol slot 1 }
-  wallCache[1].wallDefId := 0;
-  wallCache[1].symbolSlot := 1;
+  GDVars.dsWallSetCache[1].wallDefId := 0;
+  GDVars.dsWallSetCache[1].symbolSlot := 1;
   for GDVars.gi2 := 2 to 3 do begin
     { slots 2-3 = empty }
-    wallCache[GDVars.gi2].wallDefId := -1;
-    wallCache[GDVars.gi2].symbolSlot := -1;
+    GDVars.dsWallSetCache[GDVars.gi2].wallDefId := -1;
+    GDVars.dsWallSetCache[GDVars.gi2].symbolSlot := -1;
   end;
   GDVars.portraitsOn := 1;
   GDVars.monsterPics := 1;
@@ -105,8 +103,7 @@ begin
   GDVars.automapOn := False;
   GDVars.locTypePrev := C_Area.LOC_3D_MAP;
   GDVars.gLocType := C_Area.LOC_3D_MAP;
-  { party size }
-  Types.PGameini2ZoneWords(Session.dsGbvmZones[1])^[$33E] := 0;
+  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   GDVars.dsWildAnimFrame := 0;
   GDVars.vertTop := 1;
   GDVars.duelFlag := False;
@@ -118,7 +115,7 @@ begin
   GDVars.partyDefeated := False;
   GDVars.clipFlag := 1;
   GDVars.sprShown := False;
-  GDVars.dsSuppressingInsertDiskFlag := 0;
+  GDVars.dsSuppressingInsertDiskFlag := False;
   GDVars.picArcName[0] := #0;
   GDVars.picArcId := 255;
   GDVars.recentSaved := 0;
@@ -140,7 +137,7 @@ begin
     MapTiles.LoadIconAnim('COMSPR', GDVars.gi2, GDVars.gi2 + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
   GDVars.itemsOk := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
-                                        #0, GDVars.itemsFile);
+                                        False, GDVars.itemsFile);
   Reset(GDVars.itemsFile, 1);
   Seek(GDVars.itemsFile, 2);
   { This asks for 129 records into the 128-entry item table; baseItemsOverflow after it keeps a 129th in bounds. The

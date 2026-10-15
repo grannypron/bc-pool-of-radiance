@@ -17,10 +17,8 @@ implementation
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
   C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime,
-  MenuCore, Portrait, TextRend;
+  MenuCore, Portrait, TextRend, CharDisp;
 
-var
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
   nibbles are untouched, and coordinates outside 0..15 are ignored. }
@@ -362,11 +360,11 @@ begin
                C_Keys.F8: done := Explore.AskQuickLoad;
              else begin
                ViewChar.SelectPrevNextChar(c);
-               CharHlp.DisplayParty(GDVars.curChar);
+               CharDisp.DisplayParty(GDVars.curChar);
              end;
              end;
            end;
-           CharHlp.PrintMiscInfo;
+           CharDisp.PrintMiscInfo;
          until done;
        end;
     C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST: begin
@@ -374,7 +372,7 @@ begin
           MapTiles.LoadIconAnim('ICON', 0, 9);
           MapTiles.LoadIconAnim('ICON', 1, 10);
           MapTiles.LoadIconAnim('ICON', 2, 11);
-          CharHlp.DisplayWildernessInterface;
+          CharDisp.DisplayWildernessInterface;
         end;
         done := False;
         repeat
@@ -414,12 +412,12 @@ begin
               C_Keys.F8: done := Explore.AskQuickLoad;
             else begin
               ViewChar.SelectPrevNextChar(c);
-              CharHlp.DisplayParty(GDVars.curChar);
+              CharDisp.DisplayParty(GDVars.curChar);
               done := False;
             end;
             end;
           end;
-          CharHlp.PrintMiscInfo;
+          CharDisp.PrintMiscInfo;
         until done;
       end;
   end;
@@ -497,16 +495,16 @@ begin
            Explore.MovePartyForward3D
          else
            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
-         CharHlp.PrintMiscInfo;
+         CharDisp.PrintMiscInfo;
        end else
          GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
     C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
             Explore.MovePartyWilderness;
-            CharHlp.PrintMiscInfo;
+            CharDisp.PrintMiscInfo;
           end else
             GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
   end;
-  Portrait.FreeAnimation(animData);
+  Portrait.FreeAnimation(GDVars.animData);
   Blit.FreePic(GDVars.dsPortraitCache[1].pic);
   Blit.FreePic(GDVars.dsPortraitCache[2].pic);
   GDVars.dsPortraitCache[1].pictureId := 255;

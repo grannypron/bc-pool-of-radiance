@@ -16,7 +16,8 @@ procedure CombatAiControl(creature: Types.PCharRecord);
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, ViewChar, FxEngine, C_Effect, C_Equip,
-  C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil;
+  C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  CharDisp;
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
@@ -50,7 +51,7 @@ var
 begin
   done := CombatAi.CheckKeystroke(creature);
   TextRend.ClearBottomLine;
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
   if creature^.enabled = 0 then
     done := CharHlp.EndActions(creature);
   stance := creature^.combatAddr^.aiStance;
@@ -66,7 +67,7 @@ begin
   if not done then
     done := CombatAi.CheckMorale(creature);
   if (creature^.combatAddr^.fleeing <> 0) and (creature^.combatAddr^.turned = 0) then
-    CharHlp.PrintNameString(creature, 'flees in panic', 10, True);
+    CharDisp.PrintNameString(creature, 'flees in panic', 10, True);
   if done then
     Exit;
   if creature^.combatAddr^.spellCast > 0 then begin
@@ -322,8 +323,8 @@ begin
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other)
     else begin
       creature^.combatAddr^.aiStance := FxEngine.RollDice(1, 2);
-      { Hostiles flee along the party's facing (DIR_* 0, 2, 4, 6). Note: north gives 7 (NW) and south gives 3 (SE), so
-        the result is not always a cardinal direction. }
+      { Hostiles flee along the party's facing (DIR_* 0, 2, 4, 6). SSI quirk, kept: north gives 7 (NW) and south gives
+        3 (SE), so the result is not always a cardinal direction. }
       dir := GDVars.gFacing - Word((GDVars.gFacing + 2) mod 4) div 2;
       if creature^.hostile = 0 then
         { allies flee the other way }
@@ -506,7 +507,7 @@ end;
   Always returns True. }
 function FinishRound(creature: Types.PCharRecord): Boolean;
 begin
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
   if CharHlp.IsHelpless(creature)
      or CharHlp.HasRangedWeapon(creature)
      or (creature^.combatAddr^.initiative = 0) then
@@ -516,28 +517,29 @@ begin
 end;
 
 { Handle a key pressed during AI turns: Alt-M toggles quick magic, Space returns every non-NPC, non-animated creature to
-  manual control (True when creature itself is now manual), Alt-X runs the STING victory cheat. Note: the case tests
-  the key whether or not the extended-key prefix came first, so an unprefixed '2' also toggles quick magic and an
-  unprefixed '-' also runs the STING cheat. }
+  manual control (True when creature itself is now manual), Alt-X runs the STING victory cheat. Alt-M and Alt-X count
+  only after the extended-key prefix: SSI also took a plain '2' for Alt-M and a plain '-' for Alt-X. }
 function CheckKeystroke(creature: Types.PCharRecord): Boolean;
 var
   p: Types.PCharRecord;
   ch: Char;
+  ext: Boolean;
 begin
   CheckKeystroke := False;
   if KeyPressed then begin
     ch := GameIo.ReadGameKey;
-    if ch = #0 then
+    ext := ch = #0;
+    if ext then
       { this second call can consume later pending bytes too }
       ch := GameIo.ReadGameKey;
     case ch of
       C_Keys.ALT_M:
-        begin
+        if ext then begin
           GDVars.quickMagic := GDVars.quickMagic = False;
           if GDVars.quickMagic then
-            CharHlp.PrintBottomLine('Magic On')
+            CharDisp.PrintBottomLine('Magic On')
           else
-            CharHlp.PrintBottomLine('Magic Off');
+            CharDisp.PrintBottomLine('Magic Off');
         end;
       { Space: everyone manual }
       ' ':
@@ -555,8 +557,9 @@ begin
         end;
       { result ignored }
       C_Keys.ALT_X:
-        if CbtActs.StingVictoryCheat then
-          begin end;
+        if ext then
+          if CbtActs.StingVictoryCheat then
+            begin end;
     end;
   end;
 end;
@@ -576,7 +579,7 @@ begin
   FxEngine.RemoveAiEffects(creature);
   if creature^.combatAddr^.turned <> 0 then begin
     creature^.combatAddr^.fleeing := 1;
-    CharHlp.PrintNameString(creature, 'is forced to flee', 10, True);
+    CharDisp.PrintNameString(creature, 'is forced to flee', 10, True);
     Exit;
   end;
   { C_Npc.FLAG clear }
@@ -812,7 +815,7 @@ begin
   end;
   CharHlp.RecalcStats(creature);
   if changed then
-    CharHlp.CombatPrintCreatureInfo(creature);
+    CharDisp.CombatPrintCreatureInfo(creature);
 end;
 
 end.

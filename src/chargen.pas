@@ -14,14 +14,11 @@ procedure CustomizePortrait;
 
 implementation
 
-uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race,
-  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp,
-  ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil;
+uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
+  C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp, ClassCal,
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp;
 
-var
 
-  { pic0 and pic1 of each pair are the ready and action frames. }
-  iconAnims: array[0..25] of Types.TIconPair absolute GDVars.dsIconAnimation;
 
 const
   { The race screen's frames: the race list and the ability adjustments share rows 1..RACE_TOP_BOTTOM, on either side
@@ -109,7 +106,7 @@ begin
     if redraw then begin
       Border.DrawWindow(1, 1, 38, 22, 0, Black, '');
       if GDVars.curChar <> nil then begin
-        CharHlp.DisplayParty(Types.PCharRecord(GDVars.curChar));
+        CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
         if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (GDVars.stingMode <> 0) then
@@ -152,7 +149,7 @@ begin
         ch := C_Keys.END_KEY;
       if ch in [C_Keys.HOME, C_Keys.END_KEY] then begin
         ViewChar.SelectPrevNextChar(ch);
-        CharHlp.DisplayParty(Types.PCharRecord(GDVars.curChar));
+        CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
       end;
     end else begin
       if not (ch in ['E', 'S']) then
@@ -208,9 +205,9 @@ begin
              begin
                GDVars.stingMode := Ord(GDVars.stingMode = 0);
                if GDVars.stingMode <> 0 then
-                 CharHlp.PrintBottomLine('Free training on')
+                 CharDisp.PrintBottomLine('Free training on')
                else
-                 CharHlp.PrintBottomLine('Free training off');
+                 CharDisp.PrintBottomLine('Free training off');
              end;
       end;
       redraw := True;
@@ -788,12 +785,12 @@ begin
         (MenuCore.YesNoMenu('Are you sure? ', Yellow, LightGreen, White) = 'Y') then
     begin
       if enabled = 0 then
-        CharHlp.PrintBottomLine('You dump ' + name + ' out back.')
+        CharDisp.PrintBottomLine('You dump ' + name + ' out back.')
       else
-        CharHlp.PrintBottomLine(name + ' bids you farewell.');
+        CharDisp.PrintBottomLine(name + ' bids you farewell.');
       CharGen.RemoveCreature(False, True);
     end else
-      CharHlp.PrintBottomLine(name + ' breathes a sigh of relief.');
+      CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.');
   end;
 end;
 
@@ -815,13 +812,13 @@ var
   statIdx: Byte;
 
   { RedrawStat: Repaint the selected row: an attribute via ViewChar.PrintStat, or the hit-point line (row 6) via
-    CharHlp.PrintHitPoints; hotPink highlights it }
+    CharDisp.PrintHitPoints; hotPink highlights it }
   procedure RedrawStat(hotPink: Boolean);
   begin
     if statIdx < 6 then
       ViewChar.PrintStat(statIdx, hotPink)
     else
-      CharHlp.PrintHitPoints(Types.PCharRecord(GDVars.curChar), 4, 18, hotPink);
+      CharDisp.PrintHitPoints(Types.PCharRecord(GDVars.curChar), 4, 18, hotPink);
   end;
 
   { StatMinimum: The lowest value the selected attribute may be lowered to: racialMin, or the class minimum when that
@@ -1085,7 +1082,7 @@ begin
       trainable := trainMask;
     Border.ClearBox(1, 1, 38, 22);
     row := 4;
-    CharHlp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
+    CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
     for cls := 0 to 7 do
       if classLevels[cls] > 0 then
@@ -1102,7 +1099,7 @@ begin
         end;
     if MenuCore.YesNoMenu('Do you wish to train? ', LightMagenta, LightGreen, White) <> 'Y' then
       Exit;
-    CharHlp.PrintBottomLine('Congratulations...');
+    CharDisp.PrintBottomLine('Congratulations...');
     if GDVars.stingMode = 0 then
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
     clsCount := 0;
@@ -1658,9 +1655,9 @@ var
       FillChar(dst^.data, dst^.imgSize, 0);
     if boxed and (GDVars.videoMode <> Types.vmCGA) then
       if frame = 0 then
-        Overlay(iconAnims[25].pic0, dst)
+        Overlay(GDVars.dsIconAnimation[25, 0], dst)
       else
-        Overlay(iconAnims[25].pic1, dst);
+        Overlay(GDVars.dsIconAnimation[25, 1], dst);
     Overlay(src, dst);
   end;
 

@@ -10,7 +10,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend;
+uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp;
 
 { Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);
@@ -31,13 +31,13 @@ begin
   Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.dsViewImageBufferPtr);
   Blit.FlushView;
   repeat
-    Portrait.DisplayImageBuf(col, row, True, a.frames[a.flag].pic);
+    Portrait.DisplayImageBuf(col, row, True, a.frames[a.current].pic);
     tickNow := TextRend.GetTicks;
     { the tick count restarts at midnight }
-    if (tickNow - tickLast > LongInt(a.frames[a.flag].hdr) * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
-      Inc(a.flag);
-      if a.flag > a.count then begin
-        a.flag := 1;
+    if (tickNow - tickLast > a.frames[a.current].time * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
+      Inc(a.current);
+      if a.current > a.count then begin
+        a.current := 1;
         Inc(cycles);
       end;
       tickLast := tickNow;
@@ -60,7 +60,7 @@ begin
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');
   TextRend.DisplayString(1, 18, LightGreen, 'The spirit of Tyranthraxus flares up');
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
   Blit.LoadPic('FINAL' + GDVars.finalSfx, 1, False, 0, GDVars.finalPic);
   Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
   Ending.PlayFinalAnim(3, 5, 2, Word(10 - GDVars.gameDelay) * 5 div 2);
@@ -98,7 +98,7 @@ begin
   { the game goes on after the ending }
   Blit.FreePic(GDVars.finalPic);
   GDVars.ifcState := GDVars.savedIfc;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 { Recolor Yarash's pyramid in the wilderness tile sets. When animate is True, first show the view at (17,15), then run

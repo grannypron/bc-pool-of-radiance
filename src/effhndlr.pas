@@ -245,7 +245,7 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil;
+  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp;
 
 const
 
@@ -258,9 +258,6 @@ const
 
 
 
-var
-  effectHandlers: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler
-                            absolute GDVars.effectFns;
 
 { Nullify the attack or effect: zero GDVars.pendingDamage and GDVars.pendingEffectId. effId 0 always matches; otherwise
   only when effId is the id under the immunity check (pendingEffectId). }
@@ -290,7 +287,7 @@ end;
   already dead, stoned or gone it is all that happens. }
 procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
 begin
-  CharHlp.PrintNameString(creature, msg, 10, False);
+  CharDisp.PrintNameString(creature, msg, 10, False);
   case creature^.status of
     C_Status.STONED, C_Status.DEAD, C_Status.GONE: Exit;
   end;
@@ -302,9 +299,9 @@ begin
   if creature^.enabled = 0 then
     CbtMap.CreatureDowned(creature);
   TextRend.PauseOnly;
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
   if GDVars.ifcState <> C_Ifc.COMBAT then
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { Bless (eff 1) }
@@ -342,7 +339,7 @@ end;
 
 procedure EffTrainStart(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  CharHlp.PrintNameString(creature, 'starts to train', 10, True);
+  CharDisp.PrintNameString(creature, 'starts to train', 10, True);
   FxEngine.AddEffect(creature, C_Effect.TRAIN_MANUAL, 43200, 255, True);
 end;
 
@@ -377,7 +374,7 @@ procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   hpGain: Integer;
 begin
-  CharHlp.PrintNameString(creature, 'is hardier', 10, True);
+  CharDisp.PrintNameString(creature, 'is hardier', 10, True);
   Inc(creature^.conCur);
   if creature^.conCur >= 20 then begin
     FxEngine.AddEffect(creature, C_Effect.CON_REGEN, 60, 255, True);
@@ -505,7 +502,7 @@ begin
       GDVars.elementMask := 0;
       FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
       if GDVars.ifcState <> C_Ifc.COMBAT then
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
     end;
 end;
 
@@ -553,7 +550,7 @@ end;
 procedure EffSilence(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
-    CharHlp.PrintNameString(creature, 'is silenced', 10, True);
+    CharDisp.PrintNameString(creature, 'is silenced', 10, True);
   creature^.combatAddr^.itemUseAllowed := 0;
   creature^.combatAddr^.castAllowed := 0;
 end;
@@ -601,7 +598,7 @@ begin
         item^.special := C_Effect.SPIRIT_HAMMER_GONE;
         CharHlp.AddItemCopy(creature, item);
         FreeMem(item, SizeOf(Types.TItemRec));
-        CharHlp.PrintNameString(creature, 'Gains an item', 10, True);
+        CharDisp.PrintNameString(creature, 'Gains an item', 10, True);
       end;
   CharHlp.RecalcStats(creature);
 end;
@@ -642,7 +639,7 @@ begin
     if GDVars.dsCurrentSpellBeing > 0 then
       if GDVars.gMultiTarget = 0 then begin
         EffHndlr.NullifyAttack(0);
-        CharHlp.PrintNameString(creature, 'lost an image', 10, True);
+        CharDisp.PrintNameString(creature, 'lost an image', 10, True);
         Dec(Types.PEffectRec(p)^.strength);
         if Types.PEffectRec(p)^.strength = 0 then
           FxEngine.RemoveEffect(creature, C_Effect.MIRROR_IMAGE, nil);
@@ -661,7 +658,7 @@ end;
 procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
-    CharHlp.PrintNameString(creature, 'is coughing', 10, True);
+    CharDisp.PrintNameString(creature, 'is coughing', 10, True);
   creature^.combatAddr^.itemUseAllowed := 0;
   creature^.combatAddr^.castAllowed := 0;
   CharHlp.RecalcStats(creature);
@@ -671,7 +668,7 @@ begin
     creature^.acBehind := 50;
   creature^.acCur := creature^.acBehind;
   if creature = GDVars.curChar then
-    CharHlp.CombatPrintCreatureInfo(creature);
+    CharDisp.CombatPrintCreatureInfo(creature);
 end;
 
 { Animate Dead (eff 32). Fires on REMOVAL of the animation }
@@ -743,7 +740,7 @@ procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Types.PEffectRec(p)^.strength and $10 = 0 then begin
     Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength + $10;
-    CharHlp.PrintNameString(creature, 'ages', 10, True);
+    CharDisp.PrintNameString(creature, 'ages', 10, True);
     Inc(creature^.age);
   end;
   GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent * 2;
@@ -771,7 +768,7 @@ begin
     else
       node := node^.next;
   if found = 0 then Exit;
-  CharHlp.PrintBottomLine('The air clears a little...');
+  CharDisp.PrintBottomLine('The air clears a little...');
   { 4 = High(TStinkRec.exists) }
   for i := 1 to 4 do
     if node^.exists[i] <> 0 then begin
@@ -818,7 +815,7 @@ begin
   if GDVars.curChar^.equipped[C_Equip.WEAPON] <> nil then
     if CharHlp.CalcDistance(GDVars.curChar, creature) > 1 then
       if FxEngine.RollDice(1, 100) <= pct then begin
-        CharHlp.PrintNameString(creature, 'Avoids it', 10, True);
+        CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
         GDVars.gAttackRoll := -1;
         phase := GDVars.curChar^.combatAddr^.attackPhase;
@@ -870,7 +867,7 @@ var
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.DISEASE_STR, Types.PEffectRec(p)^.strength, 60) then
     if creature^.strCur > 3 then begin
-      CharHlp.PrintNameString(creature, 'is weakened', 10, True);
+      CharDisp.PrintNameString(creature, 'is weakened', 10, True);
       Dec(creature^.strCur);
     end else
       if not CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then
@@ -888,7 +885,7 @@ begin
       GDVars.elementMask := 0;
       FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
       if GDVars.ifcState <> C_Ifc.COMBAT then
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
     end else
       if not CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_Effect.HELPLESS, 0, 255, False);
@@ -942,7 +939,7 @@ procedure EffRotNoHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.ROT_NO_HEAL, Types.PEffectRec(p)^.strength, 14400) then
     if FxEngine.RestoreHitPoints(creature, 1, True) then
-      CharHlp.PrintHpRestoreMsg(creature);
+      CharDisp.PrintHpRestoreMsg(creature);
 end;
 
 { Helpless (eff 31, 51, 52, 53) }
@@ -965,7 +962,7 @@ end;
 procedure EffMummyRot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.effectLock <> 0 then Exit;
-  CharHlp.PrintNameString(creature, 'Rots...', 10, True);
+  CharDisp.PrintNameString(creature, 'Rots...', 10, True);
   if creature^.chaCur > 2 then
     Dec(creature^.chaCur, 2)
   else
@@ -1021,7 +1018,7 @@ procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.CON_REGEN, Types.PEffectRec(p)^.strength, 60) then
     if FxEngine.RestoreHitPoints(creature, 1, True) then
-      CharHlp.PrintHpRestoreMsg(creature);
+      CharDisp.PrintHpRestoreMsg(creature);
 end;
 
 { Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod, it gets eff 55 and is
@@ -1031,7 +1028,7 @@ procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then begin
-    CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
+    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
     TextRend.PauseOnly;
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
     EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
@@ -1044,7 +1041,7 @@ procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: Sh
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then begin
-    CharHlp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
+    CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
   end;
 end;
@@ -1145,7 +1142,7 @@ begin
       if GDVars.dsOtherCreatureCurrentPtr^.enabled <> 0 then
         creature^.combatAddr^.turned := 1;
   end else begin
-    CharHlp.PrintNameString(creature, 'Sucks some Blood', 10, True);
+    CharDisp.PrintNameString(creature, 'Sucks some Blood', 10, True);
     dmg := FxEngine.RollDamageDice(1, 4);
     GDVars.elementMask := 0;
     FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, dmg, 0, False);
@@ -1193,7 +1190,7 @@ begin
     FxEngine.AddEffect(creature, C_Effect.BITE_HOLD, 0, slot, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
     FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
-    CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is held fast', 10, True);
+    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is held fast', 10, True);
   end;
 end;
 
@@ -1283,9 +1280,9 @@ var
   effect: Types.PEffectRec;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  CharHlp.PrintNameString(creature, 'gazes...', 10, False);
-  CharHlp.BuildIconFacings(18);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+  CharDisp.PrintNameString(creature, 'gazes...', 10, False);
+  CharDisp.BuildIconFacings(18);
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
   if CharHlp.HasEffect(creature, C_Effect.GAZE_REFLECTABLE, effect) then begin
@@ -1295,8 +1292,8 @@ begin
       if item^.equipped <> 0 then
         { "Mirror" }
         if (item^.nameIds[1] = 118) or (item^.nameIds[2] = 118) or (item^.nameIds[3] = 118) then begin
-          CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'reflects it!', 12, False);
-          CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
+          CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'reflects it!', 12, False);
+          CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                           CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr),
                                           CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 4, 45);
           reflected := True;
@@ -1329,9 +1326,9 @@ begin
   dist := GDConsts.spellTable[C_Spell.CHARM_PERSON].rangeFixed;
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
                           GDVars.arenaPtr) then Exit;
-  CharHlp.PrintNameString(creature, 'Gazes...', 10, False);
-  CharHlp.BuildIconFacings(18);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+  CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
+  CharDisp.BuildIconFacings(18);
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
   { Charm Person }
@@ -1397,7 +1394,7 @@ begin
     numStr := StrUtil.NumStr(levels) + ' levels'
   else
     numStr := 'a level';
-  CharHlp.PrintNameString(creature, 'is drained ' + numStr, 10, True);
+  CharDisp.PrintNameString(creature, 'is drained ' + numStr, 10, True);
   if creature^.status = C_Status.ANIMATED then begin
     EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
     creature^.hpMax := 0;
@@ -1475,7 +1472,7 @@ begin
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, 14400, 255, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.MUMMY_ROT, 43200,
                        FxEngine.RollDice(1, 6) * 16 + 15, True);
-    CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Diseased', 10, True);
+    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Diseased', 10, True);
   end;
 end;
 
@@ -1519,7 +1516,7 @@ procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if GDVars.dsCurrentSpellBeing = 15 then begin
     EffHndlr.NullifyAttack(0);
-    CharHlp.PrintNameString(creature, 'is unaffected', 10, True);
+    CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
   end else
     if GDVars.elementMask and 4 <> 0 then
       EffHndlr.NullifyAttack(0);
@@ -1859,9 +1856,9 @@ begin
   if FxEngine.RollDice(1, 100) > 25 then Exit;
   if CharHlp.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
   dummy := CharHlp.EndActions(creature);
-  CharHlp.PrintNameString(creature, 'Spits Acid', 10, True);
-  CharHlp.BuildIconFacings(23);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+  CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
+  CharDisp.BuildIconFacings(23);
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 1, 30);
   FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, FxEngine.RollDamageDice(8, 4), 2,
@@ -1984,9 +1981,9 @@ begin
       next := q^.next;
       if q^.id = C_Effect.STRENGTH then begin
         FxEngine.StrengthEffectToStrength(q, base, exc);
-        { Note: q^.id < $80 is always true here, since q^.id is C_Effect.STRENGTH. The $80 flag is kept in the strength
-          byte, which EffExtraStr tests }
-        if (isOgre and (q^.id < $80)) or ((base = 18) and (exc = 100) and (isOgre = False)) then begin
+        { SSI tested q^.id < $80 here, always true for C_Effect.STRENGTH: the $80 flag is in the strength byte, which
+          EffExtraStr tests. What the test came to is kept. }
+        if isOgre or ((base = 18) and (exc = 100)) then begin
           FxEngine.RemoveEffect(creature, C_Effect.STRENGTH, q);
           found := True;
         end;
@@ -1997,10 +1994,10 @@ begin
     if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) then
       if GDVars.ifcState = C_Ifc.COMBAT then begin
         GDVars.ifcState := C_Ifc.CAMPING;
-        CharHlp.PrintNameString(creature, 'is stronger', 10, True);
+        CharDisp.PrintNameString(creature, 'is stronger', 10, True);
         GDVars.ifcState := C_Ifc.COMBAT;
       end else
-        CharHlp.PrintNameString(creature, 'is stronger', 10, True);
+        CharDisp.PrintNameString(creature, 'is stronger', 10, True);
     GDVars.dsRedrawInventoryMenuFlag := 1;
     FxEngine.AddEffect(creature, C_Effect.STRENGTH, 0, enc, True);
   end;
@@ -2021,7 +2018,7 @@ begin
     dmg := item^.effect div 16;
     GDVars.elementMask := 8;
     if GDVars.ifcState = C_Ifc.COMBAT then
-      CharHlp.DisplayCombatInterface;
+      CharDisp.DisplayCombatInterface;
     FxEngine.InflictItemShock(creature, item, dmg);
     GDVars.dsRedrawInventoryMenuFlag := 1;
   end;
@@ -2037,7 +2034,7 @@ begin
   if removed then Exit;
   if creature^.strCur < 19 then begin
     item^.equipped := 0;
-    CharHlp.PrintBottomLine('Must have Giant Strength');
+    CharDisp.PrintBottomLine('Must have Giant Strength');
   end;
 end;
 
@@ -2059,147 +2056,147 @@ end;
 
 procedure InitEffectHandlers;
 begin
-  effectHandlers[C_Effect.BLESS] := EffHndlr.EffBless;
-  effectHandlers[C_Effect.CURSE] := EffHndlr.EffCurse;
-  effectHandlers[C_Effect.UNDEAD_SLAYER] := EffHndlr.EffUndeadSlayer;
-  effectHandlers[C_Effect.TRAIN_START] := EffHndlr.EffTrainStart;
-  effectHandlers[C_Effect.DETECT_MAGIC] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.FLAME_TONGUE] := EffHndlr.EffFlameTongue;
-  effectHandlers[C_Effect.TRAIN_MANUAL] := EffHndlr.EffTrainManual;
-  effectHandlers[C_Effect.PROT_EVIL] := EffHndlr.EffProtEvil;
-  effectHandlers[C_Effect.PROT_GOOD] := EffHndlr.EffProtGood;
-  effectHandlers[C_Effect.RESIST_COLD] := EffHndlr.EffResistCold;
-  effectHandlers[C_Effect.CHARM] := EffHndlr.EffCharm;
-  effectHandlers[C_Effect.ENLARGE] := EffHndlr.EffExtraStr;
-  effectHandlers[C_Effect.REDUCE] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.FRIENDS] := EffHndlr.EffFriends;
-  effectHandlers[C_Effect.SLOW_POISON_HIT] := EffHndlr.EffSlowPoisonHit;
-  effectHandlers[C_Effect.READ_MAGIC] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.SHIELD] := EffHndlr.EffShield;
-  effectHandlers[C_Effect.GNOME_THAC0] := EffHndlr.EffGnomeThac0;
-  effectHandlers[C_Effect.FIND_TRAPS] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.RESIST_FIRE] := EffHndlr.EffResistFire;
-  effectHandlers[C_Effect.SILENCE] := EffHndlr.EffSilence;
-  effectHandlers[C_Effect.SLOW_POISON_END] := EffHndlr.EffSlowPoisonEnd;
-  effectHandlers[C_Effect.SPIRIT_HAMMER] := EffHndlr.EffSpiritHammer;
-  effectHandlers[C_Effect.SEE_INVISIBLE] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.INVISIBLE] := EffHndlr.EffInvisible;
-  effectHandlers[C_Effect.DWARF_THAC0] := EffHndlr.EffDwarfThac0;
-  effectHandlers[C_Effect.FEATHER_FALL] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.MIRROR_IMAGE] := EffHndlr.EffMirrorImage;
-  effectHandlers[C_Effect.ENFEEBLE] := EffHndlr.EffEnfeeble;
-  effectHandlers[C_Effect.STINK_COUGH] := EffHndlr.EffStinkCough;
-  effectHandlers[C_Effect.HELPLESS] := EffHndlr.EffHelpless;
-  effectHandlers[C_Effect.ANIMATE_DEAD] := EffHndlr.EffAnimateDead;
-  effectHandlers[C_Effect.BLIND] := EffHndlr.EffBlind;
-  effectHandlers[C_Effect.DISEASED] := EffHndlr.EffDiseased;
-  effectHandlers[C_Effect.ALLIED_PRAYER] := EffHndlr.EffAlliedPrayer;
-  effectHandlers[C_Effect.BESTOW_CURSE] := EffHndlr.EffBestowCurse;
-  effectHandlers[C_Effect.BLINKING] := EffHndlr.EffBlinking;
-  effectHandlers[C_Effect.STRENGTH] := EffHndlr.EffExtraStr;
-  effectHandlers[C_Effect.HASTED] := EffHndlr.EffHasted;
-  effectHandlers[C_Effect.CAST_STINK] := EffHndlr.EffCastStink;
-  effectHandlers[C_Effect.PROT_MISSILES] := EffHndlr.EffProtMissiles;
-  effectHandlers[C_Effect.SLOWED] := EffHndlr.EffSlowed;
-  effectHandlers[C_Effect.DISEASE_STR] := EffHndlr.EffDiseaseStr;
-  effectHandlers[C_Effect.DISEASE_HP] := EffHndlr.EffDiseaseHp;
-  effectHandlers[C_Effect.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
-  effectHandlers[C_Effect.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
-  effectHandlers[C_Effect.DWARF_AC_GIANT] := EffHndlr.EffDwarfAcGiant;
-  effectHandlers[C_Effect.GNOME_AC_BUG] := EffHndlr.EffGnomeAcBug;
-  effectHandlers[C_Effect.PRAYER] := EffHndlr.EffPrayer;
-  effectHandlers[C_Effect.ROT_NO_HEAL] := EffHndlr.EffRotNoHeal;
-  effectHandlers[C_Effect.SNAKE_CHARM] := EffHndlr.EffHelpless;
-  effectHandlers[C_Effect.PARALYSIS] := EffHndlr.EffHelpless;
-  effectHandlers[C_Effect.SLEEP] := EffHndlr.EffHelpless;
+  GDVars.effectFns[C_Effect.BLESS] := EffHndlr.EffBless;
+  GDVars.effectFns[C_Effect.CURSE] := EffHndlr.EffCurse;
+  GDVars.effectFns[C_Effect.UNDEAD_SLAYER] := EffHndlr.EffUndeadSlayer;
+  GDVars.effectFns[C_Effect.TRAIN_START] := EffHndlr.EffTrainStart;
+  GDVars.effectFns[C_Effect.DETECT_MAGIC] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.FLAME_TONGUE] := EffHndlr.EffFlameTongue;
+  GDVars.effectFns[C_Effect.TRAIN_MANUAL] := EffHndlr.EffTrainManual;
+  GDVars.effectFns[C_Effect.PROT_EVIL] := EffHndlr.EffProtEvil;
+  GDVars.effectFns[C_Effect.PROT_GOOD] := EffHndlr.EffProtGood;
+  GDVars.effectFns[C_Effect.RESIST_COLD] := EffHndlr.EffResistCold;
+  GDVars.effectFns[C_Effect.CHARM] := EffHndlr.EffCharm;
+  GDVars.effectFns[C_Effect.ENLARGE] := EffHndlr.EffExtraStr;
+  GDVars.effectFns[C_Effect.REDUCE] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.FRIENDS] := EffHndlr.EffFriends;
+  GDVars.effectFns[C_Effect.SLOW_POISON_HIT] := EffHndlr.EffSlowPoisonHit;
+  GDVars.effectFns[C_Effect.READ_MAGIC] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.SHIELD] := EffHndlr.EffShield;
+  GDVars.effectFns[C_Effect.GNOME_THAC0] := EffHndlr.EffGnomeThac0;
+  GDVars.effectFns[C_Effect.FIND_TRAPS] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.RESIST_FIRE] := EffHndlr.EffResistFire;
+  GDVars.effectFns[C_Effect.SILENCE] := EffHndlr.EffSilence;
+  GDVars.effectFns[C_Effect.SLOW_POISON_END] := EffHndlr.EffSlowPoisonEnd;
+  GDVars.effectFns[C_Effect.SPIRIT_HAMMER] := EffHndlr.EffSpiritHammer;
+  GDVars.effectFns[C_Effect.SEE_INVISIBLE] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.INVISIBLE] := EffHndlr.EffInvisible;
+  GDVars.effectFns[C_Effect.DWARF_THAC0] := EffHndlr.EffDwarfThac0;
+  GDVars.effectFns[C_Effect.FEATHER_FALL] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.MIRROR_IMAGE] := EffHndlr.EffMirrorImage;
+  GDVars.effectFns[C_Effect.ENFEEBLE] := EffHndlr.EffEnfeeble;
+  GDVars.effectFns[C_Effect.STINK_COUGH] := EffHndlr.EffStinkCough;
+  GDVars.effectFns[C_Effect.HELPLESS] := EffHndlr.EffHelpless;
+  GDVars.effectFns[C_Effect.ANIMATE_DEAD] := EffHndlr.EffAnimateDead;
+  GDVars.effectFns[C_Effect.BLIND] := EffHndlr.EffBlind;
+  GDVars.effectFns[C_Effect.DISEASED] := EffHndlr.EffDiseased;
+  GDVars.effectFns[C_Effect.ALLIED_PRAYER] := EffHndlr.EffAlliedPrayer;
+  GDVars.effectFns[C_Effect.BESTOW_CURSE] := EffHndlr.EffBestowCurse;
+  GDVars.effectFns[C_Effect.BLINKING] := EffHndlr.EffBlinking;
+  GDVars.effectFns[C_Effect.STRENGTH] := EffHndlr.EffExtraStr;
+  GDVars.effectFns[C_Effect.HASTED] := EffHndlr.EffHasted;
+  GDVars.effectFns[C_Effect.CAST_STINK] := EffHndlr.EffCastStink;
+  GDVars.effectFns[C_Effect.PROT_MISSILES] := EffHndlr.EffProtMissiles;
+  GDVars.effectFns[C_Effect.SLOWED] := EffHndlr.EffSlowed;
+  GDVars.effectFns[C_Effect.DISEASE_STR] := EffHndlr.EffDiseaseStr;
+  GDVars.effectFns[C_Effect.DISEASE_HP] := EffHndlr.EffDiseaseHp;
+  GDVars.effectFns[C_Effect.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
+  GDVars.effectFns[C_Effect.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
+  GDVars.effectFns[C_Effect.DWARF_AC_GIANT] := EffHndlr.EffDwarfAcGiant;
+  GDVars.effectFns[C_Effect.GNOME_AC_BUG] := EffHndlr.EffGnomeAcBug;
+  GDVars.effectFns[C_Effect.PRAYER] := EffHndlr.EffPrayer;
+  GDVars.effectFns[C_Effect.ROT_NO_HEAL] := EffHndlr.EffRotNoHeal;
+  GDVars.effectFns[C_Effect.SNAKE_CHARM] := EffHndlr.EffHelpless;
+  GDVars.effectFns[C_Effect.PARALYSIS] := EffHndlr.EffHelpless;
+  GDVars.effectFns[C_Effect.SLEEP] := EffHndlr.EffHelpless;
   { A milder dragon fear that only marks the creature (camp lists it as Repulsed); the full fear is DRAGON_FEAR. }
-  effectHandlers[C_Effect.DRAGON_AURA] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.POISONED] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.RING_INVIS] := EffHndlr.EffRingInvis;
-  effectHandlers[C_Effect.MUMMY_ROT] := EffHndlr.EffMummyRot;
-  effectHandlers[C_Effect.IMMOBILE] := EffHndlr.EffImmobile;
-  effectHandlers[C_Effect.TROLL_REGEN] := EffHndlr.EffTrollRegen;
-  effectHandlers[60] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.RING_FIRE_RES] := EffHndlr.EffRingFireRes;
-  effectHandlers[C_Effect.CON_REGEN] := EffHndlr.EffConRegen;
-  effectHandlers[63] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.POISON_HIT0] := EffHndlr.EffPoisonHit0;
-  effectHandlers[C_Effect.POISON_HIT4] := EffHndlr.EffPoisonHit4;
-  effectHandlers[C_Effect.POISON_HIT2] := EffHndlr.EffPoisonHit2;
-  effectHandlers[C_Effect.KREEN_PARA] := EffHndlr.EffKreenPara;
-  effectHandlers[C_Effect.GHOUL_PARA] := EffHndlr.EffGhoulPara;
-  effectHandlers[C_Effect.DRIDER_PARA] := EffHndlr.EffDriderPara;
-  effectHandlers[C_Effect.POISON_HIT_M2] := EffHndlr.EffPoisonHitM2;
-  effectHandlers[C_Effect.DUST_DISAPPEAR] := EffHndlr.EffDustDisappear;
-  effectHandlers[C_Effect.CAMOUFLAGE] := EffHndlr.EffCamouflage;
-  effectHandlers[C_Effect.REAR_CLAW_RAKE] := CbtActs.RearClawRake;
-  effectHandlers[C_Effect.BITE_HOLD] := CbtActs.BiteAndHold;
-  effectHandlers[C_Effect.BLOOD_DRAIN] := EffHndlr.EffBloodDrain;
-  effectHandlers[C_Effect.BLOOD_ATTACH] := EffHndlr.EffBloodAttach;
-  effectHandlers[C_Effect.BITE_ATTACH] := EffHndlr.EffBiteHold;
-  effectHandlers[C_Effect.HEAL_WAKE] := EffHndlr.EffHealWake;
-  effectHandlers[C_Effect.FIRE_TOUCH] := EffHndlr.EffFireTouch;
-  effectHandlers[C_Effect.ACID_SQUIRT] := EffHndlr.EffAcidSquirt;
-  effectHandlers[C_Effect.DRAGON_FEAR] := EffHndlr.EffDragonFear;
-  effectHandlers[C_Effect.MUMMY_FEAR] := EffHndlr.EffMummyFear;
-  effectHandlers[C_Effect.PETRIFY_GAZE] := EffHndlr.EffPetrifyGaze;
-  effectHandlers[C_Effect.CHARM_GAZE] := EffHndlr.EffCharmGaze;
-  effectHandlers[C_Effect.DRAIN_ONE] := EffHndlr.EffDrainOne;
-  effectHandlers[C_Effect.DRAIN_TWO] := EffHndlr.EffDrainTwo;
-  effectHandlers[C_Effect.ROT_TOUCH] := EffHndlr.EffRotTouch;
-  effectHandlers[C_Effect.DISPLACED] := EffHndlr.EffDisplaced;
-  effectHandlers[C_Effect.CON_PSN_SAVE] := EffHndlr.EffConPsnSave;
-  effectHandlers[C_Effect.IMMUNE_MM] := EffHndlr.EffImmuneMM;
-  effectHandlers[92] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.HALF_FIRE] := EffHndlr.EffHalfFire;
-  effectHandlers[C_Effect.HALF_BASH] := EffHndlr.EffHalfBash;
-  effectHandlers[C_Effect.FIGHT_ON] := EffHndlr.EffFightOn;
-  effectHandlers[C_Effect.NEED_SILVER] := EffHndlr.EffNeedSilver;
-  effectHandlers[C_Effect.CON_SPELL_SAVE] := EffHndlr.EffConSpellSave;
-  effectHandlers[C_Effect.REGEN3] := EffHndlr.EffRegen3;
-  effectHandlers[C_Effect.CAN_FIGHT_ON] := EffHndlr.EffCanFightOn;
-  effectHandlers[C_Effect.TROLL_BURN] := EffHndlr.EffTrollBurn;
-  effectHandlers[C_Effect.TROLL_HEAL] := EffHndlr.EffTrollHeal;
-  effectHandlers[C_Effect.TROLL_RETURN] := EffHndlr.EffTrollReturn;
-  effectHandlers[C_Effect.GASEOUS] := EffHndlr.EffGaseous;
-  effectHandlers[C_Effect.KREEN_DODGE] := EffHndlr.EffKreenDodge;
-  effectHandlers[C_Effect.MAGIC_RES50] := EffHndlr.EffMagicRes50;
-  effectHandlers[C_Effect.MAGIC_RES85] := EffHndlr.EffMagicRes85;
-  effectHandlers[C_Effect.ELF_RESIST] := EffHndlr.EffElfResist;
-  effectHandlers[C_Effect.NO_SLEEP_CHARM] := EffHndlr.EffNoSleepCharm;
-  effectHandlers[C_Effect.NO_PARALYSIS] := EffHndlr.EffNoParalysis;
-  effectHandlers[C_Effect.NO_COLD] := EffHndlr.EffNoCold;
-  effectHandlers[C_Effect.NO_PARA_POISON] := EffHndlr.EffNoParaPoison;
-  effectHandlers[C_Effect.NO_FIRE] := EffHndlr.EffNoFire;
-  effectHandlers[C_Effect.EFREETI_FIRE] := EffHndlr.EffEfreetiFire;
-  effectHandlers[C_Effect.HALF_ELEC] := EffHndlr.EffHalfElec;
-  effectHandlers[C_Effect.HALF_PIERCE] := EffHndlr.EffHalfPierce;
-  effectHandlers[C_Effect.HALF_MAGICAL] := EffHndlr.EffHalfMagical;
-  effectHandlers[C_Effect.HOLY_WATER] := EffHndlr.EffHolyWater;
-  effectHandlers[C_Effect.HALF_COLD] := EffHndlr.EffHalfCold;
-  effectHandlers[C_Effect.NEED_MAGIC] := EffHndlr.EffNeedMagic;
-  effectHandlers[C_Effect.BOULDER_DODGE] := EffHndlr.EffBoulderDodge;
-  effectHandlers[C_Effect.ANHKHEG_ACID] := EffHndlr.EffAnhkhegAcid;
-  effectHandlers[C_Effect.MUMMY_FIRE] := EffHndlr.EffMummyFire;
-  effectHandlers[C_Effect.SILVER_MAGIC] := EffHndlr.EffSilverMagic;
-  effectHandlers[C_Effect.HALF_ELF_RESIST] := EffHndlr.EffHalfElfResist;
-  effectHandlers[C_Effect.NO_CHARM_POISON] := EffHndlr.EffNoCharmPoison;
-  effectHandlers[C_Effect.GAZE_BLOCK] := EffHndlr.EffGazeBlock;
-  effectHandlers[C_Effect.GAZE_REFLECTABLE] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.READY_FEATHER_FALL] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.READY_FIRE_RES] := EffHndlr.EffReadyItem;
-  effectHandlers[130] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.GAUNTLETS] := EffHndlr.EffGauntlets;
-  effectHandlers[C_Effect.ALIGNED_WEAPON] := EffHndlr.EffAlignedWeapon;
-  effectHandlers[C_Effect.READY_DISPLACEMENT] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.READY_ELVENKIND] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.BOULDER] := EffHndlr.EffBoulder;
-  effectHandlers[136] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.SPIRIT_HAMMER_GONE] := EffHndlr.EffHammerGone;
-  effectHandlers[138] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.READY_RING_INVIS] := EffHndlr.EffReadyItem;
-  effectHandlers[C_Effect.RECENT_HEAL] := EffHndlr.EffNull;
-  effectHandlers[C_Effect.RECENT_CURE] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.DRAGON_AURA] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.POISONED] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.RING_INVIS] := EffHndlr.EffRingInvis;
+  GDVars.effectFns[C_Effect.MUMMY_ROT] := EffHndlr.EffMummyRot;
+  GDVars.effectFns[C_Effect.IMMOBILE] := EffHndlr.EffImmobile;
+  GDVars.effectFns[C_Effect.TROLL_REGEN] := EffHndlr.EffTrollRegen;
+  GDVars.effectFns[60] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.RING_FIRE_RES] := EffHndlr.EffRingFireRes;
+  GDVars.effectFns[C_Effect.CON_REGEN] := EffHndlr.EffConRegen;
+  GDVars.effectFns[63] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.POISON_HIT0] := EffHndlr.EffPoisonHit0;
+  GDVars.effectFns[C_Effect.POISON_HIT4] := EffHndlr.EffPoisonHit4;
+  GDVars.effectFns[C_Effect.POISON_HIT2] := EffHndlr.EffPoisonHit2;
+  GDVars.effectFns[C_Effect.KREEN_PARA] := EffHndlr.EffKreenPara;
+  GDVars.effectFns[C_Effect.GHOUL_PARA] := EffHndlr.EffGhoulPara;
+  GDVars.effectFns[C_Effect.DRIDER_PARA] := EffHndlr.EffDriderPara;
+  GDVars.effectFns[C_Effect.POISON_HIT_M2] := EffHndlr.EffPoisonHitM2;
+  GDVars.effectFns[C_Effect.DUST_DISAPPEAR] := EffHndlr.EffDustDisappear;
+  GDVars.effectFns[C_Effect.CAMOUFLAGE] := EffHndlr.EffCamouflage;
+  GDVars.effectFns[C_Effect.REAR_CLAW_RAKE] := CbtActs.RearClawRake;
+  GDVars.effectFns[C_Effect.BITE_HOLD] := CbtActs.BiteAndHold;
+  GDVars.effectFns[C_Effect.BLOOD_DRAIN] := EffHndlr.EffBloodDrain;
+  GDVars.effectFns[C_Effect.BLOOD_ATTACH] := EffHndlr.EffBloodAttach;
+  GDVars.effectFns[C_Effect.BITE_ATTACH] := EffHndlr.EffBiteHold;
+  GDVars.effectFns[C_Effect.HEAL_WAKE] := EffHndlr.EffHealWake;
+  GDVars.effectFns[C_Effect.FIRE_TOUCH] := EffHndlr.EffFireTouch;
+  GDVars.effectFns[C_Effect.ACID_SQUIRT] := EffHndlr.EffAcidSquirt;
+  GDVars.effectFns[C_Effect.DRAGON_FEAR] := EffHndlr.EffDragonFear;
+  GDVars.effectFns[C_Effect.MUMMY_FEAR] := EffHndlr.EffMummyFear;
+  GDVars.effectFns[C_Effect.PETRIFY_GAZE] := EffHndlr.EffPetrifyGaze;
+  GDVars.effectFns[C_Effect.CHARM_GAZE] := EffHndlr.EffCharmGaze;
+  GDVars.effectFns[C_Effect.DRAIN_ONE] := EffHndlr.EffDrainOne;
+  GDVars.effectFns[C_Effect.DRAIN_TWO] := EffHndlr.EffDrainTwo;
+  GDVars.effectFns[C_Effect.ROT_TOUCH] := EffHndlr.EffRotTouch;
+  GDVars.effectFns[C_Effect.DISPLACED] := EffHndlr.EffDisplaced;
+  GDVars.effectFns[C_Effect.CON_PSN_SAVE] := EffHndlr.EffConPsnSave;
+  GDVars.effectFns[C_Effect.IMMUNE_MM] := EffHndlr.EffImmuneMM;
+  GDVars.effectFns[92] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.HALF_FIRE] := EffHndlr.EffHalfFire;
+  GDVars.effectFns[C_Effect.HALF_BASH] := EffHndlr.EffHalfBash;
+  GDVars.effectFns[C_Effect.FIGHT_ON] := EffHndlr.EffFightOn;
+  GDVars.effectFns[C_Effect.NEED_SILVER] := EffHndlr.EffNeedSilver;
+  GDVars.effectFns[C_Effect.CON_SPELL_SAVE] := EffHndlr.EffConSpellSave;
+  GDVars.effectFns[C_Effect.REGEN3] := EffHndlr.EffRegen3;
+  GDVars.effectFns[C_Effect.CAN_FIGHT_ON] := EffHndlr.EffCanFightOn;
+  GDVars.effectFns[C_Effect.TROLL_BURN] := EffHndlr.EffTrollBurn;
+  GDVars.effectFns[C_Effect.TROLL_HEAL] := EffHndlr.EffTrollHeal;
+  GDVars.effectFns[C_Effect.TROLL_RETURN] := EffHndlr.EffTrollReturn;
+  GDVars.effectFns[C_Effect.GASEOUS] := EffHndlr.EffGaseous;
+  GDVars.effectFns[C_Effect.KREEN_DODGE] := EffHndlr.EffKreenDodge;
+  GDVars.effectFns[C_Effect.MAGIC_RES50] := EffHndlr.EffMagicRes50;
+  GDVars.effectFns[C_Effect.MAGIC_RES85] := EffHndlr.EffMagicRes85;
+  GDVars.effectFns[C_Effect.ELF_RESIST] := EffHndlr.EffElfResist;
+  GDVars.effectFns[C_Effect.NO_SLEEP_CHARM] := EffHndlr.EffNoSleepCharm;
+  GDVars.effectFns[C_Effect.NO_PARALYSIS] := EffHndlr.EffNoParalysis;
+  GDVars.effectFns[C_Effect.NO_COLD] := EffHndlr.EffNoCold;
+  GDVars.effectFns[C_Effect.NO_PARA_POISON] := EffHndlr.EffNoParaPoison;
+  GDVars.effectFns[C_Effect.NO_FIRE] := EffHndlr.EffNoFire;
+  GDVars.effectFns[C_Effect.EFREETI_FIRE] := EffHndlr.EffEfreetiFire;
+  GDVars.effectFns[C_Effect.HALF_ELEC] := EffHndlr.EffHalfElec;
+  GDVars.effectFns[C_Effect.HALF_PIERCE] := EffHndlr.EffHalfPierce;
+  GDVars.effectFns[C_Effect.HALF_MAGICAL] := EffHndlr.EffHalfMagical;
+  GDVars.effectFns[C_Effect.HOLY_WATER] := EffHndlr.EffHolyWater;
+  GDVars.effectFns[C_Effect.HALF_COLD] := EffHndlr.EffHalfCold;
+  GDVars.effectFns[C_Effect.NEED_MAGIC] := EffHndlr.EffNeedMagic;
+  GDVars.effectFns[C_Effect.BOULDER_DODGE] := EffHndlr.EffBoulderDodge;
+  GDVars.effectFns[C_Effect.ANHKHEG_ACID] := EffHndlr.EffAnhkhegAcid;
+  GDVars.effectFns[C_Effect.MUMMY_FIRE] := EffHndlr.EffMummyFire;
+  GDVars.effectFns[C_Effect.SILVER_MAGIC] := EffHndlr.EffSilverMagic;
+  GDVars.effectFns[C_Effect.HALF_ELF_RESIST] := EffHndlr.EffHalfElfResist;
+  GDVars.effectFns[C_Effect.NO_CHARM_POISON] := EffHndlr.EffNoCharmPoison;
+  GDVars.effectFns[C_Effect.GAZE_BLOCK] := EffHndlr.EffGazeBlock;
+  GDVars.effectFns[C_Effect.GAZE_REFLECTABLE] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.READY_FEATHER_FALL] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.READY_FIRE_RES] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[130] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.GAUNTLETS] := EffHndlr.EffGauntlets;
+  GDVars.effectFns[C_Effect.ALIGNED_WEAPON] := EffHndlr.EffAlignedWeapon;
+  GDVars.effectFns[C_Effect.READY_DISPLACEMENT] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.READY_ELVENKIND] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.BOULDER] := EffHndlr.EffBoulder;
+  GDVars.effectFns[136] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.SPIRIT_HAMMER_GONE] := EffHndlr.EffHammerGone;
+  GDVars.effectFns[138] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.READY_RING_INVIS] := EffHndlr.EffReadyItem;
+  GDVars.effectFns[C_Effect.RECENT_HEAL] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.RECENT_CURE] := EffHndlr.EffNull;
 end;
 
 end.

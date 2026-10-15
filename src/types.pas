@@ -551,8 +551,7 @@ type
     symbolSlot: Integer;
   end;
 
-  { Session types. }
-  PGbvmZone0State = ^TGbvmZone0State;
+  { Game-memory (GBVM) zone types. }
   TGbvmClock = packed record
     case Byte of
       0: (values: array[0..6] of Word);
@@ -642,7 +641,6 @@ type
 
   { CbtActs types. }
   PAttackPhaseView = ^TAttackPhaseView;
-  PCbtactsZoneWords = ^TGbvmZone1;
   { Target-selection result. }
   TAimTarget = record
     { the creature (nil = bare cell) }
@@ -724,12 +722,6 @@ type
   PAcAdjust = ^TAcAdjust;
   PBoolean = ^Boolean;
   TAcAdjust = array[0..4] of ShortInt;
-  TZone1 = record
-    { skips to searchFlags }
-    pad0: array[0..1427] of Byte;
-    { C_Gbvm.SEARCH_FLAGS, bit 0 }
-    searchFlags: Word;
-  end;
 
   { Spell and downed-record types. }
   PDownedRec = ^TDownedRec;
@@ -811,18 +803,11 @@ type
   TZone3 = array[C_Gbvm.SCRIPT_FIRST..C_Gbvm.SCRIPT_LAST] of Byte;
 
   { EclVm types. }
-  TEclvmWallDef = record
-    wallDefId: Word;
-    symbolSlot: Word;
-  end;
-
   { EffHndlr types. }
   TEffectHandler = procedure(creature: PCharRecord; effectData: Pointer;
                              removed: Boolean);
 
   { FxEngine types. }
-  PFxengineZoneBytes = ^TFxengineZoneBytes;
-  TFxengineZoneBytes = array[0..2047] of Byte;
 
   { GameBoot types. }
   THeapEndW = record
@@ -831,35 +816,9 @@ type
   end;
 
   { GameInit types. }
-  PGameini2ZoneWords = ^TZoneWords;
   { one loaded-wallset cache slot (dsWallSetCache) }
-  TWallSlot = record
-    { wallDefId = -1 marks an empty slot }
-    wallDefId: Integer;
-    symbolSlot: Integer;
-  end;
-  TZoneWords = array[0..1023] of Word;
-
-  { MapTiles types. }
-  TIconPair = record
-    pic0: PImgBuf;
-    pic1: PImgBuf;
-  end;
 
   { MenuCore types. }
-  TMFrame = record
-    { frame delay, 1/10 s }
-    time: LongInt;
-    { frame image }
-    pic: PImgBuf;
-  end;
-  TMenuAnim = record
-    { frames loaded }
-    count: Byte;
-    { current frame, 1-based }
-    current: Byte;
-    frames: array[1..8] of TMFrame;
-  end;
   TMenuAuto = record
     { centiseconds before auto-answer, 0=off }
     timeout: LongInt;
@@ -914,23 +873,21 @@ type
 
   { Portrait types. }
   TAnimFrame = record
-    { copied verbatim from the file }
-    hdr: array[0..3] of Byte;
+    { how long the frame shows, in tenths of a second: the frame header's first four bytes, as in the file }
+    time: LongInt;
     pic: PImgBuf;
   end;
+  { A PIC or SPRIT animation (GDVars.animData, the ending's), as Portrait.LoadAnimation loads it. }
   TAnimRec = record
     { frames actually loaded }
     count: Byte;
-    { always set to 1 }
-    flag: Byte;
+    { the frame showing, 1-based; LoadAnimation starts it at 1 }
+    current: Byte;
     frames: array[1..8] of TAnimFrame;
   end;
   TStr8 = String[8];
 
   { SaveLoad types. }
-  PZone1Words = ^TGbvmZone1;
-  PSaveloadZoneBytes = ^TSaveloadZoneBytes;
-  TSaveloadZoneBytes = array[0..SizeOf(TGbvmZone0State) - 1] of Byte;
 
   { Magic types. }
   PStinkRec = ^TStinkRec;
@@ -971,12 +928,6 @@ type
   end;
   TView3dWallDef = array[1..5, 0..155] of Byte;
   TWallDefs = array[1..3] of TView3dWallDef;
-  TWallSetCache = record
-    { Cached WALLDEF reload ID }
-    wallDefId: Integer;
-    { Destination slot passed to Load8x8Set }
-    symbolSlot: Integer;
-  end;
   TWallSlices = array[1..15, 0..155] of Byte;
 
   { ViewChar types. }
@@ -988,7 +939,6 @@ type
   TStr9 = String[9];
 
   { Pointers for character helpers. }
-  PZone1Rec = ^TZone1;
 
 implementation
 

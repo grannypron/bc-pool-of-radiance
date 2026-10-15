@@ -17,8 +17,8 @@ procedure NoncombatCastMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
-  FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar,
-  StrUtil;
+  FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
+  CharDisp;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -156,7 +156,7 @@ begin
     CanDoSpellActivity := True
   else begin
     CanDoSpellActivity := False;
-    CharHlp.PrintNameString(GDVars.curChar, msg, 10, True);
+    CharDisp.PrintNameString(GDVars.curChar, msg, 10, True);
   end;
 end;
 
@@ -197,12 +197,12 @@ begin
         if notEmpty then
           redraw := True
         else
-          CharHlp.PrintNameString(GDVars.curChar, 'has no spells memorized', 10, True);
+          CharDisp.PrintNameString(GDVars.curChar, 'has no spells memorized', 10, True);
       end;
     until spellId = C_Spell.NONE;
   end;
   if redraw then
-    CharHlp.DisplayNoncombatInterface;
+    CharDisp.DisplayNoncombatInterface;
 end;
 
 { Show remaining spell slots by class and level. A level with no allowance is blank; a full level shows zero. Return
@@ -232,7 +232,7 @@ begin
     end;
   end;
   if any then begin
-    CharHlp.PrintNameString(GDVars.curChar, 'can memorize:', 10, False);
+    CharDisp.PrintNameString(GDVars.curChar, 'can memorize:', 10, False);
     row := 3;
     for typ := 0 to 1 do begin
       if canDo[typ] <> 0 then begin
@@ -273,7 +273,7 @@ begin
   GDVars.dsRestingTimeGbvm[1] := total mod 10;
   interrupted := GameTime.CampRest(True);
   FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
-  CharHlp.PrintMiscInfo;
+  CharDisp.PrintMiscInfo;
 end;
 
 { Sort memorized spells by their masked IDs, keeping the pending flag attached to each spell. }
@@ -402,7 +402,7 @@ begin
     while done = False do begin
       done := Camp.DisplaySpellSlots = False;
       if done then
-        CharHlp.PrintNameString(GDVars.curChar, 'cannot memorize any spells', 10, True)
+        CharDisp.PrintNameString(GDVars.curChar, 'cannot memorize any spells', 10, True)
       else begin
         spellId := ViewChar.SpellMenu(1, 2, idx, notEmpty);
         redraw := True;
@@ -432,7 +432,7 @@ begin
           Camp.RememberUsualSpells;
     end;
     if redraw then
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
   end;
 end;
 
@@ -468,7 +468,7 @@ begin
       if spellId = C_Spell.NONE then begin
         done := True;
         if notEmpty = False then
-          CharHlp.PrintNameString(GDVars.curChar, 'has no copyable scrolls', 10, True)
+          CharDisp.PrintNameString(GDVars.curChar, 'has no copyable scrolls', 10, True)
         else
           redraw := True;
       end else if (spellId > SizeOf(GDVars.curChar^.spellsKnown)) or (GDConsts.spellTable[spellId].levelSp < 1) or
@@ -476,11 +476,11 @@ begin
           (GDConsts.spellTable[spellId].castClassSp > 1) then begin
         { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
         redraw := True;
-        CharHlp.PrintBottomLine('You can not scribe that spell.');
+        CharDisp.PrintBottomLine('You can not scribe that spell.');
       end else begin
         redraw := True;
         if GDVars.curChar^.spellsKnown[spellId] <> 0 then
-          CharHlp.PrintBottomLine('You already know that spell')
+          CharDisp.PrintBottomLine('You already know that spell')
         else begin
           p := GDVars.curChar^.itemsAddr;
           found := False;
@@ -489,7 +489,7 @@ begin
               for i := 1 to SizeOf(p^.spells) do
                 if (p^.spells[i] > C_Spell.ID_MASK) and
                     (p^.spells[i] and C_Spell.ID_MASK = spellId) then begin
-                  CharHlp.PrintBottomLine('You are already scibing that spell');
+                  CharDisp.PrintBottomLine('You are already scibing that spell');
                   found := True;
                 end;
             p := p^.next;
@@ -511,7 +511,7 @@ begin
                 p := p^.next;
               end;
             end else
-              CharHlp.PrintBottomLine('You can not scribe that spell.');
+              CharDisp.PrintBottomLine('You can not scribe that spell.');
           end;
         end;
       end;
@@ -524,7 +524,7 @@ begin
           Camp.ResetScribe(GDVars.curChar);
     end;
     if redraw then
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
   end;
 end;
 
@@ -628,7 +628,7 @@ begin
   c := MenuCore.MenuVertical('', '', LightCyan, LightGreen, White, 1, 4, 38, 22, head, True,
                              menuRedraw, idx, cur);
   MenuCore.FreeStringList(head);
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 { Run the magic menu ('Cast Memorize Scribe Display Rest Exit'); extended keys switch character. Ends on Exit, Escape or
@@ -643,7 +643,7 @@ begin
     c := MenuCore.MenuHorizontal('', GDConsts.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);
-      CharHlp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GDVars.curChar);
     end else
       case c of
         'C': Camp.NoncombatCastMenu;
@@ -732,21 +732,21 @@ begin
     if ext then begin
       if selected = 0 then begin
         ViewChar.SelectPrevNextChar(c);
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
       end else begin
         case c of
           C_Keys.HOME: Camp.OrderMoveUp;
           C_Keys.END_KEY: Camp.OrderMoveDown;
         end;
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
       end;
     end else
       if c in ['P', 'S'] then begin
         selected := Ord(selected = 0);
         if selected <> 0 then
-          CharHlp.PrintNameString(GDVars.curChar, 'has been selected', 10, False)
+          CharDisp.PrintNameString(GDVars.curChar, 'has been selected', 10, False)
         else
-          CharHlp.ClearMessageWindow;
+          CharDisp.ClearMessageWindow;
       end;
   end;
 end;
@@ -764,17 +764,17 @@ begin
       Exit;
     Exit;
   end;
-  CharHlp.PrintNameString(GDVars.curChar, 'will be gone', 10, False);
+  CharDisp.PrintNameString(GDVars.curChar, 'will be gone', 10, False);
   if MenuCore.YesNoMenu('Drop from party? ', Yellow, LightGreen, White) = 'Y' then begin
     if GDVars.curChar^.enabled <> 0 then
-      CharHlp.PrintNameString(GDVars.curChar, 'bids you farewell', 10, True)
+      CharDisp.PrintNameString(GDVars.curChar, 'bids you farewell', 10, True)
     else
-      CharHlp.PrintNameString(GDVars.curChar, 'is dumped in a ditch', 10, True);
+      CharDisp.PrintNameString(GDVars.curChar, 'is dumped in a ditch', 10, True);
     CharGen.RemoveCreature(False, True);
     Border.ClearBox(17, 1, 38, 11);
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
   end else
-    CharHlp.PrintNameString(GDVars.curChar, 'Breathes A sigh of relief', 10, True);
+    CharDisp.PrintNameString(GDVars.curChar, 'Breathes A sigh of relief', 10, True);
 end;
 
 { Run the Alter menu ('Order Drop Char Settings Exit'). Char opens a submenu for the current character's icon or
@@ -794,7 +794,7 @@ begin
                                  ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);
-      CharHlp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GDVars.curChar);
     end else
       case c of
         'O': Camp.CampOrderMenu;
@@ -807,22 +807,22 @@ begin
                c2 := MenuCore.MenuHorizontal('Character: ', s, LightMagenta, LightGreen, White, True, True, ext);
                if ext then begin
                  ViewChar.SelectPrevNextChar(c2);
-                 CharHlp.DisplayParty(GDVars.curChar);
+                 CharDisp.DisplayParty(GDVars.curChar);
                end else
                  case c2 of
                    'I': begin
                           CharGen.CustomizeIcon;
-                          CharHlp.DisplayNoncombatInterface;
+                          CharDisp.DisplayNoncombatInterface;
                         end;
                    'P': if Portrait.PlayerPortraitsHere then begin
                           CharGen.CustomizePortrait;
-                          CharHlp.DisplayNoncombatInterface;
+                          CharDisp.DisplayNoncombatInterface;
                         end;
                  end;
              until (not ext) and (c2 in [C_Keys.NONE, 'E']);
         'S': begin
                Options.OptionsMenu;
-               CharHlp.DisplayNoncombatInterface;
+               CharDisp.DisplayNoncombatInterface;
              end;
       end;
   end;
@@ -969,11 +969,11 @@ begin
     p := p^.nextCharAddr;
   end;
   if clerics = 0 then begin
-    CharHlp.PrintMessageWait('No clerics available to heal.');
+    CharDisp.PrintMessageWait('No clerics available to heal.');
     Exit;
   end;
   if ableClerics = 0 then begin
-    CharHlp.PrintMessageWait('No cleric is in a condition to heal.');
+    CharDisp.PrintMessageWait('No cleric is in a condition to heal.');
     Exit;
   end;
   { Plan the cures, then as many Cure Light Wounds as the wounds need at 4.5 hp each. }
@@ -1001,9 +1001,9 @@ begin
   if (healCasts = 0) and not anyCure then begin
     { the dead and the like are not Fix's to treat, so they leave nothing to do }
     if (need = 0) and not anyCondition then
-      CharHlp.PrintMessageWait('Further healing would do no good.')
+      CharDisp.PrintMessageWait('Further healing would do no good.')
     else
-      CharHlp.PrintMessageWait('Further healing isn''t possible.');
+      CharDisp.PrintMessageWait('Further healing isn''t possible.');
     Exit;
   end;
   total := 0;
@@ -1040,8 +1040,8 @@ begin
       end;
     end;
   end;
-  CharHlp.DisplayParty(GDVars.curChar);
-  CharHlp.PrintMiscInfo;
+  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.PrintMiscInfo;
 end;
 
 procedure CampMainMenu(var interrupted: Boolean);
@@ -1056,7 +1056,7 @@ begin
   GDVars.ifcState := C_Ifc.CAMPING;
   GDVars.healTicks := 0;
   FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
   Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 18, LightGreen, 'The party makes camp...');
   Camp.ResetPartySpellActivities;
@@ -1068,13 +1068,13 @@ begin
                                  ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(c);
-      CharHlp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GDVars.curChar);
     end else
       case c of
         'S': begin
                SaveLoad.SaveGame;
                { the save menu takes the whole screen }
-               CharHlp.DisplayNoncombatInterface;
+               CharDisp.DisplayNoncombatInterface;
                if MenuCore.YesNoMenu('Quit TO DOS ', Yellow, LightGreen, White) = 'Y' then
                  GameIo.ExitGame;
              end;
@@ -1088,8 +1088,8 @@ begin
   Camp.ResetPartySpellActivities;
   GDVars.castTarget := nil;
   GDVars.ifcState := savedIfc;
-  CharHlp.PrintMiscInfo;
-  CharHlp.ClearMessageWindow;
+  CharDisp.PrintMiscInfo;
+  CharDisp.ClearMessageWindow;
   TextRend.ClearBottomLine;
 end;
 

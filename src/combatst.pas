@@ -9,11 +9,8 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend;
+  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp;
 
-var
-  { The menu animation, released when combat starts. }
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 { On every arena cell whose terrain tile is 22 (grass), roll 1d100: 98 gives terrain 26, 99 gives 27, and 100 (unless
   eclScriptId = 10) gives a further 1% chance of 28 (1d10 = 1..6) or 29 (7..10). }
@@ -300,7 +297,7 @@ function TerrainClassOf: Byte;
 var
   cls: Byte;
 begin
-  { Note: some labels repeat; the first matching arm wins. }
+  { SSI repeated some values in later arms, where the first arm took them; those are left out }
   case GDVars.terrainChar of
     1..2, 40..41, 79..86, 91..92, 43, 241:
       cls := $01;
@@ -310,13 +307,13 @@ begin
       cls := $11;
     3..4, 5, 6..7, 8..9, 19..21, 23..25:
       cls := $03;
-    3..4, 7, 10..18, 22, 26..36, 201..208:
+    10..18, 22, 26..36, 201..208:
       cls := $02;
     209..213:
       cls := $12;
     37, 57, 64, 154..158, 164..165, 180, 243, 239..240, 250, 252:
       cls := $04;
-    39..44, 153, 159:
+    39, 42, 44, 153, 159:
       cls := $05;
     45..46, 51..56, 67..77, 93..97:
       cls := $44;
@@ -335,7 +332,7 @@ begin
       cls := $08;
     87..90, 163, 224:
       cls := $88;
-    125, 124, 134, 138, 140, 142, 143, 148, 150:
+    125, 134, 138, 140, 142, 143, 148, 150:
       cls := $09;
     126..133, 229..231:
       cls := $28;
@@ -343,7 +340,7 @@ begin
       cls := $18;
     78, 245, 232..233:
       cls := $20;
-    109, 244..246:
+    109, 244, 246:
       cls := $80;
     110..113, 115..120:
       cls := $81;
@@ -834,7 +831,7 @@ procedure CombatStart;
 var
   p: Types.PCharRecord;
 begin
-  Portrait.FreeAnimation(animData);
+  Portrait.FreeAnimation(GDVars.animData);
   Blit.FreePic(GDVars.dsPortraitCache[1].pic);
   Blit.FreePic(GDVars.dsPortraitCache[2].pic);
   GDVars.dsPortraitCache[1].pictureId := 255;
@@ -864,7 +861,7 @@ begin
   Blit.AllocPic(24, 3, 4, 1, GDVars.dsMoveIconSheet);
   GDVars.arenaPtr^.ox := CbtMap.CombatCellX(GDVars.creatureList) - 3;
   GDVars.arenaPtr^.oy := CbtMap.CombatCellY(GDVars.creatureList) - 3;
-  CharHlp.DisplayCombatInterface;
+  CharDisp.DisplayCombatInterface;
   p := GDVars.creatureList;
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_Cond.COMBAT_START, p);

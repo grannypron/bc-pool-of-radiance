@@ -37,7 +37,7 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 implementation
 
 uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo,
-  FileUtil;
+  FileUtil, CharDisp;
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -241,8 +241,8 @@ var
   done: Boolean;
 begin
   GDVars.ifcState := C_Ifc.VAULT;
-  CharHlp.DisplayNoncombatInterface;
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayNoncombatInterface;
+  CharDisp.DisplayParty(GDVars.curChar);
   Vault.ReadVault;
   GDVars.treasureMoneyFlag := False;
   if (visited <> 0) and (Random(20) = 0) then
@@ -268,14 +268,14 @@ begin
         'V': ViewChar.ViewCharMenu(ext);
         'T': if hasMoney or hasItems then begin
                PostCbt.LootTakeMenu(hasMoney, hasItems);
-               CharHlp.DisplayNoncombatInterface;
+               CharDisp.DisplayNoncombatInterface;
              end;
         'P': Money.PoolMoney;
         'S': if hasMoney then
                Money.ShareMoney;
         'E', C_Keys.NONE: done := True;
       end;
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
   until done;
   Vault.WriteVault;
 end;

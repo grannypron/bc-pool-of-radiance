@@ -13,14 +13,14 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop;
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
 begin
-  CharHlp.PrintNameString(GDVars.curChar, msg, 0, False);
+  CharDisp.PrintNameString(GDVars.curChar, msg, 0, False);
   ConfirmCureAnyway := MenuCore.YesNoMenu('cast cure anyway: ', LightMagenta, LightGreen, White);
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
 end;
 
 { ConfirmCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current
@@ -38,8 +38,8 @@ begin
       c := 'N';
   end;
   if c = 'Y' then begin
-    CharHlp.ClearMessageWindow;
-    CharHlp.PrintNameString(GDVars.curChar, 'is cured.', 0, True);
+    CharDisp.ClearMessageWindow;
+    CharDisp.PrintNameString(GDVars.curChar, 'is cured.', 0, True);
   end;
   ConfirmCureCost := c;
 end;
@@ -307,8 +307,8 @@ begin
   until done;
   MenuCore.FreeStringList(list);
   TextRend.ClearRect(0, 0, 39, 24);
-  CharHlp.DisplayNoncombatInterface;
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayNoncombatInterface;
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { TempleMainMenu: Run the temple menu using the shared treasure state. H and P are told apart from the extended Up and

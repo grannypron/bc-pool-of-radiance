@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 implementation
 
 uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
-  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar;
+  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar, CharDisp;
 
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
@@ -355,7 +355,7 @@ begin
       end;
     end;
   until done;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 procedure LootTakeMenu(var treasure, items: Boolean);
@@ -373,21 +373,21 @@ begin
         case c of
           'M': begin
                  Money.TakeMoneyMenu;
-                 CharHlp.DisplayNoncombatInterface;
+                 CharDisp.DisplayNoncombatInterface;
                end;
           'I': PostCbt.LootTakeItemMenu;
           'E', C_Keys.NONE: done := True;
           'G': ViewChar.SelectPrevNextChar(c);
           'O': ViewChar.SelectPrevNextChar(c);
         end;
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
         Money.DetermineTreasure(treasure, items);
         if not treasure or not items then
           done := True;
       until done;
     end else begin
       Money.TakeMoneyMenu;
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
     end;
   end else
     PostCbt.LootTakeItemMenu;
@@ -412,7 +412,7 @@ var
 begin
   query[0] := #0;
   done := False;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
   treasure := False;
   repeat
     Money.DetermineTreasure(treasure, items);
@@ -451,11 +451,11 @@ begin
                end;
       'G': begin
              ViewChar.SelectPrevNextChar(c);
-             CharHlp.DisplayParty(GDVars.curChar);
+             CharDisp.DisplayParty(GDVars.curChar);
            end;
       'O': begin
              ViewChar.SelectPrevNextChar(c);
-             CharHlp.DisplayParty(GDVars.curChar);
+             CharDisp.DisplayParty(GDVars.curChar);
            end;
     end;
     Stats.SettleCoins;

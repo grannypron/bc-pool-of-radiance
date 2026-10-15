@@ -74,7 +74,7 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
   is cleared or saved as part of a run of variables). **Pads and unused fields in records that are saved or loaded
   (characters, items, effects, the zones, saved games) stay**: they keep the file layouts, so characters and games
   still save and load, here and in SSI's executable. **Locals done**: 69 in #617, the other 40 unused locals in phase
-  2. The unused globals remain.
+  2. The unused globals went in phase 3 (15 in GDVars).
 
 ## Phase 2: shared helpers (about 400-450 lines)
 
@@ -108,11 +108,23 @@ cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's gol
 
 - **Split `CharHlp`**: a resident core (stats, inventory, damage, string helpers) and an overlaid unit for screen
   layouts and the party display. Frees resident memory; measure overlay loads with Ctrl-Y.
+  **Done**: `CharDisp` (overlaid) holds the 20 drawing routines; resident code went from 73,616 to 67,648 bytes. Ctrl-Y
+  counted 28 overlay loads at the first area screen against 27 before; combat was not measured.
 - **One typed view per shared global.** The wall cache is overlaid three ways, the icon animations two, `displayMode`
   five times. One view in `Types`; merge the duplicate zone pointer types. Save layout unchanged.
+  **Done**: `videoMode`, `treasureMoney`, `dsIconAnimation`, the wall-set cache, `animData` (one `TAnimRec`),
+  `effectFns`, the zones (Session and nine zone types gone; C_Gbvm names for the raw offsets) and four flags are
+  declared with their types in `GDVars`. Left: `spellFps` (two procedure types), View3D's two views of `wallGfx`,
+  Money's of the random-item templates.
 - **The interpreter**: the opcode dispatcher in its own unit; `EclMenu` split into variable access, game memory and
   menus; `Magic` and `EffHndlr` grouped by family.
-- **SSI quirks**: each `Note:` is fixed or labelled, one issue each.
+  **Done in part**: `EclVars` holds the variables and game memory; `EclMenu` keeps the menus and opcode helpers.
+  Declined: the dispatcher stays in `EclVm` (a unit of its own would put all 55 handlers in EclVm's interface), and
+  `Magic`/`EffHndlr` keep their spell- and effect-id order, which matches their dispatch tables.
+- **SSI quirks**: each `Note:` is fixed or labelled, one issue each. **Done**: no `Note:` is left. Fixed: Share paying
+  more than the pool held with a hired NPC along, CalcDistance's target count, Restoration missing from the spell
+  book, a plain '2' or '-' acting as Alt-M or Alt-X in combat, CGA colours on repeated glyphs, dead code and labels.
+  Labelled "SSI quirk, kept" where scripts or screens were made with them (Surprise, flight directions and others).
 
 ## Phase 4: hidden parameters
 

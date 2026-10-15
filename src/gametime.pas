@@ -11,7 +11,7 @@ function CampRest(interactive: Boolean): Boolean;
 implementation
 
 uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Ifc, C_Gbvm, C_Spell,
-  FxEngine, StrUtil;
+  FxEngine, StrUtil, CharDisp;
 
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
@@ -295,9 +295,9 @@ begin
     end;
     GameTime.DisplayRestTime(0);
     TextRend.DisplayString(1, 19, LightGreen, 'The Whole Party Is Healed');
-    if healed then CharHlp.DisplayParty(GDVars.curChar);
+    if healed then CharDisp.DisplayParty(GDVars.curChar);
     TextRend.PauseOnly;
-    CharHlp.ClearMessageWindow;
+    CharDisp.ClearMessageWindow;
     GDVars.healTicks := 0;
   end;
 end;
@@ -492,7 +492,7 @@ begin
         if GDVars.restTicks >= GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] then begin
           GDVars.restTicks := 0;
           if FxEngine.RollDice(1, 100) <= GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] then begin
-            CharHlp.ClearMessageWindow;
+            CharDisp.ClearMessageWindow;
             GameTime.DisplayRestTime(0);
             TextRend.DisplayString(1, 19, White, 'The Party is rudely interrupted!');
             stop := True;

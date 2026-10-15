@@ -18,7 +18,7 @@ procedure JournalMenu;
 
 implementation
 
-uses Crt, Types, C_Jrnl, C_Keys, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList;
+uses Crt, Types, C_Jrnl, C_Keys, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
@@ -317,7 +317,7 @@ begin
   until not ext and (ch in [C_Keys.NONE, 'E']);
   @MenuCore.idleHook := nil;
   GDVars.horizChoice := savedChoice;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 end.

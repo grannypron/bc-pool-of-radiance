@@ -57,14 +57,10 @@ var
   { Resource initialization. }
   { GameInit2 loop counter }
   gi2: Byte;
-  { unused }
-  unidentifiedPrefix: array[0..2] of Byte;
   { OpenWithRetry result }
   itemsOk: Boolean;
   { directory saved across resource loading }
   savedDir: Types.TPathStr;
-  { unused }
-  unidentifiedDirectoryTail: array[0..1] of Byte;
   { ITEMS loading file record }
   itemsFile: file;
   { STING training override. }
@@ -120,7 +116,7 @@ var
   { nonzero makes HeapErr force a save; never set }
   heapFailureSaveEnabled: Byte;
   { GameBoot writes 0/1, Intro tests zero }
-  fullIntro: Byte;
+  fullIntro: Boolean;
   { word bank }
   zone0: Types.PZone0State;
   { GBVM zone 1, indexed directly by GBVM address (the zone-1 GBVM_ constants) }
@@ -138,8 +134,6 @@ var
   scriptEntryAddrs: array[1..5] of Word;
   { ECL instruction pointer into zone3 }
   eclIp: Word;
-  { reserved }
-  dsUnidentified20: array[0..3] of Byte;
   { Interface state, one of the IFC_ constants of C_Ifc and Ending }
   ifcState: Byte;
   { nonzero suppresses Combat's Continue Battle prompt }
@@ -261,7 +255,7 @@ var
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
   gameDir: String;
   { Flag for suppressing insert disk prompt }
-  dsSuppressingInsertDiskFlag: Byte;
+  dsSuppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
   { Temporary compressed DAX data buffer. }
@@ -279,8 +273,6 @@ var
   creatureList: Types.PCharRecord;
   { last missile item added to the treasure list in combat }
   lastMissileItem: Types.PItemRec;
-  { Scratch file and ITEMS read result }
-  scratchFile: file;
   { ITEMS read result. }
   itemsRead: Word;
   { Font and text cursor }
@@ -291,8 +283,6 @@ var
   curCol: Byte;
   { Current char row. (Equivalent of WhereY.) }
   curRow: Byte;
-  { unused }
-  dsUnidentified58: array[0..19] of Byte;
   { Symbol sets and map tile sets }
   { the five 8x8 symbol-set images, by set id 0..4: Sym8x8.Load8x8Set loads an 8X8D picture into a slot and Put8x8Sym
     draws from it }
@@ -305,7 +295,7 @@ var
   ds2dMapTilePtr2: Types.PImgBuf;
   { Icon images }
   { Animation images for creature, death and cursor icons. }
-  dsIconAnimation: array[0..25, 0..1] of Pointer;
+  dsIconAnimation: array[0..25, 0..1] of Types.PImgBuf;
   { Combat arena }
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;
@@ -333,7 +323,7 @@ var
 var
   { Treasure }
   { copper through jewelry }
-  treasureMoney: array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
+  treasureMoney: Types.TMoney;
   { consumers use PItemRec views }
   treasureItems: Types.PItemRec;
   { Combatants per side }
@@ -377,7 +367,7 @@ var
 var
   { Effect dispatch }
   { effect handlers, indexed by effect id }
-  effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Pointer;
+  effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler;
   { 3D view }
   { shared pointer to wall symbol slices }
   wallGfx: Pointer;
@@ -393,8 +383,6 @@ var
   dsWallColorB: Byte;
   { 3D-view color register C (floor/wall band) }
   dsWallColorC: Byte;
-  { unused }
-  dsUnidentified59: array[0..71] of Byte;
   { Map position, wall cache, animation and portrait cache }
   { automap shown in place of the 3D view }
   automapOn: Boolean;
@@ -409,19 +397,15 @@ var
   { Event byte at the party's square; bit 7 is a flag, not a wall }
   eventAtCell: Byte;
   dsWallSetCache: array[1..3] of Types.TWallSetCacheSlot;
-  { Picture animation; MenuCore views it as Types.TMenuAnim }
+  { the picture animation showing (PIC or SPRIT) }
   animData: Types.TAnimRec;
   { HEAD and BODY image caches. }
   dsPortraitCache: array[1..2] of Types.TPortSlot;
   { Picture archive and menu state }
   { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
   picArcName: String[8];
-  { unused }
-  dsChampSavedPictureName: array[0..8] of Byte;
   { picture id loaded from picArcName; 255 invalidates the pair }
   picArcId: Byte;
-  { unused }
-  dsChampSavedPictureState: array[0..11] of Byte;
   { Zero-based position of the first visible list entry. }
   vertTop: Integer;
   { Current horizontal menu choice, starting at 1. }
@@ -432,7 +416,7 @@ var
 var
   { Menu auto-answer }
   { MenuCore views the head as Types.TMenuAuto }
-  dsMenuAutoAnswer: array[0..81] of Byte;
+  dsMenuAutoAnswer: Types.TMenuAuto;
   { Spell casting and targeting }
   { Current item used for spell casting. }
   dsCurrentScrollPtr: Types.PItemRec;
@@ -481,8 +465,6 @@ var
   attackedAllies: Byte;
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
-  { unused }
-  dsUnidentified70: Byte;
   { Potential-target creature indices. }
   dsPotentialTargetCreature: array[1..72] of Byte;
   { Primary and secondary attack counts. }
@@ -493,13 +475,9 @@ var
   quickMagic: Boolean;
   { Done flag for the acting creature's attacks; combat menus also return their extended-key flag here }
   doneRoundFlag: Boolean;
-  { unused }
-  dsUnidentified33: array[0..3] of Byte;
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
   dsMoveIconSheet: Types.PImgBuf;
-  { unused }
-  dsUnidentified60: array[0..301] of Byte;
   { ECL colour selectors and read registers }
   { Script-controlled wall color; script writes request a view redraw. }
   wallColorSel: Byte;
@@ -522,16 +500,12 @@ var
   prevOpcode: Byte;
   { Current ECL opcode }
   curOpcode: Byte;
-  { unused }
-  dsUnidentified34: Byte;
   { Current monster ID }
   monId: Byte;
   { Current monster picture ID }
   monPicId: Byte;
   { Current icon animation slot. }
   gIconAnim: Byte;
-  { unused }
-  dsUnidentified61: array[0..129] of Byte;
   { ECL variables and strings }
   { Decoded ECL variable types. }
   dsGbvmType: array[1..64] of Byte;
@@ -548,9 +522,7 @@ var
   { ECL monster, write-register and post-combat state }
   { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
   dsMonsterFlags: Types.TMonFlags;
-  { unused }
-  dsUnidentified35: array[0..1] of Byte;
-  { Sound effect selected by a script write (EclMenu.WriteGbvm) }
+  { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
   { Script write register; the engine does not read it back. }
   writeReg1: Word;
@@ -600,8 +572,6 @@ var
   inEncMenu: Byte;
   { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
   picIdShown: Byte;
-  { unused }
-  dsUnidentified37: array[0..3] of Byte;
 
 implementation
 
