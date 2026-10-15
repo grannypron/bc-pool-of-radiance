@@ -46,6 +46,7 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
+
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
   { lo-word view }

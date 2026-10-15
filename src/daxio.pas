@@ -22,6 +22,10 @@ procedure OverlayPrompt;
 
 function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Char; var f: file): Boolean;
 
+{ The drive the game's data is read from: gameDir's, or the current drive while gameDir is empty (GameInit and the
+  introduction clear it to read their files from the current directory, as SSI's startup disk). }
+function DataDrive: Char;
+
 function FileExists(name: Types.TPathStr): Boolean;
 
 function SanitizeString(src, del: string): string;
@@ -175,15 +179,38 @@ begin
   until found;
 end;
 
-{ OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), show promptMsg (attr 14)
-  through PromptBox and retry. On success Assign+Reset the caller's untyped file f (recsize 1). Returns found }
+function DataDrive: Char;
+var
+  s: String;
+begin
+  if Length(GDVars.gameDir) > 0 then
+    DataDrive := UpCase(GDVars.gameDir[1])
+  else begin
+    GetDir(0, s);
+    DataDrive := UpCase(s[1]);
+  end;
+end;
+
+{ OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), say which file is missing,
+  by its full path (the name expanded from the current directory), then show promptMsg (attr 14) through PromptBox,
+  each until a key, and retry. On success Assign+Reset the caller's untyped file f (recsize 1). Returns found }
 function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Char; var f: file): Boolean;
-var found: Boolean;
+var
+  found: Boolean;
+  full: Types.TPathStr;
+  msg: Types.TStr40;
 begin
   repeat
     found := DaxIo.FileExists(fileName);
-    if (not found) and (noPrompt = #0) then
+    if (not found) and (noPrompt = #0) then begin
+      full := FExpand(fileName);
+      { the end of a path too long for the line, where the file's name is }
+      if Length(full) > 29 then
+        full := '...' + Copy(full, Length(full) - 25, 26);
+      msg := 'Not found: ' + full;
+      DaxIo.PromptBox(Yellow, msg);
       DaxIo.PromptBox(Yellow, promptMsg);
+    end;
   until found or (noPrompt <> #0);
   if found then begin
     Assign(f, fileName);
@@ -279,7 +306,7 @@ end;
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
-  if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':',
+  if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
                          suppressInsertPrompt, f1) then begin
     Assign(f2, dirName + ext);
     Reset(f2, 1);

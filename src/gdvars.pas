@@ -159,6 +159,15 @@ var
   quickMagicOn: Byte;
   { GameInit clears it; GameIo toggles it on STING Ctrl-D; nonzero enables PrintHpDebug }
   stingHpFlag: Byte;
+  { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
+    writes the creatures' effects there }
+  debugTraceEnabled: Boolean;
+  debugFile: Text;
+  { overlay loads since the program started, counted by GameBoot's OvrReadBuf hook (#612) }
+  ovrLoads: LongInt;
+  { set when GameIo has written over the bottom line (the STING Ctrl-Y pop-up); MenuCore.HorizontalMenu redraws its
+    menu line and clears it }
+  bottomLineTaken: Boolean;
   { main-menu load handoff; EclVm skips reload, EclMenu clears it }
   loadedSave: Byte;
   { Party location type, previous (as below) }

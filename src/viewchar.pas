@@ -35,7 +35,7 @@ function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Bool
 
 implementation
 
-uses Vault;
+uses Vault, Stats;
 
 var
   { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }
@@ -186,14 +186,18 @@ end;
 procedure LayOnHands(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
+  hpBefore: Byte;
 begin
   CharHlp.DisplayNoncombatInterface;
   tgt := GDVars.creatureList;
   CharHlp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
-  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then
+  hpBefore := tgt^.hpCur;
+  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then begin
+    Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
     CharHlp.PrintBottomLine(tgt^.name + ' feels better')
+  end
   else
     CharHlp.PrintBottomLine(tgt^.name + ' is unaffected');
   FxEngine.AddEffect(p, C_Effect.RECENT_HEAL, 1440, 255, False);
@@ -238,6 +242,79 @@ begin
   CharHlp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
+{ The statistics page (#611): creature's counters and the kinds it has killed most, or with Game the game's totals;
+  Character goes back. Coin is shown in gold. Runs until Exit or Escape; the caller redraws. }
+procedure StatsPage(creature: Types.PCharRecord);
+var
+  showGame: Boolean;
+  b: Stats.PStatBlock;
+  kinds: Byte;
+  order: array[1..Stats.KINDS] of Byte;
+  i: Byte;
+  j: Byte;
+  t: Byte;
+  n: LongInt;
+  s: Types.TStr40;
+  ch: Char;
+  ext: Boolean;
+begin
+  showGame := False;
+  repeat
+    { a creature outside the party has no block: its counters read 0 }
+    if showGame then
+      b := @Stats.game
+    else
+      b := Stats.BlockOf(creature);
+    kinds := 0;
+    if b <> nil then
+      kinds := b^.kindCount;
+    TextRend.ClearScreen;
+    Border.DrawBorder(1, 1, 38, 22, 0);
+    if showGame then
+      TextRend.DisplayString(2, 2, LightCyan, 'Game Statistics')
+    else begin
+      CharHlp.DisplayCreatureName(creature, 2, 2, False);
+      TextRend.DisplayString(Length(creature^.name) + 3, 2, White, 'Statistics');
+    end;
+    for i := 1 to Stats.STAT_COUNT do begin
+      n := 0;
+      if b <> nil then
+        n := b^.counts[i];
+      if i = Stats.COIN_LOOTED then
+        n := n div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+      Str(n, s);
+      TextRend.DisplayString(3, 3 + i, White, Stats.NAMES[i]);
+      TextRend.DisplayString(36 - Length(s), 3 + i, LightGreen, s);
+    end;
+    { the kinds killed, most first: as many as two columns of five rows hold }
+    for i := 1 to kinds do
+      order[i] := i;
+    for i := 1 to kinds do
+      for j := i + 1 to kinds do
+        if b^.kills[order[j]].count > b^.kills[order[i]].count then begin
+          t := order[i];
+          order[i] := order[j];
+          order[j] := t;
+        end;
+    if kinds > 0 then
+      TextRend.DisplayString(2, 16, White, 'Killed');
+    for i := 1 to kinds do
+      if i <= 10 then begin
+        Str(b^.kills[order[i]].count, s);
+        s := Copy(b^.kills[order[i]].name, 1, 12) + ' ' + s;
+        TextRend.DisplayString(3 + ((i - 1) div 5) * 18, 17 + (i - 1) mod 5, LightGreen, s);
+      end;
+    if showGame then
+      ch := MenuCore.MenuHorizontal('Stats: ', 'Character Exit', LightMagenta, LightGreen, White, False, False, ext)
+    else
+      ch := MenuCore.MenuHorizontal('Stats: ', 'Game Exit', LightMagenta, LightGreen, White, False, False, ext);
+    case ch of
+      'G': showGame := True;
+      'C': showGame := False;
+    end;
+  until ch in [C_Keys.NONE, 'E'];
+end;
+
 { The More Info page for the current character, inside a border with one blank cell inside it all round: name, then
   the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a
   20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
@@ -272,7 +349,11 @@ begin
     TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
   end;
   repeat
-    ch := MenuCore.MenuHorizontal('More Info: ', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+    ch := MenuCore.MenuHorizontal('More Info: ', 'Stats Exit', LightMagenta, LightGreen, White, False, False, ext);
+    if ch = 'S' then begin
+      ViewChar.StatsPage(p);
+      ch := 'E';
+    end;
   until ch in [C_Keys.NONE, 'E'];
 end;
 
@@ -458,6 +539,46 @@ end;
 
 { Run curChar's inventory menu, offering actions according to the character's state and the current interface state,
   until Escape, done, or no items remain. }
+{ STING's raw item viewer (V in the Items menu, #612), Curse's ViewItemDetail: the item's type, name ids, plus, save
+  bonus, ready, identified mask, cursed, value, charges, effect and special, and its base type's large-creature damage
+  dice, until a key. The caller redraws the screen. }
+procedure ViewItemDetail(it: Types.PItemRec);
+const
+  labels: array[1..15] of string[13] = ('itemtype:', 'namenum(1):', 'namenum(2):', 'namenum(3):', 'plus:',
+    'plussave:', 'ready:', 'identified:', 'cursed:', 'value:', 'charges:', 'effect:', 'special:', 'dice large:',
+    'sides large:');
+var
+  v: array[1..15] of LongInt;
+  i: Byte;
+  s: Types.TStr40;
+begin
+  with it^ do begin
+    v[1] := itemType;
+    v[2] := nameIds[1];
+    v[3] := nameIds[2];
+    v[4] := nameIds[3];
+    v[5] := Byte(plus);
+    v[6] := Byte(saveBonus);
+    v[7] := equipped;
+    v[8] := unidMask;
+    v[9] := cursed;
+    v[10] := value;
+    v[11] := charges;
+    v[12] := effect;
+    v[13] := special;
+    v[14] := CharHlp.BaseItem(itemType)^.dmgLgRolls;
+    v[15] := CharHlp.BaseItem(itemType)^.dmgLgDice;
+  end;
+  TextRend.ClearScreen;
+  Border.DrawBorder(1, 1, 38, 22, 0);
+  for i := 1 to 15 do begin
+    Str(v[i], s);
+    TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
+    TextRend.DisplayString(20, i + 1, LightGreen, s);
+  end;
+  TextRend.DisplayAndPause(LightGreen, 'press a key');
+end;
+
 procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
@@ -521,10 +642,17 @@ begin
         needRedraw := False;
         GDVars.dsRedrawInventoryMenuFlag := 0;
       end;
+      { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
+      if ParamStr(1) = 'STING' then
+        MenuCore.extraKeys := 'V';
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
       if sel <> nil then
         case ch of
+          'V': if ParamStr(1) = 'STING' then begin
+                 ViewChar.ViewItemDetail(sel);
+                 needRedraw := True;
+               end;
           'R': ViewChar.ToggleReadyItem(sel);
           { a scroll the Cast list offers (Magic.CastableScroll) need not be readied; other items must be }
           'U': if (sel^.equipped = 0) and not Magic.CastableScroll(creature, sel) then

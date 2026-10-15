@@ -16,6 +16,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
+uses Stats;
+
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
   PRIME_STAT_THRESHOLD = 15;
@@ -338,6 +340,9 @@ begin
     else begin
       done := False;
       Shop.GiveItemCopyToCreature(itemToTake, failed);
+      { loot after a fight, not the vault's own items (#611) }
+      if not failed and (GDVars.ifcState = C_Ifc.LOOT) then
+        Stats.Count(GDVars.curChar, Stats.ITEMS_LOOTED, 1);
       if not failed then begin
         p := GDVars.treasureItems;
         if p = itemToTake then
@@ -438,6 +443,8 @@ begin
     else if items then
       menu := 'View Take Pool' + tail;
     c := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, True, True, ext);
+    { the coin each party member gains or puts back here, Take, Share, Pool or Drop alike, is Coin looted (net) (#611) }
+    Stats.MarkCoins;
     case c of
       'V': ViewChar.ViewCharMenu(ext);
       'T': PostCbt.LootTakeMenu(treasure, items);
@@ -473,6 +480,7 @@ begin
              CharHlp.DisplayParty(GDVars.curChar);
            end;
     end;
+    Stats.SettleCoins;
   until done;
 end;
 

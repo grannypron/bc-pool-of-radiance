@@ -320,7 +320,8 @@ begin
                                         ext);
            if not ext then begin
              case c of
-               'A': if GDVars.zone0^.noAutomap = 0 then begin
+               { STING maps anywhere, as Curse's debug mode does }
+               'A': if (GDVars.zone0^.noAutomap = 0) or (ParamStr(1) = 'STING') then begin
                       GDVars.automapOn := GDVars.automapOn = False;
                       View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                     end else

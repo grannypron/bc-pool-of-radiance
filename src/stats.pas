@@ -1,0 +1,447 @@
+{ Statistics kept per character and per game (#611): kills (in all and by kind), damage done and taken, hit points
+  healed, raises, poisonings, loot and spells. Resident, not overlaid, so counting a blow in combat loads no overlay.
+  Counters are LongInts that stop at MaxLongInt rather than wrap. A party member's block is on the heap, found by its
+  record and name as the usual spells are (SaveLoad); the game's block is here. Both are kept in small files beside the
+  saves: <character>.sts beside a character's file, savgam<x>.sts beside a saved game. }
+{$F+,I-}
+unit Stats;
+
+interface
+
+uses Types, GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money;
+
+const
+  { the counters, by index into TStatBlock.counts }
+  KILLS = 1;
+  DAMAGE_DONE = 2;
+  DAMAGE_TAKEN = 3;
+  HEALED_GIVEN = 4;
+  HEALED_TAKEN = 5;
+  RAISED = 6;
+  POISONED = 7;
+  ITEMS_LOOTED = 8;
+  { net, in copper (the Stats page shows gold): coin a member came away with from the loot after a fight, less what it
+    put back into it, so pooling and taking back again come to nothing; may be below zero }
+  COIN_LOOTED = 9;
+  SPELLS_CAST = 10;
+  KNOCKED_DOWN = 11;
+  DIED = 12;
+  STAT_COUNT = 12;
+  { the kinds of creature a block keeps kills of; one past that goes under OTHER }
+  KINDS = 48;
+  { the counters' names, for the Stats page }
+  NAMES: array[1..STAT_COUNT] of string[17] = ('Kills', 'Damage done', 'Damage taken', 'Healing given',
+    'Healing taken', 'Raised', 'Poisoned', 'Items looted', 'Coin looted (net)', 'Spells cast', 'Knocked down', 'Died');
+
+type
+  TKill = record
+    name: string[15];
+    count: LongInt;
+  end;
+  TStatBlock = record
+    counts: array[1..STAT_COUNT] of LongInt;
+    kindCount: Byte;
+    kills: array[1..KINDS] of TKill;
+  end;
+  PStatBlock = ^TStatBlock;
+
+var
+  { the game's totals: every count a party member makes }
+  game: TStatBlock;
+
+{ True when creature is one of the party's PARTY_SIZE members, which lead GDVars.creatureList. }
+function IsPartyMember(creature: Types.PCharRecord): Boolean;
+
+{ The block of party member creature, made empty the first time; nil for anyone else. }
+function BlockOf(creature: Types.PCharRecord): PStatBlock;
+
+{ Add n to counter stat of creature, when it is a party member, and of the game. }
+procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
+
+{ CharHlp.InflictDamage's report: victim lost hp hit points to actor (curChar, the creature acting; may be nil), and
+  was up (okay or animated) before it. In combat a party member's blow on a creature outside the party counts as
+  damage done, and its fall as a kill of the victim's kind; a party member's loss counts as damage taken, its fall as
+  knocked down, and its death as died. }
+procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
+
+{ A party member that bled to death in combat. }
+procedure BledOut(creature: Types.PCharRecord);
+
+{ FxEngine.RestoreHitPoints's report: target gained hp; healing given is credited to actor while a spell, or an item's
+  spell, is being resolved, or when byPower (a paladin's laying on of hands). }
+procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
+
+{ Around one action in the loot menu after a fight: MarkCoins notes each party member's coin (copper to platinum, at
+  its worth in copper), and SettleCoins adds what each has gained since, or takes off what it put back, to its Coin
+  looted (net) and the game's. }
+procedure MarkCoins;
+procedure SettleCoins;
+
+{ Forget creature's block; called before its record is freed. }
+procedure Forget(creature: Types.PCharRecord);
+
+{ Clear the game's totals, for a game that has none (a new one, or a save made before them). }
+procedure ResetGame;
+
+{ Write creature's block to <fn>.sts, erasing an old one first; nothing is written for a creature with no block. }
+procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
+
+{ Read creature's block from <fn>.sts: one of this format, made for a character of this name and randByte. Without
+  one the creature starts with an empty block when it next counts. }
+procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
+
+{ Write the game's totals to <fn> / read them back (the totals are cleared when the file is not one of this format). }
+procedure WriteGame(fn: Types.TPathStr);
+procedure ReadGame(fn: Types.TPathStr);
+
+implementation
+
+const
+  ENTRIES = 8;
+  SIG = 'STAT';
+  VERSION = 1;
+
+type
+  TStatFile = record
+    sig: string[4];
+    version: Byte;
+    name: string[15];
+    randByte: Byte;
+    block: TStatBlock;
+  end;
+
+var
+  owner: array[1..ENTRIES] of Types.PCharRecord;
+  ownerName: array[1..ENTRIES] of string[15];
+  blocks: array[1..ENTRIES] of PStatBlock;
+  { MarkCoins's party, and each member's coin worth then }
+  marked: array[1..ENTRIES] of Types.PCharRecord;
+  markedWorth: array[1..ENTRIES] of LongInt;
+  { the file record being read or written: here rather than on the stack, being a kilobyte }
+  rec: TStatFile;
+
+procedure AddTo(var counter: LongInt; n: LongInt);
+begin
+  if n <= 0 then Exit;
+  if counter > MaxLongInt - n then
+    counter := MaxLongInt
+  else
+    Inc(counter, n);
+end;
+
+{ Count a kill of a creature called name in b: under its own name while b has room for another kind, else OTHER. }
+procedure AddKill(var b: TStatBlock; name: Types.TStr40);
+var
+  i: Byte;
+begin
+  if Length(name) > 15 then
+    name[0] := #15;
+  i := 1;
+  while (i <= b.kindCount) and (b.kills[i].name <> name) do
+    Inc(i);
+  if i > b.kindCount then begin
+    if b.kindCount < KINDS - 1 then begin
+      Inc(b.kindCount);
+      i := b.kindCount;
+    end else begin
+      { the last slot gathers every kind past the others }
+      i := KINDS;
+      b.kindCount := KINDS;
+      name := 'OTHER';
+    end;
+    b.kills[i].name := name;
+    if i < KINDS then
+      b.kills[i].count := 0;
+  end;
+  Stats.AddTo(b.kills[i].count, 1);
+end;
+
+function IsPartyMember(creature: Types.PCharRecord): Boolean;
+var
+  p: Types.PCharRecord;
+  n: Integer;
+begin
+  IsPartyMember := False;
+  if creature = nil then Exit;
+  p := GDVars.creatureList;
+  n := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
+  while (p <> nil) and (n > 0) do begin
+    if p = creature then begin
+      IsPartyMember := True;
+      Exit;
+    end;
+    p := p^.nextCharAddr;
+    Dec(n);
+  end;
+end;
+
+function FindEntry(creature: Types.PCharRecord): Byte;
+var
+  i: Byte;
+begin
+  FindEntry := 0;
+  for i := 1 to ENTRIES do
+    if (owner[i] = creature) and (owner[i] <> nil) and (ownerName[i] = creature^.name) then
+      FindEntry := i;
+end;
+
+{ An entry for creature, with an empty block on the heap; 0 when every entry is taken. }
+function NewEntry(creature: Types.PCharRecord): Byte;
+var
+  i: Byte;
+begin
+  NewEntry := 0;
+  for i := 1 to ENTRIES do
+    if (owner[i] = nil) or (ownerName[i] <> owner[i]^.name) then begin
+      if blocks[i] = nil then
+        GetMem(blocks[i], SizeOf(TStatBlock));
+      FillChar(blocks[i]^, SizeOf(TStatBlock), 0);
+      owner[i] := creature;
+      ownerName[i] := creature^.name;
+      NewEntry := i;
+      Exit;
+    end;
+end;
+
+function BlockOf(creature: Types.PCharRecord): PStatBlock;
+var
+  i: Byte;
+begin
+  BlockOf := nil;
+  if not Stats.IsPartyMember(creature) then Exit;
+  i := Stats.FindEntry(creature);
+  if i = 0 then
+    i := Stats.NewEntry(creature);
+  if i <> 0 then
+    BlockOf := blocks[i];
+end;
+
+procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
+var
+  b: PStatBlock;
+begin
+  if not Stats.IsPartyMember(creature) then Exit;
+  b := Stats.BlockOf(creature);
+  if b <> nil then
+    Stats.AddTo(b^.counts[stat], n);
+  Stats.AddTo(game.counts[stat], n);
+end;
+
+procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
+var
+  b: PStatBlock;
+  down: Boolean;
+begin
+  down := wasUp and not (victim^.status in [C_Status.OKAY, C_Status.ANIMATED]);
+  if Stats.IsPartyMember(victim) then begin
+    Stats.Count(victim, DAMAGE_TAKEN, hp);
+    if down then
+      Stats.Count(victim, KNOCKED_DOWN, 1);
+    if victim^.status = C_Status.DEAD then
+      Stats.Count(victim, DIED, 1);
+  end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Stats.IsPartyMember(actor) then begin
+    Stats.Count(actor, DAMAGE_DONE, hp);
+    if down then begin
+      Stats.Count(actor, KILLS, 1);
+      b := Stats.BlockOf(actor);
+      if b <> nil then
+        Stats.AddKill(b^, victim^.name);
+      Stats.AddKill(game, victim^.name);
+    end;
+  end;
+end;
+
+procedure BledOut(creature: Types.PCharRecord);
+begin
+  Stats.Count(creature, DIED, 1);
+end;
+
+procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
+begin
+  Stats.Count(target, HEALED_TAKEN, hp);
+  if byPower or (GDVars.dsCurrentSpellBeing <> 0) then
+    Stats.Count(actor, HEALED_GIVEN, hp);
+end;
+
+{ counter plus n, n of either sign, held within -MaxLongInt..MaxLongInt }
+procedure AddSigned(var counter: LongInt; n: LongInt);
+begin
+  if (n > 0) and (counter > MaxLongInt - n) then
+    counter := MaxLongInt
+  else if (n < 0) and (counter < -MaxLongInt - n) then
+    counter := -MaxLongInt
+  else
+    Inc(counter, n);
+end;
+
+{ creature's coin, copper to platinum, at its worth in copper }
+function CoinWorth(creature: Types.PCharRecord): LongInt;
+var
+  m: ShortInt;
+  w: LongInt;
+begin
+  w := 0;
+  for m := C_Money.COPPER to C_Money.PLATINUM do
+    Inc(w, LongInt(creature^.coins[m]) * GDConsts.dsCoinValuationCopper[m]);
+  CoinWorth := w;
+end;
+
+procedure MarkCoins;
+var
+  p: Types.PCharRecord;
+  n: Byte;
+begin
+  FillChar(marked, SizeOf(marked), 0);
+  p := GDVars.creatureList;
+  n := 0;
+  while (p <> nil) and (n < GDVars.zone1^[C_Gbvm.PARTY_SIZE]) and (n < ENTRIES) do begin
+    Inc(n);
+    marked[n] := p;
+    markedWorth[n] := Stats.CoinWorth(p);
+    p := p^.nextCharAddr;
+  end;
+end;
+
+procedure SettleCoins;
+var
+  n: Byte;
+  delta: LongInt;
+  b: PStatBlock;
+begin
+  for n := 1 to ENTRIES do
+    if (marked[n] <> nil) and Stats.IsPartyMember(marked[n]) then begin
+      delta := Stats.CoinWorth(marked[n]) - markedWorth[n];
+      if delta <> 0 then begin
+        b := Stats.BlockOf(marked[n]);
+        if b <> nil then
+          Stats.AddSigned(b^.counts[COIN_LOOTED], delta);
+        Stats.AddSigned(game.counts[COIN_LOOTED], delta);
+      end;
+    end;
+  FillChar(marked, SizeOf(marked), 0);
+end;
+
+procedure Forget(creature: Types.PCharRecord);
+var
+  i: Byte;
+begin
+  i := Stats.FindEntry(creature);
+  if i <> 0 then
+    owner[i] := nil;
+end;
+
+procedure ResetGame;
+begin
+  FillChar(game, SizeOf(game), 0);
+end;
+
+procedure DeleteFile(name: Types.TPathStr);
+var
+  f: file;
+  ioRes: Integer;
+begin
+  Assign(f, name);
+  Erase(f);
+  ioRes := IOResult;
+end;
+
+procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
+var
+  f: file;
+  i: Byte;
+  ioRes: Integer;
+begin
+  Stats.DeleteFile(fn + '.sts');
+  i := Stats.FindEntry(creature);
+  if i = 0 then Exit;
+  FillChar(rec, SizeOf(rec), 0);
+  rec.sig := SIG;
+  rec.version := VERSION;
+  rec.name := creature^.name;
+  rec.randByte := creature^.randByte;
+  rec.block := blocks[i]^;
+  Assign(f, fn + '.sts');
+  Rewrite(f, 1);
+  if IOResult = 0 then begin
+    BlockWrite(f, rec, SizeOf(rec));
+    ioRes := IOResult;
+    Close(f);
+  end;
+  ioRes := IOResult;
+end;
+
+{ Read a TStatFile from name into rec: True when it is whole and of this format. }
+function ReadFile(name: Types.TPathStr): Boolean;
+var
+  f: file;
+  n: Word;
+  ok: Boolean;
+  mode: Byte;
+  ioRes: Integer;
+begin
+  ok := False;
+  Assign(f, name);
+  mode := FileMode;
+  FileMode := 0;
+  Reset(f, 1);
+  FileMode := mode;
+  if IOResult = 0 then begin
+    ok := FileSize(f) = SizeOf(rec);
+    if IOResult <> 0 then
+      ok := False;
+    if ok then begin
+      BlockRead(f, rec, SizeOf(rec), n);
+      ok := (IOResult = 0) and (n = SizeOf(rec));
+    end;
+    Close(f);
+    ioRes := IOResult;
+    ok := ok and (rec.sig = SIG) and (rec.version = VERSION) and (rec.block.kindCount <= KINDS);
+  end;
+  ReadFile := ok;
+end;
+
+procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
+var
+  i: Byte;
+begin
+  Stats.Forget(creature);
+  if not Stats.ReadFile(fn + '.sts') then Exit;
+  if (rec.name <> creature^.name) or (rec.randByte <> creature^.randByte) then Exit;
+  i := Stats.NewEntry(creature);
+  if i <> 0 then
+    blocks[i]^ := rec.block;
+end;
+
+procedure WriteGame(fn: Types.TPathStr);
+var
+  f: file;
+  ioRes: Integer;
+begin
+  FillChar(rec, SizeOf(rec), 0);
+  rec.sig := SIG;
+  rec.version := VERSION;
+  rec.block := game;
+  Assign(f, fn);
+  Rewrite(f, 1);
+  if IOResult = 0 then begin
+    BlockWrite(f, rec, SizeOf(rec));
+    ioRes := IOResult;
+    Close(f);
+  end;
+  ioRes := IOResult;
+end;
+
+procedure ReadGame(fn: Types.TPathStr);
+begin
+  if Stats.ReadFile(fn) then
+    game := rec.block
+  else
+    Stats.ResetGame;
+end;
+
+begin
+  FillChar(owner, SizeOf(owner), 0);
+  FillChar(blocks, SizeOf(blocks), 0);
+  FillChar(game, SizeOf(game), 0);
+  FillChar(marked, SizeOf(marked), 0);
+end.

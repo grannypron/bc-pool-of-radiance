@@ -11,6 +11,8 @@ procedure TempleMainMenu;
 
 implementation
 
+uses Stats;
+
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
 
@@ -170,6 +172,7 @@ begin
         creature^.hpCur := 1;
         creature^.status := C_Status.OKAY;
         creature^.enabled := 1;
+        Stats.Count(creature, Stats.RAISED, 1);
         if creature^.conCur > 0 then begin
           Dec(creature^.conCur);
           hpLoss := CharHlp.ConHpTotal(creature, creature^.conCur + 1) - CharHlp.ConHpTotal(creature, creature^.conCur);

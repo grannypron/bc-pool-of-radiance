@@ -4,6 +4,13 @@ unit C_Gbvm;
 interface
 
 const
+  { The script buffer, zone 3 (#607): the running area's script, from its first byte at SCRIPT_FIRST. SSI's 7680
+    bytes ended at $B6FF; it now runs to $BFFF, below the first special cell a script reads or writes ($C04B, the
+    party's X), so a script can be 9984 bytes. A saved game keeps SSI's SAVED_SCRIPT_BYTES of it, where SSI kept
+    them, so saves stay SSI's size; a load does not use them, but loads the area's script from the data (#609). }
+  SCRIPT_FIRST = $9900;
+  SCRIPT_LAST = $BFFF;
+  SAVED_SCRIPT_BYTES = 7680;
   { Script-visible game-memory addresses, used as word-array indices through the zone pointers. }
   { zone 0 ($4900 bank: zone0) }
   { party X-coordinate (map) }

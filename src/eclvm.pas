@@ -7,14 +7,14 @@ interface
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
   Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
 
-{ Main game loop: set the interface state from the previous script id and view3dFlag, load (unless a save was loaded)
-  and initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
+{ Main game loop: set the interface state from the previous script id and view3dFlag, load (a saved game's too) and
+  initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
   party is defeated or a quick load is asked for (Explore.quickLoadAsked) }
 procedure GameLoop;
 
 implementation
 
-uses Vault;
+uses Vault, EclTrace;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -1769,6 +1769,9 @@ begin
   while (GDVars.eclStop = 0) and (not GDVars.partyDefeated) do begin
     GDVars.prevOpcode := GDVars.curOpcode;
     GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
+    { STING Ctrl-L's trace log (#612), as Curse writes it }
+    if GDVars.debugTraceEnabled then
+      WriteLn(GDVars.debugFile, EclTrace.OpName(GDVars.curOpcode));
     EclVm.ExecNextEclCmd;
   end;
   GDVars.eclStop := 0;
@@ -1841,8 +1844,9 @@ begin
       if GDVars.zone0^.view3dFlag = 0 then
         GDVars.ifcState := C_Ifc.OUTDOORS;
   end;
-  if GDVars.loadedSave = 0 then
-    EclMenu.LoadEclScript(GDVars.eclScriptId);
+  { the area's script is loaded from the data even for a saved game (#609), as Secret of the Silver Blades does: the
+    copy a save holds would keep a script from before a data fix (DataPat), and is SSI's size only }
+  EclMenu.LoadEclScript(GDVars.eclScriptId);
   EclMenu.EclInit;
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
   if GDVars.ifcState <> C_Ifc.OUTDOORS then begin

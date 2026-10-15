@@ -69,8 +69,7 @@ const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
   QUICK_SLOT = 'Q';
 
-{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say so on the bottom line. Made from the
-  map menu, so the running script is recorded as the one the save reopens first. }
+{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say so on the bottom line. }
 procedure QuickSave;
 
 { True when QUICK_SLOT holds a save file big enough to load. }
@@ -106,7 +105,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault;
+uses SaveMenu, AreaName, CharGen, Vault, Stats;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -516,6 +515,7 @@ begin
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, 15) + ' in full.');
   SaveLoad.WriteUsualSpells(creature, fn);
+  Stats.WriteChar(creature, fn);
 end;
 
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
@@ -535,7 +535,7 @@ begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
     msg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
   end else
-    msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + GDVars.gameDir[1] + ':';
+    msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
   if savedGame then
     ext := '.sav'
   else
@@ -597,6 +597,7 @@ begin
     Close(f);
   end;
   SaveLoad.ReadUsualSpells(creature, name);
+  Stats.ReadChar(creature, name);
 end;
 
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
@@ -751,8 +752,8 @@ end;
 function SaveMinSize: LongInt;
 begin
   SaveMinSize := LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
-                 SizeOf(GDVars.zone2^) + SizeOf(GDVars.zone3^) + 5 + SizeOf(GDVars.gLocType) + SizeOf(GDVars.ifcState) +
-                 SizeOf(Byte) + SizeOf(TSaveNames);
+                 SizeOf(GDVars.zone2^) + C_Gbvm.SAVED_SCRIPT_BYTES + 5 + SizeOf(GDVars.gLocType) +
+                 SizeOf(GDVars.ifcState) + SizeOf(Byte) + SizeOf(TSaveNames);
 end;
 
 { Load saved game letter: the save file (one too short to hold it all is refused, with a message, before anything is
@@ -791,7 +792,8 @@ begin
   BlockRead(f, GDVars.zone0^, SizeOf(GDVars.zone0^), res);
   BlockRead(f, GDVars.zone1^, SizeOf(GDVars.zone1^), res);
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
-  BlockRead(f, GDVars.zone3^, SizeOf(GDVars.zone3^), res);
+  { the script the save holds is passed over: GameLoop loads the area's script from the data (#609) }
+  Seek(f, FilePos(f) + C_Gbvm.SAVED_SCRIPT_BYTES);
   BlockRead(f, GDVars.gMapX, 5, res);
   { a cardinal facing only }
   GDVars.gFacing := GDVars.gFacing and 6;
@@ -803,6 +805,8 @@ begin
   res := IOResult;
   { the vault left with this game is the session's vault now }
   Vault.RestoreFromSlot(letter);
+  { the game's statistics (#611); a save made before them starts from none }
+  Stats.ReadGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   { names holds 8, the most a party has }
   if nChars > 8 then
     nChars := 8;
@@ -837,6 +841,10 @@ begin
       end;
       if DaxIo.FileExists(fn + '.mem') then begin
         Assign(f, fn + '.mem');
+        Erase(f);
+      end;
+      if DaxIo.FileExists(fn + '.sts') then begin
+        Assign(f, fn + '.sts');
         Erase(f);
       end;
     end;
@@ -930,6 +938,9 @@ var
   fn: Types.TPathStr;
   ioRes: Integer;
 begin
+  { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
+    leaves the old area's there until then }
+  GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   SaveLoad.CheckSaveDir;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
@@ -951,7 +962,8 @@ begin
   BlockWrite(f, GDVars.zone0^, SizeOf(GDVars.zone0^));
   BlockWrite(f, GDVars.zone1^, SizeOf(GDVars.zone1^));
   BlockWrite(f, GDVars.zone2^, SizeOf(GDVars.zone2^));
-  BlockWrite(f, GDVars.zone3^, SizeOf(GDVars.zone3^));
+  { SSI's part of the script buffer, so the file stays SSI's size }
+  BlockWrite(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES);
   BlockWrite(f, GDVars.gMapX, 5);
   BlockWrite(f, GDVars.gLocType, SizeOf(GDVars.gLocType));
   BlockWrite(f, GDVars.ifcState, SizeOf(GDVars.ifcState));
@@ -969,6 +981,7 @@ begin
   Close(f);
   SaveMenu.WriteSlotInfo(letter, desc, area);
   Vault.CommitToSlot(letter);
+  Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   p := GDVars.creatureList;
   n := 0;
   while (p <> nil) and (n < 8) do begin
@@ -990,6 +1003,10 @@ begin
     end;
     if DaxIo.FileExists(fn + '.mem') then begin
       Assign(f, fn + '.mem');
+      Erase(f);
+    end;
+    if DaxIo.FileExists(fn + '.sts') then begin
+      Assign(f, fn + '.sts');
       Erase(f);
     end;
     p := p^.nextCharAddr;
@@ -1022,8 +1039,6 @@ end;
 
 procedure QuickSave;
 begin
-  { GameLoop records the running script only once the map menu returns: a save made from it must have it now }
-  GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea);
   TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
   MenuCore.ClearBottomLine;
