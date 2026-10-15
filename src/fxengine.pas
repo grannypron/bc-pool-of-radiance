@@ -136,7 +136,7 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
 implementation
 
-uses Stats, StrUtil;
+uses Stats, StrUtil, C_Gbvm;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);

@@ -9,7 +9,7 @@ procedure GameInit2;
 implementation
 
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, SoundDrv, TextRend;
+  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm;
 
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its

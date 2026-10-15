@@ -550,7 +550,7 @@ var
   dsMonsterFlags: Types.TMonFlags;
   { unused }
   dsUnidentified35: array[0..1] of Byte;
-  { Sound effect selected by a script write (EclMenu.WriteGbvm) }
+  { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
   { Script write register; the engine does not read it back. }
   writeReg1: Word;

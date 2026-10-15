@@ -159,7 +159,7 @@ implementation
 
 uses Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Effect, C_Equip, C_Race,
   C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money, Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc,
-  StrUtil;
+  StrUtil, C_Gbvm;
 
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the

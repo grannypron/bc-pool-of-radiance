@@ -1,0 +1,635 @@
+{ The ECL interpreter's variables and the game memory (GBVM) they address: loading a command's operands, reading and
+  writing GBVM words and strings, and stepping over a command. Split from EclMenu, which keeps the menus and the
+  opcode helpers. }
+{$O+,F+}
+unit EclVars;
+
+interface
+
+{ Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
+  $81 (string reference) gives its GBVM address. SSI quirk, kept: $80 (string value) also reads the GBVM, at an address
+  made of the packed length as low byte and a stale upper byte; callers with a string value use its text instead. }
+function GetEclVar(idx: ShortInt): Word;
+
+{ Read count ECL variables at the ECL IP into dsGbvmType/dsGbvmLowerByte/dsGbvmUpperByte, decoding string values and
+  string references into gbStrings. Only the first 64 variables and 20 strings are kept (later strings overwrite the
+  20th); the IP still steps past them all. }
+procedure LoadEclVars(count: Byte);
+
+{ Join two bytes into a word. }
+function CombineBytesToWord(lowByte, highByte: Byte): Word;
+
+{ Write value to a GBVM address; zone 1 also runs the special handler }
+procedure WriteGbvm(address, value: Word);
+
+{ Read a GBVM address }
+function ReadGbvm(address: Word): Word;
+
+{ Write s to the GBVM as a C string ($6B00 = current character name, copied as a Pascal String into the char record
+  instead), shortened so that it and its terminator stay inside the zone }
+procedure WriteGbvmString(address: Word; s: String);
+
+{ Step IP past the command at IP without running it, loading its operands as its handler does }
+procedure SkipEclCmd;
+
+implementation
+
+uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, DaxIo, View3D;
+
+procedure ConvGbString(len, strIdx: Byte); forward;
+
+procedure DerefGbString(strIdx: Byte; address: Word); forward;
+
+{ Var record at IP: +1 type, +2 low byte; types 1/2/3 take a third (high) byte; $80 = string value (packed 6-bit chars,
+  low byte = packed byte count, decoded by ConvGbString); $81 = string reference (extra byte -> hi; the string at that
+  GBVM address is copied by DerefGbString). IP ends on the byte after the last variable }
+procedure LoadEclVars(count: Byte);
+var
+  i: Byte;
+  strIdx: Byte;
+  v: Word;
+  len: Word;
+  t: Byte;
+  lo: Byte;
+  hi: Byte;
+begin
+  strIdx := 0;
+  for i := 1 to count do begin
+    t := GDVars.zone3^[GDVars.eclIp + 1];
+    lo := GDVars.zone3^[GDVars.eclIp + 2];
+    GDVars.eclIp := GDVars.eclIp + 2;
+    case t of
+      1, 2, 3: begin
+        Inc(GDVars.eclIp);
+        hi := GDVars.zone3^[GDVars.eclIp];
+      end;
+      $80: begin
+        { 20 = High(gbStrings) }
+        if strIdx < 20 then Inc(strIdx);
+        len := lo;
+        if len > 0 then
+          EclVars.ConvGbString(len, strIdx)
+        else
+          GDVars.gbStrings[strIdx] := '';
+      end;
+      $81: begin
+        if strIdx < 20 then Inc(strIdx);
+        Inc(GDVars.eclIp);
+        hi := GDVars.zone3^[GDVars.eclIp];
+        v := EclVars.CombineBytesToWord(lo, hi);
+        EclVars.DerefGbString(strIdx, v);
+      end;
+    end;
+    { 64 = High(dsGbvmType); the upper byte is kept only for the types that carry one }
+    if i <= 64 then begin
+      GDVars.dsGbvmType[i] := t;
+      GDVars.dsGbvmLowerByte[i] := lo;
+      if (t in [1, 2, 3]) or (t = $81) then
+        GDVars.dsGbvmUpperByte[i] := hi;
+    end;
+  end;
+  Inc(GDVars.eclIp);
+end;
+
+function GetEclVar(idx: ShortInt): Word;
+var
+  lo: Byte;
+  hi: Byte;
+begin
+  lo := GDVars.dsGbvmLowerByte[idx];
+  hi := GDVars.dsGbvmUpperByte[idx];
+  case GDVars.dsGbvmType[idx] of
+    0: GetEclVar := lo;
+    1, 3, $80: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
+    2, $81: GetEclVar := EclVars.CombineBytesToWord(lo, hi);
+  end;
+end;
+
+function CombineBytesToWord(lowByte, highByte: Byte): Word;
+begin
+  CombineBytesToWord := highByte * 256 + lowByte;
+end;
+
+{ 6-bit GB char -> ASCII: 0..31 map to '@'..'_', higher codes are unchanged }
+function DecodeGameCharacter(c: Byte): Char;
+begin
+  if c > 31 then
+    DecodeGameCharacter := Chr(c)
+  else
+    DecodeGameCharacter := Chr(c + 64);
+end;
+
+{ GBVM zone of address: 0 = $4900..$4CFF, 1 = $6B00..$6EFF, 2 = $9700..$98FF, 3 = C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST
+  (script), else 4 (special registers) }
+function GbvmZone(address: Word): Byte;
+begin
+  GbvmZone := 4;
+  if (address >= $4900) and (address <= $4CFF) then GbvmZone := 0;
+  if (address >= $6B00) and (address <= $6EFF) then GbvmZone := 1;
+  if (address >= $9700) and (address <= $98FF) then GbvmZone := 2;
+  if (address >= C_Gbvm.SCRIPT_FIRST) and (address <= C_Gbvm.SCRIPT_LAST) then GbvmZone := 3;
+end;
+
+{ Return the creature's zero-based index in GDVars.creatureList (the list length if it is absent) }
+function FindCurCharIdx(creature: Types.PCharRecord): Byte;
+var
+  idx: Byte;
+  p: Types.PCharRecord;
+  found: Boolean;
+begin
+  p := GDVars.creatureList;
+  found := False;
+  idx := 0;
+  while (p <> nil) and (not found) do begin
+    if p = creature then
+      found := True
+    else begin
+      Inc(idx);
+      p := p^.nextCharAddr;
+    end;
+  end;
+  FindCurCharIdx := idx;
+end;
+
+{ Special read handling for GBVM zone 1: found is True when address has a handler, even one that leaves the result
+  unassigned ($10D, or $2CF with charisma outside 3..25). Most handlers read the current character }
+function SpecialReadZ1(address: Word; var found: Boolean): Word;
+var
+  t: Byte;
+begin
+  found := True;
+  address := address - $6B00;
+  case address of
+    $18: SpecialReadZ1 := GDVars.curChar^.conCur;
+    $9B: SpecialReadZ1 := GDVars.curChar^.saves[C_Save.PETRIFY];
+    $A0: SpecialReadZ1 := GDVars.curChar^.levelHighest;
+    $A5..$AC: begin
+      t := address - $A4;
+      SpecialReadZ1 := GDVars.curChar^.thiefSkills[t];
+    end;
+    $B8: SpecialReadZ1 := GDVars.curChar^.npc;
+    $BB: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.COPPER];
+    $BD: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.SILVER];
+    $BF: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.ELECTRUM];
+    $C1: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.GOLD];
+    $C3: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.PLATINUM];
+    $D8: SpecialReadZ1 := ShortInt(GDVars.curChar^.alignment);
+    $F7: SpecialReadZ1 := GDVars.curChar^.xpAward;
+    $F9: SpecialReadZ1 := GDVars.curChar^.xpBonusPerHp;
+    $100:
+      if GDVars.curChar^.enabled <> 0 then
+        SpecialReadZ1 := 1
+      else
+        SpecialReadZ1 := $80;
+    $10C:
+      if (GDVars.curChar^.hostile = 0) and (GDVars.curChar^.quickfight <> 0) then
+        SpecialReadZ1 := $80
+      else if GDVars.curChar^.hostile = 1 then
+        SpecialReadZ1 := $81
+      else
+        SpecialReadZ1 := 0;
+    { handled, but no value is returned }
+    $10D: ;
+    $11B: SpecialReadZ1 := GDVars.curChar^.movementCur;
+    $2B1: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
+    $2B4: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
+    $2CF:
+      { charisma -> loyalty base; no result for charisma outside 3..25 }
+      case GDVars.curChar^.chaCur of
+        3: SpecialReadZ1 := 0;
+        4: SpecialReadZ1 := 5;
+        5: SpecialReadZ1 := 10;
+        6: SpecialReadZ1 := 15;
+        7: SpecialReadZ1 := 20;
+        8..12: SpecialReadZ1 := 25;
+        13: SpecialReadZ1 := 30;
+        14: SpecialReadZ1 := 35;
+        15: SpecialReadZ1 := 40;
+        16: SpecialReadZ1 := 50;
+        17: SpecialReadZ1 := 55;
+        18..25: SpecialReadZ1 := 60;
+      end;
+    $312: SpecialReadZ1 := GDVars.virtualDisk;
+    { party size }
+    $33E: SpecialReadZ1 := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
+  else
+    found := False;
+  end;
+end;
+
+{ Special write handling for GBVM zone 1 (always in addition to the zone word write). A write to the current
+  character's coins recalculates its stats, so its encumbrance and movement follow. }
+procedure SpecialWriteZ1(address, value: Word);
+var
+  t: Byte;
+begin
+  address := address - $6B00;
+  case address of
+    0:
+      if value = 0 then GDVars.dumpCr6B00 := True;
+    { a raw window into the character record, starting at memorizedSpells[1] and running on past it }
+    $20..$70: begin
+      t := address - $1F;
+      GDVars.curChar^.memorizedSpells[t] := value;
+    end;
+    $B8: begin
+      { values above C_Npc.ANIMATED_NPC ($B2) lose $32 (= C_Npc.ANIMATED_NPC and C_Npc.MORALE_MASK) }
+      if value > C_Npc.ANIMATED_NPC then Dec(value, $32);
+      GDVars.curChar^.npc := value;
+    end;
+    $BB: GDVars.curChar^.coins[C_Money.COPPER] := value;
+    $BD: GDVars.curChar^.coins[C_Money.SILVER] := value;
+    $BF: GDVars.curChar^.coins[C_Money.ELECTRUM] := value;
+    $C1: GDVars.curChar^.coins[C_Money.GOLD] := value;
+    $C3: GDVars.curChar^.coins[C_Money.PLATINUM] := value;
+    $F7: GDVars.curChar^.xpAward := value;
+    $F9: GDVars.curChar^.xpBonusPerHp := value;
+    $100: begin
+      if value >= $80 then begin
+        GDVars.curChar^.enabled := 0;
+        if value = $87 then GDVars.curChar^.status := C_Status.STONED;
+      end;
+      if value = 0 then GDVars.dumpCr6C00 := True;
+    end;
+    $10C:
+      case value of
+        0: begin
+          GDVars.curChar^.hostile := 0;
+          GDVars.curChar^.quickfight := 0;
+        end;
+        $80: begin
+          GDVars.curChar^.hostile := 0;
+          GDVars.curChar^.quickfight := 1;
+        end;
+        $81: begin
+          GDVars.curChar^.hostile := 1;
+          GDVars.curChar^.quickfight := 1;
+        end;
+      end;
+    { disks 1..8 only }
+    $312:
+      if (value >= 1) and (value <= 8) then DaxIo.PushState(value);
+    $322:
+      if value > $80 then begin
+        value := value and $7F;
+        View3D.LoadWallSet(value, 1);
+      end;
+    $324:
+      if value > $80 then begin
+        value := value and $7F;
+        View3D.LoadWallSet(value, 2);
+      end;
+    $326:
+      if value > $80 then begin
+        value := value and $7F;
+        View3D.LoadWallSet(value, 3);
+      end;
+  end;
+  { $BB, $BD, $BF, $C1, $C3: copper to platinum }
+  if (address >= $BB) and (address <= $C3) and Odd(address) then
+    CharHlp.RecalcStats(GDVars.curChar);
+end;
+
+procedure WriteGbvm(address, value: Word);
+var
+  zone: Byte;
+  ok: Boolean;
+begin
+  zone := EclVars.GbvmZone(address);
+  case zone of
+    0: begin
+      GDVars.zone0^.words[address] := value;
+      if (address = $49FD) or (address = $49FE) then
+        GDVars.redrawSky := True;
+    end;
+    1: begin
+      GDVars.zone1^[address] := value;
+      EclVars.SpecialWriteZ1(address, value);
+    end;
+    2:
+      GDVars.zone2^[address] := value;
+    3:
+      GDVars.zone3^[address] := value;
+    4:
+      if address < $BF68 then
+        case address of
+          $FB: ;
+          $FC: ;
+          $B1: ;
+          $3DE: GDVars.sndEffect := value;
+          $B8: GDVars.writeReg1 := value;
+          $B9: GDVars.writeReg2 := value;
+        end else begin
+        address := address - $BF68;
+        case address of
+          { party X }
+          $E3: begin
+            GDVars.movedParty := True;
+            GDVars.gMapX := value;
+          end;
+          { party Y }
+          $E4: begin
+            GDVars.gMapY := value;
+            GDVars.movedParty := True;
+          end;
+          { facing, mod-4 loop }
+          $E5: begin
+            repeat
+              ok := True;
+              case value of
+                0: GDVars.gFacing := C_Dir.NORTH;
+                1: GDVars.gFacing := C_Dir.EAST;
+                2: GDVars.gFacing := C_Dir.SOUTH;
+                3: GDVars.gFacing := C_Dir.WEST;
+              else begin
+                ok := False;
+                Dec(value, 4);
+              end;
+              end;
+            until ok = True;
+            GDVars.movedParty := True;
+          end;
+          $F1: begin
+            GDVars.wallColorSel := value;
+            GDVars.picRegionW := True;
+          end;
+          $F7: begin
+            GDVars.ceilFloorColorSel := value;
+            GDVars.picRegionW := True;
+          end;
+          { accepted, ignored }
+          $10BA: ;
+        end;
+      end;
+  end;
+end;
+
+{ The party effects table scripts read at $4900..$497F: the party's effects in order (creatureList, then each creature's
+  effect list), at most 64 of them. Entry k ($4900 + k) is the effect id and $4940 + k the owner's party index, counted
+  from 0 as FindCurCharIdx counts; unused entries read 0. The 'THIEVES ONLY' well (ECL4.DAX block 2) scans it for
+  Feather Fall when a climber falls }
+function PartyEffectsTable(address: Word): Word;
+var
+  k: Word;
+  e: Word;
+  n: Byte;
+  p: Types.PCharRecord;
+  effect: Types.PEffectRec;
+begin
+  PartyEffectsTable := 0;
+  k := (address - $4900) mod $40;
+  e := 0;
+  n := 0;
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    effect := p^.effectsAddr;
+    while effect <> nil do begin
+      if e = k then
+        if address < $4940 then
+          PartyEffectsTable := effect^.id
+        else
+          PartyEffectsTable := n;
+      Inc(e);
+      effect := effect^.next;
+    end;
+    Inc(n);
+    p := p^.nextCharAddr;
+  end;
+end;
+
+{ Zone 0 reads of $4900..$497F come from the party's effects (PartyEffectsTable), the rest from storage. Zone 4 reads
+  below $C04B are fixed registers; from $C04B they index party/view state (WriteGbvm splits at $BF68 but reaches the
+  same $C04B.. addresses). Unhandled zone-4 addresses leave the result unassigned }
+function ReadGbvm(address: Word): Word;
+var
+  zone: Byte;
+  found: Boolean;
+begin
+  zone := EclVars.GbvmZone(address);
+  found := False;
+  case zone of
+    0:
+      if address <= $497F then
+        ReadGbvm := EclVars.PartyEffectsTable(address)
+      else
+        ReadGbvm := GDVars.zone0^.words[address];
+    1: begin
+      ReadGbvm := EclVars.SpecialReadZ1(address, found);
+      if not found then
+        ReadGbvm := GDVars.zone1^[address];
+    end;
+    2:
+      ReadGbvm := GDVars.zone2^[address];
+    3:
+      ReadGbvm := GDVars.zone3^[address];
+    4:
+      if address < $C04B then
+        case address of
+          $B1: ReadGbvm := GDVars.readReg3;
+          $FB: ReadGbvm := GDVars.readReg1;
+          $FC: ReadGbvm := GDVars.readReg2;
+          $33D: ReadGbvm := GDVars.gFacing;
+          { handled, but no value is returned }
+          $35F: ;
+        end else begin
+        address := address - $C04B;
+        case address of
+          { sign-extends (ShortInt) }
+          0: ReadGbvm := GDVars.gMapX;
+          1: ReadGbvm := GDVars.gMapY;
+          2: ReadGbvm := GDVars.gFacing div 2;
+          3: ReadGbvm := GDVars.wallAhead;
+          4: ReadGbvm := GDVars.eventAtCell;
+          { Wall color ($C059): write-only, result unassigned }
+          14: ;
+        end;
+      end;
+  end;
+end;
+
+{ Strings go to the GBVM as zero-terminated strings, one character per cell (word cells in zones 0..2, bytes in zone 3);
+  GBVM $6B00 instead sets the current character's name (String[15], so capped at 15). Zone 4 writes nothing }
+procedure WriteGbvmString(address: Word; s: String);
+var
+  zone: Byte;
+  len: Byte;
+  i: Byte;
+  last: Word;
+begin
+  zone := EclVars.GbvmZone(address);
+  len := Length(s);
+  { the zone's last address, which the terminator may take }
+  case zone of
+    0: last := $4CFF;
+    1: last := $6EFF;
+    2: last := $98FF;
+    3: last := C_Gbvm.SCRIPT_LAST;
+  end;
+  if zone < 4 then
+    if last - address < len then
+      len := last - address;
+  case zone of
+    0: begin
+      for i := 0 to len - 1 do
+        GDVars.zone0^.words[address + i] := Ord(s[i + 1]);
+      GDVars.zone0^.words[address + len] := 0;
+    end;
+    1:
+      if address = $6B00 then
+        GDVars.curChar^.name := s
+      else begin
+        for i := 0 to len - 1 do
+          GDVars.zone1^[address + i] := Ord(s[i + 1]);
+        GDVars.zone1^[address + len] := 0;
+      end;
+    2: begin
+      for i := 0 to len - 1 do
+        GDVars.zone2^[address + i] := Ord(s[i + 1]);
+      GDVars.zone2^[address + len] := 0;
+    end;
+    3: begin
+      for i := 0 to len - 1 do
+        GDVars.zone3^[address + i] := Ord(s[i + 1]);
+      GDVars.zone3^[address + len] := 0;
+    end;
+  end;
+end;
+
+{ Decode len packed bytes after IP into gbStrings[strIdx] as 6-bit GB chars (4 chars per 3 bytes; phase 4 reuses the
+  already-read byte; zero chars are dropped). len counts packed bytes, not decoded characters. IP ends on the last byte
+  read }
+procedure ConvGbString(len, strIdx: Byte);
+var
+  i: Byte;
+  cur: Byte;
+  prev: Byte;
+  c6: Byte;
+  phase: Byte;
+  ch: Char;
+begin
+  GDVars.gbStrings[strIdx] := '';
+  i := 0;
+  phase := 1;
+  while i < len do begin
+    if phase < 4 then begin
+      Inc(GDVars.eclIp);
+      prev := cur;
+      cur := GDVars.zone3^[GDVars.eclIp];
+      Inc(i);
+    end;
+    case phase of
+      1:
+        c6 := cur shr 2;
+      2: begin
+        c6 := prev shl 6 + cur shr 2;
+        c6 := c6 shr 2;
+      end;
+      3: begin
+        c6 := prev shl 4 + cur shr 4;
+        c6 := c6 shr 2;
+      end;
+      4:
+        c6 := cur and $3F;
+    end;
+    if phase < 4 then Inc(phase) else phase := 1;
+    if c6 <> 0 then begin
+      ch := EclVars.DecodeGameCharacter(c6);
+      GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], ch);
+    end;
+  end;
+  if phase = 4 then begin
+    c6 := cur and $3F;
+    if c6 <> 0 then begin
+      ch := EclVars.DecodeGameCharacter(c6);
+      GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], ch);
+    end;
+  end;
+end;
+
+{ Copy the zero-terminated GBVM string at address into gbStrings[strIdx], one character per cell (the low byte of word
+  cells); $6B00 selects the current character's name, and zone 4 gives ''. The copy also stops at the zone's last
+  address and at 255 characters, as WriteGbvmString bounds the write side; v1.3 used a Byte offset that wrapped, so an
+  unterminated string hung the game. }
+procedure DerefGbString(strIdx: Byte; address: Word);
+var
+  zone: Byte;
+  last: Word;
+  a: Word;
+  c: Word;
+begin
+  zone := EclVars.GbvmZone(address);
+  GDVars.gbStrings[strIdx] := '';
+  if (zone = 1) and (address = $6B00) then
+    GDVars.gbStrings[strIdx] := GDVars.curChar^.name
+  else if zone < 4 then begin
+    case zone of
+      0: last := $4CFF;
+      1: last := $6EFF;
+      2: last := $98FF;
+      3: last := C_Gbvm.SCRIPT_LAST;
+    end;
+    a := address;
+    repeat
+      case zone of
+        0: c := GDVars.zone0^.words[a];
+        1: c := GDVars.zone1^[a];
+        2: c := GDVars.zone2^[a];
+        3: c := GDVars.zone3^[a];
+      end;
+      if c <> 0 then
+        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(c));
+      Inc(a);
+    until (c = 0) or (a > last) or (Length(GDVars.gbStrings[strIdx]) = 255);
+  end;
+end;
+
+{ Step IP past the command at IP without running it, loading the opcode's operands as its handler does (VMENU, HMENU,
+  ONGOTO and ONGOSUB read a count and then that many more); unlisted opcodes skip one byte }
+procedure SkipEclCmd;
+var
+  count: Byte;
+begin
+  GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
+  { v1.3 skipped 2 operands for SETUP MONSTER and 1 for ADD NPC, which take 3 and 2, and only the opcode byte of the
+    four commands with a count }
+  case GDVars.curOpcode of
+    C_Ecl.JUMP, C_Ecl.GOSUB, C_Ecl.LOAD_CHAR, C_Ecl.PICTURE, C_Ecl.PRINT, C_Ecl.PRINTCLEAR,
+        C_Ecl.PARTY_STR, C_Ecl.NEWECL, C_Ecl.CALL,
+    C_Ecl.FIND_ITEM, C_Ecl.CLOCK, C_Ecl.RUN_PROGRAM, C_Ecl.WHO, C_Ecl.PROTECTION:
+      EclVars.LoadEclVars(1);
+    C_Ecl.COMPARE, C_Ecl.RANDOM_NUMBER, C_Ecl.SAVE, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR,
+        $1F, C_Ecl.PARTY_SURPR, C_Ecl.ADD_NPC:
+      EclVars.LoadEclVars(2);
+    C_Ecl.ADD..C_Ecl.MULTIPLY, C_Ecl.LOAD_MON, C_Ecl.LOADFILES, C_Ecl.ROB, C_Ecl.GETTABLE,
+        C_Ecl.BIT_AND, C_Ecl.BIT_OR, C_Ecl.SAVE_TABLE,
+    C_Ecl.LOADPIECES, C_Ecl.SPELL, C_Ecl.SETUP_MON:
+      EclVars.LoadEclVars(3);
+    { the count is the last operand before the list, as EclVMenu, EclHMenu and EclOnGoto read it }
+    C_Ecl.VMENU: begin
+      EclVars.LoadEclVars(3);
+      count := EclVars.GetEclVar(3);
+      Dec(GDVars.eclIp);
+      EclVars.LoadEclVars(count);
+    end;
+    C_Ecl.HMENU, C_Ecl.ONGOTO, C_Ecl.ONGOSUB: begin
+      EclVars.LoadEclVars(2);
+      count := EclVars.GetEclVar(2);
+      Dec(GDVars.eclIp);
+      EclVars.LoadEclVars(count);
+    end;
+    C_Ecl.COMPARE_AND, C_Ecl.SURPRISE:
+      EclVars.LoadEclVars(4);
+    C_Ecl.DAMAGE:
+      EclVars.LoadEclVars(5);
+    C_Ecl.CHECK_PARTY, C_Ecl.PARLAY:
+      EclVars.LoadEclVars(6);
+    C_Ecl.TREASURE:
+      EclVars.LoadEclVars(8);
+    C_Ecl.ENCOUNTER:
+      EclVars.LoadEclVars(14);
+  else
+    Inc(GDVars.eclIp);
+  end;
+end;
+
+end.
