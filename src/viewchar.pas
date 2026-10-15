@@ -1227,7 +1227,7 @@ begin
   else
     s := '';
   end;
-  notEmpty := Magic.GenerateSpellList(menuType);
+  notEmpty := Magic.GenerateSpellList(GDVars.curChar, menuType);
   if notEmpty then begin
     if idx < 0 then begin
       Border.DrawWindow(1, 1, 38, 1, 0, Black, '');
