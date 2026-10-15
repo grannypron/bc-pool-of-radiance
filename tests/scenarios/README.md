@@ -31,3 +31,5 @@ the text matches (an animated picture) is only a warning.
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
 | `journal` | the journal list and an entry |
 | `camp` | Fix and Rest in Valhingen Graveyard |
+| `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
+| `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |

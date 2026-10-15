@@ -42,15 +42,18 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
    code) and test programs that use only the units under test plus `TestKit`. Built and run under the same TP 6 in
    DOSBox-X by `build.sh --test`, which fails on any failed check. First targets, all pure logic: `Stats`
    (saturation, kill kinds, net coin), `AreaName`, `Money` arithmetic, Strength encoding, `ClassCal`, the DataPat rule.
+   **Done for `Stats` and `AreaName`**; the others pull in most of the game and get tests as phase 2 separates their
+   logic.
 2. **Build size report.** `build.sh` prints code and data size from `TPC.OUT` and the overlay sizes, so a change that
-   grows the resident program or the data segment is visible.
+   grows the resident program or the data segment is visible. **Done.**
 3. **Behaviour regression in goldbox-player.**
    - `session_start` takes boot arguments, so the game can start `STING NORAND` (fixed dice).
    - A runner replays scripted scenarios against two builds (a golden build from the pre-refactor commit and the
      candidate) and compares, at checkpoints: the screen text read from the game font (the main assertion), frame
      hashes (with an allow-list of expected differences), and save files after saving.
    - Scenarios: boot to the main menu; character creation; load and save; a combat under `NORAND`; a shop; the vault;
-     the journal; camp, Fix and rest; an area change.
+     the journal; camp, Fix and rest; an area change. **Done** (`tests/scenarios`, `tests/regress.sh`; goldbox-player
+     `tools/regress.py`).
 4. **CI.** Keep the job that rebuilds v1.1, v1.2 and v1.3 and checks SSI's hashes (it guards the toolchain); add the
    unit tests. The behaviour regression needs the game data and the emulator, so it runs locally or on a runner that
    has them.
