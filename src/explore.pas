@@ -155,10 +155,9 @@ var
   i: Byte;
 begin
   i := 0;
-  { High(memorizedSpells) }
-  while (i <= 20) and (creature^.memorizedSpells[i] <> spellId) do
+  while (i <= Types.SPELL_SLOT_LAST) and (creature^.memorizedSpells[i] <> spellId) do
     Inc(i);
-  if i <= 20 then
+  if i <= Types.SPELL_SLOT_LAST then
     FindMemorizedSpell := i
   else
     FindMemorizedSpell := 255;
@@ -234,10 +233,7 @@ begin
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
   Inc(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
   Inc(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
-  if GDVars.gMapX < 0 then GDVars.gMapX := 15;
-  if GDVars.gMapX > 15 then GDVars.gMapX := 0;
-  if GDVars.gMapY < 0 then GDVars.gMapY := 15;
-  if GDVars.gMapY > 15 then GDVars.gMapY := 0;
+  View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
   GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);

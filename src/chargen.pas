@@ -776,7 +776,7 @@ begin
   ViewChar.DisplayChar;
   GDVars.curChar := savedCur;
   repeat
-    creature^.name := TextRend.ReadString('Character name: ', LightMagenta, 15);
+    creature^.name := TextRend.ReadString('Character name: ', LightMagenta, Types.NAME_LEN);
   until creature^.name <> '';
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
@@ -1249,7 +1249,7 @@ begin
             { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
-            else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8) and
+            else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < Types.MAX_PARTY) and
                 (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
@@ -1266,7 +1266,7 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7);
+  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list);
   MenuCore.FreeStringList(list);
 end;

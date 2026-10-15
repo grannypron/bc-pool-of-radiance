@@ -324,8 +324,7 @@ var
 begin
   lvl := 0;
   i := 0;
-  { 20 = High(memorizedSpells) }
-  while (i <= 20) and (lvl = 0) do begin
+  while (i <= Types.SPELL_SLOT_LAST) and (lvl = 0) do begin
     if (creature^.memorizedSpells[i] > $7F) and
         (creature^.memorizedSpells[i] and C_Spell.ID_MASK in [1..C_Spell.LAST]) then
       if done then

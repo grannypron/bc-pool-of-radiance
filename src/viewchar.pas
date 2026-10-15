@@ -462,7 +462,7 @@ begin
     hasSpells := False;
     hasMoney := False;
     { every memorized-spell slot }
-    for i := 0 to 20 do
+    for i := 0 to Types.SPELL_SLOT_LAST do
       if GDVars.tempCr1^.memorizedSpells[i] > 0 then
         hasSpells := True;
     { every coin type, gems and jewelry included }

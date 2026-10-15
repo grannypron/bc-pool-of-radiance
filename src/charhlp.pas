@@ -771,10 +771,10 @@ var
 begin
   i := 0;
   { scan the memorized-spell slots, stopping after the first match }
-  while i <= 20 do begin
+  while i <= Types.SPELL_SLOT_LAST do begin
     if creature^.memorizedSpells[i] = spell then begin
       creature^.memorizedSpells[i] := 0;
-      i := 21;
+      i := Types.SPELL_SLOT_LAST + 1;
     end;
     Inc(i);
   end;

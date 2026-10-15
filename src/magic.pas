@@ -551,13 +551,11 @@ begin
   GDVars.scrollCount := 0;
   case menuType of
     7: Magic.AddAvailableSpells;
-    { High(memorizedSpells) }
-    0: for i := 0 to 20 do
+    0: for i := 0 to Types.SPELL_SLOT_LAST do
          if (GDVars.curChar^.memorizedSpells[i] > 0) and
              (GDVars.curChar^.memorizedSpells[i] < C_Spell.PENDING_FLAG) then
            Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
-    { High(memorizedSpells) }
-    5: for i := 0 to 20 do
+    5: for i := 0 to Types.SPELL_SLOT_LAST do
          if GDVars.curChar^.memorizedSpells[i] > C_Spell.ID_MASK then
            Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
     { Note: 55 stops one short of High(spellsKnown) = 56 (Restoration), so the spell book never lists Restoration }
@@ -1267,8 +1265,7 @@ begin
           p^.levelUndead := 2;
           p^.attackLevel := 0;
           p^.movementBase := 6;
-          { High(memorizedSpells) }
-          for i := 0 to 20 do
+          for i := 0 to Types.SPELL_SLOT_LAST do
             p^.memorizedSpells[i] := 0;
           { C_Npc.FLAG set }
           if CharHlp.IsNpc(p) then

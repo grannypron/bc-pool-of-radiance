@@ -243,7 +243,7 @@ begin
   GDVars.dsSuppressingInsertDiskFlag := 0;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
-  if not (GDVars.virtualDisk in [1..8]) then
+  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     DaxIo.PushState(1);
   Str(GDVars.virtualDisk, s);
   { the merged ECL.DAX holds every disk's scripts, so the search below would not run }

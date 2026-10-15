@@ -428,8 +428,7 @@ begin
     tail := ' Exit';
     hasDetect := False;
     if items then
-      { High(memorizedSpells) }
-      while (i <= 20) and not hasDetect do begin
+      while (i <= Types.SPELL_SLOT_LAST) and not hasDetect do begin
         if (GDVars.curChar^.memorizedSpells[i] = 5) or (GDVars.curChar^.memorizedSpells[i] = 11) then begin
           hasDetect := True;
           detectSpell := GDVars.curChar^.memorizedSpells[i];

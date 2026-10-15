@@ -5,6 +5,19 @@ interface
 
 uses C_Gender, C_Save, C_Equip, C_Level, C_Abil, C_Money, C_Gbvm;
 
+
+const
+  { the longest name a character or creature has }
+  NAME_LEN = 15;
+  { the most creatures in the party: a saved game's party names, the usual spells, the statistics, the icon slots }
+  MAX_PARTY = 8;
+  { the data disks the game shipped on, 1..LAST_DISK }
+  LAST_DISK = 8;
+  { a 3D map's last row and column: maps are 16 by 16 }
+  MAP_LAST = 15;
+  { the last memorized-spell slot (TSpellSlots); Turbo Pascal 6 has no High() }
+  SPELL_SLOT_LAST = 20;
+
 type
 
   { Shared types. }
@@ -52,10 +65,10 @@ type
   PItemRec = ^TItemRec;
   TIconCols = array[1..6] of Byte;
   { A character's spell slots: spell IDs, 0 = empty, C_Spell.PENDING_FLAG set while still being memorized. }
-  TSpellSlots = array[0..20] of Byte;
+  TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
   TCharRecord = record
     { character name }
-    name: string[15];
+    name: string[NAME_LEN];
     case Integer of
       0: (
     { strength }
@@ -400,7 +413,7 @@ type
     { MainMenu updates availability }
     enabled: Byte;
   end;
-  TName15 = string[15];
+  TName15 = string[NAME_LEN];
   TPortraitCacheSlot = record
     { HEAD/BODY DAX entry ID; 255 invalidates }
     pictureId: Byte;

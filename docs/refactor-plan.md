@@ -24,7 +24,7 @@ These apply to all work in the repository, refactor or feature:
 
 ## Constraints
 
-- Turbo Pascal 6: no `Break`/`Continue`, `const` parameters, open arrays or `Exit(value)`; `{$X-}`; lines at most 127
+- Turbo Pascal 6: no `Break`/`Continue`, `const` parameters, open arrays, `High`/`Low` or `Exit(value)`; `{$X-}`; lines at most 127
   characters (the source keeps to 120); 8.3 file names.
 - 64 KB data segment: about 45 KB used, about 19 KB free.
 - 16 KB stack with `{$S-}`: an overflow is silent. Large locals belong on the heap or in unit variables.
@@ -64,7 +64,7 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
   only because the unit is loaded through someone else's `uses` (`EclVm` calls `EclMenu` 206 times without naming
   it). List every dependency and break the six implementation cycles (CbtMap–Pathing, CbtMap–Magic, GameIo–TextRend,
   CharGen–SaveLoad, Vault–ViewChar, Vault–SaveLoad). Watch initialization order.
-- **Named constants**: name length 15, party maximum 8, map wrap 0..15 (20 lines in five blocks), `High(TSpellSlots)`
+- **Named constants**: name length 15, party maximum 8, map wrap 0..15 (20 lines in five blocks), `SPELL_SLOT_LAST`
   for the literal 20, `virtualDisk in [1..8]`, an `IsNpc` test for the raw `$7F` comparisons (9 sites).
 - **`GDVars.stingArg`**, set once at startup, for the 8 `ParamStr(1) = 'STING'` tests.
 - **`ClearBottomLine` to `TextRend`.** It is in overlaid `MenuCore` and combat calls it.
