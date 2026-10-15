@@ -1,0 +1,17 @@
+# Camp in Valhingen Graveyard (save J), where resting is quiet: Fix, then the rest menu and a rest. Fixed dice.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press l j ret
+wait AREA
+press e
+wait CAMP
+checkpoint camp
+press f
+wait CAMP 120
+checkpoint fixed
+press r
+checkpoint rest-menu
+press d i r
+wait CAMP 120
+checkpoint rested

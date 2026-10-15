@@ -1,0 +1,7 @@
+# Boot to the main menu, and the settings screen.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+checkpoint main-menu
+press g
+checkpoint settings

@@ -224,6 +224,7 @@ var
   p: Types.PItemRec;
   next: Types.PItemRec;
   ioRes: Integer;
+  item: Types.TItemRec;
 begin
   SaveLoad.CheckSaveDir;
   FillChar(head, SizeOf(head), 0);
@@ -237,7 +238,10 @@ begin
     BlockWrite(f, head, SizeOf(head));
     p := GDVars.treasureItems;
     while p <> nil do begin
-      BlockWrite(f, p^, SizeOf(Types.TItemRec));
+      { without its link, which ReadVault rebuilds: a heap address would make two saves of one vault differ }
+      item := p^;
+      item.next := nil;
+      BlockWrite(f, item, SizeOf(Types.TItemRec));
       p := p^.next;
     end;
     Close(f);

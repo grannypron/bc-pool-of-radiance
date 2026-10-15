@@ -1,0 +1,22 @@
+# Save A in New Phlan: walk from (5,3) to the vault at (8,9), deposit gold, leave and come back for it.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+press l a ret
+wait AREA
+# east twice, south six times to (7,9), then east through the door
+press down up up right up up up up up up left
+wait AREA
+checkpoint at-door
+press up
+wait VIEW
+checkpoint vault
+# Deposit: the first coin type (jewelry), 10 of it; the coin menu asks again until Escape; then leave View
+press v d ret 1 0 ret
+checkpoint deposited
+press esc e
+wait TAKE
+checkpoint vault-holds-gold
+press e
+wait AREA
+checkpoint street

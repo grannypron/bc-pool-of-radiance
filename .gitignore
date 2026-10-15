@@ -13,7 +13,6 @@ GTAGS
 # The disassembly project's tooling and notes, which this repository does not carry.
 /AGENTS.md
 /CLAUDE.md
-/docs/
 /gametools/
 /goldbox.toml
 /requirements.txt
@@ -29,3 +28,6 @@ capture/
 
 # Release zips made by package.sh
 /dist/
+
+# Golden builds the behaviour regression compares against (tests/scenarios; goldbox-player tools/regress.py)
+/.golden/

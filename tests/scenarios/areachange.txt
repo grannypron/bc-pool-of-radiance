@@ -1,0 +1,18 @@
+# An area change: from New Phlan (save A) onto the training hall's notice board at (6,2), where New Phlan's script
+# hands over to the training hall's (NEWECL 11); the save popup then names the new area.
+boot NORAND
+ignore POOL OF RADIANCE V
+ignore \d{4}/\d\d/\d\d \d\d:\d\d
+wait RADIANCE
+press l a ret
+wait AREA
+checkpoint new-phlan
+# north to (5,2), then east onto (6,2)
+press right up right up
+wait AREA
+checkpoint training-hall
+press e
+wait CAMP
+press s d ret
+checkpoint save-popup
+press esc esc
