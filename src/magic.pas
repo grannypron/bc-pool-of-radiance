@@ -261,7 +261,6 @@ var
   p: Types.PItemRec;
   prompt: Types.TStr40;
   title: Types.TStr40;
-  pad: Byte;
   count: Byte;
   bottomRow: Byte;
   ch: Char;
@@ -676,8 +675,6 @@ begin
 end;
 
 procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
-var
-  pad: Pointer;
 begin
   if GDVars.castTarget = nil then
     GDVars.castTarget := GDVars.curChar;
@@ -712,7 +709,6 @@ end;
 procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
 var
   ok: Boolean;
-  pad: Byte;
   x: ShortInt;
   y: ShortInt;
   k: Byte;
@@ -1483,7 +1479,6 @@ var
   tgt: Types.PCharRecord;
   crIdx: Byte;
   terr: Byte;
-  pad: Word;
 begin
   blocked := False;
   CbtMap.GetArenaContents(x, y, crIdx, terr);
@@ -1708,7 +1703,6 @@ end;
   stays dead, as at the temple (Temple.NeutralizePoison). }
 procedure KeoghtomsOintmentHandler;
 var
-  pad: Byte;
   tgt: Types.PCharRecord;
   effect: Types.PEffectRec;
   slowed: Boolean;

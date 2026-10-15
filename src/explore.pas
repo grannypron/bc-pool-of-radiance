@@ -301,9 +301,7 @@ var
   done: Boolean;
   c: Char;
   ext: Boolean;
-  unusedMenuText: String[40];
   viewDone: Boolean;
-  unusedPtr: Pointer;
 begin
   GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
   case GDVars.gLocType of

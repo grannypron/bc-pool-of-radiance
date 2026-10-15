@@ -393,7 +393,6 @@ end;
 procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
 var
   s: String;
-  pad: Byte;
 begin
   s := CharHlp.ByteToString(Abs(creature^.acCur - 60));
   if creature^.acCur > 60 then
@@ -406,7 +405,6 @@ end;
 procedure PrintHitPoints(creature: Types.PCharRecord; col, row: Byte; hotPink: Boolean);
 var
   color: Byte;
-  pad: Byte;
 begin
   if creature^.hpCur < creature^.hpMax then
     color := Yellow
@@ -472,7 +470,6 @@ var
   bag: Boolean;
   adj: Types.TAcAdjust;
   i: ShortInt;
-  pad: Byte;
   c: ShortInt;
   w: LongInt;
   raw: LongInt;

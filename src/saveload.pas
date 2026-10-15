@@ -382,13 +382,9 @@ end;
 procedure LoadCharIconAnim(loading: Boolean);
 
 var
-  pad1: Byte;
-  pad2: Byte;
-  pad3: Byte;
   fromMap: Types.TColorTab;
   toMap: Types.TColorTab;
   i: Byte;
-  pad4: Byte;
   height: Byte;
 begin
   DaxIo.PushState(3);

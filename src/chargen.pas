@@ -104,7 +104,6 @@ var
   ch: Char;
   ext: Boolean;
   ext2: Boolean;
-  pad: array[1..9] of Byte;
   n: ShortInt;
   redraw: Boolean;
   stateB: Byte;
@@ -354,11 +353,9 @@ var
   k: ShortInt;
   g: ShortInt;
   cls: ShortInt;
-  pad1: Byte;
   i: ShortInt;
   cnt: Byte;
   conB: Integer;
-  pad2: Byte;
   clsCount: Byte;
   hpTotal: Byte;
   addExit: Boolean;
@@ -793,8 +790,6 @@ end;
 { DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
   farewell message depends on whether the character is enabled }
 procedure DropCharacterMenu;
-var
-  pad: Byte;
 begin
   if GDVars.curChar = nil then Exit;
   with GDVars.curChar^ do begin
@@ -823,12 +818,10 @@ var
   savedExc: Byte;
   savedHp: Byte;
   savedClericSpells: array[1..3] of Byte;
-  pad1: Byte;
   hold: ShortInt;
   key: Char;
   ext: Boolean;
   statIdx: Byte;
-  pad2: array[1..7] of Byte;
 
   { RedrawStat: Repaint the selected row: an attribute via ViewChar.PrintStat, or the hit-point line (row 6) via
     CharHlp.PrintHitPoints; hotPink highlights it }
@@ -1029,7 +1022,6 @@ var
   sel: Byte;
   idx: Integer;
   notEmpty: Boolean;
-  pad: Byte;
 begin
   if (GDVars.curChar^.status <> C_Status.OKAY) and (GDVars.stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);

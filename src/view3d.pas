@@ -221,7 +221,6 @@ var
   dist: Byte;
   wallFront: Byte;
   wallSide: Byte;
-  pad: Byte;
   prevWall: Byte;
 begin
   if GDVars.automapOn then

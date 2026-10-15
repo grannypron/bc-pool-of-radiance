@@ -86,8 +86,6 @@ var
   dy: ShortInt;
   cellX: ShortInt;
   cellY: ShortInt;
-  dead1: Byte;
-  dead2: Byte;
   wallN: Byte;
   wallW: Byte;
   wallE: Byte;
@@ -127,8 +125,6 @@ var
 
   { The NORTH wall band (spots (3..4, 0..1)): wall terrain when solid, floor otherwise }
   procedure DrawNorthWall;
-  var
-    dead: Integer;
   begin
     if wallN = 1 then begin
       PlotCell(3, 0, 5);
@@ -420,7 +416,6 @@ end;
   = h+31. }
 procedure PlaceTrees;
 var
-  dead1: Byte;
   dens: Byte;
   h: Byte;
   col: ShortInt;
@@ -519,7 +514,6 @@ procedure BuildWildernessArena;
 var
   mapX: ShortInt;
   mapY: ShortInt;
-  dead1: Integer;
 begin
   FillChar(GDVars.arenaPtr^.cells, SizeOf(GDVars.arenaPtr^.cells), 23);
   mapX := GDVars.zone0^.partyX.lo;
@@ -840,7 +834,6 @@ end;
   trigger start-of-combat effects and calculate the hostile hit-point percentage. }
 procedure CombatStart;
 var
-  dead1: array[1..10] of Byte;
   p: Types.PCharRecord;
 begin
   Portrait.FreeAnimation(animData);

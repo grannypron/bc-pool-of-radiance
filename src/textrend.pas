@@ -161,7 +161,6 @@ var
   mask: Byte;
   bank: Byte;
   outerRow: Byte;
-  pad: Byte;
 begin
   if (col > 39) or (row > 24) or (GDVars.gameFont = nil) then Exit;
   if isASCII <> 0 then
@@ -284,7 +283,6 @@ var
   width: Byte;
   idx: Byte;
   lineEnd: Byte;
-  pad: Byte;
 
   { PrintCharInWindow: Flush source[idx..lineEnd] at the cursor, advancing idx/curCol, stopping at lrCol; per-char Delay
     when slow text is on }

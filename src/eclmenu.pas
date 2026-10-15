@@ -177,7 +177,6 @@ end;
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
 var
-  pad: Byte;
   i: Word;
 begin
   GDVars.eclGraphics := False;
@@ -682,7 +681,6 @@ function ReadGbvm(address: Word): Word;
 var
   zone: Byte;
   found: Boolean;
-  dead: Word;
 begin
   zone := EclMenu.GbvmZone(address);
   found := False;
@@ -780,7 +778,6 @@ end;
 procedure ConvGbString(len, strIdx: Byte);
 var
   i: Byte;
-  dead: Byte;
   cur: Byte;
   prev: Byte;
   c6: Byte;
@@ -988,7 +985,6 @@ var
   cur: Types.PCharRecord;
   srcIt: Types.PItemRec;
   tmp: Types.PItemRec;
-  dead: Pointer;
 begin
   GDVars.duelFlag := True;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := mirror;

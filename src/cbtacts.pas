@@ -101,8 +101,6 @@ procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode
   AdjustedAttacks), the sweep budget, initiative (1d6 + missile dex adjustment, at least 1, -6 when surprised, 0 if
   disabled or outside 0..20) and movement. }
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
-var
-  pad: Byte;
 begin
   with creature^.combatAddr^ do begin
     spellCast := 0;
@@ -332,7 +330,6 @@ var
   still: Boolean;
   attacked: Boolean;
   slot: Byte;
-  pad: Byte;
   cntBefore: Byte;
   cntAfter: Byte;
   j: Byte;
@@ -1141,7 +1138,6 @@ end;
 procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
 var
   spellId: Byte;
-  pad: Byte;
   castTime: Byte;
   idx: Integer;
   notEmpty: Boolean;
@@ -1437,7 +1433,6 @@ end;
 procedure ConfirmAttackTarget(cur, tgt: Types.PCharRecord; weaponMode: Byte; var done: Boolean;
                               var sel: Types.TAimTarget);
 var
-  pad: Byte;
   weapon: Types.PItemRec;
 begin
   weapon := nil;
@@ -1630,8 +1625,6 @@ var
   { Move the aim highlight step entries through the list (wrapping) and return that creature; animate flies the cursor
     from the current target, otherwise the old cursor cell is redrawn. }
   function AdvanceAimTarget(step: ShortInt; animate: Boolean): Types.PCharRecord;
-  var
-    pad: Pointer;
   begin
     if animate then begin
       curX := GDVars.arenaLoc[targets[curIdx].idx].x;

@@ -165,10 +165,8 @@ var
   lowPri: Byte;
   roll: Byte;
   i: Byte;
-  pad1: Integer;
   slot: Byte;
   effect: Byte;
-  pad2: Pointer;
   item: Types.PItemRec;
   chosen: Types.PItemRec;
   used: Boolean;
@@ -212,7 +210,6 @@ end;
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
   list: array[0..20] of Byte;
-  pad: Pointer;
   lowPri: Byte;
   roll: Byte;
   ext: Boolean;
@@ -679,7 +676,6 @@ var
   pri: Byte;
   itType: Byte;
   props: Byte;
-  pad: Byte;
   needSwap: Boolean;
   changed: Boolean;
   trueRanged: Boolean;

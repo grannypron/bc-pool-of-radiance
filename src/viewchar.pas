@@ -58,10 +58,8 @@ procedure DropMoneyMenu; forward;
 { Display the current character's full character sheet, using tempCr1 as the shared display target. }
 procedure DisplayChar;
 var
-  dead1: Byte;
   row: Byte;
   col: Byte;
-  dead2: Byte;
   i: ShortInt;
   j: ShortInt;
   s: String;
@@ -440,7 +438,6 @@ end;
 procedure ViewCharMenu(var done: Boolean);
 var
   ch: Char;
-  dead1: Byte;
   s: Types.TStr40;
   hasMoney: Boolean;
   hasSpells: Boolean;
@@ -580,7 +577,6 @@ procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
   s: Types.TStr40;
-  dead1: Byte;
   needRedraw: Boolean;
   vmRedraw: Boolean;
   p: Types.PItemRec;
@@ -589,7 +585,6 @@ var
   deadP: Types.PItemRec;
   creature: Types.PCharRecord;
   itemCount: Byte;
-  dead2: Byte;
 begin
   creature := GDVars.curChar;
   ch := ' ';

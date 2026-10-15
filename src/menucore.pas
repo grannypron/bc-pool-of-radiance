@@ -132,7 +132,6 @@ var
     idx: Byte;
     i: Byte;
     len: Byte;
-    pad: Byte;
   begin
     FillChar(opt, SizeOf(opt), 0);
     idx := 1;

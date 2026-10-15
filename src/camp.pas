@@ -260,7 +260,6 @@ var
   p: Types.PCharRecord;
   total: Word;
   t: Word;
-  pad: Word;
 begin
   total := 0;
   p := GDVars.creatureList;
@@ -446,7 +445,6 @@ var
   notEmpty: Boolean;
   redraw: Boolean;
   spellId: Byte;
-  pad: Byte;
   i: Byte;
   idx: Integer;
   p: Types.PItemRec;
@@ -543,7 +541,6 @@ var
   k: Byte;
   { effects listed for this char }
   cnt: Byte;
-  pad: Byte;
   found: Boolean;
   show: Boolean;
   menuRedraw: Boolean;

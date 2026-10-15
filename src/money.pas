@@ -174,7 +174,6 @@ end;
 function InputNumberMax;
 var
   col: Byte;
-  pad1: Byte;
   qLen: Byte;
   maxStr: String[5];
   s: String[6];

@@ -450,8 +450,6 @@ end;
 function CampRest(interactive: Boolean): Boolean;
 var
   cur: Types.PCharRecord;
-  dead1: Pointer;
-  dead2: Byte;
   i: Byte;
   tick: Byte;
   cnt: Byte;
