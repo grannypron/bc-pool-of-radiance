@@ -11,8 +11,6 @@ implementation
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
   GameIo, MenuCore, Session, SoundDrv, TextRend;
 
-var
-  wallCache: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
   defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
@@ -73,12 +71,12 @@ begin
   GDVars.gFacing := C_Dir.WEST;
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   { WALLDEF reload ID 0, symbol slot 1 }
-  wallCache[1].wallDefId := 0;
-  wallCache[1].symbolSlot := 1;
+  GDVars.dsWallSetCache[1].wallDefId := 0;
+  GDVars.dsWallSetCache[1].symbolSlot := 1;
   for GDVars.gi2 := 2 to 3 do begin
     { slots 2-3 = empty }
-    wallCache[GDVars.gi2].wallDefId := -1;
-    wallCache[GDVars.gi2].symbolSlot := -1;
+    GDVars.dsWallSetCache[GDVars.gi2].wallDefId := -1;
+    GDVars.dsWallSetCache[GDVars.gi2].symbolSlot := -1;
   end;
   GDVars.portraitsOn := 1;
   GDVars.monsterPics := 1;

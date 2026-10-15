@@ -39,8 +39,6 @@ var
   wallDefs: Types.PWallDefs absolute GDVars.wallGfx;
   { same tile, flat view }
   wallSlices: Types.PWallSlices absolute GDVars.wallGfx;
-  wallSetCache: array[1..3] of Types.TWallSetCache absolute GDVars.dsWallSetCache;
-                { three (wallDefId, symbolSlot) Integer pairs, wallDefId = -1 marking an invalidated slot }
 
 procedure DisplayViewBuf; forward;
 
@@ -458,8 +456,8 @@ begin
   count := i - 1;
   for i := 1 to count do
     if (wsSlot + i - 1) in [1..3] then begin
-      wallSetCache[wsSlot + i - 1].wallDefId := -1;
-      wallSetCache[wsSlot + i - 1].symbolSlot := -1;
+      GDVars.dsWallSetCache[wsSlot + i - 1].wallDefId := -1;
+      GDVars.dsWallSetCache[wsSlot + i - 1].symbolSlot := -1;
       for row := 1 to 5 do
         for col := 0 to 155 do begin
           if wallDefs^[wsSlot + i - 1][row][col] >= GDConsts.symSetLast[0] then
@@ -474,8 +472,8 @@ begin
       end else
         Sym8x8.Load8x8Set(fileId, wsSlot + i - 1);
     end;
-  wallSetCache[wsSlot].wallDefId := fileId;
-  wallSetCache[wsSlot].symbolSlot := wsSlot;
+  GDVars.dsWallSetCache[wsSlot].wallDefId := fileId;
+  GDVars.dsWallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
 
 { Load3DMap: Loads GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte

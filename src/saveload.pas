@@ -114,8 +114,6 @@ type
 
 var
   zone1b: Types.PSaveloadZoneBytes absolute GDVars.zone1;
-  wallSlots: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
-                                         { kept in zone 0 across saves }
 
 const
   { the number of characters whose usual spells are kept at once: the party's size }
@@ -836,10 +834,10 @@ begin
     MapTiles.LoadIconAnim('ICON', 0, 11)
   else
     for i := 1 to 3 do begin
-      wallSlots[i].wallDefId := GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + i];
-      wallSlots[i].symbolSlot := GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + i];
-      if wallSlots[i].wallDefId >= 0 then
-        View3D.LoadWallSet(wallSlots[i].wallDefId, wallSlots[i].symbolSlot);
+      GDVars.dsWallSetCache[i].wallDefId := GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + i];
+      GDVars.dsWallSetCache[i].symbolSlot := GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + i];
+      if GDVars.dsWallSetCache[i].wallDefId >= 0 then
+        View3D.LoadWallSet(GDVars.dsWallSetCache[i].wallDefId, GDVars.dsWallSetCache[i].symbolSlot);
     end;
   if GDVars.zone0^.yarashPyramidLeft <> 0 then
     Ending.YarashComplete(False);
@@ -916,8 +914,8 @@ begin
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   for n := 1 to 3 do begin
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := wallSlots[n].wallDefId;
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := wallSlots[n].symbolSlot;
+    GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := GDVars.dsWallSetCache[n].wallDefId;
+    GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := GDVars.dsWallSetCache[n].symbolSlot;
   end;
   GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
   GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;

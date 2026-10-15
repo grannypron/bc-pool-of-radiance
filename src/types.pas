@@ -811,11 +811,6 @@ type
   TZone3 = array[C_Gbvm.SCRIPT_FIRST..C_Gbvm.SCRIPT_LAST] of Byte;
 
   { EclVm types. }
-  TEclvmWallDef = record
-    wallDefId: Word;
-    symbolSlot: Word;
-  end;
-
   { EffHndlr types. }
   TEffectHandler = procedure(creature: PCharRecord; effectData: Pointer;
                              removed: Boolean);
@@ -833,11 +828,6 @@ type
   { GameInit types. }
   PGameini2ZoneWords = ^TZoneWords;
   { one loaded-wallset cache slot (dsWallSetCache) }
-  TWallSlot = record
-    { wallDefId = -1 marks an empty slot }
-    wallDefId: Integer;
-    symbolSlot: Integer;
-  end;
   TZoneWords = array[0..1023] of Word;
 
   { MenuCore types. }
@@ -965,12 +955,6 @@ type
   end;
   TView3dWallDef = array[1..5, 0..155] of Byte;
   TWallDefs = array[1..3] of TView3dWallDef;
-  TWallSetCache = record
-    { Cached WALLDEF reload ID }
-    wallDefId: Integer;
-    { Destination slot passed to Load8x8Set }
-    symbolSlot: Integer;
-  end;
   TWallSlices = array[1..15, 0..155] of Byte;
 
   { ViewChar types. }

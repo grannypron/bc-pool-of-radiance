@@ -36,8 +36,6 @@ const
   WILD_EAST_SCRIPT = 27;
 
 var
-  { Typed views of GameDat3 storage: the wall-set cache slots and the PICTURE animation }
-  wallDefs: array[1..3] of Types.TEclvmWallDef absolute GDVars.dsWallSetCache;
   animData: Types.TAnimRec absolute GDVars.animData;
 
 procedure CallEclScript(address: Word); forward;
@@ -499,8 +497,8 @@ begin
         if f[i] <> 255 then
           View3D.LoadWallSet(f[i], i)
         else begin
-          wallDefs[i].wallDefId := 65535;
-          wallDefs[i].symbolSlot := 65535;
+          GDVars.dsWallSetCache[i].wallDefId := -1;
+          GDVars.dsWallSetCache[i].symbolSlot := -1;
         end;
   end;
   if (GDVars.enteringLoop <> 0) and (GDVars.piecesLoaded <> 0) and (GDVars.mapLoaded <> 0) then begin
