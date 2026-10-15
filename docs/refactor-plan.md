@@ -63,33 +63,46 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
 - **Explicit `uses`.** About 145 unit pairs call each other by qualified name without listing the unit; it compiles
   only because the unit is loaded through someone else's `uses` (`EclVm` calls `EclMenu` 206 times without naming
   it). List every dependency and break the six implementation cycles (CbtMap–Pathing, CbtMap–Magic, GameIo–TextRend,
-  CharGen–SaveLoad, Vault–ViewChar, Vault–SaveLoad). Watch initialization order.
+  CharGen–SaveLoad, Vault–ViewChar, Vault–SaveLoad). Watch initialization order. **Done** (#617); the cycles, legal
+  between implementations, remain. Phase 2 also left each interface naming only the units its declarations use.
 - **Named constants**: name length 15, party maximum 8, map wrap 0..15 (20 lines in five blocks), `SPELL_SLOT_LAST`
-  for the literal 20, `virtualDisk in [1..8]`, an `IsNpc` test for the raw `$7F` comparisons (9 sites).
-- **`GDVars.stingArg`**, set once at startup, for the 8 `ParamStr(1) = 'STING'` tests.
-- **`ClearBottomLine` to `TextRend`.** It is in overlaid `MenuCore` and combat calls it.
+  for the literal 20, `virtualDisk in [1..8]`, an `IsNpc` test for the raw `$7F` comparisons (9 sites). **Done**
+  (#617; `View3D.WrapCoords` for the wrap).
+- **`GDVars.stingArg`**, set once at startup, for the 8 `ParamStr(1) = 'STING'` tests. **Done** (#617).
+- **`ClearBottomLine` to `TextRend`.** It is in overlaid `MenuCore` and combat calls it. **Done** (#617).
 - **Byte-match leftovers**: 18 `deadN` locals, about 40 `pad` locals, about 21 unused globals (first check that none
   is cleared or saved as part of a run of variables). **Pads and unused fields in records that are saved or loaded
   (characters, items, effects, the zones, saved games) stay**: they keep the file layouts, so characters and games
-  still save and load, here and in SSI's executable.
+  still save and load, here and in SSI's executable. **Locals done**: 69 in #617, the other 40 unused locals in phase
+  2. The unused globals remain.
 
 ## Phase 2: shared helpers (about 400-450 lines)
 
 In order of value:
 
 1. **Shop, temple and vault main loops** (nearly identical), and the "you left money here, go back?" prompt (3
-   copies).
+   copies). **Done**: `Shop.CounterMenu` for the shop and the temple, `Money.GoBackForIt` for the three prompts. The
+   vault's loop differs (no Appraise, no prompt) and keeps its own.
 2. **File helpers in `DaxIo`**: `DeleteFile`, `OpenReadOnly`, `ReadRecord` and `WriteRecord` for the three sidecar
    formats (.mem, .inf, .sts); `SaveLoad.EraseCharFiles` for the 12 erase sites; one "put save disk" rewrite retry.
-   Fixes a probable bug: the usual-spells `.mem` file is opened read-write, so a read-only copy is ignored.
+   Fixes a probable bug: the usual-spells `.mem` file is opened read-write, so a read-only copy is ignored. **Done**,
+   in a new resident `FileUtil` (DaxIo would have pulled GameIo into Stats' tests), with `SaveLoad.CharFileBase`,
+   `RewriteSaveFile` and `SaveDiskMsg`.
 3. **Number formatting in `CharHlp`**: `NumStr`, `ZeroPad2`, `PadLeft`/`PadRight`, for six identical `Str` wrappers
-   and seven zero-pad copies.
+   and seven zero-pad copies. **Done**, in a new resident `StrUtil` that the early units (GameIo, TextRend) can use.
 4. **`TextRend.DisplayCentered`** for 13 centring sites and three "(more)" drawers; `CharHlp.ShowMessage` for 29
-   repeated message-window calls.
+   repeated message-window calls. **Done**: ten centring sites; `TextRend.ShowMessage` for the 14 calls naming the
+   message window's corners, `ViewChar.SayBelow` for its six yellow lines.
 5. **Money**: one copper-value helper for three copies; `Money.PayGold` for the three "pay from the character, else the
-   pool" blocks.
+   pool" blocks. **Done**: `Money.CreatureGold`/`CoinsOf`, `WhoPays`/`PayBy`/`PayGold`.
 6. **Lists and effects**: `FreeItemList`/`ClearTreasure` (3 copies), `HasDisease`/`RemoveDiseases` (Temple and the
-   paladin), `IsPartyMember` for `SaveLoad.InParty` (which today also matches monsters: verify first).
+   paladin), `IsPartyMember` for `SaveLoad.InParty` (which today also matches monsters: verify first). **Done**:
+   `CharHlp.FreeItemList`/`ClearTreasure` (4 copies), `FxEngine.HasDisease`/`RemoveDiseases`, and a resident `Party`
+   unit for `IsPartyMember` (InParty did match monsters in combat).
+
+Found on the way: `equipped[]` was saved as raw heap pointers and kept on load until a `RecalcStats`; it is now saved
+cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's golden build for saves is
+`.golden/8128649-eq` (8128649 with that save-side line).
 
 ## Phase 3: structure
 
