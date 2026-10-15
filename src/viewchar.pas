@@ -981,7 +981,7 @@ begin
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    paid := Money.PayGold(200);
+    paid := Money.PayGold(GDVars.curChar, 200);
   end;
   if paid then begin
     if item^.unidMask = 0 then

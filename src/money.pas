@@ -43,14 +43,14 @@ const
   PAY_CHARACTER = 1;
   PAY_POOL = 2;
 
-{ Who pays gp gold pieces: the current character when its coins cover it, else the treasure pool when it does. }
-function WhoPays(gp: LongInt): Byte;
+{ Who pays gp gold pieces for buyer: buyer when its coins cover it, else the treasure pool when it does. }
+function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
 
-{ Pay gp gold pieces from payer (WhoPays): the current character's coins or the pool's. }
-procedure PayBy(payer: Byte; gp: LongInt);
+{ Pay gp gold pieces from payer (WhoPays): buyer's coins or the pool's. }
+procedure PayBy(buyer: Types.PCharRecord; payer: Byte; gp: LongInt);
 
-{ Pay gp gold pieces from the current character, else the pool: True when paid; 'Not enough money.' when neither can. }
-function PayGold(gp: LongInt): Boolean;
+{ Pay gp gold pieces from buyer, else the pool: True when paid; 'Not enough money.' when neither can. }
+function PayGold(buyer: Types.PCharRecord; gp: LongInt): Boolean;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
@@ -190,19 +190,19 @@ begin
              GDVars.treasureMoney);
 end;
 
-{ Give pp platinum to the current character; whatever does not fit goes to the treasure pool. }
-procedure GivePlatinum(pp: Word);
+{ Give pp platinum to creature; whatever does not fit goes to the treasure pool. }
+procedure GivePlatinum(creature: Types.PCharRecord; pp: Word);
 var
   takable: Word;
 begin
-  if Money.CheckOverload(GDVars.curChar, pp, takable) then begin
+  if Money.CheckOverload(creature, pp, takable) then begin
     CharDisp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
-    Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
-    CharHlp.RecalcStats(GDVars.curChar);
+    Inc(creature^.coins[C_Money.PLATINUM], takable);
+    CharHlp.RecalcStats(creature);
     GDVars.treasureMoney[C_Money.PLATINUM] := pp + GDVars.treasureMoney[C_Money.PLATINUM] - takable;
   end else begin
-    Inc(GDVars.curChar^.coins[C_Money.PLATINUM], pp);
-    CharHlp.RecalcStats(GDVars.curChar);
+    Inc(creature^.coins[C_Money.PLATINUM], pp);
+    CharHlp.RecalcStats(creature);
   end;
 end;
 
@@ -897,7 +897,7 @@ var
       { the holder's item count and weight }
       CharHlp.RecalcStats(holder);
     end else
-      Money.GivePlatinum(worth div 5);
+      Money.GivePlatinum(GDVars.curChar, worth div 5);
   end;
 
 begin
@@ -992,9 +992,9 @@ begin
   end;
 end;
 
-function WhoPays(gp: LongInt): Byte;
+function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
 begin
-  if gp <= Money.CreatureGold(GDVars.curChar) then
+  if gp <= Money.CreatureGold(buyer) then
     WhoPays := PAY_CHARACTER
   else if gp <= Money.CoinValueInGold(GDVars.treasureMoney) then
     WhoPays := PAY_POOL
@@ -1002,23 +1002,23 @@ begin
     WhoPays := PAY_NOBODY;
 end;
 
-procedure PayBy(payer: Byte; gp: LongInt);
+procedure PayBy(buyer: Types.PCharRecord; payer: Byte; gp: LongInt);
 begin
   case payer of
-    PAY_CHARACTER: Money.PayFromCreature(GDVars.curChar, gp);
+    PAY_CHARACTER: Money.PayFromCreature(buyer, gp);
     PAY_POOL: Money.PayFromPool(gp);
   end;
 end;
 
-function PayGold(gp: LongInt): Boolean;
+function PayGold(buyer: Types.PCharRecord; gp: LongInt): Boolean;
 var
   payer: Byte;
 begin
-  payer := Money.WhoPays(gp);
+  payer := Money.WhoPays(buyer, gp);
   if payer = PAY_NOBODY then
     CharDisp.PrintBottomLine('Not enough money.')
   else
-    Money.PayBy(payer, gp);
+    Money.PayBy(buyer, payer, gp);
   PayGold := payer <> PAY_NOBODY;
 end;
 

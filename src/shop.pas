@@ -121,13 +121,13 @@ begin
     else begin
       done := False;
       price := itemToBuy^.value;
-      payer := Money.WhoPays(price);
+      payer := Money.WhoPays(GDVars.curChar, price);
       if payer = Money.PAY_NOBODY then
         CharDisp.PrintBottomLine('Not enough money.')
       else begin
         Shop.GiveItemCopyToCreature(itemToBuy, failed);
         if not failed then
-          Money.PayBy(payer, price);
+          Money.PayBy(GDVars.curChar, payer, price);
       end;
     end;
   until done;
