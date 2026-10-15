@@ -143,6 +143,26 @@ var
   usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
   usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
 
+{ 'Put save disk in C:', for the save directory's drive. }
+function SaveDiskMsg: Types.TStr40;
+begin
+  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
+end;
+
+{ Create file name (record size 1) for writing, asking for the save disk until it can be. }
+procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
+var
+  ioRes: Integer;
+begin
+  repeat
+    Assign(f, name);
+    Rewrite(f, 1);
+    ioRes := IOResult;
+    if ioRes <> 0 then
+      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
+  until ioRes = 0;
+end;
+
 { A character's single-character files' path and base name, from its name: <saveDir><name>, sanitized for DOS. }
 function CharFileBase(name: String): Types.TPathStr;
 begin
@@ -305,7 +325,7 @@ begin
     Rewrite(f);
     ioRes := IOResult;
     if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
+      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
   until ioRes = 0;
   p := list;
   while p <> nil do begin
@@ -332,7 +352,7 @@ begin
     MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
     ioRes := IOResult;
     if (ioRes <> 0) and (ioRes <> 5) then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
+      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
   until (ioRes = 0) or (ioRes = 5);
 end;
 
@@ -445,13 +465,7 @@ begin
     ext := '.sav';
     fn := GDVars.dsSaveDirectory + fname;
   end;
-  repeat
-    Assign(f, fn + ext);
-    Rewrite(f, 1);
-    ioRes := IOResult;
-    if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
-  until ioRes = 0;
+  SaveLoad.RewriteSaveFile(f, fn + ext);
   { a write that fails (a full disk) is reported once, below, after every file has been tried and closed. The records
     go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files, and the equipment
     slots from the items, so their values meant nothing, and a heap address made two saves of the same game differ. }
@@ -524,7 +538,7 @@ var
 begin
   if askDisk then begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
-    msg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
+    msg := SaveLoad.SaveDiskMsg;
   end else
     msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
   if savedGame then
@@ -761,8 +775,7 @@ var
   nChars: Byte;
   found: Boolean;
 begin
-  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
-                               'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
+  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveLoad.SaveDiskMsg, #1, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
@@ -910,7 +923,6 @@ var
   p: Types.PCharRecord;
   numStr: String[1];
   fn: Types.TPathStr;
-  ioRes: Integer;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
@@ -918,13 +930,7 @@ begin
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
   SaveLoad.CheckSaveDir;
-  repeat
-    Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
-    Rewrite(f, 1);
-    ioRes := IOResult;
-    if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
-  until ioRes = 0;
+  SaveLoad.RewriteSaveFile(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   for n := 1 to 3 do begin
