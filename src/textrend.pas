@@ -30,6 +30,10 @@ procedure DisplayCentered(left, right, row, color: Byte; s: string);
 
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
 
+{ DisplayMessageWindow in the message window, the screen's lower right (C_Msg.TEXT_LEFT, MESSAGE_TOP to TEXT_RIGHT,
+  TEXT_BOTTOM). }
+procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
+
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 
 function InputUint16(query: Types.TStr40; color: Byte): Word;
@@ -49,7 +53,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 implementation
 
 
-uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys;
+uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
 var
 
   displayMode: Types.TVideoMode absolute GDVars.videoMode;
@@ -257,6 +261,12 @@ end;
 procedure ClearBottomLine;
 begin
   TextRend.PrintSpaces(0, 24, Black, 40);
+end;
+
+procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
+begin
+  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, color,
+                                clearFirst, s);
 end;
 
 procedure DisplayCentered(left, right, row, color: Byte; s: string);

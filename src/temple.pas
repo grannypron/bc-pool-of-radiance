@@ -36,8 +36,7 @@ var
   pooled: LongInt;
 begin
   spell := spell + ' will only cost ' + StrUtil.NumStr(cost) + ' gold pieces.';
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                True, spell);
+  TextRend.ShowMessage(LightGreen, True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
   if c = 'Y' then begin
     charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);

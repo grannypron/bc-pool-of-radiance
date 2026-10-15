@@ -253,11 +253,9 @@ begin
   Vault.ReadVault;
   GDVars.treasureMoneyFlag := False;
   if (visited <> 0) and (Random(20) = 0) then
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
+    TextRend.ShowMessage(LightGreen, True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
   else
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  True, 'WELCOME TO THE HOARDER''S RESPITE. LET ME LIGHTEN YOUR LOAD.');
+    TextRend.ShowMessage(LightGreen, True, 'WELCOME TO THE HOARDER''S RESPITE. LET ME LIGHTEN YOUR LOAD.');
   done := False;
   repeat
     Money.DetermineTreasure(hasMoney, hasItems);

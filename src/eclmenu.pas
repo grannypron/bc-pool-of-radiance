@@ -1171,8 +1171,7 @@ begin
   end else
     pause := False;
   GDVars.curCol := C_Msg.TEXT_RIGHT;
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                White, pause, msg);
+  TextRend.ShowMessage(White, pause, msg);
   CharHlp.InflictDamage(creature, dmg);
   TextRend.ClearRect(17, 1, 38, 15);
   CharHlp.DisplayParty(GDVars.curChar);

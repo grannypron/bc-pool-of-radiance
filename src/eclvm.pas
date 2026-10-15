@@ -389,9 +389,7 @@ begin
   if GDVars.dsGbvmType[1] < $80 then
     GDVars.gbStrings[1] := StrUtil.NumStr(EclMenu.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, False,
-                                  GDVars.gbStrings[1])
+    TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings[1])
   else begin
     GDVars.curRow := C_Msg.MESSAGE_TOP;
     GDVars.curCol := C_Msg.TEXT_LEFT;
@@ -598,8 +596,7 @@ begin
   head := list;
   GDVars.curCol := C_Msg.TEXT_LEFT;
   GDVars.curRow := C_Msg.MESSAGE_TOP;
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                True, msg);
+  TextRend.ShowMessage(LightGreen, True, msg);
   while list <> nil do begin
     list^.name := GDVars.gbStrings[i];
     list^.inUse := 0;
@@ -1171,8 +1168,7 @@ begin
     end;
     if msg = '' then
       clearW := False;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, clearW, msg);
+    TextRend.ShowMessage(LightGreen, clearW, msg);
     if (GDVars.zone1^[C_Gbvm.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0) then
       menu := '~COMBAT ~WAIT ~FLEE ~PARLAY'
     else
@@ -1196,9 +1192,7 @@ begin
           0: EclMenu.WriteGbvm(address, 1);
           1: begin
             waited := True;
-            TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                          LightGreen, True,
-                                          'Both sides wait.');
+            TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
           end;
           2: EclMenu.WriteGbvm(address, 2);
           3: begin
@@ -1207,9 +1201,7 @@ begin
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                                      GDVars.dsMonsterFlags);
             end else
-              TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True,
-                                            'Both sides wait.');
+              TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
             waited := True;
           end;
           4:
@@ -1229,18 +1221,14 @@ begin
               EclMenu.WriteGbvm(address, 0);
               GDVars.curCol := C_Msg.TEXT_LEFT;
               GDVars.curRow := C_Msg.MESSAGE_TOP;
-              TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True,
-                                            'The monsters flee.');
+              TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
             end else
               EclMenu.WriteGbvm(address, 1);
           1..4: begin
             EclMenu.WriteGbvm(address, 0);
             GDVars.curCol := C_Msg.TEXT_LEFT;
             GDVars.curRow := C_Msg.MESSAGE_TOP;
-            TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                          LightGreen, True,
-                                          'The monsters flee.');
+            TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
           end;
         end;
       3:
@@ -1252,9 +1240,7 @@ begin
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                                      GDVars.dsMonsterFlags);
             end else
-              TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True,
-                                            'Both sides wait.');
+              TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
             waited := True;
           end;
           2: EclMenu.WriteGbvm(address, 2);

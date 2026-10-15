@@ -952,10 +952,8 @@ end;
 
 function GoBackForIt(said, ask: String): Boolean;
 begin
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                True, said);
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, White, False,
-                                ask);
+  TextRend.ShowMessage(LightGreen, True, said);
+  TextRend.ShowMessage(White, False, ask);
   { 0-based: 1 is No }
   if EclMenu.MenuHorizontalCS('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
     GoBackForIt := False

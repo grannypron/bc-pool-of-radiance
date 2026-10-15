@@ -195,8 +195,9 @@ begin
              Money.DetermineTreasure(hasMoney, hasItems);
              if atTemple then
                done := not hasMoney or
-                       not Money.GoBackForIt('As you leave a priest says, "Excuse me but you have left some money here" ',
-                                             'Do you want to go back and retrieve your money?')
+                       not Money.GoBackForIt(
+                         'As you leave a priest says, "Excuse me but you have left some money here" ',
+                         'Do you want to go back and retrieve your money?')
              else
                done := not hasMoney or
                        not Money.GoBackForIt(

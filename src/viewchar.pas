@@ -56,6 +56,12 @@ procedure TradeTreasureMenu; forward;
 
 procedure DropMoneyMenu; forward;
 
+{ What a shopkeeper or an item prompt says, in yellow on the bottom two rows (1, 21 to 38, 22). }
+procedure SayBelow(clearFirst: Boolean; s: String);
+begin
+  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, clearFirst, s);
+end;
+
 { Display the current character's full character sheet, using tempCr1 as the shared display target. }
 procedure DisplayChar;
 var
@@ -521,7 +527,7 @@ begin
     CharHlp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
     GDVars.curCol := Length(GDVars.curChar^.name) + 2;
     GDVars.curRow := 21;
-    TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, False, ' was going to scribe from that scroll');
+    ViewChar.SayBelow(False, ' was going to scribe from that scroll');
     if MenuCore.YesNoMenu('is it Okay to lose it? ', LightMagenta, LightGreen, White) = 'Y' then
       CheckItemAvail := True;
   end else
@@ -671,8 +677,7 @@ begin
                end else if ViewChar.CheckItemAvail(sel) then
                begin
                  CharHlp.PrintItemString(creature, sel, 0, 0, False, False);
-                 TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                               'Your ' + sel^.name + 'will be gone forever');
+                 ViewChar.SayBelow(True, 'Your ' + sel^.name + ' will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
                    CharHlp.RemoveItem(GDVars.curChar, sel);
@@ -945,9 +950,7 @@ var
 begin
   price := Money.ItemSalePrice(item);
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
-  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' +
-                                  item^.name);
+  ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
     CharHlp.PrintBottomLine('Sold!');
@@ -982,8 +985,7 @@ var
 begin
   paid := False;
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
-  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                'For 200 gold pieces I''ll identify your ' + item^.name);
+  ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
     charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
@@ -1001,12 +1003,11 @@ begin
   end;
   if paid then begin
     if item^.unidMask = 0 then
-      TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                    'I can''t tell anything new about your ' + item^.name)
+      ViewChar.SayBelow(True, 'I can''t tell anything new about your ' + item^.name)
     else begin
       item^.unidMask := 0;
       CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
-      TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True, 'It looks like some sort of ' + item^.name);
+      ViewChar.SayBelow(True, 'It looks like some sort of ' + item^.name);
       newInfo := True;
     end;
   end;
