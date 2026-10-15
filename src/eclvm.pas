@@ -1037,7 +1037,7 @@ begin
     end;
     walk := GDVars.treasureItems;
     while walk <> nil do begin
-      CharHlp.PrintItemString(GDVars.curChar, walk, 0, 0, False, False);
+      CharHlp.PrintItemString(walk, 0, 0, False, False);
       walk := walk^.next;
     end;
   end;

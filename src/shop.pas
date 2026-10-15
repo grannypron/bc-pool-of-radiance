@@ -62,7 +62,7 @@ begin
   itemToBuy := cursor;
   p := GDVars.treasureItems;
   while p <> nil do begin
-    CharHlp.PrintItemString(nil, p, 0, 0, False, False);
+    CharHlp.PrintItemString(p, 0, 0, False, False);
     p := p^.next;
   end;
 end;
@@ -159,7 +159,7 @@ begin
     first := 'Buy';
     p := GDVars.treasureItems;
     while p <> nil do begin
-      CharHlp.PrintItemString(nil, p, 0, 0, False, False);
+      CharHlp.PrintItemString(p, 0, 0, False, False);
       p := p^.next;
     end;
   end;

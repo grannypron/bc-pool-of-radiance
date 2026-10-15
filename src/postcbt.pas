@@ -57,14 +57,14 @@ begin
               Inc(cnt);
               if GDVars.treasureItems = nil then begin
                 GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-                CharHlp.PrintItemString(p, item, 0, 0, False, False);
+                CharHlp.PrintItemString(item, 0, 0, False, False);
                 GDVars.treasureItems^ := item^;
                 GDVars.treasureItems^.equipped := 0;
                 GDVars.treasureItems^.next := nil;
               end else begin
                 q := GDVars.treasureItems;
                 GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-                CharHlp.PrintItemString(p, item, 0, 0, False, False);
+                CharHlp.PrintItemString(item, 0, 0, False, False);
                 GDVars.treasureItems^ := item^;
                 GDVars.treasureItems^.equipped := 0;
                 GDVars.treasureItems^.next := q;
@@ -304,7 +304,7 @@ begin
   Border.DrawWindow(1, 1, 38, 22, 0, White, 'Loot');
   p := GDVars.treasureItems;
   while p <> nil do begin
-    CharHlp.PrintItemString(nil, p, 0, 0, False, False);
+    CharHlp.PrintItemString(p, 0, 0, False, False);
     p := p^.next;
   end;
   head := GDVars.treasureItems;

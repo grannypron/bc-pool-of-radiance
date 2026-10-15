@@ -76,11 +76,6 @@ var
   finalSfx: String[1];
 
 var
-  { Character menus. }
-  { DisplayChar's saved character pointer }
-  tempCr1: Types.PCharRecord;
-  { trade selection, reset at ViewCharMenu entry }
-  tempCr2: Types.PCharRecord;
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..72] of Byte;

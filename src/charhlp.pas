@@ -15,7 +15,7 @@ procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; a
 
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
-procedure PrintItemString(creature: Types.PCharRecord; item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
+procedure PrintItemString(item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
 
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
@@ -244,7 +244,7 @@ end;
   any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when
   nonzero, then the identified name components from 3 down to 1, one of them pluralized with 's' when the quantity
   is 2 or more. Optionally print it in light green at the requested position. }
-procedure PrintItemString(creature: Types.PCharRecord; item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
+procedure PrintItemString(item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
 var
   i: Byte;
   mask: Byte;

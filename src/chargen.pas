@@ -585,7 +585,7 @@ begin
   { stat roll / derived / keep loop }
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   repeat
     creature^.strExc := 0;
     for i := 0 to 5 do begin
@@ -758,7 +758,7 @@ begin
     ViewChar.PrintMoney;
     ch := MenuCore.YesNoMenu('Keep this character? ', LightMagenta, LightGreen, White);
   until ch = 'Y';
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   GDVars.curChar := savedCur;
   repeat
     creature^.name := TextRend.ReadString('Character name: ', LightMagenta, Types.NAME_LEN);
@@ -767,7 +767,7 @@ begin
   GDVars.curChar := creature;
   CharGen.CustomizePortrait;
   { the icon editor draws over the sheet the picker cleared }
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   CharGen.CustomizeIcon;
   SaveLoad.SaveChar(Types.PCharRecord(creature), '');
   GDVars.curChar := savedCur;
@@ -838,7 +838,7 @@ begin
     TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow);
     Exit;
   end;
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   Move(GDVars.curChar^.stats, savedStats, SizeOf(GDVars.curChar^.stats));
   savedExc := GDVars.curChar^.strExc;
   savedHp := GDVars.curChar^.hpMax;
