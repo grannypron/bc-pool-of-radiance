@@ -33,9 +33,9 @@ function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Bool
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
-  FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats,
-  StrUtil;
+uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
+  C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
+  CharDisp;
 
 procedure ItemTradeMenu(item: Types.PItemRec); forward;
 
@@ -70,7 +70,7 @@ begin
   GDVars.tempCr1 := GDVars.curChar;
   TextRend.ClearScreen;
   Border.DrawBorder(1, 1, 38, 22, 0);
-  CharHlp.DisplayCreatureName(GDVars.tempCr1, 1, 1, False);
+  CharDisp.DisplayCreatureName(GDVars.tempCr1, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
   if CharHlp.IsNpc(GDVars.tempCr1) then
     TextRend.DisplayString(Length(GDVars.tempCr1^.name) + 3, 1, LightGreen, '(NPC)');
@@ -188,18 +188,18 @@ var
   tgt: Types.PCharRecord;
   hpBefore: Byte;
 begin
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
   tgt := GDVars.creatureList;
-  CharHlp.SelectChar('Heal whom? ', True, tgt);
+  CharDisp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
   hpBefore := tgt^.hpCur;
   if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then begin
     Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
-    CharHlp.PrintBottomLine(tgt^.name + ' feels better')
+    CharDisp.PrintBottomLine(tgt^.name + ' feels better')
   end
   else
-    CharHlp.PrintBottomLine(tgt^.name + ' is unaffected');
+    CharDisp.PrintBottomLine(tgt^.name + ' is unaffected');
   FxEngine.AddEffect(p, C_Effect.RECENT_HEAL, 1440, 255, False);
 end;
 
@@ -212,16 +212,16 @@ var
   effect: Types.PEffectRec;
   ch: Char;
 begin
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
   tgt := GDVars.creatureList;
-  CharHlp.SelectChar('Cure whom? ', True, tgt);
+  CharDisp.SelectChar('Cure whom? ', True, tgt);
   if tgt = nil then
     Exit;
   ch := 'Y';
   if not FxEngine.HasDisease(tgt) then begin
-    CharHlp.PrintNameString(tgt, 'is not diseased', 0, False);
+    CharDisp.PrintNameString(tgt, 'is not diseased', 0, False);
     ch := MenuCore.YesNoMenu('cure anyway: ', LightMagenta, LightGreen, White);
-    CharHlp.ClearMessageWindow;
+    CharDisp.ClearMessageWindow;
   end;
   if ch <> 'Y' then
     Exit;
@@ -230,7 +230,7 @@ begin
     Inc(effect^.strength)
   else
     FxEngine.AddEffect(p, C_Effect.RECENT_CURE, 10080, 1, False);
-  CharHlp.PrintBottomLine(tgt^.name + ' is cured');
+  CharDisp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
 { The statistics page (#611): creature's counters and the kinds it has killed most, or with Game the game's totals;
@@ -264,7 +264,7 @@ begin
     if showGame then
       TextRend.DisplayString(2, 2, LightCyan, 'Game Statistics')
     else begin
-      CharHlp.DisplayCreatureName(creature, 2, 2, False);
+      CharDisp.DisplayCreatureName(creature, 2, 2, False);
       TextRend.DisplayString(Length(creature^.name) + 3, 2, White, 'Statistics');
     end;
     for i := 1 to Stats.STAT_COUNT do begin
@@ -327,7 +327,7 @@ begin
   CharHlp.RecalcStats(p);
   TextRend.ClearScreen;
   Border.DrawBorder(1, 1, 38, 22, 0);
-  CharHlp.DisplayCreatureName(p, 2, 2, False);
+  CharDisp.DisplayCreatureName(p, 2, 2, False);
   TextRend.DisplayString(2, 4, White, 'Saving Throws');
   for i := C_Save.PARALYZE to C_Save.SPELL do begin
     need := p^.saves[i] - p^.saveBonus;
@@ -372,9 +372,9 @@ begin
   CharHlp.RecalcStats(p);
   row := 17;
   TextRend.DisplayString(1, row, White, 'AC    ');
-  CharHlp.PrintArmorClass(p, 4, row);
+  CharDisp.PrintArmorClass(p, 4, row);
   TextRend.DisplayString(1, row + 1, White, 'HP    ');
-  CharHlp.PrintHitPoints(p, 4, row + 1, False);
+  CharDisp.PrintHitPoints(p, 4, row + 1, False);
   col := 8;
   TextRend.DisplayString(col + 1, row, White, 'THAC0   ');
   TextRend.DisplayString(col + 7, row, LightGreen, StrUtil.NumStr(60 - p^.thac0Cur));
@@ -497,7 +497,7 @@ begin
   end;
   if GDVars.ifcState = C_Ifc.COMBAT then
     CbtMap.SetCombatPalette;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 { True when the item may leave curChar's inventory. Equipped items must be unreadied first. If a scroll has pending
@@ -506,11 +506,11 @@ function CheckItemAvail(item: Types.PItemRec): Boolean;
 begin
   CheckItemAvail := False;
   if item^.equipped <> 0 then
-    CharHlp.PrintBottomLine('Must be unreadied')
+    CharDisp.PrintBottomLine('Must be unreadied')
   else if not Magic.ItemReadable(item) then
     CheckItemAvail := True
   else if (item^.charges > $7F) or (item^.effect > $7F) or (item^.special > $7F) then begin
-    CharHlp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
+    CharDisp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
     GDVars.curCol := Length(GDVars.curChar^.name) + 2;
     GDVars.curRow := 21;
     ViewChar.SayBelow(False, ' was going to scribe from that scroll');
@@ -612,7 +612,7 @@ begin
       if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
         Border.DrawBorder(1, 1, 38, 22, 0);
-        CharHlp.DisplayCreatureName(creature, 1, 1, True);
+        CharDisp.DisplayCreatureName(creature, 1, 1, True);
         TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
         Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
         TextRend.DisplayString(1, 3, White, 'Ready Item');
@@ -635,7 +635,7 @@ begin
           { a scroll the Cast list offers (Magic.CastableScroll) need not be readied; other items must be }
           'U': if (sel^.equipped = 0) and not Magic.CastableScroll(creature, sel) then
                begin
-                 CharHlp.PrintBottomLine('Must be Readied');
+                 CharDisp.PrintBottomLine('Must be Readied');
                  ch := ' ';
                end else if Magic.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
                  ViewChar.UseItem(sel, done);
@@ -701,7 +701,7 @@ begin
   creature := GDVars.curChar;
   if item^.equipped <> 0 then begin
     if item^.cursed <> 0 then
-      CharHlp.PrintBottomLine('It''s Cursed')
+      CharDisp.PrintBottomLine('It''s Cursed')
     else begin
       item^.equipped := 0;
       if hasSpecial then
@@ -742,13 +742,13 @@ begin
            if hasSpecial then
              FxEngine.CallEffectHandler(item^.special, creature, item, False);
          end;
-      1: CharHlp.PrintBottomLine('Wrong Class');
+      1: CharDisp.PrintBottomLine('Wrong Class');
       2: begin
            CharHlp.PrintItemString(creature, creature^.equipped[slot], 0, 0, False, False);
-           CharHlp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
+           CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
          end;
       3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then
-           CharHlp.PrintBottomLine('Your hands are full!');
+           CharDisp.PrintBottomLine('Your hands are full!');
     end;
   end;
 end;
@@ -759,12 +759,12 @@ var
   tgt: Types.PCharRecord;
 begin
   tgt := GDVars.tempCr2;
-  CharHlp.DisplayNoncombatInterface;
-  CharHlp.SelectChar('Trade with Whom?', True, tgt);
+  CharDisp.DisplayNoncombatInterface;
+  CharDisp.SelectChar('Trade with Whom?', True, tgt);
   if tgt <> nil then begin
     GDVars.tempCr2 := tgt;
     if ViewChar.CannotCarryItem(tgt, item) then
-      CharHlp.PrintBottomLine('Overloaded')
+      CharDisp.PrintBottomLine('Overloaded')
     else begin
       CharHlp.AddItemCopy(tgt, item);
       CharHlp.RemoveItem(GDVars.curChar, item);
@@ -792,7 +792,7 @@ begin
     item^.quantity := remainder;
     item^.next := newIt;
   end else
-    CharHlp.PrintBottomLine('Can''t halve that');
+    CharDisp.PrintBottomLine('Can''t halve that');
 end;
 
 { Merge into item every other stack (quantity > 0) of curChar's with the same name components, type, plus, save bonus,
@@ -880,25 +880,25 @@ begin
       (GDConsts.spellTable[spell].target = 0) then begin
     Magic.ShowCombatOnlySpell(spell);
     done := MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y';
-    CharHlp.ClearMessageWindow;
+    CharDisp.ClearMessageWindow;
     if done then
       Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell);
     Exit;
   end;
   if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
-    CharHlp.DisplayCombatInterface;
+    CharDisp.DisplayCombatInterface;
   if not Magic.ItemReadable(item) then begin
     if spell > 56 then
       { item effect -> spell id }
       Dec(spell, 23);
-    CharHlp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
+    CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');
       CharHlp.PrintItemString(GDVars.curChar, item, 5, 23, False, True);
     end else
       CharHlp.PrintItemString(GDVars.curChar, item, 1, 22, False, True);
     TextRend.PauseOnly;
-    CharHlp.ClearMessageWindow;
+    CharDisp.ClearMessageWindow;
   end;
   GDVars.usingItem := True;
   if announce then
@@ -938,12 +938,12 @@ begin
   ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    CharHlp.PrintBottomLine('Sold!');
+    CharDisp.PrintBottomLine('Sold!');
     CharHlp.RemoveItem(GDVars.curChar, item);
     plat := price div 5;
     gold := price mod 5;
     if Money.CheckOverload(GDVars.curChar, gold + plat, takable) then begin
-      CharHlp.PrintBottomLine('Overloaded.  Money will be put in pool.');
+      CharDisp.PrintBottomLine('Overloaded.  Money will be put in pool.');
       if takable > plat then
         Inc(GDVars.curChar^.coins[C_Money.PLATINUM], plat)
       else begin
@@ -1015,8 +1015,8 @@ var
 begin
   repeat
     tgt := GDVars.tempCr2;
-    CharHlp.DisplayNoncombatInterface;
-    CharHlp.SelectChar('Trade to?', True, tgt);
+    CharDisp.DisplayNoncombatInterface;
+    CharDisp.SelectChar('Trade to?', True, tgt);
     if tgt = nil then
       exitOuter := True
     else begin
@@ -1219,7 +1219,7 @@ begin
   if notEmpty then begin
     if idx < 0 then begin
       Border.DrawWindow(1, 1, 38, 1, 0, Black, '');
-      CharHlp.DisplayCreatureName(GDVars.curChar, 1, 1, True);
+      CharDisp.DisplayCreatureName(GDVars.curChar, 1, 1, True);
       if menuType = 7 then
         s := 'Available Spells'
       else

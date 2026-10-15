@@ -10,8 +10,8 @@ procedure CombatMain;
 implementation
 
 uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys, C_Class,
-  C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore,
-  ViewChar, TextRend, StrUtil;
+  C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
+  TextRend, StrUtil, CharDisp;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -130,7 +130,7 @@ begin
   GDVars.curChar := creature;
   CbtMap.DisplayMapViewCentered(creature, 2, True);
   CharHlp.RecalcStats(creature);
-  CharHlp.CombatPrintCreatureInfo(creature);
+  CharDisp.CombatPrintCreatureInfo(creature);
   FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
   if creature^.combatAddr^.initiative > 0 then
     if creature^.quickfight <> 0 then
@@ -167,14 +167,14 @@ begin
                  ViewChar.ViewCharMenu(done);
                  CbtActs.SetCurAttacksX2(creature);
                  if not done then
-                   CharHlp.DisplayCombatInterface;
+                   CharDisp.DisplayCombatInterface;
                end;
           'A': CbtActs.CombatAimMenu(creature, 255, 1, 0, done, aimTgt);
           'U': begin
                  ViewChar.UseItemMenu(done);
                  CbtActs.SetCurAttacksX2(creature);
                  if not done then
-                   CharHlp.DisplayCombatInterface;
+                   CharDisp.DisplayCombatInterface;
                end;
           'C': CbtActs.CastSpellCombat(0, 0, done);
           'T': begin
@@ -193,9 +193,9 @@ begin
           C_Keys.ALT_M: begin
                       GDVars.quickMagic := GDVars.quickMagic = False;
                       if GDVars.quickMagic then
-                        CharHlp.PrintBottomLine('Magic On')
+                        CharDisp.PrintBottomLine('Magic On')
                       else
-                        CharHlp.PrintBottomLine('Magic Off');
+                        CharDisp.PrintBottomLine('Magic Off');
                     end;
           { every non-NPC creature back to manual control }
           ' ': begin
@@ -224,11 +224,11 @@ begin
                       CbtMap.DisplayMapViewCentered(creature, 3, False);
                       done := True;
                     end else
-                      CharHlp.PrintBottomLine('That doesn''t work');
+                      CharDisp.PrintBottomLine('That doesn''t work');
         end;
         if not done then begin
           CbtMap.DisplayMapViewCentered(creature, 2, True);
-          CharHlp.CombatPrintCreatureInfo(creature);
+          CharDisp.CombatPrintCreatureInfo(creature);
         end;
       end;
     end;
@@ -301,7 +301,7 @@ begin
     p := p^.nextCharAddr;
   end;
   if Combat.BandageDying(False) then
-    CharHlp.PrintBottomLine('Your Teammate is Dying');
+    CharDisp.PrintBottomLine('Your Teammate is Dying');
   CharHlp.CountTeams;
   CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_Dir.CENTER);
   if (GDVars.teamCount[0] = 0) or (GDVars.teamCount[1] = 0) then
@@ -383,7 +383,7 @@ begin
           'N': done := False;
         end;
       end else if GDConsts.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
-        CharHlp.PrintBottomLine('Blocked')
+        CharDisp.PrintBottomLine('Blocked')
       else begin
         { free attacks from the enemies this step leaves }
         CbtActs.MoveOpportunityAttacks(creature, dir);
@@ -409,7 +409,7 @@ end;
 procedure MeleeAttack(att, def: Types.PCharRecord; var done: Boolean);
 begin
   if CharHlp.HasRangedWeapon(att) and not CharHlp.HasThrowableWeapon(att) then
-    CharHlp.PrintBottomLine('Not with that weapon')
+    CharDisp.PrintBottomLine('Not with that weapon')
   else if CbtActs.CheckAttackAlly(att, def) then begin
     att^.combatAddr^.other := def;
     if CbtActs.SweepAttempt(att, def) then
@@ -475,7 +475,7 @@ begin
       if bandage then begin
         p^.status := C_Status.UNCONSCIOUS;
         p^.combatAddr^.overkill := 0;
-        CharHlp.PrintNameString(p, 'is bandaged', 10, True);
+        CharDisp.PrintNameString(p, 'is bandaged', 10, True);
         { Stop bandaging; keep scanning }
         bandage := False;
       end;

@@ -9,7 +9,7 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend;
+  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp;
 
 
 { On every arena cell whose terrain tile is 22 (grass), roll 1d100: 98 gives terrain 26, 99 gives 27, and 100 (unless
@@ -861,7 +861,7 @@ begin
   Blit.AllocPic(24, 3, 4, 1, GDVars.dsMoveIconSheet);
   GDVars.arenaPtr^.ox := CbtMap.CombatCellX(GDVars.creatureList) - 3;
   GDVars.arenaPtr^.oy := CbtMap.CombatCellY(GDVars.creatureList) - 3;
-  CharHlp.DisplayCombatInterface;
+  CharDisp.DisplayCombatInterface;
   p := GDVars.creatureList;
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_Cond.COMBAT_START, p);

@@ -16,8 +16,8 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
-  Temple;
+uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend, Temple,
+  CharDisp;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
   to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.PrintItemString. Returns
@@ -75,7 +75,7 @@ var
   q: Types.PItemRec;
 begin
   if ViewChar.CannotCarryItem(GDVars.curChar, item) then begin
-    CharHlp.PrintBottomLine('OverLoaded');
+    CharDisp.PrintBottomLine('OverLoaded');
     failed := True;
   end else begin
     failed := False;
@@ -123,7 +123,7 @@ begin
       price := itemToBuy^.value;
       payer := Money.WhoPays(price);
       if payer = Money.PAY_NOBODY then
-        CharHlp.PrintBottomLine('Not enough money.')
+        CharDisp.PrintBottomLine('Not enough money.')
       else begin
         Shop.GiveItemCopyToCreature(itemToBuy, failed);
         if not failed then
@@ -148,8 +148,8 @@ var
   p: Types.PItemRec;
 begin
   GDVars.ifcState := C_Ifc.SHOP_TEMPLE;
-  CharHlp.DisplayNoncombatInterface;
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayNoncombatInterface;
+  CharDisp.DisplayParty(GDVars.curChar);
   FillChar(GDVars.treasureMoney, SizeOf(Types.TMoney), 0);
   GDVars.treasureMoneyFlag := False;
   done := False;
@@ -195,10 +195,10 @@ begin
       C_Keys.HOME, C_Keys.END_KEY: ViewChar.SelectPrevNextChar(c);
     end;
     case c of
-      'B', 'T': CharHlp.DisplayNoncombatInterface;
-      'A': if apprOk then CharHlp.DisplayNoncombatInterface;
+      'B', 'T': CharDisp.DisplayNoncombatInterface;
+      'A': if apprOk then CharDisp.DisplayNoncombatInterface;
     end;
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
   until done;
 end;
 

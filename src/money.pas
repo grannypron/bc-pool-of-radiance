@@ -68,8 +68,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore,
-  C_Msg, EclMenu;
+uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
+  EclMenu, CharDisp;
 
 
 var
@@ -196,7 +196,7 @@ var
   takable: Word;
 begin
   if Money.CheckOverload(GDVars.curChar, pp, takable) then begin
-    CharHlp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
+    CharDisp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
     Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
     CharHlp.RecalcStats(GDVars.curChar);
     GDVars.treasureMoney[C_Money.PLATINUM] := pp + GDVars.treasureMoney[C_Money.PLATINUM] - takable;
@@ -263,7 +263,7 @@ begin
     rcv^.coins[mType] := rcv^.coins[mType] + qty;
     CharHlp.RecalcStats(rcv);
   end else
-    CharHlp.PrintBottomLine('Overloaded');
+    CharDisp.PrintBottomLine('Overloaded');
 end;
 
 { Creatures with npc = 0 or C_Npc.ANIMATED_PC pour all seven money types into the treasure pool; sets
@@ -403,7 +403,7 @@ var
   takable: Word;
 begin
   if Money.CheckOverload(p, qty, takable) then
-    CharHlp.PrintBottomLine('Overloaded')
+    CharDisp.PrintBottomLine('Overloaded')
   else begin
     if qty > GDVars.treasureMoney[mType] then
       qty := Word(GDVars.treasureMoney[mType]);
@@ -904,7 +904,7 @@ begin
   ok := True;
   if (GDVars.curChar^.coins[C_Money.GEMS] = 0) and
       (GDVars.curChar^.coins[C_Money.JEWELRY] = 0) then begin
-    CharHlp.PrintBottomLine('No Gems or Jewelry');
+    CharDisp.PrintBottomLine('No Gems or Jewelry');
     ok := False;
   end else
     repeat
@@ -925,7 +925,7 @@ begin
           else jwlStr := jwlStr + ' pieces of Jewelry';
         end;
         TextRend.ClearRect(1, 1, 38, 22);
-        CharHlp.DisplayCreatureName(GDVars.curChar, 1, 1, False);
+        CharDisp.DisplayCreatureName(GDVars.curChar, 1, 1, False);
         TextRend.DisplayString(1, 7, White, 'You have a fine collection of:');
         TextRend.DisplayString(1, 9, White, gemStr);
         TextRend.DisplayString(1, 10, White, jwlStr);
@@ -1016,7 +1016,7 @@ var
 begin
   payer := Money.WhoPays(gp);
   if payer = PAY_NOBODY then
-    CharHlp.PrintBottomLine('Not enough money.')
+    CharDisp.PrintBottomLine('Not enough money.')
   else
     Money.PayBy(payer, gp);
   PayGold := payer <> PAY_NOBODY;

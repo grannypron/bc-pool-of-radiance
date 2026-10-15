@@ -245,7 +245,7 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil;
+  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp;
 
 const
 
@@ -287,7 +287,7 @@ end;
   already dead, stoned or gone it is all that happens. }
 procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
 begin
-  CharHlp.PrintNameString(creature, msg, 10, False);
+  CharDisp.PrintNameString(creature, msg, 10, False);
   case creature^.status of
     C_Status.STONED, C_Status.DEAD, C_Status.GONE: Exit;
   end;
@@ -299,9 +299,9 @@ begin
   if creature^.enabled = 0 then
     CbtMap.CreatureDowned(creature);
   TextRend.PauseOnly;
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
   if GDVars.ifcState <> C_Ifc.COMBAT then
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { Bless (eff 1) }
@@ -339,7 +339,7 @@ end;
 
 procedure EffTrainStart(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  CharHlp.PrintNameString(creature, 'starts to train', 10, True);
+  CharDisp.PrintNameString(creature, 'starts to train', 10, True);
   FxEngine.AddEffect(creature, C_Effect.TRAIN_MANUAL, 43200, 255, True);
 end;
 
@@ -374,7 +374,7 @@ procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   hpGain: Integer;
 begin
-  CharHlp.PrintNameString(creature, 'is hardier', 10, True);
+  CharDisp.PrintNameString(creature, 'is hardier', 10, True);
   Inc(creature^.conCur);
   if creature^.conCur >= 20 then begin
     FxEngine.AddEffect(creature, C_Effect.CON_REGEN, 60, 255, True);
@@ -502,7 +502,7 @@ begin
       GDVars.elementMask := 0;
       FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
       if GDVars.ifcState <> C_Ifc.COMBAT then
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
     end;
 end;
 
@@ -550,7 +550,7 @@ end;
 procedure EffSilence(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
-    CharHlp.PrintNameString(creature, 'is silenced', 10, True);
+    CharDisp.PrintNameString(creature, 'is silenced', 10, True);
   creature^.combatAddr^.itemUseAllowed := 0;
   creature^.combatAddr^.castAllowed := 0;
 end;
@@ -598,7 +598,7 @@ begin
         item^.special := C_Effect.SPIRIT_HAMMER_GONE;
         CharHlp.AddItemCopy(creature, item);
         FreeMem(item, SizeOf(Types.TItemRec));
-        CharHlp.PrintNameString(creature, 'Gains an item', 10, True);
+        CharDisp.PrintNameString(creature, 'Gains an item', 10, True);
       end;
   CharHlp.RecalcStats(creature);
 end;
@@ -639,7 +639,7 @@ begin
     if GDVars.dsCurrentSpellBeing > 0 then
       if GDVars.gMultiTarget = 0 then begin
         EffHndlr.NullifyAttack(0);
-        CharHlp.PrintNameString(creature, 'lost an image', 10, True);
+        CharDisp.PrintNameString(creature, 'lost an image', 10, True);
         Dec(Types.PEffectRec(p)^.strength);
         if Types.PEffectRec(p)^.strength = 0 then
           FxEngine.RemoveEffect(creature, C_Effect.MIRROR_IMAGE, nil);
@@ -658,7 +658,7 @@ end;
 procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
-    CharHlp.PrintNameString(creature, 'is coughing', 10, True);
+    CharDisp.PrintNameString(creature, 'is coughing', 10, True);
   creature^.combatAddr^.itemUseAllowed := 0;
   creature^.combatAddr^.castAllowed := 0;
   CharHlp.RecalcStats(creature);
@@ -668,7 +668,7 @@ begin
     creature^.acBehind := 50;
   creature^.acCur := creature^.acBehind;
   if creature = GDVars.curChar then
-    CharHlp.CombatPrintCreatureInfo(creature);
+    CharDisp.CombatPrintCreatureInfo(creature);
 end;
 
 { Animate Dead (eff 32). Fires on REMOVAL of the animation }
@@ -740,7 +740,7 @@ procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Types.PEffectRec(p)^.strength and $10 = 0 then begin
     Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength + $10;
-    CharHlp.PrintNameString(creature, 'ages', 10, True);
+    CharDisp.PrintNameString(creature, 'ages', 10, True);
     Inc(creature^.age);
   end;
   GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent * 2;
@@ -768,7 +768,7 @@ begin
     else
       node := node^.next;
   if found = 0 then Exit;
-  CharHlp.PrintBottomLine('The air clears a little...');
+  CharDisp.PrintBottomLine('The air clears a little...');
   { 4 = High(TStinkRec.exists) }
   for i := 1 to 4 do
     if node^.exists[i] <> 0 then begin
@@ -815,7 +815,7 @@ begin
   if GDVars.curChar^.equipped[C_Equip.WEAPON] <> nil then
     if CharHlp.CalcDistance(GDVars.curChar, creature) > 1 then
       if FxEngine.RollDice(1, 100) <= pct then begin
-        CharHlp.PrintNameString(creature, 'Avoids it', 10, True);
+        CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
         GDVars.gAttackRoll := -1;
         phase := GDVars.curChar^.combatAddr^.attackPhase;
@@ -867,7 +867,7 @@ var
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.DISEASE_STR, Types.PEffectRec(p)^.strength, 60) then
     if creature^.strCur > 3 then begin
-      CharHlp.PrintNameString(creature, 'is weakened', 10, True);
+      CharDisp.PrintNameString(creature, 'is weakened', 10, True);
       Dec(creature^.strCur);
     end else
       if not CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then
@@ -885,7 +885,7 @@ begin
       GDVars.elementMask := 0;
       FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
       if GDVars.ifcState <> C_Ifc.COMBAT then
-        CharHlp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GDVars.curChar);
     end else
       if not CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_Effect.HELPLESS, 0, 255, False);
@@ -939,7 +939,7 @@ procedure EffRotNoHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.ROT_NO_HEAL, Types.PEffectRec(p)^.strength, 14400) then
     if FxEngine.RestoreHitPoints(creature, 1, True) then
-      CharHlp.PrintHpRestoreMsg(creature);
+      CharDisp.PrintHpRestoreMsg(creature);
 end;
 
 { Helpless (eff 31, 51, 52, 53) }
@@ -962,7 +962,7 @@ end;
 procedure EffMummyRot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.effectLock <> 0 then Exit;
-  CharHlp.PrintNameString(creature, 'Rots...', 10, True);
+  CharDisp.PrintNameString(creature, 'Rots...', 10, True);
   if creature^.chaCur > 2 then
     Dec(creature^.chaCur, 2)
   else
@@ -1018,7 +1018,7 @@ procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.CON_REGEN, Types.PEffectRec(p)^.strength, 60) then
     if FxEngine.RestoreHitPoints(creature, 1, True) then
-      CharHlp.PrintHpRestoreMsg(creature);
+      CharDisp.PrintHpRestoreMsg(creature);
 end;
 
 { Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod, it gets eff 55 and is
@@ -1028,7 +1028,7 @@ procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then begin
-    CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
+    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
     TextRend.PauseOnly;
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
     EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
@@ -1041,7 +1041,7 @@ procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: Sh
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then begin
-    CharHlp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
+    CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
   end;
 end;
@@ -1142,7 +1142,7 @@ begin
       if GDVars.dsOtherCreatureCurrentPtr^.enabled <> 0 then
         creature^.combatAddr^.turned := 1;
   end else begin
-    CharHlp.PrintNameString(creature, 'Sucks some Blood', 10, True);
+    CharDisp.PrintNameString(creature, 'Sucks some Blood', 10, True);
     dmg := FxEngine.RollDamageDice(1, 4);
     GDVars.elementMask := 0;
     FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, dmg, 0, False);
@@ -1190,7 +1190,7 @@ begin
     FxEngine.AddEffect(creature, C_Effect.BITE_HOLD, 0, slot, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
     FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
-    CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is held fast', 10, True);
+    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is held fast', 10, True);
   end;
 end;
 
@@ -1280,9 +1280,9 @@ var
   effect: Types.PEffectRec;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  CharHlp.PrintNameString(creature, 'gazes...', 10, False);
-  CharHlp.BuildIconFacings(18);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+  CharDisp.PrintNameString(creature, 'gazes...', 10, False);
+  CharDisp.BuildIconFacings(18);
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
   if CharHlp.HasEffect(creature, C_Effect.GAZE_REFLECTABLE, effect) then begin
@@ -1292,8 +1292,8 @@ begin
       if item^.equipped <> 0 then
         { "Mirror" }
         if (item^.nameIds[1] = 118) or (item^.nameIds[2] = 118) or (item^.nameIds[3] = 118) then begin
-          CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'reflects it!', 12, False);
-          CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
+          CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'reflects it!', 12, False);
+          CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                           CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr),
                                           CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 4, 45);
           reflected := True;
@@ -1326,9 +1326,9 @@ begin
   dist := GDConsts.spellTable[C_Spell.CHARM_PERSON].rangeFixed;
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
                           GDVars.arenaPtr) then Exit;
-  CharHlp.PrintNameString(creature, 'Gazes...', 10, False);
-  CharHlp.BuildIconFacings(18);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+  CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
+  CharDisp.BuildIconFacings(18);
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
   { Charm Person }
@@ -1394,7 +1394,7 @@ begin
     numStr := StrUtil.NumStr(levels) + ' levels'
   else
     numStr := 'a level';
-  CharHlp.PrintNameString(creature, 'is drained ' + numStr, 10, True);
+  CharDisp.PrintNameString(creature, 'is drained ' + numStr, 10, True);
   if creature^.status = C_Status.ANIMATED then begin
     EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
     creature^.hpMax := 0;
@@ -1472,7 +1472,7 @@ begin
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, 14400, 255, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.MUMMY_ROT, 43200,
                        FxEngine.RollDice(1, 6) * 16 + 15, True);
-    CharHlp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Diseased', 10, True);
+    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Diseased', 10, True);
   end;
 end;
 
@@ -1516,7 +1516,7 @@ procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if GDVars.dsCurrentSpellBeing = 15 then begin
     EffHndlr.NullifyAttack(0);
-    CharHlp.PrintNameString(creature, 'is unaffected', 10, True);
+    CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
   end else
     if GDVars.elementMask and 4 <> 0 then
       EffHndlr.NullifyAttack(0);
@@ -1856,9 +1856,9 @@ begin
   if FxEngine.RollDice(1, 100) > 25 then Exit;
   if CharHlp.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
   dummy := CharHlp.EndActions(creature);
-  CharHlp.PrintNameString(creature, 'Spits Acid', 10, True);
-  CharHlp.BuildIconFacings(23);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+  CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
+  CharDisp.BuildIconFacings(23);
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 1, 30);
   FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, FxEngine.RollDamageDice(8, 4), 2,
@@ -1994,10 +1994,10 @@ begin
     if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) then
       if GDVars.ifcState = C_Ifc.COMBAT then begin
         GDVars.ifcState := C_Ifc.CAMPING;
-        CharHlp.PrintNameString(creature, 'is stronger', 10, True);
+        CharDisp.PrintNameString(creature, 'is stronger', 10, True);
         GDVars.ifcState := C_Ifc.COMBAT;
       end else
-        CharHlp.PrintNameString(creature, 'is stronger', 10, True);
+        CharDisp.PrintNameString(creature, 'is stronger', 10, True);
     GDVars.dsRedrawInventoryMenuFlag := 1;
     FxEngine.AddEffect(creature, C_Effect.STRENGTH, 0, enc, True);
   end;
@@ -2018,7 +2018,7 @@ begin
     dmg := item^.effect div 16;
     GDVars.elementMask := 8;
     if GDVars.ifcState = C_Ifc.COMBAT then
-      CharHlp.DisplayCombatInterface;
+      CharDisp.DisplayCombatInterface;
     FxEngine.InflictItemShock(creature, item, dmg);
     GDVars.dsRedrawInventoryMenuFlag := 1;
   end;
@@ -2034,7 +2034,7 @@ begin
   if removed then Exit;
   if creature^.strCur < 19 then begin
     item^.equipped := 0;
-    CharHlp.PrintBottomLine('Must have Giant Strength');
+    CharDisp.PrintBottomLine('Must have Giant Strength');
   end;
 end;
 

@@ -107,7 +107,7 @@ procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduct
 
 { InflictNonWeaponDamage, with no save, for an aligned item (eff 132) that shocks the creature readying it: in place
   of "takes n points of damage" the message window shows "<item> shocks <name> for <n> damage, and has been
-  unequipped." with the item's displayed name, and waits for a key (CharHlp.PrintMessageWait). }
+  unequipped." with the item's displayed name, and waits for a key (CharDisp.PrintMessageWait). }
 procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; damage: Byte);
 
 { True when effId is a disease (Diseased, its Strength and hit point drains, or mummy rot) and the creature has paladin
@@ -136,7 +136,7 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
 implementation
 
-uses Stats, StrUtil, C_Gbvm;
+uses Stats, StrUtil, C_Gbvm, CharDisp;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -521,7 +521,7 @@ begin
   if creature^.enabled = 0 then Exit;
   slot := CbtMap.CombatSlot(creature);
   CbtMap.DisplayMapViewCentered(creature, 3, False);
-  CharHlp.PrintNameString(creature, msg, 10, True);
+  CharDisp.PrintNameString(creature, msg, 10, True);
   creature^.enabled := 0;
   creature^.status := status;
   { a creature that fled (C_Status.RUNNING) keeps its hit points }
@@ -568,7 +568,7 @@ var
 begin
   RemoveEffectWithMessage := False;
   if CharHlp.HasEffect(creature, effId, effect) then begin
-    CharHlp.PrintNameString(creature, 'is Cured', 10, True);
+    CharDisp.PrintNameString(creature, 'is Cured', 10, True);
     FxEngine.RemoveEffect(creature, effId, effect);
     RemoveEffectWithMessage := True;
   end;
@@ -657,18 +657,18 @@ begin
     if (GDVars.elementMask and 8) = GDVars.elementMask then
       s := s + 'from Magic';
     if shockItem = nil then
-      CharHlp.PrintNameStringAnim(creature, False, s)
+      CharDisp.PrintNameStringAnim(creature, False, s)
     else begin
       { the item label ends in a space }
       CharHlp.PrintItemString(creature, shockItem, 0, 0, False, False);
-      CharHlp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
+      CharDisp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
                                StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
     end;
     CharHlp.InflictDamage(creature, GDVars.pendingDamage);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       creature^.combatAddr^.castAllowed := 0;
       if creature^.combatAddr^.spellCast > 0 then begin
-        CharHlp.PrintNameString(creature, 'lost a spell', 12, True);
+        CharDisp.PrintNameString(creature, 'lost a spell', 12, True);
         CharHlp.RemoveSpell(creature, creature^.combatAddr^.spellCast);
         creature^.combatAddr^.spellCast := 0;
       end;
@@ -680,7 +680,7 @@ begin
       { 6..8 = dead, stoned, gone }
       if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then
         s := 'is killed';
-      CharHlp.PrintNameString(creature, s, GDVars.curRow + 1, False);
+      CharDisp.PrintNameString(creature, s, GDVars.curRow + 1, False);
       if GDVars.ifcState <> C_Ifc.COMBAT then
         TextRend.PauseOnly
       else begin
@@ -692,7 +692,7 @@ begin
           TextRend.PauseOnly;
       end;
     end;
-    CharHlp.ClearMessageWindow;
+    CharDisp.ClearMessageWindow;
   end;
 end;
 
@@ -722,7 +722,7 @@ begin
   if FxEngine.DiseaseImmune(creature, effId) then
     GDVars.pendingEffectId := 0;
   if (GDVars.pendingEffectId = 0) or (saved and (saveNegates = True)) then
-    CharHlp.PrintNameString(creature, 'is Unaffected', 10, True)
+    CharDisp.PrintNameString(creature, 'is Unaffected', 10, True)
   else begin
     if CharHlp.HasEffect(creature, effId, effect) then
       if ((Types.PEffectRec(effect)^.duration > 0) and (minutes > Types.PEffectRec(effect)^.duration)) or
@@ -730,8 +730,8 @@ begin
         FxEngine.RemoveEffect(creature, effId, effect);
     FxEngine.AddEffect(creature, effId, minutes, strength, onRemove);
     if msg[0] <> #0 then begin
-      CharHlp.PrintNameStringAnim(creature, True, msg);
-      CharHlp.ClearMessageWindow;
+      CharDisp.PrintNameStringAnim(creature, True, msg);
+      CharDisp.ClearMessageWindow;
     end;
   end;
 end;
@@ -782,7 +782,7 @@ begin
       s := 'stands up and grins'
     else
       s := 'gets back up';
-    CharHlp.PrintNameString(creature, s, 10, True);
+    CharDisp.PrintNameString(creature, s, 10, True);
     CharHlp.CountTeams;
     ReviveDeadCreature := True;
   end else

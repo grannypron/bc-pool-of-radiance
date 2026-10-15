@@ -61,7 +61,8 @@ function StingVictoryCheat: Boolean;
 implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect, C_Equip, C_Keys, C_Level,
-  C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil;
+  C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
+  CharDisp;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
@@ -193,9 +194,9 @@ begin
   else
     verb := 'Attacks';
   end;
-  CharHlp.PrintNameString(att, verb, 10, False);
+  CharDisp.PrintNameString(att, verb, 10, False);
   row := 12;
-  CharHlp.DisplayCreatureName(def, 23, row, False);
+  CharDisp.DisplayCreatureName(def, 23, row, False);
   Inc(row);
   if atkType = 1 then
     verb := '(from behind) '
@@ -221,7 +222,7 @@ begin
     def^.combatAddr^.castAllowed := 0;
     if def^.combatAddr^.spellCast > 0 then begin
       TextRend.PauseOnly;
-      CharHlp.PrintNameString(def, 'lost a spell', 12, True);
+      CharDisp.PrintNameString(def, 'lost a spell', 12, True);
       CharHlp.RemoveSpell(def, def^.combatAddr^.spellCast);
       def^.combatAddr^.spellCast := 0;
     end else
@@ -229,12 +230,12 @@ begin
   end else
     TextRend.PauseOnly;
   if def^.enabled = 0 then begin
-    CharHlp.PrintNameString(def, 'goes down', row, False);
+    CharDisp.PrintNameString(def, 'goes down', row, False);
     Inc(row, 2);
     if def^.status = C_Status.DYING then
       TextRend.DisplayString(23, row, LightGreen, 'and is Dying');
     if def^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then
-      CharHlp.PrintNameString(def, 'is killed', row, False);
+      CharDisp.PrintNameString(def, 'is killed', row, False);
     { dead store: row is never read again }
     Inc(row, 2);
     FxEngine.RemoveEffectsHp0(def);
@@ -244,7 +245,7 @@ begin
     else
       TextRend.PauseOnly;
   end;
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
 end;
 
 { Each adjacent enemy that is guarding and not helpless spends its guard on a free attack against the mover. }
@@ -397,7 +398,7 @@ begin
                       attacked := True;
                       p^.combatAddr^.other := savedOther;
                       if creature^.enabled <> 0 then
-                        CharHlp.CombatPrintCreatureInfo(creature);
+                        CharDisp.CombatPrintCreatureInfo(creature);
                     end;
       end;
 end;
@@ -426,7 +427,7 @@ begin
   if ok then
     FxEngine.PutOutOfPlayWithStatus(creature, C_Status.RUNNING, 'Got Away')
   else
-    CharHlp.PrintBottomLine('Escape is blocked');
+    CharDisp.PrintBottomLine('Escape is blocked');
   CombatFleeAttempt := CharHlp.EndActions(creature);
 end;
 
@@ -517,7 +518,7 @@ begin
     Exit;
   if weak > att^.combatAddr^.sweepBudget then
     weak := att^.combatAddr^.sweepBudget;
-  CharHlp.PrintNameString(att, 'sweeps', 10, True);
+  CharDisp.PrintNameString(att, 'sweeps', 10, True);
   { def becomes the first sweep target }
   p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[1]];
   if p <> def then begin
@@ -575,7 +576,7 @@ var
   col: ShortInt;
   row: ShortInt;
 begin
-  CharHlp.PrintNameString(creature, 'turns undead...', 10, False);
+  CharDisp.PrintNameString(creature, 'turns undead...', 10, False);
   TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   any := False;
@@ -600,12 +601,12 @@ begin
     if roll >= Abs(turnVal) then begin
       any := True;
       CbtMap.DisplayMapViewCentered(Types.PCharRecord(tgt), 3, False);
-      CharHlp.CombatPrintCreatureInfo(Types.PCharRecord(tgt));
+      CharDisp.CombatPrintCreatureInfo(Types.PCharRecord(tgt));
       if turnVal > 0 then begin
         Types.PCharRecord(tgt)^.combatAddr^.turned := 1;
-        CharHlp.PrintNameStringAnim(Types.PCharRecord(tgt), True, 'is turned');
+        CharDisp.PrintNameStringAnim(Types.PCharRecord(tgt), True, 'is turned');
       end else begin
-        CharHlp.PrintNameString(Types.PCharRecord(tgt), 'Is destroyed', 10, False);
+        CharDisp.PrintNameString(Types.PCharRecord(tgt), 'Is destroyed', 10, False);
         CbtMap.CreatureDowned(Types.PCharRecord(tgt));
         Types.PCharRecord(tgt)^.status := C_Status.GONE;
         Types.PCharRecord(tgt)^.enabled := 0;
@@ -618,15 +619,15 @@ begin
           if turnVal < 0 then
             { extend while below six successes }
             Inc(attempts);
-      CharHlp.ClearMessageWindow;
+      CharDisp.ClearMessageWindow;
     end else
       stop := True;
   end;
   if not any then
-    CharHlp.PrintBottomLine('Nothing Happens...');
+    CharDisp.PrintBottomLine('Nothing Happens...');
   CharHlp.CountTeams;
   GDVars.doneRoundFlag := CharHlp.EndActions(creature);
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
 end;
 
 function TurnLevel(creature: Types.PCharRecord): ShortInt;
@@ -759,7 +760,7 @@ begin
             { the blow strikes an image }
             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.MISS]);
             CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
-            CharHlp.PrintNameString(def, 'lost an image', 10, True);
+            CharDisp.PrintNameString(def, 'lost an image', 10, True);
             Dec(image^.strength);
             if image^.strength = 0 then
               FxEngine.RemoveEffect(def, C_Effect.MIRROR_IMAGE, nil);
@@ -826,7 +827,7 @@ begin
       def^.combatAddr^.direction := dir;
   end;
   dir := CbtActs.DirTowardTarget(att, def);
-  CharHlp.CombatPrintCreatureInfo(att);
+  CharDisp.CombatPrintCreatureInfo(att);
   CbtMap.SetCreatureFacing(att, dir, 1, 0);
   att^.combatAddr^.other := def;
   Delay(100);
@@ -1115,7 +1116,7 @@ begin
             GDVars.dsTargetCreaturePtr[k] := sel.cr;
             Dec(remaining);
           end else if not b then
-            CharHlp.PrintBottomLine('Already been targeted')
+            CharDisp.PrintBottomLine('Already been targeted')
           else
             Dec(remaining);
           CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GDVars.dsTargetCreaturePtr[k]),
@@ -1157,7 +1158,7 @@ begin
   end;
   if spellId > C_Spell.NONE then
     if GDConsts.spellTable[spellId].whenCast = 0 then begin
-      CharHlp.PrintBottomLine('Camp Only Spell');
+      CharDisp.PrintBottomLine('Camp Only Spell');
       spellId := C_Spell.NONE;
       scroll := nil;
     end;
@@ -1166,13 +1167,13 @@ begin
     CharHlp.RecalcStats(caster);
     CbtActs.SetCurAttacksX2(caster);
     if not cast then
-      CharHlp.DisplayCombatInterface;
+      CharDisp.DisplayCombatInterface;
     Exit;
   end;
   if ai = 0 then begin
-    CharHlp.DisplayCombatInterface;
+    CharDisp.DisplayCombatInterface;
     CbtMap.DisplayMapViewCentered(caster, 3, True);
-    CharHlp.CombatPrintCreatureInfo(caster);
+    CharDisp.CombatPrintCreatureInfo(caster);
   end;
   if spellId > C_Spell.NONE then begin
     castTime := GDConsts.spellTable[spellId].castTime div 3;
@@ -1181,7 +1182,7 @@ begin
       cast := CharHlp.EndActions(caster);
     end else begin
       cast := True;
-      CharHlp.PrintNameString(caster, 'Begins Casting', 10, True);
+      CharDisp.PrintNameString(caster, 'Begins Casting', 10, True);
       caster^.combatAddr^.spellCast := spellId;
       if caster^.combatAddr^.initiative > castTime then
         Dec(caster^.combatAddr^.initiative, castTime)
@@ -1260,22 +1261,22 @@ begin
     9, 21, 28, 31, 73:
       if Odd(dir) then begin
         if (dir = C_Dir.SOUTHEAST) or (dir = C_Dir.SOUTHWEST) then
-          CharHlp.CopyIconFacing(sym + 1, 1, 0, dir = C_Dir.SOUTHWEST)
+          CharDisp.CopyIconFacing(sym + 1, 1, 0, dir = C_Dir.SOUTHWEST)
         else
-          CharHlp.CopyIconFacing(sym + 1, 0, 0, dir = C_Dir.NORTHWEST);
+          CharDisp.CopyIconFacing(sym + 1, 0, 0, dir = C_Dir.NORTHWEST);
       end else
-        CharHlp.CopyIconFacing(sym + dir mod 4, dir div 4, 0, False);
+        CharDisp.CopyIconFacing(sym + dir mod 4, dir div 4, 0, False);
     { spinning thrown weapons: Hand Axe, Club, Hammer }
     2, 7, C_Item.HAMMER:
       begin
-        CharHlp.BuildIconFacings(sym + 3);
+        CharDisp.BuildIconFacings(sym + 3);
         frames := 4;
         pace := 50;
       end;
     { holy water / oil flask }
     C_Item.HOLY_WATER_VIAL, C_Item.FLASK_OF_OIL:
       begin
-        CharHlp.BuildIconFacings(sym + 4);
+        CharDisp.BuildIconFacings(sym + 4);
         frames := 4;
         pace := 50;
       end;
@@ -1283,15 +1284,15 @@ begin
       { base item 47, Sling }
       if weapon^.itemType = 47 then
         Inc(sym);
-      CharHlp.CopyIconFacing(sym + 7, 0, 0, False);
-      CharHlp.CopyIconFacing(sym + 7, 1, 1, False);
+      CharDisp.CopyIconFacing(sym + 7, 0, 0, False);
+      CharDisp.CopyIconFacing(sym + 7, 1, 1, False);
       frames := 2;
       pace := 20;
     end;
   end;
   SoundDrv.SoundSetAutoStop(0);
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.RANGED_START]);
-  CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
                                   CbtMap.CombatCellY(def), frames, pace);
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.RANGED_END]);
   SoundDrv.SoundSetAutoStop(10);
@@ -1416,7 +1417,7 @@ begin
   end;
   menu := 'Next Prev Manual ' + menu + 'Center Exit';
   CbtMap.DisplayMapViewCentered(tgt, 3, True);
-  CharHlp.CombatPrintCreatureInfo(tgt);
+  CharDisp.CombatPrintCreatureInfo(tgt);
   repeat
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('Aim: ', menu, LightMagenta, LightGreen, White, True, False, ext);
@@ -1528,7 +1529,7 @@ begin
               underCursor := GDVars.downed[j].cr;
     end;
     if underCursor <> nil then
-      CharHlp.CombatPrintCreatureInfo(underCursor)
+      CharDisp.CombatPrintCreatureInfo(underCursor)
     else
       Border.ClearBox(23, 1, 38, 21);
     if (range < dist) or (GDConsts.terrainInfo[terrIdx].cost = 255) then
@@ -1640,7 +1641,7 @@ var
     nextX := GDVars.arenaLoc[targets[curIdx].idx].x;
     nextY := GDVars.arenaLoc[targets[curIdx].idx].y;
     if animate then begin
-      CharHlp.CombatAnimateMovingIcon(curX, curY, nextX, nextY, 1, 0);
+      CharDisp.CombatAnimateMovingIcon(curX, curY, nextX, nextY, 1, 0);
       curX := nextX;
       curY := nextY;
     end;
@@ -1648,7 +1649,7 @@ var
 
 begin
   { the aim cursor icon }
-  CharHlp.CopyIconFacing(25, 0, 0, False);
+  CharDisp.CopyIconFacing(25, 0, 0, False);
   FillChar(tgt, SizeOf(Types.TAimTarget), 0);
   done := False;
   effRange := range;
@@ -1689,14 +1690,14 @@ begin
           begin
             CbtActs.ManualAimCursor(creature, p, effRange, weaponMode, groundOk, keyDir, done,
                                     Types.TAimTarget(tgt));
-            CharHlp.CopyIconFacing(25, 0, 0, False);
+            CharDisp.CopyIconFacing(25, 0, 0, False);
             BuildAimTargets(creature);
             menuStep := 0;
           end;
         'T':
           begin
             CbtActs.ConfirmAttackTarget(creature, p, weaponMode, done, Types.TAimTarget(tgt));
-            CharHlp.CopyIconFacing(25, 0, 0, False);
+            CharDisp.CopyIconFacing(25, 0, 0, False);
             BuildAimTargets(creature);
             menuStep := 0;
           end;
@@ -1788,7 +1789,7 @@ begin
       creature^.curRollsA[2] := 2;
       creature^.curDiceA[2] := 4;
       creature^.curAttacks := 0;
-      CharHlp.PrintNameString(creature, 'Rakes...', 10, True);
+      CharDisp.PrintNameString(creature, 'Rakes...', 10, True);
       CbtActs.CombatAttack(creature, creature^.combatAddr^.other, False, nil, done);
       done := CharHlp.EndActions(creature);
     end;
@@ -1843,7 +1844,7 @@ begin
   if not GDVars.stingArg then
     Exit;
   StingVictoryCheat := True;
-  CharHlp.PrintBottomLine('The Gods intervene!');
+  CharDisp.PrintBottomLine('The Gods intervene!');
   p := GDVars.creatureList;
   while p <> nil do begin
     if p^.hostile = 1 then begin

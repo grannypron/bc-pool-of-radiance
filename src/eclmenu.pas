@@ -70,7 +70,7 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 implementation
 
 uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, ViewChar, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
-  C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars;
+  C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp;
 
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
@@ -308,7 +308,7 @@ begin
     ch := MenuCore.MenuHorizontal(query, menu, qCol, mCol, hlCol, True, animate, ext);
     if ext then begin
       ViewChar.SelectPrevNextChar(ch);
-      CharHlp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GDVars.curChar);
       ch := C_Keys.NONE;
     end;
   until (ch in ['0'..'9', 'A'..'Z']) or ((ch = C_Keys.ENTER) and enterOk);
@@ -538,7 +538,7 @@ begin
   TextRend.ShowMessage(White, pause, msg);
   CharHlp.InflictDamage(creature, dmg);
   TextRend.ClearRect(17, 1, 38, 15);
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 end.

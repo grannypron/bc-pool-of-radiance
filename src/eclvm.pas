@@ -14,7 +14,7 @@ implementation
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
   EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars;
+  StrUtil, EclVars, CharDisp;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -189,7 +189,7 @@ begin
     if GDVars.savedChar = GDVars.curChar then
       GDVars.restoreChar := 0;
     CharGen.RemoveCreature(False, True);
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GDVars.curChar);
     GDVars.dumpCr6C00 := False;
     GDVars.dumpCr6B00 := False;
   end;
@@ -500,8 +500,8 @@ begin
         end;
   end;
   if (GDVars.enteringLoop <> 0) and (GDVars.piecesLoaded <> 0) and (GDVars.mapLoaded <> 0) then begin
-    CharHlp.DisplayNoncombatInterface;
-    CharHlp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayNoncombatInterface;
+    CharDisp.DisplayParty(GDVars.curChar);
     GDVars.enteringLoop := 0;
   end;
 end;
@@ -894,7 +894,7 @@ begin
   GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1;
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
   GDVars.eclGraphics := False;
-  CharHlp.DisplayNoncombatInterface;
+  CharDisp.DisplayNoncombatInterface;
 end;
 
 { ONGOTO / ONGOSUB: jump to or call address number var 1 of the var 2 addresses that follow (at most 64); a selector of
@@ -1077,7 +1077,7 @@ begin
     end;
   end;
   { the party list shows the new armor class at once }
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { Run the encounter menu until combat, flight, parley or monster retreat ends it. WAIT and ADVANCE update the encounter
@@ -1467,7 +1467,7 @@ begin
   EclVars.LoadEclVars(1);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   msg := GDVars.gbStrings[1];
-  CharHlp.SelectChar(msg, False, GDVars.curChar);
+  CharDisp.SelectChar(msg, False, GDVars.curChar);
 end;
 
 { ADD NPC: add creature var 1 to the party as an NPC whose npc byte is half the morale var 2 with bit 7 set. Monster id
@@ -1493,7 +1493,7 @@ begin
   else
     GDVars.curChar^.hostile := 1;
   CharHlp.RecalcStats(GDVars.curChar);
-  CharHlp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { SPELL: find the first party member, in party order, who is okay and has spell var 1 memorized (not pending) in
@@ -1554,7 +1554,7 @@ begin
         if GDVars.eclGraphics or GDVars.sprShown or GDVars.picRegionW or GDVars.movedParty or
             GDVars.redrawSky then begin
           MapView.DisplayMapView;
-          CharHlp.PrintMiscInfo;
+          CharDisp.PrintMiscInfo;
           GDVars.redrawSky := False;
           GDVars.picRegionW := False;
           GDVars.movedParty := False;
@@ -1595,7 +1595,7 @@ begin
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[3]);
   Camp.CampMainMenu(interrupted);
   if interrupted then begin
-    CharHlp.DisplayNoncombatInterface;
+    CharDisp.DisplayNoncombatInterface;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[4]);
   end;
   MapView.DisplayMapView;
@@ -1618,7 +1618,7 @@ begin
   case v of
     PROG_TRAINING: begin
       CharGen.MainMenu;
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
     end;
     PROG_WIN_GAME:
       Ending.WinGame;
@@ -1788,7 +1788,7 @@ begin
     if GDVars.newEclFlag = 0 then begin
       EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
       GDVars.curChar := savedCur;
-      CharHlp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GDVars.curChar);
     end;
   until GDVars.newEclFlag = 0;
 end;
@@ -1818,7 +1818,7 @@ begin
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
   if GDVars.ifcState <> C_Ifc.OUTDOORS then begin
     if GDVars.enteringLoop = 1 then begin
-      CharHlp.DisplayNoncombatInterface;
+      CharDisp.DisplayNoncombatInterface;
       GDVars.enteringLoop := 0;
     end;
     MapView.DisplayMapView;

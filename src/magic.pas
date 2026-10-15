@@ -196,7 +196,7 @@ procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: 
 
 implementation
 
-uses Stats;
+uses Stats, CharDisp;
 
 const
   { Lightning Bolt's length, in cells past the aim cell }
@@ -684,8 +684,8 @@ begin
   case GDConsts.spellTable[spell].target of
     1: ;
     2: begin
-         CharHlp.DisplayNoncombatInterface;
-         CharHlp.SelectChar('Cast Spell on whom', True, GDVars.castTarget);
+         CharDisp.DisplayNoncombatInterface;
+         CharDisp.SelectChar('Cast Spell on whom', True, GDVars.castTarget);
          if GDVars.castTarget = nil then begin
            GDVars.dsTargetCreaturePtr[1] := nil;
            GDVars.spellTargetCount := 0;
@@ -738,7 +738,7 @@ begin
     if sel then begin
       ok := False;
       if GDVars.ifcState = C_Ifc.COMBAT then begin
-        CharHlp.BuildIconFacings(18);
+        CharDisp.BuildIconFacings(18);
         x := CbtMap.CombatCellX(p);
         y := CbtMap.CombatCellY(p);
         k := 0;
@@ -755,7 +755,7 @@ begin
           { default: 2 }
           SoundDrv.SoundCommand(soundIds[3]);
         end;
-        CharHlp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
+        CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
         SoundDrv.SoundSetAutoStop(10);
         if CbtMap.CombatIconVisible(p, 0) then begin
           CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 1, 1);
@@ -776,14 +776,14 @@ begin
         ok := False
       else if b or (MenuCore.YesNoMenu('Abort Spell? ', Yellow, LightGreen, White) = 'Y') then
       begin
-        CharHlp.PrintBottomLine('Spell Aborted');
+        CharDisp.PrintBottomLine('Spell Aborted');
         if GDVars.usingItem = False then
           CharHlp.RemoveSpell(GDVars.curChar, spell);
         ok := False;
       end;
     end;
   end;
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
   if GDVars.ifcState = C_Ifc.COMBAT then
     Border.ClearBox(0, 23, 39, 23);
 end;
@@ -828,7 +828,7 @@ begin
   if GDVars.spellTargetCount = 0 then
     Exit;
   if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(1, 8), False) then
-    CharHlp.PrintHpRestoreMsg(GDVars.dsTargetCreaturePtr[1]);
+    CharDisp.PrintHpRestoreMsg(GDVars.dsTargetCreaturePtr[1]);
 end;
 
 { Cause Light Wounds: 1d8 damage, element mask 8. }
@@ -872,7 +872,7 @@ var
 begin
   tgt := GDVars.dsTargetCreaturePtr[1];
   if (tgt^.charType > 1) or (tgt^.iconDimensions > 1) then
-    CharHlp.PrintNameString(tgt, 'is unaffected', 10, True)
+    CharDisp.PrintNameString(tgt, 'is unaffected', 10, True)
   else begin
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
                         GDVars.curChar^.hostile * 128 + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), True, 0,
@@ -906,7 +906,7 @@ begin
       GDVars.gSpellTemp2 := 0;
   end;
   if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], GDVars.gSpellTemp1, GDVars.gSpellTemp2, enc) then
-    CharHlp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
+    CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
   { enc: the Strength encoding AdjustForNewStrength returned, kept as the effect's strength }
   FxEngine.AddEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.ENLARGE,
                      Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing), enc, True);
@@ -918,7 +918,7 @@ begin
   if GDVars.spellTargetCount > 0 then
     if not FxEngine.RollSavingThrow(GDVars.dsTargetCreaturePtr[1], C_Save.SPELL, 0) then
       if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.ENLARGE) then
-        CharHlp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'has been reduced', 10, True);
+        CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'has been reduced', 10, True);
 end;
 
 { Friends: +2d4 Charisma, capped at 25; the effect's strength is the old Charisma, restored on removal }
@@ -1014,8 +1014,8 @@ begin
       if i < GDVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
         SoundDrv.SoundCommand(soundIds[3]);
-        CharHlp.BuildIconFacings(18);
-        CharHlp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.curChar), CbtMap.CombatCellY(GDVars.curChar),
+        CharDisp.BuildIconFacings(18);
+        CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.curChar), CbtMap.CombatCellY(GDVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
         SoundDrv.SoundSetAutoStop(10);
       end;
@@ -1188,10 +1188,10 @@ begin
       GDVars.arenaPtr^.cells[GDVars.gTargetY + GDConsts.dirDY[d],
                                GDVars.gTargetX + GDConsts.dirDX[d]] := C_Terr.STINK_CLOUD;
   end;
-  CharHlp.PrintNameString(GDVars.curChar, 'Creates a noxious cloud', 10, False);
+  CharDisp.PrintNameString(GDVars.curChar, 'Creates a noxious cloud', 10, False);
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 255, C_Dir.CENTER);
   TextRend.PauseOnly;
-  CharHlp.ClearMessageWindow;
+  CharDisp.ClearMessageWindow;
   for k := 1 to 4 do
     if crIdx[k] > 0 then
       FxEngine.ConsiderStinkingCloud(GDVars.creatureArr[crIdx[k]]);
@@ -1230,7 +1230,7 @@ begin
       newStr := 18;
   end;
   if FxEngine.AdjustForNewStrength(tgt, newStr, exStr, enc) then
-    CharHlp.PrintNameString(tgt, 'is stronger', 10, True);
+    CharDisp.PrintNameString(tgt, 'is stronger', 10, True);
   FxEngine.AddEffect(tgt, C_Effect.STRENGTH, Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing), enc, True);
 end;
 
@@ -1286,7 +1286,7 @@ end;
 procedure CureBlindnessHandler;
 begin
   if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.BLIND) then
-    CharHlp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'can see');
+    CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'can see');
 end;
 
 { Cause Blindness: apply the spell's effect. }
@@ -1374,7 +1374,7 @@ begin
       effect := nxt;
     end;
     if removed then
-      CharHlp.PrintNameStringAnim(tgt, True, 'is affected');
+      CharDisp.PrintNameStringAnim(tgt, True, 'is affected');
   end;
 end;
 
@@ -1392,7 +1392,7 @@ var
   found: Boolean;
 begin
   if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.BESTOW_CURSE) then
-    CharHlp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is un-cursed')
+    CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is un-cursed')
   else begin
     found := False;
     item := GDVars.dsTargetCreaturePtr[1]^.itemsAddr;
@@ -1404,7 +1404,7 @@ begin
       item := item^.next;
     end;
     if found then
-      CharHlp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, '''s item is un-cursed');
+      CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, '''s item is un-cursed');
   end;
 end;
 
@@ -1489,7 +1489,7 @@ begin
     tgt := GDVars.creatureArr[crIdx];
     GDVars.elementMask := $C;
     FxEngine.InflictNonWeaponDamage(tgt, damage, 2, FxEngine.RollSavingThrow(tgt, saveType, 0));
-    CharHlp.BuildIconFacings(19);
+    CharDisp.BuildIconFacings(19);
     GDVars.elementMask := 0;
   end;
 end;
@@ -1532,7 +1532,7 @@ begin
   savedY := GDVars.gTargetY;
   savedMulti := GDVars.gMultiTarget;
   if not trace then
-    CharHlp.BuildIconFacings(19);
+    CharDisp.BuildIconFacings(19);
   CbtMap.GetArenaContents(GDVars.gTargetX, GDVars.gTargetY, prevCr, terr);
   sign := 1;
   x0 := CbtMap.CombatCellX(GDVars.curChar);
@@ -1574,7 +1574,7 @@ begin
         if terr > 0 then
           blocked := GDConsts.terrainInfo[terr].cost = 255;
       end else begin
-        CharHlp.CombatAnimateMovingIcon(prevX, prevY, req.cx, req.cy, 4, 50);
+        CharDisp.CombatAnimateMovingIcon(prevX, prevY, req.cx, req.cy, 4, 50);
         Magic.LightningAttackAt(req.cx, req.cy, damage, saveType, blocked);
       end;
       if blocked then begin
@@ -1685,7 +1685,7 @@ begin
         tgt^.experience := bestXp;
     end;
     ClassCal.RecalcBaseSkills(tgt);
-    CharHlp.PrintNameString(tgt, 'is restored', 10, True);
+    CharDisp.PrintNameString(tgt, 'is restored', 10, True);
   end;
 end;
 
@@ -1722,7 +1722,7 @@ begin
     end;
   end else if not Magic.RemoveDiseaseEffects then begin
     if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(1, 4) + 8, False) then
-      CharHlp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
+      CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
   end;
 end;
 
@@ -1733,7 +1733,7 @@ var
   enc: Byte;
 begin
   if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], 21, 0, enc) then
-    CharHlp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
+    CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
   FxEngine.AddEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.STRENGTH,
                      Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing), enc, True);
 end;
@@ -1757,7 +1757,7 @@ end;
 procedure PotionOfHealingHandler;
 begin
   if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(2, 4) + 2, False) then
-    CharHlp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
+    CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
 end;
 
 { Dust of Disappearance: apply the item's effect. }
@@ -1799,7 +1799,7 @@ begin
       Exit;
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);
-  CharHlp.PrintNameString(creature, 'Breathes!', 10, True);
+  CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
   castUI(51, True, GDVars.breathAim);
   GDVars.gTargetX := x + Pathing.SignOf(GDVars.gTargetX - x);
   GDVars.gTargetY := y + Pathing.SignOf(GDVars.gTargetY - y);
@@ -1808,8 +1808,8 @@ begin
   if GDVars.gTargetY = y + 1 then
     Inc(GDVars.gTargetY);
   FxEngine.RemoveInvisibility(creature);
-  CharHlp.BuildIconFacings(19);
-  CharHlp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 50);
+  CharDisp.BuildIconFacings(19);
+  CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 50);
   Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, creature^.hpMax, C_Save.BREATH, junk);
   Magic.LightningPath(10, creature^.hpMax, C_Save.BREATH, False);
   { Remaining breath charges }
@@ -1883,16 +1883,16 @@ end;
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    CharHlp.PrintNameString(creature, 'Casts a Spell', 10, True);
+    CharDisp.PrintNameString(creature, 'Casts a Spell', 10, True);
     Border.ClearBox(0, 23, 39, 23);
     TextRend.DisplayString(0, 23, LightGreen, 'Spell:' + GDConsts.spellNames[spell]);
   end else begin
     Border.ClearBox(1, 18, 38, 22);
-    CharHlp.DisplayCreatureName(creature, 1, 19, False);
+    CharDisp.DisplayCreatureName(creature, 1, 19, False);
     TextRend.DisplayString(Length(creature^.name) + 2, 19, LightGreen, msg);
     TextRend.DisplayString(1, 20, LightGreen, GDConsts.spellNames[spell]);
     TextRend.PauseOnly;
-    CharHlp.ClearMessageWindow;
+    CharDisp.ClearMessageWindow;
   end;
 end;
 
