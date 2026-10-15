@@ -116,7 +116,10 @@ cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's gol
   Money's of the random-item templates.
 - **The interpreter**: the opcode dispatcher in its own unit; `EclMenu` split into variable access, game memory and
   menus; `Magic` and `EffHndlr` grouped by family.
-- **SSI quirks**: each `Note:` is fixed or labelled, one issue each.
+- **SSI quirks**: each `Note:` is fixed or labelled, one issue each. **Done**: no `Note:` is left. Fixed: Share paying
+  more than the pool held with a hired NPC along, CalcDistance's target count, Restoration missing from the spell
+  book, a plain '2' or '-' acting as Alt-M or Alt-X in combat, CGA colours on repeated glyphs, dead code and labels.
+  Labelled "SSI quirk, kept" where scripts or screens were made with them (Surprise, flight directions and others).
 
 ## Phase 4: hidden parameters
 
