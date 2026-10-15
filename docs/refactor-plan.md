@@ -74,7 +74,7 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
   is cleared or saved as part of a run of variables). **Pads and unused fields in records that are saved or loaded
   (characters, items, effects, the zones, saved games) stay**: they keep the file layouts, so characters and games
   still save and load, here and in SSI's executable. **Locals done**: 69 in #617, the other 40 unused locals in phase
-  2. The unused globals remain.
+  2. The unused globals went in phase 3 (15 in GDVars).
 
 ## Phase 2: shared helpers (about 400-450 lines)
 
