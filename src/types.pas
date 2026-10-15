@@ -551,8 +551,7 @@ type
     symbolSlot: Integer;
   end;
 
-  { Session types. }
-  PGbvmZone0State = ^TGbvmZone0State;
+  { Game-memory (GBVM) zone types. }
   TGbvmClock = packed record
     case Byte of
       0: (values: array[0..6] of Word);
@@ -642,7 +641,6 @@ type
 
   { CbtActs types. }
   PAttackPhaseView = ^TAttackPhaseView;
-  PCbtactsZoneWords = ^TGbvmZone1;
   { Target-selection result. }
   TAimTarget = record
     { the creature (nil = bare cell) }
@@ -724,12 +722,6 @@ type
   PAcAdjust = ^TAcAdjust;
   PBoolean = ^Boolean;
   TAcAdjust = array[0..4] of ShortInt;
-  TZone1 = record
-    { skips to searchFlags }
-    pad0: array[0..1427] of Byte;
-    { C_Gbvm.SEARCH_FLAGS, bit 0 }
-    searchFlags: Word;
-  end;
 
   { Spell and downed-record types. }
   PDownedRec = ^TDownedRec;
@@ -816,8 +808,6 @@ type
                              removed: Boolean);
 
   { FxEngine types. }
-  PFxengineZoneBytes = ^TFxengineZoneBytes;
-  TFxengineZoneBytes = array[0..2047] of Byte;
 
   { GameBoot types. }
   THeapEndW = record
@@ -826,9 +816,7 @@ type
   end;
 
   { GameInit types. }
-  PGameini2ZoneWords = ^TZoneWords;
   { one loaded-wallset cache slot (dsWallSetCache) }
-  TZoneWords = array[0..1023] of Word;
 
   { MenuCore types. }
   TMenuAuto = record
@@ -900,9 +888,6 @@ type
   TStr8 = String[8];
 
   { SaveLoad types. }
-  PZone1Words = ^TGbvmZone1;
-  PSaveloadZoneBytes = ^TSaveloadZoneBytes;
-  TSaveloadZoneBytes = array[0..SizeOf(TGbvmZone0State) - 1] of Byte;
 
   { Magic types. }
   PStinkRec = ^TStinkRec;
@@ -954,7 +939,6 @@ type
   TStr9 = String[9];
 
   { Pointers for character helpers. }
-  PZone1Rec = ^TZone1;
 
 implementation
 

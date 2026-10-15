@@ -139,9 +139,6 @@ implementation
 uses Stats, StrUtil;
 
 var
-  { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
-  zone1B: Types.PFxengineZoneBytes absolute GDVars.zone1;
-  { effect handler table, indexed by effect id }
   effectHandlers: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler
                              absolute GDVars.effectFns;
 
@@ -450,11 +447,9 @@ begin
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
     if attacker^.hostile = 0 then
-      { GBVM $6E71 (party) }
-      zmod := zone1B^[$6E2]
+      zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD]))
     else
-      { GBVM $6E70 (monster) }
-      zmod := zone1B^[$6E0];
+      zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD]));
     if (GDVars.gAttackRoll >= 0) and (GDVars.gAttackRoll + attacker^.thac0Cur + zmod >= sixtyMinusAc) then
       AttackRoll := True;
   end;

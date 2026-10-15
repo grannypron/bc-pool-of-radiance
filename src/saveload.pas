@@ -112,8 +112,6 @@ type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
-var
-  zone1b: Types.PSaveloadZoneBytes absolute GDVars.zone1;
 
 const
   { the number of characters whose usual spells are kept at once: the party's size }
@@ -825,7 +823,7 @@ begin
   end;
   GDVars.curChar := GDVars.creatureList;
   { the disk number SaveGame stored at C_Gbvm.DISK_NUM }
-  GDVars.virtualDisk := zone1b^[$624];
+  GDVars.virtualDisk := Lo(GDVars.zone1^[C_Gbvm.DISK_NUM]);
   if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     GDVars.virtualDisk := 1;
   if GDVars.gLocType < C_Area.LOC_WILD_WEST then

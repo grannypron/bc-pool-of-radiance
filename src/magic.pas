@@ -5,7 +5,7 @@ unit Magic;
 interface
 
 { Types supplies PCharRecord, PItemRec, PEffectRec and TStr40 for the declarations below. }
-uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Session, DaxIo,
+uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, DaxIo,
   TextRend, Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level,
   C_Status, C_Ifc, C_Dir, C_Spell;
 

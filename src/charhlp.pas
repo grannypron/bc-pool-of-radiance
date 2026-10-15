@@ -161,9 +161,6 @@ uses Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, C
   C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money, Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc,
   StrUtil;
 
-var
-  { zone-1 game state }
-  gbvmZone1: Types.PZone1Rec absolute GDVars.zone1;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
@@ -1418,7 +1415,7 @@ begin
     info := info + '*';
   if GDVars.ifcState = C_Ifc.CAMPING then
     info := info + ' camping'
-  else if gbvmZone1^.searchFlags and 1 > 0 then
+  else if GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1 > 0 then
     info := info + ' search';
   Border.ClearBox(17, 15, 38, 15);
   TextRend.DisplayString(17, 15, LightGreen, info);

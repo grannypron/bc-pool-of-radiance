@@ -9,7 +9,7 @@ procedure GameInit2;
 implementation
 
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, Session, SoundDrv, TextRend;
+  GameIo, MenuCore, SoundDrv, TextRend;
 
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
@@ -20,10 +20,10 @@ procedure GameInit2;
 var
   ch: Char;
 begin
-  GetMem(Session.dsGbvmZones[0], SizeOf(Types.TGbvmZone0State));
-  GetMem(Session.dsGbvmZones[1], SizeOf(Types.TGbvmZone1));
-  GetMem(Session.dsGbvmZones[2], SizeOf(Types.TZone2));
-  GetMem(Session.dsGbvmZones[3], SizeOf(Types.TZone3));
+  GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
+  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
+  GetMem(GDVars.zone2, SizeOf(GDVars.zone2^));
+  GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(GDVars.wallGfx, SizeOf(Types.TWallDefs));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));
@@ -53,10 +53,10 @@ begin
   end;
   FillChar(GDVars.dsSymbolSetPtrs, SizeOf(GDVars.dsSymbolSetPtrs), 0);
   FillChar(GDVars.ds2dMapTilePtr, SizeOf(GDVars.ds2dMapTilePtr) + SizeOf(GDVars.ds2dMapTilePtr2), 0);
-  FillChar(Types.PGbvmZone0State(Session.dsGbvmZones[0])^, SizeOf(Types.TGbvmZone0State), 0);
-  FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[1])^, SizeOf(Types.TGbvmZone1), 0);
-  FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[2])^, SizeOf(Types.TZone2), 0);
-  FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[3])^, SizeOf(Types.TZone3), 0);
+  FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
+  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
+  FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
+  FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
   FillChar(GDVars.dsIconAnimation, SizeOf(GDVars.dsIconAnimation), 0);
   for GDVars.gi2 := 1 to 2 do begin
     GDVars.dsPortraitCache[GDVars.gi2].pictureId := 255;
@@ -102,8 +102,7 @@ begin
   GDVars.automapOn := False;
   GDVars.locTypePrev := C_Area.LOC_3D_MAP;
   GDVars.gLocType := C_Area.LOC_3D_MAP;
-  { party size }
-  Types.PGameini2ZoneWords(Session.dsGbvmZones[1])^[$33E] := 0;
+  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   GDVars.dsWildAnimFrame := 0;
   GDVars.vertTop := 1;
   GDVars.duelFlag := False;
