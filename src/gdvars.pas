@@ -409,7 +409,7 @@ var
   { Event byte at the party's square; bit 7 is a flag, not a wall }
   eventAtCell: Byte;
   dsWallSetCache: array[1..3] of Types.TWallSetCacheSlot;
-  { Picture animation; MenuCore views it as Types.TMenuAnim }
+  { the picture animation showing (PIC or SPRIT) }
   animData: Types.TAnimRec;
   { HEAD and BODY image caches. }
   dsPortraitCache: array[1..2] of Types.TPortSlot;

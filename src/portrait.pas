@@ -133,17 +133,17 @@ begin
       if count > 4 then count := 4;
     if count > 8 then count := 8;
     Inc(offset);
-    flag := 1;
+    current := 1;
     loaded := 0;
     stop := False;
     f := 1;
     while (f <= count) and not stop do begin
       { a truncated or corrupt archive: the frame's header must be in the block }
-      if LongInt(offset) + SizeOf(frames[1].hdr) + SizeOf(h) + SizeOf(w) > sz then
+      if LongInt(offset) + SizeOf(frames[1].time) + SizeOf(h) + SizeOf(w) > sz then
         stop := True
       else begin
-        Move(buf^[offset], frames[loaded + 1].hdr, SizeOf(frames[loaded + 1].hdr));
-        Inc(offset, SizeOf(frames[loaded + 1].hdr));
+        Move(buf^[offset], frames[loaded + 1].time, SizeOf(frames[loaded + 1].time));
+        Inc(offset, SizeOf(frames[loaded + 1].time));
         Move(buf^[offset], h, SizeOf(h));
         Inc(offset, SizeOf(h));
         Move(buf^[offset], w, SizeOf(w));

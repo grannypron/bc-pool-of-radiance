@@ -831,19 +831,6 @@ type
   TZoneWords = array[0..1023] of Word;
 
   { MenuCore types. }
-  TMFrame = record
-    { frame delay, 1/10 s }
-    time: LongInt;
-    { frame image }
-    pic: PImgBuf;
-  end;
-  TMenuAnim = record
-    { frames loaded }
-    count: Byte;
-    { current frame, 1-based }
-    current: Byte;
-    frames: array[1..8] of TMFrame;
-  end;
   TMenuAuto = record
     { centiseconds before auto-answer, 0=off }
     timeout: LongInt;
@@ -898,15 +885,16 @@ type
 
   { Portrait types. }
   TAnimFrame = record
-    { copied verbatim from the file }
-    hdr: array[0..3] of Byte;
+    { how long the frame shows, in tenths of a second: the frame header's first four bytes, as in the file }
+    time: LongInt;
     pic: PImgBuf;
   end;
+  { A PIC or SPRIT animation (GDVars.animData, the ending's), as Portrait.LoadAnimation loads it. }
   TAnimRec = record
     { frames actually loaded }
     count: Byte;
-    { always set to 1 }
-    flag: Byte;
+    { the frame showing, 1-based; LoadAnimation starts it at 1 }
+    current: Byte;
     frames: array[1..8] of TAnimFrame;
   end;
   TStr8 = String[8];

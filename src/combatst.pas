@@ -11,9 +11,6 @@ implementation
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend;
 
-var
-  { The menu animation, released when combat starts. }
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 { On every arena cell whose terrain tile is 22 (grass), roll 1d100: 98 gives terrain 26, 99 gives 27, and 100 (unless
   eclScriptId = 10) gives a further 1% chance of 28 (1d10 = 1..6) or 29 (7..10). }
@@ -834,7 +831,7 @@ procedure CombatStart;
 var
   p: Types.PCharRecord;
 begin
-  Portrait.FreeAnimation(animData);
+  Portrait.FreeAnimation(GDVars.animData);
   Blit.FreePic(GDVars.dsPortraitCache[1].pic);
   Blit.FreePic(GDVars.dsPortraitCache[2].pic);
   GDVars.dsPortraitCache[1].pictureId := 255;

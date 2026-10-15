@@ -35,8 +35,6 @@ const
   { location type 4, Eastern Wilderness }
   WILD_EAST_SCRIPT = 27;
 
-var
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 procedure CallEclScript(address: Word); forward;
 
@@ -331,8 +329,8 @@ begin
     GDVars.dsMonsterFlags[1] := True;
     GDVars.eclGraphics := True;
     if GDVars.zone1^[C_Gbvm.PIC_LOADING] = 255 then begin
-      Portrait.LoadAnimation('PIC', picId, 0, animData);
-      Portrait.DisplayImageBuf(3, 3, True, animData.frames[1].pic);
+      Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);
+      Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[1].pic);
     end else
       EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]), picId);
   end else begin

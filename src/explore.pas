@@ -19,8 +19,6 @@ uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewCh
   C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime,
   MenuCore, Portrait, TextRend;
 
-var
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
   nibbles are untouched, and coordinates outside 0..15 are ignored. }
@@ -506,7 +504,7 @@ begin
           end else
             GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
   end;
-  Portrait.FreeAnimation(animData);
+  Portrait.FreeAnimation(GDVars.animData);
   Blit.FreePic(GDVars.dsPortraitCache[1].pic);
   Blit.FreePic(GDVars.dsPortraitCache[2].pic);
   GDVars.dsPortraitCache[1].pictureId := 255;

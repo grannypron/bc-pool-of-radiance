@@ -97,9 +97,6 @@ implementation
 uses Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLoad, ViewChar, C_Effect, C_Ecl, C_Keys,
   C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
 
-var
-  { Monster sprite or close-up picture shown in the view window }
-  animData: Types.TAnimRec absolute GDVars.animData;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -345,14 +342,14 @@ begin
         GDVars.automapOn := False;
         MapView.DisplayMapView;
       end;
-      Portrait.LoadAnimation('SPRIT', sprId, 1, animData);
+      Portrait.LoadAnimation('SPRIT', sprId, 1, GDVars.animData);
       flags[0] := True;
       GDVars.sprShown := True;
     end;
     if GDVars.gLocType = C_Area.LOC_3D_MAP then
-      Portrait.Show3DSprite(d3, animData)
+      Portrait.Show3DSprite(d3, GDVars.animData)
     else
-      Portrait.Show3DSprite(2, animData);
+      Portrait.Show3DSprite(2, GDVars.animData);
   end;
   if flags[1] then
     if GDVars.picIdShown = GDVars.zone1^[C_Gbvm.PIC_LOADING] then
@@ -363,9 +360,9 @@ begin
   GDVars.picIdShown := Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]);
   GDVars.eclGraphics := True;
   if GDVars.zone1^[C_Gbvm.PIC_LOADING] = 255 then begin
-    Portrait.LoadAnimation('PIC', picId, 0, animData);
+    Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);
     flags[1] := True;
-    Portrait.DisplayImageBuf(3, 3, True, animData.frames[1].pic);
+    Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[1].pic);
   end else begin
     EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]), picId);
     flags[1] := True;

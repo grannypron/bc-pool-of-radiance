@@ -73,7 +73,6 @@ uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextR
 
 var
   menuAuto: Types.TMenuAuto absolute GDVars.dsMenuAutoAnswer;
-  anim: Types.TMenuAnim absolute GDVars.animData;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -208,13 +207,13 @@ begin
     { the tick count restarts at midnight: restart the frame timer with it }
     if TextRend.GetTicks < frameTick then
       frameTick := TextRend.GetTicks;
-    if ((GDVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (anim.current > 0) then begin
-      Portrait.DisplayImageBuf(3, 3, animate, anim.frames[anim.current].pic);
-      if (TextRend.GetTicks - frameTick >= anim.frames[anim.current].time * 10)
+    if ((GDVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (GDVars.animData.current > 0) then begin
+      Portrait.DisplayImageBuf(3, 3, animate, GDVars.animData.frames[GDVars.animData.current].pic);
+      if (TextRend.GetTicks - frameTick >= GDVars.animData.frames[GDVars.animData.current].time * 10)
          or (GDVars.zone0^.savedWalls.menuAnimation <> 0) then begin
-        Inc(anim.current);
-        if anim.current > anim.count then
-          anim.current := 1;
+        Inc(GDVars.animData.current);
+        if GDVars.animData.current > GDVars.animData.count then
+          GDVars.animData.current := 1;
         frameTick := TextRend.GetTicks;
       end;
     end;

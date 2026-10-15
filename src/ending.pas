@@ -31,13 +31,13 @@ begin
   Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.dsViewImageBufferPtr);
   Blit.FlushView;
   repeat
-    Portrait.DisplayImageBuf(col, row, True, a.frames[a.flag].pic);
+    Portrait.DisplayImageBuf(col, row, True, a.frames[a.current].pic);
     tickNow := TextRend.GetTicks;
     { the tick count restarts at midnight }
-    if (tickNow - tickLast > LongInt(a.frames[a.flag].hdr) * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
-      Inc(a.flag);
-      if a.flag > a.count then begin
-        a.flag := 1;
+    if (tickNow - tickLast > a.frames[a.current].time * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
+      Inc(a.current);
+      if a.current > a.count then begin
+        a.current := 1;
         Inc(cycles);
       end;
       tickLast := tickNow;
