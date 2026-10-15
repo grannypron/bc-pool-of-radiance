@@ -172,6 +172,8 @@ var
   { CastSpellNC's var out, unread }
   castSel: Boolean;
   spellId: Byte;
+  { the scroll the spell is cast from, nil for a memorized one }
+  scroll: Types.PItemRec;
   caster: Types.PCharRecord;
 begin
   redraw := False;
@@ -179,16 +181,16 @@ begin
   GDVars.castTarget := nil;
   if Camp.CanDoSpellActivity(ACT_CAST) then begin
     repeat
-      spellId := ViewChar.SpellMenu(7, 1, idx, notEmpty);
+      spellId := ViewChar.CastSpellMenu(idx, notEmpty, scroll);
       if spellId <> C_Spell.NONE then begin
         redraw := True;
         Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
         Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-        if GDVars.castScroll = nil then
+        if scroll = nil then
           Magic.CastSpellNC(spellId, False, True, castSel)
         else begin
           caster := GDVars.curChar;
-          ViewChar.UseItemSpell(GDVars.castScroll, spellId, True, castSel);
+          ViewChar.UseItemSpell(scroll, spellId, True, castSel);
           { recount the items and their weight, as Items > Use does: the scroll may be gone }
           CharHlp.RecalcStats(caster);
         end;

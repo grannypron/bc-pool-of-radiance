@@ -13,10 +13,10 @@ uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, DaxIo,
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
   idx is the menu cursor and persists across calls; idx < 0 clears the window and opens at the top of the list on its
-  first spell (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit, and sets GDVars.castScroll
-  to the chosen line's scroll in spellScrolls (nil for Exit); scribe also sets GDVars.dsCurrentScrollPtr to the chosen
+  first spell (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's
+  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets GDVars.dsCurrentScrollPtr to the chosen
   spell's scroll. Frees spellList before returning. }
-function SpellSelection(selType: Byte; var idx: Integer): Byte;
+function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 
 { Build spellList and spellIds for a spell menu. menuType: 0 memorized, 5 still being memorized (bit 7 set), 1 spell
   book, 2 current scroll, 3 spells on every readable item, 6 scroll spells queued for scribing (bit 7 set), 4 spells
@@ -255,7 +255,7 @@ procedure LightningPath(boltLen, damage: Byte; saveType: ShortInt; bounce: Boole
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
   forward;
 
-function SpellSelection(selType: Byte; var idx: Integer): Byte;
+function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 var
   sel: Types.PItemRec;
   p: Types.PItemRec;
@@ -318,12 +318,12 @@ begin
       Inc(count);
     p := p^.next;
   end;
-  GDVars.castScroll := nil;
+  scroll := nil;
   if (ch in [C_Keys.NONE, 'E']) or (count > C_Spell.LINE_LAST) then
     SpellSelection := C_Spell.NONE
   else begin
     SpellSelection := GDVars.spellIds[count];
-    GDVars.castScroll := GDVars.spellScrolls[count];
+    scroll := GDVars.spellScrolls[count];
   end;
   if selType = 3 then
     { 48 = High(scrollPtrs) }

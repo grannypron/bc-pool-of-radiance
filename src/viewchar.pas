@@ -31,6 +31,10 @@ procedure SelectPrevNextChar(c: Char);
 
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
+{ The Cast menu (SpellMenu 7, select 1): the spell chosen, as SpellMenu returns it, with scroll the scroll it is cast
+  from (nil for a memorized spell). }
+function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Types.PItemRec): Byte;
+
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
@@ -1205,7 +1209,9 @@ end;
   level, 5 to be memorized, 6 to be scribed, 7 available to cast) and run Magic.SpellSelection on it, returning the
   chosen spell, or 0 when the list is empty. idx < 0 also draws the "<name>'s Spells ..." heading ("<name>'s Available
   Spells" for 7); notEmpty receives whether the list has entries. }
-function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
+{ SpellMenu's work, with the chosen line's scroll in scroll. }
+function ChooseSpell(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean;
+  var scroll: Types.PItemRec): Byte;
 var
   s: Types.TStr40;
 begin
@@ -1232,9 +1238,23 @@ begin
         s := 'Spells ' + s;
       TextRend.DisplayString(Length(GDVars.curChar^.name) + 4, 1, LightGreen, s);
     end;
-    SpellMenu := Magic.SpellSelection(selType, idx);
-  end else
-    SpellMenu := 0;
+    ChooseSpell := Magic.SpellSelection(selType, idx, scroll);
+  end else begin
+    scroll := nil;
+    ChooseSpell := 0;
+  end;
+end;
+
+function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
+var
+  scroll: Types.PItemRec;
+begin
+  SpellMenu := ViewChar.ChooseSpell(menuType, selType, idx, notEmpty, scroll);
+end;
+
+function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Types.PItemRec): Byte;
+begin
+  CastSpellMenu := ViewChar.ChooseSpell(7, 1, idx, notEmpty, scroll);
 end;
 
 end.

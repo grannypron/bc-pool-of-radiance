@@ -1152,9 +1152,9 @@ begin
   spellId := spell;
   scroll := nil;
   if spellId = C_Spell.NONE then begin
-    spellId := ViewChar.SpellMenu(7, 1, idx, notEmpty);
-    if spellId > C_Spell.NONE then
-      scroll := GDVars.castScroll;
+    spellId := ViewChar.CastSpellMenu(idx, notEmpty, scroll);
+    if spellId = C_Spell.NONE then
+      scroll := nil;
   end;
   if spellId > C_Spell.NONE then
     if GDConsts.spellTable[spellId].whenCast = 0 then begin

@@ -86,8 +86,6 @@ var
   spellIds: array[0..C_Spell.LINE_LAST] of Byte;
   { the scroll each Cast line reads from, nil for a memorized spell }
   spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
-  { the scroll of the line SpellSelection returned, nil for a memorized spell or none }
-  castScroll: Types.PItemRec;
   scrollPtrs: array[0..48] of Types.PItemRec;
   scrollCount: Byte;
   gSpellTemp1: Byte;
