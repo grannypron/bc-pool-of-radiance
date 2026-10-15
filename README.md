@@ -15,6 +15,14 @@ To build you'll need:
 - Turbo Pascal 6.0 (1991 RTL) for v1.3
 - DOSBox or DOSBox-X
 
+`./build.sh` builds `obj/START.EXE` and `obj/GAME.OVR` and reports the code, data and overlay sizes. `./build.sh --install` also copies them into `drive_c/POOLRAD` to play.
+
+## Tests
+
+`./build.sh --test` builds the game, then compiles and runs the unit tests in `tests/` under the same Turbo Pascal in DOSBox-X. A test is a small program (`tests/tstats.pas`, say) that uses the units it tests and `TestKit`, and calls `TestKit.Start`, the `Check` routines and `TestKit.Done`; each appends its results to `obj/tests/TEST.LOG`, and the build fails if a check fails or a test program does not compile or finish. CI runs the tests on every push and pull request.
+
+Unit tests cover logic that needs no screen, keyboard or game data. Behaviour (screens, menus, combat) is checked by replaying scenarios in the GoldBox emulator harness (goldbox-player) against a build from before a change.
+
 ## Data Files
 
 The game's data is split by the floppy disk it shipped on: `ECL1.DAX` to `ECL8.DAX` hold the scripts, `MON1CHA.DAX` to `MON8CHA.DAX` the monsters, and so on, and the game read only the current disk's file. At startup the game gathers each set of files and aggregates them into one: `ECL.DAX`, `MONCHA.DAX`, etc. The aggregated files are used by the game first, in place of the per-disk versions.

@@ -4,6 +4,7 @@
 #
 #   ./build.sh              build
 #   ./build.sh --install    build, then copy the two files into drive_c/POOLRAD to play
+#   ./build.sh --test       build, then compile and run the unit tests in tests/ (TestKit) under the same Turbo Pascal
 #
 # --install replaces the play install in this checkout's drive_c/POOLRAD; scripts and worktrees should not pass it.
 #
@@ -31,10 +32,12 @@ exepack="$tools/EXEPACK"
 dosbox_min="2025.02.01"
 
 install=0
+run_tests=0
 for arg in "$@"; do
     case "$arg" in
         --install) install=1 ;;
-        *) echo "build.sh: unknown option $arg (the only option is --install)" >&2; exit 2 ;;
+        --test) run_tests=1 ;;
+        *) echo "build.sh: unknown option $arg (the options are --install and --test)" >&2; exit 2 ;;
     esac
 done
 
@@ -201,6 +204,66 @@ done
 
 echo "build.sh: built:"
 (cd "$root/obj" && sha256sum START.EXE GAME.OVR | sed 's/^/  /')
+
+# The sizes a change has to watch (docs/refactor-plan.md): the resident code, the data segment's 64 KB, and the
+# overlays, read from TPC's last line ("N lines, S seconds, C bytes code, D bytes data.") and the overlay stubs.
+sizes="$(tail -n 1 "$root/build/logs/TPC.OUT" | sed -n 's/.* \([0-9]*\) bytes code, \([0-9]*\) bytes data.*/\1 \2/p')"
+if [ -n "$sizes" ]; then
+    set -- $sizes
+    echo "build.sh: code $1 bytes; data $2 of 65520 bytes ($((65520 - $2)) free)"
+fi
+if command -v python3 > /dev/null 2>&1 && [ -f "$root/obj/FIXMAIN.EXE" ] && [ -f "$root/obj/FIXMAIN.MAP" ]; then
+    python3 -I "$root/build/ovlsizes.py" "$root/obj/FIXMAIN.EXE" "$root/obj/FIXMAIN.MAP" | sed 's/^/build.sh: /'
+fi
+
+# --- unit tests ----------------------------------------------------------------------------------
+
+if [ $run_tests -eq 1 ]; then
+    tests=()
+    for t in "$root"/tests/*.pas; do
+        name="$(basename "$t" .pas)"
+        [ "${name,,}" = "testkit" ] || tests+=("${name^^}")
+    done
+    mkdir -p "$root/obj/tests"
+    rm -f "$root"/obj/tests/* "$root"/build/logs/TEST_*.OUT
+    # RUNTESTS.BAT compiles each test program (with every unit it uses, /B) into obj\tests and runs it there; each
+    # appends its checks to TEST.LOG.
+    {
+        printf '@echo off\r\npath d:\\\r\n'
+        for t in "${tests[@]}"; do
+            printf 'cd \\tests\r\ntpc %s.pas /B /E..\\obj\\tests /O..\\obj\\tests > e:\\build\\logs\\TEST_%s.OUT\r\n' "$t" "$t"
+            printf 'cd \\obj\\tests\r\nif exist %s.EXE %s\r\n' "$t" "$t"
+        done
+    } > "$root/obj/tests/RUNTESTS.BAT"
+    echo "build.sh: running ${#tests[@]} test programs in DOSBox-X..."
+    timeout --foreground -k 10 $dosbox_timeout dosbox-x -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
+        -c "mount d \"$tp\"" \
+        -c "mount e \"$root\"" \
+        -c "e:" \
+        -c "call \\obj\\tests\\RUNTESTS.BAT" \
+        -c "exit" > "$root/build/logs/DOSBOX_TEST.OUT" 2>&1
+    log="$root/obj/tests/TEST.LOG"
+    test_failed=0
+    for t in "${tests[@]}"; do
+        if grep -qE "$tpc_error" "$root/build/logs/TEST_$t.OUT" 2> /dev/null; then
+            echo "build.sh: $t did not compile (build/logs/TEST_$t.OUT):" >&2
+            grep -E -B1 -A2 "$tpc_error" "$root/build/logs/TEST_$t.OUT" >&2
+            test_failed=1
+        elif ! grep -q "^DONE $t:" "$log" 2> /dev/null; then
+            echo "build.sh: $t did not finish (no DONE line in obj/tests/TEST.LOG)." >&2
+            test_failed=1
+        fi
+    done
+    if [ -f "$log" ]; then
+        grep -E "^(FAIL|DONE) " "$log" | sed 's/^/  /'
+        grep -q "^FAIL " "$log" && test_failed=1
+    fi
+    if [ $test_failed -ne 0 ]; then
+        echo "build.sh: the unit tests failed." >&2
+        exit 1
+    fi
+    echo "build.sh: the unit tests passed."
+fi
 [ $install -eq 1 ] || exit 0
 
 # --- install -----------------------------------------------------------------------------------
