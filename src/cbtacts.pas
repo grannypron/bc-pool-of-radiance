@@ -4,8 +4,7 @@ unit CbtActs;
 
 interface
 
-uses Types, C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect,
-  C_Equip, C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell;
+uses Types;
 
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
 
@@ -61,7 +60,8 @@ function StingVictoryCheat: Boolean;
 
 implementation
 
-uses Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend;
+uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect, C_Equip, C_Keys, C_Level,
+  C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
@@ -205,7 +205,7 @@ begin
     if atkType = 3 then
       verb := 'with one cruel blow'
     else begin
-      verb := verb + 'Hitting for ' + CharHlp.ByteToString(dmgDisp);
+      verb := verb + 'Hitting for ' + StrUtil.NumStr(dmgDisp);
       if dmgDisp = 1 then
         verb := verb + ' point '
       else
@@ -1253,7 +1253,7 @@ begin
   pace := 10;
   sym := 13;
   size := GDVars.dsMoveIconSheet^.imgSize;
-  if GDVars.videoMode = 1 then
+  if GDVars.videoMode = Types.vmEGA then
     size := size div 4;
   case weapon^.itemType of
     { straight-flying missiles: Dart, Javelin, Quarrel, Spear and Arrow }
@@ -1402,7 +1402,7 @@ begin
   menu := '';
   dist := CharHlp.CalcDistance(cur, tgt);
   if weaponMode <> 0 then
-    TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + CharHlp.ByteToString(dist) + '  ');
+    TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist) + '  ');
   if dist <= range then begin
     if weaponMode = 0 then
       menu := 'Target '
@@ -1513,7 +1513,7 @@ begin
     if Pathing.WalkLine(CbtMap.CombatCellX(cur), CbtMap.CombatCellY(cur), wx, wy, dist, GDVars.arenaPtr) then begin
       valid := True;
       if weaponMode <> 0 then
-        TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + CharHlp.WordToString(dist div 2) + '  ');
+        TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist div 2) + '  ');
     end else if weaponMode <> 0 then
       Border.ClearBox(0, 23, 39, 23);
     dist := dist div 2;

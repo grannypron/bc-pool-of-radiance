@@ -222,16 +222,22 @@ if [ $run_tests -eq 1 ]; then
     tests=()
     for t in "$root"/tests/*.pas; do
         name="$(basename "$t" .pas)"
+        if [ ${#name} -gt 8 ]; then
+            echo "build.sh: tests/$name.pas: DOS cannot open a name longer than 8 characters" >&2
+            exit 1
+        fi
         [ "${name,,}" = "testkit" ] || tests+=("${name^^}")
     done
     mkdir -p "$root/obj/tests"
-    rm -f "$root"/obj/tests/* "$root"/build/logs/TEST_*.OUT
+    # each test's compiler output is build/logs/tests/<name>.OUT: a DOS name, so a test's name is at most 8 characters
+    mkdir -p "$root/build/logs/tests"
+    rm -f "$root"/obj/tests/* "$root"/build/logs/tests/*.OUT "$root"/build/logs/TEST_*.OUT
     # RUNTESTS.BAT compiles each test program (with every unit it uses, /B) into obj\tests and runs it there; each
     # appends its checks to TEST.LOG.
     {
         printf '@echo off\r\npath d:\\\r\n'
         for t in "${tests[@]}"; do
-            printf 'cd \\tests\r\ntpc %s.pas /B /E..\\obj\\tests /O..\\obj\\tests > e:\\build\\logs\\TEST_%s.OUT\r\n' "$t" "$t"
+            printf 'cd \\tests\r\ntpc %s.pas /B /E..\\obj\\tests /O..\\obj\\tests > e:\\build\\logs\\tests\\%s.OUT\r\n' "$t" "$t"
             printf 'cd \\obj\\tests\r\nif exist %s.EXE %s\r\n' "$t" "$t"
         done
     } > "$root/obj/tests/RUNTESTS.BAT"
@@ -245,9 +251,9 @@ if [ $run_tests -eq 1 ]; then
     log="$root/obj/tests/TEST.LOG"
     test_failed=0
     for t in "${tests[@]}"; do
-        if grep -qE "$tpc_error" "$root/build/logs/TEST_$t.OUT" 2> /dev/null; then
-            echo "build.sh: $t did not compile (build/logs/TEST_$t.OUT):" >&2
-            grep -E -B1 -A2 "$tpc_error" "$root/build/logs/TEST_$t.OUT" >&2
+        if grep -qE "$tpc_error" "$root/build/logs/tests/$t.OUT" 2> /dev/null; then
+            echo "build.sh: $t did not compile (build/logs/tests/$t.OUT):" >&2
+            grep -E -B1 -A2 "$tpc_error" "$root/build/logs/tests/$t.OUT" >&2
             test_failed=1
         elif ! grep -q "^DONE $t:" "$log" 2> /dev/null; then
             echo "build.sh: $t did not finish (no DONE line in obj/tests/TEST.LOG)." >&2

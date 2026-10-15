@@ -4,7 +4,7 @@ unit Debug;
 
 interface
 
-uses Types, Crt, GDConsts, GDVars, TextRend;
+uses Types;
 
 { When the STING flag is set, show three hit-point values on the top row and pause on msg. EffHndlr.DrainLevels passes
   hpMax, hpCur and drainedHps for each drained level, before removing its hit points }
@@ -12,6 +12,8 @@ procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, dr
 
 implementation
 
+
+uses Crt, GDConsts, GDVars, TextRend;
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 var
   s1: String;

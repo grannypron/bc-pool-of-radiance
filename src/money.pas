@@ -4,7 +4,7 @@ unit Money;
 
 interface
 
-uses Types, Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money;
+uses Types;
 
 function CheckOverload(p: Types.PCharRecord; w: LongInt; var takable: Word): Boolean;
 
@@ -24,11 +24,33 @@ procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
 
+{ Leaving with treasure still on the table: show said in green, then ask (in white) whether to go back for it. True when
+  the party goes back (the message window is cleared for the menu again), False when it leaves. }
+function GoBackForIt(said, ask: String): Boolean;
+
 procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
 procedure PayFromPool(gp: LongInt);
 
 function CoinValueInGold(m: Types.TMoney): LongInt;
+
+{ The creature's five coin types in whole gold pieces, as CoinValueInGold. }
+function CreatureGold(creature: Types.PCharRecord): LongInt;
+
+const
+  { who pays a price (WhoPays): nobody can, the current character, or the treasure pool }
+  PAY_NOBODY = 0;
+  PAY_CHARACTER = 1;
+  PAY_POOL = 2;
+
+{ Who pays gp gold pieces: the current character when its coins cover it, else the treasure pool when it does. }
+function WhoPays(gp: LongInt): Byte;
+
+{ Pay gp gold pieces from payer (WhoPays): the current character's coins or the pool's. }
+procedure PayBy(payer: Byte; gp: LongInt);
+
+{ Pay gp gold pieces from the current character, else the pool: True when paid; 'Not enough money.' when neither can. }
+function PayGold(gp: LongInt): Boolean;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
@@ -46,7 +68,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses GameIo, MenuCore;
+uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore,
+  C_Msg, EclMenu;
 
 
 var
@@ -111,6 +134,24 @@ begin
   CoinValueInGold := CopperValue(m) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
+{ The creature's five coin types as a TMoney; its gems and jewelry are left out (0). }
+procedure CoinsOf(creature: Types.PCharRecord; var m: Types.TMoney);
+var
+  i: ShortInt;
+begin
+  FillChar(m, SizeOf(m), 0);
+  for i := C_Money.COPPER to C_Money.PLATINUM do
+    m[i] := creature^.coins[i];
+end;
+
+function CreatureGold(creature: Types.PCharRecord): LongInt;
+var
+  m: Types.TMoney;
+begin
+  Money.CoinsOf(creature, m);
+  CreatureGold := Money.CoinValueInGold(m);
+end;
+
 { Replace the five coin types in m with rem copper given as the largest coins, platinum first, each type at most cap.
   Gems and jewelry are kept. A negative rem gives nothing; copper the caps cannot hold is lost. At a cap of 65535 that
   takes more than 65535 of every type (about 429,581 gp), more than a character's Word-sized coins can hold. }
@@ -131,15 +172,14 @@ begin
 end;
 
 { Pay gp gold pieces from the creature's coins, worked out in copper, with the change given back in the largest coins.
-  The caller has checked the creature can pay (ViewChar.CreatureCoinValueInGold); if not, every coin goes. The coins'
+  The caller has checked the creature can pay (CreatureGold); if not, every coin goes. The coins'
   weight changes, so the creature's stats are recalculated. }
 procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 var
   m: Types.TMoney;
   i: ShortInt;
 begin
-  for i := C_Money.COPPER to C_Money.PLATINUM do
-    m[i] := creature^.coins[i];
+  Money.CoinsOf(creature, m);
   MakeChange(CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], 65535, m);
   for i := C_Money.COPPER to C_Money.PLATINUM do
     creature^.coins[i] := m[i];
@@ -277,7 +317,6 @@ end;
 procedure ShareMoney;
 var
   p: Types.PCharRecord;
-  deadP: Types.PCharRecord;
   cnt: Byte;
   done: Boolean;
   takable: Word;
@@ -423,7 +462,6 @@ procedure TakeMoneyMenu;
 var
   i: ShortInt;
   mType: ShortInt;
-  deadW: Word;
   p: Types.PItemRec;
   sel: Types.PItemRec;
   save: Types.PItemRec;
@@ -943,6 +981,49 @@ begin
         CharHlp.RecalcStats(GDVars.curChar);
       end;
     until exitF;
+end;
+
+function GoBackForIt(said, ask: String): Boolean;
+begin
+  TextRend.ShowMessage(LightGreen, True, said);
+  TextRend.ShowMessage(White, False, ask);
+  { 0-based: 1 is No }
+  if EclMenu.MenuHorizontalCS('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
+    GoBackForIt := False
+  else begin
+    TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    GoBackForIt := True;
+  end;
+end;
+
+function WhoPays(gp: LongInt): Byte;
+begin
+  if gp <= Money.CreatureGold(GDVars.curChar) then
+    WhoPays := PAY_CHARACTER
+  else if gp <= Money.CoinValueInGold(treasureMoney) then
+    WhoPays := PAY_POOL
+  else
+    WhoPays := PAY_NOBODY;
+end;
+
+procedure PayBy(payer: Byte; gp: LongInt);
+begin
+  case payer of
+    PAY_CHARACTER: Money.PayFromCreature(GDVars.curChar, gp);
+    PAY_POOL: Money.PayFromPool(gp);
+  end;
+end;
+
+function PayGold(gp: LongInt): Boolean;
+var
+  payer: Byte;
+begin
+  payer := Money.WhoPays(gp);
+  if payer = PAY_NOBODY then
+    CharHlp.PrintBottomLine('Not enough money.')
+  else
+    Money.PayBy(payer, gp);
+  PayGold := payer <> PAY_NOBODY;
 end;
 
 end.

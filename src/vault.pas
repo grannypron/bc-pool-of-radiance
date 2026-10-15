@@ -7,7 +7,7 @@ unit Vault;
 
 interface
 
-uses Types, Crt, GDVars, C_Msg, C_Ifc, C_Keys;
+uses Types;
 
 const
   { the most items the vault holds }
@@ -36,7 +36,8 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
 implementation
 
-uses Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad;
+uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo,
+  FileUtil;
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -61,16 +62,6 @@ begin
   SlotFile := GDVars.dsSaveDirectory + 'vault' + letter + '.dat';
 end;
 
-procedure DeleteFile(name: Types.TPathStr);
-var
-  f: file;
-  ioRes: Integer;
-begin
-  Assign(f, name);
-  Erase(f);
-  ioRes := IOResult;
-end;
-
 const
   { CopyOrDelete's buffer, taken from the heap: the stack is not the place for it }
   COPY_BUF = 512;
@@ -86,17 +77,11 @@ var
   buf: ^TCopyBuf;
   n: Word;
   w: Word;
-  mode: Byte;
   ok: Boolean;
   ioRes: Integer;
 begin
-  Assign(fIn, src);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(fIn, 1);
-  FileMode := mode;
-  if IOResult <> 0 then begin
-    Vault.DeleteFile(dst);
+  if not FileUtil.OpenReadOnly(fIn, src) then begin
+    FileUtil.DeleteFile(dst);
     Exit;
   end;
   Assign(fOut, dst);
@@ -123,7 +108,7 @@ end;
 
 procedure ForgetSessionVault;
 begin
-  Vault.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
+  FileUtil.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
 end;
 
 procedure CommitToSlot(letter: Char);
@@ -188,17 +173,11 @@ var
   head: TVaultHeader;
   item: Types.TItemRec;
   n: Word;
-  mode: Byte;
   ioRes: Integer;
 begin
   visited := 0;
   FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
-  Assign(f, GDVars.dsSaveDirectory + SESSION_FILE);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult <> 0 then
+  if not FileUtil.OpenReadOnly(f, GDVars.dsSaveDirectory + SESSION_FILE) then
     Exit;
   BlockRead(f, head, SizeOf(head), n);
   if (IOResult = 0) and (n = SizeOf(head)) and (head.sig = VAULT_SIG) and (head.version = VAULT_VERSION) then begin
@@ -249,14 +228,7 @@ begin
   ioRes := IOResult;
   if ioRes <> 0 then
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not written.');
-  p := GDVars.treasureItems;
-  while p <> nil do begin
-    next := p^.next;
-    FreeMem(p, SizeOf(Types.TItemRec));
-    p := next;
-  end;
-  GDVars.treasureItems := nil;
-  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
+  CharHlp.ClearTreasure;
 end;
 
 procedure VaultMenu;
@@ -274,11 +246,9 @@ begin
   Vault.ReadVault;
   GDVars.treasureMoneyFlag := False;
   if (visited <> 0) and (Random(20) = 0) then
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
+    TextRend.ShowMessage(LightGreen, True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
   else
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                  True, 'WELCOME TO THE HOARDER''S RESPITE. LET ME LIGHTEN YOUR LOAD.');
+    TextRend.ShowMessage(LightGreen, True, 'WELCOME TO THE HOARDER''S RESPITE. LET ME LIGHTEN YOUR LOAD.');
   done := False;
   repeat
     Money.DetermineTreasure(hasMoney, hasItems);

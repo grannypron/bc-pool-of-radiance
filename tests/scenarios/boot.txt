@@ -3,6 +3,8 @@ boot NORAND
 ignore POOL OF RADIANCE V
 # the settings screen names the build
 ignore COMMIT  |VERSION  
+# and the memory left, which moves with the size of the code
+ignore FREE MEMORY|LARGEST BLOCK
 wait RADIANCE
 checkpoint main-menu
 press g

@@ -4,8 +4,6 @@ unit MapView;
 
 interface
 
-uses Crt, C_Area, GDConsts, GDVars, Wilds, View3D;
-
 { Draw the 3D view (location type 1, or any location while zone0^.view3dFlag is set) or the wilderness map (types
   2..4) }
 procedure DisplayMapView;
@@ -15,7 +13,7 @@ procedure DisplayWildMapView;
 
 implementation
 
-uses Blit, MapTiles;
+uses Crt, C_Area, GDConsts, GDVars, Wilds, View3D, Blit, MapTiles;
 
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35

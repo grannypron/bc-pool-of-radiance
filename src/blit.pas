@@ -10,7 +10,7 @@ unit Blit;
 
 interface
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos;
+uses Types;
 
 type
   { An 8-pixel chunk as stored in a picture: two pixels to a byte, the first in the high nibble. }
@@ -173,6 +173,8 @@ procedure SetPaletteRegister(registerIndex, color: Byte);
 
 implementation
 
+
+uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos;
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
   GC_WRITE_MODE_1 = 1;
@@ -192,11 +194,7 @@ type
     map: Types.TColorMap;
   end;
 
-var
 
-  { Active renderer (CGA = 0, EGA = 1, Tandy = 2). It selects the pixel layout that every routine in this unit reads and
-    writes. }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
 
 function ComputeMask(transpColor: Byte; chunk: TChunk): Byte;
 var
@@ -226,9 +224,6 @@ begin
 end;
 
 procedure SetVideoMode(mode: Byte);
-var
-  { Unused in this version; see the other implementations of this routine. }
-  oldMode: Word;
 begin
   GDVars.savedVideoMode := GDVars.curVideoMode;
   GDVars.dsInterruptRegisters.ah := 0;
@@ -253,8 +248,6 @@ var
   dataSize: Word;
   readOfs: Word;
   data: Types.PByteArr;
-  { Unused in this version; see the other implementations of this routine. }
-  frame: Byte;
 begin
   if pic <> nil then Blit.FreePic(pic);
   DaxIo.LoadDax(name, '.dax', fileId, dataSize, data);
@@ -279,7 +272,6 @@ end;
 procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
                           pic: Types.PImgBuf);
 var
-  header: array[0..16] of Byte;
   chunk: TChunk;
   frame: Byte;
   col: Word;
@@ -297,7 +289,7 @@ begin
   with pic^ do begin
     dstOff := 0;
     maskOff := 0;
-    case displayMode of
+    case GDVars.videoMode of
       Types.vmCGA: begin
         for frame := 1 to count do
           for row := 0 to height - 1 do
@@ -404,9 +396,9 @@ begin
   lastRow := gfx^.height - 1;
   leftSkip := screenX;
   rightSkip := dest^.width - (screenX + gfx^.width);
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA, Types.vmTandy: begin
-      if displayMode = Types.vmCGA then begin
+      if GDVars.videoMode = Types.vmCGA then begin
         screenOff := leftSkip * 2;
         rowBytes := gfx^.width * 2;
         leftSkip := leftSkip * 2;
@@ -583,9 +575,9 @@ begin
     leftSkip := screenX;
     rightSkip := dest^.width - (screenX + gfx^.width);
   end;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA, Types.vmTandy: begin
-      if displayMode = Types.vmCGA then begin
+      if GDVars.videoMode = Types.vmCGA then begin
         screenOff := leftSkip * 2;
         rowBytes := (gfx^.width - clipLeft - clipRight) * 2;
         clipLeft := clipLeft * 2;
@@ -748,7 +740,7 @@ begin
   if (src = nil) or (dst = nil) then Exit;
   with src^ do begin
     Move(map, dst^.map, SizeOf(map));
-    case displayMode of
+    case GDVars.videoMode of
       { CGA: 2 bytes per 8-px cell, word pair-mirror }
       Types.vmCGA: begin
         rowBytes := width * SizeOf(cell);
@@ -827,7 +819,7 @@ var
 begin
   if pic = nil then Exit;
   with pic^ do
-    case displayMode of
+    case GDVars.videoMode of
       { CGA: 2 bytes per 8-px cell }
       Types.vmCGA: begin
         rowBytes := width * 2;
@@ -878,10 +870,8 @@ var
   srcOff: Word;
   dstOff: Word;
   dstBase: Word;
-  { Unused in this version; see the other implementations of this routine. }
-  plane: Word;
 begin
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA:
       for row := 0 to SizeOf(GDVars.spanActive) - 1 do
         if GDVars.spanActive[row] <> 0 then
@@ -961,8 +951,6 @@ var
   match: Byte;
   planeMask: array[0..3] of Byte;
   plane: Byte;
-  { Unused in this version; see the other implementations of this routine. }
-  cellByte: Byte;
   pixPos: Byte;
   rowBytes: Word;
   fromHigh: Byte;
@@ -988,7 +976,7 @@ begin
     dstOff := 0;
     if fromColors[pairIdx] <> toColors[pairIdx] then
       with scratchPic^ do
-        case displayMode of
+        case GDVars.videoMode of
           { CGA: match/rewrite each 2-bit pixel pattern }
           Types.vmCGA: begin
             rowBytes := width * 2;
@@ -1061,7 +1049,7 @@ var
   totalSize: Word;
 begin
   frameSize := height * width * 2;
-  if displayMode <> Types.vmCGA then
+  if GDVars.videoMode <> Types.vmCGA then
     frameSize := frameSize * 2;
   totalSize := count * frameSize;
   GetMem(pic, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
@@ -1071,7 +1059,7 @@ begin
   pic^.imgSize := frameSize;
   pic^.count := count;
   if (flag and 1) > 0 then
-    if displayMode = Types.vmEGA then begin
+    if GDVars.videoMode = Types.vmEGA then begin
       GetMem(pic^.transp, totalSize div 4);
       FillChar(pic^.transp^, totalSize div 4, 0);
     end else begin
@@ -1088,7 +1076,7 @@ begin
   with pic^ do begin
     nBytes := count * imgSize;
     if transp <> nil then
-      if displayMode = Types.vmEGA then
+      if GDVars.videoMode = Types.vmEGA then
         FreeMem(transp, nBytes div 4)
       else
         FreeMem(transp, nBytes);
@@ -1142,10 +1130,10 @@ begin
     else
       lastRow := height - 1;
   end;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA, Types.vmTandy: begin
       { CGA: 2 bytes per cell }
-      if displayMode = Types.vmCGA then begin
+      if GDVars.videoMode = Types.vmCGA then begin
         screenOfs := clampedX * 2;
         runLen := (width - clipLeft - clipRight) * 2;
         clampedX := clampedX * 2;
@@ -1167,7 +1155,7 @@ begin
           GDVars.spanScreenOfs[absRow] := screenOfs;
           GDVars.spanFirstOfs[absRow] := dstOff;
         end;
-        if displayMode = Types.vmCGA then
+        if GDVars.videoMode = Types.vmCGA then
           FillChar(pic^.data[dstOff], runLen, GDConsts.cgaColorFill[Blit.SrcNibble(color, colorMap)])
         else
           FillChar(pic^.data[dstOff], runLen, GDConsts.tandyColorFill[color]);

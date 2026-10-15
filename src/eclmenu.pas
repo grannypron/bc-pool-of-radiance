@@ -4,8 +4,7 @@ unit EclMenu;
 
 interface
 
-uses Types, Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLoad, ViewChar, C_Effect,
-  C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir, C_Money;
+uses Types;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address. Note: $80 (string value) also reads the GBVM, at an address made of the
@@ -95,7 +94,8 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 implementation
 
-uses CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
+uses Crt, C_Area, C_Npc, C_Save, C_Msg, GDConsts, GDVars, MapView, SaveLoad, ViewChar, C_Effect, C_Ecl, C_Keys,
+  C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
 
 var
   { Monster sprite or close-up picture shown in the view window }
@@ -159,9 +159,6 @@ end;
 { Note: the locals are named backwards: vHi holds the variable's lower byte and vLo its upper byte }
 function GetEclVar(idx: ShortInt): Word;
 var
-  d1: Word;
-  d2: Word;
-  d3: Word;
   vHi: Byte;
   vLo: Byte;
 begin
@@ -230,8 +227,6 @@ end;
   first. }
 procedure LoadEclScript(scriptId: Byte);
 var
-  d1: Word;
-  d2: Word;
   s: String[3];
   sizeRead: Word;
   data: Types.PByteArr;
@@ -291,8 +286,6 @@ end;
 
 procedure InitCreature(id: Byte; var creature: Types.PCharRecord; var inv: Types.PItemRec;
                        var effect: Types.PEffectRec);
-var
-  d1: Pointer;
 begin
   creature := nil;
   GetMem(creature, SizeOf(Types.TCharRecord));
@@ -341,8 +334,6 @@ end;
 { Select the monster sprite with sprId and its close-up picture with picId. }
 procedure DisplayMonster(sprId, picId, dist: Byte; var flags: Types.TMonFlags);
 var
-  d1: Pointer;
-  d2: Pointer;
   d3: Byte;
 begin
   if (not flags[1]) and flags[0] then
@@ -1151,7 +1142,6 @@ end;
   panel at (17,1)-(38,15) and redraw the party. A dead, stoned or gone character is left alone, with no message. }
 procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 var
-  frameSizer: Byte;
   msg: String;
   dmgStr: String[3];
   pause: Boolean;
@@ -1171,8 +1161,7 @@ begin
   end else
     pause := False;
   GDVars.curCol := C_Msg.TEXT_RIGHT;
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                White, pause, msg);
+  TextRend.ShowMessage(White, pause, msg);
   CharHlp.InflictDamage(creature, dmg);
   TextRend.ClearRect(17, 1, 38, 15);
   CharHlp.DisplayParty(GDVars.curChar);

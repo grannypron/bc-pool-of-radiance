@@ -4,7 +4,7 @@ unit TextRend;
 
 interface
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys;
+uses Types;
 
 procedure ResetEgaGC;
 
@@ -25,7 +25,14 @@ procedure ClearBottomLine;
 
 procedure DisplayString(col, row, color: Byte; source: string);
 
+{ Draw s centred between columns left and right (both included) on row, cut to that width first. }
+procedure DisplayCentered(left, right, row, color: Byte; s: string);
+
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
+
+{ DisplayMessageWindow in the message window, the screen's lower right (C_Msg.TEXT_LEFT, MESSAGE_TOP to TEXT_RIGHT,
+  TEXT_BOTTOM). }
+procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
 
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 
@@ -45,9 +52,10 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
+
+uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
 var
 
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   cgaB800: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK0_SEG:$0000;
   cgaBA00: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK1_SEG:$0000;
   tdyB800: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK0_SEG:$0000;
@@ -170,7 +178,7 @@ begin
     charIdx := ch;
   end;
   for i := 1 to count do begin
-    case displayMode of
+    case GDVars.videoMode of
       Types.vmCGA: begin
         color := GDConsts.attrTable[color];
         dstOff := row * 4;
@@ -252,6 +260,22 @@ end;
 procedure ClearBottomLine;
 begin
   TextRend.PrintSpaces(0, 24, Black, 40);
+end;
+
+procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
+begin
+  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, color,
+                                clearFirst, s);
+end;
+
+procedure DisplayCentered(left, right, row, color: Byte; s: string);
+var
+  width: Byte;
+begin
+  width := right - left + 1;
+  if Length(s) > width then
+    s[0] := Chr(width);
+  TextRend.DisplayString(left + (width - Length(s)) div 2, row, color, s);
 end;
 
 procedure PrintSpaces(col, row, color, count: Byte);
@@ -441,7 +465,7 @@ end;
 { Clear the whole screen to black: both EGA pages, or every CGA or Tandy bank. }
 procedure ClearScreen;
 begin
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA: begin
       FillChar(cgaBA00, SizeOf(Types.TCgaBank), 0);
       FillChar(cgaB800, SizeOf(Types.TCgaBank), 0);
@@ -486,7 +510,7 @@ var
 begin
   { the rectangle must lie on the 40 x 25 screen, corners in order }
   if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA: begin
       firstRow := ulRow * 4;
       lastRow := lrRow * 4 + 3;

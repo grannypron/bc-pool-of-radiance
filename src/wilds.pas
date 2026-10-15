@@ -4,8 +4,6 @@ unit Wilds;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles, TextRend;
-
 { Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GDConsts.wildMap, apply the
   special-location overrides gated on zone-0 quest flags, and draw each 24x24 tile three character cells apart through
   MapTiles.Copy2DTile. The corner is first moved so the 5x5 view lies inside the 44x36 map. }
@@ -16,6 +14,8 @@ procedure DrawWildWindows;
 
 implementation
 
+
+uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles, TextRend;
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
   WILD_SILVER_DRAGON_DEN = 1;

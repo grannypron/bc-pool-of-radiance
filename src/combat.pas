@@ -5,14 +5,13 @@ unit Combat;
 
 interface
 
-uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys,
-  C_Class, C_Status, C_Ifc, C_Gbvm, C_Dir;
-
 procedure CombatMain;
 
 implementation
 
-uses Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar, TextRend;
+uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys, C_Class,
+  C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore,
+  ViewChar, TextRend, StrUtil;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -339,7 +338,7 @@ begin
     Border.ClearBox(24, 24, 39, 24);
     MenuCore.arrowsToCaller := True;
     ch :=
-      MenuCore.MenuHorizontal('Move/Attack, Move Left = ' + CharHlp.ByteToString(creature^.combatAddr^.movement div 2) +
+      MenuCore.MenuHorizontal('Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +
       ' ', '', LightGreen, LightGreen, White, True, False, GDVars.doneRoundFlag);
     case ch of
       { Escape: undo }
@@ -499,7 +498,7 @@ begin
   ch := ' ';
   while not (ch in [C_Keys.NONE, 'E']) do
   begin
-    query := 'GameSpeed (' + CharHlp.ByteToString(GDVars.gameDelay) + ') :';
+    query := 'GameSpeed (' + StrUtil.NumStr(GDVars.gameDelay) + ') :';
     menu := ' ';
     if GDVars.gameDelay < 9 then
       menu := menu + 'Slower ';

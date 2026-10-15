@@ -4,15 +4,13 @@ unit Ending;
 
 interface
 
-uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc;
-
 procedure WinGame;
 
 procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Blit, TextRend;
+uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend;
 
 { Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);

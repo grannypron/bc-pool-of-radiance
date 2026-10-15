@@ -6,8 +6,7 @@ unit EffHndlr;
 
 interface
 
-uses Types, C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine,
-  Debug, C_Effect, C_Equip, C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell;
+uses Types;
 
 { Install the effect handlers in GDVars.effectFns. Magic installs slot 88 (dragon breath) itself. }
 procedure InitEffectHandlers;
@@ -245,7 +244,8 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 implementation
 
-uses CbtMap, CharHlp, Pathing, TextRend;
+uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
+  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil;
 
 const
 
@@ -1394,7 +1394,7 @@ var
 
 begin
   if levels > 1 then
-    numStr := CharHlp.ByteToString(levels) + ' levels'
+    numStr := StrUtil.NumStr(levels) + ' levels'
   else
     numStr := 'a level';
   CharHlp.PrintNameString(creature, 'is drained ' + numStr, 10, True);

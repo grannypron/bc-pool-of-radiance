@@ -5,8 +5,6 @@ unit HeapErr;
 
 interface
 
-uses Crt, GDConsts, GDVars, SaveLoad;
-
 { ** Installed as the System.HeapError hook so that a failed heap allocation gives the player a chance to save instead
   of crashing with a runtime error. Never returns normally when a real allocation failed; it ends by exiting the game.
 
@@ -16,7 +14,7 @@ function HeapErrorHandler(size: Word): Integer;
 
 implementation
 
-uses GameIo, TextRend;
+uses Crt, GDConsts, GDVars, SaveLoad, GameIo, TextRend;
 
 { ** Warns the player about the low-memory condition and, when heap-failure saving is enabled, forces a save (repeating
   until one succeeds) before quitting to DOS. When saving is disabled it just reports the failure and exits.

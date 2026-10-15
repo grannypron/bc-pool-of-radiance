@@ -6,8 +6,6 @@ unit Camp;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level;
-
 { Run the camp menu, preserving the interface state and clearing rest timers and pending spell activities. Return
   interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). }
 procedure CampMainMenu(var interrupted: Boolean);
@@ -18,7 +16,9 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar;
+uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
+  FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar,
+  StrUtil;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -222,7 +222,7 @@ begin
   for typ := 0 to 1 do begin
     canDo[typ] := 0;
     for lvl := 1 to 3 do begin
-      slotStr[lvl, typ] := CharHlp.ByteToString(Camp.SpellSlotsRemaining(lvl, typ));
+      slotStr[lvl, typ] := StrUtil.NumStr(Camp.SpellSlotsRemaining(lvl, typ));
       if GDVars.curChar^.slots[typ, lvl] = 0 then
         slotStr[lvl, typ] := ' '
       else begin
@@ -592,7 +592,7 @@ begin
               end else
                 Inc(k);
             if found = False then
-              s := 'Funky--' + CharHlp.ByteToString(id);
+              s := 'Funky--' + StrUtil.NumStr(id);
           end;
         C_Effect.TRAIN_START: s := 'Studying Manual of Bodily Health';
         C_Effect.TRAIN_MANUAL: s := 'Training with Manual of Bodily Health';

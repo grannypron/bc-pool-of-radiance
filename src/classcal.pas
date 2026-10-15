@@ -4,7 +4,7 @@ unit ClassCal;
 
 interface
 
-uses Types, GDConsts, GDVars, C_Class, C_Level, C_Race;
+uses Types;
 
 procedure RecalcBaseSkills(creature: Types.PCharRecord);
 
@@ -16,6 +16,8 @@ procedure RecalcThiefSkills(creature: Types.PCharRecord);
 
 implementation
 
+
+uses GDConsts, GDVars, C_Class, C_Level, C_Race;
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and

@@ -4,9 +4,6 @@ unit CharGen;
 
 interface
 
-uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race,
-  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align;
-
 procedure MainMenu;
 
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
@@ -17,7 +14,9 @@ procedure CustomizePortrait;
 
 implementation
 
-uses Options, Stats, Blit, CbtMap, CharHlp, ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend;
+uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race,
+  C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp,
+  ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil;
 
 var
 
@@ -54,20 +53,13 @@ function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forwar
   spells; the closing creature := nil clears only the local parameter }
 procedure FreeCreature(creature: Types.PCharRecord);
 var
-  hold: Types.PItemRec;
-  item: Types.PItemRec;
   holdE: Types.PEffectRec;
   effect: Types.PEffectRec;
 begin
   with creature^ do begin
     if (combatAddr <> nil) then
       FreeMem(combatAddr, SizeOf(Types.TCombatRec));
-    item := itemsAddr;
-    while item <> nil do begin
-      hold := item;
-      item := item^.next;
-      FreeMem(hold, SizeOf(Types.TItemRec));
-    end;
+    CharHlp.FreeItemList(itemsAddr);
     effect := effectsAddr;
     while effect <> nil do begin
       holdE := effect;
@@ -107,7 +99,6 @@ var
   n: ShortInt;
   redraw: Boolean;
   stateB: Byte;
-  version: String[40];
 begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
@@ -276,9 +267,9 @@ begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
     adj := GDConsts.raceAbilityAdj[race].values[i];
     if adj > 0 then
-      s := '+' + CharHlp.ByteToString(adj)
+      s := '+' + StrUtil.NumStr(adj)
     else if adj < 0 then
-      s := '-' + CharHlp.ByteToString(-adj)
+      s := '-' + StrUtil.NumStr(-adj)
     else
       s := ' 0';
     TextRend.DisplayString(ADJ_COL, RACE_LIST_ROW + i, LightGreen, s);
@@ -322,7 +313,7 @@ begin
       if lvl = 0 then
         s := 'U'
       else if lvl > 0 then
-        s := CharHlp.ByteToString(lvl)
+        s := StrUtil.NumStr(lvl)
       else
         s := '-';
       TextRend.DisplayString(MAX_VALUE_COL, row, LightGreen, s);
@@ -1027,7 +1018,7 @@ begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;
-  if (ViewChar.CreatureCoinValueInGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
+  if (Money.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
     TextRend.PrintAndPause('Training costs 1000 gp.', Yellow);
     Exit;
   end;
@@ -1102,11 +1093,11 @@ begin
           Inc(row);
           if row = 5 then
             TextRend.DisplayString(6, row, LightGreen,
-                                   '    a level ' + CharHlp.ByteToString(classLevels[cls] + 1) + ' ' +
+                                   '    a level ' + StrUtil.NumStr(classLevels[cls] + 1) + ' ' +
                                      GDConsts.classNames[cls])
           else
             TextRend.DisplayString(6, row, LightGreen,
-                                   'and a level ' + CharHlp.ByteToString(classLevels[cls] + 1) + ' ' +
+                                   'and a level ' + StrUtil.NumStr(classLevels[cls] + 1) + ' ' +
                                      GDConsts.classNames[cls]);
         end;
     if MenuCore.YesNoMenu('Do you wish to train? ', LightMagenta, LightGreen, White) <> 'Y' then
@@ -1350,18 +1341,7 @@ var
   procedure Centered(row, color: Byte; s: Types.TStr40);
   begin
     Border.ClearBox(2, row, 37, row);
-    if Length(s) > 36 then
-      s[0] := #36;
-    TextRend.DisplayString(2 + (36 - Length(s)) div 2, row, color, s);
-  end;
-
-  { Pad2: n as two characters, a single digit led by a blank, so the counts keep their place as they change }
-  function Pad2(n: Byte): Types.TStr40;
-  begin
-    if n < 10 then
-      Pad2 := ' ' + CharHlp.ByteToString(n)
-    else
-      Pad2 := CharHlp.ByteToString(n);
+    TextRend.DisplayCentered(2, 37, row, color, s);
   end;
 
   { ShowCounts: The "Head  7 of 41" and "Body  3 of 21" lines, the row being changed in white and the other in green }
@@ -1371,9 +1351,9 @@ var
   begin
     with GDVars.curChar^ do begin
       if onBody then col := LightGreen else col := White;
-      Centered(17, col, 'Head ' + Pad2(portraitHead) + ' of ' + CharHlp.ByteToString(nHeads));
+      Centered(17, col, 'Head ' + StrUtil.PadLeft(StrUtil.NumStr(portraitHead), 2) + ' of ' + StrUtil.NumStr(nHeads));
       if onBody then col := White else col := LightGreen;
-      Centered(18, col, 'Body ' + Pad2(portraitBody) + ' of ' + CharHlp.ByteToString(nBodies));
+      Centered(18, col, 'Body ' + StrUtil.PadLeft(StrUtil.NumStr(portraitBody), 2) + ' of ' + StrUtil.NumStr(nBodies));
     end;
   end;
 
@@ -1546,7 +1526,7 @@ var
   { MaskSize: Bytes in pic's transparency mask: one plane, a quarter of imgSize, on EGA }
   function MaskSize(pic: Types.PImgBuf): Word;
   begin
-    if GDVars.videoMode = 1 then
+    if GDVars.videoMode = Types.vmEGA then
       MaskSize := pic^.imgSize div 4
     else
       MaskSize := pic^.imgSize;
@@ -1596,7 +1576,7 @@ var
   begin
     if (src = nil) or (dst = nil) then Exit;
     if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
-    if GDVars.videoMode = 1 then
+    if GDVars.videoMode = Types.vmEGA then
       for n := 0 to dst^.imgSize - 1 do
         dst^.data[n] := dst^.data[n] and src^.transp^[n shr 2] or src^.data[n]
     else
@@ -1617,7 +1597,7 @@ var
   begin
     case GDVars.videoMode of
       { four plane bytes per eight pixels; plane k holds bit k of each pixel's colour }
-      1: begin
+      Types.vmEGA: begin
            n := 0;
            while n + 3 < work^.imgSize do begin
              for k := 0 to 3 do
@@ -1636,7 +1616,7 @@ var
            end;
          end;
       { two pixels per byte }
-      2: for n := 0 to work^.imgSize - 1 do
+      Types.vmTandy: for n := 0 to work^.imgSize - 1 do
            work^.data[n] := (toT[work^.data[n] shr 4] shl 4) or toT[work^.data[n] and $F];
     else
       for k := 0 to 15 do
@@ -1672,11 +1652,11 @@ var
   procedure Place(src: Types.PImgBuf; frame: Byte; boxed: Boolean; dst: Types.PImgBuf);
   begin
     if dst = nil then Exit;
-    if boxed and (GDVars.videoMode = 0) then
+    if boxed and (GDVars.videoMode = Types.vmCGA) then
       FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.dsIconColorMap)])
     else
       FillChar(dst^.data, dst^.imgSize, 0);
-    if boxed and (GDVars.videoMode <> 0) then
+    if boxed and (GDVars.videoMode <> Types.vmCGA) then
       if frame = 0 then
         Overlay(iconAnims[25].pic0, dst)
       else
@@ -1798,10 +1778,10 @@ var
     s: Types.TStr40;
   begin
     if v < count then
-      s := CharHlp.ByteToString(v + 1)
+      s := StrUtil.NumStr(v + 1)
     else
       s := '?';
-    s := s + '/' + CharHlp.ByteToString(count);
+    s := s + '/' + StrUtil.NumStr(count);
     while Length(s) < 5 do
       s := s + ' ';
     Counter := s;
@@ -1907,9 +1887,7 @@ var
   { MsgLine: Print s centred in the message panel on row }
   procedure MsgLine(row: Byte; s: Types.TStr40);
   begin
-    if Length(s) > 21 then
-      s[0] := #21;
-    TextRend.DisplayString(18 + (21 - Length(s)) div 2, row, LightGreen, s);
+    TextRend.DisplayCentered(18, 38, row, LightGreen, s);
   end;
 
   { ShowMessage: The message panel: what is being chosen and the keys, or nothing on the left }
@@ -2085,10 +2063,7 @@ begin
   Border.DrawBorder(18, 1, 38, 22, 0);
   Border.DrawBorder(18, MSG_TOP, 38, MSG_BOTTOM, 0);
   with GDVars.curChar^ do
-    if Length(name) <= 16 then
-      TextRend.DisplayString(1 + (16 - Length(name)) div 2, 1, Cyan, name)
-    else
-      TextRend.DisplayString(1, 1, Cyan, Copy(name, 1, 16));
+    TextRend.DisplayCentered(1, 16, 1, Cyan, name);
   TextRend.DisplayString(READY_COL - 1, LABEL_ROW, LightGreen, 'Ready');
   TextRend.DisplayString(ACTION_COL - 1, LABEL_ROW, LightGreen, 'Action');
   TextRend.DisplayString(2, COLOR_ROW, LightGreen, 'Color');
@@ -2172,7 +2147,6 @@ function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
-  padB: Byte;
   con: Byte;
   share: ShortInt;
   warrior: Boolean;

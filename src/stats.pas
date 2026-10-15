@@ -8,7 +8,7 @@ unit Stats;
 
 interface
 
-uses Types, GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money;
+uses Types;
 
 const
   { the counters, by index into TStatBlock.counts }
@@ -48,9 +48,6 @@ type
 var
   { the game's totals: every count a party member makes }
   game: TStatBlock;
-
-{ True when creature is one of the party's PARTY_SIZE members, which lead GDVars.creatureList. }
-function IsPartyMember(creature: Types.PCharRecord): Boolean;
 
 { The block of party member creature, made empty the first time; nil for anyone else. }
 function BlockOf(creature: Types.PCharRecord): PStatBlock;
@@ -95,6 +92,8 @@ procedure WriteGame(fn: Types.TPathStr);
 procedure ReadGame(fn: Types.TPathStr);
 
 implementation
+
+uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil, Party;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -156,25 +155,6 @@ begin
   Stats.AddTo(b.kills[i].count, 1);
 end;
 
-function IsPartyMember(creature: Types.PCharRecord): Boolean;
-var
-  p: Types.PCharRecord;
-  n: Integer;
-begin
-  IsPartyMember := False;
-  if creature = nil then Exit;
-  p := GDVars.creatureList;
-  n := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
-  while (p <> nil) and (n > 0) do begin
-    if p = creature then begin
-      IsPartyMember := True;
-      Exit;
-    end;
-    p := p^.nextCharAddr;
-    Dec(n);
-  end;
-end;
-
 function FindEntry(creature: Types.PCharRecord): Byte;
 var
   i: Byte;
@@ -208,7 +188,7 @@ var
   i: Byte;
 begin
   BlockOf := nil;
-  if not Stats.IsPartyMember(creature) then Exit;
+  if not Party.IsPartyMember(creature) then Exit;
   i := Stats.FindEntry(creature);
   if i = 0 then
     i := Stats.NewEntry(creature);
@@ -220,7 +200,7 @@ procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
 var
   b: PStatBlock;
 begin
-  if not Stats.IsPartyMember(creature) then Exit;
+  if not Party.IsPartyMember(creature) then Exit;
   b := Stats.BlockOf(creature);
   if b <> nil then
     Stats.AddTo(b^.counts[stat], n);
@@ -233,13 +213,13 @@ var
   down: Boolean;
 begin
   down := wasUp and not (victim^.status in [C_Status.OKAY, C_Status.ANIMATED]);
-  if Stats.IsPartyMember(victim) then begin
+  if Party.IsPartyMember(victim) then begin
     Stats.Count(victim, DAMAGE_TAKEN, hp);
     if down then
       Stats.Count(victim, KNOCKED_DOWN, 1);
     if victim^.status = C_Status.DEAD then
       Stats.Count(victim, DIED, 1);
-  end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Stats.IsPartyMember(actor) then begin
+  end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
     Stats.Count(actor, DAMAGE_DONE, hp);
     if down then begin
       Stats.Count(actor, KILLS, 1);
@@ -309,7 +289,7 @@ var
   b: PStatBlock;
 begin
   for n := 1 to ENTRIES do
-    if (marked[n] <> nil) and Stats.IsPartyMember(marked[n]) then begin
+    if (marked[n] <> nil) and Party.IsPartyMember(marked[n]) then begin
       delta := Stats.CoinWorth(marked[n]) - markedWorth[n];
       if delta <> 0 then begin
         b := Stats.BlockOf(marked[n]);
@@ -335,23 +315,12 @@ begin
   FillChar(game, SizeOf(game), 0);
 end;
 
-procedure DeleteFile(name: Types.TPathStr);
-var
-  f: file;
-  ioRes: Integer;
-begin
-  Assign(f, name);
-  Erase(f);
-  ioRes := IOResult;
-end;
-
 procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
-  f: file;
   i: Byte;
-  ioRes: Integer;
+  written: Boolean;
 begin
-  Stats.DeleteFile(fn + '.sts');
+  FileUtil.DeleteFile(fn + '.sts');
   i := Stats.FindEntry(creature);
   if i = 0 then Exit;
   FillChar(rec, SizeOf(rec), 0);
@@ -360,44 +329,15 @@ begin
   rec.name := creature^.name;
   rec.randByte := creature^.randByte;
   rec.block := blocks[i]^;
-  Assign(f, fn + '.sts');
-  Rewrite(f, 1);
-  if IOResult = 0 then begin
-    BlockWrite(f, rec, SizeOf(rec));
-    ioRes := IOResult;
-    Close(f);
-  end;
-  ioRes := IOResult;
+  { a failed write leaves a short file, which ReadFile turns down }
+  written := FileUtil.WriteRecord(fn + '.sts', rec, SizeOf(rec));
 end;
 
 { Read a TStatFile from name into rec: True when it is whole and of this format. }
 function ReadFile(name: Types.TPathStr): Boolean;
-var
-  f: file;
-  n: Word;
-  ok: Boolean;
-  mode: Byte;
-  ioRes: Integer;
 begin
-  ok := False;
-  Assign(f, name);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
-    ok := FileSize(f) = SizeOf(rec);
-    if IOResult <> 0 then
-      ok := False;
-    if ok then begin
-      BlockRead(f, rec, SizeOf(rec), n);
-      ok := (IOResult = 0) and (n = SizeOf(rec));
-    end;
-    Close(f);
-    ioRes := IOResult;
-    ok := ok and (rec.sig = SIG) and (rec.version = VERSION) and (rec.block.kindCount <= KINDS);
-  end;
-  ReadFile := ok;
+  ReadFile := FileUtil.ReadRecord(name, rec, SizeOf(rec)) and (rec.sig = SIG) and (rec.version = VERSION) and
+              (rec.block.kindCount <= KINDS);
 end;
 
 procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
@@ -414,21 +354,13 @@ end;
 
 procedure WriteGame(fn: Types.TPathStr);
 var
-  f: file;
-  ioRes: Integer;
+  written: Boolean;
 begin
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := SIG;
   rec.version := VERSION;
   rec.block := game;
-  Assign(f, fn);
-  Rewrite(f, 1);
-  if IOResult = 0 then begin
-    BlockWrite(f, rec, SizeOf(rec));
-    ioRes := IOResult;
-    Close(f);
-  end;
-  ioRes := IOResult;
+  written := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
 end;
 
 procedure ReadGame(fn: Types.TPathStr);

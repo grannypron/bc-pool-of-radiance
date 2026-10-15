@@ -4,9 +4,6 @@ unit PostCbt;
 
 interface
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc,
-  C_Gbvm, C_Money;
-
 { Wrap up a combat: settle the outcome, award experience, run the loot menus and free the combat state. }
 procedure PostCombat;
 
@@ -16,7 +13,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar;
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
+  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar;
 
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
@@ -298,9 +296,6 @@ procedure LootTakeItemSelection(var c: Char; var itemToTake: Types.PItemRec; var
                                 var idx: Integer);
 var
   head: Types.PItemRec;
-  tmp: String[16];
-  lenv: Byte;
-  i: Byte;
   { seeded True so MenuVertical paints the list; MenuVertical clears it }
   redraw: Boolean;
   p: Types.PItemRec;
@@ -405,13 +400,11 @@ procedure LootMenu;
 var
   treasure: Boolean;
   items: Boolean;
-  frameSizer: Boolean;
   menu: String;
   c: Char;
   done: Boolean;
   ext: Boolean;
   query: String[1];
-  ynIdx: Byte;
   i: Byte;
   detectSpell: Byte;
   hasDetect: Boolean;
@@ -452,23 +445,9 @@ begin
       'D': Magic.CastSpellNC(detectSpell, False, False, ext);
       'E', C_Keys.NONE: begin
                  Money.DetermineTreasure(treasure, items);
-                 if treasure or items then begin
-                   menu := '~Yes ~No';
-                   TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                                                 C_Msg.TEXT_BOTTOM, LightGreen, True,
-                                                 'There is still treasure left.  ');
-                   TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                                                 C_Msg.TEXT_BOTTOM, White, False,
-                                                 'Do you want to go back and claim your treasure?');
-                   ynIdx := EclMenu.MenuHorizontalCS(query, menu, LightMagenta, LightGreen, White,
-                                                     False, False);
-                   { 0-based: 1 = No leaves, anything else returns to the loot menu }
-                   if ynIdx = 1 then
-                     done := True
-                   else
-                     TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-                 end else
-                   done := True;
+                 done := not (treasure or items) or
+                         not Money.GoBackForIt('There is still treasure left.  ',
+                                               'Do you want to go back and claim your treasure?');
                end;
       'G': begin
              ViewChar.SelectPrevNextChar(c);
@@ -526,7 +505,6 @@ var
   cut: LongInt;
   row: Byte;
   i: ShortInt;
-  tmp: String[8];
   took: Boolean;
   ext: Boolean;
   c: Char;
@@ -573,9 +551,6 @@ end;
   offer loot and free the leftover treasure items; on defeat, set C_Gbvm.COMBAT_RESULT to $80 and show the game-over
   screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel. }
 procedure PostCombat;
-var
-  p: Types.PItemRec;
-  q: Types.PItemRec;
 begin
   GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := 0;
   GDVars.nonEscapedHostileFound := False;
@@ -586,13 +561,7 @@ begin
     PostCbt.NpcTreasureShare;
     PostCbt.PostCombatSummary(GDVars.expShare);
     PostCbt.LootMenu;
-    p := GDVars.treasureItems;
-    while p <> nil do begin
-      q := p;
-      p := p^.next;
-      FreeMem(q, SizeOf(Types.TItemRec));
-    end;
-    GDVars.treasureItems := nil;
+    CharHlp.FreeItemList(GDVars.treasureItems);
   end else begin
     GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $80;
     Border.DrawWindow(1, 1, 38, 22, 0, White, 'The END!');

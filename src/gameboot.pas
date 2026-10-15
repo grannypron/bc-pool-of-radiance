@@ -5,11 +5,9 @@ unit GameBoot;
 
 interface
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv;
-
 implementation
 
-uses DaxIo, GameIo;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv, DaxIo, GameIo;
 
 const
   { graphics memory reserve: 16 KB in paragraphs }
@@ -18,8 +16,6 @@ const
 
 var
   heapEndW: Types.THeapEndW absolute HeapEnd;
-  { 0=CGA 1=EGA 2=Tandy }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   { POOL.CFG line 5 = 'F' }
   fullIntro: Boolean absolute GDVars.fullIntro;
   { the overlay manager's own read routine, which CountOvrRead calls }
@@ -101,7 +97,7 @@ begin
   GDVars.curVideoMode := GDVars.savedVideoMode;
   case GDVars.cfgChar of
     'E': begin
-      displayMode := Types.vmEGA;
+      GDVars.videoMode := Types.vmEGA;
       Blit.SetVideoMode(13);
       GDVars.pageMain := 0;
       GDVars.pageNum := 0;
@@ -109,7 +105,7 @@ begin
       TextRend.SetupEgaOtherPage(GDVars.pageNum);
     end;
     'T': begin
-      displayMode := Types.vmTandy;
+      GDVars.videoMode := Types.vmTandy;
       { Lower HeapEnd by GFX_RESERVE_PARAS; the common code after the sound setting lowers it once more, so Tandy
         reserves twice as much }
       GDVars.gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
@@ -117,7 +113,7 @@ begin
       Blit.SetVideoMode(9);
     end;
     else begin
-      displayMode := Types.vmCGA;
+      GDVars.videoMode := Types.vmCGA;
       Blit.SetVideoMode(4);
     end;
   end;

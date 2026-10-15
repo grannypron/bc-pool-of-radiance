@@ -4,9 +4,6 @@ unit EclVm;
 
 interface
 
-uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen,
-  Ending, CharHlp, DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status;
-
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (a saved game's too) and
   initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
   party is defeated or a quick load is asked for (Explore.quickLoadAsked) }
@@ -14,8 +11,10 @@ procedure GameLoop;
 
 implementation
 
-uses Vault, EclTrace, Border, Camp, EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad,
-  Shop, SoundDrv, TextRend, View3D;
+uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
+  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
+  EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend,
+  View3D, StrUtil;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -388,11 +387,9 @@ begin
   GDVars.bottomMsgCleared := 0;
   GDVars.msgDelayFlag := 1;
   if GDVars.dsGbvmType[1] < $80 then
-    GDVars.gbStrings[1] := CharHlp.WordToString(EclMenu.GetEclVar(1));
+    GDVars.gbStrings[1] := StrUtil.NumStr(EclMenu.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, False,
-                                  GDVars.gbStrings[1])
+    TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings[1])
   else begin
     GDVars.curRow := C_Msg.MESSAGE_TOP;
     GDVars.curCol := C_Msg.TEXT_LEFT;
@@ -599,8 +596,7 @@ begin
   head := list;
   GDVars.curCol := C_Msg.TEXT_LEFT;
   GDVars.curRow := C_Msg.MESSAGE_TOP;
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                True, msg);
+  TextRend.ShowMessage(LightGreen, True, msg);
   while list <> nil do begin
     list^.name := GDVars.gbStrings[i];
     list^.inUse := 0;
@@ -669,19 +665,12 @@ end;
 
 { CLEAR MONSTERS: forget the loaded monsters, reset the monster icon slot, and clear the treasure money and items }
 procedure EclClearMon;
-var
-  nxt: Types.PItemRec;
 begin
   Inc(GDVars.eclIp);
   GDVars.creatureCnt := 0;
   GDVars.monstersOn := 0;
   GDVars.gIconAnim := 8;
-  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
-  while GDVars.treasureItems <> nil do begin
-    nxt := GDVars.treasureItems^.next;
-    FreeMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-    GDVars.treasureItems := nxt;
-  end;
+  CharHlp.ClearTreasure;
 end;
 
 { PARTY STRENGTH: store the party's rating at var 1's address: (4*cleric + (hp + 5*(AC below 0) + 5*(THAC0 below 21)
@@ -952,7 +941,6 @@ var
   i: ShortInt;
   tId: Byte;
   j: Byte;
-  deadStr: String[22];
   it: Types.TItemRec;
   tmp: Types.PItemRec;
   walk: Types.PItemRec;
@@ -1172,8 +1160,7 @@ begin
     end;
     if msg = '' then
       clearW := False;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                  LightGreen, clearW, msg);
+    TextRend.ShowMessage(LightGreen, clearW, msg);
     if (GDVars.zone1^[C_Gbvm.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0) then
       menu := '~COMBAT ~WAIT ~FLEE ~PARLAY'
     else
@@ -1197,9 +1184,7 @@ begin
           0: EclMenu.WriteGbvm(address, 1);
           1: begin
             waited := True;
-            TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                          LightGreen, True,
-                                          'Both sides wait.');
+            TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
           end;
           2: EclMenu.WriteGbvm(address, 2);
           3: begin
@@ -1208,9 +1193,7 @@ begin
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                                      GDVars.dsMonsterFlags);
             end else
-              TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True,
-                                            'Both sides wait.');
+              TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
             waited := True;
           end;
           4:
@@ -1230,18 +1213,14 @@ begin
               EclMenu.WriteGbvm(address, 0);
               GDVars.curCol := C_Msg.TEXT_LEFT;
               GDVars.curRow := C_Msg.MESSAGE_TOP;
-              TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True,
-                                            'The monsters flee.');
+              TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
             end else
               EclMenu.WriteGbvm(address, 1);
           1..4: begin
             EclMenu.WriteGbvm(address, 0);
             GDVars.curCol := C_Msg.TEXT_LEFT;
             GDVars.curRow := C_Msg.MESSAGE_TOP;
-            TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                          LightGreen, True,
-                                          'The monsters flee.');
+            TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
           end;
         end;
       3:
@@ -1253,9 +1232,7 @@ begin
               EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                                      GDVars.dsMonsterFlags);
             end else
-              TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                            LightGreen, True,
-                                            'Both sides wait.');
+              TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
             waited := True;
           end;
           2: EclMenu.WriteGbvm(address, 2);

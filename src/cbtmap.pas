@@ -5,7 +5,7 @@ unit CbtMap;
 
 interface
 
-uses Types, Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound;
+uses Types;
 
 { Map an icon tile to its cell offset from the upper-left corner. Return False for an inactive icon or an unused tile
   with a negative X offset. }
@@ -106,7 +106,8 @@ procedure StopSpellPreview;
 
 implementation
 
-uses Pathing, MenuCore, Magic, Blit;
+uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound, Pathing, MenuCore, Magic,
+  Blit;
 
 const
   { The cursor sprite cell in iconAnims }
@@ -384,7 +385,7 @@ end;
 procedure SetCombatPalette;
 begin
   case GDVars.videoMode of
-    1: begin
+    Types.vmEGA: begin
          Blit.SetPaletteRegister(0, DarkGray);
          Blit.SetPaletteRegister(8, Black);
        end;
@@ -394,7 +395,7 @@ end;
 procedure SetNoncombatPalette;
 begin
   case GDVars.videoMode of
-    1: begin
+    Types.vmEGA: begin
          Blit.SetPaletteRegister(0, Black);
          Blit.SetPaletteRegister(8, DarkGray);
        end;

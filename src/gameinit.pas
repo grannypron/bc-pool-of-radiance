@@ -4,14 +4,12 @@ unit GameInit;
 
 interface
 
-uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr,
-  C_Dir;
-
 procedure GameInit2;
 
 implementation
 
-uses Options, Blit, DaxIo, GameIo, MenuCore, Session, SoundDrv, TextRend;
+uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
+  GameIo, MenuCore, Session, SoundDrv, TextRend;
 
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;

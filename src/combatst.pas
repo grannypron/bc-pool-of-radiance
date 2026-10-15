@@ -4,14 +4,12 @@ unit CombatSt;
 
 interface
 
-uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine,
-  Portrait, View3D, MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir;
-
 procedure CombatStart;
 
 implementation
 
-uses C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend;
+uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine, Portrait, View3D,
+  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend;
 
 var
   { The menu animation, released when combat starts. }

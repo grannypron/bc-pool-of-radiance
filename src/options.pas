@@ -425,9 +425,9 @@ var
   video: Types.TStr20;
 begin
   case GDVars.videoMode of
-    0: video := 'CGA';
-    1: video := 'EGA';
-    2: video := 'Tandy';
+    Types.vmCGA: video := 'CGA';
+    Types.vmEGA: video := 'EGA';
+    Types.vmTandy: video := 'Tandy';
   else
     video := '?';
   end;

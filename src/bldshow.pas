@@ -47,7 +47,7 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses Crt, Types, GDConsts, GDVars, DataArc, TextRend, Blit, Border, GameIo;
+uses Crt, Types, GDConsts, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil;
 
 const
   { per-disk archives are numbered 1 to SOURCE_DISKS }
@@ -170,16 +170,7 @@ const
   st: PShowState = nil;
 
 var
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   biosTicks: LongInt absolute $0040:$006C;
-
-function NumStr(n: LongInt): Types.TStr20;
-var
-  s: Types.TStr20;
-begin
-  Str(n, s);
-  NumStr := s;
-end;
 
 { a * b div c for positive a, b and c; 0 when any of them is not positive. Until the product fits, the larger factor
   and c are halved together; once c is down to 1 the halving is made up by doubling the result instead. }
@@ -211,24 +202,6 @@ begin
   end;
 end;
 
-{ s cut or padded with spaces on the right to width. }
-function PadRight(s: string; width: Byte): string;
-begin
-  s := Copy(s, 1, width);
-  while Length(s) < width do
-    s := s + ' ';
-  PadRight := s;
-end;
-
-{ s cut or padded with spaces on the left to width. }
-function PadLeft(s: string; width: Byte): string;
-begin
-  s := Copy(s, 1, width);
-  while Length(s) < width do
-    s := ' ' + s;
-  PadLeft := s;
-end;
-
 { Draw s in color at col, row, cut to the screen's width. }
 procedure DrawText(col, row, color: Byte; s: string);
 begin
@@ -247,7 +220,7 @@ var
 begin
   if (frame >= FRAMES) or (y > 7) then Exit;
   at := frame * st^.art^.imgSize;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmEGA:
       for plane := 0 to 3 do begin
         b := 0;
@@ -353,7 +326,7 @@ begin
     color := LightRed
   else
     color := LightGreen;
-  BldShow.DrawText(col, row, color, BldShow.PadRight(DataArc.MergedName(fam), NAME_WIDTH - 1));
+  BldShow.DrawText(col, row, color, StrUtil.PadRight(DataArc.MergedName(fam), NAME_WIDTH - 1));
 end;
 
 { Show s, cut or padded to width, as status text field at col, row: only the characters that differ from what the field
@@ -365,7 +338,7 @@ begin
   if field >= FIELDS then Exit;
   if width > FIELD_WIDTH then
     width := FIELD_WIDTH;
-  s := BldShow.PadRight(s, width);
+  s := StrUtil.PadRight(s, width);
   for i := 1 to width do
     if (i > Length(st^.shown[field])) or (st^.shown[field][i] <> s[i]) then
       if col + i - 1 < 40 then
@@ -376,15 +349,15 @@ end;
 { Show a status line: its label, right-aligned to end at LABEL_END, and its value. }
 procedure Status(labelField, valueField, row: Byte; lbl, value: string);
 begin
-  BldShow.Field(labelField, LABEL_END - LABEL_WIDTH + 1, row, Yellow, BldShow.PadLeft(lbl, LABEL_WIDTH), LABEL_WIDTH);
+  BldShow.Field(labelField, LABEL_END - LABEL_WIDTH + 1, row, Yellow, StrUtil.PadLeft(lbl, LABEL_WIDTH), LABEL_WIDTH);
   BldShow.Field(valueField, VALUE_COL, row, LightCyan, value, STEP_WIDTH);
 end;
 
 { Show the families finished, as n/FAMILIES with n padded to two places. }
 procedure ShowCount;
 begin
-  BldShow.Field(FIELD_COUNT, VALUE_COL, OVERALL_ROW, LightCyan, BldShow.PadLeft(BldShow.NumStr(st^.finished), 2) + '/' +
-                BldShow.NumStr(C_Data.FAMILIES), COUNT_WIDTH);
+  BldShow.Field(FIELD_COUNT, VALUE_COL, OVERALL_ROW, LightCyan, StrUtil.PadLeft(StrUtil.NumStr(st^.finished), 2) + '/' +
+                StrUtil.NumStr(C_Data.FAMILIES), COUNT_WIDTH);
 end;
 
 { Fill the bar to px pixels, drawing only the cells that change. }
@@ -435,10 +408,8 @@ begin
     secs := 59;
   end else
     secs := secs mod 60;
-  s := BldShow.NumStr(secs);
-  if secs < 10 then
-    s := '0' + s;
-  BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, BldShow.NumStr(mins) + ':' + s, COUNT_WIDTH);
+  s := StrUtil.ZeroPad2(secs);
+  BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, StrUtil.NumStr(mins) + ':' + s, COUNT_WIDTH);
 end;
 
 { The BIOS tick count, read until two reads agree, so a timer tick between the two words of a read is not taken. }
@@ -587,16 +558,16 @@ begin
   Border.DrawBorder(1, TITLE_ROW, 38, TITLE_ROW, 0);
   Border.DrawBorder(1, STATUS_TOP, 38, STATUS_BOTTOM, 0);
   Border.DrawBorder(1, PANEL_TOP, 38, PANEL_BOTTOM, 0);
-  BldShow.DrawText(1 + (38 - Length(TITLE)) div 2, TITLE_ROW, White, TITLE);
+  TextRend.DisplayCentered(1, 38, TITLE_ROW, White, TITLE);
   if st^.readOnly then begin
     col := 1 + (38 - Length(WARN_LABEL + WARN_TEXT)) div 2;
     BldShow.DrawText(col, WARN_ROW, LightRed, WARN_LABEL);
     BldShow.DrawText(col + Length(WARN_LABEL), WARN_ROW, Yellow, WARN_TEXT);
-    BldShow.DrawText(1 + (38 - Length(WARN_NEXT)) div 2, WARN_NEXT_ROW, Yellow, WARN_NEXT);
+    TextRend.DisplayCentered(1, 38, WARN_NEXT_ROW, Yellow, WARN_NEXT);
   end else begin
     BldShow.Status(FIELD_MAKE_LABEL, FIELD_MAKE, MAKE_ROW, 'Creating:', '');
-    BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, OVERALL_ROW, Yellow, BldShow.PadLeft('Overall:', LABEL_WIDTH));
-    BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, ETA_ROW, Yellow, BldShow.PadLeft('ETA:', LABEL_WIDTH));
+    BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, OVERALL_ROW, Yellow, StrUtil.PadLeft('Overall:', LABEL_WIDTH));
+    BldShow.DrawText(LABEL_END - LABEL_WIDTH + 1, ETA_ROW, Yellow, StrUtil.PadLeft('ETA:', LABEL_WIDTH));
     BldShow.ShowCount;
     st^.barPx := BAR_PX;
     BldShow.ShowBar(0);
@@ -707,7 +678,7 @@ begin
   end;
   if failed or st^.readOnly then begin
     if not st^.readOnly and (DataArc.FileLength(GDVars.gameDir + LOG_NAME) > 0) then
-      BldShow.DrawText(1 + (38 - Length(NOTE)) div 2, NOTE_ROW, LightRed, NOTE);
+      TextRend.DisplayCentered(1, 38, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;
     TextRend.ClearBottomLine;

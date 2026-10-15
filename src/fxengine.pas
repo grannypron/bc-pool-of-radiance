@@ -17,6 +17,13 @@ procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer
   called with removed = True; the node is then unlinked and freed. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
+{ True when the creature has any of the effects a cure of disease removes (GDConsts.cureDiseaseEffects). }
+function HasDisease(creature: Types.PCharRecord): Boolean;
+
+{ Remove every effect a cure of disease removes, quietly, with the effect lock held: the temple's cure and the
+  paladin's. }
+procedure RemoveDiseases(creature: Types.PCharRecord);
+
 { Fire, on one creature, every effect id registered under condition cond (0..19, the C_Cond constants). Each id goes
   through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures. }
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
@@ -129,7 +136,7 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
 implementation
 
-uses Stats;
+uses Stats, StrUtil;
 
 var
   { GBVM zone 1 as bytes: byte 2 * (addr - $6B00) is the low byte of GBVM word addr }
@@ -220,8 +227,6 @@ begin
 end;
 
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
-var
-  effect: Types.PEffectRec;
 begin
   case cond of
     C_Cond.ATTACKER_VETO: FxEngine.TriggerEffect(creature, C_Effect.GAZE_BLOCK);
@@ -647,7 +652,7 @@ begin
     end;
   if GDVars.pendingDamage > 0 then begin
     if GDVars.pendingDamage <> 1 then
-      s := 'takes ' + CharHlp.ByteToString(GDVars.pendingDamage) + ' points of damage '
+      s := 'takes ' + StrUtil.NumStr(GDVars.pendingDamage) + ' points of damage '
     else
       s := 'takes 1 point of damage ';
     case GDVars.elementMask and $F7 of
@@ -665,7 +670,7 @@ begin
       { the item label ends in a space }
       CharHlp.PrintItemString(creature, shockItem, 0, 0, False, False);
       CharHlp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
-                               CharHlp.ByteToString(GDVars.pendingDamage) + ' damage, and has been unequipped.');
+                               StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
     end;
     CharHlp.InflictDamage(creature, GDVars.pendingDamage);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
@@ -719,7 +724,6 @@ procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes
                                saveNegates, saved: Boolean; msg: Types.TStr40);
 var
   effect: Types.PEffectRec;
-  frameSizer: Byte;
 begin
   GDVars.pendingEffectId := effId;
   FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);
@@ -791,6 +795,29 @@ begin
     ReviveDeadCreature := True;
   end else
     ReviveDeadCreature := False;
+end;
+
+function HasDisease(creature: Types.PCharRecord): Boolean;
+var
+  i: Byte;
+  effect: Types.PEffectRec;
+  found: Boolean;
+begin
+  found := False;
+  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
+    if CharHlp.HasEffect(creature, GDConsts.cureDiseaseEffects[i], effect) then
+      found := True;
+  HasDisease := found;
+end;
+
+procedure RemoveDiseases(creature: Types.PCharRecord);
+var
+  i: Byte;
+begin
+  GDVars.effectLock := 1;
+  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
+    FxEngine.RemoveEffect(creature, GDConsts.cureDiseaseEffects[i], nil);
+  GDVars.effectLock := 0;
 end;
 
 end.

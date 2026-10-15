@@ -4,15 +4,14 @@ unit GameTime;
 
 interface
 
-uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Ifc, C_Gbvm, C_Spell;
-
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
 function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses FxEngine;
+uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Ifc, C_Gbvm, C_Spell,
+  FxEngine, StrUtil;
 
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
@@ -196,16 +195,6 @@ begin
   end;
 end;
 
-{ v as a two-digit string, with a leading zero below 10 }
-function TwoDigitStr(v: Byte): Types.TStr40;
-var
-  s: Types.TStr40;
-begin
-  s := CharHlp.ByteToString(v);
-  if v < 10 then s := '0' + s;
-  TwoDigitStr := Copy(s, 1, 2);
-end;
-
 { Display the rest timer as days, hours and minutes. Highlight component hl (2 minutes, 3 hours, 4 days); 0 leaves all
   components unhighlighted. }
 procedure DisplayRestTime(hl: ShortInt);
@@ -220,12 +209,12 @@ begin
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
   for i := C_Time.DAYS downto C_Time.HOURS do begin
-    TextRend.DisplayString(x + 1, 17, colors[i], GameTime.TwoDigitStr(GDVars.dsRestingTimeGbvm[i]));
+    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GDVars.dsRestingTimeGbvm[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
   TextRend.DisplayString(x + 1, 17, colors[C_Time.TURNS],
-                         GameTime.TwoDigitStr(10 * GDVars.dsRestingTimeGbvm[C_Time.TURNS] +
+                         StrUtil.ZeroPad2(10 * GDVars.dsRestingTimeGbvm[C_Time.TURNS] +
                            GDVars.dsRestingTimeGbvm[C_Time.MINUTES]));
 end;
 

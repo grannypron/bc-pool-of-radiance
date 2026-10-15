@@ -4,17 +4,16 @@ unit Temple;
 
 interface
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
-  C_Status, C_Ifc;
 
 procedure TempleMainMenu;
 
+{ The Heal menu: the cures and spells the temple sells, for the current character. }
+procedure HealMenu;
+
 implementation
 
-uses Stats, Border, CharHlp, MenuCore, ViewChar;
-
-var
-  treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
+uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
@@ -30,26 +29,13 @@ end;
 function ConfirmCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
-  charGold: LongInt;
-  pooled: LongInt;
 begin
-  spell := spell + ' will only cost ' + CharHlp.WordToString(cost) + ' gold pieces.';
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen,
-                                True, spell);
+  spell := spell + ' will only cost ' + StrUtil.NumStr(cost) + ' gold pieces.';
+  TextRend.ShowMessage(LightGreen, True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
   if c = 'Y' then begin
-    charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
-    if cost <= charGold then begin
-      Money.PayFromCreature(GDVars.curChar, cost);
-    end else begin
-      pooled := Money.CoinValueInGold(treasureMoney);
-      if cost <= pooled then begin
-        Money.PayFromPool(cost);
-      end else begin
-        CharHlp.PrintBottomLine('Not enough money.');
-        c := 'N';
-      end;
-    end;
+    if not Money.PayGold(cost) then
+      c := 'N';
   end;
   if c = 'Y' then begin
     CharHlp.ClearMessageWindow;
@@ -76,35 +62,18 @@ begin
   end;
 end;
 
-{ CureDisease: Checks for effects 31, 34, 43, 44, 50 and 57 (C_Effect.HELPLESS, C_Effect.DISEASED, C_Effect.DISEASE_STR,
-  C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT); for 1000 gp removes all six with the effect lock set }
+{ CureDisease: for 1000 gp, remove the current character's disease effects (FxEngine.RemoveDiseases), asking first when
+  there are none }
 procedure CureDisease;
 var
-  effect: Types.PEffectRec;
-  s: String;
   c: Char;
-  i: Byte;
-  found: Boolean;
 begin
-  found := False;
-  s := '';
   c := 'Y';
-  { 6 = High(cureDiseaseEffects) }
-  for i := 1 to 6 do
-    if CharHlp.HasEffect(GDVars.curChar, GDConsts.cureDiseaseEffects[i], effect) then
-      found := True;
-  if not found then
+  if not FxEngine.HasDisease(GDVars.curChar) then
     c := Temple.ConfirmCureAnyway('is not Diseased.');
-  if c = 'Y' then begin
-    c := Temple.ConfirmCureCost('Cure Disease', 1000);
-    if c = 'Y' then begin
-      GDVars.effectLock := 1;
-      { 6 = High(cureDiseaseEffects) }
-      for i := 1 to 6 do
-        FxEngine.RemoveEffect(GDVars.curChar, GDConsts.cureDiseaseEffects[i], nil);
-      GDVars.effectLock := 0;
-    end;
-  end;
+  if c = 'Y' then
+    if Temple.ConfirmCureCost('Cure Disease', 1000) = 'Y' then
+      FxEngine.RemoveDiseases(GDVars.curChar);
 end;
 
 { CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp; the RestoreHitPoints result is
@@ -261,7 +230,6 @@ end;
   := 1 }
 procedure StoneToFlesh;
 var
-  effect: Types.PEffectRec;
   s: String;
   c: Char;
 begin
@@ -346,63 +314,8 @@ end;
 { TempleMainMenu: Run the temple menu using the shared treasure state. H and P are told apart from the extended Up and
   Down scan codes by ext; the G and O codes (Home and End) cycle characters. }
 procedure TempleMainMenu;
-var
-  c: Char;
-  done: Boolean;
-  ext: Boolean;
-  menu: String[40];
-  hasMoney: Boolean;
-  hasItems: Boolean;
-  ynIdx: Byte;
-  apprOk: Boolean;
 begin
-  GDVars.ifcState := C_Ifc.SHOP_TEMPLE;
-  CharHlp.DisplayNoncombatInterface;
-  CharHlp.DisplayParty(GDVars.curChar);
-  FillChar(treasureMoney, SizeOf(Types.TMoney), 0);
-  GDVars.treasureMoneyFlag := False;
-  done := False;
-  repeat
-    Money.DetermineTreasure(hasMoney, hasItems);
-    if hasMoney then
-      menu := 'Heal View Take Pool Share Appraise Exit'
-    else
-      menu := 'Heal View Pool Appraise Exit';
-    c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
-    case c of
-      'H': if not ext then Temple.HealMenu;
-      'V': ViewChar.ViewCharMenu(ext);
-      'T': Money.TakeMoneyMenu;
-      'P': if not ext then Money.PoolMoney;
-      'S': Money.ShareMoney;
-      'A': Money.AppraiseMenu(apprOk);
-      'E': begin
-             Money.DetermineTreasure(hasMoney, hasItems);
-             if hasMoney then begin
-               menu := '~Yes ~No';
-               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT,
-                 C_Msg.TEXT_BOTTOM, LightGreen, True,
-'As you leave a priest says, "Excuse me but you have left some money here" ');
-               TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
-                                             LightGreen, True,
-                                             'Do you want to go back and retrieve your money?');
-               ynIdx := EclMenu.MenuHorizontalCS('', menu, LightMagenta, LightGreen, White, False, False);
-               if ynIdx = 1 then
-                 done := True
-               else
-                 TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-             end else
-               done := True;
-           end;
-      C_Keys.HOME: ViewChar.SelectPrevNextChar(c);
-      C_Keys.END_KEY: ViewChar.SelectPrevNextChar(c);
-    end;
-    case c of
-      'B', 'T': CharHlp.DisplayNoncombatInterface;
-      'A': if apprOk then CharHlp.DisplayNoncombatInterface;
-    end;
-    CharHlp.DisplayParty(GDVars.curChar);
-  until done;
+  Shop.CounterMenu(True);
 end;
 
 end.

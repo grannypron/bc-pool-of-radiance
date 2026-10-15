@@ -4,8 +4,7 @@ unit ViewChar;
 
 interface
 
-uses Types, Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait,
-  CbtMap, Money, Magic, FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save;
+uses Types;
 
 procedure DisplayChar;
 
@@ -29,16 +28,17 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 procedure SelectPrevNextChar(c: Char);
 
-function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
 
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
 implementation
 
-uses Vault, Stats;
+uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
+  FxEngine, C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats,
+  StrUtil;
 
 var
-  { The party's treasure pool, typed as a TMoney so it can be passed to Money.CoinValueInGold. }
+  { the party's treasure pool, as a TMoney }
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
 
 procedure ItemTradeMenu(item: Types.PItemRec); forward;
@@ -54,6 +54,12 @@ procedure IdentifyItem(item: Types.PItemRec; var newInfo: Boolean); forward;
 procedure TradeTreasureMenu; forward;
 
 procedure DropMoneyMenu; forward;
+
+{ What a shopkeeper or an item prompt says, in yellow on the bottom two rows (1, 21 to 38, 22). }
+procedure SayBelow(clearFirst: Boolean; s: String);
+begin
+  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, clearFirst, s);
+end;
 
 { Display the current character's full character sheet, using tempCr1 as the shared display target. }
 procedure DisplayChar;
@@ -79,7 +85,7 @@ begin
   s := GDConsts.raceNames[GDVars.tempCr1^.race];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
-  TextRend.DisplayString(col, 3, White, 'Age ' + CharHlp.WordToString(GDVars.tempCr1^.age));
+  TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(GDVars.tempCr1^.age));
   s := GDConsts.alignNames[GDVars.tempCr1^.alignmentIdx];
   TextRend.DisplayString(1, 4, White, s);
   s := GDConsts.classNames[GDVars.tempCr1^.charClass];
@@ -106,11 +112,11 @@ begin
     if GDVars.tempCr1^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
-      s := s + CharHlp.ByteToString(GDVars.tempCr1^.classLevels[j]);
+      s := s + StrUtil.NumStr(GDVars.tempCr1^.classLevels[j]);
       multi := True;
     end;
   TextRend.DisplayString(7, 15, White, s);
-  TextRend.DisplayString(17, 15, White, 'Exp ' + CharHlp.LongIntToString(GDVars.tempCr1^.experience));
+  TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(GDVars.tempCr1^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
   if GDVars.tempCr1^.equipped[C_Equip.WEAPON] <> nil then begin
@@ -144,7 +150,7 @@ begin
     if GDVars.curChar^.coins[m] > 0 then begin
       s := GDConsts.moneyNames[m];
       TextRend.DisplayString(20 - Length(s), row, LightGreen, s);
-      TextRend.DisplayString(21, row, LightGreen, CharHlp.WordToString(GDVars.curChar^.coins[m]));
+      TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GDVars.curChar^.coins[m]));
       Inc(row);
     end;
 end;
@@ -208,31 +214,22 @@ procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
   effect: Types.PEffectRec;
-  found: Boolean;
   ch: Char;
-  i: Byte;
 begin
   CharHlp.DisplayNoncombatInterface;
   tgt := GDVars.creatureList;
   CharHlp.SelectChar('Cure whom? ', True, tgt);
   if tgt = nil then
     Exit;
-  found := False;
-  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
-    if CharHlp.HasEffect(tgt, GDConsts.cureDiseaseEffects[i], effect) then
-      found := True;
   ch := 'Y';
-  if not found then begin
+  if not FxEngine.HasDisease(tgt) then begin
     CharHlp.PrintNameString(tgt, 'is not diseased', 0, False);
     ch := MenuCore.YesNoMenu('cure anyway: ', LightMagenta, LightGreen, White);
     CharHlp.ClearMessageWindow;
   end;
   if ch <> 'Y' then
     Exit;
-  GDVars.effectLock := 1;
-  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
-    FxEngine.RemoveEffect(tgt, GDConsts.cureDiseaseEffects[i], nil);
-  GDVars.effectLock := 0;
+  FxEngine.RemoveDiseases(tgt);
   if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
     Inc(effect^.strength)
   else
@@ -342,7 +339,7 @@ begin
       need := 2;
     if need > 20 then
       need := 20;
-    s := CharHlp.ByteToString(need);
+    s := StrUtil.NumStr(need);
     TextRend.DisplayString(3, 6 + i, White, labels[i]);
     TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
   end;
@@ -384,24 +381,24 @@ begin
   CharHlp.PrintHitPoints(p, 4, row + 1, False);
   col := 8;
   TextRend.DisplayString(col + 1, row, White, 'THAC0   ');
-  TextRend.DisplayString(col + 7, row, LightGreen, CharHlp.ByteToString(60 - p^.thac0Cur));
-  s := CharHlp.ByteToString(p^.curRollsA[1]) + 'd' + CharHlp.ByteToString(p^.curDiceA[1]);
+  TextRend.DisplayString(col + 7, row, LightGreen, StrUtil.NumStr(60 - p^.thac0Cur));
+  s := StrUtil.NumStr(p^.curRollsA[1]) + 'd' + StrUtil.NumStr(p^.curDiceA[1]);
   if p^.curModA[1] > 0 then
-    s := s + '+' + CharHlp.ByteToString(p^.curModA[1]);
+    s := s + '+' + StrUtil.NumStr(p^.curModA[1]);
   if p^.curModA[1] < 0 then
-    s := s + '-' + CharHlp.ByteToString(Abs(p^.curModA[1]));
+    s := s + '-' + StrUtil.NumStr(Abs(p^.curModA[1]));
   TextRend.DisplayString(col, row + 1, White, 'Damage        ');
   TextRend.DisplayString(col + 7, row + 1, LightGreen, s);
   col := 22;
   TextRend.DisplayString(col, row, White, 'Encumbrance      ');
-  TextRend.DisplayString(col + 12, row, LightGreen, CharHlp.WordToString(p^.encumbrance));
+  TextRend.DisplayString(col + 12, row, LightGreen, StrUtil.NumStr(p^.encumbrance));
   mv := p^.movementCur;
   if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
     mv := mv div 2;
   if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
     mv := mv * 2;
   TextRend.DisplayString(col + 3, row + 1, White, 'Movement   ');
-  TextRend.DisplayString(col + 12, row + 1, LightGreen, CharHlp.ByteToString(mv));
+  TextRend.DisplayString(col + 12, row + 1, LightGreen, StrUtil.NumStr(mv));
 end;
 
 { Print stat statIdx (0..5) of curChar in light green, or light magenta while modifying. Strength 18 with exceptional
@@ -420,13 +417,10 @@ begin
   Border.ClearBox(col, statIdx + 7, 11, statIdx + 7);
   if GDVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
-  TextRend.DisplayString(col, statIdx + 7, hlCol, CharHlp.ByteToString(GDVars.curChar^.stats[statIdx]));
+  TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GDVars.curChar^.stats[statIdx]));
   if (statIdx = C_Abil.STRENGTH) and (GDVars.curChar^.strCur = 18) and (GDVars.curChar^.strExc > 0) then begin
-    s := CharHlp.ByteToString(GDVars.curChar^.strExc);
-    if GDVars.curChar^.strExc < 10 then
-      s := '0' + s;
-    if GDVars.curChar^.strExc = 100 then
-      s := '00';
+    { 100 shows as 00 }
+    s := StrUtil.ZeroPad2(GDVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');
   end;
 end;
@@ -523,7 +517,7 @@ begin
     CharHlp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
     GDVars.curCol := Length(GDVars.curChar^.name) + 2;
     GDVars.curRow := 21;
-    TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, False, ' was going to scribe from that scroll');
+    ViewChar.SayBelow(False, ' was going to scribe from that scroll');
     if MenuCore.YesNoMenu('is it Okay to lose it? ', LightMagenta, LightGreen, White) = 'Y' then
       CheckItemAvail := True;
   end else
@@ -582,7 +576,6 @@ var
   p: Types.PItemRec;
   sel: Types.PItemRec;
   idx: Integer;
-  deadP: Types.PItemRec;
   creature: Types.PCharRecord;
   itemCount: Byte;
 begin
@@ -673,8 +666,7 @@ begin
                end else if ViewChar.CheckItemAvail(sel) then
                begin
                  CharHlp.PrintItemString(creature, sel, 0, 0, False, False);
-                 TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                               'Your ' + sel^.name + 'will be gone forever');
+                 ViewChar.SayBelow(True, 'Your ' + sel^.name + ' will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
                    CharHlp.RemoveItem(GDVars.curChar, sel);
@@ -947,9 +939,7 @@ var
 begin
   price := Money.ItemSalePrice(item);
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
-  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                'I''ll give you ' + CharHlp.WordToString(price) + ' gold pieces for your ' +
-                                  item^.name);
+  ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
     CharHlp.PrintBottomLine('Sold!');
@@ -978,37 +968,22 @@ end;
   and gold), else from the treasure pool. newInfo is set, never cleared, when identification reveals new information. }
 procedure IdentifyItem(item: Types.PItemRec; var newInfo: Boolean);
 var
-  charGold: LongInt;
-  poolGold: LongInt;
   paid: Boolean;
 begin
   paid := False;
   CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
-  TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                'For 200 gold pieces I''ll identify your ' + item^.name);
+  ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    charGold := ViewChar.CreatureCoinValueInGold(GDVars.curChar);
-    if charGold >= 200 then begin
-      paid := True;
-      Money.PayFromCreature(GDVars.curChar, 200);
-    end else begin
-      poolGold := Money.CoinValueInGold(treasureMoney);
-      if poolGold >= 200 then begin
-        paid := True;
-        Money.PayFromPool(200);
-      end else
-        CharHlp.PrintBottomLine('Not Enough Money');
-    end;
+    paid := Money.PayGold(200);
   end;
   if paid then begin
     if item^.unidMask = 0 then
-      TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True,
-                                    'I can''t tell anything new about your ' + item^.name)
+      ViewChar.SayBelow(True, 'I can''t tell anything new about your ' + item^.name)
     else begin
       item^.unidMask := 0;
       CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
-      TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, True, 'It looks like some sort of ' + item^.name);
+      ViewChar.SayBelow(True, 'It looks like some sort of ' + item^.name);
       newInfo := True;
     end;
   end;
@@ -1222,20 +1197,6 @@ begin
       p := GDVars.creatureList;
     end;
   GDVars.curChar := p;
-end;
-
-{ Value of the creature's five coin types in whole gold pieces (a part of a gold piece does not count, as in
-  Money.CoinValueInGold); gems and jewelry are excluded. }
-function CreatureCoinValueInGold(creature: Types.PCharRecord): LongInt;
-var
-  sum: LongInt;
-  m: ShortInt;
-begin
-  sum := 0;
-  { the five coin types valued in dsCoinValuationCopper }
-  for m := C_Money.COPPER to C_Money.PLATINUM do
-    Inc(sum, GDConsts.dsCoinValuationCopper[m] * creature^.coins[m]);
-  CreatureCoinValueInGold := sum div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
 end;
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a

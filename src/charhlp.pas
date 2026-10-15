@@ -4,8 +4,7 @@ unit CharHlp;
 
 interface
 
-uses Types, Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap,
-  C_Effect, C_Equip, C_Race, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money;
+uses Types;
 
 procedure WeaponAdjust(creature: Types.PCharRecord);
 
@@ -30,6 +29,10 @@ procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
+{ Point creature's equipment slots at its readied items (RecalcStats does this first; a character just loaded needs it
+  alone). }
+procedure LinkEquipped(creature: Types.PCharRecord);
+
 procedure RecalcStats(creature: Types.PCharRecord);
 
 function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
@@ -38,15 +41,15 @@ procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pau
 
 procedure PrintMessageWait(s: string);
 
-function ByteToString(value: Byte): String;
-
-function WordToString(value: Word): String;
-
-function LongIntToString(value: LongInt): String;
-
 procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
+
+{ Free every item in list and leave it nil. }
+procedure FreeItemList(var list: Types.PItemRec);
+
+{ Empty the treasure on the table: free its items and zero its money. }
+procedure ClearTreasure;
 
 procedure AddItemCopy(creature: Types.PCharRecord; item: Types.PItemRec);
 
@@ -154,11 +157,11 @@ function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
 implementation
 
-uses Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc;
+uses Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Effect, C_Equip, C_Race,
+  C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Money, Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc,
+  StrUtil;
 
 var
-  { active renderer }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   { 26 loaded icon frame pairs }
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
   { zone-1 game state }
@@ -317,7 +320,7 @@ begin
     if (item^.plus > 0) or (item^.saveBonus > 0) or (item^.cursed <> 0) then
       item^.name := item^.name + '*' + ' ';
   if item^.quantity > 0 then
-    item^.name := item^.name + CharHlp.ByteToString(item^.quantity) + ' ';
+    item^.name := item^.name + StrUtil.NumStr(item^.quantity) + ' ';
   mask := 0;
   for i := 1 to 3 do
     if item^.nameIds[i] <> 0 then
@@ -394,7 +397,7 @@ procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
 var
   s: String;
 begin
-  s := CharHlp.ByteToString(Abs(creature^.acCur - 60));
+  s := StrUtil.NumStr(Abs(creature^.acCur - 60));
   if creature^.acCur > 60 then
     s := '-' + s;
   TextRend.DisplayString(col, row, LightGreen, s);
@@ -412,7 +415,7 @@ begin
     color := LightGreen;
   if hotPink then
     color := LightMagenta;
-  TextRend.DisplayString(col, row, color, CharHlp.ByteToString(creature^.hpCur));
+  TextRend.DisplayString(col, row, color, StrUtil.NumStr(creature^.hpCur));
 end;
 
 { Show the creature's name, hit points, armor class, equipped weapon and status in the combat information panel. }
@@ -457,40 +460,19 @@ begin
       IsHelpless := True;
 end;
 
-{ Rebuild equipment slots and encumbrance, apply strength, dexterity and item adjustments, then calculate armor class,
-  rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster warrior, else 1) and
-  movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of encumbrance, never leaving
-  less than the equipped items' weight. The weight is summed in 32 bits and stored as at most 65535. }
-procedure RecalcStats(creature: Types.PCharRecord);
+{ Point creature's equipment slots at its readied items, every other slot nil: a second ring goes in RING2, arrows
+  (item type 73) and bolts (28) in their own slots as well as their base item's. }
+procedure LinkEquipped(creature: Types.PCharRecord);
 var
-  j: Byte;
-  k: ShortInt;
-  item: Types.PItemRec;
-  magicBody: Boolean;
-  bag: Boolean;
-  adj: Types.TAcAdjust;
   i: ShortInt;
-  c: ShortInt;
-  w: LongInt;
-  raw: LongInt;
+  item: Types.PItemRec;
   slot: 0..127;
-  ringSave: ShortInt;
 begin
-  { rebuild every equipment slot from the readied items }
   for i := C_Equip.WEAPON to C_Equip.BOLT do
     creature^.equipped[i] := nil;
-  bag := False;
-  creature^.numberOfItems := 0;
   item := creature^.itemsAddr;
-  creature^.handsEquipped := 0;
-  raw := 0;
-  GDVars.gEquipWeight := 0;
   while item <> nil do begin
-    Inc(creature^.numberOfItems);
-    w := CharHlp.ItemWeight(item);
-    Inc(raw, w);
     if item^.equipped <> 0 then begin
-      Inc(GDVars.gEquipWeight, w);
       slot := CharHlp.BaseItem(item^.itemType)^.slot;
       case Byte(slot) of
         C_Equip.WEAPON..C_Equip.BOOTS: creature^.equipped[slot] := item;
@@ -505,6 +487,42 @@ begin
         creature^.equipped[C_Equip.ARROW] := item;
       if item^.itemType = 28 then
         creature^.equipped[C_Equip.BOLT] := item;
+    end;
+    item := item^.next;
+  end;
+end;
+
+{ Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
+  calculate armor class, rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster
+  warrior, else 1) and movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of
+  encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32 bits and stored as at most
+  65535. }
+procedure RecalcStats(creature: Types.PCharRecord);
+var
+  j: Byte;
+  k: ShortInt;
+  item: Types.PItemRec;
+  magicBody: Boolean;
+  bag: Boolean;
+  adj: Types.TAcAdjust;
+  c: ShortInt;
+  w: LongInt;
+  raw: LongInt;
+  ringSave: ShortInt;
+begin
+  CharHlp.LinkEquipped(creature);
+  bag := False;
+  creature^.numberOfItems := 0;
+  item := creature^.itemsAddr;
+  creature^.handsEquipped := 0;
+  raw := 0;
+  GDVars.gEquipWeight := 0;
+  while item <> nil do begin
+    Inc(creature^.numberOfItems);
+    w := CharHlp.ItemWeight(item);
+    Inc(raw, w);
+    if item^.equipped <> 0 then begin
+      Inc(GDVars.gEquipWeight, w);
       { Name component 186 is 'Holding' }
       if item^.nameIds[1] = 186 then
         bag := True;
@@ -570,33 +588,6 @@ begin
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
-end;
-
-{ Return value as a decimal string. }
-function ByteToString(value: Byte): String;
-var
-  s: String;
-begin
-  Str(value, s);
-  ByteToString := s;
-end;
-
-{ Return value as a decimal string. }
-function WordToString(value: Word): String;
-var
-  s: String;
-begin
-  Str(value, s);
-  WordToString := s;
-end;
-
-{ Return value as a decimal string. }
-function LongIntToString(value: LongInt): String;
-var
-  s: String;
-begin
-  Str(value, s);
-  LongIntToString := s;
 end;
 
 { Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
@@ -777,6 +768,23 @@ begin
   end;
 end;
 
+procedure FreeItemList(var list: Types.PItemRec);
+var
+  next: Types.PItemRec;
+begin
+  while list <> nil do begin
+    next := list^.next;
+    FreeMem(list, SizeOf(Types.TItemRec));
+    list := next;
+  end;
+end;
+
+procedure ClearTreasure;
+begin
+  CharHlp.FreeItemList(GDVars.treasureItems);
+  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
+end;
+
 { Unlink an item from the creature's inventory list and free it; a nil item or one not in the list only gets an error
   message. }
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -923,7 +931,7 @@ var
 begin
   stride := GDVars.dsMoveIconSheet^.imgSize;
   stride4 := stride;
-  if displayMode = Types.vmEGA then
+  if GDVars.videoMode = Types.vmEGA then
     stride4 := stride4 div 4;
   if mirror then begin
     Blit.AllocPic(24, 3, 1, 1, tmp);
@@ -956,11 +964,9 @@ var
   { a 49-cell span takes 148 steps; the last slot stays 8 (no move) for the walk's read one past count }
   steps: array[0..148] of Byte;
   req: Types.TPathReq;
-  spare: Integer;
   n: Byte;
   count: Byte;
   frame: Byte;
-  spare2: Byte;
   lastPass: Boolean;
   done: Boolean;
   camX: ShortInt;
@@ -1403,16 +1409,12 @@ begin
     if GDVars.gLocType = C_Area.LOC_WILD_EAST then
       Inc(x, 26);
   end;
-  hrs := CharHlp.WordToString(GDVars.zone0^.clock.hour);
-  if Length(hrs) < 2 then
-    hrs := '0' + hrs;
+  hrs := StrUtil.ZeroPad2(GDVars.zone0^.clock.hour);
   { A turn is ten minutes and the minute counter rolls over at ten, so turn * 10 + minute is the minute of the hour (see
     GDConsts.unitScale). }
-  mins := CharHlp.WordToString(10 * GDVars.zone0^.clock.turn + GDVars.zone0^.clock.minute);
-  if Length(mins) < 2 then
-    mins := '0' + mins;
+  mins := StrUtil.ZeroPad2(10 * GDVars.zone0^.clock.turn + GDVars.zone0^.clock.minute);
   if GDVars.zone0^.noAutomap = 0 then
-    info := CharHlp.ByteToString(x) + ',' + CharHlp.ByteToString(y) + ' ';
+    info := StrUtil.NumStr(x) + ',' + StrUtil.NumStr(y) + ' ';
   info := info + GDConsts.dirNames[GDVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
   { the STING trace log is on (Ctrl-L), as Curse shows it }

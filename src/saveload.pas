@@ -6,8 +6,7 @@ unit SaveLoad;
 
 interface
 
-uses Types, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal,
-  FxEngine, View3D, MapTiles, C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status;
+uses Types;
 
 { Read <saveDir>charlist.txt into a fresh list of string nodes (the TItemRec prefix used by
   MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist. Names of characters currently in
@@ -105,7 +104,9 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp;
+uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, FxEngine, View3D, MapTiles,
+  C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp,
+  FileUtil, Party;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -143,6 +144,42 @@ var
   usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
   usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
 
+{ 'Put save disk in C:', for the save directory's drive. }
+function SaveDiskMsg: Types.TStr40;
+begin
+  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
+end;
+
+{ Create file name (record size 1) for writing, asking for the save disk until it can be. }
+procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
+var
+  ioRes: Integer;
+begin
+  repeat
+    Assign(f, name);
+    Rewrite(f, 1);
+    ioRes := IOResult;
+    if ioRes <> 0 then
+      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
+  until ioRes = 0;
+end;
+
+{ A character's single-character files' path and base name, from its name: <saveDir><name>, sanitized for DOS. }
+function CharFileBase(name: String): Types.TPathStr;
+begin
+  CharFileBase := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
+end;
+
+{ Erase a character's single-character files <fn>.cha, .itm, .spc, .mem and .sts, those there are. }
+procedure EraseCharFiles(fn: Types.TPathStr);
+begin
+  FileUtil.DeleteFile(fn + '.cha');
+  FileUtil.DeleteFile(fn + '.itm');
+  FileUtil.DeleteFile(fn + '.spc');
+  FileUtil.DeleteFile(fn + '.mem');
+  FileUtil.DeleteFile(fn + '.sts');
+end;
+
 { The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
 function FindUsualEntry(creature: Types.PCharRecord): Byte;
 var
@@ -153,20 +190,6 @@ begin
     for i := 1 to USUAL_ENTRIES do
       if (usualOwner[i] = creature) and (usualName[i] = creature^.name) then
         FindUsualEntry := i;
-end;
-
-{ True when creature is in the party list. }
-function InParty(creature: Types.PCharRecord): Boolean;
-var
-  p: Types.PCharRecord;
-begin
-  InParty := False;
-  p := GDVars.creatureList;
-  while p <> nil do begin
-    if p = creature then
-      InParty := True;
-    p := p^.nextCharAddr;
-  end;
 end;
 
 function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
@@ -193,7 +216,7 @@ begin
       i := j;
   if i = 0 then
     for j := USUAL_ENTRIES downto 1 do
-      if not SaveLoad.InParty(usualOwner[j]) then
+      if not Party.IsPartyMember(usualOwner[j]) then
         i := j;
   if i = 0 then
     i := 1;
@@ -215,62 +238,33 @@ end;
   failed write leaves a short file, which ReadUsualSpells ignores. }
 procedure WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
-  f: file;
   rec: TUsualSpellsFile;
-  ioRes: Integer;
+  written: Boolean;
 begin
-  if DaxIo.FileExists(fn + '.mem') then begin
-    Assign(f, fn + '.mem');
-    Erase(f);
-    ioRes := IOResult;
-  end;
+  FileUtil.DeleteFile(fn + '.mem');
   FillChar(rec, SizeOf(rec), 0);
   if SaveLoad.GetUsualSpells(creature, rec.spells) then begin
     rec.sig := MEM_SIG;
     rec.version := MEM_VERSION;
     rec.name := creature^.name;
     rec.randByte := creature^.randByte;
-    Assign(f, fn + '.mem');
-    Rewrite(f, 1);
-    if IOResult = 0 then begin
-      BlockWrite(f, rec, SizeOf(rec));
-      ioRes := IOResult;
-      Close(f);
-    end;
+    { a failed write leaves a short file, which ReadUsualSpells ignores }
+    written := FileUtil.WriteRecord(fn + '.mem', rec, SizeOf(rec));
   end;
-  { leave no I/O error behind for the next IOResult check }
-  ioRes := IOResult;
 end;
 
 { Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
   TUsualSpellsFile with this format's signature and version, made for a character of this name and randByte. }
 procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 var
-  f: file;
   rec: TUsualSpellsFile;
-  res: Word;
-  ok: Boolean;
-  ioRes: Integer;
 begin
   SaveLoad.ForgetUsualSpells(creature);
-  Assign(f, fn + '.mem');
-  Reset(f, 1);
-  if IOResult = 0 then begin
-    ok := FileSize(f) = SizeOf(rec);
-    if IOResult <> 0 then
-      ok := False;
-    if ok then begin
-      BlockRead(f, rec, SizeOf(rec), res);
-      ok := (IOResult = 0) and (res = SizeOf(rec));
-    end;
-    Close(f);
-    ioRes := IOResult;
-    if ok then
-      ok := (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
-            (rec.name = creature^.name) and (rec.randByte = creature^.randByte);
-    if ok then
+  { read-only, so a write-protected .mem is read too }
+  if FileUtil.ReadRecord(fn + '.mem', rec, SizeOf(rec)) then
+    if (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
+        (rec.name = creature^.name) and (rec.randByte = creature^.randByte) then
       SaveLoad.SetUsualSpells(creature, rec.spells);
-  end;
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -318,7 +312,7 @@ begin
     Rewrite(f);
     ioRes := IOResult;
     if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
+      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
   until ioRes = 0;
   p := list;
   while p <> nil do begin
@@ -345,7 +339,7 @@ begin
     MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
     ioRes := IOResult;
     if (ioRes <> 0) and (ioRes <> 5) then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
+      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
   until (ioRes = 0) or (ioRes = 5);
 end;
 
@@ -361,12 +355,12 @@ begin
   { an empty picture would make the loops below run 65536 times }
   if src^.imgSize = 0 then Exit;
   case GDVars.videoMode of
-    0, 2:
+    Types.vmCGA, Types.vmTandy:
       for i := 0 to src^.imgSize - 1 do begin
         dst^.data[i] := dst^.data[i] or src^.data[i];
         dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
       end;
-    1: begin
+    Types.vmEGA: begin
       for i := 0 to src^.imgSize - 1 do
         dst^.data[i] := dst^.data[i] or src^.data[i];
       if iconAnims[11].pic0 <> nil then
@@ -452,36 +446,27 @@ begin
     SaveLoad.SaveCharlist(list);
     MenuCore.FreeStringList(list);
     ext := '.cha';
-    fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(creature^.name, '.'));
+    fn := SaveLoad.CharFileBase(creature^.name);
   end else begin
     SaveLoad.CheckSaveDir;
     ext := '.sav';
     fn := GDVars.dsSaveDirectory + fname;
   end;
-  repeat
-    Assign(f, fn + ext);
-    Rewrite(f, 1);
-    ioRes := IOResult;
-    if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
-  until ioRes = 0;
+  SaveLoad.RewriteSaveFile(f, fn + ext);
   { a write that fails (a full disk) is reported once, below, after every file has been tried and closed. The records
-    go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files and clears the
-    pointers it reads, so their values meant nothing, and a heap address made two saves of the same game differ. }
+    go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files, and the equipment
+    slots from the items, so their values meant nothing, and a heap address made two saves of the same game differ. }
   rec := creature^;
   rec.effectsAddr := nil;
   rec.itemsAddr := nil;
   rec.nextCharAddr := nil;
   rec.combatAddr := nil;
+  FillChar(rec.equipped, SizeOf(rec.equipped), 0);
   BlockWrite(f, rec, SizeOf(Types.TCharRecord), res);
   ok := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
   Close(f);
   ioRes := IOResult;
-  if DaxIo.FileExists(fn + '.itm') then begin
-    Assign(f, fn + '.itm');
-    Erase(f);
-    ioRes := IOResult;
-  end;
+  FileUtil.DeleteFile(fn + '.itm');
   if creature^.itemsAddr <> nil then begin
     Assign(f, fn + '.itm');
     Rewrite(f, 1);
@@ -500,11 +485,7 @@ begin
     end else
       ok := False;
   end;
-  if DaxIo.FileExists(fn + '.spc') then begin
-    Assign(f, fn + '.spc');
-    Erase(f);
-    ioRes := IOResult;
-  end;
+  FileUtil.DeleteFile(fn + '.spc');
   if creature^.effectsAddr <> nil then begin
     Assign(f, fn + '.spc');
     Rewrite(f, 1);
@@ -544,7 +525,7 @@ var
 begin
   if askDisk then begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
-    msg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
+    msg := SaveLoad.SaveDiskMsg;
   end else
     msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
   if savedGame then
@@ -606,6 +587,8 @@ begin
     end;
     Close(f);
   end;
+  { the slots pointed into the heap of the game that saved them }
+  CharHlp.LinkEquipped(creature);
   SaveLoad.ReadUsualSpells(creature, name);
   Stats.ReadChar(creature, name);
 end;
@@ -691,7 +674,6 @@ end;
 procedure AddCreatureToParty(id: Byte);
 
 var
-  junk: Pointer;
   creature: Types.PCharRecord;
   cnt: Byte;
   i: ShortInt;
@@ -779,8 +761,7 @@ var
   nChars: Byte;
   found: Boolean;
 begin
-  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
-                               'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
+  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveLoad.SaveDiskMsg, #1, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
@@ -836,28 +817,10 @@ begin
   end;
   creature := GDVars.creatureList;
   while creature <> nil do begin
-    fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(creature^.name, '.'));
-    { The .itm, .spc and .mem files are erased only when the .cha file exists. }
-    if DaxIo.FileExists(fn + '.cha') then begin
-      Assign(f, fn + '.cha');
-      Erase(f);
-      if DaxIo.FileExists(fn + '.itm') then begin
-        Assign(f, fn + '.itm');
-        Erase(f);
-      end;
-      if DaxIo.FileExists(fn + '.spc') then begin
-        Assign(f, fn + '.spc');
-        Erase(f);
-      end;
-      if DaxIo.FileExists(fn + '.mem') then begin
-        Assign(f, fn + '.mem');
-        Erase(f);
-      end;
-      if DaxIo.FileExists(fn + '.sts') then begin
-        Assign(f, fn + '.sts');
-        Erase(f);
-      end;
-    end;
+    fn := SaveLoad.CharFileBase(creature^.name);
+    { only a character that has its own .cha file has the rest of the set }
+    if DaxIo.FileExists(fn + '.cha') then
+      SaveLoad.EraseCharFiles(fn);
     creature := creature^.nextCharAddr;
   end;
   GDVars.curChar := GDVars.creatureList;
@@ -945,8 +908,6 @@ var
   n: Byte;
   p: Types.PCharRecord;
   numStr: String[1];
-  fn: Types.TPathStr;
-  ioRes: Integer;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
@@ -954,13 +915,7 @@ begin
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
   SaveLoad.CheckSaveDir;
-  repeat
-    Assign(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
-    Rewrite(f, 1);
-    ioRes := IOResult;
-    if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
-  until ioRes = 0;
+  SaveLoad.RewriteSaveFile(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   for n := 1 to 3 do begin
@@ -1000,27 +955,7 @@ begin
     Inc(n);
     Str(n, numStr);
     SaveLoad.SaveChar(p, 'CHRDAT' + letter + numStr);
-    fn := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(p^.name, '.'));
-    if DaxIo.FileExists(fn + '.cha') then begin
-      Assign(f, fn + '.cha');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.itm') then begin
-      Assign(f, fn + '.itm');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.spc') then begin
-      Assign(f, fn + '.spc');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.mem') then begin
-      Assign(f, fn + '.mem');
-      Erase(f);
-    end;
-    if DaxIo.FileExists(fn + '.sts') then begin
-      Assign(f, fn + '.sts');
-      Erase(f);
-    end;
+    SaveLoad.EraseCharFiles(SaveLoad.CharFileBase(p^.name));
     p := p^.nextCharAddr;
   end;
   GDVars.recentSaved := 1;

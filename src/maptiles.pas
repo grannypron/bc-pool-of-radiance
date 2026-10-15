@@ -6,8 +6,6 @@ unit MapTiles;
 
 interface
 
-uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
-
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
@@ -20,11 +18,11 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
+
+uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
                                         { icon animation frame pairs }
-  { 0=CGA 1=EGA 2=Tandy }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -71,8 +69,6 @@ end;
 
 { Release both frame buffers of icon-animation slot animIdx; a slot past the table is ignored. }
 procedure FreeIconAnim(animIdx: Byte);
-var
-  i: Integer;
 begin
   { 25 = High(iconAnims) }
   if animIdx > 25 then Exit;
@@ -89,7 +85,6 @@ end;
 procedure LoadIconAnim(name: string; fileId, animIdx: Byte);
 var
   suffix: string[1];
-  ch: Char;
 begin
   { 25 = High(iconAnims) }
   if animIdx > 25 then Exit;
@@ -135,7 +130,7 @@ begin
       Blit.MirrorPic(iconAnims[animIdx, frame], work)
     else begin
       Move(data, work^.data, imgSize);
-      if displayMode = Types.vmEGA then
+      if GDVars.videoMode = Types.vmEGA then
         Move(transp^, work^.transp^, imgSize div 4)
       else
         Move(transp^, work^.transp^, imgSize);

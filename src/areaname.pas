@@ -5,7 +5,7 @@ unit AreaName;
 
 interface
 
-uses Types, GDVars;
+uses Types;
 
 { The name of the area of script scriptId on map mapId: the script a saved game reopens (GBVM previousScriptId's low
   byte, which GameLoop sets after every turn on the map) names it, and the map tells apart the two halves of the four
@@ -17,6 +17,8 @@ function CurrentArea: Types.TStr40;
 
 implementation
 
+
+uses GDVars;
 const
   { the last script id: ECL1..ECL8 hold scripts 0..29, all but 12 }
   LAST_SCRIPT = 29;

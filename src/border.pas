@@ -4,7 +4,7 @@ unit Border;
 
 interface
 
-uses Types, Crt, C_Video, GDConsts, GDVars, TextRend, Sym8x8;
+uses Types;
 
 procedure DrawBorder(ulCol, ulRow, lrCol, lrRow: ShortInt; corner: Byte);
 
@@ -14,6 +14,8 @@ procedure DrawWindow(ulCol, ulRow, lrCol, lrRow: ShortInt; corner, color: Byte; 
 
 implementation
 
+
+uses Crt, C_Video, GDConsts, GDVars, TextRend, Sym8x8;
 const
   BORDER_SYM_BASE = 276;
   { the 40x25 text grid }
@@ -24,8 +26,6 @@ const
     banks and Tandy uses four. }
 
 var
-  { 0=CGA 1=EGA 2=Tandy }
-  displayMode: Types.TVideoMode absolute GDVars.videoMode;
   cgaBank0: Types.TCgaBank absolute C_Video.GFX_BANK0_SEG:0;
   cgaBank1: Types.TCgaBank absolute C_Video.GFX_BANK1_SEG:0;
   tandyBank0: Types.TTandyBank absolute C_Video.GFX_BANK0_SEG:0;
@@ -76,7 +76,7 @@ begin
   if lrCol > LAST_COL then lrCol := LAST_COL;
   if lrRow > LAST_ROW then lrRow := LAST_ROW;
   if (ulCol > lrCol) or (ulRow > lrRow) then Exit;
-  case displayMode of
+  case GDVars.videoMode of
     Types.vmCGA: begin
       top := ulRow * 4;
       bot := lrRow * 4 + 3;
@@ -111,7 +111,7 @@ begin
   Border.ClearBox(ulCol, ulRow, lrCol, lrRow);
   Border.DrawBorder(ulCol, ulRow, lrCol, lrRow, corner);
   if Length(title) <> 0 then
-    TextRend.DisplayString((ulCol + lrCol - Length(title)) div 2, ulRow, color, title);
+    TextRend.DisplayCentered(ulCol, lrCol - 1, ulRow, color, title);
 end;
 
 end.

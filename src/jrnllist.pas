@@ -11,8 +11,6 @@ unit JrnlList;
 
 interface
 
-uses C_Jrnl, Journal1, Journal2, Journal3, Journal4;
-
 { What kind of item this is.
   @param(index The item's place in the list.)
   @returns(One of C_Jrnl.KIND_PROCLAMATION, KIND_ENTRY or KIND_TALE, or KIND_NONE outside the list.) }
@@ -52,6 +50,8 @@ function TextLine(index, line: Integer): string;
 
 implementation
 
+
+uses C_Jrnl, Journal1, Journal2, Journal3, Journal4;
 const
   { Lines in each literal of the text units }
   LINES_PER_CHUNK = 9;
