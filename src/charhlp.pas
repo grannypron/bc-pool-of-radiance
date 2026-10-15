@@ -162,8 +162,6 @@ uses Crt, C_Area, C_Item, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, C
   StrUtil;
 
 var
-  { 26 loaded icon frame pairs }
-  iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
   { zone-1 game state }
   gbvmZone1: Types.PZone1Rec absolute GDVars.zone1;
   { picture animation shown in the view window }
@@ -920,9 +918,9 @@ begin
     TextRend.DisplayString(col + Length(creature^.name), row, color, '''s');
 end;
 
-{ Copy one icon half (iconAnims[cell, half]) into frame row of the moving-icon sheet (GDVars.dsMoveIconSheet), mirrored
-  through a scratch picture when asked. The pixel data copies imgSize bytes; the transparency mask copies a quarter of
-  that under EGA. }
+{ Copy one icon half (GDVars.dsIconAnimation[cell, half]) into frame row of the moving-icon sheet
+  (GDVars.dsMoveIconSheet), mirrored through a scratch picture when asked. The pixel data copies imgSize bytes; the
+  transparency mask copies a quarter of that under EGA. }
 procedure CopyIconFacing(cell, half, row: Byte; mirror: Boolean);
 var
   tmp: Types.PImgBuf;
@@ -935,13 +933,13 @@ begin
     stride4 := stride4 div 4;
   if mirror then begin
     Blit.AllocPic(24, 3, 1, 1, tmp);
-    Blit.MirrorPic(iconAnims[cell, half], tmp);
+    Blit.MirrorPic(GDVars.dsIconAnimation[cell, half], tmp);
     Move(tmp^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
     Move(tmp^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
     Blit.FreePic(tmp);
   end else begin
-    Move(iconAnims[cell, half]^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
-    Move(iconAnims[cell, half]^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
+    Move(GDVars.dsIconAnimation[cell, half]^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
+    Move(GDVars.dsIconAnimation[cell, half]^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
   end;
 end;
 

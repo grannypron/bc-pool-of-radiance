@@ -18,10 +18,7 @@ uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, Ga
   C_Keys, C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp,
   ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil;
 
-var
 
-  { pic0 and pic1 of each pair are the ready and action frames. }
-  iconAnims: array[0..25] of Types.TIconPair absolute GDVars.dsIconAnimation;
 
 const
   { The race screen's frames: the race list and the ability adjustments share rows 1..RACE_TOP_BOTTOM, on either side
@@ -1658,9 +1655,9 @@ var
       FillChar(dst^.data, dst^.imgSize, 0);
     if boxed and (GDVars.videoMode <> Types.vmCGA) then
       if frame = 0 then
-        Overlay(iconAnims[25].pic0, dst)
+        Overlay(GDVars.dsIconAnimation[25, 0], dst)
       else
-        Overlay(iconAnims[25].pic1, dst);
+        Overlay(GDVars.dsIconAnimation[25, 1], dst);
     Overlay(src, dst);
   end;
 

@@ -113,10 +113,7 @@ type
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
 var
-
   zone1b: Types.PSaveloadZoneBytes absolute GDVars.zone1;
-  iconAnims: array[0..25] of Types.TIconPair absolute GDVars.dsIconAnimation;
-                                         { slot 11 = scratch head    }
   wallSlots: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
                                          { kept in zone 0 across saves }
 
@@ -344,8 +341,8 @@ begin
 end;
 
 { OR src's pixels onto dst and AND the transparency masks. The CGA and Tandy masks are imgSize bytes; the EGA mask is
-  one plane, a quarter of imgSize, sized from iconAnims[11].pic0 rather than src. Nothing is merged when either picture
-  is missing (LoadPic leaves nil for a block that is not there) or src is empty. }
+  one plane, a quarter of imgSize, sized from GDVars.dsIconAnimation[11, 0] rather than src. Nothing is merged when
+  either picture is missing (LoadPic leaves nil for a block that is not there) or src is empty. }
 procedure MergeIcon(src, dst: Types.PImgBuf);
 var
   n: Word;
@@ -363,9 +360,9 @@ begin
     Types.vmEGA: begin
       for i := 0 to src^.imgSize - 1 do
         dst^.data[i] := dst^.data[i] or src^.data[i];
-      if iconAnims[11].pic0 <> nil then
-        if iconAnims[11].pic0^.imgSize >= 4 then begin
-          n := iconAnims[11].pic0^.imgSize div 4 - 1;
+      if GDVars.dsIconAnimation[11, 0] <> nil then
+        if GDVars.dsIconAnimation[11, 0]^.imgSize >= 4 then begin
+          n := GDVars.dsIconAnimation[11, 0]^.imgSize div 4 - 1;
           for i := 0 to n do
             dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
         end;
@@ -391,8 +388,8 @@ begin
       height := 1;
     MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[height], iconHead, 11);
     MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[height], iconBody, orderNumber);
-    SaveLoad.MergeIcon(iconAnims[11].pic0, iconAnims[orderNumber].pic0);
-    SaveLoad.MergeIcon(iconAnims[11].pic1, iconAnims[orderNumber].pic1);
+    SaveLoad.MergeIcon(GDVars.dsIconAnimation[11, 0], GDVars.dsIconAnimation[orderNumber, 0]);
+    SaveLoad.MergeIcon(GDVars.dsIconAnimation[11, 1], GDVars.dsIconAnimation[orderNumber, 1]);
     if loading then begin
       for i := 0 to 15 do begin
         fromMap[i] := i;
@@ -402,8 +399,8 @@ begin
         toMap[GDConsts.defIconCol[i]] := iconColors1[i] and $F;
         toMap[GDConsts.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
       end;
-      Blit.RemapPic(fromMap, toMap, 0, False, iconAnims[orderNumber].pic0);
-      Blit.RemapPic(fromMap, toMap, 0, False, iconAnims[orderNumber].pic1);
+      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.dsIconAnimation[orderNumber, 0]);
+      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.dsIconAnimation[orderNumber, 1]);
     end;
   end;
   MapTiles.FreeIconAnim(11);

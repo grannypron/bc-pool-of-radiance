@@ -18,11 +18,7 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
-
 uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
-var
-  iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
-                                        { icon animation frame pairs }
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -70,12 +66,12 @@ end;
 { Release both frame buffers of icon-animation slot animIdx; a slot past the table is ignored. }
 procedure FreeIconAnim(animIdx: Byte);
 begin
-  { 25 = High(iconAnims) }
+  { 25 = High(GDVars.dsIconAnimation) }
   if animIdx > 25 then Exit;
-  if iconAnims[animIdx, 0] <> nil then
-    Blit.FreePic(iconAnims[animIdx, 0]);
-  if iconAnims[animIdx, 1] <> nil then
-    Blit.FreePic(iconAnims[animIdx, 1]);
+  if GDVars.dsIconAnimation[animIdx, 0] <> nil then
+    Blit.FreePic(GDVars.dsIconAnimation[animIdx, 0]);
+  if GDVars.dsIconAnimation[animIdx, 1] <> nil then
+    Blit.FreePic(GDVars.dsIconAnimation[animIdx, 1]);
 end;
 
 { Load both frames (blocks fileId and fileId+128) of icon-animation slot animIdx, with color 0 transparent. CHEAD and
@@ -86,29 +82,33 @@ procedure LoadIconAnim(name: string; fileId, animIdx: Byte);
 var
   suffix: string[1];
 begin
-  { 25 = High(iconAnims) }
+  { 25 = High(GDVars.dsIconAnimation) }
   if animIdx > 25 then Exit;
   if (Copy(name, 1, 5) = 'CHEAD') or (Copy(name, 1, 5) = 'CBODY') then begin
     if UpCase(name[Length(name)]) = 'T' then
       Inc(fileId, 64);
     name := Copy(name, 1, Length(name) - 1);
     suffix := '';
-    Blit.LoadPic(name + suffix, fileId, True, 0, iconAnims[animIdx, 0]);
-    Blit.LoadPic(name + suffix, fileId + 128, True, 0, iconAnims[animIdx, 1]);
+    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.dsIconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.dsIconAnimation[animIdx, 1]);
   end else if (name = 'COMSPR') or (name = 'ICON') then begin
     suffix := '';
-    Blit.LoadPic(name + suffix, fileId, True, 0, iconAnims[animIdx, 0]);
-    Blit.LoadPic(name + suffix, fileId + 128, True, 0, iconAnims[animIdx, 1]);
+    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.dsIconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.dsIconAnimation[animIdx, 1]);
     if name = 'ICON' then begin
-      Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False, iconAnims[animIdx, 0]);
-      Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False, iconAnims[animIdx, 1]);
+      Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False,
+                    GDVars.dsIconAnimation[animIdx, 0]);
+      Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False,
+                    GDVars.dsIconAnimation[animIdx, 1]);
     end;
   end else begin
     Str(GDVars.virtualDisk, suffix);
-    Blit.LoadPic(name + suffix, fileId, True, 0, iconAnims[animIdx, 0]);
-    Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False, iconAnims[animIdx, 0]);
-    Blit.LoadPic(name + suffix, fileId + 128, True, 0, iconAnims[animIdx, 1]);
-    Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False, iconAnims[animIdx, 1]);
+    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.dsIconAnimation[animIdx, 0]);
+    Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False,
+                  GDVars.dsIconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.dsIconAnimation[animIdx, 1]);
+    Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False,
+                  GDVars.dsIconAnimation[animIdx, 1]);
   end;
 end;
 
@@ -119,15 +119,15 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 var
   work: Types.PImgBuf;
 begin
-  { iconAnims is [0..25, 0..1] }
+  { GDVars.dsIconAnimation is [0..25, 0..1] }
   if (animIdx > 25) or (frame > 1) then
     Exit;
-  if iconAnims[animIdx, frame] = nil then
+  if GDVars.dsIconAnimation[animIdx, frame] = nil then
     Exit;
-  with iconAnims[animIdx, frame]^ do begin
+  with GDVars.dsIconAnimation[animIdx, frame]^ do begin
     Blit.AllocPic(height, width, 1, 1, work);
     if facing > C_Dir.SOUTHEAST then
-      Blit.MirrorPic(iconAnims[animIdx, frame], work)
+      Blit.MirrorPic(GDVars.dsIconAnimation[animIdx, frame], work)
     else begin
       Move(data, work^.data, imgSize);
       if GDVars.videoMode = Types.vmEGA then

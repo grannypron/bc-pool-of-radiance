@@ -110,7 +110,7 @@ uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, 
   Blit;
 
 const
-  { The cursor sprite cell in iconAnims }
+  { The cursor sprite cell in GDVars.dsIconAnimation }
   CURSOR_CELL = 25;
   { Hundredths of a second between preview frames }
   PREVIEW_PACE = 12;
@@ -119,7 +119,6 @@ const
   PREVIEW_GAP = 2;
 
 var
-  iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
                                            { [24,0] = COMSPR 11 skull;
                                              [25] = the cursor sprite   }
   { Spell-aim preview settings (StartSpellPreview). }
@@ -812,7 +811,8 @@ begin
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     for k := 0 to 3 do
       if CbtMap.GetIconTileDelta(GDVars.arenaLoc[slot].size, k, tdx, tdy) then
-        Blit.BlitTileClipped((GDVars.gridX[slot] + tdx) * 3, (GDVars.gridY[slot] + tdy) * 3, 0, 5, iconAnims[24, 0],
+        Blit.BlitTileClipped((GDVars.gridX[slot] + tdx) * 3, (GDVars.gridY[slot] + tdy) * 3, 0, 5,
+                             GDVars.dsIconAnimation[24, 0],
                              GDVars.dsViewImageBufferPtr);
     Blit.FlushView;
     if creature^.combatAddr^.notPcNpc = 0 then

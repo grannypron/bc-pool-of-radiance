@@ -305,7 +305,7 @@ var
   ds2dMapTilePtr2: Types.PImgBuf;
   { Icon images }
   { Animation images for creature, death and cursor icons. }
-  dsIconAnimation: array[0..25, 0..1] of Pointer;
+  dsIconAnimation: array[0..25, 0..1] of Types.PImgBuf;
   { Combat arena }
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;

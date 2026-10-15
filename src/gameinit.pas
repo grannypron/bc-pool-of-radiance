@@ -12,7 +12,6 @@ uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, Eff
   GameIo, MenuCore, Session, SoundDrv, TextRend;
 
 var
-  iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
   wallCache: array[1..3] of Types.TWallSlot absolute GDVars.dsWallSetCache;
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
@@ -60,7 +59,7 @@ begin
   FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[1])^, SizeOf(Types.TGbvmZone1), 0);
   FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[2])^, SizeOf(Types.TZone2), 0);
   FillChar(Types.PGameini2ZoneWords(Session.dsGbvmZones[3])^, SizeOf(Types.TZone3), 0);
-  FillChar(iconAnims, SizeOf(iconAnims), 0);
+  FillChar(GDVars.dsIconAnimation, SizeOf(GDVars.dsIconAnimation), 0);
   for GDVars.gi2 := 1 to 2 do begin
     GDVars.dsPortraitCache[GDVars.gi2].pictureId := 255;
     GDVars.dsPortraitCache[GDVars.gi2].pic := nil;

@@ -840,12 +840,6 @@ type
   end;
   TZoneWords = array[0..1023] of Word;
 
-  { MapTiles types. }
-  TIconPair = record
-    pic0: PImgBuf;
-    pic1: PImgBuf;
-  end;
-
   { MenuCore types. }
   TMFrame = record
     { frame delay, 1/10 s }
