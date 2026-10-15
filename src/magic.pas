@@ -261,7 +261,6 @@ var
   p: Types.PItemRec;
   prompt: Types.TStr40;
   title: Types.TStr40;
-  pad: Byte;
   count: Byte;
   bottomRow: Byte;
   ch: Char;
@@ -551,13 +550,11 @@ begin
   GDVars.scrollCount := 0;
   case menuType of
     7: Magic.AddAvailableSpells;
-    { High(memorizedSpells) }
-    0: for i := 0 to 20 do
+    0: for i := 0 to Types.SPELL_SLOT_LAST do
          if (GDVars.curChar^.memorizedSpells[i] > 0) and
              (GDVars.curChar^.memorizedSpells[i] < C_Spell.PENDING_FLAG) then
            Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
-    { High(memorizedSpells) }
-    5: for i := 0 to 20 do
+    5: for i := 0 to Types.SPELL_SLOT_LAST do
          if GDVars.curChar^.memorizedSpells[i] > C_Spell.ID_MASK then
            Magic.AddSpellToList(GDVars.curChar^.memorizedSpells[i], MARK_NONE);
     { Note: 55 stops one short of High(spellsKnown) = 56 (Restoration), so the spell book never lists Restoration }
@@ -678,8 +675,6 @@ begin
 end;
 
 procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
-var
-  pad: Pointer;
 begin
   if GDVars.castTarget = nil then
     GDVars.castTarget := GDVars.curChar;
@@ -714,7 +709,6 @@ end;
 procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
 var
   ok: Boolean;
-  pad: Byte;
   x: ShortInt;
   y: ShortInt;
   k: Byte;
@@ -1267,11 +1261,10 @@ begin
           p^.levelUndead := 2;
           p^.attackLevel := 0;
           p^.movementBase := 6;
-          { High(memorizedSpells) }
-          for i := 0 to 20 do
+          for i := 0 to Types.SPELL_SLOT_LAST do
             p^.memorizedSpells[i] := 0;
           { C_Npc.FLAG set }
-          if p^.npc > $7F then
+          if CharHlp.IsNpc(p) then
             p^.npc := C_Npc.ANIMATED_NPC
           else
             p^.npc := C_Npc.ANIMATED_PC;
@@ -1486,7 +1479,6 @@ var
   tgt: Types.PCharRecord;
   crIdx: Byte;
   terr: Byte;
-  pad: Word;
 begin
   blocked := False;
   CbtMap.GetArenaContents(x, y, crIdx, terr);
@@ -1711,7 +1703,6 @@ end;
   stays dead, as at the temple (Temple.NeutralizePoison). }
 procedure KeoghtomsOintmentHandler;
 var
-  pad: Byte;
   tgt: Types.PCharRecord;
   effect: Types.PEffectRec;
   slowed: Boolean;

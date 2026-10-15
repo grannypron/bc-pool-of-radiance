@@ -17,7 +17,7 @@ procedure CustomizePortrait;
 
 implementation
 
-uses Options, Stats;
+uses Options, Stats, Blit, CbtMap, CharHlp, ClassCal, DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend;
 
 var
 
@@ -104,7 +104,6 @@ var
   ch: Char;
   ext: Boolean;
   ext2: Boolean;
-  pad: array[1..9] of Byte;
   n: ShortInt;
   redraw: Boolean;
   stateB: Byte;
@@ -153,7 +152,7 @@ begin
 
     ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, MAGENTA, Black, Black, 
             True, False, ext);
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     if ext then begin
       { Up and Down step through the party as Home and End do; the menu has no other use for them }
       if ch = C_Keys.UP then
@@ -198,7 +197,7 @@ begin
         'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GDVars.creatureList <> nil) then
              begin
                GDVars.ifcState := stateB;
-               MenuCore.ClearBottomLine;
+               TextRend.ClearBottomLine;
                Exit;
              end;
         'G': if GDConsts.menuItems[MENU_SETTINGS].enabled <> 0 then
@@ -214,7 +213,7 @@ begin
                end;
              end;
         { free training, turned on and off as in Curse }
-        'J': if ParamStr(1) = 'STING' then
+        'J': if GDVars.stingArg then
              begin
                GDVars.stingMode := Ord(GDVars.stingMode = 0);
                if GDVars.stingMode <> 0 then
@@ -354,11 +353,9 @@ var
   k: ShortInt;
   g: ShortInt;
   cls: ShortInt;
-  pad1: Byte;
   i: ShortInt;
   cnt: Byte;
   conB: Integer;
-  pad2: Byte;
   clsCount: Byte;
   hpTotal: Byte;
   addExit: Boolean;
@@ -776,7 +773,7 @@ begin
   ViewChar.DisplayChar;
   GDVars.curChar := savedCur;
   repeat
-    creature^.name := TextRend.ReadString('Character name: ', LightMagenta, 15);
+    creature^.name := TextRend.ReadString('Character name: ', LightMagenta, Types.NAME_LEN);
   until creature^.name <> '';
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
@@ -793,8 +790,6 @@ end;
 { DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
   farewell message depends on whether the character is enabled }
 procedure DropCharacterMenu;
-var
-  pad: Byte;
 begin
   if GDVars.curChar = nil then Exit;
   with GDVars.curChar^ do begin
@@ -823,12 +818,10 @@ var
   savedExc: Byte;
   savedHp: Byte;
   savedClericSpells: array[1..3] of Byte;
-  pad1: Byte;
   hold: ShortInt;
   key: Char;
   ext: Boolean;
   statIdx: Byte;
-  pad2: array[1..7] of Byte;
 
   { RedrawStat: Repaint the selected row: an attribute via ViewChar.PrintStat, or the hit-point line (row 6) via
     CharHlp.PrintHitPoints; hotPink highlights it }
@@ -1029,7 +1022,6 @@ var
   sel: Byte;
   idx: Integer;
   notEmpty: Boolean;
-  pad: Byte;
 begin
   if (GDVars.curChar^.status <> C_Status.OKAY) and (GDVars.stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
@@ -1220,7 +1212,7 @@ begin
             p := GDVars.creatureList;
             while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
               { C_Npc.FLAG clear }
-              if p^.npc < C_Npc.FLAG then
+              if not CharHlp.IsNpc(p) then
                 Inc(nonNpc);
               if p^.classLevels[C_Level.RANGER] > 0 then
                 Inc(rangers);
@@ -1249,12 +1241,12 @@ begin
             { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
-            else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < 8) and
-                (((creature^.npc < C_Npc.FLAG) and (nonNpc < 6)) or (creature^.npc > $7F)) then begin
+            else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < Types.MAX_PARTY) and
+                (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
               { C_Npc.FLAG clear }
-              if creature^.npc < C_Npc.FLAG then
+              if not CharHlp.IsNpc(creature) then
                 Inc(nonNpc);
             end else begin
               { one the party has no room for keeps its roster line, which SaveCharlist would drop with the mark }
@@ -1266,7 +1258,7 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7);
+  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list);
   MenuCore.FreeStringList(list);
 end;
@@ -1456,7 +1448,7 @@ begin
     Blit.FreePic(heads[i]);
     Blit.FreePic(bodies[i]);
   end;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 { CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the
@@ -1995,7 +1987,7 @@ var
     which := 0;
     pick := CurrentOption;
     { the menu's keys do nothing here }
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     DrawItem(cur);
     ShowMessage;
     DrawGrid;
@@ -2166,7 +2158,7 @@ begin
       { the party map icon LoadCharIconAnim freed }
       MapTiles.LoadIconAnim('ICON', 0, 11);
   end;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   CbtMap.SetNoncombatPalette;
   GDVars.horizChoice := savedChoice;
 end;

@@ -28,7 +28,13 @@ procedure LoadWallSet(fileId, wsSlot: Byte);
 { Load GEO map mapId into the 3D map }
 procedure Load3DMap(mapId: Byte);
 
+{ Bring a square one step off the 16 by 16 map back on at the other edge (x or y of -1 becomes MAP_LAST, MAP_LAST + 1
+  becomes 0), as the party walks off one side of a map and on at the other. }
+procedure WrapCoords(var x, y: ShortInt);
+
 implementation
+
+uses DaxIo, GameIo;
 
 var
   { 3D wall graphics ptr }
@@ -122,10 +128,18 @@ begin
     end;
 end;
 
+procedure WrapCoords(var x, y: ShortInt);
+begin
+  if x > Types.MAP_LAST then x := 0;
+  if x < 0 then x := Types.MAP_LAST;
+  if y > Types.MAP_LAST then y := 0;
+  if y < 0 then y := Types.MAP_LAST;
+end;
+
 { True when (x, y) lies on the 16x16 map }
 function Valid3DCoords(x, y: ShortInt): Boolean;
 begin
-  if (x > 15) or (x < 0) or (y > 15) or (y < 0) then
+  if (x > Types.MAP_LAST) or (x < 0) or (y > Types.MAP_LAST) or (y < 0) then
     Valid3DCoords := False
   else
     Valid3DCoords := True;
@@ -141,10 +155,7 @@ begin
   if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
     GetBarrierType := 0
   else begin
-    if x > 15 then x := 0;
-    if x < 0 then x := 15;
-    if y > 15 then y := 0;
-    if y < 0 then y := 15;
+    View3D.WrapCoords(x, y);
     b := 1;
     if View3D.GetWallType(x, y, facing) > 0 then
       case facing of
@@ -164,10 +175,7 @@ begin
   if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
     GetWallType := 0
   else begin
-    if x > 15 then x := 0;
-    if x < 0 then x := 15;
-    if y > 15 then y := 0;
-    if y < 0 then y := 15;
+    View3D.WrapCoords(x, y);
     GetWallType := 0;
     case facing of
       C_Dir.NORTH: GetWallType := (GDVars.map3d^.wallsNE[y][x] and $F0) shr 4;
@@ -184,10 +192,7 @@ begin
   if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
     GetMapEvent := 0
   else begin
-    if x > 15 then x := 0;
-    if x < 0 then x := 15;
-    if y > 15 then y := 0;
-    if y < 0 then y := 15;
+    View3D.WrapCoords(x, y);
     GetMapEvent := GDVars.map3d^.events[y][x];
   end;
 end;
@@ -216,7 +221,6 @@ var
   dist: Byte;
   wallFront: Byte;
   wallSide: Byte;
-  pad: Byte;
   prevWall: Byte;
 begin
   if GDVars.automapOn then

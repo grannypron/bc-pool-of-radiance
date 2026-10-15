@@ -12,7 +12,7 @@ procedure CombatMain;
 
 implementation
 
-uses Options, Stats;
+uses Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar, TextRend;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -42,7 +42,6 @@ procedure TurnOnAuto(creature: Types.PCharRecord); forward;
 procedure CombatDoneCleanup;
 var
   p: Types.PStinkRec;
-  pad: Integer;
 begin
   while GDVars.stinkHead <> nil do begin
     p := GDVars.stinkHead^.next;
@@ -117,8 +116,6 @@ end;
 { One creature's turn: reset its flanking accumulators and guard flag, fire turn-start effects and, if it still has
   initiative, let the AI (quickfight) or the player act, then redraw its cell to erase the cursor. }
 procedure CreatureAction(creature: Types.PCharRecord);
-var
-  pad: Integer;
 begin
   creature^.combatAddr^.flankCount := 0;
   creature^.combatAddr^.flankSpread := 0;
@@ -151,7 +148,6 @@ var
   ch: Char;
   done: Boolean;
   p: Types.PCharRecord;
-  pad: array[1..3] of Byte;
   aimTgt: Pointer;
   spell: Byte;
 begin
@@ -188,7 +184,7 @@ begin
                end;
           'Q': begin
                  Combat.TurnOnAuto(creature);
-                 MenuCore.ClearBottomLine;
+                 TextRend.ClearBottomLine;
                  Delay(200);
                  done := True;
                  CombatAi.CombatAiControl(creature);
@@ -207,7 +203,7 @@ begin
                  p := GDVars.creatureList;
                  while p <> nil do begin
                    { creatures with the NPC flag (high bit of npc) stay on quick-fight }
-                   if p^.npc < C_Npc.FLAG then
+                   if not CharHlp.IsNpc(p) then
                      p^.quickfight := 0;
                    p := p^.nextCharAddr;
                  end;
@@ -220,7 +216,7 @@ begin
                         Combat.TurnOnAuto(p);
                         p := p^.nextCharAddr;
                       end;
-                      MenuCore.ClearBottomLine;
+                      TextRend.ClearBottomLine;
                       Delay(200);
                       done := True;
                     end;
@@ -284,7 +280,6 @@ end;
 procedure EndOfRound(var done: Boolean);
 var
   p: Types.PCharRecord;
-  pad: Byte;
   cnt: Byte;
 begin
   { one minute (tUnit 1) }
@@ -327,7 +322,6 @@ var
   savedDir: Byte;
   startX: ShortInt;
   startY: ShortInt;
-  pad: Integer;
   dir: Byte;
   crIdx: Byte;
   terrIdx: Byte;

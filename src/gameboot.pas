@@ -9,6 +9,8 @@ uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundD
 
 implementation
 
+uses DaxIo, GameIo;
+
 const
   { graphics memory reserve: 16 KB in paragraphs }
   GFX_RESERVE_PARAS = 1024;
@@ -68,6 +70,7 @@ end;
 
 { Game startup runs through this unit's initialization section. }
 begin
+  GDVars.stingArg := ParamStr(1) = 'STING';
   DaxIo.OverlayPrompt;
   OvrInit('GAME.OVR');
   GDVars.ovrLoads := 0;

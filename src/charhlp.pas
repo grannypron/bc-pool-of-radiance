@@ -141,9 +141,20 @@ function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
   @returns(A pointer to the record; the caller does not change it.) }
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 
+{ True for an NPC or a monster: a creature whose npc has bit 7 (C_Npc.FLAG) set, not one of the player's own
+  characters. }
+function IsNpc(creature: Types.PCharRecord): Boolean;
+
+{ True when creature may trade and sell: one of the player's own characters, or an NPC that is disabled or animated. }
+function MayTrade(creature: Types.PCharRecord): Boolean;
+
+{ True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends
+  With Fight after it, return to the player's control. }
+function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
+
 implementation
 
-uses Stats;
+uses Stats, Blit, Border, Portrait, SoundDrv, TextRend, Wilds, C_Npc;
 
 var
   { active renderer }
@@ -382,7 +393,6 @@ end;
 procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
 var
   s: String;
-  pad: Byte;
 begin
   s := CharHlp.ByteToString(Abs(creature^.acCur - 60));
   if creature^.acCur > 60 then
@@ -395,7 +405,6 @@ end;
 procedure PrintHitPoints(creature: Types.PCharRecord; col, row: Byte; hotPink: Boolean);
 var
   color: Byte;
-  pad: Byte;
 begin
   if creature^.hpCur < creature^.hpMax then
     color := Yellow
@@ -461,7 +470,6 @@ var
   bag: Boolean;
   adj: Types.TAcAdjust;
   i: ShortInt;
-  pad: Byte;
   c: ShortInt;
   w: LongInt;
   raw: LongInt;
@@ -760,10 +768,10 @@ var
 begin
   i := 0;
   { scan the memorized-spell slots, stopping after the first match }
-  while i <= 20 do begin
+  while i <= Types.SPELL_SLOT_LAST do begin
     if creature^.memorizedSpells[i] = spell then begin
       creature^.memorizedSpells[i] := 0;
-      i := 21;
+      i := Types.SPELL_SLOT_LAST + 1;
     end;
     Inc(i);
   end;
@@ -1657,6 +1665,21 @@ begin
     BaseItem := @GDVars.baseItemsOverflow
   else
     BaseItem := @GDVars.baseItems[itemType];
+end;
+
+function IsNpc(creature: Types.PCharRecord): Boolean;
+begin
+  IsNpc := creature^.npc >= C_Npc.FLAG;
+end;
+
+function MayTrade(creature: Types.PCharRecord): Boolean;
+begin
+  MayTrade := not CharHlp.IsNpc(creature) or (creature^.enabled = 0) or (creature^.status = C_Status.ANIMATED);
+end;
+
+function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
+begin
+  ComesUnderPlayer := not CharHlp.IsNpc(creature) and (creature^.status <> C_Status.ANIMATED);
 end;
 
 end.

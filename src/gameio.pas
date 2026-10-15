@@ -87,7 +87,7 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + GameIo.Num(GDVars.ovrLoads));
   TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + GameIo.Num(OvrGetBuf) + ' retry ' + GameIo.Num(OvrGetRetry));
   TextRend.DisplayAndPause(LightGreen, 'Heap free ' + GameIo.Num(MemAvail) + ' big ' + GameIo.Num(MaxAvail));
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   GDVars.bottomLineTaken := True;
   memShown := False;
 end;
@@ -103,7 +103,7 @@ begin
     if @saveSettings <> nil then
       saveSettings;
   end;
-  if ParamStr(1) = 'STING' then begin
+  if GDVars.stingArg then begin
     if key = #4 then GDVars.stingHpFlag := Ord(GDVars.stingHpFlag = 0);
     if key = #3 then GameIo.ExitGame;
     { Ctrl-L: the script trace log, Curse's Ctrl-D (here Ctrl-D stays the hit-point pop-up) }

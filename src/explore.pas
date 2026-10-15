@@ -18,7 +18,7 @@ var
 
 implementation
 
-uses SaveLoad;
+uses SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime, MenuCore, Portrait, TextRend;
 
 var
   animData: Types.TAnimRec absolute GDVars.animData;
@@ -155,10 +155,9 @@ var
   i: Byte;
 begin
   i := 0;
-  { High(memorizedSpells) }
-  while (i <= 20) and (creature^.memorizedSpells[i] <> spellId) do
+  while (i <= Types.SPELL_SLOT_LAST) and (creature^.memorizedSpells[i] <> spellId) do
     Inc(i);
-  if i <= 20 then
+  if i <= Types.SPELL_SLOT_LAST then
     FindMemorizedSpell := i
   else
     FindMemorizedSpell := 255;
@@ -234,10 +233,7 @@ begin
   SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
   Inc(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
   Inc(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
-  if GDVars.gMapX < 0 then GDVars.gMapX := 15;
-  if GDVars.gMapX > 15 then GDVars.gMapX := 0;
-  if GDVars.gMapY < 0 then GDVars.gMapY := 15;
-  if GDVars.gMapY > 15 then GDVars.gMapY := 0;
+  View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
   GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
@@ -292,7 +288,7 @@ begin
     quickLoadAsked := True
   else begin
     TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
   end;
 end;
 
@@ -305,9 +301,7 @@ var
   done: Boolean;
   c: Char;
   ext: Boolean;
-  unusedMenuText: String[40];
   viewDone: Boolean;
-  unusedPtr: Pointer;
 begin
   GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
   case GDVars.gLocType of
@@ -321,7 +315,7 @@ begin
            if not ext then begin
              case c of
                { STING maps anywhere, as Curse's debug mode does }
-               'A': if (GDVars.zone0^.noAutomap = 0) or (ParamStr(1) = 'STING') then begin
+               'A': if (GDVars.zone0^.noAutomap = 0) or GDVars.stingArg then begin
                       GDVars.automapOn := GDVars.automapOn = False;
                       View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                     end else

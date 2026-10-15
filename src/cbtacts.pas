@@ -61,6 +61,8 @@ function StingVictoryCheat: Boolean;
 
 implementation
 
+uses Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend;
+
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
     the damage burst }
@@ -99,8 +101,6 @@ procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode
   AdjustedAttacks), the sweep budget, initiative (1d6 + missile dex adjustment, at least 1, -6 when surprised, 0 if
   disabled or outside 0..20) and movement. }
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
-var
-  pad: Byte;
 begin
   with creature^.combatAddr^ do begin
     spellCast := 0;
@@ -330,7 +330,6 @@ var
   still: Boolean;
   attacked: Boolean;
   slot: Byte;
-  pad: Byte;
   cntBefore: Byte;
   cntAfter: Byte;
   j: Byte;
@@ -577,7 +576,7 @@ var
   row: ShortInt;
 begin
   CharHlp.PrintNameString(creature, 'turns undead...', 10, False);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   any := False;
   stop := False;
@@ -1139,7 +1138,6 @@ end;
 procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
 var
   spellId: Byte;
-  pad: Byte;
   castTime: Byte;
   idx: Integer;
   notEmpty: Boolean;
@@ -1360,7 +1358,7 @@ begin
     p := GDVars.creatureList;
     while p <> nil do begin
       { NPC flag (high bit) set }
-      if (p^.status = C_Status.OKAY) and (p^.npc > $7F) then begin
+      if (p^.status = C_Status.OKAY) and CharHlp.IsNpc(p) then begin
         p^.hostile := 1;
         p^.combatAddr^.other := nil;
       end;
@@ -1435,7 +1433,6 @@ end;
 procedure ConfirmAttackTarget(cur, tgt: Types.PCharRecord; weaponMode: Byte; var done: Boolean;
                               var sel: Types.TAimTarget);
 var
-  pad: Byte;
   weapon: Types.PItemRec;
 begin
   weapon := nil;
@@ -1628,8 +1625,6 @@ var
   { Move the aim highlight step entries through the list (wrapping) and return that creature; animate flies the cursor
     from the current target, otherwise the old cursor cell is redrawn. }
   function AdvanceAimTarget(step: ShortInt; animate: Boolean): Types.PCharRecord;
-  var
-    pad: Pointer;
   begin
     if animate then begin
       curX := GDVars.arenaLoc[targets[curIdx].idx].x;
@@ -1845,7 +1840,7 @@ var
   slot: Byte;
 begin
   StingVictoryCheat := False;
-  if ParamStr(1) <> 'STING' then
+  if not GDVars.stingArg then
     Exit;
   StingVictoryCheat := True;
   CharHlp.PrintBottomLine('The Gods intervene!');

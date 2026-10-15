@@ -105,11 +105,11 @@ procedure CheckSaveDir;
 
 implementation
 
-uses SaveMenu, AreaName, CharGen, Vault, Stats;
+uses SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
-  TSaveNames = array[1..8] of Types.TStr40;
+  TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
 var
 
@@ -121,7 +121,7 @@ var
 
 const
   { the number of characters whose usual spells are kept at once: the party's size }
-  USUAL_ENTRIES = 8;
+  USUAL_ENTRIES = Types.MAX_PARTY;
   { MEM_SIG and MEM_VERSION open every .mem file; a file without both is not read }
   MEM_SIG = 'USPL';
   MEM_VERSION = 1;
@@ -131,7 +131,7 @@ type
   TUsualSpellsFile = record
     sig: string[4];
     version: Byte;
-    name: string[15];
+    name: string[Types.NAME_LEN];
     randByte: Byte;
     spells: Types.TSpellSlots;
   end;
@@ -140,7 +140,7 @@ var
   { Usual spells (GetUsualSpells), one entry per character, kept with the record and the name it belongs to; a nil
     owner marks a free entry. }
   usualOwner: array[1..USUAL_ENTRIES] of Types.PCharRecord;
-  usualName: array[1..USUAL_ENTRIES] of string[15];
+  usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
   usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
 
 { The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
@@ -266,7 +266,7 @@ begin
     Close(f);
     ioRes := IOResult;
     if ok then
-      ok := (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= 15) and
+      ok := (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
             (rec.name = creature^.name) and (rec.randByte = creature^.randByte);
     if ok then
       SaveLoad.SetUsualSpells(creature, rec.spells);
@@ -382,13 +382,9 @@ end;
 procedure LoadCharIconAnim(loading: Boolean);
 
 var
-  pad1: Byte;
-  pad2: Byte;
-  pad3: Byte;
   fromMap: Types.TColorTab;
   toMap: Types.TColorTab;
   i: Byte;
-  pad4: Byte;
   height: Byte;
 begin
   DaxIo.PushState(3);
@@ -528,7 +524,7 @@ begin
       ok := False;
   end;
   if not ok then
-    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, 15) + ' in full.');
+    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.');
   SaveLoad.WriteUsualSpells(creature, fn);
   Stats.WriteChar(creature, fn);
 end;
@@ -566,8 +562,7 @@ begin
   creature^.combatAddr := nil;
   LoadChar := whole;
   if not whole then Exit;
-  { C_Npc.FLAG clear }
-  if (GDVars.quickEnds <> 0) and (creature^.npc < C_Npc.FLAG) and (creature^.status <> C_Status.ANIMATED) then
+  if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, #0, f);
@@ -756,7 +751,7 @@ begin
   GDVars.curChar := creature;
   with GDVars.curChar^ do begin
     orderNumber := 0;
-    while (orderNumber < 8) and (used[orderNumber] <> 0) do
+    while (orderNumber < Types.MAX_PARTY) and (used[orderNumber] <> 0) do
       Inc(orderNumber);
   end;
   Inc(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
@@ -786,7 +781,7 @@ var
 begin
   found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat',
                                'Put save disk in ' + GDVars.dsSaveDirectory, #1, f);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
     found := (IOResult = 0) and (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
@@ -796,13 +791,13 @@ begin
   end;
   if not found then begin
     TextRend.DisplayAndPause(Yellow, 'Save game ' + letter + ' is damaged.');
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     Exit;
   end;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
   BlockRead(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), res);
   { disks 1..8 only }
-  if not (GDVars.virtualDisk in [1..8]) then
+  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     GDVars.virtualDisk := 1;
   BlockRead(f, GDVars.zone0^, SizeOf(GDVars.zone0^), res);
   BlockRead(f, GDVars.zone1^, SizeOf(GDVars.zone1^), res);
@@ -873,7 +868,7 @@ begin
   GDVars.curChar := GDVars.creatureList;
   { the disk number SaveGame stored at C_Gbvm.DISK_NUM }
   GDVars.virtualDisk := zone1b^[$624];
-  if not (GDVars.virtualDisk in [1..8]) then
+  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     GDVars.virtualDisk := 1;
   if GDVars.gLocType < C_Area.LOC_WILD_WEST then
     View3D.Load3DMap(GDVars.zone0^.mapId.lo);
@@ -888,7 +883,7 @@ begin
     end;
   if GDVars.zone0^.yarashPyramidLeft <> 0 then
     Ending.YarashComplete(False);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure LoadGame;
@@ -925,7 +920,7 @@ begin
   { the party goes only when there is a game to replace it }
   if not SaveLoad.QuickLoadable then begin
     TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
-    MenuCore.ClearBottomLine;
+    TextRend.ClearBottomLine;
     { GameLoop resumes the game in memory, as after a load }
     GDVars.loadedSave := 1;
     Exit;
@@ -966,7 +961,7 @@ begin
     if ioRes <> 0 then
       TextRend.DisplayAndPause(Yellow, 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':');
   until ioRes = 0;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   for n := 1 to 3 do begin
     GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := wallSlots[n].wallDefId;
@@ -987,7 +982,7 @@ begin
   { names holds 8, the most a party has }
   n := 0;
   p := GDVars.creatureList;
-  while (p <> nil) and (n < 8) do begin
+  while (p <> nil) and (n < Types.MAX_PARTY) do begin
     Inc(n);
     Str(n, numStr);
     names[n] := 'CHRDAT' + letter + numStr;
@@ -1001,7 +996,7 @@ begin
   Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   p := GDVars.creatureList;
   n := 0;
-  while (p <> nil) and (n < 8) do begin
+  while (p <> nil) and (n < Types.MAX_PARTY) do begin
     Inc(n);
     Str(n, numStr);
     SaveLoad.SaveChar(p, 'CHRDAT' + letter + numStr);
@@ -1029,7 +1024,7 @@ begin
     p := p^.nextCharAddr;
   end;
   GDVars.recentSaved := 1;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure SaveGame;
@@ -1058,7 +1053,7 @@ procedure QuickSave;
 begin
   SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea);
   TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure CheckFileElseQuit(name: Types.TPathStr);
@@ -1074,11 +1069,8 @@ begin
   ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
   if (not ext) and (ch = 'S') then begin
     Dec(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
-    if GDVars.gMapX < 0 then GDVars.gMapX := 15;
-    if GDVars.gMapX > 15 then GDVars.gMapX := 0;
     Dec(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
-    if GDVars.gMapY < 0 then GDVars.gMapY := 15;
-    if GDVars.gMapY > 15 then GDVars.gMapY := 0;
+    View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
     DaxIo.PopState;
     SaveLoad.SaveGame;
     GameIo.ExitGame;

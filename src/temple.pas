@@ -11,7 +11,7 @@ procedure TempleMainMenu;
 
 implementation
 
-uses Stats;
+uses Stats, Border, CharHlp, MenuCore, ViewChar;
 
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;

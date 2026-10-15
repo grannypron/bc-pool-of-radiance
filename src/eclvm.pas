@@ -14,7 +14,8 @@ procedure GameLoop;
 
 implementation
 
-uses Vault, EclTrace;
+uses Vault, EclTrace, Border, Camp, EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad,
+  Shop, SoundDrv, TextRend, View3D;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -171,7 +172,6 @@ end;
 procedure EclLoadChar;
 var
   p: Types.PCharRecord;
-  dead5: Byte;
   idx: Byte;
   i: Byte;
   flag80: Byte;
@@ -203,8 +203,6 @@ end;
 { SETUP MONSTER: set the monster id and picture, store the requested monster distance and the actual one (capped by
   MaxMonsterDist), then draw the monster }
 procedure EclSetupMon;
-var
-  dead: Word;
 begin
   EclMenu.LoadEclVars(3);
   GDVars.monId := EclMenu.GetEclVar(1);
@@ -673,7 +671,6 @@ end;
 procedure EclClearMon;
 var
   nxt: Types.PItemRec;
-  dead: Word;
 begin
   Inc(GDVars.eclIp);
   GDVars.creatureCnt := 0;
@@ -921,7 +918,6 @@ procedure EclOnGoto;
 var
   sel: Byte;
   count: Byte;
-  dead1: Byte;
   i: Byte;
   done: Boolean;
 begin
@@ -1319,7 +1315,6 @@ end;
 procedure EclFindItem;
 var
   itemType: Byte;
-  dead: Byte;
   p: Types.PCharRecord;
   item: Types.PItemRec;
   found: Boolean;
@@ -1507,7 +1502,6 @@ end;
   left as it was. }
 procedure EclAddNpc;
 var
-  dead: array[1..4] of Byte;
   id: Byte;
   morale: Byte;
   partySize: Byte;

@@ -24,7 +24,6 @@ procedure Load8x8Set(fileID, setID: Byte);
 var
   s1: String[1];
   s2: String[3];
-  pad: Byte;
   ch: Char;
 begin
   if setID in [0..4] then begin

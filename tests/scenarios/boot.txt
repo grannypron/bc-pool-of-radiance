@@ -1,6 +1,8 @@
 # Boot to the main menu, and the settings screen.
 boot NORAND
 ignore POOL OF RADIANCE V
+# the settings screen names the build
+ignore COMMIT  |VERSION  
 wait RADIANCE
 checkpoint main-menu
 press g

@@ -46,6 +46,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
+uses GameIo, MenuCore;
+
 
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
@@ -172,7 +174,6 @@ end;
 function InputNumberMax;
 var
   col: Byte;
-  pad1: Byte;
   qLen: Byte;
   maxStr: String[5];
   s: String[6];
@@ -181,7 +182,7 @@ var
   code: Integer;
   n: Word;
 begin
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, query);
   qLen := Length(query);
   col := qLen;
@@ -208,7 +209,7 @@ begin
         end;
     end;
   until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
-  TextRend.PrintSpaces(0, 24, Black, 40);
+  TextRend.ClearBottomLine;
   if ch = C_Keys.ESC then
     n := 0
   else
@@ -301,7 +302,7 @@ begin
   { pass 1: shares }
   while p <> nil do begin
     { C_Npc.FLAG clear }
-    if p^.npc < C_Npc.FLAG then
+    if not CharHlp.IsNpc(p) then
       for i := C_Money.JEWELRY downto C_Money.COPPER do
         if not Money.CheckOverload(p, share[i], takable) then begin
           p^.coins[i] := share[i] + p^.coins[i];
@@ -824,7 +825,7 @@ var
       c := GDVars.creatureList;
       while (c <> nil) and (holder = nil) do begin
         { C_Npc.FLAG clear: a party member, not a hired NPC }
-        if (c <> GDVars.curChar) and (c^.npc < C_Npc.FLAG) and HasRoom(c) then
+        if (c <> GDVars.curChar) and not CharHlp.IsNpc(c) and HasRoom(c) then
           holder := c;
         c := c^.nextCharAddr;
       end;

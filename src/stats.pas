@@ -35,7 +35,7 @@ const
 
 type
   TKill = record
-    name: string[15];
+    name: string[Types.NAME_LEN];
     count: LongInt;
   end;
   TStatBlock = record
@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 implementation
 
 const
-  ENTRIES = 8;
+  ENTRIES = Types.MAX_PARTY;
   SIG = 'STAT';
   VERSION = 1;
 
@@ -105,14 +105,14 @@ type
   TStatFile = record
     sig: string[4];
     version: Byte;
-    name: string[15];
+    name: string[Types.NAME_LEN];
     randByte: Byte;
     block: TStatBlock;
   end;
 
 var
   owner: array[1..ENTRIES] of Types.PCharRecord;
-  ownerName: array[1..ENTRIES] of string[15];
+  ownerName: array[1..ENTRIES] of string[Types.NAME_LEN];
   blocks: array[1..ENTRIES] of PStatBlock;
   { MarkCoins's party, and each member's coin worth then }
   marked: array[1..ENTRIES] of Types.PCharRecord;
@@ -134,8 +134,8 @@ procedure AddKill(var b: TStatBlock; name: Types.TStr40);
 var
   i: Byte;
 begin
-  if Length(name) > 15 then
-    name[0] := #15;
+  if Length(name) > Types.NAME_LEN then
+    name[0] := Chr(Types.NAME_LEN);
   i := 1;
   while (i <= b.kindCount) and (b.kills[i].name <> name) do
     Inc(i);

@@ -12,6 +12,8 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
+uses FxEngine;
+
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
   those GDVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
@@ -322,8 +324,7 @@ var
 begin
   lvl := 0;
   i := 0;
-  { 20 = High(memorizedSpells) }
-  while (i <= 20) and (lvl = 0) do begin
+  while (i <= Types.SPELL_SLOT_LAST) and (lvl = 0) do begin
     if (creature^.memorizedSpells[i] > $7F) and
         (creature^.memorizedSpells[i] and C_Spell.ID_MASK in [1..C_Spell.LAST]) then
       if done then
@@ -449,8 +450,6 @@ end;
 function CampRest(interactive: Boolean): Boolean;
 var
   cur: Types.PCharRecord;
-  dead1: Pointer;
-  dead2: Byte;
   i: Byte;
   tick: Byte;
   cnt: Byte;
@@ -485,7 +484,7 @@ begin
       if MenuCore.YesNoMenu('Stop Resting? ', LightMagenta, LightGreen, White) = 'Y' then
         stop := True
       else
-        MenuCore.ClearBottomLine;
+        TextRend.ClearBottomLine;
     end;
     if not stop then begin
       GameTime.DecrementRestTime(5, C_Time.MINUTES);

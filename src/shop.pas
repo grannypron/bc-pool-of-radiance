@@ -12,6 +12,8 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
+uses Border, CharHlp, MenuCore, TextRend;
+
 var
   treasureMoney: Types.TMoney absolute GDVars.treasureMoney;
 

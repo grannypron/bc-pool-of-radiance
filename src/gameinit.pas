@@ -11,7 +11,7 @@ procedure GameInit2;
 
 implementation
 
-uses Options;
+uses Options, Blit, DaxIo, GameIo, MenuCore, Session, SoundDrv, TextRend;
 
 var
   iconAnims: array[0..25, 0..1] of Types.PImgBuf absolute GDVars.dsIconAnimation;
@@ -132,7 +132,7 @@ begin
   GDVars.savedDir := GDVars.gameDir;
   GDVars.gameDir[0] := #0;
   TextRend.LoadGameFont;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
   Sym8x8.Load8x8Set(202, 4);
   Sym8x8.Load8x8Set(203, 0);
@@ -157,7 +157,7 @@ begin
     GameIo.ExitGame;
   end;
   GDVars.gameDir := GDVars.savedDir;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }
   Options.LoadOptions;
   { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs

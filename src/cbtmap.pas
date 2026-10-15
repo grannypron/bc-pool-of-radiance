@@ -106,7 +106,7 @@ procedure StopSpellPreview;
 
 implementation
 
-uses Pathing, MenuCore, Magic;
+uses Pathing, MenuCore, Magic, Blit;
 
 const
   { The cursor sprite cell in iconAnims }
@@ -529,7 +529,6 @@ var
   slot: Byte;
   tdx: ShortInt;
   tdy: ShortInt;
-  pad: Integer;
 begin
   CombatIconVisible := True;
   slot := CbtMap.CombatSlot(creature);
@@ -786,7 +785,6 @@ var
   tdy: ShortInt;
   cellX: ShortInt;
   cellY: ShortInt;
-  pad: Integer;
 begin
   SoundDrv.SoundSetAutoStop(0);
   if GDVars.ifcState <> C_Ifc.COMBAT then begin

@@ -64,7 +64,7 @@ begin
   GameInit.GameInit2;
   DataBld.BuildDataFiles;
   { STING skips the introduction }
-  if ParamStr(1) <> 'STING' then begin
+  if not GDVars.stingArg then begin
     Intro.Introduction;
     { the key that skipped the introduction is not a main-menu choice }
     while KeyPressed do

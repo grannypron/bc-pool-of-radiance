@@ -58,10 +58,8 @@ procedure DropMoneyMenu; forward;
 { Display the current character's full character sheet, using tempCr1 as the shared display target. }
 procedure DisplayChar;
 var
-  dead1: Byte;
   row: Byte;
   col: Byte;
-  dead2: Byte;
   i: ShortInt;
   j: ShortInt;
   s: String;
@@ -72,7 +70,7 @@ begin
   Border.DrawBorder(1, 1, 38, 22, 0);
   CharHlp.DisplayCreatureName(GDVars.tempCr1, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
-  if GDVars.tempCr1^.npc > $7F then
+  if CharHlp.IsNpc(GDVars.tempCr1) then
     TextRend.DisplayString(Length(GDVars.tempCr1^.name) + 3, 1, LightGreen, '(NPC)');
   col := 1;
   s := GDConsts.genderNames[GDVars.tempCr1^.genderIdx];
@@ -440,7 +438,6 @@ end;
 procedure ViewCharMenu(var done: Boolean);
 var
   ch: Char;
-  dead1: Byte;
   s: Types.TStr40;
   hasMoney: Boolean;
   hasSpells: Boolean;
@@ -462,7 +459,7 @@ begin
     hasSpells := False;
     hasMoney := False;
     { every memorized-spell slot }
-    for i := 0 to 20 do
+    for i := 0 to Types.SPELL_SLOT_LAST do
       if GDVars.tempCr1^.memorizedSpells[i] > 0 then
         hasSpells := True;
     { every coin type, gems and jewelry included }
@@ -473,10 +470,7 @@ begin
       s := s + 'Items ';
     if hasSpells then
       s := s + 'Spells ';
-    { party members may trade, and so may NPCs that are disabled or animated }
-    if ((GDVars.tempCr1^.npc < C_Npc.FLAG) or (GDVars.tempCr1^.enabled = 0) or
-        (GDVars.tempCr1^.status = C_Status.ANIMATED)) and
-        hasMoney and
+    if CharHlp.MayTrade(GDVars.tempCr1) and hasMoney and
         (GDVars.ifcState <> C_Ifc.COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
@@ -583,7 +577,6 @@ procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
   s: Types.TStr40;
-  dead1: Byte;
   needRedraw: Boolean;
   vmRedraw: Boolean;
   p: Types.PItemRec;
@@ -592,7 +585,6 @@ var
   deadP: Types.PItemRec;
   creature: Types.PCharRecord;
   itemCount: Byte;
-  dead2: Byte;
 begin
   creature := GDVars.curChar;
   ch := ' ';
@@ -608,9 +600,7 @@ begin
       s := 'Ready';
       if CharHlp.CanUseItems(creature) then
         s := s + ' Use';
-      { party members may trade, and so may NPCs that are disabled or animated }
-      if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
-          (creature^.status = C_Status.ANIMATED)) and (GDVars.ifcState <> C_Ifc.COMBAT) then
+      if CharHlp.MayTrade(creature) and (GDVars.ifcState <> C_Ifc.COMBAT) then
         s := s + ' Trade';
       if GDVars.ifcState = C_Ifc.VAULT then
         s := s + ' Deposit'
@@ -619,9 +609,8 @@ begin
       if creature^.numberOfItems < 16 then
         s := s + ' Halve';
       s := s + ' Join';
-      { the same characters may sell, but only in a shop }
-      if ((creature^.npc < C_Npc.FLAG) or (creature^.enabled = 0) or
-          (creature^.status = C_Status.ANIMATED)) and (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
+      { the characters that may trade may sell, but only in a shop }
+      if CharHlp.MayTrade(creature) and (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
         s := s + ' Sell';
       if GDVars.ifcState = C_Ifc.SHOP_TEMPLE then
         s := s + ' Id';
@@ -643,13 +632,13 @@ begin
         GDVars.dsRedrawInventoryMenuFlag := 0;
       end;
       { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
-      if ParamStr(1) = 'STING' then
+      if GDVars.stingArg then
         MenuCore.extraKeys := 'V';
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
       if sel <> nil then
         case ch of
-          'V': if ParamStr(1) = 'STING' then begin
+          'V': if GDVars.stingArg then begin
                  ViewChar.ViewItemDetail(sel);
                  needRedraw := True;
                end;

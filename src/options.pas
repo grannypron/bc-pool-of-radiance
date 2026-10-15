@@ -26,7 +26,8 @@ procedure OptionsMenu;
 
 implementation
 
-uses Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo, SoundDrv, DaxIo, DataArc;
+uses Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo, SoundDrv, DaxIo, DataArc,
+  GDConsts;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I ..\OBJ\BUILDID.INC}
@@ -329,7 +330,7 @@ var
   n: Byte;
 begin
   n := 0;
-  if ParamStr(1) = 'STING' then begin
+  if GDVars.stingArg then begin
     Inc(n);
     notes[n] := 'STING ';
   end;

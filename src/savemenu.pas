@@ -329,7 +329,7 @@ begin
     end else if (ch <> ' ') and (Pos(ch, listed) > 0) then
       SaveMenu.MoveTo(Pos(ch, listed));
   until chosen <> ' ';
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   ChooseSlot := chosen;
 end;
 
@@ -364,7 +364,7 @@ begin
   TextRend.DisplayString(POP_LEFT, 12, LightGreen, 'Description:');
   s := desc;
   SaveMenu.DrawDescLine(s);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightMagenta, 'Type a description, then press Enter');
   repeat
     key := GameIo.ReadGameKey;
@@ -383,11 +383,11 @@ begin
         end;
     end;
   until (key = C_Keys.ENTER) or (key = C_Keys.ESC);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   ch := C_Keys.NONE;
   if key = C_Keys.ENTER then
     ch := MenuCore.MenuHorizontal('Save: ', 'Okay Exit', LightMagenta, LightGreen, White, False, False, ext);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   if ch = 'O' then begin
     desc := s;
     AskDescription := True;

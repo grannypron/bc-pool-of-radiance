@@ -95,6 +95,8 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 implementation
 
+uses CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D;
+
 var
   { Monster sprite or close-up picture shown in the view window }
   animData: Types.TAnimRec absolute GDVars.animData;
@@ -175,7 +177,6 @@ end;
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
 var
-  pad: Byte;
   i: Word;
 begin
   GDVars.eclGraphics := False;
@@ -239,9 +240,9 @@ var
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
   GDVars.dsSuppressingInsertDiskFlag := 0;
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
-  if not (GDVars.virtualDisk in [1..8]) then
+  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     DaxIo.PushState(1);
   Str(GDVars.virtualDisk, s);
   { the merged ECL.DAX holds every disk's scripts, so the search below would not run }
@@ -285,7 +286,7 @@ begin
     n := SizeOf(Types.TZone3);
   Move(data^[2], GDVars.zone3^, n);
   FreeMem(data, sizeRead);
-  MenuCore.ClearBottomLine;
+  TextRend.ClearBottomLine;
 end;
 
 procedure InitCreature(id: Byte; var creature: Types.PCharRecord; var inv: Types.PItemRec;
@@ -680,7 +681,6 @@ function ReadGbvm(address: Word): Word;
 var
   zone: Byte;
   found: Boolean;
-  dead: Word;
 begin
   zone := EclMenu.GbvmZone(address);
   found := False;
@@ -778,7 +778,6 @@ end;
 procedure ConvGbString(len, strIdx: Byte);
 var
   i: Byte;
-  dead: Byte;
   cur: Byte;
   prev: Byte;
   c6: Byte;
@@ -986,7 +985,6 @@ var
   cur: Types.PCharRecord;
   srcIt: Types.PItemRec;
   tmp: Types.PItemRec;
-  dead: Pointer;
 begin
   GDVars.duelFlag := True;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := mirror;
