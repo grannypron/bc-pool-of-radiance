@@ -17,6 +17,13 @@ procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer
   called with removed = True; the node is then unlinked and freed. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
+{ True when the creature has any of the effects a cure of disease removes (GDConsts.cureDiseaseEffects). }
+function HasDisease(creature: Types.PCharRecord): Boolean;
+
+{ Remove every effect a cure of disease removes, quietly, with the effect lock held: the temple's cure and the
+  paladin's. }
+procedure RemoveDiseases(creature: Types.PCharRecord);
+
 { Fire, on one creature, every effect id registered under condition cond (0..19, the C_Cond constants). Each id goes
   through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures. }
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
@@ -788,6 +795,29 @@ begin
     ReviveDeadCreature := True;
   end else
     ReviveDeadCreature := False;
+end;
+
+function HasDisease(creature: Types.PCharRecord): Boolean;
+var
+  i: Byte;
+  effect: Types.PEffectRec;
+  found: Boolean;
+begin
+  found := False;
+  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
+    if CharHlp.HasEffect(creature, GDConsts.cureDiseaseEffects[i], effect) then
+      found := True;
+  HasDisease := found;
+end;
+
+procedure RemoveDiseases(creature: Types.PCharRecord);
+var
+  i: Byte;
+begin
+  GDVars.effectLock := 1;
+  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
+    FxEngine.RemoveEffect(creature, GDConsts.cureDiseaseEffects[i], nil);
+  GDVars.effectLock := 0;
 end;
 
 end.

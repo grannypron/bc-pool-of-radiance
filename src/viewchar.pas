@@ -214,31 +214,22 @@ procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
   effect: Types.PEffectRec;
-  found: Boolean;
   ch: Char;
-  i: Byte;
 begin
   CharHlp.DisplayNoncombatInterface;
   tgt := GDVars.creatureList;
   CharHlp.SelectChar('Cure whom? ', True, tgt);
   if tgt = nil then
     Exit;
-  found := False;
-  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
-    if CharHlp.HasEffect(tgt, GDConsts.cureDiseaseEffects[i], effect) then
-      found := True;
   ch := 'Y';
-  if not found then begin
+  if not FxEngine.HasDisease(tgt) then begin
     CharHlp.PrintNameString(tgt, 'is not diseased', 0, False);
     ch := MenuCore.YesNoMenu('cure anyway: ', LightMagenta, LightGreen, White);
     CharHlp.ClearMessageWindow;
   end;
   if ch <> 'Y' then
     Exit;
-  GDVars.effectLock := 1;
-  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
-    FxEngine.RemoveEffect(tgt, GDConsts.cureDiseaseEffects[i], nil);
-  GDVars.effectLock := 0;
+  FxEngine.RemoveDiseases(tgt);
   if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
     Inc(effect^.strength)
   else

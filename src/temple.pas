@@ -62,35 +62,18 @@ begin
   end;
 end;
 
-{ CureDisease: Checks for effects 31, 34, 43, 44, 50 and 57 (C_Effect.HELPLESS, C_Effect.DISEASED, C_Effect.DISEASE_STR,
-  C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT); for 1000 gp removes all six with the effect lock set }
+{ CureDisease: for 1000 gp, remove the current character's disease effects (FxEngine.RemoveDiseases), asking first when
+  there are none }
 procedure CureDisease;
 var
-  effect: Types.PEffectRec;
-  s: String;
   c: Char;
-  i: Byte;
-  found: Boolean;
 begin
-  found := False;
-  s := '';
   c := 'Y';
-  { 6 = High(cureDiseaseEffects) }
-  for i := 1 to 6 do
-    if CharHlp.HasEffect(GDVars.curChar, GDConsts.cureDiseaseEffects[i], effect) then
-      found := True;
-  if not found then
+  if not FxEngine.HasDisease(GDVars.curChar) then
     c := Temple.ConfirmCureAnyway('is not Diseased.');
-  if c = 'Y' then begin
-    c := Temple.ConfirmCureCost('Cure Disease', 1000);
-    if c = 'Y' then begin
-      GDVars.effectLock := 1;
-      { 6 = High(cureDiseaseEffects) }
-      for i := 1 to 6 do
-        FxEngine.RemoveEffect(GDVars.curChar, GDConsts.cureDiseaseEffects[i], nil);
-      GDVars.effectLock := 0;
-    end;
-  end;
+  if c = 'Y' then
+    if Temple.ConfirmCureCost('Cure Disease', 1000) = 'Y' then
+      FxEngine.RemoveDiseases(GDVars.curChar);
 end;
 
 { CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp; the RestoreHitPoints result is
