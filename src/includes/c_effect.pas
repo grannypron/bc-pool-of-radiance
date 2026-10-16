@@ -162,6 +162,12 @@ const
   RECENT_HEAL = 140;
   { A paladin's week of curing disease; the strength counts the cures made. }
   RECENT_CURE = 141;
+  { GDVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
+  ELEM_FIRE = 1;
+  ELEM_COLD = 2;
+  ELEM_ELEC = 4;
+  ELEM_MAGIC = 8;
+  ELEM_ACID = $10;
 
 implementation
 

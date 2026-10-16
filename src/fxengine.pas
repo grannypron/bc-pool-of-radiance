@@ -653,14 +653,14 @@ begin
       s := 'takes ' + StrUtil.NumStr(GDVars.pendingDamage) + ' points of damage '
     else
       s := 'takes 1 point of damage ';
-    case GDVars.elementMask and $F7 of
-      1: s := s + 'from Fire';
-      2: s := s + 'from Cold';
-      4: s := s + 'from Electricity';
-      16: s := s + 'from Acid';
+    case GDVars.elementMask and not C_Effect.ELEM_MAGIC of
+      C_Effect.ELEM_FIRE: s := s + 'from Fire';
+      C_Effect.ELEM_COLD: s := s + 'from Cold';
+      C_Effect.ELEM_ELEC: s := s + 'from Electricity';
+      C_Effect.ELEM_ACID: s := s + 'from Acid';
     end;
     { magic bit alone, or no element bit at all }
-    if (GDVars.elementMask and 8) = GDVars.elementMask then
+    if (GDVars.elementMask and C_Effect.ELEM_MAGIC) = GDVars.elementMask then
       s := s + 'from Magic';
     if shockItem = nil then
       CharDisp.PrintNameStringAnim(creature, False, s)

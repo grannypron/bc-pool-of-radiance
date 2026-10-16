@@ -768,7 +768,7 @@ end;
 { Cause Light Wounds: 1d8 damage, element mask 8. }
 procedure CauseLightWoundsHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(1, 8), 8, '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(1, 8), C_Effect.ELEM_MAGIC, '');
 end;
 
 { Shared handler for the detection-style spells: apply the spell's effect. }
@@ -792,8 +792,8 @@ end;
 { Burning Hands: caster-level damage, element mask 9. }
 procedure BurningHandsHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), 9,
-                      '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+                     C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
 { Charm Person: only targets with charType 0..1 and icon size 1 can be charmed. The Charm effect's strength is the
@@ -874,7 +874,8 @@ var
   cl: Byte;
 begin
   cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, cl div 2 + FxEngine.RollDamageDice(cl div 2, 4), 8, '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, cl div 2 + FxEngine.RollDamageDice(cl div 2, 4),
+                     C_Effect.ELEM_MAGIC, '');
 end;
 
 { Shield: apply the spell's effect. }
@@ -887,7 +888,8 @@ end;
 procedure ShockingGraspHandler;
 begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False,
-                      FxEngine.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), $C, '');
+                      FxEngine.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+                      C_Effect.ELEM_ELEC or C_Effect.ELEM_MAGIC, '');
 end;
 
 { Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
@@ -1372,7 +1374,8 @@ begin
     GDVars.spellTargetCount := GDVars.targetCount;
   end;
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_Dir.CENTER);
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(cl, 6), 9, '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(cl, 6),
+                     C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
 { Haste and Slow: keep up to caster-level targets on team hostFlag and drop the rest. A kept target carrying removeId,
@@ -1420,7 +1423,7 @@ begin
       blocked := True;
   if crIdx > 0 then begin
     tgt := GDVars.creatureArr[crIdx];
-    GDVars.elementMask := $C;
+    GDVars.elementMask := C_Effect.ELEM_ELEC or C_Effect.ELEM_MAGIC;
     FxEngine.InflictNonWeaponDamage(tgt, damage, 2, FxEngine.RollSavingThrow(tgt, saveType, 0));
     CharDisp.BuildIconFacings(19);
     GDVars.elementMask := 0;

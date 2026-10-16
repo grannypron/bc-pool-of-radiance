@@ -361,7 +361,7 @@ begin
   Inc(GDVars.gAttackRoll, bonus);
   Inc(GDVars.pendingDamage, bonus);
   { magical fire }
-  GDVars.elementMask := 9;
+  GDVars.elementMask := C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC;
 end;
 
 { Manual of Bodily Health training done (eff 7): +1 Constitution and the matching hit-point change, the Con table's
@@ -415,7 +415,7 @@ end;
 
 procedure EffResistCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 2 <> 0 then begin
+  if GDVars.elementMask and C_Effect.ELEM_COLD <> 0 then begin
     GDVars.pendingDamage := GDVars.pendingDamage div 2;
     Inc(GDVars.gSaveRoll, 3);
   end;
@@ -536,7 +536,7 @@ end;
 
 procedure EffResistFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 1 <> 0 then begin
+  if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then begin
     GDVars.pendingDamage := GDVars.pendingDamage div 2;
     Inc(GDVars.gSaveRoll, 3);
   end;
@@ -996,7 +996,7 @@ procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   i: Byte;
 begin
-  if GDVars.elementMask and 1 <> 0 then begin
+  if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then begin
     for i := 1 to GDVars.gDamageDice do
       { floor before taking 2 off, so damage of 0 or 1 cannot wrap the Byte to 254 or 255 }
       if GDVars.pendingDamage >= Word(GDVars.gDamageDice) + 2 then
@@ -1004,7 +1004,7 @@ begin
       else if GDVars.pendingDamage > GDVars.gDamageDice then
         GDVars.pendingDamage := GDVars.gDamageDice;
     Inc(GDVars.gSaveRoll, 4);
-    if GDVars.elementMask and 8 = 0 then
+    if GDVars.elementMask and C_Effect.ELEM_MAGIC = 0 then
       EffHndlr.NullifyAttack(0);
   end;
 end;
@@ -1204,7 +1204,7 @@ end;
 
 procedure EffFireTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.elementMask := 9;
+  GDVars.elementMask := C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC;
   FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, FxEngine.RollDamageDice(2, 10), 0, False);
 end;
 
@@ -1212,7 +1212,7 @@ end;
 
 procedure EffAcidSquirt(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.elementMask := $10;
+  GDVars.elementMask := C_Effect.ELEM_ACID;
   FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, FxEngine.RollDamageDice(1, 4), 0, False);
 end;
 
@@ -1500,7 +1500,7 @@ begin
     EffHndlr.NullifyAttack(0);
     CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
   end else
-    if GDVars.elementMask and 4 <> 0 then
+    if GDVars.elementMask and C_Effect.ELEM_ELEC <> 0 then
       EffHndlr.NullifyAttack(0);
 end;
 
@@ -1508,7 +1508,7 @@ end;
 
 procedure EffHalfFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 1 <> 0 then
+  if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
     GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1590,7 +1590,7 @@ end;
 
 procedure EffTrollBurn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.elementMask and 1 = 0) and (GDVars.elementMask and $10 = 0) then
+  if (GDVars.elementMask and C_Effect.ELEM_FIRE = 0) and (GDVars.elementMask and C_Effect.ELEM_ACID = 0) then
     FxEngine.AddEffect(creature, C_Effect.TROLL_RETURN, FxEngine.RollDice(3, 6), 255, True);
 end;
 
@@ -1651,7 +1651,7 @@ begin
     chance := 0
   else if chance > 100 then
     chance := 100;
-  if (GDVars.pendingEffectId = 0) and (GDVars.elementMask and 8 = 0) then
+  if (GDVars.pendingEffectId = 0) and (GDVars.elementMask and C_Effect.ELEM_MAGIC = 0) then
     Exit;
   if FxEngine.RollDice(1, 100) <= chance then
     EffHndlr.NullifyAttack(0);
@@ -1700,7 +1700,7 @@ end;
 
 procedure EffNoCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 2 <> 0 then
+  if GDVars.elementMask and C_Effect.ELEM_COLD <> 0 then
     EffHndlr.NullifyAttack(0);
 end;
 
@@ -1719,7 +1719,7 @@ end;
 
 procedure EffNoFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 1 <> 0 then
+  if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
     EffHndlr.NullifyAttack(0);
 end;
 
@@ -1729,7 +1729,7 @@ procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   i: Byte;
 begin
-  if GDVars.elementMask and 1 <> 0 then
+  if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
     for i := 1 to GDVars.gDamageDice do
       { only above the floor, so damage of 0 cannot wrap the Byte to 255 }
       if GDVars.pendingDamage > GDVars.gDamageDice then
@@ -1740,7 +1740,7 @@ end;
 
 procedure EffHalfElec(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 4 <> 0 then
+  if GDVars.elementMask and C_Effect.ELEM_ELEC <> 0 then
     GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1785,7 +1785,7 @@ end;
 
 procedure EffHalfCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.elementMask and 2 <> 0 then
+  if GDVars.elementMask and C_Effect.ELEM_COLD <> 0 then
     GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1847,7 +1847,7 @@ begin
   if item <> nil then
     if item^.itemType = C_Item.FLASK_OF_OIL then
       GDVars.pendingDamage := FxEngine.RollDamageDice(3, 8);
-  if GDVars.elementMask and 9 <> 0 then
+  if GDVars.elementMask and (C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC) <> 0 then
     Inc(GDVars.pendingDamage, GDVars.gDamageDice);
 end;
 
@@ -1986,7 +1986,7 @@ begin
   if item^.effect and $F <> creature^.alignment then begin
     item^.equipped := 0;
     dmg := item^.effect div 16;
-    GDVars.elementMask := 8;
+    GDVars.elementMask := C_Effect.ELEM_MAGIC;
     if GDVars.ifcState = C_Ifc.COMBAT then
       CharDisp.DisplayCombatInterface;
     FxEngine.InflictItemShock(creature, item, dmg);
