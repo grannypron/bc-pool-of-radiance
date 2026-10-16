@@ -5,9 +5,7 @@ unit Magic;
 interface
 
 { Types supplies PCharRecord, PItemRec, PEffectRec and TStr40 for the declarations below. }
-uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, DaxIo,
-  TextRend, Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level,
-  C_Status, C_Ifc, C_Dir, C_Spell;
+uses Types;
 
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
@@ -185,7 +183,9 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_Item, Dice;
+uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, TextRend,
+  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_Status,
+  C_Ifc, C_Dir, C_Spell;
 
 var
   { the menu string list }

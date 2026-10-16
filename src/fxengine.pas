@@ -5,8 +5,7 @@ unit FxEngine;
 interface
 
 { C_Effect supplies the EFF_ effect ids }
-uses Types, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend, CharHlp, Pathing, CbtMap,
-  C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
+uses Types;
 
 { Call the effect handler for effId (1..141) through GDVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
@@ -142,7 +141,8 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice, Clock;
+uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend,
+  CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
