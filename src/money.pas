@@ -69,7 +69,7 @@ procedure AppraiseMenu(var ok: Boolean);
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
-  EclMenu, CharDisp;
+  EclMenu, CharDisp, AbilAdj;
 
 
 var
@@ -83,9 +83,9 @@ var
 function CarryingCapacity(p: Types.PCharRecord): LongInt;
 begin
   if CharHlp.HasBagOfHolding(p) then
-    CarryingCapacity := LongInt(CharHlp.WeightAllowance(p)) + 1500 + 5000
+    CarryingCapacity := LongInt(AbilAdj.WeightAllowance(p)) + 1500 + 5000
   else
-    CarryingCapacity := LongInt(CharHlp.WeightAllowance(p)) + 1500;
+    CarryingCapacity := LongInt(AbilAdj.WeightAllowance(p)) + 1500;
 end;
 
 { The coins the creature can still carry: its carrying capacity less its raw weight, or zero when it is full. }
