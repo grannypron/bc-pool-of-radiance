@@ -362,8 +362,8 @@ var
   { effect handlers, indexed by effect id }
   effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler;
   { 3D view }
-  { shared pointer to wall symbol slices }
-  wallGfx: Pointer;
+  { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
+  wallGfx: Types.PWallSlices;
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;
   { Sky and ceiling color after palette mapping. }

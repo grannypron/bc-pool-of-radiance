@@ -34,12 +34,6 @@ implementation
 
 uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo;
 
-var
-  { 3D wall graphics ptr }
-  wallDefs: Types.PWallDefs absolute GDVars.wallGfx;
-  { same tile, flat view }
-  wallSlices: Types.PWallSlices absolute GDVars.wallGfx;
-
 procedure DisplayViewBuf; forward;
 
 { DrawAutoMap: The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols
@@ -117,8 +111,8 @@ begin
   rowLim := GDConsts.viewSlotGeom.rows[slot] + y - 1;
   for row := y to rowLim do
     for col := x to colLim do begin
-      if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (wallSlices^[wallType][cnt] > 0) then
-        Sym8x8.Put8x8Sym(col + 3 - 1, row + 3 - 1, wallSlices^[wallType][cnt], True, True);
+      if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (GDVars.wallGfx^[wallType][cnt] > 0) then
+        Sym8x8.Put8x8Sym(col + 3 - 1, row + 3 - 1, GDVars.wallGfx^[wallType][cnt], True, True);
       Inc(cnt);
     end;
 end;
@@ -448,7 +442,8 @@ begin
   offset := 0;
   i := 1;
   repeat
-    Move(data^[offset], wallDefs^[wsSlot + i - 1], SizeOf(Types.TView3dWallDef));
+    { slot wsSlot + i - 1's five wall types start at wall type 5 * (wsSlot + i - 2) + 1 }
+    Move(data^[offset], GDVars.wallGfx^[5 * (wsSlot + i - 2) + 1], SizeOf(Types.TView3dWallDef));
     Inc(offset, SizeOf(Types.TView3dWallDef));
     Inc(i);
   until offset >= sizeRead;
@@ -460,8 +455,8 @@ begin
       GDVars.dsWallSetCache[wsSlot + i - 1].symbolSlot := -1;
       for row := 1 to 5 do
         for col := 0 to 155 do begin
-          if wallDefs^[wsSlot + i - 1][row][col] >= GDConsts.symSetLast[0] then
-            Inc(wallDefs^[wsSlot + i - 1][row][col], symOfs);
+          if GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GDConsts.symSetLast[0] then
+            Inc(GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
         end;
       if count > 1 then begin
         if fileId = 0 then
