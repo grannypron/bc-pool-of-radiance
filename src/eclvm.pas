@@ -1056,7 +1056,43 @@ var
   q: String[1];
   choice: Byte;
   k: Byte;
+  tried: Byte;
   address: Word;
+
+  { The party closes in, or with the monsters at hand both sides wait; the menu comes round again. }
+  procedure ApproachOrWait;
+  begin
+    if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
+      Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
+      EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+                             GDVars.dsMonsterFlags);
+    end else
+      TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
+    waited := True;
+  end;
+
+  { The party closes in and the menu comes round again, or with the monsters at hand it is a fight (3). }
+  procedure ApproachOrFight;
+  begin
+    if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
+      EclVars.WriteGbvm(address, 3)
+    else begin
+      Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
+      EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+                             GDVars.dsMonsterFlags);
+      waited := True;
+    end;
+  end;
+
+  { The monsters run (0). }
+  procedure MonstersFlee;
+  begin
+    EclVars.WriteGbvm(address, 0);
+    GDVars.curCol := C_Msg.TEXT_LEFT;
+    GDVars.curRow := C_Msg.MESSAGE_TOP;
+    TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
+  end;
+
 begin
   GDVars.inEncMenu := 1;
   GDVars.bottomMsgCleared := 0;
@@ -1085,30 +1121,16 @@ begin
     waited := False;
     GDVars.curCol := C_Msg.TEXT_LEFT;
     GDVars.curRow := C_Msg.MESSAGE_TOP;
-    case GDVars.zone1^[C_Gbvm.MONSTER_DIST] of
-      0: begin
-        k := 1;
-        repeat
-          msg := msgs[k];
-          Inc(k);
-        until (msg <> '') or (k > 3);
-      end;
-      1: begin
-        k := 2;
-        repeat
-          msg := msgs[k];
-          Inc(k);
-          if k > 3 then k := 1;
-        until (msg <> '') or (k = 2);
-      end;
-      2: begin
-        k := 3;
-        repeat
-          msg := msgs[k];
-          Inc(k);
-          if k > 3 then k := 1;
-        until (msg <> '') or (k = 3);
-      end;
+    { the message for the distance, else the next one after it that is set, wrapping round the three }
+    if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 2 then begin
+      k := GDVars.zone1^[C_Gbvm.MONSTER_DIST] + 1;
+      tried := 0;
+      repeat
+        msg := msgs[k];
+        Inc(k);
+        if k > 3 then k := 1;
+        Inc(tried);
+      until (msg <> '') or (tried = 3);
     end;
     if msg = '' then
       clearW := False;
@@ -1139,77 +1161,29 @@ begin
             TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
           end;
           2: EclVars.WriteGbvm(address, 2);
-          3: begin
-            if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
-              Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-              EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
-                                     GDVars.dsMonsterFlags);
-            end else
-              TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
-            waited := True;
-          end;
-          4:
-            if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
-              EclVars.WriteGbvm(address, 3)
-            else begin
-              Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-              EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
-                                     GDVars.dsMonsterFlags);
-              waited := True;
-            end;
+          3: ApproachOrWait;
+          4: ApproachOrFight;
         end;
       2:
         case sel of
           0:
-            if fleeMon > hiMove then begin
-              EclVars.WriteGbvm(address, 0);
-              GDVars.curCol := C_Msg.TEXT_LEFT;
-              GDVars.curRow := C_Msg.MESSAGE_TOP;
-              TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
-            end else
+            if fleeMon > hiMove then
+              MonstersFlee
+            else
               EclVars.WriteGbvm(address, 1);
-          1..4: begin
-            EclVars.WriteGbvm(address, 0);
-            GDVars.curCol := C_Msg.TEXT_LEFT;
-            GDVars.curRow := C_Msg.MESSAGE_TOP;
-            TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
-          end;
+          1..4: MonstersFlee;
         end;
       3:
         case sel of
           0: EclVars.WriteGbvm(address, 1);
-          1, 3: begin
-            if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
-              Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-              EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
-                                     GDVars.dsMonsterFlags);
-            end else
-              TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
-            waited := True;
-          end;
+          1, 3: ApproachOrWait;
           2: EclVars.WriteGbvm(address, 2);
-          4:
-            if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
-              EclVars.WriteGbvm(address, 3)
-            else begin
-              Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-              EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
-                                     GDVars.dsMonsterFlags);
-              waited := True;
-            end;
+          4: ApproachOrFight;
         end;
       4:
         case sel of
           0: EclVars.WriteGbvm(address, 1);
-          1, 3, 4:
-            if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
-              EclVars.WriteGbvm(address, 3)
-            else begin
-              Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-              EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
-                                     GDVars.dsMonsterFlags);
-              waited := True;
-            end;
+          1, 3, 4: ApproachOrFight;
           2: EclVars.WriteGbvm(address, 2);
         end;
     end;
