@@ -47,8 +47,7 @@ uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, 
 
 
 var
-  { 19 * 8 Words, addressed by a one-based word index (template n starts at 8n - 7). Index 144 is not a template start:
-    it spans the last word of template 18 and the first seven of template 19. }
+  { 19 * 8 Words, addressed by a one-based word index (template n starts at 8n - 7). }
   randItemW: array[1..152] of Word absolute GDConsts.randomItemTemplates;
   randItemB: array[1..152] of Types.TWB absolute GDConsts.randomItemTemplates;
 
@@ -450,12 +449,12 @@ begin
       1..59, 73, 77, 93: begin
           plus := Money.RandomBonus;
           case itemType of
-            { One time in five, index 144: not a template start, so the item gets the last word of template 18 and the
-              first seven of template 19. Template 14 (Javelin of Lightning, index 105) is never selected. }
+            { one time in five a Javelin of Lightning (template 14); SSI's index 144 straddled templates 18 and 19,
+              making an item named from neither (POR-0165) }
             21: begin
                    r := FxEngine.RollDice(1, 5);
                    if r = 5 then
-                     templateWordIndex := 144;
+                     templateWordIndex := 105;
                    nameIds[3] := 21;
                    nameIds[2] := plus + 161;
                  end;
