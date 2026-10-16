@@ -127,20 +127,6 @@ var
   cnt: Byte;
   j: Byte;
 
-  { Would an area spell aimed at cell (x, y) catch anyone not on GDVars.curChar's enemy team? Rebuilds the target list
-    around the aim point with the spell's aiRadius as the walk budget }
-  function AreaHitsNonEnemy(x, y: ShortInt; spell: Byte): Boolean;
-  var
-    i: Byte;
-  begin
-    AreaHitsNonEnemy := False;
-    Pathing.BuildTargetList(x, y, GDConsts.spellTable[spell].aiRadius, 255, 1, GDVars.arenaPtr);
-    for i := 1 to GDVars.targetCount do
-      if GDVars.creatureArr[GDVars.targetList[i].idx]^.hostile
-         <> CharHlp.EnemyTeam(GDVars.curChar) then
-        AreaHitsNonEnemy := True;
-  end;
-
 begin
   DecideCastSpell := False;
   if GDConsts.spellTable[spell].aiPriority < minPri then
@@ -157,8 +143,9 @@ begin
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
-          if AreaHitsNonEnemy(GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].x,
-                              GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].y, spell) then
+          if CbtActs.AreaHitsNonEnemy(GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].x,
+                                      GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].y,
+                                      GDConsts.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
       end;

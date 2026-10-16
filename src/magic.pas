@@ -1368,10 +1368,7 @@ begin
   else
     cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   if GDVars.zone0^.view3dFlag = 0 then begin
-    Pathing.BuildTargetList(GDVars.gTargetX, GDVars.gTargetY, 2, 255, 1, GDVars.arenaPtr);
-    for i := 1 to GDVars.targetCount do
-      GDVars.dsTargetCreaturePtr[i] := GDVars.creatureArr[GDVars.targetList[i].idx];
-    GDVars.spellTargetCount := GDVars.targetCount;
+    Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, 2);
   end;
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_Dir.CENTER);
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(cl, 6),

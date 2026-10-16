@@ -58,6 +58,10 @@ procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 
 function StingVictoryCheat: Boolean;
 
+{ Would an area spell aimed at cell (x, y) with walk budget radius catch anyone not on GDVars.curChar's enemy team?
+  Rebuilds the target list around the aim point. }
+function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
+
 implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
@@ -972,12 +976,9 @@ begin
         if CbtActs.AcquireTarget(GDVars.curChar, CharHlp.CalcSpellRange(spell), 0, 1) then begin
           p := GDVars.curChar^.combatAddr^.other;
           if GDConsts.spellTable[spell].aiRadius > 0 then begin
-            Pathing.BuildTargetList(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), GDConsts.spellTable[spell].aiRadius,
-                                    255, 1, GDVars.arenaPtr);
-            for i := 1 to GDVars.targetCount do
-              if GDVars.creatureArr[GDVars.targetList[i].idx]^.hostile
-                 <> CharHlp.EnemyTeam(GDVars.curChar) then
-                ok := False;
+            if CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p),
+                                        GDConsts.spellTable[spell].aiRadius) then
+              ok := False;
           end;
           if CharHlp.IsHelpless(p) then
             for i := 1 to SizeOf(GDConsts.helplessFx) div SizeOf(GDConsts.helplessFx[1]) do
@@ -1053,11 +1054,7 @@ begin
             GDVars.spellTargetCount := 1;
           end else begin
             { (area and $F) shr 4 is always 0: a zero radius }
-            Pathing.BuildTargetList(GDVars.gTargetX, GDVars.gTargetY,
-                                    (GDConsts.spellTable[spell].area and $F) shr 4, 255, 1, GDVars.arenaPtr);
-            for k := 1 to GDVars.targetCount do
-              GDVars.dsTargetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
-            GDVars.spellTargetCount := GDVars.targetCount;
+            Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, (GDConsts.spellTable[spell].area and $F) shr 4);
             GDVars.gMultiTarget := 1;
           end;
         end else
@@ -1085,11 +1082,7 @@ begin
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
-          Pathing.BuildTargetList(GDVars.gTargetX, GDVars.gTargetY, GDConsts.spellTable[spell].area and 7, 255, 1,
-                                  GDVars.arenaPtr);
-          for k := 1 to GDVars.targetCount do
-            GDVars.dsTargetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
-          GDVars.spellTargetCount := GDVars.targetCount;
+          Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, GDConsts.spellTable[spell].area and 7);
           GDVars.gMultiTarget := 1;
         end else
           cast := False;
@@ -1856,6 +1849,17 @@ begin
     p := p^.nextCharAddr;
   end;
   CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_Dir.CENTER);
+end;
+
+function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
+var
+  i: Byte;
+begin
+  AreaHitsNonEnemy := False;
+  Pathing.BuildTargetList(x, y, radius, 255, 1, GDVars.arenaPtr);
+  for i := 1 to GDVars.targetCount do
+    if GDVars.creatureArr[GDVars.targetList[i].idx]^.hostile <> CharHlp.EnemyTeam(GDVars.curChar) then
+      AreaHitsNonEnemy := True;
 end;
 
 end.
