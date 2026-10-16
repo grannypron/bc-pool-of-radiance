@@ -56,15 +56,14 @@ jobs:
       # All branches and tags: reproduce.sh builds SSI's release tags, and a release names one.
       - name: Check out
         env:
-          SERVER: ${{ github.server_url }}
-          REPOSITORY: ${{ github.repository }}
+          CLONE_URL: ${{ github.event.repository.clone_url }}
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}
           TOKEN: ${{ github.token }}
         run: |
           git config --global --add safe.directory "$PWD"
           git init -q .
-          git remote add origin "$SERVER/$REPOSITORY.git"
+          git remote add origin "$CLONE_URL"
           auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
@@ -90,15 +89,14 @@ jobs:
     steps:
       - name: Check out
         env:
-          SERVER: ${{ github.server_url }}
-          REPOSITORY: ${{ github.repository }}
+          CLONE_URL: ${{ github.event.repository.clone_url }}
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}
           TOKEN: ${{ github.token }}
         run: |
           git config --global --add safe.directory "$PWD"
           git init -q .
-          git remote add origin "$SERVER/$REPOSITORY.git"
+          git remote add origin "$CLONE_URL"
           auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
@@ -123,15 +121,14 @@ jobs:
     steps:
       - name: Check out
         env:
-          SERVER: ${{ github.server_url }}
-          REPOSITORY: ${{ github.repository }}
+          CLONE_URL: ${{ github.event.repository.clone_url }}
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}
           TOKEN: ${{ github.token }}
         run: |
           git config --global --add safe.directory "$PWD"
           git init -q .
-          git remote add origin "$SERVER/$REPOSITORY.git"
+          git remote add origin "$CLONE_URL"
           auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
