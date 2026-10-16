@@ -11,8 +11,8 @@ var
   { Options.LoadOptions sets it to Options.SaveOptions once POOLOPT.CFG has been read; Ctrl-S calls it to write the
     Sound setting back. GameIo starts before the overlay manager and cannot use the overlaid Options itself. }
   saveSettings: TSettingsHook;
-  { STING Ctrl-Y's memory display, Debug.ShowMemory, which GameInit installs; the overlaid Debug draws with TextRend,
-    which GameIo cannot use without a unit cycle. }
+  { STING Ctrl-Y's memory display, MemShow.ShowMemory, which GameInit installs: it draws with TextRend, which GameIo
+    cannot use without a unit cycle. }
   showMemory: TSettingsHook;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first

@@ -9,7 +9,7 @@ procedure GameInit2;
 implementation
 
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, Debug;
+  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow;
 
 { Install every spell handler in GDVars.spellFns, the noncombat cast-target menu, and Magic.DragonBreathHandler as
   effect 88's handler; clear effectLock, GDVars.usingItem and GDVars.castTarget, and set dsRedrawInventoryMenuFlag. }
@@ -391,7 +391,7 @@ begin
   { Install effect function pointers. }
   GameInit.InitEffectHandlers;
   CbtMap.boltTracer := Magic.TraceLightningBolt;
-  GameIo.showMemory := Debug.ShowMemory;
+  GameIo.showMemory := MemShow.ShowMemory;
 end;
 
 end.
