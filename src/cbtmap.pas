@@ -7,6 +7,11 @@ interface
 
 uses Types;
 
+var
+  { Lightning Bolt's path for the spell-aim preview; GameInit sets it to Magic.TraceLightningBolt, so CbtMap does not
+    call Magic }
+  boltTracer: Types.TCellTracer;
+
 { On EGA, swap palette registers 0 and 8 so the combat map background is dark gray and register 8 black. }
 procedure SetCombatPalette;
 
@@ -89,7 +94,7 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   the spell will reach light up ring by ring outward from the cursor cell in combat sprite areaCell, hold, clear, and
   the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
-  Lightning Bolt's path from the cursor cell (Magic.TraceLightningBolt). AimCloud covers the passable cells of
+  Lightning Bolt's path from the cursor cell (boltTracer). AimCloud covers the passable cells of
   Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead of areaCell. The
   frames are drawn from MenuCore.MenuHorizontal's idle hook. }
 procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte);
@@ -102,7 +107,7 @@ procedure StopSpellPreview;
 
 implementation
 
-uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound, Pathing, MenuCore, Magic,
+uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound, Pathing, MenuCore,
   Blit;
 
 const
@@ -269,7 +274,7 @@ begin
   case previewShape of
     Types.AimBolt: begin
          AddAreaCell(x, y, 0);
-         Magic.TraceLightningBolt(x, y, bolt);
+         CbtMap.boltTracer(x, y, bolt);
          { two cells a frame }
          for i := 1 to bolt.count do
            AddAreaCell(bolt.x[i], bolt.y[i], (i + 1) div 2);

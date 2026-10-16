@@ -657,6 +657,8 @@ type
     x: array[1..64] of ShortInt;
     y: array[1..64] of ShortInt;
   end;
+  { Fills cells with the path of a spell aimed at (x, y): CbtMap.boltTracer. }
+  TCellTracer = procedure(x, y: ShortInt; var cells: TCellList);
   { TCharRecord view: armor class and attacks as arrays }
   TAttackPhaseView = record
     { skips to acCur }
