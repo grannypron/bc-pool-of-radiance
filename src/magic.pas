@@ -76,13 +76,8 @@ procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spel
   else clear the curse on its first cursed item. }
 procedure RemoveCurseSpell;
 
-{ Called by GameInit2: install every spell handler in GDVars.spellFns and the noncombat cast-target menu and
-  DragonBreathHandler as effect 88's handler, clear effectLock, GDVars.usingItem and GDVars.castTarget, and set
-  dsRedrawInventoryMenuFlag. }
-procedure InitSpellFns;
-
-{ Spell handlers: each acts on GDVars.curChar, dsTargetCreaturePtr and dsCurrentSpellBeing; InitSpellFns maps spell IDs
-  to them }
+{ Spell handlers: each acts on GDVars.curChar, dsTargetCreaturePtr and dsCurrentSpellBeing; GameInit.InitSpellFns maps
+  spell IDs to them }
 procedure BlessHandler;
 
 procedure CurseHandler;
@@ -1880,83 +1875,6 @@ begin
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
   end;
-end;
-
-procedure InitSpellFns;
-begin
-  GDVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
-  GDVars.effectLock := 0;
-  GDVars.usingItem := False;
-  GDVars.castTarget := nil;
-  GDVars.dsRedrawInventoryMenuFlag := 1;
-  GDVars.spellFns[1] := Magic.BlessHandler;
-  GDVars.spellFns[2] := Magic.CurseHandler;
-  GDVars.spellFns[3] := Magic.CureLightWoundsHandler;
-  GDVars.spellFns[4] := Magic.CauseLightWoundsHandler;
-  GDVars.spellFns[5] := Magic.DetectionHandler;
-  GDVars.spellFns[6] := Magic.ProtectionHandler;
-  GDVars.spellFns[7] := Magic.ProtectionHandler;
-  GDVars.spellFns[8] := Magic.ResistColdHandler;
-  GDVars.spellFns[9] := Magic.BurningHandsHandler;
-  GDVars.spellFns[10] := Magic.CharmPersonHandler;
-  GDVars.spellFns[11] := Magic.DetectionHandler;
-  GDVars.spellFns[12] := Magic.EnlargeHandler;
-  GDVars.spellFns[13] := Magic.ReduceHandler;
-  GDVars.spellFns[14] := Magic.FriendsHandler;
-  GDVars.spellFns[15] := Magic.MagicMissileHandler;
-  GDVars.spellFns[16] := Magic.ProtectionHandler;
-  GDVars.spellFns[17] := Magic.ProtectionHandler;
-  GDVars.spellFns[18] := Magic.DetectionHandler;
-  GDVars.spellFns[19] := Magic.ShieldHandler;
-  GDVars.spellFns[20] := Magic.ShockingGraspHandler;
-  GDVars.spellFns[21] := Magic.SleepHandler;
-  GDVars.spellFns[22] := Magic.DetectionHandler;
-  GDVars.spellFns[23] := Magic.HoldPersonHandler;
-  GDVars.spellFns[24] := Magic.ResistFireHandler;
-  GDVars.spellFns[25] := Magic.SilenceHandler;
-  GDVars.spellFns[26] := Magic.SlowPoisonHandler;
-  GDVars.spellFns[27] := Magic.SnakeCharmHandler;
-  GDVars.spellFns[28] := Magic.SpiritualHammerHandler;
-  GDVars.spellFns[29] := Magic.DetectionHandler;
-  GDVars.spellFns[30] := Magic.InvisibilityHandler;
-  GDVars.spellFns[31] := Magic.KnockHandler;
-  GDVars.spellFns[32] := Magic.MirrorImageHandler;
-  GDVars.spellFns[33] := Magic.RayOfEnfeeblementHandler;
-  GDVars.spellFns[34] := Magic.StinkingCloudHandler;
-  GDVars.spellFns[35] := Magic.StrengthHandler;
-  GDVars.spellFns[36] := Magic.AnimateDeadHandler;
-  GDVars.spellFns[37] := Magic.CureBlindnessHandler;
-  GDVars.spellFns[38] := Magic.CauseBlindnessHandler;
-  GDVars.spellFns[39] := Magic.CureDiseaseHandler;
-  GDVars.spellFns[40] := Magic.CauseDiseaseHandler;
-  GDVars.spellFns[41] := Magic.DispelMagicHandler;
-  GDVars.spellFns[42] := Magic.PrayerHandler;
-  GDVars.spellFns[43] := Magic.RemoveCurseSpell;
-  GDVars.spellFns[44] := Magic.BestowCurseHandler;
-  GDVars.spellFns[45] := Magic.BlinkHandler;
-  GDVars.spellFns[46] := Magic.DispelMagicHandler;
-  GDVars.spellFns[47] := Magic.FireballHandler;
-  GDVars.spellFns[48] := Magic.HasteHandler;
-  GDVars.spellFns[49] := Magic.HoldPersonHandler;
-  GDVars.spellFns[50] := Magic.InvisibilityHandler;
-  GDVars.spellFns[51] := Magic.LightningBoltHandler;
-  GDVars.spellFns[52] := Magic.ProtectionHandler;
-  GDVars.spellFns[53] := Magic.ProtectionHandler;
-  GDVars.spellFns[54] := Magic.ProtectionHandler;
-  GDVars.spellFns[55] := Magic.SlowHandler;
-  GDVars.spellFns[56] := Magic.RestorationHandler;
-  GDVars.spellFns[57] := Magic.PotionOfSpeedHandler;
-  GDVars.spellFns[58] := Magic.KeoghtomsOintmentHandler;
-  GDVars.spellFns[59] := Magic.GiantStrengthHandler;
-  GDVars.spellFns[60] := Magic.JavelinOfLightningHandler;
-  GDVars.spellFns[61] := Magic.WandParalyzationHandler;
-  GDVars.spellFns[62] := Magic.PotionOfHealingHandler;
-  GDVars.spellFns[63] := Magic.DustDisappearanceHandler;
-  GDVars.spellFns[64] := Magic.FireballHandler;
-  GDVars.spellFns[65] := Magic.WandMagicMissilesHandler;
-  GDVars.spellFns[66] := Magic.UnusedSpellHandler;
-  GDVars.spellFns[67] := Magic.ManualBodilyHealthHandler;
-  GDVars.effectFns[88] := Magic.DragonBreathHandler;
 end;
 
 end.
