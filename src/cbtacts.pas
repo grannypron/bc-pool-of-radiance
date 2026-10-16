@@ -957,7 +957,7 @@ var
 begin
   found := False;
   if not ai then begin
-    CbtActs.CombatAimMenu(GDVars.curChar, Magic.CalcSpellRange(spell), 0, ground, found, tgt);
+    CbtActs.CombatAimMenu(GDVars.curChar, CharHlp.CalcSpellRange(spell), 0, ground, found, tgt);
     GDVars.curChar^.combatAddr^.other := tgt.cr;
   end else begin
     if GDConsts.spellTable[spell].offensive = 0 then begin
@@ -971,7 +971,7 @@ begin
       tries := 20;
       while (tries > 0) and (found = False) do begin
         ok := True;
-        if CbtActs.AcquireTarget(GDVars.curChar, Magic.CalcSpellRange(spell), 0, 1) then begin
+        if CbtActs.AcquireTarget(GDVars.curChar, CharHlp.CalcSpellRange(spell), 0, 1) then begin
           p := GDVars.curChar^.combatAddr^.other;
           if GDConsts.spellTable[spell].aiRadius > 0 then begin
             Pathing.BuildTargetList(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), GDConsts.spellTable[spell].aiRadius,

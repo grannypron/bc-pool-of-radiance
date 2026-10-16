@@ -112,7 +112,7 @@ end;
 
 { Should the AI use spell (memorized, or an item's spell effect)? Its aiPriority must be at least minPri. Non-offensive
   spells other than Cure Light Wounds always qualify, as does Cure Light Wounds with a cure target. Everything else,
-  including Cure Light Wounds with no cure target, needs an enemy within Magic.CalcSpellRange and, for an area spell
+  including Cure Light Wounds with no cure target, needs an enemy within CharHlp.CalcSpellRange and, for an area spell
   (aiRadius > 0), no candidate target whose surroundings include a non-enemy. }
 function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean;
 var
@@ -143,7 +143,7 @@ begin
     { buff or heal: no aiming }
     DecideCastSpell := True
   else begin
-    cnt := CharHlp.CountTargets(creature, Magic.CalcSpellRange(spell));
+    cnt := CharHlp.CountTargets(creature, CharHlp.CalcSpellRange(spell));
     if cnt > 0 then
       if GDConsts.spellTable[spell].aiRadius = 0 then
         DecideCastSpell := True
@@ -184,7 +184,7 @@ begin
       while (item <> nil) and (chosen = nil) do begin
         effect := item^.effect;
         slot := CharHlp.BaseItem(item^.itemType)^.slot;
-        if (not Magic.ItemReadable(item))
+        if (not CharHlp.ItemReadable(item))
            and (item^.special < $80)
            and (item^.equipped <> 0)
            and (effect > 0) then begin

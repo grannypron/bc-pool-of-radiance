@@ -105,10 +105,32 @@ function MayTrade(creature: Types.PCharRecord): Boolean;
   With Fight after it, return to the player's control. }
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
+{ True when it is non-nil and its base item's slot is 11, 12 or 13. }
+function ItemReadable(it: Pointer): Boolean;
+
+{ True when creature can read item's spells, that is when the scroll is identified. Read Magic (effect 16), or any
+  cleric level with a scroll whose base item slot is 12, identifies it first. }
+function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
+function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
+
+{ True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
+  two hands a readied scroll takes are not asked for. The Cast list offers these scrolls' spells, and Items > Use takes
+  them unreadied. }
+function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
+{ True when the creature may use items now (CharHlp.CanUseItems) and holds a scroll it can read and use with a spell on
+  it: the scroll spells the Cast list offers. }
+function HasScrollSpells(creature: Types.PCharRecord): Boolean;
+
+{ Spell range: rangeFixed + rangeVar * caster level, using caster level 6 when GDVars.usingItem. A zero range with a
+  nonzero area (touch) and the 255 attack-roll encoding both become 1. }
+function CalcSpellRange(spell: Byte): Byte;
+
 implementation
 
 uses Crt, C_Item, GDConsts, GDVars, Pathing, CbtMap, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, TextRend, C_Npc, StrUtil, CharDisp, AbilAdj;
+  C_Money, Stats, TextRend, C_Npc, StrUtil, CharDisp, AbilAdj, C_Spell;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
@@ -902,6 +924,84 @@ end;
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 begin
   ComesUnderPlayer := not CharHlp.IsNpc(creature) and (creature^.status <> C_Status.ANIMATED);
+end;
+
+function ItemReadable(it: Pointer): Boolean;
+begin
+  if (it <> nil) and (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot > 10) and
+      (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot < 14) then
+    ItemReadable := True
+  else
+    ItemReadable := False;
+end;
+
+function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
+      ((creature^.classLevels[C_Level.CLERIC] > 0) and (CharHlp.BaseItem(item^.itemType)^.slot = 12)) then
+    item^.unidMask := 0;
+  ScrollLegible := item^.unidMask = 0;
+end;
+
+{ The spell in item's spell slot (1..3), bit 7 ignored, or C_Spell.NONE when the slot is out of range or holds no
+  spell. }
+function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
+var
+  id: Byte;
+begin
+  ScrollSpellAt := C_Spell.NONE;
+  if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
+    id := item^.spells[slot] and C_Spell.ID_MASK;
+    if (id >= 1) and (id <= C_Spell.LAST) then
+      ScrollSpellAt := id;
+  end;
+end;
+
+function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+begin
+  CastableScroll := False;
+  if CharHlp.ItemReadable(item) then
+    if (item^.equipped <> 0) or (CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits <> 0) then
+      CastableScroll := CharHlp.ScrollLegible(creature, item);
+end;
+
+function HasScrollSpells(creature: Types.PCharRecord): Boolean;
+var
+  item: Types.PItemRec;
+  i: Byte;
+  found: Boolean;
+begin
+  found := False;
+  if CharHlp.CanUseItems(creature) then begin
+    item := creature^.itemsAddr;
+    while (item <> nil) and not found do begin
+      if CharHlp.CastableScroll(creature, item) then
+        for i := 1 to SizeOf(item^.spells) do
+          if CharHlp.ScrollSpellAt(item, i) <> C_Spell.NONE then
+            found := True;
+      item := item^.next;
+    end;
+  end;
+  HasScrollSpells := found;
+end;
+
+function CalcSpellRange(spell: Byte): Byte;
+var
+  r: Byte;
+begin
+  if GDVars.usingItem = False then
+    r := GDConsts.spellTable[spell].rangeFixed + GDConsts.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
+  else
+    r := GDConsts.spellTable[spell].rangeVar * 6 + GDConsts.spellTable[spell].rangeFixed;
+  { Touch: zero range with an area }
+  if (r = 0) and (GDConsts.spellTable[spell].area <> 0) then
+    r := 1;
+  { A range of 255 marks an attack-roll spell }
+  if r = 255 then
+    r := 1;
+  CalcSpellRange := r;
 end;
 
 end.

@@ -255,7 +255,7 @@ begin
     if creature^.memorizedSpells[i] > 0 then
       hasSpell := True;
   { Cast lists the memorized spells, while castAllowed, and the spells on readable scrolls }
-  if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or Magic.HasScrollSpells(creature))
+  if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or CharHlp.HasScrollSpells(creature))
      and (GDVars.zone0^.antimagic = 0) then
     menu := menu + 'Cast ';
   if (CbtActs.TurnLevel(creature) > 0)

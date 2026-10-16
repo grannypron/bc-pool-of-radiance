@@ -502,7 +502,7 @@ begin
   CheckItemAvail := False;
   if item^.equipped <> 0 then
     CharDisp.PrintBottomLine('Must be unreadied')
-  else if not Magic.ItemReadable(item) then
+  else if not CharHlp.ItemReadable(item) then
     CheckItemAvail := True
   else if (item^.charges > $7F) or (item^.effect > $7F) or (item^.special > $7F) then begin
     CharDisp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
@@ -627,12 +627,12 @@ begin
                  needRedraw := True;
                end;
           'R': FxEngine.ToggleReadyItem(sel);
-          { a scroll the Cast list offers (Magic.CastableScroll) need not be readied; other items must be }
-          'U': if (sel^.equipped = 0) and not Magic.CastableScroll(creature, sel) then
+          { a scroll the Cast list offers (CharHlp.CastableScroll) need not be readied; other items must be }
+          'U': if (sel^.equipped = 0) and not CharHlp.CastableScroll(creature, sel) then
                begin
                  CharDisp.PrintBottomLine('Must be Readied');
                  ch := ' ';
-               end else if Magic.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
+               end else if CharHlp.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
                  Magic.UseItem(sel, done);
                  if GDVars.ifcState <> C_Ifc.COMBAT then
                    { outside combat, using an item does not end the menu }

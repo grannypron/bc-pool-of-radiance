@@ -347,7 +347,7 @@ begin
   while (item <> nil) and (lvl = 0) do begin
     nxt := item^.next;
     j := 1;
-    if Magic.ItemReadable(item) then
+    if CharHlp.ItemReadable(item) then
       { 3 = High(TItemRec.spells) }
       while (j <= 3) and (lvl = 0) do begin
         if (item^.spells[j] > $80) and (item^.spells[j] and C_Spell.ID_MASK <= C_Spell.LAST) then

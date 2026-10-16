@@ -57,7 +57,7 @@ begin
     end;
   p := creature^.itemsAddr;
   while p <> nil do begin
-    if Magic.ItemReadable(p) then
+    if CharHlp.ItemReadable(p) then
       for i := 1 to SizeOf(p^.spells) do
         if p^.spells[i] > C_Spell.ID_MASK then begin
           lvl := GDConsts.spellTable[p^.spells[i] and C_Spell.ID_MASK].levelSp;
@@ -95,7 +95,7 @@ var
 begin
   p := creature^.itemsAddr;
   while p <> nil do begin
-    if Magic.ItemReadable(p) then
+    if CharHlp.ItemReadable(p) then
       for i := 1 to SizeOf(p^.spells) do
         p^.spells[i] := p^.spells[i] and C_Spell.ID_MASK;
     p := p^.next;
@@ -439,7 +439,7 @@ begin
 end;
 
 { Confirm pending scribing (Yes keeps it and skips selection), then let the player mark scroll spells. Reject known,
-  pending or unavailable spells. The marking walk does not check Magic.ItemReadable: the first unmarked byte equal to
+  pending or unavailable spells. The marking walk does not check CharHlp.ItemReadable: the first unmarked byte equal to
   the spell ID in any item's spells view is marked. }
 procedure CampScribeMenu;
 var
@@ -487,7 +487,7 @@ begin
           p := GDVars.curChar^.itemsAddr;
           found := False;
           while (p <> nil) and (found = False) do begin
-            if Magic.ItemReadable(p) then
+            if CharHlp.ItemReadable(p) then
               for i := 1 to SizeOf(p^.spells) do
                 if (p^.spells[i] > C_Spell.ID_MASK) and
                     (p^.spells[i] and C_Spell.ID_MASK = spellId) then begin

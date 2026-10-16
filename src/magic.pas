@@ -25,10 +25,6 @@ function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItem
   headings alone is freed and counts as empty. }
 function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean;
 
-{ Spell range: rangeFixed + rangeVar * caster level, using caster level 6 when GDVars.usingItem. A zero range with a
-  nonzero area (touch) and the 255 attack-roll encoding both become 1. }
-function CalcSpellRange(spell: Byte): Byte;
-
 { The cast-target menu outside combat (GDVars.castTargetMenu). spellTable target mode 1 targets the caster, 2 asks for
   one party member (remembered in GDVars.castTarget; cancelling clears the targets and the cast) and 4 targets every
   creature in GDVars.creatureList; any other mode cancels the cast. b is unused; it matches Types.TCastUI. }
@@ -47,22 +43,6 @@ procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
 { Cast's refusal of a combat-only spell outside combat: show the spell's name and 'is a combat-only spell...' in the
   message window. }
 procedure ShowCombatOnlySpell(spell: Byte);
-
-{ True when it is non-nil and its base item's slot is 11, 12 or 13. }
-function ItemReadable(it: Pointer): Boolean;
-
-{ True when creature can read item's spells, that is when the scroll is identified. Read Magic (effect 16), or any
-  cleric level with a scroll whose base item slot is 12, identifies it first. }
-function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
-
-{ True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
-  two hands a readied scroll takes are not asked for. The Cast list offers these scrolls' spells, and Items > Use takes
-  them unreadied. }
-function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
-
-{ True when the creature may use items now (CharHlp.CanUseItems) and holds a scroll it can read and use with a spell on
-  it: the scroll spells the Cast list offers. }
-function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
 { Clear the last of the scroll's spell slots holding spell (bit 7 ignored) and decrement its spell-count name component,
   nameIds[2]; remove the item from cr once that drops below 210. Does nothing if no slot matches. }
@@ -229,8 +209,6 @@ function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forwar
 procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte); forward;
 
 procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte); forward;
-
-function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte; forward;
 
 procedure AddScrollLine(creature: Types.PCharRecord; item: Types.PItemRec; slot: Byte; var lines: Byte); forward;
 
@@ -420,7 +398,7 @@ procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark:
 var
   i: Byte;
 begin
-  if Magic.ScrollLegible(creature, GDVars.dsCurrentScrollPtr) then
+  if CharHlp.ScrollLegible(creature, GDVars.dsCurrentScrollPtr) then
     { 3 = High(TItemRec.spells) }
     for i := 1 to 3 do begin
       if (forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
@@ -441,31 +419,9 @@ procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; ma
 begin
   GDVars.dsCurrentScrollPtr := creature^.itemsAddr;
   while GDVars.dsCurrentScrollPtr <> nil do begin
-    if Magic.ItemReadable(GDVars.dsCurrentScrollPtr) then
+    if CharHlp.ItemReadable(GDVars.dsCurrentScrollPtr) then
       Magic.AddScrollSpells(creature, forScribe, mark);
     GDVars.dsCurrentScrollPtr := GDVars.dsCurrentScrollPtr^.next;
-  end;
-end;
-
-function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
-begin
-  CastableScroll := False;
-  if Magic.ItemReadable(item) then
-    if (item^.equipped <> 0) or (CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits <> 0) then
-      CastableScroll := Magic.ScrollLegible(creature, item);
-end;
-
-{ The spell in item's spell slot (1..3), bit 7 ignored, or C_Spell.NONE when the slot is out of range or holds no
-  spell. }
-function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
-var
-  id: Byte;
-begin
-  ScrollSpellAt := C_Spell.NONE;
-  if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
-    id := item^.spells[slot] and C_Spell.ID_MASK;
-    if (id >= 1) and (id <= C_Spell.LAST) then
-      ScrollSpellAt := id;
   end;
 end;
 
@@ -518,9 +474,9 @@ begin
     if scrollOk then begin
       item := creature^.itemsAddr;
       while item <> nil do begin
-        if Magic.CastableScroll(creature, item) then
+        if CharHlp.CastableScroll(creature, item) then
           for i := 1 to SizeOf(item^.spells) do begin
-            id := Magic.ScrollSpellAt(item, i);
+            id := CharHlp.ScrollSpellAt(item, i);
             if id <> C_Spell.NONE then
               if GDConsts.spellTable[id].levelSp = lvl then
                 Magic.AddScrollLine(creature, item, i, lines);
@@ -581,23 +537,6 @@ begin
     MenuCore.FreeStringList(GDVars.spellList);
     GDVars.spellList := nil;
   end;
-end;
-
-function CalcSpellRange(spell: Byte): Byte;
-var
-  r: Byte;
-begin
-  if GDVars.usingItem = False then
-    r := GDConsts.spellTable[spell].rangeFixed + GDConsts.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
-  else
-    r := GDConsts.spellTable[spell].rangeVar * 6 + GDConsts.spellTable[spell].rangeFixed;
-  { Touch: zero range with an area }
-  if (r = 0) and (GDConsts.spellTable[spell].area <> 0) then
-    r := 1;
-  { A range of 255 marks an attack-roll spell }
-  if r = 255 then
-    r := 1;
-  CalcSpellRange := r;
 end;
 
 { Spell duration in minutes: durFixed + durVar * caster level, except for the item spells below with their own rolls }
@@ -1815,45 +1754,6 @@ begin
   junk := CharHlp.EndActions(creature);
 end;
 
-function ItemReadable(it: Pointer): Boolean;
-begin
-  if (it <> nil) and (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot > 10) and
-      (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot < 14) then
-    ItemReadable := True
-  else
-    ItemReadable := False;
-end;
-
-function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
-var
-  effect: Types.PEffectRec;
-begin
-  if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
-      ((creature^.classLevels[C_Level.CLERIC] > 0) and (CharHlp.BaseItem(item^.itemType)^.slot = 12)) then
-    item^.unidMask := 0;
-  ScrollLegible := item^.unidMask = 0;
-end;
-
-function HasScrollSpells(creature: Types.PCharRecord): Boolean;
-var
-  item: Types.PItemRec;
-  i: Byte;
-  found: Boolean;
-begin
-  found := False;
-  if CharHlp.CanUseItems(creature) then begin
-    item := creature^.itemsAddr;
-    while (item <> nil) and not found do begin
-      if Magic.CastableScroll(creature, item) then
-        for i := 1 to SizeOf(item^.spells) do
-          if Magic.ScrollSpellAt(item, i) <> C_Spell.NONE then
-            found := True;
-      item := item^.next;
-    end;
-  end;
-  HasScrollSpells := found;
-end;
-
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
 var
   sp: Byte;
@@ -1951,13 +1851,13 @@ var
   id: Byte;
 begin
   id := spell;
-  if not Magic.ItemReadable(item) and (spell > 56) then
+  if not CharHlp.ItemReadable(item) and (spell > 56) then
     id := spell - 23;
   if (id < 1) or (id > SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then begin
     done := False;
     Exit;
   end;
-  if Magic.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
+  if CharHlp.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
       (GDConsts.spellTable[spell].target = 0) then begin
     Magic.ShowCombatOnlySpell(spell);
     done := MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y';
@@ -1968,7 +1868,7 @@ begin
   end;
   if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
     CharDisp.DisplayCombatInterface;
-  if not Magic.ItemReadable(item) then begin
+  if not CharHlp.ItemReadable(item) then begin
     if spell > 56 then
       { item effect -> spell id }
       Dec(spell, 23);
@@ -1990,7 +1890,7 @@ begin
     if GDConsts.spellTable[spell].whenCast <> 0 then
       done := CharHlp.EndActions(GDVars.curChar);
   if done then begin
-    if Magic.ItemReadable(item) then
+    if CharHlp.ItemReadable(item) then
       Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell)
     else if item^.charges > 0 then begin
       if item^.quantity > 1 then
@@ -2014,7 +1914,7 @@ begin
   idx := -1;
   GDVars.usingItem := False;
   spell := 0;
-  if Magic.ItemReadable(item) then begin
+  if CharHlp.ItemReadable(item) then begin
     GDVars.dsCurrentScrollPtr := item;
     spell := Magic.SpellMenu(2, 1, idx, notEmpty);
   end else if (item^.effect > 0) and (item^.special < $80) then
