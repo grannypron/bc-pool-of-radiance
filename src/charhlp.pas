@@ -32,6 +32,13 @@ procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
 { Free every item in list and leave it nil. }
 procedure FreeItemList(var list: Types.PItemRec);
 
+{ Put a heap copy of item at the front of list: list then points at the copy, which links to the old front. Copying a
+  list item by item this way reverses its order, as SSI's copies did. }
+procedure PrependItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
+
+{ The same for an effect. }
+procedure PrependEffectCopy(var list: Types.PEffectRec; effect: Types.PEffectRec);
+
 { Empty the treasure on the table: free its items and zero its money. }
 procedure ClearTreasure;
 
@@ -516,6 +523,26 @@ begin
     FreeMem(list, SizeOf(Types.TItemRec));
     list := next;
   end;
+end;
+
+procedure PrependItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
+var
+  n: Types.PItemRec;
+begin
+  GetMem(n, SizeOf(Types.TItemRec));
+  n^ := item^;
+  n^.next := list;
+  list := n;
+end;
+
+procedure PrependEffectCopy(var list: Types.PEffectRec; effect: Types.PEffectRec);
+var
+  n: Types.PEffectRec;
+begin
+  GetMem(n, SizeOf(Types.TEffectRec));
+  n^ := effect^;
+  n^.next := list;
+  list := n;
 end;
 
 procedure ClearTreasure;

@@ -226,10 +226,8 @@ var
   tmpl: Types.TCharRecord;
   nm: String[12];
   item: Types.PItemRec;
-  tmpIt: Types.PItemRec;
   invHead: Types.PItemRec;
   ef: Types.PEffectRec;
-  tmpEf: Types.PEffectRec;
   effHead: Types.PEffectRec;
 begin
   savedCur := GDVars.curChar;
@@ -271,30 +269,12 @@ begin
     Inc(i);
     Inc(GDVars.creatureCnt);
     while item <> nil do begin
-      if p^.itemsAddr = nil then begin
-        GetMem(p^.itemsAddr, SizeOf(Types.TItemRec));
-        p^.itemsAddr^ := item^;
-        p^.itemsAddr^.next := nil;
-      end else begin
-        tmpIt := p^.itemsAddr;
-        GetMem(p^.itemsAddr, SizeOf(Types.TItemRec));
-        p^.itemsAddr^ := item^;
-        p^.itemsAddr^.next := tmpIt;
-      end;
+      CharHlp.PrependItemCopy(p^.itemsAddr, item);
       item := item^.next;
     end;
     item := invHead;
     while ef <> nil do begin
-      if p^.effectsAddr = nil then begin
-        GetMem(p^.effectsAddr, SizeOf(Types.TEffectRec));
-        p^.effectsAddr^ := ef^;
-        p^.effectsAddr^.next := nil;
-      end else begin
-        tmpEf := p^.effectsAddr;
-        GetMem(p^.effectsAddr, SizeOf(Types.TEffectRec));
-        p^.effectsAddr^ := ef^;
-        p^.effectsAddr^.next := tmpEf;
-      end;
+      CharHlp.PrependEffectCopy(p^.effectsAddr, ef);
       ef := ef^.next;
     end;
     ef := effHead;
@@ -938,7 +918,6 @@ var
   tId: Byte;
   j: Byte;
   it: Types.TItemRec;
-  tmp: Types.PItemRec;
   walk: Types.PItemRec;
   roll3: Byte;
   roll: Byte;
@@ -963,17 +942,8 @@ begin
     offset := 0;
     while sizeRead - offset >= SizeOf(Types.TItemRec) do begin
       Move(data^[offset], it, SizeOf(Types.TItemRec));
-      it.next := nil;
       Inc(offset, SizeOf(Types.TItemRec));
-      if GDVars.treasureItems = nil then begin
-        GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-        GDVars.treasureItems^ := it;
-      end else begin
-        tmp := GDVars.treasureItems;
-        GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-        GDVars.treasureItems^ := it;
-        GDVars.treasureItems^.next := tmp;
-      end;
+      CharHlp.PrependItemCopy(GDVars.treasureItems, @it);
     end;
     FreeMem(data, sizeRead);
   end else begin
@@ -1024,16 +994,7 @@ begin
         99, 100: itemId := 69;
       end;
       RandItem.GenerateRandomItem(itemId, @it);
-      if GDVars.treasureItems = nil then begin
-        GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-        GDVars.treasureItems^ := it;
-        GDVars.treasureItems^.next := nil;
-      end else begin
-        tmp := GDVars.treasureItems;
-        GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-        GDVars.treasureItems^ := it;
-        GDVars.treasureItems^.next := tmp;
-      end;
+      CharHlp.PrependItemCopy(GDVars.treasureItems, @it);
     end;
     walk := GDVars.treasureItems;
     while walk <> nil do begin

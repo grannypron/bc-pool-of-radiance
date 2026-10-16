@@ -847,10 +847,8 @@ begin
       if weapon^.quantity = 0 then
         if CharHlp.HasThrowableWeapon(att) and (weapon^.special <> C_Effect.SPIRIT_HAMMER_GONE) then begin
           { the expended thrown weapon drops into the loot pile }
-          GetMem(item, SizeOf(Types.TItemRec));
-          Move(weapon^, item^, SizeOf(Types.TItemRec));
-          item^.next := GDVars.treasureItems;
-          GDVars.treasureItems := item;
+          CharHlp.PrependItemCopy(GDVars.treasureItems, weapon);
+          item := GDVars.treasureItems;
           item^.equipped := 0;
           CharHlp.RemoveItem(att, weapon);
           GDVars.lastMissileItem := item;

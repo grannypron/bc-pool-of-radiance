@@ -408,7 +408,6 @@ var
   clone: Types.PCharRecord;
   cur: Types.PCharRecord;
   srcIt: Types.PItemRec;
-  tmp: Types.PItemRec;
 begin
   GDVars.duelFlag := True;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := mirror;
@@ -439,16 +438,7 @@ begin
   p := p^.nextCharAddr;
   srcIt := cur^.itemsAddr;
   while srcIt <> nil do begin
-    if p^.itemsAddr = nil then begin
-      GetMem(p^.itemsAddr, SizeOf(Types.TItemRec));
-      p^.itemsAddr^ := srcIt^;
-      p^.itemsAddr^.next := nil;
-    end else begin
-      tmp := p^.itemsAddr;
-      GetMem(p^.itemsAddr, SizeOf(Types.TItemRec));
-      p^.itemsAddr^ := srcIt^;
-      p^.itemsAddr^.next := tmp;
-    end;
+    CharHlp.PrependItemCopy(p^.itemsAddr, srcIt);
     srcIt := srcIt^.next;
   end;
 end;

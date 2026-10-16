@@ -55,20 +55,9 @@ begin
           while item <> nil do begin
             if (item^.value > 0) or ((cnt < 8) and (FxEngine.RollDice(1, 10) <= 3)) then begin
               Inc(cnt);
-              if GDVars.treasureItems = nil then begin
-                GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-                CharHlp.PrintItemString(item, 0, 0, False, False);
-                GDVars.treasureItems^ := item^;
-                GDVars.treasureItems^.equipped := 0;
-                GDVars.treasureItems^.next := nil;
-              end else begin
-                q := GDVars.treasureItems;
-                GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-                CharHlp.PrintItemString(item, 0, 0, False, False);
-                GDVars.treasureItems^ := item^;
-                GDVars.treasureItems^.equipped := 0;
-                GDVars.treasureItems^.next := q;
-              end;
+              CharHlp.PrintItemString(item, 0, 0, False, False);
+              CharHlp.PrependItemCopy(GDVars.treasureItems, item);
+              GDVars.treasureItems^.equipped := 0;
             end;
             item := item^.next;
           end;
