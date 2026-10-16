@@ -400,8 +400,6 @@ var
   tdx: ShortInt;
   tdy: ShortInt;
   i: Byte;
-  c: Byte;
-  t: Byte;
 begin
   { the cursor is moving: take the preview down, without redrawing the cursor where it was }
   if previewOn then begin
@@ -416,14 +414,10 @@ begin
         MapTiles.Copy2DTile((relX + tdx) * 3, (relY + tdy) * 3,
                             GDConsts.terrainInfo[GDVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId, 0);
         if GDVars.arenaPtr^.cursorOn then
-          MapTiles.DrawIconAnimSprite(relX + tdx, relY + tdy, 0, 0, 25);
+          MapTiles.DrawIconAnimSprite(relX + tdx, relY + tdy, 0, 0, CURSOR_CELL);
       end;
   end;
-  CbtMap.GetArenaContents(x, y, c, t);
-  if c > 0 then
-    if CbtMap.CombatIconVisible(GDVars.creatureArr[c], 0) then
-      MapTiles.DrawIconAnimSprite(GDVars.gridX[c], GDVars.gridY[c], GDVars.creatureArr[c]^.combatAddr^.direction,
-                                  0, GDVars.creatureArr[c]^.orderNumber);
+  DrawCellCreature(x, y);
   if previewOn and GDVars.arenaPtr^.cursorOn then
     RestartSpellPreview(x, y);
 end;
@@ -432,17 +426,11 @@ procedure RedrawArenaCell(x, y: ShortInt);
 var
   relX: ShortInt;
   relY: ShortInt;
-  c: Byte;
-  t: Byte;
 begin
   relX := x - GDVars.arenaPtr^.ox;
   relY := y - GDVars.arenaPtr^.oy;
   CbtMap.UpdateCombatMapTile(relX, relY, 0);
-  CbtMap.GetArenaContents(x, y, c, t);
-  if c > 0 then
-    if CbtMap.CombatIconVisible(GDVars.creatureArr[c], 0) then
-      MapTiles.DrawIconAnimSprite(GDVars.gridX[c], GDVars.gridY[c], GDVars.creatureArr[c]^.combatAddr^.direction,
-                                  0, GDVars.creatureArr[c]^.orderNumber);
+  DrawCellCreature(x, y);
 end;
 
 procedure BuildArenaArrays;
