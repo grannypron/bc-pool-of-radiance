@@ -198,7 +198,7 @@ var
   { Pathing's potential-target count }
   targetCount: Byte;
   { sorted by distance and facing }
-  targetList: array[1..Types.ARENA_SLOTS] of Types.TCombatTarget;
+  targetList: Types.TTargetList;
 
 var
   { Treasure }

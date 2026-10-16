@@ -904,7 +904,7 @@ end;
   list (nil, or off the map). The list's count is restored with it (SSI left the rebuilt list's count). }
 function CalcDistance(creature, other: Types.PCharRecord): Byte;
 var
-  saved: array[1..255] of Types.TCombatTarget;
+  saved: Types.TTargetList;
   savedCount: Byte;
   i: Byte;
 begin

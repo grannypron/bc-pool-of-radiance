@@ -189,7 +189,7 @@ end;
   target list around it. }
 procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
 var
-  save: array[1..Types.ARENA_SLOTS] of Types.TCombatTarget;
+  save: Types.TTargetList;
   p: Types.PCharRecord;
   effect: Types.PEffectRec;
   found: Boolean;
@@ -620,7 +620,8 @@ end;
 procedure NonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean;
                           shockItem: Types.PItemRec);
 var
-  s: String;
+  { the longest is 'takes 255 points of damage from Electricity' }
+  s: String[43];
 begin
   if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   GDVars.pendingDamage := damage;

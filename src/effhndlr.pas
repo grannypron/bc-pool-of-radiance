@@ -1396,7 +1396,9 @@ begin
         Exit;
       end;
       hpPerLevel := creature^.hpMax div totalLevels;
-      Debug.PrintHpDebug('max,cur,lost', creature^.hpMax, creature^.hpCur, creature^.drainedHps);
+      { tested here, so a drain loads Debug only with the STING display on }
+      if GDVars.stingHpFlag <> 0 then
+        Debug.PrintHpDebug('max,cur,lost', creature^.hpMax, creature^.hpCur, creature^.drainedHps);
       for k := 1 to hpPerLevel do begin
         if creature^.hpMax > 0 then
           Dec(creature^.hpMax);

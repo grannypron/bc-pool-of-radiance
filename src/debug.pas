@@ -7,7 +7,7 @@ interface
 uses Types;
 
 { When the STING flag is set, show three hit-point values on the top row and pause on msg. EffHndlr.DrainLevels passes
-  hpMax, hpCur and drainedHps for each drained level, before removing its hit points }
+  hpMax, hpCur and drainedHps for each drained level, before removing its hit points, and tests the flag first. }
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 
 implementation

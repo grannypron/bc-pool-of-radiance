@@ -366,6 +366,8 @@ type
     { best facing direction }
     dir: Byte;
   end;
+  { the creatures Pathing.BuildTargetList finds, nearest first (GDVars.targetList) }
+  TTargetList = array[1..ARENA_SLOTS] of TCombatTarget;
   TIconCoordinateDelta = record
     { cell X offset; negative marks an absent footprint cell }
     dx: ShortInt;
