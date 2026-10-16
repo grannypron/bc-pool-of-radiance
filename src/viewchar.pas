@@ -694,7 +694,7 @@ begin
     if ViewChar.CannotCarryItem(tgt, item) then
       CharDisp.PrintBottomLine('Overloaded')
     else begin
-      CharHlp.AddItemCopy(tgt, item);
+      CharHlp.AppendItemCopy(tgt^.itemsAddr, item);
       CharHlp.RemoveItem(GDVars.curChar, item);
       CharHlp.RecalcStats(tgt);
     end;

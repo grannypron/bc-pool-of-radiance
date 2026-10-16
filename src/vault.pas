@@ -143,28 +143,9 @@ begin
   HasRoom := Vault.ItemCount < MAX_ITEMS;
 end;
 
-{ Append a copy of item to the vault's items. }
-procedure AppendItem(item: Types.PItemRec);
-var
-  p: Types.PItemRec;
-  node: Types.PItemRec;
-begin
-  GetMem(node, SizeOf(Types.TItemRec));
-  node^ := item^;
-  node^.next := nil;
-  if GDVars.treasureItems = nil then
-    GDVars.treasureItems := node
-  else begin
-    p := GDVars.treasureItems;
-    while p^.next <> nil do
-      p := p^.next;
-    p^.next := node;
-  end;
-end;
-
 procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
-  Vault.AppendItem(item);
+  CharHlp.AppendItemCopy(GDVars.treasureItems, item);
   CharHlp.RemoveItem(creature, item);
 end;
 
@@ -189,7 +170,7 @@ begin
       if IOResult <> 0 then
         n := 0;
       if (n = SizeOf(item)) and Vault.HasRoom then
-        Vault.AppendItem(@item);
+        CharHlp.AppendItemCopy(GDVars.treasureItems, @item);
     until n <> SizeOf(item);
   end;
   Close(f);

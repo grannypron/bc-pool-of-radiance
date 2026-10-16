@@ -417,8 +417,7 @@ var
   r: Byte;
   value: Word;
   takable: Word;
-  p: Types.PItemRec;
-  gem: Types.PItemRec;
+  gem: Types.TItemRec;
   exitF: Boolean;
   ext: Boolean;
 
@@ -461,25 +460,17 @@ var
     ch := MenuCore.MenuHorizontal('You can: ', actionStr, LightMagenta, LightGreen, White, True, False, ext);
     if (ch = 'K') and (holder <> nil) then begin
       { a whole item record }
-      GetMem(gem, SizeOf(Types.TItemRec));
-      FillChar(gem^, SizeOf(Types.TItemRec), 0);
-      gem^.next := nil;
-      gem^.equipped := 0;
-      gem^.nameIds[3] := nameId;
-      gem^.nameIds[2] := 0;
-      gem^.nameIds[1] := 0;
-      gem^.itemType := 70;
-      gem^.value := worth;
-      gem^.weight := 1;
-      gem^.unidMask := 0;
-      p := holder^.itemsAddr;
-      if p = nil then
-        holder^.itemsAddr := gem
-      else begin
-        while p^.next <> nil do
-          p := p^.next;
-        p^.next := gem;
-      end;
+      FillChar(gem, SizeOf(gem), 0);
+      gem.next := nil;
+      gem.equipped := 0;
+      gem.nameIds[3] := nameId;
+      gem.nameIds[2] := 0;
+      gem.nameIds[1] := 0;
+      gem.itemType := 70;
+      gem.value := worth;
+      gem.weight := 1;
+      gem.unidMask := 0;
+      CharHlp.AppendItemCopy(holder^.itemsAddr, @gem);
       { the holder's item count and weight }
       CharHlp.RecalcStats(holder);
     end else

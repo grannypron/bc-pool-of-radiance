@@ -42,7 +42,8 @@ procedure PrependEffectCopy(var list: Types.PEffectRec; effect: Types.PEffectRec
 { Empty the treasure on the table: free its items and zero its money. }
 procedure ClearTreasure;
 
-procedure AddItemCopy(creature: Types.PCharRecord; item: Types.PItemRec);
+{ Put a heap copy of item at the end of list. The caller checks there is room (a creature's 16 items). }
+procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
 
 function HasEffect(creature: Types.PCharRecord; id: Byte; var effect: Types.PEffectRec): Boolean;
 
@@ -576,8 +577,7 @@ begin
   end;
 end;
 
-{ Copy the item onto the heap and append it to the creature's inventory. The caller checks that there is room. }
-procedure AddItemCopy(creature: Types.PCharRecord; item: Types.PItemRec);
+procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
 var
   p: Types.PItemRec;
   n: Types.PItemRec;
@@ -585,9 +585,9 @@ begin
   GetMem(n, SizeOf(Types.TItemRec));
   Move(item^, n^, SizeOf(Types.TItemRec));
   n^.next := nil;
-  p := creature^.itemsAddr;
+  p := list;
   if p = nil then
-    creature^.itemsAddr := n
+    list := n
   else begin
     while p^.next <> nil do
       p := p^.next;

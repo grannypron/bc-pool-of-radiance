@@ -593,7 +593,7 @@ begin
         item^.plus := 1;
         item^.effect := C_Effect.SPIRIT_HAMMER;
         item^.special := C_Effect.SPIRIT_HAMMER_GONE;
-        CharHlp.AddItemCopy(creature, item);
+        CharHlp.AppendItemCopy(creature^.itemsAddr, item);
         FreeMem(item, SizeOf(Types.TItemRec));
         CharDisp.PrintNameString(creature, 'Gains an item', 10, True);
       end;

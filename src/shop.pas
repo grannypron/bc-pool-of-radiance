@@ -71,29 +71,13 @@ end;
 { Append a copy of item to the current character's item list and recalculate its stats. When the character cannot carry
   it, print that it is overloaded and set failed instead. }
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
-var
-  p: Types.PItemRec;
-  q: Types.PItemRec;
 begin
   if ViewChar.CannotCarryItem(GDVars.curChar, item) then begin
     CharDisp.PrintBottomLine('OverLoaded');
     failed := True;
   end else begin
     failed := False;
-    p := GDVars.curChar^.itemsAddr;
-    if p = nil then begin
-      GetMem(p, SizeOf(Types.TItemRec));
-      p^ := item^;
-      p^.next := nil;
-      GDVars.curChar^.itemsAddr := p;
-    end else begin
-      while p^.next <> nil do
-        p := p^.next;
-      GetMem(q, SizeOf(Types.TItemRec));
-      q^ := item^;
-      q^.next := nil;
-      p^.next := q;
-    end;
+    CharHlp.AppendItemCopy(GDVars.curChar^.itemsAddr, item);
     CharHlp.RecalcStats(GDVars.curChar);
   end;
 end;
