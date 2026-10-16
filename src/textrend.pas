@@ -58,6 +58,11 @@ implementation
 
 
 uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
+
+var
+  { EGA video memory segment for currently displayed page }
+  egaCurPage: Word;
+  egaOtherPage: Word;
 var
 
   cgaB800: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK0_SEG:$0000;
@@ -99,14 +104,14 @@ begin
   GDVars.dsInterruptRegisters.ah := 5;
   GDVars.dsInterruptRegisters.al := page;
   Intr($10, GDVars.dsInterruptRegisters);
-  GDVars.egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
+  egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
 end;
 
 { SetupEgaOtherPage: Store the other page's segment base in egaOtherPage using the same 512-paragraph stride, without a
   BIOS call }
 procedure SetupEgaOtherPage(page: Byte);
 begin
-  GDVars.egaOtherPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
+  egaOtherPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
 end;
 
 { Fill a character-cell rectangle on an EGA page using write mode 2. The fill goes through egaOtherPage, temporarily
@@ -128,7 +133,7 @@ begin
   Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
   Port[C_Ega.GC_DATA_PORT] := 2;
   for i := 0 to rowCount do begin
-    FillChar(Mem[GDVars.egaOtherPage: dstOff], lrCol - ulCol + 1, color);
+    FillChar(Mem[egaOtherPage: dstOff], lrCol - ulCol + 1, color);
     Inc(dstOff, 40);
   end;
   Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
@@ -216,11 +221,11 @@ begin
           for k := 0 to 3 do begin
             Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
             if (GDConsts.egaPlaneMask[3 - k] and color) > 0 then begin
-              Mem[GDVars.egaCurPage: dstOff] := GDVars.gameFont^[charIdx][outerRow];
-              Mem[GDVars.egaOtherPage: dstOff] := GDVars.gameFont^[charIdx][outerRow];
+              Mem[egaCurPage: dstOff] := GDVars.gameFont^[charIdx][outerRow];
+              Mem[egaOtherPage: dstOff] := GDVars.gameFont^[charIdx][outerRow];
             end else begin
-              Mem[GDVars.egaCurPage: dstOff] := 0;
-              Mem[GDVars.egaOtherPage: dstOff] := 0;
+              Mem[egaCurPage: dstOff] := 0;
+              Mem[egaOtherPage: dstOff] := 0;
             end;
           end;
           Inc(dstOff, 40);

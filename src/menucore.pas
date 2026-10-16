@@ -41,7 +41,7 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
   is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
   Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
-  keypad scan codes, all with ext set. A nonzero GDVars.dsMenuAutoAnswer.timeout returns GDVars.dsMenuAutoAnswer.key
+  keypad scan codes, all with ext set. A nonzero dsMenuAutoAnswer.timeout returns dsMenuAutoAnswer.key
   once that many ticks pass after the last animation frame change. The picture animates when animate is set or the GBVM
   menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
@@ -74,6 +74,10 @@ procedure FreeStringList(var list: Types.PItemRec);
 implementation
 
 uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
+
+var
+  { MenuCore views the head as Types.TMenuAuto }
+  dsMenuAutoAnswer: Types.TMenuAuto;
 
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
@@ -218,9 +222,9 @@ begin
         frameTick := TextRend.GetTicks;
       end;
     end;
-    if (GDVars.dsMenuAutoAnswer.timeout > 0)
-       and (TextRend.GetTicks - frameTick >= GDVars.dsMenuAutoAnswer.timeout) then begin
-      ch := GDVars.dsMenuAutoAnswer.key;
+    if (dsMenuAutoAnswer.timeout > 0)
+       and (TextRend.GetTicks - frameTick >= dsMenuAutoAnswer.timeout) then begin
+      ch := dsMenuAutoAnswer.key;
       done := True;
     end else if KeyPressed then begin
       ch := GameIo.ReadGameKey;

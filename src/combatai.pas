@@ -26,6 +26,12 @@ uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, Fx
   C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice;
 
+var
+  { the AI's last step direction (8 = none) }
+  lastMoveDir: Byte;
+  { direction reversals or exhausted movement searches }
+  stuckCount: Byte;
+
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
 function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean; forward;
@@ -349,12 +355,12 @@ begin
       { nothing walkable }
       if (attempt = 6)
          { reversing }
-         or (GDVars.lastMoveDir = (adjDir + 4) mod 8) then begin
-        Inc(GDVars.stuckCount);
+         or (lastMoveDir = (adjDir + 4) mod 8) then begin
+        Inc(stuckCount);
         creature^.combatAddr^.aiStance := creature^.combatAddr^.aiStance mod 6 + 1;
-        if GDVars.stuckCount > 1 then begin
+        if stuckCount > 1 then begin
           creature^.combatAddr^.other := nil;
-          if GDVars.stuckCount > 2 then begin
+          if stuckCount > 2 then begin
             creature^.combatAddr^.movement := 0;
             done := True;
           end else if not CbtActs.AcquireTarget(creature, 255, 1, 0) then
@@ -362,7 +368,7 @@ begin
         end;
       end;
       if attempt < 6 then
-        GDVars.lastMoveDir := adjDir
+        lastMoveDir := adjDir
       else
         done := True;
     end;
@@ -399,8 +405,8 @@ var
   ty: ShortInt;
   loopCount: Byte;
 begin
-  GDVars.lastMoveDir := C_Dir.CENTER;
-  GDVars.stuckCount := 0;
+  lastMoveDir := C_Dir.CENTER;
+  stuckCount := 0;
   loopCount := 0;
   canAct := True;
   done := False;

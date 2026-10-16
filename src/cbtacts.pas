@@ -68,6 +68,10 @@ uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C
   C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice;
 
+var
+  { Primary and secondary attack counts. }
+  attacksMade: array[1..2] of Byte;
+
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
     the damage burst }
@@ -694,8 +698,8 @@ begin
   done := False;
   GDVars.hitsMade[1] := 0;
   GDVars.hitsMade[2] := 0;
-  GDVars.attacksMade[1] := 0;
-  GDVars.attacksMade[2] := 0;
+  attacksMade[1] := 0;
+  attacksMade[2] := 0;
   anyHit := False;
   defDowned := False;
   GDVars.pendingDamage := 0;
@@ -706,7 +710,7 @@ begin
     while (att^.combatAddr^.attackPhase > 1)
           and (Types.PAttackPhaseView(att)^.curAtt[att^.combatAddr^.attackPhase] = 0) do
       Dec(att^.combatAddr^.attackPhase);
-    Inc(GDVars.attacksMade[att^.combatAddr^.attackPhase]);
+    Inc(attacksMade[att^.combatAddr^.attackPhase]);
     { hp + 5, held to the Byte }
     if def^.hpCur > 250 then
       slay := 255
@@ -756,7 +760,7 @@ begin
             and (defDowned = False) do begin
         Dec(Types.PAttackPhaseView(att)^.curAtt[phase]);
         att^.combatAddr^.attackPhase := phase;
-        Inc(GDVars.attacksMade[phase]);
+        Inc(attacksMade[phase]);
         if FxEngine.AttackRoll(att, def, defense) or CharHlp.IsHelpless(def) then begin
           anyHit := True;
           if CharHlp.HasEffect(def, C_Effect.MIRROR_IMAGE, image)
@@ -847,7 +851,7 @@ begin
     CbtActs.DoAttack(att, def, fromBehind, done);
     if weapon <> nil then begin
       if weapon^.quantity > 0 then
-        Dec(weapon^.quantity, GDVars.attacksMade[1]);
+        Dec(weapon^.quantity, attacksMade[1]);
       if weapon^.quantity = 0 then
         if CharHlp.HasThrowableWeapon(att) and (weapon^.special <> C_Effect.SPIRIT_HAMMER_GONE) then begin
           { the expended thrown weapon drops into the loot pile }

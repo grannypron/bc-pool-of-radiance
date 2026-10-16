@@ -4,87 +4,12 @@ unit GDVars;
 
 interface
 
-uses C_Money, Types, Dos, C_Effect, C_Gbvm, C_Spell;
+uses Types, Dos, C_Effect, C_Gbvm;
   
-var
-  { Script execution. }
-  { stop the VM and return control to the player }
-  eclStop: Byte;
-  { NEWECL ran; the game loop then calls NewEclDone }
-  newEclFlag: Byte;
-  { LOAD CHARACTER ran; restore curChar from savedChar }
-  restoreChar: Byte;
-  { LOADFILES or LOADPIECES ran (not that loading succeeded) }
-  filesLoaded: Byte;
-  { first LOADFILES/LOADPIECES pair still to draw the interface }
-  enteringLoop: Byte;
-  { LOADPIECES ran (not that loading succeeded) }
-  piecesLoaded: Byte;
-  { LOADFILES ran (not that loading succeeded) }
-  mapLoaded: Byte;
-  { monsters added by LOAD MONSTER since CLEAR MONSTERS (max 63) }
-  creatureCnt: Byte;
-  { curChar backup }
-  savedChar: Types.PCharRecord;
-  { Combat outcome. }
-  nonEscapedHostileFound: Boolean;
-  partyFled: Boolean;
-  { Combat movement. }
-  { the AI's last step direction (8 = none) }
-  lastMoveDir: Byte;
-  { direction reversals or exhausted movement searches }
-  stuckCount: Byte;
-
-var
-  { wildMap cell under party }
-  terrainChar: Byte;
-
-var
-  { Resource initialization. }
-  { directory saved across resource loading }
-  savedDir: Types.TPathStr;
-  { ITEMS loading file record }
-  itemsFile: file;
-  { STING training override. }
-  stingMode: Byte;
-
-var
-  { Endgame. }
-  { WinGame passes it by var to Blit.LoadPic }
-  finalPic: Types.PImgBuf;
-  { WinGame saves and restores ifcState }
-  savedIfc: Byte;
-  { virtual disk digit appended to the FINAL picture names }
-  finalSfx: String[1];
-
 var
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..Types.ARENA_SLOTS] of Byte;
-  { Spell selection. }
-  { the menu string list }
-  spellList: Types.PItemRec;
-  { spell ID per menu line }
-  spellIds: array[0..C_Spell.LINE_LAST] of Byte;
-  { the scroll each Cast line reads from, nil for a memorized spell }
-  spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
-  scrollPtrs: array[0..48] of Types.PItemRec;
-  scrollCount: Byte;
-  { Equipment weight. }
-  { equipped-items weight }
-  gEquipWeight: Word;
-  { lowered HeapEnd snapshot }
-  gfxReserve: Pointer;
-  { POOL.CFG character input }
-  cfgChar: Char;
-  { POOL.CFG text input }
-  cfgText: Text;
-  { POOL.CFG existence check }
-  cfgFile: file;
-  { low byte of the existence-check IOResult }
-  cfgErr: Byte;
-  { DaxIo.FileExists IOResult }
-  ioErr: Integer;
   { Play session }
   { nonzero makes HeapErr force a save; never set }
   heapFailureSaveEnabled: Byte;
@@ -157,9 +82,6 @@ var
   { Video registers, pages and modes; view and icon buffers, dirty spans and row tables }
   { Register record handed to Dos.Intr for BIOS video calls; every unit calling the BIOS uses this one record. }
   dsInterruptRegisters: Registers;
-  { EGA video memory segment for currently displayed page }
-  egaCurPage: Word;
-  egaOtherPage: Word;
   { Other EGA page number (always 0) }
   pageNum: Byte;
   { Currently displayed EGA page number (always 0) }
@@ -210,10 +132,6 @@ var
   { Nonzero: SoundDrv.SoundCommand waits a fixed delay after each command, then silences the voices and removes its
     timer. Zero leaves the timer driver resident for persistent playback. }
   soundAutoStop: Word;
-  { the exit procedure SoundDrv.SoundExit hands on to }
-  soundExitSaved: Pointer;
-  { the music tune SoundDrv.PlayMusic started; 0 once it is stopped or an effect has ended it }
-  musicTune: Word;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
@@ -227,8 +145,6 @@ var
   dsSuppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
-  { Temporary compressed DAX data buffer. }
-  dsDaxCompressedFilePtr: Types.PByteArr;
   { ITEMS catalogue }
   { Base item types, indexed by TItemRec.itemType. }
   baseItems: array[0..127] of Types.TBaseItemRec;
@@ -242,8 +158,6 @@ var
   creatureList: Types.PCharRecord;
   { last missile item added to the treasure list in combat }
   lastMissileItem: Types.PItemRec;
-  { ITEMS read result. }
-  itemsRead: Word;
   { Font and text cursor }
   { Pointer to font. Each entry in the font table is 8 bytes }
   gameFont: Types.PFontArr;
@@ -274,8 +188,6 @@ var
   gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
   { view-relative Y deltas }
   gridY: array[1..Types.ARENA_SLOTS] of ShortInt;
-  { creature slot per arena cell }
-  crIdxArr: array[0..24, 0..49] of Byte;
   { creature per slot }
   creatureArr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { corpses on the arena }
@@ -381,12 +293,7 @@ var
   horizChoice: Byte;
 
 var
-  { Menu auto-answer }
-  { MenuCore views the head as Types.TMenuAuto }
-  dsMenuAutoAnswer: Types.TMenuAuto;
   { Spell casting and targeting }
-  { Current item used for spell casting. }
-  dsCurrentScrollPtr: Types.PItemRec;
   { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.CombatCastTargetMenu in combat }
   castTargetMenu: Types.TCastUI;
   { Spell handlers indexed by spell ID. }
@@ -410,8 +317,6 @@ var
   { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
     parameter }
   dsRestingTimeGbvm: Types.TClock;
-  { Spell preparation timers for the eight party slots. }
-  prepTimers: array[1..8] of Byte;
   { Time rested today, in five-minute ticks. }
   healTicks: Word;
   { Suppress the window border. }
@@ -433,8 +338,6 @@ var
   roundCounter: Byte;
   { Potential-target creature indices. }
   dsPotentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
-  { Primary and secondary attack counts. }
-  attacksMade: array[1..2] of Byte;
   { Hostile creatures' hit points, percent remaining }
   hostileHpPct: Byte;
   { quick combat magic; toggled by Alt-M }
@@ -444,7 +347,7 @@ var
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
   dsMoveIconSheet: Types.PImgBuf;
-  { ECL colour selectors and read registers }
+  { ECL colour selectors }
   { Script-controlled wall color; script writes request a view redraw. }
   wallColorSel: Byte;
   { Script-controlled ceiling and floor color; writes request a view redraw. }
@@ -458,10 +361,6 @@ var
   cmpFlags: array[0..5] of Boolean;
   { Current ECL opcode }
   curOpcode: Byte;
-  { Current monster ID }
-  monId: Byte;
-  { Current monster picture ID }
-  monPicId: Byte;
   { Current icon animation slot. }
   gIconAnim: Byte;
   { ECL variables and strings }
@@ -485,11 +384,6 @@ var
   { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }
   dumpCr6B00: Boolean;
   duelFlag: Boolean;
-  { Count of disabled or Animated creatures, which get no experience share }
-  nonAnimCount: Byte;
-  { Experience share before individual bonuses. }
-  expShare: LongInt;
-  combatWon: Boolean;
 
 var
   { ECL flags }
@@ -516,14 +410,10 @@ var
   picRegionW: Boolean;
   { ECL write moved party flag }
   movedParty: Boolean;
-  { Creature list contains hostile monsters flag }
-  monstersOn: Byte;
   { Redraw sky/ceiling in 3D view flag }
   redrawSky: Boolean;
   { Currently in ECL opcode 29 ENCOUNTER MENU flag }
   inEncMenu: Byte;
-  { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
-  picIdShown: Byte;
 
 implementation
 

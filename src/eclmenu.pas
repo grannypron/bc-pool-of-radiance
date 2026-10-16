@@ -82,6 +82,10 @@ uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Ecl, C_Ke
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice;
 
+var
+  { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
+  picIdShown: Byte;
+
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
 var
@@ -266,12 +270,12 @@ begin
       Portrait.Show3DSprite(2, GDVars.animData);
   end;
   if flags[1] then
-    if GDVars.picIdShown = GDVars.zone1^[C_Gbvm.PIC_LOADING] then
+    if picIdShown = GDVars.zone1^[C_Gbvm.PIC_LOADING] then
       Exit;
   if dist <> 0 then Exit;
   if GDVars.gLocType <> C_Area.LOC_3D_MAP then Exit;
   if (GDVars.inEncMenu <> 0) and (GDVars.monsterPics = 0) then Exit;
-  GDVars.picIdShown := Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]);
+  picIdShown := Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]);
   GDVars.eclGraphics := True;
   if GDVars.zone1^[C_Gbvm.PIC_LOADING] = 255 then begin
     Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);

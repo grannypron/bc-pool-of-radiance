@@ -11,6 +11,10 @@ implementation
 uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
   FxEngine, StrUtil, CharDisp, Dice, Clock;
 
+var
+  { Spell preparation timers for the eight party slots. }
+  prepTimers: array[1..8] of Byte;
+
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99 }
 procedure ValidateRestTime;
 begin
@@ -243,13 +247,13 @@ begin
   i := 1;
   cur := GDVars.creatureList;
   { the walk stops at the last prepTimers slot }
-  while (cur <> nil) and (i <= SizeOf(GDVars.prepTimers)) do begin
-    Dec(GDVars.prepTimers[i]);
-    if (GDVars.prepTimers[i] = 0) and (cur^.spellPrepTime = 0) then begin
+  while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
+    Dec(prepTimers[i]);
+    if (prepTimers[i] = 0) and (cur^.spellPrepTime = 0) then begin
       done := False;
       lvl := GameTime.CheckScribeDone(cur, done);
       if lvl = 0 then lvl := GameTime.CheckMemorizeDone(cur, done);
-      GDVars.prepTimers[i] := lvl * 3;
+      prepTimers[i] := lvl * 3;
     end;
     cur := cur^.nextCharAddr;
     Inc(i);
@@ -279,8 +283,8 @@ begin
           done := True;
           lvl := GameTime.CheckScribeDone(cur, done);
           if lvl = 0 then lvl := GameTime.CheckMemorizeDone(cur, done);
-          if i <= SizeOf(GDVars.prepTimers) then
-            GDVars.prepTimers[i] := lvl * 3;
+          if i <= SizeOf(prepTimers) then
+            prepTimers[i] := lvl * 3;
         end;
       end;
       cur := cur^.nextCharAddr;
@@ -305,8 +309,8 @@ begin
   dead3 := False;
   i := 1;
   cur := GDVars.creatureList;
-  while (cur <> nil) and (i <= SizeOf(GDVars.prepTimers)) do begin
-    GDVars.prepTimers[i] := 0;
+  while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
+    prepTimers[i] := 0;
     Inc(i);
     cur := cur^.nextCharAddr;
   end;

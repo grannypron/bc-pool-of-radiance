@@ -114,6 +114,10 @@ implementation
 uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound, Pathing, MenuCore,
   Blit, CharHlp;
 
+var
+  { creature slot per arena cell }
+  crIdxArr: array[0..24, 0..49] of Byte;
+
 const
   { The cursor sprite cell in GDVars.dsIconAnimation }
   CURSOR_CELL = 25;
@@ -444,12 +448,12 @@ var
   tdx: ShortInt;
   tdy: ShortInt;
 begin
-  FillChar(GDVars.crIdxArr, SizeOf(GDVars.crIdxArr), 0);
+  FillChar(crIdxArr, SizeOf(crIdxArr), 0);
   for i := 1 to GDVars.arenaCount do begin
     if GDVars.arenaLoc[i].size > 0 then begin
       for j := 0 to 3 do
         if Pathing.GetIconTileDelta(GDVars.arenaLoc[i].size, j, tdx, tdy) then
-          GDVars.crIdxArr[GDVars.arenaLoc[i].y + tdy, GDVars.arenaLoc[i].x + tdx] := i;
+          crIdxArr[GDVars.arenaLoc[i].y + tdy, GDVars.arenaLoc[i].x + tdx] := i;
       GDVars.gridX[i] := GDVars.arenaLoc[i].x - GDVars.arenaPtr^.ox;
       GDVars.gridY[i] := GDVars.arenaLoc[i].y - GDVars.arenaPtr^.oy;
     end;
@@ -460,7 +464,7 @@ procedure GetArenaContents(x, y: ShortInt; var crIdx, terrIdx: Byte);
 begin
   if (x >= 0) and (x <= 49) and (y >= 0) and (y <= 24) then begin
     terrIdx := GDVars.arenaPtr^.cells[y, x];
-    crIdx := GDVars.crIdxArr[y, x];
+    crIdx := crIdxArr[y, x];
   end else begin
     crIdx := 0;
     terrIdx := 0;

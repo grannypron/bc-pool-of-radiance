@@ -16,6 +16,32 @@ uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice;
 
+var
+  { stop the VM and return control to the player }
+  eclStop: Byte;
+  { NEWECL ran; the game loop then calls NewEclDone }
+  newEclFlag: Byte;
+  { LOAD CHARACTER ran; restore curChar from savedChar }
+  restoreChar: Byte;
+  { LOADFILES or LOADPIECES ran (not that loading succeeded) }
+  filesLoaded: Byte;
+  { first LOADFILES/LOADPIECES pair still to draw the interface }
+  enteringLoop: Byte;
+  { LOADPIECES ran (not that loading succeeded) }
+  piecesLoaded: Byte;
+  { LOADFILES ran (not that loading succeeded) }
+  mapLoaded: Byte;
+  { monsters added by LOAD MONSTER since CLEAR MONSTERS (max 63) }
+  creatureCnt: Byte;
+  { curChar backup }
+  savedChar: Types.PCharRecord;
+  { Current monster ID }
+  monId: Byte;
+  { Current monster picture ID }
+  monPicId: Byte;
+  { Creature list contains hostile monsters flag }
+  monstersOn: Byte;
+
 const
   { LOAD MONSTER adds no monsters beyond this count }
   MAX_LOADED_MONSTERS = 63;
@@ -57,14 +83,14 @@ begin
     if GDVars.zone0^.view3dFlag <> 0 then
       Border.DrawWindow(3, 3, 13, 13, 0, White, '');
   end;
-  if GDVars.restoreChar <> 0 then begin
-    GDVars.curChar := GDVars.savedChar;
-    GDVars.restoreChar := 0;
+  if restoreChar <> 0 then begin
+    GDVars.curChar := savedChar;
+    restoreChar := 0;
   end;
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
   GDVars.eclGraphics := False;
   GDVars.protTextShown := 0;
-  GDVars.eclStop := 1;
+  eclStop := 1;
   Inc(GDVars.eclIp);
   FreeEclStack;
   GDVars.curRow := C_Msg.MESSAGE_TOP;
@@ -171,7 +197,7 @@ var
   i: Byte;
   flag80: Byte;
 begin
-  GDVars.restoreChar := 1;
+  restoreChar := 1;
   EclVars.LoadEclVars(1);
   i := 0;
   idx := EclVars.GetEclVar(1);
@@ -186,8 +212,8 @@ begin
   if p <> nil then
     GDVars.curChar := p;
   if (flag80 <> 0) and GDVars.dumpCr6C00 and GDVars.dumpCr6B00 then begin
-    if GDVars.savedChar = GDVars.curChar then
-      GDVars.restoreChar := 0;
+    if savedChar = GDVars.curChar then
+      restoreChar := 0;
     SaveLoad.RemoveCreature(False, True);
     CharDisp.DisplayParty(GDVars.curChar);
     GDVars.dumpCr6C00 := False;
@@ -200,13 +226,13 @@ end;
 procedure EclSetupMon;
 begin
   EclVars.LoadEclVars(3);
-  GDVars.monId := EclVars.GetEclVar(1);
+  monId := EclVars.GetEclVar(1);
   GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
-  GDVars.monPicId := EclVars.GetEclVar(3);
+  monPicId := EclVars.GetEclVar(3);
   GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   if GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
     GDVars.zone1^[C_Gbvm.MONSTER_DIST] := GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ];
-  EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+  EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                          GDVars.dsMonsterFlags);
 end;
 
@@ -234,7 +260,7 @@ begin
   i := 1;
   EclVars.LoadEclVars(3);
   { at most 63 monsters, and an icon slot for them }
-  if GDVars.creatureCnt >= MAX_LOADED_MONSTERS then Exit;
+  if creatureCnt >= MAX_LOADED_MONSTERS then Exit;
   if GDVars.gIconAnim > LAST_ICON_SLOT then Exit;
   p := nil;
   q := nil;
@@ -253,9 +279,9 @@ begin
   p := p^.nextCharAddr;
   p^.orderNumber := GDVars.gIconAnim;
   p^.nextCharAddr := nil;
-  Inc(GDVars.creatureCnt);
+  Inc(creatureCnt);
   Inc(i);
-  while (i <= count) and (GDVars.creatureCnt < MAX_LOADED_MONSTERS) do begin
+  while (i <= count) and (creatureCnt < MAX_LOADED_MONSTERS) do begin
     GetMem(q, SizeOf(Types.TCharRecord));
     p^.nextCharAddr := q;
     p := p^.nextCharAddr;
@@ -265,7 +291,7 @@ begin
     p^.effectsAddr := nil;
     p^.itemsAddr := nil;
     Inc(i);
-    Inc(GDVars.creatureCnt);
+    Inc(creatureCnt);
     while item <> nil do begin
       CharHlp.PrependItemCopy(p^.itemsAddr, item);
       item := item^.next;
@@ -278,7 +304,7 @@ begin
     ef := effHead;
   end;
   Inc(GDVars.gIconAnim);
-  GDVars.monstersOn := 1;
+  monstersOn := 1;
   GDVars.curChar := savedCur;
 end;
 
@@ -287,7 +313,7 @@ procedure EclApproach;
 begin
   if GDVars.zone1^[C_Gbvm.MONSTER_DIST] > 0 then begin
     Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-    EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+    EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                            GDVars.dsMonsterFlags);
   end;
   Inc(GDVars.eclIp);
@@ -433,9 +459,9 @@ begin
   { a NEWECL inside a subroutine leaves return addresses on the stack, and EclInit only clears the pointer }
   FreeEclStack;
   EclMenu.EclInit;
-  GDVars.eclStop := 1;
-  GDVars.newEclFlag := 1;
-  GDVars.filesLoaded := 0;
+  eclStop := 1;
+  newEclFlag := 1;
+  filesLoaded := 0;
 end;
 
 { LOADFILES: load GEO map var 1 when view3dFlag <> 0, or the BACPAC tile set when view3dFlag = 0. LOADPIECES: load the
@@ -448,11 +474,11 @@ var
   i: Byte;
 begin
   EclVars.LoadEclVars(3);
-  GDVars.filesLoaded := 1;
+  filesLoaded := 1;
   for i := 1 to 3 do
     f[i] := EclVars.GetEclVar(i);
   if GDVars.curOpcode = C_Ecl.LOADFILES then begin
-    GDVars.mapLoaded := 1;
+    mapLoaded := 1;
     if (f[1] <> 255) and (f[1] <> 127) and (GDVars.zone0^.view3dFlag <> 0) then begin
       GDVars.zone0^.mapId.value := f[1];
       View3D.Load3DMap(f[1]);
@@ -461,7 +487,7 @@ begin
     if (f[3] <> 255) and (GDVars.zone0^.view3dFlag = 0) then
       MapTiles.Load24x24Set('BACPAC', 0, 40);
   end else begin
-    GDVars.piecesLoaded := 1;
+    piecesLoaded := 1;
     if f[1] = 127 then
       View3D.LoadWallSet(0, 1)
     else if (GDVars.zone0^.mapGraphics1 <> 0) and (GDVars.zone0^.mapGraphics2 <> 0) then begin
@@ -476,10 +502,10 @@ begin
           GDVars.dsWallSetCache[i].symbolSlot := -1;
         end;
   end;
-  if (GDVars.enteringLoop <> 0) and (GDVars.piecesLoaded <> 0) and (GDVars.mapLoaded <> 0) then begin
+  if (enteringLoop <> 0) and (piecesLoaded <> 0) and (mapLoaded <> 0) then begin
     CharDisp.DisplayNoncombatInterface;
     CharDisp.DisplayParty(GDVars.curChar);
-    GDVars.enteringLoop := 0;
+    enteringLoop := 0;
   end;
 end;
 
@@ -640,8 +666,8 @@ end;
 procedure EclClearMon;
 begin
   Inc(GDVars.eclIp);
-  GDVars.creatureCnt := 0;
-  GDVars.monstersOn := 0;
+  creatureCnt := 0;
+  monstersOn := 0;
   GDVars.gIconAnim := 8;
   CharHlp.ClearTreasure;
 end;
@@ -836,7 +862,7 @@ var
   dist: Word;
 begin
   Inc(GDVars.eclIp);
-  if (GDVars.monstersOn = 0) and (not GDVars.duelFlag) then begin
+  if (monstersOn = 0) and (not GDVars.duelFlag) then begin
     if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 1 then begin
       GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
       Shop.ShopMainMenu;
@@ -1064,7 +1090,7 @@ var
   begin
     if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
       Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-      EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+      EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                              GDVars.dsMonsterFlags);
     end else
       TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
@@ -1078,7 +1104,7 @@ var
       EclVars.WriteGbvm(address, 3)
     else begin
       Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-      EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+      EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                              GDVars.dsMonsterFlags);
       waited := True;
     end;
@@ -1100,9 +1126,9 @@ begin
   EclMenu.MoveExtremes(hiMove, loMove);
   q := '';
   EclVars.LoadEclVars(14);
-  GDVars.monId := EclVars.GetEclVar(1);
+  monId := EclVars.GetEclVar(1);
   GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
-  GDVars.monPicId := EclVars.GetEclVar(3);
+  monPicId := EclVars.GetEclVar(3);
   address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[4], GDVars.dsGbvmUpperByte[4]);
   for i := 0 to 4 do
     resp[i] := EclVars.GetEclVar(i + 5);
@@ -1113,7 +1139,7 @@ begin
   GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   if GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
     GDVars.zone1^[C_Gbvm.MONSTER_DIST] := GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ];
-  EclMenu.DisplayMonster(GDVars.monId, GDVars.monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+  EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
                          GDVars.dsMonsterFlags);
   repeat
     anim := GDVars.eclGraphics and GDVars.picDrawn;
@@ -1481,7 +1507,7 @@ begin
     { address $2C90 }
     $AC91: begin
       GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
-      if GDVars.filesLoaded <> 0 then
+      if filesLoaded <> 0 then
         if GDVars.eclGraphics or GDVars.sprShown or GDVars.picRegionW or GDVars.movedParty or
             GDVars.redrawSky then begin
           MapView.DisplayMapView;
@@ -1540,9 +1566,9 @@ var
   v: Byte;
   savedIp: Word;
 begin
-  if GDVars.restoreChar <> 0 then begin
-    GDVars.curChar := GDVars.savedChar;
-    GDVars.restoreChar := 0;
+  if restoreChar <> 0 then begin
+    GDVars.curChar := savedChar;
+    restoreChar := 0;
   end;
   EclVars.LoadEclVars(1);
   v := EclVars.GetEclVar(1);
@@ -1663,15 +1689,15 @@ end;
 procedure CallEclScript(address: Word);
 begin
   GDVars.eclIp := address;
-  GDVars.eclStop := 0;
-  while (GDVars.eclStop = 0) and (not GDVars.partyDefeated) do begin
+  eclStop := 0;
+  while (eclStop = 0) and (not GDVars.partyDefeated) do begin
     GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
     { STING Ctrl-L's trace log (#612), as Curse writes it }
     if GDVars.debugTraceEnabled then
       WriteLn(GDVars.debugFile, EclTrace.OpName(GDVars.curOpcode));
     EclVm.ExecNextEclCmd;
   end;
-  GDVars.eclStop := 0;
+  eclStop := 0;
 end;
 
 { Refresh the event byte, run the new script's on-load entry (scriptEntryAddrs[5]), and when view3dFlag = 0 set the
@@ -1710,17 +1736,17 @@ begin
     if (GDVars.locTypePrev > C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP) then
       Border.DrawWindow(3, 3, 13, 13, 0, LightGreen, '');
     if (((GDVars.locTypePrev > C_Area.LOC_3D_MAP) or (GDVars.gLocType = C_Area.LOC_3D_MAP)) and
-        (GDVars.filesLoaded <> 0)) or
+        (filesLoaded <> 0)) or
         ((GDVars.locTypePrev = C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP)) then
       MapView.DisplayMapView;
-    GDVars.newEclFlag := 0;
+    newEclFlag := 0;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
-    if GDVars.newEclFlag = 0 then begin
+    if newEclFlag = 0 then begin
       EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
       GDVars.curChar := savedCur;
       CharDisp.DisplayParty(GDVars.curChar);
     end;
-  until GDVars.newEclFlag = 0;
+  until newEclFlag = 0;
 end;
 
 { Run the initial script, then process map, camp, search and movement actions until the party is defeated. }
@@ -1728,13 +1754,13 @@ procedure GameLoop;
 var
   cmd: Char;
 begin
-  GDVars.piecesLoaded := 0;
-  GDVars.mapLoaded := 0;
-  GDVars.restoreChar := 0;
-  GDVars.filesLoaded := 0;
-  GDVars.enteringLoop := 1;
+  piecesLoaded := 0;
+  mapLoaded := 0;
+  restoreChar := 0;
+  filesLoaded := 0;
+  enteringLoop := 1;
   GDVars.ifcState := C_Ifc.INDOORS;
-  GDVars.newEclFlag := 0;
+  newEclFlag := 0;
   GDVars.eclScriptId := Byte(GDVars.zone0^.previousScriptId);
   case GDVars.eclScriptId of
     WILD_WEST_SCRIPT, WILD_CENTRAL_SCRIPT, WILD_EAST_SCRIPT:
@@ -1747,16 +1773,16 @@ begin
   EclMenu.EclInit;
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
   if GDVars.ifcState <> C_Ifc.OUTDOORS then begin
-    if GDVars.enteringLoop = 1 then begin
+    if enteringLoop = 1 then begin
       CharDisp.DisplayNoncombatInterface;
-      GDVars.enteringLoop := 0;
+      enteringLoop := 0;
     end;
     MapView.DisplayMapView;
   end;
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   repeat
     cmd := Explore.MapMainMenu;
-    GDVars.savedChar := GDVars.curChar;
+    savedChar := GDVars.curChar;
     GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
     while ((GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
         (not GDVars.partyDefeated) and (not Explore.quickLoadAsked) do begin
@@ -1767,20 +1793,20 @@ begin
         GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := 1;
         MapView.DisplayMapView;
         EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
-        if GDVars.newEclFlag <> 0 then
+        if newEclFlag <> 0 then
           EclVm.NewEclDone;
         GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.dsSearchModeFlag;
       end;
       if not GDVars.partyDefeated then begin
         cmd := Explore.MapMainMenu;
-        GDVars.savedChar := GDVars.curChar;
+        savedChar := GDVars.curChar;
       end;
     end;
     { a quick load asked for on the map menu ends the loop at once: the program loads it and runs the loop again }
     if not Explore.quickLoadAsked then begin
       if not GDVars.partyDefeated then
         EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
-      if GDVars.newEclFlag <> 0 then
+      if newEclFlag <> 0 then
         EclVm.NewEclDone
       else if not GDVars.partyDefeated then begin
         GDVars.zone0^.previousX := GDVars.gMapX;
@@ -1792,7 +1818,7 @@ begin
         GDVars.eclGraphics := False;
         GDVars.picDrawn := True;
         EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
-        if GDVars.newEclFlag <> 0 then
+        if newEclFlag <> 0 then
           EclVm.NewEclDone;
       end;
     end;

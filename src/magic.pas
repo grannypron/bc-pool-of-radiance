@@ -14,7 +14,7 @@ uses Types, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, DaxIo,
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
   idx is the menu cursor and persists across calls; idx < 0 clears the window and opens at the top of the list on its
   first spell (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's
-  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets GDVars.dsCurrentScrollPtr to the chosen
+  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets dsCurrentScrollPtr to the chosen
   spell's scroll. Frees spellList before returning. }
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 
@@ -187,6 +187,18 @@ implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice;
 
+var
+  { the menu string list }
+  spellList: Types.PItemRec;
+  { spell ID per menu line }
+  spellIds: array[0..C_Spell.LINE_LAST] of Byte;
+  { the scroll each Cast line reads from, nil for a memorized spell }
+  spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
+  scrollPtrs: array[0..48] of Types.PItemRec;
+  scrollCount: Byte;
+  { Current item used for spell casting. }
+  dsCurrentScrollPtr: Types.PItemRec;
+
 const
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;
@@ -271,7 +283,7 @@ begin
       heading, would wrap up to the page's last line) }
     GDVars.vertTop := 0;
     idx := 0;
-    p := GDVars.spellList;
+    p := spellList;
     while (p <> nil) and (p^.inUse <> 0) do begin
       p := p^.next;
       Inc(idx);
@@ -285,9 +297,9 @@ begin
   repeat
     MenuCore.listOnly := selType = 5;
     ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, 5, 38,
-                                bottomRow, GDVars.spellList, addExit, redraw, idx, sel);
+                                bottomRow, spellList, addExit, redraw, idx, sel);
   until ch in [C_Keys.NONE, C_Keys.ENTER, 'C', 'E', 'L', 'M', 'S'];
-  p := GDVars.spellList;
+  p := spellList;
   count := 0;
   while p <> sel do begin
     if p^.inUse = 0 then
@@ -298,16 +310,16 @@ begin
   if (ch in [C_Keys.NONE, 'E']) or (count > C_Spell.LINE_LAST) then
     SpellSelection := C_Spell.NONE
   else begin
-    SpellSelection := GDVars.spellIds[count];
-    scroll := GDVars.spellScrolls[count];
+    SpellSelection := spellIds[count];
+    scroll := spellScrolls[count];
   end;
   if selType = 3 then
     { 48 = High(scrollPtrs) }
     if count <= 48 then
-      GDVars.dsCurrentScrollPtr := GDVars.scrollPtrs[count]
+      dsCurrentScrollPtr := scrollPtrs[count]
     else
-      GDVars.dsCurrentScrollPtr := nil;
-  MenuCore.FreeStringList(GDVars.spellList);
+      dsCurrentScrollPtr := nil;
+  MenuCore.FreeStringList(spellList);
 end;
 
 { Append spell to spellList, first adding a level heading entry (inUse = 1) when its spell level differs from the
@@ -320,12 +332,12 @@ var
   count: ShortInt;
   lastLevel: ShortInt;
 begin
-  p := GDVars.spellList;
-  if GDVars.spellList = nil then begin
+  p := spellList;
+  if spellList = nil then begin
     { Allocate only a TMenuNode, the TItemRec prefix a MenuCore.MenuVertical entry uses (name, inUse and next); the rest
       of the record is never touched }
     GetMem(p, SizeOf(Types.TMenuNode));
-    GDVars.spellList := p;
+    spellList := p;
     lastLevel := 0;
     count := 0;
   end else begin
@@ -338,7 +350,7 @@ begin
     { a full list takes no more lines }
     if count > C_Spell.LINE_LAST then
       Exit;
-    lastLevel := GDConsts.spellTable[GDVars.spellIds[count - 1]].levelSp;
+    lastLevel := GDConsts.spellTable[spellIds[count - 1]].levelSp;
     GetMem(p^.next, SizeOf(Types.TMenuNode));
     p := p^.next;
   end;
@@ -356,7 +368,7 @@ begin
     p^.name := ' ' + Magic.SpellMark(creature, spell, mark);
   p^.name := p^.name + GDConsts.spellNames[spell and C_Spell.ID_MASK];
   p^.inUse := 0;
-  GDVars.spellIds[count] := spell and C_Spell.ID_MASK;
+  spellIds[count] := spell and C_Spell.ID_MASK;
 end;
 
 { The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
@@ -398,16 +410,16 @@ procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark:
 var
   i: Byte;
 begin
-  if CharHlp.ScrollLegible(creature, GDVars.dsCurrentScrollPtr) then
+  if CharHlp.ScrollLegible(creature, dsCurrentScrollPtr) then
     { 3 = High(TItemRec.spells) }
     for i := 1 to 3 do begin
-      if (forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
-          (not forScribe and (GDVars.dsCurrentScrollPtr^.spells[i] > 0)) then begin
-        Magic.AddSpellToList(creature, GDVars.dsCurrentScrollPtr^.spells[i], mark);
+      if (forScribe and (dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
+          (not forScribe and (dsCurrentScrollPtr^.spells[i] > 0)) then begin
+        Magic.AddSpellToList(creature, dsCurrentScrollPtr^.spells[i], mark);
         { 48 = High(scrollPtrs) }
-        if GDVars.scrollCount <= 48 then begin
-          GDVars.scrollPtrs[GDVars.scrollCount] := GDVars.dsCurrentScrollPtr;
-          Inc(GDVars.scrollCount);
+        if scrollCount <= 48 then begin
+          scrollPtrs[scrollCount] := dsCurrentScrollPtr;
+          Inc(scrollCount);
         end;
       end;
     end;
@@ -417,11 +429,11 @@ end;
   mark. dsCurrentScrollPtr itself is the loop variable, so it ends as nil. }
 procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
 begin
-  GDVars.dsCurrentScrollPtr := creature^.itemsAddr;
-  while GDVars.dsCurrentScrollPtr <> nil do begin
-    if CharHlp.ItemReadable(GDVars.dsCurrentScrollPtr) then
+  dsCurrentScrollPtr := creature^.itemsAddr;
+  while dsCurrentScrollPtr <> nil do begin
+    if CharHlp.ItemReadable(dsCurrentScrollPtr) then
       Magic.AddScrollSpells(creature, forScribe, mark);
-    GDVars.dsCurrentScrollPtr := GDVars.dsCurrentScrollPtr^.next;
+    dsCurrentScrollPtr := dsCurrentScrollPtr^.next;
   end;
 end;
 
@@ -434,9 +446,9 @@ var
 begin
   if lines <= C_Spell.LINE_LAST then begin
     Magic.AddSpellToList(creature, item^.spells[slot], MARK_NONE);
-    GDVars.spellScrolls[lines] := item;
+    spellScrolls[lines] := item;
     Inc(lines);
-    p := GDVars.spellList;
+    p := spellList;
     while p^.next <> nil do
       p := p^.next;
     if Length(p^.name) >= 2 then
@@ -493,15 +505,15 @@ var
   p: Types.PItemRec;
 begin
   GenerateSpellList := False;
-  GDVars.spellList := nil;
+  spellList := nil;
   for i := 0 to C_Spell.LINE_LAST do begin
-    GDVars.spellIds[i] := 0;
-    GDVars.spellScrolls[i] := nil;
+    spellIds[i] := 0;
+    spellScrolls[i] := nil;
   end;
   { every list starts with no scrolls recorded: High(scrollPtrs), 49 slots }
   for i := 0 to 48 do
-    GDVars.scrollPtrs[i] := nil;
-  GDVars.scrollCount := 0;
+    scrollPtrs[i] := nil;
+  scrollCount := 0;
   case menuType of
     7: Magic.AddAvailableSpells(creature);
     0: for i := 0 to Types.SPELL_SLOT_LAST do
@@ -528,14 +540,14 @@ begin
                Magic.AddSpellToList(creature, i, MARK_NONE);
   end;
   { a list of headings alone has nothing to pick: it counts as empty }
-  p := GDVars.spellList;
+  p := spellList;
   while (p <> nil) and (p^.inUse <> 0) do
     p := p^.next;
   if p <> nil then
     GenerateSpellList := True
-  else if GDVars.spellList <> nil then begin
-    MenuCore.FreeStringList(GDVars.spellList);
-    GDVars.spellList := nil;
+  else if spellList <> nil then begin
+    MenuCore.FreeStringList(spellList);
+    spellList := nil;
   end;
 end;
 
@@ -1920,7 +1932,7 @@ begin
   GDVars.usingItem := False;
   spell := 0;
   if CharHlp.ItemReadable(item) then begin
-    GDVars.dsCurrentScrollPtr := item;
+    dsCurrentScrollPtr := item;
     spell := Magic.SpellMenu(2, 1, idx, notEmpty);
   end else if (item^.effect > 0) and (item^.special < $80) then
     spell := item^.effect;

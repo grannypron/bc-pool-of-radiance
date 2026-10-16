@@ -138,6 +138,10 @@ implementation
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell;
 
+var
+  { equipped-items weight }
+  gEquipWeight: Word;
+
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
@@ -380,13 +384,13 @@ begin
   item := creature^.itemsAddr;
   creature^.handsEquipped := 0;
   raw := 0;
-  GDVars.gEquipWeight := 0;
+  gEquipWeight := 0;
   while item <> nil do begin
     Inc(creature^.numberOfItems);
     w := CharHlp.ItemWeight(item);
     Inc(raw, w);
     if item^.equipped <> 0 then begin
-      Inc(GDVars.gEquipWeight, w);
+      Inc(gEquipWeight, w);
       { Name component 186 is 'Holding' }
       if item^.nameIds[1] = C_Item.NAME_HOLDING then
         bag := True;
@@ -435,8 +439,8 @@ begin
       raw := 0
     else
       Dec(raw, 5000);
-    if raw < GDVars.gEquipWeight then
-      raw := GDVars.gEquipWeight;
+    if raw < gEquipWeight then
+      raw := gEquipWeight;
   end;
   if raw > 65535 then
     raw := 65535;

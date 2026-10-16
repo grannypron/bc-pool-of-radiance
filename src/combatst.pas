@@ -12,6 +12,10 @@ uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveL
   MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice;
 
 var
+  { wildMap cell under party }
+  terrainChar: Byte;
+
+var
   { Combat placement, by team }
   { quad occupancy [team, ring 0..3, qy 0..5, qx 0..10]; 1 = free }
   quadFree: array[0..1, 0..3, 0..5, 0..10] of Byte;
@@ -307,7 +311,7 @@ var
   cls: Byte;
 begin
   { SSI repeated some values in later arms, where the first arm took them; those are left out }
-  case GDVars.terrainChar of
+  case terrainChar of
     1..2, 40..41, 79..86, 91..92, 43, 241:
       cls := $01;
     168..177:
@@ -524,7 +528,7 @@ begin
   mapY := GDVars.zone0^.partyY.lo;
   if GDVars.gLocType = C_Area.LOC_WILD_CENTRAL then Inc(mapX, 13);
   if GDVars.gLocType = C_Area.LOC_WILD_EAST then Inc(mapX, 26);
-  GDVars.terrainChar := GDConsts.wildMap[mapY, mapX];
+  terrainChar := GDConsts.wildMap[mapY, mapX];
   CombatSt.PlaceRiver;
   CombatSt.PlaceTrees;
   CombatSt.ScatterFeatures;

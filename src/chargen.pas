@@ -16,6 +16,10 @@ uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, Ga
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice;
 
+var
+  { STING training override. }
+  stingMode: Byte;
+
 
 
 const
@@ -70,7 +74,7 @@ begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
   redraw := True;
-  GDVars.stingMode := 0;
+  stingMode := 0;
   GDVars.ifcState := C_Ifc.MAIN_MENU;
   while True do begin
     if redraw then begin
@@ -79,7 +83,7 @@ begin
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
-        if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (GDVars.stingMode <> 0) then
+        if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0) then
           { Only ever set in this branch: once enabled, Train stays enabled until no character is selected. }
           GDConsts.menuItems[MENU_TRAIN].enabled := 1;
         GDConsts.menuItems[MENU_VIEW].enabled := 1;
@@ -173,8 +177,8 @@ begin
         { free training, turned on and off as in Curse }
         'J': if GDVars.stingArg then
              begin
-               GDVars.stingMode := Ord(GDVars.stingMode = 0);
-               if GDVars.stingMode <> 0 then
+               stingMode := Ord(stingMode = 0);
+               if stingMode <> 0 then
                  CharDisp.PrintBottomLine('Free training on')
                else
                  CharDisp.PrintBottomLine('Free training off');
@@ -961,11 +965,11 @@ var
   idx: Integer;
   notEmpty: Boolean;
 begin
-  if (GDVars.curChar^.status <> C_Status.OKAY) and (GDVars.stingMode = 0) then begin
+  if (GDVars.curChar^.status <> C_Status.OKAY) and (stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;
-  if (MoneyCal.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
+  if (MoneyCal.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (stingMode = 0) then begin
     TextRend.PrintAndPause('Training costs 1000 gp.', Yellow);
     Exit;
   end;
@@ -1002,7 +1006,7 @@ begin
         end;
         { xp[] runs to level 9 }
         if (not atCap) and (lvl < 9) then
-          if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (GDVars.stingMode <> 0) then
+          if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);
               if lvl < 8 then
@@ -1017,7 +1021,7 @@ begin
       end;
     if xpClamp > 0 then
       experience := xpClamp;
-    if GDVars.stingMode = 0 then begin
+    if stingMode = 0 then begin
       if Byte(classMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
         Exit;
@@ -1026,7 +1030,7 @@ begin
         Exit;
       end;
     end;
-    if GDVars.stingMode = 0 then
+    if stingMode = 0 then
       trainable := trainMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]
     else
       trainable := trainMask;
@@ -1050,7 +1054,7 @@ begin
     if MenuCore.YesNoMenu('Do you wish to train? ', LightMagenta, LightGreen, White) <> 'Y' then
       Exit;
     CharDisp.PrintBottomLine('Congratulations...');
-    if GDVars.stingMode = 0 then
+    if stingMode = 0 then
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
     clsCount := 0;
     oldMage := classLevels[C_Level.MAGE];

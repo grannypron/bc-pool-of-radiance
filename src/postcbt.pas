@@ -16,6 +16,16 @@ implementation
 uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_Status, C_Ifc, C_Gbvm,
   C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
+var
+  { Combat outcome. }
+  nonEscapedHostileFound: Boolean;
+  partyFled: Boolean;
+  { Count of disabled or Animated creatures, which get no experience share }
+  nonAnimCount: Byte;
+  { Experience share before individual bonuses. }
+  expShare: LongInt;
+  combatWon: Boolean;
+
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
   div 20, electrum div 2, gold x1, platinum x5, gems x250, jewelry x2200), as does each taken item's positive plus x400
@@ -41,7 +51,7 @@ begin
     while p <> nil do begin
       item := p^.itemsAddr;
       if (p^.hostile = 1) and (p^.status <> C_Status.RUNNING) then begin
-        GDVars.nonEscapedHostileFound := True;
+        nonEscapedHostileFound := True;
         for i := C_Money.COPPER to C_Money.JEWELRY do
           Inc(GDVars.treasureMoney[i], p^.coins[i]);
         expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
@@ -71,7 +81,7 @@ begin
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - GDVars.nonAnimCount;
+    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonAnimCount;
     if sharers > 0 then
       share := expTotal div sharers
     else
@@ -113,18 +123,18 @@ var
   nxt: Types.PCharRecord;
   b: Boolean;
 begin
-  GDVars.nonAnimCount := 0;
+  nonAnimCount := 0;
   GDVars.partyDefeated := True;
-  GDVars.partyFled := False;
+  partyFled := False;
   p := GDVars.creatureList;
   while (p <> nil) and (not IsMonster(p)) do begin
     if p^.status = C_Status.RUNNING then
-      GDVars.partyFled := True;
+      partyFled := True;
     p := p^.nextCharAddr;
   end;
   if GDVars.duelFlag then
     GDVars.partyDefeated := False;
-  GDVars.combatWon := False;
+  combatWon := False;
   p := GDVars.creatureList;
   if not GDVars.duelFlag then begin
     while (p <> nil) and (not IsMonster(p)) do begin
@@ -134,23 +144,23 @@ begin
           (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
         GDVars.partyDefeated := False;
       if (p^.status = C_Status.ANIMATED) or (p^.status = C_Status.OKAY) then begin
-        GDVars.combatWon := True;
-        GDVars.partyFled := False;
+        combatWon := True;
+        partyFled := False;
       end;
       if (p^.enabled = 0) or (p^.status = C_Status.ANIMATED) then
-        Inc(GDVars.nonAnimCount);
+        Inc(nonAnimCount);
       p := p^.nextCharAddr;
     end;
-    if GDVars.combatWon then begin
-      PostCbt.DetermineLootExp(GDVars.expShare);
-      PostCbt.AwardExperience(GDVars.expShare);
+    if combatWon then begin
+      PostCbt.DetermineLootExp(expShare);
+      PostCbt.AwardExperience(expShare);
     end;
     p := GDVars.creatureList;
     if not GDVars.partyDefeated then begin
       while (p <> nil) and (not IsMonster(p)) do begin
         { RemoveCreature below frees p }
         nxt := p^.nextCharAddr;
-        if not GDVars.partyFled then begin
+        if not partyFled then begin
           case p^.status of
             C_Status.RUNNING: begin
                  p^.status := C_Status.OKAY;
@@ -193,9 +203,9 @@ begin
     p := GDVars.creatureList;
     while p <> nil do begin
       if (p^.enabled = 1) and (p^.status = C_Status.OKAY) and (p^.hostile <> 1) then begin
-        GDVars.combatWon := True;
-        PostCbt.DetermineLootExp(GDVars.expShare);
-        PostCbt.AwardExperience(GDVars.expShare);
+        combatWon := True;
+        PostCbt.DetermineLootExp(expShare);
+        PostCbt.AwardExperience(expShare);
       end;
       p := p^.nextCharAddr;
     end;
@@ -222,8 +232,8 @@ var
 begin
   query[0] := #0;
   Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
-  if GDVars.nonEscapedHostileFound or GDVars.duelFlag then begin
-    if GDVars.duelFlag and not GDVars.combatWon then begin
+  if nonEscapedHostileFound or GDVars.duelFlag then begin
+    if GDVars.duelFlag and not combatWon then begin
       TextRend.DisplayString(1, 3, LightGreen, 'You have lost the duel.');
       experience := 0;
     end else if GDVars.duelFlag then
@@ -231,7 +241,7 @@ begin
     else
       TextRend.DisplayString(1, 3, LightGreen, 'The party has won.');
   end else begin
-    if GDVars.partyFled then begin
+    if partyFled then begin
       TextRend.DisplayString(1, 3, LightGreen, 'The party has fled.');
       experience := 0;
     end else
@@ -511,13 +521,13 @@ end;
 procedure PostCombat;
 begin
   GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := 0;
-  GDVars.nonEscapedHostileFound := False;
+  nonEscapedHostileFound := False;
   GDVars.ifcState := C_Ifc.LOOT;
   PostCbt.DetermineCombatResults;
   PostCbt.PostCombatCreatureCleanup;
   if not GDVars.partyDefeated or GDVars.duelFlag then begin
     PostCbt.NpcTreasureShare;
-    PostCbt.PostCombatSummary(GDVars.expShare);
+    PostCbt.PostCombatSummary(expShare);
     PostCbt.LootMenu;
     CharHlp.FreeItemList(GDVars.treasureItems);
   end else begin

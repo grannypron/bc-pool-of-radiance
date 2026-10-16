@@ -11,6 +11,14 @@ implementation
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
   GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D;
 
+var
+  { directory saved across resource loading }
+  savedDir: Types.TPathStr;
+  { ITEMS loading file record }
+  itemsFile: file;
+  { ITEMS read result. }
+  itemsRead: Word;
+
 { Install every spell handler in GDVars.spellFns, the noncombat cast-target menu, and Magic.DragonBreathHandler as
   effect 88's handler; clear effectLock, GDVars.usingItem and GDVars.castTarget, and set dsRedrawInventoryMenuFlag. }
 procedure InitSpellFns;
@@ -348,7 +356,7 @@ begin
   GDVars.inEncMenu := 0;
   GDVars.soundAutoStop := 0;
   SoundDrv.SoundSetAutoStop(100);
-  GDVars.savedDir := GDVars.gameDir;
+  savedDir := GDVars.gameDir;
   GDVars.gameDir[0] := #0;
   TextRend.LoadGameFont;
   TextRend.ClearBottomLine;
@@ -361,17 +369,17 @@ begin
     MapTiles.LoadIconAnim('COMSPR', i, i + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
   opened := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':', False,
-                                 GDVars.itemsFile);
-  Reset(GDVars.itemsFile, 1);
-  Seek(GDVars.itemsFile, 2);
+                                 itemsFile);
+  Reset(itemsFile, 1);
+  Seek(itemsFile, 2);
   { This asks for 129 records into the 128-entry item table; baseItemsOverflow after it keeps a 129th in bounds. The
     file must hold the 128. }
-  BlockRead(GDVars.itemsFile, GDVars.baseItems, 129 * SizeOf(Types.TBaseItemRec), GDVars.itemsRead);
-  Close(GDVars.itemsFile);
-  if (IOResult <> 0) or (GDVars.itemsRead < 128 * SizeOf(Types.TBaseItemRec)) then begin
+  BlockRead(itemsFile, GDVars.baseItems, 129 * SizeOf(Types.TBaseItemRec), itemsRead);
+  Close(itemsFile);
+  if (IOResult <> 0) or (itemsRead < 128 * SizeOf(Types.TBaseItemRec)) then begin
     GameIo.FatalError('Unable to read ITEMS.');
   end;
-  GDVars.gameDir := GDVars.savedDir;
+  GDVars.gameDir := savedDir;
   TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }
   Options.LoadOptions;
