@@ -36,7 +36,7 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
 implementation
 
-uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo,
+uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveMenu, DaxIo,
   FileUtil, CharDisp, Party;
 
 const
@@ -205,7 +205,7 @@ var
   ioRes: Integer;
   item: Types.TItemRec;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   FillChar(head, SizeOf(head), 0);
   head.sig := VAULT_SIG;
   head.version := VAULT_VERSION;

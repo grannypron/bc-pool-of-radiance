@@ -88,11 +88,6 @@ procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSl
 { Forget the character's usual spells; called before its record is freed or reused. }
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
-{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
-  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
-  cannot be made and is left alone. }
-procedure CheckSaveDir;
-
 procedure FreeCreature(creature: Types.PCharRecord);
 
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
@@ -132,12 +127,6 @@ var
   usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
   usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
 
-{ 'Put save disk in C:', for the save directory's drive. }
-function SaveDiskMsg: Types.TStr40;
-begin
-  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
-end;
-
 { Create file name (record size 1) for writing, asking for the save disk until it can be. }
 procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
 var
@@ -148,7 +137,7 @@ begin
     Rewrite(f, 1);
     ioRes := IOResult;
     if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
+      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
   until ioRes = 0;
 end;
 
@@ -264,7 +253,7 @@ var
   f: Text;
 begin
   list := nil;
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   if not DaxIo.FileExists(GDVars.dsSaveDirectory + 'charlist.txt') then Exit;
   Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
   Reset(f);
@@ -294,13 +283,13 @@ var
   f: Text;
   ioRes: Integer;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
     Rewrite(f);
     ioRes := IOResult;
     if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
+      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
   until ioRes = 0;
   p := list;
   while p <> nil do begin
@@ -309,26 +298,6 @@ begin
     p := p^.next;
   end;
   Close(f);
-end;
-
-procedure CheckSaveDir;
-var
-  ioRes: Integer;
-  i: Byte;
-begin
-  if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
-  repeat
-    { each parent first, from the one below the root; its errors show again in the last MkDir }
-    for i := 4 to Length(GDVars.dsSaveDirectory) - 1 do
-      if GDVars.dsSaveDirectory[i] = '\' then begin
-        MkDir(Copy(GDVars.dsSaveDirectory, 1, i - 1));
-        ioRes := IOResult;
-      end;
-    MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
-    ioRes := IOResult;
-    if (ioRes <> 0) and (ioRes <> 5) then
-      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
-  until (ioRes = 0) or (ioRes = 5);
 end;
 
 { OR src's pixels onto dst and AND the transparency masks. The CGA and Tandy masks are imgSize bytes; the EGA mask is
@@ -436,7 +405,7 @@ begin
     ext := '.cha';
     fn := SaveLoad.CharFileBase(creature^.name);
   end else begin
-    SaveLoad.CheckSaveDir;
+    SaveMenu.CheckSaveDir;
     ext := '.sav';
     fn := GDVars.dsSaveDirectory + fname;
   end;
@@ -513,7 +482,7 @@ var
 begin
   if askDisk then begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
-    msg := SaveLoad.SaveDiskMsg;
+    msg := SaveMenu.SaveDiskMsg;
   end else
     msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
   if savedGame then
@@ -634,7 +603,7 @@ var
   nChars: Byte;
   found: Boolean;
 begin
-  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveLoad.SaveDiskMsg, True, f);
+  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveMenu.SaveDiskMsg, True, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
@@ -685,7 +654,7 @@ begin
         SaveLoad.AddCharToParty(creature)
       else
         FreeMem(creature, SizeOf(Types.TCharRecord));
-      SaveLoad.CheckSaveDir;
+      SaveMenu.CheckSaveDir;
     end;
   end;
   creature := GDVars.creatureList;
@@ -726,7 +695,7 @@ procedure LoadGame;
 var
   letter: Char;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
   if letter <> C_Keys.NONE then
     SaveLoad.LoadSlot(letter);
@@ -787,7 +756,7 @@ begin
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   SaveLoad.RewriteSaveFile(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
@@ -843,7 +812,7 @@ var
   oldArea: SaveMenu.TSlotArea;
   ok: Boolean;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   area := AreaName.CurrentArea;
   letter := C_Keys.NONE;
   repeat
