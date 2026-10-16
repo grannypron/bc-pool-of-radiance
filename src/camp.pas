@@ -18,7 +18,7 @@ implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
   FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl;
+  CharDisp, Party, Dice, UsualSpl, Clock;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -281,7 +281,7 @@ begin
   DisplaySpellSlots := any;
 end;
 
-{ Seed the rest clock (hours, tens of minutes, minutes) from the party's longest spell-prep time, run GameTime.CampRest,
+{ Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest,
   then clear the clock and update the misc-info line. }
 procedure CampRestMenu(var interrupted: Boolean);
 var
@@ -296,9 +296,7 @@ begin
     if total < t then total := t;
     p := p^.nextCharAddr;
   end;
-  GDVars.dsRestingTimeGbvm[3] := total div 60;
-  GDVars.dsRestingTimeGbvm[2] := (total - 60 * GDVars.dsRestingTimeGbvm[3]) div 10;
-  GDVars.dsRestingTimeGbvm[1] := total mod 10;
+  Clock.SetFromMinutes(GDVars.dsRestingTimeGbvm, total);
   interrupted := GameTime.CampRest(True);
   FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
   CharDisp.PrintMiscInfo;
@@ -1006,11 +1004,7 @@ begin
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
-  FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
-  GDVars.dsRestingTimeGbvm[C_Time.DAYS] := total div 1440;
-  GDVars.dsRestingTimeGbvm[C_Time.HOURS] := (total mod 1440) div 60;
-  GDVars.dsRestingTimeGbvm[C_Time.TURNS] := (total mod 60) div 10;
-  GDVars.dsRestingTimeGbvm[C_Time.MINUTES] := total mod 10;
+  Clock.SetFromMinutes(GDVars.dsRestingTimeGbvm, total);
   interrupted := GameTime.CampRest(False);
   done := (GDVars.dsRestingTimeGbvm[C_Time.DAYS] = 0) and (GDVars.dsRestingTimeGbvm[C_Time.HOURS] = 0) and
           (GDVars.dsRestingTimeGbvm[C_Time.TURNS] = 0) and (GDVars.dsRestingTimeGbvm[C_Time.MINUTES] = 0);
