@@ -277,7 +277,7 @@ begin
   list := sel;
   TextRend.ClearRect(0, 24, 39, 24);
   redraw := True;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   { the top divider row }
   Border.DrawWindow(1, 1, 38, 1, 0, White, '');
   { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }

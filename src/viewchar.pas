@@ -24,7 +24,7 @@ implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp, MoneyCal;
+  CharDisp, MoneyCal, C_Msg;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -61,7 +61,7 @@ var
   multi: Boolean;
 begin
   TextRend.ClearScreen;
-  Border.DrawBorder(1, 1, 38, 22, 0);
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(creature, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
   if CharHlp.IsNpc(creature) then
@@ -252,7 +252,7 @@ begin
     if b <> nil then
       kinds := b^.kindCount;
     TextRend.ClearScreen;
-    Border.DrawBorder(1, 1, 38, 22, 0);
+    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
     if showGame then
       TextRend.DisplayString(2, 2, LightCyan, 'Game Statistics')
     else begin
@@ -318,7 +318,7 @@ begin
   p := GDVars.curChar;
   CharHlp.RecalcStats(p);
   TextRend.ClearScreen;
-  Border.DrawBorder(1, 1, 38, 22, 0);
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(p, 2, 2, False);
   TextRend.DisplayString(2, 4, White, 'Saving Throws');
   for i := C_Save.PARALYZE to C_Save.SPELL do begin
@@ -549,7 +549,7 @@ begin
     v[15] := CharHlp.BaseItem(itemType)^.dmgLgDice;
   end;
   TextRend.ClearScreen;
-  Border.DrawBorder(1, 1, 38, 22, 0);
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
   for i := 1 to 15 do begin
     Str(v[i], s);
     TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
@@ -606,7 +606,7 @@ begin
       end;
       if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
-        Border.DrawBorder(1, 1, 38, 22, 0);
+        Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
         CharDisp.DisplayCreatureName(creature, 1, 1, True);
         TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
         Border.DrawWindow(1, 3, 38, 22, 0, Black, '');

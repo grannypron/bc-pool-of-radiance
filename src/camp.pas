@@ -632,7 +632,7 @@ begin
   end;
   menuRedraw := True;
   idx := 0;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, 'Display');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Display');
   c := MenuCore.MenuVertical('', '', LightCyan, LightGreen, White, 1, 4, 38, 22, head, True,
                              menuRedraw, idx, cur);
   MenuCore.FreeStringList(head);

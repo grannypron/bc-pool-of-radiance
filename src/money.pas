@@ -339,7 +339,7 @@ var
   redraw: Boolean;
   ch: Char;
 begin
-  Border.DrawWindow(1, 1, 38, 22, 0, LightGreen, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, LightGreen, '');
   idx := 0;
   repeat
     redraw := True;
@@ -501,7 +501,7 @@ begin
           1: jwlStr := jwlStr + ' piece of Jewelry';
           else jwlStr := jwlStr + ' pieces of Jewelry';
         end;
-        TextRend.ClearRect(1, 1, 38, 22);
+        TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
         CharDisp.DisplayCreatureName(GDVars.curChar, 1, 1, False);
         TextRend.DisplayString(1, 7, White, 'You have a fine collection of:');
         TextRend.DisplayString(1, 9, White, gemStr);

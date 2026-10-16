@@ -252,7 +252,7 @@ var
   ext: Boolean;
 begin
   query[0] := #0;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   if GDVars.nonEscapedHostileFound or GDVars.duelFlag then begin
     if GDVars.duelFlag and not GDVars.combatWon then begin
       TextRend.DisplayString(1, 3, LightGreen, 'You have lost the duel.');
@@ -290,7 +290,7 @@ var
   p: Types.PItemRec;
 begin
   redraw := True;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, 'Loot');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Loot');
   p := GDVars.treasureItems;
   while p <> nil do begin
     CharHlp.PrintItemString(p, 0, 0, False, False);
@@ -519,7 +519,7 @@ begin
         took := True;
       end;
   if took then begin
-    Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
     p := GDVars.creatureList;
     row := 0;
     while p <> nil do begin
@@ -553,7 +553,7 @@ begin
     CharHlp.FreeItemList(GDVars.treasureItems);
   end else begin
     GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $80;
-    Border.DrawWindow(1, 1, 38, 22, 0, White, 'The END!');
+    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'The END!');
     GDVars.curCol := 2;
     GDVars.curRow := 6;
     TextRend.DisplayMessageWindow(2, 5, 37, 22, LightGreen, True,

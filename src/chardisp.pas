@@ -495,7 +495,7 @@ end;
   the picture inset border when asked. }
 procedure DrawNoncombatWindows(inset: Boolean);
 begin
-  Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   Border.DrawWindow(1, 1, 15, 15, 0, White, '');
   if inset then
@@ -509,7 +509,8 @@ end;
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of
-    C_Ifc.MAIN_MENU: Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+    C_Ifc.MAIN_MENU: Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                       0, White, '');
     C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
       Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);

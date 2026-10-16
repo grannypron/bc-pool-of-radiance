@@ -56,7 +56,7 @@ begin
     p^.name[0] := Chr(SizeOf(s) - 1);
     p := p^.next;
   end;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, 'Shop');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Shop');
   head := GDVars.treasureItems;
   c := MenuCore.MenuVertical('Items: ', 'Buy', LightMagenta, LightGreen, White, 1, 4, 38, 22, head,
                              True, redraw, idx, cursor);

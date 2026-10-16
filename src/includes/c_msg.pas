@@ -5,6 +5,7 @@ interface
 
 const
   TEXT_LEFT = 1;
+  TEXT_TOP = 1;
   TEXT_RIGHT = 38;
   TEXT_BOTTOM = 22;
   MESSAGE_TOP = 17;

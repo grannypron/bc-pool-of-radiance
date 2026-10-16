@@ -1358,10 +1358,11 @@ begin
     q := q^.nextCharAddr;
   end;
   if GDVars.partyDefeated then begin
-    Border.DrawWindow(1, 1, 38, 22, 0, White, 'The END!');
+    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'The END!');
     GDVars.curCol := 2;
     GDVars.curRow := 2;
-    TextRend.DisplayMessageWindow(1, 1, 38, 22, LightGreen, True, 'The entire party is killed!');
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                  LightGreen, True, 'The entire party is killed!');
     Delay(3000);
   end;
   GDVars.curChar := savedCur;
