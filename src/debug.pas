@@ -10,10 +10,15 @@ uses Types;
   hpMax, hpCur and drainedHps for each drained level, before removing its hit points }
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 
+{ STING Ctrl-Y (#612): the overlay loads so far, the overlay buffer and its probation area, and the heap's free memory
+  and largest block, on the bottom line one after another, each until a key; the menu line is drawn again after.
+  GameIo.ReadGameKey calls it through GameIo.showMemory. }
+procedure ShowMemory;
+
 implementation
 
 
-uses Crt, GDConsts, GDVars, TextRend;
+uses Crt, GDConsts, GDVars, TextRend, Overlay, StrUtil;
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 var
   s1: String;
@@ -30,6 +35,16 @@ begin
     TextRend.DisplayAndPause(Yellow, msg);
     TextRend.ClearRect(0, 0, 39, 0);
   end;
+end;
+
+procedure ShowMemory;
+begin
+  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GDVars.ovrLoads));
+  TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
+                                       StrUtil.NumStr(OvrGetRetry));
+  TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
+  TextRend.ClearBottomLine;
+  GDVars.bottomLineTaken := True;
 end;
 
 end.

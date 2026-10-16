@@ -11,6 +11,9 @@ var
   { Options.LoadOptions sets it to Options.SaveOptions once POOLOPT.CFG has been read; Ctrl-S calls it to write the
     Sound setting back. GameIo starts before the overlay manager and cannot use the overlaid Options itself. }
   saveSettings: TSettingsHook;
+  { STING Ctrl-Y's memory display, Debug.ShowMemory, which GameInit installs; the overlaid Debug draws with TextRend,
+    which GameIo cannot use without a unit cycle. }
+  showMemory: TSettingsHook;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
   byte. After a nonzero
@@ -33,10 +36,10 @@ procedure ExitGame;
 
 implementation
 
-uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types, Overlay, TextRend, StrUtil;
+uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types;
 
 var
-  { ShowMemory is up: its own key waits do not open it again }
+  { showMemory is up: its own key waits do not open it again }
   memShown: Boolean;
 
 procedure ExitGame;
@@ -68,20 +71,6 @@ begin
   end;
 end;
 
-{ STING Ctrl-Y (#612): the overlay loads so far, the overlay buffer and its probation area, and the heap's free memory
-  and largest block, on the bottom line one after another, each until a key; the menu line is drawn again after. }
-procedure ShowMemory;
-begin
-  memShown := True;
-  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GDVars.ovrLoads));
-  TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
-                                       StrUtil.NumStr(OvrGetRetry));
-  TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
-  TextRend.ClearBottomLine;
-  GDVars.bottomLineTaken := True;
-  memShown := False;
-end;
-
 function ReadGameKey: Char;
 var
   key: Char;
@@ -111,8 +100,11 @@ begin
     end;
     if (key = #26) and GDVars.debugTraceEnabled then
       GameIo.DumpEffects;
-    if (key = #25) and not memShown then
-      GameIo.ShowMemory;
+    if (key = #25) and not memShown and (@showMemory <> nil) then begin
+      memShown := True;
+      showMemory;
+      memShown := False;
+    end;
   end;
   if key <> #0 then
     while KeyPressed do
