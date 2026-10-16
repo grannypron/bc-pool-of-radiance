@@ -311,9 +311,11 @@ Declined:
 
 Separate, because they change behaviour:
 - POR-0166 (#640): Space in combat treats animated creatures differently on the menu and during the AI's turn.
-- Camp converts rest minutes into the rest timer two ways (`camp.pas:273` and `:1015`). They differ once the total
-  passes a day.
-- `heapFailureSaveEnabled` is never set, so HeapErr's out-of-memory save can never run: enable it or remove it.
+  **Fixed** in 206471b.
+- #644: Camp converts rest minutes into the rest timer two ways (`CampRestMenu` and the Fix rest). They differ once
+  the total passes a day.
+- POR-0168 (#643): `heapFailureSaveEnabled` is never set, so HeapErr's out-of-memory save can never run: enable it or
+  remove it.
 - #616: the Constitution hit-point bonus.
 
 ## Working method
