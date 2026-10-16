@@ -704,16 +704,10 @@ end;
 function QuickLoadable: Boolean;
 var
   f: file;
-  mode: Byte;
   ioRes: Integer;
 begin
   QuickLoadable := False;
-  Assign(f, GDVars.dsSaveDirectory + 'savgam' + QUICK_SLOT + '.dat');
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
+  if FileUtil.OpenReadOnly(f, GDVars.dsSaveDirectory + 'savgam' + QUICK_SLOT + '.dat') then begin
     QuickLoadable := (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
     Close(f);
   end;
