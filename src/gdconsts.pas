@@ -18,7 +18,7 @@ const
     C_Effect.HELPLESS, C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP,
         C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT);
   { HealMenu }
-  templeSpells: array[1..10] of String[40] = (
+  templeSpells: array[1..10] of String[20] = (
     'Cure Blindness',
     'Cure Disease',
     'Cure Light Wounds',
@@ -417,7 +417,7 @@ const
      properties: (0, 72, 134)));
   { AddSpellToList }
   { Spell-list headings indexed by spell level }
-  spellLevelNames: array[1..9] of String[40] = (
+  spellLevelNames: array[1..9] of String[9] = (
     '1st Level',
     '2nd Level',
     '3rd Level',
@@ -1248,7 +1248,7 @@ const
   cloudDir: array[1..4] of Byte = (
     8, 2, 3, 4);
   { spell IDs 1..56 }
-  spellNames: array[1..56] of string[40] = (
+  spellNames: array[1..56] of string[32] = (
     'Bless',
     'Curse',
     'Cure Light Wounds',
