@@ -171,7 +171,7 @@ begin
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
     GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_Level.THIEF]) + 3) div 4 + 1);
-  if (att^.classLevels[C_Level.RANGER] > 0) and (CharHlp.CalcDistance(att, def) <= 1) then
+  if (att^.classLevels[C_Level.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
       if def^.name = GDConsts.rangerFoes[i] then
         if GDVars.pendingDamage > 255 - att^.classLevels[C_Level.RANGER] then
@@ -260,7 +260,7 @@ var
   p: Types.PCharRecord;
   done: Boolean;
 begin
-  cnt := CharHlp.CountTargets(creature, 1);
+  cnt := CbtMap.CountTargets(creature, 1);
   for i := 1 to cnt do
     if creature^.enabled <> 0 then begin
       p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
@@ -350,7 +350,7 @@ begin
   { not on the map: no step to probe }
   if slot = 0 then
     Exit;
-  cntBefore := CharHlp.CountTargets(creature, 1);
+  cntBefore := CbtMap.CountTargets(creature, 1);
   if cntBefore = 0 then
     Exit;
   for i := 1 to cntBefore do
@@ -358,7 +358,7 @@ begin
   { probe: step the icon, recount, step back }
   Inc(GDVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
   Inc(GDVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
-  cntAfter := CharHlp.CountTargets(creature, 1);
+  cntAfter := CbtMap.CountTargets(creature, 1);
   Dec(GDVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
   Dec(GDVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
   { enemies still adjacent after the step get no free attack }
@@ -417,7 +417,7 @@ var
   halfMove: Byte;
 begin
   ok := False;
-  if CharHlp.CountTargets(creature, 255) = 0 then
+  if CbtMap.CountTargets(creature, 255) = 0 then
     ok := True
   else begin
     halfMove := CbtActs.CalcCreatureMovement(creature) div 2;
@@ -503,9 +503,9 @@ begin
     Exit;
   if def^.levelHighest <> 0 then
     Exit;
-  if CharHlp.CalcDistance(att, def) <> 1 then
+  if CbtMap.CalcDistance(att, def) <> 1 then
     Exit;
-  cnt := CharHlp.CountTargets(att, 1);
+  cnt := CbtMap.CountTargets(att, 1);
   weak := 0;
   defIdx := 0;
   for i := 1 to cnt do begin
@@ -656,7 +656,7 @@ var
 begin
   best := 13;
   tgt := nil;
-  cnt := CharHlp.CountTargets(creature, 255);
+  cnt := CbtMap.CountTargets(creature, 255);
   FindTurnUndeadTarget := False;
   for i := 1 to cnt do begin
     p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
@@ -877,7 +877,7 @@ var
   subrange: ShortInt;
   dist: ShortInt;
 begin
-  dist := CharHlp.CalcDistance(att, def);
+  dist := CbtMap.CalcDistance(att, def);
   if CharHlp.HasRangedWeapon(att) then
     subrange := (CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1)
         div 3
@@ -1392,7 +1392,7 @@ var
   ch: Char;
 begin
   menu := '';
-  dist := CharHlp.CalcDistance(cur, tgt);
+  dist := CbtMap.CalcDistance(cur, tgt);
   if weaponMode <> 0 then
     TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist) + '  ');
   if dist <= range then begin
@@ -1402,7 +1402,7 @@ begin
       if not CharHlp.HasRangedWeapon(cur) then
         menu := 'Target '
       else if CharHlp.FindDamagingRangedWeapon(cur, weapon) then
-        if (CharHlp.CountTargets(cur, 1) = 0) or CharHlp.HasThrowableWeapon(cur) then
+        if (CbtMap.CountTargets(cur, 1) = 0) or CharHlp.HasThrowableWeapon(cur) then
           menu := 'Target ';
     end;
   end;
@@ -1446,7 +1446,7 @@ begin
         if CharHlp.HasRangedWeapon(cur) then
           if CharHlp.FindDamagingRangedWeapon(cur, weapon) then
             if CharHlp.HasThrowableWeapon(cur) then
-              if CharHlp.CalcDistance(cur, tgt) = 1 then
+              if CbtMap.CalcDistance(cur, tgt) = 1 then
                 weapon := nil;
         CbtActs.CombatAttack(cur, tgt, False, weapon, done);
       end;
@@ -1534,7 +1534,7 @@ begin
           valid := False
         else if CharHlp.HasRangedWeapon(cur) then
           if (not CharHlp.FindDamagingRangedWeapon(cur, weapon)) or
-              ((CharHlp.CountTargets(cur, 1) > 0) and (not CharHlp.HasThrowableWeapon(cur))) then
+              ((CbtMap.CountTargets(cur, 1) > 0) and (not CharHlp.HasThrowableWeapon(cur))) then
             valid := False;
     end else if ground = 0 then
       valid := False;
@@ -1736,7 +1736,7 @@ begin
     if pass and (forceNew = 0) then
       GDVars.arenaPtr^.distMode := 1;
     tries := 20;
-    cnt := CharHlp.CountTargets(creature, range);
+    cnt := CbtMap.CountTargets(creature, range);
     while (tries > 0) and (not found) and (cnt > 0) do begin
       Dec(tries);
       pick := Dice.RollDice(1, cnt);

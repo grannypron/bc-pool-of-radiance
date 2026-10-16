@@ -810,7 +810,7 @@ var
   phase: Byte;
 begin
   if GDVars.curChar^.equipped[C_Equip.WEAPON] <> nil then
-    if CharHlp.CalcDistance(GDVars.curChar, creature) > 1 then
+    if CbtMap.CalcDistance(GDVars.curChar, creature) > 1 then
       if Dice.RollDice(1, 100) <= pct then begin
         CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
@@ -1812,7 +1812,7 @@ begin
   { other is nil before the anhkheg's first target, and may be a creature since taken out of play }
   if (GDVars.dsOtherCreatureCurrentPtr = nil) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then Exit;
   if Dice.RollDice(1, 100) > 25 then Exit;
-  if CharHlp.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
+  if CbtMap.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
   dummy := CharHlp.EndActions(creature);
   CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
   CharDisp.BuildIconFacings(23);

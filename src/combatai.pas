@@ -136,7 +136,7 @@ begin
     { buff or heal: no aiming }
     DecideCastSpell := True
   else begin
-    cnt := CharHlp.CountTargets(creature, CharHlp.CalcSpellRange(spell));
+    cnt := CbtMap.CountTargets(creature, CharHlp.CalcSpellRange(spell));
     if cnt > 0 then
       if GDConsts.spellTable[spell].aiRadius = 0 then
         DecideCastSpell := True
@@ -448,7 +448,7 @@ begin
               inRange := True;
         end;
       if not inRange then begin
-        cnt := CharHlp.CountTargets(creature, weaponRange);
+        cnt := CbtMap.CountTargets(creature, weaponRange);
         if cnt = 0 then begin
           if CbtActs.AcquireTarget(creature, 255, 0, 0) then
             { approach }
@@ -460,11 +460,11 @@ begin
           target := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
-             and (CharHlp.CountTargets(creature, 1) > 0) then begin
+             and (CbtMap.CountTargets(creature, 1) > 0) then begin
             { pure missile weapon with an enemy adjacent: re-equip }
             CombatAi.EquipWeaponAndShield(creature);
             done := True;
-          end else if (CharHlp.CalcDistance(creature, target) = 1)
+          end else if (CbtMap.CalcDistance(creature, target) = 1)
                   or CbtActs.CanAttackTarget(creature, target) then
             inRange := True;
         end;
@@ -481,7 +481,7 @@ begin
           if CharHlp.HasRangedWeapon(creature) then begin
             inRange := CharHlp.FindDamagingRangedWeapon(creature, weapon);
             if CharHlp.HasThrowableWeapon(creature) then
-              if CharHlp.CalcDistance(creature, target) = 1 then
+              if CbtMap.CalcDistance(creature, target) = 1 then
                 { adjacent: melee the throwable }
                 weapon := nil;
           end;
@@ -750,7 +750,7 @@ begin
   if (bestRanged <> nil)
      and (bestRangedPri > bestMeleePri div 2)
      and hasAmmo
-     and (trueRanged or (CharHlp.CountTargets(creature, 1) = 0)) then
+     and (trueRanged or (CbtMap.CountTargets(creature, 1) = 0)) then
     item := bestRanged
   else
     item := bestMelee;

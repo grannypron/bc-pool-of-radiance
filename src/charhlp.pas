@@ -53,10 +53,6 @@ function EnemyTeam(creature: Types.PCharRecord): ShortInt;
 
 procedure CountTeams;
 
-function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
-
-function CalcDistance(creature, other: Types.PCharRecord): Byte;
-
 function EndActions(creature: Types.PCharRecord): Boolean;
 
 function CanUseItems(creature: Types.PCharRecord): Boolean;
@@ -137,7 +133,7 @@ function CalcSpellRange(spell: Byte): Byte;
 
 implementation
 
-uses Crt, C_Item, GDConsts, GDVars, Pathing, CbtMap, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
+uses Crt, C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
   C_Money, Stats, TextRend, C_Npc, StrUtil, AbilAdj, C_Spell;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
@@ -676,58 +672,6 @@ begin
       Inc(GDVars.teamCount[p^.hostile]);
     p := p^.nextCharAddr;
   end;
-end;
-
-{ Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
-  indices into GDVars.dsPotentialTargetCreature. Return the remaining count. }
-function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
-var
-  n: Byte;
-  cnt: Byte;
-  i: Byte;
-begin
-  Pathing.BuildTargetList(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), range, 255,
-                          CbtMap.GetIconSize(creature), GDVars.arenaPtr);
-  n := GDVars.targetCount;
-  cnt := 0;
-  if n > 0 then begin
-    for i := 1 to n do
-      if CharHlp.EnemyTeam(creature) = GDVars.creatureArr[GDVars.targetList[i].idx]^.hostile then begin
-        Inc(cnt);
-        Move(GDVars.targetList[i], GDVars.targetList[cnt], SizeOf(GDVars.targetList[i]));
-      end;
-    n := cnt;
-    GDVars.targetCount := cnt;
-  end;
-  CountTargets := n;
-  for i := 1 to n do
-    GDVars.dsPotentialTargetCreature[i] := GDVars.targetList[i].idx;
-end;
-
-{ Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
-  Restore the previous list afterward. Stored distances are doubled, so halve the result; 255 when other is not in the
-  list (nil, or off the map). The list's count is restored with it (SSI left the rebuilt list's count). }
-function CalcDistance(creature, other: Types.PCharRecord): Byte;
-var
-  saved: array[1..255] of Types.TCombatTarget;
-  savedCount: Byte;
-  i: Byte;
-begin
-  Move(GDVars.targetList, saved, SizeOf(GDVars.targetList));
-  savedCount := GDVars.targetCount;
-  GDVars.arenaPtr^.distMode := 1;
-  Pathing.BuildTargetList(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 255, 255,
-                          CbtMap.GetIconSize(creature), GDVars.arenaPtr);
-  GDVars.arenaPtr^.distMode := 0;
-  i := 1;
-  while (GDVars.creatureArr[GDVars.targetList[i].idx] <> other) and (i < GDVars.targetCount) do
-    Inc(i);
-  if GDVars.creatureArr[GDVars.targetList[i].idx] = other then
-    CalcDistance := GDVars.targetList[i].dist shr 1
-  else
-    CalcDistance := 255;
-  Move(saved, GDVars.targetList, SizeOf(GDVars.targetList));
-  GDVars.targetCount := savedCount;
 end;
 
 { Zero the creature's per-round combat state (initiative, spell being cast, guarding, movement). Always returns True. }

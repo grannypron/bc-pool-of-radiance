@@ -738,7 +738,7 @@ begin
   for i := 1 to GDVars.spellTargetCount do begin
     if (GDVars.dsTargetCreaturePtr[i]^.hostile <> hostFlag) or
         ((GDVars.dsCurrentSpellBeing = C_Spell.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
-         (CharHlp.CountTargets(GDVars.dsTargetCreaturePtr[i], 1) > 0)) then
+         (CbtMap.CountTargets(GDVars.dsTargetCreaturePtr[i], 1) > 0)) then
       GDVars.dsTargetCreaturePtr[i] := nil;
   end;
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, msg);
