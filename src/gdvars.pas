@@ -434,7 +434,7 @@ var
 
 var
   { Rest and healing }
-  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to FxEngine.ValidateClock as a var
+  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
     parameter }
   dsRestingTimeGbvm: Types.TClock;
   { Spell preparation timers for the eight party slots. }

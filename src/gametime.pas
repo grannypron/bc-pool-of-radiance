@@ -9,12 +9,12 @@ function CampRest(interactive: Boolean): Boolean;
 implementation
 
 uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
-  FxEngine, StrUtil, CharDisp, Dice;
+  FxEngine, StrUtil, CharDisp, Dice, Clock;
 
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99 }
 procedure ValidateRestTime;
 begin
-  FxEngine.ValidateClock(GDVars.dsRestingTimeGbvm, False);
+  Clock.ValidateClock(GDVars.dsRestingTimeGbvm, False);
   if GDVars.dsRestingTimeGbvm[C_Time.MONTHS] > 0 then begin
     Inc(GDVars.dsRestingTimeGbvm[C_Time.DAYS],
         GDConsts.unitScale[C_Time.DAYS] * GDVars.dsRestingTimeGbvm[C_Time.MONTHS]);

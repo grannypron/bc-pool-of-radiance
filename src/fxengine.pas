@@ -130,8 +130,6 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
 procedure ToggleReadyItem(item: Types.PItemRec);
 
-procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
-
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
 { The start of a hold effect's handler (bite and hold, blood drain): p is the effect, its strength the victim's
@@ -144,7 +142,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice;
+uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice, Clock;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -970,44 +968,22 @@ begin
   end;
 end;
 
-{ Carry each clock component that has reached its GDConsts.unitScale limit into the next one (one carry per component
-  per call); the year has no limit. When ageOnYear is set, every creature in GDVars.creatureList ages by one as the
-  months carry into a new year. }
-procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
-var
-  i: ShortInt;
-  cur: Types.PCharRecord;
-begin
-  for i := 0 to C_Time.MONTHS do
-    if clock[i] >= GDConsts.unitScale[i] then begin
-      Inc(clock[Succ(i)]);
-      clock[i] := clock[i] - GDConsts.unitScale[i];
-      if (i = C_Time.MONTHS) and ageOnYear then begin
-        cur := GDVars.creatureList;
-        while cur <> nil do begin
-          Inc(cur^.age);
-          cur := cur^.nextCharAddr;
-        end;
-      end;
-    end;
-end;
-
 { Read the game clock from the GBVM clock words, bump component tUnit amount times (validating after each bump), write
   it back, then time out effects by the same duration }
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 var
-  clock: Types.TClock;
+  time: Types.TClock;
   i: ShortInt;
   j: Byte;
 begin
   for i := 0 to 6 do
-    clock[i] := GDVars.zone0^.words[C_Gbvm.CLOCK + i];
+    time[i] := GDVars.zone0^.words[C_Gbvm.CLOCK + i];
   for j := 1 to amount do begin
-    Inc(clock[tUnit]);
-    FxEngine.ValidateClock(clock, True);
+    Inc(time[tUnit]);
+    Clock.ValidateClock(time, True);
   end;
   for i := 0 to 6 do
-    GDVars.zone0^.words[C_Gbvm.CLOCK + i] := clock[i];
+    GDVars.zone0^.words[C_Gbvm.CLOCK + i] := time[i];
   FxEngine.TimeOutEffects(amount, tUnit);
 end;
 
