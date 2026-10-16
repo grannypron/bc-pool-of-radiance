@@ -667,10 +667,9 @@ var
 begin
   p := GDVars.creatureList;
   prev := nil;
-  if p = GDVars.curChar then begin
-    while p^.nextCharAddr <> nil do
-      p := p^.nextCharAddr;
-  end else
+  if p = GDVars.curChar then
+    p := Party.LastCreature
+  else
     while p^.nextCharAddr <> GDVars.curChar do begin
       prev := p;
       p := p^.nextCharAddr;

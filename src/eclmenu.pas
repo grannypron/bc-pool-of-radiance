@@ -420,9 +420,7 @@ begin
   end;
   if mirror = 0 then Exit;
   MapTiles.LoadIconAnim('CPIC', 11, GDVars.gIconAnim);
-  p := GDVars.creatureList;
-  while p^.nextCharAddr <> nil do
-    p := p^.nextCharAddr;
+  p := Party.LastCreature;
   GetMem(clone, SizeOf(Types.TCharRecord));
   clone^ := cur^;
   clone^.enabled := 1;

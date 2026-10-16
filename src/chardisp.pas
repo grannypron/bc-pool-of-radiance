@@ -51,7 +51,7 @@ procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PChar
 implementation
 
 uses CharHlp, Crt, C_Area, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm;
+  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
 
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
@@ -635,21 +635,9 @@ begin
     if ext then
       case ch of
         { End: next character, wrapping to the head }
-        C_Keys.END_KEY: begin
-          p := p^.nextCharAddr;
-          if p = nil then
-            p := GDVars.creatureList;
-        end;
+        C_Keys.END_KEY: p := Party.NextCreature(p);
         { Home: previous character, wrapping to the tail }
-        C_Keys.HOME: begin
-          p := GDVars.creatureList;
-          if sel <> GDVars.creatureList then
-            while p^.nextCharAddr <> sel do
-              p := p^.nextCharAddr
-          else
-            while p^.nextCharAddr <> nil do
-              p := p^.nextCharAddr;
-        end;
+        C_Keys.HOME: p := Party.PrevCreature(sel);
       end else if ((ch = 'E') or (ch = C_Keys.NONE)) and addExit then
       p := nil;
     sel := p;

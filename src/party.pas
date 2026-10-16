@@ -16,6 +16,15 @@ function IsPartyMember(creature: Types.PCharRecord): Boolean;
   head; any other code selects the head. }
 procedure SelectPrevNextChar(c: Char);
 
+{ The last creature in GDVars.creatureList, or nil for an empty list. }
+function LastCreature: Types.PCharRecord;
+
+{ The creature before c in GDVars.creatureList, wrapping from the head to the last; nil when c is not in the list. }
+function PrevCreature(c: Types.PCharRecord): Types.PCharRecord;
+
+{ The creature after c in GDVars.creatureList, wrapping from the last to the head. }
+function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
+
 implementation
 
 uses GDVars, C_Gbvm, C_Keys;
@@ -46,20 +55,42 @@ begin
   p := GDVars.creatureList;
   if p <> nil then
     case c of
-      C_Keys.HOME:
-        if p = GDVars.curChar then begin
-          while p^.nextCharAddr <> nil do
-            p := p^.nextCharAddr;
-        end else
-          while (p <> nil) and (p^.nextCharAddr <> GDVars.curChar) do
-            p := p^.nextCharAddr;
-      C_Keys.END_KEY:
-        if GDVars.curChar^.nextCharAddr <> nil then
-          p := GDVars.curChar^.nextCharAddr;
-    else
-      p := GDVars.creatureList;
+      C_Keys.HOME: p := Party.PrevCreature(GDVars.curChar);
+      C_Keys.END_KEY: p := Party.NextCreature(GDVars.curChar);
     end;
   GDVars.curChar := p;
+end;
+
+function LastCreature: Types.PCharRecord;
+var
+  p: Types.PCharRecord;
+begin
+  p := GDVars.creatureList;
+  if p <> nil then
+    while p^.nextCharAddr <> nil do
+      p := p^.nextCharAddr;
+  LastCreature := p;
+end;
+
+function PrevCreature(c: Types.PCharRecord): Types.PCharRecord;
+var
+  p: Types.PCharRecord;
+begin
+  p := GDVars.creatureList;
+  if p = c then
+    p := Party.LastCreature
+  else
+    while (p <> nil) and (p^.nextCharAddr <> c) do
+      p := p^.nextCharAddr;
+  PrevCreature := p;
+end;
+
+function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
+begin
+  if c^.nextCharAddr <> nil then
+    NextCreature := c^.nextCharAddr
+  else
+    NextCreature := GDVars.creatureList;
 end;
 
 end.

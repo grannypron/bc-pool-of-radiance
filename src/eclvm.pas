@@ -14,7 +14,7 @@ implementation
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp;
+  StrUtil, EclVars, CharDisp, Party;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -246,11 +246,9 @@ begin
   count := EclVars.GetEclVar(2);
   if count <= 0 then count := 1;
   picId := EclVars.GetEclVar(3);
-  p := GDVars.creatureList;
   nm := 'CPIC';
   MapTiles.LoadIconAnim(nm, picId, GDVars.gIconAnim);
-  while p^.nextCharAddr <> nil do
-    p := p^.nextCharAddr;
+  p := Party.LastCreature;
   p^.nextCharAddr := creature;
   p := p^.nextCharAddr;
   p^.orderNumber := GDVars.gIconAnim;

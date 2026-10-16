@@ -559,12 +559,8 @@ begin
   if GDVars.creatureList = nil then begin
     GDVars.creatureList := creature;
     GDVars.curChar := creature;
-  end else begin
-    p := GDVars.creatureList;
-    while p^.nextCharAddr <> nil do
-      p := p^.nextCharAddr;
-    p^.nextCharAddr := creature;
-  end;
+  end else
+    Party.LastCreature^.nextCharAddr := creature;
   FillChar(used, SizeOf(used), 0);
   p := GDVars.creatureList;
   while p <> nil do begin
