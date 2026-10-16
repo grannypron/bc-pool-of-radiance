@@ -323,6 +323,20 @@ var
   addExit: Boolean;
   redraw: Boolean;
 
+  { Bring the new character's rolled ability i within its race's limits (ClassCal.RaceAbilityMin and Max), then up to
+    its class's minimum. }
+  procedure ClampToLimits(i: ShortInt);
+  begin
+    with creature^ do begin
+      if stats[i] < ClassCal.RaceAbilityMin(race, genderSp, i) then
+        stats[i] := ClassCal.RaceAbilityMin(race, genderSp, i);
+      if stats[i] > ClassCal.RaceAbilityMax(race, genderSp, i) then
+        stats[i] := ClassCal.RaceAbilityMax(race, genderSp, i);
+      if stats[i] < GDConsts.classMin[charClass].values[i] then
+        stats[i] := GDConsts.classMin[charClass].values[i];
+    end;
+  end;
+
   { Run the gender, class or alignment list until Enter, leaving the pick in sel (1 for the first line). Exit or Escape
     frees the list and the character and returns False, for the caller to leave. }
   function PickFromList: Boolean;
@@ -575,12 +589,7 @@ begin
                  Dec(stats[i], 2);
                if (stats[i] > 0) and (GDConsts.ageCat[race].old < age) then
                  Dec(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp] then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp];
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp] then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp];
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
                if (stats[C_Abil.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
                  if GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] < strExc then
@@ -593,12 +602,7 @@ begin
                  Inc(stats[i]);
                if GDConsts.ageCat[race].old < age then
                  Inc(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].intMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].intMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].intMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].intMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
           { Wisdom }
           C_Abil.WISDOM: begin
@@ -610,12 +614,7 @@ begin
                  Inc(stats[i]);
                if GDConsts.ageCat[race].old < age then
                  Inc(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].wisMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].wisMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].wisMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].wisMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
                if stats[i] < 13 then
                  { cleric multiclasses need Wisdom 13 }
                  if charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF] then
@@ -627,12 +626,7 @@ begin
                  Dec(stats[i], 2);
                if GDConsts.ageCat[race].old < age then
                  Dec(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].dexMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].dexMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].dexMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].dexMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
           { Constitution }
           C_Abil.CONSTITUTION: begin
@@ -642,21 +636,11 @@ begin
                  Dec(stats[i]);
                if GDConsts.ageCat[race].old < age then
                  Dec(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].conMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].conMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].conMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].conMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
           { Charisma }
           C_Abil.CHARISMA: begin
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].chaMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].chaMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].chaMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].chaMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
         end;
       ViewChar.PrintStat(i, False);
@@ -796,6 +780,22 @@ var
       StatMinimum := racialMin;
   end;
 
+  { Left on ability a: up to the larger of its racial and class minimums. }
+  procedure RaiseToMinimum(a: ShortInt);
+  begin
+    with GDVars.curChar^ do
+      if stats[a] < StatMinimum(ClassCal.RaceAbilityMin(race, genderSp, a)) then
+        stats[a] := StatMinimum(ClassCal.RaceAbilityMin(race, genderSp, a));
+  end;
+
+  { Right on ability a: down to its racial maximum. }
+  procedure LowerToMaximum(a: ShortInt);
+  begin
+    with GDVars.curChar^ do
+      if stats[a] > ClassCal.RaceAbilityMax(race, genderSp, a) then
+        stats[a] := ClassCal.RaceAbilityMax(race, genderSp, a);
+  end;
+
 begin
   if (GDVars.curChar^.experience > 0) or (GDVars.curChar^.race < C_Race.DWARF) or
       (GDVars.curChar^.race > C_Race.HUMAN) or (GDVars.curChar^.charClass < 0) or
@@ -843,25 +843,18 @@ begin
                 C_Abil.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
                      Inc(stats[hold]);
-                   end else if stats[hold] <
-                       StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]);
-                C_Abil.INTELLIGENCE: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin);
+                   end else
+                     RaiseToMinimum(hold);
                 C_Abil.WISDOM: begin
-                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin) then
-                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin);
+                     RaiseToMinimum(hold);
                      { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
                        with no ceiling (they are 0 for a new first-level character) }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.DEXTERITY: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin);
                 C_Abil.CONSTITUTION: begin
-                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin) then
-                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin);
+                     RaiseToMinimum(hold);
                      if CharGen.HpMaximum(GDVars.curChar) < hpMax then
                        hpMax := CharGen.HpMaximum(GDVars.curChar);
                      hpCur := hpMax;
@@ -869,8 +862,9 @@ begin
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
                    end;
-                C_Abil.CHARISMA: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin);
+              else
+                { Intelligence, Dexterity, Charisma }
+                RaiseToMinimum(hold);
               end;
             end else
             { HP row }
@@ -886,27 +880,21 @@ begin
               hold := statIdx;
               Inc(stats[hold]);
               case hold of
-                C_Abil.STRENGTH: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp] then begin
+                C_Abil.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
                      if (stats[hold] > 18) and (CharHlp.WarriorLevel(GDVars.curChar) > 0) and
                          (GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp];
+                     stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
                    end;
-                C_Abil.INTELLIGENCE: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].intMax then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].intMax;
                 C_Abil.WISDOM: begin
-                     if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].wisMax then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].wisMax;
+                     LowerToMaximum(hold);
                      { clericSpells[1] only, same shape as the Left arm above }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.DEXTERITY: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].dexMax then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].dexMax;
                 C_Abil.CONSTITUTION: begin
-                     if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].conMax then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].conMax;
+                     LowerToMaximum(hold);
                      if CharGen.HpMinimum(GDVars.curChar) > hpMax then
                        hpMax := CharGen.HpMinimum(GDVars.curChar);
                      hpCur := hpMax;
@@ -914,8 +902,9 @@ begin
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
                    end;
-                C_Abil.CHARISMA: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].chaMax then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].chaMax;
+              else
+                { Intelligence, Dexterity, Charisma }
+                LowerToMaximum(hold);
               end;
             end else
             { HP row }

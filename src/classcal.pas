@@ -14,10 +14,15 @@ procedure RecalcSaves(creature: Types.PCharRecord);
 
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 
+{ The racial limits on ability (C_Abil) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
+  depends on), from GDConsts.dsMinimumMaximumStatistics. }
+function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
+function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
+
 implementation
 
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race;
+uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil;
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
@@ -159,6 +164,34 @@ begin
           total := 0;
         thiefSkills[j] := total;
       end;
+end;
+
+function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
+begin
+  with GDConsts.dsMinimumMaximumStatistics[race] do
+    case ability of
+      C_Abil.STRENGTH: RaceAbilityMin := strMin[gender];
+      C_Abil.INTELLIGENCE: RaceAbilityMin := intMin;
+      C_Abil.WISDOM: RaceAbilityMin := wisMin;
+      C_Abil.DEXTERITY: RaceAbilityMin := dexMin;
+      C_Abil.CONSTITUTION: RaceAbilityMin := conMin;
+    else
+      RaceAbilityMin := chaMin;
+    end;
+end;
+
+function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
+begin
+  with GDConsts.dsMinimumMaximumStatistics[race] do
+    case ability of
+      C_Abil.STRENGTH: RaceAbilityMax := strMax[gender];
+      C_Abil.INTELLIGENCE: RaceAbilityMax := intMax;
+      C_Abil.WISDOM: RaceAbilityMax := wisMax;
+      C_Abil.DEXTERITY: RaceAbilityMax := dexMax;
+      C_Abil.CONSTITUTION: RaceAbilityMax := conMax;
+    else
+      RaceAbilityMax := chaMax;
+    end;
 end;
 
 end.

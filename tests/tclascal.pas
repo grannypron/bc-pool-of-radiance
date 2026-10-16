@@ -155,6 +155,18 @@ begin
   ClassCal.RecalcThiefSkills(c);
   TestKit.CheckEqualsL(77, c^.thiefSkills[1], 'no thief level leaves the skills as they are');
 
+  { racial ability limits: a dwarf (8..18 Strength for a man, 8..17 for a woman, Constitution 12..19) and an elf }
+  TestKit.CheckEqualsL(8, ClassCal.RaceAbilityMin(C_Race.DWARF, 0, 0), 'a dwarf man''s least Strength');
+  TestKit.CheckEqualsL(18, ClassCal.RaceAbilityMax(C_Race.DWARF, 0, 0), 'a dwarf man''s most Strength');
+  TestKit.CheckEqualsL(17, ClassCal.RaceAbilityMax(C_Race.DWARF, 1, 0), 'a dwarf woman''s most Strength');
+  TestKit.CheckEqualsL(12, ClassCal.RaceAbilityMin(C_Race.DWARF, 0, 4), 'a dwarf''s least Constitution');
+  TestKit.CheckEqualsL(19, ClassCal.RaceAbilityMax(C_Race.DWARF, 1, 4), 'a dwarf''s most Constitution');
+  TestKit.CheckEqualsL(16, ClassCal.RaceAbilityMax(C_Race.DWARF, 0, 5), 'a dwarf''s most Charisma');
+  TestKit.CheckEqualsL(8, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 1), 'an elf''s least Intelligence');
+  TestKit.CheckEqualsL(7, ClassCal.RaceAbilityMin(C_Race.ELF, 1, 3), 'an elf''s least Dexterity');
+  TestKit.CheckEqualsL(19, ClassCal.RaceAbilityMax(C_Race.ELF, 0, 3), 'an elf''s most Dexterity');
+  TestKit.CheckEqualsL(3, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 2), 'an elf''s least Wisdom');
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
 end.
