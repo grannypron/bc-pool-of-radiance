@@ -242,7 +242,7 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp;
+  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj;
 
 const
 
@@ -1489,21 +1489,9 @@ end;
 { Con poison saving throw bonus (eff 90) }
 
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  bonus: Byte;
 begin
   if GDVars.gSaveType = C_Save.PARALYZE then begin
-    case creature^.conCur of
-      4..6: bonus := 1;
-      7..10: bonus := 2;
-      11..13: bonus := 3;
-      14..17: bonus := 4;
-      18..20: bonus := 5;
-    else
-      { +1 per 3 1/2 points of Constitution, the rule the table follows: 0 below 4, 6 at 21..24 }
-      bonus := Word(creature^.conCur) * 2 div 7;
-    end;
-    GDVars.gSaveRoll := GDVars.gSaveRoll + bonus;
+    GDVars.gSaveRoll := GDVars.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
   end;
 end;
 
@@ -1562,21 +1550,9 @@ end;
 { Con spell/wand save bonus (eff 97), on EffConPsnSave's scale }
 
 procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  bonus: Byte;
 begin
   if (GDVars.gSaveType = C_Save.SPELL) or (GDVars.gSaveType = C_Save.WAND) then begin
-    case creature^.conCur of
-      4..6: bonus := 1;
-      7..10: bonus := 2;
-      11..13: bonus := 3;
-      14..17: bonus := 4;
-      18..20: bonus := 5;
-    else
-      { +1 per 3 1/2 points of Constitution, the rule the table follows: 0 below 4, 6 at 21..24 }
-      bonus := Word(creature^.conCur) * 2 div 7;
-    end;
-    GDVars.gSaveRoll := GDVars.gSaveRoll + bonus;
+    GDVars.gSaveRoll := GDVars.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
   end;
 end;
 

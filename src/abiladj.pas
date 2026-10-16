@@ -21,6 +21,10 @@ function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
 
 function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
 
+{ The Constitution bonus to poison saves (dwarves, halflings) and to spell and wand saves (dwarves, gnomes, halflings):
+  +1 per 3 1/2 points of Constitution, so 1 at 4..6, 2 at 7..10, 3 at 11..13, 4 at 14..17, 5 at 18..20, 6 at 21..24. }
+function ConSaveBonus(con: Byte): Byte;
+
 implementation
 
 { Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
@@ -142,6 +146,11 @@ begin
   else
     WeightAllowance := 0;
   end;
+end;
+
+function ConSaveBonus(con: Byte): Byte;
+begin
+  ConSaveBonus := Word(con) * 2 div 7;
 end;
 
 end.
