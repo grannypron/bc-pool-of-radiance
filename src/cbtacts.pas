@@ -1016,10 +1016,10 @@ begin
       AimMarker := SPRITE_MISSILE;
 end;
 
-{ Combat's spellFps[0] callback: build the spell-target list from the low nibble of the spell's area. 0: the caster; 15:
-  the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and 7 of the picked cell;
-  1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the player aims, the
-  CbtMap spell-aim preview shows the cells the spell will reach. }
+{ The cast-target menu in combat (GDVars.castTargetMenu): build the spell-target list from the low nibble of the spell's
+  area. 0: the caster; 15: the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and
+  7 of the picked cell; 1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the
+  player aims, the CbtMap spell-aim preview shows the cells the spell will reach. }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;

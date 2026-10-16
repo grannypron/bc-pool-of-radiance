@@ -29,16 +29,16 @@ function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean
   nonzero area (touch) and the 255 attack-roll encoding both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
-{ Noncombat cast-target UI, installed in spellFps[0] outside combat. spellTable target mode 1 targets the caster, 2 asks
-  for one party member (remembered in GDVars.castTarget; cancelling clears the targets and the cast) and 4 targets every
+{ The cast-target menu outside combat (GDVars.castTargetMenu). spellTable target mode 1 targets the caster, 2 asks for
+  one party member (remembered in GDVars.castTarget; cancelling clears the targets and the cast) and 4 targets every
   creature in GDVars.creatureList; any other mode cancels the cast. b is unused; it matches Types.TCastUI. }
 procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 
 { Cast spell for GDVars.curChar. Outside combat a combat-only spell (target mode 0) is not cast: a memorized spell
   offers 'Lose it?' (Yes removes it) and an item offers 'Use it?' (Yes sets sel). Otherwise, when ai is set and no item
-  is in use, announce the cast, then call the cast-target UI (spellFns[0]) with b until it picks targets or the cast
-  ends. On a pick: in combat turn to face the aim, play the cast sound and animate the projectile; then remove the
-  caster's invisibility, consume the memorized spell unless GDVars.usingItem, and run spellFns[spell] with
+  is in use, announce the cast, then call GDVars.castTargetMenu with b until it picks targets or the cast ends. On a
+  pick: in combat turn to face the aim, play the cast sound and animate the projectile; then remove the caster's
+  invisibility, consume the memorized spell unless GDVars.usingItem, and run GDVars.spellFns[spell] with
   dsCurrentSpellBeing set. With no pick, outside combat it just returns; in combat b, or Yes to 'Abort Spell?', aborts
   and consumes the spell, and otherwise targeting repeats. b means automatic targeting (AI or quick fight); sel returns
   whether targets were picked. }
@@ -72,11 +72,11 @@ procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
   bottom line. Otherwise show the creature name, msg and the spell name in the message window, pause, then clear it. }
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 
-{ Remove Curse (spellFps[43], also called by Temple): remove Bestow Curse (effect 36) from dsTargetCreaturePtr[1], or
+{ Remove Curse (spellFns[43], also called by Temple): remove Bestow Curse (effect 36) from dsTargetCreaturePtr[1], or
   else clear the curse on its first cursed item. }
 procedure RemoveCurseSpell;
 
-{ Called by GameInit2: install every spell handler in spellFps (slot 0 is the noncombat cast-target UI) and
+{ Called by GameInit2: install every spell handler in GDVars.spellFns and the noncombat cast-target menu and
   DragonBreathHandler as effect 88's handler, clear effectLock, GDVars.usingItem and GDVars.castTarget, and set
   dsRedrawInventoryMenuFlag. }
 procedure InitSpellFns;
@@ -196,7 +196,7 @@ procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: 
 
 implementation
 
-uses Stats, CharDisp;
+uses Stats, CharDisp, C_Sound;
 
 const
   { Lightning Bolt's length, in cells past the aim cell }
@@ -212,17 +212,6 @@ const
   SCROLL_MARK = '-';
   { the highest spell level in spellTable (Restoration's 7) }
   SPELL_LEVEL_LAST = 7;
-
-var
-  { Word view of GDConsts.soundIds -- commands, damage and the first eight combat ids: [3] = 2 (default cast), [9] = 8
-    (Lightning Bolt), [12] = 11 (Fireball) }
-  soundIds: array[0..12] of Word absolute GDConsts.soundIds;
-
-  spellFns: array[0..67] of Types.TSpellProc
-                            { dispatch view }
-                            absolute GDVars.spellFps;
-  { slot-0 call view }
-  castUI: Types.TCastUI absolute GDVars.spellFps;
 
 procedure AddSpellToList(creature: Types.PCharRecord; spell, mark: Byte); forward;
 
@@ -734,7 +723,7 @@ begin
     if GDVars.usingItem = False then
       Magic.PrintCastSpellMsg(p, 'casts', spell);
   while ok do begin
-    castUI(spell, b, sel);
+    GDVars.castTargetMenu(spell, b, sel);
     if sel then begin
       ok := False;
       if GDVars.ifcState = C_Ifc.COMBAT then begin
@@ -747,13 +736,10 @@ begin
         CbtMap.SetCreatureFacing(p, k, 1, 0);
         SoundDrv.SoundSetAutoStop(0);
         case spell of
-          { Fireball: 11 }
-          47: SoundDrv.SoundCommand(soundIds[12]);
-          { Lightning: 8 }
-          51: SoundDrv.SoundCommand(soundIds[9]);
+          47: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
+          51: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
         else
-          { default: 2 }
-          SoundDrv.SoundCommand(soundIds[3]);
+          SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
         end;
         CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
         SoundDrv.SoundSetAutoStop(10);
@@ -768,7 +754,7 @@ begin
         Stats.Count(p, Stats.SPELLS_CAST, 1);
       end;
       GDVars.dsCurrentSpellBeing := spell;
-      spellFns[GDVars.dsCurrentSpellBeing];
+      GDVars.spellFns[GDVars.dsCurrentSpellBeing];
       GDVars.dsCurrentSpellBeing := C_Spell.NONE;
       GDVars.gMultiTarget := 0;
     end else begin
@@ -1013,7 +999,7 @@ begin
       tgt := GDVars.dsTargetCreaturePtr[i];
       if i < GDVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
-        SoundDrv.SoundCommand(soundIds[3]);
+        SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
         CharDisp.BuildIconFacings(18);
         CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.curChar), CbtMap.CombatCellY(GDVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
@@ -1800,7 +1786,7 @@ begin
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);
   CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
-  castUI(51, True, GDVars.breathAim);
+  GDVars.castTargetMenu(51, True, GDVars.breathAim);
   GDVars.gTargetX := x + Pathing.SignOf(GDVars.gTargetX - x);
   GDVars.gTargetY := y + Pathing.SignOf(GDVars.gTargetY - y);
   if GDVars.gTargetX = x + 1 then
@@ -1898,78 +1884,78 @@ end;
 
 procedure InitSpellFns;
 begin
-  GDVars.spellFps[0] := @Magic.NoncombatCastTargetMenu;
+  GDVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
   GDVars.effectLock := 0;
   GDVars.usingItem := False;
   GDVars.castTarget := nil;
   GDVars.dsRedrawInventoryMenuFlag := 1;
-  GDVars.spellFps[1] := @Magic.BlessHandler;
-  GDVars.spellFps[2] := @Magic.CurseHandler;
-  GDVars.spellFps[3] := @Magic.CureLightWoundsHandler;
-  GDVars.spellFps[4] := @Magic.CauseLightWoundsHandler;
-  GDVars.spellFps[5] := @Magic.DetectionHandler;
-  GDVars.spellFps[6] := @Magic.ProtectionHandler;
-  GDVars.spellFps[7] := @Magic.ProtectionHandler;
-  GDVars.spellFps[8] := @Magic.ResistColdHandler;
-  GDVars.spellFps[9] := @Magic.BurningHandsHandler;
-  GDVars.spellFps[10] := @Magic.CharmPersonHandler;
-  GDVars.spellFps[11] := @Magic.DetectionHandler;
-  GDVars.spellFps[12] := @Magic.EnlargeHandler;
-  GDVars.spellFps[13] := @Magic.ReduceHandler;
-  GDVars.spellFps[14] := @Magic.FriendsHandler;
-  GDVars.spellFps[15] := @Magic.MagicMissileHandler;
-  GDVars.spellFps[16] := @Magic.ProtectionHandler;
-  GDVars.spellFps[17] := @Magic.ProtectionHandler;
-  GDVars.spellFps[18] := @Magic.DetectionHandler;
-  GDVars.spellFps[19] := @Magic.ShieldHandler;
-  GDVars.spellFps[20] := @Magic.ShockingGraspHandler;
-  GDVars.spellFps[21] := @Magic.SleepHandler;
-  GDVars.spellFps[22] := @Magic.DetectionHandler;
-  GDVars.spellFps[23] := @Magic.HoldPersonHandler;
-  GDVars.spellFps[24] := @Magic.ResistFireHandler;
-  GDVars.spellFps[25] := @Magic.SilenceHandler;
-  GDVars.spellFps[26] := @Magic.SlowPoisonHandler;
-  GDVars.spellFps[27] := @Magic.SnakeCharmHandler;
-  GDVars.spellFps[28] := @Magic.SpiritualHammerHandler;
-  GDVars.spellFps[29] := @Magic.DetectionHandler;
-  GDVars.spellFps[30] := @Magic.InvisibilityHandler;
-  GDVars.spellFps[31] := @Magic.KnockHandler;
-  GDVars.spellFps[32] := @Magic.MirrorImageHandler;
-  GDVars.spellFps[33] := @Magic.RayOfEnfeeblementHandler;
-  GDVars.spellFps[34] := @Magic.StinkingCloudHandler;
-  GDVars.spellFps[35] := @Magic.StrengthHandler;
-  GDVars.spellFps[36] := @Magic.AnimateDeadHandler;
-  GDVars.spellFps[37] := @Magic.CureBlindnessHandler;
-  GDVars.spellFps[38] := @Magic.CauseBlindnessHandler;
-  GDVars.spellFps[39] := @Magic.CureDiseaseHandler;
-  GDVars.spellFps[40] := @Magic.CauseDiseaseHandler;
-  GDVars.spellFps[41] := @Magic.DispelMagicHandler;
-  GDVars.spellFps[42] := @Magic.PrayerHandler;
-  GDVars.spellFps[43] := @Magic.RemoveCurseSpell;
-  GDVars.spellFps[44] := @Magic.BestowCurseHandler;
-  GDVars.spellFps[45] := @Magic.BlinkHandler;
-  GDVars.spellFps[46] := @Magic.DispelMagicHandler;
-  GDVars.spellFps[47] := @Magic.FireballHandler;
-  GDVars.spellFps[48] := @Magic.HasteHandler;
-  GDVars.spellFps[49] := @Magic.HoldPersonHandler;
-  GDVars.spellFps[50] := @Magic.InvisibilityHandler;
-  GDVars.spellFps[51] := @Magic.LightningBoltHandler;
-  GDVars.spellFps[52] := @Magic.ProtectionHandler;
-  GDVars.spellFps[53] := @Magic.ProtectionHandler;
-  GDVars.spellFps[54] := @Magic.ProtectionHandler;
-  GDVars.spellFps[55] := @Magic.SlowHandler;
-  GDVars.spellFps[56] := @Magic.RestorationHandler;
-  GDVars.spellFps[57] := @Magic.PotionOfSpeedHandler;
-  GDVars.spellFps[58] := @Magic.KeoghtomsOintmentHandler;
-  GDVars.spellFps[59] := @Magic.GiantStrengthHandler;
-  GDVars.spellFps[60] := @Magic.JavelinOfLightningHandler;
-  GDVars.spellFps[61] := @Magic.WandParalyzationHandler;
-  GDVars.spellFps[62] := @Magic.PotionOfHealingHandler;
-  GDVars.spellFps[63] := @Magic.DustDisappearanceHandler;
-  GDVars.spellFps[64] := @Magic.FireballHandler;
-  GDVars.spellFps[65] := @Magic.WandMagicMissilesHandler;
-  GDVars.spellFps[66] := @Magic.UnusedSpellHandler;
-  GDVars.spellFps[67] := @Magic.ManualBodilyHealthHandler;
+  GDVars.spellFns[1] := Magic.BlessHandler;
+  GDVars.spellFns[2] := Magic.CurseHandler;
+  GDVars.spellFns[3] := Magic.CureLightWoundsHandler;
+  GDVars.spellFns[4] := Magic.CauseLightWoundsHandler;
+  GDVars.spellFns[5] := Magic.DetectionHandler;
+  GDVars.spellFns[6] := Magic.ProtectionHandler;
+  GDVars.spellFns[7] := Magic.ProtectionHandler;
+  GDVars.spellFns[8] := Magic.ResistColdHandler;
+  GDVars.spellFns[9] := Magic.BurningHandsHandler;
+  GDVars.spellFns[10] := Magic.CharmPersonHandler;
+  GDVars.spellFns[11] := Magic.DetectionHandler;
+  GDVars.spellFns[12] := Magic.EnlargeHandler;
+  GDVars.spellFns[13] := Magic.ReduceHandler;
+  GDVars.spellFns[14] := Magic.FriendsHandler;
+  GDVars.spellFns[15] := Magic.MagicMissileHandler;
+  GDVars.spellFns[16] := Magic.ProtectionHandler;
+  GDVars.spellFns[17] := Magic.ProtectionHandler;
+  GDVars.spellFns[18] := Magic.DetectionHandler;
+  GDVars.spellFns[19] := Magic.ShieldHandler;
+  GDVars.spellFns[20] := Magic.ShockingGraspHandler;
+  GDVars.spellFns[21] := Magic.SleepHandler;
+  GDVars.spellFns[22] := Magic.DetectionHandler;
+  GDVars.spellFns[23] := Magic.HoldPersonHandler;
+  GDVars.spellFns[24] := Magic.ResistFireHandler;
+  GDVars.spellFns[25] := Magic.SilenceHandler;
+  GDVars.spellFns[26] := Magic.SlowPoisonHandler;
+  GDVars.spellFns[27] := Magic.SnakeCharmHandler;
+  GDVars.spellFns[28] := Magic.SpiritualHammerHandler;
+  GDVars.spellFns[29] := Magic.DetectionHandler;
+  GDVars.spellFns[30] := Magic.InvisibilityHandler;
+  GDVars.spellFns[31] := Magic.KnockHandler;
+  GDVars.spellFns[32] := Magic.MirrorImageHandler;
+  GDVars.spellFns[33] := Magic.RayOfEnfeeblementHandler;
+  GDVars.spellFns[34] := Magic.StinkingCloudHandler;
+  GDVars.spellFns[35] := Magic.StrengthHandler;
+  GDVars.spellFns[36] := Magic.AnimateDeadHandler;
+  GDVars.spellFns[37] := Magic.CureBlindnessHandler;
+  GDVars.spellFns[38] := Magic.CauseBlindnessHandler;
+  GDVars.spellFns[39] := Magic.CureDiseaseHandler;
+  GDVars.spellFns[40] := Magic.CauseDiseaseHandler;
+  GDVars.spellFns[41] := Magic.DispelMagicHandler;
+  GDVars.spellFns[42] := Magic.PrayerHandler;
+  GDVars.spellFns[43] := Magic.RemoveCurseSpell;
+  GDVars.spellFns[44] := Magic.BestowCurseHandler;
+  GDVars.spellFns[45] := Magic.BlinkHandler;
+  GDVars.spellFns[46] := Magic.DispelMagicHandler;
+  GDVars.spellFns[47] := Magic.FireballHandler;
+  GDVars.spellFns[48] := Magic.HasteHandler;
+  GDVars.spellFns[49] := Magic.HoldPersonHandler;
+  GDVars.spellFns[50] := Magic.InvisibilityHandler;
+  GDVars.spellFns[51] := Magic.LightningBoltHandler;
+  GDVars.spellFns[52] := Magic.ProtectionHandler;
+  GDVars.spellFns[53] := Magic.ProtectionHandler;
+  GDVars.spellFns[54] := Magic.ProtectionHandler;
+  GDVars.spellFns[55] := Magic.SlowHandler;
+  GDVars.spellFns[56] := Magic.RestorationHandler;
+  GDVars.spellFns[57] := Magic.PotionOfSpeedHandler;
+  GDVars.spellFns[58] := Magic.KeoghtomsOintmentHandler;
+  GDVars.spellFns[59] := Magic.GiantStrengthHandler;
+  GDVars.spellFns[60] := Magic.JavelinOfLightningHandler;
+  GDVars.spellFns[61] := Magic.WandParalyzationHandler;
+  GDVars.spellFns[62] := Magic.PotionOfHealingHandler;
+  GDVars.spellFns[63] := Magic.DustDisappearanceHandler;
+  GDVars.spellFns[64] := Magic.FireballHandler;
+  GDVars.spellFns[65] := Magic.WandMagicMissilesHandler;
+  GDVars.spellFns[66] := Magic.UnusedSpellHandler;
+  GDVars.spellFns[67] := Magic.ManualBodilyHealthHandler;
   GDVars.effectFns[88] := Magic.DragonBreathHandler;
 end;
 

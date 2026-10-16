@@ -37,7 +37,7 @@ procedure SpeedMenu; forward;
 procedure TurnOnAuto(creature: Types.PCharRecord); forward;
 
 { Free the stinking-cloud list, the arena and the move-icon sheet, restore the noncombat palette and point the
-  cast-target UI (spellFps[0]) back at the noncombat menu. }
+  cast-target menu (GDVars.castTargetMenu) back at the noncombat menu. }
 procedure CombatDoneCleanup;
 var
   p: Types.PStinkRec;
@@ -51,7 +51,7 @@ begin
   GDVars.arenaPtr := nil;
   Blit.FreePic(GDVars.dsMoveIconSheet);
   CbtMap.SetNoncombatPalette;
-  GDVars.spellFps[0] := @Magic.NoncombatCastTargetMenu;
+  GDVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
 end;
 
 { The combat loop. Each round: count teams, run every creature's round-start setup, clear the GBVM surprise flag, let
@@ -62,7 +62,7 @@ var
   creature: Types.PCharRecord;
 begin
   GDVars.ifcState := C_Ifc.COMBAT;
-  GDVars.spellFps[0] := @CbtActs.CombatCastTargetMenu;
+  GDVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
   CombatSt.CombatStart;
   done := False;
   if (GDVars.teamCount[0] = 0) or (GDVars.teamCount[1] = 0) then

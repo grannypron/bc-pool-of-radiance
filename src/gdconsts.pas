@@ -1116,8 +1116,7 @@ const
     { EGA 14 Yellow -> CGA 3; EGA 15 White -> CGA 3 }
     $33);
   { Sound command tables }
-  { One table of sound command ids: the three subsystems read their own slice; Magic indexes all of it as
-    soundIds[0..12]. }
+  { One table of sound command ids, a slice for each subsystem (C_Sound names the indexes). }
   soundIds: record
     commands: array[0..3] of Word;
     damage: Word;

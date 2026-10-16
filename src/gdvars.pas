@@ -413,8 +413,10 @@ var
   { Spell casting and targeting }
   { Current item used for spell casting. }
   dsCurrentScrollPtr: Types.PItemRec;
+  { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.CombatCastTargetMenu in combat }
+  castTargetMenu: Types.TCastUI;
   { Spell handlers indexed by spell ID. }
-  spellFps: array[0..67] of Pointer;
+  spellFns: array[1..67] of Types.TSpellProc;
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }
