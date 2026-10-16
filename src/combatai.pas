@@ -24,7 +24,7 @@ implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
   C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
-  CharDisp;
+  CharDisp, Dice;
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
@@ -63,12 +63,12 @@ begin
     done := CharHlp.EndActions(creature);
   stance := creature^.combatAddr^.aiStance;
   { Reroll when unset, after a sweep pattern or on 1 turn in 4; a 1d8 roll of 8 picks sweep pattern 5..6, else 1..4 }
-  if (stance = 0) or (stance > 4) or (FxEngine.RollDice(1, 4) = 1) then begin
-    stance := FxEngine.RollDice(1, 8);
+  if (stance = 0) or (stance > 4) or (Dice.RollDice(1, 4) = 1) then begin
+    stance := Dice.RollDice(1, 8);
     if stance = 8 then
-      stance := FxEngine.RollDice(1, 2) + 4
+      stance := Dice.RollDice(1, 2) + 4
     else
-      stance := FxEngine.RollDice(1, 4);
+      stance := Dice.RollDice(1, 4);
   end;
   creature^.combatAddr^.aiStance := stance;
   if not done then
@@ -169,7 +169,7 @@ begin
   SelectItemToUse := False;
   chosen := nil;
   lowPri := 7;
-  roll := FxEngine.RollDice(1, 7);
+  roll := Dice.RollDice(1, 7);
   if (creature^.combatAddr^.itemUseAllowed <> 0)
      and (GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
      and (GDVars.zone0^.antimagic = 0) then
@@ -225,7 +225,7 @@ begin
       end;
   chosen := 0;
   lowPri := 7;
-  roll := FxEngine.RollDice(1, 7);
+  roll := Dice.RollDice(1, 7);
   tries := 1;
   if count > 0 then
     { C_Npc.FLAG set }
@@ -235,7 +235,7 @@ begin
           inner := 1;
           { three picks per pass }
           while (inner < 4) and (chosen = 0) do begin
-            k := FxEngine.RollDice(1, count) - 1;
+            k := Dice.RollDice(1, count) - 1;
             spell := list[k];
             if CombatAi.DecideCastSpell(creature, spell, lowPri) then
               chosen := spell;
@@ -316,7 +316,7 @@ begin
     if creature^.combatAddr^.fleeing = 0 then
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other)
     else begin
-      creature^.combatAddr^.aiStance := FxEngine.RollDice(1, 2);
+      creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
       { Hostiles flee along the party's facing (DIR_* 0, 2, 4, 6). SSI quirk, kept: north gives 7 (NW) and south gives
         3 (SE), so the result is not always a cardinal direction. }
       dir := GDVars.gFacing - Word((GDVars.gFacing + 2) mod 4) div 2;
@@ -456,7 +456,7 @@ begin
           else
             done := CombatAi.FinishRound(creature);
         end else begin
-          pick := FxEngine.RollDice(1, cnt);
+          pick := Dice.RollDice(1, cnt);
           target := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))

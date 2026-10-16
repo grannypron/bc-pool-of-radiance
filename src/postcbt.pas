@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 implementation
 
 uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
-  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar, CharDisp, Party;
+  C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice;
 
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
@@ -53,7 +53,7 @@ begin
         expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
         if GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] <> 1 then
           while item <> nil do begin
-            if (item^.value > 0) or ((cnt < 8) and (FxEngine.RollDice(1, 10) <= 3)) then begin
+            if (item^.value > 0) or ((cnt < 8) and (Dice.RollDice(1, 10) <= 3)) then begin
               Inc(cnt);
               CharHlp.PrintItemString(item, 0, 0, False, False);
               CharHlp.PrependItemCopy(GDVars.treasureItems, item);

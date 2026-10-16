@@ -185,7 +185,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_Item;
+uses Stats, CharDisp, C_Sound, C_Item, Dice;
 
 const
   { Lightning Bolt's length, in cells past the aim cell }
@@ -546,16 +546,16 @@ var
 begin
   case spell of
     { Cause Disease }
-    40: d := FxEngine.RollDice(1, 6) * 10;
+    40: d := Dice.RollDice(1, 6) * 10;
     { Potion of Speed, Wand of Paralyzation }
-    57, 61: d := FxEngine.RollDice(5, 4);
+    57, 61: d := Dice.RollDice(5, 4);
     { Giant Strength }
-    59: d := FxEngine.RollDice(1, 4) * 10 + 40;
+    59: d := Dice.RollDice(1, 4) * 10 + 40;
     { Dust of Disappearance }
     63: if GDVars.ifcState = C_Ifc.COMBAT then
-                d := FxEngine.RollDice(2, 10) * 10
+                d := Dice.RollDice(2, 10) * 10
               else
-                d := (FxEngine.RollDice(1, 10) + 10) * 10;
+                d := (Dice.RollDice(1, 10) + 10) * 10;
     { Manual of Bodily Health: 1440 minutes, 24 hours }
     67: d := 1440;
   else
@@ -761,14 +761,14 @@ procedure CureLightWoundsHandler;
 begin
   if GDVars.spellTargetCount = 0 then
     Exit;
-  if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(1, 8), False) then
+  if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(1, 8), False) then
     CharDisp.PrintHpRestoreMsg(GDVars.dsTargetCreaturePtr[1]);
 end;
 
 { Cause Light Wounds: 1d8 damage, element mask 8. }
 procedure CauseLightWoundsHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(1, 8), C_Effect.ELEM_MAGIC, '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(1, 8), C_Effect.ELEM_MAGIC, '');
 end;
 
 { Shared handler for the detection-style spells: apply the spell's effect. }
@@ -861,7 +861,7 @@ var
   oldCha: Byte;
 begin
   oldCha := GDVars.dsTargetCreaturePtr[1]^.chaCur;
-  Inc(GDVars.dsTargetCreaturePtr[1]^.chaCur, FxEngine.RollDice(2, 4));
+  Inc(GDVars.dsTargetCreaturePtr[1]^.chaCur, Dice.RollDice(2, 4));
   { 25, the Cha cap }
   if GDVars.dsTargetCreaturePtr[1]^.chaCur > 25 then
     GDVars.dsTargetCreaturePtr[1]^.chaCur := 25;
@@ -874,7 +874,7 @@ var
   cl: Byte;
 begin
   cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, cl div 2 + FxEngine.RollDamageDice(cl div 2, 4),
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, cl div 2 + Dice.RollDamageDice(cl div 2, 4),
                      C_Effect.ELEM_MAGIC, '');
 end;
 
@@ -888,7 +888,7 @@ end;
 procedure ShockingGraspHandler;
 begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False,
-                      FxEngine.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+                      Dice.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
                       C_Effect.ELEM_ELEC or C_Effect.ELEM_MAGIC, '');
 end;
 
@@ -901,7 +901,7 @@ var
   effect: Types.PEffectRec;
 begin
   GDVars.gMultiTarget := 1;
-  GDVars.gSpellTemp1 := FxEngine.RollDice(4, 4);
+  GDVars.gSpellTemp1 := Dice.RollDice(4, 4);
   for i := 1 to GDVars.spellTargetCount do begin
     case GDVars.dsTargetCreaturePtr[i]^.levelHighest of
       0..1: GDVars.gSpellTemp2 := 1;
@@ -1044,7 +1044,7 @@ end;
 { Mirror Image: apply the spell's effect with 1d4 images as its strength. }
 procedure MirrorImageHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, FxEngine.RollDice(1, 4), False, 0, 0, 'is duplicated');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, Dice.RollDice(1, 4), False, 0, 0, 'is duplicated');
 end;
 
 { Ray of Enfeeblement: apply the spell's effect. }
@@ -1148,11 +1148,11 @@ begin
   roll := 0;
   tgt := GDVars.dsTargetCreaturePtr[1];
   if tgt^.classLevels[C_Level.MAGE] > 0 then
-    roll := FxEngine.RollDice(1, 4);
+    roll := Dice.RollDice(1, 4);
   if (tgt^.classLevels[C_Level.CLERIC] > 0) or (tgt^.classLevels[C_Level.THIEF] > 0) then
-    roll := FxEngine.RollDice(1, 6);
+    roll := Dice.RollDice(1, 6);
   if CharHlp.WarriorLevel(tgt) > 0 then
-    roll := FxEngine.RollDice(1, 8);
+    roll := Dice.RollDice(1, 8);
   newStr := tgt^.strCur + roll;
   if newStr > 18 then begin
     if CharHlp.WarriorLevel(tgt) > 0 then begin
@@ -1301,7 +1301,7 @@ begin
           GDVars.gSpellTemp1 := 50 - (GDVars.gSpellTemp2 - cl) * 2
         else
           GDVars.gSpellTemp1 := 50;
-        if FxEngine.RollDice(1, 100) <= GDVars.gSpellTemp1 then begin
+        if Dice.RollDice(1, 100) <= GDVars.gSpellTemp1 then begin
           FxEngine.RemoveEffect(tgt, effect^.id, effect);
           removed := True;
         end;
@@ -1364,14 +1364,14 @@ var
 begin
   GDVars.gMultiTarget := 1;
   if GDVars.dsCurrentSpellBeing = C_Spell.ITEM_FIREBALL then
-    cl := FxEngine.RollDice(1, 3) * 2 + 1
+    cl := Dice.RollDice(1, 3) * 2 + 1
   else
     cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   if GDVars.zone0^.view3dFlag = 0 then begin
     Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, 2);
   end;
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_Dir.CENTER);
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(cl, 6),
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(cl, 6),
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
@@ -1547,7 +1547,7 @@ var
   dmg: Byte;
   junk: Boolean;
 begin
-  dmg := FxEngine.RollDice(CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), 6);
+  dmg := Dice.RollDice(CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), 6);
   Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, dmg, C_Save.SPELL, junk);
   Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_Save.SPELL, True);
 end;
@@ -1653,7 +1653,7 @@ begin
         FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
     end;
   end else if not Magic.RemoveDiseaseEffects(tgt) then begin
-    if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(1, 4) + 8, False) then
+    if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(1, 4) + 8, False) then
       CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
   end;
 end;
@@ -1675,7 +1675,7 @@ procedure JavelinOfLightningHandler;
 var
   junk: Boolean;
 begin
-  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, FxEngine.RollDice(1, 6) + 20, C_Save.SPELL, junk);
+  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, Dice.RollDice(1, 6) + 20, C_Save.SPELL, junk);
   Magic.LightningPath(3, 20, C_Save.SPELL, False);
 end;
 
@@ -1688,7 +1688,7 @@ end;
 { Potion of Healing: restore 2d4 + 2 hit points. }
 procedure PotionOfHealingHandler;
 begin
-  if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], FxEngine.RollDice(2, 4) + 2, False) then
+  if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(2, 4) + 2, False) then
     CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
 end;
 
@@ -1701,7 +1701,7 @@ end;
 { Wand of Magic Missiles: 2d4 + 2 damage, element mask 8. }
 procedure WandMagicMissilesHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, FxEngine.RollDamageDice(2, 4) + 2, 8, '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, 8, '');
 end;
 
 { Unused item spell slot: does nothing. }
@@ -1727,7 +1727,7 @@ var
   y: ShortInt;
 begin
   if GDVars.roundCounter <> 0 then
-    if FxEngine.RollDice(1, 100) <= 50 then
+    if Dice.RollDice(1, 100) <= 50 then
       Exit;
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);

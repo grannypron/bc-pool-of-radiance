@@ -66,7 +66,7 @@ implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
   C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj;
+  CharDisp, AbilAdj, Dice;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
@@ -120,7 +120,7 @@ begin
     creature^.curAttacks2 := CbtActs.AdjustedAttacks(GDVars.dsCurrentAttackCurrent);
     sweepBudget := creature^.attackLevel;
     if creature^.enabled <> 0 then begin
-      initiative := FxEngine.RollDice(1, 6) + AbilAdj.DexMissileAdjust(creature);
+      initiative := Dice.RollDice(1, 6) + AbilAdj.DexMissileAdjust(creature);
       if initiative < 1 then
         initiative := 1;
       { Surprise mask: bit 0 for the party, bit 1 for monsters }
@@ -162,7 +162,7 @@ var
   dmg: Integer;
 begin
   { summed as an Integer so that a negative modifier stops at 0 instead of wrapping in the Byte }
-  dmg := att^.curModA[idx] + FxEngine.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]);
+  dmg := att^.curModA[idx] + Dice.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]);
   if dmg < 0 then
     dmg := 0;
   if dmg > 255 then
@@ -425,7 +425,7 @@ begin
     if enemyMove < halfMove then
       ok := True
     else if enemyMove = halfMove then
-      if FxEngine.RollDice(1, 2) = 1 then
+      if Dice.RollDice(1, 2) = 1 then
         ok := True;
   end;
   if ok then
@@ -587,8 +587,8 @@ begin
   stop := False;
   creature^.combatAddr^.usedTurnUndead := 1;
   destroys := 6;
-  attempts := FxEngine.RollDice(1, 12);
-  roll := FxEngine.RollDice(1, 20);
+  attempts := Dice.RollDice(1, 12);
+  roll := Dice.RollDice(1, 20);
   case CbtActs.TurnLevel(creature) of
     1..8: col := CbtActs.TurnLevel(creature);
     9..13: col := 9;
@@ -760,7 +760,7 @@ begin
         if FxEngine.AttackRoll(att, def, defense) or CharHlp.IsHelpless(def) then begin
           anyHit := True;
           if CharHlp.HasEffect(def, C_Effect.MIRROR_IMAGE, image)
-             and (FxEngine.RollDice(1, image^.strength + 1) > 1) then begin
+             and (Dice.RollDice(1, image^.strength + 1) > 1) then begin
             { the blow strikes an image }
             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.MISS]);
             CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
@@ -1739,7 +1739,7 @@ begin
     cnt := CharHlp.CountTargets(creature, range);
     while (tries > 0) and (not found) and (cnt > 0) do begin
       Dec(tries);
-      pick := FxEngine.RollDice(1, cnt);
+      pick := Dice.RollDice(1, cnt);
       if GDVars.dsPotentialTargetCreature[pick] > 0 then begin
         p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[pick]];
         if ((relaxed <> 0) and (GDVars.arenaPtr^.distMode <> 0))

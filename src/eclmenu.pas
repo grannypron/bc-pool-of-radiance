@@ -80,7 +80,7 @@ implementation
 
 uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_Race, C_Level, GDConsts, StrUtil;
+  C_Race, C_Level, GDConsts, StrUtil, Dice;
 
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
@@ -474,7 +474,7 @@ begin
       else
         chance := 0;
     end;
-    roll := FxEngine.RollDice(1, 100);
+    roll := Dice.RollDice(1, 100);
     nxt := item^.next;
     if roll <= chance then begin
       if item^.equipped <> 0 then begin
@@ -565,12 +565,12 @@ begin
       C_Race.ELF, C_Race.HALFELF, C_Race.HALFORC, C_Race.HUMAN: iconSize := 2;
     end;
     for i := 1 to 3 do begin
-      roll := FxEngine.RollDice(1, 6);
+      roll := Dice.RollDice(1, 6);
       iconColors1[i] := roll + (roll + 8) shl 4;
     end;
     iconColors1[4] := $C4;
     for i := 5 to 6 do begin
-      roll := FxEngine.RollDice(1, 6);
+      roll := Dice.RollDice(1, 6);
       iconColors1[i] := roll + (roll + 8) shl 4;
     end;
   end;
@@ -639,14 +639,14 @@ begin
       cnt := 1;
       classes[cnt] := C_Level.FIGHTER;
     end;
-    cnt := FxEngine.RollDice(1, cnt);
+    cnt := Dice.RollDice(1, cnt);
     case classes[cnt] of
-      C_Level.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, FxEngine.RollDice(1, 5)];
-      C_Level.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, FxEngine.RollDice(1, 5)];
-      C_Level.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, FxEngine.RollDice(1, 5)];
-      else portraitBody := GDConsts.npcFighterBodies[genderSp, FxEngine.RollDice(1, 5)];
+      C_Level.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, Dice.RollDice(1, 5)];
+      C_Level.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, Dice.RollDice(1, 5)];
+      C_Level.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, Dice.RollDice(1, 5)];
+      else portraitBody := GDConsts.npcFighterBodies[genderSp, Dice.RollDice(1, 5)];
     end;
-    portraitHead := GDConsts.npcPortraitHeads[genderSp, FxEngine.RollDice(1, 8)];
+    portraitHead := GDConsts.npcPortraitHeads[genderSp, Dice.RollDice(1, 8)];
   end;
   SaveLoad.AddCharToParty(creature);
   SaveLoad.LoadCharIconAnim(True);

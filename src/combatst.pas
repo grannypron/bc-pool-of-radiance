@@ -9,7 +9,7 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp;
+  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice;
 
 
 { On every arena cell whose terrain tile is 22 (grass), roll 1d100: 98 gives terrain 26, 99 gives 27, and 100 (unless
@@ -23,14 +23,14 @@ begin
   for col := 0 to 49 do
     for row := 0 to 24 do
       if GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
-        roll := FxEngine.RollDice(1, 100);
+        roll := Dice.RollDice(1, 100);
         case roll of
           1..97: ;
           98: GDVars.arenaPtr^.cells[row, col] := 26;
           99: GDVars.arenaPtr^.cells[row, col] := 27;
           100: if GDVars.eclScriptId <> 10 then
-                 if FxEngine.RollDice(1, 100) = 1 then
-                   case FxEngine.RollDice(1, 10) of
+                 if Dice.RollDice(1, 100) = 1 then
+                   case Dice.RollDice(1, 10) of
                      1..6: GDVars.arenaPtr^.cells[row, col] := 28;
                      7..10: GDVars.arenaPtr^.cells[row, col] := 29;
                    end;
@@ -383,8 +383,8 @@ begin
   fordCnt := 0;
   if CombatSt.TerrainClassOf and $20 <> 0 then thresh := 35;
   if CombatSt.TerrainClassOf and $10 <> 0 then thresh := 75;
-  if FxEngine.RollDice(1, 100) > thresh then Exit;
-  col := 34 - FxEngine.RollDice(5, 4);
+  if Dice.RollDice(1, 100) > thresh then Exit;
+  col := 34 - Dice.RollDice(5, 4);
   while (col + 2) mod 7 > 0 do
     Dec(col);
   startCol := col;
@@ -393,13 +393,13 @@ begin
     if col <= 48 then begin
       GDVars.arenaPtr^.cells[row, col] := 50;
       GDVars.arenaPtr^.cells[row, col + 1] := 51;
-      if (FxEngine.RollDice(1, 20) = 1) or Odd(fordCnt) then
+      if (Dice.RollDice(1, 20) = 1) or Odd(fordCnt) then
         PlotFord(row, col);
       Inc(col);
     end;
   end;
   if fordCnt = 0 then begin
-    row := 12 - FxEngine.RollDice(1, 9) + 4;
+    row := 12 - Dice.RollDice(1, 9) + 4;
     col := startCol + row;
     PlotFord(row, col);
     PlotFord(row + 1, col + 1);
@@ -426,14 +426,14 @@ begin
     for row := 1 to 24 do
       if (GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row, col]].tileId = 22) and
           (GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row - 1, col]].tileId = 22) and
-          (FxEngine.RollDice(1, 100) <= dens) then begin
-        h := FxEngine.RollDice(1, 10);
+          (Dice.RollDice(1, 100) <= dens) then begin
+        h := Dice.RollDice(1, 10);
         if h > 8 then
-          h := FxEngine.RollDice(1, 2) + 4
+          h := Dice.RollDice(1, 2) + 4
         else
           h := (h + 1) div 2;
         if CombatSt.TerrainClassOf and $40 <> 0 then
-          h := FxEngine.RollDice(1, 3) + 3;
+          h := Dice.RollDice(1, 3) + 3;
         GDVars.arenaPtr^.cells[row, col] := h + 31 + 4;
         if h < 5 then
           GDVars.arenaPtr^.cells[row - 1, col] := h + 31;
@@ -477,9 +477,9 @@ begin
   for col := 0 to 49 do
     for row := 0 to 24 do
       if GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
-        r := FxEngine.RollDice(1, 255);
+        r := Dice.RollDice(1, 255);
         if r <= tSwamp then begin
-          r := FxEngine.RollDice(1, 4);
+          r := Dice.RollDice(1, 4);
           if (r = 4) and (row > 0) and
               (GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row - 1, col]].tileId = 22) then begin
             GDVars.arenaPtr^.cells[row - 1, col] := 65;
@@ -488,16 +488,16 @@ begin
           if r < 4 then
             GDVars.arenaPtr^.cells[row, col] := r + 31 + 29;
         end else if r <= tA + tSwamp then
-          GDVars.arenaPtr^.cells[row, col] := FxEngine.RollDice(1, 3) + 31 + 23
+          GDVars.arenaPtr^.cells[row, col] := Dice.RollDice(1, 3) + 31 + 23
         else if r <= tB + tSwamp + tA then
-          GDVars.arenaPtr^.cells[row, col] := FxEngine.RollDice(1, 4) + 31 + 10
+          GDVars.arenaPtr^.cells[row, col] := Dice.RollDice(1, 4) + 31 + 10
         else if r <= tD + tB + tSwamp + tA then begin
-          r := (FxEngine.RollDice(1, 10) - 1) div 3 + 1;
+          r := (Dice.RollDice(1, 10) - 1) div 3 + 1;
           GDVars.arenaPtr^.cells[row, col] := r + 31 + 25;
         end else if r <= tA + (tC + tD + tB + tSwamp) then begin
-          r := FxEngine.RollDice(1, 4);
+          r := Dice.RollDice(1, 4);
           if (r = 4) and (CombatSt.TerrainClassOf and $40 = 0) then
-            r := FxEngine.RollDice(1, 3);
+            r := Dice.RollDice(1, 3);
           GDVars.arenaPtr^.cells[row, col] := r + 31 + 14;
         end;
       end;

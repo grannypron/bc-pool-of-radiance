@@ -243,7 +243,7 @@ implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
   C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
-  C_Level;
+  C_Level, Dice;
 
 const
 
@@ -632,7 +632,7 @@ end;
 
 procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if FxEngine.RollDice(1, Types.PEffectRec(p)^.strength + 1) > 1 then
+  if Dice.RollDice(1, Types.PEffectRec(p)^.strength + 1) > 1 then
     if GDVars.dsCurrentSpellBeing > 0 then
       if GDVars.gMultiTarget = 0 then begin
         EffHndlr.NullifyAttack(0);
@@ -811,7 +811,7 @@ var
 begin
   if GDVars.curChar^.equipped[C_Equip.WEAPON] <> nil then
     if CharHlp.CalcDistance(GDVars.curChar, creature) > 1 then
-      if FxEngine.RollDice(1, 100) <= pct then begin
+      if Dice.RollDice(1, 100) <= pct then begin
         CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
         GDVars.gAttackRoll := -1;
@@ -1068,7 +1068,7 @@ end;
 
 procedure EffKreenPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.ParalysisTouch(creature, FxEngine.RollDice(2, 8), 0);
+  EffHndlr.ParalysisTouch(creature, Dice.RollDice(2, 8), 0);
 end;
 
 { Ghoul paralysis (eff 68): 63 minutes, not vs. elves }
@@ -1083,7 +1083,7 @@ end;
 
 procedure EffDriderPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.ParalysisTouch(creature, FxEngine.RollDice(1, 9) + 10, -2);
+  EffHndlr.ParalysisTouch(creature, Dice.RollDice(1, 9) + 10, -2);
 end;
 
 { Melee poison, -2 save (eff 70) }
@@ -1106,7 +1106,7 @@ end;
 
 procedure EffCamouflage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if FxEngine.RollDice(1, 100) <= 95 then
+  if Dice.RollDice(1, 100) <= 95 then
     FxEngine.AddEffect(creature, C_Effect.INVISIBLE, 1, 12, False);
 end;
 
@@ -1126,7 +1126,7 @@ begin
         creature^.combatAddr^.turned := 1;
   end else begin
     CharDisp.PrintNameString(creature, 'Sucks some Blood', 10, True);
-    dmg := FxEngine.RollDamageDice(1, 4);
+    dmg := Dice.RollDamageDice(1, 4);
     GDVars.elementMask := 0;
     FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, dmg, 0, False);
     done := CharHlp.EndActions(creature);
@@ -1192,7 +1192,7 @@ end;
 procedure EffFireTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.elementMask := C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC;
-  FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, FxEngine.RollDamageDice(2, 10), 0, False);
+  FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, Dice.RollDamageDice(2, 10), 0, False);
 end;
 
 { Melee acid squirt (eff 80): +1d4 acid }
@@ -1200,7 +1200,7 @@ end;
 procedure EffAcidSquirt(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.elementMask := C_Effect.ELEM_ACID;
-  FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, FxEngine.RollDamageDice(1, 4), 0, False);
+  FxEngine.InflictNonWeaponDamage(creature^.combatAddr^.other, Dice.RollDamageDice(1, 4), 0, False);
 end;
 
 { Dragon fear aura (eff 81). Walks the whole creature list: each enabled enemy saves vs. spell or, by highest level, is
@@ -1246,7 +1246,7 @@ begin
         if q^.race = C_Race.HUMAN then
           Inc(bonus, 2);
         saved := FxEngine.RollSavingThrow(q, C_Save.PARALYZE, bonus);
-        FxEngine.AddEffectWithMessage(q, C_Effect.PARALYSIS, FxEngine.RollDice(1, 4), 12, False, True, saved,
+        FxEngine.AddEffectWithMessage(q, C_Effect.PARALYSIS, Dice.RollDice(1, 4), 12, False, True, saved,
                                       'is paralyzed with fear');
       end;
     q := q^.nextCharAddr;
@@ -1453,7 +1453,7 @@ begin
   if not CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, effect) then begin
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, 14400, 255, True);
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.MUMMY_ROT, 43200,
-                       FxEngine.RollDice(1, 6) * 16 + 15, True);
+                       Dice.RollDice(1, 6) * 16 + 15, True);
     CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Diseased', 10, True);
   end;
 end;
@@ -1567,7 +1567,7 @@ begin
     hp := 6;
   if hp > 0 then
     if FxEngine.ReviveDeadCreature(creature, hp) then begin
-      FxEngine.AddEffect(creature, C_Effect.FIGHT_ON, FxEngine.RollDice(1, 4) + 1, 255, True);
+      FxEngine.AddEffect(creature, C_Effect.FIGHT_ON, Dice.RollDice(1, 4) + 1, 255, True);
       Types.PEffectRec(p)^.onRemove := False;
       FxEngine.RemoveEffect(creature, C_Effect.CAN_FIGHT_ON, p);
     end;
@@ -1579,7 +1579,7 @@ end;
 procedure EffTrollBurn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if (GDVars.elementMask and C_Effect.ELEM_FIRE = 0) and (GDVars.elementMask and C_Effect.ELEM_ACID = 0) then
-    FxEngine.AddEffect(creature, C_Effect.TROLL_RETURN, FxEngine.RollDice(3, 6), 255, True);
+    FxEngine.AddEffect(creature, C_Effect.TROLL_RETURN, Dice.RollDice(3, 6), 255, True);
 end;
 
 { Troll: add regeneration (eff 101): unless it has eff 98 or eff 59 already, add eff 59 for 3 minutes }
@@ -1641,7 +1641,7 @@ begin
     chance := 100;
   if (GDVars.pendingEffectId = 0) and (GDVars.elementMask and C_Effect.ELEM_MAGIC = 0) then
     Exit;
-  if FxEngine.RollDice(1, 100) <= chance then
+  if Dice.RollDice(1, 100) <= chance then
     EffHndlr.NullifyAttack(0);
 end;
 
@@ -1663,7 +1663,7 @@ end;
 
 procedure EffElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if FxEngine.RollDice(1, 100) <= 90 then begin
+  if Dice.RollDice(1, 100) <= 90 then begin
     EffHndlr.NullifyAttack(C_Effect.SLEEP);
     EffHndlr.NullifyAttack(C_Effect.CHARM);
   end;
@@ -1766,7 +1766,7 @@ begin
   item := GDVars.curChar^.equipped[C_Equip.WEAPON];
   if item <> nil then
     if item^.itemType = C_Item.HOLY_WATER_VIAL then
-      GDVars.pendingDamage := FxEngine.RollDamageDice(1, 6) + 1;
+      GDVars.pendingDamage := Dice.RollDamageDice(1, 6) + 1;
 end;
 
 { Half damage from cold (eff 118) }
@@ -1811,7 +1811,7 @@ begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   { other is nil before the anhkheg's first target, and may be a creature since taken out of play }
   if (GDVars.dsOtherCreatureCurrentPtr = nil) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then Exit;
-  if FxEngine.RollDice(1, 100) > 25 then Exit;
+  if Dice.RollDice(1, 100) > 25 then Exit;
   if CharHlp.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
   dummy := CharHlp.EndActions(creature);
   CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
@@ -1819,7 +1819,7 @@ begin
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 1, 30);
-  FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, FxEngine.RollDamageDice(8, 4), 2,
+  FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
                                   FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.BREATH, 0));
   FxEngine.RemoveEffect(creature, C_Effect.ANHKHEG_ACID, p);
   FxEngine.RemoveEffect(creature, C_Effect.ACID_SQUIRT, nil);
@@ -1834,7 +1834,7 @@ begin
   item := GDVars.curChar^.equipped[C_Equip.WEAPON];
   if item <> nil then
     if item^.itemType = C_Item.FLASK_OF_OIL then
-      GDVars.pendingDamage := FxEngine.RollDamageDice(3, 8);
+      GDVars.pendingDamage := Dice.RollDamageDice(3, 8);
   if GDVars.elementMask and (C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC) <> 0 then
     Inc(GDVars.pendingDamage, GDVars.gDamageDice);
 end;
@@ -1859,7 +1859,7 @@ end;
 
 procedure EffHalfElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if FxEngine.RollDice(1, 100) <= 30 then begin
+  if Dice.RollDice(1, 100) <= 30 then begin
     EffHndlr.NullifyAttack(C_Effect.CHARM);
     EffHndlr.NullifyAttack(C_Effect.SLEEP);
   end;

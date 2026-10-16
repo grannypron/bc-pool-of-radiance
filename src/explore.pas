@@ -17,7 +17,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
   C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice;
 
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -89,34 +89,34 @@ begin
       if View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) = 3 then begin
         case strCur of
           18: case strExc of
-                 91..99: if FxEngine.RollDice(1, 6) = 1 then success := True;
-                 100..255: if FxEngine.RollDice(1, 6) <= 2 then success := True;
+                 91..99: if Dice.RollDice(1, 6) = 1 then success := True;
+                 100..255: if Dice.RollDice(1, 6) <= 2 then success := True;
                else
                  GDVars.doorOpen[0] := 0;
                end;
-          19, 20: if FxEngine.RollDice(1, 6) <= 3 then success := True;
-          21, 22: if FxEngine.RollDice(1, 6) <= 4 then success := True;
-          23: if FxEngine.RollDice(1, 6) <= 5 then success := True;
-          24: if FxEngine.RollDice(1, 8) <= 7 then success := True;
-          25..255: if FxEngine.RollDice(1, 10) <= 9 then success := True;
+          19, 20: if Dice.RollDice(1, 6) <= 3 then success := True;
+          21, 22: if Dice.RollDice(1, 6) <= 4 then success := True;
+          23: if Dice.RollDice(1, 6) <= 5 then success := True;
+          24: if Dice.RollDice(1, 8) <= 7 then success := True;
+          25..255: if Dice.RollDice(1, 10) <= 9 then success := True;
         else
           GDVars.doorOpen[0] := 0;
         end;
       end else
         case strCur of
-          3..7: if FxEngine.RollDice(1, 6) = 1 then success := True;
-          8..15: if FxEngine.RollDice(1, 6) <= 2 then success := True;
-          16..17: if FxEngine.RollDice(1, 6) <= 3 then success := True;
+          3..7: if Dice.RollDice(1, 6) = 1 then success := True;
+          8..15: if Dice.RollDice(1, 6) <= 2 then success := True;
+          16..17: if Dice.RollDice(1, 6) <= 3 then success := True;
           18: case strExc of
-                 0..50: if FxEngine.RollDice(1, 6) <= 3 then success := True;
-                 51..99: if FxEngine.RollDice(1, 6) <= 4 then success := True;
-                 100..255: if FxEngine.RollDice(1, 6) <= 5 then success := True;
+                 0..50: if Dice.RollDice(1, 6) <= 3 then success := True;
+                 51..99: if Dice.RollDice(1, 6) <= 4 then success := True;
+                 100..255: if Dice.RollDice(1, 6) <= 5 then success := True;
                end;
-          19, 20: if FxEngine.RollDice(1, 8) <= 7 then success := True;
-          21: if FxEngine.RollDice(1, 10) <= 9 then success := True;
-          22, 23: if FxEngine.RollDice(1, 12) <= 11 then success := True;
-          24: if FxEngine.RollDice(1, 20) <= 19 then success := True;
-          25..255: if FxEngine.RollDice(1, 24) <= 23 then success := True;
+          19, 20: if Dice.RollDice(1, 8) <= 7 then success := True;
+          21: if Dice.RollDice(1, 10) <= 9 then success := True;
+          22, 23: if Dice.RollDice(1, 12) <= 11 then success := True;
+          24: if Dice.RollDice(1, 20) <= 19 then success := True;
+          25..255: if Dice.RollDice(1, 24) <= 23 then success := True;
         end;
     end;
     p := p^.nextCharAddr;
@@ -139,7 +139,7 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (not success) do begin
     with p^ do
-      if (FxEngine.RollDice(1, 100) <= thiefSkills[2]) and (status = C_Status.OKAY) then
+      if (Dice.RollDice(1, 100) <= thiefSkills[2]) and (status = C_Status.OKAY) then
         success := True;
     p := p^.nextCharAddr;
   end;

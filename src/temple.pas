@@ -13,7 +13,7 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp;
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
@@ -109,7 +109,7 @@ begin
   c := Temple.ConfirmCureCost(name, cost);
   if c = 'Y' then begin
     { spell d8, plus the bonus }
-    hp := FxEngine.RollDice(spell, 8) + bonus;
+    hp := Dice.RollDice(spell, 8) + bonus;
     restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
   end;
 end;

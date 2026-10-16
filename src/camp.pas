@@ -18,7 +18,7 @@ implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
   FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party;
+  CharDisp, Party, Dice;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -1027,7 +1027,7 @@ begin
           end;
         end;
     healPool := 0;
-    for cast := 1 to healCasts do Inc(healPool, FxEngine.RollDice(1, 8));
+    for cast := 1 to healCasts do Inc(healPool, Dice.RollDice(1, 8));
     for i := 1 to n do begin
       p := members[i];
       if Treatable(p) and (p^.hpCur < p^.hpMax) and (healPool > 0) then begin

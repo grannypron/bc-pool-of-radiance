@@ -14,7 +14,7 @@ implementation
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party;
+  StrUtil, EclVars, CharDisp, Party, Dice;
 
 const
   { LOAD MONSTER adds no monsters beyond this count }
@@ -816,8 +816,8 @@ begin
     v[i] := EclVars.GetEclVar(i);
   t1 := v[4] + 2 - v[1];
   t2 := v[2] + 2 - v[3];
-  r1 := FxEngine.RollDice(1, 6);
-  r2 := FxEngine.RollDice(1, 6);
+  r1 := Dice.RollDice(1, 6);
+  r2 := Dice.RollDice(1, 6);
   if r1 <= t1 then
     if r2 <= t2 then
       result := 3
@@ -945,11 +945,11 @@ begin
     if tId = 255 then Exit;
     i := tId - $80;
     for j := 1 to i do begin
-      roll := FxEngine.RollDice(1, 100);
+      roll := Dice.RollDice(1, 100);
       case roll of
         1..60: begin
           repeat
-            roll2 := FxEngine.RollDice(1, 100);
+            roll2 := Dice.RollDice(1, 100);
           until (roll2 <> 48) and (roll2 <> 49);
           case roll2 of
             1..47, 50..59:
@@ -958,7 +958,7 @@ begin
               else
                 itemId := roll2;
             60..90: begin
-              roll2 := FxEngine.RollDice(1, 10);
+              roll2 := Dice.RollDice(1, 10);
               case roll2 of
                 1..4: itemId := 36;
                 5..7: itemId := 35;
@@ -975,7 +975,7 @@ begin
         61..85: itemId := 61;
         86..92: itemId := 62;
         91..98: begin
-          roll3 := FxEngine.RollDice(1, 16);
+          roll3 := Dice.RollDice(1, 16);
           case roll3 of
             1..7: itemId := 71;
             8..9: itemId := 70;
@@ -1257,7 +1257,7 @@ end;
 procedure EclDamage;
 var
   attack: Byte;
-  dice: Byte;
+  dieCount: Byte;
   sides: Byte;
   i: Byte;
   saveMod: Byte;
@@ -1279,15 +1279,15 @@ begin
   p := GDVars.creatureList;
   EclVars.LoadEclVars(5);
   attack := EclVars.GetEclVar(1);
-  dice := EclVars.GetEclVar(2);
+  dieCount := EclVars.GetEclVar(2);
   sides := EclVars.GetEclVar(3);
   bonus := EclVars.GetEclVar(4);
   value := EclVars.GetEclVar(5);
-  dmg := bonus + FxEngine.RollDice(dice, sides);
+  dmg := bonus + Dice.RollDice(dieCount, sides);
   if attack and $40 <> 0 then
     allParty := 1
   else
-    count := FxEngine.RollDice(1, Byte(GDVars.zone1^[C_Gbvm.PARTY_SIZE]));
+    count := Dice.RollDice(1, Byte(GDVars.zone1^[C_Gbvm.PARTY_SIZE]));
   if attack and $80 <> 0 then begin
     saveMod := attack and $1F;
     saveType := value and 7;
@@ -1313,7 +1313,7 @@ begin
   end else begin
     for i := 1 to attack do begin
       p := GDVars.creatureList;
-      count := FxEngine.RollDice(1, Byte(GDVars.zone1^[C_Gbvm.PARTY_SIZE]));
+      count := Dice.RollDice(1, Byte(GDVars.zone1^[C_Gbvm.PARTY_SIZE]));
       k := 1;
       while k < count do begin
         p := p^.nextCharAddr;
@@ -1321,7 +1321,7 @@ begin
       end;
       if FxEngine.AttackRollNoAttacker(p, value) then
         EclMenu.EclInflictDamage(dmg, p);
-      dmg := bonus + FxEngine.RollDice(dice, sides);
+      dmg := bonus + Dice.RollDice(dieCount, sides);
     end;
   end;
   q := GDVars.creatureList;

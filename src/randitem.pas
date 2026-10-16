@@ -11,14 +11,14 @@ procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
 implementation
 
-uses GDConsts, FxEngine, C_Item;
+uses GDConsts, C_Item, Dice;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;
 var
   r: Byte;
 begin
-  r := FxEngine.RollDice(1, 20);
+  r := Dice.RollDice(1, 20);
   case r of
     1..14: RandomBonus := 1;
     15..19: RandomBonus := 2;
@@ -57,7 +57,7 @@ begin
             { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18
               and 19, making an item named from neither (POR-0165) }
             21: begin
-                   r := FxEngine.RollDice(1, 5);
+                   r := Dice.RollDice(1, 5);
                    if r = 5 then
                      template := 14;
                    nameIds[3] := 21;
@@ -181,7 +181,7 @@ begin
         end;
       { scrolls }
       61, 62: begin
-          n := FxEngine.RollDice(1, 3);
+          n := Dice.RollDice(1, 3);
           if itemType = 61 then
             nameIds[3] := 209
           else
@@ -193,19 +193,19 @@ begin
           quantity := 0;
           value := 0;
           for j := 1 to n do begin
-            r := FxEngine.RollDice(1, 3);
+            r := Dice.RollDice(1, 3);
             if itemType = 61 then
               { magic-user spell ids: 9..21, 29..35, 45..55 }
               case r of
-                1: spell := FxEngine.RollDice(1, 13) + 8;
-                2: spell := FxEngine.RollDice(1, 7) + 28;
-                3: spell := FxEngine.RollDice(1, 11) + 44;
+                1: spell := Dice.RollDice(1, 13) + 8;
+                2: spell := Dice.RollDice(1, 7) + 28;
+                3: spell := Dice.RollDice(1, 11) + 44;
               end else
               { clerical spell ids: 1..8, 22..28, 36..44 }
               case r of
-                1: spell := FxEngine.RollDice(1, 8);
-                2: spell := FxEngine.RollDice(1, 7) + 21;
-                3: spell := FxEngine.RollDice(1, 9) + 35;
+                1: spell := Dice.RollDice(1, 8);
+                2: spell := Dice.RollDice(1, 7) + 21;
+                3: spell := Dice.RollDice(1, 9) + 35;
               end;
             spells[j] := spell;
             value := Word(r) * 300 + value;
@@ -214,7 +214,7 @@ begin
       63: template := 10;
       67: template := 19;
       69: begin
-             r := FxEngine.RollDice(1, 10);
+             r := Dice.RollDice(1, 10);
              case r of
                1: template := 6;
                2..6: template := 16;
@@ -223,7 +223,7 @@ begin
            end;
       78: begin
              { r is 2..4 vs labels 1..3: 49 is never chosen and r = 4 leaves no template }
-             r := FxEngine.RollDice(1, 3) + 1;
+             r := Dice.RollDice(1, 3) + 1;
              case r of
                1: template := 7;
                2: template := 9;
@@ -235,7 +235,7 @@ begin
       92: template := 13;
       71: begin
              { 11 makes nothing }
-             r := FxEngine.RollDice(1, 11);
+             r := Dice.RollDice(1, 11);
              case r of
                1..5: template := 3;
                6..8: template := 1;
@@ -244,7 +244,7 @@ begin
              end;
            end;
       70: begin
-             r := FxEngine.RollDice(1, 10);
+             r := Dice.RollDice(1, 10);
              case r of
                1..7: template := 12;
                8..10: template := 18;

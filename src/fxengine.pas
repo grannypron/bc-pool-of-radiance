@@ -52,12 +52,6 @@ function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): 
   ECL script supplies it) is rolled as C_Save.SPELL. }
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
 
-{ Roll n dice with the given number of sides and return the total (0 when n = 0; the Byte sum wraps past 255). }
-function RollDice(n, sides: Byte): Byte;
-
-{ RollDice that also posts the dice count n to gDamageDice. Does not set GDVars.pendingDamage. }
-function RollDamageDice(n, sides: Byte): Byte;
-
 { Allocate an effect node, append it to the creature's effect list (as the head if the list is empty) and fill in id,
   duration (minutes; 0 = permanent), onRemove and strength. Does not check for an existing node or call the handler. }
 procedure AddEffect(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove: Boolean);
@@ -150,7 +144,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time;
+uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -428,7 +422,7 @@ begin
     FxEngine.AddEffectWithMessage(creature, C_Effect.STINK_COUGH, 1, 255, False, False, saved, 'starts to cough');
     FxEngine.CallEffectHandler(C_Effect.STINK_COUGH, creature, effect, False);
   end else begin
-    FxEngine.AddEffectWithMessage(creature, C_Effect.HELPLESS, FxEngine.RollDice(1, 4) + 1, 255, False, False,
+    FxEngine.AddEffectWithMessage(creature, C_Effect.HELPLESS, Dice.RollDice(1, 4) + 1, 255, False, False,
                                   saved, 'chokes and gags from nausea');
     FxEngine.CallEffectHandler(C_Effect.HELPLESS, creature, effect, False);
   end;
@@ -437,7 +431,7 @@ end;
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 begin
   AttackRollNoAttacker := False;
-  GDVars.gAttackRoll := FxEngine.RollDice(1, 20);
+  GDVars.gAttackRoll := Dice.RollDice(1, 20);
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
@@ -452,7 +446,7 @@ var
 begin
   AttackRoll := False;
   FxEngine.RemoveInvisibility(attacker);
-  GDVars.gAttackRoll := FxEngine.RollDice(1, 20);
+  GDVars.gAttackRoll := Dice.RollDice(1, 20);
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
@@ -470,7 +464,7 @@ function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortI
 begin
   if (saveType < C_Save.PARALYZE) or (saveType > C_Save.SPELL) then
     saveType := C_Save.SPELL;
-  GDVars.gSaveRoll := FxEngine.RollDice(1, 20);
+  GDVars.gSaveRoll := Dice.RollDice(1, 20);
   case GDVars.gSaveRoll of
     1: RollSavingThrow := False;
     20: RollSavingThrow := True;
@@ -484,24 +478,6 @@ begin
       RollSavingThrow := False;
   end;
   end;
-end;
-
-function RollDice(n, sides: Byte): Byte;
-var
-  i: Byte;
-  total: Byte;
-begin
-  total := 0;
-  if n > 0 then
-    for i := 1 to n do
-      Inc(total, Random(sides) + 1);
-  RollDice := total;
-end;
-
-function RollDamageDice(n, sides: Byte): Byte;
-begin
-  GDVars.gDamageDice := n;
-  RollDamageDice := FxEngine.RollDice(n, sides);
 end;
 
 procedure AddEffect(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove: Boolean);

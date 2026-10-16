@@ -14,7 +14,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg;
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice;
 
 
 
@@ -529,7 +529,7 @@ begin
     maximum) of one component class. }
   if creature^.charClass <= C_Class.MONK then
     with GDConsts.dsStartingAge[creature^.race, creature^.charClass] do
-      creature^.age := FxEngine.RollDice(num, sides) + base
+      creature^.age := Dice.RollDice(num, sides) + base
   else
     with creature^ do
       case charClass of
@@ -570,7 +570,7 @@ begin
     for i := 0 to 5 do begin
       creature^.stats[i] := 0;
       for j := 1 to 6 do begin
-        roll := FxEngine.RollDice(3, 6);
+        roll := Dice.RollDice(3, 6);
         { racial adjustment; the racial limits below still apply }
         if (creature^.race >= C_Race.DWARF) and (creature^.race <= C_Race.HUMAN) then
           roll := roll + GDConsts.raceAbilityAdj[creature^.race].values[i];
@@ -665,7 +665,7 @@ begin
             C_Level.MAGE: mageSpells[1] := 1;
           end;
           Inc(hpTotal,
-              FxEngine.RollDice(GDConsts.dsStartingGoldClass[cls].num, GDConsts.dsStartingGoldClass[cls].sides));
+              Dice.RollDice(GDConsts.dsStartingGoldClass[cls].num, GDConsts.dsStartingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
             C_Level.CLERIC: begin
@@ -2171,15 +2171,15 @@ var
   roll: Byte;
   sum: Byte;
   cls: ShortInt;
-  dice: Byte;
+  dieCount: Byte;
 begin
   sum := 0;
   for cls := C_Level.CLERIC to C_Level.MONK do
     if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-      dice := GDConsts.hpDice[cls];
+      dieCount := GDConsts.hpDice[cls];
       if creature^.classLevels[cls] > 1 then
-        dice := 1;
-      roll := FxEngine.RollDice(dice, GDConsts.hpSides[cls]);
+        dieCount := 1;
+      roll := Dice.RollDice(dieCount, GDConsts.hpSides[cls]);
       if creature^.classLevels[cls] = 1 then
         if roll < GDConsts.hpSides[cls] * 2 div 3 then
           roll := GDConsts.hpSides[cls] * 2 div 3;

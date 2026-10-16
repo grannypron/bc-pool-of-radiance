@@ -40,8 +40,8 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
-  EclMenu, CharDisp, AbilAdj, MoneyCal;
+uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
+  EclMenu, CharDisp, AbilAdj, MoneyCal, Dice;
 
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
@@ -517,7 +517,7 @@ begin
         case ch of
           'G': if GDVars.curChar^.coins[C_Money.GEMS] <> 0 then begin
               Dec(GDVars.curChar^.coins[C_Money.GEMS]);
-              r := FxEngine.RollDice(1, 100);
+              r := Dice.RollDice(1, 100);
               case r of
                 1..25: value := 10;
                 26..50: value := 50;
@@ -533,7 +533,7 @@ begin
             end;
           'J': if GDVars.curChar^.coins[C_Money.JEWELRY] <> 0 then begin
               Dec(GDVars.curChar^.coins[C_Money.JEWELRY]);
-              r := FxEngine.RollDice(1, 100);
+              r := Dice.RollDice(1, 100);
               case r of
                 1..10: value := Trunc(Random(900)) + 100;
                 11..20: value := Trunc(Random(1000)) + 200;

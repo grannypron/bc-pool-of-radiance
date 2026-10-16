@@ -11,7 +11,7 @@ implementation
 
 uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
   C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp;
+  TextRend, StrUtil, CharDisp, Dice;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -97,7 +97,7 @@ begin
   bestRoll := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
-    roll := FxEngine.RollDice(1, 100);
+    roll := Dice.RollDice(1, 100);
     if p^.combatAddr^.initiative > best then
       bestRoll := roll;
     if (p^.combatAddr^.initiative >= best) and (roll >= bestRoll) then begin

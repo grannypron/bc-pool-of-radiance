@@ -9,7 +9,7 @@ function CampRest(interactive: Boolean): Boolean;
 implementation
 
 uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
-  FxEngine, StrUtil, CharDisp;
+  FxEngine, StrUtil, CharDisp, Dice;
 
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99 }
 procedure ValidateRestTime;
@@ -347,7 +347,7 @@ begin
         Inc(GDVars.restTicks);
         if GDVars.restTicks >= GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] then begin
           GDVars.restTicks := 0;
-          if FxEngine.RollDice(1, 100) <= GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] then begin
+          if Dice.RollDice(1, 100) <= GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] then begin
             CharDisp.ClearMessageWindow;
             GameTime.DisplayRestTime(0);
             TextRend.DisplayString(1, 19, White, 'The Party is rudely interrupted!');
