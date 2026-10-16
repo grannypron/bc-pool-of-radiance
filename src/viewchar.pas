@@ -830,6 +830,37 @@ begin
   Border.ClearBox(1, 21, 38, 22);
 end;
 
+{ Show the current character's coins as a menu (one line per type it holds: the name right-aligned in 8 columns and
+  the count, jewelry first) and return the line picked, or nil on Escape. list receives the menu list, for
+  MenuCore.FreeStringList (nil when there is no coin). }
+function PickCoinType(var list: Types.PItemRec): Types.PItemRec;
+var
+  m: ShortInt;
+  p: Types.PItemRec;
+  prev: Types.PItemRec;
+  idx: Integer;
+  redraw: Boolean;
+  ch: Char;
+begin
+  p := nil;
+  for m := C_Money.COPPER to C_Money.JEWELRY do
+    if GDVars.curChar^.coins[m] <> 0 then begin
+      { a menu-list node: only the name, inUse and next fields of a TItemRec }
+      prev := p;
+      GetMem(p, SizeOf(Types.TMenuNode));
+      p^.next := prev;
+      p^.name := StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GDVars.curChar^.coins[m]);
+      p^.inUse := 0;
+    end;
+  list := p;
+  prev := nil;
+  idx := 0;
+  redraw := True;
+  ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12, 7, 25, 13, p, True,
+                              redraw, idx, prev);
+  PickCoinType := prev;
+end;
+
 { Trade coins from curChar to another character. The outer loop picks the recipient, starting from tradeTarget; the
   inner loop lists curChar's nonzero coin types (linked backwards, so the highest type heads the list), lets the player
   pick a type and an amount up to the holding, and hands it over with Money.TradeMoney, repeating while coins remain.
@@ -839,17 +870,9 @@ var
   tgt: Types.PCharRecord;
   m: ShortInt;
   mType: ShortInt;
-  k: Byte;
-  gapLen: Byte;
-  p: Types.PItemRec;
   prev: Types.PItemRec;
   list: Types.PItemRec;
-  count: Word;
-  idx: Integer;
-  numStr: String[15];
-  line: String[4];
   s2: String;
-  ch: Char;
   amount: Word;
   exitOuter: Boolean;
   exitInner: Boolean;
@@ -866,36 +889,7 @@ begin
       repeat
         ViewChar.PrintMoney;
         tradeTarget := tgt;
-        p := nil;
-        prev := nil;
-        list := nil;
-        count := 0;
-        for m := C_Money.COPPER to C_Money.JEWELRY do
-          if GDVars.curChar^.coins[m] <> 0 then begin
-            Inc(count);
-            { a menu-list node: only the name, inUse and next fields of a TItemRec }
-            if p = nil then begin
-              GetMem(p, SizeOf(Types.TMenuNode));
-              p^.next := nil;
-            end else begin
-              prev := p;
-              GetMem(p, SizeOf(Types.TMenuNode));
-              p^.next := prev;
-            end;
-            Str(GDVars.curChar^.coins[m], numStr);
-            gapLen := 8 - Length(GDConsts.moneyNames[m]);
-            line := '';
-            line[0] := Chr(gapLen);
-            for k := 1 to gapLen do
-              line[k] := ' ';
-            p^.name := line + GDConsts.moneyNames[m] + ' ' + numStr;
-            p^.inUse := 0;
-          end;
-        list := p;
-        idx := 0;
-        redraw := True;
-        ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12,
-                                    7, 25, 13, p, True, redraw, idx, prev);
+        prev := ViewChar.PickCoinType(list);
         if prev = nil then begin
           exitInner := True;
           exitOuter := False;
@@ -925,53 +919,15 @@ procedure DropMoneyMenu;
 var
   m: ShortInt;
   mType: ShortInt;
-  gapLen: Byte;
-  k: Byte;
-  count: Word;
-  idx: Integer;
-  p: Types.PItemRec;
   prev: Types.PItemRec;
   list: Types.PItemRec;
   exitFlag: Boolean;
-  redraw: Boolean;
-  numStr: String[15];
-  line: String[4];
   s2: String;
-  ch: Char;
   amount: Word;
 begin
   repeat
     ViewChar.PrintMoney;
-    p := nil;
-    prev := nil;
-    list := nil;
-    count := 0;
-    for m := C_Money.COPPER to C_Money.JEWELRY do
-      if GDVars.curChar^.coins[m] <> 0 then begin
-        Inc(count);
-        { a menu-list node: only the name, inUse and next fields of a TItemRec }
-        if p = nil then begin
-          GetMem(p, SizeOf(Types.TMenuNode));
-          p^.next := nil;
-        end else begin
-          prev := p;
-          GetMem(p, SizeOf(Types.TMenuNode));
-          p^.next := prev;
-        end;
-        Str(GDVars.curChar^.coins[m], numStr);
-        gapLen := 8 - Length(GDConsts.moneyNames[m]);
-        line := '';
-        line[0] := Chr(gapLen);
-        for k := 1 to gapLen do
-          line[k] := ' ';
-        p^.name := line + GDConsts.moneyNames[m] + ' ' + numStr;
-        p^.inUse := 0;
-      end;
-    list := p;
-    idx := 0;
-    redraw := True;
-    ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12, 7,
-                                25, 13, p, True, redraw, idx, prev);
+    prev := ViewChar.PickCoinType(list);
     if prev = nil then
       exitFlag := True
     else begin
