@@ -15,6 +15,10 @@ The format, one step a line (`#` starts a comment):
 | `checkpoint NAME` | record the screen |
 | `saves NAME` | record every file in `SAVE\` (size and sha256) |
 | `ignore REGEX` | leave matching text lines out of the comparison (the version string, file times) |
+| `saves NAME GLOB...` | record only the files in `SAVE\` matching a glob |
+| `mask GLOB [every N] OFF:LEN...` | zero those bytes (in each N-byte record) before files are compared |
+| `golden: STEP`, `candidate: STEP` | a step for that build only, where the two need different keys |
+| `screens off` | record screen checkpoints without comparing them |
 
 `POOL.CFG` points the game at `C:\POOLRAD\` and `C:\POOLRAD\SAVE\`, where the harness installs it.
 
@@ -25,7 +29,7 @@ the text matches (an animated picture) is only a warning.
 | scenario | covers |
 | --- | --- |
 | `boot` | the main menu and the settings screen |
-| `chargen` | creating a paladin with fixed dice, the portrait and icon pickers, adding him |
+| `chargen` | creating a paladin with fixed dice, the portrait and icon pickers, the `.CHA` file written, adding him |
 | `loadsave` | the Load/Save menu, loading A, View and More Info, the save popup, the files a save writes |
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
@@ -33,3 +37,4 @@ the text matches (an animated picture) is only a warning.
 | `camp` | Fix and Rest in Valhingen Graveyard |
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
+| `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's, with SSI's heap pointers, the unused name bytes and the saved script masked |
