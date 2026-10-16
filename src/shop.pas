@@ -136,7 +136,6 @@ begin
   CharDisp.DisplayNoncombatInterface;
   CharDisp.DisplayParty(GDVars.curChar);
   FillChar(GDVars.treasureMoney, SizeOf(Types.TMoney), 0);
-  GDVars.treasureMoneyFlag := False;
   done := False;
   if atTemple then
     first := 'Heal'

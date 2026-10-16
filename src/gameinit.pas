@@ -242,6 +242,8 @@ end;
   (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
   effect handlers. }
 procedure GameInit2;
+var
+  opened: Boolean;
 begin
   GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
@@ -321,8 +323,6 @@ begin
   GDVars.suppressContinuePrompt := 0;
   GDVars.virtualDisk := 1;
   GDVars.prevVirtualDisk := 1;
-  GDVars.unidentified03 := 1;
-  GDVars.unidentified02 := 1;
   GDVars.automapOn := False;
   GDVars.locTypePrev := C_Area.LOC_3D_MAP;
   GDVars.gLocType := C_Area.LOC_3D_MAP;
@@ -359,8 +359,8 @@ begin
   for GDVars.gi2 := 0 to 11 do
     MapTiles.LoadIconAnim('COMSPR', GDVars.gi2, GDVars.gi2 + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
-  GDVars.itemsOk := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
-                                        False, GDVars.itemsFile);
+  opened := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':', False,
+                                 GDVars.itemsFile);
   Reset(GDVars.itemsFile, 1);
   Seek(GDVars.itemsFile, 2);
   { This asks for 129 records into the 128-entry item table; baseItemsOverflow after it keeps a 129th in bounds. The

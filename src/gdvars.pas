@@ -34,8 +34,6 @@ var
   lastMoveDir: Byte;
   { direction reversals or exhausted movement searches }
   stuckCount: Byte;
-  { unused; cleared at the start of each move/attack loop }
-  unidentified01: Byte;
 
 var
   { Combat placement. }
@@ -57,8 +55,6 @@ var
   { Resource initialization. }
   { GameInit2 loop counter }
   gi2: Byte;
-  { OpenWithRetry result }
-  itemsOk: Boolean;
   { directory saved across resource loading }
   savedDir: Types.TPathStr;
   { ITEMS loading file record }
@@ -239,12 +235,8 @@ var
   virtualDisk: Byte;
   { disk saved by DaxIo.PushState for PopState }
   prevVirtualDisk: Byte;
-  { GameInit sets it to 1; otherwise unused }
-  unidentified02: Word;
   { Save directory from line 4 of POOL.CFG. }
   dsSaveDirectory: String[255];
-  { GameInit sets it to 1; otherwise unused }
-  unidentified03: Word;
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
   gameDir: String;
   { Flag for suppressing insert disk prompt }
@@ -403,8 +395,6 @@ var
   vertTop: Integer;
   { Current horizontal menu choice, starting at 1. }
   horizChoice: Byte;
-  { Extended scan-code flag. }
-  extFlag: Boolean;
 
 var
   { Menu auto-answer }
@@ -430,7 +420,6 @@ var
   { Pointer to linked list of Stinking Clouds }
   stinkHead: Types.PStinkRec;
   usingItem: Boolean;
-  treasureMoneyFlag: Boolean;
 
 var
   { Rest and healing }
@@ -456,8 +445,6 @@ var
 
 var
   { Combat round }
-  { Set when the party confirms an attack on an ally (CbtActs.CheckAttackAlly) }
-  attackedAllies: Byte;
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
   { Potential-target creature indices. }
@@ -491,8 +478,6 @@ var
   dsEclStackSecondPtr: Types.PEclRet;
   { eq, ne, lt, gt, le, ge; cleared together by FillChar }
   cmpFlags: array[0..5] of Boolean;
-  { Previous ECL opcode. }
-  prevOpcode: Byte;
   { Current ECL opcode }
   curOpcode: Byte;
   { Current monster ID }

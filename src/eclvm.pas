@@ -1665,7 +1665,6 @@ begin
   GDVars.eclIp := address;
   GDVars.eclStop := 0;
   while (GDVars.eclStop = 0) and (not GDVars.partyDefeated) do begin
-    GDVars.prevOpcode := GDVars.curOpcode;
     GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
     { STING Ctrl-L's trace log (#612), as Curse writes it }
     if GDVars.debugTraceEnabled then

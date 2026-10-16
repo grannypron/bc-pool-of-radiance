@@ -1333,8 +1333,8 @@ begin
   HighestEnemyMovement := best;
 end;
 
-{ Confirm a physical attack on an ally (enemies and quick-fighting attackers pass unasked). Yes sets attackedAllies and
-  the GBVM attacked-allies flag, and every NPC-flagged creature in okay status turns hostile and drops its target. }
+{ Confirm a physical attack on an ally (enemies and quick-fighting attackers pass unasked). Yes sets the GBVM attacked-allies
+  flag, and every NPC-flagged creature in okay status turns hostile and drops its target. }
 function CheckAttackAlly(att, def: Types.PCharRecord): Boolean;
 var
   p: Types.PCharRecord;
@@ -1345,7 +1345,6 @@ begin
     CheckAttackAlly := False
   else begin
     CheckAttackAlly := True;
-    GDVars.attackedAllies := 1;
     GDVars.zone1^[C_Gbvm.ATTACKED_ALLIES] := 1;
     p := GDVars.creatureList;
     while p <> nil do begin

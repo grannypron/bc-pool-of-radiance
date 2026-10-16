@@ -176,8 +176,7 @@ begin
     CharDisp.PrintBottomLine('Overloaded');
 end;
 
-{ Creatures with npc = 0 or C_Npc.ANIMATED_PC pour all seven money types into the treasure pool; sets
-  treasureMoneyFlag. }
+{ Creatures with npc = 0 or C_Npc.ANIMATED_PC pour all seven money types into the treasure pool. }
 procedure PoolMoney;
 var
   p: Types.PCharRecord;
@@ -185,7 +184,6 @@ var
   mt: ShortInt;
 begin
   p := GDVars.creatureList;
-  GDVars.treasureMoneyFlag := True;
   while p <> nil do begin
     if (p^.npc = 0) or (p^.npc = C_Npc.ANIMATED_PC) then begin
       for i := C_Money.COPPER to C_Money.JEWELRY do begin
@@ -287,12 +285,8 @@ begin
       end;
     end;
   { return the rest to the pool }
-  GDVars.treasureMoneyFlag := False;
-  for i := C_Money.COPPER to C_Money.JEWELRY do begin
+  for i := C_Money.COPPER to C_Money.JEWELRY do
     GDVars.treasureMoney[i] := rem[i];
-    if GDVars.treasureMoney[i] <> 0 then
-      GDVars.treasureMoneyFlag := True;
-  end;
 end;
 
 { Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT,
@@ -377,13 +371,10 @@ begin
       n := Money.InputNumberMax(n, numStr, LightGreen);
       Money.TakeMoney(GDVars.curChar, n, mType);
       MenuCore.FreeStringList(save);
-      GDVars.treasureMoneyFlag := False;
       exitF := True;
       for i := C_Money.COPPER to C_Money.JEWELRY do
-        if GDVars.treasureMoney[i] > 0 then begin
-          GDVars.treasureMoneyFlag := True;
+        if GDVars.treasureMoney[i] > 0 then
           exitF := False;
-        end;
     end;
   until exitF;
 end;

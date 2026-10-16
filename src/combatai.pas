@@ -401,7 +401,6 @@ var
 begin
   GDVars.lastMoveDir := C_Dir.CENTER;
   GDVars.stuckCount := 0;
-  GDVars.unidentified01 := 0;
   loopCount := 0;
   canAct := True;
   done := False;

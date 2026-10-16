@@ -29,7 +29,6 @@ begin
   CharDisp.DisplayNoncombatInterface;
   CharDisp.DisplayParty(GDVars.curChar);
   Vault.ReadVault;
-  GDVars.treasureMoneyFlag := False;
   if Vault.WasVisited and (Random(20) = 0) then
     TextRend.ShowMessage(LightGreen, True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
   else

@@ -43,8 +43,7 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
   keypad scan codes, all with ext set. A nonzero GDVars.dsMenuAutoAnswer.timeout returns GDVars.dsMenuAutoAnswer.key
   once that many ticks pass after the last animation frame change. The picture animates when animate is set or the GBVM
-  menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit); ext is copied to
-  GDVars.extFlag. }
+  menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -188,7 +187,6 @@ var
   end;
 
 begin
-  GDVars.extFlag := False;
   enterOk := (mCol <> 0) or (hlCol <> 0);
   ParseMenu(menu);
   if (GDVars.horizChoice < 1) or (GDVars.horizChoice > optCnt) then
@@ -308,7 +306,6 @@ begin
   quickKeysToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
-  GDVars.extFlag := ext;
 end;
 
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;

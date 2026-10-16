@@ -399,16 +399,6 @@ type
     es: Word;
     flags: Word;
   end;
-  TKrynnClassRules = record
-    { class/item-usability masks }
-    createClassBits: array[0..7] of Byte;
-    unidentifiedByte: Byte;
-    { class selection masks }
-    classBits: array[0..7] of Byte;
-    unidentifiedTail: array[0..8] of Byte;
-    { hit-dice cap plus one }
-    maxClassLevels: array[0..7] of Byte;
-  end;
   { main-menu entry }
   TMenuItem = record
     { first character is the hotkey }
