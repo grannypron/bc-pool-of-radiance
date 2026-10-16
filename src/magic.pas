@@ -214,31 +214,7 @@ const
   { the highest spell level in spellTable (Restoration's 7) }
   SPELL_LEVEL_LAST = 7;
 
-procedure AddSpellToList(creature: Types.PCharRecord; spell, mark: Byte); forward;
-
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forward;
-
-procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte); forward;
-
-procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte); forward;
-
-procedure AddScrollLine(creature: Types.PCharRecord; item: Types.PItemRec; slot: Byte; var lines: Byte); forward;
-
-procedure AddAvailableSpells(creature: Types.PCharRecord); forward;
-
-function CalcSpellDuration(spell: Byte): Word; forward;
-
-procedure ResolveSpell(spell, eff: Byte; onRemove: Boolean; damage, elem: Byte; msg: Types.TStr40); forward;
-
-procedure CastOneSide(hostFlag: ShortInt; msg: Types.TStr40); forward;
-
-function RemoveDiseaseEffects(tgt: Types.PCharRecord): Boolean; forward;
-
-procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40); forward;
-
-procedure LightningAttackAt(x, y: ShortInt; damage: Byte; saveType: ShortInt; var blocked: Boolean); forward;
-
-procedure LightningPath(boltLen, damage: Byte; saveType: ShortInt; bounce: Boolean); forward;
 
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
   forward;

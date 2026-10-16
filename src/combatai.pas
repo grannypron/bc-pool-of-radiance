@@ -34,15 +34,9 @@ var
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
-function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean; forward;
-
 function SelectItemToUse(creature: Types.PCharRecord): Boolean; forward;
 
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean; forward;
-
-function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean; forward;
-
-procedure AiMoveStep(creature: Types.PCharRecord); forward;
 
 function AiMoveAttack(creature: Types.PCharRecord): Boolean; forward;
 
@@ -51,8 +45,6 @@ function FinishRound(creature: Types.PCharRecord): Boolean; forward;
 function CheckKeystroke(creature: Types.PCharRecord): Boolean; forward;
 
 function CheckMorale(creature: Types.PCharRecord): Boolean; forward;
-
-function CalcWeaponPriority(creature: Types.PCharRecord; item: Types.PItemRec): Byte; forward;
 
 procedure EquipWeaponAndShield(creature: Types.PCharRecord); forward;
 

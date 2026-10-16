@@ -80,31 +80,13 @@ const
   SPRITE_SPARKLE = 22;
   SPRITE_BURST = 23;
 
-procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte); forward;
-
-procedure ProcessAttackResult(att, def: Types.PCharRecord; atkType, dmg, dmgDisp: Byte; isHit: Boolean); forward;
-
-procedure GuardingAttacks(creature: Types.PCharRecord); forward;
-
 function AdjustedAttacks(n: Byte): Byte; forward;
 
-procedure DoAttack(att, def: Types.PCharRecord; fromBehind: Boolean; var done: Boolean); forward;
-
 procedure ModifyDefenseForDistance(att, def: Types.PCharRecord; var defense: Byte); forward;
-
-function PickSpellTarget(spell: Byte; ai: Boolean; ground: Byte; var tgt: Types.TAimTarget): Boolean; forward;
 
 function IsBackstab(att, def: Types.PCharRecord): Boolean; forward;
 
 procedure RangedAttackAnim(att, def: Types.PCharRecord; weapon: Types.PItemRec); forward;
-
-function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte; var dir: Byte): Char; forward;
-
-procedure ConfirmAttackTarget(cur, tgt: Types.PCharRecord; weaponMode: Byte; var done: Boolean;
-                              var sel: Types.TAimTarget); forward;
-
-procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground, startDir: Byte;
-                          var done: Boolean; var sel: Types.TAimTarget); forward;
 
 { Per-creature round reset: combat record flags, current attacks (SetCurAttacksX2, then the secondary attacks through
   AdjustedAttacks), the sweep budget, initiative (1d6 + missile dex adjustment, at least 1, -6 when surprised, 0 if
