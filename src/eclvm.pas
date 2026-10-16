@@ -13,7 +13,7 @@ implementation
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
-  EclMenu, FxEngine, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
+  EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp;
 
 const
@@ -1023,7 +1023,7 @@ begin
         end;
         99, 100: itemId := 69;
       end;
-      Money.GenerateRandomItem(itemId, @it);
+      RandItem.GenerateRandomItem(itemId, @it);
       if GDVars.treasureItems = nil then begin
         GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
         GDVars.treasureItems^ := it;
