@@ -97,10 +97,10 @@ end;
 function TextChunk(index, chunk: Integer): string;
 begin
   case index of
-    1..28: TextChunk := Journal1.TextChunk(index, chunk);
-    29..50: TextChunk := Journal2.TextChunk(index, chunk);
-    51..67: TextChunk := Journal3.TextChunk(index, chunk);
-    68..99: TextChunk := Journal4.TextChunk(index, chunk);
+    1..C_Jrnl.PART1_LAST: TextChunk := Journal1.TextChunk(index, chunk);
+    C_Jrnl.PART1_LAST + 1..C_Jrnl.PART2_LAST: TextChunk := Journal2.TextChunk(index, chunk);
+    C_Jrnl.PART2_LAST + 1..C_Jrnl.PART3_LAST: TextChunk := Journal3.TextChunk(index, chunk);
+    C_Jrnl.PART3_LAST + 1..C_Jrnl.JOURNAL_COUNT: TextChunk := Journal4.TextChunk(index, chunk);
     else TextChunk := '';
   end;
 end;
@@ -179,10 +179,10 @@ end;
 function LineCount(index: Integer): Integer;
 begin
   case index of
-    1..28: LineCount := Journal1.LineCount(index);
-    29..50: LineCount := Journal2.LineCount(index);
-    51..67: LineCount := Journal3.LineCount(index);
-    68..99: LineCount := Journal4.LineCount(index);
+    1..C_Jrnl.PART1_LAST: LineCount := Journal1.LineCount(index);
+    C_Jrnl.PART1_LAST + 1..C_Jrnl.PART2_LAST: LineCount := Journal2.LineCount(index);
+    C_Jrnl.PART2_LAST + 1..C_Jrnl.PART3_LAST: LineCount := Journal3.LineCount(index);
+    C_Jrnl.PART3_LAST + 1..C_Jrnl.JOURNAL_COUNT: LineCount := Journal4.LineCount(index);
     else LineCount := 0;
   end;
 end;
