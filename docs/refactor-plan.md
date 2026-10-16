@@ -212,6 +212,9 @@ changes behaviour is its own issue and commit.
      - The remaining raw `Str` calls.
    - **Constants still written as literals:** spell ids, the 72 arena slots, the element-mask bits, the window
      corners, the GBVM zone bounds, `C_Level` loops written as `0 to 7`, and the party limit.
+   - **GBVM addresses get names.** Every raw address in EclVars' map and elsewhere (`$18`, `$9B`, `$2CF`, the
+     `$6B00`/`$BF68`/`$C04B` bases, the zone bounds) becomes a named `C_Gbvm` constant, so a grep shows every file that
+     touches an address. Take the opportunity in any step that passes one.
 4. **Testability**, as AbilAdj and MoneyCal were done:
    - **Dice:** `RollDice` and `RollDamageDice` move to a resident unit, so tests can fix `RandSeed`. That is about 150
      call sites in 17 units, so it gets its own issue.
