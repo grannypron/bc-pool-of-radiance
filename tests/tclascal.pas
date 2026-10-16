@@ -258,6 +258,26 @@ begin
   end;
   TestKit.Check(inRange, 'from level 2 one die, no floor');
 
+  { experience shares }
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.FIGHTER;
+  c^.strCur := 16;
+  TestKit.CheckEqualsL(110, ClassCal.ExperienceShare(c, 100), 'a fighter with Strength 16 gets 10% more');
+  c^.strCur := 15;
+  TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'with Strength 15, no bonus');
+  c^.charClass := C_Class.PALADIN;
+  c^.strCur := 17;
+  c^.wisCur := 15;
+  TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'a paladin needs Wisdom above 15 too');
+  c^.wisCur := 16;
+  TestKit.CheckEqualsL(110, ClassCal.ExperienceShare(c, 100), 'and with it gets the bonus');
+  c^.charClass := C_Class.CLERIC_FIGHTER;
+  TestKit.CheckEqualsL(50, ClassCal.ExperienceShare(c, 101), 'a two-class character gets half (div 2)');
+  c^.charClass := C_Class.CLERIC_FIGHTER_MAGE;
+  TestKit.CheckEqualsL(33, ClassCal.ExperienceShare(c, 100), 'a three-class character a third (div 3)');
+  c^.charClass := C_Class.DRUID;
+  TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'another single class gets it all');
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
 end.

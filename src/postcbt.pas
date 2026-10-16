@@ -13,14 +13,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
-  C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice;
-
-const
-  { AwardExperience: prime stat > 15 earns a 10% bonus }
-  PRIME_STAT_THRESHOLD = 15;
-
-
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_Status, C_Ifc, C_Gbvm,
+  C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
@@ -85,40 +79,15 @@ begin
   end;
 end;
 
-{ Every enabled, non-Animated creature in the list gets exp. A single-class cleric, fighter, magic-user or thief whose
-  prime stat (Wis/Str/Int/Dex) is above PRIME_STAT_THRESHOLD (15) gets +10 pct, as does a paladin with Str and Wis or a
-  ranger with Str, Int and Wis above it; other single classes get exp unchanged; two-class multiclasses get exp div 2,
-  three-class (9 = C/F/M, 15 = F/M/T) exp div 3. }
+{ Every enabled, non-Animated creature in the list gets its share of exp (ClassCal.ExperienceShare). }
 procedure AwardExperience(experience: LongInt);
 var
   p: Types.PCharRecord;
-  share: LongInt;
 begin
   p := GDVars.creatureList;
   while p <> nil do begin
-    if (p^.enabled <> 0) and (p^.status <> C_Status.ANIMATED) then begin
-      share := experience;
-      case p^.charClass of
-        C_Class.CLERIC: if p^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.FIGHTER: if p^.strCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.PALADIN:
-          if (p^.strCur > PRIME_STAT_THRESHOLD) and (p^.wisCur > PRIME_STAT_THRESHOLD) then
-            share := experience div 10 + experience;
-        C_Class.RANGER:
-          if (p^.strCur > PRIME_STAT_THRESHOLD) and (p^.intCur > PRIME_STAT_THRESHOLD) and
-              (p^.wisCur > PRIME_STAT_THRESHOLD) then
-            share := experience div 10 + experience;
-        C_Class.MAGE: if p^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.THIEF: if p^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER..C_Class.FIGHTER_THIEF,
-          { 2-class multi }
-          C_Class.MAGE_THIEF: share := experience div 2;
-        C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
-          { 3-class multi }
-          share := experience div 3;
-      end;
-      Inc(p^.experience, share);
-    end;
+    if (p^.enabled <> 0) and (p^.status <> C_Status.ANIMATED) then
+      Inc(p^.experience, ClassCal.ExperienceShare(p, experience));
     p := p^.nextCharAddr;
   end;
 end;

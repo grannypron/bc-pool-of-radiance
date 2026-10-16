@@ -36,6 +36,17 @@ function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
   hit-point change a change of Constitution makes. }
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 
+const
+  { a prime attribute above this earns a single-class character 10% more experience }
+  PRIME_STAT_THRESHOLD = 15;
+
+{ The creature's share of experience: a single-class cleric, fighter, magic-user or thief whose prime attribute
+  (Wisdom, Strength, Intelligence, Dexterity) is above PRIME_STAT_THRESHOLD gets 10% more (experience div 10 added), as
+  does a paladin with Strength and Wisdom or a ranger with Strength, Intelligence and Wisdom above it; other single
+  classes get experience unchanged; two-class characters get experience div 2, three-class (cleric/fighter/magic-user,
+  fighter/magic-user/thief) experience div 3. }
+function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
+
 implementation
 
 
@@ -377,6 +388,33 @@ begin
   if clsCount > 0 then
     total := total div clsCount;
   ConHpTotal := total;
+end;
+
+function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
+var
+  share: LongInt;
+begin
+  share := experience;
+  case creature^.charClass of
+    C_Class.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_Class.FIGHTER: if creature^.strCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_Class.PALADIN:
+      if (creature^.strCur > PRIME_STAT_THRESHOLD) and (creature^.wisCur > PRIME_STAT_THRESHOLD) then
+        share := experience div 10 + experience;
+    C_Class.RANGER:
+      if (creature^.strCur > PRIME_STAT_THRESHOLD) and (creature^.intCur > PRIME_STAT_THRESHOLD) and
+          (creature^.wisCur > PRIME_STAT_THRESHOLD) then
+        share := experience div 10 + experience;
+    C_Class.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_Class.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER..C_Class.FIGHTER_THIEF,
+      { 2-class multi }
+      C_Class.MAGE_THIEF: share := experience div 2;
+    C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
+      { 3-class multi }
+      share := experience div 3;
+  end;
+  ExperienceShare := share;
 end;
 
 end.
