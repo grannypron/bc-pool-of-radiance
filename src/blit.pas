@@ -755,6 +755,7 @@ var
   srcOff: Word;
   dstOff: Word;
   dstBase: Word;
+  plane: Byte;
 begin
   case GDVars.videoMode of
     Types.vmCGA:
@@ -768,38 +769,17 @@ begin
       for row := 0 to SizeOf(GDVars.spanActive) - 1 do
         if GDVars.spanActive[row] <> 0 then begin
           dstBase := GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 1;
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[0];
-          srcOff := GDVars.spanFirstOfs[row];
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[1];
-          srcOff := GDVars.spanFirstOfs[row] + 1;
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[2];
-          srcOff := GDVars.spanFirstOfs[row] + 2;
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[3];
-          srcOff := GDVars.spanFirstOfs[row] + 3;
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
+          { each plane's bytes, every fourth from its own in the view buffer }
+          for plane := 0 to 3 do begin
+            Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+            srcOff := GDVars.spanFirstOfs[row] + plane;
+            dstOff := dstBase;
+            repeat
+              Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
+              Inc(srcOff, 4);
+              Inc(dstOff);
+            until srcOff > GDVars.spanLastOfs[row];
+          end;
         end;
       Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
       dstOff := GDVars.fbRowOfs[8] + 1;
