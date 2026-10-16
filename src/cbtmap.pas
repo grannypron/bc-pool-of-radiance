@@ -675,9 +675,8 @@ var
   i: Byte;
 begin
   CombatSlot := 0;
-  { 72 = High(creatureArr) }
   for i := 1 to GDVars.arenaCount do
-    if i <= 72 then
+    if i <= Types.ARENA_SLOTS then
       if GDVars.creatureArr[i] = creature then begin
         CombatSlot := i;
         Exit;

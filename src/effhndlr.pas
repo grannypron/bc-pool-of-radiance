@@ -1119,9 +1119,8 @@ var
   done: Boolean;
   dmg: Byte;
 begin
-  { 72 = High(creatureArr) }
   if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
-      (Types.PEffectRec(p)^.strength > 72) then begin
+      (Types.PEffectRec(p)^.strength > Types.ARENA_SLOTS) then begin
     if not removed then begin
       Types.PEffectRec(p)^.onRemove := False;
       FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, p);

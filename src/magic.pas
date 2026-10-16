@@ -1280,8 +1280,7 @@ begin
   cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   for i := 1 to GDVars.spellTargetCount do begin
     removed := False;
-    { 72 = High(dsTargetCreaturePtr) }
-    if i <= 72 then
+    if i <= Types.ARENA_SLOTS then
       tgt := GDVars.dsTargetCreaturePtr[i]
     else
       tgt := nil;

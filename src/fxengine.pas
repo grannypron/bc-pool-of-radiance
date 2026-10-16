@@ -189,7 +189,7 @@ end;
   target list around it. }
 procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
 var
-  save: array[1..72] of Types.TCombatTarget;
+  save: array[1..Types.ARENA_SLOTS] of Types.TCombatTarget;
   p: Types.PCharRecord;
   effect: Types.PEffectRec;
   found: Boolean;

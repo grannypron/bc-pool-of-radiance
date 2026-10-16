@@ -11,6 +11,9 @@ const
   NAME_LEN = 15;
   { the most creatures in the party: a saved game's party names, the usual spells, the statistics, the icon slots }
   MAX_PARTY = 8;
+  { the most creatures in play at once, party and monsters: combat's slots (GDVars.creatureArr, arenaLoc and the target
+    lists) and the creature list's ordinals }
+  ARENA_SLOTS = 72;
   { the data disks the game shipped on, 1..LAST_DISK }
   LAST_DISK = 8;
   { a 3D map's last row and column: maps are 16 by 16 }

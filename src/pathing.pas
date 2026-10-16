@@ -252,10 +252,9 @@ begin
     end else
       myX[k] := -1;
   GDVars.targetCount := 0;
-  { 72 = High(arenaLoc) = High(targetList) }
   last := GDVars.arenaCount;
-  if last > 72 then
-    last := 72;
+  if last > Types.ARENA_SLOTS then
+    last := Types.ARENA_SLOTS;
   for i := 1 to last do
     if GDVars.arenaLoc[i].size > 0 then begin
       found := False;

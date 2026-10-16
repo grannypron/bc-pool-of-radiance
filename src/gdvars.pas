@@ -78,7 +78,7 @@ var
 var
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
-  effFlags: array[1..72] of Byte;
+  effFlags: array[1..Types.ARENA_SLOTS] of Byte;
   { Spell selection. }
   { the menu string list }
   spellList: Types.PItemRec;
@@ -293,15 +293,15 @@ var
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;
   { icon location and size per slot }
-  arenaLoc: array[1..72] of Types.TArenaLoc;
+  arenaLoc: array[1..Types.ARENA_SLOTS] of Types.TArenaLoc;
   { view-relative X deltas }
-  gridX: array[1..72] of ShortInt;
+  gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
   { view-relative Y deltas }
-  gridY: array[1..72] of ShortInt;
+  gridY: array[1..Types.ARENA_SLOTS] of ShortInt;
   { creature slot per arena cell }
   crIdxArr: array[0..24, 0..49] of Byte;
   { creature per slot }
-  creatureArr: array[1..72] of Types.PCharRecord;
+  creatureArr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { corpses on the arena }
   downed: array[1..8] of Types.TDownedRec;
   { append and scan limit; cleared entries leave holes }
@@ -311,7 +311,7 @@ var
   { Pathing's potential-target count }
   targetCount: Byte;
   { sorted by distance and facing }
-  targetList: array[1..72] of Types.TCombatTarget;
+  targetList: array[1..Types.ARENA_SLOTS] of Types.TCombatTarget;
 
 var
   { Treasure }
@@ -420,7 +420,7 @@ var
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }
-  dsTargetCreaturePtr: array[1..72] of Types.PCharRecord;
+  dsTargetCreaturePtr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { Remembered noncombat spell target, initially the caster. }
   castTarget: Types.PCharRecord;
   { combat arena column, 0..49 }
@@ -461,7 +461,7 @@ var
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
   { Potential-target creature indices. }
-  dsPotentialTargetCreature: array[1..72] of Byte;
+  dsPotentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
   { Primary and secondary attack counts. }
   attacksMade: array[1..2] of Byte;
   { Hostile creatures' hit points, percent remaining }

@@ -750,8 +750,7 @@ begin
   CharHlp.CountTeams;
   removedCnt := 0;
   placedCnt := 0;
-  { 72 = High(arenaLoc) }
-  for slot := 1 to 72 do
+  for slot := 1 to Types.ARENA_SLOTS do
     GDVars.arenaLoc[slot].size := 0;
   CbtMap.BuildArenaArrays;
   GDVars.placeX[0] := 0;
@@ -781,8 +780,8 @@ begin
   GDVars.arenaCount := 1;
   prev := nil;
   p := GDVars.creatureList;
-  { 72 = High(arenaLoc): placing stops at the last slot, and the list is cut after the last creature placed }
-  while (p <> nil) and (slot <= 72) do begin
+  { placing stops at the last slot, and the list is cut after the last creature placed }
+  while (p <> nil) and (slot <= Types.ARENA_SLOTS) do begin
     GameIo.DiscardPendingKeys;
     { read before a removal frees p }
     next := p^.nextCharAddr;
