@@ -48,6 +48,12 @@ procedure DisplayCombatInterface;
 
 procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PCharRecord);
 
+{ Build the item's label (CharHlp.ItemLabel, not as an inventory line) and print it in light green at (col, row). }
+procedure PrintItemLabel(item: Types.PItemRec; col, row: Byte);
+
+{ CharHlp.faultHook: show msg in yellow on the bottom line and wait for a key. }
+procedure ShowFault(msg: Types.TStr40);
+
 implementation
 
 uses CharHlp, Crt, C_Area, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
@@ -145,7 +151,7 @@ begin
   if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     Inc(row, 2);
     col := 23;
-    CharHlp.PrintItemString(creature^.equipped[C_Equip.WEAPON], 0, 0, False, False);
+    CharHlp.ItemLabel(creature^.equipped[C_Equip.WEAPON], False);
     TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
                                   creature^.equipped[C_Equip.WEAPON]^.name);
   end;
@@ -649,6 +655,17 @@ begin
       p := nil;
     sel := p;
   end;
+end;
+
+procedure PrintItemLabel(item: Types.PItemRec; col, row: Byte);
+begin
+  CharHlp.ItemLabel(item, False);
+  TextRend.DisplayString(col, row, LightGreen, item^.name);
+end;
+
+procedure ShowFault(msg: Types.TStr40);
+begin
+  TextRend.DisplayAndPause(Yellow, msg);
 end;
 
 end.

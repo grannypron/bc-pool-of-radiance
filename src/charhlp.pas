@@ -15,7 +15,7 @@ procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; a
 
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
-procedure PrintItemString(item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
+procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
 
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
@@ -131,10 +131,19 @@ function HasScrollSpells(creature: Types.PCharRecord): Boolean;
   nonzero area (touch) and the 255 attack-roll encoding both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
+type
+  { a message for a fault that should not happen }
+  TFaultHook = procedure(msg: Types.TStr40);
+
+var
+  { RemoveItem's messages for a nil item or one not in the list; GameInit sets it to CharDisp.ShowFault (nil in a test
+    program, which shows nothing) }
+  faultHook: TFaultHook;
+
 implementation
 
-uses Crt, C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, TextRend, C_Npc, StrUtil, AbilAdj, C_Spell;
+uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
+  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
@@ -259,8 +268,8 @@ end;
 { Build the item label in item^.name: the ' Yes  '/' No   ' equipped marker (inventory listings only), a '*' when
   any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when
   nonzero, then the identified name components from 3 down to 1, one of them pluralized with 's' when the quantity
-  is 2 or more. Optionally print it in light green at the requested position. }
-procedure PrintItemString(item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
+  is 2 or more. CharDisp.PrintItemLabel also prints it. }
+procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
 var
   i: Byte;
   mask: Byte;
@@ -308,8 +317,6 @@ begin
       end else
         item^.name := item^.name + ' ';
     end;
-  if doPrint then
-    TextRend.DisplayString(col, row, LightGreen, item^.name);
 end;
 
 { Return True if any of the four helplessness effects in GDConsts.helplessFx is active on the creature. }
@@ -548,6 +555,13 @@ begin
   FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
 end;
 
+{ Report a fault through faultHook, when one is set. }
+procedure Fault(msg: Types.TStr40);
+begin
+  if @faultHook <> nil then
+    faultHook(msg);
+end;
+
 { Unlink an item from the creature's inventory list and free it; a nil item or one not in the list only gets an error
   message. }
 procedure RemoveItem(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -555,7 +569,7 @@ var
   p: Types.PItemRec;
 begin
   if item = nil then
-    TextRend.DisplayAndPause(Yellow, 'Nil Item pointer...')
+    CharHlp.Fault('Nil Item pointer...')
   else begin
     p := creature^.itemsAddr;
     if p = item then
@@ -564,7 +578,7 @@ begin
       while (p <> nil) and (p^.next <> item) do
         p := p^.next;
     if p = nil then
-      TextRend.DisplayAndPause(Yellow, 'Tried to Lose item & couldn''t find it!')
+      CharHlp.Fault('Tried to Lose item & couldn''t find it!')
     else begin
       p^.next := item^.next;
       item^.next := nil;

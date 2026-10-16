@@ -650,7 +650,7 @@ begin
       CharDisp.PrintNameStringAnim(creature, False, s)
     else begin
       { the item label ends in a space }
-      CharHlp.PrintItemString(shockItem, 0, 0, False, False);
+      CharHlp.ItemLabel(shockItem, False);
       CharDisp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
                                StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
     end;
@@ -860,7 +860,7 @@ begin
          end;
       1: CharDisp.PrintBottomLine('Wrong Class');
       2: begin
-           CharHlp.PrintItemString(creature^.equipped[slot], 0, 0, False, False);
+           CharHlp.ItemLabel(creature^.equipped[slot], False);
            CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
          end;
       3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then

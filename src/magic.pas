@@ -1873,9 +1873,9 @@ begin
     CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');
-      CharHlp.PrintItemString(item, 5, 23, False, True);
+      CharDisp.PrintItemLabel(item, 5, 23);
     end else
-      CharHlp.PrintItemString(item, 1, 22, False, True);
+      CharDisp.PrintItemLabel(item, 1, 22);
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
   end;

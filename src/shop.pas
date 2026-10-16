@@ -21,7 +21,7 @@ uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Bord
   CharDisp, MoneyCal, Party;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
-  to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.PrintItemString. Returns
+  to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.ItemLabel. Returns
   the menu key in c and the highlighted item in itemToBuy; cursor and idx carry the menu position from one call to the
   next. }
 procedure ShopBuyItemSelection(var c: Char; var itemToBuy: Types.PItemRec; var cursor: Types.PItemRec;
@@ -63,7 +63,7 @@ begin
   itemToBuy := cursor;
   p := GDVars.treasureItems;
   while p <> nil do begin
-    CharHlp.PrintItemString(p, 0, 0, False, False);
+    CharHlp.ItemLabel(p, False);
     p := p^.next;
   end;
 end;
@@ -144,7 +144,7 @@ begin
     first := 'Buy';
     p := GDVars.treasureItems;
     while p <> nil do begin
-      CharHlp.PrintItemString(p, 0, 0, False, False);
+      CharHlp.ItemLabel(p, False);
       p := p^.next;
     end;
   end;

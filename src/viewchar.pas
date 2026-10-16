@@ -109,13 +109,13 @@ begin
   row := 20;
   if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     TextRend.DisplayString(1, row, White, 'Weapon');
-    CharHlp.PrintItemString(creature^.equipped[C_Equip.WEAPON], 8, row, False, True);
+    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.WEAPON], 8, row);
   end;
   Inc(row);
   if creature^.equipped[C_Equip.ARMOR] <> nil then begin
     { 'Armor' starts one column right of 'Weapon' so the two labels end in the same column }
     TextRend.DisplayString(2, row, White, 'Armor');
-    CharHlp.PrintItemString(creature^.equipped[C_Equip.ARMOR], 8, row, False, True);
+    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.ARMOR], 8, row);
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
@@ -601,7 +601,7 @@ begin
       { rebuild every item name }
       p := creature^.itemsAddr;
       while p <> nil do begin
-        CharHlp.PrintItemString(p, 0, 0, True, False);
+        CharHlp.ItemLabel(p, True);
         p := p^.next;
       end;
       if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
@@ -656,7 +656,7 @@ begin
                    TextRend.DisplayAndPause(Yellow, 'The vault is full.');
                end else if ViewChar.CheckItemAvail(sel) then
                begin
-                 CharHlp.PrintItemString(sel, 0, 0, False, False);
+                 CharHlp.ItemLabel(sel, False);
                  ViewChar.SayBelow(True, 'Your ' + sel^.name + ' will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
@@ -776,7 +776,7 @@ var
   takable: Word;
 begin
   price := MoneyCal.ItemSalePrice(item);
-  CharHlp.PrintItemString(item, 0, 0, False, False);
+  CharHlp.ItemLabel(item, False);
   ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
@@ -809,7 +809,7 @@ var
   paid: Boolean;
 begin
   paid := False;
-  CharHlp.PrintItemString(item, 0, 0, False, False);
+  CharHlp.ItemLabel(item, False);
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
@@ -820,7 +820,7 @@ begin
       ViewChar.SayBelow(True, 'I can''t tell anything new about your ' + item^.name)
     else begin
       item^.unidMask := 0;
-      CharHlp.PrintItemString(item, 0, 0, False, False);
+      CharHlp.ItemLabel(item, False);
       ViewChar.SayBelow(True, 'It looks like some sort of ' + item^.name);
       newInfo := True;
     end;

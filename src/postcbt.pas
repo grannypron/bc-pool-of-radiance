@@ -55,7 +55,7 @@ begin
           while item <> nil do begin
             if (item^.value > 0) or ((cnt < 8) and (Dice.RollDice(1, 10) <= 3)) then begin
               Inc(cnt);
-              CharHlp.PrintItemString(item, 0, 0, False, False);
+              CharHlp.ItemLabel(item, False);
               CharHlp.PrependItemCopy(GDVars.treasureItems, item);
               GDVars.treasureItems^.equipped := 0;
             end;
@@ -293,7 +293,7 @@ begin
   Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Loot');
   p := GDVars.treasureItems;
   while p <> nil do begin
-    CharHlp.PrintItemString(p, 0, 0, False, False);
+    CharHlp.ItemLabel(p, False);
     p := p^.next;
   end;
   head := GDVars.treasureItems;
