@@ -1,4 +1,4 @@
-{ Coin conversion, treasure collection, money menus and random item generation. }
+{ Treasure collection, money menus, paying and random item generation; the arithmetic under them is in MoneyCal. }
 {$O+,F+}
 unit Money;
 
@@ -13,8 +13,6 @@ procedure PoolMoney;
 procedure ShareMoney;
 
 procedure TakeMoneyMenu;
-
-function ParseMoneyType(s: String; var typeName: String): ShortInt;
 
 function InputNumberMax(max: Word; query: Types.TStr40; color: Byte): Word;
 
@@ -32,20 +30,6 @@ procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
 procedure PayFromPool(gp: LongInt);
 
-function CoinValueInGold(m: Types.TMoney): LongInt;
-
-{ The creature's five coin types in whole gold pieces, as CoinValueInGold. }
-function CreatureGold(creature: Types.PCharRecord): LongInt;
-
-const
-  { who pays a price (WhoPays): nobody can, the current character, or the treasure pool }
-  PAY_NOBODY = 0;
-  PAY_CHARACTER = 1;
-  PAY_POOL = 2;
-
-{ Who pays gp gold pieces for buyer: buyer when its coins cover it, else the treasure pool when it does. }
-function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
-
 { Pay gp gold pieces from payer (WhoPays): buyer's coins or the pool's. }
 procedure PayBy(buyer: Types.PCharRecord; payer: Byte; gp: LongInt);
 
@@ -54,22 +38,12 @@ function PayGold(buyer: Types.PCharRecord; gp: LongInt): Boolean;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
-{ How many pieces an item's value is for: ammunition (darts, quarrels and arrows) is valued per bundle of 20, as the
-  game's own 20 Arrows +1 for 100 gp are; anything else is valued per piece (3 Potions of Healing at 400 each). }
-function ItemBundle(item: Types.PItemRec): Byte;
-
-{ What an item or stack is worth in gold: value * quantity div ItemBundle (quantity 0 is a single unstacked item). }
-function ItemValue(item: Types.PItemRec): LongInt;
-
-{ What a shop pays for an item or stack: half its ItemValue, at most 65535. }
-function ItemSalePrice(item: Types.PItemRec): Word;
-
 procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
-  EclMenu, CharDisp, AbilAdj;
+  EclMenu, CharDisp, AbilAdj, MoneyCal;
 
 
 var
@@ -112,62 +86,6 @@ begin
   end;
 end;
 
-{ The copper value of the five coin types in m. }
-function CopperValue(var m: Types.TMoney): LongInt;
-var
-  total: LongInt;
-  i: ShortInt;
-begin
-  total := 0;
-  for i := C_Money.COPPER to C_Money.PLATINUM do
-    Inc(total, GDConsts.dsCoinValuationCopper[i] * m[i]);
-  CopperValue := total;
-end;
-
-{ The value of the five coin types in m in whole gold pieces; a part of a gold piece does not count, so 999 gp and an
-  electrum piece cannot pay 1000. }
-function CoinValueInGold(m: Types.TMoney): LongInt;
-begin
-  CoinValueInGold := CopperValue(m) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
-end;
-
-{ The creature's five coin types as a TMoney; its gems and jewelry are left out (0). }
-procedure CoinsOf(creature: Types.PCharRecord; var m: Types.TMoney);
-var
-  i: ShortInt;
-begin
-  FillChar(m, SizeOf(m), 0);
-  for i := C_Money.COPPER to C_Money.PLATINUM do
-    m[i] := creature^.coins[i];
-end;
-
-function CreatureGold(creature: Types.PCharRecord): LongInt;
-var
-  m: Types.TMoney;
-begin
-  Money.CoinsOf(creature, m);
-  CreatureGold := Money.CoinValueInGold(m);
-end;
-
-{ Replace the five coin types in m with rem copper given as the largest coins, platinum first, each type at most cap.
-  Gems and jewelry are kept. A negative rem gives nothing; copper the caps cannot hold is lost. At a cap of 65535 that
-  takes more than 65535 of every type (about 429,581 gp), more than a character's Word-sized coins can hold. }
-procedure MakeChange(rem, cap: LongInt; var m: Types.TMoney);
-var
-  i: ShortInt;
-  n: LongInt;
-begin
-  if rem < 0 then
-    rem := 0;
-  for i := C_Money.PLATINUM downto C_Money.COPPER do begin
-    n := rem div GDConsts.dsCoinValuationCopper[i];
-    if n > cap then
-      n := cap;
-    m[i] := n;
-    Dec(rem, n * GDConsts.dsCoinValuationCopper[i]);
-  end;
-end;
-
 { Pay gp gold pieces from the creature's coins, worked out in copper, with the change given back in the largest coins.
   The caller has checked the creature can pay (CreatureGold); if not, every coin goes. The coins'
   weight changes, so the creature's stats are recalculated. }
@@ -176,8 +94,8 @@ var
   m: Types.TMoney;
   i: ShortInt;
 begin
-  Money.CoinsOf(creature, m);
-  MakeChange(CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], 65535, m);
+  MoneyCal.CoinsOf(creature, m);
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], 65535, m);
   for i := C_Money.COPPER to C_Money.PLATINUM do
     creature^.coins[i] := m[i];
   CharHlp.RecalcStats(creature);
@@ -186,8 +104,8 @@ end;
 { Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
 procedure PayFromPool(gp: LongInt);
 begin
-  MakeChange(CopperValue(GDVars.treasureMoney) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], MaxLongInt,
-             GDVars.treasureMoney);
+  MoneyCal.MakeChange(MoneyCal.CopperValue(GDVars.treasureMoney) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD],
+                      MaxLongInt, GDVars.treasureMoney);
 end;
 
 { Give pp platinum to creature; whatever does not fit goes to the treasure pool. }
@@ -413,47 +331,6 @@ begin
   end;
 end;
 
-{ Return the money type named by s and its display name in typeName. Leading spaces are skipped (no bounds check); the
-  first letter selects the type, and for 'G' the second letter, upper-cased, tells Gems from Gold. An unmatched letter
-  leaves the result and typeName unset. }
-function ParseMoneyType(s: String; var typeName: String): ShortInt;
-var
-  i: Byte;
-begin
-  i := 1;
-  while s[i] = ' ' do
-    Inc(i);
-  case s[i] of
-    'G': if UpCase(s[i + 1]) = 'E' then begin
-           ParseMoneyType := C_Money.GEMS;
-           typeName := 'Gems ';
-         end else begin
-           typeName := 'Gold ';
-           ParseMoneyType := C_Money.GOLD;
-         end;
-    'P': begin
-           typeName := 'Platinum ';
-           ParseMoneyType := C_Money.PLATINUM;
-         end;
-    'E': begin
-           typeName := 'electrum ';
-           ParseMoneyType := C_Money.ELECTRUM;
-         end;
-    'S': begin
-           typeName := 'silver ';
-           ParseMoneyType := C_Money.SILVER;
-         end;
-    'C': begin
-           typeName := 'Copper ';
-           ParseMoneyType := C_Money.COPPER;
-         end;
-    'J': begin
-           typeName := 'Jewelry ';
-           ParseMoneyType := C_Money.JEWELRY;
-         end;
-  end;
-end;
-
 { Build the money menu (copper first), prompt for an amount and take it from the treasure pool; repeat while money
   remains. The prompt limit is the available amount, at most 65535. }
 procedure TakeMoneyMenu;
@@ -499,7 +376,7 @@ begin
       exitF := True;
     end else begin
       exitF := False;
-      mType := Money.ParseMoneyType(sel^.name, numStr);
+      mType := MoneyCal.ParseMoneyType(sel^.name, numStr);
       numStr := 'How much ' + numStr + 'will you take? ';
       if GDVars.treasureMoney[mType] > 65535 then
         n := 65535
@@ -531,34 +408,6 @@ begin
       treasure := True;
   if GDVars.treasureItems <> nil then
     items := True;
-end;
-
-function ItemBundle(item: Types.PItemRec): Byte;
-begin
-  case item^.itemType of
-    9, 28, 73: ItemBundle := 20;
-    else ItemBundle := 1;
-  end;
-end;
-
-function ItemValue(item: Types.PItemRec): LongInt;
-var
-  q: LongInt;
-begin
-  q := item^.quantity;
-  if q = 0 then
-    q := 1;
-  ItemValue := LongInt(item^.value) * q div Money.ItemBundle(item);
-end;
-
-function ItemSalePrice(item: Types.PItemRec): Word;
-var
-  v: LongInt;
-begin
-  v := Money.ItemValue(item) div 2;
-  if v > 65535 then
-    v := 65535;
-  ItemSalePrice := v;
 end;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
@@ -992,21 +841,11 @@ begin
   end;
 end;
 
-function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
-begin
-  if gp <= Money.CreatureGold(buyer) then
-    WhoPays := PAY_CHARACTER
-  else if gp <= Money.CoinValueInGold(GDVars.treasureMoney) then
-    WhoPays := PAY_POOL
-  else
-    WhoPays := PAY_NOBODY;
-end;
-
 procedure PayBy(buyer: Types.PCharRecord; payer: Byte; gp: LongInt);
 begin
   case payer of
-    PAY_CHARACTER: Money.PayFromCreature(buyer, gp);
-    PAY_POOL: Money.PayFromPool(gp);
+    MoneyCal.PAY_CHARACTER: Money.PayFromCreature(buyer, gp);
+    MoneyCal.PAY_POOL: Money.PayFromPool(gp);
   end;
 end;
 
@@ -1014,12 +853,12 @@ function PayGold(buyer: Types.PCharRecord; gp: LongInt): Boolean;
 var
   payer: Byte;
 begin
-  payer := Money.WhoPays(buyer, gp);
-  if payer = PAY_NOBODY then
+  payer := MoneyCal.WhoPays(buyer, gp);
+  if payer = MoneyCal.PAY_NOBODY then
     CharDisp.PrintBottomLine('Not enough money.')
   else
     Money.PayBy(buyer, payer, gp);
-  PayGold := payer <> PAY_NOBODY;
+  PayGold := payer <> MoneyCal.PAY_NOBODY;
 end;
 
 end.

@@ -39,7 +39,7 @@ implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp;
+  CharDisp, MoneyCal;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -933,7 +933,7 @@ begin
   end;
 end;
 
-{ Offer Money.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
+{ Offer MoneyCal.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
   quantity, so a single arrow fetches a twentieth of a bundle's price. Pay as platinum (price div 5) plus gold (price
   mod 5); when overloaded, the platinum the character cannot take goes to the treasure pool. }
 procedure SellItem(item: Types.PItemRec);
@@ -943,7 +943,7 @@ var
   gold: Word;
   takable: Word;
 begin
-  price := Money.ItemSalePrice(item);
+  price := MoneyCal.ItemSalePrice(item);
   CharHlp.PrintItemString(item, 0, 0, False, False);
   ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
@@ -1069,7 +1069,7 @@ begin
           exitOuter := False;
         end else begin
           s2 := '';
-          mType := Money.ParseMoneyType(prev^.name, s2);
+          mType := MoneyCal.ParseMoneyType(prev^.name, s2);
           s2 := 'How much ' + s2 + 'will you trade? ';
           amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
           Money.TradeMoney(GDVars.curChar, tgt, amount, mType);
@@ -1144,7 +1144,7 @@ begin
       exitFlag := True
     else begin
       s2 := '';
-      mType := Money.ParseMoneyType(prev^.name, s2);
+      mType := MoneyCal.ParseMoneyType(prev^.name, s2);
       if GDVars.ifcState = C_Ifc.VAULT then
         s2 := 'How much ' + s2 + 'will you deposit? '
       else

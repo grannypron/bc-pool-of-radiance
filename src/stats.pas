@@ -93,7 +93,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil, Party;
+uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil, Party, MoneyCal;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -254,18 +254,6 @@ begin
     Inc(counter, n);
 end;
 
-{ creature's coin, copper to platinum, at its worth in copper }
-function CoinWorth(creature: Types.PCharRecord): LongInt;
-var
-  m: ShortInt;
-  w: LongInt;
-begin
-  w := 0;
-  for m := C_Money.COPPER to C_Money.PLATINUM do
-    Inc(w, LongInt(creature^.coins[m]) * GDConsts.dsCoinValuationCopper[m]);
-  CoinWorth := w;
-end;
-
 procedure MarkCoins;
 var
   p: Types.PCharRecord;
@@ -277,7 +265,7 @@ begin
   while (p <> nil) and (n < GDVars.zone1^[C_Gbvm.PARTY_SIZE]) and (n < ENTRIES) do begin
     Inc(n);
     marked[n] := p;
-    markedWorth[n] := Stats.CoinWorth(p);
+    markedWorth[n] := MoneyCal.CreatureCopper(p);
     p := p^.nextCharAddr;
   end;
 end;
@@ -290,7 +278,7 @@ var
 begin
   for n := 1 to ENTRIES do
     if (marked[n] <> nil) and Party.IsPartyMember(marked[n]) then begin
-      delta := Stats.CoinWorth(marked[n]) - markedWorth[n];
+      delta := MoneyCal.CreatureCopper(marked[n]) - markedWorth[n];
       if delta <> 0 then begin
         b := Stats.BlockOf(marked[n]);
         if b <> nil then

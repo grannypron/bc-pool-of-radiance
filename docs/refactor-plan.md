@@ -42,8 +42,9 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
    code) and test programs that use only the units under test plus `TestKit`. Built and run under the same TP 6 in
    DOSBox-X by `build.sh --test`, which fails on any failed check. First targets, all pure logic: `Stats`
    (saturation, kill kinds, net coin), `AreaName`, `Money` arithmetic, Strength encoding, `ClassCal`, the DataPat rule.
-   **Done for `Stats` and `AreaName`**; the others pull in most of the game and get tests as phase 2 separates their
-   logic.
+   **Done**: `Stats`, `AreaName`, `ClassCal` and DataPat's table (the rules DataBld relies on) as they are; the
+   Strength and Dexterity tables moved from CharHlp to a resident `AbilAdj`, and Money's arithmetic (coin values,
+   change, who pays, item values, money type names) to an overlaid `MoneyCal`, which also replaces `Stats.CoinWorth`.
 2. **Build size report.** `build.sh` prints code and data size from `TPC.OUT` and the overlay sizes, so a change that
    grows the resident program or the data segment is visible. **Done.**
 3. **Behaviour regression in goldbox-player.**

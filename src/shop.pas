@@ -17,7 +17,7 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 implementation
 
 uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend, Temple,
-  CharDisp;
+  CharDisp, MoneyCal;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
   to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.PrintItemString. Returns
@@ -121,8 +121,8 @@ begin
     else begin
       done := False;
       price := itemToBuy^.value;
-      payer := Money.WhoPays(GDVars.curChar, price);
-      if payer = Money.PAY_NOBODY then
+      payer := MoneyCal.WhoPays(GDVars.curChar, price);
+      if payer = MoneyCal.PAY_NOBODY then
         CharDisp.PrintBottomLine('Not enough money.')
       else begin
         Shop.GiveItemCopyToCreature(itemToBuy, failed);
