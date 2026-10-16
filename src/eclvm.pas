@@ -13,7 +13,7 @@ implementation
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
-  EclMenu, FxEngine, GameTime, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
+  EclMenu, FxEngine, MapTiles, MapView, MenuCore, Money, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp;
 
 const
@@ -1431,10 +1431,10 @@ begin
   EclVars.LoadEclVars(1);
   n := EclVars.GetEclVar(1);
   while n > 255 do begin
-    GameTime.AdvanceTime(255, 1);
+    FxEngine.AdvanceTime(255, 1);
     Dec(n, 255);
   end;
-  GameTime.AdvanceTime(n, 1);
+  FxEngine.AdvanceTime(n, 1);
 end;
 
 { PRINTRETURN: move the message cursor to the start of the next line and clear protNewLine }

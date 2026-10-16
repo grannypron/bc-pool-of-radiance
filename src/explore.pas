@@ -16,7 +16,7 @@ var
 implementation
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
-  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime,
+  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party;
 
 
@@ -235,9 +235,9 @@ begin
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
   if GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1 > 0 then
-    GameTime.AdvanceTime(1, C_Time.TURNS)
+    FxEngine.AdvanceTime(1, C_Time.TURNS)
   else
-    GameTime.AdvanceTime(1, C_Time.MINUTES);
+    FxEngine.AdvanceTime(1, C_Time.MINUTES);
 end;
 
 { MovePartyWilderness: clamped step on the 36x44 wilderness map (x 0..15 within the region's 16-column window at
@@ -266,12 +266,12 @@ begin
       else begin
         GDVars.zone0^.partyX.value := nx;
         GDVars.zone0^.partyY.value := ny;
-        GameTime.AdvanceTime(12, C_Time.HOURS);
+        FxEngine.AdvanceTime(12, C_Time.HOURS);
       end;
   else begin
     GDVars.zone0^.partyX.value := nx;
     GDVars.zone0^.partyY.value := ny;
-    GameTime.AdvanceTime(12, C_Time.HOURS);
+    FxEngine.AdvanceTime(12, C_Time.HOURS);
   end;
   end;
 end;
@@ -324,7 +324,7 @@ begin
                'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
                'L': begin
                       GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
-                      GameTime.AdvanceTime(1, C_Time.TURNS);
+                      FxEngine.AdvanceTime(1, C_Time.TURNS);
                       GDVars.eclIp := GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH];
                       done := True;
                     end;
@@ -389,7 +389,7 @@ begin
               'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
               'L': begin
                      GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
-                     GameTime.AdvanceTime(1, C_Time.TURNS);
+                     FxEngine.AdvanceTime(1, C_Time.TURNS);
                      GDVars.eclIp := GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH];
                      done := True;
                    end;
