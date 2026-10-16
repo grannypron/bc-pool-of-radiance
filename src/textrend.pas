@@ -40,6 +40,10 @@ function InputUint16(query: Types.TStr40; color: Byte): Word;
 
 procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
 
+{ The BIOS tick count (18.2 a second since midnight), read until two reads agree, so a timer tick between the two words
+  of a read is not taken. }
+function TickCount: LongInt;
+
 function GetTicks: LongInt;
 
 procedure ClearScreen;
@@ -445,10 +449,7 @@ begin
   key := GameIo.ReadGameKey;
 end;
 
-{ Return the time since midnight in centiseconds, from the BIOS tick count (18.2 ticks a second, 5.4925 centiseconds
-  each), which restarts at 0 at midnight. The count is read until two reads agree, so a timer tick between the two words
-  of a read is not taken. No DOS call is made: the menus call this on every pass while they wait for a key. }
-function GetTicks: LongInt;
+function TickCount: LongInt;
 var
   now: LongInt;
   again: LongInt;
@@ -458,6 +459,16 @@ begin
     now := again;
     again := biosTicks;
   until now = again;
+  TickCount := now;
+end;
+
+{ Return the time since midnight in centiseconds, from TickCount (5.4925 centiseconds a tick), which restarts at 0 at
+  midnight. No DOS call is made: the menus call this on every pass while they wait for a key. }
+function GetTicks: LongInt;
+var
+  now: LongInt;
+begin
+  now := TextRend.TickCount;
   { split so the product stays in a LongInt for a whole day's count }
   GetTicks := (now div 10000) * 54925 + (now mod 10000) * 54925 div 10000;
 end;
