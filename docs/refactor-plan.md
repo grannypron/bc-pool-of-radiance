@@ -222,13 +222,17 @@ changes behaviour is its own issue and commit.
      `ConHpTotal`, and PostCbt's experience award), extending TClasCal. `HpMaximum` reads curChar instead of its
      parameter; every caller passes curChar, so fixing that changes nothing.
    - **Pathing, after step 2:** PathFind, WalkLine, IsDirToward and the tie rule in SortTargets.
+   - **EclVars:** only `SpecialWriteZ1`'s pushes, wall-set loads and RecalcStats reach outside it. Behind hooks, the
+     GBVM address map (`ReadGbvm`, `WriteGbvm`, `SkipEclCmd`, `ConvGbString`) gets tests of every special address.
    - **Also:**
      - The clock arithmetic, as a small unit.
      - The usual-spells store, as its own unit with a round-trip test.
      - Tests for JrnlList, DataArc and `EclTrace.OpName`, which can be tested as they are.
 5. **GDVars and interfaces.**
    - **Dead globals:** remove the ones that are written but never read (`treasureMoneyFlag`, `unidentified01..03`,
-     `itemsOk`, `extFlag`, `attackedAllies`, `prevOpcode`, `writeReg1/2`) and four unused constants.
+     `itemsOk`, `extFlag`, `attackedAllies`, `prevOpcode`) and four unused constants. `writeReg1/2` and `readReg1..3`
+     look dead, but they are ECL registers (GBVM $B8/$B9 written, $FB/$FC/$B1 read as 0), so they stay or become
+     explicit arms in EclVars' address map.
    - **Locals:** the loop counters and scratch values become locals (`gi2`, `team`, `gSpellTemp1/2`,
      `dsCurrentPictureNumber`).
    - **Private:** the globals only one unit uses become private to it (CombatSt's placement, PostCbt, EclVm, GameBoot,
@@ -247,6 +251,18 @@ changes behaviour is its own issue and commit.
      - DataPat's tables and DataBld's startup variables move to the heap or a file (about 2.9 KB).
    - **Stack:** `CalcDistance` copies 216 bytes into a 765-byte local, and `PrintHpDebug` and `NonWeaponDamage` have
      string frames on combat paths. 16 KB holds today, with about 6 KB of margin in the worst chain.
+
+**What the ECL can see.** Steps 5 and 6 must keep it working:
+- **Globals by name.** Scripts reach globals through EclVars' address map: `ReadGbvm`, `WriteGbvm`, `SpecialReadZ1`,
+  `SpecialWriteZ1` and zone 4's arms. A global named there (`gMapX`..`eventAtCell`, `gFacing`, `virtualDisk`,
+  `sndEffect`, `redrawSky`, the wall and sky colour selectors, the dump flags, the registers and `gbStrings`) can move
+  or change storage, but its arm must keep reading and writing the same value.
+- **The character record by layout.** GBVM $6B20..$6B70 is a raw window into the current character's record, from
+  `memorizedSpells[1]` on past it, so scripts depend on TCharRecord's layout. TRecLay pins it.
+- **Saved games by layout.** The saved game writes the zones and the five map bytes as blocks; TSaveLay pins those.
+- **GDConsts.** The ECL reads only `soundIds`, by name.
+- **A test of the address map.** Before step 5 touches any global the map names, step 4's EclVars extraction adds
+  tests that read and write each special address.
 
 Separate, because they change behaviour:
 - POR-0166 (#640): Space in combat treats animated creatures differently on the menu and during the AI's turn.
