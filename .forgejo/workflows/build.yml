@@ -22,7 +22,9 @@
 # forge rather than actions/checkout, so nothing is downloaded from anywhere else.
 
 # 2026-10-16 - bms - Forgejo splits the YAML up when doing job parsing, so YAML anchors don't work as intended. Removed
-#                    the container and checkout anchor definitions; cut and paste for the win.
+#                    the container and checkout anchor definitions; cut and paste for the win. The jobs have to remain
+#                    identical.
+
 name: build
 
 on:
@@ -86,7 +88,7 @@ jobs:
     env:
       TOOLS: /drive_d
     steps:
-        name: Check out
+      - name: Check out
         env:
           SERVER: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
@@ -119,7 +121,7 @@ jobs:
       # The version being released: the dispatched tag, or the pushed one.
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-        name: Check out
+      - name: Check out
         env:
           SERVER: ${{ github.server_url }}
           REPOSITORY: ${{ github.repository }}
