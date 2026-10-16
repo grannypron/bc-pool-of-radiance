@@ -1118,23 +1118,10 @@ procedure EffBloodDrain(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 var
   done: Boolean;
   dmg: Byte;
+  released: Boolean;
 begin
-  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
-      (Types.PEffectRec(p)^.strength > Types.ARENA_SLOTS) then begin
-    if not removed then begin
-      Types.PEffectRec(p)^.onRemove := False;
-      FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, p);
-    end;
-    Exit;
-  end;
-  GDVars.dsOtherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
-  if removed or (creature^.enabled = 0) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then begin
-    FxEngine.RemoveEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);
-    if not removed then begin
-      Types.PEffectRec(p)^.onRemove := False;
-      FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, p);
-    end;
-    if creature^.enabled <> 0 then
+  if FxEngine.HoldTarget(creature, p, removed, C_Effect.BLOOD_DRAIN, released) = nil then begin
+    if released and (creature^.enabled <> 0) then
       if GDVars.dsOtherCreatureCurrentPtr^.enabled <> 0 then
         creature^.combatAddr^.turned := 1;
   end else begin

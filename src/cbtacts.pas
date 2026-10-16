@@ -1794,23 +1794,9 @@ end;
 procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
+  released: Boolean;
 begin
-  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
-      (Types.PEffectRec(p)^.strength > Types.ARENA_SLOTS) then begin
-    if not removed then begin
-      Types.PEffectRec(p)^.onRemove := False;
-      FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, p);
-    end;
-    Exit;
-  end;
-  GDVars.dsOtherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
-  if removed or (creature^.enabled = 0) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then begin
-    FxEngine.RemoveEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);
-    if not removed then begin
-      Types.PEffectRec(p)^.onRemove := False;
-      FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, p);
-    end;
-  end else begin
+  if FxEngine.HoldTarget(creature, p, removed, C_Effect.BITE_HOLD, released) <> nil then begin
     creature^.curAttacks := 1;
     creature^.curAttacks2 := 0;
     creature^.curRollsA[1] := 3;
