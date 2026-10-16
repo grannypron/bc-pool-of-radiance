@@ -576,7 +576,7 @@ begin
   item := creature^.itemsAddr;
   found := 0;
   while (item <> nil) and (found = 0) do
-    if (item^.itemType = C_Item.HAMMER) and (item^.nameIds[3] = 243) then
+    if (item^.itemType = C_Item.HAMMER) and (item^.nameIds[3] = C_Item.NAME_SPIRITUAL) then
       found := 1
     else
       item := item^.next;
@@ -588,8 +588,8 @@ begin
         GetMem(item, SizeOf(Types.TItemRec));
         FillChar(item^, SizeOf(Types.TItemRec), 0);
         item^.itemType := C_Item.HAMMER;
-        item^.nameIds[2] := 20;
-        item^.nameIds[3] := 243;
+        item^.nameIds[2] := C_Item.NAME_HAMMER;
+        item^.nameIds[3] := C_Item.NAME_SPIRITUAL;
         item^.plus := 1;
         item^.effect := C_Effect.SPIRIT_HAMMER;
         item^.special := C_Effect.SPIRIT_HAMMER_GONE;
@@ -1274,7 +1274,8 @@ begin
     while (item <> nil) and (reflected = False) do begin
       if item^.equipped <> 0 then
         { "Mirror" }
-        if (item^.nameIds[1] = 118) or (item^.nameIds[2] = 118) or (item^.nameIds[3] = 118) then begin
+        if (item^.nameIds[1] = C_Item.NAME_MIRROR) or (item^.nameIds[2] = C_Item.NAME_MIRROR) or
+           (item^.nameIds[3] = C_Item.NAME_MIRROR) then begin
           CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'reflects it!', 12, False);
           CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                           CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr),
@@ -1527,7 +1528,7 @@ var
   w: Types.PItemRec;
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
-  if (w = nil) or ((w^.plus = 0) and (w^.nameIds[3] <> 177)) then
+  if (w = nil) or ((w^.plus = 0) and (w^.nameIds[3] <> C_Item.NAME_SILVER)) then
     GDVars.pendingDamage := 0;
 end;
 
@@ -1846,7 +1847,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then begin
-    if (w^.plus = 0) and (w^.nameIds[3] = 177) then
+    if (w^.plus = 0) and (w^.nameIds[3] = C_Item.NAME_SILVER) then
       GDVars.pendingDamage := GDVars.pendingDamage div 2
     else if w^.plus = 0 then
       GDVars.pendingDamage := 0;
@@ -1890,7 +1891,8 @@ begin
     if item^.equipped <> 0 then
       { 3 = High(TItemRec.nameIds) }
       for j := 1 to 3 do
-        if ((item^.nameIds[j] = 152) and (item^.nameIds[3] = 252)) or (item^.nameIds[j] = 118) then
+        if ((item^.nameIds[j] = C_Item.NAME_HOLY_SYMBOL) and (item^.nameIds[3] = C_Item.NAME_WOODEN)) or
+           (item^.nameIds[j] = C_Item.NAME_MIRROR) then
           GDVars.dsCurrentSuppressTargetingFlag := 1;
     item := item^.next;
   end;

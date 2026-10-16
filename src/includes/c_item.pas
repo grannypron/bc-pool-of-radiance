@@ -31,6 +31,19 @@ const
   HOLY_WATER_VIAL = 85;
   { eff 122 "mummy vulnerability to fire" }
   FLASK_OF_OIL = 86;
+  { Item name parts the code tests or builds (TItemRec.nameIds, GDConsts.nameParts) }
+  NAME_HAMMER = 20;
+  NAME_MIRROR = 118;
+  NAME_HOLY_SYMBOL = 152;
+  { NAME_PLUS_BASE + plus is "+1".."+5" }
+  NAME_PLUS_BASE = 161;
+  NAME_OF = 167;
+  NAME_SILVER = 177;
+  NAME_HOLDING = 186;
+  { scrolls: NAME_WITH_1_SPELL and up name their spell count }
+  NAME_WITH_1_SPELL = 210;
+  NAME_SPIRITUAL = 243;
+  NAME_WOODEN = 252;
 
 implementation
 

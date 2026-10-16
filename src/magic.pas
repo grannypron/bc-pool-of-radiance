@@ -185,7 +185,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound;
+uses Stats, CharDisp, C_Sound, C_Item;
 
 const
   { Lightning Bolt's length, in cells past the aim cell }
@@ -1769,7 +1769,7 @@ begin
   Types.PItemRec(it)^.spells[found] := 0;
   { scroll spell-count name component }
   Dec(Types.PItemRec(it)^.nameIds[2]);
-  if Types.PItemRec(it)^.nameIds[2] < 210 then
+  if Types.PItemRec(it)^.nameIds[2] < C_Item.NAME_WITH_1_SPELL then
     CharHlp.RemoveItem(Types.PCharRecord(cr), Types.PItemRec(it));
 end;
 

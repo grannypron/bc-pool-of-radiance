@@ -306,7 +306,7 @@ begin
       { Name component 177 is 'Silver' }
       else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_Item.FLASK_OF_OIL)) or
         ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_Item.FLASK_OF_OIL)) or
-        (((item^.itemType = 73) or (item^.itemType = 28)) and (item^.nameIds[3] <> 177)) then begin
+        (((item^.itemType = 73) or (item^.itemType = 28)) and (item^.nameIds[3] <> C_Item.NAME_SILVER)) then begin
         item^.name := item^.name + 's ';
         appended := True;
       end else
@@ -392,7 +392,7 @@ begin
     if item^.equipped <> 0 then begin
       Inc(GDVars.gEquipWeight, w);
       { Name component 186 is 'Holding' }
-      if item^.nameIds[1] = 186 then
+      if item^.nameIds[1] = C_Item.NAME_HOLDING then
         bag := True;
       creature^.handsEquipped := creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands;
     end;
@@ -466,7 +466,7 @@ begin
   HasBagOfHolding := False;
   item := creature^.itemsAddr;
   while item <> nil do begin
-    if (item^.equipped <> 0) and (item^.nameIds[1] = 186) then
+    if (item^.equipped <> 0) and (item^.nameIds[1] = C_Item.NAME_HOLDING) then
       HasBagOfHolding := True;
     item := item^.next;
   end;

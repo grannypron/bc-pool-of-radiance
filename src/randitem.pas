@@ -11,7 +11,7 @@ procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
 implementation
 
-uses GDConsts, FxEngine;
+uses GDConsts, FxEngine, C_Item;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;
@@ -61,38 +61,38 @@ begin
                    if r = 5 then
                      template := 14;
                    nameIds[3] := 21;
-                   nameIds[2] := plus + 161;
+                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
                  end;
             28: begin
                    nameIds[3] := 28;
-                   nameIds[2] := plus + 161;
+                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
                  end;
             50, 51: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 49;
-                   nameIds[1] := plus + 161;
+                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             52: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 50;
-                   nameIds[1] := plus + 161;
+                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             53..58: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 48;
-                   nameIds[1] := plus + 161;
+                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             73: begin
                    nameIds[3] := 61;
-                   nameIds[2] := plus + 161;
+                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
                  end;
             { bracers: plus 1..3 becomes 4/6/8, named AC 6/4/2 }
             77: begin
                    nameIds[3] := 79;
-                   nameIds[2] := 167;
+                   nameIds[2] := C_Item.NAME_OF;
                    plus := plus * 2 + 2;
                    case plus of
                      4: nameIds[1] := 221;
@@ -103,11 +103,11 @@ begin
             93: begin
                    nameIds[3] := 66;
                    nameIds[2] := 224;
-                   nameIds[1] := plus + 161;
+                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
                  end;
             else begin
                    nameIds[3] := itemType;
-                   nameIds[2] := plus + 161;
+                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
                  end;
           end;
           saveBonus := 0;
