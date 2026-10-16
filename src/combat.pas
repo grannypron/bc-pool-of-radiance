@@ -190,23 +190,10 @@ begin
                end;
           'D': Combat.DoneMenu(creature, done);
           { Alt-M scan code: toggle quick magic }
-          C_Keys.ALT_M: begin
-                      GDVars.quickMagic := GDVars.quickMagic = False;
-                      if GDVars.quickMagic then
-                        CharDisp.PrintBottomLine('Magic On')
-                      else
-                        CharDisp.PrintBottomLine('Magic Off');
-                    end;
-          { every non-NPC creature back to manual control }
-          ' ': begin
-                 p := GDVars.creatureList;
-                 while p <> nil do begin
-                   { creatures with the NPC flag (high bit of npc) stay on quick-fight }
-                   if not CharHlp.IsNpc(p) then
-                     p^.quickfight := 0;
-                   p := p^.nextCharAddr;
-                 end;
-               end;
+          C_Keys.ALT_M: CombatAi.ToggleQuickMagic;
+          { every creature under the player's control back to manual; NPCs and animated creatures stay on
+            quick-fight, as during the AI's turns (#640) }
+          ' ': CombatAi.AllToManual;
           { Alt-Q scan code: everyone to quick-fight; this creature acts again at once under the AI }
           C_Keys.ALT_Q: begin
                       creature^.combatAddr^.initiative := 20;

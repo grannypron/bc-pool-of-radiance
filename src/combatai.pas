@@ -13,6 +13,13 @@ uses Types;
   move/attack loop. }
 procedure CombatAiControl(creature: Types.PCharRecord);
 
+{ Alt-M in combat: turn quick magic over and say which way on the bottom line. }
+procedure ToggleQuickMagic;
+
+{ Space in combat: every creature that comes under the player (CharHlp.ComesUnderPlayer: not an NPC, not animated)
+  leaves quick-fight. The combat menu and the AI's key check both call it (#640). }
+procedure AllToManual;
+
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
@@ -523,7 +530,6 @@ end;
   only after the extended-key prefix: SSI also took a plain '2' for Alt-M and a plain '-' for Alt-X. }
 function CheckKeystroke(creature: Types.PCharRecord): Boolean;
 var
-  p: Types.PCharRecord;
   ch: Char;
   ext: Boolean;
 begin
@@ -536,22 +542,12 @@ begin
       ch := GameIo.ReadGameKey;
     case ch of
       C_Keys.ALT_M:
-        if ext then begin
-          GDVars.quickMagic := GDVars.quickMagic = False;
-          if GDVars.quickMagic then
-            CharDisp.PrintBottomLine('Magic On')
-          else
-            CharDisp.PrintBottomLine('Magic Off');
-        end;
+        if ext then
+          CombatAi.ToggleQuickMagic;
       { Space: everyone manual }
       ' ':
         begin
-          p := GDVars.creatureList;
-          while p <> nil do begin
-            if CharHlp.ComesUnderPlayer(p) then
-              p^.quickfight := 0;
-            p := p^.nextCharAddr;
-          end;
+          CombatAi.AllToManual;
           if creature^.quickfight = 0 then begin
             creature^.combatAddr^.initiative := 20;
             CheckKeystroke := True;
@@ -818,6 +814,27 @@ begin
   CharHlp.RecalcStats(creature);
   if changed then
     CharDisp.CombatPrintCreatureInfo(creature);
+end;
+
+procedure ToggleQuickMagic;
+begin
+  GDVars.quickMagic := GDVars.quickMagic = False;
+  if GDVars.quickMagic then
+    CharDisp.PrintBottomLine('Magic On')
+  else
+    CharDisp.PrintBottomLine('Magic Off');
+end;
+
+procedure AllToManual;
+var
+  p: Types.PCharRecord;
+begin
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    if CharHlp.ComesUnderPlayer(p) then
+      p^.quickfight := 0;
+    p := p^.nextCharAddr;
+  end;
 end;
 
 end.
