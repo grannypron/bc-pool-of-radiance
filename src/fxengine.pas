@@ -134,6 +134,8 @@ function RestoreHitPoints(creature: Types.PCharRecord; hp: Byte; bypassRot: Bool
   combat, it "stands up and grins" (hostile = 1) or "gets back up", and CharHlp.CountTeams runs. }
 function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
+procedure ToggleReadyItem(item: Types.PItemRec);
+
 implementation
 
 uses Stats, StrUtil, C_Gbvm, CharDisp;
@@ -810,6 +812,73 @@ begin
   for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
     FxEngine.RemoveEffect(creature, GDConsts.cureDiseaseEffects[i], nil);
   GDVars.effectLock := 0;
+end;
+
+{ Toggle an item's readied state for curChar. Unreadying fails on a cursed item. Readying checks, with later checks
+  overriding earlier ones, free hands (3), an occupied slot or ammunition slot (2) and the class mask (1); the
+  hands-full message is skipped for a quick-fighting creature in combat. Special items (special > $7F) invoke their
+  effect handler when readied and when unreadied. }
+procedure ToggleReadyItem(item: Types.PItemRec);
+var
+  hasSpecial: Boolean;
+  err: Byte;
+  slot: ShortInt;
+  creature: Types.PCharRecord;
+begin
+  hasSpecial := item^.special > $7F;
+  creature := GDVars.curChar;
+  if item^.equipped <> 0 then begin
+    if item^.cursed <> 0 then
+      CharDisp.PrintBottomLine('It''s Cursed')
+    else begin
+      item^.equipped := 0;
+      if hasSpecial then
+        FxEngine.CallEffectHandler(item^.special, creature, item, True);
+    end;
+  end else begin
+    err := 0;
+    if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then
+      err := 3;
+    slot := CharHlp.BaseItem(item^.itemType)^.slot;
+    { slots 0..8 each hold one item; a ring (slot 9) fails only when the second ring slot is taken }
+    case Byte(slot) of
+      C_Equip.WEAPON..C_Equip.BOOTS:
+        if creature^.equipped[slot] <> nil then
+          err := 2;
+      C_Equip.RING1:
+        if creature^.equipped[C_Equip.RING2] <> nil then
+          { second ring slot already in use }
+          err := 2;
+    end;
+    { arrows }
+    if item^.itemType = 73 then
+      if creature^.equipped[C_Equip.ARROW] <> nil then begin
+        err := 2;
+        slot := C_Equip.ARROW;
+      end;
+    { quarrels }
+    if item^.itemType = 28 then
+      if creature^.equipped[C_Equip.BOLT] <> nil then begin
+        err := 2;
+        slot := C_Equip.BOLT;
+      end;
+    if CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0 then
+      err := 1;
+    case err of
+      0: begin
+           item^.equipped := 1;
+           if hasSpecial then
+             FxEngine.CallEffectHandler(item^.special, creature, item, False);
+         end;
+      1: CharDisp.PrintBottomLine('Wrong Class');
+      2: begin
+           CharHlp.PrintItemString(creature^.equipped[slot], 0, 0, False, False);
+           CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
+         end;
+      3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then
+           CharDisp.PrintBottomLine('Your hands are full!');
+    end;
+  end;
 end;
 
 end.

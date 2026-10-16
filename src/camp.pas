@@ -161,7 +161,7 @@ begin
 end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
-  memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (ViewChar.UseItemSpell,
+  memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (Magic.UseItemSpell,
   which asks 'Use it?' of a combat-only one and otherwise names the spell as a memorized cast does), followed by Use's
   CharHlp.RecalcStats. An empty list prints 'has no spells memorized'. }
 procedure NoncombatCastMenu;
@@ -181,7 +181,7 @@ begin
   GDVars.castTarget := nil;
   if Camp.CanDoSpellActivity(ACT_CAST) then begin
     repeat
-      spellId := ViewChar.CastSpellMenu(idx, notEmpty, scroll);
+      spellId := Magic.CastSpellMenu(idx, notEmpty, scroll);
       if spellId <> C_Spell.NONE then begin
         redraw := True;
         Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
@@ -190,7 +190,7 @@ begin
           Magic.CastSpellNC(spellId, False, True, castSel)
         else begin
           caster := GDVars.curChar;
-          ViewChar.UseItemSpell(scroll, spellId, True, castSel);
+          Magic.UseItemSpell(scroll, spellId, True, castSel);
           { recount the items and their weight, as Items > Use does: the scroll may be gone }
           CharHlp.RecalcStats(caster);
         end;
@@ -389,7 +389,7 @@ begin
     if not pending then
       Camp.QueueUsualSpells;
     idx := -1;
-    spellId := ViewChar.SpellMenu(5, 5, idx, notEmpty);
+    spellId := Magic.SpellMenu(5, 5, idx, notEmpty);
     redraw := True;
     if notEmpty then begin
       if MenuCore.YesNoMenu('Memorize These Spells? ', Yellow, LightGreen, White) = 'N' then
@@ -406,7 +406,7 @@ begin
       if done then
         CharDisp.PrintNameString(GDVars.curChar, 'cannot memorize any spells', 10, True)
       else begin
-        spellId := ViewChar.SpellMenu(1, 2, idx, notEmpty);
+        spellId := Magic.SpellMenu(1, 2, idx, notEmpty);
         redraw := True;
         if spellId = C_Spell.NONE then
           done := True
@@ -426,7 +426,7 @@ begin
     end;
     if idx <> -1 then begin
       idx := -1;
-      spellId := ViewChar.SpellMenu(5, 5, idx, notEmpty);
+      spellId := Magic.SpellMenu(5, 5, idx, notEmpty);
       if notEmpty then
         if MenuCore.YesNoMenu('Memorize these spells? ', Yellow, LightGreen, White) = 'N' then
           Camp.ResetMemorize(GDVars.curChar)
@@ -455,7 +455,7 @@ begin
   if Camp.CanDoSpellActivity(ACT_SCRIBE) then begin
     done := False;
     idx := -1;
-    spellId := ViewChar.SpellMenu(6, 0, idx, notEmpty);
+    spellId := Magic.SpellMenu(6, 0, idx, notEmpty);
     redraw := True;
     if notEmpty then begin
       if MenuCore.YesNoMenu('Scribe These Spells? ', Yellow, LightGreen, White) = 'N' then
@@ -466,7 +466,7 @@ begin
       redraw := False;
     idx := -1;
     while done = False do begin
-      spellId := ViewChar.SpellMenu(3, 3, idx, notEmpty);
+      spellId := Magic.SpellMenu(3, 3, idx, notEmpty);
       if spellId = C_Spell.NONE then begin
         done := True;
         if notEmpty = False then
@@ -520,7 +520,7 @@ begin
     end;
     if idx <> -1 then begin
       idx := -1;
-      spellId := ViewChar.SpellMenu(6, 0, idx, notEmpty);
+      spellId := Magic.SpellMenu(6, 0, idx, notEmpty);
       if notEmpty then
         if MenuCore.YesNoMenu('Scribe these spells? ', Yellow, LightGreen, White) = 'N' then
           Camp.ResetScribe(GDVars.curChar);

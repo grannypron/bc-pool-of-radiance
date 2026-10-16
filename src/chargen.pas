@@ -16,7 +16,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party;
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic;
 
 
 
@@ -1119,7 +1119,7 @@ begin
     if classLevels[C_Level.MAGE] > oldMage then begin
       idx := -1;
       repeat
-        sel := ViewChar.SpellMenu(4, 4, idx, notEmpty);
+        sel := Magic.SpellMenu(4, 4, idx, notEmpty);
       until (sel > 0) or (not notEmpty);
       { SpellMenu returns 0 when there is no spell left to learn; spellsKnown starts at 1 }
       if sel > 0 then

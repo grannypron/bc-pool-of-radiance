@@ -456,7 +456,7 @@ end;
 
 { Heavy items are harder to steal: weight > 255 coins knocks 90 off the chance, > 24 knocks 50. SSI quirk, kept: the
   penalties come off chance itself, so they accumulate over the walk. A readied item is unreadied before it is taken, so
-  a ring's, cloak's or gauntlets' effect goes with it, as ViewChar.ToggleReadyItem does. }
+  a ring's, cloak's or gauntlets' effect goes with it, as FxEngine.ToggleReadyItem does. }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 var
   roll: Byte;

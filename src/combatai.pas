@@ -15,7 +15,7 @@ procedure CombatAiControl(creature: Types.PCharRecord);
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, ViewChar, FxEngine, C_Effect, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
   C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp;
 
@@ -160,7 +160,7 @@ end;
 
 { Pick an equipped item whose spell effect the AI should use; needs itemUseAllowed, a remaining enemy team and no
   anti-magic. Over 1d7 passes the minimum aiPriority drops from 7, and the first equipped item that is not readable, has
-  special < $80 and has an effect DecideCastSpell accepts is used through ViewChar.UseItem. }
+  special < $80 and has an effect DecideCastSpell accepts is used through Magic.UseItem. }
 function SelectItemToUse(creature: Types.PCharRecord): Boolean;
 var
   lowPri: Byte;
@@ -199,7 +199,7 @@ begin
       Dec(lowPri);
     end;
   if chosen <> nil then begin
-    ViewChar.UseItem(chosen, used);
+    Magic.UseItem(chosen, used);
     SelectItemToUse := True;
   end;
 end;
@@ -776,14 +776,14 @@ begin
       needSwap := False;
   if needSwap then begin
     if creature^.equipped[C_Equip.WEAPON] <> nil then
-      ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.WEAPON]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.WEAPON]);
     CharHlp.RecalcStats(creature);
     if creature^.equipped[C_Equip.SHIELD] <> nil then
       if creature^.equipped[C_Equip.SHIELD]^.cursed = 0 then
         creature^.handsEquipped := creature^.handsEquipped
             - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
     if item <> nil then
-      ViewChar.ToggleReadyItem(item);
+      FxEngine.ToggleReadyItem(item);
     changed := True;
   end;
   CharHlp.RecalcStats(creature);
@@ -799,18 +799,18 @@ begin
         (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then begin
       { item is nil when no weapon was chosen }
       if item <> nil then
-        ViewChar.ToggleReadyItem(item);
+        FxEngine.ToggleReadyItem(item);
       changed := True;
     end else begin
-      ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
       changed := True;
     end;
   end else if (creature^.handsEquipped < 2) and needSwap then begin
     if creature^.equipped[C_Equip.SHIELD] <> nil then
-      ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
     CharHlp.RecalcStats(creature);
     if bestShield <> nil then
-      ViewChar.ToggleReadyItem(bestShield);
+      FxEngine.ToggleReadyItem(bestShield);
     changed := True;
   end;
   CharHlp.RecalcStats(creature);
