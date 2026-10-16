@@ -423,18 +423,13 @@ var
   col: Integer;
   count: Byte;
   setFile: Byte;
-  ch: Char;
 begin
   if (wsSlot < 1) or (wsSlot > 3) then Exit;
   DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', fileId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead mod SizeOf(Types.TView3dWallDef) <> 0) or
       (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) or
       ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
-    Blit.RestoreVideoMode;
-    WriteLn('Unable to load wallset in LoadWallSet.');
-    ch := GameIo.ReadGameKey;
-    Blit.RestoreVideoMode;
-    GameIo.ExitGame;
+    GameIo.FatalError('Unable to load wallset in LoadWallSet.');
   end;
   symOfs := GDConsts.symSetFirst[wsSlot] - GDConsts.symSetFirst[1];
   offset := 0;
@@ -476,15 +471,10 @@ var
   sizeRead: Word;
   data: Types.PByteArr;
   offset: Word;
-  ch: Char;
 begin
   DaxIo.LoadDax('GEO' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', mapId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead <> SizeOf(Types.TGeoMap) + 2) then begin
-    Blit.RestoreVideoMode;
-    WriteLn('Unable to load geo in Load3DMap.');
-    ch := GameIo.ReadGameKey;
-    Blit.RestoreVideoMode;
-    GameIo.ExitGame;
+    GameIo.FatalError('Unable to load geo in Load3DMap.');
   end;
   offset := 2;
   Move(data^[offset], GDVars.map3d^.wallsNE, SizeOf(Types.TGeoPlane));

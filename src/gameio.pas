@@ -34,6 +34,11 @@ procedure DiscardPendingKeys;
 { Restore the saved sound mode, send the stop command, set the saved video mode through the BIOS and exit to DOS. }
 procedure ExitGame;
 
+{ Quit on an error the game cannot go on from: the text mode the game started in (GDVars.savedVideoMode, set directly,
+  not through Blit.RestoreVideoMode, which would swap it with the game's mode), msg, a key, then ExitGame, which leaves
+  DOS in that text mode (#641). }
+procedure FatalError(msg: String);
+
 implementation
 
 uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types;
@@ -52,6 +57,18 @@ begin
   GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
   Intr($10, GDVars.dsInterruptRegisters);
   Halt(0);
+end;
+
+procedure FatalError(msg: String);
+var
+  key: Char;
+begin
+  GDVars.dsInterruptRegisters.ah := 0;
+  GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
+  Intr($10, GDVars.dsInterruptRegisters);
+  WriteLn(msg);
+  key := GameIo.ReadGameKey;
+  GameIo.ExitGame;
 end;
 
 { STING Ctrl-Z, as Curse does: each creature's effects to the trace log, one 'who: <name>  sp#: <id>' line each. }

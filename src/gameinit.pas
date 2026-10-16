@@ -242,8 +242,6 @@ end;
   (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
   effect handlers. }
 procedure GameInit2;
-var
-  ch: Char;
 begin
   GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
@@ -370,11 +368,7 @@ begin
   BlockRead(GDVars.itemsFile, GDVars.baseItems, 129 * SizeOf(Types.TBaseItemRec), GDVars.itemsRead);
   Close(GDVars.itemsFile);
   if (IOResult <> 0) or (GDVars.itemsRead < 128 * SizeOf(Types.TBaseItemRec)) then begin
-    Blit.RestoreVideoMode;
-    WriteLn('Unable to read ITEMS.');
-    ch := GameIo.ReadGameKey;
-    Blit.RestoreVideoMode;
-    GameIo.ExitGame;
+    GameIo.FatalError('Unable to read ITEMS.');
   end;
   GDVars.gameDir := GDVars.savedDir;
   TextRend.ClearBottomLine;

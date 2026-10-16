@@ -297,9 +297,7 @@ end;
 procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 begin
   if (dist < 1) or (dist > 3) then begin
-    Blit.RestoreVideoMode;
-    WriteLn('Illegal range in Show3DSprite.');
-    GameIo.ExitGame;
+    GameIo.FatalError('Illegal range in Show3DSprite.');
   end;
   if a.frames[dist].pic <> nil then
     with a.frames[dist].pic^ do
