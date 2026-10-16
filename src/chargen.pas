@@ -322,6 +322,33 @@ var
   hpTotal: Byte;
   addExit: Boolean;
   redraw: Boolean;
+
+  { Run the gender, class or alignment list until Enter, leaving the pick in sel (1 for the first line). Exit or Escape
+    frees the list and the character and returns False, for the caller to leave. }
+  function PickFromList: Boolean;
+  var
+    picked: Types.PItemRec;
+    key: Char;
+    withExit: Boolean;
+    repaint: Boolean;
+  begin
+    PickFromList := True;
+    picked := list;
+    sel := 1;
+    withExit := True;
+    repaint := True;
+    repeat
+      key := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list, withExit, repaint, sel,
+                                   picked);
+      if key = C_Keys.NONE then begin
+        MenuCore.FreeStringList(list);
+        SaveLoad.FreeCreature(creature);
+        PickFromList := False;
+        Exit;
+      end;
+    until key = C_Keys.ENTER;
+  end;
+
 begin
   GetMem(creature, SizeOf(Types.TCharRecord));
   FillChar(creature^, SizeOf(Types.TCharRecord), 0);
@@ -431,19 +458,7 @@ begin
     m := MenuCore.FindListMember(g + 1, list);
     m^.name := '  ' + GDConsts.genderNames[g];
   end;
-  m := list;
-  sel := 1;
-  addExit := True;
-  redraw := True;
-  repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
-      MenuCore.FreeStringList(list);
-      SaveLoad.FreeCreature(creature);
-      Exit;
-    end;
-  until ch = C_Keys.ENTER;
+  if not PickFromList then Exit;
   creature^.genderSp := sel - 1;
   { class }
   MenuCore.FreeStringList(list);
@@ -458,19 +473,7 @@ begin
     m := MenuCore.FindListMember(slot, list);
     m^.name := '  ' + GDConsts.classNames[GDConsts.classesByRace[creature^.race].classes[slot]];
   end;
-  m := list;
-  sel := 1;
-  addExit := True;
-  redraw := True;
-  repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
-      MenuCore.FreeStringList(list);
-      SaveLoad.FreeCreature(creature);
-      Exit;
-    end;
-  until ch = C_Keys.ENTER;
+  if not PickFromList then Exit;
   if (sel < 1) or (sel > cnt) then
     sel := 1;
   with creature^ do begin
@@ -505,19 +508,7 @@ begin
     m := MenuCore.FindListMember(slot, list);
     m^.name := '  ' + GDConsts.alignNames[GDConsts.alignByClass[creature^.charClass].alignments[slot]];
   end;
-  m := list;
-  sel := 1;
-  addExit := True;
-  redraw := True;
-  repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
-      MenuCore.FreeStringList(list);
-      SaveLoad.FreeCreature(creature);
-      Exit;
-    end;
-  until ch = C_Keys.ENTER;
+  if not PickFromList then Exit;
   creature^.alignment := GDConsts.alignByClass[creature^.charClass].alignments[sel];
   MenuCore.FreeStringList(list);
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
