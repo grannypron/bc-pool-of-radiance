@@ -286,8 +286,7 @@ end;
 
 { HpMaximum: Highest legal hpMax: the top of each class's hit dice -- cleric and druid d8 per level, fighter and paladin
   d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1 -- plus the Con bonus, divided by the class
-  count. The Con bonus comes from curChar, not from the creature parameter, so calling it for anyone but the current
-  character mixes two creatures. }
+  count. }
 function HpMaximum(creature: Types.PCharRecord): Byte;
 var
   clsCount: Byte;
@@ -312,8 +311,7 @@ begin
         end;
       end;
   end;
-  { Con bonus of curChar, not creature }
-  HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(GDVars.curChar, $FF), clsCount);
+  HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
 end;
 
 { RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
