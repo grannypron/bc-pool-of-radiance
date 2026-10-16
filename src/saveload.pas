@@ -486,7 +486,12 @@ begin
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
   { the script the save holds is passed over: GameLoop loads the area's script from the data (#609) }
   Seek(f, FilePos(f) + C_Gbvm.SAVED_SCRIPT_BYTES);
-  BlockRead(f, GDVars.gMapX, 5, res);
+  { the party's map position: SSI's five bytes }
+  BlockRead(f, GDVars.gMapX, SizeOf(GDVars.gMapX), res);
+  BlockRead(f, GDVars.gMapY, SizeOf(GDVars.gMapY), res);
+  BlockRead(f, GDVars.gFacing, SizeOf(GDVars.gFacing), res);
+  BlockRead(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead), res);
+  BlockRead(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell), res);
   { a cardinal facing only }
   GDVars.gFacing := GDVars.gFacing and 6;
   BlockRead(f, GDVars.gLocType, SizeOf(GDVars.gLocType), res);
@@ -626,7 +631,12 @@ begin
   BlockWrite(f, GDVars.zone2^, SizeOf(GDVars.zone2^));
   { SSI's part of the script buffer, so the file stays SSI's size }
   BlockWrite(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES);
-  BlockWrite(f, GDVars.gMapX, 5);
+  { the party's map position: SSI's five bytes }
+  BlockWrite(f, GDVars.gMapX, SizeOf(GDVars.gMapX));
+  BlockWrite(f, GDVars.gMapY, SizeOf(GDVars.gMapY));
+  BlockWrite(f, GDVars.gFacing, SizeOf(GDVars.gFacing));
+  BlockWrite(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead));
+  BlockWrite(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell));
   BlockWrite(f, GDVars.gLocType, SizeOf(GDVars.gLocType));
   BlockWrite(f, GDVars.ifcState, SizeOf(GDVars.ifcState));
   { names holds 8, the most a party has }
