@@ -271,7 +271,9 @@ changes behaviour is its own issue and commit.
 suite passes at each measured commit, ssiformat included.
 
 - **Overlay working sets (steps 0 and 1):** combat's Ctrl-Y count went from 52 to 41 loads, areachange's from 32 to
-  27, and the vault's from 32 to 30. JrnlList is overlaid.
+  27, and the vault's from 32 to 30. JrnlList is overlaid. Step 4 then put combat back at 45: post-combat loads ClassCal
+  for the experience share (+2), and freeing monsters reaches UsualSpl (+2). Both were kept for the tests; making
+  UsualSpl resident would save one load for 832 resident bytes.
 - **Cycles (step 2):** all eight implementation cycles are gone. ShowMemory went to a resident unit of its own,
   MemShow, so the Ctrl-Y display loads no overlay. VaultMnu is a unit of its own.
 - **Duplication and names (step 3):** the list, clearing, menu, View3D and Blit copies became one routine each. The
