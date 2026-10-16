@@ -25,7 +25,7 @@ begin
   GetMem(GDVars.zone2, SizeOf(GDVars.zone2^));
   GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
-  GetMem(GDVars.wallGfx, SizeOf(Types.TWallDefs));
+  GetMem(GDVars.wallGfx, SizeOf(GDVars.wallGfx^));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));
   Blit.AllocPic(8, 1, 1, 0, GDVars.dsCurrent8x8SymbolPtr2);
   { the 168x168 view area }

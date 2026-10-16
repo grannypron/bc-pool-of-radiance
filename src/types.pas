@@ -836,10 +836,6 @@ type
     hi: Word;
   end;
   TMoney = array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
-  TWB = record
-    lo: Byte;
-    hi: Byte;
-  end;
 
   { Pathing types. }
   TPathReq = record
@@ -914,7 +910,6 @@ type
 
   { View3D types. }
   PGeoMap = ^TGeoMap;
-  PWallDefs = ^TWallDefs;
   PWallSlices = ^TWallSlices;
   TGeoPlane = array[0..15, 0..15] of Byte;
   TGeoMap = record
@@ -926,8 +921,9 @@ type
     { 2 bits per facing }
     barriers: TGeoPlane;
   end;
+  { one WALLDEF block: a wall set's 5 wall types, 156 symbols each }
   TView3dWallDef = array[1..5, 0..155] of Byte;
-  TWallDefs = array[1..3] of TView3dWallDef;
+  { the three wall-set slots' 15 wall types in a row: slot s holds wall types 5s - 4 .. 5s }
   TWallSlices = array[1..15, 0..155] of Byte;
 
   { ViewChar types. }

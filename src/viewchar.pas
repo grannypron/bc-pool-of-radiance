@@ -6,7 +6,7 @@ interface
 
 uses Types;
 
-procedure DisplayChar;
+procedure DisplayChar(creature: Types.PCharRecord);
 
 procedure PrintCombatStats;
 
@@ -31,11 +31,19 @@ procedure SelectPrevNextChar(c: Char);
 
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
+{ The Cast menu (SpellMenu 7, select 1): the spell chosen, as SpellMenu returns it, with scroll the scroll it is cast
+  from (nil for a memorized spell). }
+function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Types.PItemRec): Byte;
+
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp;
+  CharDisp, MoneyCal;
+
+var
+  { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
+  tradeTarget: Types.PCharRecord;
 
 procedure ItemTradeMenu(item: Types.PItemRec); forward;
 
@@ -57,8 +65,8 @@ begin
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, clearFirst, s);
 end;
 
-{ Display the current character's full character sheet, using tempCr1 as the shared display target. }
-procedure DisplayChar;
+{ Draw creature's character sheet; the portrait is curChar's (Portrait.DisplayCharPortrait), which every caller shows. }
+procedure DisplayChar(creature: Types.PCharRecord);
 var
   row: Byte;
   col: Byte;
@@ -67,24 +75,23 @@ var
   s: String;
   multi: Boolean;
 begin
-  GDVars.tempCr1 := GDVars.curChar;
   TextRend.ClearScreen;
   Border.DrawBorder(1, 1, 38, 22, 0);
-  CharDisp.DisplayCreatureName(GDVars.tempCr1, 1, 1, False);
+  CharDisp.DisplayCreatureName(creature, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
-  if CharHlp.IsNpc(GDVars.tempCr1) then
-    TextRend.DisplayString(Length(GDVars.tempCr1^.name) + 3, 1, LightGreen, '(NPC)');
+  if CharHlp.IsNpc(creature) then
+    TextRend.DisplayString(Length(creature^.name) + 3, 1, LightGreen, '(NPC)');
   col := 1;
-  s := GDConsts.genderNames[GDVars.tempCr1^.genderIdx];
+  s := GDConsts.genderNames[creature^.genderIdx];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
-  s := GDConsts.raceNames[GDVars.tempCr1^.race];
+  s := GDConsts.raceNames[creature^.race];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
-  TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(GDVars.tempCr1^.age));
-  s := GDConsts.alignNames[GDVars.tempCr1^.alignmentIdx];
+  TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(creature^.age));
+  s := GDConsts.alignNames[creature^.alignmentIdx];
   TextRend.DisplayString(1, 4, White, s);
-  s := GDConsts.classNames[GDVars.tempCr1^.charClass];
+  s := GDConsts.classNames[creature^.charClass];
   TextRend.DisplayString(1, 5, White, s);
   { the six ability scores }
   for i := C_Abil.STRENGTH to C_Abil.CHARISMA do begin
@@ -105,35 +112,35 @@ begin
   s := '';
   { one entry per class the character has levels in, joined with '/' }
   for j := C_Level.CLERIC to C_Level.MONK do
-    if GDVars.tempCr1^.classLevels[j] > 0 then begin
+    if creature^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
-      s := s + StrUtil.NumStr(GDVars.tempCr1^.classLevels[j]);
+      s := s + StrUtil.NumStr(creature^.classLevels[j]);
       multi := True;
     end;
   TextRend.DisplayString(7, 15, White, s);
-  TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(GDVars.tempCr1^.experience));
+  TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(creature^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
-  if GDVars.tempCr1^.equipped[C_Equip.WEAPON] <> nil then begin
+  if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     TextRend.DisplayString(1, row, White, 'Weapon');
-    CharHlp.PrintItemString(GDVars.tempCr1, GDVars.tempCr1^.equipped[C_Equip.WEAPON], 8, row, False, True);
+    CharHlp.PrintItemString(creature^.equipped[C_Equip.WEAPON], 8, row, False, True);
   end;
   Inc(row);
-  if GDVars.tempCr1^.equipped[C_Equip.ARMOR] <> nil then begin
+  if creature^.equipped[C_Equip.ARMOR] <> nil then begin
     { 'Armor' starts one column right of 'Weapon' so the two labels end in the same column }
     TextRend.DisplayString(2, row, White, 'Armor');
-    CharHlp.PrintItemString(GDVars.tempCr1, GDVars.tempCr1^.equipped[C_Equip.ARMOR], 8, row, False, True);
+    CharHlp.PrintItemString(creature^.equipped[C_Equip.ARMOR], 8, row, False, True);
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
-  TextRend.DisplayString(8, row, LightGreen, GDConsts.statusStrs[GDVars.tempCr1^.status]);
+  TextRend.DisplayString(8, row, LightGreen, GDConsts.statusStrs[creature^.status]);
   if (GDVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
 
 { Print nonzero coin holdings, highest type first: names right-aligned to end at column 19, amounts from column 21.
-  Reads curChar directly, not tempCr1. }
+  Reads curChar. }
 procedure PrintMoney;
 var
   row: Byte;
@@ -435,13 +442,15 @@ var
   i: Byte;
   j: ShortInt;
   idx: Integer;
+  shown: Types.PCharRecord;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then
     CbtMap.SetNoncombatPalette;
   ch := ' ';
   done := False;
-  GDVars.tempCr2 := GDVars.curChar;
-  ViewChar.DisplayChar;
+  tradeTarget := GDVars.curChar;
+  shown := GDVars.curChar;
+  ViewChar.DisplayChar(shown);
   ViewChar.DrawMoreInfoLabel;
   while not (ch in [C_Keys.NONE, 'E']) and not done do
   begin
@@ -450,17 +459,17 @@ begin
     hasMoney := False;
     { every memorized-spell slot }
     for i := 0 to Types.SPELL_SLOT_LAST do
-      if GDVars.tempCr1^.memorizedSpells[i] > 0 then
+      if shown^.memorizedSpells[i] > 0 then
         hasSpells := True;
     { every coin type, gems and jewelry included }
     for j := C_Money.COPPER to C_Money.JEWELRY do
-      if GDVars.tempCr1^.coins[j] > 0 then
+      if shown^.coins[j] > 0 then
         hasMoney := True;
-    if GDVars.tempCr1^.itemsAddr <> nil then
+    if shown^.itemsAddr <> nil then
       s := s + 'Items ';
     if hasSpells then
       s := s + 'Spells ';
-    if CharHlp.MayTrade(GDVars.tempCr1) and hasMoney and
+    if CharHlp.MayTrade(shown) and hasMoney and
         (GDVars.ifcState <> C_Ifc.COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
@@ -468,9 +477,9 @@ begin
       s := s + 'Deposit '
     else if hasMoney then
       s := s + 'Drop ';
-    if ViewChar.CanHeal(GDVars.tempCr1) then
+    if ViewChar.CanHeal(shown) then
       s := s + 'Heal ';
-    if ViewChar.CanCure(GDVars.tempCr1) then
+    if ViewChar.CanCure(shown) then
       s := s + 'Cure ';
     s := s + 'Exit';
     MenuCore.extraKeys := 'M';
@@ -484,14 +493,15 @@ begin
              ViewChar.DropMoneyMenu;
              ViewChar.PrintMoney;
            end;
-      'H': if ViewChar.CanHeal(GDVars.tempCr1) then
-             ViewChar.LayOnHands(GDVars.tempCr1);
-      'C': if ViewChar.CanCure(GDVars.tempCr1) then
-             ViewChar.CureDisease(GDVars.tempCr1);
+      'H': if ViewChar.CanHeal(shown) then
+             ViewChar.LayOnHands(shown);
+      'C': if ViewChar.CanCure(shown) then
+             ViewChar.CureDisease(shown);
       'M': ViewChar.MorePage;
     end;
     if not done and (ch in ['I', 'S', 'T', 'H', 'C', 'M']) then begin
-      ViewChar.DisplayChar;
+      shown := GDVars.curChar;
+      ViewChar.DisplayChar(shown);
       ViewChar.DrawMoreInfoLabel;
     end;
   end;
@@ -606,7 +616,7 @@ begin
       { rebuild every item name }
       p := creature^.itemsAddr;
       while p <> nil do begin
-        CharHlp.PrintItemString(creature, p, 0, 0, True, False);
+        CharHlp.PrintItemString(p, 0, 0, True, False);
         p := p^.next;
       end;
       if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
@@ -661,7 +671,7 @@ begin
                    TextRend.DisplayAndPause(Yellow, 'The vault is full.');
                end else if ViewChar.CheckItemAvail(sel) then
                begin
-                 CharHlp.PrintItemString(creature, sel, 0, 0, False, False);
+                 CharHlp.PrintItemString(sel, 0, 0, False, False);
                  ViewChar.SayBelow(True, 'Your ' + sel^.name + ' will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
@@ -744,7 +754,7 @@ begin
          end;
       1: CharDisp.PrintBottomLine('Wrong Class');
       2: begin
-           CharHlp.PrintItemString(creature, creature^.equipped[slot], 0, 0, False, False);
+           CharHlp.PrintItemString(creature^.equipped[slot], 0, 0, False, False);
            CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
          end;
       3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then
@@ -758,11 +768,11 @@ procedure ItemTradeMenu(item: Types.PItemRec);
 var
   tgt: Types.PCharRecord;
 begin
-  tgt := GDVars.tempCr2;
+  tgt := tradeTarget;
   CharDisp.DisplayNoncombatInterface;
   CharDisp.SelectChar('Trade with Whom?', True, tgt);
   if tgt <> nil then begin
-    GDVars.tempCr2 := tgt;
+    tradeTarget := tgt;
     if ViewChar.CannotCarryItem(tgt, item) then
       CharDisp.PrintBottomLine('Overloaded')
     else begin
@@ -894,9 +904,9 @@ begin
     CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');
-      CharHlp.PrintItemString(GDVars.curChar, item, 5, 23, False, True);
+      CharHlp.PrintItemString(item, 5, 23, False, True);
     end else
-      CharHlp.PrintItemString(GDVars.curChar, item, 1, 22, False, True);
+      CharHlp.PrintItemString(item, 1, 22, False, True);
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
   end;
@@ -923,7 +933,7 @@ begin
   end;
 end;
 
-{ Offer Money.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
+{ Offer MoneyCal.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
   quantity, so a single arrow fetches a twentieth of a bundle's price. Pay as platinum (price div 5) plus gold (price
   mod 5); when overloaded, the platinum the character cannot take goes to the treasure pool. }
 procedure SellItem(item: Types.PItemRec);
@@ -933,8 +943,8 @@ var
   gold: Word;
   takable: Word;
 begin
-  price := Money.ItemSalePrice(item);
-  CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
+  price := MoneyCal.ItemSalePrice(item);
+  CharHlp.PrintItemString(item, 0, 0, False, False);
   ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
@@ -967,18 +977,18 @@ var
   paid: Boolean;
 begin
   paid := False;
-  CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
+  CharHlp.PrintItemString(item, 0, 0, False, False);
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    paid := Money.PayGold(200);
+    paid := Money.PayGold(GDVars.curChar, 200);
   end;
   if paid then begin
     if item^.unidMask = 0 then
       ViewChar.SayBelow(True, 'I can''t tell anything new about your ' + item^.name)
     else begin
       item^.unidMask := 0;
-      CharHlp.PrintItemString(GDVars.tempCr1, item, 0, 0, False, False);
+      CharHlp.PrintItemString(item, 0, 0, False, False);
       ViewChar.SayBelow(True, 'It looks like some sort of ' + item^.name);
       newInfo := True;
     end;
@@ -988,9 +998,9 @@ begin
   Border.ClearBox(1, 21, 38, 22);
 end;
 
-{ Trade coins from curChar to another character. The outer loop picks the recipient, starting from tempCr2; the inner
-  loop lists curChar's nonzero coin types (linked backwards, so the highest type heads the list), lets the player pick a
-  type and an amount up to the holding, and hands it over with Money.TradeMoney, repeating while coins remain.
+{ Trade coins from curChar to another character. The outer loop picks the recipient, starting from tradeTarget; the
+  inner loop lists curChar's nonzero coin types (linked backwards, so the highest type heads the list), lets the player
+  pick a type and an amount up to the holding, and hands it over with Money.TradeMoney, repeating while coins remain.
   Escaping the coin menu goes back to choosing the recipient. }
 procedure TradeTreasureMenu;
 var
@@ -1014,16 +1024,16 @@ var
   redraw: Boolean;
 begin
   repeat
-    tgt := GDVars.tempCr2;
+    tgt := tradeTarget;
     CharDisp.DisplayNoncombatInterface;
     CharDisp.SelectChar('Trade to?', True, tgt);
     if tgt = nil then
       exitOuter := True
     else begin
-      ViewChar.DisplayChar;
+      ViewChar.DisplayChar(GDVars.curChar);
       repeat
         ViewChar.PrintMoney;
-        GDVars.tempCr2 := tgt;
+        tradeTarget := tgt;
         p := nil;
         prev := nil;
         list := nil;
@@ -1059,7 +1069,7 @@ begin
           exitOuter := False;
         end else begin
           s2 := '';
-          mType := Money.ParseMoneyType(prev^.name, s2);
+          mType := MoneyCal.ParseMoneyType(prev^.name, s2);
           s2 := 'How much ' + s2 + 'will you trade? ';
           amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
           Money.TradeMoney(GDVars.curChar, tgt, amount, mType);
@@ -1134,7 +1144,7 @@ begin
       exitFlag := True
     else begin
       s2 := '';
-      mType := Money.ParseMoneyType(prev^.name, s2);
+      mType := MoneyCal.ParseMoneyType(prev^.name, s2);
       if GDVars.ifcState = C_Ifc.VAULT then
         s2 := 'How much ' + s2 + 'will you deposit? '
       else
@@ -1199,7 +1209,9 @@ end;
   level, 5 to be memorized, 6 to be scribed, 7 available to cast) and run Magic.SpellSelection on it, returning the
   chosen spell, or 0 when the list is empty. idx < 0 also draws the "<name>'s Spells ..." heading ("<name>'s Available
   Spells" for 7); notEmpty receives whether the list has entries. }
-function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
+{ SpellMenu's work, with the chosen line's scroll in scroll. }
+function ChooseSpell(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean;
+  var scroll: Types.PItemRec): Byte;
 var
   s: Types.TStr40;
 begin
@@ -1215,7 +1227,7 @@ begin
   else
     s := '';
   end;
-  notEmpty := Magic.GenerateSpellList(menuType);
+  notEmpty := Magic.GenerateSpellList(GDVars.curChar, menuType);
   if notEmpty then begin
     if idx < 0 then begin
       Border.DrawWindow(1, 1, 38, 1, 0, Black, '');
@@ -1226,9 +1238,23 @@ begin
         s := 'Spells ' + s;
       TextRend.DisplayString(Length(GDVars.curChar^.name) + 4, 1, LightGreen, s);
     end;
-    SpellMenu := Magic.SpellSelection(selType, idx);
-  end else
-    SpellMenu := 0;
+    ChooseSpell := Magic.SpellSelection(selType, idx, scroll);
+  end else begin
+    scroll := nil;
+    ChooseSpell := 0;
+  end;
+end;
+
+function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
+var
+  scroll: Types.PItemRec;
+begin
+  SpellMenu := ViewChar.ChooseSpell(menuType, selType, idx, notEmpty, scroll);
+end;
+
+function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Types.PItemRec): Byte;
+begin
+  CastSpellMenu := ViewChar.ChooseSpell(7, 1, idx, notEmpty, scroll);
 end;
 
 end.

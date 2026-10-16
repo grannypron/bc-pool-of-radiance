@@ -1,0 +1,147 @@
+{ Ability score adjustments: the Strength and Dexterity tables for to-hit, damage, armor class and carrying. Resident
+  and using only Types, so combat can call it and tests can use it. }
+{$F+}
+unit AbilAdj;
+
+interface
+
+uses Types;
+
+{ Map strCur (with exceptional strength at 18) onto the 0..30 combined strength scale used by the strength tables:
+  0..17 as they are, 18 and 18/01..18/00 as 18..23, 19..25 as 24..30. }
+function TranslatedStrength(creature: Types.PCharRecord): Byte;
+
+function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
+
+function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
+
+function WeightAllowance(creature: Types.PCharRecord): Integer;
+
+function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
+
+function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
+
+implementation
+
+{ Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
+function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
+var
+  d: Byte;
+begin
+  d := creature^.dexCur;
+  case d of
+    1..3: DexterityArmorAdjustment := -4;
+    4..6: DexterityArmorAdjustment := d - 7;
+    15..18: DexterityArmorAdjustment := d - 14;
+    19..20: DexterityArmorAdjustment := 4;
+    21..23: DexterityArmorAdjustment := 5;
+    24..25: DexterityArmorAdjustment := 6;
+  else
+    DexterityArmorAdjustment := 0;
+  end;
+end;
+
+{ Missile to-hit adjustment for the creature's Dexterity: -4 below 3, -3 at 3 rising to +3 at 18, then +3..+5 for higher
+  scores. }
+function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
+var
+  d: Byte;
+begin
+  d := creature^.dexCur;
+  case d of
+    0..2: DexMissileAdjust := -4;
+    3..5: DexMissileAdjust := d - 6;
+    16..18: DexMissileAdjust := d - 15;
+    19..20: DexMissileAdjust := 3;
+    21..23: DexMissileAdjust := 4;
+    24..25: DexMissileAdjust := 5;
+  else
+    DexMissileAdjust := 0;
+  end;
+end;
+
+{ Map strCur (with exceptional strength at 18) onto the 0..30 combined strength scale used by the strength tables.
+  Strength above 25 counts as 25 and exceptional strength above 100 as 18/00. }
+function TranslatedStrength(creature: Types.PCharRecord): Byte;
+begin
+  case creature^.strCur of
+    0..17: TranslatedStrength := creature^.strCur;
+    18:
+      case creature^.strExc of
+        0: TranslatedStrength := 18;
+        1..50: TranslatedStrength := 19;
+        51..75: TranslatedStrength := 20;
+        76..90: TranslatedStrength := 21;
+        91..99: TranslatedStrength := 22;
+      else
+        TranslatedStrength := 23;
+      end;
+    19..25: TranslatedStrength := creature^.strCur + 5;
+  else
+    TranslatedStrength := 30;
+  end;
+end;
+
+{ Strength to-hit adjustment over the translated scale; zero unless the creature's strength bonus applies. }
+function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
+var
+  ts: Byte;
+begin
+  StrToHitAdjust := 0;
+  ts := AbilAdj.TranslatedStrength(creature);
+  if creature^.useStrength <> 0 then
+    case ts of
+      1..3: StrToHitAdjust := -3;
+      4..5: StrToHitAdjust := -2;
+      6..7: StrToHitAdjust := -1;
+      17..19: StrToHitAdjust := 1;
+      20..22: StrToHitAdjust := 2;
+      23..25: StrToHitAdjust := 3;
+      26..27: StrToHitAdjust := 4;
+      28..30: StrToHitAdjust := ts - 23;
+    end;
+end;
+
+{ Strength damage adjustment over the translated scale; zero unless the creature's strength bonus applies. }
+function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
+var
+  ts: Byte;
+begin
+  StrDamageAdjust := 0;
+  ts := AbilAdj.TranslatedStrength(creature);
+  if creature^.useStrength <> 0 then
+    case ts of
+      1..2: StrDamageAdjust := -2;
+      3..5: StrDamageAdjust := -1;
+      16: StrDamageAdjust := 1;
+      17..19: StrDamageAdjust := ts - 16;
+      20..29: StrDamageAdjust := ts - 17;
+      30: StrDamageAdjust := 14;
+    end;
+end;
+
+{ Strength's encumbrance allowance in coins; translated strength 1..7 gives a negative allowance, while 0 gives zero.
+  Strength 19 (translated 24) gets the AD&D 4500, not the 4000 its neighbours' formula gives. }
+function WeightAllowance(creature: Types.PCharRecord): Integer;
+var
+  ts: Byte;
+begin
+  ts := AbilAdj.TranslatedStrength(creature);
+  case ts of
+    1..3: WeightAllowance := -350;
+    4..5: WeightAllowance := -250;
+    6..7: WeightAllowance := -150;
+    12..13: WeightAllowance := 100;
+    14..15: WeightAllowance := 200;
+    16: WeightAllowance := 350;
+    17..21: WeightAllowance := (ts - 17) * 250 + 500;
+    22, 23, 25, 26: WeightAllowance := (ts - 22) * 1000 + 2000;
+    24: WeightAllowance := 4500;
+    27: WeightAllowance := 7500;
+    28..30: WeightAllowance := (ts - 28) * 3000 + 9000;
+  else
+    WeightAllowance := 0;
+  end;
+end;
+
+end.

@@ -660,7 +660,7 @@ begin
       CharDisp.PrintNameStringAnim(creature, False, s)
     else begin
       { the item label ends in a space }
-      CharHlp.PrintItemString(creature, shockItem, 0, 0, False, False);
+      CharHlp.PrintItemString(shockItem, 0, 0, False, False);
       CharDisp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
                                StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
     end;

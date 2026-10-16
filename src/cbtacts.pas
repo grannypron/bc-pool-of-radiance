@@ -62,7 +62,7 @@ implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, ViewChar, Magic, C_Effect, C_Equip, C_Keys, C_Level,
   C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp;
+  CharDisp, AbilAdj;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
@@ -116,7 +116,7 @@ begin
     creature^.curAttacks2 := CbtActs.AdjustedAttacks(GDVars.dsCurrentAttackCurrent);
     sweepBudget := creature^.attackLevel;
     if creature^.enabled <> 0 then begin
-      initiative := FxEngine.RollDice(1, 6) + CharHlp.DexMissileAdjust(creature);
+      initiative := FxEngine.RollDice(1, 6) + AbilAdj.DexMissileAdjust(creature);
       if initiative < 1 then
         initiative := 1;
       { Surprise mask: bit 0 for the party, bit 1 for monsters }
@@ -1016,10 +1016,10 @@ begin
       AimMarker := SPRITE_MISSILE;
 end;
 
-{ Combat's spellFps[0] callback: build the spell-target list from the low nibble of the spell's area. 0: the caster; 15:
-  the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and 7 of the picked cell;
-  1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the player aims, the
-  CbtMap spell-aim preview shows the cells the spell will reach. }
+{ The cast-target menu in combat (GDVars.castTargetMenu): build the spell-target list from the low nibble of the spell's
+  area. 0: the caster; 15: the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and
+  7 of the picked cell; 1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the
+  player aims, the CbtMap spell-aim preview shows the cells the spell will reach. }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -1152,9 +1152,9 @@ begin
   spellId := spell;
   scroll := nil;
   if spellId = C_Spell.NONE then begin
-    spellId := ViewChar.SpellMenu(7, 1, idx, notEmpty);
-    if spellId > C_Spell.NONE then
-      scroll := GDVars.castScroll;
+    spellId := ViewChar.CastSpellMenu(idx, notEmpty, scroll);
+    if spellId = C_Spell.NONE then
+      scroll := nil;
   end;
   if spellId > C_Spell.NONE then
     if GDConsts.spellTable[spellId].whenCast = 0 then begin

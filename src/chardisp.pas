@@ -145,7 +145,7 @@ begin
   if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     Inc(row, 2);
     col := 23;
-    CharHlp.PrintItemString(creature, creature^.equipped[C_Equip.WEAPON], 0, 0, False, False);
+    CharHlp.PrintItemString(creature^.equipped[C_Equip.WEAPON], 0, 0, False, False);
     TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
                                   creature^.equipped[C_Equip.WEAPON]^.name);
   end;

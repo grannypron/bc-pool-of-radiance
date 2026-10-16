@@ -34,7 +34,7 @@ begin
   TextRend.ShowMessage(LightGreen, True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
   if c = 'Y' then begin
-    if not Money.PayGold(cost) then
+    if not Money.PayGold(GDVars.curChar, cost) then
       c := 'N';
   end;
   if c = 'Y' then begin

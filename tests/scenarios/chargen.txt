@@ -1,4 +1,5 @@
-# Create a human paladin with fixed dice, name him, keep his portrait and icon, and add him to the party.
+# Create a human paladin with fixed dice, name him, keep his portrait and icon, and add him to the party: the .CHA file
+# creation writes, and that adding him (which reads it back) leaves the files alone.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -16,5 +17,7 @@ press k y
 checkpoint icon
 press k y
 wait RADIANCE
+saves created
 press a home a e
 checkpoint party
+saves after-add

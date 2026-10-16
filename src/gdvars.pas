@@ -76,11 +76,6 @@ var
   finalSfx: String[1];
 
 var
-  { Character menus. }
-  { DisplayChar's saved character pointer }
-  tempCr1: Types.PCharRecord;
-  { trade selection, reset at ViewCharMenu entry }
-  tempCr2: Types.PCharRecord;
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..72] of Byte;
@@ -91,8 +86,6 @@ var
   spellIds: array[0..C_Spell.LINE_LAST] of Byte;
   { the scroll each Cast line reads from, nil for a memorized spell }
   spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
-  { the scroll of the line SpellSelection returned, nil for a memorized spell or none }
-  castScroll: Types.PItemRec;
   scrollPtrs: array[0..48] of Types.PItemRec;
   scrollCount: Byte;
   gSpellTemp1: Byte;
@@ -369,8 +362,8 @@ var
   { effect handlers, indexed by effect id }
   effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler;
   { 3D view }
-  { shared pointer to wall symbol slices }
-  wallGfx: Pointer;
+  { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
+  wallGfx: Types.PWallSlices;
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;
   { Sky and ceiling color after palette mapping. }
@@ -420,8 +413,10 @@ var
   { Spell casting and targeting }
   { Current item used for spell casting. }
   dsCurrentScrollPtr: Types.PItemRec;
+  { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.CombatCastTargetMenu in combat }
+  castTargetMenu: Types.TCastUI;
   { Spell handlers indexed by spell ID. }
-  spellFps: array[0..67] of Pointer;
+  spellFns: array[1..67] of Types.TSpellProc;
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }

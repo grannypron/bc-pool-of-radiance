@@ -357,63 +357,62 @@ const
 
 const
   { Random item templates }
-    { Money also indexes these records through the flat word and byte views randItemW/randItemB. }
   randomItemTemplates: array[1..19] of Types.TRandomItemTemplate = (
-    { Template 1 (word index 1): Potion of Extra Healing }
+    { Template 1: Potion of Extra Healing }
     (nameIds: (187, 167, 64); weight: 1; value: 800;
      properties: (3, 3, 0)),
-    { Template 2 (word index 9): Potion of Giant Strength }
+    { Template 2: Potion of Giant Strength }
     (nameIds: (239, 167, 64); weight: 1; value: 1100;
      properties: (1, 82, 0)),
-    { Template 3 (word index 17): Potion of Healing }
+    { Template 3: Potion of Healing }
     (nameIds: (185, 167, 64); weight: 1; value: 400;
      properties: (1, 85, 0)),
-    { Template 4 (word index 25): Potion of Speed }
+    { Template 4: Potion of Speed }
     (nameIds: (173, 167, 64); weight: 1; value: 450;
      properties: (1, 80, 0)),
-    { Template 5 (word index 33): Scroll of Restoring Levels }
+    { Template 5: Scroll of Restoring Levels }
     (nameIds: (240, 167, 65); weight: 1; value: 2100;
      properties: (56, 56, 0)),
-    { Template 6 (word index 41): Ring of Feather Falling }
+    { Template 6: Ring of Feather Falling }
     (nameIds: (238, 167, 66); weight: 1; value: 5000;
      properties: (0, 27, 128)),
-    { Template 7 (word index 49): Wand of Lightning }
+    { Template 7: Wand of Lightning }
     (nameIds: (157, 167, 69); weight: 1; value: 6000;
      properties: (20, 51, 0)),
-    { Template 8 (word index 57): Wand of Magic Missiles }
+    { Template 8: Wand of Magic Missiles }
     (nameIds: (206, 167, 69); weight: 1; value: 11000;
      properties: (30, 88, 0)),
-    { Template 9 (word index 65): Wand of Paralyzation }
+    { Template 9: Wand of Paralyzation }
     (nameIds: (225, 167, 69); weight: 1; value: 5000;
      properties: (20, 84, 0)),
-    { Template 10 (word index 73): Gauntlets of Ogre Power }
+    { Template 10: Gauntlets of Ogre Power }
     (nameIds: (226, 167, 100); weight: 10; value: 15000;
      properties: (0, 38, 131)),
-    { Template 11 (word index 81): Keoghtum's Ointment }
+    { Template 11: Keoghtum's Ointment }
     (nameIds: (0, 111, 182); weight: 1; value: 10000;
      properties: (5, 81, 0)),
-    { Template 12 (word index 89): Necklace of Missiles }
+    { Template 12: Necklace of Missiles }
     (nameIds: (228, 167, 119); weight: 1; value: 16000;
      properties: (20, 87, 0)),
-    { Template 13 (word index 97): Cloak of Displacement }
+    { Template 13: Cloak of Displacement }
     (nameIds: (170, 167, 88); weight: 25; value: 17500;
      properties: (0, 89, 133)),
-    { Template 14 (word index 105): Javelin of Lightning }
+    { Template 14: Javelin of Lightning }
     (nameIds: (157, 167, 21); weight: 20; value: 3000;
      properties: (1, 83, 0)),
-    { Template 15 (word index 113): Wand of Fireballs }
+    { Template 15: Wand of Fireballs }
     (nameIds: (242, 167, 69); weight: 1; value: 5000;
      properties: (20, 47, 0)),
-    { Template 16 (word index 121): Ring of Fire Resistance }
+    { Template 16: Ring of Fire Resistance }
     (nameIds: (205, 167, 66); weight: 1; value: 5000;
      properties: (0, 61, 129)),
-    { Template 17 (word index 129): Ring of Invisibility }
+    { Template 17: Ring of Invisibility }
     (nameIds: (227, 167, 66); weight: 1; value: 7500;
      properties: (0, 56, 139)),
-    { Template 18 (word index 137): Bag of Holding }
+    { Template 18: Bag of Holding }
     (nameIds: (186, 167, 73); weight: 150; value: 25000;
      properties: (0, 0, 0)),
-    { Template 19 (word index 145): Cloak of Elvenkind }
+    { Template 19: Cloak of Elvenkind }
     (nameIds: (229, 167, 88); weight: 25; value: 6000;
      properties: (0, 72, 134)));
   { AddSpellToList }
@@ -1117,8 +1116,7 @@ const
     { EGA 14 Yellow -> CGA 3; EGA 15 White -> CGA 3 }
     $33);
   { Sound command tables }
-  { One table of sound command ids: the three subsystems read their own slice; Magic indexes all of it as
-    soundIds[0..12]. }
+  { One table of sound command ids, a slice for each subsystem (C_Sound names the indexes). }
   soundIds: record
     commands: array[0..3] of Word;
     damage: Word;

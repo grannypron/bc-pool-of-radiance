@@ -8,7 +8,8 @@ uses Types,
   GDConsts, GDVars,
   SoundDrv, GameIo, DaxIo, TextRend, Blit, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
-  MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, GameTime, ViewChar, Ending, SaveLoad, CharGen, Camp,
+  MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, GameTime, ViewChar, Ending, SaveLoad,
+  CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, Temple,
   EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, EclTrace;
@@ -47,6 +48,7 @@ uses Types,
 {$O ViewChar}
 {$O GameTime}
 {$O Money}
+{$O MoneyCal}
 {$O Magic}
 {$O ClassCal}
 {$O FxEngine}

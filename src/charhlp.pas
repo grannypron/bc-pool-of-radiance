@@ -15,7 +15,7 @@ procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; a
 
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
-procedure PrintItemString(creature: Types.PCharRecord; item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
+procedure PrintItemString(item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
 
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
@@ -24,8 +24,6 @@ function IsHelpless(creature: Types.PCharRecord): Boolean;
 procedure LinkEquipped(creature: Types.PCharRecord);
 
 procedure RecalcStats(creature: Types.PCharRecord);
-
-function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
 
 procedure RemoveSpell(creature: Types.PCharRecord; spell: Byte);
 
@@ -71,14 +69,6 @@ function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
   racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. }
 function CanTrain(creature: Types.PCharRecord): Boolean;
 
-function WeightAllowance(creature: Types.PCharRecord): Integer;
-
-function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
-
-function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
-
-function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
-
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 
 function RawWeight(creature: Types.PCharRecord): LongInt;
@@ -118,7 +108,7 @@ function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 implementation
 
 uses Crt, C_Item, GDConsts, GDVars, Pathing, CbtMap, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, TextRend, C_Npc, StrUtil, CharDisp;
+  C_Money, Stats, TextRend, C_Npc, StrUtil, CharDisp, AbilAdj;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
@@ -138,11 +128,11 @@ begin
   wtype := w^.itemType;
   creature^.thac0Cur := creature^.thac0Base;
   if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_DEX_MISSILE) <> 0 then
-    creature^.thac0Cur := CharHlp.DexMissileAdjust(creature) + creature^.thac0Cur;
+    creature^.thac0Cur := AbilAdj.DexMissileAdjust(creature) + creature^.thac0Cur;
   creature^.curModA[1] := CharHlp.BaseItem(wtype)^.dmgSmMod;
   if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_STR_BONUS) <> 0 then begin
-    creature^.thac0Cur := CharHlp.StrToHitAdjust(creature) + creature^.thac0Cur;
-    creature^.curModA[1] := CharHlp.StrDamageAdjust(creature) + creature^.curModA[1];
+    creature^.thac0Cur := AbilAdj.StrToHitAdjust(creature) + creature^.thac0Cur;
+    creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
   plus := w^.plus;
   { C_Item.PROP_QUARRELS: the weapon fires quarrels }
@@ -226,7 +216,7 @@ var
   over: LongInt;
   movement: Byte;
 begin
-  over := LongInt(creature^.encumbrance) - CharHlp.WeightAllowance(creature);
+  over := LongInt(creature^.encumbrance) - AbilAdj.WeightAllowance(creature);
   if over < 0 then
     over := 0;
   case over of
@@ -244,7 +234,7 @@ end;
   any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when
   nonzero, then the identified name components from 3 down to 1, one of them pluralized with 's' when the quantity
   is 2 or more. Optionally print it in light green at the requested position. }
-procedure PrintItemString(creature: Types.PCharRecord; item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
+procedure PrintItemString(item: Types.PItemRec; col, row: Byte; isInv, doPrint: Boolean);
 var
   i: Byte;
   mask: Byte;
@@ -394,10 +384,10 @@ begin
   creature^.acCur := creature^.acBase;
   creature^.movementCur := creature^.movementBase;
   creature^.thac0Cur := creature^.thac0Base;
-  adj[0] := CharHlp.DexterityArmorAdjustment(creature);
+  adj[0] := AbilAdj.DexterityArmorAdjustment(creature);
   if creature^.equipped[C_Equip.WEAPON] = nil then begin
-    creature^.thac0Cur := CharHlp.StrToHitAdjust(creature) + creature^.thac0Cur;
-    creature^.curModA[1] := CharHlp.StrDamageAdjust(creature) + creature^.curModA[1];
+    creature^.thac0Cur := AbilAdj.StrToHitAdjust(creature) + creature^.thac0Cur;
+    creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
   CharHlp.WeaponAdjust(creature);
   item := creature^.itemsAddr;
@@ -436,127 +426,6 @@ begin
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
-end;
-
-{ Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
-function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
-var
-  d: Byte;
-begin
-  d := creature^.dexCur;
-  case d of
-    1..3: DexterityArmorAdjustment := -4;
-    4..6: DexterityArmorAdjustment := d - 7;
-    15..18: DexterityArmorAdjustment := d - 14;
-    19..20: DexterityArmorAdjustment := 4;
-    21..23: DexterityArmorAdjustment := 5;
-    24..25: DexterityArmorAdjustment := 6;
-  else
-    DexterityArmorAdjustment := 0;
-  end;
-end;
-
-{ Missile to-hit adjustment for the creature's Dexterity: -4 below 3, -3 at 3 rising to +3 at 18, then +3..+5 for higher
-  scores. }
-function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
-var
-  d: Byte;
-begin
-  d := creature^.dexCur;
-  case d of
-    0..2: DexMissileAdjust := -4;
-    3..5: DexMissileAdjust := d - 6;
-    16..18: DexMissileAdjust := d - 15;
-    19..20: DexMissileAdjust := 3;
-    21..23: DexMissileAdjust := 4;
-    24..25: DexMissileAdjust := 5;
-  else
-    DexMissileAdjust := 0;
-  end;
-end;
-
-{ Map strCur (with exceptional strength at 18) onto the 0..30 combined strength scale used by the strength tables.
-  Strength above 25 counts as 25 and exceptional strength above 100 as 18/00. }
-function TranslatedStrength(creature: Types.PCharRecord): Byte;
-begin
-  case creature^.strCur of
-    0..17: TranslatedStrength := creature^.strCur;
-    18:
-      case creature^.strExc of
-        0: TranslatedStrength := 18;
-        1..50: TranslatedStrength := 19;
-        51..75: TranslatedStrength := 20;
-        76..90: TranslatedStrength := 21;
-        91..99: TranslatedStrength := 22;
-      else
-        TranslatedStrength := 23;
-      end;
-    19..25: TranslatedStrength := creature^.strCur + 5;
-  else
-    TranslatedStrength := 30;
-  end;
-end;
-
-{ Strength to-hit adjustment over the translated scale; zero unless the creature's strength bonus applies. }
-function StrToHitAdjust(creature: Types.PCharRecord): ShortInt;
-var
-  ts: Byte;
-begin
-  StrToHitAdjust := 0;
-  ts := CharHlp.TranslatedStrength(creature);
-  if creature^.useStrength <> 0 then
-    case ts of
-      1..3: StrToHitAdjust := -3;
-      4..5: StrToHitAdjust := -2;
-      6..7: StrToHitAdjust := -1;
-      17..19: StrToHitAdjust := 1;
-      20..22: StrToHitAdjust := 2;
-      23..25: StrToHitAdjust := 3;
-      26..27: StrToHitAdjust := 4;
-      28..30: StrToHitAdjust := ts - 23;
-    end;
-end;
-
-{ Strength damage adjustment over the translated scale; zero unless the creature's strength bonus applies. }
-function StrDamageAdjust(creature: Types.PCharRecord): ShortInt;
-var
-  ts: Byte;
-begin
-  StrDamageAdjust := 0;
-  ts := CharHlp.TranslatedStrength(creature);
-  if creature^.useStrength <> 0 then
-    case ts of
-      1..2: StrDamageAdjust := -2;
-      3..5: StrDamageAdjust := -1;
-      16: StrDamageAdjust := 1;
-      17..19: StrDamageAdjust := ts - 16;
-      20..29: StrDamageAdjust := ts - 17;
-      30: StrDamageAdjust := 14;
-    end;
-end;
-
-{ Strength's encumbrance allowance in coins; translated strength 1..7 gives a negative allowance, while 0 gives zero.
-  Strength 19 (translated 24) gets the AD&D 4500, not the 4000 its neighbours' formula gives. }
-function WeightAllowance(creature: Types.PCharRecord): Integer;
-var
-  ts: Byte;
-begin
-  ts := CharHlp.TranslatedStrength(creature);
-  case ts of
-    1..3: WeightAllowance := -350;
-    4..5: WeightAllowance := -250;
-    6..7: WeightAllowance := -150;
-    12..13: WeightAllowance := 100;
-    14..15: WeightAllowance := 200;
-    16: WeightAllowance := 350;
-    17..21: WeightAllowance := (ts - 17) * 250 + 500;
-    22, 23, 25, 26: WeightAllowance := (ts - 22) * 1000 + 2000;
-    24: WeightAllowance := 4500;
-    27: WeightAllowance := 7500;
-    28..30: WeightAllowance := (ts - 28) * 3000 + 9000;
-  else
-    WeightAllowance := 0;
-  end;
 end;
 
 { True when the creature has a Bag of Holding readied (name component 186 is 'Holding'). }

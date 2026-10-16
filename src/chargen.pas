@@ -16,7 +16,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp;
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal;
 
 
 
@@ -585,7 +585,7 @@ begin
   { stat roll / derived / keep loop }
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   repeat
     creature^.strExc := 0;
     for i := 0 to 5 do begin
@@ -758,7 +758,7 @@ begin
     ViewChar.PrintMoney;
     ch := MenuCore.YesNoMenu('Keep this character? ', LightMagenta, LightGreen, White);
   until ch = 'Y';
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   GDVars.curChar := savedCur;
   repeat
     creature^.name := TextRend.ReadString('Character name: ', LightMagenta, Types.NAME_LEN);
@@ -767,7 +767,7 @@ begin
   GDVars.curChar := creature;
   CharGen.CustomizePortrait;
   { the icon editor draws over the sheet the picker cleared }
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   CharGen.CustomizeIcon;
   SaveLoad.SaveChar(Types.PCharRecord(creature), '');
   GDVars.curChar := savedCur;
@@ -838,7 +838,7 @@ begin
     TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow);
     Exit;
   end;
-  ViewChar.DisplayChar;
+  ViewChar.DisplayChar(GDVars.curChar);
   Move(GDVars.curChar^.stats, savedStats, SizeOf(GDVars.curChar^.stats));
   savedExc := GDVars.curChar^.strExc;
   savedHp := GDVars.curChar^.hpMax;
@@ -1015,7 +1015,7 @@ begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;
-  if (Money.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
+  if (MoneyCal.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
     TextRend.PrintAndPause('Training costs 1000 gp.', Yellow);
     Exit;
   end;

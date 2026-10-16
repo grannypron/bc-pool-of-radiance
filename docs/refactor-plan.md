@@ -42,8 +42,9 @@ Replaces byte-for-byte as the proof that a change kept behaviour.
    code) and test programs that use only the units under test plus `TestKit`. Built and run under the same TP 6 in
    DOSBox-X by `build.sh --test`, which fails on any failed check. First targets, all pure logic: `Stats`
    (saturation, kill kinds, net coin), `AreaName`, `Money` arithmetic, Strength encoding, `ClassCal`, the DataPat rule.
-   **Done for `Stats` and `AreaName`**; the others pull in most of the game and get tests as phase 2 separates their
-   logic.
+   **Done**: `Stats`, `AreaName`, `ClassCal` and DataPat's table (the rules DataBld relies on) as they are; the
+   Strength and Dexterity tables moved from CharHlp to a resident `AbilAdj`, and Money's arithmetic (coin values,
+   change, who pays, item values, money type names) to an overlaid `MoneyCal`, which also replaces `Stats.CoinWorth`.
 2. **Build size report.** `build.sh` prints code and data size from `TPC.OUT` and the overlay sizes, so a change that
    grows the resident program or the data segment is visible. **Done.**
 3. **Behaviour regression in goldbox-player.**
@@ -114,8 +115,10 @@ cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's gol
   five times. One view in `Types`; merge the duplicate zone pointer types. Save layout unchanged.
   **Done**: `videoMode`, `treasureMoney`, `dsIconAnimation`, the wall-set cache, `animData` (one `TAnimRec`),
   `effectFns`, the zones (Session and nine zone types gone; C_Gbvm names for the raw offsets) and four flags are
-  declared with their types in `GDVars`. Left: `spellFps` (two procedure types), View3D's two views of `wallGfx`,
-  Money's of the random-item templates.
+  declared with their types in `GDVars`. Then the last three: `spellFps` became `castTargetMenu` (a `TCastUI`) and
+  `spellFns` (`TSpellProc`s), `wallGfx` a `PWallSlices` (one view, by wall type), and Money reads
+  `randomItemTemplates` by template and field (which found POR-0165: a javelin made from the wrong template); Magic's
+  flat view of `soundIds` went too, for named indexes in `C_Sound`.
 - **The interpreter**: the opcode dispatcher in its own unit; `EclMenu` split into variable access, game memory and
   menus; `Magic` and `EffHndlr` grouped by family.
   **Done in part**: `EclVars` holds the variables and game memory; `EclMenu` keeps the menus and opcode helpers.
@@ -130,6 +133,18 @@ cleared and rebuilt on load (`CharHlp.LinkEquipped`). The regression suite's gol
 
 `tempCr1/2`, `castScroll` and `usingItem` become parameters first; `curChar` and `dsTargetCreaturePtr` later, a family
 of routines at a time. Watch the stack (16 KB, silent overflow) and the fixed `TEffectHandler` signature.
+
+**Done, as far as it pays.** Became parameters or private state: `tempCr1` (ViewChar.DisplayChar's character),
+`tempCr2` (ViewChar's private `tradeTarget`), `castScroll` (SpellSelection's and `CastSpellMenu`'s var result),
+`RemoveDiseaseEffects`' target, the money routines' payer or payee (`WhoPays`, `PayBy`, `PayGold`, `GivePlatinum`) and
+the spell-list builders' character (`GenerateSpellList` and the six routines under it).
+
+Kept global, on purpose: the state of the action in progress that the spell and effect handlers read. `curChar` (the
+acting creature), `dsTargetCreaturePtr` (the spell's targets), `dsCurrentSpellBeing` and `usingItem` are read inside
+handlers whose signatures the spellFns and effectFns tables fix, and by helpers the handlers call (GetCasterLevel,
+ResolveSpell, CastOneSide, HasteSlowLogic, the statistics' attribution in InflictDamage and RestoreHitPoints). As
+parameters they would have every handler pass `GDVars.curChar` along, or change 68 spell and 141 effect handler
+signatures, for no less coupling.
 
 ## Working method
 

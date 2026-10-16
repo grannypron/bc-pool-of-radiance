@@ -1,0 +1,47 @@
+# The rebuild writes SSI's file formats: run with SSI's own v1.3 as the golden build,
+#   tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt
+# Add Ardith to an empty party and remove him again (the main menu's Remove writes ARDITH.CHA and CHARLIST.TXT), load
+# saved game A, camp and save it into D (SAVGAMD.DAT and the CHRDATDn .SAV/.ITM/.SPC files), and compare those files.
+# A's party is not on Quick: a loaded party member leaves Quick when "Quick ends with the fight" is on (our default),
+# so a party saved on Quick would differ at the character record's quickfight (271) by design.
+# The two executables want different keys (SSI's save menu is one line, ours a full screen with a description), so
+# the screens are not compared, only the files.
+boot NORAND
+screens off
+# heap pointers SSI writes into its records (the rebuild writes 0): the character record's effectsAddr, itemsAddr,
+# the 13 equipped-item pointers, nextCharAddr and combatAddr; an item's next; an effect's next
+mask *.CHA 127:4 200:4 204:52 260:4 264:4
+mask CHRDAT*.SAV 127:4 200:4 204:52 260:4 264:4
+mask *.ITM every 63 42:4
+mask *.SPC every 9 5:4
+# the party's file names (CHRDATDn, 9 bytes with the length) past their length, and the unused eighth: SSI leaves stack
+# left-overs there, different from one SSI run to the next; the rebuild zeroes them. A's party is six.
+mask SAVGAMD.DAT 12818:32 12859:32 12900:32 12941:32 12982:32 13023:32 13055:41 13096:41
+# the area's script (zone 3, $9900..$B6FF): SSI's build saves the copy the loaded game held, ours the area's script as
+# loaded from the data with DataPat's fixes (#609), so it is the data's content, not the file's format; DataPat's
+# tests and the loadsave scenario cover it
+mask SAVGAMD.DAT 5121:7680
+golden: wait CHOOSE A FUNCTION
+candidate: wait RADIANCE
+checkpoint main-menu
+# Add: Add marks Ardith (the first in the list), Exit; then Remove him
+press a a e
+checkpoint added
+press r
+checkpoint removed
+press l
+golden: press a
+candidate: press a ret
+wait AREA
+press e
+wait CAMP
+press s d
+# ours opens a menu of the slots (Enter picks D), asks for a description (left empty), then Okay
+candidate: press ret
+candidate: wait DESCRIPTION
+candidate: press ret o
+wait QUIT
+checkpoint saved
+press n
+# SSI's own files only: PoR's sidecars (SAVGAMD.INF, SAVGAMD.STS) are left out
+saves files ARDITH.CHA CHARLIST.TXT SAVGAMD.DAT CHRDATD?.SAV CHRDATD?.ITM CHRDATD?.SPC
