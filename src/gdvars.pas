@@ -465,12 +465,6 @@ var
   wallColorSel: Byte;
   { Script-controlled ceiling and floor color; writes request a view redraw. }
   ceilFloorColorSel: Byte;
-  { Read-only script register. }
-  readReg1: Word;
-  { Read-only script register. }
-  readReg2: Word;
-  { Read-only script register. }
-  readReg3: Word;
   { ECL interpreter }
   { Top ECL return-stack node. }
   dsEclStackTopPtr: Types.PEclRet;
@@ -499,15 +493,11 @@ var
   dsCurrentPictureNumber: ShortInt;
   { Script string buffers. }
   gbStrings: array[1..20] of String;
-  { ECL monster, write-register and post-combat state }
+  { ECL monster and post-combat state }
   { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
   dsMonsterFlags: Types.TMonFlags;
   { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
-  { Script write register; the engine does not read it back. }
-  writeReg1: Word;
-  { Script write register; the engine does not read it back. }
-  writeReg2: Word;
   { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }
   dumpCr6C00: Boolean;
   { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }

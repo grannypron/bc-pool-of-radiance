@@ -170,10 +170,11 @@ begin
   TestKit.CheckEqualsL(2, GDVars.ceilFloorColorSel, 'CELL_CEIL_FLOOR_COLOR');
   EclVars.WriteGbvm(C_Gbvm.SOUND_EFFECT, 12);
   TestKit.CheckEqualsL(12, GDVars.sndEffect, 'SOUND_EFFECT');
+  EclVars.WriteGbvm(C_Gbvm.READ_REG1, 99);
   EclVars.WriteGbvm(C_Gbvm.WRITE_REG1, 99);
-  TestKit.CheckEqualsL(99, GDVars.writeReg1, 'WRITE_REG1 keeps its value');
-  GDVars.readReg1 := 0;
-  Same(0, C_Gbvm.READ_REG1, 'READ_REG1 reads 0');
+  Same(0, C_Gbvm.READ_REG1, 'READ_REG1 reads 0, even written');
+  Same(0, C_Gbvm.READ_REG2, 'READ_REG2 reads 0');
+  Same(0, C_Gbvm.READ_REG3, 'READ_REG3 reads 0');
   GDVars.redrawSky := False;
   EclVars.WriteGbvm(C_Gbvm.SKY_CEILING_COLOR, 3);
   TestKit.Check(GDVars.redrawSky, 'a sky colour write redraws the sky');

@@ -312,12 +312,9 @@ begin
       GDVars.zone3^[address] := value;
     4:
       case address of
-        C_Gbvm.READ_REG1: ;
-        C_Gbvm.READ_REG2: ;
-        C_Gbvm.READ_REG3: ;
+        { the script registers keep nothing written to them }
+        C_Gbvm.READ_REG1, C_Gbvm.READ_REG2, C_Gbvm.READ_REG3, C_Gbvm.WRITE_REG1, C_Gbvm.WRITE_REG2: ;
         C_Gbvm.SOUND_EFFECT: GDVars.sndEffect := value;
-        C_Gbvm.WRITE_REG1: GDVars.writeReg1 := value;
-        C_Gbvm.WRITE_REG2: GDVars.writeReg2 := value;
         C_Gbvm.CELL_PARTY_X: begin
           GDVars.movedParty := True;
           GDVars.gMapX := value;
@@ -417,9 +414,8 @@ begin
       ReadGbvm := GDVars.zone3^[address];
     4:
       case address of
-        C_Gbvm.READ_REG3: ReadGbvm := GDVars.readReg3;
-        C_Gbvm.READ_REG1: ReadGbvm := GDVars.readReg1;
-        C_Gbvm.READ_REG2: ReadGbvm := GDVars.readReg2;
+        { the read registers always read 0 }
+        C_Gbvm.READ_REG1, C_Gbvm.READ_REG2, C_Gbvm.READ_REG3: ReadGbvm := 0;
         C_Gbvm.FACING_RAW: ReadGbvm := GDVars.gFacing;
         { handled, but no value is returned }
         C_Gbvm.CELL_35F: ;
