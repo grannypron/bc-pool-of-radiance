@@ -266,21 +266,10 @@ begin
     { disks 1..8 only }
     C_Gbvm.DISK_NUM:
       if (value >= 1) and (value <= 8) then DaxIo.PushState(value);
-    C_Gbvm.WALLSET_LOAD1:
-      if value > $80 then begin
-        value := value and $7F;
-        View3D.LoadWallSet(value, 1);
-      end;
-    C_Gbvm.WALLSET_LOAD2:
-      if value > $80 then begin
-        value := value and $7F;
-        View3D.LoadWallSet(value, 2);
-      end;
-    C_Gbvm.WALLSET_LOAD3:
-      if value > $80 then begin
-        value := value and $7F;
-        View3D.LoadWallSet(value, 3);
-      end;
+    { $80 + id loads wall set id into slot 1, 2 or 3, the cells a word apart }
+    C_Gbvm.WALLSET_LOAD1, C_Gbvm.WALLSET_LOAD2, C_Gbvm.WALLSET_LOAD3:
+      if value > $80 then
+        View3D.LoadWallSet(value and $7F, (address - C_Gbvm.WALLSET_LOAD1) div 2 + 1);
   end;
   { the coins, copper to platinum, every other cell }
   if (address >= C_Gbvm.CHAR_COPPER) and (address <= C_Gbvm.CHAR_PLATINUM) and Odd(address) then
