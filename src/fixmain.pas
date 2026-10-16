@@ -12,10 +12,11 @@ uses Types,
   SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, Temple,
-  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, EclTrace;
+  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace;
 
 {$O EclTrace}
 {$O Vault}
+{$O VaultMnu}
 {$O AreaName}
 {$O SaveMenu}
 {$O HeapErr}

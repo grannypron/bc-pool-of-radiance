@@ -12,7 +12,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, Vault, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp;
 
@@ -866,7 +866,7 @@ begin
     end else if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 2 then begin
       { New Phlan's vault, The Hoarder's Respite: the data patch for #606 stores 2 }
       GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
-      Vault.VaultMenu;
+      VaultMnu.VaultMenu;
     end else if GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = 1 then begin
       GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] := 0;
       Temple.TempleMainMenu;

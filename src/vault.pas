@@ -22,22 +22,25 @@ procedure CommitToSlot(letter: Char);
 { Loading slot letter: copy its vault<x>.dat to the session vault, or forget the session vault when it has none. }
 procedure RestoreFromSlot(letter: Char);
 
-{ The vault's menu, entered from the New Phlan script (C_Gbvm.ENTER_SHOP set to 2, then a COMBAT with no monsters):
-  the merchant's greeting, then View (where Drop deposits), Take (money and items, while there are any), Pool, Share
-  (while there is money) and Exit. Its money and items are the treasure pool, read from the session vault on entry and
-  written back on Exit. }
-procedure VaultMenu;
-
 { True while the vault (GDVars.treasureItems, in the vault) has room for another item. }
 function HasRoom: Boolean;
 
 { Deposit: move item from creature's pack to the end of the vault's items. }
 procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 
+{ Read the session vault into the treasure pool: its money, then its items after any already there. An unreadable or
+  missing file is an empty vault never visited. }
+procedure ReadVault;
+
+{ Write the treasure pool to the session vault, then free its items and empty it. }
+procedure WriteVault;
+
+{ True when the party has been to the vault before (its ledger says so), as ReadVault found it. }
+function WasVisited: Boolean;
+
 implementation
 
-uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveMenu, DaxIo,
-  FileUtil, CharDisp, Party;
+uses Crt, GDVars, Dos, CharHlp, TextRend, SaveMenu, FileUtil;
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -165,8 +168,6 @@ begin
   CharHlp.RemoveItem(creature, item);
 end;
 
-{ Read the session vault into the treasure pool: its money, then its items after any already there. An unreadable or
-  missing file is an empty vault never visited. }
 procedure ReadVault;
 var
   f: file;
@@ -195,7 +196,6 @@ begin
   ioRes := IOResult;
 end;
 
-{ Write the treasure pool to the session vault, then free its items and empty it. }
 procedure WriteVault;
 var
   f: file;
@@ -231,53 +231,9 @@ begin
   CharHlp.ClearTreasure;
 end;
 
-procedure VaultMenu;
-var
-  menu: Types.TStr40;
-  c: Char;
-  ext: Boolean;
-  hasMoney: Boolean;
-  hasItems: Boolean;
-  done: Boolean;
+function WasVisited: Boolean;
 begin
-  GDVars.ifcState := C_Ifc.VAULT;
-  CharDisp.DisplayNoncombatInterface;
-  CharDisp.DisplayParty(GDVars.curChar);
-  Vault.ReadVault;
-  GDVars.treasureMoneyFlag := False;
-  if (visited <> 0) and (Random(20) = 0) then
-    TextRend.ShowMessage(LightGreen, True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
-  else
-    TextRend.ShowMessage(LightGreen, True, 'WELCOME TO THE HOARDER''S RESPITE. LET ME LIGHTEN YOUR LOAD.');
-  done := False;
-  repeat
-    Money.DetermineTreasure(hasMoney, hasItems);
-    menu := 'View';
-    if hasMoney or hasItems then
-      menu := menu + ' Take';
-    menu := menu + ' Pool';
-    if hasMoney then
-      menu := menu + ' Share';
-    menu := menu + ' Exit';
-    c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
-    if ext then begin
-      if (c = C_Keys.HOME) or (c = C_Keys.END_KEY) then
-        Party.SelectPrevNextChar(c);
-    end else
-      case c of
-        'V': ViewChar.ViewCharMenu(ext);
-        'T': if hasMoney or hasItems then begin
-               PostCbt.LootTakeMenu(hasMoney, hasItems);
-               CharDisp.DisplayNoncombatInterface;
-             end;
-        'P': Money.PoolMoney;
-        'S': if hasMoney then
-               Money.ShareMoney;
-        'E', C_Keys.NONE: done := True;
-      end;
-    CharDisp.DisplayParty(GDVars.curChar);
-  until done;
-  Vault.WriteVault;
+  WasVisited := visited <> 0;
 end;
 
 end.
