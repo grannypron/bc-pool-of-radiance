@@ -46,11 +46,6 @@ uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, FxEngine, C_Keys, 
   EclMenu, CharDisp, AbilAdj, MoneyCal;
 
 
-var
-  { 19 * 8 Words, addressed by a one-based word index (template n starts at 8n - 7). }
-  randItemW: array[1..152] of Word absolute GDConsts.randomItemTemplates;
-  randItemB: array[1..152] of Types.TWB absolute GDConsts.randomItemTemplates;
-
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
   against CharHlp.RawWeight, the weight before the bag takes its share. }
 function CarryingCapacity(p: Types.PCharRecord): LongInt;
@@ -424,19 +419,20 @@ end;
 
 { Build a random item of the given kind. Kinds 1..59, 73, 77 and 93 are weapons and armor, named from their type with a
   plus from RandomBonus and given a weight and value by type. 61 and 62 are magic-user and clerical scrolls holding 1d3
-  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick a randomItemTemplates entry by its one-based
-  word index into randItemW/randItemB. Any other kind gets only itemType and the defaults. }
+  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GDConsts.randomItemTemplates, as
+  does a javelin one time in five. Any other kind gets only itemType and the defaults. }
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 var
   r: Byte;
   n: Byte;
   j: Byte;
-  templateWordIndex: Byte;
+  template: Byte;
+  tpl: Types.TRandomItemTemplate;
   spell: Byte;
 begin
   { clear the whole item record }
   FillChar(item^, SizeOf(Types.TItemRec), 0);
-  templateWordIndex := 0;
+  template := 0;
   with item^ do begin
     FillChar(spells, SizeOf(spells), 0);
     next := nil;
@@ -449,12 +445,12 @@ begin
       1..59, 73, 77, 93: begin
           plus := Money.RandomBonus;
           case itemType of
-            { one time in five a Javelin of Lightning (template 14); SSI's index 144 straddled templates 18 and 19,
-              making an item named from neither (POR-0165) }
+            { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18
+              and 19, making an item named from neither (POR-0165) }
             21: begin
                    r := FxEngine.RollDice(1, 5);
                    if r = 5 then
-                     templateWordIndex := 105;
+                     template := 14;
                    nameIds[3] := 21;
                    nameIds[2] := plus + 161;
                  end;
@@ -606,60 +602,62 @@ begin
             value := Word(r) * 300 + value;
           end;
         end;
-      63: templateWordIndex := 73;
-      67: templateWordIndex := 145;
+      63: template := 10;
+      67: template := 19;
       69: begin
              r := FxEngine.RollDice(1, 10);
              case r of
-               1: templateWordIndex := 41;
-               2..6: templateWordIndex := 121;
-               7..10: templateWordIndex := 129;
+               1: template := 6;
+               2..6: template := 16;
+               7..10: template := 17;
              end;
            end;
       78: begin
              { r is 2..4 vs labels 1..3: 49 is never chosen and r = 4 leaves no template }
              r := FxEngine.RollDice(1, 3) + 1;
              case r of
-               1: templateWordIndex := 49;
-               2: templateWordIndex := 65;
-               3: templateWordIndex := 113;
+               1: template := 7;
+               2: template := 9;
+               3: template := 15;
              end;
            end;
-      79: templateWordIndex := 57;
-      84: templateWordIndex := 9;
-      92: templateWordIndex := 97;
+      79: template := 8;
+      84: template := 2;
+      92: template := 13;
       71: begin
              { 11 makes nothing }
              r := FxEngine.RollDice(1, 11);
              case r of
-               1..5: templateWordIndex := 17;
-               6..8: templateWordIndex := 1;
-               9: templateWordIndex := 25;
-               10: templateWordIndex := 81;
+               1..5: template := 3;
+               6..8: template := 1;
+               9: template := 4;
+               10: template := 11;
              end;
            end;
       70: begin
              r := FxEngine.RollDice(1, 10);
              case r of
-               1..7: templateWordIndex := 89;
-               8..10: templateWordIndex := 137;
+               1..7: template := 12;
+               8..10: template := 18;
              end;
            end;
     end;
-    if templateWordIndex <> 0 then begin
-      for j := 0 to 2 do
-        nameIds[j + 1] := randItemB[templateWordIndex + j].lo;
+    if template <> 0 then begin
+      tpl := GDConsts.randomItemTemplates[template];
+      for j := 1 to 3 do
+        nameIds[j] := Lo(tpl.nameIds[j]);
       plus := 1;
       saveBonus := 1;
-      if templateWordIndex = 97 then begin
+      { the Cloak of Displacement is +2 }
+      if template = 13 then begin
         plus := 2;
         saveBonus := 2;
       end;
-      weight := randItemW[templateWordIndex + 3];
+      weight := tpl.weight;
       quantity := 0;
-      value := randItemW[templateWordIndex + 4];
+      value := tpl.value;
       for j := 1 to 3 do
-        spells[j] := randItemB[templateWordIndex + 4 + j].lo;
+        spells[j] := Lo(tpl.properties[j]);
     end;
   end;
 end;

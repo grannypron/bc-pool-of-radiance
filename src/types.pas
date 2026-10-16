@@ -836,10 +836,6 @@ type
     hi: Word;
   end;
   TMoney = array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
-  TWB = record
-    lo: Byte;
-    hi: Byte;
-  end;
 
   { Pathing types. }
   TPathReq = record
