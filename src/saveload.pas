@@ -553,7 +553,7 @@ end;
 procedure AddCharToParty(creature: Types.PCharRecord);
 var
   p: Types.PCharRecord;
-  used: array[0..7] of Byte;
+  used: array[0..Types.MAX_PARTY - 1] of Byte;
 begin
   creature^.orderNumber := 255;
   if GDVars.creatureList = nil then begin
@@ -564,7 +564,7 @@ begin
   FillChar(used, SizeOf(used), 0);
   p := GDVars.creatureList;
   while p <> nil do begin
-    if p^.orderNumber in [0..7] then
+    if p^.orderNumber in [0..Types.MAX_PARTY - 1] then
       used[p^.orderNumber] := 1;
     p := p^.nextCharAddr;
   end;

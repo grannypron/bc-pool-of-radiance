@@ -902,8 +902,7 @@ begin
   clsCount := 0;
   with creature^ do begin
     warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
-    { 7 = High(classLevels) }
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         if con < 3 then

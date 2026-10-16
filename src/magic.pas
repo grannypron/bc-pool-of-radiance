@@ -1600,8 +1600,7 @@ begin
     bestXp := 10000000;
     { no class picked yet }
     bestCls := -1;
-    { 7 = High(classLevels) }
-    for cls := 0 to 7 do begin
+    for cls := C_Level.CLERIC to C_Level.MONK do begin
       lvl := tgt^.classLevels[cls];
       { xp[] runs to level 9 }
       if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0) and

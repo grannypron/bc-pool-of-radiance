@@ -625,14 +625,14 @@ var
   i: ShortInt;
   classes: array[1..4] of Byte;
 begin
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7 then Exit;
+  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
   GetMem(creature, SizeOf(Types.TCharRecord));
   EclMenu.LoadCreatureData(id, creature);
   with creature^ do begin
     randByte := Random(256);
     cnt := 0;
-    { classes holds 4; shipped monsters have at most 4 class levels set }
-    for i := 0 to 6 do
+    { classes holds 4; shipped monsters have at most 4 class levels set, and none a monk's }
+    for i := C_Level.CLERIC to C_Level.THIEF do
       if (classLevels[i] > 0) and (cnt < 4) then begin
         Inc(cnt);
         classes[cnt] := i;

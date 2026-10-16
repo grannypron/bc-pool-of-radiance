@@ -490,7 +490,7 @@ begin
       FxEngine.AddEffect(creature, C_Effect.PROT_EVIL, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         if GDConsts.thac0Tbl[cls, classLevels[cls]] > thac0Base then
           thac0Base := GDConsts.thac0Tbl[cls, classLevels[cls]];
@@ -674,7 +674,7 @@ begin
       { hpTotal sums each class's starting-gold dice (dsStartingGoldClass); gold = sum * 10 div class count }
       hpTotal := 0;
       clsCount := 0;
-      for cls := 0 to 7 do
+      for cls := C_Level.CLERIC to C_Level.MONK do
         if classLevels[cls] > 0 then begin
           case cls of
             C_Level.CLERIC: clericSpells[1] := 1;
@@ -988,7 +988,7 @@ begin
   classMask := 0;
   with GDVars.curChar^ do begin
     xpClamp := 0;
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(classMask, GDConsts.classBit[cls]);
         atCap := False;
@@ -1049,7 +1049,7 @@ begin
     row := 4;
     CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then
         if GDConsts.classBit[cls] and trainable > 0 then begin
           Inc(row);
@@ -1069,7 +1069,7 @@ begin
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
     clsCount := 0;
     oldMage := classLevels[C_Level.MAGE];
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         if GDConsts.classBit[cls] and trainable > 0 then begin
@@ -2056,7 +2056,7 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (p <> GDVars.curChar) do
     p := p^.nextCharAddr;
-  if (p <> nil) and (GDVars.curChar^.orderNumber <= 7) then begin
+  if (p <> nil) and (GDVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
     SaveLoad.LoadCharIconAnim(True);
     if GDVars.gLocType > C_Area.LOC_3D_MAP then
       { the party map icon LoadCharIconAnim freed }
@@ -2088,7 +2088,7 @@ begin
     con := 20;
   with creature^ do begin
     warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
         share := GDConsts.conBonusTbl[con];
         if (stats[C_Abil.CONSTITUTION] > 16) and warrior then
@@ -2115,7 +2115,7 @@ begin
   with creature^ do begin
     clsCount := 0;
     sum := 0;
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(sum, classLevels[cls]);
         Inc(clsCount);
@@ -2150,7 +2150,7 @@ begin
   with creature^ do begin
     clsCount := 0;
     sum := 0;
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         case cls of
@@ -2190,7 +2190,7 @@ var
   dice: Byte;
 begin
   sum := 0;
-  for cls := 0 to 7 do
+  for cls := C_Level.CLERIC to C_Level.MONK do
     if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
       dice := GDConsts.hpDice[cls];
       if creature^.classLevels[cls] > 1 then

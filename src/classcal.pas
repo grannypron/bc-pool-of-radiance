@@ -35,8 +35,7 @@ var
   m: Byte;
 begin
   creature^.thac0Base := 0;
-  { 7 = High(classLevels) }
-  for i := 0 to 7 do begin
+  for i := C_Level.CLERIC to C_Level.MONK do begin
     lvl := creature^.classLevels[i];
     slotLvl := lvl;
     if slotLvl > 6 then
@@ -108,8 +107,7 @@ begin
   { 4 = High(saves) }
   for i := 0 to 4 do begin
     creature^.saves[i] := 20;
-    { 7 = High(classLevels) }
-    for k := 0 to 7 do
+    for k := C_Level.CLERIC to C_Level.MONK do
       if creature^.classLevels[k] > 0 then begin
         lvl := creature^.classLevels[k];
         if lvl > 9 then

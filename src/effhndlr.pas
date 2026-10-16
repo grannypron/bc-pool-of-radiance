@@ -242,7 +242,8 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj;
+  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_Level;
 
 const
 
@@ -1366,8 +1367,7 @@ var
   begin
     xpMin := 0;
     bestLvl := 0;
-    { 7 = High(classLevels) }
-    for jj := 0 to 7 do begin
+    for jj := C_Level.CLERIC to C_Level.MONK do begin
       lvl := creature^.classLevels[jj];
       { xp[] runs to level 9; a level above it reads level 9's entry }
       if lvl > 9 then
@@ -1400,8 +1400,7 @@ begin
     if creature^.status <> C_Status.GONE then begin
       Inc(creature^.drainedLevels);
       totalLevels := 0;
-      { 7 = High(classLevels) }
-      for j := 0 to 7 do
+      for j := C_Level.CLERIC to C_Level.MONK do
         Inc(totalLevels, creature^.classLevels[j]);
       { a creature with no class levels (kobolds, bandits and other monsters) has no level to lose, and no divisor }
       if totalLevels = 0 then begin
