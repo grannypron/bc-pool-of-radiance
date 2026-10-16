@@ -19,6 +19,13 @@ procedure RecalcThiefSkills(creature: Types.PCharRecord);
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 
+{ The Constitution hit-point adjustment class cls (C_Level) gets per hit die: GDConsts.conBonusTbl's, plus, for the
+  fighter, paladin and ranger classes, 1 at Con 17, 2 at 18, 3 at 19..20, 4 at 21..23 and 5 at 24..25. The warrior
+  bonus goes with the class, so a multi-class character's fighter, paladin or ranger levels get it too: the 1st-edition
+  PHB works the bonus out per class, then divides by the class count (#616). A Constitution outside the table's 3..25
+  uses the nearer end, so Con 0..2 (Raise Dead takes a point each time) keep Con 3's penalty. }
+function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
+
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 
 function DivideAmongClasses(sum: Byte; conB: ShortInt; clsCount: Byte): Byte;
@@ -30,10 +37,8 @@ function HpMaximum(creature: Types.PCharRecord): Byte;
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
 
 { The hit points Constitution con gives creature over all its hit dice, as creation and training bank them (CharGen's
-  ConHpBonus at each level): each class's GDConsts.conBonusTbl share, plus 1 at Con 17 and 1 more at 18 for a
-  single-class fighter, paladin or ranger, once per level (a ranger's level + 1), divided by the class count. A
-  Constitution outside the table's 3..20 uses the nearer end. The difference between two Constitutions is the
-  hit-point change a change of Constitution makes. }
+  ConHpBonus at each level): each class's ConHpPerDie once per level (a ranger's level + 1), divided by the class
+  count. The difference between two Constitutions is the hit-point change a change of Constitution makes. }
 function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 
 const
@@ -222,34 +227,39 @@ begin
     end;
 end;
 
-{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
-  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is a single-class fighter, paladin or ranger. A
-  first-level ranger counts its share twice, once for each of its two hit dice. The table covers Con 3..20; a
-  Constitution outside it (Raise Dead takes a point each time, down to 0) uses the nearer end, so Con 0..2 keep Con 3's
-  penalty. }
+function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
+var
+  share: ShortInt;
+begin
+  if con < 3 then
+    con := 3
+  else if con > 25 then
+    con := 25;
+  share := GDConsts.conBonusTbl[con];
+  if (cls = C_Level.FIGHTER) or (cls = C_Level.PALADIN) or (cls = C_Level.RANGER) then
+    case con of
+      17: Inc(share);
+      18: Inc(share, 2);
+      19, 20: Inc(share, 3);
+      21..23: Inc(share, 4);
+      24, 25: Inc(share, 5);
+    end;
+  ConHpPerDie := share;
+end;
+
+{ ConHpBonus: Sum ConHpPerDie once per class with levels whose classBit shares a bit with mask ($FF = all). A
+  first-level ranger counts its share twice, once for each of its two hit dice. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
-  con: Byte;
   share: ShortInt;
-  warrior: Boolean;
 begin
   bonus := 0;
-  con := creature^.stats[C_Abil.CONSTITUTION];
-  if con < 3 then
-    con := 3
-  else if con > 20 then
-    con := 20;
   with creature^ do begin
-    warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
     for cls := C_Level.CLERIC to C_Level.MONK do
       if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        share := GDConsts.conBonusTbl[con];
-        if (stats[C_Abil.CONSTITUTION] > 16) and warrior then
-          Inc(share);
-        if (stats[C_Abil.CONSTITUTION] > 17) and warrior then
-          Inc(share);
+        share := ClassCal.ConHpPerDie(cls, stats[C_Abil.CONSTITUTION]);
         if (cls = C_Level.RANGER) and (classLevels[cls] = 1) then
           share := share * 2;
         Inc(bonus, share);
@@ -358,31 +368,18 @@ var
   clsCount: Byte;
   cls: ShortInt;
   dice: Byte;
-  share: ShortInt;
-  warrior: Boolean;
 begin
   total := 0;
   clsCount := 0;
   with creature^ do begin
-    warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
     for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
-        if con < 3 then
-          share := GDConsts.conBonusTbl[3]
-        else if con > 20 then
-          share := GDConsts.conBonusTbl[20]
-        else
-          share := GDConsts.conBonusTbl[con];
-        if (con > 16) and warrior then
-          Inc(share);
-        if (con > 17) and warrior then
-          Inc(share);
         dice := classLevels[cls];
         { a ranger's first level has two hit dice }
         if cls = C_Level.RANGER then
           Inc(dice);
-        Inc(total, dice * share);
+        Inc(total, dice * ClassCal.ConHpPerDie(cls, con));
       end;
   end;
   if clsCount > 0 then

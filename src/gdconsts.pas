@@ -1982,8 +1982,8 @@ const
     { magic-user/thief }
     (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
                             C_Align.CN, C_Align.CE, 0, 0)));
-  conBonusTbl: array[3..20] of ShortInt = (
-    -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2);
+  conBonusTbl: array[3..25] of ShortInt = (
+    -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
     at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
   dsExperienceSpellsClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleXp = (

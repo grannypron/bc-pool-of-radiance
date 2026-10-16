@@ -1,7 +1,7 @@
 { Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills. }
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Class, ClassCal, TestKit;
+uses Types, C_Level, C_Race, C_Save, C_Class, GDConsts, ClassCal, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -170,7 +170,16 @@ begin
   TestKit.CheckEqualsL(19, ClassCal.RaceAbilityMax(C_Race.ELF, 0, 3), 'an elf''s most Dexterity');
   TestKit.CheckEqualsL(3, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 2), 'an elf''s least Wisdom');
 
-  { hit points: the Constitution bonus (single classes; #616 is about multi-class warriors) }
+  { hit points: the Constitution bonus per hit die, the warrior bonus by class (#616) }
+  TestKit.CheckEqualsL(2, ClassCal.ConHpPerDie(C_Level.CLERIC, 18), 'a cleric at Constitution 18: +2');
+  TestKit.CheckEqualsL(3, ClassCal.ConHpPerDie(C_Level.FIGHTER, 17), 'a fighter at 17: +3');
+  TestKit.CheckEqualsL(5, ClassCal.ConHpPerDie(C_Level.PALADIN, 19), 'a paladin at 19: +5');
+  TestKit.CheckEqualsL(5, ClassCal.ConHpPerDie(C_Level.RANGER, 20), 'a ranger at 20: +5');
+  TestKit.CheckEqualsL(6, ClassCal.ConHpPerDie(C_Level.FIGHTER, 21), 'a fighter at 21: +6');
+  TestKit.CheckEqualsL(7, ClassCal.ConHpPerDie(C_Level.FIGHTER, 25), 'a fighter at 25: +7');
+  TestKit.CheckEqualsL(7, ClassCal.ConHpPerDie(C_Level.FIGHTER, 30), 'above 25 counts as 25');
+  TestKit.CheckEqualsL(2, ClassCal.ConHpPerDie(C_Level.MAGE, 25), 'a magic-user at 25: +2');
+  TestKit.CheckEqualsL(-2, ClassCal.ConHpPerDie(C_Level.FIGHTER, 0), 'below 3 counts as 3');
   Reset(C_Race.HUMAN);
   c^.charClass := C_Class.FIGHTER;
   c^.classLevels[C_Level.FIGHTER] := 1;
@@ -192,6 +201,13 @@ begin
   TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, $FF), 'a first-level ranger counts its share twice');
   c^.classLevels[C_Level.RANGER] := 2;
   TestKit.CheckEqualsL(2, ClassCal.ConHpBonus(c, $FF), 'once from level 2');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.classLevels[C_Level.CLERIC] := 1;
+  c^.classLevels[C_Level.FIGHTER] := 1;
+  c^.conCur := 18;
+  TestKit.CheckEqualsL(6, ClassCal.ConHpBonus(c, $FF), 'a cleric/fighter at 18: +2 for the cleric, +4 for the fighter');
+  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, GDConsts.classBit[C_Level.FIGHTER]), 'the fighter''s share alone');
 
   TestKit.CheckEqualsL(6, ClassCal.DivideAmongClasses(10, 2, 2), '(10 + 2) div 2');
   TestKit.CheckEqualsL(4, ClassCal.DivideAmongClasses(10, -2, 2), '(10 - 2) div 2');
@@ -227,6 +243,16 @@ begin
   c^.charClass := C_Class.RANGER;
   c^.classLevels[C_Level.RANGER] := 2;
   TestKit.CheckEqualsL(3, ClassCal.ConHpTotal(c, 15), 'a level 2 ranger at Constitution 15: 1 on each of 3 dice');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.classLevels[C_Level.CLERIC] := 2;
+  c^.classLevels[C_Level.FIGHTER] := 2;
+  TestKit.CheckEqualsL(5, ClassCal.ConHpTotal(c, 17), 'a cleric/fighter 2/2 at 17: (2 * 2 + 2 * 3) div 2');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.FIGHTER;
+  c^.classLevels[C_Level.FIGHTER] := 2;
+  TestKit.CheckEqualsL(2, ClassCal.ConHpTotal(c, 19) - ClassCal.ConHpTotal(c, 18),
+                       'Con 18 to 19 gives a fighter 1 a level');
 
   { first-level hit points: the class's dice, at least two thirds of one at level 1 }
   RandSeed := 1;
