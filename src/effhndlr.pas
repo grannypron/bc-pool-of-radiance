@@ -242,7 +242,7 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Class, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_Race, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice;
 
 const
@@ -365,7 +365,7 @@ begin
 end;
 
 { Manual of Bodily Health training done (eff 7): +1 Constitution and the matching hit-point change, the Con table's
-  bonus at the new Constitution less the bonus at the old over every hit die (CharHlp.ConHpTotal), with hpMax capped at
+  bonus at the new Constitution less the bonus at the old over every hit die (ClassCal.ConHpTotal), with hpMax capped at
   255; at Constitution 20 or more, add eff 62 (regeneration) for 60 minutes instead. }
 
 procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -378,7 +378,7 @@ begin
     FxEngine.AddEffect(creature, C_Effect.CON_REGEN, 60, 255, True);
     Exit;
   end;
-  hpGain := CharHlp.ConHpTotal(creature, creature^.conCur) - CharHlp.ConHpTotal(creature, creature^.conCur - 1);
+  hpGain := ClassCal.ConHpTotal(creature, creature^.conCur) - ClassCal.ConHpTotal(creature, creature^.conCur - 1);
   if hpGain > 255 - creature^.hpMax then
     hpGain := 255 - creature^.hpMax;
   if hpGain > 0 then begin

@@ -36,13 +36,9 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt; forward;
 
-function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 
-function HpMaximum(creature: Types.PCharRecord): Byte; forward;
 
-function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forward;
 
 { MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
   settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin
@@ -690,9 +686,9 @@ begin
       coins[C_Money.GOLD] := hpTotal * 10 div clsCount;
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
         too little) }
-      hpRolled := CharGen.RollFirstLevelHp(creature, $FF);
+      hpRolled := ClassCal.RollFirstLevelHp(creature, $FF);
       hpMax := hpRolled;
-      conB := CharGen.ConHpBonus(creature, $FF);
+      conB := ClassCal.ConHpBonus(creature, $FF);
       if conB < 0 then begin
         if hpMax > Abs(conB) + clsCount then
           hpMax := (hpMax + conB) div clsCount
@@ -855,8 +851,8 @@ begin
                    end;
                 C_Abil.CONSTITUTION: begin
                      RaiseToMinimum(hold);
-                     if CharGen.HpMaximum(GDVars.curChar) < hpMax then
-                       hpMax := CharGen.HpMaximum(GDVars.curChar);
+                     if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
+                       hpMax := ClassCal.HpMaximum(GDVars.curChar);
                      hpCur := hpMax;
                      statIdx := 6;
                      RedrawStat(False);
@@ -870,8 +866,8 @@ begin
             { HP row }
             begin
               Dec(hpMax);
-              if CharGen.HpMinimum(GDVars.curChar) > hpMax then
-                hpMax := CharGen.HpMinimum(GDVars.curChar);
+              if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
+                hpMax := ClassCal.HpMinimum(GDVars.curChar);
               hpCur := hpMax;
             end;
           { Right = increase }
@@ -895,8 +891,8 @@ begin
                    end;
                 C_Abil.CONSTITUTION: begin
                      LowerToMaximum(hold);
-                     if CharGen.HpMinimum(GDVars.curChar) > hpMax then
-                       hpMax := CharGen.HpMinimum(GDVars.curChar);
+                     if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
+                       hpMax := ClassCal.HpMinimum(GDVars.curChar);
                      hpCur := hpMax;
                      statIdx := 6;
                      RedrawStat(False);
@@ -910,8 +906,8 @@ begin
             { HP row }
             begin
               Inc(hpMax);
-              if CharGen.HpMaximum(GDVars.curChar) < hpMax then
-                hpMax := CharGen.HpMaximum(GDVars.curChar);
+              if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
+                hpMax := ClassCal.HpMaximum(GDVars.curChar);
               hpCur := hpMax;
             end;
         end else
@@ -1079,12 +1075,12 @@ begin
       if sel > 0 then
         spellsKnown[sel] := 1;
     end;
-    rolled := CharGen.RollFirstLevelHp(GDVars.curChar, trainable);
+    rolled := ClassCal.RollFirstLevelHp(GDVars.curChar, trainable);
     gain := rolled div clsCount;
     if gain = 0 then
       gain := 1;
     Inc(hpRolled, gain);
-    conB := CharGen.ConHpBonus(GDVars.curChar, trainable);
+    conB := ClassCal.ConHpBonus(GDVars.curChar, trainable);
     gain := (rolled + conB) div clsCount;
     if gain < 1 then
       gain := 1;
@@ -2054,138 +2050,6 @@ begin
   TextRend.ClearBottomLine;
   CbtMap.SetNoncombatPalette;
   GDVars.horizChoice := savedChoice;
-end;
-
-{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
-  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is a single-class fighter, paladin or ranger. A
-  first-level ranger counts its share twice, once for each of its two hit dice. The table covers Con 3..20; a
-  Constitution outside it (Raise Dead takes a point each time, down to 0) uses the nearer end, so Con 0..2 keep Con 3's
-  penalty. }
-function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
-var
-  bonus: ShortInt;
-  cls: ShortInt;
-  con: Byte;
-  share: ShortInt;
-  warrior: Boolean;
-begin
-  bonus := 0;
-  con := creature^.stats[C_Abil.CONSTITUTION];
-  if con < 3 then
-    con := 3
-  else if con > 20 then
-    con := 20;
-  with creature^ do begin
-    warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
-    for cls := C_Level.CLERIC to C_Level.MONK do
-      if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        share := GDConsts.conBonusTbl[con];
-        if (stats[C_Abil.CONSTITUTION] > 16) and warrior then
-          Inc(share);
-        if (stats[C_Abil.CONSTITUTION] > 17) and warrior then
-          Inc(share);
-        if (cls = C_Level.RANGER) and (classLevels[cls] = 1) then
-          share := share * 2;
-        Inc(bonus, share);
-      end;
-  end;
-  ConHpBonus := bonus;
-end;
-
-{ (sum + conB) div clsCount, the hit points a multi-class character's classes share; 1 when a negative conB would
-  leave sum no more than |conB| + clsCount. }
-function DivideAmongClasses(sum: Byte; conB: ShortInt; clsCount: Byte): Byte;
-begin
-  if conB < 0 then begin
-    if sum > Abs(conB) + clsCount then
-      DivideAmongClasses := (sum + conB) div clsCount
-    else
-      DivideAmongClasses := 1;
-  end else
-    DivideAmongClasses := (sum + conB) div clsCount;
-end;
-
-{ HpMinimum: Lowest legal hpMax: one point per level in each class (plus 1 for a ranger or monk), plus the Con bonus,
-  divided by the class count; 1 if a negative bonus would leave too little }
-function HpMinimum(creature: Types.PCharRecord): Byte;
-var
-  clsCount: Byte;
-  sum: Byte;
-  cls: ShortInt;
-begin
-  with creature^ do begin
-    clsCount := 0;
-    sum := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
-      if classLevels[cls] > 0 then begin
-        Inc(sum, classLevels[cls]);
-        Inc(clsCount);
-        case cls of
-          C_Level.RANGER: Inc(sum);
-          C_Level.MONK: Inc(sum);
-        end;
-      end;
-  end;
-  HpMinimum := CharGen.DivideAmongClasses(sum, CharGen.ConHpBonus(creature, $FF), clsCount);
-end;
-
-{ HpMaximum: Highest legal hpMax: the top of each class's hit dice -- cleric and druid d8 per level, fighter and paladin
-  d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1 -- plus the Con bonus, divided by the class
-  count. The Con bonus comes from curChar, not from the creature parameter, so calling it for anyone but the current
-  character mixes two creatures. }
-function HpMaximum(creature: Types.PCharRecord): Byte;
-var
-  clsCount: Byte;
-  sum: Byte;
-  cls: ShortInt;
-begin
-  with creature^ do begin
-    clsCount := 0;
-    sum := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
-      if classLevels[cls] > 0 then begin
-        Inc(clsCount);
-        case cls of
-          C_Level.CLERIC: Inc(sum, classLevels[cls] * 8);
-          C_Level.DRUID: Inc(sum, classLevels[cls] * 8);
-          C_Level.FIGHTER: Inc(sum, classLevels[cls] * 10);
-          C_Level.PALADIN: Inc(sum, classLevels[cls] * 10);
-          C_Level.RANGER: Inc(sum, (classLevels[cls] + 1) * 8);
-          C_Level.MAGE: Inc(sum, classLevels[cls] * 4);
-          C_Level.THIEF: Inc(sum, classLevels[cls] * 6);
-          C_Level.MONK: Inc(sum, (classLevels[cls] + 1) * 4);
-        end;
-      end;
-  end;
-  { Con bonus of curChar, not creature }
-  HpMaximum := CharGen.DivideAmongClasses(sum, CharGen.ConHpBonus(GDVars.curChar, $FF), clsCount);
-end;
-
-{ RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
-  hpDice d hpSides at level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as
-  the others do. A class at level 1 gets at least hpSides * 2 div 3, two thirds of one die even for the ranger and
-  monk. }
-function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
-
-var
-  roll: Byte;
-  sum: Byte;
-  cls: ShortInt;
-  dieCount: Byte;
-begin
-  sum := 0;
-  for cls := C_Level.CLERIC to C_Level.MONK do
-    if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-      dieCount := GDConsts.hpDice[cls];
-      if creature^.classLevels[cls] > 1 then
-        dieCount := 1;
-      roll := Dice.RollDice(dieCount, GDConsts.hpSides[cls]);
-      if creature^.classLevels[cls] = 1 then
-        if roll < GDConsts.hpSides[cls] * 2 div 3 then
-          roll := GDConsts.hpSides[cls] * 2 div 3;
-      Inc(sum, roll);
-    end;
-  RollFirstLevelHp := sum;
 end;
 
 end.

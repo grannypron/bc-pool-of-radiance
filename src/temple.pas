@@ -12,8 +12,8 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice;
+uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, 
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
@@ -117,7 +117,7 @@ end;
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). Remove
   animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
   one unless it is 0. hpMax loses the hit points that point was worth, the Con table's bonus at the old Constitution
-  less the bonus at the new over every hit die (CharHlp.ConHpTotal), keeping at least 1. }
+  less the bonus at the new over every hit die (ClassCal.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -149,7 +149,8 @@ begin
         Stats.Count(creature, Stats.RAISED, 1);
         if creature^.conCur > 0 then begin
           Dec(creature^.conCur);
-          hpLoss := CharHlp.ConHpTotal(creature, creature^.conCur + 1) - CharHlp.ConHpTotal(creature, creature^.conCur);
+          hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) -
+                    ClassCal.ConHpTotal(creature, creature^.conCur);
           if hpLoss >= creature^.hpMax then
             hpLoss := creature^.hpMax - 1;
           if hpLoss > 0 then
