@@ -19,18 +19,16 @@ procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 implementation
 
 
-uses Crt, GDConsts, GDVars, Blit, GameIo;
+uses Crt, GDConsts, GDVars, Blit, GameIo, StrUtil;
 procedure Load8x8Set(fileID, setID: Byte);
 var
   s1: String[1];
-  s2: String[3];
 begin
   if setID in [0..4] then begin
     Str(GDVars.virtualDisk, s1);
-    Str(fileID, s2);
     Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GDVars.dsSymbolSetPtrs[setID]);
     if GDVars.dsSymbolSetPtrs[setID] = nil then begin
-      GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + s2);
+      GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
     end;
   end;
 end;

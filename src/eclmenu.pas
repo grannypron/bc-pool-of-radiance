@@ -80,7 +80,7 @@ implementation
 
 uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_Race, C_Level, GDConsts;
+  C_Race, C_Level, GDConsts, StrUtil;
 
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
@@ -515,17 +515,15 @@ end;
 procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 var
   msg: String;
-  dmgStr: String[3];
   pause: Boolean;
 begin
   { a dead, stoned or gone character takes no damage, as in CharHlp.InflictDamage }
   if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   pause := False;
-  Str(dmg, dmgStr);
   if creature^.hpCur + 10 < dmg then
     msg := '  ' + creature^.name + ' dies. '
   else
-    msg := '  ' + creature^.name + ' is hit FOR ' + dmgStr + ' points of Damage.';
+    msg := '  ' + creature^.name + ' is hit FOR ' + StrUtil.NumStr(dmg) + ' points of Damage.';
   if GDVars.curRow > C_Msg.TEXT_BOTTOM then begin
     GDVars.curRow := C_Msg.MESSAGE_TOP;
     pause := True;
