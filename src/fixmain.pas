@@ -9,7 +9,7 @@ uses Types,
   SoundDrv, GameIo, DaxIo, TextRend, Blit, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,
-  SaveLoad, CharGen, Camp,
+  UsualSpl, SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, Temple,
   EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace;
@@ -45,6 +45,7 @@ uses Types,
 {$O Journal1}
 {$O Camp}
 {$O CharGen}
+{$O UsualSpl}
 {$O SaveLoad}
 {$O Ending}
 {$O ViewChar}

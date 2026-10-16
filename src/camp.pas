@@ -18,7 +18,7 @@ implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
   FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice;
+  CharDisp, Party, Dice, UsualSpl;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -321,7 +321,7 @@ begin
       end;
 end;
 
-{ Remember the current character's memorized and pending spells as its usual spells (SaveLoad.SetUsualSpells). }
+{ Remember the current character's memorized and pending spells as its usual spells (UsualSpl.SetUsualSpells). }
 procedure RememberUsualSpells;
 var
   spells: Types.TSpellSlots;
@@ -329,7 +329,7 @@ var
 begin
   for i := 0 to SizeOf(spells) - 1 do
     spells[i] := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
-  SaveLoad.SetUsualSpells(GDVars.curChar, spells);
+  UsualSpl.SetUsualSpells(GDVars.curChar, spells);
 end;
 
 { True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it bounds the
@@ -353,7 +353,7 @@ var
   found: Boolean;
   placed: Boolean;
 begin
-  if SaveLoad.GetUsualSpells(GDVars.curChar, usual) then begin
+  if UsualSpl.GetUsualSpells(GDVars.curChar, usual) then begin
     for i := 0 to SizeOf(have) - 1 do
       have[i] := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
     for i := 0 to SizeOf(usual) - 1 do begin

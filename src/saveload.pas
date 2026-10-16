@@ -78,16 +78,6 @@ procedure AddCharToParty(creature: Types.PCharRecord);
   restore the previous virtual disk, SaveGame and exit to DOS (GameIo.ExitGame). }
 procedure CheckFileElseQuit(name: Types.TPathStr);
 
-{ The character's usual spells: the spell IDs in its memorized and pending slots when it last confirmed memorizing,
-  pending flags stripped. Return False when none are remembered for it. }
-function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
-
-{ Remember spells as the character's usual spells. }
-procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
-
-{ Forget the character's usual spells; called before its record is freed or reused. }
-procedure ForgetUsualSpells(creature: Types.PCharRecord);
-
 procedure FreeCreature(creature: Types.PCharRecord);
 
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
@@ -96,36 +86,12 @@ implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil;
+  FileUtil, Party, StrUtil, UsualSpl;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
-
-const
-  { the number of characters whose usual spells are kept at once: the party's size }
-  USUAL_ENTRIES = Types.MAX_PARTY;
-  { MEM_SIG and MEM_VERSION open every .mem file; a file without both is not read }
-  MEM_SIG = 'USPL';
-  MEM_VERSION = 1;
-
-type
-  { A .mem file: the usual spells, with the name and randByte of the character they belong to. }
-  TUsualSpellsFile = record
-    sig: string[4];
-    version: Byte;
-    name: string[Types.NAME_LEN];
-    randByte: Byte;
-    spells: Types.TSpellSlots;
-  end;
-
-var
-  { Usual spells (GetUsualSpells), one entry per character, kept with the record and the name it belongs to; a nil
-    owner marks a free entry. }
-  usualOwner: array[1..USUAL_ENTRIES] of Types.PCharRecord;
-  usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
-  usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
 
 { Create file name (record size 1) for writing, asking for the save disk until it can be. }
 procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
@@ -155,93 +121,6 @@ begin
   FileUtil.DeleteFile(fn + '.spc');
   FileUtil.DeleteFile(fn + '.mem');
   FileUtil.DeleteFile(fn + '.sts');
-end;
-
-{ The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
-function FindUsualEntry(creature: Types.PCharRecord): Byte;
-var
-  i: Byte;
-begin
-  FindUsualEntry := 0;
-  if creature <> nil then
-    for i := 1 to USUAL_ENTRIES do
-      if (usualOwner[i] = creature) and (usualName[i] = creature^.name) then
-        FindUsualEntry := i;
-end;
-
-function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
-var
-  i: Byte;
-begin
-  i := SaveLoad.FindUsualEntry(creature);
-  if i > 0 then
-    spells := usualSpells[i];
-  GetUsualSpells := i > 0;
-end;
-
-procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
-var
-  i: Byte;
-  j: Byte;
-begin
-  if creature = nil then Exit;
-  { a free entry, else one whose owner has left the party, else the first }
-  SaveLoad.ForgetUsualSpells(creature);
-  i := 0;
-  for j := USUAL_ENTRIES downto 1 do
-    if usualOwner[j] = nil then
-      i := j;
-  if i = 0 then
-    for j := USUAL_ENTRIES downto 1 do
-      if not Party.IsPartyMember(usualOwner[j]) then
-        i := j;
-  if i = 0 then
-    i := 1;
-  usualOwner[i] := creature;
-  usualName[i] := creature^.name;
-  usualSpells[i] := spells;
-end;
-
-procedure ForgetUsualSpells(creature: Types.PCharRecord);
-var
-  i: Byte;
-begin
-  for i := 1 to USUAL_ENTRIES do
-    if usualOwner[i] = creature then
-      usualOwner[i] := nil;
-end;
-
-{ Write the character's usual spells to <fn>.mem, erasing any old file first; nothing is written when it has none. A
-  failed write leaves a short file, which ReadUsualSpells ignores. }
-procedure WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
-var
-  rec: TUsualSpellsFile;
-  written: Boolean;
-begin
-  FileUtil.DeleteFile(fn + '.mem');
-  FillChar(rec, SizeOf(rec), 0);
-  if SaveLoad.GetUsualSpells(creature, rec.spells) then begin
-    rec.sig := MEM_SIG;
-    rec.version := MEM_VERSION;
-    rec.name := creature^.name;
-    rec.randByte := creature^.randByte;
-    { a failed write leaves a short file, which ReadUsualSpells ignores }
-    written := FileUtil.WriteRecord(fn + '.mem', rec, SizeOf(rec));
-  end;
-end;
-
-{ Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
-  TUsualSpellsFile with this format's signature and version, made for a character of this name and randByte. }
-procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
-var
-  rec: TUsualSpellsFile;
-begin
-  SaveLoad.ForgetUsualSpells(creature);
-  { read-only, so a write-protected .mem is read too }
-  if FileUtil.ReadRecord(fn + '.mem', rec, SizeOf(rec)) then
-    if (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
-        (rec.name = creature^.name) and (rec.randByte = creature^.randByte) then
-      SaveLoad.SetUsualSpells(creature, rec.spells);
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -447,7 +326,7 @@ begin
   end;
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.');
-  SaveLoad.WriteUsualSpells(creature, fn);
+  UsualSpl.WriteUsualSpells(creature, fn);
   Stats.WriteChar(creature, fn);
 end;
 
@@ -530,7 +409,7 @@ begin
   end;
   { the slots pointed into the heap of the game that saved them }
   CharHlp.LinkEquipped(creature);
-  SaveLoad.ReadUsualSpells(creature, name);
+  UsualSpl.ReadUsualSpells(creature, name);
   Stats.ReadChar(creature, name);
 end;
 
@@ -844,7 +723,7 @@ begin
       FreeMem(holdE, SizeOf(Types.TEffectRec));
     end;
   end;
-  SaveLoad.ForgetUsualSpells(creature);
+  UsualSpl.ForgetUsualSpells(creature);
   Stats.Forget(creature);
   FreeMem(creature, SizeOf(Types.TCharRecord));
   creature := nil;
@@ -883,6 +762,4 @@ begin
   end;
 end;
 
-begin
-  FillChar(usualOwner, SizeOf(usualOwner), 0);
 end.
