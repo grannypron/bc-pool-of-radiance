@@ -7,10 +7,6 @@ interface
 
 uses Types;
 
-{ Map an icon tile to its cell offset from the upper-left corner. Return False for an inactive icon or an unused tile
-  with a negative X offset. }
-function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
-
 { On EGA, swap palette registers 0 and 8 so the combat map background is dark gray and register 8 black. }
 procedure SetCombatPalette;
 
@@ -153,7 +149,7 @@ begin
   InAimFootprint := False;
   if aimSet then
     for i := 0 to 3 do
-      if CbtMap.GetIconTileDelta(aimSize, i, tdx, tdy) then
+      if Pathing.GetIconTileDelta(aimSize, i, tdx, tdy) then
         if (aimX + tdx = x) and (aimY + tdy = y) then
           InAimFootprint := True;
 end;
@@ -359,17 +355,6 @@ begin
   end;
 end;
 
-function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
-begin
-  GetIconTileDelta := False;
-  { iconDelta's rows are sizes 1..4 }
-  if (size = 0) or (size > 4) then Exit;
-  dx := GDConsts.iconDelta[size, idx].dx;
-  dy := GDConsts.iconDelta[size, idx].dy;
-  if dx >= 0 then
-    GetIconTileDelta := True;
-end;
-
 { Recompute every creature's view coordinates from its arena location and the view origin. }
 procedure CalcGridDeltas;
 var
@@ -421,7 +406,7 @@ begin
   relX := x - GDVars.arenaPtr^.ox;
   relY := y - GDVars.arenaPtr^.oy;
   for i := 0 to 3 do begin
-    if CbtMap.GetIconTileDelta(GDVars.arenaPtr^.cursorSize, i, tdx, tdy) then
+    if Pathing.GetIconTileDelta(GDVars.arenaPtr^.cursorSize, i, tdx, tdy) then
       if CbtMap.ViewCoordsValid(relX + tdx, relY + tdy) then begin
         MapTiles.Copy2DTile((relX + tdx) * 3, (relY + tdy) * 3,
                             GDConsts.terrainInfo[GDVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId, 0);
@@ -466,7 +451,7 @@ begin
   for i := 1 to GDVars.arenaCount do begin
     if GDVars.arenaLoc[i].size > 0 then begin
       for j := 0 to 3 do
-        if CbtMap.GetIconTileDelta(GDVars.arenaLoc[i].size, j, tdx, tdy) then
+        if Pathing.GetIconTileDelta(GDVars.arenaLoc[i].size, j, tdx, tdy) then
           GDVars.crIdxArr[GDVars.arenaLoc[i].y + tdy, GDVars.arenaLoc[i].x + tdx] := i;
       GDVars.gridX[i] := GDVars.arenaLoc[i].x - GDVars.arenaPtr^.ox;
       GDVars.gridY[i] := GDVars.arenaLoc[i].y - GDVars.arenaPtr^.oy;
@@ -507,7 +492,7 @@ begin
     absY := y + GDVars.arenaPtr^.oy;
     size := GDVars.arenaLoc[crIdx].size;
     for i := 0 to 3 do
-      if CbtMap.GetIconTileDelta(size, i, tdx, tdy) then
+      if Pathing.GetIconTileDelta(size, i, tdx, tdy) then
         if CbtMap.ViewCoordsValid(x + tdx, y + tdy) then
           MapTiles.Copy2DTile((x + tdx) * 3, (y + tdy) * 3,
                               GDConsts.terrainInfo[GDVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId, 0);
@@ -537,7 +522,7 @@ begin
     CombatIconVisible := False
   else
     for i := 0 to 3 do begin
-      if CbtMap.GetIconTileDelta(GDVars.arenaLoc[slot].size, i, tdx, tdy) then
+      if Pathing.GetIconTileDelta(GDVars.arenaLoc[slot].size, i, tdx, tdy) then
         if not CbtMap.ViewCoordsValid(GDVars.gridX[slot] + tdx, GDVars.gridY[slot] + tdy) then begin
           CombatIconVisible := False;
           if whole <> 0 then Exit;
@@ -732,7 +717,7 @@ begin
   x := GDVars.arenaLoc[slot].x;
   y := GDVars.arenaLoc[slot].y;
   for i := 0 to 3 do begin
-    if CbtMap.GetIconTileDelta(GDVars.arenaLoc[slot].size, i, tdx, tdy) then begin
+    if Pathing.GetIconTileDelta(GDVars.arenaLoc[slot].size, i, tdx, tdy) then begin
       nx := x + tdx + GDConsts.dirDX[dir];
       ny := y + tdy + GDConsts.dirDY[dir];
       CbtMap.GetArenaContents(nx, ny, c, t);
@@ -810,7 +795,7 @@ begin
       CbtMap.ScrollView(cellX, cellY, 3, C_Dir.CENTER);
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     for k := 0 to 3 do
-      if CbtMap.GetIconTileDelta(GDVars.arenaLoc[slot].size, k, tdx, tdy) then
+      if Pathing.GetIconTileDelta(GDVars.arenaLoc[slot].size, k, tdx, tdy) then
         Blit.BlitTileClipped((GDVars.gridX[slot] + tdx) * 3, (GDVars.gridY[slot] + tdy) * 3, 0, 5,
                              GDVars.dsIconAnimation[24, 0],
                              GDVars.dsViewImageBufferPtr);
