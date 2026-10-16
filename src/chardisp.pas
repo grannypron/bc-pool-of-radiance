@@ -165,6 +165,22 @@ begin
   Border.ClearBox(0, 24, 39, 24);
 end;
 
+{ Ready the bottom message window outside combat and return its top row: row MESSAGE_TOP + 1 when
+  dsSuppressDrawingBorderFlag is set, else MESSAGE_TOP with the border drawn round it; the window is cleared. }
+function OpenMessageWindow: Byte;
+var
+  top: Byte;
+begin
+  if GDVars.dsSuppressDrawingBorderFlag <> 0 then
+    top := C_Msg.MESSAGE_TOP + 1
+  else begin
+    top := C_Msg.MESSAGE_TOP;
+    Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  end;
+  Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  OpenMessageWindow := top;
+end;
+
 { Show "<name> <text>" in the message window: in combat, the combat window from column 23 at row; otherwise the
   full-width bottom window (bordered unless dsSuppressDrawingBorderFlag is set), the name on its first line and the text
   word-wrapped below. With pause, wait for a key and clear the window. }
@@ -173,17 +189,12 @@ var
   top: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(23, row, 38, 21);
-    CharDisp.DisplayCreatureName(creature, 23, row, False);
-    TextRend.DisplayMessageWindow(23, row + 1, 38, 21, LightGreen, True, s);
+    Border.ClearBox(C_Msg.COMBAT_LEFT, row, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
+    CharDisp.DisplayCreatureName(creature, C_Msg.COMBAT_LEFT, row, False);
+    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, row + 1, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM, LightGreen, True,
+                                  s);
   end else begin
-    if GDVars.dsSuppressDrawingBorderFlag <> 0 then
-      top := 18
-    else begin
-      top := C_Msg.MESSAGE_TOP;
-      Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-    end;
-    Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    top := CharDisp.OpenMessageWindow;
     CharDisp.DisplayCreatureName(creature, 1, top + 1, False);
     TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1 + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True,
                                   s);
@@ -202,16 +213,11 @@ var
   top: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(23, 10, 38, 21);
-    TextRend.DisplayMessageWindow(23, 10, 38, 21, LightGreen, True, s);
+    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
+    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM,
+                                  LightGreen, True, s);
   end else begin
-    if GDVars.dsSuppressDrawingBorderFlag <> 0 then
-      top := 18
-    else begin
-      top := C_Msg.MESSAGE_TOP;
-      Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-    end;
-    Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    top := CharDisp.OpenMessageWindow;
     TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True, s);
   end;
   TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
@@ -222,9 +228,9 @@ end;
 procedure ClearMessageWindow;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then
-    Border.ClearBox(23, 10, 38, 21)
+    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM)
   else
-    Border.ClearBox(C_Msg.TEXT_LEFT, 18, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
 end;
 
 { Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to
