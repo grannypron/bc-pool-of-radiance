@@ -63,6 +63,10 @@ function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol,
 function YesNoMenu(query: Types.TStr40; qCol, mCol, hlCol: Byte): Char;
 
 { Build a list of n empty members; the head is allocated even when n < 1. }
+{ Add a menu line (a TMenuNode: name, inUse = title, next) after tail, or as head when the list is empty, and make it
+  the new tail. }
+procedure AppendMenuLine(var head, tail: Types.PItemRec; name: Types.TStr40; title: Boolean);
+
 procedure AllocStringList(n: Integer; var list: Types.PItemRec);
 
 { Free every member. The caller's list pointer is left dangling, not set to nil. }
@@ -640,6 +644,21 @@ begin
     p^.inUse := 0;
     p^.name := '';
   end;
+end;
+
+procedure AppendMenuLine(var head, tail: Types.PItemRec; name: Types.TStr40; title: Boolean);
+var
+  n: Types.PItemRec;
+begin
+  GetMem(n, SizeOf(Types.TMenuNode));
+  n^.next := nil;
+  n^.name := name;
+  n^.inUse := Ord(title);
+  if head = nil then
+    head := n
+  else
+    tail^.next := n;
+  tail := n;
 end;
 
 procedure FreeStringList(var list: Types.PItemRec);

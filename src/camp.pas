@@ -556,16 +556,6 @@ var
   idx: Integer;
   c: Char;
 
-  { Append a TMenuNode-sized node after cur and advance cur to it; title sets inUse }
-  procedure AddToList(title: Boolean; s: Types.TStr40);
-  begin
-    GetMem(cur^.next, SizeOf(Types.TMenuNode));
-    cur := cur^.next;
-    cur^.next := nil;
-    cur^.name := s;
-    cur^.inUse := Ord(title);
-  end;
-
 begin
   GetMem(head, SizeOf(Types.TMenuNode));
   cur := head;
@@ -575,7 +565,7 @@ begin
   ch := GDVars.creatureList;
   while ch <> nil do begin
     cnt := 0;
-    AddToList(True, ch^.name);
+    MenuCore.AppendMenuLine(head, cur, ch^.name, True);
     effect := ch^.effectsAddr;
     while effect <> nil do begin
       show := True;
@@ -621,13 +611,13 @@ begin
       end;
       if show then begin
         Inc(cnt);
-        AddToList(False, ' ' + s);
+        MenuCore.AppendMenuLine(head, cur, ' ' + s, False);
       end;
       effect := effect^.next;
     end;
     if cnt = 0 then
-      AddToList(False, ' <No Spell Effects>');
-    AddToList(False, ' ');
+      MenuCore.AppendMenuLine(head, cur, ' <No Spell Effects>', False);
+    MenuCore.AppendMenuLine(head, cur, ' ', False);
     ch := ch^.nextCharAddr;
   end;
   menuRedraw := True;

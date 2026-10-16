@@ -247,7 +247,6 @@ end;
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
 procedure LoadCharlist(var list: Types.PItemRec);
 var
-  n: Types.PItemRec;
   tail: Types.PItemRec;
   p: Types.PCharRecord;
   f: Text;
@@ -258,15 +257,7 @@ begin
   Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
   Reset(f);
   while not Eof(f) do begin
-    GetMem(n, SizeOf(Types.TMenuNode));
-    FillChar(n^, SizeOf(Types.TMenuNode), 0);
-    if list = nil then begin
-      list := n;
-      tail := list;
-    end else begin
-      tail^.next := n;
-      tail := tail^.next;
-    end;
+    MenuCore.AppendMenuLine(list, tail, '', False);
     ReadLn(f, tail^.name);
     p := GDVars.creatureList;
     while (p <> nil) and (p^.name <> tail^.name) do
@@ -377,7 +368,6 @@ var
   effect: Types.PEffectRec;
   list: Types.PItemRec;
   p: Types.PItemRec;
-  n: Types.PItemRec;
   ioRes: Integer;
   ok: Boolean;
   { the record as written: a copy with its pointers cleared, as below for each item and effect }
@@ -393,13 +383,7 @@ begin
     if p <> nil then
       while p^.next <> nil do
         p := p^.next;
-    GetMem(n, SizeOf(Types.TMenuNode));
-    FillChar(n^, SizeOf(Types.TMenuNode), 0);
-    n^.name := creature^.name;
-    if p <> nil then
-      p^.next := n
-    else
-      list := n;
+    MenuCore.AppendMenuLine(list, p, creature^.name, False);
     SaveLoad.SaveCharlist(list);
     MenuCore.FreeStringList(list);
     ext := '.cha';
