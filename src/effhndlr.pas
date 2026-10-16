@@ -512,8 +512,7 @@ begin
   if creature^.acCur < 57 then
     creature^.acCur := 57;
   Inc(GDVars.gSaveRoll);
-  { Magic Missile }
-  if GDVars.dsCurrentSpellBeing = 15 then
+  if GDVars.dsCurrentSpellBeing = C_Spell.MAGIC_MISSILE then
     GDVars.pendingDamage := 0;
 end;
 
@@ -1330,7 +1329,7 @@ begin
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
   { Charm Person }
   savedSpell := GDVars.dsCurrentSpellBeing;
-  GDVars.dsCurrentSpellBeing := 10;
+  GDVars.dsCurrentSpellBeing := C_Spell.CHARM_PERSON;
   FxEngine.AddEffectWithMessage(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, 0, creature^.hostile * 128 + 12,
                                 True, True,
                                 FxEngine.RollSavingThrow(creature^.combatAddr^.other, C_Save.SPELL, -2),
@@ -1497,7 +1496,7 @@ end;
 
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.dsCurrentSpellBeing = 15 then begin
+  if GDVars.dsCurrentSpellBeing = C_Spell.MAGIC_MISSILE then begin
     EffHndlr.NullifyAttack(0);
     CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
   end else

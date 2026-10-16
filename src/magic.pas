@@ -684,8 +684,8 @@ begin
         CbtMap.SetCreatureFacing(p, k, 1, 0);
         SoundDrv.SoundSetAutoStop(0);
         case spell of
-          47: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
-          51: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
+          C_Spell.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
+          C_Spell.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
         else
           SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
         end;
@@ -737,7 +737,7 @@ begin
   GDVars.gMultiTarget := 1;
   for i := 1 to GDVars.spellTargetCount do begin
     if (GDVars.dsTargetCreaturePtr[i]^.hostile <> hostFlag) or
-        ((GDVars.dsCurrentSpellBeing = 1) and (GDVars.ifcState = C_Ifc.COMBAT) and
+        ((GDVars.dsCurrentSpellBeing = C_Spell.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
          (CharHlp.CountTargets(GDVars.dsTargetCreaturePtr[i], 1) > 0)) then
       GDVars.dsTargetCreaturePtr[i] := nil;
   end;
@@ -934,7 +934,7 @@ var
   smod: ShortInt;
 begin
   case GDVars.spellTargetCount of
-    1: if GDVars.dsCurrentSpellBeing = 23 then
+    1: if GDVars.dsCurrentSpellBeing = C_Spell.HOLD_PERSON then
          smod := -2
        else
          smod := -3;
@@ -1361,7 +1361,7 @@ var
   i: Byte;
 begin
   GDVars.gMultiTarget := 1;
-  if GDVars.dsCurrentSpellBeing = 64 then
+  if GDVars.dsCurrentSpellBeing = C_Spell.ITEM_FIREBALL then
     cl := FxEngine.RollDice(1, 3) * 2 + 1
   else
     cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
