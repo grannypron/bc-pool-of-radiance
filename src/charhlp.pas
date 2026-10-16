@@ -85,8 +85,8 @@ function ItemWeight(item: Types.PItemRec): LongInt;
   fights as a warrior. }
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 
-{ The base item record for an item type: its GDVars.baseItems entry, or the zeroed GDVars.baseItemsOverflow for a type
-  past the table, which only damaged save or monster data can carry.
+{ The base item record for an item type: its GDVars.baseItems entry, or the zeroed overflow entry for a type past the
+  table, which only damaged save or monster data can carry.
   @param(itemType TItemRec.itemType.)
   @returns(A pointer to the record; the caller does not change it.) }
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
@@ -846,9 +846,8 @@ end;
 
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 begin
-  { 127 = High(baseItems) }
-  if itemType > 127 then
-    BaseItem := @GDVars.baseItemsOverflow
+  if itemType > Types.BASE_ITEM_LAST then
+    BaseItem := @GDVars.baseItems[Types.BASE_ITEM_OVERFLOW]
   else
     BaseItem := @GDVars.baseItems[itemType];
 end;

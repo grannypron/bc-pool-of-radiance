@@ -372,11 +372,10 @@ begin
                                  itemsFile);
   Reset(itemsFile, 1);
   Seek(itemsFile, 2);
-  { This asks for 129 records into the 128-entry item table; baseItemsOverflow after it keeps a 129th in bounds. The
-    file must hold the 128. }
-  BlockRead(itemsFile, GDVars.baseItems, 129 * SizeOf(Types.TBaseItemRec), itemsRead);
+  { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
+  BlockRead(itemsFile, GDVars.baseItems, SizeOf(GDVars.baseItems), itemsRead);
   Close(itemsFile);
-  if (IOResult <> 0) or (itemsRead < 128 * SizeOf(Types.TBaseItemRec)) then begin
+  if (IOResult <> 0) or (itemsRead < (Types.BASE_ITEM_LAST + 1) * SizeOf(Types.TBaseItemRec)) then begin
     GameIo.FatalError('Unable to read ITEMS.');
   end;
   GDVars.gameDir := savedDir;

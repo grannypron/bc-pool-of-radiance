@@ -146,11 +146,10 @@ var
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
   { ITEMS catalogue }
-  { Base item types, indexed by TItemRec.itemType. }
-  baseItems: array[0..127] of Types.TBaseItemRec;
-  { Zero. It keeps the ITEMS read's request for 129 records in bounds (the shipped ITEMS holds 128), and
-    CharHlp.BaseItem gives it for an item type past baseItems. }
-  baseItemsOverflow: Types.TBaseItemRec;
+  { Base item types, indexed by TItemRec.itemType. The last entry, Types.BASE_ITEM_OVERFLOW, stays zero: it keeps the
+    ITEMS read's request for 129 records in bounds (the shipped ITEMS holds 128), and CharHlp.BaseItem gives it for an
+    item type past the table. }
+  baseItems: array[0..Types.BASE_ITEM_OVERFLOW] of Types.TBaseItemRec;
   { Party pointers }
   { Current creature. }
   curChar: Types.PCharRecord;

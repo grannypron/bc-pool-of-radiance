@@ -20,6 +20,9 @@ const
   MAP_LAST = 15;
   { the last memorized-spell slot (TSpellSlots); Turbo Pascal 6 has no High() }
   SPELL_SLOT_LAST = 20;
+  { the item types ITEMS holds, 0..BASE_ITEM_LAST; GDVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
+  BASE_ITEM_LAST = 127;
+  BASE_ITEM_OVERFLOW = 128;
 
 type
 
