@@ -622,6 +622,9 @@ type
   { the script strings (GDVars.gbStrings) }
   TGbStrings = array[1..GB_STRING_LAST] of String;
   PGbStrings = ^TGbStrings;
+  { the base item types (GDVars.baseItems) and the zeroed overflow entry after them }
+  TBaseItems = array[0..BASE_ITEM_OVERFLOW] of TBaseItemRec;
+  PBaseItems = ^TBaseItems;
 
   { Blit types. }
   TVideoMode = (vmCGA, vmEGA, vmTandy);

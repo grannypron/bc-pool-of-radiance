@@ -260,6 +260,8 @@ begin
   GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
   GetMem(GDVars.gbStrings, SizeOf(GDVars.gbStrings^));
   FillChar(GDVars.gbStrings^, SizeOf(GDVars.gbStrings^), 0);
+  GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
+  FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(GDVars.wallGfx, SizeOf(GDVars.wallGfx^));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));
@@ -375,7 +377,7 @@ begin
   Reset(itemsFile, 1);
   Seek(itemsFile, 2);
   { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
-  BlockRead(itemsFile, GDVars.baseItems, SizeOf(GDVars.baseItems), itemsRead);
+  BlockRead(itemsFile, GDVars.baseItems^, SizeOf(GDVars.baseItems^), itemsRead);
   Close(itemsFile);
   if (IOResult <> 0) or (itemsRead < (Types.BASE_ITEM_LAST + 1) * SizeOf(Types.TBaseItemRec)) then begin
     GameIo.FatalError('Unable to read ITEMS.');

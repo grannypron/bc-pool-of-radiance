@@ -847,9 +847,9 @@ end;
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 begin
   if itemType > Types.BASE_ITEM_LAST then
-    BaseItem := @GDVars.baseItems[Types.BASE_ITEM_OVERFLOW]
+    BaseItem := @GDVars.baseItems^[Types.BASE_ITEM_OVERFLOW]
   else
-    BaseItem := @GDVars.baseItems[itemType];
+    BaseItem := @GDVars.baseItems^[itemType];
 end;
 
 function IsNpc(creature: Types.PCharRecord): Boolean;
