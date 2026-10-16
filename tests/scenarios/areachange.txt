@@ -16,3 +16,8 @@ wait CAMP
 press s d ret
 checkpoint save-popup
 press esc esc
+# the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
+ignore OVERLAY LOADS
+press ctrl-y
+checkpoint overlay-loads
+press ret ret ret
