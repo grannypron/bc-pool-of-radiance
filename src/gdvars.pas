@@ -36,25 +36,11 @@ var
   stuckCount: Byte;
 
 var
-  { Combat placement. }
-  { quad occupancy [team, ring 0..3, qy 0..5, qx 0..10]; 1 = free }
-  quadFree: array[0..1, 0..3, 0..5, 0..10] of Byte;
-  { per team }
-  placeX: array[0..1] of ShortInt;
-  placeY: array[0..1] of ShortInt;
-  teamRows: array[0..1] of ShortInt;
-  teamDir: array[0..1] of ShortInt;
-  { Current side being placed. }
-  team: ShortInt;
-
-var
   { wildMap cell under party }
   terrainChar: Byte;
 
 var
   { Resource initialization. }
-  { GameInit2 loop counter }
-  gi2: Byte;
   { directory saved across resource loading }
   savedDir: Types.TPathStr;
   { ITEMS loading file record }
@@ -84,8 +70,6 @@ var
   spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
   scrollPtrs: array[0..48] of Types.PItemRec;
   scrollCount: Byte;
-  gSpellTemp1: Byte;
-  gSpellTemp2: Byte;
   { Equipment weight. }
   { equipped-items weight }
   gEquipWeight: Word;
@@ -489,8 +473,6 @@ var
   dsGbvmLowerByte: array[1..64] of Byte;
   { Receives the aim result for the bronze-dragon breath attack. }
   breathAim: Boolean;
-  { Loop counter shared by the Blit, Portrait and CbtMap drawing loops; its value means nothing outside them. }
-  dsCurrentPictureNumber: ShortInt;
   { Script string buffers. }
   gbStrings: array[1..20] of String;
   { ECL monster and post-combat state }

@@ -244,6 +244,7 @@ end;
 procedure GameInit2;
 var
   opened: Boolean;
+  i: Byte;
 begin
   GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
@@ -263,17 +264,17 @@ begin
   FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
   { Per-row video addresses: CGA segment (even and odd rows in separate banks, a row pair every 5 paragraphs), EGA
     offset (40 bytes per row), Tandy segment (four banks, four rows every 10 paragraphs). }
-  for GDVars.gi2 := 0 to 199 do begin
-    if Odd(GDVars.gi2) then
-      GDVars.cgaRowSeg[GDVars.gi2] := (GDVars.gi2 div 2) * 5 + C_Video.GFX_BANK1_SEG
+  for i := 0 to 199 do begin
+    if Odd(i) then
+      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK1_SEG
     else
-      GDVars.cgaRowSeg[GDVars.gi2] := (GDVars.gi2 div 2) * 5 + C_Video.GFX_BANK0_SEG;
-    GDVars.fbRowOfs[GDVars.gi2] := GDVars.gi2 * 40;
-    case GDVars.gi2 mod 4 of
-      0: GDVars.tandyRowSeg[GDVars.gi2] := (GDVars.gi2 div 4) * 10 + C_Video.GFX_BANK0_SEG;
-      1: GDVars.tandyRowSeg[GDVars.gi2] := (GDVars.gi2 div 4) * 10 + C_Video.GFX_BANK1_SEG;
-      2: GDVars.tandyRowSeg[GDVars.gi2] := (GDVars.gi2 div 4) * 10 + C_Video.GFX_BANK2_SEG;
-      3: GDVars.tandyRowSeg[GDVars.gi2] := (GDVars.gi2 div 4) * 10 + C_Video.GFX_BANK3_SEG;
+      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK0_SEG;
+    GDVars.fbRowOfs[i] := i * 40;
+    case i mod 4 of
+      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK0_SEG;
+      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK1_SEG;
+      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK2_SEG;
+      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK3_SEG;
     end;
   end;
   FillChar(GDVars.dsSymbolSetPtrs, SizeOf(GDVars.dsSymbolSetPtrs), 0);
@@ -283,9 +284,9 @@ begin
   FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
   FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
   FillChar(GDVars.dsIconAnimation, SizeOf(GDVars.dsIconAnimation), 0);
-  for GDVars.gi2 := 1 to 2 do begin
-    GDVars.dsPortraitCache[GDVars.gi2].pictureId := 255;
-    GDVars.dsPortraitCache[GDVars.gi2].pic := nil;
+  for i := 1 to 2 do begin
+    GDVars.dsPortraitCache[i].pictureId := 255;
+    GDVars.dsPortraitCache[i].pic := nil;
   end;
   FillChar(GDVars.animData, SizeOf(GDVars.animData), 0);
   GDVars.treasureItems := nil;
@@ -299,10 +300,10 @@ begin
   { WALLDEF reload ID 0, symbol slot 1 }
   GDVars.dsWallSetCache[1].wallDefId := 0;
   GDVars.dsWallSetCache[1].symbolSlot := 1;
-  for GDVars.gi2 := 2 to 3 do begin
+  for i := 2 to 3 do begin
     { slots 2-3 = empty }
-    GDVars.dsWallSetCache[GDVars.gi2].wallDefId := -1;
-    GDVars.dsWallSetCache[GDVars.gi2].symbolSlot := -1;
+    GDVars.dsWallSetCache[i].wallDefId := -1;
+    GDVars.dsWallSetCache[i].symbolSlot := -1;
   end;
   GDVars.portraitsOn := 1;
   GDVars.monsterPics := 1;
@@ -356,8 +357,8 @@ begin
   Sym8x8.Load8x8Set(203, 0);
   Blit.LoadPic('sqrpaci', 1, False, 0, GDVars.ds2dMapTilePtr);
   Blit.LoadPic('sqrpaci', 2, False, 0, GDVars.ds2dMapTilePtr2);
-  for GDVars.gi2 := 0 to 11 do
-    MapTiles.LoadIconAnim('COMSPR', GDVars.gi2, GDVars.gi2 + 13);
+  for i := 0 to 11 do
+    MapTiles.LoadIconAnim('COMSPR', i, i + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
   opened := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':', False,
                                  GDVars.itemsFile);

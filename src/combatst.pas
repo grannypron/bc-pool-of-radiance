@@ -11,6 +11,15 @@ implementation
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice;
 
+var
+  { Combat placement, by team }
+  { quad occupancy [team, ring 0..3, qy 0..5, qx 0..10]; 1 = free }
+  quadFree: array[0..1, 0..3, 0..5, 0..10] of Byte;
+  { per team }
+  placeX: array[0..1] of ShortInt;
+  placeY: array[0..1] of ShortInt;
+  teamRows: array[0..1] of ShortInt;
+  teamDir: array[0..1] of ShortInt;
 
 { On every arena cell whose terrain tile is 22 (grass), roll 1d100: 98 gives terrain 26, 99 gives 27, and 100 (unless
   eclScriptId = 10) gives a further 1% chance of 28 (1d10 = 1..6) or 29 (7..10). }
@@ -583,12 +592,12 @@ end;
   spot (the same 6/5 skew mapping as the dungeon builder, +22/+10) is stored into arenaLoc before the probe, and
   CbtMap.ProbeDirection must find no creature there and passable terrain (cost < 255). On success mark the quad used and
   return 1, else 0. }
-function TryPlaceAt(slot: Byte; qx, qy, bqx, bqy: ShortInt; ring: Byte): Byte;
+function TryPlaceAt(team: ShortInt; slot: Byte; qx, qy, bqx, bqy: ShortInt; ring: Byte): Byte;
 var
   crIdx: Byte;
   terrIdx: Byte;
 begin
-  if (qx < 0) or (qy < 0) or (qx > 10) or (qy > 5) or (GDVars.quadFree[GDVars.team, ring, qy, qx] = 0) then
+  if (qx < 0) or (qy < 0) or (qx > 10) or (qy > 5) or (quadFree[team, ring, qy, qx] = 0) then
     TryPlaceAt := 0
   else begin
     { Store coordinates before probing }
@@ -597,7 +606,7 @@ begin
     CbtMap.ProbeDirection(GDVars.creatureArr[slot], C_Dir.CENTER, crIdx, terrIdx);
     if (crIdx = 0) and (terrIdx > 0) and (GDConsts.terrainInfo[terrIdx].cost < 255) then begin
       TryPlaceAt := 1;
-      GDVars.quadFree[GDVars.team, ring, qy, qx] := 0;
+      quadFree[team, ring, qy, qx] := 0;
     end else
       TryPlaceAt := 0;
   end;
@@ -610,7 +619,7 @@ end;
   first leg in ring 0 when Odd(teamDir[0]) and any ringDirTbl direction 1..3 is not a solid wall. A fully-off quad
   advances to the next ring (up to 3) whose ringDirTbl direction is not a solid wall (always, outdoors), re-basing the
   grid one step that way. Return False when no ring remains. }
-function FindPlacement(slot: Byte): Boolean;
+function FindPlacement(team: ShortInt; slot: Byte): Boolean;
 var
   placed: Byte;
   firstPass: Byte;
@@ -641,10 +650,10 @@ begin
   state := 1;
   legShift := 0;
   ring := 0;
-  baseQX := GDVars.placeX[GDVars.team];
-  baseQY := GDVars.placeY[GDVars.team];
+  baseQX := placeX[team];
+  baseQY := placeY[team];
   repeat
-    quad := GDConsts.ringStart[GDVars.teamDir[GDVars.team], ring] div 2;
+    quad := GDConsts.ringStart[teamDir[team], ring] div 2;
     case state of
       1: begin
            stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 2) mod 4]];
@@ -683,15 +692,15 @@ begin
       { leg exhausted? (a partially-off quad, or out of tries) }
       if ((offGrid <> 0) and (not CombatSt.QuadFullyOff(qx,
                                                         qy))) or ((firstPass <> 0) and
-                                                                  (tries >= GDVars.teamRows[GDVars.team])) or
+                                                                  (tries >= teamRows[team])) or
           ((firstPass = 0) and (tries > 11)) then begin
         Inc(legShift);
-        if (GDVars.team = 0) and Odd(GDVars.teamDir[0]) and (ring = 0) and (legShift = 1) then begin
-          wallX := GDVars.placeX[GDVars.team] + GDVars.gMapX;
-          wallY := GDVars.placeY[GDVars.team] + GDVars.gMapY;
+        if (team = 0) and Odd(teamDir[0]) and (ring = 0) and (legShift = 1) then begin
+          wallX := placeX[team] + GDVars.gMapX;
+          wallY := placeY[team] + GDVars.gMapY;
           open := 0;
           for k := 1 to 3 do begin
-            dir := GDConsts.ringDirTbl[GDVars.teamDir[GDVars.team], k];
+            dir := GDConsts.ringDirTbl[teamDir[team], k];
             if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
               open := 1;
           end;
@@ -708,12 +717,12 @@ begin
         state := 0;
         while (ring < 3) and (state <> 1) do begin
           Inc(ring);
-          wallX := GDVars.placeX[GDVars.team] + GDVars.gMapX;
-          wallY := GDVars.placeY[GDVars.team] + GDVars.gMapY;
-          dir := GDConsts.ringDirTbl[GDVars.teamDir[GDVars.team], ring];
+          wallX := placeX[team] + GDVars.gMapX;
+          wallY := placeY[team] + GDVars.gMapY;
+          dir := GDConsts.ringDirTbl[teamDir[team], ring];
           if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
-            baseQX := GDVars.placeX[GDVars.team] + GDConsts.dirDX[dir];
-            baseQY := GDVars.placeY[GDVars.team] + GDConsts.dirDY[dir];
+            baseQX := placeX[team] + GDConsts.dirDX[dir];
+            baseQY := placeY[team] + GDConsts.dirDY[dir];
             legShift := 0;
             state := 1;
           end;
@@ -722,7 +731,7 @@ begin
           giveUp := 1;
     end;
     if offGrid = 0 then
-      placed := CombatSt.TryPlaceAt(slot, qx, qy, baseQX, baseQY, ring);
+      placed := CombatSt.TryPlaceAt(team, slot, qx, qy, baseQX, baseQY, ring);
   until (placed <> 0) or (giveUp <> 0);
   if giveUp <> 0 then
     FindPlacement := False
@@ -736,6 +745,7 @@ end;
   keep their slot with size 0. Terminate the surviving creature list afterward. }
 procedure PlaceAllCreatures;
 var
+  team: ShortInt;
   x: ShortInt;
   y: ShortInt;
   prev: Types.PCharRecord;
@@ -753,28 +763,28 @@ begin
   for slot := 1 to Types.ARENA_SLOTS do
     GDVars.arenaLoc[slot].size := 0;
   CbtMap.BuildArenaArrays;
-  GDVars.placeX[0] := 0;
-  GDVars.placeY[0] := 0;
-  GDVars.teamDir[0] := GDVars.gFacing div 2;
-  GDVars.placeX[1] := GDConsts.dirDX[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + GDVars.placeX[0];
-  GDVars.placeY[1] := GDConsts.dirDY[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + GDVars.placeY[0];
-  GDVars.teamDir[1] := (GDVars.gFacing + 4) mod 8 div 2;
-  for GDVars.team := 0 to 1 do
-    GDVars.teamRows[GDVars.team] := (GDVars.teamCount[GDVars.team] + 1) div 2;
-  for GDVars.team := 0 to 1 do
+  placeX[0] := 0;
+  placeY[0] := 0;
+  teamDir[0] := GDVars.gFacing div 2;
+  placeX[1] := GDConsts.dirDX[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + placeX[0];
+  placeY[1] := GDConsts.dirDY[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + placeY[0];
+  teamDir[1] := (GDVars.gFacing + 4) mod 8 div 2;
+  for team := 0 to 1 do
+    teamRows[team] := (teamCount[team] + 1) div 2;
+  for team := 0 to 1 do
     for g := 0 to 3 do begin
       if g = 1 then
         d := 4
       else
-        d := GDVars.teamDir[GDVars.team];
+        d := teamDir[team];
       { y = quad row qy here }
       for y := 0 to 5 do
         { x = quad column qx here }
         for x := 0 to 10 do
           if (GDConsts.rowBand[d, y].lo > x) or (GDConsts.rowBand[d, y].hi < x) then
-            GDVars.quadFree[GDVars.team, g, y, x] := 0
+            quadFree[team, g, y, x] := 0
           else
-            GDVars.quadFree[GDVars.team, g, y, x] := 1;
+            quadFree[team, g, y, x] := 1;
     end;
   slot := 1;
   GDVars.arenaCount := 1;
@@ -787,10 +797,10 @@ begin
     next := p^.nextCharAddr;
     GDVars.creatureArr[slot] := p;
     { teamCount, teamRows and the placement tables have teams 0 and 1 }
-    GDVars.team := p^.hostile and 1;
+    team := p^.hostile and 1;
     GDVars.arenaLoc[slot].slotIndex := slot;
     GDVars.arenaLoc[slot].size := p^.iconDimensions and 7;
-    if CombatSt.FindPlacement(slot) then begin
+    if CombatSt.FindPlacement(team, slot) then begin
       prev := p;
       if p^.enabled = 0 then begin
         GDVars.arenaLoc[slot].size := 0;

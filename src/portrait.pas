@@ -202,13 +202,14 @@ begin
   FreeMem(buf, sz);
 end;
 
-{ Free every animation frame, clear the record and invalidate the picture cache. The loop counter is the shared
-  GDVars.dsCurrentPictureNumber. }
+{ Free every animation frame, clear the record and invalidate the picture cache. }
 procedure FreeAnimation(var a: Types.TAnimRec);
+var
+  k: ShortInt;
 begin
   with a do
-    for GDVars.dsCurrentPictureNumber := 1 to count do
-      Blit.FreePic(frames[GDVars.dsCurrentPictureNumber].pic);
+    for k := 1 to count do
+      Blit.FreePic(frames[k].pic);
   FillChar(a, SizeOf(a), 0);
   GDVars.picArcName[0] := #0;
   GDVars.picArcId := 255;

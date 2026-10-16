@@ -820,26 +820,28 @@ end;
   encoding AdjustForNewStrength returns. }
 procedure EnlargeHandler;
 var
+  baseStr: Byte;
+  excStr: Byte;
   enc: Byte;
   lvl: Byte;
 begin
   { Strength 18 with exceptional Strength 0, 1, 51, 76, 91 or 100 for caster levels 1..6; 100 above 6, 0 for level 0 }
-  GDVars.gSpellTemp1 := 18;
+  baseStr := 18;
   lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
   case lvl of
-    1: GDVars.gSpellTemp2 := 0;
-    2: GDVars.gSpellTemp2 := 1;
-    3: GDVars.gSpellTemp2 := 51;
-    4: GDVars.gSpellTemp2 := 76;
-    5: GDVars.gSpellTemp2 := 91;
-    6: GDVars.gSpellTemp2 := 100;
+    1: excStr := 0;
+    2: excStr := 1;
+    3: excStr := 51;
+    4: excStr := 76;
+    5: excStr := 91;
+    6: excStr := 100;
   else
     if lvl > 6 then
-      GDVars.gSpellTemp2 := 100
+      excStr := 100
     else
-      GDVars.gSpellTemp2 := 0;
+      excStr := 0;
   end;
-  if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], GDVars.gSpellTemp1, GDVars.gSpellTemp2, enc) then
+  if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], baseStr, excStr, enc) then
     CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
   { enc: the Strength encoding AdjustForNewStrength returned, kept as the effect's strength }
   FxEngine.AddEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.ENLARGE,
@@ -897,28 +899,30 @@ end;
   and targets the remaining pool cannot pay for are dropped; the pool is spent greedily in target order. }
 procedure SleepHandler;
 var
+  pool: Byte;
+  cost: Byte;
   i: Byte;
   effect: Types.PEffectRec;
 begin
   GDVars.gMultiTarget := 1;
-  GDVars.gSpellTemp1 := Dice.RollDice(4, 4);
+  pool := Dice.RollDice(4, 4);
   for i := 1 to GDVars.spellTargetCount do begin
     case GDVars.dsTargetCreaturePtr[i]^.levelHighest of
-      0..1: GDVars.gSpellTemp2 := 1;
-      2: GDVars.gSpellTemp2 := 2;
-      3: GDVars.gSpellTemp2 := 4;
-      4: GDVars.gSpellTemp2 := 6;
+      0..1: cost := 1;
+      2: cost := 2;
+      3: cost := 4;
+      4: cost := 6;
       5: if GDVars.dsTargetCreaturePtr[i]^.race = C_Race.MONSTER then
-              GDVars.gSpellTemp2 := 10
+              cost := 10
             else
-              GDVars.gSpellTemp2 := 20;
+              cost := 20;
     else
-      GDVars.gSpellTemp2 := 20;
+      cost := 20;
     end;
     if (GDVars.dsTargetCreaturePtr[i]^.status <> C_Status.ANIMATED) and
         (not CharHlp.HasEffect(GDVars.dsTargetCreaturePtr[i], C_Effect.SLEEP, effect)) and
-        (GDVars.gSpellTemp1 >= GDVars.gSpellTemp2) then
-      Dec(GDVars.gSpellTemp1, GDVars.gSpellTemp2)
+        (pool >= cost) then
+      Dec(pool, cost)
     else
       GDVars.dsTargetCreaturePtr[i] := nil;
   end;
@@ -1004,16 +1008,17 @@ end;
   caster's hpCur, paid in list order }
 procedure SnakeCharmHandler;
 var
+  pool: Byte;
   p: Types.PCharRecord;
 begin
-  GDVars.gSpellTemp1 := GDVars.curChar^.hpCur;
+  pool := GDVars.curChar^.hpCur;
   GDVars.spellTargetCount := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
     { charType 14: snake }
     if p^.charType = 14 then
-      if GDVars.gSpellTemp1 >= p^.hpCur then begin
-        GDVars.gSpellTemp1 := GDVars.gSpellTemp1 - p^.hpCur;
+      if pool >= p^.hpCur then begin
+        pool := pool - p^.hpCur;
         Inc(GDVars.spellTargetCount);
         GDVars.dsTargetCreaturePtr[GDVars.spellTargetCount] := p;
       end;
@@ -1271,6 +1276,8 @@ end;
   left alone. }
 procedure DispelMagicHandler;
 var
+  chance: Byte;
+  effLevel: Byte;
   i: Byte;
   cl: Byte;
   tgt: Types.PCharRecord;
@@ -1294,14 +1301,14 @@ begin
       nxt := effect^.next;
       if (effect^.strength < 255) and not (effect^.id in [C_Effect.RECENT_HEAL, C_Effect.RECENT_CURE]) then begin
         { dispel treats the low nibble as caster level }
-        GDVars.gSpellTemp2 := effect^.strength and $F;
-        if cl > GDVars.gSpellTemp2 then
-          GDVars.gSpellTemp1 := (cl - GDVars.gSpellTemp2) * 5 + 50
-        else if cl < GDVars.gSpellTemp2 then
-          GDVars.gSpellTemp1 := 50 - (GDVars.gSpellTemp2 - cl) * 2
+        effLevel := effect^.strength and $F;
+        if cl > effLevel then
+          chance := (cl - effLevel) * 5 + 50
+        else if cl < effLevel then
+          chance := 50 - (effLevel - cl) * 2
         else
-          GDVars.gSpellTemp1 := 50;
-        if Dice.RollDice(1, 100) <= GDVars.gSpellTemp1 then begin
+          chance := 50;
+        if Dice.RollDice(1, 100) <= chance then begin
           FxEngine.RemoveEffect(tgt, effect^.id, effect);
           removed := True;
         end;

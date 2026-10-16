@@ -808,6 +808,7 @@ end;
 
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
 var
+  frameNo: ShortInt;
   srcOff: Word;
   dstOff: Word;
   nFrames: Byte;
@@ -845,7 +846,7 @@ begin
           { CGA: match/rewrite each 2-bit pixel pattern }
           Types.vmCGA: begin
             rowBytes := width * 2;
-            for GDVars.dsCurrentPictureNumber := frame to nFrames + frame - 1 do
+            for frameNo := frame to nFrames + frame - 1 do
               for row := 1 to height do
                 for col := 1 to rowBytes do begin
                   for pixPos := 0 to 3 do
@@ -865,7 +866,7 @@ begin
                 planeMask[plane] := 0
               else
                 planeMask[plane] := $FF;
-            for GDVars.dsCurrentPictureNumber := frame to nFrames + frame - 1 do
+            for frameNo := frame to nFrames + frame - 1 do
               for row := 1 to height do
                 for col := 1 to width do begin
                   if isDithered then
@@ -888,7 +889,7 @@ begin
             rowBytes := width * 4;
             fromHigh := fromColors[pairIdx] shl 4;
             toHigh := toColors[pairIdx] shl 4;
-            for GDVars.dsCurrentPictureNumber := frame to nFrames + frame - 1 do
+            for frameNo := frame to nFrames + frame - 1 do
               for row := 1 to height do
                 for col := 1 to rowBytes do begin
                   if pic^.data[srcOff] and $F0 = fromHigh then
