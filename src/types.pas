@@ -23,6 +23,8 @@ const
   { the item types ITEMS holds, 0..BASE_ITEM_LAST; GDVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
   BASE_ITEM_LAST = 127;
   BASE_ITEM_OVERFLOW = 128;
+  { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
+  GB_STRING_LAST = 20;
 
 type
 
@@ -617,6 +619,9 @@ type
         scriptWords4B00: array[$4B00..$4CFF] of Word);
   end;
   TGbvmZone1 = array[$6B00..$6EFF] of Word;
+  { the script strings (GDVars.gbStrings) }
+  TGbStrings = array[1..GB_STRING_LAST] of String;
+  PGbStrings = ^TGbStrings;
 
   { Blit types. }
   TVideoMode = (vmCGA, vmEGA, vmTandy);

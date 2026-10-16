@@ -258,6 +258,8 @@ begin
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
   GetMem(GDVars.zone2, SizeOf(GDVars.zone2^));
   GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
+  GetMem(GDVars.gbStrings, SizeOf(GDVars.gbStrings^));
+  FillChar(GDVars.gbStrings^, SizeOf(GDVars.gbStrings^), 0);
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(GDVars.wallGfx, SizeOf(GDVars.wallGfx^));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));

@@ -122,8 +122,8 @@ var
 begin
   EclVars.LoadEclVars(2);
   if (GDVars.dsGbvmType[1] >= $80) or (GDVars.dsGbvmType[2] >= $80) then begin
-    s1 := GDVars.gbStrings[1];
-    s2 := GDVars.gbStrings[2];
+    s1 := GDVars.gbStrings^[1];
+    s2 := GDVars.gbStrings^[2];
     EclMenu.EclCompareStr(s1, s2);
   end else begin
     v1 := EclVars.GetEclVar(1);
@@ -185,7 +185,7 @@ begin
     v := EclVars.GetEclVar(1);
     EclVars.WriteGbvm(address, v);
   end else
-    EclVars.WriteGbvmString(address, GDVars.gbStrings[1]);
+    EclVars.WriteGbvmString(address, GDVars.gbStrings^[1]);
 end;
 
 { LOAD CHARACTER: make creature number var 1 (low seven bits, 0 = the first) current; EXIT and PROGRAM restore the
@@ -387,15 +387,15 @@ begin
   GDVars.bottomMsgCleared := 0;
   GDVars.msgDelayFlag := 1;
   if GDVars.dsGbvmType[1] < $80 then
-    GDVars.gbStrings[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
+    GDVars.gbStrings^[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
   if GDVars.curOpcode = C_Ecl.PRINT then
-    TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings[1])
+    TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings^[1])
   else begin
     GDVars.curRow := C_Msg.MESSAGE_TOP;
     GDVars.curCol := C_Msg.TEXT_LEFT;
     TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
                                   LightGreen, True,
-                                  GDVars.gbStrings[1]);
+                                  GDVars.gbStrings^[1]);
   end;
   GDVars.msgDelayFlag := 0;
 end;
@@ -584,20 +584,19 @@ begin
   i := 1;
   EclVars.LoadEclVars(3);
   address := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  msg := GDVars.gbStrings[1];
+  msg := GDVars.gbStrings^[1];
   count := EclVars.GetEclVar(3);
   Dec(GDVars.eclIp);
   EclVars.LoadEclVars(count);
-  { 20 = High(gbStrings), the most strings LoadEclVars keeps }
-  if count > 20 then
-    count := 20;
+  if count > Types.GB_STRING_LAST then
+    count := Types.GB_STRING_LAST;
   MenuCore.AllocStringList(count, list);
   head := list;
   GDVars.curCol := C_Msg.TEXT_LEFT;
   GDVars.curRow := C_Msg.MESSAGE_TOP;
   TextRend.ShowMessage(LightGreen, True, msg);
   while list <> nil do begin
-    list^.name := GDVars.gbStrings[i];
+    list^.name := GDVars.gbStrings^[i];
     list^.inUse := 0;
     list := list^.next;
     Inc(i);
@@ -636,9 +635,9 @@ begin
   count := EclVars.GetEclVar(2);
   Dec(GDVars.eclIp);
   EclVars.LoadEclVars(count);
-  { 20 = High(gbStrings), the most strings LoadEclVars keeps; a count of 0 shows gbStrings[1] alone }
-  if count > 20 then
-    count := 20
+  { a count of 0 shows gbStrings^[1] alone }
+  if count > Types.GB_STRING_LAST then
+    count := Types.GB_STRING_LAST
   else if count = 0 then
     count := 1;
   menu := '';
@@ -646,8 +645,8 @@ begin
     enterOk := True;
     hlCol := White;
     mCol := White;
-    if GDVars.gbStrings[1] = 'PRESS <RETURN> OR BUTTON TO CONTINUE' then
-      GDVars.gbStrings[1] := 'PRESS <ENTER>/<RETURN> TO CONTINUE';
+    if GDVars.gbStrings^[1] = 'PRESS <RETURN> OR BUTTON TO CONTINUE' then
+      GDVars.gbStrings^[1] := 'PRESS <ENTER>/<RETURN> TO CONTINUE';
   end else begin
     enterOk := False;
     hlCol := White;
@@ -655,8 +654,8 @@ begin
   end;
   anim := GDVars.eclGraphics and GDVars.picDrawn;
   for i := 1 to count - 1 do
-    menu := menu + '~' + GDVars.gbStrings[i] + ' ';
-  menu := menu + '~' + GDVars.gbStrings[count];
+    menu := menu + '~' + GDVars.gbStrings^[i] + ' ';
+  menu := menu + '~' + GDVars.gbStrings^[count];
   ch := EclMenu.MenuHorizontalCS(q, menu, LightMagenta, mCol, hlCol, enterOk, anim);
   EclVars.WriteGbvm(address, ch);
   TextRend.ClearRect(0, 24, 39, 24);
@@ -1133,7 +1132,7 @@ begin
   for i := 0 to 4 do
     resp[i] := EclVars.GetEclVar(i + 5);
   for i := 1 to 3 do
-    msgs[i] := GDVars.gbStrings[i];
+    msgs[i] := GDVars.gbStrings^[i];
   fleePar := EclVars.GetEclVar(13);
   fleeMon := EclVars.GetEclVar(14);
   GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
@@ -1423,7 +1422,7 @@ var
 begin
   EclVars.LoadEclVars(1);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-  msg := GDVars.gbStrings[1];
+  msg := GDVars.gbStrings^[1];
   CharDisp.SelectChar(msg, False, GDVars.curChar);
 end;
 

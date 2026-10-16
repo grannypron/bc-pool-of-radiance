@@ -371,8 +371,8 @@ var
   dsGbvmLowerByte: array[1..64] of Byte;
   { Receives the aim result for the bronze-dragon breath attack. }
   breathAim: Boolean;
-  { Script string buffers. }
-  gbStrings: array[1..20] of String;
+  { Script string buffers, on the heap; GameInit2 allocates and clears them. }
+  gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }
   { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
   dsMonsterFlags: Types.TMonFlags;

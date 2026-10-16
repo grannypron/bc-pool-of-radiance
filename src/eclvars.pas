@@ -78,16 +78,15 @@ begin
         hi := GDVars.zone3^[GDVars.eclIp];
       end;
       $80: begin
-        { 20 = High(gbStrings) }
-        if strIdx < 20 then Inc(strIdx);
+        if strIdx < Types.GB_STRING_LAST then Inc(strIdx);
         len := lo;
         if len > 0 then
           EclVars.ConvGbString(len, strIdx)
         else
-          GDVars.gbStrings[strIdx] := '';
+          GDVars.gbStrings^[strIdx] := '';
       end;
       $81: begin
-        if strIdx < 20 then Inc(strIdx);
+        if strIdx < Types.GB_STRING_LAST then Inc(strIdx);
         Inc(GDVars.eclIp);
         hi := GDVars.zone3^[GDVars.eclIp];
         v := EclVars.CombineBytesToWord(lo, hi);
@@ -499,7 +498,7 @@ var
   phase: Byte;
   ch: Char;
 begin
-  GDVars.gbStrings[strIdx] := '';
+  GDVars.gbStrings^[strIdx] := '';
   i := 0;
   phase := 1;
   while i < len do begin
@@ -526,14 +525,14 @@ begin
     if phase < 4 then Inc(phase) else phase := 1;
     if c6 <> 0 then begin
       ch := EclVars.DecodeGameCharacter(c6);
-      GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], ch);
+      GDVars.gbStrings^[strIdx] := Concat(GDVars.gbStrings^[strIdx], ch);
     end;
   end;
   if phase = 4 then begin
     c6 := cur and $3F;
     if c6 <> 0 then begin
       ch := EclVars.DecodeGameCharacter(c6);
-      GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], ch);
+      GDVars.gbStrings^[strIdx] := Concat(GDVars.gbStrings^[strIdx], ch);
     end;
   end;
 end;
@@ -550,9 +549,9 @@ var
   c: Word;
 begin
   zone := EclVars.GbvmZone(address);
-  GDVars.gbStrings[strIdx] := '';
+  GDVars.gbStrings^[strIdx] := '';
   if (zone = 1) and (address = C_Gbvm.CHAR_NAME) then
-    GDVars.gbStrings[strIdx] := GDVars.curChar^.name
+    GDVars.gbStrings^[strIdx] := GDVars.curChar^.name
   else if zone < 4 then begin
     last := EclVars.ZoneLast(zone);
     a := address;
@@ -564,9 +563,9 @@ begin
         3: c := GDVars.zone3^[a];
       end;
       if c <> 0 then
-        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(c));
+        GDVars.gbStrings^[strIdx] := Concat(GDVars.gbStrings^[strIdx], Char(c));
       Inc(a);
-    until (c = 0) or (a > last) or (Length(GDVars.gbStrings[strIdx]) = 255);
+    until (c = 0) or (a > last) or (Length(GDVars.gbStrings^[strIdx]) = 255);
   end;
 end;
 
