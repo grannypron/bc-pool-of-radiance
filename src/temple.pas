@@ -315,7 +315,7 @@ end;
   Down scan codes by ext; the G and O codes (Home and End) cycle characters. }
 procedure TempleMainMenu;
 begin
-  Shop.CounterMenu(True);
+  Shop.CounterMenu(True, Temple.HealMenu);
 end;
 
 end.

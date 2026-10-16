@@ -9,14 +9,15 @@ uses Types;
 procedure ShopMainMenu;
 
 { The counter menu a shop and a temple share: Buy (a shop) or Heal (a temple), then View, Take, Pool, Share,
-  Appraise and Exit. Leaving with money on the counter asks first whether to go back for it. }
-procedure CounterMenu(atTemple: Boolean);
+  Appraise and Exit. command is the Buy or Heal command (Shop.ShopBuyMenu or Temple.HealMenu), so the shop need not
+  know the temple. Leaving with money on the counter asks first whether to go back for it. }
+procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend, Temple,
+uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
   CharDisp, MoneyCal, Party;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
@@ -135,7 +136,7 @@ end;
 
 { Main shop menu: buy, view, take, pool, share and appraise, with Take and Share offered only while there is pooled
   money. Leaving with money still in the pool asks whether to go back for it. }
-procedure CounterMenu(atTemple: Boolean);
+procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 var
   menu: String[40];
   first: String[4];
@@ -172,8 +173,8 @@ begin
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     { extended keys come back as letters too: H is the up arrow, B is F8, P the down arrow }
     case c of
-      'B': if not atTemple and not ext then Shop.ShopBuyMenu;
-      'H': if atTemple and not ext then Temple.HealMenu;
+      'B': if not atTemple and not ext then command;
+      'H': if atTemple and not ext then command;
       'V': ViewChar.ViewCharMenu(ext);
       'T': Money.TakeMoneyMenu;
       'P': if not ext then Money.PoolMoney;
@@ -204,7 +205,7 @@ end;
 
 procedure ShopMainMenu;
 begin
-  Shop.CounterMenu(False);
+  Shop.CounterMenu(False, Shop.ShopBuyMenu);
 end;
 
 end.

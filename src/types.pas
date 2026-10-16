@@ -627,6 +627,8 @@ type
 
   { A routine MenuCore.MenuHorizontal calls on every pass of its key wait. }
   TIdleProc = procedure;
+  { A menu command, passed to the menu that runs it: Shop.CounterMenu's Buy or Heal. }
+  TMenuAction = procedure;
   { The cells a spell reaches, for the spell-aim preview: a blast around the aim cell, Lightning Bolt's path from it, or
     Stinking Cloud's 2x2 block with the aim cell at its upper left. }
   TAimShape = (AimBlast, AimBolt, AimCloud);
