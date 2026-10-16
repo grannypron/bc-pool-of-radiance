@@ -203,14 +203,115 @@ var
   cyPos: Integer;
   dxF: Word;
   dyF: Word;
-  wx: Integer;
-  wy: Integer;
-  side: Byte;
-  symOfs: Integer;
   dist: Byte;
-  wallFront: Byte;
-  wallSide: Byte;
-  prevWall: Byte;
+
+  { The far row's fronts and their corner slot 9, from the centre cell walking walk (left or right) four cells; other
+    is the opposite side, corner the corner slice's column offset (+1 walking left, -1 right), step the fronts' column
+    step (-2, +2). }
+  procedure FarFronts(walk, other: Byte; corner, step: Integer);
+  var
+    wx: Integer;
+    wy: Integer;
+    side: Byte;
+    symOfs: Integer;
+    wallFront: Byte;
+    prevWall: Byte;
+  begin
+    wx := cxPos;
+    wy := cyPos;
+    side := 0;
+    symOfs := 0;
+    prevWall := 0;
+    while side < 4 do begin
+      wallFront := View3D.GetWallType(wx, wy, facing);
+      if not View3D.Valid3DCoords(wx, wy) and (View3D.GetWallType(wx, wy, other) = 0) then
+        prevWall := 0;
+      if wallFront <> 0 then begin
+        if prevWall > 0 then
+          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs + corner, GDConsts.viewSlotGeom.yRow[9],
+                               prevWall, 9);
+        prevWall := wallFront;
+        View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[0] + symOfs, GDConsts.viewSlotGeom.yRow[0], wallFront, 0);
+      end else begin
+        if (prevWall > 0) and
+           (View3D.GetWallType(wx - GDConsts.dirDX[walk], wy - GDConsts.dirDY[walk], walk) <> 0) then
+          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs + corner, GDConsts.viewSlotGeom.yRow[9],
+                               prevWall, 9);
+        prevWall := 0;
+      end;
+      Inc(side);
+      Inc(symOfs, step);
+      wx := wx + GDConsts.dirDX[walk];
+      wy := wy + GDConsts.dirDY[walk];
+    end;
+  end;
+
+  { The far row's side walls facing dir (left, slot 1; right, slot 2), from the centre cell walking dir three cells;
+    step is the column step (-2, +2) and adjust the extra column past the centre cell (-1, +1). }
+  procedure FarSides(dir, slot: Byte; step, adjust: Integer);
+  var
+    wx: Integer;
+    wy: Integer;
+    side: Byte;
+    symOfs: Integer;
+    wallSide: Byte;
+  begin
+    wx := cxPos;
+    wy := cyPos;
+    side := 0;
+    symOfs := 0;
+    while side < 3 do begin
+      wallSide := View3D.GetWallType(wx, wy, dir);
+      if wallSide <> 0 then
+        if side = 0 then
+          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[slot] + symOfs, GDConsts.viewSlotGeom.yRow[slot], wallSide,
+                               slot)
+        else
+          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[slot] + symOfs + adjust, GDConsts.viewSlotGeom.yRow[slot],
+                               wallSide, slot);
+      Inc(side);
+      Inc(symOfs, step);
+      wx := wx + GDConsts.dirDX[dir];
+      wy := wy + GDConsts.dirDY[dir];
+    end;
+  end;
+
+  { A middle or near row's fronts (frontSlot) and the side walls facing sideDir (sideSlot): count cells from cells
+    cells toward start, scanning toward scan, the columns from symStart in steps of symStep. }
+  procedure FrontsAndSides(start, cells, count: Byte; symStart, symStep: Integer; frontSlot, sideDir, sideSlot,
+                           scan: Byte);
+  var
+    wx: Integer;
+    wy: Integer;
+    side: Byte;
+    symOfs: Integer;
+    wallFront: Byte;
+    wallSide: Byte;
+  begin
+    wx := cxPos;
+    wy := cyPos;
+    for side := 1 to cells do begin
+      wx := wx + GDConsts.dirDX[start];
+      wy := wy + GDConsts.dirDY[start];
+    end;
+    side := 0;
+    symOfs := symStart;
+    while side < count do begin
+      wallFront := View3D.GetWallType(wx, wy, facing);
+      if wallFront <> 0 then
+        View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[frontSlot] + symOfs, GDConsts.viewSlotGeom.yRow[frontSlot],
+                             wallFront, frontSlot);
+      wallSide := View3D.GetWallType(wx, wy, sideDir);
+      if wallSide <> 0 then
+        View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[sideSlot] + symOfs, GDConsts.viewSlotGeom.yRow[sideSlot],
+                             wallSide, sideSlot);
+      Inc(side);
+      Inc(symOfs, symStep);
+      wx := wx + GDConsts.dirDX[scan];
+      wy := wy + GDConsts.dirDY[scan];
+    end;
+  end;
+
 begin
   if GDVars.automapOn then
     View3D.DrawAutoMap(x, y, facing)
@@ -229,172 +330,22 @@ begin
     repeat
       case dist of
         2: begin
-          { far row: fronts + corner slot 9, walking LEFT }
-          wx := cxPos;
-          wy := cyPos;
-          side := 0;
-          symOfs := 0;
-          prevWall := 0;
-          while side < 4 do begin
-            wallFront := View3D.GetWallType(wx, wy, facing);
-            if not View3D.Valid3DCoords(wx, wy) and (View3D.GetWallType(wx, wy, fR) = 0) then
-              prevWall := 0;
-            if wallFront <> 0 then begin
-              if prevWall > 0 then
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs + 1, GDConsts.viewSlotGeom.yRow[9],
-                                     prevWall, 9);
-              prevWall := wallFront;
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[0] + symOfs, GDConsts.viewSlotGeom.yRow[0], wallFront, 0);
-            end else begin
-              if (prevWall > 0) and (View3D.GetWallType(wx - GDConsts.dirDX[fL], wy - GDConsts.dirDY[fL], fL) <> 0) then
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs + 1, GDConsts.viewSlotGeom.yRow[9],
-                                     prevWall, 9);
-              prevWall := 0;
-            end;
-            Inc(side);
-            Dec(symOfs, 2);
-            wx := wx + GDConsts.dirDX[fL];
-            wy := wy + GDConsts.dirDY[fL];
-          end;
-          { far row: fronts + corner slot 9, walking RIGHT }
-          wx := cxPos;
-          wy := cyPos;
-          side := 0;
-          symOfs := 0;
-          prevWall := 0;
-          while side < 4 do begin
-            wallFront := View3D.GetWallType(wx, wy, facing);
-            if not View3D.Valid3DCoords(wx, wy) and (View3D.GetWallType(wx, wy, fL) = 0) then
-              prevWall := 0;
-            if wallFront <> 0 then begin
-              if prevWall > 0 then
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs - 1, GDConsts.viewSlotGeom.yRow[9],
-                                     prevWall, 9);
-              prevWall := wallFront;
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[0] + symOfs, GDConsts.viewSlotGeom.yRow[0], wallFront, 0);
-            end else begin
-              if (prevWall > 0) and (View3D.GetWallType(wx - GDConsts.dirDX[fR], wy - GDConsts.dirDY[fR], fR) <> 0) then
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs - 1, GDConsts.viewSlotGeom.yRow[9],
-                                     prevWall, 9);
-              prevWall := 0;
-            end;
-            Inc(side);
-            Inc(symOfs, 2);
-            wx := wx + GDConsts.dirDX[fR];
-            wy := wy + GDConsts.dirDY[fR];
-          end;
-          { far row left-side walls, slot 1 }
-          wx := cxPos;
-          wy := cyPos;
-          side := 0;
-          symOfs := 0;
-          while side < 3 do begin
-            wallSide := View3D.GetWallType(wx, wy, fL);
-            if wallSide <> 0 then
-              if side = 0 then
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[1] + symOfs, GDConsts.viewSlotGeom.yRow[1], wallSide, 1)
-              else
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[1] + symOfs - 1, GDConsts.viewSlotGeom.yRow[1],
-                                     wallSide, 1);
-            Inc(side);
-            Dec(symOfs, 2);
-            wx := wx + GDConsts.dirDX[fL];
-            wy := wy + GDConsts.dirDY[fL];
-          end;
-          { far row right-side walls, slot 2 }
-          wx := cxPos;
-          wy := cyPos;
-          side := 0;
-          symOfs := 0;
-          while side < 3 do begin
-            wallSide := View3D.GetWallType(wx, wy, fR);
-            if wallSide <> 0 then
-              if side = 0 then
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[2] + symOfs, GDConsts.viewSlotGeom.yRow[2], wallSide, 2)
-              else
-                View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[2] + symOfs + 1, GDConsts.viewSlotGeom.yRow[2],
-                                     wallSide, 2);
-            Inc(side);
-            Inc(symOfs, 2);
-            wx := wx + GDConsts.dirDX[fR];
-            wy := wy + GDConsts.dirDY[fR];
-          end;
+          FarFronts(fL, fR, 1, -2);
+          FarFronts(fR, fL, -1, 2);
+          FarSides(fL, 1, -2, -1);
+          FarSides(fR, 2, 2, 1);
         end;
         1: begin
-          { middle row: from 2-left, scanning right; fronts slot 3 + left sides slot 4 }
-          wx := cxPos + GDConsts.dirDX[fL];
-          wx := wx + GDConsts.dirDX[fL];
-          wy := cyPos + GDConsts.dirDY[fL];
-          wy := wy + GDConsts.dirDY[fL];
-          side := 0;
-          symOfs := -6;
-          while side < 3 do begin
-            wallFront := View3D.GetWallType(wx, wy, facing);
-            if wallFront <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[3] + symOfs, GDConsts.viewSlotGeom.yRow[3], wallFront, 3);
-            wallSide := View3D.GetWallType(wx, wy, fL);
-            if wallSide <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[4] + symOfs, GDConsts.viewSlotGeom.yRow[4], wallSide, 4);
-            Inc(side);
-            Inc(symOfs, 3);
-            wx := wx + GDConsts.dirDX[fR];
-            wy := wy + GDConsts.dirDY[fR];
-          end;
-          { middle row: from 2-right, scanning left; fronts slot 3 + right sides slot 5 }
-          wx := cxPos + GDConsts.dirDX[fR];
-          wx := wx + GDConsts.dirDX[fR];
-          wy := cyPos + GDConsts.dirDY[fR];
-          wy := wy + GDConsts.dirDY[fR];
-          side := 0;
-          symOfs := 6;
-          while side < 3 do begin
-            wallFront := View3D.GetWallType(wx, wy, facing);
-            if wallFront <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[3] + symOfs, GDConsts.viewSlotGeom.yRow[3], wallFront, 3);
-            wallSide := View3D.GetWallType(wx, wy, fR);
-            if wallSide <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[5] + symOfs, GDConsts.viewSlotGeom.yRow[5], wallSide, 5);
-            Inc(side);
-            Dec(symOfs, 3);
-            wx := wx + GDConsts.dirDX[fL];
-            wy := wy + GDConsts.dirDY[fL];
-          end;
+          { middle row: from 2-left scanning right, fronts slot 3 + left sides slot 4; then from 2-right scanning left,
+            right sides slot 5 }
+          FrontsAndSides(fL, 2, 3, -6, 3, 3, fL, 4, fR);
+          FrontsAndSides(fR, 2, 3, 6, -3, 3, fR, 5, fL);
         end;
         0: begin
-          { near row: left cell + centre; fronts slot 6 + left slot 7 }
-          wx := cxPos + GDConsts.dirDX[fL];
-          wy := cyPos + GDConsts.dirDY[fL];
-          side := 0;
-          symOfs := -7;
-          while side < 2 do begin
-            wallFront := View3D.GetWallType(wx, wy, facing);
-            if wallFront <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[6] + symOfs, GDConsts.viewSlotGeom.yRow[6], wallFront, 6);
-            wallSide := View3D.GetWallType(wx, wy, fL);
-            if wallSide <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[7] + symOfs, GDConsts.viewSlotGeom.yRow[7], wallSide, 7);
-            Inc(side);
-            Inc(symOfs, 7);
-            wx := wx + GDConsts.dirDX[fR];
-            wy := wy + GDConsts.dirDY[fR];
-          end;
-          { near row: right cell + centre; fronts slot 6 + right slot 8 }
-          wx := cxPos + GDConsts.dirDX[fR];
-          wy := cyPos + GDConsts.dirDY[fR];
-          side := 0;
-          symOfs := 7;
-          while side < 2 do begin
-            wallFront := View3D.GetWallType(wx, wy, facing);
-            if wallFront <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[6] + symOfs, GDConsts.viewSlotGeom.yRow[6], wallFront, 6);
-            wallSide := View3D.GetWallType(wx, wy, fR);
-            if wallSide <> 0 then
-              View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[8] + symOfs, GDConsts.viewSlotGeom.yRow[8], wallSide, 8);
-            Inc(side);
-            Dec(symOfs, 7);
-            wx := wx + GDConsts.dirDX[fL];
-            wy := wy + GDConsts.dirDY[fL];
-          end;
+          { near row: the left cell and the centre, fronts slot 6 + left slot 7; then the right cell and the centre,
+            right slot 8 }
+          FrontsAndSides(fL, 1, 2, -7, 7, 6, fL, 7, fR);
+          FrontsAndSides(fR, 1, 2, 7, -7, 6, fR, 8, fL);
         end;
       end;
       cxPos := cxPos + GDConsts.dirDX[fB];
