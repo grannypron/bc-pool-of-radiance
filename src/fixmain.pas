@@ -36,6 +36,7 @@ uses Types,
 {$O CbtActs}
 {$O Explore}
 {$O Options}
+{$O JrnlList}
 {$O JrnlView}
 {$O Journal4}
 {$O Journal3}
