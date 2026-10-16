@@ -43,6 +43,9 @@ procedure WriteGbvmString(address: Word; s: String);
 { Step IP past the command at IP without running it, loading its operands as its handler does }
 procedure SkipEclCmd;
 
+{ The GBVM zone address is in: 0..2 the word zones, 3 the script, 4 everything else (the special cells). }
+function GbvmZone(address: Word): Byte;
+
 implementation
 
 uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp;
