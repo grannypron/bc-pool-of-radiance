@@ -115,19 +115,45 @@ begin
   end;
 end;
 
+{ How many of the current character's memorized and pending spells are of this class and level; an id outside the
+  spell table counts for none. }
+function SlotsUsed(lvl, typ: ShortInt): Byte;
+var
+  count: Byte;
+  i: Byte;
+  id: Byte;
+begin
+  count := 0;
+  for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do begin
+    id := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+    if (id >= 1) and (id <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
+      if (GDConsts.spellTable[id].levelSp = lvl) and (GDConsts.spellTable[id].castClassSp = typ) then
+        Inc(count);
+  end;
+  SlotsUsed := count;
+end;
+
+{ Put spell id, pending, in the current character's first empty memorized-spell slot; placed is False when every
+  slot is taken. }
+procedure PutPending(id: Byte; var placed: Boolean);
+var
+  i: Byte;
+begin
+  i := 0;
+  while (i < SizeOf(GDVars.curChar^.memorizedSpells)) and (GDVars.curChar^.memorizedSpells[i] <> 0) do
+    Inc(i);
+  placed := i < SizeOf(GDVars.curChar^.memorizedSpells);
+  if placed then
+    GDVars.curChar^.memorizedSpells[i] := id + C_Spell.PENDING_FLAG;
+end;
+
 { Return the current character's spell allowance for a class and level minus its memorized and pending spells of that
   class and level, or 0 when as many or more are memorized than allowed (e.g. after level drain). }
 function SpellSlotsRemaining(lvl, typ: ShortInt): Byte;
 var
   count: Byte;
-  i: Byte;
 begin
-  count := 0;
-  for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do
-    if GDVars.curChar^.memorizedSpells[i] > 0 then
-      if (GDConsts.spellTable[GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK].levelSp = lvl) and
-          (GDConsts.spellTable[GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK].castClassSp = typ) then
-        Inc(count);
+  count := Camp.SlotsUsed(lvl, typ);
   if count >= GDVars.curChar^.slots[typ, lvl] then
     SpellSlotsRemaining := 0
   else
@@ -307,24 +333,12 @@ begin
 end;
 
 { True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it bounds the
-  level (levels past 3 have no slots) and skips memorized ids outside the spell table. }
+  level (levels past 3 have no slots) and the class. }
 function SlotFree(lvl, typ: ShortInt): Boolean;
-var
-  count: Integer;
-  i: Byte;
-  id: Byte;
 begin
   SlotFree := False;
-  if (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1) then begin
-    count := 0;
-    for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do begin
-      id := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
-      if (id >= 1) and (id <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
-        if (GDConsts.spellTable[id].levelSp = lvl) and (GDConsts.spellTable[id].castClassSp = typ) then
-          Inc(count);
-    end;
-    SlotFree := count < GDVars.curChar^.slots[typ, lvl];
-  end;
+  if (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1) then
+    SlotFree := Camp.SlotsUsed(lvl, typ) < GDVars.curChar^.slots[typ, lvl];
 end;
 
 { Mark as pending each of the current character's usual spells that it lacks, still knows and has a free slot for, in
@@ -335,9 +349,9 @@ var
   have: Types.TSpellSlots;
   i: Byte;
   j: Byte;
-  k: Byte;
   id: Byte;
   found: Boolean;
+  placed: Boolean;
 begin
   if SaveLoad.GetUsualSpells(GDVars.curChar, usual) then begin
     for i := 0 to SizeOf(have) - 1 do
@@ -353,13 +367,8 @@ begin
             found := True;
           end;
         if (not found) and (GDVars.curChar^.spellsKnown[id] <> 0) then
-          if Camp.SlotFree(GDConsts.spellTable[id].levelSp, GDConsts.spellTable[id].castClassSp) then begin
-            k := 0;
-            while (k < SizeOf(GDVars.curChar^.memorizedSpells)) and (GDVars.curChar^.memorizedSpells[k] <> 0) do
-              Inc(k);
-            if k < SizeOf(GDVars.curChar^.memorizedSpells) then
-              GDVars.curChar^.memorizedSpells[k] := id + C_Spell.PENDING_FLAG;
-          end;
+          if Camp.SlotFree(GDConsts.spellTable[id].levelSp, GDConsts.spellTable[id].castClassSp) then
+            Camp.PutPending(id, placed);
       end;
     end;
     Camp.SortMemorizedSpells;
@@ -379,6 +388,7 @@ var
   i: Byte;
   idx: Integer;
   pending: Boolean;
+  placed: Boolean;
 begin
   if Camp.CanDoSpellActivity(ACT_MEMORIZE) then begin
     done := False;
@@ -414,13 +424,9 @@ begin
                                          GDConsts.spellTable[spellId].castClassSp) > 0
         then begin
           { Sorting puts empty spell slots first; a full array takes nothing }
-          i := 0;
-          while (i < SizeOf(GDVars.curChar^.memorizedSpells)) and (GDVars.curChar^.memorizedSpells[i] <> 0) do
-            Inc(i);
-          if i < SizeOf(GDVars.curChar^.memorizedSpells) then begin
-            GDVars.curChar^.memorizedSpells[i] := spellId + C_Spell.PENDING_FLAG;
+          Camp.PutPending(spellId, placed);
+          if placed then
             Camp.SortMemorizedSpells;
-          end;
         end;
       end;
     end;

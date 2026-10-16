@@ -184,7 +184,7 @@ var
 begin
   p := Explore.FindCharWithSpell(C_Spell.KNOCK);
   if p <> nil then begin
-    p^.memorizedSpells[Explore.FindMemorizedSpell(C_Spell.KNOCK, p)] := 0;
+    CharHlp.RemoveSpell(p, C_Spell.KNOCK);
     Explore.OpenBarrierAhead;
     PartyCastsKnock := True;
   end else
