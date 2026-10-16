@@ -9,7 +9,7 @@ procedure GameInit2;
 implementation
 
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp;
+  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D;
 
 { Install every spell handler in GDVars.spellFns, the noncombat cast-target menu, and Magic.DragonBreathHandler as
   effect 88's handler; clear effectLock, GDVars.usingItem and GDVars.castTarget, and set dsRedrawInventoryMenuFlag. }
@@ -387,6 +387,8 @@ begin
   CbtMap.boltTracer := Magic.TraceLightningBolt;
   GameIo.showMemory := MemShow.ShowMemory;
   CharHlp.faultHook := CharDisp.ShowFault;
+  EclVars.diskHook := DaxIo.PushState;
+  EclVars.wallSetHook := View3D.LoadWallSet;
 end;
 
 end.

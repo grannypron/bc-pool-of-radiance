@@ -6,6 +6,17 @@ unit EclVars;
 
 interface
 
+type
+  { what a script's write to the disk cell does: DaxIo.PushState }
+  TDiskHook = procedure(disk: Byte);
+  { what a script's write to a wall-set cell does: View3D.LoadWallSet }
+  TWallSetHook = procedure(fileId, slot: Byte);
+
+var
+  { set by GameInit (a test program sets its own), so EclVars uses neither DaxIo nor View3D }
+  diskHook: TDiskHook;
+  wallSetHook: TWallSetHook;
+
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address. SSI quirk, kept: $80 (string value) also reads the GBVM, at an address
   made of the packed length as low byte and a stale upper byte; callers with a string value use its text instead. }
@@ -34,7 +45,7 @@ procedure SkipEclCmd;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, DaxIo, View3D;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -265,11 +276,11 @@ begin
       end;
     { disks 1..8 only }
     C_Gbvm.DISK_NUM:
-      if (value >= 1) and (value <= 8) then DaxIo.PushState(value);
+      if (value >= 1) and (value <= 8) then EclVars.diskHook(value);
     { $80 + id loads wall set id into slot 1, 2 or 3, the cells a word apart }
     C_Gbvm.WALLSET_LOAD1, C_Gbvm.WALLSET_LOAD2, C_Gbvm.WALLSET_LOAD3:
       if value > $80 then
-        View3D.LoadWallSet(value and $7F, (address - C_Gbvm.WALLSET_LOAD1) div 2 + 1);
+        EclVars.wallSetHook(value and $7F, (address - C_Gbvm.WALLSET_LOAD1) div 2 + 1);
   end;
   { the coins, copper to platinum, every other cell }
   if (address >= C_Gbvm.CHAR_COPPER) and (address <= C_Gbvm.CHAR_PLATINUM) and Odd(address) then
