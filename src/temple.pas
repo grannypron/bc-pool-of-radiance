@@ -83,29 +83,34 @@ var
   hp: Byte;
   c: Char;
   restored: Boolean;
+  name: Types.TStr40;
+  cost: Word;
+  bonus: Byte;
 begin
   case spell of
     1: begin
-         c := Temple.ConfirmCureCost('Cure Light Wounds', 100);
-         if c = 'Y' then begin
-           hp := FxEngine.RollDice(1, 8);
-           restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
-         end;
+         name := 'Cure Light Wounds';
+         cost := 100;
+         bonus := 0;
        end;
     2: begin
-         c := Temple.ConfirmCureCost('Cure Serious Wounds', 350);
-         if c = 'Y' then begin
-           hp := FxEngine.RollDice(2, 8) + 1;
-           restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
-         end;
+         name := 'Cure Serious Wounds';
+         cost := 350;
+         bonus := 1;
        end;
     3: begin
-         c := Temple.ConfirmCureCost('Cure Critical Wounds', 600);
-         if c = 'Y' then begin
-           hp := FxEngine.RollDice(3, 8) + 3;
-           restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
-         end;
+         name := 'Cure Critical Wounds';
+         cost := 600;
+         bonus := 3;
        end;
+  else
+    Exit;
+  end;
+  c := Temple.ConfirmCureCost(name, cost);
+  if c = 'Y' then begin
+    { spell d8, plus the bonus }
+    hp := FxEngine.RollDice(spell, 8) + bonus;
+    restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
   end;
 end;
 
