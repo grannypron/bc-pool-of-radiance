@@ -26,8 +26,6 @@ procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var
 
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
-procedure SelectPrevNextChar(c: Char);
-
 
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
@@ -1177,32 +1175,6 @@ begin
   if Money.CheckOverload(creature, w, takable) then
     f := True;
   CannotCarryItem := f;
-end;
-
-{ Step curChar through the party on the extended scan codes the menus return: C_Keys.HOME selects the previous character
-  and C_Keys.END_KEY the next. C_Keys.HOME from the head wraps to the tail; C_Keys.END_KEY from the tail wraps to the
-  head; any other code selects the head. }
-procedure SelectPrevNextChar(c: Char);
-var
-  p: Types.PCharRecord;
-begin
-  p := GDVars.creatureList;
-  if p <> nil then
-    case c of
-      C_Keys.HOME:
-        if p = GDVars.curChar then begin
-          while p^.nextCharAddr <> nil do
-            p := p^.nextCharAddr;
-        end else
-          while (p <> nil) and (p^.nextCharAddr <> GDVars.curChar) do
-            p := p^.nextCharAddr;
-      C_Keys.END_KEY:
-        if GDVars.curChar^.nextCharAddr <> nil then
-          p := GDVars.curChar^.nextCharAddr;
-    else
-      p := GDVars.creatureList;
-    end;
-  GDVars.curChar := p;
 end;
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a

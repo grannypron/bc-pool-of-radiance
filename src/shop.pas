@@ -17,7 +17,7 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 implementation
 
 uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend, Temple,
-  CharDisp, MoneyCal;
+  CharDisp, MoneyCal, Party;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
   to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.PrintItemString. Returns
@@ -192,7 +192,7 @@ begin
                          'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ',
                          'Do you want to go back and get your Money?');
            end;
-      C_Keys.HOME, C_Keys.END_KEY: ViewChar.SelectPrevNextChar(c);
+      C_Keys.HOME, C_Keys.END_KEY: Party.SelectPrevNextChar(c);
     end;
     case c of
       'B', 'T': CharDisp.DisplayNoncombatInterface;

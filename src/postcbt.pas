@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 implementation
 
 uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
-  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar, CharDisp;
+  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar, CharDisp, Party;
 
 const
   { AwardExperience: prime stat > 15 earns a 10% bonus }
@@ -377,8 +377,8 @@ begin
                end;
           'I': PostCbt.LootTakeItemMenu;
           'E', C_Keys.NONE: done := True;
-          'G': ViewChar.SelectPrevNextChar(c);
-          'O': ViewChar.SelectPrevNextChar(c);
+          'G': Party.SelectPrevNextChar(c);
+          'O': Party.SelectPrevNextChar(c);
         end;
         CharDisp.DisplayParty(GDVars.curChar);
         Money.DetermineTreasure(treasure, items);
@@ -450,11 +450,11 @@ begin
                                                'Do you want to go back and claim your treasure?');
                end;
       'G': begin
-             ViewChar.SelectPrevNextChar(c);
+             Party.SelectPrevNextChar(c);
              CharDisp.DisplayParty(GDVars.curChar);
            end;
       'O': begin
-             ViewChar.SelectPrevNextChar(c);
+             Party.SelectPrevNextChar(c);
              CharDisp.DisplayParty(GDVars.curChar);
            end;
     end;

@@ -37,7 +37,7 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 implementation
 
 uses Crt, GDVars, C_Msg, C_Ifc, C_Keys, Dos, CharHlp, MenuCore, TextRend, Money, PostCbt, ViewChar, SaveLoad, DaxIo,
-  FileUtil, CharDisp;
+  FileUtil, CharDisp, Party;
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -262,7 +262,7 @@ begin
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       if (c = C_Keys.HOME) or (c = C_Keys.END_KEY) then
-        ViewChar.SelectPrevNextChar(c);
+        Party.SelectPrevNextChar(c);
     end else
       case c of
         'V': ViewChar.ViewCharMenu(ext);

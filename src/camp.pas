@@ -18,7 +18,7 @@ implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
   FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp;
+  CharDisp, Party;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -644,7 +644,7 @@ begin
   while (interrupted = False) and (not (c in [C_Keys.NONE, 'E'])) do begin
     c := MenuCore.MenuHorizontal('', GDConsts.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
-      ViewChar.SelectPrevNextChar(c);
+      Party.SelectPrevNextChar(c);
       CharDisp.DisplayParty(GDVars.curChar);
     end else
       case c of
@@ -733,7 +733,7 @@ begin
                                  White, True, True, ext);
     if ext then begin
       if selected = 0 then begin
-        ViewChar.SelectPrevNextChar(c);
+        Party.SelectPrevNextChar(c);
         CharDisp.DisplayParty(GDVars.curChar);
       end else begin
         case c of
@@ -795,7 +795,7 @@ begin
     c := MenuCore.MenuHorizontal('Alter: ', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
-      ViewChar.SelectPrevNextChar(c);
+      Party.SelectPrevNextChar(c);
       CharDisp.DisplayParty(GDVars.curChar);
     end else
       case c of
@@ -808,7 +808,7 @@ begin
                  s := 'Icon Exit';
                c2 := MenuCore.MenuHorizontal('Character: ', s, LightMagenta, LightGreen, White, True, True, ext);
                if ext then begin
-                 ViewChar.SelectPrevNextChar(c2);
+                 Party.SelectPrevNextChar(c2);
                  CharDisp.DisplayParty(GDVars.curChar);
                end else
                  case c2 of
@@ -1069,7 +1069,7 @@ begin
     c := MenuCore.MenuHorizontal('Camp: ', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
-      ViewChar.SelectPrevNextChar(c);
+      Party.SelectPrevNextChar(c);
       CharDisp.DisplayParty(GDVars.curChar);
     end else
       case c of

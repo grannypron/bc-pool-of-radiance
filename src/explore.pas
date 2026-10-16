@@ -17,7 +17,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
   C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime,
-  MenuCore, Portrait, TextRend, CharDisp;
+  MenuCore, Portrait, TextRend, CharDisp, Party;
 
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -359,7 +359,7 @@ begin
                C_Keys.F5: SaveLoad.QuickSave;
                C_Keys.F8: done := Explore.AskQuickLoad;
              else begin
-               ViewChar.SelectPrevNextChar(c);
+               Party.SelectPrevNextChar(c);
                CharDisp.DisplayParty(GDVars.curChar);
              end;
              end;
@@ -411,7 +411,7 @@ begin
                          end;
               C_Keys.F8: done := Explore.AskQuickLoad;
             else begin
-              ViewChar.SelectPrevNextChar(c);
+              Party.SelectPrevNextChar(c);
               CharDisp.DisplayParty(GDVars.curChar);
               done := False;
             end;
