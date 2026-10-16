@@ -21,10 +21,10 @@ uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewCh
 
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
-  nibbles are untouched, and coordinates outside 0..15 are ignored. }
+  nibbles are untouched, and coordinates outside the map (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
 begin
-  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
+  if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
     C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F;
     C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF;
@@ -33,17 +33,25 @@ begin
   end;
 end;
 
-{ ChangeBarrierPassable: set the facing's two BARRIER bits to 01 (type 1, open); coordinates outside 0..15 are
-  ignored. }
+{ ChangeBarrierPassable: set the facing's two BARRIER bits to 01 (type 1, open); coordinates outside the map
+  (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierPassable(x, y: ShortInt; facing: Byte);
 begin
-  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
+  if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
     C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F or $40;
     C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF or $10;
     C_Dir.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3 or $4;
     C_Dir.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC or $1;
   end;
+end;
+
+{ Open the barrier the party faces, from both sides: its own cell's side and the facing cell's opposite side. }
+procedure OpenBarrierAhead;
+begin
+  Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+  Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
+                                GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
 end;
 
 { Return True if any party member has a level in the requested class. }
@@ -114,9 +122,7 @@ begin
     p := p^.nextCharAddr;
   end;
   if success then begin
-    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+    Explore.OpenBarrierAhead;
   end;
   BashDoor := success;
 end;
@@ -139,9 +145,7 @@ begin
   end;
   GDVars.doorOpen[1] := 0;
   if success then begin
-    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+    Explore.OpenBarrierAhead;
   end;
   PickLock := success;
 end;
@@ -181,9 +185,7 @@ begin
   p := Explore.FindCharWithSpell(C_Spell.KNOCK);
   if p <> nil then begin
     p^.memorizedSpells[Explore.FindMemorizedSpell(C_Spell.KNOCK, p)] := 0;
-    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+    Explore.OpenBarrierAhead;
     PartyCastsKnock := True;
   end else
     PartyCastsKnock := False;
