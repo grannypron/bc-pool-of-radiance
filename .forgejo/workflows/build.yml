@@ -21,6 +21,8 @@
 # Pull requests from forks never run: their code would run in that image. The checkout is a plain git fetch from this
 # forge rather than actions/checkout, so nothing is downloaded from anywhere else.
 
+# 2026-10-16 - bms - Forgejo splits the YAML up when doing job parsing, so YAML anchors don't work as intended. Removed
+#                    the container and checkout anchor definitions; cut and paste for the win.
 name: build
 
 on:
@@ -40,7 +42,7 @@ jobs:
     runs-on: docker
     # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
     timeout-minutes: 20
-    container: &ci-container
+    container:
       image: ${{ vars.CI_IMAGE }}
       credentials:
         username: ${{ secrets.REGISTRY_USER || 'none' }}
@@ -50,7 +52,40 @@ jobs:
       TOOLS: /drive_d
     steps:
       # All branches and tags: reproduce.sh builds SSI's release tags, and a release names one.
-      - &checkout
+      - name: Check out
+        env:
+          SERVER: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$PWD"
+          git init -q .
+          git remote add origin "$SERVER/$REPOSITORY.git"
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
+          git checkout -q --detach "$SHA"
+      - name: Build and run the unit tests
+        run: ./build.sh --test
+
+  reproduce:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: docker
+    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    timeout-minutes: 20
+    container:
+      image: ${{ vars.CI_IMAGE }}
+      credentials:
+        username: ${{ secrets.REGISTRY_USER || 'none' }}
+        password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
+    strategy:
+      matrix:
+        # Keep in step with the tags in .forgejo/ssi-releases.txt.
+        tag: [v1.1, v1.2, v1.3]
+    env:
+      TOOLS: /drive_d
+    steps:
         name: Check out
         env:
           SERVER: ${{ github.server_url }}
@@ -65,25 +100,6 @@ jobs:
           auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
           git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
           git checkout -q --detach "$SHA"
-
-      - name: Build and run the unit tests
-        run: ./build.sh --test
-
-  reproduce:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: docker
-    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
-    timeout-minutes: 20
-    container: *ci-container
-    strategy:
-      matrix:
-        # Keep in step with the tags in .forgejo/ssi-releases.txt.
-        tag: [v1.1, v1.2, v1.3]
-    env:
-      TOOLS: /drive_d
-    steps:
-      - *checkout
-
       - name: Rebuild ${{ matrix.tag }} and compare with SSI's release
         run: .forgejo/scripts/reproduce.sh "${{ matrix.tag }}"
 
@@ -93,14 +109,30 @@ jobs:
     runs-on: docker
     # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
     timeout-minutes: 20
-    container: *ci-container
+    container:
+      image: ${{ vars.CI_IMAGE }}
+      credentials:
+        username: ${{ secrets.REGISTRY_USER || 'none' }}
+        password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
     env:
       TOOLS: /drive_d
       # The version being released: the dispatched tag, or the pushed one.
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - *checkout
-
+        name: Check out
+        env:
+          SERVER: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$PWD"
+          git init -q .
+          git remote add origin "$SERVER/$REPOSITORY.git"
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c http.extraHeader="$auth" fetch -q --tags origin '+refs/heads/*:refs/remotes/origin/*' "+$REF:refs/ci/head"
+          git checkout -q --detach "$SHA"
       - name: Use the dispatched tag's source
         if: github.event_name == 'workflow_dispatch'
         run: |
