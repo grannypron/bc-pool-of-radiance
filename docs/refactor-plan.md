@@ -146,7 +146,7 @@ ResolveSpell, CastOneSide, HasteSlowLogic, the statistics' attribution in Inflic
 parameters they would have every handler pass `GDVars.curChar` along, or change 68 spell and 141 effect handler
 signatures, for no less coupling.
 
-## Phase 5: working sets, cycles, duplication, testability (proposed)
+## Phase 5: working sets, cycles, duplication, testability
 
 Written 2026-10-16 from three surveys of `src/` at 62ec8f6: what duplication is left, structure and coupling, and
 memory (code by unit from FIXMAIN.MAP, the data segment, overlay working sets, and stack frames read from the
@@ -266,6 +266,46 @@ changes behaviour is its own issue and commit.
 - **GDConsts.** The ECL reads only `soundIds`, by name.
 - **A test of the address map.** Before step 5 touches any global the map names, step 4's EclVars extraction adds
   tests that read and write each special address.
+
+**Done.** Every step was made except the four items below, which were declined for the reasons given. The regression
+suite passes at each measured commit, ssiformat included.
+
+- **Overlay working sets (steps 0 and 1):** combat's Ctrl-Y count went from 52 to 41 loads, areachange's from 32 to
+  27, and the vault's from 32 to 30. JrnlList is overlaid.
+- **Cycles (step 2):** all eight implementation cycles are gone. ShowMemory went to a resident unit of its own,
+  MemShow, so the Ctrl-Y display loads no overlay. VaultMnu is a unit of its own.
+- **Duplication and names (step 3):** the list, clearing, menu, View3D and Blit copies became one routine each. The
+  GBVM addresses are named in C_Gbvm, with the map checked label by label.
+- **Testability (step 4):**
+  - New units: Dice (#642) and Clock, both resident; RandItem and UsualSpl, both overlaid.
+  - CharHlp now reaches the screen only through a hook. ClassCal holds the hit-point and experience rules. EclVars
+    reaches DaxIo and View3D through hooks.
+  - Nine new test programs: TCharHlp, TClock, TDataArc, TEclTrc, TEclVars, TJrnl, TPathing, TRandItm and TUsualSp.
+    TAbilAdj and TClasCal were extended.
+- **GDVars (step 5):**
+  - Removed: seven dead globals, the five script registers (now explicit arms of the GBVM map), and three unused
+    GDConsts tables.
+  - Locals or parameters: six scratch globals.
+  - Private to their units: 55 globals, among them CombatSt's placement tables.
+  - `baseItems` is one array of 129. The saved game's map position is five reads and writes.
+  - Magic's and FxEngine's interfaces use only Types. 24 forward declarations are gone (one fewer than the survey
+    counted).
+- **Data and stack (step 6):**
+  - `gbStrings` and `baseItems` moved to the heap. Three spell-name tables got shorter string types.
+  - CalcDistance's 549 extra bytes of stack are gone. NonWeaponDamage's frame is smaller. A level drain no longer
+    loads Debug.
+- **Sizes:**
+  - Resident code: 67,632 → 65,056 bytes.
+  - Data: 44,158 → 35,892 bytes (29,628 free).
+  - Overlays: about 331,900 → 325,906 bytes.
+
+Declined:
+- **The handlers in the EffHndlr and Magic interfaces stay there.** GameInit fills the dispatch tables by name, which
+  keeps that code out of the overlays (step 1).
+- **`nameParts` is not packed.** TP 6 string literals stop at 255 characters, so the 255 names would become rows of
+  run-together text. With 29 KB of data free, that is not worth 3 KB.
+- **DataPat's fix table and DataBld's state stay in the data segment.** DataPat's are typed constants, and moving them
+  would lose each fix's commented source. DataBld's are about 700 bytes.
 
 Separate, because they change behaviour:
 - POR-0166 (#640): Space in combat treats animated creatures differently on the menu and during the AI's turn.
