@@ -2103,12 +2103,24 @@ begin
   ConHpBonus := bonus;
 end;
 
+{ (sum + conB) div clsCount, the hit points a multi-class character's classes share; 1 when a negative conB would
+  leave sum no more than |conB| + clsCount. }
+function DivideAmongClasses(sum: Byte; conB: ShortInt; clsCount: Byte): Byte;
+begin
+  if conB < 0 then begin
+    if sum > Abs(conB) + clsCount then
+      DivideAmongClasses := (sum + conB) div clsCount
+    else
+      DivideAmongClasses := 1;
+  end else
+    DivideAmongClasses := (sum + conB) div clsCount;
+end;
+
 { HpMinimum: Lowest legal hpMax: one point per level in each class (plus 1 for a ranger or monk), plus the Con bonus,
   divided by the class count; 1 if a negative bonus would leave too little }
 function HpMinimum(creature: Types.PCharRecord): Byte;
 var
   clsCount: Byte;
-  conB: ShortInt;
   sum: Byte;
   cls: ShortInt;
 begin
@@ -2125,15 +2137,7 @@ begin
         end;
       end;
   end;
-  conB := CharGen.ConHpBonus(creature, $FF);
-  if conB < 0 then begin
-    if sum > Abs(conB) + clsCount then
-      sum := (sum + conB) div clsCount
-    else
-      sum := 1;
-  end else
-    sum := (sum + conB) div clsCount;
-  HpMinimum := sum;
+  HpMinimum := CharGen.DivideAmongClasses(sum, CharGen.ConHpBonus(creature, $FF), clsCount);
 end;
 
 { HpMaximum: Highest legal hpMax: the top of each class's hit dice -- cleric and druid d8 per level, fighter and paladin
@@ -2144,7 +2148,6 @@ function HpMaximum(creature: Types.PCharRecord): Byte;
 var
   clsCount: Byte;
   sum: Byte;
-  conB: ShortInt;
   cls: ShortInt;
 begin
   with creature^ do begin
@@ -2166,15 +2169,7 @@ begin
       end;
   end;
   { Con bonus of curChar, not creature }
-  conB := CharGen.ConHpBonus(GDVars.curChar, $FF);
-  if conB < 0 then begin
-    if sum > Abs(conB) + clsCount then
-      sum := (sum + conB) div clsCount
-    else
-      sum := 1;
-  end else
-    sum := (sum + conB) div clsCount;
-  HpMaximum := sum;
+  HpMaximum := CharGen.DivideAmongClasses(sum, CharGen.ConHpBonus(GDVars.curChar, $FF), clsCount);
 end;
 
 { RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
