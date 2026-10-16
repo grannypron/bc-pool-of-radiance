@@ -48,10 +48,16 @@ procedure DisplayCombatInterface;
 
 procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PCharRecord);
 
+{ Build the item's label (CharHlp.ItemLabel, not as an inventory line) and print it in light green at (col, row). }
+procedure PrintItemLabel(item: Types.PItemRec; col, row: Byte);
+
+{ CharHlp.faultHook: show msg in yellow on the bottom line and wait for a key. }
+procedure ShowFault(msg: Types.TStr40);
+
 implementation
 
 uses CharHlp, Crt, C_Area, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm;
+  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
 
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
@@ -145,7 +151,7 @@ begin
   if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     Inc(row, 2);
     col := 23;
-    CharHlp.PrintItemString(creature^.equipped[C_Equip.WEAPON], 0, 0, False, False);
+    CharHlp.ItemLabel(creature^.equipped[C_Equip.WEAPON], False);
     TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
                                   creature^.equipped[C_Equip.WEAPON]^.name);
   end;
@@ -165,6 +171,22 @@ begin
   Border.ClearBox(0, 24, 39, 24);
 end;
 
+{ Ready the bottom message window outside combat and return its top row: row MESSAGE_TOP + 1 when
+  dsSuppressDrawingBorderFlag is set, else MESSAGE_TOP with the border drawn round it; the window is cleared. }
+function OpenMessageWindow: Byte;
+var
+  top: Byte;
+begin
+  if GDVars.dsSuppressDrawingBorderFlag <> 0 then
+    top := C_Msg.MESSAGE_TOP + 1
+  else begin
+    top := C_Msg.MESSAGE_TOP;
+    Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  end;
+  Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  OpenMessageWindow := top;
+end;
+
 { Show "<name> <text>" in the message window: in combat, the combat window from column 23 at row; otherwise the
   full-width bottom window (bordered unless dsSuppressDrawingBorderFlag is set), the name on its first line and the text
   word-wrapped below. With pause, wait for a key and clear the window. }
@@ -173,17 +195,12 @@ var
   top: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(23, row, 38, 21);
-    CharDisp.DisplayCreatureName(creature, 23, row, False);
-    TextRend.DisplayMessageWindow(23, row + 1, 38, 21, LightGreen, True, s);
+    Border.ClearBox(C_Msg.COMBAT_LEFT, row, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
+    CharDisp.DisplayCreatureName(creature, C_Msg.COMBAT_LEFT, row, False);
+    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, row + 1, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM, LightGreen, True,
+                                  s);
   end else begin
-    if GDVars.dsSuppressDrawingBorderFlag <> 0 then
-      top := 18
-    else begin
-      top := C_Msg.MESSAGE_TOP;
-      Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-    end;
-    Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    top := CharDisp.OpenMessageWindow;
     CharDisp.DisplayCreatureName(creature, 1, top + 1, False);
     TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1 + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True,
                                   s);
@@ -202,16 +219,11 @@ var
   top: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(23, 10, 38, 21);
-    TextRend.DisplayMessageWindow(23, 10, 38, 21, LightGreen, True, s);
+    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
+    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM,
+                                  LightGreen, True, s);
   end else begin
-    if GDVars.dsSuppressDrawingBorderFlag <> 0 then
-      top := 18
-    else begin
-      top := C_Msg.MESSAGE_TOP;
-      Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-    end;
-    Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    top := CharDisp.OpenMessageWindow;
     TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True, s);
   end;
   TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
@@ -222,9 +234,9 @@ end;
 procedure ClearMessageWindow;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then
-    Border.ClearBox(23, 10, 38, 21)
+    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM)
   else
-    Border.ClearBox(C_Msg.TEXT_LEFT, 18, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
 end;
 
 { Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to
@@ -495,7 +507,7 @@ end;
   the picture inset border when asked. }
 procedure DrawNoncombatWindows(inset: Boolean);
 begin
-  Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   Border.DrawWindow(1, 1, 15, 15, 0, White, '');
   if inset then
@@ -509,7 +521,8 @@ end;
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of
-    C_Ifc.MAIN_MENU: Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+    C_Ifc.MAIN_MENU: Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+                                       0, White, '');
     C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
       Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
@@ -635,25 +648,24 @@ begin
     if ext then
       case ch of
         { End: next character, wrapping to the head }
-        C_Keys.END_KEY: begin
-          p := p^.nextCharAddr;
-          if p = nil then
-            p := GDVars.creatureList;
-        end;
+        C_Keys.END_KEY: p := Party.NextCreature(p);
         { Home: previous character, wrapping to the tail }
-        C_Keys.HOME: begin
-          p := GDVars.creatureList;
-          if sel <> GDVars.creatureList then
-            while p^.nextCharAddr <> sel do
-              p := p^.nextCharAddr
-          else
-            while p^.nextCharAddr <> nil do
-              p := p^.nextCharAddr;
-        end;
+        C_Keys.HOME: p := Party.PrevCreature(sel);
       end else if ((ch = 'E') or (ch = C_Keys.NONE)) and addExit then
       p := nil;
     sel := p;
   end;
+end;
+
+procedure PrintItemLabel(item: Types.PItemRec; col, row: Byte);
+begin
+  CharHlp.ItemLabel(item, False);
+  TextRend.DisplayString(col, row, LightGreen, item^.name);
+end;
+
+procedure ShowFault(msg: Types.TStr40);
+begin
+  TextRend.DisplayAndPause(Yellow, msg);
 end;
 
 end.

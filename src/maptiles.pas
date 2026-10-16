@@ -31,9 +31,7 @@ var
   tiles: Integer;
 begin
   if mult > 127 then begin
-    Blit.RestoreVideoMode;
-    WriteLn('Start range error in Load24x24Set');
-    GameIo.ExitGame;
+    GameIo.FatalError('Start range error in Load24x24Set');
   end;
   pic := nil;
   Blit.LoadPic(name, 1, False, 0, pic);

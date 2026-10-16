@@ -22,6 +22,10 @@ The format, one step a line (`#` starts a comment):
 
 `POOL.CFG` points the game at `C:\POOLRAD\` and `C:\POOLRAD\SAVE\`, where the harness installs it.
 
+`combat`, `vault` and `areachange` end with an `overlay-loads` checkpoint (STING Ctrl-Y), recorded but not compared;
+`tests/ovlloads.py` prints both builds' counts from the last run's `obj/regress.json`, the measure of the overlay
+working sets.
+
 A new scenario should first be run against the golden build twice (`tests/regress.sh GOLDEN GOLDEN scenario.txt`): it
 must pass, or it depends on something other than the build (timing, a key arriving early). A frame that differs while
 the text matches (an animated picture) is only a warning.

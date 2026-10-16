@@ -12,6 +12,14 @@ implementation
 
 uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp;
 
+var
+  { WinGame passes it by var to Blit.LoadPic }
+  finalPic: Types.PImgBuf;
+  { WinGame saves and restores ifcState }
+  savedIfc: Byte;
+  { virtual disk digit appended to the FINAL picture names }
+  finalSfx: String[1];
+
 { Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);
 var
@@ -52,31 +60,31 @@ end;
   then the saved state is restored and the non-combat interface redrawn. }
 procedure WinGame;
 begin
-  Str(GDVars.virtualDisk, GDVars.finalSfx);
-  GDVars.savedIfc := GDVars.ifcState;
+  Str(GDVars.virtualDisk, finalSfx);
+  savedIfc := GDVars.ifcState;
   GDVars.ifcState := C_Ifc.WON_GAME;
-  GDVars.finalPic := nil;
+  finalPic := nil;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');
   TextRend.DisplayString(1, 18, LightGreen, 'The spirit of Tyranthraxus flares up');
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
   CharDisp.DisplayNoncombatInterface;
-  Blit.LoadPic('FINAL' + GDVars.finalSfx, 1, False, 0, GDVars.finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+  Blit.LoadPic('FINAL' + finalSfx, 1, False, 0, finalPic);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
   Ending.PlayFinalAnim(3, 5, 2, Word(10 - GDVars.gameDelay) * 5 div 2);
-  Blit.LoadPic('FINAL' + GDVars.finalSfx, 3, False, 0, GDVars.finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+  Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 1 then begin
-    Blit.LoadPic('FINAL' + GDVars.finalSfx, 4, False, 0, GDVars.finalPic);
-    Blit.BlitTileClipped(0, 11, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.LoadPic('FINAL' + finalSfx, 4, False, 0, finalPic);
+    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
   end;
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 2 then begin
-    Blit.LoadPic('FINAL' + GDVars.finalSfx, 5, False, 0, GDVars.finalPic);
-    Blit.BlitTileClipped(13, 9, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.LoadPic('FINAL' + finalSfx, 5, False, 0, finalPic);
+    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
   end;
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 3 then begin
-    Blit.LoadPic('FINAL' + GDVars.finalSfx, 6, False, 0, GDVars.finalPic);
-    Blit.BlitTileClipped(0, 9, 0, 0, GDVars.finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
+    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
   end;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');
@@ -96,8 +104,8 @@ begin
   TextRend.PauseOnly;
   TextRend.PauseOnly;
   { the game goes on after the ending }
-  Blit.FreePic(GDVars.finalPic);
-  GDVars.ifcState := GDVars.savedIfc;
+  Blit.FreePic(finalPic);
+  GDVars.ifcState := savedIfc;
   CharDisp.DisplayNoncombatInterface;
 end;
 

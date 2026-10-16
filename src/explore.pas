@@ -16,15 +16,15 @@ var
 implementation
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
-  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine, GameTime,
-  MenuCore, Portrait, TextRend, CharDisp;
+  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice;
 
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
-  nibbles are untouched, and coordinates outside 0..15 are ignored. }
+  nibbles are untouched, and coordinates outside the map (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
 begin
-  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
+  if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
     C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F;
     C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF;
@@ -33,17 +33,25 @@ begin
   end;
 end;
 
-{ ChangeBarrierPassable: set the facing's two BARRIER bits to 01 (type 1, open); coordinates outside 0..15 are
-  ignored. }
+{ ChangeBarrierPassable: set the facing's two BARRIER bits to 01 (type 1, open); coordinates outside the map
+  (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierPassable(x, y: ShortInt; facing: Byte);
 begin
-  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
+  if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
     C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F or $40;
     C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF or $10;
     C_Dir.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3 or $4;
     C_Dir.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC or $1;
   end;
+end;
+
+{ Open the barrier the party faces, from both sides: its own cell's side and the facing cell's opposite side. }
+procedure OpenBarrierAhead;
+begin
+  Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+  Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
+                                GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
 end;
 
 { Return True if any party member has a level in the requested class. }
@@ -81,42 +89,40 @@ begin
       if View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) = 3 then begin
         case strCur of
           18: case strExc of
-                 91..99: if FxEngine.RollDice(1, 6) = 1 then success := True;
-                 100..255: if FxEngine.RollDice(1, 6) <= 2 then success := True;
+                 91..99: if Dice.RollDice(1, 6) = 1 then success := True;
+                 100..255: if Dice.RollDice(1, 6) <= 2 then success := True;
                else
                  GDVars.doorOpen[0] := 0;
                end;
-          19, 20: if FxEngine.RollDice(1, 6) <= 3 then success := True;
-          21, 22: if FxEngine.RollDice(1, 6) <= 4 then success := True;
-          23: if FxEngine.RollDice(1, 6) <= 5 then success := True;
-          24: if FxEngine.RollDice(1, 8) <= 7 then success := True;
-          25..255: if FxEngine.RollDice(1, 10) <= 9 then success := True;
+          19, 20: if Dice.RollDice(1, 6) <= 3 then success := True;
+          21, 22: if Dice.RollDice(1, 6) <= 4 then success := True;
+          23: if Dice.RollDice(1, 6) <= 5 then success := True;
+          24: if Dice.RollDice(1, 8) <= 7 then success := True;
+          25..255: if Dice.RollDice(1, 10) <= 9 then success := True;
         else
           GDVars.doorOpen[0] := 0;
         end;
       end else
         case strCur of
-          3..7: if FxEngine.RollDice(1, 6) = 1 then success := True;
-          8..15: if FxEngine.RollDice(1, 6) <= 2 then success := True;
-          16..17: if FxEngine.RollDice(1, 6) <= 3 then success := True;
+          3..7: if Dice.RollDice(1, 6) = 1 then success := True;
+          8..15: if Dice.RollDice(1, 6) <= 2 then success := True;
+          16..17: if Dice.RollDice(1, 6) <= 3 then success := True;
           18: case strExc of
-                 0..50: if FxEngine.RollDice(1, 6) <= 3 then success := True;
-                 51..99: if FxEngine.RollDice(1, 6) <= 4 then success := True;
-                 100..255: if FxEngine.RollDice(1, 6) <= 5 then success := True;
+                 0..50: if Dice.RollDice(1, 6) <= 3 then success := True;
+                 51..99: if Dice.RollDice(1, 6) <= 4 then success := True;
+                 100..255: if Dice.RollDice(1, 6) <= 5 then success := True;
                end;
-          19, 20: if FxEngine.RollDice(1, 8) <= 7 then success := True;
-          21: if FxEngine.RollDice(1, 10) <= 9 then success := True;
-          22, 23: if FxEngine.RollDice(1, 12) <= 11 then success := True;
-          24: if FxEngine.RollDice(1, 20) <= 19 then success := True;
-          25..255: if FxEngine.RollDice(1, 24) <= 23 then success := True;
+          19, 20: if Dice.RollDice(1, 8) <= 7 then success := True;
+          21: if Dice.RollDice(1, 10) <= 9 then success := True;
+          22, 23: if Dice.RollDice(1, 12) <= 11 then success := True;
+          24: if Dice.RollDice(1, 20) <= 19 then success := True;
+          25..255: if Dice.RollDice(1, 24) <= 23 then success := True;
         end;
     end;
     p := p^.nextCharAddr;
   end;
   if success then begin
-    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+    Explore.OpenBarrierAhead;
   end;
   BashDoor := success;
 end;
@@ -133,15 +139,13 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (not success) do begin
     with p^ do
-      if (FxEngine.RollDice(1, 100) <= thiefSkills[2]) and (status = C_Status.OKAY) then
+      if (Dice.RollDice(1, 100) <= thiefSkills[2]) and (status = C_Status.OKAY) then
         success := True;
     p := p^.nextCharAddr;
   end;
   GDVars.doorOpen[1] := 0;
   if success then begin
-    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+    Explore.OpenBarrierAhead;
   end;
   PickLock := success;
 end;
@@ -180,10 +184,8 @@ var
 begin
   p := Explore.FindCharWithSpell(C_Spell.KNOCK);
   if p <> nil then begin
-    p^.memorizedSpells[Explore.FindMemorizedSpell(C_Spell.KNOCK, p)] := 0;
-    Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                   GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+    CharHlp.RemoveSpell(p, C_Spell.KNOCK);
+    Explore.OpenBarrierAhead;
     PartyCastsKnock := True;
   end else
     PartyCastsKnock := False;
@@ -235,9 +237,9 @@ begin
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
   if GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1 > 0 then
-    GameTime.AdvanceTime(1, C_Time.TURNS)
+    FxEngine.AdvanceTime(1, C_Time.TURNS)
   else
-    GameTime.AdvanceTime(1, C_Time.MINUTES);
+    FxEngine.AdvanceTime(1, C_Time.MINUTES);
 end;
 
 { MovePartyWilderness: clamped step on the 36x44 wilderness map (x 0..15 within the region's 16-column window at
@@ -266,12 +268,12 @@ begin
       else begin
         GDVars.zone0^.partyX.value := nx;
         GDVars.zone0^.partyY.value := ny;
-        GameTime.AdvanceTime(12, C_Time.HOURS);
+        FxEngine.AdvanceTime(12, C_Time.HOURS);
       end;
   else begin
     GDVars.zone0^.partyX.value := nx;
     GDVars.zone0^.partyY.value := ny;
-    GameTime.AdvanceTime(12, C_Time.HOURS);
+    FxEngine.AdvanceTime(12, C_Time.HOURS);
   end;
   end;
 end;
@@ -324,7 +326,7 @@ begin
                'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
                'L': begin
                       GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
-                      GameTime.AdvanceTime(1, C_Time.TURNS);
+                      FxEngine.AdvanceTime(1, C_Time.TURNS);
                       GDVars.eclIp := GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH];
                       done := True;
                     end;
@@ -359,7 +361,7 @@ begin
                C_Keys.F5: SaveLoad.QuickSave;
                C_Keys.F8: done := Explore.AskQuickLoad;
              else begin
-               ViewChar.SelectPrevNextChar(c);
+               Party.SelectPrevNextChar(c);
                CharDisp.DisplayParty(GDVars.curChar);
              end;
              end;
@@ -389,7 +391,7 @@ begin
               'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
               'L': begin
                      GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
-                     GameTime.AdvanceTime(1, C_Time.TURNS);
+                     FxEngine.AdvanceTime(1, C_Time.TURNS);
                      GDVars.eclIp := GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH];
                      done := True;
                    end;
@@ -411,7 +413,7 @@ begin
                          end;
               C_Keys.F8: done := Explore.AskQuickLoad;
             else begin
-              ViewChar.SelectPrevNextChar(c);
+              Party.SelectPrevNextChar(c);
               CharDisp.DisplayParty(GDVars.curChar);
               done := False;
             end;

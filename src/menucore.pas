@@ -41,10 +41,9 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
   is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
   Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
-  keypad scan codes, all with ext set. A nonzero GDVars.dsMenuAutoAnswer.timeout returns GDVars.dsMenuAutoAnswer.key
+  keypad scan codes, all with ext set. A nonzero dsMenuAutoAnswer.timeout returns dsMenuAutoAnswer.key
   once that many ticks pass after the last animation frame change. The picture animates when animate is set or the GBVM
-  menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit); ext is copied to
-  GDVars.extFlag. }
+  menuAnimation flag is nonzero (that flag also advances a frame every pass and is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -63,6 +62,10 @@ function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol,
 function YesNoMenu(query: Types.TStr40; qCol, mCol, hlCol: Byte): Char;
 
 { Build a list of n empty members; the head is allocated even when n < 1. }
+{ Add a menu line (a TMenuNode: name, inUse = title, next) after tail, or as head when the list is empty, and make it
+  the new tail. }
+procedure AppendMenuLine(var head, tail: Types.PItemRec; name: Types.TStr40; title: Boolean);
+
 procedure AllocStringList(n: Integer; var list: Types.PItemRec);
 
 { Free every member. The caller's list pointer is left dangling, not set to nil. }
@@ -71,6 +74,10 @@ procedure FreeStringList(var list: Types.PItemRec);
 implementation
 
 uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
+
+var
+  { MenuCore views the head as Types.TMenuAuto }
+  dsMenuAutoAnswer: Types.TMenuAuto;
 
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
@@ -184,7 +191,6 @@ var
   end;
 
 begin
-  GDVars.extFlag := False;
   enterOk := (mCol <> 0) or (hlCol <> 0);
   ParseMenu(menu);
   if (GDVars.horizChoice < 1) or (GDVars.horizChoice > optCnt) then
@@ -216,9 +222,9 @@ begin
         frameTick := TextRend.GetTicks;
       end;
     end;
-    if (GDVars.dsMenuAutoAnswer.timeout > 0)
-       and (TextRend.GetTicks - frameTick >= GDVars.dsMenuAutoAnswer.timeout) then begin
-      ch := GDVars.dsMenuAutoAnswer.key;
+    if (dsMenuAutoAnswer.timeout > 0)
+       and (TextRend.GetTicks - frameTick >= dsMenuAutoAnswer.timeout) then begin
+      ch := dsMenuAutoAnswer.key;
       done := True;
     end else if KeyPressed then begin
       ch := GameIo.ReadGameKey;
@@ -304,7 +310,6 @@ begin
   quickKeysToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
-  GDVars.extFlag := ext;
 end;
 
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
@@ -640,6 +645,21 @@ begin
     p^.inUse := 0;
     p^.name := '';
   end;
+end;
+
+procedure AppendMenuLine(var head, tail: Types.PItemRec; name: Types.TStr40; title: Boolean);
+var
+  n: Types.PItemRec;
+begin
+  GetMem(n, SizeOf(Types.TMenuNode));
+  n^.next := nil;
+  n^.name := name;
+  n^.inUse := Ord(title);
+  if head = nil then
+    head := n
+  else
+    tail^.next := n;
+  tail := n;
 end;
 
 procedure FreeStringList(var list: Types.PItemRec);

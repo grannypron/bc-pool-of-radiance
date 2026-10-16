@@ -54,6 +54,12 @@ implementation
 
 uses C_Sound, Dos, GDConsts, GDVars;
 
+var
+  { the exit procedure SoundDrv.SoundExit hands on to }
+  soundExitSaved: Pointer;
+  { the music tune SoundDrv.PlayMusic started; 0 once it is stopped or an effect has ended it }
+  musicTune: Word;
+
 const
   { * SoundCommand selector that turns sound output off. }
   CMD_DISABLE = 0;
@@ -153,7 +159,7 @@ procedure SoundCommand(cmd: Word);
 begin
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
   SoundDrv.SetSoundDevice(GDVars.soundMode);
-  if cmd <> CMD_ENABLE then GDVars.musicTune := 0;
+  if cmd <> CMD_ENABLE then musicTune := 0;
   if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
   case cmd of
     CMD_DISABLE: begin
@@ -182,7 +188,7 @@ procedure SoundSuspend;
 begin
   GDVars.soundSaved := GDVars.soundMode;
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
-  GDVars.musicTune := 0;
+  musicTune := 0;
   SoundDrv.SetSoundDevice(GDVars.soundMode);
   SoundDrv.InstallSoundTimer;
   SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
@@ -205,7 +211,7 @@ begin
   if (GDVars.soundMode = C_Sound.MODE_DISABLED) or (GDVars.musicOn = 0) then Exit;
   SoundDrv.SetSoundDevice(GDVars.soundMode);
   SoundDrv.InstallSoundTimer;
-  GDVars.musicTune := tune;
+  musicTune := tune;
   case GDVars.soundMode of
     C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(tune);
     C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(tune);
@@ -214,8 +220,8 @@ end;
 
 procedure StopMusic;
 begin
-  if GDVars.musicTune = 0 then Exit;
-  GDVars.musicTune := 0;
+  if musicTune = 0 then Exit;
+  musicTune := 0;
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
   case GDVars.soundMode of
     C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
@@ -226,19 +232,19 @@ end;
 
 function MusicPlaying: Boolean;
 begin
-  MusicPlaying := (GDVars.musicTune <> 0) and SoundDrv.SoundTimerHooked and
-                  (SoundDrv.SoundVoiceTune(0) = GDVars.musicTune);
+  MusicPlaying := (musicTune <> 0) and SoundDrv.SoundTimerHooked and
+                  (SoundDrv.SoundVoiceTune(0) = musicTune);
 end;
 
 { * Unhooks the timer on every way out of the program, Halt and run-time errors included: an INT 8 vector left pointing
    into a program that has ended crashes DOS at the next tick. }
 procedure SoundExit;
 begin
-  ExitProc := GDVars.soundExitSaved;
+  ExitProc := soundExitSaved;
   SoundDrv.UninstallSoundTimer;
 end;
 
 begin
-  GDVars.soundExitSaved := ExitProc;
+  soundExitSaved := ExitProc;
   ExitProc := @SoundDrv.SoundExit;
 end.

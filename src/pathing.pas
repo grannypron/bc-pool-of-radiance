@@ -31,10 +31,18 @@ function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Po
   creature's shortest distance and best facing, then sort by distance. }
 procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte; view: Pointer);
 
+{ Map an icon tile to its cell offset from the upper-left corner. Return False for an inactive icon or an unused tile
+  with a negative X offset. }
+function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
+
+{ Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: dsTargetCreaturePtr
+  and spellTargetCount. }
+procedure TargetArea(x, y: ShortInt; radius: Byte);
+
 implementation
 
 
-uses GDConsts, GDVars, CbtMap, C_Dir;
+uses GDConsts, GDVars, C_Dir;
 function SignOf(v: Integer): Integer;
 begin
   if v < 0 then
@@ -242,16 +250,15 @@ var
   last: Byte;
 begin
   for k := 0 to 3 do
-    if CbtMap.GetIconTileDelta(size, k, dx8, dy8) then begin
+    if Pathing.GetIconTileDelta(size, k, dx8, dy8) then begin
       myX[k] := x + dx8;
       myY[k] := y + dy8;
     end else
       myX[k] := -1;
   GDVars.targetCount := 0;
-  { 72 = High(arenaLoc) = High(targetList) }
   last := GDVars.arenaCount;
-  if last > 72 then
-    last := 72;
+  if last > Types.ARENA_SLOTS then
+    last := Types.ARENA_SLOTS;
   for i := 1 to last do
     if GDVars.arenaLoc[i].size > 0 then begin
       found := False;
@@ -259,7 +266,7 @@ begin
       bestK := 0;
       bestJ := 0;
       for j := 0 to 3 do
-        if CbtMap.GetIconTileDelta(GDVars.arenaLoc[i].size, j, dx8, dy8) then begin
+        if Pathing.GetIconTileDelta(GDVars.arenaLoc[i].size, j, dx8, dy8) then begin
           tgX[j] := GDVars.arenaLoc[i].x + dx8;
           tgY[j] := GDVars.arenaLoc[i].y + dy8;
         end else
@@ -295,6 +302,27 @@ begin
       end;
     end;
   Pathing.SortTargets;
+end;
+
+function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
+begin
+  GetIconTileDelta := False;
+  { iconDelta's rows are sizes 1..4 }
+  if (size = 0) or (size > 4) then Exit;
+  dx := GDConsts.iconDelta[size, idx].dx;
+  dy := GDConsts.iconDelta[size, idx].dy;
+  if dx >= 0 then
+    GetIconTileDelta := True;
+end;
+
+procedure TargetArea(x, y: ShortInt; radius: Byte);
+var
+  k: Byte;
+begin
+  Pathing.BuildTargetList(x, y, radius, 255, 1, GDVars.arenaPtr);
+  for k := 1 to GDVars.targetCount do
+    GDVars.dsTargetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
+  GDVars.spellTargetCount := GDVars.targetCount;
 end;
 
 end.

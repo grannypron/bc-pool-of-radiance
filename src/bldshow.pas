@@ -169,9 +169,6 @@ type
 const
   st: PShowState = nil;
 
-var
-  biosTicks: LongInt absolute $0040:$006C;
-
 { a * b div c for positive a, b and c; 0 when any of them is not positive. Until the product fits, the larger factor
   and c are halved together; once c is down to 1 the halving is made up by doubling the result instead. }
 function MulDiv(a, b, c: LongInt): LongInt;
@@ -412,20 +409,6 @@ begin
   BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, StrUtil.NumStr(mins) + ':' + s, COUNT_WIDTH);
 end;
 
-{ The BIOS tick count, read until two reads agree, so a timer tick between the two words of a read is not taken. }
-function TicksNow: LongInt;
-var
-  now: LongInt;
-  again: LongInt;
-begin
-  again := biosTicks;
-  repeat
-    now := again;
-    again := biosTicks;
-  until now = again;
-  TicksNow := now;
-end;
-
 { Add the BIOS ticks since the last call to elapsed, across midnight, and show the time left once ETA_FIRST ticks have
   gone and then every ETA_EVERY. }
 procedure Tick;
@@ -433,7 +416,7 @@ var
   now: LongInt;
   delta: LongInt;
 begin
-  now := BldShow.TicksNow;
+  now := TextRend.TickCount;
   if now >= st^.lastTick then
     delta := now - st^.lastTick
   else
@@ -552,7 +535,7 @@ begin
     { a family with no files is not shown }
     st^.listed[fam] := stale[fam] or (n > 0);
   end;
-  st^.lastTick := BldShow.TicksNow;
+  st^.lastTick := TextRend.TickCount;
   st^.readOnly := not writable;
   TextRend.ClearRect(0, 0, 39, 23);
   Border.DrawBorder(1, TITLE_ROW, 38, TITLE_ROW, 0);

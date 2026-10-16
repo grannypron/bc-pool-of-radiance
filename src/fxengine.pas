@@ -5,8 +5,7 @@ unit FxEngine;
 interface
 
 { C_Effect supplies the EFF_ effect ids }
-uses Types, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend, CharHlp, Pathing, CbtMap,
-  C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
+uses Types;
 
 { Call the effect handler for effId (1..141) through GDVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
@@ -51,12 +50,6 @@ function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): 
   the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_Save.PARALYZE..SPELL (an
   ECL script supplies it) is rolled as C_Save.SPELL. }
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
-
-{ Roll n dice with the given number of sides and return the total (0 when n = 0; the Byte sum wraps past 255). }
-function RollDice(n, sides: Byte): Byte;
-
-{ RollDice that also posts the dice count n to gDamageDice. Does not set GDVars.pendingDamage. }
-function RollDamageDice(n, sides: Byte): Byte;
 
 { Allocate an effect node, append it to the creature's effect list (as the head if the list is empty) and fill in id,
   duration (minutes; 0 = permanent), onRemove and strength. Does not check for an existing node or call the handler. }
@@ -134,9 +127,22 @@ function RestoreHitPoints(creature: Types.PCharRecord; hp: Byte; bypassRot: Bool
   combat, it "stands up and grins" (hostile = 1) or "gets back up", and CharHlp.CountTeams runs. }
 function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
 
+procedure ToggleReadyItem(item: Types.PItemRec);
+
+procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
+
+{ The start of a hold effect's handler (bite and hold, blood drain): p is the effect, its strength the victim's
+  creature index. Returns the victim (also set in GDVars.dsOtherCreatureCurrentPtr) while the hold lasts, else nil:
+  with no victim in the arena the effect just goes (released False); when the effect is being removed or either side
+  is down, the victim loses C_Effect.IMMOBILE and the effect goes (released True). The effect is removed here with
+  onRemove cleared first, unless removed says it is already being removed. }
+function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; effId: Byte;
+                    var released: Boolean): Types.PCharRecord;
+
 implementation
 
-uses Stats, StrUtil, C_Gbvm, CharDisp;
+uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend,
+  CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -183,7 +189,7 @@ end;
   target list around it. }
 procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
 var
-  save: array[1..72] of Types.TCombatTarget;
+  save: Types.TTargetList;
   p: Types.PCharRecord;
   effect: Types.PEffectRec;
   found: Boolean;
@@ -414,7 +420,7 @@ begin
     FxEngine.AddEffectWithMessage(creature, C_Effect.STINK_COUGH, 1, 255, False, False, saved, 'starts to cough');
     FxEngine.CallEffectHandler(C_Effect.STINK_COUGH, creature, effect, False);
   end else begin
-    FxEngine.AddEffectWithMessage(creature, C_Effect.HELPLESS, FxEngine.RollDice(1, 4) + 1, 255, False, False,
+    FxEngine.AddEffectWithMessage(creature, C_Effect.HELPLESS, Dice.RollDice(1, 4) + 1, 255, False, False,
                                   saved, 'chokes and gags from nausea');
     FxEngine.CallEffectHandler(C_Effect.HELPLESS, creature, effect, False);
   end;
@@ -423,7 +429,7 @@ end;
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 begin
   AttackRollNoAttacker := False;
-  GDVars.gAttackRoll := FxEngine.RollDice(1, 20);
+  GDVars.gAttackRoll := Dice.RollDice(1, 20);
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
@@ -438,7 +444,7 @@ var
 begin
   AttackRoll := False;
   FxEngine.RemoveInvisibility(attacker);
-  GDVars.gAttackRoll := FxEngine.RollDice(1, 20);
+  GDVars.gAttackRoll := Dice.RollDice(1, 20);
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
@@ -456,7 +462,7 @@ function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortI
 begin
   if (saveType < C_Save.PARALYZE) or (saveType > C_Save.SPELL) then
     saveType := C_Save.SPELL;
-  GDVars.gSaveRoll := FxEngine.RollDice(1, 20);
+  GDVars.gSaveRoll := Dice.RollDice(1, 20);
   case GDVars.gSaveRoll of
     1: RollSavingThrow := False;
     20: RollSavingThrow := True;
@@ -470,24 +476,6 @@ begin
       RollSavingThrow := False;
   end;
   end;
-end;
-
-function RollDice(n, sides: Byte): Byte;
-var
-  i: Byte;
-  total: Byte;
-begin
-  total := 0;
-  if n > 0 then
-    for i := 1 to n do
-      Inc(total, Random(sides) + 1);
-  RollDice := total;
-end;
-
-function RollDamageDice(n, sides: Byte): Byte;
-begin
-  GDVars.gDamageDice := n;
-  RollDamageDice := FxEngine.RollDice(n, sides);
 end;
 
 procedure AddEffect(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove: Boolean);
@@ -632,7 +620,8 @@ end;
 procedure NonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean;
                           shockItem: Types.PItemRec);
 var
-  s: String;
+  { the longest is 'takes 255 points of damage from Electricity' }
+  s: String[43];
 begin
   if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
   GDVars.pendingDamage := damage;
@@ -647,20 +636,20 @@ begin
       s := 'takes ' + StrUtil.NumStr(GDVars.pendingDamage) + ' points of damage '
     else
       s := 'takes 1 point of damage ';
-    case GDVars.elementMask and $F7 of
-      1: s := s + 'from Fire';
-      2: s := s + 'from Cold';
-      4: s := s + 'from Electricity';
-      16: s := s + 'from Acid';
+    case GDVars.elementMask and not C_Effect.ELEM_MAGIC of
+      C_Effect.ELEM_FIRE: s := s + 'from Fire';
+      C_Effect.ELEM_COLD: s := s + 'from Cold';
+      C_Effect.ELEM_ELEC: s := s + 'from Electricity';
+      C_Effect.ELEM_ACID: s := s + 'from Acid';
     end;
     { magic bit alone, or no element bit at all }
-    if (GDVars.elementMask and 8) = GDVars.elementMask then
+    if (GDVars.elementMask and C_Effect.ELEM_MAGIC) = GDVars.elementMask then
       s := s + 'from Magic';
     if shockItem = nil then
       CharDisp.PrintNameStringAnim(creature, False, s)
     else begin
       { the item label ends in a space }
-      CharHlp.PrintItemString(shockItem, 0, 0, False, False);
+      CharHlp.ItemLabel(shockItem, False);
       CharDisp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
                                StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
     end;
@@ -810,6 +799,218 @@ begin
   for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
     FxEngine.RemoveEffect(creature, GDConsts.cureDiseaseEffects[i], nil);
   GDVars.effectLock := 0;
+end;
+
+{ Toggle an item's readied state for curChar. Unreadying fails on a cursed item. Readying checks, with later checks
+  overriding earlier ones, free hands (3), an occupied slot or ammunition slot (2) and the class mask (1); the
+  hands-full message is skipped for a quick-fighting creature in combat. Special items (special > $7F) invoke their
+  effect handler when readied and when unreadied. }
+procedure ToggleReadyItem(item: Types.PItemRec);
+var
+  hasSpecial: Boolean;
+  err: Byte;
+  slot: ShortInt;
+  creature: Types.PCharRecord;
+begin
+  hasSpecial := item^.special > $7F;
+  creature := GDVars.curChar;
+  if item^.equipped <> 0 then begin
+    if item^.cursed <> 0 then
+      CharDisp.PrintBottomLine('It''s Cursed')
+    else begin
+      item^.equipped := 0;
+      if hasSpecial then
+        FxEngine.CallEffectHandler(item^.special, creature, item, True);
+    end;
+  end else begin
+    err := 0;
+    if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then
+      err := 3;
+    slot := CharHlp.BaseItem(item^.itemType)^.slot;
+    { slots 0..8 each hold one item; a ring (slot 9) fails only when the second ring slot is taken }
+    case Byte(slot) of
+      C_Equip.WEAPON..C_Equip.BOOTS:
+        if creature^.equipped[slot] <> nil then
+          err := 2;
+      C_Equip.RING1:
+        if creature^.equipped[C_Equip.RING2] <> nil then
+          { second ring slot already in use }
+          err := 2;
+    end;
+    { arrows }
+    if item^.itemType = 73 then
+      if creature^.equipped[C_Equip.ARROW] <> nil then begin
+        err := 2;
+        slot := C_Equip.ARROW;
+      end;
+    { quarrels }
+    if item^.itemType = 28 then
+      if creature^.equipped[C_Equip.BOLT] <> nil then begin
+        err := 2;
+        slot := C_Equip.BOLT;
+      end;
+    if CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0 then
+      err := 1;
+    case err of
+      0: begin
+           item^.equipped := 1;
+           if hasSpecial then
+             FxEngine.CallEffectHandler(item^.special, creature, item, False);
+         end;
+      1: CharDisp.PrintBottomLine('Wrong Class');
+      2: begin
+           CharHlp.ItemLabel(creature^.equipped[slot], False);
+           CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
+         end;
+      3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then
+           CharDisp.PrintBottomLine('Your hands are full!');
+    end;
+  end;
+end;
+
+{ Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
+  in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
+  those GDVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
+  ones, then removes those still in the list, since a removal's handler can remove (and free) another effect. }
+procedure TimeOutEffects(count: Byte; tUnit: ShortInt);
+const
+  { expiring effects one creature can lose in one step; any more expire in the next step }
+  MAX_EXPIRING = 32;
+var
+  u: ShortInt;
+  i: Byte;
+  k: Byte;
+  step: Byte;
+  total: LongInt;
+  cur: Types.PCharRecord;
+  found: Boolean;
+  e: Types.PEffectRec;
+  expiring: array[1..MAX_EXPIRING] of Types.PEffectRec;
+  expiringId: array[1..MAX_EXPIRING] of Byte;
+  expiringDuration: array[1..MAX_EXPIRING] of Word;
+  nExpiring: Byte;
+  again: Boolean;
+
+  { Whether eff is still in cur's effect list: an earlier removal's handler may have removed and freed it (Slow
+    Poison's end removes the poison's damage effect). }
+  function InList(eff: Types.PEffectRec): Boolean;
+  var
+    p: Types.PEffectRec;
+  begin
+    p := Types.PEffectRec(cur^.effectsAddr);
+    while (p <> nil) and (p <> eff) do
+      p := p^.next;
+    InList := p <> nil;
+  end;
+
+begin
+  if GDVars.ifcState <> C_Ifc.CAMPING then
+    FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1)
+  else begin
+    found := False;
+    i := 1;
+    repeat
+      if GDVars.effFlags[i] <> 0 then found := True;
+      Inc(i);
+    until found or (i > GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+    if not found then Exit;
+  end;
+  total := count;
+  u := tUnit;
+  if u = C_Time.SEGMENTS then
+    total := total div GDConsts.unitScale[C_Time.SEGMENTS];
+  while u > 1 do begin
+    total := GDConsts.unitScale[Pred(u)] * total;
+    u := Pred(u);
+  end;
+  while total > 0 do begin
+    if total > 10 then step := 10 else step := total;
+    i := 1;
+    cur := GDVars.creatureList;
+    while cur <> nil do begin
+      if (i > SizeOf(GDVars.effFlags)) or (GDVars.effFlags[i] <> 0) then begin
+        again := False;
+        { age the timed effects, and note those that run out in this step; 0 is permanent }
+        nExpiring := 0;
+        e := Types.PEffectRec(cur^.effectsAddr);
+        while e <> nil do begin
+          if e^.duration > 0 then
+            if step < e^.duration then begin
+              Dec(e^.duration, step);
+              again := True;
+            end else if nExpiring < MAX_EXPIRING then begin
+              Inc(nExpiring);
+              expiring[nExpiring] := e;
+              expiringId[nExpiring] := e^.id;
+              expiringDuration[nExpiring] := e^.duration;
+            end else
+              again := True;
+          e := e^.next;
+        end;
+        { then remove them, skipping any an earlier removal has already taken away; a node a handler allocated since
+          can reuse a freed one's address, so the id and duration must still match }
+        for k := 1 to nExpiring do
+          if InList(expiring[k]) and (expiring[k]^.id = expiringId[k]) and
+              (expiring[k]^.duration = expiringDuration[k]) then
+            FxEngine.RemoveEffect(cur, expiring[k]^.id, expiring[k]);
+        { a removal's handler can add effects too: the creature is visited again while any timed effect is left }
+        e := Types.PEffectRec(cur^.effectsAddr);
+        while (e <> nil) and not again do begin
+          if e^.duration > 0 then again := True;
+          e := e^.next;
+        end;
+        if i <= SizeOf(GDVars.effFlags) then
+          if again then GDVars.effFlags[i] := 1 else GDVars.effFlags[i] := 0;
+      end;
+      Inc(i);
+      cur := cur^.nextCharAddr;
+    end;
+    if total > 10 then Dec(total, 10) else total := 0;
+  end;
+end;
+
+{ Read the game clock from the GBVM clock words, bump component tUnit amount times (validating after each bump), write
+  it back, then time out effects by the same duration }
+procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
+var
+  time: Types.TClock;
+  i: ShortInt;
+  j: Byte;
+begin
+  for i := 0 to 6 do
+    time[i] := GDVars.zone0^.words[C_Gbvm.CLOCK + i];
+  for j := 1 to amount do begin
+    Inc(time[tUnit]);
+    Clock.ValidateClock(time, True);
+  end;
+  for i := 0 to 6 do
+    GDVars.zone0^.words[C_Gbvm.CLOCK + i] := time[i];
+  FxEngine.TimeOutEffects(amount, tUnit);
+end;
+
+function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; effId: Byte;
+                    var released: Boolean): Types.PCharRecord;
+begin
+  HoldTarget := nil;
+  released := False;
+  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
+      (Types.PEffectRec(p)^.strength > Types.ARENA_SLOTS) then begin
+    if not removed then begin
+      Types.PEffectRec(p)^.onRemove := False;
+      FxEngine.RemoveEffect(creature, effId, p);
+    end;
+    Exit;
+  end;
+  GDVars.dsOtherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
+  if removed or (creature^.enabled = 0) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then begin
+    FxEngine.RemoveEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);
+    if not removed then begin
+      Types.PEffectRec(p)^.onRemove := False;
+      FxEngine.RemoveEffect(creature, effId, p);
+    end;
+    released := True;
+  end else
+    HoldTarget := GDVars.dsOtherCreatureCurrentPtr;
 end;
 
 end.

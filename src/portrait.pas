@@ -32,7 +32,7 @@ procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
 implementation
 
-uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo;
+uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo, StrUtil;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A
@@ -202,13 +202,14 @@ begin
   FreeMem(buf, sz);
 end;
 
-{ Free every animation frame, clear the record and invalidate the picture cache. The loop counter is the shared
-  GDVars.dsCurrentPictureNumber. }
+{ Free every animation frame, clear the record and invalidate the picture cache. }
 procedure FreeAnimation(var a: Types.TAnimRec);
+var
+  k: ShortInt;
 begin
   with a do
-    for GDVars.dsCurrentPictureNumber := 1 to count do
-      Blit.FreePic(frames[GDVars.dsCurrentPictureNumber].pic);
+    for k := 1 to count do
+      Blit.FreePic(frames[k].pic);
   FillChar(a, SizeOf(a), 0);
   GDVars.picArcName[0] := #0;
   GDVars.picArcId := 255;
@@ -230,11 +231,9 @@ end;
 
 { True when this disk's HEAD and BODY loads read the merged HEAD.DAX and BODY.DAX, which hold every head and body. }
 function MergedPortraits: Boolean;
-var
-  diskCh: String[1];
 begin
-  Str(LongInt(GDVars.virtualDisk), diskCh);
-  MergedPortraits := (DaxIo.ArchiveName('HEAD' + diskCh) = 'HEAD') and (DaxIo.ArchiveName('BODY' + diskCh) = 'BODY');
+  MergedPortraits := (DaxIo.ArchiveName('HEAD' + StrUtil.NumStr(GDVars.virtualDisk)) = 'HEAD') and
+                     (DaxIo.ArchiveName('BODY' + StrUtil.NumStr(GDVars.virtualDisk)) = 'BODY');
 end;
 
 function PlayerPortraitsHere: Boolean;
@@ -299,9 +298,7 @@ end;
 procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 begin
   if (dist < 1) or (dist > 3) then begin
-    Blit.RestoreVideoMode;
-    WriteLn('Illegal range in Show3DSprite.');
-    GameIo.ExitGame;
+    GameIo.FatalError('Illegal range in Show3DSprite.');
   end;
   if a.frames[dist].pic <> nil then
     with a.frames[dist].pic^ do

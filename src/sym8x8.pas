@@ -19,23 +19,16 @@ procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 implementation
 
 
-uses Crt, GDConsts, GDVars, Blit, GameIo;
+uses Crt, GDConsts, GDVars, Blit, GameIo, StrUtil;
 procedure Load8x8Set(fileID, setID: Byte);
 var
   s1: String[1];
-  s2: String[3];
-  ch: Char;
 begin
   if setID in [0..4] then begin
     Str(GDVars.virtualDisk, s1);
-    Str(fileID, s2);
     Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GDVars.dsSymbolSetPtrs[setID]);
     if GDVars.dsSymbolSetPtrs[setID] = nil then begin
-      Blit.RestoreVideoMode;
-      WriteLn('Unable to load 8x8D' + s1 + '-' + s2);
-      ch := GameIo.ReadGameKey;
-      Blit.RestoreVideoMode;
-      GameIo.ExitGame;
+      GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
     end;
   end;
 end;
@@ -43,7 +36,6 @@ end;
 procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 var
   setIdx: Byte;
-  ch: Char;
 begin
   case symbol of
     1..45: setIdx := 0;
@@ -52,10 +44,7 @@ begin
     186..255: setIdx := 3;
     256..286: setIdx := 4;
     0, 287..65535: begin
-      Blit.RestoreVideoMode;
-      WriteLn('Bad symbol number in Put8x8Symbol.');
-      ch := GameIo.ReadGameKey;
-      GameIo.ExitGame;
+      GameIo.FatalError('Bad symbol number in Put8x8Symbol.');
     end;
   end;
   if GDVars.dsSymbolSetPtrs[setIdx] <> nil then begin

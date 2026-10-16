@@ -33,3 +33,8 @@ press v m s
 checkpoint stats
 press g
 checkpoint game-stats
+# the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
+ignore OVERLAY LOADS
+press ctrl-y
+checkpoint overlay-loads
+press ret ret ret

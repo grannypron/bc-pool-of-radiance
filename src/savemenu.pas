@@ -6,6 +6,8 @@ unit SaveMenu;
 
 interface
 
+uses Types;
+
 const
   { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
   SLOT_LETTERS = 'ABCDEFGHIJQ';
@@ -37,9 +39,17 @@ function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): B
 { Write slot letter's savgam<x>.inf. A failed write leaves a short file, which ReadSlotInfo ignores. }
 procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 
+{ 'Put save disk in X:', for the save directory's drive. }
+function SaveDiskMsg: Types.TStr40;
+
+{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
+  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
+  cannot be made and is left alone. }
+procedure CheckSaveDir;
+
 implementation
 
-uses Types, Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil;
+uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil;
 
 const
   INFO_SIG = 'SINF';
@@ -345,6 +355,32 @@ begin
     desc := s;
     AskDescription := True;
   end;
+end;
+
+{ 'Put save disk in C:', for the save directory's drive. }
+function SaveDiskMsg: Types.TStr40;
+begin
+  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
+end;
+
+procedure CheckSaveDir;
+var
+  ioRes: Integer;
+  i: Byte;
+begin
+  if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
+  repeat
+    { each parent first, from the one below the root; its errors show again in the last MkDir }
+    for i := 4 to Length(GDVars.dsSaveDirectory) - 1 do
+      if GDVars.dsSaveDirectory[i] = '\' then begin
+        MkDir(Copy(GDVars.dsSaveDirectory, 1, i - 1));
+        ioRes := IOResult;
+      end;
+    MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
+    ioRes := IOResult;
+    if (ioRes <> 0) and (ioRes <> 5) then
+      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
+  until (ioRes = 0) or (ioRes = 5);
 end;
 
 end.

@@ -18,7 +18,7 @@ const
     C_Effect.HELPLESS, C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP,
         C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT);
   { HealMenu }
-  templeSpells: array[1..10] of String[40] = (
+  templeSpells: array[1..10] of String[20] = (
     'Cure Blindness',
     'Cure Disease',
     'Cure Light Wounds',
@@ -417,7 +417,7 @@ const
      properties: (0, 72, 134)));
   { AddSpellToList }
   { Spell-list headings indexed by spell level }
-  spellLevelNames: array[1..9] of String[40] = (
+  spellLevelNames: array[1..9] of String[9] = (
     '1st Level',
     '2nd Level',
     '3rd Level',
@@ -1239,32 +1239,16 @@ const
   { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
   DISK3_HEADS = 21;
   DISK3_BODIES = 16;
-  { unused }
-  dsUnidentified14: array[0..1] of Byte = (
-    0, 1);
-  { Menu key and aim-vector tables }
+  { Menu key table }
   { keypad digits 1..9 to scan codes; MenuCore indexes Ord(ch) - Ord('1') }
   keypadScan: array[0..8] of Byte = (
     79, 80, 81, 75, 32, 77, 71, 72, 73);
-  { Arrow-key scan code (72 up, 75 left, 77 right, 80 down) for an aim vector, rows Y, columns X; unused }
-  vectorScan: array[-5..5, -5..5] of Byte = (
-    (72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72),
-    (75, 72, 72, 72, 72, 72, 72, 72, 72, 72, 77),
-    (75, 75, 72, 72, 72, 72, 72, 72, 72, 77, 77),
-    (75, 75, 75, 72, 72, 72, 72, 72, 77, 77, 77),
-    (75, 75, 75, 75, 72, 72, 72, 77, 77, 77, 77),
-    (75, 75, 75, 75, 75, 72, 77, 77, 77, 77, 77),
-    (75, 75, 75, 75, 80, 80, 80, 77, 77, 77, 77),
-    (75, 75, 75, 80, 80, 80, 80, 80, 77, 77, 77),
-    (75, 75, 80, 80, 80, 80, 80, 80, 80, 77, 77),
-    (75, 80, 80, 80, 80, 80, 80, 80, 80, 80, 77),
-    (80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80));
   { Cloud directions, spell names and spell table }
   { direction indices: center, E, SE, S }
   cloudDir: array[1..4] of Byte = (
     8, 2, 3, 4);
   { spell IDs 1..56 }
-  spellNames: array[1..56] of string[40] = (
+  spellNames: array[1..56] of string[32] = (
     'Bless',
     'Curse',
     'Cure Light Wounds',
@@ -1752,12 +1736,6 @@ const
     (40, 40, 40, 40, 40, 40, 41, 41, 41, 41, 41),
     (40, 40, 40, 40, 40, 41, 41, 41, 41, 44, 44),
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46));
-  krynnRules: Types.TKrynnClassRules = (
-    createClassBits: ($02, $20, $08, $40, $80, $01, $04, $10);
-    unidentifiedByte: 0;
-    classBits: ($02, $02, $08, $10, $20, $01, $04, $10);
-    unidentifiedTail: ($10, $10, $10, $20, $20, $20, $40, $40, $40);
-    maxClassLevels: (10, 15, 10, 10, 11, 12, 11, 10));
   defIconCol: array[1..6] of Byte = (1, 2, 3, 4, 6, 7);
   { Base thief abilities by thief level }
   thiefBase: array[1..9] of Types.TRuleThief = (

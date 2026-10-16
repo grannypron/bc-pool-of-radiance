@@ -9,9 +9,9 @@ procedure CombatMain;
 
 implementation
 
-uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, GameTime, Magic, C_Keys, C_Class,
+uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
   C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp;
+  TextRend, StrUtil, CharDisp, Dice;
 
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -97,7 +97,7 @@ begin
   bestRoll := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
-    roll := FxEngine.RollDice(1, 100);
+    roll := Dice.RollDice(1, 100);
     if p^.combatAddr^.initiative > best then
       bestRoll := roll;
     if (p^.combatAddr^.initiative >= best) and (roll >= bestRoll) then begin
@@ -190,23 +190,10 @@ begin
                end;
           'D': Combat.DoneMenu(creature, done);
           { Alt-M scan code: toggle quick magic }
-          C_Keys.ALT_M: begin
-                      GDVars.quickMagic := GDVars.quickMagic = False;
-                      if GDVars.quickMagic then
-                        CharDisp.PrintBottomLine('Magic On')
-                      else
-                        CharDisp.PrintBottomLine('Magic Off');
-                    end;
-          { every non-NPC creature back to manual control }
-          ' ': begin
-                 p := GDVars.creatureList;
-                 while p <> nil do begin
-                   { creatures with the NPC flag (high bit of npc) stay on quick-fight }
-                   if not CharHlp.IsNpc(p) then
-                     p^.quickfight := 0;
-                   p := p^.nextCharAddr;
-                 end;
-               end;
+          C_Keys.ALT_M: CombatAi.ToggleQuickMagic;
+          { every creature under the player's control back to manual; NPCs and animated creatures stay on
+            quick-fight, as during the AI's turns (#640) }
+          ' ': CombatAi.AllToManual;
           { Alt-Q scan code: everyone to quick-fight; this creature acts again at once under the AI }
           C_Keys.ALT_Q: begin
                       creature^.combatAddr^.initiative := 20;
@@ -255,7 +242,7 @@ begin
     if creature^.memorizedSpells[i] > 0 then
       hasSpell := True;
   { Cast lists the memorized spells, while castAllowed, and the spells on readable scrolls }
-  if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or Magic.HasScrollSpells(creature))
+  if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or CharHlp.HasScrollSpells(creature))
      and (GDVars.zone0^.antimagic = 0) then
     menu := menu + 'Cast ';
   if (CbtActs.TurnLevel(creature) > 0)
@@ -282,7 +269,7 @@ var
   cnt: Byte;
 begin
   { one minute (tUnit 1) }
-  GameTime.AdvanceTime(1, C_Time.MINUTES);
+  FxEngine.AdvanceTime(1, C_Time.MINUTES);
   Inc(GDVars.roundCounter);
   CbtActs.CalcHostileHpPercent;
   p := GDVars.creatureList;
@@ -442,7 +429,10 @@ begin
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, False, False,
                                   GDVars.doneRoundFlag);
     case ch of
-      'G': done := CharHlp.Guard(creature);
+      'G': begin
+             done := CharHlp.Guard(creature);
+             CharDisp.PrintBottomLine('Guarding');
+           end;
       { Delay: act again later this round, at initiative 1 }
       'D': begin
              creature^.combatAddr^.initiative := 1;

@@ -42,7 +42,7 @@ function FileLength(path: Types.TPathStr): LongInt;
 implementation
 
 
-uses C_Data;
+uses C_Data, FileUtil;
 type
   { A data family: its per-disk archives are <prefix><disk digit><suffix>.DAX, merged into <merged>.DAX. }
   TFamily = record
@@ -119,15 +119,9 @@ var
   n: Word;
   size: LongInt;
   ok: Boolean;
-  mode: Byte;
 begin
   ok := False;
-  Assign(f, path);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
+  if FileUtil.OpenReadOnly(f, path) then begin
     size := FileSize(f);
     BlockRead(f, dirSize, SizeOf(dirSize), n);
     if (IOResult = 0) and (n = SizeOf(dirSize)) and (dirSize > 0) and (dirSize mod SizeOf(TDirEntry) = 0) and
@@ -151,15 +145,9 @@ var
   n: Word;
   i: Word;
   found: Boolean;
-  mode: Byte;
 begin
   found := False;
-  Assign(f, path);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
+  if FileUtil.OpenReadOnly(f, path) then begin
     BlockRead(f, dirSize, SizeOf(dirSize), n);
     if (IOResult = 0) and (n = SizeOf(dirSize)) then begin
       i := 0;
@@ -183,15 +171,9 @@ function FileLength(path: Types.TPathStr): LongInt;
 var
   f: file;
   size: LongInt;
-  mode: Byte;
 begin
   size := -1;
-  Assign(f, path);
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
+  if FileUtil.OpenReadOnly(f, path) then begin
     size := FileSize(f);
     if IOResult <> 0 then
       size := -1;

@@ -9,18 +9,19 @@ uses Types;
 procedure ShopMainMenu;
 
 { The counter menu a shop and a temple share: Buy (a shop) or Heal (a temple), then View, Take, Pool, Share,
-  Appraise and Exit. Leaving with money on the counter asks first whether to go back for it. }
-procedure CounterMenu(atTemple: Boolean);
+  Appraise and Exit. command is the Buy or Heal command (Shop.ShopBuyMenu or Temple.HealMenu), so the shop need not
+  know the temple. Leaving with money on the counter asks first whether to go back for it. }
+procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend, Temple,
-  CharDisp, MoneyCal;
+uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
+  CharDisp, MoneyCal, Party;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
-  to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.PrintItemString. Returns
+  to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.ItemLabel. Returns
   the menu key in c and the highlighted item in itemToBuy; cursor and idx carry the menu position from one call to the
   next. }
 procedure ShopBuyItemSelection(var c: Char; var itemToBuy: Types.PItemRec; var cursor: Types.PItemRec;
@@ -55,14 +56,14 @@ begin
     p^.name[0] := Chr(SizeOf(s) - 1);
     p := p^.next;
   end;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, 'Shop');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Shop');
   head := GDVars.treasureItems;
   c := MenuCore.MenuVertical('Items: ', 'Buy', LightMagenta, LightGreen, White, 1, 4, 38, 22, head,
                              True, redraw, idx, cursor);
   itemToBuy := cursor;
   p := GDVars.treasureItems;
   while p <> nil do begin
-    CharHlp.PrintItemString(p, 0, 0, False, False);
+    CharHlp.ItemLabel(p, False);
     p := p^.next;
   end;
 end;
@@ -70,29 +71,13 @@ end;
 { Append a copy of item to the current character's item list and recalculate its stats. When the character cannot carry
   it, print that it is overloaded and set failed instead. }
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
-var
-  p: Types.PItemRec;
-  q: Types.PItemRec;
 begin
   if ViewChar.CannotCarryItem(GDVars.curChar, item) then begin
     CharDisp.PrintBottomLine('OverLoaded');
     failed := True;
   end else begin
     failed := False;
-    p := GDVars.curChar^.itemsAddr;
-    if p = nil then begin
-      GetMem(p, SizeOf(Types.TItemRec));
-      p^ := item^;
-      p^.next := nil;
-      GDVars.curChar^.itemsAddr := p;
-    end else begin
-      while p^.next <> nil do
-        p := p^.next;
-      GetMem(q, SizeOf(Types.TItemRec));
-      q^ := item^;
-      q^.next := nil;
-      p^.next := q;
-    end;
+    CharHlp.AppendItemCopy(GDVars.curChar^.itemsAddr, item);
     CharHlp.RecalcStats(GDVars.curChar);
   end;
 end;
@@ -135,7 +120,7 @@ end;
 
 { Main shop menu: buy, view, take, pool, share and appraise, with Take and Share offered only while there is pooled
   money. Leaving with money still in the pool asks whether to go back for it. }
-procedure CounterMenu(atTemple: Boolean);
+procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 var
   menu: String[40];
   first: String[4];
@@ -151,7 +136,6 @@ begin
   CharDisp.DisplayNoncombatInterface;
   CharDisp.DisplayParty(GDVars.curChar);
   FillChar(GDVars.treasureMoney, SizeOf(Types.TMoney), 0);
-  GDVars.treasureMoneyFlag := False;
   done := False;
   if atTemple then
     first := 'Heal'
@@ -159,7 +143,7 @@ begin
     first := 'Buy';
     p := GDVars.treasureItems;
     while p <> nil do begin
-      CharHlp.PrintItemString(p, 0, 0, False, False);
+      CharHlp.ItemLabel(p, False);
       p := p^.next;
     end;
   end;
@@ -172,8 +156,8 @@ begin
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     { extended keys come back as letters too: H is the up arrow, B is F8, P the down arrow }
     case c of
-      'B': if not atTemple and not ext then Shop.ShopBuyMenu;
-      'H': if atTemple and not ext then Temple.HealMenu;
+      'B': if not atTemple and not ext then command;
+      'H': if atTemple and not ext then command;
       'V': ViewChar.ViewCharMenu(ext);
       'T': Money.TakeMoneyMenu;
       'P': if not ext then Money.PoolMoney;
@@ -192,7 +176,7 @@ begin
                          'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ',
                          'Do you want to go back and get your Money?');
            end;
-      C_Keys.HOME, C_Keys.END_KEY: ViewChar.SelectPrevNextChar(c);
+      C_Keys.HOME, C_Keys.END_KEY: Party.SelectPrevNextChar(c);
     end;
     case c of
       'B', 'T': CharDisp.DisplayNoncombatInterface;
@@ -204,7 +188,7 @@ end;
 
 procedure ShopMainMenu;
 begin
-  Shop.CounterMenu(False);
+  Shop.CounterMenu(False, Shop.ShopBuyMenu);
 end;
 
 end.

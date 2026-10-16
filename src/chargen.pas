@@ -6,8 +6,6 @@ interface
 
 procedure MainMenu;
 
-procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
-
 procedure CustomizeIcon;
 
 procedure CustomizePortrait;
@@ -15,8 +13,12 @@ procedure CustomizePortrait;
 implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
-  C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal;
+  C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice;
+
+var
+  { STING training override. }
+  stingMode: Byte;
 
 
 
@@ -38,37 +40,9 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt; forward;
 
-function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 
-function HpMaximum(creature: Types.PCharRecord): Byte; forward;
 
-function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forward;
-
-{ FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
-  spells; the closing creature := nil clears only the local parameter }
-procedure FreeCreature(creature: Types.PCharRecord);
-var
-  holdE: Types.PEffectRec;
-  effect: Types.PEffectRec;
-begin
-  with creature^ do begin
-    if (combatAddr <> nil) then
-      FreeMem(combatAddr, SizeOf(Types.TCombatRec));
-    CharHlp.FreeItemList(itemsAddr);
-    effect := effectsAddr;
-    while effect <> nil do begin
-      holdE := effect;
-      effect := effect^.next;
-      FreeMem(holdE, SizeOf(Types.TEffectRec));
-    end;
-  end;
-  SaveLoad.ForgetUsualSpells(creature);
-  Stats.Forget(creature);
-  FreeMem(creature, SizeOf(Types.TCharRecord));
-  creature := nil;
-end;
 
 { MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
   settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin
@@ -100,16 +74,16 @@ begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
   redraw := True;
-  GDVars.stingMode := 0;
+  stingMode := 0;
   GDVars.ifcState := C_Ifc.MAIN_MENU;
   while True do begin
     if redraw then begin
-      Border.DrawWindow(1, 1, 38, 22, 0, Black, '');
+      Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black, '');
       if GDVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
-        if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (GDVars.stingMode <> 0) then
+        if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0) then
           { Only ever set in this branch: once enabled, Train stays enabled until no character is selected. }
           GDConsts.menuItems[MENU_TRAIN].enabled := 1;
         GDConsts.menuItems[MENU_VIEW].enabled := 1;
@@ -148,7 +122,7 @@ begin
       else if ch = C_Keys.DOWN then
         ch := C_Keys.END_KEY;
       if ch in [C_Keys.HOME, C_Keys.END_KEY] then begin
-        ViewChar.SelectPrevNextChar(ch);
+        Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
       end;
     end else begin
@@ -170,7 +144,7 @@ begin
         'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GDVars.curChar <> nil) then
              begin
                SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '');
-               CharGen.RemoveCreature(False, True);
+               SaveLoad.RemoveCreature(False, True);
              end;
         'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
              begin
@@ -203,8 +177,8 @@ begin
         { free training, turned on and off as in Curse }
         'J': if GDVars.stingArg then
              begin
-               GDVars.stingMode := Ord(GDVars.stingMode = 0);
-               if GDVars.stingMode <> 0 then
+               stingMode := Ord(stingMode = 0);
+               if stingMode <> 0 then
                  CharDisp.PrintBottomLine('Free training on')
                else
                  CharDisp.PrintBottomLine('Free training off');
@@ -326,7 +300,7 @@ end;
 { CreateCharacterMenu: Choose race, gender, class and alignment, set the starting age, then roll attributes, hit points
   and gold until the player keeps the result; name the character, customize portrait and icon, save it with
   SaveLoad.SaveChar and free it. Aborting a pick menu frees the string list and the character before it exits; at the
-  end CharGen.FreeCreature frees the record with its racial effects. }
+  end SaveLoad.FreeCreature frees the record with its racial effects. }
 procedure CreateCharacterMenu;
 var
   creature: Types.PCharRecord;
@@ -348,6 +322,47 @@ var
   hpTotal: Byte;
   addExit: Boolean;
   redraw: Boolean;
+
+  { Bring the new character's rolled ability i within its race's limits (ClassCal.RaceAbilityMin and Max), then up to
+    its class's minimum. }
+  procedure ClampToLimits(i: ShortInt);
+  begin
+    with creature^ do begin
+      if stats[i] < ClassCal.RaceAbilityMin(race, genderSp, i) then
+        stats[i] := ClassCal.RaceAbilityMin(race, genderSp, i);
+      if stats[i] > ClassCal.RaceAbilityMax(race, genderSp, i) then
+        stats[i] := ClassCal.RaceAbilityMax(race, genderSp, i);
+      if stats[i] < GDConsts.classMin[charClass].values[i] then
+        stats[i] := GDConsts.classMin[charClass].values[i];
+    end;
+  end;
+
+  { Run the gender, class or alignment list until Enter, leaving the pick in sel (1 for the first line). Exit or Escape
+    frees the list and the character and returns False, for the caller to leave. }
+  function PickFromList: Boolean;
+  var
+    picked: Types.PItemRec;
+    key: Char;
+    withExit: Boolean;
+    repaint: Boolean;
+  begin
+    PickFromList := True;
+    picked := list;
+    sel := 1;
+    withExit := True;
+    repaint := True;
+    repeat
+      key := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list, withExit, repaint, sel,
+                                   picked);
+      if key = C_Keys.NONE then begin
+        MenuCore.FreeStringList(list);
+        SaveLoad.FreeCreature(creature);
+        PickFromList := False;
+        Exit;
+      end;
+    until key = C_Keys.ENTER;
+  end;
+
 begin
   GetMem(creature, SizeOf(Types.TCharRecord));
   FillChar(creature^, SizeOf(Types.TCharRecord), 0);
@@ -380,7 +395,7 @@ begin
             end;
     end;
   { the race screen: the bottom box goes first, so the top boxes' gold corners stay on the row they share with it }
-  Border.ClearBox(1, 1, 38, 22);
+  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   Border.DrawBorder(1, RACE_TOP_BOTTOM + 2, 38, 22, 0);
   Border.DrawBorder(1, 1, RACE_SPLIT_COL - 1, RACE_TOP_BOTTOM, 0);
   Border.DrawBorder(RACE_SPLIT_COL + 1, 1, 38, RACE_TOP_BOTTOM, 0);
@@ -397,7 +412,7 @@ begin
                                 RACE_LIST_ROW + 5, list, addExit, redraw, sel, m);
     if ch = C_Keys.NONE then begin
       MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
+      SaveLoad.FreeCreature(creature);
       Exit;
     end;
     if ch <> C_Keys.ENTER then
@@ -408,7 +423,7 @@ begin
         CharGen.ShowRaceInfo(sel);
   until ch = C_Keys.ENTER;
   { back to the one frame the following lists use }
-  Border.DrawWindow(1, 1, 38, 22, 0, Black, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black, '');
   if sel = 6 then
     { 6 -> Human (7) }
     Inc(sel);
@@ -457,19 +472,7 @@ begin
     m := MenuCore.FindListMember(g + 1, list);
     m^.name := '  ' + GDConsts.genderNames[g];
   end;
-  m := list;
-  sel := 1;
-  addExit := True;
-  redraw := True;
-  repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
-      MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
-      Exit;
-    end;
-  until ch = C_Keys.ENTER;
+  if not PickFromList then Exit;
   creature^.genderSp := sel - 1;
   { class }
   MenuCore.FreeStringList(list);
@@ -484,19 +487,7 @@ begin
     m := MenuCore.FindListMember(slot, list);
     m^.name := '  ' + GDConsts.classNames[GDConsts.classesByRace[creature^.race].classes[slot]];
   end;
-  m := list;
-  sel := 1;
-  addExit := True;
-  redraw := True;
-  repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
-      MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
-      Exit;
-    end;
-  until ch = C_Keys.ENTER;
+  if not PickFromList then Exit;
   if (sel < 1) or (sel > cnt) then
     sel := 1;
   with creature^ do begin
@@ -513,7 +504,7 @@ begin
       FxEngine.AddEffect(creature, C_Effect.PROT_EVIL, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         if GDConsts.thac0Tbl[cls, classLevels[cls]] > thac0Base then
           thac0Base := GDConsts.thac0Tbl[cls, classLevels[cls]];
@@ -531,26 +522,14 @@ begin
     m := MenuCore.FindListMember(slot, list);
     m^.name := '  ' + GDConsts.alignNames[GDConsts.alignByClass[creature^.charClass].alignments[slot]];
   end;
-  m := list;
-  sel := 1;
-  addExit := True;
-  redraw := True;
-  repeat
-    ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list,
-                                addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
-      MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
-      Exit;
-    end;
-  until ch = C_Keys.ENTER;
+  if not PickFromList then Exit;
   creature^.alignment := GDConsts.alignByClass[creature^.charClass].alignments[sel];
   MenuCore.FreeStringList(list);
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
     maximum) of one component class. }
   if creature^.charClass <= C_Class.MONK then
     with GDConsts.dsStartingAge[creature^.race, creature^.charClass] do
-      creature^.age := FxEngine.RollDice(num, sides) + base
+      creature^.age := Dice.RollDice(num, sides) + base
   else
     with creature^ do
       case charClass of
@@ -591,7 +570,7 @@ begin
     for i := 0 to 5 do begin
       creature^.stats[i] := 0;
       for j := 1 to 6 do begin
-        roll := FxEngine.RollDice(3, 6);
+        roll := Dice.RollDice(3, 6);
         { racial adjustment; the racial limits below still apply }
         if (creature^.race >= C_Race.DWARF) and (creature^.race <= C_Race.HUMAN) then
           roll := roll + GDConsts.raceAbilityAdj[creature^.race].values[i];
@@ -610,12 +589,7 @@ begin
                  Dec(stats[i], 2);
                if (stats[i] > 0) and (GDConsts.ageCat[race].old < age) then
                  Dec(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp] then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp];
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp] then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp];
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
                if (stats[C_Abil.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
                  if GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] < strExc then
@@ -628,12 +602,7 @@ begin
                  Inc(stats[i]);
                if GDConsts.ageCat[race].old < age then
                  Inc(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].intMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].intMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].intMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].intMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
           { Wisdom }
           C_Abil.WISDOM: begin
@@ -645,12 +614,7 @@ begin
                  Inc(stats[i]);
                if GDConsts.ageCat[race].old < age then
                  Inc(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].wisMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].wisMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].wisMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].wisMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
                if stats[i] < 13 then
                  { cleric multiclasses need Wisdom 13 }
                  if charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF] then
@@ -662,12 +626,7 @@ begin
                  Dec(stats[i], 2);
                if GDConsts.ageCat[race].old < age then
                  Dec(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].dexMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].dexMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].dexMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].dexMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
           { Constitution }
           C_Abil.CONSTITUTION: begin
@@ -677,21 +636,11 @@ begin
                  Dec(stats[i]);
                if GDConsts.ageCat[race].old < age then
                  Dec(stats[i]);
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].conMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].conMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].conMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].conMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
           { Charisma }
           C_Abil.CHARISMA: begin
-               if stats[i] < GDConsts.dsMinimumMaximumStatistics[race].chaMin then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].chaMin;
-               if stats[i] > GDConsts.dsMinimumMaximumStatistics[race].chaMax then
-                 stats[i] := GDConsts.dsMinimumMaximumStatistics[race].chaMax;
-               if stats[i] < GDConsts.classMin[charClass].values[i] then
-                 stats[i] := GDConsts.classMin[charClass].values[i];
+               ClampToLimits(i);
              end;
         end;
       ViewChar.PrintStat(i, False);
@@ -709,14 +658,14 @@ begin
       { hpTotal sums each class's starting-gold dice (dsStartingGoldClass); gold = sum * 10 div class count }
       hpTotal := 0;
       clsCount := 0;
-      for cls := 0 to 7 do
+      for cls := C_Level.CLERIC to C_Level.MONK do
         if classLevels[cls] > 0 then begin
           case cls of
             C_Level.CLERIC: clericSpells[1] := 1;
             C_Level.MAGE: mageSpells[1] := 1;
           end;
           Inc(hpTotal,
-              FxEngine.RollDice(GDConsts.dsStartingGoldClass[cls].num, GDConsts.dsStartingGoldClass[cls].sides));
+              Dice.RollDice(GDConsts.dsStartingGoldClass[cls].num, GDConsts.dsStartingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
             C_Level.CLERIC: begin
@@ -741,9 +690,9 @@ begin
       coins[C_Money.GOLD] := hpTotal * 10 div clsCount;
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
         too little) }
-      hpRolled := CharGen.RollFirstLevelHp(creature, $FF);
+      hpRolled := ClassCal.RollFirstLevelHp(creature, $FF);
       hpMax := hpRolled;
-      conB := CharGen.ConHpBonus(creature, $FF);
+      conB := ClassCal.ConHpBonus(creature, $FF);
       if conB < 0 then begin
         if hpMax > Abs(conB) + clsCount then
           hpMax := (hpMax + conB) div clsCount
@@ -772,7 +721,7 @@ begin
   SaveLoad.SaveChar(Types.PCharRecord(creature), '');
   GDVars.curChar := savedCur;
   { with its racial effects }
-  CharGen.FreeCreature(creature);
+  SaveLoad.FreeCreature(creature);
 end;
 
 { DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
@@ -788,7 +737,7 @@ begin
         CharDisp.PrintBottomLine('You dump ' + name + ' out back.')
       else
         CharDisp.PrintBottomLine(name + ' bids you farewell.');
-      CharGen.RemoveCreature(False, True);
+      SaveLoad.RemoveCreature(False, True);
     end else
       CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.');
   end;
@@ -829,6 +778,22 @@ var
       StatMinimum := GDConsts.classMin[GDVars.curChar^.charClass].values[statIdx]
     else
       StatMinimum := racialMin;
+  end;
+
+  { Left on ability a: up to the larger of its racial and class minimums. }
+  procedure RaiseToMinimum(a: ShortInt);
+  begin
+    with GDVars.curChar^ do
+      if stats[a] < StatMinimum(ClassCal.RaceAbilityMin(race, genderSp, a)) then
+        stats[a] := StatMinimum(ClassCal.RaceAbilityMin(race, genderSp, a));
+  end;
+
+  { Right on ability a: down to its racial maximum. }
+  procedure LowerToMaximum(a: ShortInt);
+  begin
+    with GDVars.curChar^ do
+      if stats[a] > ClassCal.RaceAbilityMax(race, genderSp, a) then
+        stats[a] := ClassCal.RaceAbilityMax(race, genderSp, a);
   end;
 
 begin
@@ -878,41 +843,35 @@ begin
                 C_Abil.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
                      Inc(stats[hold]);
-                   end else if stats[hold] <
-                       StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].strMin[genderSp]);
-                C_Abil.INTELLIGENCE: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].intMin);
+                   end else
+                     RaiseToMinimum(hold);
                 C_Abil.WISDOM: begin
-                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin) then
-                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].wisMin);
+                     RaiseToMinimum(hold);
                      { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
                        with no ceiling (they are 0 for a new first-level character) }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.DEXTERITY: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].dexMin);
                 C_Abil.CONSTITUTION: begin
-                     if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin) then
-                       stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].conMin);
-                     if CharGen.HpMaximum(GDVars.curChar) < hpMax then
-                       hpMax := CharGen.HpMaximum(GDVars.curChar);
+                     RaiseToMinimum(hold);
+                     if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
+                       hpMax := ClassCal.HpMaximum(GDVars.curChar);
                      hpCur := hpMax;
                      statIdx := 6;
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
                    end;
-                C_Abil.CHARISMA: if stats[hold] < StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin) then
-                     stats[hold] := StatMinimum(GDConsts.dsMinimumMaximumStatistics[race].chaMin);
+              else
+                { Intelligence, Dexterity, Charisma }
+                RaiseToMinimum(hold);
               end;
             end else
             { HP row }
             begin
               Dec(hpMax);
-              if CharGen.HpMinimum(GDVars.curChar) > hpMax then
-                hpMax := CharGen.HpMinimum(GDVars.curChar);
+              if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
+                hpMax := ClassCal.HpMinimum(GDVars.curChar);
               hpCur := hpMax;
             end;
           { Right = increase }
@@ -921,43 +880,38 @@ begin
               hold := statIdx;
               Inc(stats[hold]);
               case hold of
-                C_Abil.STRENGTH: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp] then begin
+                C_Abil.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
                      if (stats[hold] > 18) and (CharHlp.WarriorLevel(GDVars.curChar) > 0) and
                          (GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].strMax[genderSp];
+                     stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
                    end;
-                C_Abil.INTELLIGENCE: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].intMax then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].intMax;
                 C_Abil.WISDOM: begin
-                     if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].wisMax then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].wisMax;
+                     LowerToMaximum(hold);
                      { clericSpells[1] only, same shape as the Left arm above }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.DEXTERITY: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].dexMax then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].dexMax;
                 C_Abil.CONSTITUTION: begin
-                     if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].conMax then
-                       stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].conMax;
-                     if CharGen.HpMinimum(GDVars.curChar) > hpMax then
-                       hpMax := CharGen.HpMinimum(GDVars.curChar);
+                     LowerToMaximum(hold);
+                     if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
+                       hpMax := ClassCal.HpMinimum(GDVars.curChar);
                      hpCur := hpMax;
                      statIdx := 6;
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
                    end;
-                C_Abil.CHARISMA: if stats[hold] > GDConsts.dsMinimumMaximumStatistics[race].chaMax then
-                     stats[hold] := GDConsts.dsMinimumMaximumStatistics[race].chaMax;
+              else
+                { Intelligence, Dexterity, Charisma }
+                LowerToMaximum(hold);
               end;
             end else
             { HP row }
             begin
               Inc(hpMax);
-              if CharGen.HpMaximum(GDVars.curChar) < hpMax then
-                hpMax := CharGen.HpMaximum(GDVars.curChar);
+              if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
+                hpMax := ClassCal.HpMaximum(GDVars.curChar);
               hpCur := hpMax;
             end;
         end else
@@ -1011,11 +965,11 @@ var
   idx: Integer;
   notEmpty: Boolean;
 begin
-  if (GDVars.curChar^.status <> C_Status.OKAY) and (GDVars.stingMode = 0) then begin
+  if (GDVars.curChar^.status <> C_Status.OKAY) and (stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;
-  if (MoneyCal.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (GDVars.stingMode = 0) then begin
+  if (MoneyCal.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (stingMode = 0) then begin
     TextRend.PrintAndPause('Training costs 1000 gp.', Yellow);
     Exit;
   end;
@@ -1023,7 +977,7 @@ begin
   classMask := 0;
   with GDVars.curChar^ do begin
     xpClamp := 0;
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(classMask, GDConsts.classBit[cls]);
         atCap := False;
@@ -1052,7 +1006,7 @@ begin
         end;
         { xp[] runs to level 9 }
         if (not atCap) and (lvl < 9) then
-          if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (GDVars.stingMode <> 0) then
+          if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);
               if lvl < 8 then
@@ -1067,7 +1021,7 @@ begin
       end;
     if xpClamp > 0 then
       experience := xpClamp;
-    if GDVars.stingMode = 0 then begin
+    if stingMode = 0 then begin
       if Byte(classMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
         Exit;
@@ -1076,15 +1030,15 @@ begin
         Exit;
       end;
     end;
-    if GDVars.stingMode = 0 then
+    if stingMode = 0 then
       trainable := trainMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]
     else
       trainable := trainMask;
-    Border.ClearBox(1, 1, 38, 22);
+    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
     row := 4;
     CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then
         if GDConsts.classBit[cls] and trainable > 0 then begin
           Inc(row);
@@ -1100,11 +1054,11 @@ begin
     if MenuCore.YesNoMenu('Do you wish to train? ', LightMagenta, LightGreen, White) <> 'Y' then
       Exit;
     CharDisp.PrintBottomLine('Congratulations...');
-    if GDVars.stingMode = 0 then
+    if stingMode = 0 then
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
     clsCount := 0;
     oldMage := classLevels[C_Level.MAGE];
-    for cls := 0 to 7 do
+    for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         if GDConsts.classBit[cls] and trainable > 0 then begin
@@ -1119,18 +1073,18 @@ begin
     if classLevels[C_Level.MAGE] > oldMage then begin
       idx := -1;
       repeat
-        sel := ViewChar.SpellMenu(4, 4, idx, notEmpty);
+        sel := Magic.SpellMenu(4, 4, idx, notEmpty);
       until (sel > 0) or (not notEmpty);
       { SpellMenu returns 0 when there is no spell left to learn; spellsKnown starts at 1 }
       if sel > 0 then
         spellsKnown[sel] := 1;
     end;
-    rolled := CharGen.RollFirstLevelHp(GDVars.curChar, trainable);
+    rolled := ClassCal.RollFirstLevelHp(GDVars.curChar, trainable);
     gain := rolled div clsCount;
     if gain = 0 then
       gain := 1;
     Inc(hpRolled, gain);
-    conB := CharGen.ConHpBonus(GDVars.curChar, trainable);
+    conB := ClassCal.ConHpBonus(GDVars.curChar, trainable);
     gain := (rolled + conB) div clsCount;
     if gain < 1 then
       gain := 1;
@@ -1164,7 +1118,7 @@ var
   newEvil: Boolean;
   newPaladin: Boolean;
 begin
-  Border.ClearBox(1, 1, 38, 22);
+  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   SaveLoad.LoadCharlist(list);
   if list = nil then Exit;
   idx := 0;
@@ -1224,7 +1178,7 @@ begin
               else
                 TextRend.DisplayAndPause(Yellow, paladin^.name + ' will tolerate no evil!');
               Border.ClearBox(0, 24, 39, 24);
-              CharGen.FreeCreature(Types.PCharRecord(creature));
+              SaveLoad.FreeCreature(Types.PCharRecord(creature));
             end
             { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
@@ -1241,7 +1195,7 @@ begin
               if p = nil then
                 m^.name := Copy(m^.name, 3, Length(m^.name) - 2);
               { with the items and effects LoadChar read }
-              CharGen.FreeCreature(Types.PCharRecord(creature));
+              SaveLoad.FreeCreature(Types.PCharRecord(creature));
             end;
           end;
         end;
@@ -1249,39 +1203,6 @@ begin
   until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list);
   MenuCore.FreeStringList(list);
-end;
-
-{ RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
-  becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
-  A curChar not found in the list is left alone. }
-procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
-var
-  prev: Types.PCharRecord;
-begin
-  if GDVars.creatureList = nil then Exit;
-  prev := GDVars.creatureList;
-  if prev <> GDVars.curChar then begin
-    while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
-      prev := prev^.nextCharAddr;
-    if prev^.nextCharAddr <> nil then begin
-      if freeAnim then
-        MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
-      prev^.nextCharAddr := GDVars.curChar^.nextCharAddr;
-      CharGen.FreeCreature(GDVars.curChar);
-      GDVars.curChar := prev;
-      if not suppressSizeDec then
-        Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
-    end;
-  end else begin
-    if freeAnim then
-      MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
-    GDVars.creatureList := GDVars.curChar^.nextCharAddr;
-    prev := GDVars.curChar^.nextCharAddr;
-    CharGen.FreeCreature(GDVars.curChar);
-    GDVars.curChar := prev;
-    if not suppressSizeDec then
-      Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
-  end;
 end;
 
 { CustomizePortrait: The portrait picker, on its own bordered page. Three heads sit over three bodies; the middle
@@ -1368,7 +1289,7 @@ begin
     if (portraitBody = 0) or (portraitBody > nBodies) then
       portraitBody := 1;
     TextRend.ClearScreen;
-    Border.DrawBorder(1, 1, 38, 22, 0);
+    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
     Centered(2, White, name);
     Border.DrawBorder(PIC_COL[1], PIC_ROW, PIC_COL[1] + 10, PIC_ROW + 10, 0);
     Centered(HINT_ROW, LightGreen, 'Arrow keys for selection');
@@ -2124,7 +2045,7 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (p <> GDVars.curChar) do
     p := p^.nextCharAddr;
-  if (p <> nil) and (GDVars.curChar^.orderNumber <= 7) then begin
+  if (p <> nil) and (GDVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
     SaveLoad.LoadCharIconAnim(True);
     if GDVars.gLocType > C_Area.LOC_3D_MAP then
       { the party map icon LoadCharIconAnim freed }
@@ -2133,143 +2054,6 @@ begin
   TextRend.ClearBottomLine;
   CbtMap.SetNoncombatPalette;
   GDVars.horizChoice := savedChoice;
-end;
-
-{ ConHpBonus: Sum GDConsts.conBonusTbl[Con] once per class with levels whose classBit shares a bit with mask
-  ($FF = all), plus 1 at Con 17+ and 1 more at Con 18+ when charClass is a single-class fighter, paladin or ranger. A
-  first-level ranger counts its share twice, once for each of its two hit dice. The table covers Con 3..20; a
-  Constitution outside it (Raise Dead takes a point each time, down to 0) uses the nearer end, so Con 0..2 keep Con 3's
-  penalty. }
-function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
-var
-  bonus: ShortInt;
-  cls: ShortInt;
-  con: Byte;
-  share: ShortInt;
-  warrior: Boolean;
-begin
-  bonus := 0;
-  con := creature^.stats[C_Abil.CONSTITUTION];
-  if con < 3 then
-    con := 3
-  else if con > 20 then
-    con := 20;
-  with creature^ do begin
-    warrior := (charClass = C_Class.FIGHTER) or (charClass = C_Class.PALADIN) or (charClass = C_Class.RANGER);
-    for cls := 0 to 7 do
-      if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        share := GDConsts.conBonusTbl[con];
-        if (stats[C_Abil.CONSTITUTION] > 16) and warrior then
-          Inc(share);
-        if (stats[C_Abil.CONSTITUTION] > 17) and warrior then
-          Inc(share);
-        if (cls = C_Level.RANGER) and (classLevels[cls] = 1) then
-          share := share * 2;
-        Inc(bonus, share);
-      end;
-  end;
-  ConHpBonus := bonus;
-end;
-
-{ HpMinimum: Lowest legal hpMax: one point per level in each class (plus 1 for a ranger or monk), plus the Con bonus,
-  divided by the class count; 1 if a negative bonus would leave too little }
-function HpMinimum(creature: Types.PCharRecord): Byte;
-var
-  clsCount: Byte;
-  conB: ShortInt;
-  sum: Byte;
-  cls: ShortInt;
-begin
-  with creature^ do begin
-    clsCount := 0;
-    sum := 0;
-    for cls := 0 to 7 do
-      if classLevels[cls] > 0 then begin
-        Inc(sum, classLevels[cls]);
-        Inc(clsCount);
-        case cls of
-          C_Level.RANGER: Inc(sum);
-          C_Level.MONK: Inc(sum);
-        end;
-      end;
-  end;
-  conB := CharGen.ConHpBonus(creature, $FF);
-  if conB < 0 then begin
-    if sum > Abs(conB) + clsCount then
-      sum := (sum + conB) div clsCount
-    else
-      sum := 1;
-  end else
-    sum := (sum + conB) div clsCount;
-  HpMinimum := sum;
-end;
-
-{ HpMaximum: Highest legal hpMax: the top of each class's hit dice -- cleric and druid d8 per level, fighter and paladin
-  d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1 -- plus the Con bonus, divided by the class
-  count. The Con bonus comes from curChar, not from the creature parameter, so calling it for anyone but the current
-  character mixes two creatures. }
-function HpMaximum(creature: Types.PCharRecord): Byte;
-var
-  clsCount: Byte;
-  sum: Byte;
-  conB: ShortInt;
-  cls: ShortInt;
-begin
-  with creature^ do begin
-    clsCount := 0;
-    sum := 0;
-    for cls := 0 to 7 do
-      if classLevels[cls] > 0 then begin
-        Inc(clsCount);
-        case cls of
-          C_Level.CLERIC: Inc(sum, classLevels[cls] * 8);
-          C_Level.DRUID: Inc(sum, classLevels[cls] * 8);
-          C_Level.FIGHTER: Inc(sum, classLevels[cls] * 10);
-          C_Level.PALADIN: Inc(sum, classLevels[cls] * 10);
-          C_Level.RANGER: Inc(sum, (classLevels[cls] + 1) * 8);
-          C_Level.MAGE: Inc(sum, classLevels[cls] * 4);
-          C_Level.THIEF: Inc(sum, classLevels[cls] * 6);
-          C_Level.MONK: Inc(sum, (classLevels[cls] + 1) * 4);
-        end;
-      end;
-  end;
-  { Con bonus of curChar, not creature }
-  conB := CharGen.ConHpBonus(GDVars.curChar, $FF);
-  if conB < 0 then begin
-    if sum > Abs(conB) + clsCount then
-      sum := (sum + conB) div clsCount
-    else
-      sum := 1;
-  end else
-    sum := (sum + conB) div clsCount;
-  HpMaximum := sum;
-end;
-
-{ RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
-  hpDice d hpSides at level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as
-  the others do. A class at level 1 gets at least hpSides * 2 div 3, two thirds of one die even for the ranger and
-  monk. }
-function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
-
-var
-  roll: Byte;
-  sum: Byte;
-  cls: ShortInt;
-  dice: Byte;
-begin
-  sum := 0;
-  for cls := 0 to 7 do
-    if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-      dice := GDConsts.hpDice[cls];
-      if creature^.classLevels[cls] > 1 then
-        dice := 1;
-      roll := FxEngine.RollDice(dice, GDConsts.hpSides[cls]);
-      if creature^.classLevels[cls] = 1 then
-        if roll < GDConsts.hpSides[cls] * 2 div 3 then
-          roll := GDConsts.hpSides[cls] * 2 div 3;
-      Inc(sum, roll);
-    end;
-  RollFirstLevelHp := sum;
 end;
 
 end.

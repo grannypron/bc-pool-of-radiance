@@ -1,6 +1,6 @@
 """Report the overlaid units' sizes, for build.sh.
 
-usage: ovlsizes.py FIXMAIN.EXE FIXMAIN.MAP
+usage: ovlsizes.py FIXMAIN.EXE FIXMAIN.MAP [--units]   (--units: every overlay's size too)
 
 Each overlaid unit has a stub segment in the linked (unpacked) FIXMAIN.EXE: it starts with INT 3Fh (CD 3F), then the
 return offset, the overlay's file offset (LongInt), its code size and its fixup size (Words). FIXMAIN.MAP gives each
@@ -13,7 +13,7 @@ import sys
 OVERLAY_BUF = 100352
 
 
-def main(exe_path, map_path):
+def main(exe_path, map_path, units=False):
     exe = open(exe_path, 'rb').read()
     image = exe[struct.unpack_from('<H', exe, 8)[0] * 16:]
     sizes = {}
@@ -30,7 +30,10 @@ def main(exe_path, map_path):
     largest = sorted(sizes.items(), key=lambda kv: -kv[1])[:3]
     print('overlays: %d units, %d bytes; largest %s; buffer %d bytes'
           % (len(sizes), sum(sizes.values()), ', '.join('%s %d' % kv for kv in largest), OVERLAY_BUF))
+    if units:
+        for name, size in sorted(sizes.items(), key=lambda kv: -kv[1]):
+            print('  %-10s %6d' % (name, size))
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], '--units' in sys.argv[3:])

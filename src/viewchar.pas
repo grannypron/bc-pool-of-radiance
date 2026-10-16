@@ -18,28 +18,13 @@ procedure ViewCharMenu(var done: Boolean);
 
 procedure UseItemMenu(var done: Boolean);
 
-procedure ToggleReadyItem(item: Types.PItemRec);
-
-procedure UseItem(item: Types.PItemRec; var done: Boolean);
-
-procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
-
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
-
-procedure SelectPrevNextChar(c: Char);
-
-
-function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
-
-{ The Cast menu (SpellMenu 7, select 1): the spell chosen, as SpellMenu returns it, with scroll the scroll it is cast
-  from (nil for a memorized spell). }
-function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Types.PItemRec): Byte;
 
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp, MoneyCal;
+  CharDisp, MoneyCal, C_Msg;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -76,7 +61,7 @@ var
   multi: Boolean;
 begin
   TextRend.ClearScreen;
-  Border.DrawBorder(1, 1, 38, 22, 0);
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(creature, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
   if CharHlp.IsNpc(creature) then
@@ -124,13 +109,13 @@ begin
   row := 20;
   if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     TextRend.DisplayString(1, row, White, 'Weapon');
-    CharHlp.PrintItemString(creature^.equipped[C_Equip.WEAPON], 8, row, False, True);
+    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.WEAPON], 8, row);
   end;
   Inc(row);
   if creature^.equipped[C_Equip.ARMOR] <> nil then begin
     { 'Armor' starts one column right of 'Weapon' so the two labels end in the same column }
     TextRend.DisplayString(2, row, White, 'Armor');
-    CharHlp.PrintItemString(creature^.equipped[C_Equip.ARMOR], 8, row, False, True);
+    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.ARMOR], 8, row);
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
@@ -267,7 +252,7 @@ begin
     if b <> nil then
       kinds := b^.kindCount;
     TextRend.ClearScreen;
-    Border.DrawBorder(1, 1, 38, 22, 0);
+    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
     if showGame then
       TextRend.DisplayString(2, 2, LightCyan, 'Game Statistics')
     else begin
@@ -333,7 +318,7 @@ begin
   p := GDVars.curChar;
   CharHlp.RecalcStats(p);
   TextRend.ClearScreen;
-  Border.DrawBorder(1, 1, 38, 22, 0);
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(p, 2, 2, False);
   TextRend.DisplayString(2, 4, White, 'Saving Throws');
   for i := C_Save.PARALYZE to C_Save.SPELL do begin
@@ -487,7 +472,7 @@ begin
     idx := -1;
     case ch of
       'I': ViewChar.UseItemMenu(done);
-      'S': i := ViewChar.SpellMenu(0, 0, idx, hasSpells);
+      'S': i := Magic.SpellMenu(0, 0, idx, hasSpells);
       'T': ViewChar.TradeTreasureMenu;
       'D': begin
              ViewChar.DropMoneyMenu;
@@ -517,7 +502,7 @@ begin
   CheckItemAvail := False;
   if item^.equipped <> 0 then
     CharDisp.PrintBottomLine('Must be unreadied')
-  else if not Magic.ItemReadable(item) then
+  else if not CharHlp.ItemReadable(item) then
     CheckItemAvail := True
   else if (item^.charges > $7F) or (item^.effect > $7F) or (item^.special > $7F) then begin
     CharDisp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
@@ -564,7 +549,7 @@ begin
     v[15] := CharHlp.BaseItem(itemType)^.dmgLgDice;
   end;
   TextRend.ClearScreen;
-  Border.DrawBorder(1, 1, 38, 22, 0);
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
   for i := 1 to 15 do begin
     Str(v[i], s);
     TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
@@ -616,12 +601,12 @@ begin
       { rebuild every item name }
       p := creature^.itemsAddr;
       while p <> nil do begin
-        CharHlp.PrintItemString(p, 0, 0, True, False);
+        CharHlp.ItemLabel(p, True);
         p := p^.next;
       end;
       if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
-        Border.DrawBorder(1, 1, 38, 22, 0);
+        Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
         CharDisp.DisplayCreatureName(creature, 1, 1, True);
         TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
         Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
@@ -641,14 +626,14 @@ begin
                  ViewChar.ViewItemDetail(sel);
                  needRedraw := True;
                end;
-          'R': ViewChar.ToggleReadyItem(sel);
-          { a scroll the Cast list offers (Magic.CastableScroll) need not be readied; other items must be }
-          'U': if (sel^.equipped = 0) and not Magic.CastableScroll(creature, sel) then
+          'R': FxEngine.ToggleReadyItem(sel);
+          { a scroll the Cast list offers (CharHlp.CastableScroll) need not be readied; other items must be }
+          'U': if (sel^.equipped = 0) and not CharHlp.CastableScroll(creature, sel) then
                begin
                  CharDisp.PrintBottomLine('Must be Readied');
                  ch := ' ';
-               end else if Magic.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
-                 ViewChar.UseItem(sel, done);
+               end else if CharHlp.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
+                 Magic.UseItem(sel, done);
                  if GDVars.ifcState <> C_Ifc.COMBAT then
                    { outside combat, using an item does not end the menu }
                    done := False;
@@ -671,7 +656,7 @@ begin
                    TextRend.DisplayAndPause(Yellow, 'The vault is full.');
                end else if ViewChar.CheckItemAvail(sel) then
                begin
-                 CharHlp.PrintItemString(sel, 0, 0, False, False);
+                 CharHlp.ItemLabel(sel, False);
                  ViewChar.SayBelow(True, 'Your ' + sel^.name + ' will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
@@ -696,73 +681,6 @@ begin
   end;
 end;
 
-{ Toggle an item's readied state for curChar. Unreadying fails on a cursed item. Readying checks, with later checks
-  overriding earlier ones, free hands (3), an occupied slot or ammunition slot (2) and the class mask (1); the
-  hands-full message is skipped for a quick-fighting creature in combat. Special items (special > $7F) invoke their
-  effect handler when readied and when unreadied. }
-procedure ToggleReadyItem(item: Types.PItemRec);
-var
-  hasSpecial: Boolean;
-  err: Byte;
-  slot: ShortInt;
-  creature: Types.PCharRecord;
-begin
-  hasSpecial := item^.special > $7F;
-  creature := GDVars.curChar;
-  if item^.equipped <> 0 then begin
-    if item^.cursed <> 0 then
-      CharDisp.PrintBottomLine('It''s Cursed')
-    else begin
-      item^.equipped := 0;
-      if hasSpecial then
-        FxEngine.CallEffectHandler(item^.special, creature, item, True);
-    end;
-  end else begin
-    err := 0;
-    if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then
-      err := 3;
-    slot := CharHlp.BaseItem(item^.itemType)^.slot;
-    { slots 0..8 each hold one item; a ring (slot 9) fails only when the second ring slot is taken }
-    case Byte(slot) of
-      C_Equip.WEAPON..C_Equip.BOOTS:
-        if creature^.equipped[slot] <> nil then
-          err := 2;
-      C_Equip.RING1:
-        if creature^.equipped[C_Equip.RING2] <> nil then
-          { second ring slot already in use }
-          err := 2;
-    end;
-    { arrows }
-    if item^.itemType = 73 then
-      if creature^.equipped[C_Equip.ARROW] <> nil then begin
-        err := 2;
-        slot := C_Equip.ARROW;
-      end;
-    { quarrels }
-    if item^.itemType = 28 then
-      if creature^.equipped[C_Equip.BOLT] <> nil then begin
-        err := 2;
-        slot := C_Equip.BOLT;
-      end;
-    if CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0 then
-      err := 1;
-    case err of
-      0: begin
-           item^.equipped := 1;
-           if hasSpecial then
-             FxEngine.CallEffectHandler(item^.special, creature, item, False);
-         end;
-      1: CharDisp.PrintBottomLine('Wrong Class');
-      2: begin
-           CharHlp.PrintItemString(creature^.equipped[slot], 0, 0, False, False);
-           CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
-         end;
-      3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then
-           CharDisp.PrintBottomLine('Your hands are full!');
-    end;
-  end;
-end;
-
 { Select a trade recipient, check carrying capacity, then copy the item to the recipient and remove it from curChar. }
 procedure ItemTradeMenu(item: Types.PItemRec);
 var
@@ -776,7 +694,7 @@ begin
     if ViewChar.CannotCarryItem(tgt, item) then
       CharDisp.PrintBottomLine('Overloaded')
     else begin
-      CharHlp.AddItemCopy(tgt, item);
+      CharHlp.AppendItemCopy(tgt^.itemsAddr, item);
       CharHlp.RemoveItem(GDVars.curChar, item);
       CharHlp.RecalcStats(tgt);
     end;
@@ -847,92 +765,6 @@ begin
   dst^.quantity := qty;
 end;
 
-{ Cast from a scroll (spell chosen from its list) or an effect-bearing item through UseItemSpell. }
-procedure UseItem(item: Types.PItemRec; var done: Boolean);
-var
-  spell: Byte;
-  idx: Integer;
-  notEmpty: Boolean;
-begin
-  idx := -1;
-  GDVars.usingItem := False;
-  spell := 0;
-  if Magic.ItemReadable(item) then begin
-    GDVars.dsCurrentScrollPtr := item;
-    spell := ViewChar.SpellMenu(2, 1, idx, notEmpty);
-  end else if (item^.effect > 0) and (item^.special < $80) then
-    spell := item^.effect;
-  if spell = 0 then
-    done := False
-  else
-    ViewChar.UseItemSpell(item, spell, False, done);
-end;
-
-{ Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
-  during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell)
-  and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
-  the user's actions. When done, consume the scroll spell, or use quantity and then charges; remove the item when its
-  charges run out. announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
-  (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item data, does
-  nothing and leaves done clear. }
-procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
-var
-  id: Byte;
-begin
-  id := spell;
-  if not Magic.ItemReadable(item) and (spell > 56) then
-    id := spell - 23;
-  if (id < 1) or (id > SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then begin
-    done := False;
-    Exit;
-  end;
-  if Magic.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
-      (GDConsts.spellTable[spell].target = 0) then begin
-    Magic.ShowCombatOnlySpell(spell);
-    done := MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y';
-    CharDisp.ClearMessageWindow;
-    if done then
-      Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell);
-    Exit;
-  end;
-  if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
-    CharDisp.DisplayCombatInterface;
-  if not Magic.ItemReadable(item) then begin
-    if spell > 56 then
-      { item effect -> spell id }
-      Dec(spell, 23);
-    CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
-    if GDVars.ifcState = C_Ifc.COMBAT then begin
-      TextRend.DisplayString(0, 23, LightGreen, 'Item:');
-      CharHlp.PrintItemString(item, 5, 23, False, True);
-    end else
-      CharHlp.PrintItemString(item, 1, 22, False, True);
-    TextRend.PauseOnly;
-    CharDisp.ClearMessageWindow;
-  end;
-  GDVars.usingItem := True;
-  if announce then
-    Magic.PrintCastSpellMsg(GDVars.curChar, 'casts', spell);
-  Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, done);
-  GDVars.usingItem := False;
-  if GDVars.ifcState = C_Ifc.COMBAT then
-    if GDConsts.spellTable[spell].whenCast <> 0 then
-      done := CharHlp.EndActions(GDVars.curChar);
-  if done then begin
-    if Magic.ItemReadable(item) then
-      Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell)
-    else if item^.charges > 0 then begin
-      if item^.quantity > 1 then
-        Dec(item^.quantity)
-      else begin
-        Dec(item^.charges);
-        if item^.charges = 0 then
-          CharHlp.RemoveItem(GDVars.curChar, item);
-      end;
-    end;
-  end;
-end;
-
 { Offer MoneyCal.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
   quantity, so a single arrow fetches a twentieth of a bundle's price. Pay as platinum (price div 5) plus gold (price
   mod 5); when overloaded, the platinum the character cannot take goes to the treasure pool. }
@@ -944,7 +776,7 @@ var
   takable: Word;
 begin
   price := MoneyCal.ItemSalePrice(item);
-  CharHlp.PrintItemString(item, 0, 0, False, False);
+  CharHlp.ItemLabel(item, False);
   ViewChar.SayBelow(True, 'I''ll give you ' + StrUtil.NumStr(price) + ' gold pieces for your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
@@ -977,7 +809,7 @@ var
   paid: Boolean;
 begin
   paid := False;
-  CharHlp.PrintItemString(item, 0, 0, False, False);
+  CharHlp.ItemLabel(item, False);
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
@@ -988,7 +820,7 @@ begin
       ViewChar.SayBelow(True, 'I can''t tell anything new about your ' + item^.name)
     else begin
       item^.unidMask := 0;
-      CharHlp.PrintItemString(item, 0, 0, False, False);
+      CharHlp.ItemLabel(item, False);
       ViewChar.SayBelow(True, 'It looks like some sort of ' + item^.name);
       newInfo := True;
     end;
@@ -996,6 +828,37 @@ begin
   if paid then
     TextRend.PauseOnly;
   Border.ClearBox(1, 21, 38, 22);
+end;
+
+{ Show the current character's coins as a menu (one line per type it holds: the name right-aligned in 8 columns and
+  the count, jewelry first) and return the line picked, or nil on Escape. list receives the menu list, for
+  MenuCore.FreeStringList (nil when there is no coin). }
+function PickCoinType(var list: Types.PItemRec): Types.PItemRec;
+var
+  m: ShortInt;
+  p: Types.PItemRec;
+  prev: Types.PItemRec;
+  idx: Integer;
+  redraw: Boolean;
+  ch: Char;
+begin
+  p := nil;
+  for m := C_Money.COPPER to C_Money.JEWELRY do
+    if GDVars.curChar^.coins[m] <> 0 then begin
+      { a menu-list node: only the name, inUse and next fields of a TItemRec }
+      prev := p;
+      GetMem(p, SizeOf(Types.TMenuNode));
+      p^.next := prev;
+      p^.name := StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GDVars.curChar^.coins[m]);
+      p^.inUse := 0;
+    end;
+  list := p;
+  prev := nil;
+  idx := 0;
+  redraw := True;
+  ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12, 7, 25, 13, p, True,
+                              redraw, idx, prev);
+  PickCoinType := prev;
 end;
 
 { Trade coins from curChar to another character. The outer loop picks the recipient, starting from tradeTarget; the
@@ -1007,17 +870,9 @@ var
   tgt: Types.PCharRecord;
   m: ShortInt;
   mType: ShortInt;
-  k: Byte;
-  gapLen: Byte;
-  p: Types.PItemRec;
   prev: Types.PItemRec;
   list: Types.PItemRec;
-  count: Word;
-  idx: Integer;
-  numStr: String[15];
-  line: String[4];
   s2: String;
-  ch: Char;
   amount: Word;
   exitOuter: Boolean;
   exitInner: Boolean;
@@ -1034,36 +889,7 @@ begin
       repeat
         ViewChar.PrintMoney;
         tradeTarget := tgt;
-        p := nil;
-        prev := nil;
-        list := nil;
-        count := 0;
-        for m := C_Money.COPPER to C_Money.JEWELRY do
-          if GDVars.curChar^.coins[m] <> 0 then begin
-            Inc(count);
-            { a menu-list node: only the name, inUse and next fields of a TItemRec }
-            if p = nil then begin
-              GetMem(p, SizeOf(Types.TMenuNode));
-              p^.next := nil;
-            end else begin
-              prev := p;
-              GetMem(p, SizeOf(Types.TMenuNode));
-              p^.next := prev;
-            end;
-            Str(GDVars.curChar^.coins[m], numStr);
-            gapLen := 8 - Length(GDConsts.moneyNames[m]);
-            line := '';
-            line[0] := Chr(gapLen);
-            for k := 1 to gapLen do
-              line[k] := ' ';
-            p^.name := line + GDConsts.moneyNames[m] + ' ' + numStr;
-            p^.inUse := 0;
-          end;
-        list := p;
-        idx := 0;
-        redraw := True;
-        ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12,
-                                    7, 25, 13, p, True, redraw, idx, prev);
+        prev := ViewChar.PickCoinType(list);
         if prev = nil then begin
           exitInner := True;
           exitOuter := False;
@@ -1093,53 +919,15 @@ procedure DropMoneyMenu;
 var
   m: ShortInt;
   mType: ShortInt;
-  gapLen: Byte;
-  k: Byte;
-  count: Word;
-  idx: Integer;
-  p: Types.PItemRec;
   prev: Types.PItemRec;
   list: Types.PItemRec;
   exitFlag: Boolean;
-  redraw: Boolean;
-  numStr: String[15];
-  line: String[4];
   s2: String;
-  ch: Char;
   amount: Word;
 begin
   repeat
     ViewChar.PrintMoney;
-    p := nil;
-    prev := nil;
-    list := nil;
-    count := 0;
-    for m := C_Money.COPPER to C_Money.JEWELRY do
-      if GDVars.curChar^.coins[m] <> 0 then begin
-        Inc(count);
-        { a menu-list node: only the name, inUse and next fields of a TItemRec }
-        if p = nil then begin
-          GetMem(p, SizeOf(Types.TMenuNode));
-          p^.next := nil;
-        end else begin
-          prev := p;
-          GetMem(p, SizeOf(Types.TMenuNode));
-          p^.next := prev;
-        end;
-        Str(GDVars.curChar^.coins[m], numStr);
-        gapLen := 8 - Length(GDConsts.moneyNames[m]);
-        line := '';
-        line[0] := Chr(gapLen);
-        for k := 1 to gapLen do
-          line[k] := ' ';
-        p^.name := line + GDConsts.moneyNames[m] + ' ' + numStr;
-        p^.inUse := 0;
-      end;
-    list := p;
-    idx := 0;
-    redraw := True;
-    ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 12, 7,
-                                25, 13, p, True, redraw, idx, prev);
+    prev := ViewChar.PickCoinType(list);
     if prev = nil then
       exitFlag := True
     else begin
@@ -1177,84 +965,6 @@ begin
   if Money.CheckOverload(creature, w, takable) then
     f := True;
   CannotCarryItem := f;
-end;
-
-{ Step curChar through the party on the extended scan codes the menus return: C_Keys.HOME selects the previous character
-  and C_Keys.END_KEY the next. C_Keys.HOME from the head wraps to the tail; C_Keys.END_KEY from the tail wraps to the
-  head; any other code selects the head. }
-procedure SelectPrevNextChar(c: Char);
-var
-  p: Types.PCharRecord;
-begin
-  p := GDVars.creatureList;
-  if p <> nil then
-    case c of
-      C_Keys.HOME:
-        if p = GDVars.curChar then begin
-          while p^.nextCharAddr <> nil do
-            p := p^.nextCharAddr;
-        end else
-          while (p <> nil) and (p^.nextCharAddr <> GDVars.curChar) do
-            p := p^.nextCharAddr;
-      C_Keys.END_KEY:
-        if GDVars.curChar^.nextCharAddr <> nil then
-          p := GDVars.curChar^.nextCharAddr;
-    else
-      p := GDVars.creatureList;
-    end;
-  GDVars.curChar := p;
-end;
-
-{ Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a
-  level, 5 to be memorized, 6 to be scribed, 7 available to cast) and run Magic.SpellSelection on it, returning the
-  chosen spell, or 0 when the list is empty. idx < 0 also draws the "<name>'s Spells ..." heading ("<name>'s Available
-  Spells" for 7); notEmpty receives whether the list has entries. }
-{ SpellMenu's work, with the chosen line's scroll in scroll. }
-function ChooseSpell(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean;
-  var scroll: Types.PItemRec): Byte;
-var
-  s: Types.TStr40;
-begin
-  case menuType of
-    0: s := 'in Memory';
-    1: s := 'in Spell Book';
-    2: s := 'on Scroll';
-    3: s := 'on Scrolls';
-    4: s := 'to choose from';
-    5: s := 'to be memorized';
-    6: s := 'to be scribed';
-    7: s := '';
-  else
-    s := '';
-  end;
-  notEmpty := Magic.GenerateSpellList(GDVars.curChar, menuType);
-  if notEmpty then begin
-    if idx < 0 then begin
-      Border.DrawWindow(1, 1, 38, 1, 0, Black, '');
-      CharDisp.DisplayCreatureName(GDVars.curChar, 1, 1, True);
-      if menuType = 7 then
-        s := 'Available Spells'
-      else
-        s := 'Spells ' + s;
-      TextRend.DisplayString(Length(GDVars.curChar^.name) + 4, 1, LightGreen, s);
-    end;
-    ChooseSpell := Magic.SpellSelection(selType, idx, scroll);
-  end else begin
-    scroll := nil;
-    ChooseSpell := 0;
-  end;
-end;
-
-function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
-var
-  scroll: Types.PItemRec;
-begin
-  SpellMenu := ViewChar.ChooseSpell(menuType, selType, idx, notEmpty, scroll);
-end;
-
-function CastSpellMenu(var idx: Integer; var notEmpty: Boolean; var scroll: Types.PItemRec): Byte;
-begin
-  CastSpellMenu := ViewChar.ChooseSpell(7, 1, idx, notEmpty, scroll);
 end;
 
 end.

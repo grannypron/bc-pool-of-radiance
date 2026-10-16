@@ -13,14 +13,18 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
-  C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar, CharDisp;
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_Status, C_Ifc, C_Gbvm,
+  C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
-const
-  { AwardExperience: prime stat > 15 earns a 10% bonus }
-  PRIME_STAT_THRESHOLD = 15;
-
-
+var
+  { Combat outcome. }
+  nonEscapedHostileFound: Boolean;
+  partyFled: Boolean;
+  { Count of disabled or Animated creatures, which get no experience share }
+  nonAnimCount: Byte;
+  { Experience share before individual bonuses. }
+  expShare: LongInt;
+  combatWon: Boolean;
 
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
@@ -47,28 +51,17 @@ begin
     while p <> nil do begin
       item := p^.itemsAddr;
       if (p^.hostile = 1) and (p^.status <> C_Status.RUNNING) then begin
-        GDVars.nonEscapedHostileFound := True;
+        nonEscapedHostileFound := True;
         for i := C_Money.COPPER to C_Money.JEWELRY do
           Inc(GDVars.treasureMoney[i], p^.coins[i]);
         expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
         if GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] <> 1 then
           while item <> nil do begin
-            if (item^.value > 0) or ((cnt < 8) and (FxEngine.RollDice(1, 10) <= 3)) then begin
+            if (item^.value > 0) or ((cnt < 8) and (Dice.RollDice(1, 10) <= 3)) then begin
               Inc(cnt);
-              if GDVars.treasureItems = nil then begin
-                GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-                CharHlp.PrintItemString(item, 0, 0, False, False);
-                GDVars.treasureItems^ := item^;
-                GDVars.treasureItems^.equipped := 0;
-                GDVars.treasureItems^.next := nil;
-              end else begin
-                q := GDVars.treasureItems;
-                GetMem(GDVars.treasureItems, SizeOf(Types.TItemRec));
-                CharHlp.PrintItemString(item, 0, 0, False, False);
-                GDVars.treasureItems^ := item^;
-                GDVars.treasureItems^.equipped := 0;
-                GDVars.treasureItems^.next := q;
-              end;
+              CharHlp.ItemLabel(item, False);
+              CharHlp.PrependItemCopy(GDVars.treasureItems, item);
+              GDVars.treasureItems^.equipped := 0;
             end;
             item := item^.next;
           end;
@@ -88,7 +81,7 @@ begin
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - GDVars.nonAnimCount;
+    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonAnimCount;
     if sharers > 0 then
       share := expTotal div sharers
     else
@@ -96,40 +89,15 @@ begin
   end;
 end;
 
-{ Every enabled, non-Animated creature in the list gets exp. A single-class cleric, fighter, magic-user or thief whose
-  prime stat (Wis/Str/Int/Dex) is above PRIME_STAT_THRESHOLD (15) gets +10 pct, as does a paladin with Str and Wis or a
-  ranger with Str, Int and Wis above it; other single classes get exp unchanged; two-class multiclasses get exp div 2,
-  three-class (9 = C/F/M, 15 = F/M/T) exp div 3. }
+{ Every enabled, non-Animated creature in the list gets its share of exp (ClassCal.ExperienceShare). }
 procedure AwardExperience(experience: LongInt);
 var
   p: Types.PCharRecord;
-  share: LongInt;
 begin
   p := GDVars.creatureList;
   while p <> nil do begin
-    if (p^.enabled <> 0) and (p^.status <> C_Status.ANIMATED) then begin
-      share := experience;
-      case p^.charClass of
-        C_Class.CLERIC: if p^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.FIGHTER: if p^.strCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.PALADIN:
-          if (p^.strCur > PRIME_STAT_THRESHOLD) and (p^.wisCur > PRIME_STAT_THRESHOLD) then
-            share := experience div 10 + experience;
-        C_Class.RANGER:
-          if (p^.strCur > PRIME_STAT_THRESHOLD) and (p^.intCur > PRIME_STAT_THRESHOLD) and
-              (p^.wisCur > PRIME_STAT_THRESHOLD) then
-            share := experience div 10 + experience;
-        C_Class.MAGE: if p^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.THIEF: if p^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-        C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER..C_Class.FIGHTER_THIEF,
-          { 2-class multi }
-          C_Class.MAGE_THIEF: share := experience div 2;
-        C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
-          { 3-class multi }
-          share := experience div 3;
-      end;
-      Inc(p^.experience, share);
-    end;
+    if (p^.enabled <> 0) and (p^.status <> C_Status.ANIMATED) then
+      Inc(p^.experience, ClassCal.ExperienceShare(p, experience));
     p := p^.nextCharAddr;
   end;
 end;
@@ -155,18 +123,18 @@ var
   nxt: Types.PCharRecord;
   b: Boolean;
 begin
-  GDVars.nonAnimCount := 0;
+  nonAnimCount := 0;
   GDVars.partyDefeated := True;
-  GDVars.partyFled := False;
+  partyFled := False;
   p := GDVars.creatureList;
   while (p <> nil) and (not IsMonster(p)) do begin
     if p^.status = C_Status.RUNNING then
-      GDVars.partyFled := True;
+      partyFled := True;
     p := p^.nextCharAddr;
   end;
   if GDVars.duelFlag then
     GDVars.partyDefeated := False;
-  GDVars.combatWon := False;
+  combatWon := False;
   p := GDVars.creatureList;
   if not GDVars.duelFlag then begin
     while (p <> nil) and (not IsMonster(p)) do begin
@@ -176,23 +144,23 @@ begin
           (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
         GDVars.partyDefeated := False;
       if (p^.status = C_Status.ANIMATED) or (p^.status = C_Status.OKAY) then begin
-        GDVars.combatWon := True;
-        GDVars.partyFled := False;
+        combatWon := True;
+        partyFled := False;
       end;
       if (p^.enabled = 0) or (p^.status = C_Status.ANIMATED) then
-        Inc(GDVars.nonAnimCount);
+        Inc(nonAnimCount);
       p := p^.nextCharAddr;
     end;
-    if GDVars.combatWon then begin
-      PostCbt.DetermineLootExp(GDVars.expShare);
-      PostCbt.AwardExperience(GDVars.expShare);
+    if combatWon then begin
+      PostCbt.DetermineLootExp(expShare);
+      PostCbt.AwardExperience(expShare);
     end;
     p := GDVars.creatureList;
     if not GDVars.partyDefeated then begin
       while (p <> nil) and (not IsMonster(p)) do begin
         { RemoveCreature below frees p }
         nxt := p^.nextCharAddr;
-        if not GDVars.partyFled then begin
+        if not partyFled then begin
           case p^.status of
             C_Status.RUNNING: begin
                  p^.status := C_Status.OKAY;
@@ -211,7 +179,7 @@ begin
             p^.enabled := 1;
           end else begin
             GDVars.curChar := p;
-            CharGen.RemoveCreature(False, True);
+            SaveLoad.RemoveCreature(False, True);
           end;
         end;
         p := nxt;
@@ -224,7 +192,7 @@ begin
         nxt := p^.nextCharAddr;
         if not IsMonster(p) then begin
           GDVars.curChar := p;
-          CharGen.RemoveCreature(False, True);
+          SaveLoad.RemoveCreature(False, True);
         end else
           b := True;
         p := nxt;
@@ -235,9 +203,9 @@ begin
     p := GDVars.creatureList;
     while p <> nil do begin
       if (p^.enabled = 1) and (p^.status = C_Status.OKAY) and (p^.hostile <> 1) then begin
-        GDVars.combatWon := True;
-        PostCbt.DetermineLootExp(GDVars.expShare);
-        PostCbt.AwardExperience(GDVars.expShare);
+        combatWon := True;
+        PostCbt.DetermineLootExp(expShare);
+        PostCbt.AwardExperience(expShare);
       end;
       p := p^.nextCharAddr;
     end;
@@ -263,9 +231,9 @@ var
   ext: Boolean;
 begin
   query[0] := #0;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, '');
-  if GDVars.nonEscapedHostileFound or GDVars.duelFlag then begin
-    if GDVars.duelFlag and not GDVars.combatWon then begin
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
+  if nonEscapedHostileFound or GDVars.duelFlag then begin
+    if GDVars.duelFlag and not combatWon then begin
       TextRend.DisplayString(1, 3, LightGreen, 'You have lost the duel.');
       experience := 0;
     end else if GDVars.duelFlag then
@@ -273,7 +241,7 @@ begin
     else
       TextRend.DisplayString(1, 3, LightGreen, 'The party has won.');
   end else begin
-    if GDVars.partyFled then begin
+    if partyFled then begin
       TextRend.DisplayString(1, 3, LightGreen, 'The party has fled.');
       experience := 0;
     end else
@@ -301,10 +269,10 @@ var
   p: Types.PItemRec;
 begin
   redraw := True;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, 'Loot');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Loot');
   p := GDVars.treasureItems;
   while p <> nil do begin
-    CharHlp.PrintItemString(p, 0, 0, False, False);
+    CharHlp.ItemLabel(p, False);
     p := p^.next;
   end;
   head := GDVars.treasureItems;
@@ -377,8 +345,8 @@ begin
                end;
           'I': PostCbt.LootTakeItemMenu;
           'E', C_Keys.NONE: done := True;
-          'G': ViewChar.SelectPrevNextChar(c);
-          'O': ViewChar.SelectPrevNextChar(c);
+          'G': Party.SelectPrevNextChar(c);
+          'O': Party.SelectPrevNextChar(c);
         end;
         CharDisp.DisplayParty(GDVars.curChar);
         Money.DetermineTreasure(treasure, items);
@@ -450,11 +418,11 @@ begin
                                                'Do you want to go back and claim your treasure?');
                end;
       'G': begin
-             ViewChar.SelectPrevNextChar(c);
+             Party.SelectPrevNextChar(c);
              CharDisp.DisplayParty(GDVars.curChar);
            end;
       'O': begin
-             ViewChar.SelectPrevNextChar(c);
+             Party.SelectPrevNextChar(c);
              CharDisp.DisplayParty(GDVars.curChar);
            end;
     end;
@@ -479,7 +447,7 @@ begin
         Inc(GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED]);
       next := p^.nextCharAddr;
       GDVars.curChar := p;
-      CharGen.RemoveCreature(IsMonster(p), True);
+      SaveLoad.RemoveCreature(IsMonster(p), True);
       p := next;
     end else begin
       if p^.combatAddr <> nil then begin
@@ -530,7 +498,7 @@ begin
         took := True;
       end;
   if took then begin
-    Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
     p := GDVars.creatureList;
     row := 0;
     while p <> nil do begin
@@ -553,18 +521,18 @@ end;
 procedure PostCombat;
 begin
   GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := 0;
-  GDVars.nonEscapedHostileFound := False;
+  nonEscapedHostileFound := False;
   GDVars.ifcState := C_Ifc.LOOT;
   PostCbt.DetermineCombatResults;
   PostCbt.PostCombatCreatureCleanup;
   if not GDVars.partyDefeated or GDVars.duelFlag then begin
     PostCbt.NpcTreasureShare;
-    PostCbt.PostCombatSummary(GDVars.expShare);
+    PostCbt.PostCombatSummary(expShare);
     PostCbt.LootMenu;
     CharHlp.FreeItemList(GDVars.treasureItems);
   end else begin
     GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $80;
-    Border.DrawWindow(1, 1, 38, 22, 0, White, 'The END!');
+    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'The END!');
     GDVars.curCol := 2;
     GDVars.curRow := 6;
     TextRend.DisplayMessageWindow(2, 5, 37, 22, LightGreen, True,

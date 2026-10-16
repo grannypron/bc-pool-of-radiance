@@ -146,6 +146,178 @@ ResolveSpell, CastOneSide, HasteSlowLogic, the statistics' attribution in Inflic
 parameters they would have every handler pass `GDVars.curChar` along, or change 68 spell and 141 effect handler
 signatures, for no less coupling.
 
+## Phase 5: working sets, cycles, duplication, testability
+
+Written 2026-10-16 from three surveys of `src/` at 62ec8f6: what duplication is left, structure and coupling, and
+memory (code by unit from FIXMAIN.MAP, the data segment, overlay working sets, and stack frames read from the
+routines' prologues). The steps are in order. Every step keeps behaviour unless it says otherwise, and anything that
+changes behaviour is its own issue and commit.
+
+0. **Measure first.** Add a Ctrl-Y checkpoint to the `combat`, `vault` and `areachange` scenarios, so each run records
+   STING's overlay load count as text. The working-set steps below then show their effect in the regression report,
+   not only by estimate.
+1. **Overlay working sets.** A combat round touches about 130 KB of overlays and an explore step about 114 KB; the
+   buffer is 100,352 bytes. The fixes are moves, mostly with no resident cost:
+   - **Startup code:** `EffHndlr.InitEffectHandlers` (1,825 bytes) and `Magic.InitSpellFns` (925) move to GameInit.
+     They run once, but their bytes load with every combat.
+   - **ViewChar (15.4 KB):** it leaves the hot loops.
+     - `SelectPrevNextChar` moves to resident `Party` (+339 resident). Every ECL menu, the map menus, the shop, the
+       vault, post-combat and camp call it.
+     - `ToggleReadyItem` and `UseItem` move to FxEngine; the AI calls them when it changes gear or uses an item.
+     - The cast menus and `UseItemSpell` move to Magic, which is loaded anyway when a spell is cast.
+   - **Magic (17.2 KB):** six small predicates move to CharHlp (+660 resident): `ItemReadable`, `ScrollLegible`,
+     `CastableScroll`, `ScrollSpellAt`, `HasScrollSpells` and `CalcSpellRange`. Ordinary turns call them, and loading
+     them brings in all of Magic.
+   - **GameTime (4 KB):** the clock path (`AdvanceTime`, `ValidateClock`, `TimeOutEffects`; 1,275 bytes) moves to
+     FxEngine, so GameTime no longer loads every round and every step.
+   - **Encounters and treasure:** `SaveLoad.LoadCreatureData` moves to EclMenu, its only real caller, which takes
+     SaveLoad's 11.6 KB out of encounters. `Money.GenerateRandomItem` moves to MoneyCal, so treasure loads about 3.5 KB
+     instead of Money's 9.4 KB.
+   - **JrnlList:** it is resident only because `{$O JrnlList}` is missing from fixmain (1,848 bytes).
+
+   The estimate afterwards: a combat round is about 76 KB without spells and 93 KB with them, and an explore step about
+   62 KB. Measure before deciding on larger splits (MenuVertical, CharDisp's combat routines, CbtActs' aiming UI) or on
+   a bigger `OVERLAY_BUF_BYTES`.
+2. **Unit cycles.** All six implementation cycles named in phase 1 are still there, and there are two new ones
+   (CharHlp–CharDisp through `Guard`, Shop–Temple through the counter menu). Nine small moves remove every cycle:
+   - `GetIconTileDelta` moves to Pathing.
+   - CbtMap's spell-aim preview gets a lightning tracer passed in, instead of calling Magic.
+   - `GameIo.ShowMemory` moves behind a hook, which also breaks the DaxIo–GameIo–TextRend loop.
+   - `RemoveCreature` and `FreeCreature` move to SaveLoad.
+   - `VaultMenu` moves to its own small unit.
+   - `CheckSaveDir` and `SaveDiskMsg` move to SaveMenu.
+   - `Guard`'s message moves to its two callers.
+   - `CounterMenu` takes the temple's heal menu as a procedure parameter.
+   - `SelectPrevNextChar` moves to Party (step 1).
+
+   Initialization order follows fixmain's `uses` list, so check the units that have initialization sections.
+3. **Duplication.** In order of value:
+   - **Item and effect lists:** 7 copies of "prepend a heap copy onto a list" (`CharHlp.PrependItemCopy` and an effect
+     twin), and 4 copies of "append at the tail".
+   - **Blit:** `BlitTileCell` is `BlitTileClipped` without the clipping. One core with a `clip` argument, the span
+     marks shared, and the four EGA plane loops made one loop. Measure the cost per row in combat.
+   - **Clearing rectangles:** `Border.ClearBox` and `TextRend.ClearRect` are the same routine. Keep TextRend's, with
+     ClearBox's clamping.
+   - **View3D:** `Display3DMapView`'s mirrored left and right scans become one parameterized scan.
+   - **Menus:** the coin menus (ViewChar's two are identical), and line appends through MenuCore helpers.
+   - **CharGen:** the racial ability limits, written out three times (pin them with tests first, because the two arrow
+     paths differ), and the pick loops for gender, class and alignment.
+   - **Smaller ones:**
+     - `DaxIo.DiskName` for 16 `Str(virtualDisk)` sites.
+     - `GameIo.FatalError` for 8 restore-print-exit blocks.
+     - `Party.LastCreature` and `PrevCreature`.
+     - The Con save bonus, which is `con * 2 div 7`, into AbilAdj.
+     - `FileUtil.OpenReadOnly` in DataArc.
+     - CbtMap's pasted `DrawCellCreature`.
+     - The remaining raw `Str` calls.
+   - **Constants still written as literals:** spell ids, the 72 arena slots, the element-mask bits, the window
+     corners, the GBVM zone bounds, `C_Level` loops written as `0 to 7`, and the party limit.
+   - **GBVM addresses get names.** Every raw address in EclVars' map and elsewhere (`$18`, `$9B`, `$2CF`, the
+     `$6B00`/`$BF68`/`$C04B` bases, the zone bounds) becomes a named `C_Gbvm` constant, so a grep shows every file that
+     touches an address. Take the opportunity in any step that passes one.
+4. **Testability**, as AbilAdj and MoneyCal were done:
+   - **Dice:** `RollDice` and `RollDamageDice` move to a resident unit, so tests can fix `RandSeed`. That is about 150
+     call sites in 17 units, so it gets its own issue.
+   - **CharHlp:** only five sites keep it out of a test program. `PrintItemString` splits into an `ItemLabel` and the
+     print; `CountTargets` and `CalcDistance` move to CbtMap; `Guard`'s message moves (step 2). Then RecalcStats, the
+     adjusters, the weights, AtLevelCap and CanTrain get tests.
+   - **ClassCal:** gets the hit-point and experience rules (CharGen's HpMinimum, HpMaximum and RollFirstLevelHp,
+     `ConHpTotal`, and PostCbt's experience award), extending TClasCal. `HpMaximum` reads curChar instead of its
+     parameter; every caller passes curChar, so fixing that changes nothing.
+   - **Pathing, after step 2:** PathFind, WalkLine, IsDirToward and the tie rule in SortTargets.
+   - **EclVars:** only `SpecialWriteZ1`'s pushes, wall-set loads and RecalcStats reach outside it. Behind hooks, the
+     GBVM address map (`ReadGbvm`, `WriteGbvm`, `SkipEclCmd`, `ConvGbString`) gets tests of every special address.
+   - **Also:**
+     - The clock arithmetic, as a small unit.
+     - The usual-spells store, as its own unit with a round-trip test.
+     - Tests for JrnlList, DataArc and `EclTrace.OpName`, which can be tested as they are.
+5. **GDVars and interfaces.**
+   - **Dead globals:** remove the ones that are written but never read (`treasureMoneyFlag`, `unidentified01..03`,
+     `itemsOk`, `extFlag`, `attackedAllies`, `prevOpcode`) and four unused constants. `writeReg1/2` and `readReg1..3`
+     look dead, but they are ECL registers (GBVM $B8/$B9 written, $FB/$FC/$B1 read as 0), so they stay or become
+     explicit arms in EclVars' address map.
+   - **Locals:** the loop counters and scratch values become locals (`gi2`, `team`, `gSpellTemp1/2`,
+     `dsCurrentPictureNumber`).
+   - **Private:** the globals only one unit uses become private to it (CombatSt's placement, PostCbt, EclVm, GameBoot,
+     Magic's spell list).
+   - **Explicit layouts:** the five party-position bytes that a saved game holds become a record or five reads and
+     writes, and `baseItems` becomes one array of 129.
+   - **Interfaces:** take the 165 spell and effect handlers out of the EffHndlr and Magic interfaces (the dispatch
+     tables stay as they are), and move Magic's and FxEngine's interface `uses` to their implementations.
+   - **Forward declarations:** delete the 25 that nothing needs.
+6. **Data segment and stack.**
+   - **Data segment, about 11 KB:**
+     - `gbStrings` moves to the heap (5,116 bytes).
+     - `baseItems` moves to the heap (2,060).
+     - `nameParts` is packed (about 3 KB).
+     - `spellNames`, `spellLevelNames` and `templeSpells` get shorter string types (871).
+     - DataPat's tables and DataBld's startup variables move to the heap or a file (about 2.9 KB).
+   - **Stack:** `CalcDistance` copies 216 bytes into a 765-byte local, and `PrintHpDebug` and `NonWeaponDamage` have
+     string frames on combat paths. 16 KB holds today, with about 6 KB of margin in the worst chain.
+
+**What the ECL can see.** Steps 5 and 6 must keep it working:
+- **Globals by name.** Scripts reach globals through EclVars' address map: `ReadGbvm`, `WriteGbvm`, `SpecialReadZ1`,
+  `SpecialWriteZ1` and zone 4's arms. A global named there (`gMapX`..`eventAtCell`, `gFacing`, `virtualDisk`,
+  `sndEffect`, `redrawSky`, the wall and sky colour selectors, the dump flags, the registers and `gbStrings`) can move
+  or change storage, but its arm must keep reading and writing the same value.
+- **The character record by layout.** GBVM $6B20..$6B70 is a raw window into the current character's record, from
+  `memorizedSpells[1]` on past it, so scripts depend on TCharRecord's layout. TRecLay pins it.
+- **Saved games by layout.** The saved game writes the zones and the five map bytes as blocks; TSaveLay pins those.
+- **GDConsts.** The ECL reads only `soundIds`, by name.
+- **A test of the address map.** Before step 5 touches any global the map names, step 4's EclVars extraction adds
+  tests that read and write each special address.
+
+**Done.** Every step was made except the four items below, which were declined for the reasons given. The regression
+suite passes at each measured commit, ssiformat included.
+
+- **Overlay working sets (steps 0 and 1):** combat's Ctrl-Y count went from 52 to 41 loads, areachange's from 32 to
+  27, and the vault's from 32 to 30. JrnlList is overlaid. Step 4 then put combat back at 45: post-combat loads ClassCal
+  for the experience share (+2), and freeing monsters reaches UsualSpl (+2). Both were kept for the tests; making
+  UsualSpl resident would save one load for 832 resident bytes.
+- **Cycles (step 2):** all eight implementation cycles are gone. ShowMemory went to a resident unit of its own,
+  MemShow, so the Ctrl-Y display loads no overlay. VaultMnu is a unit of its own.
+- **Duplication and names (step 3):** the list, clearing, menu, View3D and Blit copies became one routine each. The
+  GBVM addresses are named in C_Gbvm, with the map checked label by label.
+- **Testability (step 4):**
+  - New units: Dice (#642) and Clock, both resident; RandItem and UsualSpl, both overlaid.
+  - CharHlp now reaches the screen only through a hook. ClassCal holds the hit-point and experience rules. EclVars
+    reaches DaxIo and View3D through hooks.
+  - Nine new test programs: TCharHlp, TClock, TDataArc, TEclTrc, TEclVars, TJrnl, TPathing, TRandItm and TUsualSp.
+    TAbilAdj and TClasCal were extended.
+- **GDVars (step 5):**
+  - Removed: seven dead globals, the five script registers (now explicit arms of the GBVM map), and three unused
+    GDConsts tables.
+  - Locals or parameters: six scratch globals.
+  - Private to their units: 55 globals, among them CombatSt's placement tables.
+  - `baseItems` is one array of 129. The saved game's map position is five reads and writes.
+  - Magic's and FxEngine's interfaces use only Types. 24 forward declarations are gone (one fewer than the survey
+    counted).
+- **Data and stack (step 6):**
+  - `gbStrings` and `baseItems` moved to the heap. Three spell-name tables got shorter string types.
+  - CalcDistance's 549 extra bytes of stack are gone. NonWeaponDamage's frame is smaller. A level drain no longer
+    loads Debug.
+- **Sizes:**
+  - Resident code: 67,632 → 65,056 bytes.
+  - Data: 44,158 → 35,892 bytes (29,628 free).
+  - Overlays: about 331,900 → 325,906 bytes.
+
+Declined:
+- **The handlers in the EffHndlr and Magic interfaces stay there.** GameInit fills the dispatch tables by name, which
+  keeps that code out of the overlays (step 1).
+- **`nameParts` is not packed.** TP 6 string literals stop at 255 characters, so the 255 names would become rows of
+  run-together text. With 29 KB of data free, that is not worth 3 KB.
+- **DataPat's fix table and DataBld's state stay in the data segment.** DataPat's are typed constants, and moving them
+  would lose each fix's commented source. DataBld's are about 700 bytes.
+
+Separate, because they change behaviour:
+- POR-0166 (#640): Space in combat treats animated creatures differently on the menu and during the AI's turn.
+  **Fixed** in 206471b.
+- #644: Camp converts rest minutes into the rest timer two ways (`CampRestMenu` and the Fix rest). They differ once
+  the total passes a day.
+- POR-0168 (#643): `heapFailureSaveEnabled` is never set, so HeapErr's out-of-memory save can never run: enable it or
+  remove it.
+- #616: the Constitution hit-point bonus.
+
 ## Working method
 
 One branch and one PR per phase, an issue per item, each change checked against the tests, the regression suite and

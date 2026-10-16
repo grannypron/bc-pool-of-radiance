@@ -12,8 +12,8 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, C_Class,
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp;
+uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, 
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
@@ -83,36 +83,41 @@ var
   hp: Byte;
   c: Char;
   restored: Boolean;
+  name: Types.TStr40;
+  cost: Word;
+  bonus: Byte;
 begin
   case spell of
     1: begin
-         c := Temple.ConfirmCureCost('Cure Light Wounds', 100);
-         if c = 'Y' then begin
-           hp := FxEngine.RollDice(1, 8);
-           restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
-         end;
+         name := 'Cure Light Wounds';
+         cost := 100;
+         bonus := 0;
        end;
     2: begin
-         c := Temple.ConfirmCureCost('Cure Serious Wounds', 350);
-         if c = 'Y' then begin
-           hp := FxEngine.RollDice(2, 8) + 1;
-           restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
-         end;
+         name := 'Cure Serious Wounds';
+         cost := 350;
+         bonus := 1;
        end;
     3: begin
-         c := Temple.ConfirmCureCost('Cure Critical Wounds', 600);
-         if c = 'Y' then begin
-           hp := FxEngine.RollDice(3, 8) + 3;
-           restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
-         end;
+         name := 'Cure Critical Wounds';
+         cost := 600;
+         bonus := 3;
        end;
+  else
+    Exit;
+  end;
+  c := Temple.ConfirmCureCost(name, cost);
+  if c = 'Y' then begin
+    { spell d8, plus the bonus }
+    hp := Dice.RollDice(spell, 8) + bonus;
+    restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
   end;
 end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). Remove
   animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
   one unless it is 0. hpMax loses the hit points that point was worth, the Con table's bonus at the old Constitution
-  less the bonus at the new over every hit die (CharHlp.ConHpTotal), keeping at least 1. }
+  less the bonus at the new over every hit die (ClassCal.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -144,7 +149,8 @@ begin
         Stats.Count(creature, Stats.RAISED, 1);
         if creature^.conCur > 0 then begin
           Dec(creature^.conCur);
-          hpLoss := CharHlp.ConHpTotal(creature, creature^.conCur + 1) - CharHlp.ConHpTotal(creature, creature^.conCur);
+          hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) -
+                    ClassCal.ConHpTotal(creature, creature^.conCur);
           if hpLoss >= creature^.hpMax then
             hpLoss := creature^.hpMax - 1;
           if hpLoss > 0 then
@@ -277,7 +283,7 @@ begin
   list := sel;
   TextRend.ClearRect(0, 24, 39, 24);
   redraw := True;
-  Border.DrawWindow(1, 1, 38, 22, 0, White, '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
   { the top divider row }
   Border.DrawWindow(1, 1, 38, 1, 0, White, '');
   { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }
@@ -315,7 +321,7 @@ end;
   Down scan codes by ext; the G and O codes (Home and End) cycle characters. }
 procedure TempleMainMenu;
 begin
-  Shop.CounterMenu(True);
+  Shop.CounterMenu(True, Temple.HealMenu);
 end;
 
 end.

@@ -96,6 +96,21 @@ begin
   CheckDex(24, 5, 6);
   CheckDex(25, 5, 6);
 
+  { the Constitution save bonus, +1 per 3 1/2 points }
+  TestKit.CheckEqualsL(0, AbilAdj.ConSaveBonus(3), 'Constitution 3: no save bonus');
+  TestKit.CheckEqualsL(1, AbilAdj.ConSaveBonus(4), 'Constitution 4: +1');
+  TestKit.CheckEqualsL(1, AbilAdj.ConSaveBonus(6), 'Constitution 6: +1');
+  TestKit.CheckEqualsL(2, AbilAdj.ConSaveBonus(7), 'Constitution 7: +2');
+  TestKit.CheckEqualsL(2, AbilAdj.ConSaveBonus(10), 'Constitution 10: +2');
+  TestKit.CheckEqualsL(3, AbilAdj.ConSaveBonus(11), 'Constitution 11: +3');
+  TestKit.CheckEqualsL(3, AbilAdj.ConSaveBonus(13), 'Constitution 13: +3');
+  TestKit.CheckEqualsL(4, AbilAdj.ConSaveBonus(14), 'Constitution 14: +4');
+  TestKit.CheckEqualsL(4, AbilAdj.ConSaveBonus(17), 'Constitution 17: +4');
+  TestKit.CheckEqualsL(5, AbilAdj.ConSaveBonus(18), 'Constitution 18: +5');
+  TestKit.CheckEqualsL(5, AbilAdj.ConSaveBonus(20), 'Constitution 20: +5');
+  TestKit.CheckEqualsL(6, AbilAdj.ConSaveBonus(21), 'Constitution 21: +6');
+  TestKit.CheckEqualsL(6, AbilAdj.ConSaveBonus(24), 'Constitution 24: +6');
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
 end.

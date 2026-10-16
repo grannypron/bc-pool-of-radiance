@@ -6,6 +6,17 @@ unit EclVars;
 
 interface
 
+type
+  { what a script's write to the disk cell does: DaxIo.PushState }
+  TDiskHook = procedure(disk: Byte);
+  { what a script's write to a wall-set cell does: View3D.LoadWallSet }
+  TWallSetHook = procedure(fileId, slot: Byte);
+
+var
+  { set by GameInit (a test program sets its own), so EclVars uses neither DaxIo nor View3D }
+  diskHook: TDiskHook;
+  wallSetHook: TWallSetHook;
+
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address. SSI quirk, kept: $80 (string value) also reads the GBVM, at an address
   made of the packed length as low byte and a stale upper byte; callers with a string value use its text instead. }
@@ -32,9 +43,12 @@ procedure WriteGbvmString(address: Word; s: String);
 { Step IP past the command at IP without running it, loading its operands as its handler does }
 procedure SkipEclCmd;
 
+{ The GBVM zone address is in: 0..2 the word zones, 3 the script, 4 everything else (the special cells). }
+function GbvmZone(address: Word): Byte;
+
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, DaxIo, View3D;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -64,16 +78,15 @@ begin
         hi := GDVars.zone3^[GDVars.eclIp];
       end;
       $80: begin
-        { 20 = High(gbStrings) }
-        if strIdx < 20 then Inc(strIdx);
+        if strIdx < Types.GB_STRING_LAST then Inc(strIdx);
         len := lo;
         if len > 0 then
           EclVars.ConvGbString(len, strIdx)
         else
-          GDVars.gbStrings[strIdx] := '';
+          GDVars.gbStrings^[strIdx] := '';
       end;
       $81: begin
-        if strIdx < 20 then Inc(strIdx);
+        if strIdx < Types.GB_STRING_LAST then Inc(strIdx);
         Inc(GDVars.eclIp);
         hi := GDVars.zone3^[GDVars.eclIp];
         v := EclVars.CombineBytesToWord(lo, hi);
@@ -124,9 +137,9 @@ end;
 function GbvmZone(address: Word): Byte;
 begin
   GbvmZone := 4;
-  if (address >= $4900) and (address <= $4CFF) then GbvmZone := 0;
-  if (address >= $6B00) and (address <= $6EFF) then GbvmZone := 1;
-  if (address >= $9700) and (address <= $98FF) then GbvmZone := 2;
+  if (address >= C_Gbvm.ZONE0_FIRST) and (address <= C_Gbvm.ZONE0_LAST) then GbvmZone := 0;
+  if (address >= C_Gbvm.ZONE1_FIRST) and (address <= C_Gbvm.ZONE1_LAST) then GbvmZone := 1;
+  if (address >= C_Gbvm.ZONE2_FIRST) and (address <= C_Gbvm.ZONE2_LAST) then GbvmZone := 2;
   if (address >= C_Gbvm.SCRIPT_FIRST) and (address <= C_Gbvm.SCRIPT_LAST) then GbvmZone := 3;
 end;
 
@@ -158,30 +171,29 @@ var
   t: Byte;
 begin
   found := True;
-  address := address - $6B00;
   case address of
-    $18: SpecialReadZ1 := GDVars.curChar^.conCur;
-    $9B: SpecialReadZ1 := GDVars.curChar^.saves[C_Save.PETRIFY];
-    $A0: SpecialReadZ1 := GDVars.curChar^.levelHighest;
-    $A5..$AC: begin
-      t := address - $A4;
+    C_Gbvm.CHAR_CON: SpecialReadZ1 := GDVars.curChar^.conCur;
+    C_Gbvm.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GDVars.curChar^.saves[C_Save.PETRIFY];
+    C_Gbvm.CHAR_LEVEL: SpecialReadZ1 := GDVars.curChar^.levelHighest;
+    C_Gbvm.CHAR_THIEF_SKILLS..C_Gbvm.CHAR_THIEF_SKILLS_LAST: begin
+      t := address - C_Gbvm.CHAR_THIEF_SKILLS + 1;
       SpecialReadZ1 := GDVars.curChar^.thiefSkills[t];
     end;
-    $B8: SpecialReadZ1 := GDVars.curChar^.npc;
-    $BB: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.COPPER];
-    $BD: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.SILVER];
-    $BF: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.ELECTRUM];
-    $C1: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.GOLD];
-    $C3: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.PLATINUM];
-    $D8: SpecialReadZ1 := ShortInt(GDVars.curChar^.alignment);
-    $F7: SpecialReadZ1 := GDVars.curChar^.xpAward;
-    $F9: SpecialReadZ1 := GDVars.curChar^.xpBonusPerHp;
-    $100:
+    C_Gbvm.CHAR_NPC: SpecialReadZ1 := GDVars.curChar^.npc;
+    C_Gbvm.CHAR_COPPER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.COPPER];
+    C_Gbvm.CHAR_SILVER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.SILVER];
+    C_Gbvm.CHAR_ELECTRUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.ELECTRUM];
+    C_Gbvm.CHAR_GOLD: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.GOLD];
+    C_Gbvm.CHAR_PLATINUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.PLATINUM];
+    C_Gbvm.CHAR_ALIGNMENT: SpecialReadZ1 := ShortInt(GDVars.curChar^.alignment);
+    C_Gbvm.CHAR_XP_AWARD: SpecialReadZ1 := GDVars.curChar^.xpAward;
+    C_Gbvm.CHAR_XP_PER_HP: SpecialReadZ1 := GDVars.curChar^.xpBonusPerHp;
+    C_Gbvm.CHAR_ENABLED:
       if GDVars.curChar^.enabled <> 0 then
         SpecialReadZ1 := 1
       else
         SpecialReadZ1 := $80;
-    $10C:
+    C_Gbvm.CHAR_CONTROL:
       if (GDVars.curChar^.hostile = 0) and (GDVars.curChar^.quickfight <> 0) then
         SpecialReadZ1 := $80
       else if GDVars.curChar^.hostile = 1 then
@@ -189,11 +201,11 @@ begin
       else
         SpecialReadZ1 := 0;
     { handled, but no value is returned }
-    $10D: ;
-    $11B: SpecialReadZ1 := GDVars.curChar^.movementCur;
-    $2B1: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
-    $2B4: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
-    $2CF:
+    C_Gbvm.CHAR_CONTROL_HI: ;
+    C_Gbvm.CHAR_MOVEMENT: SpecialReadZ1 := GDVars.curChar^.movementCur;
+    C_Gbvm.CHAR_PARTY_INDEX: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
+    C_Gbvm.CHAR_PARTY_INDEX2: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
+    C_Gbvm.CHAR_LOYALTY:
       { charisma -> loyalty base; no result for charisma outside 3..25 }
       case GDVars.curChar^.chaCur of
         3: SpecialReadZ1 := 0;
@@ -209,9 +221,8 @@ begin
         17: SpecialReadZ1 := 55;
         18..25: SpecialReadZ1 := 60;
       end;
-    $312: SpecialReadZ1 := GDVars.virtualDisk;
-    { party size }
-    $33E: SpecialReadZ1 := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
+    C_Gbvm.DISK_NUM: SpecialReadZ1 := GDVars.virtualDisk;
+    C_Gbvm.PARTY_SIZE: SpecialReadZ1 := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
   else
     found := False;
   end;
@@ -223,35 +234,34 @@ procedure SpecialWriteZ1(address, value: Word);
 var
   t: Byte;
 begin
-  address := address - $6B00;
   case address of
-    0:
+    C_Gbvm.CHAR_DUMP:
       if value = 0 then GDVars.dumpCr6B00 := True;
     { a raw window into the character record, starting at memorizedSpells[1] and running on past it }
-    $20..$70: begin
-      t := address - $1F;
+    C_Gbvm.CHAR_MEMORIZED_FIRST..C_Gbvm.CHAR_MEMORIZED_LAST: begin
+      t := address - C_Gbvm.CHAR_MEMORIZED_FIRST + 1;
       GDVars.curChar^.memorizedSpells[t] := value;
     end;
-    $B8: begin
+    C_Gbvm.CHAR_NPC: begin
       { values above C_Npc.ANIMATED_NPC ($B2) lose $32 (= C_Npc.ANIMATED_NPC and C_Npc.MORALE_MASK) }
       if value > C_Npc.ANIMATED_NPC then Dec(value, $32);
       GDVars.curChar^.npc := value;
     end;
-    $BB: GDVars.curChar^.coins[C_Money.COPPER] := value;
-    $BD: GDVars.curChar^.coins[C_Money.SILVER] := value;
-    $BF: GDVars.curChar^.coins[C_Money.ELECTRUM] := value;
-    $C1: GDVars.curChar^.coins[C_Money.GOLD] := value;
-    $C3: GDVars.curChar^.coins[C_Money.PLATINUM] := value;
-    $F7: GDVars.curChar^.xpAward := value;
-    $F9: GDVars.curChar^.xpBonusPerHp := value;
-    $100: begin
+    C_Gbvm.CHAR_COPPER: GDVars.curChar^.coins[C_Money.COPPER] := value;
+    C_Gbvm.CHAR_SILVER: GDVars.curChar^.coins[C_Money.SILVER] := value;
+    C_Gbvm.CHAR_ELECTRUM: GDVars.curChar^.coins[C_Money.ELECTRUM] := value;
+    C_Gbvm.CHAR_GOLD: GDVars.curChar^.coins[C_Money.GOLD] := value;
+    C_Gbvm.CHAR_PLATINUM: GDVars.curChar^.coins[C_Money.PLATINUM] := value;
+    C_Gbvm.CHAR_XP_AWARD: GDVars.curChar^.xpAward := value;
+    C_Gbvm.CHAR_XP_PER_HP: GDVars.curChar^.xpBonusPerHp := value;
+    C_Gbvm.CHAR_ENABLED: begin
       if value >= $80 then begin
         GDVars.curChar^.enabled := 0;
         if value = $87 then GDVars.curChar^.status := C_Status.STONED;
       end;
       if value = 0 then GDVars.dumpCr6C00 := True;
     end;
-    $10C:
+    C_Gbvm.CHAR_CONTROL:
       case value of
         0: begin
           GDVars.curChar^.hostile := 0;
@@ -267,26 +277,15 @@ begin
         end;
       end;
     { disks 1..8 only }
-    $312:
-      if (value >= 1) and (value <= 8) then DaxIo.PushState(value);
-    $322:
-      if value > $80 then begin
-        value := value and $7F;
-        View3D.LoadWallSet(value, 1);
-      end;
-    $324:
-      if value > $80 then begin
-        value := value and $7F;
-        View3D.LoadWallSet(value, 2);
-      end;
-    $326:
-      if value > $80 then begin
-        value := value and $7F;
-        View3D.LoadWallSet(value, 3);
-      end;
+    C_Gbvm.DISK_NUM:
+      if (value >= 1) and (value <= 8) then EclVars.diskHook(value);
+    { $80 + id loads wall set id into slot 1, 2 or 3, the cells a word apart }
+    C_Gbvm.WALLSET_LOAD1, C_Gbvm.WALLSET_LOAD2, C_Gbvm.WALLSET_LOAD3:
+      if value > $80 then
+        EclVars.wallSetHook(value and $7F, (address - C_Gbvm.WALLSET_LOAD1) div 2 + 1);
   end;
-  { $BB, $BD, $BF, $C1, $C3: copper to platinum }
-  if (address >= $BB) and (address <= $C3) and Odd(address) then
+  { the coins, copper to platinum, every other cell }
+  if (address >= C_Gbvm.CHAR_COPPER) and (address <= C_Gbvm.CHAR_PLATINUM) and Odd(address) then
     CharHlp.RecalcStats(GDVars.curChar);
 end;
 
@@ -299,7 +298,7 @@ begin
   case zone of
     0: begin
       GDVars.zone0^.words[address] := value;
-      if (address = $49FD) or (address = $49FE) then
+      if (address = C_Gbvm.SKY_CEILING_COLOR) or (address = C_Gbvm.ALT_SKY_COLOR) then
         GDVars.redrawSky := True;
     end;
     1: begin
@@ -311,55 +310,45 @@ begin
     3:
       GDVars.zone3^[address] := value;
     4:
-      if address < $BF68 then
-        case address of
-          $FB: ;
-          $FC: ;
-          $B1: ;
-          $3DE: GDVars.sndEffect := value;
-          $B8: GDVars.writeReg1 := value;
-          $B9: GDVars.writeReg2 := value;
-        end else begin
-        address := address - $BF68;
-        case address of
-          { party X }
-          $E3: begin
-            GDVars.movedParty := True;
-            GDVars.gMapX := value;
-          end;
-          { party Y }
-          $E4: begin
-            GDVars.gMapY := value;
-            GDVars.movedParty := True;
-          end;
-          { facing, mod-4 loop }
-          $E5: begin
-            repeat
-              ok := True;
-              case value of
-                0: GDVars.gFacing := C_Dir.NORTH;
-                1: GDVars.gFacing := C_Dir.EAST;
-                2: GDVars.gFacing := C_Dir.SOUTH;
-                3: GDVars.gFacing := C_Dir.WEST;
-              else begin
-                ok := False;
-                Dec(value, 4);
-              end;
-              end;
-            until ok = True;
-            GDVars.movedParty := True;
-          end;
-          $F1: begin
-            GDVars.wallColorSel := value;
-            GDVars.picRegionW := True;
-          end;
-          $F7: begin
-            GDVars.ceilFloorColorSel := value;
-            GDVars.picRegionW := True;
-          end;
-          { accepted, ignored }
-          $10BA: ;
+      case address of
+        { the script registers keep nothing written to them }
+        C_Gbvm.READ_REG1, C_Gbvm.READ_REG2, C_Gbvm.READ_REG3, C_Gbvm.WRITE_REG1, C_Gbvm.WRITE_REG2: ;
+        C_Gbvm.SOUND_EFFECT: GDVars.sndEffect := value;
+        C_Gbvm.CELL_PARTY_X: begin
+          GDVars.movedParty := True;
+          GDVars.gMapX := value;
         end;
+        C_Gbvm.CELL_PARTY_Y: begin
+          GDVars.gMapY := value;
+          GDVars.movedParty := True;
+        end;
+        { facing, mod-4 loop }
+        C_Gbvm.CELL_FACING: begin
+          repeat
+            ok := True;
+            case value of
+              0: GDVars.gFacing := C_Dir.NORTH;
+              1: GDVars.gFacing := C_Dir.EAST;
+              2: GDVars.gFacing := C_Dir.SOUTH;
+              3: GDVars.gFacing := C_Dir.WEST;
+            else begin
+              ok := False;
+              Dec(value, 4);
+            end;
+            end;
+          until ok = True;
+          GDVars.movedParty := True;
+        end;
+        C_Gbvm.CELL_WALL_COLOR: begin
+          GDVars.wallColorSel := value;
+          GDVars.picRegionW := True;
+        end;
+        C_Gbvm.CELL_CEIL_FLOOR_COLOR: begin
+          GDVars.ceilFloorColorSel := value;
+          GDVars.picRegionW := True;
+        end;
+        { accepted, ignored }
+        C_Gbvm.CELL_IGNORED: ;
       end;
   end;
 end;
@@ -377,7 +366,7 @@ var
   effect: Types.PEffectRec;
 begin
   PartyEffectsTable := 0;
-  k := (address - $4900) mod $40;
+  k := (address - C_Gbvm.PARTY_EFFECTS) mod (C_Gbvm.PARTY_EFFECT_OWNERS - C_Gbvm.PARTY_EFFECTS);
   e := 0;
   n := 0;
   p := GDVars.creatureList;
@@ -385,7 +374,7 @@ begin
     effect := p^.effectsAddr;
     while effect <> nil do begin
       if e = k then
-        if address < $4940 then
+        if address < C_Gbvm.PARTY_EFFECT_OWNERS then
           PartyEffectsTable := effect^.id
         else
           PartyEffectsTable := n;
@@ -398,8 +387,8 @@ begin
 end;
 
 { Zone 0 reads of $4900..$497F come from the party's effects (PartyEffectsTable), the rest from storage. Zone 4 reads
-  below $C04B are fixed registers; from $C04B they index party/view state (WriteGbvm splits at $BF68 but reaches the
-  same $C04B.. addresses). Unhandled zone-4 addresses leave the result unassigned }
+  are the special cells C_Gbvm names: registers, the party's position and facing, and the view. Unhandled zone-4
+  addresses leave the result unassigned }
 function ReadGbvm(address: Word): Word;
 var
   zone: Byte;
@@ -409,7 +398,7 @@ begin
   found := False;
   case zone of
     0:
-      if address <= $497F then
+      if address <= C_Gbvm.PARTY_EFFECTS_LAST then
         ReadGbvm := EclVars.PartyEffectsTable(address)
       else
         ReadGbvm := GDVars.zone0^.words[address];
@@ -423,32 +412,39 @@ begin
     3:
       ReadGbvm := GDVars.zone3^[address];
     4:
-      if address < $C04B then
-        case address of
-          $B1: ReadGbvm := GDVars.readReg3;
-          $FB: ReadGbvm := GDVars.readReg1;
-          $FC: ReadGbvm := GDVars.readReg2;
-          $33D: ReadGbvm := GDVars.gFacing;
-          { handled, but no value is returned }
-          $35F: ;
-        end else begin
-        address := address - $C04B;
-        case address of
-          { sign-extends (ShortInt) }
-          0: ReadGbvm := GDVars.gMapX;
-          1: ReadGbvm := GDVars.gMapY;
-          2: ReadGbvm := GDVars.gFacing div 2;
-          3: ReadGbvm := GDVars.wallAhead;
-          4: ReadGbvm := GDVars.eventAtCell;
-          { Wall color ($C059): write-only, result unassigned }
-          14: ;
-        end;
+      case address of
+        { the read registers always read 0 }
+        C_Gbvm.READ_REG1, C_Gbvm.READ_REG2, C_Gbvm.READ_REG3: ReadGbvm := 0;
+        C_Gbvm.FACING_RAW: ReadGbvm := GDVars.gFacing;
+        { handled, but no value is returned }
+        C_Gbvm.CELL_35F: ;
+        { sign-extends (ShortInt) }
+        C_Gbvm.CELL_PARTY_X: ReadGbvm := GDVars.gMapX;
+        C_Gbvm.CELL_PARTY_Y: ReadGbvm := GDVars.gMapY;
+        C_Gbvm.CELL_FACING: ReadGbvm := GDVars.gFacing div 2;
+        C_Gbvm.CELL_WALL_AHEAD: ReadGbvm := GDVars.wallAhead;
+        C_Gbvm.CELL_EVENT: ReadGbvm := GDVars.eventAtCell;
+        { write only: the result is unassigned }
+        C_Gbvm.CELL_WALL_COLOR: ;
       end;
   end;
 end;
 
 { Strings go to the GBVM as zero-terminated strings, one character per cell (word cells in zones 0..2, bytes in zone 3);
   GBVM $6B00 instead sets the current character's name (String[15], so capped at 15). Zone 4 writes nothing }
+{ The last address of GBVM zone 0..3, which a string written or read there may reach (0 for zone 4). }
+function ZoneLast(zone: Byte): Word;
+begin
+  case zone of
+    0: ZoneLast := C_Gbvm.ZONE0_LAST;
+    1: ZoneLast := C_Gbvm.ZONE1_LAST;
+    2: ZoneLast := C_Gbvm.ZONE2_LAST;
+    3: ZoneLast := C_Gbvm.SCRIPT_LAST;
+  else
+    ZoneLast := 0;
+  end;
+end;
+
 procedure WriteGbvmString(address: Word; s: String);
 var
   zone: Byte;
@@ -459,12 +455,7 @@ begin
   zone := EclVars.GbvmZone(address);
   len := Length(s);
   { the zone's last address, which the terminator may take }
-  case zone of
-    0: last := $4CFF;
-    1: last := $6EFF;
-    2: last := $98FF;
-    3: last := C_Gbvm.SCRIPT_LAST;
-  end;
+  last := EclVars.ZoneLast(zone);
   if zone < 4 then
     if last - address < len then
       len := last - address;
@@ -475,7 +466,7 @@ begin
       GDVars.zone0^.words[address + len] := 0;
     end;
     1:
-      if address = $6B00 then
+      if address = C_Gbvm.CHAR_NAME then
         GDVars.curChar^.name := s
       else begin
         for i := 0 to len - 1 do
@@ -507,7 +498,7 @@ var
   phase: Byte;
   ch: Char;
 begin
-  GDVars.gbStrings[strIdx] := '';
+  GDVars.gbStrings^[strIdx] := '';
   i := 0;
   phase := 1;
   while i < len do begin
@@ -534,14 +525,14 @@ begin
     if phase < 4 then Inc(phase) else phase := 1;
     if c6 <> 0 then begin
       ch := EclVars.DecodeGameCharacter(c6);
-      GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], ch);
+      GDVars.gbStrings^[strIdx] := Concat(GDVars.gbStrings^[strIdx], ch);
     end;
   end;
   if phase = 4 then begin
     c6 := cur and $3F;
     if c6 <> 0 then begin
       ch := EclVars.DecodeGameCharacter(c6);
-      GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], ch);
+      GDVars.gbStrings^[strIdx] := Concat(GDVars.gbStrings^[strIdx], ch);
     end;
   end;
 end;
@@ -558,16 +549,11 @@ var
   c: Word;
 begin
   zone := EclVars.GbvmZone(address);
-  GDVars.gbStrings[strIdx] := '';
-  if (zone = 1) and (address = $6B00) then
-    GDVars.gbStrings[strIdx] := GDVars.curChar^.name
+  GDVars.gbStrings^[strIdx] := '';
+  if (zone = 1) and (address = C_Gbvm.CHAR_NAME) then
+    GDVars.gbStrings^[strIdx] := GDVars.curChar^.name
   else if zone < 4 then begin
-    case zone of
-      0: last := $4CFF;
-      1: last := $6EFF;
-      2: last := $98FF;
-      3: last := C_Gbvm.SCRIPT_LAST;
-    end;
+    last := EclVars.ZoneLast(zone);
     a := address;
     repeat
       case zone of
@@ -577,9 +563,9 @@ begin
         3: c := GDVars.zone3^[a];
       end;
       if c <> 0 then
-        GDVars.gbStrings[strIdx] := Concat(GDVars.gbStrings[strIdx], Char(c));
+        GDVars.gbStrings^[strIdx] := Concat(GDVars.gbStrings^[strIdx], Char(c));
       Inc(a);
-    until (c = 0) or (a > last) or (Length(GDVars.gbStrings[strIdx]) = 255);
+    until (c = 0) or (a > last) or (Length(GDVars.gbStrings^[strIdx]) = 255);
   end;
 end;
 

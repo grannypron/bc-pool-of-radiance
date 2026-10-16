@@ -11,6 +11,9 @@ var
   { Options.LoadOptions sets it to Options.SaveOptions once POOLOPT.CFG has been read; Ctrl-S calls it to write the
     Sound setting back. GameIo starts before the overlay manager and cannot use the overlaid Options itself. }
   saveSettings: TSettingsHook;
+  { STING Ctrl-Y's memory display, MemShow.ShowMemory, which GameInit installs: it draws with TextRend, which GameIo
+    cannot use without a unit cycle. }
+  showMemory: TSettingsHook;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
   byte. After a nonzero
@@ -31,12 +34,17 @@ procedure DiscardPendingKeys;
 { Restore the saved sound mode, send the stop command, set the saved video mode through the BIOS and exit to DOS. }
 procedure ExitGame;
 
+{ Quit on an error the game cannot go on from: the text mode the game started in (GDVars.savedVideoMode, set directly,
+  not through Blit.RestoreVideoMode, which would swap it with the game's mode), msg, a key, then ExitGame, which leaves
+  DOS in that text mode (#641). }
+procedure FatalError(msg: String);
+
 implementation
 
-uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types, Overlay, TextRend, StrUtil;
+uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types;
 
 var
-  { ShowMemory is up: its own key waits do not open it again }
+  { showMemory is up: its own key waits do not open it again }
   memShown: Boolean;
 
 procedure ExitGame;
@@ -49,6 +57,18 @@ begin
   GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
   Intr($10, GDVars.dsInterruptRegisters);
   Halt(0);
+end;
+
+procedure FatalError(msg: String);
+var
+  key: Char;
+begin
+  GDVars.dsInterruptRegisters.ah := 0;
+  GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
+  Intr($10, GDVars.dsInterruptRegisters);
+  WriteLn(msg);
+  key := GameIo.ReadGameKey;
+  GameIo.ExitGame;
 end;
 
 { STING Ctrl-Z, as Curse does: each creature's effects to the trace log, one 'who: <name>  sp#: <id>' line each. }
@@ -66,20 +86,6 @@ begin
     end;
     p := p^.nextCharAddr;
   end;
-end;
-
-{ STING Ctrl-Y (#612): the overlay loads so far, the overlay buffer and its probation area, and the heap's free memory
-  and largest block, on the bottom line one after another, each until a key; the menu line is drawn again after. }
-procedure ShowMemory;
-begin
-  memShown := True;
-  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GDVars.ovrLoads));
-  TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
-                                       StrUtil.NumStr(OvrGetRetry));
-  TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
-  TextRend.ClearBottomLine;
-  GDVars.bottomLineTaken := True;
-  memShown := False;
 end;
 
 function ReadGameKey: Char;
@@ -111,8 +117,11 @@ begin
     end;
     if (key = #26) and GDVars.debugTraceEnabled then
       GameIo.DumpEffects;
-    if (key = #25) and not memShown then
-      GameIo.ShowMemory;
+    if (key = #25) and not memShown and (@showMemory <> nil) then begin
+      memShown := True;
+      showMemory;
+      memShown := False;
+    end;
   end;
   if key <> #0 then
     while KeyPressed do
@@ -147,4 +156,7 @@ end;
 
 begin
   memShown := False;
+  { the hooks start unset: global variables are not cleared at startup }
+  @saveSettings := nil;
+  @showMemory := nil;
 end.

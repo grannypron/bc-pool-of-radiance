@@ -1,10 +1,13 @@
 { Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills. }
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, ClassCal, TestKit;
+uses Types, C_Level, C_Race, C_Save, C_Class, ClassCal, TestKit;
 
 var
   c: Types.PCharRecord;
+  n: Integer;
+  roll: Byte;
+  inRange: Boolean;
 
 { A fresh character of race with no class levels. }
 procedure Reset(race: ShortInt);
@@ -154,6 +157,126 @@ begin
   c^.thiefSkills[1] := 77;
   ClassCal.RecalcThiefSkills(c);
   TestKit.CheckEqualsL(77, c^.thiefSkills[1], 'no thief level leaves the skills as they are');
+
+  { racial ability limits: a dwarf (8..18 Strength for a man, 8..17 for a woman, Constitution 12..19) and an elf }
+  TestKit.CheckEqualsL(8, ClassCal.RaceAbilityMin(C_Race.DWARF, 0, 0), 'a dwarf man''s least Strength');
+  TestKit.CheckEqualsL(18, ClassCal.RaceAbilityMax(C_Race.DWARF, 0, 0), 'a dwarf man''s most Strength');
+  TestKit.CheckEqualsL(17, ClassCal.RaceAbilityMax(C_Race.DWARF, 1, 0), 'a dwarf woman''s most Strength');
+  TestKit.CheckEqualsL(12, ClassCal.RaceAbilityMin(C_Race.DWARF, 0, 4), 'a dwarf''s least Constitution');
+  TestKit.CheckEqualsL(19, ClassCal.RaceAbilityMax(C_Race.DWARF, 1, 4), 'a dwarf''s most Constitution');
+  TestKit.CheckEqualsL(16, ClassCal.RaceAbilityMax(C_Race.DWARF, 0, 5), 'a dwarf''s most Charisma');
+  TestKit.CheckEqualsL(8, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 1), 'an elf''s least Intelligence');
+  TestKit.CheckEqualsL(7, ClassCal.RaceAbilityMin(C_Race.ELF, 1, 3), 'an elf''s least Dexterity');
+  TestKit.CheckEqualsL(19, ClassCal.RaceAbilityMax(C_Race.ELF, 0, 3), 'an elf''s most Dexterity');
+  TestKit.CheckEqualsL(3, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 2), 'an elf''s least Wisdom');
+
+  { hit points: the Constitution bonus (single classes; #616 is about multi-class warriors) }
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.FIGHTER;
+  c^.classLevels[C_Level.FIGHTER] := 1;
+  c^.conCur := 18;
+  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, $FF), 'a fighter with Constitution 18: +2, +1 at 17, +1 at 18');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.CLERIC;
+  c^.classLevels[C_Level.CLERIC] := 1;
+  c^.conCur := 16;
+  TestKit.CheckEqualsL(2, ClassCal.ConHpBonus(c, $FF), 'a cleric with Constitution 16: +2');
+  c^.conCur := 3;
+  TestKit.CheckEqualsL(-2, ClassCal.ConHpBonus(c, $FF), 'Constitution 3: -2');
+  c^.conCur := 0;
+  TestKit.CheckEqualsL(-2, ClassCal.ConHpBonus(c, $FF), 'Constitution below 3 counts as 3');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.RANGER;
+  c^.classLevels[C_Level.RANGER] := 1;
+  c^.conCur := 16;
+  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, $FF), 'a first-level ranger counts its share twice');
+  c^.classLevels[C_Level.RANGER] := 2;
+  TestKit.CheckEqualsL(2, ClassCal.ConHpBonus(c, $FF), 'once from level 2');
+
+  TestKit.CheckEqualsL(6, ClassCal.DivideAmongClasses(10, 2, 2), '(10 + 2) div 2');
+  TestKit.CheckEqualsL(4, ClassCal.DivideAmongClasses(10, -2, 2), '(10 - 2) div 2');
+  TestKit.CheckEqualsL(1, ClassCal.DivideAmongClasses(3, -5, 1), 'at least 1 when the penalty would leave too little');
+
+  { the legal hpMax range }
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.FIGHTER;
+  c^.classLevels[C_Level.FIGHTER] := 3;
+  c^.conCur := 10;
+  TestKit.CheckEqualsL(3, ClassCal.HpMinimum(c), 'a level 3 fighter: at least 1 a level');
+  TestKit.CheckEqualsL(30, ClassCal.HpMaximum(c), 'at most 10 a level');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.RANGER;
+  c^.classLevels[C_Level.RANGER] := 2;
+  c^.conCur := 10;
+  TestKit.CheckEqualsL(3, ClassCal.HpMinimum(c), 'a level 2 ranger: one more for its extra die');
+  TestKit.CheckEqualsL(24, ClassCal.HpMaximum(c), 'and d8 on level + 1');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.classLevels[C_Level.CLERIC] := 2;
+  c^.classLevels[C_Level.FIGHTER] := 2;
+  c^.conCur := 10;
+  TestKit.CheckEqualsL(18, ClassCal.HpMaximum(c), 'a cleric/fighter 2/2: (16 + 20) div 2');
+
+  { the Constitution bonus over every hit die }
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.FIGHTER;
+  c^.classLevels[C_Level.FIGHTER] := 3;
+  TestKit.CheckEqualsL(9, ClassCal.ConHpTotal(c, 17), 'a level 3 fighter at Constitution 17: 3 a level');
+  TestKit.CheckEqualsL(0, ClassCal.ConHpTotal(c, 10), 'at Constitution 10: none');
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.RANGER;
+  c^.classLevels[C_Level.RANGER] := 2;
+  TestKit.CheckEqualsL(3, ClassCal.ConHpTotal(c, 15), 'a level 2 ranger at Constitution 15: 1 on each of 3 dice');
+
+  { first-level hit points: the class's dice, at least two thirds of one at level 1 }
+  RandSeed := 1;
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.FIGHTER] := 1;
+  inRange := True;
+  for n := 1 to 100 do begin
+    roll := ClassCal.RollFirstLevelHp(c, $FF);
+    if (roll < 6) or (roll > 10) then
+      inRange := False;
+  end;
+  TestKit.Check(inRange, 'a level 1 fighter rolls 6..10 (d10, at least 6)');
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.RANGER] := 1;
+  inRange := True;
+  for n := 1 to 100 do begin
+    roll := ClassCal.RollFirstLevelHp(c, $FF);
+    if (roll < 5) or (roll > 16) then
+      inRange := False;
+  end;
+  TestKit.Check(inRange, 'a level 1 ranger rolls 5..16 (2d8, at least 5)');
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.CLERIC] := 2;
+  inRange := True;
+  for n := 1 to 100 do begin
+    roll := ClassCal.RollFirstLevelHp(c, $FF);
+    if (roll < 1) or (roll > 8) then
+      inRange := False;
+  end;
+  TestKit.Check(inRange, 'from level 2 one die, no floor');
+
+  { experience shares }
+  Reset(C_Race.HUMAN);
+  c^.charClass := C_Class.FIGHTER;
+  c^.strCur := 16;
+  TestKit.CheckEqualsL(110, ClassCal.ExperienceShare(c, 100), 'a fighter with Strength 16 gets 10% more');
+  c^.strCur := 15;
+  TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'with Strength 15, no bonus');
+  c^.charClass := C_Class.PALADIN;
+  c^.strCur := 17;
+  c^.wisCur := 15;
+  TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'a paladin needs Wisdom above 15 too');
+  c^.wisCur := 16;
+  TestKit.CheckEqualsL(110, ClassCal.ExperienceShare(c, 100), 'and with it gets the bonus');
+  c^.charClass := C_Class.CLERIC_FIGHTER;
+  TestKit.CheckEqualsL(50, ClassCal.ExperienceShare(c, 101), 'a two-class character gets half (div 2)');
+  c^.charClass := C_Class.CLERIC_FIGHTER_MAGE;
+  TestKit.CheckEqualsL(33, ClassCal.ExperienceShare(c, 100), 'a three-class character a third (div 3)');
+  c^.charClass := C_Class.DRUID;
+  TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'another single class gets it all');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;

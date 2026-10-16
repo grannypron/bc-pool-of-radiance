@@ -67,6 +67,12 @@ implementation
 
 uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc;
 
+var
+  { DaxIo.FileExists IOResult }
+  ioErr: Integer;
+  { Temporary compressed DAX data buffer. }
+  dsDaxCompressedFilePtr: Types.PByteArr;
+
 const
   { the most remap entries kept from all merged archives together: as many per family as DataBld builds }
   MAX_REMAPS = C_Data.FAMILIES * C_Data.FAMILY_REMAPS;
@@ -226,8 +232,8 @@ begin
   Assign(f, name);
   Reset(f, 128);
   Close(f);
-  GDVars.ioErr := IOResult;
-  FileExists := (GDVars.ioErr = 0) and (name <> '');
+  ioErr := IOResult;
+  FileExists := (ioErr = 0) and (name <> '');
 end;
 
 {$I+}
@@ -501,14 +507,14 @@ begin
     data := nil;
     DaxIo.CloseDax(f1, f2);
   end else begin
-    DaxIo.AllocRounded(Pointer(GDVars.dsDaxCompressedFilePtr), compSize);
+    DaxIo.AllocRounded(Pointer(dsDaxCompressedFilePtr), compSize);
     GetMem(data, sizeRead);
     Seek(f1, hdrSize + offset);
-    BlockRead(f1, GDVars.dsDaxCompressedFilePtr^, compSize, n);
+    BlockRead(f1, dsDaxCompressedFilePtr^, compSize, n);
     DaxIo.CloseDax(f1, f2);
     { n, the bytes read: FreeRounded still needs compSize }
-    DaxIo.DecompressDax(GDVars.dsDaxCompressedFilePtr, data, n, sizeRead);
-    DaxIo.FreeRounded(Pointer(GDVars.dsDaxCompressedFilePtr), compSize);
+    DaxIo.DecompressDax(dsDaxCompressedFilePtr, data, n, sizeRead);
+    DaxIo.FreeRounded(Pointer(dsDaxCompressedFilePtr), compSize);
   end;
 end;
 

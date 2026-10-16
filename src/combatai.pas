@@ -13,23 +13,30 @@ uses Types;
   move/attack loop. }
 procedure CombatAiControl(creature: Types.PCharRecord);
 
+{ Alt-M in combat: turn quick magic over and say which way on the bottom line. }
+procedure ToggleQuickMagic;
+
+{ Space in combat: every creature that comes under the player (CharHlp.ComesUnderPlayer: not an NPC, not animated)
+  leaves quick-fight. The combat menu and the AI's key check both call it (#640). }
+procedure AllToManual;
+
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, ViewChar, FxEngine, C_Effect, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
   C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
-  CharDisp;
+  CharDisp, Dice;
+
+var
+  { the AI's last step direction (8 = none) }
+  lastMoveDir: Byte;
+  { direction reversals or exhausted movement searches }
+  stuckCount: Byte;
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
-
-function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean; forward;
 
 function SelectItemToUse(creature: Types.PCharRecord): Boolean; forward;
 
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean; forward;
-
-function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean; forward;
-
-procedure AiMoveStep(creature: Types.PCharRecord); forward;
 
 function AiMoveAttack(creature: Types.PCharRecord): Boolean; forward;
 
@@ -38,8 +45,6 @@ function FinishRound(creature: Types.PCharRecord): Boolean; forward;
 function CheckKeystroke(creature: Types.PCharRecord): Boolean; forward;
 
 function CheckMorale(creature: Types.PCharRecord): Boolean; forward;
-
-function CalcWeaponPriority(creature: Types.PCharRecord; item: Types.PItemRec): Byte; forward;
 
 procedure EquipWeaponAndShield(creature: Types.PCharRecord); forward;
 
@@ -56,12 +61,12 @@ begin
     done := CharHlp.EndActions(creature);
   stance := creature^.combatAddr^.aiStance;
   { Reroll when unset, after a sweep pattern or on 1 turn in 4; a 1d8 roll of 8 picks sweep pattern 5..6, else 1..4 }
-  if (stance = 0) or (stance > 4) or (FxEngine.RollDice(1, 4) = 1) then begin
-    stance := FxEngine.RollDice(1, 8);
+  if (stance = 0) or (stance > 4) or (Dice.RollDice(1, 4) = 1) then begin
+    stance := Dice.RollDice(1, 8);
     if stance = 8 then
-      stance := FxEngine.RollDice(1, 2) + 4
+      stance := Dice.RollDice(1, 2) + 4
     else
-      stance := FxEngine.RollDice(1, 4);
+      stance := Dice.RollDice(1, 4);
   end;
   creature^.combatAddr^.aiStance := stance;
   if not done then
@@ -112,27 +117,13 @@ end;
 
 { Should the AI use spell (memorized, or an item's spell effect)? Its aiPriority must be at least minPri. Non-offensive
   spells other than Cure Light Wounds always qualify, as does Cure Light Wounds with a cure target. Everything else,
-  including Cure Light Wounds with no cure target, needs an enemy within Magic.CalcSpellRange and, for an area spell
+  including Cure Light Wounds with no cure target, needs an enemy within CharHlp.CalcSpellRange and, for an area spell
   (aiRadius > 0), no candidate target whose surroundings include a non-enemy. }
 function DecideCastSpell(creature: Types.PCharRecord; spell, minPri: Byte): Boolean;
 var
   tgt: Pointer;
   cnt: Byte;
   j: Byte;
-
-  { Would an area spell aimed at cell (x, y) catch anyone not on GDVars.curChar's enemy team? Rebuilds the target list
-    around the aim point with the spell's aiRadius as the walk budget }
-  function AreaHitsNonEnemy(x, y: ShortInt; spell: Byte): Boolean;
-  var
-    i: Byte;
-  begin
-    AreaHitsNonEnemy := False;
-    Pathing.BuildTargetList(x, y, GDConsts.spellTable[spell].aiRadius, 255, 1, GDVars.arenaPtr);
-    for i := 1 to GDVars.targetCount do
-      if GDVars.creatureArr[GDVars.targetList[i].idx]^.hostile
-         <> CharHlp.EnemyTeam(GDVars.curChar) then
-        AreaHitsNonEnemy := True;
-  end;
 
 begin
   DecideCastSpell := False;
@@ -143,15 +134,16 @@ begin
     { buff or heal: no aiming }
     DecideCastSpell := True
   else begin
-    cnt := CharHlp.CountTargets(creature, Magic.CalcSpellRange(spell));
+    cnt := CbtMap.CountTargets(creature, CharHlp.CalcSpellRange(spell));
     if cnt > 0 then
       if GDConsts.spellTable[spell].aiRadius = 0 then
         DecideCastSpell := True
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
-          if AreaHitsNonEnemy(GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].x,
-                              GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].y, spell) then
+          if CbtActs.AreaHitsNonEnemy(GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].x,
+                                      GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].y,
+                                      GDConsts.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
       end;
@@ -160,7 +152,7 @@ end;
 
 { Pick an equipped item whose spell effect the AI should use; needs itemUseAllowed, a remaining enemy team and no
   anti-magic. Over 1d7 passes the minimum aiPriority drops from 7, and the first equipped item that is not readable, has
-  special < $80 and has an effect DecideCastSpell accepts is used through ViewChar.UseItem. }
+  special < $80 and has an effect DecideCastSpell accepts is used through Magic.UseItem. }
 function SelectItemToUse(creature: Types.PCharRecord): Boolean;
 var
   lowPri: Byte;
@@ -175,7 +167,7 @@ begin
   SelectItemToUse := False;
   chosen := nil;
   lowPri := 7;
-  roll := FxEngine.RollDice(1, 7);
+  roll := Dice.RollDice(1, 7);
   if (creature^.combatAddr^.itemUseAllowed <> 0)
      and (GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
      and (GDVars.zone0^.antimagic = 0) then
@@ -184,7 +176,7 @@ begin
       while (item <> nil) and (chosen = nil) do begin
         effect := item^.effect;
         slot := CharHlp.BaseItem(item^.itemType)^.slot;
-        if (not Magic.ItemReadable(item))
+        if (not CharHlp.ItemReadable(item))
            and (item^.special < $80)
            and (item^.equipped <> 0)
            and (effect > 0) then begin
@@ -199,7 +191,7 @@ begin
       Dec(lowPri);
     end;
   if chosen <> nil then begin
-    ViewChar.UseItem(chosen, used);
+    Magic.UseItem(chosen, used);
     SelectItemToUse := True;
   end;
 end;
@@ -231,7 +223,7 @@ begin
       end;
   chosen := 0;
   lowPri := 7;
-  roll := FxEngine.RollDice(1, 7);
+  roll := Dice.RollDice(1, 7);
   tries := 1;
   if count > 0 then
     { C_Npc.FLAG set }
@@ -241,7 +233,7 @@ begin
           inner := 1;
           { three picks per pass }
           while (inner < 4) and (chosen = 0) do begin
-            k := FxEngine.RollDice(1, count) - 1;
+            k := Dice.RollDice(1, count) - 1;
             spell := list[k];
             if CombatAi.DecideCastSpell(creature, spell, lowPri) then
               chosen := spell;
@@ -322,7 +314,7 @@ begin
     if creature^.combatAddr^.fleeing = 0 then
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other)
     else begin
-      creature^.combatAddr^.aiStance := FxEngine.RollDice(1, 2);
+      creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
       { Hostiles flee along the party's facing (DIR_* 0, 2, 4, 6). SSI quirk, kept: north gives 7 (NW) and south gives
         3 (SE), so the result is not always a cardinal direction. }
       dir := GDVars.gFacing - Word((GDVars.gFacing + 2) mod 4) div 2;
@@ -355,12 +347,12 @@ begin
       { nothing walkable }
       if (attempt = 6)
          { reversing }
-         or (GDVars.lastMoveDir = (adjDir + 4) mod 8) then begin
-        Inc(GDVars.stuckCount);
+         or (lastMoveDir = (adjDir + 4) mod 8) then begin
+        Inc(stuckCount);
         creature^.combatAddr^.aiStance := creature^.combatAddr^.aiStance mod 6 + 1;
-        if GDVars.stuckCount > 1 then begin
+        if stuckCount > 1 then begin
           creature^.combatAddr^.other := nil;
-          if GDVars.stuckCount > 2 then begin
+          if stuckCount > 2 then begin
             creature^.combatAddr^.movement := 0;
             done := True;
           end else if not CbtActs.AcquireTarget(creature, 255, 1, 0) then
@@ -368,7 +360,7 @@ begin
         end;
       end;
       if attempt < 6 then
-        GDVars.lastMoveDir := adjDir
+        lastMoveDir := adjDir
       else
         done := True;
     end;
@@ -405,9 +397,8 @@ var
   ty: ShortInt;
   loopCount: Byte;
 begin
-  GDVars.lastMoveDir := C_Dir.CENTER;
-  GDVars.stuckCount := 0;
-  GDVars.unidentified01 := 0;
+  lastMoveDir := C_Dir.CENTER;
+  stuckCount := 0;
   loopCount := 0;
   canAct := True;
   done := False;
@@ -454,7 +445,7 @@ begin
               inRange := True;
         end;
       if not inRange then begin
-        cnt := CharHlp.CountTargets(creature, weaponRange);
+        cnt := CbtMap.CountTargets(creature, weaponRange);
         if cnt = 0 then begin
           if CbtActs.AcquireTarget(creature, 255, 0, 0) then
             { approach }
@@ -462,15 +453,15 @@ begin
           else
             done := CombatAi.FinishRound(creature);
         end else begin
-          pick := FxEngine.RollDice(1, cnt);
+          pick := Dice.RollDice(1, cnt);
           target := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
-             and (CharHlp.CountTargets(creature, 1) > 0) then begin
+             and (CbtMap.CountTargets(creature, 1) > 0) then begin
             { pure missile weapon with an enemy adjacent: re-equip }
             CombatAi.EquipWeaponAndShield(creature);
             done := True;
-          end else if (CharHlp.CalcDistance(creature, target) = 1)
+          end else if (CbtMap.CalcDistance(creature, target) = 1)
                   or CbtActs.CanAttackTarget(creature, target) then
             inRange := True;
         end;
@@ -487,7 +478,7 @@ begin
           if CharHlp.HasRangedWeapon(creature) then begin
             inRange := CharHlp.FindDamagingRangedWeapon(creature, weapon);
             if CharHlp.HasThrowableWeapon(creature) then
-              if CharHlp.CalcDistance(creature, target) = 1 then
+              if CbtMap.CalcDistance(creature, target) = 1 then
                 { adjacent: melee the throwable }
                 weapon := nil;
           end;
@@ -512,8 +503,10 @@ begin
      or CharHlp.HasRangedWeapon(creature)
      or (creature^.combatAddr^.initiative = 0) then
     FinishRound := CharHlp.EndActions(creature)
-  else
+  else begin
     FinishRound := CharHlp.Guard(creature);
+    CharDisp.PrintBottomLine('Guarding');
+  end;
 end;
 
 { Handle a key pressed during AI turns: Alt-M toggles quick magic, Space returns every non-NPC, non-animated creature to
@@ -521,7 +514,6 @@ end;
   only after the extended-key prefix: SSI also took a plain '2' for Alt-M and a plain '-' for Alt-X. }
 function CheckKeystroke(creature: Types.PCharRecord): Boolean;
 var
-  p: Types.PCharRecord;
   ch: Char;
   ext: Boolean;
 begin
@@ -534,22 +526,12 @@ begin
       ch := GameIo.ReadGameKey;
     case ch of
       C_Keys.ALT_M:
-        if ext then begin
-          GDVars.quickMagic := GDVars.quickMagic = False;
-          if GDVars.quickMagic then
-            CharDisp.PrintBottomLine('Magic On')
-          else
-            CharDisp.PrintBottomLine('Magic Off');
-        end;
+        if ext then
+          CombatAi.ToggleQuickMagic;
       { Space: everyone manual }
       ' ':
         begin
-          p := GDVars.creatureList;
-          while p <> nil do begin
-            if CharHlp.ComesUnderPlayer(p) then
-              p^.quickfight := 0;
-            p := p^.nextCharAddr;
-          end;
+          CombatAi.AllToManual;
           if creature^.quickfight = 0 then begin
             creature^.combatAddr^.initiative := 20;
             CheckKeystroke := True;
@@ -765,7 +747,7 @@ begin
   if (bestRanged <> nil)
      and (bestRangedPri > bestMeleePri div 2)
      and hasAmmo
-     and (trueRanged or (CharHlp.CountTargets(creature, 1) = 0)) then
+     and (trueRanged or (CbtMap.CountTargets(creature, 1) = 0)) then
     item := bestRanged
   else
     item := bestMelee;
@@ -776,14 +758,14 @@ begin
       needSwap := False;
   if needSwap then begin
     if creature^.equipped[C_Equip.WEAPON] <> nil then
-      ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.WEAPON]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.WEAPON]);
     CharHlp.RecalcStats(creature);
     if creature^.equipped[C_Equip.SHIELD] <> nil then
       if creature^.equipped[C_Equip.SHIELD]^.cursed = 0 then
         creature^.handsEquipped := creature^.handsEquipped
             - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
     if item <> nil then
-      ViewChar.ToggleReadyItem(item);
+      FxEngine.ToggleReadyItem(item);
     changed := True;
   end;
   CharHlp.RecalcStats(creature);
@@ -799,23 +781,44 @@ begin
         (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then begin
       { item is nil when no weapon was chosen }
       if item <> nil then
-        ViewChar.ToggleReadyItem(item);
+        FxEngine.ToggleReadyItem(item);
       changed := True;
     end else begin
-      ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
       changed := True;
     end;
   end else if (creature^.handsEquipped < 2) and needSwap then begin
     if creature^.equipped[C_Equip.SHIELD] <> nil then
-      ViewChar.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
     CharHlp.RecalcStats(creature);
     if bestShield <> nil then
-      ViewChar.ToggleReadyItem(bestShield);
+      FxEngine.ToggleReadyItem(bestShield);
     changed := True;
   end;
   CharHlp.RecalcStats(creature);
   if changed then
     CharDisp.CombatPrintCreatureInfo(creature);
+end;
+
+procedure ToggleQuickMagic;
+begin
+  GDVars.quickMagic := GDVars.quickMagic = False;
+  if GDVars.quickMagic then
+    CharDisp.PrintBottomLine('Magic On')
+  else
+    CharDisp.PrintBottomLine('Magic Off');
+end;
+
+procedure AllToManual;
+var
+  p: Types.PCharRecord;
+begin
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    if CharHlp.ComesUnderPlayer(p) then
+      p^.quickfight := 0;
+    p := p^.nextCharAddr;
+  end;
 end;
 
 end.

@@ -4,107 +4,12 @@ unit GDVars;
 
 interface
 
-uses C_Money, Types, Dos, C_Effect, C_Gbvm, C_Spell;
+uses Types, Dos, C_Effect, C_Gbvm;
   
-var
-  { Script execution. }
-  { stop the VM and return control to the player }
-  eclStop: Byte;
-  { NEWECL ran; the game loop then calls NewEclDone }
-  newEclFlag: Byte;
-  { LOAD CHARACTER ran; restore curChar from savedChar }
-  restoreChar: Byte;
-  { LOADFILES or LOADPIECES ran (not that loading succeeded) }
-  filesLoaded: Byte;
-  { first LOADFILES/LOADPIECES pair still to draw the interface }
-  enteringLoop: Byte;
-  { LOADPIECES ran (not that loading succeeded) }
-  piecesLoaded: Byte;
-  { LOADFILES ran (not that loading succeeded) }
-  mapLoaded: Byte;
-  { monsters added by LOAD MONSTER since CLEAR MONSTERS (max 63) }
-  creatureCnt: Byte;
-  { curChar backup }
-  savedChar: Types.PCharRecord;
-  { Combat outcome. }
-  nonEscapedHostileFound: Boolean;
-  partyFled: Boolean;
-  { Combat movement. }
-  { the AI's last step direction (8 = none) }
-  lastMoveDir: Byte;
-  { direction reversals or exhausted movement searches }
-  stuckCount: Byte;
-  { unused; cleared at the start of each move/attack loop }
-  unidentified01: Byte;
-
-var
-  { Combat placement. }
-  { quad occupancy [team, ring 0..3, qy 0..5, qx 0..10]; 1 = free }
-  quadFree: array[0..1, 0..3, 0..5, 0..10] of Byte;
-  { per team }
-  placeX: array[0..1] of ShortInt;
-  placeY: array[0..1] of ShortInt;
-  teamRows: array[0..1] of ShortInt;
-  teamDir: array[0..1] of ShortInt;
-  { Current side being placed. }
-  team: ShortInt;
-
-var
-  { wildMap cell under party }
-  terrainChar: Byte;
-
-var
-  { Resource initialization. }
-  { GameInit2 loop counter }
-  gi2: Byte;
-  { OpenWithRetry result }
-  itemsOk: Boolean;
-  { directory saved across resource loading }
-  savedDir: Types.TPathStr;
-  { ITEMS loading file record }
-  itemsFile: file;
-  { STING training override. }
-  stingMode: Byte;
-
-var
-  { Endgame. }
-  { WinGame passes it by var to Blit.LoadPic }
-  finalPic: Types.PImgBuf;
-  { WinGame saves and restores ifcState }
-  savedIfc: Byte;
-  { virtual disk digit appended to the FINAL picture names }
-  finalSfx: String[1];
-
 var
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
-  effFlags: array[1..72] of Byte;
-  { Spell selection. }
-  { the menu string list }
-  spellList: Types.PItemRec;
-  { spell ID per menu line }
-  spellIds: array[0..C_Spell.LINE_LAST] of Byte;
-  { the scroll each Cast line reads from, nil for a memorized spell }
-  spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
-  scrollPtrs: array[0..48] of Types.PItemRec;
-  scrollCount: Byte;
-  gSpellTemp1: Byte;
-  gSpellTemp2: Byte;
-  { Equipment weight. }
-  { equipped-items weight }
-  gEquipWeight: Word;
-  { lowered HeapEnd snapshot }
-  gfxReserve: Pointer;
-  { POOL.CFG character input }
-  cfgChar: Char;
-  { POOL.CFG text input }
-  cfgText: Text;
-  { POOL.CFG existence check }
-  cfgFile: file;
-  { low byte of the existence-check IOResult }
-  cfgErr: Byte;
-  { DaxIo.FileExists IOResult }
-  ioErr: Integer;
+  effFlags: array[1..Types.ARENA_SLOTS] of Byte;
   { Play session }
   { nonzero makes HeapErr force a save; never set }
   heapFailureSaveEnabled: Byte;
@@ -177,9 +82,6 @@ var
   { Video registers, pages and modes; view and icon buffers, dirty spans and row tables }
   { Register record handed to Dos.Intr for BIOS video calls; every unit calling the BIOS uses this one record. }
   dsInterruptRegisters: Registers;
-  { EGA video memory segment for currently displayed page }
-  egaCurPage: Word;
-  egaOtherPage: Word;
   { Other EGA page number (always 0) }
   pageNum: Byte;
   { Currently displayed EGA page number (always 0) }
@@ -230,35 +132,24 @@ var
   { Nonzero: SoundDrv.SoundCommand waits a fixed delay after each command, then silences the voices and removes its
     timer. Zero leaves the timer driver resident for persistent playback. }
   soundAutoStop: Word;
-  { the exit procedure SoundDrv.SoundExit hands on to }
-  soundExitSaved: Pointer;
-  { the music tune SoundDrv.PlayMusic started; 0 once it is stopped or an effect has ended it }
-  musicTune: Word;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
   { disk saved by DaxIo.PushState for PopState }
   prevVirtualDisk: Byte;
-  { GameInit sets it to 1; otherwise unused }
-  unidentified02: Word;
   { Save directory from line 4 of POOL.CFG. }
   dsSaveDirectory: String[255];
-  { GameInit sets it to 1; otherwise unused }
-  unidentified03: Word;
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
   gameDir: String;
   { Flag for suppressing insert disk prompt }
   dsSuppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
-  { Temporary compressed DAX data buffer. }
-  dsDaxCompressedFilePtr: Types.PByteArr;
   { ITEMS catalogue }
-  { Base item types, indexed by TItemRec.itemType. }
-  baseItems: array[0..127] of Types.TBaseItemRec;
-  { Zero. It keeps the ITEMS read's request for 129 records in bounds (the shipped ITEMS holds 128), and
-    CharHlp.BaseItem gives it for an item type past baseItems. }
-  baseItemsOverflow: Types.TBaseItemRec;
+  { Base item types, indexed by TItemRec.itemType, on the heap; GameInit2 allocates and clears them before reading
+    ITEMS. The last entry, Types.BASE_ITEM_OVERFLOW, stays zero: it keeps the ITEMS read's request for 129 records in
+    bounds (the shipped ITEMS holds 128), and CharHlp.BaseItem gives it for an item type past the table. }
+  baseItems: Types.PBaseItems;
   { Party pointers }
   { Current creature. }
   curChar: Types.PCharRecord;
@@ -266,8 +157,6 @@ var
   creatureList: Types.PCharRecord;
   { last missile item added to the treasure list in combat }
   lastMissileItem: Types.PItemRec;
-  { ITEMS read result. }
-  itemsRead: Word;
   { Font and text cursor }
   { Pointer to font. Each entry in the font table is 8 bytes }
   gameFont: Types.PFontArr;
@@ -293,15 +182,13 @@ var
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;
   { icon location and size per slot }
-  arenaLoc: array[1..72] of Types.TArenaLoc;
+  arenaLoc: array[1..Types.ARENA_SLOTS] of Types.TArenaLoc;
   { view-relative X deltas }
-  gridX: array[1..72] of ShortInt;
+  gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
   { view-relative Y deltas }
-  gridY: array[1..72] of ShortInt;
-  { creature slot per arena cell }
-  crIdxArr: array[0..24, 0..49] of Byte;
+  gridY: array[1..Types.ARENA_SLOTS] of ShortInt;
   { creature per slot }
-  creatureArr: array[1..72] of Types.PCharRecord;
+  creatureArr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { corpses on the arena }
   downed: array[1..8] of Types.TDownedRec;
   { append and scan limit; cleared entries leave holes }
@@ -311,7 +198,7 @@ var
   { Pathing's potential-target count }
   targetCount: Byte;
   { sorted by distance and facing }
-  targetList: array[1..72] of Types.TCombatTarget;
+  targetList: Types.TTargetList;
 
 var
   { Treasure }
@@ -329,7 +216,7 @@ var
   pendingEffectId: Byte;
   { damage before hit-point subtraction }
   pendingDamage: Byte;
-  { 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
+  { C_Effect.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
   elementMask: Byte;
   { current attack *or* current movement times 2 }
   dsCurrentAttackCurrent: Byte;
@@ -403,16 +290,9 @@ var
   vertTop: Integer;
   { Current horizontal menu choice, starting at 1. }
   horizChoice: Byte;
-  { Extended scan-code flag. }
-  extFlag: Boolean;
 
 var
-  { Menu auto-answer }
-  { MenuCore views the head as Types.TMenuAuto }
-  dsMenuAutoAnswer: Types.TMenuAuto;
   { Spell casting and targeting }
-  { Current item used for spell casting. }
-  dsCurrentScrollPtr: Types.PItemRec;
   { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.CombatCastTargetMenu in combat }
   castTargetMenu: Types.TCastUI;
   { Spell handlers indexed by spell ID. }
@@ -420,7 +300,7 @@ var
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }
-  dsTargetCreaturePtr: array[1..72] of Types.PCharRecord;
+  dsTargetCreaturePtr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { Remembered noncombat spell target, initially the caster. }
   castTarget: Types.PCharRecord;
   { combat arena column, 0..49 }
@@ -430,15 +310,12 @@ var
   { Pointer to linked list of Stinking Clouds }
   stinkHead: Types.PStinkRec;
   usingItem: Boolean;
-  treasureMoneyFlag: Boolean;
 
 var
   { Rest and healing }
-  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to GameTime.ValidateClock as a var
+  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
     parameter }
   dsRestingTimeGbvm: Types.TClock;
-  { Spell preparation timers for the eight party slots. }
-  prepTimers: array[1..8] of Byte;
   { Time rested today, in five-minute ticks. }
   healTicks: Word;
   { Suppress the window border. }
@@ -456,14 +333,10 @@ var
 
 var
   { Combat round }
-  { Set when the party confirms an attack on an ally (CbtActs.CheckAttackAlly) }
-  attackedAllies: Byte;
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
   { Potential-target creature indices. }
-  dsPotentialTargetCreature: array[1..72] of Byte;
-  { Primary and secondary attack counts. }
-  attacksMade: array[1..2] of Byte;
+  dsPotentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
   { Hostile creatures' hit points, percent remaining }
   hostileHpPct: Byte;
   { quick combat magic; toggled by Alt-M }
@@ -473,17 +346,11 @@ var
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
   dsMoveIconSheet: Types.PImgBuf;
-  { ECL colour selectors and read registers }
+  { ECL colour selectors }
   { Script-controlled wall color; script writes request a view redraw. }
   wallColorSel: Byte;
   { Script-controlled ceiling and floor color; writes request a view redraw. }
   ceilFloorColorSel: Byte;
-  { Read-only script register. }
-  readReg1: Word;
-  { Read-only script register. }
-  readReg2: Word;
-  { Read-only script register. }
-  readReg3: Word;
   { ECL interpreter }
   { Top ECL return-stack node. }
   dsEclStackTopPtr: Types.PEclRet;
@@ -491,14 +358,8 @@ var
   dsEclStackSecondPtr: Types.PEclRet;
   { eq, ne, lt, gt, le, ge; cleared together by FillChar }
   cmpFlags: array[0..5] of Boolean;
-  { Previous ECL opcode. }
-  prevOpcode: Byte;
   { Current ECL opcode }
   curOpcode: Byte;
-  { Current monster ID }
-  monId: Byte;
-  { Current monster picture ID }
-  monPicId: Byte;
   { Current icon animation slot. }
   gIconAnim: Byte;
   { ECL variables and strings }
@@ -510,29 +371,18 @@ var
   dsGbvmLowerByte: array[1..64] of Byte;
   { Receives the aim result for the bronze-dragon breath attack. }
   breathAim: Boolean;
-  { Loop counter shared by the Blit, Portrait and CbtMap drawing loops; its value means nothing outside them. }
-  dsCurrentPictureNumber: ShortInt;
-  { Script string buffers. }
-  gbStrings: array[1..20] of String;
-  { ECL monster, write-register and post-combat state }
+  { Script string buffers, on the heap; GameInit2 allocates and clears them. }
+  gbStrings: Types.PGbStrings;
+  { ECL monster and post-combat state }
   { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
   dsMonsterFlags: Types.TMonFlags;
   { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
-  { Script write register; the engine does not read it back. }
-  writeReg1: Word;
-  { Script write register; the engine does not read it back. }
-  writeReg2: Word;
   { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }
   dumpCr6C00: Boolean;
   { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }
   dumpCr6B00: Boolean;
   duelFlag: Boolean;
-  { Count of disabled or Animated creatures, which get no experience share }
-  nonAnimCount: Byte;
-  { Experience share before individual bonuses. }
-  expShare: LongInt;
-  combatWon: Boolean;
 
 var
   { ECL flags }
@@ -559,14 +409,10 @@ var
   picRegionW: Boolean;
   { ECL write moved party flag }
   movedParty: Boolean;
-  { Creature list contains hostile monsters flag }
-  monstersOn: Byte;
   { Redraw sky/ceiling in 3D view flag }
   redrawSky: Boolean;
   { Currently in ECL opcode 29 ENCOUNTER MENU flag }
   inEncMenu: Byte;
-  { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
-  picIdShown: Byte;
 
 implementation
 

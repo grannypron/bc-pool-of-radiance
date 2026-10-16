@@ -9,6 +9,18 @@ implementation
 
 uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv, DaxIo, GameIo;
 
+var
+  { lowered HeapEnd snapshot }
+  gfxReserve: Pointer;
+  { POOL.CFG character input }
+  cfgChar: Char;
+  { POOL.CFG text input }
+  cfgText: Text;
+  { POOL.CFG existence check }
+  cfgFile: file;
+  { low byte of the existence-check IOResult }
+  cfgErr: Byte;
+
 const
   { graphics memory reserve: 16 KB in paragraphs }
   GFX_RESERVE_PARAS = 1024;
@@ -71,29 +83,29 @@ begin
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
   repeat
-    Assign(GDVars.cfgFile, 'pool.cfg');
-    Reset(GDVars.cfgFile, 128);
-    GDVars.cfgErr := IOResult;
-    if GDVars.cfgErr <> 0 then begin
+    Assign(cfgFile, 'pool.cfg');
+    Reset(cfgFile, 128);
+    cfgErr := IOResult;
+    if cfgErr <> 0 then begin
       WriteLn('Please insert startup disk.');
-      GDVars.cfgChar := GameIo.ReadGameKey;
+      cfgChar := GameIo.ReadGameKey;
     end;
-  until GDVars.cfgErr = 0;
-  Close(GDVars.cfgFile);
+  until cfgErr = 0;
+  Close(cfgFile);
   CheckBreak := False;
-  Assign(GDVars.cfgText, 'POOL.CFG');
-  Reset(GDVars.cfgText);
+  Assign(cfgText, 'POOL.CFG');
+  Reset(cfgText);
   if IOResult <> 0 then begin
     WriteLn('Unable to find POOL.CFG');
     Halt;
   end;
-  ReadLn(GDVars.cfgText, GDVars.cfgChar);
+  ReadLn(cfgText, cfgChar);
   { INT 10h AH=0Fh: get current video mode into AL }
   GDVars.dsInterruptRegisters.ah := $F;
   Intr($10, GDVars.dsInterruptRegisters);
   GDVars.savedVideoMode := GDVars.dsInterruptRegisters.al;
   GDVars.curVideoMode := GDVars.savedVideoMode;
-  case GDVars.cfgChar of
+  case cfgChar of
     'E': begin
       GDVars.videoMode := Types.vmEGA;
       Blit.SetVideoMode(13);
@@ -106,8 +118,8 @@ begin
       GDVars.videoMode := Types.vmTandy;
       { Lower HeapEnd by GFX_RESERVE_PARAS; the common code after the sound setting lowers it once more, so Tandy
         reserves twice as much }
-      GDVars.gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
-      HeapEnd := GDVars.gfxReserve;
+      gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
+      HeapEnd := gfxReserve;
       Blit.SetVideoMode(9);
     end;
     else begin
@@ -130,24 +142,24 @@ begin
     WriteLn('Overlay error, program abort!');
     Halt;
   end;
-  ReadLn(GDVars.cfgText, GDVars.cfgChar);
-  case GDVars.cfgChar of
+  ReadLn(cfgText, cfgChar);
+  case cfgChar of
     'T': GDVars.soundMode := C_Sound.MODE_TANDY;
     'P': GDVars.soundMode := C_Sound.MODE_SPEAKER;
     else GDVars.soundMode := C_Sound.MODE_DISABLED;
   end;
   { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
-  GDVars.gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
-  HeapEnd := GDVars.gfxReserve;
+  gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
+  HeapEnd := gfxReserve;
   SoundDrv.SoundSuspend;
-  ReadLn(GDVars.cfgText, GDVars.gameDir);
+  ReadLn(cfgText, GDVars.gameDir);
   GDVars.gameDir := NormalizePath(GDVars.gameDir);
-  ReadLn(GDVars.cfgText, GDVars.dsSaveDirectory);
+  ReadLn(cfgText, GDVars.dsSaveDirectory);
   GDVars.dsSaveDirectory := NormalizePath(GDVars.dsSaveDirectory);
-  ReadLn(GDVars.cfgText, GDVars.cfgChar);
-  if GDVars.cfgChar = 'F' then
+  ReadLn(cfgText, cfgChar);
+  if cfgChar = 'F' then
     GDVars.fullIntro := True
   else
     GDVars.fullIntro := False;
-  Close(GDVars.cfgText);
+  Close(cfgText);
 end.

@@ -39,15 +39,6 @@ procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
   them. With the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
-{ Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
-  derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
-  ignoring a trailing part record. }
-procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
-
-{ GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
-  LoadCharIconAnim(True). No-op when the party already has 8 members (C_Gbvm.PARTY_SIZE > 7). }
-procedure AddCreatureToParty(id: Byte);
-
 { Load game: offer the existing SAVGAMA..J.DAT on the full-screen SaveMenu (Escape aborts), read the save file (one too
   short to hold it all is refused, with a message, before anything is read), reload each listed character, at most 8,
   from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files
@@ -87,61 +78,20 @@ procedure AddCharToParty(creature: Types.PCharRecord);
   restore the previous virtual disk, SaveGame and exit to DOS (GameIo.ExitGame). }
 procedure CheckFileElseQuit(name: Types.TPathStr);
 
-{ The character's usual spells: the spell IDs in its memorized and pending slots when it last confirmed memorizing,
-  pending flags stripped. Return False when none are remembered for it. }
-function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
+procedure FreeCreature(creature: Types.PCharRecord);
 
-{ Remember spells as the character's usual spells. }
-procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
-
-{ Forget the character's usual spells; called before its record is freed or reused. }
-procedure ForgetUsualSpells(creature: Types.PCharRecord);
-
-{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
-  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
-  cannot be made and is left alone. }
-procedure CheckSaveDir;
+procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
 
 implementation
 
-uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, FxEngine, View3D, MapTiles,
-  C_Race, C_Keys, C_Level, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party;
+uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
+  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
+  FileUtil, Party, StrUtil, UsualSpl;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
-
-const
-  { the number of characters whose usual spells are kept at once: the party's size }
-  USUAL_ENTRIES = Types.MAX_PARTY;
-  { MEM_SIG and MEM_VERSION open every .mem file; a file without both is not read }
-  MEM_SIG = 'USPL';
-  MEM_VERSION = 1;
-
-type
-  { A .mem file: the usual spells, with the name and randByte of the character they belong to. }
-  TUsualSpellsFile = record
-    sig: string[4];
-    version: Byte;
-    name: string[Types.NAME_LEN];
-    randByte: Byte;
-    spells: Types.TSpellSlots;
-  end;
-
-var
-  { Usual spells (GetUsualSpells), one entry per character, kept with the record and the name it belongs to; a nil
-    owner marks a free entry. }
-  usualOwner: array[1..USUAL_ENTRIES] of Types.PCharRecord;
-  usualName: array[1..USUAL_ENTRIES] of string[Types.NAME_LEN];
-  usualSpells: array[1..USUAL_ENTRIES] of Types.TSpellSlots;
-
-{ 'Put save disk in C:', for the save directory's drive. }
-function SaveDiskMsg: Types.TStr40;
-begin
-  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
-end;
 
 { Create file name (record size 1) for writing, asking for the save disk until it can be. }
 procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
@@ -153,7 +103,7 @@ begin
     Rewrite(f, 1);
     ioRes := IOResult;
     if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
+      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
   until ioRes = 0;
 end;
 
@@ -173,116 +123,20 @@ begin
   FileUtil.DeleteFile(fn + '.sts');
 end;
 
-{ The usual-spells entry for creature: its record and name both match, or 0 when there is none. }
-function FindUsualEntry(creature: Types.PCharRecord): Byte;
-var
-  i: Byte;
-begin
-  FindUsualEntry := 0;
-  if creature <> nil then
-    for i := 1 to USUAL_ENTRIES do
-      if (usualOwner[i] = creature) and (usualName[i] = creature^.name) then
-        FindUsualEntry := i;
-end;
-
-function GetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots): Boolean;
-var
-  i: Byte;
-begin
-  i := SaveLoad.FindUsualEntry(creature);
-  if i > 0 then
-    spells := usualSpells[i];
-  GetUsualSpells := i > 0;
-end;
-
-procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSlots);
-var
-  i: Byte;
-  j: Byte;
-begin
-  if creature = nil then Exit;
-  { a free entry, else one whose owner has left the party, else the first }
-  SaveLoad.ForgetUsualSpells(creature);
-  i := 0;
-  for j := USUAL_ENTRIES downto 1 do
-    if usualOwner[j] = nil then
-      i := j;
-  if i = 0 then
-    for j := USUAL_ENTRIES downto 1 do
-      if not Party.IsPartyMember(usualOwner[j]) then
-        i := j;
-  if i = 0 then
-    i := 1;
-  usualOwner[i] := creature;
-  usualName[i] := creature^.name;
-  usualSpells[i] := spells;
-end;
-
-procedure ForgetUsualSpells(creature: Types.PCharRecord);
-var
-  i: Byte;
-begin
-  for i := 1 to USUAL_ENTRIES do
-    if usualOwner[i] = creature then
-      usualOwner[i] := nil;
-end;
-
-{ Write the character's usual spells to <fn>.mem, erasing any old file first; nothing is written when it has none. A
-  failed write leaves a short file, which ReadUsualSpells ignores. }
-procedure WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
-var
-  rec: TUsualSpellsFile;
-  written: Boolean;
-begin
-  FileUtil.DeleteFile(fn + '.mem');
-  FillChar(rec, SizeOf(rec), 0);
-  if SaveLoad.GetUsualSpells(creature, rec.spells) then begin
-    rec.sig := MEM_SIG;
-    rec.version := MEM_VERSION;
-    rec.name := creature^.name;
-    rec.randByte := creature^.randByte;
-    { a failed write leaves a short file, which ReadUsualSpells ignores }
-    written := FileUtil.WriteRecord(fn + '.mem', rec, SizeOf(rec));
-  end;
-end;
-
-{ Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
-  TUsualSpellsFile with this format's signature and version, made for a character of this name and randByte. }
-procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
-var
-  rec: TUsualSpellsFile;
-begin
-  SaveLoad.ForgetUsualSpells(creature);
-  { read-only, so a write-protected .mem is read too }
-  if FileUtil.ReadRecord(fn + '.mem', rec, SizeOf(rec)) then
-    if (rec.sig = MEM_SIG) and (rec.version = MEM_VERSION) and (Length(rec.name) <= Types.NAME_LEN) and
-        (rec.name = creature^.name) and (rec.randByte = creature^.randByte) then
-      SaveLoad.SetUsualSpells(creature, rec.spells);
-end;
-
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
 procedure LoadCharlist(var list: Types.PItemRec);
 var
-  n: Types.PItemRec;
   tail: Types.PItemRec;
   p: Types.PCharRecord;
   f: Text;
 begin
   list := nil;
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   if not DaxIo.FileExists(GDVars.dsSaveDirectory + 'charlist.txt') then Exit;
   Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
   Reset(f);
   while not Eof(f) do begin
-    GetMem(n, SizeOf(Types.TMenuNode));
-    FillChar(n^, SizeOf(Types.TMenuNode), 0);
-    if list = nil then begin
-      list := n;
-      tail := list;
-    end else begin
-      tail^.next := n;
-      tail := tail^.next;
-    end;
+    MenuCore.AppendMenuLine(list, tail, '', False);
     ReadLn(f, tail^.name);
     p := GDVars.creatureList;
     while (p <> nil) and (p^.name <> tail^.name) do
@@ -299,13 +153,13 @@ var
   f: Text;
   ioRes: Integer;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   repeat
     Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
     Rewrite(f);
     ioRes := IOResult;
     if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
+      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
   until ioRes = 0;
   p := list;
   while p <> nil do begin
@@ -314,26 +168,6 @@ begin
     p := p^.next;
   end;
   Close(f);
-end;
-
-procedure CheckSaveDir;
-var
-  ioRes: Integer;
-  i: Byte;
-begin
-  if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
-  repeat
-    { each parent first, from the one below the root; its errors show again in the last MkDir }
-    for i := 4 to Length(GDVars.dsSaveDirectory) - 1 do
-      if GDVars.dsSaveDirectory[i] = '\' then begin
-        MkDir(Copy(GDVars.dsSaveDirectory, 1, i - 1));
-        ioRes := IOResult;
-      end;
-    MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
-    ioRes := IOResult;
-    if (ioRes <> 0) and (ioRes <> 5) then
-      TextRend.DisplayAndPause(Yellow, SaveLoad.SaveDiskMsg);
-  until (ioRes = 0) or (ioRes = 5);
 end;
 
 { OR src's pixels onto dst and AND the transparency masks. The CGA and Tandy masks are imgSize bytes; the EGA mask is
@@ -413,7 +247,6 @@ var
   effect: Types.PEffectRec;
   list: Types.PItemRec;
   p: Types.PItemRec;
-  n: Types.PItemRec;
   ioRes: Integer;
   ok: Boolean;
   { the record as written: a copy with its pointers cleared, as below for each item and effect }
@@ -429,19 +262,13 @@ begin
     if p <> nil then
       while p^.next <> nil do
         p := p^.next;
-    GetMem(n, SizeOf(Types.TMenuNode));
-    FillChar(n^, SizeOf(Types.TMenuNode), 0);
-    n^.name := creature^.name;
-    if p <> nil then
-      p^.next := n
-    else
-      list := n;
+    MenuCore.AppendMenuLine(list, p, creature^.name, False);
     SaveLoad.SaveCharlist(list);
     MenuCore.FreeStringList(list);
     ext := '.cha';
     fn := SaveLoad.CharFileBase(creature^.name);
   end else begin
-    SaveLoad.CheckSaveDir;
+    SaveMenu.CheckSaveDir;
     ext := '.sav';
     fn := GDVars.dsSaveDirectory + fname;
   end;
@@ -499,7 +326,7 @@ begin
   end;
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.');
-  SaveLoad.WriteUsualSpells(creature, fn);
+  UsualSpl.WriteUsualSpells(creature, fn);
   Stats.WriteChar(creature, fn);
 end;
 
@@ -518,7 +345,7 @@ var
 begin
   if askDisk then begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
-    msg := SaveLoad.SaveDiskMsg;
+    msg := SaveMenu.SaveDiskMsg;
   end else
     msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
   if savedGame then
@@ -582,144 +409,25 @@ begin
   end;
   { the slots pointed into the heap of the game that saved them }
   CharHlp.LinkEquipped(creature);
-  SaveLoad.ReadUsualSpells(creature, name);
+  UsualSpl.ReadUsualSpells(creature, name);
   Stats.ReadChar(creature, name);
-end;
-
-procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
-var
-  size: Word;
-  data: Types.PByteArr;
-  offset: Word;
-  item: Types.PItemRec;
-  effect: Types.PEffectRec;
-  numStr: String[1];
-  i: Byte;
-  roll: Byte;
-begin
-  Str(GDVars.virtualDisk, numStr);
-  DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
-  if size < SizeOf(Types.TCharRecord) then begin
-    TextRend.DisplayAndPause(White, 'Unable to load monster');
-    GameIo.ExitGame;
-  end;
-  Move(data^, creature^, SizeOf(Types.TCharRecord));
-  with creature^ do begin
-    itemsAddr := nil;
-    effectsAddr := nil;
-    nextCharAddr := nil;
-    combatAddr := nil;
-    case race of
-      C_Race.DWARF, C_Race.GNOME, C_Race.HALFLING: iconSize := 1;
-      C_Race.ELF, C_Race.HALFELF, C_Race.HALFORC, C_Race.HUMAN: iconSize := 2;
-    end;
-    for i := 1 to 3 do begin
-      roll := FxEngine.RollDice(1, 6);
-      iconColors1[i] := roll + (roll + 8) shl 4;
-    end;
-    iconColors1[4] := $C4;
-    for i := 5 to 6 do begin
-      roll := FxEngine.RollDice(1, 6);
-      iconColors1[i] := roll + (roll + 8) shl 4;
-    end;
-  end;
-  FreeMem(data, size);
-  GDVars.dsSuppressingInsertDiskFlag := True;
-  DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
-  if size <> 0 then begin
-    if size >= SizeOf(Types.TEffectRec) then begin
-      offset := 0;
-      GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
-      effect := creature^.effectsAddr;
-      repeat
-        Move(data^[offset], effect^, SizeOf(Types.TEffectRec));
-        effect^.next := nil;
-        Inc(offset, SizeOf(Types.TEffectRec));
-        if size - offset >= SizeOf(Types.TEffectRec) then begin
-          GetMem(effect^.next, SizeOf(Types.TEffectRec));
-          effect := effect^.next;
-        end;
-      until size - offset < SizeOf(Types.TEffectRec);
-    end;
-    FreeMem(data, size);
-  end;
-  DaxIo.LoadDax('MON' + numStr + 'ITM', '.dax', id, size, data);
-  if size <> 0 then begin
-    if size >= SizeOf(Types.TItemRec) then begin
-      offset := 0;
-      GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
-      item := creature^.itemsAddr;
-      repeat
-        Move(data^[offset], item^, SizeOf(Types.TItemRec));
-        item^.next := nil;
-        Inc(offset, SizeOf(Types.TItemRec));
-        if size - offset >= SizeOf(Types.TItemRec) then begin
-          GetMem(item^.next, SizeOf(Types.TItemRec));
-          item := item^.next;
-        end;
-      until size - offset < SizeOf(Types.TItemRec);
-    end;
-    FreeMem(data, size);
-  end;
-  GDVars.dsSuppressingInsertDiskFlag := False;
-end;
-
-procedure AddCreatureToParty(id: Byte);
-
-var
-  creature: Types.PCharRecord;
-  cnt: Byte;
-  i: ShortInt;
-  classes: array[1..4] of Byte;
-begin
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7 then Exit;
-  GetMem(creature, SizeOf(Types.TCharRecord));
-  SaveLoad.LoadCreatureData(id, creature);
-  with creature^ do begin
-    randByte := Random(256);
-    cnt := 0;
-    { classes holds 4; shipped monsters have at most 4 class levels set }
-    for i := 0 to 6 do
-      if (classLevels[i] > 0) and (cnt < 4) then begin
-        Inc(cnt);
-        classes[cnt] := i;
-      end;
-    if cnt = 0 then begin
-      cnt := 1;
-      classes[cnt] := C_Level.FIGHTER;
-    end;
-    cnt := FxEngine.RollDice(1, cnt);
-    case classes[cnt] of
-      C_Level.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, FxEngine.RollDice(1, 5)];
-      C_Level.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, FxEngine.RollDice(1, 5)];
-      C_Level.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, FxEngine.RollDice(1, 5)];
-      else portraitBody := GDConsts.npcFighterBodies[genderSp, FxEngine.RollDice(1, 5)];
-    end;
-    portraitHead := GDConsts.npcPortraitHeads[genderSp, FxEngine.RollDice(1, 8)];
-  end;
-  SaveLoad.AddCharToParty(creature);
-  SaveLoad.LoadCharIconAnim(True);
 end;
 
 procedure AddCharToParty(creature: Types.PCharRecord);
 var
   p: Types.PCharRecord;
-  used: array[0..7] of Byte;
+  used: array[0..Types.MAX_PARTY - 1] of Byte;
 begin
   creature^.orderNumber := 255;
   if GDVars.creatureList = nil then begin
     GDVars.creatureList := creature;
     GDVars.curChar := creature;
-  end else begin
-    p := GDVars.creatureList;
-    while p^.nextCharAddr <> nil do
-      p := p^.nextCharAddr;
-    p^.nextCharAddr := creature;
-  end;
+  end else
+    Party.LastCreature^.nextCharAddr := creature;
   FillChar(used, SizeOf(used), 0);
   p := GDVars.creatureList;
   while p <> nil do begin
-    if p^.orderNumber in [0..7] then
+    if p^.orderNumber in [0..Types.MAX_PARTY - 1] then
       used[p^.orderNumber] := 1;
     p := p^.nextCharAddr;
   end;
@@ -754,7 +462,7 @@ var
   nChars: Byte;
   found: Boolean;
 begin
-  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveLoad.SaveDiskMsg, True, f);
+  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveMenu.SaveDiskMsg, True, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
@@ -778,7 +486,12 @@ begin
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
   { the script the save holds is passed over: GameLoop loads the area's script from the data (#609) }
   Seek(f, FilePos(f) + C_Gbvm.SAVED_SCRIPT_BYTES);
-  BlockRead(f, GDVars.gMapX, 5, res);
+  { the party's map position: SSI's five bytes }
+  BlockRead(f, GDVars.gMapX, SizeOf(GDVars.gMapX), res);
+  BlockRead(f, GDVars.gMapY, SizeOf(GDVars.gMapY), res);
+  BlockRead(f, GDVars.gFacing, SizeOf(GDVars.gFacing), res);
+  BlockRead(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead), res);
+  BlockRead(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell), res);
   { a cardinal facing only }
   GDVars.gFacing := GDVars.gFacing and 6;
   BlockRead(f, GDVars.gLocType, SizeOf(GDVars.gLocType), res);
@@ -805,7 +518,7 @@ begin
         SaveLoad.AddCharToParty(creature)
       else
         FreeMem(creature, SizeOf(Types.TCharRecord));
-      SaveLoad.CheckSaveDir;
+      SaveMenu.CheckSaveDir;
     end;
   end;
   creature := GDVars.creatureList;
@@ -846,7 +559,7 @@ procedure LoadGame;
 var
   letter: Char;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
   if letter <> C_Keys.NONE then
     SaveLoad.LoadSlot(letter);
@@ -855,16 +568,10 @@ end;
 function QuickLoadable: Boolean;
 var
   f: file;
-  mode: Byte;
   ioRes: Integer;
 begin
   QuickLoadable := False;
-  Assign(f, GDVars.dsSaveDirectory + 'savgam' + QUICK_SLOT + '.dat');
-  mode := FileMode;
-  FileMode := 0;
-  Reset(f, 1);
-  FileMode := mode;
-  if IOResult = 0 then begin
+  if FileUtil.OpenReadOnly(f, GDVars.dsSaveDirectory + 'savgam' + QUICK_SLOT + '.dat') then begin
     QuickLoadable := (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
     Close(f);
   end;
@@ -884,7 +591,7 @@ begin
   { RemoveCreature frees the head of the list while it is curChar }
   while GDVars.creatureList <> nil do begin
     GDVars.curChar := GDVars.creatureList;
-    CharGen.RemoveCreature(False, True);
+    SaveLoad.RemoveCreature(False, True);
   end;
   GDVars.curChar := nil;
   SaveLoad.LoadSlot(QUICK_SLOT);
@@ -907,7 +614,7 @@ begin
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   SaveLoad.RewriteSaveFile(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
@@ -924,7 +631,12 @@ begin
   BlockWrite(f, GDVars.zone2^, SizeOf(GDVars.zone2^));
   { SSI's part of the script buffer, so the file stays SSI's size }
   BlockWrite(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES);
-  BlockWrite(f, GDVars.gMapX, 5);
+  { the party's map position: SSI's five bytes }
+  BlockWrite(f, GDVars.gMapX, SizeOf(GDVars.gMapX));
+  BlockWrite(f, GDVars.gMapY, SizeOf(GDVars.gMapY));
+  BlockWrite(f, GDVars.gFacing, SizeOf(GDVars.gFacing));
+  BlockWrite(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead));
+  BlockWrite(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell));
   BlockWrite(f, GDVars.gLocType, SizeOf(GDVars.gLocType));
   BlockWrite(f, GDVars.ifcState, SizeOf(GDVars.ifcState));
   { names holds 8, the most a party has }
@@ -963,7 +675,7 @@ var
   oldArea: SaveMenu.TSlotArea;
   ok: Boolean;
 begin
-  SaveLoad.CheckSaveDir;
+  SaveMenu.CheckSaveDir;
   area := AreaName.CurrentArea;
   letter := C_Keys.NONE;
   repeat
@@ -987,13 +699,11 @@ end;
 procedure CheckFileElseQuit(name: Types.TPathStr);
 var
   msg: Types.TStr40;
-  numStr: String[1];
   ch: Char;
   ext: Boolean;
 begin
   if DaxIo.FileExists(name) then Exit;
-  Str(GDVars.virtualDisk, numStr);
-  msg := 'Save and exit  Insert disk #' + numStr;
+  msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GDVars.virtualDisk);
   ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
   if (not ext) and (ch = 'S') then begin
     Dec(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
@@ -1005,6 +715,61 @@ begin
   end;
 end;
 
+{ FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
+  spells; the closing creature := nil clears only the local parameter }
+procedure FreeCreature(creature: Types.PCharRecord);
+var
+  holdE: Types.PEffectRec;
+  effect: Types.PEffectRec;
 begin
-  FillChar(usualOwner, SizeOf(usualOwner), 0);
+  with creature^ do begin
+    if (combatAddr <> nil) then
+      FreeMem(combatAddr, SizeOf(Types.TCombatRec));
+    CharHlp.FreeItemList(itemsAddr);
+    effect := effectsAddr;
+    while effect <> nil do begin
+      holdE := effect;
+      effect := effect^.next;
+      FreeMem(holdE, SizeOf(Types.TEffectRec));
+    end;
+  end;
+  UsualSpl.ForgetUsualSpells(creature);
+  Stats.Forget(creature);
+  FreeMem(creature, SizeOf(Types.TCharRecord));
+  creature := nil;
+end;
+
+{ RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
+  becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
+  A curChar not found in the list is left alone. }
+procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
+var
+  prev: Types.PCharRecord;
+begin
+  if GDVars.creatureList = nil then Exit;
+  prev := GDVars.creatureList;
+  if prev <> GDVars.curChar then begin
+    while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
+      prev := prev^.nextCharAddr;
+    if prev^.nextCharAddr <> nil then begin
+      if freeAnim then
+        MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
+      prev^.nextCharAddr := GDVars.curChar^.nextCharAddr;
+      SaveLoad.FreeCreature(GDVars.curChar);
+      GDVars.curChar := prev;
+      if not suppressSizeDec then
+        Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+    end;
+  end else begin
+    if freeAnim then
+      MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
+    GDVars.creatureList := GDVars.curChar^.nextCharAddr;
+    prev := GDVars.curChar^.nextCharAddr;
+    SaveLoad.FreeCreature(GDVars.curChar);
+    GDVars.curChar := prev;
+    if not suppressSizeDec then
+      Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+  end;
+end;
+
 end.

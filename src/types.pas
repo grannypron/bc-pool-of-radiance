@@ -11,12 +11,20 @@ const
   NAME_LEN = 15;
   { the most creatures in the party: a saved game's party names, the usual spells, the statistics, the icon slots }
   MAX_PARTY = 8;
+  { the most creatures in play at once, party and monsters: combat's slots (GDVars.creatureArr, arenaLoc and the target
+    lists) and the creature list's ordinals }
+  ARENA_SLOTS = 72;
   { the data disks the game shipped on, 1..LAST_DISK }
   LAST_DISK = 8;
   { a 3D map's last row and column: maps are 16 by 16 }
   MAP_LAST = 15;
   { the last memorized-spell slot (TSpellSlots); Turbo Pascal 6 has no High() }
   SPELL_SLOT_LAST = 20;
+  { the item types ITEMS holds, 0..BASE_ITEM_LAST; GDVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
+  BASE_ITEM_LAST = 127;
+  BASE_ITEM_OVERFLOW = 128;
+  { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
+  GB_STRING_LAST = 20;
 
 type
 
@@ -358,6 +366,8 @@ type
     { best facing direction }
     dir: Byte;
   end;
+  { the creatures Pathing.BuildTargetList finds, nearest first (GDVars.targetList) }
+  TTargetList = array[1..ARENA_SLOTS] of TCombatTarget;
   TIconCoordinateDelta = record
     { cell X offset; negative marks an absent footprint cell }
     dx: ShortInt;
@@ -395,16 +405,6 @@ type
     ds: Word;
     es: Word;
     flags: Word;
-  end;
-  TKrynnClassRules = record
-    { class/item-usability masks }
-    createClassBits: array[0..7] of Byte;
-    unidentifiedByte: Byte;
-    { class selection masks }
-    classBits: array[0..7] of Byte;
-    unidentifiedTail: array[0..8] of Byte;
-    { hit-dice cap plus one }
-    maxClassLevels: array[0..7] of Byte;
   end;
   { main-menu entry }
   TMenuItem = record
@@ -621,12 +621,20 @@ type
         scriptWords4B00: array[$4B00..$4CFF] of Word);
   end;
   TGbvmZone1 = array[$6B00..$6EFF] of Word;
+  { the script strings (GDVars.gbStrings) }
+  TGbStrings = array[1..GB_STRING_LAST] of String;
+  PGbStrings = ^TGbStrings;
+  { the base item types (GDVars.baseItems) and the zeroed overflow entry after them }
+  TBaseItems = array[0..BASE_ITEM_OVERFLOW] of TBaseItemRec;
+  PBaseItems = ^TBaseItems;
 
   { Blit types. }
   TVideoMode = (vmCGA, vmEGA, vmTandy);
 
   { A routine MenuCore.MenuHorizontal calls on every pass of its key wait. }
   TIdleProc = procedure;
+  { A menu command, passed to the menu that runs it: Shop.CounterMenu's Buy or Heal. }
+  TMenuAction = procedure;
   { The cells a spell reaches, for the spell-aim preview: a blast around the aim cell, Lightning Bolt's path from it, or
     Stinking Cloud's 2x2 block with the aim cell at its upper left. }
   TAimShape = (AimBlast, AimBolt, AimCloud);
@@ -657,6 +665,8 @@ type
     x: array[1..64] of ShortInt;
     y: array[1..64] of ShortInt;
   end;
+  { Fills cells with the path of a spell aimed at (x, y): CbtMap.boltTracer. }
+  TCellTracer = procedure(x, y: ShortInt; var cells: TCellList);
   { TCharRecord view: armor class and attacks as arrays }
   TAttackPhaseView = record
     { skips to acCur }

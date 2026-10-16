@@ -374,135 +374,9 @@ begin
   end;
 end;
 
-procedure BlitTileCell(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
-var
-  leftSkip: Integer;
-  rightSkip: Integer;
-  rowBytes: Word;
-  srcOff: Word;
-  destOff: Word;
-  lastRow: Word;
-  y: Word;
-  maskOff: Word;
-  planesLeft: Byte;
-  scanline: Word;
-  screenOff: Word;
-  useMask: Boolean;
-  i: Word;
-begin
-  useMask := ((flag and 1) > 0) and (gfx^.transp <> nil);
-  scanline := screenY * 8;
-  destOff := scanline * dest^.width;
-  lastRow := gfx^.height - 1;
-  leftSkip := screenX;
-  rightSkip := dest^.width - (screenX + gfx^.width);
-  case GDVars.videoMode of
-    Types.vmCGA, Types.vmTandy: begin
-      if GDVars.videoMode = Types.vmCGA then begin
-        screenOff := leftSkip * 2;
-        rowBytes := gfx^.width * 2;
-        leftSkip := leftSkip * 2;
-        rightSkip := rightSkip * 2;
-        srcOff := tileIdx * gfx^.imgSize;
-        destOff := destOff * 2;
-      end else begin
-        screenOff := leftSkip * 4;
-        rowBytes := gfx^.width * 4;
-        leftSkip := leftSkip * 4;
-        rightSkip := rightSkip * 4;
-        srcOff := tileIdx * gfx^.imgSize;
-        destOff := destOff * 4;
-      end;
-      if useMask then begin
-        for y := 0 to lastRow do begin
-          GDVars.spanActive[scanline] := 1;
-          Inc(destOff, leftSkip);
-          if GDVars.spanFirstOfs[scanline] > destOff then begin
-            GDVars.spanScreenOfs[scanline] := screenOff;
-            GDVars.spanFirstOfs[scanline] := destOff;
-          end;
-          for i := 1 to rowBytes do begin
-            dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[srcOff] or gfx^.data[srcOff];
-            Inc(srcOff);
-            Inc(destOff);
-          end;
-          if destOff - 1 > GDVars.spanLastOfs[scanline] then
-            GDVars.spanLastOfs[scanline] := destOff - 1;
-          Inc(destOff, rightSkip);
-          Inc(scanline);
-        end;
-      end else begin
-        for y := 0 to lastRow do begin
-          GDVars.spanActive[scanline] := 1;
-          Inc(destOff, leftSkip);
-          if GDVars.spanFirstOfs[scanline] > destOff then begin
-            GDVars.spanScreenOfs[scanline] := screenOff;
-            GDVars.spanFirstOfs[scanline] := destOff;
-          end;
-          Move(gfx^.data[srcOff], dest^.data[destOff], rowBytes);
-          Inc(srcOff, rowBytes);
-          Inc(destOff, rowBytes);
-          if destOff - 1 > GDVars.spanLastOfs[scanline] then
-            GDVars.spanLastOfs[scanline] := destOff - 1;
-          Inc(destOff, rightSkip);
-          Inc(scanline);
-        end;
-      end;
-    end;
-    Types.vmEGA: begin
-      screenOff := leftSkip;
-      rowBytes := gfx^.width * 4;
-      leftSkip := leftSkip * 4;
-      rightSkip := rightSkip * 4;
-      srcOff := tileIdx * gfx^.imgSize;
-      maskOff := srcOff div 4;
-      planesLeft := 4;
-      destOff := destOff * 4;
-      if useMask then begin
-        for y := 0 to lastRow do begin
-          GDVars.spanActive[scanline] := 1;
-          Inc(destOff, leftSkip);
-          if GDVars.spanFirstOfs[scanline] > destOff then begin
-            GDVars.spanScreenOfs[scanline] := screenOff;
-            GDVars.spanFirstOfs[scanline] := destOff;
-          end;
-          for i := 1 to rowBytes do begin
-            dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[maskOff] or gfx^.data[srcOff];
-            Inc(srcOff);
-            Dec(planesLeft);
-            if planesLeft = 0 then begin
-              planesLeft := 4;
-              Inc(maskOff);
-            end;
-            Inc(destOff);
-          end;
-          if destOff - 1 > GDVars.spanLastOfs[scanline] then
-            GDVars.spanLastOfs[scanline] := destOff - 1;
-          Inc(destOff, rightSkip);
-          Inc(scanline);
-        end;
-      end else begin
-        for y := 0 to lastRow do begin
-          GDVars.spanActive[scanline] := 1;
-          Inc(destOff, leftSkip);
-          if GDVars.spanFirstOfs[scanline] > destOff then begin
-            GDVars.spanScreenOfs[scanline] := screenOff;
-            GDVars.spanFirstOfs[scanline] := destOff;
-          end;
-          Move(gfx^.data[srcOff], dest^.data[destOff], rowBytes);
-          Inc(srcOff, rowBytes);
-          Inc(destOff, rowBytes);
-          if destOff - 1 > GDVars.spanLastOfs[scanline] then
-            GDVars.spanLastOfs[scanline] := destOff - 1;
-          Inc(destOff, rightSkip);
-          Inc(scanline);
-        end;
-      end;
-    end;
-  end;
-end;
-
-procedure BlitTileClipped(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
+{ BlitTileCell and BlitTileClipped: draw frame tileIdx of gfx into dest at (screenX, screenY), clipped against dest's
+  edges when clip is set (BlitTileClipped's description), saving the covered pixels first when flag has bit 2. }
+procedure BlitTile(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf; clip: Boolean);
 var
   clipLeft: Word;
   clipRight: Word;
@@ -527,7 +401,7 @@ begin
   if (gfx = nil) or (dest = nil) then Exit;
   useMask := ((flag and 1) > 0) and (gfx^.transp <> nil);
   saveRequested := (flag and 4) > 0;
-  if GDVars.clipFlag <> 0 then begin
+  if clip then begin
     if screenX < 0 then begin
       clipLeft := Abs(screenX);
       if clipLeft >= gfx^.width then Exit;
@@ -685,6 +559,17 @@ begin
       end;
     end;
   end;
+end;
+
+procedure BlitTileCell(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
+begin
+  { no clipping and no save-under }
+  Blit.BlitTile(screenX, screenY, tileIdx, flag and not 4, gfx, dest, False);
+end;
+
+procedure BlitTileClipped(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
+begin
+  Blit.BlitTile(screenX, screenY, tileIdx, flag, gfx, dest, GDVars.clipFlag <> 0);
 end;
 
 function MirrorBits(value: Byte): Byte;
@@ -870,6 +755,7 @@ var
   srcOff: Word;
   dstOff: Word;
   dstBase: Word;
+  plane: Byte;
 begin
   case GDVars.videoMode of
     Types.vmCGA:
@@ -883,38 +769,17 @@ begin
       for row := 0 to SizeOf(GDVars.spanActive) - 1 do
         if GDVars.spanActive[row] <> 0 then begin
           dstBase := GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 1;
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[0];
-          srcOff := GDVars.spanFirstOfs[row];
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[1];
-          srcOff := GDVars.spanFirstOfs[row] + 1;
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[2];
-          srcOff := GDVars.spanFirstOfs[row] + 2;
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[3];
-          srcOff := GDVars.spanFirstOfs[row] + 3;
-          dstOff := dstBase;
-          repeat
-            Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
-            Inc(srcOff, 4);
-            Inc(dstOff);
-          until srcOff > GDVars.spanLastOfs[row];
+          { each plane's bytes, every fourth from its own in the view buffer }
+          for plane := 0 to 3 do begin
+            Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+            srcOff := GDVars.spanFirstOfs[row] + plane;
+            dstOff := dstBase;
+            repeat
+              Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
+              Inc(srcOff, 4);
+              Inc(dstOff);
+            until srcOff > GDVars.spanLastOfs[row];
+          end;
         end;
       Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
       dstOff := GDVars.fbRowOfs[8] + 1;
@@ -943,6 +808,7 @@ end;
 
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
 var
+  frameNo: ShortInt;
   srcOff: Word;
   dstOff: Word;
   nFrames: Byte;
@@ -980,7 +846,7 @@ begin
           { CGA: match/rewrite each 2-bit pixel pattern }
           Types.vmCGA: begin
             rowBytes := width * 2;
-            for GDVars.dsCurrentPictureNumber := frame to nFrames + frame - 1 do
+            for frameNo := frame to nFrames + frame - 1 do
               for row := 1 to height do
                 for col := 1 to rowBytes do begin
                   for pixPos := 0 to 3 do
@@ -1000,7 +866,7 @@ begin
                 planeMask[plane] := 0
               else
                 planeMask[plane] := $FF;
-            for GDVars.dsCurrentPictureNumber := frame to nFrames + frame - 1 do
+            for frameNo := frame to nFrames + frame - 1 do
               for row := 1 to height do
                 for col := 1 to width do begin
                   if isDithered then
@@ -1023,7 +889,7 @@ begin
             rowBytes := width * 4;
             fromHigh := fromColors[pairIdx] shl 4;
             toHigh := toColors[pairIdx] shl 4;
-            for GDVars.dsCurrentPictureNumber := frame to nFrames + frame - 1 do
+            for frameNo := frame to nFrames + frame - 1 do
               for row := 1 to height do
                 for col := 1 to rowBytes do begin
                   if pic^.data[srcOff] and $F0 = fromHigh then
