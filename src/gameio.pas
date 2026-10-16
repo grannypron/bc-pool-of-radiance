@@ -156,4 +156,7 @@ end;
 
 begin
   memShown := False;
+  { the hooks start unset: global variables are not cleared at startup }
+  @saveSettings := nil;
+  @showMemory := nil;
 end.

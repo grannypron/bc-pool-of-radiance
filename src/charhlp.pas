@@ -987,4 +987,7 @@ begin
   CalcSpellRange := r;
 end;
 
+begin
+  { unset until GameInit sets it: global variables are not cleared at startup }
+  @faultHook := nil;
 end.
