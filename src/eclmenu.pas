@@ -67,10 +67,20 @@ procedure MoveExtremes(var hiMove, loMove: Byte);
 { Damage message + damage + party panel refresh; dead creatures are skipped }
 procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
+{ Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
+  derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
+  ignoring a trailing part record. }
+procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
+
+{ GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
+  LoadCharIconAnim(True). No-op when the party already has 8 members (C_Gbvm.PARTY_SIZE > 7). }
+procedure AddCreatureToParty(id: Byte);
+
 implementation
 
 uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
-  C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party;
+  C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
+  C_Race, C_Level, GDConsts;
 
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
 procedure EclInit;
@@ -190,7 +200,7 @@ procedure InitCreature(id: Byte; var creature: Types.PCharRecord; var inv: Types
 begin
   creature := nil;
   GetMem(creature, SizeOf(Types.TCharRecord));
-  SaveLoad.LoadCreatureData(id, creature);
+  EclMenu.LoadCreatureData(id, creature);
   inv := creature^.itemsAddr;
   effect := creature^.effectsAddr;
 end;
@@ -539,6 +549,121 @@ begin
   CharHlp.InflictDamage(creature, dmg);
   TextRend.ClearRect(17, 1, 38, 15);
   CharDisp.DisplayParty(GDVars.curChar);
+end;
+
+procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
+var
+  size: Word;
+  data: Types.PByteArr;
+  offset: Word;
+  item: Types.PItemRec;
+  effect: Types.PEffectRec;
+  numStr: String[1];
+  i: Byte;
+  roll: Byte;
+begin
+  Str(GDVars.virtualDisk, numStr);
+  DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
+  if size < SizeOf(Types.TCharRecord) then begin
+    TextRend.DisplayAndPause(White, 'Unable to load monster');
+    GameIo.ExitGame;
+  end;
+  Move(data^, creature^, SizeOf(Types.TCharRecord));
+  with creature^ do begin
+    itemsAddr := nil;
+    effectsAddr := nil;
+    nextCharAddr := nil;
+    combatAddr := nil;
+    case race of
+      C_Race.DWARF, C_Race.GNOME, C_Race.HALFLING: iconSize := 1;
+      C_Race.ELF, C_Race.HALFELF, C_Race.HALFORC, C_Race.HUMAN: iconSize := 2;
+    end;
+    for i := 1 to 3 do begin
+      roll := FxEngine.RollDice(1, 6);
+      iconColors1[i] := roll + (roll + 8) shl 4;
+    end;
+    iconColors1[4] := $C4;
+    for i := 5 to 6 do begin
+      roll := FxEngine.RollDice(1, 6);
+      iconColors1[i] := roll + (roll + 8) shl 4;
+    end;
+  end;
+  FreeMem(data, size);
+  GDVars.dsSuppressingInsertDiskFlag := True;
+  DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
+  if size <> 0 then begin
+    if size >= SizeOf(Types.TEffectRec) then begin
+      offset := 0;
+      GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
+      effect := creature^.effectsAddr;
+      repeat
+        Move(data^[offset], effect^, SizeOf(Types.TEffectRec));
+        effect^.next := nil;
+        Inc(offset, SizeOf(Types.TEffectRec));
+        if size - offset >= SizeOf(Types.TEffectRec) then begin
+          GetMem(effect^.next, SizeOf(Types.TEffectRec));
+          effect := effect^.next;
+        end;
+      until size - offset < SizeOf(Types.TEffectRec);
+    end;
+    FreeMem(data, size);
+  end;
+  DaxIo.LoadDax('MON' + numStr + 'ITM', '.dax', id, size, data);
+  if size <> 0 then begin
+    if size >= SizeOf(Types.TItemRec) then begin
+      offset := 0;
+      GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
+      item := creature^.itemsAddr;
+      repeat
+        Move(data^[offset], item^, SizeOf(Types.TItemRec));
+        item^.next := nil;
+        Inc(offset, SizeOf(Types.TItemRec));
+        if size - offset >= SizeOf(Types.TItemRec) then begin
+          GetMem(item^.next, SizeOf(Types.TItemRec));
+          item := item^.next;
+        end;
+      until size - offset < SizeOf(Types.TItemRec);
+    end;
+    FreeMem(data, size);
+  end;
+  GDVars.dsSuppressingInsertDiskFlag := False;
+end;
+
+procedure AddCreatureToParty(id: Byte);
+
+var
+  creature: Types.PCharRecord;
+  cnt: Byte;
+  i: ShortInt;
+  classes: array[1..4] of Byte;
+begin
+  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 7 then Exit;
+  GetMem(creature, SizeOf(Types.TCharRecord));
+  EclMenu.LoadCreatureData(id, creature);
+  with creature^ do begin
+    randByte := Random(256);
+    cnt := 0;
+    { classes holds 4; shipped monsters have at most 4 class levels set }
+    for i := 0 to 6 do
+      if (classLevels[i] > 0) and (cnt < 4) then begin
+        Inc(cnt);
+        classes[cnt] := i;
+      end;
+    if cnt = 0 then begin
+      cnt := 1;
+      classes[cnt] := C_Level.FIGHTER;
+    end;
+    cnt := FxEngine.RollDice(1, cnt);
+    case classes[cnt] of
+      C_Level.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, FxEngine.RollDice(1, 5)];
+      C_Level.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, FxEngine.RollDice(1, 5)];
+      C_Level.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, FxEngine.RollDice(1, 5)];
+      else portraitBody := GDConsts.npcFighterBodies[genderSp, FxEngine.RollDice(1, 5)];
+    end;
+    portraitHead := GDConsts.npcPortraitHeads[genderSp, FxEngine.RollDice(1, 8)];
+  end;
+  SaveLoad.AddCharToParty(creature);
+  SaveLoad.LoadCharIconAnim(True);
 end;
 
 end.

@@ -1482,7 +1482,7 @@ begin
   EclVars.LoadEclVars(2);
   id := EclVars.GetEclVar(1);
   partySize := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
-  SaveLoad.AddCreatureToParty(id);
+  EclMenu.AddCreatureToParty(id);
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] = partySize then Exit;
   morale := EclVars.GetEclVar(2);
   morale := morale div 2;
