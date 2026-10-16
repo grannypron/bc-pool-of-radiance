@@ -130,7 +130,7 @@ function CalcSpellRange(spell: Byte): Byte;
 implementation
 
 uses Crt, C_Item, GDConsts, GDVars, Pathing, CbtMap, C_Effect, C_Equip, C_Race, C_Class, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, TextRend, C_Npc, StrUtil, CharDisp, AbilAdj, C_Spell;
+  C_Money, Stats, TextRend, C_Npc, StrUtil, AbilAdj, C_Spell;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
@@ -723,12 +723,11 @@ begin
                   ((GDVars.ifcState = C_Ifc.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
 end;
 
-{ End the creature's round, raise its guarding flag and announce it. Always returns True. }
+{ End the creature's round and raise its guarding flag; the caller announces it ('Guarding'). Always returns True. }
 function Guard(creature: Types.PCharRecord): Boolean;
 begin
   Guard := CharHlp.EndActions(creature);
   creature^.combatAddr^.guarding := 1;
-  CharDisp.PrintBottomLine('Guarding');
 end;
 
 { Caster level for a spell id: the current character's cleric or magic-user level by casting class (12 for class 2, the

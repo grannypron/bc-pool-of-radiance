@@ -512,8 +512,10 @@ begin
      or CharHlp.HasRangedWeapon(creature)
      or (creature^.combatAddr^.initiative = 0) then
     FinishRound := CharHlp.EndActions(creature)
-  else
+  else begin
     FinishRound := CharHlp.Guard(creature);
+    CharDisp.PrintBottomLine('Guarding');
+  end;
 end;
 
 { Handle a key pressed during AI turns: Alt-M toggles quick magic, Space returns every non-NPC, non-animated creature to

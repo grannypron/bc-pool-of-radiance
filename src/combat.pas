@@ -442,7 +442,10 @@ begin
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, False, False,
                                   GDVars.doneRoundFlag);
     case ch of
-      'G': done := CharHlp.Guard(creature);
+      'G': begin
+             done := CharHlp.Guard(creature);
+             CharDisp.PrintBottomLine('Guarding');
+           end;
       { Delay: act again later this round, at initiative 1 }
       'D': begin
              creature^.combatAddr^.initiative := 1;
