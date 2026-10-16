@@ -120,17 +120,24 @@ begin
     ClassCal.RecalcThiefSkills(creature);
 end;
 
-{ Add the Wisdom bonus cleric slots, cumulative: Wisdom 13 and 14 each add a first-level slot, 15 and 16 each add a
-  second-level slot, 17 adds a third-level slot; each is awarded only where that level's slot count is already
-  non-zero. }
+{ Add the Wisdom bonus cleric slots, cumulative over GDConsts.wisBonusSpells' rows from 13 to the creature's Wisdom
+  (above 25 counts as 25): Wisdom 13 and 14 each add a first-level slot, 15 and 16 a second-level slot, 17 a third-level
+  slot, 18 a fourth, and so on to 25. Only the spell levels a cleric casts here (1..Types.CASTER_LEVEL_LAST) take them,
+  and each only where that level's slot count is already non-zero. }
 procedure AwardWisdomBonus(creature: Types.PCharRecord);
+var
+  w: Byte;
+  wis: Byte;
+  lvl: Byte;
 begin
   with creature^ do begin
-    if (wisCur > 12) and (clericSpells[1] > 0) then Inc(clericSpells[1]);
-    if (wisCur > 13) and (clericSpells[1] > 0) then Inc(clericSpells[1]);
-    if (wisCur > 14) and (clericSpells[2] > 0) then Inc(clericSpells[2]);
-    if (wisCur > 15) and (clericSpells[2] > 0) then Inc(clericSpells[2]);
-    if (wisCur > 16) and (clericSpells[3] > 0) then Inc(clericSpells[3]);
+    wis := wisCur;
+    if wis > 25 then
+      wis := 25;
+    for w := 13 to wis do
+      for lvl := 1 to Types.CASTER_LEVEL_LAST do
+        if clericSpells[lvl] > 0 then
+          Inc(clericSpells[lvl], GDConsts.wisBonusSpells[w, lvl]);
   end;
 end;
 
@@ -158,7 +165,7 @@ end;
 
 { Set each thief skill to its base for the thief level plus the racial adjustment (a racial penalty larger than the base
   zeroes the skill), plus the Dexterity adjustment for skills 1..5, stopping at 0 (a Dexterity 9 human's Move Silently
-  would be -5). dexAdj covers Dexterity 9..19, a thief's minimum to the highest racial maximum; a Dexterity outside
+  would be -5). dexAdj covers Dexterity 9..25, a thief's minimum to Deities & Demigods' highest; a Dexterity outside
   that range uses the nearer end. thiefBase covers thief levels 1..9, and a higher level uses the level 9 row; a race
   outside the player races (raceAdj covers 1..7) takes the human row, which adjusts nothing. }
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
@@ -172,8 +179,8 @@ begin
   dex := creature^.dexCur;
   if dex < 9 then
     dex := 9
-  else if dex > 19 then
-    dex := 19;
+  else if dex > 25 then
+    dex := 25;
   r := creature^.race;
   if (r < C_Race.DWARF) or (r > C_Race.HUMAN) then
     r := C_Race.HUMAN;

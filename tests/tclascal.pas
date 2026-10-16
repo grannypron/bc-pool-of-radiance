@@ -152,11 +152,47 @@ begin
   c^.classLevels[C_Level.THIEF] := 12;
   c^.dexCur := 25;
   ClassCal.RecalcThiefSkills(c);
-  CheckSkills(85, 82, 70, 82, 68, 30, 98, 45, 'a level 12 non-player race, Dexterity 25: level 9, human, Dexterity 19');
+  CheckSkills(115, 112, 100, 100, 86, 30, 98, 45, 'a level 12 non-player race, Dexterity 25: level 9, human');
+  c^.dexCur := 30;
+  ClassCal.RecalcThiefSkills(c);
+  CheckSkills(115, 112, 100, 100, 86, 30, 98, 45, 'Dexterity above 25 counts as 25');
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.THIEF] := 1;
+  c^.dexCur := 20;
+  ClassCal.RecalcThiefSkills(c);
+  CheckSkills(50, 50, 35, 30, 25, 10, 85, 0, 'a level 1 human, Dexterity 20 (Deities & Demigods)');
   Reset(C_Race.HUMAN);
   c^.thiefSkills[1] := 77;
   ClassCal.RecalcThiefSkills(c);
   TestKit.CheckEqualsL(77, c^.thiefSkills[1], 'no thief level leaves the skills as they are');
+
+  { the Wisdom bonus cleric slots, on the levels a cleric has slots in }
+  Reset(C_Race.HUMAN);
+  c^.wisCur := 12;
+  c^.clericSpells[1] := 1;
+  c^.clericSpells[2] := 1;
+  c^.clericSpells[3] := 1;
+  ClassCal.AwardWisdomBonus(c);
+  TestKit.Check((c^.clericSpells[1] = 1) and (c^.clericSpells[2] = 1) and (c^.clericSpells[3] = 1),
+                'Wisdom 12 adds nothing');
+  c^.wisCur := 17;
+  ClassCal.AwardWisdomBonus(c);
+  TestKit.Check((c^.clericSpells[1] = 3) and (c^.clericSpells[2] = 3) and (c^.clericSpells[3] = 2),
+                'Wisdom 17: two 1st, two 2nd and a 3rd');
+  Reset(C_Race.HUMAN);
+  c^.wisCur := 21;
+  c^.clericSpells[1] := 1;
+  c^.clericSpells[2] := 1;
+  c^.clericSpells[3] := 1;
+  ClassCal.AwardWisdomBonus(c);
+  TestKit.Check((c^.clericSpells[1] = 4) and (c^.clericSpells[2] = 4) and (c^.clericSpells[3] = 3),
+                'Wisdom 21: 19 adds a 1st, 20 a 2nd, 21 a 3rd');
+  Reset(C_Race.HUMAN);
+  c^.wisCur := 30;
+  c^.clericSpells[1] := 2;
+  ClassCal.AwardWisdomBonus(c);
+  TestKit.Check((c^.clericSpells[1] = 5) and (c^.clericSpells[2] = 0) and (c^.clericSpells[3] = 0),
+                'above 25 counts as 25, and a level without slots gets none');
 
   { racial ability limits: a dwarf (8..18 Strength for a man, 8..17 for a woman, Constitution 12..19) and an elf }
   TestKit.CheckEqualsL(8, ClassCal.RaceAbilityMin(C_Race.DWARF, 0, 0), 'a dwarf man''s least Strength');

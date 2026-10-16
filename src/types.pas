@@ -20,6 +20,8 @@ const
   MAP_LAST = 15;
   { the last memorized-spell slot (TSpellSlots); Turbo Pascal 6 has no High() }
   SPELL_SLOT_LAST = 20;
+  { the highest spell level a cleric or magic-user casts here (TCharRecord.clericSpells and mageSpells) }
+  CASTER_LEVEL_LAST = 3;
   { the item types ITEMS holds, 0..BASE_ITEM_LAST; GDVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
   BASE_ITEM_LAST = 127;
   BASE_ITEM_OVERFLOW = 128;
@@ -159,8 +161,8 @@ type
     itemLimits: Byte;
     hpRolled: Byte;
     { Cleric spell slots by level, including wisdom bonuses. }
-    clericSpells: array[1..3] of Byte;
-    mageSpells: array[1..3] of Byte;
+    clericSpells: array[1..CASTER_LEVEL_LAST] of Byte;
+    mageSpells: array[1..CASTER_LEVEL_LAST] of Byte;
     xpAward: Word;
     xpBonusPerHp: Byte;
     portraitHead: Byte;
