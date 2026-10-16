@@ -32,7 +32,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo;
+uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo, StrUtil;
 
 procedure DisplayViewBuf; forward;
 
@@ -423,12 +423,10 @@ var
   col: Integer;
   count: Byte;
   setFile: Byte;
-  numStr: String[1];
   ch: Char;
 begin
   if (wsSlot < 1) or (wsSlot > 3) then Exit;
-  Str(GDVars.virtualDisk, numStr);
-  DaxIo.LoadDax('WALLDEF' + numStr, '.dax', fileId, sizeRead, data);
+  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', fileId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead mod SizeOf(Types.TView3dWallDef) <> 0) or
       (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) or
       ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
@@ -478,11 +476,9 @@ var
   sizeRead: Word;
   data: Types.PByteArr;
   offset: Word;
-  numStr: String[1];
   ch: Char;
 begin
-  Str(GDVars.virtualDisk, numStr);
-  DaxIo.LoadDax('GEO' + numStr, '.dax', mapId, sizeRead, data);
+  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', mapId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead <> SizeOf(Types.TGeoMap) + 2) then begin
     Blit.RestoreVideoMode;
     WriteLn('Unable to load geo in Load3DMap.');

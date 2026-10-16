@@ -96,7 +96,7 @@ implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party;
+  FileUtil, Party, StrUtil;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -836,13 +836,11 @@ end;
 procedure CheckFileElseQuit(name: Types.TPathStr);
 var
   msg: Types.TStr40;
-  numStr: String[1];
   ch: Char;
   ext: Boolean;
 begin
   if DaxIo.FileExists(name) then Exit;
-  Str(GDVars.virtualDisk, numStr);
-  msg := 'Save and exit  Insert disk #' + numStr;
+  msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GDVars.virtualDisk);
   ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
   if (not ext) and (ch = 'S') then begin
     Dec(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);

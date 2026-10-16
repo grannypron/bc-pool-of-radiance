@@ -32,7 +32,7 @@ procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
 implementation
 
-uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo;
+uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo, StrUtil;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A
@@ -230,11 +230,9 @@ end;
 
 { True when this disk's HEAD and BODY loads read the merged HEAD.DAX and BODY.DAX, which hold every head and body. }
 function MergedPortraits: Boolean;
-var
-  diskCh: String[1];
 begin
-  Str(LongInt(GDVars.virtualDisk), diskCh);
-  MergedPortraits := (DaxIo.ArchiveName('HEAD' + diskCh) = 'HEAD') and (DaxIo.ArchiveName('BODY' + diskCh) = 'BODY');
+  MergedPortraits := (DaxIo.ArchiveName('HEAD' + StrUtil.NumStr(GDVars.virtualDisk)) = 'HEAD') and
+                     (DaxIo.ArchiveName('BODY' + StrUtil.NumStr(GDVars.virtualDisk)) = 'BODY');
 end;
 
 function PlayerPortraitsHere: Boolean;

@@ -424,14 +424,13 @@ end;
 procedure EclNewEcl;
 var
   id: Byte;
-  s: String[1];
 begin
   EclVars.LoadEclVars(1);
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   id := EclVars.GetEclVar(1);
   GDVars.eclScriptId := id;
-  Str(GDVars.virtualDisk, s);
-  SaveLoad.CheckFileElseQuit(GDVars.gameDir + DaxIo.ArchiveName('ECL' + s) + '.dax');
+  SaveLoad.CheckFileElseQuit(GDVars.gameDir + DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GDVars.virtualDisk)) +
+                             '.dax');
   EclMenu.LoadEclScript(id);
   { a NEWECL inside a subroutine leaves return addresses on the stack, and EclInit only clears the pointer }
   FreeEclStack;
@@ -925,7 +924,6 @@ var
   itemId: Byte;
   offset: Word;
   sizeRead: Word;
-  s: String[1];
   data: Types.PByteArr;
 begin
   EclVars.LoadEclVars(8);
@@ -933,8 +931,7 @@ begin
     GDVars.treasureMoney[i] := EclVars.GetEclVar(Byte(i) + 1);
   tId := EclVars.GetEclVar(8);
   if tId < $80 then begin
-    Str(GDVars.virtualDisk, s);
-    DaxIo.LoadDax('ITEM' + s, '.dax', tId, sizeRead, data);
+    DaxIo.LoadDax('ITEM' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', tId, sizeRead, data);
     if sizeRead = 0 then begin
       TextRend.DisplayAndPause(White, 'Unable to find item file');
       GameIo.ExitGame;
