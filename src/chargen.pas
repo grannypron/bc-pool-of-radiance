@@ -6,8 +6,6 @@ interface
 
 procedure MainMenu;
 
-procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
-
 procedure CustomizeIcon;
 
 procedure CustomizePortrait;
@@ -15,7 +13,7 @@ procedure CustomizePortrait;
 implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
-  C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Stats, Blit, CbtMap, CharHlp, ClassCal,
+  C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic;
 
 
@@ -45,30 +43,6 @@ function HpMinimum(creature: Types.PCharRecord): Byte; forward;
 function HpMaximum(creature: Types.PCharRecord): Byte; forward;
 
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte; forward;
-
-{ FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
-  spells; the closing creature := nil clears only the local parameter }
-procedure FreeCreature(creature: Types.PCharRecord);
-var
-  holdE: Types.PEffectRec;
-  effect: Types.PEffectRec;
-begin
-  with creature^ do begin
-    if (combatAddr <> nil) then
-      FreeMem(combatAddr, SizeOf(Types.TCombatRec));
-    CharHlp.FreeItemList(itemsAddr);
-    effect := effectsAddr;
-    while effect <> nil do begin
-      holdE := effect;
-      effect := effect^.next;
-      FreeMem(holdE, SizeOf(Types.TEffectRec));
-    end;
-  end;
-  SaveLoad.ForgetUsualSpells(creature);
-  Stats.Forget(creature);
-  FreeMem(creature, SizeOf(Types.TCharRecord));
-  creature := nil;
-end;
 
 { MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
   settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin
@@ -170,7 +144,7 @@ begin
         'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GDVars.curChar <> nil) then
              begin
                SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '');
-               CharGen.RemoveCreature(False, True);
+               SaveLoad.RemoveCreature(False, True);
              end;
         'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
              begin
@@ -326,7 +300,7 @@ end;
 { CreateCharacterMenu: Choose race, gender, class and alignment, set the starting age, then roll attributes, hit points
   and gold until the player keeps the result; name the character, customize portrait and icon, save it with
   SaveLoad.SaveChar and free it. Aborting a pick menu frees the string list and the character before it exits; at the
-  end CharGen.FreeCreature frees the record with its racial effects. }
+  end SaveLoad.FreeCreature frees the record with its racial effects. }
 procedure CreateCharacterMenu;
 var
   creature: Types.PCharRecord;
@@ -397,7 +371,7 @@ begin
                                 RACE_LIST_ROW + 5, list, addExit, redraw, sel, m);
     if ch = C_Keys.NONE then begin
       MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
+      SaveLoad.FreeCreature(creature);
       Exit;
     end;
     if ch <> C_Keys.ENTER then
@@ -466,7 +440,7 @@ begin
                                 addExit, redraw, sel, m);
     if ch = C_Keys.NONE then begin
       MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
+      SaveLoad.FreeCreature(creature);
       Exit;
     end;
   until ch = C_Keys.ENTER;
@@ -493,7 +467,7 @@ begin
                                 addExit, redraw, sel, m);
     if ch = C_Keys.NONE then begin
       MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
+      SaveLoad.FreeCreature(creature);
       Exit;
     end;
   until ch = C_Keys.ENTER;
@@ -540,7 +514,7 @@ begin
                                 addExit, redraw, sel, m);
     if ch = C_Keys.NONE then begin
       MenuCore.FreeStringList(list);
-      CharGen.FreeCreature(creature);
+      SaveLoad.FreeCreature(creature);
       Exit;
     end;
   until ch = C_Keys.ENTER;
@@ -772,7 +746,7 @@ begin
   SaveLoad.SaveChar(Types.PCharRecord(creature), '');
   GDVars.curChar := savedCur;
   { with its racial effects }
-  CharGen.FreeCreature(creature);
+  SaveLoad.FreeCreature(creature);
 end;
 
 { DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
@@ -788,7 +762,7 @@ begin
         CharDisp.PrintBottomLine('You dump ' + name + ' out back.')
       else
         CharDisp.PrintBottomLine(name + ' bids you farewell.');
-      CharGen.RemoveCreature(False, True);
+      SaveLoad.RemoveCreature(False, True);
     end else
       CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.');
   end;
@@ -1224,7 +1198,7 @@ begin
               else
                 TextRend.DisplayAndPause(Yellow, paladin^.name + ' will tolerate no evil!');
               Border.ClearBox(0, 24, 39, 24);
-              CharGen.FreeCreature(Types.PCharRecord(creature));
+              SaveLoad.FreeCreature(Types.PCharRecord(creature));
             end
             { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
@@ -1241,7 +1215,7 @@ begin
               if p = nil then
                 m^.name := Copy(m^.name, 3, Length(m^.name) - 2);
               { with the items and effects LoadChar read }
-              CharGen.FreeCreature(Types.PCharRecord(creature));
+              SaveLoad.FreeCreature(Types.PCharRecord(creature));
             end;
           end;
         end;
@@ -1249,39 +1223,6 @@ begin
   until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list);
   MenuCore.FreeStringList(list);
-end;
-
-{ RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
-  becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
-  A curChar not found in the list is left alone. }
-procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
-var
-  prev: Types.PCharRecord;
-begin
-  if GDVars.creatureList = nil then Exit;
-  prev := GDVars.creatureList;
-  if prev <> GDVars.curChar then begin
-    while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
-      prev := prev^.nextCharAddr;
-    if prev^.nextCharAddr <> nil then begin
-      if freeAnim then
-        MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
-      prev^.nextCharAddr := GDVars.curChar^.nextCharAddr;
-      CharGen.FreeCreature(GDVars.curChar);
-      GDVars.curChar := prev;
-      if not suppressSizeDec then
-        Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
-    end;
-  end else begin
-    if freeAnim then
-      MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
-    GDVars.creatureList := GDVars.curChar^.nextCharAddr;
-    prev := GDVars.curChar^.nextCharAddr;
-    CharGen.FreeCreature(GDVars.curChar);
-    GDVars.curChar := prev;
-    if not suppressSizeDec then
-      Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
-  end;
 end;
 
 { CustomizePortrait: The portrait picker, on its own bordered page. Three heads sit over three bodies; the middle

@@ -188,7 +188,7 @@ begin
   if (flag80 <> 0) and GDVars.dumpCr6C00 and GDVars.dumpCr6B00 then begin
     if GDVars.savedChar = GDVars.curChar then
       GDVars.restoreChar := 0;
-    CharGen.RemoveCreature(False, True);
+    SaveLoad.RemoveCreature(False, True);
     CharDisp.DisplayParty(GDVars.curChar);
     GDVars.dumpCr6C00 := False;
     GDVars.dumpCr6B00 := False;

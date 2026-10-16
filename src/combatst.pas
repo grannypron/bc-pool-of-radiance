@@ -8,7 +8,7 @@ procedure CombatStart;
 
 implementation
 
-uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, CharGen, FxEngine, Portrait, View3D,
+uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp;
 
 
@@ -811,7 +811,7 @@ begin
         Inc(removedCnt);
         GDVars.creatureArr[slot] := nil;
         GDVars.curChar := p;
-        CharGen.RemoveCreature(True, False);
+        SaveLoad.RemoveCreature(True, False);
       end else begin
         prev := p;
         Inc(slot);

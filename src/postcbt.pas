@@ -13,7 +13,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, CharGen, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Class, C_Keys, C_Status, C_Ifc, C_Gbvm,
   C_Money, Stats, Border, CharHlp, EclMenu, FxEngine, MenuCore, Money, TextRend, ViewChar, CharDisp, Party;
 
 const
@@ -211,7 +211,7 @@ begin
             p^.enabled := 1;
           end else begin
             GDVars.curChar := p;
-            CharGen.RemoveCreature(False, True);
+            SaveLoad.RemoveCreature(False, True);
           end;
         end;
         p := nxt;
@@ -224,7 +224,7 @@ begin
         nxt := p^.nextCharAddr;
         if not IsMonster(p) then begin
           GDVars.curChar := p;
-          CharGen.RemoveCreature(False, True);
+          SaveLoad.RemoveCreature(False, True);
         end else
           b := True;
         p := nxt;
@@ -479,7 +479,7 @@ begin
         Inc(GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED]);
       next := p^.nextCharAddr;
       GDVars.curChar := p;
-      CharGen.RemoveCreature(IsMonster(p), True);
+      SaveLoad.RemoveCreature(IsMonster(p), True);
       p := next;
     end else begin
       if p^.combatAddr <> nil then begin

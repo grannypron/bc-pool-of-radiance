@@ -93,10 +93,14 @@ procedure ForgetUsualSpells(creature: Types.PCharRecord);
   cannot be made and is left alone. }
 procedure CheckSaveDir;
 
+procedure FreeCreature(creature: Types.PCharRecord);
+
+procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
+
 implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, CharGen, Vault, Stats, DaxIo, CharHlp,
+  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
   FileUtil, Party;
 
 type
@@ -760,7 +764,7 @@ begin
   { RemoveCreature frees the head of the list while it is curChar }
   while GDVars.creatureList <> nil do begin
     GDVars.curChar := GDVars.creatureList;
-    CharGen.RemoveCreature(False, True);
+    SaveLoad.RemoveCreature(False, True);
   end;
   GDVars.curChar := nil;
   SaveLoad.LoadSlot(QUICK_SLOT);
@@ -878,6 +882,63 @@ begin
     DaxIo.PopState;
     SaveLoad.SaveGame;
     GameIo.ExitGame;
+  end;
+end;
+
+{ FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
+  spells; the closing creature := nil clears only the local parameter }
+procedure FreeCreature(creature: Types.PCharRecord);
+var
+  holdE: Types.PEffectRec;
+  effect: Types.PEffectRec;
+begin
+  with creature^ do begin
+    if (combatAddr <> nil) then
+      FreeMem(combatAddr, SizeOf(Types.TCombatRec));
+    CharHlp.FreeItemList(itemsAddr);
+    effect := effectsAddr;
+    while effect <> nil do begin
+      holdE := effect;
+      effect := effect^.next;
+      FreeMem(holdE, SizeOf(Types.TEffectRec));
+    end;
+  end;
+  SaveLoad.ForgetUsualSpells(creature);
+  Stats.Forget(creature);
+  FreeMem(creature, SizeOf(Types.TCharRecord));
+  creature := nil;
+end;
+
+{ RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
+  becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
+  A curChar not found in the list is left alone. }
+procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
+var
+  prev: Types.PCharRecord;
+begin
+  if GDVars.creatureList = nil then Exit;
+  prev := GDVars.creatureList;
+  if prev <> GDVars.curChar then begin
+    while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
+      prev := prev^.nextCharAddr;
+    if prev^.nextCharAddr <> nil then begin
+      if freeAnim then
+        MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
+      prev^.nextCharAddr := GDVars.curChar^.nextCharAddr;
+      SaveLoad.FreeCreature(GDVars.curChar);
+      GDVars.curChar := prev;
+      if not suppressSizeDec then
+        Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+    end;
+  end else begin
+    if freeAnim then
+      MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
+    GDVars.creatureList := GDVars.curChar^.nextCharAddr;
+    prev := GDVars.curChar^.nextCharAddr;
+    SaveLoad.FreeCreature(GDVars.curChar);
+    GDVars.curChar := prev;
+    if not suppressSizeDec then
+      Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
   end;
 end;
 

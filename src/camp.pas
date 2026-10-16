@@ -760,7 +760,7 @@ begin
   if (GDVars.curChar^.nextCharAddr = nil) and (GDVars.curChar = GDVars.creatureList) then begin
     { last member: quit-to-DOS confirm }
     if MenuCore.YesNoMenu('quit TO DOS: ', Yellow, LightGreen, White) = 'Y' then begin
-      CharGen.RemoveCreature(False, True);
+      SaveLoad.RemoveCreature(False, True);
       GameIo.ExitGame;
     end else
       Exit;
@@ -772,7 +772,7 @@ begin
       CharDisp.PrintNameString(GDVars.curChar, 'bids you farewell', 10, True)
     else
       CharDisp.PrintNameString(GDVars.curChar, 'is dumped in a ditch', 10, True);
-    CharGen.RemoveCreature(False, True);
+    SaveLoad.RemoveCreature(False, True);
     Border.ClearBox(17, 1, 38, 11);
     CharDisp.DisplayParty(GDVars.curChar);
   end else
