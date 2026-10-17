@@ -359,6 +359,25 @@ them), except where a step says otherwise.
    - Time the hot primitives per mode: `RenderChar` (every character), `BlitTileCell`/`BlitTileClipped` (every tile,
      glyph and icon), `FillPicRect` (every 3D view) and `FlushView` (every frame; 21 call sites).
    - Add a scenario that runs in each of the three modes, so the suite sees CGA and Tandy as well as EGA.
+
+   **Done.**
+   - `bench/vidbench.sh` times the hot primitives in each mode under DOSBox-X at a fixed 10,000 cycles: the EGA
+     machine for CGA and EGA, the Tandy machine for Tandy. Runs repeat to the hundredth.
+   - `VIDEO=cga` and `VIDEO=tandy` run the regression suite in those modes. Tandy needs goldbox-player's
+     `por-v13-tandy` title, because an EGA machine cannot set mode 9.
+
+   The baseline at 486aa52, per call:
+
+   | | CGA | EGA | Tandy |
+   | --- | --- | --- | --- |
+   | `RenderChar`, a character | 189 us | 216 us | 205 us |
+   | `BlitTileCell`, an 8x8 masked tile | 91 us | 149 us | 134 us |
+   | `FillPicRect`, the 168x168 view | 2.6 ms | 11.8 ms | 2.6 ms |
+   | `FlushView`, the whole view | 2.0 ms | 25.7 ms | 2.9 ms |
+
+   EGA is the slowest mode at everything. Its flush is about ten times the others': it writes a byte at a time
+   through `Mem[]`, plane by plane, then latch-copies. That is the first primitive for EGA's driver to widen in
+   step 3, and the strongest case for VGA's linear screen.
 1. **Mode-independent game code.** Move every branch outside Blit and TextRend behind a Blit routine:
    - `Blit.MaskBytes(imageBytes)` for the mask-size arithmetic (about seven sites), and a row stride.
    - One icon-merge routine (OR the data, AND the mask) for SaveLoad's merge and CharGen's `Overlay`.

@@ -22,6 +22,10 @@ The format, one step a line (`#` starts a comment):
 
 `POOL.CFG` points the game at `C:\POOLRAD\` and `C:\POOLRAD\SAVE\`, where the harness installs it.
 
+`POOL.CFG` runs the game in EGA. `VIDEO=cga tests/regress.sh ...` uses `POOL-CGA.CFG`, and `VIDEO=tandy` uses
+`POOL-TANDY.CFG`. Each mode keeps its own golden record, `record-cga.json` or `record-tandy.json`. Tandy runs on
+goldbox-player's `por-v13-tandy` title, a Tandy machine, because an EGA machine cannot set mode 9.
+
 `combat`, `vault` and `areachange` end with an `overlay-loads` checkpoint (STING Ctrl-Y), recorded but not compared;
 `tests/ovlloads.py` prints both builds' counts from the last run's `obj/regress.json`, the measure of the overlay
 working sets.
