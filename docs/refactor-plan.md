@@ -363,8 +363,12 @@ them), except where a step says otherwise.
    **Done.**
    - `bench/vidbench.sh` times the hot primitives in each mode under DOSBox-X at a fixed 10,000 cycles: the EGA
      machine for CGA and EGA, the Tandy machine for Tandy. Runs repeat to the hundredth.
-   - `VIDEO=cga` and `VIDEO=tandy` run the regression suite in those modes. Tandy needs goldbox-player's
+   - `VIDEO=cga` and `VIDEO=tandy` run the regression suite in those modes. Tandy uses goldbox-player's
      `por-v13-tandy` title, because an EGA machine cannot set mode 9.
+   - All nine scenarios pass in CGA and in Tandy against the golden 7e2f186, so phases 1 to 5 changed neither mode's
+     screens.
+   - `loadsave` needed goldbox-player 14eda0e: the QUIT TO DOS prompt sits over the animated camp picture, which
+     never settles in CGA or Tandy, so a key that stays unsettled is now forced.
 
    The baseline at 486aa52, per call:
 
