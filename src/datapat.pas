@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 58;
-  BYTE_COUNT = 1556;
+  PART_COUNT = 59;
+  BYTE_COUNT = 1580;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -179,7 +179,10 @@ const
       tavern ($A2C6) as before, and at (8,9) does what the arms shop does (once a visit, the shopkeeper, the refusal
       after an attack on the city watch) and enters the vault: [$6E6C] = 2, then COMBAT with no monsters }
     (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 657; origLen: 2; newLen: 2),
-    (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 7473; origLen: 0; newLen: 52));
+    (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 7473; origLen: 0; newLen: 52),
+    { #670: the Pitt's buccaneer (script $A90D, PRINTCLEAR) runs his question into the next: WHO WILL IT BE?'WHAT DO
+      YOU DO? gets a space after the quote. The packed string's last six-bit slot was empty, so it stays 66 bytes }
+    (issue: 670; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6576; offset: 4168; origLen: 12; newLen: 12));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -661,7 +664,11 @@ const
     $09, $00, $02, $01, $6C, $6E,                     { $B658 SAVE $02, [$6E6C] }
     $24,                                              { $B65E COMBAT }
     $0E, $00, $FF,                                    { $B65F PICTURE $FF }
-    $00);                                             { $B662 EXIT }
+    $00,                                              { $B662 EXIT }
+    { #670, original: ...BE?'WHAT DO YOU DO? }
+    $5C, $80, $54, $80, $43, $E0, $64, $F5, $60, $10, $FF, $C0,
+    { fixed: ...BE?' WHAT DO YOU DO? }
+    $81, $72, $01, $52, $01, $0F, $81, $93, $D5, $80, $43, $FF);
 
 implementation
 

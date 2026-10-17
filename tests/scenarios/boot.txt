@@ -5,6 +5,8 @@ ignore POOL OF RADIANCE V
 ignore COMMIT  |VERSION  
 # and the memory left, which moves with the size of the code
 ignore FREE MEMORY|LARGEST BLOCK
+# and the data version, which a data fix raises (DataPat, C_Data.VERSION)
+strip V\d+ +MERGED
 wait RADIANCE
 checkpoint main-menu
 press g
