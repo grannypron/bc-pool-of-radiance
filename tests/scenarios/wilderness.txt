@@ -1,0 +1,31 @@
+# The central wilderness (save G, a party the owner played there): the wilderness map and its second tile set, which
+# loads when the wilderness first needs it (MapTiles.SecondSheet), a few steps across it, and the memory afterwards.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/wild
+# a slot's letter loads it at once in ours (#652)
+golden: press l g ret
+candidate: press l g
+wait ^CAST VIEW ENCAMP 60
+checkpoint wilderness
+press up
+wait ^CAST VIEW ENCAMP 60
+checkpoint north
+press right
+wait ^CAST VIEW ENCAMP 60
+checkpoint east
+press down
+wait ^CAST VIEW ENCAMP 60
+checkpoint south
+# the overlay loads and memory so far (STING Ctrl-Y), recorded but not compared; ours also records its heap and
+# picture lines, the memory the wilderness leaves (phase 6)
+ignore OVERLAY LOADS
+press ctrl-y
+checkpoint overlay-loads
+golden: press ret ret ret
+candidate: press ret ret
+candidate: checkpoint heap
+candidate: press ret
+candidate: checkpoint pictures
+candidate: press ret
