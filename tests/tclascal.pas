@@ -9,6 +9,26 @@ var
   roll: Byte;
   inRange: Boolean;
 
+{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GDConsts.wisBonusSpells' rows from 13 to wis
+  added up, against expected, one digit a level. }
+procedure CheckWisTotals(wis: Byte; expected: String);
+var
+  w: Byte;
+  lvl: Byte;
+  total: Byte;
+  got: String;
+begin
+  got := '';
+  for lvl := 1 to 7 do begin
+    total := 0;
+    for w := 13 to wis do
+      Inc(total, GDConsts.wisBonusSpells[w, lvl]);
+    got := got + Chr(Ord('0') + total);
+  end;
+  TestKit.CheckEqualsS(expected, got, 'Wisdom ' + Chr(Ord('0') + wis div 10) + Chr(Ord('0') + wis mod 10) +
+                       '''s bonus slots by level');
+end;
+
 { A fresh character of race with no class levels. }
 procedure Reset(race: ShortInt);
 begin
@@ -193,6 +213,16 @@ begin
   ClassCal.AwardWisdomBonus(c);
   TestKit.Check((c^.clericSpells[1] = 5) and (c^.clericSpells[2] = 0) and (c^.clericSpells[3] = 0),
                 'above 25 counts as 25, and a level without slots gets none');
+
+  { the running totals by spell level 1..7, the table's rows added from Wisdom 13 }
+  CheckWisTotals(18, '2211000');
+  CheckWisTotals(19, '3212000');
+  CheckWisTotals(20, '3313000');
+  CheckWisTotals(21, '3323100');
+  CheckWisTotals(22, '3324200');
+  CheckWisTotals(23, '3324400');
+  CheckWisTotals(24, '3324420');
+  CheckWisTotals(25, '3324431');
 
   { racial ability limits: a dwarf (8..18 Strength for a man, 8..17 for a woman, Constitution 12..19) and an elf }
   TestKit.CheckEqualsL(8, ClassCal.RaceAbilityMin(C_Race.DWARF, 0, 0), 'a dwarf man''s least Strength');
