@@ -602,8 +602,10 @@ them), except where a step says otherwise.
 **Status.**
 - Steps 0 to 5 are done: a VGA driver, the second tile set loaded when needed, and overlays from EMS.
 - Left:
-  - A scenario (or a test program) for the wilderness and the ending, which no scenario reaches. That is where the
-    second tile set loads on demand, and where VGA's memory has not been seen in play.
+  - A scenario for the ending, which no scenario reaches. The wilderness has one now (`wilderness`, from a save of
+    the owner's in the central wilderness): it passes in all four modes, at 1 and 16 MB, and leaves VGA 134,192 bytes
+    of heap free, the largest block 70,904 (EGA: 237,520 and 227,080), with pictures holding 211,735 (EGA 108,417). A
+    fight in the wilderness, which loads combat's pictures on top, has not been measured.
   - Freeing the picture caches, for more VGA headroom: pictures held never fall from their peak.
 
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
