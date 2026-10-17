@@ -133,6 +133,11 @@ var
     program, which shows nothing) }
   faultHook: TFaultHook;
 
+
+{ The chance (in 100) a robbery of chance takes an item of weight coins: 90 less for over 255 coins, 50 less for over
+  24, never below 0 (EclMenu.RobItems). }
+function TheftChance(chance: Byte; weight: Word): Byte;
+
 implementation
 
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
@@ -943,6 +948,22 @@ begin
   if r = 255 then
     r := 1;
   CalcSpellRange := r;
+end;
+
+function TheftChance(chance: Byte; weight: Word): Byte;
+var
+  penalty: Byte;
+begin
+  if weight > 255 then
+    penalty := 90
+  else if weight > 24 then
+    penalty := 50
+  else
+    penalty := 0;
+  if chance > penalty then
+    TheftChance := chance - penalty
+  else
+    TheftChance := 0;
 end;
 
 begin

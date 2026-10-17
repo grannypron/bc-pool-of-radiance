@@ -822,9 +822,9 @@ begin
   EclVars.WriteGbvm(addr2, mod2);
 end;
 
-{ SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE: 0 =
-  neither roll succeeded, 1 = only the first succeeded, 2 = the second succeeded. SSI quirk, kept: when both succeed,
-  the 3 set for that case is overwritten by 2; the scripts' fights were tuned with it. }
+{ SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE, a
+  bitmask combat reads (CbtActs): 1 when the first roll succeeds, 2 when the second does, 3 when both do (both sides
+  surprised; SSI overwrote that 3 with 2, POR-0159), 0 when neither does. }
 procedure EclSurprise;
 var
   r1: Byte;
@@ -844,12 +844,9 @@ begin
   r1 := Dice.RollDice(1, 6);
   r2 := Dice.RollDice(1, 6);
   if r1 <= t1 then
-    if r2 <= t2 then
-      result := 3
-    else
-      result := 1;
+    result := 1;
   if r2 <= t2 then
-    result := 2;
+    result := result or 2;
   EclVars.WriteGbvm(C_Gbvm.SURPRISE, result);
 end;
 

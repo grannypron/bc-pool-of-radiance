@@ -315,9 +315,9 @@ begin
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other)
     else begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
-      { Hostiles flee along the party's facing (DIR_* 0, 2, 4, 6). SSI quirk, kept: north gives 7 (NW) and south gives
-        3 (SE), so the result is not always a cardinal direction. }
-      dir := GDVars.gFacing - Word((GDVars.gFacing + 2) mod 4) div 2;
+      { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south
+        into SE (POR-0160). }
+      dir := GDVars.gFacing;
       if creature^.hostile = 0 then
         { allies flee the other way }
         dir := dir + 4;

@@ -1919,14 +1919,12 @@ begin
 end;
 
 { Gauntlets of Ogre Power (eff 131). Ready: Str 18/00 via FxEngine.AdjustForNewStrength plus a permanent eff 38 node
-  holding the Strength to restore. Unready: remove the first eff 38 node if the creature is at 18/00, else the first one
-  whose stored Strength is 18/00 }
+  holding the Strength to restore. Unready: while the creature is still at 18/00, remove the first eff 38 node that is
+  not superseded, which restores its Strength }
 
 procedure EffGauntlets(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   enc: Byte;
-  base: Byte;
-  exc: Byte;
   isOgre: Boolean;
   found: Boolean;
   q: Types.PEffectRec;
@@ -1942,14 +1940,13 @@ begin
     while (q <> nil) and (found = False) do begin
       { taken before RemoveEffect frees q }
       next := q^.next;
-      if q^.id = C_Effect.STRENGTH then begin
-        FxEngine.StrengthEffectToStrength(q, base, exc);
-        { SSI tested q^.id < $80 here, always true for C_Effect.STRENGTH: the $80 flag is in the strength byte, which
-          EffExtraStr tests. What the test came to is kept. }
-        if isOgre or ((base = 18) and (exc = 100)) then begin
-          FxEngine.RemoveEffect(creature, C_Effect.STRENGTH, q);
-          found := True;
-        end;
+      { the first Strength effect not superseded ($80 in its strength byte, as EffExtraStr reads it) while the
+        Gauntlets' 18/00 holds: the one they added. SSI tested q^.id < $80, always true for C_Effect.STRENGTH,
+        which came to "an 18/00 wearer, or a restore value of 18/00" and could remove a superseded effect
+        (POR-0164). }
+      if (q^.id = C_Effect.STRENGTH) and isOgre and (q^.strength < $80) then begin
+        FxEngine.RemoveEffect(creature, C_Effect.STRENGTH, q);
+        found := True;
       end;
       q := next;
     end;
