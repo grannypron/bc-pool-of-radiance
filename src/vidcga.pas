@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, GDConsts, GDVars, DaxIo, Blit;
+uses Types, C_Video, GDConsts, GDVars, DaxIo, Blit, PicCga;
 
 var
   { the two banks: even scanlines at $B800, odd at $BA00, 4 text rows of 80 bytes a cell row }
@@ -141,6 +141,12 @@ begin
     ClearRect := VidCga.ClearRect;
     ClearScreen := VidCga.ClearScreen;
     WriteChar := VidCga.WriteChar;
+    ExpandFrames := PicCga.ExpandFrames;
+    MirrorFrame := PicCga.MirrorFrame;
+    RemapColour := PicCga.RemapColour;
+    RecolorFrame := PicCga.RecolorFrame;
+    PutPixelRow := PicCga.PutPixelRow;
+    InitRowTables := PicCga.InitRowTables;
   end;
 end;
 

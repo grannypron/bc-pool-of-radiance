@@ -105,19 +105,12 @@ begin
   Intr($10, GDVars.dsInterruptRegisters);
   GDVars.savedVideoMode := GDVars.dsInterruptRegisters.al;
   GDVars.curVideoMode := GDVars.savedVideoMode;
+  { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, anything else CGA }
   case cfgChar of
-    'E': begin
-      GDVars.videoMode := Types.vmEGA;
-      VidEga.Install;
-    end;
-    'T': begin
-      GDVars.videoMode := Types.vmTandy;
-      VidTdy.Install;
-    end;
-    else begin
-      GDVars.videoMode := Types.vmCGA;
-      VidCga.Install;
-    end;
+    'E': VidEga.Install;
+    'T': VidTdy.Install;
+  else
+    VidCga.Install;
   end;
   { Keep a screen that lives in system RAM (Tandy's) out of the heap: lower HeapEnd by it. The common code after the
     sound setting lowers HeapEnd by GFX_RESERVE_PARAS once more, so Tandy reserves twice as much. }

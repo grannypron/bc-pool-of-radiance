@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, GDConsts, GDVars, DaxIo;
+uses Types, C_Video, GDConsts, GDVars, DaxIo, PicTdy;
 
 var
   { the four banks from $B800: scanline n in bank n mod 4, 160 bytes a scanline }
@@ -151,6 +151,12 @@ begin
     ClearRect := VidTdy.ClearRect;
     ClearScreen := VidTdy.ClearScreen;
     WriteChar := VidTdy.WriteChar;
+    ExpandFrames := PicTdy.ExpandFrames;
+    MirrorFrame := PicTdy.MirrorFrame;
+    RemapColour := PicTdy.RemapColour;
+    RecolorFrame := PicTdy.RecolorFrame;
+    PutPixelRow := PicTdy.PutPixelRow;
+    InitRowTables := PicTdy.InitRowTables;
   end;
 end;
 

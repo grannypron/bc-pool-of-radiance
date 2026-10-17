@@ -633,7 +633,6 @@ type
   PBaseItems = ^TBaseItems;
 
   { Blit types. }
-  TVideoMode = (vmCGA, vmEGA, vmTandy);
 
   { A routine MenuCore.MenuHorizontal calls on every pass of its key wait. }
   TIdleProc = procedure;
@@ -810,6 +809,12 @@ type
   TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
   TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
   TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
+  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: PImgBuf);
+  TMirrorFrameProc = procedure(src, dst: PImgBuf);
+  TRemapColourProc = procedure(pic, scratch: PImgBuf; srcOff: Word; nFrames: Byte; fromC, toC: Byte;
+                               isDithered: Boolean);
+  TRecolorFrameProc = procedure(var toT: TColorTab; pic: PImgBuf);
+  TPutPixelRowProc = procedure(pic: PImgBuf; at: Word; y: Byte; var px: TPixelRow);
   { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
     routines. GameBoot installs one (VidCga, VidEga or VidTdy) into GDVars.video. }
   TVideoDriver = record
@@ -850,6 +855,19 @@ type
     ClearScreen: TVideoProc;
     { BIOS text output: count copies of ch in attr at a text cell (DaxIo.WriteChar) }
     WriteChar: TWriteCharProc;
+    { The cold entries, in the mode's overlaid Pic unit (PicCga, PicEga, PicTdy): }
+    { convert DAX frames (4 bits a pixel) at imgData^[srcOff] into pic's layout, with its mask (Blit.ExpandPicFrames) }
+    ExpandFrames: TExpandFramesProc;
+    { a left-right reflection of src's first frame and mask into dst (Blit.MirrorPic, which copies the colour map) }
+    MirrorFrame: TMirrorFrameProc;
+    { one colour pair of Blit.RemapPic: fromC becomes toC in nFrames frames of pic from srcOff, written into scratch }
+    RemapColour: TRemapColourProc;
+    { every pixel of pic's first frame to the colour toT gives its own (VidOps.RecolorPic) }
+    RecolorFrame: TRecolorFrameProc;
+    { 8 pixel colours into scanline y of the one-cell-wide frame at pic^.data[at] (VidOps.PutPixelRow) }
+    PutPixelRow: TPutPixelRowProc;
+    { build the mode's per-row screen addresses (GDVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
+    InitRowTables: TVideoProc;
   end;
 
   { EclMenu types. }

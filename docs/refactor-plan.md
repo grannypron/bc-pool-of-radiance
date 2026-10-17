@@ -459,6 +459,22 @@ them), except where a step says otherwise.
      mode and calls `Start`.
    - Speed is unchanged from 2a. Resident code +720 bytes, from the drivers' entry routines.
    - The suite passes in all three modes, and ssiformat passes.
+
+   **2c done.**
+   - The cold entries are `ExpandFrames`, `MirrorFrame`, `RemapColour` (one colour pair of `RemapPic`),
+     `RecolorFrame`, `PutPixelRow` and `InitRowTables`.
+   - They live in an overlaid unit per mode, `PicCga`, `PicEga` and `PicTdy`, which the resident driver points the
+     record into.
+   - Blit and VidOps keep the nil checks, RemapPic's scratch copy and colour-pair loop, and the copy back.
+   - Nothing reads the video mode any more, so `GDVars.videoMode` and `Types.TVideoMode` are gone. The installed driver
+     is the mode.
+   - Sizes: resident code -3,072 bytes (62,656). Overlays +3,731, but only the mode's own unit loads.
+   - Overlay loads against 2b: areachange 27 to 29, combat 44 to 48, vault 30 to 32. That is the Pic unit, for the
+     icon and portrait remaps and the combat icons' mirrors, and all three are still below the golden build's.
+   - Speed is unchanged. The suite passes in all three modes, and ssiformat passes.
+
+   **Steps 2 and 3 are done.** Video code that knows the mode is only in VidCga/VidEga/VidTdy (resident) and
+   PicCga/PicEga/PicTdy (overlaid).
 3. **One unit per mode.**
    - `VidCga`, `VidEga` and `VidTdy` each fill the record from the code now in Blit's and TextRend's `case` arms.
    - GameBoot installs the one POOL.CFG names.

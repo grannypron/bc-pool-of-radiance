@@ -10,7 +10,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos;
+uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, PicEga;
 
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
@@ -245,6 +245,12 @@ begin
     ClearRect := VidEga.ClearRect;
     ClearScreen := VidEga.ClearScreen;
     WriteChar := VidEga.WriteChar;
+    ExpandFrames := PicEga.ExpandFrames;
+    MirrorFrame := PicEga.MirrorFrame;
+    RemapColour := PicEga.RemapColour;
+    RecolorFrame := PicEga.RecolorFrame;
+    PutPixelRow := PicEga.PutPixelRow;
+    InitRowTables := PicEga.InitRowTables;
   end;
 end;
 

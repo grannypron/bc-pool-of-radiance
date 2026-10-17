@@ -91,8 +91,6 @@ var
   savedVideoMode: Byte;
   { BIOS mode queried at init, then the mode most recently requested through Blit.SetVideoMode. }
   curVideoMode: Byte;
-  { Video mode (line 1 in POOL.CFG) }
-  videoMode: Types.TVideoMode;
 
 var
   { Off-screen 168x168 view buffer that the compositors draw into and Blit.FlushView copies to the screen; GameInit

@@ -279,107 +279,9 @@ end;
 
 procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
                           pic: Types.PImgBuf);
-var
-  chunk: TChunk;
-  frame: Byte;
-  col: Word;
-  row: Word;
-  dstOff: Word;
-  maskOff: Word;
-  mask: Byte;
-  k: Byte;
-  j: Byte;
-  bit: Byte;
-  plane: Byte;
-  color: Byte;
 begin
   if pic = nil then Exit;
-  with pic^ do begin
-    dstOff := 0;
-    maskOff := 0;
-    case GDVars.videoMode of
-      Types.vmCGA: begin
-        for frame := 1 to count do
-          for row := 0 to height - 1 do
-            for col := 0 to width - 1 do begin
-              Move(imgData^[srcOff], chunk, SizeOf(chunk));
-              if transp <> nil then begin
-                mask := Blit.ComputeMask(transpColor, chunk);
-                bit := $80;
-                for j := 1 to 2 do begin
-                  for k := 4 to 7 do begin
-                    if (bit and mask) > 0 then
-                      transp^[maskOff] := transp^[maskOff] or GDConsts.cgaPixelMask[k];
-                    bit := bit shr 1;
-                  end;
-                  Inc(maskOff);
-                end;
-              end;
-              for k := 0 to 3 do
-                if Odd(k) then
-                  data[dstOff] := data[dstOff] or GDConsts.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k]
-                else
-                  data[dstOff] := data[dstOff] or
-                    GDConsts.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k];
-              if transp <> nil then
-                data[dstOff] := data[dstOff] and not transp^[maskOff - 2];
-              Inc(dstOff);
-              for k := 4 to 7 do
-                if Odd(k) then
-                  data[dstOff] := data[dstOff] or GDConsts.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k - 4]
-                else
-                  data[dstOff] := data[dstOff] or
-                    GDConsts.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k - 4];
-              if transp <> nil then
-                data[dstOff] := data[dstOff] and not transp^[maskOff - 1];
-              Inc(dstOff);
-              Inc(srcOff, SizeOf(chunk));
-            end;
-      end;
-      Types.vmEGA: begin
-        for frame := 1 to count do
-          for row := 0 to height - 1 do
-            for col := 0 to width - 1 do begin
-              Move(imgData^[srcOff], chunk, SizeOf(chunk));
-              if transp <> nil then begin
-                transp^[maskOff] := Blit.ComputeMask(transpColor, chunk);
-                Inc(maskOff);
-              end;
-              bit := $80;
-              for k := 0 to 7 do begin
-                if Odd(k) then
-                  color := chunk[k shr 1] and $0F
-                else
-                  color := chunk[k shr 1] shr 4;
-                for plane := 0 to 3 do
-                  if (GDConsts.egaPlaneBit[plane] and color) > 0 then
-                    data[plane + dstOff] := data[plane + dstOff] or bit;
-                bit := bit shr 1;
-              end;
-              if transp <> nil then
-                for plane := 0 to 3 do
-                  data[plane + dstOff] := data[plane + dstOff] and not transp^[maskOff - 1];
-              Inc(dstOff, 4);
-              Inc(srcOff, SizeOf(chunk));
-            end;
-      end;
-      Types.vmTandy: begin
-        for frame := 1 to count do begin
-          Move(imgData^[srcOff], data[dstOff], imgSize);
-          if transp <> nil then
-            for col := dstOff to dstOff + imgSize - 1 do begin
-              if (data[col] shr 4) = transpColor then
-                transp^[col] := $F0;
-              if (data[col] and $0F) = transpColor then
-                Inc(transp^[col], $0F);
-              data[col] := data[col] and not transp^[col];
-            end;
-          Inc(dstOff, imgSize);
-          Inc(srcOff, imgSize);
-        end;
-      end;
-    end;
-  end;
+  GDVars.video.ExpandFrames(imgData, srcOff, hasMask, transpColor, pic);
 end;
 
 { BlitTileCell and BlitTileClipped: draw frame tileIdx of gfx into dest at (screenX, screenY), clipped against dest's
@@ -580,82 +482,10 @@ begin
 end;
 
 procedure MirrorPic(src, dst: Types.PImgBuf);
-var
-  dstOff: Word;
-  srcOff: Word;
-  rowStart: Word;
-  rowBytes: Word;
-  col: Word;
-  row: Word;
-  plane: Byte;
-  cell: Word;
 begin
   if (src = nil) or (dst = nil) then Exit;
-  with src^ do begin
-    Move(map, dst^.map, SizeOf(map));
-    case GDVars.videoMode of
-      { CGA: 2 bytes per 8-px cell, word pair-mirror }
-      Types.vmCGA: begin
-        rowBytes := width * SizeOf(cell);
-        srcOff := rowBytes - SizeOf(cell);
-        dstOff := 0;
-        for row := 1 to height do begin
-          rowStart := dstOff;
-          for col := 0 to width - 1 do begin
-            Move(data[srcOff - dstOff + rowStart], cell, SizeOf(cell));
-            cell := Blit.MirrorPairs(cell);
-            Move(cell, dst^.data[dstOff], SizeOf(cell));
-            if transp <> nil then begin
-              Move(transp^[srcOff - dstOff + rowStart], cell, SizeOf(cell));
-              cell := Blit.MirrorPairs(cell);
-              Move(cell, dst^.transp^[dstOff], SizeOf(cell));
-            end;
-            Inc(dstOff, SizeOf(cell));
-          end;
-          Inc(srcOff, rowBytes);
-        end;
-      end;
-      { EGA: 4 plane bytes per cell, bit-mirror each }
-      Types.vmEGA: begin
-        rowBytes := width * 4;
-        srcOff := rowBytes - 4;
-        dstOff := 0;
-        for row := 1 to height do begin
-          rowStart := dstOff;
-          for col := 1 to width do begin
-            for plane := 0 to 3 do
-              dst^.data[plane + dstOff] := Blit.MirrorBits(data[srcOff - dstOff + rowStart + plane]);
-            Inc(dstOff, 4);
-          end;
-          Inc(srcOff, rowBytes);
-        end;
-        if transp <> nil then begin
-          srcOff := 0;
-          for row := 1 to height do begin
-            for col := 0 to width - 1 do
-              dst^.transp^[srcOff + width - col - 1] := Blit.MirrorBits(transp^[srcOff + col]);
-            Inc(srcOff, width);
-          end;
-        end;
-      end;
-      { Tandy: 4 bytes per cell, nibble-swap each }
-      Types.vmTandy: begin
-        rowBytes := width * 4;
-        srcOff := rowBytes - 1;
-        dstOff := 0;
-        for row := 1 to height do begin
-          rowStart := dstOff;
-          for col := 1 to rowBytes do begin
-            dst^.data[dstOff] := Blit.MirrorNibbles(data[srcOff - dstOff + rowStart]);
-            if transp <> nil then
-              dst^.transp^[dstOff] := Blit.MirrorNibbles(transp^[srcOff - dstOff + rowStart]);
-            Inc(dstOff);
-          end;
-          Inc(srcOff, rowBytes);
-        end;
-      end;
-    end;
-  end;
+  Move(src^.map, dst^.map, SizeOf(src^.map));
+  GDVars.video.MirrorFrame(src, dst);
 end;
 
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
@@ -674,19 +504,9 @@ end;
 
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
 var
-  frameNo: ShortInt;
   srcOff: Word;
   dstOff: Word;
   nFrames: Byte;
-  col: Word;
-  row: Word;
-  match: Byte;
-  planeMask: array[0..3] of Byte;
-  plane: Byte;
-  pixPos: Byte;
-  rowBytes: Word;
-  fromHigh: Byte;
-  toHigh: Byte;
   pairIdx: Byte;
   scratchPic: Types.PImgBuf;
 begin
@@ -707,68 +527,7 @@ begin
     srcOff := frame * pic^.imgSize;
     dstOff := 0;
     if fromColors[pairIdx] <> toColors[pairIdx] then
-      with scratchPic^ do
-        case GDVars.videoMode of
-          { CGA: match/rewrite each 2-bit pixel pattern }
-          Types.vmCGA: begin
-            rowBytes := width * 2;
-            for frameNo := frame to nFrames + frame - 1 do
-              for row := 1 to height do
-                for col := 1 to rowBytes do begin
-                  for pixPos := 0 to 3 do
-                    if pic^.data[srcOff] and GDConsts.cgaPixelMask[pixPos + 4] =
-                        GDConsts.cgaPixPos[Blit.SrcNibble(fromColors[pairIdx], map)][pixPos] then
-                      if not isDithered or isDithered and (Random(4) = 0) then
-                        data[dstOff] := data[dstOff] and not GDConsts.cgaPixelMask[pixPos + 4] or
-                          GDConsts.cgaPixPos[Blit.SrcNibble(toColors[pairIdx], map)][pixPos];
-                  Inc(srcOff);
-                  Inc(dstOff);
-                end;
-          end;
-          { EGA: bitmask match across the 4 plane bytes }
-          Types.vmEGA: begin
-            for plane := 0 to 3 do
-              if (fromColors[pairIdx] and GDConsts.egaPlaneBit[plane]) > 0 then
-                planeMask[plane] := 0
-              else
-                planeMask[plane] := $FF;
-            for frameNo := frame to nFrames + frame - 1 do
-              for row := 1 to height do
-                for col := 1 to width do begin
-                  if isDithered then
-                    match := Random(256) and Random(256)
-                  else
-                    match := $FF;
-                  for plane := 0 to 3 do
-                    match := (pic^.data[plane + srcOff] xor planeMask[plane]) and match;
-                  for plane := 0 to 3 do
-                    if (toColors[pairIdx] and GDConsts.egaPlaneBit[plane]) > 0 then
-                      data[plane + dstOff] := data[plane + dstOff] or match
-                    else
-                      data[plane + dstOff] := data[plane + dstOff] and not match;
-                  Inc(srcOff, 4);
-                  Inc(dstOff, 4);
-                end;
-          end;
-          { Tandy: high and low nibble matched separately }
-          Types.vmTandy: begin
-            rowBytes := width * 4;
-            fromHigh := fromColors[pairIdx] shl 4;
-            toHigh := toColors[pairIdx] shl 4;
-            for frameNo := frame to nFrames + frame - 1 do
-              for row := 1 to height do
-                for col := 1 to rowBytes do begin
-                  if pic^.data[srcOff] and $F0 = fromHigh then
-                    if not isDithered or isDithered and (Random(4) = 0) then
-                      data[dstOff] := data[dstOff] and $F or toHigh;
-                  if pic^.data[srcOff] and $F = fromColors[pairIdx] then
-                    if not isDithered or isDithered and (Random(4) = 0) then
-                      data[dstOff] := data[dstOff] and $F0 or toColors[pairIdx];
-                  Inc(srcOff);
-                  Inc(dstOff);
-                end;
-          end;
-        end;
+      GDVars.video.RemapColour(pic, scratchPic, srcOff, nFrames, fromColors[pairIdx], toColors[pairIdx], isDithered);
   end;
   with pic^ do
     Move(scratchPic^.data, data[frame * imgSize], nFrames * imgSize);

@@ -90,17 +90,10 @@ begin
   { RestoreVideoMode returns to it: 80-column text }
   GDVars.savedVideoMode := 3;
   case mode of
-    'E': begin
-      GDVars.videoMode := Types.vmEGA;
-      VidEga.Install;
-    end;
-    'T': begin
-      GDVars.videoMode := Types.vmTandy;
-      VidTdy.Install;
-    end;
+    'E': VidEga.Install;
+    'T': VidTdy.Install;
   else begin
     mode := 'C';
-    GDVars.videoMode := Types.vmCGA;
     VidCga.Install;
   end;
   end;
