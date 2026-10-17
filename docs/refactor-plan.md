@@ -318,6 +318,102 @@ Separate, because they change behaviour:
   remove it.
 - #616: the Constitution hit-point bonus.
 
+## Phase 6: a video driver, and VGA (proposed)
+
+Written 2026-10-16 from two surveys: PoR's video code at 486aa52, and the later Gold Box games' video layers
+(pools-disassembly, treasures-disassembly, gateway-disassembly, curse-disassembly).
+
+**What the later games do.** None of Curse, Secret, Gateway, Treasures or Pools loads a video driver at run time.
+- Each links a resident `Blit` unit with TASM routines, one set of entry points per display class: a cell blit, a masked
+  cell blit, a clipped blit, a glyph draw and a palette set. It picks the set with a `case` on the mode byte.
+- Pools' `EGA.DRV`, `VGA.DRV` and `TGA.DRV` (63-entry near-jump tables, about 30 KB of assembly each) belong to
+  `VACE.EXE`, the intro and ending player, not to the game.
+- The goldbox-wiki's Pools pages say otherwise; the reconstructed source and the binaries contradict them.
+- VGA (mode 13h, 256 colours) first appears in Gateway. Treasures and Pools drop CGA.
+
+What they do better than PoR is organisation: the mode-specific code stays inside the video units.
+
+**PoR today.** CGA (mode 4), EGA (0Dh) and Tandy (9), chosen from POOL.CFG line 2 by GameBoot.
+- All video code is Pascal, with no inline assembly: `Mem[]`, `Port[]`, `absolute` arrays over the banks, `Move`,
+  `FillChar` and INT 10h.
+- About 970 lines are mode-specific. 70% are in Blit (about 520) and TextRend (about 190), both resident. The rest is
+  small branches in about twelve units:
+  - CharGen's `Recolor`, `MaskSize`, `Overlay` and `Place`.
+  - Portrait's frame sizes and remap.
+  - BldShow's `PutPixels`, a second pixel converter.
+  - SaveLoad's icon merge.
+  - The mask sizes in MapTiles, CharDisp and CbtActs.
+  - DaxIo's `WriteChar`.
+  - The EGA-only palette calls in CbtMap and Intro.
+  - Options' mode name.
+- There is no indirection: every branch reads `GDVars.videoMode`. Every unit is compiled `{$F+}`, so procedure
+  variables cost nothing new.
+
+**The goal.** Game code that does not know the mode, one driver per mode behind one interface, and a fourth driver for
+VGA. No new assembly: PoR's video is all Pascal now, and stays so unless a measured hot path needs it.
+
+The steps are in order. Every step keeps the CGA, EGA and Tandy screens pixel-identical (the regression suite compares
+them), except where a step says otherwise.
+
+0. **Measure first.**
+   - Time the hot primitives per mode: `RenderChar` (every character), `BlitTileCell`/`BlitTileClipped` (every tile,
+     glyph and icon), `FillPicRect` (every 3D view) and `FlushView` (every frame; 21 call sites).
+   - Add a scenario that runs in each of the three modes, so the suite sees CGA and Tandy as well as EGA.
+1. **Mode-independent game code.** Move every branch outside Blit and TextRend behind a Blit routine:
+   - `Blit.MaskBytes(imageBytes)` for the mask-size arithmetic (about seven sites), and a row stride.
+   - One icon-merge routine (OR the data, AND the mask) for SaveLoad's merge and CharGen's `Overlay`.
+   - CharGen's `Recolor` merged into `RemapPic`; BldShow's `PutPixels` into the picture converter.
+   - The palette calls through one Blit routine that does nothing where the mode has no palette.
+   - `GameInit` builds only the active mode's row table.
+
+   After this step only Blit, TextRend, DaxIo's `WriteChar` and GameBoot know the mode.
+2. **The driver interface.** `TVideoDriver`, a record of procedure variables in a resident unit, with these entry
+   points:
+   - Mode set and restore, page setup and the heap reserve (Tandy's 16 KB).
+   - The row tables.
+   - Picture size and mask size.
+   - Convert DAX frames (`ExpandPicFrames`), mirror, remap and fill rectangle.
+   - Tile blit (masked and clipped) into the view buffer.
+   - Flush the view's dirty spans, show a picture on screen, draw a character, clear a rectangle.
+   - Set the palette.
+
+   The mode-independent work stays in Blit and TextRend: clipping, the dirty-span bookkeeping, word wrap, picture
+   loading and caching. The spans' offsets become the driver's own units (bytes or cells today).
+3. **One unit per mode.**
+   - `VidCga`, `VidEga` and `VidTdy` each fill the record from the code now in Blit's and TextRend's `case` arms.
+   - GameBoot installs the one POOL.CFG names.
+   - All three stay resident: overlaying a driver would reload its hot paths, so resident code stays about what it is
+     (the code moves, it does not grow).
+   - Check the calls' cost against step 0. An indirect far call replaces a `case`. If a primitive is slower, it gets
+     a wider entry point (a row or a span per call) before any assembly.
+4. **Tests.** Picture conversion, mirroring, remapping and the mask sizes become TestKit programs per driver, run
+   without video hardware against known DAX frames. Screen output stays with the regression scenarios.
+5. **VGA (mode 13h).** A fourth driver, `VidVga`, chosen by a new POOL.CFG letter. Its settings:
+   - The art is 16-colour, so the DAC is loaded with the EGA palette.
+   - Pictures are stored one byte per pixel, 8 bytes per 8-pixel cell, with colour 0 or a key byte as transparency.
+   - The screen is linear at $A000:0, 320 bytes per row, with no planes.
+   - The view flushes by `Move` per dirty span.
+
+   What VGA gives:
+   - Faster, simpler blits and flushes than EGA's planes.
+   - Free palette control: the combat and non-combat palettes and the intro flash work as on EGA, and later fades are
+     possible.
+   - A place for 256-colour art if the project ever has any.
+
+   What it costs:
+   - Pictures take twice EGA's memory, 8 bytes per cell against 4 plus a mask. Measure the heap at the busiest screen
+     (combat with portraits and animations) before committing. The view buffer and the portrait cache are the large
+     ones.
+   - Mode 13h has one page where EGA has two, so anything that draws to the hidden page (EGA's `$A200` staging) needs
+     a heap buffer or a different order.
+   - The settings menu, Options' mode name and the regression suite (a fourth mode to compare) grow to match.
+
+   Pools, Treasures and Gateway are the references for the VGA cell layout and the palette programming
+   (`ProgramPaletteOnRetrace`); their designs inform this one but are not copied.
+
+**What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
+new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
+
 ## Working method
 
 One branch and one PR per phase, an issue per item, each change checked against the tests, the regression suite and
