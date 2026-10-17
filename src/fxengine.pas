@@ -607,7 +607,7 @@ begin
       FxEngine.StrengthEffectToStrength(found, oldBase, oldExc);
       Types.PEffectRec(found)^.strength := enc + $80;
     end;
-    creature^.strCur := baseStr;
+    creature^.strCur := AbilAdj.ClampScore(baseStr);
     creature^.strExc := excStr;
     CharHlp.RecalcStats(creature);
     effStrength := FxEngine.StrengthModifier(oldBase, oldExc);

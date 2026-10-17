@@ -25,6 +25,14 @@ function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
   +1 per 3 1/2 points of Constitution, so 1 at 4..6, 2 at 7..10, 3 at 11..13, 4 at 14..17, 5 at 18..20, 6 at 21..24. }
 function ConSaveBonus(con: Byte): Byte;
 
+const
+  { the lowest and highest an ability score goes in play (#615); creation and Modify Character have their own limits }
+  SCORE_MIN = 3;
+  SCORE_MAX = 25;
+
+{ score kept within SCORE_MIN..SCORE_MAX, for every change play makes to an ability score (#615). }
+function ClampScore(score: Integer): Byte;
+
 { The poison save bonus any creature gets from a Constitution above 18 (Deities & Demigods): +1 at 19..20, +2 at
   21..22, +3 at 23..24 and +4 from 25; 0 below 19. }
 function ConPoisonSave(con: Byte): Byte;
@@ -181,6 +189,16 @@ begin
     ConRegenMinutes := 10
   else
     ConRegenMinutes := (26 - con) * 10;
+end;
+
+function ClampScore(score: Integer): Byte;
+begin
+  if score < SCORE_MIN then
+    ClampScore := SCORE_MIN
+  else if score > SCORE_MAX then
+    ClampScore := SCORE_MAX
+  else
+    ClampScore := score;
 end;
 
 end.

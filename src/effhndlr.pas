@@ -375,7 +375,7 @@ var
   effect: Types.PEffectRec;
 begin
   CharDisp.PrintNameString(creature, 'is hardier', 10, True);
-  Inc(creature^.conCur);
+  creature^.conCur := AbilAdj.ClampScore(creature^.conCur + 1);
   if (creature^.conCur >= 20) and not CharHlp.HasEffect(creature, C_Effect.CON_REGEN, effect) then
     FxEngine.AddEffect(creature, C_Effect.CON_REGEN, AbilAdj.ConRegenMinutes(creature^.conCur), 255, True);
   hpGain := ClassCal.ConHpTotal(creature, creature^.conCur) - ClassCal.ConHpTotal(creature, creature^.conCur - 1);
@@ -459,7 +459,7 @@ var
 begin
   if Types.PEffectRec(p)^.strength > $7F then Exit;
   FxEngine.StrengthEffectToStrength(p, base, exc);
-  creature^.strCur := base;
+  creature^.strCur := AbilAdj.ClampScore(base);
   creature^.strExc := exc;
   best := nil;
   bestBase := 0;
@@ -479,7 +479,7 @@ begin
   end;
   if best <> nil then begin
     Types.PEffectRec(best)^.strength := FxEngine.StrengthModifier(creature^.strCur, creature^.strExc);
-    creature^.strCur := bestBase;
+    creature^.strCur := AbilAdj.ClampScore(bestBase);
     creature^.strExc := bestExc;
   end;
 end;
@@ -488,7 +488,7 @@ end;
 
 procedure EffFriends(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  creature^.chaCur := Types.PEffectRec(p)^.strength;
+  creature^.chaCur := AbilAdj.ClampScore(Types.PEffectRec(p)^.strength);
 end;
 
 { Slow Poison periodic damage (eff 15): re-arm for 10 minutes and deal 1 damage while HP > 1 }
@@ -960,12 +960,7 @@ procedure EffMummyRot(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if GDVars.effectLock <> 0 then Exit;
   CharDisp.PrintNameString(creature, 'Rots...', 10, True);
-  if creature^.chaCur > 2 then
-    Dec(creature^.chaCur, 2)
-  else
-    creature^.chaCur := 0;
-  if creature^.chaCur < 3 then
-    creature^.chaCur := 3;
+  creature^.chaCur := AbilAdj.ClampScore(creature^.chaCur - 2);
   if Types.PEffectRec(p)^.strength div 16 > 1 then begin
     Dec(Types.PEffectRec(p)^.strength, $10);
     if EffHndlr.AddEffectIfNoLock(creature, C_Effect.MUMMY_ROT, Types.PEffectRec(p)^.strength, 43200) then ;

@@ -185,7 +185,7 @@ implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_Status,
-  C_Ifc, C_Dir, C_Spell;
+  C_Ifc, C_Dir, C_Spell, AbilAdj;
 
 var
   { the menu string list }
@@ -851,10 +851,7 @@ var
   oldCha: Byte;
 begin
   oldCha := GDVars.dsTargetCreaturePtr[1]^.chaCur;
-  Inc(GDVars.dsTargetCreaturePtr[1]^.chaCur, Dice.RollDice(2, 4));
-  { 25, the Cha cap }
-  if GDVars.dsTargetCreaturePtr[1]^.chaCur > 25 then
-    GDVars.dsTargetCreaturePtr[1]^.chaCur := 25;
+  GDVars.dsTargetCreaturePtr[1]^.chaCur := AbilAdj.ClampScore(oldCha + Dice.RollDice(2, 4));
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, oldCha, True, 0, 0, 'is friendly');
 end;
 
