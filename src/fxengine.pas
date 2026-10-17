@@ -142,7 +142,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
+  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level, Crt;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -648,10 +648,14 @@ begin
     if shockItem = nil then
       CharDisp.PrintNameStringAnim(creature, False, s)
     else begin
-      { the item label ends in a space }
+      { the item and the creature in green, the rest in white (#637); the item label ends in a space }
       CharHlp.ItemLabel(shockItem, False);
-      CharDisp.PrintMessageWait(shockItem^.name + 'shocks ' + creature^.name + ' for ' +
-                               StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.');
+      CharDisp.MessageText(shockItem^.name, LightGreen, True);
+      CharDisp.MessageText('shocks ', White, False);
+      CharDisp.MessageText(creature^.name, LightGreen, False);
+      CharDisp.MessageText(' for ' + StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.', White,
+                           False);
+      CharDisp.MessageWait;
     end;
     CharHlp.InflictDamage(creature, GDVars.pendingDamage);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
