@@ -30,16 +30,14 @@ checkpoint added
 press r
 checkpoint removed
 press l
-golden: press a
-candidate: press a ret
+press a
 wait AREA
 press e
 wait CAMP
 press s d
-# ours opens a menu of the slots (Enter picks D), asks for a description (left empty), then Okay
+# ours opens a menu of the slots (D picks it) and asks for a description: Enter takes the default
+candidate: wait OKAY
 candidate: press ret
-candidate: wait DESCRIPTION
-candidate: press ret o
 wait QUIT
 checkpoint saved
 press n

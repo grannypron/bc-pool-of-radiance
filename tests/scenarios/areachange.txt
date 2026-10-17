@@ -4,7 +4,8 @@ boot NORAND
 ignore POOL OF RADIANCE V
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
 wait RADIANCE
-press l a ret
+golden: press l a ret
+candidate: press l a
 wait AREA
 checkpoint new-phlan
 # north to (5,2), then east onto (6,2)
@@ -13,8 +14,11 @@ wait AREA
 checkpoint training-hall
 press e
 wait CAMP
-press s d ret
-checkpoint save-popup
+golden: press s d ret
+candidate: press s d
+# ours lays the popup out anew (#656): recorded apart, not compared
+golden: checkpoint save-popup
+candidate: checkpoint save-popup-656
 press esc esc
 # the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
 ignore OVERLAY LOADS

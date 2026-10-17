@@ -198,5 +198,12 @@ begin
   EclVars.WriteGbvmString($4A20, 'HI');
   TestKit.Check((EclVars.ReadGbvm($4A20) = Ord('H')) and (EclVars.ReadGbvm($4A21) = Ord('I')) and
                 (EclVars.ReadGbvm($4A22) = 0), 'a string elsewhere is one character a cell, then 0');
+  { a string value has no number (POR-0162): GetEclVar gives 0 rather than reading the GBVM }
+  GDVars.dsGbvmType[5] := $80;
+  GDVars.dsGbvmLowerByte[5] := 7;
+  GDVars.dsGbvmUpperByte[5] := $6B;
+  TestKit.CheckEqualsL(0, EclVars.GetEclVar(5), 'a string value reads as 0');
+  GDVars.dsGbvmType[5] := 2;
+  TestKit.CheckEqualsL($6B07, EclVars.GetEclVar(5), 'a word gives its value');
   TestKit.Done;
 end.

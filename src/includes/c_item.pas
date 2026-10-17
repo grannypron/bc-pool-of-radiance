@@ -27,6 +27,21 @@ const
   { Base item for Spiritual Hammer. EffHndlr also sets nameIds[2] to name component 20; item IDs and name-component IDs
     are separate namespaces. }
   HAMMER = 20;
+  { more base item types, from what the code does with them: weapons the thief may backstab with, missiles that fly
+    straight, the ammunition slots' types }
+  HAND_AXE = 2;
+  CLUB = 7;
+  DAGGER = 8;
+  DART = 9;
+  JAVELIN = 21;
+  QUARREL = 28;
+  SPEAR = 31;
+  BROAD_SWORD = 35;
+  LONG_SWORD = 36;
+  SHORT_SWORD = 37;
+  SLING = 47;
+  LEATHER_ARMOR = 50;
+  ARROW = 73;
   { eff 117 "vulnerability to holy water" }
   HOLY_WATER_VIAL = 85;
   { eff 122 "mummy vulnerability to fire" }

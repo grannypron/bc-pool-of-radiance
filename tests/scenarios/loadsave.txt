@@ -5,8 +5,12 @@ ignore POOL OF RADIANCE V
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
 wait RADIANCE
 press l
-checkpoint load-menu
-press a ret
+# ours lays the menu out anew (#657), so the two builds' menus are recorded apart and not compared
+golden: checkpoint load-menu
+candidate: checkpoint load-menu-657
+# a slot's letter loads it at once in ours (#652)
+golden: press a ret
+candidate: press a
 wait AREA
 checkpoint loaded
 press v
@@ -17,9 +21,13 @@ press e esc
 wait AREA
 press e
 wait CAMP
-press s d ret
-checkpoint save-popup
-press t e s t ret o
+# a slot's letter opens the save popup at once in ours (#652), which saves on Enter (#656)
+golden: press s d ret
+candidate: press s d
+golden: checkpoint save-popup
+candidate: checkpoint save-popup-656
+golden: press t e s t ret o
+candidate: press t e s t ret
 wait QUIT
 press n
 saves after-save

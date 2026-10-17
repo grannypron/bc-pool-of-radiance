@@ -456,9 +456,9 @@ begin
   creature^.coins[C_Money.JEWELRY] := Trunc(creature^.coins[C_Money.JEWELRY] * fraction);
 end;
 
-{ Heavy items are harder to steal: weight > 255 coins knocks 90 off the chance, > 24 knocks 50. SSI quirk, kept: the
-  penalties come off chance itself, so they accumulate over the walk. A readied item is unreadied before it is taken, so
-  a ring's, cloak's or gauntlets' effect goes with it, as FxEngine.ToggleReadyItem does. }
+{ Each item is taken on a 1d100 roll within its own chance (CharHlp.TheftChance: heavy items are harder to steal; SSI
+  took the penalties off chance itself, so they accumulated over the walk, POR-0163). A readied item is unreadied before
+  it is taken, so a ring's, cloak's or gauntlets' effect goes with it, as FxEngine.ToggleReadyItem does. }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 var
   roll: Byte;
@@ -467,20 +467,9 @@ var
 begin
   item := creature^.itemsAddr;
   while item <> nil do begin
-    if item^.weight > 255 then begin
-      if chance > 90 then
-        chance := chance - 90
-      else
-        chance := 0;
-    end else if item^.weight > 24 then begin
-      if chance > 50 then
-        chance := chance - 50
-      else
-        chance := 0;
-    end;
     roll := Dice.RollDice(1, 100);
     nxt := item^.next;
-    if roll <= chance then begin
+    if roll <= CharHlp.TheftChance(chance, item^.weight) then begin
       if item^.equipped <> 0 then begin
         item^.equipped := 0;
         if item^.special > $7F then

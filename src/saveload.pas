@@ -82,6 +82,9 @@ procedure FreeCreature(creature: Types.PCharRecord);
 
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
 
+{ Free every creature in the list, with its icon animation; the party size drops to 0 and curChar becomes nil. }
+procedure FreeParty;
+
 implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
@@ -520,6 +523,8 @@ begin
       if GDVars.dsWallSetCache[i].wallDefId >= 0 then
         View3D.LoadWallSet(GDVars.dsWallSetCache[i].wallDefId, GDVars.dsWallSetCache[i].symbolSlot);
     end;
+  { the file's last wall slot shares the menu animation flag (#651), which no menu was showing when it was saved }
+  GDVars.zone0^.savedWalls.menuAnimation := 0;
   if GDVars.zone0^.yarashPyramidLeft <> 0 then
     Ending.YarashComplete(False);
   TextRend.ClearBottomLine;
@@ -558,12 +563,7 @@ begin
     GDVars.loadedSave := 1;
     Exit;
   end;
-  { RemoveCreature frees the head of the list while it is curChar }
-  while GDVars.creatureList <> nil do begin
-    GDVars.curChar := GDVars.creatureList;
-    SaveLoad.RemoveCreature(False, True);
-  end;
-  GDVars.curChar := nil;
+  SaveLoad.FreeParty;
   SaveLoad.LoadSlot(QUICK_SLOT);
   { as CharGen.MainMenu does after a load: GameLoop keeps the loaded script }
   GDVars.loadedSave := 1;
@@ -578,6 +578,7 @@ var
   n: Byte;
   p: Types.PCharRecord;
   numStr: String[1];
+  walls: Types.TGbvmSavedWalls;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
@@ -588,6 +589,9 @@ begin
   SaveLoad.RewriteSaveFile(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
+  { the wall slots go in the file only (#651): in memory their words are the script's, the last of them the menu
+    animation flag, which would set the next menu animating the last picture loaded over the view }
+  walls := GDVars.zone0^.savedWalls;
   for n := 1 to 3 do begin
     GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := GDVars.dsWallSetCache[n].wallDefId;
     GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := GDVars.dsWallSetCache[n].symbolSlot;
@@ -597,6 +601,7 @@ begin
   GDVars.zone1^[C_Gbvm.DISK_NUM] := GDVars.virtualDisk;
   BlockWrite(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk));
   BlockWrite(f, GDVars.zone0^, SizeOf(GDVars.zone0^));
+  GDVars.zone0^.savedWalls := walls;
   BlockWrite(f, GDVars.zone1^, SizeOf(GDVars.zone1^));
   BlockWrite(f, GDVars.zone2^, SizeOf(GDVars.zone2^));
   { SSI's part of the script buffer, so the file stays SSI's size }
@@ -740,6 +745,16 @@ begin
     if not suppressSizeDec then
       Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
   end;
+end;
+
+procedure FreeParty;
+begin
+  { RemoveCreature frees the head of the list while it is curChar }
+  while GDVars.creatureList <> nil do begin
+    GDVars.curChar := GDVars.creatureList;
+    SaveLoad.RemoveCreature(False, True);
+  end;
+  GDVars.curChar := nil;
 end;
 
 end.

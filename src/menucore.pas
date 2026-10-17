@@ -21,6 +21,11 @@ var
     screen above it, say): a letter or digit in it ends the menu and is returned upper-cased, as a hotkey is, without
     changing the current option. Every return clears it. }
   extraKeys: string[16];
+  { Set just before a MenuHorizontal call whose menu shows an option without a hotkey: its capital letter in here is
+    drawn in the menu colour and does not choose the option, which is reached with the arrows (Enter on it returns the
+    letter, or C_Keys.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it. Every return
+    clears it. }
+  unmarked: string[4];
   { Set just before a MenuHorizontal call whose caller takes F5 and F8 (quick save and load) itself, as the map menu
     does; every return clears it. Without it those keys end no menu: outside combat they say quick save and load are
     unavailable here, and in combat they are ignored. }
@@ -165,7 +170,7 @@ var
         if (opt[cur].first <= i) and (opt[cur].last >= i)
            and (hlCol <> 0) then
           TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
-        else if menu[i] in ['0'..'9', 'A'..'Z'] then
+        else if (menu[i] in ['0'..'9', 'A'..'Z']) and (Pos(menu[i], unmarked) = 0) then
           TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
         else
           TextRend.RenderChar(qLen + i - 1, 24, mCol, 1, Ord(menu[i]), 1);
@@ -278,7 +283,7 @@ begin
                 done := True
               else
                 for i := 1 to mLen do
-                  if menu[i] = ch then begin
+                  if (menu[i] = ch) and (Pos(ch, unmarked) = 0) then begin
                     done := True;
                     { a hotkey past the 20th belongs to the 20th option }
                     j := 1;
@@ -307,6 +312,7 @@ begin
   arrowsToCaller := False;
   enterToCaller := False;
   extraKeys := '';
+  unmarked := '';
   quickKeysToCaller := False;
   GDVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
@@ -680,6 +686,7 @@ begin
   arrowsToCaller := False;
   movesToCaller := False;
   extraKeys := '';
+  unmarked := '';
   quickKeysToCaller := False;
   @idleHook := nil;
 end.

@@ -823,8 +823,8 @@ begin
   Delay(100);
   if weapon <> nil then
     CbtActs.RangedAttackAnim(att, def, weapon);
-  { base item 47 is the sling }
-  if (att^.equipped[C_Equip.WEAPON] <> nil) and (att^.equipped[C_Equip.WEAPON]^.itemType = 47) then
+  { a sling's stone animates a second time }
+  if (att^.equipped[C_Equip.WEAPON] <> nil) and (att^.equipped[C_Equip.WEAPON]^.itemType = C_Item.SLING) then
     CbtActs.RangedAttackAnim(att, def, att^.equipped[C_Equip.WEAPON]);
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
@@ -1184,12 +1184,9 @@ begin
     wItem := weapon^.itemType;
   armor := att^.equipped[C_Equip.ARMOR];
   if att^.classLevels[C_Level.THIEF] > 0 then
-    { base item 50, Leather Armor }
-    if (armor = nil) or (armor^.itemType = 50) then
-      { Club, Dagger }
-      if (weapon = nil) or (wItem = 7) or (wItem = 8)
-         { 35..37 = Broad/Long/Short Sword }
-         or ((wItem > 34) and (wItem < 38)) then
+    if (armor = nil) or (armor^.itemType = C_Item.LEATHER_ARMOR) then
+      if (weapon = nil) or (wItem = C_Item.CLUB) or (wItem = C_Item.DAGGER)
+         or ((wItem >= C_Item.BROAD_SWORD) and (wItem <= C_Item.SHORT_SWORD)) then
         can := True;
   if can and (def^.combatAddr^.flankCount > 1)
      and (CbtActs.DirTowardTarget(att, def) = def^.combatAddr^.direction) then
@@ -1232,8 +1229,8 @@ begin
   sym := 13;
   size := Blit.MaskBytes(GDVars.dsMoveIconSheet^.imgSize);
   case weapon^.itemType of
-    { straight-flying missiles: Dart, Javelin, Quarrel, Spear and Arrow }
-    9, 21, 28, 31, 73:
+    { straight-flying missiles }
+    C_Item.DART, C_Item.JAVELIN, C_Item.QUARREL, C_Item.SPEAR, C_Item.ARROW:
       if Odd(dir) then begin
         if (dir = C_Dir.SOUTHEAST) or (dir = C_Dir.SOUTHWEST) then
           CharDisp.CopyIconFacing(sym + 1, 1, 0, dir = C_Dir.SOUTHWEST)
@@ -1241,8 +1238,8 @@ begin
           CharDisp.CopyIconFacing(sym + 1, 0, 0, dir = C_Dir.NORTHWEST);
       end else
         CharDisp.CopyIconFacing(sym + dir mod 4, dir div 4, 0, False);
-    { spinning thrown weapons: Hand Axe, Club, Hammer }
-    2, 7, C_Item.HAMMER:
+    { spinning thrown weapons }
+    C_Item.HAND_AXE, C_Item.CLUB, C_Item.HAMMER:
       begin
         CharDisp.BuildIconFacings(sym + 3);
         frames := 4;
@@ -1256,8 +1253,7 @@ begin
         pace := 50;
       end;
   else begin
-      { base item 47, Sling }
-      if weapon^.itemType = 47 then
+      if weapon^.itemType = C_Item.SLING then
         Inc(sym);
       CharDisp.CopyIconFacing(sym + 7, 0, 0, False);
       CharDisp.CopyIconFacing(sym + 7, 1, 1, False);

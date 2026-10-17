@@ -18,8 +18,7 @@ var
   wallSetHook: TWallSetHook;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
-  $81 (string reference) gives its GBVM address. SSI quirk, kept: $80 (string value) also reads the GBVM, at an address
-  made of the packed length as low byte and a stale upper byte; callers with a string value use its text instead. }
+  $81 (string reference) gives its GBVM address; $80 (string value) gives 0, as its text is in gbStrings. }
 function GetEclVar(idx: ShortInt): Word;
 
 { Read count ECL variables at the ECL IP into dsGbvmType/dsGbvmLowerByte/dsGbvmUpperByte, decoding string values and
@@ -113,7 +112,10 @@ begin
   hi := GDVars.dsGbvmUpperByte[idx];
   case GDVars.dsGbvmType[idx] of
     0: GetEclVar := lo;
-    1, 3, $80: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
+    1, 3: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
+    { a string value has no number: its text is in gbStrings (SSI read the GBVM at an address made of the packed
+      length and a stale byte, POR-0162) }
+    $80: GetEclVar := 0;
     2, $81: GetEclVar := EclVars.CombineBytesToWord(lo, hi);
   end;
 end;

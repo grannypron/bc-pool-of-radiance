@@ -7,6 +7,11 @@ interface
 
 procedure CombatMain;
 
+{ Return True if any party character (notPcNpc = 0, not hostile) is dying; with bandage set, the first one found is
+  bandaged to unconscious with its overkill cleared. The Bandage choice on the combat menu calls it, and so does the AI
+  for a party member under Quick (CombatAi.AiMoveAttack). }
+function BandageDying(bandage: Boolean): Boolean;
+
 implementation
 
 uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
@@ -29,8 +34,6 @@ procedure MoveMenu(creature: Types.PCharRecord; var done: Boolean); forward;
 procedure MeleeAttack(att, def: Types.PCharRecord; var done: Boolean); forward;
 
 procedure DoneMenu(creature: Types.PCharRecord; var done: Boolean); forward;
-
-function BandageDying(bandage: Boolean): Boolean; forward;
 
 procedure SpeedMenu; forward;
 
@@ -449,8 +452,6 @@ begin
   end;
 end;
 
-{ Return True if any party character (notPcNpc = 0, not hostile) is dying; with bandage set, the first one found is
-  bandaged to unconscious with its overkill cleared. }
 function BandageDying(bandage: Boolean): Boolean;
 var
   p: Types.PCharRecord;

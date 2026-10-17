@@ -133,6 +133,11 @@ var
     program, which shows nothing) }
   faultHook: TFaultHook;
 
+
+{ The chance (in 100) a robbery of chance takes an item of weight coins: 90 less for over 255 coins, 50 less for over
+  24, never below 0 (EclMenu.RobItems). }
+function TheftChance(chance: Byte; weight: Word): Byte;
+
 implementation
 
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
@@ -308,7 +313,8 @@ begin
       { Name component 177 is 'Silver' }
       else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_Item.FLASK_OF_OIL)) or
         ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_Item.FLASK_OF_OIL)) or
-        (((item^.itemType = 73) or (item^.itemType = 28)) and (item^.nameIds[3] <> C_Item.NAME_SILVER)) then begin
+        (((item^.itemType = C_Item.ARROW) or (item^.itemType = C_Item.QUARREL)) and
+         (item^.nameIds[3] <> C_Item.NAME_SILVER)) then begin
         item^.name := item^.name + 's ';
         appended := True;
       end else
@@ -351,9 +357,9 @@ begin
           end else
             creature^.equipped[C_Equip.RING1] := item;
       end;
-      if item^.itemType = 73 then
+      if item^.itemType = C_Item.ARROW then
         creature^.equipped[C_Equip.ARROW] := item;
-      if item^.itemType = 28 then
+      if item^.itemType = C_Item.QUARREL then
         creature^.equipped[C_Equip.BOLT] := item;
     end;
     item := item^.next;
@@ -943,6 +949,22 @@ begin
   if r = 255 then
     r := 1;
   CalcSpellRange := r;
+end;
+
+function TheftChance(chance: Byte; weight: Word): Byte;
+var
+  penalty: Byte;
+begin
+  if weight > 255 then
+    penalty := 90
+  else if weight > 24 then
+    penalty := 50
+  else
+    penalty := 0;
+  if chance > penalty then
+    TheftChance := chance - penalty
+  else
+    TheftChance := 0;
 end;
 
 begin

@@ -152,5 +152,11 @@ begin
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.CLERIC), 'a half-elf cleric stops at 5');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
+  { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }
+  TestKit.CheckEqualsL(70, CharHlp.TheftChance(70, 24), 'a light item keeps the chance');
+  TestKit.CheckEqualsL(20, CharHlp.TheftChance(70, 25), 'over 24 coins, 50 less');
+  TestKit.CheckEqualsL(0, CharHlp.TheftChance(70, 256), 'over 255 coins, 90 less, not below 0');
+  TestKit.CheckEqualsL(5, CharHlp.TheftChance(95, 300), '95 less 90');
+  TestKit.CheckEqualsL(70, CharHlp.TheftChance(70, 10), 'and the next light item has the whole chance again');
   TestKit.Done;
 end.
