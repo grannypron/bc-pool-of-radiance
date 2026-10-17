@@ -13,7 +13,8 @@ uses Types;
   move/attack loop. }
 procedure CombatAiControl(creature: Types.PCharRecord);
 
-{ Alt-M in combat: turn quick magic over and say which way on the bottom line. }
+{ Alt-M in combat: turn quick magic over and show it on the bottom line: the Quick line (QuickLine) while the
+  player's characters fight under Quick, else Magic On or Off. }
 procedure ToggleQuickMagic;
 
 { Space in combat: every creature that comes under the player (CharHlp.ComesUnderPlayer: not an NPC, not animated)
@@ -31,6 +32,36 @@ var
   lastMoveDir: Byte;
   { direction reversals or exhausted movement searches }
   stuckCount: Byte;
+  { QuickLine drew the Quick line on this AI turn: the moves left are not written over it }
+  quickShown: Boolean;
+
+{ The bottom line while the player's characters fight under Quick (#665): Quick: On (Space) Magic: On or Off (Alt-M),
+  the labels in light magenta and the rest in white, so the keys that leave Quick and toggle its magic are shown. With
+  no character of the player's under Quick the line is cleared, and the result is False. }
+function QuickLine: Boolean;
+var
+  p: Types.PCharRecord;
+  quick: Boolean;
+begin
+  quick := False;
+  p := GDVars.creatureList;
+  while p <> nil do begin
+    if (p^.quickfight <> 0) and CharHlp.ComesUnderPlayer(p) then
+      quick := True;
+    p := p^.nextCharAddr;
+  end;
+  TextRend.ClearBottomLine;
+  QuickLine := quick;
+  quickShown := quick;
+  if not quick then Exit;
+  TextRend.DisplayString(0, 24, LightMagenta, 'Quick: ');
+  TextRend.DisplayString(7, 24, White, 'On (Space) ');
+  TextRend.DisplayString(18, 24, LightMagenta, 'Magic: ');
+  if GDVars.quickMagic then
+    TextRend.DisplayString(25, 24, White, 'On (Alt-M)')
+  else
+    TextRend.DisplayString(25, 24, White, 'Off (Alt-M)');
+end;
 
 function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
 
@@ -55,7 +86,7 @@ var
   spell: Byte;
 begin
   done := CombatAi.CheckKeystroke(creature);
-  TextRend.ClearBottomLine;
+  if CombatAi.QuickLine then begin end;
   CharDisp.ClearMessageWindow;
   if creature^.enabled = 0 then
     done := CharHlp.EndActions(creature);
@@ -302,9 +333,10 @@ var
   edge: Boolean;
   done: Boolean;
 begin
-  TextRend.DisplayString(0, 24, LightGreen,
-                         'Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +
-                           ' ');
+  if not quickShown then
+    TextRend.DisplayString(0, 24, LightGreen,
+                           'Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +
+                             ' ');
   if CombatAi.CheckKeystroke(creature) then
     Exit;
   { A mage that is not fleeing does not walk }
@@ -807,10 +839,12 @@ end;
 procedure ToggleQuickMagic;
 begin
   GDVars.quickMagic := GDVars.quickMagic = False;
-  if GDVars.quickMagic then
-    CharDisp.PrintBottomLine('Magic On')
-  else
-    CharDisp.PrintBottomLine('Magic Off');
+  { the Quick line shows it; with no one under Quick, say which way it went }
+  if not CombatAi.QuickLine then
+    if GDVars.quickMagic then
+      CharDisp.PrintBottomLine('Magic On')
+    else
+      CharDisp.PrintBottomLine('Magic Off');
 end;
 
 procedure AllToManual;
@@ -825,4 +859,6 @@ begin
   end;
 end;
 
+begin
+  quickShown := False;
 end.
