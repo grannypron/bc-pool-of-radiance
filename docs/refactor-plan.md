@@ -588,6 +588,17 @@ them), except where a step says otherwise.
      Every mode gains the same 37 KB (EGA) to 74 KB (VGA).
    - No scenario reaches the wilderness or the ending, where SecondSheet loads.
 
+   **Overlays load from EMS when there is room.**
+   - GameBoot calls `OvrInitEMS` after `OvrInit`, before CountOvrRead hooks in, so the count covers both sources.
+   - Without an EMS driver, or with too little EMS, overlays load from GAME.OVR as before.
+   - STING Ctrl-Y's buffer line ends "from EMS" or "from disk".
+   - Conventional memory is unchanged; only the loads get faster. GOG's DOSBox configurations for PoR and Curse have
+     EMS on.
+   - goldbox-player's sessions take a memory size (12d1bd4). `MEMSIZE=16 tests/regress.sh` runs the suite with EMS;
+     at the default 1 MB there is none.
+   - The suite passes at 1 MB in EGA, CGA and Tandy, and at 16 MB in EGA (overlays from EMS). VGA differs only where
+     it did before, and ssiformat passes.
+
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
 new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
 

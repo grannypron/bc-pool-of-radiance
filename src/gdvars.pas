@@ -59,6 +59,8 @@ var
   debugFile: Text;
   { overlay loads since the program started, counted by GameBoot's OvrReadBuf hook (#612) }
   ovrLoads: LongInt;
+  { the overlays load from EMS (GameBoot's OvrInitEMS succeeded) rather than from GAME.OVR on disk }
+  ovrInEms: Boolean;
   { heap bytes held by pictures (Blit.AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
   picBytes: LongInt;
   picPeak: LongInt;

@@ -79,6 +79,11 @@ begin
   GDVars.stingArg := ParamStr(1) = 'STING';
   DaxIo.OverlayPrompt;
   OvrInit('GAME.OVR');
+  { Copy the overlays into EMS when there is enough of it, so they load from memory rather than disk; without an EMS
+    driver, or with too little EMS, they keep loading from GAME.OVR. This comes before CountOvrRead hooks in, since
+    OvrInitEMS installs its own reader for CountOvrRead to call. }
+  OvrInitEMS;
+  GDVars.ovrInEms := OvrResult = ovrOk;
   GDVars.ovrLoads := 0;
   GDVars.picBytes := 0;
   GDVars.picPeak := 0;
