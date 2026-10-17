@@ -85,15 +85,21 @@ begin
   end;
   { the vault of a game left unsaved last time is gone with it }
   Vault.ForgetSessionVault;
-  CharGen.MainMenu;
-  View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
-  EclVm.GameLoop;
-  { F8 on the map menu ends GameLoop to load the quick save; the loop then starts again on the loaded game, as it does
-    after a load from the main menu }
-  while Explore.quickLoadAsked do begin
-    Explore.quickLoadAsked := False;
-    SaveLoad.QuickLoad;
+  { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu }
+  while True do begin
+    CharGen.MainMenu;
+    View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
     EclVm.GameLoop;
+    { F8 on the map menu ends GameLoop to load the quick save; the loop then starts again on the loaded game, as it
+      does after a load from the main menu }
+    while Explore.quickLoadAsked do begin
+      Explore.quickLoadAsked := False;
+      SaveLoad.QuickLoad;
+      EclVm.GameLoop;
+    end;
+    { the party was destroyed: a new game starts from the main menu, without the lost party's vault }
+    SaveLoad.FreeParty;
+    Vault.ForgetSessionVault;
+    GameInit.ResetGameState;
   end;
-  GameIo.ExitGame;
 end.

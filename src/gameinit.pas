@@ -6,11 +6,17 @@ interface
 
 procedure GameInit2;
 
+{ Puts the game in a new game's state, as at startup: the GBVM banks cleared, the party at (15, 1) facing west in the
+  3D map with no members, the script at its start and the game's statistics cleared. The settings, the loaded pictures
+  and wall sets, and their caches, are left alone. GameInit2 calls it; so does the main program after a party is
+  destroyed, having freed the party (SaveLoad.FreeParty), before the main menu. }
+procedure ResetGameState;
+
 implementation
 
 uses Types, Crt, C_Area, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps;
+  VidOps, Stats;
 
 var
   { directory saved across resource loading }
@@ -246,6 +252,53 @@ begin
   GDVars.effectFns[C_Effect.RECENT_CURE] := EffHndlr.EffNull;
 end;
 
+procedure ResetGameState;
+begin
+  FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
+  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
+  FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
+  FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
+  GDVars.wallAhead := 0;
+  GDVars.eventAtCell := 0;
+  GDVars.gMapX := 15;
+  GDVars.gMapY := 1;
+  GDVars.gFacing := C_Dir.WEST;
+  FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
+  GDVars.debugTraceEnabled := False;
+  GDVars.bottomLineTaken := False;
+  GDVars.loadedSave := 0;
+  GDVars.restTicks := 0;
+  GDVars.creatureList := nil;
+  GDVars.curChar := nil;
+  GDVars.eclIp := $9900;
+  GDVars.suppressContinuePrompt := 0;
+  GDVars.virtualDisk := 1;
+  GDVars.prevVirtualDisk := 1;
+  GDVars.automapOn := False;
+  GDVars.locTypePrev := C_Area.LOC_3D_MAP;
+  GDVars.gLocType := C_Area.LOC_3D_MAP;
+  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+  GDVars.dsWildAnimFrame := 0;
+  GDVars.vertTop := 1;
+  GDVars.duelFlag := False;
+  GDVars.dsSuppressDrawingBorderFlag := 0;
+  GDVars.dsSearchModeFlag := 0;
+  GDVars.dsEcl3dClearFlag := 0;
+  GDVars.protNewLine := 0;
+  GDVars.eclGraphics := False;
+  GDVars.partyDefeated := False;
+  GDVars.clipFlag := 1;
+  GDVars.sprShown := False;
+  GDVars.dsSuppressingInsertDiskFlag := False;
+  GDVars.picArcName[0] := #0;
+  GDVars.picArcId := 255;
+  GDVars.recentSaved := 0;
+  GDVars.ceilFloorColorSel := 232;
+  GDVars.wallColorSel := 219;
+  GDVars.inEncMenu := 0;
+  Stats.ResetGame;
+end;
+
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
   defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
   (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
@@ -280,10 +333,6 @@ begin
   VidOps.InitRowTables;
   FillChar(GDVars.dsSymbolSetPtrs, SizeOf(GDVars.dsSymbolSetPtrs), 0);
   FillChar(GDVars.ds2dMapTilePtr, SizeOf(GDVars.ds2dMapTilePtr) + SizeOf(GDVars.ds2dMapTilePtr2), 0);
-  FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
-  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
-  FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
   FillChar(GDVars.dsIconAnimation, SizeOf(GDVars.dsIconAnimation), 0);
   for i := 1 to 2 do begin
     GDVars.dsPortraitCache[i].pictureId := 255;
@@ -291,13 +340,6 @@ begin
   end;
   FillChar(GDVars.animData, SizeOf(GDVars.animData), 0);
   GDVars.treasureItems := nil;
-  { position and facing are assigned below }
-  GDVars.wallAhead := 0;
-  GDVars.eventAtCell := 0;
-  GDVars.gMapX := 15;
-  GDVars.gMapY := 1;
-  GDVars.gFacing := C_Dir.WEST;
-  FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   { WALLDEF reload ID 0, symbol slot 1 }
   GDVars.dsWallSetCache[1].wallDefId := 0;
   GDVars.dsWallSetCache[1].symbolSlot := 1;
@@ -313,40 +355,9 @@ begin
   GDVars.quickEnds := 1;
   GDVars.quickMagicOn := 0;
   GDVars.stingHpFlag := 0;
-  GDVars.debugTraceEnabled := False;
-  GDVars.bottomLineTaken := False;
   GDVars.msgDelayFlag := 1;
-  GDVars.loadedSave := 0;
-  GDVars.restTicks := 0;
-  GDVars.creatureList := nil;
-  GDVars.curChar := nil;
-  GDVars.eclIp := $9900;
   GDVars.gameDelay := 1;
-  GDVars.suppressContinuePrompt := 0;
-  GDVars.virtualDisk := 1;
-  GDVars.prevVirtualDisk := 1;
-  GDVars.automapOn := False;
-  GDVars.locTypePrev := C_Area.LOC_3D_MAP;
-  GDVars.gLocType := C_Area.LOC_3D_MAP;
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
-  GDVars.dsWildAnimFrame := 0;
-  GDVars.vertTop := 1;
-  GDVars.duelFlag := False;
-  GDVars.dsSuppressDrawingBorderFlag := 0;
-  GDVars.dsSearchModeFlag := 0;
-  GDVars.dsEcl3dClearFlag := 0;
-  GDVars.protNewLine := 0;
-  GDVars.eclGraphics := False;
-  GDVars.partyDefeated := False;
-  GDVars.clipFlag := 1;
-  GDVars.sprShown := False;
-  GDVars.dsSuppressingInsertDiskFlag := False;
-  GDVars.picArcName[0] := #0;
-  GDVars.picArcId := 255;
-  GDVars.recentSaved := 0;
-  GDVars.ceilFloorColorSel := 232;
-  GDVars.wallColorSel := 219;
-  GDVars.inEncMenu := 0;
+  GameInit.ResetGameState;
   GDVars.soundAutoStop := 0;
   SoundDrv.SoundSetAutoStop(100);
   savedDir := GDVars.gameDir;
