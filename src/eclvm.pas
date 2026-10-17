@@ -48,6 +48,21 @@ const
   { the last combat-icon slot (GDVars.dsIconAnimation is [0..25]); LOAD MONSTER adds no monsters past it }
   LAST_ICON_SLOT = 25;
 
+  { The WHO prompts that choose who duels, by script and the WHO's address, and where Escape on them sends the script:
+    back to the PRINTCLEAR that asks the duel's question again (#661). SSI's WHO has no way out. }
+  DUEL_WHOS = 3;
+  DUEL_WHO: array[1..DUEL_WHOS] of record
+    script: Byte;
+    at: Word;
+    back: Word;
+  end = (
+    { the New Phlan training hall's arena: "Do you duel?" }
+    (script: 11; at: $9C72; back: $9C05),
+    { the Pitt's tavern buccaneer: the Challenge Attack Flee Bribe menu }
+    (script: 18; at: $A985; back: $A90D),
+    { the Lizardman Keep champion: "Will you champion me?" }
+    (script: 16; at: $A300; back: $A287));
+
   { training hall (class bitmask in C_Gbvm.TRAIN_CLASS_MASK) }
   PROG_TRAINING = 0;
   PROG_WIN_GAME = 8;
@@ -1412,15 +1427,31 @@ begin
   GDVars.dsEcl3dClearFlag := 1;
 end;
 
-{ WHO: let the player pick a party member, prompting with var 1; the choice becomes the current character }
+{ WHO: let the player pick a party member, prompting with var 1; the choice becomes the current character. A WHO that
+  chooses who duels (DUEL_WHO) adds Exit: Exit or Escape picks no one and sends the script back to the duel's
+  question. }
 procedure EclWho;
 var
   msg: String;
+  at: Word;
+  i: Byte;
+  back: Word;
+  picked: Types.PCharRecord;
 begin
+  at := GDVars.eclIp;
+  back := 0;
+  for i := 1 to DUEL_WHOS do
+    if (DUEL_WHO[i].script = GDVars.eclScriptId) and (DUEL_WHO[i].at = at) then
+      back := DUEL_WHO[i].back;
   EclVars.LoadEclVars(1);
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   msg := GDVars.gbStrings^[1];
-  CharDisp.SelectChar(msg, False, GDVars.curChar);
+  picked := GDVars.curChar;
+  CharDisp.SelectChar(msg, back <> 0, picked);
+  if picked = nil then
+    GDVars.eclIp := back
+  else
+    GDVars.curChar := picked;
 end;
 
 { ADD NPC: add creature var 1 to the party as an NPC whose npc byte is half the morale var 2 with bit 7 set. Monster id

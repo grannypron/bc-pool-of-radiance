@@ -32,8 +32,8 @@ function ChooseSlot(saving: Boolean; start: Char): Char;
 
 { The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
   starts as desc and is edited on its line (up to DESC_SHOWN characters, upper case; Backspace deletes). While it is
-  empty it shows, and is, SAVE GAME and the letter. The bottom line reads Save: Okay Exit: Enter is Okay, True with
-  desc set; Escape is Exit, False. }
+  empty it shows, and is, SAVE GAME and the letter. The bottom line reads Save: Exit, with no hotkey, since every
+  letter is typed: Enter saves, True with desc set; Escape is Exit, False. }
 function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boolean;
 
 { The description and area kept for slot letter: True when its savgam<x>.inf is a slot-info file of this format, else
@@ -354,11 +354,9 @@ begin
   TextRend.DisplayString(LEFT_COL, LIST_TOP + 4, LightGreen, 'Description:');
   s := Copy(desc, 1, DESC_SHOWN);
   TextRend.ClearBottomLine;
+  { every letter goes to the description, so Exit has no hotkey: Escape takes it, and Enter saves (#657) }
   TextRend.DisplayString(0, 24, LightMagenta, 'Save: ');
-  TextRend.DisplayString(6, 24, White, 'O');
-  TextRend.DisplayString(7, 24, LightGreen, 'kay ');
-  TextRend.DisplayString(11, 24, White, 'E');
-  TextRend.DisplayString(12, 24, LightGreen, 'xit');
+  TextRend.DisplayString(6, 24, LightGreen, 'Exit');
   repeat
     if s = '' then
       SaveMenu.DrawDescLine(default)

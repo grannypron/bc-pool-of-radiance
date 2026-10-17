@@ -46,8 +46,9 @@ procedure AddCharacterMenu; forward;
 
 { MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
   settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin
-  Adventuring sets ifcState to 4 (C_Ifc.INDOORS); Exit to DOS saves until recentSaved is set. Game Settings opens the
-  Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
+  Adventuring sets ifcState to 4 (C_Ifc.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save
+  first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660). Game
+  Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
 procedure MainMenu;
 const
   MENU_CREATE = 0;
@@ -70,6 +71,7 @@ var
   n: ShortInt;
   redraw: Boolean;
   stateB: Byte;
+  quit: Boolean;
 begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
@@ -165,9 +167,14 @@ begin
                ch := MenuCore.YesNoMenu('Quit to DOS ', Yellow, LightGreen, White);
                if ch = 'Y' then
                begin
-                 while (GDVars.recentSaved = 0) and (GDVars.creatureList <> nil) do
-                   SaveLoad.SaveGame;
-                 GameIo.ExitGame;
+                 quit := True;
+                 if (GDVars.recentSaved = 0) and (GDVars.creatureList <> nil) then
+                   if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then begin
+                     SaveLoad.SaveGame;
+                     quit := GDVars.recentSaved <> 0;
+                   end;
+                 if quit then
+                   GameIo.ExitGame;
                end;
              end;
         { free training, turned on and off as in Curse }

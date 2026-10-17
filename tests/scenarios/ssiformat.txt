@@ -36,7 +36,7 @@ press e
 wait CAMP
 press s d
 # ours opens a menu of the slots (D picks it) and asks for a description: Enter takes the default
-candidate: wait OKAY
+candidate: wait SAVE: EXIT
 candidate: press ret
 wait QUIT
 checkpoint saved
