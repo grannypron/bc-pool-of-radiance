@@ -357,7 +357,7 @@ begin
   Sym8x8.Load8x8Set(202, 4);
   Sym8x8.Load8x8Set(203, 0);
   Blit.LoadPic('sqrpaci', 1, False, 0, GDVars.ds2dMapTilePtr);
-  Blit.LoadPic('sqrpaci', 2, False, 0, GDVars.ds2dMapTilePtr2);
+  { the second tile set loads when the wilderness or the ending first needs it (MapTiles.SecondSheet) }
   for i := 0 to 11 do
     MapTiles.LoadIconAnim('COMSPR', i, i + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);

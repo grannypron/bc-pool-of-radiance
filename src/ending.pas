@@ -10,7 +10,8 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp;
+uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp,
+  MapTiles;
 
 var
   { WinGame passes it by var to Blit.LoadPic }
@@ -127,7 +128,7 @@ begin
         if GDConsts.yarBlueGreenTiles[t] > C_Tile.ID_MASK then
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
                         GDConsts.yarBlueGreenTiles[t] and C_Tile.ID_MASK, True,
-                        GDVars.ds2dMapTilePtr2)
+                        MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], True,
                         GDVars.ds2dMapTilePtr);
@@ -135,7 +136,7 @@ begin
       for t := 0 to 17 do
         if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_Tile.ID_MASK, True,
-                        GDVars.ds2dMapTilePtr2)
+                        MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], True,
                         GDVars.ds2dMapTilePtr);
@@ -148,7 +149,7 @@ begin
     if GDConsts.yarBlueGreenTiles[t] > C_Tile.ID_MASK then
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
                     GDConsts.yarBlueGreenTiles[t] and C_Tile.ID_MASK, False,
-                    GDVars.ds2dMapTilePtr2)
+                    MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], False,
                     GDVars.ds2dMapTilePtr);
@@ -156,7 +157,7 @@ begin
   for t := 0 to 17 do
     if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_Tile.ID_MASK,
-                    False, GDVars.ds2dMapTilePtr2)
+                    False, MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], False,
                     GDVars.ds2dMapTilePtr);

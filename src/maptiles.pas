@@ -6,9 +6,19 @@ unit MapTiles;
 
 interface
 
+uses Types;
+
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
+
+{ The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into GDVars.ds2dMapTilePtr2 the first time
+  it is needed: only the wilderness and the ending draw from it, so it is not loaded at start-up and combat frees it
+  (FreeSecondSheet). Nil when it does not load. }
+function SecondSheet: Types.PImgBuf;
+
+{ Free the second tile set, for SecondSheet to load again when it is next needed. }
+procedure FreeSecondSheet;
 
 procedure FreeIconAnim(animIdx: Byte);
 
@@ -18,7 +28,7 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
-uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
+uses Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -57,11 +67,23 @@ end;
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 begin
   if tile > C_Tile.ID_MASK then begin
-    if GDVars.ds2dMapTilePtr2 <> nil then
+    if MapTiles.SecondSheet <> nil then
       Blit.BlitTileCell(col, row, tile and C_Tile.ID_MASK, 0, GDVars.ds2dMapTilePtr2,
                         GDVars.dsViewImageBufferPtr);
   end else if GDVars.ds2dMapTilePtr <> nil then
     Blit.BlitTileCell(col, row, tile, 0, GDVars.ds2dMapTilePtr, GDVars.dsViewImageBufferPtr);
+end;
+
+function SecondSheet: Types.PImgBuf;
+begin
+  if GDVars.ds2dMapTilePtr2 = nil then
+    Blit.LoadPic('sqrpaci', 2, False, 0, GDVars.ds2dMapTilePtr2);
+  SecondSheet := GDVars.ds2dMapTilePtr2;
+end;
+
+procedure FreeSecondSheet;
+begin
+  Blit.FreePic(GDVars.ds2dMapTilePtr2);
 end;
 
 { Release both frame buffers of icon-animation slot animIdx; a slot past the table is ignored. }

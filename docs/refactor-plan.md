@@ -571,6 +571,23 @@ them), except where a step says otherwise.
    - The ending's full-screen pictures need 64 KB blocks, which combat's largest block (56 KB) could not give. No
      scenario reaches the ending.
 
+   **The second tile set loads when it is needed.**
+   - SQRPACI block 2, tile IDs 128 and up, is drawn only by the wilderness and the ending.
+   - `MapTiles.SecondSheet` loads it the first time it is needed, combat setup frees it (`FreeSecondSheet`), and
+     GameInit no longer loads it at boot.
+   - The first set stays loaded: combat draws its terrain from tiles 0..39, which it overwrites with its own sets, and
+     the wilderness overwrites them with BACPAC.
+   - VGA at the scenarios' ends:
+
+     | scenario | heap free, before -> after | largest block, before -> after |
+     | --- | --- | --- |
+     | combat | 84,896 -> 158,672 | 56,280 -> 134,920 |
+     | areachange | 111,552 -> 185,328 | 79,608 -> 166,032 |
+     | vault | 119,296 -> 193,072 | 79,608 -> 181,600 |
+
+     Every mode gains the same 37 KB (EGA) to 74 KB (VGA).
+   - No scenario reaches the wilderness or the ending, where SecondSheet loads.
+
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
 new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
 
