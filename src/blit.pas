@@ -551,6 +551,11 @@ begin
     GetMem(pic^.transp, Blit.MaskBytes(totalSize));
     FillChar(pic^.transp^, Blit.MaskBytes(totalSize), 0);
   end;
+  Inc(GDVars.picBytes, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
+  if (flag and 1) > 0 then
+    Inc(GDVars.picBytes, Blit.MaskBytes(totalSize));
+  if GDVars.picBytes > GDVars.picPeak then
+    GDVars.picPeak := GDVars.picBytes;
 end;
 
 procedure FreePic(var pic: Types.PImgBuf);
@@ -560,9 +565,12 @@ begin
   if pic = nil then Exit;
   with pic^ do begin
     nBytes := count * imgSize;
-    if transp <> nil then
+    if transp <> nil then begin
       FreeMem(transp, Blit.MaskBytes(nBytes));
+      Dec(GDVars.picBytes, Blit.MaskBytes(nBytes));
+    end;
   end;
+  Dec(GDVars.picBytes, nBytes + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   FreeMem(pic, nBytes + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   pic := nil;
 end;

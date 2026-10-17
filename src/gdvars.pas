@@ -59,6 +59,9 @@ var
   debugFile: Text;
   { overlay loads since the program started, counted by GameBoot's OvrReadBuf hook (#612) }
   ovrLoads: LongInt;
+  { heap bytes held by pictures (Blit.AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
+  picBytes: LongInt;
+  picPeak: LongInt;
   { set when GameIo has written over the bottom line (the STING Ctrl-Y pop-up); MenuCore.HorizontalMenu redraws its
     menu line and clears it }
   bottomLineTaken: Boolean;

@@ -80,6 +80,8 @@ begin
   DaxIo.OverlayPrompt;
   OvrInit('GAME.OVR');
   GDVars.ovrLoads := 0;
+  GDVars.picBytes := 0;
+  GDVars.picPeak := 0;
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
   repeat

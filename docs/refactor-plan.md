@@ -521,6 +521,23 @@ them), except where a step says otherwise.
    Pools, Treasures and Gateway are the references for the VGA cell layout and the palette programming
    (`ProgramPaletteOnRetrace`); their designs inform this one but are not copied.
 
+   **Measured.**
+   - STING Ctrl-Y now shows the heap pictures hold (`GDVars.picBytes`, counted by AllocPic and FreePic) and their peak.
+   - At the end of each scenario in EGA:
+
+     | scenario | heap free | pictures |
+     | --- | --- | --- |
+     | combat | 215,120 | 133,882 |
+     | areachange | 230,128 | 122,174 |
+     | vault | 234,000 | 118,302 |
+
+     The pictures stay cached, so the figure is also the peak.
+   - Pictures at a byte a pixel with a byte-a-pixel mask would need about 330 KB in combat, more than the heap has.
+   - With a colour key and no mask they would need about 240 KB, leaving about 108 KB free.
+   - The alternative is to keep pictures in Tandy's layout (4 bits a pixel) and convert to a byte a pixel only when
+     copying to the screen, a 256-entry word table per byte. That costs no more memory than Tandy, and gives up only
+     256-colour art, which PoR does not have.
+
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
 new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
 

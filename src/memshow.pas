@@ -20,6 +20,8 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
                                        StrUtil.NumStr(OvrGetRetry));
   TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
+  TextRend.DisplayAndPause(LightGreen, 'Pictures ' + StrUtil.NumStr(GDVars.picBytes) + ' peak ' +
+                                       StrUtil.NumStr(GDVars.picPeak));
   TextRend.ClearBottomLine;
   GDVars.bottomLineTaken := True;
 end;

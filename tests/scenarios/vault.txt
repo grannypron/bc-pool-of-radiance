@@ -25,3 +25,5 @@ ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
 press ret ret ret
+# the picture-memory line (phase 6), which the golden build does not have
+candidate: press ret
