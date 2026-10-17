@@ -366,18 +366,18 @@ end;
 
 { Manual of Bodily Health training done (eff 7): +1 Constitution and the matching hit-point change, the Con table's
   bonus at the new Constitution less the bonus at the old over every hit die (ClassCal.ConHpTotal), with hpMax capped at
-  255; at Constitution 20 or more, add eff 62 (regeneration) for 60 minutes instead. }
+  255. At Constitution 20 or more a creature without it gets eff 62 (regeneration) at its Constitution's interval
+  (AbilAdj.ConRegenMinutes); before, each Manual at 20 or more added another, and the hit points stopped at 19. }
 
 procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   hpGain: Integer;
+  effect: Types.PEffectRec;
 begin
   CharDisp.PrintNameString(creature, 'is hardier', 10, True);
   Inc(creature^.conCur);
-  if creature^.conCur >= 20 then begin
-    FxEngine.AddEffect(creature, C_Effect.CON_REGEN, 60, 255, True);
-    Exit;
-  end;
+  if (creature^.conCur >= 20) and not CharHlp.HasEffect(creature, C_Effect.CON_REGEN, effect) then
+    FxEngine.AddEffect(creature, C_Effect.CON_REGEN, AbilAdj.ConRegenMinutes(creature^.conCur), 255, True);
   hpGain := ClassCal.ConHpTotal(creature, creature^.conCur) - ClassCal.ConHpTotal(creature, creature^.conCur - 1);
   if hpGain > 255 - creature^.hpMax then
     hpGain := 255 - creature^.hpMax;
@@ -1009,22 +1009,29 @@ begin
   end;
 end;
 
-{ Regenerating from high Con (eff 62): re-arm for 60 minutes and restore 1 HP }
+{ Regenerating from high Con (eff 62): re-arm for the creature's Constitution's interval (AbilAdj.ConRegenMinutes; 60,
+  Constitution 20's, once it has fallen below 20) and restore 1 HP }
 
 procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  minutes: Word;
 begin
-  if EffHndlr.AddEffectIfNoLock(creature, C_Effect.CON_REGEN, Types.PEffectRec(p)^.strength, 60) then
+  minutes := AbilAdj.ConRegenMinutes(creature^.conCur);
+  if minutes = 0 then
+    minutes := 60;
+  if EffHndlr.AddEffectIfNoLock(creature, C_Effect.CON_REGEN, Types.PEffectRec(p)^.strength, minutes) then
     if FxEngine.RestoreHitPoints(creature, 1, True) then
       CharDisp.PrintHpRestoreMsg(creature);
 end;
 
-{ Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod, it gets eff 55 and is
-  killed. }
+{ Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod and its Constitution's
+  poison bonus (AbilAdj.ConPoisonSave), it gets eff 55 and is killed. }
 
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then begin
+  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE,
+                                  saveMod + AbilAdj.ConPoisonSave(GDVars.dsOtherCreatureCurrentPtr^.conCur)) then begin
     CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
     TextRend.PauseOnly;
     FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
