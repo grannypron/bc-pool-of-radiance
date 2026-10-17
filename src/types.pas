@@ -27,6 +27,13 @@ const
   BASE_ITEM_OVERFLOW = 128;
   { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
   GB_STRING_LAST = 20;
+  { TAcAdjust's parts: Dexterity, the shield, the pluses of items with no AC of their own, the best ring, the best
+    armour }
+  AC_DEX = 0;
+  AC_SHIELD = 1;
+  AC_PLUSES = 2;
+  AC_RING = 3;
+  AC_ARMOR = 4;
 
   { a transparent pixel in a keyed video mode's picture (TVideoDriver.keyed, VGA): no colour drawn is 255 }
   PIC_KEY = $FF;
@@ -527,7 +534,7 @@ type
   end;
   TRuleXp = record
     { XP to reach level; -1 = unavailable }
-    xp: array[2..9] of LongInt;
+    xp: array[2..C_Level.LEVEL_LAST] of LongInt;
     { class level, spell level }
     slots: array[2..9, 1..3] of Byte;
   end;
@@ -740,7 +747,8 @@ type
   { CharHlp types. }
   PAcAdjust = ^TAcAdjust;
   PBoolean = ^Boolean;
-  TAcAdjust = array[0..4] of ShortInt;
+  { the parts of armour class CharHlp.RecalcStats adds up, by the AC_ constants }
+  TAcAdjust = array[AC_DEX..AC_ARMOR] of ShortInt;
 
   { Spell and downed-record types. }
   PDownedRec = ^TDownedRec;

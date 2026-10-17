@@ -29,6 +29,63 @@ begin
   c^.race := C_Race.HUMAN;
 end;
 
+{ SSI's racial level cap tests, as CharHlp.AtLevelCap had them: true only at the levels named }
+function SsiCap(race, cls, lvl, str: Integer): Boolean;
+begin
+  SsiCap := False;
+  case race of
+    C_Race.DWARF:
+      SsiCap := (cls = C_Level.FIGHTER) and (((lvl = 8) and (str = 17)) or ((lvl = 7) and (str < 17)));
+    C_Race.ELF:
+      SsiCap := (cls = C_Level.FIGHTER) and ((lvl = 7) or ((lvl = 6) and (str = 17)) or ((lvl = 5) and (str < 17)));
+    C_Race.GNOME:
+      SsiCap := (cls = C_Level.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str < 18)));
+    C_Race.HALFELF:
+      if (cls = C_Level.CLERIC) and (lvl = 5) then
+        SsiCap := True
+      else
+        SsiCap := ((cls = C_Level.FIGHTER) or (cls = C_Level.RANGER)) and
+                  ((lvl = 8) or ((lvl = 7) and (str = 17)) or ((lvl = 6) and (str < 17)));
+    C_Race.HALFLING:
+      SsiCap := (cls = C_Level.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str = 17)) or ((lvl = 4) and (str < 17)));
+  end;
+end;
+
+{ AtLevelCap against SSI's tests for every race, the capped classes, Strength 3..18 and levels 1..9: capped from the
+  first level SSI caps at, and at every level past it }
+procedure CheckCapsMatchSsi;
+var
+  race: Integer;
+  k: Integer;
+  cls: Integer;
+  str: Integer;
+  lvl: Integer;
+  l: Integer;
+  want: Boolean;
+  bad: Integer;
+const
+  CLASSES: array[1..3] of Integer = (C_Level.FIGHTER, C_Level.RANGER, C_Level.CLERIC);
+begin
+  bad := 0;
+  for race := C_Race.DWARF to C_Race.HUMAN do
+    for k := 1 to 3 do
+      for str := 3 to 18 do
+        for lvl := 1 to 9 do begin
+          cls := CLASSES[k];
+          ClearCreature;
+          c^.race := race;
+          c^.strCur := str;
+          c^.classLevels[cls] := lvl;
+          want := False;
+          for l := 1 to lvl do
+            if SsiCap(race, cls, l, str) then
+              want := True;
+          if CharHlp.AtLevelCap(c, cls) <> want then
+            Inc(bad);
+        end;
+  TestKit.CheckEqualsL(0, bad, 'the racial caps match SSI''s, from the cap up');
+end;
+
 begin
   TestKit.Start('TCHARHLP');
   GetMem(c, SizeOf(Types.TCharRecord));
@@ -150,6 +207,8 @@ begin
   c^.race := C_Race.HALFELF;
   c^.classLevels[C_Level.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.CLERIC), 'a half-elf cleric stops at 5');
+
+  CheckCapsMatchSsi;
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }

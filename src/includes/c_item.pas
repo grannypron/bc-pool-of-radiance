@@ -39,6 +39,12 @@ const
   BROAD_SWORD = 35;
   LONG_SWORD = 36;
   SHORT_SWORD = 37;
+  { the bows, and the Heavy Crossbow, whose row the Fine Composite Long Bow is also built on }
+  COMPOSITE_LONG_BOW = 41;
+  COMPOSITE_SHORT_BOW = 42;
+  LONG_BOW = 43;
+  SHORT_BOW = 44;
+  HEAVY_CROSSBOW = 45;
   SLING = 47;
   LEATHER_ARMOR = 50;
   ARROW = 73;
@@ -48,6 +54,9 @@ const
   FLASK_OF_OIL = 86;
   { Item name parts the code tests or builds (TItemRec.nameIds, GDConsts.nameParts) }
   NAME_HAMMER = 20;
+  { the bows' names, the same numbers as their item types }
+  NAME_COMPOSITE_LONG_BOW = 41;
+  NAME_SHORT_BOW = 44;
   NAME_MIRROR = 118;
   NAME_HOLY_SYMBOL = 152;
   { NAME_PLUS_BASE + plus is "+1".."+5" }
@@ -59,6 +68,11 @@ const
   NAME_WITH_1_SPELL = 210;
   NAME_SPIRITUAL = 243;
   NAME_WOODEN = 252;
+  { TBaseItemRec.slot past the equipment slots (C_Equip): a magic-user's scroll, a cleric's, and the last slot a
+    readable item has }
+  SLOT_MAGE_SCROLL = 11;
+  SLOT_CLERIC_SCROLL = 12;
+  SLOT_LAST_READABLE = 13;
 
 implementation
 

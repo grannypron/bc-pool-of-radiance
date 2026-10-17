@@ -5,6 +5,16 @@ interface
 
 const
   KNOCK = 31;
+  { a spell's casting class (GDConsts.spellTable's castClass): a cleric's, a magic-user's, or one cast at a fixed
+    level }
+  CLASS_CLERIC = 0;
+  CLASS_MAGE = 1;
+  CLASS_SPECIAL = 2;
+  { the caster level of a CLASS_SPECIAL spell, and of any other spell cast from an item }
+  SPECIAL_CASTER_LEVEL = 12;
+  ITEM_CASTER_LEVEL = 6;
+  { a range of 255 marks a spell that needs an attack roll }
+  ATTACK_ROLL_RANGE = 255;
   PENDING_FLAG = $80;
   ID_MASK = $7F;
   { Spell IDs: 1..56 are spells and 57..67 are item effects. GDVars.castTargetMenu is the cast-target menu. }
