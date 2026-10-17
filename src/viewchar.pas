@@ -225,78 +225,148 @@ begin
   CharDisp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
-{ The statistics page (#611): creature's counters and the kinds it has killed most, or with Game the game's totals;
-  Character goes back. Coin is shown in gold. Runs until Exit or Escape; the caller redraws. }
+type
+  { the kinds a stats block holds, in the order the Kills page lists them }
+  TKillOrder = array[1..Stats.KINDS] of Byte;
+
+const
+  { the kills page: two columns of KILL_ROWS rows, an entry a column wide, a "(more)" row above and below }
+  KILL_TOP = 5;
+  KILL_ROWS = 16;
+  KILL_COL_WIDTH = 18;
+  KILLS_SHOWN = 2 * KILL_ROWS;
+
+{ Draw creature's name and then title on row 2 of a cleared, bordered screen. }
+procedure StatsHeading(creature: Types.PCharRecord; title: Types.TStr40);
+begin
+  TextRend.ClearScreen;
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  CharDisp.DisplayCreatureName(creature, 2, 2, False);
+  TextRend.DisplayString(Length(creature^.name) + 3, 2, White, title);
+end;
+
+{ The Game page: the creature's twelve counters in this game, coin in gold; b nil reads every counter as 0. }
+procedure DrawGameStats(creature: Types.PCharRecord; b: Stats.PStatBlock);
+var
+  i: Byte;
+  n: LongInt;
+  s: Types.TStr40;
+begin
+  ViewChar.StatsHeading(creature, 'Game');
+  for i := 1 to Stats.STAT_COUNT do begin
+    n := 0;
+    if b <> nil then
+      n := b^.counts[i];
+    if i = Stats.COIN_LOOTED then
+      n := n div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+    Str(n, s);
+    TextRend.DisplayString(3, 3 + i, White, Stats.NAMES[i]);
+    TextRend.DisplayString(36 - Length(s), 3 + i, LightGreen, s);
+  end;
+end;
+
+{ The Kills page from entry top of order (b's kinds, sorted by name): left then right along each row, each count
+  right-aligned to the widest and its name after it, cut to fit the column, and "(more)" above or below when entries
+  are hidden there. }
+procedure DrawKills(creature: Types.PCharRecord; b: Stats.PStatBlock; var order: TKillOrder; kinds, top: Byte);
+var
+  i: Byte;
+  k: Byte;
+  width: Byte;
+  s: Types.TStr40;
+begin
+  ViewChar.StatsHeading(creature, 'Kills');
+  if kinds = 0 then begin
+    TextRend.DisplayString(3, KILL_TOP, LightGreen, 'None');
+    Exit;
+  end;
+  width := 1;
+  for i := 1 to kinds do
+    if Length(StrUtil.NumStr(b^.kills[i].count)) > width then
+      width := Length(StrUtil.NumStr(b^.kills[i].count));
+  if top > 1 then
+    TextRend.DisplayCentered(1, 38, KILL_TOP - 1, White, '(more)');
+  for k := 0 to KILLS_SHOWN - 1 do
+    if top + k <= kinds then begin
+      i := order[top + k];
+      s := StrUtil.PadLeft(StrUtil.NumStr(b^.kills[i].count), width) + ' ' +
+           Copy(b^.kills[i].name, 1, KILL_COL_WIDTH - 2 - width);
+      TextRend.DisplayString(2 + (k mod 2) * KILL_COL_WIDTH, KILL_TOP + k div 2, LightGreen, s);
+    end;
+  if top + KILLS_SHOWN <= kinds then
+    TextRend.DisplayCentered(1, 38, KILL_TOP + KILL_ROWS, White, '(more)');
+end;
+
+{ The statistics pages (#611, #672) for creature: Game, its counters in this game, and Kills, the kinds it has killed
+  in alphabetical order. On Kills, Up and Down scroll the list a row (two entries) at a time and, when it is longer
+  than a page, Next and Prev a page. Runs until Exit or Escape; the caller redraws. }
 procedure StatsPage(creature: Types.PCharRecord);
 var
-  showGame: Boolean;
   b: Stats.PStatBlock;
   kinds: Byte;
-  order: array[1..Stats.KINDS] of Byte;
+  order: TKillOrder;
   i: Byte;
   j: Byte;
   t: Byte;
-  n: LongInt;
-  s: Types.TStr40;
+  top: Integer;
+  onKills: Boolean;
+  menu: Types.TStr40;
   ch: Char;
   ext: Boolean;
 begin
-  showGame := False;
-  repeat
-    { a creature outside the party has no block: its counters read 0 }
-    if showGame then
-      b := @Stats.game
-    else
-      b := Stats.BlockOf(creature);
-    kinds := 0;
-    if b <> nil then
-      kinds := b^.kindCount;
-    TextRend.ClearScreen;
-    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-    if showGame then
-      TextRend.DisplayString(2, 2, LightCyan, 'Game Statistics')
-    else begin
-      CharDisp.DisplayCreatureName(creature, 2, 2, False);
-      TextRend.DisplayString(Length(creature^.name) + 3, 2, White, 'Statistics');
-    end;
-    for i := 1 to Stats.STAT_COUNT do begin
-      n := 0;
-      if b <> nil then
-        n := b^.counts[i];
-      if i = Stats.COIN_LOOTED then
-        n := n div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
-      Str(n, s);
-      TextRend.DisplayString(3, 3 + i, White, Stats.NAMES[i]);
-      TextRend.DisplayString(36 - Length(s), 3 + i, LightGreen, s);
-    end;
-    { the kinds killed, most first: as many as two columns of five rows hold }
-    for i := 1 to kinds do
-      order[i] := i;
-    for i := 1 to kinds do
-      for j := i + 1 to kinds do
-        if b^.kills[order[j]].count > b^.kills[order[i]].count then begin
-          t := order[i];
-          order[i] := order[j];
-          order[j] := t;
-        end;
-    if kinds > 0 then
-      TextRend.DisplayString(2, 16, White, 'Killed');
-    for i := 1 to kinds do
-      if i <= 10 then begin
-        Str(b^.kills[order[i]].count, s);
-        s := Copy(b^.kills[order[i]].name, 1, 12) + ' ' + s;
-        TextRend.DisplayString(3 + ((i - 1) div 5) * 18, 17 + (i - 1) mod 5, LightGreen, s);
+  { a creature outside the party has no block: its counters read 0 }
+  b := Stats.BlockOf(creature);
+  kinds := 0;
+  if b <> nil then
+    kinds := b^.kindCount;
+  for i := 1 to kinds do
+    order[i] := i;
+  for i := 1 to kinds do
+    for j := i + 1 to kinds do
+      if b^.kills[order[j]].name < b^.kills[order[i]].name then begin
+        t := order[i];
+        order[i] := order[j];
+        order[j] := t;
       end;
-    if showGame then
-      ch := MenuCore.MenuHorizontal('Stats: ', 'Character Exit', LightMagenta, LightGreen, White, False, False, ext)
-    else
-      ch := MenuCore.MenuHorizontal('Stats: ', 'Game Exit', LightMagenta, LightGreen, White, False, False, ext);
-    case ch of
-      'G': showGame := True;
-      'C': showGame := False;
+  onKills := False;
+  top := 1;
+  GDVars.horizChoice := 1;
+  repeat
+    if onKills then begin
+      ViewChar.DrawKills(creature, b, order, kinds, top);
+      if kinds > KILLS_SHOWN then
+        menu := 'Game Kills Next Prev Exit'
+      else
+        menu := 'Game Kills Exit';
+    end else begin
+      ViewChar.DrawGameStats(creature, b);
+      menu := 'Game Kills Exit';
     end;
-  until ch in [C_Keys.NONE, 'E'];
+    ch := MenuCore.MenuHorizontal('Stats: ', menu, LightMagenta, LightGreen, White, True, False, ext);
+    if ext then begin
+      { Up and Down scroll the kills a row }
+      if onKills and (ch = C_Keys.UP) and (top > 1) then
+        Dec(top, 2)
+      else if onKills and (ch = C_Keys.DOWN) and (top + KILLS_SHOWN <= kinds) then
+        Inc(top, 2);
+    end else
+      case ch of
+        'G': onKills := False;
+        'K': begin
+               onKills := True;
+               top := 1;
+             end;
+        'N': if onKills and (top + KILLS_SHOWN <= kinds) then
+               Inc(top, KILLS_SHOWN);
+        'P': if onKills then begin
+               Dec(top, KILLS_SHOWN);
+               if top < 1 then
+                 top := 1;
+             end;
+      end;
+  until (not ext) and (ch in [C_Keys.NONE, 'E']);
 end;
+
 
 { The More Info page for the current character, inside a border with one blank cell inside it all round: name, then
   the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a
