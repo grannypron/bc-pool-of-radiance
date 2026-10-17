@@ -6,14 +6,6 @@ interface
 
 uses Types;
 
-procedure ResetEgaGC;
-
-procedure SetupEgaCurrentPage(page: Byte);
-
-procedure SetupEgaOtherPage(page: Byte);
-
-procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: ShortInt; page, color: Byte);
-
 procedure LoadGameFont;
 
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
@@ -57,90 +49,11 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 implementation
 
 
-uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
+uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
 
 var
-  { EGA video memory segment for currently displayed page }
-  egaCurPage: Word;
-  egaOtherPage: Word;
-var
-
-  cgaB800: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK0_SEG:$0000;
-  cgaBA00: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK1_SEG:$0000;
-  tdyB800: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK0_SEG:$0000;
-  tdyBA00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK1_SEG:$0000;
-  tdyBC00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK2_SEG:$0000;
-  tdyBE00: array[0..255] of Types.TTdyRow absolute C_Video.GFX_BANK3_SEG:$0000;
   { BIOS timer ticks since midnight }
   biosTicks: LongInt absolute $0040:$006C;
-
-{ Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
-procedure ResetEgaGC;
-begin
-  Port[C_Ega.GC_ADDR_PORT] := 0;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 1;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 2;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 3;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 4;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 5;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 7;
-  Port[C_Ega.GC_DATA_PORT] := $0F;
-  Port[C_Ega.GC_ADDR_PORT] := 8;
-  Port[C_Ega.GC_DATA_PORT] := $FF;
-  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
-  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
-end;
-
-{ Make page the active display page (INT10 AH=5) and store its segment base, with a 512-paragraph stride, in egaCurPage.
-  GameBoot initializes both page selectors to 0; RenderChar then writes through both equal page segments. }
-procedure SetupEgaCurrentPage(page: Byte);
-begin
-  GDVars.dsInterruptRegisters.ah := 5;
-  GDVars.dsInterruptRegisters.al := page;
-  Intr($10, GDVars.dsInterruptRegisters);
-  egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
-end;
-
-{ SetupEgaOtherPage: Store the other page's segment base in egaOtherPage using the same 512-paragraph stride, without a
-  BIOS call }
-procedure SetupEgaOtherPage(page: Byte);
-begin
-  egaOtherPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
-end;
-
-{ Fill a character-cell rectangle on an EGA page using write mode 2. The fill goes through egaOtherPage, temporarily
-  pointed at page, and afterwards write mode 0 is restored and egaOtherPage is re-pointed at pageNum. }
-procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: ShortInt; page, color: Byte);
-var
-  savedPage: Byte;
-  dstOff: Word;
-  rowCount: Word;
-  i: Word;
-begin
-  { the rectangle must lie on the 40 x 25 screen, corners in order }
-  if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
-  savedPage := GDVars.pageNum;
-  dstOff := Word(ulRow) * 40 * 8 + ulCol;
-  rowCount := (lrRow - ulRow + 1) * 8 - 1;
-  TextRend.SetupEgaOtherPage(page);
-  TextRend.ResetEgaGC;
-  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
-  Port[C_Ega.GC_DATA_PORT] := 2;
-  for i := 0 to rowCount do begin
-    FillChar(Mem[egaOtherPage: dstOff], lrCol - ulCol + 1, color);
-    Inc(dstOff, 40);
-  end;
-  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
-  Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
-  GDVars.pageNum := savedPage;
-  TextRend.SetupEgaOtherPage(GDVars.pageNum);
-end;
 
 { Load font block 201 from 8X8D1.DAX, copy it into gameFont (no more than gameFont holds) and free the loader's buffer.
   Nothing is copied if the block cannot be loaded. }
@@ -161,21 +74,12 @@ end;
 
 { Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
   through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded
-  font; later copies are not range-checked. A glyph index past the font draws nothing. CGA maps colors and writes
-  packed pixels, EGA writes all four planes to both pages, and Tandy packs two pixels per byte across four banks. }
+  font; later copies are not range-checked. A glyph index past the font draws nothing. The video driver draws each
+  copy (GDVars.video.DrawGlyph). }
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 var
   i: Byte;
   charIdx: Byte;
-  dstOff: Word;
-  cnt: Word;
-  colBase: Word;
-  cgaWord: Word;
-  tandyPx: Byte;
-  k: Byte;
-  mask: Byte;
-  bank: Byte;
-  outerRow: Byte;
 begin
   if (col > 39) or (row > 24) or (GDVars.gameFont = nil) then Exit;
   if isASCII <> 0 then
@@ -184,83 +88,8 @@ begin
     if ch >= SizeOf(Types.TFontArr) div SizeOf(GDVars.gameFont^[0]) then Exit;
     charIdx := ch;
   end;
-  { CGA's colours, mapped once: SSI mapped them again for every copy, so the second copy on had the wrong colour }
-  if GDVars.videoMode = Types.vmCGA then
-    color := GDConsts.attrTable[color];
   for i := 1 to count do begin
-    case GDVars.videoMode of
-      Types.vmCGA: begin
-        dstOff := row * 4;
-        cnt := 0;
-        for outerRow := 0 to 3 do begin
-          cgaWord := 0;
-          mask := $80;
-          for k := 0 to 7 do begin
-            if (GDVars.gameFont^[charIdx][cnt] and mask) > 0 then
-              cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
-            mask := mask shr 1;
-          end;
-          cgaB800[dstOff][col] := Swap(cgaWord);
-          Inc(cnt);
-          cgaWord := 0;
-          mask := $80;
-          for k := 0 to 7 do begin
-            if (GDVars.gameFont^[charIdx][cnt] and mask) > 0 then
-              cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
-            mask := mask shr 1;
-          end;
-          cgaBA00[dstOff][col] := Swap(cgaWord);
-          Inc(cnt);
-          Inc(dstOff);
-        end;
-      end;
-      Types.vmEGA: begin
-        dstOff := (row * 8) * 40 + col;
-        Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
-        for outerRow := 0 to 7 do begin
-          for k := 0 to 3 do begin
-            Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
-            if (GDConsts.egaPlaneMask[3 - k] and color) > 0 then begin
-              Mem[egaCurPage: dstOff] := GDVars.gameFont^[charIdx][outerRow];
-              Mem[egaOtherPage: dstOff] := GDVars.gameFont^[charIdx][outerRow];
-            end else begin
-              Mem[egaCurPage: dstOff] := 0;
-              Mem[egaOtherPage: dstOff] := 0;
-            end;
-          end;
-          Inc(dstOff, 40);
-        end;
-        Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
-      end;
-      Types.vmTandy: begin
-        dstOff := 0;
-        cnt := row * 2;
-        colBase := col * 4;
-        for outerRow := 0 to 1 do begin
-          for bank := 0 to 3 do begin
-            mask := $80;
-            for k := 0 to 3 do begin
-              if (GDVars.gameFont^[charIdx][dstOff] and mask) > 0 then
-                tandyPx := color shl 4
-              else
-                tandyPx := 0;
-              mask := mask shr 1;
-              if (GDVars.gameFont^[charIdx][dstOff] and mask) > 0 then
-                tandyPx := tandyPx or color;
-              mask := mask shr 1;
-              case bank of
-                0: tdyB800[cnt][k + colBase] := tandyPx;
-                1: tdyBA00[cnt][k + colBase] := tandyPx;
-                2: tdyBC00[cnt][k + colBase] := tandyPx;
-                3: tdyBE00[cnt][k + colBase] := tandyPx;
-              end;
-            end;
-            Inc(dstOff);
-          end;
-          Inc(cnt);
-        end;
-      end;
-    end;
+    GDVars.video.DrawGlyph(col, row, color, charIdx);
     Inc(col);
   end;
 end;
@@ -478,25 +307,10 @@ begin
   GetTicks := (now div 10000) * 54925 + (now mod 10000) * 54925 div 10000;
 end;
 
-{ Clear the whole screen to black: both EGA pages, or every CGA or Tandy bank. }
+{ Clear the whole screen to black (the video driver's ClearScreen: both EGA pages, every CGA or Tandy bank). }
 procedure ClearScreen;
 begin
-  case GDVars.videoMode of
-    Types.vmCGA: begin
-      FillChar(cgaBA00, SizeOf(Types.TCgaBank), 0);
-      FillChar(cgaB800, SizeOf(Types.TCgaBank), 0);
-    end;
-    Types.vmEGA: begin
-      TextRend.FillRectEga(0, 0, 39, 24, 0, Black);
-      TextRend.FillRectEga(0, 0, 39, 24, 1, Black);
-    end;
-    Types.vmTandy: begin
-      FillChar(tdyB800, SizeOf(Types.TTandyBank), 0);
-      FillChar(tdyBA00, SizeOf(Types.TTandyBank), 0);
-      FillChar(tdyBC00, SizeOf(Types.TTandyBank), 0);
-      FillChar(tdyBE00, SizeOf(Types.TTandyBank), 0);
-    end;
-  end;
+  GDVars.video.ClearScreen;
 end;
 
 { PrintAndPause: Clear the bottom row, print msg in color, pause on the text delay (not a keywait), clear again. Note
@@ -517,42 +331,10 @@ end;
 
 { Clear a character-cell rectangle to black (on both EGA pages). }
 procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
-var
-  firstRow: Word;
-  lastRow: Word;
-  firstByteColumn: Word;
-  byteCount: Word;
-  row: Word;
 begin
   { the rectangle must lie on the 40 x 25 screen, corners in order }
   if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
-  case GDVars.videoMode of
-    Types.vmCGA: begin
-      firstRow := ulRow * 4;
-      lastRow := lrRow * 4 + 3;
-      byteCount := (lrCol - ulCol + 1) * 2;
-      for row := firstRow to lastRow do begin
-        FillChar(cgaB800[row][ulCol], byteCount, 0);
-        FillChar(cgaBA00[row][ulCol], byteCount, 0);
-      end;
-    end;
-    Types.vmEGA: begin
-      TextRend.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
-      TextRend.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
-    end;
-    Types.vmTandy: begin
-      firstRow := ulRow * 2;
-      lastRow := lrRow * 2 + 1;
-      firstByteColumn := ulCol * 4;
-      byteCount := (lrCol - ulCol + 1) * 4;
-      for row := firstRow to lastRow do begin
-        FillChar(tdyB800[row][firstByteColumn], byteCount, 0);
-        FillChar(tdyBA00[row][firstByteColumn], byteCount, 0);
-        FillChar(tdyBC00[row][firstByteColumn], byteCount, 0);
-        FillChar(tdyBE00[row][firstByteColumn], byteCount, 0);
-      end;
-    end;
-  end;
+  GDVars.video.ClearRect(ulCol, ulRow, lrCol, lrRow);
 end;
 
 end.

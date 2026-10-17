@@ -10,7 +10,209 @@ procedure Install;
 
 implementation
 
-uses Types, GDConsts, GDVars;
+uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos;
+
+const
+  { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
+  GC_WRITE_MODE_1 = 1;
+  { off-screen planar staging area (0x200 para = 8 KB up) }
+  EGA_STAGE_SEG = $A200;
+
+var
+  { the video segments of the displayed page and of the other page; RenderChar writes both }
+  egaCurPage: Word;
+  egaOtherPage: Word;
+
+{ Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
+procedure ResetEgaGC;
+begin
+  Port[C_Ega.GC_ADDR_PORT] := 0;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 1;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 2;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 3;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 4;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 5;
+  Port[C_Ega.GC_DATA_PORT] := 0;
+  Port[C_Ega.GC_ADDR_PORT] := 7;
+  Port[C_Ega.GC_DATA_PORT] := $0F;
+  Port[C_Ega.GC_ADDR_PORT] := 8;
+  Port[C_Ega.GC_DATA_PORT] := $FF;
+  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+end;
+
+{ Make page the active display page (INT10 AH=5) and store its segment base, with a 512-paragraph stride, in egaCurPage.
+  Start sets both page selectors to 0; DrawGlyph then writes through both equal page segments. }
+procedure SetupEgaCurrentPage(page: Byte);
+begin
+  GDVars.dsInterruptRegisters.ah := 5;
+  GDVars.dsInterruptRegisters.al := page;
+  Intr($10, GDVars.dsInterruptRegisters);
+  egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
+end;
+
+{ SetupEgaOtherPage: Store the other page's segment base in egaOtherPage using the same 512-paragraph stride, without a
+  BIOS call }
+procedure SetupEgaOtherPage(page: Byte);
+begin
+  egaOtherPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
+end;
+
+{ Fill a character-cell rectangle on an EGA page using write mode 2. The fill goes through egaOtherPage, temporarily
+  pointed at page, and afterwards write mode 0 is restored and egaOtherPage is re-pointed at pageNum. }
+procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: Byte; page, color: Byte);
+var
+  savedPage: Byte;
+  dstOff: Word;
+  rowCount: Word;
+  i: Word;
+begin
+  savedPage := GDVars.pageNum;
+  dstOff := Word(ulRow) * 40 * 8 + ulCol;
+  rowCount := (lrRow - ulRow + 1) * 8 - 1;
+  VidEga.SetupEgaOtherPage(page);
+  VidEga.ResetEgaGC;
+  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
+  Port[C_Ega.GC_DATA_PORT] := 2;
+  for i := 0 to rowCount do begin
+    FillChar(Mem[egaOtherPage: dstOff], lrCol - ulCol + 1, color);
+    Inc(dstOff, 40);
+  end;
+  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
+  Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
+  GDVars.pageNum := savedPage;
+  VidEga.SetupEgaOtherPage(GDVars.pageNum);
+end;
+
+{ both display pages 0 }
+procedure Start;
+begin
+  GDVars.pageMain := 0;
+  GDVars.pageNum := 0;
+  VidEga.SetupEgaCurrentPage(GDVars.pageMain);
+  VidEga.SetupEgaOtherPage(GDVars.pageNum);
+end;
+
+{ Each span is staged plane by plane in off-screen video memory and then copied to the visible page in one latch-copy
+  pass, so the visible memory is never left with only some planes updated. An EGA last offset of $FFFF would keep the
+  plane loop from ending. }
+procedure FlushSpans;
+var
+  row: Word;
+  srcOff: Word;
+  dstOff: Word;
+  dstBase: Word;
+  plane: Byte;
+begin
+  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
+    if GDVars.spanActive[row] <> 0 then begin
+      dstBase := GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 1;
+      { each plane's bytes, every fourth from its own in the view buffer }
+      for plane := 0 to 3 do begin
+        Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+        srcOff := GDVars.spanFirstOfs[row] + plane;
+        dstOff := dstBase;
+        repeat
+          Mem[EGA_STAGE_SEG:dstOff] := GDVars.dsViewImageBufferPtr^.data[srcOff];
+          Inc(srcOff, 4);
+          Inc(dstOff);
+        until srcOff > GDVars.spanLastOfs[row];
+      end;
+    end;
+  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+  dstOff := GDVars.fbRowOfs[8] + 1;
+  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
+  Port[C_Ega.GC_DATA_PORT] := GC_WRITE_MODE_1;
+  for row := 0 to SizeOf(GDVars.spanActive) - 1 do begin
+    if GDVars.spanActive[row] <> 0 then
+      Move(Mem[EGA_STAGE_SEG:dstOff + GDVars.spanScreenOfs[row]],
+           Mem[C_Video.EGA_VIDEO_SEG:dstOff + GDVars.spanScreenOfs[row]],
+           (GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row]) div 4 + 1);
+    Inc(dstOff, 40);
+  end;
+  Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
+end;
+
+{ 4 plane bytes per cell through the sequencer's map mask }
+procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
+var
+  col: Integer;
+  row: Integer;
+  colOff: Word;
+  firstRow: Word;
+  colEnd: Word;
+  lastRow: Word;
+  srcOff: Word;
+  plane: Byte;
+begin
+  with pic^ do begin
+    srcOff := 0;
+    firstRow := screenY * 8;
+    lastRow := firstRow + height - 1;
+    colOff := screenX;
+    colEnd := colOff + width - 1;
+    Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+    for row := firstRow to lastRow do
+      for col := colOff to colEnd do
+        for plane := 0 to 3 do begin
+          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+          Mem[C_Video.EGA_VIDEO_SEG:GDVars.fbRowOfs[row] + col] := pic^.data[srcOff];
+          Inc(srcOff);
+        end;
+    Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+  end;
+end;
+
+{ all four planes, on both pages }
+procedure DrawGlyph(col, row, color, glyph: Byte);
+var
+  dstOff: Word;
+  k: Byte;
+  outerRow: Byte;
+begin
+  dstOff := (row * 8) * 40 + col;
+  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+  for outerRow := 0 to 7 do begin
+    for k := 0 to 3 do begin
+      Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
+      if (GDConsts.egaPlaneMask[3 - k] and color) > 0 then begin
+        Mem[egaCurPage: dstOff] := GDVars.gameFont^[glyph][outerRow];
+        Mem[egaOtherPage: dstOff] := GDVars.gameFont^[glyph][outerRow];
+      end else begin
+        Mem[egaCurPage: dstOff] := 0;
+        Mem[egaOtherPage: dstOff] := 0;
+      end;
+    end;
+    Inc(dstOff, 40);
+  end;
+  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+end;
+
+{ on both pages }
+procedure ClearRect(ulCol, ulRow, lrCol, lrRow: Byte);
+begin
+  VidEga.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
+  VidEga.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
+end;
+
+procedure ClearScreen;
+begin
+  VidEga.FillRectEga(0, 0, 39, 24, 0, Black);
+  VidEga.FillRectEga(0, 0, 39, 24, 1, Black);
+end;
+
+{ the main page, then the same again, unmapped, on the other page }
+procedure WriteChar(col, row, attr, count, ch: Byte);
+begin
+  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(GDVars.pageNum, col, row, attr, count, ch);
+end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
 var
@@ -34,6 +236,15 @@ begin
     screenShift := 0;
     maskShift := 2;
     CellFill := VidEga.CellFill;
+    biosMode := 13;
+    ramVideoParas := 0;
+    Start := VidEga.Start;
+    FlushSpans := VidEga.FlushSpans;
+    ShowPic := VidEga.ShowPic;
+    DrawGlyph := VidEga.DrawGlyph;
+    ClearRect := VidEga.ClearRect;
+    ClearScreen := VidEga.ClearScreen;
+    WriteChar := VidEga.WriteChar;
   end;
 end;
 

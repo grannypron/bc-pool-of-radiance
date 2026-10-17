@@ -443,6 +443,22 @@ them), except where a step says otherwise.
    - Sizes: resident code -496 bytes.
    - The suite passes in all three modes. The extra frame warnings are animation timing: they move from run to run on
      the same build.
+
+   **2b done.**
+   - The record gained `biosMode` and `ramVideoParas` (Tandy's screen in system RAM, kept from the heap), plus these
+     entries:
+     - `Start` (EGA's pages)
+     - `FlushSpans`
+     - `ShowPic`
+     - `DrawGlyph`
+     - `ClearRect` and `ClearScreen`
+     - `WriteChar`, using DaxIo's new mode-independent `BiosWriteChar`.
+   - The drivers hold that code, with EGA's page and graphics-controller helpers and the CGA and Tandy bank arrays.
+   - Blit, TextRend and DaxIo keep the span reset, the glyph lookup and loop, and the range check.
+   - GameBoot sets any mode from the record: it picks the driver, keeps a RAM screen out of the heap, sets the BIOS
+     mode and calls `Start`.
+   - Speed is unchanged from 2a. Resident code +720 bytes, from the drivers' entry routines.
+   - The suite passes in all three modes, and ssiformat passes.
 3. **One unit per mode.**
    - `VidCga`, `VidEga` and `VidTdy` each fill the record from the code now in Blit's and TextRend's `case` arms.
    - GameBoot installs the one POOL.CFG names.

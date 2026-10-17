@@ -805,6 +805,11 @@ type
   { one 8-pixel cell row of a picture in a single colour, in the video mode's layout (its first cellBytes bytes) }
   TCellBytes = array[0..3] of Byte;
   TCellFillProc = procedure(color: Byte; var colorMap: TColorMap; var cell: TCellBytes);
+  TVideoProc = procedure;
+  TShowPicProc = procedure(screenX, screenY: Integer; pic: PImgBuf);
+  TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
+  TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
+  TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
   { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
     routines. GameBoot installs one (VidCga, VidEga or VidTdy) into GDVars.video. }
   TVideoDriver = record
@@ -826,6 +831,25 @@ type
     maskShift: Byte;
     { a cell row filled with color: colorMap picks CGA's colour }
     CellFill: TCellFillProc;
+    { the BIOS video mode (INT 10h AH=0) }
+    biosMode: Byte;
+    { paragraphs of conventional memory the screen takes at the top of RAM, which the heap must leave alone: Tandy's
+      video memory is system RAM }
+    ramVideoParas: Word;
+    { set up the mode once the BIOS has set it (EGA's display pages) }
+    Start: TVideoProc;
+    { copy the view buffer's dirty spans (GDVars.span*) to the screen; Blit.FlushView then clears the spans }
+    FlushSpans: TVideoProc;
+    { draw a picture's first frame straight to the screen at a cell position (Blit.ShowPic) }
+    ShowPic: TShowPicProc;
+    { draw game-font glyph glyph at a text cell in a colour (TextRend.RenderChar) }
+    DrawGlyph: TDrawGlyphProc;
+    { clear a text-cell rectangle, already checked to lie on the 40 x 25 screen, to black (TextRend.ClearRect) }
+    ClearRect: TClearRectProc;
+    { clear the whole screen to black }
+    ClearScreen: TVideoProc;
+    { BIOS text output: count copies of ch in attr at a text cell (DaxIo.WriteChar) }
+    WriteChar: TWriteCharProc;
   end;
 
   { EclMenu types. }

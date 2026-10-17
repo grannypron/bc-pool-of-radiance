@@ -93,24 +93,19 @@ begin
     'E': begin
       GDVars.videoMode := Types.vmEGA;
       VidEga.Install;
-      Blit.SetVideoMode(13);
-      GDVars.pageMain := 0;
-      GDVars.pageNum := 0;
-      TextRend.SetupEgaCurrentPage(GDVars.pageMain);
-      TextRend.SetupEgaOtherPage(GDVars.pageNum);
     end;
     'T': begin
       GDVars.videoMode := Types.vmTandy;
       VidTdy.Install;
-      Blit.SetVideoMode(9);
     end;
   else begin
     mode := 'C';
     GDVars.videoMode := Types.vmCGA;
     VidCga.Install;
-    Blit.SetVideoMode(4);
   end;
   end;
+  Blit.SetVideoMode(GDVars.video.biosMode);
+  GDVars.video.Start;
   { as GameInit2 sets them up }
   for i := 0 to 199 do begin
     if Odd(i) then

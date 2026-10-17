@@ -7,8 +7,7 @@ interface
 
 implementation
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga,
-  VidTdy;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy;
 
 var
   { lowered HeapEnd snapshot }
@@ -110,27 +109,24 @@ begin
     'E': begin
       GDVars.videoMode := Types.vmEGA;
       VidEga.Install;
-      Blit.SetVideoMode(13);
-      GDVars.pageMain := 0;
-      GDVars.pageNum := 0;
-      TextRend.SetupEgaCurrentPage(GDVars.pageMain);
-      TextRend.SetupEgaOtherPage(GDVars.pageNum);
     end;
     'T': begin
       GDVars.videoMode := Types.vmTandy;
       VidTdy.Install;
-      { Lower HeapEnd by GFX_RESERVE_PARAS; the common code after the sound setting lowers it once more, so Tandy
-        reserves twice as much }
-      gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
-      HeapEnd := gfxReserve;
-      Blit.SetVideoMode(9);
     end;
     else begin
       GDVars.videoMode := Types.vmCGA;
       VidCga.Install;
-      Blit.SetVideoMode(4);
     end;
   end;
+  { Keep a screen that lives in system RAM (Tandy's) out of the heap: lower HeapEnd by it. The common code after the
+    sound setting lowers HeapEnd by GFX_RESERVE_PARAS once more, so Tandy reserves twice as much. }
+  if GDVars.video.ramVideoParas > 0 then begin
+    gfxReserve := Ptr(heapEndW.s - GDVars.video.ramVideoParas, heapEndW.o);
+    HeapEnd := gfxReserve;
+  end;
+  Blit.SetVideoMode(GDVars.video.biosMode);
+  GDVars.video.Start;
   if OVERLAY_BUF_BYTES - OvrGetBuf <= MemAvail then begin
     OvrSetBuf(OVERLAY_BUF_BYTES);
     { probation (#612): an overlay called while it sits in the last third of the buffer is kept rather than dropped,

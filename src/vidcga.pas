@@ -11,7 +11,110 @@ procedure Install;
 
 implementation
 
-uses Types, GDConsts, GDVars, Blit;
+uses Types, C_Video, GDConsts, GDVars, DaxIo, Blit;
+
+var
+  { the two banks: even scanlines at $B800, odd at $BA00, 4 text rows of 80 bytes a cell row }
+  cgaB800: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK0_SEG:$0000;
+  cgaBA00: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK1_SEG:$0000;
+
+procedure Start;
+begin
+end;
+
+procedure FlushSpans;
+var
+  row: Word;
+begin
+  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
+    if GDVars.spanActive[row] <> 0 then
+      Move(GDVars.dsViewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
+           Mem[GDVars.cgaRowSeg[row + 8]:GDVars.spanScreenOfs[row] + 2],
+           GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
+end;
+
+{ 2 bytes per 8-pixel cell, a row at a time through the row segments }
+procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
+var
+  row: Integer;
+  colOff: Word;
+  firstRow: Word;
+  lastRow: Word;
+  rowBytes: Word;
+  srcOff: Word;
+begin
+  with pic^ do begin
+    rowBytes := width * 2;
+    srcOff := 0;
+    firstRow := screenY * 8;
+    lastRow := firstRow + height - 1;
+    colOff := screenX * 2;
+    for row := firstRow to lastRow do begin
+      Move(pic^.data[srcOff], Mem[GDVars.cgaRowSeg[row]:colOff], rowBytes);
+      Inc(srcOff, rowBytes);
+    end;
+  end;
+end;
+
+{ color is mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat }
+procedure DrawGlyph(col, row, color, glyph: Byte);
+var
+  dstOff: Word;
+  cnt: Word;
+  cgaWord: Word;
+  k: Byte;
+  mask: Byte;
+  outerRow: Byte;
+begin
+  color := GDConsts.attrTable[color];
+  dstOff := row * 4;
+  cnt := 0;
+  for outerRow := 0 to 3 do begin
+    cgaWord := 0;
+    mask := $80;
+    for k := 0 to 7 do begin
+      if (GDVars.gameFont^[glyph][cnt] and mask) > 0 then
+        cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
+      mask := mask shr 1;
+    end;
+    cgaB800[dstOff][col] := Swap(cgaWord);
+    Inc(cnt);
+    cgaWord := 0;
+    mask := $80;
+    for k := 0 to 7 do begin
+      if (GDVars.gameFont^[glyph][cnt] and mask) > 0 then
+        cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
+      mask := mask shr 1;
+    end;
+    cgaBA00[dstOff][col] := Swap(cgaWord);
+    Inc(cnt);
+    Inc(dstOff);
+  end;
+end;
+
+procedure ClearRect(ulCol, ulRow, lrCol, lrRow: Byte);
+var
+  row: Word;
+  byteCount: Word;
+begin
+  byteCount := (lrCol - ulCol + 1) * 2;
+  for row := ulRow * 4 to lrRow * 4 + 3 do begin
+    FillChar(cgaB800[row][ulCol], byteCount, 0);
+    FillChar(cgaBA00[row][ulCol], byteCount, 0);
+  end;
+end;
+
+procedure ClearScreen;
+begin
+  FillChar(cgaBA00, SizeOf(Types.TCgaBank), 0);
+  FillChar(cgaB800, SizeOf(Types.TCgaBank), 0);
+end;
+
+{ the attribute's colour (its low four bits) mapped through attrTable, on the one page }
+procedure WriteChar(col, row, attr, count, ch: Byte);
+begin
+  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, GDConsts.attrTable[attr and $0F], count, ch);
+end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
 begin
@@ -29,6 +132,15 @@ begin
     screenShift := 1;
     maskShift := 0;
     CellFill := VidCga.CellFill;
+    biosMode := 4;
+    ramVideoParas := 0;
+    Start := VidCga.Start;
+    FlushSpans := VidCga.FlushSpans;
+    ShowPic := VidCga.ShowPic;
+    DrawGlyph := VidCga.DrawGlyph;
+    ClearRect := VidCga.ClearRect;
+    ClearScreen := VidCga.ClearScreen;
+    WriteChar := VidCga.WriteChar;
   end;
 end;
 
