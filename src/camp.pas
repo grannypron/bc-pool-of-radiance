@@ -712,7 +712,7 @@ begin
 end;
 
 { Reorder the party through Select and Place modes. In Select mode extended keys pick a character; in Place mode Home
-  moves it up and End moves it down. P and S switch modes; Enter takes the highlighted option. }
+  or Up moves it up and End or Down moves it down. P and S switch modes; Enter takes the highlighted option. }
 procedure CampOrderMenu;
 var
   selected: ShortInt;
@@ -730,8 +730,8 @@ begin
         CharDisp.DisplayParty(GDVars.curChar);
       end else begin
         case c of
-          C_Keys.HOME: Camp.OrderMoveUp;
-          C_Keys.END_KEY: Camp.OrderMoveDown;
+          C_Keys.HOME, C_Keys.UP: Camp.OrderMoveUp;
+          C_Keys.END_KEY, C_Keys.DOWN: Camp.OrderMoveDown;
         end;
         CharDisp.DisplayParty(GDVars.curChar);
       end;

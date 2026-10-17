@@ -116,12 +116,8 @@ begin
             True, False, ext);
     TextRend.ClearBottomLine;
     if ext then begin
-      { Up and Down step through the party as Home and End do; the menu has no other use for them }
-      if ch = C_Keys.UP then
-        ch := C_Keys.HOME
-      else if ch = C_Keys.DOWN then
-        ch := C_Keys.END_KEY;
-      if ch in [C_Keys.HOME, C_Keys.END_KEY] then begin
+      { Home, End, Up and Down step through the party (Party.SelectPrevNextChar) }
+      if ch in [C_Keys.HOME, C_Keys.END_KEY, C_Keys.UP, C_Keys.DOWN] then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
       end;
