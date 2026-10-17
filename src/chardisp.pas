@@ -552,6 +552,9 @@ begin
     C_Ifc.CAMPING: begin
       CharDisp.DrawNoncombatWindows(True);
       Portrait.LoadAnimation('PIC', 29, 0, GDVars.animData);
+      { the campfire now, not only once an animating menu draws it: a plain prompt may come first (#666) }
+      if GDVars.animData.current > 0 then
+        Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[GDVars.animData.current].pic);
       CharDisp.DisplayParty(GDVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
