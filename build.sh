@@ -233,11 +233,11 @@ if [ $run_tests -eq 1 ]; then
     mkdir -p "$root/build/logs/tests"
     rm -f "$root"/obj/tests/* "$root"/build/logs/tests/*.OUT "$root"/build/logs/TEST_*.OUT
     # RUNTESTS.BAT compiles each test program (with every unit it uses, /B) into obj\tests and runs it there; each
-    # appends its checks to TEST.LOG.
+    # appends its checks to TEST.LOG. Objects come from obj\tests, then obj, where the build assembles SOUNDDRV.OBJ.
     {
         printf '@echo off\r\npath d:\\\r\n'
         for t in "${tests[@]}"; do
-            printf 'cd \\tests\r\ntpc %s.pas /B /E..\\obj\\tests /O..\\obj\\tests > e:\\build\\logs\\tests\\%s.OUT\r\n' "$t" "$t"
+            printf 'cd \\tests\r\ntpc %s.pas /B /E..\\obj\\tests /O..\\obj\\tests;..\\obj > e:\\build\\logs\\tests\\%s.OUT\r\n' "$t" "$t"
             printf 'cd \\obj\\tests\r\nif exist %s.EXE %s\r\n' "$t" "$t"
         done
     } > "$root/obj/tests/RUNTESTS.BAT"

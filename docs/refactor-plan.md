@@ -484,6 +484,20 @@ them), except where a step says otherwise.
      a wider entry point (a row or a span per call) before any assembly.
 4. **Tests.** Picture conversion, mirroring, remapping and the mask sizes become TestKit programs per driver, run
    without video hardware against known DAX frames. Screen output stays with the regression scenarios.
+
+   **Done.**
+   - TVidPic installs each driver in turn. Installing only fills the record, so no video hardware is needed.
+   - It converts a one-cell, two-row DAX picture: colours 0..7 and then 7..0, with 0 transparent.
+   - It checks, in every mode, against bytes worked out by hand from the mode's layout:
+     - the frame and mask sizes;
+     - the converted data and mask;
+     - a mirror (row 0 mirrored is row 1), and mirrored twice;
+     - a one-colour remap;
+     - a one-cell fill;
+     - the picture blitted through its mask over another colour.
+   - 39 checks pass.
+   - build.sh's test runner now finds objects in `obj` as well as `obj\tests`, for the sound driver the video units
+     link through GameIo.
 5. **VGA (mode 13h).** A fourth driver, `VidVga`, chosen by a new POOL.CFG letter. Its settings:
    - The art is 16-colour, so the DAC is loaded with the EGA palette.
    - Pictures are stored one byte per pixel, 8 bytes per 8-pixel cell, with colour 0 or a key byte as transparency.
