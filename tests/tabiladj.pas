@@ -97,6 +97,15 @@ begin
   CheckDex(25, 5, 6);
 
   { the Constitution save bonus, +1 per 3 1/2 points }
+  { ability scores in play stay within 3..25 (#615) }
+  TestKit.CheckEqualsL(3, AbilAdj.ClampScore(-1), 'below 3 counts as 3');
+  TestKit.CheckEqualsL(3, AbilAdj.ClampScore(1), '1 counts as 3');
+  TestKit.CheckEqualsL(3, AbilAdj.ClampScore(3), '3 stays');
+  TestKit.CheckEqualsL(18, AbilAdj.ClampScore(18), '18 stays');
+  TestKit.CheckEqualsL(25, AbilAdj.ClampScore(25), '25 stays');
+  TestKit.CheckEqualsL(25, AbilAdj.ClampScore(26), '26 counts as 25');
+  TestKit.CheckEqualsL(25, AbilAdj.ClampScore(300), 'and so does 300');
+
   { Deities & Demigods: the poison save and regeneration above 18 }
   TestKit.CheckEqualsL(0, AbilAdj.ConPoisonSave(18), 'Constitution 18: no poison bonus');
   TestKit.CheckEqualsL(1, AbilAdj.ConPoisonSave(19), '19: +1 vs poison');

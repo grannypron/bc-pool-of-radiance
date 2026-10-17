@@ -22,6 +22,14 @@ procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pau
 
 procedure PrintMessageWait(s: string);
 
+{ Show s in color in the message window (the combat window in combat, else the bottom window), word-wrapped. first
+  clears and opens the window; otherwise s carries on from where the last part stopped, so a message can be shown in
+  parts of different colours. MessageWait then waits for a key. }
+procedure MessageText(s: string; color: Byte; first: Boolean);
+
+{ Wait for a key at the 'Press any key to continue' prompt and clear the prompt; the window keeps the text. }
+procedure MessageWait;
+
 procedure PrintBottomLine(s: Types.TStr40);
 
 procedure ClearMessageWindow;
@@ -58,6 +66,10 @@ implementation
 
 uses CharHlp, Crt, C_Area, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
+
+var
+  { the bottom message window's top row, from MessageText's first part for the parts after it }
+  messageTop: Byte;
 
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
@@ -215,17 +227,28 @@ end;
   'Press any key to continue' prompt and clear the prompt. The window keeps the text, and curRow is left on its last
   line. }
 procedure PrintMessageWait(s: string);
-var
-  top: Byte;
+begin
+  CharDisp.MessageText(s, LightGreen, True);
+  CharDisp.MessageWait;
+end;
+
+procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
+    if first then
+      Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
     TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM,
-                                  LightGreen, True, s);
+                                  color, first, s);
   end else begin
-    top := CharDisp.OpenMessageWindow;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True, s);
+    if first then
+      messageTop := CharDisp.OpenMessageWindow;
+    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, messageTop + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, color, first,
+                                  s);
   end;
+end;
+
+procedure MessageWait;
+begin
   TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
   Border.ClearBox(0, 24, 39, 24);
 end;

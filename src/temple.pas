@@ -13,7 +13,7 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, 
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal;
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
@@ -116,8 +116,9 @@ end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). Remove
   animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
-  one unless it is 0. hpMax loses the hit points that point was worth, the Con table's bonus at the old Constitution
-  less the bonus at the new over every hit die (ClassCal.ConHpTotal), keeping at least 1. }
+  one unless it is 3 (AbilAdj.SCORE_MIN) or less. hpMax loses the hit points that point was worth, the Con table's
+  bonus at the old Constitution less the bonus at the new over every hit die (ClassCal.ConHpTotal), keeping at least
+  1. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -147,7 +148,8 @@ begin
         creature^.status := C_Status.OKAY;
         creature^.enabled := 1;
         Stats.Count(creature, Stats.RAISED, 1);
-        if creature^.conCur > 0 then begin
+        { Constitution goes no lower than AbilAdj.SCORE_MIN (#615) }
+        if creature^.conCur > AbilAdj.SCORE_MIN then begin
           Dec(creature^.conCur);
           hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) -
                     ClassCal.ConHpTotal(creature, creature^.conCur);
