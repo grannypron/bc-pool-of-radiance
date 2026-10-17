@@ -14,22 +14,26 @@ const
   { the longest description and area name a slot keeps }
   DESC_LEN = 30;
   AREA_LEN = 18;
+  { the longest description typed, and shown, beside the time a slot was saved }
+  DESC_SHOWN = 27;
 
 type
   TSlotDesc = string[DESC_LEN];
   TSlotArea = string[AREA_LEN];
 
-{ Run the menu and return the slot chosen, or C_Keys.NONE for Escape. Saving lists every slot, an unused one as EMPTY;
-  loading lists only the slots holding a saved game, and returns C_Keys.NONE at once when there are none. Up and Down
-  (Home and End) move the selection a slot at a time, scrolling the list a slot at a time past its top or bottom,
-  Page Up and Page Down a screenful; a slot's letter selects it; Enter, or the action's own key (L or S), takes it. The
-  selection starts on slot start when it is listed, else on the newest saved game. The caller redraws the screen
-  afterwards. }
+{ Run the menu and return the slot chosen, or C_Keys.NONE for Escape or Exit. Saving lists every slot, an unused one
+  as EMPTY; loading lists only the slots holding a saved game, and returns C_Keys.NONE at once when there are none. A
+  slot shows its letter (white: the key that takes it), description and time saved, and below them its area and date.
+  Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a time, scrolling the
+  list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load) takes the selected
+  slot, and a slot's letter takes that slot at once. Exit has no key (E is a slot's); the arrows reach it. The selection
+  starts on slot start when it is listed, else on the newest saved game. The caller redraws the screen afterwards. }
 function ChooseSlot(saving: Boolean; start: Char): Char;
 
 { The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
-  starts as desc and is edited on its line (up to DESC_LEN characters, upper case; Backspace deletes). Enter ends the
-  editing and asks Okay or Exit on the bottom line. True, with desc set, for Okay; False for Exit or Escape. }
+  starts as desc and is edited on its line (up to DESC_SHOWN characters, upper case; Backspace deletes). While it is
+  empty it shows, and is, SAVE GAME and the letter. The bottom line reads Save: Okay Exit: Enter is Okay, True with
+  desc set; Escape is Exit, False. }
 function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boolean;
 
 { The description and area kept for slot letter: True when its savgam<x>.inf is a slot-info file of this format, else
@@ -60,13 +64,18 @@ const
   LIST_BOTTOM = 22;
   { the slots shown at once: each takes two rows and a blank one, below the top "(more)" row }
   VISIBLE = 6;
-  { a slot's second line: the area from AREA_COL, the time from STAMP_COL }
-  AREA_COL = 4;
-  STAMP_COL = 23;
-  { the save popup's box, and its description line }
-  POP_LEFT = 5;
-  POP_RIGHT = 34;
-  POP_DESC_ROW = 13;
+  { the text inside the list box, a column in from its borders: a slot's letter at LEFT_COL, its description and area
+    from DESC_COL, its time and date ending at RIGHT_COL }
+  LEFT_COL = 2;
+  DESC_COL = 5;
+  RIGHT_COL = 37;
+  { the save popup's description line }
+  POP_DESC_ROW = LIST_TOP + 5;
+  { the bottom line's options, by GDVars.horizChoice }
+  OPT_NEXT = 1;
+  OPT_PREV = 2;
+  OPT_TAKE = 3;
+  OPT_EXIT = 4;
 
 type
   { A savgam<x>.inf file. }
@@ -84,7 +93,9 @@ var
   used: array[1..16] of Boolean;
   descs: array[1..16] of TSlotDesc;
   areas: array[1..16] of TSlotArea;
-  stamps: array[1..16] of string[16];
+  { when each was saved: hh:mm and YYYY/MM/DD }
+  clocks: array[1..16] of string[5];
+  dates: array[1..16] of string[10];
   times: array[1..16] of LongInt;
   { the selected slot, and the first one shown, as indexes into listed }
   sel: Byte;
@@ -125,8 +136,8 @@ begin
   written := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
 end;
 
-{ Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as
-  YYYY/MM/DD hh:mm), and its description and area. A save with no slot-info file (one made before the menu kept them)
+{ Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as hh:mm and
+  YYYY/MM/DD), and its description and area. A save with no slot-info file (one made before the menu kept them)
   has no description, and its area is read from the save itself: the GBVM previousScriptId and mapId in its zone 0,
   which follows the one-byte virtualDisk. }
 procedure ReadSlot(i: Byte; letter: Char);
@@ -144,7 +155,8 @@ begin
   listed[i] := letter;
   used[i] := False;
   times[i] := 0;
-  stamps[i] := '';
+  clocks[i] := '';
+  dates[i] := '';
   descs[i] := '';
   areas[i] := '';
   if FileUtil.OpenReadOnly(f, SaveMenu.SlotFile(letter, '.dat')) then begin
@@ -154,8 +166,8 @@ begin
       times[i] := t;
       UnpackTime(t, dt);
       Str(dt.Year, y);
-      stamps[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day) + ' ' +
-                   StrUtil.ZeroPad2(dt.Hour) + ':' + StrUtil.ZeroPad2(dt.Min);
+      clocks[i] := StrUtil.ZeroPad2(dt.Hour) + ':' + StrUtil.ZeroPad2(dt.Min);
+      dates[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day);
     end;
     if not SaveMenu.ReadSlotInfo(letter, descs[i], areas[i]) then begin
       Seek(f, 1 + Ofs(GDVars.zone0^.previousScriptId) - Ofs(GDVars.zone0^));
@@ -178,8 +190,8 @@ begin
   TextRend.DisplayCentered(1, 38, row, White, '(more)');
 end;
 
-{ Draw the slots from top, the selected one in white and the rest in light green, with "(more)" above when a slot is
-  hidden above and below when one is hidden below. }
+{ Draw the slots from top, each letter in white, the selected slot in white and the rest in light green, with "(more)"
+  above when a slot is hidden above and below when one is hidden below. }
 procedure DrawList;
 var
   k: Byte;
@@ -198,12 +210,15 @@ begin
       else
         color := LightGreen;
       row := LIST_TOP + 1 + 3 * k;
+      TextRend.DisplayString(LEFT_COL, row, White, listed[i]);
+      TextRend.DisplayString(LEFT_COL + 1, row, color, ':');
       if used[i] then begin
-        TextRend.DisplayString(1, row, color, listed[i] + ': ' + descs[i]);
-        TextRend.DisplayString(AREA_COL, row + 1, color, areas[i]);
-        TextRend.DisplayString(STAMP_COL, row + 1, color, stamps[i]);
+        TextRend.DisplayString(DESC_COL, row, color, Copy(descs[i], 1, DESC_SHOWN));
+        TextRend.DisplayString(RIGHT_COL + 1 - Length(clocks[i]), row, color, clocks[i]);
+        TextRend.DisplayString(DESC_COL, row + 1, color, areas[i]);
+        TextRend.DisplayString(RIGHT_COL + 1 - Length(dates[i]), row + 1, color, dates[i]);
       end else
-        TextRend.DisplayString(1, row, color, listed[i] + ': EMPTY');
+        TextRend.DisplayString(DESC_COL, row, color, 'EMPTY');
     end;
   end;
   if top + VISIBLE - 1 < count then
@@ -267,9 +282,22 @@ begin
   else
     action := 'Load';
   chosen := ' ';
+  GDVars.horizChoice := OPT_TAKE;
   repeat
     MenuCore.extraKeys := listed;
-    ch := MenuCore.MenuHorizontal('Game: ', action, LightMagenta, LightGreen, White, True, False, ext);
+    MenuCore.unmarked := 'E';
+    MenuCore.enterToCaller := True;
+    ch := MenuCore.MenuHorizontal('Game: ', 'Next Prev ' + action + ' Exit', LightMagenta, LightGreen, White, True,
+                                  False, ext);
+    { Enter takes the bottom line's current option }
+    if (not ext) and (ch = C_Keys.ENTER) then
+      case GDVars.horizChoice of
+        OPT_NEXT: ch := 'N';
+        OPT_PREV: ch := 'P';
+        OPT_TAKE: ch := action[1];
+      else
+        ch := C_Keys.NONE;
+      end;
     if ext then
       case ch of
         C_Keys.UP, C_Keys.HOME: SaveMenu.MoveTo(sel - 1);
@@ -286,75 +314,74 @@ begin
       end
     else if ch = C_Keys.NONE then
       chosen := C_Keys.NONE
-    else if ch = action[1] then begin
-      if saving or used[sel] then
-        chosen := listed[sel];
-    end else if (ch <> ' ') and (Pos(ch, listed) > 0) then
-      SaveMenu.MoveTo(Pos(ch, listed));
+    { a slot's letter takes it, as Save or Load on it does (#652) }
+    else if (ch <> ' ') and (Pos(ch, listed) > 0) then
+      chosen := ch
+    else if ch = 'N' then
+      SaveMenu.MoveTo(sel + 1)
+    else if ch = 'P' then
+      SaveMenu.MoveTo(sel - 1)
+    else if ch = action[1] then
+      chosen := listed[sel];
   until chosen <> ' ';
   TextRend.ClearBottomLine;
   ChooseSlot := chosen;
 end;
 
-{ Draw the description line: desc in white, the rest of its DESC_LEN columns as dots (the font's underscore is not a
-  line). }
-procedure DrawDescLine(desc: TSlotDesc);
+{ Draw the description line: shown in white, the rest of its DESC_SHOWN columns as dots (the font's underscore is not
+  a line). }
+procedure DrawDescLine(shown: TSlotDesc);
 var
   i: Byte;
 begin
-  TextRend.DisplayString(POP_LEFT, POP_DESC_ROW, White, desc);
-  for i := Length(desc) + 1 to DESC_LEN do
-    TextRend.DisplayString(POP_LEFT + i - 1, POP_DESC_ROW, LightGreen, '.');
+  TextRend.DisplayString(LEFT_COL, POP_DESC_ROW, White, shown);
+  for i := Length(shown) + 1 to DESC_SHOWN do
+    TextRend.DisplayString(LEFT_COL + i - 1, POP_DESC_ROW, LightGreen, '.');
 end;
 
 function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boolean;
 var
   s: TSlotDesc;
+  default: TSlotDesc;
   key: Char;
-  ch: Char;
-  ext: Boolean;
 begin
-  AskDescription := False;
-  { the list is cleared behind it; a title box on row 7, the slot and area on rows 9 and 10, the description on rows
-    12 and 13 }
+  { the list is cleared behind it: the slot and area on its second and third rows, the description on its fifth and
+    sixth }
   Border.ClearBox(1, LIST_TOP, 38, LIST_BOTTOM);
-  Border.DrawBorder(POP_LEFT, 9, POP_RIGHT, 10, 0);
-  Border.DrawBorder(POP_LEFT, 12, POP_RIGHT, POP_DESC_ROW, 0);
-  Border.DrawBorder(POP_LEFT, 7, POP_RIGHT, 7, 0);
-  TextRend.DisplayString(POP_LEFT + (POP_RIGHT - POP_LEFT + 1 - 9) div 2, 7, White, 'Save Game');
-  TextRend.DisplayString(POP_LEFT, 9, LightGreen, 'Save Game ' + letter);
-  TextRend.DisplayString(POP_LEFT, 10, LightGreen, 'Location: ' + area);
-  TextRend.DisplayString(POP_LEFT, 12, LightGreen, 'Description:');
-  s := desc;
-  SaveMenu.DrawDescLine(s);
+  default := 'SAVE GAME ' + letter;
+  TextRend.DisplayString(LEFT_COL, LIST_TOP + 1, LightGreen, default);
+  TextRend.DisplayString(LEFT_COL, LIST_TOP + 2, LightGreen, 'Location: ' + area);
+  TextRend.DisplayString(LEFT_COL, LIST_TOP + 4, LightGreen, 'Description:');
+  s := Copy(desc, 1, DESC_SHOWN);
   TextRend.ClearBottomLine;
-  TextRend.DisplayString(0, 24, LightMagenta, 'Type a description, then press Enter');
+  TextRend.DisplayString(0, 24, LightMagenta, 'Save: ');
+  TextRend.DisplayString(6, 24, White, 'O');
+  TextRend.DisplayString(7, 24, LightGreen, 'kay ');
+  TextRend.DisplayString(11, 24, White, 'E');
+  TextRend.DisplayString(12, 24, LightGreen, 'xit');
   repeat
+    if s = '' then
+      SaveMenu.DrawDescLine(default)
+    else
+      SaveMenu.DrawDescLine(s);
     key := GameIo.ReadGameKey;
     case key of
       { an extended key's scan code follows its #0: neither is typed }
       #0: key := GameIo.ReadGameKey;
       ' '..'z':
-        if Length(s) < DESC_LEN then begin
+        if Length(s) < DESC_SHOWN then
           s := s + UpCase(key);
-          SaveMenu.DrawDescLine(s);
-        end;
       C_Keys.BACKSPACE:
-        if Length(s) > 0 then begin
+        if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
-          SaveMenu.DrawDescLine(s);
-        end;
     end;
   until (key = C_Keys.ENTER) or (key = C_Keys.ESC);
   TextRend.ClearBottomLine;
-  ch := C_Keys.NONE;
+  if s = '' then
+    s := default;
   if key = C_Keys.ENTER then
-    ch := MenuCore.MenuHorizontal('Save: ', 'Okay Exit', LightMagenta, LightGreen, White, False, False, ext);
-  TextRend.ClearBottomLine;
-  if ch = 'O' then begin
     desc := s;
-    AskDescription := True;
-  end;
+  AskDescription := key = C_Keys.ENTER;
 end;
 
 { 'Put save disk in C:', for the save directory's drive. }

@@ -2,7 +2,9 @@
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-press l j ret
+# a slot's letter loads it at once in ours (#652)
+golden: press l j ret
+candidate: press l j
 wait AREA
 press e
 wait CAMP
