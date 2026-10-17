@@ -656,8 +656,9 @@ begin
                    TextRend.DisplayAndPause(Yellow, 'The vault is full.');
                end else if ViewChar.CheckItemAvail(sel) then
                begin
+                 { the item label ends in a space }
                  CharHlp.ItemLabel(sel, False);
-                 ViewChar.SayBelow(True, 'Your ' + sel^.name + ' will be gone forever');
+                 ViewChar.SayBelow(True, 'Your ' + sel^.name + 'will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
                    CharHlp.RemoveItem(GDVars.curChar, sel);

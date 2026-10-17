@@ -474,7 +474,7 @@ begin
       if spellId = C_Spell.NONE then begin
         done := True;
         if notEmpty = False then
-          CharDisp.PrintNameString(GDVars.curChar, 'has no copyable scrolls', 10, True)
+          CharDisp.PrintNameString(GDVars.curChar, 'has no copyable scrolls.', 10, True)
         else
           redraw := True;
       end else if (spellId > SizeOf(GDVars.curChar^.spellsKnown)) or (GDConsts.spellTable[spellId].levelSp < 1) or
@@ -486,7 +486,7 @@ begin
       end else begin
         redraw := True;
         if GDVars.curChar^.spellsKnown[spellId] <> 0 then
-          CharDisp.PrintBottomLine('You already know that spell')
+          CharDisp.PrintBottomLine('You already know that spell.')
         else begin
           p := GDVars.curChar^.itemsAddr;
           found := False;
@@ -495,7 +495,7 @@ begin
               for i := 1 to SizeOf(p^.spells) do
                 if (p^.spells[i] > C_Spell.ID_MASK) and
                     (p^.spells[i] and C_Spell.ID_MASK = spellId) then begin
-                  CharDisp.PrintBottomLine('You are already scibing that spell');
+                  CharDisp.PrintBottomLine('You are already scribing that spell.');
                   found := True;
                 end;
             p := p^.next;
@@ -762,14 +762,14 @@ begin
   CharDisp.PrintNameString(GDVars.curChar, 'will be gone', 10, False);
   if MenuCore.YesNoMenu('Drop from party? ', Yellow, LightGreen, White) = 'Y' then begin
     if GDVars.curChar^.enabled <> 0 then
-      CharDisp.PrintNameString(GDVars.curChar, 'bids you farewell', 10, True)
+      CharDisp.PrintNameString(GDVars.curChar, 'bids you farewell.', 10, True)
     else
-      CharDisp.PrintNameString(GDVars.curChar, 'is dumped in a ditch', 10, True);
+      CharDisp.PrintNameString(GDVars.curChar, 'is dumped in a ditch.', 10, True);
     SaveLoad.RemoveCreature(False, True);
     Border.ClearBox(17, 1, 38, 11);
     CharDisp.DisplayParty(GDVars.curChar);
   end else
-    CharDisp.PrintNameString(GDVars.curChar, 'Breathes A sigh of relief', 10, True);
+    CharDisp.PrintNameString(GDVars.curChar, 'Breathes A sigh of relief.', 10, True);
 end;
 
 { Run the Alter menu ('Order Drop Char Settings Exit'). Char opens a submenu for the current character's icon or
