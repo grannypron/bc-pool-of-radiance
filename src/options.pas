@@ -27,7 +27,7 @@ procedure OptionsMenu;
 implementation
 
 uses Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo, SoundDrv, DaxIo, DataArc,
-  GDConsts;
+  GDConsts, VidOps;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I ..\OBJ\BUILDID.INC}
@@ -421,17 +421,8 @@ end;
 { Draw the display-only lines: POOL.CFG's values as the game runs with them, the build, the data archives and
   memory. }
 procedure DrawInfoLines;
-var
-  video: Types.TStr20;
 begin
-  case GDVars.videoMode of
-    Types.vmCGA: video := 'CGA';
-    Types.vmEGA: video := 'EGA';
-    Types.vmTandy: video := 'Tandy';
-  else
-    video := '?';
-  end;
-  Options.DrawInfo(CFG_TOP, 'Video', video);
+  Options.DrawInfo(CFG_TOP, 'Video', VidOps.ModeName);
   Options.DrawInfo(CFG_TOP + 1, 'Sound Device', Options.DeviceName(GDVars.soundSaved));
   Options.DrawInfo(CFG_TOP + 2, 'Data Path', GDVars.gameDir);
   Options.DrawInfo(CFG_TOP + 3, 'Save Path', GDVars.dsSaveDirectory);

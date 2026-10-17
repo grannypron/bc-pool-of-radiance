@@ -390,6 +390,20 @@ them), except where a step says otherwise.
    - `GameInit` builds only the active mode's row table.
 
    After this step only Blit, TextRend, DaxIo's `WriteChar` and GameBoot know the mode.
+
+   **Done.**
+   - Blit answers the size and capability questions: `FrameBytes`, `MaskBytes`, `ColourCount` and `HasPalette`.
+     `SetPaletteRegister` does nothing without a palette.
+   - The cold operations are in a new overlaid unit, `VidOps`: `ModeName`, `InitRowTables` (the active mode's table
+     only), `MergePic` (SaveLoad's `MergeIcon` and CharGen's `Merge`), `OverlayPic`, `RecolorPic` (CharGen's
+     `Recolor`) and `PutPixelRow` (BldShow's `PutPixels`).
+   - Only Blit, TextRend, DaxIo, GameBoot and VidOps read `videoMode`.
+   - Sizes: resident code +128 bytes, overlays -468.
+   - The suite passes in all three modes, and ssiformat passes. BldShow's converter runs only when the data
+     archives are built, which no scenario does.
+
+   The split also sets a pattern for step 2: a driver's hot entries are resident, and its cold ones can point into an
+   overlay.
 2. **The driver interface.** `TVideoDriver`, a record of procedure variables in a resident unit, with these entry
    points:
    - Mode set and restore, page setup and the heap reserve (Tandy's 16 KB).

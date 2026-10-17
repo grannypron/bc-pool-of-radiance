@@ -128,10 +128,7 @@ begin
       Blit.MirrorPic(GDVars.dsIconAnimation[animIdx, frame], work)
     else begin
       Move(data, work^.data, imgSize);
-      if GDVars.videoMode = Types.vmEGA then
-        Move(transp^, work^.transp^, imgSize div 4)
-      else
-        Move(transp^, work^.transp^, imgSize);
+      Move(transp^, work^.transp^, Blit.MaskBytes(imgSize));
     end;
   end;
   Blit.BlitTileClipped(col * 3, row * 3, 0, 1, work, GDVars.dsViewImageBufferPtr);

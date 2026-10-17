@@ -284,7 +284,7 @@ end;
 
 { Copy one icon half (GDVars.dsIconAnimation[cell, half]) into frame row of the moving-icon sheet
   (GDVars.dsMoveIconSheet), mirrored through a scratch picture when asked. The pixel data copies imgSize bytes; the
-  transparency mask copies a quarter of that under EGA. }
+  transparency mask copies Blit.MaskBytes of that. }
 procedure CopyIconFacing(cell, half, row: Byte; mirror: Boolean);
 var
   tmp: Types.PImgBuf;
@@ -292,9 +292,7 @@ var
   stride: Word;
 begin
   stride := GDVars.dsMoveIconSheet^.imgSize;
-  stride4 := stride;
-  if GDVars.videoMode = Types.vmEGA then
-    stride4 := stride4 div 4;
+  stride4 := Blit.MaskBytes(stride);
   if mirror then begin
     Blit.AllocPic(24, 3, 1, 1, tmp);
     Blit.MirrorPic(GDVars.dsIconAnimation[cell, half], tmp);

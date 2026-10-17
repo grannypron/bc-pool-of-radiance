@@ -12,10 +12,11 @@ var
     call Magic }
   boltTracer: Types.TCellTracer;
 
-{ On EGA, swap palette registers 0 and 8 so the combat map background is dark gray and register 8 black. }
+{ Where the mode has a palette (EGA), swap palette registers 0 and 8 so the combat map background is dark gray and
+  register 8 black. }
 procedure SetCombatPalette;
 
-{ On EGA, restore palette register 0 to black and register 8 to dark gray. }
+{ Where the mode has a palette (EGA), restore palette register 0 to black and register 8 to dark gray. }
 procedure SetNoncombatPalette;
 
 { Redraw one arena cell from scratch: repaint its terrain (the whole icon footprint when a creature stands there, via
@@ -381,22 +382,14 @@ end;
 
 procedure SetCombatPalette;
 begin
-  case GDVars.videoMode of
-    Types.vmEGA: begin
-         Blit.SetPaletteRegister(0, DarkGray);
-         Blit.SetPaletteRegister(8, Black);
-       end;
-  end;
+  Blit.SetPaletteRegister(0, DarkGray);
+  Blit.SetPaletteRegister(8, Black);
 end;
 
 procedure SetNoncombatPalette;
 begin
-  case GDVars.videoMode of
-    Types.vmEGA: begin
-         Blit.SetPaletteRegister(0, Black);
-         Blit.SetPaletteRegister(8, DarkGray);
-       end;
-  end;
+  Blit.SetPaletteRegister(0, Black);
+  Blit.SetPaletteRegister(8, DarkGray);
 end;
 
 { Repaint the terrain under the cursor footprint at arena cell (x, y), draw the cursor there when it is enabled, then

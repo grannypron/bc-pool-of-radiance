@@ -14,7 +14,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice;
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice, VidOps;
 
 var
   { STING training override. }
@@ -1441,15 +1441,6 @@ var
   shownPic: Types.PImgBuf;
   p: Types.PCharRecord;
 
-  { MaskSize: Bytes in pic's transparency mask: one plane, a quarter of imgSize, on EGA }
-  function MaskSize(pic: Types.PImgBuf): Word;
-  begin
-    if GDVars.videoMode = Types.vmEGA then
-      MaskSize := pic^.imgSize div 4
-    else
-      MaskSize := pic^.imgSize;
-  end;
-
   { PartPic: Frame frame of head (kind 0) or weapon (kind 1) id at tSize, loaded from CHEAD or CBODY on disk 3 unless
     it is the one loaded last; nil when id is past the ones there are or the block is missing }
   function PartPic(kind, id, frame: Byte): Types.PImgBuf;
@@ -1471,76 +1462,15 @@ var
     PartPic := loaded[kind, frame];
   end;
 
-  { Merge: OR src's pixels onto the top rows of work and AND their transparency masks, as SaveLoad.MergeIcon does (a
-    head is the top 8 or 10 rows of the icon) }
+  { Merge: OR src's pixels onto the top rows of work and AND their transparency masks (VidOps.MergePic; a head is the
+    top 8 or 10 rows of the icon), taking src's colour map }
   procedure Merge(src: Types.PImgBuf);
-  var
-    n: Word;
   begin
     if (src = nil) or (work = nil) then Exit;
     if (src^.transp = nil) or (work^.transp = nil) then Exit;
     if (src^.width <> work^.width) or (src^.imgSize = 0) or (src^.imgSize > work^.imgSize) then Exit;
-    for n := 0 to src^.imgSize - 1 do
-      work^.data[n] := work^.data[n] or src^.data[n];
-    for n := 0 to MaskSize(src) - 1 do
-      work^.transp^[n] := work^.transp^[n] and src^.transp^[n];
+    VidOps.MergePic(src, work);
     work^.map := src^.map;
-  end;
-
-  { Overlay: Draw src over dst through src's transparency mask }
-  procedure Overlay(src, dst: Types.PImgBuf);
-  var
-    n: Word;
-  begin
-    if (src = nil) or (dst = nil) then Exit;
-    if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
-    if GDVars.videoMode = Types.vmEGA then
-      for n := 0 to dst^.imgSize - 1 do
-        dst^.data[n] := dst^.data[n] and src^.transp^[n shr 2] or src^.data[n]
-    else
-      for n := 0 to dst^.imgSize - 1 do
-        dst^.data[n] := dst^.data[n] and src^.transp^[n] or src^.data[n];
-  end;
-
-  { Recolor: Give every pixel of work the colour toT gives its own, as Blit.RemapPic does one colour at a time; EGA and
-    Tandy take one pass, which keeps a page of 16 icons quick on a slow machine }
-  procedure Recolor(var toT: Types.TColorTab);
-  var
-    n: Word;
-    k: Byte;
-    bit: Byte;
-    c: Byte;
-    fromT: Types.TColorTab;
-    q: array[0..3] of Byte;
-  begin
-    case GDVars.videoMode of
-      { four plane bytes per eight pixels; plane k holds bit k of each pixel's colour }
-      Types.vmEGA: begin
-           n := 0;
-           while n + 3 < work^.imgSize do begin
-             for k := 0 to 3 do
-               q[k] := 0;
-             for bit := 0 to 7 do begin
-               c := ((work^.data[n] shr bit) and 1) or (((work^.data[n + 1] shr bit) and 1) shl 1) or
-                    (((work^.data[n + 2] shr bit) and 1) shl 2) or (((work^.data[n + 3] shr bit) and 1) shl 3);
-               c := toT[c];
-               for k := 0 to 3 do
-                 if (c and (1 shl k)) <> 0 then
-                   q[k] := q[k] or (1 shl bit);
-             end;
-             for k := 0 to 3 do
-               work^.data[n + k] := q[k];
-             Inc(n, 4);
-           end;
-         end;
-      { two pixels per byte }
-      Types.vmTandy: for n := 0 to work^.imgSize - 1 do
-           work^.data[n] := (toT[work^.data[n] shr 4] shl 4) or toT[work^.data[n] and $F];
-    else
-      for k := 0 to 15 do
-        fromT[k] := k;
-      Blit.RemapPic(fromT, toT, 0, False, work);
-    end;
   end;
 
   { BuildIcon: Frame frame (0 ready, 1 action) of the icon with head h, weapon b and colours c at tSize into work,
@@ -1553,7 +1483,7 @@ var
     if (work = nil) or (frame > 1) then Exit;
     if work^.transp = nil then Exit;
     FillChar(work^.data, work^.imgSize, 0);
-    FillChar(work^.transp^, MaskSize(work), $FF);
+    FillChar(work^.transp^, Blit.MaskBytes(work^.imgSize), $FF);
     Merge(PartPic(1, b, frame));
     Merge(PartPic(0, h, frame));
     for k := 0 to 15 do
@@ -1562,24 +1492,25 @@ var
       toT[GDConsts.defIconCol[k] and $F] := c[k] and $F;
       toT[(GDConsts.defIconCol[k] + 8) and $F] := c[k] shr 4;
     end;
-    Recolor(toT);
+    VidOps.RecolorPic(toT, work);
   end;
 
   { Place: Draw icon frame frame (src, with its mask) into dst, in the game's cursor box (COMSPR 25 in slot 25; plain
-    cyan on CGA) when boxed and on the plain background otherwise }
+    cyan with 4 colours) when boxed and on the plain background otherwise }
   procedure Place(src: Types.PImgBuf; frame: Byte; boxed: Boolean; dst: Types.PImgBuf);
   begin
     if dst = nil then Exit;
-    if boxed and (GDVars.videoMode = Types.vmCGA) then
+    { the cursor box picture needs 16 colours }
+    if boxed and (Blit.ColourCount < 16) then
       FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.dsIconColorMap)])
     else
       FillChar(dst^.data, dst^.imgSize, 0);
-    if boxed and (GDVars.videoMode <> Types.vmCGA) then
+    if boxed and (Blit.ColourCount = 16) then
       if frame = 0 then
-        Overlay(GDVars.dsIconAnimation[25, 0], dst)
+        VidOps.OverlayPic(GDVars.dsIconAnimation[25, 0], dst)
       else
-        Overlay(GDVars.dsIconAnimation[25, 1], dst);
-    Overlay(src, dst);
+        VidOps.OverlayPic(GDVars.dsIconAnimation[25, 1], dst);
+    VidOps.OverlayPic(src, dst);
   end;
 
   { Compose: Frame frame of the icon with head h, weapon b and colours c into dst, in the cursor box }
@@ -1781,7 +1712,7 @@ var
         if (cells[k] <> nil) and (work <> nil) and (cells[k]^.imgSize = work^.imgSize)
            and (cells[k]^.transp <> nil) and (work^.transp <> nil) then begin
           Move(work^.data, cells[k]^.data, work^.imgSize);
-          Move(work^.transp^, cells[k]^.transp^, MaskSize(work));
+          Move(work^.transp^, cells[k]^.transp^, Blit.MaskBytes(work^.imgSize));
         end;
         ShowCell(k, opt = pick);
       end else

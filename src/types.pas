@@ -359,6 +359,8 @@ type
   TBrkSet = set of ' '..'?';
   TBytes = array[0..65000] of Byte;
   TColorMap = array[0..7] of Byte;
+  { eight pixel colours, left to right: one scanline of a cell (VidOps.PutPixelRow) }
+  TPixelRow = array[0..7] of Byte;
   TColorTab = array[0..15] of Byte;
   TCombatTarget = record
     { arena registration index }

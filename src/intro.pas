@@ -108,7 +108,7 @@ begin
   Blit.FreePic(pic);
   deadline := TextRend.GetTicks + 500;
   repeat
-    if GDVars.videoMode = Types.vmEGA then begin
+    if Blit.HasPalette then begin
       Inc(rndAcc, Random(4));
       if rndAcc > 50000 then begin
         rndAcc := 0;

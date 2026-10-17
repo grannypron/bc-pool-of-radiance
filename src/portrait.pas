@@ -95,24 +95,17 @@ var
     frameSz: LongInt;
     need: LongInt;
   begin
-    frameSz := LongInt(h) * w * 2;
-    if GDVars.videoMode <> Types.vmCGA then
-      frameSz := frameSz * 2;
+    frameSz := Blit.FrameBytes(h, w);
     need := SizeOf(fr^) - SizeOf(fr^.data) + frameSz + 8;
     if transp and 1 > 0 then begin
-      if GDVars.videoMode = Types.vmEGA then
-        Inc(need, frameSz div 4 + 8)
-      else
-        Inc(need, frameSz + 8);
-      if GDVars.videoMode <> Types.vmCGA then
+      Inc(need, Blit.MaskBytes(frameSz) + 8);
+      { RemapPic's scratch picture, with 16 colours }
+      if Blit.ColourCount = 16 then
         Inc(need, SizeOf(fr^) - SizeOf(fr^.data) + frameSz + 8);
     end;
     if isPic and (f = 1) then
-      { planeSz + 1: twice the frame on CGA }
-      if GDVars.videoMode = Types.vmCGA then
-        Inc(need, frameSz * 2 + 8)
-      else
-        Inc(need, frameSz + 8);
+      { the XOR buffer: one DAX frame, 4 bytes a cell row }
+      Inc(need, LongInt(h) * w * 4 + 8);
     FrameNeed := need;
   end;
 
@@ -166,10 +159,8 @@ begin
           Move(buf^[offset], map, SizeOf(map));
           Inc(offset, SizeOf(map));
         end;
-        if GDVars.videoMode = Types.vmCGA then
-          planeSz := frames[loaded].pic^.imgSize * 2 - 1
-        else
-          planeSz := frames[loaded].pic^.imgSize - 1;
+        { a DAX frame is 4 bytes a cell row in every video mode }
+        planeSz := frames[loaded].pic^.height * frames[loaded].pic^.width * 4 - 1;
         if isPic then
           if f = 1 then begin
             xorSz := planeSz + 1;
@@ -185,7 +176,7 @@ begin
               buf^[j] := buf^[j] xor xorBuf^[j - offset];
           end;
         Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[loaded].pic);
-        if (transp and 1 > 0) and (GDVars.videoMode <> Types.vmCGA) then
+        if (transp and 1 > 0) and (Blit.ColourCount = 16) then
           Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
       end else if f = 1 then

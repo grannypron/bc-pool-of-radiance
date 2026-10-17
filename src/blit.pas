@@ -166,13 +166,29 @@ procedure FreePic(var pic: Types.PImgBuf);
 procedure FillPicRect(x, y: Integer; width, height: Word; color: Byte; colorMap: Types.TColorMap; pic: Types.PImgBuf);
 
 { Programs one EGA palette register through BIOS INT 10h. Bright colors (8..15) are offset by a further 8 to reach their
-  palette values.
+  palette values. Does nothing in a mode without palette registers (HasPalette).
   @param(registerIndex Palette register to change.)
   @param(color Logical color to assign to that register, 0..15.) }
 procedure SetPaletteRegister(registerIndex, color: Byte);
 
-implementation
+{ What the game asks of the video mode instead of naming it (phase 6, step 1). }
 
+{ The bytes a picture frame height scanlines tall and width cells wide takes in the video mode: 2 a cell row on CGA
+  (2 bits a pixel), 4 on EGA (four planes) and Tandy (4 bits a pixel). }
+function FrameBytes(height, width: Word): Word;
+
+{ The bytes of transparency mask for imageBytes bytes of picture: a quarter on EGA, where one mask byte covers a cell
+  row's four plane bytes, and the same on CGA and Tandy, where the mask matches the data byte for byte. }
+function MaskBytes(imageBytes: Word): Word;
+
+{ The colours the video mode shows at once: 4 on CGA, which draws the 16 through each picture's colour map, and 16 on
+  EGA and Tandy. }
+function ColourCount: Byte;
+
+{ True when the video mode has palette registers SetPaletteRegister can program (EGA). }
+function HasPalette: Boolean;
+
+implementation
 
 uses C_Video, C_Ega, GDConsts, GDVars, DaxIo, Dos;
 const
@@ -193,8 +209,6 @@ type
     count: Byte;
     map: Types.TColorMap;
   end;
-
-
 
 function ComputeMask(transpColor: Byte; chunk: TChunk): Byte;
 var
@@ -914,9 +928,7 @@ var
   frameSize: Word;
   totalSize: Word;
 begin
-  frameSize := height * width * 2;
-  if GDVars.videoMode <> Types.vmCGA then
-    frameSize := frameSize * 2;
+  frameSize := Blit.FrameBytes(height, width);
   totalSize := count * frameSize;
   GetMem(pic, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   FillChar(pic^, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)), 0);
@@ -924,14 +936,10 @@ begin
   pic^.width := width;
   pic^.imgSize := frameSize;
   pic^.count := count;
-  if (flag and 1) > 0 then
-    if GDVars.videoMode = Types.vmEGA then begin
-      GetMem(pic^.transp, totalSize div 4);
-      FillChar(pic^.transp^, totalSize div 4, 0);
-    end else begin
-      GetMem(pic^.transp, totalSize);
-      FillChar(pic^.transp^, totalSize, 0);
-    end;
+  if (flag and 1) > 0 then begin
+    GetMem(pic^.transp, Blit.MaskBytes(totalSize));
+    FillChar(pic^.transp^, Blit.MaskBytes(totalSize), 0);
+  end;
 end;
 
 procedure FreePic(var pic: Types.PImgBuf);
@@ -942,10 +950,7 @@ begin
   with pic^ do begin
     nBytes := count * imgSize;
     if transp <> nil then
-      if GDVars.videoMode = Types.vmEGA then
-        FreeMem(transp, nBytes div 4)
-      else
-        FreeMem(transp, nBytes);
+      FreeMem(transp, Blit.MaskBytes(nBytes));
   end;
   FreeMem(pic, nBytes + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   pic := nil;
@@ -1065,6 +1070,7 @@ end;
 
 procedure SetPaletteRegister(registerIndex, color: Byte);
 begin
+  if not Blit.HasPalette then Exit;
   GDVars.dsInterruptRegisters.ah := $10;
   GDVars.dsInterruptRegisters.al := 0;
   if color < 8 then
@@ -1073,6 +1079,35 @@ begin
     GDVars.dsInterruptRegisters.bh := color + 8;
   GDVars.dsInterruptRegisters.bl := registerIndex;
   Intr($10, GDVars.dsInterruptRegisters);
+end;
+
+function FrameBytes(height, width: Word): Word;
+begin
+  if GDVars.videoMode = Types.vmCGA then
+    FrameBytes := height * width * 2
+  else
+    FrameBytes := height * width * 4;
+end;
+
+function MaskBytes(imageBytes: Word): Word;
+begin
+  if GDVars.videoMode = Types.vmEGA then
+    MaskBytes := imageBytes div 4
+  else
+    MaskBytes := imageBytes;
+end;
+
+function ColourCount: Byte;
+begin
+  if GDVars.videoMode = Types.vmCGA then
+    ColourCount := 4
+  else
+    ColourCount := 16;
+end;
+
+function HasPalette: Boolean;
+begin
+  HasPalette := GDVars.videoMode = Types.vmEGA;
 end;
 
 end.

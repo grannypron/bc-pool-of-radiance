@@ -8,9 +8,9 @@ procedure GameInit2;
 
 implementation
 
-uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
-  HeapErr;
+uses Types, Crt, C_Area, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
+  MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
+  VidOps;
 
 var
   { directory saved across resource loading }
@@ -277,21 +277,7 @@ begin
   FillChar(GDVars.spanScreenOfs, SizeOf(GDVars.spanScreenOfs), 0);
   FillChar(GDVars.spanFirstOfs, SizeOf(GDVars.spanFirstOfs), $FF);
   FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
-  { Per-row video addresses: CGA segment (even and odd rows in separate banks, a row pair every 5 paragraphs), EGA
-    offset (40 bytes per row), Tandy segment (four banks, four rows every 10 paragraphs). }
-  for i := 0 to 199 do begin
-    if Odd(i) then
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK1_SEG
-    else
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK0_SEG;
-    GDVars.fbRowOfs[i] := i * 40;
-    case i mod 4 of
-      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK0_SEG;
-      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK1_SEG;
-      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK2_SEG;
-      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK3_SEG;
-    end;
-  end;
+  VidOps.InitRowTables;
   FillChar(GDVars.dsSymbolSetPtrs, SizeOf(GDVars.dsSymbolSetPtrs), 0);
   FillChar(GDVars.ds2dMapTilePtr, SizeOf(GDVars.ds2dMapTilePtr) + SizeOf(GDVars.ds2dMapTilePtr2), 0);
   FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
