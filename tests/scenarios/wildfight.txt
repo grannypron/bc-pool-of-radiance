@@ -1,0 +1,88 @@
+# A fight in the central wilderness (save G, as in wilderness.txt): under NORAND the 32nd step of this walk meets
+# a random encounter. Records the encounter, the fight's start, and the memory there (Ctrl-Y; heap and pictures in
+# ours only): the wilderness's second tile set and combat's pictures at once, VGA's tightest spot (phase 6).
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/wild
+# a slot's letter loads it at once in ours (#652)
+golden: press l g ret
+candidate: press l g
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^CAST VIEW ENCAMP 60
+press up
+wait ^CAST VIEW ENCAMP 60
+press right
+wait ^CAST VIEW ENCAMP 60
+press down
+wait ^CAST VIEW ENCAMP 60
+press left
+wait ^COMBAT WAIT FLEE PARLAY 60
+checkpoint encounter
+press c
+wait QUICK 120
+checkpoint fight
+ignore OVERLAY LOADS
+press ctrl-y
+checkpoint overlay-loads
+golden: press ret ret ret
+candidate: press ret ret
+candidate: checkpoint heap
+candidate: press ret
+candidate: checkpoint pictures
+candidate: press ret

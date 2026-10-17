@@ -280,23 +280,19 @@ begin
   SelectSpellToCast := ext;
 end;
 
-{ Can creature step in direction baseDir + aiDirOffsets[aiStance, attempt]? Off the map sets edge and fails, and an
-  occupied cell fails. The step costs 2 (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the
-  remaining movement. Stinking Cloud is avoided unless the creature has C_Effect.ANIMATE_DEAD, C_Effect.STINK_COUGH,
-  C_Effect.NO_PARA_POISON or C_Effect.NO_CHARM_POISON. }
-function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean;
+{ Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
+  (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the remaining movement. Stinking Cloud is
+  avoided unless the creature has C_Effect.ANIMATE_DEAD, C_Effect.STINK_COUGH, C_Effect.NO_PARA_POISON or
+  C_Effect.NO_CHARM_POISON. }
+function CanStepDir(creature: Types.PCharRecord; dir: Byte; var edge: Boolean): Boolean;
 var
   effect: Types.PEffectRec;
-  dirAdj: Byte;
-  dir: Byte;
   crIdx: Byte;
   terrIdx: Byte;
   stepCost: Byte;
 begin
   edge := False;
-  AiCanStep := False;
-  dirAdj := GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt];
-  dir := (baseDir + dirAdj) mod 8;
+  CanStepDir := False;
   CbtMap.ProbeDirection(creature, dir, crIdx, terrIdx);
   if terrIdx = 0 then begin
     { off the map: flee chance }
@@ -320,11 +316,21 @@ begin
        and (not CharHlp.HasEffect(creature, C_Effect.NO_CHARM_POISON, effect)) then
       stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
-    AiCanStep := True;
+    CanStepDir := True;
 end;
 
-{ One AI movement step: toward the locked target (or in the flee direction), with aiDirOffsets supplying up to five
-  fallback directions, and oscillation detection through lastMoveDir and stuckCount }
+{ Can creature step in direction baseDir + aiDirOffsets[aiStance, attempt]? As CanStepDir. }
+function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean;
+begin
+  AiCanStep := CombatAi.CanStepDir(creature,
+                                   (baseDir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
+                                   edge);
+end;
+
+{ One AI movement step. Toward the locked target it takes the first step of a walk round walls and bodies
+  (Pathing.RouteStep, #668) when it can pay for it; otherwise, and when fleeing, it heads at the target (or in the flee
+  direction) with aiDirOffsets supplying up to five fallback directions, and oscillation detection through lastMoveDir
+  and stuckCount. }
 procedure AiMoveStep(creature: Types.PCharRecord);
 var
   dir: Byte;
@@ -332,6 +338,9 @@ var
   attempt: Byte;
   edge: Boolean;
   done: Boolean;
+  routed: Boolean;
+  slot: Byte;
+  targetSlot: Byte;
 begin
   if not quickShown then
     TextRend.DisplayString(0, 24, LightGreen,
@@ -343,9 +352,18 @@ begin
   if (creature^.combatAddr^.movement div 2 > 0)
      and (creature^.combatAddr^.initiative > 0)
      and ((creature^.combatAddr^.fleeing <> 0) or (creature^.charClass <> C_Class.MAGE)) then begin
-    if creature^.combatAddr^.fleeing = 0 then
-      dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other)
-    else begin
+    routed := False;
+    if creature^.combatAddr^.fleeing = 0 then begin
+      dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other);
+      { a walk round walls and bodies to the target, when its first step can be paid for (#668) }
+      if creature^.combatAddr^.other <> nil then begin
+        slot := CbtMap.CombatSlot(creature);
+        targetSlot := CbtMap.CombatSlot(creature^.combatAddr^.other);
+        if (slot <> 0) and (targetSlot <> 0) then
+          routed := Pathing.RouteStep(slot, targetSlot, CbtMap.OccupantAt, adjDir) and
+                    CombatAi.CanStepDir(creature, adjDir, edge);
+      end;
+    end else begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
       { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south
         into SE (POR-0160). }
@@ -358,43 +376,48 @@ begin
     edge := False;
     done := False;
     attempt := 1;
-    while (attempt < 6) and (not done)
-          and (not CombatAi.AiCanStep(creature, attempt, dir, edge)) do
-      if (creature^.combatAddr^.fleeing <> 0) and edge then
-        done := CbtActs.CombatFleeAttempt(creature)
-      else
-        Inc(attempt);
-    if done then
-    { fled off the map }
-    begin
-      creature^.combatAddr^.movement := 0;
-      creature^.combatAddr^.fleeing := 0;
-      done := CharHlp.EndActions(creature);
+    if routed then begin
+      lastMoveDir := adjDir;
+      stuckCount := 0;
     end else begin
-      { attempt 6 is past aiDirOffsets' row: there is no step to take }
-      if attempt < 6 then
-        adjDir := (dir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
-      else
-        adjDir := dir;
-      { nothing walkable }
-      if (attempt = 6)
-         { reversing }
-         or (lastMoveDir = (adjDir + 4) mod 8) then begin
-        Inc(stuckCount);
-        creature^.combatAddr^.aiStance := creature^.combatAddr^.aiStance mod 6 + 1;
-        if stuckCount > 1 then begin
-          creature^.combatAddr^.other := nil;
-          if stuckCount > 2 then begin
-            creature^.combatAddr^.movement := 0;
-            done := True;
-          end else if not CbtActs.AcquireTarget(creature, 255, 1, 0) then
-            done := CombatAi.FinishRound(creature);
+      while (attempt < 6) and (not done)
+            and (not CombatAi.AiCanStep(creature, attempt, dir, edge)) do
+        if (creature^.combatAddr^.fleeing <> 0) and edge then
+          done := CbtActs.CombatFleeAttempt(creature)
+        else
+          Inc(attempt);
+      if done then
+      { fled off the map }
+      begin
+        creature^.combatAddr^.movement := 0;
+        creature^.combatAddr^.fleeing := 0;
+        done := CharHlp.EndActions(creature);
+      end else begin
+        { attempt 6 is past aiDirOffsets' row: there is no step to take }
+        if attempt < 6 then
+          adjDir := (dir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
+        else
+          adjDir := dir;
+        { nothing walkable }
+        if (attempt = 6)
+           { reversing }
+           or (lastMoveDir = (adjDir + 4) mod 8) then begin
+          Inc(stuckCount);
+          creature^.combatAddr^.aiStance := creature^.combatAddr^.aiStance mod 6 + 1;
+          if stuckCount > 1 then begin
+            creature^.combatAddr^.other := nil;
+            if stuckCount > 2 then begin
+              creature^.combatAddr^.movement := 0;
+              done := True;
+            end else if not CbtActs.AcquireTarget(creature, 255, 1, 0) then
+              done := CombatAi.FinishRound(creature);
+          end;
         end;
+        if attempt < 6 then
+          lastMoveDir := adjDir
+        else
+          done := True;
       end;
-      if attempt < 6 then
-        lastMoveDir := adjDir
-      else
-        done := True;
     end;
     { flee and step paths rejoin }
     if not done then begin

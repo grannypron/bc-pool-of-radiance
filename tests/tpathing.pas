@@ -1,12 +1,24 @@
 { Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
-  straight step, 3 a diagonal one), IsDirToward and GetIconTileDelta. }
+  straight step, 3 a diagonal one), IsDirToward and GetIconTileDelta; and RouteStep's walks on an arena of the test's
+  own, with walls and bodies (#668). }
 program TPathing;
 
-uses Types, C_Dir, Pathing, StrUtil, TestKit;
+uses Types, C_Dir, GDConsts, GDVars, Pathing, StrUtil, TestKit;
+
+const
+  { RouteStep's arena: open ground (terrain 5, cost 1) and wall (terrain 1, cost 255) }
+  GROUND = 5;
+  WALL = 1;
+  WALKER = 1;
+  TARGET = 2;
+  BLOCKER = 3;
 
 var
   dx: ShortInt;
   dy: ShortInt;
+  { each arena cell's creature, by slot }
+  occ: array[0..24, 0..49] of Byte;
+  dir: Byte;
 
 { Walk from (sx, sy) to (ex, ey) and check the steps, the doubled distance and the end cell. }
 procedure CheckWalk(sx, sy, ex, ey: Integer; steps, dist: Integer; what: String);
@@ -26,6 +38,137 @@ begin
   TestKit.CheckEqualsL(steps, n, what + ': steps');
   TestKit.CheckEqualsL(dist, req.dist, what + ': doubled distance');
   TestKit.Check((req.cx = ex) and (req.cy = ey), what + ': ends on the target');
+end;
+
+{$F+}
+function TestOccupant(x, y: ShortInt): Byte;
+begin
+  if (x < 0) or (x > 49) or (y < 0) or (y > 24) then
+    TestOccupant := 0
+  else
+    TestOccupant := occ[y, x];
+end;
+{$F-}
+
+{ Open ground everywhere and nobody on it. }
+procedure ClearArena;
+begin
+  FillChar(GDVars.arenaPtr^.cells, SizeOf(GDVars.arenaPtr^.cells), GROUND);
+  FillChar(occ, SizeOf(occ), 0);
+  FillChar(GDVars.arenaLoc, SizeOf(GDVars.arenaLoc), 0);
+end;
+
+{ Put slot's body of size with its corner at (x, y), taking it off where it was. }
+procedure Place(slot: Byte; x, y: ShortInt; size: Byte);
+var
+  i: Byte;
+  cx: ShortInt;
+  cy: ShortInt;
+begin
+  for cy := 0 to 24 do
+    for cx := 0 to 49 do
+      if occ[cy, cx] = slot then
+        occ[cy, cx] := 0;
+  GDVars.arenaLoc[slot].x := x;
+  GDVars.arenaLoc[slot].y := y;
+  GDVars.arenaLoc[slot].size := size;
+  for i := 0 to 3 do
+    if Pathing.GetIconTileDelta(size, i, dx, dy) then
+      occ[y + dy, x + dx] := slot;
+end;
+
+{ A wall from (x, y1) down to (x, y2). }
+procedure WallColumn(x, y1, y2: ShortInt);
+var
+  y: ShortInt;
+begin
+  for y := y1 to y2 do
+    GDVars.arenaPtr^.cells[y, x] := WALL;
+end;
+
+{ Walk WALKER to TARGET a RouteStep at a time; the steps taken, or -1 when a step is refused before it arrives or it
+  takes more than limit, or lands on a wall. }
+function WalkSteps(limit: Integer): Integer;
+var
+  n: Integer;
+  x: ShortInt;
+  y: ShortInt;
+begin
+  n := 0;
+  while Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir) and (n <= limit) do begin
+    x := GDVars.arenaLoc[WALKER].x + GDConsts.dirDX[dir];
+    y := GDVars.arenaLoc[WALKER].y + GDConsts.dirDY[dir];
+    if GDVars.arenaPtr^.cells[y, x] = WALL then begin
+      WalkSteps := -1;
+      Exit;
+    end;
+    Place(WALKER, x, y, GDVars.arenaLoc[WALKER].size);
+    Inc(n);
+  end;
+  if n > limit then
+    n := -1;
+  WalkSteps := n;
+end;
+
+procedure CheckRoutes;
+begin
+  GetMem(GDVars.arenaPtr, SizeOf(Types.TArena));
+  { open ground: straight at it }
+  ClearArena;
+  Place(WALKER, 5, 5, 1);
+  Place(TARGET, 10, 5, 1);
+  TestKit.Check(Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir) and (dir = C_Dir.EAST),
+                'on open ground the first step is straight at the target');
+  TestKit.CheckEqualsL(4, WalkSteps(50), 'and four steps bring it alongside');
+  TestKit.Check(not Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir), 'alongside, there is no step to take');
+  { a wall between them, open only at its foot: the walk goes round }
+  ClearArena;
+  WallColumn(8, 0, 15);
+  Place(WALKER, 5, 5, 1);
+  Place(TARGET, 11, 5, 1);
+  TestKit.Check(Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir) and (dir in [C_Dir.SOUTH, C_Dir.SOUTHEAST]),
+                'a wall in the way: the first step heads for the gap');
+  { 11 steps down to the gap at (8, 16) and 10 back up beside the target }
+  TestKit.CheckEqualsL(21, WalkSteps(60), 'and the walk goes round the wall''s foot');
+  { a dead end: a pocket walled north, south and east (the long wall), open to the west, away from the target; the
+    walk backs out of it, where heading at the target would only push into the wall }
+  ClearArena;
+  WallColumn(8, 0, 15);
+  GDVars.arenaPtr^.cells[3, 5] := WALL;
+  GDVars.arenaPtr^.cells[3, 6] := WALL;
+  GDVars.arenaPtr^.cells[3, 7] := WALL;
+  GDVars.arenaPtr^.cells[7, 5] := WALL;
+  GDVars.arenaPtr^.cells[7, 6] := WALL;
+  GDVars.arenaPtr^.cells[7, 7] := WALL;
+  Place(WALKER, 6, 5, 1);
+  Place(TARGET, 11, 5, 1);
+  TestKit.Check(Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir) and (dir in [C_Dir.SOUTHWEST, C_Dir.WEST,
+                C_Dir.NORTHWEST]), 'in a dead end the first step is back out of it');
+  TestKit.Check(WalkSteps(60) > 0, 'out of a dead end and round the wall');
+  { walled in: no walk }
+  ClearArena;
+  WallColumn(9, 0, 24);
+  Place(WALKER, 5, 5, 1);
+  Place(TARGET, 12, 5, 1);
+  TestKit.Check(not Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir), 'a wall across the arena: no walk');
+  { a body in the only gap blocks it }
+  ClearArena;
+  WallColumn(8, 0, 9);
+  WallColumn(8, 11, 24);
+  Place(WALKER, 5, 5, 1);
+  Place(TARGET, 11, 5, 1);
+  TestKit.Check(Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir), 'a one-cell gap lets a one-cell body through');
+  Place(BLOCKER, 8, 10, 1);
+  TestKit.Check(not Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir), 'and a body standing in it blocks it');
+  { a 2x2 body does not fit a one-cell gap }
+  Place(BLOCKER, 0, 0, 0);
+  occ[0, 0] := 0;
+  Place(WALKER, 4, 5, 4);
+  TestKit.Check(not Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir), 'a 2x2 body does not fit a one-cell gap');
+  WallColumn(8, 11, 11);
+  GDVars.arenaPtr^.cells[11, 8] := GROUND;
+  TestKit.Check(Pathing.RouteStep(WALKER, TARGET, TestOccupant, dir), 'but fits a two-cell one');
+  FreeMem(GDVars.arenaPtr, SizeOf(Types.TArena));
 end;
 
 begin
@@ -49,5 +192,6 @@ begin
                 'a one-cell icon''s only tile is at its corner');
   TestKit.Check(not Pathing.GetIconTileDelta(0, 0, dx, dy), 'an inactive icon has no tiles');
   TestKit.Check(not Pathing.GetIconTileDelta(5, 0, dx, dy), 'nor a size past 4');
+  CheckRoutes;
   TestKit.Done;
 end.

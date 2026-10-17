@@ -605,7 +605,8 @@ them), except where a step says otherwise.
   - A scenario for the ending, which no scenario reaches. The wilderness has one now (`wilderness`, from a save of
     the owner's in the central wilderness): it passes in all four modes, at 1 and 16 MB, and leaves VGA 134,192 bytes
     of heap free, the largest block 70,904 (EGA: 237,520 and 227,080), with pictures holding 211,735 (EGA 108,417). A
-    fight in the wilderness, which loads combat's pictures on top, has not been measured.
+    fight there (`wildfight`) leaves VGA more, 199,312 free and a 180,880 block, since combat frees the second tile
+    set: the wilderness map is VGA's tightest spot measured.
   - Freeing the picture caches, for more VGA headroom: pictures held never fall from their peak.
 
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
