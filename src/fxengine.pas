@@ -142,7 +142,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level, Crt;
+  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level, Crt, C_Item;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -842,13 +842,13 @@ begin
           err := 2;
     end;
     { arrows }
-    if item^.itemType = 73 then
+    if item^.itemType = C_Item.ARROW then
       if creature^.equipped[C_Equip.ARROW] <> nil then begin
         err := 2;
         slot := C_Equip.ARROW;
       end;
     { quarrels }
-    if item^.itemType = 28 then
+    if item^.itemType = C_Item.QUARREL then
       if creature^.equipped[C_Equip.BOLT] <> nil then begin
         err := 2;
         slot := C_Equip.BOLT;

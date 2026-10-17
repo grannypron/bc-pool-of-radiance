@@ -313,7 +313,8 @@ begin
       { Name component 177 is 'Silver' }
       else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_Item.FLASK_OF_OIL)) or
         ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_Item.FLASK_OF_OIL)) or
-        (((item^.itemType = 73) or (item^.itemType = 28)) and (item^.nameIds[3] <> C_Item.NAME_SILVER)) then begin
+        (((item^.itemType = C_Item.ARROW) or (item^.itemType = C_Item.QUARREL)) and
+         (item^.nameIds[3] <> C_Item.NAME_SILVER)) then begin
         item^.name := item^.name + 's ';
         appended := True;
       end else
@@ -356,9 +357,9 @@ begin
           end else
             creature^.equipped[C_Equip.RING1] := item;
       end;
-      if item^.itemType = 73 then
+      if item^.itemType = C_Item.ARROW then
         creature^.equipped[C_Equip.ARROW] := item;
-      if item^.itemType = 28 then
+      if item^.itemType = C_Item.QUARREL then
         creature^.equipped[C_Equip.BOLT] := item;
     end;
     item := item^.next;
