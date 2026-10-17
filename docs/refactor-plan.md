@@ -416,6 +416,33 @@ them), except where a step says otherwise.
 
    The mode-independent work stays in Blit and TextRend: clipping, the dirty-span bookkeeping, word wrap, picture
    loading and caching. The spans' offsets become the driver's own units (bytes or cells today).
+
+   **How it is being done.** Steps 2 and 3 go together, a group of entries at a time, each group with its per-mode
+   code and a regression in all three modes:
+   - 2a: the record and the layout.
+   - 2b: the screen routines.
+   - 2c: the cold picture routines.
+
+   **2a done.**
+   - `TVideoDriver` (Types) lives in `GDVars.video`. Three resident units fill it, `VidCga`, `VidEga` and `VidTdy`, and
+     GameBoot installs the one POOL.CFG names.
+   - The record holds the name, the colour count, the palette flag, and the picture layout as shift counts: `cellShift`,
+     `screenShift` and `maskShift`. On the 8086 a shift is a few cycles, where a multiply or divide is about a hundred.
+     It also holds `CellFill`, a cell row in one colour.
+   - With them, `BlitTile`, `FillPicRect`, `OverlayPic` and the size questions have no mode branches.
+   - EGA's fill stores four-byte cells as LongInts.
+   - Speed against the step 0 baseline:
+
+     | | CGA | EGA | Tandy |
+     | --- | --- | --- | --- |
+     | tiles | -7% | -4% | -4% |
+     | fill | +54% | +144% | same |
+     | fill and flush | +24% | +21% | same |
+
+     The tiles' loss is the generic per-tile setup.
+   - Sizes: resident code -496 bytes.
+   - The suite passes in all three modes. The extra frame warnings are animation timing: they move from run to run on
+     the same build.
 3. **One unit per mode.**
    - `VidCga`, `VidEga` and `VidTdy` each fill the record from the code now in Blit's and TextRend's `case` arms.
    - GameBoot installs the one POOL.CFG names.

@@ -199,6 +199,7 @@ const
   EGA_STAGE_SEG = $A200;
 
 type
+  PLongInt = ^LongInt;
   { The header of a DAX picture as stored; the pixel data follows it. }
   PDaxPicHeader = ^TDaxPicHeader;
   TDaxPicHeader = record
@@ -392,6 +393,11 @@ end;
   edges when clip is set (BlitTileClipped's description), saving the covered pixels first when flag has bit 2. }
 procedure BlitTile(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf; clip: Boolean);
 var
+  { the driver's cellShift and maskShift, and what follows from them, read once a tile }
+  cs: Byte;
+  ms: Byte;
+  planesPerMask: Byte;
+  maskEach: Boolean;
   clipLeft: Word;
   clipRight: Word;
   leftSkip: Word;
@@ -463,115 +469,70 @@ begin
     leftSkip := screenX;
     rightSkip := dest^.width - (screenX + gfx^.width);
   end;
-  case GDVars.videoMode of
-    Types.vmCGA, Types.vmTandy: begin
-      if GDVars.videoMode = Types.vmCGA then begin
-        screenOff := leftSkip * 2;
-        rowBytes := (gfx^.width - clipLeft - clipRight) * 2;
-        clipLeft := clipLeft * 2;
-        clipRight := clipRight * 2;
-        leftSkip := leftSkip * 2;
-        rightSkip := rightSkip * 2;
-        srcOff := srcOff * 2;
-        saveOff := srcOff;
-        srcOff := tileIdx * gfx^.imgSize + srcOff;
-        destOff := destOff * 2;
-      end else begin
-        screenOff := leftSkip * 4;
-        rowBytes := (gfx^.width - clipLeft - clipRight) * 4;
-        clipLeft := clipLeft * 4;
-        clipRight := clipRight * 4;
-        leftSkip := leftSkip * 4;
-        rightSkip := rightSkip * 4;
-        srcOff := srcOff * 4;
-        saveOff := srcOff;
-        srcOff := tileIdx * gfx^.imgSize + srcOff;
-        destOff := destOff * 4;
-      end;
-      for y := 0 to lastRow do begin
-        GDVars.spanActive[scanline] := 1;
-        Inc(srcOff, clipLeft);
-        Inc(saveOff, clipLeft);
-        Inc(destOff, leftSkip);
-        if GDVars.spanFirstOfs[scanline] > destOff then begin
-          GDVars.spanScreenOfs[scanline] := screenOff;
-          GDVars.spanFirstOfs[scanline] := destOff;
-        end;
-        if saveRequested then
-          Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
-        Inc(saveOff, rowBytes);
-        if useMask then begin
-          for i := 1 to rowBytes do begin
-            dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[srcOff] or gfx^.data[srcOff];
-            Inc(srcOff);
-            Inc(destOff);
-          end;
-        end else begin
-          Move(gfx^.data[srcOff], dest^.data[destOff], rowBytes);
-          Inc(srcOff, rowBytes);
-          Inc(destOff, rowBytes);
-        end;
-        if destOff - 1 > GDVars.spanLastOfs[scanline] then
-          GDVars.spanLastOfs[scanline] := destOff - 1;
-        Inc(srcOff, clipRight);
-        Inc(saveOff, clipRight);
-        Inc(destOff, rightSkip);
-        Inc(scanline);
-      end;
+  { the driver's layout: 1 shl cellShift picture bytes a cell row, 1 shl screenShift screen bytes a cell column, one
+    mask byte for 1 shl maskShift picture bytes }
+  cs := GDVars.video.cellShift;
+  ms := GDVars.video.maskShift;
+  screenOff := leftSkip shl GDVars.video.screenShift;
+  rowBytes := (gfx^.width - clipLeft - clipRight) shl cs;
+  clipLeft := clipLeft shl cs;
+  clipRight := clipRight shl cs;
+  leftSkip := leftSkip shl cs;
+  rightSkip := rightSkip shl cs;
+  srcOff := srcOff shl cs;
+  saveOff := srcOff;
+  srcOff := tileIdx * gfx^.imgSize + srcOff;
+  maskOff := srcOff shr ms;
+  maskClipLeft := clipLeft shr ms;
+  maskClipRight := clipRight shr ms;
+  planesPerMask := 1 shl ms;
+  planesLeft := planesPerMask;
+  maskEach := useMask and (ms = 0);
+  destOff := destOff shl cs;
+  for y := 0 to lastRow do begin
+    GDVars.spanActive[scanline] := 1;
+    Inc(srcOff, clipLeft);
+    Inc(saveOff, clipLeft);
+    Inc(destOff, leftSkip);
+    if GDVars.spanFirstOfs[scanline] > destOff then begin
+      GDVars.spanScreenOfs[scanline] := screenOff;
+      GDVars.spanFirstOfs[scanline] := destOff;
     end;
-    Types.vmEGA: begin
-      screenOff := leftSkip;
-      rowBytes := (gfx^.width - clipLeft - clipRight) * 4;
-      clipLeft := clipLeft * 4;
-      clipRight := clipRight * 4;
-      leftSkip := leftSkip * 4;
-      rightSkip := rightSkip * 4;
-      srcOff := srcOff * 4;
-      saveOff := srcOff;
-      srcOff := tileIdx * gfx^.imgSize + srcOff;
-      maskOff := srcOff div 4;
-      maskClipLeft := clipLeft div 4;
-      maskClipRight := clipRight div 4;
-      planesLeft := 4;
-      destOff := destOff * 4;
-      for y := 0 to lastRow do begin
-        GDVars.spanActive[scanline] := 1;
-        Inc(srcOff, clipLeft);
-        Inc(maskOff, maskClipLeft);
-        Inc(saveOff, clipLeft);
-        Inc(destOff, leftSkip);
-        if GDVars.spanFirstOfs[scanline] > destOff then begin
-          GDVars.spanScreenOfs[scanline] := screenOff;
-          GDVars.spanFirstOfs[scanline] := destOff;
-        end;
-        if saveRequested then
-          Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
-        Inc(saveOff, rowBytes);
-        if useMask then begin
-          for i := 1 to rowBytes do begin
-            dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[maskOff] or gfx^.data[srcOff];
-            Inc(srcOff);
-            Dec(planesLeft);
-            if planesLeft = 0 then begin
-              planesLeft := 4;
-              Inc(maskOff);
-            end;
-            Inc(destOff);
-          end;
-        end else begin
-          Move(gfx^.data[srcOff], dest^.data[destOff], rowBytes);
-          Inc(srcOff, rowBytes);
-          Inc(destOff, rowBytes);
-        end;
-        if destOff - 1 > GDVars.spanLastOfs[scanline] then
-          GDVars.spanLastOfs[scanline] := destOff - 1;
-        Inc(srcOff, clipRight);
-        Inc(maskOff, maskClipRight);
-        Inc(saveOff, clipRight);
-        Inc(destOff, rightSkip);
-        Inc(scanline);
+    if saveRequested then
+      Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
+    Inc(saveOff, rowBytes);
+    if maskEach then begin
+      { a mask byte for each picture byte (CGA, Tandy) }
+      for i := 1 to rowBytes do begin
+        dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[srcOff] or gfx^.data[srcOff];
+        Inc(srcOff);
+        Inc(destOff);
       end;
+    end else if useMask then begin
+      { one mask byte for 1 shl maskShift picture bytes (EGA's planes), which keeps its own offset }
+      Inc(maskOff, maskClipLeft);
+      for i := 1 to rowBytes do begin
+        dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[maskOff] or gfx^.data[srcOff];
+        Inc(srcOff);
+        Dec(planesLeft);
+        if planesLeft = 0 then begin
+          planesLeft := planesPerMask;
+          Inc(maskOff);
+        end;
+        Inc(destOff);
+      end;
+      Inc(maskOff, maskClipRight);
+    end else begin
+      Move(gfx^.data[srcOff], dest^.data[destOff], rowBytes);
+      Inc(srcOff, rowBytes);
+      Inc(destOff, rowBytes);
     end;
+    if destOff - 1 > GDVars.spanLastOfs[scanline] then
+      GDVars.spanLastOfs[scanline] := destOff - 1;
+    Inc(srcOff, clipRight);
+    Inc(saveOff, clipRight);
+    Inc(destOff, rightSkip);
+    Inc(scanline);
   end;
 end;
 
@@ -966,11 +927,13 @@ var
   lastRow: Word;
   dstOff: Word;
   row: Word;
-  planeMask: array[0..3] of Byte;
   absRow: Word;
   screenOfs: Word;
-  plane: Byte;
   i: Word;
+  cell: Types.TCellBytes;
+  cellLen: Byte;
+  cells: Word;
+  uniform: Boolean;
 begin
   if pic = nil then Exit;
   if (x >= pic^.width) or (x + width <= 0) or (y >= pic^.height) or (y + height <= 0) then Exit;
@@ -1001,70 +964,47 @@ begin
     else
       lastRow := height - 1;
   end;
-  case GDVars.videoMode of
-    Types.vmCGA, Types.vmTandy: begin
-      { CGA: 2 bytes per cell }
-      if GDVars.videoMode = Types.vmCGA then begin
-        screenOfs := clampedX * 2;
-        runLen := (width - clipLeft - clipRight) * 2;
-        clampedX := clampedX * 2;
-        rightMargin := rightMargin * 2;
-        dstOff := dstOff * 2;
+  { the driver's layout: 1 shl cellShift picture bytes a cell row, 1 shl screenShift screen bytes a cell column }
+  with GDVars.video do begin
+    screenOfs := clampedX shl screenShift;
+    cells := width - clipLeft - clipRight;
+    runLen := cells shl cellShift;
+    clampedX := clampedX shl cellShift;
+    rightMargin := rightMargin shl cellShift;
+    dstOff := dstOff shl cellShift;
+    CellFill(color, colorMap, cell);
+    cellLen := 1 shl cellShift;
+    { a cell row of one byte repeated (always on CGA and Tandy, and EGA's black and white) fills as a run }
+    uniform := True;
+    for i := 1 to cellLen - 1 do
+      if cell[i] <> cell[0] then
+        uniform := False;
+  end;
+  for row := 0 to lastRow do begin
+    GDVars.spanActive[absRow] := 1;
+    Inc(dstOff, clampedX);
+    if GDVars.spanFirstOfs[absRow] > dstOff then begin
+      GDVars.spanScreenOfs[absRow] := screenOfs;
+      GDVars.spanFirstOfs[absRow] := dstOff;
+    end;
+    if uniform then begin
+      FillChar(pic^.data[dstOff], runLen, cell[0]);
+      Inc(dstOff, runLen);
+    end else if cellLen = 4 then
+      { four bytes a cell (EGA's planes): one LongInt store each }
+      for i := 1 to cells do begin
+        PLongInt(@pic^.data[dstOff])^ := LongInt(cell);
+        Inc(dstOff, 4);
       end
-      { Tandy: 4 bytes per cell }
-      else begin
-        runLen := (width - clipLeft - clipRight) * 4;
-        clampedX := clampedX * 4;
-        rightMargin := rightMargin * 4;
-        dstOff := dstOff * 4;
-        screenOfs := clampedX;
+    else
+      for i := 1 to cells do begin
+        Move(cell, pic^.data[dstOff], cellLen);
+        Inc(dstOff, cellLen);
       end;
-      for row := 0 to lastRow do begin
-        GDVars.spanActive[absRow] := 1;
-        Inc(dstOff, clampedX);
-        if GDVars.spanFirstOfs[absRow] > dstOff then begin
-          GDVars.spanScreenOfs[absRow] := screenOfs;
-          GDVars.spanFirstOfs[absRow] := dstOff;
-        end;
-        if GDVars.videoMode = Types.vmCGA then
-          FillChar(pic^.data[dstOff], runLen, GDConsts.cgaColorFill[Blit.SrcNibble(color, colorMap)])
-        else
-          FillChar(pic^.data[dstOff], runLen, GDConsts.tandyColorFill[color]);
-        Inc(dstOff, runLen);
-        if dstOff - 1 > GDVars.spanLastOfs[absRow] then
-          GDVars.spanLastOfs[absRow] := dstOff - 1;
-        Inc(dstOff, rightMargin);
-        Inc(absRow);
-      end;
-    end;
-    { EGA: 4 plane bytes per cell }
-    Types.vmEGA: begin
-      screenOfs := clampedX;
-      runLen := width - clipLeft - clipRight;
-      clampedX := clampedX * 4;
-      rightMargin := rightMargin * 4;
-      dstOff := dstOff * 4;
-      FillChar(planeMask, SizeOf(planeMask), 0);
-      for plane := 0 to 3 do
-        if (GDConsts.egaPlaneBit[plane] and color) > 0 then
-          planeMask[plane] := $FF;
-      for row := 0 to lastRow do begin
-        GDVars.spanActive[absRow] := 1;
-        Inc(dstOff, clampedX);
-        if GDVars.spanFirstOfs[absRow] > dstOff then begin
-          GDVars.spanScreenOfs[absRow] := screenOfs;
-          GDVars.spanFirstOfs[absRow] := dstOff;
-        end;
-        for i := 1 to runLen do begin
-          Move(planeMask, pic^.data[dstOff], SizeOf(planeMask));
-          Inc(dstOff, 4);
-        end;
-        if dstOff - 1 > GDVars.spanLastOfs[absRow] then
-          GDVars.spanLastOfs[absRow] := dstOff - 1;
-        Inc(dstOff, rightMargin);
-        Inc(absRow);
-      end;
-    end;
+    if dstOff - 1 > GDVars.spanLastOfs[absRow] then
+      GDVars.spanLastOfs[absRow] := dstOff - 1;
+    Inc(dstOff, rightMargin);
+    Inc(absRow);
   end;
 end;
 
@@ -1083,31 +1023,22 @@ end;
 
 function FrameBytes(height, width: Word): Word;
 begin
-  if GDVars.videoMode = Types.vmCGA then
-    FrameBytes := height * width * 2
-  else
-    FrameBytes := height * width * 4;
+  FrameBytes := (height * width) shl GDVars.video.cellShift;
 end;
 
 function MaskBytes(imageBytes: Word): Word;
 begin
-  if GDVars.videoMode = Types.vmEGA then
-    MaskBytes := imageBytes div 4
-  else
-    MaskBytes := imageBytes;
+  MaskBytes := imageBytes shr GDVars.video.maskShift;
 end;
 
 function ColourCount: Byte;
 begin
-  if GDVars.videoMode = Types.vmCGA then
-    ColourCount := 4
-  else
-    ColourCount := 16;
+  ColourCount := GDVars.video.colours;
 end;
 
 function HasPalette: Boolean;
 begin
-  HasPalette := GDVars.videoMode = Types.vmEGA;
+  HasPalette := GDVars.video.hasPalette;
 end;
 
 end.

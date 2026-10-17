@@ -7,7 +7,8 @@ interface
 
 implementation
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv, DaxIo, GameIo;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, TextRend, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga,
+  VidTdy;
 
 var
   { lowered HeapEnd snapshot }
@@ -108,6 +109,7 @@ begin
   case cfgChar of
     'E': begin
       GDVars.videoMode := Types.vmEGA;
+      VidEga.Install;
       Blit.SetVideoMode(13);
       GDVars.pageMain := 0;
       GDVars.pageNum := 0;
@@ -116,6 +118,7 @@ begin
     end;
     'T': begin
       GDVars.videoMode := Types.vmTandy;
+      VidTdy.Install;
       { Lower HeapEnd by GFX_RESERVE_PARAS; the common code after the sound setting lowers it once more, so Tandy
         reserves twice as much }
       gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
@@ -124,6 +127,7 @@ begin
     end;
     else begin
       GDVars.videoMode := Types.vmCGA;
+      VidCga.Install;
       Blit.SetVideoMode(4);
     end;
   end;

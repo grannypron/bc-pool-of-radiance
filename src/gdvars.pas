@@ -7,6 +7,8 @@ interface
 uses Types, Dos, C_Effect, C_Gbvm;
   
 var
+  { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
+  video: Types.TVideoDriver;
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..Types.ARENA_SLOTS] of Byte;

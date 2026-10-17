@@ -5,7 +5,7 @@
   Only rates measured at the same DOSBox-X speed compare. }
 program VidBench;
 
-uses Types, C_Video, GDVars, Blit, TextRend;
+uses Types, C_Video, GDVars, Blit, TextRend, VidCga, VidEga, VidTdy;
 
 const
   { BIOS ticks each workload runs for, about 3 seconds }
@@ -92,6 +92,7 @@ begin
   case mode of
     'E': begin
       GDVars.videoMode := Types.vmEGA;
+      VidEga.Install;
       Blit.SetVideoMode(13);
       GDVars.pageMain := 0;
       GDVars.pageNum := 0;
@@ -100,11 +101,13 @@ begin
     end;
     'T': begin
       GDVars.videoMode := Types.vmTandy;
+      VidTdy.Install;
       Blit.SetVideoMode(9);
     end;
   else begin
     mode := 'C';
     GDVars.videoMode := Types.vmCGA;
+    VidCga.Install;
     Blit.SetVideoMode(4);
   end;
   end;

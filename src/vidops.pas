@@ -37,13 +37,7 @@ uses C_Video, GDConsts, GDVars, Blit;
 
 function ModeName: Types.TStr20;
 begin
-  case GDVars.videoMode of
-    Types.vmCGA: ModeName := 'CGA';
-    Types.vmEGA: ModeName := 'EGA';
-    Types.vmTandy: ModeName := 'Tandy';
-  else
-    ModeName := '?';
-  end;
+  ModeName := GDVars.video.name;
 end;
 
 procedure InitRowTables;
@@ -91,13 +85,9 @@ var
 begin
   if (src = nil) or (dst = nil) then Exit;
   if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
-  { EGA's mask byte covers the cell row's four plane bytes }
-  if GDVars.videoMode = Types.vmEGA then
-    for n := 0 to dst^.imgSize - 1 do
-      dst^.data[n] := dst^.data[n] and src^.transp^[n shr 2] or src^.data[n]
-  else
-    for n := 0 to dst^.imgSize - 1 do
-      dst^.data[n] := dst^.data[n] and src^.transp^[n] or src^.data[n];
+  { one mask byte covers 1 shl maskShift picture bytes (EGA's cell row of four planes) }
+  for n := 0 to dst^.imgSize - 1 do
+    dst^.data[n] := dst^.data[n] and src^.transp^[n shr GDVars.video.maskShift] or src^.data[n];
 end;
 
 procedure RecolorPic(var toT: Types.TColorTab; pic: Types.PImgBuf);

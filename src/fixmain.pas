@@ -6,7 +6,7 @@ program FixMain;
 uses Types,
   Overlay, Crt, Dos,
   GDConsts, GDVars,
-  SoundDrv, GameIo, DaxIo, TextRend, Blit, GameBoot,
+  SoundDrv, GameIo, DaxIo, TextRend, Blit, VidCga, VidEga, VidTdy, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,
   VidOps, UsualSpl, SaveLoad, CharGen, Camp,

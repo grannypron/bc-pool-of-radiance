@@ -801,6 +801,33 @@ type
   TStr20 = string[20];
   TByteArr = array[0..65534] of ShortInt;
 
+  { Video driver types (phase 6 of docs/refactor-plan.md). }
+  { one 8-pixel cell row of a picture in a single colour, in the video mode's layout (its first cellBytes bytes) }
+  TCellBytes = array[0..3] of Byte;
+  TCellFillProc = procedure(color: Byte; var colorMap: TColorMap; var cell: TCellBytes);
+  { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
+    routines. GameBoot installs one (VidCga, VidEga or VidTdy) into GDVars.video. }
+  TVideoDriver = record
+    { the mode's name, for the settings screen }
+    name: TStr20;
+    { the colours shown at once: 4 on CGA (each picture's colour map picks them), 16 on EGA and Tandy }
+    colours: Byte;
+    { palette registers SetPaletteRegister can program (EGA) }
+    hasPalette: Boolean;
+    { The layout as shift counts, since the 8086 shifts in a few cycles where it multiplies or divides in a hundred: }
+    { picture bytes in one cell row, 1 shl cellShift: 2 on CGA (2 bits a pixel), 4 on EGA (a byte a plane) and Tandy
+      (4 bits a pixel) }
+    cellShift: Byte;
+    { screen bytes one cell column takes on a scanline, 1 shl screenShift, the unit of the dirty spans' screen offsets:
+      2 on CGA, 1 on EGA (each plane's byte at one address), 4 on Tandy }
+    screenShift: Byte;
+    { picture bytes one transparency-mask byte covers, 1 shl maskShift: 4 on EGA (a cell row's planes), 1 on CGA and
+      Tandy }
+    maskShift: Byte;
+    { a cell row filled with color: colorMap picks CGA's colour }
+    CellFill: TCellFillProc;
+  end;
+
   { EclMenu types. }
   PEclRet = ^TEclRet;
   PZone2 = ^TZone2;
