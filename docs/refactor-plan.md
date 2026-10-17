@@ -318,7 +318,7 @@ Separate, because they change behaviour:
   remove it.
 - #616: the Constitution hit-point bonus.
 
-## Phase 6: a video driver, and VGA (proposed)
+## Phase 6: a video driver, and VGA
 
 Written 2026-10-16 from two surveys: PoR's video code at 486aa52, and the later Gold Box games' video layers
 (pools-disassembly, treasures-disassembly, gateway-disassembly, curse-disassembly).
@@ -598,6 +598,13 @@ them), except where a step says otherwise.
      at the default 1 MB there is none.
    - The suite passes at 1 MB in EGA, CGA and Tandy, and at 16 MB in EGA (overlays from EMS). VGA differs only where
      it did before, and ssiformat passes.
+
+**Status.**
+- Steps 0 to 5 are done: a VGA driver, the second tile set loaded when needed, and overlays from EMS.
+- Left:
+  - A scenario (or a test program) for the wilderness and the ending, which no scenario reaches. That is where the
+    second tile set loads on demand, and where VGA's memory has not been seen in play.
+  - Freeing the picture caches, for more VGA headroom: pictures held never fall from their peak.
 
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
 new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
