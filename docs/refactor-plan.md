@@ -318,6 +318,297 @@ Separate, because they change behaviour:
   remove it.
 - #616: the Constitution hit-point bonus.
 
+## Phase 6: a video driver, and VGA
+
+Written 2026-10-16 from two surveys: PoR's video code at 486aa52, and the later Gold Box games' video layers
+(pools-disassembly, treasures-disassembly, gateway-disassembly, curse-disassembly).
+
+**What the later games do.** None of Curse, Secret, Gateway, Treasures or Pools loads a video driver at run time.
+- Each links a resident `Blit` unit with TASM routines, one set of entry points per display class: a cell blit, a masked
+  cell blit, a clipped blit, a glyph draw and a palette set. It picks the set with a `case` on the mode byte.
+- Pools' `EGA.DRV`, `VGA.DRV` and `TGA.DRV` (63-entry near-jump tables, about 30 KB of assembly each) belong to
+  `VACE.EXE`, the intro and ending player, not to the game.
+- The goldbox-wiki's Pools pages say otherwise; the reconstructed source and the binaries contradict them.
+- VGA (mode 13h, 256 colours) first appears in Gateway. Treasures and Pools drop CGA.
+
+What they do better than PoR is organisation: the mode-specific code stays inside the video units.
+
+**PoR today.** CGA (mode 4), EGA (0Dh) and Tandy (9), chosen from POOL.CFG line 2 by GameBoot.
+- All video code is Pascal, with no inline assembly: `Mem[]`, `Port[]`, `absolute` arrays over the banks, `Move`,
+  `FillChar` and INT 10h.
+- About 970 lines are mode-specific. 70% are in Blit (about 520) and TextRend (about 190), both resident. The rest is
+  small branches in about twelve units:
+  - CharGen's `Recolor`, `MaskSize`, `Overlay` and `Place`.
+  - Portrait's frame sizes and remap.
+  - BldShow's `PutPixels`, a second pixel converter.
+  - SaveLoad's icon merge.
+  - The mask sizes in MapTiles, CharDisp and CbtActs.
+  - DaxIo's `WriteChar`.
+  - The EGA-only palette calls in CbtMap and Intro.
+  - Options' mode name.
+- There is no indirection: every branch reads `GDVars.videoMode`. Every unit is compiled `{$F+}`, so procedure
+  variables cost nothing new.
+
+**The goal.** Game code that does not know the mode, one driver per mode behind one interface, and a fourth driver for
+VGA. No new assembly: PoR's video is all Pascal now, and stays so unless a measured hot path needs it.
+
+The steps are in order. Every step keeps the CGA, EGA and Tandy screens pixel-identical (the regression suite compares
+them), except where a step says otherwise.
+
+0. **Measure first.**
+   - Time the hot primitives per mode: `RenderChar` (every character), `BlitTileCell`/`BlitTileClipped` (every tile,
+     glyph and icon), `FillPicRect` (every 3D view) and `FlushView` (every frame; 21 call sites).
+   - Add a scenario that runs in each of the three modes, so the suite sees CGA and Tandy as well as EGA.
+
+   **Done.**
+   - `bench/vidbench.sh` times the hot primitives in each mode under DOSBox-X at a fixed 10,000 cycles: the EGA
+     machine for CGA and EGA, the Tandy machine for Tandy. Runs repeat to the hundredth.
+   - `VIDEO=cga` and `VIDEO=tandy` run the regression suite in those modes. Tandy uses goldbox-player's
+     `por-v13-tandy` title, because an EGA machine cannot set mode 9.
+   - All nine scenarios pass in CGA and in Tandy against the golden 7e2f186, so phases 1 to 5 changed neither mode's
+     screens.
+   - `loadsave` needed goldbox-player 14eda0e: the QUIT TO DOS prompt sits over the animated camp picture, which
+     never settles in CGA or Tandy, so a key that stays unsettled is now forced.
+
+   The baseline at 486aa52, per call:
+
+   | | CGA | EGA | Tandy |
+   | --- | --- | --- | --- |
+   | `RenderChar`, a character | 189 us | 216 us | 205 us |
+   | `BlitTileCell`, an 8x8 masked tile | 91 us | 149 us | 134 us |
+   | `FillPicRect`, the 168x168 view | 2.6 ms | 11.8 ms | 2.6 ms |
+   | `FlushView`, the whole view | 2.0 ms | 25.7 ms | 2.9 ms |
+
+   EGA is the slowest mode at everything. Its flush is about ten times the others': it writes a byte at a time
+   through `Mem[]`, plane by plane, then latch-copies. That is the first primitive for EGA's driver to widen in
+   step 3, and the strongest case for VGA's linear screen.
+1. **Mode-independent game code.** Move every branch outside Blit and TextRend behind a Blit routine:
+   - `Blit.MaskBytes(imageBytes)` for the mask-size arithmetic (about seven sites), and a row stride.
+   - One icon-merge routine (OR the data, AND the mask) for SaveLoad's merge and CharGen's `Overlay`.
+   - CharGen's `Recolor` merged into `RemapPic`; BldShow's `PutPixels` into the picture converter.
+   - The palette calls through one Blit routine that does nothing where the mode has no palette.
+   - `GameInit` builds only the active mode's row table.
+
+   After this step only Blit, TextRend, DaxIo's `WriteChar` and GameBoot know the mode.
+
+   **Done.**
+   - Blit answers the size and capability questions: `FrameBytes`, `MaskBytes`, `ColourCount` and `HasPalette`.
+     `SetPaletteRegister` does nothing without a palette.
+   - The cold operations are in a new overlaid unit, `VidOps`: `ModeName`, `InitRowTables` (the active mode's table
+     only), `MergePic` (SaveLoad's `MergeIcon` and CharGen's `Merge`), `OverlayPic`, `RecolorPic` (CharGen's
+     `Recolor`) and `PutPixelRow` (BldShow's `PutPixels`).
+   - Only Blit, TextRend, DaxIo, GameBoot and VidOps read `videoMode`.
+   - Sizes: resident code +128 bytes, overlays -468.
+   - The suite passes in all three modes, and ssiformat passes. BldShow's converter runs only when the data
+     archives are built, which no scenario does.
+
+   The split also sets a pattern for step 2: a driver's hot entries are resident, and its cold ones can point into an
+   overlay.
+2. **The driver interface.** `TVideoDriver`, a record of procedure variables in a resident unit, with these entry
+   points:
+   - Mode set and restore, page setup and the heap reserve (Tandy's 16 KB).
+   - The row tables.
+   - Picture size and mask size.
+   - Convert DAX frames (`ExpandPicFrames`), mirror, remap and fill rectangle.
+   - Tile blit (masked and clipped) into the view buffer.
+   - Flush the view's dirty spans, show a picture on screen, draw a character, clear a rectangle.
+   - Set the palette.
+
+   The mode-independent work stays in Blit and TextRend: clipping, the dirty-span bookkeeping, word wrap, picture
+   loading and caching. The spans' offsets become the driver's own units (bytes or cells today).
+
+   **How it is being done.** Steps 2 and 3 go together, a group of entries at a time, each group with its per-mode
+   code and a regression in all three modes:
+   - 2a: the record and the layout.
+   - 2b: the screen routines.
+   - 2c: the cold picture routines.
+
+   **2a done.**
+   - `TVideoDriver` (Types) lives in `GDVars.video`. Three resident units fill it, `VidCga`, `VidEga` and `VidTdy`, and
+     GameBoot installs the one POOL.CFG names.
+   - The record holds the name, the colour count, the palette flag, and the picture layout as shift counts: `cellShift`,
+     `screenShift` and `maskShift`. On the 8086 a shift is a few cycles, where a multiply or divide is about a hundred.
+     It also holds `CellFill`, a cell row in one colour.
+   - With them, `BlitTile`, `FillPicRect`, `OverlayPic` and the size questions have no mode branches.
+   - EGA's fill stores four-byte cells as LongInts.
+   - Speed against the step 0 baseline:
+
+     | | CGA | EGA | Tandy |
+     | --- | --- | --- | --- |
+     | tiles | -7% | -4% | -4% |
+     | fill | +54% | +144% | same |
+     | fill and flush | +24% | +21% | same |
+
+     The tiles' loss is the generic per-tile setup.
+   - Sizes: resident code -496 bytes.
+   - The suite passes in all three modes. The extra frame warnings are animation timing: they move from run to run on
+     the same build.
+
+   **2b done.**
+   - The record gained `biosMode` and `ramVideoParas` (Tandy's screen in system RAM, kept from the heap), plus these
+     entries:
+     - `Start` (EGA's pages)
+     - `FlushSpans`
+     - `ShowPic`
+     - `DrawGlyph`
+     - `ClearRect` and `ClearScreen`
+     - `WriteChar`, using DaxIo's new mode-independent `BiosWriteChar`.
+   - The drivers hold that code, with EGA's page and graphics-controller helpers and the CGA and Tandy bank arrays.
+   - Blit, TextRend and DaxIo keep the span reset, the glyph lookup and loop, and the range check.
+   - GameBoot sets any mode from the record: it picks the driver, keeps a RAM screen out of the heap, sets the BIOS
+     mode and calls `Start`.
+   - Speed is unchanged from 2a. Resident code +720 bytes, from the drivers' entry routines.
+   - The suite passes in all three modes, and ssiformat passes.
+
+   **2c done.**
+   - The cold entries are `ExpandFrames`, `MirrorFrame`, `RemapColour` (one colour pair of `RemapPic`),
+     `RecolorFrame`, `PutPixelRow` and `InitRowTables`.
+   - They live in an overlaid unit per mode, `PicCga`, `PicEga` and `PicTdy`, which the resident driver points the
+     record into.
+   - Blit and VidOps keep the nil checks, RemapPic's scratch copy and colour-pair loop, and the copy back.
+   - Nothing reads the video mode any more, so `GDVars.videoMode` and `Types.TVideoMode` are gone. The installed driver
+     is the mode.
+   - Sizes: resident code -3,072 bytes (62,656). Overlays +3,731, but only the mode's own unit loads.
+   - Overlay loads against 2b: areachange 27 to 29, combat 44 to 48, vault 30 to 32. That is the Pic unit, for the
+     icon and portrait remaps and the combat icons' mirrors, and all three are still below the golden build's.
+   - Speed is unchanged. The suite passes in all three modes, and ssiformat passes.
+
+   **Steps 2 and 3 are done.** Video code that knows the mode is only in VidCga/VidEga/VidTdy (resident) and
+   PicCga/PicEga/PicTdy (overlaid).
+3. **One unit per mode.**
+   - `VidCga`, `VidEga` and `VidTdy` each fill the record from the code now in Blit's and TextRend's `case` arms.
+   - GameBoot installs the one POOL.CFG names.
+   - All three stay resident: overlaying a driver would reload its hot paths, so resident code stays about what it is
+     (the code moves, it does not grow).
+   - Check the calls' cost against step 0. An indirect far call replaces a `case`. If a primitive is slower, it gets
+     a wider entry point (a row or a span per call) before any assembly.
+4. **Tests.** Picture conversion, mirroring, remapping and the mask sizes become TestKit programs per driver, run
+   without video hardware against known DAX frames. Screen output stays with the regression scenarios.
+
+   **Done.**
+   - TVidPic installs each driver in turn. Installing only fills the record, so no video hardware is needed.
+   - It converts a one-cell, two-row DAX picture: colours 0..7 and then 7..0, with 0 transparent.
+   - It checks, in every mode, against bytes worked out by hand from the mode's layout:
+     - the frame and mask sizes;
+     - the converted data and mask;
+     - a mirror (row 0 mirrored is row 1), and mirrored twice;
+     - a one-colour remap;
+     - a one-cell fill;
+     - the picture blitted through its mask over another colour.
+   - 39 checks pass.
+   - build.sh's test runner now finds objects in `obj` as well as `obj\tests`, for the sound driver the video units
+     link through GameIo.
+5. **VGA (mode 13h).** A fourth driver, `VidVga`, chosen by a new POOL.CFG letter. Its settings:
+   - The art is 16-colour, so the DAC is loaded with the EGA palette.
+   - Pictures are stored one byte per pixel, 8 bytes per 8-pixel cell, with colour 0 or a key byte as transparency.
+   - The screen is linear at $A000:0, 320 bytes per row, with no planes.
+   - The view flushes by `Move` per dirty span.
+
+   What VGA gives:
+   - Faster, simpler blits and flushes than EGA's planes.
+   - Free palette control: the combat and non-combat palettes and the intro flash work as on EGA, and later fades are
+     possible.
+   - A place for 256-colour art if the project ever has any.
+
+   What it costs:
+   - Pictures take twice EGA's memory, 8 bytes per cell against 4 plus a mask. Measure the heap at the busiest screen
+     (combat with portraits and animations) before committing. The view buffer and the portrait cache are the large
+     ones.
+   - Mode 13h has one page where EGA has two, so anything that draws to the hidden page (EGA's `$A200` staging) needs
+     a heap buffer or a different order.
+   - The settings menu, Options' mode name and the regression suite (a fourth mode to compare) grow to match.
+
+   Pools, Treasures and Gateway are the references for the VGA cell layout and the palette programming
+   (`ProgramPaletteOnRetrace`); their designs inform this one but are not copied.
+
+   **Measured.**
+   - STING Ctrl-Y now shows the heap pictures hold (`GDVars.picBytes`, counted by AllocPic and FreePic) and their peak.
+   - At the end of each scenario in EGA:
+
+     | scenario | heap free | pictures |
+     | --- | --- | --- |
+     | combat | 215,120 | 133,882 |
+     | areachange | 230,128 | 122,174 |
+     | vault | 234,000 | 118,302 |
+
+     The pictures stay cached, so the figure is also the peak.
+   - Pictures at a byte a pixel with a byte-a-pixel mask would need about 330 KB in combat, more than the heap has.
+   - With a colour key and no mask they would need about 240 KB, leaving about 108 KB free.
+   - The alternative is to keep pictures in Tandy's layout (4 bits a pixel) and convert to a byte a pixel only when
+     copying to the screen, a 256-entry word table per byte. That costs no more memory than Tandy, and gives up only
+     256-colour art, which PoR does not have.
+
+   **Chosen: a byte a pixel with a colour key**, as Dark Queen of Krynn keeps its pictures, so the driver carries to
+   later games with 256-colour art. Done:
+   - `VidVga` (resident) and `PicVga` (overlaid), POOL.CFG letter V.
+   - Pictures take 8 bytes a cell row. A transparent pixel holds `Types.PIC_KEY` ($FF).
+   - The mask is kept a bit a pixel, a byte a cell row, so code that checks or copies masks works unchanged. Keyed
+     drawing does not read it.
+   - The record gained `keyed` and `SetPalette`: VGA writes DAC entries 0..15, and EGA's BIOS palette call moved into
+     VidEga.
+   - Blit's tile loop and VidOps' merge and overlay have keyed paths, and `Blit.ClearPic` clears a picture to
+     transparent (CharGen's icons).
+   - `TCellBytes` grew to 8 bytes.
+   - A picture larger than one 64 KB heap block continues in `TImgBuf.more`. AllocPic, FreePic, ExpandPicFrames,
+     BlitTile and RemapPic follow it, and `Blit.FrameBlock` and `FrameCount` serve MapTiles. Of the game's 809 DAX
+     pictures, only SQRPACI's two wilderness tile sheets need it: 128 frames of 24 x 24, 73,758 bytes each in VGA.
+   - TVidPic checks VGA and the split sheet: 58 checks.
+   - goldbox-player's `por-v13-vga` title (a VGA machine) and `VIDEO=vga` run the suite.
+   - Against the golden build, which reads V as CGA, VGA's screens differ only in the settings' video line and in
+     picture pixels the screen reader takes for glyphs. EGA, CGA and Tandy still pass, as does ssiformat.
+
+   **Memory in VGA**, at the scenarios' ends:
+
+   | scenario | heap free | largest block | pictures |
+   | --- | --- | --- | --- |
+   | combat | 84,896 | 56,280 | 261,768 |
+   | areachange | 111,552 | 79,608 | 238,428 |
+   | vault | 119,296 | 79,608 | 230,684 |
+
+   - Boot leaves 156,864 free, against EGA's 302,408.
+   - Pictures cost about 1.95 times EGA's.
+   - The wilderness tile sheets, loaded at boot and kept all game, are 148 KB of that.
+   - The ending's full-screen pictures need 64 KB blocks, which combat's largest block (56 KB) could not give. No
+     scenario reaches the ending.
+
+   **The second tile set loads when it is needed.**
+   - SQRPACI block 2, tile IDs 128 and up, is drawn only by the wilderness and the ending.
+   - `MapTiles.SecondSheet` loads it the first time it is needed, combat setup frees it (`FreeSecondSheet`), and
+     GameInit no longer loads it at boot.
+   - The first set stays loaded: combat draws its terrain from tiles 0..39, which it overwrites with its own sets, and
+     the wilderness overwrites them with BACPAC.
+   - VGA at the scenarios' ends:
+
+     | scenario | heap free, before -> after | largest block, before -> after |
+     | --- | --- | --- |
+     | combat | 84,896 -> 158,672 | 56,280 -> 134,920 |
+     | areachange | 111,552 -> 185,328 | 79,608 -> 166,032 |
+     | vault | 119,296 -> 193,072 | 79,608 -> 181,600 |
+
+     Every mode gains the same 37 KB (EGA) to 74 KB (VGA).
+   - No scenario reaches the wilderness or the ending, where SecondSheet loads.
+
+   **Overlays load from EMS when there is room.**
+   - GameBoot calls `OvrInitEMS` after `OvrInit`, before CountOvrRead hooks in, so the count covers both sources.
+   - Without an EMS driver, or with too little EMS, overlays load from GAME.OVR as before.
+   - STING Ctrl-Y's buffer line ends "from EMS" or "from disk".
+   - Conventional memory is unchanged; only the loads get faster. GOG's DOSBox configurations for PoR and Curse have
+     EMS on.
+   - goldbox-player's sessions take a memory size (12d1bd4). `MEMSIZE=16 tests/regress.sh` runs the suite with EMS;
+     at the default 1 MB there is none.
+   - The suite passes at 1 MB in EGA, CGA and Tandy, and at 16 MB in EGA (overlays from EMS). VGA differs only where
+     it did before, and ssiformat passes.
+
+**Status.**
+- Steps 0 to 5 are done: a VGA driver, the second tile set loaded when needed, and overlays from EMS.
+- Left:
+  - A scenario (or a test program) for the wilderness and the ending, which no scenario reaches. That is where the
+    second tile set loads on demand, and where VGA's memory has not been seen in play.
+  - Freeing the picture caches, for more VGA headroom: pictures held never fall from their peak.
+
+**What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
+new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
+
 ## Working method
 
 One branch and one PR per phase, an issue per item, each change checked against the tests, the regression suite and

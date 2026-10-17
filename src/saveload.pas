@@ -86,7 +86,7 @@ implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil, UsualSpl;
+  FileUtil, Party, StrUtil, UsualSpl, VidOps;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -170,36 +170,6 @@ begin
   Close(f);
 end;
 
-{ OR src's pixels onto dst and AND the transparency masks. The CGA and Tandy masks are imgSize bytes; the EGA mask is
-  one plane, a quarter of imgSize, sized from GDVars.dsIconAnimation[11, 0] rather than src. Nothing is merged when
-  either picture is missing (LoadPic leaves nil for a block that is not there) or src is empty. }
-procedure MergeIcon(src, dst: Types.PImgBuf);
-var
-  n: Word;
-  i: Word;
-begin
-  if (src = nil) or (dst = nil) then Exit;
-  { an empty picture would make the loops below run 65536 times }
-  if src^.imgSize = 0 then Exit;
-  case GDVars.videoMode of
-    Types.vmCGA, Types.vmTandy:
-      for i := 0 to src^.imgSize - 1 do begin
-        dst^.data[i] := dst^.data[i] or src^.data[i];
-        dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
-      end;
-    Types.vmEGA: begin
-      for i := 0 to src^.imgSize - 1 do
-        dst^.data[i] := dst^.data[i] or src^.data[i];
-      if GDVars.dsIconAnimation[11, 0] <> nil then
-        if GDVars.dsIconAnimation[11, 0]^.imgSize >= 4 then begin
-          n := GDVars.dsIconAnimation[11, 0]^.imgSize div 4 - 1;
-          for i := 0 to n do
-            dst^.transp^[i] := dst^.transp^[i] and src^.transp^[i];
-        end;
-    end;
-  end;
-end;
-
 procedure LoadCharIconAnim(loading: Boolean);
 
 var
@@ -218,8 +188,8 @@ begin
       height := 1;
     MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[height], iconHead, 11);
     MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[height], iconBody, orderNumber);
-    SaveLoad.MergeIcon(GDVars.dsIconAnimation[11, 0], GDVars.dsIconAnimation[orderNumber, 0]);
-    SaveLoad.MergeIcon(GDVars.dsIconAnimation[11, 1], GDVars.dsIconAnimation[orderNumber, 1]);
+    VidOps.MergePic(GDVars.dsIconAnimation[11, 0], GDVars.dsIconAnimation[orderNumber, 0]);
+    VidOps.MergePic(GDVars.dsIconAnimation[11, 1], GDVars.dsIconAnimation[orderNumber, 1]);
     if loading then begin
       for i := 0 to 15 do begin
         fromMap[i] := i;

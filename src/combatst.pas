@@ -539,6 +539,8 @@ end;
   terrain generator. }
 procedure LoadCombatTileSet;
 begin
+  { combat's terrain is tiles 0..39 of the first set; the second is loaded again when next needed }
+  MapTiles.FreeSecondSheet;
   if GDVars.gLocType = C_Area.LOC_3D_MAP then
     MapTiles.Load24x24Set('DungCom', 0, 24)
   else

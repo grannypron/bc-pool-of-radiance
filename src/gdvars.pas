@@ -7,6 +7,8 @@ interface
 uses Types, Dos, C_Effect, C_Gbvm;
   
 var
+  { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
+  video: Types.TVideoDriver;
   { Timed effects. }
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..Types.ARENA_SLOTS] of Byte;
@@ -57,6 +59,11 @@ var
   debugFile: Text;
   { overlay loads since the program started, counted by GameBoot's OvrReadBuf hook (#612) }
   ovrLoads: LongInt;
+  { the overlays load from EMS (GameBoot's OvrInitEMS succeeded) rather than from GAME.OVR on disk }
+  ovrInEms: Boolean;
+  { heap bytes held by pictures (Blit.AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
+  picBytes: LongInt;
+  picPeak: LongInt;
   { set when GameIo has written over the bottom line (the STING Ctrl-Y pop-up); MenuCore.HorizontalMenu redraws its
     menu line and clears it }
   bottomLineTaken: Boolean;
@@ -89,8 +96,6 @@ var
   savedVideoMode: Byte;
   { BIOS mode queried at init, then the mode most recently requested through Blit.SetVideoMode. }
   curVideoMode: Byte;
-  { Video mode (line 1 in POOL.CFG) }
-  videoMode: Types.TVideoMode;
 
 var
   { Off-screen 168x168 view buffer that the compositors draw into and Blit.FlushView copies to the screen; GameInit

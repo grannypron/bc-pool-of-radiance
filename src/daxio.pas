@@ -12,6 +12,10 @@ procedure AllocRounded(var p: Pointer; n: Word);
 
 procedure WriteChar(col, row, attr, count, ch: Byte);
 
+{ Position the cursor on display page page and write count copies of ch in attr there, through the BIOS (INT 10h). The
+  video drivers' WriteChar calls it once for each page they keep. }
+procedure BiosWriteChar(page, col, row, attr, count, ch: Byte);
+
 procedure WriteString(col, row, attr: Byte; source: string);
 
 procedure WriteBlock(col, row, attr, count: Byte);
@@ -102,39 +106,27 @@ begin
   GetMem(p, (n + 7) and $FFF8);
 end;
 
-{ WriteChar: Position the cursor (int10 AH=2) then write count copies of ch+attr (int10 AH=9) on the main page. In CGA
-  mode (display mode 0) the attribute is first mapped through the 16-entry EGA->CGA table; in EGA mode (1) the pair is
-  repeated, unmapped, on the alternate page. Only attr's colour (low four bits) is mapped: SSI indexed the table with
-  the whole byte. }
+{ WriteChar: count copies of ch in attr at (col, row) through the BIOS, as the video driver writes them
+  (GDVars.video.WriteChar, which calls BiosWriteChar for each display page it keeps). }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
+  GDVars.video.WriteChar(col, row, attr, count, ch);
+end;
+
+{ BiosWriteChar: Position the cursor on page (INT 10h AH=2), then write count copies of ch in attr there (AH=9). }
+procedure BiosWriteChar(page, col, row, attr, count, ch: Byte);
+begin
   GDVars.dsInterruptRegisters.ah := 2;
-  GDVars.dsInterruptRegisters.bh := GDVars.pageMain;
+  GDVars.dsInterruptRegisters.bh := page;
   GDVars.dsInterruptRegisters.dh := row;
   GDVars.dsInterruptRegisters.dl := col;
   Intr($10, GDVars.dsInterruptRegisters);
   GDVars.dsInterruptRegisters.ah := 9;
   GDVars.dsInterruptRegisters.al := ch;
-  GDVars.dsInterruptRegisters.bh := GDVars.pageMain;
-  if GDVars.videoMode = Types.vmCGA then
-    GDVars.dsInterruptRegisters.bl := GDConsts.attrTable[attr and $0F]
-  else
-    GDVars.dsInterruptRegisters.bl := attr;
+  GDVars.dsInterruptRegisters.bh := page;
+  GDVars.dsInterruptRegisters.bl := attr;
   GDVars.dsInterruptRegisters.cx := count;
   Intr($10, GDVars.dsInterruptRegisters);
-  if GDVars.videoMode = Types.vmEGA then begin
-    GDVars.dsInterruptRegisters.ah := 2;
-    GDVars.dsInterruptRegisters.bh := GDVars.pageNum;
-    GDVars.dsInterruptRegisters.dh := row;
-    GDVars.dsInterruptRegisters.dl := col;
-    Intr($10, GDVars.dsInterruptRegisters);
-    GDVars.dsInterruptRegisters.ah := 9;
-    GDVars.dsInterruptRegisters.al := ch;
-    GDVars.dsInterruptRegisters.bh := GDVars.pageNum;
-    GDVars.dsInterruptRegisters.bl := attr;
-    GDVars.dsInterruptRegisters.cx := count;
-    Intr($10, GDVars.dsInterruptRegisters);
-  end;
 end;
 
 { WriteString: Write each char of source at (col,row)/attr, advancing col }

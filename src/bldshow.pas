@@ -47,7 +47,7 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses Crt, Types, GDConsts, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil;
+uses Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
 
 const
   { per-disk archives are numbered 1 to SOURCE_DISKS }
@@ -127,7 +127,6 @@ const
   WARN_NEXT = 'Game data fixes will be unavailable.';
 
 type
-  TPixelRow = array[0..7] of Byte;
   PShowState = ^TShowState;
   TShowState = record
     { each per-disk archive's size, -1 when it is not there, and its cell's place in the family's row, 0 for none }
@@ -206,44 +205,11 @@ begin
     TextRend.DisplayString(col, row, color, Copy(s, 1, 40 - col));
 end;
 
-{ Put a row of 8 pixel colors into line y of the frame of the cell pictures, in the layout of the video mode. }
-procedure PutPixels(frame, y: Byte; var px: TPixelRow);
-var
-  at: Word;
-  plane: Byte;
-  i: Byte;
-  k: Byte;
-  b: Byte;
-begin
-  if (frame >= FRAMES) or (y > 7) then Exit;
-  at := frame * st^.art^.imgSize;
-  case GDVars.videoMode of
-    Types.vmEGA:
-      for plane := 0 to 3 do begin
-        b := 0;
-        for k := 0 to 7 do
-          if (px[k] and GDConsts.egaPlaneBit[plane]) <> 0 then
-            b := b or ($80 shr k);
-        st^.art^.data[at + y * 4 + plane] := b;
-      end;
-    Types.vmCGA:
-      for i := 0 to 1 do begin
-        b := 0;
-        for k := 0 to 3 do
-          b := b or ((GDConsts.attrTable[px[i * 4 + k] and $0F] and 3) shl (6 - 2 * k));
-        st^.art^.data[at + y * 2 + i] := b;
-      end;
-    Types.vmTandy:
-      for i := 0 to 3 do
-        st^.art^.data[at + y * 4 + i] := ((px[i * 2] and $0F) shl 4) or (px[i * 2 + 1] and $0F);
-  end;
-end;
-
 { Draw a frame of the cell pictures: a block over lines 1 to 6 and pixels left to right, the first fill pixels in fg and
   the rest in bg; with outline, only the block's edge, in fg. Everything else in the cell is black. }
 procedure MakeFrame(frame, left, right, fill, fg, bg: Byte; outline: Boolean);
 var
-  px: TPixelRow;
+  px: Types.TPixelRow;
   x: Byte;
   y: Byte;
 begin
@@ -259,7 +225,8 @@ begin
         else
           px[x] := bg;
     end;
-    BldShow.PutPixels(frame, y, px);
+    if (frame < FRAMES) and (y <= 7) then
+      VidOps.PutPixelRow(st^.art, frame, y, px);
   end;
 end;
 

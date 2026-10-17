@@ -28,6 +28,9 @@ const
   { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
   GB_STRING_LAST = 20;
 
+  { a transparent pixel in a keyed video mode's picture (TVideoDriver.keyed, VGA): no colour drawn is 255 }
+  PIC_KEY = $FF;
+
 type
 
   { Shared types. }
@@ -359,6 +362,8 @@ type
   TBrkSet = set of ' '..'?';
   TBytes = array[0..65000] of Byte;
   TColorMap = array[0..7] of Byte;
+  { eight pixel colours, left to right: one scanline of a cell (VidOps.PutPixelRow) }
+  TPixelRow = array[0..7] of Byte;
   TColorTab = array[0..15] of Byte;
   TCombatTarget = record
     { arena registration index }
@@ -393,6 +398,9 @@ type
     imgSize: Word;
     { extra transparency space (default nil) }
     transp: PBytes;
+    { the frames from count on, when one heap block cannot hold them all (Blit.AllocPic): VGA's wilderness tile
+      sheets; nil otherwise }
+    more: PImgBuf;
     { image data (open-ended) }
     data: array[0..32000] of Byte;
   end;
@@ -631,7 +639,6 @@ type
   PBaseItems = ^TBaseItems;
 
   { Blit types. }
-  TVideoMode = (vmCGA, vmEGA, vmTandy);
 
   { A routine MenuCore.MenuHorizontal calls on every pass of its key wait. }
   TIdleProc = procedure;
@@ -798,6 +805,82 @@ type
   PByteArr = ^TByteArr;
   TStr20 = string[20];
   TByteArr = array[0..65534] of ShortInt;
+
+  { Video driver types (phase 6 of docs/refactor-plan.md). }
+  { one 8-pixel cell row of a picture in a single colour, in the video mode's layout (its first 1 shl cellShift bytes) }
+  TCellBytes = array[0..7] of Byte;
+  TCellFillProc = procedure(color: Byte; var colorMap: TColorMap; var cell: TCellBytes);
+  TVideoProc = procedure;
+  TSetPaletteProc = procedure(registerIndex, color: Byte);
+  TShowPicProc = procedure(screenX, screenY: Integer; pic: PImgBuf);
+  TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
+  TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
+  TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
+  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: PImgBuf);
+  TMirrorFrameProc = procedure(src, dst: PImgBuf);
+  TRemapColourProc = procedure(pic, scratch: PImgBuf; srcOff: Word; nFrames: Byte; fromC, toC: Byte;
+                               isDithered: Boolean);
+  TRecolorFrameProc = procedure(var toT: TColorTab; pic: PImgBuf);
+  TPutPixelRowProc = procedure(pic: PImgBuf; at: Word; y: Byte; var px: TPixelRow);
+  { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
+    routines. GameBoot installs one (VidCga, VidEga or VidTdy) into GDVars.video. }
+  TVideoDriver = record
+    { the mode's name, for the settings screen }
+    name: TStr20;
+    { the colours shown at once: 4 on CGA (each picture's colour map picks them), 16 on EGA and Tandy }
+    colours: Byte;
+    { palette registers SetPaletteRegister can program (EGA, VGA) }
+    hasPalette: Boolean;
+    { transparency by colour key (VGA): a transparent pixel holds PIC_KEY, and the mask, one bit a pixel, is kept but
+      not used to draw; otherwise a transparent pixel is 0 under a set mask bit }
+    keyed: Boolean;
+    { The layout as shift counts, since the 8086 shifts in a few cycles where it multiplies or divides in a hundred: }
+    { picture bytes in one cell row, 1 shl cellShift: 2 on CGA (2 bits a pixel), 4 on EGA (a byte a plane) and Tandy
+      (4 bits a pixel) }
+    cellShift: Byte;
+    { screen bytes one cell column takes on a scanline, 1 shl screenShift, the unit of the dirty spans' screen offsets:
+      2 on CGA, 1 on EGA (each plane's byte at one address), 4 on Tandy }
+    screenShift: Byte;
+    { picture bytes one transparency-mask byte covers, 1 shl maskShift: 4 on EGA (a cell row's planes), 1 on CGA and
+      Tandy }
+    maskShift: Byte;
+    { a cell row filled with color: colorMap picks CGA's colour }
+    CellFill: TCellFillProc;
+    { the BIOS video mode (INT 10h AH=0) }
+    biosMode: Byte;
+    { paragraphs of conventional memory the screen takes at the top of RAM, which the heap must leave alone: Tandy's
+      video memory is system RAM }
+    ramVideoParas: Word;
+    { set up the mode once the BIOS has set it (EGA's display pages) }
+    Start: TVideoProc;
+    { copy the view buffer's dirty spans (GDVars.span*) to the screen; Blit.FlushView then clears the spans }
+    FlushSpans: TVideoProc;
+    { draw a picture's first frame straight to the screen at a cell position (Blit.ShowPic) }
+    ShowPic: TShowPicProc;
+    { draw game-font glyph glyph at a text cell in a colour (TextRend.RenderChar) }
+    DrawGlyph: TDrawGlyphProc;
+    { clear a text-cell rectangle, already checked to lie on the 40 x 25 screen, to black (TextRend.ClearRect) }
+    ClearRect: TClearRectProc;
+    { clear the whole screen to black }
+    ClearScreen: TVideoProc;
+    { BIOS text output: count copies of ch in attr at a text cell (DaxIo.WriteChar) }
+    WriteChar: TWriteCharProc;
+    { The cold entries, in the mode's overlaid Pic unit (PicCga, PicEga, PicTdy): }
+    { convert DAX frames (4 bits a pixel) at imgData^[srcOff] into pic's layout, with its mask (Blit.ExpandPicFrames) }
+    ExpandFrames: TExpandFramesProc;
+    { a left-right reflection of src's first frame and mask into dst (Blit.MirrorPic, which copies the colour map) }
+    MirrorFrame: TMirrorFrameProc;
+    { one colour pair of Blit.RemapPic: fromC becomes toC in nFrames frames of pic from srcOff, written into scratch }
+    RemapColour: TRemapColourProc;
+    { every pixel of pic's first frame to the colour toT gives its own (VidOps.RecolorPic) }
+    RecolorFrame: TRecolorFrameProc;
+    { 8 pixel colours into scanline y of the one-cell-wide frame at pic^.data[at] (VidOps.PutPixelRow) }
+    PutPixelRow: TPutPixelRowProc;
+    { build the mode's per-row screen addresses (GDVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
+    InitRowTables: TVideoProc;
+    { give palette register registerIndex the colour color (Blit.SetPaletteRegister; EGA's registers, VGA's DAC) }
+    SetPalette: TSetPaletteProc;
+  end;
 
   { EclMenu types. }
   PEclRet = ^TEclRet;

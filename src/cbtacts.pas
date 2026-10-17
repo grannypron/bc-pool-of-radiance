@@ -66,7 +66,7 @@ implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
   C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj, Dice;
+  CharDisp, AbilAdj, Dice, Blit;
 
 var
   { Primary and secondary attack counts. }
@@ -1230,9 +1230,7 @@ begin
   frames := 1;
   pace := 10;
   sym := 13;
-  size := GDVars.dsMoveIconSheet^.imgSize;
-  if GDVars.videoMode = Types.vmEGA then
-    size := size div 4;
+  size := Blit.MaskBytes(GDVars.dsMoveIconSheet^.imgSize);
   case weapon^.itemType of
     { straight-flying missiles: Dart, Javelin, Quarrel, Spear and Arrow }
     9, 21, 28, 31, 73:
