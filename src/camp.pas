@@ -442,8 +442,9 @@ begin
   end;
 end;
 
-{ Confirm pending scribing (Yes keeps it and skips selection), then let the player mark scroll spells. Reject known,
-  pending or unavailable spells. The marking walk does not check CharHlp.ItemReadable: the first unmarked byte equal to
+{ Confirm pending scribing (Yes keeps it and skips selection), then let the player mark scroll spells. A character
+  with no magic-user levels is told scribing needs arcane training (#671). Reject known, pending or unavailable
+  spells. The marking walk does not check CharHlp.ItemReadable: the first unmarked byte equal to
   the spell ID in any item's spells view is marked. }
 procedure CampScribeMenu;
 var
@@ -456,7 +457,13 @@ var
   p: Types.PItemRec;
   found: Boolean;
 begin
-  if Camp.CanDoSpellActivity(ACT_SCRIBE) then begin
+  if not Camp.CanDoSpellActivity(ACT_SCRIBE) then
+    Exit;
+  if GDVars.curChar^.classLevels[C_Level.MAGE] <= 0 then begin
+    TextRend.ShowMessage(LightGreen, True, 'Scribing a scroll requires arcane training.');
+    CharDisp.MessageWait;
+    CharDisp.ClearMessageWindow;
+  end else begin
     done := False;
     idx := -1;
     spellId := Magic.SpellMenu(6, 0, idx, notEmpty);
