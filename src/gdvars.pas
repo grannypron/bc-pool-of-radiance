@@ -11,8 +11,6 @@ var
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..Types.ARENA_SLOTS] of Byte;
   { Play session }
-  { nonzero makes HeapErr force a save; never set }
-  heapFailureSaveEnabled: Byte;
   { GameBoot writes 0/1, Intro tests zero }
   fullIntro: Boolean;
   { word bank }

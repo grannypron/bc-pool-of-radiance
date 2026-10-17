@@ -9,7 +9,8 @@ procedure GameInit2;
 implementation
 
 uses Types, Crt, C_Area, C_Video, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo,
-  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D;
+  GameIo, MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
+  HeapErr;
 
 var
   { directory saved across resource loading }
@@ -262,6 +263,8 @@ begin
   FillChar(GDVars.gbStrings^, SizeOf(GDVars.gbStrings^), 0);
   GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
   FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
+  { the heap the out-of-memory save needs }
+  HeapErr.KeepReserve;
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(GDVars.wallGfx, SizeOf(GDVars.wallGfx^));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));

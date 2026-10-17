@@ -141,8 +141,8 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit, TextRend,
-  CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
+uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
+  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level;
 
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -414,8 +414,8 @@ begin
   if CharHlp.HasEffect(creature, C_Effect.ANIMATE_DEAD, effect) then Exit;
   if CharHlp.HasEffect(creature, C_Effect.NO_PARA_POISON, effect) then Exit;
   if CharHlp.HasEffect(creature, C_Effect.NO_CHARM_POISON, effect) then Exit;
-  { save vs. paralyzation, poison and death magic }
-  saved := FxEngine.RollSavingThrow(creature, C_Save.PARALYZE, 0);
+  { save vs. paralyzation, poison and death magic, with the Constitution's poison bonus }
+  saved := FxEngine.RollSavingThrow(creature, C_Save.PARALYZE, AbilAdj.ConPoisonSave(creature^.conCur));
   if saved then begin
     FxEngine.AddEffectWithMessage(creature, C_Effect.STINK_COUGH, 1, 255, False, False, saved, 'starts to cough');
     FxEngine.CallEffectHandler(C_Effect.STINK_COUGH, creature, effect, False);

@@ -1773,8 +1773,24 @@ const
      hearNoise: 5; climbWalls: 5; readLanguages: -10),
     (pickPockets: 0; openLocks: 0; findTraps: 0; moveSilently: 0; hideShadows: 0;
      hearNoise: 0; climbWalls: 0; readLanguages: 0));
-  { Dexterity thief ability adjustments for Dexterity 9..19 }
-  dexAdj: array[9..19] of Types.TRuleThiefDex = (
+  { The cleric spells Wisdom adds, by spell level 1..7, at each score from 13: the 1st-edition PHB to 18, Deities &
+    Demigods for 19..25. Each score's row adds to those below it. }
+  wisBonusSpells: array[13..25, 1..7] of Byte = (
+    (1, 0, 0, 0, 0, 0, 0),
+    (1, 0, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 0, 0, 0),
+    (0, 0, 1, 0, 0, 0, 0),
+    (0, 0, 0, 1, 0, 0, 0),
+    (1, 0, 0, 1, 0, 0, 0),
+    (0, 1, 0, 1, 0, 0, 0),
+    (0, 0, 1, 0, 1, 0, 0),
+    (0, 0, 0, 1, 1, 0, 0),
+    (0, 0, 0, 0, 2, 0, 0),
+    (0, 0, 0, 0, 0, 2, 0),
+    (0, 0, 0, 0, 0, 1, 1));
+  { Dexterity thief ability adjustments for Dexterity 9..25 }
+  dexAdj: array[9..25] of Types.TRuleThiefDex = (
     (pickPockets: -15; openLocks: -10; findTraps: -10; moveSilently: -20; hideShadows: -10),
     (pickPockets: -10; openLocks:  -5; findTraps: -10; moveSilently: -15; hideShadows:  -5),
     (pickPockets:  -5; openLocks:   0; findTraps:  -5; moveSilently: -10; hideShadows:   0),
@@ -1785,7 +1801,14 @@ const
     (pickPockets:   0; openLocks:   5; findTraps:   0; moveSilently:   0; hideShadows:   0),
     (pickPockets:   5; openLocks:  10; findTraps:   0; moveSilently:   5; hideShadows:   5),
     (pickPockets:  10; openLocks:  15; findTraps:   5; moveSilently:  10; hideShadows:  10),
-    (pickPockets:  15; openLocks:  20; findTraps:  10; moveSilently:  12; hideShadows:  12));
+    (pickPockets:  15; openLocks:  20; findTraps:  10; moveSilently:  12; hideShadows:  12),
+    { 20..25 from Deities & Demigods }
+    (pickPockets:  20; openLocks:  25; findTraps:  15; moveSilently:  15; hideShadows:  15),
+    (pickPockets:  25; openLocks:  30; findTraps:  20; moveSilently:  18; hideShadows:  18),
+    (pickPockets:  30; openLocks:  35; findTraps:  25; moveSilently:  20; hideShadows:  20),
+    (pickPockets:  35; openLocks:  40; findTraps:  30; moveSilently:  23; hideShadows:  23),
+    (pickPockets:  40; openLocks:  45; findTraps:  35; moveSilently:  25; hideShadows:  25),
+    (pickPockets:  45; openLocks:  50; findTraps:  40; moveSilently:  30; hideShadows:  30));
   { Racial ability limits, by race; the strength columns are by gender. Human women reach 18/00 like human men. }
   dsMinimumMaximumStatistics: array[1..7] of Types.TRuleRace = (
     (strMin: (8, 8); strMax: (18, 17); excMax: (99, 0); intMin: 3; intMax: 18;
@@ -1982,8 +2005,8 @@ const
     { magic-user/thief }
     (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
                             C_Align.CN, C_Align.CE, 0, 0)));
-  conBonusTbl: array[3..20] of ShortInt = (
-    -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2);
+  conBonusTbl: array[3..25] of ShortInt = (
+    -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
     at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
   dsExperienceSpellsClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleXp = (

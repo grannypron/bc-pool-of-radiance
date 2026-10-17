@@ -9,6 +9,10 @@ uses Types;
 
 procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
 
+{ Set clock to a duration of minutes: days, hours, turns (ten minutes) and minutes, each within its limit, and the
+  segments, months and years 0. Camp's rests start the rest clock with it (#644). }
+procedure SetFromMinutes(var clock: Types.TClock; minutes: Word);
+
 implementation
 
 uses GDConsts, GDVars, C_Time;
@@ -33,6 +37,15 @@ begin
         end;
       end;
     end;
+end;
+
+procedure SetFromMinutes(var clock: Types.TClock; minutes: Word);
+begin
+  FillChar(clock, SizeOf(clock), 0);
+  clock[C_Time.DAYS] := minutes div 1440;
+  clock[C_Time.HOURS] := (minutes mod 1440) div 60;
+  clock[C_Time.TURNS] := (minutes mod 60) div 10;
+  clock[C_Time.MINUTES] := minutes mod 10;
 end;
 
 end.

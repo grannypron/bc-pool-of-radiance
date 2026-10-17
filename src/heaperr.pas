@@ -1,52 +1,83 @@
 {$O+,F+}
 
-{ Heap-allocation failure handler. When heapFailureSaveEnabled is nonzero it forces a save before returning to DOS. }
+{ Heap-allocation failure handler: it frees a reserve kept for the purpose and offers the player a save before the game
+  quits to DOS (#643). }
 unit HeapErr;
 
 interface
 
 { ** Installed as the System.HeapError hook so that a failed heap allocation gives the player a chance to save instead
   of crashing with a runtime error. Never returns normally when a real allocation failed; it ends by exiting the game.
+  A request that fails while the handler runs (the save itself) returns 0, the runtime error the game had before.
 
   @param(size Size in bytes of the failed request. Zero requests are ignored.)
   @returns(Nothing meaningful, since the game exits before returning.) }
 function HeapErrorHandler(size: Word): Integer;
 
+{ Take the reserve the save needs once the heap is exhausted: Vault's copy buffer, a new statistics block and the menu
+  nodes. GameInit2 calls it once the overlay buffer is set up, which needs the heap empty. }
+procedure KeepReserve;
+
 implementation
 
-uses Crt, GDConsts, GDVars, SaveLoad, GameIo, TextRend;
+uses Crt, C_Keys, GDVars, SaveLoad, GameIo, TextRend;
 
-{ ** Warns the player about the low-memory condition and, when heap-failure saving is enabled, forces a save (repeating
-  until one succeeds) before quitting to DOS. When saving is disabled it just reports the failure and exits.
+const
+  RESERVE_BYTES = 4096;
+
+var
+  { the reserve, nil until KeepReserve and once the handler has freed it }
+  reserve: Pointer;
+  { set while the handler runs, so a failure inside it does not run it again }
+  handling: Boolean;
+
+procedure KeepReserve;
+begin
+  if reserve = nil then
+    GetMem(reserve, RESERVE_BYTES);
+end;
+
+{ ** Free the reserve, then until the player saves or chooses to quit: Enter opens the save menu, Escape quits. A save
+  that is backed out of or fails asks again. The game exits to DOS either way.
 
   @param(size Size in bytes of the failed request. Zero requests are ignored.)
   @returns(0, which the heap manager treats as a failure; a real request never gets back, since the game exits.) }
 function HeapErrorHandler(size: Word): Integer;
 var
-  { ** Loop terminator: set once a save succeeded or saving is disabled. }
-  exitFlag: Byte;
+  ch: Char;
+  done: Boolean;
 begin
   HeapErrorHandler := 0;
-  if size > 0 then begin
-    exitFlag := 0;
-
-    repeat
-      TextRend.DisplayAndPause(Yellow, 'WARNING: Insufficient Memory');
-      if GDVars.heapFailureSaveEnabled <> 0 then begin
-        {* Attempt to save the game. Throws up the save game menu. *}
-        GDVars.recentSaved := 0;
-        SaveLoad.SaveGame;
-        exitFlag := GDVars.recentSaved;
-      end else begin
-        exitFlag := 1;
-        TextRend.DisplayAndPause(Yellow, 'Insufficient Memory. Exiting Program');
-      end;
-    until exitFlag <> 0;
-
-    GameIo.ExitGame;
+  if (size = 0) or handling then Exit;
+  handling := True;
+  if reserve <> nil then begin
+    FreeMem(reserve, RESERVE_BYTES);
+    reserve := nil;
   end;
+  done := False;
+  repeat
+    TextRend.ClearBottomLine;
+    TextRend.DisplayString(0, 24, Yellow, 'OUT OF MEMORY: ENTER SAVES, ESC QUITS');
+    GameIo.DiscardPendingKeys;
+    repeat
+      ch := GameIo.ReadGameKey;
+      { an extended key's scan byte is read and passed over }
+      if ch = C_Keys.NONE then
+        ch := GameIo.ReadGameKey;
+    until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
+    if ch = C_Keys.ESC then
+      done := True
+    else begin
+      GDVars.recentSaved := 0;
+      SaveLoad.SaveGame;
+      done := GDVars.recentSaved <> 0;
+    end;
+  until done;
+  GameIo.ExitGame;
 end;
 
 begin
+  reserve := nil;
+  handling := False;
   HeapError := @HeapErr.HeapErrorHandler;
 end.

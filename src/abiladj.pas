@@ -25,6 +25,14 @@ function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
   +1 per 3 1/2 points of Constitution, so 1 at 4..6, 2 at 7..10, 3 at 11..13, 4 at 14..17, 5 at 18..20, 6 at 21..24. }
 function ConSaveBonus(con: Byte): Byte;
 
+{ The poison save bonus any creature gets from a Constitution above 18 (Deities & Demigods): +1 at 19..20, +2 at
+  21..22, +3 at 23..24 and +4 from 25; 0 below 19. }
+function ConPoisonSave(con: Byte): Byte;
+
+{ How often a Constitution of 20 or more regenerates a hit point, in minutes (Deities & Demigods): 60 at 20, 50 at 21,
+  40 at 22, 30 at 23, 20 at 24 and 10 from 25; 0 below 20, which does not regenerate. }
+function ConRegenMinutes(con: Byte): Word;
+
 implementation
 
 { Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
@@ -151,6 +159,28 @@ end;
 function ConSaveBonus(con: Byte): Byte;
 begin
   ConSaveBonus := Word(con) * 2 div 7;
+end;
+
+function ConPoisonSave(con: Byte): Byte;
+begin
+  case con of
+    19, 20: ConPoisonSave := 1;
+    21, 22: ConPoisonSave := 2;
+    23, 24: ConPoisonSave := 3;
+    25..255: ConPoisonSave := 4;
+  else
+    ConPoisonSave := 0;
+  end;
+end;
+
+function ConRegenMinutes(con: Byte): Word;
+begin
+  if con < 20 then
+    ConRegenMinutes := 0
+  else if con > 25 then
+    ConRegenMinutes := 10
+  else
+    ConRegenMinutes := (26 - con) * 10;
 end;
 
 end.

@@ -1,6 +1,6 @@
 { Tests for Clock.ValidateClock: each part carries into the next at its GDConsts.unitScale limit (10 segments, 10
   minutes, 6 turns, 24 hours, 30 days, 12 months), once a call, upward through the parts in one call, and the party ages
-  at a new year when asked. }
+  at a new year when asked; and Clock.SetFromMinutes, which turns a duration into days, hours, turns and minutes. }
 program TClock;
 
 uses Types, GDVars, Clock, TestKit;
@@ -56,6 +56,17 @@ begin
   SetClock(0, 0, 0, 0, 0, 0, 300);
   Clock.ValidateClock(t, True);
   TestKit.Check(Shows(0, 0, 0, 0, 0, 0, 300), 'the year has no limit');
+
+  { a duration in minutes: days, hours, turns and minutes (#644) }
+  SetClock(7, 7, 7, 7, 7, 7, 7);
+  Clock.SetFromMinutes(t, 0);
+  TestKit.Check(Shows(0, 0, 0, 0, 0, 0, 0), 'no minutes clears every part');
+  Clock.SetFromMinutes(t, 375);
+  TestKit.Check(Shows(0, 5, 1, 6, 0, 0, 0), '375 minutes: 6 hours, a turn and 5 minutes');
+  Clock.SetFromMinutes(t, 1800);
+  TestKit.Check(Shows(0, 0, 0, 6, 1, 0, 0), '30 hours: a day and 6 hours, not 30 hours');
+  Clock.SetFromMinutes(t, 65535);
+  TestKit.Check(Shows(0, 5, 1, 12, 45, 0, 0), 'the longest: 45 days, 12 hours, a turn and 5 minutes');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
