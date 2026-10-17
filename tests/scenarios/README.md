@@ -46,4 +46,5 @@ the text matches (an animated picture) is only a warning.
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
 | `wilderness` | the central wilderness from save G (`saves/wild`, put into `SAVE\` by the scenario): the map and its second tile set, three steps, and the overlay loads, heap and picture memory (Ctrl-Y; ours only) |
+| `wildfight` | save G again: a 32-step walk that meets a random encounter under NORAND, the fight's start, and the memory there |
 | `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's, with SSI's heap pointers, the unused name bytes and the saved script masked |
