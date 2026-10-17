@@ -102,11 +102,11 @@ function MayTrade(creature: Types.PCharRecord): Boolean;
   With Fight after it, return to the player's control. }
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
-{ True when it is non-nil and its base item's slot is 11, 12 or 13. }
+{ True when it is non-nil and its base item's slot is a scroll's, C_Item.SLOT_MAGE_SCROLL..SLOT_LAST_READABLE. }
 function ItemReadable(it: Pointer): Boolean;
 
 { True when creature can read item's spells, that is when the scroll is identified. Read Magic (effect 16), or any
-  cleric level with a scroll whose base item slot is 12, identifies it first. }
+  cleric level with a cleric's scroll (base slot C_Item.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
@@ -120,8 +120,8 @@ function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Bool
   it: the scroll spells the Cast list offers. }
 function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
-{ Spell range: rangeFixed + rangeVar * caster level, using caster level 6 when GDVars.usingItem. A zero range with a
-  nonzero area (touch) and the 255 attack-roll encoding both become 1. }
+{ Spell range: rangeFixed + rangeVar * caster level, using C_Spell.ITEM_CASTER_LEVEL when GDVars.usingItem. A zero
+  range with a nonzero area (touch) and the attack-roll encoding (C_Spell.ATTACK_ROLL_RANGE) both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
 type
@@ -143,6 +143,45 @@ implementation
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell;
 
+const
+  { movement in body armour, by its weight in coins: up to LIGHT_ARMOR the creature's own, up to MEDIUM_ARMOR
+    MOVE_LOADED, heavier MOVE_HEAVY; magical armour gives MAGIC_ARMOR_MOVE back }
+  LIGHT_ARMOR = 150;
+  MEDIUM_ARMOR = 399;
+  MAGIC_ARMOR_MOVE = 3;
+  { the movement rates armour and loads slow a creature to }
+  MOVE_LOADED = 9;
+  MOVE_HEAVY = 6;
+  MOVE_OVERLOADED = 3;
+  { coins carried over the weight allowance: up to OVER_LIGHT, no change; up to OVER_LOADED, MOVE_LOADED; up to
+    OVER_HEAVY, MOVE_HEAVY; more, MOVE_OVERLOADED }
+  OVER_LIGHT = 512;
+  OVER_LOADED = 768;
+  OVER_HEAVY = 1024;
+  { the coins' weight a readied Bag of Holding carries }
+  BAG_OF_HOLDING_COINS = 5000;
+  { the most encumbrance a creature records }
+  MAX_ENCUMBRANCE = 65535;
+  { a robbery's chance of taking an item over HEAVY_LOOT coins falls by HEAVY_LOOT_PENALTY, over MEDIUM_LOOT by
+    MEDIUM_LOOT_PENALTY }
+  HEAVY_LOOT = 255;
+  HEAVY_LOOT_PENALTY = 90;
+  MEDIUM_LOOT = 24;
+  MEDIUM_LOOT_PENALTY = 50;
+  { a fighter's (and a half-elf ranger's) racial level cap by Strength: below 17, 17, and 18 or more; 0 for none.
+    Humans and half-orcs have none. }
+  STR_BAND_LOW = 0;
+  STR_BAND_17 = 1;
+  STR_BAND_18 = 2;
+  FIGHTER_CAP: array[C_Race.DWARF..C_Race.HALFLING, STR_BAND_LOW..STR_BAND_18] of ShortInt = (
+    (7, 8, 0),
+    (5, 6, 7),
+    (5, 5, 6),
+    (6, 7, 8),
+    (4, 5, 6));
+  { a half-elf cleric's cap }
+  HALFELF_CLERIC_CAP = 5;
+
 var
   { equipped-items weight }
   gEquipWeight: Word;
@@ -151,9 +190,8 @@ var
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
   plus, and that of readied quarrels or arrows when the weapon fires them, is added to both. An elf gets a further +1
-  to-hit with a bow (item types 41..44), a long sword (36) or a short sword (37). Type 45 is the Heavy Crossbow's row,
-  but the Fine Composite Long Bow is also built on it; it counts as a bow when its second name component is a bow's
-  name (41..44), which a Heavy Crossbow never carries. }
+  to-hit with a bow, a long sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it
+  counts as a bow when its second name component is a bow's name, which a Heavy Crossbow never carries. }
 procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
@@ -181,36 +219,38 @@ begin
       plus := plus + creature^.equipped[C_Equip.ARROW]^.plus;
   creature^.curModA[1] := creature^.curModA[1] + plus;
   if (creature^.race = C_Race.ELF) and
-      (((w^.itemType > 40) and (w^.itemType < 45)) or (w^.itemType = 37) or (w^.itemType = 36) or
-       ((w^.itemType = 45) and (w^.nameIds[2] in [41..44]))) then
+      ((w^.itemType in [C_Item.COMPOSITE_LONG_BOW..C_Item.SHORT_BOW, C_Item.LONG_SWORD, C_Item.SHORT_SWORD]) or
+       ((w^.itemType = C_Item.HEAVY_CROSSBOW) and
+        (w^.nameIds[2] in [C_Item.NAME_COMPOSITE_LONG_BOW..C_Item.NAME_SHORT_BOW]))) then
     Inc(plus);
   creature^.thac0Cur := creature^.thac0Cur + plus;
   creature^.curRollsA[1] := CharHlp.BaseItem(wtype)^.dmgSmRolls;
   creature^.curDiceA[1] := CharHlp.BaseItem(wtype)^.dmgSmDice;
 end;
 
-{ Body armor only (base slot 2): set current movement from the armor's weight (0..150 = base movement, 151..399 = 9,
-  heavier = 6), then +3 if the armor has a nonzero plus and the movement is still <= 9. }
+{ Body armor only (base slot C_Equip.ARMOR): set current movement from the armor's weight (up to LIGHT_ARMOR, the base
+  movement; up to MEDIUM_ARMOR, MOVE_LOADED; heavier, MOVE_HEAVY), then MAGIC_ARMOR_MOVE more if the armor has a
+  nonzero plus and the movement is still at most MOVE_LOADED. }
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
   if CharHlp.BaseItem(item^.itemType)^.slot = C_Equip.ARMOR then begin
     case item^.weight of
-      0..150: creature^.movementCur := creature^.movementBase;
-      151..399: creature^.movementCur := 9;
+      0..LIGHT_ARMOR: creature^.movementCur := creature^.movementBase;
+      LIGHT_ARMOR + 1..MEDIUM_ARMOR: creature^.movementCur := MOVE_LOADED;
     else
-      creature^.movementCur := 6;
+      creature^.movementCur := MOVE_HEAVY;
     end;
-    if (item^.plus <> 0) and (creature^.movementCur <= 9) then
-      creature^.movementCur := creature^.movementCur + 3;
+    if (item^.plus <> 0) and (creature^.movementCur <= MOVE_LOADED) then
+      creature^.movementCur := creature^.movementCur + MAGIC_ARMOR_MOVE;
   end;
 end;
 
 { Fold one equipped item into the AC adjustment slots. Only items whose base acDescr >= 128 participate; descr's low 7
-  bits are the item's own AC value. A shield (slot 1) sets adj[1] to AC + plus. An item with AC 0 adds its saveBonus to
-  the creature's and its plus to adj[2], except a ring (slot 9), whose plus instead raises adj[3] to the best ring
+  bits are the item's own AC value. A shield sets adj[AC_SHIELD] to AC + plus. An item with AC 0 adds its saveBonus to
+  the creature's and its plus to adj[AC_PLUSES], except a ring, whose plus instead raises adj[AC_RING] to the best ring
   plus, and whose plus or saveBonus, whichever is larger, raises ringSave to the best ring's save bonus (RecalcStats
-  adds it once). Any other item keeps the best AC + plus in adj[4], setting isMagicBody when that new best is body
-  armor (slot 2) with a positive plus. }
+  adds it once). Any other item keeps the best AC + plus in adj[AC_ARMOR], setting isMagicBody when that new best is
+  body armor with a positive plus. (The AC_ indexes are Types'.) }
 procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; adj: Types.PAcAdjust;
                             isMagicBody: Types.PBoolean; var ringSave: ShortInt);
 var
@@ -222,22 +262,22 @@ begin
     descr := descr and $7F;
     slot := CharHlp.BaseItem(item^.itemType)^.slot;
     if slot = C_Equip.SHIELD then
-      adj^[1] := descr + item^.plus
+      adj^[Types.AC_SHIELD] := descr + item^.plus
     else if descr = 0 then begin
       if slot = C_Equip.RING1 then begin
-        if item^.plus > adj^[3] then
-          adj^[3] := item^.plus;
+        if item^.plus > adj^[Types.AC_RING] then
+          adj^[Types.AC_RING] := item^.plus;
         if item^.plus > ringSave then
           ringSave := item^.plus;
         if item^.saveBonus > ringSave then
           ringSave := item^.saveBonus;
       end else begin
-        adj^[2] := adj^[2] + item^.plus;
+        adj^[Types.AC_PLUSES] := adj^[Types.AC_PLUSES] + item^.plus;
         creature^.saveBonus := creature^.saveBonus + item^.saveBonus;
       end;
     end else begin
-      if descr + item^.plus > adj^[4] then begin
-        adj^[4] := descr + item^.plus;
+      if descr + item^.plus > adj^[Types.AC_ARMOR] then begin
+        adj^[Types.AC_ARMOR] := descr + item^.plus;
         if item^.plus > 0 then
           if slot = C_Equip.ARMOR then
             isMagicBody^ := True;
@@ -246,8 +286,9 @@ begin
   end;
 end;
 
-{ Clamp movement by how many coins the creature carries over its weight allowance: within 512 over keeps the current
-  movement, each further 256-coin band steps down (9 / 6 / 3), and the result only ever lowers movementCur. }
+{ Clamp movement by how many coins the creature carries over its weight allowance: within OVER_LIGHT keeps the current
+  movement, then each band (OVER_LOADED, OVER_HEAVY, more) steps down (MOVE_LOADED, MOVE_HEAVY, MOVE_OVERLOADED), and
+  the result only ever lowers movementCur. }
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 var
   over: LongInt;
@@ -257,11 +298,11 @@ begin
   if over < 0 then
     over := 0;
   case over of
-    0..512: movement := creature^.movementCur;
-    513..768: movement := 9;
-    769..1024: movement := 6;
+    0..OVER_LIGHT: movement := creature^.movementCur;
+    OVER_LIGHT + 1..OVER_LOADED: movement := MOVE_LOADED;
+    OVER_LOADED + 1..OVER_HEAVY: movement := MOVE_HEAVY;
   else
-    movement := 3;
+    movement := MOVE_OVERLOADED;
   end;
   if movement < creature^.movementCur then
     creature^.movementCur := movement;
@@ -310,7 +351,6 @@ begin
       item^.name := item^.name + GDConsts.nameParts[item^.nameIds[i]];
       if (item^.quantity < 2) or appended then
         item^.name := item^.name + ' '
-      { Name component 177 is 'Silver' }
       else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_Item.FLASK_OF_OIL)) or
         ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_Item.FLASK_OF_OIL)) or
         (((item^.itemType = C_Item.ARROW) or (item^.itemType = C_Item.QUARREL)) and
@@ -329,13 +369,13 @@ var
   effect: Types.PEffectRec;
 begin
   IsHelpless := False;
-  for i := 1 to 4 do
+  for i := 1 to GDConsts.HELPLESS_FX_COUNT do
     if CharHlp.HasEffect(creature, GDConsts.helplessFx[i], effect) then
       IsHelpless := True;
 end;
 
 { Point creature's equipment slots at its readied items, every other slot nil: a second ring goes in RING2, arrows
-  (item type 73) and bolts (28) in their own slots as well as their base item's. }
+  and quarrels in their own slots (C_Equip.ARROW and BOLT) as well as their base item's. }
 procedure LinkEquipped(creature: Types.PCharRecord);
 var
   i: ShortInt;
@@ -368,9 +408,9 @@ end;
 
 { Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
   calculate armor class, rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster
-  warrior, else 1) and movement. An equipped Bag of Holding (name component 'Holding') removes up to 5000 coins of
-  encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32 bits and stored as at most
-  65535. }
+  warrior, else 1) and movement. An equipped Bag of Holding (name component 'Holding') removes up to
+  BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32
+  bits and stored as at most MAX_ENCUMBRANCE. }
 procedure RecalcStats(creature: Types.PCharRecord);
 var
   j: Byte;
@@ -397,7 +437,6 @@ begin
     Inc(raw, w);
     if item^.equipped <> 0 then begin
       Inc(gEquipWeight, w);
-      { Name component 186 is 'Holding' }
       if item^.nameIds[1] = C_Item.NAME_HOLDING then
         bag := True;
       creature^.handsEquipped := creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands;
@@ -411,8 +450,7 @@ begin
     creature^.curDiceA[j] := creature^.unarmedDiceA[j];
     creature^.curModA[j] := creature^.unarmedModA[j];
   end;
-  { adj: 0 Dexterity, 1 shield, 2 pluses of AC-0 items, 3 best ring, 4 best armor }
-  for k := 0 to 4 do
+  for k := Types.AC_DEX to Types.AC_ARMOR do
     adj[k] := 0;
   magicBody := False;
   creature^.saveBonus := 0;
@@ -420,7 +458,7 @@ begin
   creature^.acCur := creature^.acBase;
   creature^.movementCur := creature^.movementBase;
   creature^.thac0Cur := creature^.thac0Base;
-  adj[0] := AbilAdj.DexterityArmorAdjustment(creature);
+  adj[Types.AC_DEX] := AbilAdj.DexterityArmorAdjustment(creature);
   if creature^.equipped[C_Equip.WEAPON] = nil then begin
     creature^.thac0Cur := AbilAdj.StrToHitAdjust(creature) + creature^.thac0Cur;
     creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
@@ -439,32 +477,32 @@ begin
   creature^.saveBonus := creature^.saveBonus + ringSave;
   { rings do not add to magical body armor }
   if magicBody then
-    adj[3] := 0;
+    adj[Types.AC_RING] := 0;
   if bag then begin
-    if raw < 5000 then
+    if raw < BAG_OF_HOLDING_COINS then
       raw := 0
     else
-      Dec(raw, 5000);
+      Dec(raw, BAG_OF_HOLDING_COINS);
     if raw < gEquipWeight then
       raw := gEquipWeight;
   end;
-  if raw > 65535 then
-    raw := 65535;
+  if raw > MAX_ENCUMBRANCE then
+    raw := MAX_ENCUMBRANCE;
   creature^.encumbrance := raw;
   CharHlp.EncumbranceAdjust(creature);
-  if adj[4] < creature^.acCur then
-    adj[4] := creature^.acCur;
+  if adj[Types.AC_ARMOR] < creature^.acCur then
+    adj[Types.AC_ARMOR] := creature^.acCur;
   creature^.acCur := 0;
-  for k := 0 to 4 do
+  for k := Types.AC_DEX to Types.AC_ARMOR do
     creature^.acCur := creature^.acCur + adj[k];
-  creature^.acBehind := adj[4] + adj[2] + adj[3] - 1 - 1;
+  creature^.acBehind := adj[Types.AC_ARMOR] + adj[Types.AC_PLUSES] + adj[Types.AC_RING] - 1 - 1;
   if (CharHlp.WarriorLevel(creature) > 0) and (creature^.race > C_Race.MONSTER) then
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
 end;
 
-{ True when the creature has a Bag of Holding readied (name component 186 is 'Holding'). }
+{ True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 var
   item: Types.PItemRec;
@@ -718,17 +756,18 @@ begin
   creature^.combatAddr^.guarding := 1;
 end;
 
-{ Caster level for a spell id: the current character's cleric or magic-user level by casting class (12 for class 2, the
-  special class), forced to 6 when cast from an item (GDVars.usingItem) unless the class is 2. }
+{ Caster level for a spell id: the current character's cleric or magic-user level by casting class
+  (C_Spell.SPECIAL_CASTER_LEVEL for the special class), C_Spell.ITEM_CASTER_LEVEL when cast from an item
+  (GDVars.usingItem) unless the class is the special one. }
 function GetCasterLevel(spell: Byte): Byte;
 begin
   case GDConsts.spellTable[spell].castClass of
-    0: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.CLERIC];
-    1: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.MAGE];
-    2: GetCasterLevel := 12;
+    C_Spell.CLASS_CLERIC: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.CLERIC];
+    C_Spell.CLASS_MAGE: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.MAGE];
+    C_Spell.CLASS_SPECIAL: GetCasterLevel := C_Spell.SPECIAL_CASTER_LEVEL;
   end;
-  if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> 2) then
-    GetCasterLevel := 6;
+  if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_Spell.CLASS_SPECIAL) then
+    GetCasterLevel := C_Spell.ITEM_CASTER_LEVEL;
 end;
 
 { True when the readied weapon has a range past 1 (thrown weapons count). }
@@ -789,8 +828,8 @@ begin
   CanTrain := False;
   for cls := C_Level.CLERIC to C_Level.MONK do begin
     lvl := creature^.classLevels[cls];
-    { xp[] runs to level 9 }
-    if (lvl > 0) and (lvl < 9) then
+    { xp[] runs to C_Level.LEVEL_LAST }
+    if (lvl > 0) and (lvl < C_Level.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
         if GDConsts.dsExperienceSpellsClass[cls].xp[lvl + 1] > 0 then
           if GDConsts.dsExperienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
@@ -798,41 +837,30 @@ begin
   end;
 end;
 
-{ Check the racial level limit for a class. Fighter caps, and the half-elf ranger's, increase with high strength;
-  half-elf clerics stop at level 5. Monsters, half-orcs and humans have no limit here. }
+{ Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by Strength, and a
+  half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts (SSI's tests matched some levels past it
+  and not others). Monsters, half-orcs and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;
+  band: Byte;
 begin
   AtLevelCap := False;
   with creature^ do begin
     lvl := classLevels[cls];
     if lvl <= 0 then
       Exit;
-    case race of
-      C_Race.DWARF:
-        if cls = C_Level.FIGHTER then
-          if ((lvl = 8) and (strCur = 17)) or ((lvl = 7) and (strCur < 17)) then
-            AtLevelCap := True;
-      C_Race.ELF:
-        if cls = C_Level.FIGHTER then
-          if (lvl = 7) or ((lvl = 6) and (strCur = 17)) or ((lvl = 5) and (strCur < 17)) then
-            AtLevelCap := True;
-      C_Race.GNOME:
-        if cls = C_Level.FIGHTER then
-          if (lvl = 6) or ((lvl = 5) and (strCur < 18)) then
-            AtLevelCap := True;
-      C_Race.HALFELF:
-        if (cls = C_Level.CLERIC) and (lvl = 5) then
-          AtLevelCap := True
-        else if (cls = C_Level.FIGHTER) or (cls = C_Level.RANGER) then
-          if (lvl = 8) or ((lvl = 7) and (strCur = 17)) or ((lvl = 6) and (strCur < 17)) then
-            AtLevelCap := True;
-      C_Race.HALFLING:
-        if cls = C_Level.FIGHTER then
-          if (lvl = 6) or ((lvl = 5) and (strCur = 17)) or ((lvl = 4) and (strCur < 17)) then
-            AtLevelCap := True;
-    end;
+    if strCur < 17 then
+      band := STR_BAND_LOW
+    else if strCur = 17 then
+      band := STR_BAND_17
+    else
+      band := STR_BAND_18;
+    if (race = C_Race.HALFELF) and (cls = C_Level.CLERIC) then
+      AtLevelCap := lvl >= HALFELF_CLERIC_CAP
+    else if (race in [C_Race.DWARF..C_Race.HALFLING]) and
+            ((cls = C_Level.FIGHTER) or ((cls = C_Level.RANGER) and (race = C_Race.HALFELF))) then
+      AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
   end;
 end;
 
@@ -875,8 +903,8 @@ end;
 
 function ItemReadable(it: Pointer): Boolean;
 begin
-  if (it <> nil) and (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot > 10) and
-      (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot < 14) then
+  if (it <> nil) and
+     (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot in [C_Item.SLOT_MAGE_SCROLL..C_Item.SLOT_LAST_READABLE]) then
     ItemReadable := True
   else
     ItemReadable := False;
@@ -887,7 +915,8 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
-      ((creature^.classLevels[C_Level.CLERIC] > 0) and (CharHlp.BaseItem(item^.itemType)^.slot = 12)) then
+      ((creature^.classLevels[C_Level.CLERIC] > 0) and
+       (CharHlp.BaseItem(item^.itemType)^.slot = C_Item.SLOT_CLERIC_SCROLL)) then
     item^.unidMask := 0;
   ScrollLegible := item^.unidMask = 0;
 end;
@@ -941,12 +970,11 @@ begin
   if GDVars.usingItem = False then
     r := GDConsts.spellTable[spell].rangeFixed + GDConsts.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
   else
-    r := GDConsts.spellTable[spell].rangeVar * 6 + GDConsts.spellTable[spell].rangeFixed;
+    r := GDConsts.spellTable[spell].rangeVar * C_Spell.ITEM_CASTER_LEVEL + GDConsts.spellTable[spell].rangeFixed;
   { Touch: zero range with an area }
   if (r = 0) and (GDConsts.spellTable[spell].area <> 0) then
     r := 1;
-  { A range of 255 marks an attack-roll spell }
-  if r = 255 then
+  if r = C_Spell.ATTACK_ROLL_RANGE then
     r := 1;
   CalcSpellRange := r;
 end;
@@ -955,10 +983,10 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 var
   penalty: Byte;
 begin
-  if weight > 255 then
-    penalty := 90
-  else if weight > 24 then
-    penalty := 50
+  if weight > HEAVY_LOOT then
+    penalty := HEAVY_LOOT_PENALTY
+  else if weight > MEDIUM_LOOT then
+    penalty := MEDIUM_LOOT_PENALTY
   else
     penalty := 0;
   if chance > penalty then

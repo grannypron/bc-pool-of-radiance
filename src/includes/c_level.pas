@@ -13,6 +13,8 @@ const
   MAGE = 5;
   THIEF = 6;
   MONK = 7;
+  { the highest level the experience tables reach (Types.TRuleXp.xp) }
+  LEVEL_LAST = 9;
 
 implementation
 

@@ -1217,8 +1217,10 @@ const
     ((dx:  0; dy:  0), (dx:  0; dy:  1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
     ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1)),
     ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx:  0; dy:  1), (dx:  1; dy:  1)));
-  { Effects that leave a creature helpless: Snake Charm, Paralysis, Sleep, Helpless }
-  helplessFx: array[1..4] of Byte = (51, 52, 53, 31);
+  { Effects that leave a creature helpless }
+  HELPLESS_FX_COUNT = 4;
+  helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_Effect.SNAKE_CHARM, C_Effect.PARALYSIS, C_Effect.SLEEP,
+    C_Effect.HELPLESS);
   { Portrait head and body tables }
   { portraitHead -> HEAD DAX ID: SSI's 14 player heads, then the other heads HEAD3.DAX holds, then the heads only the
     other disks hold. New heads go at the end so the numbers saved characters carry keep their faces. }
