@@ -36,6 +36,10 @@ function HpMaximum(creature: Types.PCharRecord): Byte;
 
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
 
+{ The least a hit die rolls for Constitution con, in any class (Deities & Demigods): 1 to Con 18, 2 at 19..20 (no 1s),
+  3 at 21..22 (no 1s or 2s) and 4 at 23 and up (no 1s, 2s or 3s). }
+function HitDieFloor(con: Byte): Byte;
+
 { The hit points Constitution con gives creature over all its hit dice, as creation and training bank them (CharGen's
   ConHpBonus at each level): each class's ConHpPerDie once per level (a ranger's level + 1), divided by the class
   count. The difference between two Constitutions is the hit-point change a change of Constitution makes. }
@@ -342,25 +346,46 @@ begin
   HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
 end;
 
+function HitDieFloor(con: Byte): Byte;
+begin
+  case con of
+    19, 20: HitDieFloor := 2;
+    21, 22: HitDieFloor := 3;
+    23..255: HitDieFloor := 4;
+  else
+    HitDieFloor := 1;
+  end;
+end;
+
 { RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
   hpDice d hpSides at level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as
-  the others do. A class at level 1 gets at least hpSides * 2 div 3, two thirds of one die even for the ranger and
-  monk. }
+  the others do. Each die rolls at least HitDieFloor for the creature's Constitution, and a class at level 1 gets at
+  least hpSides * 2 div 3, two thirds of one die even for the ranger and monk. The dice are rolled one at a time, as
+  Dice.RollDice rolls them, so below Constitution 19 the rolls are the same. }
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
-
 var
   roll: Byte;
+  die: Byte;
+  floor: Byte;
   sum: Byte;
   cls: ShortInt;
   dieCount: Byte;
+  i: Byte;
 begin
   sum := 0;
+  floor := ClassCal.HitDieFloor(creature^.stats[C_Abil.CONSTITUTION]);
   for cls := C_Level.CLERIC to C_Level.MONK do
     if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
       dieCount := GDConsts.hpDice[cls];
       if creature^.classLevels[cls] > 1 then
         dieCount := 1;
-      roll := Dice.RollDice(dieCount, GDConsts.hpSides[cls]);
+      roll := 0;
+      for i := 1 to dieCount do begin
+        die := Dice.RollDice(1, GDConsts.hpSides[cls]);
+        if die < floor then
+          die := floor;
+        Inc(roll, die);
+      end;
       if creature^.classLevels[cls] = 1 then
         if roll < GDConsts.hpSides[cls] * 2 div 3 then
           roll := GDConsts.hpSides[cls] * 2 div 3;

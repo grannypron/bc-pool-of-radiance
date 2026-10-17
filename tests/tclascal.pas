@@ -1,13 +1,16 @@
 { Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills. }
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Class, GDConsts, ClassCal, TestKit;
+uses Types, C_Level, C_Race, C_Save, C_Class, GDConsts, ClassCal, Dice, TestKit;
 
 var
   c: Types.PCharRecord;
   n: Integer;
   roll: Byte;
   inRange: Boolean;
+  same: Boolean;
+  k: Integer;
+  expected: Byte;
 
 { Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GDConsts.wisBonusSpells' rows from 13 to wis
   added up, against expected, one digit a level. }
@@ -320,6 +323,15 @@ begin
   TestKit.CheckEqualsL(2, ClassCal.ConHpTotal(c, 19) - ClassCal.ConHpTotal(c, 18),
                        'Con 18 to 19 gives a fighter 1 a level');
 
+  { the hit-die floor by Constitution (Deities & Demigods) }
+  TestKit.CheckEqualsL(1, ClassCal.HitDieFloor(18), 'Constitution 18: dice roll from 1');
+  TestKit.CheckEqualsL(2, ClassCal.HitDieFloor(19), '19: no 1s');
+  TestKit.CheckEqualsL(2, ClassCal.HitDieFloor(20), '20: no 1s');
+  TestKit.CheckEqualsL(3, ClassCal.HitDieFloor(21), '21: no 1s or 2s');
+  TestKit.CheckEqualsL(3, ClassCal.HitDieFloor(22), '22: no 1s or 2s');
+  TestKit.CheckEqualsL(4, ClassCal.HitDieFloor(23), '23: no 1s, 2s or 3s');
+  TestKit.CheckEqualsL(4, ClassCal.HitDieFloor(25), '25: no 1s, 2s or 3s');
+
   { first-level hit points: the class's dice, at least two thirds of one at level 1 }
   RandSeed := 1;
   Reset(C_Race.HUMAN);
@@ -340,6 +352,41 @@ begin
       inRange := False;
   end;
   TestKit.Check(inRange, 'a level 1 ranger rolls 5..16 (2d8, at least 5)');
+  { below Constitution 19 the dice are what Dice.RollDice rolls }
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.CLERIC] := 3;
+  c^.classLevels[C_Level.MAGE] := 3;
+  c^.conCur := 18;
+  same := True;
+  for k := 1 to 50 do begin
+    RandSeed := k;
+    roll := ClassCal.RollFirstLevelHp(c, $FF);
+    RandSeed := k;
+    { the cleric's d8 first, then the magic-user's d4, in two statements to fix the order }
+    expected := Dice.RollDice(1, 8);
+    Inc(expected, Dice.RollDice(1, 4));
+    if roll <> expected then
+      same := False;
+  end;
+  TestKit.Check(same, 'a level 3 cleric/magic-user at Constitution 18 rolls as before');
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.MAGE] := 3;
+  c^.conCur := 23;
+  inRange := True;
+  for n := 1 to 100 do
+    if ClassCal.RollFirstLevelHp(c, $FF) <> 4 then
+      inRange := False;
+  TestKit.Check(inRange, 'a d4 at Constitution 23 always rolls 4');
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.FIGHTER] := 2;
+  c^.conCur := 19;
+  inRange := True;
+  for n := 1 to 200 do begin
+    roll := ClassCal.RollFirstLevelHp(c, $FF);
+    if (roll < 2) or (roll > 10) then
+      inRange := False;
+  end;
+  TestKit.Check(inRange, 'a fighter''s d10 at Constitution 19 rolls 2..10');
   Reset(C_Race.HUMAN);
   c^.classLevels[C_Level.CLERIC] := 2;
   inRange := True;
