@@ -24,7 +24,7 @@ implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
   C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
-  CharDisp, Dice;
+  CharDisp, Dice, Combat;
 
 var
   { the AI's last step direction (8 = none) }
@@ -381,7 +381,8 @@ begin
     done := CombatAi.FinishRound(creature);
 end;
 
-{ The AI's move/attack loop. Returns True when the creature can no longer act. }
+{ The AI's move/attack loop. A party member (not hostile) first bandages a dying teammate, which ends its turn, as in
+  Curse (#654). Returns True when the creature can no longer act. }
 function AiMoveAttack(creature: Types.PCharRecord): Boolean;
 var
   done: Boolean;
@@ -403,6 +404,9 @@ begin
   canAct := True;
   done := False;
   FxEngine.TriggerEffectsWithCondition(C_Cond.MONSTER_SPECIAL, creature);
+  { as the combat menu's Bandage does }
+  if (creature^.hostile = 0) and Combat.BandageDying(True) then
+    done := CharHlp.EndActions(creature);
   if creature^.combatAddr^.initiative = 0 then
     canAct := False;
   while (not done) and canAct do begin
