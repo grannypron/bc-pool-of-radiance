@@ -26,8 +26,9 @@ uses Types, Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 var
   pic: Types.PImgBuf;
-  total: Word;
-  offset: Word;
+  dst: Types.PImgBuf;
+  frame: Word;
+  i: Integer;
   tiles: Integer;
 begin
   if mult > 127 then begin
@@ -38,12 +39,14 @@ begin
   if pic = nil then Exit;
   if GDVars.ds2dMapTilePtr <> nil then begin
     tiles := pic^.count;
-    if mult + tiles > GDVars.ds2dMapTilePtr^.count then
-      tiles := GDVars.ds2dMapTilePtr^.count - mult;
-    if tiles > 0 then begin
-      total := tiles * pic^.imgSize;
-      offset := mult * pic^.imgSize;
-      Move(pic^.data, GDVars.ds2dMapTilePtr^.data[offset], total);
+    if mult + tiles > Blit.FrameCount(GDVars.ds2dMapTilePtr) then
+      tiles := Blit.FrameCount(GDVars.ds2dMapTilePtr) - mult;
+    { a tile at a time, as the sheet may continue in a further block (Blit.FrameBlock) }
+    for i := 0 to tiles - 1 do begin
+      dst := GDVars.ds2dMapTilePtr;
+      frame := mult + i;
+      Blit.FrameBlock(dst, frame);
+      Move(pic^.data[i * pic^.imgSize], dst^.data[frame * dst^.imgSize], pic^.imgSize);
     end;
   end;
   Blit.FreePic(pic);

@@ -226,12 +226,27 @@ begin
       cell[plane] := 0;
 end;
 
+{ one palette register through BIOS INT 10h AX=1000h; bright colours (8..15) are offset by a further 8 to reach their
+  palette values }
+procedure SetPalette(registerIndex, color: Byte);
+begin
+  GDVars.dsInterruptRegisters.ah := $10;
+  GDVars.dsInterruptRegisters.al := 0;
+  if color < 8 then
+    GDVars.dsInterruptRegisters.bh := color
+  else
+    GDVars.dsInterruptRegisters.bh := color + 8;
+  GDVars.dsInterruptRegisters.bl := registerIndex;
+  Intr($10, GDVars.dsInterruptRegisters);
+end;
+
 procedure Install;
 begin
   with GDVars.video do begin
     name := 'EGA';
     colours := 16;
     hasPalette := True;
+    keyed := False;
     cellShift := 2;
     screenShift := 0;
     maskShift := 2;
@@ -251,6 +266,7 @@ begin
     RecolorFrame := PicEga.RecolorFrame;
     PutPixelRow := PicEga.PutPixelRow;
     InitRowTables := PicEga.InitRowTables;
+    SetPalette := VidEga.SetPalette;
   end;
 end;
 

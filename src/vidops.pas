@@ -53,8 +53,14 @@ begin
   if (src^.transp = nil) or (dst^.transp = nil) then Exit;
   { an empty picture would make the loops below run 65536 times }
   if src^.imgSize = 0 then Exit;
-  for n := 0 to src^.imgSize - 1 do
-    dst^.data[n] := dst^.data[n] or src^.data[n];
+  if GDVars.video.keyed then begin
+    { a colour key (VGA): src's opaque pixels replace dst's }
+    for n := 0 to src^.imgSize - 1 do
+      if src^.data[n] <> Types.PIC_KEY then
+        dst^.data[n] := src^.data[n];
+  end else
+    for n := 0 to src^.imgSize - 1 do
+      dst^.data[n] := dst^.data[n] or src^.data[n];
   for n := 0 to Blit.MaskBytes(src^.imgSize) - 1 do
     dst^.transp^[n] := dst^.transp^[n] and src^.transp^[n];
 end;
@@ -65,6 +71,13 @@ var
 begin
   if (src = nil) or (dst = nil) then Exit;
   if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
+  if GDVars.video.keyed then begin
+    { a colour key (VGA) }
+    for n := 0 to dst^.imgSize - 1 do
+      if src^.data[n] <> Types.PIC_KEY then
+        dst^.data[n] := src^.data[n];
+    Exit;
+  end;
   { one mask byte covers 1 shl maskShift picture bytes (EGA's cell row of four planes) }
   for n := 0 to dst^.imgSize - 1 do
     dst^.data[n] := dst^.data[n] and src^.transp^[n shr GDVars.video.maskShift] or src^.data[n];

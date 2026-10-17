@@ -132,12 +132,18 @@ begin
   FillChar(cell, SizeOf(cell), GDConsts.tandyColorFill[color]);
 end;
 
+{ no palette registers }
+procedure SetPalette(registerIndex, color: Byte);
+begin
+end;
+
 procedure Install;
 begin
   with GDVars.video do begin
     name := 'Tandy';
     colours := 16;
     hasPalette := False;
+    keyed := False;
     cellShift := 2;
     screenShift := 2;
     maskShift := 0;
@@ -157,6 +163,7 @@ begin
     RecolorFrame := PicTdy.RecolorFrame;
     PutPixelRow := PicTdy.PutPixelRow;
     InitRowTables := PicTdy.InitRowTables;
+    SetPalette := VidTdy.SetPalette;
   end;
 end;
 

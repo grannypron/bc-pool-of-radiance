@@ -7,7 +7,7 @@ interface
 
 implementation
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy, VidVga;
 
 var
   { lowered HeapEnd snapshot }
@@ -107,10 +107,11 @@ begin
   Intr($10, GDVars.dsInterruptRegisters);
   GDVars.savedVideoMode := GDVars.dsInterruptRegisters.al;
   GDVars.curVideoMode := GDVars.savedVideoMode;
-  { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, anything else CGA }
+  { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, V for VGA, anything else CGA }
   case cfgChar of
     'E': VidEga.Install;
     'T': VidTdy.Install;
+    'V': VidVga.Install;
   else
     VidCga.Install;
   end;

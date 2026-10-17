@@ -538,6 +538,39 @@ them), except where a step says otherwise.
      copying to the screen, a 256-entry word table per byte. That costs no more memory than Tandy, and gives up only
      256-colour art, which PoR does not have.
 
+   **Chosen: a byte a pixel with a colour key**, as Dark Queen of Krynn keeps its pictures, so the driver carries to
+   later games with 256-colour art. Done:
+   - `VidVga` (resident) and `PicVga` (overlaid), POOL.CFG letter V.
+   - Pictures take 8 bytes a cell row. A transparent pixel holds `Types.PIC_KEY` ($FF).
+   - The mask is kept a bit a pixel, a byte a cell row, so code that checks or copies masks works unchanged. Keyed
+     drawing does not read it.
+   - The record gained `keyed` and `SetPalette`: VGA writes DAC entries 0..15, and EGA's BIOS palette call moved into
+     VidEga.
+   - Blit's tile loop and VidOps' merge and overlay have keyed paths, and `Blit.ClearPic` clears a picture to
+     transparent (CharGen's icons).
+   - `TCellBytes` grew to 8 bytes.
+   - A picture larger than one 64 KB heap block continues in `TImgBuf.more`. AllocPic, FreePic, ExpandPicFrames,
+     BlitTile and RemapPic follow it, and `Blit.FrameBlock` and `FrameCount` serve MapTiles. Of the game's 809 DAX
+     pictures, only SQRPACI's two wilderness tile sheets need it: 128 frames of 24 x 24, 73,758 bytes each in VGA.
+   - TVidPic checks VGA and the split sheet: 58 checks.
+   - goldbox-player's `por-v13-vga` title (a VGA machine) and `VIDEO=vga` run the suite.
+   - Against the golden build, which reads V as CGA, VGA's screens differ only in the settings' video line and in
+     picture pixels the screen reader takes for glyphs. EGA, CGA and Tandy still pass, as does ssiformat.
+
+   **Memory in VGA**, at the scenarios' ends:
+
+   | scenario | heap free | largest block | pictures |
+   | --- | --- | --- | --- |
+   | combat | 84,896 | 56,280 | 261,768 |
+   | areachange | 111,552 | 79,608 | 238,428 |
+   | vault | 119,296 | 79,608 | 230,684 |
+
+   - Boot leaves 156,864 free, against EGA's 302,408.
+   - Pictures cost about 1.95 times EGA's.
+   - The wilderness tile sheets, loaded at boot and kept all game, are 148 KB of that.
+   - The ending's full-screen pictures need 64 KB blocks, which combat's largest block (56 KB) could not give. No
+     scenario reaches the ending.
+
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
 new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
 

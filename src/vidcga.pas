@@ -122,12 +122,18 @@ begin
   FillChar(cell, SizeOf(cell), GDConsts.cgaColorFill[Blit.SrcNibble(color, colorMap)]);
 end;
 
+{ no palette registers }
+procedure SetPalette(registerIndex, color: Byte);
+begin
+end;
+
 procedure Install;
 begin
   with GDVars.video do begin
     name := 'CGA';
     colours := 4;
     hasPalette := False;
+    keyed := False;
     cellShift := 1;
     screenShift := 1;
     maskShift := 0;
@@ -147,6 +153,7 @@ begin
     RecolorFrame := PicCga.RecolorFrame;
     PutPixelRow := PicCga.PutPixelRow;
     InitRowTables := PicCga.InitRowTables;
+    SetPalette := VidCga.SetPalette;
   end;
 end;
 

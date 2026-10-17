@@ -1,12 +1,11 @@
-{ Tests for the video drivers' picture routines in each mode (CGA, EGA, Tandy), without video hardware: installing a
-  driver only fills GDVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0 transparent,
-  is converted from DAX's 4 bits a pixel (Blit.ExpandPicFrames) and its bytes and mask checked against the mode's
-  layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell fill and the
-  picture blitted through its mask.
-  CGA's colour map takes colour c to CGA colour c mod 4. }
+{ Tests for the video drivers' picture routines in each mode (CGA, EGA, Tandy, VGA), without video hardware:
+  installing a driver only fills GDVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0
+  transparent, is converted from DAX's 4 bits a pixel (Blit.ExpandPicFrames) and its bytes and mask checked against
+  the mode's layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell
+  fill and the picture blitted through its mask. CGA's colour map takes colour c to CGA colour c mod 4. }
 program TVidPic;
 
-uses Types, GDConsts, GDVars, Blit, VidCga, VidEga, VidTdy, TestKit;
+uses Types, GDConsts, GDVars, Blit, VidCga, VidEga, VidTdy, VidVga, TestKit;
 
 const
   { the DAX frame: row 0 is colours 0..7, row 1 is 7..0, two pixels a byte, high nibble first }
@@ -107,6 +106,41 @@ begin
   Blit.FreePic(pic);
 end;
 
+{ In the installed mode (VGA), a sheet of 128 frames of 24 x 24 pixels is more than one heap block holds: AllocPic keeps
+  the frames that fit and puts the rest in a further block, and FrameCount, FrameBlock and BlitTileCell see one
+  picture. }
+procedure CheckSplitSheet;
+var
+  sheet: Types.PImgBuf;
+  blk: Types.PImgBuf;
+  dest: Types.PImgBuf;
+  fit: Word;
+  f: Word;
+  i: Word;
+  allFive: Boolean;
+begin
+  Blit.AllocPic(24, 3, 128, 0, sheet);
+  fit := (65520 - (SizeOf(Types.TImgBuf) - SizeOf(sheet^.data))) div Blit.FrameBytes(24, 3);
+  TestKit.CheckEqualsL(fit, sheet^.count, 'a 128-frame sheet keeps the frames that fit in its first block');
+  TestKit.Check((sheet^.more <> nil) and (sheet^.more^.count = 128 - fit), 'and the rest in a second');
+  TestKit.CheckEqualsL(128, Blit.FrameCount(sheet), 'FrameCount counts both');
+  blk := sheet;
+  f := 127;
+  Blit.FrameBlock(blk, f);
+  TestKit.Check((blk = sheet^.more) and (f = 127 - fit), 'frame 127 is in the second block');
+  FillChar(blk^.data[f * blk^.imgSize], blk^.imgSize, 5);
+  Blit.AllocPic(24, 3, 1, 0, dest);
+  Blit.BlitTileCell(0, 0, 127, 0, sheet, dest);
+  allFive := True;
+  for i := 0 to dest^.imgSize - 1 do
+    if dest^.data[i] <> 5 then
+      allFive := False;
+  TestKit.Check(allFive, 'BlitTileCell draws frame 127 from the second block');
+  Blit.FreePic(dest);
+  Blit.FreePic(sheet);
+  TestKit.Check(sheet = nil, 'FreePic frees both blocks');
+end;
+
 begin
   TestKit.Start('TVIDPIC');
   { Tandy: the DAX bytes as they are; a mask nibble of F for each colour-0 pixel }
@@ -121,5 +155,10 @@ begin
   { CGA: four 2-bit pixels a byte, colour c drawn as c mod 4; a mask byte for each data byte, 2 bits a pixel }
   VidCga.Install;
   CheckMode('CGA', 4, 4, '1B1BE4E4', 'C0000003', 'E4E41B1B', '0003C000', '0B0BE0E0', '5555', 'DB1BE4E7');
+  { VGA: a byte a pixel, a transparent pixel holding PIC_KEY ($FF); the mask kept a bit a pixel, a byte a cell row }
+  VidVga.Install;
+  CheckMode('VGA', 16, 2, 'FF0102030405060707060504030201FF', '8001', '07060504030201FFFF01020304050607', '0180',
+            'FF010203040C060707060C04030201FF', '0909090909090909', '0F01020304050607070605040302010F');
+  CheckSplitSheet;
   TestKit.Done;
 end.

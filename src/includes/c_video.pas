@@ -6,6 +6,9 @@ interface
 const
   { visible EGA framebuffer (planar, mode 13) }
   EGA_VIDEO_SEG = $A000;
+  { the VGA framebuffer (mode 13h): linear, a byte a pixel, 320 bytes a scanline }
+  VGA_VIDEO_SEG = $A000;
+  VGA_ROW_BYTES = 320;
   { CGA even rows / Tandy bank 0 }
   GFX_BANK0_SEG = $B800;
   { CGA odd rows / Tandy bank 1 }

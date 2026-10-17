@@ -165,8 +165,8 @@ procedure FreePic(var pic: Types.PImgBuf);
   @param(pic Buffer filled, normally the view buffer; nothing happens if nil.) }
 procedure FillPicRect(x, y: Integer; width, height: Word; color: Byte; colorMap: Types.TColorMap; pic: Types.PImgBuf);
 
-{ Programs one EGA palette register through BIOS INT 10h. Bright colors (8..15) are offset by a further 8 to reach their
-  palette values. Does nothing in a mode without palette registers (HasPalette).
+{ Gives palette register registerIndex the colour color, through the video driver: EGA's palette registers, VGA's
+  DAC. Does nothing in a mode without a palette (HasPalette).
   @param(registerIndex Palette register to change.)
   @param(color Logical color to assign to that register, 0..15.) }
 procedure SetPaletteRegister(registerIndex, color: Byte);
@@ -188,9 +188,19 @@ function ColourCount: Byte;
 { True when the video mode has palette registers SetPaletteRegister can program (EGA). }
 function HasPalette: Boolean;
 
+{ Make pic's first frame wholly transparent: every pixel 0 (PIC_KEY in a keyed mode) and every mask bit set. }
+procedure ClearPic(pic: Types.PImgBuf);
+
+{ Step pic to the block holding frame, and frame to its index there: a picture too large for one heap block continues
+  in pic^.more (AllocPic). }
+procedure FrameBlock(var pic: Types.PImgBuf; var frame: Word);
+
+{ The frames in pic, in all its blocks. }
+function FrameCount(pic: Types.PImgBuf): Word;
+
 implementation
 
-uses GDConsts, GDVars, DaxIo, Dos;
+uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil;
 type
   PLongInt = ^LongInt;
   { The header of a DAX picture as stored; the pixel data follows it. }
@@ -280,8 +290,12 @@ end;
 procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
                           pic: Types.PImgBuf);
 begin
-  if pic = nil then Exit;
-  GDVars.video.ExpandFrames(imgData, srcOff, hasMask, transpColor, pic);
+  { each block of the picture (pic^.more), its frames taking 4 DAX bytes a cell row }
+  while pic <> nil do begin
+    GDVars.video.ExpandFrames(imgData, srcOff, hasMask, transpColor, pic);
+    Inc(srcOff, pic^.count * pic^.height * pic^.width * 4);
+    pic := pic^.more;
+  end;
 end;
 
 { BlitTileCell and BlitTileClipped: draw frame tileIdx of gfx into dest at (screenX, screenY), clipped against dest's
@@ -313,6 +327,11 @@ var
   saveRequested: Boolean;
   i: Word;
 begin
+  { a frame past the block's count is in a further block (AllocPic) }
+  while (gfx <> nil) and (gfx^.more <> nil) and (tileIdx >= gfx^.count) do begin
+    Dec(tileIdx, gfx^.count);
+    gfx := gfx^.more;
+  end;
   if (gfx = nil) or (dest = nil) then Exit;
   useMask := ((flag and 1) > 0) and (gfx^.transp <> nil);
   saveRequested := (flag and 4) > 0;
@@ -396,7 +415,15 @@ begin
     if saveRequested then
       Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
     Inc(saveOff, rowBytes);
-    if maskEach then begin
+    if useMask and GDVars.video.keyed then begin
+      { a colour key (VGA): every pixel but PIC_KEY is drawn }
+      for i := 1 to rowBytes do begin
+        if gfx^.data[srcOff] <> Types.PIC_KEY then
+          dest^.data[destOff] := gfx^.data[srcOff];
+        Inc(srcOff);
+        Inc(destOff);
+      end;
+    end else if maskEach then begin
       { a mask byte for each picture byte (CGA, Tandy) }
       for i := 1 to rowBytes do begin
         dest^.data[destOff] := dest^.data[destOff] and gfx^.transp^[srcOff] or gfx^.data[srcOff];
@@ -509,8 +536,16 @@ var
   nFrames: Byte;
   pairIdx: Byte;
   scratchPic: Types.PImgBuf;
+  allFrames: Boolean;
 begin
   if pic = nil then Exit;
+  allFrames := frame < 0;
+  { a frame past the block's count is in a further block (AllocPic) }
+  if not allFrames then
+    while (pic^.more <> nil) and (frame >= pic^.count) do begin
+      Dec(frame, pic^.count);
+      pic := pic^.more;
+    end;
   with pic^ do begin
     if frame < 0 then begin
       frame := 0;
@@ -532,14 +567,29 @@ begin
   with pic^ do
     Move(scratchPic^.data, data[frame * imgSize], nFrames * imgSize);
   Blit.FreePic(scratchPic);
+  if allFrames and (pic^.more <> nil) then
+    Blit.RemapPic(fromColors, toColors, -1, isDithered, pic^.more);
 end;
 
 procedure AllocPic(height, width: Word; count: Byte; flag: Byte; var pic: Types.PImgBuf);
 var
   frameSize: Word;
   totalSize: Word;
+  fit: LongInt;
+  rest: Byte;
 begin
   frameSize := Blit.FrameBytes(height, width);
+  { A heap block holds at most 65,520 bytes: frames past what one holds go to a further block, pic^.more. A frame that
+    alone is too large cannot be drawn in this mode. }
+  fit := (65520 - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) div frameSize;
+  if fit = 0 then
+    GameIo.FatalError('A picture of ' + StrUtil.NumStr(height) + ' rows and ' + StrUtil.NumStr(width) +
+                      ' cells is too large for the ' + GDVars.video.name + ' video mode.');
+  rest := 0;
+  if count > fit then begin
+    rest := count - fit;
+    count := fit;
+  end;
   totalSize := count * frameSize;
   GetMem(pic, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   FillChar(pic^, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)), 0);
@@ -556,6 +606,8 @@ begin
     Inc(GDVars.picBytes, Blit.MaskBytes(totalSize));
   if GDVars.picBytes > GDVars.picPeak then
     GDVars.picPeak := GDVars.picBytes;
+  if rest > 0 then
+    Blit.AllocPic(height, width, rest, flag, pic^.more);
 end;
 
 procedure FreePic(var pic: Types.PImgBuf);
@@ -563,6 +615,7 @@ var
   nBytes: Word;
 begin
   if pic = nil then Exit;
+  Blit.FreePic(pic^.more);
   with pic^ do begin
     nBytes := count * imgSize;
     if transp <> nil then begin
@@ -651,7 +704,7 @@ begin
     end else if cellLen = 4 then
       { four bytes a cell (EGA's planes): one LongInt store each }
       for i := 1 to cells do begin
-        PLongInt(@pic^.data[dstOff])^ := LongInt(cell);
+        PLongInt(@pic^.data[dstOff])^ := PLongInt(@cell)^;
         Inc(dstOff, 4);
       end
     else
@@ -668,15 +721,42 @@ end;
 
 procedure SetPaletteRegister(registerIndex, color: Byte);
 begin
-  if not Blit.HasPalette then Exit;
-  GDVars.dsInterruptRegisters.ah := $10;
-  GDVars.dsInterruptRegisters.al := 0;
-  if color < 8 then
-    GDVars.dsInterruptRegisters.bh := color
+  if Blit.HasPalette then
+    GDVars.video.SetPalette(registerIndex, color);
+end;
+
+procedure FrameBlock(var pic: Types.PImgBuf; var frame: Word);
+begin
+  while (pic <> nil) and (pic^.more <> nil) and (frame >= pic^.count) do begin
+    Dec(frame, pic^.count);
+    pic := pic^.more;
+  end;
+end;
+
+function FrameCount(pic: Types.PImgBuf): Word;
+var
+  n: Word;
+begin
+  n := 0;
+  while pic <> nil do begin
+    Inc(n, pic^.count);
+    pic := pic^.more;
+  end;
+  FrameCount := n;
+end;
+
+procedure ClearPic(pic: Types.PImgBuf);
+var
+  clear: Byte;
+begin
+  if pic = nil then Exit;
+  if GDVars.video.keyed then
+    clear := Types.PIC_KEY
   else
-    GDVars.dsInterruptRegisters.bh := color + 8;
-  GDVars.dsInterruptRegisters.bl := registerIndex;
-  Intr($10, GDVars.dsInterruptRegisters);
+    clear := 0;
+  FillChar(pic^.data, pic^.imgSize, clear);
+  if pic^.transp <> nil then
+    FillChar(pic^.transp^, Blit.MaskBytes(pic^.imgSize), $FF);
 end;
 
 function FrameBytes(height, width: Word): Word;

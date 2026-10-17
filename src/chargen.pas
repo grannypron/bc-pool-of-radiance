@@ -1482,8 +1482,7 @@ var
   begin
     if (work = nil) or (frame > 1) then Exit;
     if work^.transp = nil then Exit;
-    FillChar(work^.data, work^.imgSize, 0);
-    FillChar(work^.transp^, Blit.MaskBytes(work^.imgSize), $FF);
+    Blit.ClearPic(work);
     Merge(PartPic(1, b, frame));
     Merge(PartPic(0, h, frame));
     for k := 0 to 15 do

@@ -14,9 +14,9 @@
 # gbplayer) and its checkout at GBPLAYER_HOME (~/repos/goldbox-player unless set). The golden build's results are kept
 # in GOLDEN/record.json and reused while the scenario and the build are unchanged, so after the first run only the
 # candidate runs. The report goes to obj/regress.json; the exit status is 0 only when every scenario matches.
-# VIDEO=cga or VIDEO=tandy runs the game in that video mode (tests/scenarios/POOL-CGA.CFG, POOL-TANDY.CFG) instead of
-# EGA (POOL.CFG), and keeps the golden build's results apart, in GOLDEN/record-cga.json or record-tandy.json. Tandy
-# needs goldbox-player's por-v13-tandy title (a Tandy machine).
+# VIDEO=cga, tandy or vga runs the game in that video mode (tests/scenarios/POOL-CGA.CFG, POOL-TANDY.CFG, POOL-VGA.CFG)
+# instead of EGA (POOL.CFG), and keeps the golden build's results apart, in GOLDEN/record-<mode>.json. Tandy and VGA
+# need goldbox-player's por-v13-tandy and por-v13-vga titles (a Tandy machine, a VGA one).
 
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -32,7 +32,9 @@ case "${VIDEO:-ega}" in
     cga) config="$root/tests/scenarios/POOL-CGA.CFG"; record="$golden/record-cga.json"; title=por-v13 ;;
     # an EGA machine cannot set Tandy's mode 9, so Tandy runs on goldbox-player's Tandy machine
     tandy) config="$root/tests/scenarios/POOL-TANDY.CFG"; record="$golden/record-tandy.json"; title=por-v13-tandy ;;
-    *) echo "regress.sh: VIDEO is ega, cga or tandy" >&2; exit 2 ;;
+    # mode 13h needs a VGA machine; a golden build without VGA reads V as CGA, so only the screens' text compares
+    vga) config="$root/tests/scenarios/POOL-VGA.CFG"; record="$golden/record-vga.json"; title=por-v13-vga ;;
+    *) echo "regress.sh: VIDEO is ega, cga, tandy or vga" >&2; exit 2 ;;
 esac
 for f in "$golden/START.EXE" "$golden/GAME.OVR" "$candidate/START.EXE" "$candidate/GAME.OVR"; do
     [ -f "$f" ] || { echo "regress.sh: missing $f" >&2; exit 2; }

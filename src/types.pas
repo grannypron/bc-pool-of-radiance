@@ -28,6 +28,9 @@ const
   { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
   GB_STRING_LAST = 20;
 
+  { a transparent pixel in a keyed video mode's picture (TVideoDriver.keyed, VGA): no colour drawn is 255 }
+  PIC_KEY = $FF;
+
 type
 
   { Shared types. }
@@ -395,6 +398,9 @@ type
     imgSize: Word;
     { extra transparency space (default nil) }
     transp: PBytes;
+    { the frames from count on, when one heap block cannot hold them all (Blit.AllocPic): VGA's wilderness tile
+      sheets; nil otherwise }
+    more: PImgBuf;
     { image data (open-ended) }
     data: array[0..32000] of Byte;
   end;
@@ -801,10 +807,11 @@ type
   TByteArr = array[0..65534] of ShortInt;
 
   { Video driver types (phase 6 of docs/refactor-plan.md). }
-  { one 8-pixel cell row of a picture in a single colour, in the video mode's layout (its first cellBytes bytes) }
-  TCellBytes = array[0..3] of Byte;
+  { one 8-pixel cell row of a picture in a single colour, in the video mode's layout (its first 1 shl cellShift bytes) }
+  TCellBytes = array[0..7] of Byte;
   TCellFillProc = procedure(color: Byte; var colorMap: TColorMap; var cell: TCellBytes);
   TVideoProc = procedure;
+  TSetPaletteProc = procedure(registerIndex, color: Byte);
   TShowPicProc = procedure(screenX, screenY: Integer; pic: PImgBuf);
   TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
   TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
@@ -822,8 +829,11 @@ type
     name: TStr20;
     { the colours shown at once: 4 on CGA (each picture's colour map picks them), 16 on EGA and Tandy }
     colours: Byte;
-    { palette registers SetPaletteRegister can program (EGA) }
+    { palette registers SetPaletteRegister can program (EGA, VGA) }
     hasPalette: Boolean;
+    { transparency by colour key (VGA): a transparent pixel holds PIC_KEY, and the mask, one bit a pixel, is kept but
+      not used to draw; otherwise a transparent pixel is 0 under a set mask bit }
+    keyed: Boolean;
     { The layout as shift counts, since the 8086 shifts in a few cycles where it multiplies or divides in a hundred: }
     { picture bytes in one cell row, 1 shl cellShift: 2 on CGA (2 bits a pixel), 4 on EGA (a byte a plane) and Tandy
       (4 bits a pixel) }
@@ -868,6 +878,8 @@ type
     PutPixelRow: TPutPixelRowProc;
     { build the mode's per-row screen addresses (GDVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
     InitRowTables: TVideoProc;
+    { give palette register registerIndex the colour color (Blit.SetPaletteRegister; EGA's registers, VGA's DAC) }
+    SetPalette: TSetPaletteProc;
   end;
 
   { EclMenu types. }
