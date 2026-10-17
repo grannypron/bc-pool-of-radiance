@@ -6,6 +6,10 @@ interface
 
 uses Types;
 
+type
+  { The creature on arena cell (x, y): its slot in GDVars.arenaLoc, 0 for none (CbtMap.OccupantAt). }
+  TOccupant = function(x, y: ShortInt): Byte;
+
 { Return the sign of an Integer: -1, 0 or 1. }
 function SignOf(v: Integer): Integer;
 
@@ -38,6 +42,13 @@ function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 { Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: dsTargetCreaturePtr
   and spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
+
+{ The first step of a shortest walk that brings the creature in arena slot slot next to the one in targetSlot (some
+  cell of each body within one step of the other's), found breadth first over the arena (#668). A cell the creature's
+  body would cover must be on the arena, not a wall (terrain cost 255) and not another creature's (occupant); the
+  steps are the eight directions, the ones nearest the heading straight at the target tried first. False, with dir
+  unchanged, when the creature is next to the target already or no walk reaches it. }
+function RouteStep(slot, targetSlot: Byte; occupant: TOccupant; var dir: Byte): Boolean;
 
 implementation
 
@@ -323,6 +334,149 @@ begin
   for k := 1 to GDVars.targetCount do
     GDVars.dsTargetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
   GDVars.spellTargetCount := GDVars.targetCount;
+end;
+
+const
+  { the arena's cells (TArena.cells) }
+  ARENA_LAST_X = 49;
+  ARENA_LAST_Y = 24;
+  { a wall's terrain cost }
+  WALL_COST = 255;
+  { RouteStep's marks: a cell not reached yet, and the start }
+  UNREACHED = 255;
+  START = 8;
+  { the steps from a cell, as turns from the heading at the target: straight on first, round to straight back }
+  TURNS: array[0..7] of Byte = (0, 1, 7, 2, 6, 3, 5, 4);
+
+type
+  { per cell, the first step of the walk that reached it }
+  TRouteMarks = array[0..ARENA_LAST_Y, 0..ARENA_LAST_X] of Byte;
+  { the cells to visit, x + 50 * y }
+  TRouteQueue = array[0..(ARENA_LAST_X + 1) * (ARENA_LAST_Y + 1) - 1] of Word;
+
+{ True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, no wall, and nobody but
+  slot itself on it. }
+function CanStand(x, y: ShortInt; size, slot: Byte; occupant: TOccupant): Boolean;
+var
+  i: Byte;
+  dx: ShortInt;
+  dy: ShortInt;
+  cx: ShortInt;
+  cy: ShortInt;
+  t: Byte;
+  c: Byte;
+begin
+  CanStand := False;
+  for i := 0 to 3 do
+    if Pathing.GetIconTileDelta(size, i, dx, dy) then begin
+      cx := x + dx;
+      cy := y + dy;
+      if (cx < 0) or (cx > ARENA_LAST_X) or (cy < 0) or (cy > ARENA_LAST_Y) then
+        Exit;
+      t := GDVars.arenaPtr^.cells[cy, cx];
+      if (t = 0) or (GDConsts.terrainInfo[t].cost = WALL_COST) then
+        Exit;
+      c := occupant(cx, cy);
+      if (c <> 0) and (c <> slot) then
+        Exit;
+    end;
+  CanStand := True;
+end;
+
+{ True when a body of size at (x, y) has a cell within one step of a cell of the target's body (tsize at (tx, ty)). }
+function Reaches(x, y: ShortInt; size: Byte; tx, ty: ShortInt; tsize: Byte): Boolean;
+var
+  i: Byte;
+  j: Byte;
+  dx: ShortInt;
+  dy: ShortInt;
+  ex: ShortInt;
+  ey: ShortInt;
+begin
+  Reaches := False;
+  for i := 0 to 3 do
+    if Pathing.GetIconTileDelta(size, i, dx, dy) then
+      for j := 0 to 3 do
+        if Pathing.GetIconTileDelta(tsize, j, ex, ey) then
+          if (Abs(x + dx - tx - ex) <= 1) and (Abs(y + dy - ty - ey) <= 1) then begin
+            Reaches := True;
+            Exit;
+          end;
+end;
+
+function RouteStep(slot, targetSlot: Byte; occupant: TOccupant; var dir: Byte): Boolean;
+var
+  marks: ^TRouteMarks;
+  queue: ^TRouteQueue;
+  head: Word;
+  tail: Word;
+  sx: ShortInt;
+  sy: ShortInt;
+  tx: ShortInt;
+  ty: ShortInt;
+  x: ShortInt;
+  y: ShortInt;
+  nx: ShortInt;
+  ny: ShortInt;
+  size: Byte;
+  tsize: Byte;
+  heading: Byte;
+  d: Byte;
+  k: Byte;
+  first: Byte;
+  found: Boolean;
+begin
+  RouteStep := False;
+  sx := GDVars.arenaLoc[slot].x;
+  sy := GDVars.arenaLoc[slot].y;
+  size := GDVars.arenaLoc[slot].size;
+  tx := GDVars.arenaLoc[targetSlot].x;
+  ty := GDVars.arenaLoc[targetSlot].y;
+  tsize := GDVars.arenaLoc[targetSlot].size;
+  if (size = 0) or (tsize = 0) or Reaches(sx, sy, size, tx, ty, tsize) then
+    Exit;
+  { the heading straight at the target }
+  heading := C_Dir.NORTH;
+  for d := C_Dir.NORTH to C_Dir.NORTHWEST do
+    if (GDConsts.dirDX[d] = Pathing.SignOf(tx - sx)) and (GDConsts.dirDY[d] = Pathing.SignOf(ty - sy)) then
+      heading := d;
+  GetMem(marks, SizeOf(TRouteMarks));
+  GetMem(queue, SizeOf(TRouteQueue));
+  FillChar(marks^, SizeOf(TRouteMarks), UNREACHED);
+  marks^[sy, sx] := START;
+  queue^[0] := sx + (ARENA_LAST_X + 1) * sy;
+  head := 0;
+  tail := 1;
+  found := False;
+  while (head < tail) and not found do begin
+    x := queue^[head] mod (ARENA_LAST_X + 1);
+    y := queue^[head] div (ARENA_LAST_X + 1);
+    Inc(head);
+    k := 0;
+    while (k <= 7) and not found do begin
+      d := (heading + TURNS[k]) mod 8;
+      nx := x + GDConsts.dirDX[d];
+      ny := y + GDConsts.dirDY[d];
+      if (nx >= 0) and (nx <= ARENA_LAST_X) and (ny >= 0) and (ny <= ARENA_LAST_Y) then
+        if (marks^[ny, nx] = UNREACHED) and CanStand(nx, ny, size, slot, occupant) then begin
+          first := marks^[y, x];
+          if first = START then
+            first := d;
+          marks^[ny, nx] := first;
+          if Reaches(nx, ny, size, tx, ty, tsize) then begin
+            dir := first;
+            found := True;
+          end else begin
+            queue^[tail] := nx + (ARENA_LAST_X + 1) * ny;
+            Inc(tail);
+          end;
+        end;
+      Inc(k);
+    end;
+  end;
+  FreeMem(queue, SizeOf(TRouteQueue));
+  FreeMem(marks, SizeOf(TRouteMarks));
+  RouteStep := found;
 end;
 
 end.

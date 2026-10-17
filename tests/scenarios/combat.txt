@@ -19,26 +19,35 @@ wait QUICK 60
 checkpoint encounter
 press alt-q
 wait CONTINUE 180
-checkpoint won
+# the AI walks round walls and bodies since #668, so the fight goes differently: from here the two builds' screens
+# are recorded apart, not compared
+golden: checkpoint won
+candidate: checkpoint won-668
 press n
 wait ENTER 60
 press ret
 wait TAKE 60
-checkpoint loot
+golden: checkpoint loot
+candidate: checkpoint loot-668
 press t
-checkpoint take
+golden: checkpoint take
+candidate: checkpoint take-668
 # the silver's amount, typed
 press ret 6 0 0 ret
 wait VIEW POOL
-checkpoint taken
+golden: checkpoint taken
+candidate: checkpoint taken-668
 press v m s
-checkpoint stats
+golden: checkpoint stats
+candidate: checkpoint stats-668
 press g
-checkpoint game-stats
+golden: checkpoint game-stats
+candidate: checkpoint game-stats-668
 # the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
 ignore OVERLAY LOADS
 press ctrl-y
-checkpoint overlay-loads
+golden: checkpoint overlay-loads
+candidate: checkpoint overlay-loads-668
 press ret ret ret
 # the picture-memory line (phase 6), which the golden build does not have
 candidate: press ret

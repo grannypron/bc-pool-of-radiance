@@ -30,6 +30,9 @@ procedure BuildArenaArrays;
 { Return the creature and terrain indices at an arena cell. Both are zero outside the arena. }
 procedure GetArenaContents(x, y: ShortInt; var crIdx, terrIdx: Byte);
 
+{ The creature on arena cell (x, y), its arena slot, or 0 for none or off the arena: Pathing.RouteStep's occupant. }
+function OccupantAt(x, y: ShortInt): Byte;
+
 { Repaint the terrain under every visible tile of a creature's icon (erasing its sprite), or under the single view cell
   (x, y) when no creature is there. (x, y) are view coordinates; when crIdx is zero the creature is first looked up at
   that cell, and for a creature redraw (x, y) are replaced by the creature's own view coordinates. }
@@ -462,6 +465,15 @@ begin
     crIdx := 0;
     terrIdx := 0;
   end;
+end;
+
+function OccupantAt(x, y: ShortInt): Byte;
+var
+  c: Byte;
+  t: Byte;
+begin
+  CbtMap.GetArenaContents(x, y, c, t);
+  OccupantAt := c;
 end;
 
 procedure UpdateCombatMapTile(x, y: ShortInt; crIdx: Byte);
