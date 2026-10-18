@@ -916,6 +916,35 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
    - Unit tests pin it against known squares: Podal Plaza's tavern (a fight), the training hall's notice board (an
      exit), the arms shop (a service).
    - Squares the player has not visited still show their marks. That is GBC's "where things occur".
+
+   **Done.**
+   - `EvtKind` (overlaid) reads the loaded script without running it, decoding with `EclVars.SkipEclCmd`.
+     - `Prepare` walks the script from its five entry points. From each read of the event byte (an AND of it into a
+       variable, or a COMPARE of it) it scans on, tracking which variables still hold the event on each path.
+     - The scripts dispatch three ways, all found:
+       - an ON GOTO or ON GOSUB on such a variable;
+       - a COMPARE with a number, then IF =;
+       - a counted copy: New Phlan counts a variable up until it equals the event, then goes ON GOTO on it. The
+         training hall counts from 10 and takes 10 off first, so an ADD or SUBTRACT in place moves the variable's
+         offset.
+     - Any other write to a variable ends its holding the event. Podal Plaza's goes on to hold menu answers.
+     - SkipEclCmd loads an ON GOTO's address list over its variable and count, so those two are read from the
+       script bytes.
+   - `Kind` follows each matching dispatch's code (jumps, calls, both ways past an IF, at most 160 instructions). The
+     strongest kind found wins: exit (NEWECL), then service, fight, treasure, trap (DAMAGE), message.
+     - A shop or temple sets ENTER_SHOP or ENTER_TEMPLE before the COMBAT that opens it, so service ranks above
+       fight. PROGRAM (the training hall, the vault) counts as service too.
+     - An event whose code shows none of these (New Phlan's building squares, which only clear flags) is not marked.
+       One with no dispatch found is a plain "event".
+   - The Map colours each event square's background by kind and lists the kinds the area has in its legend.
+     Unvisited squares keep their colour, with dimmed walls.
+   - Squares are classified by the running script. On the training hall's notice board, the hall's script runs on
+     New Phlan's map, so only its own squares are named and the rest show as plain events.
+   - `TEvtKind` (8 checks) lays a script out by hand: ON GOTO, COMPARE and IF =, the counted copy with an offset, a
+     variable written over, and a shop's COMBAT.
+   - Checked in the emulator in New Phlan and the training hall, in EGA and CGA. CGA has three colours besides black,
+     so kinds share them: cyan for events and messages, magenta for traps and fights, white for treasure, services
+     and exits.
 4. **Player notes.**
    - A note of up to 30 characters on any square, added, changed or removed from the map screen with a cursor.
    - Kept per area in `SAVGAMx.NTS` beside the save.

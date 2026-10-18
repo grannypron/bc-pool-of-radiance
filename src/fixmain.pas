@@ -73,6 +73,7 @@ uses Types,
 {$O Debug}
 {$O Sym8x8}
 {$O CompTool}
+{$O EvtKind}
 
 begin
   GameInit.GameInit2;
