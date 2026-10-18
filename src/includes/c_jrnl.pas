@@ -1,4 +1,5 @@
 { The Journal: how many items its list holds, the width its text is wrapped to, and the kinds of item. }
+{$I COMPILER.INC}
 unit C_Jrnl;
 
 interface

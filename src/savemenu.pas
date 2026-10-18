@@ -2,6 +2,7 @@
   and the popup that asks for a description when saving. A slot's description and area are kept in savgam<x>.inf beside
   its savgam<x>.dat. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit SaveMenu;
 
 interface

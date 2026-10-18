@@ -1,5 +1,6 @@
 { Endgame animation, victory sequence and Yarash completion handling. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Ending;
 
 interface

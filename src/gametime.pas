@@ -1,5 +1,6 @@
 { Resting, spell preparation and game-clock advancement, including expiration of timed effects. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit GameTime;
 
 interface

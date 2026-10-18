@@ -3,6 +3,7 @@
   and the Sound Blaster's driver (SndSb) when it finds no DSP; with no OPL2 answering at ports 388h and 389h the
   speaker's driver is installed instead, and the settings screen says so (phase 7 of docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit SndOpl;
 
 interface

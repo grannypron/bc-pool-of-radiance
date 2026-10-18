@@ -1,5 +1,6 @@
 { Effect dispatch and active-effect lists, attack rolls, saving throws, damage, healing and revival. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit FxEngine;
 
 interface

@@ -1,6 +1,7 @@
 { Random items: what EclVm's treasure opcode makes from an item kind. Overlaid, and its own unit so treasure loads it
   without Money. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit RandItem;
 
 interface

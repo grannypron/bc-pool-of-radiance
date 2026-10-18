@@ -13,6 +13,7 @@
   these (New Phlan's building squares, say, which only clear flags) is KIND_NONE, and one whose dispatch is not found
   KIND_EVENT. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EvtKind;
 
 interface

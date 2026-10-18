@@ -1,5 +1,6 @@
 { Initialized data: every typed constant in the data segment, in link order. A new section starts wherever the data
   needs a word boundary. }
+{$I COMPILER.INC}
 unit GDConsts;
 
 interface

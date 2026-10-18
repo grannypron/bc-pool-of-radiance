@@ -1,5 +1,6 @@
 { Initialize game state, allocate graphics buffers, load shared resources and install spell and effect handlers. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit GameInit;
 
 interface

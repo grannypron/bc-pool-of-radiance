@@ -2,6 +2,7 @@
   icons are built, the data archives are built, and at start-up, so kept in an overlay. VidVga installs them into
   GDVars.video (phase 6 of docs/refactor-plan.md). }
 {$O+,F+}
+{$I COMPILER.INC}
 unit PicVga;
 
 interface

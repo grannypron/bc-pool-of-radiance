@@ -1,6 +1,7 @@
 { Money arithmetic: coin values, making change, who pays a price, what items are worth, and money type names. Using
   only data units, so Stats can use it and tests can too; overlaid, as only menus and the end of a combat call it. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit MoneyCal;
 
 interface

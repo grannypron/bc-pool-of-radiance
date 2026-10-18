@@ -1,6 +1,7 @@
 { Combat AI: movement, equipment, spell selection, morale and automatic actions. }
 
 {$O+,F+}
+{$I COMPILER.INC}
 unit CombatAi;
 
 interface

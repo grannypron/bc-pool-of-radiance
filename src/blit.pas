@@ -6,6 +6,7 @@
   each row spans 40 bytes. Tandy packs eight pixels into four bytes across four scanline banks. Raw artwork always uses
   four bytes per eight-pixel chunk. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Blit;
 
 interface

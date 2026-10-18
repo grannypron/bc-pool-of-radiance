@@ -1,4 +1,5 @@
 { Tests for StrUtil: numbers, two-digit padding, and padding to a width. }
+{$I COMPILER.INC}
 program TStrUtil;
 
 uses StrUtil, TestKit;

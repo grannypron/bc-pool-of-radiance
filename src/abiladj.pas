@@ -1,6 +1,7 @@
 { Ability score adjustments: the Strength and Dexterity tables for to-hit, damage, armor class and carrying. Resident
   and using only Types, so combat can call it and tests can use it. }
 {$F+}
+{$I COMPILER.INC}
 unit AbilAdj;
 
 interface

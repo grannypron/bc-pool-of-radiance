@@ -1,4 +1,5 @@
 { Tests for FileUtil: a record written and read back, the size check, a read-only file, and erasing. }
+{$I COMPILER.INC}
 program TFileUtl;
 
 uses Dos, FileUtil, TestKit;

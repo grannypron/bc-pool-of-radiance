@@ -5,6 +5,7 @@
   few lines about the build, the data archives and memory. The NORAND and STING notes, when they are given, stand at
   the right of the last settings rows. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit Options;
 
 interface

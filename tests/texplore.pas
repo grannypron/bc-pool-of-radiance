@@ -1,4 +1,5 @@
 { Tests for Explored (phase 8): squares marked per area (script and map), kept apart, and through savgam<x>.map. }
+{$I COMPILER.INC}
 program TExplore;
 
 uses Types, GDVars, Explored, TestKit;

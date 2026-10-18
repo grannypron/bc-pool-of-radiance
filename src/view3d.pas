@@ -1,5 +1,6 @@
 { Dungeon view and automap rendering, with GEO map and WALLDEF wall-set loading. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit View3D;
 
 interface

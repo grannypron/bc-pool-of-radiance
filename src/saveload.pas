@@ -2,6 +2,7 @@
   their records, inventory and effects, and a .mem file their usual spells. SAVGAMx.DAT stores the world and party
   state, with party members in CHRDATxN.sav files. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit SaveLoad;
 
 interface

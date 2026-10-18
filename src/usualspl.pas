@@ -1,6 +1,7 @@
 { The usual spells: the spells each character memorized when it last confirmed memorizing, kept for the party and
   saved in a .mem sidecar beside the character's files. Overlaid; Camp and SaveLoad use it. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit UsualSpl;
 
 interface

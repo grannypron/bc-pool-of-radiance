@@ -1,6 +1,7 @@
 { Number and padding helpers for text the game shows. Resident and depending on nothing, so any unit can use it, even
   the ones that start before the overlay manager (GameIo, TextRend). }
 {$F+}
+{$I COMPILER.INC}
 unit StrUtil;
 
 interface

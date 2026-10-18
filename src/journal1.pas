@@ -2,6 +2,7 @@
   joined by #13, as string literals in code, so the text lives in the overlay and costs no data segment. JrnlList reads
   it a line at a time. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Journal1;
 
 interface

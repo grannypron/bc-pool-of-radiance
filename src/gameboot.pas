@@ -1,6 +1,7 @@
 { Startup configuration: initialize the overlay manager, read POOL.CFG, select the video mode and reserve graphics
   memory. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit GameBoot;
 
 interface

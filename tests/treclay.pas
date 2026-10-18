@@ -2,6 +2,7 @@
   bytes), TItemRec (.ITM, 63 bytes each) and TEffectRec (.SPC, 9 bytes each). Every field's offset is SSI's: the
   numbers were read from this program compiled against SSI's v1.3 source (por-disassembly v13/src, whose field names
   are the same), and a change that moves a field breaks the files SSI's game and earlier saves wrote. }
+{$I COMPILER.INC}
 program TRecLay;
 
 uses Types, TestKit;

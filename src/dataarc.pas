@@ -2,6 +2,7 @@
   game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named
   in C_Data. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a
   missing one. }
+{$I COMPILER.INC}
 unit DataArc;
 
 interface

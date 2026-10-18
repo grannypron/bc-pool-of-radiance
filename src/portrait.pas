@@ -1,6 +1,7 @@
 { Picture loading, portrait composition and 3D sprite display. PIC and FINAL frames after the first are XOR deltas
   against the first frame. }
 {$O+,F+,I-} { I/O checking is disabled for the sprite range-error message. }
+{$I COMPILER.INC}
 unit Portrait;
 
 interface

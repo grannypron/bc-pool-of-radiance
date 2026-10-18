@@ -2,6 +2,7 @@
   since its routines are the hot ones; GameBoot installs it when POOL.CFG names Tandy (phase 6 of
   docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit VidTdy;
 
 interface

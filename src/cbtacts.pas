@@ -1,5 +1,6 @@
 { Combat movement, attacks, aiming and spell targeting. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CbtActs;
 
 interface

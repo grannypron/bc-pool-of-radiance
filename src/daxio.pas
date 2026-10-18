@@ -1,5 +1,6 @@
 { BIOS text output, bottom-line prompts, rounded memory allocation and DAX archive loading. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit DaxIo;
 
 interface

@@ -3,6 +3,7 @@
   own; the art is 16-colour, shown through DAC entries 0..15. Resident, since its routines are the hot ones; GameBoot
   installs it when POOL.CFG names VGA (phase 6 of docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit VidVga;
 
 interface

@@ -5,6 +5,7 @@
   channel, from BLASTER (A220 D1 by default). GameBoot installs it when POOL.CFG names S; with no DSP answering, the
   AdLib's driver is installed instead (phase 7 of docs/refactor-plan.md). }
 {$F+,I-}
+{$I COMPILER.INC}
 unit SndSb;
 
 interface

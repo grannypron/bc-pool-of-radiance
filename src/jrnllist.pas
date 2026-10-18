@@ -7,6 +7,7 @@
   picture goes, and a picture inside a text item is a (PICTURE: CAPTION) line. The text lives in the overlaid units
   Journal1 to Journal4, and reading an item loads the one unit that holds it. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit JrnlList;
 
 interface

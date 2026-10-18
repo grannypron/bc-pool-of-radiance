@@ -10,6 +10,7 @@
   rebuilt: written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and on
   BldShow's full screen, and every step goes to DATABLD.LOG. The game's own files are only read. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit DataBld;
 
 interface

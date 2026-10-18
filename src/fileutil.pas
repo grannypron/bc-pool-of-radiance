@@ -2,6 +2,7 @@
   description, the vault): erase one, open one read-only, read or write one record as the whole file. Resident and
   depending on nothing, so units with tests (Stats) can use it. I/O errors are caught, never raised. }
 {$F+,I-}
+{$I COMPILER.INC}
 unit FileUtil;
 
 interface

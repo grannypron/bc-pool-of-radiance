@@ -1,4 +1,5 @@
 { Tests for MoneyCal: coin values, making change, who pays, item values and sale prices, and money type names. }
+{$I COMPILER.INC}
 program TMoneyCa;
 
 uses Types, GDVars, C_Money, MoneyCal, TestKit;

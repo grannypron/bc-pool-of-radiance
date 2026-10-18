@@ -1,6 +1,7 @@
 { Journal text: journal entries 11 to 32. Each item is held in runs of up to 9 lines joined by #13, as string literals
   in code, so the text lives in the overlay and costs no data segment. JrnlList reads it a line at a time. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Journal2;
 
 interface

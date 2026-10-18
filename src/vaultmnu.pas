@@ -1,5 +1,6 @@
 { The vault's menu, its own unit so Vault, which ViewChar's Deposit uses, need not use ViewChar. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit VaultMnu;
 
 interface

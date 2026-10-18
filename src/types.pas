@@ -1,4 +1,5 @@
 {$F+}
+{$I COMPILER.INC}
 unit Types;
 
 interface

@@ -1,5 +1,6 @@
 { The merged data archives DataBld builds from the per-disk ones: the family count, the places of the families the data
   patches touch, the archive version and the reserved block ids. goldbox-re-tools' mergedax holds the same values. }
+{$I COMPILER.INC}
 unit C_Data;
 
 interface

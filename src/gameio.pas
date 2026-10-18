@@ -1,5 +1,6 @@
 { Keyboard polling, control-key handling, sound toggling and return to DOS. }
 {$F+}
+{$I COMPILER.INC}
 unit GameIo;
 
 interface

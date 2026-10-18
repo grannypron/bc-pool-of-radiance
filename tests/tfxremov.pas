@@ -2,6 +2,7 @@
   (eff 95: the creature falls dead, and RemoveEffectsHp0 takes its 0-HP effects, Fight On among them). The outer
   removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
   vectors, and freed the node twice. }
+{$I COMPILER.INC}
 program TFxRemov;
 
 uses Types, C_Effect, GDVars, FxEngine, TestKit;

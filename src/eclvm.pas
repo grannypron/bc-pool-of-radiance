@@ -1,5 +1,6 @@
 { Main game loop and ECL script interpreter. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EclVm;
 
 interface

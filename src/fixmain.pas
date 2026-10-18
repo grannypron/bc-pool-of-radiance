@@ -1,6 +1,7 @@
 { Program entry: initialize the game, bring the merged data archives up to date, show the introduction, run CharGen's
   main menu, then run the game loop and shut down. }
 {$F+}
+{$I COMPILER.INC}
 program FixMain;
 
 uses Types,

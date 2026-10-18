@@ -1,5 +1,6 @@
 { Character creation, modification and training, plus party management and the main menu. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CharGen;
 
 interface

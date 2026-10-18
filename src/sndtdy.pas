@@ -1,6 +1,7 @@
 { The Tandy SN76489 sound driver: the sequencer's Tandy arrangements, played by SOUNDDRV.OBJ's timer driver. GameBoot
   installs it when POOL.CFG names T (phase 7 of docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit SndTdy;
 
 interface

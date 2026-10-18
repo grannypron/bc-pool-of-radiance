@@ -1,5 +1,6 @@
 { Temple services: healing, revival, curse removal and payment. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Temple;
 
 interface

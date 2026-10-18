@@ -1,5 +1,6 @@
 { Introduction, credits and title screens, with delays that can be interrupted by a keypress. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Intro;
 
 interface

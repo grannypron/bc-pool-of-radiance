@@ -6,6 +6,7 @@
   cannot be built show as failed, and the build's own calls draw nothing. The screen is cleared when the build ends.
   With too little memory for it, nothing is drawn and every call does nothing. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit BldShow;
 
 interface

@@ -2,6 +2,7 @@
   the noncombat Cast menu. }
 
 {$O+,F+}
+{$I COMPILER.INC}
 unit Camp;
 
 interface

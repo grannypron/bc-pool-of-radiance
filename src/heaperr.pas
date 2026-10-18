@@ -2,6 +2,7 @@
 
 { Heap-allocation failure handler: it frees a reserve kept for the purpose and offers the player a save before the game
   quits to DOS (#643). }
+{$I COMPILER.INC}
 unit HeapErr;
 
 interface

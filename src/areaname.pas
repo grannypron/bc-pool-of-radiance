@@ -1,6 +1,7 @@
 { The name of the area the party is in, as the Load/Save Game menu shows it beside a saved game: the Clue Book's name,
   shortened to fit 18 columns. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit AreaName;
 
 interface

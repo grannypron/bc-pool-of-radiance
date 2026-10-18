@@ -3,6 +3,7 @@
   save directory; saving a game copies it to vault<x>.dat beside savgam<x>.dat, and loading one copies that back, so
   what is left in the vault and then given up with an unsaved game is gone with it. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit Vault;
 
 interface

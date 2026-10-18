@@ -1,6 +1,7 @@
 { STING Ctrl-Y's memory display. Resident, so looking at the overlay load count loads no overlay and leaves the count
   as it was; GameIo calls it through its showMemory hook, since GameIo cannot use TextRend. }
 {$F+}
+{$I COMPILER.INC}
 unit MemShow;
 
 interface

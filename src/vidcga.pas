@@ -2,6 +2,7 @@
   $B800 and $BA00. Resident, since its routines are the hot ones; GameBoot installs it when POOL.CFG names CGA (phase 6
   of docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit VidCga;
 
 interface

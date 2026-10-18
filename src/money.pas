@@ -1,5 +1,6 @@
 { Treasure collection, money menus, paying and random item generation; the arithmetic under them is in MoneyCal. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Money;
 
 interface

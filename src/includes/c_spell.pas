@@ -1,4 +1,5 @@
 { Spell values: the pending flag and id mask of a spell slot, and named spell ids. }
+{$I COMPILER.INC}
 unit C_Spell;
 
 interface

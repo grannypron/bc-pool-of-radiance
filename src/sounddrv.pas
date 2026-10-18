@@ -4,6 +4,7 @@
   window (auto-stop 0), a sound command or the music needs it. SOUNDDRV.OBJ owns the timer sequencer, streams and
   device voice state; GameDat1 holds the current and saved modes and the auto-stop setting. }
 {$F+}
+{$I COMPILER.INC}
 unit SoundDrv;
 
 interface

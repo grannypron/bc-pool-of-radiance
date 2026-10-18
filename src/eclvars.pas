@@ -2,6 +2,7 @@
   writing GBVM words and strings, and stepping over a command. Split from EclMenu, which keeps the menus and the
   opcode helpers. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EclVars;
 
 interface

@@ -1,5 +1,6 @@
 { Resolve combat results, distribute experience and treasure, show the loot menus and clean up creatures. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit PostCbt;
 
 interface

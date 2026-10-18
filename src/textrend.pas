@@ -1,5 +1,6 @@
 { Game-font text rendering, message-window input, centisecond timing, and the EGA page and fill helpers. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit TextRend;
 
 interface

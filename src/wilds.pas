@@ -1,5 +1,6 @@
 { Build and display the wilderness map. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Wilds;
 
 interface

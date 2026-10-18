@@ -1,4 +1,5 @@
 { Sound: the sound-effect ids and the soundMode values. }
+{$I COMPILER.INC}
 unit C_Sound;
 
 interface

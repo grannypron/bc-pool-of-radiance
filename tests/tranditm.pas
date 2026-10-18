@@ -1,5 +1,6 @@
 { Tests for RandItem: the template items exactly, and the random weapons, armor and javelins by their properties over
   many rolls with RandSeed fixed. }
+{$I COMPILER.INC}
 program TRandItm;
 
 uses Types, GDConsts, C_Item, RandItem, StrUtil, TestKit;

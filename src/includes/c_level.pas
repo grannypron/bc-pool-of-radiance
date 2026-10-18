@@ -1,5 +1,6 @@
 { Class-level slots: indexes into TCharRecord.classLevels and the tables kept per slot. A multiclass character has a
   level in each of its classes' slots. }
+{$I COMPILER.INC}
 unit C_Level;
 
 interface

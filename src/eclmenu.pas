@@ -1,5 +1,6 @@
 { ECL variable decoding, game-memory access, script menus, comparisons and subroutine calls. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EclMenu;
 
 interface
