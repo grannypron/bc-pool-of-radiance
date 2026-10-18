@@ -26,6 +26,10 @@ function WriteRecord(name: TPathName; var rec; size: Word): Boolean;
 
 implementation
 
+{$IFDEF FPC}
+uses NatFile;
+{$ENDIF}
+
 procedure DeleteFile(name: TPathName);
 var
   f: file;

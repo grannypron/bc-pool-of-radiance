@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TVidPic;
 
-uses Types, GDConsts, GDVars, Blit, VidCga, VidEga, VidTdy, VidVga, TestKit;
+uses Types, GDConsts, GDVars, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
 
 const
   { the DAX frame: row 0 is colours 0..7, row 1 is 7..0, two pixels a byte, high nibble first }
@@ -144,6 +144,8 @@ end;
 
 begin
   TestKit.Start('TVIDPIC');
+  { The native build has only the VGA driver: CGA, EGA and Tandy write their hardware's memory and ports. }
+{$IFNDEF FPC}
   { Tandy: the DAX bytes as they are; a mask nibble of F for each colour-0 pixel }
   VidTdy.Install;
   CheckMode('Tandy', 8, 8, '0123456776543210', 'F00000000000000F', '7654321001234567', '0000000FF0000000',
@@ -156,6 +158,7 @@ begin
   { CGA: four 2-bit pixels a byte, colour c drawn as c mod 4; a mask byte for each data byte, 2 bits a pixel }
   VidCga.Install;
   CheckMode('CGA', 4, 4, '1B1BE4E4', 'C0000003', 'E4E41B1B', '0003C000', '0B0BE0E0', '5555', 'DB1BE4E7');
+{$ENDIF}
   { VGA: a byte a pixel, a transparent pixel holding PIC_KEY ($FF); the mask kept a bit a pixel, a byte a cell row }
   VidVga.Install;
   CheckMode('VGA', 16, 2, 'FF0102030405060707060504030201FF', '8001', '07060504030201FFFF01020304050607', '0180',

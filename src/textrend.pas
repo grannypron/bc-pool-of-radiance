@@ -50,11 +50,19 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 implementation
 
 
-uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg;
+uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg{$IFDEF FPC}, Host{$ENDIF};
 
+{$IFDEF FPC}
+{ the native build's count of the same ticks }
+function biosTicks: LongInt;
+begin
+  biosTicks := Host.BiosTicks;
+end;
+{$ELSE}
 var
   { BIOS timer ticks since midnight }
   biosTicks: LongInt absolute $0040:$006C;
+{$ENDIF}
 
 { Load font block 201 from 8X8D1.DAX, copy it into gameFont (no more than gameFont holds) and free the loader's buffer.
   Nothing is copied if the block cannot be loaded. }

@@ -8,7 +8,7 @@ interface
 uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
-{$I ..\OBJ\BUILDID.INC}
+{$I BUILDID.INC}
 
 const
   GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';

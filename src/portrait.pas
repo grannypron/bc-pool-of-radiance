@@ -33,7 +33,7 @@ procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
 implementation
 
-uses Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo, StrUtil;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo, StrUtil;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A

@@ -80,5 +80,8 @@ end;
 begin
   reserve := nil;
   handling := False;
+  { Free Pascal has no HeapError hook, and a native heap runs out only when the machine does }
+{$IFNDEF FPC}
   HeapError := @HeapErr.HeapErrorHandler;
+{$ENDIF}
 end.

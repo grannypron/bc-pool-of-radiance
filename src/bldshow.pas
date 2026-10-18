@@ -48,7 +48,7 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
 
 const
   { per-disk archives are numbered 1 to SOURCE_DISKS }

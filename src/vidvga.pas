@@ -13,7 +13,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, GDVars, DaxIo, PicVga;
+uses Types, C_Video, GDVars, DaxIo, PicVga{$IFDEF FPC}, Host{$ENDIF};
 
 const
   { EGA's 16 colours as VGA DAC values (6 bits a component): the BIOS's own for entries 0..15 in mode 13h }
@@ -23,9 +23,29 @@ const
   DAC_WRITE_INDEX = $3C8;
   DAC_DATA = $3C9;
 
+var
+  { the screen: mode 13h's memory at $A000, or the native build's copy of it, which Host shows }
+{$IFDEF FPC}
+  vgaMem: Host.TScreen absolute Host.screen;
+{$ELSE}
+  vgaMem: array[0..C_Video.VGA_ROW_BYTES * 200 - 1] of Byte absolute C_Video.VGA_VIDEO_SEG:0;
+{$ENDIF}
+
+procedure SetPalette(registerIndex, color: Byte); forward;
+
+{ Natively, the palette the BIOS's mode 13h starts with: entries 0..15 EGA's colours (Host's DAC starts black) }
 procedure Start;
+{$IFDEF FPC}
+var
+  i: Byte;
+begin
+  for i := 0 to 15 do
+    SetPalette(i, i);
+end;
+{$ELSE}
 begin
 end;
+{$ENDIF}
 
 { a byte a pixel in the view buffer and on the screen: each dirty span is one Move }
 procedure FlushSpans;
@@ -35,7 +55,7 @@ begin
   for row := 0 to SizeOf(GDVars.spanActive) - 1 do
     if GDVars.spanActive[row] <> 0 then
       Move(GDVars.dsViewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
-           Mem[C_Video.VGA_VIDEO_SEG:GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 8],
+           vgaMem[GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 8],
            GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
 end;
 
@@ -49,7 +69,7 @@ begin
     rowBytes := width * 8;
     srcOff := 0;
     for row := screenY * 8 to screenY * 8 + height - 1 do begin
-      Move(data[srcOff], Mem[C_Video.VGA_VIDEO_SEG:GDVars.fbRowOfs[row] + screenX * 8], rowBytes);
+      Move(data[srcOff], vgaMem[GDVars.fbRowOfs[row] + screenX * 8], rowBytes);
       Inc(srcOff, rowBytes);
     end;
   end;
@@ -68,9 +88,9 @@ begin
     bits := GDVars.gameFont^[glyph][r];
     for k := 0 to 7 do begin
       if (bits and ($80 shr k)) <> 0 then
-        Mem[C_Video.VGA_VIDEO_SEG:dstOff + k] := color
+        vgaMem[dstOff + k] := color
       else
-        Mem[C_Video.VGA_VIDEO_SEG:dstOff + k] := 0;
+        vgaMem[dstOff + k] := 0;
     end;
   end;
 end;
@@ -80,12 +100,12 @@ var
   y: Word;
 begin
   for y := ulRow * 8 to lrRow * 8 + 7 do
-    FillChar(Mem[C_Video.VGA_VIDEO_SEG:GDVars.fbRowOfs[y] + ulCol * 8], (lrCol - ulCol + 1) * 8, 0);
+    FillChar(vgaMem[GDVars.fbRowOfs[y] + ulCol * 8], (lrCol - ulCol + 1) * 8, 0);
 end;
 
 procedure ClearScreen;
 begin
-  FillChar(Mem[C_Video.VGA_VIDEO_SEG:0], C_Video.VGA_ROW_BYTES * 200, 0);
+  FillChar(vgaMem, SizeOf(vgaMem), 0);
 end;
 
 procedure WriteChar(col, row, attr, count, ch: Byte);
@@ -96,10 +116,14 @@ end;
 { the 16 colours are DAC entries 0..15: registerIndex's entry takes color's RGB }
 procedure SetPalette(registerIndex, color: Byte);
 begin
+{$IFDEF FPC}
+  Move(EGA_RGB[color and $0F], Host.dac[registerIndex], 3);
+{$ELSE}
   Port[DAC_WRITE_INDEX] := registerIndex;
   Port[DAC_DATA] := EGA_RGB[color and $0F, 0];
   Port[DAC_DATA] := EGA_RGB[color and $0F, 1];
   Port[DAC_DATA] := EGA_RGB[color and $0F, 2];
+{$ENDIF}
 end;
 
 { a cell row in one colour: 8 bytes of it }

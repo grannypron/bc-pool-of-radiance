@@ -23,7 +23,8 @@ procedure BuildDataFiles;
 
 implementation
 
-uses Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore, BldShow, StrUtil;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore,
+  BldShow, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }

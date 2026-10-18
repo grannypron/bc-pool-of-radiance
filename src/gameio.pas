@@ -42,7 +42,7 @@ procedure FatalError(msg: String);
 
 implementation
 
-uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types;
+uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { showMemory is up: its own key waits do not open it again }

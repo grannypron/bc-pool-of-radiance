@@ -201,7 +201,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 
 implementation
 
-uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil;
+uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
 type
   PLongInt = ^LongInt;
   { The header of a DAX picture as stored; the pixel data follows it. }

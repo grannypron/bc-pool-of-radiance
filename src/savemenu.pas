@@ -54,7 +54,8 @@ procedure CheckSaveDir;
 
 implementation
 
-uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil;
+uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil
+  {$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   INFO_SIG = 'SINF';

@@ -19,7 +19,7 @@ function Detect: Boolean;
 
 implementation
 
-uses C_Sound, GDVars, SoundDrv, SndSpk;
+uses C_Sound, GDVars, SoundDrv, SndSpk{$IFDEF FPC}, PortIO{$ENDIF};
 
 const
   OPL_STATUS = $388;

@@ -7,6 +7,16 @@ program TFxRemov;
 
 uses Types, C_Effect, GDVars, FxEngine, TestKit;
 
+{ The heap's free bytes. Natively MemAvail is a fixed figure (TpCompat), so the heap's used bytes count instead. }
+function HeapFree: LongInt;
+begin
+{$IFDEF FPC}
+  HeapFree := -LongInt(GetFPCHeapStatus.CurrHeapUsed);
+{$ELSE}
+  HeapFree := MemAvail;
+{$ENDIF}
+end;
+
 var
   c: Types.PCharRecord;
   first: Types.PEffectRec;
@@ -44,16 +54,21 @@ begin
     one free brings it back }
   first := NewEffect(C_Effect.BLESS, nil);
   first^.onRemove := False;
-  before := MemAvail;
+  before := HeapFree;
   second := NewEffect(C_Effect.FIGHT_ON, nil);
   first^.next := second;
   c^.effectsAddr := first;
+{$IFNDEF FPC}
   Move(Mem[0:0], vectors, SizeOf(vectors));
+{$ENDIF}
   FxEngine.RemoveEffect(c, C_Effect.FIGHT_ON, second);
   TestKit.Check((c^.effectsAddr = first) and (first^.next = nil), 'Fight On is gone and Bless is left');
+{$IFNDEF FPC}
+  { a native program has no interrupt vectors at address 0 }
   TestKit.Check((MemL[0:0] = vectors[0]) and (MemL[0:4] = vectors[1]) and (MemL[0:8] = vectors[2]) and
                 (MemL[0:12] = vectors[3]), 'nothing is written into the interrupt vectors');
-  TestKit.CheckEqualsL(before, MemAvail, 'the node is freed once');
+{$ENDIF}
+  TestKit.CheckEqualsL(before, HeapFree, 'the node is freed once');
   { and first in the list }
   second := NewEffect(C_Effect.FIGHT_ON, nil);
   c^.effectsAddr := second;

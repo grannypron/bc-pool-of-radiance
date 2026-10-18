@@ -41,7 +41,7 @@ function WasVisited: Boolean;
 
 implementation
 
-uses Crt, GDVars, Dos, CharHlp, TextRend, SaveMenu, FileUtil;
+uses Crt, GDVars, Dos, CharHlp, TextRend, SaveMenu, FileUtil, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -155,6 +155,8 @@ var
   f: file;
   head: TVaultHeader;
   item: Types.TItemRec;
+  { the item as the file has it (DiskRec) }
+  disk: DiskRec.TItemDisk;
   n: Word;
   ioRes: Integer;
 begin
@@ -167,12 +169,14 @@ begin
     visited := head.visited;
     Move(head.money, GDVars.treasureMoney, SizeOf(GDVars.treasureMoney));
     repeat
-      BlockRead(f, item, SizeOf(item), n);
+      BlockRead(f, disk, DiskRec.ITEM_DISK_BYTES, n);
       if IOResult <> 0 then
         n := 0;
-      if (n = SizeOf(item)) and Vault.HasRoom then
+      if (n = DiskRec.ITEM_DISK_BYTES) and Vault.HasRoom then begin
+        DiskRec.ItemFromDisk(disk, item);
         CharHlp.AppendItemCopy(GDVars.treasureItems, @item);
-    until n <> SizeOf(item);
+      end;
+    until n <> DiskRec.ITEM_DISK_BYTES;
   end;
   Close(f);
   ioRes := IOResult;
@@ -186,6 +190,8 @@ var
   next: Types.PItemRec;
   ioRes: Integer;
   item: Types.TItemRec;
+  { the item as the file has it (DiskRec) }
+  disk: DiskRec.TItemDisk;
 begin
   SaveMenu.CheckSaveDir;
   FillChar(head, SizeOf(head), 0);
@@ -202,7 +208,8 @@ begin
       { without its link, which ReadVault rebuilds: a heap address would make two saves of one vault differ }
       item := p^;
       item.next := nil;
-      BlockWrite(f, item, SizeOf(Types.TItemRec));
+      DiskRec.ItemToDisk(item, disk);
+      BlockWrite(f, disk, DiskRec.ITEM_DISK_BYTES);
       p := p^.next;
     end;
     Close(f);

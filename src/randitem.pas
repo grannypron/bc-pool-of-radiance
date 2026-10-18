@@ -186,8 +186,8 @@ begin
             55: weight := 300;
             57: weight := 350;
             58: weight := 450;
-            { Only 93 reaches this arm; 47 is matched above }
-            47, 93:
+            { SSI's arm read 47, 93; 47 is matched above, and Free Pascal rejects a label used twice }
+            93:
               weight := 1;
             else begin
                    weight := 40;

@@ -4,10 +4,11 @@
 {$I COMPILER.INC}
 program FixMain;
 
-uses Types,
-  Overlay, Crt, Dos,
+{ Natively SdlHost comes first: its window is open before any other unit's initialization runs. }
+uses {$IFDEF FPC}SdlHost, {$ENDIF}Types,
+  {$IFNDEF FPC}Overlay, {$ENDIF}Crt, Dos,
   GDConsts, GDVars,
-  SoundDrv, GameIo, DaxIo, TextRend, Blit, VidCga, VidEga, VidTdy, VidVga, GameBoot,
+  SoundDrv, GameIo, DaxIo, TextRend, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,
   VidOps, PicCga, PicEga, PicTdy, PicVga, UsualSpl, SaveLoad, CharGen, Camp,

@@ -5,7 +5,7 @@ unit GDVars;
 
 interface
 
-uses Types, Dos, C_Effect, C_Gbvm;
+uses Types, Dos, C_Effect, C_Gbvm{$IFDEF FPC}, Host{$ENDIF};
   
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
@@ -90,7 +90,8 @@ var
 
 var
   { Video registers, pages and modes; view and icon buffers, dirty spans and row tables }
-  { Register record handed to Dos.Intr for BIOS video calls; every unit calling the BIOS uses this one record. }
+  { Register record handed to Dos.Intr (Host.Intr natively) for BIOS video calls; every unit calling the BIOS uses this
+    one record. }
   dsInterruptRegisters: Registers;
   { Other EGA page number (always 0) }
   pageNum: Byte;

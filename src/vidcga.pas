@@ -16,8 +16,8 @@ uses Types, C_Video, GDConsts, GDVars, DaxIo, Blit, PicCga;
 
 var
   { the two banks: even scanlines at $B800, odd at $BA00, 4 text rows of 80 bytes a cell row }
-  cgaB800: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK0_SEG:$0000;
-  cgaBA00: array[0..255] of Types.TCgaRow absolute C_Video.GFX_BANK1_SEG:$0000;
+  cgaB800: array[0..255] of Types.TCgaRow {$IFNDEF FPC}absolute C_Video.GFX_BANK0_SEG:$0000{$ENDIF};
+  cgaBA00: array[0..255] of Types.TCgaRow {$IFNDEF FPC}absolute C_Video.GFX_BANK1_SEG:$0000{$ENDIF};
 
 procedure Start;
 begin

@@ -88,9 +88,9 @@ procedure FreeParty;
 
 implementation
 
-uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
+uses DiskRec, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes;
+  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -227,6 +227,10 @@ var
   rec: Types.TCharRecord;
   itemRec: Types.TItemRec;
   effectRec: Types.TEffectRec;
+  { each as the file has it (DiskRec) }
+  recDisk: DiskRec.TCharDisk;
+  itemDisk: DiskRec.TItemDisk;
+  effectDisk: DiskRec.TEffectDisk;
 begin
   { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current party
     member's old line and then appends this character's name unmarked. }
@@ -256,8 +260,9 @@ begin
   rec.nextCharAddr := nil;
   rec.combatAddr := nil;
   FillChar(rec.equipped, SizeOf(rec.equipped), 0);
-  BlockWrite(f, rec, SizeOf(Types.TCharRecord), res);
-  ok := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
+  DiskRec.CharToDisk(rec, recDisk);
+  BlockWrite(f, recDisk, DiskRec.CHAR_DISK_BYTES, res);
+  ok := (IOResult = 0) and (res = DiskRec.CHAR_DISK_BYTES);
   Close(f);
   ioRes := IOResult;
   FileUtil.DeleteFile(fn + '.itm');
@@ -269,8 +274,9 @@ begin
       while item <> nil do begin
         itemRec := item^;
         itemRec.next := nil;
-        BlockWrite(f, itemRec, SizeOf(Types.TItemRec), res);
-        if (IOResult <> 0) or (res <> SizeOf(Types.TItemRec)) then
+        DiskRec.ItemToDisk(itemRec, itemDisk);
+        BlockWrite(f, itemDisk, DiskRec.ITEM_DISK_BYTES, res);
+        if (IOResult <> 0) or (res <> DiskRec.ITEM_DISK_BYTES) then
           ok := False;
         item := item^.next;
       end;
@@ -288,8 +294,9 @@ begin
       while effect <> nil do begin
         effectRec := effect^;
         effectRec.next := nil;
-        BlockWrite(f, effectRec, SizeOf(Types.TEffectRec), res);
-        if (IOResult <> 0) or (res <> SizeOf(Types.TEffectRec)) then
+        DiskRec.EffectToDisk(effectRec, effectDisk);
+        BlockWrite(f, effectDisk, DiskRec.EFFECT_DISK_BYTES, res);
+        if (IOResult <> 0) or (res <> DiskRec.EFFECT_DISK_BYTES) then
           ok := False;
         effect := effect^.next;
       end;
@@ -316,6 +323,10 @@ var
   whole: Boolean;
   msg: Types.TStr40;
   found: Boolean;
+  { each as the file has it (DiskRec) }
+  recDisk: DiskRec.TCharDisk;
+  itemDisk: DiskRec.TItemDisk;
+  effectDisk: DiskRec.TEffectDisk;
 begin
   if askDisk then begin
     name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
@@ -328,8 +339,11 @@ begin
     ext := '.cha';
   found := DaxIo.OpenWithRetry(name + ext, msg, False, f);
   res := 0;
-  BlockRead(f, creature^, SizeOf(Types.TCharRecord), res);
-  whole := (IOResult = 0) and (res = SizeOf(Types.TCharRecord));
+  { a short file overwrites only the record's start, as a read straight into it did }
+  DiskRec.CharToDisk(creature^, recDisk);
+  BlockRead(f, recDisk, DiskRec.CHAR_DISK_BYTES, res);
+  whole := (IOResult = 0) and (res = DiskRec.CHAR_DISK_BYTES);
+  DiskRec.CharFromDisk(recDisk, creature^);
   Close(f);
   creature^.nextCharAddr := nil;
   creature^.itemsAddr := nil;
@@ -346,9 +360,10 @@ begin
     while whole and not Eof(f) do begin
       GetMem(newItem, SizeOf(Types.TItemRec));
       res := 0;
-      BlockRead(f, newItem^, SizeOf(Types.TItemRec), res);
-      whole := (IOResult = 0) and (res = SizeOf(Types.TItemRec));
+      BlockRead(f, itemDisk, DiskRec.ITEM_DISK_BYTES, res);
+      whole := (IOResult = 0) and (res = DiskRec.ITEM_DISK_BYTES);
       if whole then begin
+        DiskRec.ItemFromDisk(itemDisk, newItem^);
         newItem^.next := nil;
         if item = nil then
           creature^.itemsAddr := newItem
@@ -367,9 +382,10 @@ begin
     while whole and not Eof(f) do begin
       GetMem(newEffect, SizeOf(Types.TEffectRec));
       res := 0;
-      BlockRead(f, newEffect^, SizeOf(Types.TEffectRec), res);
-      whole := (IOResult = 0) and (res = SizeOf(Types.TEffectRec));
+      BlockRead(f, effectDisk, DiskRec.EFFECT_DISK_BYTES, res);
+      whole := (IOResult = 0) and (res = DiskRec.EFFECT_DISK_BYTES);
       if whole then begin
+        DiskRec.EffectFromDisk(effectDisk, newEffect^);
         newEffect^.next := nil;
         if effect = nil then
           creature^.effectsAddr := newEffect

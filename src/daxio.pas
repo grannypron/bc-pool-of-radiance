@@ -70,7 +70,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc;
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { DaxIo.FileExists IOResult }

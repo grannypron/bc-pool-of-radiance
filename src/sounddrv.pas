@@ -76,7 +76,7 @@ procedure SetSoundDevice(mode: Word);
 
 implementation
 
-uses C_Sound, Dos, GDConsts, GDVars;
+uses C_Sound, Dos, GDConsts, GDVars{$IFDEF FPC}, SndSeq{$ENDIF};
 
 var
   { the exit procedure SoundDrv.SoundExit hands on to }
@@ -102,6 +102,20 @@ const
   { * SoundTime samples after which an unhooked SoundDelay gives up on a clock that does not move. }
   MAX_CLOCK_PASSES = 60000;
 
+{$IFDEF FPC}
+{ The native build's sequencer is Pascal (SndSeq): these forward to it. }
+procedure InstallSoundTimer; begin SndSeq.InstallSoundTimer; end;
+procedure UninstallSoundTimer; begin SndSeq.UninstallSoundTimer; end;
+procedure ProgramSpeakerVoices(tuneId: Word); begin SndSeq.ProgramSpeakerVoices(tuneId); end;
+procedure ProgramTandyVoices(tuneId: Word); begin SndSeq.ProgramTandyVoices(tuneId); end;
+procedure OplWrite(reg, value: Word); begin SndSeq.OplWrite(reg, value); end;
+procedure OplReset; begin SndSeq.OplReset; end;
+procedure SetSoundOutputEnabled(enabledValue: Word); begin SndSeq.SetSoundOutputEnabled(enabledValue); end;
+function SoundTimerTicks: Word; begin SoundTimerTicks := SndSeq.SoundTimerTicks; end;
+function SoundTimerHooked: Boolean; begin SoundTimerHooked := SndSeq.SoundTimerHooked; end;
+procedure SetSoundDevice(mode: Word); begin SndSeq.SetSoundDevice(mode); end;
+function SoundVoiceTune(voice: Word): Word; begin SoundVoiceTune := SndSeq.SoundVoiceTune(voice); end;
+{$ELSE}
 {$L SOUNDDRV.OBJ}
 { * Hooks the timer interrupt so the sequencer runs in the background. Does nothing while it is hooked already. }
 procedure InstallSoundTimer; external;
@@ -134,6 +148,7 @@ procedure SetSoundDevice(mode: Word); external;
 { * @param(voice A voice, 0 to 3.)
    @returns(The tune that voice is still playing, 0 once its stream has ended.) }
 function SoundVoiceTune(voice: Word): Word; external;
+{$ENDIF}
 
 { * Silences both devices' voices, whichever is configured, as the stop commands always have. }
 procedure SilenceAll;
