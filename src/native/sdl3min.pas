@@ -12,6 +12,8 @@ unit Sdl3Min;
 interface
 
 {$IFDEF DARWIN}
+{ on macOS Free Pascal passes no library to the linker for a routine's external name: named here }
+{$LINKLIB SDL3static}
 {$LINKFRAMEWORK CoreMedia}
 {$LINKFRAMEWORK CoreVideo}
 {$LINKFRAMEWORK Cocoa}
