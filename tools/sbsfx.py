@@ -43,6 +43,10 @@ DQK = {"Cast": 0, "Blast": 1, "Sorcery": 2, "Death": 3, "Missile": 4, "Hit": 5, 
 STEP_FROM_MS = 13
 STEP_TO_MS = 33
 STEP_FADE_MS = 2
+# Pools recorded its step near full scale (peaks about 120 of 128), Dark Queen its effects far lower: measured in the
+# owner's recording, the step peaked about four times higher than Dark Queen's hits and misses, so it is scaled to a
+# quarter
+STEP_GAIN = 0.25
 # tune -> source: ('dqk', name) or ('pools-first-step', NAME)
 TUNES = {
     1: ("dqk", "Cast"),                     # a spell is cast
@@ -108,9 +112,10 @@ def dqk_sample(blocks: list, name: str) -> tuple:
 
 
 def first_step(pools: dict, name: str) -> tuple:
-    """(format, time constant, bytes): STEP_FROM_MS to STEP_TO_MS of Pools' sample name at 9000 Hz, one hit, faded
-    in and out over STEP_FADE_MS so it ends without a click."""
-    pcm = bytearray(pools[name][POOLS_RATE * STEP_FROM_MS // 1000:POOLS_RATE * STEP_TO_MS // 1000])
+    """(format, time constant, bytes): STEP_FROM_MS to STEP_TO_MS of Pools' sample name at 9000 Hz, one hit, at
+    STEP_GAIN of its recorded level and faded in and out over STEP_FADE_MS so it ends without a click."""
+    pcm = bytearray(round(128 + (x - 128) * STEP_GAIN)
+                    for x in pools[name][POOLS_RATE * STEP_FROM_MS // 1000:POOLS_RATE * STEP_TO_MS // 1000])
     fade = POOLS_RATE * STEP_FADE_MS // 1000
     for k in range(fade):
         pcm[k] = round(128 + (pcm[k] - 128) * k / fade)
