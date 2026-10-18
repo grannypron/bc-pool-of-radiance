@@ -108,10 +108,16 @@ fi
 
 log="$cache/build-$branch-$commit.log"
 : > "$log"
+# macOS: the C library and the frameworks are in Xcode's SDK, not in /usr/lib, so every link is given its root
+opt=""
+if [ "$host_os" = Darwin ]; then
+    sdk="$(xcrun --show-sdk-path)" || { echo "fpc-setup.sh: no macOS SDK: install Xcode or its tools." >&2; exit 1; }
+    opt="-XR$sdk"
+fi
 echo "fpc-setup.sh: building the compiler for this host (log: $log)..."
-make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$boot/$boot_pp" all >> "$log" 2>&1 \
+make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$boot/$boot_pp" OPT="$opt" all >> "$log" 2>&1 \
     || { echo "fpc-setup.sh: the host build failed; see $log" >&2; tail -n 20 "$log" >&2; exit 1; }
-make -C "$source" PP="$boot/$boot_pp" INSTALL_PREFIX="$prefix" install >> "$log" 2>&1 \
+make -C "$source" PP="$boot/$boot_pp" OPT="$opt" INSTALL_PREFIX="$prefix" install >> "$log" 2>&1 \
     || { echo "fpc-setup.sh: installing the host build failed; see $log" >&2; exit 1; }
 
 version="$(sed -n 's/^version=\([0-9.]*\).*/\1/p' "$source/compiler/Makefile.fpc" | head -n 1)"
@@ -122,10 +128,10 @@ newpp="$lib/$boot_pp"
 for cross in "${crosses[@]}"; do
     set -- $cross
     echo "fpc-setup.sh: building the $1-$2 cross compiler..."
-    make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$newpp" CPU_TARGET="$1" OS_TARGET="$2" crossall \
+    make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$newpp" OPT="$opt" CPU_TARGET="$1" OS_TARGET="$2" crossall \
         >> "$log" 2>&1 \
         || { echo "fpc-setup.sh: the $1-$2 build failed; see $log" >&2; tail -n 20 "$log" >&2; exit 1; }
-    make -C "$source" PP="$newpp" CPU_TARGET="$1" OS_TARGET="$2" INSTALL_PREFIX="$prefix" crossinstall \
+    make -C "$source" PP="$newpp" OPT="$opt" CPU_TARGET="$1" OS_TARGET="$2" INSTALL_PREFIX="$prefix" crossinstall \
         >> "$log" 2>&1 \
         || { echo "fpc-setup.sh: installing the $1-$2 build failed; see $log" >&2; exit 1; }
 done
@@ -136,6 +142,7 @@ for pp in "$lib"/ppc*; do
 done
 mkdir -p "$prefix/etc"
 "$prefix/bin/fpcmkcfg" -d "basepath=$lib" -o "$prefix/etc/fpc.cfg" >> "$log" 2>&1
+[ -z "$opt" ] || echo "$opt" >> "$prefix/etc/fpc.cfg"
 
 echo "fpc-setup.sh: Free Pascal $version ($pin) installed in $prefix"
 echo "fpc-setup.sh: compilers: $(cd "$prefix/bin" && ls ppc* | tr '\n' ' ')"
