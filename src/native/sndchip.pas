@@ -47,7 +47,7 @@ const
   { peak levels: the speaker's one level, a Tandy voice at no attenuation, a sample's full swing }
   SPEAKER_PEAK = 5000;
   TANDY_PEAK = 4500;
-  SAMPLE_PEAK = 20000;
+  SAMPLE_PEAK = 28000;
   { the SN76489's attenuation, 2 dB a step, as levels of TANDY_PEAK; 15 is off }
   TANDY_LEVELS: array[0..15] of LongInt = (4500, 3574, 2839, 2255, 1791, 1423, 1130, 898, 713, 566, 450, 357, 284,
     225, 179, 0);
