@@ -10,6 +10,19 @@ procedure CustomizeIcon;
 
 procedure CustomizePortrait;
 
+{ True when curChar can be modified at all: a player race (Dwarf..Human, whose limits
+  dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class in classMin (0..16). }
+function Modifiable: Boolean;
+
+{ Arrow-key editor for curChar's six attributes and hit points (ModifyCharacterMenu's, which calls it for a character
+  with no experience; the Companion Tools' character editor calls it for any Modifiable one). levelled: a Constitution
+  change moves hpMax by the hit points it gives over every hit die (ClassCal.ConHpTotal), the hit-point row runs
+  between ClassCal.HpMinimum and HpMaximum for the character's levels, and damage taken stays taken; Keep leaves
+  npcTreasureShare as it is. }
+procedure ModifyCharacter(levelled: Boolean);
+
+procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
+
 implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
@@ -746,22 +759,40 @@ begin
   end;
 end;
 
-{ ModifyCharacterMenu: Arrow-key editor for the six attributes and hit points of a character with no experience, a
-  player race (the limits come from dsMinimumMaximumStatistics, Dwarf..Human; the hired Acolyte is race 0) and a class
-  in classMin (0..16). Up and Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class
-  and hit-point limits. Keep recalculates a thief's skills for the new Dexterity and sets npcTreasureShare to 1; Exit
-  restores the saved attributes, strExc, hpMax and cleric spell slots. A lowered attribute stops at the higher of the
-  racial and class minimums; one already at 0 is not lowered further, so it rises to that minimum. }
+function Modifiable: Boolean;
+begin
+  Modifiable := (GDVars.curChar^.race >= C_Race.DWARF) and (GDVars.curChar^.race <= C_Race.HUMAN) and
+                (GDVars.curChar^.charClass >= 0) and (GDVars.curChar^.charClass <= 16);
+end;
+
+{ ModifyCharacterMenu: Modify Character on the main menu: ModifyCharacter for a Modifiable character with no
+  experience. }
 procedure ModifyCharacterMenu;
+begin
+  if (GDVars.curChar^.experience > 0) or not CharGen.Modifiable then
+    TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow)
+  else
+    CharGen.ModifyCharacter(False);
+end;
+
+{ ModifyCharacter: Up and Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and
+  hit-point limits. Keep recalculates a thief's skills for the new Dexterity and, unless levelled, sets
+  npcTreasureShare to 1; Exit restores the saved attributes, strExc, hpMax (and, levelled, hpCur) and cleric spell
+  slots. A lowered attribute stops at the higher of the racial and class minimums; one already at 0 is not lowered
+  further, so it rises to that minimum. }
+procedure ModifyCharacter(levelled: Boolean);
 var
   savedStats: array[0..5] of Byte;
   savedExc: Byte;
   savedHp: Byte;
+  savedHpCur: Byte;
   savedClericSpells: array[1..3] of Byte;
   hold: ShortInt;
   key: Char;
   ext: Boolean;
   statIdx: Byte;
+  oldCon: Byte;
+  hpShift: Integer;
 
   { RedrawStat: Repaint the selected row: an attribute via ViewChar.PrintStat, or the hit-point line (row 6) via
     CharDisp.PrintHitPoints; hotPink highlights it }
@@ -799,10 +830,47 @@ var
         stats[a] := ClassCal.RaceAbilityMax(race, genderSp, a);
   end;
 
+  { Levelled, the hit points a Constitution change from oldCon gives or takes over every hit die, damage kept. }
+  procedure ShiftHp;
+  begin
+    with GDVars.curChar^ do begin
+      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), stats[C_Abil.CONSTITUTION]) -
+                 ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), oldCon);
+      if hpMax + hpShift < 1 then
+        hpShift := 1 - hpMax;
+      hpMax := hpMax + hpShift;
+      if hpCur + hpShift < 0 then
+        hpCur := 0
+      else
+        hpCur := hpCur + hpShift;
+    end;
+  end;
+
+  { Levelled, hpMax moved by k within the levels' limits, damage kept. }
+  procedure StepHp(k: Integer);
+  var
+    dmg: Integer;
+    hp: Integer;
+  begin
+    with GDVars.curChar^ do begin
+      dmg := hpMax - hpCur;
+      hp := hpMax + k;
+      if hp > ClassCal.HpMaximum(GDVars.curChar) then
+        hp := ClassCal.HpMaximum(GDVars.curChar);
+      if hp < ClassCal.HpMinimum(GDVars.curChar) then
+        hp := ClassCal.HpMinimum(GDVars.curChar);
+      if hp < 1 then
+        hp := 1;
+      hpMax := hp;
+      if hp - dmg < 0 then
+        hpCur := 0
+      else
+        hpCur := hp - dmg;
+    end;
+  end;
+
 begin
-  if (GDVars.curChar^.experience > 0) or (GDVars.curChar^.race < C_Race.DWARF) or
-      (GDVars.curChar^.race > C_Race.HUMAN) or (GDVars.curChar^.charClass < 0) or
-      (GDVars.curChar^.charClass > 16) then begin
+  if not CharGen.Modifiable then begin
     TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow);
     Exit;
   end;
@@ -810,6 +878,7 @@ begin
   Move(GDVars.curChar^.stats, savedStats, SizeOf(GDVars.curChar^.stats));
   savedExc := GDVars.curChar^.strExc;
   savedHp := GDVars.curChar^.hpMax;
+  savedHpCur := GDVars.curChar^.hpCur;
   { a Wisdom change recalculates the cleric spell slots }
   Move(GDVars.curChar^.clericSpells, savedClericSpells, SizeOf(savedClericSpells));
   statIdx := 6;
@@ -822,6 +891,7 @@ begin
       key := MenuCore.MenuHorizontal('Modify character: ', 'Keep Exit', LightMagenta, LightGreen,
                                      White, True, False, ext);
       RedrawStat(False);
+      oldCon := stats[C_Abil.CONSTITUTION];
       if ext then
         case key of
           C_Keys.DOWN, C_Keys.ENTER:
@@ -858,9 +928,13 @@ begin
                    end;
                 C_Abil.CONSTITUTION: begin
                      RaiseToMinimum(hold);
-                     if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
-                       hpMax := ClassCal.HpMaximum(GDVars.curChar);
-                     hpCur := hpMax;
+                     if levelled then
+                       ShiftHp
+                     else begin
+                       if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
+                         hpMax := ClassCal.HpMaximum(GDVars.curChar);
+                       hpCur := hpMax;
+                     end;
                      statIdx := 6;
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
@@ -871,7 +945,9 @@ begin
               end;
             end else
             { HP row }
-            begin
+            if levelled then
+              StepHp(-1)
+            else begin
               Dec(hpMax);
               if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
                 hpMax := ClassCal.HpMinimum(GDVars.curChar);
@@ -898,9 +974,13 @@ begin
                    end;
                 C_Abil.CONSTITUTION: begin
                      LowerToMaximum(hold);
-                     if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
-                       hpMax := ClassCal.HpMinimum(GDVars.curChar);
-                     hpCur := hpMax;
+                     if levelled then
+                       ShiftHp
+                     else begin
+                       if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
+                         hpMax := ClassCal.HpMinimum(GDVars.curChar);
+                       hpCur := hpMax;
+                     end;
                      statIdx := 6;
                      RedrawStat(False);
                      statIdx := C_Abil.CONSTITUTION;
@@ -911,7 +991,9 @@ begin
               end;
             end else
             { HP row }
-            begin
+            if levelled then
+              StepHp(1)
+            else begin
               Inc(hpMax);
               if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
                 hpMax := ClassCal.HpMaximum(GDVars.curChar);
@@ -926,6 +1008,8 @@ begin
               GDVars.curChar^.strExc := savedExc;
               GDVars.curChar^.hpMax := savedHp;
               GDVars.curChar^.hpCur := hpMax;
+              if levelled then
+                GDVars.curChar^.hpCur := savedHpCur;
               Move(savedClericSpells, GDVars.curChar^.clericSpells, SizeOf(savedClericSpells));
               CharHlp.RecalcStats(Types.PCharRecord(GDVars.curChar));
               Exit;
@@ -937,7 +1021,64 @@ begin
     until (not ext) and (key = 'K');
     if classLevels[C_Level.THIEF] > 0 then
       ClassCal.RecalcThiefSkills(Types.PCharRecord(GDVars.curChar));
-    GDVars.curChar^.npcTreasureShare := 1;
+    if not levelled then
+      GDVars.curChar^.npcTreasureShare := 1;
+  end;
+end;
+
+{ GainLevels: curChar gains a level in each of its classes in mask (GDConsts.classBit), as training gives it: with
+  restoreDrain, one drained level is restored for each; base skills are recalculated; a new magic-user level picks one
+  spell; hit points grow by the rolled dice (and, for hpMax, the classes' Con bonus) divided by the class count, at
+  least 1, damage kept. }
+procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
+var
+  clsCount: Byte;
+  rolled: Integer;
+  gain: Integer;
+  dmg: Byte;
+  cls: ShortInt;
+  conB: Integer;
+  oldMage: ShortInt;
+  sel: Byte;
+  idx: Integer;
+  notEmpty: Boolean;
+begin
+  with GDVars.curChar^ do begin
+    clsCount := 0;
+    oldMage := classLevels[C_Level.MAGE];
+    for cls := C_Level.CLERIC to C_Level.MONK do
+      if classLevels[cls] > 0 then begin
+        Inc(clsCount);
+        if GDConsts.classBit[cls] and trainable > 0 then begin
+          Inc(classLevels[cls]);
+          if restoreDrain and (drainedLevels > 0) then begin
+            Dec(drainedHps, drainedHps div drainedLevels);
+            Dec(drainedLevels);
+          end;
+        end;
+      end;
+    ClassCal.RecalcBaseSkills(Types.PCharRecord(GDVars.curChar));
+    if classLevels[C_Level.MAGE] > oldMage then begin
+      idx := -1;
+      repeat
+        sel := Magic.SpellMenu(4, 4, idx, notEmpty);
+      until (sel > 0) or (not notEmpty);
+      { SpellMenu returns 0 when there is no spell left to learn; spellsKnown starts at 1 }
+      if sel > 0 then
+        spellsKnown[sel] := 1;
+    end;
+    rolled := ClassCal.RollFirstLevelHp(GDVars.curChar, trainable);
+    gain := rolled div clsCount;
+    if gain = 0 then
+      gain := 1;
+    Inc(hpRolled, gain);
+    conB := ClassCal.ConHpBonus(GDVars.curChar, trainable);
+    gain := (rolled + conB) div clsCount;
+    if gain < 1 then
+      gain := 1;
+    dmg := hpMax - hpCur;
+    Inc(hpMax, gain);
+    hpCur := hpMax - dmg;
   end;
 end;
 
@@ -946,7 +1087,7 @@ end;
   Applies the racial fighter (and half-elf cleric and ranger) level caps, and before the hall and experience checks
   clamps experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and
   restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
-  hpMax, the trained classes' Con bonus) divided by the class count, at least 1. }
+  hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
 procedure TrainingMenu;
 var
   atCap: Boolean;
@@ -955,18 +1096,9 @@ var
   trainMask: Byte;
   classMask: Byte;
   trainable: Byte;
-  clsCount: Byte;
-  rolled: Integer;
-  gain: Integer;
-  dmg: Byte;
   cls: ShortInt;
-  conB: Integer;
   row: ShortInt;
-  oldMage: ShortInt;
   lvl: ShortInt;
-  sel: Byte;
-  idx: Integer;
-  notEmpty: Boolean;
 begin
   if (GDVars.curChar^.status <> C_Status.OKAY) and (stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
@@ -1059,41 +1191,7 @@ begin
     CharDisp.PrintBottomLine('Congratulations...');
     if stingMode = 0 then
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
-    clsCount := 0;
-    oldMage := classLevels[C_Level.MAGE];
-    for cls := C_Level.CLERIC to C_Level.MONK do
-      if classLevels[cls] > 0 then begin
-        Inc(clsCount);
-        if GDConsts.classBit[cls] and trainable > 0 then begin
-          Inc(classLevels[cls]);
-          if drainedLevels > 0 then begin
-            Dec(drainedHps, drainedHps div drainedLevels);
-            Dec(drainedLevels);
-          end;
-        end;
-      end;
-    ClassCal.RecalcBaseSkills(Types.PCharRecord(GDVars.curChar));
-    if classLevels[C_Level.MAGE] > oldMage then begin
-      idx := -1;
-      repeat
-        sel := Magic.SpellMenu(4, 4, idx, notEmpty);
-      until (sel > 0) or (not notEmpty);
-      { SpellMenu returns 0 when there is no spell left to learn; spellsKnown starts at 1 }
-      if sel > 0 then
-        spellsKnown[sel] := 1;
-    end;
-    rolled := ClassCal.RollFirstLevelHp(GDVars.curChar, trainable);
-    gain := rolled div clsCount;
-    if gain = 0 then
-      gain := 1;
-    Inc(hpRolled, gain);
-    conB := ClassCal.ConHpBonus(GDVars.curChar, trainable);
-    gain := (rolled + conB) div clsCount;
-    if gain < 1 then
-      gain := 1;
-    dmg := hpMax - hpCur;
-    Inc(hpMax, gain);
-    hpCur := hpMax - dmg;
+    CharGen.GainLevels(trainable, True);
   end;
 end;
 

@@ -316,9 +316,9 @@ begin
   HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
 end;
 
-{ HpMaximum: Highest legal hpMax: the top of each class's hit dice -- cleric and druid d8 per level, fighter and paladin
-  d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1 -- plus the Con bonus, divided by the class
-  count. }
+{ HpMaximum: Highest legal hpMax: the top of each class's hit dice (GDConsts.hpDice and hpSides: cleric and druid d8
+  per level, fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the
+  Con bonus, divided by the class count. }
 function HpMaximum(creature: Types.PCharRecord): Byte;
 var
   clsCount: Byte;
@@ -331,16 +331,8 @@ begin
     for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
-        case cls of
-          C_Level.CLERIC: Inc(sum, classLevels[cls] * 8);
-          C_Level.DRUID: Inc(sum, classLevels[cls] * 8);
-          C_Level.FIGHTER: Inc(sum, classLevels[cls] * 10);
-          C_Level.PALADIN: Inc(sum, classLevels[cls] * 10);
-          C_Level.RANGER: Inc(sum, (classLevels[cls] + 1) * 8);
-          C_Level.MAGE: Inc(sum, classLevels[cls] * 4);
-          C_Level.THIEF: Inc(sum, classLevels[cls] * 6);
-          C_Level.MONK: Inc(sum, (classLevels[cls] + 1) * 4);
-        end;
+        { hpDice at level 1, one die a level after }
+        Inc(sum, (classLevels[cls] + GDConsts.hpDice[cls] - 1) * GDConsts.hpSides[cls]);
       end;
   end;
   HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);

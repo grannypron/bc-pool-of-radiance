@@ -88,5 +88,15 @@ begin
   for j := 1 to 3 do
     ok := ok and (it.nameIds[j] = 0);
   TestKit.Check(ok, 'an unknown kind gets only its item type');
+
+  { a template made on purpose, as the Companion Tools' editor makes one }
+  RandItem.GenerateRandomItem(92, @it);
+  RandItem.ApplyTemplate(@it, 13);
+  TestKit.Check((it.itemType = 92) and (it.plus = 2) and (it.saveBonus = 2) and
+                (it.value = GDConsts.randomItemTemplates[13].value) and
+                (it.nameIds[3] = Lo(GDConsts.randomItemTemplates[13].nameIds[3])), 'the Cloak of Displacement, +2');
+  RandItem.ApplyTemplate(@it, 8);
+  TestKit.Check((it.plus = 1) and (it.spells[1] = Lo(GDConsts.randomItemTemplates[8].properties[1])),
+                'a template over another: the Wand of Magic Missiles, its charges in spells');
   TestKit.Done;
 end.

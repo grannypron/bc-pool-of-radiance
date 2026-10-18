@@ -14,7 +14,7 @@ procedure ToolsMenu;
 implementation
 
 uses Crt, Types, C_Area, C_Dir, C_Keys, C_Msg, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
-  Explored, EvtKind, StrUtil;
+  Explored, EvtKind, CharEdit, StrUtil;
 
 const
   { the map's top-left character cell; a square is one 8x8 symbol }
@@ -193,7 +193,11 @@ begin
              MapTool;
              DrawTools;
            end;
-      'N', 'C': NotYet;
+      'C': begin
+             CharEdit.EditMenu;
+             DrawTools;
+           end;
+      'N': NotYet;
     end;
   until ch in [C_Keys.NONE, 'E'];
   TextRend.ClearBottomLine;

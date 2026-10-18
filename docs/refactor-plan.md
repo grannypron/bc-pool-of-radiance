@@ -958,6 +958,32 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
    - Items are made from the base item table, with their name parts, plus and charges, as RandItem builds them.
    - Not in combat.
 
+   **Done.** `CharEdit` (overlaid), Character on the Tools screen. The party's characters are edited on their sheets
+   (Up, Down, Home and End pick another) through `Abilities Levels Gear Magic Health Exit`.
+   - **Abilities** is `CharGen.ModifyCharacter(True)`. The main menu's Modify Character is now a facade: no experience
+     and `CharGen.Modifiable` (a player race and class), then `ModifyCharacter(False)`, unchanged.
+     - Levelled, a Constitution change moves hpMax by what it gives over every hit die (`ClassCal.ConHpTotal`, as
+       Temple and EffHndlr do). The hit-point row runs between `HpMinimum` and `HpMaximum` for the levels.
+     - Damage taken stays taken, and Exit restores hpCur too. Keep leaves `npcTreasureShare` alone.
+   - **Levels** lists each class with its level, the experience and hit points.
+     - Right raises a level through `CharGen.GainLevels`: training's level gain, moved out of TrainingMenu, without its
+       drained-level restore. That covers hit dice, skills and a magic-user's new spell.
+     - Left lowers one. Hit points drop by a hit die's average plus the Con bonus, divided by the class count, and the
+       skills are recalculated. A cleric or magic-user back at level 1 gets level 1's slot.
+     - Levels run 1 to `C_Level.LEVEL_LAST` (9), past the racial limits. The experience follows into the new level's
+       range, and Experience types a total.
+     - `ClassCal.HpMaximum` now reads `GDConsts.hpDice` and `hpSides` instead of its own copy of them.
+   - **Gear: Add** lists every weapon and armour RandItem makes, the magic items of its templates (all but the
+     Scroll of Restoring Levels, which nothing makes), and the two scrolls.
+     - Weapons and armour then take a plus from 0 to 5 with Left and Right; the name and value follow.
+     - The item comes identified and goes to the character if it can carry it. `RandItem.ApplyTemplate` is the
+       template step, split out of GenerateRandomItem.
+   - **Gear: Money** sets each of the seven coin counts. The Items menu already drops what is not wanted.
+   - **Magic** toggles the magic-user's or cleric's known spells of levels 1 to 3.
+   - **Health:** Heal restores the hit points and wakes the unconscious and dying. Status steps through okay,
+     unconscious, dying, dead, stoned and gone.
+   - `TRandItm` checks ApplyTemplate. The `companion` scenario walks every tool on Talonia.
+
 **Testing.**
 - Unit tests for the visited and notes files, and for the classifier against known squares.
 - Scenarios for each tool screen, recorded for the candidate only, since the golden build has none.
