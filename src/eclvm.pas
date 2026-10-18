@@ -1840,6 +1840,7 @@ begin
         GDVars.zone0^.previousY := GDVars.gMapY;
         Explore.ResolveMovement;
         MapView.DisplayMapView;
+        { the step's one sound, in the 3D map and the wilderness alike (POR-0170) }
         if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
         GDVars.eclGraphics := False;

@@ -225,11 +225,11 @@ begin
   end;
 end;
 
-{ MovePartyForward3D: play the step sound, step with 16x16 edge wrap, refresh wallAhead and eventAtCell, reset the door
-  flags and advance the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit 0) is on. }
+{ MovePartyForward3D: step with 16x16 edge wrap, refresh wallAhead and eventAtCell, reset the door flags and advance
+  the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit 0) is on. The step's sound is EclVm.GameLoop's,
+  played once the party has moved; SSI played it here as well, so every step sounded twice (POR-0170). }
 procedure MovePartyForward3D;
 begin
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
   Inc(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
   Inc(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
   View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
