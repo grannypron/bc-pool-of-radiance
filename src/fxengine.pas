@@ -13,7 +13,7 @@ procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer
 
 { Remove an effect node from the creature's list: eff when it is not nil, else the first node whose id is effId (nothing
   happens if there is none, or if eff is not in the list). If the node's onRemove flag is set, effId's handler is first
-  called with removed = True; the node is then unlinked and freed. }
+  called with removed = True; the node is then unlinked and freed, unless the handler has removed it already. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
 { True when the creature has any of the effects a cure of disease removes (GDConsts.cureDiseaseEffects). }
@@ -169,14 +169,23 @@ begin
     p := prev;
   end;
   if p = nil then Exit;
-  if Types.PEffectRec(p)^.onRemove then
+  if Types.PEffectRec(p)^.onRemove then begin
     FxEngine.CallEffectHandler(effId, creature, p, True);
+    { The handler may have removed the node itself: Fight On's (eff 95) kills the creature, and a creature that falls
+      dead loses its 0-HP effects (RemoveEffectsHp0), Fight On among them. The node is then gone and freed, and the
+      unlink below would run off the list's end and write through nil, into the interrupt vectors. }
+    prev := creature^.effectsAddr;
+    while (prev <> nil) and (prev <> p) do
+      prev := prev^.next;
+    if prev = nil then Exit;
+  end;
   if creature^.effectsAddr = p then
     creature^.effectsAddr := p^.next
   else begin
     prev := creature^.effectsAddr;
     while (prev <> nil) and (prev^.next <> p) do
       prev := prev^.next;
+    if prev = nil then Exit;
     prev^.next := p^.next;
   end;
   FreeMem(p, SizeOf(Types.TEffectRec));
