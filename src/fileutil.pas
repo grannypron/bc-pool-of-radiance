@@ -8,8 +8,13 @@ unit FileUtil;
 interface
 
 type
-  { as long as a DOS path gets (Types.TPathStr) }
+  { as long as a path gets (Types.TPathStr, which FileUtil does not use): 79 characters on DOS, a short string's most
+    natively }
+{$IFDEF FPC}
+  TPathName = string[255];
+{$ELSE}
   TPathName = string[79];
+{$ENDIF}
 
 { Erase file name; a missing file, or any other error, is ignored. }
 procedure DeleteFile(name: TPathName);
