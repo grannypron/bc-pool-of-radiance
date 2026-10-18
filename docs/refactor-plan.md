@@ -854,7 +854,7 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
 **The steps.**
 0. **The switch and the Tools screen.**
    - The Settings line and its POOLOPT.CFG key.
-   - The key on the map and camp menus, which needs a hotkey free on both; decided in this step.
+   - F6 on the map and camp menus, unlisted.
    - A Tools screen listing Map, Notes and Character.
    - The tools go in overlaid units: they are rarely open, and resident code is at 69.5 KB.
 1. **Where the party has been.**
@@ -890,6 +890,8 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
    - A note of up to 30 characters on any square, added, changed or removed from the map screen with a cursor.
    - Kept per area in `SAVGAMx.NTS` beside the save.
 5. **The character editor.**
+   - CharGen's Modify Character, split into a facade (today's checks) and the modifying routine the editor calls
+     without the experience check, extended to levels, experience, gear, money, spells and status.
    - A screen on the character sheet's layout. Each field is chosen and changed in place, and values are held to the
      game's limits: abilities 3 to 25, as the rules run.
    - Levels and experience go through ClassCal's rules, so a raised level gets its hit points, THAC0, saves and spell
@@ -904,9 +906,14 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
 
 **What could change behaviour.** Nothing with the setting off. With it on, only what a player does in the tools.
 
-**Open questions.**
-- The key that opens the Tools screen.
-- Whether an edited character should be marked (GBC does not).
+**Approved** 2026-10-18, with the owner's answers:
+- **F6** opens the Tools screen from the map and camp menus. It is not listed on either.
+- An edited character is not marked.
+- The editor builds on CharGen's Modify Character.
+  - Its modifying part becomes a routine of its own. `ModifyCharacterMenu` stays as a facade that keeps today's checks
+    (no experience yet, a player character) and then calls it.
+  - The Companion editor calls it directly, with no experience check.
+  - Hit points need care once a character has levels: Modify was written for a fresh character's single roll.
 - GBC's other tools (teleport, party heal, auto-identify) are not asked for and are left out.
 
 ## Working method
