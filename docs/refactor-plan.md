@@ -685,6 +685,23 @@ trace test of step 0 pins it).
    - GameBoot installs the driver from POOL.CFG's letter.
    - SoundDrv's three `case`s go, and Options takes the device name from the driver.
    - `soundMode` remains only as the Sound setting's on/off.
+
+   **Done.**
+   - `Types.TSoundDriver` holds the device's name, the sequencer's device value (`mode`) and `Play`, which loads a tune
+     into the device's voices.
+     - Starting and stopping the timer stays in SoundDrv: it is the same for every device.
+     - The output routine is step 2's, in the assembly.
+   - `SndTdy`, `SndSpk` and `SndNone` are resident units of a few lines each. GameBoot installs one into
+     `GDVars.sound` from POOL.CFG's sound letter, and `soundMode` takes its mode.
+   - SoundDrv's three `case`s became `GDVars.sound.Play`. The stop and disable commands still silence both devices'
+     voices, as before (`SilenceAll`).
+   - Options' device-name `case` is gone (the Settings screen shows `GDVars.sound.name`), and GameIo's on/off asks the
+     driver whether there is a device.
+   - Only the driver units name a device now.
+   - Resident code +96 bytes, data +26.
+   - The unit tests (`TSndSeq` included) and the suite in EGA and Tandy pass.
+     - The suite's configurations all name the speaker, so a boot with Tandy sound was run by hand: the title music
+       starts through SndTdy, and Settings shows Sound Device Tandy.
 2. **The sequencer core apart from the devices.**
    - `sounddrv.asm` is split three ways:
      - the core: voice stepping, streams, envelopes, LFO, loops;

@@ -311,17 +311,6 @@ begin
   Grouped := s;
 end;
 
-{ The name of sound device mode. }
-function DeviceName(mode: Byte): Types.TStr20;
-begin
-  case mode of
-    C_Sound.MODE_TANDY: DeviceName := 'Tandy';
-    C_Sound.MODE_SPEAKER: DeviceName := 'PC Speaker';
-  else
-    DeviceName := 'None';
-  end;
-end;
-
 { The note shown at the right of settings row row, or '' for none: the active notes stacked from SETTINGS_BOTTOM up,
   STING lowest and NORAND above it. }
 function NoteOnRow(row: Byte): Types.TStr20;
@@ -423,7 +412,7 @@ end;
 procedure DrawInfoLines;
 begin
   Options.DrawInfo(CFG_TOP, 'Video', VidOps.ModeName);
-  Options.DrawInfo(CFG_TOP + 1, 'Sound Device', Options.DeviceName(GDVars.soundSaved));
+  Options.DrawInfo(CFG_TOP + 1, 'Sound Device', GDVars.sound.name);
   Options.DrawInfo(CFG_TOP + 2, 'Data Path', GDVars.gameDir);
   Options.DrawInfo(CFG_TOP + 3, 'Save Path', GDVars.dsSaveDirectory);
   Options.DrawInfo(INFO_TOP, 'Version', GDConsts.GAME_VERSION);

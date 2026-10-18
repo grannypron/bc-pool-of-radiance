@@ -50,6 +50,14 @@ function MusicPlaying: Boolean;
      uninstalls it unless music is playing. When sound is disabled the setting is left unchanged.) }
 procedure SoundSetAutoStop(autoStop: Word);
 
+{ * Loads a tune into the PC-speaker voices, for the speaker's driver (SndSpk).
+   @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
+procedure ProgramSpeakerVoices(tuneId: Word);
+
+{ * Loads a tune into the Tandy SN76489 voices, for the Tandy's driver (SndTdy).
+   @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
+procedure ProgramTandyVoices(tuneId: Word);
+
 implementation
 
 uses C_Sound, Dos, GDConsts, GDVars;
@@ -86,12 +94,8 @@ procedure InstallSoundTimer; external;
    configured device, the Tandy chip. Does nothing while the timer is not hooked. }
 procedure UninstallSoundTimer; external;
 
-{ * Loads a tune into the PC-speaker voices.
-   @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
 procedure ProgramSpeakerVoices(tuneId: Word); external;
 
-{ * Loads a tune into the Tandy SN76489 voices.
-   @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
 procedure ProgramTandyVoices(tuneId: Word); external;
 
 { * Gates the sound output without disturbing the loaded tune.
@@ -112,6 +116,13 @@ procedure SetSoundDevice(mode: Word); external;
 { * @param(voice A voice, 0 to 3.)
    @returns(The tune that voice is still playing, 0 once its stream has ended.) }
 function SoundVoiceTune(voice: Word): Word; external;
+
+{ * Silences both devices' voices, whichever is configured, as the stop commands always have. }
+procedure SilenceAll;
+begin
+  SoundDrv.ProgramTandyVoices(SILENT_TUNE);
+  SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
+end;
 
 function SoundTime: LongInt;
 var
@@ -158,28 +169,23 @@ end;
 procedure SoundCommand(cmd: Word);
 begin
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
-  SoundDrv.SetSoundDevice(GDVars.soundMode);
+  SoundDrv.SetSoundDevice(GDVars.sound.mode);
   if cmd <> CMD_ENABLE then musicTune := 0;
   if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
   case cmd of
     CMD_DISABLE: begin
-      SoundDrv.ProgramTandyVoices(SILENT_TUNE);
-      SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
+      SoundDrv.SilenceAll;
       SoundDrv.SetSoundOutputEnabled(OUTPUT_DISABLED);
     end;
     CMD_ENABLE: SoundDrv.SetSoundOutputEnabled(OUTPUT_ENABLED);
-    CMD_STOP: begin SoundDrv.ProgramTandyVoices(SILENT_TUNE); SoundDrv.ProgramSpeakerVoices(SILENT_TUNE); end;
+    CMD_STOP: SoundDrv.SilenceAll;
   else
-    case GDVars.soundMode of
-      C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(cmd - 1);
-      C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(cmd - 1);
-    end;
+    GDVars.sound.Play(cmd - 1);
   end;
   { only CMD_ENABLE leaves music playing, and the music keeps the timer }
   if (GDVars.soundAutoStop > 0) and not SoundDrv.MusicPlaying then begin
     SoundDrv.SoundDelay(10);
-    SoundDrv.ProgramTandyVoices(SILENT_TUNE);
-    SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
+    SoundDrv.SilenceAll;
     SoundDrv.UninstallSoundTimer;
   end;
 end;
@@ -189,7 +195,7 @@ begin
   GDVars.soundSaved := GDVars.soundMode;
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
   musicTune := 0;
-  SoundDrv.SetSoundDevice(GDVars.soundMode);
+  SoundDrv.SetSoundDevice(GDVars.sound.mode);
   SoundDrv.InstallSoundTimer;
   SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
   SoundDrv.ProgramTandyVoices(SILENT_TUNE);
@@ -209,13 +215,10 @@ end;
 procedure PlayMusic(tune: Word);
 begin
   if (GDVars.soundMode = C_Sound.MODE_DISABLED) or (GDVars.musicOn = 0) then Exit;
-  SoundDrv.SetSoundDevice(GDVars.soundMode);
+  SoundDrv.SetSoundDevice(GDVars.sound.mode);
   SoundDrv.InstallSoundTimer;
   musicTune := tune;
-  case GDVars.soundMode of
-    C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(tune);
-    C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(tune);
-  end;
+  GDVars.sound.Play(tune);
 end;
 
 procedure StopMusic;
@@ -223,10 +226,7 @@ begin
   if musicTune = 0 then Exit;
   musicTune := 0;
   if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
-  case GDVars.soundMode of
-    C_Sound.MODE_SPEAKER: SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
-    C_Sound.MODE_TANDY: SoundDrv.ProgramTandyVoices(SILENT_TUNE);
-  end;
+  GDVars.sound.Play(SILENT_TUNE);
   if GDVars.soundAutoStop > 0 then SoundDrv.UninstallSoundTimer;
 end;
 

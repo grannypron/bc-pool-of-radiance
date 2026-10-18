@@ -832,6 +832,19 @@ type
   TPutPixelRowProc = procedure(pic: PImgBuf; at: Word; y: Byte; var px: TPixelRow);
   { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
     routines. GameBoot installs one (VidCga, VidEga or VidTdy) into GDVars.video. }
+  { Load a tune into a sound device's voices; tune 0 silences them. }
+  TSoundPlay = procedure(tune: Word);
+  { One sound device's driver (docs/refactor-plan.md, phase 7): SoundDrv reaches the device only through it. GameBoot
+    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndNone) into GDVars.sound. }
+  TSoundDriver = record
+    { the device's name, for the settings screen }
+    name: TStr20;
+    { the sequencer's device value (C_Sound.MODE_TANDY, MODE_SPEAKER or MODE_DISABLED), which SetSoundDevice takes and
+      soundMode holds while sound is on }
+    mode: Byte;
+    { load a tune into the device's voices }
+    Play: TSoundPlay;
+  end;
   TVideoDriver = record
     { the mode's name, for the settings screen }
     name: TStr20;
