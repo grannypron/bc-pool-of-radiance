@@ -1,5 +1,8 @@
 # Camp in Valhingen Graveyard (save J), where resting is quiet: Fix, then the rest menu and a rest. Fixed dice.
 boot NORAND
+# ours drops the space after Camp:, so the menu's last letter fits the line (#674); the two lines differ only there
+strip (?<=CAMP:)\s
+strip (?<=ALTER FIX EXI)T
 ignore POOL OF RADIANCE V
 wait RADIANCE
 # a slot's letter loads it at once in ours (#652)
