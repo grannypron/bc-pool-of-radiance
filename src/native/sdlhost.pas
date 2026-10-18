@@ -17,7 +17,7 @@ interface
 
 implementation
 
-uses SysUtils, Sdl3Min, Host;
+uses SysUtils, Math, Sdl3Min, Host;
 
 const
   { the screen is 320x200 shown at 4:3, as on a PC's monitor: each pixel 1.2 times as tall as wide }
@@ -380,6 +380,10 @@ end;
 
 procedure Open;
 begin
+  { Free Pascal traps floating-point errors (an invalid operation, a division by zero); C code never expects that, and
+    the system's own libraries make NaNs and infinities freely: macOS's Core Animation stopped the program as SDL
+    made the window (CFNumberCreate, from CALayer). Masked, as a C program has them, before SDL runs any. }
+  SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   if not SDL_Init(SDL_INIT_VIDEO) then
     Fail('cannot start SDL');
   window := SDL_CreateWindow('Pool of Radiance', SCREEN_WIDTH * WINDOW_SCALE, SHOWN_HEIGHT * WINDOW_SCALE,
