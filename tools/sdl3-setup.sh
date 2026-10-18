@@ -10,7 +10,7 @@
 #   x86_64-linux    lib/libSDL3.a
 #   i386-win32      lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
 #   x86_64-win64    lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
-#   universal-darwin lib/libSDL3.a holding both x86_64 and arm64 (on a Mac)
+#   aarch64-darwin  lib/libSDL3.a (on an Apple Silicon Mac; there is no Intel Mac target)
 # A target already built is skipped.
 
 set -euo pipefail
@@ -29,7 +29,7 @@ fi
 
 case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) targets=(x86_64-linux i386-win32 x86_64-win64) ;;
-    Darwin-*) targets=(universal-darwin) ;;
+    Darwin-arm64) targets=(aarch64-darwin) ;;
     *) echo "sdl3-setup.sh: no recipe for this host." >&2; exit 1 ;;
 esac
 
@@ -85,7 +85,7 @@ for t in "${targets[@]}"; do
         x86_64-win64) extra=(-DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc
                              -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
                              -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres) ;;
-        universal-darwin) extra=("-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0) ;;
+        aarch64-darwin) extra=(-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0) ;;
     esac
     echo "sdl3-setup.sh: building SDL3 $version for $t (log: $log)..."
     { cmake -S "$source" -B "$build" "${common[@]}" "${extra[@]}" -DCMAKE_INSTALL_PREFIX="$prefix/$t" \

@@ -5,9 +5,9 @@
 #   ./build-native.sh [TARGET...]           build the game for each target (the default: x86_64-linux)
 #   ./build-native.sh --test [TARGET...]    build each target's unit tests from tests/ and run them
 #
-# The targets are i386-linux, x86_64-linux, i386-win32 and x86_64-win64, and on a Mac aarch64-darwin, x86_64-darwin and
-# macos (both of those, merged by lipo into one program in obj/native/macos/Pool of Radiance.app). Windows tests run
-# under Wine, x86_64-darwin's on an Apple Silicon Mac under Rosetta. On Linux and macOS SDL3 is linked in statically
+# The targets are i386-linux, x86_64-linux, i386-win32 and x86_64-win64, and on an Apple Silicon Mac aarch64-darwin and
+# macos (that, in obj/native/macos/Pool of Radiance.app); Intel Macs are not a target (deprecated as of macOS 26).
+# Windows tests run under Wine. On Linux and macOS SDL3 is linked in statically
 # (from tools/sdl3-setup.sh's libSDL3.a), so the program needs no SDL library beside it. Output goes to
 # obj/native/<target>/ (the game) and obj/native/<target>/tests/ (the tests, each test's compiler output beside it as
 # <name>.OUT, and TEST.LOG).
@@ -28,16 +28,16 @@ targets=()
 for arg in "$@"; do
     case "$arg" in
         --test) run_tests=1 ;;
-        i386-linux | x86_64-linux | i386-win32 | x86_64-win64 | aarch64-darwin | x86_64-darwin) targets+=("$arg") ;;
-        macos) targets+=(aarch64-darwin x86_64-darwin); make_app=1 ;;
+        i386-linux | x86_64-linux | i386-win32 | x86_64-win64 | aarch64-darwin) targets+=("$arg") ;;
+        macos) targets+=(aarch64-darwin); make_app=1 ;;
         *) echo "build-native.sh: unknown option $arg (the options are --test and the targets i386-linux," \
-               "x86_64-linux, i386-win32, x86_64-win64, aarch64-darwin, x86_64-darwin and macos)" >&2
+               "x86_64-linux, i386-win32, x86_64-win64, aarch64-darwin and macos)" >&2
            exit 2 ;;
     esac
 done
 if [ ${#targets[@]} -eq 0 ]; then
     case "$(uname -s)" in
-        Darwin) targets=(aarch64-darwin x86_64-darwin); make_app=1 ;;
+        Darwin) targets=(aarch64-darwin); make_app=1 ;;
         *) targets=(x86_64-linux) ;;
     esac
 fi
@@ -66,7 +66,7 @@ fi
 fpc_for() {
     local cpu="${1%%-*}" os="${1#*-}" extra="" libs=""
     # macOS: the oldest version the program runs on, SDL3's own (sdl3-setup.sh)
-    # and clang's runtime folder, for libclang_rt.osx.a (Sdl3Min), which fpc.cfg gives for x86_64 only
+    # and clang's runtime folder, for libclang_rt.osx.a (Sdl3Min), which fpc.cfg does not give for aarch64
     [ "$os" = darwin ] && extra="-WM11.0 -Fl$(xcrun clang -print-runtime-dir)"
     [ -n "${2:-}" ] && libs="-Fl$2"
     echo "$fpc $libs -n @$fpc_cfg -Mtp -gl -P$cpu -T$os -Fu$root/src -Fu$root/src/includes -Fu$root/src/native" \
@@ -76,7 +76,6 @@ fpc_for() {
 # sdl_lib_for <target>: the folder of SDL3's libraries for a target
 sdl_lib_for() {
     case "$1" in
-        *-darwin) echo "$sdl_home/universal-darwin/lib" ;;
         *) echo "$sdl_home/$1/lib" ;;
     esac
 }
@@ -90,7 +89,6 @@ upper() {
 run_exe() {
     case "$1" in
         *-win*) (cd "$2" && WINEDEBUG=-all wine "./$3.exe" > /dev/null 2>&1) ;;
-        x86_64-darwin) (cd "$2" && arch -x86_64 "./$3" > /dev/null 2>&1) ;;
         *) (cd "$2" && "./$3" > /dev/null 2>&1) ;;
     esac
 }
@@ -171,7 +169,7 @@ for target in "${targets[@]}"; do
     fi
 done
 
-# macos: the two programs as one (lipo) in Pool of Radiance.app, signed ad hoc so it runs here (tools/macos-sign.sh
+# macos: the program in Pool of Radiance.app, signed ad hoc so it runs here (tools/macos-sign.sh
 # signs it with a Developer ID and notarizes it). The game's data is found beside the app (NatFile.EnterGameFolder).
 if [ $failed -eq 0 ] && [ $run_tests -eq 0 ] && [ $make_app -eq 1 ]; then
     app="$root/obj/native/macos/Pool of Radiance.app"
@@ -180,8 +178,7 @@ if [ $failed -eq 0 ] && [ $run_tests -eq 0 ] && [ $make_app -eq 1 ]; then
     [ -n "$version" ] || version=0.0
     rm -rf "$app"
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-    lipo -create "$root/obj/native/aarch64-darwin/poolrad" "$root/obj/native/x86_64-darwin/poolrad" \
-        -output "$app/Contents/MacOS/poolrad" || failed=1
+    cp "$root/obj/native/aarch64-darwin/poolrad" "$app/Contents/MacOS/poolrad" || failed=1
     cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

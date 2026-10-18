@@ -13,8 +13,9 @@
 # Downloads go to $FPC_PREFIX/cache, each into its own folder. Nothing outside FPC_PREFIX is changed.
 #
 # Cross compilers built on a Linux x86_64 host: i386-linux (the first native target: 4-byte pointers keep the save
-# file's records as TP lays them out), i386-win32 and x86_64-win64. macOS (x86_64-darwin, aarch64-darwin) is built on a
-# Mac, where this script builds the host compiler and the other macOS architecture.
+# file's records as TP lays them out), i386-win32 and x86_64-win64. macOS is built on an Apple Silicon Mac, for
+# aarch64-darwin alone: Intel Macs are deprecated as of macOS 26 and Rosetta is being retired, so there is no
+# x86_64-darwin target.
 
 set -euo pipefail
 
@@ -48,10 +49,7 @@ case "$host_os-$host_cpu" in
         crosses=("i386 linux" "i386 win32" "x86_64 win64") ;;
     Darwin-arm64)
         boot_dist="aarch64-darwin" boot_pp="ppca64"
-        crosses=("x86_64 darwin") ;;
-    Darwin-x86_64)
-        boot_dist="x86_64-darwin" boot_pp="ppcx64"
-        crosses=("aarch64 darwin") ;;
+        crosses=() ;;
     *) echo "fpc-setup.sh: no recipe for a $host_os $host_cpu host." >&2; exit 1 ;;
 esac
 
@@ -127,17 +125,13 @@ lib="$prefix/lib/fpc/$version"
 # The newly installed compiler builds the cross compilers, so every one comes from the pinned source.
 newpp="$lib/$boot_pp"
 
-for cross in "${crosses[@]}"; do
+for cross in ${crosses[@]+"${crosses[@]}"}; do
     set -- $cross
     echo "fpc-setup.sh: building the $1-$2 cross compiler..."
-    xopt="$opt"
-    # a host without the x87's 80-bit extended (Apple Silicon) builds an x86 compiler with it emulated, or the compiler
-    # stops on the RTL's extended constants (internal error 2014051001)
-    [ "$host_cpu" = arm64 ] && [ "$1" = x86_64 ] && xopt="$opt -dFPC_SOFT_FPUX80"
-    make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$newpp" OPT="$xopt" CPU_TARGET="$1" OS_TARGET="$2" crossall \
+    make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$newpp" OPT="$opt" CPU_TARGET="$1" OS_TARGET="$2" crossall \
         >> "$log" 2>&1 \
         || { echo "fpc-setup.sh: the $1-$2 build failed; see $log" >&2; tail -n 20 "$log" >&2; exit 1; }
-    make -C "$source" PP="$newpp" OPT="$xopt" CPU_TARGET="$1" OS_TARGET="$2" INSTALL_PREFIX="$prefix" crossinstall \
+    make -C "$source" PP="$newpp" OPT="$opt" CPU_TARGET="$1" OS_TARGET="$2" INSTALL_PREFIX="$prefix" crossinstall \
         >> "$log" 2>&1 \
         || { echo "fpc-setup.sh: installing the $1-$2 build failed; see $log" >&2; exit 1; }
 done
@@ -146,9 +140,9 @@ done
 for pp in "$lib"/ppc*; do
     ln -sf "$pp" "$prefix/bin/$(basename "$pp")"
 done
-# a cross compiler with no native one of its CPU also under the native name: the driver asks for ppcx64 for
-# -Px86_64 on an Apple Silicon Mac, where only ppcrossx64 exists
+# a cross compiler with no native one of its CPU also under the native name, which the driver may ask for
 for pp in "$lib"/ppcross*; do
+    [ -e "$pp" ] || continue
     plain="ppc${pp##*/ppcross}"
     [ -e "$lib/$plain" ] || ln -sf "$pp" "$prefix/bin/$plain"
 done
