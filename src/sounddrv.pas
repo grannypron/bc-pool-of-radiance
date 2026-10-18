@@ -68,6 +68,11 @@ procedure OplWrite(reg, value: Word);
    on channel 3, all silent, for SndOpl once the chip is found. }
 procedure OplReset;
 
+{ * Chooses the device the timer driver steps and writes, for a driver that plays some sounds on another device (an
+   effect on the speaker beside AdLib music). Leaving the AdLib silences it, and leaving the speaker drops its gate.
+   @param(mode A C_Sound mode; MODE_DISABLED steps none.) }
+procedure SetSoundDevice(mode: Word);
+
 implementation
 
 uses C_Sound, Dos, GDConsts, GDVars;
@@ -123,8 +128,6 @@ function SoundTimerTicks: Word; external;
 { * @returns(True while the timer driver owns the timer interrupt.) }
 function SoundTimerHooked: Boolean; external;
 
-{ * Chooses the device the timer driver steps and writes; the other device's voices are left alone.
-   @param(mode A C_Sound mode; MODE_DISABLED steps neither.) }
 procedure SetSoundDevice(mode: Word); external;
 
 { * @param(voice A voice, 0 to 3.)

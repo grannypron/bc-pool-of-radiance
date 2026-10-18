@@ -746,6 +746,45 @@ trace test of step 0 pins it).
      with A. That is a change for the GoldBox Tester to make and coordinate.
    - Listening needs the emulator's AVI capture, which records the mixer's audio.
 
+4. **Sound Blaster effects, AdLib music** (added 2026-10-18, the owner's direction after the AdLib effects came out
+   "tinny"). No Gold Box game played its effects through FM:
+   - Secret and the Krynn games play AdLib music and send effects to the speaker.
+   - Pools, Gateway and Treasures play recorded samples (ZOUNDS.DAX through DIGPAK; `SND.COM` is its Sound Blaster
+     driver, 9000 Hz in Pools).
+   - Dark Queen plays them from `SFXDQ.VOC` on a Sound Blaster.
+   - POOL.CFG's sound letters:
+
+     | Letter | Device | Music | Effects | Without the card |
+     | --- | --- | --- | --- | --- |
+     | **S** | Sound Blaster | AdLib, on the card's OPL2 | SSI's recorded samples | **A**'s behaviour |
+     | **A** | AdLib | AdLib | the speaker, as in Secret | the speaker alone |
+
+   - The samples ship as `SBSFX.DAT`, built by a tool from the owner's copies of Pools of Darkness (ZOUNDS.DAX) and
+     Dark Queen (SFXDQ.VOC; ADPCM decoded), as 8-bit unsigned PCM with a rate each:
+
+     | Tune | Event | Sample |
+     | --- | --- | --- |
+     | 1 | cast | Pools "Zorp" |
+     | 2 | non-weapon damage | "fireb" |
+     | 3 | spell effect on a creature | "Tuning.Fork.2" |
+     | 4 | downed | Dark Queen's hero falls |
+     | 5 | missile launched | "arrow" |
+     | 6 | hit, and bumping a wall | "fireb" |
+     | 7 | Lightning Bolt | "lightning" |
+     | 8 | miss | "ropeswish2" |
+     | 9 | step | "pad2" |
+     | 10 | Fireball and the scripts' cue | "fireb" |
+     | 11 | missile lands | "hit5", which Pools never plays |
+
+     A tune with no sample plays on the speaker.
+   - Each effect is one single-cycle DMA transfer started on the DSP (time constant, command 14h). The driver
+     therefore never hooks the card's IRQ: it needs only the port and DMA channel, from `BLASTER`, or 220h and 1.
+     The samples stay in memory only while the Sound Blaster driver is in use, about 22 KB, copied for each effect
+     into a DMA buffer that crosses no 64 KB page.
+   - The sequencer switches device per sound: the AdLib for music, the speaker for an effect with no sample.
+     Leaving the AdLib silences it.
+   - goldbox-player needs Sound Blaster emulation for a scenario to run with S; the GoldBox Tester has the request.
+
 **What could change behaviour.**
 - Steps 0 to 2 should change nothing: the trace test compares every port write.
 - AdLib is new behaviour by definition and gets its own issue.

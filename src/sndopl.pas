@@ -1,6 +1,7 @@
-{ The AdLib (OPL2) sound driver: the sequencer's Tandy arrangements, played as FM through the OPL2 by SOUNDDRV.OBJ's
-  timer driver (sndopl.inc). GameBoot installs it when POOL.CFG names A; with no OPL2 answering at ports 388h and 389h
-  the speaker's driver is installed instead, and the settings screen says so (phase 7 of docs/refactor-plan.md). }
+{ The AdLib (OPL2) sound driver: the music from the sequencer's Tandy arrangements, played as FM through the OPL2 by
+  SOUNDDRV.OBJ's timer driver (sndopl.inc), and the effects on the speaker. GameBoot installs it when POOL.CFG names A,
+  and the Sound Blaster's driver (SndSb) when it finds no DSP; with no OPL2 answering at ports 388h and 389h the
+  speaker's driver is installed instead, and the settings screen says so (phase 7 of docs/refactor-plan.md). }
 {$F+}
 unit SndOpl;
 
@@ -8,6 +9,9 @@ interface
 
 { Make this the sound driver if an OPL2 answers, else the speaker's: fill GDVars.sound. }
 procedure Install;
+
+{ Music on the AdLib, an effect on the speaker (SndSb plays the effects it has no sample for this way). }
+procedure Play(tune: Word);
 
 { True when an OPL2 answers: its first timer, started, sets the status port's timer flags, and was clear before. }
 function Detect: Boolean;
@@ -48,10 +52,18 @@ begin
   Detect := (before and STATUS_FLAGS = 0) and (after and STATUS_FLAGS = TIMER1_DONE);
 end;
 
-{ Load tune into the Tandy voices, which the AdLib plays. }
+{ Music on the AdLib, from the Tandy arrangements; an effect, or silence, on the speaker, as Secret of the Silver Blades
+  plays its effects beside AdLib music (no Gold Box game played effects through FM). Moving to the speaker silences the
+  AdLib. }
 procedure Play(tune: Word);
 begin
-  SoundDrv.ProgramTandyVoices(tune);
+  if tune >= C_Sound.MUSIC_TITLE then begin
+    SoundDrv.SetSoundDevice(C_Sound.MODE_ADLIB);
+    SoundDrv.ProgramTandyVoices(tune);
+  end else begin
+    SoundDrv.SetSoundDevice(C_Sound.MODE_SPEAKER);
+    SoundDrv.ProgramSpeakerVoices(tune);
+  end;
 end;
 
 procedure Install;

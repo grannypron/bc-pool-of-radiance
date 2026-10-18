@@ -662,22 +662,43 @@ SoundTimerHooked:
         retf
 
 ; Pascal procedure: the device the ISR ticks, a C_Sound mode in the low byte; it
-; also picks the device's tick from tickTable.
+; also picks the device's tick from tickTable.  Leaving the AdLib silences it, and
+; leaving the speaker drops its gate, so no note hangs on when a driver moves a
+; sound to the other device (an effect on the speaker, then music on the AdLib).
 SetSoundDevice:
         push    bp
         mov     bp, sp
+        push    ax
         push    bx
+        push    ds
+        mov     ax, CODE
+        mov     ds, ax
         mov     bl, [bp+6]
         xor     bh, bh
         cmp     bx, DEV_ADLIB           ; a value past the table is no device
-        jbe     ssd_set
+        jbe     ssd_valid
         mov     bx, DEV_NONE
+ssd_valid:
+        cmp     bl, ds:[device]
+        jz      ssd_set
+        cmp     ds:[device], DEV_ADLIB
+        jnz     ssd_spkr
+        call    opl_silence
+        jmp     short ssd_set
+ssd_spkr:
+        cmp     ds:[device], DEV_SPEAKER
+        jnz     ssd_set
+        PORT_IN 61h                     ; the speaker and timer gates off
+        and     al, 0FCh
+        PORT_OUT 61h
 ssd_set:
         mov     cs:[device], bl
         add     bx, bx
         mov     bx, cs:tickTable[bx]
         mov     cs:[tickProc], bx
+        pop     ds
         pop     bx
+        pop     ax
         pop     bp
         retf    2
 
