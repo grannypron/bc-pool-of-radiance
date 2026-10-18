@@ -1840,6 +1840,7 @@ begin
         GDVars.zone0^.previousY := GDVars.gMapY;
         Explore.ResolveMovement;
         MapView.DisplayMapView;
+        { the step sound, which Explore.MovePartyForward3D has played too, but for a singleStep driver (POR-0170) }
         if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
         GDVars.eclGraphics := False;

@@ -131,7 +131,7 @@ end;
 
 procedure SetSound(turnOn: Boolean);
 begin
-  if not (GDVars.soundSaved in [C_Sound.MODE_TANDY, C_Sound.MODE_SPEAKER]) then Exit;
+  if GDVars.sound.mode = C_Sound.MODE_DISABLED then Exit;
   if not turnOn then begin
     if GDVars.soundMode <> C_Sound.MODE_DISABLED then begin
       SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);

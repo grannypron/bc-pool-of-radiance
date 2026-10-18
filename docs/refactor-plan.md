@@ -612,6 +612,215 @@ them), except where a step says otherwise.
 **What could change behaviour.** None of steps 1 to 4 should: the regression suite pins the three modes' screens. VGA is
 new behaviour by definition and gets its own issue. A wiki correction for the Pools pages is separate too.
 
+## Phase 7: a sound driver, and AdLib
+
+Written 2026-10-17 from a survey of PoR's sound code at aea6554, and of Pools of Darkness's.
+
+**What the later games do.** Pools of Darkness does not keep its sound in the game: it loads an external TSR driver
+(`ADLIB.COM`, `SND.COM` for the Sound Blaster, `IBMSND.COM` for the speaker) chosen at its startup menu, and its music
+comes from `MUSIC.DAX`. That is a different design from PoR's and not one to copy: PoR's tunes are in its own
+sequencer's streams, and a TSR would need a loader and a data format of its own.
+
+**PoR today.**
+- `SoundDrv` (250 lines of Pascal) sits over `sounddrv.asm` (4,244 lines of TASM, linked as SOUNDDRV.OBJ).
+- The assembly reprograms the timer to 236.7 Hz (channel 0 divisor 5041), chains the BIOS every thirteenth tick, and
+  steps four voices from tune streams: notes, envelopes, an LFO, loops and calls.
+- Each device has its own tune table and note table:
+  - `songTableA` holds the speaker's tunes. They play on voice 0; tunes 20 to 28 also set up other voices.
+  - `songTableB` holds the Tandy SN76489's: three tone voices and a noise voice.
+- One `device` byte picks what the interrupt routine ticks: `tick_speaker` drives PIT channel 2 from the first active
+  voice, and `tick_tandy` writes the SN76489 at port C0h.
+- The mode branches are few, and all close to the sound code:
+  - three `case`s in SoundDrv (`SoundCommand`, `PlayMusic`, `StopMusic`);
+  - the POOL.CFG letter in GameBoot (T Tandy, P speaker, anything else none);
+  - the on/off setting and the suspended device in GameIo (`SetSound`, `soundSaved`);
+  - the device name and the Sound setting in Options.
+- About forty calls in twelve other units go through SoundDrv's entries (`SoundCommand`, `PlayMusic`, `StopMusic` and
+  the timing ones). They do not know the device already.
+- Nothing tests sound. The regression suite compares screens and saves only.
+
+**The goal.**
+- One sound driver per device behind one interface, as phase 6 did for video.
+- A sequencer core that does not know the device.
+- A new **AdLib (OPL2)** driver that plays the Tandy arrangements, three tones and noise, through FM synthesis. Sound
+  Blaster cards carry the same OPL2, so it serves them too.
+
+The steps are in order. Every step until 3 keeps the speaker's and the Tandy's output identical, write for write (the
+trace test of step 0 pins it).
+
+0. **A safety net for sound.**
+   - A trace build of the sequencer: the output instructions go through one routine that, in a test build, records
+     each port and value with the tick number in a buffer instead of writing to the hardware.
+   - A test program (`TSndSeq`) loads every tune and sound effect for each device, runs the tick routine a fixed
+     number of times, and checks the trace's length and CRC against a record taken from today's code.
+   - `bench`: the interrupt routine's cost per tick on each device, so the core's split can be seen not to slow it.
+
+   **Done.**
+   - `sounddrv.asm`'s port writes and its one read while ticking go through the macros `PORT_OUT` and `PORT_IN`.
+     - The game's build assembles them to the same `out` and `in`. SOUNDDRV.OBJ's code and data records are identical
+       to 30614a4's; only TASM's dated comment record differs.
+     - `build.bat` also assembles `/dTRACE` into SNDTRACE.OBJ. There the writes go to a buffer (`SetTraceBuffer`,
+       `TraceCount`), and `TraceTick` runs one tick's sequencing on demand.
+   - `tests/sndtrc.pas` binds the trace object, and `TSndSeq` plays tunes 0 to 28 on the Tandy and the speaker.
+     - Each tune runs until every voice has run out, at most 6,000 ticks.
+     - Each tick's writes go into a CRC-32 with their count.
+     - The 58 digests, taken from 30614a4's sequencer, are the record: 174 checks.
+     - Changing one byte of the Tandy's silence write fails exactly that tune's check.
+     - The music (tunes 21 to 28) runs 1,681 to 4,753 ticks and ends inside the limit.
+   - `build.sh` now skips any `tests/*.pas` that is a unit, not just TestKit.
+   - `bench/sndbench.sh` measures the interrupt's share of the processor at 10,000 cycles: a busy loop's count over
+     54 BIOS ticks with the timer off, on and silent, and on and playing the title music.
+
+     | Device | Silent | Playing |
+     | --- | --- | --- |
+     | Tandy | 0.20% | 0.82% |
+     | Speaker | 0.16% | 0.52% |
+1. **A driver record.**
+   - `Types.TSoundDriver` holds the device's name and its entries:
+     - start and stop the timer;
+     - load a tune or sound effect;
+     - silence;
+     - the output routine the interrupt calls.
+   - `SndSpk`, `SndTdy` and a silent `SndNone` fill it.
+   - GameBoot installs the driver from POOL.CFG's letter.
+   - SoundDrv's three `case`s go, and Options takes the device name from the driver.
+   - `soundMode` remains only as the Sound setting's on/off.
+
+   **Done.**
+   - `Types.TSoundDriver` holds the device's name, the sequencer's device value (`mode`) and `Play`, which loads a tune
+     into the device's voices.
+     - Starting and stopping the timer stays in SoundDrv: it is the same for every device.
+     - The output routine is step 2's, in the assembly.
+   - `SndTdy`, `SndSpk` and `SndNone` are resident units of a few lines each. GameBoot installs one into
+     `GDVars.sound` from POOL.CFG's sound letter, and `soundMode` takes its mode.
+   - SoundDrv's three `case`s became `GDVars.sound.Play`. The stop and disable commands still silence both devices'
+     voices, as before (`SilenceAll`).
+   - Options' device-name `case` is gone (the Settings screen shows `GDVars.sound.name`), and GameIo's on/off asks the
+     driver whether there is a device.
+   - Only the driver units name a device now.
+   - Resident code +96 bytes, data +26.
+   - The unit tests (`TSndSeq` included) and the suite in EGA and Tandy pass.
+     - The suite's configurations all name the speaker, so a boot with Tandy sound was run by hand: the title music
+       starts through SndTdy, and Settings shows Sound Device Tandy.
+2. **The sequencer core apart from the devices.**
+   - `sounddrv.asm` is split three ways:
+     - the core: voice stepping, streams, envelopes, LFO, loops;
+     - each device's output routine and note table, which the interrupt reaches through a pointer the driver sets,
+       not by comparing `device`;
+     - the tune streams, one include file per arrangement.
+   - The trace test shows the output unchanged.
+
+   **Done.**
+   - `sounddrv.asm` (749 lines) is the core:
+     - the voice stepping, the stream interpreter, envelopes and LFO;
+     - the stream macros;
+     - the timer interrupt and the Pascal entries.
+   - Each device's part is an include, `sndspk.inc` and `sndtdy.inc`: its note table, voice blocks, song table,
+     streams, tick routine, and the entry that loads a tune.
+     - The move was checked line for line: every line of the old file is in exactly one of the three.
+     - The trace test passed on the move alone, before anything else changed.
+   - The interrupt (and `TraceTick`) calls the device's tick through `tickProc`, which `SetSoundDevice` sets from
+     `tickTable` by device value. A value past the table is no device, with a `tick_none` that returns. The ticks no
+     longer compare `device`.
+   - UninstallSoundTimer still silences the Tandy chip by comparing `device`; that is once at exit, not a tick, and is
+     left for AdLib's silence entry.
+   - `TSndSeq`'s 174 checks pass, and so does the suite in EGA.
+     - A boot and the combat scenario were run by hand with Tandy sound.
+   - The benchmark finds the interrupt a little cheaper, since it makes one call instead of two that each tested the
+     device: Tandy 0.18% silent and 0.81% playing (0.20% and 0.82% before), speaker 0.15% and 0.51% (0.16% and
+     0.52%).
+3. **The AdLib driver.**
+   - Detection by the OPL2 timer test at ports 388h/389h. With no card, the game falls back to the speaker and says so
+     on the Settings screen.
+   - POOL.CFG's sound letter **A** selects it.
+   - It plays the Tandy streams:
+     - each tone voice's period becomes an OPL F-number and block, from a table built for the SN76489's periods;
+     - its level becomes the operator's total level;
+     - the noise voice plays through the OPL's rhythm section (snare or hi-hat) or a noise-like patch, whichever
+       sounds closer.
+   - One simple instrument patch per voice to start, tuned by ear against the Tandy recording.
+   - Each OPL write waits the times the chip needs (3.3 us after the address, 23 us after the data). Four voices of
+     two or three writes each fit easily within a 236.7 Hz tick.
+   - The trace test gains the AdLib's writes once its sound is settled.
+   - goldbox-player's DOSBox-X needs OPL emulation on in its configuration (`sbtype`, `oplmode`) for a scenario to run
+     with A. That is a change for the GoldBox Tester to make and coordinate.
+   - Listening needs the emulator's AVI capture, which records the mixer's audio.
+
+4. **Sound Blaster effects, AdLib music** (added 2026-10-18, the owner's direction after the AdLib effects came out
+   "tinny"). No Gold Box game played its effects through FM:
+   - Secret and the Krynn games play AdLib music and send effects to the speaker.
+   - Pools, Gateway and Treasures play recorded samples (ZOUNDS.DAX through DIGPAK; `SND.COM` is its Sound Blaster
+     driver, 9000 Hz in Pools).
+   - Dark Queen plays them from `SFXDQ.VOC` on a Sound Blaster.
+   - POOL.CFG's sound letters:
+
+     | Letter | Device | Music | Effects | Without the card |
+     | --- | --- | --- | --- | --- |
+     | **S** | Sound Blaster | AdLib, on the card's OPL2 | SSI's recorded samples | **A**'s behaviour |
+     | **A** | AdLib | AdLib | the speaker, as in Secret | the speaker alone |
+
+   - The samples are in `SBSFX.DAT`, built by `tools/sbsfx.py` from the owner's copies of the games. Like all game
+     data it is not in git (drive_c is ignored).
+     - Dark Queen's effects (SFXDQ.VOC, the file FRUA also ships) are kept in their own 4-bit ADPCM, which the DSP plays
+       itself (command 75h).
+     - The step is the first of Pools' three thumps ("pad2", 50 ms, 8-bit).
+     - Pools' full set was tried first; the owner preferred Dark Queen's, with a single step. Dark Queen's own
+       footstep was never a favourite.
+
+     | Tune | Event | Dark Queen's sound |
+     | --- | --- | --- |
+     | 1 | cast | Cast |
+     | 2 | non-weapon damage | Blast |
+     | 3 | spell effect on a creature | Sorcery |
+     | 4 | downed | Death |
+     | 5 | missile launched | Missile |
+     | 6 | hit, and bumping a wall | Hit |
+     | 7 | Lightning Bolt | Lightning |
+     | 8 | miss | Swish |
+     | 9 | step | Pools' first thump |
+     | 10 | Fireball and the scripts' cue | Fireball |
+     | 11 | missile lands | Hit |
+
+     A tune with no sample plays on the speaker. The file comes to 29,912 bytes.
+   - Each effect is one single-cycle DMA transfer started on the DSP (time constant, command 14h). The driver
+     therefore never hooks the card's IRQ: it needs only the port and DMA channel, from `BLASTER`, or 220h and 1.
+     The samples load at the first effect, and only for the Sound Blaster driver (about 30 KB). A sample whose bytes
+     cross a 64 KB page (which one DMA transfer cannot) is copied to a bounce buffer, as long as the longest sample,
+     placed so that it crosses none.
+   - The sequencer switches device per sound: the AdLib for music, the speaker for an effect with no sample.
+     Leaving the AdLib silences it.
+   - goldbox-player needs Sound Blaster emulation for a scenario to run with S; the GoldBox Tester has the request.
+
+   **Steps 3 and 4 done.**
+   - **AdLib.** `sndopl.inc` and `SndOpl` render the Tandy arrangements in FM.
+     - The tone voices sit on channels 0 to 2 with one sustained patch. The owner finds the title and battle music
+       "sounds great", and it stays PoR's own, note for note.
+     - The noise voice plays the rhythm section's snare. Its first FM rendering came out "tinny".
+     - `TSndOpl` decodes the Tandy and the AdLib output of every tune from the trace build: pitches within 1%, the
+       mapped levels, silent voices silent, and the snare following the noise voice (87 checks).
+   - **Effects.** None of the Gold Box games played effects in FM.
+     - A now plays its effects on the speaker.
+     - S (`SndSb`) plays them as Dark Queen's samples on the DSP, with the footstep the stronger hit of Pools' first
+       thump, at a quarter of its level so it sits with Dark Queen's (measured in the owner's recording).
+     - The owner listened to each change in DOSBox-X: "Sounds better now".
+   - **POR-0170 (#678).** SSI plays the step sound twice on every step forward in the 3D map. The Sound Blaster driver
+     sets `singleStep`, so it plays once there; the speaker and the Tandy keep SSI's double tick.
+   - **Fallbacks.** Measured in the emulator with no card: A without an OPL2 shows "Speaker (no AdLib)" on the settings
+     screen and plays on the speaker. S falls back the same way.
+   - **goldbox-player.** It now has `opl=` and `sb=` session options and `regress.py --opl` and `--sb` (01e8a63,
+     e36c212, by the GoldBox Tester). A scenario run with A or S waits on two things: the shared checkout's pull, and
+     the harness installing SBSFX.DAT beside the build.
+   - **Sizes.** Resident code 65,648 -> 69,520 bytes: the AdLib and Sound Blaster drivers stay resident, because effects
+     are too frequent for overlay loads. Data 36,440 bytes.
+
+**What could change behaviour.**
+- Steps 0 to 2 should change nothing: the trace test compares every port write.
+- AdLib is new behaviour by definition and gets its own issue.
+- The Settings screen's device line gains "AdLib", and "PC Speaker (no AdLib found)" when detection fails.
+
+**Approved** 2026-10-17. With no OPL2 answering, A falls back to the **speaker**, and the Settings screen says so. The
+speaker and Tandy arrangements stay as SSI wrote them; AdLib borrows the Tandy streams.
+
 ## Working method
 
 One branch and one PR per phase, an issue per item, each change checked against the tests, the regression suite and

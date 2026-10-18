@@ -7,7 +7,8 @@ interface
 
 implementation
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy, VidVga;
+uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy, VidVga,
+  SndTdy, SndSpk, SndOpl, SndSb, SndNone;
 
 var
   { lowered HeapEnd snapshot }
@@ -144,11 +145,18 @@ begin
     Halt;
   end;
   ReadLn(cfgText, cfgChar);
+  { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib music and speaker effects, S a Sound Blaster's
+    recorded effects with its AdLib music (each falling back to the next when its card does not answer), anything else
+    none }
   case cfgChar of
-    'T': GDVars.soundMode := C_Sound.MODE_TANDY;
-    'P': GDVars.soundMode := C_Sound.MODE_SPEAKER;
-    else GDVars.soundMode := C_Sound.MODE_DISABLED;
+    'T': SndTdy.Install;
+    'P': SndSpk.Install;
+    'A': SndOpl.Install;
+    'S': SndSb.Install;
+  else
+    SndNone.Install;
   end;
+  GDVars.soundMode := GDVars.sound.mode;
   { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
   gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
   HeapEnd := gfxReserve;

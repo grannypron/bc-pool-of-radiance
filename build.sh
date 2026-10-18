@@ -226,7 +226,8 @@ if [ $run_tests -eq 1 ]; then
             echo "build.sh: tests/$name.pas: DOS cannot open a name longer than 8 characters" >&2
             exit 1
         fi
-        [ "${name,,}" = "testkit" ] || tests+=("${name^^}")
+        # a unit the tests use (TestKit, SndTrc) is not a test
+        grep -qiE '^unit ' "$t" || tests+=("${name^^}")
     done
     mkdir -p "$root/obj/tests"
     # each test's compiler output is build/logs/tests/<name>.OUT: a DOS name, so a test's name is at most 8 characters
