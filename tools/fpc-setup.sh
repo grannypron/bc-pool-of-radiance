@@ -146,6 +146,12 @@ done
 for pp in "$lib"/ppc*; do
     ln -sf "$pp" "$prefix/bin/$(basename "$pp")"
 done
+# a cross compiler with no native one of its CPU also under the native name: the driver asks for ppcx64 for
+# -Px86_64 on an Apple Silicon Mac, where only ppcrossx64 exists
+for pp in "$lib"/ppcross*; do
+    plain="ppc${pp##*/ppcross}"
+    [ -e "$lib/$plain" ] || ln -sf "$pp" "$prefix/bin/$plain"
+done
 mkdir -p "$prefix/etc"
 "$prefix/bin/fpcmkcfg" -d "basepath=$lib" -o "$prefix/etc/fpc.cfg" >> "$log" 2>&1
 if [ "$host_os" = Darwin ]; then
