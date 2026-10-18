@@ -66,7 +66,8 @@ fi
 fpc_for() {
     local cpu="${1%%-*}" os="${1#*-}" extra="" libs=""
     # macOS: the oldest version the program runs on, SDL3's own (sdl3-setup.sh)
-    [ "$os" = darwin ] && extra="-WM11.0"
+    # and clang's runtime folder, for libclang_rt.osx.a (Sdl3Min), which fpc.cfg gives for x86_64 only
+    [ "$os" = darwin ] && extra="-WM11.0 -Fl$(xcrun clang -print-runtime-dir)"
     [ -n "${2:-}" ] && libs="-Fl$2"
     echo "$fpc $libs -n @$fpc_cfg -Mtp -gl -P$cpu -T$os -Fu$root/src -Fu$root/src/includes -Fu$root/src/native" \
         "-Fi$root/src/includes -Fi$root/obj -FaTpCompat $extra"
