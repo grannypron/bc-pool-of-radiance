@@ -791,6 +791,28 @@ trace test of step 0 pins it).
      Leaving the AdLib silences it.
    - goldbox-player needs Sound Blaster emulation for a scenario to run with S; the GoldBox Tester has the request.
 
+   **Steps 3 and 4 done.**
+   - **AdLib.** `sndopl.inc` and `SndOpl` render the Tandy arrangements in FM.
+     - The tone voices sit on channels 0 to 2 with one sustained patch. The owner finds the title and battle music
+       "sounds great", and it stays PoR's own, note for note.
+     - The noise voice plays the rhythm section's snare. Its first FM rendering came out "tinny".
+     - `TSndOpl` decodes the Tandy and the AdLib output of every tune from the trace build: pitches within 1%, the
+       mapped levels, silent voices silent, and the snare following the noise voice (87 checks).
+   - **Effects.** None of the Gold Box games played effects in FM.
+     - A now plays its effects on the speaker.
+     - S (`SndSb`) plays them as Dark Queen's samples on the DSP, with the footstep the stronger hit of Pools' first
+       thump, at a quarter of its level so it sits with Dark Queen's (measured in the owner's recording).
+     - The owner listened to each change in DOSBox-X: "Sounds better now".
+   - **POR-0170 (#678).** SSI plays the step sound twice on every step forward in the 3D map. The Sound Blaster driver
+     sets `singleStep`, so it plays once there; the speaker and the Tandy keep SSI's double tick.
+   - **Fallbacks.** Measured in the emulator with no card: A without an OPL2 shows "Speaker (no AdLib)" on the settings
+     screen and plays on the speaker. S falls back the same way.
+   - **goldbox-player.** It now has `opl=` and `sb=` session options and `regress.py --opl` and `--sb` (01e8a63,
+     e36c212, by the GoldBox Tester). A scenario run with A or S waits on two things: the shared checkout's pull, and
+     the harness installing SBSFX.DAT beside the build.
+   - **Sizes.** Resident code 65,648 -> 69,520 bytes: the AdLib and Sound Blaster drivers stay resident, because effects
+     are too frequent for overlay loads. Data 36,440 bytes.
+
 **What could change behaviour.**
 - Steps 0 to 2 should change nothing: the trace test compares every port write.
 - AdLib is new behaviour by definition and gets its own issue.
