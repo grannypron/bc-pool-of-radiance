@@ -5,7 +5,7 @@
 program FixMain;
 
 { Natively SdlHost comes first: its window is open before any other unit's initialization runs. }
-uses {$IFDEF FPC}SdlHost, {$ENDIF}Types,
+uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types,
   {$IFNDEF FPC}Overlay, {$ENDIF}Crt, Dos,
   GDConsts, GDVars,
   SoundDrv, GameIo, DaxIo, TextRend, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, GameBoot,

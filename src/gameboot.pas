@@ -9,7 +9,8 @@ interface
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_Sound, GDConsts, GDVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
-  SoundDrv, DaxIo, GameIo, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, SndTdy, SndSpk, SndOpl, SndSb, SndNone
+  SoundDrv, DaxIo, GameIo, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
+  {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
   {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
@@ -188,10 +189,16 @@ begin
     recorded effects with its AdLib music (each falling back to the next when its card does not answer), anything else
     none }
   case cfgChar of
+{$IFDEF FPC}
+    { natively, the Tandy's music and the Sound Blaster's recorded effects for any of the three (SndDig) }
+    'T', 'A', 'S': SndDig.Install;
+    'P': SndSpk.Install;
+{$ELSE}
     'T': SndTdy.Install;
     'P': SndSpk.Install;
     'A': SndOpl.Install;
     'S': SndSb.Install;
+{$ENDIF}
   else
     SndNone.Install;
   end;
