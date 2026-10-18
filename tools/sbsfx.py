@@ -3,28 +3,29 @@
 
     tools/sbsfx.py [--pools ZOUNDS.DAX] [--dqk SFXDQ.VOC] [--out drive_c/POOLRAD/SBSFX.DAT]
 
-No Gold Box game plays its effects through FM. Pools of Darkness plays them as recorded samples from ZOUNDS.DAX
-(through DIGPAK; on a Sound Blaster, SND.COM), and Dark Queen of Krynn from SFXDQ.VOC. This takes PoR's effect sounds
-from them, as SSI shipped them:
+No Gold Box game plays its effects through FM. Dark Queen of Krynn plays them on a Sound Blaster from SFXDQ.VOC (the
+same file FRUA ships), and Pools of Darkness from ZOUNDS.DAX. PoR's effects take Dark Queen's, as SSI shipped them,
+all but the footstep: Dark Queen's is not the owner's favourite and Pools' is three thumps, so the step is the first of
+Pools' three.
 
-- Pools' ZOUNDS.DAX blocks are Amiga IFF 8SVX files with every byte XOR 80h. A sample is found by the name in its
-  NAME chunk, and its BODY (signed 8-bit) becomes unsigned 8-bit. Pools plays every effect at 9000 Hz whatever its
-  VHDR says, so that is the rate kept.
-- Dark Queen's hero-falls sound is one block of SFXDQ.VOC, 4-bit Creative ADPCM; ffmpeg decodes it, from that block
-  alone written as a VOC file of its own, and its 16-bit result becomes unsigned 8-bit at the block's rate.
+- Dark Queen's sounds are blocks of SFXDQ.VOC, in FRUA's order (Cast, Blast, Sorcery, Death, Missile, Hit, Lightning,
+  Swish, Footstep, Fireball, Bowstring, Sploosh, Crackle), each 4-bit Creative ADPCM with its reference byte first.
+  They are kept as they are: the Sound Blaster's DSP plays that format itself (command 75h), at half the size of the
+  samples decoded.
+- Pools' ZOUNDS.DAX blocks are Amiga IFF 8SVX files with every byte XOR 80h. A sample is found by the name in its NAME
+  chunk, and its BODY (signed 8-bit) becomes unsigned 8-bit, played at 9000 Hz as Pools plays every effect.
 
-SBSFX.DAT: 'SBFX', a version byte (1), the entry count; then per entry the tune (SoundDrv's tune id, the sound
-command less one), the rate in Hz, the length and the offset of its bytes from the start of the file (Words, little
-endian); then the samples, each stored once however many tunes play it. Needs goldbox-re-tools (GBRE_SRC, by default
-~/repos/goldbox-re-tools/src) for the DAX reader, and ffmpeg.
+SBSFX.DAT: 'SBFX', a version byte (2), the entry count; then per entry the tune (SoundDrv's tune id, the sound command
+less one), the format (0 unsigned 8-bit PCM, 1 4-bit ADPCM with its reference byte), the DSP time constant (256 -
+1000000 / rate), and the length and the offset of its bytes from the start of the file (Words, little endian); then
+the samples, each stored once however many tunes play it. Needs goldbox-re-tools (GBRE_SRC, by default
+~/repos/goldbox-re-tools/src) for the DAX reader.
 """
 import argparse
 import os
 import pathlib
 import struct
-import subprocess
 import sys
-import tempfile
 
 HOME = pathlib.Path.home()
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -32,19 +33,27 @@ sys.path.insert(0, os.environ.get("GBRE_SRC", str(HOME / "repos/goldbox-re-tools
 from goldbox import dax_tool as D  # noqa: E402
 
 POOLS_RATE = 9000
-# tune -> source: ('pools', NAME) or ('dqk', VOC block index, 0 first)
+PCM8 = 0
+ADPCM4 = 1
+# Dark Queen's blocks in SFXDQ.VOC, by FRUA's names
+DQK = {"Cast": 0, "Blast": 1, "Sorcery": 2, "Death": 3, "Missile": 4, "Hit": 5, "Lightning": 6, "Swish": 7,
+       "Footstep": 8, "Fireball": 9, "Bowstring": 10, "Sploosh": 11, "Crackle": 12}
+# the first of the three thumps in Pools' "pad2": its second starts at 55 ms
+STEP_MS = 50
+STEP_FADE_MS = 5
+# tune -> source: ('dqk', name) or ('pools-first-step', NAME)
 TUNES = {
-    1: ("pools", "Zorp"),               # a spell is cast
-    2: ("pools", "fireb"),              # non-weapon damage
-    3: ("pools", "Tuning.Fork.2"),      # a spell's effect lands on a creature
-    4: ("dqk", 3),                      # a creature goes down: Dark Queen's hero falls
-    5: ("pools", "arrow"),              # a missile is launched
-    6: ("pools", "fireb"),              # a weapon hits; the party bumps a wall
-    7: ("pools", "lightning"),          # Lightning Bolt
-    8: ("pools", "ropeswish2"),         # a miss
-    9: ("pools", "pad2"),               # a step
-    10: ("pools", "fireb"),             # Fireball, and the scripts' cue
-    11: ("pools", "hit5"),              # a missile lands; Pools ships it and never plays it
+    1: ("dqk", "Cast"),                     # a spell is cast
+    2: ("dqk", "Blast"),                    # non-weapon damage
+    3: ("dqk", "Sorcery"),                  # a spell's effect lands on a creature
+    4: ("dqk", "Death"),                    # a creature goes down
+    5: ("dqk", "Missile"),                  # a missile is launched, as Dark Queen plays for a bow or crossbow
+    6: ("dqk", "Hit"),                      # a weapon hits; the party bumps a wall
+    7: ("dqk", "Lightning"),                # Lightning Bolt
+    8: ("dqk", "Swish"),                    # a miss
+    9: ("pools-first-step", "pad2"),        # a step: the first of Pools' three thumps
+    10: ("dqk", "Fireball"),                # Fireball, and the scripts' cue
+    11: ("dqk", "Hit"),                     # a missile lands
 }
 
 
@@ -88,19 +97,23 @@ def voc_blocks(data: bytes) -> list:
     return blocks
 
 
-def dqk_sample(path: pathlib.Path, index: int) -> tuple:
-    """(rate, unsigned 8-bit samples) for VOC block index, decoded by ffmpeg."""
-    tc, pack, body = voc_blocks(path.read_bytes())[index]
-    rate = round(1000000 / (256 - tc))
-    one = bytearray(b"Creative Voice File\x1a" + struct.pack("<HHH", 26, 0x010A, 0x1129 + 0x010A))
-    payload = bytes([tc, pack]) + body
-    one += bytes([1]) + struct.pack("<I", len(payload))[:3] + payload + b"\0"
-    with tempfile.TemporaryDirectory() as tmp:
-        voc = pathlib.Path(tmp) / "one.voc"
-        voc.write_bytes(one)
-        pcm = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(voc), "-f", "u8", "-ac", "1", "-"],
-                             check=True, capture_output=True).stdout
-    return rate, pcm
+def dqk_sample(blocks: list, name: str) -> tuple:
+    """(format, time constant, bytes) for Dark Queen's sound name: its 4-bit ADPCM block as it is."""
+    tc, pack, body = blocks[DQK[name]]
+    if pack != 1:
+        raise SystemExit("sbsfx.py: SFXDQ.VOC's %s is packed %d, not 4-bit ADPCM" % (name, pack))
+    return ADPCM4, tc, body
+
+
+def first_step(pools: dict, name: str) -> tuple:
+    """(format, time constant, bytes): the first STEP_MS of Pools' sample name at 9000 Hz, faded out over its last
+    STEP_FADE_MS so it ends without a click."""
+    pcm = bytearray(pools[name][:POOLS_RATE * STEP_MS // 1000])
+    fade = POOLS_RATE * STEP_FADE_MS // 1000
+    for k in range(fade):
+        i = len(pcm) - fade + k
+        pcm[i] = round(128 + (pcm[i] - 128) * (fade - k) / fade)
+    return PCM8, 256 - 1000000 // POOLS_RATE, bytes(pcm)
 
 
 def main() -> int:
@@ -110,34 +123,37 @@ def main() -> int:
     ap.add_argument("--out", type=pathlib.Path, default=ROOT / "drive_c/POOLRAD/SBSFX.DAT")
     args = ap.parse_args()
     pools = pools_samples(args.pools)
+    blocks = voc_blocks(args.dqk.read_bytes())
     sources = {}
     for tune, src in TUNES.items():
         if src not in sources:
-            if src[0] == "pools":
+            if src[0] == "dqk":
+                sources[src] = dqk_sample(blocks, src[1])
+            else:
                 if src[1] not in pools:
                     raise SystemExit("sbsfx.py: ZOUNDS.DAX has no sample named %r" % src[1])
-                sources[src] = (POOLS_RATE, pools[src[1]])
-            else:
-                sources[src] = dqk_sample(args.dqk, src[1])
+                sources[src] = first_step(pools, src[1])
     order = list(dict.fromkeys(TUNES.values()))
     header = 6 + 7 * len(TUNES)
     offsets, pos = {}, header
     for src in order:
         offsets[src] = pos
-        pos += len(sources[src][1])
+        pos += len(sources[src][2])
     if pos > 0xFFFF:
         raise SystemExit("sbsfx.py: the samples come to %d bytes, past a Word's reach" % pos)
-    out = bytearray(b"SBFX" + bytes([1, len(TUNES)]))
+    out = bytearray(b"SBFX" + bytes([2, len(TUNES)]))
     for tune, src in sorted(TUNES.items()):
-        rate, pcm = sources[src]
-        out += struct.pack("<BHHH", tune, rate, len(pcm), offsets[src])
+        fmt, tc, data = sources[src]
+        out += struct.pack("<BBBHH", tune, fmt, tc, len(data), offsets[src])
     for src in order:
-        out += sources[src][1]
+        out += sources[src][2]
     args.out.write_bytes(out)
     for tune, src in sorted(TUNES.items()):
-        rate, pcm = sources[src]
-        print("tune %2d  %-22s %5d Hz %5d bytes  %4.0f ms" % (tune, "%s %s" % src, rate, len(pcm),
-                                                              1000 * len(pcm) / rate))
+        fmt, tc, data = sources[src]
+        rate = 1000000 // (256 - tc)
+        samples = 2 * (len(data) - 1) + 1 if fmt == ADPCM4 else len(data)
+        print("tune %2d  %-26s %-6s %5d Hz %5d bytes %5.0f ms" % (tune, "%s %s" % src, ("PCM8", "ADPCM4")[fmt], rate,
+                                                                 len(data), 1000 * samples / rate))
     print("sbsfx.py: wrote %s, %d bytes" % (args.out, len(out)))
     return 0
 

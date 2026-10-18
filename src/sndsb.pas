@@ -1,7 +1,7 @@
 { The Sound Blaster sound driver: AdLib music through the card's OPL2, as SndOpl plays it, and the effects as SSI's
-  recorded samples (SBSFX.DAT, built by tools/sbsfx.py from Pools of Darkness and Dark Queen of Krynn, which play
-  their effects the same way), each one DMA transfer the DSP plays at the sample's rate. Effects with no sample play
-  on the speaker. The driver never hooks the card's IRQ: a single-cycle transfer needs only the port and the DMA
+  recorded samples (SBSFX.DAT, built by tools/sbsfx.py: Dark Queen of Krynn's, in its own 4-bit ADPCM, and the first of
+  Pools of Darkness's step thumps), each one DMA transfer the DSP plays at the sample's rate. Effects with no sample
+  play on the speaker. The driver never hooks the card's IRQ: a single-cycle transfer needs only the port and the DMA
   channel, from BLASTER (A220 D1 by default). GameBoot installs it when POOL.CFG names S; with no DSP answering, the
   AdLib's driver is installed instead (phase 7 of docs/refactor-plan.md). }
 {$F+,I-}
@@ -19,7 +19,13 @@ uses Dos, C_Sound, GDVars, FileUtil, SoundDrv, SndOpl;
 const
   EFFECTS_FILE = 'SBSFX.DAT';
   EFFECTS_SIG = 'SBFX';
-  EFFECTS_VERSION = 1;
+  EFFECTS_VERSION = 2;
+  { an entry: tune, format, time constant, length, offset }
+  ENTRY_BYTES = 7;
+  HEADER_BYTES = 6;
+  { a sample's format: unsigned 8-bit PCM, or 4-bit Creative ADPCM led by its reference byte }
+  FORMAT_PCM8 = 0;
+  FORMAT_ADPCM4 = 1;
   { the tunes SBSFX.DAT may have a sample for: the effects (music starts at C_Sound.MUSIC_TITLE) }
   LAST_EFFECT = 20;
   { the DSP's ports, from its base }
@@ -29,9 +35,11 @@ const
   DSP_READY = $E;
   { the DSP's reply to a reset }
   DSP_READY_BYTE = $AA;
-  { DSP commands: the time constant, an 8-bit single-cycle DMA output, halt DMA, speaker on }
+  { DSP commands: the time constant; single-cycle DMA output of 8-bit PCM and of 4-bit ADPCM with its reference byte;
+    halt DMA; speaker on }
   DSP_TIME_CONSTANT = $40;
   DSP_DMA_8BIT = $14;
+  DSP_DMA_ADPCM4_REF = $75;
   DSP_HALT_DMA = $D0;
   DSP_SPEAKER_ON = $D1;
   { polls of a DSP port before giving up on it }
@@ -49,12 +57,13 @@ const
   { the card BLASTER names, or the usual one }
   DEFAULT_BASE = $220;
   DEFAULT_DMA = 1;
-  { heap blocks given up looking for one that crosses no 64 KB page, before the effects go to the speaker }
+  { blocks tried for a bounce buffer that crosses no 64 KB page }
   PLACE_TRIES = 4;
 
 type
   TEffect = record
-    rate: Word;
+    format: Byte;
+    timeConstant: Byte;
     len: Word;
     { offset of its bytes in the loaded file; 0 for none }
     start: Word;
@@ -63,10 +72,14 @@ type
 var
   base: Word;
   dma: Byte;
-  { SBSFX.DAT in memory once the first effect asks for it, in a block that crosses no 64 KB page; nil before, or if
-    it could not be loaded (the effects then play on the speaker) }
+  { SBSFX.DAT in memory once the first effect asks for it; nil before, or if it could not be loaded (the effects then
+    play on the speaker) }
   store: ^Byte;
   storeSize: Word;
+  { a buffer that crosses no 64 KB page, as long as the longest sample: one whose bytes in store cross a page (which
+    DMA cannot) is copied here to play; nil if none could be placed, and such a sample then plays on the speaker }
+  bounce: ^Byte;
+  bounceSize: Word;
   loadTried: Boolean;
   effects: array[1..LAST_EFFECT] of TEffect;
   { the exit procedure SndSb.SbExit hands on to }
@@ -144,16 +157,45 @@ begin
   Physical := LongInt(Seg(p^)) * 16 + Ofs(p^);
 end;
 
-{ Load SBSFX.DAT into a block that crosses no 64 KB page, so every sample plays in place; on any failure the store
-  stays nil and the effects go to the speaker. Blocks that cross one are held while another is tried, then freed. }
+{ True when len bytes at p cross a 64 KB page, which one DMA transfer cannot. }
+function Crosses(p: Pointer; len: Word): Boolean;
+begin
+  Crosses := (Physical(p) and $FFFF) + len > $10000;
+end;
+
+{ A block of size bytes that crosses no 64 KB page, or nil: blocks that cross one are held while another is tried,
+  then freed. }
+function PlaceBlock(size: Word): Pointer;
+var
+  held: array[1..PLACE_TRIES] of Pointer;
+  nHeld: Byte;
+  tries: Byte;
+  i: Byte;
+  p: Pointer;
+begin
+  nHeld := 0;
+  p := nil;
+  for tries := 1 to PLACE_TRIES do
+    if (p = nil) and (MaxAvail >= size) then begin
+      GetMem(p, size);
+      if SndSb.Crosses(p, size) then begin
+        Inc(nHeld);
+        held[nHeld] := p;
+        p := nil;
+      end;
+    end;
+  for i := 1 to nHeld do
+    FreeMem(held[i], size);
+  PlaceBlock := p;
+end;
+
+{ Load SBSFX.DAT, then a bounce buffer for its longest sample; on any failure of the file the store stays nil and the
+  effects go to the speaker. }
 procedure LoadEffects;
 var
   f: file;
   size: LongInt;
   got: Word;
-  tries: Byte;
-  held: array[1..PLACE_TRIES] of Pointer;
-  nHeld: Byte;
   p: ^Byte;
   sig: string[4];
   count: Byte;
@@ -167,30 +209,13 @@ begin
   FillChar(effects, SizeOf(effects), 0);
   if not FileUtil.OpenReadOnly(f, GDVars.gameDir + EFFECTS_FILE) then Exit;
   size := FileSize(f);
-  if (IOResult <> 0) or (size < 6) or (size > $FFF0) or (size > MaxAvail) then begin
+  if (IOResult <> 0) or (size < HEADER_BYTES) or (size > $FFF0) or (size > MaxAvail) then begin
     Close(f);
     ioRes := IOResult;
     Exit;
   end;
   storeSize := size;
-  nHeld := 0;
-  p := nil;
-  for tries := 1 to PLACE_TRIES do
-    if (p = nil) and (MaxAvail >= storeSize) then begin
-      GetMem(p, storeSize);
-      if (Physical(p) and $FFFF) + storeSize > $10000 then begin
-        Inc(nHeld);
-        held[nHeld] := p;
-        p := nil;
-      end;
-    end;
-  for i := 1 to nHeld do
-    FreeMem(held[i], storeSize);
-  if p = nil then begin
-    Close(f);
-    ioRes := IOResult;
-    Exit;
-  end;
+  GetMem(p, storeSize);
   BlockRead(f, p^, storeSize, got);
   Close(f);
   ok := (IOResult = 0) and (got = storeSize);
@@ -202,36 +227,50 @@ begin
     Inc(Word(rec));
     count := rec^;
     Inc(Word(rec));
-    ok := ok and (6 + 7 * Word(count) <= storeSize);
+    ok := ok and (HEADER_BYTES + ENTRY_BYTES * Word(count) <= storeSize);
   end;
   if not ok then begin
     FreeMem(p, storeSize);
     Exit;
   end;
-  { each entry: tune, rate, length, offset }
+  bounceSize := 0;
   for i := 1 to count do begin
     tune := rec^;
-    if (tune >= 1) and (tune <= LAST_EFFECT) then begin
-      Move(Ptr(Seg(rec^), Ofs(rec^) + 1)^, effects[tune].rate, 2);
-      Move(Ptr(Seg(rec^), Ofs(rec^) + 3)^, effects[tune].len, 2);
-      Move(Ptr(Seg(rec^), Ofs(rec^) + 5)^, effects[tune].start, 2);
-      with effects[tune] do
-        if (len = 0) or (rate < 4000) or (LongInt(start) + len > storeSize) then
-          start := 0;
-    end;
-    Inc(Word(rec), 7);
+    if (tune >= 1) and (tune <= LAST_EFFECT) then
+      with effects[tune] do begin
+        format := Byte(Ptr(Seg(rec^), Ofs(rec^) + 1)^);
+        timeConstant := Byte(Ptr(Seg(rec^), Ofs(rec^) + 2)^);
+        Move(Ptr(Seg(rec^), Ofs(rec^) + 3)^, len, 2);
+        Move(Ptr(Seg(rec^), Ofs(rec^) + 5)^, start, 2);
+        if (len = 0) or (format > FORMAT_ADPCM4) or (LongInt(start) + len > storeSize) then
+          start := 0
+        else if len > bounceSize then
+          bounceSize := len;
+      end;
+    Inc(Word(rec), ENTRY_BYTES);
   end;
   store := Pointer(p);
+  if bounceSize > 0 then
+    bounce := SndSb.PlaceBlock(bounceSize);
 end;
 
-{ Play len bytes at p, rate samples a second, as one single-cycle DMA transfer. }
-procedure PlaySample(p: Pointer; len, rate: Word);
+{ Play the effect as one single-cycle DMA transfer: its bytes in place, or copied to the bounce buffer when they cross
+  a 64 KB page. False when it cannot be played (crossing, with no bounce buffer). }
+function PlayEffect(var e: TEffect): Boolean;
 var
+  p: Pointer;
   phys: LongInt;
   b: Byte;
   ok: Boolean;
 begin
-  phys := Physical(p);
+  PlayEffect := False;
+  p := Ptr(Seg(store^), Ofs(store^) + e.start);
+  if SndSb.Crosses(p, e.len) then begin
+    if bounce = nil then Exit;
+    Move(p^, bounce^, e.len);
+    p := bounce;
+  end;
+  phys := SndSb.Physical(p);
   { acknowledge the last transfer's end, and stop one still playing }
   b := Port[base + DSP_READY];
   ok := DspWrite(DSP_HALT_DMA);
@@ -241,11 +280,16 @@ begin
   Port[DMA_ADDR[dma]] := Lo(Word(phys));
   Port[DMA_ADDR[dma]] := Hi(Word(phys));
   Port[DMA_PAGE[dma]] := phys shr 16;
-  Port[DMA_COUNT[dma]] := Lo(len - 1);
-  Port[DMA_COUNT[dma]] := Hi(len - 1);
+  Port[DMA_COUNT[dma]] := Lo(e.len - 1);
+  Port[DMA_COUNT[dma]] := Hi(e.len - 1);
   Port[DMA_MASK] := dma;
-  ok := DspWrite(DSP_TIME_CONSTANT) and DspWrite(256 - (1000000 div rate)) and DspWrite(DSP_DMA_8BIT) and
-        DspWrite(Lo(len - 1)) and DspWrite(Hi(len - 1));
+  ok := DspWrite(DSP_TIME_CONSTANT) and DspWrite(e.timeConstant);
+  if e.format = FORMAT_ADPCM4 then
+    ok := ok and DspWrite(DSP_DMA_ADPCM4_REF)
+  else
+    ok := ok and DspWrite(DSP_DMA_8BIT);
+  ok := ok and DspWrite(Lo(e.len - 1)) and DspWrite(Hi(e.len - 1));
+  PlayEffect := True;
 end;
 
 { Music on the AdLib, as SndOpl plays it; an effect with a sample on the DSP, the AdLib's voices silenced first so the
@@ -260,9 +304,8 @@ begin
     if (store <> nil) and (effects[tune].start <> 0) then begin
       SoundDrv.SetSoundDevice(C_Sound.MODE_ADLIB);
       SoundDrv.ProgramTandyVoices(0);
-      with effects[tune] do
-        SndSb.PlaySample(Ptr(Seg(store^), Ofs(store^) + start), len, rate);
-      Exit;
+      if SndSb.PlayEffect(effects[tune]) then
+        Exit;
     end;
   end;
   if tune = 0 then
@@ -306,5 +349,6 @@ end;
 
 begin
   store := nil;
+  bounce := nil;
   loadTried := False;
 end.

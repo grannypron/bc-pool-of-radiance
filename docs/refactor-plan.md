@@ -759,28 +759,34 @@ trace test of step 0 pins it).
      | **S** | Sound Blaster | AdLib, on the card's OPL2 | SSI's recorded samples | **A**'s behaviour |
      | **A** | AdLib | AdLib | the speaker, as in Secret | the speaker alone |
 
-   - The samples ship as `SBSFX.DAT`, built by a tool from the owner's copies of Pools of Darkness (ZOUNDS.DAX) and
-     Dark Queen (SFXDQ.VOC; ADPCM decoded), as 8-bit unsigned PCM with a rate each:
+   - The samples are in `SBSFX.DAT`, built by `tools/sbsfx.py` from the owner's copies of the games. Like all game
+     data it is not in git (drive_c is ignored).
+     - Dark Queen's effects (SFXDQ.VOC, the file FRUA also ships) are kept in their own 4-bit ADPCM, which the DSP plays
+       itself (command 75h).
+     - The step is the first of Pools' three thumps ("pad2", 50 ms, 8-bit).
+     - Pools' full set was tried first; the owner preferred Dark Queen's, with a single step. Dark Queen's own
+       footstep was never a favourite.
 
-     | Tune | Event | Sample |
+     | Tune | Event | Dark Queen's sound |
      | --- | --- | --- |
-     | 1 | cast | Pools "Zorp" |
-     | 2 | non-weapon damage | "fireb" |
-     | 3 | spell effect on a creature | "Tuning.Fork.2" |
-     | 4 | downed | Dark Queen's hero falls |
-     | 5 | missile launched | "arrow" |
-     | 6 | hit, and bumping a wall | "fireb" |
-     | 7 | Lightning Bolt | "lightning" |
-     | 8 | miss | "ropeswish2" |
-     | 9 | step | "pad2" |
-     | 10 | Fireball and the scripts' cue | "fireb" |
-     | 11 | missile lands | "hit5", which Pools never plays |
+     | 1 | cast | Cast |
+     | 2 | non-weapon damage | Blast |
+     | 3 | spell effect on a creature | Sorcery |
+     | 4 | downed | Death |
+     | 5 | missile launched | Missile |
+     | 6 | hit, and bumping a wall | Hit |
+     | 7 | Lightning Bolt | Lightning |
+     | 8 | miss | Swish |
+     | 9 | step | Pools' first thump |
+     | 10 | Fireball and the scripts' cue | Fireball |
+     | 11 | missile lands | Hit |
 
-     A tune with no sample plays on the speaker.
+     A tune with no sample plays on the speaker. The file comes to 29,912 bytes.
    - Each effect is one single-cycle DMA transfer started on the DSP (time constant, command 14h). The driver
      therefore never hooks the card's IRQ: it needs only the port and DMA channel, from `BLASTER`, or 220h and 1.
-     The samples stay in memory only while the Sound Blaster driver is in use, about 22 KB, copied for each effect
-     into a DMA buffer that crosses no 64 KB page.
+     The samples load at the first effect, and only for the Sound Blaster driver (about 30 KB). A sample whose bytes
+     cross a 64 KB page (which one DMA transfer cannot) is copied to a bounce buffer, as long as the longest sample,
+     placed so that it crosses none.
    - The sequencer switches device per sound: the AdLib for music, the speaker for an effect with no sample.
      Leaving the AdLib silences it.
    - goldbox-player needs Sound Blaster emulation for a scenario to run with S; the GoldBox Tester has the request.
