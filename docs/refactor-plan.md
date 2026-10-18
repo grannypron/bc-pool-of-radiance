@@ -709,6 +709,26 @@ trace test of step 0 pins it).
        not by comparing `device`;
      - the tune streams, one include file per arrangement.
    - The trace test shows the output unchanged.
+
+   **Done.**
+   - `sounddrv.asm` (749 lines) is the core:
+     - the voice stepping, the stream interpreter, envelopes and LFO;
+     - the stream macros;
+     - the timer interrupt and the Pascal entries.
+   - Each device's part is an include, `sndspk.inc` and `sndtdy.inc`: its note table, voice blocks, song table,
+     streams, tick routine, and the entry that loads a tune.
+     - The move was checked line for line: every line of the old file is in exactly one of the three.
+     - The trace test passed on the move alone, before anything else changed.
+   - The interrupt (and `TraceTick`) calls the device's tick through `tickProc`, which `SetSoundDevice` sets from
+     `tickTable` by device value. A value past the table is no device, with a `tick_none` that returns. The ticks no
+     longer compare `device`.
+   - UninstallSoundTimer still silences the Tandy chip by comparing `device`; that is once at exit, not a tick, and is
+     left for AdLib's silence entry.
+   - `TSndSeq`'s 174 checks pass, and so does the suite in EGA.
+     - A boot and the combat scenario were run by hand with Tandy sound.
+   - The benchmark finds the interrupt a little cheaper, since it makes one call instead of two that each tested the
+     device: Tandy 0.18% silent and 0.81% playing (0.20% and 0.82% before), speaker 0.15% and 0.51% (0.16% and
+     0.52%).
 3. **The AdLib driver.**
    - Detection by the OPL2 timer test at ports 388h/389h. With no card, the game falls back to the speaker and says so
      on the Settings screen.
