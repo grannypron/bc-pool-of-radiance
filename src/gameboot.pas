@@ -83,7 +83,7 @@ end;
 
 {$IFDEF FPC}
 { POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game is the current folder
-  (POOLRAD_DIR's, when it is set), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\ when it
+  (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\ when it
   names one elsewhere. NatFile turns the backslashes into the system's separator as each file is opened. }
 procedure NativeFolders(var gameDir, saveDir: String);
 var
@@ -106,8 +106,7 @@ end;
 begin
   GDVars.stingArg := ParamStr(1) = 'STING';
 {$IFDEF FPC}
-  if GetEnv('POOLRAD_DIR') <> '' then
-    ChDir(GetEnv('POOLRAD_DIR'));
+  NatFile.EnterGameFolder;
   GDVars.ovrInEms := False;
 {$ELSE}
   DaxIo.OverlayPrompt;

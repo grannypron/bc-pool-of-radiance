@@ -25,6 +25,11 @@ procedure Rename(var f: File; const name: ShortString); overload;
 procedure Rename(var t: Text; const name: ShortString); overload;
 procedure MkDir(const name: ShortString); overload;
 
+{ Make the game's folder the current one: the first of POOLRAD_DIR, the current folder, the program's folder and, for a
+  program in a macOS app (Pool of Radiance.app/Contents/MacOS), the folder the app is in, that holds POOL.CFG. With
+  none, the current folder stays (the game then reports POOL.CFG missing, as on DOS). }
+procedure EnterGameFolder;
+
 implementation
 
 uses SysUtils;
@@ -128,6 +133,33 @@ end;
 procedure MkDir(const name: ShortString);
 begin
   System.MkDir(NativeName(name));
+end;
+
+{ True when folder dir holds POOL.CFG, whatever its case }
+function HoldsGame(const dir: ShortString): Boolean;
+begin
+  Result := (dir <> '') and DirectoryExists(dir) and (FindPart(IncludeTrailingPathDelimiter(dir), 'POOL.CFG') <> '');
+end;
+
+procedure EnterGameFolder;
+var
+  candidates: array[1..4] of ShortString;
+  exeDir: ShortString;
+  i: Integer;
+begin
+  exeDir := ExtractFileDir(ParamStr(0));
+  candidates[1] := GetEnvironmentVariable('POOLRAD_DIR');
+  candidates[2] := GetCurrentDir;
+  candidates[3] := exeDir;
+  candidates[4] := '';
+  { <folder>/Pool of Radiance.app/Contents/MacOS: three levels up }
+  if SameText(ExtractFileName(exeDir), 'MacOS') then
+    candidates[4] := ExtractFileDir(ExtractFileDir(ExtractFileDir(exeDir)));
+  for i := Low(candidates) to High(candidates) do
+    if HoldsGame(candidates[i]) then begin
+      ChDir(candidates[i]);
+      Exit;
+    end;
 end;
 
 end.
