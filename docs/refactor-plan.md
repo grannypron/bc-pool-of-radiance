@@ -873,6 +873,15 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
    - Saved in a file beside each save, `SAVGAMx.MAP` (the quick save's too), versioned like `.INF` and `.STS`. SSI's
      own files stay as they are.
    - A save made before this has none, and its areas start unexplored.
+
+   **Done.**
+   - `Explored` (resident, about 2.2 KB of data) holds up to 64 areas of 16x16 bits, keyed by the script and the GBVM
+     mapId.
+   - `View3D.Display3DMapView` marks the square it is drawn from, so moves, turns, arrivals and teleports all count.
+   - SaveToSlot writes `savgam<x>.map` (2,183 bytes; quick saves too), LoadSlot reads it, and a new game clears it.
+   - `TExplore` (9 checks) covers marking, keeping areas apart, and the file's round trip.
+   - Checked in the emulator: a save from camp writes SAVGAMD.MAP.
+   - `loadsave` compares the save's files by kind, without the .MAP the golden build lacks.
 2. **The full automap screen.**
    - The current area's 16x16 grid, full screen, in every video mode, drawn with the existing picture and text
      routines.
