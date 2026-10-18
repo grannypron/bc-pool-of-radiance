@@ -821,6 +821,94 @@ trace test of step 0 pins it).
 **Approved** 2026-10-17. With no OPL2 answering, A falls back to the **speaker**, and the Settings screen says so. The
 speaker and Tandy arrangements stay as SSI wrote them; AdLib borrows the Tandy streams.
 
+## Phase 8: the Companion tools
+
+Written 2026-10-18 at the owner's request. These are features, not refactoring; they are planned here like a phase.
+
+**Why.**
+- Gold Box Companion (GBC, gbc.zorbus.net) attaches to a running Gold Box game and reads and writes its memory at the
+  original executables' addresses.
+- The port's memory layout is its own, so GBC no longer works with it.
+- Players expect three of GBC's tools: a character editor, a full automap, and a map marked with where things happen.
+  The port gets its own.
+
+**Decided with the owner (2026-10-18).**
+- **Access:** a **Companion Tools** line on the Settings screen, off by default and kept in POOLOPT.CFG like the
+  others. When it is on, a key on the map and camp menus opens a Tools screen, anywhere outside combat. When it is
+  off, the game plays as SSI's.
+- **Character editor:** everything GBC's covers.
+  - Abilities (exceptional Strength included), current and maximum hit points, age, alignment.
+  - Each class's level and experience, re-deriving THAC0, saves, spell slots and hit points as training would. That
+    includes GBC's level-up anywhere, past racial limits.
+  - Gear and money: add any item type with its plus and charges, remove and identify items, set coins, gems and
+    jewelry.
+  - Spells known and memorized; status (dead, stoned, level drain).
+- **Full automap:** a screen of its own, not the 3D view's window. It shows the whole 16x16 area with every wall and
+  door, secret ones too. Squares the party has visited are drawn bright and the rest dimmer, and the party's square
+  and facing are marked.
+- **Markup:**
+  - squares with an event, from the map's event plane;
+  - what kind of event each is, worked out from the area's script;
+  - players' own notes on squares, saved with the game.
+
+**The steps.**
+0. **The switch and the Tools screen.**
+   - The Settings line and its POOLOPT.CFG key.
+   - The key on the map and camp menus, which needs a hotkey free on both; decided in this step.
+   - A Tools screen listing Map, Notes and Character.
+   - The tools go in overlaid units: they are rarely open, and resident code is at 69.5 KB.
+1. **Where the party has been.**
+   - A 16x16 bit map per area (32 bytes), keyed as AreaName keys areas: the script, and the map for the scripts that
+     run two.
+   - Set on every arrival in a square, in GameLoop beside the step.
+   - Saved in a file beside each save, `SAVGAMx.MAP` (the quick save's too), versioned like `.INF` and `.STS`. SSI's
+     own files stay as they are.
+   - A save made before this has none, and its areas start unexplored.
+2. **The full automap screen.**
+   - The current area's 16x16 grid, full screen, in every video mode, drawn with the existing picture and text
+     routines.
+   - Wall and door types as the 3D view and the automap read them.
+   - Visited squares bright, the rest dim; the party's square and facing; a legend.
+   - Cell size and symbols decided in this step: 16 cells of 11 or 12 pixels fit the 200-pixel screen with room for
+     the legend.
+   - The wilderness is not in scope; it has its own map.
+3. **Event markup.**
+   - Every square whose event byte is set gets a mark.
+   - Classifying them:
+     - Each area script dispatches its events through an `ON GOTO` on the event number (Podal Plaza's, for example,
+       at `$9AB7`).
+     - Following that dispatch, a classifier scans each event's code until it leaves the event (EXIT, or a jump past
+       it).
+     - It sorts each event by what it finds: **fight** (COMBAT, LOAD MONSTER), **treasure** (items or money given),
+       **service** (shop, temple, training, the vault), **exit** (NEWECL, an area change), **trap** (damage, a save),
+       or **message** (text only).
+   - It runs in the game, on the loaded script, so it needs no shipped data.
+   - Unit tests pin it against known squares: Podal Plaza's tavern (a fight), the training hall's notice board (an
+     exit), the arms shop (a service).
+   - Squares the player has not visited still show their marks. That is GBC's "where things occur".
+4. **Player notes.**
+   - A note of up to 30 characters on any square, added, changed or removed from the map screen with a cursor.
+   - Kept per area in `SAVGAMx.NTS` beside the save.
+5. **The character editor.**
+   - A screen on the character sheet's layout. Each field is chosen and changed in place, and values are held to the
+     game's limits: abilities 3 to 25, as the rules run.
+   - Levels and experience go through ClassCal's rules, so a raised level gets its hit points, THAC0, saves and spell
+     slots as training gives them.
+   - Items are made from the base item table, with their name parts, plus and charges, as RandItem builds them.
+   - Not in combat.
+
+**Testing.**
+- Unit tests for the visited and notes files, and for the classifier against known squares.
+- Scenarios for each tool screen, recorded for the candidate only, since the golden build has none.
+- The regression suite with Companion Tools off must pass unchanged.
+
+**What could change behaviour.** Nothing with the setting off. With it on, only what a player does in the tools.
+
+**Open questions.**
+- The key that opens the Tools screen.
+- Whether an edited character should be marked (GBC does not).
+- GBC's other tools (teleport, party heal, auto-identify) are not asked for and are left out.
+
 ## Working method
 
 One branch and one PR per phase, an issue per item, each change checked against the tests, the regression suite and
