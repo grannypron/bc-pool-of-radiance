@@ -1,0 +1,25 @@
+# The Companion Tools (phase 8): the Settings line turned on, F6 from New Phlan (save A), and the Map tool after a short
+# walk, the visited squares bright. The golden build has no tools, so their screens are ours alone and not compared.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+# Up from the first setting wraps to the last: ours's Companion Tools (the golden build's Quick Mode Magic)
+press g up ret esc
+wait RADIANCE
+# a slot's letter loads it at once in ours (#652)
+golden: press l a ret
+candidate: press l a
+wait AREA
+checkpoint new-phlan
+press up up right up up left up
+wait AREA
+checkpoint walked
+candidate: press f6
+candidate: wait TOOLS
+candidate: checkpoint tools
+candidate: press m
+candidate: wait MAP
+candidate: checkpoint map
+candidate: press ret e
+candidate: wait AREA
+checkpoint back

@@ -890,6 +890,18 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
    - Cell size and symbols decided in this step: 16 cells of 11 or 12 pixels fit the 200-pixel screen with room for
      the legend.
    - The wilderness is not in scope; it has its own map.
+
+   **Done.**
+   - `CompTool`'s Map draws the area's 16x16 squares in the automap's own 8x8 symbols (set 4: the sixteen wall
+     combinations and the party's arrows), straight to the screen at column 2, row 3. The area's name is above it and a
+     legend beside it.
+   - Visited squares keep their colours. The rest are dimmed through `Blit.RemapPic`: the dark grey square goes black
+     and the grey walls dark grey.
+   - In CGA's four colours both greys look alike, so there a visited square's walls turn white instead. The glyph takes
+     the symbol set's colour map, which CGA's remap translates through.
+   - Checked in EGA, VGA and CGA after a walk in New Phlan.
+   - The `companion` scenario turns the tools on, walks, and opens Tools and Map. Those screens are recorded for our
+     build alone; the walk is compared.
 3. **Event markup.**
    - Every square whose event byte is set gets a mark.
    - Classifying them:
