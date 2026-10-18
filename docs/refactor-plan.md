@@ -654,6 +654,27 @@ trace test of step 0 pins it).
    - A test program (`TSndSeq`) loads every tune and sound effect for each device, runs the tick routine a fixed
      number of times, and checks the trace's length and CRC against a record taken from today's code.
    - `bench`: the interrupt routine's cost per tick on each device, so the core's split can be seen not to slow it.
+
+   **Done.**
+   - `sounddrv.asm`'s port writes and its one read while ticking go through the macros `PORT_OUT` and `PORT_IN`.
+     - The game's build assembles them to the same `out` and `in`. SOUNDDRV.OBJ's code and data records are identical
+       to 30614a4's; only TASM's dated comment record differs.
+     - `build.bat` also assembles `/dTRACE` into SNDTRACE.OBJ. There the writes go to a buffer (`SetTraceBuffer`,
+       `TraceCount`), and `TraceTick` runs one tick's sequencing on demand.
+   - `tests/sndtrc.pas` binds the trace object, and `TSndSeq` plays tunes 0 to 28 on the Tandy and the speaker.
+     - Each tune runs until every voice has run out, at most 6,000 ticks.
+     - Each tick's writes go into a CRC-32 with their count.
+     - The 58 digests, taken from 30614a4's sequencer, are the record: 174 checks.
+     - Changing one byte of the Tandy's silence write fails exactly that tune's check.
+     - The music (tunes 21 to 28) runs 1,681 to 4,753 ticks and ends inside the limit.
+   - `build.sh` now skips any `tests/*.pas` that is a unit, not just TestKit.
+   - `bench/sndbench.sh` measures the interrupt's share of the processor at 10,000 cycles: a busy loop's count over
+     54 BIOS ticks with the timer off, on and silent, and on and playing the title music.
+
+     | Device | Silent | Playing |
+     | --- | --- | --- |
+     | Tandy | 0.20% | 0.82% |
+     | Speaker | 0.16% | 0.52% |
 1. **A driver record.**
    - `Types.TSoundDriver` holds the device's name and its entries:
      - start and stop the timer;

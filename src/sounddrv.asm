@@ -9,6 +9,35 @@ CODE    SEGMENT BYTE PUBLIC 'CODE'
         PUBLIC  InstallSoundTimer, UninstallSoundTimer
         PUBLIC  ProgramSpeakerVoices, ProgramTandyVoices, SetSoundOutputEnabled
         PUBLIC  SoundTimerTicks, SoundTimerHooked, SetSoundDevice, SoundVoiceTune
+IFDEF TRACE
+        PUBLIC  TraceTick, SetTraceBuffer, TraceCount
+        JUMPS                           ; the recorder's calls put some short jumps out of reach
+ENDIF
+
+; ---------------------------------------------------------------------------
+; Port I/O while the sequencer ticks.  The game's build (SOUNDDRV.OBJ) assembles
+; plain OUT and IN.  The trace build (TASM /dTRACE, SNDTRACE.OBJ, for the tests)
+; records each write -- the port's low byte and the value -- in the buffer
+; SetTraceBuffer gives, touches no hardware, and reads port 61h as 0.
+; ---------------------------------------------------------------------------
+PORT_OUT MACRO port
+IFDEF TRACE
+        push    ax
+        mov     ah, port
+        call    trace_out
+        pop     ax
+ELSE
+        out     port, al
+ENDIF
+ENDM
+
+PORT_IN MACRO port
+IFDEF TRACE
+        mov     al, 0
+ELSE
+        in      al, port
+ENDIF
+ENDM
 
 ; ---------------------------------------------------------------------------
 ; Voice state. SSET writes fields by offset; voice_step advances them
@@ -3779,16 +3808,16 @@ spkr_next:
         jz      spkr_set
         mov     si, bx
         mov     ax, [si].vfOutPeriod
-        out     42h, al
+        PORT_OUT 42h
         mov     al, ah
-        out     42h, al
+        PORT_OUT 42h
         mov     bx, [si].vfLevel
         and     bl, 3                   ; the low two bits are the 61h gate bits
 spkr_set:
-        in      al, 61h
+        PORT_IN 61h
         and     al, 0FCh
         or      al, bl
-        out     61h, al
+        PORT_OUT 61h
         ret
 
 ; Step the four Tandy voices, then write all four to the SN76489.  DL walks the
@@ -3830,11 +3859,11 @@ tandy_loop2:
         shr     al, 1
         shr     al, 1
         xor     al, dl
-        out     0C0h, al
+        PORT_OUT 0C0h
         cmp     dl, 0E0h
         jz      tandy_noatt
         mov     al, ah
-        out     0C0h, al
+        PORT_OUT 0C0h
 tandy_noatt:
         mov     ax, 0FFFFh              ; the chip attenuates, so invert the level
         sub     ax, [si].vfLevel
@@ -3845,7 +3874,7 @@ tandy_noatt:
         mov     al, ah
         xor     al, dl
         add     al, 10h                 ; latch + 10h selects attenuation
-        out     0C0h, al
+        PORT_OUT 0C0h
         add     dl, 20h
         add     si, SIZE VOICE
         dec     ds:[voiceLeft]
@@ -3853,13 +3882,13 @@ tandy_noatt:
         ret
 tandy_off:
         mov     al, 09Fh
-        out     0C0h, al
+        PORT_OUT 0C0h
         mov     al, 0BFh
-        out     0C0h, al
+        PORT_OUT 0C0h
         mov     al, 0DFh
-        out     0C0h, al
+        PORT_OUT 0C0h
         mov     al, 0FFh
-        out     0C0h, al
+        PORT_OUT 0C0h
         ret
 
 ; One tick of one voice: advance the level and pitch slides, fold in the LFO,
@@ -4239,6 +4268,82 @@ SoundVoiceTune:
         pop     bx
         pop     bp
         retf    2
+
+IFDEF TRACE
+; ---------------------------------------------------------------------------
+; The trace build's entries, for the sequencer's tests.
+; ---------------------------------------------------------------------------
+traceOff        dw      0               ; the buffer of words: port in the high byte, value in the low
+traceSeg        dw      0
+traceCap        dw      0               ; words it holds
+traceLen        dw      0               ; words recorded since SetTraceBuffer
+
+; Record AL written to port AH; a full buffer drops the rest.  Keeps every register.
+trace_out:
+        push    bx
+        push    di
+        push    es
+        mov     bx, cs:[traceLen]
+        cmp     bx, cs:[traceCap]
+        jae     to_full
+        les     di, dword ptr cs:[traceOff]
+        add     bx, bx
+        mov     es:[di+bx], ax
+        inc     cs:[traceLen]
+to_full:
+        pop     es
+        pop     di
+        pop     bx
+        ret
+
+; Pascal procedure SetTraceBuffer(buf: Pointer; capacity: Word): record into buf, capacity words, from the start.
+SetTraceBuffer:
+        push    bp
+        mov     bp, sp
+        push    ax
+        mov     ax, [bp+6]
+        mov     cs:[traceCap], ax
+        mov     ax, [bp+8]
+        mov     cs:[traceOff], ax
+        mov     ax, [bp+10]
+        mov     cs:[traceSeg], ax
+        mov     cs:[traceLen], 0
+        pop     ax
+        pop     bp
+        retf    6
+
+; Pascal function TraceCount: Word: the words recorded.
+TraceCount:
+        mov     ax, cs:[traceLen]
+        retf
+
+; Pascal procedure TraceTick: one timer tick's sequencing, as the interrupt runs it, without the BIOS chain.
+TraceTick:
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        push    di
+        push    ds
+        mov     ax, CODE
+        mov     ds, ax
+        cmp     ds:[seqBusy], 0
+        jnz     tt_done
+        mov     ds:[seqBusy], 1
+        call    tick_spkr
+        call    tick_tandy
+        mov     ds:[seqBusy], 0
+tt_done:
+        pop     ds
+        pop     di
+        pop     si
+        pop     dx
+        pop     cx
+        pop     bx
+        pop     ax
+        retf
+ENDIF
 
 CODE    ENDS
         END
