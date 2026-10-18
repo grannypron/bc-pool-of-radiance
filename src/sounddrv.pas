@@ -58,6 +58,16 @@ procedure ProgramSpeakerVoices(tuneId: Word);
    @param(tuneId Tune to play; SILENT_TUNE, or an id past the song table, silences the voices.) }
 procedure ProgramTandyVoices(tuneId: Word);
 
+{ * Writes one AdLib (OPL2) register, with the waits the chip needs after the address and the data, for the AdLib's
+   driver (SndOpl).
+   @param(reg The register, 01h to 0F5h.)
+   @param(value Its new value.) }
+procedure OplWrite(reg, value: Word);
+
+{ * Clears every OPL2 register and sets up the AdLib's voices: the tone patch on channels 0 to 2 and the noise patch
+   on channel 3, all silent, for SndOpl once the chip is found. }
+procedure OplReset;
+
 implementation
 
 uses C_Sound, Dos, GDConsts, GDVars;
@@ -97,6 +107,10 @@ procedure UninstallSoundTimer; external;
 procedure ProgramSpeakerVoices(tuneId: Word); external;
 
 procedure ProgramTandyVoices(tuneId: Word); external;
+
+procedure OplWrite(reg, value: Word); external;
+
+procedure OplReset; external;
 
 { * Gates the sound output without disturbing the loaded tune.
    @param(enabledValue OUTPUT_ENABLED or OUTPUT_DISABLED; only the low byte is used.) }

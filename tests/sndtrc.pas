@@ -5,7 +5,7 @@ unit SndTrc;
 
 interface
 
-{ The device the sequencer ticks: C_Sound's MODE_TANDY, MODE_SPEAKER or MODE_DISABLED. }
+{ The device the sequencer ticks: C_Sound's MODE_TANDY, MODE_SPEAKER, MODE_DISABLED or MODE_ADLIB. }
 procedure SetSoundDevice(mode: Word);
 
 { Load tune tuneId's speaker or Tandy streams into the voices. }
@@ -24,6 +24,9 @@ function TraceCount: Word;
 { One timer tick's sequencing, as the interrupt runs it. }
 procedure TraceTick;
 
+{ The AdLib's register setup, recorded as writes to ports 88h (the register) and 89h (the value). }
+procedure OplReset;
+
 implementation
 
 {$L SNDTRACE.OBJ}
@@ -35,5 +38,6 @@ function SoundVoiceTune(voice: Word): Word; external;
 procedure SetTraceBuffer(buf: Pointer; capacity: Word); external;
 function TraceCount: Word; external;
 procedure TraceTick; external;
+procedure OplReset; external;
 
 end.

@@ -16,6 +16,8 @@ const
   MODE_SPEAKER = 1;
   { Sound is off, for any other letter or once Ctrl-S turns it off; SoundCommand then does nothing. }
   MODE_DISABLED = 2;
+  { An AdLib (OPL2), chosen by an A, playing the Tandy arrangements; with no OPL2 found, the speaker plays instead. }
+  MODE_ADLIB = 3;
   ECL_CUE = 7;
   RANGED_END = 8;
   { Lightning Bolt's cast }

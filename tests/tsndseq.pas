@@ -103,9 +103,12 @@ begin
     Inc(d.writes, n);
     { the tick's write count, then each write's port and value }
     CrcByte(d.crc, Lo(n));
-    for i := 0 to n - 1 do begin
+    { a while loop: with no writes, n - 1 would be 65535 }
+    i := 0;
+    while i < n do begin
       CrcByte(d.crc, Hi(buf[i]));
       CrcByte(d.crc, Lo(buf[i]));
+      Inc(i);
     end;
     idle := True;
     for v := 0 to 3 do

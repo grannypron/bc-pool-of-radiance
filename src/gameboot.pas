@@ -8,7 +8,7 @@ interface
 implementation
 
 uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy, VidVga,
-  SndTdy, SndSpk, SndNone;
+  SndTdy, SndSpk, SndOpl, SndNone;
 
 var
   { lowered HeapEnd snapshot }
@@ -145,10 +145,12 @@ begin
     Halt;
   end;
   ReadLn(cfgText, cfgChar);
-  { the sound driver POOL.CFG names: T Tandy, P the speaker, anything else none }
+  { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib (the speaker when none answers), anything else
+    none }
   case cfgChar of
     'T': SndTdy.Install;
     'P': SndSpk.Install;
+    'A': SndOpl.Install;
   else
     SndNone.Install;
   end;

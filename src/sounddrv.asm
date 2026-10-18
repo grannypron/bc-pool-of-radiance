@@ -1,17 +1,20 @@
-; PC-speaker and Tandy SN76489 timer sequencer, linked into SoundDrv by SOUNDDRV.OBJ.
-; This file is the core: the voice stepping, the stream interpreter, envelopes and
-; LFO, the timer interrupt and the Pascal far entries that install and remove INT 8
-; and control the output gate.  Each device's part -- note table, voice blocks, song
-; table, streams, tick and tune loader -- is an include: sndspk.inc, sndtdy.inc.  The
-; interrupt runs the configured device's tick through tickProc, which SetSoundDevice
-; sets.  Four voices of the device are stepped; the speaker uses the first active
-; voice.  The displaced BIOS handler runs every thirteenth tick.
+; PC-speaker, Tandy SN76489 and AdLib (OPL2) timer sequencer, linked into SoundDrv
+; by SOUNDDRV.OBJ.  This file is the core: the voice stepping, the stream
+; interpreter, envelopes and LFO, the timer interrupt and the Pascal far entries
+; that install and remove INT 8 and control the output gate.  Each device's part --
+; note table, voice blocks, song table, streams, tick and tune loader -- is an
+; include: sndspk.inc, sndtdy.inc, and sndopl.inc for the AdLib, which plays the
+; Tandy's arrangements.  The interrupt runs the configured device's tick through
+; tickProc, which SetSoundDevice sets.  Four voices of the device are stepped; the
+; speaker uses the first active voice.  The displaced BIOS handler runs every
+; thirteenth tick.
 
 CODE    SEGMENT BYTE PUBLIC 'CODE'
         ASSUME  CS:CODE, DS:CODE
         PUBLIC  InstallSoundTimer, UninstallSoundTimer
         PUBLIC  ProgramSpeakerVoices, ProgramTandyVoices, SetSoundOutputEnabled
         PUBLIC  SoundTimerTicks, SoundTimerHooked, SetSoundDevice, SoundVoiceTune
+        PUBLIC  OplWrite, OplReset
 IFDEF TRACE
         PUBLIC  TraceTick, SetTraceBuffer, TraceCount
         JUMPS                           ; the recorder's calls put some short jumps out of reach
@@ -82,6 +85,7 @@ VOICE   ENDS
 DEV_TANDY       equ     0               ; device values, as C_Sound's MODE_TANDY,
 DEV_SPEAKER     equ     1               ;   MODE_SPEAKER and MODE_DISABLED
 DEV_NONE        equ     2
+DEV_ADLIB       equ     3               ;   and MODE_ADLIB
 
 divCount        db      13              ; ticks left before the next BIOS INT 8 chain
 seqBusy         db      0               ; nonzero skips ISR sequencing during voice updates
@@ -105,7 +109,7 @@ voiceTune       db      0,0,0,0         ; tune id per voice; seq_end clears a vo
 outputOn        db      1               ; zero mutes output while the sequencers keep running
 device          db      DEV_NONE        ; the configured device, the only one the ISR ticks
 tickProc        dw      tick_none       ; the device's tick, which SetSoundDevice sets from tickTable
-tickTable       dw      tick_tandy, tick_spkr, tick_none        ; by device value: DEV_TANDY, DEV_SPEAKER, DEV_NONE
+tickTable       dw      tick_tandy, tick_spkr, tick_none, tick_opl      ; by device value, DEV_TANDY to DEV_ADLIB
 
 ; Duration table: 3:4 pairs double at each step. Notes carry explicit durations,
 ; so nothing reads this table.
@@ -243,6 +247,7 @@ SNOTE   MACRO vnum, len, pitch, last, dur   ; A note record with explicit durati
 
         INCLUDE sndspk.inc
         INCLUDE sndtdy.inc
+        INCLUDE sndopl.inc
 
 ; Saved BIOS timer vector, restored by UninstallSoundTimer.
 oldInt8Off      dw      0
@@ -316,6 +321,11 @@ UninstallSoundTimer:
         in      al, 61h                 ; drop the speaker gate and the timer gate
         and     al, 0FCh
         out     61h, al
+        cmp     cs:[device], DEV_ADLIB
+        jnz     ust_tandy
+        call    opl_silence
+        jmp     short ust_done
+ust_tandy:
         cmp     cs:[device], DEV_TANDY  ; C0h is the SN76489 only on a Tandy
         jnz     ust_done
         mov     al, 09Fh                ; full attenuation on the SN76489's
@@ -659,7 +669,7 @@ SetSoundDevice:
         push    bx
         mov     bl, [bp+6]
         xor     bh, bh
-        cmp     bx, DEV_NONE            ; a value past the table is no device
+        cmp     bx, DEV_ADLIB           ; a value past the table is no device
         jbe     ssd_set
         mov     bx, DEV_NONE
 ssd_set:
