@@ -65,7 +65,9 @@ if [ ${#problems[@]} -gt 0 ]; then
     exit 1
 fi
 
-if [ -x "$prefix/bin/fpc" ]; then
+# written last, so an install a failure cut short is built again
+stamp="$prefix/.complete"
+if [ -f "$stamp" ]; then
     echo "fpc-setup.sh: Free Pascal $pin is already in $prefix"
     exit 0
 fi
@@ -128,10 +130,14 @@ newpp="$lib/$boot_pp"
 for cross in "${crosses[@]}"; do
     set -- $cross
     echo "fpc-setup.sh: building the $1-$2 cross compiler..."
-    make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$newpp" OPT="$opt" CPU_TARGET="$1" OS_TARGET="$2" crossall \
+    xopt="$opt"
+    # a host without the x87's 80-bit extended (Apple Silicon) builds an x86 compiler with it emulated, or the compiler
+    # stops on the RTL's extended constants (internal error 2014051001)
+    [ "$host_cpu" = arm64 ] && [ "$1" = x86_64 ] && xopt="$opt -dFPC_SOFT_FPUX80"
+    make -C "$source" -j "$jobs" FPMAKEOPT="-T $jobs" PP="$newpp" OPT="$xopt" CPU_TARGET="$1" OS_TARGET="$2" crossall \
         >> "$log" 2>&1 \
         || { echo "fpc-setup.sh: the $1-$2 build failed; see $log" >&2; tail -n 20 "$log" >&2; exit 1; }
-    make -C "$source" PP="$newpp" OPT="$opt" CPU_TARGET="$1" OS_TARGET="$2" INSTALL_PREFIX="$prefix" crossinstall \
+    make -C "$source" PP="$newpp" OPT="$xopt" CPU_TARGET="$1" OS_TARGET="$2" INSTALL_PREFIX="$prefix" crossinstall \
         >> "$log" 2>&1 \
         || { echo "fpc-setup.sh: installing the $1-$2 build failed; see $log" >&2; exit 1; }
 done
@@ -144,5 +150,6 @@ mkdir -p "$prefix/etc"
 "$prefix/bin/fpcmkcfg" -d "basepath=$lib" -o "$prefix/etc/fpc.cfg" >> "$log" 2>&1
 [ -z "$opt" ] || echo "$opt" >> "$prefix/etc/fpc.cfg"
 
+touch "$stamp"
 echo "fpc-setup.sh: Free Pascal $version ($pin) installed in $prefix"
 echo "fpc-setup.sh: compilers: $(cd "$prefix/bin" && ls ppc* | tr '\n' ' ')"
