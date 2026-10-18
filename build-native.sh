@@ -35,6 +35,7 @@ done
 problems=()
 [ -x "$fpc" ] || problems+=("Free Pascal is not in $fpc_home: run tools/fpc-setup.sh.")
 [ -f "$fpc_cfg" ] || problems+=("$fpc_cfg is missing: run tools/fpc-setup.sh.")
+command -v python3 > /dev/null 2>&1 || problems+=("python3 is not on PATH: tools/snd2pas.py needs it.")
 for t in "${targets[@]}"; do
     case "$t" in
         *-win*) [ $run_tests -eq 0 ] || command -v wine > /dev/null 2>&1 \
@@ -64,23 +65,24 @@ run_exe() {
     esac
 }
 
-# The headless tests. A unit in tests/ (TestKit, SndTrc) is not a test. A test that uses SndTrc links the TASM trace
-# build of the sound driver, which a native build does not have until the sequencer is ported to Pascal: skipped.
+# The headless tests. A unit in tests/ (TestKit, SndTrc) is not a test. TSndOpl checks the AdLib's output, which the
+# native build does not play (its Digital Audio is the Tandy's music and the Sound Blaster's samples): skipped.
 tests=()
 skipped=()
 for t in "$root"/tests/*.pas; do
     grep -qiE '^unit ' "$t" && continue
-    if grep -qiE '^uses .*\bSndTrc\b' "$t"; then
-        skipped+=("$(basename "$t" .pas)")
-    else
-        tests+=("$(basename "$t" .pas)")
-    fi
+    case "$(basename "$t" .pas)" in
+        tsndopl) skipped+=("$(basename "$t" .pas)") ;;
+        *) tests+=("$(basename "$t" .pas)") ;;
+    esac
 done
 
 # Compiler output mentions every file; a line of this shape is a real failure.
 fpc_error='(Error|Fatal):'
 failed=0
 "$root/build/buildid.sh"
+# the sound sequencer's tunes, as SndSeq's image of the driver's segment
+python3 -I "$root/tools/snd2pas.py" --src "$root/src" --out "$root/obj/SNDIMAGE.INC" || exit 1
 
 for target in "${targets[@]}"; do
     if [ $run_tests -eq 1 ]; then
@@ -102,7 +104,7 @@ for target in "${targets[@]}"; do
                 failed=1
             fi
         done
-        [ ${#skipped[@]} -eq 0 ] || echo "build-native.sh: $target: skipped (they need the TASM sound driver):" \
+        [ ${#skipped[@]} -eq 0 ] || echo "build-native.sh: $target: skipped (the AdLib is not played natively):" \
             "${skipped[*]^^}"
         if [ -f "$out/TEST.LOG" ]; then
             grep -E "^(FAIL|DONE) " "$out/TEST.LOG" | sed 's/^/  /'
