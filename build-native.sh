@@ -48,11 +48,11 @@ if [ ${#problems[@]} -gt 0 ]; then
 fi
 
 # fpc_for <target>: the compiler command for a target. -Mtp keeps Turbo Pascal's 16-bit Integer, short strings and
-# procedure variables; COMPILER.INC (included by every unit) sets the rest; TpCompat (-Fa) supplies the System routines
-# Free Pascal lacks.
+# procedure variables; -gl puts line numbers in a runtime error's trace; COMPILER.INC (included by every unit) sets the
+# rest; TpCompat (-Fa) supplies the System routines Free Pascal lacks.
 fpc_for() {
     local cpu="${1%%-*}" os="${1#*-}"
-    echo "$fpc -n @$fpc_cfg -Mtp -P$cpu -T$os -Fu$root/src -Fu$root/src/includes -Fu$root/src/native" \
+    echo "$fpc -n @$fpc_cfg -Mtp -gl -P$cpu -T$os -Fu$root/src -Fu$root/src/includes -Fu$root/src/native" \
         "-Fi$root/src/includes -Fi$root/obj -FaTpCompat"
 }
 

@@ -2,7 +2,11 @@
   scan codes and characters in Host's keyboard buffer, as a PC's keyboard and BIOS did (a US layout, as the BIOS's).
   It hooks Host.Service, which Crt's ReadKey, KeyPressed and Delay run, so the screen is shown and keys arrive while
   the game waits; the screen is shown at most 60 times a second. Closing the window ends the program. For testing,
-  POOLRAD_SHOT names a file the screen is written to (a PPM image) twice a second. The program
+  POOLRAD_SHOT names a file the screen is written to (a PPM image) twice a second, and POOLRAD_KEYS gives keys to
+  press, as if typed: words separated by spaces, each a wait in milliseconds (a number of two digits or more), a
+  character (a, A, 1, ?) or a key's name (enter, esc, space, tab, bs, up, down, left, right, home, end, pgup, pgdn,
+  ins, del, f1..f12), the names optionally after shift-, ctrl- or alt-. Each key is followed by KEY_GAP_MS: the game
+  drops keys typed ahead of the one it reads (GameIo.ReadGameKey), as a player's are not. The program
   uses this unit (the unit tests do not, so they need no SDL). Objfpc mode, for its initialization and finalization.
   Free Pascal only. }
 {$MODE OBJFPC}
@@ -20,6 +24,7 @@ const
   SHOWN_HEIGHT = 240;
   WINDOW_SCALE = 3;
   PRESENT_MS = 15;
+  KEY_GAP_MS = 200;
   SHOT_MS = 500;
   { SDL_ScaleMode: nearest, smoothed where a pixel straddles two (SDL 3.4) }
   SDL_SCALEMODE_PIXELART = 2;
@@ -123,6 +128,9 @@ var
   lastPresent: QWord;
   shotPath: String;
   lastShot: QWord;
+  { POOLRAD_KEYS: the words not yet pressed, and when the next may be }
+  keyScript: AnsiString;
+  keyDue: QWord;
 
 procedure Fail(what: String);
 begin
@@ -283,10 +291,82 @@ begin
   Host.PushKey(scan, Ord(ch));
 end;
 
+{ The SDL_Scancode for a key's name or character in POOLRAD_KEYS, with the modifiers it needs; -1 for none. }
+function ScriptKey(word: String; var keyMod: Word): LongInt;
+const
+  NAMES: array[0..15] of String[5] = ('enter', 'esc', 'bs', 'tab', 'space', 'ins', 'home', 'pgup', 'del', 'end',
+                                      'pgdn', 'right', 'left', 'down', 'up', '');
+  CODES: array[0..14] of Byte = (40, 41, 42, 43, 44, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82);
+var
+  i: LongInt;
+  sc: LongInt;
+begin
+  keyMod := 0;
+  repeat
+    i := Length(word);
+    if Copy(word, 1, 6) = 'shift-' then begin keyMod := keyMod or SDL_KMOD_SHIFT; Delete(word, 1, 6); end;
+    if Copy(word, 1, 5) = 'ctrl-' then begin keyMod := keyMod or SDL_KMOD_CTRL; Delete(word, 1, 5); end;
+    if Copy(word, 1, 4) = 'alt-' then begin keyMod := keyMod or SDL_KMOD_ALT; Delete(word, 1, 4); end;
+  until Length(word) = i;
+  ScriptKey := -1;
+  if Length(word) = 1 then begin
+    for sc := FIRST_SCANCODE to SC_KP_1 - 1 do
+      if BIOS_KEYS[sc].normal = word[1] then
+        Exit(sc)
+      else if (BIOS_KEYS[sc].shifted = word[1]) and (BIOS_KEYS[sc].scan <> 0) then begin
+        keyMod := keyMod or SDL_KMOD_SHIFT;
+        Exit(sc);
+      end;
+    Exit;
+  end;
+  for i := 0 to 14 do
+    if word = NAMES[i] then
+      Exit(CODES[i]);
+  if (Length(word) >= 2) and (word[1] = 'f') then begin
+    i := StrToIntDef(Copy(word, 2, 2), 0);
+    if (i >= 1) and (i <= 12) then
+      Exit(SC_F1 + i - 1);
+  end;
+end;
+
+{ Press POOLRAD_KEYS' next key, or start its next wait, when it is due. }
+procedure RunKeyScript;
+var
+  word: String;
+  i: LongInt;
+  ms: LongInt;
+  key: TSDL_KeyboardEvent;
+begin
+  while (keyScript <> '') and (SDL_GetTicks >= keyDue) do begin
+    keyScript := TrimLeft(keyScript);
+    i := Pos(' ', keyScript);
+    if i = 0 then
+      i := Length(keyScript) + 1;
+    word := Copy(keyScript, 1, i - 1);
+    Delete(keyScript, 1, i);
+    if word = '' then
+      Continue;
+    if (Length(word) > 1) and TryStrToInt(word, ms) then
+      keyDue := SDL_GetTicks + ms
+    else begin
+      FillChar(key, SizeOf(key), 0);
+      key.scancode := ScriptKey(word, key.keyMod);
+      if key.scancode < 0 then
+        WriteLn(StdErr, 'POOLRAD_KEYS: no key ', word)
+      else begin
+        KeyDown(key);
+        keyDue := SDL_GetTicks + KEY_GAP_MS;
+      end;
+    end;
+  end;
+end;
+
 procedure Service;
 var
   event: TSDL_Event;
 begin
+  if keyScript <> '' then
+    RunKeyScript;
   while SDL_PollEvent(event) do
     case event.eventType of
       SDL_EVENT_QUIT, SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -318,6 +398,8 @@ begin
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_PIXELART);
   Host.serviceHook := @Service;
   shotPath := GetEnvironmentVariable('POOLRAD_SHOT');
+  keyScript := GetEnvironmentVariable('POOLRAD_KEYS');
+  keyDue := 0;
   Present;
 end;
 

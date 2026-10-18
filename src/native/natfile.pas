@@ -6,6 +6,8 @@
   System's own parameters (out, const) to be taken over System's. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
+{ the callers check IOResult (they are compiled {$I-}), so an error stays there rather than raising }
+{$I-}
 unit NatFile;
 
 interface
