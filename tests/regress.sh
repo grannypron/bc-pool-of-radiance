@@ -17,6 +17,10 @@
 # VIDEO=cga, tandy or vga runs the game in that video mode (tests/scenarios/POOL-CGA.CFG, POOL-TANDY.CFG, POOL-VGA.CFG)
 # instead of EGA (POOL.CFG), and keeps the golden build's results apart, in GOLDEN/record-<mode>.json. Tandy and VGA
 # need goldbox-player's por-v13-tandy and por-v13-vga titles (a Tandy machine, a VGA one).
+# SOUND=adlib or sb sets the config's sound letter to A (AdLib music, speaker effects) or S (a Sound Blaster) and
+# gives the machine that card (goldbox-player's opl2, or sb2 with its OPL2); the golden build's results are kept apart,
+# in record-adlib.json or record-sb.json. Only START.EXE and GAME.OVR are staged, so with no SBSFX.DAT the Sound
+# Blaster's effects play on the speaker; the card's detection and the music still run.
 # MEMSIZE=N gives the emulator N MB instead of goldbox-player's 1 MB: more gives the game EMS, which it loads its
 # overlays from (STING Ctrl-Y says from EMS or disk). Its golden results are kept apart too: record-16mb.json,
 # record-vga-16mb.json and so on.
@@ -44,10 +48,24 @@ if [ -n "${MEMSIZE:-}" ] && [ "$MEMSIZE" != 1 ]; then
     memsize=(--memsize "$MEMSIZE")
     record="${record%.json}-${MEMSIZE}mb.json"
 fi
+# SOUND: the config's sound letter (its second line) and the card the machine gets
+sound=()
+case "${SOUND:-}" in
+    "") ;;
+    adlib) letter=A; sound=(--opl opl2) ;;
+    sb) letter=S; sound=(--sb sb2) ;;
+    *) echo "regress.sh: SOUND is adlib or sb" >&2; exit 2 ;;
+esac
+if [ ${#sound[@]} -gt 0 ]; then
+    mkdir -p "$root/obj"
+    sed "2s/.*/$letter\r/" "$config" > "$root/obj/regress-$SOUND.CFG"
+    config="$root/obj/regress-$SOUND.CFG"
+    record="${record%.json}-$SOUND.json"
+fi
 for f in "$golden/START.EXE" "$golden/GAME.OVR" "$candidate/START.EXE" "$candidate/GAME.OVR"; do
     [ -f "$f" ] || { echo "regress.sh: missing $f" >&2; exit 2; }
 done
 [ -x "$player/.venv/bin/python" ] || { echo "regress.sh: no goldbox-player checkout at $player" >&2; exit 2; }
 exec "$player/.venv/bin/python" "$player/tools/regress.py" --golden "$golden" --candidate "$candidate" \
-    --title "$title" --config "$config" --record "$record" "${memsize[@]}" --report "$root/obj/regress.json" \
+    --title "$title" --config "$config" --record "$record" "${memsize[@]}" "${sound[@]}" --report "$root/obj/regress.json" \
     "${scenarios[@]}"
