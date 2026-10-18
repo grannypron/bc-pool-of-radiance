@@ -23,6 +23,7 @@ begin
   GDVars.sound.name := 'Tandy';
   GDVars.sound.mode := C_Sound.MODE_TANDY;
   GDVars.sound.Play := SndTdy.Play;
+  GDVars.sound.singleStep := False;
 end;
 
 end.

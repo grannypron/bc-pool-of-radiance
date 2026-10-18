@@ -5,8 +5,8 @@
 
 No Gold Box game plays its effects through FM. Dark Queen of Krynn plays them on a Sound Blaster from SFXDQ.VOC (the
 same file FRUA ships), and Pools of Darkness from ZOUNDS.DAX. PoR's effects take Dark Queen's, as SSI shipped them,
-all but the footstep: Dark Queen's is not the owner's favourite and Pools' is three thumps, so the step is the first of
-Pools' three.
+all but the footstep: Dark Queen's is not the owner's favourite and Pools' is three thumps, the first itself a heel and
+a toe, so the step is that first thump's stronger hit alone.
 
 - Dark Queen's sounds are blocks of SFXDQ.VOC, in FRUA's order (Cast, Blast, Sorcery, Death, Missile, Hit, Lightning,
   Swish, Footstep, Fireball, Bowstring, Sploosh, Crackle), each 4-bit Creative ADPCM with its reference byte first.
@@ -38,9 +38,11 @@ ADPCM4 = 1
 # Dark Queen's blocks in SFXDQ.VOC, by FRUA's names
 DQK = {"Cast": 0, "Blast": 1, "Sorcery": 2, "Death": 3, "Missile": 4, "Hit": 5, "Lightning": 6, "Swish": 7,
        "Footstep": 8, "Fireball": 9, "Bowstring": 10, "Sploosh": 11, "Crackle": 12}
-# the first of the three thumps in Pools' "pad2": its second starts at 55 ms
-STEP_MS = 50
-STEP_FADE_MS = 5
+# Pools' "pad2" is three thumps, the first itself two hits (heel and toe: 0-8 ms, then 14-25 ms); the step is the
+# stronger second hit alone, faded in and out so it neither clicks nor doubles
+STEP_FROM_MS = 13
+STEP_TO_MS = 33
+STEP_FADE_MS = 2
 # tune -> source: ('dqk', name) or ('pools-first-step', NAME)
 TUNES = {
     1: ("dqk", "Cast"),                     # a spell is cast
@@ -51,7 +53,7 @@ TUNES = {
     6: ("dqk", "Hit"),                      # a weapon hits; the party bumps a wall
     7: ("dqk", "Lightning"),                # Lightning Bolt
     8: ("dqk", "Swish"),                    # a miss
-    9: ("pools-first-step", "pad2"),        # a step: the first of Pools' three thumps
+    9: ("pools-first-step", "pad2"),        # a step: one hit of the first of Pools' three thumps
     10: ("dqk", "Fireball"),                # Fireball, and the scripts' cue
     11: ("dqk", "Hit"),                     # a missile lands
 }
@@ -106,11 +108,12 @@ def dqk_sample(blocks: list, name: str) -> tuple:
 
 
 def first_step(pools: dict, name: str) -> tuple:
-    """(format, time constant, bytes): the first STEP_MS of Pools' sample name at 9000 Hz, faded out over its last
-    STEP_FADE_MS so it ends without a click."""
-    pcm = bytearray(pools[name][:POOLS_RATE * STEP_MS // 1000])
+    """(format, time constant, bytes): STEP_FROM_MS to STEP_TO_MS of Pools' sample name at 9000 Hz, one hit, faded
+    in and out over STEP_FADE_MS so it ends without a click."""
+    pcm = bytearray(pools[name][POOLS_RATE * STEP_FROM_MS // 1000:POOLS_RATE * STEP_TO_MS // 1000])
     fade = POOLS_RATE * STEP_FADE_MS // 1000
     for k in range(fade):
+        pcm[k] = round(128 + (pcm[k] - 128) * k / fade)
         i = len(pcm) - fade + k
         pcm[i] = round(128 + (pcm[i] - 128) * (fade - k) / fade)
     return PCM8, 256 - 1000000 // POOLS_RATE, bytes(pcm)

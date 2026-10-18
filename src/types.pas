@@ -844,6 +844,10 @@ type
     mode: Byte;
     { load a tune into the device's voices }
     Play: TSoundPlay;
+    { a step in the 3D map plays its footstep once, not twice as SSI's code does (Explore.MovePartyForward3D and
+      EclVm.GameLoop): set for the Sound Blaster, whose recorded step doubled sounds wrong, and clear for the speaker
+      and the Tandy, whose double tick is kept (POR-0170) }
+    singleStep: Boolean;
   end;
   TVideoDriver = record
     { the mode's name, for the settings screen }

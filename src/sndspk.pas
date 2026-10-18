@@ -23,6 +23,7 @@ begin
   GDVars.sound.name := 'PC Speaker';
   GDVars.sound.mode := C_Sound.MODE_SPEAKER;
   GDVars.sound.Play := SndSpk.Play;
+  GDVars.sound.singleStep := False;
 end;
 
 end.

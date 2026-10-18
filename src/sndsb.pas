@@ -338,6 +338,7 @@ begin
       GDVars.sound.name := 'Blaster (no AdLib)';
     end;
     GDVars.sound.Play := SndSb.Play;
+    GDVars.sound.singleStep := True;
     sbExitSaved := ExitProc;
     ExitProc := @SndSb.SbExit;
   end else begin

@@ -22,6 +22,7 @@ begin
   GDVars.sound.name := 'None';
   GDVars.sound.mode := C_Sound.MODE_DISABLED;
   GDVars.sound.Play := SndNone.Play;
+  GDVars.sound.singleStep := False;
 end;
 
 end.

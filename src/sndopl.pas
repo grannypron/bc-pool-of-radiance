@@ -73,6 +73,7 @@ begin
     GDVars.sound.name := 'AdLib';
     GDVars.sound.mode := C_Sound.MODE_ADLIB;
     GDVars.sound.Play := SndOpl.Play;
+    GDVars.sound.singleStep := False;
   end else begin
     SndSpk.Install;
     GDVars.sound.name := 'Speaker (no AdLib)';
