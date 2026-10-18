@@ -89,7 +89,7 @@ implementation
 
 uses Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored;
+  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes;
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -478,6 +478,7 @@ begin
   { the game's statistics (#611); a save made before them starts from none }
   Stats.ReadGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   Explored.ReadSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map');
+  MapNotes.ReadSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts');
   { names holds 8, the most a party has }
   if nChars > 8 then
     nChars := 8;
@@ -631,6 +632,7 @@ begin
   Vault.CommitToSlot(letter);
   Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   Explored.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map');
+  MapNotes.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts');
   p := GDVars.creatureList;
   n := 0;
   while (p <> nil) and (n < Types.MAX_PARTY) do begin

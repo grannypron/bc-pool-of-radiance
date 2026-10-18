@@ -1,5 +1,5 @@
 # The Companion Tools (phase 8): the Settings line turned on, F6 from New Phlan (save A), the Map tool after a short
-# walk (the visited squares bright, the events marked), and the character editor. The golden build has no tools, so their screens are ours alone and not compared.
+# walk (the visited squares bright, the events marked), the character editor, and a note. The golden build has no tools, so their screens are ours alone and not compared.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
@@ -63,6 +63,14 @@ candidate: press h s
 candidate: wait HEALTH
 candidate: checkpoint status
 candidate: press h e e
+candidate: wait TOOLS
+# Notes: the cursor a square east of the party, a note written there
+candidate: press n
+candidate: wait NOTES
+candidate: press right w t a v e r n ret
+candidate: wait NOTES
+candidate: checkpoint notes
+candidate: press e
 candidate: wait TOOLS
 candidate: press e
 candidate: wait AREA

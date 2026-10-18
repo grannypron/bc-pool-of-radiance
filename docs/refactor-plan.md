@@ -948,6 +948,20 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
 4. **Player notes.**
    - A note of up to 30 characters on any square, added, changed or removed from the map screen with a cursor.
    - Kept per area in `SAVGAMx.NTS` beside the save.
+
+   **Done.**
+   - `MapNotes` (resident, as Explored is) keeps up to 128 notes of 30 characters, each on a square of an area keyed
+     by script and map.
+     - It costs 4,487 bytes of the data segment (20,766 bytes are left free).
+     - SaveToSlot writes `savgam<x>.nts`; LoadSlot reads it; a new game clears it.
+   - **Notes** on the Tools screen opens the Map with a cursor on the party's square, moved with the arrows.
+     - The cursor's square and its note show below the map. Write types a note and Clear removes it.
+     - A noted square's walls are yellow on both the Map and Notes screens (light magenta in CGA), and the legend
+       says so.
+   - The Map now draws square by square (`DrawSquare`), as Notes redraws the squares the cursor leaves.
+   - `TMapNote` (12 checks) covers setting, changing and removing notes, keeping areas apart, the file's round trip,
+     and a full set of notes.
+   - The `companion` scenario writes a note.
 5. **The character editor.**
    - CharGen's Modify Character, split into a facade (today's checks) and the modifying routine the editor calls
      without the experience check, extended to levels, experience, gear, money, spells and status.
