@@ -30,4 +30,5 @@ golden: press t e s t ret o
 candidate: press t e s t ret
 wait QUIT
 press n
-saves after-save
+# every file the save writes, but ours's .MAP of the visited squares (phase 8), which the golden build has not
+saves after-save *.CHA *.DAT *.INF *.ITM *.SAV *.SPC *.STS *.TXT

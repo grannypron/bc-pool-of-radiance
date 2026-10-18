@@ -9,6 +9,10 @@ uses Types;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
+{ Make item the magic item of GDConsts.randomItemTemplates[template]: its name parts, weight, value and properties,
+  plus 1 (the Cloak of Displacement's 2). }
+procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
+
 implementation
 
 uses GDConsts, C_Item, Dice;
@@ -26,6 +30,30 @@ begin
   end;
 end;
 
+procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
+var
+  tpl: Types.TRandomItemTemplate;
+  j: Byte;
+begin
+  tpl := GDConsts.randomItemTemplates[template];
+  with item^ do begin
+    for j := 1 to 3 do
+      nameIds[j] := Lo(tpl.nameIds[j]);
+    plus := 1;
+    saveBonus := 1;
+    { the Cloak of Displacement is +2 }
+    if template = 13 then begin
+      plus := 2;
+      saveBonus := 2;
+    end;
+    weight := tpl.weight;
+    quantity := 0;
+    value := tpl.value;
+    for j := 1 to 3 do
+      spells[j] := Lo(tpl.properties[j]);
+  end;
+end;
+
 { Build a random item of the given kind. Kinds 1..59, 73, 77 and 93 are weapons and armor, named from their type with a
   plus from RandomBonus and given a weight and value by type. 61 and 62 are magic-user and clerical scrolls holding 1d3
   rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GDConsts.randomItemTemplates, as
@@ -36,7 +64,6 @@ var
   n: Byte;
   j: Byte;
   template: Byte;
-  tpl: Types.TRandomItemTemplate;
   spell: Byte;
 begin
   { clear the whole item record }
@@ -251,24 +278,9 @@ begin
              end;
            end;
     end;
-    if template <> 0 then begin
-      tpl := GDConsts.randomItemTemplates[template];
-      for j := 1 to 3 do
-        nameIds[j] := Lo(tpl.nameIds[j]);
-      plus := 1;
-      saveBonus := 1;
-      { the Cloak of Displacement is +2 }
-      if template = 13 then begin
-        plus := 2;
-        saveBonus := 2;
-      end;
-      weight := tpl.weight;
-      quantity := 0;
-      value := tpl.value;
-      for j := 1 to 3 do
-        spells[j] := Lo(tpl.properties[j]);
-    end;
   end;
+  if template <> 0 then
+    RandItem.ApplyTemplate(item, template);
 end;
 
 end.

@@ -16,7 +16,7 @@ implementation
 
 uses Types, Crt, C_Area, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps, Stats;
+  VidOps, Stats, Explored, MapNotes;
 
 var
   { directory saved across resource loading }
@@ -254,6 +254,8 @@ end;
 
 procedure ResetGameState;
 begin
+  Explored.Clear;
+  MapNotes.Clear;
   FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
   FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
   FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
@@ -354,6 +356,7 @@ begin
   GDVars.soundOn := 1;
   GDVars.quickEnds := 1;
   GDVars.quickMagicOn := 0;
+  GDVars.companionOn := 0;
   GDVars.stingHpFlag := 0;
   GDVars.msgDelayFlag := 1;
   GDVars.gameDelay := 1;

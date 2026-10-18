@@ -821,6 +821,200 @@ trace test of step 0 pins it).
 **Approved** 2026-10-17. With no OPL2 answering, A falls back to the **speaker**, and the Settings screen says so. The
 speaker and Tandy arrangements stay as SSI wrote them; AdLib borrows the Tandy streams.
 
+## Phase 8: the Companion tools
+
+Written 2026-10-18 at the owner's request. These are features, not refactoring; they are planned here like a phase.
+
+**Why.**
+- Gold Box Companion (GBC, gbc.zorbus.net) attaches to a running Gold Box game and reads and writes its memory at the
+  original executables' addresses.
+- The port's memory layout is its own, so GBC no longer works with it.
+- Players expect three of GBC's tools: a character editor, a full automap, and a map marked with where things happen.
+  The port gets its own.
+
+**Decided with the owner (2026-10-18).**
+- **Access:** a **Companion Tools** line on the Settings screen, off by default and kept in POOLOPT.CFG like the
+  others. When it is on, a key on the map and camp menus opens a Tools screen, anywhere outside combat. When it is
+  off, the game plays as SSI's.
+- **Character editor:** everything GBC's covers.
+  - Abilities (exceptional Strength included), current and maximum hit points, age, alignment.
+  - Each class's level and experience, re-deriving THAC0, saves, spell slots and hit points as training would. That
+    includes GBC's level-up anywhere, past racial limits.
+  - Gear and money: add any item type with its plus and charges, remove and identify items, set coins, gems and
+    jewelry.
+  - Spells known and memorized; status (dead, stoned, level drain).
+- **Full automap:** a screen of its own, not the 3D view's window. It shows the whole 16x16 area with every wall and
+  door, secret ones too. Squares the party has visited are drawn bright and the rest dimmer, and the party's square
+  and facing are marked.
+- **Markup:**
+  - squares with an event, from the map's event plane;
+  - what kind of event each is, worked out from the area's script;
+  - players' own notes on squares, saved with the game.
+
+**The steps.**
+0. **The switch and the Tools screen.**
+   - The Settings line and its POOLOPT.CFG key.
+   - F6 on the map and camp menus, unlisted.
+   - A Tools screen listing Map, Notes and Character.
+   - The tools go in overlaid units: they are rarely open, and resident code is at 69.5 KB.
+
+   **Done.**
+   - `GDVars.companionOn`, off by default, is the Settings screen's **Companion Tools** line, kept as `COMPANION=` in
+     POOLOPT.CFG. With eight settings, the last now sits against the split border.
+   - F6 (`C_Keys.F6`) opens `CompTool.ToolsMenu` from the 3D map menu, the wilderness menu and camp while the setting is
+     on, and redraws the screen afterwards. The unit is overlaid, and named CompTool because DOS names stop at 8.
+   - The Tools screen lists Map, Notes and Character, each "Not built yet" until its step.
+   - Checked in the emulator: the setting turns on, F6 opens Tools from New Phlan, and Exit returns to the map.
+   - The boot scenario records the Settings screen apart for each build.
+1. **Where the party has been.**
+   - A 16x16 bit map per area (32 bytes), keyed as AreaName keys areas: the script, and the map for the scripts that
+     run two.
+   - Set on every arrival in a square, in GameLoop beside the step.
+   - Saved in a file beside each save, `SAVGAMx.MAP` (the quick save's too), versioned like `.INF` and `.STS`. SSI's
+     own files stay as they are.
+   - A save made before this has none, and its areas start unexplored.
+
+   **Done.**
+   - `Explored` (resident, about 2.2 KB of data) holds up to 64 areas of 16x16 bits, keyed by the script and the GBVM
+     mapId.
+   - `View3D.Display3DMapView` marks the square it is drawn from, so moves, turns, arrivals and teleports all count.
+   - SaveToSlot writes `savgam<x>.map` (2,183 bytes; quick saves too), LoadSlot reads it, and a new game clears it.
+   - `TExplore` (9 checks) covers marking, keeping areas apart, and the file's round trip.
+   - Checked in the emulator: a save from camp writes SAVGAMD.MAP.
+   - `loadsave` compares the save's files by kind, without the .MAP the golden build lacks.
+2. **The full automap screen.**
+   - The current area's 16x16 grid, full screen, in every video mode, drawn with the existing picture and text
+     routines.
+   - Wall and door types as the 3D view and the automap read them.
+   - Visited squares bright, the rest dim; the party's square and facing; a legend.
+   - Cell size and symbols decided in this step: 16 cells of 11 or 12 pixels fit the 200-pixel screen with room for
+     the legend.
+   - The wilderness is not in scope; it has its own map.
+
+   **Done.**
+   - `CompTool`'s Map draws the area's 16x16 squares in the automap's own 8x8 symbols (set 4: the sixteen wall
+     combinations and the party's arrows), straight to the screen at column 2, row 3. The area's name is above it and a
+     legend beside it.
+   - Visited squares keep their colours. The rest are dimmed through `Blit.RemapPic`: the dark grey square goes black
+     and the grey walls dark grey.
+   - In CGA's four colours both greys look alike, so there a visited square's walls turn white instead. The glyph takes
+     the symbol set's colour map, which CGA's remap translates through.
+   - Checked in EGA, VGA and CGA after a walk in New Phlan.
+   - The `companion` scenario turns the tools on, walks, and opens Tools and Map. Those screens are recorded for our
+     build alone; the walk is compared.
+3. **Event markup.**
+   - Every square whose event byte is set gets a mark.
+   - Classifying them:
+     - Each area script dispatches its events through an `ON GOTO` on the event number (Podal Plaza's, for example,
+       at `$9AB7`).
+     - Following that dispatch, a classifier scans each event's code until it leaves the event (EXIT, or a jump past
+       it).
+     - It sorts each event by what it finds: **fight** (COMBAT, LOAD MONSTER), **treasure** (items or money given),
+       **service** (shop, temple, training, the vault), **exit** (NEWECL, an area change), **trap** (damage, a save),
+       or **message** (text only).
+   - It runs in the game, on the loaded script, so it needs no shipped data.
+   - Unit tests pin it against known squares: Podal Plaza's tavern (a fight), the training hall's notice board (an
+     exit), the arms shop (a service).
+   - Squares the player has not visited still show their marks. That is GBC's "where things occur".
+
+   **Done.**
+   - `EvtKind` (overlaid) reads the loaded script without running it, decoding with `EclVars.SkipEclCmd`.
+     - `Prepare` walks the script from its five entry points. From each read of the event byte (an AND of it into a
+       variable, or a COMPARE of it) it scans on, tracking which variables still hold the event on each path.
+     - The scripts dispatch three ways, all found:
+       - an ON GOTO or ON GOSUB on such a variable;
+       - a COMPARE with a number, then IF =;
+       - a counted copy: New Phlan counts a variable up until it equals the event, then goes ON GOTO on it. The
+         training hall counts from 10 and takes 10 off first, so an ADD or SUBTRACT in place moves the variable's
+         offset.
+     - Any other write to a variable ends its holding the event. Podal Plaza's goes on to hold menu answers.
+     - SkipEclCmd loads an ON GOTO's address list over its variable and count, so those two are read from the
+       script bytes.
+   - `Kind` follows each matching dispatch's code (jumps, calls, both ways past an IF, at most 160 instructions). The
+     strongest kind found wins: exit (NEWECL), then service, fight, treasure, trap (DAMAGE), message.
+     - A shop or temple sets ENTER_SHOP or ENTER_TEMPLE before the COMBAT that opens it, so service ranks above
+       fight. PROGRAM (the training hall, the vault) counts as service too.
+     - An event whose code shows none of these (New Phlan's building squares, which only clear flags) is not marked.
+       One with no dispatch found is a plain "event".
+   - The Map colours each event square's background by kind and lists the kinds the area has in its legend.
+     Unvisited squares keep their colour, with dimmed walls.
+   - Squares are classified by the running script. On the training hall's notice board, the hall's script runs on
+     New Phlan's map, so only its own squares are named and the rest show as plain events.
+   - `TEvtKind` (8 checks) lays a script out by hand: ON GOTO, COMPARE and IF =, the counted copy with an offset, a
+     variable written over, and a shop's COMBAT.
+   - Checked in the emulator in New Phlan and the training hall, in EGA and CGA. CGA has three colours besides black,
+     so kinds share them: cyan for events and messages, magenta for traps and fights, white for treasure, services
+     and exits.
+4. **Player notes.**
+   - A note of up to 30 characters on any square, added, changed or removed from the map screen with a cursor.
+   - Kept per area in `SAVGAMx.NTS` beside the save.
+
+   **Done.**
+   - `MapNotes` (resident, as Explored is) keeps up to 128 notes of 30 characters, each on a square of an area keyed
+     by script and map.
+     - It costs 4,487 bytes of the data segment (20,766 bytes are left free).
+     - SaveToSlot writes `savgam<x>.nts`; LoadSlot reads it; a new game clears it.
+   - **Notes** on the Tools screen opens the Map with a cursor on the party's square, moved with the arrows.
+     - The cursor's square and its note show below the map. Write types a note and Clear removes it.
+     - A noted square's walls are yellow on both the Map and Notes screens (light magenta in CGA), and the legend
+       says so.
+   - The Map now draws square by square (`DrawSquare`), as Notes redraws the squares the cursor leaves.
+   - `TMapNote` (12 checks) covers setting, changing and removing notes, keeping areas apart, the file's round trip,
+     and a full set of notes.
+   - The `companion` scenario writes a note.
+5. **The character editor.**
+   - CharGen's Modify Character, split into a facade (today's checks) and the modifying routine the editor calls
+     without the experience check, extended to levels, experience, gear, money, spells and status.
+   - A screen on the character sheet's layout. Each field is chosen and changed in place, and values are held to the
+     game's limits: abilities 3 to 25, as the rules run.
+   - Levels and experience go through ClassCal's rules, so a raised level gets its hit points, THAC0, saves and spell
+     slots as training gives them.
+   - Items are made from the base item table, with their name parts, plus and charges, as RandItem builds them.
+   - Not in combat.
+
+   **Done.** `CharEdit` (overlaid), Character on the Tools screen. The party's characters are edited on their sheets
+   (Up, Down, Home and End pick another) through `Abilities Levels Gear Magic Health Exit`.
+   - **Abilities** is `CharGen.ModifyCharacter(True)`. The main menu's Modify Character is now a facade: no experience
+     and `CharGen.Modifiable` (a player race and class), then `ModifyCharacter(False)`, unchanged.
+     - Levelled, a Constitution change moves hpMax by what it gives over every hit die (`ClassCal.ConHpTotal`, as
+       Temple and EffHndlr do). The hit-point row runs between `HpMinimum` and `HpMaximum` for the levels.
+     - Damage taken stays taken, and Exit restores hpCur too. Keep leaves `npcTreasureShare` alone.
+   - **Levels** lists each class with its level, the experience and hit points.
+     - Right raises a level through `CharGen.GainLevels`: training's level gain, moved out of TrainingMenu, without its
+       drained-level restore. That covers hit dice, skills and a magic-user's new spell.
+     - Left lowers one. Hit points drop by a hit die's average plus the Con bonus, divided by the class count, and the
+       skills are recalculated. A cleric or magic-user back at level 1 gets level 1's slot.
+     - Levels run 1 to `C_Level.LEVEL_LAST` (9), past the racial limits. The experience follows into the new level's
+       range, and Experience types a total.
+     - `ClassCal.HpMaximum` now reads `GDConsts.hpDice` and `hpSides` instead of its own copy of them.
+   - **Gear: Add** lists every weapon and armour RandItem makes, the magic items of its templates (all but the
+     Scroll of Restoring Levels, which nothing makes), and the two scrolls.
+     - Weapons and armour then take a plus from 0 to 5 with Left and Right; the name and value follow.
+     - The item comes identified and goes to the character if it can carry it. `RandItem.ApplyTemplate` is the
+       template step, split out of GenerateRandomItem.
+   - **Gear: Money** sets each of the seven coin counts. The Items menu already drops what is not wanted.
+   - **Magic** toggles the magic-user's or cleric's known spells of levels 1 to 3.
+   - **Health:** Heal restores the hit points and wakes the unconscious and dying. Status steps through okay,
+     unconscious, dying, dead, stoned and gone.
+   - `TRandItm` checks ApplyTemplate. The `companion` scenario walks every tool on Talonia.
+
+**Testing.**
+- Unit tests for the visited and notes files, and for the classifier against known squares.
+- Scenarios for each tool screen, recorded for the candidate only, since the golden build has none.
+- The regression suite with Companion Tools off must pass unchanged.
+
+**What could change behaviour.** Nothing with the setting off. With it on, only what a player does in the tools.
+
+**Approved** 2026-10-18, with the owner's answers:
+- **F6** opens the Tools screen from the map and camp menus. It is not listed on either.
+- An edited character is not marked.
+- The editor builds on CharGen's Modify Character.
+  - Its modifying part becomes a routine of its own. `ModifyCharacterMenu` stays as a facade that keeps today's checks
+    (no experience yet, a player character) and then calls it.
+  - The Companion editor calls it directly, with no experience check.
+  - Hit points need care once a character has levels: Modify was written for a fresh character's single roll.
+- GBC's other tools (teleport, party heal, auto-identify) are not asked for and are left out.
+
 ## Working method
 
 One branch and one PR per phase, an issue per item, each change checked against the tests, the regression suite and

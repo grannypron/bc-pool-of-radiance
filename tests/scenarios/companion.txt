@@ -1,0 +1,78 @@
+# The Companion Tools (phase 8): the Settings line turned on, F6 from New Phlan (save A), the Map tool after a short
+# walk (the visited squares bright, the events marked), the character editor, and a note. The golden build has no tools, so their screens are ours alone and not compared.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+# Up from the first setting wraps to the last: ours's Companion Tools (the golden build's Quick Mode Magic)
+press g up ret esc
+wait RADIANCE
+# a slot's letter loads it at once in ours (#652)
+golden: press l a ret
+candidate: press l a
+wait AREA
+checkpoint new-phlan
+press up up right up up left up
+wait AREA
+checkpoint walked
+candidate: press f6
+candidate: wait TOOLS
+candidate: checkpoint tools
+candidate: press m
+candidate: wait MAP
+candidate: checkpoint map
+candidate: press ret
+candidate: wait TOOLS
+# the character editor on the first character's sheet: a level raised and its experience, Modify Character's
+# abilities left with Exit (the abilities restored), gear, magic and health
+candidate: press c
+candidate: wait ABILITIES
+candidate: checkpoint editor
+candidate: press l
+candidate: wait LEVELS
+candidate: checkpoint levels
+candidate: press right
+candidate: wait LEVELS
+candidate: checkpoint level-raised
+candidate: press d a
+candidate: wait MODIFY
+candidate: checkpoint modify
+candidate: press e
+candidate: wait ABILITIES
+# Gear: the Add list, a Hand Axe made +2 and taken, the coins; Magic: the magic-user's spells
+candidate: press g a
+candidate: wait TAKE NEXT
+candidate: checkpoint add-list
+candidate: press down down ret
+candidate: wait TAKE EXIT
+candidate: press right right
+candidate: checkpoint add-plus
+candidate: press t
+candidate: wait GEAR
+candidate: checkpoint gear
+candidate: press m
+candidate: wait MONEY
+candidate: checkpoint money
+candidate: press esc e
+candidate: wait ABILITIES
+candidate: press m m
+candidate: wait KNOWN
+candidate: checkpoint spells
+candidate: press esc e
+candidate: wait ABILITIES
+candidate: press h s
+candidate: wait HEALTH
+candidate: checkpoint status
+candidate: press h e e
+candidate: wait TOOLS
+# Notes: the cursor a square east of the party, a note written there
+candidate: press n
+candidate: wait NOTES
+candidate: press right w t a v e r n ret
+candidate: wait NOTES
+candidate: checkpoint notes
+candidate: press e
+candidate: wait TOOLS
+candidate: press e
+candidate: wait AREA
+# the edited party (Talonia healed to 91) is ours alone
+candidate: checkpoint back-edited

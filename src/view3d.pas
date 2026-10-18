@@ -32,7 +32,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo, StrUtil;
+uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo, StrUtil, Explored;
 
 procedure DisplayViewBuf; forward;
 
@@ -313,6 +313,8 @@ var
   end;
 
 begin
+  { the Companion Tools' map remembers every square the view is drawn from (phase 8) }
+  Explored.Mark(x, y);
   if GDVars.automapOn then
     View3D.DrawAutoMap(x, y, facing)
   else begin

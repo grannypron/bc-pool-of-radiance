@@ -1,9 +1,9 @@
 { The Settings screen and POOLOPT.CFG. The game's settings (speed, monster pictures, portraits, music, sound, Quick
-  ending with the fight and quick-mode magic) are global: POOLOPT.CFG in the save folder keeps them as KEY=VALUE lines.
-  GameInit reads it at start-up, before the title music, and every change writes it back; a saved game no longer
-  changes them. The screen lists the settings above what the game runs with from POOL.CFG and a few lines about the
-  build, the data archives and memory. The NORAND and STING notes, when they are given, stand at the right of the last
-  settings rows. }
+  ending with the fight, quick-mode magic and the Companion Tools) are global: POOLOPT.CFG in the save folder keeps
+  them as KEY=VALUE lines. GameInit reads it at start-up, before the title music, and every change writes it back; a
+  saved game no longer changes them. The screen lists the settings above what the game runs with from POOL.CFG and a
+  few lines about the build, the data archives and memory. The NORAND and STING notes, when they are given, stand at
+  the right of the last settings rows. }
 {$O+,F+,I-}
 unit Options;
 
@@ -45,21 +45,22 @@ const
   OPT_SOUND = 5;
   OPT_QUICK = 6;
   OPT_MAGIC = 7;
-  OPT_COUNT = 7;
+  OPT_COMPANION = 8;
+  OPT_COUNT = 8;
   { the slowest game speed; 0 is the fastest }
   SLOWEST = 9;
   { The speed line's two choices, by speedChoice. }
   CHOICE_SLOWER = 0;
   CHOICE_FASTER = 1;
-  { Two framed boxes sharing border row SPLIT_ROW. The upper holds, after a blank row, the settings, with a blank row
-    under the last; the lower holds, after a blank row, POOL.CFG's values, a blank row, the build and memory lines and a
+  { Two framed boxes sharing border row SPLIT_ROW. The upper holds, after a blank row, the settings, the last against
+    the border; the lower holds, after a blank row, POOL.CFG's values, a blank row, the build and memory lines and a
     blank last row. The notes are right-aligned to RIGHT_COL on the settings' last rows, from the bottom up. }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   UPPER_TOP = 1;
   SETTINGS_TOP = UPPER_TOP + 1;
   SETTINGS_BOTTOM = SETTINGS_TOP + OPT_COUNT - 1;
-  SPLIT_ROW = SETTINGS_BOTTOM + 2;
+  SPLIT_ROW = SETTINGS_BOTTOM + 1;
   CFG_TOP = SPLIT_ROW + 2;
   CFG_BOTTOM = CFG_TOP + 3;
   INFO_TOP = CFG_BOTTOM + 2;
@@ -90,6 +91,7 @@ begin
     OPT_SOUND: KeyName := 'SOUND';
     OPT_QUICK: KeyName := 'AUTOENDQUICK';
     OPT_MAGIC: KeyName := 'QUICKMAGIC';
+    OPT_COMPANION: KeyName := 'COMPANION';
   else
     KeyName := '';
   end;
@@ -106,6 +108,7 @@ begin
     OPT_SOUND: SettingLabel := 'Sound';
     OPT_QUICK: SettingLabel := 'Auto End Quick Mode';
     OPT_MAGIC: SettingLabel := 'Quick Mode Magic';
+    OPT_COMPANION: SettingLabel := 'Companion Tools';
   else
     SettingLabel := '';
   end;
@@ -132,6 +135,7 @@ begin
     OPT_SOUND: StoredValue := Options.OnOff(GDVars.soundOn);
     OPT_QUICK: StoredValue := Options.OnOff(GDVars.quickEnds);
     OPT_MAGIC: StoredValue := Options.OnOff(GDVars.quickMagicOn);
+    OPT_COMPANION: StoredValue := Options.OnOff(GDVars.companionOn);
   else
     StoredValue := '';
   end;
@@ -200,6 +204,7 @@ begin
     OPT_SOUND: GDVars.soundOn := flag;
     OPT_QUICK: GDVars.quickEnds := flag;
     OPT_MAGIC: GDVars.quickMagicOn := flag;
+    OPT_COMPANION: GDVars.companionOn := flag;
   end;
 end;
 
@@ -443,6 +448,7 @@ begin
     OPT_SOUND: GameIo.SetSound(GDVars.soundMode = C_Sound.MODE_DISABLED);
     OPT_QUICK: GDVars.quickEnds := Ord(GDVars.quickEnds = 0);
     OPT_MAGIC: GDVars.quickMagicOn := Ord(GDVars.quickMagicOn = 0);
+    OPT_COMPANION: GDVars.companionOn := Ord(GDVars.companionOn = 0);
   end;
 end;
 
