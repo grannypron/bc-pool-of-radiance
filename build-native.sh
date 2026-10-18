@@ -176,6 +176,8 @@ done
 if [ $failed -eq 0 ] && [ $run_tests -eq 0 ] && [ $make_app -eq 1 ]; then
     app="$root/obj/native/macos/Pool of Radiance.app"
     version="$(sed -n "s/.*BUILD_VERSION = 'v\([0-9.]*\)-\([0-9]*\)'.*/\1.\2/p" "$root/obj/BUILDID.INC")"
+    # a checkout without the version tags (BUILD_VERSION 'UNKNOWN'): a version macOS still accepts
+    [ -n "$version" ] || version=0.0
     rm -rf "$app"
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
     lipo -create "$root/obj/native/aarch64-darwin/poolrad" "$root/obj/native/x86_64-darwin/poolrad" \
