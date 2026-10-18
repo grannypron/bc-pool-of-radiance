@@ -15,7 +15,8 @@ procedure VaultMenu;
 
 implementation
 
-uses Crt, GDVars, C_Ifc, C_Keys, CharDisp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar;
+uses Crt, GDVars, C_Ifc, C_Keys, CharDisp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
+  {$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure VaultMenu;
 var

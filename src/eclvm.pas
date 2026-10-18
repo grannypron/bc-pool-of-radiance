@@ -15,7 +15,7 @@ implementation
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec;
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }

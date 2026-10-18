@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Class, GDConsts, ClassCal, Dice, TestKit;
+uses Types, C_Level, C_Race, C_Save, C_Class, GDConsts, ClassCal, Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   c: Types.PCharRecord;

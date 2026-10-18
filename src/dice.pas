@@ -14,7 +14,7 @@ function RollDamageDice(n, sides: Byte): Byte;
 
 implementation
 
-uses GDVars;
+uses GDVars{$IFDEF FPC}, TpRand{$ENDIF};
 
 function RollDice(n, sides: Byte): Byte;
 var

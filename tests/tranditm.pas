@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TRandItm;
 
-uses Types, GDConsts, C_Item, RandItem, StrUtil, TestKit;
+uses Types, GDConsts, C_Item, RandItem, StrUtil, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   it: Types.TItemRec;

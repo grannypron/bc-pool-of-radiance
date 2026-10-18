@@ -42,7 +42,7 @@ procedure AppraiseMenu(var ok: Boolean);
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
-  EclMenu, CharDisp, AbilAdj, MoneyCal, Dice;
+  EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
 
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured

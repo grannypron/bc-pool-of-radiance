@@ -17,7 +17,7 @@ implementation
 
 uses Types, Crt, C_Area, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps, Stats, Explored, MapNotes;
+  VidOps, Stats, Explored, MapNotes{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { directory saved across resource loading }

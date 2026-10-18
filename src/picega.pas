@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses GDConsts, GDVars, Blit;
+uses GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: Types.PImgBuf);
 var
