@@ -1,20 +1,43 @@
 {$I COMPILER.INC}
 { The few SDL3 calls the native build makes (a window, a texture the screen is copied to, events, the clock, and an
   audio stream), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h, SDL_render.h, SDL_events.h, SDL_audio.h).
-  Only these: a full binding is not needed, and these are all that must be kept right. Free Pascal only. }
+  Only these: a full binding is not needed, and these are all that must be kept right.
+
+  On Linux and macOS SDL is linked into the program: build-native.sh copies SDL's static libSDL3.a as
+  libSDL3static.a into a folder it gives the linker, and that name is linked here, so a shared libSDL3 in a system
+  folder (which the linker searches first) is never taken instead. What the static library needs besides is named
+  here too: the maths library, and on macOS the system frameworks SDL's sdl3.pc lists. Free Pascal only. }
 unit Sdl3Min;
 
 interface
+
+{$IFDEF DARWIN}
+{$LINKFRAMEWORK CoreMedia}
+{$LINKFRAMEWORK CoreVideo}
+{$LINKFRAMEWORK Cocoa}
+{$LINKFRAMEWORK UniformTypeIdentifiers}
+{$LINKFRAMEWORK IOKit}
+{$LINKFRAMEWORK ForceFeedback}
+{$LINKFRAMEWORK Carbon}
+{$LINKFRAMEWORK CoreAudio}
+{$LINKFRAMEWORK AudioToolbox}
+{$LINKFRAMEWORK AVFoundation}
+{$LINKFRAMEWORK Foundation}
+{$LINKFRAMEWORK GameController}
+{$LINKFRAMEWORK Metal}
+{$LINKFRAMEWORK QuartzCore}
+{$LINKFRAMEWORK CoreHaptics}
+{$ELSE}
+{$IFDEF UNIX}
+{$LINKLIB m}
+{$ENDIF}
+{$ENDIF}
 
 const
 {$IFDEF WINDOWS}
   SDL_LIB = 'SDL3.dll';
 {$ELSE}
-{$IFDEF DARWIN}
-  SDL_LIB = 'libSDL3.dylib';
-{$ELSE}
-  SDL_LIB = 'SDL3';
-{$ENDIF}
+  SDL_LIB = 'SDL3static';
 {$ENDIF}
 
   SDL_INIT_AUDIO = $00000010;
