@@ -80,6 +80,11 @@ sdl_lib_for() {
     esac
 }
 
+# upper <words>: in capitals (macOS's bash 3.2 has no ${x^^})
+upper() {
+    echo "$*" | tr '[:lower:]' '[:upper:]'
+}
+
 # run_exe <target> <folder> <program>: run a built program from its folder, under Wine for Windows.
 run_exe() {
     case "$1" in
@@ -117,19 +122,19 @@ for target in "${targets[@]}"; do
         for t in "${tests[@]}"; do
             if ! $(fpc_for "$target") -FU"$out" -FE"$out" "$root/tests/$t.pas" > "$out/$t.OUT" 2>&1 \
                     || grep -qE "$fpc_error" "$out/$t.OUT"; then
-                echo "build-native.sh: $target: ${t^^} did not compile (obj/native/$target/tests/$t.OUT):" >&2
+                echo "build-native.sh: $target: $(upper "$t") did not compile (obj/native/$target/tests/$t.OUT):" >&2
                 grep -E "$fpc_error" "$out/$t.OUT" | head -n 5 | sed 's/^/    /' >&2
                 failed=1
                 continue
             fi
             run_exe "$target" "$out" "$t"
-            if ! grep -q "^DONE ${t^^}:" "$out/TEST.LOG" 2> /dev/null; then
-                echo "build-native.sh: $target: ${t^^} did not finish (no DONE line in TEST.LOG)." >&2
+            if ! grep -q "^DONE $(upper "$t"):" "$out/TEST.LOG" 2> /dev/null; then
+                echo "build-native.sh: $target: $(upper "$t") did not finish (no DONE line in TEST.LOG)." >&2
                 failed=1
             fi
         done
         [ ${#skipped[@]} -eq 0 ] || echo "build-native.sh: $target: skipped (the AdLib is not played natively):" \
-            "${skipped[*]^^}"
+            "$(upper "${skipped[*]}")"
         if [ -f "$out/TEST.LOG" ]; then
             grep -E "^(FAIL|DONE) " "$out/TEST.LOG" | sed 's/^/  /'
             grep -q "^FAIL " "$out/TEST.LOG" && failed=1

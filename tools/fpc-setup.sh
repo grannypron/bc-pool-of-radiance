@@ -148,6 +148,13 @@ for pp in "$lib"/ppc*; do
 done
 mkdir -p "$prefix/etc"
 "$prefix/bin/fpcmkcfg" -d "basepath=$lib" -o "$prefix/etc/fpc.cfg" >> "$log" 2>&1
+if [ "$host_os" = Darwin ]; then
+    # fpcmkcfg names the Command Line Tools' linker and SDK when they are installed, which an Xcode newer than them
+    # cannot use (ld: tapi error: unknown architecture): Xcode's own linker and SDK instead
+    sed -i '' 's|^\(-F[DlL].*/Library/Developer/CommandLineTools/.*\)|#\1|; s|^\(-XR/Library/Developer/CommandLineTools/.*\)|#\1|' \
+        "$prefix/etc/fpc.cfg"
+    echo "-FD$(dirname "$(xcrun --find ld)")" >> "$prefix/etc/fpc.cfg"
+fi
 [ -z "$opt" ] || echo "$opt" >> "$prefix/etc/fpc.cfg"
 
 touch "$stamp"
