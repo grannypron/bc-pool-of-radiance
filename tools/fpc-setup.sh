@@ -47,10 +47,10 @@ case "$host_os-$host_cpu" in
         boot_dist="x86_64-linux" boot_pp="ppcx64"
         crosses=("i386 linux" "i386 win32" "x86_64 win64") ;;
     Darwin-arm64)
-        boot_dist="aarch64-macosx" boot_pp="ppca64"
+        boot_dist="aarch64-darwin" boot_pp="ppca64"
         crosses=("x86_64 darwin") ;;
     Darwin-x86_64)
-        boot_dist="x86_64-macosx" boot_pp="ppcx64"
+        boot_dist="x86_64-darwin" boot_pp="ppcx64"
         crosses=("aarch64 darwin") ;;
     *) echo "fpc-setup.sh: no recipe for a $host_os $host_cpu host." >&2; exit 1 ;;
 esac
@@ -82,22 +82,14 @@ if [ ! -x "$boot/$boot_pp" ]; then
     echo "fpc-setup.sh: downloading the Free Pascal $bootstrap compiler to bootstrap with..."
     rm -rf "$boot" "$boot.download"
     mkdir -p "$boot.download"
-    if [ "$host_os" = "Linux" ]; then
-        url="https://downloads.freepascal.org/fpc/dist/$bootstrap/$boot_dist/fpc-$bootstrap.$boot_dist.tar"
-        curl -fsSL "$url" -o "$boot.download/fpc.tar"
-        tar -xf "$boot.download/fpc.tar" -C "$boot.download"
-        tar -xf "$boot.download"/fpc-*/binary.*.tar -C "$boot.download"
-        tar -xzf "$boot.download"/base.*.tar.gz -C "$boot.download" "lib/fpc/$bootstrap/$boot_pp"
-        mkdir -p "$boot"
-        cp "$boot.download/lib/fpc/$bootstrap/$boot_pp" "$boot/"
-    else
-        echo "fpc-setup.sh: on macOS, install Free Pascal $bootstrap from freepascal.org (the .dmg) first;" \
-            "this script then uses its $boot_pp." >&2
-        installed="$(command -v "$boot_pp" || true)"
-        [ -n "$installed" ] || exit 1
-        mkdir -p "$boot"
-        cp "$installed" "$boot/"
-    fi
+    # the release's tar (Linux and macOS alike): an installer's tar of tars, the compiler in base's
+    url="https://downloads.freepascal.org/fpc/dist/$bootstrap/$boot_dist/fpc-$bootstrap.$boot_dist.tar"
+    curl -fsSL "$url" -o "$boot.download/fpc.tar"
+    tar -xf "$boot.download/fpc.tar" -C "$boot.download"
+    tar -xf "$boot.download"/fpc-*/binary.*.tar -C "$boot.download"
+    tar -xzf "$boot.download"/base.*.tar.gz -C "$boot.download" "lib/fpc/$bootstrap/$boot_pp"
+    mkdir -p "$boot"
+    cp "$boot.download/lib/fpc/$bootstrap/$boot_pp" "$boot/"
     rm -rf "$boot.download"
 fi
 
