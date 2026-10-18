@@ -857,6 +857,15 @@ Written 2026-10-18 at the owner's request. These are features, not refactoring; 
    - F6 on the map and camp menus, unlisted.
    - A Tools screen listing Map, Notes and Character.
    - The tools go in overlaid units: they are rarely open, and resident code is at 69.5 KB.
+
+   **Done.**
+   - `GDVars.companionOn`, off by default, is the Settings screen's **Companion Tools** line, kept as `COMPANION=` in
+     POOLOPT.CFG. With eight settings, the last now sits against the split border.
+   - F6 (`C_Keys.F6`) opens `CompTool.ToolsMenu` from the 3D map menu, the wilderness menu and camp while the setting is
+     on, and redraws the screen afterwards. The unit is overlaid, and named CompTool because DOS names stop at 8.
+   - The Tools screen lists Map, Notes and Character, each "Not built yet" until its step.
+   - Checked in the emulator: the setting turns on, F6 opens Tools from New Phlan, and Exit returns to the map.
+   - The boot scenario records the Settings screen apart for each build.
 1. **Where the party has been.**
    - A 16x16 bit map per area (32 bytes), keyed as AreaName keys areas: the script, and the map for the scripts that
      run two.

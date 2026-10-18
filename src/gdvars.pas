@@ -51,6 +51,8 @@ var
   { the Quick Mode Magic setting: CombatSt starts every fight with quickMagic set from it; Alt-M then turns quickMagic
     over for that fight only }
   quickMagicOn: Byte;
+  { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
+  companionOn: Byte;
   { GameInit clears it; GameIo toggles it on STING Ctrl-D; nonzero enables PrintHpDebug }
   stingHpFlag: Byte;
   { Started as START STING: the debug keys and cheats are on. GameBoot sets it before anything reads a key. }

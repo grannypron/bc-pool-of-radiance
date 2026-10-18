@@ -72,6 +72,7 @@ uses Types,
 {$O MapTiles}
 {$O Debug}
 {$O Sym8x8}
+{$O CompTool}
 
 begin
   GameInit.GameInit2;

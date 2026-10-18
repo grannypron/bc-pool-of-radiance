@@ -354,6 +354,7 @@ begin
   GDVars.soundOn := 1;
   GDVars.quickEnds := 1;
   GDVars.quickMagicOn := 0;
+  GDVars.companionOn := 0;
   GDVars.stingHpFlag := 0;
   GDVars.msgDelayFlag := 1;
   GDVars.gameDelay := 1;

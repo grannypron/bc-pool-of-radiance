@@ -17,7 +17,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
   C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party, Dice;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -363,6 +363,11 @@ begin
                           end;
                C_Keys.F5: SaveLoad.QuickSave;
                C_Keys.F8: done := Explore.AskQuickLoad;
+               { the Companion Tools, while the setting is on (phase 8) }
+               C_Keys.F6: if GDVars.companionOn <> 0 then begin
+                            CompTool.ToolsMenu;
+                            CharDisp.DisplayNoncombatInterface;
+                          end;
              else begin
                Party.SelectPrevNextChar(c);
                CharDisp.DisplayParty(GDVars.curChar);
@@ -415,6 +420,13 @@ begin
                            done := False;
                          end;
               C_Keys.F8: done := Explore.AskQuickLoad;
+              C_Keys.F6: begin
+                           if GDVars.companionOn <> 0 then begin
+                             CompTool.ToolsMenu;
+                             CharDisp.DisplayWildernessInterface;
+                           end;
+                           done := False;
+                         end;
             else begin
               Party.SelectPrevNextChar(c);
               CharDisp.DisplayParty(GDVars.curChar);

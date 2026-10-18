@@ -27,6 +27,8 @@ const
   ALT_M = #50;
   { quick save and quick load, on the map menu }
   F5 = #63;
+  { the Companion Tools (phase 8), when the setting is on }
+  F6 = #64;
   F8 = #66;
 
 implementation

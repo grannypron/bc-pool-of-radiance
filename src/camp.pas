@@ -18,7 +18,7 @@ implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
   FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock;
+  CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -1066,8 +1066,16 @@ begin
     c := MenuCore.MenuHorizontal('Camp:', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
-      Party.SelectPrevNextChar(c);
-      CharDisp.DisplayParty(GDVars.curChar);
+      if c = C_Keys.F6 then begin
+        { the Companion Tools, while the setting is on (phase 8) }
+        if GDVars.companionOn <> 0 then begin
+          CompTool.ToolsMenu;
+          CharDisp.DisplayNoncombatInterface;
+        end;
+      end else begin
+        Party.SelectPrevNextChar(c);
+        CharDisp.DisplayParty(GDVars.curChar);
+      end;
     end else
       case c of
         'S': begin
