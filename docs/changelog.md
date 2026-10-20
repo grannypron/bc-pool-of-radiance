@@ -24,6 +24,7 @@ This update to the Pool of Radiance port (SSI's 1988 game, version 1.3, rebuilt 
 
 - Ability scores now run all the way to 25, using the Deities & Demigods tables above 18. High Constitution gives a larger hit-point bonus, raises the lowest possible roll on each hit die, improves saves against poison, and speeds up regeneration. High Dexterity improves thief skills, and high Wisdom gives clerics more bonus spells.
 - Multi-class characters with a fighter, paladin or ranger class now get the warrior's Constitution hit-point bonus for that class, as the rules intend.
+- Clerics, and multi-class characters with a cleric class, can no longer be created true neutral, as the rules require. Existing characters keep their alignment.
 - Ability scores can no longer fall below 3 or rise above 25 during play. Raise Dead, for example, can no longer reduce Constitution below 3.
 - The Manual of Bodily Health now always raises your hit points as well as your Constitution, and reading a second one no longer stacks extra regeneration.
 - Keoghtom's Ointment now revives only a character killed by poison, not one who was poisoned and then died of wounds.
