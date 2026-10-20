@@ -38,7 +38,7 @@ the text matches (an animated picture) is only a warning.
 | --- | --- |
 | `boot` | the main menu and the settings screen |
 | `chargen` | creating a paladin with fixed dice, the portrait and icon pickers, the `.CHA` file written, adding him |
-| `loadsave` | the Load/Save menu, loading A, View and More Info, the save popup, the files a save writes |
+| `loadsave` | the Load/Save menu, loading A, View and More Info (its saves, statistics and a thief's skills), the save popup, the files a save writes |
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
 | `journal` | the journal list and an entry |

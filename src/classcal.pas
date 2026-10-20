@@ -14,6 +14,15 @@ procedure RecalcSaves(creature: Types.PCharRecord);
 
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 
+{ The parts of creature's thief skill j (1..8, thiefSkills' order): base, thiefBase's value for the thief level; racial,
+  raceAdj's; dexterity, dexAdj's for skills 1..5 and 0 for the others. A creature without thief levels takes the level
+  1 row. }
+procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial, dexterity: ShortInt);
+
+{ The thief skill its parts (ThiefSkillParts) make, as RecalcThiefSkills stores it: their sum stopped at 0, or 0 when
+  the racial penalty is larger than the base, so it need not equal the sum. }
+function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
+
 { The racial limits on ability (C_Abil) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
   depends on), from GDConsts.dsMinimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
@@ -167,15 +176,30 @@ begin
   end;
 end;
 
-{ Set each thief skill to its base for the thief level plus the racial adjustment (a racial penalty larger than the base
-  zeroes the skill), plus the Dexterity adjustment for skills 1..5, stopping at 0 (a Dexterity 9 human's Move Silently
-  would be -5). dexAdj covers Dexterity 9..25, a thief's minimum to Deities & Demigods' highest; a Dexterity outside
-  that range uses the nearer end. thiefBase covers thief levels 1..9, and a higher level uses the level 9 row; a race
-  outside the player races (raceAdj covers 1..7) takes the human row, which adjusts nothing. }
+{ Set each thief skill (ThiefSkillParts, ThiefSkill) to its base for the thief level plus the racial adjustment (a
+  racial penalty larger than the base zeroes the skill), plus the Dexterity adjustment for skills 1..5, stopping at 0
+  (a Dexterity 9 human's Move Silently would be -5). A creature without thief levels keeps its skills as they are. }
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 var
   j: Byte;
-  total: Integer;
+  base: ShortInt;
+  racial: ShortInt;
+  dexterity: ShortInt;
+begin
+  if creature^.classLevels[C_Level.THIEF] < 1 then
+    Exit;
+  { 8 = High(thiefSkills) }
+  for j := 1 to 8 do begin
+    ClassCal.ThiefSkillParts(creature, j, base, racial, dexterity);
+    creature^.thiefSkills[j] := ClassCal.ThiefSkill(base, racial, dexterity);
+  end;
+end;
+
+{ dexAdj covers Dexterity 9..25, a thief's minimum to Deities & Demigods' highest; a Dexterity outside that range uses
+  the nearer end. thiefBase covers thief levels 1..9, and a higher level uses the level 9 row; a race outside the player
+  races (raceAdj covers 1..7) takes the human row, which adjusts nothing. }
+procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial, dexterity: ShortInt);
+var
   dex: Byte;
   r: ShortInt;
   tl: ShortInt;
@@ -190,24 +214,29 @@ begin
     r := C_Race.HUMAN;
   tl := creature^.classLevels[C_Level.THIEF];
   if tl < 1 then
-    Exit;
-  if tl > 9 then
+    tl := 1
+  else if tl > 9 then
     tl := 9;
-  with creature^ do
-    { 8 = High(thiefSkills) }
-    for j := 1 to 8 do
-      if (GDConsts.raceAdj[r].values[j] < 0) and
-         (Abs(GDConsts.raceAdj[r].values[j]) > GDConsts.thiefBase[tl].values[j]) then
-        thiefSkills[j] := 0
-      else begin
-        total := GDConsts.thiefBase[tl].values[j] + GDConsts.raceAdj[r].values[j];
-        { dexAdj covers skills 1..5 only }
-        if j < 6 then
-          total := total + GDConsts.dexAdj[dex].values[j];
-        if total < 0 then
-          total := 0;
-        thiefSkills[j] := total;
-      end;
+  base := GDConsts.thiefBase[tl].values[j];
+  racial := GDConsts.raceAdj[r].values[j];
+  dexterity := 0;
+  { dexAdj covers skills 1..5 only }
+  if j < 6 then
+    dexterity := GDConsts.dexAdj[dex].values[j];
+end;
+
+function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
+var
+  total: Integer;
+begin
+  if (racial < 0) and (Abs(racial) > base) then
+    ThiefSkill := 0
+  else begin
+    total := base + racial + dexterity;
+    if total < 0 then
+      total := 0;
+    ThiefSkill := total;
+  end;
 end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;

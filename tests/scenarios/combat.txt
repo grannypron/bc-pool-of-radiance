@@ -37,7 +37,9 @@ press ret 6 0 0 ret
 wait VIEW POOL
 golden: checkpoint taken
 candidate: checkpoint taken-668
-press v m s
+# ours's More Info has Saves on S and the statistics on T (#685)
+golden: press v m s
+candidate: press v m t
 golden: checkpoint stats
 candidate: checkpoint stats-668
 press g
