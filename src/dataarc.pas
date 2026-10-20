@@ -52,7 +52,7 @@ type
   end;
 
 const
-  { In DataBld's build order. goldbox-re-tools' mergedax holds the same table. }
+  { In DataBld's build order. This table, with DataBld and DataPat, is the only model of the merged archives. }
   families: array[1..C_Data.FAMILIES] of TFamily = (
     (prefix: 'ECL'; suffix: ''; merged: 'ECL'),
     (prefix: 'GEO'; suffix: ''; merged: 'GEO'),
