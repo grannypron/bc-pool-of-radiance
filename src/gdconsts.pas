@@ -1958,11 +1958,13 @@ const
     (strength: 9; intelligence: 9; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
     { magic-user/thief }
     (strength: 0; intelligence: 9; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0));
-  { The alignments each class can take, in the order the alignment menu lists them }
+  { The alignments each class can take, in the order the alignment menu lists them. A cleric cannot be true neutral
+    (1e PHB p.13), and a multiclass takes only the alignments all of its classes allow, so cleric/thief has neither
+    true neutral nor the thief's LG and CG. Druid and monk are not offered at creation and keep SSI's rows. }
   alignByClass: array[0..16] of Types.TRuleClassAlignments = (
     { cleric }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
+                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
     { druid }
     (count: 5; alignments: (C_Align.LN, C_Align.NG, C_Align.TN, C_Align.NE, C_Align.CN, 0, 0, 0, 0)),
     { fighter }
@@ -1982,19 +1984,19 @@ const
     (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
                             C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
     { cleric/fighter }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
+                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
     { cleric/fighter/magic-user }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
+                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
     { cleric/ranger }
     (count: 3; alignments: (C_Align.LG, C_Align.NG, C_Align.CG, 0, 0, 0, 0, 0, 0)),
     { cleric/magic-user }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
+                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
     { cleric/thief }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 6; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE, C_Align.CN,
+                            C_Align.CE, 0, 0, 0)),
     { fighter/magic-user }
     (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
                             C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),

@@ -1,7 +1,8 @@
-{ Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills. }
+{ Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills; and
+  GDConsts.alignByClass' rows. }
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Class, GDConsts, ClassCal, Dice, TestKit;
+uses Types, C_Level, C_Race, C_Save, C_Class, C_Align, GDConsts, ClassCal, Dice, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -30,6 +31,55 @@ begin
   end;
   TestKit.CheckEqualsS(expected, got, 'Wisdom ' + Chr(Ord('0') + wis div 10) + Chr(Ord('0') + wis mod 10) +
                        '''s bonus slots by level');
+end;
+
+{ Whether class cls's alignment row lists alignment al. }
+function AlignAllowed(cls: ShortInt; al: ShortInt): Boolean;
+var
+  slot: Integer;
+begin
+  AlignAllowed := False;
+  for slot := 1 to GDConsts.alignByClass[cls].count do
+    if GDConsts.alignByClass[cls].alignments[slot] = al then
+      AlignAllowed := True;
+end;
+
+{ Check alignByClass against the rules: no class with a cleric part lists true neutral (1e PHB p.13), and each
+  multiclass a race is offered at creation lists only alignments every one of its classes allows. }
+procedure CheckAlignments;
+var
+  cls: ShortInt;
+  race: ShortInt;
+  slot: Integer;
+  p: Integer;
+  part: ShortInt;
+  a: Integer;
+  noTn: Boolean;
+  subset: Boolean;
+begin
+  noTn := True;
+  for cls := C_Class.CLERIC to C_Class.MAGE_THIEF do
+    for p := 1 to 3 do
+      if (GDConsts.classParts[cls].values[p] = C_Level.CLERIC) and AlignAllowed(cls, C_Align.TN) then
+        noTn := False;
+  TestKit.Check(noTn, 'no class with a cleric part can be true neutral');
+  subset := True;
+  for race := C_Race.DWARF to C_Race.HUMAN do
+    for slot := 1 to GDConsts.classesByRace[race].count do begin
+      cls := GDConsts.classesByRace[race].classes[slot];
+      for p := 1 to 3 do begin
+        part := GDConsts.classParts[cls].values[p];
+        if (part >= 0) and (part <> cls) then
+          for a := 1 to GDConsts.alignByClass[cls].count do
+            if not AlignAllowed(part, GDConsts.alignByClass[cls].alignments[a]) then
+              subset := False;
+      end;
+    end;
+  TestKit.Check(subset, 'each multiclass offered takes only alignments all its classes allow');
+  TestKit.CheckEqualsL(8, GDConsts.alignByClass[C_Class.CLERIC].count, 'a cleric has 8 alignments');
+  TestKit.CheckEqualsL(6, GDConsts.alignByClass[C_Class.CLERIC_THIEF].count,
+                       'a cleric/thief has 6: neither true neutral nor LG or CG');
+  TestKit.Check(AlignAllowed(C_Class.THIEF, C_Align.TN), 'a thief can still be true neutral');
 end;
 
 { A fresh character of race with no class levels. }
@@ -449,6 +499,8 @@ begin
   TestKit.CheckEqualsL(33, ClassCal.ExperienceShare(c, 100), 'a three-class character a third (div 3)');
   c^.charClass := C_Class.DRUID;
   TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'another single class gets it all');
+
+  CheckAlignments;
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
