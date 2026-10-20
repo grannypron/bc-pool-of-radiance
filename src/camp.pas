@@ -825,7 +825,7 @@ begin
                           CharDisp.DisplayNoncombatInterface;
                         end;
                    'P': if Portrait.PlayerPortraitsHere then begin
-                          CharGen.CustomizePortrait;
+                          CharGen.CustomizePortrait(True);
                           CharDisp.DisplayNoncombatInterface;
                         end;
                  end;

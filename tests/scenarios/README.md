@@ -37,12 +37,12 @@ the text matches (an animated picture) is only a warning.
 | scenario | covers |
 | --- | --- |
 | `boot` | the main menu and the settings screen |
-| `chargen` | creating a paladin with fixed dice, the portrait and icon pickers, the `.CHA` file written, adding him |
+| `chargen` | creating a paladin with fixed dice, the portrait picker (Escape doing nothing there) and the icon picker, the `.CHA` file written, adding him |
 | `loadsave` | the Load/Save menu, loading A, View and More Info (its saves, statistics and a thief's skills), the save popup, the files a save writes |
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
 | `journal` | the journal list and an entry |
-| `camp` | Fix and Rest in Valhingen Graveyard, and Scribe's message for a character without magic-user levels |
+| `camp` | Fix and Rest in Valhingen Graveyard, Scribe's message for a character without magic-user levels, and Escape leaving Alter's portrait picker with the portrait unchanged |
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
 | `wilderness` | the central wilderness from save G (`saves/wild`, put into `SAVE\` by the scenario): the map and its second tile set, three steps, and the overlay loads, heap and picture memory (Ctrl-Y; ours only) |

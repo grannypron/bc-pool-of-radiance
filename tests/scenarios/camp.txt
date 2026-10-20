@@ -26,3 +26,16 @@ candidate: press m s
 candidate: checkpoint scribe-681
 candidate: press end
 candidate: checkpoint next-char-681
+# Alter's portrait picker from camp: Escape leaves it with the portrait the character had (#686, after the golden build)
+candidate: press esc
+candidate: wait CAMP
+candidate: press a c p
+candidate: checkpoint portrait-686
+candidate: press right
+candidate: checkpoint portrait-next-686
+candidate: press esc
+candidate: checkpoint portrait-escaped-686
+# opened again, the picker shows the head the character had, not the one stepped to
+candidate: press p
+candidate: checkpoint portrait-kept-686
+candidate: press esc

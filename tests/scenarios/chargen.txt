@@ -13,6 +13,9 @@ press end end end end ret ret
 checkpoint rolled
 press y a r n o l d ret
 checkpoint portrait
+# Escape does nothing in character creation's portrait picker (#686): a new character must get a portrait
+press esc
+checkpoint portrait-escape
 press k y
 checkpoint icon
 press k y
