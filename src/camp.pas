@@ -162,7 +162,7 @@ end;
 
 { Check whether the current character can cast, memorize or scribe. Anti-magic blocks casting; animated or disabled
   characters cannot do any of these. Held and asleep are effects, so these status checks do not detect them. On failure,
-  display the character's name and the reason. }
+  display the character's name and the reason, which stay in the message window without waiting for a key (#681). }
 function CanDoSpellActivity(activity: Byte): Boolean;
 var
   msg: Types.TStr40;
@@ -182,8 +182,22 @@ begin
     CanDoSpellActivity := True
   else begin
     CanDoSpellActivity := False;
-    CharDisp.PrintNameString(GDVars.curChar, msg, 10, True);
+    CharDisp.PrintNameString(GDVars.curChar, msg, 10, False);
   end;
+end;
+
+{ Select the previous or next character for the selection key c (Party.SelectPrevNextChar) and redraw the party. When
+  another character is selected the message window is cleared, so that a message about the last one, which camp's
+  messages leave there (#681), does not stay under the new one. }
+procedure SelectOtherChar(c: Char);
+var
+  was: Types.PCharRecord;
+begin
+  was := GDVars.curChar;
+  Party.SelectPrevNextChar(c);
+  if GDVars.curChar <> was then
+    CharDisp.ClearMessageWindow;
+  CharDisp.DisplayParty(GDVars.curChar);
 end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
@@ -460,9 +474,7 @@ begin
   if not Camp.CanDoSpellActivity(ACT_SCRIBE) then
     Exit;
   if GDVars.curChar^.classLevels[C_Level.MAGE] <= 0 then begin
-    TextRend.ShowMessage(LightGreen, True, 'Scribing a scroll requires arcane training.');
-    CharDisp.MessageWait;
-    CharDisp.ClearMessageWindow;
+    CharDisp.PrintMessage('Scribing a scroll requires arcane training.')
   end else begin
     done := False;
     idx := -1;
@@ -644,10 +656,9 @@ begin
   c := ' ';
   while (interrupted = False) and (not (c in [C_Keys.NONE, 'E'])) do begin
     c := MenuCore.MenuHorizontal('', GDConsts.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
-    if ext then begin
-      Party.SelectPrevNextChar(c);
-      CharDisp.DisplayParty(GDVars.curChar);
-    end else
+    if ext then
+      Camp.SelectOtherChar(c)
+    else
       case c of
         'C': Camp.NoncombatCastMenu;
         'M': Camp.CampMemorizeMenu;
@@ -733,8 +744,7 @@ begin
                                  White, True, True, ext);
     if ext then begin
       if selected = 0 then begin
-        Party.SelectPrevNextChar(c);
-        CharDisp.DisplayParty(GDVars.curChar);
+        Camp.SelectOtherChar(c);
       end else begin
         case c of
           C_Keys.HOME, C_Keys.UP: Camp.OrderMoveUp;
@@ -794,10 +804,9 @@ begin
   while not (c in [C_Keys.NONE, 'E']) do begin
     c := MenuCore.MenuHorizontal('Alter: ', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
-    if ext then begin
-      Party.SelectPrevNextChar(c);
-      CharDisp.DisplayParty(GDVars.curChar);
-    end else
+    if ext then
+      Camp.SelectOtherChar(c)
+    else
       case c of
         'O': Camp.CampOrderMenu;
         'D': Camp.CampDropMenu;
@@ -807,10 +816,9 @@ begin
                else
                  s := 'Icon Exit';
                c2 := MenuCore.MenuHorizontal('Character: ', s, LightMagenta, LightGreen, White, True, True, ext);
-               if ext then begin
-                 Party.SelectPrevNextChar(c2);
-                 CharDisp.DisplayParty(GDVars.curChar);
-               end else
+               if ext then
+                 Camp.SelectOtherChar(c2)
+               else
                  case c2 of
                    'I': begin
                           CharGen.CustomizeIcon;
@@ -837,7 +845,8 @@ end;
   to the least busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with
   a level-3 spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted
   reports a rest broken off by a scripted random interruption. A party with no cleric, or with none conscious, is told
-  so and does not rest, as is a party with nothing Fix can treat or no slot to treat it with. }
+  so and does not rest, as is a party with nothing Fix can treat or no slot to treat it with; the message stays in the
+  message window, without waiting for a key (#681). }
 procedure CampFixMenu(var interrupted: Boolean);
 const
   { the members planned for; a longer creature list is not looked at past this }
@@ -971,11 +980,11 @@ begin
     p := p^.nextCharAddr;
   end;
   if clerics = 0 then begin
-    CharDisp.PrintMessageWait('No clerics available to heal.');
+    CharDisp.PrintMessage('No clerics available to heal.');
     Exit;
   end;
   if ableClerics = 0 then begin
-    CharDisp.PrintMessageWait('No cleric is in a condition to heal.');
+    CharDisp.PrintMessage('No cleric is in a condition to heal.');
     Exit;
   end;
   { Plan the cures, then as many Cure Light Wounds as the wounds need at 4.5 hp each. }
@@ -1003,9 +1012,9 @@ begin
   if (healCasts = 0) and not anyCure then begin
     { the dead and the like are not Fix's to treat, so they leave nothing to do }
     if (need = 0) and not anyCondition then
-      CharDisp.PrintMessageWait('Further healing would do no good.')
+      CharDisp.PrintMessage('Further healing would do no good.')
     else
-      CharDisp.PrintMessageWait('Further healing isn''t possible.');
+      CharDisp.PrintMessage('Further healing isn''t possible.');
     Exit;
   end;
   total := 0;
@@ -1073,8 +1082,7 @@ begin
           CharDisp.DisplayNoncombatInterface;
         end;
       end else begin
-        Party.SelectPrevNextChar(c);
-        CharDisp.DisplayParty(GDVars.curChar);
+        Camp.SelectOtherChar(c);
       end;
     end else
       case c of

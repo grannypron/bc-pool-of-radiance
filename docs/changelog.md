@@ -1,5 +1,12 @@
 # Changelog
 
+## Since the October 2026 update
+
+### New features
+
+- Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
+- If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
+
 ## Pool of Radiance port: October 2026 update
 
 This update to the Pool of Radiance port (SSI's 1988 game, version 1.3, rebuilt from its source) collects a week of work from 10 to 17 October 2026. It adds paladins and rangers at character creation, a settings screen, a full-screen load and save menu with quick save and quick load, a vault in New Phlan, and statistics for each character. The rules now run to an ability score of 25, a long list of bugs from SSI's original is fixed, and the combat AI no longer runs in circles. Behind the scenes the code has been restructured and put under automated tests, and the game gains a VGA mode and can load its overlays from expanded memory. Your existing saved games and characters still load.

@@ -1,4 +1,5 @@
-{ Tests for MoneyCal: coin values, making change, who pays, item values and sale prices, and money type names. }
+{ Tests for MoneyCal: coin values, making change, who pays, item values and sale prices, money type names and temple
+  prices. }
 program TMoneyCa;
 
 uses Types, GDVars, C_Money, MoneyCal, TestKit;
@@ -127,6 +128,15 @@ begin
   name := 'unchanged';
   mType := MoneyCal.ParseMoneyType('Xyz', name);
   TestKit.CheckEqualsS('unchanged', name, 'an unknown letter leaves the name');
+
+  { temple prices: SSI's in full, or a tenth off in the Temple of Bane that Dirten rebuilds (#682) }
+  TestKit.CheckEqualsL(100, MoneyCal.TemplePrice(100, MoneyCal.TEMPLE_FULL_PRICE), 'a temple''s full price');
+  TestKit.CheckEqualsL(5500, MoneyCal.TemplePrice(5500, MoneyCal.TEMPLE_FULL_PRICE), 'Raise Dead in full');
+  TestKit.CheckEqualsL(90, MoneyCal.TemplePrice(100, MoneyCal.TEMPLE_TENTH_OFF), 'Cure Light Wounds a tenth off');
+  TestKit.CheckEqualsL(315, MoneyCal.TemplePrice(350, MoneyCal.TEMPLE_TENTH_OFF), 'Cure Serious Wounds a tenth off');
+  TestKit.CheckEqualsL(4950, MoneyCal.TemplePrice(5500, MoneyCal.TEMPLE_TENTH_OFF), 'Raise Dead a tenth off');
+  TestKit.CheckEqualsL(59, MoneyCal.TemplePrice(65, MoneyCal.TEMPLE_TENTH_OFF), 'the tenth taken off is rounded down');
+  TestKit.CheckEqualsL(58982, MoneyCal.TemplePrice(65535, MoneyCal.TEMPLE_TENTH_OFF), 'the largest price');
 
   FreeMem(item, SizeOf(Types.TItemRec));
   FreeMem(c, SizeOf(Types.TCharRecord));

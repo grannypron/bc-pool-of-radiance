@@ -38,13 +38,16 @@ the text matches (an animated picture) is only a warning.
 | --- | --- |
 | `boot` | the main menu and the settings screen |
 | `chargen` | creating a paladin with fixed dice, the portrait and icon pickers, the `.CHA` file written, adding him |
-| `loadsave` | the Load/Save menu, loading A, View and More Info, the save popup, the files a save writes |
+| `loadsave` | the Load/Save menu, loading A, View and More Info (its saves, statistics and a thief's skills), the save popup, the files a save writes |
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
 | `journal` | the journal list and an entry |
-| `camp` | Fix and Rest in Valhingen Graveyard |
+| `camp` | Fix and Rest in Valhingen Graveyard, and Scribe's message for a character without magic-user levels |
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
 | `wilderness` | the central wilderness from save G (`saves/wild`, put into `SAVE\` by the scenario): the map and its second tile set, three steps, and the overlay loads, heap and picture memory (Ctrl-Y; ours only) |
 | `wildfight` | save G again: a 32-step walk that meets a random encounter under NORAND, the fight's start, and the memory there |
+| `stojanow` | Stojanow Gate once taken (#683), from save A moved there (`saves/stojanow`): the cheer before the gatehouse and behind it, once a visit, and the guard room become barracks |
+| `bane` | the Temple of Bane freed with Dirten in the party (#682), from save A moved beside its altar with a member made Dirten (`saves/bane`): the fight won with Alt-X, the farewell, the day kept in the save, the rebuilding |
+| `banetemple` | Dirten's temple 14 days on (#682, `saves/banetemple`): his welcome, the temple, Cure Light Wounds at 90 gold pieces, the view restored |
 | `ssiformat` | against SSI's own v1.3 (`tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt`): the `.CHA` file Remove writes and the files saving A into D writes are SSI's, with SSI's heap pointers, the unused name bytes and the saved script masked |

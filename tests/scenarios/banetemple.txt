@@ -1,0 +1,28 @@
+# Dirten's temple (#682): save A moved to (13,7) in the freed Temple of Bane, Dirten's day 14 days back
+# (saves/banetemple). On the altar square he welcomes the party, with his portrait, and opens the temple a tenth off:
+# Cure Light Wounds for 90 gold pieces. Leaving the temple restores the view.
+boot NORAND
+ignore POOL OF RADIANCE V
+wait RADIANCE
+put saves/banetemple
+# a slot's letter loads it at once (#652)
+press l a
+wait AREA 120
+press up
+wait CONTINUE
+checkpoint welcome
+press ret
+wait APPRAISE
+checkpoint temple
+press h
+wait HEAL EXIT
+press down down ret
+wait PAY FOR CURE
+checkpoint price
+press n
+wait HEAL EXIT
+press esc
+wait APPRAISE
+press e
+wait AREA
+checkpoint view
