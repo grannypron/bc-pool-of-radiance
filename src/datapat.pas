@@ -13,8 +13,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 59;
-  BYTE_COUNT = 1580;
+  PART_COUNT = 72;
+  BYTE_COUNT = 2393;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -182,7 +182,33 @@ const
     (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 7473; origLen: 0; newLen: 52),
     { #670: the Pitt's buccaneer (script $A90D, PRINTCLEAR) runs his question into the next: WHO WILL IT BE?'WHAT DO
       YOU DO? gets a space after the quote. The packed string's last six-bit slot was empty, so it stays 66 bytes }
-    (issue: 670; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6576; offset: 4168; origLen: 12; newLen: 12));
+    (issue: 670; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6576; offset: 4168; origLen: 12; newLen: 12),
+    { #682: the Temple of Bane (script 24, map 24) freed with Dirten in the party. At the end of the fight (script
+      $AC59, $AC68) new code at the end of the script keeps the day in [$4A79] (C_Gbvm.DIRTEN_TEMPLE_DAY), $FFFF when
+      Dirten was not there; standing, he bids farewell as before, fallen, the temple guards come in and a cleric
+      tends him. At the altar squares, (14,7) and (14,8) (script $A8B0), a freed temple's day is kept, or started for a
+      game from before this whose party had Dirten ([$4A9C] = $FF); before 14 days the rebuilding is underway, after
+      them Dirten welcomes the party and opens his temple a tenth off ([$6DE2] = 2) }
+    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4018; origLen: 11; newLen: 11),
+    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4957; origLen: 2; newLen: 2),
+    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4970; origLen: 11; newLen: 11),
+    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 7656; origLen: 0; newLen: 145),
+    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7801; offset: 7801; origLen: 0; newLen: 111),
+    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7912; offset: 7912; origLen: 0; newLen: 178),
+    { #683: Stojanow Gate once the party has taken it ([$4A77] holds both barracks and the bugbears, $1C): new code at
+      the end of the script, reached through events 1, 2, 7 and 13 of the event table (script $9D84). The guard rooms
+      at (4,7) and (11,7) are makeshift barracks for New Phlan's troops, and at (7,9) and (8,9), before the gatehouse,
+      and (7,6) and (8,6), behind it, the guards on the wall cheer, with a guard's portrait (head 12, body 5); each
+      once a visit, kept in [$4A01] as the guard rooms' text was, which entering the area clears. None waits for
+      Return. Going through the gatehouse (script $A11F) makes the move without running the new square's event before
+      the view is redrawn, so the cheer at (7,6) keeps its portrait }
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1168; origLen: 2; newLen: 2),
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1171; origLen: 2; newLen: 2),
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1186; origLen: 2; newLen: 2),
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1204; origLen: 2; newLen: 2),
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 2083; origLen: 2; newLen: 2),
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 6476; origLen: 0; newLen: 130),
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6606; offset: 6606; origLen: 0; newLen: 181));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -668,7 +694,173 @@ const
     { #670, original: ...BE?'WHAT DO YOU DO? }
     $5C, $80, $54, $80, $43, $E0, $64, $F5, $60, $10, $FF, $C0,
     { fixed: ...BE?' WHAT DO YOU DO? }
-    $81, $72, $01, $52, $01, $0F, $81, $93, $D5, $80, $43, $FF);
+    $81, $72, $01, $52, $01, $0F, $81, $93, $D5, $80, $43, $FF,
+    { #682 part 1, original }
+    $03, $01, $02, $4A, $00, $01,                     { $A8B0 COMPARE [$4A02], $01 }
+    $16,                                              { $A8B6 IF = }
+    $01, $01, $0B, $AA,                               { $A8B7 GOTO LAA0B }
+    { fixed: the altar goes by new code at the end of the script }
+    $01, $01, $E6, $B6,                               { $A8B0 GOTO LB6E6 }
+    $00, $00, $00, $00, $00, $00, $00,
+    { #682 part 2, original }
+    $A3, $B0,                                         { $AC59 GOTO LB0A3 }
+    { fixed: no Dirten in the party, by new code }
+    $50, $B8,                                         { $AC59 GOTO LB850 }
+    { #682 part 3, original }
+    $03, $01, $00, $6C, $00, $7F,                     { $AC68 COMPARE [$6C00], $7F }
+    $19,                                              { $AC6E IF > }
+    $01, $01, $C3, $AC,                               { $AC6F GOTO LACC3 }
+    { fixed: Dirten in the party, by new code }
+    $01, $01, $F5, $B7,                               { $AC68 GOTO LB7F5 }
+    $00, $00, $00, $00, $00, $00, $00,
+    { #682 part 4, added at $B6E6: the altar once the temple is freed: no day kept (a game from before this whose
+      party had Dirten) starts the days now; freed without him, as before; before 14 days, the rebuilding }
+    $03, $01, $BD, $4A, $00, $FE,                     { $B6E6 COMPARE [$4ABD], $FE }
+    $18,                                              { $B6EC IF < }
+    $01, $01, $E6, $B7,                               { $B6ED GOTO LB7E6 }
+    $03, $01, $79, $4A, $00, $00,                     { $B6F1 COMPARE [$4A79], $00 }
+    $17,                                              { $B6F7 IF <> }
+    $01, $01, $0B, $B7,                               { $B6F8 GOTO LB70B }
+    $03, $01, $9C, $4A, $00, $FF,                     { $B6FC COMPARE [$4A9C], $FF }
+    $17,                                              { $B702 IF <> }
+    $01, $01, $E6, $B7,                               { $B703 GOTO LB7E6 }
+    $02, $01, $5B, $B8,                               { $B707 GOSUB LB85B }
+    $03, $01, $79, $4A, $02, $FF, $FF,                { $B70B COMPARE [$4A79], $FFFF }
+    $16,                                              { $B712 IF = }
+    $01, $01, $E6, $B7,                               { $B713 GOTO LB7E6 }
+    $02, $01, $67, $B8,                               { $B717 GOSUB LB867 }
+    $05, $01, $79, $4A, $01, $7B, $6E, $01, $7B, $6E, { $B71B SUBTRACT [$4A79], [$6E7B], [$6E7B] }
+    $03, $01, $7B, $6E, $00, $0E,                     { $B725 COMPARE [$6E7B], $0E }
+    $1B,                                              { $B72B IF >= }
+    $01, $01, $77, $B7,                               { $B72C GOTO LB777 }
+    { $B730 PRINTCLEAR "THE EFFORT TO REBUILD IS ALREADY UNDERWAY. SOON THE TEMPLE WILL BE SERVICEABLE AGAIN." }
+    $12, $80, $40, $50, $81, $60, $14, $61, $8F, $49, $48, $14, $3E, $04, $85, $09,
+    $52, $4C, $12, $02, $53, $80, $13, $12, $14, $11, $19, $81, $53, $84, $15, $25,
+    $C1, $66, $E8, $13, $3C, $F3, $A0, $50, $81, $60, $50, $53, $50, $30, $58, $17,
+    $24, $C3, $20, $08, $58, $13, $15, $25, $89, $0C, $50, $42, $30, $58, $01, $1C,
+    $12, $4E, $B8,
+    $01, $01, $A3, $B0,                               { $B773 GOTO LB0A3 }
+    { #682 part 5, added at $B777: Dirten's welcome and his temple, a tenth off }
+    $09, $00, $00, $01, $E1, $6D,                     { $B777 SAVE $00, [$6DE1] }
+    $0E, $00, $04,                                    { $B77D PICTURE $04 }
+    { $B780 PRINTCLEAR "WELCOME BACK! WE'RE STILL REBUILDING, BUT LET ME OFFER WHAT AID I CAN." }
+    $12, $80, $35, $5C, $53, $03, $3C, $D1, $60, $08, $10, $CB, $86, $05, $C5, $9D,
+    $21, $60, $4D, $42, $4C, $32, $04, $85, $09, $52, $4C, $10, $93, $87, $B2, $00,
+    $95, $52, $03, $05, $52, $03, $45, $80, $F1, $86, $15, $28, $17, $20, $15, $20,
+    $04, $91, $20, $26, $00, $C1, $3A, $E0,
+    { $B7B8 HORIZONTAL MENU [$6E79], $01, "PRESS <RETURN> TO CONTINUE" }
+    $2B, $01, $79, $6E, $00, $01, $80, $14, $41, $21, $53, $4E, $0F, $12, $15, $45,
+    $52, $3B, $E8, $14, $3E, $00, $CF, $39, $42, $4E, $54, $50,
+    $1C,                                              { $B7D4 CLEARMONSTERS }
+    $09, $00, $02, $01, $E2, $6D,                     { $B7D5 SAVE $02, [$6DE2] }
+    $24,                                              { $B7DB COMBAT }
+    $09, $00, $FF, $01, $E1, $6D,                     { $B7DC SAVE $FF, [$6DE1] }
+    $01, $01, $A3, $B0,                               { $B7E2 GOTO LB0A3 }
+    { #682 part 6, added at $B7E6: the altar as before; the end of the fight with Dirten, and without him; the day }
+    $03, $01, $02, $4A, $00, $01,                     { $B7E6 COMPARE [$4A02], $01 }
+    $16,                                              { $B7EC IF = }
+    $01, $01, $0B, $AA,                               { $B7ED GOTO LAA0B }
+    $01, $01, $BB, $A8,                               { $B7F1 GOTO LA8BB }
+    $02, $01, $5B, $B8,                               { $B7F5 GOSUB LB85B }
+    $03, $01, $00, $6C, $00, $7F,                     { $B7F9 COMPARE [$6C00], $7F }
+    $19,                                              { $B7FF IF > }
+    $01, $01, $08, $B8,                               { $B800 GOTO LB808 }
+    $01, $01, $73, $AC,                               { $B804 GOTO LAC73 }
+    { $B808 PRINTCLEAR "THE TEMPLE GUARDS ENTER AND SECURE THE AREA. A CLERIC RUSHES TO AID THE FALLEN DIRTEN." }
+    $12, $80, $41, $50, $81, $60, $50, $53, $50, $30, $58, $07, $54, $14, $84, $4E,
+    $01, $4E, $50, $54, $A0, $04, $E1, $20, $4C, $50, $D5, $48, $58, $14, $20, $58,
+    $01, $48, $50, $6E, $80, $18, $03, $30, $54, $89, $0E, $04, $95, $4C, $81, $53,
+    $81, $43, $E0, $04, $91, $20, $50, $81, $60, $18, $13, $0C, $14, $E8, $04, $25,
+    $25, $05, $3A, $E0,
+    $01, $01, $C3, $AC,                               { $B84C GOTO LACC3 }
+    $09, $02, $FF, $FF, $01, $79, $4A,                { $B850 SAVE $FFFF, [$4A79] }
+    $01, $01, $A3, $B0,                               { $B857 GOTO LB0A3 }
+    $02, $01, $67, $B8,                               { $B85B GOSUB LB867 }
+    $09, $01, $7B, $6E, $01, $79, $4A,                { $B85F SAVE [$6E7B], [$4A79] }
+    $13,                                              { $B866 RETURN }
+    $07, $01, $CC, $49, $02, $68, $01, $01, $7B, $6E, { $B867 MULTIPLY [$49CC], $0168, [$6E7B] }
+    $07, $01, $CB, $49, $00, $1E, $01, $7C, $6E,      { $B871 MULTIPLY [$49CB], $1E, [$6E7C] }
+    $04, $01, $7C, $6E, $01, $7B, $6E, $01, $7B, $6E, { $B87A ADD [$6E7C], [$6E7B], [$6E7B] }
+    $04, $01, $CA, $49, $01, $7B, $6E, $01, $7B, $6E, { $B884 ADD [$49CA], [$6E7B], [$6E7B] }
+    $04, $00, $01, $01, $7B, $6E, $01, $7B, $6E,      { $B88E ADD $01, [$6E7B], [$6E7B] }
+    $13,                                              { $B897 RETURN }
+    { #683 part 1, original }
+    $A8, $A1,                                         { $9D8E ON GOTO [$6E79] entry 1: LA1A8 }
+    { fixed: event 1, the west barracks, goes to new code at the end of the script }
+    $5A, $B2,                                         { $9D8E ON GOTO [$6E79] entry 1: LB25A }
+    { #683 part 2, original }
+    $C9, $A2,                                         { $9D91 ON GOTO [$6E79] entry 2: LA2C9 }
+    { fixed: event 2, the east barracks, likewise }
+    $6D, $B2,                                         { $9D91 ON GOTO [$6E79] entry 2: LB26D }
+    { #683 part 3, original }
+    $A1, $A0,                                         { $9DA0 ON GOTO [$6E79] entry 7: LA0A1 }
+    { fixed: event 7, (7,9) and (8,9), likewise }
+    $CC, $B2,                                         { $9DA0 ON GOTO [$6E79] entry 7: LB2CC }
+    { #683 part 4, original }
+    $81, $B0,                                         { $9DB2 ON GOTO [$6E79] entry 13: LB081 }
+    { fixed: event 13, (7,6) and (8,6), likewise }
+    $DF, $B2,                                         { $9DB2 ON GOTO [$6E79] entry 13: LB2DF }
+    { #683 part 5, original }
+    $6A, $A1,                                         { $A11F GOTO LA16A }
+    { fixed: through the gatehouse by new code once the gate is taken }
+    $4F, $B3,                                         { $A11F GOTO LB34F }
+    { #683 part 6, added at $B24A: the gate taken, as the script counts it (both barracks and the bugbears); the
+      barracks' new text, once a visit }
+    $2F, $01, $77, $4A, $00, $1C, $01, $82, $6E,      { $B24A AND [$4A77], $1C, [$6E82] }
+    $03, $01, $82, $6E, $00, $1C,                     { $B253 COMPARE [$6E82], $1C }
+    $13,                                              { $B259 RETURN }
+    $02, $01, $4A, $B2,                               { $B25A GOSUB LB24A }
+    $17,                                              { $B25E IF <> }
+    $01, $01, $A8, $A1,                               { $B25F GOTO LA1A8 }
+    $09, $00, $01, $01, $7A, $6E,                     { $B263 SAVE $01, [$6E7A] }
+    $01, $01, $7C, $B2,                               { $B269 GOTO LB27C }
+    $02, $01, $4A, $B2,                               { $B26D GOSUB LB24A }
+    $17,                                              { $B271 IF <> }
+    $01, $01, $C9, $A2,                               { $B272 GOTO LA2C9 }
+    $09, $00, $02, $01, $7A, $6E,                     { $B276 SAVE $02, [$6E7A] }
+    $2F, $01, $01, $4A, $01, $7A, $6E, $01, $82, $6E, { $B27C AND [$4A01], [$6E7A], [$6E82] }
+    $17,                                              { $B286 IF <> }
+    $00,                                              { $B287 EXIT }
+    $30, $01, $01, $4A, $01, $7A, $6E, $01, $01, $4A, { $B288 OR [$4A01], [$6E7A], [$4A01] }
+    { $B292 PRINTCLEAR "MAKESHIFT BARRACKS HAVE BEEN ERECTED HERE FOR HOUSING NEW PHLAN TROOPS." }
+    $12, $80, $36, $34, $12, $C5, $4C, $82, $46, $52, $00, $81, $49, $20, $43, $2D,
+    $38, $08, $05, $61, $60, $08, $51, $4E, $80, $54, $85, $0D, $41, $44, $80, $81,
+    $52, $16, $01, $8F, $4A, $02, $0F, $55, $32, $4E, $1E, $03, $85, $5E, $04, $08,
+    $30, $13, $A0, $51, $23, $CF, $41, $3B, $80,
+    $00,                                              { $B2CB EXIT }
+    { #683 part 7, added at $B2CC: the cheer at (7,9) and (8,9), and at (7,6) and (8,6), once a visit; then the way
+      through the gatehouse }
+    $02, $01, $4A, $B2,                               { $B2CC GOSUB LB24A }
+    $17,                                              { $B2D0 IF <> }
+    $01, $01, $A1, $A0,                               { $B2D1 GOTO LA0A1 }
+    $09, $00, $04, $01, $7A, $6E,                     { $B2D5 SAVE $04, [$6E7A] }
+    $01, $01, $EE, $B2,                               { $B2DB GOTO LB2EE }
+    $02, $01, $4A, $B2,                               { $B2DF GOSUB LB24A }
+    $17,                                              { $B2E3 IF <> }
+    $01, $01, $81, $B0,                               { $B2E4 GOTO LB081 }
+    $09, $00, $08, $01, $7A, $6E,                     { $B2E8 SAVE $08, [$6E7A] }
+    $2F, $01, $01, $4A, $01, $7A, $6E, $01, $82, $6E, { $B2EE AND [$4A01], [$6E7A], [$6E82] }
+    $17,                                              { $B2F8 IF <> }
+    $00,                                              { $B2F9 EXIT }
+    $30, $01, $01, $4A, $01, $7A, $6E, $01, $01, $4A, { $B2FA OR [$4A01], [$6E7A], [$4A01] }
+    $09, $00, $0C, $01, $E1, $6D,                     { $B304 SAVE $0C, [$6DE1] }
+    $0E, $00, $05,                                    { $B30A PICTURE $05 }
+    $09, $00, $FF, $01, $E1, $6D,                     { $B30D SAVE $FF, [$6DE1] }
+    { $B313 PRINTCLEAR "THE GUARDS ON THE WALL RAISE A CHEER AS YOU PASS. 'HAIL, HEROES OF PHLAN!'" }
+    $12, $80, $38, $50, $81, $60, $1D, $50, $52, $11, $38, $0F, $3A, $05, $08, $16,
+    $05, $C1, $30, $C8, $12, $04, $94, $C5, $80, $18, $03, $20, $51, $52, $80, $14,
+    $E0, $64, $F5, $60, $40, $14, $D3, $BA, $09, $C8, $04, $93, $2C, $80, $81, $52,
+    $3C, $54, $E0, $3C, $68, $10, $20, $C0, $4E, $86, $70,
+    $00,                                              { $B34E EXIT }
+    $02, $01, $4A, $B2,                               { $B34F GOSUB LB24A }
+    $17,                                              { $B353 IF <> }
+    $01, $01, $6A, $A1,                               { $B354 GOTO LA16A }
+    $2A, $01, $96, $A1, $01, $7D, $6E, $01, $4B, $C0, { $B358 GETTABLE [$A196], [$6E7D], [$C04B] }
+    $2A, $01, $9C, $A1, $01, $7D, $6E, $01, $4C, $C0, { $B362 GETTABLE [$A19C], [$6E7D], [$C04C] }
+    $2A, $01, $A2, $A1, $01, $7D, $6E, $01, $4F, $C0, { $B36C GETTABLE [$A1A2], [$6E7D], [$C04F] }
+    $09, $00, $FF, $01, $C9, $6D,                     { $B376 SAVE $FF, [$6DC9] }
+    $2D, $01, $90, $2C,                               { $B37C CALL [$2C90] }
+    $00);                                             { $B380 EXIT }
 
 implementation
 

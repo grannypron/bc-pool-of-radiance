@@ -57,6 +57,11 @@ const
   ALT_SKY_COLOR = $49FE;
   { SaveLoad packs 2 * monster-pictures flag + portraits flag }
   SETTINGS = $49FF;
+  { The day the Temple of Bane was freed with Dirten in the party (#682, a DataPat fix to its script): year * 360 +
+    month * 30 + day + 1 from CLOCK, so 0 is none; $FFFF when it was freed without him. 14 days on, Dirten serves the
+    party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71,
+    $4A79..$4A7B: every script's disassembly, its indexed tables included, and the source). }
+  DIRTEN_TEMPLE_DAY = $4A79;
   { quest: left Yarash pyramid, cleared }
   YARASH_PYRAMID_LEFT = $4AA2;
   { quest: Yarash mission successful }
@@ -132,7 +137,7 @@ const
   LEAVE_MAP = $6DD5;
   { picture loading (255 = none) }
   PIC_LOADING = $6DE1;
-  { 1 => party about to enter temple }
+  { 1 => party about to enter temple; 2 => the temple a tenth off (MoneyCal.TEMPLE_TENTH_OFF, #682) }
   ENTER_TEMPLE = $6DE2;
   { 1 => next combat drops no items }
   NO_COMBAT_ITEMS = $6DE3;
