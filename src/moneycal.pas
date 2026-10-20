@@ -1,5 +1,6 @@
-{ Money arithmetic: coin values, making change, who pays a price, what items are worth, and money type names. Using
-  only data units, so Stats can use it and tests can too; overlaid, as only menus and the end of a combat call it. }
+{ Money arithmetic: coin values, making change, who pays a price, what items are worth, money type names and temple
+  prices. Using only data units, so Stats can use it and tests can too; overlaid, as only menus and the end of a combat
+  call it. }
 {$O+,F+}
 unit MoneyCal;
 
@@ -12,6 +13,10 @@ const
   PAY_NOBODY = 0;
   PAY_CHARACTER = 1;
   PAY_POOL = 2;
+  { a temple's prices (TemplePrice), the value a script stores in C_Gbvm.ENTER_TEMPLE before the COMBAT that opens it:
+    SSI's full prices, or a tenth off (the Temple of Bane that Dirten rebuilds, #682) }
+  TEMPLE_FULL_PRICE = 1;
+  TEMPLE_TENTH_OFF = 2;
 
 { The copper value of the five coin types in m. }
 function CopperValue(var m: Types.TMoney): LongInt;
@@ -43,6 +48,10 @@ function ItemValue(item: Types.PItemRec): LongInt;
 function ItemSalePrice(item: Types.PItemRec): Word;
 
 function ParseMoneyType(s: String; var typeName: String): ShortInt;
+
+{ What a temple asks for a service listed at cost gold pieces: cost itself, or with mode TEMPLE_TENTH_OFF a tenth less,
+  the tenth rounded down (every listed price is a multiple of 10). }
+function TemplePrice(cost: Word; mode: Byte): Word;
 
 implementation
 
@@ -184,6 +193,14 @@ begin
            ParseMoneyType := C_Money.JEWELRY;
          end;
   end;
+end;
+
+function TemplePrice(cost: Word; mode: Byte): Word;
+begin
+  if mode = MoneyCal.TEMPLE_TENTH_OFF then
+    TemplePrice := cost - cost div 10
+  else
+    TemplePrice := cost;
 end;
 
 end.

@@ -1,0 +1,41 @@
+# The Temple of Bane freed with Dirten in the party (#682): save A moved to (13,7) beside the altar, the temple not
+# yet freed, its sixth member made Dirten, an NPC (saves/bane). The altar is destroyed and the half-orc's horde
+# beaten (STING's Alt-X); Dirten bids farewell, and the day goes into [$4A79], which the save records. Back on the
+# altar the same day, the rebuilding is underway.
+boot NORAND
+ignore POOL OF RADIANCE V
+ignore \d{4}/\d\d/\d\d \d\d:\d\d
+wait RADIANCE
+put saves/bane
+# a slot's letter loads it at once (#652)
+press l a
+wait AREA 120
+press up
+wait DESTROY ALTAR
+checkpoint altar
+press d
+wait DONE 90
+press alt-x
+wait CONTINUE BATTLE
+press n
+# Dirten takes his share, then the party has won
+wait CONTINUE 60
+press ret
+wait CONTINUE
+press ret
+wait SHARE EXIT
+press e
+wait YES NO
+press n
+wait AREA
+checkpoint farewell
+press up down up
+wait AREA
+checkpoint rebuilding
+press e
+wait CAMP
+press s b
+wait SAVE
+press ret
+wait QUIT
+saves freed SAVGAMB.DAT
