@@ -60,6 +60,20 @@ begin
   TestKit.CheckEqualsL(rl, c^.thiefSkills[8], what + ': read languages');
 end;
 
+{ Check skill j's parts (ClassCal.ThiefSkillParts) and the skill they make (ClassCal.ThiefSkill). }
+procedure CheckParts(j: Byte; skill: Byte; base, racial, dexterity: ShortInt; what: String);
+var
+  b: ShortInt;
+  r: ShortInt;
+  d: ShortInt;
+begin
+  ClassCal.ThiefSkillParts(c, j, b, r, d);
+  TestKit.CheckEqualsL(base, b, what + ': base');
+  TestKit.CheckEqualsL(racial, r, what + ': racial');
+  TestKit.CheckEqualsL(dexterity, d, what + ': dexterity');
+  TestKit.CheckEqualsL(skill, ClassCal.ThiefSkill(b, r, d), what + ': the skill');
+end;
+
 begin
   TestKit.Start('TCLASCAL');
   GetMem(c, SizeOf(Types.TCharRecord));
@@ -188,6 +202,25 @@ begin
   c^.thiefSkills[1] := 77;
   ClassCal.RecalcThiefSkills(c);
   TestKit.CheckEqualsL(77, c^.thiefSkills[1], 'no thief level leaves the skills as they are');
+
+  { a thief skill's parts, as More Info's Thief page shows them }
+  Reset(C_Race.HALFLING);
+  c^.classLevels[C_Level.THIEF] := 1;
+  c^.dexCur := 19;
+  CheckParts(1, 50, 30, 5, 15, 'a level 1 halfling, Dexterity 19: pick pockets');
+  CheckParts(6, 15, 10, 5, 0, 'hear noise takes no Dexterity');
+  CheckParts(8, 0, 0, -5, 0, 'read languages, the racial penalty above the base');
+  Reset(C_Race.DWARF);
+  c^.classLevels[C_Level.THIEF] := 1;
+  c^.dexCur := 9;
+  CheckParts(4, 0, 15, 0, -20, 'a dwarf, Dexterity 9: move silently stops at 0');
+  Reset(C_Race.HALFORC);
+  c^.classLevels[C_Level.THIEF] := 12;
+  c^.classLevels[C_Level.FIGHTER] := 11;
+  c^.dexCur := 17;
+  CheckParts(7, 103, 98, 5, 0, 'a level 12 half-orc fighter/thief: climb walls, the level 9 row');
+  ClassCal.RecalcThiefSkills(c);
+  TestKit.CheckEqualsL(103, c^.thiefSkills[7], 'RecalcThiefSkills stores the skill ThiefSkill makes');
 
   { the Wisdom bonus cleric slots, on the levels a cleric has slots in }
   Reset(C_Race.HUMAN);

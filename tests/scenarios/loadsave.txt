@@ -16,8 +16,11 @@ checkpoint loaded
 press v
 checkpoint view
 press m
-checkpoint more-info
-press e esc
+# ours's More Info opens on the saves with Saves Stats Kills (and Thief) on its menu and no Exit (#685)
+golden: checkpoint more-info
+candidate: checkpoint more-info-685
+golden: press e esc
+candidate: press esc esc
 wait AREA
 press e
 wait CAMP
@@ -32,3 +35,11 @@ wait QUIT
 press n
 # every file the save writes, but ours's .MAP of the visited squares (phase 8), which the golden build has not
 saves after-save *.CHA *.DAT *.INF *.ITM *.SAV *.SPC *.STS *.TXT
+# More Info's other pages, after the save: opening Stats gives a character a statistics block, which a save would write
+# as a .STS file the golden build has not. Spawn, the fourth, is a thief: her More Info has Thief, with her skills.
+candidate: press v m t
+candidate: checkpoint more-info-stats
+candidate: press esc k
+candidate: checkpoint more-info-kills
+candidate: press esc esc esc end end end v m h
+candidate: checkpoint more-info-thief

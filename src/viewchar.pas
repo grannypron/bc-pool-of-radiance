@@ -24,7 +24,7 @@ implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp, MoneyCal, C_Msg;
+  CharDisp, MoneyCal, C_Msg, ClassCal;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -298,9 +298,10 @@ begin
 end;
 
 { The statistics pages (#611, #672) for creature: Game, its counters in this game, and Kills, the kinds it has killed
-  in alphabetical order. On Kills, Up and Down scroll the list a row (two entries) at a time and, when it is longer
-  than a page, Next and Prev a page. Runs until Exit or Escape; the caller redraws. }
-procedure StatsPage(creature: Types.PCharRecord);
+  in alphabetical order; it opens on Kills when kills is set, else on Game. On Kills, Up and Down scroll the list a
+  row (two entries) at a time and, when it is longer than a page, Next and Prev a page. Runs until Exit or Escape; the
+  caller redraws. }
+procedure StatsPage(creature: Types.PCharRecord; kills: Boolean);
 var
   b: Stats.PStatBlock;
   kinds: Byte;
@@ -328,9 +329,9 @@ begin
         order[i] := order[j];
         order[j] := t;
       end;
-  onKills := False;
+  onKills := kills;
   top := 1;
-  GDVars.horizChoice := 1;
+  GDVars.horizChoice := 1 + Ord(kills);
   repeat
     if onKills then begin
       ViewChar.DrawKills(creature, b, order, kinds, top);
@@ -368,46 +369,135 @@ begin
 end;
 
 
-{ The More Info page for the current character, inside a border with one blank cell inside it all round: name, then
-  the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1 always fails and a
-  20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison, apply only at the
-  roll and are not included. Further pages go on its bottom-line menu. Runs until Exit or Escape; the caller redraws
-  the character sheet. }
-procedure MorePage;
-const
-  labels: array[C_Save.PARALYZE..C_Save.SPELL] of string[24] = (
-    'Paralysis, Poison, Death', 'Petrification, Polymorph', 'Rod, Staff, Wand', 'Breath Weapon', 'Spell');
+{ Clear the screen, draw the border and centre creature's name in light cyan on row 2: the top of a More Info page. }
+procedure MoreHeading(creature: Types.PCharRecord);
+begin
+  TextRend.ClearScreen;
+  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
+end;
+
+{ The Saves page: the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1
+  always fails and a 20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison,
+  apply only at the roll and are not included. The names are literals, in the overlay, rather than a typed constant in
+  the data segment. }
+procedure DrawSaves(p: Types.PCharRecord);
 var
-  p: Types.PCharRecord;
   i: ShortInt;
   need: Integer;
   s: Types.TStr40;
-  ch: Char;
-  ext: Boolean;
 begin
-  p := GDVars.curChar;
-  CharHlp.RecalcStats(p);
-  TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  CharDisp.DisplayCreatureName(p, 2, 2, False);
+  ViewChar.MoreHeading(p);
   TextRend.DisplayString(2, 4, White, 'Saving Throws');
   for i := C_Save.PARALYZE to C_Save.SPELL do begin
+    case i of
+      C_Save.PARALYZE: s := 'Paralysis, Poison, Death';
+      C_Save.PETRIFY: s := 'Petrification, Polymorph';
+      C_Save.WAND: s := 'Rod, Staff, Wand';
+      C_Save.BREATH: s := 'Breath Weapon';
+    else
+      s := 'Spell';
+    end;
+    TextRend.DisplayString(4, 5 + i, LightGreen, s);
     need := p^.saves[i] - p^.saveBonus;
     if need < 2 then
       need := 2;
     if need > 20 then
       need := 20;
     s := StrUtil.NumStr(need);
-    TextRend.DisplayString(3, 6 + i, White, labels[i]);
-    TextRend.DisplayString(32 - Length(s), 6 + i, LightGreen, s);
+    TextRend.DisplayString(32 - Length(s), 5 + i, White, s);
   end;
-  repeat
-    ch := MenuCore.MenuHorizontal('More Info: ', 'Stats Exit', LightMagenta, LightGreen, White, False, False, ext);
-    if ch = 'S' then begin
-      ViewChar.StatsPage(p);
-      ch := 'E';
+end;
+
+{ n signed, its digits padded to two: '+ 0', '-15', '+40', '+103'. }
+function SignedNum(n: Integer): Types.TStr40;
+var
+  s: Types.TStr40;
+begin
+  s := StrUtil.NumStr(Abs(n));
+  if Length(s) < 2 then
+    s := ' ' + s;
+  if n < 0 then
+    s := '-' + s
+  else
+    s := '+' + s;
+  SignedNum := s;
+end;
+
+{ The Thief page (#685): each thief skill's name, then its racial and Dexterity adjustments and its base for the thief
+  level (ClassCal.ThiefSkillParts), and the total the game uses (thiefSkills), which is stopped at 0 and so need not be
+  the sum of the three. All are percentages, shown without the sign, which the game's font does not have. The window
+  has 36 columns where the design has 44: the names start at column 2 and the headings fill 18..37, one space apart,
+  each figure right-aligned under its heading. }
+procedure DrawThief(p: Types.PCharRecord);
+var
+  j: Byte;
+  base: ShortInt;
+  racial: ShortInt;
+  dexterity: ShortInt;
+  s: Types.TStr40;
+begin
+  ViewChar.MoreHeading(p);
+  TextRend.DisplayString(18, 4, White, 'Race Dex Level Total');
+  { 8 = High(thiefSkills) }
+  for j := 1 to 8 do begin
+    case j of
+      1: s := 'Pick Pockets';
+      2: s := 'Open Lock';
+      3: s := 'Find Traps';
+      4: s := 'Move Silently';
+      5: s := 'Hide in Shadows';
+      6: s := 'Hear Noise';
+      7: s := 'Climb Walls';
+    else
+      s := 'Read Languages';
     end;
-  until ch in [C_Keys.NONE, 'E'];
+    TextRend.DisplayString(2, 4 + j, LightGreen, s);
+    ClassCal.ThiefSkillParts(p, j, base, racial, dexterity);
+    { the adjustments and the base are three characters wide; a total can be four }
+    TextRend.DisplayString(19, 4 + j, White, ViewChar.SignedNum(racial));
+    TextRend.DisplayString(23, 4 + j, White, ViewChar.SignedNum(dexterity));
+    TextRend.DisplayString(29, 4 + j, White, ViewChar.SignedNum(base));
+    s := ViewChar.SignedNum(p^.thiefSkills[j]);
+    TextRend.DisplayString(38 - Length(s), 4 + j, White, s);
+  end;
+end;
+
+{ The More Info page for the current character (#592, #685), on its Saves page. The bottom line, More Info: Saves
+  sTats Kills tHief, turns the pages: Saves and Thief here (Thief only for a character with thief levels), sTats and
+  Kills the statistics' Game and Kills pages (StatsPage), whose Exit comes back to the page left. The design has no
+  Exit: Escape returns to the character sheet, which the caller redraws. }
+procedure MorePage;
+var
+  p: Types.PCharRecord;
+  menu: Types.TStr40;
+  onThief: Boolean;
+  ch: Char;
+  ext: Boolean;
+begin
+  p := GDVars.curChar;
+  CharHlp.RecalcStats(p);
+  menu := 'Saves sTats Kills';
+  if p^.classLevels[C_Level.THIEF] > 0 then
+    menu := menu + ' tHief';
+  onThief := False;
+  GDVars.horizChoice := 1;
+  repeat
+    if onThief then
+      ViewChar.DrawThief(p)
+    else
+      ViewChar.DrawSaves(p);
+    ch := MenuCore.MenuHorizontal('More Info: ', menu, LightMagenta, LightGreen, White, False, False, ext);
+    case ch of
+      'S': onThief := False;
+      'H': onThief := True;
+      'T', 'K': begin
+             ViewChar.StatsPage(p, ch = 'K');
+             { the option of the page coming back to: Saves, or Thief (the fourth) }
+             GDVars.horizChoice := 1 + 3 * Ord(onThief);
+           end;
+    end;
+  until ch = C_Keys.NONE;
 end;
 
 { Draw "More Info" under the character sheet's portrait frame (columns 28..38, rows 1..11), the M in white as a hotkey

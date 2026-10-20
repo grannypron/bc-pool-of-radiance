@@ -20,3 +20,9 @@ checkpoint rest-menu
 press d i r
 wait CAMP 120
 checkpoint rested
+# Scribe tells the first, a fighter, that it needs arcane training (#671, after the golden build); ours leaves the
+# message without a key (#681), and the next character takes it away
+candidate: press m s
+candidate: checkpoint scribe-681
+candidate: press end
+candidate: checkpoint next-char-681
