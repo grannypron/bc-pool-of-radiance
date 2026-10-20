@@ -198,7 +198,7 @@ const
     { #683: Stojanow Gate once the party has taken it ([$4A77] holds both barracks and the bugbears, $1C): new code at
       the end of the script, reached through events 1, 2, 7 and 13 of the event table (script $9D84). The guard rooms
       at (4,7) and (11,7) are makeshift barracks for New Phlan's troops, and at (7,9) and (8,9), before the gatehouse,
-      and (7,6) and (8,6), behind it, the guards on the wall cheer, with a guard's portrait (head 12, body 5); each
+      and (7,6) and (8,6), behind it, the guards on the wall cheer, with a guard's portrait (head $39, body 5); each
       once a visit, kept in [$4A01] as the guard rooms' text was, which entering the area clears. None waits for
       Return. Going through the gatehouse (script $A11F) makes the move without running the new square's event before
       the view is redrawn, so the cheer at (7,6) keeps its portrait }
@@ -843,7 +843,7 @@ const
     $17,                                              { $B2F8 IF <> }
     $00,                                              { $B2F9 EXIT }
     $30, $01, $01, $4A, $01, $7A, $6E, $01, $01, $4A, { $B2FA OR [$4A01], [$6E7A], [$4A01] }
-    $09, $00, $0C, $01, $E1, $6D,                     { $B304 SAVE $0C, [$6DE1] }
+    $09, $00, $39, $01, $E1, $6D,                     { $B304 SAVE $39, [$6DE1] }
     $0E, $00, $05,                                    { $B30A PICTURE $05 }
     $09, $00, $FF, $01, $E1, $6D,                     { $B30D SAVE $FF, [$6DE1] }
     { $B313 PRINTCLEAR "THE GUARDS ON THE WALL RAISE A CHEER AS YOU PASS. 'HAIL, HEROES OF PHLAN!'" }
