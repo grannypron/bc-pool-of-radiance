@@ -42,7 +42,7 @@ the text matches (an animated picture) is only a warning.
 | `combat` | resting in Podal Plaza until orcs come, a Quick fight, the loot, Take, the statistics |
 | `vault` | walking New Phlan to the vault, a deposit, leaving and returning |
 | `journal` | the journal list and an entry |
-| `camp` | Fix and Rest in Valhingen Graveyard |
+| `camp` | Fix and Rest in Valhingen Graveyard, and Scribe's message for a character without magic-user levels |
 | `shop` | walking to the arms shop, Pool, buying a hand axe, the pack, selling it back |
 | `areachange` | New Phlan's script handing over to the training hall's (NEWECL), named in the save popup |
 | `wilderness` | the central wilderness from save G (`saves/wild`, put into `SAVE\` by the scenario): the map and its second tile set, three steps, and the overlay loads, heap and picture memory (Ctrl-Y; ours only) |

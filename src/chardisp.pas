@@ -20,7 +20,7 @@ procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 
-procedure PrintMessageWait(s: string);
+procedure PrintMessage(s: string);
 
 { Show s in color in the message window (the combat window in combat, else the bottom window), word-wrapped. first
   clears and opens the window; otherwise s carries on from where the last part stopped, so a message can be shown in
@@ -223,13 +223,11 @@ begin
   end;
 end;
 
-{ Show s in the message window, as PrintNameString does but without the name line, then wait for a key at the
-  'Press any key to continue' prompt and clear the prompt. The window keeps the text, and curRow is left on its last
-  line. }
-procedure PrintMessageWait(s: string);
+{ Show s in light green in the message window, cleared first, as PrintNameString does but without the name line, and
+  leave it there: no key is waited for (#681). curRow is left on its last line. }
+procedure PrintMessage(s: string);
 begin
   CharDisp.MessageText(s, LightGreen, True);
-  CharDisp.MessageWait;
 end;
 
 procedure MessageText(s: string; color: Byte; first: Boolean);

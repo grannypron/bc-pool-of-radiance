@@ -100,7 +100,7 @@ procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduct
 
 { InflictNonWeaponDamage, with no save, for an aligned item (eff 132) that shocks the creature readying it: in place
   of "takes n points of damage" the message window shows "<item> shocks <name> for <n> damage, and has been
-  unequipped." with the item's displayed name, and waits for a key (CharDisp.PrintMessageWait). }
+  unequipped." with the item's displayed name, and waits for a key (CharDisp.MessageWait). }
 procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; damage: Byte);
 
 { True when effId is a disease (Diseased, its Strength and hit point drains, or mummy rot) and the creature has paladin
