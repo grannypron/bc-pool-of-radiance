@@ -14,7 +14,7 @@ implementation
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice;
+  StrUtil, EclVars, CharDisp, Party, Dice, MoneyCal;
 
 var
   { stop the VM and return control to the player }
@@ -865,12 +865,13 @@ begin
   EclVars.WriteGbvm(C_Gbvm.SURPRISE, result);
 end;
 
-{ COMBAT: with no monsters and no duel, enter the shop or temple when C_Gbvm.ENTER_SHOP or C_Gbvm.ENTER_TEMPLE is 1, or
-  the vault when C_Gbvm.ENTER_SHOP is 2, else run PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat.
-  Afterwards restore the interface state. }
+{ COMBAT: with no monsters and no duel, enter the shop when C_Gbvm.ENTER_SHOP is 1, the vault when it is 2, or the
+  temple when C_Gbvm.ENTER_TEMPLE is 1 (MoneyCal.TEMPLE_FULL_PRICE) or 2 (TEMPLE_TENTH_OFF), else run PostCbt.PostCombat.
+  Otherwise fight, then run PostCbt.PostCombat. Afterwards restore the interface state. }
 procedure EclCombat;
 var
   dist: Word;
+  mode: Byte;
 begin
   Inc(GDVars.eclIp);
   if (monstersOn = 0) and (not GDVars.duelFlag) then begin
@@ -881,9 +882,12 @@ begin
       { New Phlan's vault, The Hoarder's Respite: the data patch for #606 stores 2 }
       GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
       VaultMnu.VaultMenu;
-    end else if GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = 1 then begin
+    end else if (GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = MoneyCal.TEMPLE_FULL_PRICE) or
+        (GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = MoneyCal.TEMPLE_TENTH_OFF) then begin
+      { the Temple of Bane that Dirten rebuilds, a tenth off: the data patch for #682 stores 2 }
+      mode := GDVars.zone1^[C_Gbvm.ENTER_TEMPLE];
       GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] := 0;
-      Temple.TempleMainMenu;
+      Temple.TempleMainMenu(mode);
     end else
       PostCbt.PostCombat;
   end else begin

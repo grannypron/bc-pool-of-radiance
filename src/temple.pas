@@ -4,8 +4,9 @@ unit Temple;
 
 interface
 
-
-procedure TempleMainMenu;
+{ The temple: its counter and Heal menu, at prices by mode, MoneyCal.TEMPLE_FULL_PRICE or TEMPLE_TENTH_OFF (the value
+  the script stored in C_Gbvm.ENTER_TEMPLE). }
+procedure TempleMainMenu(mode: Byte);
 
 { The Heal menu: the cures and spells the temple sells, for the current character. }
 procedure HealMenu;
@@ -13,7 +14,12 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, 
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj;
+  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
+  MoneyCal;
+
+var
+  { the prices TempleMainMenu was entered with, for ConfirmCureCost }
+  priceMode: Byte;
 
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
@@ -25,11 +31,13 @@ end;
 
 { ConfirmCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current
   character's coins if they cover it, else from the pooled treasure, else print "Not enough money." and return N; a paid
-  cure prints "<name> is cured." Returns Y or N. }
+  cure prints "<name> is cured." Returns Y or N. cost is the listed price, which the temple's prices (priceMode) may
+  lower. }
 function ConfirmCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
 begin
+  cost := MoneyCal.TemplePrice(cost, priceMode);
   spell := spell + ' will only cost ' + StrUtil.NumStr(cost) + ' gold pieces.';
   TextRend.ShowMessage(LightGreen, True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
@@ -321,8 +329,9 @@ end;
 
 { TempleMainMenu: Run the temple menu using the shared treasure state. H and P are told apart from the extended Up and
   Down scan codes by ext; the G and O codes (Home and End) cycle characters. }
-procedure TempleMainMenu;
+procedure TempleMainMenu(mode: Byte);
 begin
+  priceMode := mode;
   Shop.CounterMenu(True, Temple.HealMenu);
 end;
 
