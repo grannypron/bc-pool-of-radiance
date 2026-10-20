@@ -178,6 +178,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Camp's messages stay without a key.** Fix's four messages (no clerics, no cleric able to heal, nothing left to heal, no healing possible), Scribe's "Scribing a scroll requires arcane training." and "<name> is in no condition to cast any spells / memorize spells / scribe any scrolls" (`CanDoSpellActivity`, also used by Cast outside camp) waited for a key and, for the last two, then cleared themselves. They now print in the message window, clearing it first, and stay there while the menu carries on. `CharDisp.PrintMessage` replaces `PrintMessageWait`, which nothing else used. Selecting another character in Camp's menus (Camp, Magic, Alter, Alter's Character and Party Order's Select) clears the message window, so a message about one character does not stay under the next; `Camp.SelectOtherChar` gathers the five places that selected and redrew the party. #681.
 
+**Escape leaves camp's portrait picker unchanged.** From camp (Alter, Character, Portrait), Escape now closes the portrait picker and restores the head and body the character had, discarding whatever was being tried; before, the picker had no way out but choosing a portrait. During character creation it still has none, so a new character always gets a portrait picked. `CharGen.CustomizePortrait` takes `canCancel`. #686.
+
 **Statistics screen, View menu, Settings screen, Load/Save menu, Fix messages, Journal "(more)", scribing message.** See sections 1, 2 and 6.
 
 ---

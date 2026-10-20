@@ -8,7 +8,8 @@ procedure MainMenu;
 
 procedure CustomizeIcon;
 
-procedure CustomizePortrait;
+{ The portrait picker for curChar; canCancel lets Escape leave it with the portrait unchanged (camp's Alter). }
+procedure CustomizePortrait(canCancel: Boolean);
 
 { True when curChar can be modified at all: a player race (Dwarf..Human, whose limits
   dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class in classMin (0..16). }
@@ -730,7 +731,7 @@ begin
   until creature^.name <> '';
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
-  CharGen.CustomizePortrait;
+  CharGen.CustomizePortrait(False);
   { the icon editor draws over the sheet the picker cleared }
   ViewChar.DisplayChar(GDVars.curChar);
   CharGen.CustomizeIcon;
@@ -1311,10 +1312,11 @@ end;
   at the ends of the entries offered (Portrait.PlayerPortraitCount: all of them once the merged archives are read).
   Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Keep (or Space, or
   Enter while Keep is the current option) shows the pick alone and asks whether it is ok: Yes keeps it, No goes back to
-  choosing. There is no way out but choosing a portrait. A head or body number past the ones offered starts at 1. The
-  caller redraws its screen afterwards. (SSI's picker cycled the head or body with H and B under the sheet's portrait,
-  forward only.) }
-procedure CustomizePortrait;
+  choosing. With canCancel (camp's Alter), Escape leaves the picker and restores the head and body the character
+  had; without it (character creation) there is no way out but choosing a portrait. A head or body number past the
+  ones offered starts at 1. The caller redraws its screen afterwards. (SSI's picker cycled the head or body with H
+  and B under the sheet's portrait, forward only.) }
+procedure CustomizePortrait(canCancel: Boolean);
 const
   PIC_COL: array[0..2] of Byte = (2, 14, 26);
   PIC_ROW = 4;
@@ -1333,6 +1335,9 @@ var
   { how many heads and bodies are offered (Portrait.PlayerPortraitCount) }
   nHeads: Byte;
   nBodies: Byte;
+  { the portrait on entry, which Escape restores }
+  savedHead: Byte;
+  savedBody: Byte;
 
   { Wrap: The table position k steps from cur in a table of n, wrapping at the ends }
   function Wrap(cur: Byte; k: Integer; n: Byte): Byte;
@@ -1385,6 +1390,8 @@ begin
     bodies[i] := nil;
   end;
   with GDVars.curChar^ do begin
+    savedHead := portraitHead;
+    savedBody := portraitBody;
     if (portraitHead = 0) or (portraitHead > nHeads) then
       portraitHead := 1;
     if (portraitBody = 0) or (portraitBody > nBodies) then
@@ -1419,6 +1426,12 @@ begin
           'P': step := -1;
           'H': onBody := False;
           'B': onBody := True;
+          { Escape }
+          C_Keys.NONE: if canCancel then begin
+              portraitHead := savedHead;
+              portraitBody := savedBody;
+              done := True;
+            end;
           'K', ' ', C_Keys.ENTER: begin
               { the pick alone: no neighbours, no counts }
               Border.ClearBox(PIC_COL[0], PIC_ROW, PIC_COL[0] + 10, PIC_ROW + 10);
