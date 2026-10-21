@@ -63,7 +63,25 @@ candidate: wait ABILITIES
 candidate: press h s
 candidate: wait HEALTH
 candidate: checkpoint status
-candidate: press h e e
+# out of action as well as unconscious: her name red on the party list (#694); Heal brings her back into action
+candidate: press e e e
+candidate: wait AREA
+# the next character selected, as the selected one is always drawn white
+candidate: press end
+candidate: checkpoint status-down
+candidate: press home
+candidate: press f6
+candidate: wait TOOLS
+candidate: press c
+candidate: wait ABILITIES
+candidate: press h h e e
+candidate: wait TOOLS
+candidate: press e
+candidate: wait AREA
+candidate: press end
+candidate: checkpoint status-healed
+candidate: press home
+candidate: press f6
 candidate: wait TOOLS
 # Map: the cursor a square east of the party, a note written there
 candidate: press m
