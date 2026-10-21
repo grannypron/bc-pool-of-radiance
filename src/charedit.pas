@@ -185,7 +185,8 @@ end;
 
 { The Health tool, on the character sheet: Heal restores every hit point and wakes the unconscious and dying; Status
   steps through okay, unconscious, dying, dead, stoned and gone, an okay character keeping at least 1 hit point and the
-  rest none. }
+  rest none. Either way the character is in action (enabled) only when okay or animated, as the temple and the healing
+  spells and CharHlp's damage leave one (#694): the party list and combat go by enabled, not status. }
 procedure HealthTool;
 var
   key: Char;
@@ -200,6 +201,7 @@ begin
                hpCur := hpMax;
                if status in [C_Status.UNCONSCIOUS, C_Status.DYING] then
                  status := C_Status.OKAY;
+               enabled := Ord(status in [C_Status.OKAY, C_Status.ANIMATED]);
              end;
         'S': begin
                case status of
@@ -216,6 +218,7 @@ begin
                    hpCur := 1;
                end else
                  hpCur := 0;
+               enabled := Ord(status in [C_Status.OKAY, C_Status.ANIMATED]);
              end;
       end;
   until key in ['E', C_Keys.NONE];
