@@ -28,10 +28,12 @@ const
   KIND_FIGHT = 6;
   KIND_EXIT = 7;
 
-{ Read the loaded area script's event dispatch. Call it once the area's script is loaded, before Kind. }
+{ Read the loaded area script's event dispatch, and forget Kind's answers for the last. Call it once the area's script
+  is loaded, before Kind. }
 procedure Prepare;
 
-{ The kind of a square whose event byte is event; KIND_NONE for 0, and for an event whose code shows nothing. }
+{ The kind of a square whose event byte is event; KIND_NONE for 0, and for an event whose code shows nothing. Each
+  event's is worked out once after Prepare and then remembered. }
 function Kind(event: Byte): Byte;
 
 implementation
@@ -47,6 +49,8 @@ const
   MAX_SCAN = 256;
   { instructions followed from an event's address }
   MAX_FOLLOW = 160;
+  { a kinds[] entry not yet worked out }
+  UNKNOWN = $FF;
 
 type
   TVisited = array[0..(C_Gbvm.SCRIPT_LAST - C_Gbvm.SCRIPT_FIRST) div 8] of Byte;
@@ -71,6 +75,9 @@ var
   vars: array[1..MAX_VARS] of Word;
   varMasks: array[1..MAX_VARS] of Byte;
   varOffsets: array[1..MAX_VARS] of Byte;
+  { Kind's answer for each event byte since Prepare, or UNKNOWN: the map asks for each square's, and an area's few
+    events (the Temple of Bane's eight on 168 squares) each cost KindAt's long walks (#692) }
+  kinds: array[Byte] of Byte;
 
 { Operand i of the instruction last decoded, as an address (a GBVM read) when isAddr. }
 function Operand(i: Byte; var isAddr: Boolean): Word;
@@ -350,6 +357,7 @@ var
 begin
   dispatchCount := 0;
   queueLen := 0;
+  FillChar(kinds, SizeOf(kinds), UNKNOWN);
   New(visited);
   FillChar(visited^, SizeOf(TVisited), 0);
   for i := 1 to 5 do
@@ -517,6 +525,10 @@ var
 begin
   Kind := KIND_NONE;
   if event = 0 then Exit;
+  if kinds[event] <> UNKNOWN then begin
+    Kind := kinds[event];
+    Exit;
+  end;
   { an event no dispatch is found for is one whose kind is not known }
   k := KIND_EVENT;
   found := False;
@@ -527,6 +539,7 @@ begin
         k := t;
       found := True;
     end;
+  kinds[event] := k;
   Kind := k;
 end;
 

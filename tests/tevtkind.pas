@@ -53,5 +53,10 @@ begin
   TestKit.CheckEqualsL(EvtKind.KIND_TREASURE, EvtKind.Kind(10), 'a counted copy, less 10: treasure');
   TestKit.CheckEqualsL(EvtKind.KIND_EVENT, EvtKind.Kind(5), 'no dispatch found: an event');
   TestKit.CheckEqualsL(EvtKind.KIND_EVENT, EvtKind.Kind(11), 'a variable written over no longer holds the event');
+  { the answers are kept until the next Prepare (#692): 9's code made a message, PRINT ""; EXIT }
+  Put($A030, #$11#$80#$00#$00);
+  TestKit.CheckEqualsL(EvtKind.KIND_FIGHT, EvtKind.Kind(9), 'an answer kept until Prepare');
+  EvtKind.Prepare;
+  TestKit.CheckEqualsL(EvtKind.KIND_MESSAGE, EvtKind.Kind(9), 'Prepare forgets the answers');
   TestKit.Done;
 end.
