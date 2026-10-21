@@ -1,4 +1,5 @@
 {$F+}
+{$I COMPILER.INC}
 unit Types;
 
 interface
@@ -9,6 +10,10 @@ uses C_Gender, C_Save, C_Equip, C_Level, C_Abil, C_Money, C_Gbvm;
 const
   { the longest name a character or creature has }
   NAME_LEN = 15;
+  { how much bigger a pointer is than the 4-byte far pointer the saved records hold: 0 in DOS and a 32-bit program, 4 in
+    a 64-bit one. TCharRecord's pads grow by it, as the pointer before the field each skips to does (DiskRec has the
+    records' disk form). }
+  PTR_GROWTH = SizeOf(Pointer) - 4;
   { the most creatures in the party: a saved game's party names, the usual spells, the statistics, the icon slots }
   MAX_PARTY = 8;
   { the most creatures in play at once, party and monsters: combat's slots (GDVars.creatureArr, arenaLoc and the target
@@ -42,8 +47,13 @@ type
 
   { Shared types. }
   TStr40 = String[40];
-  { A DOS path with its file name, as Dos.PathStr: DOS allows 64 characters of directory after the drive, 79 in all. }
+  { A DOS path with its file name, as Dos.PathStr: DOS allows 64 characters of directory after the drive, 79 in all. A
+    native build's paths are longer: there, a short string's most. }
+{$IFDEF FPC}
+  TPathStr = String[255];
+{$ELSE}
   TPathStr = String[79];
+{$ENDIF}
   TBaseItemRec = record
     { equip slot }
     slot: Byte;
@@ -222,22 +232,22 @@ type
     stats: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of Byte);
       2: (
     { skips to gender }
-    genderPad: array[0..141] of Byte;
+    genderPad: array[0..141 + PTR_GROWTH] of Byte;
     { Signed gender value used to index racial strength limits. }
     genderSp: ShortInt);
       3: (
     { skips to iconColors }
-    iconColorsPad: array[0..176] of Byte;
+    iconColorsPad: array[0..176 + PTR_GROWTH] of Byte;
     { One-based icon-color array for character customization and saving. }
     iconColors1: TIconCols);
       4: (
     { skips to clericSpells }
-    slotsPad: array[0..161] of Byte;
+    slotsPad: array[0..161 + PTR_GROWTH] of Byte;
     { Spell slots indexed by casting class and level. }
     slots: array[0..1, 1..3] of Byte);
       5: (
     { skips to gender }
-    viewPad0: array[0..141] of Byte;
+    viewPad0: array[0..141 + PTR_GROWTH] of Byte;
     { gender as a 0..127 subrange -- ViewChar indexes genderNames with it }
     genderIdx: 0..127;
     { charType }

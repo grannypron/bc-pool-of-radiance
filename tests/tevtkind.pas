@@ -1,5 +1,6 @@
 { Tests for EvtKind (phase 8): a script laid out by hand in zone 3, dispatching on the event byte each way the area
   scripts do, and each event named by what its code does. }
+{$I COMPILER.INC}
 program TEvtKind;
 
 uses Types, GDVars, C_Gbvm, EvtKind, TestKit;

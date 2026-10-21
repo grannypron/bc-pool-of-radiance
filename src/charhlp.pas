@@ -1,5 +1,6 @@
 { Shared creature operations: statistics, equipment, inventory, damage, targeting and party display. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CharHlp;
 
 interface

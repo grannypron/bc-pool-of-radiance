@@ -1,4 +1,5 @@
 { The display memory: the EGA framebuffer and the CGA and Tandy display banks. }
+{$I COMPILER.INC}
 unit C_Video;
 
 interface

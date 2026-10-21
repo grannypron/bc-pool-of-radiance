@@ -1,5 +1,6 @@
 { Recalculate class skills, saving throws and thief abilities, including wisdom bonuses. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit ClassCal;
 
 interface

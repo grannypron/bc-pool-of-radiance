@@ -5,6 +5,7 @@
   channel, from BLASTER (A220 D1 by default). GameBoot installs it when POOL.CFG names S; with no DSP answering, the
   AdLib's driver is installed instead (phase 7 of docs/refactor-plan.md). }
 {$F+,I-}
+{$I COMPILER.INC}
 unit SndSb;
 
 interface
@@ -14,7 +15,7 @@ procedure Install;
 
 implementation
 
-uses Dos, C_Sound, GDVars, FileUtil, SoundDrv, SndOpl;
+uses {$IFDEF FPC}TpCompat, PortIO, {$ENDIF}Dos, Types, C_Sound, GDVars, FileUtil, SoundDrv, SndOpl;
 
 const
   EFFECTS_FILE = 'SBSFX.DAT';
@@ -74,7 +75,7 @@ var
   dma: Byte;
   { SBSFX.DAT in memory once the first effect asks for it; nil before, or if it could not be loaded (the effects then
     play on the speaker) }
-  store: ^Byte;
+  store: Types.PBytes;
   storeSize: Word;
   { a buffer that crosses no 64 KB page, as long as the longest sample: one whose bytes in store cross a page (which
     DMA cannot) is copied here to play; nil if none could be placed, and such a sample then plays on the speaker }
@@ -151,10 +152,14 @@ begin
   end;
 end;
 
-{ The 20-bit physical address of p. }
+{ The 20-bit physical address of p. A native program has no DMA, nor physical addresses: 0. }
 function Physical(p: Pointer): LongInt;
 begin
+{$IFDEF FPC}
+  Physical := 0;
+{$ELSE}
   Physical := LongInt(Seg(p^)) * 16 + Ofs(p^);
+{$ENDIF}
 end;
 
 { True when len bytes at p cross a 64 KB page, which one DMA transfer cannot. }
@@ -196,11 +201,12 @@ var
   f: file;
   size: LongInt;
   got: Word;
-  p: ^Byte;
+  p: Types.PBytes;
   sig: string[4];
   count: Byte;
   i: Byte;
-  rec: ^Byte;
+  { the next header byte or entry's offset in p^ }
+  rec: Word;
   tune: Byte;
   ok: Boolean;
   ioRes: Integer;
@@ -221,12 +227,12 @@ begin
   ok := (IOResult = 0) and (got = storeSize);
   if ok then begin
     sig[0] := #4;
-    Move(p^, sig[1], 4);
-    rec := Ptr(Seg(p^), Ofs(p^) + 4);
-    ok := (sig = EFFECTS_SIG) and (rec^ = EFFECTS_VERSION);
-    Inc(Word(rec));
-    count := rec^;
-    Inc(Word(rec));
+    Move(p^[0], sig[1], 4);
+    rec := 4;
+    ok := (sig = EFFECTS_SIG) and (p^[rec] = EFFECTS_VERSION);
+    Inc(rec);
+    count := p^[rec];
+    Inc(rec);
     ok := ok and (HEADER_BYTES + ENTRY_BYTES * Word(count) <= storeSize);
   end;
   if not ok then begin
@@ -235,21 +241,21 @@ begin
   end;
   bounceSize := 0;
   for i := 1 to count do begin
-    tune := rec^;
+    tune := p^[rec];
     if (tune >= 1) and (tune <= LAST_EFFECT) then
       with effects[tune] do begin
-        format := Byte(Ptr(Seg(rec^), Ofs(rec^) + 1)^);
-        timeConstant := Byte(Ptr(Seg(rec^), Ofs(rec^) + 2)^);
-        Move(Ptr(Seg(rec^), Ofs(rec^) + 3)^, len, 2);
-        Move(Ptr(Seg(rec^), Ofs(rec^) + 5)^, start, 2);
+        format := p^[rec + 1];
+        timeConstant := p^[rec + 2];
+        Move(p^[rec + 3], len, 2);
+        Move(p^[rec + 5], start, 2);
         if (len = 0) or (format > FORMAT_ADPCM4) or (LongInt(start) + len > storeSize) then
           start := 0
         else if len > bounceSize then
           bounceSize := len;
       end;
-    Inc(Word(rec), ENTRY_BYTES);
+    Inc(rec, ENTRY_BYTES);
   end;
-  store := Pointer(p);
+  store := p;
   if bounceSize > 0 then
     bounce := SndSb.PlaceBlock(bounceSize);
 end;
@@ -264,7 +270,7 @@ var
   ok: Boolean;
 begin
   PlayEffect := False;
-  p := Ptr(Seg(store^), Ofs(store^) + e.start);
+  p := @store^[e.start];
   if SndSb.Crosses(p, e.len) then begin
     if bounce = nil then Exit;
     Move(p^, bounce^, e.len);

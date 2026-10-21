@@ -1,5 +1,6 @@
 { Build dungeon and wilderness combat arenas, load terrain tiles and place creatures. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CombatSt;
 
 interface

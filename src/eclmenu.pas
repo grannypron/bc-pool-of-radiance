@@ -1,5 +1,6 @@
 { ECL variable decoding, game-memory access, script menus, comparisons and subroutine calls. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EclMenu;
 
 interface
@@ -80,7 +81,7 @@ implementation
 
 uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_Race, C_Level, GDConsts, StrUtil, Dice;
+  C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
@@ -543,11 +544,11 @@ var
 begin
   Str(GDVars.virtualDisk, numStr);
   DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
-  if size < SizeOf(Types.TCharRecord) then begin
+  if size < DiskRec.CHAR_DISK_BYTES then begin
     TextRend.DisplayAndPause(White, 'Unable to load monster');
     GameIo.ExitGame;
   end;
-  Move(data^, creature^, SizeOf(Types.TCharRecord));
+  DiskRec.CharFromDisk(data^, creature^);
   with creature^ do begin
     itemsAddr := nil;
     effectsAddr := nil;
@@ -571,37 +572,37 @@ begin
   GDVars.dsSuppressingInsertDiskFlag := True;
   DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
-    if size >= SizeOf(Types.TEffectRec) then begin
+    if size >= DiskRec.EFFECT_DISK_BYTES then begin
       offset := 0;
       GetMem(creature^.effectsAddr, SizeOf(Types.TEffectRec));
       effect := creature^.effectsAddr;
       repeat
-        Move(data^[offset], effect^, SizeOf(Types.TEffectRec));
+        DiskRec.EffectFromDisk(data^[offset], effect^);
         effect^.next := nil;
-        Inc(offset, SizeOf(Types.TEffectRec));
-        if size - offset >= SizeOf(Types.TEffectRec) then begin
+        Inc(offset, DiskRec.EFFECT_DISK_BYTES);
+        if size - offset >= DiskRec.EFFECT_DISK_BYTES then begin
           GetMem(effect^.next, SizeOf(Types.TEffectRec));
           effect := effect^.next;
         end;
-      until size - offset < SizeOf(Types.TEffectRec);
+      until size - offset < DiskRec.EFFECT_DISK_BYTES;
     end;
     FreeMem(data, size);
   end;
   DaxIo.LoadDax('MON' + numStr + 'ITM', '.dax', id, size, data);
   if size <> 0 then begin
-    if size >= SizeOf(Types.TItemRec) then begin
+    if size >= DiskRec.ITEM_DISK_BYTES then begin
       offset := 0;
       GetMem(creature^.itemsAddr, SizeOf(Types.TItemRec));
       item := creature^.itemsAddr;
       repeat
-        Move(data^[offset], item^, SizeOf(Types.TItemRec));
+        DiskRec.ItemFromDisk(data^[offset], item^);
         item^.next := nil;
-        Inc(offset, SizeOf(Types.TItemRec));
-        if size - offset >= SizeOf(Types.TItemRec) then begin
+        Inc(offset, DiskRec.ITEM_DISK_BYTES);
+        if size - offset >= DiskRec.ITEM_DISK_BYTES then begin
           GetMem(item^.next, SizeOf(Types.TItemRec));
           item := item^.next;
         end;
-      until size - offset < SizeOf(Types.TItemRec);
+      until size - offset < DiskRec.ITEM_DISK_BYTES;
     end;
     FreeMem(data, size);
   end;

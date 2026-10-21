@@ -6,6 +6,7 @@
   cannot be built show as failed, and the build's own calls draw nothing. The screen is cleared when the build ends.
   With too little memory for it, nothing is drawn and every call does nothing. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit BldShow;
 
 interface
@@ -47,7 +48,7 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
 
 const
   { per-disk archives are numbered 1 to SOURCE_DISKS }

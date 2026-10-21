@@ -1,5 +1,6 @@
 { Effect IDs: TEffectRec.id values used by FxEngine.AddEffect, FxEngine.RemoveEffect and CharHlp.HasEffect, and indices
   into EffHndlr's handler table. }
+{$I COMPILER.INC}
 unit C_Effect;
 
 interface

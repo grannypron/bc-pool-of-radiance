@@ -1,5 +1,6 @@
 { Text-window borders, rectangle clearing and centered titles. Borders use the 8x8 symbol set. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Border;
 
 interface

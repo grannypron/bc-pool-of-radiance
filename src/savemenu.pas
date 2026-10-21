@@ -2,6 +2,7 @@
   and the popup that asks for a description when saving. A slot's description and area are kept in savgam<x>.inf beside
   its savgam<x>.dat. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit SaveMenu;
 
 interface
@@ -53,7 +54,8 @@ procedure CheckSaveDir;
 
 implementation
 
-uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil;
+uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil
+  {$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   INFO_SIG = 'SINF';

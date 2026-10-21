@@ -3,6 +3,7 @@
   every voice has run out or MAX_TICKS have passed. Each digest must match the record taken from SSI's sequencer before
   the phase began, so the driver work changes no write. With no record (RECORDED False), the digests are written to
   SNDSEQ.TXT as the record's source lines, and the test fails. }
+{$I COMPILER.INC}
 program TSndSeq;
 
 uses C_Sound, SndTrc, TestKit;

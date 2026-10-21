@@ -4,6 +4,7 @@
   record and name as the usual spells are (SaveLoad); the game's block is here. Both are kept in small files beside the
   saves: <character>.sts beside a character's file, savgam<x>.sts beside a saved game. }
 {$F+,I-}
+{$I COMPILER.INC}
 unit Stats;
 
 interface

@@ -1,5 +1,6 @@
 { Character creation, modification and training, plus party management and the main menu. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CharGen;
 
 interface
@@ -28,7 +29,8 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice, VidOps;
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice, VidOps
+  {$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { STING training override. }

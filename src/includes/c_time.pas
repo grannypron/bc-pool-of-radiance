@@ -1,4 +1,5 @@
 { The game clock's components. }
+{$I COMPILER.INC}
 unit C_Time;
 
 interface

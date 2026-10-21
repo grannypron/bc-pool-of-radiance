@@ -1,6 +1,7 @@
 { The unit tests' checks: each test program uses this unit and the units it tests, calls Check and the CheckEquals
   routines, and ends with Done. Results go to the log TEST.LOG in the current directory, which build.sh reads: a line
   per failure and a summary line per program. }
+{$I COMPILER.INC}
 unit TestKit;
 
 interface

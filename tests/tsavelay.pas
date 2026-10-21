@@ -1,6 +1,7 @@
 { Tests the layout of a saved game, SAVGAMx.DAT: the parts SaveLoad writes, in order, add up to SSI's 13,137 bytes, the
   party's map position is SSI's five bytes, and zone 0's named fields sit at their GBVM addresses. The sizes are SSI's
   v1.3 ones (por-disassembly v13/src SaveLoad: zone3 is SAVED_SCRIPT_BYTES there). }
+{$I COMPILER.INC}
 program TSaveLay;
 
 uses Types, GDVars, C_Gbvm, TestKit;

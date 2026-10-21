@@ -1,5 +1,6 @@
 { Shop menus, item selection and purchases. Shop inventory uses the shared treasure state. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Shop;
 
 interface

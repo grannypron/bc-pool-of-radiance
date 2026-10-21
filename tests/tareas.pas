@@ -1,4 +1,5 @@
 { Tests for AreaName (#604): the Clue Book names by script, and the two-map scripts by map. }
+{$I COMPILER.INC}
 program TAreas;
 
 uses Types, AreaName, TestKit;

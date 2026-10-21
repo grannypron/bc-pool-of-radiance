@@ -1,6 +1,7 @@
 { Combat loop, initiative selection and manual-control menus. }
 
 {$O+,F+}
+{$I COMPILER.INC}
 unit Combat;
 
 interface

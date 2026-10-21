@@ -1,5 +1,6 @@
 { Spell selection, casting, targeting and spell-specific behavior. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Magic;
 
 interface

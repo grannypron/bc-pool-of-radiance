@@ -1,4 +1,5 @@
 { Combat terrain values. }
+{$I COMPILER.INC}
 unit C_Terr;
 
 interface

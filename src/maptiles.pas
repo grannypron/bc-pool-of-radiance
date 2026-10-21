@@ -2,6 +2,7 @@
 
   Tile IDs use seven bits for the index and the high bit to select the second tile-set buffer. }
 {$O+,F+,I-} { I/O checking is disabled for the range-error message. }
+{$I COMPILER.INC}
 unit MapTiles;
 
 interface

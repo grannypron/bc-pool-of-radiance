@@ -1,6 +1,7 @@
 { The PC speaker sound driver: the sequencer's PC Speaker arrangements, played by SOUNDDRV.OBJ's timer driver. GameBoot
   installs it when POOL.CFG names P (phase 7 of docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit SndSpk;
 
 interface

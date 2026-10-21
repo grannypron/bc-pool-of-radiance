@@ -1,5 +1,6 @@
 { Character sheets, inventory actions, coin menus and spell-menu access. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit ViewChar;
 
 interface

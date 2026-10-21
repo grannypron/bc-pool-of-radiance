@@ -1,6 +1,7 @@
 { Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
   straight step, 3 a diagonal one), IsDirToward and GetIconTileDelta; and RouteStep's walks on an arena of the test's
   own, with walls and bodies (#668). }
+{$I COMPILER.INC}
 program TPathing;
 
 uses Types, C_Dir, GDConsts, GDVars, Pathing, StrUtil, TestKit;

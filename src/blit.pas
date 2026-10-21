@@ -6,6 +6,7 @@
   each row spans 40 bytes. Tandy packs eight pixels into four bytes across four scanline banks. Raw artwork always uses
   four bytes per eight-pixel chunk. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Blit;
 
 interface
@@ -200,7 +201,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 
 implementation
 
-uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil;
+uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
 type
   PLongInt = ^LongInt;
   { The header of a DAX picture as stored; the pixel data follows it. }

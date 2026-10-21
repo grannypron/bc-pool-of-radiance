@@ -3,6 +3,7 @@
   3D view marks the party's square whenever it is drawn there, so moves, turns, arrivals and the scripts' teleports
   all count, whether or not the Companion Tools are on. Saved beside each save as savgam<x>.map. Resident, since every
   step marks a square. }
+{$I COMPILER.INC}
 unit Explored;
 
 interface

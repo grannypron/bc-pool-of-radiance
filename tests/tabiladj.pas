@@ -1,4 +1,5 @@
 { Tests for AbilAdj: the Strength scale and its to-hit, damage and carrying tables, and the Dexterity adjustments. }
+{$I COMPILER.INC}
 program TAbilAdj;
 
 uses Types, AbilAdj, StrUtil, TestKit;

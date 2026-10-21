@@ -1,6 +1,7 @@
 { The dice. Resident, and using only GDVars, so every unit can roll without loading an overlay and tests can fix
   RandSeed (#642). }
 {$F+}
+{$I COMPILER.INC}
 unit Dice;
 
 interface
@@ -13,7 +14,7 @@ function RollDamageDice(n, sides: Byte): Byte;
 
 implementation
 
-uses GDVars;
+uses GDVars{$IFDEF FPC}, TpRand{$ENDIF};
 
 function RollDice(n, sides: Byte): Byte;
 var

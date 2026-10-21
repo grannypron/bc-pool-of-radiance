@@ -1,5 +1,6 @@
 { The script opcodes' mnemonics, for the debug trace log (STING: Ctrl-L), as Curse of the Azure Bonds writes them. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EclTrace;
 
 interface

@@ -1,5 +1,6 @@
 { Tests for CharHlp's rules: item labels, weights, warrior level, the NPC tests, effects and spells, item lists, and the
   racial level caps. }
+{$I COMPILER.INC}
 program TCharHlp;
 
 uses Types, GDVars, C_Item, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, TestKit;

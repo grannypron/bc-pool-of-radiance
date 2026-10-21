@@ -1,6 +1,7 @@
 { The merged data archives DataBld builds from the per-disk ones: the family count, the places of the families the data
   patches touch, the archive version and the reserved block ids. DataBld and DataPat are the only source for these
   values; no tool outside this repository keeps a copy. }
+{$I COMPILER.INC}
 unit C_Data;
 
 interface

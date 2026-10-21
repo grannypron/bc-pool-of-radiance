@@ -1,4 +1,5 @@
 { Tests for EclTrace.OpName: the trace log's opcode names, Curse's spelling kept. }
+{$I COMPILER.INC}
 program TEclTrc;
 
 uses C_Ecl, EclTrace, TestKit;

@@ -1,6 +1,8 @@
 { The trace build of the sound sequencer (SNDTRACE.OBJ, sounddrv.asm assembled with /dTRACE), for the tests: the same
   tunes, voices and device code as SoundDrv's, but each port write is recorded in a buffer instead of reaching the
-  hardware, and one timer tick's sequencing can be run on demand. }
+  hardware, and one timer tick's sequencing can be run on demand. The native build has no TASM: there these forward
+  to the Pascal sequencer's trace entries (SndSeq), which has no AdLib, so OplReset records nothing. }
+{$I COMPILER.INC}
 unit SndTrc;
 
 interface
@@ -29,6 +31,18 @@ procedure OplReset;
 
 implementation
 
+{$IFDEF FPC}
+uses SndSeq;
+
+procedure SetSoundDevice(mode: Word); begin SndSeq.SetSoundDevice(mode); end;
+procedure ProgramSpeakerVoices(tuneId: Word); begin SndSeq.ProgramSpeakerVoices(tuneId); end;
+procedure ProgramTandyVoices(tuneId: Word); begin SndSeq.ProgramTandyVoices(tuneId); end;
+function SoundVoiceTune(voice: Word): Word; begin SoundVoiceTune := SndSeq.SoundVoiceTune(voice); end;
+procedure SetTraceBuffer(buf: Pointer; capacity: Word); begin SndSeq.SetTraceBuffer(buf, capacity); end;
+function TraceCount: Word; begin TraceCount := SndSeq.TraceCount; end;
+procedure TraceTick; begin SndSeq.TraceTick; end;
+procedure OplReset; begin SndSeq.OplReset; end;
+{$ELSE}
 {$L SNDTRACE.OBJ}
 
 procedure SetSoundDevice(mode: Word); external;
@@ -39,5 +53,6 @@ procedure SetTraceBuffer(buf: Pointer; capacity: Word); external;
 function TraceCount: Word; external;
 procedure TraceTick; external;
 procedure OplReset; external;
+{$ENDIF}
 
 end.

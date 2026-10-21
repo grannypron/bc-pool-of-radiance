@@ -5,6 +5,7 @@
   few lines about the build, the data archives and memory. The NORAND and STING notes, when they are given, stand at
   the right of the last settings rows. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit Options;
 
 interface
@@ -26,11 +27,11 @@ procedure OptionsMenu;
 
 implementation
 
-uses Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo, SoundDrv, DaxIo, DataArc,
-  GDConsts, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo,
+  SoundDrv, DaxIo, DataArc, GDConsts, VidOps{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
-{$I ..\OBJ\BUILDID.INC}
+{$I BUILDID.INC}
 
 const
   CFG_NAME = 'POOLOPT.CFG';

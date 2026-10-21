@@ -1,6 +1,7 @@
 { The game clock's carries. Resident, as every combat round and every step advance the clock, and using only data
   units, so tests can use it. }
 {$F+}
+{$I COMPILER.INC}
 unit Clock;
 
 interface
