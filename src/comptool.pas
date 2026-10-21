@@ -2,6 +2,7 @@
   which can no longer attach to it. F6 on the map and camp menus opens the Tools screen, outside combat, while the
   Companion Tools setting is on. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit CompTool;
 
 interface

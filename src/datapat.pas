@@ -5,6 +5,7 @@
   that gains code at its end). It is made only when the block is size bytes long and holds the original bytes there;
   offsets and sizes are those of the block as the fixes before it in this table leave it. A part's bytes are the next
   origLen + newLen bytes of patchBytes, the original first. Changing the fixes means raising C_Data.VERSION. }
+{$I COMPILER.INC}
 unit DataPat;
 
 interface

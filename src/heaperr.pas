@@ -2,6 +2,7 @@
 
 { Heap-allocation failure handler: it frees a reserve kept for the purpose and offers the player a save before the game
   quits to DOS (#643). }
+{$I COMPILER.INC}
 unit HeapErr;
 
 interface
@@ -79,5 +80,8 @@ end;
 begin
   reserve := nil;
   handling := False;
+  { Free Pascal has no HeapError hook, and a native heap runs out only when the machine does }
+{$IFNDEF FPC}
   HeapError := @HeapErr.HeapErrorHandler;
+{$ENDIF}
 end.

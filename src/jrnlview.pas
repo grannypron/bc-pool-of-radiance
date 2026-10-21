@@ -5,6 +5,7 @@
   overlay, so the preview is drawn from MenuCore's idle hook while the bottom line waits for a key, and a held arrow key
   scrolls the list without stopping to draw each item on the way. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit JrnlView;
 
 interface

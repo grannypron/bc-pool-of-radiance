@@ -1,5 +1,6 @@
 { Tests for DataArc's archive names: a family's per-disk and merged names, matching a file name back to its family and
   disk in any case, and FileLength. }
+{$I COMPILER.INC}
 program TDataArc;
 
 uses C_Data, DataArc, StrUtil, TestKit;

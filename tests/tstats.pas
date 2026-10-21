@@ -1,4 +1,5 @@
 { Tests for Stats (#611): party membership, saturation, kills by kind, damage, healing and net coin. }
+{$I COMPILER.INC}
 program TStats;
 
 uses Types, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, Stats, TestKit;

@@ -1,4 +1,5 @@
 { The conditions FxEngine.TriggerEffectsWithCondition checks effects under. }
+{$I COMPILER.INC}
 unit C_Cond;
 
 interface

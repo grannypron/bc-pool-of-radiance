@@ -1,5 +1,6 @@
 { Update dungeon and wilderness views from the current map state. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit MapView;
 
 interface

@@ -2,6 +2,7 @@
   notes of up to NOTE_LEN characters, each on a square of a 3D area keyed as Explored keys areas (the script, and the
   map). Written and read from the Companion Tools' Notes; saved beside each save as savgam<x>.nts. Resident, as
   Explored is, so its initialization clears the notes before any save is read. }
+{$I COMPILER.INC}
 unit MapNotes;
 
 interface

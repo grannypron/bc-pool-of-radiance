@@ -1,6 +1,7 @@
 { Load and draw 8x8 symbol sets. }
 {$O+,F+}
 {$I-}
+{$I COMPILER.INC}
 unit Sym8x8;
 
 interface

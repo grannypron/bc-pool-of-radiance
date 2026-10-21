@@ -1,8 +1,9 @@
 { Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills; and
   GDConsts.alignByClass' rows. }
+{$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Class, C_Align, GDConsts, ClassCal, Dice, TestKit;
+uses Types, C_Level, C_Race, C_Save, C_Class, C_Align, GDConsts, ClassCal, Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   c: Types.PCharRecord;

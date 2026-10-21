@@ -1,5 +1,6 @@
 { Dungeon and wilderness movement, door opening and the map menu. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Explore;
 
 interface

@@ -2,6 +2,7 @@
   archives are built, so kept in an overlay. Blit holds the hot primitives and the size and capability questions. Phase
   6 of docs/refactor-plan.md moves both behind the video driver. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit VidOps;
 
 interface

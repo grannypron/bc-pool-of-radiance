@@ -1,6 +1,7 @@
 { Menu key values. Enter, Escape and Backspace are ASCII; the arrow, Home and End keys and the group marked extended
   are BIOS extended scan codes, returned with the menu routines' extended-key flag set (ALT_Q is Q's scan code, not
   Ctrl-P). }
+{$I COMPILER.INC}
 unit C_Keys;
 
 interface

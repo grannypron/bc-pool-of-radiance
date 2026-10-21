@@ -1,5 +1,6 @@
 { Tests for MapNotes (phase 8): notes set, changed and removed per square and area, the notes full, and the round trip
   through savgam<x>.nts. }
+{$I COMPILER.INC}
 program TMapNote;
 
 uses MapNotes, TestKit;

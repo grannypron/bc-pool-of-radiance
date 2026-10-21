@@ -1,5 +1,6 @@
 { Combat pathfinding, line stepping and target-list construction and sorting. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Pathing;
 
 interface

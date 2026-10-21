@@ -1,4 +1,5 @@
 { Item values: TBaseItemRec's weapon-property bits and the base item IDs the code names. }
+{$I COMPILER.INC}
 unit C_Item;
 
 interface

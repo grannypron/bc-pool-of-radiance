@@ -4,6 +4,7 @@
   last level whatever the race; gear adds any item RandItem makes and sets the coins; magic sets the spells known;
   health heals and sets the status. Edited characters are not marked. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CharEdit;
 
 interface

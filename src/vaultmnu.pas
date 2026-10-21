@@ -1,5 +1,6 @@
 { The vault's menu, its own unit so Vault, which ViewChar's Deposit uses, need not use ViewChar. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit VaultMnu;
 
 interface
@@ -14,7 +15,8 @@ procedure VaultMenu;
 
 implementation
 
-uses Crt, GDVars, C_Ifc, C_Keys, CharDisp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar;
+uses Crt, GDVars, C_Ifc, C_Keys, CharDisp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
+  {$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure VaultMenu;
 var

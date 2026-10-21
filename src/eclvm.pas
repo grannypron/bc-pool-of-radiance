@@ -1,5 +1,6 @@
 { Main game loop and ECL script interpreter. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EclVm;
 
 interface
@@ -14,7 +15,7 @@ implementation
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, MoneyCal;
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }
@@ -976,9 +977,9 @@ begin
       GameIo.ExitGame;
     end;
     offset := 0;
-    while sizeRead - offset >= SizeOf(Types.TItemRec) do begin
-      Move(data^[offset], it, SizeOf(Types.TItemRec));
-      Inc(offset, SizeOf(Types.TItemRec));
+    while sizeRead - offset >= DiskRec.ITEM_DISK_BYTES do begin
+      DiskRec.ItemFromDisk(data^[offset], it);
+      Inc(offset, DiskRec.ITEM_DISK_BYTES);
       CharHlp.PrependItemCopy(GDVars.treasureItems, @it);
     end;
     FreeMem(data, sizeRead);
@@ -1015,7 +1016,8 @@ begin
         end;
         61..85: itemId := 61;
         86..92: itemId := 62;
-        91..98: begin
+        { SSI's arm read 91..98; 91 and 92 are matched above, and Free Pascal rejects a label used twice }
+        93..98: begin
           roll3 := Dice.RollDice(1, 16);
           case roll3 of
             1..7: itemId := 71;

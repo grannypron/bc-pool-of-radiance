@@ -1,14 +1,17 @@
 { Startup configuration: initialize the overlay manager, read POOL.CFG, select the video mode and reserve graphics
   memory. }
 {$O+,F+,I-}
+{$I COMPILER.INC}
 unit GameBoot;
 
 interface
 
 implementation
 
-uses Types, C_Sound, GDConsts, GDVars, Crt, Dos, Overlay, Blit, SoundDrv, DaxIo, GameIo, VidCga, VidEga, VidTdy, VidVga,
-  SndTdy, SndSpk, SndOpl, SndSb, SndNone;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_Sound, GDConsts, GDVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
+  SoundDrv, DaxIo, GameIo, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
+  {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
+  {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { lowered HeapEnd snapshot }
@@ -27,6 +30,8 @@ const
   GFX_RESERVE_PARAS = 1024;
   OVERLAY_BUF_BYTES = 100352;
 
+{ The native build has no overlays, no EMS and no HeapEnd to lower: its heap grows as it needs. }
+{$IFNDEF FPC}
 var
   heapEndW: Types.THeapEndW absolute HeapEnd;
   { the overlay manager's own read routine, which CountOvrRead calls }
@@ -38,6 +43,7 @@ begin
   Inc(GDVars.ovrLoads);
   CountOvrRead := ovrRead(ovrSeg);
 end;
+{$ENDIF}
 
 { A POOL.CFG path made ready for file names to be appended: spaces trimmed, the current drive (or, for a relative path,
   the current directory) put in front of a path without a drive letter, and a closing backslash. An empty path gives
@@ -75,9 +81,34 @@ begin
   NormalizePath := path;
 end;
 
+{$IFDEF FPC}
+{ POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game is the current folder
+  (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\ when it
+  names one elsewhere. NatFile turns the backslashes into the system's separator as each file is opened. }
+procedure NativeFolders(var gameDir, saveDir: String);
+var
+  game: String;
+  save: String;
+begin
+  game := NormalizePath(gameDir);
+  save := NormalizePath(saveDir);
+  GetDir(0, gameDir);
+  if gameDir[Length(gameDir)] <> '/' then
+    gameDir := gameDir + '/';
+  if (Length(save) > Length(game)) and NatFile.SameName(Copy(save, 1, Length(game)), game) then
+    saveDir := gameDir + Copy(save, Length(game) + 1, 255)
+  else
+    saveDir := gameDir + 'SAVE\';
+end;
+{$ENDIF}
+
 { Game startup runs through this unit's initialization section. }
 begin
   GDVars.stingArg := ParamStr(1) = 'STING';
+{$IFDEF FPC}
+  NatFile.EnterGameFolder;
+  GDVars.ovrInEms := False;
+{$ELSE}
   DaxIo.OverlayPrompt;
   OvrInit('GAME.OVR');
   { Copy the overlays into EMS when there is enough of it, so they load from memory rather than disk; without an EMS
@@ -90,6 +121,7 @@ begin
   GDVars.picPeak := 0;
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
+{$ENDIF}
   repeat
     Assign(cfgFile, 'pool.cfg');
     Reset(cfgFile, 128);
@@ -113,7 +145,11 @@ begin
   Intr($10, GDVars.dsInterruptRegisters);
   GDVars.savedVideoMode := GDVars.dsInterruptRegisters.al;
   GDVars.curVideoMode := GDVars.savedVideoMode;
-  { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, V for VGA, anything else CGA }
+  { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, V for VGA, anything else CGA; natively VGA, which
+    shows EGA's colours }
+{$IFDEF FPC}
+  VidVga.Install;
+{$ELSE}
   case cfgChar of
     'E': VidEga.Install;
     'T': VidTdy.Install;
@@ -127,8 +163,10 @@ begin
     gfxReserve := Ptr(heapEndW.s - GDVars.video.ramVideoParas, heapEndW.o);
     HeapEnd := gfxReserve;
   end;
+{$ENDIF}
   Blit.SetVideoMode(GDVars.video.biosMode);
   GDVars.video.Start;
+{$IFNDEF FPC}
   if OVERLAY_BUF_BYTES - OvrGetBuf <= MemAvail then begin
     OvrSetBuf(OVERLAY_BUF_BYTES);
     { probation (#612): an overlay called while it sits in the last third of the buffer is kept rather than dropped,
@@ -144,27 +182,40 @@ begin
     WriteLn('Overlay error, program abort!');
     Halt;
   end;
+{$ENDIF}
   ReadLn(cfgText, cfgChar);
   { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib music and speaker effects, S a Sound Blaster's
     recorded effects with its AdLib music (each falling back to the next when its card does not answer), anything else
     none }
   case cfgChar of
+{$IFDEF FPC}
+    { natively, the Tandy's music and the Sound Blaster's recorded effects for any of the three (SndDig) }
+    'T', 'A', 'S': SndDig.Install;
+    'P': SndSpk.Install;
+{$ELSE}
     'T': SndTdy.Install;
     'P': SndSpk.Install;
     'A': SndOpl.Install;
     'S': SndSb.Install;
+{$ENDIF}
   else
     SndNone.Install;
   end;
   GDVars.soundMode := GDVars.sound.mode;
   { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
+{$IFNDEF FPC}
   gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
   HeapEnd := gfxReserve;
+{$ENDIF}
   SoundDrv.SoundSuspend;
   ReadLn(cfgText, GDVars.gameDir);
-  GDVars.gameDir := NormalizePath(GDVars.gameDir);
   ReadLn(cfgText, GDVars.dsSaveDirectory);
+{$IFDEF FPC}
+  NativeFolders(GDVars.gameDir, GDVars.dsSaveDirectory);
+{$ELSE}
+  GDVars.gameDir := NormalizePath(GDVars.gameDir);
   GDVars.dsSaveDirectory := NormalizePath(GDVars.dsSaveDirectory);
+{$ENDIF}
   ReadLn(cfgText, cfgChar);
   if cfgChar = 'F' then
     GDVars.fullIntro := True

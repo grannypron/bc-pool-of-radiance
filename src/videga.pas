@@ -1,6 +1,7 @@
 { The EGA video driver: BIOS mode 0Dh, 320x200 in 16 colours on four planes at $A000, two pages. Resident, since its
   routines are the hot ones; GameBoot installs it when POOL.CFG names EGA (phase 6 of docs/refactor-plan.md). }
 {$F+}
+{$I COMPILER.INC}
 unit VidEga;
 
 interface

@@ -2,6 +2,7 @@
   prices. Using only data units, so Stats can use it and tests can too; overlaid, as only menus and the end of a combat
   call it. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit MoneyCal;
 
 interface

@@ -1,6 +1,7 @@
 { Combat map display: a 7x7 viewport over the 50x25 arena, with creature icons, scrolling, a movement cursor and corpse
   tracking. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CbtMap;
 
 interface

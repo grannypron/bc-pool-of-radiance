@@ -2,6 +2,7 @@
   concerned, and whether the effect is being removed or the item unreadied; it works through shared combat state such as
   GDVars.pendingDamage, the attack roll and GDVars.gSaveRoll. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit EffHndlr;
 
 interface

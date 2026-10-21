@@ -2,6 +2,7 @@
   built, the data archives are built, and at start-up, so kept in an overlay. VidTdy installs them into GDVars.video
   (phase 6 of docs/refactor-plan.md). }
 {$O+,F+}
+{$I COMPILER.INC}
 unit PicTdy;
 
 interface
@@ -22,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_Video, GDVars, Blit;
+uses C_Video, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: Types.PImgBuf);
 var

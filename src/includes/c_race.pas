@@ -1,4 +1,5 @@
 { Race values (TCharRecord.race). }
+{$I COMPILER.INC}
 unit C_Race;
 
 interface

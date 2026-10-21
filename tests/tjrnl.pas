@@ -1,5 +1,6 @@
 { Tests for JrnlList: the kinds, numbers, labels and titles of the Journal's items, and that every item's text has lines
   that fit the Journal pane (C_Jrnl.JOURNAL_WIDTH). }
+{$I COMPILER.INC}
 program TJrnl;
 
 uses C_Jrnl, JrnlList, StrUtil, TestKit;

@@ -1,5 +1,6 @@
 { Menu input, animated menu pictures and linked lists of display strings. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit MenuCore;
 
 interface

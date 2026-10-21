@@ -1,5 +1,6 @@
 { Introduction, credits and title screens, with delays that can be interrupted by a keypress. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Intro;
 
 interface
@@ -8,7 +9,7 @@ procedure Introduction;
 
 implementation
 
-uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border, C_Sound, SoundDrv, DaxIo;
+uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border, C_Sound, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);

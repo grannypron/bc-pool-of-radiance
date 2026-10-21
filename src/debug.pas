@@ -1,5 +1,6 @@
 { STING hit-point debug display. GameIo toggles its flag on Ctrl-D when the first command-line argument is STING. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit Debug;
 
 interface

@@ -1,4 +1,5 @@
 { Alignment values. }
+{$I COMPILER.INC}
 unit C_Align;
 
 interface

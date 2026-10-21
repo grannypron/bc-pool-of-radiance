@@ -1,4 +1,5 @@
 { Tests for DataPat's table: the rules DataBld relies on when it makes the fixes. }
+{$I COMPILER.INC}
 program TDataPat;
 
 uses C_Data, DataPat, StrUtil, TestKit;

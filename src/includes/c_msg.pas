@@ -1,4 +1,5 @@
 { The text window's message area: its first and last column and its bottom and top row. }
+{$I COMPILER.INC}
 unit C_Msg;
 
 interface

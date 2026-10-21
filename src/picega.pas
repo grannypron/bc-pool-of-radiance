@@ -2,6 +2,7 @@
   the data archives are built, and at start-up, so kept in an overlay. VidEga installs them into GDVars.video (phase 6
   of docs/refactor-plan.md). }
 {$O+,F+}
+{$I COMPILER.INC}
 unit PicEga;
 
 interface
@@ -22,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses GDConsts, GDVars, Blit;
+uses GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: Types.PImgBuf);
 var

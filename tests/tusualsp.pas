@@ -1,5 +1,6 @@
 { Tests for UsualSpl: usual spells remembered, found by record and name, forgotten, saved to a .mem file and read back
   only for the character it was made for, and a full table giving up the entry of a character outside the party. }
+{$I COMPILER.INC}
 program TUsualSp;
 
 uses Types, C_Gbvm, GDVars, FileUtil, UsualSpl, TestKit;

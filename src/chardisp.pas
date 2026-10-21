@@ -2,6 +2,7 @@
   combat layouts, the message window and bottom-line messages, and combat's moving icons. Overlaid; split from CharHlp,
   whose resident core keeps the stats, inventory and damage. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit CharDisp;
 
 interface

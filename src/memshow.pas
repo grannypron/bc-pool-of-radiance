@@ -1,6 +1,7 @@
 { STING Ctrl-Y's memory display. Resident, so looking at the overlay load count loads no overlay and leaves the count
   as it was; GameIo calls it through its showMemory hook, since GameIo cannot use TextRend. }
 {$F+}
+{$I COMPILER.INC}
 unit MemShow;
 
 interface
@@ -13,7 +14,7 @@ procedure ShowMemory;
 
 implementation
 
-uses Crt, GDVars, TextRend, StrUtil, Overlay;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDVars, TextRend, StrUtil{$IFNDEF FPC}, Overlay{$ENDIF};
 
 procedure ShowMemory;
 var
@@ -23,9 +24,12 @@ begin
     source := 'EMS'
   else
     source := 'disk';
+  { the native build has no overlays }
+{$IFNDEF FPC}
   TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GDVars.ovrLoads));
   TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
                                        StrUtil.NumStr(OvrGetRetry) + ' from ' + source);
+{$ENDIF}
   TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
   TextRend.DisplayAndPause(LightGreen, 'Pictures ' + StrUtil.NumStr(GDVars.picBytes) + ' peak ' +
                                        StrUtil.NumStr(GDVars.picPeak));

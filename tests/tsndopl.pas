@@ -5,6 +5,7 @@
   maps to; where it is silent, the channel must be silent too. The noise voice plays the OPL's snare drum: its level
   must follow the same way, with the rhythm register keying it. Only the first CHECK_TICKS ticks of each tune are
   compared. }
+{$I COMPILER.INC}
 program TSndOpl;
 
 uses C_Sound, SndTrc, TestKit;

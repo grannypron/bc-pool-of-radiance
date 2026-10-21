@@ -1,5 +1,6 @@
 { BIOS text output, bottom-line prompts, rounded memory allocation and DAX archive loading. }
 {$O+,F+}
+{$I COMPILER.INC}
 unit DaxIo;
 
 interface
@@ -69,7 +70,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc;
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { DaxIo.FileExists IOResult }

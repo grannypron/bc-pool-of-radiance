@@ -82,6 +82,7 @@ press ctrl-y
 checkpoint overlay-loads
 golden: press ret ret ret
 candidate: press ret ret
+ignore HEAP FREE
 candidate: checkpoint heap
 candidate: press ret
 candidate: checkpoint pictures

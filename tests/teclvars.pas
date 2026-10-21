@@ -1,5 +1,6 @@
 { Tests for EclVars' GBVM address map: the zones, and every special address a script reads or writes in place of the
   game's variables (C_Gbvm names them), so moving or renaming a variable cannot break a script unnoticed. }
+{$I COMPILER.INC}
 program TEclVars;
 
 uses Types, GDVars, C_Gbvm, C_Money, C_Dir, C_Status, C_Effect, C_Save, EclVars, StrUtil, TestKit;
