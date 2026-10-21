@@ -13,6 +13,10 @@
 - A character's More Info screen now has its own menu: Saves, Stats, Kills, Thief (for characters with thief levels, single or multi-class) and Exit. Stats and Kills show the game statistics and the kill count on the More Info screen itself, without a menu of their own; on the kill count, the Up and Down arrows scroll a row and Page Up and Page Down a page. Thief shows each thief skill with its racial, Dexterity and level parts and the total.
 - The Companion Tools (F6, when turned on in Settings) open straight onto the area's map. Map and Notes are now one tool: Map puts a cursor on the map to write and clear your notes on squares. The map also draws much faster in areas with many event squares, such as the Temple of Bane.
 
+### Fixes
+
+- A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.
+
 ## Pool of Radiance port: October 2026 update
 
 This update to the Pool of Radiance port (SSI's 1988 game, version 1.3, rebuilt from its source) collects a week of work from 10 to 17 October 2026. It adds paladins and rangers at character creation, a settings screen, a full-screen load and save menu with quick save and quick load, a vault in New Phlan, and statistics for each character. The rules now run to an ability score of 25, a long list of bugs from SSI's original is fixed, and the combat AI no longer runs in circles. Behind the scenes the code has been restructured and put under automated tests, and the game gains a VGA mode and can load its overlays from expanded memory. Your existing saved games and characters still load.
