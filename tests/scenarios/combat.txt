@@ -37,14 +37,15 @@ press ret 6 0 0 ret
 wait VIEW POOL
 golden: checkpoint taken
 candidate: checkpoint taken-668
-# ours's More Info has Saves on S and the statistics on T (#685)
+# ours's More Info has Saves on S, and its Game Stats (T) and Kill Count (K) pages in its own screen (#685)
 golden: press v m s
 candidate: press v m t
 golden: checkpoint stats
-candidate: checkpoint stats-668
-press g
+candidate: checkpoint stats-685
+golden: press g
 golden: checkpoint game-stats
-candidate: checkpoint game-stats-668
+candidate: press k
+candidate: checkpoint kills-685
 # the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
 ignore OVERLAY LOADS
 press ctrl-y

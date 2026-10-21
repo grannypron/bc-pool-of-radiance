@@ -6,9 +6,9 @@ unit CompTool;
 
 interface
 
-{ The Tools screen: Map (the whole area, explored squares and events marked), Notes (the player's notes on squares)
-  and Character (the character editor), until Exit or Escape. Nothing happens with the setting off. The caller redraws
-  its screen afterwards. }
+{ The Tools screen, on the whole area's map (explored squares, events and notes marked) in a 3D area (#691): Map, a
+  cursor on it to write the player's notes on squares, and Character, the character editor, until Exit or Escape.
+  Nothing happens with the setting off. The caller redraws its screen afterwards. }
 procedure ToolsMenu;
 
 implementation
@@ -22,7 +22,7 @@ const
   MAP_ROW = 3;
   { the legend's column, right of the map }
   LEGEND_COL = 20;
-  { the Notes tool's line below the map: the cursor's square and its note }
+  { the Map tool's line below the map: the cursor's square and its note }
   NOTE_ROW = 20;
   { symbol set 4 (GDConsts.symSetFirst[4] = 256): the party's arrows by facing div 2, then the sixteen wall
     combinations, 260 + N + E * 2 + S * 4 + W * 8, as View3D.DrawAutoMap draws them }
@@ -37,17 +37,6 @@ const
                                                                              Magenta, White);
   KIND_NAMES: array[EvtKind.KIND_EVENT..EvtKind.KIND_EXIT] of string[8] = ('event', 'message', 'trap', 'treasure',
                                                                            'service', 'fight', 'exit');
-
-{ The Tools screen's frame and title. }
-procedure DrawTools;
-begin
-  TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT, C_Msg.TEXT_RIGHT, 2, White, 'Companion Tools');
-  TextRend.DisplayString(3, 5, LightGreen, 'Map        the whole area');
-  TextRend.DisplayString(3, 6, LightGreen, 'Notes      your notes on it');
-  TextRend.DisplayString(3, 7, LightGreen, 'Character  edit a character');
-end;
 
 { Draw symbol at (col, row), straight to the screen, a step darker when dim, on a square of colour fill unless fill is
   DarkGray (the symbols' own); in CGA's four colours, which draw both greys alike, a square not dim has white walls
@@ -143,8 +132,8 @@ begin
              MapNotes.Note(script, map, mx, my) <> '', cursor);
 end;
 
-{ The whole current 3D area, square by square (DrawSquare), and a legend: the kinds of event the area has, each beside
-  a square of its colour. }
+{ The whole current 3D area, square by square (DrawSquare), and a legend headed by the area's name: the kinds of event
+  the area has, each beside a square of its colour. }
 procedure DrawMap;
 var
   mx: ShortInt;
@@ -157,7 +146,6 @@ begin
   FillChar(used, SizeOf(used), False);
   TextRend.ClearScreen;
   Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  TextRend.DisplayString(MAP_COL, 1, White, AreaName.CurrentArea);
   for my := 0 to 15 do
     for mx := 0 to 15 do begin
       DrawSquare(mx, my, False);
@@ -165,12 +153,13 @@ begin
       if kind <> EvtKind.KIND_NONE then
         used[kind] := True;
     end;
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW, LightGreen, 'Bright: visited');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 1, DarkGray, 'Dim: not yet');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 2, Yellow, 'Yellow: a note');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, LightGreen, 'Party at ' + StrUtil.NumStr(GDVars.gMapX) + ',' +
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW, White, AreaName.CurrentArea);
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 2, LightGreen, 'Bright: visited');
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: not yet');
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: a note');
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 5, LightGreen, 'Party at ' + StrUtil.NumStr(GDVars.gMapX) + ',' +
                          StrUtil.NumStr(GDVars.gMapY));
-  row := MAP_ROW + 5;
+  row := MAP_ROW + 7;
   for kind := EvtKind.KIND_EVENT to EvtKind.KIND_EXIT do
     if used[kind] then begin
       ShowSymbol(LEGEND_COL, row, SYM_WALLS, False, KindColour(kind), False, False);
@@ -189,23 +178,21 @@ begin
   end;
 end;
 
-{ The Map tool: the whole area until Exit or Escape. }
-procedure MapTool;
-var
-  ch: Char;
-  ext: Boolean;
+{ The Tools screen: the whole area's map in a 3D area, else the frame alone, and its title in the frame's top. }
+procedure DrawTools;
 begin
-  if not OnAreaMap then Exit;
-  DrawMap;
-  repeat
-    ch := MenuCore.MenuHorizontal('Map: ', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
-  until ch in [C_Keys.NONE, 'E'];
-  TextRend.ClearBottomLine;
+  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+    DrawMap
+  else begin
+    TextRend.ClearScreen;
+    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  end;
+  TextRend.DisplayCentered(C_Msg.TEXT_LEFT, C_Msg.TEXT_RIGHT, C_Msg.TEXT_TOP, White, 'Companion Tools');
 end;
 
-{ The Notes tool: the map with a cursor, from the party's square, which the arrows move; the note on its square shows
-  below the map, and Write and Clear change it. }
-procedure NotesTool;
+{ The Map tool, on the Tools screen's map: a cursor, from the party's square, which the arrows move; the note on its
+  square shows below the map, and Write and Clear change it. }
+procedure MapTool;
 var
   ch: Char;
   ext: Boolean;
@@ -221,7 +208,6 @@ begin
   if not OnAreaMap then Exit;
   script := GDVars.eclScriptId;
   map := GDVars.zone0^.mapId.lo;
-  DrawMap;
   cx := GDVars.gMapX;
   cy := GDVars.gMapY;
   repeat
@@ -230,7 +216,7 @@ begin
     TextRend.DisplayString(MAP_COL, NOTE_ROW, LightGreen, StrUtil.NumStr(cx) + ',' + StrUtil.NumStr(cy) + ' ');
     TextRend.DisplayString(MAP_COL + 6, NOTE_ROW, Yellow, MapNotes.Note(script, map, cx, cy));
     MenuCore.arrowsToCaller := True;
-    ch := MenuCore.MenuHorizontal('Notes: ', 'Write Clear Exit', LightMagenta, LightGreen, White, True, False, ext);
+    ch := MenuCore.MenuHorizontal('Map: ', 'Write Clear Exit', LightMagenta, LightGreen, White, True, False, ext);
     nx := cx;
     ny := cy;
     if ext then
@@ -258,6 +244,7 @@ begin
       cy := ny;
     end;
   until (not ext) and (ch in [C_Keys.NONE, 'E']);
+  TextRend.ClearRect(MAP_COL, NOTE_ROW, C_Msg.TEXT_RIGHT - 1, NOTE_ROW);
   TextRend.ClearBottomLine;
 end;
 
@@ -269,19 +256,12 @@ begin
   if GDVars.companionOn = 0 then Exit;
   DrawTools;
   repeat
-    ch := MenuCore.MenuHorizontal('Tools: ', 'Map Notes Character Exit', LightMagenta, LightGreen, White, False,
-                                  False, ext);
+    ch := MenuCore.MenuHorizontal('Tools: ', 'Map Character Exit', LightMagenta, LightGreen, White, False, False,
+                                  ext);
     case ch of
-      'M': begin
-             MapTool;
-             DrawTools;
-           end;
+      'M': MapTool;
       'C': begin
              CharEdit.EditMenu;
-             DrawTools;
-           end;
-      'N': begin
-             NotesTool;
              DrawTools;
            end;
     end;

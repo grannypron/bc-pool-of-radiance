@@ -230,29 +230,41 @@ type
   TKillOrder = array[1..Stats.KINDS] of Byte;
 
 const
-  { the kills page: two columns of KILL_ROWS rows, an entry a column wide, a "(more)" row above and below }
-  KILL_TOP = 5;
-  KILL_ROWS = 16;
+  { the Kill Count page: two columns of KILL_ROWS rows, an entry a column wide, a "(more)" row above and below }
+  KILL_TOP = 6;
+  KILL_ROWS = 15;
   KILL_COL_WIDTH = 18;
   KILLS_SHOWN = 2 * KILL_ROWS;
+  { More Info's pages, in the order of its menu }
+  PAGE_SAVES = 1;
+  PAGE_STATS = 2;
+  PAGE_KILLS = 3;
+  PAGE_THIEF = 4;
 
-{ Draw creature's name and then title on row 2 of a cleared, bordered screen. }
-procedure StatsHeading(creature: Types.PCharRecord; title: Types.TStr40);
+{ Clear the screen, draw the border and centre creature's name in light cyan on row 2: the top of a More Info page. }
+procedure MoreHeading(creature: Types.PCharRecord);
 begin
   TextRend.ClearScreen;
   Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  CharDisp.DisplayCreatureName(creature, 2, 2, False);
-  TextRend.DisplayString(Length(creature^.name) + 3, 2, White, title);
+  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
 end;
 
-{ The Game page: the creature's twelve counters in this game, coin in gold; b nil reads every counter as 0. }
+{ A More Info page's top (MoreHeading) with title centred in white on row 4, under the name and a blank line. }
+procedure MoreTitle(creature: Types.PCharRecord; title: Types.TStr40);
+begin
+  ViewChar.MoreHeading(creature);
+  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 4, White, title);
+end;
+
+{ The Game Stats page: the creature's twelve counters in this game, from row 6, coin in gold; b nil reads every
+  counter as 0. }
 procedure DrawGameStats(creature: Types.PCharRecord; b: Stats.PStatBlock);
 var
   i: Byte;
   n: LongInt;
   s: Types.TStr40;
 begin
-  ViewChar.StatsHeading(creature, 'Game');
+  ViewChar.MoreTitle(creature, 'Game Stats');
   for i := 1 to Stats.STAT_COUNT do begin
     n := 0;
     if b <> nil then
@@ -260,12 +272,12 @@ begin
     if i = Stats.COIN_LOOTED then
       n := n div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
     Str(n, s);
-    TextRend.DisplayString(3, 3 + i, White, Stats.NAMES[i]);
-    TextRend.DisplayString(36 - Length(s), 3 + i, LightGreen, s);
+    TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
+    TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
   end;
 end;
 
-{ The Kills page from entry top of order (b's kinds, sorted by name): left then right along each row, each count
+{ The Kill Count page from entry top of order (b's kinds, sorted by name): left then right along each row, each count
   right-aligned to the widest and its name after it, cut to fit the column, and "(more)" above or below when entries
   are hidden there. }
 procedure DrawKills(creature: Types.PCharRecord; b: Stats.PStatBlock; var order: TKillOrder; kinds, top: Byte);
@@ -275,7 +287,7 @@ var
   width: Byte;
   s: Types.TStr40;
 begin
-  ViewChar.StatsHeading(creature, 'Kills');
+  ViewChar.MoreTitle(creature, 'Kill Count');
   if kinds = 0 then begin
     TextRend.DisplayString(3, KILL_TOP, LightGreen, 'None');
     Exit;
@@ -297,23 +309,12 @@ begin
     TextRend.DisplayCentered(1, 38, KILL_TOP + KILL_ROWS, White, '(more)');
 end;
 
-{ The statistics pages (#611, #672) for creature: Game, its counters in this game, and Kills, the kinds it has killed
-  in alphabetical order; it opens on Kills when kills is set, else on Game. On Kills, Up and Down scroll the list a
-  row (two entries) at a time and, when it is longer than a page, Next and Prev a page. Runs until Exit or Escape; the
-  caller redraws. }
-procedure StatsPage(creature: Types.PCharRecord; kills: Boolean);
+{ creature's statistics block (#611, #672), made the first time, and the kinds it has killed in alphabetical order. }
+procedure ReadStats(creature: Types.PCharRecord; var b: Stats.PStatBlock; var order: TKillOrder; var kinds: Byte);
 var
-  b: Stats.PStatBlock;
-  kinds: Byte;
-  order: TKillOrder;
   i: Byte;
   j: Byte;
   t: Byte;
-  top: Integer;
-  onKills: Boolean;
-  menu: Types.TStr40;
-  ch: Char;
-  ext: Boolean;
 begin
   { a creature outside the party has no block: its counters read 0 }
   b := Stats.BlockOf(creature);
@@ -329,66 +330,19 @@ begin
         order[i] := order[j];
         order[j] := t;
       end;
-  onKills := kills;
-  top := 1;
-  GDVars.horizChoice := 1 + Ord(kills);
-  repeat
-    if onKills then begin
-      ViewChar.DrawKills(creature, b, order, kinds, top);
-      if kinds > KILLS_SHOWN then
-        menu := 'Game Kills Next Prev Exit'
-      else
-        menu := 'Game Kills Exit';
-    end else begin
-      ViewChar.DrawGameStats(creature, b);
-      menu := 'Game Kills Exit';
-    end;
-    ch := MenuCore.MenuHorizontal('Stats: ', menu, LightMagenta, LightGreen, White, True, False, ext);
-    if ext then begin
-      { Up and Down scroll the kills a row }
-      if onKills and (ch = C_Keys.UP) and (top > 1) then
-        Dec(top, 2)
-      else if onKills and (ch = C_Keys.DOWN) and (top + KILLS_SHOWN <= kinds) then
-        Inc(top, 2);
-    end else
-      case ch of
-        'G': onKills := False;
-        'K': begin
-               onKills := True;
-               top := 1;
-             end;
-        'N': if onKills and (top + KILLS_SHOWN <= kinds) then
-               Inc(top, KILLS_SHOWN);
-        'P': if onKills then begin
-               Dec(top, KILLS_SHOWN);
-               if top < 1 then
-                 top := 1;
-             end;
-      end;
-  until (not ext) and (ch in [C_Keys.NONE, 'E']);
 end;
 
-
-{ Clear the screen, draw the border and centre creature's name in light cyan on row 2: the top of a More Info page. }
-procedure MoreHeading(creature: Types.PCharRecord);
-begin
-  TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
-end;
-
-{ The Saves page: the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1
-  always fails and a 20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison,
-  apply only at the roll and are not included. The names are literals, in the overlay, rather than a typed constant in
-  the data segment. }
+{ The Saves page: the five saving throws from row 6, under its title as on the other pages, each the d20 roll needed
+  (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20 always succeeds). Situational bonuses, such as
+  a dwarf's or halfling's against magic and poison, apply only at the roll and are not included. The names are
+  literals, in the overlay, rather than a typed constant in the data segment. }
 procedure DrawSaves(p: Types.PCharRecord);
 var
   i: ShortInt;
   need: Integer;
   s: Types.TStr40;
 begin
-  ViewChar.MoreHeading(p);
-  TextRend.DisplayString(2, 4, White, 'Saving Throws');
+  ViewChar.MoreTitle(p, 'Saving Throws');
   for i := C_Save.PARALYZE to C_Save.SPELL do begin
     case i of
       C_Save.PARALYZE: s := 'Paralysis, Poison, Death';
@@ -398,14 +352,14 @@ begin
     else
       s := 'Spell';
     end;
-    TextRend.DisplayString(4, 5 + i, LightGreen, s);
+    TextRend.DisplayString(2, 6 + i, LightGreen, s);
     need := p^.saves[i] - p^.saveBonus;
     if need < 2 then
       need := 2;
     if need > 20 then
       need := 20;
     s := StrUtil.NumStr(need);
-    TextRend.DisplayString(32 - Length(s), 5 + i, White, s);
+    TextRend.DisplayString(32 - Length(s), 6 + i, White, s);
   end;
 end;
 
@@ -463,15 +417,21 @@ begin
   end;
 end;
 
-{ The More Info page for the current character (#592, #685), on its Saves page. The bottom line, More Info: Saves
-  sTats Kills tHief, turns the pages: Saves and Thief here (Thief only for a character with thief levels), sTats and
-  Kills the statistics' Game and Kills pages (StatsPage), whose Exit comes back to the page left. The design has no
-  Exit: Escape returns to the character sheet, which the caller redraws. }
+{ The More Info page for the current character (#592, #685): its bottom line, More Info: Saves sTats Kills tHief Exit,
+  turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with thief levels, Thief.
+  On Kill Count, Up and Down scroll the list a row (two entries) at a time and Page Up and Page Down a page. The
+  statistics block is read when Stats or Kills is first chosen, since reading it makes one for the character, which a
+  save then writes. Exit or Escape returns to the character sheet, which the caller redraws. }
 procedure MorePage;
 var
   p: Types.PCharRecord;
   menu: Types.TStr40;
-  onThief: Boolean;
+  page: Byte;
+  b: Stats.PStatBlock;
+  kinds: Byte;
+  order: TKillOrder;
+  haveStats: Boolean;
+  top: Integer;
   ch: Char;
   ext: Boolean;
 begin
@@ -480,24 +440,52 @@ begin
   menu := 'Saves sTats Kills';
   if p^.classLevels[C_Level.THIEF] > 0 then
     menu := menu + ' tHief';
-  onThief := False;
+  menu := menu + ' Exit';
+  page := PAGE_SAVES;
+  haveStats := False;
+  top := 1;
   GDVars.horizChoice := 1;
   repeat
-    if onThief then
-      ViewChar.DrawThief(p)
+    case page of
+      PAGE_STATS: ViewChar.DrawGameStats(p, b);
+      PAGE_KILLS: ViewChar.DrawKills(p, b, order, kinds, top);
+      PAGE_THIEF: ViewChar.DrawThief(p);
     else
       ViewChar.DrawSaves(p);
-    ch := MenuCore.MenuHorizontal('More Info: ', menu, LightMagenta, LightGreen, White, False, False, ext);
-    case ch of
-      'S': onThief := False;
-      'H': onThief := True;
-      'T', 'K': begin
-             ViewChar.StatsPage(p, ch = 'K');
-             { the option of the page coming back to: Saves, or Thief (the fourth) }
-             GDVars.horizChoice := 1 + 3 * Ord(onThief);
-           end;
     end;
-  until ch = C_Keys.NONE;
+    ch := MenuCore.MenuHorizontal('More Info: ', menu, LightMagenta, LightGreen, White, True, False, ext);
+    if ext then begin
+      if page = PAGE_KILLS then
+        case ch of
+          C_Keys.UP: if top > 1 then
+                       Dec(top, 2);
+          C_Keys.DOWN: if top + KILLS_SHOWN <= kinds then
+                         Inc(top, 2);
+          C_Keys.PGUP: begin
+                         Dec(top, KILLS_SHOWN);
+                         if top < 1 then
+                           top := 1;
+                       end;
+          C_Keys.PGDN: if top + KILLS_SHOWN <= kinds then
+                         Inc(top, KILLS_SHOWN);
+        end;
+    end else
+      case ch of
+        'S': page := PAGE_SAVES;
+        'H': page := PAGE_THIEF;
+        'T', 'K': begin
+               if not haveStats then
+                 ViewChar.ReadStats(p, b, order, kinds);
+               haveStats := True;
+               if ch = 'T' then
+                 page := PAGE_STATS
+               else begin
+                 page := PAGE_KILLS;
+                 top := 1;
+               end;
+             end;
+      end;
+  until (not ext) and (ch in [C_Keys.NONE, 'E']);
 end;
 
 { Draw "More Info" under the character sheet's portrait frame (columns 28..38, rows 1..11), the M in white as a hotkey

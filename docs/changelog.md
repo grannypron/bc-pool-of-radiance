@@ -10,6 +10,8 @@
 ### Interface improvements
 
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.
+- A character's More Info screen now has its own menu: Saves, Stats, Kills, Thief (for characters with thief levels, single or multi-class) and Exit. Stats and Kills show the game statistics and the kill count on the More Info screen itself, without a menu of their own; on the kill count, the Up and Down arrows scroll a row and Page Up and Page Down a page. Thief shows each thief skill with its racial, Dexterity and level parts and the total.
+- The Companion Tools (F6, when turned on in Settings) open straight onto the area's map. Map and Notes are now one tool: Map puts a cursor on the map to write and clear your notes on squares. The map also draws much faster in areas with many event squares, such as the Temple of Bane.
 
 ## Pool of Radiance port: October 2026 update
 
