@@ -332,18 +332,17 @@ begin
       end;
 end;
 
-{ The Saves page: the five saving throws, each the d20 roll needed (saves[] less saveBonus, held to 2..20 since a 1
-  always fails and a 20 always succeeds). Situational bonuses, such as a dwarf's or halfling's against magic and poison,
-  apply only at the roll and are not included. The names are literals, in the overlay, rather than a typed constant in
-  the data segment. }
+{ The Saves page: the five saving throws from row 6, under its title as on the other pages, each the d20 roll needed
+  (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20 always succeeds). Situational bonuses, such as
+  a dwarf's or halfling's against magic and poison, apply only at the roll and are not included. The names are
+  literals, in the overlay, rather than a typed constant in the data segment. }
 procedure DrawSaves(p: Types.PCharRecord);
 var
   i: ShortInt;
   need: Integer;
   s: Types.TStr40;
 begin
-  ViewChar.MoreHeading(p);
-  TextRend.DisplayString(2, 4, White, 'Saving Throws');
+  ViewChar.MoreTitle(p, 'Saving Throws');
   for i := C_Save.PARALYZE to C_Save.SPELL do begin
     case i of
       C_Save.PARALYZE: s := 'Paralysis, Poison, Death';
@@ -353,14 +352,14 @@ begin
     else
       s := 'Spell';
     end;
-    TextRend.DisplayString(4, 5 + i, LightGreen, s);
+    TextRend.DisplayString(2, 6 + i, LightGreen, s);
     need := p^.saves[i] - p^.saveBonus;
     if need < 2 then
       need := 2;
     if need > 20 then
       need := 20;
     s := StrUtil.NumStr(need);
-    TextRend.DisplayString(32 - Length(s), 5 + i, White, s);
+    TextRend.DisplayString(32 - Length(s), 6 + i, White, s);
   end;
 end;
 
