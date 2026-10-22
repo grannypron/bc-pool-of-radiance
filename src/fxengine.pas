@@ -29,7 +29,8 @@ procedure RemoveDiseases(creature: Types.PCharRecord);
 
 { Fire, on one creature, every effect id registered under condition cond (0..19, the C_Cond constants). Each id goes
   through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures;
-  Protection from Evil (8, 45) and from Good (9, 46) each apply once however many sources there are. }
+  Protection from Evil (8, 45) and from Good (9, 46) each apply once however many sources there are, and Prayer (49)
+  once for each side that has one in reach. }
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 
 { Stinking-cloud check for an enabled creature: CbtMap.ProbeDirection (dir 8, its own cells) must report terrain 30
@@ -156,6 +157,10 @@ implementation
 uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level, Crt, C_Item, C_Equip;
 
+const
+  { EffectSource's side for a node cast by either side }
+  ANY_SIDE = 255;
+
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if (effId >= C_Effect.BLESS) and (effId <= C_Effect.RECENT_CURE) then
@@ -209,25 +214,34 @@ end;
   effects 21 (Silence 15'), 45 (Prot Evil 10'), 46 (Prot Good 10') and 49 (Prayer), that of a creature carrying it with
   this one in range (6 for Prayer, else 1; out of combat any carrier counts). A protection aura reaches only the
   carrier's side; SSI's lent it to enemies too, so the monsters a paladin fought were protected from evil (#782).
-  Silence silences everyone, and Prayer's handler sorts the sides itself. The range test uses Pathing.BuildTargetList,
-  saving and restoring the caller's target list around it. }
-function EffectSource(creature: Types.PCharRecord; effId: Byte; var effect: Types.PEffectRec): Boolean;
+  Silence silences everyone, and Prayer's handler sorts the sides itself. side, for Prayer, takes only a node cast by
+  that side (C_Effect.PRAYER_SIDE of its strength); ANY_SIDE takes any node. The range test uses
+  Pathing.BuildTargetList, saving and restoring the caller's target list around it. }
+function EffectSource(creature: Types.PCharRecord; effId, side: Byte; var effect: Types.PEffectRec): Boolean;
 var
   save: Types.TTargetList;
   p: Types.PCharRecord;
   found: Boolean;
   i: Byte;
   range: Byte;
+
+  { the creature carries an effId node of the side wanted }
+  function Carries(c: Types.PCharRecord): Boolean;
+  begin
+    Carries := CharHlp.HasEffect(c, effId, effect)
+      and ((side = ANY_SIDE) or ((effect^.strength and C_Effect.PRAYER_SIDE) div C_Effect.PRAYER_SIDE = side));
+  end;
+
 begin
   found := False;
   p := GDVars.creatureList;
-  if CharHlp.HasEffect(creature, effId, effect) then
+  if Carries(creature) then
     found := True
   else if effId in [C_Effect.SILENCE, C_Effect.PROT_EVIL_10FT, C_Effect.PROT_GOOD_10FT,
                     C_Effect.PRAYER] then begin
     Move(GDVars.targetList, save, SizeOf(GDVars.targetList));
     while (p <> nil) and not found do begin
-      if CharHlp.HasEffect(p, effId, effect)
+      if Carries(p)
          and ((effId in [C_Effect.SILENCE, C_Effect.PRAYER]) or (p^.hostile = creature^.hostile)) then begin
         if GDVars.ifcState = C_Ifc.COMBAT then begin
           if effId = C_Effect.PRAYER then
@@ -254,8 +268,21 @@ procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
 var
   effect: Types.PEffectRec;
 begin
-  if FxEngine.EffectSource(creature, effId, effect) then
+  if FxEngine.EffectSource(creature, effId, ANY_SIDE, effect) then
     FxEngine.CallEffectHandler(effId, creature, effect, False);
+end;
+
+{ Trigger Prayer (eff 49) once for each side with one in reach: a creature within reach of a Prayer from either side
+  gets both, its own side's +1 and the other's -1, but two from one side apply once. SSI's took the first carrier in
+  range, so of two Prayers from opposite sides only one applied (#801). }
+procedure TriggerPrayer(creature: Types.PCharRecord);
+var
+  effect: Types.PEffectRec;
+  side: Byte;
+begin
+  for side := 0 to 1 do
+    if FxEngine.EffectSource(creature, C_Effect.PRAYER, side, effect) then
+      FxEngine.CallEffectHandler(C_Effect.PRAYER, creature, effect, False);
 end;
 
 { Trigger a protection once: the creature's own spell (own, eff 8 or 9) or else an aura it stands in or carries (aura,
@@ -265,7 +292,8 @@ procedure TriggerProtection(creature: Types.PCharRecord; own, aura: Byte);
 var
   effect: Types.PEffectRec;
 begin
-  if FxEngine.EffectSource(creature, own, effect) or FxEngine.EffectSource(creature, aura, effect) then
+  if FxEngine.EffectSource(creature, own, ANY_SIDE, effect) or FxEngine.EffectSource(creature, aura, ANY_SIDE, effect)
+  then
     FxEngine.CallEffectHandler(effect^.id, creature, effect, False);
 end;
 
@@ -338,7 +366,7 @@ begin
     C_Cond.ATTACK_ROLL_ATT: begin
       FxEngine.TriggerEffect(creature, C_Effect.BLESS); FxEngine.TriggerEffect(creature, C_Effect.CURSE);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.BESTOW_CURSE);
-      FxEngine.TriggerEffect(creature, C_Effect.PRAYER); FxEngine.TriggerEffect(creature, C_Effect.UNDEAD_SLAYER);
+      FxEngine.TriggerPrayer(creature); FxEngine.TriggerEffect(creature, C_Effect.UNDEAD_SLAYER);
       FxEngine.TriggerEffect(creature, C_Effect.FLAME_TONGUE); FxEngine.TriggerEffect(creature, C_Effect.GNOME_THAC0);
       FxEngine.TriggerEffect(creature, C_Effect.DWARF_THAC0);
     end;
@@ -353,7 +381,7 @@ begin
       FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
       FxEngine.TriggerEffect(creature, C_Effect.RESIST_COLD); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
       FxEngine.TriggerEffect(creature, C_Effect.RESIST_FIRE); FxEngine.TriggerEffect(creature, C_Effect.BLIND);
-      FxEngine.TriggerEffect(creature, C_Effect.BESTOW_CURSE); FxEngine.TriggerEffect(creature, C_Effect.PRAYER);
+      FxEngine.TriggerEffect(creature, C_Effect.BESTOW_CURSE); FxEngine.TriggerPrayer(creature);
       FxEngine.TriggerEffect(creature, C_Effect.RING_FIRE_RES); FxEngine.TriggerEffect(creature,
           C_Effect.NO_PARA_POISON);
       FxEngine.TriggerEffect(creature, C_Effect.NO_CHARM_POISON); FxEngine.TriggerEffect(creature,

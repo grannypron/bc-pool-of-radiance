@@ -920,13 +920,14 @@ begin
       Dec(GDVars.gAttackRoll, 4);
 end;
 
-{ Prayer (eff 49). strength bit 4 = the caster's side: creatures on that side get the EffAlliedPrayer bonus, all others
-  -1 to attack rolls and saving throws }
+{ Prayer (eff 49). strength's C_Effect.PRAYER_SIDE bit = the caster's side: creatures on that side get the
+  EffAlliedPrayer bonus, all others -1 to attack rolls and saving throws. FxEngine.TriggerPrayer runs one from each side
+  in reach. }
 procedure EffPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   side: Byte;
 begin
-  side := (Types.PEffectRec(p)^.strength and $10) div 16;
+  side := (Types.PEffectRec(p)^.strength and C_Effect.PRAYER_SIDE) div C_Effect.PRAYER_SIDE;
   if Byte(creature^.hostile) = side then
     EffHndlr.EffAlliedPrayer(creature, p, removed)
   else begin

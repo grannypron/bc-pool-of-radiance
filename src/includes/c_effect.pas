@@ -63,6 +63,8 @@ const
   DWARF_AC_GIANT = 47;
   GNOME_AC_BUG = 48;
   PRAYER = 49;
+  { Prayer's strength bit for the side that cast it (its hostile, 0 or 1); the lower nibble holds the caster level }
+  PRAYER_SIDE = $10;
   ROT_NO_HEAL = 50;
   { Shares the effect 31 handler, EffHelpless. }
   SNAKE_CHARM = 51;

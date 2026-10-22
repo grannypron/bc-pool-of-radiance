@@ -1346,12 +1346,12 @@ begin
   end;
 end;
 
-{ Prayer: apply the spell's effect at strength caster team * 16 + caster level. }
+{ Prayer: apply the spell's effect at strength caster team * C_Effect.PRAYER_SIDE + caster level. }
 procedure PrayerHandler;
 begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
-                      GDVars.curChar^.hostile * 16 + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), False, 0,
-                      0, 'is praying');
+                      GDVars.curChar^.hostile * C_Effect.PRAYER_SIDE
+                      + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), False, 0, 0, 'is praying');
 end;
 
 procedure RemoveCurseSpell;
