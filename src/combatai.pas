@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
   C_CLASS, C_STATUS, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -531,7 +531,7 @@ begin
   loopLimit := creature^.combatAddr^.movement div 2 + TURN_SLACK;
   canAct := True;
   done := False;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MONSTER_SPECIAL, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MONSTER_SPECIAL, creature);
   { as the combat menu's Bandage does }
   if (creature^.hostile = 0) and Combat.BandageDying(True) then
     done := CharHlp.EndActions(creature);
@@ -712,7 +712,7 @@ begin
     GDVars.currentMorale := 0;
   { Effects adjust morale here: Bless +5, Curse -5 floored at 0 (so a curse below 5 fails both checks), Charm sets 100
     and flips the creature's side on its first call. Bless and Curse also adjust the attack roll. }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MORALE_CHECK, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
   { hpMax 0 counts as no hit points left }
   if creature^.hpMax = 0 then
     hpPct := 0
@@ -725,7 +725,7 @@ begin
   moraleSave := GDVars.currentMorale;
   GDVars.currentMorale := GDVars.hostileHpPct;
   { the same effect adjustments, now to the group figure }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MORALE_CHECK, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
   if (GDVars.currentMorale >= 100 - GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD])
      and (GDVars.currentMorale <> 0)
      and (creature^.hostile <> 0) then

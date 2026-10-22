@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
+uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
   C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -103,7 +103,7 @@ begin
     CbtActs.SetCurAttacksX2(creature);
     GDVars.currentAttackCurrent := creature^.attacks2;
     GDVars.currentCreatureCalculatingFlag := 0;
-    FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
+    FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
     creature^.curAttacks2 := CbtActs.AdjustedAttacks(GDVars.currentAttackCurrent);
     sweepBudget := creature^.attackLevel;
     if creature^.enabled <> 0 then begin
@@ -134,7 +134,7 @@ begin
   if (m < 1) or (m > 96) then
     m := 1;
   GDVars.currentAttackCurrent := m * 2;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
   GDVars.currentCreatureCalculatingFlag := 0;
   CalcCreatureMovement := GDVars.currentAttackCurrent;
 end;
@@ -166,8 +166,8 @@ begin
         else
           Inc(GDVars.pendingDamage, att^.classLevels[C_Level.RANGER]);
   GDVars.elementMask := 0;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_ATT, att);
-  FxEngine.TriggerEffectsWithCondition(C_Cond.WEAPON_DAMAGE_DEF, def);
+  FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_ATT, att);
+  FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_DEF, def);
 end;
 
 { Print the attack message and inflict the damage (dmg = inflicted, dmgDisp = displayed). atkType: 1 = from behind, 2 =
@@ -228,7 +228,7 @@ begin
     if def^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
       CharDisp.PrintNameString(def, 'is killed', row, False);
     FxEngine.RemoveEffectsHp0(def);
-    FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, def);
+    FxEngine.TriggerEffectsWithCondition(C_COND.HP_ZERO, def);
     if def^.enabled = 0 then
       CbtMap.CreatureDowned(def)
     else
@@ -475,7 +475,7 @@ begin
   end else
     GDVars.currentAttackCurrent := creature^.attacks;
   GDVars.currentCreatureCalculatingFlag := 0;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
   adj := CbtActs.AdjustedAttacks(GDVars.currentAttackCurrent);
   if ranged and (weapon <> nil) then begin
     qty := 1;
@@ -570,11 +570,11 @@ begin
     Exit;
   end;
   GDVars.currentSuppressTargetingFlag := 0;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.TARGET_VETO, other);
+  FxEngine.TriggerEffectsWithCondition(C_COND.TARGET_VETO, other);
   if GDVars.currentSuppressTargetingFlag = 0 then begin
     saved := creature^.combatAddr^.other;
     creature^.combatAddr^.other := other;
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACKER_VETO, creature);
+    FxEngine.TriggerEffectsWithCondition(C_COND.ATTACKER_VETO, creature);
     creature^.combatAddr^.other := saved;
   end;
   CanAttackTarget := GDVars.currentSuppressTargetingFlag = 0;
@@ -743,7 +743,7 @@ begin
       att^.curModA[1] := att^.curModA[1] - base.dmgSmMod + base.dmgLgMod;
     end;
     CharHlp.RecalcStats(def);
-    FxEngine.TriggerEffectsWithCondition(C_Cond.DEFENDER_AC, def);
+    FxEngine.TriggerEffectsWithCondition(C_COND.DEFENDER_AC, def);
     behindIdx := 0;
     if CbtActs.IsBackstab(att, def) then
       defense := def^.acBehind - 2
@@ -787,7 +787,7 @@ begin
             CbtActs.CalcWeaponDamage(att, def, phase);
             CbtActs.ProcessAttackResult(att, def, atkType, GDVars.pendingDamage, GDVars.pendingDamage, True);
             if def^.enabled <> 0 then
-              { C_Cond.HIT_PHASE_1/2 }
+              { C_COND.HIT_PHASE_1/2 }
               FxEngine.TriggerEffectsWithCondition(phase + 1, att);
             if def^.enabled = 0 then
               defDowned := True;

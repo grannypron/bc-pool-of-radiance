@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TProtect;
 
-uses Types, C_Effect, C_Cond, C_ALIGN, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_Effect, C_COND, C_ALIGN, GDVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 200;
@@ -22,13 +22,13 @@ var
   hit: Boolean;
 
 {$F+}
-{ The attacker's C_Cond.ATTACK_ROLL_ATT effect: note the d20. }
+{ The attacker's C_COND.ATTACK_ROLL_ATT effect: note the d20. }
 procedure NoteNatural(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   natural := GDVars.gAttackRoll;
 end;
 
-{ The defender's C_Cond.ATTACK_ROLL_DEF effect, run after its protection: note the roll as it then stands. }
+{ The defender's C_COND.ATTACK_ROLL_DEF effect, run after its protection: note the roll as it then stands. }
 procedure NoteSeen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   seen := GDVars.gAttackRoll;
@@ -53,12 +53,12 @@ begin
     FxEngine.RemoveEffect(c, Types.PEffectRec(c^.effectsAddr)^.id, nil);
 end;
 
-{ The defender's saving-throw bonus against the attacker (GDVars.curChar), from its C_Cond.SAVING_THROW effects }
+{ The defender's saving-throw bonus against the attacker (GDVars.curChar), from its C_COND.SAVING_THROW effects }
 function SaveBonus: Integer;
 begin
   GDVars.curChar := att;
   GDVars.gSaveRoll := 10;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.SAVING_THROW, def);
+  FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, def);
   SaveBonus := Integer(GDVars.gSaveRoll) - 10;
 end;
 

@@ -27,7 +27,7 @@ function HasDisease(creature: Types.PCharRecord): Boolean;
   paladin's. }
 procedure RemoveDiseases(creature: Types.PCharRecord);
 
-{ Fire, on one creature, every effect id registered under condition cond (0..19, the C_Cond constants). Each id goes
+{ Fire, on one creature, every effect id registered under condition cond (0..19, the C_COND constants). Each id goes
   through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures;
   Protection from Evil (8, 45) and from Good (9, 46) each apply once however many sources there are, and Prayer (49)
   once for each side that has one in reach. }
@@ -57,13 +57,13 @@ function PrayerStrength(caster: Types.PCharRecord; level: Byte): Byte;
 function PrayerSide(effect: Types.PEffectRec): Byte;
 
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
-  becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
+  becomes 100, then the defender's C_COND.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
   (GDVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
   acCur, so a script's attack hit 5% less often than a creature's with the same THAC0 (#719). }
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 
 { Full attack roll: strip the attacker's invisibility (effect 25), roll d20 into gAttackRoll (1 misses, 20 becomes 100),
-  run the attacker's C_Cond.ATTACK_ROLL_ATT (10) and the defender's C_Cond.ATTACK_ROLL_DEF (16) effects, and take the
+  run the attacker's C_COND.ATTACK_ROLL_ATT (10) and the defender's C_COND.ATTACK_ROLL_DEF (16) effects, and take the
   GBVM modifier zmod (the low byte of C_Gbvm.PARTY_HIT_MOD when the attacker is allied, of C_Gbvm.MONSTER_HIT_MOD when
   hostile). Hit when no effect forced a miss (GDVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >=
   sixtyMinusAc. Penalties that take the roll below 0 only lower it; SSI's took any roll below 0 for a forced miss
@@ -71,7 +71,7 @@ function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 
 { d20 saving throw into GDVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
-  creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_Cond.SAVING_THROW (12) effects run, and
+  creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
   the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_Save.PARALYZE..SPELL (an
   ECL script supplies it) is rolled as C_Save.SPELL. }
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
@@ -107,11 +107,11 @@ function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Bool
   (CharHlp.DiseaseStrLoss). }
 function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte; var effStrength: Byte): Boolean;
 
-{ Non-weapon damage: post damage to GDVars.pendingDamage and run the C_Cond.NONWEAPON_DAMAGE (6) effects; when saved,
+{ Non-weapon damage: post damage to GDVars.pendingDamage and run the C_COND.NONWEAPON_DAMAGE (6) effects; when saved,
   saveReduction 1 cancels the damage and 2 halves it. If any damage remains, print it with its element from
   GDVars.elementMask (Fire, Cold, Electricity, Acid, or "from Magic" when no bit but magic is set), apply it with
   CharHlp.InflictDamage and, in combat, clear castAllowed and lose any spell being cast. A creature it disables "Goes
-  Down" (", and is Dying") or "is killed" (status 6..8); in combat the hpZeroEffects are removed, the C_Cond.HP_ZERO
+  Down" (", and is Dying") or "is killed" (status 6..8); in combat the hpZeroEffects are removed, the C_COND.HP_ZERO
   (13) effects run and CbtMap.CreatureDowned is called if the creature is still disabled. A dead, stoned or gone
   creature (a corpse a single-target spell was aimed at) is left alone. }
 procedure InflictNonWeaponDamage(creature: Types.PCharRecord; damage, saveReduction: Byte; saved: Boolean);
@@ -125,7 +125,7 @@ procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; da
   levels: paladins catch no disease. }
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
-{ The immunity check: True when the creature is immune to effId: one of its C_Cond.EFFECT_IMMUNITY (9) effects (a ward,
+{ The immunity check: True when the creature is immune to effId: one of its C_COND.EFFECT_IMMUNITY (9) effects (a ward,
   an immunity or magic resistance) clears GDVars.pendingEffectId, or FxEngine.DiseaseImmune holds. }
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_STATUS, C_Ifc, C_Dir, C_Level, Crt, C_Item, C_Equip;
 
 const
@@ -295,7 +295,7 @@ end;
 
 { Trigger a protection once: the creature's own spell (own, eff 8 or 9) or else an aura it stands in or carries (aura,
   eff 45 or 46). SSI's triggered both, so a paladin's aura and a Protection from Evil spell gave +4 to saves (#783). It
-  runs under C_Cond.ATTACK_ROLL_DEF and SAVING_THROW. }
+  runs under C_COND.ATTACK_ROLL_DEF and SAVING_THROW. }
 procedure TriggerProtection(creature: Types.PCharRecord; own, aura: Byte);
 var
   effect: Types.PEffectRec;
@@ -308,12 +308,12 @@ end;
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 begin
   case cond of
-    C_Cond.ATTACKER_VETO: FxEngine.TriggerEffect(creature, C_Effect.GAZE_BLOCK);
-    C_Cond.TARGET_VETO: begin
+    C_COND.ATTACKER_VETO: FxEngine.TriggerEffect(creature, C_Effect.GAZE_BLOCK);
+    C_COND.TARGET_VETO: begin
       FxEngine.TriggerEffect(creature, C_Effect.NULL_TARGET_VETO); FxEngine.TriggerEffect(creature, C_Effect.BLINKING);
       FxEngine.TriggerEffect(creature, C_Effect.INVISIBLE); FxEngine.TriggerEffect(creature, C_Effect.DUST_DISAPPEAR);
     end;
-    C_Cond.HIT_PHASE_1: begin
+    C_COND.HIT_PHASE_1: begin
       FxEngine.TriggerEffect(creature, C_Effect.DRAIN_ONE); FxEngine.TriggerEffect(creature, C_Effect.DRAIN_TWO);
       FxEngine.TriggerEffect(creature, C_Effect.ROT_TOUCH); FxEngine.TriggerEffect(creature, C_Effect.GHOUL_PARA);
       FxEngine.TriggerEffect(creature, C_Effect.FIRE_TOUCH); FxEngine.TriggerEffect(creature, C_Effect.ACID_SQUIRT);
@@ -321,7 +321,7 @@ begin
           C_Effect.REAR_CLAW_RAKE);
       FxEngine.TriggerEffect(creature, C_Effect.BITE_ATTACH);
     end;
-    C_Cond.HIT_PHASE_2: begin
+    C_COND.HIT_PHASE_2: begin
       FxEngine.TriggerEffect(creature, C_Effect.POISON_HIT0); FxEngine.TriggerEffect(creature, C_Effect.POISON_HIT4);
       FxEngine.TriggerEffect(creature, C_Effect.POISON_HIT2); FxEngine.TriggerEffect(creature, C_Effect.KREEN_PARA);
       FxEngine.TriggerEffect(creature, C_Effect.GHOUL_PARA); FxEngine.TriggerEffect(creature, C_Effect.DRIDER_PARA);
@@ -329,11 +329,11 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.DRAIN_ONE); FxEngine.TriggerEffect(creature, C_Effect.DRAIN_TWO);
       FxEngine.TriggerEffect(creature, C_Effect.ROT_TOUCH);
     end;
-    C_Cond.WEAPON_DAMAGE_ATT: begin
+    C_COND.WEAPON_DAMAGE_ATT: begin
       FxEngine.TriggerEffect(creature, C_Effect.ENFEEBLE); FxEngine.TriggerEffect(creature, C_Effect.UNDEAD_SLAYER);
       FxEngine.TriggerEffect(creature, C_Effect.FLAME_TONGUE);
     end;
-    C_Cond.WEAPON_DAMAGE_DEF: begin
+    C_COND.WEAPON_DAMAGE_DEF: begin
       { Mirror Image against weapons is CbtActs.DoAttack's }
       FxEngine.TriggerEffect(creature, C_Effect.PROT_MISSILES);
       FxEngine.TriggerEffect(creature, C_Effect.KREEN_DODGE); FxEngine.TriggerEffect(creature, C_Effect.BOULDER_DODGE);
@@ -343,7 +343,7 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.HALF_BASH); FxEngine.TriggerEffect(creature, C_Effect.NULL_DAMAGE);
       FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FIRE); FxEngine.TriggerEffect(creature, C_Effect.HOLY_WATER);
     end;
-    C_Cond.NONWEAPON_DAMAGE: begin
+    C_COND.NONWEAPON_DAMAGE: begin
       FxEngine.TriggerEffect(creature, C_Effect.EFREETI_FIRE); FxEngine.TriggerEffect(creature, C_Effect.RING_FIRE_RES);
       FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FIRE); FxEngine.TriggerEffect(creature, C_Effect.NULL_DAMAGE);
       FxEngine.TriggerEffect(creature, C_Effect.IMMUNE_MM); FxEngine.TriggerEffect(creature, C_Effect.RESIST_COLD);
@@ -353,17 +353,17 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.SHIELD); FxEngine.TriggerEffect(creature, C_Effect.HALF_FIRE);
       FxEngine.TriggerEffect(creature, C_Effect.TROLL_HEAL); FxEngine.TriggerEffect(creature, C_Effect.MIRROR_IMAGE);
     end;
-    C_Cond.TURN_START: begin
+    C_COND.TURN_START: begin
       FxEngine.TriggerEffect(creature, C_Effect.SNAKE_CHARM); FxEngine.TriggerEffect(creature, C_Effect.PARALYSIS);
       FxEngine.TriggerEffect(creature, C_Effect.SLEEP); FxEngine.TriggerEffect(creature, C_Effect.HELPLESS);
     end;
-    C_Cond.COMBAT_START: begin
+    C_COND.COMBAT_START: begin
       FxEngine.TriggerEffect(creature, C_Effect.CAN_FIGHT_ON); FxEngine.TriggerEffect(creature, C_Effect.DRAGON_FEAR);
       { displacement is made due again by EffHndlr.ResetDisplacement }
       FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FEAR); FxEngine.TriggerEffect(creature, C_Effect.CAMOUFLAGE);
       FxEngine.TriggerEffect(creature, C_Effect.RING_INVIS);
     end;
-    C_Cond.EFFECT_IMMUNITY: begin
+    C_COND.EFFECT_IMMUNITY: begin
       FxEngine.TriggerEffect(creature, C_Effect.MAGIC_RES50); FxEngine.TriggerEffect(creature, C_Effect.MAGIC_RES85);
       FxEngine.TriggerEffect(creature, C_Effect.ELF_RESIST); FxEngine.TriggerEffect(creature, C_Effect.NO_SLEEP_CHARM);
       FxEngine.TriggerEffect(creature, C_Effect.NO_PARALYSIS); FxEngine.TriggerEffect(creature, C_Effect.NO_COLD);
@@ -371,20 +371,20 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.HALF_ELF_RESIST); FxEngine.TriggerEffect(creature,
           C_Effect.NO_CHARM_POISON);
     end;
-    C_Cond.ATTACK_ROLL_ATT: begin
+    C_COND.ATTACK_ROLL_ATT: begin
       FxEngine.TriggerEffect(creature, C_Effect.BLESS); FxEngine.TriggerEffect(creature, C_Effect.CURSE);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.BESTOW_CURSE);
       FxEngine.TriggerPrayer(creature); FxEngine.TriggerEffect(creature, C_Effect.UNDEAD_SLAYER);
       FxEngine.TriggerEffect(creature, C_Effect.FLAME_TONGUE); FxEngine.TriggerEffect(creature, C_Effect.GNOME_THAC0);
       FxEngine.TriggerEffect(creature, C_Effect.DWARF_THAC0);
     end;
-    C_Cond.DEFENDER_AC: begin
+    C_COND.DEFENDER_AC: begin
       { the cough first: its handler recalculates the creature's stats, which SSI's ran last and so threw away the
         Blindness and Shield changes (#717) }
       FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
     end;
-    C_Cond.SAVING_THROW: begin
+    C_COND.SAVING_THROW: begin
       FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
       FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
       FxEngine.TriggerEffect(creature, C_Effect.RESIST_COLD); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
@@ -396,37 +396,37 @@ begin
           C_Effect.CON_PSN_SAVE);
       FxEngine.TriggerEffect(creature, C_Effect.CON_SPELL_SAVE);
     end;
-    C_Cond.HP_ZERO: begin
+    C_COND.HP_ZERO: begin
       FxEngine.TriggerEffect(creature, C_Effect.CAN_FIGHT_ON); FxEngine.TriggerEffect(creature, C_Effect.TROLL_BURN);
       FxEngine.TriggerEffect(creature, C_Effect.GASEOUS); FxEngine.TriggerEffect(creature, C_Effect.BLOOD_DRAIN);
       FxEngine.TriggerEffect(creature, C_Effect.BITE_HOLD);
     end;
-    C_Cond.MONSTER_SPECIAL: begin
+    C_COND.MONSTER_SPECIAL: begin
       FxEngine.TriggerEffect(creature, C_Effect.PETRIFY_GAZE); FxEngine.TriggerEffect(creature, C_Effect.CHARM_GAZE);
       FxEngine.TriggerEffect(creature, C_Effect.DRAGON_BREATH); FxEngine.TriggerEffect(creature, C_Effect.ANHKHEG_ACID);
     end;
-    C_Cond.ACTION_START: begin
+    C_COND.ACTION_START: begin
       FxEngine.TriggerEffect(creature, C_Effect.SILENCE); FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
       FxEngine.TriggerEffect(creature, C_Effect.BITE_HOLD); FxEngine.TriggerEffect(creature, C_Effect.BLOOD_DRAIN);
       FxEngine.TriggerEffect(creature, C_Effect.CHARM);
     end;
-    C_Cond.ATTACK_ROLL_DEF: begin
-      { after the d20, which AttackRoll rolls after C_Cond.DEFENDER_AC (#789) }
+    C_COND.ATTACK_ROLL_DEF: begin
+      { after the d20, which AttackRoll rolls after C_COND.DEFENDER_AC (#789) }
       FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
       FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
       FxEngine.TriggerEffect(creature, C_Effect.INVISIBLE); FxEngine.TriggerEffect(creature, C_Effect.DUST_DISAPPEAR);
       FxEngine.TriggerEffect(creature, C_Effect.BLINKING); FxEngine.TriggerEffect(creature, C_Effect.DWARF_AC_GIANT);
       FxEngine.TriggerEffect(creature, C_Effect.GNOME_AC_BUG); FxEngine.TriggerEffect(creature, C_Effect.DISPLACED);
     end;
-    C_Cond.MORALE_CHECK: begin
+    C_COND.MORALE_CHECK: begin
       FxEngine.TriggerEffect(creature, C_Effect.BLESS); FxEngine.TriggerEffect(creature, C_Effect.CURSE);
       FxEngine.TriggerEffect(creature, C_Effect.CHARM);
     end;
-    C_Cond.MOVE_ATTACK_RATE: begin
+    C_COND.MOVE_ATTACK_RATE: begin
       FxEngine.TriggerEffect(creature, C_Effect.HASTED); FxEngine.TriggerEffect(creature, C_Effect.SLOWED);
       FxEngine.TriggerEffect(creature, C_Effect.IMMOBILE);
     end;
-    C_Cond.ROUND_END: begin
+    C_COND.ROUND_END: begin
       FxEngine.TriggerEffect(creature, C_Effect.REGEN3); FxEngine.TriggerEffect(creature, C_Effect.SPIRIT_HAMMER);
       FxEngine.TriggerEffect(creature, C_Effect.CAMOUFLAGE); FxEngine.TriggerEffect(creature, C_Effect.RING_INVIS);
       FxEngine.TriggerEffect(creature, C_Effect.CHARM);
@@ -502,7 +502,7 @@ begin
 end;
 
 { The d20 both attack rolls share: into gAttackRoll (1 misses, 20 becomes 100), then the attacker's
-  C_Cond.ATTACK_ROLL_ATT effects (none when attacker is nil) and the defender's C_Cond.ATTACK_ROLL_DEF. A hit when no
+  C_COND.ATTACK_ROLL_ATT effects (none when attacker is nil) and the defender's C_COND.ATTACK_ROLL_DEF. A hit when no
   effect forced a miss and roll + toHit >= sixtyMinusAc. }
 function RollToHit(attacker, defender: Types.PCharRecord; toHit: Integer; sixtyMinusAc: Byte): Boolean;
 begin
@@ -512,8 +512,8 @@ begin
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
     if attacker <> nil then
-      FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
+      FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_ATT, attacker);
+    FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_DEF, defender);
     if not GDVars.gAttackAvoided and (GDVars.gAttackRoll + toHit >= sixtyMinusAc) then
       RollToHit := True;
   end;
@@ -547,7 +547,7 @@ begin
   else begin
     GDVars.gSaveRoll := GDVars.gSaveRoll + creature^.saveBonus + modifier;
     GDVars.gSaveType := saveType;
-    FxEngine.TriggerEffectsWithCondition(C_Cond.SAVING_THROW, creature);
+    FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, creature);
     if creature^.saves[saveType] <= GDVars.gSaveRoll then
       RollSavingThrow := True
     else
@@ -687,7 +687,7 @@ var
 begin
   if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
   GDVars.pendingDamage := damage;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.NONWEAPON_DAMAGE, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.NONWEAPON_DAMAGE, creature);
   if saved then
     case saveReduction of
       1: GDVars.pendingDamage := 0;
@@ -740,7 +740,7 @@ begin
         TextRend.PauseOnly
       else begin
         FxEngine.RemoveEffectsHp0(creature);
-        FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, creature);
+        FxEngine.TriggerEffectsWithCondition(C_COND.HP_ZERO, creature);
         if creature^.enabled = 0 then
           CbtMap.CreatureDowned(creature)
         else
@@ -770,7 +770,7 @@ end;
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
   GDVars.pendingEffectId := effId;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.EFFECT_IMMUNITY, creature);
   EffectImmune := (GDVars.pendingEffectId = 0) or FxEngine.DiseaseImmune(creature, effId);
 end;
 

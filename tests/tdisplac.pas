@@ -16,7 +16,7 @@ var
   hit: Boolean;
 
 {$F+}
-{ The attacker's C_Cond.ATTACK_ROLL_ATT effect: a roll above 1 becomes rollTo, as penalties or bonuses would make it. }
+{ The attacker's C_COND.ATTACK_ROLL_ATT effect: a roll above 1 becomes rollTo, as penalties or bonuses would make it. }
 procedure SetRoll(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.gAttackRoll := rollTo;

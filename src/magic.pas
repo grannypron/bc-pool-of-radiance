@@ -186,7 +186,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, TextRend,
+uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_STATUS,
   C_Ifc, C_Dir, C_SPELL, AbilAdj;
 
@@ -586,7 +586,7 @@ begin
         saved := FxEngine.RollSavingThrow(tgt, GDConsts.spellTable[spell].saveType, 0);
       if GDConsts.spellTable[GDVars.currentSpellBeing].rangeFixed = 255 then begin
         CharHlp.RecalcStats(tgt);
-        FxEngine.TriggerEffectsWithCondition(C_Cond.DEFENDER_AC, tgt);
+        FxEngine.TriggerEffectsWithCondition(C_COND.DEFENDER_AC, tgt);
         if not FxEngine.AttackRoll(GDVars.curChar, tgt, tgt^.acCur) then begin
           damage := 0;
           saved := True;
@@ -1409,7 +1409,7 @@ end;
 
 { Haste and Slow: keep up to caster-level targets on team hostFlag and drop the rest. A kept target carrying removeId,
   the opposing Slowed or Hasted effect, just loses it; the others get the spell's effect and have their
-  C_Cond.MOVE_ATTACK_RATE effects re-run on their own attack count, as at a round's start (#797), so a hasted one ages
+  C_COND.MOVE_ATTACK_RATE effects re-run on their own attack count, as at a round's start (#797), so a hasted one ages
   at once; its rates are worked out where they are used (CbtActs). }
 procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40);
 var
@@ -1431,7 +1431,7 @@ begin
     if GDVars.targetCreaturePtr[i] <> nil then begin
       GDVars.currentAttackCurrent := GDVars.targetCreaturePtr[i]^.attacks2;
       GDVars.currentCreatureCalculatingFlag := 0;
-      FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, GDVars.targetCreaturePtr[i]);
+      FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, GDVars.targetCreaturePtr[i]);
     end;
 end;
 

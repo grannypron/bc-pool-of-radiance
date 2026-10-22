@@ -14,7 +14,7 @@ function BandageDying(bandage: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_CLASS,
+uses Types, C_TIME, C_Npc, C_COND, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_CLASS,
   C_STATUS, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
@@ -122,7 +122,7 @@ begin
   creature^.combatAddr^.flankSpread := 0;
   creature^.combatAddr^.guarding := 0;
   { turn-start effects, among them those that leave the creature helpless }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.TURN_START, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.TURN_START, creature);
   if creature^.combatAddr^.initiative <= 0 then
     Exit;
   { Initiative 20 marks a creature that switched between manual and AI control mid-turn (Alt-Q here, space in CombatAi)
@@ -134,7 +134,7 @@ begin
   CharHlp.RecalcStats(creature);
   CharDisp.CombatPrintCreatureInfo(creature);
   { once a turn: SSI's fired them again at every draw of the combat menu (#816) }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.ACTION_START, creature);
   if creature^.combatAddr^.initiative > 0 then
     if creature^.quickfight <> 0 then
       CombatAi.CombatAiControl(creature)
@@ -274,7 +274,7 @@ begin
   CbtActs.CalcHostileHpPercent;
   p := GDVars.creatureList;
   while p <> nil do begin
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ROUND_END, p);
+    FxEngine.TriggerEffectsWithCondition(C_COND.ROUND_END, p);
     FxEngine.ConsiderStinkingCloud(p);
     if p^.status = C_STATUS.DYING then begin
       Inc(p^.combatAddr^.overkill);

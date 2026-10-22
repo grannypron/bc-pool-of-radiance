@@ -78,11 +78,11 @@ const
   MUMMY_ROT = 57;
   IMMOBILE = 58;
   TROLL_REGEN = 59;
-  { EffNull handler: C_Cond.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
+  { EffNull handler: C_COND.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
   NULL_DAMAGE = 60;
   RING_FIRE_RES = 61;
   CON_REGEN = 62;
-  { EffNull handler: C_Cond.TARGET_VETO triggers it, to no effect }
+  { EffNull handler: C_COND.TARGET_VETO triggers it, to no effect }
   NULL_TARGET_VETO = 63;
   POISON_HIT0 = 64;
   POISON_HIT4 = 65;

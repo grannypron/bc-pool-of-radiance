@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
   C_Race, C_STATUS, C_Ifc, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
@@ -280,7 +280,7 @@ begin
 end;
 
 { Print "<name> <msg>", then set the status (dead, stoned or gone), disable the creature with 0 HP, count a party
-  member's death (dead or gone) in its statistics (#796), remove the effects that end at 0 HP, run the C_Cond.HP_ZERO
+  member's death (dead or gone) in its statistics (#796), remove the effects that end at 0 HP, run the C_COND.HP_ZERO
   effects and, if it is still disabled, hand it to CbtMap.CreatureDowned. Then pause, clear the message window and, out
   of combat, redisplay the party. The message prints first: for a creature already dead, stoned or gone it is all that
   happens. }
@@ -296,7 +296,7 @@ begin
   if status in [C_STATUS.DEAD, C_STATUS.GONE] then
     Stats.Death(creature);
   FxEngine.RemoveEffectsHp0(creature);
-  FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.HP_ZERO, creature);
   if creature^.enabled = 0 then
     CbtMap.CreatureDowned(creature);
   TextRend.PauseOnly;
@@ -386,8 +386,8 @@ end;
 
 { Protection from Evil and from Good: +2 to saving throws and -2 to be hit when foe holds, that is when the attacker or
   caster (GDVars.curChar) has the alignment warded against, and it is on the other side. A script's attack or damage has
-  no attacker, and curChar is then a party member. The penalty is taken under C_Cond.ATTACK_ROLL_DEF, after the d20 is
-  rolled; SSI's took it under C_Cond.DEFENDER_AC, before the roll replaced it, so it never applied (#789). }
+  no attacker, and curChar is then a party member. The penalty is taken under C_COND.ATTACK_ROLL_DEF, after the d20 is
+  rolled; SSI's took it under C_COND.DEFENDER_AC, before the roll replaced it, so it never applied (#789). }
 procedure Protection(creature: Types.PCharRecord; foe: Boolean);
 begin
   if foe and (GDVars.curChar^.hostile <> creature^.hostile) then begin
@@ -641,7 +641,7 @@ begin
 end;
 
 { Coughing from Stinking Cloud (eff 30): no items or spells, and its AC from the front and behind is its rear AC less 2.
-  It recalculates the creature's stats, so C_Cond.DEFENDER_AC runs it before Blindness and Shield change the AC. }
+  It recalculates the creature's stats, so C_COND.DEFENDER_AC runs it before Blindness and Shield change the AC. }
 procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
