@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TDataArc;
 
-uses C_Data, DataArc, StrUtil, TestKit;
+uses C_DATA, DataArc, StrUtil, TestKit;
 
 var
   f: Byte;
@@ -17,15 +17,15 @@ var
 
 begin
   TestKit.Start('TDATAARC');
-  TestKit.CheckEqualsS('MON5CHA', DataArc.SourceName(C_Data.FAMILY_MONCHA, 5), 'the monsters'' disk-5 archive');
-  TestKit.CheckEqualsS('MONCHA', DataArc.MergedName(C_Data.FAMILY_MONCHA), 'the merged monster archive');
+  TestKit.CheckEqualsS('MON5CHA', DataArc.SourceName(C_DATA.FAMILY_MONCHA, 5), 'the monsters'' disk-5 archive');
+  TestKit.CheckEqualsS('MONCHA', DataArc.MergedName(C_DATA.FAMILY_MONCHA), 'the merged monster archive');
   TestKit.CheckEqualsS('', DataArc.SourceName(0, 1), 'no family 0');
-  TestKit.CheckEqualsS('', DataArc.SourceName(C_Data.FAMILY_ECL, 9), 'no disk 9');
-  TestKit.CheckEqualsS('', DataArc.MergedName(C_Data.FAMILIES + 1), 'no family past the last');
+  TestKit.CheckEqualsS('', DataArc.SourceName(C_DATA.FAMILY_ECL, 9), 'no disk 9');
+  TestKit.CheckEqualsS('', DataArc.MergedName(C_DATA.FAMILIES + 1), 'no family past the last');
 
   { every family's per-disk names match back to that family and disk, in upper and lower case }
   ok := True;
-  for f := 1 to C_Data.FAMILIES do
+  for f := 1 to C_DATA.FAMILIES do
     for d := 1 to 8 do begin
       name := DataArc.SourceName(f, d);
       if name <> '' then begin

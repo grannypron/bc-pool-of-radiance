@@ -27,7 +27,7 @@ procedure OptionsMenu;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_Keys, C_Sound, C_DATA, GDVars, TextRend, Border, MenuCore, GameIo,
   SoundDrv, DaxIo, DataArc, GDConsts, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
@@ -378,7 +378,7 @@ begin
   TextRend.DisplayString(INFO_COL, row, INFO_COLOR, value);
 end;
 
-{ The data archives' line: C_Data.VERSION, then how many of the families with files here read their merged archive. }
+{ The data archives' line: C_DATA.VERSION, then how many of the families with files here read their merged archive. }
 function DataLine: string;
 var
   fam: Byte;
@@ -389,7 +389,7 @@ var
 begin
   merged := 0;
   present := 0;
-  for fam := 1 to C_Data.FAMILIES do
+  for fam := 1 to C_DATA.FAMILIES do
     if DaxIo.FamilyUsable(fam) then begin
       Inc(merged);
       Inc(present);
@@ -401,7 +401,7 @@ begin
       if found then
         Inc(present);
     end;
-  DataLine := 'V' + Options.Grouped(C_Data.VERSION) + '  Merged ' + Options.Grouped(merged) + '/' +
+  DataLine := 'V' + Options.Grouped(C_DATA.VERSION) + '  Merged ' + Options.Grouped(merged) + '/' +
               Options.Grouped(present);
 end;
 

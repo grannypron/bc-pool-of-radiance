@@ -62,9 +62,9 @@ procedure CloseDax(var f1, f2: file);
 
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 
-{ True when the family's merged archive is whole, holds C_Data.VERSION and was built from the per-disk archives there
+{ True when the family's merged archive is whole, holds C_DATA.VERSION and was built from the per-disk archives there
   now (DaxIo.SourcesMatch). The answer is remembered until ResetArchiveCache; the first True also reads the archive's
-  remap entries, and is False instead when they do not all fit in the table (C_Data.FAMILY_REMAPS per family). }
+  remap entries, and is False instead when they do not all fit in the table (C_DATA.FAMILY_REMAPS per family). }
 function FamilyUsable(family: Byte): Boolean;
 
 { Forget what FamilyUsable has found, so the next load looks at the merged archives afresh. DataBld calls it before
@@ -73,7 +73,7 @@ procedure ResetArchiveCache;
 
 { The archive a load of an ordinary block id from fileName (no extension) really opens: the merged archive of its data
   family when fileName names a per-disk archive that exists and the merged archive is usable, otherwise fileName
-  itself. A load of one of C_Data's reserved ids always opens fileName (LoadDax). }
+  itself. A load of one of C_DATA's reserved ids always opens fileName (LoadDax). }
 function ArchiveName(fileName: Types.TStr20): Types.TStr20;
 
 { True when the per-disk archive GDVars.gameDir + fileName + '.DAX' itself, never a merged archive read in its place,
@@ -86,7 +86,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, C_Keys, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_DATA, C_Keys, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -94,14 +94,14 @@ var
 
 const
   { the most remap entries kept from all merged archives together: as many per family as DataBld builds }
-  MAX_REMAPS = C_Data.FAMILIES * C_Data.FAMILY_REMAPS;
+  MAX_REMAPS = C_DATA.FAMILIES * C_DATA.FAMILY_REMAPS;
 
 var
   { Per data family: 0 = not looked at yet, 1 = its merged archive is usable, 2 = it is not. }
-  familyState: array[1..C_Data.FAMILIES] of Byte;
+  familyState: array[1..C_DATA.FAMILIES] of Byte;
   { Per usable family: bit d - 1 set when disk d has its own per-disk archive. A disk without one is never redirected,
     so a load that found nothing before still finds nothing. }
-  familyDisks: array[1..C_Data.FAMILIES] of Byte;
+  familyDisks: array[1..C_DATA.FAMILIES] of Byte;
   { Remap entries read from the usable merged archives: a load of remapFrom on remapDisk of remapFamily reads remapTo. }
   remapCount: Byte;
   remapFamily: array[1..MAX_REMAPS] of Byte;
@@ -390,7 +390,7 @@ var
   ok: Boolean;
 begin
   familyDisks[family] := 0;
-  ok := size mod C_Data.SOURCE_RECORD = 0;
+  ok := size mod C_DATA.SOURCE_RECORD = 0;
   i := 0;
   while ok and (i < size) do begin
     d := Byte(data^[i]);
@@ -400,7 +400,7 @@ begin
       familyDisks[family] := familyDisks[family] or (1 shl (d - 1));
       ok := DataArc.FileLength(GDVars.gameDir + DataArc.SourceName(family, d) + '.DAX') = listed;
     end;
-    Inc(i, C_Data.SOURCE_RECORD);
+    Inc(i, C_DATA.SOURCE_RECORD);
   end;
   for d := 1 to 8 do
     if ok and not DaxIo.DiskHasSource(family, d) then
@@ -418,11 +418,11 @@ begin
   if familyState[family] = 0 then begin
     familyState[family] := 2;
     if DataArc.ArchiveIntact(GDVars.gameDir + DataArc.MergedName(family) + '.DAX') then begin
-      DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_Data.VERSION_BLOCK, size, data);
+      DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_DATA.VERSION_BLOCK, size, data);
       if data <> nil then begin
-        if (size >= 1) and (Byte(data^[0]) = C_Data.VERSION) then begin
+        if (size >= 1) and (Byte(data^[0]) = C_DATA.VERSION) then begin
           FreeMem(data, size);
-          DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_Data.SOURCES_BLOCK, size, data);
+          DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_DATA.SOURCES_BLOCK, size, data);
           if data <> nil then
             if DaxIo.SourcesMatch(family, data, size) then
               familyState[family] := 1;
@@ -432,15 +432,15 @@ begin
       end;
     end;
     if familyState[family] = 1 then begin
-      DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_Data.REMAP_BLOCK, size, data);
+      DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_DATA.REMAP_BLOCK, size, data);
       if data <> nil then begin
         first := remapCount;
         i := 0;
         while (i + 2 < size) and (familyState[family] = 1) do begin
           { an entry naming no disk, or a reserved id on either side, is skipped: a load is never sent to the merged
             archive's own blocks }
-          if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_Data.SOURCES_BLOCK) and
-              (Byte(data^[i + 2]) < C_Data.SOURCES_BLOCK) then
+          if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_DATA.SOURCES_BLOCK) and
+              (Byte(data^[i + 2]) < C_DATA.SOURCES_BLOCK) then
             if remapCount = MAX_REMAPS then begin
               { more than the table holds: the family's entries are dropped and it reads its per-disk archives,
                 rather than reading other disks' blocks under the ids that did not fit }
@@ -499,7 +499,7 @@ end;
 
 { Find a DAX block by ID in GDVars.gameDir + fileName + ext, read and decompress it into a new buffer of sizeRead bytes,
   then release the compressed buffer. A per-disk archive name of a data family whose merged archive is usable reads the
-  merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_Data's reserved ids),
+  merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_DATA's reserved ids),
   with fileID remapped where that disk's block was stored under another id. Only the bytes actually read are decoded, so
   a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a compressed size above
   36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the archive cannot be opened or
@@ -521,7 +521,7 @@ begin
   family := DataArc.MatchFamily(fileName, disk);
   { the reserved ids name the merged archive's own blocks, which no per-disk archive holds: such a load reads the
     per-disk archive and finds nothing there, as it did before the merged archives }
-  if (family > 0) and (fileID < C_Data.SOURCES_BLOCK) then
+  if (family > 0) and (fileID < C_DATA.SOURCES_BLOCK) then
     if DaxIo.FamilyUsable(family) and DaxIo.DiskHasSource(family, disk) then begin
       fileID := DaxIo.RemapId(family, disk, fileID);
       fileName := DataArc.MergedName(family);

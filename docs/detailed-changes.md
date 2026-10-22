@@ -416,7 +416,7 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
-DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_Data.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
+DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_DATA.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
 
 **The vault's script (data version 32).** A DataPat fix sends event 20 in New Phlan's event table to new code at the end of the script. Every other event-20 square (six other tavern doors) goes on to the tavern as before; at (8,9) the code does what the arms shop does (once a visit, the shopkeeper, the refusal after an attack on the city watch), stores 2 in [$6E6C], the shop cell, and runs COMBAT with no monsters, which `EclCombat` now takes to the vault. 52 bytes; the script stayed under the then 7,682-byte limit with 157 to spare. A game saved inside New Phlan before this kept the tavern until the party left and came back (later fixed by #609, section 6). #606. a955646.
 
@@ -432,9 +432,9 @@ DataPat is the table of patches DataBld applies to SSI's data when it builds the
 
 ---
 
-**The Large bit on gnolls, huge scorpions and phase spiders.** For #748, DataPat sets the Large bit (offset 108) on the two-tile monsters that are Large in the Monster Manual but lacked it: MON2CHA 73, MON4CHA 39, MON8CHA 73 and 116. `C_Data.VERSION` is 35. CURSE-0091, #748.
+**The Large bit on gnolls, huge scorpions and phase spiders.** For #748, DataPat sets the Large bit (offset 108) on the two-tile monsters that are Large in the Monster Manual but lacked it: MON2CHA 73, MON4CHA 39, MON8CHA 73 and 116. `C_DATA.VERSION` is 35. CURSE-0091, #748.
 
-**Creature sizes (#792).** An inventory of the 104 monster records found SSI's Large bit nearly right. DataPat sets it on the Ogre Leader (MON1CHA 9, $01 to $81), an ogre chieftain, and no longer sets it on the huge scorpion (Medium, as the huge spider), which #748 had made Large. `C_Data.VERSION` is 36. POR-0185, #792.
+**Creature sizes (#792).** An inventory of the 104 monster records found SSI's Large bit nearly right. DataPat sets it on the Ogre Leader (MON1CHA 9, $01 to $81), an ogre chieftain, and no longer sets it on the huge scorpion (Medium, as the huge spider), which #748 had made Large. `C_DATA.VERSION` is 36. POR-0185, #792.
 
 ## 8. Video (the driver refactor, VGA), memory, overlays and EMS
 
@@ -686,6 +686,6 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 
 **Comments.** The comment fixes from the source review (Money, Intro, C_Keys, CharGen, Camp, GDVars) are in section 9.
 
-**The merged archives have one model.** C_Data's header and DataArc's family table said goldbox-re-tools' mergedax held the same values, but that model went with its branch and nothing outside this repository reads the merged archives. They now name DataBld and DataPat, with DataArc's table, as the only source. #264 (PR #687). 882a0f1.
+**The merged archives have one model.** C_DATA's header and DataArc's family table said goldbox-re-tools' mergedax held the same values, but that model went with its branch and nothing outside this repository reads the merged archives. They now name DataBld and DataPat, with DataArc's table, as the only source. #264 (PR #687). 882a0f1.
 
 **The journal units are hand-maintained.** C_Jrnl, JrnlList and Journal1 to Journal4 were first written by goldbox-toolkit's `tools/por-journal-gen.py` (ddcdadc), and have been edited by hand since (54ba386, f04e389). The owner's ruling: the generator is kept only as a one-time bootstrap, and no Python script is part of the build path. Each unit's header now says so; edit the units directly. JrnlView was never generated. In goldbox-toolkit the generator's doc says the same, and that its `--check` reports differences by design. #299 (PR #687). 4496b3d.

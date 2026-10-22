@@ -1,6 +1,6 @@
 { The merged data archives: which per-disk archives each data family gathers into one archive, and the file checks the
   game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named in
-  C_Data. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a missing
+  C_DATA. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a missing
   one. }
 {$I COMPILER.INC}
 unit DataArc;
@@ -42,7 +42,7 @@ function FileLength(path: Types.TPathStr): LongInt;
 
 implementation
 
-uses C_Data, FileUtil;
+uses C_DATA, FileUtil;
 
 type
   { A data family: its per-disk archives are <prefix><disk digit><suffix>.DAX, merged into <merged>.DAX. }
@@ -54,7 +54,7 @@ type
 
 const
   { In DataBld's build order. This table, with DataBld and DataPat, is the only model of the merged archives. }
-  families: array[1..C_Data.FAMILIES] of TFamily = (
+  families: array[1..C_DATA.FAMILIES] of TFamily = (
     (prefix: 'ECL'; suffix: ''; merged: 'ECL'),
     (prefix: 'GEO'; suffix: ''; merged: 'GEO'),
     (prefix: 'WALLDEF'; suffix: ''; merged: 'WALLDEF'),
@@ -74,7 +74,7 @@ const
 
 function SourceName(family, disk: Byte): Types.TStr20;
 begin
-  if (family >= 1) and (family <= C_Data.FAMILIES) and (disk >= 1) and (disk <= SOURCE_DISKS) then
+  if (family >= 1) and (family <= C_DATA.FAMILIES) and (disk >= 1) and (disk <= SOURCE_DISKS) then
     SourceName := families[family].prefix + Chr(Ord('0') + disk) + families[family].suffix
   else
     SourceName := '';
@@ -82,7 +82,7 @@ end;
 
 function MergedName(family: Byte): Types.TStr20;
 begin
-  if (family >= 1) and (family <= C_Data.FAMILIES) then
+  if (family >= 1) and (family <= C_DATA.FAMILIES) then
     MergedName := families[family].merged
   else
     MergedName := '';
@@ -99,7 +99,7 @@ begin
   u := fileName;
   for i := 1 to Length(u) do
     u[i] := UpCase(u[i]);
-  for f := 1 to C_Data.FAMILIES do
+  for f := 1 to C_DATA.FAMILIES do
     with families[f] do begin
       digit := Length(prefix) + 1;
       if Length(u) = digit + Length(suffix) then
@@ -129,7 +129,7 @@ begin
         (SizeOf(dirSize) + LongInt(dirSize) <= size) then begin
       Seek(f, SizeOf(dirSize) + LongInt(dirSize) - SizeOf(TDirEntry));
       BlockRead(f, e, SizeOf(e), n);
-      ok := (IOResult = 0) and (n = SizeOf(e)) and (e.id = C_Data.VERSION_BLOCK) and (e.offset >= 0) and
+      ok := (IOResult = 0) and (n = SizeOf(e)) and (e.id = C_DATA.VERSION_BLOCK) and (e.offset >= 0) and
             (SizeOf(dirSize) + LongInt(dirSize) + e.offset + e.packedSize = size);
     end;
     Close(f);

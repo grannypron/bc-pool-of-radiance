@@ -23,14 +23,14 @@ procedure BuildDataFiles;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_Data, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore,
   BldShow, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
   MAX_BLOCKS = 512;
   { the most collisions one family may have }
-  MAX_REMAPS = C_Data.FAMILY_REMAPS;
+  MAX_REMAPS = C_DATA.FAMILY_REMAPS;
   { bytes moved per read when copying, comparing or checksumming }
   CHUNK_SIZE = 4096;
   { per-disk archives are numbered 1 to SOURCE_DISKS }
@@ -46,8 +46,8 @@ const
     packed larger than before, the disk's cluster rounding and the log }
   ROOM_MARGIN = 65536;
   { the most bytes the sources block holds }
-  SOURCES_SIZE = SOURCE_DISKS * C_Data.SOURCE_RECORD;
-  { the version block: C_Data.VERSION and a CRC-32, packed as one literal run }
+  SOURCES_SIZE = SOURCE_DISKS * C_DATA.SOURCE_RECORD;
+  { the version block: C_DATA.VERSION and a CRC-32, packed as one literal run }
   VERSION_RAW = 5;
   VERSION_PACKED = 6;
   LOG_NAME = 'DATABLD.LOG';
@@ -370,11 +370,11 @@ begin
     Inc(i);
   end;
   ok := ok and DataBld.CrcOfFile(f, size, crc);
-  if ok and (sourceListLen + C_Data.SOURCE_RECORD <= SOURCES_SIZE) then begin
+  if ok and (sourceListLen + C_DATA.SOURCE_RECORD <= SOURCES_SIZE) then begin
     sourceList[sourceListLen] := disk;
     Move(size, sourceList[sourceListLen + 1], 4);
     Move(crc, sourceList[sourceListLen + 5], 4);
-    Inc(sourceListLen, C_Data.SOURCE_RECORD);
+    Inc(sourceListLen, C_DATA.SOURCE_RECORD);
   end;
   if not ok then
     if lastError <> 0 then
@@ -508,7 +508,7 @@ begin
   DataBld.EncodeRuns(raw, size, blocks^[blockCount].mem, blocks^[blockCount].packedSize);
 end;
 
-{ True when the archive at path is whole, of version C_Data.VERSION, and its bytes match the CRC-32 in its version
+{ True when the archive at path is whole, of version C_DATA.VERSION, and its bytes match the CRC-32 in its version
   block. }
 function ArchiveSound(path: Types.TPathStr): Boolean;
 var
@@ -526,7 +526,7 @@ begin
     if DataBld.IoOk then begin
       size := FileSize(f);
       ok := DataBld.ReadAt(f, size - VERSION_PACKED, version, VERSION_PACKED) and (version[0] = VERSION_RAW - 1) and
-            (version[1] = C_Data.VERSION);
+            (version[1] = C_DATA.VERSION);
       if ok then begin
         Move(version[2], stored, 4);
         ok := DataBld.CrcOfFile(f, size - VERSION_PACKED, crc) and (crc = stored);
@@ -582,9 +582,9 @@ begin
           remapBlock[remapCount] := remapBlock[hit];
         end else begin
           spare := 1;
-          while (spare < C_Data.SOURCES_BLOCK) and (used[spare] or taken[spare]) do
+          while (spare < C_DATA.SOURCES_BLOCK) and (used[spare] or taken[spare]) do
             Inc(spare);
-          if spare >= C_Data.SOURCES_BLOCK then
+          if spare >= C_DATA.SOURCES_BLOCK then
             DataBld.Fail('no spare block id left')
           else begin
             taken[spare] := True;
@@ -646,7 +646,7 @@ begin
 end;
 
 { Write blocks to <archiveName>.$$$: the directory, the blocks, then the version block (the last of blocks, its id and
-  sizes set) holding C_Data.VERSION and the CRC-32 of everything before it. False, with failNote and writeNote set, on
+  sizes set) holding C_DATA.VERSION and the CRC-32 of everything before it. False, with failNote and writeNote set, on
   an error. }
 function WriteArchive(fam: Byte): Boolean;
 var
@@ -687,7 +687,7 @@ begin
     end;
     if ok then begin
       version[0] := VERSION_RAW - 1;
-      version[1] := C_Data.VERSION;
+      version[1] := C_DATA.VERSION;
       crc.value := not crc.value;
       Move(crc.value, version[2], 4);
       BlockWrite(dst, version, VERSION_PACKED);
@@ -750,7 +750,7 @@ end;
   leader, and any other block must still pack small enough for LoadDax (MAX_LOADABLE). }
 function MaxRawSize(fam: Byte): Word;
 begin
-  if fam = C_Data.FAMILY_ECL then
+  if fam = C_DATA.FAMILY_ECL then
     MaxRawSize := 2 + SizeOf(Types.TZone3)
   else
     MaxRawSize := MAX_LOADABLE;
@@ -839,12 +839,12 @@ begin
   for i := 1 to blockCount do
     used[blocks^[i].id] := True;
   spare := 1;
-  while (spare < C_Data.SOURCES_BLOCK) and used[spare] do
+  while (spare < C_DATA.SOURCES_BLOCK) and used[spare] do
     Inc(spare);
   r := DataBld.RemapOf(disk, id);
   if blocks^[target].disk = 0 then
     why := 'the block is not in its archive'
-  else if spare >= C_Data.SOURCES_BLOCK then
+  else if spare >= C_DATA.SOURCES_BLOCK then
     why := 'no spare block id left'
   else if (r = 0) and (remapCount = MAX_REMAPS) then
     why := 'too many collisions'
@@ -1063,18 +1063,18 @@ begin
   if ok then
     ok := DataBld.ApplyPatches(fam);
   if ok then begin
-    DataBld.AddMemoryBlock(C_Data.SOURCES_BLOCK, sourceList, sourceListLen);
+    DataBld.AddMemoryBlock(C_DATA.SOURCES_BLOCK, sourceList, sourceListLen);
     if remapCount > 0 then begin
       for r := 1 to remapCount do begin
         table[3 * (r - 1)] := remapDisk[r];
         table[3 * (r - 1) + 1] := remapFrom[r];
         table[3 * (r - 1) + 2] := remapTo[r];
       end;
-      DataBld.AddMemoryBlock(C_Data.REMAP_BLOCK, table, 3 * remapCount);
+      DataBld.AddMemoryBlock(C_DATA.REMAP_BLOCK, table, 3 * remapCount);
     end;
     { WriteArchive puts in the version and the CRC-32 }
     FillChar(version, SizeOf(version), 0);
-    DataBld.AddMemoryBlock(C_Data.VERSION_BLOCK, version, VERSION_RAW);
+    DataBld.AddMemoryBlock(C_DATA.VERSION_BLOCK, version, VERSION_RAW);
     ok := failNote = '';
   end;
   if ok then begin
@@ -1122,7 +1122,7 @@ begin
       DataBld.RemoveFile(archiveName + '.DAX');
     end else begin
       for i := 1 to sourceCount do
-        if sources^[i].id >= C_Data.SOURCES_BLOCK then
+        if sources^[i].id >= C_DATA.SOURCES_BLOCK then
           DataBld.Fail('a per-disk archive uses block ' + StrUtil.NumStr(sources^[i].id));
       if failNote = '' then
         if DataBld.BuildArchive(fam) then begin
@@ -1155,7 +1155,7 @@ begin
   { GameInit2 looked at 8X8D.DAX before this, with the game folder unset }
   DaxIo.ResetArchiveCache;
   anyStale := False;
-  for fam := 1 to C_Data.FAMILIES do begin
+  for fam := 1 to C_DATA.FAMILIES do begin
     stale[fam] := not DaxIo.FamilyUsable(fam) and DataBld.HasFiles(fam);
     if stale[fam] then
       anyStale := True;
@@ -1173,7 +1173,7 @@ begin
       DataBld.RemoveFile(archiveName + '.$$$');
     BldShow.Open(stale, writeNote = '');
     DataBld.Progress('Please wait, constructing data files...');
-    DataBld.LogLine('Merged data archives, version ' + StrUtil.NumStr(C_Data.VERSION));
+    DataBld.LogLine('Merged data archives, version ' + StrUtil.NumStr(C_DATA.VERSION));
     builtCount := 0;
     keptCount := 0;
     failedCount := 0;
@@ -1189,7 +1189,7 @@ begin
       GetMem(blocks, SizeOf(TBlockList));
       DataBld.InitCrcTable;
     end;
-    for fam := 1 to C_Data.FAMILIES do
+    for fam := 1 to C_DATA.FAMILIES do
       if stale[fam] then begin
         BldShow.StartFamily(fam);
         DataBld.UpdateFamily(fam);
