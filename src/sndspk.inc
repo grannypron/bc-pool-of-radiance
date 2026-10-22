@@ -19,7 +19,6 @@ spkA    equ 54BDh    ; A1    55.003 Hz
 spkAS   equ 4FFCh    ; A#1   58.272 Hz
 spkB    equ 4B7Eh    ; B1    61.740 Hz
 
-
 ; Four PC-speaker voices, cleared when a tune starts.
 spkrBlocks      VOICE   <>
                 VOICE   <>

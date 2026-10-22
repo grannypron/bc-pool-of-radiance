@@ -22,13 +22,12 @@ const
   LEVEL_ROW = 4;
   NAME_COL = 3;
   VALUE_COL = 16;
-
   { the Add list: titles, weapons and armour by item type, the magic items by template (TEMPLATE_CODE + template) and
     the scrolls by item type; lines past MAX_LINES are left off }
   MAX_LINES = 100;
   TEMPLATE_CODE = 256;
-  { the item type each of GDConsts.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of
-    Restoring Levels, which RandItem never makes }
+  { the item type each of GDConsts.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
+    Levels, which RandItem never makes }
   TEMPLATE_KINDS: array[1..19] of Byte = (71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
   { the highest plus a weapon or armour takes here: name parts run to +5 (C_Item.NAME_PLUS_BASE) }
   PLUS_LAST = 5;
@@ -139,8 +138,8 @@ begin
                          StrUtil.NumStr(GDVars.curChar^.hpMax) + '   ');
 end;
 
-{ The Levels tool: Up and Down pick a class, Left and Right lower or raise its level (1 to C_Level.LEVEL_LAST, past
-  the racial limits), the experience following into the level's range; Experience types a new total. }
+{ The Levels tool: Up and Down pick a class, Left and Right lower or raise its level (1 to C_Level.LEVEL_LAST, past the
+  racial limits), the experience following into the level's range; Experience types a new total. }
 procedure LevelsTool;
 var
   held: THeld;
@@ -259,8 +258,8 @@ begin
     RandItem.GenerateRandomItem(code, item);
 end;
 
-{ Choose a weapon's or armour's plus, 0 to PLUS_LAST from +1, with Left and Right, its name and value following; False when
-  left with Exit. Bracers, named by their AC rather than their plus, choose AC 6, 4 or 2 the same way, from AC 6
+{ Choose a weapon's or armour's plus, 0 to PLUS_LAST from +1, with Left and Right, its name and value following; False
+  when left with Exit. Bracers, named by their AC rather than their plus, choose AC 6, 4 or 2 the same way, from AC 6
   (#772). }
 function ChoosePlus(item: Types.PItemRec): Boolean;
 var
@@ -325,8 +324,8 @@ begin
   ChoosePlus := key = 'T';
 end;
 
-{ The Add tool: a list of every weapon and armour RandItem makes, the magic items of its templates and the two
-  scrolls; the one picked, identified, goes to curChar if it can carry it. }
+{ The Add tool: a list of every weapon and armour RandItem makes, the magic items of its templates and the two scrolls;
+  the one picked, identified, goes to curChar if it can carry it. }
 procedure AddItem;
 var
   head: Types.PItemRec;

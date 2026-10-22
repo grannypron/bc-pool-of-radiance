@@ -6,7 +6,7 @@ unit GDVars;
 interface
 
 uses Types, Dos, C_Effect, C_Gbvm{$IFDEF FPC}, Host{$ENDIF};
-  
+
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
   video: Types.TVideoDriver;
@@ -41,7 +41,7 @@ var
   suppressContinuePrompt: Byte;
   { zero disables ViewChar's disk-3 portrait branch }
   portraitsOn: Byte;
-  { zero skips the close-up load when GameDat5.inEncMenu is nonzero }
+  { zero skips the close-up load when inEncMenu is nonzero }
   monsterPics: Byte;
   { zero makes SoundDrv.PlayMusic do nothing }
   musicOn: Byte;
@@ -270,8 +270,7 @@ var
   map3d: Types.PGeoMap;
   { Sky and ceiling color after palette mapping. }
   dsColorSkyCeiling: Byte;
-  { View3D band colors; MapView recomputes them from the ECL color selectors after a script changes them
-    (GameDat5.picRegionW) }
+  { View3D band colors; MapView recomputes them from the ECL color selectors after a script changes them (picRegionW) }
   { 3D-view color register A (ceiling/horizon band) }
   dsWallColorA: Byte;
   { 3D-view color register B (mid band) }
@@ -361,7 +360,7 @@ var
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
   dsMoveIconSheet: Types.PImgBuf;
-  { ECL colour selectors }
+  { ECL color selectors }
   { Script-controlled wall color; script writes request a view redraw. }
   wallColorSel: Byte;
   { Script-controlled ceiling and floor color; writes request a view redraw. }
@@ -393,9 +392,11 @@ var
   dsMonsterFlags: Types.TMonFlags;
   { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
-  { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }
+  { With dumpCr6B00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to
+    C_Gbvm.CHAR_ENABLED (EclVars.SpecialWriteZ1) }
   dumpCr6C00: Boolean;
-  { Dump the creature at ECL LOAD CHARACTER; set when a script writes 0 to its trigger word (EclMenu.SpecialWriteZ1) }
+  { With dumpCr6C00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to C_Gbvm.CHAR_DUMP
+    (EclVars.SpecialWriteZ1) }
   dumpCr6B00: Boolean;
   duelFlag: Boolean;
 
@@ -420,7 +421,7 @@ var
   { 0 when an ECL script has written a message to the bottom text window; Explore.MapMainMenu clears that window on its
     way out and sets it back to 1 }
   bottomMsgCleared: Byte;
-  { Set when a script changes a view colour selector; MapView then applies them }
+  { Set when a script changes a view color selector; MapView then applies them }
   picRegionW: Boolean;
   { ECL write moved party flag }
   movedParty: Boolean;

@@ -18,7 +18,7 @@ const
   ATTACK_ROLL_RANGE = 255;
   PENDING_FLAG = $80;
   ID_MASK = $7F;
-  { Spell IDs: 1..56 are spells and 57..67 are item effects. GDVars.castTargetMenu is the cast-target menu. }
+  { Spell IDs: 1..56 are spells and 57..67 are item effects. }
   { no spell selected (SpellMenu exit/cancel) }
   NONE = 0;
   { the last spell; 57..67 are item effects }

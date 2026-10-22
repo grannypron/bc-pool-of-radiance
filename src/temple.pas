@@ -14,7 +14,7 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys, 
+uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys,
   C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
@@ -30,9 +30,9 @@ begin
   CharDisp.ClearMessageWindow;
 end;
 
-{ PayCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current
-  character's coins if they cover it, else from the pooled treasure, else print "Not enough money." and return N.
-  Returns Y or N. cost is the listed price, which the temple's prices (priceMode) may lower. }
+{ PayCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current character's
+  coins if they cover it, else from the pooled treasure, else print "Not enough money." and return N. Returns Y or N.
+  cost is the listed price, which the temple's prices (priceMode) may lower. }
 function PayCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
@@ -141,8 +141,8 @@ end;
   again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation under the effect lock and
   rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not survive." and is
   C_Status.GONE, dead for good, the fee spent. A success sets one hit point, C_Status.OKAY and enabled, lowers
-  Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points that
-  point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
+  Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points that point
+  was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
   (ClassCal.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
@@ -273,8 +273,8 @@ begin
   end;
 end;
 
-{ StoneToFlesh: C_Status.STONED (7), 2000 gp; if still stoned after paying, status := C_Status.OKAY, enabled := 1, hpCur
-  := 1 }
+{ StoneToFlesh: C_Status.STONED (7), 2000 gp; if still stoned after paying, the character becomes C_Status.OKAY and
+  enabled, with hpCur 1 }
 procedure StoneToFlesh;
 var
   s: String;
@@ -358,8 +358,8 @@ begin
   CharDisp.DisplayParty(GDVars.curChar);
 end;
 
-{ TempleMainMenu: Run the temple menu using the shared treasure state. H and P are told apart from the extended Up and
-  Down scan codes by ext; the G and O codes (Home and End) cycle characters. }
+{ TempleMainMenu: Run the temple counter (Shop.CounterMenu, on the shared treasure state) with HealMenu as its Heal
+  command, at the prices mode names (priceMode). }
 procedure TempleMainMenu(mode: Byte);
 begin
   priceMode := mode;

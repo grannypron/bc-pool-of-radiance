@@ -10,8 +10,8 @@ interface
 var
   RandSeed: LongInt;
 
-{ The next number in 0..range - 1 (0 when range is 0), as Turbo Pascal 6's System.Random(range: Word) gives it: the
-  seed steps to seed * 134775813 + 1, and the number is the seed's high word modulo range. }
+{ The next number in 0..range - 1 (0 when range is 0), as Turbo Pascal 6's System.Random(range: Word) gives it: the seed
+  steps to seed * 134775813 + 1, and the number is the seed's high word modulo range. }
 function Random(range: Word): Word;
 
 { A seed from the clock, as Randomize sets one from DOS's time. }

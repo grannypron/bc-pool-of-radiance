@@ -1715,7 +1715,6 @@ musicSetupB_env_v0:
         SENV    0,               ENV_SETLEVEL
         SENV    0,               0
 
-
 ; Step the four Tandy voices, then write all four to the SN76489.  DL walks the
 ; latch bytes 80h, 0A0h, 0C0h, 0E0h -- voice 0 to voice 2 are tone, and 0E0h is
 ; the noise voice, which takes no second period byte.

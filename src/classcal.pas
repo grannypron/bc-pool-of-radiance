@@ -85,8 +85,8 @@ function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): Long
 
 implementation
 
-
 uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, Dice, CharHlp;
+
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
@@ -338,8 +338,8 @@ begin
   ConHpPerDie := share;
 end;
 
-{ ConHpBonus: Sum ConHpPerDie once per class with levels whose classBit shares a bit with mask ($FF = all). A
-  first-level ranger counts its share twice, once for each of its two hit dice. }
+{ Sum ConHpPerDie once per class with levels whose classBit shares a bit with mask ($FF = all). A first-level ranger
+  counts its share twice, once for each of its two hit dice. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
@@ -372,8 +372,8 @@ begin
     DivideAmongClasses := (sum + conB) div clsCount;
 end;
 
-{ HpMinimum: Lowest legal hpMax: one point per level in each class (plus 1 for a ranger or monk), plus the Con bonus,
-  divided by the class count; 1 if a negative bonus would leave too little }
+{ The lowest legal hpMax: one point per level in each class (plus 1 for a ranger or monk), plus the Con bonus, divided
+  by the class count; 1 if a negative bonus would leave too little. }
 function HpMinimum(creature: Types.PCharRecord): Byte;
 var
   clsCount: Byte;
@@ -396,9 +396,9 @@ begin
   HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
 end;
 
-{ HpMaximum: Highest legal hpMax: the top of each class's hit dice (GDConsts.hpDice and hpSides: cleric and druid d8
-  per level, fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the
-  Con bonus, divided by the class count. }
+{ The highest legal hpMax: the top of each class's hit dice (GDConsts.hpDice and hpSides: cleric and druid d8 per level,
+  fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the Con bonus,
+  divided by the class count. }
 function HpMaximum(creature: Types.PCharRecord): Byte;
 var
   clsCount: Byte;
@@ -429,10 +429,10 @@ begin
   end;
 end;
 
-{ RollFirstLevelHp: Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all):
-  hpDice d hpSides at level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as
-  the others do. Each die rolls at least HitDieFloor for the creature's Constitution, and a class at level 1 gets at
-  least hpSides * 2 div 3, two thirds of one die even for the ranger and monk. The dice are rolled one at a time, as
+{ Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all): hpDice d hpSides at
+  level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as the others do. Each
+  die rolls at least HitDieFloor for the creature's Constitution, and a class at level 1 gets at least
+  hpSides * 2 div 3, two thirds of one die even for the ranger and monk. The dice are rolled one at a time, as
   Dice.RollDice rolls them, so below Constitution 19 the rolls are the same. }
 function RollFirstLevelHp(creature: Types.PCharRecord; mask: Byte): Byte;
 var
@@ -510,11 +510,11 @@ begin
         share := experience div 10 + experience;
     C_Class.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     C_Class.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    { 2-class multi }
     C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER..C_Class.FIGHTER_THIEF,
-      { 2-class multi }
       C_Class.MAGE_THIEF: share := experience div 2;
+    { 3-class multi }
     C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
-      { 3-class multi }
       share := experience div 3;
   end;
   ExperienceShare := share;

@@ -1,6 +1,5 @@
 { Camp menus for spell preparation, resting, Fix healing, party order and the way to the Settings screen. Also provides
   the noncombat Cast menu. }
-
 {$O+,F+}
 {$I COMPILER.INC}
 unit Camp;
@@ -38,7 +37,7 @@ var
   { highest pending level per kind }
   maxMem: Byte;
   maxScr: Byte;
-  { SUM of pending spell levels }
+  { the sum of pending spell levels }
   cntMem: Byte;
   cntScr: Byte;
   p: Types.PItemRec;
@@ -116,8 +115,8 @@ begin
   end;
 end;
 
-{ How many of the current character's memorized and pending spells are of this class and level; an id outside the
-  spell table counts for none. }
+{ How many of the current character's memorized and pending spells are of this class and level; an id outside the spell
+  table counts for none. }
 function SlotsUsed(lvl, typ: ShortInt): Byte;
 var
   count: Byte;
@@ -134,8 +133,8 @@ begin
   SlotsUsed := count;
 end;
 
-{ Put spell id, pending, in the current character's first empty memorized-spell slot; placed is False when every
-  slot is taken. }
+{ Put spell id, pending, in the current character's first empty memorized-spell slot; placed is False when every slot is
+  taken. }
 procedure PutPending(id: Byte; var placed: Boolean);
 var
   i: Byte;
@@ -210,7 +209,7 @@ var
   idx: Integer;
   notEmpty: Boolean;
   redraw: Boolean;
-  { CastSpellNC's var out, unread }
+  { CastSpellNC's and UseItemSpell's var out, unread }
   castSel: Boolean;
   spellId: Byte;
   { the scroll the spell is cast from, nil for a memorized one }
@@ -296,8 +295,8 @@ begin
   DisplaySpellSlots := any;
 end;
 
-{ Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest,
-  then clear the clock and update the misc-info line. }
+{ Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest, then clear
+  the clock and update the misc-info line. }
 procedure CampRestMenu(var interrupted: Boolean);
 var
   p: Types.PCharRecord;
@@ -457,11 +456,11 @@ begin
   end;
 end;
 
-{ Confirm pending scribing (Yes keeps it and skips selection), then let the player mark scroll spells. A character
-  with no magic-user levels is told scribing needs arcane training (#671). Reject known, pending or unavailable
-  spells. The first unmarked scroll spell with the spell ID, on a CharHlp.ItemReadable item, is marked. SSI's marking
-  walk did not check ItemReadable, so an earlier wand or other item whose charges, effect or special byte (sharing
-  storage with spells[1..3]) equalled the ID got the pending flag, 128 more, and nothing was scribed. }
+{ Confirm pending scribing (Yes keeps it and skips selection), then let the player mark scroll spells. A character with
+  no magic-user levels is told scribing needs arcane training (#671). Reject known, pending or unavailable spells. The
+  first unmarked scroll spell with the spell ID, on a CharHlp.ItemReadable item, is marked. SSI's marking walk did not
+  check ItemReadable, so an earlier wand or other item whose charges, effect or special byte (sharing storage with
+  spells[1..3]) equalled the ID got the pending flag, 128 more, and nothing was scribed. }
 procedure CampScribeMenu;
 var
   done: Boolean;
@@ -576,7 +575,6 @@ var
   s: Types.TStr40;
   idx: Integer;
   c: Char;
-
 begin
   GetMem(head, SizeOf(Types.TMenuNode));
   cur := head;
@@ -733,8 +731,8 @@ begin
   end;
 end;
 
-{ Reorder the party through Select and Place modes. In Select mode extended keys pick a character; in Place mode Home
-  or Up moves it up and End or Down moves it down. P and S switch modes; Enter takes the highlighted option. }
+{ Reorder the party through Select and Place modes. In Select mode extended keys pick a character; in Place mode Home or
+  Up moves it up and End or Down moves it down. P and S switch modes; Enter takes the highlighted option. }
 procedure CampOrderMenu;
 var
   selected: ShortInt;
@@ -842,15 +840,15 @@ begin
   end;
 end;
 
-{ Fix, as in Curse of the Azure Bonds and Pools of Darkness: rest while the party's clerics cure and heal everyone.
-  Each cleric level-3 slot of a conscious (status OKAY) caster cures one condition -- disease first (Cure Disease also
-  clears mummy rot, which would block the healing), then blindness, then Bestow Curse. Each level-1 slot of such a
-  caster who knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go
-  to the least busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with
-  a level-3 spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted
-  reports a rest broken off by a scripted random interruption. A party with no cleric, or with none conscious, is told
-  so and does not rest, as is a party with nothing Fix can treat or no slot to treat it with; the message stays in the
-  message window, without waiting for a key (#681). }
+{ Fix, as in Curse of the Azure Bonds and Pools of Darkness: rest while the party's clerics cure and heal everyone. Each
+  cleric level-3 slot of a conscious (status OKAY) caster cures one condition -- disease first (Cure Disease also clears
+  mummy rot, which would block the healing), then blindness, then Bestow Curse. Each level-1 slot of such a caster who
+  knows Cure Light Wounds heals 1d8, cast only as often as the party's wounds need on average. The casts go to the least
+  busy caster, and the rest lasts as long as the busiest one needs by the memorize rule: 4 hours (6 with a level-3
+  spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted reports a rest
+  broken off by a scripted random interruption. A party with no cleric, or with none conscious, is told so and does not
+  rest, as is a party with nothing Fix can treat or no slot to treat it with; the message stays in the message window,
+  without waiting for a key (#681). }
 procedure CampFixMenu(var interrupted: Boolean);
 const
   { the members planned for; a longer creature list is not looked at past this }

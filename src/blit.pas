@@ -1,10 +1,10 @@
-{ Image loading, conversion and compositing for CGA, EGA and Tandy displays. Drawing into the view buffer stages dirty
-  spans; FlushView copies those spans to the screen. }
+{ Image loading, conversion and compositing for CGA, EGA, Tandy and VGA displays, through the installed video driver
+  (GDVars.video). Drawing into the view buffer stages dirty spans; FlushView copies those spans to the screen.
 
-{ The renderer supports three video-memory layouts. CGA packs eight pixels into two bytes and interleaves even and odd
-  scanlines between two banks. EGA stores eight pixels as four plane bytes, selected through the sequencer map mask;
-  each row spans 40 bytes. Tandy packs eight pixels into four bytes across four scanline banks. Raw artwork always uses
-  four bytes per eight-pixel chunk. }
+  The drivers' video-memory layouts: CGA packs eight pixels into two bytes and interleaves even and odd scanlines
+  between two banks. EGA stores eight pixels as four plane bytes, selected through the sequencer map mask; each row
+  spans 40 bytes. Tandy packs eight pixels into four bytes across four scanline banks. VGA keeps a byte a pixel. Raw
+  artwork always uses four bytes per eight-pixel chunk. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit Blit;
@@ -51,10 +51,11 @@ procedure RestoreVideoMode;
 procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; var pic: Types.PImgBuf);
 
 { Converts raw packed 4-bit artwork into the pixel layout of the active video mode, filling an already-allocated image
-  buffer and, when the buffer has one, its transparency mask. CGA produces two pixel bytes and a two-byte mask per
-  eight-pixel cell; EGA produces four plane bytes and one mask byte; Tandy copies the pixels as-is and derives its mask
-  in place. Transparent pixels are cleared in the pixel data so masked drawing can keep the background under them and OR
-  the graphic in. Mask generation is decided by the buffer having a mask; hasMask is not read.
+  buffer, block by block (pic^.more), and, when the buffer has one, its transparency mask. CGA produces two pixel bytes
+  and a two-byte mask per eight-pixel cell; EGA produces four plane bytes and one mask byte; Tandy copies the pixels
+  as-is and derives its mask in place. Transparent pixels are cleared in the pixel data so masked drawing can keep the
+  background under them and OR the graphic in. Mask generation is decided by the buffer having a mask; hasMask is not
+  read.
   @param(imgData Raw decompressed block holding the artwork.)
   @param(srcOff Offset within imgData of the first pixel byte, just past the picture header.)
   @param(hasMask Unused.)
@@ -202,6 +203,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 implementation
 
 uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
+
 type
   PLongInt = ^LongInt;
   { The header of a DAX picture as stored; the pixel data follows it. }

@@ -22,19 +22,19 @@ type
   TSlotDesc = string[DESC_LEN];
   TSlotArea = string[AREA_LEN];
 
-{ Run the menu and return the slot chosen, or C_Keys.NONE for Escape or Exit. Saving lists every slot, an unused one
-  as EMPTY; loading lists only the slots holding a saved game, and returns C_Keys.NONE at once when there are none. A
-  slot shows its letter (white: the key that takes it), description and time saved, and below them its area and date.
-  Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a time, scrolling the
-  list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load) takes the selected
-  slot, and a slot's letter takes that slot at once. Exit has no key (E is a slot's); the arrows reach it. The selection
-  starts on slot start when it is listed, else on the newest saved game. The caller redraws the screen afterwards. }
+{ Run the menu and return the slot chosen, or C_Keys.NONE for Escape or Exit. Saving lists every slot, an unused one as
+  EMPTY; loading lists only the slots holding a saved game, and returns C_Keys.NONE at once when there are none. A slot
+  shows its letter (white: the key that takes it), description and time saved, and below them its area and date. Up and
+  Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a time, scrolling the list a
+  slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load) takes the selected slot, and
+  a slot's letter takes that slot at once. Exit has no key (E is a slot's); the arrows reach it. The selection starts on
+  slot start when it is listed, else on the newest saved game. The caller redraws the screen afterwards. }
 function ChooseSlot(saving: Boolean; start: Char): Char;
 
 { The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
   starts as desc and is edited on its line (up to DESC_SHOWN characters, upper case; Backspace deletes). While it is
-  empty it shows, and is, SAVE GAME and the letter. The bottom line reads Save: Exit, with no hotkey, since every
-  letter is typed: Enter saves, True with desc set; Escape is Exit, False. }
+  empty it shows, and is, SAVE GAME and the letter. The bottom line reads Save: Exit, with no hotkey, since every letter
+  is typed: Enter saves, True with desc set; Escape is Exit, False. }
 function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boolean;
 
 { The description and area kept for slot letter: True when its savgam<x>.inf is a slot-info file of this format, else
@@ -47,9 +47,9 @@ procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 { 'Put save disk in X: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
 
-{ Say on the bottom line that name could not be made (problem: 'Cannot write', 'Cannot create'), with its path, then
-  ask for the save disk (SaveDiskMsg), each until a key (DaxIo.AskForDisk): False when Escape answered, giving up (SSI
-  asked until the disk was there, so a folder that could not be written held the player for good, #794). }
+{ Say on the bottom line that name could not be made (problem: 'Cannot write', 'Cannot create'), with its path, then ask
+  for the save disk (SaveDiskMsg), each until a key (DaxIo.AskForDisk): False when Escape answered, giving up (SSI asked
+  until the disk was there, so a folder that could not be written held the player for good, #794). }
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 
 { Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
@@ -144,9 +144,9 @@ begin
 end;
 
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as hh:mm and
-  YYYY/MM/DD), and its description and area. A save with no slot-info file (one made before the menu kept them)
-  has no description, and its area is read from the save itself: the GBVM previousScriptId and mapId in its zone 0,
-  which follows the one-byte virtualDisk. }
+  YYYY/MM/DD), and its description and area. A save with no slot-info file (one made before the menu kept them) has no
+  description, and its area is read from the save itself: the GBVM previousScriptId and mapId in its zone 0, which
+  follows the one-byte virtualDisk. }
 procedure ReadSlot(i: Byte; letter: Char);
 var
   f: file;
@@ -335,8 +335,8 @@ begin
   ChooseSlot := chosen;
 end;
 
-{ Draw the description line: shown in white, the rest of its DESC_SHOWN columns as dots (the font's underscore is not
-  a line). }
+{ Draw the description line: shown in white, the rest of its DESC_SHOWN columns as dots (the font's underscore is not a
+  line). }
 procedure DrawDescLine(shown: TSlotDesc);
 var
   i: Byte;
@@ -388,7 +388,6 @@ begin
   AskDescription := key = C_Keys.ENTER;
 end;
 
-{ 'Put save disk in C: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
 begin
   SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ': (Esc gives up)';

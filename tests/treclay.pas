@@ -1,8 +1,8 @@
-{ Tests the layout of the records saved in character and game files: TCharRecord (NAME.CHA and CHRDATxN.SAV, 285
-  bytes), TItemRec (.ITM, 63 bytes each) and TEffectRec (.SPC, 9 bytes each). Every field's offset is SSI's: the
-  numbers were read from this program compiled against SSI's v1.3 source (por-disassembly v13/src, whose field names
-  are the same), and a change that moves a field breaks the files SSI's game and earlier saves wrote. The offsets are
-  the disk form's (DiskRec): a 64-bit build's 8-byte pointers move the fields in memory, and DiskRec moves them back. }
+{ Tests the layout of the records saved in character and game files: TCharRecord (NAME.CHA and CHRDATxN.SAV, 285 bytes),
+  TItemRec (.ITM, 63 bytes each) and TEffectRec (.SPC, 9 bytes each). Every field's offset is SSI's: the numbers were
+  read from this program compiled against SSI's v1.3 source (por-disassembly v13/src, whose field names are the same),
+  and a change that moves a field breaks the files SSI's game and earlier saves wrote. The offsets are the disk form's
+  (DiskRec): a 64-bit build's 8-byte pointers move the fields in memory, and DiskRec moves them back. }
 {$I COMPILER.INC}
 program TRecLay;
 

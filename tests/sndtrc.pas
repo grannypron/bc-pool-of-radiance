@@ -1,7 +1,7 @@
 { The trace build of the sound sequencer (SNDTRACE.OBJ, sounddrv.asm assembled with /dTRACE), for the tests: the same
   tunes, voices and device code as SoundDrv's, but each port write is recorded in a buffer instead of reaching the
-  hardware, and one timer tick's sequencing can be run on demand. The native build has no TASM: there these forward
-  to the Pascal sequencer's trace entries (SndSeq), which has no AdLib, so OplReset records nothing. }
+  hardware, and one timer tick's sequencing can be run on demand. The native build has no TASM: there these forward to
+  the Pascal sequencer's trace entries (SndSeq), which has no AdLib, so OplReset records nothing. }
 {$I COMPILER.INC}
 unit SndTrc;
 

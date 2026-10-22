@@ -16,37 +16,37 @@ procedure LoadCharlist(var list: Types.PItemRec);
 
 { Rewrite <saveDir>charlist.txt, one name per line, a party member's without its '* ' mark: a character in the party
   keeps its own files, so it stays on the roster (SSI dropped it, as saving or loading a game erased them). A line
-  naming omit, marked or not, is left out ('' leaves out none). Retries with a put-save-disk prompt until the file
-  opens. }
+  naming omit, marked or not, is left out ('' leaves out none). Retries with a put-save-disk prompt until the file opens
+  or Escape gives up, which leaves the roster as it was. }
 procedure SaveCharlist(list: Types.PItemRec; omit: String);
 
 { Load curChar's CHEAD into icon-anim slot 11 and CBODY into slot orderNumber, OR-merge head onto body; when loading,
   remap the default icon colours to the character's iconColors1 nibbles. Icons live on virtual disk 3. }
 procedure LoadCharIconAnim(loading: Boolean);
 
-{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc and add the name to CHARLIST.TXT
-  when it is not there;
+{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc and add the name to CHARLIST.TXT when
+  it is not there;
   fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Each is written to a temporary copy, and only
-  when all are whole are they put in place of the old ones; an empty item or effect list's old file is erased. The
-  .mem and .sts files beside them are rewritten then, holding the character's usual spells and statistics when it has
-  any. A set that cannot be written whole (a full disk) leaves the old files and CHARLIST.TXT as they were and is
-  reported on the bottom line. True when the character was saved. }
+  when all are whole are they put in place of the old ones; an empty item or effect list's old file is erased. The .mem
+  and .sts files beside them are rewritten then, holding the character's usual spells and statistics when it has any. A
+  set that cannot be written whole (a full disk) leaves the old files and CHARLIST.TXT as they were and is reported on
+  the bottom line. True when the character was saved. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
 { Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, those there are) and take its name off
   CHARLIST.TXT: a character dropped forever, whose files loading or saving a game no longer erases (#754). }
 procedure EraseChar(name: String);
 
-{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else
-  prompt with the insert-game-disk message (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The
-  list and combat pointers are cleared, then the item/effect lists are rebuilt from the .itm/.spc files when they
-  exist, stopping at a read error or a trailing part record, and the usual spells are read from the .mem file (none
-  when it is missing or not a usual-spells file for this character). False, with nothing read after the record, when
-  the .sav/.cha file holds less than a whole record or cannot be read, or is not there and Escape at the save disk
-  prompt gave up (askDisk); the caller then frees the record unused. While the Quick Ends With Fight setting is on
-  (GDVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game or an added character starts under
-  manual control; NPCs and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With
-  the setting off the saved quickfight stays. }
+{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else prompt
+  with the insert-game-disk message (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The list and
+  combat pointers are cleared, then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping
+  at a read error or a trailing part record, and the usual spells are read from the .mem file (none when it is missing
+  or not a usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file
+  holds less than a whole record or cannot be read, or is not there and Escape at the save disk prompt gave up
+  (askDisk); the caller then frees the record unused. While the Quick Ends With Fight setting is on (GDVars.quickEnds),
+  a party member leaves Quick (quickfight 0), so a loaded game or an added character starts under manual control; NPCs
+  and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the
+  saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
@@ -66,16 +66,16 @@ procedure LoadGame;
   each party member (the first 8) as CHRDATxN.sav, copy the session vault to the slot (Vault.CommitToSlot), and only
   when all of them were written whole put them in place of the old save's; then write the slot's description and the
   current area (AreaName.CurrentArea) to SAVGAMx.INF and set the recently-saved flag. The members' single-character
-  files are left alone (SSI erased them, here and on loading). A save not written whole leaves the old one as it was
-  and says so. True when the game was saved; False also for Escape on the menu. The caller redraws the screen. }
+  files are left alone (SSI erased them, here and on loading). A save not written whole leaves the old one as it was and
+  says so. True when the game was saved; False also for Escape on the menu. The caller redraws the screen. }
 function SaveGame: Boolean;
 
 const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
   QUICK_SLOT = 'Q';
 
-{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say on the bottom line whether it
-  was saved. }
+{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say on the bottom line whether it was
+  saved. }
 procedure QuickSave;
 
 { True when QUICK_SLOT holds a save file big enough to load. }
@@ -105,16 +105,15 @@ procedure FreeParty;
 implementation
 
 uses DiskRec, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
+  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
-
-{ Create file name's temporary copy (FileUtil.RewriteTemp) for writing, asking for the save disk until it can be:
-  False when Escape gave up (SaveMenu.AskSaveDisk), with nothing open. }
+{ Create file name's temporary copy (FileUtil.RewriteTemp) for writing, asking for the save disk until it can be: False
+  when Escape gave up (SaveMenu.AskSaveDisk), with nothing open. }
 function RewriteSaveFile(var f: file; name: Types.TPathStr): Boolean;
 var
   opened: Boolean;
@@ -188,7 +187,6 @@ begin
 end;
 
 procedure LoadCharIconAnim(loading: Boolean);
-
 var
   fromMap: Types.TColorTab;
   toMap: Types.TColorTab;
@@ -400,8 +398,8 @@ var
   effectDisk: DiskRec.TEffectDisk;
 begin
   if askDisk then begin
-    { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for
-      the extension }
+    { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for the
+      extension }
     name := SaveLoad.CharFileBase(name);
     msg := SaveMenu.SaveDiskMsg;
   end else
@@ -696,8 +694,8 @@ var
   { the save file's copy was created: it is closed after the writes }
   opened: Boolean;
 begin
-  { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
-    leaves the old area's there until then }
+  { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL leaves
+    the old area's there until then }
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
@@ -850,8 +848,8 @@ begin
   until not saving;
 end;
 
-{ FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
-  spells; the closing creature := nil clears only the local parameter }
+{ Free the combat record, every item, every effect node, then the record itself, forgetting its usual spells and
+  statistics; the closing creature := nil clears only the local parameter. }
 procedure FreeCreature(creature: Types.PCharRecord);
 var
   holdE: Types.PEffectRec;
@@ -874,10 +872,9 @@ begin
   creature := nil;
 end;
 
-{ RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
-  becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
-  A curChar not found in the list is left alone. When the creature removed was savedChar, savedChar follows the new
-  curChar. }
+{ Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar becomes the next
+  creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec. A curChar not
+  found in the list is left alone. When the creature removed was savedChar, savedChar follows the new curChar. }
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
 var
   prev: Types.PCharRecord;

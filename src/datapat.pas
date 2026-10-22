@@ -163,7 +163,7 @@ const
       set, and the game hung loading script area 255; both become solid }
     (issue: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1014; origLen: 1; newLen: 1),
     (issue: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1021; origLen: 1; newLen: 1),
-    { #203: every Cloak of Displacement gives +2 AC and +2 saves, as a random one (template 97: type 92, plus 2, save
+    { #203: every Cloak of Displacement gives +2 AC and +2 saves, as a random one (template 13: type 92, plus 2, save
       bonus 2) does; the one with the basilisk's treasure (ITEM2 block 3, record 1) has save bonus 0, so it gets 2 }
     (issue: 203; family: C_Data.FAMILY_ITEM; disk: 2; id: 3; size: 252; offset: 109; origLen: 6; newLen: 6),
     { #203: the Level 6 MU's Cloak of Displacement (MON2ITM block 82, record 3) is on the Cloak of Elvenkind's type,

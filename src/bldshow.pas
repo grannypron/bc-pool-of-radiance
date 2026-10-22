@@ -1,10 +1,10 @@
 { The full screen DataBld shows while it builds the merged data archives: the archive being made and its step, how many
-  families are finished with a bar and the time left, and a row for each family with one cell per per-disk archive.
-  The bar and the time left count bytes: each stale family's per-disk archives are read, then written and checked as
-  its merged archive, and each of those three passes counts as the family's per-disk bytes. Only what changed is
-  drawn again. When the game folder cannot be written, the status lines give way to a warning, the families that
-  cannot be built show as failed, and the build's own calls draw nothing. The screen is cleared when the build ends.
-  With too little memory for it, nothing is drawn and every call does nothing. }
+  families are finished with a bar and the time left, and a row for each family with one cell per per-disk archive. The
+  bar and the time left count bytes: each stale family's per-disk archives are read, then written and checked as its
+  merged archive, and each of those three passes counts as the family's per-disk bytes. Only what changed is drawn
+  again. When the game folder cannot be written, the status lines give way to a warning, the families that cannot be
+  built show as failed, and the build's own calls draw nothing. The screen is cleared when the build ends. With too
+  little memory for it, nothing is drawn and every call does nothing. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit BldShow;
@@ -42,8 +42,8 @@ procedure Advance(bytes: Word);
 { The family is finished: built or kept (ok), or failed. }
 procedure EndFamily(fam: Byte; ok: Boolean);
 
-{ Show the finished display for a second, or, when a family failed or the game folder cannot be written, until Enter
-  is pressed, pointing to DATABLD.LOG when it was written; then clear the screen. }
+{ Show the finished display for a second, or, when a family failed or the game folder cannot be written, until Enter is
+  pressed, pointing to DATABLD.LOG when it was written; then clear the screen. }
 procedure Finish(failed: Boolean);
 
 implementation
@@ -169,8 +169,8 @@ type
 const
   st: PShowState = nil;
 
-{ a * b div c for positive a, b and c; 0 when any of them is not positive. Until the product fits, the larger factor
-  and c are halved together; once c is down to 1 the halving is made up by doubling the result instead. }
+{ a * b div c for positive a, b and c; 0 when any of them is not positive. Until the product fits, the larger factor and
+  c are halved together; once c is down to 1 the halving is made up by doubling the result instead. }
 function MulDiv(a, b, c: LongInt): LongInt;
 var
   doublings: Byte;

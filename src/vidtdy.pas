@@ -1,6 +1,5 @@
-{ The Tandy video driver: BIOS mode 9, 320x200 in 16 colours at 4 bits a pixel, four banks from $B800. Resident,
-  since its routines are the hot ones; GameBoot installs it when POOL.CFG names Tandy (phase 6 of
-  docs/refactor-plan.md). }
+{ The Tandy video driver: BIOS mode 9, 320x200 in 16 colours at 4 bits a pixel, four banks from $B800. Resident, since
+  its routines are the hot ones; GameBoot installs it when POOL.CFG names Tandy (phase 6 of docs/refactor-plan.md). }
 {$F+}
 {$I COMPILER.INC}
 unit VidTdy;

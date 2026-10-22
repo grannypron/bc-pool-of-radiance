@@ -3,15 +3,14 @@
 
   Each area script dispatches on the square's event byte (GBVM CELL_EVENT) in one of two ways: the byte masked into a
   variable (AND [C04F] #mask [v]) and an ON GOTO on that variable, the k-th address for event k; or a COMPARE of the
-  byte, or of such a variable, with a number, then IF = and the instruction to run. A variable compared equal to such
-  a variable stands for it too: New Phlan counts one up from 0 until it equals the event and goes ON GOTO on the count.
-  A variable holds the event only until the script writes it (Podal Plaza's goes on to hold menu choices). Prepare
-  walks the script's control flow from its entry points, never running an instruction (EclVars.SkipEclCmd decodes
-  each one), and from each read of the event byte follows where it goes to find those dispatches. Kind
-  follows an event's code from its address a bounded way and names the strongest thing it does: an area change, a
-  shop, temple or training hall, a fight, treasure, a trap (damage), or a message. A square whose code does none of
-  these (New Phlan's building squares, say, which only clear flags) is KIND_NONE, and one whose dispatch is not found
-  KIND_EVENT. }
+  byte, or of such a variable, with a number, then IF = and the instruction to run. A variable compared equal to such a
+  variable stands for it too: New Phlan counts one up from 0 until it equals the event and goes ON GOTO on the count. A
+  variable holds the event only until the script writes it (Podal Plaza's goes on to hold menu choices). Prepare walks
+  the script's control flow from its entry points, never running an instruction (EclVars.SkipEclCmd decodes each one),
+  and from each read of the event byte follows where it goes to find those dispatches. Kind follows an event's code from
+  its address a bounded way and names the strongest thing it does: an area change, a shop, temple or training hall, a
+  fight, treasure, a trap (damage), or a message. A square whose code does none of these (New Phlan's building squares,
+  say, which only clear flags) is KIND_NONE, and one whose dispatch is not found KIND_EVENT. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit EvtKind;
@@ -90,9 +89,9 @@ begin
     Operand := GDVars.dsGbvmLowerByte[i];
 end;
 
-{ The first operand and the count of the ON GOTO, ON GOSUB or menu at a, read from the script itself: decoding loads
-  the list after them over them. The count is ON GOTO's, ON GOSUB's and the horizontal menu's; one read from a
-  variable is not known, so taken as 0. }
+{ The first operand and the count of the ON GOTO, ON GOSUB or menu at a, read from the script itself: decoding loads the
+  list after them over them. The count is ON GOTO's, ON GOSUB's and the horizontal menu's; one read from a variable is
+  not known, so taken as 0. }
 procedure ListHead(a: Word; var v: Word; var isAddr: Boolean; var n: Byte);
 var
   t: Byte;
@@ -216,12 +215,12 @@ begin
     end;
 end;
 
-{ Follow the script from start, where the variables of live hold the event byte, recording its dispatches: an ON GOTO
-  or ON GOSUB on one, its k-th address for event k; a COMPARE of one with a number, then IF =, the instruction after
-  the IF for that number. A COMPARE of one with another variable, then IF =, makes that variable hold it too past the
-  IF, and an instruction writing one ends its holding it, but for an ADD or SUBTRACT of a number to it in place (the
-  training hall counts from 10 and takes 10 off), which moves its offset; a path ends when none holds it, at EXIT,
-  RETURN or NEWECL, and at an ON GOTO. }
+{ Follow the script from start, where the variables of live hold the event byte, recording its dispatches: an ON GOTO or
+  ON GOSUB on one, its k-th address for event k; a COMPARE of one with a number, then IF =, the instruction after the IF
+  for that number. A COMPARE of one with another variable, then IF =, makes that variable hold it too past the IF, and
+  an instruction writing one ends its holding it, but for an ADD or SUBTRACT of a number to it in place (the training
+  hall counts from 10 and takes 10 off), which moves its offset; a path ends when none holds it, at EXIT, RETURN or
+  NEWECL, and at an ON GOTO. }
 procedure Scan(start: Word; live: Byte);
 var
   todo: array[1..MAX_SCAN] of Word;
@@ -339,8 +338,8 @@ begin
   end;
 end;
 
-{ Walk the script's control flow from its entry points, scanning on from each instruction that reads the event byte:
-  an AND of it into a variable, and a COMPARE of it. }
+{ Walk the script's control flow from its entry points, scanning on from each instruction that reads the event byte: an
+  AND of it into a variable, and a COMPARE of it. }
 procedure Prepare;
 var
   a: Word;

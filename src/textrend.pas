@@ -1,4 +1,5 @@
-{ Game-font text rendering, message-window input, centisecond timing, and the EGA page and fill helpers. }
+{ Game-font text rendering, the message window, bottom-line input, BIOS-tick and centisecond timing, and screen and
+  rectangle clearing through the video driver. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit TextRend;
@@ -50,7 +51,6 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
-
 uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg{$IFDEF FPC}, Host{$ENDIF};
 
 {$IFDEF FPC}
@@ -83,9 +83,9 @@ begin
 end;
 
 { Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
-  through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded
-  font; later copies are not range-checked. A glyph index past the font draws nothing. The video driver draws each
-  copy (GDVars.video.DrawGlyph). }
+  through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded font;
+  later copies are not range-checked. A glyph index past the font draws nothing. The video driver draws each copy
+  (GDVars.video.DrawGlyph). }
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 var
   i: Byte;
@@ -104,7 +104,6 @@ begin
   end;
 end;
 
-{ Draw count spaces from (col, row); an off-screen start is ignored. }
 procedure ClearBottomLine;
 begin
   TextRend.PrintSpaces(0, 24, Black, 40);
@@ -126,6 +125,7 @@ begin
   TextRend.DisplayString(left + (width - Length(s)) div 2, row, color, s);
 end;
 
+{ Draw count spaces from (col, row); an off-screen start is ignored. }
 procedure PrintSpaces(col, row, color, count: Byte);
 begin
   if (col < 0) or (col > 39) or (row < 0) or (row > 24) then Exit;
@@ -157,8 +157,8 @@ var
   idx: Integer;
   lineEnd: Integer;
 
-  { PrintCharInWindow: Flush source[idx..lineEnd] at the cursor, advancing idx/curCol, stopping at lrCol; per-char Delay
-    when slow text is on }
+  { Flush source[idx..lineEnd] at the cursor, advancing idx/curCol, stopping at lrCol; per-char Delay when slow text is
+    on. }
   procedure PrintCharInWindow;
   begin
     while (idx <= lineEnd) and (GDVars.curCol <= lrCol) do begin
@@ -169,7 +169,7 @@ var
     end;
   end;
 
-  { FindNewIndex: Skip the spaces a line break consumed }
+  { Skip the spaces a line break consumed. }
   procedure FindNewIndex;
   begin
     while (idx < len) and (source[idx] = ' ') do Inc(idx);
@@ -232,10 +232,10 @@ begin
   end;
 end;
 
-{ ReadString: Prompt with query on the bottom row, then edit a line of up to maxLen chars: printable keys ' '..'z'
-  append + echo in white (game font), backspace trims, Return/Escape ends (Escape does not discard the input); the
-  result is uppercased. The first character goes right after the query: SSI moved the column before drawing, leaving a
-  gap and drawing a 40th character past the screen (#735). }
+{ Prompt with query on the bottom row, then edit a line of up to maxLen chars: printable keys ' '..'z' append + echo in
+  white (game font), backspace trims, Return/Escape ends (Escape does not discard the input); the result is uppercased.
+  The first character goes right after the query: SSI moved the column before drawing, leaving a gap and drawing a 40th
+  character past the screen (#735). }
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 var
   col: Byte;
@@ -326,8 +326,8 @@ begin
   GDVars.video.ClearScreen;
 end;
 
-{ PrintAndPause: Clear the bottom row, print msg in color, pause on the text delay (not a keywait), clear again. Note
-  the param order is (msg, color) -- reversed vs DisplayAndPause }
+{ Clear the bottom row, print msg in color, pause on the text delay (not a keywait), clear again. The parameters are
+  (msg, color), the reverse of DisplayAndPause's. }
 procedure PrintAndPause(msg: Types.TStr40; color: Byte);
 begin
   TextRend.ClearBottomLine;
@@ -336,7 +336,7 @@ begin
   TextRend.ClearBottomLine;
 end;
 
-{ PauseOnly: Crt.Delay scaled by the shared text delay: gameDelay * 225 ms }
+{ Crt.Delay scaled by the shared text delay: gameDelay * 225 ms. }
 procedure PauseOnly;
 begin
   Delay(GDVars.gameDelay * 225);

@@ -3,10 +3,10 @@
   audio stream), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h, SDL_render.h, SDL_events.h, SDL_audio.h).
   Only these: a full binding is not needed, and these are all that must be kept right.
 
-  On Linux and macOS SDL is linked into the program: build-native.sh copies SDL's static libSDL3.a as
-  libSDL3static.a into a folder it gives the linker, and that name is linked here, so a shared libSDL3 in a system
-  folder (which the linker searches first) is never taken instead. What the static library needs besides is named
-  here too: the maths library, and on macOS the system frameworks SDL's sdl3.pc lists. Free Pascal only. }
+  On Linux and macOS SDL is linked into the program: build-native.sh copies SDL's static libSDL3.a as libSDL3static.a
+  into a folder it gives the linker, and that name is linked here, so a shared libSDL3 in a system folder (which the
+  linker searches first) is never taken instead. What the static library needs besides is named here too: the maths
+  library, and on macOS the system frameworks SDL's sdl3.pc lists. Free Pascal only. }
 unit Sdl3Min;
 
 interface
@@ -71,7 +71,7 @@ const
   SDL_KMOD_NUM = $1000;
   SDL_KMOD_CAPS = $2000;
 
-  { SDL_AudioFormat: signed 16-bit samples in the machine's byte order (little-endian on every target here) }
+  { SDL_AudioFormat: signed 16-bit little-endian samples (the machine's byte order on every target here) }
   SDL_AUDIO_S16LE = $8010;
   SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK = $FFFFFFFF;
 

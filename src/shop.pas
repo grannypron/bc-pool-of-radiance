@@ -9,9 +9,9 @@ uses Types;
 
 procedure ShopMainMenu;
 
-{ The counter menu a shop and a temple share: Buy (a shop) or Heal (a temple), then View, Take, Pool, Share,
-  Appraise and Exit. command is the Buy or Heal command (Shop.ShopBuyMenu or Temple.HealMenu), so the shop need not
-  know the temple. Leaving with money on the counter asks first whether to go back for it. }
+{ The counter menu a shop and a temple share: Buy (a shop) or Heal (a temple), then View, Take, Pool, Share, Appraise
+  and Exit. command is the Buy or Heal command (Shop.ShopBuyMenu or Temple.HealMenu), so the shop need not know the
+  temple. Leaving with money on the counter asks first whether to go back for it. }
 procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
@@ -119,8 +119,9 @@ begin
   until done;
 end;
 
-{ Main shop menu: buy, view, take, pool, share and appraise, with Take and Share offered only while there is pooled
-  money. Leaving with money still in the pool asks whether to go back for it. }
+{ The counter menu: Buy or Heal (command), View, Take, Pool, Share, Appraise and Exit, with Take and Share offered only
+  while there is pooled money; an extended key steps through the party. Leaving with money still in the pool asks
+  whether to go back for it. }
 procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 var
   menu: String[40];

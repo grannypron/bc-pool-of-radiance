@@ -1,5 +1,5 @@
-{ Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws and thief skills; and
-  GDConsts.alignByClass' rows. }
+{ Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws, thief skills, racial and class
+  ability limits, hit points and experience shares; and GDConsts.alignByClass' rows. }
 {$I COMPILER.INC}
 program TClasCal;
 
@@ -18,8 +18,8 @@ var
   armor: Types.TItemRec;
   shield: Types.TItemRec;
 
-{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GDConsts.wisBonusSpells' rows from 13 to wis
-  added up, against expected, one digit a level. }
+{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GDConsts.wisBonusSpells' rows from 13 to wis added
+  up, against expected, one digit a level. }
 procedure CheckWisTotals(wis: Byte; expected: String);
 var
   w: Byte;
@@ -349,7 +349,8 @@ begin
 
   { class ability minimums, the 1st-edition PHB's (#740); a multiclass takes the highest of its classes' }
   TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.FIGHTER, 5), 'a fighter''s least Charisma');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.MAGE, 4), 'a magic-user''s least Constitution');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.MAGE, 4),
+    'a magic-user''s least Constitution');
   TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.PALADIN, 5), 'a paladin''s least Charisma');
   TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.RANGER, 3), 'a ranger''s least Dexterity');
   TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER, 4),

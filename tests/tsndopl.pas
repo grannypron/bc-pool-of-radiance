@@ -49,7 +49,8 @@ var
   checked: LongInt;
   s: String;
 
-{ Run the loaded tune for up to CHECK_TICKS ticks; for each tick, Decode its writes. }
+{ Run the loaded tune for CHECK_TICKS ticks, decoding each tick's SN76489 writes into every voice's period and
+  attenuation. }
 procedure RunTandy;
 var
   t: Word;
@@ -124,7 +125,7 @@ var
 begin
   FillChar(regs, SizeOf(regs), 0);
   lastReg := 0;
-  { the reset's writes are more than a tick's buffer holds: a buffer per page of them }
+  { the reset's writes are more than a tick's buffer holds, so they go to the big one }
   SndTrc.SetTraceBuffer(@big, BIG_WORDS);
   SndTrc.OplReset;
   for i := 0 to SndTrc.TraceCount - 1 do
@@ -157,8 +158,8 @@ begin
           Inc(badPitch);
           if shown < 8 then begin
             Inc(shown);
-            WriteLn(log, 'tune ', tune, ' tick ', t, ' ch ', ch, ' n ', period^[t, ch], ' tandy ', fT:0:1, ' Hz, opl fnum ',
-                    fnum, ' block ', block, ' ', fO:0:1, ' Hz');
+            WriteLn(log, 'tune ', tune, ' tick ', t, ' ch ', ch, ' n ', period^[t, ch], ' tandy ', fT:0:1,
+                    ' Hz, opl fnum ', fnum, ' block ', block, ' ', fO:0:1, ' Hz');
           end;
         end;
         if regs[$B0 + ch] and $20 = 0 then

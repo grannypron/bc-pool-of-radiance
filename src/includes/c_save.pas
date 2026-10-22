@@ -11,7 +11,7 @@ const
   PARALYZE = 0;
   { petrification / polymorph }
   PETRIFY = 1;
-  { Saving-throw category (TCharRecord.saves index): rod / staff / wand }
+  { rod / staff / wand }
   WAND = 2;
   { breath weapon }
   BREATH = 3;

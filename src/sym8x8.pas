@@ -7,8 +7,8 @@ unit Sym8x8;
 interface
 
 { Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> dsSymbolSetPtrs[setID] (with a transparency mask
-  for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the
-  file name and fileID, waits for a key and quits to DOS }
+  for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the file name and fileID, waits for
+  a key and quits to DOS. }
 procedure Load8x8Set(fileID, setID: Byte);
 
 { Put 8x8 symbol: map symbol 1..286 to its set (symSetFirst) + local index. inCombat=True composites it into the view
@@ -19,8 +19,8 @@ procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 
 implementation
 
-
 uses Crt, GDConsts, GDVars, Blit, GameIo, StrUtil;
+
 procedure Load8x8Set(fileID, setID: Byte);
 var
   s1: String[1];

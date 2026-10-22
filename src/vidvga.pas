@@ -1,7 +1,7 @@
-{ The VGA video driver: BIOS mode 13h, 320x200 at a byte a pixel, linear at $A000, one page. Pictures are a byte a
-  pixel too (8 bytes a cell row), with transparency by colour key (Types.PIC_KEY), as Dark Queen of Krynn keeps its
-  own; the art is 16-colour, shown through DAC entries 0..15. Resident, since its routines are the hot ones; GameBoot
-  installs it when POOL.CFG names VGA (phase 6 of docs/refactor-plan.md). }
+{ The VGA video driver: BIOS mode 13h, 320x200 at a byte a pixel, linear at $A000, one page. Pictures are a byte a pixel
+  too (8 bytes a cell row), with transparency by colour key (Types.PIC_KEY), as Dark Queen of Krynn keeps its own; the
+  art is 16-colour, shown through DAC entries 0..15. Resident, since its routines are the hot ones; GameBoot installs it
+  when POOL.CFG names VGA (phase 6 of docs/refactor-plan.md). }
 {$F+}
 {$I COMPILER.INC}
 unit VidVga;

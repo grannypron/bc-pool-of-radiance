@@ -1,5 +1,6 @@
-{ Tests for CharHlp's rules: item labels, weights, warrior level, the NPC tests, effects and spells, item lists, and the
-  racial level caps. }
+{ Tests for CharHlp's rules: item labels, weights, item lists, warrior level, persons, the NPC tests, effects and
+  spells, the racial level caps and the Strength they follow, Haste and Slow, theft chances, team counts, the weapon
+  fixes, rear AC and weapon pluses. }
 {$I COMPILER.INC}
 program TCharHlp;
 
@@ -36,8 +37,8 @@ begin
   c^.race := C_Race.HUMAN;
 end;
 
-{ CharHlp.IsPerson for a creature with the name, race byte, charType and iconDimensions of a record in the monster
-  data (#792). }
+{ CharHlp.IsPerson for a creature with the name, race byte, charType and iconDimensions of a record in the monster data
+  (#792). }
 function Person(name: Types.TName15; race, charType, icon: Byte): Boolean;
 begin
   ClearCreature;
@@ -315,8 +316,8 @@ begin
   TestKit.CheckEqualsL(5, CharHlp.TheftChance(95, 300), '95 less 90');
   TestKit.CheckEqualsL(70, CharHlp.TheftChance(70, 10), 'and the next light item has the whole chance again');
 
-  { CountTeams counts each creature in action on team hostile and 1, as CombatSt places it: teamCount has only
-    entries 0 and 1, and a damaged byte of 2 or 3 once counted past them (#710) }
+  { CountTeams counts each creature in action on team hostile and 1, as CombatSt places it: teamCount has only entries 0
+    and 1, and a damaged byte of 2 or 3 once counted past them (#710) }
   FillChar(crs, SizeOf(crs), 0);
   for i := 1 to 4 do begin
     crs[i].enabled := 1;

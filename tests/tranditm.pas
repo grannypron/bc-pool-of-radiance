@@ -13,7 +13,8 @@ var
   lightning: Integer;
   ok: Boolean;
 
-{ Check it is template t of GDConsts.randomItemTemplates, with plus and saveBonus. }
+{ Generate an item of kind and check it is template t of GDConsts.randomItemTemplates, with plus as its plus and save
+  bonus. }
 procedure CheckTemplate(kind, t: Byte; plus: ShortInt; what: String);
 var
   k: Byte;

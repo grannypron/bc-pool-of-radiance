@@ -15,7 +15,6 @@ procedure DrawWindow(ulCol, ulRow, lrCol, lrRow: ShortInt; corner, color: Byte; 
 
 implementation
 
-
 uses TextRend, Sym8x8;
 const
   BORDER_SYM_BASE = 276;

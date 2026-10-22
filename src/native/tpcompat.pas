@@ -1,6 +1,6 @@
 {$I COMPILER.INC}
-{ Turbo Pascal System routines Free Pascal lacks. build-native.sh loads this unit into every unit after System (-Fa),
-  as Turbo Pascal's System has them, so the game's units use them unchanged. Free Pascal only. }
+{ Turbo Pascal System routines Free Pascal lacks. build-native.sh loads this unit into every unit after System (-Fa), as
+  Turbo Pascal's System has them, so the game's units use them unchanged. Free Pascal only. }
 unit TpCompat;
 
 interface

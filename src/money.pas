@@ -1,4 +1,4 @@
-{ Treasure collection, money menus, paying and random item generation; the arithmetic under them is in MoneyCal. }
+{ Treasure collection, money menus and paying; the arithmetic under them is in MoneyCal. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit Money;
@@ -33,8 +33,7 @@ procedure PayFromPool(gp: LongInt);
 
 { Give creature pp platinum and then gp gold, as many as it can carry and hold (Takable); whatever does not fit goes to
   the treasure pool, which the bottom line reports. SSI capped only by weight, so a count could pass 65535 and wrap
-  (#781). The coins' weight changes, so the creature's stats are
-  recalculated. }
+  (#781). The coins' weight changes, so the creature's stats are recalculated. }
 procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
 
 { Pay gp gold pieces from payer (WhoPays): buyer's coins or the pool's. }
@@ -49,7 +48,6 @@ implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
   EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
-
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
   against CharHlp.RawWeight, the weight before the bag takes its share. }
@@ -98,8 +96,8 @@ begin
 end;
 
 { Pay gp gold pieces from the creature's coins, worked out in copper, with the change given back in the largest coins.
-  The caller has checked the creature can pay (CreatureGold); if not, every coin goes. The coins'
-  weight changes, so the creature's stats are recalculated. }
+  The caller has checked the creature can pay (CreatureGold); if not, every coin goes. The coins' weight changes, so the
+  creature's stats are recalculated. }
 procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 var
   m: Types.TMoney;
@@ -241,10 +239,9 @@ end;
   walks the creatures with C_Npc.FLAG clear and, from jewelry (6) down to copper (0), gives each its share (or as much
   as it can take, Takable, the rest joining the remainder) plus one remainder coin when the whole outstanding remainder
   would fit. Pass 2 hands out the leftovers to every creature in list order up to what each can take, and any excess
-  returns to the treasure pool.
-  Shares and remainders are LongInt, as the pool is; with no creature to count, the pool is left as it is. SSI divided
-  by the creatures PoolMoney empties (npc 0 or C_Npc.ANIMATED_PC), so with a hired NPC along more shares were paid than
-  the pool held. }
+  returns to the treasure pool. Shares and remainders are LongInt, as the pool is; with no creature to count, the pool
+  is left as it is. SSI divided by the creatures PoolMoney empties (npc 0 or C_Npc.ANIMATED_PC), so with a hired NPC
+  along more shares were paid than the pool held. }
 procedure ShareMoney;
 var
   p: Types.PCharRecord;
@@ -316,8 +313,7 @@ begin
 end;
 
 { Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT,
-  C_Ifc.LOOT). Elsewhere it is
-  discarded. }
+  C_Ifc.LOOT). Elsewhere it is discarded. }
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   p^.coins[mType] := p^.coins[mType] - qty;
@@ -417,11 +413,11 @@ begin
     items := True;
 end;
 
-{ Appraise the current character's gems and jewelry one at a time. Sell pays val div 5 in platinum through GiveCoins
-  (the remainder is lost). Keep builds an itemType 70 item worth the appraisal and gives it to the appraiser or, when
-  the appraiser has no room (16 items, or one more coin would overload them), to the first other party member (not a
-  hired NPC) who has; the screen says which, and with no one to take it only Sell is offered. CharHlp.RecalcStats runs
-  every pass. ok is False only when there is nothing to appraise. }
+{ Appraise the current character's gems and jewelry one at a time. Sell pays the value div 5 in platinum through
+  GiveCoins (the remainder is lost). Keep builds an itemType 70 item worth the appraisal and gives it to the appraiser
+  or, when the appraiser has no room (16 items, or one more coin would overload them), to the first other party member
+  (not a hired NPC) who has; the screen says which, and with no one to take it only Sell is offered. CharHlp.RecalcStats
+  runs every pass. ok is False only when there is nothing to appraise. }
 procedure AppraiseMenu(var ok: Boolean);
 var
   gemStr: String[40];
@@ -436,16 +432,16 @@ var
   exitF: Boolean;
   ext: Boolean;
 
-  { True when the creature holds under 16 items and one more coin's weight would not overload it. Recalculates its
-    stats first. }
+  { True when the creature holds under 16 items and one more coin's weight would not overload it. Recalculates its stats
+    first. }
   function HasRoom(creature: Types.PCharRecord): Boolean;
   begin
     CharHlp.RecalcStats(creature);
     HasRoom := (creature^.numberOfItems < 16) and not Money.CheckOverload(creature, 1, takable);
   end;
 
-  { Offer Sell, and Keep when someone has room, for the stone just appraised: name component nameId, worth gp, until
-    one is chosen. Keep appends the stone to the holder's items; Sell pays gp div 5 in platinum. }
+  { Offer Sell, and Keep when someone has room, for the stone just appraised: name component nameId, worth gp, until one
+    is chosen. Keep appends the stone to the holder's items; Sell pays gp div 5 in platinum. }
   procedure SellOrKeep(nameId: Byte; worth: Word);
   var
     holder: Types.PCharRecord;

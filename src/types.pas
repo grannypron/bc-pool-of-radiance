@@ -6,7 +6,6 @@ interface
 
 uses C_Gender, C_Save, C_Equip, C_Level, C_Abil, C_Money, C_Gbvm;
 
-
 const
   { the longest name a character or creature has }
   NAME_LEN = 15;
@@ -47,7 +46,6 @@ const
   PIC_KEY = $FF;
 
 type
-
   { Shared types. }
   TStr40 = String[40];
   { A DOS path with its file name, as Dos.PathStr: DOS allows 64 characters of directory after the drive, 79 in all. A
@@ -419,8 +417,8 @@ type
     imgSize: Word;
     { extra transparency space (default nil) }
     transp: PBytes;
-    { the frames from count on, when one heap block cannot hold them all (Blit.AllocPic): VGA's wilderness tile
-      sheets; nil otherwise }
+    { the frames from count on, when one heap block cannot hold them all (Blit.AllocPic): VGA's wilderness tile sheets;
+      nil otherwise }
     more: PImgBuf;
     { image data (open-ended) }
     data: array[0..32000] of Byte;
@@ -575,6 +573,7 @@ type
     xCol: array[0..9] of Integer;
     yRow: array[0..9] of Integer;
   end;
+  { one loaded-wallset cache slot (GDVars.dsWallSetCache) }
   TWallSetCacheSlot = record
     { cached WALLDEF reload ID; -1 invalidates the slot }
     wallDefId: Integer;
@@ -659,8 +658,7 @@ type
   TBaseItems = array[0..BASE_ITEM_OVERFLOW] of TBaseItemRec;
   PBaseItems = ^TBaseItems;
 
-  { Blit types. }
-
+  { Menu and spell-aim types. }
   { A routine MenuCore.MenuHorizontal calls on every pass of its key wait. }
   TIdleProc = procedure;
   { A menu command, passed to the menu that runs it: Shop.CounterMenu's Buy or Heal. }
@@ -844,8 +842,6 @@ type
                                isDithered: Boolean);
   TRecolorFrameProc = procedure(var toT: TColorTab; pic: PImgBuf);
   TPutPixelRowProc = procedure(pic: PImgBuf; at: Word; y: Byte; var px: TPixelRow);
-  { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
-    routines. GameBoot installs one (VidCga, VidEga or VidTdy) into GDVars.video. }
   { Load a tune into a sound device's voices; tune 0 silences them. }
   TSoundPlay = procedure(tune: Word);
   { One sound device's driver (docs/refactor-plan.md, phase 7): SoundDrv reaches the device only through it. GameBoot
@@ -863,10 +859,12 @@ type
       and the Tandy, whose double tick is kept (POR-0170) }
     singleStep: Boolean;
   end;
+  { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
+    routines. GameBoot installs one (VidCga, VidEga, VidTdy or VidVga) into GDVars.video. }
   TVideoDriver = record
     { the mode's name, for the settings screen }
     name: TStr20;
-    { the colours shown at once: 4 on CGA (each picture's colour map picks them), 16 on EGA and Tandy }
+    { the colours shown at once: 4 on CGA (each picture's colour map picks them), 16 on EGA, Tandy and VGA }
     colours: Byte;
     { palette registers SetPaletteRegister can program (EGA, VGA) }
     hasPalette: Boolean;
@@ -874,14 +872,14 @@ type
       not used to draw; otherwise a transparent pixel is 0 under a set mask bit }
     keyed: Boolean;
     { The layout as shift counts, since the 8086 shifts in a few cycles where it multiplies or divides in a hundred: }
-    { picture bytes in one cell row, 1 shl cellShift: 2 on CGA (2 bits a pixel), 4 on EGA (a byte a plane) and Tandy
-      (4 bits a pixel) }
+    { picture bytes in one cell row, 1 shl cellShift: 2 on CGA (2 bits a pixel), 4 on EGA (a byte a plane) and Tandy (4
+      bits a pixel), 8 on VGA (a byte a pixel) }
     cellShift: Byte;
     { screen bytes one cell column takes on a scanline, 1 shl screenShift, the unit of the dirty spans' screen offsets:
-      2 on CGA, 1 on EGA (each plane's byte at one address), 4 on Tandy }
+      2 on CGA, 1 on EGA (each plane's byte at one address), 4 on Tandy, 8 on VGA }
     screenShift: Byte;
-    { picture bytes one transparency-mask byte covers, 1 shl maskShift: 4 on EGA (a cell row's planes), 1 on CGA and
-      Tandy }
+    { picture bytes one transparency-mask byte covers, 1 shl maskShift: 4 on EGA (a cell row's planes), 8 on VGA (a cell
+      row's pixels), 1 on CGA and Tandy }
     maskShift: Byte;
     { a cell row filled with color: colorMap picks CGA's colour }
     CellFill: TCellFillProc;
@@ -904,7 +902,7 @@ type
     ClearScreen: TVideoProc;
     { BIOS text output: count copies of ch in attr at a text cell (DaxIo.WriteChar) }
     WriteChar: TWriteCharProc;
-    { The cold entries, in the mode's overlaid Pic unit (PicCga, PicEga, PicTdy): }
+    { The cold entries, in the mode's overlaid Pic unit (PicCga, PicEga, PicTdy, PicVga): }
     { convert DAX frames (4 bits a pixel) at imgData^[srcOff] into pic's layout, with its mask (Blit.ExpandPicFrames) }
     ExpandFrames: TExpandFramesProc;
     { a left-right reflection of src's first frame and mask into dst (Blit.MirrorPic, which copies the colour map) }
@@ -936,21 +934,15 @@ type
   { the script buffer (C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST) }
   TZone3 = array[C_Gbvm.SCRIPT_FIRST..C_Gbvm.SCRIPT_LAST] of Byte;
 
-  { EclVm types. }
   { EffHndlr types. }
   TEffectHandler = procedure(creature: PCharRecord; effectData: Pointer;
                              removed: Boolean);
-
-  { FxEngine types. }
 
   { GameBoot types. }
   THeapEndW = record
     o: Word;
     s: Word;
   end;
-
-  { GameInit types. }
-  { one loaded-wallset cache slot (dsWallSetCache) }
 
   { MenuCore types. }
   TMenuAuto = record
@@ -1017,8 +1009,6 @@ type
   end;
   TStr8 = String[8];
 
-  { SaveLoad types. }
-
   { Magic types. }
   PStinkRec = ^TStinkRec;
   TCastUI = procedure(spell: Byte; b: Boolean; var sel: Boolean);
@@ -1068,8 +1058,6 @@ type
   TStr26 = String[26];
   TStr6 = String[6];
   TStr9 = String[9];
-
-  { Pointers for character helpers. }
 
 implementation
 

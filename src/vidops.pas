@@ -1,6 +1,6 @@
 { The video mode's cold operations: run at start-up, when a character's icon is built or loaded, and when the data
-  archives are built, so kept in an overlay. Blit holds the hot primitives and the size and capability questions. Phase
-  6 of docs/refactor-plan.md moves both behind the video driver. }
+  archives are built, so kept in an overlay. Blit holds the hot primitives and the size and capability questions. Both
+  work through the installed video driver, GDVars.video (phase 6 of docs/refactor-plan.md). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit VidOps;
@@ -16,12 +16,13 @@ function ModeName: Types.TStr20;
   it once the mode is set. }
 procedure InitRowTables;
 
-{ Merge src into dst as one sprite: dst's pixels OR src's, and dst's mask AND src's, so either picture's opaque pixels
-  show. Over src's frame size; nothing happens when either is nil, either has no mask, or src is empty. }
+{ Merge src into dst as one sprite: dst's pixels OR src's (with a colour key, src's opaque pixels replace dst's), and
+  dst's mask AND src's, so either picture's opaque pixels show. Over src's frame size; nothing happens when either is
+  nil, either has no mask, or src is empty. }
 procedure MergePic(src, dst: Types.PImgBuf);
 
 { Draw src over dst through src's transparency mask: dst's pixels survive where src is transparent. Nothing happens
-  when either is nil, src has no mask, or the frame sizes differ. }
+  when either is nil, src has no mask, the frame sizes differ, or dst is empty. }
 procedure OverlayPic(src, dst: Types.PImgBuf);
 
 { Give every pixel of pic's first frame the colour toT gives its own. EGA and Tandy take one pass over the frame; CGA,

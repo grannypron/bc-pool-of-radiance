@@ -1,5 +1,4 @@
 { Combat AI: movement, equipment, spell selection, morale and automatic actions. }
-
 {$O+,F+}
 {$I COMPILER.INC}
 unit CombatAi;
@@ -14,8 +13,8 @@ uses Types;
   move/attack loop. }
 procedure CombatAiControl(creature: Types.PCharRecord);
 
-{ Alt-M in combat: turn quick magic over and show it on the bottom line: the Quick line (QuickLine) while the
-  player's characters fight under Quick, else Magic On or Off. }
+{ Alt-M in combat: turn quick magic over and show it on the bottom line: the Quick line (QuickLine) while the player's
+  characters fight under Quick, else Magic On or Off. }
 procedure ToggleQuickMagic;
 
 { Space in combat: every creature that comes under the player (CharHlp.ComesUnderPlayer: not an NPC, not animated)
@@ -156,7 +155,6 @@ var
   tgt: Pointer;
   cnt: Byte;
   j: Byte;
-
 begin
   DecideCastSpell := False;
   if GDConsts.spellTable[spell].aiPriority < minPri then
@@ -233,8 +231,8 @@ end;
 
 { Choose a spell for an NPC, or for a PC while quick magic (Alt-M) is on, when an enemy team remains. The list holds
   every memorizedSpells entry that names a spell in spellTable if castAllowed is set; one with bit 7 set (still being
-  memorized) or past the table is left out. Over 1d7 passes the minimum aiPriority drops from 7, with three random
-  picks per pass; the first spell DecideCastSpell accepts goes to CbtActs.CastSpellCombat, whose result is returned. }
+  memorized) or past the table is left out. Over 1d7 passes the minimum aiPriority drops from 7, with three random picks
+  per pass; the first spell DecideCastSpell accepts goes to CbtActs.CastSpellCombat, whose result is returned. }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
   list: array[0..20] of Byte;
@@ -297,8 +295,8 @@ begin
 end;
 
 { Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
-  (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the remaining movement. Stinking Cloud is
-  avoided (AvoidsCloud). }
+  (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the remaining movement. Stinking Cloud is avoided
+  (AvoidsCloud). }
 function CanStepDir(creature: Types.PCharRecord; dir: Byte; var edge: Boolean): Boolean;
 var
   crIdx: Byte;
@@ -429,8 +427,8 @@ begin
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other);
     end else begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
-      { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south
-        into SE (POR-0160). }
+      { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south into
+        SE (POR-0160). }
       dir := GDVars.gFacing;
       if creature^.hostile = 0 then
         { allies flee the other way }

@@ -24,13 +24,13 @@ begin
   Put($9909, #$25#$01#$82#$6E#$00#$03#$01#$00#$A0#$01#$10#$A0#$01#$20#$A0);
   { 2: COMPARE [C04F] #9; IF =; GOTO [A030]; EXIT }
   Put($9920, #$03#$01#$4F#$C0#$00#$09#$16#$01#$01#$30#$A0#$00);
-  { 3, as the training hall: AND #7F [C04F] [6E82]; SAVE #A [9800]; COMPARE [9800] [6E82]; IF =; GOTO [9960]; EXIT;
-    at 9960 SUBTRACT #A [9800] [9800]; ON GOTO [9800] #1 [A040] }
+  { 3, as the training hall: AND #7F [C04F] [6E82]; SAVE #A [9800]; COMPARE [9800] [6E82]; IF =; GOTO [9960]; EXIT; at
+    9960 SUBTRACT #A [9800] [9800]; ON GOTO [9800] #1 [A040] }
   Put($9940, #$2F#$00#$7F#$01#$4F#$C0#$01#$82#$6E#$09#$00#$0A#$01#$00#$98#$03#$01#$00#$98#$01#$82#$6E#$16#$01#$01#$60
              + #$99#$00);
   Put($9960, #$05#$00#$0A#$01#$00#$98#$01#$00#$98#$25#$01#$00#$98#$00#$01#$01#$40#$A0);
-  { 4, as Podal Plaza: AND #7F [C04F] [6E79]; SAVE #0 [6E79], a menu's answer after; COMPARE [6E79] #11; IF =;
-    GOTO [A050]; EXIT }
+  { 4, as Podal Plaza: AND #7F [C04F] [6E79]; SAVE #0 [6E79], a menu's answer after; COMPARE [6E79] #11; IF =; GOTO
+    [A050]; EXIT }
   Put($9980, #$2F#$00#$7F#$01#$4F#$C0#$01#$79#$6E#$09#$00#$00#$01#$79#$6E#$03#$01#$79#$6E#$00#$0B#$16#$01#$01#$50#$A0
              + #$00);
   { the events: A000 EXIT; A010 PRINT ""; EXIT; A020 a shop, SAVE #1 [6E6C]; COMBAT; EXIT; A030 COMBAT; EXIT; A040

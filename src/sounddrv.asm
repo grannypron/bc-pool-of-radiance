@@ -75,11 +75,6 @@ vfLoopCounterB  dw      0       ; SLOOP counter for a loop nested inside the fir
 VOICE   ENDS
 
 ; ---------------------------------------------------------------------------
-; Note tables: one octave per device. seq_note selects a semitone,
-; then shifts its period right by the octave number.
-; ---------------------------------------------------------------------------
-
-; ---------------------------------------------------------------------------
 ; Driver state.  The ISR and the voice writers reach all of it with DS = CODE.
 ; ---------------------------------------------------------------------------
 DEV_TANDY       equ     0               ; device values, as C_Sound's MODE_TANDY,
@@ -120,17 +115,11 @@ noteLen         db      000h,000h,000h,002h,000h,003h,004h,000h,006h,008h,000h,0
 cmdTable        dw      seq_c_reset, seq_c_ret, seq_c_call
                 dw      seq_c_clear, seq_c_loop, seq_c_set
 
-
-; ---------------------------------------------------------------------------
-; SONG TABLES.  One row per tune id, four stream pointers per row -- voice 0 to
-; voice 3. Both voice programmers index by id * 8; a zero pointer preserves that voice.
-; ---------------------------------------------------------------------------
-
 ; ---------------------------------------------------------------------------
 ; LFO WAVEFORMS.  A voice picks one by pointing vfLfoTable at it; voice_step reads
 ; a byte, scales it by vfLfoDepth and adds the result to the pitch going out.
 ; ---------------------------------------------------------------------------
-; One sine cycle: 256 signed samples, amplitude 7Eh,
+; One sine cycle: 256 signed samples, amplitude 7Eh.
 lfoSine         db      000h,003h,006h,009h,00Ch,00Fh,012h,015h,018h,01Bh,01Eh,021h,024h,027h,02Ah,02Dh
                 db      030h,033h,036h,039h,03Bh,03Eh,041h,043h,046h,049h,04Bh,04Eh,050h,052h,055h,057h
                 db      059h,05Bh,05Eh,060h,062h,064h,066h,067h,069h,06Bh,06Ch,06Eh,070h,071h,072h,074h
@@ -189,7 +178,8 @@ lfoNoise        db      029h,023h,0BEh,084h,0E1h,06Ch,0D6h,0AEh,052h,090h,049h,0
                 db      099h,0CDh,0D3h,00Dh,0F0h,044h,03Ah,0B4h,0A6h,066h,053h,033h,00Bh,0CBh,0A1h,010h
 
 ; ---------------------------------------------------------------------------
-; Streams and envelopes referenced by the song tables and stream operands.
+; The pitch names and record macros the devices' streams and envelopes are
+; written with.
 ; ---------------------------------------------------------------------------
 ; Pitches are scale degrees above the active note table's base -- C for the speaker
 ; table, A for the Tandy one -- not concert pitches.  seq_note adds the voice's
@@ -245,6 +235,10 @@ SNOTE   MACRO vnum, len, pitch, last, dur   ; A note record with explicit durati
         db ((vnum) SHL 5) OR (len), ((last) SHL 7) OR (pitch), dur
         ENDM
 
+; The devices' parts.  Each note table holds one octave: seq_note selects a
+; semitone, then shifts its period right by the octave number.  Each song table
+; has one row per tune id, four stream pointers per row -- voice 0 to voice 3;
+; both voice programmers index by id * 8, and a zero pointer preserves that voice.
         INCLUDE sndspk.inc
         INCLUDE sndtdy.inc
         INCLUDE sndopl.inc

@@ -5,15 +5,15 @@ unit C_Gbvm;
 interface
 
 const
-  { The script buffer, zone 3 (#607): the running area's script, from its first byte at SCRIPT_FIRST. SSI's 7680
-    bytes ended at $B6FF; it now runs to $BFFF, below the first special cell a script reads or writes ($C04B, the
-    party's X), so a script can be 9984 bytes. A saved game keeps SSI's SAVED_SCRIPT_BYTES of it, where SSI kept
-    them, so saves stay SSI's size; a load does not use them, but loads the area's script from the data (#609). }
+  { The script buffer, zone 3 (#607): the running area's script, from its first byte at SCRIPT_FIRST. SSI's 7680 bytes
+    ended at $B6FF; it now runs to $BFFF, below the first special cell a script reads or writes ($C04B, the party's X),
+    so a script can be 9984 bytes. A saved game keeps SSI's SAVED_SCRIPT_BYTES of it, where SSI kept them, so saves stay
+    SSI's size; a load does not use them, but loads the area's script from the data (#609). }
   SCRIPT_FIRST = $9900;
   SCRIPT_LAST = $BFFF;
   SAVED_SCRIPT_BYTES = 7680;
-  { The zones, word cells except zone 3 (EclVars.GbvmZone). Anything outside them is zone 4: the special cells
-    below, which EclVars' address map reads and writes as game variables. }
+  { The zones, word cells except zone 3 (EclVars.GbvmZone). Anything outside them is zone 4: the special cells below,
+    which EclVars' address map reads and writes as game variables. }
   ZONE0_FIRST = $4900;
   ZONE0_LAST = $4CFF;
   ZONE1_FIRST = $6B00;
@@ -60,8 +60,8 @@ const
   SETTINGS = $49FF;
   { The day the Temple of Bane was freed with Dirten in the party (#682, a DataPat fix to its script): year * 360 +
     month * 30 + day + 1 from CLOCK, so 0 is none; $FFFF when it was freed without him. 14 days on, Dirten serves the
-    party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71,
-    $4A79..$4A7B: every script's disassembly, its indexed tables included, and the source). }
+    party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71, $4A79..$4A7B:
+    every script's disassembly, its indexed tables included, and the source). }
   DIRTEN_TEMPLE_DAY = $4A79;
   { quest: left Yarash pyramid, cleared }
   YARASH_PYRAMID_LEFT = $4AA2;

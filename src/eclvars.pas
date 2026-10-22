@@ -1,6 +1,6 @@
 { The ECL interpreter's variables and the game memory (GBVM) they address: loading a command's operands, reading and
-  writing GBVM words and strings, and stepping over a command. Split from EclMenu, which keeps the menus and the
-  opcode helpers. }
+  writing GBVM words and strings, and stepping over a command. Split from EclMenu, which keeps the menus and the opcode
+  helpers. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit EclVars;
@@ -114,8 +114,8 @@ begin
   case GDVars.dsGbvmType[idx] of
     0: GetEclVar := lo;
     1, 3: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
-    { a string value has no number: its text is in gbStrings (SSI read the GBVM at an address made of the packed
-      length and a stale byte, POR-0162) }
+    { a string value has no number: its text is in gbStrings (SSI read the GBVM at an address made of the packed length
+      and a stale byte, POR-0162) }
     $80: GetEclVar := 0;
     2, $81: GetEclVar := EclVars.CombineBytesToWord(lo, hi);
   end;
@@ -168,7 +168,7 @@ begin
 end;
 
 { Special read handling for GBVM zone 1: found is True when address has a handler, even one that leaves the result
-  unassigned ($10D, or $2CF with charisma outside 3..25). Most handlers read the current character }
+  unassigned (CHAR_CONTROL_HI, or CHAR_LOYALTY with charisma outside 3..25). Most handlers read the current character }
 function SpecialReadZ1(address: Word; var found: Boolean): Word;
 var
   t: Byte;
@@ -231,8 +231,8 @@ begin
   end;
 end;
 
-{ Special write handling for GBVM zone 1 (always in addition to the zone word write). A write to the current
-  character's coins recalculates its stats, so its encumbrance and movement follow. }
+{ Special write handling for GBVM zone 1 (always in addition to the zone word write). A write to the current character's
+  coins recalculates its stats, so its encumbrance and movement follow. }
 procedure SpecialWriteZ1(address, value: Word);
 var
   t: Byte;
@@ -433,8 +433,6 @@ begin
   end;
 end;
 
-{ Strings go to the GBVM as zero-terminated strings, one character per cell (word cells in zones 0..2, bytes in zone 3);
-  GBVM $6B00 instead sets the current character's name (String[15], so capped at 15). Zone 4 writes nothing }
 { The last address of GBVM zone 0..3, which a string written or read there may reach (0 for zone 4). }
 function ZoneLast(zone: Byte): Word;
 begin
@@ -448,6 +446,8 @@ begin
   end;
 end;
 
+{ Strings go to the GBVM as zero-terminated strings, one character per cell (word cells in zones 0..2, bytes in zone 3);
+  GBVM $6B00 instead sets the current character's name (String[15], so capped at 15). Zone 4 writes nothing }
 procedure WriteGbvmString(address: Word; s: String);
 var
   zone: Byte;

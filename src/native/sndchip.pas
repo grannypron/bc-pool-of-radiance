@@ -1,12 +1,12 @@
 { The native build's sound hardware: the PC speaker (PIT channel 2 and port 61h's gates) and the Tandy's SN76489,
   emulated from the sequencer's port writes (SndSeq.PortWrite), and one recorded sample playing beside them, as the
   Sound Blaster's DSP plays one. Render makes the sound: it runs the sequencer's timer interrupt (SndSeq.Tick) 236.7
-  times a second of sound, at the sample it falls on, so each write lands where the DOS machine's tick would put it,
-  and mixes the chips and the sample into signed 16-bit mono at RATE. Each chip is stepped at its own clock (the PIT's
-  1193182 Hz, the SN76489's 3579545 Hz / 16) and averaged over each output sample, which keeps their square waves
-  from aliasing. SdlSound calls Render from the audio thread with the stream locked, and the game's calls reach the
-  chips only through the sequencer's entries, which take the same lock. No floating point, so the audio thread
-  needs none of the RTL's state. Objfpc mode. Free Pascal only. }
+  times a second of sound, at the sample it falls on, so each write lands where the DOS machine's tick would put it, and
+  mixes the chips and the sample into signed 16-bit mono at RATE. Each chip is stepped at its own clock (the PIT's
+  1193182 Hz, the SN76489's 3579545 Hz / 16) and averaged over each output sample, which keeps their square waves from
+  aliasing. SdlSound calls Render from the audio thread with the stream locked, and the game's calls reach the chips
+  only through the sequencer's entries, which take the same lock. No floating point, so the audio thread needs none of
+  the RTL's state. Objfpc mode. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 {$R-}
@@ -22,8 +22,8 @@ const
 type
   PSmallInts = ^SmallInt;
 
-{ A port write from the sequencer: 42h PIT channel 2's divisor (low byte, then high), 61h the speaker's gates, 0C0h
-  the SN76489. }
+{ A port write from the sequencer: 42h PIT channel 2's divisor (low byte, then high), 61h the speaker's gates, 0C0h the
+  SN76489. }
 procedure Write(port, value: Byte);
 
 { Play a recorded sample, unsigned 8-bit at rate Hz, replacing one still playing; len 0 stops it. The bytes must stay
@@ -51,15 +51,15 @@ const
   { the SN76489's attenuation, 2 dB a step, as levels of TANDY_PEAK; 15 is off }
   TANDY_LEVELS: array[0..15] of LongInt = (4500, 3574, 2839, 2255, 1791, 1423, 1130, 898, 713, 566, 450, 357, 284,
     225, 179, 0);
-  { the noise generator's 15-bit shift register's seed, and its taps for white noise }
+  { the noise generator's 15-bit shift register's seed }
   NOISE_SEED = $4000;
 
 var
   { the sequencer's tick: PIT clocks (times RATE) since the last }
   tickAcc: LongInt;
 
-  { the speaker: channel 2's divisor (0 is 65536), the gates in 61h's low bits, the square's half-period count down
-    and its level, the low byte of a divisor half written, and PIT clocks (times RATE) owed }
+  { the speaker: channel 2's divisor (0 is 65536), the gates in 61h's low bits, the square's half-period count down and
+    its level, the low byte of a divisor half written, and PIT clocks (times RATE) owed }
   spkDivisor: LongWord;
   spkGates: Byte;
   spkCount: LongWord;
@@ -68,8 +68,8 @@ var
   spkSecond: Boolean;
   spkAcc: LongInt;
 
-  { the SN76489: the three tone periods and the noise control, the four attenuations, the latched register, each
-    counter and its output, the noise's shift register, and chip steps (times RATE) owed }
+  { the SN76489: the three tone periods and the noise control, the four attenuations, the latched register, each counter
+    and its output, the noise's shift register, and chip steps (times RATE) owed }
   tdyTone: array[0..2] of Word;
   tdyNoise: Byte;
   tdyAtt: array[0..3] of Byte;
@@ -79,7 +79,7 @@ var
   tdyShift: Word;
   tdyAcc: LongInt;
 
-  { the sample: its bytes, length and position (in 1/RATE of its own samples, so its rate steps it exactly) }
+  { the sample: its bytes, length, rate and position (in 1/RATE of its own samples, so its rate steps it exactly) }
   smpData: PByte;
   smpLen: LongWord;
   smpRate: LongWord;

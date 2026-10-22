@@ -296,7 +296,6 @@ begin
 end;
 
 { Bless (eff 1) }
-
 procedure EffBless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Inc(GDVars.dsCurrentMorale, 5);
@@ -304,7 +303,6 @@ begin
 end;
 
 { Curse (eff 2) }
-
 procedure EffCurse(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.dsCurrentMorale < 5 then
@@ -315,7 +313,6 @@ begin
 end;
 
 { Undead slaying weapon (eff 3) }
-
 procedure EffUndeadSlayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
@@ -327,7 +324,6 @@ begin
 end;
 
 { Start training with a Manual of Bodily Health (eff 4): add eff 7 for 43200 minutes }
-
 procedure EffTrainStart(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   CharDisp.PrintNameString(creature, 'starts to train', 10, True);
@@ -335,7 +331,6 @@ begin
 end;
 
 { Flame Tongue weapon (eff 6) }
-
 procedure EffFlameTongue(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   bonus: Byte;
@@ -361,7 +356,6 @@ end;
   bonus at the new Constitution less the bonus at the old over every hit die (ClassCal.ConHpTotal), with hpMax capped at
   255. At Constitution 20 or more a creature without it gets eff 62 (regeneration) at its Constitution's interval
   (AbilAdj.ConRegenMinutes); before, each Manual at 20 or more added another, and the hit points stopped at 19. }
-
 procedure EffTrainManual(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   hpGain: Integer;
@@ -381,10 +375,9 @@ begin
 end;
 
 { Protection from Evil and from Good: +2 to saving throws and -2 to be hit when foe holds, that is when the attacker or
-  caster (GDVars.curChar) has the alignment warded against, and it is on the other side. A script's attack or damage
-  has no attacker, and curChar is then a party member. The penalty is taken under C_Cond.ATTACK_ROLL_DEF, after the
-  d20 is rolled; SSI's took it under C_Cond.DEFENDER_AC, before the roll replaced it, so it never applied (#789). }
-
+  caster (GDVars.curChar) has the alignment warded against, and it is on the other side. A script's attack or damage has
+  no attacker, and curChar is then a party member. The penalty is taken under C_Cond.ATTACK_ROLL_DEF, after the d20 is
+  rolled; SSI's took it under C_Cond.DEFENDER_AC, before the roll replaced it, so it never applied (#789). }
 procedure Protection(creature: Types.PCharRecord; foe: Boolean);
 begin
   if foe and (GDVars.curChar^.hostile <> creature^.hostile) then begin
@@ -394,7 +387,6 @@ begin
 end;
 
 { Protection from Evil (eff 8, 45) }
-
 procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL,
@@ -402,7 +394,6 @@ begin
 end;
 
 { Protection from Good (eff 9, 46) }
-
 procedure EffProtGood(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_GOOD, C_Align.NEUTRAL_GOOD,
@@ -410,7 +401,6 @@ begin
 end;
 
 { Resist Cold (eff 10) }
-
 procedure EffResistCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_COLD <> 0 then begin
@@ -420,7 +410,6 @@ begin
 end;
 
 { Charm (eff 11). strength packs: bit 5 = applied mark, bit 6 = saved hostility, bit 7 = charmer side }
-
 procedure EffCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if removed then begin
@@ -446,7 +435,6 @@ end;
   Enlarge or Strength node, which takes over the Strength to restore. A node whose strength byte is above $7F is
   ignored. The Strength set is less a disease's loss, and the Strength handed over has it given back
   (CharHlp.DiseaseStrLoss). }
-
 procedure EffExtraStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   base: Byte;
@@ -489,14 +477,12 @@ begin
 end;
 
 { Friends (eff 14) }
-
 procedure EffFriends(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   creature^.chaCur := AbilAdj.ClampScore(Types.PEffectRec(p)^.strength);
 end;
 
 { Slow Poison periodic damage (eff 15): re-arm for 10 minutes and deal 1 damage while HP > 1 }
-
 procedure EffSlowPoisonHit(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.SLOW_POISON_HIT, Types.PEffectRec(p)^.strength, 10) then
@@ -509,7 +495,6 @@ begin
 end;
 
 { Shield (eff 17) }
-
 procedure EffShield(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   { 60-biased AC 3 }
@@ -521,7 +506,6 @@ begin
 end;
 
 { Gnome THAC0 bonus (eff 18) }
-
 procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   i: Byte;
@@ -537,7 +521,6 @@ begin
 end;
 
 { Resist Fire (eff 20) }
-
 procedure EffResistFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then begin
@@ -547,7 +530,6 @@ begin
 end;
 
 { Silence 15' (eff 21) }
-
 procedure EffSilence(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
@@ -557,7 +539,6 @@ begin
 end;
 
 { Slow Poison expiration (eff 22): a creature still poisoned (eff 55) dies; eff 15 is removed under the effect lock }
-
 procedure EffSlowPoisonEnd(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
@@ -571,7 +552,6 @@ end;
 
 { Spiritual Hammer (eff 23). The hammer is an C_Item.HAMMER whose nameIds[3] is 243. Removal deletes the hammer;
   otherwise one is created (+1, special = eff 137) when missing and the creature has fewer than 16 items. }
-
 procedure EffSpiritHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -605,7 +585,6 @@ begin
 end;
 
 { Invisibility (eff 25) }
-
 procedure EffInvisible(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
@@ -616,7 +595,6 @@ begin
 end;
 
 { Dwarf THAC0 bonus (eff 26) }
-
 procedure EffDwarfThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   i: Byte;
@@ -633,7 +611,6 @@ end;
 
 { Mirror Image (eff 28). strength = images left; against a single-target spell (dsCurrentSpellBeing > 0, gMultiTarget =
   0) an image absorbs it unless 1d(images + 1) rolls 1. Weapon hits are tested in CbtActs.DoAttack. }
-
 procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Dice.RollDice(1, Types.PEffectRec(p)^.strength + 1) > 1 then
@@ -648,15 +625,13 @@ begin
 end;
 
 { Ray of Enfeeblement (eff 29): pendingDamage loses a quarter (rounded down) }
-
 procedure EffEnfeeble(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.pendingDamage := GDVars.pendingDamage - GDVars.pendingDamage div 4;
 end;
 
-{ Coughing from Stinking Cloud (eff 30): no items or spells, and its AC from the front and behind is its rear AC less
-  2. It recalculates the creature's stats, so C_Cond.DEFENDER_AC runs it before Blindness and Shield change the AC. }
-
+{ Coughing from Stinking Cloud (eff 30): no items or spells, and its AC from the front and behind is its rear AC less 2.
+  It recalculates the creature's stats, so C_Cond.DEFENDER_AC runs it before Blindness and Shield change the AC. }
 procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
@@ -675,7 +650,6 @@ end;
 
 { Animate Dead (eff 32). Fires on REMOVAL of the animation. The old side is read first: for a corpse that fled
   (C_Status.RUNNING), InflictStatusMsg removes the hp-zero effects again, which frees this node (#716). }
-
 procedure EffAnimateDead(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   side: Byte;
@@ -695,7 +669,6 @@ begin
 end;
 
 { Blind (eff 33) }
-
 procedure EffBlind(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Dec(GDVars.gAttackRoll, 4);
@@ -705,7 +678,6 @@ begin
 end;
 
 { Diseased (eff 34): chains 43 + 44 }
-
 procedure EffDiseased(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   FxEngine.CallEffectHandler(C_Effect.DISEASE_STR, creature, p, removed);
@@ -714,7 +686,6 @@ end;
 
 { Allied Prayer (eff 35): Prayer's bonus to the caster's side, +1 to saving throws and +1 to attack rolls. EffPrayer
   also applies it to creatures on the caster's side. }
-
 procedure EffAlliedPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Inc(GDVars.gSaveRoll);
@@ -722,7 +693,6 @@ begin
 end;
 
 { Bestow Curse (eff 36) }
-
 procedure EffBestowCurse(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Dec(GDVars.gAttackRoll, 4);
@@ -730,7 +700,6 @@ begin
 end;
 
 { Blinking (eff 37) }
-
 procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.initiative > 0 then begin
@@ -740,9 +709,8 @@ begin
 end;
 
 { Hasted (eff 39). Ages the creature one year the first time it fires (strength bit 4 marks that it has), and doubles
-  dsCurrentAttackCurrent by CharHlp.HasteSlowRate: with Slowed too, the two cancel, and each handler leaves the rate
-  as it is. }
-
+  dsCurrentAttackCurrent by CharHlp.HasteSlowRate: with Slowed too, the two cancel, and each handler leaves the rate as
+  it is. }
 procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Types.PEffectRec(p)^.strength and $10 = 0 then begin
@@ -755,7 +723,6 @@ end;
 
 { Cast Stinking Cloud (eff 40). Removes the cloud this caster is responsible for (strength upper nibble = its idx),
   restores or corpse-marks its cells, unlinks and frees the node, then repaints every remaining cloud }
-
 procedure EffCastStink(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   q: Types.PStinkRec;
@@ -814,7 +781,6 @@ end;
 { Avoid the attack with pct% chance, only when the attacker (GDVars.curChar) has a weapon equipped and is more than one
   cell away: print "Avoids it", zero the damage, force a miss and take the hit back off hitsMade for the attacker's
   current attack phase. }
-
 procedure AvoidRanged(creature: Types.PCharRecord; pct: Byte);
 var
   phase: Byte;
@@ -835,7 +801,6 @@ end;
 
 { Choose the item that deals damage: the item CharHlp.FindDamagingRangedWeapon picks (such as the arrows or quarrels for
   a bow or crossbow), otherwise the equipped weapon; nil when no weapon is equipped }
-
 function FindDamagingWeapon(creature: Types.PCharRecord): Types.PItemRec;
 var
   sel: Types.PItemRec;
@@ -852,7 +817,6 @@ end;
 
 { Protection from Normal Missiles (eff 41): a normal missile (the damaging item has no plus) is stopped; a magical one
   does 1 less per die, no die below 1 (#745) }
-
 procedure EffProtMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   missile: Types.PItemRec;
@@ -866,7 +830,6 @@ begin
 end;
 
 { Slowed (eff 42): halves dsCurrentAttackCurrent by CharHlp.HasteSlowRate, as EffHasted doubles it. }
-
 procedure EffSlowed(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
@@ -877,7 +840,6 @@ end;
   nibble (CharHlp.DiseaseStrLoss), up to 15, the most a natural 18 can lose; the lower keeps the caster level, at most
   15. A cure removes the node under the effect lock, and the count is given back: SSI kept no count, and the Strength
   stayed lost (#705). }
-
 procedure EffDiseaseStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
@@ -910,7 +872,6 @@ begin
 end;
 
 { Disease hit point drain (eff 44): re-arm for 10 minutes and deal 1 damage; at 1 HP become helpless }
-
 procedure EffDiseaseHp(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
@@ -927,7 +888,6 @@ begin
 end;
 
 { Dwarf/gnome AC bonus vs giants (eff 47) }
-
 procedure EffDwarfAcGiant(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   i: Byte;
@@ -943,7 +903,6 @@ begin
 end;
 
 { Gnome AC bonus vs bugbears/gnolls (eff 48) }
-
 procedure EffGnomeAcBug(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.curChar^.charType = 1 then
@@ -953,7 +912,6 @@ end;
 
 { Prayer (eff 49). strength bit 4 = the caster's side: creatures on that side get the EffAlliedPrayer bonus, all others
   -1 to attack rolls and saving throws }
-
 procedure EffPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   side: Byte;
@@ -969,7 +927,6 @@ end;
 
 { Mummy rot healing prevention (eff 50): re-arms itself for 14400 minutes, then restores 1 HP (bypassing the rot
   block) }
-
 procedure EffRotNoHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_Effect.ROT_NO_HEAL, Types.PEffectRec(p)^.strength, 14400) then
@@ -978,14 +935,12 @@ begin
 end;
 
 { Helpless (eff 31, 51, 52, 53) }
-
 procedure EffHelpless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if CharHlp.EndActions(creature) then ;
 end;
 
 { Wearing Ring of Invisibility (eff 56) }
-
 procedure EffRingInvis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   FxEngine.AddEffect(creature, C_Effect.INVISIBLE, 1, 12, False);
@@ -993,7 +948,6 @@ end;
 
 { Mummy rot degeneration (eff 57). strength upper nibble = the 1d6 countdown seeded by eff 87. Each firing costs 2
   Charisma (not below 3); the creature re-arms for 43200 minutes while the count exceeds 1, then dies }
-
 procedure EffMummyRot(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.effectLock <> 0 then Exit;
@@ -1007,7 +961,6 @@ begin
 end;
 
 { Immobile (eff 58) }
-
 procedure EffImmobile(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   creature^.combatAddr^.movement := 0;
@@ -1016,7 +969,6 @@ begin
 end;
 
 { Troll: add regeneration (eff 59): add eff 98 permanently }
-
 procedure EffTrollRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   FxEngine.AddEffect(creature, C_Effect.REGEN3, 0, 255, False);
@@ -1024,7 +976,6 @@ end;
 
 { Ring of Fire Resistance (eff 61): against fire, -2 damage per die (minimum 1 per die, but never more than the damage
   was) and +4 to save; non-magical fire is nullified }
-
 procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then begin
@@ -1037,7 +988,6 @@ end;
 
 { Regenerating from high Con (eff 62): re-arm for the creature's Constitution's interval (AbilAdj.ConRegenMinutes; 60,
   Constitution 20's, once it has fallen below 20) and restore 1 HP }
-
 procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   minutes: Word;
@@ -1051,10 +1001,9 @@ begin
 end;
 
 { A touch's failed save: True, with "is Unaffected", when the target is immune to effId all the same
-  (FxEngine.EffectImmune, the check FxEngine.AddEffectWithMessage makes). SSI added the touch's effect with no
-  immunity check: a paralysis ward (eff 109) never stopped a paralyzing touch (#767), and a poison-immune creature (eff
-  111, 125), whose saves vs. poison otherwise always succeed, died of poison on a natural 1 (#720). }
-
+  (FxEngine.EffectImmune, the check FxEngine.AddEffectWithMessage makes). SSI added the touch's effect with no immunity
+  check: a paralysis ward (eff 109) never stopped a paralyzing touch (#767), and a poison-immune creature (eff 111,
+  125), whose saves vs. poison otherwise always succeed, died of poison on a natural 1 (#720). }
 function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 var
   immune: Boolean;
@@ -1067,7 +1016,6 @@ end;
 
 { Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod and its Constitution's
   poison bonus (AbilAdj.ConPoisonSave), or is immune to poison, it gets eff 55 and is killed. }
-
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
@@ -1083,7 +1031,6 @@ end;
 
 { Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation with saveMod or is immune to
   paralysis. SSI's ignored saveMod, so the drider's -2 was lost (#785). }
-
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
@@ -1095,35 +1042,30 @@ begin
 end;
 
 { Melee poison (eff 64): the target saves at +0 }
-
 procedure EffPoisonHit0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.PoisonTouch(creature, 0);
 end;
 
 { Melee poison, +4 save (eff 65) }
-
 procedure EffPoisonHit4(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.PoisonTouch(creature, 4);
 end;
 
 { Melee poison, +2 save (eff 66) }
-
 procedure EffPoisonHit2(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.PoisonTouch(creature, 2);
 end;
 
 { Thri-kreen paralysis (eff 67): 2d8 minutes }
-
 procedure EffKreenPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.ParalysisTouch(creature, Dice.RollDice(2, 8), 0);
 end;
 
 { Ghoul paralysis (eff 68): 63 minutes, not vs. elves }
-
 procedure EffGhoulPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.other^.race <> C_Race.ELF then
@@ -1131,14 +1073,12 @@ begin
 end;
 
 { Drider paralysis (eff 69): 1d9+10 minutes, saved against at -2 }
-
 procedure EffDriderPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.ParalysisTouch(creature, Dice.RollDice(1, 9) + 10, -2);
 end;
 
 { Melee poison, -2 save (eff 70) }
-
 procedure EffPoisonHitM2(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.PoisonTouch(creature, -2);
@@ -1146,7 +1086,6 @@ end;
 
 { Dust of Disappearance (eff 71): a stronger form of invisibility. Sets dsCurrentSuppressTargetingFlag and lowers
   gAttackRoll by 4. }
-
 procedure EffDustDisappear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.dsCurrentSuppressTargetingFlag := 1;
@@ -1154,7 +1093,6 @@ begin
 end;
 
 { Camouflaged / Cloak of Elvenkind (eff 72): 95% chance of invisibility (eff 25) for 1 minute }
-
 procedure EffCamouflage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Dice.RollDice(1, 100) <= 95 then
@@ -1164,7 +1102,6 @@ end;
 { Blood drain (eff 75). strength = victim's creature index; duration's upper bits = the x16 damage budget. An index
   outside creatureArr[1..arenaCount] (CombatSlot's 0 for a creature not in the arena) has no victim: the effect just
   goes. }
-
 procedure EffBloodDrain(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
@@ -1190,7 +1127,6 @@ end;
 
 { Blood drain attachment (eff 76): add eff 75 on the attacker with a 12 hp budget and immobilize the target. A target
   with no combat slot (none, or not on the map) is not drained. }
-
 procedure EffBloodAttach(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   slot: Byte;
@@ -1209,7 +1145,6 @@ end;
 
 { Bite attach (eff 77): add eff 74 (bite and hold, handled by CbtActs.BiteAndHold) on the biter and immobilize the
   target. No effect on a target with Strength 19+, or with no combat slot (none, or not on the map) }
-
 procedure EffBiteHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   slot: Byte;
@@ -1229,7 +1164,6 @@ begin
 end;
 
 { Healed from unconscious (eff 78): revive at the current HP, or retry in 1 minute if that fails }
-
 procedure EffHealWake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   dummy: Boolean;
@@ -1239,7 +1173,6 @@ begin
 end;
 
 { Melee fire touch (eff 79): +2d10 fire }
-
 procedure EffFireTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.elementMask := C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC;
@@ -1247,7 +1180,6 @@ begin
 end;
 
 { Melee acid squirt (eff 80): +1d4 acid }
-
 procedure EffAcidSquirt(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   GDVars.elementMask := C_Effect.ELEM_ACID;
@@ -1256,7 +1188,6 @@ end;
 
 { Dragon fear aura (eff 81). Walks the whole creature list: each enabled enemy saves vs. spell or, by highest level, is
   permanently paralyzed (0..3) or cursed (4, 5); level 6+ is unaffected }
-
 procedure EffDragonFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   q: Types.PCharRecord;
@@ -1279,7 +1210,6 @@ end;
 
 { Mummy fear aura (eff 82). Removes an eff-82 node from EVERY creature (the mummy's own included); each enabled enemy
   then saves vs. paralyzation (+1 if its team has 6+ members, +2 if human) or is paralyzed with fear for 1d4 minutes }
-
 procedure EffMummyFear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   q: Types.PCharRecord;
@@ -1306,7 +1236,6 @@ end;
 
 { Petrifying gaze (eff 83): the target saves vs. petrification or is stoned. Effect 127 on the gazer marks the gaze
   reflectable: an equipped "Mirror" item turns it back on the gazer }
-
 procedure EffPetrifyGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1343,8 +1272,7 @@ end;
 
 { Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person
   (save vs. spell at -2) without using a spell slot or action. The spell being cast is marked as Charm Person only while
-  the charm is applied, then restored: left at 10, it made later damage look like a spell's (Mirror Image absorbed it). }
-
+  the charm is applied, then restored: left set, it made later damage look like a spell's (Mirror Image absorbed it). }
 procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   dist: Word;
@@ -1382,7 +1310,6 @@ end;
   the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
   level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0. Its highest level and
   experience are then reset from that class. }
-
 procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
 var
   numStr: Types.TStr40;
@@ -1480,14 +1407,12 @@ begin
 end;
 
 { Melee level drain (eff 85): the target loses one level }
-
 procedure EffDrainOne(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.DrainLevels(creature^.combatAddr^.other, 1);
 end;
 
 { Melee level drain (eff 86): the target loses two levels }
-
 procedure EffDrainTwo(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.DrainLevels(creature^.combatAddr^.other, 2);
@@ -1495,7 +1420,6 @@ end;
 
 { Melee mummy rot (eff 87): unless the target has eff 50 or is immune to disease (FxEngine.DiseaseImmune), add eff 50
   and eff 57. Seeds eff 57's 1d6 countdown in the upper nibble }
-
 procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
@@ -1514,7 +1438,6 @@ end;
 { Displaced (eff 89): the first attack on the creature each combat misses. strength bit 4 = "has displaced an attack
   this combat", cleared by ResetDisplacement as combat starts. SSI's cleared it from here, in the first round whenever
   the attack roll stood at 0, so a first-round attack modified to exactly 0 cleared it instead of missing (#791). }
-
 procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Types.PEffectRec(p)^.strength and $10 = 0 then begin
@@ -1532,7 +1455,6 @@ begin
 end;
 
 { Con poison saving throw bonus (eff 90) }
-
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.gSaveType = C_Save.PARALYZE then begin
@@ -1541,7 +1463,6 @@ begin
 end;
 
 { Immunity to electricity + Magic Missile (eff 91) }
-
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.dsCurrentSpellBeing = C_Spell.MAGIC_MISSILE then begin
@@ -1553,7 +1474,6 @@ begin
 end;
 
 { Half damage from fire (eff 93) }
-
 procedure EffHalfFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
@@ -1561,7 +1481,6 @@ begin
 end;
 
 { Half damage from blunt/piercing (eff 94) }
-
 procedure EffHalfBash(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   w: Types.PItemRec;
@@ -1573,7 +1492,6 @@ begin
 end;
 
 { Fight on at 0 HP (eff 95): when it expires, a creature still fighting falls dead }
-
 procedure EffFightOn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
@@ -1582,7 +1500,6 @@ begin
 end;
 
 { Immune to weapons neither magical nor silver, and to attacks without a weapon (eff 96). Silver = name component 177 }
-
 procedure EffNeedSilver(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   w: Types.PItemRec;
@@ -1593,7 +1510,6 @@ begin
 end;
 
 { Con spell/wand save bonus (eff 97), on EffConPsnSave's scale }
-
 procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if (GDVars.gSaveType = C_Save.SPELL) or (GDVars.gSaveType = C_Save.WAND) then begin
@@ -1602,7 +1518,6 @@ begin
 end;
 
 { Regenerate 3 hp per round (eff 98) }
-
 procedure EffRegen3(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   { capped before the add, so hpCur 253..255 cannot wrap the Byte }
@@ -1614,7 +1529,6 @@ end;
 
 { Can fight on (eff 99). Revives a dying (with overkill < 6) or unconscious creature and grants eff 95 for 1d4+1
   minutes, then removes itself }
-
 procedure EffCanFightOn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   hp: Byte;
@@ -1635,7 +1549,6 @@ end;
 
 { Troll vulnerability to fire/acid (eff 100): when the damage is neither fire nor acid, add eff 102 to bring the troll
   back in 3d6 minutes }
-
 procedure EffTrollBurn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if (GDVars.elementMask and C_Effect.ELEM_FIRE = 0) and (GDVars.elementMask and C_Effect.ELEM_ACID = 0) then
@@ -1643,7 +1556,6 @@ begin
 end;
 
 { Troll: add regeneration (eff 101): unless it has eff 98 or eff 59 already, add eff 59 for 3 minutes }
-
 procedure EffTrollHeal(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
@@ -1654,7 +1566,6 @@ begin
 end;
 
 { Troll returning from going down (eff 102): revive at full HP, or retry in 1 minute if that fails }
-
 procedure EffTrollReturn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   dummy: Boolean;
@@ -1664,7 +1575,6 @@ begin
 end;
 
 { Gaseous form (eff 103): the creature escapes and is put out of play as fled }
-
 procedure EffGaseous(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
@@ -1673,7 +1583,6 @@ begin
 end;
 
 { Thri-kreen missile evasion (eff 104) }
-
 procedure EffKreenDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.AvoidRanged(creature, 60);
@@ -1683,12 +1592,11 @@ end;
   below 11 and falls 5% for each level above: chance := pct + (11 - lvl) * 5, kept within 0..100, and a 1d100 roll <=
   chance nullifies. Only an effect under the immunity check or magic damage is resisted. An item counts as a 6th-level
   caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and
-  the javelin). Against an effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a touch, a monster's
-  fear) there is no caster level, and pct stands as listed, as against an 11th-level caster; SSI's read the level of
-  spell 0, from outside the spell table (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with
-  eff 106 passing 15), so resistance grew with the caster level; Tyranthraxus (eff 106) still resists every caster
-  the game produces, as he did. }
-
+  the javelin). Against an effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a touch, a monster's fear)
+  there is no caster level, and pct stands as listed, as against an 11th-level caster; SSI's read the level of spell 0,
+  from outside the spell table (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106
+  passing 15), so resistance grew with the caster level; Tyranthraxus (eff 106) still resists every caster the game
+  produces, as he did. }
 procedure MagicResistance(pct: Byte);
 const
   { the caster level pct is listed against }
@@ -1716,21 +1624,18 @@ begin
 end;
 
 { Magic resistance 50% (eff 105) }
-
 procedure EffMagicRes50(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.MagicResistance(50);
 end;
 
 { Magic resistance 85% (eff 106) }
-
 procedure EffMagicRes85(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.MagicResistance(85);
 end;
 
 { Elf 90% resistance to sleep/charm (eff 107) }
-
 procedure EffElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Dice.RollDice(1, 100) <= 90 then begin
@@ -1740,7 +1645,6 @@ begin
 end;
 
 { Immunity to sleep/charm (eff 108) }
-
 procedure EffNoSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.NullifyAttack(C_Effect.CHARM);
@@ -1748,14 +1652,12 @@ begin
 end;
 
 { Immunity to paralysis (eff 109) }
-
 procedure EffNoParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.NullifyAttack(C_Effect.PARALYSIS);
 end;
 
 { Immunity to cold (eff 110) }
-
 procedure EffNoCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_COLD <> 0 then
@@ -1764,7 +1666,6 @@ end;
 
 { Immunity to paralysis + poison (eff 111). Saves of type 0 (paralyzation/poison, e.g. Stinking Cloud) succeed
   automatically }
-
 procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.NullifyAttack(C_Effect.POISONED);
@@ -1774,7 +1675,6 @@ begin
 end;
 
 { Immunity to fire (eff 112) }
-
 procedure EffNoFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
@@ -1782,7 +1682,6 @@ begin
 end;
 
 { Efreeti fire resistance (eff 113): -1 per die, minimum = dice count (damage already below it is left alone) }
-
 procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
@@ -1790,7 +1689,6 @@ begin
 end;
 
 { Half damage from electricity (eff 114) }
-
 procedure EffHalfElec(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_ELEC <> 0 then
@@ -1798,7 +1696,6 @@ begin
 end;
 
 { Half damage from piercing/slashing (eff 115) }
-
 procedure EffHalfPierce(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   w: Types.PItemRec;
@@ -1811,7 +1708,6 @@ begin
 end;
 
 { Half damage from magical weapons (eff 116) }
-
 procedure EffHalfMagical(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   w: Types.PItemRec;
@@ -1823,7 +1719,6 @@ begin
 end;
 
 { Vulnerability to holy water (eff 117): a holy water vial does 1d6+1 }
-
 procedure EffHolyWater(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1835,7 +1730,6 @@ begin
 end;
 
 { Half damage from cold (eff 118) }
-
 procedure EffHalfCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GDVars.elementMask and C_Effect.ELEM_COLD <> 0 then
@@ -1843,7 +1737,6 @@ begin
 end;
 
 { Immunity to non-magical weapons and unarmed attacks (eff 119): only vs PC races or attackers with levelHighest < 4 }
-
 procedure EffNeedMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   w: Types.PItemRec;
@@ -1855,7 +1748,6 @@ begin
 end;
 
 { Boulder evasion (eff 120): 50% chance to avoid a thrown C_Item.BOULDER or C_Item.LARGE_BOULDER }
-
 procedure EffBoulderDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1868,7 +1760,6 @@ end;
 
 { Anhkheg acid squirt (eff 121): 25% chance, range < 4, 8d4 acid, save vs. breath for half; the effect removes itself
   (and eff 80) after firing }
-
 procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   dummy: Boolean;
@@ -1893,7 +1784,6 @@ begin
 end;
 
 { Mummy vulnerability to fire (eff 122): a flask of oil does 3d8; magic or fire damage +1 per die }
-
 procedure EffMummyFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1907,7 +1797,6 @@ begin
 end;
 
 { Immune unless silver (half) or magical (full); no damage without a weapon (eff 123) }
-
 procedure EffSilverMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   w: Types.PItemRec;
@@ -1923,7 +1812,6 @@ begin
 end;
 
 { Half-elf 30% resistance (eff 124) }
-
 procedure EffHalfElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Dice.RollDice(1, 100) <= 30 then begin
@@ -1933,7 +1821,6 @@ begin
 end;
 
 { Immunity to sleep/charm/para/poison (eff 125). Saves of type 0 succeed automatically }
-
 procedure EffNoCharmPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.NullifyAttack(C_Effect.CHARM);
@@ -1946,7 +1833,6 @@ end;
 
 { Suppressible gaze (eff 126): blocked by an equipped "Mirror" component (118) or Wooden Holy Symbol of Tyr (component
   pair 152/252) on the target }
-
 procedure EffGazeBlock(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1969,7 +1855,6 @@ end;
   effect (strength 12) and calls that handler with the new node, except the Cloak of Displacement's: a cloak readied in
   combat had its first miss marked spent at once (#784). Unreadying removes the effect. SSI passed the handler nil, and
   the Cloak of Displacement's (eff 89) wrote its strength through it, into the interrupt vectors (#737). }
-
 procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1995,7 +1880,6 @@ end;
   monster loaded wearing them (EclMenu.LoadCreatureData). Unready: while the creature is still at 18/00 (with a
   disease's loss given back, CharHlp.DiseaseStrLoss), remove the first eff 38 node that is not superseded, which
   restores its Strength }
-
 procedure EffGauntlets(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   enc: Byte;
@@ -2015,9 +1899,8 @@ begin
       { taken before RemoveEffect frees q }
       next := q^.next;
       { the first Strength effect not superseded ($80 in its strength byte, as EffExtraStr reads it) while the
-        Gauntlets' 18/00 holds: the one they added. SSI tested q^.id < $80, always true for C_Effect.STRENGTH,
-        which came to "an 18/00 wearer, or a restore value of 18/00" and could remove a superseded effect
-        (POR-0164). }
+        Gauntlets' 18/00 holds: the one they added. SSI tested q^.id < $80, always true for C_Effect.STRENGTH, which
+        came to "an 18/00 wearer, or a restore value of 18/00" and could remove a superseded effect (POR-0164). }
       if (q^.id = C_Effect.STRENGTH) and isOgre and (q^.strength < $80) then begin
         FxEngine.RemoveEffect(creature, C_Effect.STRENGTH, q);
         found := True;
@@ -2039,7 +1922,6 @@ end;
 
 { Aligned weapon (eff 132). The item's effect byte holds the required alignment in its low nibble; a wielder of another
   alignment has it unreadied and takes magic damage equal to the upper nibble, with a message naming the item }
-
 procedure EffAlignedWeapon(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -2059,7 +1941,6 @@ begin
 end;
 
 { Boulder (eff 135): readying it without Strength 19+ unreadies it ("Must have Giant Strength") }
-
 procedure EffBoulder(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -2073,7 +1954,6 @@ begin
 end;
 
 { Spiritual Hammer unreadied (eff 137) }
-
 procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if removed then
@@ -2081,7 +1961,6 @@ begin
 end;
 
 { the do-nothing handler (eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127) }
-
 procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
 end;

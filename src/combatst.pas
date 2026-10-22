@@ -620,13 +620,13 @@ begin
   end;
 end;
 
-{ Search for a free quad for slot on team's grid in zigzag legs. A leg starts at startQX/startQY for the
-  ring's quadrant, shifted legShift steps along quadDir[(quad + 2) mod 4], then alternates outward along quadDir[(quad
-  + 1) mod 4] and quadDir[(quad + 3) mod 4], trying TryPlaceAt at each in-grid quad. A leg ends at a partially-off quad
-  or after teamRows quads (first leg) or 12 (later legs); the next leg starts one step further, or two on team 0's
-  first leg in ring 0 when Odd(teamDir[0]) and any ringDirTbl direction 1..3 is not a solid wall. A fully-off quad
-  advances to the next ring (up to 3) whose ringDirTbl direction is not a solid wall (always, outdoors), re-basing the
-  grid one step that way. Return False when no ring remains. }
+{ Search for a free quad for slot on team's grid in zigzag legs. A leg starts at startQX/startQY for the ring's
+  quadrant, shifted legShift steps along quadDir[(quad + 2) mod 4], then alternates outward along
+  quadDir[(quad + 1) mod 4] and quadDir[(quad + 3) mod 4], trying TryPlaceAt at each in-grid quad. A leg ends at a
+  partially-off quad or after teamRows quads (first leg) or 12 (later legs); the next leg starts one step further, or
+  two on team 0's first leg in ring 0 when Odd(teamDir[0]) and any ringDirTbl direction 1..3 is not a solid wall. A
+  fully-off quad advances to the next ring (up to 3) whose ringDirTbl direction is not a solid wall (always, outdoors),
+  re-basing the grid one step that way. Return False when no ring remains. }
 function FindPlacement(team: ShortInt; slot: Byte): Boolean;
 var
   placed: Byte;
@@ -698,9 +698,7 @@ begin
       offGrid := 0;
     if state > 1 then begin
       { leg exhausted? (a partially-off quad, or out of tries) }
-      if ((offGrid <> 0) and (not CombatSt.QuadFullyOff(qx,
-                                                        qy))) or ((firstPass <> 0) and
-                                                                  (tries >= teamRows[team])) or
+      if ((offGrid <> 0) and (not CombatSt.QuadFullyOff(qx, qy))) or ((firstPass <> 0) and (tries >= teamRows[team])) or
           ((firstPass = 0) and (tries > 11)) then begin
         Inc(legShift);
         if (team = 0) and Odd(teamDir[0]) and (ring = 0) and (legShift = 1) then begin
@@ -721,22 +719,22 @@ begin
     end;
     { Outside the state > 1 guard: advance the search ring when the quad lies fully outside the grid. }
     if (offGrid <> 0) and CombatSt.QuadFullyOff(qx, qy) then begin
-        placed := 0;
-        state := 0;
-        while (ring < 3) and (state <> 1) do begin
-          Inc(ring);
-          wallX := placeX[team] + GDVars.gMapX;
-          wallY := placeY[team] + GDVars.gMapY;
-          dir := GDConsts.ringDirTbl[teamDir[team], ring];
-          if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
-            baseQX := placeX[team] + GDConsts.dirDX[dir];
-            baseQY := placeY[team] + GDConsts.dirDY[dir];
-            legShift := 0;
-            state := 1;
-          end;
+      placed := 0;
+      state := 0;
+      while (ring < 3) and (state <> 1) do begin
+        Inc(ring);
+        wallX := placeX[team] + GDVars.gMapX;
+        wallY := placeY[team] + GDVars.gMapY;
+        dir := GDConsts.ringDirTbl[teamDir[team], ring];
+        if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
+          baseQX := placeX[team] + GDConsts.dirDX[dir];
+          baseQY := placeY[team] + GDConsts.dirDY[dir];
+          legShift := 0;
+          state := 1;
         end;
-        if state <> 1 then
-          giveUp := 1;
+      end;
+      if state <> 1 then
+        giveUp := 1;
     end;
     if offGrid = 0 then
       placed := CombatSt.TryPlaceAt(team, slot, qx, qy, baseQX, baseQY, ring);

@@ -99,7 +99,8 @@ begin
   TestKit.CheckEqualsL(MoneyCal.PAY_CHARACTER, MoneyCal.WhoPays(c, 10), 'the buyer pays what it can');
   TestKit.CheckEqualsL(MoneyCal.PAY_POOL, MoneyCal.WhoPays(c, 11), 'else the pool pays');
   TestKit.CheckEqualsL(MoneyCal.PAY_POOL, MoneyCal.WhoPays(c, 50), 'the pool pays all it holds');
-  TestKit.CheckEqualsL(MoneyCal.PAY_NOBODY, MoneyCal.WhoPays(c, 51), 'nobody pays more (gems and jewelry do not count)');
+  TestKit.CheckEqualsL(MoneyCal.PAY_NOBODY, MoneyCal.WhoPays(c, 51),
+                       'nobody pays more (gems and jewelry do not count)');
   TestKit.CheckEqualsL(MoneyCal.PAY_CHARACTER, MoneyCal.WhoPays(c, 0), 'a free item is the buyer''s');
 
   { item values: darts (9), quarrels (28) and arrows (73) by the bundle of 20 }

@@ -82,8 +82,8 @@ var
   j: Byte;
 begin
   if creature = nil then Exit;
-  { a free entry, else one whose owner has left the party, else the first }
   UsualSpl.ForgetUsualSpells(creature);
+  { a free entry, else one whose owner has left the party, else the first }
   i := 0;
   for j := USUAL_ENTRIES downto 1 do
     if usualOwner[j] = nil then

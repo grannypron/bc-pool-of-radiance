@@ -1,14 +1,14 @@
 { The merged data archives, built at startup from the player's own copy of the game in the game folder. Each data
-  family's per-disk archives (ECL1-8.DAX, MON1-8CHA.DAX and so on; DataArc's family table) are gathered into one
-  archive (ECL.DAX, MONCHA.DAX) that DaxIo.LoadDax reads in their place, so nothing is tied to the current disk. Blocks
-  are copied packed, byte for byte. When two disks give one block id different contents, the first disk's block keeps
-  the id and the other is stored under a spare id, listed in the archive's remap block. The data fixes in DataPat are
-  then made, each only when its block still holds the bytes it replaces; a block that several disks share is first
-  copied for the fixed disk alone.
+  family's per-disk archives (ECL1-8.DAX, MON1-8CHA.DAX and so on; DataArc's family table) are gathered into one archive
+  (ECL.DAX, MONCHA.DAX) that DaxIo.LoadDax reads in their place, so nothing is tied to the current disk. Blocks are
+  copied packed, byte for byte. When two disks give one block id different contents, the first disk's block keeps the id
+  and the other is stored under a spare id, listed in the archive's remap block. The data fixes in DataPat are then
+  made, each only when its block still holds the bytes it replaces; a block that several disks share is first copied for
+  the fixed disk alone.
   Each archive records the size and CRC-32 of every per-disk archive it was built from, and ends with its version and
-  the CRC-32 of everything before that. An archive the game can use (DaxIo.FamilyUsable) is kept; any other is
-  rebuilt: written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and on
-  BldShow's full screen, and every step goes to DATABLD.LOG. The game's own files are only read. }
+  the CRC-32 of everything before that. An archive the game can use (DaxIo.FamilyUsable) is kept; any other is rebuilt:
+  written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and on BldShow's full
+  screen, and every step goes to DATABLD.LOG. The game's own files are only read. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit DataBld;
@@ -39,11 +39,11 @@ const
   RUN_SIZE = 127;
   { the largest block packed into memory: its literal runs must fit in one heap block }
   MAX_ENCODED = 64000;
-  { the largest block DaxIo.LoadDax can read once packed: it ends the game on a packed size above 36000, and
-    35718 bytes pack to 35718 + 282 = 36000 }
+  { the largest block DaxIo.LoadDax can read once packed: it ends the game on a packed size above 36000, and 35718 bytes
+    pack to 35718 + 282 = 36000 }
   MAX_LOADABLE = 35718;
-  { the free space a merged archive is given beyond its per-disk archives together: its reserved blocks, a patched
-    block packed larger than before, the disk's cluster rounding and the log }
+  { the free space a merged archive is given beyond its per-disk archives together: its reserved blocks, a patched block
+    packed larger than before, the disk's cluster rounding and the log }
   ROOM_MARGIN = 65536;
   { the most bytes the sources block holds }
   SOURCES_SIZE = SOURCE_DISKS * C_Data.SOURCE_RECORD;
@@ -118,8 +118,8 @@ var
   failedCount: Byte;
   n: Integer;
 
-{ Write a line to DATABLD.LOG and push it to disk, so the log ends at the step that was running if the game stops. A
-  log that cannot be written is given up; the build carries on. }
+{ Write a line to DATABLD.LOG and push it to disk, so the log ends at the step that was running if the game stops. A log
+  that cannot be written is given up; the build carries on. }
 procedure LogLine(s: string);
 begin
   if logOpen then begin
@@ -465,8 +465,8 @@ begin
   SameBlock := same;
 end;
 
-{ Pack rawSize bytes at raw as literal runs of at most RUN_SIZE bytes, into a new buffer of packedSize bytes. Nil and
-  0 when rawSize is 0, or, with failNote set, when rawSize is above MAX_ENCODED or the memory is not there. }
+{ Pack rawSize bytes at raw as literal runs of at most RUN_SIZE bytes, into a new buffer of packedSize bytes. Nil and 0
+  when rawSize is 0, or, with failNote set, when rawSize is above MAX_ENCODED or the memory is not there. }
 procedure EncodeRuns(var raw; rawSize: Word; var packedBuf: Types.PByteArr; var packedSize: Word);
 var
   i: Word;
@@ -920,10 +920,10 @@ begin
   ApplyFix := ok;
 end;
 
-{ Make every fix to the block part first names, in table order, the first one's bytes from patchBytes[pos] on: the
-  block is decoded, each fix made when its checks pass, and the result packed into memory. A block several disks read
-  is first copied for the fixed disk. Each fix is logged by its issue number. False, with failNote set, on a read error
-  or when the memory for the result is not there. }
+{ Make every fix to the block part first names, in table order, the first one's bytes from patchBytes[pos] on: the block
+  is decoded, each fix made when its checks pass, and the result packed into memory. A block several disks read is first
+  copied for the fixed disk. Each fix is logged by its issue number. False, with failNote set, on a read error or when
+  the memory for the result is not there. }
 function PatchBlock(fam: Byte; first, pos: Word): Boolean;
 var
   disk: Byte;

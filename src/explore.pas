@@ -20,7 +20,6 @@ uses Types, Crt, C_Area, C_Time, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewCh
   C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
-
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
   nibbles are untouched, and coordinates outside the map (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
@@ -74,8 +73,8 @@ end;
   type 3 (barred door) uses the locked/barred/magically-held column: 18/91 to 25 roll, and each member below 18/91
   clears doorOpen[0] so Bash is not offered again at this door (later members still try this time). Otherwise the normal
   column covers Strength 3 to 25 (19 and above, from a Potion of Giant Strength, on the Players Handbook's odds).
-  Strength above 25 counts as 25 and exceptional strength above 100 as 18/00.
-  Success opens the barrier from both sides. }
+  Strength above 25 counts as 25 and exceptional strength above 100 as 18/00. Success opens the barrier from both
+  sides. }
 function BashDoor: Boolean;
 var
   p: Types.PCharRecord;
@@ -227,9 +226,9 @@ begin
 end;
 
 { MovePartyForward3D: play the step sound, step with 16x16 edge wrap, refresh wallAhead and eventAtCell, reset the door
-  flags and advance the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit 0) is on. EclVm.GameLoop plays
-  the step sound again once the party has moved, as SSI's code does; a driver that sets singleStep (the Sound Blaster's)
-  gets GameLoop's alone (POR-0170). }
+  flags and advance the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit 0) is on. EclVm.GameLoop
+  plays the step sound again once the party has moved, as SSI's code does; a driver that sets singleStep (the Sound
+  Blaster's) gets GameLoop's alone (POR-0170). }
 procedure MovePartyForward3D;
 begin
   if not GDVars.sound.singleStep then
