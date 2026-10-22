@@ -21,7 +21,7 @@ implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { directory saved across resource loading }
@@ -282,7 +282,6 @@ begin
   GameVars.locTypePrev := C_AREA.LOC_3D_MAP;
   GameVars.gLocType := C_AREA.LOC_3D_MAP;
   GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
-  GameVars.wildAnimFrame := 0;
   GameVars.vertTop := 1;
   GameVars.duelFlag := False;
   GameVars.suppressDrawingBorderFlag := 0;
@@ -302,6 +301,7 @@ begin
   Explore.ResetGame;
   GameTime.ResetGame;
   Combat.ResetGame;
+  MapView.ResetGame;
   Stats.ResetGame;
 end;
 

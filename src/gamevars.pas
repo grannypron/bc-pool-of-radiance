@@ -274,11 +274,6 @@ var
   suppressDrawingBorderFlag: Byte;
 
 var
-  { Wilderness animation }
-  { Party icon frame, 0..5: parity selects the icon frame, div 2 the icon animation. }
-  wildAnimFrame: Byte;
-
-var
   { Combat round }
   { Combat round counter, 0-indexed }
   roundCounter: Byte;

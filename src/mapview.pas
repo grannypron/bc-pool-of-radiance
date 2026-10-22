@@ -12,9 +12,16 @@ procedure DisplayMapView;
 { Draw the party's animated icon on the wilderness map, advance the 6-step animation frame and flush the view }
 procedure DisplayWildMapView;
 
+{ Start the party's wilderness icon at its first frame, for a new game (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
 uses Crt, C_AREA, GameDefs, GameVars, Wilds, View3D, Blit, MapTiles;
+
+var
+  { Party icon frame, 0..5: parity selects the icon frame, div 2 the icon animation. }
+  wildAnimFrame: Byte;
 
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
@@ -34,9 +41,9 @@ begin
   else if GameVars.zone0^.partyY.value < 34 then wy := 2
   else if GameVars.zone0^.partyY.value < 35 then wy := 3
   else wy := 4;
-  MapTiles.DrawIconAnimSprite(wx, wy, GameVars.gFacing, GameVars.wildAnimFrame mod 2,
-                              GameVars.wildAnimFrame div 2 + 9);
-  GameVars.wildAnimFrame := (GameVars.wildAnimFrame + 1) mod 6;
+  MapTiles.DrawIconAnimSprite(wx, wy, GameVars.gFacing, wildAnimFrame mod 2,
+                              wildAnimFrame div 2 + 9);
+  wildAnimFrame := (wildAnimFrame + 1) mod 6;
   Blit.FlushView;
 end;
 
@@ -135,6 +142,11 @@ begin
       MapView.DisplayWildMapView;
     end;
   end;
+end;
+
+procedure ResetGame;
+begin
+  wildAnimFrame := 0;
 end;
 
 end.
