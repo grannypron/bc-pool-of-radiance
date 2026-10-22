@@ -19,7 +19,7 @@ procedure ResetGameState;
 
 implementation
 
-uses Types, Crt, C_Area, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
+uses Types, Crt, C_AREA, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
   VidOps, Stats, Explored, MapNotes{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -282,8 +282,8 @@ begin
   GDVars.virtualDisk := 1;
   GDVars.prevVirtualDisk := 1;
   GDVars.automapOn := False;
-  GDVars.locTypePrev := C_Area.LOC_3D_MAP;
-  GDVars.gLocType := C_Area.LOC_3D_MAP;
+  GDVars.locTypePrev := C_AREA.LOC_3D_MAP;
+  GDVars.gLocType := C_AREA.LOC_3D_MAP;
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   GDVars.wildAnimFrame := 0;
   GDVars.vertTop := 1;

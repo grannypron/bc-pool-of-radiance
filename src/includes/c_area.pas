@@ -1,6 +1,6 @@
 { The party's location types with the LOC_ prefix: a 3-D map or one of the three wildernesses. }
 {$I COMPILER.INC}
-unit C_Area;
+unit C_AREA;
 
 interface
 

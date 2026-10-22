@@ -16,7 +16,7 @@ var
 
 implementation
 
-uses Types, Crt, C_Area, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
+uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
   C_Keys, C_Level, C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
@@ -305,7 +305,7 @@ var
 begin
   GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
   case GDVars.gLocType of
-    C_Area.LOC_3D_MAP: begin
+    C_AREA.LOC_3D_MAP: begin
          done := False;
          repeat
            MenuCore.arrowsToCaller := True;
@@ -375,8 +375,8 @@ begin
            CharDisp.PrintMiscInfo;
          until done;
        end;
-    C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST: begin
-        if GDVars.locTypePrev < C_Area.LOC_WILD_WEST then begin
+    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
+        if GDVars.locTypePrev < C_AREA.LOC_WILD_WEST then begin
           MapTiles.LoadIconAnim('ICON', 0, 9);
           MapTiles.LoadIconAnim('ICON', 1, 10);
           MapTiles.LoadIconAnim('ICON', 2, 11);
@@ -459,7 +459,7 @@ var
 begin
   moved := False;
   case GDVars.gLocType of
-    C_Area.LOC_3D_MAP: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
+    C_AREA.LOC_3D_MAP: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
          case View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) of
            1: moved := True;
            2: begin
@@ -513,7 +513,7 @@ begin
          CharDisp.PrintMiscInfo;
        end else
          GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
-    C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
+    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
             Explore.MovePartyWilderness;
             CharDisp.PrintMiscInfo;
           end else

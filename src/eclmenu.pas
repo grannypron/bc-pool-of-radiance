@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_Area, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_Dir,
+uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -260,7 +260,7 @@ begin
       flags[0] := True;
       GDVars.sprShown := True;
     end;
-    if GDVars.gLocType = C_Area.LOC_3D_MAP then
+    if GDVars.gLocType = C_AREA.LOC_3D_MAP then
       Portrait.Show3DSprite(d3, GDVars.animData)
     else
       Portrait.Show3DSprite(2, GDVars.animData);
@@ -269,7 +269,7 @@ begin
     if picIdShown = GDVars.zone1^[C_Gbvm.PIC_LOADING] then
       Exit;
   if dist <> 0 then Exit;
-  if GDVars.gLocType <> C_Area.LOC_3D_MAP then Exit;
+  if GDVars.gLocType <> C_AREA.LOC_3D_MAP then Exit;
   if (GDVars.inEncMenu <> 0) and (GDVars.monsterPics = 0) then Exit;
   picIdShown := Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]);
   GDVars.eclGraphics := True;

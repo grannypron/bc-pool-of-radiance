@@ -9,7 +9,7 @@ procedure CombatStart;
 
 implementation
 
-uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
+uses Types, Crt, C_AREA, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
@@ -525,8 +525,8 @@ begin
   FillChar(GDVars.arenaPtr^.cells, SizeOf(GDVars.arenaPtr^.cells), 23);
   mapX := GDVars.zone0^.partyX.lo;
   mapY := GDVars.zone0^.partyY.lo;
-  if GDVars.gLocType = C_Area.LOC_WILD_CENTRAL then Inc(mapX, 13);
-  if GDVars.gLocType = C_Area.LOC_WILD_EAST then Inc(mapX, 26);
+  if GDVars.gLocType = C_AREA.LOC_WILD_CENTRAL then Inc(mapX, 13);
+  if GDVars.gLocType = C_AREA.LOC_WILD_EAST then Inc(mapX, 26);
   terrainChar := GDConsts.wildMap[mapY, mapX];
   CombatSt.PlaceRiver;
   CombatSt.PlaceTrees;
@@ -540,7 +540,7 @@ procedure LoadCombatTileSet;
 begin
   { combat's terrain is tiles 0..39 of the first set; the second is loaded again when next needed }
   MapTiles.FreeSecondSheet;
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  if GDVars.gLocType = C_AREA.LOC_3D_MAP then
     MapTiles.Load24x24Set('DungCom', 0, 24)
   else
     MapTiles.Load24x24Set('WildCom', 0, 33);
@@ -549,7 +549,7 @@ begin
   GDVars.arenaPtr^.cursorOn := False;
   GDVars.arenaPtr^.cursorSize := 1;
   GDVars.arenaPtr^.distMode := 0;
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  if GDVars.gLocType = C_AREA.LOC_3D_MAP then
     CombatSt.BuildDungeonArena
   else
     CombatSt.BuildWildernessArena;
@@ -705,7 +705,7 @@ begin
           open := 0;
           for k := 1 to 3 do begin
             dir := GDConsts.ringDirTbl[teamDir[team], k];
-            if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
+            if (GDVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
               open := 1;
           end;
           if open <> 0 then
@@ -723,7 +723,7 @@ begin
         wallX := placeX[team] + GDVars.gMapX;
         wallY := placeY[team] + GDVars.gMapY;
         dir := GDConsts.ringDirTbl[teamDir[team], ring];
-        if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
+        if (GDVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
           baseQX := placeX[team] + GDConsts.dirDX[dir];
           baseQY := placeY[team] + GDConsts.dirDY[dir];
           legShift := 0;

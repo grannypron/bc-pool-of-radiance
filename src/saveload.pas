@@ -107,7 +107,7 @@ procedure FreeParty;
 
 implementation
 
-uses DiskRec, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
+uses DiskRec, Crt, C_AREA, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
@@ -625,9 +625,9 @@ begin
   GDVars.virtualDisk := Lo(GDVars.zone1^[C_Gbvm.DISK_NUM]);
   if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     GDVars.virtualDisk := 1;
-  if GDVars.gLocType < C_Area.LOC_WILD_WEST then
+  if GDVars.gLocType < C_AREA.LOC_WILD_WEST then
     View3D.Load3DMap(GDVars.zone0^.mapId.lo);
-  if GDVars.gLocType > C_Area.LOC_3D_MAP then
+  if GDVars.gLocType > C_AREA.LOC_3D_MAP then
     MapTiles.LoadIconAnim('ICON', 0, 11)
   else
     for i := 1 to 3 do begin
@@ -682,7 +682,7 @@ begin
   SaveLoad.LoadSlot(QUICK_SLOT);
   { as CharGen.MainMenu does after a load: GameLoop keeps the loaded script }
   GDVars.loadedSave := 1;
-  GDVars.locTypePrev := C_Area.LOC_3D_MAP;
+  GDVars.locTypePrev := C_AREA.LOC_3D_MAP;
 end;
 
 { Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. Every

@@ -14,7 +14,7 @@ procedure ToolsMenu;
 
 implementation
 
-uses Crt, Types, C_Area, C_Dir, C_Keys, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
+uses Crt, Types, C_AREA, C_Dir, C_Keys, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
   Explored, EvtKind, CharEdit, MapNotes, StrUtil;
 
 const
@@ -172,8 +172,8 @@ end;
 { True in a 3D area; in the wilderness, which has its own map, it says so. }
 function OnAreaMap: Boolean;
 begin
-  OnAreaMap := GDVars.gLocType = C_Area.LOC_3D_MAP;
-  if GDVars.gLocType <> C_Area.LOC_3D_MAP then begin
+  OnAreaMap := GDVars.gLocType = C_AREA.LOC_3D_MAP;
+  if GDVars.gLocType <> C_AREA.LOC_3D_MAP then begin
     TextRend.DisplayAndPause(Yellow, 'The wilderness has its own map.');
     TextRend.ClearBottomLine;
   end;
@@ -182,7 +182,7 @@ end;
 { The Tools screen: the whole area's map in a 3D area, else the frame alone, and its title in the frame's top. }
 procedure DrawTools;
 begin
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  if GDVars.gLocType = C_AREA.LOC_3D_MAP then
     DrawMap
   else begin
     TextRend.ClearScreen;

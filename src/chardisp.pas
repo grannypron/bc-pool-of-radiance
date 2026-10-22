@@ -69,7 +69,7 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_Area, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
+uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
 
 var
@@ -611,12 +611,12 @@ begin
   info := '';
   x := GDVars.gMapX;
   y := GDVars.gMapY;
-  if GDVars.gLocType > C_Area.LOC_3D_MAP then begin
+  if GDVars.gLocType > C_AREA.LOC_3D_MAP then begin
     x := GDVars.zone0^.partyX.lo;
     y := GDVars.zone0^.partyY.lo;
-    if GDVars.gLocType = C_Area.LOC_WILD_CENTRAL then
+    if GDVars.gLocType = C_AREA.LOC_WILD_CENTRAL then
       Inc(x, 13);
-    if GDVars.gLocType = C_Area.LOC_WILD_EAST then
+    if GDVars.gLocType = C_AREA.LOC_WILD_EAST then
       Inc(x, 26);
   end;
   hrs := StrUtil.ZeroPad2(GDVars.zone0^.clock.hour);

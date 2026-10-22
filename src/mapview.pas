@@ -14,7 +14,7 @@ procedure DisplayWildMapView;
 
 implementation
 
-uses Crt, C_Area, GDConsts, GDVars, Wilds, View3D, Blit, MapTiles;
+uses Crt, C_AREA, GDConsts, GDVars, Wilds, View3D, Blit, MapTiles;
 
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
@@ -24,7 +24,7 @@ var
   wx: ShortInt;
   wy: Byte;
 begin
-  if not (GDVars.gLocType in [C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST]) then Exit;
+  if not (GDVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST]) then Exit;
   wx := GDConsts.wildColOfs[GDVars.gLocType] + GDVars.zone0^.partyX.value;
   if wx < 2 then
   else if wx < 42 then wx := 2
@@ -86,9 +86,9 @@ var
 
 begin
   loc := GDVars.gLocType;
-  if GDVars.zone0^.view3dFlag <> 0 then loc := C_Area.LOC_3D_MAP;
+  if GDVars.zone0^.view3dFlag <> 0 then loc := C_AREA.LOC_3D_MAP;
   case loc of
-    C_Area.LOC_3D_MAP: begin
+    C_AREA.LOC_3D_MAP: begin
       GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
       if GDVars.eventAtCell > $7F then
         GDVars.colorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.alternateSkyColor and $0F]
@@ -104,7 +104,7 @@ begin
       if GDVars.zone0^.noAutomap <> 0 then GDVars.automapOn := False;
       View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
     end;
-    C_Area.LOC_WILD_WEST..C_Area.LOC_WILD_EAST: begin
+    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
       wx := GDConsts.wildColOfs[loc] + GDVars.zone0^.partyX.value - 1 - 1;
       if wx < 0 then wx := 0;
       { last column origin for the 5-wide view }

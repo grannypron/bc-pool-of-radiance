@@ -13,7 +13,7 @@ procedure GameLoop;
 
 implementation
 
-uses Types, C_Area, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
+uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
@@ -65,7 +65,7 @@ const
   PROG_TRAINING = 0;
   PROG_WIN_GAME = 8;
   PROG_CAMP = 9;
-  { The ids of the three wilderness scripts; each selects a gLocType (C_Area's LOC_WILD_WEST, LOC_WILD_CENTRAL or
+  { The ids of the three wilderness scripts; each selects a gLocType (C_AREA's LOC_WILD_WEST, LOC_WILD_CENTRAL or
     LOC_WILD_EAST). Their values equal C_Ecl.IF_GT, C_Ecl.IF_LE and C_Ecl.IF_GE, but they are script ids, not opcodes. }
   { location type 2, Western Wilderness }
   WILD_WEST_SCRIPT = 25;
@@ -379,7 +379,7 @@ begin
     end else
       EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]), picId);
   end else begin
-    if ((GDVars.locTypePrev > C_Area.LOC_3D_MAP) or (GDVars.gLocType = C_Area.LOC_3D_MAP)) and
+    if ((GDVars.locTypePrev > C_AREA.LOC_3D_MAP) or (GDVars.gLocType = C_AREA.LOC_3D_MAP)) and
         (GDVars.eclGraphics or GDVars.sprShown) then begin
       MapView.DisplayMapView;
       GDVars.eclGraphics := False;
@@ -926,7 +926,7 @@ begin
     if GDVars.duelFlag then
       GDVars.duelFlag := False;
   end;
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  if GDVars.gLocType = C_AREA.LOC_3D_MAP then
     GDVars.ifcState := C_Ifc.INDOORS
   else
     GDVars.ifcState := C_Ifc.OUTDOORS;
@@ -1581,7 +1581,7 @@ begin
       EclMenu.EclMoveForward;
     { address $C018 }
     $4019:
-      if GDVars.gLocType = C_Area.LOC_3D_MAP then
+      if GDVars.gLocType = C_AREA.LOC_3D_MAP then
         GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   end;
 end;
@@ -1763,31 +1763,31 @@ begin
     { in GDVars, as in Curse, so removing it from the party moves it on (SSI kept its own copy, #759, #776) }
     GDVars.savedChar := GDVars.curChar;
     GDVars.locTypePrev := GDVars.gLocType;
-    GDVars.gLocType := C_Area.LOC_3D_MAP;
+    GDVars.gLocType := C_AREA.LOC_3D_MAP;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
     GDVars.ifcState := C_Ifc.INDOORS;
     if GDVars.zone0^.view3dFlag = 0 then
       case GDVars.eclScriptId of
         WILD_WEST_SCRIPT: begin
-          GDVars.gLocType := C_Area.LOC_WILD_WEST;
+          GDVars.gLocType := C_AREA.LOC_WILD_WEST;
           GDVars.ifcState := C_Ifc.OUTDOORS;
         end;
         WILD_CENTRAL_SCRIPT: begin
-          GDVars.gLocType := C_Area.LOC_WILD_CENTRAL;
+          GDVars.gLocType := C_AREA.LOC_WILD_CENTRAL;
           GDVars.ifcState := C_Ifc.OUTDOORS;
           if (GDVars.zone0^.yarashMissionDone = 254) and (GDVars.zone0^.yarashPyramidLeft = 0) then
             Ending.YarashComplete(True);
         end;
         WILD_EAST_SCRIPT: begin
-          GDVars.gLocType := C_Area.LOC_WILD_EAST;
+          GDVars.gLocType := C_AREA.LOC_WILD_EAST;
           GDVars.ifcState := C_Ifc.OUTDOORS;
         end;
       end;
-    if (GDVars.locTypePrev > C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP) then
+    if (GDVars.locTypePrev > C_AREA.LOC_3D_MAP) and (GDVars.gLocType = C_AREA.LOC_3D_MAP) then
       Border.DrawWindow(3, 3, 13, 13, 0, LightGreen, '');
-    if (((GDVars.locTypePrev > C_Area.LOC_3D_MAP) or (GDVars.gLocType = C_Area.LOC_3D_MAP)) and
+    if (((GDVars.locTypePrev > C_AREA.LOC_3D_MAP) or (GDVars.gLocType = C_AREA.LOC_3D_MAP)) and
         (filesLoaded <> 0)) or
-        ((GDVars.locTypePrev = C_Area.LOC_3D_MAP) and (GDVars.gLocType = C_Area.LOC_3D_MAP)) then
+        ((GDVars.locTypePrev = C_AREA.LOC_3D_MAP) and (GDVars.gLocType = C_AREA.LOC_3D_MAP)) then
       MapView.DisplayMapView;
     newEclFlag := 0;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
