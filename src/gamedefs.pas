@@ -57,66 +57,6 @@ const
   { AddCreatureToParty }
   { YarashComplete }
 
-const
-  { Random item templates }
-  randomItemTemplates: array[1..19] of Types.TRandomItemTemplate = (
-    { Template 1: Potion of Extra Healing }
-    (nameIds: (187, 167, 64); weight: 1; value: 800;
-     properties: (3, 3, 0)),
-    { Template 2: Potion of Giant Strength }
-    (nameIds: (239, 167, 64); weight: 1; value: 1100;
-     properties: (1, 82, 0)),
-    { Template 3: Potion of Healing }
-    (nameIds: (185, 167, 64); weight: 1; value: 400;
-     properties: (1, 85, 0)),
-    { Template 4: Potion of Speed }
-    (nameIds: (173, 167, 64); weight: 1; value: 450;
-     properties: (1, 80, 0)),
-    { Template 5: Scroll of Restoring Levels }
-    (nameIds: (240, 167, 65); weight: 1; value: 2100;
-     properties: (56, 56, 0)),
-    { Template 6: Ring of Feather Falling }
-    (nameIds: (238, 167, 66); weight: 1; value: 5000;
-     properties: (0, 27, 128)),
-    { Template 7: Wand of Lightning }
-    (nameIds: (157, 167, 69); weight: 1; value: 6000;
-     properties: (20, 51, 0)),
-    { Template 8: Wand of Magic Missiles }
-    (nameIds: (206, 167, 69); weight: 1; value: 11000;
-     properties: (30, 88, 0)),
-    { Template 9: Wand of Paralyzation }
-    (nameIds: (225, 167, 69); weight: 1; value: 5000;
-     properties: (20, 84, 0)),
-    { Template 10: Gauntlets of Ogre Power }
-    (nameIds: (226, 167, 100); weight: 10; value: 15000;
-     properties: (0, 38, 131)),
-    { Template 11: Keoghtum's Ointment }
-    (nameIds: (0, 111, 182); weight: 1; value: 10000;
-     properties: (5, 81, 0)),
-    { Template 12: Necklace of Missiles }
-    (nameIds: (228, 167, 119); weight: 1; value: 16000;
-     properties: (20, 87, 0)),
-    { Template 13: Cloak of Displacement }
-    (nameIds: (170, 167, 88); weight: 25; value: 17500;
-     properties: (0, 89, 133)),
-    { Template 14: Javelin of Lightning }
-    (nameIds: (157, 167, 21); weight: 20; value: 3000;
-     properties: (1, 83, 0)),
-    { Template 15: Wand of Fireballs }
-    (nameIds: (242, 167, 69); weight: 1; value: 5000;
-     properties: (20, 47, 0)),
-    { Template 16: Ring of Fire Resistance }
-    (nameIds: (205, 167, 66); weight: 1; value: 5000;
-     properties: (0, 61, 129)),
-    { Template 17: Ring of Invisibility }
-    (nameIds: (227, 167, 66); weight: 1; value: 7500;
-     properties: (0, 56, 139)),
-    { Template 18: Bag of Holding }
-    (nameIds: (186, 167, 73); weight: 150; value: 25000;
-     properties: (0, 0, 0)),
-    { Template 19: Cloak of Elvenkind }
-    (nameIds: (229, 167, 88); weight: 25; value: 6000;
-     properties: (0, 72, 134)));
   { AddSpellToList }
 
 const

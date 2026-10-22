@@ -26,7 +26,7 @@ const
     the scrolls by item type; lines past MAX_LINES are left off }
   MAX_LINES = 100;
   TEMPLATE_CODE = 256;
-  { the item type each of GameDefs.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
+  { the item type each of RandItem.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
     Levels, which RandItem never makes }
   TEMPLATE_KINDS: array[1..19] of Byte = (71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
   { the highest plus a weapon or armour takes here: name parts run to +5 (C_ITEM.NAME_PLUS_BASE) }
