@@ -249,7 +249,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_STATUS, C_Ifc, C_Align, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_Race, C_STATUS, C_Ifc, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
 const
@@ -399,15 +399,15 @@ end;
 { Protection from Evil (eff 8, 45) }
 procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL,
-                                                               C_Align.CHAOTIC_EVIL]);
+  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL,
+                                                               C_ALIGN.CHAOTIC_EVIL]);
 end;
 
 { Protection from Good (eff 9, 46) }
 procedure EffProtGood(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_GOOD, C_Align.NEUTRAL_GOOD,
-                                                               C_Align.CHAOTIC_GOOD]);
+  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_ALIGN.LAWFUL_GOOD, C_ALIGN.NEUTRAL_GOOD,
+                                                               C_ALIGN.CHAOTIC_GOOD]);
 end;
 
 { Resist Cold (eff 10) }

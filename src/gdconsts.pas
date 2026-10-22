@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_STATUS, C_Align, C_Gbvm, C_ABIL, C_SPELL;
+uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -749,7 +749,7 @@ const
     'Half-Orc',
     'Human');
   { Alignment names, indexed by TCharRecord.alignment. }
-  alignNames: array[C_Align.LAWFUL_GOOD..C_Align.CHAOTIC_EVIL] of string[16] = (
+  alignNames: array[C_ALIGN.LAWFUL_GOOD..C_ALIGN.CHAOTIC_EVIL] of string[16] = (
     'Lawful Good',
     'Lawful Neutral',
     'Lawful Evil',
@@ -1954,52 +1954,52 @@ const
     neutral nor the thief's LG and CG. Druid and monk are not offered at creation and keep SSI's rows. }
   alignByClass: array[0..16] of Types.TRuleClassAlignments = (
     { cleric }
-    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
-                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
     { druid }
-    (count: 5; alignments: (C_Align.LN, C_Align.NG, C_Align.TN, C_Align.NE, C_Align.CN, 0, 0, 0, 0)),
+    (count: 5; alignments: (C_ALIGN.LN, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE, C_ALIGN.CN, 0, 0, 0, 0)),
     { fighter }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
     { paladin }
-    (count: 1; alignments: (C_Align.LG, 0, 0, 0, 0, 0, 0, 0, 0)),
+    (count: 1; alignments: (C_ALIGN.LG, 0, 0, 0, 0, 0, 0, 0, 0)),
     { ranger }
-    (count: 3; alignments: (C_Align.LG, C_Align.NG, C_Align.CG, 0, 0, 0, 0, 0, 0)),
+    (count: 3; alignments: (C_ALIGN.LG, C_ALIGN.NG, C_ALIGN.CG, 0, 0, 0, 0, 0, 0)),
     { magic-user }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
     { thief }
-    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
-                            C_Align.CN, C_Align.CE, 0, 0)),
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)),
     { monk }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
     { cleric/fighter }
-    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
-                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
     { cleric/fighter/magic-user }
-    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
-                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
     { cleric/ranger }
-    (count: 3; alignments: (C_Align.LG, C_Align.NG, C_Align.CG, 0, 0, 0, 0, 0, 0)),
+    (count: 3; alignments: (C_ALIGN.LG, C_ALIGN.NG, C_ALIGN.CG, 0, 0, 0, 0, 0, 0)),
     { cleric/magic-user }
-    (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
-                            C_Align.CG, C_Align.CN, C_Align.CE, 0)),
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
     { cleric/thief }
-    (count: 6; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE, C_Align.CN,
-                            C_Align.CE, 0, 0, 0)),
+    (count: 6; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE, C_ALIGN.CN,
+                            C_ALIGN.CE, 0, 0, 0)),
     { fighter/magic-user }
-    (count: 9; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN,
-                            C_Align.NE, C_Align.CG, C_Align.CN, C_Align.CE)),
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
     { fighter/thief }
-    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
-                            C_Align.CN, C_Align.CE, 0, 0)),
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)),
     { fighter/magic-user/thief }
-    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
-                            C_Align.CN, C_Align.CE, 0, 0)),
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)),
     { magic-user/thief }
-    (count: 7; alignments: (C_Align.LN, C_Align.LE, C_Align.NG, C_Align.TN, C_Align.NE,
-                            C_Align.CN, C_Align.CE, 0, 0)));
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)));
   conBonusTbl: array[3..25] of ShortInt = (
     -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop

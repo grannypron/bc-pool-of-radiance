@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TProtect;
 
-uses Types, C_Effect, C_Cond, C_Align, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_Effect, C_Cond, C_ALIGN, GDVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 200;
@@ -101,10 +101,10 @@ begin
   GDVars.effectFns[C_Effect.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
   { out of combat any carrier is in range }
   GDVars.ifcState := 0;
-  att := NewCreature(1, C_Align.CHAOTIC_EVIL);
-  def := NewCreature(0, C_Align.LAWFUL_GOOD);
-  ally := NewCreature(0, C_Align.LAWFUL_GOOD);
-  foe := NewCreature(1, C_Align.LAWFUL_GOOD);
+  att := NewCreature(1, C_ALIGN.CHAOTIC_EVIL);
+  def := NewCreature(0, C_ALIGN.LAWFUL_GOOD);
+  ally := NewCreature(0, C_ALIGN.LAWFUL_GOOD);
+  foe := NewCreature(1, C_ALIGN.LAWFUL_GOOD);
   GDVars.creatureList := def;
   def^.nextCharAddr := ally;
   ally^.nextCharAddr := foe;
@@ -115,9 +115,9 @@ begin
   TestKit.CheckEqualsL(0, SaveBonus, 'no protection, no bonus');
   FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'Protection from Evil: +2 to saves against an evil attacker');
-  att^.alignment := C_Align.TRUE_NEUTRAL;
+  att^.alignment := C_ALIGN.TRUE_NEUTRAL;
   TestKit.CheckEqualsL(0, SaveBonus, 'and none against a neutral one');
-  att^.alignment := C_Align.CHAOTIC_EVIL;
+  att^.alignment := C_ALIGN.CHAOTIC_EVIL;
   FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'two spells give +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit, off the rolled d20');
@@ -126,10 +126,10 @@ begin
 
   { a script's attack has no attacker: curChar is a party member, evil or not }
   FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
-  ally^.alignment := C_Align.CHAOTIC_EVIL;
+  ally^.alignment := C_ALIGN.CHAOTIC_EVIL;
   TestKit.CheckEqualsL(100, ScriptAttackHighest(ally), 'no penalty to a script''s attack');
   TestKit.CheckEqualsL(98, ScriptAttackHighest(att), 'which an evil foe would have');
-  ally^.alignment := C_Align.LAWFUL_GOOD;
+  ally^.alignment := C_ALIGN.LAWFUL_GOOD;
   ClearEffects(def);
   FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 0, False);
 
@@ -158,7 +158,7 @@ begin
   ClearEffects(ally);
 
   { Protection from Good, the same way }
-  att^.alignment := C_Align.LAWFUL_GOOD;
+  att^.alignment := C_ALIGN.LAWFUL_GOOD;
   FxEngine.AddEffect(def, C_Effect.PROT_GOOD, 10, 1, False);
   FxEngine.AddEffect(ally, C_Effect.PROT_GOOD_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'Protection from Good: +2 against a good attacker, once');

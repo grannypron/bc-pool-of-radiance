@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_SPELL, C_Class, C_Align, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
+uses Types, C_Level, C_Race, C_Save, C_SPELL, C_Class, C_ALIGN, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -65,7 +65,7 @@ begin
   noTn := True;
   for cls := C_Class.CLERIC to C_Class.MAGE_THIEF do
     for p := 1 to 3 do
-      if (GDConsts.classParts[cls].values[p] = C_Level.CLERIC) and AlignAllowed(cls, C_Align.TN) then
+      if (GDConsts.classParts[cls].values[p] = C_Level.CLERIC) and AlignAllowed(cls, C_ALIGN.TN) then
         noTn := False;
   TestKit.Check(noTn, 'no class with a cleric part can be true neutral');
   subset := True;
@@ -84,7 +84,7 @@ begin
   TestKit.CheckEqualsL(8, GDConsts.alignByClass[C_Class.CLERIC].count, 'a cleric has 8 alignments');
   TestKit.CheckEqualsL(6, GDConsts.alignByClass[C_Class.CLERIC_THIEF].count,
                        'a cleric/thief has 6: neither true neutral nor LG or CG');
-  TestKit.Check(AlignAllowed(C_Class.THIEF, C_Align.TN), 'a thief can still be true neutral');
+  TestKit.Check(AlignAllowed(C_Class.THIEF, C_ALIGN.TN), 'a thief can still be true neutral');
 end;
 
 { A fresh character of race with no class levels. }

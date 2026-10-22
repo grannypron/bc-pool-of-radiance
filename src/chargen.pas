@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
-  C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -1244,14 +1244,14 @@ begin
                 Inc(nonNpc);
               if p^.classLevels[C_Level.RANGER] > 0 then
                 Inc(rangers);
-              if p^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL, C_Align.CHAOTIC_EVIL] then
+              if p^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL] then
                 hasEvil := True;
               if p^.classLevels[C_Level.PALADIN] > 0 then
                 paladin := p;
               p := p^.nextCharAddr;
             end;
             newPaladin := creature^.classLevels[C_Level.PALADIN] > 0;
-            newEvil := creature^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL, C_Align.CHAOTIC_EVIL];
+            newEvil := creature^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL];
             if (p = nil) and
                 ((newPaladin and hasEvil) or ((creature^.classLevels[C_Level.RANGER] > 0) and (rangers >= 3)) or
                  (newEvil and (paladin <> nil))) then begin
