@@ -49,6 +49,8 @@ const
   SLING = 47;
   LEATHER_ARMOR = 50;
   ARROW = 73;
+  { named by the armor class they give, not by their plus }
+  BRACERS = 77;
   { eff 117 "vulnerability to holy water" }
   HOLY_WATER_VIAL = 85;
   { eff 122 "mummy vulnerability to fire" }
@@ -65,6 +67,10 @@ const
   NAME_OF = 167;
   NAME_SILVER = 177;
   NAME_HOLDING = 186;
+  { the bracers' "AC 2", "AC 6" and "AC 4" }
+  NAME_AC_2 = 220;
+  NAME_AC_6 = 221;
+  NAME_AC_4 = 222;
   { scrolls: NAME_WITH_1_SPELL and up name their spell count }
   NAME_WITH_1_SPELL = 210;
   NAME_SPIRITUAL = 243;

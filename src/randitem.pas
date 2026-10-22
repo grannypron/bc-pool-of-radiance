@@ -118,14 +118,14 @@ begin
                    nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
                  end;
             { bracers: plus 1..3 becomes 4/6/8, named AC 6/4/2 }
-            77: begin
+            C_Item.BRACERS: begin
                    nameIds[3] := 79;
                    nameIds[2] := C_Item.NAME_OF;
                    plus := plus * 2 + 2;
                    case plus of
-                     4: nameIds[1] := 221;
-                     6: nameIds[1] := 222;
-                     8: nameIds[1] := 220;
+                     4: nameIds[1] := C_Item.NAME_AC_6;
+                     6: nameIds[1] := C_Item.NAME_AC_4;
+                     8: nameIds[1] := C_Item.NAME_AC_2;
                    end;
                  end;
             93: begin
@@ -203,7 +203,7 @@ begin
             55, 56: value := Word(plus) * 3500;
             57: value := Word(plus) * 4000;
             58: value := Word(plus) * 5000;
-            77: value := Word(plus) * 3000;
+            C_Item.BRACERS: value := Word(plus) * 3000;
             else value := Word(plus) * 2000;
           end;
         end;

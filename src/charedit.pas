@@ -32,6 +32,12 @@ const
   TEMPLATE_KINDS: array[1..19] of Byte = (71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
   { the highest plus a weapon or armour takes here: name parts run to +5 (C_Item.NAME_PLUS_BASE) }
   PLUS_LAST = 5;
+  { the bracers' choices, AC 6, 4 and 2: their plus, as RandItem gives it, and their name part; each is worth 3000 gp a
+    point of plus }
+  BRACERS_LAST = 3;
+  BRACERS_PLUS: array[1..BRACERS_LAST] of Byte = (4, 6, 8);
+  BRACERS_NAME: array[1..BRACERS_LAST] of Byte = (C_Item.NAME_AC_6, C_Item.NAME_AC_4, C_Item.NAME_AC_2);
+  BRACERS_GP = 3000;
 
 type
   THeld = array[0..7] of ShortInt;
@@ -254,7 +260,8 @@ begin
 end;
 
 { Choose a weapon's or armour's plus, 0 to PLUS_LAST from +1, with Left and Right, its name and value following; False when
-  left with Exit. Items whose plus is not a name part (bracers) take RandItem's. }
+  left with Exit. Bracers, named by their AC rather than their plus, choose AC 6, 4 or 2 the same way, from AC 6
+  (#772). }
 function ChoosePlus(item: Types.PItemRec): Boolean;
 var
   pos: Byte;
@@ -262,7 +269,19 @@ var
   per: Word;
   key: Char;
   ext: Boolean;
+  ac: Byte;
+
+  procedure SetBracers;
+  begin
+    item^.plus := BRACERS_PLUS[ac];
+    item^.nameIds[1] := BRACERS_NAME[ac];
+    item^.value := Word(item^.plus) * BRACERS_GP;
+  end;
+
 begin
+  ac := 1;
+  if item^.itemType = C_Item.BRACERS then
+    SetBracers;
   pos := 0;
   for i := 1 to 3 do
     if (item^.nameIds[i] > C_Item.NAME_PLUS_BASE) and (item^.nameIds[i] <= C_Item.NAME_PLUS_BASE + PLUS_LAST) then
@@ -280,7 +299,9 @@ begin
     Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
     TextRend.DisplayString(NAME_COL, LEVEL_ROW, White, Named(item));
     if pos <> 0 then
-      TextRend.DisplayString(NAME_COL, LEVEL_ROW + 2, LightGreen, 'Left and Right change its plus.');
+      TextRend.DisplayString(NAME_COL, LEVEL_ROW + 2, LightGreen, 'Left and Right change its plus.')
+    else if item^.itemType = C_Item.BRACERS then
+      TextRend.DisplayString(NAME_COL, LEVEL_ROW + 2, LightGreen, 'Left and Right change its AC.');
     MenuCore.arrowsToCaller := True;
     key := MenuCore.MenuHorizontal('Add: ', 'Take Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext and (pos <> 0) then begin
@@ -293,6 +314,12 @@ begin
       else
         item^.nameIds[pos] := C_Item.NAME_PLUS_BASE + item^.plus;
       item^.value := per * Word(item^.plus);
+    end else if ext and (item^.itemType = C_Item.BRACERS) then begin
+      if (key = C_Keys.LEFT) and (ac > 1) then
+        Dec(ac);
+      if (key = C_Keys.RIGHT) and (ac < BRACERS_LAST) then
+        Inc(ac);
+      SetBracers;
     end;
   until (not ext) and (key in ['T', 'E', C_Keys.NONE]);
   ChoosePlus := key = 'T';
