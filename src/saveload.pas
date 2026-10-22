@@ -23,10 +23,11 @@ procedure SaveCharlist(list: Types.PItemRec);
 procedure LoadCharIconAnim(loading: Boolean);
 
 { fname='' -> single-character save: re-add the name to CHARLIST.TXT and write <saveDir><sanitized-name>.cha/.itm/.spc;
-  fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Old .itm/.spc files are erased first and
-  rewritten only for non-empty lists. Records are written raw, pointers included. The .mem file beside them is
-  rewritten the same way, holding the character's usual spells when it has any. A record, item or effect that cannot
-  be written (a full disk) is reported once on the bottom line, after every file has been tried and closed. }
+  fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Each is written to a temporary copy, and only
+  when all are whole are they put in place of the old ones; an empty item or effect list's old file is erased. The
+  .mem and .sts files beside them are rewritten then, holding the character's usual spells and statistics when it has
+  any. A set that cannot be written whole (a full disk) leaves the old files as they were and is reported on the bottom
+  line. }
 procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
 
 { Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
@@ -51,16 +52,19 @@ procedure LoadGame;
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
   Escape on the menu aborts, Exit in the description popup goes back to the menu), store wall slots, game speed, picture
   and music settings (SSI's copies, which loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT,
-  SaveChar each party member (the first 8) as CHRDATxN.sav, write the slot's description and the current area
-  (AreaName.CurrentArea) to SAVGAMx.INF, copy the session vault to the slot (Vault.CommitToSlot), delete their
-  single-character files (.mem included), set the recently-saved flag. The caller redraws the screen. }
+  each party member (the first 8) as CHRDATxN.sav, copy the session vault to the slot (Vault.CommitToSlot), and only
+  when all of them were written whole put them in place of the old save's; then write the slot's description and the
+  current area (AreaName.CurrentArea) to SAVGAMx.INF, delete the members' single-character files (.mem included) and
+  set the recently-saved flag. A save not written whole leaves the old one as it was and says so. The caller redraws
+  the screen. }
 procedure SaveGame;
 
 const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
   QUICK_SLOT = 'Q';
 
-{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say so on the bottom line. }
+{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say on the bottom line whether it
+  was saved. }
 procedure QuickSave;
 
 { True when QUICK_SLOT holds a save file big enough to load. }
@@ -97,18 +101,11 @@ type
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
 
-{ Create file name (record size 1) for writing, asking for the save disk until it can be. }
+{ Create file name's temporary copy (FileUtil.RewriteTemp) for writing, asking for the save disk until it can be. }
 procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
-var
-  ioRes: Integer;
 begin
-  repeat
-    Assign(f, name);
-    Rewrite(f, 1);
-    ioRes := IOResult;
-    if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
-  until ioRes = 0;
+  while not FileUtil.RewriteTemp(f, name) do
+    TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
 end;
 
 { A character's single-character files' path and base name, from its name: <saveDir><name>, sanitized for DOS. }
@@ -211,18 +208,24 @@ begin
   DaxIo.PopState;
 end;
 
-procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
+{ Erase the temporary copies WriteCharFiles (below) writes for <fn><ext>, those there are. }
+procedure DropCharFiles(fn: Types.TPathStr; ext: Types.TStr8);
+begin
+  FileUtil.DeleteFile(FileUtil.TempName(fn + ext));
+  FileUtil.DeleteFile(FileUtil.TempName(fn + '.itm'));
+  FileUtil.DeleteFile(FileUtil.TempName(fn + '.spc'));
+end;
+
+{ Write creature's record, items and effects to the temporary copies (FileUtil.TempName) of <fn><ext>, <fn>.itm and
+  <fn>.spc, an empty list's file not at all: True when every one is whole, else none is left. The records go out with
+  their pointers cleared: loading rebuilds the lists from the .itm and .spc files, and the equipment slots from the
+  items, so their values meant nothing, and a heap address made two saves of the same game differ. }
+function WriteCharFiles(creature: Types.PCharRecord; fn: Types.TPathStr; ext: Types.TStr8): Boolean;
 var
   f: file;
-  fn: Types.TPathStr;
-  ext: String[4];
-  res: Word;
+  ok: Boolean;
   item: Types.PItemRec;
   effect: Types.PEffectRec;
-  list: Types.PItemRec;
-  p: Types.PItemRec;
-  ioRes: Integer;
-  ok: Boolean;
   { the record as written: a copy with its pointers cleared, as below for each item and effect }
   rec: Types.TCharRecord;
   itemRec: Types.TItemRec;
@@ -231,6 +234,82 @@ var
   recDisk: DiskRec.TCharDisk;
   itemDisk: DiskRec.TItemDisk;
   effectDisk: DiskRec.TEffectDisk;
+begin
+  SaveLoad.RewriteSaveFile(f, fn + ext);
+  rec := creature^;
+  rec.effectsAddr := nil;
+  rec.itemsAddr := nil;
+  rec.nextCharAddr := nil;
+  rec.combatAddr := nil;
+  FillChar(rec.equipped, SizeOf(rec.equipped), 0);
+  DiskRec.CharToDisk(rec, recDisk);
+  ok := True;
+  FileUtil.WriteChecked(f, recDisk, DiskRec.CHAR_DISK_BYTES, ok);
+  ok := FileUtil.CloseTemp(f, fn + ext, ok);
+  if ok and (creature^.itemsAddr <> nil) then begin
+    ok := FileUtil.RewriteTemp(f, fn + '.itm');
+    if ok then begin
+      item := creature^.itemsAddr;
+      while ok and (item <> nil) do begin
+        itemRec := item^;
+        itemRec.next := nil;
+        DiskRec.ItemToDisk(itemRec, itemDisk);
+        FileUtil.WriteChecked(f, itemDisk, DiskRec.ITEM_DISK_BYTES, ok);
+        item := item^.next;
+      end;
+      ok := FileUtil.CloseTemp(f, fn + '.itm', ok);
+    end;
+  end;
+  if ok and (creature^.effectsAddr <> nil) then begin
+    ok := FileUtil.RewriteTemp(f, fn + '.spc');
+    if ok then begin
+      effect := creature^.effectsAddr;
+      while ok and (effect <> nil) do begin
+        effectRec := effect^;
+        effectRec.next := nil;
+        DiskRec.EffectToDisk(effectRec, effectDisk);
+        FileUtil.WriteChecked(f, effectDisk, DiskRec.EFFECT_DISK_BYTES, ok);
+        effect := effect^.next;
+      end;
+      ok := FileUtil.CloseTemp(f, fn + '.spc', ok);
+    end;
+  end;
+  if not ok then
+    SaveLoad.DropCharFiles(fn, ext);
+  WriteCharFiles := ok;
+end;
+
+{ Put the copies WriteCharFiles wrote for creature in place of <fn><ext>, .itm and .spc (an empty list's old file is
+  erased), then write its .mem and .sts beside them: True when every copy was put in place. A record that is not put in
+  place takes none of the rest with it. }
+function PlaceCharFiles(creature: Types.PCharRecord; fn: Types.TPathStr; ext: Types.TStr8): Boolean;
+var
+  ok: Boolean;
+begin
+  { a record that cannot replace the old one (a read-only file) leaves the old set as it was }
+  ok := FileUtil.PutInPlace(fn + ext);
+  if ok then begin
+    if creature^.itemsAddr <> nil then
+      ok := FileUtil.PutInPlace(fn + '.itm')
+    else
+      FileUtil.DeleteFile(fn + '.itm');
+    if creature^.effectsAddr <> nil then
+      ok := FileUtil.PutInPlace(fn + '.spc') and ok
+    else
+      FileUtil.DeleteFile(fn + '.spc');
+    UsualSpl.WriteUsualSpells(creature, fn);
+    Stats.WriteChar(creature, fn);
+  end else
+    SaveLoad.DropCharFiles(fn, ext);
+  PlaceCharFiles := ok;
+end;
+
+procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
+var
+  fn: Types.TPathStr;
+  ext: String[4];
+  list: Types.PItemRec;
+  p: Types.PItemRec;
 begin
   { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current party
     member's old line and then appends this character's name unmarked. }
@@ -250,65 +329,9 @@ begin
     ext := '.sav';
     fn := GDVars.dsSaveDirectory + fname;
   end;
-  SaveLoad.RewriteSaveFile(f, fn + ext);
-  { a write that fails (a full disk) is reported once, below, after every file has been tried and closed. The records
-    go out with their pointers cleared: loading rebuilds the lists from the .itm and .spc files, and the equipment
-    slots from the items, so their values meant nothing, and a heap address made two saves of the same game differ. }
-  rec := creature^;
-  rec.effectsAddr := nil;
-  rec.itemsAddr := nil;
-  rec.nextCharAddr := nil;
-  rec.combatAddr := nil;
-  FillChar(rec.equipped, SizeOf(rec.equipped), 0);
-  DiskRec.CharToDisk(rec, recDisk);
-  BlockWrite(f, recDisk, DiskRec.CHAR_DISK_BYTES, res);
-  ok := (IOResult = 0) and (res = DiskRec.CHAR_DISK_BYTES);
-  Close(f);
-  ioRes := IOResult;
-  FileUtil.DeleteFile(fn + '.itm');
-  if creature^.itemsAddr <> nil then begin
-    Assign(f, fn + '.itm');
-    Rewrite(f, 1);
-    if IOResult = 0 then begin
-      item := creature^.itemsAddr;
-      while item <> nil do begin
-        itemRec := item^;
-        itemRec.next := nil;
-        DiskRec.ItemToDisk(itemRec, itemDisk);
-        BlockWrite(f, itemDisk, DiskRec.ITEM_DISK_BYTES, res);
-        if (IOResult <> 0) or (res <> DiskRec.ITEM_DISK_BYTES) then
-          ok := False;
-        item := item^.next;
-      end;
-      Close(f);
-      ioRes := IOResult;
-    end else
-      ok := False;
-  end;
-  FileUtil.DeleteFile(fn + '.spc');
-  if creature^.effectsAddr <> nil then begin
-    Assign(f, fn + '.spc');
-    Rewrite(f, 1);
-    if IOResult = 0 then begin
-      effect := creature^.effectsAddr;
-      while effect <> nil do begin
-        effectRec := effect^;
-        effectRec.next := nil;
-        DiskRec.EffectToDisk(effectRec, effectDisk);
-        BlockWrite(f, effectDisk, DiskRec.EFFECT_DISK_BYTES, res);
-        if (IOResult <> 0) or (res <> DiskRec.EFFECT_DISK_BYTES) then
-          ok := False;
-        effect := effect^.next;
-      end;
-      Close(f);
-      ioRes := IOResult;
-    end else
-      ok := False;
-  end;
-  if not ok then
+  { a write that fails (a full disk) leaves the old files as they were }
+  if not (SaveLoad.WriteCharFiles(creature, fn, ext) and SaveLoad.PlaceCharFiles(creature, fn, ext)) then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.');
-  UsualSpl.WriteUsualSpells(creature, fn);
-  Stats.WriteChar(creature, fn);
 end;
 
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
@@ -599,16 +622,29 @@ begin
   GDVars.locTypePrev := C_Area.LOC_3D_MAP;
 end;
 
-{ Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. }
-procedure SaveToSlot(letter: Char; desc: SaveMenu.TSlotDesc; area: SaveMenu.TSlotArea);
+{ CHRDAT<letter><n>: the base name of the n-th party member's files in saved game letter. }
+function MemberName(letter: Char; n: Byte): Types.TStr8;
+var
+  numStr: String[1];
+begin
+  Str(n, numStr);
+  MemberName := 'CHRDAT' + letter + numStr;
+end;
+
+{ Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. The
+  save file and the members' files are written to temporary copies first, and only when every one is whole, and the
+  vault was copied, are they put in place of the old ones (FileUtil.PutInPlace); else the old save is left as it was and
+  the bottom line says the game was not saved. True when it was. }
+function SaveToSlot(letter: Char; desc: SaveMenu.TSlotDesc; area: SaveMenu.TSlotArea): Boolean;
 var
   names: TSaveNames;
   f: file;
   n: Byte;
+  count: Byte;
   p: Types.PCharRecord;
-  numStr: String[1];
   walls: Types.TGbvmSavedWalls;
-  vaultCopied: Boolean;
+  fn: Types.TPathStr;
+  ok: Boolean;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
@@ -616,7 +652,8 @@ begin
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
   SaveMenu.CheckSaveDir;
-  SaveLoad.RewriteSaveFile(f, GDVars.dsSaveDirectory + 'savgam' + letter + '.dat');
+  fn := GDVars.dsSaveDirectory + 'savgam' + letter + '.dat';
+  SaveLoad.RewriteSaveFile(f, fn);
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   { the wall slots go in the file only (#651): in memory their words are the script's, the last of them the menu
@@ -629,49 +666,73 @@ begin
   GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
   GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;
   GDVars.zone1^[C_Gbvm.DISK_NUM] := GDVars.virtualDisk;
-  BlockWrite(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk));
-  BlockWrite(f, GDVars.zone0^, SizeOf(GDVars.zone0^));
+  ok := True;
+  FileUtil.WriteChecked(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), ok);
+  FileUtil.WriteChecked(f, GDVars.zone0^, SizeOf(GDVars.zone0^), ok);
   GDVars.zone0^.savedWalls := walls;
-  BlockWrite(f, GDVars.zone1^, SizeOf(GDVars.zone1^));
-  BlockWrite(f, GDVars.zone2^, SizeOf(GDVars.zone2^));
+  FileUtil.WriteChecked(f, GDVars.zone1^, SizeOf(GDVars.zone1^), ok);
+  FileUtil.WriteChecked(f, GDVars.zone2^, SizeOf(GDVars.zone2^), ok);
   { SSI's part of the script buffer, so the file stays SSI's size }
-  BlockWrite(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES);
+  FileUtil.WriteChecked(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES, ok);
   { the party's map position: SSI's five bytes }
-  BlockWrite(f, GDVars.gMapX, SizeOf(GDVars.gMapX));
-  BlockWrite(f, GDVars.gMapY, SizeOf(GDVars.gMapY));
-  BlockWrite(f, GDVars.gFacing, SizeOf(GDVars.gFacing));
-  BlockWrite(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead));
-  BlockWrite(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell));
-  BlockWrite(f, GDVars.gLocType, SizeOf(GDVars.gLocType));
-  BlockWrite(f, GDVars.ifcState, SizeOf(GDVars.ifcState));
+  FileUtil.WriteChecked(f, GDVars.gMapX, SizeOf(GDVars.gMapX), ok);
+  FileUtil.WriteChecked(f, GDVars.gMapY, SizeOf(GDVars.gMapY), ok);
+  FileUtil.WriteChecked(f, GDVars.gFacing, SizeOf(GDVars.gFacing), ok);
+  FileUtil.WriteChecked(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead), ok);
+  FileUtil.WriteChecked(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell), ok);
+  FileUtil.WriteChecked(f, GDVars.gLocType, SizeOf(GDVars.gLocType), ok);
+  FileUtil.WriteChecked(f, GDVars.ifcState, SizeOf(GDVars.ifcState), ok);
   { names holds 8, the most a party has }
-  n := 0;
+  count := 0;
   p := GDVars.creatureList;
-  while (p <> nil) and (n < Types.MAX_PARTY) do begin
-    Inc(n);
-    Str(n, numStr);
-    names[n] := 'CHRDAT' + letter + numStr;
+  while (p <> nil) and (count < Types.MAX_PARTY) do begin
+    Inc(count);
+    names[count] := SaveLoad.MemberName(letter, count);
     p := p^.nextCharAddr;
   end;
-  BlockWrite(f, n, SizeOf(n));
-  BlockWrite(f, names, SizeOf(names));
-  Close(f);
-  SaveMenu.WriteSlotInfo(letter, desc, area);
-  vaultCopied := Vault.CommitToSlot(letter);
-  Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
-  Explored.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map');
-  MapNotes.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts');
+  FileUtil.WriteChecked(f, count, SizeOf(count), ok);
+  FileUtil.WriteChecked(f, names, SizeOf(names), ok);
+  ok := FileUtil.CloseTemp(f, fn, ok);
+  { every member's copies, while all are whole }
   p := GDVars.creatureList;
   n := 0;
-  while (p <> nil) and (n < Types.MAX_PARTY) do begin
+  while ok and (n < count) do begin
     Inc(n);
-    Str(n, numStr);
-    SaveLoad.SaveChar(p, 'CHRDAT' + letter + numStr);
-    SaveLoad.EraseCharFiles(SaveLoad.CharFileBase(p^.name));
+    ok := SaveLoad.WriteCharFiles(p, GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
     p := p^.nextCharAddr;
   end;
-  GDVars.recentSaved := 1;
+  { the vault's own copy is put in place, or not, by itself }
+  ok := ok and Vault.CommitToSlot(letter);
+  if ok then begin
+    ok := FileUtil.PutInPlace(fn);
+    p := GDVars.creatureList;
+    for n := 1 to count do begin
+      if ok then begin
+        ok := SaveLoad.PlaceCharFiles(p, GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
+        { each member's single-character files: the save holds it now }
+        if ok then
+          SaveLoad.EraseCharFiles(SaveLoad.CharFileBase(p^.name));
+      end else
+        SaveLoad.DropCharFiles(GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
+      p := p^.nextCharAddr;
+    end;
+    SaveMenu.WriteSlotInfo(letter, desc, area);
+    Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
+    Explored.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map');
+    MapNotes.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts');
+  end else begin
+    FileUtil.DeleteFile(FileUtil.TempName(fn));
+    for n := 1 to count do
+      SaveLoad.DropCharFiles(GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
+  end;
   TextRend.ClearBottomLine;
+  if ok then
+    GDVars.recentSaved := 1
+  else begin
+    TextRend.DisplayAndPause(Yellow, 'The game was not saved.');
+    TextRend.ClearBottomLine;
+  end;
+  SaveToSlot := ok;
 end;
 
 procedure SaveGame;
@@ -681,6 +742,7 @@ var
   area: SaveMenu.TSlotArea;
   oldArea: SaveMenu.TSlotArea;
   ok: Boolean;
+  saved: Boolean;
 begin
   SaveMenu.CheckSaveDir;
   area := AreaName.CurrentArea;
@@ -693,14 +755,16 @@ begin
     ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
     ok := SaveMenu.AskDescription(letter, area, desc);
   until ok;
-  SaveLoad.SaveToSlot(letter, desc, area);
+  saved := SaveLoad.SaveToSlot(letter, desc, area);
 end;
 
 procedure QuickSave;
 begin
-  SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea);
-  TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
-  TextRend.ClearBottomLine;
+  { a save that failed has said so }
+  if SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea) then begin
+    TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
+    TextRend.ClearBottomLine;
+  end;
 end;
 
 procedure CheckFileElseQuit(name: Types.TPathStr);
