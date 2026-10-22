@@ -55,27 +55,6 @@ const
     4);
   { LoadCharIconAnim }
   { AddCreatureToParty }
-  { portrait-head selectors indexed by gender (male, female) and a 1d8 roll }
-  npcPortraitHeads: array[0..1, 1..8] of Byte = (
-    (1, 2, 3, 4, 5, 8, 11, 12),
-    (6, 7, 9, 10, 13, 14, 6, 7));
-  { cleric portrait-body selectors indexed by gender (male, female) and a 1d5 roll }
-  npcClericBodies: array[0..1, 1..5] of Byte = (
-    (2, 4, 2, 4, 2),
-    (2, 4, 8, 2, 4));
-  { fighter portrait-body selectors, also the fallback for classes other than cleric, magic-user and thief; indexed by
-    gender (male, female) and a 1d5 roll }
-  npcFighterBodies: array[0..1, 1..5] of Byte = (
-    (1, 3, 4, 5, 6),
-    (7, 9, 11, 7, 9));
-  { magic-user portrait-body selectors indexed by gender (male, female) and a 1d5 roll }
-  npcMageBodies: array[0..1, 1..5] of Byte = (
-    (2, 2, 2, 2, 2),
-    (8, 10, 12, 8, 10));
-  { thief portrait-body selectors indexed by gender (male, female) and a 1d5 roll }
-  npcThiefBodies: array[0..1, 1..5] of Byte = (
-    (6, 6, 6, 6, 6),
-    (8, 10, 8, 10, 8));
   { YarashComplete }
   { Wilderness tiles remapped Black to Blue and LightGray to Green. Bit 7 selects the second tile set (mapTilePtr2),
     the low 7 bits the frame. }
