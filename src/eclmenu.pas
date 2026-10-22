@@ -283,7 +283,7 @@ begin
       Exit;
   if dist <> 0 then Exit;
   if GameVars.gLocType <> C_AREA.LOC_3D_MAP then Exit;
-  if (GameVars.inEncMenu <> 0) and (GameVars.monsterPics = 0) then Exit;
+  if (GameVars.inEncMenu <> 0) and ((GameVars.portraitsAll = 0) or (GameVars.monsterPics = 0)) then Exit;
   picIdShown := Byte(GameVars.zone1^[C_GBVM.PIC_LOADING]);
   GameVars.eclGraphics := True;
   if GameVars.zone1^[C_GBVM.PIC_LOADING] = 255 then begin

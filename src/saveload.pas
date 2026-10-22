@@ -729,7 +729,8 @@ begin
     GameVars.zone0^.words[C_GBVM.WALLSLOT_SLOT + n] := GameVars.wallSetCache[n].symbolSlot;
   end;
   GameVars.zone0^.gameSpeed.value := GameVars.gameDelay;
-  GameVars.zone0^.settings := (1 - GameVars.musicOn) * 4 + GameVars.monsterPics * 2 + GameVars.portraitsOn;
+  GameVars.zone0^.settings := (1 - GameVars.musicOn) * 4 + GameVars.portraitsAll * GameVars.monsterPics * 2 +
+                               GameVars.portraitsAll * GameVars.portraitsOn;
   GameVars.zone1^[C_GBVM.DISK_NUM] := GameVars.virtualDisk;
   FileUtil.WriteChecked(f, GameVars.virtualDisk, SizeOf(GameVars.virtualDisk), ok);
   FileUtil.WriteChecked(f, GameVars.zone0^, SizeOf(GameVars.zone0^), ok);

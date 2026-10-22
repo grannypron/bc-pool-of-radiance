@@ -32,6 +32,22 @@ const
   MUSIC_TITLE = 21;
   { The battle music, a SoundDrv.PlayMusic tune. }
   MUSIC_BATTLE = 22;
+  { The sound effects the Settings screen turns on and off one kind at a time, as bits of GameVars.soundGroups
+    (SoundDrv.SoundEffect); the other effects, the spells' among them, follow the Sound setting alone (#835). }
+  GROUP_FOOTSTEPS = $01;
+  { a missile's flight and landing, and a ranged attack's hit or miss }
+  GROUP_RANGED = $02;
+  { a melee attack's hit or miss }
+  GROUP_MELEE = $04;
+  { a creature going down }
+  GROUP_DEATH = $08;
+  { the party walking into a wall }
+  GROUP_WALL = $10;
+  GROUPS_ALL = $1F;
+  { The tunes turned on and off one at a time, as bits of GameVars.musicGroups (SoundDrv.PlayMusic). }
+  GROUP_TITLE_MUSIC = $01;
+  GROUP_BATTLE_MUSIC = $02;
+  MUSIC_GROUPS_ALL = $03;
 
 implementation
 

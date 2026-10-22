@@ -121,7 +121,7 @@ begin
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
   TextRend.DisplayString(8, row, LightGreen, GameDefs.statusStrs[creature^.status]);
-  if (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
+  if (GameVars.portraitsAll <> 0) and (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
 

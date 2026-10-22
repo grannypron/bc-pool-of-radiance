@@ -1583,7 +1583,7 @@ begin
     { address $BA03 }
     $3A04: begin
       case EclVars.sndEffect of
-        8: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+        8: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
         10: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.ECL_CUE]);
       end;
     end;
@@ -1879,7 +1879,7 @@ begin
         MapView.DisplayMapView;
         { the step sound, which Explore.MovePartyForward3D has played too, but for a singleStep driver (POR-0170) }
         if (GameVars.gMapX <> GameVars.zone0^.previousX) or (GameVars.gMapY <> GameVars.zone0^.previousY) then
-          SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+          SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
         GameVars.eclGraphics := False;
         EclMenu.picDrawn := True;
         EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
