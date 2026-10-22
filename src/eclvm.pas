@@ -300,7 +300,7 @@ begin
   invHead := item;
   effHead := ef;
   count := EclVars.GetEclVar(2);
-  if count <= 0 then count := 1;
+  if count = 0 then count := 1;
   picId := EclVars.GetEclVar(3);
   nm := 'CPIC';
   MapTiles.LoadIconAnim(nm, picId, GDVars.gIconAnim);
@@ -834,27 +834,21 @@ procedure EclPartySurprise;
 var
   p: Types.PCharRecord;
   mod1: Byte;
-  mod2: Byte;
-  rangerDead: Byte;
   addr1: Word;
   addr2: Word;
 begin
   EclVars.LoadEclVars(2);
   p := GDVars.creatureList;
   mod1 := 0;
-  mod2 := 0;
-  rangerDead := 0;
   while p <> nil do begin
-    if (p^.charClass = C_Class.RANGER) or (p^.charClass = C_Class.CLERIC_RANGER) then begin
+    if (p^.charClass = C_Class.RANGER) or (p^.charClass = C_Class.CLERIC_RANGER) then
       mod1 := 1;
-      rangerDead := 1;
-    end;
     p := p^.nextCharAddr;
   end;
   addr1 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   addr2 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   EclVars.WriteGbvm(addr1, mod1);
-  EclVars.WriteGbvm(addr2, mod2);
+  EclVars.WriteGbvm(addr2, 0);
 end;
 
 { SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE, a
@@ -1070,7 +1064,6 @@ var
   pct: Byte;
   chance: Byte;
   p: Types.PCharRecord;
-  inv: Types.PItemRec;
   fraction: Real;
 begin
   EclVars.LoadEclVars(3);
@@ -1087,7 +1080,6 @@ begin
   end else begin
     p := GDVars.creatureList;
     while p <> nil do begin
-      inv := p^.itemsAddr;
       EclMenu.RobMoney(fraction, p);
       EclMenu.RobItems(chance, p);
       CharHlp.RecalcStats(p);
@@ -1134,7 +1126,7 @@ var
   end;
 
   { The party closes in and the menu comes round again, or with the monsters at hand it is a parley (3). }
-  procedure ApproachOrFight;
+  procedure ApproachOrParley;
   begin
     if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
       EclVars.WriteGbvm(address, 3)
@@ -1224,7 +1216,7 @@ begin
           end;
           2: EclVars.WriteGbvm(address, 2);
           3: ApproachOrWait;
-          4: ApproachOrFight;
+          4: ApproachOrParley;
         end;
       2:
         case sel of
@@ -1240,12 +1232,12 @@ begin
           0: EclVars.WriteGbvm(address, 1);
           1, 3: ApproachOrWait;
           2: EclVars.WriteGbvm(address, 2);
-          4: ApproachOrFight;
+          4: ApproachOrParley;
         end;
       4:
         case sel of
           0: EclVars.WriteGbvm(address, 1);
-          1, 3, 4: ApproachOrFight;
+          1, 3, 4: ApproachOrParley;
           2: EclVars.WriteGbvm(address, 2);
         end;
     end;
@@ -1332,11 +1324,9 @@ var
   p: Types.PCharRecord;
   q: Types.PCharRecord;
   savedCur: Types.PCharRecord;
-  dead19: Byte;
   allParty: Byte;
 begin
   savedCur := GDVars.curChar;
-  dead19 := 0;
   allParty := 0;
   p := GDVars.creatureList;
   EclVars.LoadEclVars(5);
@@ -1434,14 +1424,9 @@ end;
 procedure EclPrintRet;
 begin
   Inc(GDVars.eclIp);
-  if GDVars.protNewLine <> 0 then begin
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    Inc(GDVars.curRow);
-    GDVars.protNewLine := 0;
-  end else begin
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    Inc(GDVars.curRow);
-  end;
+  GDVars.curCol := C_Msg.TEXT_LEFT;
+  Inc(GDVars.curRow);
+  GDVars.protNewLine := 0;
 end;
 
 { CLEAR BOX: clear the 3D view box and note it for PROTECTION }
