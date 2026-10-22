@@ -15,8 +15,6 @@ const
   GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';
 
 const
-  { The game's one snake, the creature Snake Charm affects (#802): its charType, 14, the scorpions share }
-  SNAKE_NAME = 'GIANT SNAKE';
   { The monsters Charm Person and Hold Person affect, as the 1st-edition list names them (#792): rangerFoes' first
     RANGER_PERSONS (kobolds, goblins, orcs, hobgoblins and the gnoll) and these. CharHlp.IsPerson }
   RANGER_PERSONS = 9;
@@ -364,17 +362,6 @@ const
     (nameIds: (229, 167, 88); weight: 25; value: 6000;
      properties: (0, 72, 134)));
   { AddSpellToList }
-  { Spell-list headings indexed by spell level }
-  spellLevelNames: array[1..9] of String[9] = (
-    '1st Level',
-    '2nd Level',
-    '3rd Level',
-    '4th Level',
-    '5th Level',
-    '6th Level',
-    '7th Level',
-    '8th Level',
-    '9th Level');
 
 const
   { DisplayMapView }

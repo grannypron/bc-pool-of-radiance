@@ -306,6 +306,18 @@ end;
   SpellMark's character for mark (MARK_NONE, MARK_KNOWN or MARK_NOT_KNOWN). Stores spell and $7F in spellIds at the
   entry's selectable index. }
 procedure AddSpellToList(creature: Types.PCharRecord; spell, mark: Byte);
+const
+  { Spell-list headings indexed by spell level }
+  spellLevelNames: array[1..9] of String[9] = (
+    '1st Level',
+    '2nd Level',
+    '3rd Level',
+    '4th Level',
+    '5th Level',
+    '6th Level',
+    '7th Level',
+    '8th Level',
+    '9th Level');
 var
   p: Types.PItemRec;
   count: ShortInt;
@@ -335,7 +347,7 @@ begin
   end;
   p^.next := nil;
   if GameDefs.spellTable[spell and C_SPELL.ID_MASK].levelSp <> lastLevel then begin
-    p^.name := GameDefs.spellLevelNames[GameDefs.spellTable[spell and C_SPELL.ID_MASK].levelSp];
+    p^.name := spellLevelNames[GameDefs.spellTable[spell and C_SPELL.ID_MASK].levelSp];
     p^.inUse := 1;
     GetMem(p^.next, SizeOf(Types.TMenuNode));
     p := p^.next;
@@ -1020,10 +1032,13 @@ begin
   end;
 end;
 
-{ Snake Charm: rebuild the target list from GameVars.creatureList: snakes (GameDefs.SNAKE_NAME) whose hpCur still fits
+{ Snake Charm: rebuild the target list from GameVars.creatureList: snakes (SNAKE_NAME) whose hpCur still fits
   in a pool equal to the caster's hpCur, paid in list order. SSI's took charType 14, which the large and huge scorpions
   share with the giant snake (#802). }
 procedure SnakeCharmHandler;
+const
+  { The game's one snake, the creature Snake Charm affects (#802): its charType, 14, the scorpions share }
+  SNAKE_NAME = 'GIANT SNAKE';
 var
   pool: Byte;
   p: Types.PCharRecord;
@@ -1032,7 +1047,7 @@ begin
   GameVars.spellTargetCount := 0;
   p := GameVars.creatureList;
   while p <> nil do begin
-    if p^.name = GameDefs.SNAKE_NAME then
+    if p^.name = SNAKE_NAME then
       if pool >= p^.hpCur then begin
         pool := pool - p^.hpCur;
         Inc(GameVars.spellTargetCount);
