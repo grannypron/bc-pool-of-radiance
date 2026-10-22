@@ -136,6 +136,8 @@ const
   { Frames the whole area stays lit, then blank frames before the next cycle }
   PREVIEW_HOLD = 3;
   PREVIEW_GAP = 2;
+  { The most area cells the preview lights }
+  AREA_CELLS = 64;
 
 var
   { Spell-aim preview settings (StartSpellPreview). }
@@ -150,9 +152,9 @@ var
   aimSize: Byte;
   { The cells the spell reaches and the ring (frame of the cycle) each lights up on. }
   areaCount: Byte;
-  areaX: array[1..64] of ShortInt;
-  areaY: array[1..64] of ShortInt;
-  areaRing: array[1..64] of Byte;
+  areaX: array[1..AREA_CELLS] of ShortInt;
+  areaY: array[1..AREA_CELLS] of ShortInt;
+  areaRing: array[1..AREA_CELLS] of Byte;
   ringCount: Byte;
   { How many rings are lit now. }
   ringsShown: Byte;
@@ -258,7 +260,7 @@ end;
 { Add an area cell lighting up on the given ring; cells past the table's end are dropped. }
 procedure AddAreaCell(x, y: ShortInt; ring: Byte);
 begin
-  if areaCount < SizeOf(areaX) then begin
+  if areaCount < AREA_CELLS then begin
     Inc(areaCount);
     areaX[areaCount] := x;
     areaY[areaCount] := y;

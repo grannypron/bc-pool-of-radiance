@@ -169,7 +169,6 @@ var
   walk: Types.TPathReq;
   meter: Types.TPathReq;
   done: Boolean;
-  stepped: Boolean;
   maxDist: Word;
 begin
   if (x < 0) or (x > 49) or (y < 0) or (y > 24) or (tx < 0) or (tx > 49) or (ty < 0) or (ty > 24) then begin
@@ -202,7 +201,7 @@ begin
       WalkLine := False;
       Exit;
     end;
-    stepped := Pathing.NextPathStep(meter);
+    if Pathing.NextPathStep(meter) then ;
     done := not Pathing.NextPathStep(walk);
   until done;
   dist := walk.dist;

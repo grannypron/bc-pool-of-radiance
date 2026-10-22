@@ -267,14 +267,12 @@ end;
 procedure EndOfRound(var done: Boolean);
 var
   p: Types.PCharRecord;
-  cnt: Byte;
 begin
   { one minute }
   FxEngine.AdvanceTime(1, C_Time.MINUTES);
   Inc(GDVars.roundCounter);
   CbtActs.CalcHostileHpPercent;
   p := GDVars.creatureList;
-  cnt := 1;
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_Cond.ROUND_END, p);
     FxEngine.ConsiderStinkingCloud(p);
@@ -286,7 +284,6 @@ begin
         Stats.BledOut(p);
       end;
     end;
-    Inc(cnt);
     p := p^.nextCharAddr;
   end;
   if Combat.BandageDying(False) then
@@ -452,8 +449,7 @@ begin
            end;
       'Q': done := CharHlp.EndActions(creature);
       'B': begin
-             done := Combat.BandageDying(True);
-             { Bandage result is overwritten }
+             if Combat.BandageDying(True) then ;
              done := CharHlp.EndActions(creature);
            end;
       'S': Combat.SpeedMenu;
