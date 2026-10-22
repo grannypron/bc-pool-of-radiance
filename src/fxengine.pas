@@ -72,8 +72,8 @@ function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): 
 
 { d20 saving throw into GDVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
   creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
-  the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_Save.PARALYZE..SPELL (an
-  ECL script supplies it) is rolled as C_Save.SPELL. }
+  the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_SAVE.PARALYZE..SPELL (an
+  ECL script supplies it) is rolled as C_SAVE.SPELL. }
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
 
 { Allocate an effect node, append it to the creature's effect list (as the head if the list is empty) and fill in id,
@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP;
 
 const
@@ -450,7 +450,7 @@ begin
   if CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect) then Exit;
   if CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect) then Exit;
   { save vs. paralyzation, poison and death magic, with the Constitution's poison bonus }
-  saved := FxEngine.RollSavingThrow(creature, C_Save.PARALYZE, AbilAdj.ConPoisonSave(creature^.conCur));
+  saved := FxEngine.RollSavingThrow(creature, C_SAVE.PARALYZE, AbilAdj.ConPoisonSave(creature^.conCur));
   if saved then begin
     FxEngine.AddEffectWithMessage(creature, C_EFFECT.STINK_COUGH, 1, 255, False, False, saved, 'starts to cough');
     FxEngine.CallEffectHandler(C_EFFECT.STINK_COUGH, creature, nil, False);
@@ -538,8 +538,8 @@ end;
 
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
 begin
-  if (saveType < C_Save.PARALYZE) or (saveType > C_Save.SPELL) then
-    saveType := C_Save.SPELL;
+  if (saveType < C_SAVE.PARALYZE) or (saveType > C_SAVE.SPELL) then
+    saveType := C_SAVE.SPELL;
   GDVars.gSaveRoll := Dice.RollDice(1, 20);
   case GDVars.gSaveRoll of
     1: RollSavingThrow := False;

@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_NPC, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_LEVEL, Dice, Stats;
 
@@ -1030,7 +1030,7 @@ end;
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PARALYZE,
+  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_SAVE.PARALYZE,
                                   saveMod + AbilAdj.ConPoisonSave(GDVars.otherCreatureCurrentPtr^.conCur)) then
     if not EffHndlr.TouchImmune(GDVars.otherCreatureCurrentPtr, C_EFFECT.POISONED) then begin
       CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'is Poisoned', 10, False);
@@ -1045,7 +1045,7 @@ end;
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then
+  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_SAVE.PARALYZE, saveMod) then
     if not EffHndlr.TouchImmune(GDVars.otherCreatureCurrentPtr, C_EFFECT.PARALYSIS) then begin
       CharDisp.PrintNameStringAnim(GDVars.otherCreatureCurrentPtr, True, 'is Paralyzed');
       FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_EFFECT.PARALYSIS, minutes, 12, False);
@@ -1208,7 +1208,7 @@ begin
   while q <> nil do begin
     if q^.enabled <> 0 then
       if CharHlp.EnemyTeam(creature) = q^.hostile then begin
-        saved := FxEngine.RollSavingThrow(q, C_Save.SPELL, 0);
+        saved := FxEngine.RollSavingThrow(q, C_SAVE.SPELL, 0);
         case q^.levelHighest of
           0..3: FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYSIS, 0, 12, False, True, saved,
                                               'is paralyzed with fear');
@@ -1237,7 +1237,7 @@ begin
           Inc(bonus);
         if q^.race = C_RACE.HUMAN then
           Inc(bonus, 2);
-        saved := FxEngine.RollSavingThrow(q, C_Save.PARALYZE, bonus);
+        saved := FxEngine.RollSavingThrow(q, C_SAVE.PARALYZE, bonus);
         FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYSIS, Dice.RollDice(1, 4), 12, False, True, saved,
                                       'is paralyzed with fear');
       end;
@@ -1277,7 +1277,7 @@ begin
       item := item^.next;
     end;
   end;
-  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PETRIFY, 0) then
+  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_SAVE.PETRIFY, 0) then
     EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_STATUS.STONED, 'is Stoned');
 end;
 
@@ -1307,7 +1307,7 @@ begin
                                   CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr), 4, 45);
   FxEngine.AddEffectWithMessage(GDVars.otherCreatureCurrentPtr, C_EFFECT.CHARM, 0, CharHlp.Team(creature) * 128 + 12,
                                 True, True,
-                                FxEngine.RollSavingThrow(creature^.combatAddr^.other, C_Save.SPELL, -2),
+                                FxEngine.RollSavingThrow(creature^.combatAddr^.other, C_SAVE.SPELL, -2),
                                 'is charmed');
   if CharHlp.HasEffect(GDVars.otherCreatureCurrentPtr, C_EFFECT.CHARM, effect) then
     FxEngine.CallEffectHandler(C_EFFECT.CHARM, GDVars.otherCreatureCurrentPtr, effect, False);
@@ -1468,7 +1468,7 @@ end;
 { Con poison saving throw bonus (eff 90) }
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.gSaveType = C_Save.PARALYZE then begin
+  if GDVars.gSaveType = C_SAVE.PARALYZE then begin
     GDVars.gSaveRoll := GDVars.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
   end;
 end;
@@ -1523,7 +1523,7 @@ end;
 { Con spell/wand save bonus (eff 97), on EffConPsnSave's scale }
 procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.gSaveType = C_Save.SPELL) or (GDVars.gSaveType = C_Save.WAND) then begin
+  if (GDVars.gSaveType = C_SAVE.SPELL) or (GDVars.gSaveType = C_SAVE.WAND) then begin
     GDVars.gSaveRoll := GDVars.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
   end;
 end;
@@ -1683,7 +1683,7 @@ procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Bool
 begin
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
-  if GDVars.gSaveType = C_Save.PARALYZE then
+  if GDVars.gSaveType = C_SAVE.PARALYZE then
     GDVars.gSaveRoll := 100;
 end;
 
@@ -1791,7 +1791,7 @@ begin
   { acid, set before the save, whose effects read it too: SSI left the type of the last damage dealt (#721) }
   GDVars.elementMask := C_EFFECT.ELEM_ACID;
   FxEngine.InflictNonWeaponDamage(GDVars.otherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
-                                  FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.BREATH, 0));
+                                  FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_SAVE.BREATH, 0));
   FxEngine.RemoveEffect(creature, C_EFFECT.ANHKHEG_ACID, p);
   FxEngine.RemoveEffect(creature, C_EFFECT.ACID_SQUIRT, nil);
 end;
@@ -1840,7 +1840,7 @@ begin
   EffHndlr.NullifyAttack(C_EFFECT.SLEEP);
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
-  if GDVars.gSaveType = C_Save.PARALYZE then
+  if GDVars.gSaveType = C_SAVE.PARALYZE then
     GDVars.gSaveRoll := 100;
 end;
 

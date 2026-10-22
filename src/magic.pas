@@ -186,7 +186,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
+uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
@@ -861,7 +861,7 @@ end;
 procedure ReduceHandler;
 begin
   if GDVars.spellTargetCount > 0 then
-    if not FxEngine.RollSavingThrow(GDVars.targetCreaturePtr[1], C_Save.SPELL, 0) then
+    if not FxEngine.RollSavingThrow(GDVars.targetCreaturePtr[1], C_SAVE.SPELL, 0) then
       if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_EFFECT.ENLARGE) then
         CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'has been reduced', 10, True);
 end;
@@ -1584,8 +1584,8 @@ var
   junk: Boolean;
 begin
   dmg := Dice.RollDice(CharHlp.GetCasterLevel(GDVars.currentSpellBeing), 6);
-  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, dmg, C_Save.SPELL, junk);
-  Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_Save.SPELL, True);
+  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, dmg, C_SAVE.SPELL, junk);
+  Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_SAVE.SPELL, True);
 end;
 
 procedure TraceLightningBolt(x, y: ShortInt; var cells: Types.TCellList);
@@ -1597,7 +1597,7 @@ begin
   savedY := GDVars.gTargetY;
   GDVars.gTargetX := x;
   GDVars.gTargetY := y;
-  Magic.WalkBolt(LIGHTNING_BOLT_CELLS, 0, C_Save.SPELL, True, True, cells);
+  Magic.WalkBolt(LIGHTNING_BOLT_CELLS, 0, C_SAVE.SPELL, True, True, cells);
   GDVars.gTargetX := savedX;
   GDVars.gTargetY := savedY;
 end;
@@ -1709,8 +1709,8 @@ procedure JavelinOfLightningHandler;
 var
   junk: Boolean;
 begin
-  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, Dice.RollDice(1, 6) + 20, C_Save.SPELL, junk);
-  Magic.LightningPath(3, 20, C_Save.SPELL, False);
+  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, Dice.RollDice(1, 6) + 20, C_SAVE.SPELL, junk);
+  Magic.LightningPath(3, 20, C_SAVE.SPELL, False);
 end;
 
 { Wand of Paralyzation: apply the item's effect. }
@@ -1776,8 +1776,8 @@ begin
   FxEngine.RemoveInvisibility(creature);
   CharDisp.BuildIconFacings(19);
   CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 50);
-  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, creature^.hpMax, C_Save.BREATH, junk);
-  Magic.LightningPath(10, creature^.hpMax, C_Save.BREATH, False);
+  Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, creature^.hpMax, C_SAVE.BREATH, junk);
+  Magic.LightningPath(10, creature^.hpMax, C_SAVE.BREATH, False);
   { Remaining breath charges }
   if Types.PEffectRec(p)^.strength > 253 then
     Dec(Types.PEffectRec(p)^.strength)

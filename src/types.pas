@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_GENDER, C_Save, C_EQUIP, C_LEVEL, C_ABIL, C_MONEY, C_GBVM;
+uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_ABIL, C_MONEY, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -134,7 +134,7 @@ type
     { the combat icon's size, with ICON_LARGE for a Large creature }
     iconDimensions: Byte;
     { Saving throws: paralysis, petrification, wand, breath and spell. }
-    saves: array[C_Save.PARALYZE..C_Save.SPELL] of Byte;
+    saves: array[C_SAVE.PARALYZE..C_SAVE.SPELL] of Byte;
     movementBase: Byte;
     { Highest level across the character's classes. }
     levelHighest: ShortInt;
@@ -538,10 +538,10 @@ type
     { alignment IDs; 0 fills past count }
     alignments: array[1..9] of ShortInt;
   end;
-  { saving throws (GDConsts.saveTbl), by C_Save index or by name }
+  { saving throws (GDConsts.saveTbl), by C_SAVE index or by name }
   TRuleSaves = packed record
     case Byte of
-      0: (values: array[C_Save.PARALYZE..C_Save.SPELL] of Byte);
+      0: (values: array[C_SAVE.PARALYZE..C_SAVE.SPELL] of Byte);
       1: (paralyze: Byte; petrify: Byte; wand: Byte; breath: Byte; spell: Byte);
   end;
   TRuleXp = record

@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_NPC, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -344,12 +344,12 @@ var
   s: Types.TStr40;
 begin
   ViewChar.MoreTitle(p, 'Saving Throws');
-  for i := C_Save.PARALYZE to C_Save.SPELL do begin
+  for i := C_SAVE.PARALYZE to C_SAVE.SPELL do begin
     case i of
-      C_Save.PARALYZE: s := 'Paralysis, Poison, Death';
-      C_Save.PETRIFY: s := 'Petrification, Polymorph';
-      C_Save.WAND: s := 'Rod, Staff, Wand';
-      C_Save.BREATH: s := 'Breath Weapon';
+      C_SAVE.PARALYZE: s := 'Paralysis, Poison, Death';
+      C_SAVE.PETRIFY: s := 'Petrification, Polymorph';
+      C_SAVE.WAND: s := 'Rod, Staff, Wand';
+      C_SAVE.BREATH: s := 'Breath Weapon';
     else
       s := 'Spell';
     end;

@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEclVars;
 
-uses Types, GDVars, C_GBVM, C_MONEY, C_DIR, C_STATUS, C_EFFECT, C_Save, EclVars, StrUtil, TestKit;
+uses Types, GDVars, C_GBVM, C_MONEY, C_DIR, C_STATUS, C_EFFECT, C_SAVE, EclVars, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -67,7 +67,7 @@ begin
   { the current character, read }
   c^.conCur := 15;
   Same(15, C_GBVM.CHAR_CON, 'CHAR_CON is conCur');
-  c^.saves[C_Save.PETRIFY] := 11;
+  c^.saves[C_SAVE.PETRIFY] := 11;
   Same(11, C_GBVM.CHAR_SAVE_PETRIFY, 'CHAR_SAVE_PETRIFY');
   c^.levelHighest := 6;
   Same(6, C_GBVM.CHAR_LEVEL, 'CHAR_LEVEL is levelHighest');

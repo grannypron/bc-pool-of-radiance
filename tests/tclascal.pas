@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_LEVEL, C_RACE, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_ITEM, C_EFFECT, GDConsts, ClassCal, AbilAdj,
+uses Types, C_LEVEL, C_RACE, C_SAVE, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_ITEM, C_EFFECT, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -96,11 +96,11 @@ end;
 
 procedure CheckSaves(paralyze, petrify, wand, breath, spell: Byte; what: String);
 begin
-  TestKit.CheckEqualsL(paralyze, c^.saves[C_Save.PARALYZE], what + ': paralyze');
-  TestKit.CheckEqualsL(petrify, c^.saves[C_Save.PETRIFY], what + ': petrify');
-  TestKit.CheckEqualsL(wand, c^.saves[C_Save.WAND], what + ': wand');
-  TestKit.CheckEqualsL(breath, c^.saves[C_Save.BREATH], what + ': breath');
-  TestKit.CheckEqualsL(spell, c^.saves[C_Save.SPELL], what + ': spell');
+  TestKit.CheckEqualsL(paralyze, c^.saves[C_SAVE.PARALYZE], what + ': paralyze');
+  TestKit.CheckEqualsL(petrify, c^.saves[C_SAVE.PETRIFY], what + ': petrify');
+  TestKit.CheckEqualsL(wand, c^.saves[C_SAVE.WAND], what + ': wand');
+  TestKit.CheckEqualsL(breath, c^.saves[C_SAVE.BREATH], what + ': breath');
+  TestKit.CheckEqualsL(spell, c^.saves[C_SAVE.SPELL], what + ': spell');
 end;
 
 procedure CheckSkills(pp, ol, ft, ms, hs, hn, cw, rl: Byte; what: String);

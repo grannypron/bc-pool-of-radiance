@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_NPC, C_Save, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj;
+uses Types, Crt, C_NPC, C_SAVE, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -176,7 +176,7 @@ begin
   found := True;
   case address of
     C_GBVM.CHAR_CON: SpecialReadZ1 := GDVars.curChar^.conCur;
-    C_GBVM.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GDVars.curChar^.saves[C_Save.PETRIFY];
+    C_GBVM.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GDVars.curChar^.saves[C_SAVE.PETRIFY];
     C_GBVM.CHAR_LEVEL: SpecialReadZ1 := GDVars.curChar^.levelHighest;
     C_GBVM.CHAR_THIEF_SKILLS..C_GBVM.CHAR_THIEF_SKILLS_LAST: begin
       t := address - C_GBVM.CHAR_THIEF_SKILLS + 1;
