@@ -1828,8 +1828,8 @@ begin
       EffHndlr.AvoidRanged(creature, 50);
 end;
 
-{ Anhkheg acid squirt (eff 121): 25% chance, range < 4, 8d4, save vs. breath for half; the effect removes itself (and
-  eff 80) after firing }
+{ Anhkheg acid squirt (eff 121): 25% chance, range < 4, 8d4 acid, save vs. breath for half; the effect removes itself
+  (and eff 80) after firing }
 
 procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1846,6 +1846,8 @@ begin
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 1, 30);
+  { acid, set before the save, whose effects read it too: SSI left the type of the last damage dealt (#721) }
+  GDVars.elementMask := C_Effect.ELEM_ACID;
   FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
                                   FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.BREATH, 0));
   FxEngine.RemoveEffect(creature, C_Effect.ANHKHEG_ACID, p);
