@@ -428,7 +428,7 @@ begin
       creature^.npc := 0;
   end else begin
     if Types.PEffectRec(p)^.strength and $20 = 0 then begin
-      Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength + $20 + creature^.hostile * 64;
+      Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength + $20 + CharHlp.Team(creature) * 64;
       creature^.hostile := Types.PEffectRec(p)^.strength div 128;
       creature^.quickfight := 1;
       { C_Npc.FLAG clear }
@@ -920,15 +920,12 @@ begin
       Dec(GDVars.gAttackRoll, 4);
 end;
 
-{ Prayer (eff 49). strength's C_Effect.PRAYER_SIDE bit = the caster's side: creatures on that side get the
+{ Prayer (eff 49). FxEngine.PrayerSide = the caster's side: creatures on that team (CharHlp.Team) get the
   EffAlliedPrayer bonus, all others -1 to attack rolls and saving throws. FxEngine.TriggerPrayer runs one from each side
   in reach. }
 procedure EffPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  side: Byte;
 begin
-  side := (Types.PEffectRec(p)^.strength and C_Effect.PRAYER_SIDE) div C_Effect.PRAYER_SIDE;
-  if Byte(creature^.hostile) = side then
+  if CharHlp.Team(creature) = FxEngine.PrayerSide(p) then
     EffHndlr.EffAlliedPrayer(creature, p, removed)
   else begin
     Dec(GDVars.gAttackRoll);
@@ -1308,7 +1305,7 @@ begin
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
-  FxEngine.AddEffectWithMessage(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, 0, creature^.hostile * 128 + 12,
+  FxEngine.AddEffectWithMessage(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, 0, CharHlp.Team(creature) * 128 + 12,
                                 True, True,
                                 FxEngine.RollSavingThrow(creature^.combatAddr^.other, C_Save.SPELL, -2),
                                 'is charmed');

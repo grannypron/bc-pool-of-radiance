@@ -48,6 +48,14 @@ function FreeCloudNumber(caster: Types.PCharRecord): Byte;
   in the low one, which Dispel Magic reads. A level above 15 is stored as 15 rather than carrying into the number. }
 function CloudStrength(level, num: Byte): Byte;
 
+{ The Prayer effect's strength: the caster's team (CharHlp.Team) in the C_Effect.PRAYER_SIDE bit and the caster level
+  below it. A level above 15 is stored as 15, and a hostile byte above 1 is cut to its team, rather than either
+  carrying into the side or past it (#827). }
+function PrayerStrength(caster: Types.PCharRecord; level: Byte): Byte;
+
+{ The side, 0 or 1, that cast a Prayer effect: its strength's C_Effect.PRAYER_SIDE bit. }
+function PrayerSide(effect: Types.PEffectRec): Byte;
+
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
   becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
   (GDVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
@@ -229,7 +237,7 @@ var
   function Carries(c: Types.PCharRecord): Boolean;
   begin
     Carries := CharHlp.HasEffect(c, effId, effect)
-      and ((side = ANY_SIDE) or ((effect^.strength and C_Effect.PRAYER_SIDE) div C_Effect.PRAYER_SIDE = side));
+      and ((side = ANY_SIDE) or (FxEngine.PrayerSide(effect) = side));
   end;
 
 begin
@@ -479,6 +487,18 @@ begin
   if level > 15 then
     level := 15;
   CloudStrength := level + num * 16;
+end;
+
+function PrayerStrength(caster: Types.PCharRecord; level: Byte): Byte;
+begin
+  if level > 15 then
+    level := 15;
+  PrayerStrength := CharHlp.Team(caster) * C_Effect.PRAYER_SIDE + level;
+end;
+
+function PrayerSide(effect: Types.PEffectRec): Byte;
+begin
+  PrayerSide := (effect^.strength and C_Effect.PRAYER_SIDE) div C_Effect.PRAYER_SIDE;
 end;
 
 { The d20 both attack rolls share: into gAttackRoll (1 misses, 20 becomes 100), then the attacker's

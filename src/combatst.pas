@@ -800,7 +800,7 @@ begin
     next := p^.nextCharAddr;
     GDVars.creatureArr[slot] := p;
     { teamCount, teamRows and the placement tables have teams 0 and 1 }
-    team := p^.hostile and 1;
+    team := CharHlp.Team(p);
     GDVars.arenaLoc[slot].slotIndex := slot;
     GDVars.arenaLoc[slot].size := p^.iconDimensions and 7;
     if CombatSt.FindPlacement(team, slot) then begin
