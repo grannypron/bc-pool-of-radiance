@@ -48,6 +48,11 @@ procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
 
 function HasEffect(creature: Types.PCharRecord; id: Byte; var effect: Types.PEffectRec): Boolean;
 
+{ A movement or attack rate n as Haste and Slow make it: doubled (at most 255) while the creature is Hasted (eff 39),
+  halved while it is Slowed (eff 42), and unchanged with both, which cancel, as in the 1st edition (#778). Combat (the
+  two effects' handlers), the encounter menu's flee test (EclMenu.MoveExtremes) and the View screen all use it. }
+function HasteSlowRate(creature: Types.PCharRecord; n: Byte): Byte;
+
 procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 
 function EnemyTeam(creature: Types.PCharRecord): ShortInt;
@@ -721,6 +726,24 @@ begin
       effect := effect^.next;
   end;
   HasEffect := found;
+end;
+
+function HasteSlowRate(creature: Types.PCharRecord; n: Byte): Byte;
+var
+  effect: Types.PEffectRec;
+  hasted: Boolean;
+  slowed: Boolean;
+begin
+  hasted := CharHlp.HasEffect(creature, C_Effect.HASTED, effect);
+  slowed := CharHlp.HasEffect(creature, C_Effect.SLOWED, effect);
+  if hasted and not slowed then begin
+    if n > 127 then
+      n := 255
+    else
+      n := n * 2;
+  end else if slowed and not hasted then
+    n := n div 2;
+  HasteSlowRate := n;
 end;
 
 { Apply damage and update status. More than nine points of overkill kills; lesser overkill leaves the creature dying.

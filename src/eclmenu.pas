@@ -61,7 +61,8 @@ procedure RobMoney(fraction: Real; creature: Types.PCharRecord);
 { Chance% per item to steal it; heavy items (weight > 255 / > 24 coins) reduce the chance }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 
-{ Highest/lowest movement in GDVars.creatureList (haste doubles, else slow halves); 0 and 255 for an empty list }
+{ Highest/lowest movement in GDVars.creatureList, as Haste and Slow make it (CharHlp.HasteSlowRate); 0 and 255 for an
+  empty list }
 procedure MoveExtremes(var hiMove, loMove: Byte);
 
 { Damage message + damage + party panel refresh; dead creatures are skipped }
@@ -492,7 +493,6 @@ end;
 procedure MoveExtremes(var hiMove, loMove: Byte);
 var
   p: Types.PCharRecord;
-  effect: Types.PEffectRec;
   m: Byte;
 begin
   { only the adjusted values count: SSI started from the first member's unadjusted movement, so an all-hasted party's
@@ -501,11 +501,7 @@ begin
   loMove := 255;
   p := GDVars.creatureList;
   while p <> nil do begin
-    m := p^.movementCur;
-    if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
-      m := m * 2
-    else if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
-      m := m div 2;
+    m := CharHlp.HasteSlowRate(p, p^.movementCur);
     if m > hiMove then hiMove := m;
     if m < loMove then loMove := m;
     p := p^.nextCharAddr;

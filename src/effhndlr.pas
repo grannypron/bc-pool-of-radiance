@@ -731,7 +731,8 @@ begin
 end;
 
 { Hasted (eff 39). Ages the creature one year the first time it fires (strength bit 4 marks that it has), and doubles
-  dsCurrentAttackCurrent }
+  dsCurrentAttackCurrent by CharHlp.HasteSlowRate: with Slowed too, the two cancel, and each handler leaves the rate
+  as it is. }
 
 procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -740,7 +741,7 @@ begin
     CharDisp.PrintNameString(creature, 'ages', 10, True);
     Inc(creature^.age);
   end;
-  GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent * 2;
+  GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
 end;
 
 { Cast Stinking Cloud (eff 40). Removes the cloud this caster is responsible for (strength upper nibble = its idx),
@@ -855,11 +856,11 @@ begin
       Dice.ReduceDamagePerDie(1);
 end;
 
-{ Slowed (eff 42) }
+{ Slowed (eff 42): halves dsCurrentAttackCurrent by CharHlp.HasteSlowRate, as EffHasted doubles it. }
 
 procedure EffSlowed(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent div 2;
+  GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
 end;
 
 { Disease Strength drain (eff 43; p is this node, or Diseased's, eff 34, as the disease starts): re-arm for 60 minutes

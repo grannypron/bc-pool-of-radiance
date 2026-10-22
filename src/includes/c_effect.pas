@@ -49,7 +49,7 @@ const
   BESTOW_CURSE = 36;
   BLINKING = 37;
   STRENGTH = 38;
-  { EclMenu.MoveExtremes doubles movement on it }
+  { doubles movement and attacks, unless Slowed too (CharHlp.HasteSlowRate) }
   HASTED = 39;
   CAST_STINK = 40;
   PROT_MISSILES = 41;

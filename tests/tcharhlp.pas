@@ -254,6 +254,20 @@ begin
   TestKit.CheckEqualsL(16, CharHlp.PermanentStrength(c), 'Enlarge''s 18/50 less the 2 the disease took');
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'so the diseased dwarf fighter 8 stays capped');
   c^.effectsAddr := nil;
+  { Haste doubles, Slow halves, and the two cancel (#778) }
+  FillChar(e, SizeOf(e), 0);
+  FillChar(d, SizeOf(d), 0);
+  TestKit.CheckEqualsL(12, CharHlp.HasteSlowRate(c, 12), 'neither leaves the rate');
+  e.id := C_Effect.HASTED;
+  c^.effectsAddr := @e;
+  TestKit.CheckEqualsL(24, CharHlp.HasteSlowRate(c, 12), 'Haste doubles it');
+  TestKit.CheckEqualsL(255, CharHlp.HasteSlowRate(c, 192), 'to at most 255');
+  d.id := C_Effect.SLOWED;
+  e.next := @d;
+  TestKit.CheckEqualsL(13, CharHlp.HasteSlowRate(c, 13), 'Haste and Slow cancel');
+  c^.effectsAddr := @d;
+  TestKit.CheckEqualsL(6, CharHlp.HasteSlowRate(c, 13), 'Slow halves it');
+  c^.effectsAddr := nil;
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }
