@@ -31,6 +31,16 @@ const
   { AiMoveAttack's runaway-turn guard allows a pass for each step the creature's movement pays for and this many more,
     for its attacks and changes of target }
   TURN_SLACK = 20;
+  { AI step patterns (aiStance 1..6): five direction offsets tried in order, each added to the base direction mod 8 (8 =
+    straight ahead, 1/7 = one step clockwise/counterclockwise, 2/6 = two, 3/5 = three, 4 = reverse). Patterns 1..4 are
+    kept on three turns out of four; sweep patterns 5..6 are rerolled every turn. }
+  aiDirOffsets: array[1..6, 1..5] of Byte = (
+    ( 8, 7, 6, 1, 2),
+    ( 8, 1, 2, 7, 6),
+    ( 7, 1, 8, 6, 2),
+    ( 1, 7, 8, 2, 6),
+    ( 8, 7, 6, 5, 4),
+    ( 8, 1, 2, 3, 4));
 
 var
   { the AI's last step direction (8 = none) }
@@ -335,7 +345,7 @@ end;
 function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean;
 begin
   AiCanStep := CombatAi.CanStepDir(creature,
-                                   (baseDir + GameDefs.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
+                                   (baseDir + aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
                                    edge);
 end;
 
@@ -464,7 +474,7 @@ begin
       end else begin
         { attempt 6 is past aiDirOffsets' row: there is no step to take }
         if attempt < 6 then
-          adjDir := (dir + GameDefs.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
+          adjDir := (dir + aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
         else
           adjDir := dir;
         { nothing walkable }

@@ -15,16 +15,6 @@ const
   GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';
 
 const
-  { AI step patterns (aiStance 1..6): five direction offsets tried in order, each added to the base direction mod 8 (8 =
-    straight ahead, 1/7 = one step clockwise/counterclockwise, 2/6 = two, 3/5 = three, 4 = reverse). Patterns 1..4 are
-    kept on three turns out of four; sweep patterns 5..6 are rerolled every turn. }
-  aiDirOffsets: array[1..6, 1..5] of Byte = (
-    ( 8, 7, 6, 1, 2),
-    ( 8, 1, 2, 7, 6),
-    ( 7, 1, 8, 6, 2),
-    ( 1, 7, 8, 2, 6),
-    ( 8, 7, 6, 5, 4),
-    ( 8, 1, 2, 3, 4));
   { Combat placement tables }
   ringDirTbl: array[0..3, 0..3] of Byte = (
     ( 8, 4, 6, 2),
