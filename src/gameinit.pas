@@ -21,7 +21,7 @@ implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm, Portrait{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { directory saved across resource loading }
@@ -289,8 +289,6 @@ begin
   GameVars.partyDefeated := False;
   GameVars.sprShown := False;
   GameVars.suppressingInsertDiskFlag := False;
-  GameVars.picArcName[0] := #0;
-  GameVars.picArcId := 255;
   GameVars.recentSaved := 0;
   GameVars.ceilFloorColorSel := 232;
   GameVars.wallColorSel := 219;
@@ -300,6 +298,7 @@ begin
   Combat.ResetGame;
   MapView.ResetGame;
   EclVm.ResetGame;
+  Portrait.ResetGame;
   Stats.ResetGame;
 end;
 

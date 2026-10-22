@@ -31,9 +31,19 @@ procedure LoadPortraitBufs(headId, bodyId: Byte);
 
 procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
+{ Forget which archive and picture are cached, so the next picture is loaded afresh, for a new game
+  (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameDefs, GameVars, Blit, GameIo, Border, DaxIo, StrUtil;
+
+var
+  { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
+  picArcName: String[8];
+  { picture id loaded from picArcName; 255 invalidates the pair }
+  picArcId: Byte;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A
@@ -61,7 +71,7 @@ begin
 end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that archive and id are already the cached picture
-  (GameVars.picArcName/picArcId); a load that ends with no frames is not cached. PIC 1 is capped at 4 frames, and any
+  (picArcName/picArcId); a load that ends with no frames is not cached. PIC 1 is capped at 4 frames, and any
   picture at the 8 the record holds. A frame is loaded only while MaxAvail is at least 3900 and covers what loading it
   allocates (FrameNeed): loaded frames are stored in order and count becomes the number loaded, a skipped frame's data
   is stepped over, and without room for the first frame (which the others are XORed with for PIC and FINAL) nothing is
@@ -164,7 +174,7 @@ var
 
 begin
   Str(LongInt(GameVars.virtualDisk), diskCh);
-  if (name + diskCh = GameVars.picArcName) and (picId = GameVars.picArcId) then Exit;
+  if (name + diskCh = picArcName) and (picId = picArcId) then Exit;
   Portrait.FreeAnimation(a);
   isPic := (name = 'PIC') or (name = 'FINAL');
   DaxIo.LoadDax(name + diskCh, '.dax', picId, sz, buf);
@@ -243,8 +253,8 @@ begin
   { only a picture with frames is cached, so one that loaded none is tried again (SSI cached it and kept it blank,
     #726) }
   if loaded > 0 then begin
-    GameVars.picArcName := name + diskCh;
-    GameVars.picArcId := picId;
+    picArcName := name + diskCh;
+    picArcId := picId;
   end;
   if isPic and gotXor then FreeMem(xorBuf, xorSz);
   FreeMem(buf, sz);
@@ -259,8 +269,8 @@ begin
     for k := 1 to count do
       Blit.FreePic(frames[k].pic);
   FillChar(a, SizeOf(a), 0);
-  GameVars.picArcName[0] := #0;
-  GameVars.picArcId := 255;
+  picArcName[0] := #0;
+  picArcId := 255;
 end;
 
 { Draw a bordered window at the top right, then the current character's portrait in it, its head and body numbers mapped
@@ -357,6 +367,12 @@ begin
   else
     Exit;
   Blit.FlushView;
+end;
+
+procedure ResetGame;
+begin
+  picArcName[0] := #0;
+  picArcId := 255;
 end;
 
 end.

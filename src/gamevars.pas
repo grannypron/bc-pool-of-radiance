@@ -242,11 +242,7 @@ var
   animData: Types.TAnimRec;
   { HEAD and BODY image caches. }
   portraitCache: array[1..2] of Types.TPortSlot;
-  { Picture archive and menu state }
-  { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
-  picArcName: String[8];
-  { picture id loaded from picArcName; 255 invalidates the pair }
-  picArcId: Byte;
+  { Menu state }
   { Zero-based position of the first visible list entry. }
   vertTop: Integer;
   { Current horizontal menu choice, starting at 1. }
