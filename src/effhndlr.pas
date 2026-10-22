@@ -435,7 +435,8 @@ end;
 
 { Enlarge and Strength (eff 12, 38). Sets Strength to the value stored in this node, then applies the strongest other
   Enlarge or Strength node, which takes over the Strength to restore. A node whose strength byte is above $7F is
-  ignored. }
+  ignored. The Strength set is less a disease's loss, and the Strength handed over has it given back
+  (CharHlp.DiseaseStrLoss). }
 
 procedure EffExtraStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -445,10 +446,15 @@ var
   bestExc: Byte;
   q: Types.PEffectRec;
   best: Types.PEffectRec;
+  restored: Byte;
+  loss: Byte;
 begin
   if Types.PEffectRec(p)^.strength > $7F then Exit;
+  loss := CharHlp.DiseaseStrLoss(creature);
   CharHlp.StrengthEffectToStrength(p, base, exc);
-  creature^.strCur := AbilAdj.ClampScore(base);
+  { the creature's own Strength, kept whole for the node that takes over }
+  restored := CharHlp.StrengthModifier(AbilAdj.ClampScore(base), exc);
+  creature^.strCur := AbilAdj.ClampScore(Integer(base) - loss);
   creature^.strExc := exc;
   best := nil;
   bestBase := 0;
@@ -467,8 +473,8 @@ begin
     q := q^.next;
   end;
   if best <> nil then begin
-    Types.PEffectRec(best)^.strength := CharHlp.StrengthModifier(creature^.strCur, creature^.strExc);
-    creature^.strCur := AbilAdj.ClampScore(bestBase);
+    Types.PEffectRec(best)^.strength := restored;
+    creature^.strCur := AbilAdj.ClampScore(Integer(bestBase) - loss);
     creature^.strExc := bestExc;
   end;
 end;
@@ -856,19 +862,41 @@ begin
   GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent div 2;
 end;
 
-{ Disease Strength drain (eff 43): re-arm for 60 minutes and lose 1 Strength; at Strength 3 become helpless }
+{ Disease Strength drain (eff 43; p is this node, or Diseased's, eff 34, as the disease starts): re-arm for 60 minutes
+  and lose 1 Strength; at Strength 3 become helpless. The node counts the Strength lost in its strength byte's upper
+  nibble (CharHlp.DiseaseStrLoss), up to 15, the most a natural 18 can lose; the lower keeps the caster level, at most
+  15. A cure removes the node under the effect lock, and the count is given back: SSI kept no count, and the Strength
+  stayed lost (#705). }
 
 procedure EffDiseaseStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
+  loss: Byte;
+  level: Byte;
+  weaken: Boolean;
 begin
-  if EffHndlr.AddEffectIfNoLock(creature, C_Effect.DISEASE_STR, Types.PEffectRec(p)^.strength, 60) then
-    if creature^.strCur > 3 then begin
+  if Types.PEffectRec(p)^.id = C_Effect.DISEASE_STR then begin
+    loss := Types.PEffectRec(p)^.strength shr 4;
+    level := Types.PEffectRec(p)^.strength and $F;
+  end else begin
+    loss := 0;
+    level := Types.PEffectRec(p)^.strength;
+    if level > 15 then
+      level := 15;
+  end;
+  weaken := (creature^.strCur > 3) and (loss < 15);
+  if EffHndlr.AddEffectIfNoLock(creature, C_Effect.DISEASE_STR, (loss + Ord(weaken)) * 16 + level, 60) then begin
+    if weaken then begin
       CharDisp.PrintNameString(creature, 'is weakened', 10, True);
       Dec(creature^.strCur);
-    end else
+      CharHlp.RecalcStats(creature);
+    end else if creature^.strCur <= 3 then
       if not CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_Effect.HELPLESS, 0, 255, False);
+  end else if removed and (Types.PEffectRec(p)^.id = C_Effect.DISEASE_STR) and (loss > 0) then begin
+    creature^.strCur := AbilAdj.ClampScore(creature^.strCur + loss);
+    CharHlp.RecalcStats(creature);
+  end;
 end;
 
 { Disease hit point drain (eff 44): re-arm for 10 minutes and deal 1 damage; at 1 HP become helpless }
@@ -1934,8 +1962,9 @@ end;
 
 { Gauntlets of Ogre Power (eff 131). Ready: Str 18/00 via FxEngine.AdjustForNewStrength plus a permanent eff 38 node
   holding the Strength to restore; "is stronger" shows only for the character readying them (GDVars.curChar), not for a
-  monster loaded wearing them (EclMenu.LoadCreatureData). Unready: while the creature is still at 18/00, remove the
-  first eff 38 node that is not superseded, which restores its Strength }
+  monster loaded wearing them (EclMenu.LoadCreatureData). Unready: while the creature is still at 18/00 (with a
+  disease's loss given back, CharHlp.DiseaseStrLoss), remove the first eff 38 node that is not superseded, which
+  restores its Strength }
 
 procedure EffGauntlets(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1948,7 +1977,7 @@ begin
   if removed then begin
     found := False;
     q := creature^.effectsAddr;
-    if (creature^.strCur = 18) and (creature^.strExc = 100) then
+    if (creature^.strCur + CharHlp.DiseaseStrLoss(creature) = 18) and (creature^.strExc = 100) then
       isOgre := True
     else
       isOgre := False;

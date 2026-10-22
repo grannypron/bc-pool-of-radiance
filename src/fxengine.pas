@@ -93,7 +93,8 @@ function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Bool
   effect (id 12 or 38 with strength < $80), if any, is superseded: it is given the creature's current Strength, encoded
   with bit 7 set. The new Strength is stored, CharHlp.RecalcStats runs, effStrength gets the Strength to restore when
   the new effect ends (the superseded effect's previously stored Strength, else the current one) and the result is
-  True. }
+  True. The current Strength is taken with a disease's loss given back, and the new one is stored less it
+  (CharHlp.DiseaseStrLoss). }
 function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte; var effStrength: Byte): Boolean;
 
 { Non-weapon damage: post damage to GDVars.pendingDamage and run the C_Cond.NONWEAPON_DAMAGE (6) effects; when saved,
@@ -626,8 +627,10 @@ var
   oldBase: Byte;
   oldExc: Byte;
   enc: Byte;
+  loss: Byte;
 begin
-  oldBase := creature^.strCur;
+  loss := CharHlp.DiseaseStrLoss(creature);
+  oldBase := creature^.strCur + loss;
   oldExc := creature^.strExc;
   if (baseStr < oldBase) or ((baseStr = 18) and (excStr < oldExc)) then begin
     AdjustForNewStrength := False;
@@ -646,7 +649,7 @@ begin
       CharHlp.StrengthEffectToStrength(found, oldBase, oldExc);
       Types.PEffectRec(found)^.strength := enc + $80;
     end;
-    creature^.strCur := AbilAdj.ClampScore(baseStr);
+    creature^.strCur := AbilAdj.ClampScore(Integer(baseStr) - loss);
     creature^.strExc := excStr;
     CharHlp.RecalcStats(creature);
     effStrength := CharHlp.StrengthModifier(oldBase, oldExc);

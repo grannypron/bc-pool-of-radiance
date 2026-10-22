@@ -80,9 +80,15 @@ function StrengthModifier(baseStr, excStr: Byte): Byte;
   with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
 procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
 
-{ The character's own Strength score, without Enlarge, Strength or Gauntlets of Ogre Power: the Strength to restore
-  held by the one Enlarge or Strength effect not superseded (strength < $80; FxEngine.AdjustForNewStrength), else
-  strCur. }
+{ The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of
+  the effect's strength byte, the lower holding the caster level (at most 15) as Dispel Magic reads it. 0 when it has
+  no disease. The Strength the Enlarge and Strength effects (eff 12, 38) store and set is the creature's own, without
+  this loss: they take it off when they set the creature's Strength, and give it back when they store it (#705). }
+function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
+
+{ The character's own Strength score, without Enlarge, Strength or Gauntlets of Ogre Power but with what a disease has
+  taken: the Strength to restore held by the one Enlarge or Strength effect not superseded (strength < $80;
+  FxEngine.AdjustForNewStrength) less DiseaseStrLoss, not below 3, else strCur. }
 function PermanentStrength(creature: Types.PCharRecord): Byte;
 
 { True when the creature has enough experience to train a level in some class: the training hall's own test (not at the
@@ -925,6 +931,16 @@ begin
     baseStr := baseStr - 100;
 end;
 
+function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_Effect.DISEASE_STR, effect) then
+    DiseaseStrLoss := effect^.strength shr 4
+  else
+    DiseaseStrLoss := 0;
+end;
+
 function PermanentStrength(creature: Types.PCharRecord): Byte;
 var
   p: Types.PEffectRec;
@@ -936,7 +952,8 @@ begin
   while p <> nil do begin
     if ((p^.id = C_Effect.ENLARGE) or (p^.id = C_Effect.STRENGTH)) and (p^.strength < $80) then begin
       CharHlp.StrengthEffectToStrength(p, base, exc);
-      PermanentStrength := base;
+      { the stored Strength is whole; the disease's loss counts, as it does in strCur }
+      PermanentStrength := AbilAdj.ClampScore(Integer(base) - CharHlp.DiseaseStrLoss(creature));
       Exit;
     end;
     p := p^.next;

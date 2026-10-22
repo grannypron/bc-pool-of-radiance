@@ -13,6 +13,7 @@ var
   list: Types.PItemRec;
   p: Types.PItemRec;
   e: Types.TEffectRec;
+  d: Types.TEffectRec;
   found: Types.PEffectRec;
   crs: array[1..4] of Types.TCharRecord;
   i: Byte;
@@ -240,6 +241,19 @@ begin
   c^.classLevels[C_Level.FIGHTER] := 8;
   c^.strCur := 15;
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
+  { under Enlarge the stored Strength is whole, and a disease's loss (#705) still counts against the cap }
+  FillChar(d, SizeOf(d), 0);
+  d.id := C_Effect.DISEASE_STR;
+  d.strength := 2 * 16 + 5;
+  e.id := C_Effect.ENLARGE;
+  e.strength := CharHlp.StrengthModifier(18, 50);
+  e.next := @d;
+  c^.effectsAddr := @e;
+  c^.strCur := 17;
+  TestKit.CheckEqualsL(2, CharHlp.DiseaseStrLoss(c), 'the disease has taken 2');
+  TestKit.CheckEqualsL(16, CharHlp.PermanentStrength(c), 'Enlarge''s 18/50 less the 2 the disease took');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'so the diseased dwarf fighter 8 stays capped');
+  c^.effectsAddr := nil;
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }
