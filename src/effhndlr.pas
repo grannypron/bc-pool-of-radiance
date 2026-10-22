@@ -834,13 +834,19 @@ begin
   FindDamagingWeapon := sel;
 end;
 
-{ Protection from Normal Missiles (eff 41) }
+{ Protection from Normal Missiles (eff 41): a normal missile (the damaging item has no plus) is stopped; a magical one
+  does 1 less per die, no die below 1 (#745) }
 
 procedure EffProtMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  missile: Types.PItemRec;
 begin
-  if EffHndlr.FindDamagingWeapon(GDVars.curChar) <> nil then
-    if Types.PItemRec(EffHndlr.FindDamagingWeapon(GDVars.curChar))^.plus = 0 then
-      EffHndlr.AvoidRanged(creature, 100);
+  missile := EffHndlr.FindDamagingWeapon(GDVars.curChar);
+  if missile <> nil then
+    if missile^.plus = 0 then
+      EffHndlr.AvoidRanged(creature, 100)
+    else if CbtMap.CalcDistance(GDVars.curChar, creature) > 1 then
+      Dice.ReduceDamagePerDie(1);
 end;
 
 { Slowed (eff 42) }
@@ -982,16 +988,9 @@ end;
   was) and +4 to save; non-magical fire is nullified }
 
 procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  i: Byte;
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then begin
-    for i := 1 to GDVars.gDamageDice do
-      { floor before taking 2 off, so damage of 0 or 1 cannot wrap the Byte to 254 or 255 }
-      if GDVars.pendingDamage >= Word(GDVars.gDamageDice) + 2 then
-        Dec(GDVars.pendingDamage, 2)
-      else if GDVars.pendingDamage > GDVars.gDamageDice then
-        GDVars.pendingDamage := GDVars.gDamageDice;
+    Dice.ReduceDamagePerDie(2);
     Inc(GDVars.gSaveRoll, 4);
     if GDVars.elementMask and C_Effect.ELEM_MAGIC = 0 then
       EffHndlr.NullifyAttack(0);
@@ -1730,14 +1729,9 @@ end;
 { Efreeti fire resistance (eff 113): -1 per die, minimum = dice count (damage already below it is left alone) }
 
 procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  i: Byte;
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
-    for i := 1 to GDVars.gDamageDice do
-      { only above the floor, so damage of 0 cannot wrap the Byte to 255 }
-      if GDVars.pendingDamage > GDVars.gDamageDice then
-        Dec(GDVars.pendingDamage);
+    Dice.ReduceDamagePerDie(1);
 end;
 
 { Half damage from electricity (eff 114) }

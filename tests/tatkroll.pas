@@ -1,10 +1,10 @@
 { Tests for FxEngine's attack rolls: a penalty that takes a low roll below 0 only lowers it (#718), only an effect that
   forces a miss (Blink, Displacement) does, and a script's attack with no attacker hits on the same roll as a creature's
-  (#719). }
+  (#719). And for Dice.ReduceDamagePerDie, which takes damage off per die and leaves no die below 1 (#745). }
 {$I COMPILER.INC}
 program TAtkRoll;
 
-uses Types, C_Effect, GDVars, FxEngine, TestKit;
+uses Types, C_Effect, GDVars, Dice, FxEngine, TestKit;
 
 const
   TRIES = 200;
@@ -37,6 +37,15 @@ begin
     GDVars.gAttackAvoided := True;
 end;
 {$F-}
+
+{ ReduceDamagePerDie's result for damage from count dice, perDie off each }
+function Reduced(damage, count, perDie: Byte): Byte;
+begin
+  GDVars.pendingDamage := damage;
+  GDVars.gDamageDice := count;
+  Dice.ReduceDamagePerDie(perDie);
+  Reduced := GDVars.pendingDamage;
+end;
 
 function NewCreature(effId: Byte): Types.PCharRecord;
 var
@@ -103,5 +112,12 @@ begin
       Inc(bad);
   end;
   TestKit.CheckEqualsL(0, bad, 'as a creature''s attack does');
+
+  TestKit.CheckEqualsL(7, Reduced(9, 2, 1), '2d6 for 9 does 7 at 1 less per die');
+  TestKit.CheckEqualsL(2, Reduced(3, 2, 1), 'but no die below 1');
+  TestKit.CheckEqualsL(2, Reduced(9, 2, 4), 'however much comes off');
+  TestKit.CheckEqualsL(1, Reduced(1, 2, 1), 'and damage below the dice count is left alone');
+  TestKit.CheckEqualsL(5, Reduced(9, 2, 2), '2 less per die');
+  TestKit.CheckEqualsL(200, Reduced(250, 25, 2), 'on many dice');
   TestKit.Done;
 end.

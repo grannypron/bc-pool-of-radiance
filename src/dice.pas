@@ -12,6 +12,10 @@ function RollDice(n, sides: Byte): Byte;
 { RollDice that also posts the dice count n to gDamageDice. Does not set GDVars.pendingDamage. }
 function RollDamageDice(n, sides: Byte): Byte;
 
+{ Take perDie off GDVars.pendingDamage for each of the gDamageDice dice rolled, leaving no die below 1: the damage stops
+  at the dice count, and damage already at or below it is left alone. }
+procedure ReduceDamagePerDie(perDie: Byte);
+
 implementation
 
 uses GDVars{$IFDEF FPC}, TpRand{$ENDIF};
@@ -32,6 +36,15 @@ function RollDamageDice(n, sides: Byte): Byte;
 begin
   GDVars.gDamageDice := n;
   RollDamageDice := Dice.RollDice(n, sides);
+end;
+
+procedure ReduceDamagePerDie(perDie: Byte);
+begin
+  if GDVars.pendingDamage > GDVars.gDamageDice then
+    if GDVars.pendingDamage - GDVars.gDamageDice > Word(perDie) * GDVars.gDamageDice then
+      Dec(GDVars.pendingDamage, perDie * GDVars.gDamageDice)
+    else
+      GDVars.pendingDamage := GDVars.gDamageDice;
 end;
 
 end.
