@@ -113,8 +113,6 @@ begin
   OvrInitEMS;
   GDVars.ovrInEms := OvrResult = ovrOk;
   GDVars.ovrLoads := 0;
-  GDVars.picBytes := 0;
-  GDVars.picPeak := 0;
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
 {$ENDIF}
@@ -129,9 +127,9 @@ begin
   end;
   ReadLn(cfgText, cfgChar);
   { INT 10h AH=0Fh: get current video mode into AL }
-  GDVars.dsInterruptRegisters.ah := $F;
-  Intr($10, GDVars.dsInterruptRegisters);
-  GDVars.savedVideoMode := GDVars.dsInterruptRegisters.al;
+  GDVars.interruptRegisters.ah := $F;
+  Intr($10, GDVars.interruptRegisters);
+  GDVars.savedVideoMode := GDVars.interruptRegisters.al;
   GDVars.curVideoMode := GDVars.savedVideoMode;
   { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, V for VGA, anything else CGA; natively VGA, which
     shows EGA's colours }

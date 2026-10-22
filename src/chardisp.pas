@@ -416,7 +416,7 @@ begin
         Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.iconImageBufferPtr, GDVars.dsViewImageBufferPtr);
         Inc(frame);
         if frame >= frames then
           frame := 0;
@@ -469,7 +469,7 @@ begin
       if pace > 0 then begin
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.iconImageBufferPtr, GDVars.dsViewImageBufferPtr);
       end;
     end;
   until lastPass;
@@ -519,7 +519,7 @@ begin
           Blit.BlitTileClipped(gx, gy, j, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
           Blit.FlushView;
           Delay(70);
-          Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.iconImageBufferPtr, GDVars.dsViewImageBufferPtr);
         end;
     end;
     SoundDrv.SoundSetAutoStop(10);

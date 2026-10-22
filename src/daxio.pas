@@ -131,17 +131,17 @@ end;
 { Position the cursor on page (INT 10h AH=2), then write count copies of ch in attr there (AH=9). }
 procedure BiosWriteChar(page, col, row, attr, count, ch: Byte);
 begin
-  GDVars.dsInterruptRegisters.ah := 2;
-  GDVars.dsInterruptRegisters.bh := page;
-  GDVars.dsInterruptRegisters.dh := row;
-  GDVars.dsInterruptRegisters.dl := col;
-  Intr($10, GDVars.dsInterruptRegisters);
-  GDVars.dsInterruptRegisters.ah := 9;
-  GDVars.dsInterruptRegisters.al := ch;
-  GDVars.dsInterruptRegisters.bh := page;
-  GDVars.dsInterruptRegisters.bl := attr;
-  GDVars.dsInterruptRegisters.cx := count;
-  Intr($10, GDVars.dsInterruptRegisters);
+  GDVars.interruptRegisters.ah := 2;
+  GDVars.interruptRegisters.bh := page;
+  GDVars.interruptRegisters.dh := row;
+  GDVars.interruptRegisters.dl := col;
+  Intr($10, GDVars.interruptRegisters);
+  GDVars.interruptRegisters.ah := 9;
+  GDVars.interruptRegisters.al := ch;
+  GDVars.interruptRegisters.bh := page;
+  GDVars.interruptRegisters.bl := attr;
+  GDVars.interruptRegisters.cx := count;
+  Intr($10, GDVars.interruptRegisters);
 end;
 
 { Write each char of source at (col, row) in attr, advancing col. }

@@ -64,9 +64,9 @@ begin
     Close(GDVars.debugFile);
   GDVars.soundMode := GDVars.soundSaved;
   SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
-  GDVars.dsInterruptRegisters.ah := 0;
-  GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
-  Intr($10, GDVars.dsInterruptRegisters);
+  GDVars.interruptRegisters.ah := 0;
+  GDVars.interruptRegisters.al := GDVars.savedVideoMode;
+  Intr($10, GDVars.interruptRegisters);
   Halt(0);
 end;
 
@@ -74,9 +74,9 @@ procedure FatalError(msg: String);
 var
   key: Char;
 begin
-  GDVars.dsInterruptRegisters.ah := 0;
-  GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
-  Intr($10, GDVars.dsInterruptRegisters);
+  GDVars.interruptRegisters.ah := 0;
+  GDVars.interruptRegisters.al := GDVars.savedVideoMode;
+  Intr($10, GDVars.interruptRegisters);
   WriteLn(msg);
   key := GameIo.ReadAnyKey;
   GameIo.ExitGame;

@@ -66,9 +66,6 @@ var
   ovrLoads: LongInt;
   { the overlays load from EMS (GameBoot's OvrInitEMS succeeded) rather than from GAME.OVR on disk }
   ovrInEms: Boolean;
-  { heap bytes held by pictures (Blit.AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
-  picBytes: LongInt;
-  picPeak: LongInt;
   { set when GameIo has written over the bottom line (the STING Ctrl-Y pop-up); MenuCore.HorizontalMenu redraws its
     menu line and clears it }
   bottomLineTaken: Boolean;
@@ -92,7 +89,7 @@ var
   { Video registers, pages and modes; view and icon buffers, dirty spans and row tables }
   { Register record handed to Dos.Intr (Host.Intr natively) for BIOS video calls; every unit calling the BIOS uses this
     one record. }
-  dsInterruptRegisters: Registers;
+  interruptRegisters: Registers;
   { Other EGA page number (always 0) }
   pageNum: Byte;
   { Currently displayed EGA page number (always 0) }
@@ -109,7 +106,7 @@ var
   dsViewImageBufferPtr: Types.PImgBuf;
   { Backdrop buffer that Blit.BlitTileClipped fills with the destination bytes it is about to cover (when the save flag
     is set), so CharHlp can restore the background afterwards. }
-  dsIconImageBufferPtr: Types.PImgBuf;
+  iconImageBufferPtr: Types.PImgBuf;
   { Dirty-span tables, one slot per view scanline (21 character rows x 8 = 168); GameInit initializes all four. }
   { Nonzero when that view scanline holds changes that Blit.FlushView still has to copy to the screen. }
   spanActive: array[0..167] of Byte;
@@ -128,9 +125,6 @@ var
   fbRowOfs: array[0..199] of Word;
   { Video segment for each Tandy scanline, precomputed like cgaRowSeg. }
   tandyRowSeg: array[0..199] of Word;
-  { Nonzero makes Blit.BlitTileClipped clip against the destination bounds; zero trusts the caller to have kept the tile
-    inside. GameInit initializes it to 1. }
-  clipFlag: Byte;
 
 var
   { Sound mode }

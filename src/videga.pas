@@ -51,9 +51,9 @@ end;
   Start sets both page selectors to 0; DrawGlyph then writes through both equal page segments. }
 procedure SetupEgaCurrentPage(page: Byte);
 begin
-  GDVars.dsInterruptRegisters.ah := 5;
-  GDVars.dsInterruptRegisters.al := page;
-  Intr($10, GDVars.dsInterruptRegisters);
+  GDVars.interruptRegisters.ah := 5;
+  GDVars.interruptRegisters.al := page;
+  Intr($10, GDVars.interruptRegisters);
   egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
 end;
 
@@ -227,14 +227,14 @@ end;
   palette values }
 procedure SetPalette(registerIndex, color: Byte);
 begin
-  GDVars.dsInterruptRegisters.ah := $10;
-  GDVars.dsInterruptRegisters.al := 0;
+  GDVars.interruptRegisters.ah := $10;
+  GDVars.interruptRegisters.al := 0;
   if color < 8 then
-    GDVars.dsInterruptRegisters.bh := color
+    GDVars.interruptRegisters.bh := color
   else
-    GDVars.dsInterruptRegisters.bh := color + 8;
-  GDVars.dsInterruptRegisters.bl := registerIndex;
-  Intr($10, GDVars.dsInterruptRegisters);
+    GDVars.interruptRegisters.bh := color + 8;
+  GDVars.interruptRegisters.bl := registerIndex;
+  Intr($10, GDVars.interruptRegisters);
 end;
 
 procedure Install;

@@ -14,7 +14,7 @@ procedure ShowMemory;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDVars, TextRend, StrUtil{$IFNDEF FPC}, Overlay{$ENDIF};
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDVars, Blit, TextRend, StrUtil{$IFNDEF FPC}, Overlay{$ENDIF};
 
 procedure ShowMemory;
 var
@@ -31,8 +31,8 @@ begin
                                        StrUtil.NumStr(OvrGetRetry) + ' from ' + source);
 {$ENDIF}
   TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
-  TextRend.DisplayAndPause(LightGreen, 'Pictures ' + StrUtil.NumStr(GDVars.picBytes) + ' peak ' +
-                                       StrUtil.NumStr(GDVars.picPeak));
+  TextRend.DisplayAndPause(LightGreen, 'Pictures ' + StrUtil.NumStr(Blit.picBytes) + ' peak ' +
+                                       StrUtil.NumStr(Blit.picPeak));
   TextRend.ClearBottomLine;
   GDVars.bottomLineTaken := True;
 end;

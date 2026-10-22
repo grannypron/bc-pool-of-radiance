@@ -294,7 +294,6 @@ begin
   GDVars.protNewLine := 0;
   GDVars.eclGraphics := False;
   GDVars.partyDefeated := False;
-  GDVars.clipFlag := 1;
   GDVars.sprShown := False;
   GDVars.dsSuppressingInsertDiskFlag := False;
   GDVars.picArcName[0] := #0;
@@ -327,7 +326,7 @@ begin
   { the 168x168 view area }
   Blit.AllocPic(168, 21, 1, 0, GDVars.dsViewImageBufferPtr);
   { 24x24 save-under block }
-  Blit.AllocPic(24, 3, 1, 0, GDVars.dsIconImageBufferPtr);
+  Blit.AllocPic(24, 3, 1, 0, GDVars.iconImageBufferPtr);
   FillChar(GDVars.spanActive, SizeOf(GDVars.spanActive), 0);
   FillChar(GDVars.spanScreenOfs, SizeOf(GDVars.spanScreenOfs), 0);
   FillChar(GDVars.spanFirstOfs, SizeOf(GDVars.spanFirstOfs), $FF);

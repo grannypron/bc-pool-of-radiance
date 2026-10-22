@@ -17,6 +17,11 @@ type
   { An 8-pixel chunk as stored in a picture: two pixels to a byte, the first in the high nibble. }
   TChunk = array[0..3] of Byte;
 
+var
+  { heap bytes held by pictures (AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
+  picBytes: LongInt;
+  picPeak: LongInt;
+
 { Returns the transparency mask of an 8-pixel chunk. A transpColor above 15 can match a high nibble but never a low one.
   @param(transpColor The colour that is transparent, 0..15.)
   @param(chunk The chunk's eight pixels, two to a byte, the first in the high nibble of chunk[0].)
@@ -74,12 +79,12 @@ procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: By
   @param(dest Buffer drawn into, normally the view buffer.) }
 procedure BlitTileCell(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
 
-{ Draws one frame of a graphic like BlitTileCell, but can clip it against the destination edges and can save the pixels
-  it is about to cover. Clipping happens only when the clip flag is set; a tile that lies entirely outside the
-  destination, or that has inconsistent geometry, is skipped. Saved pixels go to the save-under buffer at the clipped
-  source position, independent of tileIdx, so the caller can restore the background later.
-  @param(screenX Left edge, in character columns; may be negative when clipping is enabled.)
-  @param(screenY Top edge, in character rows of eight scanlines; may be negative when clipping is enabled.)
+{ Draws one frame of a graphic like BlitTileCell, but clips it against the destination edges and can save the pixels it
+  is about to cover. A tile that lies entirely outside the destination, or that has inconsistent geometry, is skipped.
+  Saved pixels go to the save-under buffer at the clipped source position, independent of tileIdx, so the caller can
+  restore the background later.
+  @param(screenX Left edge, in character columns; may be negative.)
+  @param(screenY Top edge, in character rows of eight scanlines; may be negative.)
   @param(tileIdx Frame within gfx to draw.)
   @param(flag Bit 0 requests transparent drawing (ignored when gfx has no mask); bit 2 saves the covered destination
     pixels first.)
@@ -244,9 +249,9 @@ end;
 procedure SetVideoMode(mode: Byte);
 begin
   GDVars.savedVideoMode := GDVars.curVideoMode;
-  GDVars.dsInterruptRegisters.ah := 0;
-  GDVars.dsInterruptRegisters.al := mode;
-  Intr($10, GDVars.dsInterruptRegisters);
+  GDVars.interruptRegisters.ah := 0;
+  GDVars.interruptRegisters.al := mode;
+  Intr($10, GDVars.interruptRegisters);
   GDVars.curVideoMode := mode;
 end;
 
@@ -411,7 +416,7 @@ begin
       GDVars.spanFirstOfs[scanline] := destOff;
     end;
     if saveRequested then
-      Move(dest^.data[destOff], GDVars.dsIconImageBufferPtr^.data[saveOff], rowBytes);
+      Move(dest^.data[destOff], GDVars.iconImageBufferPtr^.data[saveOff], rowBytes);
     Inc(saveOff, rowBytes);
     if useMask and GDVars.video.keyed then begin
       { a colour key (VGA): every pixel but PIC_KEY is drawn }
@@ -464,7 +469,7 @@ end;
 
 procedure BlitTileClipped(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
 begin
-  Blit.BlitTile(screenX, screenY, tileIdx, flag, gfx, dest, GDVars.clipFlag <> 0);
+  Blit.BlitTile(screenX, screenY, tileIdx, flag, gfx, dest, True);
 end;
 
 function MirrorBits(value: Byte): Byte;
@@ -594,11 +599,11 @@ begin
     GetMem(pic^.transp, Blit.MaskBytes(totalSize));
     FillChar(pic^.transp^, Blit.MaskBytes(totalSize), 0);
   end;
-  Inc(GDVars.picBytes, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
+  Inc(picBytes, totalSize + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   if (flag and 1) > 0 then
-    Inc(GDVars.picBytes, Blit.MaskBytes(totalSize));
-  if GDVars.picBytes > GDVars.picPeak then
-    GDVars.picPeak := GDVars.picBytes;
+    Inc(picBytes, Blit.MaskBytes(totalSize));
+  if picBytes > picPeak then
+    picPeak := picBytes;
   if rest > 0 then
     Blit.AllocPic(height, width, rest, flag, pic^.more);
 end;
@@ -613,10 +618,10 @@ begin
     nBytes := count * imgSize;
     if transp <> nil then begin
       FreeMem(transp, Blit.MaskBytes(nBytes));
-      Dec(GDVars.picBytes, Blit.MaskBytes(nBytes));
+      Dec(picBytes, Blit.MaskBytes(nBytes));
     end;
   end;
-  Dec(GDVars.picBytes, nBytes + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
+  Dec(picBytes, nBytes + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   FreeMem(pic, nBytes + (SizeOf(Types.TImgBuf) - SizeOf(pic^.data)));
   pic := nil;
 end;
@@ -777,4 +782,8 @@ begin
   HasPalette := GDVars.video.hasPalette;
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  picBytes := 0;
+  picPeak := 0;
 end.
