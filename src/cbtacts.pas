@@ -316,7 +316,9 @@ end;
   Helpless, effect-vetoed, blood-draining and bite-holding enemies are skipped. An enemy with no initiative left that
   has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone.
   The free attack is one attack and costs the enemy nothing: CombatAttack would spend every attack it has left and end
-  its turn, so its attacks, phase and turn state are put back afterwards while it is still up (#711). }
+  its turn, so its attacks, phase, turn state and sweep (madeAttack, sweepBudget) are put back afterwards while it is
+  still up (#711, #770). Its special attacks (breath, gaze, acid) still come at the start of its own move
+  (CombatAi.AiMoveAttack). }
 procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 var
   adj: array[1..12] of Byte;
@@ -339,6 +341,8 @@ var
   savedSpell: Byte;
   savedGuard: Byte;
   savedMove: Byte;
+  savedMade: Byte;
+  savedSweep: Byte;
 begin
   FillChar(adj, SizeOf(adj), 0);
   slot := CbtMap.CombatSlot(creature);
@@ -396,6 +400,8 @@ begin
                       savedSpell := p^.combatAddr^.spellCast;
                       savedGuard := p^.combatAddr^.guarding;
                       savedMove := p^.combatAddr^.movement;
+                      savedMade := p^.combatAddr^.madeAttack;
+                      savedSweep := p^.combatAddr^.sweepBudget;
                       { exactly one attack, in that phase }
                       Types.PAttackPhaseView(p)^.curAtt[1] := 0;
                       Types.PAttackPhaseView(p)^.curAtt[2] := 0;
@@ -413,6 +419,8 @@ begin
                         p^.combatAddr^.spellCast := savedSpell;
                         p^.combatAddr^.guarding := savedGuard;
                         p^.combatAddr^.movement := savedMove;
+                        p^.combatAddr^.madeAttack := savedMade;
+                        p^.combatAddr^.sweepBudget := savedSweep;
                       end;
                       if creature^.enabled <> 0 then
                         CharDisp.CombatPrintCreatureInfo(creature);
