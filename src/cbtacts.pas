@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_TERR, C_COND, GDConsts, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
+uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -141,7 +141,7 @@ end;
 
 { Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it on a backstab by the AD&D band
   for the thief level (x2 at 1-4, x3 at 5-8, x4 at 9-12), add the attacker's ranger level against a giant-class foe
-  (GDConsts.rangerFoes) in melee, up to 255, clear elementMask and fire the attacker's and defender's weapon-damage
+  (GameDefs.rangerFoes) in melee, up to 255, clear elementMask and fire the attacker's and defender's weapon-damage
   effect conditions. }
 procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte);
 var
@@ -159,8 +159,8 @@ begin
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
     GameVars.pendingDamage := GameVars.pendingDamage * ((Word(att^.classLevels[C_LEVEL.THIEF]) + 3) div 4 + 1);
   if (att^.classLevels[C_LEVEL.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
-    for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
-      if def^.name = GDConsts.rangerFoes[i] then
+    for i := 1 to SizeOf(GameDefs.rangerFoes) div SizeOf(GameDefs.rangerFoes[1]) do
+      if def^.name = GameDefs.rangerFoes[i] then
         if GameVars.pendingDamage > 255 - att^.classLevels[C_LEVEL.RANGER] then
           GameVars.pendingDamage := 255
         else
@@ -287,8 +287,8 @@ begin
   end;
   x := GameVars.arenaLoc[slot].x;
   y := GameVars.arenaLoc[slot].y;
-  nx := x + GDConsts.dirDX[dir];
-  ny := y + GDConsts.dirDY[dir];
+  nx := x + GameDefs.dirDX[dir];
+  ny := y + GameDefs.dirDY[dir];
   { cost is reused as the ScrollView delta: 1 under manual control, 3 under quickfight }
   cost := 1;
   if creature^.quickfight <> 0 then begin
@@ -304,7 +304,7 @@ begin
   { flanking accumulators reset }
   creature^.combatAddr^.flankCount := 0;
   creature^.combatAddr^.flankSpread := 0;
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
+  SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
   CbtActs.GuardingAttacks(creature);
   if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
     creature^.combatAddr^.movement := 0;
@@ -353,11 +353,11 @@ begin
   for i := 1 to cntBefore do
     adj[i] := GameVars.potentialTargetCreature[i];
   { probe: step the icon, recount, step back }
-  Inc(GameVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
-  Inc(GameVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
+  Inc(GameVars.arenaLoc[slot].x, GameDefs.dirDX[dir]);
+  Inc(GameVars.arenaLoc[slot].y, GameDefs.dirDY[dir]);
   cntAfter := CbtMap.CountTargets(creature, 1);
-  Dec(GameVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
-  Dec(GameVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
+  Dec(GameVars.arenaLoc[slot].x, GameDefs.dirDX[dir]);
+  Dec(GameVars.arenaLoc[slot].y, GameDefs.dirDY[dir]);
   { enemies still adjacent after the step get no free attack }
   for i := 1 to cntBefore do begin
     still := False;
@@ -615,7 +615,7 @@ begin
     row := Types.PCharRecord(tgt)^.levelUndead;
     if row > 10 then
       row := 10;
-    turnVal := GDConsts.turnTable[row, col];
+    turnVal := GameDefs.turnTable[row, col];
     if roll >= Abs(turnVal) then begin
       any := True;
       CbtMap.DisplayMapViewCentered(Types.PCharRecord(tgt), 3, False);
@@ -715,7 +715,7 @@ begin
   GameVars.pendingDamage := 0;
   att^.combatAddr^.madeAttack := 1;
   if CharHlp.IsHelpless(def) then begin
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
+    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
     { phase 1 is curAtt's lower bound }
     while (att^.combatAddr^.attackPhase > 1)
           and (Types.PAttackPhaseView(att)^.curAtt[att^.combatAddr^.attackPhase] = 0) do
@@ -775,7 +775,7 @@ begin
           if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image)
              and (Dice.RollDice(1, image^.strength + 1) > 1) then begin
             { the blow strikes an image }
-            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.MISS]);
+            SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.MISS]);
             CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
             CharDisp.PrintNameString(def, 'lost an image', 10, True);
             Dec(image^.strength);
@@ -783,7 +783,7 @@ begin
               FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
           end else begin
             Inc(GameVars.hitsMade[phase]);
-            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
+            SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
             CbtActs.CalcWeaponDamage(att, def, phase);
             CbtActs.ProcessAttackResult(att, def, atkType, GameVars.pendingDamage, GameVars.pendingDamage, True);
             if def^.enabled <> 0 then
@@ -795,7 +795,7 @@ begin
         end;
       end;
     if not anyHit then begin
-      SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.MISS]);
+      SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.MISS]);
       CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
     end;
     done := True;
@@ -925,8 +925,8 @@ begin
   downIdx := 0;
   bestHp := 255;
   for d := 0 to C_DIR.CENTER do begin
-    nx := CbtMap.CombatCellX(creature) + GDConsts.dirDX[d];
-    ny := CbtMap.CombatCellY(creature) + GDConsts.dirDY[d];
+    nx := CbtMap.CombatCellX(creature) + GameDefs.dirDX[d];
+    ny := CbtMap.CombatCellY(creature) + GameDefs.dirDY[d];
     CbtMap.GetArenaContents(nx, ny, crIdx, terrIdx);
     if crIdx > 0 then begin
       { the var param is the scratch }
@@ -976,7 +976,7 @@ begin
     CbtActs.CombatAimMenu(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, ground, found, tgt);
     GameVars.curChar^.combatAddr^.other := tgt.cr;
   end else begin
-    if GDConsts.spellTable[spell].offensive = 0 then begin
+    if GameDefs.spellTable[spell].offensive = 0 then begin
       tgt.cr := GameVars.curChar;
       if (spell <> C_SPELL.CURE_LIGHT_WOUNDS) or CbtActs.FindCureTarget(GameVars.curChar, tgt.cr) then begin
         tgt.x := CbtMap.CombatCellX(tgt.cr);
@@ -989,14 +989,14 @@ begin
         ok := True;
         if CbtActs.AcquireTarget(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, 1) then begin
           p := GameVars.curChar^.combatAddr^.other;
-          if GDConsts.spellTable[spell].aiRadius > 0 then begin
+          if GameDefs.spellTable[spell].aiRadius > 0 then begin
             if CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p),
-                                        GDConsts.spellTable[spell].aiRadius) then
+                                        GameDefs.spellTable[spell].aiRadius) then
               ok := False;
           end;
           if CharHlp.IsHelpless(p) then
-            for i := 1 to SizeOf(GDConsts.helplessFx) div SizeOf(GDConsts.helplessFx[1]) do
-              if GDConsts.spellTable[spell].effect = GDConsts.helplessFx[i] then
+            for i := 1 to SizeOf(GameDefs.helplessFx) div SizeOf(GameDefs.helplessFx[1]) do
+              if GameDefs.spellTable[spell].effect = GameDefs.helplessFx[i] then
                 ok := False;
           if ok then begin
             tgt.cr := GameVars.curChar^.combatAddr^.other;
@@ -1024,8 +1024,8 @@ end;
 function AimMarker(spell: Byte): Byte;
 begin
   AimMarker := SPRITE_SPARKLE;
-  if (spell >= 1) and (spell <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
-    if (GDConsts.spellTable[spell].offensive = 1) and (GDConsts.spellTable[spell].target = 0) then
+  if (spell >= 1) and (spell <= SizeOf(GameDefs.spellTable) div SizeOf(GameDefs.spellTable[1])) then
+    if (GameDefs.spellTable[spell].offensive = 1) and (GameDefs.spellTable[spell].target = 0) then
       AimMarker := SPRITE_MISSILE;
 end;
 
@@ -1048,7 +1048,7 @@ begin
   GameVars.gMultiTarget := 0;
   GameVars.gTargetX := CbtMap.CombatCellX(GameVars.curChar);
   GameVars.gTargetY := CbtMap.CombatCellY(GameVars.curChar);
-  case GDConsts.spellTable[spell].area and $F of
+  case GameDefs.spellTable[spell].area and $F of
     0:
       { self only }
       begin
@@ -1081,7 +1081,7 @@ begin
           ignores the table radius), or the blast at the table radius (a fireball bursts in flame, and FireballHandler
           uses radius 2 when view3dFlag is clear). }
         if not b then begin
-          radius := GDConsts.spellTable[spell].area and 7;
+          radius := GameDefs.spellTable[spell].area and 7;
           if spell = C_SPELL.LIGHTNING_BOLT then
             CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING)
           else if spell = C_SPELL.STINKING_CLOUD then
@@ -1096,7 +1096,7 @@ begin
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
-          Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, GDConsts.spellTable[spell].area and 7);
+          Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, GameDefs.spellTable[spell].area and 7);
           GameVars.gMultiTarget := 1;
         end else
           cast := False;
@@ -1104,7 +1104,7 @@ begin
   else
     { 1..7: (area and 3) + 1 individual targets }
     begin
-      remaining := (GDConsts.spellTable[spell].area and 3) + 1;
+      remaining := (GameDefs.spellTable[spell].area and 3) + 1;
       k := 0;
       while remaining > 0 do begin
         if not b then
@@ -1162,7 +1162,7 @@ begin
       scroll := nil;
   end;
   if spellId > C_SPELL.NONE then
-    if GDConsts.spellTable[spellId].whenCast = 0 then begin
+    if GameDefs.spellTable[spellId].whenCast = 0 then begin
       CharDisp.PrintBottomLine('Camp Only Spell');
       spellId := C_SPELL.NONE;
       scroll := nil;
@@ -1181,7 +1181,7 @@ begin
     CharDisp.CombatPrintCreatureInfo(caster);
   end;
   if spellId > C_SPELL.NONE then begin
-    castTime := GDConsts.spellTable[spellId].castTime div 3;
+    castTime := GameDefs.spellTable[spellId].castTime div 3;
     if castTime = 0 then begin
       Magic.CastSpellNC(spellId, Boolean(ai), True, cast);
       cast := CharHlp.EndActions(caster);
@@ -1289,10 +1289,10 @@ begin
     end;
   end;
   SoundDrv.SoundSetAutoStop(0);
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.RANGED_START]);
+  SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.RANGED_START]);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
                                   CbtMap.CombatCellY(def), frames, pace);
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.RANGED_END]);
+  SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.RANGED_END]);
   SoundDrv.SoundSetAutoStop(10);
 end;
 
@@ -1493,8 +1493,8 @@ begin
   while not (ch in [C_KEYS.NONE, 'E', 'T']) do
   begin
     CbtMap.ScrollView(cx, cy, 3, dir);
-    Inc(cx, GDConsts.dirDX[dir]);
-    Inc(cy, GDConsts.dirDY[dir]);
+    Inc(cx, GameDefs.dirDX[dir]);
+    Inc(cy, GameDefs.dirDY[dir]);
     if cx < 0 then
       cx := 0;
     if cy < 0 then
@@ -1529,7 +1529,7 @@ begin
       CharDisp.CombatPrintCreatureInfo(underCursor)
     else
       Border.ClearBox(23, 1, 38, 21);
-    if (range < dist) or (GDConsts.terrainInfo[terrIdx].cost = 255) then
+    if (range < dist) or (GameDefs.terrainInfo[terrIdx].cost = 255) then
       valid := False;
     if underCursor <> nil then begin
       if not CbtActs.CanAttackTarget(cur, underCursor) then

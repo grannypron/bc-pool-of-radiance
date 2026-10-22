@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GDConsts, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_LEVEL, Dice, Stats;
 
@@ -526,7 +526,7 @@ begin
     if GameVars.otherCreatureCurrentPtr^.iconDimensions = 1 then
       { 5 = High(gnomeFoes) }
       for i := 1 to 5 do
-        if GameVars.otherCreatureCurrentPtr^.name = GDConsts.gnomeFoes[i] then
+        if GameVars.otherCreatureCurrentPtr^.name = GameDefs.gnomeFoes[i] then
           Inc(GameVars.gAttackRoll);
 end;
 
@@ -615,7 +615,7 @@ begin
     if GameVars.otherCreatureCurrentPtr^.iconDimensions = 1 then
       { 11 = High(dwarfFoes) }
       for i := 1 to 11 do
-        if GameVars.otherCreatureCurrentPtr^.name = GDConsts.dwarfFoes[i] then
+        if GameVars.otherCreatureCurrentPtr^.name = GameDefs.dwarfFoes[i] then
           Inc(GameVars.gAttackRoll);
 end;
 
@@ -756,8 +756,8 @@ begin
   { 4 = High(TStinkRec.exists) }
   for i := 1 to 4 do
     if node^.exists[i] <> 0 then begin
-      xx := node^.ulX + GDConsts.dirDX[GDConsts.cloudDir[i]];
-      yy := node^.ulY + GDConsts.dirDY[GDConsts.cloudDir[i]];
+      xx := node^.ulX + GameDefs.dirDX[GameDefs.cloudDir[i]];
+      yy := node^.ulY + GameDefs.dirDY[GameDefs.cloudDir[i]];
       found := 0;
       for slotId := 1 to GameVars.downedCount do
         if GameVars.downed[slotId].cr <> nil then
@@ -782,8 +782,8 @@ begin
     { 4 = High(TStinkRec.exists) }
     for i := 1 to 4 do
       if q^.exists[i] <> 0 then
-        GameVars.arenaPtr^.cells[q^.ulY + GDConsts.dirDY[GDConsts.cloudDir[i]],
-                                 q^.ulX + GDConsts.dirDX[GDConsts.cloudDir[i]]] := C_TERR.STINK_CLOUD;
+        GameVars.arenaPtr^.cells[q^.ulY + GameDefs.dirDY[GameDefs.cloudDir[i]],
+                                 q^.ulX + GameDefs.dirDX[GameDefs.cloudDir[i]]] := C_TERR.STINK_CLOUD;
     q := q^.next;
   end;
 end;
@@ -907,8 +907,8 @@ begin
     1, HILL GIANT and FIRE GIANT type 2, TROLL type 10, OGRE and ETTIN type 1). }
   if GameVars.curChar^.charType in [0, 1, 2, 10] then
     if GameVars.curChar^.iconDimensions and $7F in [1, 2] then
-      for i := 1 to SizeOf(GDConsts.giantFoes) div SizeOf(GDConsts.giantFoes[1]) do
-        if GameVars.curChar^.name = GDConsts.giantFoes[i] then
+      for i := 1 to SizeOf(GameDefs.giantFoes) div SizeOf(GameDefs.giantFoes[1]) do
+        if GameVars.curChar^.name = GameDefs.giantFoes[i] then
           Dec(GameVars.gAttackRoll, 4);
 end;
 
@@ -1297,7 +1297,7 @@ begin
   y := CbtMap.CombatCellY(GameVars.otherCreatureCurrentPtr);
   if not CbtActs.CanAttackTarget(creature, GameVars.otherCreatureCurrentPtr) then Exit;
   { the range budget in cells, read by WalkLine on entry: that of the Charm Person the gaze applies }
-  dist := GDConsts.spellTable[C_SPELL.CHARM_PERSON].rangeFixed;
+  dist := GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed;
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
                           GameVars.arenaPtr) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
@@ -1344,9 +1344,9 @@ var
       lvl := creature^.classLevels[jj];
       { xp[] runs to level 9; a level above it reads level 9's entry }
       if lvl > 9 then
-        xpTry := GDConsts.experienceSpellsClass[jj].xp[9]
+        xpTry := GameDefs.experienceSpellsClass[jj].xp[9]
       else if lvl > 1 then
-        xpTry := GDConsts.experienceSpellsClass[jj].xp[lvl]
+        xpTry := GameDefs.experienceSpellsClass[jj].xp[lvl]
       else
         xpTry := 0;
       if lvl >= bestLvl then

@@ -30,7 +30,7 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
 { The racial limits on ability (C_ABIL) for race 1..7 (C_RACE.DWARF..HUMAN) and gender (C_GENDER, which only Strength
-  depends on), from GDConsts.minimumMaximumStatistics. }
+  depends on), from GameDefs.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 
@@ -40,11 +40,11 @@ const
   HALFELF_MULTI_CLERIC_WIS = 13;
 
 { The class minimum on ability (C_ABIL) for charClass (C_CLASS) of race (C_RACE): a single class's from
-  GDConsts.classMin, a multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it,
+  GameDefs.classMin, a multiclass's the highest of its classes' (GameDefs.classParts), as the 1st-edition PHB has it,
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
 
-{ The Constitution hit-point adjustment class cls (C_LEVEL) gets per hit die: GDConsts.conBonusTbl's, plus, for the
+{ The Constitution hit-point adjustment class cls (C_LEVEL) gets per hit die: GameDefs.conBonusTbl's, plus, for the
   fighter, paladin and ranger classes, 1 at Con 17, 2 at 18, 3 at 19..20, 4 at 21..23 and 5 at 24..25. The warrior
   bonus goes with the class, so a multi-class character's fighter, paladin or ranger levels get it too: the 1st-edition
   PHB works the bonus out per class, then divides by the class count (#616). A Constitution outside the table's 3..25
@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GameVars, C_CLASS, C_LEVEL, C_RACE, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_RACE, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -121,8 +121,8 @@ begin
       tl := 0
     else if tl > 10 then
       tl := 10;
-    if GDConsts.thac0Tbl[i, tl] > creature^.thac0Base then
-      creature^.thac0Base := GDConsts.thac0Tbl[i, tl];
+    if GameDefs.thac0Tbl[i, tl] > creature^.thac0Base then
+      creature^.thac0Base := GameDefs.thac0Tbl[i, tl];
     if creature^.levelHighest < lvl then
       creature^.levelHighest := lvl;
     case i of
@@ -137,12 +137,12 @@ begin
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
-            creature^.clericSpells[k] := GDConsts.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           { Mark known every cleric spell (castClass 0) of a level with slots; slots exist for levels 1..3 only.
             56 = High(spellsKnown) }
           for m := 1 to 56 do
-            with GDConsts.spellTable[m] do
+            with GameDefs.spellTable[m] do
               if (castClass = 0) and (levelSp >= 1) and (levelSp <= 3) and (creature^.clericSpells[levelSp] > 0) then
                 creature^.spellsKnown[m] := 1;
         end;
@@ -150,7 +150,7 @@ begin
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
-            creature^.mageSpells[k] := GDConsts.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
   ClassCal.RecalcSaves(creature);
@@ -158,7 +158,7 @@ begin
     ClassCal.RecalcThiefSkills(creature);
 end;
 
-{ Add the Wisdom bonus cleric slots, cumulative over GDConsts.wisBonusSpells' rows from 13 to the creature's Wisdom
+{ Add the Wisdom bonus cleric slots, cumulative over GameDefs.wisBonusSpells' rows from 13 to the creature's Wisdom
   (above 25 counts as 25): Wisdom 13 and 14 each add a first-level slot, 15 and 16 a second-level slot, 17 a third-level
   slot, 18 a fourth, and so on to 25. Only the spell levels a cleric casts here (1..Types.CASTER_LEVEL_LAST) take them,
   and each only where that level's slot count is already non-zero. }
@@ -175,7 +175,7 @@ begin
     for w := 13 to wis do
       for lvl := 1 to Types.CASTER_LEVEL_LAST do
         if clericSpells[lvl] > 0 then
-          Inc(clericSpells[lvl], GDConsts.wisBonusSpells[w, lvl]);
+          Inc(clericSpells[lvl], GameDefs.wisBonusSpells[w, lvl]);
   end;
 end;
 
@@ -195,8 +195,8 @@ begin
         lvl := creature^.classLevels[k];
         if lvl > 9 then
           lvl := 9;
-        if creature^.saves[i] > GDConsts.saveTbl[k, lvl].values[i] then
-          creature^.saves[i] := GDConsts.saveTbl[k, lvl].values[i];
+        if creature^.saves[i] > GameDefs.saveTbl[k, lvl].values[i] then
+          creature^.saves[i] := GameDefs.saveTbl[k, lvl].values[i];
       end;
   end;
 end;
@@ -256,12 +256,12 @@ begin
     tl := 1
   else if tl > 9 then
     tl := 9;
-  base := GDConsts.thiefBase[tl].values[j];
-  racial := GDConsts.raceAdj[r].values[j];
+  base := GameDefs.thiefBase[tl].values[j];
+  racial := GameDefs.raceAdj[r].values[j];
   dexterity := 0;
   { dexAdj covers skills 1..5 only }
   if j < 6 then
-    dexterity := GDConsts.dexAdj[dex].values[j];
+    dexterity := GameDefs.dexAdj[dex].values[j];
 end;
 
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
@@ -280,7 +280,7 @@ end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 begin
-  with GDConsts.minimumMaximumStatistics[race] do
+  with GameDefs.minimumMaximumStatistics[race] do
     case ability of
       C_ABIL.STRENGTH: RaceAbilityMin := strMin[gender];
       C_ABIL.INTELLIGENCE: RaceAbilityMin := intMin;
@@ -294,7 +294,7 @@ end;
 
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 begin
-  with GDConsts.minimumMaximumStatistics[race] do
+  with GameDefs.minimumMaximumStatistics[race] do
     case ability of
       C_ABIL.STRENGTH: RaceAbilityMax := strMax[gender];
       C_ABIL.INTELLIGENCE: RaceAbilityMax := intMax;
@@ -314,10 +314,10 @@ var
 begin
   least := 0;
   for p := 1 to 3 do begin
-    part := GDConsts.classParts[charClass].values[p];
+    part := GameDefs.classParts[charClass].values[p];
     if part >= C_CLASS.CLERIC then
-      if GDConsts.classMin[part].values[ability] > least then
-        least := GDConsts.classMin[part].values[ability];
+      if GameDefs.classMin[part].values[ability] > least then
+        least := GameDefs.classMin[part].values[ability];
   end;
   if (race = C_RACE.HALFELF) and (ability = C_ABIL.WISDOM)
      and (charClass in [C_CLASS.CLERIC_FIGHTER..C_CLASS.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
@@ -333,7 +333,7 @@ begin
     con := 3
   else if con > 25 then
     con := 25;
-  share := GDConsts.conBonusTbl[con];
+  share := GameDefs.conBonusTbl[con];
   if (cls = C_LEVEL.FIGHTER) or (cls = C_LEVEL.PALADIN) or (cls = C_LEVEL.RANGER) then
     case con of
       17: Inc(share);
@@ -356,7 +356,7 @@ begin
   bonus := 0;
   with creature^ do begin
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-      if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
+      if (classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) then begin
         share := ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION]);
         if (cls = C_LEVEL.RANGER) and (classLevels[cls] = 1) then
           share := share * 2;
@@ -403,7 +403,7 @@ begin
   HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
 end;
 
-{ The highest legal hpMax: the top of each class's hit dice (GDConsts.hpDice and hpSides: cleric and druid d8 per level,
+{ The highest legal hpMax: the top of each class's hit dice (GameDefs.hpDice and hpSides: cleric and druid d8 per level,
   fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the Con bonus,
   divided by the class count. }
 function HpMaximum(creature: Types.PCharRecord): Byte;
@@ -419,7 +419,7 @@ begin
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         { hpDice at level 1, one die a level after }
-        Inc(sum, (classLevels[cls] + GDConsts.hpDice[cls] - 1) * GDConsts.hpSides[cls]);
+        Inc(sum, (classLevels[cls] + GameDefs.hpDice[cls] - 1) * GameDefs.hpSides[cls]);
       end;
   end;
   HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
@@ -454,20 +454,20 @@ begin
   sum := 0;
   floor := ClassCal.HitDieFloor(creature^.stats[C_ABIL.CONSTITUTION]);
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-      dieCount := GDConsts.hpDice[cls];
+    if (creature^.classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) then begin
+      dieCount := GameDefs.hpDice[cls];
       if creature^.classLevels[cls] > 1 then
         dieCount := 1;
       roll := 0;
       for i := 1 to dieCount do begin
-        die := Dice.RollDice(1, GDConsts.hpSides[cls]);
+        die := Dice.RollDice(1, GameDefs.hpSides[cls]);
         if die < floor then
           die := floor;
         Inc(roll, die);
       end;
       if creature^.classLevels[cls] = 1 then
-        if roll < GDConsts.hpSides[cls] * 2 div 3 then
-          roll := GDConsts.hpSides[cls] * 2 div 3;
+        if roll < GameDefs.hpSides[cls] * 2 div 3 then
+          roll := GameDefs.hpSides[cls] * 2 div 3;
       Inc(sum, roll);
     end;
   RollFirstLevelHp := sum;
@@ -531,7 +531,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 begin
   SpellFailureChance := 0;
   if (spell >= 1) and (spell <= C_SPELL.LAST) then
-    if (GDConsts.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
+    if (GameDefs.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
         (creature^.classLevels[C_LEVEL.CLERIC] > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);
 end;

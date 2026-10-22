@@ -20,9 +20,9 @@ procedure DisplayCharPortrait;
   or on any disk once the merged HEAD.DAX and BODY.DAX are read in place of its own. }
 function PlayerPortraitsHere: Boolean;
 
-{ How many GDConsts.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
+{ How many GameDefs.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
   all of them once the merged HEAD.DAX and BODY.DAX are read in place of its own, otherwise the ones HEAD3.DAX and
-  BODY3.DAX hold (GDConsts.DISK3_HEADS and DISK3_BODIES). }
+  BODY3.DAX hold (GameDefs.DISK3_HEADS and DISK3_BODIES). }
 function PlayerPortraitCount(body: Boolean): Byte;
 
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
@@ -33,7 +33,7 @@ procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDConsts, GameVars, Blit, GameIo, Border, DaxIo, StrUtil;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameDefs, GameVars, Blit, GameIo, Border, DaxIo, StrUtil;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A
@@ -176,7 +176,7 @@ begin
           end;
         Blit.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
         if (transp and 1 > 0) and (Blit.ColourCount = 16) then
-          Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
+          Blit.RemapPic(GameDefs.animRemapFrom, GameDefs.animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
       end else if f = 1 then
         { the other frames are drawn over, or XORed with, the first }
@@ -212,15 +212,15 @@ begin
 end;
 
 { Draw a bordered window at the top right, then the current character's portrait in it, its head and body numbers mapped
-  through GDConsts.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. }
+  through GameDefs.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. }
 procedure DisplayCharPortrait;
 begin
   with GameVars.curChar^ do
-    if (portraitHead = 0) or (portraitBody = 0) or (portraitHead > SizeOf(GDConsts.headTbl)) or
-        (portraitBody > SizeOf(GDConsts.bodyTbl)) then Exit;
+    if (portraitHead = 0) or (portraitBody = 0) or (portraitHead > SizeOf(GameDefs.headTbl)) or
+        (portraitBody > SizeOf(GameDefs.bodyTbl)) then Exit;
   Border.DrawWindow(28, 1, 38, 11, 0, Black, '');
   with GameVars.curChar^ do begin
-    Portrait.LoadPortraitBufs(GDConsts.headTbl[portraitHead], GDConsts.bodyTbl[portraitBody]);
+    Portrait.LoadPortraitBufs(GameDefs.headTbl[portraitHead], GameDefs.bodyTbl[portraitBody]);
     Portrait.DisplayPortraitBufs(28, 1, True);
   end;
 end;
@@ -241,13 +241,13 @@ function PlayerPortraitCount(body: Boolean): Byte;
 begin
   if MergedPortraits then begin
     if body then
-      PlayerPortraitCount := SizeOf(GDConsts.bodyTbl)
+      PlayerPortraitCount := SizeOf(GameDefs.bodyTbl)
     else
-      PlayerPortraitCount := SizeOf(GDConsts.headTbl);
+      PlayerPortraitCount := SizeOf(GameDefs.headTbl);
   end else if body then
-    PlayerPortraitCount := GDConsts.DISK3_BODIES
+    PlayerPortraitCount := GameDefs.DISK3_BODIES
   else
-    PlayerPortraitCount := GDConsts.DISK3_HEADS;
+    PlayerPortraitCount := GameDefs.DISK3_HEADS;
 end;
 
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping

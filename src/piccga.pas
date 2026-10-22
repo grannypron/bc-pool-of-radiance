@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_VIDEO, GDConsts, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GameDefs, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -51,7 +51,7 @@ begin
             for j := 1 to 2 do begin
               for k := 4 to 7 do begin
                 if (bit and mask) > 0 then
-                  transp^[maskOff] := transp^[maskOff] or GDConsts.cgaPixelMask[k];
+                  transp^[maskOff] := transp^[maskOff] or GameDefs.cgaPixelMask[k];
                 bit := bit shr 1;
               end;
               Inc(maskOff);
@@ -59,19 +59,19 @@ begin
           end;
           for k := 0 to 3 do
             if Odd(k) then
-              data[dstOff] := data[dstOff] or GDConsts.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k]
+              data[dstOff] := data[dstOff] or GameDefs.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k]
             else
               data[dstOff] := data[dstOff] or
-                GDConsts.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k];
+                GameDefs.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k];
           if transp <> nil then
             data[dstOff] := data[dstOff] and not transp^[maskOff - 2];
           Inc(dstOff);
           for k := 4 to 7 do
             if Odd(k) then
-              data[dstOff] := data[dstOff] or GDConsts.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k - 4]
+              data[dstOff] := data[dstOff] or GameDefs.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k - 4]
             else
               data[dstOff] := data[dstOff] or
-                GDConsts.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k - 4];
+                GameDefs.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k - 4];
           if transp <> nil then
             data[dstOff] := data[dstOff] and not transp^[maskOff - 1];
           Inc(dstOff);
@@ -130,11 +130,11 @@ begin
       for row := 1 to height do
         for col := 1 to rowBytes do begin
           for pixPos := 0 to 3 do
-            if pic^.data[srcOff] and GDConsts.cgaPixelMask[pixPos + 4] =
-                GDConsts.cgaPixPos[Blit.SrcNibble(fromC, map)][pixPos] then
+            if pic^.data[srcOff] and GameDefs.cgaPixelMask[pixPos + 4] =
+                GameDefs.cgaPixPos[Blit.SrcNibble(fromC, map)][pixPos] then
               if not isDithered or isDithered and (Random(4) = 0) then
-                data[dstOff] := data[dstOff] and not GDConsts.cgaPixelMask[pixPos + 4] or
-                  GDConsts.cgaPixPos[Blit.SrcNibble(toC, map)][pixPos];
+                data[dstOff] := data[dstOff] and not GameDefs.cgaPixelMask[pixPos + 4] or
+                  GameDefs.cgaPixPos[Blit.SrcNibble(toC, map)][pixPos];
           Inc(srcOff);
           Inc(dstOff);
         end;
@@ -160,7 +160,7 @@ begin
   for i := 0 to 1 do begin
     b := 0;
     for k := 0 to 3 do
-      b := b or ((GDConsts.attrTable[px[i * 4 + k] and $0F] and 3) shl (6 - 2 * k));
+      b := b or ((GameDefs.attrTable[px[i * 4 + k] and $0F] and 3) shl (6 - 2 * k));
     pic^.data[at + y * 2 + i] := b;
   end;
 end;

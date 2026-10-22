@@ -14,7 +14,7 @@ procedure ToolsMenu;
 
 implementation
 
-uses Crt, Types, C_AREA, C_DIR, C_KEYS, C_MSG, GDConsts, GameVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
+uses Crt, Types, C_AREA, C_DIR, C_KEYS, C_MSG, GameDefs, GameVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
   Explored, EvtKind, CharEdit, MapNotes, StrUtil;
 
 const
@@ -25,7 +25,7 @@ const
   LEGEND_COL = 20;
   { the Map tool's line below the map: the cursor's square and its note }
   NOTE_ROW = 20;
-  { symbol set 4 (GDConsts.symSetFirst[4] = 256): the party's arrows by facing div 2, then the sixteen wall
+  { symbol set 4 (GameDefs.symSetFirst[4] = 256): the party's arrows by facing div 2, then the sixteen wall
     combinations, 260 + N + E * 2 + S * 4 + W * 8, as View3D.DrawAutoMap draws them }
   SYM_SET = 4;
   SYM_ARROW = 256;
@@ -54,7 +54,7 @@ begin
   symbols := GameVars.symbolSetPtrs[SYM_SET];
   glyph := GameVars.current8x8SymbolPtr2;
   if (symbols = nil) or (glyph = nil) then Exit;
-  Move(symbols^.data[(symbol - GDConsts.symSetFirst[SYM_SET]) * symbols^.imgSize], glyph^.data, symbols^.imgSize);
+  Move(symbols^.data[(symbol - GameDefs.symSetFirst[SYM_SET]) * symbols^.imgSize], glyph^.data, symbols^.imgSize);
   { the set's colour map, which CGA's remap translates the tables' colours through }
   glyph^.map := symbols^.map;
   for c := 0 to 15 do begin

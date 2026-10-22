@@ -57,7 +57,7 @@ function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOc
 
 implementation
 
-uses GDConsts, GameVars, C_DIR;
+uses GameDefs, GameVars, C_DIR;
 
 function SignOf(v: Integer): Integer;
 begin
@@ -160,7 +160,7 @@ begin
         NextPathStep := True;
       end;
     end;
-    step := GDConsts.dirByDelta[dy8 + 1, dx8 + 1];
+    step := GameDefs.dirByDelta[dy8 + 1, dx8 + 1];
   end;
 end;
 
@@ -183,17 +183,17 @@ begin
   walk.ey := ty;
   Pathing.PathFind(walk);
   meter.sx := 0;
-  meter.sy := GDConsts.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
+  meter.sy := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
   if walk.adx > walk.ady then
     meter.ex := walk.adx
   else
     meter.ex := walk.ady;
-  meter.ey := GDConsts.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
+  meter.ey := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
   Pathing.PathFind(meter);
   done := False;
   repeat
     if ((Types.PArena(view)^.distMode = 0) and
-        (GDConsts.terrainInfo[Types.PArena(view)^.cells[walk.cy, walk.cx]].blocking > meter.cy)) or
+        (GameDefs.terrainInfo[Types.PArena(view)^.cells[walk.cy, walk.cx]].blocking > meter.cy)) or
           (walk.dist > maxDist) then begin
       tx := walk.cx;
       ty := walk.cy;
@@ -219,8 +219,8 @@ begin
   end;
   if dir > C_DIR.CENTER then
     dir := C_DIR.CENTER;
-  nx := x + GDConsts.dirDX[dir];
-  ny := y + GDConsts.dirDY[dir];
+  nx := x + GameDefs.dirDX[dir];
+  ny := y + GameDefs.dirDY[dir];
   if ((x = tx) and (y = ty)) or ((nx = tx) and (ny = ty)) then begin
     IsDirToward := True;
     Exit;
@@ -323,8 +323,8 @@ begin
   GetIconTileDelta := False;
   { iconDelta's rows are sizes 1..4 }
   if (size = 0) or (size > 4) then Exit;
-  dx := GDConsts.iconDelta[size, idx].dx;
-  dy := GDConsts.iconDelta[size, idx].dy;
+  dx := GameDefs.iconDelta[size, idx].dx;
+  dy := GameDefs.iconDelta[size, idx].dy;
   if dx >= 0 then
     GetIconTileDelta := True;
 end;
@@ -377,7 +377,7 @@ begin
       if (cx < 0) or (cx > ARENA_LAST_X) or (cy < 0) or (cy > ARENA_LAST_Y) then
         Exit;
       t := GameVars.arenaPtr^.cells[cy, cx];
-      if (t = 0) or (t = avoid) or (GDConsts.terrainInfo[t].cost = WALL_COST) then
+      if (t = 0) or (t = avoid) or (GameDefs.terrainInfo[t].cost = WALL_COST) then
         Exit;
       c := occupant(cx, cy);
       if (c <> 0) and (c <> slot) and not (c in open) then
@@ -442,7 +442,7 @@ begin
     end;
   heading := C_DIR.NORTH;
   for d := C_DIR.NORTH to C_DIR.NORTHWEST do
-    if (GDConsts.dirDX[d] = Pathing.SignOf(tx - sx)) and (GDConsts.dirDY[d] = Pathing.SignOf(ty - sy)) then
+    if (GameDefs.dirDX[d] = Pathing.SignOf(tx - sx)) and (GameDefs.dirDY[d] = Pathing.SignOf(ty - sy)) then
       heading := d;
 end;
 
@@ -492,8 +492,8 @@ begin
       k := 0;
       while (k <= 7) and (reached = 0) do begin
         d := (heading + TURNS[k]) mod 8;
-        nx := x + GDConsts.dirDX[d];
-        ny := y + GDConsts.dirDY[d];
+        nx := x + GameDefs.dirDX[d];
+        ny := y + GameDefs.dirDY[d];
         if (nx >= 0) and (nx <= ARENA_LAST_X) and (ny >= 0) and (ny <= ARENA_LAST_Y) then
           if (marks^[ny, nx] = UNREACHED) and CanStand(nx, ny, size, slot, open, avoid, occupant) then begin
             first := marks^[y, x];

@@ -50,7 +50,7 @@ procedure FatalError(msg: String);
 
 implementation
 
-uses C_SOUND, GDConsts, GameVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses C_SOUND, GameDefs, GameVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { showMemory is up: its own key waits do not open it again }
@@ -63,7 +63,7 @@ begin
   if GameVars.debugTraceEnabled then
     Close(GameVars.debugFile);
   GameVars.soundMode := GameVars.soundSaved;
-  SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
+  SoundDrv.SoundCommand(GameDefs.soundIds.commands[0]);
   GameVars.interruptRegisters.ah := 0;
   GameVars.interruptRegisters.al := GameVars.savedVideoMode;
   Intr($10, GameVars.interruptRegisters);
@@ -179,7 +179,7 @@ begin
   if GameVars.sound.mode = C_SOUND.MODE_DISABLED then Exit;
   if not turnOn then begin
     if GameVars.soundMode <> C_SOUND.MODE_DISABLED then begin
-      SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
+      SoundDrv.SoundCommand(GameDefs.soundIds.commands[0]);
       GameVars.soundMode := C_SOUND.MODE_DISABLED;
     end;
   end else if GameVars.soundMode = C_SOUND.MODE_DISABLED then begin

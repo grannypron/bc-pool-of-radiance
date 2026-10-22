@@ -20,7 +20,7 @@ procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
   since the removal's handler may have removed and freed it. }
 function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
 
-{ True when the creature has any of the effects a cure of disease removes (GDConsts.cureDiseaseEffects). }
+{ True when the creature has any of the effects a cure of disease removes (GameDefs.cureDiseaseEffects). }
 function HasDisease(creature: Types.PCharRecord): Boolean;
 
 { Remove every effect a cure of disease removes, quietly, with the effect lock held: the temple's cure and the
@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GDConsts, GameVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP;
 
 const
@@ -617,7 +617,7 @@ var
   i: Byte;
 begin
   for i := 1 to 16 do
-    FxEngine.RemoveEffect(creature, GDConsts.hpZeroEffects[i], nil);
+    FxEngine.RemoveEffect(creature, GameDefs.hpZeroEffects[i], nil);
 end;
 
 procedure RemoveAiEffects(creature: Types.PCharRecord);
@@ -625,7 +625,7 @@ var
   i: Byte;
 begin
   for i := 1 to 2 do
-    FxEngine.RemoveEffect(creature, GDConsts.aiRoundRemoveEffects[i], nil);
+    FxEngine.RemoveEffect(creature, GameDefs.aiRoundRemoveEffects[i], nil);
 end;
 
 function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Boolean;
@@ -854,8 +854,8 @@ var
   found: Boolean;
 begin
   found := False;
-  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
-    if CharHlp.HasEffect(creature, GDConsts.cureDiseaseEffects[i], effect) then
+  for i := 1 to SizeOf(GameDefs.cureDiseaseEffects) do
+    if CharHlp.HasEffect(creature, GameDefs.cureDiseaseEffects[i], effect) then
       found := True;
   HasDisease := found;
 end;
@@ -865,8 +865,8 @@ var
   i: Byte;
 begin
   GameVars.effectLock := 1;
-  for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
-    FxEngine.RemoveEffect(creature, GDConsts.cureDiseaseEffects[i], nil);
+  for i := 1 to SizeOf(GameDefs.cureDiseaseEffects) do
+    FxEngine.RemoveEffect(creature, GameDefs.cureDiseaseEffects[i], nil);
   GameVars.effectLock := 0;
 end;
 
@@ -974,9 +974,9 @@ begin
   total := count;
   u := tUnit;
   if u = C_TIME.SEGMENTS then
-    total := total div GDConsts.unitScale[C_TIME.SEGMENTS];
+    total := total div GameDefs.unitScale[C_TIME.SEGMENTS];
   while u > 1 do begin
-    total := GDConsts.unitScale[Pred(u)] * total;
+    total := GameDefs.unitScale[Pred(u)] * total;
     u := Pred(u);
   end;
   while total > 0 do begin

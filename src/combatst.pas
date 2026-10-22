@@ -9,7 +9,7 @@ procedure CombatStart;
 
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GDConsts, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
+uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GameDefs, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
@@ -35,7 +35,7 @@ var
 begin
   for col := 0 to 49 do
     for row := 0 to 24 do
-      if GDConsts.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
+      if GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
         roll := Dice.RollDice(1, 100);
         case roll of
           1..97: ;
@@ -82,7 +82,7 @@ var
 begin
   opp := (dir + 4) mod 8;
   k1 := GetWallKind(x, y, dir);
-  k2 := GetWallKind(x + GDConsts.dirDX[dir], y + GDConsts.dirDY[dir], opp);
+  k2 := GetWallKind(x + GameDefs.dirDX[dir], y + GameDefs.dirDY[dir], opp);
   WallBetween := k1 or k2;
 end;
 
@@ -436,8 +436,8 @@ begin
   if CombatSt.TerrainClassOf and $80 <> 0 then dens := 0;
   for col := 0 to 49 do
     for row := 1 to 24 do
-      if (GDConsts.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22) and
-          (GDConsts.terrainInfo[GameVars.arenaPtr^.cells[row - 1, col]].tileId = 22) and
+      if (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22) and
+          (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row - 1, col]].tileId = 22) and
           (Dice.RollDice(1, 100) <= dens) then begin
         h := Dice.RollDice(1, 10);
         if h > 8 then
@@ -488,12 +488,12 @@ begin
   end;
   for col := 0 to 49 do
     for row := 0 to 24 do
-      if GDConsts.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
+      if GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
         r := Dice.RollDice(1, 255);
         if r <= tSwamp then begin
           r := Dice.RollDice(1, 4);
           if (r = 4) and (row > 0) and
-              (GDConsts.terrainInfo[GameVars.arenaPtr^.cells[row - 1, col]].tileId = 22) then begin
+              (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row - 1, col]].tileId = 22) then begin
             GameVars.arenaPtr^.cells[row - 1, col] := 65;
             GameVars.arenaPtr^.cells[row, col] := 64;
           end;
@@ -527,7 +527,7 @@ begin
   mapY := GameVars.zone0^.partyY.lo;
   if GameVars.gLocType = C_AREA.LOC_WILD_CENTRAL then Inc(mapX, 13);
   if GameVars.gLocType = C_AREA.LOC_WILD_EAST then Inc(mapX, 26);
-  terrainChar := GDConsts.wildMap[mapY, mapX];
+  terrainChar := GameDefs.wildMap[mapY, mapX];
   CombatSt.PlaceRiver;
   CombatSt.PlaceTrees;
   CombatSt.ScatterFeatures;
@@ -573,7 +573,7 @@ begin
     FillChar(p^.combatAddr^, SizeOf(Types.TCombatRec), 0);
     if count > GameVars.zone1^[C_GBVM.PARTY_SIZE] then
       p^.combatAddr^.notPcNpc := 1;
-    p^.combatAddr^.direction := GDConsts.quadDir[GameVars.gFacing div 2];
+    p^.combatAddr^.direction := GameDefs.quadDir[GameVars.gFacing div 2];
     if p^.hostile = 1 then
       p^.combatAddr^.direction := (p^.combatAddr^.direction + 4) mod 8;
     m := p^.npc and C_NPC.MORALE_MASK;
@@ -609,7 +609,7 @@ begin
     GameVars.arenaLoc[slot].x := qx + bqx * 6 + bqy * 5 + 22;
     GameVars.arenaLoc[slot].y := qy + bqy * 5 + 10;
     CbtMap.ProbeDirection(GameVars.creatureArr[slot], C_DIR.CENTER, crIdx, terrIdx);
-    if (crIdx = 0) and (terrIdx > 0) and (GDConsts.terrainInfo[terrIdx].cost < 255) then begin
+    if (crIdx = 0) and (terrIdx > 0) and (GameDefs.terrainInfo[terrIdx].cost < 255) then begin
       TryPlaceAt := 1;
       quadFree[team, ring, qy, qx] := 0;
     end else
@@ -659,13 +659,13 @@ begin
   baseQX := placeX[team];
   baseQY := placeY[team];
   repeat
-    quad := GDConsts.ringStart[teamDir[team], ring] div 2;
+    quad := GameDefs.ringStart[teamDir[team], ring] div 2;
     case state of
       1: begin
-           stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 2) mod 4]];
-           stepY := GDConsts.dirDY[GDConsts.quadDir[(quad + 2) mod 4]];
-           legX := GDConsts.startQX[ring > 0, quad] + stepX * legShift;
-           legY := GDConsts.startQY[ring > 0, quad] + stepY * legShift;
+           stepX := GameDefs.dirDX[GameDefs.quadDir[(quad + 2) mod 4]];
+           stepY := GameDefs.dirDY[GameDefs.quadDir[(quad + 2) mod 4]];
+           legX := GameDefs.startQX[ring > 0, quad] + stepX * legShift;
+           legY := GameDefs.startQY[ring > 0, quad] + stepY * legShift;
            qx := legX;
            qy := legY;
            legLen := 1;
@@ -673,16 +673,16 @@ begin
            tries := 1;
          end;
       2: begin
-           stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 1) mod 4]];
-           stepY := GDConsts.dirDY[GDConsts.quadDir[(quad + 1) mod 4]];
+           stepX := GameDefs.dirDX[GameDefs.quadDir[(quad + 1) mod 4]];
+           stepY := GameDefs.dirDY[GameDefs.quadDir[(quad + 1) mod 4]];
            qx := legX + stepX * legLen;
            qy := legY + stepY * legLen;
            state := 3;
            Inc(tries);
          end;
       3: begin
-           stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 3) mod 4]];
-           stepY := GDConsts.dirDY[GDConsts.quadDir[(quad + 3) mod 4]];
+           stepX := GameDefs.dirDX[GameDefs.quadDir[(quad + 3) mod 4]];
+           stepY := GameDefs.dirDY[GameDefs.quadDir[(quad + 3) mod 4]];
            qx := legX + stepX * legLen;
            qy := legY + stepY * legLen;
            state := 2;
@@ -704,7 +704,7 @@ begin
           wallY := placeY[team] + GameVars.gMapY;
           open := 0;
           for k := 1 to 3 do begin
-            dir := GDConsts.ringDirTbl[teamDir[team], k];
+            dir := GameDefs.ringDirTbl[teamDir[team], k];
             if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
               open := 1;
           end;
@@ -722,10 +722,10 @@ begin
         Inc(ring);
         wallX := placeX[team] + GameVars.gMapX;
         wallY := placeY[team] + GameVars.gMapY;
-        dir := GDConsts.ringDirTbl[teamDir[team], ring];
+        dir := GameDefs.ringDirTbl[teamDir[team], ring];
         if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
-          baseQX := placeX[team] + GDConsts.dirDX[dir];
-          baseQY := placeY[team] + GDConsts.dirDY[dir];
+          baseQX := placeX[team] + GameDefs.dirDX[dir];
+          baseQY := placeY[team] + GameDefs.dirDY[dir];
           legShift := 0;
           state := 1;
         end;
@@ -769,8 +769,8 @@ begin
   placeX[0] := 0;
   placeY[0] := 0;
   teamDir[0] := GameVars.gFacing div 2;
-  placeX[1] := GDConsts.dirDX[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeX[0];
-  placeY[1] := GDConsts.dirDY[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
+  placeX[1] := GameDefs.dirDX[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeX[0];
+  placeY[1] := GameDefs.dirDY[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
   teamDir[1] := (GameVars.gFacing + 4) mod 8 div 2;
   for team := 0 to 1 do
     teamRows[team] := (teamCount[team] + 1) div 2;
@@ -784,7 +784,7 @@ begin
       for y := 0 to 5 do
         { x = quad column qx here }
         for x := 0 to 10 do
-          if (GDConsts.rowBand[d, y].lo > x) or (GDConsts.rowBand[d, y].hi < x) then
+          if (GameDefs.rowBand[d, y].lo > x) or (GameDefs.rowBand[d, y].hi < x) then
             quadFree[team, g, y, x] := 0
           else
             quadFree[team, g, y, x] := 1;

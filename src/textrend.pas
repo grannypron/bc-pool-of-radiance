@@ -51,7 +51,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
-uses GDConsts, GameVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
+uses GameDefs, GameVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
 
 {$IFDEF FPC}
 { the native build's count of the same ticks }
@@ -192,12 +192,12 @@ begin
   width := lrCol - ulCol + 1;
   repeat
     lineEnd := idx;
-    while (lineEnd < len) and (source[lineEnd] in GDConsts.breakChars) do
+    while (lineEnd < len) and (source[lineEnd] in GameDefs.breakChars) do
       Inc(lineEnd);
-    while (lineEnd < len) and not (source[lineEnd] in GDConsts.breakChars) and (source[lineEnd] <> ' ') do
+    while (lineEnd < len) and not (source[lineEnd] in GameDefs.breakChars) and (source[lineEnd] <> ' ') do
       Inc(lineEnd);
     if source[lineEnd] <> ' ' then
-      while (lineEnd + 1 < len) and (source[lineEnd + 1] in GDConsts.breakChars) do
+      while (lineEnd + 1 < len) and (source[lineEnd + 1] in GameDefs.breakChars) do
         Inc(lineEnd);
     { a word wider than the window is split: what fits on this row now, the rest carried on to the next }
     if (GameVars.curCol <= lrCol) and (lineEnd - idx + Ord(source[lineEnd] <> ' ') > width) then

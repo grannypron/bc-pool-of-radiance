@@ -46,7 +46,7 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses Crt, C_NPC, GDConsts, GameVars, TextRend, Border, CharHlp, C_KEYS, C_IFC, C_MONEY, GameIo, MenuCore, C_MSG,
+uses Crt, C_NPC, GameDefs, GameVars, TextRend, Border, CharHlp, C_KEYS, C_IFC, C_MONEY, GameIo, MenuCore, C_MSG,
   EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
@@ -104,7 +104,7 @@ var
   i: ShortInt;
 begin
   MoneyCal.CoinsOf(creature, m);
-  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GDConsts.coinValuationCopper[C_MONEY.GOLD], C_MONEY.MAX_COINS,
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD], C_MONEY.MAX_COINS,
                       m);
   for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
     creature^.coins[i] := m[i];
@@ -114,7 +114,7 @@ end;
 { Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
 procedure PayFromPool(gp: LongInt);
 begin
-  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GDConsts.coinValuationCopper[C_MONEY.GOLD],
+  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD],
                       MaxLongInt, GameVars.treasureMoney);
 end;
 
@@ -371,7 +371,7 @@ begin
           p^.next := sel;
         end;
         Str(GameVars.treasureMoney[i], numStr);
-        p^.name := GDConsts.moneyNames[i] + ' ' + numStr;
+        p^.name := GameDefs.moneyNames[i] + ' ' + numStr;
         p^.inUse := 0;
       end;
     sel := p;

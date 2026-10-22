@@ -470,7 +470,7 @@ type
     num: Byte;
     sides: Byte;
   end;
-  { racial ability limits (GDConsts.minimumMaximumStatistics) }
+  { racial ability limits (GameDefs.minimumMaximumStatistics) }
   TRuleRace = record
     { by gender }
     strMin: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
@@ -487,59 +487,59 @@ type
     chaMin: Byte;
     chaMax: Byte;
   end;
-  { thief abilities (GDConsts.thiefBase and raceAdj), by skill number or by name }
+  { thief abilities (GameDefs.thiefBase and raceAdj), by skill number or by name }
   TRuleThief = packed record
     case Byte of
       0: (values: array[1..8] of ShortInt);
       1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
           hideShadows: ShortInt; hearNoise: ShortInt; climbWalls: ShortInt; readLanguages: ShortInt);
   end;
-  { Dexterity adjustments to the first five thief abilities (GDConsts.dexAdj), by skill number or by name }
+  { Dexterity adjustments to the first five thief abilities (GameDefs.dexAdj), by skill number or by name }
   TRuleThiefDex = packed record
     case Byte of
       0: (values: array[1..5] of ShortInt);
       1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
           hideShadows: ShortInt);
   end;
-  { classes a race can take (GDConsts.classesByRace), in class-menu order }
+  { classes a race can take (GameDefs.classesByRace), in class-menu order }
   TRuleRaceClasses = record
     count: ShortInt;
     { class IDs; 0 fills past count }
     classes: array[1..13] of ShortInt;
   end;
-  { classLevels indexes a class trains (GDConsts.classParts), by position or by name; -1 fills a shorter list }
+  { classLevels indexes a class trains (GameDefs.classParts), by position or by name; -1 fills a shorter list }
   TRuleClassParts = packed record
     case Byte of
       0: (values: array[1..3] of ShortInt);
       1: (first: ShortInt; second: ShortInt; third: ShortInt);
   end;
-  { one value per ability (GDConsts.raceAbilityAdj and classMin), by C_ABIL index or by name }
+  { one value per ability (GameDefs.raceAbilityAdj and classMin), by C_ABIL index or by name }
   TRuleAbilities = packed record
     case Byte of
       0: (values: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of ShortInt);
       1: (strength: ShortInt; intelligence: ShortInt; wisdom: ShortInt; dexterity: ShortInt; constitution: ShortInt;
           charisma: ShortInt);
   end;
-  { one value per classLevels index (GDConsts.raceMaxLevel), by index or by class name }
+  { one value per classLevels index (GameDefs.raceMaxLevel), by index or by class name }
   TRuleClassLevels = packed record
     case Byte of
       0: (values: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt);
       1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
           thief: ShortInt; monk: ShortInt);
   end;
-  { the oldest age in each age category (GDConsts.ageCat), by category number or by name }
+  { the oldest age in each age category (GameDefs.ageCat), by category number or by name }
   TRuleAgeCategories = packed record
     case Byte of
       0: (values: array[1..5] of Word);
       1: (youngAdult: Word; mature: Word; middleAged: Word; old: Word; venerable: Word);
   end;
-  { alignments a class can take (GDConsts.alignByClass), in alignment-menu order }
+  { alignments a class can take (GameDefs.alignByClass), in alignment-menu order }
   TRuleClassAlignments = record
     count: ShortInt;
     { alignment IDs; 0 fills past count }
     alignments: array[1..9] of ShortInt;
   end;
-  { saving throws (GDConsts.saveTbl), by C_SAVE index or by name }
+  { saving throws (GameDefs.saveTbl), by C_SAVE index or by name }
   TRuleSaves = packed record
     case Byte of
       0: (values: array[C_SAVE.PARALYZE..C_SAVE.SPELL] of Byte);

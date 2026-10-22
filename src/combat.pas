@@ -14,7 +14,7 @@ function BandageDying(bandage: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_NPC, C_COND, GDConsts, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
+uses Types, C_TIME, C_NPC, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
@@ -378,7 +378,7 @@ begin
           'Y': done := CbtActs.CombatFleeAttempt(creature);
           'N': done := False;
         end;
-      end else if GDConsts.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
+      end else if GameDefs.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
         CharDisp.PrintBottomLine('Blocked')
       else begin
         { free attacks from the enemies this step leaves }

@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
+uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -51,7 +51,7 @@ begin
   cntScr := 0;
   for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do
     if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then begin
-      lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].levelSp;
+      lvl := GameDefs.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].levelSp;
       if lvl > maxMem then maxMem := lvl;
       Inc(cntMem, lvl);
     end;
@@ -60,7 +60,7 @@ begin
     if CharHlp.ItemReadable(p) then
       for i := 1 to SizeOf(p^.spells) do
         if p^.spells[i] > C_SPELL.ID_MASK then begin
-          lvl := GDConsts.spellTable[p^.spells[i] and C_SPELL.ID_MASK].levelSp;
+          lvl := GameDefs.spellTable[p^.spells[i] and C_SPELL.ID_MASK].levelSp;
           if lvl > maxScr then maxScr := lvl;
           Inc(cntScr, lvl);
         end;
@@ -126,8 +126,8 @@ begin
   count := 0;
   for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do begin
     id := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
-    if (id >= 1) and (id <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
-      if (GDConsts.spellTable[id].levelSp = lvl) and (GDConsts.spellTable[id].castClassSp = typ) then
+    if (id >= 1) and (id <= SizeOf(GameDefs.spellTable) div SizeOf(GameDefs.spellTable[1])) then
+      if (GameDefs.spellTable[id].levelSp = lvl) and (GameDefs.spellTable[id].castClassSp = typ) then
         Inc(count);
   end;
   SlotsUsed := count;
@@ -379,7 +379,7 @@ begin
             found := True;
           end;
         if (not found) and (GameVars.curChar^.spellsKnown[id] <> 0) then
-          if Camp.SlotFree(GDConsts.spellTable[id].levelSp, GDConsts.spellTable[id].castClassSp) then
+          if Camp.SlotFree(GameDefs.spellTable[id].levelSp, GameDefs.spellTable[id].castClassSp) then
             Camp.PutPending(id, placed);
       end;
     end;
@@ -432,8 +432,8 @@ begin
         redraw := True;
         if spellId = C_SPELL.NONE then
           done := True
-        else if Camp.SpellSlotsRemaining(GDConsts.spellTable[spellId].levelSp,
-                                         GDConsts.spellTable[spellId].castClassSp) > 0
+        else if Camp.SpellSlotsRemaining(GameDefs.spellTable[spellId].levelSp,
+                                         GameDefs.spellTable[spellId].castClassSp) > 0
         then begin
           { Sorting puts empty spell slots first; a full array takes nothing }
           Camp.PutPending(spellId, placed);
@@ -497,9 +497,9 @@ begin
           CharDisp.PrintNameString(GameVars.curChar, 'has no copyable scrolls.', 10, True)
         else
           redraw := True;
-      end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or (GDConsts.spellTable[spellId].levelSp < 1) or
-          (GDConsts.spellTable[spellId].levelSp > 3) or (GDConsts.spellTable[spellId].castClassSp < 0) or
-          (GDConsts.spellTable[spellId].castClassSp > 1) then begin
+      end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or (GameDefs.spellTable[spellId].levelSp < 1) or
+          (GameDefs.spellTable[spellId].levelSp > 3) or (GameDefs.spellTable[spellId].castClassSp < 0) or
+          (GameDefs.spellTable[spellId].castClassSp > 1) then begin
         { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
         redraw := True;
         CharDisp.PrintBottomLine('You can not scribe that spell.');
@@ -521,8 +521,8 @@ begin
             p := p^.next;
           end;
           if found = False then begin
-            if GameVars.curChar^.slots[GDConsts.spellTable[spellId].castClassSp,
-                                       GDConsts.spellTable[spellId].levelSp] > 0
+            if GameVars.curChar^.slots[GameDefs.spellTable[spellId].castClassSp,
+                                       GameDefs.spellTable[spellId].levelSp] > 0
             then begin
               p := GameVars.curChar^.itemsAddr;
               while (p <> nil) and (found = False) do begin
@@ -603,8 +603,8 @@ begin
             k := 1;
             found := False;
             while (k <= 56) and (found = False) do
-              if GDConsts.spellTable[k].effect = id then begin
-                s := GDConsts.spellNames[k];
+              if GameDefs.spellTable[k].effect = id then begin
+                s := GameDefs.spellNames[k];
                 found := True;
               end else
                 Inc(k);
@@ -657,7 +657,7 @@ var
 begin
   c := ' ';
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
-    c := MenuCore.MenuHorizontal('', GDConsts.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
+    c := MenuCore.MenuHorizontal('', GameDefs.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then
       Camp.SelectOtherChar(c)
     else
@@ -742,7 +742,7 @@ begin
   selected := 0;
   c := ' ';
   while not (c in [C_KEYS.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Party Order: ', GDConsts.orderMenus[selected], LightMagenta, LightGreen,
+    c := MenuCore.MenuHorizontal('Party Order: ', GameDefs.orderMenus[selected], LightMagenta, LightGreen,
                                  White, True, True, ext);
     if ext then begin
       if selected = 0 then begin
@@ -803,7 +803,7 @@ var
 begin
   c := ' ';
   while not (c in [C_KEYS.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Alter: ', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Alter: ', GameDefs.alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then
       Camp.SelectOtherChar(c)
@@ -1074,7 +1074,7 @@ begin
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse, so the prompt has no space after it
       (#674) }
-    c := MenuCore.MenuHorizontal('Camp:', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Camp:', GameDefs.campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
       if c = C_KEYS.F6 then begin

@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_ITEM, C_NPC, C_TERR, C_COND, GDConsts, GameVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -162,23 +162,23 @@ var
   j: Byte;
 begin
   DecideCastSpell := False;
-  if GDConsts.spellTable[spell].aiPriority < minPri then
+  if GameDefs.spellTable[spell].aiPriority < minPri then
     Exit;
-  if ((spell <> C_SPELL.CURE_LIGHT_WOUNDS) and (GDConsts.spellTable[spell].offensive = 0))
+  if ((spell <> C_SPELL.CURE_LIGHT_WOUNDS) and (GameDefs.spellTable[spell].offensive = 0))
      or ((spell = C_SPELL.CURE_LIGHT_WOUNDS) and CbtActs.FindCureTarget(creature, tgt)) then
     { buff or heal: no aiming }
     DecideCastSpell := True
   else begin
     cnt := CbtMap.CountTargets(creature, CharHlp.CalcSpellRange(spell));
     if cnt > 0 then
-      if GDConsts.spellTable[spell].aiRadius = 0 then
+      if GameDefs.spellTable[spell].aiRadius = 0 then
         DecideCastSpell := True
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
           if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].x,
                                       GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].y,
-                                      GDConsts.spellTable[spell].aiRadius) then
+                                      GameDefs.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
       end;
@@ -318,13 +318,13 @@ begin
   if crIdx <> 0 then
     { a creature blocks the cell }
     Exit;
-  if GDConsts.terrainInfo[terrIdx].cost >= creature^.combatAddr^.movement then
+  if GameDefs.terrainInfo[terrIdx].cost >= creature^.combatAddr^.movement then
     Exit;
   stepCost := 2;
   { diagonal: doubled metric 3 }
   if Odd(dir) then
     stepCost := 3;
-  stepCost := stepCost * GDConsts.terrainInfo[terrIdx].cost;
+  stepCost := stepCost * GameDefs.terrainInfo[terrIdx].cost;
   if (terrIdx = C_TERR.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
     stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
@@ -335,7 +335,7 @@ end;
 function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean;
 begin
   AiCanStep := CombatAi.CanStepDir(creature,
-                                   (baseDir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
+                                   (baseDir + GameDefs.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
                                    edge);
 end;
 
@@ -464,7 +464,7 @@ begin
       end else begin
         { attempt 6 is past aiDirOffsets' row: there is no step to take }
         if attempt < 6 then
-          adjDir := (dir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
+          adjDir := (dir + GameDefs.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
         else
           adjDir := dir;
         { nothing walkable }

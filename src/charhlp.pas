@@ -142,7 +142,7 @@ function IsNpc(creature: Types.PCharRecord): Boolean;
 function MayTrade(creature: Types.PCharRecord): Boolean;
 
 { True for a person, whom Charm Person and Hold Person affect (#792): not undead (charType 4), and either a monster the
-  1st-edition list names (GDConsts.rangerFoes' first RANGER_PERSONS, personFoes), or a creature of one tile, not Large,
+  1st-edition list names (GameDefs.rangerFoes' first RANGER_PERSONS, personFoes), or a creature of one tile, not Large,
   of a player race or charType 0 (the humans, some with race byte 0). SSI tested charType 0..1 and a one-tile icon,
   which kept the gnoll out and let the ogre leader in. }
 function IsPerson(creature: Types.PCharRecord): Boolean;
@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_ITEM, GDConsts, GameVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC,
+uses C_ITEM, GameDefs, GameVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC,
   C_MONEY, Stats, C_NPC, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -398,7 +398,7 @@ begin
   appended := False;
   for i := 3 downto 1 do
     if (mask shr (i - 1)) and 1 > 0 then begin
-      item^.name := item^.name + GDConsts.nameParts[item^.nameIds[i]];
+      item^.name := item^.name + GameDefs.nameParts[item^.nameIds[i]];
       if (item^.quantity < 2) or appended then
         item^.name := item^.name + ' '
       else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_ITEM.FLASK_OF_OIL)) or
@@ -412,15 +412,15 @@ begin
     end;
 end;
 
-{ Return True if any of the four helplessness effects in GDConsts.helplessFx is active on the creature. }
+{ Return True if any of the four helplessness effects in GameDefs.helplessFx is active on the creature. }
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 var
   i: Byte;
   effect: Types.PEffectRec;
 begin
   IsHelpless := False;
-  for i := 1 to GDConsts.HELPLESS_FX_COUNT do
-    if CharHlp.HasEffect(creature, GDConsts.helplessFx[i], effect) then
+  for i := 1 to GameDefs.HELPLESS_FX_COUNT do
+    if CharHlp.HasEffect(creature, GameDefs.helplessFx[i], effect) then
       IsHelpless := True;
 end;
 
@@ -865,12 +865,12 @@ end;
   (GameVars.usingItem) unless the class is the special one. }
 function GetCasterLevel(spell: Byte): Byte;
 begin
-  case GDConsts.spellTable[spell].castClass of
+  case GameDefs.spellTable[spell].castClass of
     C_SPELL.CLASS_CLERIC: GetCasterLevel := GameVars.curChar^.classLevels[C_LEVEL.CLERIC];
     C_SPELL.CLASS_MAGE: GetCasterLevel := GameVars.curChar^.classLevels[C_LEVEL.MAGE];
     C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
-  if GameVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
+  if GameVars.usingItem and (GameDefs.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
     GetCasterLevel := C_SPELL.ITEM_CASTER_LEVEL;
 end;
 
@@ -933,8 +933,8 @@ begin
     { xp[] runs to C_LEVEL.LEVEL_LAST }
     if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
-        if GDConsts.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
-          if GDConsts.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
+        if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
+          if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
             CanTrain := True;
   end;
 end;
@@ -1034,11 +1034,11 @@ var
   named: Boolean;
 begin
   named := False;
-  for i := 1 to GDConsts.RANGER_PERSONS do
-    if creature^.name = GDConsts.rangerFoes[i] then
+  for i := 1 to GameDefs.RANGER_PERSONS do
+    if creature^.name = GameDefs.rangerFoes[i] then
       named := True;
-  for i := 1 to SizeOf(GDConsts.personFoes) div SizeOf(GDConsts.personFoes[1]) do
-    if creature^.name = GDConsts.personFoes[i] then
+  for i := 1 to SizeOf(GameDefs.personFoes) div SizeOf(GameDefs.personFoes[1]) do
+    if creature^.name = GameDefs.personFoes[i] then
       named := True;
   IsPerson := (creature^.charType <> UNDEAD_TYPE) and
               (named or ((creature^.iconDimensions = 1) and
@@ -1117,11 +1117,11 @@ var
   r: Byte;
 begin
   if GameVars.usingItem = False then
-    r := GDConsts.spellTable[spell].rangeFixed + GDConsts.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
+    r := GameDefs.spellTable[spell].rangeFixed + GameDefs.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
   else
-    r := GDConsts.spellTable[spell].rangeVar * C_SPELL.ITEM_CASTER_LEVEL + GDConsts.spellTable[spell].rangeFixed;
+    r := GameDefs.spellTable[spell].rangeVar * C_SPELL.ITEM_CASTER_LEVEL + GameDefs.spellTable[spell].rangeFixed;
   { Touch: zero range with an area }
-  if (r = 0) and (GDConsts.spellTable[spell].area <> 0) then
+  if (r = 0) and (GameDefs.spellTable[spell].area <> 0) then
     r := 1;
   if r = C_SPELL.ATTACK_ROLL_RANGE then
     r := 1;

@@ -75,7 +75,7 @@ procedure SetSoundDevice(mode: Word);
 
 implementation
 
-uses C_SOUND, Dos, GDConsts, GameVars{$IFDEF FPC}, SndSeq{$ENDIF};
+uses C_SOUND, Dos, GameDefs, GameVars{$IFDEF FPC}, SndSeq{$ENDIF};
 
 var
   { the exit procedure SoundDrv.SoundExit hands on to }

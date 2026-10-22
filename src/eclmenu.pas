@@ -82,7 +82,7 @@ implementation
 
 uses Crt, C_AREA, C_NPC, C_MSG, GameVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_RACE, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
+  C_RACE, C_LEVEL, GameDefs, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { Picture id last shown, copied from C_GBVM.PIC_LOADING }
@@ -625,12 +625,12 @@ begin
     end;
     cnt := Dice.RollDice(1, cnt);
     case classes[cnt] of
-      C_LEVEL.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, Dice.RollDice(1, 5)];
-      C_LEVEL.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, Dice.RollDice(1, 5)];
-      C_LEVEL.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, Dice.RollDice(1, 5)];
-      else portraitBody := GDConsts.npcFighterBodies[genderSp, Dice.RollDice(1, 5)];
+      C_LEVEL.CLERIC: portraitBody := GameDefs.npcClericBodies[genderSp, Dice.RollDice(1, 5)];
+      C_LEVEL.MAGE: portraitBody := GameDefs.npcMageBodies[genderSp, Dice.RollDice(1, 5)];
+      C_LEVEL.THIEF: portraitBody := GameDefs.npcThiefBodies[genderSp, Dice.RollDice(1, 5)];
+      else portraitBody := GameDefs.npcFighterBodies[genderSp, Dice.RollDice(1, 5)];
     end;
-    portraitHead := GDConsts.npcPortraitHeads[genderSp, Dice.RollDice(1, 8)];
+    portraitHead := GameDefs.npcPortraitHeads[genderSp, Dice.RollDice(1, 8)];
   end;
   SaveLoad.AddCharToParty(creature);
   SaveLoad.LoadCharIconAnim(True);

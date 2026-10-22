@@ -28,7 +28,7 @@ procedure OptionsMenu;
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, GameVars, TextRend, Border, MenuCore, GameIo,
-  SoundDrv, DaxIo, DataArc, GDConsts, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
+  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -412,7 +412,7 @@ begin
   Options.DrawInfo(CFG_TOP + 1, 'Sound Device', GameVars.sound.name);
   Options.DrawInfo(CFG_TOP + 2, 'Data Path', GameVars.gameDir);
   Options.DrawInfo(CFG_TOP + 3, 'Save Path', GameVars.saveDirectory);
-  Options.DrawInfo(INFO_TOP, 'Version', GDConsts.GAME_VERSION);
+  Options.DrawInfo(INFO_TOP, 'Version', GameDefs.GAME_VERSION);
   Options.DrawInfo(INFO_TOP + 1, 'Commit', BUILD_COMMIT);
   Options.DrawInfo(INFO_TOP + 2, 'Data', Options.DataLine);
   Options.DrawInfo(INFO_TOP + 3, 'Free Memory', Options.Grouped(MemAvail));

@@ -7,7 +7,7 @@ program FixMain;
 { Natively SdlHost comes first: its window is open before any other unit's initialization runs. }
 uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types,
   {$IFNDEF FPC}Overlay, {$ENDIF}Crt, Dos,
-  GDConsts, GameVars,
+  GameDefs, GameVars,
   SoundDrv, GameIo, DaxIo, TextRend, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,

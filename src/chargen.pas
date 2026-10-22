@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, GDConsts, GameVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE,
+uses Types, Crt, C_AREA, C_NPC, GameDefs, GameVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE,
   C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
@@ -95,38 +95,38 @@ begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
       if GameVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
-        GDConsts.menuItems[MENU_DROP].enabled := 1;
-        GDConsts.menuItems[MENU_MODIFY].enabled := 1;
+        GameDefs.menuItems[MENU_DROP].enabled := 1;
+        GameDefs.menuItems[MENU_MODIFY].enabled := 1;
         { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
-        GDConsts.menuItems[MENU_TRAIN].enabled :=
+        GameDefs.menuItems[MENU_TRAIN].enabled :=
           Ord((GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
-        GDConsts.menuItems[MENU_VIEW].enabled := 1;
-        GDConsts.menuItems[MENU_REMOVE].enabled := 1;
-        GDConsts.menuItems[MENU_LOAD].enabled := 0;
-        GDConsts.menuItems[MENU_SAVE].enabled := 1;
-        GDConsts.menuItems[MENU_BEGIN].enabled := 1;
+        GameDefs.menuItems[MENU_VIEW].enabled := 1;
+        GameDefs.menuItems[MENU_REMOVE].enabled := 1;
+        GameDefs.menuItems[MENU_LOAD].enabled := 0;
+        GameDefs.menuItems[MENU_SAVE].enabled := 1;
+        GameDefs.menuItems[MENU_BEGIN].enabled := 1;
       end else begin
-        GDConsts.menuItems[MENU_DROP].enabled := 0;
-        GDConsts.menuItems[MENU_MODIFY].enabled := 0;
-        GDConsts.menuItems[MENU_TRAIN].enabled := 0;
-        GDConsts.menuItems[MENU_VIEW].enabled := 0;
-        GDConsts.menuItems[MENU_REMOVE].enabled := 0;
-        GDConsts.menuItems[MENU_LOAD].enabled := 1;
-        GDConsts.menuItems[MENU_SAVE].enabled := 0;
-        GDConsts.menuItems[MENU_BEGIN].enabled := 0;
+        GameDefs.menuItems[MENU_DROP].enabled := 0;
+        GameDefs.menuItems[MENU_MODIFY].enabled := 0;
+        GameDefs.menuItems[MENU_TRAIN].enabled := 0;
+        GameDefs.menuItems[MENU_VIEW].enabled := 0;
+        GameDefs.menuItems[MENU_REMOVE].enabled := 0;
+        GameDefs.menuItems[MENU_LOAD].enabled := 1;
+        GameDefs.menuItems[MENU_SAVE].enabled := 0;
+        GameDefs.menuItems[MENU_BEGIN].enabled := 0;
       end;
       n := 0;
       for i := MENU_CREATE to MENU_QUIT do
-        if GDConsts.menuItems[i].enabled <> 0 then begin
-          TextRend.DisplayString(2, n + 12, White, GDConsts.menuItems[i].name[1]);
+        if GameDefs.menuItems[i].enabled <> 0 then begin
+          TextRend.DisplayString(2, n + 12, White, GameDefs.menuItems[i].name[1]);
           TextRend.DisplayString(3, n + 12, LightGreen,
-                                 Copy(GDConsts.menuItems[i].name, 2, Length(GDConsts.menuItems[i].name) - 1));
+                                 Copy(GameDefs.menuItems[i].name, 2, Length(GameDefs.menuItems[i].name) - 1));
           Inc(n);
         end;
       redraw := False;
     end;
 
-    ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, CYAN, Black,
+    ch := MenuCore.MenuHorizontal('pool of radiance ' + GameDefs.GAME_VERSION, GameDefs.menuKeys, CYAN, Black,
                                   Black, True, False, ext);
     TextRend.ClearBottomLine;
     if ext then begin
@@ -139,25 +139,25 @@ begin
       if not (ch in ['E', 'S']) then
         GameVars.recentSaved := 0;
       case ch of
-        'C': if GDConsts.menuItems[MENU_CREATE].enabled <> 0 then
+        'C': if GameDefs.menuItems[MENU_CREATE].enabled <> 0 then
                CharGen.CreateCharacterMenu;
-        'D': if GDConsts.menuItems[MENU_DROP].enabled <> 0 then
+        'D': if GameDefs.menuItems[MENU_DROP].enabled <> 0 then
                CharGen.DropCharacterMenu;
-        'M': if GDConsts.menuItems[MENU_MODIFY].enabled <> 0 then
+        'M': if GameDefs.menuItems[MENU_MODIFY].enabled <> 0 then
                CharGen.ModifyCharacterMenu;
-        'T': if GDConsts.menuItems[MENU_TRAIN].enabled <> 0 then
+        'T': if GameDefs.menuItems[MENU_TRAIN].enabled <> 0 then
                CharGen.TrainingMenu;
-        'V': if GDConsts.menuItems[MENU_VIEW].enabled <> 0 then
+        'V': if GameDefs.menuItems[MENU_VIEW].enabled <> 0 then
                ViewChar.ViewCharMenu(ext2);
-        'A': if GDConsts.menuItems[MENU_ADD].enabled <> 0 then
+        'A': if GameDefs.menuItems[MENU_ADD].enabled <> 0 then
                CharGen.AddCharacterMenu;
-        'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GameVars.curChar <> nil) then
+        'R': if (GameDefs.menuItems[MENU_REMOVE].enabled <> 0) and (GameVars.curChar <> nil) then
              begin
                { a character whose save failed stays in the party }
                if SaveLoad.SaveChar(Types.PCharRecord(GameVars.curChar), '') then
                  SaveLoad.RemoveCreature(False, True);
              end;
-        'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
+        'L': if GameDefs.menuItems[MENU_LOAD].enabled <> 0 then
              begin
                SaveLoad.LoadGame;
                if GameVars.ifcState <> C_IFC.MAIN_MENU then begin
@@ -165,17 +165,17 @@ begin
                  Exit;
                end;
              end;
-        'S': if (GDConsts.menuItems[MENU_SAVE].enabled <> 0) and (GameVars.creatureList <> nil) then
+        'S': if (GameDefs.menuItems[MENU_SAVE].enabled <> 0) and (GameVars.creatureList <> nil) then
                saved := SaveLoad.SaveGame;
-        'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GameVars.creatureList <> nil) then
+        'B': if (GameDefs.menuItems[MENU_BEGIN].enabled <> 0) and (GameVars.creatureList <> nil) then
              begin
                GameVars.ifcState := stateB;
                TextRend.ClearBottomLine;
                Exit;
              end;
-        'G': if GDConsts.menuItems[MENU_SETTINGS].enabled <> 0 then
+        'G': if GameDefs.menuItems[MENU_SETTINGS].enabled <> 0 then
                Options.OptionsMenu;
-        'E': if GDConsts.menuItems[MENU_QUIT].enabled <> 0 then
+        'E': if GameDefs.menuItems[MENU_QUIT].enabled <> 0 then
              begin
                ch := MenuCore.YesNoMenu('Quit to DOS ', Yellow, LightGreen, White);
                if ch = 'Y' then
@@ -203,10 +203,10 @@ begin
   end;
 end;
 
-{ ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (GDConsts.raceAbilityAdj) beside the race
+{ ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (GameDefs.raceAbilityAdj) beside the race
   list, and below, the single classes the race may take with the rule book's maximum level in each
-  (GDConsts.raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
-  GDConsts.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
+  (GameDefs.raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
+  GameDefs.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
   which the note at the foot of the box says; a race without multiclasses shows neither the note nor the multiclass
   heading. The note sits under the single classes, so the multiclasses may run on beside it to the foot of the box. A
   race outside Dwarf..Human leaves the panes blank. }
@@ -250,7 +250,7 @@ begin
     Exit;
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
-    adj := GDConsts.raceAbilityAdj[race].values[i];
+    adj := GameDefs.raceAbilityAdj[race].values[i];
     if adj > 0 then
       s := '+' + StrUtil.NumStr(adj)
     else if adj < 0 then
@@ -262,16 +262,16 @@ begin
   { the multiclasses on the right, noting every part as a single class }
   FillChar(isSingle, SizeOf(isSingle), 0);
   hasMulti := False;
-  cnt := GDConsts.classesByRace[race].count;
+  cnt := GameDefs.classesByRace[race].count;
   if cnt > 13 then
     cnt := 13;
   row := FIRST_ROW;
   for slot := 1 to cnt do begin
-    cls := GDConsts.classesByRace[race].classes[slot];
+    cls := GameDefs.classesByRace[race].classes[slot];
     if (cls >= C_CLASS.CLERIC) and (cls <= C_CLASS.MAGE_THIEF) then begin
       s := '';
       for p := 1 to 3 do begin
-        part := GDConsts.classParts[cls].values[p];
+        part := GameDefs.classParts[cls].values[p];
         if (part >= C_LEVEL.CLERIC) and (part <= C_LEVEL.MONK) then begin
           isSingle[part] := True;
           if s <> '' then
@@ -294,7 +294,7 @@ begin
   row := FIRST_ROW;
   for part := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if isSingle[part] and (row <= LAST_ROW) then begin
-      lvl := GDConsts.raceMaxLevel[race].values[part];
+      lvl := GameDefs.raceMaxLevel[race].values[part];
       if lvl = 0 then
         s := 'U'
       else if lvl > 0 then
@@ -302,7 +302,7 @@ begin
       else
         s := '-';
       TextRend.DisplayString(MAX_VALUE_COL, row, LightGreen, s);
-      TextRend.DisplayString(CLASS_COL, row, LightGreen, Copy(GDConsts.classNames[part], 1, MULTI_COL - CLASS_COL - 1));
+      TextRend.DisplayString(CLASS_COL, row, LightGreen, Copy(GameDefs.classNames[part], 1, MULTI_COL - CLASS_COL - 1));
       Inc(row);
     end;
   if hasMulti then begin
@@ -382,7 +382,7 @@ begin
   FillChar(creature^, SizeOf(Types.TCharRecord), 0);
   with creature^ do begin
     for slot := 1 to 6 do
-      iconColors1[slot] := GDConsts.defIconCol[slot] + (GDConsts.defIconCol[slot] + 8) * 16;
+      iconColors1[slot] := GameDefs.defIconCol[slot] + (GameDefs.defIconCol[slot] + 8) * 16;
     acBase := 50;
     thac0Base := 40;
     status := C_STATUS.OKAY;
@@ -400,12 +400,12 @@ begin
     case k of
       C_RACE.DWARF..C_RACE.HALFLING: begin
               m := MenuCore.FindListMember(k, list);
-              m^.name := '  ' + GDConsts.raceNames[k];
+              m^.name := '  ' + GameDefs.raceNames[k];
             end;
       { half-orc (6) row skipped }
       C_RACE.HUMAN: begin
               m := MenuCore.FindListMember(k - 1, list);
-              m^.name := '  ' + GDConsts.raceNames[k];
+              m^.name := '  ' + GameDefs.raceNames[k];
             end;
     end;
   { the race screen: the bottom box goes first, so the top boxes' gold corners stay on the row they share with it }
@@ -484,13 +484,13 @@ begin
   list^.name := 'Pick Gender';
   for g := 0 to 1 do begin
     m := MenuCore.FindListMember(g + 1, list);
-    m^.name := '  ' + GDConsts.genderNames[g];
+    m^.name := '  ' + GameDefs.genderNames[g];
   end;
   if not PickFromList then Exit;
   creature^.genderSp := sel - 1;
   { class }
   MenuCore.FreeStringList(list);
-  cnt := GDConsts.classesByRace[creature^.race].count;
+  cnt := GameDefs.classesByRace[creature^.race].count;
   { the table's width }
   if cnt > 13 then
     cnt := 13;
@@ -499,20 +499,20 @@ begin
   list^.name := 'Pick Class';
   for slot := 1 to cnt do begin
     m := MenuCore.FindListMember(slot, list);
-    m^.name := '  ' + GDConsts.classNames[GDConsts.classesByRace[creature^.race].classes[slot]];
+    m^.name := '  ' + GameDefs.classNames[GameDefs.classesByRace[creature^.race].classes[slot]];
   end;
   if not PickFromList then Exit;
   if (sel < 1) or (sel > cnt) then
     sel := 1;
   with creature^ do begin
-    charClass := GDConsts.classesByRace[race].classes[sel];
+    charClass := GameDefs.classesByRace[race].classes[sel];
     levelHighest := 1;
     { first level in each part of the class }
     if (charClass >= C_CLASS.CLERIC) and (charClass <= C_CLASS.MAGE_THIEF) then
       for slot := 1 to 3 do
-        if (GDConsts.classParts[charClass].values[slot] >= C_LEVEL.CLERIC)
-           and (GDConsts.classParts[charClass].values[slot] <= C_LEVEL.MONK) then
-          classLevels[GDConsts.classParts[charClass].values[slot]] := 1;
+        if (GameDefs.classParts[charClass].values[slot] >= C_LEVEL.CLERIC)
+           and (GameDefs.classParts[charClass].values[slot] <= C_LEVEL.MONK) then
+          classLevels[GameDefs.classParts[charClass].values[slot]] := 1;
     { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it. It is the 10'
       radius one, as the paladin's has a 1" radius: SSI gave eff 8, which covered the paladin alone (#742). }
     if charClass = C_CLASS.PALADIN then
@@ -521,29 +521,29 @@ begin
     thac0Base := 0;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
-        if GDConsts.thac0Tbl[cls, classLevels[cls]] > thac0Base then
-          thac0Base := GDConsts.thac0Tbl[cls, classLevels[cls]];
-        itemLimits := itemLimits or GDConsts.usabilityBit[cls];
+        if GameDefs.thac0Tbl[cls, classLevels[cls]] > thac0Base then
+          thac0Base := GameDefs.thac0Tbl[cls, classLevels[cls]];
+        itemLimits := itemLimits or GameDefs.usabilityBit[cls];
       end;
   end;
   ClassCal.RecalcSaves(Types.PCharRecord(creature));
   { alignment }
   MenuCore.FreeStringList(list);
-  cnt := GDConsts.alignByClass[creature^.charClass].count;
+  cnt := GameDefs.alignByClass[creature^.charClass].count;
   MenuCore.AllocStringList(cnt + 1, list);
   list^.inUse := 1;
   list^.name := 'Pick Alignment';
   for slot := 1 to cnt do begin
     m := MenuCore.FindListMember(slot, list);
-    m^.name := '  ' + GDConsts.alignNames[GDConsts.alignByClass[creature^.charClass].alignments[slot]];
+    m^.name := '  ' + GameDefs.alignNames[GameDefs.alignByClass[creature^.charClass].alignments[slot]];
   end;
   if not PickFromList then Exit;
-  creature^.alignment := GDConsts.alignByClass[creature^.charClass].alignments[sel];
+  creature^.alignment := GameDefs.alignByClass[creature^.charClass].alignments[sel];
   MenuCore.FreeStringList(list);
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
     maximum) of one component class. }
   if creature^.charClass <= C_CLASS.MONK then
-    with GDConsts.startingAge[creature^.race, creature^.charClass] do
+    with GameDefs.startingAge[creature^.race, creature^.charClass] do
       creature^.age := Dice.RollDice(num, sides) + base
   else
   begin
@@ -555,7 +555,7 @@ begin
       { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
       cls := C_CLASS.MAGE;
     end;
-    with GDConsts.startingAge[creature^.race, cls] do
+    with GameDefs.startingAge[creature^.race, cls] do
       creature^.age := base + sides * num;
   end;
   { stat roll / derived / keep loop }
@@ -570,7 +570,7 @@ begin
         roll := Dice.RollDice(3, 6);
         { racial adjustment; the racial limits below still apply }
         if (creature^.race >= C_RACE.DWARF) and (creature^.race <= C_RACE.HUMAN) then
-          roll := roll + GDConsts.raceAbilityAdj[creature^.race].values[i];
+          roll := roll + GameDefs.raceAbilityAdj[creature^.race].values[i];
         if creature^.stats[i] < roll then
           creature^.stats[i] := roll;
       end;
@@ -578,46 +578,46 @@ begin
         case i of
           { Strength }
           C_ABIL.STRENGTH: begin
-               if (stats[i] > 0) and (GDConsts.ageCat[race].youngAdult < age) then
+               if (stats[i] > 0) and (GameDefs.ageCat[race].youngAdult < age) then
                  Inc(stats[i]);
-               if (stats[i] > 0) and (GDConsts.ageCat[race].mature < age) then
+               if (stats[i] > 0) and (GameDefs.ageCat[race].mature < age) then
                  Dec(stats[i]);
-               if (stats[i] > 0) and (GDConsts.ageCat[race].middleAged < age) then
+               if (stats[i] > 0) and (GameDefs.ageCat[race].middleAged < age) then
                  Dec(stats[i], 2);
-               if (stats[i] > 0) and (GDConsts.ageCat[race].old < age) then
+               if (stats[i] > 0) and (GameDefs.ageCat[race].old < age) then
                  Dec(stats[i]);
                ClampToLimits(i);
                if (stats[C_ABIL.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
-                 if GDConsts.minimumMaximumStatistics[race].excMax[genderSp] < strExc then
-                   strExc := GDConsts.minimumMaximumStatistics[race].excMax[genderSp];
+                 if GameDefs.minimumMaximumStatistics[race].excMax[genderSp] < strExc then
+                   strExc := GameDefs.minimumMaximumStatistics[race].excMax[genderSp];
                end;
              end;
           { Intelligence }
           C_ABIL.INTELLIGENCE: begin
-               if GDConsts.ageCat[race].mature < age then
+               if GameDefs.ageCat[race].mature < age then
                  Inc(stats[i]);
-               if GDConsts.ageCat[race].old < age then
+               if GameDefs.ageCat[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
              end;
           { Wisdom }
           C_ABIL.WISDOM: begin
-               if GDConsts.ageCat[race].youngAdult >= age then
+               if GameDefs.ageCat[race].youngAdult >= age then
                  Dec(stats[i]);
-               if GDConsts.ageCat[race].mature < age then
+               if GameDefs.ageCat[race].mature < age then
                  Inc(stats[i]);
-               if GDConsts.ageCat[race].middleAged < age then
+               if GameDefs.ageCat[race].middleAged < age then
                  Inc(stats[i]);
-               if GDConsts.ageCat[race].old < age then
+               if GameDefs.ageCat[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
              end;
           { Dexterity }
           C_ABIL.DEXTERITY: begin
-               if GDConsts.ageCat[race].middleAged < age then
+               if GameDefs.ageCat[race].middleAged < age then
                  Dec(stats[i], 2);
-               if GDConsts.ageCat[race].old < age then
+               if GameDefs.ageCat[race].old < age then
                  Dec(stats[i]);
                ClampToLimits(i);
              end;
@@ -626,11 +626,11 @@ begin
                { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
                  out the +1, so every age came out one lower (#704). }
                Inc(stats[i]);
-               if GDConsts.ageCat[race].mature < age then
+               if GameDefs.ageCat[race].mature < age then
                  Dec(stats[i]);
-               if GDConsts.ageCat[race].middleAged < age then
+               if GameDefs.ageCat[race].middleAged < age then
                  Dec(stats[i]);
-               if GDConsts.ageCat[race].old < age then
+               if GameDefs.ageCat[race].old < age then
                  Dec(stats[i]);
                ClampToLimits(i);
              end;
@@ -661,13 +661,13 @@ begin
             C_LEVEL.MAGE: mageSpells[1] := 1;
           end;
           Inc(goldDice,
-              Dice.RollDice(GDConsts.startingGoldClass[cls].num, GDConsts.startingGoldClass[cls].sides));
+              Dice.RollDice(GameDefs.startingGoldClass[cls].num, GameDefs.startingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
             C_LEVEL.CLERIC: begin
                  ClassCal.AwardWisdomBonus(Types.PCharRecord(creature));
                  for slot := 1 to SizeOf(spellsKnown) div SizeOf(spellsKnown[1]) do
-                   with GDConsts.spellTable[slot] do
+                   with GameDefs.spellTable[slot] do
                      if (castClass = 0) and (level = 1) then
                        spellsKnown[slot] := 1;
                end;
@@ -950,7 +950,7 @@ begin
               case hold of
                 C_ABIL.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
                      if (stats[hold] > 18) and (CharHlp.WarriorLevel(GameVars.curChar) > 0) and
-                         (GDConsts.minimumMaximumStatistics[race].excMax[genderSp] > strExc) then
+                         (GameDefs.minimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
                      stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
                    end;
@@ -1015,7 +1015,7 @@ begin
   end;
 end;
 
-{ GainLevels: curChar gains a level in each of its classes in mask (GDConsts.classBit), as training gives it: with
+{ GainLevels: curChar gains a level in each of its classes in mask (GameDefs.classBit), as training gives it: with
   restoreDrain, one drained level is restored for each; base skills are recalculated; a new magic-user level picks one
   spell; hit points grow by the rolled dice (and, for hpMax, the classes' Con bonus) divided by the class count, at
   least 1, damage kept. }
@@ -1038,7 +1038,7 @@ begin
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
-        if GDConsts.classBit[cls] and trainable > 0 then begin
+        if GameDefs.classBit[cls] and trainable > 0 then begin
           Inc(classLevels[cls]);
           if restoreDrain and (drainedLevels > 0) then begin
             Dec(drainedHps, drainedHps div drainedLevels);
@@ -1103,15 +1103,15 @@ begin
     xpClamp := 0;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
-        Inc(classMask, GDConsts.classBit[cls]);
+        Inc(classMask, GameDefs.classBit[cls]);
         lvl := classLevels[cls];
         { xp[] runs to level 9 }
         if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < 9) then
-          if (GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
-            if GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
-              Inc(trainMask, GDConsts.classBit[cls]);
+          if (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
+            if GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
+              Inc(trainMask, GameDefs.classBit[cls]);
               if lvl < 8 then
-                nextXp := GDConsts.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
+                nextXp := GameDefs.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
               else
                 nextXp := 0;
               if nextXp > 0 then
@@ -1145,16 +1145,16 @@ begin
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then
-        if GDConsts.classBit[cls] and trainable > 0 then begin
+        if GameDefs.classBit[cls] and trainable > 0 then begin
           Inc(row);
           if row = 5 then
             TextRend.DisplayString(6, row, LightGreen,
                                    '    a level ' + StrUtil.NumStr(classLevels[cls] + 1) + ' ' +
-                                     GDConsts.classNames[cls])
+                                     GameDefs.classNames[cls])
           else
             TextRend.DisplayString(6, row, LightGreen,
                                    'and a level ' + StrUtil.NumStr(classLevels[cls] + 1) + ' ' +
-                                     GDConsts.classNames[cls]);
+                                     GameDefs.classNames[cls]);
         end;
     if MenuCore.YesNoMenu('Do you wish to train? ', LightMagenta, LightGreen, White) <> 'Y' then
       Exit;
@@ -1292,7 +1292,7 @@ begin
 end;
 
 { CustomizePortrait: The portrait picker, on its own bordered page. Three heads sit over three bodies; the middle
-  column, framed, is the current pick and the others are the previous and next in GDConsts.headTbl/bodyTbl, wrapping
+  column, framed, is the current pick and the others are the previous and next in GameDefs.headTbl/bodyTbl, wrapping
   at the ends of the entries offered (Portrait.PlayerPortraitCount: all of them once the merged archives are read).
   Head and Body (or Up and Down) choose the row; Next and Prev (or Left and Right) step through it. Keep (or Space, or
   Enter while Keep is the current option) shows the pick alone and asks whether it is ok: Yes keeps it, No goes back to
@@ -1337,10 +1337,10 @@ var
     with GameVars.curChar^ do
       for k := -1 to 1 do
         if body then begin
-          Blit.LoadPic('BODY' + diskCh, GDConsts.bodyTbl[Wrap(portraitBody, k, nBodies)], False, 0, bodies[k + 1]);
+          Blit.LoadPic('BODY' + diskCh, GameDefs.bodyTbl[Wrap(portraitBody, k, nBodies)], False, 0, bodies[k + 1]);
           Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW + 5, False, bodies[k + 1]);
         end else begin
-          Blit.LoadPic('HEAD' + diskCh, GDConsts.headTbl[Wrap(portraitHead, k, nHeads)], False, 0, heads[k + 1]);
+          Blit.LoadPic('HEAD' + diskCh, GameDefs.headTbl[Wrap(portraitHead, k, nHeads)], False, 0, heads[k + 1]);
           Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW, False, heads[k + 1]);
         end;
   end;
@@ -1583,8 +1583,8 @@ var
     for k := 0 to 15 do
       toT[k] := k;
     for k := 1 to 6 do begin
-      toT[GDConsts.defIconCol[k] and $F] := c[k] and $F;
-      toT[(GDConsts.defIconCol[k] + 8) and $F] := c[k] shr 4;
+      toT[GameDefs.defIconCol[k] and $F] := c[k] and $F;
+      toT[(GameDefs.defIconCol[k] + 8) and $F] := c[k] shr 4;
     end;
     VidOps.RecolorPic(toT, work);
   end;
@@ -1596,7 +1596,7 @@ var
     if dst = nil then Exit;
     { the cursor box picture needs 16 colours }
     if boxed and (Blit.ColourCount < 16) then
-      FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.iconColorMap)])
+      FillChar(dst^.data, dst^.imgSize, GameDefs.cgaColorFill[Blit.SrcNibble(Cyan, GameDefs.iconColorMap)])
     else
       FillChar(dst^.data, dst^.imgSize, 0);
     if boxed and (Blit.ColourCount = 16) then

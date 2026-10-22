@@ -69,7 +69,7 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
+uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party;
 
 var
@@ -172,7 +172,7 @@ begin
   end;
   row := GameVars.curRow + 1;
   if creature^.enabled = 0 then
-    TextRend.DisplayString(23, row + 1, White, GDConsts.statusStrs[creature^.status])
+    TextRend.DisplayString(23, row + 1, White, GameDefs.statusStrs[creature^.status])
   else if CharHlp.IsHelpless(creature) then
     TextRend.DisplayString(23, row + 1, White, '(Helpless)');
 end;
@@ -422,8 +422,8 @@ begin
           frame := 0;
       end;
       Inc(n);
-      stepX := GDConsts.dirDX[steps[n]];
-      stepY := GDConsts.dirDY[steps[n]];
+      stepX := GameDefs.dirDX[steps[n]];
+      stepY := GameDefs.dirDY[steps[n]];
       Inc(pixX, stepX);
       Inc(pixY, stepY);
       if (pixX < 0) or (pixX > 18) or (pixY < 0) or (pixY > 18) then
@@ -501,9 +501,9 @@ begin
     if not CbtMap.CombatIconVisible(creature, 1) then
       CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, 8);
     if effect then
-      SoundDrv.SoundCommand(GDConsts.soundIds.combat[0])
+      SoundDrv.SoundCommand(GameDefs.soundIds.combat[0])
     else
-      SoundDrv.SoundCommand(GDConsts.soundIds.damage);
+      SoundDrv.SoundCommand(GameDefs.soundIds.damage);
     CharDisp.PrintNameString(creature, s, 10, False);
     if effect then
       reps := GameVars.gameDelay
@@ -621,11 +621,11 @@ begin
   end;
   hrs := StrUtil.ZeroPad2(GameVars.zone0^.clock.hour);
   { A turn is ten minutes and the minute counter rolls over at ten, so turn * 10 + minute is the minute of the hour (see
-    GDConsts.unitScale). }
+    GameDefs.unitScale). }
   mins := StrUtil.ZeroPad2(10 * GameVars.zone0^.clock.turn + GameVars.zone0^.clock.minute);
   if GameVars.zone0^.noAutomap = 0 then
     info := StrUtil.NumStr(x) + ',' + StrUtil.NumStr(y) + ' ';
-  info := info + GDConsts.dirNames[GameVars.gFacing] + ' ';
+  info := info + GameDefs.dirNames[GameVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
   { the STING trace log is on (Ctrl-L), as Curse shows it }
   if GameVars.debugTraceEnabled then

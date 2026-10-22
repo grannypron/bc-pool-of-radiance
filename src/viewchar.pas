@@ -23,7 +23,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 implementation
 
-uses Crt, C_NPC, GDConsts, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
+uses Crt, C_NPC, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
   FxEngine, C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats,
   StrUtil, CharDisp, MoneyCal, C_MSG, ClassCal;
 
@@ -68,16 +68,16 @@ begin
   if CharHlp.IsNpc(creature) then
     TextRend.DisplayString(Length(creature^.name) + 3, 1, LightGreen, '(NPC)');
   col := 1;
-  s := GDConsts.genderNames[creature^.genderIdx];
+  s := GameDefs.genderNames[creature^.genderIdx];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
-  s := GDConsts.raceNames[creature^.race];
+  s := GameDefs.raceNames[creature^.race];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
   TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(creature^.age));
-  s := GDConsts.alignNames[creature^.alignmentIdx];
+  s := GameDefs.alignNames[creature^.alignmentIdx];
   TextRend.DisplayString(1, 4, White, s);
-  s := GDConsts.classNames[creature^.charClass];
+  s := GameDefs.classNames[creature^.charClass];
   TextRend.DisplayString(1, 5, White, s);
   { the six ability scores }
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
@@ -120,7 +120,7 @@ begin
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
-  TextRend.DisplayString(8, row, LightGreen, GDConsts.statusStrs[creature^.status]);
+  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusStrs[creature^.status]);
   if (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
@@ -137,7 +137,7 @@ begin
   row := 7;
   for m := C_MONEY.JEWELRY downto C_MONEY.COPPER do
     if GameVars.curChar^.coins[m] > 0 then begin
-      s := GDConsts.moneyNames[m];
+      s := GameDefs.moneyNames[m];
       TextRend.DisplayString(20 - Length(s), row, LightGreen, s);
       TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GameVars.curChar^.coins[m]));
       Inc(row);
@@ -196,7 +196,7 @@ begin
   FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
 end;
 
-{ Cure disease: paladin p removes the disease effects (GDConsts.cureDiseaseEffects) from the party member chosen, asking
+{ Cure disease: paladin p removes the disease effects (GameDefs.cureDiseaseEffects) from the party member chosen, asking
   first when there are none, and spends one of the week's cures: the first starts C_EFFECT.RECENT_CURE for 10080 minutes
   at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
@@ -271,7 +271,7 @@ begin
     if b <> nil then
       n := b^.counts[i];
     if i = Stats.COIN_LOOTED then
-      n := n div GDConsts.coinValuationCopper[C_MONEY.GOLD];
+      n := n div GameDefs.coinValuationCopper[C_MONEY.GOLD];
     Str(n, s);
     TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
     TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
@@ -982,7 +982,7 @@ begin
       prev := p;
       GetMem(p, SizeOf(Types.TMenuNode));
       p^.next := prev;
-      p^.name := StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GameVars.curChar^.coins[m]);
+      p^.name := StrUtil.PadLeft(GameDefs.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GameVars.curChar^.coins[m]);
       p^.inUse := 0;
     end;
   list := p;

@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_VIDEO, C_EGA, GDConsts, GameVars, DaxIo, Crt, Dos, PicEga;
+uses Types, C_VIDEO, C_EGA, GameDefs, GameVars, DaxIo, Crt, Dos, PicEga;
 
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
@@ -112,7 +112,7 @@ begin
       dstBase := GameVars.fbRowOfs[row + 8] + GameVars.spanScreenOfs[row] + 1;
       { each plane's bytes, every fourth from its own in the view buffer }
       for plane := 0 to 3 do begin
-        Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+        Port[C_EGA.SEQ_DATA_PORT] := GameDefs.egaPlaneBit[plane];
         srcOff := GameVars.spanFirstOfs[row] + plane;
         dstOff := dstBase;
         repeat
@@ -158,7 +158,7 @@ begin
     for row := firstRow to lastRow do
       for col := colOff to colEnd do
         for plane := 0 to 3 do begin
-          Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+          Port[C_EGA.SEQ_DATA_PORT] := GameDefs.egaPlaneBit[plane];
           Mem[C_VIDEO.EGA_VIDEO_SEG:GameVars.fbRowOfs[row] + col] := pic^.data[srcOff];
           Inc(srcOff);
         end;
@@ -177,8 +177,8 @@ begin
   Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
   for outerRow := 0 to 7 do begin
     for k := 0 to 3 do begin
-      Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
-      if (GDConsts.egaPlaneMask[3 - k] and color) > 0 then begin
+      Port[C_EGA.SEQ_DATA_PORT] := GameDefs.egaPlaneMask[3 - k];
+      if (GameDefs.egaPlaneMask[3 - k] and color) > 0 then begin
         Mem[egaCurPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
         Mem[egaOtherPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
       end else begin
@@ -217,7 +217,7 @@ var
 begin
   { a byte a plane: all set where the colour has that plane's bit }
   for plane := 0 to 3 do
-    if (GDConsts.egaPlaneBit[plane] and color) > 0 then
+    if (GameDefs.egaPlaneBit[plane] and color) > 0 then
       cell[plane] := $FF
     else
       cell[plane] := 0;

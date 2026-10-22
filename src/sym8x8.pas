@@ -19,7 +19,7 @@ procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 
 implementation
 
-uses Crt, GDConsts, GameVars, Blit, GameIo, StrUtil;
+uses Crt, GameDefs, GameVars, Blit, GameIo, StrUtil;
 
 procedure Load8x8Set(fileID, setID: Byte);
 var
@@ -49,7 +49,7 @@ begin
     end;
   end;
   if GameVars.symbolSetPtrs[setIdx] <> nil then begin
-    Dec(symbol, GDConsts.symSetFirst[setIdx]);
+    Dec(symbol, GameDefs.symSetFirst[setIdx]);
     with GameVars.symbolSetPtrs[setIdx]^ do
       if (height <> 8) or (width <> 1) or (symbol >= count) then Exit;
     if inCombat then

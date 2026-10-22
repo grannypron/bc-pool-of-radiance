@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TVidPic;
 
-uses Types, GDConsts, GameVars, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
+uses Types, GameDefs, GameVars, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
 
 const
   { the DAX frame: row 0 is colours 0..7, row 1 is 7..0, two pixels a byte, high nibble first }

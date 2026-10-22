@@ -16,7 +16,7 @@ var
 
 implementation
 
-uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
+uses Types, Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
@@ -50,8 +50,8 @@ end;
 procedure OpenBarrierAhead;
 begin
   Explore.ChangeBarrierPassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-  Explore.ChangeBarrierPassable(GameVars.gMapX + GDConsts.dirDX[GameVars.gFacing],
-                                GameVars.gMapY + GDConsts.dirDY[GameVars.gFacing], (GameVars.gFacing + 4) mod 8);
+  Explore.ChangeBarrierPassable(GameVars.gMapX + GameDefs.dirDX[GameVars.gFacing],
+                                GameVars.gMapY + GameDefs.dirDY[GameVars.gFacing], (GameVars.gFacing + 4) mod 8);
 end;
 
 { Return True if any party member has a level in the requested class. }
@@ -202,8 +202,8 @@ begin
   f := GameVars.gFacing;
   GameVars.zone1^[C_GBVM.LEAVE_MAP] := 0;
   if View3D.GetBarrierType(nx, ny, f) <> 0 then begin
-    Inc(nx, GDConsts.dirDX[f]);
-    Inc(ny, GDConsts.dirDY[f]);
+    Inc(nx, GameDefs.dirDX[f]);
+    Inc(ny, GameDefs.dirDY[f]);
     if nx > 15 then begin
       GameVars.gMapX := 15;
       GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
@@ -230,9 +230,9 @@ end;
 procedure MovePartyForward3D;
 begin
   if not GameVars.sound.singleStep then
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
-  Inc(GameVars.gMapX, GDConsts.dirDX[GameVars.gFacing]);
-  Inc(GameVars.gMapY, GDConsts.dirDY[GameVars.gFacing]);
+    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+  Inc(GameVars.gMapX, GameDefs.dirDX[GameVars.gFacing]);
+  Inc(GameVars.gMapY, GameDefs.dirDY[GameVars.gFacing]);
   View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
   GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
   FillChar(GameVars.doorOpen, SizeOf(GameVars.doorOpen), 1);
@@ -252,15 +252,15 @@ var
   nx: ShortInt;
   ny: ShortInt;
 begin
-  nx := GameVars.zone0^.partyX.value + GDConsts.dirDX[GameVars.gFacing];
-  ny := GameVars.zone0^.partyY.value + GDConsts.dirDY[GameVars.gFacing];
+  nx := GameVars.zone0^.partyX.value + GameDefs.dirDX[GameVars.gFacing];
+  ny := GameVars.zone0^.partyY.value + GameDefs.dirDY[GameVars.gFacing];
   if nx < 0 then nx := 0;
   if nx > 15 then nx := 15;
   if ny < 0 then ny := 0;
   { High(wildMap) on the first dimension }
   if ny > 35 then ny := 35;
-  col := nx + GDConsts.wildColOfs[GameVars.gLocType];
-  case GDConsts.wildMap[ny, col] of
+  col := nx + GameDefs.wildColOfs[GameVars.gLocType];
+  case GameDefs.wildMap[ny, col] of
     78, 126..128, 130..132, 168..172, 174..179, 188, 221..222,
     225..233, 245: ;
     102..108, 114:
@@ -310,7 +310,7 @@ begin
          repeat
            MenuCore.arrowsToCaller := True;
            MenuCore.quickKeysToCaller := True;
-           c := MenuCore.MenuHorizontal('', GDConsts.menu3D, LightMagenta, LightGreen, White, True, False,
+           c := MenuCore.MenuHorizontal('', GameDefs.menu3D, LightMagenta, LightGreen, White, True, False,
                                         ext);
            if not ext then begin
              case c of
@@ -348,14 +348,14 @@ begin
                { left arrow: turn left }
                C_KEYS.LEFT: begin
                            GameVars.gFacing := (GameVars.gFacing + 6) mod 8;
-                           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
+                           SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
                            GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                            View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                          end;
                { right arrow: turn right }
                C_KEYS.RIGHT: begin
                             GameVars.gFacing := (GameVars.gFacing + 2) mod 8;
-                            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
+                            SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
                             GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                             View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                           end;
@@ -386,7 +386,7 @@ begin
         repeat
           MenuCore.arrowsToCaller := True;
           MenuCore.quickKeysToCaller := True;
-          c := MenuCore.MenuHorizontal('', GDConsts.menuWild, LightMagenta, LightGreen, White, True, False,
+          c := MenuCore.MenuHorizontal('', GameDefs.menuWild, LightMagenta, LightGreen, White, True, False,
                                        ext);
           if not ext then begin
             case c of
@@ -509,7 +509,7 @@ begin
          if moved then
            Explore.MovePartyForward3D
          else
-           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
+           SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
          CharDisp.PrintMiscInfo;
        end else
          GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;

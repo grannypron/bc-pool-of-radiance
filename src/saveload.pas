@@ -107,7 +107,7 @@ procedure FreeParty;
 
 implementation
 
-uses DiskRec, Crt, C_AREA, GDConsts, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
+uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_KEYS, C_IFC, C_GBVM, C_NPC, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
@@ -210,8 +210,8 @@ begin
       height := 2
     else
       height := 1;
-    MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[height], iconHead, 11);
-    MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[height], iconBody, orderNumber);
+    MapTiles.LoadIconAnim('CHEAD' + GameDefs.iconHeightSuffix[height], iconHead, 11);
+    MapTiles.LoadIconAnim('CBODY' + GameDefs.iconHeightSuffix[height], iconBody, orderNumber);
     VidOps.MergePic(GameVars.iconAnimation[11, 0], GameVars.iconAnimation[orderNumber, 0]);
     VidOps.MergePic(GameVars.iconAnimation[11, 1], GameVars.iconAnimation[orderNumber, 1]);
     if loading then begin
@@ -220,8 +220,8 @@ begin
         toMap[i] := i;
       end;
       for i := 1 to 6 do begin
-        toMap[GDConsts.defIconCol[i]] := iconColors1[i] and $F;
-        toMap[GDConsts.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
+        toMap[GameDefs.defIconCol[i]] := iconColors1[i] and $F;
+        toMap[GameDefs.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
       end;
       Blit.RemapPic(fromMap, toMap, 0, False, GameVars.iconAnimation[orderNumber, 0]);
       Blit.RemapPic(fromMap, toMap, 0, False, GameVars.iconAnimation[orderNumber, 1]);
@@ -831,8 +831,8 @@ begin
       x := GameVars.gMapX;
       y := GameVars.gMapY;
       disk := GameVars.virtualDisk;
-      Dec(GameVars.gMapX, GDConsts.dirDX[GameVars.gFacing]);
-      Dec(GameVars.gMapY, GDConsts.dirDY[GameVars.gFacing]);
+      Dec(GameVars.gMapX, GameDefs.dirDX[GameVars.gFacing]);
+      Dec(GameVars.gMapY, GameDefs.dirDY[GameVars.gFacing]);
       View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
       DaxIo.PopState;
       if SaveLoad.SaveGame then

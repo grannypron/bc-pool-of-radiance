@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses GDConsts, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses GameDefs, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -56,7 +56,7 @@ begin
             else
               color := chunk[k shr 1] shr 4;
             for plane := 0 to 3 do
-              if (GDConsts.egaPlaneBit[plane] and color) > 0 then
+              if (GameDefs.egaPlaneBit[plane] and color) > 0 then
                 data[plane + dstOff] := data[plane + dstOff] or bit;
             bit := bit shr 1;
           end;
@@ -118,7 +118,7 @@ begin
   dstOff := 0;
   with scratch^ do begin
     for plane := 0 to 3 do
-      if (fromC and GDConsts.egaPlaneBit[plane]) > 0 then
+      if (fromC and GameDefs.egaPlaneBit[plane]) > 0 then
         planeMask[plane] := 0
       else
         planeMask[plane] := $FF;
@@ -132,7 +132,7 @@ begin
           for plane := 0 to 3 do
             match := (pic^.data[plane + srcOff] xor planeMask[plane]) and match;
           for plane := 0 to 3 do
-            if (toC and GDConsts.egaPlaneBit[plane]) > 0 then
+            if (toC and GameDefs.egaPlaneBit[plane]) > 0 then
               data[plane + dstOff] := data[plane + dstOff] or match
             else
               data[plane + dstOff] := data[plane + dstOff] and not match;
@@ -178,7 +178,7 @@ begin
   for plane := 0 to 3 do begin
     b := 0;
     for k := 0 to 7 do
-      if (px[k] and GDConsts.egaPlaneBit[plane]) <> 0 then
+      if (px[k] and GameDefs.egaPlaneBit[plane]) <> 0 then
         b := b or ($80 shr k);
     pic^.data[at + y * 4 + plane] := b;
   end;

@@ -1,11 +1,12 @@
 { Initialized data: every typed constant in the data segment, in link order. A new section starts wherever the data
   needs a word boundary. }
 {$I COMPILER.INC}
-unit GDConsts;
+unit GameDefs;
 
 interface
 
-uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
+uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_GBVM, C_ABIL,
+  C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}

@@ -86,7 +86,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GameDefs, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -200,7 +200,7 @@ end;
 
 function DataDiskMsg: Types.TStr40;
 begin
-  DataDiskMsg := GDConsts.insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
+  DataDiskMsg := GameDefs.insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
 procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
@@ -292,7 +292,7 @@ function SanitizeFileName(name: string): Types.TStr40;
 var i: Byte;
 begin
   for i := 1 to 10 do
-    name := DaxIo.SanitizeString(name, GDConsts.invalidFileChars[i]);
+    name := DaxIo.SanitizeString(name, GameDefs.invalidFileChars[i]);
   name := Copy(name, 1, 8);
   for i := 1 to Length(name) do
     name[i] := UpCase(name[i]);

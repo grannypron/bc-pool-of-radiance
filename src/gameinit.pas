@@ -19,7 +19,7 @@ procedure ResetGameState;
 
 implementation
 
-uses Types, Crt, C_AREA, GDConsts, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
+uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
   VidOps, Stats, Explored, MapNotes{$IFDEF FPC}, TpRand{$ENDIF};
 

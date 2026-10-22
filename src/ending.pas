@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_TILE, C_MSG, GDConsts, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
+uses Types, Crt, C_TILE, C_MSG, GameDefs, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -126,41 +126,41 @@ begin
     for step := 0 to 8 do begin
       { 10 = High(yarBlueGreenTiles) }
       for t := 0 to 10 do
-        if GDConsts.yarBlueGreenTiles[t] > C_TILE.ID_MASK then
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
-                        GDConsts.yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
+        if GameDefs.yarBlueGreenTiles[t] > C_TILE.ID_MASK then
+          Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarBlueGreenTo,
+                        GameDefs.yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], True,
+          Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarBlueGreenTo, GameDefs.yarBlueGreenTiles[t], True,
                         GameVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
-        if GDConsts.yarGreenTiles[t] > C_TILE.ID_MASK then
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_TILE.ID_MASK, True,
+        if GameDefs.yarGreenTiles[t] > C_TILE.ID_MASK then
+          Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarGreenTo, GameDefs.yarGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], True,
+          Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarGreenTo, GameDefs.yarGreenTiles[t], True,
                         GameVars.mapTilePtr);
-      Wilds.BuildWildernessMap(GDConsts.yarViewX[step], GDConsts.yarViewY[step]);
+      Wilds.BuildWildernessMap(GameDefs.yarViewX[step], GameDefs.yarViewY[step]);
       Blit.FlushView;
     end;
   end;
   { 10 = High(yarBlueGreenTiles) }
   for t := 0 to 10 do
-    if GDConsts.yarBlueGreenTiles[t] > C_TILE.ID_MASK then
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
-                    GDConsts.yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
+    if GameDefs.yarBlueGreenTiles[t] > C_TILE.ID_MASK then
+      Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarBlueGreenTo,
+                    GameDefs.yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
                     MapTiles.SecondSheet)
     else
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], False,
+      Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarBlueGreenTo, GameDefs.yarBlueGreenTiles[t], False,
                     GameVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
-    if GDConsts.yarGreenTiles[t] > C_TILE.ID_MASK then
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_TILE.ID_MASK,
+    if GameDefs.yarGreenTiles[t] > C_TILE.ID_MASK then
+      Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarGreenTo, GameDefs.yarGreenTiles[t] and C_TILE.ID_MASK,
                     False, MapTiles.SecondSheet)
     else
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], False,
+      Blit.RemapPic(GameDefs.yarRemapFrom, GameDefs.yarGreenTo, GameDefs.yarGreenTiles[t], False,
                     GameVars.mapTilePtr);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);

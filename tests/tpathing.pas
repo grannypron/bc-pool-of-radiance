@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TPathing;
 
-uses Types, C_DIR, C_TERR, GDConsts, GameVars, Pathing, StrUtil, TestKit;
+uses Types, C_DIR, C_TERR, GameDefs, GameVars, Pathing, StrUtil, TestKit;
 
 const
   { RouteStep's arena: open ground (terrain 5, cost 1) and wall (terrain 1, cost 255) }
@@ -100,8 +100,8 @@ var
 begin
   n := 0;
   while Pathing.RouteStep(WALKER, goals, open, avoid, TestOccupant, dir, goal) and (n <= limit) do begin
-    x := GameVars.arenaLoc[WALKER].x + GDConsts.dirDX[dir];
-    y := GameVars.arenaLoc[WALKER].y + GDConsts.dirDY[dir];
+    x := GameVars.arenaLoc[WALKER].x + GameDefs.dirDX[dir];
+    y := GameVars.arenaLoc[WALKER].y + GameDefs.dirDY[dir];
     if (GameVars.arenaPtr^.cells[y, x] = WALL) or (GameVars.arenaPtr^.cells[y, x] = avoid) then begin
       WalkSteps := -1;
       Exit;

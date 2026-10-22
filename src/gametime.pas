@@ -13,7 +13,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_MSG, GDConsts, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
+uses Types, C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -26,7 +26,7 @@ begin
   Clock.ValidateClock(GameVars.restingTimeGbvm, False);
   if GameVars.restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
     Inc(GameVars.restingTimeGbvm[C_TIME.DAYS],
-        GDConsts.unitScale[C_TIME.DAYS] * GameVars.restingTimeGbvm[C_TIME.MONTHS]);
+        GameDefs.unitScale[C_TIME.DAYS] * GameVars.restingTimeGbvm[C_TIME.MONTHS]);
     GameVars.restingTimeGbvm[C_TIME.MONTHS] := 0;
     if GameVars.restingTimeGbvm[C_TIME.DAYS] > 99 then GameVars.restingTimeGbvm[C_TIME.DAYS] := 99;
   end;
@@ -52,7 +52,7 @@ begin
       end else
         for k := j downto Succ(tUnit) do begin
           Dec(GameVars.restingTimeGbvm[k]);
-          Inc(GameVars.restingTimeGbvm[Pred(k)], GDConsts.unitScale[Pred(k)]);
+          Inc(GameVars.restingTimeGbvm[Pred(k)], GameDefs.unitScale[Pred(k)]);
         end;
     end;
     Dec(GameVars.restingTimeGbvm[tUnit], count);
@@ -182,7 +182,7 @@ begin
     if (creature^.memorizedSpells[i] > $7F) and
         (creature^.memorizedSpells[i] and C_SPELL.ID_MASK in [1..C_SPELL.LAST]) then
       if done then
-        lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].level
+        lvl := GameDefs.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].level
       else begin
         Dec(creature^.memorizedSpells[i], C_SPELL.PENDING_FLAG);
         GameTime.DisplayRestTime(0);
@@ -221,7 +221,7 @@ begin
       while (j <= 3) and (lvl = 0) do begin
         if (item^.spells[j] > $80) and (item^.spells[j] and C_SPELL.ID_MASK <= C_SPELL.LAST) then
           if done then
-            lvl := GDConsts.spellTable[item^.spells[j] and C_SPELL.ID_MASK].level
+            lvl := GameDefs.spellTable[item^.spells[j] and C_SPELL.ID_MASK].level
           else begin
             sp := item^.spells[j] and C_SPELL.ID_MASK;
             Magic.RemoveSpellFromScroll(creature, item, sp);
@@ -231,8 +231,8 @@ begin
               creature^.spellsKnown[sp] := 1;
               Magic.PrintCastSpellMsg(creature, 'has scribed', sp);
             end else
-              CharDisp.PrintTwoLines(creature^.name + ' failed to scribe ' + GDConsts.spellNames[sp] + '.',
-                                     GDConsts.spellNames[sp] + ' has been lost.');
+              CharDisp.PrintTwoLines(creature^.name + ' failed to scribe ' + GameDefs.spellNames[sp] + '.',
+                                     GameDefs.spellNames[sp] + ' has been lost.');
             done := True;
             held := creature^.itemsAddr;
             while (held <> nil) and (held <> item) do

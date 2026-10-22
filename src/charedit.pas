@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GDConsts, GameVars, Border,
+uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GameDefs, GameVars, Border,
   CharDisp, CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -26,7 +26,7 @@ const
     the scrolls by item type; lines past MAX_LINES are left off }
   MAX_LINES = 100;
   TEMPLATE_CODE = 256;
-  { the item type each of GDConsts.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
+  { the item type each of GameDefs.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
     Levels, which RandItem never makes }
   TEMPLATE_KINDS: array[1..19] of Byte = (71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
   { the highest plus a weapon or armour takes here: name parts run to +5 (C_ITEM.NAME_PLUS_BASE) }
@@ -67,7 +67,7 @@ var
 begin
   with GameVars.curChar^ do begin
     if classLevels[cls] <= 1 then Exit;
-    avg := GDConsts.hpSides[cls] div 2 + 1;
+    avg := GameDefs.hpSides[cls] div 2 + 1;
     loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION])) div clsCount;
     if loss < 1 then
       loss := 1;
@@ -109,7 +109,7 @@ begin
   if level < 2 then
     LevelXp := 0
   else
-    LevelXp := GDConsts.experienceSpellsClass[cls].xp[level];
+    LevelXp := GameDefs.experienceSpellsClass[cls].xp[level];
 end;
 
 { The Levels screen: each class's level, the experience and hit points; row sel highlighted. }
@@ -127,7 +127,7 @@ begin
     colour := LightGreen;
     if i = sel then
       colour := LightMagenta;
-    TextRend.DisplayString(NAME_COL, LEVEL_ROW + i, colour, GDConsts.classNames[held[i]]);
+    TextRend.DisplayString(NAME_COL, LEVEL_ROW + i, colour, GameDefs.classNames[held[i]]);
     TextRend.DisplayString(VALUE_COL, LEVEL_ROW + i, White,
                            'level ' + StrUtil.NumStr(GameVars.curChar^.classLevels[held[i]]) + ' ');
   end;
@@ -174,7 +174,7 @@ begin
             end;
           C_KEYS.RIGHT:
             if classLevels[cls] < C_LEVEL.LEVEL_LAST then begin
-              CharGen.GainLevels(GDConsts.classBit[cls], False);
+              CharGen.GainLevels(GameDefs.classBit[cls], False);
               if experience < LevelXp(cls, classLevels[cls]) then
                 experience := LevelXp(cls, classLevels[cls]);
             end;
@@ -414,7 +414,7 @@ begin
     head := nil;
     tail := nil;
     for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
-      MenuCore.AppendMenuLine(head, tail, StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' +
+      MenuCore.AppendMenuLine(head, tail, StrUtil.PadLeft(GameDefs.moneyNames[m], 8) + ' ' +
                               StrUtil.NumStr(GameVars.curChar^.coins[m]), False);
     redraw := True;
     sel := nil;
@@ -431,7 +431,7 @@ begin
     end;
     MenuCore.FreeStringList(head);
     if m >= C_MONEY.COPPER then begin
-      s := TextRend.ReadString(GDConsts.moneyNames[m] + ': ', LightGreen, 5);
+      s := TextRend.ReadString(GameDefs.moneyNames[m] + ': ', LightGreen, 5);
       Val(s, count, code);
       if (code = 0) and (count >= 0) and (count <= 65535) then
         GameVars.curChar^.coins[m] := count;
@@ -479,12 +479,12 @@ begin
     tail := nil;
     n := 0;
     for m := 1 to C_SPELL.LAST do
-      with GDConsts.spellTable[m] do
+      with GameDefs.spellTable[m] do
         if (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
           mark := '  ';
           if GameVars.curChar^.spellsKnown[m] <> 0 then
             mark := '* ';
-          MenuCore.AppendMenuLine(head, tail, mark + StrUtil.NumStr(levelSp) + ' ' + GDConsts.spellNames[m], False);
+          MenuCore.AppendMenuLine(head, tail, mark + StrUtil.NumStr(levelSp) + ' ' + GameDefs.spellNames[m], False);
           Inc(n);
           spells[n] := m;
         end;

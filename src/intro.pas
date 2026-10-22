@@ -9,7 +9,7 @@ procedure Introduction;
 
 implementation
 
-uses Types, GDConsts, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);
@@ -38,7 +38,7 @@ begin
   TextRend.DisplayString(1, 5, LightGreen, 'game created by:');
   TextRend.DisplayString(18, 5, Yellow, 'ssi special projects');
 
-  TextRend.DisplayCentered(0, 39, 6, LightCyan, GDConsts.GAME_VERSION);
+  TextRend.DisplayCentered(0, 39, 6, LightCyan, GameDefs.GAME_VERSION);
   TextRend.DisplayString(2, 7, Yellow, 'programming:');
   TextRend.DisplayString(20, 7, Yellow, 'original');
   TextRend.DisplayString(2, 8, LightCyan, 'scot bayless');

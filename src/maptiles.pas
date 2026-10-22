@@ -35,7 +35,7 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
-uses Crt, C_TILE, GDConsts, GameVars, Blit, GameIo, C_DIR;
+uses Crt, C_TILE, GameDefs, GameVars, Blit, GameIo, C_DIR;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -125,18 +125,18 @@ begin
     Blit.LoadPic(name + suffix, fileId, True, 0, GameVars.iconAnimation[animIdx, 0]);
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, GameVars.iconAnimation[animIdx, 1]);
     if name = 'ICON' then begin
-      Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False,
+      Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToBlack, 0, False,
                     GameVars.iconAnimation[animIdx, 0]);
-      Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False,
+      Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToBlack, 0, False,
                     GameVars.iconAnimation[animIdx, 1]);
     end;
   end else begin
     Str(GameVars.virtualDisk, suffix);
     Blit.LoadPic(name + suffix, fileId, True, 0, GameVars.iconAnimation[animIdx, 0]);
-    Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False,
+    Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToDarkGray, 0, False,
                   GameVars.iconAnimation[animIdx, 0]);
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, GameVars.iconAnimation[animIdx, 1]);
-    Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False,
+    Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToDarkGray, 0, False,
                   GameVars.iconAnimation[animIdx, 1]);
   end;
 end;

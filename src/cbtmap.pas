@@ -122,7 +122,7 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 implementation
 
-uses Crt, C_TERR, GDConsts, GameVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
+uses Crt, C_TERR, GameDefs, GameVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
   Blit, CharHlp;
 
 var
@@ -209,7 +209,7 @@ begin
   relX := x - GameVars.arenaPtr^.ox;
   relY := y - GameVars.arenaPtr^.oy;
   if CbtMap.ViewCoordsValid(relX, relY) then begin
-    MapTiles.Copy2DTile(relX * 3, relY * 3, GDConsts.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId, 0);
+    MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId, 0);
     DrawCellTop(x, y, relX, relY);
   end;
 end;
@@ -240,7 +240,7 @@ begin
     relX := areaX[i] - GameVars.arenaPtr^.ox;
     relY := areaY[i] - GameVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GDConsts.terrainInfo[C_TERR.STINK_CLOUD].tileId, 0);
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId, 0);
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -300,12 +300,12 @@ begin
       end;
     Types.AimCloud:
       for i := 1 to 4 do begin
-        tx := x + GDConsts.dirDX[GDConsts.cloudDir[i]];
-        ty := y + GDConsts.dirDY[GDConsts.cloudDir[i]];
+        tx := x + GameDefs.dirDX[GameDefs.cloudDir[i]];
+        ty := y + GameDefs.dirDY[GameDefs.cloudDir[i]];
         CbtMap.GetArenaContents(tx, ty, c, t);
         { the aim cell first, then the other three }
         if t > 0 then
-          if GDConsts.terrainInfo[t].cost < 255 then
+          if GameDefs.terrainInfo[t].cost < 255 then
             AddAreaCell(tx, ty, Ord(i > 1));
       end;
   else
@@ -423,7 +423,7 @@ begin
     if Pathing.GetIconTileDelta(GameVars.arenaPtr^.cursorSize, i, tdx, tdy) then
       if CbtMap.ViewCoordsValid(relX + tdx, relY + tdy) then begin
         MapTiles.Copy2DTile((relX + tdx) * 3, (relY + tdy) * 3,
-                            GDConsts.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId, 0);
+                            GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId, 0);
         if GameVars.arenaPtr^.cursorOn then
           MapTiles.DrawIconAnimSprite(relX + tdx, relY + tdy, 0, 0, CURSOR_CELL);
       end;
@@ -508,9 +508,9 @@ begin
       if Pathing.GetIconTileDelta(size, i, tdx, tdy) then
         if CbtMap.ViewCoordsValid(x + tdx, y + tdy) then
           MapTiles.Copy2DTile((x + tdx) * 3, (y + tdy) * 3,
-                              GDConsts.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId, 0);
+                              GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId, 0);
   end else if CbtMap.ViewCoordsValid(x, y) then
-    MapTiles.Copy2DTile(x * 3, y * 3, GDConsts.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId, 0);
+    MapTiles.Copy2DTile(x * 3, y * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId, 0);
 end;
 
 function ViewCoordsValid(x, y: ShortInt): Boolean;
@@ -591,7 +591,7 @@ begin
     pixX := 0;
     cX := GameVars.arenaPtr^.ox;
     for i := 0 to 6 do begin
-      MapTiles.Copy2DTile(pixX, pixY, GDConsts.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId, 1);
+      MapTiles.Copy2DTile(pixX, pixY, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId, 1);
       Inc(pixX, 3);
       Inc(cX);
     end;
@@ -609,8 +609,8 @@ var
   tx: ShortInt;
   ty: ShortInt;
 begin
-  tx := x + GDConsts.dirDX[dir];
-  ty := y + GDConsts.dirDY[dir];
+  tx := x + GameDefs.dirDX[dir];
+  ty := y + GameDefs.dirDY[dir];
   if CbtMap.BuildViewBuffer(tx, ty, delta) then begin
     for i := 1 to GameVars.arenaCount do begin
       p := GameVars.creatureArr[i];
@@ -730,8 +730,8 @@ begin
   y := GameVars.arenaLoc[slot].y;
   for i := 0 to 3 do begin
     if Pathing.GetIconTileDelta(GameVars.arenaLoc[slot].size, i, tdx, tdy) then begin
-      nx := x + tdx + GDConsts.dirDX[dir];
-      ny := y + tdy + GDConsts.dirDY[dir];
+      nx := x + tdx + GameDefs.dirDX[dir];
+      ny := y + tdy + GameDefs.dirDY[dir];
       CbtMap.GetArenaContents(nx, ny, c, t);
       if c = slot then
         c := 0;
@@ -741,8 +741,8 @@ begin
         terrIdx := 0
       else if (t = C_TERR.STINK_CLOUD) or (terrIdx = C_TERR.STINK_CLOUD) then
         terrIdx := C_TERR.STINK_CLOUD
-      else if GDConsts.terrainInfo[t].cost >= best then begin
-        best := GDConsts.terrainInfo[t].cost;
+      else if GameDefs.terrainInfo[t].cost >= best then begin
+        best := GameDefs.terrainInfo[t].cost;
         terrIdx := t;
       end;
     end;
@@ -786,7 +786,7 @@ var
 begin
   SoundDrv.SoundSetAutoStop(0);
   if GameVars.ifcState <> C_IFC.COMBAT then begin
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.DOWNED]);
+    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.DOWNED]);
     TextRend.PauseOnly;
   end else begin
     for k := 1 to GameVars.downedCount do
@@ -815,7 +815,7 @@ begin
     Blit.FlushView;
     if creature^.combatAddr^.notPcNpc = 0 then
       CbtMap.RegisterDowned(creature, cellX, cellY);
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.DOWNED]);
+    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.DOWNED]);
     TextRend.PauseOnly;
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     GameVars.arenaLoc[slot].size := 0;
@@ -851,7 +851,7 @@ begin
     GameVars.arenaLoc[slot].x := x;
     GameVars.arenaLoc[slot].y := y;
     CbtMap.ProbeDirection(creature, C_DIR.CENTER, c, t);
-    if (c <> 0) or (t = 0) or (GDConsts.terrainInfo[t].cost = 255) then
+    if (c <> 0) or (t = 0) or (GameDefs.terrainInfo[t].cost = 255) then
       GameVars.arenaLoc[slot].size := 0
     else begin
       IsValidCreatureLoc := True;

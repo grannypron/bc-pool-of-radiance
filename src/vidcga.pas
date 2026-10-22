@@ -12,7 +12,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_VIDEO, GDConsts, GameVars, DaxIo, Blit, PicCga;
+uses Types, C_VIDEO, GameDefs, GameVars, DaxIo, Blit, PicCga;
 
 var
   { the two banks: even scanlines at $B800, odd at $BA00, 80 bytes a scanline and 4 scanlines of each to a text row }
@@ -67,7 +67,7 @@ var
   mask: Byte;
   outerRow: Byte;
 begin
-  color := GDConsts.attrTable[color];
+  color := GameDefs.attrTable[color];
   dstOff := row * 4;
   cnt := 0;
   for outerRow := 0 to 3 do begin
@@ -75,7 +75,7 @@ begin
     mask := $80;
     for k := 0 to 7 do begin
       if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
+        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and GameDefs.cgaColorPat[color]);
       mask := mask shr 1;
     end;
     cgaB800[dstOff][col] := Swap(cgaWord);
@@ -84,7 +84,7 @@ begin
     mask := $80;
     for k := 0 to 7 do begin
       if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
+        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and GameDefs.cgaColorPat[color]);
       mask := mask shr 1;
     end;
     cgaBA00[dstOff][col] := Swap(cgaWord);
@@ -114,13 +114,13 @@ end;
 { the attribute's colour (its low four bits) mapped through attrTable, on the one page }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, GDConsts.attrTable[attr and $0F], count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, GameDefs.attrTable[attr and $0F], count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
 begin
   { the colour map picks which of the 4 colours shows color }
-  FillChar(cell, SizeOf(cell), GDConsts.cgaColorFill[Blit.SrcNibble(color, colorMap)]);
+  FillChar(cell, SizeOf(cell), GameDefs.cgaColorFill[Blit.SrcNibble(color, colorMap)]);
 end;
 
 { no palette registers }

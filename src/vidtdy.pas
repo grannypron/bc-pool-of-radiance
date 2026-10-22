@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_VIDEO, GDConsts, GameVars, DaxIo, PicTdy;
+uses Types, C_VIDEO, GameDefs, GameVars, DaxIo, PicTdy;
 
 var
   { the four banks from $B800: scanline n in bank n mod 4, 160 bytes a scanline }
@@ -129,7 +129,7 @@ end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
 begin
-  FillChar(cell, SizeOf(cell), GDConsts.tandyColorFill[color]);
+  FillChar(cell, SizeOf(cell), GameDefs.tandyColorFill[color]);
 end;
 
 { no palette registers }

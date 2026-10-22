@@ -33,7 +33,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses Types, GDConsts, GameVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
+uses Types, GameDefs, GameVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
 
 procedure DisplayViewBuf; forward;
 
@@ -89,11 +89,11 @@ end;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, GameVars.colorSkyCeiling, GDConsts.iconColorMap,
+  Blit.FillPicRect(2, 16, 11, 43, GameVars.colorSkyCeiling, GameDefs.iconColorMap,
                    GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 59, 11, 1, GameVars.wallColorA, GDConsts.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 60, 11, 2, GameVars.wallColorB, GDConsts.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 62, 11, 42, GameVars.wallColorC, GDConsts.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 59, 11, 1, GameVars.wallColorA, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 60, 11, 2, GameVars.wallColorB, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 62, 11, 42, GameVars.wallColorC, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
 end;
 
 { Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
@@ -107,9 +107,9 @@ var
   row: Integer;
   cnt: Byte;
 begin
-  cnt := GDConsts.viewSlotGeom.start[slot];
-  colLim := GDConsts.viewSlotGeom.cols[slot] + x - 1;
-  rowLim := GDConsts.viewSlotGeom.rows[slot] + y - 1;
+  cnt := GameDefs.viewSlotGeom.start[slot];
+  colLim := GameDefs.viewSlotGeom.cols[slot] + x - 1;
+  rowLim := GameDefs.viewSlotGeom.rows[slot] + y - 1;
   for row := y to rowLim do
     for col := x to colLim do begin
       if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (GameVars.wallGfx^[wallType][cnt] > 0) then
@@ -229,21 +229,21 @@ var
         prevWall := 0;
       if wallFront <> 0 then begin
         if prevWall > 0 then
-          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs + corner, GDConsts.viewSlotGeom.yRow[9],
+          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[9] + symOfs + corner, GameDefs.viewSlotGeom.yRow[9],
                                prevWall, 9);
         prevWall := wallFront;
-        View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[0] + symOfs, GDConsts.viewSlotGeom.yRow[0], wallFront, 0);
+        View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[0] + symOfs, GameDefs.viewSlotGeom.yRow[0], wallFront, 0);
       end else begin
         if (prevWall > 0) and
-           (View3D.GetWallType(wx - GDConsts.dirDX[walk], wy - GDConsts.dirDY[walk], walk) <> 0) then
-          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[9] + symOfs + corner, GDConsts.viewSlotGeom.yRow[9],
+           (View3D.GetWallType(wx - GameDefs.dirDX[walk], wy - GameDefs.dirDY[walk], walk) <> 0) then
+          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[9] + symOfs + corner, GameDefs.viewSlotGeom.yRow[9],
                                prevWall, 9);
         prevWall := 0;
       end;
       Inc(side);
       Inc(symOfs, step);
-      wx := wx + GDConsts.dirDX[walk];
-      wy := wy + GDConsts.dirDY[walk];
+      wx := wx + GameDefs.dirDX[walk];
+      wy := wy + GameDefs.dirDY[walk];
     end;
   end;
 
@@ -265,15 +265,15 @@ var
       wallSide := View3D.GetWallType(wx, wy, dir);
       if wallSide <> 0 then
         if side = 0 then
-          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[slot] + symOfs, GDConsts.viewSlotGeom.yRow[slot], wallSide,
+          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[slot] + symOfs, GameDefs.viewSlotGeom.yRow[slot], wallSide,
                                slot)
         else
-          View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[slot] + symOfs + adjust, GDConsts.viewSlotGeom.yRow[slot],
+          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[slot] + symOfs + adjust, GameDefs.viewSlotGeom.yRow[slot],
                                wallSide, slot);
       Inc(side);
       Inc(symOfs, step);
-      wx := wx + GDConsts.dirDX[dir];
-      wy := wy + GDConsts.dirDY[dir];
+      wx := wx + GameDefs.dirDX[dir];
+      wy := wy + GameDefs.dirDY[dir];
     end;
   end;
 
@@ -292,24 +292,24 @@ var
     wx := cxPos;
     wy := cyPos;
     for side := 1 to cells do begin
-      wx := wx + GDConsts.dirDX[start];
-      wy := wy + GDConsts.dirDY[start];
+      wx := wx + GameDefs.dirDX[start];
+      wy := wy + GameDefs.dirDY[start];
     end;
     side := 0;
     symOfs := symStart;
     while side < count do begin
       wallFront := View3D.GetWallType(wx, wy, facing);
       if wallFront <> 0 then
-        View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[frontSlot] + symOfs, GDConsts.viewSlotGeom.yRow[frontSlot],
+        View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[frontSlot] + symOfs, GameDefs.viewSlotGeom.yRow[frontSlot],
                              wallFront, frontSlot);
       wallSide := View3D.GetWallType(wx, wy, sideDir);
       if wallSide <> 0 then
-        View3D.DrawWallSlice(GDConsts.viewSlotGeom.xCol[sideSlot] + symOfs, GDConsts.viewSlotGeom.yRow[sideSlot],
+        View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[sideSlot] + symOfs, GameDefs.viewSlotGeom.yRow[sideSlot],
                              wallSide, sideSlot);
       Inc(side);
       Inc(symOfs, symStep);
-      wx := wx + GDConsts.dirDX[scan];
-      wy := wy + GDConsts.dirDY[scan];
+      wx := wx + GameDefs.dirDX[scan];
+      wy := wy + GameDefs.dirDY[scan];
     end;
   end;
 
@@ -325,8 +325,8 @@ begin
     fR := (facing + 2) mod 8;
     cxPos := x;
     cyPos := y;
-    dxF := GDConsts.dirDX[facing];
-    dyF := GDConsts.dirDY[facing];
+    dxF := GameDefs.dirDX[facing];
+    dyF := GameDefs.dirDY[facing];
     dist := 2;
     Inc(cxPos, dist * dxF);
     Inc(cyPos, dist * dyF);
@@ -351,8 +351,8 @@ begin
           FrontsAndSides(fR, 1, 2, 7, -7, 6, fR, 8, fL);
         end;
       end;
-      cxPos := cxPos + GDConsts.dirDX[fB];
-      cyPos := cyPos + GDConsts.dirDY[fB];
+      cxPos := cxPos + GameDefs.dirDX[fB];
+      cyPos := cyPos + GameDefs.dirDY[fB];
       Dec(dist);
     { Byte dist wrapping past 0 }
     until dist = 255;
@@ -385,7 +385,7 @@ begin
       ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
     GameIo.FatalError('Unable to load wallset in LoadWallSet.');
   end;
-  symOfs := GDConsts.symSetFirst[wsSlot] - GDConsts.symSetFirst[1];
+  symOfs := GameDefs.symSetFirst[wsSlot] - GameDefs.symSetFirst[1];
   offset := 0;
   i := 1;
   repeat
@@ -404,7 +404,7 @@ begin
         for col := 0 to 155 do begin
           { set 0's symbols (1..45) are shared by every slot; SSI also moved its last one, 45, into another slot's
             set (#727) }
-          if GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GDConsts.symSetFirst[1] then
+          if GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GameDefs.symSetFirst[1] then
             Inc(GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
         end;
       if count > 1 then begin

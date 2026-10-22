@@ -1,9 +1,9 @@
 { Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws, thief skills, racial and class
-  ability limits, hit points and experience shares; and GDConsts.alignByClass' rows. }
+  ability limits, hit points and experience shares; and GameDefs.alignByClass' rows. }
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_LEVEL, C_RACE, C_SAVE, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_ITEM, C_EFFECT, GDConsts, ClassCal, AbilAdj,
+uses Types, C_LEVEL, C_RACE, C_SAVE, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_ITEM, C_EFFECT, GameDefs, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -18,7 +18,7 @@ var
   armor: Types.TItemRec;
   shield: Types.TItemRec;
 
-{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GDConsts.wisBonusSpells' rows from 13 to wis added
+{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GameDefs.wisBonusSpells' rows from 13 to wis added
   up, against expected, one digit a level. }
 procedure CheckWisTotals(wis: Byte; expected: String);
 var
@@ -31,7 +31,7 @@ begin
   for lvl := 1 to 7 do begin
     total := 0;
     for w := 13 to wis do
-      Inc(total, GDConsts.wisBonusSpells[w, lvl]);
+      Inc(total, GameDefs.wisBonusSpells[w, lvl]);
     got := got + Chr(Ord('0') + total);
   end;
   TestKit.CheckEqualsS(expected, got, 'Wisdom ' + Chr(Ord('0') + wis div 10) + Chr(Ord('0') + wis mod 10) +
@@ -44,8 +44,8 @@ var
   slot: Integer;
 begin
   AlignAllowed := False;
-  for slot := 1 to GDConsts.alignByClass[cls].count do
-    if GDConsts.alignByClass[cls].alignments[slot] = al then
+  for slot := 1 to GameDefs.alignByClass[cls].count do
+    if GameDefs.alignByClass[cls].alignments[slot] = al then
       AlignAllowed := True;
 end;
 
@@ -65,24 +65,24 @@ begin
   noTn := True;
   for cls := C_CLASS.CLERIC to C_CLASS.MAGE_THIEF do
     for p := 1 to 3 do
-      if (GDConsts.classParts[cls].values[p] = C_LEVEL.CLERIC) and AlignAllowed(cls, C_ALIGN.TN) then
+      if (GameDefs.classParts[cls].values[p] = C_LEVEL.CLERIC) and AlignAllowed(cls, C_ALIGN.TN) then
         noTn := False;
   TestKit.Check(noTn, 'no class with a cleric part can be true neutral');
   subset := True;
   for race := C_RACE.DWARF to C_RACE.HUMAN do
-    for slot := 1 to GDConsts.classesByRace[race].count do begin
-      cls := GDConsts.classesByRace[race].classes[slot];
+    for slot := 1 to GameDefs.classesByRace[race].count do begin
+      cls := GameDefs.classesByRace[race].classes[slot];
       for p := 1 to 3 do begin
-        part := GDConsts.classParts[cls].values[p];
+        part := GameDefs.classParts[cls].values[p];
         if (part >= 0) and (part <> cls) then
-          for a := 1 to GDConsts.alignByClass[cls].count do
-            if not AlignAllowed(part, GDConsts.alignByClass[cls].alignments[a]) then
+          for a := 1 to GameDefs.alignByClass[cls].count do
+            if not AlignAllowed(part, GameDefs.alignByClass[cls].alignments[a]) then
               subset := False;
       end;
     end;
   TestKit.Check(subset, 'each multiclass offered takes only alignments all its classes allow');
-  TestKit.CheckEqualsL(8, GDConsts.alignByClass[C_CLASS.CLERIC].count, 'a cleric has 8 alignments');
-  TestKit.CheckEqualsL(6, GDConsts.alignByClass[C_CLASS.CLERIC_THIEF].count,
+  TestKit.CheckEqualsL(8, GameDefs.alignByClass[C_CLASS.CLERIC].count, 'a cleric has 8 alignments');
+  TestKit.CheckEqualsL(6, GameDefs.alignByClass[C_CLASS.CLERIC_THIEF].count,
                        'a cleric/thief has 6: neither true neutral nor LG or CG');
   TestKit.Check(AlignAllowed(C_CLASS.THIEF, C_ALIGN.TN), 'a thief can still be true neutral');
 end;
@@ -408,7 +408,7 @@ begin
   c^.classLevels[C_LEVEL.FIGHTER] := 1;
   c^.conCur := 18;
   TestKit.CheckEqualsL(6, ClassCal.ConHpBonus(c, $FF), 'a cleric/fighter at 18: +2 for the cleric, +4 for the fighter');
-  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, GDConsts.classBit[C_LEVEL.FIGHTER]), 'the fighter''s share alone');
+  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, GameDefs.classBit[C_LEVEL.FIGHTER]), 'the fighter''s share alone');
 
   TestKit.CheckEqualsL(6, ClassCal.DivideAmongClasses(10, 2, 2), '(10 + 2) div 2');
   TestKit.CheckEqualsL(4, ClassCal.DivideAmongClasses(10, -2, 2), '(10 - 2) div 2');

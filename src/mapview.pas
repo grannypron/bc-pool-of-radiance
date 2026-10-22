@@ -14,18 +14,18 @@ procedure DisplayWildMapView;
 
 implementation
 
-uses Crt, C_AREA, GDConsts, GameVars, Wilds, View3D, Blit, MapTiles;
+uses Crt, C_AREA, GameDefs, GameVars, Wilds, View3D, Blit, MapTiles;
 
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
-  are the last two columns and rows of GDConsts.wildMap. Nothing is drawn outside a wilderness location. }
+  are the last two columns and rows of GameDefs.wildMap. Nothing is drawn outside a wilderness location. }
 procedure DisplayWildMapView;
 var
   wx: ShortInt;
   wy: Byte;
 begin
   if not (GameVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST]) then Exit;
-  wx := GDConsts.wildColOfs[GameVars.gLocType] + GameVars.zone0^.partyX.value;
+  wx := GameDefs.wildColOfs[GameVars.gLocType] + GameVars.zone0^.partyX.value;
   if wx < 2 then
   else if wx < 42 then wx := 2
   else if wx < 43 then wx := 3
@@ -91,9 +91,9 @@ begin
     C_AREA.LOC_3D_MAP: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if GameVars.eventAtCell > $7F then
-        GameVars.colorSkyCeiling := GDConsts.skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
+        GameVars.colorSkyCeiling := GameDefs.skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
       else
-        GameVars.colorSkyCeiling := GDConsts.skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
+        GameVars.colorSkyCeiling := GameDefs.skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
       if GameVars.picRegionW then begin
         GameVars.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
         GameVars.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
@@ -105,7 +105,7 @@ begin
       View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;
     C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
-      wx := GDConsts.wildColOfs[loc] + GameVars.zone0^.partyX.value - 1 - 1;
+      wx := GameDefs.wildColOfs[loc] + GameVars.zone0^.partyX.value - 1 - 1;
       if wx < 0 then wx := 0;
       { last column origin for the 5-wide view }
       if wx > 39 then wx := 39;

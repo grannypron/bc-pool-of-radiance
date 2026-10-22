@@ -204,7 +204,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 
 implementation
 
-uses GDConsts, GameVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
+uses GameDefs, GameVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
 
 type
   PLongInt = ^LongInt;
@@ -491,14 +491,14 @@ function MirrorPairs(value: Word): Word;
 var
   mirrored: Word;
 begin
-  mirrored := (value and GDConsts.cgaPixelMask[7]) shl 14;
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[6]) shl 10);
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[5]) shl 6);
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[4]) shl 2);
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[3]) shr 2);
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[2]) shr 6);
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[1]) shr 10);
-  Inc(mirrored, (value and GDConsts.cgaPixelMask[0]) shr 14);
+  mirrored := (value and GameDefs.cgaPixelMask[7]) shl 14;
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[6]) shl 10);
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[5]) shl 6);
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[4]) shl 2);
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[3]) shr 2);
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[2]) shr 6);
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[1]) shr 10);
+  Inc(mirrored, (value and GameDefs.cgaPixelMask[0]) shr 14);
   MirrorPairs := mirrored;
 end;
 

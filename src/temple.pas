@@ -14,7 +14,7 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GameVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
+uses Types, Crt, C_MSG, GameDefs, GameVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
   C_STATUS, C_IFC, C_RACE, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
@@ -311,7 +311,7 @@ begin
   sel := list;
   i := 1;
   while list <> nil do begin
-    list^.name := GDConsts.templeSpells[i];
+    list^.name := GameDefs.templeSpells[i];
     list^.inUse := 0;
     list := list^.next;
     Inc(i);

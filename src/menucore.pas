@@ -78,7 +78,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GDConsts, GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
+uses GameDefs, GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -292,7 +292,7 @@ begin
                   { keypad-'*' scan code, not ASCII '7' }
                   ch := #55
                 else
-                  ch := Char(GDConsts.keypadScan[Ord(ch) - Ord('1')]);
+                  ch := Char(GameDefs.keypadScan[Ord(ch) - Ord('1')]);
                 ext := True;
                 done := True;
               end;

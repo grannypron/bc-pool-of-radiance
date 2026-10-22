@@ -10,13 +10,13 @@ uses Types;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
-{ Make item the magic item of GDConsts.randomItemTemplates[template]: its name parts, weight, value and properties, plus
+{ Make item the magic item of GameDefs.randomItemTemplates[template]: its name parts, weight, value and properties, plus
   1 (the Cloak of Displacement's 2). }
 procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
 
 implementation
 
-uses GDConsts, C_ITEM, Dice;
+uses GameDefs, C_ITEM, Dice;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;
@@ -36,7 +36,7 @@ var
   tpl: Types.TRandomItemTemplate;
   j: Byte;
 begin
-  tpl := GDConsts.randomItemTemplates[template];
+  tpl := GameDefs.randomItemTemplates[template];
   with item^ do begin
     for j := 1 to 3 do
       nameIds[j] := Lo(tpl.nameIds[j]);
@@ -57,7 +57,7 @@ end;
 
 { Build a random item of the given kind. Kinds 1..59, 73, 77 and 93 are weapons and armor, named from their type with a
   plus from RandomBonus and given a weight and value by type. 61 and 62 are magic-user and clerical scrolls holding 1d3
-  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GDConsts.randomItemTemplates, as does
+  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GameDefs.randomItemTemplates, as does
   a javelin one time in five. Any other kind gets only itemType and the defaults. }
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 var
