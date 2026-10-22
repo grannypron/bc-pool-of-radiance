@@ -163,8 +163,6 @@ var
   current8x8SymbolPtr2: Types.PImgBuf;
   { 2D map tile set image buffer 1 }
   mapTilePtr: Types.PImgBuf;
-  { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
-  mapTilePtr2: Types.PImgBuf;
   { Icon images }
   { Animation images for creature, death and cursor icons. }
   iconAnimation: array[0..25, 0..1] of Types.PImgBuf;

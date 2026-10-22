@@ -333,7 +333,7 @@ begin
   FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
   VidOps.InitRowTables;
   FillChar(GameVars.symbolSetPtrs, SizeOf(GameVars.symbolSetPtrs), 0);
-  FillChar(GameVars.mapTilePtr, SizeOf(GameVars.mapTilePtr) + SizeOf(GameVars.mapTilePtr2), 0);
+  FillChar(GameVars.mapTilePtr, SizeOf(GameVars.mapTilePtr) + SizeOf(MapTiles.mapTilePtr2), 0);
   FillChar(GameVars.iconAnimation, SizeOf(GameVars.iconAnimation), 0);
   for i := 1 to 2 do begin
     GameVars.portraitCache[i].pictureId := 255;

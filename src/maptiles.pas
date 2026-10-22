@@ -15,11 +15,15 @@ const
   FIRST_MONSTER_ICON = 8;
   LAST_MONSTER_ICON = 12;
 
+var
+  { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
+  mapTilePtr2: Types.PImgBuf;
+
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 
-{ The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into GameVars.mapTilePtr2 the first time
+{ The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into mapTilePtr2 the first time
   it is needed: only the wilderness and the ending draw from it, so it is not loaded at start-up and combat frees it
   (FreeSecondSheet). Nil when it does not load. }
 function SecondSheet: Types.PImgBuf;
@@ -74,7 +78,7 @@ procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 begin
   if tile > C_TILE.ID_MASK then begin
     if MapTiles.SecondSheet <> nil then
-      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, GameVars.mapTilePtr2,
+      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2,
                         GameVars.viewImageBufferPtr);
   end else if GameVars.mapTilePtr <> nil then
     Blit.BlitTileCell(col, row, tile, 0, GameVars.mapTilePtr, GameVars.viewImageBufferPtr);
@@ -82,14 +86,14 @@ end;
 
 function SecondSheet: Types.PImgBuf;
 begin
-  if GameVars.mapTilePtr2 = nil then
-    Blit.LoadPic('sqrpaci', 2, False, 0, GameVars.mapTilePtr2);
-  SecondSheet := GameVars.mapTilePtr2;
+  if mapTilePtr2 = nil then
+    Blit.LoadPic('sqrpaci', 2, False, 0, mapTilePtr2);
+  SecondSheet := mapTilePtr2;
 end;
 
 procedure FreeSecondSheet;
 begin
-  Blit.FreePic(GameVars.mapTilePtr2);
+  Blit.FreePic(mapTilePtr2);
 end;
 
 { Release both frame buffers of icon-animation slot animIdx; a slot past the table is ignored. }
@@ -268,4 +272,7 @@ begin
   Blit.FreePic(work);
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  mapTilePtr2 := nil;
 end.
