@@ -17,20 +17,26 @@ var
   showMemory: TSettingsHook;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
-  byte. After a nonzero byte, drain pending input without repeating those controls and return the last byte read. An
+  byte. After a nonzero byte, drain pending input without repeating those controls and return the last plain key read
+  (an extended key in it is dropped whole, #0 and scan byte, so no scan byte is returned as a key). An
   initial zero is returned at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear; the next
   call returns that scan byte without the controls, so an extended key whose scan code matches one (Alt-R is 19, as
   Ctrl-S) does not run it (#736, #764). Ctrl-S turns the Sound setting over (SetSound) and, once POOLOPT.CFG has been
   read, writes it back (saveSettings). }
 function ReadGameKey: Char;
 
+{ ReadGameKey for a wait on one key: an extended key's scan byte is read too and dropped, so the next read does not
+  take it for a typed key (after STING Ctrl-Y's last wait the menu took the next arrow for its scan byte's letter,
+  #768). Returns #0 for an extended key. }
+function ReadAnyKey: Char;
+
 { Turn sound on or off, as Ctrl-S does, and keep the Sound setting (GDVars.soundOn) in step. Off sends the stop command
   and disables soundMode, keeping the device in soundSaved; on restores the device. Without a sound device (POOL.CFG
   names none) nothing changes. }
 procedure SetSound(turnOn: Boolean);
 
-{ If input is pending, call ReadGameKey once and discard its result. That call may consume several bytes; an extended
-  key's scan byte is then read and discarded too, so it is not taken for Ctrl-S. }
+{ If input is pending, call ReadAnyKey once and discard its result. That call may consume several bytes; an extended
+  key's scan byte is read and discarded too, so it is not taken for Ctrl-S. }
 procedure DiscardPendingKeys;
 
 { Restore the saved sound mode, send the stop command, set the saved video mode through the BIOS and exit to DOS. }
@@ -95,12 +101,26 @@ end;
 function ReadGameKey: Char;
 var
   key: Char;
+
+  { Discard type-ahead, keeping the newest plain key in key; an extended key goes whole, its #0 and its scan byte }
+  procedure DropTypeAhead;
+  var
+    k: Char;
+  begin
+    while KeyPressed do begin
+      k := ReadKey;
+      if k = #0 then begin
+        if KeyPressed then k := ReadKey;
+      end else
+        key := k;
+    end;
+  end;
+
 begin
   key := ReadKey;
   if scanPending then begin
     scanPending := False;
-    while KeyPressed do
-      key := ReadKey;
+    DropTypeAhead;
     ReadGameKey := key;
     Exit;
   end;
@@ -136,9 +156,21 @@ begin
     end;
   end;
   if key <> #0 then
-    while KeyPressed do
-      key := ReadKey;
+    DropTypeAhead;
   ReadGameKey := key;
+end;
+
+function ReadAnyKey: Char;
+var
+  key: Char;
+  scan: Char;
+begin
+  key := GameIo.ReadGameKey;
+  if (key = #0) and scanPending then begin
+    scan := ReadKey;
+    scanPending := False;
+  end;
+  ReadAnyKey := key;
 end;
 
 procedure SetSound(turnOn: Boolean);
@@ -159,13 +191,8 @@ end;
 procedure DiscardPendingKeys;
 var key: Char;
 begin
-  if KeyPressed then begin
-    key := GameIo.ReadGameKey;
-    if (key = #0) and KeyPressed then begin
-      key := ReadKey;
-      scanPending := False;
-    end;
-  end;
+  if KeyPressed then
+    key := GameIo.ReadAnyKey;
 end;
 
 begin

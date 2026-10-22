@@ -31,6 +31,7 @@ function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 
 function InputUint16(query: Types.TStr40; color: Byte): Word;
 
+{ Show msg on the bottom line and wait for a key; an extended key is read whole (GameIo.ReadAnyKey). }
 procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
 
 { The BIOS tick count (18.2 a second since midnight), read until two reads agree, so a timer tick between the two words
@@ -291,7 +292,7 @@ var
 begin
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, msg);
-  key := GameIo.ReadGameKey;
+  key := GameIo.ReadAnyKey;
 end;
 
 function TickCount: LongInt;
