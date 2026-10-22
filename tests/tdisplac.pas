@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TDisplac;
 
-uses Types, C_Effect, C_Ifc, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_Ifc, GDVars, FxEngine, EffHndlr, TestKit;
 
 var
   att: Types.PCharRecord;
@@ -46,12 +46,12 @@ begin
   TestKit.Start('TDISPLAC');
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
   FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  GDVars.effectFns[C_Effect.BLESS] := SetRoll;
-  GDVars.effectFns[C_Effect.DISPLACED] := EffHndlr.EffDisplaced;
+  GDVars.effectFns[C_EFFECT.BLESS] := SetRoll;
+  GDVars.effectFns[C_EFFECT.DISPLACED] := EffHndlr.EffDisplaced;
   att := NewCreature;
   def := NewCreature;
-  FxEngine.AddEffect(att, C_Effect.BLESS, 0, 0, False);
-  FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 12, False);
+  FxEngine.AddEffect(att, C_EFFECT.BLESS, 0, 0, False);
+  FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 12, False);
   GDVars.roundCounter := 0;
 
   rollTo := 10;
@@ -68,11 +68,11 @@ begin
   TestKit.Check(not Displaced, 'and has not made the displacement due again');
 
   { a cloak readied in combat (#784) }
-  FxEngine.RemoveEffect(def, C_Effect.DISPLACED, nil);
+  FxEngine.RemoveEffect(def, C_EFFECT.DISPLACED, nil);
   GDVars.ifcState := C_Ifc.COMBAT;
   GDVars.roundCounter := 3;
   FillChar(cloak, SizeOf(cloak), 0);
-  cloak.effect := C_Effect.DISPLACED;
+  cloak.effect := C_EFFECT.DISPLACED;
   EffHndlr.EffReadyItem(def, @cloak, False);
   rollTo := 10;
   TestKit.Check(Displaced, 'a cloak readied in combat displaces the next attack');

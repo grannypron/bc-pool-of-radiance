@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -155,15 +155,15 @@ begin
   { Detect Magic on a party member marks a magic item }
   ClearCreature;
   FillChar(e, SizeOf(e), 0);
-  e.id := C_Effect.DETECT_MAGIC;
+  e.id := C_EFFECT.DETECT_MAGIC;
   c^.effectsAddr := @e;
   GDVars.creatureList := c;
   NewItem(21, 0, C_Item.NAME_PLUS_BASE + 1, 21, 0, 20);
   it.plus := 1;
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('* Javelin +1 ', it.name, 'Detect Magic marks a magic item');
-  TestKit.Check(CharHlp.HasEffect(c, C_Effect.DETECT_MAGIC, found) and (found = @e), 'HasEffect finds the effect');
-  TestKit.Check(not CharHlp.HasEffect(c, C_Effect.BLESS, found) and (found = nil), 'and not one it lacks');
+  TestKit.Check(CharHlp.HasEffect(c, C_EFFECT.DETECT_MAGIC, found) and (found = @e), 'HasEffect finds the effect');
+  TestKit.Check(not CharHlp.HasEffect(c, C_EFFECT.BLESS, found) and (found = nil), 'and not one it lacks');
   c^.effectsAddr := nil;
   GDVars.creatureList := nil;
 
@@ -264,14 +264,14 @@ begin
   c^.strCur := 18;
   c^.strExc := 100;
   FillChar(e, SizeOf(e), 0);
-  e.id := C_Effect.STRENGTH;
+  e.id := C_EFFECT.STRENGTH;
   e.strength := AbilAdj.StrengthModifier(17, 0) + $80;
   c^.effectsAddr := @e;
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'a superseded node holds no restore value');
   e.strength := AbilAdj.StrengthModifier(17, 0);
   TestKit.CheckEqualsL(17, CharHlp.PermanentStrength(c), 'the active node holds the own Strength');
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a gnome fighter with Strength 17 in gauntlets stops at 5');
-  e.id := C_Effect.ENLARGE;
+  e.id := C_EFFECT.ENLARGE;
   e.strength := AbilAdj.StrengthModifier(18, 50);
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'Enlarge''s restore value, 18/50');
   TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'and with 18 of its own the gnome trains past 5');
@@ -282,9 +282,9 @@ begin
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
   { under Enlarge the stored Strength is whole, and a disease's loss (#705) still counts against the cap }
   FillChar(d, SizeOf(d), 0);
-  d.id := C_Effect.DISEASE_STR;
+  d.id := C_EFFECT.DISEASE_STR;
   d.strength := 2 * 16 + 5;
-  e.id := C_Effect.ENLARGE;
+  e.id := C_EFFECT.ENLARGE;
   e.strength := AbilAdj.StrengthModifier(18, 50);
   e.next := @d;
   c^.effectsAddr := @e;
@@ -297,11 +297,11 @@ begin
   FillChar(e, SizeOf(e), 0);
   FillChar(d, SizeOf(d), 0);
   TestKit.CheckEqualsL(12, CharHlp.HasteSlowRate(c, 12), 'neither leaves the rate');
-  e.id := C_Effect.HASTED;
+  e.id := C_EFFECT.HASTED;
   c^.effectsAddr := @e;
   TestKit.CheckEqualsL(24, CharHlp.HasteSlowRate(c, 12), 'Haste doubles it');
   TestKit.CheckEqualsL(255, CharHlp.HasteSlowRate(c, 192), 'to at most 255');
-  d.id := C_Effect.SLOWED;
+  d.id := C_EFFECT.SLOWED;
   e.next := @d;
   TestKit.CheckEqualsL(13, CharHlp.HasteSlowRate(c, 13), 'Haste and Slow cancel');
   c^.effectsAddr := @d;

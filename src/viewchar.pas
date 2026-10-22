@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_Effect, C_Equip, C_Keys, C_CLASS, C_Level, C_STATUS, C_Ifc, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_Equip, C_Keys, C_CLASS, C_Level, C_STATUS, C_Ifc, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -156,11 +156,11 @@ function CanHeal(p: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
 begin
-  CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_Effect.RECENT_HEAL, effect);
+  CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_EFFECT.RECENT_HEAL, effect);
 end;
 
 { True when paladin p has a cure left this week: one a week, and one more for every five levels after the first. The
-  week starts with the first cure (effect C_Effect.RECENT_CURE, whose strength counts the cures made). }
+  week starts with the first cure (effect C_EFFECT.RECENT_CURE, whose strength counts the cures made). }
 function CanCure(p: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
@@ -168,14 +168,14 @@ var
   allowed: ShortInt;
 begin
   used := 0;
-  if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
+  if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
     used := effect^.strength;
   allowed := (p^.classLevels[C_Level.PALADIN] - 1) div 5 + 1;
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
 { Lay on hands: paladin p restores 2 hit points per paladin level to the party member chosen, and cannot do so again for
-  a day (C_Effect.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
+  a day (C_EFFECT.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
 procedure LayOnHands(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
@@ -193,11 +193,11 @@ begin
   end
   else
     CharDisp.PrintBottomLine(tgt^.name + ' is unaffected');
-  FxEngine.AddEffect(p, C_Effect.RECENT_HEAL, 1440, 255, False);
+  FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
 end;
 
 { Cure disease: paladin p removes the disease effects (GDConsts.cureDiseaseEffects) from the party member chosen, asking
-  first when there are none, and spends one of the week's cures: the first starts C_Effect.RECENT_CURE for 10080 minutes
+  first when there are none, and spends one of the week's cures: the first starts C_EFFECT.RECENT_CURE for 10080 minutes
   at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
 var
@@ -219,10 +219,10 @@ begin
   if ch <> 'Y' then
     Exit;
   FxEngine.RemoveDiseases(tgt);
-  if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
+  if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
     Inc(effect^.strength)
   else
-    FxEngine.AddEffect(p, C_Effect.RECENT_CURE, 10080, 1, False);
+    FxEngine.AddEffect(p, C_EFFECT.RECENT_CURE, 10080, 1, False);
   CharDisp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 

@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
+uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_Equip, C_Keys, C_Level,
   C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -374,8 +374,8 @@ begin
         p := GDVars.creatureArr[adj[i]];
         if not CharHlp.IsHelpless(p) then
           if CbtActs.CanAttackTarget(p, creature) then
-            if not CharHlp.HasEffect(p, C_Effect.BLOOD_DRAIN, effect) then
-              if not CharHlp.HasEffect(p, C_Effect.BITE_HOLD, effect) then
+            if not CharHlp.HasEffect(p, C_EFFECT.BLOOD_DRAIN, effect) then
+              if not CharHlp.HasEffect(p, C_EFFECT.BITE_HOLD, effect) then
                 for a := p^.combatAddr^.direction + 6 to p^.combatAddr^.direction + 10 do
                   if not attacked then
                     if (p^.combatAddr^.initiative > 0) or (p^.combatAddr^.flankCount = 0) or
@@ -687,7 +687,7 @@ end;
   spent. Otherwise use the large-target dice against a large defender and pick the defense: backstab, acBehind - 2; from
   behind (fromBehind, or flanked by more than one attacker with att at its back and a flank spread above 4), the rear
   AC. Add range penalties, roll the attacks from attackPhase down to 1 until def drops, and spend the sweep budget. A
-  hit on a defender with Mirror Image (C_Effect.MIRROR_IMAGE) strikes an image unless 1d(images + 1) rolls 1: it shows
+  hit on a defender with Mirror Image (C_EFFECT.MIRROR_IMAGE) strikes an image unless 1d(images + 1) rolls 1: it shows
   as a miss, the defender loses the image and the blow does no damage and has no on-hit effects. With no attacks left,
   att's actions end. }
 procedure DoAttack(att, def: Types.PCharRecord; fromBehind: Boolean; var done: Boolean);
@@ -772,7 +772,7 @@ begin
         Inc(attacksMade[phase]);
         if FxEngine.AttackRoll(att, def, defense) or CharHlp.IsHelpless(def) then begin
           anyHit := True;
-          if CharHlp.HasEffect(def, C_Effect.MIRROR_IMAGE, image)
+          if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image)
              and (Dice.RollDice(1, image^.strength + 1) > 1) then begin
             { the blow strikes an image }
             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.MISS]);
@@ -780,7 +780,7 @@ begin
             CharDisp.PrintNameString(def, 'lost an image', 10, True);
             Dec(image^.strength);
             if image^.strength = 0 then
-              FxEngine.RemoveEffect(def, C_Effect.MIRROR_IMAGE, nil);
+              FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
           end else begin
             Inc(GDVars.hitsMade[phase]);
             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
@@ -862,7 +862,7 @@ begin
       if weapon^.quantity > 0 then
         Dec(weapon^.quantity, attacksMade[1]);
       if weapon^.quantity = 0 then
-        if CharHlp.HasThrowableWeapon(att) and (weapon^.special <> C_Effect.SPIRIT_HAMMER_GONE) then begin
+        if CharHlp.HasThrowableWeapon(att) and (weapon^.special <> C_EFFECT.SPIRIT_HAMMER_GONE) then begin
           { the expended thrown weapon drops into the loot pile }
           CharHlp.PrependItemCopy(GDVars.treasureItems, weapon);
           item := GDVars.treasureItems;
@@ -1772,7 +1772,7 @@ begin
   AcquireTarget := found;
 end;
 
-{ C_Effect.REAR_CLAW_RAKE (73) handler (TEffectHandler shape; p and removed unused): when both primary attacks hit
+{ C_EFFECT.REAR_CLAW_RAKE (73) handler (TEffectHandler shape; p and removed unused): when both primary attacks hit
   (hitsMade[1] = 2) and the locked target is still up, rake it with two 2d4 secondary attacks, then end the creature's
   actions. }
 procedure RearClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -1792,10 +1792,10 @@ begin
     end;
 end;
 
-{ C_Effect.BITE_HOLD (74) handler; p is the effect, whose strength holds the victim's creature index. While the hold
+{ C_EFFECT.BITE_HOLD (74) handler; p is the effect, whose strength holds the victim's creature index. While the hold
   lasts, each trigger is one 3d4 bite on the victim as from behind, ending the creature's actions; a victim that drops
   ends the hold. On removal, when either side is down or when the victim is no longer immobile (#709), the victim loses
-  C_Effect.IMMOBILE (58), and the hold itself is removed (onRemove cleared first) unless it is already being removed. An
+  C_EFFECT.IMMOBILE (58), and the hold itself is removed (onRemove cleared first) unless it is already being removed. An
   index outside creatureArr[1..arenaCount] (CombatSlot's 0 for a creature not in the arena) has no victim: the hold just
   goes, as in EffHndlr.EffBloodDrain. }
 procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -1803,7 +1803,7 @@ var
   done: Boolean;
   released: Boolean;
 begin
-  if FxEngine.HoldTarget(creature, p, removed, C_Effect.BITE_HOLD, released) <> nil then begin
+  if FxEngine.HoldTarget(creature, p, removed, C_EFFECT.BITE_HOLD, released) <> nil then begin
     creature^.curAttacks := 1;
     creature^.curAttacks2 := 0;
     creature^.curRollsA[1] := 3;
@@ -1811,7 +1811,7 @@ begin
     CbtActs.CombatAttack(creature, GDVars.otherCreatureCurrentPtr, True, nil, done);
     done := CharHlp.EndActions(creature);
     if GDVars.otherCreatureCurrentPtr^.enabled = 0 then
-      FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, p);
+      FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, p);
   end;
 end;
 

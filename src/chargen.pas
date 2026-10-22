@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_Keys,
-  C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_EFFECT, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -447,30 +447,30 @@ begin
     case race of
       C_Race.HALFLING: begin
            iconSize := 1;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.CON_PSN_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.CON_SPELL_SAVE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_PSN_SAVE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
          end;
       C_Race.DWARF: begin
            iconSize := 1;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.CON_PSN_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.CON_SPELL_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.DWARF_THAC0, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.DWARF_AC_GIANT, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_PSN_SAVE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_THAC0, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_AC_GIANT, 0, 255, False);
          end;
       C_Race.GNOME: begin
            iconSize := 1;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.CON_SPELL_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.GNOME_THAC0, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.DWARF_AC_GIANT, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.GNOME_AC_BUG, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_THAC0, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_AC_GIANT, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_AC_BUG, 0, 255, False);
          end;
       C_Race.ELF: begin
            iconSize := 2;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.ELF_RESIST, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.ELF_RESIST, 0, 255, False);
          end;
       C_Race.HALFELF: begin
            iconSize := 2;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_Effect.HALF_ELF_RESIST, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.HALF_ELF_RESIST, 0, 255, False);
          end;
       else
         { human }
@@ -516,7 +516,7 @@ begin
     { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it. It is the 10'
       radius one, as the paladin's has a 1" radius: SSI gave eff 8, which covered the paladin alone (#742). }
     if charClass = C_CLASS.PALADIN then
-      FxEngine.AddEffect(creature, C_Effect.PROT_EVIL_10FT, 0, 255, False);
+      FxEngine.AddEffect(creature, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
     for cls := C_Level.CLERIC to C_Level.MONK do

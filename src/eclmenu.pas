@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_DIR,
+uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_Keys, C_STATUS, C_Gbvm, C_DIR,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -594,7 +594,7 @@ begin
   item := creature^.itemsAddr;
   while item <> nil do begin
     if (item^.equipped <> 0) and (item^.special > $7F)
-       and not (item^.special in [C_Effect.ALIGNED_WEAPON, C_Effect.BOULDER]) then
+       and not (item^.special in [C_EFFECT.ALIGNED_WEAPON, C_EFFECT.BOULDER]) then
       FxEngine.CallEffectHandler(item^.special, creature, item, False);
     item := item^.next;
   end;

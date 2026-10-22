@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TProtect;
 
-uses Types, C_Effect, C_COND, C_ALIGN, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_COND, C_ALIGN, GDVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 200;
@@ -93,12 +93,12 @@ begin
   TestKit.Start('TPROTECT');
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
   FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  GDVars.effectFns[C_Effect.BLESS] := NoteNatural;
-  GDVars.effectFns[C_Effect.DISPLACED] := NoteSeen;
-  GDVars.effectFns[C_Effect.PROT_EVIL] := EffHndlr.EffProtEvil;
-  GDVars.effectFns[C_Effect.PROT_GOOD] := EffHndlr.EffProtGood;
-  GDVars.effectFns[C_Effect.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
-  GDVars.effectFns[C_Effect.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
+  GDVars.effectFns[C_EFFECT.BLESS] := NoteNatural;
+  GDVars.effectFns[C_EFFECT.DISPLACED] := NoteSeen;
+  GDVars.effectFns[C_EFFECT.PROT_EVIL] := EffHndlr.EffProtEvil;
+  GDVars.effectFns[C_EFFECT.PROT_GOOD] := EffHndlr.EffProtGood;
+  GDVars.effectFns[C_EFFECT.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
+  GDVars.effectFns[C_EFFECT.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
   { out of combat any carrier is in range }
   GDVars.ifcState := 0;
   att := NewCreature(1, C_ALIGN.CHAOTIC_EVIL);
@@ -110,76 +110,76 @@ begin
   ally^.nextCharAddr := foe;
   foe^.nextCharAddr := att;
 
-  FxEngine.AddEffect(att, C_Effect.BLESS, 0, 0, False);
-  FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 0, False);
+  FxEngine.AddEffect(att, C_EFFECT.BLESS, 0, 0, False);
+  FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
   TestKit.CheckEqualsL(0, SaveBonus, 'no protection, no bonus');
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'Protection from Evil: +2 to saves against an evil attacker');
   att^.alignment := C_ALIGN.TRUE_NEUTRAL;
   TestKit.CheckEqualsL(0, SaveBonus, 'and none against a neutral one');
   att^.alignment := C_ALIGN.CHAOTIC_EVIL;
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'two spells give +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit, off the rolled d20');
   ClearEffects(def);
-  FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 0, False);
+  FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
 
   { a script's attack has no attacker: curChar is a party member, evil or not }
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
   ally^.alignment := C_ALIGN.CHAOTIC_EVIL;
   TestKit.CheckEqualsL(100, ScriptAttackHighest(ally), 'no penalty to a script''s attack');
   TestKit.CheckEqualsL(98, ScriptAttackHighest(att), 'which an evil foe would have');
   ally^.alignment := C_ALIGN.LAWFUL_GOOD;
   ClearEffects(def);
-  FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 0, False);
+  FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
 
   { the aura (#782) }
-  FxEngine.AddEffect(ally, C_Effect.PROT_EVIL_10FT, 0, 255, False);
+  FxEngine.AddEffect(ally, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'an ally''s aura protects');
   ClearEffects(ally);
-  FxEngine.AddEffect(foe, C_Effect.PROT_EVIL_10FT, 0, 255, False);
+  FxEngine.AddEffect(foe, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
   TestKit.CheckEqualsL(0, SaveBonus, 'an enemy''s aura does not');
   ClearEffects(foe);
 
   { one protection from any number of sources (#783) }
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL_10FT, 0, 255, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'a paladin''s own aura gives +2');
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'and with the spell as well, still +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit');
   ClearEffects(def);
-  FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 0, False);
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
-  FxEngine.AddEffect(ally, C_Effect.PROT_EVIL_10FT, 0, 255, False);
+  FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(ally, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'the spell and an ally''s aura: +2');
   TestKit.CheckEqualsL(2, HitPenalty, 'and -2 to be hit');
   ClearEffects(def);
-  FxEngine.AddEffect(def, C_Effect.DISPLACED, 0, 0, False);
+  FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 0, False);
   ClearEffects(ally);
 
   { Protection from Good, the same way }
   att^.alignment := C_ALIGN.LAWFUL_GOOD;
-  FxEngine.AddEffect(def, C_Effect.PROT_GOOD, 10, 1, False);
-  FxEngine.AddEffect(ally, C_Effect.PROT_GOOD_10FT, 0, 255, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_GOOD, 10, 1, False);
+  FxEngine.AddEffect(ally, C_EFFECT.PROT_GOOD_10FT, 0, 255, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'Protection from Good: +2 against a good attacker, once');
-  FxEngine.AddEffect(def, C_Effect.PROT_EVIL, 10, 1, False);
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
   TestKit.CheckEqualsL(2, SaveBonus, 'and Protection from Evil adds nothing against him');
   TestKit.CheckEqualsL(2, HitPenalty, 'nor to the -2 to be hit');
   ClearEffects(def);
   ClearEffects(ally);
 
   { Prayer (#801): one from each side in reach applies, two from one side once }
-  GDVars.effectFns[C_Effect.PRAYER] := EffHndlr.EffPrayer;
-  FxEngine.AddEffect(ally, C_Effect.PRAYER, 10, 0 * C_Effect.PRAYER_SIDE + 5, False);
+  GDVars.effectFns[C_EFFECT.PRAYER] := EffHndlr.EffPrayer;
+  FxEngine.AddEffect(ally, C_EFFECT.PRAYER, 10, 0 * C_EFFECT.PRAYER_SIDE + 5, False);
   TestKit.CheckEqualsL(1, SaveBonus, 'an ally''s Prayer: +1');
-  FxEngine.AddEffect(def, C_Effect.PRAYER, 10, 0 * C_Effect.PRAYER_SIDE + 5, False);
+  FxEngine.AddEffect(def, C_EFFECT.PRAYER, 10, 0 * C_EFFECT.PRAYER_SIDE + 5, False);
   TestKit.CheckEqualsL(1, SaveBonus, 'and his own as well, still +1');
   ClearEffects(def);
   ClearEffects(ally);
-  FxEngine.AddEffect(foe, C_Effect.PRAYER, 10, 1 * C_Effect.PRAYER_SIDE + 5, False);
+  FxEngine.AddEffect(foe, C_EFFECT.PRAYER, 10, 1 * C_EFFECT.PRAYER_SIDE + 5, False);
   TestKit.CheckEqualsL(-1, SaveBonus, 'an enemy''s Prayer: -1');
-  FxEngine.AddEffect(ally, C_Effect.PRAYER, 10, 0 * C_Effect.PRAYER_SIDE + 5, False);
-  FxEngine.AddEffect(att, C_Effect.PRAYER, 10, 1 * C_Effect.PRAYER_SIDE + 5, False);
+  FxEngine.AddEffect(ally, C_EFFECT.PRAYER, 10, 0 * C_EFFECT.PRAYER_SIDE + 5, False);
+  FxEngine.AddEffect(att, C_EFFECT.PRAYER, 10, 1 * C_EFFECT.PRAYER_SIDE + 5, False);
   TestKit.CheckEqualsL(0, SaveBonus, 'one from each side: both, +1 and -1');
   ClearEffects(ally);
   TestKit.CheckEqualsL(-1, SaveBonus, 'two enemy Prayers apply once');
@@ -190,20 +190,20 @@ begin
   foe^.hostile := 2;
   TestKit.CheckEqualsL(5, FxEngine.PrayerStrength(foe, 5), 'a caster with hostile 2 prays for side 0');
   foe^.hostile := 3;
-  TestKit.CheckEqualsL(C_Effect.PRAYER_SIDE + 5, FxEngine.PrayerStrength(foe, 5),
+  TestKit.CheckEqualsL(C_EFFECT.PRAYER_SIDE + 5, FxEngine.PrayerStrength(foe, 5),
                        'a caster with hostile 3 prays for side 1');
-  TestKit.CheckEqualsL(C_Effect.PRAYER_SIDE + 15, FxEngine.PrayerStrength(foe, 20),
+  TestKit.CheckEqualsL(C_EFFECT.PRAYER_SIDE + 15, FxEngine.PrayerStrength(foe, 20),
                        'and a level above 15 is kept out of the side');
-  FxEngine.AddEffect(foe, C_Effect.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
+  FxEngine.AddEffect(foe, C_EFFECT.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
   TestKit.CheckEqualsL(-1, SaveBonus, 'the hostile-3 caster''s Prayer is an enemy''s: -1');
   ClearEffects(foe);
   foe^.hostile := 2;
-  FxEngine.AddEffect(foe, C_Effect.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
+  FxEngine.AddEffect(foe, C_EFFECT.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
   TestKit.CheckEqualsL(1, SaveBonus, 'the hostile-2 caster''s Prayer is an ally''s: +1');
   ClearEffects(foe);
   foe^.hostile := 1;
   def^.hostile := 2;
-  FxEngine.AddEffect(ally, C_Effect.PRAYER, 10, FxEngine.PrayerStrength(ally, 5), False);
+  FxEngine.AddEffect(ally, C_EFFECT.PRAYER, 10, FxEngine.PrayerStrength(ally, 5), False);
   TestKit.CheckEqualsL(1, SaveBonus, 'a defender with hostile 2 is on side 0: +1');
   ClearEffects(ally);
   def^.hostile := 0;

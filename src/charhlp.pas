@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_STATUS, C_Ifc,
+uses C_Item, GDConsts, GDVars, C_EFFECT, C_Equip, C_Race, C_Level, C_STATUS, C_Ifc,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -381,7 +381,7 @@ begin
   found := False;
   p := GDVars.creatureList;
   while (p <> nil) and not found do begin
-    if CharHlp.HasEffect(p, C_Effect.DETECT_MAGIC, effect) then
+    if CharHlp.HasEffect(p, C_EFFECT.DETECT_MAGIC, effect) then
       found := True;
     p := p^.nextCharAddr;
   end;
@@ -749,8 +749,8 @@ var
   hasted: Boolean;
   slowed: Boolean;
 begin
-  hasted := CharHlp.HasEffect(creature, C_Effect.HASTED, effect);
-  slowed := CharHlp.HasEffect(creature, C_Effect.SLOWED, effect);
+  hasted := CharHlp.HasEffect(creature, C_EFFECT.HASTED, effect);
+  slowed := CharHlp.HasEffect(creature, C_EFFECT.SLOWED, effect);
   if hasted and not slowed then begin
     if n > 127 then
       n := 255
@@ -971,7 +971,7 @@ function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
 var
   effect: Types.PEffectRec;
 begin
-  if CharHlp.HasEffect(creature, C_Effect.DISEASE_STR, effect) then
+  if CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STR, effect) then
     DiseaseStrLoss := effect^.strength shr 4
   else
     DiseaseStrLoss := 0;
@@ -986,7 +986,7 @@ begin
   PermanentStrength := creature^.strCur;
   p := creature^.effectsAddr;
   while p <> nil do begin
-    if ((p^.id = C_Effect.ENLARGE) or (p^.id = C_Effect.STRENGTH)) and (p^.strength < $80) then begin
+    if ((p^.id = C_EFFECT.ENLARGE) or (p^.id = C_EFFECT.STRENGTH)) and (p^.strength < $80) then begin
       AbilAdj.StrengthEffectToStrength(p, base, exc);
       { the stored Strength is whole; the disease's loss counts, as it does in strCur }
       PermanentStrength := AbilAdj.ClampScore(Integer(base) - CharHlp.DiseaseStrLoss(creature));
@@ -1063,7 +1063,7 @@ function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boole
 var
   effect: Types.PEffectRec;
 begin
-  if CharHlp.HasEffect(creature, C_Effect.READ_MAGIC, effect) or
+  if CharHlp.HasEffect(creature, C_EFFECT.READ_MAGIC, effect) or
       ((creature^.classLevels[C_Level.CLERIC] > 0) and
        (CharHlp.BaseItem(item^.itemType)^.slot = C_Item.SLOT_CLERIC_SCROLL)) then
     item^.unidMask := 0;

@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_STATUS, C_Ifc, C_SPELL, C_Level,
+uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_Keys, C_STATUS, C_Ifc, C_SPELL, C_Level,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -590,13 +590,13 @@ begin
       show := True;
       id := effect^.id;
       case id of
-        C_Effect.BLESS, C_Effect.CURSE, C_Effect.DETECT_MAGIC, C_Effect.PROT_EVIL..C_Effect.FRIENDS,
-            C_Effect.READ_MAGIC, C_Effect.SHIELD,
-        C_Effect.FIND_TRAPS..C_Effect.INVISIBLE, C_Effect.MIRROR_IMAGE, C_Effect.ENFEEBLE,
-            C_Effect.ANIMATE_DEAD..C_Effect.DISEASED,
-        C_Effect.BESTOW_CURSE..C_Effect.HASTED, C_Effect.PROT_MISSILES, C_Effect.SLOWED,
-            C_Effect.PROT_EVIL_10FT, C_Effect.PROT_GOOD_10FT,
-        C_Effect.PRAYER, C_Effect.SNAKE_CHARM..C_Effect.SLEEP:
+        C_EFFECT.BLESS, C_EFFECT.CURSE, C_EFFECT.DETECT_MAGIC, C_EFFECT.PROT_EVIL..C_EFFECT.FRIENDS,
+            C_EFFECT.READ_MAGIC, C_EFFECT.SHIELD,
+        C_EFFECT.FIND_TRAPS..C_EFFECT.INVISIBLE, C_EFFECT.MIRROR_IMAGE, C_EFFECT.ENFEEBLE,
+            C_EFFECT.ANIMATE_DEAD..C_EFFECT.DISEASED,
+        C_EFFECT.BESTOW_CURSE..C_EFFECT.HASTED, C_EFFECT.PROT_MISSILES, C_EFFECT.SLOWED,
+            C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT,
+        C_EFFECT.PRAYER, C_EFFECT.SNAKE_CHARM..C_EFFECT.SLEEP:
           begin
             { Find the named spell that produces this effect. Only IDs 1..56 have spell names; higher IDs are item
               effects. }
@@ -611,20 +611,20 @@ begin
             if found = False then
               s := 'Funky--' + StrUtil.NumStr(id);
           end;
-        C_Effect.TRAIN_START: s := 'Studying Manual of Bodily Health';
-        C_Effect.TRAIN_MANUAL: s := 'Training with Manual of Bodily Health';
-        C_Effect.FEATHER_FALL: s := 'Feather Fall';
-        C_Effect.HELPLESS: s := 'Helpless';
-        C_Effect.ALLIED_PRAYER: s := 'Prayer';
-        C_Effect.DISEASE_HP: s := 'Cause Disease';
-        C_Effect.ROT_NO_HEAL: s := 'Dreaded Mummy Disease';
-        C_Effect.DRAGON_AURA: s := 'Repulsed';
-        C_Effect.POISONED: s := 'Poisoned';
-        C_Effect.TROLL_REGEN: s := 'Regenerating';
-        C_Effect.RING_FIRE_RES: s := 'Fire Resistance';
-        C_Effect.DUST_DISAPPEAR: s := 'Invisible';
-        C_Effect.CAMOUFLAGE: s := 'Camouflaged';
-        C_Effect.DISPLACED: s := 'Displaced';
+        C_EFFECT.TRAIN_START: s := 'Studying Manual of Bodily Health';
+        C_EFFECT.TRAIN_MANUAL: s := 'Training with Manual of Bodily Health';
+        C_EFFECT.FEATHER_FALL: s := 'Feather Fall';
+        C_EFFECT.HELPLESS: s := 'Helpless';
+        C_EFFECT.ALLIED_PRAYER: s := 'Prayer';
+        C_EFFECT.DISEASE_HP: s := 'Cause Disease';
+        C_EFFECT.ROT_NO_HEAL: s := 'Dreaded Mummy Disease';
+        C_EFFECT.DRAGON_AURA: s := 'Repulsed';
+        C_EFFECT.POISONED: s := 'Poisoned';
+        C_EFFECT.TROLL_REGEN: s := 'Regenerating';
+        C_EFFECT.RING_FIRE_RES: s := 'Fire Resistance';
+        C_EFFECT.DUST_DISAPPEAR: s := 'Invisible';
+        C_EFFECT.CAMOUFLAGE: s := 'Camouflaged';
+        C_EFFECT.DISPLACED: s := 'Displaced';
       else
         show := False;
       end;
@@ -895,12 +895,12 @@ var
     effect: Types.PEffectRec;
   begin
     case cond of
-      FIX_DISEASE: HasCondition := CharHlp.HasEffect(creature, C_Effect.DISEASED, effect) or
-                                   CharHlp.HasEffect(creature, C_Effect.DISEASE_STR, effect) or
-                                   CharHlp.HasEffect(creature, C_Effect.ROT_NO_HEAL, effect);
-      FIX_BLIND: HasCondition := CharHlp.HasEffect(creature, C_Effect.BLIND, effect);
+      FIX_DISEASE: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.DISEASED, effect) or
+                                   CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STR, effect) or
+                                   CharHlp.HasEffect(creature, C_EFFECT.ROT_NO_HEAL, effect);
+      FIX_BLIND: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.BLIND, effect);
     else
-      HasCondition := CharHlp.HasEffect(creature, C_Effect.BESTOW_CURSE, effect);
+      HasCondition := CharHlp.HasEffect(creature, C_EFFECT.BESTOW_CURSE, effect);
     end;
   end;
 

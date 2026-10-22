@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
+uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_Equip, C_Item, C_EFFECT, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -538,7 +538,7 @@ begin
   TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'with Strength 15, no bonus');
   { a Strength spell's 18 is not the fighter's own 15 (#779) }
   FillChar(e, SizeOf(e), 0);
-  e.id := C_Effect.STRENGTH;
+  e.id := C_EFFECT.STRENGTH;
   e.strength := AbilAdj.StrengthModifier(15, 0);
   c^.effectsAddr := @e;
   c^.strCur := 18;

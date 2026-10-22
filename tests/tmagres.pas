@@ -5,7 +5,7 @@
 {$I COMPILER.INC}
 program TMagRes;
 
-uses Types, C_Effect, C_SPELL, C_Level, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_SPELL, C_Level, GDVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 1000;
@@ -24,7 +24,7 @@ var
 begin
   n := 0;
   for i := 1 to TRIES do begin
-    GDVars.pendingEffectId := C_Effect.HELPLESS;
+    GDVars.pendingEffectId := C_EFFECT.HELPLESS;
     EffHndlr.EffMagicRes50(target, nil, False);
     if GDVars.pendingEffectId = 0 then
       Inc(n);
@@ -55,16 +55,16 @@ begin
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'whatever the creature''s own level');
 
   { a touch's poison or paralysis is no magic (#800); the resistance still meets an effect under the plain check }
-  GDVars.effectFns[C_Effect.MAGIC_RES85] := EffHndlr.EffMagicRes85;
-  FxEngine.AddEffect(target, C_Effect.MAGIC_RES85, 0, 0, False);
+  GDVars.effectFns[C_EFFECT.MAGIC_RES85] := EffHndlr.EffMagicRes85;
+  FxEngine.AddEffect(target, C_EFFECT.MAGIC_RES85, 0, 0, False);
   n := 0;
   for i := 1 to TRIES do
-    if EffHndlr.TouchImmune(target, C_Effect.PARALYSIS) or EffHndlr.TouchImmune(target, C_Effect.POISONED) then
+    if EffHndlr.TouchImmune(target, C_EFFECT.PARALYSIS) or EffHndlr.TouchImmune(target, C_EFFECT.POISONED) then
       Inc(n);
   TestKit.CheckEqualsL(0, n, 'magic resistance does not meet a touch');
   n := 0;
   for i := 1 to TRIES do
-    if FxEngine.EffectImmune(target, C_Effect.PARALYSIS) then
+    if FxEngine.EffectImmune(target, C_EFFECT.PARALYSIS) then
       Inc(n);
   TestKit.Check(Abs(n - TRIES * 85 div 100) < TRIES div 10, 'it meets a spell''s paralysis at 85%');
   TestKit.Done;

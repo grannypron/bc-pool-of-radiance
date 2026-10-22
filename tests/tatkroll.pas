@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TAtkRoll;
 
-uses Types, C_Effect, GDVars, Dice, FxEngine, TestKit;
+uses Types, C_EFFECT, GDVars, Dice, FxEngine, TestKit;
 
 const
   TRIES = 200;
@@ -63,10 +63,10 @@ begin
   TestKit.Start('TATKROLL');
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
   FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  GDVars.effectFns[C_Effect.BLESS] := Penalize;
-  GDVars.effectFns[C_Effect.DISPLACED] := Defend;
-  att := NewCreature(C_Effect.BLESS);
-  def := NewCreature(C_Effect.DISPLACED);
+  GDVars.effectFns[C_EFFECT.BLESS] := Penalize;
+  GDVars.effectFns[C_EFFECT.DISPLACED] := Defend;
+  att := NewCreature(C_EFFECT.BLESS);
+  def := NewCreature(C_EFFECT.DISPLACED);
 
   { THAC0 1 against AC 10 with a -10 penalty: every roll but a natural 1 hits, though most go below 0 }
   att^.thac0Cur := 59;

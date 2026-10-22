@@ -187,7 +187,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
-  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_STATUS,
+  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_Keys, C_Level, C_STATUS,
   C_Ifc, C_DIR, C_SPELL, AbilAdj;
 
 var
@@ -774,7 +774,7 @@ end;
 { Cause Light Wounds: 1d8 damage, element mask 8. }
 procedure CauseLightWoundsHandler;
 begin
-  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(1, 8), C_Effect.ELEM_MAGIC, '');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(1, 8), C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Shared handler for the detection-style spells: apply the spell's effect. }
@@ -802,7 +802,7 @@ begin
     which otherwise used the die count of whatever damage roll came before }
   GDVars.gDamageDice := 1;
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.currentSpellBeing),
-                     C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
+                     C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Charm Person: only persons (CharHlp.IsPerson) can be charmed (#792). The Charm effect's strength is the caster's
@@ -820,8 +820,8 @@ begin
     Magic.ResolveSpell(GDVars.currentSpellBeing,
                         CharHlp.Team(GDVars.curChar) * 128 + CharHlp.GetCasterLevel(GDVars.currentSpellBeing),
                         True, 0, 0, 'is charmed');
-    if CharHlp.HasEffect(tgt, C_Effect.CHARM, effect) then
-      FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.targetCreaturePtr[1], effect, False);
+    if CharHlp.HasEffect(tgt, C_EFFECT.CHARM, effect) then
+      FxEngine.CallEffectHandler(C_EFFECT.CHARM, GDVars.targetCreaturePtr[1], effect, False);
   end;
 end;
 
@@ -853,7 +853,7 @@ begin
   if FxEngine.AdjustForNewStrength(GDVars.targetCreaturePtr[1], baseStr, excStr, enc) then
     CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'is stronger', 10, True);
   { enc: the Strength encoding AdjustForNewStrength returned, kept as the effect's strength }
-  FxEngine.AddEffect(GDVars.targetCreaturePtr[1], C_Effect.ENLARGE,
+  FxEngine.AddEffect(GDVars.targetCreaturePtr[1], C_EFFECT.ENLARGE,
                      Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
@@ -862,7 +862,7 @@ procedure ReduceHandler;
 begin
   if GDVars.spellTargetCount > 0 then
     if not FxEngine.RollSavingThrow(GDVars.targetCreaturePtr[1], C_Save.SPELL, 0) then
-      if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.ENLARGE) then
+      if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_EFFECT.ENLARGE) then
         CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'has been reduced', 10, True);
 end;
 
@@ -883,7 +883,7 @@ var
 begin
   cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, cl div 2 + Dice.RollDamageDice(cl div 2, 4),
-                     C_Effect.ELEM_MAGIC, '');
+                     C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Shield: apply the spell's effect. }
@@ -897,7 +897,7 @@ procedure ShockingGraspHandler;
 begin
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False,
                       Dice.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.currentSpellBeing),
-                      C_Effect.ELEM_ELEC or C_Effect.ELEM_MAGIC, '');
+                      C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
@@ -926,7 +926,7 @@ begin
       cost := 20;
     end;
     if (GDVars.targetCreaturePtr[i]^.status <> C_STATUS.ANIMATED) and
-        (not CharHlp.HasEffect(GDVars.targetCreaturePtr[i], C_Effect.SLEEP, effect)) and
+        (not CharHlp.HasEffect(GDVars.targetCreaturePtr[i], C_EFFECT.SLEEP, effect)) and
         (pool >= cost) then
       Dec(pool, cost)
     else
@@ -989,11 +989,11 @@ begin
 end;
 
 { Stand a downed creature back up with its hit points through FxEngine.ReviveDeadCreature, or, where it cannot stand
-  yet (another creature on its cell), a minute later through C_Effect.HEAL_WAKE. }
+  yet (another creature on its cell), a minute later through C_EFFECT.HEAL_WAKE. }
 procedure StandUpOrWake(tgt: Types.PCharRecord);
 begin
   if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
-    FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+    FxEngine.AddEffect(tgt, C_EFFECT.HEAL_WAKE, 1, 0, True);
 end;
 
 { Slow Poison: animated dead are skipped. A poisoned target (effect 55) has hpCur raised to at least 1, gets the spell's
@@ -1009,14 +1009,14 @@ begin
   tgt := GDVars.targetCreaturePtr[1];
   if tgt^.status = C_STATUS.ANIMATED then
     GDVars.targetCreaturePtr[1] := nil
-  else if CharHlp.HasEffect(tgt, C_Effect.POISONED, effect) then begin
+  else if CharHlp.HasEffect(tgt, C_EFFECT.POISONED, effect) then begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
     Magic.ResolveSpell(GDVars.currentSpellBeing, 255, True, 0, 0, 'is affected');
     if ((tgt^.status = C_STATUS.DEAD) or (tgt^.enabled = 0)) and
         not (tgt^.status in [C_STATUS.TEMPGONE, C_STATUS.RUNNING, C_STATUS.STONED, C_STATUS.GONE]) then
       StandUpOrWake(tgt);
-    FxEngine.AddEffect(tgt, C_Effect.SLOW_POISON_HIT, 10, 255, True);
+    FxEngine.AddEffect(tgt, C_EFFECT.SLOW_POISON_HIT, 10, 255, True);
   end;
 end;
 
@@ -1047,7 +1047,7 @@ end;
 procedure SpiritualHammerHandler;
 begin
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, True, 0, 0, '');
-  FxEngine.CallEffectHandler(C_Effect.SPIRIT_HAMMER, GDVars.targetCreaturePtr[1], nil, False);
+  FxEngine.CallEffectHandler(C_EFFECT.SPIRIT_HAMMER, GDVars.targetCreaturePtr[1], nil, False);
 end;
 
 { Invisibility: apply the spell's effect. }
@@ -1108,7 +1108,7 @@ begin
     node := node^.next;
   end;
   FillChar(node^, SizeOf(Types.TStinkRec), 0);
-  FxEngine.AddEffect(GDVars.curChar, C_Effect.CAST_STINK, cl, FxEngine.CloudStrength(cl, myClouds), True);
+  FxEngine.AddEffect(GDVars.curChar, C_EFFECT.CAST_STINK, cl, FxEngine.CloudStrength(cl, myClouds), True);
   node^.caster := GDVars.curChar;
   node^.idx := myClouds;
   node^.ulX := GDVars.gTargetX;
@@ -1187,7 +1187,7 @@ begin
   end;
   if FxEngine.AdjustForNewStrength(tgt, newStr, exStr, enc) then
     CharDisp.PrintNameString(tgt, 'is stronger', 10, True);
-  FxEngine.AddEffect(tgt, C_Effect.STRENGTH, Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
+  FxEngine.AddEffect(tgt, C_EFFECT.STRENGTH, Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
 { Animate Dead: animate up to caster-level dead (C_STATUS.DEAD) human (charType 0) creatures whose cell is still a valid
@@ -1235,7 +1235,7 @@ begin
             p^.combatAddr^.other := nil;
           Dec(n);
           if FxEngine.ReviveDeadCreature(p, p^.hpMax) then begin
-            FxEngine.AddEffectWithMessage(p, C_Effect.ANIMATE_DEAD, 0, strength, True, False, False, 'is animated');
+            FxEngine.AddEffectWithMessage(p, C_EFFECT.ANIMATE_DEAD, 0, strength, True, False, False, 'is animated');
             p^.status := C_STATUS.ANIMATED;
           end;
         end;
@@ -1246,7 +1246,7 @@ end;
 { Cure Blindness: remove the first target's blindness. }
 procedure CureBlindnessHandler;
 begin
-  if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.BLIND) then
+  if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_EFFECT.BLIND) then
     CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, 'can see');
 end;
 
@@ -1262,16 +1262,16 @@ function RemoveDiseaseEffects(tgt: Types.PCharRecord): Boolean;
 begin
   RemoveDiseaseEffects := False;
   GDVars.effectLock := 1;
-  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.DISEASED) then
+  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.DISEASED) then
     RemoveDiseaseEffects := True;
-  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.DISEASE_STR) then begin
+  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.DISEASE_STR) then begin
     RemoveDiseaseEffects := True;
-    FxEngine.RemoveEffect(tgt, C_Effect.DISEASE_HP, nil);
-    FxEngine.RemoveEffect(tgt, C_Effect.HELPLESS, nil);
+    FxEngine.RemoveEffect(tgt, C_EFFECT.DISEASE_HP, nil);
+    FxEngine.RemoveEffect(tgt, C_EFFECT.HELPLESS, nil);
   end;
-  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.ROT_NO_HEAL) then begin
+  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.ROT_NO_HEAL) then begin
     RemoveDiseaseEffects := True;
-    FxEngine.RemoveEffect(tgt, C_Effect.MUMMY_ROT, nil);
+    FxEngine.RemoveEffect(tgt, C_EFFECT.MUMMY_ROT, nil);
   end;
   GDVars.effectLock := 0;
 end;
@@ -1292,7 +1292,7 @@ end;
 
 { Dispel Magic: on each target, try every effect whose strength is below 255, with its low nibble as the effect's caster
   level: 50%, +5% per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are
-  left alone, and so are the diseases (C_Effect.DISEASES), which Cure Disease removes: SSI's dispelled Strength drain
+  left alone, and so are the diseases (C_EFFECT.DISEASES), which Cure Disease removes: SSI's dispelled Strength drain
   re-armed itself and took another point (#787). A removal that frees the next effect (dispelled Animate Dead) ends that
   target's walk; SSI read on into the freed node. }
 procedure DispelMagicHandler;
@@ -1321,7 +1321,7 @@ begin
     while effect <> nil do begin
       nxt := effect^.next;
       if (effect^.strength < 255)
-         and not (effect^.id in C_Effect.DISEASES + [C_Effect.RECENT_HEAL, C_Effect.RECENT_CURE]) then begin
+         and not (effect^.id in C_EFFECT.DISEASES + [C_EFFECT.RECENT_HEAL, C_EFFECT.RECENT_CURE]) then begin
         { dispel treats the low nibble as caster level }
         effLevel := effect^.strength and $F;
         if cl > effLevel then
@@ -1359,7 +1359,7 @@ var
   item: Types.PItemRec;
   found: Boolean;
 begin
-  if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.BESTOW_CURSE) then
+  if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_EFFECT.BESTOW_CURSE) then
     CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, 'is un-cursed')
   else begin
     found := False;
@@ -1404,7 +1404,7 @@ begin
   end;
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_DIR.CENTER);
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(cl, 6),
-                     C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
+                     C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Haste and Slow: keep up to caster-level targets on team hostFlag and drop the rest. A kept target carrying removeId,
@@ -1438,7 +1438,7 @@ end;
 { Haste: the caster's team loses Slowed or is hasted (see HasteSlowLogic). }
 procedure HasteHandler;
 begin
-  Magic.HasteSlowLogic(C_Effect.SLOWED, GDVars.curChar^.hostile, 'is Hasted');
+  Magic.HasteSlowLogic(C_EFFECT.SLOWED, GDVars.curChar^.hostile, 'is Hasted');
 end;
 
 { Lightning damage to the creature at one bolt cell (half on a save of saveType). blocked returns whether the cell's
@@ -1456,7 +1456,7 @@ begin
       blocked := True;
   if crIdx > 0 then begin
     tgt := GDVars.creatureArr[crIdx];
-    GDVars.elementMask := C_Effect.ELEM_ELEC or C_Effect.ELEM_MAGIC;
+    GDVars.elementMask := C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC;
     FxEngine.InflictNonWeaponDamage(tgt, damage, 2, FxEngine.RollSavingThrow(tgt, saveType, 0));
     CharDisp.BuildIconFacings(19);
     GDVars.elementMask := 0;
@@ -1605,7 +1605,7 @@ end;
 { Slow: the caster's enemies lose Hasted or are slowed (see HasteSlowLogic). }
 procedure SlowHandler;
 begin
-  Magic.HasteSlowLogic(C_Effect.HASTED, CharHlp.EnemyTeam(GDVars.curChar), 'is Slowed');
+  Magic.HasteSlowLogic(C_EFFECT.HASTED, CharHlp.EnemyTeam(GDVars.curChar), 'is Slowed');
 end;
 
 { Restoration: give back one drained level. hpMax, hpCur and hpRolled regain drainedHps div drainedLevels. Scanning
@@ -1660,7 +1660,7 @@ end;
 { Potion of Speed: remove Slowed, or else apply the potion's effect. }
 procedure PotionOfSpeedHandler;
 begin
-  if not FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.SLOWED) then
+  if not FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_EFFECT.SLOWED) then
     Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is Speedy');
 end;
 
@@ -1675,11 +1675,11 @@ var
   slowed: Boolean;
 begin
   tgt := GDVars.targetCreaturePtr[1];
-  slowed := CharHlp.HasEffect(tgt, C_Effect.SLOW_POISON_END, effect) or
-            CharHlp.HasEffect(tgt, C_Effect.SLOW_POISON_HIT, effect);
-  if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.POISONED) then begin
+  slowed := CharHlp.HasEffect(tgt, C_EFFECT.SLOW_POISON_END, effect) or
+            CharHlp.HasEffect(tgt, C_EFFECT.SLOW_POISON_HIT, effect);
+  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.POISONED) then begin
     GDVars.effectLock := 1;
-    FxEngine.RemoveEffect(tgt, C_Effect.SLOW_POISON_END, nil);
+    FxEngine.RemoveEffect(tgt, C_EFFECT.SLOW_POISON_END, nil);
     GDVars.effectLock := 0;
     if (tgt^.status = C_STATUS.DEAD) and not slowed then begin
       if tgt^.hpCur = 0 then
@@ -1700,7 +1700,7 @@ var
 begin
   if FxEngine.AdjustForNewStrength(GDVars.targetCreaturePtr[1], 21, 0, enc) then
     CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'is stronger', 10, True);
-  FxEngine.AddEffect(GDVars.targetCreaturePtr[1], C_Effect.STRENGTH,
+  FxEngine.AddEffect(GDVars.targetCreaturePtr[1], C_EFFECT.STRENGTH,
                      Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
@@ -1732,10 +1732,10 @@ begin
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is invisible');
 end;
 
-{ Wand of Magic Missiles: 2d4 + 2 damage, element C_Effect.ELEM_MAGIC. }
+{ Wand of Magic Missiles: 2d4 + 2 damage, element C_EFFECT.ELEM_MAGIC. }
 procedure WandMagicMissilesHandler;
 begin
-  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, C_Effect.ELEM_MAGIC, '');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Unused item spell slot: does nothing. }
@@ -1782,7 +1782,7 @@ begin
   if Types.PEffectRec(p)^.strength > 253 then
     Dec(Types.PEffectRec(p)^.strength)
   else
-    FxEngine.RemoveEffect(creature, C_Effect.DRAGON_BREATH, p);
+    FxEngine.RemoveEffect(creature, C_EFFECT.DRAGON_BREATH, p);
   junk := CharHlp.EndActions(creature);
 end;
 

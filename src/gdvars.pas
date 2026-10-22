@@ -5,7 +5,7 @@ unit GDVars;
 
 interface
 
-uses Types, Dos, C_Effect, C_Gbvm, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_EFFECT, C_Gbvm, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
@@ -222,7 +222,7 @@ var
   pendingEffectId: Byte;
   { damage before hit-point subtraction }
   pendingDamage: Byte;
-  { C_Effect.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
+  { C_EFFECT.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
   elementMask: Byte;
   { current attack *or* current movement times 2 }
   currentAttackCurrent: Byte;
@@ -256,7 +256,7 @@ var
 var
   { Effect dispatch }
   { effect handlers, indexed by effect id }
-  effectFns: array[C_Effect.BLESS..C_Effect.RECENT_CURE] of Types.TEffectHandler;
+  effectFns: array[C_EFFECT.BLESS..C_EFFECT.RECENT_CURE] of Types.TEffectHandler;
   { 3D view }
   { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
   wallGfx: Types.PWallSlices;

@@ -7,7 +7,7 @@
 {$I COMPILER.INC}
 program TFxRemov;
 
-uses Types, C_Effect, GDVars, CharHlp, AbilAdj, FxEngine, TestKit;
+uses Types, C_EFFECT, GDVars, CharHlp, AbilAdj, FxEngine, TestKit;
 
 { The heap's free bytes. Natively MemAvail is a fixed figure (TpCompat), so the heap's used bytes count instead. }
 function HeapFree: LongInt;
@@ -35,13 +35,13 @@ var
 procedure RemovesItself(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
-  FxEngine.RemoveEffect(creature, C_Effect.FIGHT_ON, nil);
+  FxEngine.RemoveEffect(creature, C_EFFECT.FIGHT_ON, nil);
 end;
 
 { A paralysis ward, as EffNoParalysis is (eff 109): it refuses paralysis under the immunity check. }
 procedure WardsParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.pendingEffectId = C_Effect.PARALYSIS then
+  if GDVars.pendingEffectId = C_EFFECT.PARALYSIS then
     GDVars.pendingEffectId := 0;
 end;
 {$F-}
@@ -62,19 +62,19 @@ begin
   TestKit.Start('TFXREMOV');
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
-  GDVars.effectFns[C_Effect.FIGHT_ON] := RemovesItself;
+  GDVars.effectFns[C_EFFECT.FIGHT_ON] := RemovesItself;
   { Fight On second in the list, so the unlink would walk for it; the heap is measured before its node is made, so
     one free brings it back }
-  first := NewEffect(C_Effect.BLESS, nil);
+  first := NewEffect(C_EFFECT.BLESS, nil);
   first^.onRemove := False;
   before := HeapFree;
-  second := NewEffect(C_Effect.FIGHT_ON, nil);
+  second := NewEffect(C_EFFECT.FIGHT_ON, nil);
   first^.next := second;
   c^.effectsAddr := first;
 {$IFNDEF FPC}
   Move(Mem[0:0], vectors, SizeOf(vectors));
 {$ENDIF}
-  FxEngine.RemoveEffect(c, C_Effect.FIGHT_ON, second);
+  FxEngine.RemoveEffect(c, C_EFFECT.FIGHT_ON, second);
   TestKit.Check((c^.effectsAddr = first) and (first^.next = nil), 'Fight On is gone and Bless is left');
 {$IFNDEF FPC}
   { a native program has no interrupt vectors at address 0 }
@@ -83,9 +83,9 @@ begin
 {$ENDIF}
   TestKit.CheckEqualsL(before, HeapFree, 'the node is freed once');
   { and first in the list }
-  second := NewEffect(C_Effect.FIGHT_ON, nil);
+  second := NewEffect(C_EFFECT.FIGHT_ON, nil);
   c^.effectsAddr := second;
-  FxEngine.RemoveEffect(c, C_Effect.FIGHT_ON, second);
+  FxEngine.RemoveEffect(c, C_EFFECT.FIGHT_ON, second);
   TestKit.Check(c^.effectsAddr = nil, 'alone in the list, it is gone too');
 
   { a bite-and-hold on creature 1 of the arena: it lasts while the victim is immobile, and goes once the victim is
@@ -96,23 +96,23 @@ begin
   c^.enabled := 1;
   GDVars.arenaCount := 1;
   GDVars.creatureArr[1] := victim;
-  victim^.effectsAddr := NewEffect(C_Effect.IMMOBILE, nil);
+  victim^.effectsAddr := NewEffect(C_EFFECT.IMMOBILE, nil);
   victim^.effectsAddr^.onRemove := False;
-  hold := NewEffect(C_Effect.BITE_HOLD, nil);
+  hold := NewEffect(C_EFFECT.BITE_HOLD, nil);
   hold^.strength := 1;
   hold^.onRemove := False;
   c^.effectsAddr := hold;
-  TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_Effect.BITE_HOLD, released) = victim,
+  TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_EFFECT.BITE_HOLD, released) = victim,
                 'a hold on an immobile victim lasts');
   TestKit.Check(not released and (c^.effectsAddr = hold), 'and is kept');
   FreeMem(victim^.effectsAddr, SizeOf(Types.TEffectRec));
   victim^.effectsAddr := nil;
-  TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_Effect.BITE_HOLD, released) = nil,
+  TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_EFFECT.BITE_HOLD, released) = nil,
                 'a victim no longer immobile is not held');
   TestKit.Check(released and (c^.effectsAddr = nil), 'and the hold is released and removed');
   { HasEffectNode, which Dispel Magic's walk asks after each removal (#763) }
-  first := NewEffect(C_Effect.BLESS, nil);
-  second := NewEffect(C_Effect.FIGHT_ON, nil);
+  first := NewEffect(C_EFFECT.BLESS, nil);
+  second := NewEffect(C_EFFECT.FIGHT_ON, nil);
   first^.next := second;
   c^.effectsAddr := first;
   TestKit.Check(FxEngine.HasEffectNode(c, first) and FxEngine.HasEffectNode(c, second),
@@ -126,19 +126,19 @@ begin
 
   { EffectImmune, the immunity check a paralyzing or poisonous touch now makes too (#767, #720): a ward refuses its
     effect and lets others through }
-  GDVars.effectFns[C_Effect.NO_PARALYSIS] := WardsParalysis;
-  c^.effectsAddr := NewEffect(C_Effect.NO_PARALYSIS, nil);
-  TestKit.Check(FxEngine.EffectImmune(c, C_Effect.PARALYSIS), 'a paralysis ward refuses paralysis');
-  TestKit.Check(not FxEngine.EffectImmune(c, C_Effect.POISONED), 'but not poison');
+  GDVars.effectFns[C_EFFECT.NO_PARALYSIS] := WardsParalysis;
+  c^.effectsAddr := NewEffect(C_EFFECT.NO_PARALYSIS, nil);
+  TestKit.Check(FxEngine.EffectImmune(c, C_EFFECT.PARALYSIS), 'a paralysis ward refuses paralysis');
+  TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.POISONED), 'but not poison');
   FreeMem(c^.effectsAddr, SizeOf(Types.TEffectRec));
   c^.effectsAddr := nil;
-  TestKit.Check(not FxEngine.EffectImmune(c, C_Effect.PARALYSIS), 'with no ward, paralysis is not refused');
+  TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.PARALYSIS), 'with no ward, paralysis is not refused');
 
   { a disease that has taken 3 Strength from 18/76 (#705): its node counts the loss, a Strength effect stores the
     creature's own Strength with the loss given back, and sets the new one less the loss }
   c^.strCur := 15;
   c^.strExc := 76;
-  c^.effectsAddr := NewEffect(C_Effect.DISEASE_STR, nil);
+  c^.effectsAddr := NewEffect(C_EFFECT.DISEASE_STR, nil);
   c^.effectsAddr^.strength := 3 * 16 + 5;
   TestKit.CheckEqualsL(3, CharHlp.DiseaseStrLoss(c), 'the disease has taken 3 Strength');
   TestKit.Check(not FxEngine.AdjustForNewStrength(c, 17, 0, enc), '17 is weaker than the 18/76 under the disease');

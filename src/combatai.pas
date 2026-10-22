@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_Equip,
   C_CLASS, C_STATUS, C_Gbvm, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -286,16 +286,16 @@ begin
   SelectSpellToCast := ext;
 end;
 
-{ True when creature keeps out of a Stinking Cloud: unless it has C_Effect.ANIMATE_DEAD, C_Effect.STINK_COUGH,
-  C_Effect.NO_PARA_POISON or C_Effect.NO_CHARM_POISON. }
+{ True when creature keeps out of a Stinking Cloud: unless it has C_EFFECT.ANIMATE_DEAD, C_EFFECT.STINK_COUGH,
+  C_EFFECT.NO_PARA_POISON or C_EFFECT.NO_CHARM_POISON. }
 function AvoidsCloud(creature: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
 begin
-  AvoidsCloud := (not CharHlp.HasEffect(creature, C_Effect.ANIMATE_DEAD, effect)) and
-                 (not CharHlp.HasEffect(creature, C_Effect.STINK_COUGH, effect)) and
-                 (not CharHlp.HasEffect(creature, C_Effect.NO_PARA_POISON, effect)) and
-                 (not CharHlp.HasEffect(creature, C_Effect.NO_CHARM_POISON, effect));
+  AvoidsCloud := (not CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect)) and
+                 (not CharHlp.HasEffect(creature, C_EFFECT.STINK_COUGH, effect)) and
+                 (not CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect)) and
+                 (not CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect));
 end;
 
 { Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
@@ -694,7 +694,7 @@ var
 begin
   CheckMorale := False;
   creature^.combatAddr^.fleeing := 0;
-  { Removes C_Effect.BITE_HOLD and C_Effect.BLOOD_DRAIN }
+  { Removes C_EFFECT.BITE_HOLD and C_EFFECT.BLOOD_DRAIN }
   FxEngine.RemoveAiEffects(creature);
   if creature^.combatAddr^.turned <> 0 then begin
     creature^.combatAddr^.fleeing := 1;
@@ -735,8 +735,8 @@ begin
   if enemyMove <= CbtActs.CalcCreatureMovement(creature) div 2 then begin
     { fast enough to get away: flee in panic }
     creature^.combatAddr^.fleeing := 1;
-    FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, nil);
-    FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, nil);
+    FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, nil);
+    FxEngine.RemoveEffect(creature, C_EFFECT.BLOOD_DRAIN, nil);
   end else if creature^.intCur > 5 then begin
     { Int 6+ creatures give up instead }
     FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.UNCONSCIOUS, 'Surrenders');
@@ -771,7 +771,7 @@ begin
     { not enough hands }
     pri := 0;
   { aligned weapon }
-  if item^.special = C_Effect.ALIGNED_WEAPON then
+  if item^.special = C_EFFECT.ALIGNED_WEAPON then
     if (item^.effect and $F) <> creature^.alignment then
       pri := 0;
   if item^.effect = C_SPELL.ITEM_JAVELIN_LIGHTNING + C_SPELL.ITEM_EFFECT_SHIFT then

@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEclVars;
 
-uses Types, GDVars, C_Gbvm, C_Money, C_DIR, C_STATUS, C_Effect, C_Save, EclVars, StrUtil, TestKit;
+uses Types, GDVars, C_Gbvm, C_Money, C_DIR, C_STATUS, C_EFFECT, C_Save, EclVars, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -183,12 +183,12 @@ begin
   { the party's effects table }
   FillChar(e1, SizeOf(e1), 0);
   FillChar(e2, SizeOf(e2), 0);
-  e1.id := C_Effect.BLESS;
+  e1.id := C_EFFECT.BLESS;
   e1.next := @e2;
-  e2.id := C_Effect.CURSE;
+  e2.id := C_EFFECT.CURSE;
   c^.effectsAddr := @e1;
-  Same(C_Effect.BLESS, C_Gbvm.PARTY_EFFECTS, 'the first party effect');
-  Same(C_Effect.CURSE, C_Gbvm.PARTY_EFFECTS + 1, 'the second');
+  Same(C_EFFECT.BLESS, C_Gbvm.PARTY_EFFECTS, 'the first party effect');
+  Same(C_EFFECT.CURSE, C_Gbvm.PARTY_EFFECTS + 1, 'the second');
   Same(0, C_Gbvm.PARTY_EFFECTS + 2, 'none after');
   Same(0, C_Gbvm.PARTY_EFFECT_OWNERS + 1, 'its owner is party member 0');
   c^.effectsAddr := nil;

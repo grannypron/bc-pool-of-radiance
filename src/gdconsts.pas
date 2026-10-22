@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_Effect, C_DIR, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
+uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -16,8 +16,8 @@ const
 const
   { CureDisease }
   cureDiseaseEffects: array[1..6] of Byte = (
-    C_Effect.HELPLESS, C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP,
-    C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT);
+    C_EFFECT.HELPLESS, C_EFFECT.DISEASED, C_EFFECT.DISEASE_STR, C_EFFECT.DISEASE_HP,
+    C_EFFECT.ROT_NO_HEAL, C_EFFECT.MUMMY_ROT);
   { HealMenu }
   templeSpells: array[1..10] of String[20] = (
     'Cure Blindness',
@@ -441,43 +441,43 @@ const
   { Effects removed by RemoveEffectsHp0 when a creature reaches zero hit points or is put out of play }
   hpZeroEffects: array[1..16] of Byte = (
     { Training/Manual }
-    C_Effect.TRAIN_MANUAL,
+    C_EFFECT.TRAIN_MANUAL,
     { Charm }
-    C_Effect.CHARM,
+    C_EFFECT.CHARM,
     { Stinking cloud coughing }
-    C_Effect.STINK_COUGH,
+    C_EFFECT.STINK_COUGH,
     { Helpless (nausea) }
-    C_Effect.HELPLESS,
+    C_EFFECT.HELPLESS,
     { Animate Dead }
-    C_Effect.ANIMATE_DEAD,
+    C_EFFECT.ANIMATE_DEAD,
     { Snake Charm }
-    C_Effect.SNAKE_CHARM,
+    C_EFFECT.SNAKE_CHARM,
     { Paralysis (Hold Person) }
-    C_Effect.PARALYSIS,
+    C_EFFECT.PARALYSIS,
     { Sleep }
-    C_Effect.SLEEP,
+    C_EFFECT.SLEEP,
     { Dragon Aura }
-    C_Effect.DRAGON_AURA,
+    C_EFFECT.DRAGON_AURA,
     { Immobile }
-    C_Effect.IMMOBILE,
+    C_EFFECT.IMMOBILE,
     { Troll Regeneration }
-    C_Effect.TROLL_REGEN,
+    C_EFFECT.TROLL_REGEN,
     { Fight On at 0 HP }
-    C_Effect.FIGHT_ON,
+    C_EFFECT.FIGHT_ON,
     { Regeneration }
-    C_Effect.REGEN3,
+    C_EFFECT.REGEN3,
     { Spiritual Hammer expiry }
-    C_Effect.SPIRIT_HAMMER_GONE,
+    C_EFFECT.SPIRIT_HAMMER_GONE,
     { Bite-and-Hold }
-    C_Effect.BITE_HOLD,
+    C_EFFECT.BITE_HOLD,
     { Blood Drain }
-    C_Effect.BLOOD_DRAIN);
+    C_EFFECT.BLOOD_DRAIN);
   { Effects removed by RemoveAiEffects at the start of CombatAi.CheckMorale }
   aiRoundRemoveEffects: array[1..2] of Byte = (
     { Bite-and-Hold }
-    C_Effect.BITE_HOLD,
+    C_EFFECT.BITE_HOLD,
     { Blood Drain }
-    C_Effect.BLOOD_DRAIN);
+    C_EFFECT.BLOOD_DRAIN);
   { DisplayMapView }
   { Display color for each zone sky/ceiling selector; selectors 8..15 repeat 0..7. }
   skyCeilingColors: array[0..15] of Byte = (
@@ -1227,8 +1227,8 @@ const
     ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx:  0; dy:  1), (dx:  1; dy:  1)));
   { Effects that leave a creature helpless }
   HELPLESS_FX_COUNT = 4;
-  helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_Effect.SNAKE_CHARM, C_Effect.PARALYSIS, C_Effect.SLEEP,
-    C_Effect.HELPLESS);
+  helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_EFFECT.SNAKE_CHARM, C_EFFECT.PARALYSIS, C_EFFECT.SLEEP,
+    C_EFFECT.HELPLESS);
   { Portrait head and body tables }
   { portraitHead -> HEAD DAX ID: SSI's 14 player heads, then the other heads HEAD3.DAX holds, then the heads only the
     other disks hold. New heads go at the end so the numbers saved characters carry keep their faces. }
