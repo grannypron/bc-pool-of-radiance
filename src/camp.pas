@@ -459,8 +459,9 @@ end;
 
 { Confirm pending scribing (Yes keeps it and skips selection), then let the player mark scroll spells. A character
   with no magic-user levels is told scribing needs arcane training (#671). Reject known, pending or unavailable
-  spells. The marking walk does not check CharHlp.ItemReadable: the first unmarked byte equal to
-  the spell ID in any item's spells view is marked. }
+  spells. The first unmarked scroll spell with the spell ID, on a CharHlp.ItemReadable item, is marked. SSI's marking
+  walk did not check ItemReadable, so an earlier wand or other item whose charges, effect or special byte (sharing
+  storage with spells[1..3]) equalled the ID got the pending flag, 128 more, and nothing was scribed. }
 procedure CampScribeMenu;
 var
   done: Boolean;
@@ -526,14 +527,16 @@ begin
             then begin
               p := GDVars.curChar^.itemsAddr;
               while (p <> nil) and (found = False) do begin
-                i := 1;
-                repeat
-                  if p^.spells[i] = spellId then begin
-                    p^.spells[i] := p^.spells[i] or C_Spell.PENDING_FLAG;
-                    found := True;
-                  end;
-                  Inc(i);
-                until (i > SizeOf(p^.spells)) or found;
+                if CharHlp.ItemReadable(p) then begin
+                  i := 1;
+                  repeat
+                    if p^.spells[i] = spellId then begin
+                      p^.spells[i] := p^.spells[i] or C_Spell.PENDING_FLAG;
+                      found := True;
+                    end;
+                    Inc(i);
+                  until (i > SizeOf(p^.spells)) or found;
+                end;
                 p := p^.next;
               end;
             end else
