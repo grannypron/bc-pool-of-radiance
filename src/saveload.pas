@@ -608,6 +608,7 @@ var
   p: Types.PCharRecord;
   numStr: String[1];
   walls: Types.TGbvmSavedWalls;
+  vaultCopied: Boolean;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
@@ -656,7 +657,7 @@ begin
   BlockWrite(f, names, SizeOf(names));
   Close(f);
   SaveMenu.WriteSlotInfo(letter, desc, area);
-  Vault.CommitToSlot(letter);
+  vaultCopied := Vault.CommitToSlot(letter);
   Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
   Explored.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map');
   MapNotes.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts');

@@ -41,7 +41,7 @@ function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boo
   False with both empty. }
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
 
-{ Write slot letter's savgam<x>.inf. A failed write leaves a short file, which ReadSlotInfo ignores. }
+{ Write slot letter's savgam<x>.inf. A failed write leaves the old one (FileUtil.WriteRecord). }
 procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 
 { 'Put save disk in X:', for the save directory's drive. }
@@ -134,7 +134,7 @@ begin
   rec.version := INFO_VERSION;
   rec.desc := desc;
   rec.area := area;
-  { a failed write leaves a short file, which ReadSlotInfo turns down }
+  { a failed write leaves the old one }
   written := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
 end;
 

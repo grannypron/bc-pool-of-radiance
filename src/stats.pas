@@ -318,7 +318,7 @@ begin
   rec.name := creature^.name;
   rec.randByte := creature^.randByte;
   rec.block := blocks[i]^;
-  { a failed write leaves a short file, which ReadFile turns down }
+  { a failed write leaves none: the old one is erased above }
   written := FileUtil.WriteRecord(fn + '.sts', rec, SizeOf(rec));
 end;
 

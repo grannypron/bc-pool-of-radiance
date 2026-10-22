@@ -1,4 +1,5 @@
-{ Tests for FileUtil: a record written and read back, the size check, a read-only file, and erasing. }
+{ Tests for FileUtil: a record written and read back, the size check, a read-only file, erasing, and the temporary copy
+  put in place only when whole. }
 {$I COMPILER.INC}
 program TFileUtl;
 
@@ -6,6 +7,7 @@ uses Dos, FileUtil, TestKit;
 
 const
   NAME = 'TFU.TMP';
+  TEMP = 'TFU.TM$';
 
 type
   TRec = record
@@ -19,6 +21,8 @@ var
   big: array[1..12] of Byte;
   f: file;
   ioRes: Integer;
+  ok: Boolean;
+  n: Word;
 
 begin
   TestKit.Start('TFILEUTL');
@@ -46,5 +50,32 @@ begin
   ioRes := IOResult;
   FileUtil.DeleteFile(NAME);
   TestKit.Check(not FileUtil.OpenReadOnly(f, NAME), 'an erased file is gone');
+  { the temporary copy }
+  TestKit.CheckEqualsS(TEMP, FileUtil.TempName(NAME), 'the copy''s name ends in $');
+  TestKit.Check(FileUtil.WriteRecord(NAME, r, SizeOf(r)), 'a record writes again');
+  TestKit.Check(not FileUtil.OpenReadOnly(f, TEMP), 'and leaves no copy behind');
+  { a copy not whole is dropped, and the old file stays }
+  TestKit.Check(FileUtil.RewriteTemp(f, NAME), 'a copy opens');
+  ok := True;
+  FileUtil.WriteChecked(f, big, SizeOf(big), ok);
+  TestKit.Check(ok, 'a write that is whole keeps ok');
+  TestKit.Check(not FileUtil.CloseTemp(f, NAME, False), 'a copy that failed does not close whole');
+  TestKit.Check(not FileUtil.OpenReadOnly(f, TEMP), 'and is erased');
+  FillChar(back, SizeOf(back), 0);
+  TestKit.Check(FileUtil.ReadRecord(NAME, back, SizeOf(back)), 'the old file is still there');
+  TestKit.CheckEqualsL(1234, back.a, 'as it was');
+  { WriteChecked writes nothing once ok is False }
+  TestKit.Check(FileUtil.RewriteTemp(f, NAME), 'another copy opens');
+  ok := False;
+  FileUtil.WriteChecked(f, big, SizeOf(big), ok);
+  TestKit.Check(not ok, 'ok stays False');
+  n := FileSize(f);
+  ioRes := IOResult;
+  TestKit.CheckEqualsL(0, n, 'and nothing was written');
+  TestKit.Check(FileUtil.CloseTemp(f, NAME, True), 'a copy closes whole');
+  TestKit.Check(FileUtil.PutInPlace(NAME), 'and is put in place');
+  TestKit.Check(not FileUtil.ReadRecord(NAME, back, SizeOf(back)), 'the file is the copy, empty');
+  TestKit.Check(not FileUtil.OpenReadOnly(f, TEMP), 'and the copy is gone');
+  FileUtil.DeleteFile(NAME);
   TestKit.Done;
 end.
