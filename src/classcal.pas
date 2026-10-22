@@ -29,7 +29,7 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
   the racial penalty is larger than the base, so it need not equal the sum. }
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
-{ The racial limits on ability (C_ABIL) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
+{ The racial limits on ability (C_ABIL) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_GENDER, which only Strength
   depends on), from GDConsts.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;

@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
+uses C_GENDER, C_CLASS, C_Level, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -760,7 +760,7 @@ const
     'Chaotic Neutral',
     'Chaotic Evil');
   { Gender names, indexed by TCharRecord.gender. }
-  genderNames: array[C_Gender.MALE..C_Gender.FEMALE] of string[6] = (
+  genderNames: array[C_GENDER.MALE..C_GENDER.FEMALE] of string[6] = (
     'Male',
     'Female');
   { Money names, indexed like TCharRecord.coins and TMoney. }

@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_Gender, C_Save, C_EQUIP, C_Level, C_ABIL, C_Money, C_GBVM;
+uses C_GENDER, C_Save, C_EQUIP, C_Level, C_ABIL, C_Money, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -472,9 +472,9 @@ type
   { racial ability limits (GDConsts.minimumMaximumStatistics) }
   TRuleRace = record
     { by gender }
-    strMin: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
-    strMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
-    excMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
+    strMin: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
+    strMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
+    excMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
     intMin: Byte;
     intMax: Byte;
     wisMin: Byte;
@@ -740,10 +740,10 @@ type
   { minimumMaximumStatistics entry }
   TRaceLim = record
     { by gender }
-    strMin: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
-    strMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
+    strMin: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
+    strMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
     { exceptional-Str cap }
-    excMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
+    excMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
     intMin: Byte;
     intMax: Byte;
     wisMin: Byte;
