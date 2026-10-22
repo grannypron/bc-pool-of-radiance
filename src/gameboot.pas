@@ -8,7 +8,7 @@ interface
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_Sound, GDConsts, GDVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_SOUND, GDConsts, GDVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
   SoundDrv, DaxIo, GameIo, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
   {$IFDEF FPC}, Host, NatFile{$ENDIF};

@@ -27,7 +27,7 @@ procedure OptionsMenu;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_Sound, C_DATA, GDVars, TextRend, Border, MenuCore, GameIo,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, GDVars, TextRend, Border, MenuCore, GameIo,
   SoundDrv, DaxIo, DataArc, GDConsts, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
@@ -145,7 +145,7 @@ end;
 function ShownValue(opt: Byte): Types.TStr20;
 begin
   if opt = OPT_SOUND then
-    ShownValue := Options.OnOff(Ord(GDVars.soundMode <> C_Sound.MODE_DISABLED))
+    ShownValue := Options.OnOff(Ord(GDVars.soundMode <> C_SOUND.MODE_DISABLED))
   else
     ShownValue := Options.StoredValue(opt);
 end;
@@ -437,7 +437,7 @@ begin
                  if GDVars.musicOn = 0 then
                    SoundDrv.StopMusic;
                end;
-    OPT_SOUND: GameIo.SetSound(GDVars.soundMode = C_Sound.MODE_DISABLED);
+    OPT_SOUND: GameIo.SetSound(GDVars.soundMode = C_SOUND.MODE_DISABLED);
     OPT_QUICK: GDVars.quickEnds := Ord(GDVars.quickEnds = 0);
     OPT_MAGIC: GDVars.quickMagicOn := Ord(GDVars.quickMagicOn = 0);
     OPT_COMPANION: GDVars.companionOn := Ord(GDVars.companionOn = 0);

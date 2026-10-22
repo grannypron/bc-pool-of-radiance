@@ -14,7 +14,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Sound, GDVars, FileUtil, SoundDrv, SndChip;
+uses Types, C_SOUND, GDVars, FileUtil, SoundDrv, SndChip;
 
 const
   EFFECTS_FILE = 'SBSFX.DAT';
@@ -26,7 +26,7 @@ const
   { a sample's format: unsigned 8-bit PCM, or 4-bit Creative ADPCM led by its reference byte }
   FORMAT_PCM8 = 0;
   FORMAT_ADPCM4 = 1;
-  { the tunes SBSFX.DAT may have a sample for: the effects (music starts at C_Sound.MUSIC_TITLE) }
+  { the tunes SBSFX.DAT may have a sample for: the effects (music starts at C_SOUND.MUSIC_TITLE) }
   LAST_EFFECT = 20;
   { the DSP's 4-bit ADPCM, as DOSBox decodes it: each code (with the step, 0, 16, 32 or 48) moves the level by
     ADPCM_DELTA and the step by ADPCM_STEP (240 is -16) }
@@ -176,7 +176,7 @@ end;
 procedure Install;
 begin
   GDVars.sound.name := 'Digital Audio';
-  GDVars.sound.mode := C_Sound.MODE_TANDY;
+  GDVars.sound.mode := C_SOUND.MODE_TANDY;
   GDVars.sound.Play := SndDig.Play;
   { the recorded step plays once a step, as the Sound Blaster's does (POR-0170) }
   GDVars.sound.singleStep := True;

@@ -186,7 +186,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, TextRend,
+uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
@@ -689,10 +689,10 @@ begin
           CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
           case spell of
-            C_SPELL.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
-            C_SPELL.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
+            C_SPELL.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.FIREBALL]);
+            C_SPELL.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.LIGHTNING]);
           else
-            SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
+            SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_SOUND.CAST]);
           end;
           CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
           SoundDrv.SoundSetAutoStop(10);
@@ -959,7 +959,7 @@ begin
       tgt := GDVars.targetCreaturePtr[i];
       if i < GDVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
-        SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
+        SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_SOUND.CAST]);
         CharDisp.BuildIconFacings(18);
         CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.curChar), CbtMap.CombatCellY(GDVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);

@@ -849,7 +849,7 @@ type
   TSoundDriver = record
     { the device's name, for the settings screen }
     name: TStr20;
-    { the sequencer's device value (C_Sound.MODE_TANDY, MODE_SPEAKER or MODE_DISABLED), which SetSoundDevice takes and
+    { the sequencer's device value (C_SOUND.MODE_TANDY, MODE_SPEAKER or MODE_DISABLED), which SetSoundDevice takes and
       soundMode holds while sound is on }
     mode: Byte;
     { load a tune into the device's voices }

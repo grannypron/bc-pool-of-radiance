@@ -1125,7 +1125,7 @@ const
     { EGA 14 Yellow -> CGA 3; EGA 15 White -> CGA 3 }
     $33);
   { Sound command tables }
-  { One table of sound command ids, a slice for each subsystem (C_Sound names the indexes). }
+  { One table of sound command ids, a slice for each subsystem (C_SOUND names the indexes). }
   soundIds: record
     commands: array[0..3] of Word;
     damage: Word;

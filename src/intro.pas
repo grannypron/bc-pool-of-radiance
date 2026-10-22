@@ -9,7 +9,7 @@ procedure Introduction;
 
 implementation
 
-uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border, C_Sound, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);
@@ -96,7 +96,7 @@ begin
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);
   { the title theme plays out by itself, under the credits or the menu }
-  SoundDrv.PlayMusic(C_Sound.MUSIC_TITLE);
+  SoundDrv.PlayMusic(C_SOUND.MUSIC_TITLE);
   Intro.DelayOrKey(5);
   if not GDVars.fullIntro then begin
     GDVars.gameDir := savedDir;

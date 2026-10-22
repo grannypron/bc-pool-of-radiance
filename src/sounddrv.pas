@@ -35,7 +35,7 @@ procedure SoundSuspend;
 { Starts a piece of music on the configured device and keeps the timer driver hooked while it plays. The piece ends by
   itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled or the Music setting is
   off.
-  @param(tune A music tune, C_Sound.MUSIC_TITLE and on.) }
+  @param(tune A music tune, C_SOUND.MUSIC_TITLE and on.) }
 procedure PlayMusic(tune: Word);
 
 { Ends the music now and silences the configured device; unhooks the timer driver unless a resident window holds it. }
@@ -70,12 +70,12 @@ procedure OplReset;
 
 { Chooses the device the timer driver steps and writes, for a driver that plays some sounds on another device (an effect
   on the speaker beside AdLib music). Leaving the AdLib silences it, and leaving the speaker drops its gate.
-  @param(mode A C_Sound mode; MODE_DISABLED steps none.) }
+  @param(mode A C_SOUND mode; MODE_DISABLED steps none.) }
 procedure SetSoundDevice(mode: Word);
 
 implementation
 
-uses C_Sound, Dos, GDConsts, GDVars{$IFDEF FPC}, SndSeq{$ENDIF};
+uses C_SOUND, Dos, GDConsts, GDVars{$IFDEF FPC}, SndSeq{$ENDIF};
 
 var
   { the exit procedure SoundDrv.SoundExit hands on to }
@@ -200,7 +200,7 @@ end;
 
 procedure SoundCommand(cmd: Word);
 begin
-  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
   SoundDrv.SetSoundDevice(GDVars.sound.mode);
   if cmd <> CMD_ENABLE then musicTune := 0;
   if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
@@ -225,7 +225,7 @@ end;
 procedure SoundSuspend;
 begin
   GDVars.soundSaved := GDVars.soundMode;
-  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
   musicTune := 0;
   SoundDrv.SetSoundDevice(GDVars.sound.mode);
   SoundDrv.InstallSoundTimer;
@@ -236,7 +236,7 @@ end;
 
 procedure SoundSetAutoStop(autoStop: Word);
 begin
-  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
   if autoStop > 0 then begin
     if (GDVars.soundAutoStop = 0) and not SoundDrv.MusicPlaying then SoundDrv.UninstallSoundTimer;
   end else
@@ -246,7 +246,7 @@ end;
 
 procedure PlayMusic(tune: Word);
 begin
-  if (GDVars.soundMode = C_Sound.MODE_DISABLED) or (GDVars.musicOn = 0) then Exit;
+  if (GDVars.soundMode = C_SOUND.MODE_DISABLED) or (GDVars.musicOn = 0) then Exit;
   SoundDrv.SetSoundDevice(GDVars.sound.mode);
   SoundDrv.InstallSoundTimer;
   musicTune := tune;
@@ -257,7 +257,7 @@ procedure StopMusic;
 begin
   if musicTune = 0 then Exit;
   musicTune := 0;
-  if GDVars.soundMode = C_Sound.MODE_DISABLED then Exit;
+  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
   GDVars.sound.Play(SILENT_TUNE);
   if GDVars.soundAutoStop > 0 then SoundDrv.UninstallSoundTimer;
 end;

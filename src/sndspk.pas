@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses C_Sound, GDVars, SoundDrv;
+uses C_SOUND, GDVars, SoundDrv;
 
 { Load tune into the PC Speaker voices. }
 procedure Play(tune: Word);
@@ -22,7 +22,7 @@ end;
 procedure Install;
 begin
   GDVars.sound.name := 'PC Speaker';
-  GDVars.sound.mode := C_Sound.MODE_SPEAKER;
+  GDVars.sound.mode := C_SOUND.MODE_SPEAKER;
   GDVars.sound.Play := SndSpk.Play;
   GDVars.sound.singleStep := False;
 end;

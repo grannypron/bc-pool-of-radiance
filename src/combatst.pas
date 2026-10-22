@@ -10,7 +10,7 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_AREA, C_NPC, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+  MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
 var
@@ -852,7 +852,7 @@ begin
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
   { the battle music runs until the first sound of the fight cuts it }
-  SoundDrv.PlayMusic(C_Sound.MUSIC_BATTLE);
+  SoundDrv.PlayMusic(C_SOUND.MUSIC_BATTLE);
   { the Quick Mode Magic setting; Alt-M changes it for this fight only }
   GDVars.quickMagic := GDVars.quickMagicOn <> 0;
   GDVars.roundCounter := 0;

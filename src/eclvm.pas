@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_NPC, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_Sound, C_MONEY, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -1572,8 +1572,8 @@ begin
     { address $BA03 }
     $3A04: begin
       case GDVars.sndEffect of
-        8: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
-        10: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.ECL_CUE]);
+        8: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
+        10: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.ECL_CUE]);
       end;
     end;
     { address $C01E }
@@ -1868,7 +1868,7 @@ begin
         MapView.DisplayMapView;
         { the step sound, which Explore.MovePartyForward3D has played too, but for a singleStep driver (POR-0170) }
         if (GDVars.gMapX <> GDVars.zone0^.previousX) or (GDVars.gMapY <> GDVars.zone0^.previousY) then
-          SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+          SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
         GDVars.eclGraphics := False;
         GDVars.picDrawn := True;
         EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);

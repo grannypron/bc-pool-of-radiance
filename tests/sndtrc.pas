@@ -7,7 +7,7 @@ unit SndTrc;
 
 interface
 
-{ The device the sequencer ticks: C_Sound's MODE_TANDY, MODE_SPEAKER, MODE_DISABLED or MODE_ADLIB. }
+{ The device the sequencer ticks: C_SOUND's MODE_TANDY, MODE_SPEAKER, MODE_DISABLED or MODE_ADLIB. }
 procedure SetSoundDevice(mode: Word);
 
 { Load tune tuneId's speaker or Tandy streams into the voices. }

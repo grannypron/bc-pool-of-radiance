@@ -66,7 +66,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 implementation
 
 uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
-  C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
+  C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
@@ -304,7 +304,7 @@ begin
   { flanking accumulators reset }
   creature^.combatAddr^.flankCount := 0;
   creature^.combatAddr^.flankSpread := 0;
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
   CbtActs.GuardingAttacks(creature);
   if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
     creature^.combatAddr^.movement := 0;
@@ -715,7 +715,7 @@ begin
   GDVars.pendingDamage := 0;
   att^.combatAddr^.madeAttack := 1;
   if CharHlp.IsHelpless(def) then begin
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
+    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
     { phase 1 is curAtt's lower bound }
     while (att^.combatAddr^.attackPhase > 1)
           and (Types.PAttackPhaseView(att)^.curAtt[att^.combatAddr^.attackPhase] = 0) do
@@ -775,7 +775,7 @@ begin
           if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image)
              and (Dice.RollDice(1, image^.strength + 1) > 1) then begin
             { the blow strikes an image }
-            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.MISS]);
+            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.MISS]);
             CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
             CharDisp.PrintNameString(def, 'lost an image', 10, True);
             Dec(image^.strength);
@@ -783,7 +783,7 @@ begin
               FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
           end else begin
             Inc(GDVars.hitsMade[phase]);
-            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
+            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
             CbtActs.CalcWeaponDamage(att, def, phase);
             CbtActs.ProcessAttackResult(att, def, atkType, GDVars.pendingDamage, GDVars.pendingDamage, True);
             if def^.enabled <> 0 then
@@ -795,7 +795,7 @@ begin
         end;
       end;
     if not anyHit then begin
-      SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.MISS]);
+      SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.MISS]);
       CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
     end;
     done := True;
@@ -1289,10 +1289,10 @@ begin
     end;
   end;
   SoundDrv.SoundSetAutoStop(0);
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.RANGED_START]);
+  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.RANGED_START]);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
                                   CbtMap.CombatCellY(def), frames, pace);
-  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.RANGED_END]);
+  SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.RANGED_END]);
   SoundDrv.SoundSetAutoStop(10);
 end;
 

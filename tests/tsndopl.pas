@@ -8,7 +8,7 @@
 {$I COMPILER.INC}
 program TSndOpl;
 
-uses C_Sound, SndTrc, TestKit;
+uses C_SOUND, SndTrc, TestKit;
 
 const
   LAST_TUNE = 28;
@@ -196,10 +196,10 @@ begin
     badPitch := 0;
     badLevel := 0;
     badNoise := 0;
-    SndTrc.SetSoundDevice(C_Sound.MODE_TANDY);
+    SndTrc.SetSoundDevice(C_SOUND.MODE_TANDY);
     SndTrc.ProgramTandyVoices(tune);
     RunTandy;
-    SndTrc.SetSoundDevice(C_Sound.MODE_ADLIB);
+    SndTrc.SetSoundDevice(C_SOUND.MODE_ADLIB);
     SndTrc.ProgramTandyVoices(tune);
     RunOpl;
     Str(tune, s);
@@ -209,7 +209,7 @@ begin
   end;
   TestKit.Check(checked > 1000, 'enough sounding ticks were compared');
   TestKit.Check(noisy > 100, 'enough noisy ticks were compared');
-  SndTrc.SetSoundDevice(C_Sound.MODE_DISABLED);
+  SndTrc.SetSoundDevice(C_SOUND.MODE_DISABLED);
   Close(log);
   TestKit.Done;
 end.

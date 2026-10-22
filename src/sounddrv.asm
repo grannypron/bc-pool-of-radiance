@@ -77,7 +77,7 @@ VOICE   ENDS
 ; ---------------------------------------------------------------------------
 ; Driver state.  The ISR and the voice writers reach all of it with DS = CODE.
 ; ---------------------------------------------------------------------------
-DEV_TANDY       equ     0               ; device values, as C_Sound's MODE_TANDY,
+DEV_TANDY       equ     0               ; device values, as C_SOUND's MODE_TANDY,
 DEV_SPEAKER     equ     1               ;   MODE_SPEAKER and MODE_DISABLED
 DEV_NONE        equ     2
 DEV_ADLIB       equ     3               ;   and MODE_ADLIB
@@ -606,7 +606,7 @@ SoundTimerHooked:
         mov     al, cs:[hooked]
         retf
 
-; Pascal procedure: the device the ISR ticks, a C_Sound mode in the low byte; it
+; Pascal procedure: the device the ISR ticks, a C_SOUND mode in the low byte; it
 ; also picks the device's tick from tickTable.  Leaving the AdLib silences it, and
 ; leaving the speaker drops its gate, so no note hangs on when a driver moves a
 ; sound to the other device (an effect on the speaker, then music on the AdLib).

@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
-  C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -230,7 +230,7 @@ end;
 procedure MovePartyForward3D;
 begin
   if not GDVars.sound.singleStep then
-    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+    SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
   Inc(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
   Inc(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
   View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
@@ -348,14 +348,14 @@ begin
                { left arrow: turn left }
                C_KEYS.LEFT: begin
                            GDVars.gFacing := (GDVars.gFacing + 6) mod 8;
-                           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+                           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
                            GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                            View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                          end;
                { right arrow: turn right }
                C_KEYS.RIGHT: begin
                             GDVars.gFacing := (GDVars.gFacing + 2) mod 8;
-                            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
+                            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
                             GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                             View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                           end;
@@ -509,7 +509,7 @@ begin
          if moved then
            Explore.MovePartyForward3D
          else
-           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
+           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
          CharDisp.PrintMiscInfo;
        end else
          GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;

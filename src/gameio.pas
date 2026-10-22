@@ -50,7 +50,7 @@ procedure FatalError(msg: String);
 
 implementation
 
-uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses C_SOUND, GDConsts, GDVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { showMemory is up: its own key waits do not open it again }
@@ -128,7 +128,7 @@ begin
   scanPending := (key = #0) and KeyPressed;
   { Ctrl-S toggles sound }
   if key = #19 then begin
-    GameIo.SetSound(GDVars.soundMode = C_Sound.MODE_DISABLED);
+    GameIo.SetSound(GDVars.soundMode = C_SOUND.MODE_DISABLED);
     if @saveSettings <> nil then
       saveSettings;
   end;
@@ -176,13 +176,13 @@ end;
 
 procedure SetSound(turnOn: Boolean);
 begin
-  if GDVars.sound.mode = C_Sound.MODE_DISABLED then Exit;
+  if GDVars.sound.mode = C_SOUND.MODE_DISABLED then Exit;
   if not turnOn then begin
-    if GDVars.soundMode <> C_Sound.MODE_DISABLED then begin
+    if GDVars.soundMode <> C_SOUND.MODE_DISABLED then begin
       SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
-      GDVars.soundMode := C_Sound.MODE_DISABLED;
+      GDVars.soundMode := C_SOUND.MODE_DISABLED;
     end;
-  end else if GDVars.soundMode = C_Sound.MODE_DISABLED then begin
+  end else if GDVars.soundMode = C_SOUND.MODE_DISABLED then begin
     GDVars.soundMode := GDVars.soundSaved;
     SoundDrv.SoundSuspend;
   end;
