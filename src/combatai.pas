@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_ITEM, C_NPC, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_TERR, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -325,7 +325,7 @@ begin
   if Odd(dir) then
     stepCost := 3;
   stepCost := stepCost * GDConsts.terrainInfo[terrIdx].cost;
-  if (terrIdx = C_Terr.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
+  if (terrIdx = C_TERR.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
     stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
     CanStepDir := True;
@@ -368,7 +368,7 @@ begin
     Exit;
   avoid := 0;
   if CombatAi.AvoidsCloud(creature) then
-    avoid := C_Terr.STINK_CLOUD;
+    avoid := C_TERR.STINK_CLOUD;
   found := Pathing.RouteStep(slot, [targetSlot], [], avoid, CbtMap.OccupantAt, dir, goal);
   if not found then begin
     enemies := [];

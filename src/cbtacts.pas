@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
+uses C_ITEM, C_TERR, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -938,7 +938,7 @@ begin
             best := tgt;
             bestHp := Types.PCharRecord(tgt)^.hpCur;
           end;
-    end else if terrIdx = C_Terr.CORPSE then
+    end else if terrIdx = C_TERR.CORPSE then
       for j := 1 to GDVars.downedCount do
         if GDVars.downed[j].cr <> nil then
           if not (GDVars.downed[j].cr^.status in
@@ -1519,7 +1519,7 @@ begin
     if valid then begin
       if crIdx > 0 then
         underCursor := GDVars.creatureArr[crIdx]
-      else if terrIdx = C_Terr.CORPSE then
+      else if terrIdx = C_TERR.CORPSE then
         for j := 1 to GDVars.downedCount do
           if GDVars.downed[j].x = cx then
             if GDVars.downed[j].y = cy then
@@ -1536,7 +1536,7 @@ begin
         valid := False;
       if weaponMode = 1 then
         if (cur = underCursor)
-           or ((crIdx = 0) and (terrIdx = C_Terr.CORPSE)) then
+           or ((crIdx = 0) and (terrIdx = C_TERR.CORPSE)) then
           valid := False
         else if CharHlp.HasRangedWeapon(cur) then
           if (not CharHlp.FindDamagingRangedWeapon(cur, weapon)) or

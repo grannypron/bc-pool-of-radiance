@@ -34,7 +34,7 @@ procedure RemoveDiseases(creature: Types.PCharRecord);
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 
 { Stinking-cloud check for an enabled creature: CbtMap.ProbeDirection (dir 8, its own cells) must report terrain 30
-  (C_Terr.STINK_CLOUD), and any of effects 30, 31, 32, 111 and 125 prevents it. A successful save vs.
+  (C_TERR.STINK_CLOUD), and any of effects 30, 31, 32, 111 and 125 prevents it. A successful save vs.
   paralyzation/poison (type 0) gives effect 30 "starts to cough" for 1 minute, a failure effect 31 "chokes and gags from
   nausea" for 1d4+1 minutes; that effect's handler is then called at once with a nil node, whether or not the effect was
   applied. }
@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GDConsts, GDVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP;
 
 const
@@ -443,7 +443,7 @@ var
 begin
   if creature^.enabled = 0 then Exit;
   CbtMap.ProbeDirection(creature, C_DIR.CENTER, crIdx, terrIdx);
-  if terrIdx <> C_Terr.STINK_CLOUD then Exit;
+  if terrIdx <> C_TERR.STINK_CLOUD then Exit;
   if CharHlp.HasEffect(creature, C_EFFECT.STINK_COUGH, effect) then Exit;
   if CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then Exit;
   if CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect) then Exit;

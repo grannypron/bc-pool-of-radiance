@@ -9,7 +9,7 @@ procedure CombatStart;
 
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
+uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 

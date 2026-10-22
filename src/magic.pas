@@ -186,7 +186,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, TextRend,
+uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
@@ -1080,7 +1080,7 @@ end;
   caster's nodes on the walk to the tail and never checked the tail, so a second cloud could share the first one's
   number and its end clear the older cloud). The cloud covers the 2x2 block whose upper-left is the aim cell
   (GDConsts.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
-  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_Terr.STINK_CLOUD;
+  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_TERR.STINK_CLOUD;
   every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
 procedure StinkingCloudHandler;
 var
@@ -1121,7 +1121,7 @@ begin
       node^.exists[k] := 1
     else
       node^.exists[k] := 0;
-    if terr = C_Terr.STINK_CLOUD then begin
+    if terr = C_TERR.STINK_CLOUD then begin
       p2 := GDVars.stinkHead;
       while p2 <> nil do begin
         if p2 <> node then
@@ -1129,11 +1129,11 @@ begin
             if (p2^.exists[j] <> 0) and
                 (p2^.ulX + GDConsts.dirDX[GDConsts.cloudDir[j]] = GDVars.gTargetX + GDConsts.dirDX[d]) and
                 (p2^.ulY + GDConsts.dirDY[GDConsts.cloudDir[j]] = GDVars.gTargetY + GDConsts.dirDY[d]) then
-              if p2^.under[j] <> C_Terr.STINK_CLOUD then
+              if p2^.under[j] <> C_TERR.STINK_CLOUD then
                 terr := p2^.under[j];
         p2 := p2^.next;
       end;
-    end else if terr = C_Terr.CORPSE then begin
+    end else if terr = C_TERR.CORPSE then begin
       for j := 1 to GDVars.downedCount do
         if GDVars.downed[j].x = GDVars.gTargetX + GDConsts.dirDX[d] then
           if GDVars.downed[j].y = GDVars.gTargetY + GDConsts.dirDY[d] then
@@ -1142,7 +1142,7 @@ begin
     node^.under[k] := terr;
     if node^.exists[k] <> 0 then
       GDVars.arenaPtr^.cells[GDVars.gTargetY + GDConsts.dirDY[d],
-                               GDVars.gTargetX + GDConsts.dirDX[d]] := C_Terr.STINK_CLOUD;
+                               GDVars.gTargetX + GDConsts.dirDX[d]] := C_TERR.STINK_CLOUD;
   end;
   CharDisp.PrintNameString(GDVars.curChar, 'Creates a noxious cloud', 10, False);
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 255, C_DIR.CENTER);

@@ -71,13 +71,13 @@ function CombatSlot(creature: Types.PCharRecord): Byte;
 
 { Probe the cells one step in dir from each of the creature's icon tiles. crIdx returns an adjacent creature (0 = none;
   the creature itself is ignored and the last one found wins). terrIdx returns the dominant terrain: 0 (off the arena)
-  beats everything, then C_Terr.STINK_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset pair
+  beats everything, then C_TERR.STINK_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset pair
   is terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
   Combat.MoveMenu uses it for bump attacks and terrain cost; IsValidCreatureLoc probes dir 8, the creature's own
   cells. }
 procedure ProbeDirection(creature: Types.PCharRecord; dir: Byte; var crIdx, terrIdx: Byte);
 
-{ Record a downed party member's corpse at (x, y): the cell's terrain is kept and the cell becomes C_Terr.CORPSE (a
+{ Record a downed party member's corpse at (x, y): the cell's terrain is kept and the cell becomes C_TERR.CORPSE (a
   stinking cloud is left as it is). A creature already in GDVars.downed is not added again, and a slot cleared when its
   creature got up is reused, so the eight slots are never overrun; with all eight in use the corpse is not recorded. }
 procedure RegisterDowned(creature: Types.PCharRecord; x, y: Byte);
@@ -121,7 +121,7 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 implementation
 
-uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
+uses Crt, C_TERR, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
   Blit, CharHlp;
 
 var
@@ -239,7 +239,7 @@ begin
     relX := areaX[i] - GDVars.arenaPtr^.ox;
     relY := areaY[i] - GDVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GDConsts.terrainInfo[C_Terr.STINK_CLOUD].tileId, 0);
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GDConsts.terrainInfo[C_TERR.STINK_CLOUD].tileId, 0);
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -738,8 +738,8 @@ begin
         crIdx := c;
       if (t = 0) or (terrIdx = 0) then
         terrIdx := 0
-      else if (t = C_Terr.STINK_CLOUD) or (terrIdx = C_Terr.STINK_CLOUD) then
-        terrIdx := C_Terr.STINK_CLOUD
+      else if (t = C_TERR.STINK_CLOUD) or (terrIdx = C_TERR.STINK_CLOUD) then
+        terrIdx := C_TERR.STINK_CLOUD
       else if GDConsts.terrainInfo[t].cost >= best then begin
         best := GDConsts.terrainInfo[t].cost;
         terrIdx := t;
@@ -765,8 +765,8 @@ begin
     free := GDVars.downedCount;
   end;
   GDVars.downed[free].terrain := GDVars.arenaPtr^.cells[y, x];
-  if GDVars.arenaPtr^.cells[y, x] <> C_Terr.STINK_CLOUD then
-    GDVars.arenaPtr^.cells[y, x] := C_Terr.CORPSE;
+  if GDVars.arenaPtr^.cells[y, x] <> C_TERR.STINK_CLOUD then
+    GDVars.arenaPtr^.cells[y, x] := C_TERR.CORPSE;
   GDVars.downed[free].cr := creature;
   GDVars.downed[free].x := x;
   GDVars.downed[free].y := y;
@@ -831,7 +831,7 @@ end;
 { Non-combat: True, nothing else. Combat: places the creature at (x, y) (icon size = the low 7 bits of iconDimensions),
   probes its own tiles (dir 8) and rejects on any creature, terrain 0 or cost 255 by zeroing the icon size. On success
   with moving set and notPcNpc = 0, clear the creature's corpse entries and, if no other corpse sits at (x, y), write
-  the terrain it saved into that cell (the probed terrain when none was saved or the saved one is C_Terr.CORPSE). }
+  the terrain it saved into that cell (the probed terrain when none was saved or the saved one is C_TERR.CORPSE). }
 function IsValidCreatureLoc(creature: Types.PCharRecord; x, y: Byte; moving: Boolean): Boolean;
 var
   slot: Byte;
@@ -858,7 +858,7 @@ begin
         if creature^.combatAddr^.notPcNpc = 0 then begin
           for i := 1 to GDVars.downedCount do
             if GDVars.downed[i].cr = creature then begin
-              if GDVars.downed[i].terrain <> C_Terr.CORPSE then
+              if GDVars.downed[i].terrain <> C_TERR.CORPSE then
                 t := GDVars.downed[i].terrain;
               FillChar(GDVars.downed[i], SizeOf(GDVars.downed[i]), 0);
             end;

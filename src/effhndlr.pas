@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_NPC, C_Terr, C_SAVE, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_LEVEL, Dice, Stats;
 
@@ -765,7 +765,7 @@ begin
             if GDVars.downed[slotId].y = yy then
               found := 1;
       if found <> 0 then
-        GDVars.arenaPtr^.cells[yy, xx] := C_Terr.CORPSE
+        GDVars.arenaPtr^.cells[yy, xx] := C_TERR.CORPSE
       else
         GDVars.arenaPtr^.cells[yy, xx] := node^.under[i];
     end;
@@ -783,7 +783,7 @@ begin
     for i := 1 to 4 do
       if q^.exists[i] <> 0 then
         GDVars.arenaPtr^.cells[q^.ulY + GDConsts.dirDY[GDConsts.cloudDir[i]],
-                                 q^.ulX + GDConsts.dirDX[GDConsts.cloudDir[i]]] := C_Terr.STINK_CLOUD;
+                                 q^.ulX + GDConsts.dirDX[GDConsts.cloudDir[i]]] := C_TERR.STINK_CLOUD;
     q := q^.next;
   end;
 end;
