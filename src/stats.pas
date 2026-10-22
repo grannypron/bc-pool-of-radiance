@@ -62,8 +62,9 @@ procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
   down, and its death as died. }
 procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
 
-{ A party member that bled to death in combat. }
-procedure BledOut(creature: Types.PCharRecord);
+{ A party member that died other than by InflictDamage's blow (which Damaged counts): bled to death in combat, or
+  killed outright by poison, a level drain, rot or the like (EffHndlr.InflictStatusMsg). }
+procedure Death(creature: Types.PCharRecord);
 
 { FxEngine.RestoreHitPoints's report: target gained hp; healing given is credited to actor while a spell, or an item's
   spell, is being resolved, or when byPower (a paladin's laying on of hands). }
@@ -234,7 +235,7 @@ begin
   end;
 end;
 
-procedure BledOut(creature: Types.PCharRecord);
+procedure Death(creature: Types.PCharRecord);
 begin
   Stats.Count(creature, DIED, 1);
 end;

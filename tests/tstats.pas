@@ -76,6 +76,11 @@ begin
   TestKit.CheckEqualsL(12, blk^.counts[Stats.DAMAGE_TAKEN], 'damage taken');
   TestKit.CheckEqualsL(1, blk^.counts[Stats.KNOCKED_DOWN], 'knocked down');
   TestKit.CheckEqualsL(1, blk^.counts[Stats.DIED], 'died');
+  { a death by poison or the like (#796) counts once more; a monster's counts nowhere }
+  Stats.Death(b);
+  TestKit.CheckEqualsL(2, blk^.counts[Stats.DIED], 'a death outside InflictDamage counts');
+  Stats.Death(monster);
+  TestKit.CheckEqualsL(2, Stats.game.counts[Stats.DIED], 'a monster''s death is not the party''s');
 
   { kinds past the table go under OTHER }
   GDVars.ifcState := C_Ifc.COMBAT;

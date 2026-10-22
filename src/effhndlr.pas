@@ -248,7 +248,7 @@ implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
   C_Race, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
-  C_Level, Dice;
+  C_Level, Dice, Stats;
 
 { Nullify the attack or effect: zero GDVars.pendingDamage and GDVars.pendingEffectId. effId 0 always matches; otherwise
   only when effId is the id under the immunity check (pendingEffectId). }
@@ -272,10 +272,11 @@ begin
   end;
 end;
 
-{ Print "<name> <msg>", then set the status (dead, stoned or gone), disable the creature with 0 HP, remove the effects
-  that end at 0 HP, run the C_Cond.HP_ZERO effects and, if it is still disabled, hand it to CbtMap.CreatureDowned. Then
-  pause, clear the message window and, out of combat, redisplay the party. The message prints first: for a creature
-  already dead, stoned or gone it is all that happens. }
+{ Print "<name> <msg>", then set the status (dead, stoned or gone), disable the creature with 0 HP, count a party
+  member's death (dead or gone) in its statistics (#796), remove the effects that end at 0 HP, run the C_Cond.HP_ZERO
+  effects and, if it is still disabled, hand it to CbtMap.CreatureDowned. Then pause, clear the message window and, out
+  of combat, redisplay the party. The message prints first: for a creature already dead, stoned or gone it is all that
+  happens. }
 procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
 begin
   CharDisp.PrintNameString(creature, msg, 10, False);
@@ -285,6 +286,8 @@ begin
   creature^.status := status;
   creature^.enabled := 0;
   creature^.hpCur := 0;
+  if status in [C_Status.DEAD, C_Status.GONE] then
+    Stats.Death(creature);
   FxEngine.RemoveEffectsHp0(creature);
   FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, creature);
   if creature^.enabled = 0 then
