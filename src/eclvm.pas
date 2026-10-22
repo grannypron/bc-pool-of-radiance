@@ -203,13 +203,16 @@ begin
 end;
 
 { LOAD CHARACTER: make creature number var 1 (low seven bits, 0 = the first) current; EXIT and PROGRAM restore the
-  previous one. With bit 7 set, and dumpCr6C00 and dumpCr6B00 both set, the creature is removed from the party. }
+  previous one. With bit 7 set, and dumpCr6C00 and dumpCr6B00 both set, the creature is removed from the party; an index
+  that finds no one removes no one. }
 procedure EclLoadChar;
 var
   p: Types.PCharRecord;
   idx: Byte;
   i: Byte;
   flag80: Byte;
+  { the member removed was savedChar }
+  wasSaved: Boolean;
 begin
   restoreChar := 1;
   EclVars.LoadEclVars(1);
@@ -226,10 +229,18 @@ begin
   if p <> nil then
     GDVars.curChar := p;
   if (flag80 <> 0) and GDVars.dumpCr6C00 and GDVars.dumpCr6B00 then begin
-    if savedChar = GDVars.curChar then
-      restoreChar := 0;
-    SaveLoad.RemoveCreature(False, True);
-    CharDisp.DisplayParty(GDVars.curChar);
+    { SSI removed the character current before when the index found no one (#759) }
+    if p <> nil then begin
+      wasSaved := savedChar = GDVars.curChar;
+      if wasSaved then
+        restoreChar := 0;
+      SaveLoad.RemoveCreature(False, True);
+      { the record is freed: EXIT, PROGRAM and NewEclDone restore the new current character instead (SSI kept savedChar
+        on the freed record, #759) }
+      if wasSaved then
+        savedChar := GDVars.curChar;
+      CharDisp.DisplayParty(GDVars.curChar);
+    end;
     GDVars.dumpCr6C00 := False;
     GDVars.dumpCr6B00 := False;
   end;
@@ -1740,16 +1751,16 @@ end;
 
 { Refresh the event byte, run the new script's on-load entry (scriptEntryAddrs[5]), and when view3dFlag = 0 set the
   location type for the three wilderness scripts (on the central one, call Ending.YarashComplete once the Yarash pyramid
-  is done). Redraw, then run scriptEntryAddrs[1] and the search entry. newEclFlag is cleared before scriptEntryAddrs[1]
-  runs, so this repeats while that entry itself runs NEWECL. }
+  is done). Redraw, then run scriptEntryAddrs[1] and the search entry, and make the character current at the start
+  (savedChar) current again. newEclFlag is cleared before scriptEntryAddrs[1] runs, so this repeats while that entry
+  itself runs NEWECL. }
 procedure NewEclDone;
-var
-  savedCur: Types.PCharRecord;
 begin
   repeat
     GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
     GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 0;
-    savedCur := GDVars.curChar;
+    { in savedChar, as in Curse, so a LOAD CHARACTER that removes it moves it on (SSI kept its own copy, #759) }
+    savedChar := GDVars.curChar;
     GDVars.locTypePrev := GDVars.gLocType;
     GDVars.gLocType := C_Area.LOC_3D_MAP;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
@@ -1781,7 +1792,7 @@ begin
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
     if newEclFlag = 0 then begin
       EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
-      GDVars.curChar := savedCur;
+      GDVars.curChar := savedChar;
       CharDisp.DisplayParty(GDVars.curChar);
     end;
   until newEclFlag = 0;
