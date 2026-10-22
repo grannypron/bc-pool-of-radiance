@@ -135,6 +135,12 @@ function IsNpc(creature: Types.PCharRecord): Boolean;
 { True when creature may trade and sell: one of the player's own characters, or an NPC that is disabled or animated. }
 function MayTrade(creature: Types.PCharRecord): Boolean;
 
+{ True for a person, whom Charm Person and Hold Person affect (#792): not undead (charType 4), and either a monster the
+  1st-edition list names (GDConsts.rangerFoes' first RANGER_PERSONS, personFoes), or a creature of one tile, not
+  Large, of a player race or charType 0 (the humans, some with race byte 0). SSI tested charType 0..1 and a one-tile
+  icon, which kept the gnoll out and let the ogre leader in. }
+function IsPerson(creature: Types.PCharRecord): Boolean;
+
 { True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends
   With Fight after it, return to the player's control. }
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
@@ -190,6 +196,8 @@ const
   MOVE_LOADED = 9;
   MOVE_HEAVY = 6;
   MOVE_OVERLOADED = 3;
+  { TCharRecord.charType of the undead }
+  UNDEAD_TYPE = 4;
   { coins carried over the weight allowance: up to OVER_LIGHT, no change; up to OVER_LOADED, MOVE_LOADED; up to
     OVER_HEAVY, MOVE_HEAVY; more, MOVE_OVERLOADED }
   OVER_LIGHT = 512;
@@ -1027,6 +1035,23 @@ end;
 function MayTrade(creature: Types.PCharRecord): Boolean;
 begin
   MayTrade := not CharHlp.IsNpc(creature) or (creature^.enabled = 0) or (creature^.status = C_Status.ANIMATED);
+end;
+
+function IsPerson(creature: Types.PCharRecord): Boolean;
+var
+  i: Byte;
+  named: Boolean;
+begin
+  named := False;
+  for i := 1 to GDConsts.RANGER_PERSONS do
+    if creature^.name = GDConsts.rangerFoes[i] then
+      named := True;
+  for i := 1 to SizeOf(GDConsts.personFoes) div SizeOf(GDConsts.personFoes[1]) do
+    if creature^.name = GDConsts.personFoes[i] then
+      named := True;
+  IsPerson := (creature^.charType <> UNDEAD_TYPE) and
+              (named or ((creature^.iconDimensions = 1) and
+                         ((creature^.race <> C_Race.MONSTER) or (creature^.charType = 0))));
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;

@@ -36,6 +36,42 @@ begin
   c^.race := C_Race.HUMAN;
 end;
 
+{ CharHlp.IsPerson for a creature with the name, race byte, charType and iconDimensions of a record in the monster
+  data (#792). }
+function Person(name: Types.TName15; race, charType, icon: Byte): Boolean;
+begin
+  ClearCreature;
+  c^.name := name;
+  c^.race := race;
+  c^.charType := charType;
+  c^.iconDimensions := icon;
+  Person := CharHlp.IsPerson(c);
+end;
+
+{ Charm Person and Hold Person affect the persons of the 1st-edition list, as the monster data describes them. }
+procedure CheckPersons;
+begin
+  TestKit.Check(Person('GNOLL', C_Race.MONSTER, 1, $82), 'a gnoll is a person, two tiles and Large as it is');
+  TestKit.Check(Person('KOBOLD', C_Race.MONSTER, 1, $01), 'and a kobold');
+  TestKit.Check(Person('HOBGOBLIN LDR', C_Race.MONSTER, 0, $01), 'and a hobgoblin leader');
+  TestKit.Check(Person('GRISHNAK', C_Race.MONSTER, 0, $01), 'and Grishnak');
+  TestKit.Check(Person('LIZARDMAN', C_Race.MONSTER, 0, $01), 'and a lizard man');
+  TestKit.Check(Person('ACOLYTE', C_Race.MONSTER, 0, $01), 'and a human whose race byte is 0');
+  TestKit.Check(Person('MACE', C_Race.HALFORC, 0, $01), 'and a half-orc');
+  TestKit.Check(Person('TYRANITHRAXUS', C_Race.HUMAN, 0, $01), 'and the False Tyranthraxus, a hired human');
+  TestKit.Check(not Person('TYRANITHRAXUS', C_Race.MONSTER, 3, $84), 'but not Tyranthraxus the dragon');
+  TestKit.Check(not Person('OGRE LEADER', C_Race.MONSTER, 0, $81), 'nor the ogre leader, Large');
+  TestKit.Check(not Person('BUGBEAR', C_Race.MONSTER, 1, $81), 'nor a bugbear');
+  TestKit.Check(not Person('OGRE', C_Race.MONSTER, 1, $82), 'nor an ogre');
+  TestKit.Check(not Person('DRIDER', C_Race.ELF, 16, $83), 'nor a drider, though its race byte is elf');
+  TestKit.Check(not Person('HIPPOGRIFF', C_Race.MONSTER, 0, $83), 'nor a hippogriff');
+  TestKit.Check(not Person('MUTANT LIZ-MAN ', C_Race.MONSTER, 11, $01), 'nor the mutant lizard man');
+  TestKit.Check(not Person('DRYTHH', C_Race.MONSTER, 11, $01), 'nor Drythh');
+  TestKit.Check(not Person('MEDUSA', C_Race.MONSTER, 17, $01), 'nor a medusa');
+  TestKit.Check(not Person('SPECTRE', C_Race.HUMAN, 4, $01), 'nor an undead human');
+  TestKit.Check(not Person('GNOLL', C_Race.MONSTER, 4, $82), 'nor an undead gnoll');
+end;
+
 { SSI's racial level cap tests, as CharHlp.AtLevelCap had them: true only at the levels named }
 function SsiCap(race, cls, lvl, str: Integer): Boolean;
 begin
@@ -171,6 +207,8 @@ begin
   c^.classLevels[C_Level.FIGHTER] := -1;
   c^.classLevels[C_Level.RANGER] := -1;
   TestKit.CheckEqualsL(0, CharHlp.WarriorLevel(c), 'a level below 0 counts as none');
+
+  CheckPersons;
 
   { the NPC tests }
   ClearCreature;

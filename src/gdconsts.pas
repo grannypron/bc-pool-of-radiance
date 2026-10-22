@@ -76,8 +76,12 @@ const
   { The giant class whose attacks a dwarf or gnome makes at -4: ogres, trolls, giants and the ettin (#749) }
   giantFoes: array[1..6] of Types.TName15 = (
     'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT', 'ETTIN');
+  { The monsters Charm Person and Hold Person affect, as the 1st-edition list names them (#792): rangerFoes' first
+    RANGER_PERSONS (kobolds, goblins, orcs, hobgoblins and the gnoll) and these. CharHlp.IsPerson }
+  RANGER_PERSONS = 9;
+  personFoes: array[1..2] of Types.TName15 = ('GRISHNAK', 'LIZARDMAN');
   { The giant class a ranger does extra damage to in melee: the game's monster names for kobolds, goblins, orcs,
-    hobgoblins, gnolls, bugbears, ettins, ogres, trolls and giants }
+    hobgoblins, gnolls, bugbears, ettins, ogres, trolls and giants. The first RANGER_PERSONS are persons. }
   rangerFoes: array[1..16] of Types.TName15 = (
     'KOBOLD', 'KOBOLD LEADER', 'GOBLIN GUARD', 'GOBLIN LEADER', 'ORC', 'ORC LEADER', 'HOBGOBLIN', 'HOBGOBLIN LDR',
     'GNOLL', 'BUGBEAR', 'ETTIN', 'OGRE', 'OGRE LEADER', 'TROLL', 'HILL GIANT', 'FIRE GIANT');
