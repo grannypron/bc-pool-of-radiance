@@ -15,9 +15,10 @@ uses Types;
 procedure LoadCharlist(var list: Types.PItemRec);
 
 { Rewrite <saveDir>charlist.txt, one name per line, a party member's without its '* ' mark: a character in the party
-  keeps its own files, so it stays on the roster (SSI dropped it, as saving or loading a game erased them). Retries
-  with a put-save-disk prompt until the file opens. }
-procedure SaveCharlist(list: Types.PItemRec);
+  keeps its own files, so it stays on the roster (SSI dropped it, as saving or loading a game erased them). A line
+  naming omit, marked or not, is left out ('' leaves out none). Retries with a put-save-disk prompt until the file
+  opens. }
+procedure SaveCharlist(list: Types.PItemRec; omit: String);
 
 { Load curChar's CHEAD into icon-anim slot 11 and CBODY into slot orderNumber, OR-merge head onto body; when loading,
   remap the default icon colours to the character's iconColors1 nibbles. Icons live on virtual disk 3. }
@@ -31,6 +32,10 @@ procedure LoadCharIconAnim(loading: Boolean);
   any. A set that cannot be written whole (a full disk) leaves the old files and CHARLIST.TXT as they were and is
   reported on the bottom line. True when the character was saved. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
+
+{ Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, those there are) and take its name off
+  CHARLIST.TXT: a character dropped forever, whose files loading or saving a game no longer erases (#754). }
+procedure EraseChar(name: String);
 
 { Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
@@ -141,11 +146,12 @@ begin
   Close(f);
 end;
 
-procedure SaveCharlist(list: Types.PItemRec);
+procedure SaveCharlist(list: Types.PItemRec; omit: String);
 var
   p: Types.PItemRec;
   f: Text;
   ioRes: Integer;
+  name: String;
 begin
   SaveMenu.CheckSaveDir;
   repeat
@@ -157,10 +163,11 @@ begin
   until ioRes = 0;
   p := list;
   while p <> nil do begin
-    if Copy(p^.name, 1, 2) = '* ' then
-      WriteLn(f, Copy(p^.name, 3, Length(p^.name) - 2))
-    else
-      WriteLn(f, p^.name);
+    name := p^.name;
+    if Copy(name, 1, 2) = '* ' then
+      Delete(name, 1, 2);
+    if (Length(omit) = 0) or (name <> omit) then
+      WriteLn(f, name);
     p := p^.next;
   end;
   Close(f);
@@ -335,11 +342,29 @@ begin
     end;
     if not found then begin
       MenuCore.AppendMenuLine(list, tail, creature^.name, False);
-      SaveLoad.SaveCharlist(list);
+      SaveLoad.SaveCharlist(list, '');
     end;
     MenuCore.FreeStringList(list);
   end;
   SaveChar := ok;
+end;
+
+procedure EraseChar(name: String);
+var
+  fn: Types.TPathStr;
+  list: Types.PItemRec;
+begin
+  fn := SaveLoad.CharFileBase(name);
+  FileUtil.DeleteFile(fn + '.cha');
+  FileUtil.DeleteFile(fn + '.itm');
+  FileUtil.DeleteFile(fn + '.spc');
+  FileUtil.DeleteFile(fn + '.mem');
+  FileUtil.DeleteFile(fn + '.sts');
+  SaveLoad.LoadCharlist(list);
+  if list <> nil then begin
+    SaveLoad.SaveCharlist(list, name);
+    MenuCore.FreeStringList(list);
+  end;
 end;
 
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;

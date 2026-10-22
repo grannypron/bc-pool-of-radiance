@@ -751,8 +751,9 @@ begin
   SaveLoad.FreeCreature(creature);
 end;
 
-{ DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
-  farewell message depends on whether the character is enabled. Declining shows the relief line, shortened for a name
+{ DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon) and
+  erase its own files and roster line (SaveLoad.EraseChar), so it does not come back on the Add list; the farewell
+  message depends on whether the character is enabled. Declining shows the relief line, shortened for a name
   too long for SSI's wording to fit the 40-column bottom row. }
 procedure DropCharacterMenu;
 begin
@@ -765,6 +766,7 @@ begin
         CharDisp.PrintBottomLine('You dump ' + name + ' out back.')
       else
         CharDisp.PrintBottomLine(name + ' bids you farewell.');
+      SaveLoad.EraseChar(name);
       SaveLoad.RemoveCreature(False, True);
     end else if Length(name) + Length(' breathes a sigh of relief.') <= 40 then
       CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.')
@@ -1303,7 +1305,7 @@ begin
         end;
       end;
   until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
-  SaveLoad.SaveCharlist(list);
+  SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;
 
