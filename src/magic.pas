@@ -32,8 +32,10 @@ procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 { Cast spell for GDVars.curChar. Outside combat a combat-only spell (target mode 0) is not cast: a memorized spell
   offers 'Lose it?' (Yes removes it) and an item offers 'Use it?' (Yes sets sel). Otherwise, when ai is set and no item
   is in use, announce the cast, then call GDVars.castTargetMenu with b until it picks targets or the cast ends. On a
-  pick: in combat turn to face the aim, play the cast sound and animate the projectile; then remove the caster's
-  invisibility, consume the memorized spell unless GDVars.usingItem, and run GDVars.spellFns[spell] with
+  pick, a memorized spell first rolls the caster's chance of spell failure (ClassCal.SpellFailureChance: a cleric's low
+  Wisdom, for a clerical spell, #60); a failure spends the spell and shows "<name> fails to cast <spell>." and nothing
+  else happens. Otherwise, in combat turn to face the aim, play the cast sound and animate the projectile; then remove
+  the caster's invisibility, consume the memorized spell unless GDVars.usingItem, and run GDVars.spellFns[spell] with
   dsCurrentSpellBeing set. With no pick, outside combat it just returns; in combat b, or Yes to 'Abort Spell?', aborts
   and consumes the spell, and otherwise targeting repeats. b means automatic targeting (AI or quick fight); sel returns
   whether targets were picked. }
@@ -635,6 +637,9 @@ end;
 procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
 var
   ok: Boolean;
+  { the caster's chance of spell failure, and whether this cast failed }
+  chance: Byte;
+  failed: Boolean;
   x: ShortInt;
   y: ShortInt;
   k: Byte;
@@ -663,37 +668,49 @@ begin
     GDVars.castTargetMenu(spell, b, sel);
     if sel then begin
       ok := False;
-      if GDVars.ifcState = C_Ifc.COMBAT then begin
-        CharDisp.BuildIconFacings(18);
-        x := CbtMap.CombatCellX(p);
-        y := CbtMap.CombatCellY(p);
-        k := 0;
-        while not Pathing.IsDirToward(x, y, GDVars.gTargetX, GDVars.gTargetY, k) do
-          Inc(k);
-        CbtMap.SetCreatureFacing(p, k, 1, 0);
-        SoundDrv.SoundSetAutoStop(0);
-        case spell of
-          C_Spell.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
-          C_Spell.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
-        else
-          SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
-        end;
-        CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
-        SoundDrv.SoundSetAutoStop(10);
-        if CbtMap.CombatIconVisible(p, 0) then begin
-          CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 1, 1);
-          CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 0, 0);
-        end;
-      end;
-      FxEngine.RemoveInvisibility(p);
+      { a cleric's low Wisdom can make a memorized clerical spell fail (#60), rolled only when there is a chance }
+      failed := False;
       if GDVars.usingItem = False then begin
-        CharHlp.RemoveSpell(GDVars.curChar, spell);
-        Stats.Count(p, Stats.SPELLS_CAST, 1);
+        chance := ClassCal.SpellFailureChance(p, spell);
+        if chance > 0 then
+          failed := Dice.RollDice(1, 100) <= chance;
       end;
-      GDVars.dsCurrentSpellBeing := spell;
-      GDVars.spellFns[GDVars.dsCurrentSpellBeing];
-      GDVars.dsCurrentSpellBeing := C_Spell.NONE;
-      GDVars.gMultiTarget := 0;
+      if failed then begin
+        CharHlp.RemoveSpell(p, spell);
+        CharDisp.PrintNameString(p, 'fails to cast ' + GDConsts.spellNames[spell] + '.', 10, True);
+      end else begin
+        if GDVars.ifcState = C_Ifc.COMBAT then begin
+          CharDisp.BuildIconFacings(18);
+          x := CbtMap.CombatCellX(p);
+          y := CbtMap.CombatCellY(p);
+          k := 0;
+          while not Pathing.IsDirToward(x, y, GDVars.gTargetX, GDVars.gTargetY, k) do
+            Inc(k);
+          CbtMap.SetCreatureFacing(p, k, 1, 0);
+          SoundDrv.SoundSetAutoStop(0);
+          case spell of
+            C_Spell.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
+            C_Spell.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
+          else
+            SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
+          end;
+          CharDisp.CombatAnimateMovingIcon(x, y, GDVars.gTargetX, GDVars.gTargetY, 4, 30);
+          SoundDrv.SoundSetAutoStop(10);
+          if CbtMap.CombatIconVisible(p, 0) then begin
+            CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 1, 1);
+            CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 0, 0);
+          end;
+        end;
+        FxEngine.RemoveInvisibility(p);
+        if GDVars.usingItem = False then begin
+          CharHlp.RemoveSpell(GDVars.curChar, spell);
+          Stats.Count(p, Stats.SPELLS_CAST, 1);
+        end;
+        GDVars.dsCurrentSpellBeing := spell;
+        GDVars.spellFns[GDVars.dsCurrentSpellBeing];
+        GDVars.dsCurrentSpellBeing := C_Spell.NONE;
+        GDVars.gMultiTarget := 0;
+      end;
     end else begin
       if GDVars.ifcState <> C_Ifc.COMBAT then
         ok := False

@@ -169,6 +169,15 @@ begin
   TestKit.CheckEqualsL(100, AbilAdj.IntKnowSpellChance(24), '24: 100%');
   TestKit.CheckEqualsL(100, AbilAdj.IntKnowSpellChance(25), '25: 100%');
 
+  { clerical spell failure by Wisdom, the PHB's (#60) }
+  TestKit.CheckEqualsL(20, AbilAdj.WisSpellFailure(3), 'Wisdom below 9 counts as 9');
+  TestKit.CheckEqualsL(20, AbilAdj.WisSpellFailure(9), 'Wisdom 9: 20%');
+  TestKit.CheckEqualsL(15, AbilAdj.WisSpellFailure(10), '10: 15%');
+  TestKit.CheckEqualsL(10, AbilAdj.WisSpellFailure(11), '11: 10%');
+  TestKit.CheckEqualsL(5, AbilAdj.WisSpellFailure(12), '12: 5%');
+  TestKit.CheckEqualsL(0, AbilAdj.WisSpellFailure(13), '13: none');
+  TestKit.CheckEqualsL(0, AbilAdj.WisSpellFailure(25), '25: none');
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
 end.

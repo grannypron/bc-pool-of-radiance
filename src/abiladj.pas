@@ -52,6 +52,10 @@ function ConRegenMinutes(con: Byte): Word;
   at 23 and 100 from 24 (Deities & Demigods); below 9, which no magic-user has, counts as 9. }
 function IntKnowSpellChance(intel: Byte): Byte;
 
+{ The chance, in percent, that a clerical spell fails for Wisdom wis (1st-edition PHB): 20 at 9, 15 at 10, 10 at 11,
+  5 at 12 and 0 from 13; below 9, which no cleric has, counts as 9. }
+function WisSpellFailure(wis: Byte): Byte;
+
 implementation
 
 { Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased): -4 from 0 to 3. }
@@ -227,6 +231,16 @@ begin
     20..23: IntKnowSpellChance := 76 + intel;
   else
     IntKnowSpellChance := 100;
+  end;
+end;
+
+function WisSpellFailure(wis: Byte): Byte;
+begin
+  case wis of
+    0..9: WisSpellFailure := 20;
+    10..12: WisSpellFailure := (13 - wis) * 5;
+  else
+    WisSpellFailure := 0;
   end;
 end;
 
