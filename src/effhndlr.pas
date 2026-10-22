@@ -1273,16 +1273,16 @@ begin
     EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.STONED, 'is Stoned');
 end;
 
-{ Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person
-  (save vs. spell at -2) without using a spell slot or action. The spell being cast is marked as Charm Person only while
-  the charm is applied, then restored: left set, it made later damage look like a spell's (Mirror Image absorbed it). }
+{ Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person's
+  charm (save vs. spell at -2) without using a spell slot or action. The gaze is no spell: magic resistance meets it at
+  its listed figure, as it does the other gazes (EffHndlr.MagicResistance). SSI's marked the spell being cast as Charm
+  Person while it applied the charm, so the resistance was adjusted by the gazer's mage level (#799). }
 procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   dist: Word;
   effect: Types.PEffectRec;
   x: ShortInt;
   y: ShortInt;
-  savedSpell: Byte;
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   x := CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr);
@@ -1297,16 +1297,12 @@ begin
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
-  { Charm Person }
-  savedSpell := GDVars.dsCurrentSpellBeing;
-  GDVars.dsCurrentSpellBeing := C_Spell.CHARM_PERSON;
   FxEngine.AddEffectWithMessage(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, 0, creature^.hostile * 128 + 12,
                                 True, True,
                                 FxEngine.RollSavingThrow(creature^.combatAddr^.other, C_Save.SPELL, -2),
                                 'is charmed');
   if CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, effect) then
     FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.dsOtherCreatureCurrentPtr, effect, False);
-  GDVars.dsCurrentSpellBeing := savedSpell;
 end;
 
 { Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
