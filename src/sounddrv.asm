@@ -86,13 +86,6 @@ divCount        db      13              ; ticks left before the next BIOS INT 8 
 seqBusy         db      0               ; nonzero skips ISR sequencing during voice updates
 voiceLeft       db      0               ; voices still to visit this pass, 4 down to 1
 blockSize       db      SIZE VOICE      ; seq_note multiplies a voice index by it
-exitCount       dw      0               ; Ticks until forced shutdown; zero disables the countdown.
-
-; Shutdown message with bit 7 set in every byte. The timer handler
-; clears that bit before displaying the first 33 bytes.
-exitMsg         db      0D2h,0F5h,0EEh,0ADh,0F4h,0E9h,0EDh,0E5h,0A0h,0A0h,0C5h,0F2h,0F2h,0EFh,0F2h,0A0h
-                db      0B2h,0B0h,0B9h,0A0h,0E1h,0F4h,0A0h,0B0h,0C2h,0C1h,0C4h,0BAh,0B0h,0B0h,0B3h,0B8h
-                db      08Ah,08Dh
 
 curTune         dw      0               ; tune id loaded; 0 = silent
 seqVoice        dw      0               ; the voice block seq_proc is running
@@ -105,11 +98,6 @@ outputOn        db      1               ; zero mutes output while the sequencers
 device          db      DEV_NONE        ; the configured device, the only one the ISR ticks
 tickProc        dw      tick_none       ; the device's tick, which SetSoundDevice sets from tickTable
 tickTable       dw      tick_tandy, tick_spkr, tick_none, tick_opl      ; by device value, DEV_TANDY to DEV_ADLIB
-
-; Duration table: 3:4 pairs double at each step. Notes carry explicit durations,
-; so nothing reads this table.
-noteLen         db      000h,000h,000h,002h,000h,003h,004h,000h,006h,008h,000h,00Ch,010h,000h,018h,020h
-                db      000h,030h,040h
 
 ; Sequencer command dispatch for stream bytes 0FAh through 0FFh, in that order.
 cmdTable        dw      seq_c_reset, seq_c_ret, seq_c_call
@@ -346,40 +334,6 @@ P_isr:
         mov     ax, CODE
         mov     ds, ax
         inc     cs:[drvTicks]
-        cmp     ds:[exitCount], 0
-        jz      isr_tick
-        dec     ds:[exitCount]
-        jnz     isr_tick
-        mov     ah, 0Fh                 ; read the video mode, then set it again,
-        int     10h                     ;   which clears the screen
-        mov     ah, 0
-        int     10h
-        mov     bl, 7
-        mov     ah, 7Fh                 ; strip bit 7 off exitMsg in place
-        mov     cx, 33
-        mov     bx, CODE
-        mov     es, bx
-        mov     bx, offset exitMsg
-isr_msgclr:
-        mov     al, es:[bx]
-        and     al, ah
-        mov     es:[bx], al
-        inc     bx
-        loop    isr_msgclr
-        mov     bl, 7
-        mov     ah, 13h                 ; write string, attribute in BL, move cursor
-        mov     al, 1
-        mov     bh, 0
-        mov     cx, 33
-        xor     dx, dx
-        mov     bp, CODE
-        mov     es, bp
-        mov     bp, offset exitMsg
-        int     10h
-        mov     ah, 4Ch                 ; terminate, exit code 0FFh
-        mov     al, 0FFh
-        int     21h
-isr_tick:
         cmp     ds:[seqBusy], 0
         jnz     isr_div
         mov     ds:[seqBusy], 1
@@ -612,9 +566,6 @@ sn_oct:
         add     ax, OCT                 ; CL = octave, AX = semitone
         mov     bx, ax
         add     bx, bx
-        cmp     di, offset tandyVoice3  ; Both branches continue at the next instruction.
-        jnz     sn_notspec
-sn_notspec:
         add     bx, ds:[freqBase]
         mov     ax, [bx]
         shr     ax, cl

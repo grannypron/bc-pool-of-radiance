@@ -38,6 +38,8 @@ function Detect: Boolean;
 var
   before: Byte;
   after: Byte;
+  { the waiting reads, which only spend time }
+  spent: Byte;
   i: Word;
 begin
   SoundDrv.OplWrite($04, TIMER_RESET);
@@ -46,7 +48,7 @@ begin
   SoundDrv.OplWrite($02, $FF);
   SoundDrv.OplWrite($04, TIMER1_START);
   for i := 1 to TIMER_WAIT do
-    after := Port[OPL_STATUS];
+    spent := Port[OPL_STATUS];
   after := Port[OPL_STATUS];
   SoundDrv.OplWrite($04, TIMER_RESET);
   SoundDrv.OplWrite($04, IRQ_RESET);

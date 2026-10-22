@@ -132,15 +132,7 @@ tuneB18_v3:
         SWAIT   0
 tuneB18_v0:
         SSET    vfPeriod,        1B58h
-        SRET
-; Stream-formatted tail after the return; no song-table entry points here.
-tuneB18_v0_tail:
-        SNOTE   0, 10, NT_E+3*OCT, 0, 160
-        SSET    vfLevelAdd,      0FF9Ch
-        SSET    vfPeriodAdd,     0FF9Ch
-        SWAIT   55
-        SSET    vfLevel,         0
-        SWAIT   0
+        SRET                            ; no SCALL to return to: the voice ends
 tuneB16_v2:
         SSET    vfPeriod,        1F40h
         SWAIT   40
@@ -371,62 +363,8 @@ tuneB11_v2:
         SSET    vfLevel,         0
         SWAIT   0
 tuneB20_v0:
-        SCALL   tuneB20_setup
+        SCALL   musicSetupB             ; the voices' setup, as the other tunes take it
         SWAIT   0
-tuneB20_setup:
-        SCLEAR  1
-        SSET    vfReleaseLead,   0Ch
-        SSET    vfTranspose,     0FFD3h
-        SSET    vfEnvBase,       tuneB20_env_v1
-        SSET    vfLfoTable,      lfoSine
-        SSET    vfLfoWrap,       1000h
-        SSET    vfLfoDepth,      28h
-        SSET    vfLfoRate,       12Ch
-        SCLEAR  2
-        SSET    vfReleaseLead,   7
-        SSET    vfTranspose,     0FFD3h
-        SSET    vfEnvBase,       tuneB20_env_v2
-        SSET    vfLfoTable,      lfoSine
-        SSET    vfLfoWrap,       1000h
-        SSET    vfLfoDepth,      16h
-        SSET    vfLfoRate,       78h
-        SCLEAR  0
-        SSET    vfReleaseLead,   7
-        SSET    vfTranspose,     0FFD3h
-        SSET    vfEnvBase,       tuneB20_env_v0
-        SSET    vfLfoTable,      lfoZero
-        SSET    vfLfoWrap,       200h
-        SSET    vfLfoDepth,      0C8h
-        SSET    vfLfoRate,       10h
-        SSET    vfTempo,         6
-        SRET
-tuneB20_env_v2:
-        SENV    0C350h,          ENV_SETLEVEL
-        SENV    9C4h,            4
-        SENV    0F830h,          6
-        SENV    0,               0
-        SENV    0BB80h,          ENV_SETLEVEL
-        SENV    0E0C0h,          6
-        SENV    0,               ENV_SETLEVEL
-        SENV    0,               0
-tuneB20_env_v1:
-        SENV    9C40h,           ENV_SETLEVEL
-        SENV    9C4h,            8
-        SENV    0F448h,          5
-        SENV    0,               0
-        SENV    0AFC8h,          ENV_SETLEVEL
-        SENV    0F060h,          11
-        SENV    0,               ENV_SETLEVEL
-        SENV    0,               0
-tuneB20_env_v0:
-        SENV    0DEA8h,          ENV_SETLEVEL
-        SENV    0FA24h,          6
-        SENV    0,               0
-        SENV    0,               0
-        SENV    0BB80h,          ENV_SETLEVEL
-        SENV    0E0C0h,          6
-        SENV    0,               ENV_SETLEVEL
-        SENV    0,               0
 tuneB19_v0:
         SSET    vfPeriod,        1F40h
         SSET    vfLevel,         7530h
