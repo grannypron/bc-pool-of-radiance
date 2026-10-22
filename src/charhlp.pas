@@ -118,6 +118,11 @@ function BaseItem(itemType: Byte): Types.PBaseItemRec;
   and arrow pierce (not slash). }
 procedure FixWeaponClasses(items: Types.PBaseItems);
 
+{ Clear the ammunition bits (C_Item.PROP_ARROWS, PROP_QUARRELS) of a weapon that is not a launcher (no
+  C_Item.PROP_FIRES_AMMO): the shipped ITEMS file gives the bill-guisarme and the unused item type 0 the arrows bit
+  (#793). The quarrel's own row keeps its bits; it is ammunition, never readied as a weapon. }
+procedure FixAmmoBits(items: Types.PBaseItems);
+
 { True for an NPC or a monster: a creature whose npc has bit 7 (C_Npc.FLAG) set, not one of the player's own
   characters. }
 function IsNpc(creature: Types.PCharRecord): Boolean;
@@ -547,6 +552,15 @@ begin
   for i := 0 to Types.BASE_ITEM_LAST do
     if i in PIERCING then
       items^[i].wpnClass := C_Item.WPN_PIERCE;
+end;
+
+procedure FixAmmoBits(items: Types.PBaseItems);
+var
+  i: Byte;
+begin
+  for i := 0 to Types.BASE_ITEM_LAST do
+    if (items^[i].props and C_Item.PROP_FIRES_AMMO) = 0 then
+      items^[i].props := items^[i].props and not (C_Item.PROP_ARROWS or C_Item.PROP_QUARRELS);
 end;
 
 { True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }

@@ -295,6 +295,16 @@ begin
   TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.LONG_SWORD].wpnClass, 'a long sword still slashes');
   TestKit.CheckEqualsL(C_Item.WPN_BASH, items^[C_Item.CLUB].wpnClass, 'a club still bashes');
   TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.DAGGER].wpnClass, 'a dagger still pierces');
+  { FixAmmoBits (#793) over the shipped rows: the bill-guisarme loses its arrows bit, launchers keep theirs }
+  items^[C_Item.BILL_GUISARME].props := C_Item.PROP_ARROWS;
+  items^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
+  items^[C_Item.QUARREL].props := C_Item.PROP_QUARRELS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
+  items^[C_Item.DAGGER].props := C_Item.PROP_THROWN or C_Item.PROP_STR_BONUS;
+  CharHlp.FixAmmoBits(items);
+  TestKit.CheckEqualsL(0, items^[C_Item.BILL_GUISARME].props, 'a bill-guisarme takes no arrows');
+  TestKit.CheckEqualsL($0B, items^[C_Item.LONG_BOW].props, 'a long bow still shoots arrows');
+  TestKit.CheckEqualsL($8A, items^[C_Item.QUARREL].props, 'a quarrel keeps its bits');
+  TestKit.CheckEqualsL($14, items^[C_Item.DAGGER].props, 'a dagger is still thrown');
   Dispose(items);
   { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
   FillChar(crs[1], SizeOf(crs[1]), 0);

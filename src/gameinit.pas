@@ -386,6 +386,7 @@ begin
     GameIo.FatalError('Unable to read ITEMS.');
   end;
   CharHlp.FixWeaponClasses(GDVars.baseItems);
+  CharHlp.FixAmmoBits(GDVars.baseItems);
   GDVars.gameDir := savedDir;
   TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }
