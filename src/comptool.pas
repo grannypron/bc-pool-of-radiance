@@ -14,7 +14,7 @@ procedure ToolsMenu;
 
 implementation
 
-uses Crt, Types, C_Area, C_Dir, C_Keys, C_Msg, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
+uses Crt, Types, C_Area, C_Dir, C_Keys, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
   Explored, EvtKind, CharEdit, MapNotes, StrUtil;
 
 const
@@ -146,7 +146,7 @@ begin
   EvtKind.Prepare;
   FillChar(used, SizeOf(used), False);
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   for my := 0 to 15 do
     for mx := 0 to 15 do begin
       DrawSquare(mx, my, False);
@@ -186,9 +186,9 @@ begin
     DrawMap
   else begin
     TextRend.ClearScreen;
-    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+    Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   end;
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT, C_Msg.TEXT_RIGHT, C_Msg.TEXT_TOP, White, 'Companion Tools');
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT, C_MSG.TEXT_RIGHT, C_MSG.TEXT_TOP, White, 'Companion Tools');
 end;
 
 { The Map tool, on the Tools screen's map: a cursor, from the party's square, which the arrows move; the note on its
@@ -212,7 +212,7 @@ begin
   cy := GDVars.gMapY;
   repeat
     DrawSquare(cx, cy, True);
-    TextRend.ClearRect(MAP_COL, NOTE_ROW, C_Msg.TEXT_RIGHT - 1, NOTE_ROW);
+    TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
     TextRend.DisplayString(MAP_COL, NOTE_ROW, LightGreen, StrUtil.NumStr(cx) + ',' + StrUtil.NumStr(cy) + ' ');
     TextRend.DisplayString(MAP_COL + 6, NOTE_ROW, Yellow, MapNotes.Note(script, map, cx, cy));
     MenuCore.arrowsToCaller := True;
@@ -242,7 +242,7 @@ begin
       cy := ny;
     end;
   until (not ext) and (ch in [C_Keys.NONE, 'E']);
-  TextRend.ClearRect(MAP_COL, NOTE_ROW, C_Msg.TEXT_RIGHT - 1, NOTE_ROW);
+  TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
   TextRend.ClearBottomLine;
 end;
 

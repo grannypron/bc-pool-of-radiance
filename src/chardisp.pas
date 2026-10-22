@@ -69,7 +69,7 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_Area, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
+uses CharHlp, Crt, C_Area, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
 
 var
@@ -193,12 +193,12 @@ var
   top: Byte;
 begin
   if GDVars.suppressDrawingBorderFlag <> 0 then
-    top := C_Msg.MESSAGE_TOP + 1
+    top := C_MSG.MESSAGE_TOP + 1
   else begin
-    top := C_Msg.MESSAGE_TOP;
-    Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+    top := C_MSG.MESSAGE_TOP;
+    Border.DrawBorder(C_MSG.TEXT_LEFT, top, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   end;
-  Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, top, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   OpenMessageWindow := top;
 end;
 
@@ -210,14 +210,14 @@ var
   top: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(C_Msg.COMBAT_LEFT, row, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
-    CharDisp.DisplayCreatureName(creature, C_Msg.COMBAT_LEFT, row, False);
-    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, row + 1, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM, LightGreen, True,
+    Border.ClearBox(C_MSG.COMBAT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+    CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
+    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, LightGreen, True,
                                   s);
   end else begin
     top := CharDisp.OpenMessageWindow;
     CharDisp.DisplayCreatureName(creature, 1, top + 1, False);
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1 + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True,
+    TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, top + 1 + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, LightGreen, True,
                                   s);
   end;
   if pause then begin
@@ -237,13 +237,13 @@ procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then begin
     if first then
-      Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
-    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM,
+      Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM,
                                   color, first, s);
   end else begin
     if first then
       messageTop := CharDisp.OpenMessageWindow;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, messageTop + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, color, first,
+    TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, messageTop + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, color, first,
                                   s);
   end;
 end;
@@ -259,9 +259,9 @@ var
   left: Byte;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then
-    left := C_Msg.COMBAT_LEFT
+    left := C_MSG.COMBAT_LEFT
   else
-    left := C_Msg.TEXT_LEFT;
+    left := C_MSG.TEXT_LEFT;
   CharDisp.MessageText(line1, LightGreen, True);
   { a line that ended short of the window's edge leaves the cursor on it: line2 starts on the next }
   if GDVars.curCol <> left then begin
@@ -277,9 +277,9 @@ end;
 procedure ClearMessageWindow;
 begin
   if GDVars.ifcState = C_Ifc.COMBAT then
-    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM)
+    Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM)
   else
-    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
 end;
 
 { Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to train)
@@ -548,8 +548,8 @@ end;
   the picture inset border when asked. }
 procedure DrawNoncombatWindows(inset: Boolean);
 begin
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
   Border.DrawWindow(1, 1, 15, 15, 0, White, '');
   if inset then
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
@@ -561,7 +561,7 @@ end;
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of
-    C_Ifc.MAIN_MENU: Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+    C_Ifc.MAIN_MENU: Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM,
                                        0, White, '');
     C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);

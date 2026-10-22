@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -121,7 +121,7 @@ var
   colour: Byte;
 begin
   HeldClasses(held, count);
-  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), NAME_COL, 2, False);
   for i := 0 to count - 1 do begin
     colour := LightGreen;
@@ -295,7 +295,7 @@ begin
     item^.value := per;
   end;
   repeat
-    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
     TextRend.DisplayString(NAME_COL, LEVEL_ROW, White, Named(item));
     if pos <> 0 then
       TextRend.DisplayString(NAME_COL, LEVEL_ROW + 2, LightGreen, 'Left and Right change its plus.')
@@ -367,7 +367,7 @@ begin
   idx := 0;
   redraw := True;
   sel := nil;
-  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   key := MenuCore.MenuVertical('Add: ', 'Take', LightMagenta, LightGreen, White, 1, 1, 38, 22, head, True, redraw,
                                idx, sel);
   code := 0;
@@ -490,7 +490,7 @@ begin
         end;
     redraw := True;
     sel := nil;
-    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
     key := MenuCore.MenuVertical('Known: ', 'Toggle', LightMagenta, LightGreen, White, 1, 1, 38, 22, head, True,
                                  redraw, idx, sel);
     k := 0;

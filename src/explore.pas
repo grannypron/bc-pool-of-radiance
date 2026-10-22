@@ -16,7 +16,7 @@ var
 
 implementation
 
-uses Types, Crt, C_Area, C_TIME, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
+uses Types, Crt, C_Area, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
   C_Keys, C_Level, C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
@@ -438,7 +438,7 @@ begin
   end;
   GDVars.locTypePrev := GDVars.gLocType;
   if GDVars.bottomMsgCleared = 0 then begin
-    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
     GDVars.bottomMsgCleared := 1;
   end;
   MapMainMenu := c;

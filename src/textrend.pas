@@ -24,7 +24,7 @@ procedure DisplayCentered(left, right, row, color: Byte; s: string);
 
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
 
-{ DisplayMessageWindow in the message window, the screen's lower right (C_Msg.TEXT_LEFT, MESSAGE_TOP to TEXT_RIGHT,
+{ DisplayMessageWindow in the message window, the screen's lower right (C_MSG.TEXT_LEFT, MESSAGE_TOP to TEXT_RIGHT,
   TEXT_BOTTOM). }
 procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
 
@@ -51,7 +51,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
-uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_Msg{$IFDEF FPC}, Host{$ENDIF};
+uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_MSG{$IFDEF FPC}, Host{$ENDIF};
 
 {$IFDEF FPC}
 { the native build's count of the same ticks }
@@ -111,7 +111,7 @@ end;
 
 procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
 begin
-  TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, color,
+  TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, color,
                                 clearFirst, s);
 end;
 

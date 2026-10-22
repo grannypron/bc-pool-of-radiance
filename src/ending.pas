@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp,
+uses Types, Crt, C_Tile, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -66,7 +66,7 @@ begin
   savedIfc := GDVars.ifcState;
   GDVars.ifcState := C_Ifc.WON_GAME;
   finalPic := nil;
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');
   TextRend.DisplayString(1, 18, LightGreen, 'The spirit of Tyranthraxus flares up');
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
@@ -88,7 +88,7 @@ begin
     Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
     Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');
   TextRend.DisplayString(1, 18, LightGreen, 'I possessed.  I cannot be defeated!"');
   TextRend.DisplayString(1, 19, LightGreen, 'With the power of the pool of radiance');
@@ -96,7 +96,7 @@ begin
   TextRend.DisplayString(1, 21, LightGreen, 'I will still rule, by possessing one');
   TextRend.DisplayString(1, 22, LightGreen, 'of you!"');
   Ending.PlayFinalAnim(3, 1, 7, Word(10 - GDVars.gameDelay) * 5 div 2);
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"No Lord Bane!  I can still rule here!');
   TextRend.DisplayString(1, 18, LightGreen, 'I have not failed.  Do not call me back');
   TextRend.DisplayString(1, 19, LightGreen, 'through the pool!"');

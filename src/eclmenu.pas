@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_Dir,
+uses Crt, C_Area, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -498,13 +498,13 @@ begin
     msg := '  ' + creature^.name + ' dies. '
   else
     msg := '  ' + creature^.name + ' is hit FOR ' + StrUtil.NumStr(dmg) + ' points of Damage.';
-  if GDVars.curRow > C_Msg.TEXT_BOTTOM then begin
-    GDVars.curRow := C_Msg.MESSAGE_TOP;
+  if GDVars.curRow > C_MSG.TEXT_BOTTOM then begin
+    GDVars.curRow := C_MSG.MESSAGE_TOP;
     pause := True;
     TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
   end else
     pause := False;
-  GDVars.curCol := C_Msg.TEXT_RIGHT;
+  GDVars.curCol := C_MSG.TEXT_RIGHT;
   TextRend.ShowMessage(White, pause, msg);
   CharHlp.InflictDamage(creature, dmg);
   TextRend.ClearRect(17, 1, 38, 15);

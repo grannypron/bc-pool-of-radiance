@@ -13,7 +13,7 @@ procedure GameLoop;
 
 implementation
 
-uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
+uses Types, C_Area, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
@@ -123,8 +123,8 @@ begin
   eclStop := 1;
   Inc(GDVars.eclIp);
   FreeEclStack;
-  GDVars.curRow := C_Msg.MESSAGE_TOP;
-  GDVars.curCol := C_Msg.TEXT_LEFT;
+  GDVars.curRow := C_MSG.MESSAGE_TOP;
+  GDVars.curCol := C_MSG.TEXT_LEFT;
   GDVars.ecl3dClearFlag := 0;
 end;
 
@@ -432,9 +432,9 @@ begin
   if GDVars.curOpcode = C_Ecl.PRINT then
     TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings^[1])
   else begin
-    GDVars.curRow := C_Msg.MESSAGE_TOP;
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+    GDVars.curRow := C_MSG.MESSAGE_TOP;
+    GDVars.curCol := C_MSG.TEXT_LEFT;
+    TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM,
                                   LightGreen, True,
                                   GDVars.gbStrings^[1]);
   end;
@@ -633,8 +633,8 @@ begin
     count := Types.GB_STRING_LAST;
   MenuCore.AllocStringList(count, list);
   head := list;
-  GDVars.curCol := C_Msg.TEXT_LEFT;
-  GDVars.curRow := C_Msg.MESSAGE_TOP;
+  GDVars.curCol := C_MSG.TEXT_LEFT;
+  GDVars.curRow := C_MSG.MESSAGE_TOP;
   TextRend.ShowMessage(LightGreen, True, msg);
   while list <> nil do begin
     list^.name := GDVars.gbStrings^[i];
@@ -648,14 +648,14 @@ begin
   repeat
     list := head;
     redraw := True;
-    EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1,
-                            C_Msg.TEXT_RIGHT,
-                            C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
+    EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_MSG.TEXT_LEFT, GDVars.curRow + 1,
+                            C_MSG.TEXT_RIGHT,
+                            C_MSG.TEXT_BOTTOM, list, False, redraw, idx, list);
   until (list <> nil) or (head = nil);
   EclVars.WriteGbvm(address, idx);
   { the menu leaves list on the chosen line (nil on Escape), so free from the head }
   MenuCore.FreeStringList(head);
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
 end;
 
 { HMENU: build a '~A ~B ~C' horizontal menu from the var 2 strings that follow (1 to 20) and store the chosen index at
@@ -1149,8 +1149,8 @@ var
   procedure MonstersFlee;
   begin
     EclVars.WriteGbvm(address, 0);
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    GDVars.curRow := C_Msg.MESSAGE_TOP;
+    GDVars.curCol := C_MSG.TEXT_LEFT;
+    GDVars.curRow := C_MSG.MESSAGE_TOP;
     TextRend.ShowMessage(LightGreen, True, 'The monsters flee.');
   end;
 
@@ -1180,8 +1180,8 @@ begin
     anim := GDVars.eclGraphics and GDVars.picDrawn;
     clearW := True;
     waited := False;
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    GDVars.curRow := C_Msg.MESSAGE_TOP;
+    GDVars.curCol := C_MSG.TEXT_LEFT;
+    GDVars.curRow := C_MSG.MESSAGE_TOP;
     { the message for the distance, else the next one after it that is set, wrapping round the three }
     if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 2 then begin
       k := GDVars.zone1^[C_Gbvm.MONSTER_DIST] + 1;
@@ -1391,10 +1391,10 @@ begin
     q := q^.nextCharAddr;
   end;
   if GDVars.partyDefeated then begin
-    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'The END!');
+    Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'The END!');
     GDVars.curCol := 2;
     GDVars.curRow := 2;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+    TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM,
                                   LightGreen, True, 'The entire party is killed!');
     Delay(3000);
   end;
@@ -1431,7 +1431,7 @@ end;
 procedure EclPrintRet;
 begin
   Inc(GDVars.eclIp);
-  GDVars.curCol := C_Msg.TEXT_LEFT;
+  GDVars.curCol := C_MSG.TEXT_LEFT;
   Inc(GDVars.curRow);
   GDVars.protNewLine := 0;
 end;
@@ -1461,7 +1461,7 @@ begin
     if (DUEL_WHO[i].script = GDVars.eclScriptId) and (DUEL_WHO[i].at = at) then
       back := DUEL_WHO[i].back;
   EclVars.LoadEclVars(1);
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   msg := GDVars.gbStrings^[1];
   picked := GDVars.curChar;
   CharDisp.SelectChar(msg, back <> 0, picked);
@@ -1670,7 +1670,7 @@ begin
     end else
       done := True;
   { v1.3 stopped only at the end byte, with a Byte offset that wrapped, so text with none looped forever }
-  until done or (GDVars.curCol > C_Msg.TEXT_RIGHT);
+  until done or (GDVars.curCol > C_MSG.TEXT_RIGHT);
   Inc(GDVars.curRow);
 end;
 

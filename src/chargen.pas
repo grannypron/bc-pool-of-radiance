@@ -29,7 +29,7 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice,
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -92,7 +92,7 @@ begin
   GDVars.ifcState := C_Ifc.MAIN_MENU;
   while True do begin
     if redraw then begin
-      Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black, '');
+      Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
       if GDVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
@@ -409,7 +409,7 @@ begin
             end;
     end;
   { the race screen: the bottom box goes first, so the top boxes' gold corners stay on the row they share with it }
-  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   Border.DrawBorder(1, RACE_TOP_BOTTOM + 2, 38, 22, 0);
   Border.DrawBorder(1, 1, RACE_SPLIT_COL - 1, RACE_TOP_BOTTOM, 0);
   Border.DrawBorder(RACE_SPLIT_COL + 1, 1, 38, RACE_TOP_BOTTOM, 0);
@@ -437,7 +437,7 @@ begin
         CharGen.ShowRaceInfo(sel);
   until ch = C_Keys.ENTER;
   { back to the one frame the following lists use }
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
   if sel = 6 then
     { 6 -> Human (7) }
     Inc(sel);
@@ -1139,7 +1139,7 @@ begin
       TextRend.PrintAndPause('No class can train further', Yellow);
       Exit;
     end;
-    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
     row := 4;
     CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
@@ -1193,7 +1193,7 @@ var
   newEvil: Boolean;
   newPaladin: Boolean;
 begin
-  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   SaveLoad.LoadCharlist(list);
   if list = nil then Exit;
   idx := 0;
@@ -1381,7 +1381,7 @@ begin
     if (portraitBody = 0) or (portraitBody > nBodies) then
       portraitBody := 1;
     TextRend.ClearScreen;
-    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+    Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
     Centered(2, White, name);
     Border.DrawBorder(PIC_COL[1], PIC_ROW, PIC_COL[1] + 10, PIC_ROW + 10, 0);
     Centered(HINT_ROW, LightGreen, 'Arrow keys for selection');

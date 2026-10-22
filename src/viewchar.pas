@@ -25,7 +25,7 @@ implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_STATUS, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp, MoneyCal, C_Msg, ClassCal;
+  CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -62,7 +62,7 @@ var
   multi: Boolean;
 begin
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(creature, 1, 1, False);
   { C_Npc.FLAG set: not a party member }
   if CharHlp.IsNpc(creature) then
@@ -246,15 +246,15 @@ const
 procedure MoreHeading(creature: Types.PCharRecord);
 begin
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
 end;
 
 { A More Info page's top (MoreHeading) with title centred in white on row 4, under the name and a blank line. }
 procedure MoreTitle(creature: Types.PCharRecord; title: Types.TStr40);
 begin
   ViewChar.MoreHeading(creature);
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 4, White, title);
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, 4, White, title);
 end;
 
 { The Game Stats page: the creature's twelve counters in this game, from row 6, coin in gold; b nil reads every counter
@@ -696,7 +696,7 @@ begin
     v[15] := CharHlp.BaseItem(itemType)^.dmgLgDice;
   end;
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   for i := 1 to 15 do begin
     Str(v[i], s);
     TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
@@ -755,7 +755,7 @@ begin
       end;
       if needRedraw or (GDVars.redrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
-        Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+        Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
         CharDisp.DisplayCreatureName(creature, 1, 1, True);
         TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
         Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
