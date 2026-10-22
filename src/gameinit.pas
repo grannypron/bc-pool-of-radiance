@@ -377,7 +377,7 @@ begin
     MapTiles.LoadIconAnim('COMSPR', i, i + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
   opened := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':', False,
-                                 itemsFile);
+                                 False, itemsFile);
   Seek(itemsFile, 2);
   { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
   BlockRead(itemsFile, GDVars.baseItems^, SizeOf(GDVars.baseItems^), itemsRead);

@@ -23,9 +23,12 @@ procedure WriteBlock(col, row, attr, count: Byte);
 
 procedure PromptBox(attr: Byte; message: Types.TStr40);
 
+{ PromptBox, returning the key (#0 for an extended key). }
+function PromptKey(attr: Byte; message: Types.TStr40): Char;
+
 procedure OverlayPrompt;
 
-function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Boolean;
+function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, canGiveUp: Boolean;
   var f: file): Boolean;
 
 { The drive the game's data is read from: GDVars.gameDir's, or the current drive while GDVars.gameDir is empty (GameInit
@@ -70,7 +73,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, C_Keys, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -151,9 +154,14 @@ end;
 procedure PromptBox(attr: Byte; message: Types.TStr40);
 var key: Char;
 begin
+  key := DaxIo.PromptKey(attr, message);
+end;
+
+function PromptKey(attr: Byte; message: Types.TStr40): Char;
+begin
   DaxIo.WriteBlock(0, 24, Black, 40);
   DaxIo.WriteString(0, 24, attr, message);
-  key := GameIo.ReadAnyKey;
+  PromptKey := GameIo.ReadAnyKey;
   DaxIo.WriteBlock(0, 24, Black, 40);
 end;
 
@@ -188,15 +196,18 @@ end;
 
 { OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), say which file is missing,
   by its full path (the name expanded from the current directory), then show promptMsg (attr 14) through PromptBox,
-  each until a key, and retry. On success open the caller's untyped file f for reading only (FileUtil.OpenReadOnly,
-  recsize 1), so a read-only file opens too: every caller only reads. Returns found }
-function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Boolean;
+  each until a key, and retry; with canGiveUp, Escape at promptMsg gives up (a save disk's file, which may be gone for
+  good, #794; the game's data has no way on without its file). On success open the caller's untyped file f for reading
+  only (FileUtil.OpenReadOnly, recsize 1), so a read-only file opens too: every caller only reads. Returns found }
+function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, canGiveUp: Boolean;
   var f: file): Boolean;
 var
   found: Boolean;
+  gaveUp: Boolean;
   full: Types.TPathStr;
   msg: Types.TStr40;
 begin
+  gaveUp := False;
   repeat
     found := DaxIo.FileExists(fileName);
     if (not found) and not noPrompt then begin
@@ -206,9 +217,9 @@ begin
         full := '...' + Copy(full, Length(full) - 25, 26);
       msg := 'Not found: ' + full;
       DaxIo.PromptBox(Yellow, msg);
-      DaxIo.PromptBox(Yellow, promptMsg);
+      gaveUp := (DaxIo.PromptKey(Yellow, promptMsg) = C_Keys.ESC) and canGiveUp;
     end;
-  until found or noPrompt;
+  until found or noPrompt or gaveUp;
   if found then
     found := FileUtil.OpenReadOnly(f, fileName);
   OpenWithRetry := found;
@@ -308,7 +319,7 @@ function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2:
 var nread: Word;
 begin
   if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
-                         GDVars.dsSuppressingInsertDiskFlag, f1) then begin
+                         GDVars.dsSuppressingInsertDiskFlag, False, f1) then begin
     { read-only, as f1 is }
     if not FileUtil.OpenReadOnly(f2, dirName + ext) then begin
       Close(f1);

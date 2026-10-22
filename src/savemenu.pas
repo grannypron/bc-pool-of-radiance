@@ -44,12 +44,16 @@ function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): B
 { Write slot letter's savgam<x>.inf. A failed write leaves the old one (FileUtil.WriteRecord). }
 procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 
-{ 'Put save disk in X:', for the save directory's drive. }
+{ 'Put save disk in X: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
 
+{ Ask for the save disk (SaveDiskMsg) on the bottom line until a key: False when it was Escape, giving up (SSI asked
+  until the disk was there, so a folder that could not be written held the player for good, #794). }
+function AskSaveDisk: Boolean;
+
 { Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
-  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds. A drive root such as C:\
-  cannot be made and is left alone. }
+  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds or Escape gives up
+  (AskSaveDisk). A drive root such as C:\ cannot be made and is left alone. }
 procedure CheckSaveDir;
 
 implementation
@@ -383,16 +387,22 @@ begin
   AskDescription := key = C_Keys.ENTER;
 end;
 
-{ 'Put save disk in C:', for the save directory's drive. }
+{ 'Put save disk in C: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
 begin
-  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ':';
+  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ': (Esc gives up)';
+end;
+
+function AskSaveDisk: Boolean;
+begin
+  AskSaveDisk := TextRend.DisplayAndReadKey(Yellow, SaveMenu.SaveDiskMsg) <> C_Keys.ESC;
 end;
 
 procedure CheckSaveDir;
 var
   ioRes: Integer;
   i: Byte;
+  made: Boolean;
 begin
   if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
   repeat
@@ -404,9 +414,8 @@ begin
       end;
     MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
     ioRes := IOResult;
-    if (ioRes <> 0) and (ioRes <> 5) then
-      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
-  until (ioRes = 0) or (ioRes = 5);
+    made := (ioRes = 0) or (ioRes = 5);
+  until made or not SaveMenu.AskSaveDisk;
 end;
 
 end.
