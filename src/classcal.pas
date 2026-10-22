@@ -15,6 +15,11 @@ procedure RecalcSaves(creature: Types.PCharRecord);
 
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 
+{ True when creature's readied armor bars its thief abilities: body armor other than leather, or a shield. A thief
+  works only in leather or no armor and with no shield (1st-edition PHB), which binds a multiclass thief too (#743). The
+  equipment slots must be linked (CharHlp.LinkEquipped). }
+function ArmorBarsThiefSkills(creature: Types.PCharRecord): Boolean;
+
 { The parts of creature's thief skill j (1..8, thiefSkills' order): base, thiefBase's value for the thief level; racial,
   raceAdj's; dexterity, dexAdj's for skills 1..5 and 0 for the others. A creature without thief levels takes the level
   1 row. }
@@ -73,7 +78,7 @@ function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): Long
 implementation
 
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, Dice;
+uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, Dice;
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
@@ -183,21 +188,35 @@ end;
 
 { Set each thief skill (ThiefSkillParts, ThiefSkill) to its base for the thief level plus the racial adjustment (a
   racial penalty larger than the base zeroes the skill), plus the Dexterity adjustment for skills 1..5, stopping at 0
-  (a Dexterity 9 human's Move Silently would be -5). A creature without thief levels keeps its skills as they are. }
+  (a Dexterity 9 human's Move Silently would be -5). Armor that bars them (ArmorBarsThiefSkills) zeroes every skill, so
+  every reader of thiefSkills (Open Locks, the scripts' party checks) sees it. A creature without thief levels keeps
+  its skills as they are. }
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
 var
   j: Byte;
   base: ShortInt;
   racial: ShortInt;
   dexterity: ShortInt;
+  barred: Boolean;
 begin
   if creature^.classLevels[C_Level.THIEF] < 1 then
     Exit;
+  barred := ClassCal.ArmorBarsThiefSkills(creature);
   { 8 = High(thiefSkills) }
   for j := 1 to 8 do begin
     ClassCal.ThiefSkillParts(creature, j, base, racial, dexterity);
-    creature^.thiefSkills[j] := ClassCal.ThiefSkill(base, racial, dexterity);
+    if barred then
+      creature^.thiefSkills[j] := 0
+    else
+      creature^.thiefSkills[j] := ClassCal.ThiefSkill(base, racial, dexterity);
   end;
+end;
+
+function ArmorBarsThiefSkills(creature: Types.PCharRecord): Boolean;
+begin
+  ArmorBarsThiefSkills := (creature^.equipped[C_Equip.SHIELD] <> nil) or
+                          ((creature^.equipped[C_Equip.ARMOR] <> nil) and
+                           (creature^.equipped[C_Equip.ARMOR]^.itemType <> C_Item.LEATHER_ARMOR));
 end;
 
 { dexAdj covers Dexterity 9..25, a thief's minimum to Deities & Demigods' highest; a Dexterity outside that range uses

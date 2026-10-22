@@ -67,7 +67,7 @@ implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
   C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj, Dice, Blit;
+  CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
   { Primary and secondary attack counts. }
@@ -1198,12 +1198,12 @@ begin
   end;
 end;
 
-{ Backstabbing requires a thief in leather or no armor, using a club, dagger, broad, long or short sword, or no weapon.
+{ Backstabbing requires a thief in leather or no armor and with no shield (ClassCal.ArmorBarsThiefSkills), using a club,
+  dagger, broad, long or short sword, or no weapon.
   The target must have been attacked more than once this round and face away from the attacker. }
 function IsBackstab(att, def: Types.PCharRecord): Boolean;
 var
   weapon: Types.PItemRec;
-  armor: Types.PItemRec;
   wItem: Byte;
   can: Boolean;
 begin
@@ -1211,9 +1211,8 @@ begin
   weapon := att^.equipped[C_Equip.WEAPON];
   if weapon <> nil then
     wItem := weapon^.itemType;
-  armor := att^.equipped[C_Equip.ARMOR];
   if att^.classLevels[C_Level.THIEF] > 0 then
-    if (armor = nil) or (armor^.itemType = C_Item.LEATHER_ARMOR) then
+    if not ClassCal.ArmorBarsThiefSkills(att) then
       if (weapon = nil) or (wItem = C_Item.CLUB) or (wItem = C_Item.DAGGER)
          or ((wItem >= C_Item.BROAD_SWORD) and (wItem <= C_Item.SHORT_SWORD)) then
         can := True;

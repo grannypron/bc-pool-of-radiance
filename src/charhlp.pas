@@ -157,7 +157,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 implementation
 
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell;
+  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell, ClassCal;
 
 const
   { movement in body armour, by its weight in coins: up to LIGHT_ARMOR the creature's own, up to MEDIUM_ARMOR
@@ -424,9 +424,9 @@ end;
 
 { Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
   calculate armor class, rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster
-  warrior, else 1) and movement. An equipped Bag of Holding (name component 'Holding') removes up to
-  BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32
-  bits and stored as at most MAX_ENCUMBRANCE. }
+  warrior, else 1), movement and, for a thief, the thief skills (ClassCal.RecalcThiefSkills). An equipped Bag of
+  Holding (name component 'Holding') removes up to BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the
+  equipped items' weight. The weight is summed in 32 bits and stored as at most MAX_ENCUMBRANCE. }
 procedure RecalcStats(creature: Types.PCharRecord);
 var
   j: Byte;
@@ -516,6 +516,9 @@ begin
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
+  { readying or removing armor or a shield, or a change of Dexterity, changes the thief skills }
+  if creature^.classLevels[C_Level.THIEF] > 0 then
+    ClassCal.RecalcThiefSkills(creature);
 end;
 
 { True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }

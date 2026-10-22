@@ -381,7 +381,8 @@ end;
 
 { The Thief page (#685): each thief skill's name, then its racial and Dexterity adjustments and its base for the thief
   level (ClassCal.ThiefSkillParts), and the total the game uses (thiefSkills), which is stopped at 0 and so need not be
-  the sum of the three. All are percentages, shown without the sign, which the game's font does not have. The window
+  the sum of the three; armor that bars the skills (ClassCal.ArmorBarsThiefSkills) makes every total 0, which a line
+  under the table explains. All are percentages, shown without the sign, which the game's font does not have. The window
   has 36 columns where the design has 44: the names start at column 2 and the headings fill 18..37, one space apart,
   each figure right-aligned under its heading. }
 procedure DrawThief(p: Types.PCharRecord);
@@ -416,6 +417,8 @@ begin
     s := ViewChar.SignedNum(p^.thiefSkills[j]);
     TextRend.DisplayString(38 - Length(s), 4 + j, White, s);
   end;
+  if ClassCal.ArmorBarsThiefSkills(p) then
+    TextRend.DisplayString(2, 14, Yellow, 'Armor or shield bars these skills');
 end;
 
 { The More Info page for the current character (#592, #685): its bottom line, More Info: Saves sTats Kills tHief Exit,
