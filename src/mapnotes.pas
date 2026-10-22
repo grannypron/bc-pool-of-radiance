@@ -7,6 +7,8 @@ unit MapNotes;
 
 interface
 
+uses FileUtil;
+
 const
   MAX_NOTES = 128;
   NOTE_LEN = 30;
@@ -27,15 +29,13 @@ function SetNote(script, map: Byte; x, y: ShortInt; text: TNoteText): Boolean;
 { Remove the note on square (x, y) of the area of script and map, if it has one. }
 procedure ClearNote(script, map: Byte; x, y: ShortInt);
 
-{ Write the notes as file fn: True when they were written (FileUtil.WriteRecord). }
-function WriteSlot(fn: String): Boolean;
+{ Write the notes as file name of save s (FileUtil.WriteToSet): True when they were written. }
+function WriteSlot(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 
 { Read the notes from file fn; a missing, short or foreign file leaves none. }
 procedure ReadSlot(fn: String);
 
 implementation
-
-uses FileUtil;
 
 const
   SIG = 'NOTE';
@@ -127,9 +127,9 @@ begin
   end;
 end;
 
-function WriteSlot(fn: String): Boolean;
+function WriteSlot(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 begin
-  WriteSlot := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
+  WriteSlot := FileUtil.WriteToSet(s, name, rec, SizeOf(rec));
 end;
 
 procedure ReadSlot(fn: String);

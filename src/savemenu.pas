@@ -7,7 +7,7 @@ unit SaveMenu;
 
 interface
 
-uses Types;
+uses Types, FileUtil;
 
 const
   { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
@@ -41,8 +41,12 @@ function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boo
   False with both empty. }
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
 
-{ Write slot letter's savgam<x>.inf: True when it was. A failed write leaves the old one (FileUtil.WriteRecord). }
-function WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
+{ Slot letter's file of extension ext: savgam<x><ext>, its name alone / with the save directory before it. }
+function SlotName(letter: Char; ext: Types.TStr8): FileUtil.TSetName;
+function SlotFile(letter: Char; ext: Types.TStr8): Types.TPathStr;
+
+{ Write slot letter's savgam<x>.inf as a file of save s (FileUtil.WriteToSet): True when it was written. }
+function WriteSlotInfo(var s: FileUtil.TFileSet; letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
 
 { 'Put save disk in X: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
@@ -59,7 +63,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil
+uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil
   {$IFDEF FPC}, NatFile{$ENDIF};
 
 const
@@ -108,9 +112,14 @@ var
   sel: Byte;
   top: Byte;
 
+function SlotName(letter: Char; ext: Types.TStr8): FileUtil.TSetName;
+begin
+  SlotName := 'savgam' + letter + ext;
+end;
+
 function SlotFile(letter: Char; ext: Types.TStr8): Types.TPathStr;
 begin
-  SlotFile := GDVars.dsSaveDirectory + 'savgam' + letter + ext;
+  SlotFile := GDVars.dsSaveDirectory + SaveMenu.SlotName(letter, ext);
 end;
 
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
@@ -129,7 +138,7 @@ begin
   ReadSlotInfo := ok;
 end;
 
-function WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
+function WriteSlotInfo(var s: FileUtil.TFileSet; letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
 var
   rec: TSlotInfoFile;
 begin
@@ -138,8 +147,7 @@ begin
   rec.version := INFO_VERSION;
   rec.desc := desc;
   rec.area := area;
-  { a failed write leaves the old one }
-  WriteSlotInfo := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
+  WriteSlotInfo := FileUtil.WriteToSet(s, SaveMenu.SlotName(letter, '.inf'), rec, SizeOf(rec));
 end;
 
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as hh:mm and

@@ -15,6 +15,15 @@ var
   back: Types.TSpellSlots;
   i: Integer;
 
+{ Write c[1]'s usual spells into folder dir as a save of their own: True when they are in place. }
+function WriteMem(dir: FileUtil.TPathName): Boolean;
+var
+  s: FileUtil.TFileSet;
+begin
+  FileUtil.NewSet(s, dir);
+  WriteMem := UsualSpl.WriteUsualSpells(s, c[1], FN) and FileUtil.CommitSet(s);
+end;
+
 { Spells marked by n, so one character's can be told from another's. }
 procedure MarkSpells(n: Byte);
 var
@@ -70,12 +79,12 @@ begin
 
   { the .mem sidecar }
   FileUtil.DeleteFile(FN + '.mem');
-  TestKit.Check(UsualSpl.WriteUsualSpells(c[1], FN), 'a character with none needs no file');
+  TestKit.Check(WriteMem(''), 'a character with none needs no file');
   TestKit.Check(not FileUtil.ReadRecord(FN + '.mem', back, 1), 'and has none');
   MarkSpells(30);
   UsualSpl.SetUsualSpells(c[1], spells);
-  TestKit.Check(not UsualSpl.WriteUsualSpells(c[1], 'NODIR\' + FN), 'a write into a missing folder says it failed');
-  TestKit.Check(UsualSpl.WriteUsualSpells(c[1], FN), 'the spells are written');
+  TestKit.Check(not WriteMem('NODIR\'), 'a write into a missing folder says it failed');
+  TestKit.Check(WriteMem(''), 'the spells are written');
   UsualSpl.ForgetUsualSpells(c[1]);
   UsualSpl.ReadUsualSpells(c[1], FN);
   TestKit.Check(HasMarked(c[1], 30), 'spells written and read back');
@@ -89,9 +98,10 @@ begin
   c[1]^.name := 'HERO1';
   UsualSpl.ReadUsualSpells(c[1], FN);
   TestKit.Check(HasMarked(c[1], 30), 'the right character reads it');
-  FileUtil.DeleteFile(FN + '.mem');
+  UsualSpl.ForgetUsualSpells(c[1]);
+  TestKit.Check(WriteMem(''), 'saving a character that has none now');
   UsualSpl.ReadUsualSpells(c[1], FN);
-  TestKit.Check(not UsualSpl.GetUsualSpells(c[1], back), 'a missing file leaves none');
+  TestKit.Check(not UsualSpl.GetUsualSpells(c[1], back), 'erases its old file, and a missing file leaves none');
 
   { a full table: characters 1..7 are the party, 8 is not }
   for i := 1 to Types.MAX_PARTY do begin

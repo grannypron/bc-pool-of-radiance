@@ -3,11 +3,20 @@
 {$I COMPILER.INC}
 program TMapNote;
 
-uses MapNotes, TestKit;
+uses FileUtil, MapNotes, TestKit;
 
 var
   i: Byte;
   ok: Boolean;
+
+{ Write the notes as file name in folder dir, a save of their own: True when they are in place. }
+function WriteNotes(dir: FileUtil.TPathName; name: FileUtil.TSetName): Boolean;
+var
+  s: FileUtil.TFileSet;
+begin
+  FileUtil.NewSet(s, dir);
+  WriteNotes := MapNotes.WriteSlot(s, name) and FileUtil.CommitSet(s);
+end;
 
 begin
   TestKit.Start('TMAPNOTE');
@@ -22,8 +31,8 @@ begin
   ok := MapNotes.SetNote(18, 1, 5, 8, '');
   TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 5, 8), 'an empty note removes it');
   TestKit.CheckEqualsS('next door', MapNotes.Note(18, 1, 6, 8), 'leaving the others');
-  TestKit.Check(MapNotes.WriteSlot('TMAPNOTE.NTS'), 'the notes are written');
-  TestKit.Check(not MapNotes.WriteSlot('NODIR\TMAPNOTE.NTS'), 'a write into a missing folder says it failed');
+  TestKit.Check(WriteNotes('', 'TMAPNOTE.NTS'), 'the notes are written');
+  TestKit.Check(not WriteNotes('NODIR\', 'TMAPNOTE.NTS'), 'a write into a missing folder says it failed');
   MapNotes.Clear;
   TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 6, 8), 'cleared, there are none');
   MapNotes.ReadSlot('TMAPNOTE.NTS');
