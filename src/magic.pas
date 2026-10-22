@@ -194,7 +194,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj;
+  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil;
 
 var
   { the menu string list }
@@ -222,6 +222,8 @@ const
   SCROLL_MARK = '-';
   { the highest spell level in spellTable (Restoration's 7) }
   SPELL_LEVEL_LAST = 7;
+  { the columns a spell list's line has, from the list window's left edge to its right }
+  LINE_WIDTH = 38;
 
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forward;
 
@@ -434,15 +436,77 @@ begin
   end;
 end;
 
-{ Add the spell in item's slot to the Cast list as line number lines, with item in spellScrolls, and count the line.
-  SCROLL_MARK goes in the indent column before the name, in place of the '*' a spell queued for scribing gets. Nothing
-  is added once the list is full. }
-procedure AddScrollLine(creature: Types.PCharRecord; item: Types.PItemRec; slot: Byte; var lines: Byte);
+{ Add ' (xN)' to spellList's last line when copies is two or more, cutting the spell's name when the line would run
+  past LINE_WIDTH. }
+procedure AddCopies(copies: Byte);
+var
+  p: Types.PItemRec;
+  s: Types.TStr20;
+begin
+  if (copies < 2) or (spellList = nil) then Exit;
+  p := spellList;
+  while p^.next <> nil do
+    p := p^.next;
+  s := ' (x' + StrUtil.NumStr(copies) + ')';
+  if Length(p^.name) + Length(s) > LINE_WIDTH then
+    p^.name[0] := Chr(LINE_WIDTH - Length(s));
+  p^.name := p^.name + s;
+end;
+
+{ The number of spells on scroll item. }
+function ScrollSpellCount(item: Types.PItemRec): Byte;
+var
+  i: Byte;
+  n: Byte;
+begin
+  n := 0;
+  for i := 1 to SizeOf(item^.spells) do
+    if CharHlp.ScrollSpellAt(item, i) <> C_SPELL.NONE then
+      Inc(n);
+  ScrollSpellCount := n;
+end;
+
+{ How many times spell is on the scrolls creature can read and use (CharHlp.CastableScroll), and the one of them to
+  read it from: the scroll with the fewest spells on it, the first in the inventory among equals, so a part-used scroll
+  is used up before a full one is started (#833). best is nil when no such scroll holds spell. }
+procedure FindScrollCopies(creature: Types.PCharRecord; spell: Byte; var copies: Byte; var best: Types.PItemRec);
+var
+  item: Types.PItemRec;
+  i: Byte;
+  held: Byte;
+  fewest: Byte;
+begin
+  copies := 0;
+  best := nil;
+  fewest := 0;
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if CharHlp.CastableScroll(creature, item) then begin
+      held := 0;
+      for i := 1 to SizeOf(item^.spells) do
+        if CharHlp.ScrollSpellAt(item, i) = spell then
+          Inc(held);
+      if held > 0 then begin
+        Inc(copies, held);
+        if (best = nil) or (Magic.ScrollSpellCount(item) < fewest) then begin
+          best := item;
+          fewest := Magic.ScrollSpellCount(item);
+        end;
+      end;
+    end;
+    item := item^.next;
+  end;
+end;
+
+{ Add spell to the Cast list as line number lines, read from scroll item (spellScrolls), with its copies counted
+  (AddCopies), and count the line. SCROLL_MARK goes in the indent column before the name, in place of the '*' a spell
+  queued for scribing gets. Nothing is added once the list is full. }
+procedure AddScrollLine(creature: Types.PCharRecord; item: Types.PItemRec; spell, copies: Byte; var lines: Byte);
 var
   p: Types.PItemRec;
 begin
   if lines <= C_SPELL.LINE_LAST then begin
-    Magic.AddSpellToList(creature, item^.spells[slot], MARK_NONE);
+    Magic.AddSpellToList(creature, spell, MARK_NONE);
     spellScrolls[lines] := item;
     Inc(lines);
     p := spellList;
@@ -450,13 +514,47 @@ begin
       p := p^.next;
     if Length(p^.name) >= 2 then
       p^.name[2] := SCROLL_MARK;
+    Magic.AddCopies(copies);
   end;
 end;
 
-{ The Cast list, level by level: creature's memorized spells (not those still being memorized), then a line for each
-  spell on each scroll creature can read and use (CastableScroll), in inventory order, marked with SCROLL_MARK. In
-  combat the memorized spells need castAllowed, as the Cast command does, and the scroll spells CharHlp.CanUseItems, as
-  Use does. }
+{ How many of creature's memorized-spell slots hold what slot i holds, or 0 when an earlier slot holds it too: a list of
+  memorized spells shows each once, where its first slot falls, with the number of copies (#833). }
+function MemorizedCopies(creature: Types.PCharRecord; i: Byte): Byte;
+var
+  j: Byte;
+  n: Byte;
+begin
+  n := 0;
+  for j := 0 to Types.SPELL_SLOT_LAST do
+    if creature^.memorizedSpells[j] = creature^.memorizedSpells[i] then begin
+      if j < i then begin
+        MemorizedCopies := 0;
+        Exit;
+      end;
+      Inc(n);
+    end;
+  MemorizedCopies := n;
+end;
+
+{ Add memorized slot i's spell to spellList as line number lines, once for all its copies (MemorizedCopies, counted by
+  AddCopies), and count the line. Nothing is added for a slot an earlier one repeats, or once the list is full. }
+procedure AddMemorizedSpell(creature: Types.PCharRecord; i: Byte; var lines: Byte);
+var
+  copies: Byte;
+begin
+  copies := Magic.MemorizedCopies(creature, i);
+  if (copies = 0) or (lines > C_SPELL.LINE_LAST) then Exit;
+  Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+  Inc(lines);
+  Magic.AddCopies(copies);
+end;
+
+{ The Cast list, level by level: creature's memorized spells (not those still being memorized), each once with its
+  copies counted (AddMemorizedSpell), then the spells on the scrolls creature can read and use (CastableScroll), each
+  once in the order the inventory first holds them, marked with SCROLL_MARK and read from the scroll FindScrollCopies
+  picks. In combat the memorized spells need castAllowed, as the Cast command does, and the scroll spells
+  CharHlp.CanUseItems, as Use does. }
 procedure AddAvailableSpells(creature: Types.PCharRecord);
 var
   lvl: Byte;
@@ -466,7 +564,12 @@ var
   memOk: Boolean;
   scrollOk: Boolean;
   item: Types.PItemRec;
+  best: Types.PItemRec;
+  copies: Byte;
+  { the scroll spells already listed }
+  listed: set of Byte;
 begin
+  listed := [];
   memOk := (GameVars.ifcState <> C_IFC.COMBAT) or (creature^.combatAddr^.castAllowed <> 0);
   scrollOk := CharHlp.CanUseItems(creature);
   lines := 0;
@@ -475,10 +578,8 @@ begin
       for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
         id := creature^.memorizedSpells[i];
         if (id >= 1) and (id <= C_SPELL.LAST) then
-          if (GameDefs.spellTable[id].levelSp = lvl) and (lines <= C_SPELL.LINE_LAST) then begin
-            Magic.AddSpellToList(creature, id, MARK_NONE);
-            Inc(lines);
-          end;
+          if GameDefs.spellTable[id].levelSp = lvl then
+            Magic.AddMemorizedSpell(creature, i, lines);
       end;
     if scrollOk then begin
       item := creature^.itemsAddr;
@@ -486,9 +587,12 @@ begin
         if CharHlp.CastableScroll(creature, item) then
           for i := 1 to SizeOf(item^.spells) do begin
             id := CharHlp.ScrollSpellAt(item, i);
-            if id <> C_SPELL.NONE then
-              if GameDefs.spellTable[id].levelSp = lvl then
-                Magic.AddScrollLine(creature, item, i, lines);
+            if (id <> C_SPELL.NONE) and not (id in listed) then
+              if GameDefs.spellTable[id].levelSp = lvl then begin
+                listed := listed + [id];
+                Magic.FindScrollCopies(creature, id, copies, best);
+                Magic.AddScrollLine(creature, best, id, copies, lines);
+              end;
           end;
         item := item^.next;
       end;
@@ -500,9 +604,11 @@ function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean
 var
   i: Byte;
   p: Types.PItemRec;
+  lines: Byte;
 begin
   GenerateSpellList := False;
   spellList := nil;
+  lines := 0;
   for i := 0 to C_SPELL.LINE_LAST do begin
     spellIds[i] := 0;
     spellScrolls[i] := nil;
@@ -516,10 +622,10 @@ begin
     0: for i := 0 to Types.SPELL_SLOT_LAST do
          if (creature^.memorizedSpells[i] > 0) and
              (creature^.memorizedSpells[i] < C_SPELL.PENDING_FLAG) then
-           Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+           Magic.AddMemorizedSpell(creature, i, lines);
     5: for i := 0 to Types.SPELL_SLOT_LAST do
          if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
-           Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+           Magic.AddMemorizedSpell(creature, i, lines);
     { every known spell, Restoration (56) too: SSI stopped at 55 }
     1: for i := 1 to SizeOf(creature^.spellsKnown) do
          if creature^.spellsKnown[i] <> 0 then
