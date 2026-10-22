@@ -54,10 +54,6 @@ const
     { Monk: d4 }
     4);
   { LoadCharIconAnim }
-  { CHEAD/CBODY filename suffix indexed by iconSize: S for 1 (dwarf, gnome, halfling), T for 2 (tall races) }
-  iconHeightSuffix: array[1..2] of Char = (
-    'S',
-    'T');
   { AddCreatureToParty }
   { portrait-head selectors indexed by gender (male, female) and a 1d8 roll }
   npcPortraitHeads: array[0..1, 1..8] of Byte = (

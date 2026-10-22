@@ -196,6 +196,11 @@ begin
 end;
 
 procedure LoadCharIconAnim(loading: Boolean);
+const
+  { CHEAD/CBODY filename suffix indexed by iconSize: S for 1 (dwarf, gnome, halfling), T for 2 (tall races) }
+  iconHeightSuffix: array[1..2] of Char = (
+    'S',
+    'T');
 var
   fromMap: Types.TColorTab;
   toMap: Types.TColorTab;
@@ -210,8 +215,8 @@ begin
       height := 2
     else
       height := 1;
-    MapTiles.LoadIconAnim('CHEAD' + GameDefs.iconHeightSuffix[height], iconHead, 11);
-    MapTiles.LoadIconAnim('CBODY' + GameDefs.iconHeightSuffix[height], iconBody, orderNumber);
+    MapTiles.LoadIconAnim('CHEAD' + iconHeightSuffix[height], iconHead, 11);
+    MapTiles.LoadIconAnim('CBODY' + iconHeightSuffix[height], iconBody, orderNumber);
     VidOps.MergePic(GameVars.iconAnimation[11, 0], GameVars.iconAnimation[orderNumber, 0]);
     VidOps.MergePic(GameVars.iconAnimation[11, 1], GameVars.iconAnimation[orderNumber, 1]);
     if loading then begin
