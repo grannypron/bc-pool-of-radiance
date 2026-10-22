@@ -70,7 +70,8 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
   derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
-  ignoring a trailing part record, then call the effect handler of each readied special item (special > $7F). }
+  ignoring a trailing part record, then call the effect handler of each readied special item (special > $7F) but an
+  aligned weapon or a boulder. }
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
 { GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
@@ -612,10 +613,13 @@ begin
   end;
   GDVars.dsSuppressingInsertDiskFlag := False;
   { the readied special items take effect, as when readied (FxEngine.ToggleReadyItem): SSI skipped this, and a monster
-    never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747) }
+    never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747). An aligned
+    weapon's and a boulder's handlers only test whether the creature may ready them, shocking it or printing a message
+    when not: a monster comes armed as its data has it (#788). }
   item := creature^.itemsAddr;
   while item <> nil do begin
-    if (item^.equipped <> 0) and (item^.special > $7F) then
+    if (item^.equipped <> 0) and (item^.special > $7F)
+       and not (item^.special in [C_Effect.ALIGNED_WEAPON, C_Effect.BOULDER]) then
       FxEngine.CallEffectHandler(item^.special, creature, item, False);
     item := item^.next;
   end;
