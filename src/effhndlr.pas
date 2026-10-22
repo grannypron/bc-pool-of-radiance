@@ -1,6 +1,6 @@
 { Effect handlers for spells, items and creature abilities. Each handler receives the creature, the effect node or item
   concerned, and whether the effect is being removed or the item unreadied; it works through shared combat state such as
-  GameVars.pendingDamage, the attack roll and GameVars.gSaveRoll. }
+  GameVars.pendingDamage, the attack roll and FxEngine.gSaveRoll. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit EffHndlr;
@@ -391,7 +391,7 @@ end;
 procedure Protection(creature: Types.PCharRecord; foe: Boolean);
 begin
   if foe and (GameVars.curChar^.hostile <> creature^.hostile) then begin
-    Inc(GameVars.gSaveRoll, 2);
+    Inc(FxEngine.gSaveRoll, 2);
     Dec(GameVars.gAttackRoll, 2);
   end;
 end;
@@ -415,7 +415,7 @@ procedure EffResistCold(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_COLD <> 0 then begin
     GameVars.pendingDamage := GameVars.pendingDamage div 2;
-    Inc(GameVars.gSaveRoll, 3);
+    Inc(FxEngine.gSaveRoll, 3);
   end;
 end;
 
@@ -510,7 +510,7 @@ begin
   { 60-biased AC 3 }
   if creature^.acCur < 57 then
     creature^.acCur := 57;
-  Inc(GameVars.gSaveRoll);
+  Inc(FxEngine.gSaveRoll);
   if GameVars.currentSpellBeing = C_SPELL.MAGIC_MISSILE then
     GameVars.pendingDamage := 0;
 end;
@@ -539,7 +539,7 @@ procedure EffResistFire(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then begin
     GameVars.pendingDamage := GameVars.pendingDamage div 2;
-    Inc(GameVars.gSaveRoll, 3);
+    Inc(FxEngine.gSaveRoll, 3);
   end;
 end;
 
@@ -693,7 +693,7 @@ begin
   Dec(GameVars.gAttackRoll, 4);
   Dec(creature^.acCur, 4);
   Dec(creature^.acBehind, 4);
-  Dec(GameVars.gSaveRoll, 4);
+  Dec(FxEngine.gSaveRoll, 4);
 end;
 
 { Diseased (eff 34): chains 43 + 44 }
@@ -707,7 +707,7 @@ end;
   also applies it to creatures on the caster's side. }
 procedure EffAlliedPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  Inc(GameVars.gSaveRoll);
+  Inc(FxEngine.gSaveRoll);
   Inc(GameVars.gAttackRoll);
 end;
 
@@ -715,7 +715,7 @@ end;
 procedure EffBestowCurse(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Dec(GameVars.gAttackRoll, 4);
-  Dec(GameVars.gSaveRoll, 4);
+  Dec(FxEngine.gSaveRoll, 4);
 end;
 
 { Blinking (eff 37) }
@@ -942,7 +942,7 @@ begin
     EffHndlr.EffAlliedPrayer(creature, p, removed)
   else begin
     Dec(GameVars.gAttackRoll);
-    Dec(GameVars.gSaveRoll);
+    Dec(FxEngine.gSaveRoll);
   end;
 end;
 
@@ -1001,7 +1001,7 @@ procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boole
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then begin
     Dice.ReduceDamagePerDie(2);
-    Inc(GameVars.gSaveRoll, 4);
+    Inc(FxEngine.gSaveRoll, 4);
     if GameVars.elementMask and C_EFFECT.ELEM_MAGIC = 0 then
       EffHndlr.NullifyAttack(0);
   end;
@@ -1481,8 +1481,8 @@ end;
 { Con poison saving throw bonus (eff 90) }
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GameVars.gSaveType = C_SAVE.PARALYZE then begin
-    GameVars.gSaveRoll := GameVars.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
+  if FxEngine.gSaveType = C_SAVE.PARALYZE then begin
+    FxEngine.gSaveRoll := FxEngine.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
   end;
 end;
 
@@ -1536,8 +1536,8 @@ end;
 { Con spell/wand save bonus (eff 97), on EffConPsnSave's scale }
 procedure EffConSpellSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GameVars.gSaveType = C_SAVE.SPELL) or (GameVars.gSaveType = C_SAVE.WAND) then begin
-    GameVars.gSaveRoll := GameVars.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
+  if (FxEngine.gSaveType = C_SAVE.SPELL) or (FxEngine.gSaveType = C_SAVE.WAND) then begin
+    FxEngine.gSaveRoll := FxEngine.gSaveRoll + AbilAdj.ConSaveBonus(creature^.conCur);
   end;
 end;
 
@@ -1696,8 +1696,8 @@ procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Bool
 begin
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
-  if GameVars.gSaveType = C_SAVE.PARALYZE then
-    GameVars.gSaveRoll := 100;
+  if FxEngine.gSaveType = C_SAVE.PARALYZE then
+    FxEngine.gSaveRoll := 100;
 end;
 
 { Immunity to fire (eff 112) }
@@ -1853,8 +1853,8 @@ begin
   EffHndlr.NullifyAttack(C_EFFECT.SLEEP);
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
-  if GameVars.gSaveType = C_SAVE.PARALYZE then
-    GameVars.gSaveRoll := 100;
+  if FxEngine.gSaveType = C_SAVE.PARALYZE then
+    FxEngine.gSaveRoll := 100;
 end;
 
 { Suppressible gaze (eff 126): blocked by an equipped "Mirror" component (118) or Wooden Holy Symbol of Tyr (component

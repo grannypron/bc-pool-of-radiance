@@ -325,7 +325,7 @@ begin
     Inc(i);
     cur := cur^.nextCharAddr;
   end;
-  FillChar(GameVars.effFlags, SizeOf(GameVars.effFlags), 1);
+  FillChar(FxEngine.effFlags, SizeOf(FxEngine.effFlags), 1);
   tick := 0;
   cnt := 0;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);

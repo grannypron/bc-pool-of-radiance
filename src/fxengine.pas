@@ -7,6 +7,14 @@ interface
 
 uses Types;
 
+var
+  { Creatures whose timed effects need processing, by list ordinal. }
+  effFlags: array[1..Types.ARENA_SLOTS] of Byte;
+  { modified saving-throw roll; signed, so a penalty can take it below 0 }
+  gSaveRoll: Integer;
+  { saving throw type, 0..4 }
+  gSaveType: Byte;
+
 { Call the effect handler for effId (1..141) through GameVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -70,7 +78,7 @@ function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte
   (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 
-{ d20 saving throw into GameVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
+{ d20 saving throw into gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
   creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
   the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_SAVE.PARALYZE..SPELL (an
   ECL script supplies it) is rolled as C_SAVE.SPELL. }
@@ -544,15 +552,15 @@ function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortI
 begin
   if (saveType < C_SAVE.PARALYZE) or (saveType > C_SAVE.SPELL) then
     saveType := C_SAVE.SPELL;
-  GameVars.gSaveRoll := Dice.RollDice(1, 20);
-  case GameVars.gSaveRoll of
+  gSaveRoll := Dice.RollDice(1, 20);
+  case gSaveRoll of
     1: RollSavingThrow := False;
     20: RollSavingThrow := True;
   else begin
-    GameVars.gSaveRoll := GameVars.gSaveRoll + creature^.saveBonus + modifier;
-    GameVars.gSaveType := saveType;
+    gSaveRoll := gSaveRoll + creature^.saveBonus + modifier;
+    gSaveType := saveType;
     FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, creature);
-    if creature^.saves[saveType] <= GameVars.gSaveRoll then
+    if creature^.saves[saveType] <= gSaveRoll then
       RollSavingThrow := True
     else
       RollSavingThrow := False;
@@ -985,7 +993,7 @@ end;
 
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
-  those GameVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
+  those effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
   ones, then removes those still in the list, since a removal's handler can remove (and free) another effect. }
 procedure TimeOutEffects(count: Byte; tUnit: ShortInt);
 const
@@ -1007,12 +1015,12 @@ var
   again: Boolean;
 begin
   if GameVars.ifcState <> C_IFC.CAMPING then
-    FillChar(GameVars.effFlags, SizeOf(GameVars.effFlags), 1)
+    FillChar(effFlags, SizeOf(effFlags), 1)
   else begin
     found := False;
     i := 1;
     repeat
-      if GameVars.effFlags[i] <> 0 then found := True;
+      if effFlags[i] <> 0 then found := True;
       Inc(i);
     until found or (i > GameVars.zone1^[C_GBVM.PARTY_SIZE]);
     if not found then Exit;
@@ -1030,7 +1038,7 @@ begin
     i := 1;
     cur := GameVars.creatureList;
     while cur <> nil do begin
-      if (i > SizeOf(GameVars.effFlags)) or (GameVars.effFlags[i] <> 0) then begin
+      if (i > SizeOf(effFlags)) or (effFlags[i] <> 0) then begin
         again := False;
         { age the timed effects, and note those that run out in this step; 0 is permanent }
         nExpiring := 0;
@@ -1062,8 +1070,8 @@ begin
           if e^.duration > 0 then again := True;
           e := e^.next;
         end;
-        if i <= SizeOf(GameVars.effFlags) then
-          if again then GameVars.effFlags[i] := 1 else GameVars.effFlags[i] := 0;
+        if i <= SizeOf(effFlags) then
+          if again then effFlags[i] := 1 else effFlags[i] := 0;
       end;
       Inc(i);
       cur := cur^.nextCharAddr;
@@ -1119,4 +1127,9 @@ begin
     HoldTarget := GameVars.otherCreatureCurrentPtr;
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  FillChar(effFlags, SizeOf(effFlags), 0);
+  gSaveRoll := 0;
+  gSaveType := 0;
 end.

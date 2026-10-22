@@ -13,8 +13,6 @@ var
   { the sound driver GameBoot installed }
   sound: Types.TSoundDriver;
   { Timed effects. }
-  { Creatures whose timed effects need processing, by list ordinal. }
-  effFlags: array[1..Types.ARENA_SLOTS] of Byte;
   { Play session }
   { GameBoot writes 0/1, Intro tests zero }
   fullIntro: Boolean;
@@ -214,8 +212,6 @@ var
   { combat ends when a side is empty }
   teamCount: array[0..1] of Byte;
   { Effect resolution }
-  { modified saving-throw roll; signed, so a penalty can take it below 0 }
-  gSaveRoll: Integer;
   { effect ID, cleared when immune }
   pendingEffectId: Byte;
   { damage before hit-point subtraction }
@@ -248,8 +244,6 @@ var
   currentMorale: Byte;
   { creature this one is interacting with }
   otherCreatureCurrentPtr: Types.PCharRecord;
-  { saving throw type, 0..4 }
-  gSaveType: Byte;
 
 var
   { Effect dispatch }
