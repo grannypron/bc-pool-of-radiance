@@ -629,6 +629,8 @@ begin
       'D': begin
              ViewChar.DropMoneyMenu;
              ViewChar.PrintMoney;
+             { the lighter load shows in Encumbrance and Movement (#700) }
+             ViewChar.PrintCombatStats;
            end;
       'H': if ViewChar.CanHeal(shown) then
              ViewChar.LayOnHands(shown);
