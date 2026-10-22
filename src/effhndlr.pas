@@ -1950,8 +1950,9 @@ begin
 end;
 
 { Gauntlets of Ogre Power (eff 131). Ready: Str 18/00 via FxEngine.AdjustForNewStrength plus a permanent eff 38 node
-  holding the Strength to restore. Unready: while the creature is still at 18/00, remove the first eff 38 node that is
-  not superseded, which restores its Strength }
+  holding the Strength to restore; "is stronger" shows only for the character readying them (GDVars.curChar), not for a
+  monster loaded wearing them (EclMenu.LoadCreatureData). Unready: while the creature is still at 18/00, remove the
+  first eff 38 node that is not superseded, which restores its Strength }
 
 procedure EffGauntlets(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1982,7 +1983,7 @@ begin
       q := next;
     end;
   end else begin
-    if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) then
+    if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) and (creature = GDVars.curChar) then
       if GDVars.ifcState = C_Ifc.COMBAT then begin
         GDVars.ifcState := C_Ifc.CAMPING;
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);
