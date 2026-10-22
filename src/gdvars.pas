@@ -231,7 +231,8 @@ var
   dsCurrentAttackCurrent: Byte;
   { spell being cast }
   dsCurrentSpellBeing: Byte;
-  { dice count of the current damage roll }
+  { dice count of the current damage roll; Burning Hands, which rolls none, sets it to 1. The fire protections and the
+    mummy's fire vulnerability work per die. }
   gDamageDice: Byte;
   { 1 while calculating movement }
   dsCurrentCreatureCalculatingFlag: Byte;

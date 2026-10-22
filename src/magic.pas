@@ -781,6 +781,9 @@ end;
 { Burning Hands: caster-level damage, element mask 9. }
 procedure BurningHandsHandler;
 begin
+  { no dice are rolled: the fixed damage counts as one die for the per-die fire protections (effects 61 and 113),
+    which otherwise used the die count of whatever damage roll came before }
+  GDVars.gDamageDice := 1;
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
