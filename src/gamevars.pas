@@ -121,11 +121,6 @@ var
   { Sound mode }
   { Active sound device; GameBoot maps POOL.CFG line 2: 'T' = 0, 'P' = 1, else 2. }
   soundMode: Byte;
-  { Copy of soundMode taken at suspend so the configured mode is not lost. }
-  soundSaved: Byte;
-  { Nonzero: SoundDrv.SoundCommand waits a fixed delay after each command, then silences the voices and removes its
-    timer. Zero leaves the timer driver resident for persistent playback. }
-  soundAutoStop: Word;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;

@@ -360,7 +360,7 @@ begin
   GameVars.msgDelayFlag := 1;
   GameVars.gameDelay := 1;
   GameInit.ResetGameState;
-  GameVars.soundAutoStop := 0;
+  SoundDrv.soundAutoStop := 0;
   SoundDrv.SoundSetAutoStop(100);
   savedDir := GameVars.gameDir;
   GameVars.gameDir[0] := #0;

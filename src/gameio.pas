@@ -63,7 +63,7 @@ procedure ExitGame;
 begin
   if GameVars.debugTraceEnabled then
     Close(debugFile);
-  GameVars.soundMode := GameVars.soundSaved;
+  GameVars.soundMode := SoundDrv.soundSaved;
   SoundDrv.SoundCommand(GameDefs.soundIds.commands[0]);
   GameVars.interruptRegisters.ah := 0;
   GameVars.interruptRegisters.al := GameVars.savedVideoMode;
@@ -184,7 +184,7 @@ begin
       GameVars.soundMode := C_SOUND.MODE_DISABLED;
     end;
   end else if GameVars.soundMode = C_SOUND.MODE_DISABLED then begin
-    GameVars.soundMode := GameVars.soundSaved;
+    GameVars.soundMode := SoundDrv.soundSaved;
     SoundDrv.SoundSuspend;
   end;
   GameVars.soundOn := Ord(turnOn);
