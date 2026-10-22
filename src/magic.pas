@@ -194,7 +194,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj;
+  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil;
 
 var
   { the menu string list }
@@ -222,6 +222,8 @@ const
   SCROLL_MARK = '-';
   { the highest spell level in spellTable (Restoration's 7) }
   SPELL_LEVEL_LAST = 7;
+  { the columns a spell list's line has, from the list window's left edge to its right }
+  LINE_WIDTH = 38;
 
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forward;
 
@@ -453,10 +455,53 @@ begin
   end;
 end;
 
-{ The Cast list, level by level: creature's memorized spells (not those still being memorized), then a line for each
-  spell on each scroll creature can read and use (CastableScroll), in inventory order, marked with SCROLL_MARK. In
-  combat the memorized spells need castAllowed, as the Cast command does, and the scroll spells CharHlp.CanUseItems, as
-  Use does. }
+{ How many of creature's memorized-spell slots hold what slot i holds, or 0 when an earlier slot holds it too: a list of
+  memorized spells shows each once, where its first slot falls, with the number of copies (#833). }
+function MemorizedCopies(creature: Types.PCharRecord; i: Byte): Byte;
+var
+  j: Byte;
+  n: Byte;
+begin
+  n := 0;
+  for j := 0 to Types.SPELL_SLOT_LAST do
+    if creature^.memorizedSpells[j] = creature^.memorizedSpells[i] then begin
+      if j < i then begin
+        MemorizedCopies := 0;
+        Exit;
+      end;
+      Inc(n);
+    end;
+  MemorizedCopies := n;
+end;
+
+{ Add memorized slot i's spell to spellList as line number lines, once for all its copies (MemorizedCopies), with
+  ' (xN)' after the name when there are two or more, and count the line; a name too long for the line with the count is
+  cut to fit LINE_WIDTH. Nothing is added for a slot an earlier one repeats, or once the list is full. }
+procedure AddMemorizedSpell(creature: Types.PCharRecord; i: Byte; var lines: Byte);
+var
+  copies: Byte;
+  p: Types.PItemRec;
+  s: Types.TStr20;
+begin
+  copies := Magic.MemorizedCopies(creature, i);
+  if (copies = 0) or (lines > C_SPELL.LINE_LAST) then Exit;
+  Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+  Inc(lines);
+  if copies > 1 then begin
+    p := spellList;
+    while p^.next <> nil do
+      p := p^.next;
+    s := ' (x' + StrUtil.NumStr(copies) + ')';
+    if Length(p^.name) + Length(s) > LINE_WIDTH then
+      p^.name[0] := Chr(LINE_WIDTH - Length(s));
+    p^.name := p^.name + s;
+  end;
+end;
+
+{ The Cast list, level by level: creature's memorized spells (not those still being memorized), each once with its
+  copies counted (AddMemorizedSpell), then a line for each spell on each scroll creature can read and use
+  (CastableScroll), in inventory order, marked with SCROLL_MARK. In combat the memorized spells need castAllowed, as the
+  Cast command does, and the scroll spells CharHlp.CanUseItems, as Use does. }
 procedure AddAvailableSpells(creature: Types.PCharRecord);
 var
   lvl: Byte;
@@ -475,10 +520,8 @@ begin
       for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
         id := creature^.memorizedSpells[i];
         if (id >= 1) and (id <= C_SPELL.LAST) then
-          if (GameDefs.spellTable[id].levelSp = lvl) and (lines <= C_SPELL.LINE_LAST) then begin
-            Magic.AddSpellToList(creature, id, MARK_NONE);
-            Inc(lines);
-          end;
+          if GameDefs.spellTable[id].levelSp = lvl then
+            Magic.AddMemorizedSpell(creature, i, lines);
       end;
     if scrollOk then begin
       item := creature^.itemsAddr;
@@ -500,9 +543,11 @@ function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean
 var
   i: Byte;
   p: Types.PItemRec;
+  lines: Byte;
 begin
   GenerateSpellList := False;
   spellList := nil;
+  lines := 0;
   for i := 0 to C_SPELL.LINE_LAST do begin
     spellIds[i] := 0;
     spellScrolls[i] := nil;
@@ -516,10 +561,10 @@ begin
     0: for i := 0 to Types.SPELL_SLOT_LAST do
          if (creature^.memorizedSpells[i] > 0) and
              (creature^.memorizedSpells[i] < C_SPELL.PENDING_FLAG) then
-           Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+           Magic.AddMemorizedSpell(creature, i, lines);
     5: for i := 0 to Types.SPELL_SLOT_LAST do
          if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
-           Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
+           Magic.AddMemorizedSpell(creature, i, lines);
     { every known spell, Restoration (56) too: SSI stopped at 55 }
     1: for i := 1 to SizeOf(creature^.spellsKnown) do
          if creature^.spellsKnown[i] <> 0 then
