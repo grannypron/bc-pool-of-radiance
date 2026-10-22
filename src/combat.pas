@@ -133,6 +133,7 @@ begin
   CbtMap.DisplayMapViewCentered(creature, 2, True);
   CharHlp.RecalcStats(creature);
   CharDisp.CombatPrintCreatureInfo(creature);
+  { once a turn: SSI's fired them again at every draw of the combat menu (#816) }
   FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
   if creature^.combatAddr^.initiative > 0 then
     if creature^.quickfight <> 0 then
@@ -232,7 +233,6 @@ var
   i: Byte;
   hasSpell: Boolean;
 begin
-  FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
   menu := '';
   if creature^.combatAddr^.movement > 0 then
     menu := menu + 'Move ';

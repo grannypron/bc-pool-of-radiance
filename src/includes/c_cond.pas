@@ -32,7 +32,7 @@ const
   HP_ZERO = 13;
   { Gazes, dragon breath and acid attacks. }
   MONSTER_SPECIAL = 14;
-  { CreatureAction, and each menu draw }
+  { CreatureAction, once a turn }
   ACTION_START = 15;
   ATTACK_ROLL_DEF = 16;
   MORALE_CHECK = 17;
