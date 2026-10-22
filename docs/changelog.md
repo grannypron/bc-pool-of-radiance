@@ -104,6 +104,14 @@
 - A save whose side files (the slot's description, statistics, explored map, map notes, usual spells) could not be written now says so, and saving an empty vault reports a failure when the slot's old vault file cannot be erased.
 - On a Sound Blaster that does not answer, sound effects play on the speaker instead of not at all.
 - Digits in a script's menu options show as digits instead of turning into letters (no menu in this game has one).
+- Following the 1st-edition rules: the temple will not raise a dead elf ("RAISE DEAD cannot restore ... Elven souls lie beyond its reach.") and tells you a poisoned character is poisoned and Raise Dead cannot help; scribing a spell depends on the magic-user's Intelligence, and a failed attempt loses the spell from the scroll; a cleric with Wisdom below 13 can fail to cast a clerical spell, losing it.
+- Saving is now all or nothing: every file of a save (the party, each character, the description, statistics, explored map, notes and vault) is put in place together, and a save that can't be written whole leaves the old one exactly as it was. A save cut off by a crash or power cut gives the slot back its old save.
+- A javelin can now be used in melee as well as thrown, by your characters and by monsters.
+- Magic resistance no longer protects against a monster's poisonous or paralyzing touch, and meets a vampire's charm gaze at its listed figure.
+- A creature within reach of Prayers from both sides now gets both: its own side's bonus and the enemy's penalty.
+- Snake Charm no longer charms scorpions.
+- A hasted, fast monster no longer stops partway through its move.
+- The statistics count a death by poison, level drain or mummy rot as Died.
 
 ## Pool of Radiance port: October 2026 update
 

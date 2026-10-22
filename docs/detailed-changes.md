@@ -139,6 +139,12 @@ Differs from SSI: SSI's tables stopped at 18 to 20 and multi-class warriors lost
 
 **Spell preparation time.** `Camp.CampSpellPrepTime` summed pending spell levels in Bytes, and scroll levels are unbounded; the counts are Words. POR-0200, #812.
 
+**Raise Dead, scribing and spell failure follow 1st edition.** The owner reversed the earlier "not in the rule book" closures. `Temple.RaiseDead` refuses a dead elf before asking the fee, uncharged, with "RAISE DEAD cannot restore <name>." and "Elven souls lie beyond its reach." (`CharDisp.PrintTwoLines`); half-elves can be raised. A poisoned corpse is refused with "<name> is poisoned, and RAISE DEAD cannot help." (#751). Scribing (`GameTime.CheckScribeDone`, when the scribing completes) rolls d100 against `AbilAdj.IntKnowSpellChance` (PHB 35% at Intelligence 9 to 85% at 18, D&DG 95..99% at 19..23, 100% from 24); a failure shows "<name> failed to scribe <spell>." and "<spell> has been lost." and takes the spell off the scroll. A cleric's clerical spell cast from memory (`Magic.CastSpellNC`, so camp, the combat menu, Quick mode and monsters alike) fails on `AbilAdj.WisSpellFailure` (Wisdom 9 20%, 10 15%, 11 10%, 12 5%) through `ClassCal.SpellFailureChance`, spending the spell with "<name> fails to cast <spell>."; paladins, rangers and scrolls are not subject, and every monster with cleric levels has Wisdom 14 or more. TAbilAdj and TClasCal check the tables. Differs from SSI. POR-0061, #61; POR-0059, #59; POR-0060, #60; CURSE-0168, #751.
+
+**The javelin in melee.** The shipped javelin ($1A) was a launcher with no thrown bit, so a character could not strike with it next to a foe and the AI never chose it for melee. `CharHlp.FixAmmoBits` makes it a thrown weapon ($16), which also gives it Strength's to-hit and damage, as the spear and hand axe have. Holy water, oil and boulders stay thrown-only. TCharHlp checks it. POR-0189, #798.
+
+**Snake Charm charms snakes.** It took `charType = 14`, which the data shares between the giant snake and the large and huge scorpions; it tests the giant snake's name (`GDConsts.SNAKE_NAME`). POR-0193, #802.
+
 ## 3. SSI quirks fixed (and the ones labelled)
 
 During the byte-for-byte reconstruction SSI's oddities were kept and marked with `Note:` comments. Phase 3 of the refactor dealt with all of them, and a later batch fixed the ones first kept.
@@ -268,6 +274,16 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Nil checks in combat and loot.** `FxEngine.ConsiderStinkingCloud` passes an explicit nil node rather than whatever the last `HasEffect` left (nil, so nothing changes), and `PostCbt.LootTakeItemMenu` leaves its loop on no item before using one. POR-0202, #814; POR-0203, #815.
 
+**Magic resistance against the charm gaze and touches.** `EffCharmGaze` set the current spell to Charm Person, so magic resistance used the gazer's mage level; it no longer does, and the gaze meets the listed figure as other gazes do (#786). And since #767 magic resistance ran in the touch checks: `EffHndlr.TouchImmune` now marks the check mundane and `MagicResistance` skips it, so a monster's poison or paralysis touch meets wards and immunities only; spell paralysis and the fear auras are still resisted. TMagRes checks it. POR-0190, #799; POR-0191, #800.
+
+**One Prayer per side.** The aura search stopped at the first Prayer in reach. `FxEngine.EffectSource` takes a side filter (`C_Effect.PRAYER_SIDE`), and `TriggerPrayer` runs one Prayer of each side in reach. TProtect checks it. POR-0192, #801.
+
+**The AI's turn guard follows movement.** `CombatAi.AiMoveAttack` stopped a turn after 20 passes, cutting a hasted fast monster's move short; the guard is half the turn's movement plus 20. #803.
+
+**Haste and Slow's re-run.** `Magic.HasteSlowLogic` re-ran its targets' rate effects on a leftover attack count; it sets each target's own first. POR-0188, #797.
+
+**Every death counts.** `EffHndlr.InflictStatusMsg` (poison, a drain, mummy rot) set DEAD or GONE without counting Died; `Stats.Death` (formerly `BledOut`) counts it there too. TStats checks it. #796.
+
 ## 5. User interface: menus, screens, keys and messages
 
 **The Companion Tools open on the map; Map and Notes are one tool.** F6's Tools screen no longer lists its tools: in a 3D area it opens on the whole area's map, "Companion Tools" centred in the frame's top where the area's name was, the name now heading the legend, with "Tools: Map Character Exit" (in the wilderness, the frame and title alone). Map is the former Notes tool: a cursor from the party's square, moved with the arrows, with "Map: Write Clear Exit" and the cursor's square and note below the map; Exit returns to the Tools menu on the same map. The read-only Map tool is gone. #691.
@@ -395,6 +411,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 **An empty vault's commit.** `Vault.CopyOrDelete` returned True when the source could not be opened even if erasing the slot's old vault failed; it returns `FileUtil.DeleteChecked` (True when no such file is left). TFileUtl checks it. #819.
 
 **DataBld's remap table.** Checked for #822: a remap entry belongs to one disk, so a disk sharing another's spare id still needs its own, and a full table must fail. A comment says so. #822.
+
+**Saves are transactions.** #755 wrote each file through a temporary copy, but `SaveToSlot` put the save file in place before the members', and the side files (.inf, .sts, .map, .nts, .mem) and the vault copy were written after, each on its own, so a failure left a mixed slot and "saved, but not in full". FileUtil's file set (`NewSet`, `AddToSet`, `WriteToSet`, `DropSet`, `CommitSet`) now carries every file of a save: the save file, each member's files and side files, the slot's side files and the vault copy (`Vault.AddToSave`), with the files the new save no longer has (unused member slots, empty lists) erased only on commit. `CommitSet` moves each old file to a backup (`%`), puts each copy (`$`) in place, then erases the backups, and undoes everything if any step fails; the save file goes aside first and into place last, and a new file with no old one leaves an empty backup as a marker. `RecoverSet` gives back the old save when the first file's backup is still there, so a save cut off by a crash or power cut is undone the next time the slot is listed, loaded or saved to (`SaveMenu.RecoverSlot`, `SaveLoad.RecoverChar` for single characters, which `SaveChar` and `EraseChar` also commit as sets). `WriteRecord` and the partial-save message are gone; a character's failed save says "Could not save <name>." TFileUtl checks every stage of an interrupted commit. #823, #824.
 
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
@@ -651,6 +669,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 ---
 
 **build.sh runs DOSBox-X headless.** `run_dosbox` unsets the display variables, uses SDL's dummy drivers, closes stdin, stops a stuck run with SIGKILL (a SIGTERM raised a quit dialog on the desktop) and caps each file at 2 GB, as Secret does (secret#528). #775.
+
+**Tests start with no creature list.** `FxEngine.EffectSource` walks `GDVars.creatureList`, and since #801 does on every attack roll. TAtkRoll and TDisplac never set it, and Turbo Pascal does not clear globals, so after other programs had run in the same DOSBox-X session TAtkRoll followed a stale pointer and hung, losing every later program. Both set it to nil. #826.
 
 ## 12. Documentation
 
