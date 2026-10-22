@@ -649,6 +649,9 @@ begin
              end;
           { Constitution }
           C_Abil.CONSTITUTION: begin
+               { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
+                 out the +1, so every age came out one lower (#704). }
+               Inc(stats[i]);
                if GDConsts.ageCat[race].mature < age then
                  Dec(stats[i]);
                if GDConsts.ageCat[race].middleAged < age then
