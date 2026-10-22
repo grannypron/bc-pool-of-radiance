@@ -117,6 +117,12 @@ begin
 end;
 
 function NextPathStep(var req: Types.TPathReq): Boolean;
+const
+  { Direction code for a one-cell step, indexed [dy + 1, dx + 1]; the center entry (C_DIR.CENTER) means no movement. }
+  dirByDelta: array[0..2, 0..2] of Byte = (
+    (7, 0, 1),
+    (6, 8, 2),
+    (5, 4, 3));
 var
   dx8: ShortInt;
   dy8: ShortInt;
@@ -160,7 +166,7 @@ begin
         NextPathStep := True;
       end;
     end;
-    step := GameDefs.dirByDelta[dy8 + 1, dx8 + 1];
+    step := dirByDelta[dy8 + 1, dx8 + 1];
   end;
 end;
 
@@ -319,12 +325,19 @@ begin
 end;
 
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
+const
+  { Footprint cells of an icon, by icon size and cell; a negative dx marks an absent cell }
+  iconDelta: array[1..4, 0..3] of Types.TIconCoordinateDelta = (
+    ((dx:  0; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
+    ((dx:  0; dy:  0), (dx:  0; dy:  1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
+    ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1)),
+    ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx:  0; dy:  1), (dx:  1; dy:  1)));
 begin
   GetIconTileDelta := False;
   { iconDelta's rows are sizes 1..4 }
   if (size = 0) or (size > 4) then Exit;
-  dx := GameDefs.iconDelta[size, idx].dx;
-  dy := GameDefs.iconDelta[size, idx].dy;
+  dx := iconDelta[size, idx].dx;
+  dy := iconDelta[size, idx].dy;
   if dx >= 0 then
     GetIconTileDelta := True;
 end;

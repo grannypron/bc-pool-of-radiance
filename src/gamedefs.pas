@@ -138,11 +138,6 @@ const
 
 const
   { Text-mode colour and pixel tables; EGA plane and CGA pixel tables; icon colour map }
-  { Direction code for a one-cell step, indexed [dy + 1, dx + 1]; the center entry (C_DIR.CENTER) means no movement. }
-  dirByDelta: array[0..2, 0..2] of Byte = (
-    (7, 0, 1),
-    (6, 8, 2),
-    (5, 4, 3));
   { EGA plane masks, highest plane first; TextRend reads [3 - k] for plane k }
   egaPlaneMask: array[0..3] of Byte = ($08, $04, $02, $01);
   { CGA colors 0..3 repeated across eight 2-bit pixels }
@@ -301,12 +296,6 @@ const
     (cost: 255; clearance: 0; blocking: 2; tileId: 31),
     (cost: 1; clearance: 0; blocking: 0; tileId: 32),
     (cost: 255; clearance: 0; blocking: 2; tileId: 33));
-  { Footprint cells of an icon, by icon size and cell; a negative dx marks an absent cell }
-  iconDelta: array[1..4, 0..3] of Types.TIconCoordinateDelta = (
-    ((dx:  0; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
-    ((dx:  0; dy:  0), (dx:  0; dy:  1), (dx: -1; dy: -1), (dx: -1; dy: -1)),
-    ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx: -1; dy: -1), (dx: -1; dy: -1)),
-    ((dx:  0; dy:  0), (dx:  1; dy:  0), (dx:  0; dy:  1), (dx:  1; dy:  1)));
   { Effects that leave a creature helpless }
   HELPLESS_FX_COUNT = 4;
   helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_EFFECT.SNAKE_CHARM, C_EFFECT.PARALYSIS, C_EFFECT.SLEEP,
