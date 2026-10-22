@@ -3,11 +3,13 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, TestKit;
+uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, TestKit;
 
 var
   c: Types.PCharRecord;
   it: Types.TItemRec;
+  weapon: Types.TItemRec;
+  arrows: Types.TItemRec;
   list: Types.PItemRec;
   p: Types.PItemRec;
   e: Types.TEffectRec;
@@ -293,5 +295,34 @@ begin
   CharHlp.RecalcStats(@crs[1]);
   TestKit.CheckEqualsL(54, crs[1].acCur, 'Dexterity 18 makes AC 10 into AC 6');
   TestKit.CheckEqualsL(48, crs[1].acBehind, 'and AC 12 from behind, without the bonus');
+
+  { a bow's plus is to hit only, its arrows' to hit and damage (#744); a sword's is to both }
+  GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
+  FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
+  GDVars.baseItems^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
+  GDVars.baseItems^[C_Item.ARROW].slot := C_Equip.RING2;
+  GDVars.baseItems^[C_Item.LONG_SWORD].props := C_Item.PROP_STR_BONUS;
+  FillChar(weapon, SizeOf(weapon), 0);
+  FillChar(arrows, SizeOf(arrows), 0);
+  weapon.itemType := C_Item.LONG_BOW;
+  weapon.plus := 2;
+  weapon.equipped := 1;
+  weapon.next := @arrows;
+  arrows.itemType := C_Item.ARROW;
+  arrows.plus := 1;
+  arrows.quantity := 10;
+  arrows.equipped := 1;
+  crs[1].dexCur := 10;
+  crs[1].thac0Base := 40;
+  crs[1].itemsAddr := @weapon;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(43, crs[1].thac0Cur, 'a bow +2 with arrows +1 is +3 to hit');
+  TestKit.CheckEqualsL(1, crs[1].curModA[1], 'and +1 to damage');
+  weapon.itemType := C_Item.LONG_SWORD;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(42, crs[1].thac0Cur, 'a sword +2 is +2 to hit');
+  TestKit.CheckEqualsL(2, crs[1].curModA[1], 'and +2 to damage');
+  crs[1].itemsAddr := nil;
+  FreeMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
   TestKit.Done;
 end.

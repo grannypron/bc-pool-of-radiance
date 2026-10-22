@@ -210,12 +210,14 @@ var
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
-  plus, and that of readied quarrels or arrows when the weapon fires them, is added to both. An elf gets a further +1
-  to-hit with a bow, a long sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it
+  plus is added to both, except that a launcher's (CharHlp.FindDamagingRangedWeapon: a bow or crossbow) is to-hit only,
+  and the plus of the arrows or quarrels it fires is added to both. An elf gets a further +1 to-hit with a bow, a long
+  sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it
   counts as a bow when its second name component is a bow's name, which a Heavy Crossbow never carries. }
 procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
+  ammo: Types.PItemRec;
   wtype: Byte;
   plus: ShortInt;
 begin
@@ -231,14 +233,12 @@ begin
     creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
   plus := w^.plus;
-  { C_Item.PROP_QUARRELS: the weapon fires quarrels }
-  if CharHlp.BaseItem(wtype)^.props > $7F then
-    if creature^.equipped[C_Equip.BOLT] <> nil then
-      plus := plus + creature^.equipped[C_Equip.BOLT]^.plus;
-  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_ARROWS) > 0 then
-    if creature^.equipped[C_Equip.ARROW] <> nil then
-      plus := plus + creature^.equipped[C_Equip.ARROW]^.plus;
-  creature^.curModA[1] := creature^.curModA[1] + plus;
+  { a bow or crossbow's own plus is to hit only, its arrows' or quarrels' to hit and damage (#744) }
+  if CharHlp.FindDamagingRangedWeapon(creature, ammo) and (ammo <> nil) and (ammo <> w) then begin
+    plus := plus + ammo^.plus;
+    creature^.curModA[1] := creature^.curModA[1] + ammo^.plus;
+  end else
+    creature^.curModA[1] := creature^.curModA[1] + plus;
   if (creature^.race = C_Race.ELF) and
       ((w^.itemType in [C_Item.COMPOSITE_LONG_BOW..C_Item.SHORT_BOW, C_Item.LONG_SWORD, C_Item.SHORT_SWORD]) or
        ((w^.itemType = C_Item.HEAVY_CROSSBOW) and
