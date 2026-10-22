@@ -159,8 +159,9 @@ begin
                CharGen.AddCharacterMenu;
         'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GDVars.curChar <> nil) then
              begin
-               SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '');
-               SaveLoad.RemoveCreature(False, True);
+               { a character whose save failed stays in the party }
+               if SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '') then
+                 SaveLoad.RemoveCreature(False, True);
              end;
         'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
              begin
@@ -319,8 +320,8 @@ end;
 
 { CreateCharacterMenu: Choose race, gender, class and alignment, set the starting age, then roll attributes, hit points
   and gold until the player keeps the result; name the character, customize portrait and icon, save it with
-  SaveLoad.SaveChar and free it. Aborting a pick menu frees the string list and the character before it exits; at the
-  end SaveLoad.FreeCreature frees the record with its racial effects. }
+  SaveLoad.SaveChar (a save that fails is offered again, until No) and free it. Aborting a pick menu frees the string
+  list and the character before it exits; at the end SaveLoad.FreeCreature frees the record with its racial effects. }
 procedure CreateCharacterMenu;
 var
   creature: Types.PCharRecord;
@@ -742,7 +743,9 @@ begin
   { the icon editor draws over the sheet the picker cleared }
   ViewChar.DisplayChar(GDVars.curChar);
   CharGen.CustomizeIcon;
-  SaveLoad.SaveChar(Types.PCharRecord(creature), '');
+  while not SaveLoad.SaveChar(Types.PCharRecord(creature), '') and
+        (MenuCore.YesNoMenu('Try again? ', Yellow, LightGreen, White) = 'Y') do
+    ;
   GDVars.curChar := savedCur;
   { with its racial effects }
   SaveLoad.FreeCreature(creature);

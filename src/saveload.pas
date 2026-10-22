@@ -22,13 +22,13 @@ procedure SaveCharlist(list: Types.PItemRec);
   remap the default icon colours to the character's iconColors1 nibbles. Icons live on virtual disk 3. }
 procedure LoadCharIconAnim(loading: Boolean);
 
-{ fname='' -> single-character save: re-add the name to CHARLIST.TXT and write <saveDir><sanitized-name>.cha/.itm/.spc;
+{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc and re-add the name to CHARLIST.TXT;
   fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Each is written to a temporary copy, and only
   when all are whole are they put in place of the old ones; an empty item or effect list's old file is erased. The
   .mem and .sts files beside them are rewritten then, holding the character's usual spells and statistics when it has
-  any. A set that cannot be written whole (a full disk) leaves the old files as they were and is reported on the bottom
-  line. }
-procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
+  any. A set that cannot be written whole (a full disk) leaves the old files and CHARLIST.TXT as they were and is
+  reported on the bottom line. True when the character was saved. }
+function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
 { Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
@@ -305,16 +305,29 @@ begin
   PlaceCharFiles := ok;
 end;
 
-procedure SaveChar(creature: Types.PCharRecord; fname: Types.TStr8);
+function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 var
   fn: Types.TPathStr;
   ext: String[4];
   list: Types.PItemRec;
   p: Types.PItemRec;
+  ok: Boolean;
 begin
-  { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current party
-    member's old line and then appends this character's name unmarked. }
+  SaveMenu.CheckSaveDir;
   if Length(fname) = 0 then begin
+    ext := '.cha';
+    fn := SaveLoad.CharFileBase(creature^.name);
+  end else begin
+    ext := '.sav';
+    fn := GDVars.dsSaveDirectory + fname;
+  end;
+  { a write that fails (a full disk) leaves the old files as they were }
+  ok := SaveLoad.WriteCharFiles(creature, fn, ext) and SaveLoad.PlaceCharFiles(creature, fn, ext);
+  if not ok then
+    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.')
+  else if Length(fname) = 0 then begin
+    { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current
+      party member's old line and then appends this character's name unmarked. }
     SaveLoad.LoadCharlist(list);
     p := list;
     if p <> nil then
@@ -323,16 +336,8 @@ begin
     MenuCore.AppendMenuLine(list, p, creature^.name, False);
     SaveLoad.SaveCharlist(list);
     MenuCore.FreeStringList(list);
-    ext := '.cha';
-    fn := SaveLoad.CharFileBase(creature^.name);
-  end else begin
-    SaveMenu.CheckSaveDir;
-    ext := '.sav';
-    fn := GDVars.dsSaveDirectory + fname;
   end;
-  { a write that fails (a full disk) leaves the old files as they were }
-  if not (SaveLoad.WriteCharFiles(creature, fn, ext) and SaveLoad.PlaceCharFiles(creature, fn, ext)) then
-    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.');
+  SaveChar := ok;
 end;
 
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
