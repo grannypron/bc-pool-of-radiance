@@ -35,6 +35,20 @@ implementation
 
 uses Types, GameDefs, GameVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
 
+const
+  { Dungeon view geometry }
+  viewSlotGeom: Types.TViewSlotGeom = (
+    { First cell in a 156-cell WALLDEF slice }
+    start: (0, 2, 6, 10, 22, 38, 54, 110, 132, 154);
+    { Rectangle width in symbol cells }
+    cols: (1, 1, 1, 3, 2, 2, 7, 2, 2, 1);
+    { Rectangle height in symbol cells }
+    rows: (2, 4, 4, 4, 8, 8, 8, 11, 11, 2);
+    { Base column inside the 11-column view }
+    xCol: (5, 4, 6, 4, 2, 7, 2, 0, 9, 5);
+    { Base row inside the 11-row view }
+    yRow: (4, 3, 3, 3, 1, 1, 1, 0, 0, 4));
+
 procedure DisplayViewBuf; forward;
 
 { The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols 260 + N|E*2|S*4|W*8 from the
@@ -107,9 +121,9 @@ var
   row: Integer;
   cnt: Byte;
 begin
-  cnt := GameDefs.viewSlotGeom.start[slot];
-  colLim := GameDefs.viewSlotGeom.cols[slot] + x - 1;
-  rowLim := GameDefs.viewSlotGeom.rows[slot] + y - 1;
+  cnt := viewSlotGeom.start[slot];
+  colLim := viewSlotGeom.cols[slot] + x - 1;
+  rowLim := viewSlotGeom.rows[slot] + y - 1;
   for row := y to rowLim do
     for col := x to colLim do begin
       if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (GameVars.wallGfx^[wallType][cnt] > 0) then
@@ -229,14 +243,14 @@ var
         prevWall := 0;
       if wallFront <> 0 then begin
         if prevWall > 0 then
-          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[9] + symOfs + corner, GameDefs.viewSlotGeom.yRow[9],
+          View3D.DrawWallSlice(viewSlotGeom.xCol[9] + symOfs + corner, viewSlotGeom.yRow[9],
                                prevWall, 9);
         prevWall := wallFront;
-        View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[0] + symOfs, GameDefs.viewSlotGeom.yRow[0], wallFront, 0);
+        View3D.DrawWallSlice(viewSlotGeom.xCol[0] + symOfs, viewSlotGeom.yRow[0], wallFront, 0);
       end else begin
         if (prevWall > 0) and
            (View3D.GetWallType(wx - GameDefs.dirDX[walk], wy - GameDefs.dirDY[walk], walk) <> 0) then
-          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[9] + symOfs + corner, GameDefs.viewSlotGeom.yRow[9],
+          View3D.DrawWallSlice(viewSlotGeom.xCol[9] + symOfs + corner, viewSlotGeom.yRow[9],
                                prevWall, 9);
         prevWall := 0;
       end;
@@ -265,10 +279,10 @@ var
       wallSide := View3D.GetWallType(wx, wy, dir);
       if wallSide <> 0 then
         if side = 0 then
-          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[slot] + symOfs, GameDefs.viewSlotGeom.yRow[slot], wallSide,
+          View3D.DrawWallSlice(viewSlotGeom.xCol[slot] + symOfs, viewSlotGeom.yRow[slot], wallSide,
                                slot)
         else
-          View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[slot] + symOfs + adjust, GameDefs.viewSlotGeom.yRow[slot],
+          View3D.DrawWallSlice(viewSlotGeom.xCol[slot] + symOfs + adjust, viewSlotGeom.yRow[slot],
                                wallSide, slot);
       Inc(side);
       Inc(symOfs, step);
@@ -300,11 +314,11 @@ var
     while side < count do begin
       wallFront := View3D.GetWallType(wx, wy, facing);
       if wallFront <> 0 then
-        View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[frontSlot] + symOfs, GameDefs.viewSlotGeom.yRow[frontSlot],
+        View3D.DrawWallSlice(viewSlotGeom.xCol[frontSlot] + symOfs, viewSlotGeom.yRow[frontSlot],
                              wallFront, frontSlot);
       wallSide := View3D.GetWallType(wx, wy, sideDir);
       if wallSide <> 0 then
-        View3D.DrawWallSlice(GameDefs.viewSlotGeom.xCol[sideSlot] + symOfs, GameDefs.viewSlotGeom.yRow[sideSlot],
+        View3D.DrawWallSlice(viewSlotGeom.xCol[sideSlot] + symOfs, viewSlotGeom.yRow[sideSlot],
                              wallSide, sideSlot);
       Inc(side);
       Inc(symOfs, symStep);

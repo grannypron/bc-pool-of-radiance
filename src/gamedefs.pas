@@ -63,18 +63,6 @@ const
   { DisplayMapView }
   { BuildWildernessMap }
   { LoadAnimation }
-  { Dungeon view geometry }
-  viewSlotGeom: Types.TViewSlotGeom = (
-    { First cell in a 156-cell WALLDEF slice }
-    start: (0, 2, 6, 10, 22, 38, 54, 110, 132, 154);
-    { Rectangle width in symbol cells }
-    cols: (1, 1, 1, 3, 2, 2, 7, 2, 2, 1);
-    { Rectangle height in symbol cells }
-    rows: (2, 4, 4, 4, 8, 8, 8, 11, 11, 2);
-    { Base column inside the 11-column view }
-    xCol: (5, 4, 6, 4, 2, 7, 2, 0, 9, 5);
-    { Base row inside the 11-row view }
-    yRow: (4, 3, 3, 3, 1, 1, 1, 0, 0, 4));
   { LoadIconAnim: the identity table is the source side of both remaps, which turn LightMagenta into DarkGray or
     Black. }
   iconColorIdentity: Types.TColorTab = (
