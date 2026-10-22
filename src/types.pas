@@ -70,7 +70,7 @@ type
     rateOfFire: Byte;
     { AC adjustment descriptor }
     acDescr: Byte;
-    { melee damage type; the C_Item.WPN_ constants }
+    { melee damage type; the C_ITEM.WPN_ constants }
     wpnClass: Byte;
     { reserved }
     unk8: Byte;
@@ -84,7 +84,7 @@ type
     range: Byte;
     { class usability bitmask }
     classMask: Byte;
-    { weapon-property bitmask; see the PROP_ bits of C_Item and CharHlp }
+    { weapon-property bitmask; see the PROP_ bits of C_ITEM and CharHlp }
     props: Byte;
     { reserved }
     unkF: Byte;

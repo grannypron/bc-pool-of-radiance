@@ -16,7 +16,7 @@ procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
 
 implementation
 
-uses GDConsts, C_Item, Dice;
+uses GDConsts, C_ITEM, Dice;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;
@@ -74,8 +74,8 @@ begin
     unidMask := 6;
     itemType := kind;
     case itemType of
-      { C_Item.RANDOM_ARMS_KINDS }
-      1..59, C_Item.ARROW, C_Item.BRACERS, C_Item.RANDOM_ARMS_LAST: begin
+      { C_ITEM.RANDOM_ARMS_KINDS }
+      1..59, C_ITEM.ARROW, C_ITEM.BRACERS, C_ITEM.RANDOM_ARMS_LAST: begin
           plus := RandItem.RandomBonus;
           case itemType of
             { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18 and 19,
@@ -85,53 +85,53 @@ begin
                    if r = 5 then
                      template := 14;
                    nameIds[3] := 21;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             28: begin
                    nameIds[3] := 28;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             50, 51: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 49;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             52: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 50;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             53..58: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 48;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             73: begin
                    nameIds[3] := 61;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             { bracers: plus 1..3 becomes 4/6/8, named AC 6/4/2 }
-            C_Item.BRACERS: begin
+            C_ITEM.BRACERS: begin
                    nameIds[3] := 79;
-                   nameIds[2] := C_Item.NAME_OF;
+                   nameIds[2] := C_ITEM.NAME_OF;
                    plus := plus * 2 + 2;
                    case plus of
-                     4: nameIds[1] := C_Item.NAME_AC_6;
-                     6: nameIds[1] := C_Item.NAME_AC_4;
-                     8: nameIds[1] := C_Item.NAME_AC_2;
+                     4: nameIds[1] := C_ITEM.NAME_AC_6;
+                     6: nameIds[1] := C_ITEM.NAME_AC_4;
+                     8: nameIds[1] := C_ITEM.NAME_AC_2;
                    end;
                  end;
             93: begin
                    nameIds[3] := 66;
                    nameIds[2] := 224;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             else begin
                    nameIds[3] := itemType;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
           end;
           saveBonus := 0;
@@ -199,14 +199,14 @@ begin
             55, 56: value := Word(plus) * 3500;
             57: value := Word(plus) * 4000;
             58: value := Word(plus) * 5000;
-            C_Item.BRACERS: value := Word(plus) * 3000;
+            C_ITEM.BRACERS: value := Word(plus) * 3000;
             else value := Word(plus) * 2000;
           end;
         end;
       { scrolls }
-      C_Item.MAGE_SCROLL, C_Item.CLERIC_SCROLL: begin
+      C_ITEM.MAGE_SCROLL, C_ITEM.CLERIC_SCROLL: begin
           n := Dice.RollDice(1, 3);
-          if itemType = C_Item.MAGE_SCROLL then
+          if itemType = C_ITEM.MAGE_SCROLL then
             nameIds[3] := 209
           else
             nameIds[3] := 208;
@@ -218,7 +218,7 @@ begin
           value := 0;
           for j := 1 to n do begin
             r := Dice.RollDice(1, 3);
-            if itemType = C_Item.MAGE_SCROLL then
+            if itemType = C_ITEM.MAGE_SCROLL then
               { magic-user spell ids: 9..21, 29..35, 45..55 }
               case r of
                 1: spell := Dice.RollDice(1, 13) + 8;

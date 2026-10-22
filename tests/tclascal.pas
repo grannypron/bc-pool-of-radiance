@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_Item, C_EFFECT, GDConsts, ClassCal, AbilAdj,
+uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_ITEM, C_EFFECT, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -264,11 +264,11 @@ begin
   c^.classLevels[C_Level.THIEF] := 1;
   c^.dexCur := 15;
   FillChar(armor, SizeOf(armor), 0);
-  armor.itemType := C_Item.LEATHER_ARMOR;
+  armor.itemType := C_ITEM.LEATHER_ARMOR;
   c^.equipped[C_EQUIP.ARMOR] := @armor;
   ClassCal.RecalcThiefSkills(c);
   CheckSkills(30, 25, 20, 15, 10, 10, 85, 0, 'a fighter/thief in leather');
-  armor.itemType := C_Item.LEATHER_ARMOR + 1;
+  armor.itemType := C_ITEM.LEATHER_ARMOR + 1;
   ClassCal.RecalcThiefSkills(c);
   CheckSkills(0, 0, 0, 0, 0, 0, 0, 0, 'in any other body armor: no skills');
   c^.equipped[C_EQUIP.ARMOR] := nil;

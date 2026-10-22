@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_Item, C_Keys, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_ABIL, C_ITEM, C_Keys, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -29,13 +29,13 @@ const
   { the item type each of GDConsts.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
     Levels, which RandItem never makes }
   TEMPLATE_KINDS: array[1..19] of Byte = (71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
-  { the highest plus a weapon or armour takes here: name parts run to +5 (C_Item.NAME_PLUS_BASE) }
+  { the highest plus a weapon or armour takes here: name parts run to +5 (C_ITEM.NAME_PLUS_BASE) }
   PLUS_LAST = 5;
   { the bracers' choices, AC 6, 4 and 2: their plus, as RandItem gives it, and their name part; each is worth 3000 gp a
     point of plus }
   BRACERS_LAST = 3;
   BRACERS_PLUS: array[1..BRACERS_LAST] of Byte = (4, 6, 8);
-  BRACERS_NAME: array[1..BRACERS_LAST] of Byte = (C_Item.NAME_AC_6, C_Item.NAME_AC_4, C_Item.NAME_AC_2);
+  BRACERS_NAME: array[1..BRACERS_LAST] of Byte = (C_ITEM.NAME_AC_6, C_ITEM.NAME_AC_4, C_ITEM.NAME_AC_2);
   BRACERS_GP = 3000;
 
 type
@@ -279,11 +279,11 @@ var
 
 begin
   ac := 1;
-  if item^.itemType = C_Item.BRACERS then
+  if item^.itemType = C_ITEM.BRACERS then
     SetBracers;
   pos := 0;
   for i := 1 to 3 do
-    if (item^.nameIds[i] > C_Item.NAME_PLUS_BASE) and (item^.nameIds[i] <= C_Item.NAME_PLUS_BASE + PLUS_LAST) then
+    if (item^.nameIds[i] > C_ITEM.NAME_PLUS_BASE) and (item^.nameIds[i] <= C_ITEM.NAME_PLUS_BASE + PLUS_LAST) then
       pos := i;
   per := 0;
   if item^.plus > 0 then
@@ -291,7 +291,7 @@ begin
   { every choice starts at +1, whatever RandItem rolled }
   if pos <> 0 then begin
     item^.plus := 1;
-    item^.nameIds[pos] := C_Item.NAME_PLUS_BASE + 1;
+    item^.nameIds[pos] := C_ITEM.NAME_PLUS_BASE + 1;
     item^.value := per;
   end;
   repeat
@@ -299,7 +299,7 @@ begin
     TextRend.DisplayString(NAME_COL, LEVEL_ROW, White, Named(item));
     if pos <> 0 then
       TextRend.DisplayString(NAME_COL, LEVEL_ROW + 2, LightGreen, 'Left and Right change its plus.')
-    else if item^.itemType = C_Item.BRACERS then
+    else if item^.itemType = C_ITEM.BRACERS then
       TextRend.DisplayString(NAME_COL, LEVEL_ROW + 2, LightGreen, 'Left and Right change its AC.');
     MenuCore.arrowsToCaller := True;
     key := MenuCore.MenuHorizontal('Add: ', 'Take Exit', LightMagenta, LightGreen, White, True, False, ext);
@@ -311,9 +311,9 @@ begin
       if item^.plus = 0 then
         item^.nameIds[pos] := 0
       else
-        item^.nameIds[pos] := C_Item.NAME_PLUS_BASE + item^.plus;
+        item^.nameIds[pos] := C_ITEM.NAME_PLUS_BASE + item^.plus;
       item^.value := per * Word(item^.plus);
-    end else if ext and (item^.itemType = C_Item.BRACERS) then begin
+    end else if ext and (item^.itemType = C_ITEM.BRACERS) then begin
       if (key = C_Keys.LEFT) and (ac > 1) then
         Dec(ac);
       if (key = C_Keys.RIGHT) and (ac < BRACERS_LAST) then
@@ -347,8 +347,8 @@ begin
   tail := nil;
   n := 0;
   AddLine(head, tail, codes, n, 'Weapons and armor', 0);
-  for k := 1 to C_Item.RANDOM_ARMS_LAST do
-    if k in C_Item.RANDOM_ARMS_KINDS then begin
+  for k := 1 to C_ITEM.RANDOM_ARMS_LAST do
+    if k in C_ITEM.RANDOM_ARMS_KINDS then begin
       RandItem.GenerateRandomItem(k, item);
       if Named(item) <> '' then
         AddLine(head, tail, codes, n, Named(item), k);
@@ -360,7 +360,7 @@ begin
       item^.unidMask := 0;
       AddLine(head, tail, codes, n, Named(item), TEMPLATE_CODE + k);
     end;
-  for k := C_Item.MAGE_SCROLL to C_Item.CLERIC_SCROLL do begin
+  for k := C_ITEM.MAGE_SCROLL to C_ITEM.CLERIC_SCROLL do begin
     RandItem.GenerateRandomItem(k, item);
     AddLine(head, tail, codes, n, Named(item), k);
   end;

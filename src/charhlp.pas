@@ -78,10 +78,10 @@ function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 { FindAmmo for the readied weapon (equipped[C_EQUIP.WEAPON]). }
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
 
-{ Find the item that does the damage when the creature shoots or throws weapon w: w itself if C_Item.PROP_THROWN, else
-  the arrows (equipped[C_EQUIP.ARROW]) with a bow (C_Item.PROP_ARROWS) or the quarrels (equipped[C_EQUIP.BOLT]) with a
-  crossbow (C_Item.PROP_QUARRELS). A launcher with neither ammunition bit (props exactly C_Item.PROP_DEX_MISSILE +
-  C_Item.PROP_FIRES_AMMO) returns True with sel nil; no weapon (nil), a pure melee weapon or a launcher with no
+{ Find the item that does the damage when the creature shoots or throws weapon w: w itself if C_ITEM.PROP_THROWN, else
+  the arrows (equipped[C_EQUIP.ARROW]) with a bow (C_ITEM.PROP_ARROWS) or the quarrels (equipped[C_EQUIP.BOLT]) with a
+  crossbow (C_ITEM.PROP_QUARRELS). A launcher with neither ammunition bit (props exactly C_ITEM.PROP_DEX_MISSILE +
+  C_ITEM.PROP_FIRES_AMMO) returns True with sel nil; no weapon (nil), a pure melee weapon or a launcher with no
   ammunition readied returns False. }
 function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 
@@ -127,10 +127,10 @@ function BaseItem(itemType: Byte): Types.PBaseItemRec;
   and arrow pierce (not slash). }
 procedure FixWeaponClasses(items: Types.PBaseItems);
 
-{ Clear the ammunition bits (C_Item.PROP_ARROWS, PROP_QUARRELS) of a weapon that is not a launcher (no
-  C_Item.PROP_FIRES_AMMO): the shipped ITEMS file gives the bill-guisarme and the unused item type 0 the arrows bit
+{ Clear the ammunition bits (C_ITEM.PROP_ARROWS, PROP_QUARRELS) of a weapon that is not a launcher (no
+  C_ITEM.PROP_FIRES_AMMO): the shipped ITEMS file gives the bill-guisarme and the unused item type 0 the arrows bit
   (#793). The quarrel's own row keeps its bits; it is ammunition, never readied as a weapon. The javelin, shipped as a
-  launcher without the Strength bonus, becomes a throwable weapon (C_Item.PROPS_THROWABLE) like the spear, so it can
+  launcher without the Strength bonus, becomes a throwable weapon (C_ITEM.PROPS_THROWABLE) like the spear, so it can
   be thrown or used in melee (#798); holy water, oil and boulders stay thrown only. }
 procedure FixAmmoBits(items: Types.PBaseItems);
 
@@ -151,11 +151,11 @@ function IsPerson(creature: Types.PCharRecord): Boolean;
   Fight after it, return to the player's control. }
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
-{ True when it is non-nil and its base item's slot is a scroll's, C_Item.SLOT_MAGE_SCROLL..SLOT_LAST_READABLE. }
+{ True when it is non-nil and its base item's slot is a scroll's, C_ITEM.SLOT_MAGE_SCROLL..SLOT_LAST_READABLE. }
 function ItemReadable(it: Pointer): Boolean;
 
 { True when creature can read item's spells, that is when the scroll is identified. Read Magic (effect 16), or any
-  cleric level with a cleric's scroll (base slot C_Item.SLOT_CLERIC_SCROLL), identifies it first. }
+  cleric level with a cleric's scroll (base slot C_ITEM.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_Item, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_Level, C_STATUS, C_IFC,
+uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_Level, C_STATUS, C_IFC,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -237,8 +237,8 @@ var
   gEquipWeight: Word;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
-  Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
-  and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
+  Dexterity missile adjustment (C_ITEM.PROP_DEX_MISSILE) and Strength to-hit (C_ITEM.PROP_STR_BONUS); the damage dice
+  and modifier come from the base item's small/medium entry plus Strength damage (C_ITEM.PROP_STR_BONUS). The weapon's
   plus is added to both, except that a launcher's (CharHlp.FindDamagingRangedWeapon: a bow or crossbow) is to-hit only,
   and the plus of the arrows or quarrels it fires is added to both. An elf gets a further +1 to-hit with a bow, a long
   sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it counts as a bow when its
@@ -254,10 +254,10 @@ begin
   if w = nil then Exit;
   wtype := w^.itemType;
   creature^.thac0Cur := creature^.thac0Base;
-  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_DEX_MISSILE) <> 0 then
+  if (CharHlp.BaseItem(wtype)^.props and C_ITEM.PROP_DEX_MISSILE) <> 0 then
     creature^.thac0Cur := AbilAdj.DexMissileAdjust(creature) + creature^.thac0Cur;
   creature^.curModA[1] := CharHlp.BaseItem(wtype)^.dmgSmMod;
-  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_STR_BONUS) <> 0 then begin
+  if (CharHlp.BaseItem(wtype)^.props and C_ITEM.PROP_STR_BONUS) <> 0 then begin
     creature^.thac0Cur := AbilAdj.StrToHitAdjust(creature) + creature^.thac0Cur;
     creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
@@ -269,9 +269,9 @@ begin
   end else
     creature^.curModA[1] := creature^.curModA[1] + plus;
   if (creature^.race = C_Race.ELF) and
-      ((w^.itemType in [C_Item.COMPOSITE_LONG_BOW..C_Item.SHORT_BOW, C_Item.LONG_SWORD, C_Item.SHORT_SWORD]) or
-       ((w^.itemType = C_Item.HEAVY_CROSSBOW) and
-        (w^.nameIds[2] in [C_Item.NAME_COMPOSITE_LONG_BOW..C_Item.NAME_SHORT_BOW]))) then
+      ((w^.itemType in [C_ITEM.COMPOSITE_LONG_BOW..C_ITEM.SHORT_BOW, C_ITEM.LONG_SWORD, C_ITEM.SHORT_SWORD]) or
+       ((w^.itemType = C_ITEM.HEAVY_CROSSBOW) and
+        (w^.nameIds[2] in [C_ITEM.NAME_COMPOSITE_LONG_BOW..C_ITEM.NAME_SHORT_BOW]))) then
     Inc(plus);
   creature^.thac0Cur := creature^.thac0Cur + plus;
   creature^.curRollsA[1] := CharHlp.BaseItem(wtype)^.dmgSmRolls;
@@ -401,10 +401,10 @@ begin
       item^.name := item^.name + GDConsts.nameParts[item^.nameIds[i]];
       if (item^.quantity < 2) or appended then
         item^.name := item^.name + ' '
-      else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_Item.FLASK_OF_OIL)) or
-        ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_Item.FLASK_OF_OIL)) or
-        (((item^.itemType = C_Item.ARROW) or (item^.itemType = C_Item.QUARREL)) and
-         (item^.nameIds[3] <> C_Item.NAME_SILVER)) then begin
+      else if ((1 shl (i - 1)) = mask) or ((i = 1) and (mask > 4) and (item^.itemType <> C_ITEM.FLASK_OF_OIL)) or
+        ((i = 2) and not Odd(mask)) or ((i = 3) and (item^.itemType = C_ITEM.FLASK_OF_OIL)) or
+        (((item^.itemType = C_ITEM.ARROW) or (item^.itemType = C_ITEM.QUARREL)) and
+         (item^.nameIds[3] <> C_ITEM.NAME_SILVER)) then begin
         item^.name := item^.name + 's ';
         appended := True;
       end else
@@ -447,9 +447,9 @@ begin
           end else
             creature^.equipped[C_EQUIP.RING1] := item;
       end;
-      if item^.itemType = C_Item.ARROW then
+      if item^.itemType = C_ITEM.ARROW then
         creature^.equipped[C_EQUIP.ARROW] := item;
-      if item^.itemType = C_Item.QUARREL then
+      if item^.itemType = C_ITEM.QUARREL then
         creature^.equipped[C_EQUIP.BOLT] := item;
     end;
     item := item^.next;
@@ -488,7 +488,7 @@ begin
     Inc(raw, w);
     if item^.equipped <> 0 then begin
       Inc(gEquipWeight, w);
-      if item^.nameIds[1] = C_Item.NAME_HOLDING then
+      if item^.nameIds[1] = C_ITEM.NAME_HOLDING then
         bag := True;
       creature^.handsEquipped := creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands;
     end;
@@ -561,29 +561,29 @@ end;
 
 procedure FixWeaponClasses(items: Types.PBaseItems);
 begin
-  items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_SLASH;
-  items^[C_Item.BEC_DE_CORBIN].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.MILITARY_FORK].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.PARTISAN].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.RANSEUR].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.SPETUM].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.SHORT_SWORD].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.TRIDENT].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.ARROW].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_ITEM.BATTLE_AXE].wpnClass := C_ITEM.WPN_SLASH;
+  items^[C_ITEM.BEC_DE_CORBIN].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.MILITARY_FORK].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.PARTISAN].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.RANSEUR].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.SPETUM].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.SHORT_SWORD].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.TRIDENT].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.ARROW].wpnClass := C_ITEM.WPN_PIERCE;
 end;
 
 procedure FixAmmoBits(items: Types.PBaseItems);
 var
   i: Byte;
 begin
-  with items^[C_Item.JAVELIN] do
-    props := (props and not C_Item.PROP_FIRES_AMMO) or C_Item.PROPS_THROWABLE;
+  with items^[C_ITEM.JAVELIN] do
+    props := (props and not C_ITEM.PROP_FIRES_AMMO) or C_ITEM.PROPS_THROWABLE;
   for i := 0 to Types.BASE_ITEM_LAST do
-    if (items^[i].props and C_Item.PROP_FIRES_AMMO) = 0 then
-      items^[i].props := items^[i].props and not (C_Item.PROP_ARROWS or C_Item.PROP_QUARRELS);
+    if (items^[i].props and C_ITEM.PROP_FIRES_AMMO) = 0 then
+      items^[i].props := items^[i].props and not (C_ITEM.PROP_ARROWS or C_ITEM.PROP_QUARRELS);
 end;
 
-{ True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }
+{ True when the creature has a Bag of Holding readied (name component C_ITEM.NAME_HOLDING). }
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 var
   item: Types.PItemRec;
@@ -591,7 +591,7 @@ begin
   HasBagOfHolding := False;
   item := creature^.itemsAddr;
   while item <> nil do begin
-    if (item^.equipped <> 0) and (item^.nameIds[1] = C_Item.NAME_HOLDING) then
+    if (item^.equipped <> 0) and (item^.nameIds[1] = C_ITEM.NAME_HOLDING) then
       HasBagOfHolding := True;
     item := item^.next;
   end;
@@ -884,12 +884,12 @@ begin
     HasRangedWeapon := False;
 end;
 
-{ True when the readied weapon is ranged and carries both C_Item.PROPS_THROWABLE bits (thrown, Strength bonus). }
+{ True when the readied weapon is ranged and carries both C_ITEM.PROPS_THROWABLE bits (thrown, Strength bonus). }
 function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 begin
   if CharHlp.HasRangedWeapon(creature) and
       ((CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.props and
-        C_Item.PROPS_THROWABLE) = C_Item.PROPS_THROWABLE) then
+        C_ITEM.PROPS_THROWABLE) = C_ITEM.PROPS_THROWABLE) then
     HasThrowableWeapon := True
   else
     HasThrowableWeapon := False;
@@ -909,16 +909,16 @@ begin
   props := 0;
   if w <> nil then begin
     props := CharHlp.BaseItem(w^.itemType)^.props;
-    if (props and C_Item.PROP_THROWN) <> 0 then
+    if (props and C_ITEM.PROP_THROWN) <> 0 then
       sel := w;
-    if (props and C_Item.PROP_FIRES_AMMO) <> 0 then begin
-      if (props and C_Item.PROP_ARROWS) <> 0 then
+    if (props and C_ITEM.PROP_FIRES_AMMO) <> 0 then begin
+      if (props and C_ITEM.PROP_ARROWS) <> 0 then
         sel := creature^.equipped[C_EQUIP.ARROW];
-      if (props and C_Item.PROP_QUARRELS) <> 0 then
+      if (props and C_ITEM.PROP_QUARRELS) <> 0 then
         sel := creature^.equipped[C_EQUIP.BOLT];
     end;
   end;
-  if (sel <> nil) or (props = C_Item.PROP_DEX_MISSILE + C_Item.PROP_FIRES_AMMO) then
+  if (sel <> nil) or (props = C_ITEM.PROP_DEX_MISSILE + C_ITEM.PROP_FIRES_AMMO) then
     FindAmmo := True;
 end;
 
@@ -1053,7 +1053,7 @@ end;
 function ItemReadable(it: Pointer): Boolean;
 begin
   if (it <> nil) and
-     (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot in [C_Item.SLOT_MAGE_SCROLL..C_Item.SLOT_LAST_READABLE]) then
+     (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot in [C_ITEM.SLOT_MAGE_SCROLL..C_ITEM.SLOT_LAST_READABLE]) then
     ItemReadable := True
   else
     ItemReadable := False;
@@ -1065,7 +1065,7 @@ var
 begin
   if CharHlp.HasEffect(creature, C_EFFECT.READ_MAGIC, effect) or
       ((creature^.classLevels[C_Level.CLERIC] > 0) and
-       (CharHlp.BaseItem(item^.itemType)^.slot = C_Item.SLOT_CLERIC_SCROLL)) then
+       (CharHlp.BaseItem(item^.itemType)^.slot = C_ITEM.SLOT_CLERIC_SCROLL)) then
     item^.unidMask := 0;
   ScrollLegible := item^.unidMask = 0;
 end;

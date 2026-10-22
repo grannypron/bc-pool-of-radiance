@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TRandItm;
 
-uses Types, GDConsts, C_Item, RandItem, StrUtil, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, GDConsts, C_ITEM, RandItem, StrUtil, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   it: Types.TItemRec;
@@ -71,7 +71,7 @@ begin
   ok := True;
   for i := 1 to 200 do begin
     RandItem.GenerateRandomItem(5, @it);
-    if (it.plus < 1) or (it.plus > 3) or (it.nameIds[3] <> 5) or (it.nameIds[2] <> it.plus + C_Item.NAME_PLUS_BASE) or
+    if (it.plus < 1) or (it.plus > 3) or (it.nameIds[3] <> 5) or (it.nameIds[2] <> it.plus + C_ITEM.NAME_PLUS_BASE) or
         (it.saveBonus <> 0) then
       ok := False;
   end;
@@ -101,7 +101,7 @@ begin
     if (it.nameIds[1] = Lo(GDConsts.randomItemTemplates[14].nameIds[1])) and
         (it.value = GDConsts.randomItemTemplates[14].value) then
       Inc(lightning)
-    else if (it.nameIds[3] = 21) and (it.nameIds[2] = it.plus + C_Item.NAME_PLUS_BASE) then
+    else if (it.nameIds[3] = 21) and (it.nameIds[2] = it.plus + C_ITEM.NAME_PLUS_BASE) then
       Inc(plain)
     else
       ok := False;

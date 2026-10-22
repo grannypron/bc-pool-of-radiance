@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_EQUIP, C_Level, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_ITEM, C_EQUIP, C_Level, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -137,7 +137,7 @@ begin
   GDVars.creatureList := nil;
 
   { labels }
-  NewItem(21, 0, C_Item.NAME_PLUS_BASE + 1, 21, 0, 20);
+  NewItem(21, 0, C_ITEM.NAME_PLUS_BASE + 1, 21, 0, 20);
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('Javelin +1 ', it.name, 'an identified javelin +1');
   CharHlp.ItemLabel(@it, True);
@@ -145,10 +145,10 @@ begin
   it.equipped := 1;
   CharHlp.ItemLabel(@it, True);
   TestKit.CheckEqualsS(' Yes  Javelin +1 ', it.name, 'an inventory line, readied');
-  NewItem(73, 0, C_Item.NAME_PLUS_BASE + 1, 61, 3, 1);
+  NewItem(73, 0, C_ITEM.NAME_PLUS_BASE + 1, 61, 3, 1);
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('3 Arrows +1 ', it.name, 'three arrows +1: the count, and the arrow pluralized');
-  NewItem(21, 0, C_Item.NAME_PLUS_BASE + 1, 21, 0, 20);
+  NewItem(21, 0, C_ITEM.NAME_PLUS_BASE + 1, 21, 0, 20);
   it.unidMask := 6;
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('Javelin ', it.name, 'unidentified parts are left out');
@@ -158,7 +158,7 @@ begin
   e.id := C_EFFECT.DETECT_MAGIC;
   c^.effectsAddr := @e;
   GDVars.creatureList := c;
-  NewItem(21, 0, C_Item.NAME_PLUS_BASE + 1, 21, 0, 20);
+  NewItem(21, 0, C_ITEM.NAME_PLUS_BASE + 1, 21, 0, 20);
   it.plus := 1;
   CharHlp.ItemLabel(@it, False);
   TestKit.CheckEqualsS('* Javelin +1 ', it.name, 'Detect Magic marks a magic item');
@@ -336,34 +336,34 @@ begin
   { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
   New(items);
   FillChar(items^, SizeOf(items^), 0);
-  items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_PIERCE;
-  items^[C_Item.CLUB].wpnClass := C_Item.WPN_BASH;
-  items^[C_Item.DAGGER].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_ITEM.BATTLE_AXE].wpnClass := C_ITEM.WPN_PIERCE;
+  items^[C_ITEM.CLUB].wpnClass := C_ITEM.WPN_BASH;
+  items^[C_ITEM.DAGGER].wpnClass := C_ITEM.WPN_PIERCE;
   CharHlp.FixWeaponClasses(items);
-  TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.BATTLE_AXE].wpnClass, 'a battle axe slashes');
-  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.BEC_DE_CORBIN].wpnClass, 'a bec de corbin pierces');
-  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.TRIDENT].wpnClass, 'a trident pierces');
-  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.SHORT_SWORD].wpnClass, 'a short sword pierces');
-  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.ARROW].wpnClass, 'an arrow pierces');
-  TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.LONG_SWORD].wpnClass, 'a long sword still slashes');
-  TestKit.CheckEqualsL(C_Item.WPN_BASH, items^[C_Item.CLUB].wpnClass, 'a club still bashes');
-  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.DAGGER].wpnClass, 'a dagger still pierces');
+  TestKit.CheckEqualsL(C_ITEM.WPN_SLASH, items^[C_ITEM.BATTLE_AXE].wpnClass, 'a battle axe slashes');
+  TestKit.CheckEqualsL(C_ITEM.WPN_PIERCE, items^[C_ITEM.BEC_DE_CORBIN].wpnClass, 'a bec de corbin pierces');
+  TestKit.CheckEqualsL(C_ITEM.WPN_PIERCE, items^[C_ITEM.TRIDENT].wpnClass, 'a trident pierces');
+  TestKit.CheckEqualsL(C_ITEM.WPN_PIERCE, items^[C_ITEM.SHORT_SWORD].wpnClass, 'a short sword pierces');
+  TestKit.CheckEqualsL(C_ITEM.WPN_PIERCE, items^[C_ITEM.ARROW].wpnClass, 'an arrow pierces');
+  TestKit.CheckEqualsL(C_ITEM.WPN_SLASH, items^[C_ITEM.LONG_SWORD].wpnClass, 'a long sword still slashes');
+  TestKit.CheckEqualsL(C_ITEM.WPN_BASH, items^[C_ITEM.CLUB].wpnClass, 'a club still bashes');
+  TestKit.CheckEqualsL(C_ITEM.WPN_PIERCE, items^[C_ITEM.DAGGER].wpnClass, 'a dagger still pierces');
   { FixAmmoBits (#793) over the shipped rows: the bill-guisarme loses its arrows bit, launchers keep theirs }
-  items^[C_Item.BILL_GUISARME].props := C_Item.PROP_ARROWS;
-  items^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
-  items^[C_Item.QUARREL].props := C_Item.PROP_QUARRELS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
-  items^[C_Item.DAGGER].props := C_Item.PROP_THROWN or C_Item.PROP_STR_BONUS;
+  items^[C_ITEM.BILL_GUISARME].props := C_ITEM.PROP_ARROWS;
+  items^[C_ITEM.LONG_BOW].props := C_ITEM.PROP_ARROWS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
+  items^[C_ITEM.QUARREL].props := C_ITEM.PROP_QUARRELS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
+  items^[C_ITEM.DAGGER].props := C_ITEM.PROP_THROWN or C_ITEM.PROP_STR_BONUS;
   CharHlp.FixAmmoBits(items);
-  TestKit.CheckEqualsL(0, items^[C_Item.BILL_GUISARME].props, 'a bill-guisarme takes no arrows');
-  TestKit.CheckEqualsL($0B, items^[C_Item.LONG_BOW].props, 'a long bow still shoots arrows');
-  TestKit.CheckEqualsL($8A, items^[C_Item.QUARREL].props, 'a quarrel keeps its bits');
-  TestKit.CheckEqualsL($14, items^[C_Item.DAGGER].props, 'a dagger is still thrown');
+  TestKit.CheckEqualsL(0, items^[C_ITEM.BILL_GUISARME].props, 'a bill-guisarme takes no arrows');
+  TestKit.CheckEqualsL($0B, items^[C_ITEM.LONG_BOW].props, 'a long bow still shoots arrows');
+  TestKit.CheckEqualsL($8A, items^[C_ITEM.QUARREL].props, 'a quarrel keeps its bits');
+  TestKit.CheckEqualsL($14, items^[C_ITEM.DAGGER].props, 'a dagger is still thrown');
   { the javelin (#798) is thrown or melee; holy water stays thrown only }
-  items^[C_Item.JAVELIN].props := C_Item.PROP_THROWN or C_Item.PROP_FIRES_AMMO or C_Item.PROP_DEX_MISSILE;
-  items^[C_Item.HOLY_WATER_VIAL].props := C_Item.PROP_THROWN or C_Item.PROP_FIRES_AMMO or C_Item.PROP_DEX_MISSILE;
+  items^[C_ITEM.JAVELIN].props := C_ITEM.PROP_THROWN or C_ITEM.PROP_FIRES_AMMO or C_ITEM.PROP_DEX_MISSILE;
+  items^[C_ITEM.HOLY_WATER_VIAL].props := C_ITEM.PROP_THROWN or C_ITEM.PROP_FIRES_AMMO or C_ITEM.PROP_DEX_MISSILE;
   CharHlp.FixAmmoBits(items);
-  TestKit.CheckEqualsL($16, items^[C_Item.JAVELIN].props, 'a javelin is throwable, not a launcher');
-  TestKit.CheckEqualsL($1A, items^[C_Item.HOLY_WATER_VIAL].props, 'holy water is still thrown only');
+  TestKit.CheckEqualsL($16, items^[C_ITEM.JAVELIN].props, 'a javelin is throwable, not a launcher');
+  TestKit.CheckEqualsL($1A, items^[C_ITEM.HOLY_WATER_VIAL].props, 'holy water is still thrown only');
   Dispose(items);
   { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
   FillChar(crs[1], SizeOf(crs[1]), 0);
@@ -382,16 +382,16 @@ begin
   { a bow's plus is to hit only, its arrows' to hit and damage (#744); a sword's is to both }
   GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
   FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
-  GDVars.baseItems^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
-  GDVars.baseItems^[C_Item.ARROW].slot := C_EQUIP.RING2;
-  GDVars.baseItems^[C_Item.LONG_SWORD].props := C_Item.PROP_STR_BONUS;
+  GDVars.baseItems^[C_ITEM.LONG_BOW].props := C_ITEM.PROP_ARROWS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
+  GDVars.baseItems^[C_ITEM.ARROW].slot := C_EQUIP.RING2;
+  GDVars.baseItems^[C_ITEM.LONG_SWORD].props := C_ITEM.PROP_STR_BONUS;
   FillChar(weapon, SizeOf(weapon), 0);
   FillChar(arrows, SizeOf(arrows), 0);
-  weapon.itemType := C_Item.LONG_BOW;
+  weapon.itemType := C_ITEM.LONG_BOW;
   weapon.plus := 2;
   weapon.equipped := 1;
   weapon.next := @arrows;
-  arrows.itemType := C_Item.ARROW;
+  arrows.itemType := C_ITEM.ARROW;
   arrows.plus := 1;
   arrows.quantity := 10;
   arrows.equipped := 1;
@@ -401,7 +401,7 @@ begin
   CharHlp.RecalcStats(@crs[1]);
   TestKit.CheckEqualsL(43, crs[1].thac0Cur, 'a bow +2 with arrows +1 is +3 to hit');
   TestKit.CheckEqualsL(1, crs[1].curModA[1], 'and +1 to damage');
-  weapon.itemType := C_Item.LONG_SWORD;
+  weapon.itemType := C_ITEM.LONG_SWORD;
   CharHlp.RecalcStats(@crs[1]);
   TestKit.CheckEqualsL(42, crs[1].thac0Cur, 'a sword +2 is +2 to hit');
   TestKit.CheckEqualsL(2, crs[1].curModA[1], 'and +2 to damage');

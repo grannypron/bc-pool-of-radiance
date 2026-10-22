@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_Race, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
@@ -560,7 +560,7 @@ begin
   GDVars.effectLock := 0;
 end;
 
-{ Spiritual Hammer (eff 23). The hammer is an C_Item.HAMMER whose nameIds[3] is 243. Removal deletes the hammer;
+{ Spiritual Hammer (eff 23). The hammer is an C_ITEM.HAMMER whose nameIds[3] is 243. Removal deletes the hammer;
   otherwise one is created (+1, special = eff 137) when missing and the creature has fewer than 16 items. }
 procedure EffSpiritHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -570,7 +570,7 @@ begin
   item := creature^.itemsAddr;
   found := 0;
   while (item <> nil) and (found = 0) do
-    if (item^.itemType = C_Item.HAMMER) and (item^.nameIds[3] = C_Item.NAME_SPIRITUAL) then
+    if (item^.itemType = C_ITEM.HAMMER) and (item^.nameIds[3] = C_ITEM.NAME_SPIRITUAL) then
       found := 1
     else
       item := item^.next;
@@ -581,9 +581,9 @@ begin
       if creature^.numberOfItems < 16 then begin
         GetMem(item, SizeOf(Types.TItemRec));
         FillChar(item^, SizeOf(Types.TItemRec), 0);
-        item^.itemType := C_Item.HAMMER;
-        item^.nameIds[2] := C_Item.NAME_HAMMER;
-        item^.nameIds[3] := C_Item.NAME_SPIRITUAL;
+        item^.itemType := C_ITEM.HAMMER;
+        item^.nameIds[2] := C_ITEM.NAME_HAMMER;
+        item^.nameIds[3] := C_ITEM.NAME_SPIRITUAL;
         item^.plus := 1;
         item^.effect := C_EFFECT.SPIRIT_HAMMER;
         item^.special := C_EFFECT.SPIRIT_HAMMER_GONE;
@@ -1265,8 +1265,8 @@ begin
     while (item <> nil) and (reflected = False) do begin
       if item^.equipped <> 0 then
         { "Mirror" }
-        if (item^.nameIds[1] = C_Item.NAME_MIRROR) or (item^.nameIds[2] = C_Item.NAME_MIRROR) or
-           (item^.nameIds[3] = C_Item.NAME_MIRROR) then begin
+        if (item^.nameIds[1] = C_ITEM.NAME_MIRROR) or (item^.nameIds[2] = C_ITEM.NAME_MIRROR) or
+           (item^.nameIds[3] = C_ITEM.NAME_MIRROR) then begin
           CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'reflects it!', 12, False);
           CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.otherCreatureCurrentPtr),
                                           CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr),
@@ -1498,7 +1498,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (C_Item.WPN_PIERCE or C_Item.WPN_BASH) <> 0 then
+    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (C_ITEM.WPN_PIERCE or C_ITEM.WPN_BASH) <> 0 then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1516,7 +1516,7 @@ var
   w: Types.PItemRec;
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
-  if (w = nil) or ((w^.plus = 0) and (w^.nameIds[3] <> C_Item.NAME_SILVER)) then
+  if (w = nil) or ((w^.plus = 0) and (w^.nameIds[3] <> C_ITEM.NAME_SILVER)) then
     GDVars.pendingDamage := 0;
 end;
 
@@ -1715,8 +1715,8 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = C_Item.WPN_SLASH) or
-        (CharHlp.BaseItem(w^.itemType)^.wpnClass and C_Item.WPN_PIERCE <> 0) then
+    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = C_ITEM.WPN_SLASH) or
+        (CharHlp.BaseItem(w^.itemType)^.wpnClass and C_ITEM.WPN_PIERCE <> 0) then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1738,7 +1738,7 @@ var
 begin
   item := GDVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
-    if item^.itemType = C_Item.HOLY_WATER_VIAL then
+    if item^.itemType = C_ITEM.HOLY_WATER_VIAL then
       GDVars.pendingDamage := Dice.RollDamageDice(1, 6) + 1;
 end;
 
@@ -1760,14 +1760,14 @@ begin
       GDVars.pendingDamage := 0;
 end;
 
-{ Boulder evasion (eff 120): 50% chance to avoid a thrown C_Item.BOULDER or C_Item.LARGE_BOULDER }
+{ Boulder evasion (eff 120): 50% chance to avoid a thrown C_ITEM.BOULDER or C_ITEM.LARGE_BOULDER }
 procedure EffBoulderDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
 begin
   item := GDVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
-    if (item^.itemType = C_Item.BOULDER) or (item^.itemType = C_Item.LARGE_BOULDER) then
+    if (item^.itemType = C_ITEM.BOULDER) or (item^.itemType = C_ITEM.LARGE_BOULDER) then
       EffHndlr.AvoidRanged(creature, 50);
 end;
 
@@ -1803,7 +1803,7 @@ var
 begin
   item := GDVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
-    if item^.itemType = C_Item.FLASK_OF_OIL then
+    if item^.itemType = C_ITEM.FLASK_OF_OIL then
       GDVars.pendingDamage := Dice.RollDamageDice(3, 8);
   if GDVars.elementMask and (C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC) <> 0 then
     Inc(GDVars.pendingDamage, GDVars.gDamageDice);
@@ -1816,7 +1816,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then begin
-    if (w^.plus = 0) and (w^.nameIds[3] = C_Item.NAME_SILVER) then
+    if (w^.plus = 0) and (w^.nameIds[3] = C_ITEM.NAME_SILVER) then
       GDVars.pendingDamage := GDVars.pendingDamage div 2
     else if w^.plus = 0 then
       GDVars.pendingDamage := 0;
@@ -1857,8 +1857,8 @@ begin
     if item^.equipped <> 0 then
       { 3 = High(TItemRec.nameIds) }
       for j := 1 to 3 do
-        if ((item^.nameIds[j] = C_Item.NAME_HOLY_SYMBOL) and (item^.nameIds[3] = C_Item.NAME_WOODEN)) or
-           (item^.nameIds[j] = C_Item.NAME_MIRROR) then
+        if ((item^.nameIds[j] = C_ITEM.NAME_HOLY_SYMBOL) and (item^.nameIds[3] = C_ITEM.NAME_WOODEN)) or
+           (item^.nameIds[j] = C_ITEM.NAME_MIRROR) then
           GDVars.currentSuppressTargetingFlag := 1;
     item := item^.next;
   end;

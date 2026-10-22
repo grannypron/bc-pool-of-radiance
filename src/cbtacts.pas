@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_Keys, C_Level,
+uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_Keys, C_Level,
   C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -851,7 +851,7 @@ begin
   if weapon <> nil then
     CbtActs.RangedAttackAnim(att, def, weapon);
   { a sling's stone animates a second time }
-  if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (att^.equipped[C_EQUIP.WEAPON]^.itemType = C_Item.SLING) then
+  if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (att^.equipped[C_EQUIP.WEAPON]^.itemType = C_ITEM.SLING) then
     CbtActs.RangedAttackAnim(att, def, att^.equipped[C_EQUIP.WEAPON]);
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
@@ -1212,8 +1212,8 @@ begin
     wItem := weapon^.itemType;
   if att^.classLevels[C_Level.THIEF] > 0 then
     if not ClassCal.ArmorBarsThiefSkills(att) then
-      if (weapon = nil) or (wItem = C_Item.CLUB) or (wItem = C_Item.DAGGER)
-         or ((wItem >= C_Item.BROAD_SWORD) and (wItem <= C_Item.SHORT_SWORD)) then
+      if (weapon = nil) or (wItem = C_ITEM.CLUB) or (wItem = C_ITEM.DAGGER)
+         or ((wItem >= C_ITEM.BROAD_SWORD) and (wItem <= C_ITEM.SHORT_SWORD)) then
         can := True;
   if can and (def^.combatAddr^.flankCount > 1)
      and (CbtActs.DirTowardTarget(att, def) = def^.combatAddr^.direction) then
@@ -1257,7 +1257,7 @@ begin
   size := Blit.MaskBytes(GDVars.moveIconSheet^.imgSize);
   case weapon^.itemType of
     { straight-flying missiles }
-    C_Item.DART, C_Item.JAVELIN, C_Item.QUARREL, C_Item.SPEAR, C_Item.ARROW:
+    C_ITEM.DART, C_ITEM.JAVELIN, C_ITEM.QUARREL, C_ITEM.SPEAR, C_ITEM.ARROW:
       if Odd(dir) then begin
         if (dir = C_DIR.SOUTHEAST) or (dir = C_DIR.SOUTHWEST) then
           CharDisp.CopyIconFacing(sym + 1, 1, 0, dir = C_DIR.SOUTHWEST)
@@ -1266,21 +1266,21 @@ begin
       end else
         CharDisp.CopyIconFacing(sym + dir mod 4, dir div 4, 0, False);
     { spinning thrown weapons }
-    C_Item.HAND_AXE, C_Item.CLUB, C_Item.HAMMER:
+    C_ITEM.HAND_AXE, C_ITEM.CLUB, C_ITEM.HAMMER:
       begin
         CharDisp.BuildIconFacings(sym + 3);
         frames := 4;
         pace := 50;
       end;
     { holy water / oil flask }
-    C_Item.HOLY_WATER_VIAL, C_Item.FLASK_OF_OIL:
+    C_ITEM.HOLY_WATER_VIAL, C_ITEM.FLASK_OF_OIL:
       begin
         CharDisp.BuildIconFacings(sym + 4);
         frames := 4;
         pace := 50;
       end;
   else begin
-      if weapon^.itemType = C_Item.SLING then
+      if weapon^.itemType = C_ITEM.SLING then
         Inc(sym);
       CharDisp.CopyIconFacing(sym + 7, 0, 0, False);
       CharDisp.CopyIconFacing(sym + 7, 1, 1, False);

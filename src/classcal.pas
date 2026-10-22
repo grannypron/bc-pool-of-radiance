@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_CLASS, C_Level, C_Race, C_ABIL, C_EQUIP, C_Item, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GDConsts, GDVars, C_CLASS, C_Level, C_Race, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -231,7 +231,7 @@ function ArmorBarsThiefSkills(creature: Types.PCharRecord): Boolean;
 begin
   ArmorBarsThiefSkills := (creature^.equipped[C_EQUIP.SHIELD] <> nil) or
                           ((creature^.equipped[C_EQUIP.ARMOR] <> nil) and
-                           (creature^.equipped[C_EQUIP.ARMOR]^.itemType <> C_Item.LEATHER_ARMOR));
+                           (creature^.equipped[C_EQUIP.ARMOR]^.itemType <> C_ITEM.LEATHER_ARMOR));
 end;
 
 { dexAdj covers Dexterity 9..25, a thief's minimum to Deities & Demigods' highest; a Dexterity outside that range uses

@@ -186,7 +186,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
+uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_Keys, C_Level, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
@@ -1803,7 +1803,7 @@ begin
   Types.PItemRec(it)^.spells[found] := 0;
   { scroll spell-count name component }
   Dec(Types.PItemRec(it)^.nameIds[2]);
-  if Types.PItemRec(it)^.nameIds[2] < C_Item.NAME_WITH_1_SPELL then
+  if Types.PItemRec(it)^.nameIds[2] < C_ITEM.NAME_WITH_1_SPELL then
     CharHlp.RemoveItem(Types.PCharRecord(cr), Types.PItemRec(it));
 end;
 

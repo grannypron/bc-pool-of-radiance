@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -758,12 +758,12 @@ begin
     pri := pri + item^.plus * 8;
   if base.dmgSmMod > 0 then
     pri := pri + base.dmgSmMod * 2;
-  if (item^.itemType = C_Item.HOLY_WATER_VIAL)
+  if (item^.itemType = C_ITEM.HOLY_WATER_VIAL)
      and (creature^.combatAddr^.other <> nil)
      and (creature^.combatAddr^.other^.levelUndead > 0) then
     pri := 8;
   { launcher: +2 per rateOfFire point above 1 }
-  if (base.props and C_Item.PROP_FIRES_AMMO) > 0 then
+  if (base.props and C_ITEM.PROP_FIRES_AMMO) > 0 then
     pri := pri + (base.rateOfFire - 1) * 2;
   if base.hands <= 1 then
     pri := pri + 3;
@@ -823,13 +823,13 @@ begin
     if CharHlp.BaseItem(itType)^.slot = C_EQUIP.WEAPON then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) <> 0 then begin
         pri := CombatAi.CalcWeaponPriority(creature, item);
-        if ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) <> 0)
-           or ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_THROWN) <> 0) then
+        if ((CharHlp.BaseItem(itType)^.props and C_ITEM.PROP_FIRES_AMMO) <> 0)
+           or ((CharHlp.BaseItem(itType)^.props and C_ITEM.PROP_THROWN) <> 0) then
           if pri > bestRangedPri then begin
             bestRanged := item;
             bestRangedPri := pri;
           end;
-        if (CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) = 0 then
+        if (CharHlp.BaseItem(itType)^.props and C_ITEM.PROP_FIRES_AMMO) = 0 then
           if pri > bestMeleePri then begin
             bestMelee := item;
             bestMeleePri := pri;
@@ -849,13 +849,13 @@ begin
       end;
     item := item^.next;
   end;
-  { trueRanged: range > 1 and both C_Item.PROPS_THROWABLE bits (thrown, Strength bonus); such a weapon is picked even
+  { trueRanged: range > 1 and both C_ITEM.PROPS_THROWABLE bits (thrown, Strength bonus); such a weapon is picked even
     with an enemy adjacent }
   if (bestRanged <> nil)
      and (CharHlp.BaseItem(bestRanged^.itemType)^.range > 1)
      and
        ((CharHlp.BaseItem(bestRanged^.itemType)^.props and
-         C_Item.PROPS_THROWABLE) = C_Item.PROPS_THROWABLE) then
+         C_ITEM.PROPS_THROWABLE) = C_ITEM.PROPS_THROWABLE) then
     trueRanged := True
   else
     trueRanged := False;
