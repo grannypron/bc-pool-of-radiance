@@ -744,7 +744,8 @@ begin
 end;
 
 { DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
-  farewell message depends on whether the character is enabled }
+  farewell message depends on whether the character is enabled. Declining shows the relief line, shortened for a name
+  too long for SSI's wording to fit the 40-column bottom row. }
 procedure DropCharacterMenu;
 begin
   if GDVars.curChar = nil then Exit;
@@ -757,8 +758,11 @@ begin
       else
         CharDisp.PrintBottomLine(name + ' bids you farewell.');
       SaveLoad.RemoveCreature(False, True);
-    end else
-      CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.');
+    end else if Length(name) + Length(' breathes a sigh of relief.') <= 40 then
+      CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.')
+    else
+      { a name of 14 or 15 letters takes the shorter line, which fits the bottom row (#766) }
+      CharDisp.PrintBottomLine(name + ' sighs with relief.');
   end;
 end;
 
