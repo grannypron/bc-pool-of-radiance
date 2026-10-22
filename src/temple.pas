@@ -70,10 +70,8 @@ end;
 procedure CureBlindness;
 var
   effect: Types.PEffectRec;
-  s: String;
   c: Char;
 begin
-  s := '';
   c := 'Y';
   if not CharHlp.HasEffect(GDVars.curChar, C_Effect.BLIND, effect) then
     c := Temple.ConfirmCureAnyway('is not blind.');
@@ -104,6 +102,7 @@ procedure CureWounds(spell: Byte);
 var
   hp: Byte;
   c: Char;
+  { Turbo Pascal 6 cannot call a function as a statement }
   restored: Boolean;
   name: Types.TStr40;
   cost: Word;
@@ -147,7 +146,6 @@ end;
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
-  s: String;
   c: Char;
   wasDead: Boolean;
   hpLoss: Integer;
@@ -155,7 +153,6 @@ var
 begin
   creature := GDVars.curChar;
   wasDead := False;
-  s := '';
   c := 'Y';
   if (creature^.status = C_Status.DEAD) or (creature^.status = C_Status.ANIMATED) then
     wasDead := True;
@@ -210,13 +207,11 @@ end;
 procedure NeutralizePoison;
 var
   effect: Types.PEffectRec;
-  s: String;
   c: Char;
   found: Boolean;
   slowed: Boolean;
 begin
   found := False;
-  s := '';
   c := 'Y';
   if CharHlp.HasEffect(GDVars.curChar, C_Effect.POISONED, effect) then
     found := True;
@@ -249,10 +244,8 @@ var
   cursed: Boolean;
   item: Types.PItemRec;
   effect: Types.PEffectRec;
-  s: String;
   c: Char;
 begin
-  s := '';
   c := 'Y';
   cursed := False;
   item := GDVars.curChar^.itemsAddr;
@@ -277,10 +270,8 @@ end;
   enabled, with hpCur 1 }
 procedure StoneToFlesh;
 var
-  s: String;
   c: Char;
 begin
-  s := '';
   c := 'Y';
   if GDVars.curChar^.status <> C_Status.STONED then
     c := Temple.ConfirmCureAnyway('is not stoned.');
@@ -311,7 +302,6 @@ var
 begin
   done := False;
   list := nil;
-  sel := nil;
   MenuCore.AllocStringList(10, list);
   sel := list;
   i := 1;
