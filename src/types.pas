@@ -945,12 +945,6 @@ type
   end;
 
   { MenuCore types. }
-  TMenuAuto = record
-    { centiseconds before auto-answer, 0=off }
-    timeout: LongInt;
-    { the auto-answer key }
-    key: Char;
-  end;
   TOptRange = record
     first: Byte;
     last: Byte;

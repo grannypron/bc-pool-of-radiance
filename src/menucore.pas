@@ -47,8 +47,7 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
   is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
   Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
-  keypad scan codes, all with ext set. A nonzero dsMenuAutoAnswer.timeout returns dsMenuAutoAnswer.key once that many
-  ticks pass after the last animation frame change. The picture animates when animate is set or the GBVM menuAnimation
+  keypad scan codes, all with ext set. The picture animates when animate is set or the GBVM menuAnimation
   flag is nonzero (that flag also advances a frame every pass and is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
@@ -80,10 +79,6 @@ procedure FreeStringList(var list: Types.PItemRec);
 implementation
 
 uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
-
-var
-  { the menu's auto-answer: key, returned once timeout ticks pass; nothing sets it, so it stays off }
-  dsMenuAutoAnswer: Types.TMenuAuto;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -209,7 +204,7 @@ begin
   tick80 := tick30 + 50;
   if Length(query) <> 0 then
     TextRend.DisplayString(0, 24, qCol, query);
-  qLen := Length(query) + 0;
+  qLen := Length(query);
   DisplayOption(GDVars.horizChoice);
   repeat
     if @idleHook <> nil then
@@ -227,11 +222,7 @@ begin
         frameTick := TextRend.GetTicks;
       end;
     end;
-    if (dsMenuAutoAnswer.timeout > 0)
-       and (TextRend.GetTicks - frameTick >= dsMenuAutoAnswer.timeout) then begin
-      ch := dsMenuAutoAnswer.key;
-      done := True;
-    end else if KeyPressed then begin
+    if KeyPressed then begin
       ch := GameIo.ReadGameKey;
       { a STING pop-up (Ctrl-Y) wrote over the menu line }
       if GDVars.bottomLineTaken then begin
@@ -338,46 +329,20 @@ var
   hasPrev: Boolean;
   p: Types.PItemRec;
   headerCnt: Integer;
-  total: Integer;
   toCaller: Boolean;
   oldIdx: Integer;
   oldTop: Integer;
   { the caller's extraKeys, given to every HorizontalMenu call }
   keep: string[16];
 
-  { Last label (inUse) member among the first n, or the head when n = 0 and it is a label. The result is discarded by
-    DrawPage. }
-  function LastLabelBefore(n: Integer; l: Types.PItemRec): Types.PItemRec;
-  var
-    pp: Types.PItemRec;
-    found: Types.PItemRec;
-    i: Integer;
-  begin
-    i := 0;
-    pp := l;
-    found := nil;
-    while (pp <> nil) and (i < n) do begin
-      if pp^.inUse <> 0 then
-        found := pp;
-      pp := pp^.next;
-      Inc(i);
-    end;
-    if (found = nil) and (l^.inUse <> 0) then
-      LastLabelBefore := l
-    else
-      LastLabelBefore := found;
-  end;
-
   { Clear the box and draw the list from member top, labels in qCol and entries in mCol, each padded to the box width. }
   procedure DrawPage(top: Integer);
   var
     pp: Types.PItemRec;
-    q: Types.PItemRec;
     row: ShortInt;
   begin
     Border.ClearBox(ulCol, ulRow, lrCol, lrRow);
     pp := MenuCore.FindListMember(top, list);
-    q := LastLabelBefore(top, list);
     row := ulRow;
     while (pp <> nil) and (row <= lrRow) do begin
       if pp^.inUse <> 0 then
@@ -494,10 +459,6 @@ var
 
   { Move the cursor one line, wrapping within the visible page and clamped to the list, then skip label rows. }
   procedure MoveLine(down: Boolean);
-  var
-    pp: Types.PItemRec;
-    k: Integer;
-    n: Integer;
   begin
     if down then begin
       Inc(idx);
@@ -536,17 +497,11 @@ begin
       p := p^.next;
       Inc(headerCnt);
     end;
-    p := list;
-    total := 0;
-    while p <> nil do begin
-      p := p^.next;
-      Inc(total);
-    end;
     if GDVars.vertTop > idx then begin
       GDVars.vertTop := idx;
       redraw := True;
     end;
-    if GDVars.vertTop > total then begin
+    if GDVars.vertTop > count then begin
       GDVars.vertTop := 0;
       redraw := True;
     end;
