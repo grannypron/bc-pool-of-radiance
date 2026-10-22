@@ -132,10 +132,21 @@ rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
 
 echo "build.sh: compiling in DOSBox-X..."
 # DOSBox-X's own messages go to build/logs/DOSBOX.OUT. A build takes seconds; one that has not finished in ten minutes
-# is stuck (DOSBox-X waiting at a prompt, say) and is stopped. --foreground keeps Ctrl-C reaching DOSBox-X.
-# -defaultconf: DOSBox-X's built-in settings, not the user's config file, so a local build runs as CI's does.
+# is stuck (DOSBox-X waiting at a prompt, say) and is stopped. -defaultconf: DOSBox-X's built-in settings, not the
+# user's config file, so a local build runs as CI's does.
 dosbox_timeout=600
-timeout --foreground -k 10 $dosbox_timeout dosbox-x -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
+# run_dosbox ARGS...: DOSBox-X with no desktop window (no display, SDL's dummy drivers, stdin closed), stopped with
+# SIGKILL: a SIGTERM makes DOSBox-X quit gracefully, which raises a "Quit DOSBox-X" dialog on the desktop (#775).
+# Each file the run writes is capped at 2 GB (ulimit -f counts 1 KB blocks), so a test that loops writing can't fill
+# the disk.
+run_dosbox() {
+    (
+        ulimit -f 2097152
+        exec env -u DISPLAY -u WAYLAND_DISPLAY -u XAUTHORITY SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
+            timeout --foreground -s KILL $dosbox_timeout dosbox-x "$@" < /dev/null
+    )
+}
+run_dosbox -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
     -c "mount d \"$tp\"" \
     -c "mount e \"$root\"" \
     -c "mount f \"$tasm\"" \
@@ -225,7 +236,7 @@ if [ $run_tests -eq 1 ]; then
         done
     } > "$root/obj/tests/RUNTESTS.BAT"
     echo "build.sh: running ${#tests[@]} test programs in DOSBox-X..."
-    timeout --foreground -k 10 $dosbox_timeout dosbox-x -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
+    run_dosbox -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
         -c "mount d \"$tp\"" \
         -c "mount e \"$root\"" \
         -c "e:" \
