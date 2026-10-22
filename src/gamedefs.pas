@@ -67,8 +67,6 @@ const
     map): four identical 2-bit pixels. }
   cgaColorFill: array[0..3] of Byte = ($00, $55, $AA, $FF);
   { DisplayMessageWindow }
-  { Word-wrap punctuation; space is tested separately }
-  breakChars: Types.TBrkSet = ['!', ',', '-', '.', ':', ';', '?'];
   { SanitizeFileName }
   invalidFileChars: array[1..10] of Char = (
     { space }

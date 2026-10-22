@@ -149,6 +149,9 @@ end;
 { Print text with word wrapping and paging inside the requested window. Skip leading break characters, scan each word
   and include trailing punctuation before deciding where to wrap. }
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
+const
+  { Word-wrap punctuation; space is tested separately }
+  breakChars: Types.TBrkSet = ['!', ',', '-', '.', ':', ';', '?'];
 var
   { Integers, so idx can step past a 255-character source (a Byte wrapped to 0 and reprinted forever, #729) }
   len: Integer;
@@ -192,12 +195,12 @@ begin
   width := lrCol - ulCol + 1;
   repeat
     lineEnd := idx;
-    while (lineEnd < len) and (source[lineEnd] in GameDefs.breakChars) do
+    while (lineEnd < len) and (source[lineEnd] in breakChars) do
       Inc(lineEnd);
-    while (lineEnd < len) and not (source[lineEnd] in GameDefs.breakChars) and (source[lineEnd] <> ' ') do
+    while (lineEnd < len) and not (source[lineEnd] in breakChars) and (source[lineEnd] <> ' ') do
       Inc(lineEnd);
     if source[lineEnd] <> ' ' then
-      while (lineEnd + 1 < len) and (source[lineEnd + 1] in GameDefs.breakChars) do
+      while (lineEnd + 1 < len) and (source[lineEnd + 1] in breakChars) do
         Inc(lineEnd);
     { a word wider than the window is split: what fits on this row now, the rest carried on to the next }
     if (GameVars.curCol <= lrCol) and (lineEnd - idx + Ord(source[lineEnd] <> ' ') > width) then
