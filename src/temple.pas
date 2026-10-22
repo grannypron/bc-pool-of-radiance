@@ -136,7 +136,7 @@ begin
 end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). A dead or
-  animated character still poisoned "is still poisoned." and is not charged: the poison would kill the raised body
+  animated character still poisoned "is poisoned, and RAISE DEAD cannot help." and is not charged: the poison would kill the raised body
   again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation under the effect lock and
   rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not survive." and is
   C_Status.GONE, dead for good, the fee spent. A success sets one hit point, C_Status.OKAY and enabled, lowers
@@ -159,7 +159,7 @@ begin
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
   else if CharHlp.HasEffect(creature, C_Effect.POISONED, effect) then begin
-    CharDisp.PrintNameString(creature, 'is still poisoned.', 0, True);
+    CharDisp.PrintNameString(creature, 'is poisoned, and RAISE DEAD cannot help.', 0, True);
     c := 'N';
   end;
   if c = 'Y' then begin
