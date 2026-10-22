@@ -66,9 +66,6 @@ const
   { Solid fill bytes for FillPicRect. Packed fill byte for each mapped CGA color (0..3), indexed by SrcNibble(color,
     map): four identical 2-bit pixels. }
   cgaColorFill: array[0..3] of Byte = ($00, $55, $AA, $FF);
-  { Packed fill byte for each Tandy color, 0..15 (Black through White): two identical 4-bit pixels. }
-  tandyColorFill: array[0..15] of Byte = (
-    $00, $11, $22, $33, $44, $55, $66, $77, $88, $99, $AA, $BB, $CC, $DD, $EE, $FF);
   { DisplayMessageWindow }
   { Word-wrap punctuation; space is tested separately }
   breakChars: Types.TBrkSet = ['!', ',', '-', '.', ':', ';', '?'];
