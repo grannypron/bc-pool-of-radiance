@@ -6,7 +6,7 @@ unit UsualSpl;
 
 interface
 
-uses Types;
+uses Types, FileUtil;
 
 { The character's usual spells: the spell IDs in its memorized and pending slots when it last confirmed memorizing,
   pending flags stripped. Return False when none are remembered for it. }
@@ -18,9 +18,9 @@ procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSl
 { Forget the character's usual spells; called before its record is freed or reused. }
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
-{ Write the character's usual spells to <fn>.mem, erasing any old file first; nothing is written when it has none. A
-  failed write leaves no file (FileUtil.WriteRecord) and returns False. }
-function WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr): Boolean;
+{ Write the character's usual spells as file <base>.mem of save s (FileUtil.WriteToSet); for a character with none the
+  save erases the old file instead. False when the write failed. }
+function WriteUsualSpells(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 
 { Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
   usual-spells record with this format's signature and version, made for a character of this name and randByte. }
@@ -28,7 +28,7 @@ procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 
 implementation
 
-uses GDVars, Party, FileUtil;
+uses GDVars, Party;
 
 const
   { the number of characters whose usual spells are kept at once: the party's size }
@@ -108,21 +108,20 @@ begin
       usualOwner[i] := nil;
 end;
 
-function WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr): Boolean;
+function WriteUsualSpells(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 var
   rec: TUsualSpellsFile;
 begin
   WriteUsualSpells := True;
-  FileUtil.DeleteFile(fn + '.mem');
   FillChar(rec, SizeOf(rec), 0);
   if UsualSpl.GetUsualSpells(creature, rec.spells) then begin
     rec.sig := MEM_SIG;
     rec.version := MEM_VERSION;
     rec.name := creature^.name;
     rec.randByte := creature^.randByte;
-    { a failed write leaves none: the old one is erased above }
-    WriteUsualSpells := FileUtil.WriteRecord(fn + '.mem', rec, SizeOf(rec));
-  end;
+    WriteUsualSpells := FileUtil.WriteToSet(s, base + '.mem', rec, SizeOf(rec));
+  end else
+    FileUtil.AddToSet(s, base + '.mem', False);
 end;
 
 procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);

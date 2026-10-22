@@ -73,6 +73,8 @@ const
     'ORC', 'ORC LEADER', 'GOBLIN', 'GOBLIN LEADER',
     'HOBGOBLIN', 'HOBGOBLIN CHIEF', 'GAGOOL', 'MACE',
     'GOBLIN GUARD', 'HOBGOBLIN LDR', 'GRISHNAK');
+  { The game's one snake, the creature Snake Charm affects (#802): its charType, 14, the scorpions share }
+  SNAKE_NAME = 'GIANT SNAKE';
   { The giant class whose attacks a dwarf or gnome makes at -4: ogres, trolls, giants and the ettin (#749) }
   giantFoes: array[1..6] of Types.TName15 = (
     'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT', 'ETTIN');

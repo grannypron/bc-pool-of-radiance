@@ -2,14 +2,15 @@
   game, as Pools of Darkness keeps its vault. While a game is played its vault is the session file tmpvault.dat in the
   save directory; saving a game copies it to vault<x>.dat beside savgam<x>.dat, and loading one copies that back, so
   what is left in the vault and then given up with an unsaved game is gone with it. Each file is written to a
-  temporary copy put in its place only once it is whole (FileUtil.PutInPlace), so a failed write leaves the old one. }
+  temporary copy put in its place only once it is whole, the slot's copy with the rest of the save (FileUtil.CommitSet),
+  so a failed write leaves the old one. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Vault;
 
 interface
 
-uses Types;
+uses Types, FileUtil;
 
 const
   { the most items the vault holds }
@@ -18,9 +19,9 @@ const
 { Forget the session vault: a new game, or one left unsaved last time, starts with an empty vault. }
 procedure ForgetSessionVault;
 
-{ Saving into slot letter: copy the session vault to vault<x>.dat, or delete that file when the vault is empty. False
-  when the copy was not written whole or the file could not be deleted (vault<x>.dat is then left as it was). }
-function CommitToSlot(letter: Char): Boolean;
+{ Saving into slot letter: copy the session vault to the temporary copy of vault<x>.dat and add it to save s, or, with
+  no session vault, have s erase vault<x>.dat. False when the copy was not written whole (none is then left). }
+function AddToSave(var s: FileUtil.TFileSet; letter: Char): Boolean;
 
 { Loading slot letter: copy its vault<x>.dat to the session vault, or forget the session vault when it has none. A copy
   not written whole is reported, and the session vault forgotten, so no other game's vault stays in its place. }
@@ -45,7 +46,7 @@ function WasVisited: Boolean;
 
 implementation
 
-uses Crt, GDVars, Dos, CharHlp, TextRend, SaveMenu, FileUtil, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
+uses Crt, GDVars, Dos, CharHlp, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -65,33 +66,24 @@ type
 var
   visited: Byte;
 
-function SlotFile(letter: Char): Types.TPathStr;
-begin
-  SlotFile := GDVars.dsSaveDirectory + 'vault' + letter + '.dat';
-end;
 
 const
-  { CopyOrDelete's buffer, taken from the heap: the stack is not the place for it }
+  { CopyToTemp's buffer, taken from the heap: the stack is not the place for it }
   COPY_BUF = 512;
 
 type
   TCopyBuf = array[1..COPY_BUF] of Byte;
 
-{ Copy file src to dst, or delete dst when src cannot be opened: False when a copy was not read and written whole, or
-  dst could not be deleted, and dst is left as it was. }
-function CopyOrDelete(src, dst: Types.TPathStr): Boolean;
+{ Copy the open file fIn to dst's temporary copy (FileUtil.TempName), and close fIn: True when it was read and written
+  whole, else no copy is left. }
+function CopyToTemp(var fIn: file; dst: Types.TPathStr): Boolean;
 var
-  fIn: file;
   fOut: file;
   buf: ^TCopyBuf;
   n: Word;
   ok: Boolean;
   ioRes: Integer;
 begin
-  if not FileUtil.OpenReadOnly(fIn, src) then begin
-    CopyOrDelete := FileUtil.DeleteChecked(dst);
-    Exit;
-  end;
   ok := FileUtil.RewriteTemp(fOut, dst);
   if ok then begin
     GetMem(buf, SizeOf(TCopyBuf));
@@ -103,11 +95,11 @@ begin
         FileUtil.WriteChecked(fOut, buf^, n, ok);
     until (n = 0) or not ok;
     FreeMem(buf, SizeOf(TCopyBuf));
-    ok := FileUtil.CloseTemp(fOut, dst, ok) and FileUtil.PutInPlace(dst);
+    ok := FileUtil.CloseTemp(fOut, dst, ok);
   end;
   Close(fIn);
   ioRes := IOResult;
-  CopyOrDelete := ok;
+  CopyToTemp := ok;
 end;
 
 procedure ForgetSessionVault;
@@ -115,14 +107,34 @@ begin
   FileUtil.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
 end;
 
-function CommitToSlot(letter: Char): Boolean;
+function AddToSave(var s: FileUtil.TFileSet; letter: Char): Boolean;
+var
+  fIn: file;
+  ok: Boolean;
 begin
-  CommitToSlot := Vault.CopyOrDelete(GDVars.dsSaveDirectory + SESSION_FILE, Vault.SlotFile(letter));
+  ok := True;
+  if not FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SESSION_FILE) then
+    FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False)
+  else begin
+    ok := Vault.CopyToTemp(fIn, s.dir + SaveMenu.VaultName(letter));
+    if ok then
+      FileUtil.AddToSet(s, SaveMenu.VaultName(letter), True);
+  end;
+  AddToSave := ok;
 end;
 
 procedure RestoreFromSlot(letter: Char);
+var
+  fIn: file;
+  ok: Boolean;
 begin
-  if not Vault.CopyOrDelete(Vault.SlotFile(letter), GDVars.dsSaveDirectory + SESSION_FILE) then begin
+  { the slot's copy becomes the session vault; a slot with none leaves no session vault }
+  if FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SaveMenu.VaultName(letter)) then
+    ok := Vault.CopyToTemp(fIn, GDVars.dsSaveDirectory + SESSION_FILE) and
+          FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE)
+  else
+    ok := FileUtil.DeleteChecked(GDVars.dsSaveDirectory + SESSION_FILE);
+  if not ok then begin
     Vault.ForgetSessionVault;
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not copied.');
   end;

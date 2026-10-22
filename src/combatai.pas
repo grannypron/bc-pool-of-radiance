@@ -27,6 +27,11 @@ uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, Fx
   C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
+const
+  { AiMoveAttack's runaway-turn guard allows a pass for each step the creature's movement pays for and this many more,
+    for its attacks and changes of target }
+  TURN_SLACK = 20;
+
 var
   { the AI's last step direction (8 = none) }
   lastMoveDir: Byte;
@@ -501,7 +506,9 @@ begin
 end;
 
 { The AI's move/attack loop. A party member (not hostile) first bandages a dying teammate, which ends its turn, as in
-  Curse (#654). Returns True when the creature can no longer act. }
+  Curse (#654). A guard ends a runaway turn: after a pass for each step the movement left at the start pays for (two
+  half-moves a step at the least) and TURN_SLACK more; a fixed 20 passes cut short a hasted fast monster's move
+  (#803). Returns True when the creature can no longer act. }
 function AiMoveAttack(creature: Types.PCharRecord): Boolean;
 var
   done: Boolean;
@@ -516,10 +523,12 @@ var
   tx: ShortInt;
   ty: ShortInt;
   loopCount: Byte;
+  loopLimit: Byte;
 begin
   lastMoveDir := C_Dir.CENTER;
   stuckCount := 0;
   loopCount := 0;
+  loopLimit := creature^.combatAddr^.movement div 2 + TURN_SLACK;
   canAct := True;
   done := False;
   FxEngine.TriggerEffectsWithCondition(C_Cond.MONSTER_SPECIAL, creature);
@@ -543,7 +552,7 @@ begin
     if (not done) and canAct then begin
       Inc(loopCount);
       { runaway-turn guard }
-      if loopCount > 20 then begin
+      if loopCount > loopLimit then begin
         done := True;
         canAct := CombatAi.FinishRound(creature) = False;
       end;

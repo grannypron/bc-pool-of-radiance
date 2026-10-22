@@ -2,7 +2,16 @@
 {$I COMPILER.INC}
 program TExplore;
 
-uses Types, GDVars, Explored, TestKit;
+uses Types, GDVars, FileUtil, Explored, TestKit;
+
+{ Write the squares as file name in folder dir, a save of their own: True when they are in place. }
+function WriteMap(dir: FileUtil.TPathName; name: FileUtil.TSetName): Boolean;
+var
+  s: FileUtil.TFileSet;
+begin
+  FileUtil.NewSet(s, dir);
+  WriteMap := Explored.WriteSlot(s, name) and FileUtil.CommitSet(s);
+end;
 
 begin
   TestKit.Start('TEXPLORE');
@@ -23,8 +32,8 @@ begin
   GDVars.eclScriptId := 0;
   GDVars.zone0^.mapId.lo := 0;
   Explored.Mark(0, 0);
-  TestKit.Check(Explored.WriteSlot('TEXPLORE.MAP'), 'the squares are written');
-  TestKit.Check(not Explored.WriteSlot('NODIR\TEXPLORE.MAP'), 'a write into a missing folder says it failed');
+  TestKit.Check(WriteMap('', 'TEXPLORE.MAP'), 'the squares are written');
+  TestKit.Check(not WriteMap('NODIR\', 'TEXPLORE.MAP'), 'a write into a missing folder says it failed');
   Explored.Clear;
   TestKit.Check(not Explored.Visited(18, 1, 5, 8), 'cleared, nothing is visited');
   Explored.ReadSlot('TEXPLORE.MAP');

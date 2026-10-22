@@ -14,7 +14,7 @@ function CampRest(interactive: Boolean): Boolean;
 implementation
 
 uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
-  FxEngine, StrUtil, CharDisp, Dice, Clock;
+  FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
   { Spell preparation timers for the eight party slots. }
@@ -195,9 +195,13 @@ begin
 end;
 
 { The scribing counterpart of CheckMemorizeDone over the readable items' scroll spells queued for scribing (id > $80, in
-  TItemRec's spells[1..3]). Finishing one marks it known, removes it with Magic.RemoveSpellFromScroll and announces it;
-  a scroll freed with its last spell is left and the scan goes on with the next item. A spell id outside 1..C_Spell.LAST
-  is passed over. }
+  TItemRec's spells[1..3]). Finishing one removes it with Magic.RemoveSpellFromScroll and rolls d100 against the
+  scriber's chance to know it (AbilAdj.IntKnowSpellChance, the 1st-edition Intelligence rule SSI left out, #59): a
+  success marks it known and announces it ("has scribed"), a failure shows "<name> failed to scribe <spell>." and
+  "<spell> has been lost.", the spell gone from the scroll and not learned. The roll is made here rather than when the
+  spell is queued, since a queued spell can still be dropped (Camp.ResetScribe) and the time spent is part of
+  the attempt. A scroll freed with its last spell is left and the scan goes on with the next item. A spell id outside
+  1..C_Spell.LAST is passed over. }
 function CheckScribeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   j: Byte;
@@ -220,10 +224,15 @@ begin
             lvl := GDConsts.spellTable[item^.spells[j] and C_Spell.ID_MASK].level
           else begin
             sp := item^.spells[j] and C_Spell.ID_MASK;
-            creature^.spellsKnown[sp] := 1;
             Magic.RemoveSpellFromScroll(creature, item, sp);
             GameTime.DisplayRestTime(0);
-            Magic.PrintCastSpellMsg(creature, 'has scribed', sp);
+            { the chance to know the spell, rolled as the scribing ends (#59) }
+            if Dice.RollDice(1, 100) <= AbilAdj.IntKnowSpellChance(creature^.intCur) then begin
+              creature^.spellsKnown[sp] := 1;
+              Magic.PrintCastSpellMsg(creature, 'has scribed', sp);
+            end else
+              CharDisp.PrintTwoLines(creature^.name + ' failed to scribe ' + GDConsts.spellNames[sp] + '.',
+                                     GDConsts.spellNames[sp] + ' has been lost.');
             done := True;
             held := creature^.itemsAddr;
             while (held <> nil) and (held <> item) do

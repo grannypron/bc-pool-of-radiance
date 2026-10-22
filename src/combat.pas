@@ -281,7 +281,7 @@ begin
       if p^.combatAddr^.overkill > 9 then begin
         { dead at -10 }
         p^.status := C_Status.DEAD;
-        Stats.BledOut(p);
+        Stats.Death(p);
       end;
     end;
     p := p^.nextCharAddr;

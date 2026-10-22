@@ -8,6 +8,8 @@ unit Explored;
 
 interface
 
+uses FileUtil;
+
 const
   { areas kept; PoR has about thirty 3D maps }
   MAX_AREAS = 64;
@@ -22,15 +24,15 @@ procedure Mark(x, y: ShortInt);
 { True when square (x, y) of the area of script and map has been visited. }
 function Visited(script, map: Byte; x, y: ShortInt): Boolean;
 
-{ Write the visited squares as file fn: True when they were written (FileUtil.WriteRecord). }
-function WriteSlot(fn: String): Boolean;
+{ Write the visited squares as file name of save s (FileUtil.WriteToSet): True when they were written. }
+function WriteSlot(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 
 { Read the visited squares from file fn; a missing, short or foreign file leaves none. }
 procedure ReadSlot(fn: String);
 
 implementation
 
-uses GDVars, FileUtil;
+uses GDVars;
 
 const
   SIG = 'EXPL';
@@ -104,9 +106,9 @@ begin
     Visited := rec.areas[i].cells[y] and (1 shl x) <> 0;
 end;
 
-function WriteSlot(fn: String): Boolean;
+function WriteSlot(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 begin
-  WriteSlot := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
+  WriteSlot := FileUtil.WriteToSet(s, name, rec, SizeOf(rec));
 end;
 
 procedure ReadSlot(fn: String);

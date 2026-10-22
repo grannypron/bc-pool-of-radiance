@@ -7,7 +7,7 @@ unit SaveMenu;
 
 interface
 
-uses Types;
+uses Types, FileUtil;
 
 const
   { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
@@ -41,8 +41,26 @@ function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boo
   False with both empty. }
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
 
-{ Write slot letter's savgam<x>.inf: True when it was. A failed write leaves the old one (FileUtil.WriteRecord). }
-function WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
+{ Slot letter's file of extension ext: savgam<x><ext>, its name alone / with the save directory before it. }
+function SlotName(letter: Char; ext: Types.TStr8): FileUtil.TSetName;
+function SlotFile(letter: Char; ext: Types.TStr8): Types.TPathStr;
+
+{ CHRDAT<letter><n>: the base name of the n-th party member's files in saved game letter. }
+function MemberName(letter: Char; n: Byte): Types.TStr8;
+
+{ vault<x>.dat: slot letter's copy of the vault (Vault). }
+function VaultName(letter: Char): FileUtil.TSetName;
+
+{ Add to save s, to be erased, a character's files (SaveLoad writes them): <base><ext>, .itm, .spc, .mem and .sts. }
+procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext: Types.TStr8);
+
+{ Undo a save into slot letter that the game was ended in before it was done (FileUtil.RecoverSet), over every file a
+  save of the slot has, so the slot holds its old save again: True when nothing was left to undo. Each reader of a slot
+  calls it first: the menu's list, a load, the quick load. }
+function RecoverSlot(letter: Char): Boolean;
+
+{ Write slot letter's savgam<x>.inf as a file of save s (FileUtil.WriteToSet): True when it was written. }
+function WriteSlotInfo(var s: FileUtil.TFileSet; letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
 
 { 'Put save disk in X: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
@@ -59,7 +77,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil, FileUtil
+uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil
   {$IFDEF FPC}, NatFile{$ENDIF};
 
 const
@@ -108,9 +126,54 @@ var
   sel: Byte;
   top: Byte;
 
+function SlotName(letter: Char; ext: Types.TStr8): FileUtil.TSetName;
+begin
+  SlotName := 'savgam' + letter + ext;
+end;
+
 function SlotFile(letter: Char; ext: Types.TStr8): Types.TPathStr;
 begin
-  SlotFile := GDVars.dsSaveDirectory + 'savgam' + letter + ext;
+  SlotFile := GDVars.dsSaveDirectory + SaveMenu.SlotName(letter, ext);
+end;
+
+function MemberName(letter: Char; n: Byte): Types.TStr8;
+var
+  numStr: String[1];
+begin
+  Str(n, numStr);
+  MemberName := 'CHRDAT' + letter + numStr;
+end;
+
+function VaultName(letter: Char): FileUtil.TSetName;
+begin
+  VaultName := 'vault' + letter + '.dat';
+end;
+
+procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext: Types.TStr8);
+begin
+  FileUtil.AddToSet(s, base + ext, False);
+  FileUtil.AddToSet(s, base + '.itm', False);
+  FileUtil.AddToSet(s, base + '.spc', False);
+  FileUtil.AddToSet(s, base + '.mem', False);
+  FileUtil.AddToSet(s, base + '.sts', False);
+end;
+
+function RecoverSlot(letter: Char): Boolean;
+var
+  s: FileUtil.TFileSet;
+  n: Byte;
+begin
+  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  { the .dat first, as SaveLoad.SaveToSlot puts it }
+  FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.dat'), False);
+  FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.inf'), False);
+  FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.sts'), False);
+  FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.map'), False);
+  FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.nts'), False);
+  FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False);
+  for n := 1 to Types.MAX_PARTY do
+    SaveMenu.RemoveCharFiles(s, SaveMenu.MemberName(letter, n), '.sav');
+  RecoverSlot := FileUtil.RecoverSet(s);
 end;
 
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
@@ -129,7 +192,7 @@ begin
   ReadSlotInfo := ok;
 end;
 
-function WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
+function WriteSlotInfo(var s: FileUtil.TFileSet; letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
 var
   rec: TSlotInfoFile;
 begin
@@ -138,8 +201,7 @@ begin
   rec.version := INFO_VERSION;
   rec.desc := desc;
   rec.area := area;
-  { a failed write leaves the old one }
-  WriteSlotInfo := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
+  WriteSlotInfo := FileUtil.WriteToSet(s, SaveMenu.SlotName(letter, '.inf'), rec, SizeOf(rec));
 end;
 
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as hh:mm and
@@ -157,7 +219,9 @@ var
   map: Types.TGbvmWord;
   n1: Word;
   n2: Word;
+  recovered: Boolean;
 begin
+  recovered := SaveMenu.RecoverSlot(letter);
   listed[i] := letter;
   used[i] := False;
   times[i] := 0;

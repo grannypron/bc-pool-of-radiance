@@ -150,6 +150,34 @@ begin
   TestKit.CheckEqualsL(6, AbilAdj.ConSaveBonus(21), 'Constitution 21: +6');
   TestKit.CheckEqualsL(6, AbilAdj.ConSaveBonus(24), 'Constitution 24: +6');
 
+  { the chance to know (scribe) a spell by Intelligence, the PHB's to 18 and Deities & Demigods' above (#59) }
+  TestKit.CheckEqualsL(35, AbilAdj.IntKnowSpellChance(3), 'Intelligence below 9 counts as 9');
+  TestKit.CheckEqualsL(35, AbilAdj.IntKnowSpellChance(9), 'Intelligence 9: 35%');
+  TestKit.CheckEqualsL(45, AbilAdj.IntKnowSpellChance(10), '10: 45%');
+  TestKit.CheckEqualsL(45, AbilAdj.IntKnowSpellChance(12), '12: 45%');
+  TestKit.CheckEqualsL(55, AbilAdj.IntKnowSpellChance(13), '13: 55%');
+  TestKit.CheckEqualsL(55, AbilAdj.IntKnowSpellChance(14), '14: 55%');
+  TestKit.CheckEqualsL(65, AbilAdj.IntKnowSpellChance(15), '15: 65%');
+  TestKit.CheckEqualsL(65, AbilAdj.IntKnowSpellChance(16), '16: 65%');
+  TestKit.CheckEqualsL(75, AbilAdj.IntKnowSpellChance(17), '17: 75%');
+  TestKit.CheckEqualsL(85, AbilAdj.IntKnowSpellChance(18), '18: 85%');
+  TestKit.CheckEqualsL(95, AbilAdj.IntKnowSpellChance(19), '19: 95%');
+  TestKit.CheckEqualsL(96, AbilAdj.IntKnowSpellChance(20), '20: 96%');
+  TestKit.CheckEqualsL(97, AbilAdj.IntKnowSpellChance(21), '21: 97%');
+  TestKit.CheckEqualsL(98, AbilAdj.IntKnowSpellChance(22), '22: 98%');
+  TestKit.CheckEqualsL(99, AbilAdj.IntKnowSpellChance(23), '23: 99%');
+  TestKit.CheckEqualsL(100, AbilAdj.IntKnowSpellChance(24), '24: 100%');
+  TestKit.CheckEqualsL(100, AbilAdj.IntKnowSpellChance(25), '25: 100%');
+
+  { clerical spell failure by Wisdom, the PHB's (#60) }
+  TestKit.CheckEqualsL(20, AbilAdj.WisSpellFailure(3), 'Wisdom below 9 counts as 9');
+  TestKit.CheckEqualsL(20, AbilAdj.WisSpellFailure(9), 'Wisdom 9: 20%');
+  TestKit.CheckEqualsL(15, AbilAdj.WisSpellFailure(10), '10: 15%');
+  TestKit.CheckEqualsL(10, AbilAdj.WisSpellFailure(11), '11: 10%');
+  TestKit.CheckEqualsL(5, AbilAdj.WisSpellFailure(12), '12: 5%');
+  TestKit.CheckEqualsL(0, AbilAdj.WisSpellFailure(13), '13: none');
+  TestKit.CheckEqualsL(0, AbilAdj.WisSpellFailure(25), '25: none');
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
 end.

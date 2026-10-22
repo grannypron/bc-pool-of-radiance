@@ -9,7 +9,7 @@ unit Stats;
 
 interface
 
-uses Types;
+uses Types, FileUtil;
 
 const
   { the counters, by index into TStatBlock.counts }
@@ -62,8 +62,9 @@ procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
   down, and its death as died. }
 procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
 
-{ A party member that bled to death in combat. }
-procedure BledOut(creature: Types.PCharRecord);
+{ A party member that died other than by InflictDamage's blow (which Damaged counts): bled to death in combat, or
+  killed outright by poison, a level drain, rot or the like (EffHndlr.InflictStatusMsg). }
+procedure Death(creature: Types.PCharRecord);
 
 { FxEngine.RestoreHitPoints's report: target gained hp; healing given is credited to actor while a spell, or an item's
   spell, is being resolved, or when byPower (a paladin's laying on of hands). }
@@ -81,22 +82,22 @@ procedure Forget(creature: Types.PCharRecord);
 { Clear the game's totals, for a game that has none (a new one, or a save made before them). }
 procedure ResetGame;
 
-{ Write creature's block to <fn>.sts, erasing an old one first; nothing is written for a creature with no block. False
-  when the write failed (FileUtil.WriteRecord). }
-function WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr): Boolean;
+{ Write creature's block as file <base>.sts of save s (FileUtil.WriteToSet); for a creature with no block the save
+  erases the old file instead. False when the write failed. }
+function WriteChar(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 
 { Read creature's block from <fn>.sts: one of this format, made for a character of this name and randByte. Without one
   the creature starts with an empty block when it next counts. }
 procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
 
-{ Write the game's totals to <fn> (True when they were written) / read them back (the totals are cleared when the file
-  is not one of this format). }
-function WriteGame(fn: Types.TPathStr): Boolean;
+{ Write the game's totals as file name of save s (True when they were written) / read them back from file fn (the
+  totals are cleared when the file is not one of this format). }
+function WriteGame(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, FileUtil, Party, MoneyCal;
+uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, MoneyCal;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -234,7 +235,7 @@ begin
   end;
 end;
 
-procedure BledOut(creature: Types.PCharRecord);
+procedure Death(creature: Types.PCharRecord);
 begin
   Stats.Count(creature, DIED, 1);
 end;
@@ -306,22 +307,23 @@ begin
   FillChar(game, SizeOf(game), 0);
 end;
 
-function WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr): Boolean;
+function WriteChar(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName): Boolean;
 var
   i: Byte;
 begin
   WriteChar := True;
-  FileUtil.DeleteFile(fn + '.sts');
   i := Stats.FindEntry(creature);
-  if i = 0 then Exit;
+  if i = 0 then begin
+    FileUtil.AddToSet(s, base + '.sts', False);
+    Exit;
+  end;
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := SIG;
   rec.version := VERSION;
   rec.name := creature^.name;
   rec.randByte := creature^.randByte;
   rec.block := blocks[i]^;
-  { a failed write leaves none: the old one is erased above }
-  WriteChar := FileUtil.WriteRecord(fn + '.sts', rec, SizeOf(rec));
+  WriteChar := FileUtil.WriteToSet(s, base + '.sts', rec, SizeOf(rec));
 end;
 
 { Read a TStatFile from name into rec: True when it is whole and of this format. }
@@ -343,13 +345,13 @@ begin
     blocks[i]^ := rec.block;
 end;
 
-function WriteGame(fn: Types.TPathStr): Boolean;
+function WriteGame(var s: FileUtil.TFileSet; name: FileUtil.TSetName): Boolean;
 begin
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := SIG;
   rec.version := VERSION;
   rec.block := game;
-  WriteGame := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
+  WriteGame := FileUtil.WriteToSet(s, name, rec, SizeOf(rec));
 end;
 
 procedure ReadGame(fn: Types.TPathStr);

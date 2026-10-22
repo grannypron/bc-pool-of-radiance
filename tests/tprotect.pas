@@ -1,7 +1,7 @@
 { Tests for Protection from Evil and from Good (EffHndlr.EffProtEvil, EffProtGood, triggered through FxEngine): a
   paladin's aura (eff 45) reaches only his own side (#782), and a protection applies once however many sources there
   are, a spell (eff 8) and an aura together giving +2 to saves, not +4 (#783), and its -2 to be hit is taken off the
-  rolled d20, not before it (#789). }
+  rolled d20, not before it (#789). Prayer applies once from each side in reach (#801). }
 {$I COMPILER.INC}
 program TProtect;
 
@@ -166,5 +166,23 @@ begin
   TestKit.CheckEqualsL(2, HitPenalty, 'nor to the -2 to be hit');
   ClearEffects(def);
   ClearEffects(ally);
+
+  { Prayer (#801): one from each side in reach applies, two from one side once }
+  GDVars.effectFns[C_Effect.PRAYER] := EffHndlr.EffPrayer;
+  FxEngine.AddEffect(ally, C_Effect.PRAYER, 10, 0 * C_Effect.PRAYER_SIDE + 5, False);
+  TestKit.CheckEqualsL(1, SaveBonus, 'an ally''s Prayer: +1');
+  FxEngine.AddEffect(def, C_Effect.PRAYER, 10, 0 * C_Effect.PRAYER_SIDE + 5, False);
+  TestKit.CheckEqualsL(1, SaveBonus, 'and his own as well, still +1');
+  ClearEffects(def);
+  ClearEffects(ally);
+  FxEngine.AddEffect(foe, C_Effect.PRAYER, 10, 1 * C_Effect.PRAYER_SIDE + 5, False);
+  TestKit.CheckEqualsL(-1, SaveBonus, 'an enemy''s Prayer: -1');
+  FxEngine.AddEffect(ally, C_Effect.PRAYER, 10, 0 * C_Effect.PRAYER_SIDE + 5, False);
+  FxEngine.AddEffect(att, C_Effect.PRAYER, 10, 1 * C_Effect.PRAYER_SIDE + 5, False);
+  TestKit.CheckEqualsL(0, SaveBonus, 'one from each side: both, +1 and -1');
+  ClearEffects(ally);
+  TestKit.CheckEqualsL(-1, SaveBonus, 'two enemy Prayers apply once');
+  ClearEffects(foe);
+  ClearEffects(att);
   TestKit.Done;
 end.
