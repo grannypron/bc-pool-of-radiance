@@ -113,6 +113,7 @@
 - A hasted, fast monster no longer stops partway through its move.
 - The statistics count a death by poison, level drain or mummy rot as Died.
 - Several values the DOS game assumed would start at zero now do: the first menu of a session no longer sometimes answers Enter to the wrong place, a script's monster setup starts empty, and the Stinking Cloud list starts clear.
+- Loading a game or starting a new one no longer keeps the monsters the last area set up.
 
 ## Pool of Radiance port: October 2026 update
 

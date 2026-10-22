@@ -540,6 +540,8 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **A creature's side is `hostile and 1` everywhere.** Prayer stored `hostile * PRAYER_SIDE` plus the caster level, Charm `hostile * 128` and the target's old `hostile * 64`, and Animate Dead gave the corpse the caster's raw byte, so a side byte above 1 (only a damaged save can bring one: every monster record holds 0 or 1) read back wrong. `CharHlp.Team` gives the side, and `FxEngine.PrayerStrength` and `PrayerSide` pack and read Prayer's, with the level capped at 15. TProtect checks it. POR-0207, #827.
 
+**A game, new or loaded, starts with no monsters.** EclVm's monster state (`creatureCnt`, `monstersOn`, `monId`, `monPicId`) was reset only by CLEAR MONSTERS, SETUP MONSTER and, since #826, at startup, so a new game or a load kept what the last area set up: a script that loaded monsters without CLEAR MONSTERS first started from the old count, and fewer kinds loaded before the cap. `EclVm.ForgetMonsters` clears all four at startup and at the start of every `GameLoop`, which every new game and every load (main menu, training hall, quick load) runs. #829.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.
