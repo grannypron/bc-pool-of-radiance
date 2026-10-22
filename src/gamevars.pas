@@ -347,9 +347,6 @@ var
   eclGraphics: Boolean;
   { ECL displaying monster sprite flag }
   sprShown: Boolean;
-  { 0 when an ECL script has written a message to the bottom text window; Explore.MapMainMenu clears that window on its
-    way out and sets it back to 1 }
-  bottomMsgCleared: Byte;
   { Set when a script changes a view color selector; MapView then applies them }
   picRegionW: Boolean;
   { Currently in ECL opcode 29 ENCOUNTER MENU flag. It stays the last variable: the initialization clears from video

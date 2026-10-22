@@ -425,7 +425,7 @@ end;
 procedure EclPrint;
 begin
   EclVars.LoadEclVars(1);
-  GameVars.bottomMsgCleared := 0;
+  Explore.bottomMsgCleared := 0;
   GameVars.msgDelayFlag := 1;
   if GameVars.gbvmType[1] < $80 then
     GameVars.gbStrings^[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
@@ -619,7 +619,7 @@ var
   redraw: Boolean;
   address: Word;
 begin
-  GameVars.bottomMsgCleared := 0;
+  Explore.bottomMsgCleared := 0;
   redraw := True;
   q := '';
   i := 1;
@@ -1156,7 +1156,7 @@ var
 
 begin
   GameVars.inEncMenu := 1;
-  GameVars.bottomMsgCleared := 0;
+  Explore.bottomMsgCleared := 0;
   GameVars.msgDelayFlag := 1;
   EclMenu.MoveExtremes(hiMove, loMove);
   q := '';

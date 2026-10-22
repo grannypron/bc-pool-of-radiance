@@ -13,6 +13,9 @@ var
   { Set by F8 on the map menu when there is a quick save to load: MapMainMenu returns, GameLoop returns, and the
     program loads it (SaveLoad.QuickLoad) and runs GameLoop again; the program clears it. }
   quickLoadAsked: Boolean;
+  { 0 when an ECL script has written a message to the bottom text window; Explore.MapMainMenu clears that window on its
+    way out and sets it back to 1 }
+  bottomMsgCleared: Byte;
 
 implementation
 
@@ -442,9 +445,9 @@ begin
       end;
   end;
   GameVars.locTypePrev := GameVars.gLocType;
-  if GameVars.bottomMsgCleared = 0 then begin
+  if bottomMsgCleared = 0 then begin
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-    GameVars.bottomMsgCleared := 1;
+    bottomMsgCleared := 1;
   end;
   MapMainMenu := c;
 end;
@@ -533,4 +536,5 @@ end;
 
 begin
   quickLoadAsked := False;
+  bottomMsgCleared := 0;
 end.
