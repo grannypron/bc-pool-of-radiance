@@ -100,7 +100,7 @@ begin
   GDVars.ceilFloorColorSel := 9;
   GDVars.picRegionW := True;
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
-  GDVars.gIconAnim := 8;
+  GDVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   GDVars.eclIp := $9900;
   GDVars.breathAim := False;
   GDVars.dsEclStackTopPtr := nil;
@@ -406,13 +406,16 @@ begin
 end;
 
 { Sets duelFlag and C_Gbvm.MIRROR_DUEL. A mirror duel appends a copy of the current character as hostile "ROLF" with the
-  CPIC 11 icon (items fully cloned, but prepended, so the clone's list is reversed; effects not cloned) }
+  CPIC 11 icon, in the next monster icon slot or, when they are used up, the last (items fully cloned, but prepended, so
+  the clone's list is reversed; effects not cloned) }
 procedure CharFightsAlone(mirror: ShortInt);
 var
   p: Types.PCharRecord;
   clone: Types.PCharRecord;
   cur: Types.PCharRecord;
   srcIt: Types.PItemRec;
+  { the clone's combat icon slot }
+  slot: Byte;
 begin
   GDVars.duelFlag := True;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := mirror;
@@ -424,7 +427,12 @@ begin
     p := p^.nextCharAddr;
   end;
   if mirror = 0 then Exit;
-  MapTiles.LoadIconAnim('CPIC', 11, GDVars.gIconAnim);
+  { after a fifth monster kind the clone shares the last monster slot; SSI loaded it over the first combat sprite
+    (#725) }
+  slot := GDVars.gIconAnim;
+  if slot > MapTiles.LAST_MONSTER_ICON then
+    slot := MapTiles.LAST_MONSTER_ICON;
+  MapTiles.LoadIconAnim('CPIC', 11, slot);
   p := Party.LastCreature;
   GetMem(clone, SizeOf(Types.TCharRecord));
   clone^ := cur^;
@@ -434,7 +442,7 @@ begin
   clone^.quickfight := 1;
   clone^.hostile := 1;
   clone^.npc := C_Npc.ANIMATED_NPC;
-  clone^.orderNumber := GDVars.gIconAnim;
+  clone^.orderNumber := slot;
   clone^.effectsAddr := nil;
   clone^.itemsAddr := nil;
   p^.nextCharAddr := clone;

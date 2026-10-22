@@ -46,8 +46,6 @@ var
 const
   { LOAD MONSTER adds no monsters beyond this count }
   MAX_LOADED_MONSTERS = 63;
-  { the last combat-icon slot (GDVars.dsIconAnimation is [0..25]); LOAD MONSTER adds no monsters past it }
-  LAST_ICON_SLOT = 25;
 
   { The WHO prompts that choose who duels, by script and the WHO's address, and where Escape on them sends the script:
     back to the PRINTCLEAR that asks the duel's question again (#661). SSI's WHO has no way out. }
@@ -254,7 +252,8 @@ end;
 
 { LOAD MONSTER: load monster var 1 with EclMenu.InitCreature and append it to the creature list, then append var 2 - 1
   copies, each with its own copy of the item and effect lists (prepended, so in reverse order). All use the combat icon
-  var 3, loaded into the next icon slot. Stops at 63 monsters, and loads none when the icon slots are used up. }
+  var 3, loaded into the next icon slot. Stops at 63 monsters, and loads none when the monster icon slots (8..12) are
+  used up. }
 procedure EclLoadMon;
 var
   id: Byte;
@@ -277,7 +276,8 @@ begin
   EclVars.LoadEclVars(3);
   { at most 63 monsters, and an icon slot for them }
   if creatureCnt >= MAX_LOADED_MONSTERS then Exit;
-  if GDVars.gIconAnim > LAST_ICON_SLOT then Exit;
+  { SSI went on to slot 25, loading a sixth kind over the combat sprites (#724) }
+  if GDVars.gIconAnim > MapTiles.LAST_MONSTER_ICON then Exit;
   p := nil;
   q := nil;
   id := EclVars.GetEclVar(1);
@@ -688,7 +688,7 @@ begin
   Inc(GDVars.eclIp);
   creatureCnt := 0;
   monstersOn := 0;
-  GDVars.gIconAnim := 8;
+  GDVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   CharHlp.ClearTreasure;
 end;
 
