@@ -654,7 +654,7 @@ begin
   oldExc := creature^.strExc;
   if (baseStr < oldBase) or ((baseStr = 18) and (excStr < oldExc)) then begin
     AdjustForNewStrength := False;
-    effStrength := CharHlp.StrengthModifier(baseStr, excStr) + $80;
+    effStrength := AbilAdj.StrengthModifier(baseStr, excStr) + $80;
   end else begin
     found := nil;
     p := creature^.effectsAddr;
@@ -665,14 +665,14 @@ begin
       p := p^.next;
     end;
     if found <> nil then begin
-      enc := CharHlp.StrengthModifier(oldBase, oldExc);
-      CharHlp.StrengthEffectToStrength(found, oldBase, oldExc);
+      enc := AbilAdj.StrengthModifier(oldBase, oldExc);
+      AbilAdj.StrengthEffectToStrength(found, oldBase, oldExc);
       Types.PEffectRec(found)^.strength := enc + $80;
     end;
     creature^.strCur := AbilAdj.ClampScore(Integer(baseStr) - loss);
     creature^.strExc := excStr;
     CharHlp.RecalcStats(creature);
-    effStrength := CharHlp.StrengthModifier(oldBase, oldExc);
+    effStrength := AbilAdj.StrengthModifier(oldBase, oldExc);
     AdjustForNewStrength := True;
   end;
 end;

@@ -7,7 +7,7 @@
 {$I COMPILER.INC}
 program TFxRemov;
 
-uses Types, C_Effect, GDVars, CharHlp, FxEngine, TestKit;
+uses Types, C_Effect, GDVars, CharHlp, AbilAdj, FxEngine, TestKit;
 
 { The heap's free bytes. Natively MemAvail is a fixed figure (TpCompat), so the heap's used bytes count instead. }
 function HeapFree: LongInt;
@@ -144,7 +144,7 @@ begin
   TestKit.Check(not FxEngine.AdjustForNewStrength(c, 17, 0, enc), '17 is weaker than the 18/76 under the disease');
   TestKit.CheckEqualsL(15, c^.strCur, 'and changes nothing');
   TestKit.Check(FxEngine.AdjustForNewStrength(c, 18, 100, enc), '18/00 is stronger');
-  TestKit.CheckEqualsL(CharHlp.StrengthModifier(18, 76), enc, 'the Strength to restore is 18/76, the loss given back');
+  TestKit.CheckEqualsL(AbilAdj.StrengthModifier(18, 76), enc, 'the Strength to restore is 18/76, the loss given back');
   TestKit.CheckEqualsL(15, c^.strCur, '18/00 less the 3 lost is 15');
   TestKit.CheckEqualsL(100, c^.strExc, 'kept as 18/00 for the cure');
   c^.effectsAddr^.strength := 5;

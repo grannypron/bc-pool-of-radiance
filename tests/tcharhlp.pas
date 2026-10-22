@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, TestKit;
+uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -265,14 +265,14 @@ begin
   c^.strExc := 100;
   FillChar(e, SizeOf(e), 0);
   e.id := C_Effect.STRENGTH;
-  e.strength := CharHlp.StrengthModifier(17, 0) + $80;
+  e.strength := AbilAdj.StrengthModifier(17, 0) + $80;
   c^.effectsAddr := @e;
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'a superseded node holds no restore value');
-  e.strength := CharHlp.StrengthModifier(17, 0);
+  e.strength := AbilAdj.StrengthModifier(17, 0);
   TestKit.CheckEqualsL(17, CharHlp.PermanentStrength(c), 'the active node holds the own Strength');
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a gnome fighter with Strength 17 in gauntlets stops at 5');
   e.id := C_Effect.ENLARGE;
-  e.strength := CharHlp.StrengthModifier(18, 50);
+  e.strength := AbilAdj.StrengthModifier(18, 50);
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'Enlarge''s restore value, 18/50');
   TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'and with 18 of its own the gnome trains past 5');
   c^.effectsAddr := nil;
@@ -285,7 +285,7 @@ begin
   d.id := C_Effect.DISEASE_STR;
   d.strength := 2 * 16 + 5;
   e.id := C_Effect.ENLARGE;
-  e.strength := CharHlp.StrengthModifier(18, 50);
+  e.strength := AbilAdj.StrengthModifier(18, 50);
   e.next := @d;
   c^.effectsAddr := @e;
   c^.strCur := 17;

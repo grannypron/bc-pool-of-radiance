@@ -458,9 +458,9 @@ var
 begin
   if Types.PEffectRec(p)^.strength > $7F then Exit;
   loss := CharHlp.DiseaseStrLoss(creature);
-  CharHlp.StrengthEffectToStrength(p, base, exc);
+  AbilAdj.StrengthEffectToStrength(p, base, exc);
   { the creature's own Strength, kept whole for the node that takes over }
-  restored := CharHlp.StrengthModifier(AbilAdj.ClampScore(base), exc);
+  restored := AbilAdj.StrengthModifier(AbilAdj.ClampScore(base), exc);
   creature^.strCur := AbilAdj.ClampScore(Integer(base) - loss);
   creature^.strExc := exc;
   best := nil;
@@ -470,7 +470,7 @@ begin
   while q <> nil do begin
     if (q^.id = C_Effect.ENLARGE) or (q^.id = C_Effect.STRENGTH) then
       if q <> Types.PEffectRec(p) then begin
-        CharHlp.StrengthEffectToStrength(q, base, exc);
+        AbilAdj.StrengthEffectToStrength(q, base, exc);
         if (base > bestBase) or ((bestBase = 18) and (exc > bestExc)) then begin
           bestBase := base;
           bestExc := exc;

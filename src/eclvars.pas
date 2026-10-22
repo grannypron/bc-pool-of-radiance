@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -209,21 +209,9 @@ begin
     C_Gbvm.CHAR_PARTY_INDEX: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
     C_Gbvm.CHAR_PARTY_INDEX2: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
     C_Gbvm.CHAR_LOYALTY:
-      { charisma -> loyalty base; no result for charisma outside 3..25 }
-      case GDVars.curChar^.chaCur of
-        3: SpecialReadZ1 := 0;
-        4: SpecialReadZ1 := 5;
-        5: SpecialReadZ1 := 10;
-        6: SpecialReadZ1 := 15;
-        7: SpecialReadZ1 := 20;
-        8..12: SpecialReadZ1 := 25;
-        13: SpecialReadZ1 := 30;
-        14: SpecialReadZ1 := 35;
-        15: SpecialReadZ1 := 40;
-        16: SpecialReadZ1 := 50;
-        17: SpecialReadZ1 := 55;
-        18..25: SpecialReadZ1 := 60;
-      end;
+      { no result for charisma outside 3..25 }
+      if GDVars.curChar^.chaCur in [AbilAdj.SCORE_MIN..AbilAdj.SCORE_MAX] then
+        SpecialReadZ1 := AbilAdj.ChaLoyaltyBase(GDVars.curChar^.chaCur);
     C_Gbvm.DISK_NUM: SpecialReadZ1 := GDVars.virtualDisk;
     C_Gbvm.PARTY_SIZE: SpecialReadZ1 := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
   else

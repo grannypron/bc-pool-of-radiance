@@ -89,14 +89,6 @@ function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types
   PermanentStrength, and a half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
-{ Encode Strength as an effect strength byte: base 18 gives excStr + 1, any other base gives baseStr + 100. Bit 7 is
-  left for the caller's "superseded" mark. }
-function StrengthModifier(baseStr, excStr: Byte): Byte;
-
-{ Decode an effect's strength byte (bit 7 masked off) into base and exceptional Strength: values <= 101 give base 18
-  with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
-procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
-
 { The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
   effect's strength byte, the lower holding the caster level (at most 15) as Dispel Magic reads it. 0 when it has no
   disease. The Strength the Enlarge and Strength effects (eff 12, 38) store and set is the creature's own, without this
@@ -975,24 +967,6 @@ begin
   end;
 end;
 
-function StrengthModifier(baseStr, excStr: Byte): Byte;
-begin
-  StrengthModifier := baseStr + 100;
-  if baseStr = 18 then
-    StrengthModifier := excStr + 1;
-end;
-
-procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
-begin
-  excStr := 0;
-  baseStr := Types.PEffectRec(effect)^.strength and $7F;
-  if baseStr <= 101 then begin
-    excStr := baseStr - 1;
-    baseStr := 18;
-  end else
-    baseStr := baseStr - 100;
-end;
-
 function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
 var
   effect: Types.PEffectRec;
@@ -1013,7 +987,7 @@ begin
   p := creature^.effectsAddr;
   while p <> nil do begin
     if ((p^.id = C_Effect.ENLARGE) or (p^.id = C_Effect.STRENGTH)) and (p^.strength < $80) then begin
-      CharHlp.StrengthEffectToStrength(p, base, exc);
+      AbilAdj.StrengthEffectToStrength(p, base, exc);
       { the stored Strength is whole; the disease's loss counts, as it does in strCur }
       PermanentStrength := AbilAdj.ClampScore(Integer(base) - CharHlp.DiseaseStrLoss(creature));
       Exit;
