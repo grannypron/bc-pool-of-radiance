@@ -30,11 +30,10 @@ begin
   CharDisp.ClearMessageWindow;
 end;
 
-{ ConfirmCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current
-  character's coins if they cover it, else from the pooled treasure, else print "Not enough money." and return N; a paid
-  cure prints "<name> is cured." Returns Y or N. cost is the listed price, which the temple's prices (priceMode) may
-  lower. }
-function ConfirmCureCost(spell: String; cost: Word): Char;
+{ PayCureCost: Show "<spell> will only cost <cost> gold pieces." and ask to pay. On Y, pay from the current
+  character's coins if they cover it, else from the pooled treasure, else print "Not enough money." and return N.
+  Returns Y or N. cost is the listed price, which the temple's prices (priceMode) may lower. }
+function PayCureCost(spell: String; cost: Word): Char;
 var
   c: Char;
 begin
@@ -46,10 +45,24 @@ begin
     if not Money.PayGold(GDVars.curChar, cost) then
       c := 'N';
   end;
-  if c = 'Y' then begin
-    CharDisp.ClearMessageWindow;
-    CharDisp.PrintNameString(GDVars.curChar, 'is cured.', 0, True);
-  end;
+  PayCureCost := c;
+end;
+
+{ ReportCure: "<name> <msg>" in a cleared message window until a key. }
+procedure ReportCure(msg: String);
+begin
+  CharDisp.ClearMessageWindow;
+  CharDisp.PrintNameString(GDVars.curChar, msg, 0, True);
+end;
+
+{ ConfirmCureCost: PayCureCost, and a paid cure prints "<name> is cured." (ReportCure). Returns Y or N. }
+function ConfirmCureCost(spell: String; cost: Word): Char;
+var
+  c: Char;
+begin
+  c := Temple.PayCureCost(spell, cost);
+  if c = 'Y' then
+    Temple.ReportCure('is cured.');
   ConfirmCureCost := c;
 end;
 
@@ -125,10 +138,12 @@ end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). A dead or
   animated character still poisoned "is still poisoned." and is not charged: the poison would kill the raised body
-  again, so Neutralize Poison comes first (PoR #423, #751). Remove animation under the effect lock, set one hit point,
-  C_Status.OKAY and enabled, and lower constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less. hpMax loses the
-  hit points that point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every
-  hit die (ClassCal.ConHpTotal), keeping at least 1. }
+  again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation under the effect lock and
+  rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not survive." and is
+  C_Status.GONE, dead for good, the fee spent. A success sets one hit point, C_Status.OKAY and enabled, lowers
+  Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points that
+  point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
+  (ClassCal.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -151,25 +166,36 @@ begin
     c := 'N';
   end;
   if c = 'Y' then begin
-    c := Temple.ConfirmCureCost('Raise Dead', 5500);
+    c := Temple.PayCureCost('Raise Dead', 5500);
     if c = 'Y' then begin
-      if wasDead then begin
+      if not wasDead then
+        Temple.ReportCure('is cured.')
+      else begin
         GDVars.effectLock := 1;
         FxEngine.RemoveEffect(creature, C_Effect.ANIMATE_DEAD, nil);
         GDVars.effectLock := 0;
-        creature^.hpCur := 1;
-        creature^.status := C_Status.OKAY;
-        creature^.enabled := 1;
-        Stats.Count(creature, Stats.RAISED, 1);
-        { Constitution goes no lower than AbilAdj.SCORE_MIN (#615) }
-        if creature^.conCur > AbilAdj.SCORE_MIN then begin
-          Dec(creature^.conCur);
-          hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) -
-                    ClassCal.ConHpTotal(creature, creature^.conCur);
-          if hpLoss >= creature^.hpMax then
-            hpLoss := creature^.hpMax - 1;
-          if hpLoss > 0 then
-            Dec(creature^.hpMax, hpLoss);
+        { the resurrection survival roll, which SSI never made (#752): a failure is dead for good }
+        if Dice.RollDice(1, 100) > AbilAdj.ConResurrectionSurvival(creature^.conCur) then begin
+          creature^.status := C_Status.GONE;
+          creature^.enabled := 0;
+          creature^.hpCur := 0;
+          Temple.ReportCure('does not survive.');
+        end else begin
+          creature^.hpCur := 1;
+          creature^.status := C_Status.OKAY;
+          creature^.enabled := 1;
+          Stats.Count(creature, Stats.RAISED, 1);
+          { Constitution goes no lower than AbilAdj.SCORE_MIN (#615) }
+          if creature^.conCur > AbilAdj.SCORE_MIN then begin
+            Dec(creature^.conCur);
+            hpLoss := ClassCal.ConHpTotal(creature, creature^.conCur + 1) -
+                      ClassCal.ConHpTotal(creature, creature^.conCur);
+            if hpLoss >= creature^.hpMax then
+              hpLoss := creature^.hpMax - 1;
+            if hpLoss > 0 then
+              Dec(creature^.hpMax, hpLoss);
+          end;
+          Temple.ReportCure('is cured.');
         end;
       end;
     end;

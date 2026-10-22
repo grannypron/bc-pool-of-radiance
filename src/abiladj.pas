@@ -34,6 +34,10 @@ const
 { score kept within SCORE_MIN..SCORE_MAX, for every change play makes to an ability score (#615). }
 function ClampScore(score: Integer): Byte;
 
+{ The resurrection survival chance, in percent, for Constitution con (1st-edition PHB): 40 at 3, 5 more a point to 85
+  at 12, then 2 more a point to 100 at 18, and 100 above it (Deities & Demigods); below 3 counts as 3. }
+function ConResurrectionSurvival(con: Byte): Byte;
+
 { The poison save bonus any creature gets from a Constitution above 18 (Deities & Demigods): +1 at 19..20, +2 at
   21..22, +3 at 23..24 and +4 from 25; 0 below 19. }
 function ConPoisonSave(con: Byte): Byte;
@@ -190,6 +194,18 @@ begin
     ConRegenMinutes := 10
   else
     ConRegenMinutes := (26 - con) * 10;
+end;
+
+function ConResurrectionSurvival(con: Byte): Byte;
+begin
+  if con <= 3 then
+    ConResurrectionSurvival := 40
+  else if con <= 12 then
+    ConResurrectionSurvival := 40 + (con - 3) * 5
+  else if con < 18 then
+    ConResurrectionSurvival := 90 + (con - 13) * 2
+  else
+    ConResurrectionSurvival := 100;
 end;
 
 function ClampScore(score: Integer): Byte;
