@@ -3,17 +3,21 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, TestKit;
+uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, TestKit;
 
 var
   c: Types.PCharRecord;
   it: Types.TItemRec;
+  weapon: Types.TItemRec;
+  arrows: Types.TItemRec;
   list: Types.PItemRec;
   p: Types.PItemRec;
   e: Types.TEffectRec;
+  d: Types.TEffectRec;
   found: Types.PEffectRec;
   crs: array[1..4] of Types.TCharRecord;
   i: Byte;
+  items: Types.PBaseItems;
 
 procedure NewItem(itemType, n1, n2, n3: Byte; quantity: Byte; weight: Word);
 begin
@@ -213,6 +217,44 @@ begin
 
   CheckCapsMatchSsi;
 
+  { the caps follow the character's own Strength, not magic's (#702): Gauntlets or Strength leave the restore value in
+    the one Strength or Enlarge node not superseded }
+  ClearCreature;
+  c^.race := C_Race.GNOME;
+  c^.classLevels[C_Level.FIGHTER] := 5;
+  c^.strCur := 18;
+  c^.strExc := 100;
+  FillChar(e, SizeOf(e), 0);
+  e.id := C_Effect.STRENGTH;
+  e.strength := CharHlp.StrengthModifier(17, 0) + $80;
+  c^.effectsAddr := @e;
+  TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'a superseded node holds no restore value');
+  e.strength := CharHlp.StrengthModifier(17, 0);
+  TestKit.CheckEqualsL(17, CharHlp.PermanentStrength(c), 'the active node holds the own Strength');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a gnome fighter with Strength 17 in gauntlets stops at 5');
+  e.id := C_Effect.ENLARGE;
+  e.strength := CharHlp.StrengthModifier(18, 50);
+  TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'Enlarge''s restore value, 18/50');
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'and with 18 of its own the gnome trains past 5');
+  c^.effectsAddr := nil;
+  c^.race := C_Race.DWARF;
+  c^.classLevels[C_Level.FIGHTER] := 8;
+  c^.strCur := 15;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
+  { under Enlarge the stored Strength is whole, and a disease's loss (#705) still counts against the cap }
+  FillChar(d, SizeOf(d), 0);
+  d.id := C_Effect.DISEASE_STR;
+  d.strength := 2 * 16 + 5;
+  e.id := C_Effect.ENLARGE;
+  e.strength := CharHlp.StrengthModifier(18, 50);
+  e.next := @d;
+  c^.effectsAddr := @e;
+  c^.strCur := 17;
+  TestKit.CheckEqualsL(2, CharHlp.DiseaseStrLoss(c), 'the disease has taken 2');
+  TestKit.CheckEqualsL(16, CharHlp.PermanentStrength(c), 'Enlarge''s 18/50 less the 2 the disease took');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'so the diseased dwarf fighter 8 stays capped');
+  c^.effectsAddr := nil;
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }
   TestKit.CheckEqualsL(70, CharHlp.TheftChance(70, 24), 'a light item keeps the chance');
@@ -237,5 +279,64 @@ begin
   CharHlp.CountTeams;
   TestKit.CheckEqualsL(2, GDVars.teamCount[0], 'hostile 0 and 2 count on team 0');
   TestKit.CheckEqualsL(2, GDVars.teamCount[1], 'hostile 1 and 3 count on team 1');
+
+  { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
+  New(items);
+  FillChar(items^, SizeOf(items^), 0);
+  items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.CLUB].wpnClass := C_Item.WPN_BASH;
+  items^[C_Item.DAGGER].wpnClass := C_Item.WPN_PIERCE;
+  CharHlp.FixWeaponClasses(items);
+  TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.BATTLE_AXE].wpnClass, 'a battle axe slashes');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.BEC_DE_CORBIN].wpnClass, 'a bec de corbin pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.TRIDENT].wpnClass, 'a trident pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.SHORT_SWORD].wpnClass, 'a short sword pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.ARROW].wpnClass, 'an arrow pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.LONG_SWORD].wpnClass, 'a long sword still slashes');
+  TestKit.CheckEqualsL(C_Item.WPN_BASH, items^[C_Item.CLUB].wpnClass, 'a club still bashes');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.DAGGER].wpnClass, 'a dagger still pierces');
+  Dispose(items);
+  { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
+  FillChar(crs[1], SizeOf(crs[1]), 0);
+  crs[1].race := C_Race.HUMAN;
+  crs[1].strCur := 10;
+  crs[1].acBase := 50;
+  crs[1].dexCur := 3;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(46, crs[1].acCur, 'Dexterity 3 makes AC 10 into AC 14');
+  TestKit.CheckEqualsL(44, crs[1].acBehind, 'and AC 16 from behind');
+  crs[1].dexCur := 18;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(54, crs[1].acCur, 'Dexterity 18 makes AC 10 into AC 6');
+  TestKit.CheckEqualsL(48, crs[1].acBehind, 'and AC 12 from behind, without the bonus');
+
+  { a bow's plus is to hit only, its arrows' to hit and damage (#744); a sword's is to both }
+  GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
+  FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
+  GDVars.baseItems^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
+  GDVars.baseItems^[C_Item.ARROW].slot := C_Equip.RING2;
+  GDVars.baseItems^[C_Item.LONG_SWORD].props := C_Item.PROP_STR_BONUS;
+  FillChar(weapon, SizeOf(weapon), 0);
+  FillChar(arrows, SizeOf(arrows), 0);
+  weapon.itemType := C_Item.LONG_BOW;
+  weapon.plus := 2;
+  weapon.equipped := 1;
+  weapon.next := @arrows;
+  arrows.itemType := C_Item.ARROW;
+  arrows.plus := 1;
+  arrows.quantity := 10;
+  arrows.equipped := 1;
+  crs[1].dexCur := 10;
+  crs[1].thac0Base := 40;
+  crs[1].itemsAddr := @weapon;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(43, crs[1].thac0Cur, 'a bow +2 with arrows +1 is +3 to hit');
+  TestKit.CheckEqualsL(1, crs[1].curModA[1], 'and +1 to damage');
+  weapon.itemType := C_Item.LONG_SWORD;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(42, crs[1].thac0Cur, 'a sword +2 is +2 to hit');
+  TestKit.CheckEqualsL(2, crs[1].curModA[1], 'and +2 to damage');
+  crs[1].itemsAddr := nil;
+  FreeMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
   TestKit.Done;
 end.

@@ -3,7 +3,8 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Class, C_Align, GDConsts, ClassCal, Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, C_Level, C_Race, C_Save, C_Class, C_Align, C_Equip, C_Item, GDConsts, ClassCal, Dice,
+  TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   c: Types.PCharRecord;
@@ -13,6 +14,8 @@ var
   same: Boolean;
   k: Integer;
   expected: Byte;
+  armor: Types.TItemRec;
+  shield: Types.TItemRec;
 
 { Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GDConsts.wisBonusSpells' rows from 13 to wis
   added up, against expected, one digit a level. }
@@ -254,6 +257,26 @@ begin
   ClassCal.RecalcThiefSkills(c);
   TestKit.CheckEqualsL(77, c^.thiefSkills[1], 'no thief level leaves the skills as they are');
 
+  { a thief works only in leather or no armor and with no shield, a multiclass thief too (#743) }
+  Reset(C_Race.HUMAN);
+  c^.classLevels[C_Level.FIGHTER] := 1;
+  c^.classLevels[C_Level.THIEF] := 1;
+  c^.dexCur := 15;
+  FillChar(armor, SizeOf(armor), 0);
+  armor.itemType := C_Item.LEATHER_ARMOR;
+  c^.equipped[C_Equip.ARMOR] := @armor;
+  ClassCal.RecalcThiefSkills(c);
+  CheckSkills(30, 25, 20, 15, 10, 10, 85, 0, 'a fighter/thief in leather');
+  armor.itemType := C_Item.LEATHER_ARMOR + 1;
+  ClassCal.RecalcThiefSkills(c);
+  CheckSkills(0, 0, 0, 0, 0, 0, 0, 0, 'in any other body armor: no skills');
+  c^.equipped[C_Equip.ARMOR] := nil;
+  FillChar(shield, SizeOf(shield), 0);
+  c^.equipped[C_Equip.SHIELD] := @shield;
+  ClassCal.RecalcThiefSkills(c);
+  CheckSkills(0, 0, 0, 0, 0, 0, 0, 0, 'with a shield: no skills');
+  c^.equipped[C_Equip.SHIELD] := nil;
+
   { a thief skill's parts, as More Info's Thief page shows them }
   Reset(C_Race.HALFLING);
   c^.classLevels[C_Level.THIEF] := 1;
@@ -322,6 +345,17 @@ begin
   TestKit.CheckEqualsL(7, ClassCal.RaceAbilityMin(C_Race.ELF, 1, 3), 'an elf''s least Dexterity');
   TestKit.CheckEqualsL(19, ClassCal.RaceAbilityMax(C_Race.ELF, 0, 3), 'an elf''s most Dexterity');
   TestKit.CheckEqualsL(3, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 2), 'an elf''s least Wisdom');
+
+  { class ability minimums, the 1st-edition PHB's (#740); a multiclass takes the highest of its classes' }
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.FIGHTER, 5), 'a fighter''s least Charisma');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.MAGE, 4), 'a magic-user''s least Constitution');
+  TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_Class.PALADIN, 5), 'a paladin''s least Charisma');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.RANGER, 3), 'a ranger''s least Dexterity');
+  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_Class.CLERIC_FIGHTER, 4), 'a cleric/fighter, the fighter''s Con');
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Class.CLERIC_FIGHTER, 2), 'and the cleric''s Wisdom 9');
+  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Class.CLERIC_RANGER, 2), 'a cleric/ranger: the ranger''s Wis 14');
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Class.FIGHTER_MAGE_THIEF, 3), 'a fighter/magic-user/thief''s Dex');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.MAGE_THIEF, 2), 'a magic-user/thief: the mage''s Wis 6');
 
   { hit points: the Constitution bonus per hit die, the warrior bonus by class (#616) }
   TestKit.CheckEqualsL(2, ClassCal.ConHpPerDie(C_Level.CLERIC, 18), 'a cleric at Constitution 18: +2');

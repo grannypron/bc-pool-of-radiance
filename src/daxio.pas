@@ -70,11 +70,9 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
-  { DaxIo.FileExists IOResult }
-  ioErr: Integer;
   { Temporary compressed DAX data buffer. }
   dsDaxCompressedFilePtr: Types.PByteArr;
 
@@ -190,7 +188,8 @@ end;
 
 { OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), say which file is missing,
   by its full path (the name expanded from the current directory), then show promptMsg (attr 14) through PromptBox,
-  each until a key, and retry. On success Assign+Reset the caller's untyped file f (recsize 1). Returns found }
+  each until a key, and retry. On success open the caller's untyped file f for reading only (FileUtil.OpenReadOnly,
+  recsize 1), so a read-only file opens too: every caller only reads. Returns found }
 function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt: Boolean;
   var f: file): Boolean;
 var
@@ -210,23 +209,24 @@ begin
       DaxIo.PromptBox(Yellow, promptMsg);
     end;
   until found or noPrompt;
-  if found then begin
-    Assign(f, fileName);
-    Reset(f, 1);
-  end;
+  if found then
+    found := FileUtil.OpenReadOnly(f, fileName);
   OpenWithRetry := found;
 end;
 
-{ FileExists: Assign/Reset(recsize 128)/Close the name and report success: IOResult (kept in ioErr) clean AND the name
-  non-empty }
+{ FileExists: open the name for reading only (FileUtil.OpenReadOnly, so a read-only file counts), close it and report
+  success: opened and closed clean AND the name non-empty }
 function FileExists(name: Types.TPathStr): Boolean;
-var f: file;
+var
+  f: file;
+  found: Boolean;
 begin
-  Assign(f, name);
-  Reset(f, 128);
-  Close(f);
-  ioErr := IOResult;
-  FileExists := (ioErr = 0) and (name <> '');
+  found := FileUtil.OpenReadOnly(f, name);
+  if found then begin
+    Close(f);
+    found := IOResult = 0;
+  end;
+  FileExists := found and (name <> '');
 end;
 
 {$I+}
@@ -248,7 +248,8 @@ begin
 end;
 
 { Remove invalid filename characters (with SanitizeString's single-pass rule), limit the name to eight characters and
-  uppercase it. }
+  uppercase it. A DOS device's name (FileUtil.IsDeviceName) gets an underscore, so a character called Con or Lpt1 is
+  kept in a file, as in Curse. }
 function SanitizeFileName(name: string): Types.TStr40;
 var i: Byte;
 begin
@@ -257,6 +258,8 @@ begin
   name := Copy(name, 1, 8);
   for i := 1 to Length(name) do
     name[i] := UpCase(name[i]);
+  if FileUtil.IsDeviceName(name) then
+    name := name + '_';
   SanitizeFileName := name;
 end;
 
@@ -306,8 +309,12 @@ var nread: Word;
 begin
   if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
                          GDVars.dsSuppressingInsertDiskFlag, f1) then begin
-    Assign(f2, dirName + ext);
-    Reset(f2, 1);
+    { read-only, as f1 is }
+    if not FileUtil.OpenReadOnly(f2, dirName + ext) then begin
+      Close(f1);
+      OpenDax := False;
+      Exit;
+    end;
     BlockRead(f2, headerSize, SizeOf(headerSize), nread);
     if (nread = SizeOf(headerSize)) and (LongInt(headerSize) + SizeOf(headerSize) <= FileSize(f2)) then begin
       Inc(headerSize, SizeOf(headerSize));

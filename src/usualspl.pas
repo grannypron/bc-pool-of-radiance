@@ -19,7 +19,7 @@ procedure SetUsualSpells(creature: Types.PCharRecord; var spells: Types.TSpellSl
 procedure ForgetUsualSpells(creature: Types.PCharRecord);
 
 { Write the character's usual spells to <fn>.mem, erasing any old file first; nothing is written when it has none. A
-  failed write leaves a short file, which ReadUsualSpells ignores. }
+  failed write leaves no file (FileUtil.WriteRecord). }
 procedure WriteUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 
 { Read the character's usual spells from <fn>.mem. The character is left with none unless the file is exactly one
@@ -120,7 +120,7 @@ begin
     rec.version := MEM_VERSION;
     rec.name := creature^.name;
     rec.randByte := creature^.randByte;
-    { a failed write leaves a short file, which ReadUsualSpells ignores }
+    { a failed write leaves none: the old one is erased above }
     written := FileUtil.WriteRecord(fn + '.mem', rec, SizeOf(rec));
   end;
 end;

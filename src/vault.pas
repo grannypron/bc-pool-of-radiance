@@ -1,7 +1,8 @@
 { The vault, The Hoarder's Respite in New Phlan (#606): money and items the party leaves there are kept with the saved
   game, as Pools of Darkness keeps its vault. While a game is played its vault is the session file tmpvault.dat in the
   save directory; saving a game copies it to vault<x>.dat beside savgam<x>.dat, and loading one copies that back, so
-  what is left in the vault and then given up with an unsaved game is gone with it. }
+  what is left in the vault and then given up with an unsaved game is gone with it. Each file is written to a
+  temporary copy put in its place only once it is whole (FileUtil.PutInPlace), so a failed write leaves the old one. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Vault;
@@ -17,10 +18,12 @@ const
 { Forget the session vault: a new game, or one left unsaved last time, starts with an empty vault. }
 procedure ForgetSessionVault;
 
-{ Saving into slot letter: copy the session vault to vault<x>.dat, or delete that file when the vault is empty. }
-procedure CommitToSlot(letter: Char);
+{ Saving into slot letter: copy the session vault to vault<x>.dat, or delete that file when the vault is empty. False
+  when the copy was not written whole (vault<x>.dat is then left as it was). }
+function CommitToSlot(letter: Char): Boolean;
 
-{ Loading slot letter: copy its vault<x>.dat to the session vault, or forget the session vault when it has none. }
+{ Loading slot letter: copy its vault<x>.dat to the session vault, or forget the session vault when it has none. A copy
+  not written whole is reported, and the session vault forgotten, so no other game's vault stays in its place. }
 procedure RestoreFromSlot(letter: Char);
 
 { True while the vault (GDVars.treasureItems, in the vault) has room for another item. }
@@ -33,8 +36,9 @@ procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
   missing file is an empty vault never visited. }
 procedure ReadVault;
 
-{ Write the treasure pool to the session vault, then free its items and empty it. }
-procedure WriteVault;
+{ Write the treasure pool to the session vault: True when it was written whole. Else it says so on the bottom line,
+  and the session vault is left as it was. The pool is left for the caller to clear. }
+function WriteVault: Boolean;
 
 { True when the party has been to the vault before (its ledger says so), as ReadVault found it. }
 function WasVisited: Boolean;
@@ -73,41 +77,38 @@ const
 type
   TCopyBuf = array[1..COPY_BUF] of Byte;
 
-{ Copy file src to dst, or delete dst when src cannot be read. }
-procedure CopyOrDelete(src, dst: Types.TPathStr);
+{ Copy file src to dst, or delete dst when src cannot be opened: False when a copy was not read and written whole, and
+  dst is left as it was. }
+function CopyOrDelete(src, dst: Types.TPathStr): Boolean;
 var
   fIn: file;
   fOut: file;
   buf: ^TCopyBuf;
   n: Word;
-  w: Word;
   ok: Boolean;
   ioRes: Integer;
 begin
+  CopyOrDelete := True;
   if not FileUtil.OpenReadOnly(fIn, src) then begin
     FileUtil.DeleteFile(dst);
     Exit;
   end;
-  Assign(fOut, dst);
-  Rewrite(fOut, 1);
-  ok := IOResult = 0;
+  ok := FileUtil.RewriteTemp(fOut, dst);
   if ok then begin
     GetMem(buf, SizeOf(TCopyBuf));
     repeat
       BlockRead(fIn, buf^, SizeOf(TCopyBuf), n);
       if IOResult <> 0 then
-        n := 0;
-      if n > 0 then begin
-        BlockWrite(fOut, buf^, n, w);
-        if (IOResult <> 0) or (w <> n) then
-          n := 0;
-      end;
-    until n = 0;
+        ok := False;
+      if ok and (n > 0) then
+        FileUtil.WriteChecked(fOut, buf^, n, ok);
+    until (n = 0) or not ok;
     FreeMem(buf, SizeOf(TCopyBuf));
-    Close(fOut);
+    ok := FileUtil.CloseTemp(fOut, dst, ok) and FileUtil.PutInPlace(dst);
   end;
   Close(fIn);
   ioRes := IOResult;
+  CopyOrDelete := ok;
 end;
 
 procedure ForgetSessionVault;
@@ -115,14 +116,17 @@ begin
   FileUtil.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
 end;
 
-procedure CommitToSlot(letter: Char);
+function CommitToSlot(letter: Char): Boolean;
 begin
-  Vault.CopyOrDelete(GDVars.dsSaveDirectory + SESSION_FILE, Vault.SlotFile(letter));
+  CommitToSlot := Vault.CopyOrDelete(GDVars.dsSaveDirectory + SESSION_FILE, Vault.SlotFile(letter));
 end;
 
 procedure RestoreFromSlot(letter: Char);
 begin
-  Vault.CopyOrDelete(Vault.SlotFile(letter), GDVars.dsSaveDirectory + SESSION_FILE);
+  if not Vault.CopyOrDelete(Vault.SlotFile(letter), GDVars.dsSaveDirectory + SESSION_FILE) then begin
+    Vault.ForgetSessionVault;
+    TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not copied.');
+  end;
 end;
 
 function ItemCount: Word;
@@ -182,13 +186,12 @@ begin
   ioRes := IOResult;
 end;
 
-procedure WriteVault;
+function WriteVault: Boolean;
 var
   f: file;
   head: TVaultHeader;
   p: Types.PItemRec;
-  next: Types.PItemRec;
-  ioRes: Integer;
+  ok: Boolean;
   item: Types.TItemRec;
   { the item as the file has it (DiskRec) }
   disk: DiskRec.TItemDisk;
@@ -199,25 +202,24 @@ begin
   head.version := VAULT_VERSION;
   head.visited := 1;
   Move(GDVars.treasureMoney, head.money, SizeOf(head.money));
-  Assign(f, GDVars.dsSaveDirectory + SESSION_FILE);
-  Rewrite(f, 1);
-  if IOResult = 0 then begin
-    BlockWrite(f, head, SizeOf(head));
+  ok := FileUtil.RewriteTemp(f, GDVars.dsSaveDirectory + SESSION_FILE);
+  if ok then begin
+    FileUtil.WriteChecked(f, head, SizeOf(head), ok);
     p := GDVars.treasureItems;
-    while p <> nil do begin
+    while ok and (p <> nil) do begin
       { without its link, which ReadVault rebuilds: a heap address would make two saves of one vault differ }
       item := p^;
       item.next := nil;
       DiskRec.ItemToDisk(item, disk);
-      BlockWrite(f, disk, DiskRec.ITEM_DISK_BYTES);
+      FileUtil.WriteChecked(f, disk, DiskRec.ITEM_DISK_BYTES, ok);
       p := p^.next;
     end;
-    Close(f);
+    ok := FileUtil.CloseTemp(f, GDVars.dsSaveDirectory + SESSION_FILE, ok) and
+          FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE);
   end;
-  ioRes := IOResult;
-  if ioRes <> 0 then
+  if not ok then
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not written.');
-  CharHlp.ClearTreasure;
+  WriteVault := ok;
 end;
 
 function WasVisited: Boolean;

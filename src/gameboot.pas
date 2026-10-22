@@ -20,10 +20,6 @@ var
   cfgChar: Char;
   { POOL.CFG text input }
   cfgText: Text;
-  { POOL.CFG existence check }
-  cfgFile: file;
-  { low byte of the existence-check IOResult }
-  cfgErr: Byte;
 
 const
   { graphics memory reserve: 16 KB in paragraphs }
@@ -122,16 +118,11 @@ begin
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
 {$ENDIF}
-  repeat
-    Assign(cfgFile, 'pool.cfg');
-    Reset(cfgFile, 128);
-    cfgErr := IOResult;
-    if cfgErr <> 0 then begin
-      WriteLn('Please insert startup disk.');
-      cfgChar := GameIo.ReadGameKey;
-    end;
-  until cfgErr = 0;
-  Close(cfgFile);
+  { a read-only POOL.CFG is there too (DaxIo.FileExists) }
+  while not DaxIo.FileExists('pool.cfg') do begin
+    WriteLn('Please insert startup disk.');
+    cfgChar := GameIo.ReadGameKey;
+  end;
   CheckBreak := False;
   Assign(cfgText, 'POOL.CFG');
   Reset(cfgText);

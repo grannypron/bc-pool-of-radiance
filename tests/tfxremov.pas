@@ -1,11 +1,13 @@
 { Tests for FxEngine.RemoveEffect when the removed effect's own handler removes the node first, as Fight On's does
   (eff 95: the creature falls dead, and RemoveEffectsHp0 takes its 0-HP effects, Fight On among them). The outer
   removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
-  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free. }
+  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free,
+  FxEngine.HasEffectNode, FxEngine.EffectImmune, and the Strength a disease takes (CharHlp.DiseaseStrLoss,
+  AdjustForNewStrength). }
 {$I COMPILER.INC}
 program TFxRemov;
 
-uses Types, C_Effect, GDVars, FxEngine, TestKit;
+uses Types, C_Effect, GDVars, CharHlp, FxEngine, TestKit;
 
 { The heap's free bytes. Natively MemAvail is a fixed figure (TpCompat), so the heap's used bytes count instead. }
 function HeapFree: LongInt;
@@ -26,6 +28,7 @@ var
   victim: Types.PCharRecord;
   hold: Types.PEffectRec;
   released: Boolean;
+  enc: Byte;
 
 {$F+}
 { A handler that removes its own effect, as EffFightOn does through InflictStatusMsg and RemoveEffectsHp0. }
@@ -33,6 +36,13 @@ procedure RemovesItself(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 begin
   Types.PEffectRec(p)^.onRemove := False;
   FxEngine.RemoveEffect(creature, C_Effect.FIGHT_ON, nil);
+end;
+
+{ A paralysis ward, as EffNoParalysis is (eff 109): it refuses paralysis under the immunity check. }
+procedure WardsParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+begin
+  if GDVars.pendingEffectId = C_Effect.PARALYSIS then
+    GDVars.pendingEffectId := 0;
 end;
 {$F-}
 
@@ -100,5 +110,47 @@ begin
   TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_Effect.BITE_HOLD, released) = nil,
                 'a victim no longer immobile is not held');
   TestKit.Check(released and (c^.effectsAddr = nil), 'and the hold is released and removed');
+  { HasEffectNode, which Dispel Magic's walk asks after each removal (#763) }
+  first := NewEffect(C_Effect.BLESS, nil);
+  second := NewEffect(C_Effect.FIGHT_ON, nil);
+  first^.next := second;
+  c^.effectsAddr := first;
+  TestKit.Check(FxEngine.HasEffectNode(c, first) and FxEngine.HasEffectNode(c, second),
+                'both nodes of the list are found');
+  first^.next := nil;
+  TestKit.Check(not FxEngine.HasEffectNode(c, second), 'a node taken out of the list is not');
+  TestKit.Check(not FxEngine.HasEffectNode(c, nil), 'nor is nil');
+  FreeMem(first, SizeOf(Types.TEffectRec));
+  FreeMem(second, SizeOf(Types.TEffectRec));
+  c^.effectsAddr := nil;
+
+  { EffectImmune, the immunity check a paralyzing or poisonous touch now makes too (#767, #720): a ward refuses its
+    effect and lets others through }
+  GDVars.effectFns[C_Effect.NO_PARALYSIS] := WardsParalysis;
+  c^.effectsAddr := NewEffect(C_Effect.NO_PARALYSIS, nil);
+  TestKit.Check(FxEngine.EffectImmune(c, C_Effect.PARALYSIS), 'a paralysis ward refuses paralysis');
+  TestKit.Check(not FxEngine.EffectImmune(c, C_Effect.POISONED), 'but not poison');
+  FreeMem(c^.effectsAddr, SizeOf(Types.TEffectRec));
+  c^.effectsAddr := nil;
+  TestKit.Check(not FxEngine.EffectImmune(c, C_Effect.PARALYSIS), 'with no ward, paralysis is not refused');
+
+  { a disease that has taken 3 Strength from 18/76 (#705): its node counts the loss, a Strength effect stores the
+    creature's own Strength with the loss given back, and sets the new one less the loss }
+  c^.strCur := 15;
+  c^.strExc := 76;
+  c^.effectsAddr := NewEffect(C_Effect.DISEASE_STR, nil);
+  c^.effectsAddr^.strength := 3 * 16 + 5;
+  TestKit.CheckEqualsL(3, CharHlp.DiseaseStrLoss(c), 'the disease has taken 3 Strength');
+  TestKit.Check(not FxEngine.AdjustForNewStrength(c, 17, 0, enc), '17 is weaker than the 18/76 under the disease');
+  TestKit.CheckEqualsL(15, c^.strCur, 'and changes nothing');
+  TestKit.Check(FxEngine.AdjustForNewStrength(c, 18, 100, enc), '18/00 is stronger');
+  TestKit.CheckEqualsL(CharHlp.StrengthModifier(18, 76), enc, 'the Strength to restore is 18/76, the loss given back');
+  TestKit.CheckEqualsL(15, c^.strCur, '18/00 less the 3 lost is 15');
+  TestKit.CheckEqualsL(100, c^.strExc, 'kept as 18/00 for the cure');
+  c^.effectsAddr^.strength := 5;
+  TestKit.CheckEqualsL(0, CharHlp.DiseaseStrLoss(c), 'a disease that has taken nothing yet');
+  FreeMem(c^.effectsAddr, SizeOf(Types.TEffectRec));
+  c^.effectsAddr := nil;
+  TestKit.CheckEqualsL(0, CharHlp.DiseaseStrLoss(c), 'no disease, no loss');
   TestKit.Done;
 end.

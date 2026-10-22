@@ -107,6 +107,18 @@ begin
   TestKit.CheckEqualsL(25, AbilAdj.ClampScore(26), '26 counts as 25');
   TestKit.CheckEqualsL(25, AbilAdj.ClampScore(300), 'and so does 300');
 
+  { resurrection survival, the PHB's Constitution table and Deities & Demigods' 100 above 18 (#752) }
+  TestKit.CheckEqualsL(40, AbilAdj.ConResurrectionSurvival(3), 'Constitution 3: 40%');
+  TestKit.CheckEqualsL(40, AbilAdj.ConResurrectionSurvival(1), 'below 3 counts as 3');
+  TestKit.CheckEqualsL(45, AbilAdj.ConResurrectionSurvival(4), '4: 45%');
+  TestKit.CheckEqualsL(75, AbilAdj.ConResurrectionSurvival(10), '10: 75%');
+  TestKit.CheckEqualsL(85, AbilAdj.ConResurrectionSurvival(12), '12: 85%');
+  TestKit.CheckEqualsL(90, AbilAdj.ConResurrectionSurvival(13), '13: 90%');
+  TestKit.CheckEqualsL(96, AbilAdj.ConResurrectionSurvival(16), '16: 96%');
+  TestKit.CheckEqualsL(98, AbilAdj.ConResurrectionSurvival(17), '17: 98%');
+  TestKit.CheckEqualsL(100, AbilAdj.ConResurrectionSurvival(18), '18: 100%');
+  TestKit.CheckEqualsL(100, AbilAdj.ConResurrectionSurvival(25), '25: 100%');
+
   { Deities & Demigods: the poison save and regeneration above 18 }
   TestKit.CheckEqualsL(0, AbilAdj.ConPoisonSave(18), 'Constitution 18: no poison bonus');
   TestKit.CheckEqualsL(1, AbilAdj.ConPoisonSave(19), '19: +1 vs poison');

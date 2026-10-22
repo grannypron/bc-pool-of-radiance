@@ -96,6 +96,10 @@ begin
   FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
   Blit.FillPicRect(0, 0, 1, 1, 9, map, cell);
   CheckBytes(cell, fill, '', name + ' fill 9');
+  { an empty rectangle fills nothing (#728) }
+  Blit.FillPicRect(0, 0, 1, 0, 15, map, cell);
+  Blit.FillPicRect(0, 0, 0, 1, 15, map, cell);
+  CheckBytes(cell, fill, '', name + ' empty fills');
   Blit.FreePic(cell);
   { the picture blitted through its mask over colour 15: its transparent pixels keep the 15 }
   pic := TestPic;

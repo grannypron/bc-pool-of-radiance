@@ -68,7 +68,28 @@ function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
 
+{ Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
+  PermanentStrength, and a half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
+
+{ Encode Strength as an effect strength byte: base 18 gives excStr + 1, any other base gives baseStr + 100. Bit 7 is
+  left for the caller's "superseded" mark. }
+function StrengthModifier(baseStr, excStr: Byte): Byte;
+
+{ Decode an effect's strength byte (bit 7 masked off) into base and exceptional Strength: values <= 101 give base 18
+  with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
+procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
+
+{ The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of
+  the effect's strength byte, the lower holding the caster level (at most 15) as Dispel Magic reads it. 0 when it has
+  no disease. The Strength the Enlarge and Strength effects (eff 12, 38) store and set is the creature's own, without
+  this loss: they take it off when they set the creature's Strength, and give it back when they store it (#705). }
+function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
+
+{ The character's own Strength score, without Enlarge, Strength or Gauntlets of Ogre Power but with what a disease has
+  taken: the Strength to restore held by the one Enlarge or Strength effect not superseded (strength < $80;
+  FxEngine.AdjustForNewStrength) less DiseaseStrLoss, not below 3, else strCur. }
+function PermanentStrength(creature: Types.PCharRecord): Byte;
 
 { True when the creature has enough experience to train a level in some class: the training hall's own test (not at the
   racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. }
@@ -91,6 +112,11 @@ function WarriorLevel(creature: Types.PCharRecord): ShortInt;
   @param(itemType TItemRec.itemType.)
   @returns(A pointer to the record; the caller does not change it.) }
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
+
+{ Correct the damage types (wpnClass) the shipped ITEMS file gets wrong, by the 1st edition weapons (#746): the battle
+  axe cuts (slash, not pierce), and the bec de corbin, military fork, partisan, ranseur, spetum, short sword, trident
+  and arrow pierce (not slash). }
+procedure FixWeaponClasses(items: Types.PBaseItems);
 
 { True for an NPC or a monster: a creature whose npc has bit 7 (C_Npc.FLAG) set, not one of the player's own
   characters. }
@@ -142,7 +168,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 implementation
 
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell;
+  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell, ClassCal;
 
 const
   { movement in body armour, by its weight in coins: up to LIGHT_ARMOR the creature's own, up to MEDIUM_ARMOR
@@ -190,12 +216,14 @@ var
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_Item.PROP_DEX_MISSILE) and Strength to-hit (C_Item.PROP_STR_BONUS); the damage dice
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
-  plus, and that of readied quarrels or arrows when the weapon fires them, is added to both. An elf gets a further +1
-  to-hit with a bow, a long sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it
+  plus is added to both, except that a launcher's (CharHlp.FindDamagingRangedWeapon: a bow or crossbow) is to-hit only,
+  and the plus of the arrows or quarrels it fires is added to both. An elf gets a further +1 to-hit with a bow, a long
+  sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it
   counts as a bow when its second name component is a bow's name, which a Heavy Crossbow never carries. }
 procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
+  ammo: Types.PItemRec;
   wtype: Byte;
   plus: ShortInt;
 begin
@@ -211,14 +239,12 @@ begin
     creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
   plus := w^.plus;
-  { C_Item.PROP_QUARRELS: the weapon fires quarrels }
-  if CharHlp.BaseItem(wtype)^.props > $7F then
-    if creature^.equipped[C_Equip.BOLT] <> nil then
-      plus := plus + creature^.equipped[C_Equip.BOLT]^.plus;
-  if (CharHlp.BaseItem(wtype)^.props and C_Item.PROP_ARROWS) > 0 then
-    if creature^.equipped[C_Equip.ARROW] <> nil then
-      plus := plus + creature^.equipped[C_Equip.ARROW]^.plus;
-  creature^.curModA[1] := creature^.curModA[1] + plus;
+  { a bow or crossbow's own plus is to hit only, its arrows' or quarrels' to hit and damage (#744) }
+  if CharHlp.FindDamagingRangedWeapon(creature, ammo) and (ammo <> nil) and (ammo <> w) then begin
+    plus := plus + ammo^.plus;
+    creature^.curModA[1] := creature^.curModA[1] + ammo^.plus;
+  end else
+    creature^.curModA[1] := creature^.curModA[1] + plus;
   if (creature^.race = C_Race.ELF) and
       ((w^.itemType in [C_Item.COMPOSITE_LONG_BOW..C_Item.SHORT_BOW, C_Item.LONG_SWORD, C_Item.SHORT_SWORD]) or
        ((w^.itemType = C_Item.HEAVY_CROSSBOW) and
@@ -408,8 +434,9 @@ begin
 end;
 
 { Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
-  calculate armor class, rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster
-  warrior, else 1) and movement. An equipped Bag of Holding (name component 'Holding') removes up to
+  calculate armor class, rear armor class (no shield or Dexterity bonus, but any Dexterity penalty), attack level
+  (CharHlp.WarriorLevel for a non-monster warrior, else 1), movement and, for a thief, the thief skills
+  (ClassCal.RecalcThiefSkills). An equipped Bag of Holding (name component 'Holding') removes up to
   BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32
   bits and stored as at most MAX_ENCUMBRANCE. }
 procedure RecalcStats(creature: Types.PCharRecord);
@@ -497,10 +524,29 @@ begin
   for k := Types.AC_DEX to Types.AC_ARMOR do
     creature^.acCur := creature^.acCur + adj[k];
   creature^.acBehind := adj[Types.AC_ARMOR] + adj[Types.AC_PLUSES] + adj[Types.AC_RING] - 1 - 1;
+  { an attack from behind takes away a Dexterity bonus, not a penalty (#741) }
+  if adj[Types.AC_DEX] < 0 then
+    creature^.acBehind := creature^.acBehind + adj[Types.AC_DEX];
   if (CharHlp.WarriorLevel(creature) > 0) and (creature^.race > C_Race.MONSTER) then
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
+  { readying or removing armor or a shield, or a change of Dexterity, changes the thief skills }
+  if creature^.classLevels[C_Level.THIEF] > 0 then
+    ClassCal.RecalcThiefSkills(creature);
+end;
+
+procedure FixWeaponClasses(items: Types.PBaseItems);
+const
+  PIERCING = [C_Item.BEC_DE_CORBIN, C_Item.MILITARY_FORK, C_Item.PARTISAN, C_Item.RANSEUR, C_Item.SPETUM,
+              C_Item.SHORT_SWORD, C_Item.TRIDENT, C_Item.ARROW];
+var
+  i: Byte;
+begin
+  items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_SLASH;
+  for i := 0 to Types.BASE_ITEM_LAST do
+    if i in PIERCING then
+      items^[i].wpnClass := C_Item.WPN_PIERCE;
 end;
 
 { True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }
@@ -839,22 +885,23 @@ begin
   end;
 end;
 
-{ Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by Strength, and a
-  half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts (SSI's tests matched some levels past it
-  and not others). Monsters, half-orcs and humans have no limit here. }
+{ SSI's tests matched some levels past the cap and not others, and read the Strength magic had raised or disease
+  lowered (#702). Monsters, half-orcs and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;
   band: Byte;
+  str: Byte;
 begin
   AtLevelCap := False;
   with creature^ do begin
     lvl := classLevels[cls];
     if lvl <= 0 then
       Exit;
-    if strCur < 17 then
+    str := CharHlp.PermanentStrength(creature);
+    if str < 17 then
       band := STR_BAND_LOW
-    else if strCur = 17 then
+    else if str = 17 then
       band := STR_BAND_17
     else
       band := STR_BAND_18;
@@ -863,6 +910,53 @@ begin
     else if (race in [C_Race.DWARF..C_Race.HALFLING]) and
             ((cls = C_Level.FIGHTER) or ((cls = C_Level.RANGER) and (race = C_Race.HALFELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
+  end;
+end;
+
+function StrengthModifier(baseStr, excStr: Byte): Byte;
+begin
+  StrengthModifier := baseStr + 100;
+  if baseStr = 18 then
+    StrengthModifier := excStr + 1;
+end;
+
+procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
+begin
+  excStr := 0;
+  baseStr := Types.PEffectRec(effect)^.strength and $7F;
+  if baseStr <= 101 then begin
+    excStr := baseStr - 1;
+    baseStr := 18;
+  end else
+    baseStr := baseStr - 100;
+end;
+
+function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_Effect.DISEASE_STR, effect) then
+    DiseaseStrLoss := effect^.strength shr 4
+  else
+    DiseaseStrLoss := 0;
+end;
+
+function PermanentStrength(creature: Types.PCharRecord): Byte;
+var
+  p: Types.PEffectRec;
+  base: Byte;
+  exc: Byte;
+begin
+  PermanentStrength := creature^.strCur;
+  p := creature^.effectsAddr;
+  while p <> nil do begin
+    if ((p^.id = C_Effect.ENLARGE) or (p^.id = C_Effect.STRENGTH)) and (p^.strength < $80) then begin
+      CharHlp.StrengthEffectToStrength(p, base, exc);
+      { the stored Strength is whole; the disease's loss counts, as it does in strCur }
+      PermanentStrength := AbilAdj.ClampScore(Integer(base) - CharHlp.DiseaseStrLoss(creature));
+      Exit;
+    end;
+    p := p^.next;
   end;
 end;
 

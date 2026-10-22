@@ -17,6 +17,10 @@ procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer
   called with removed = True; the node is then unlinked and freed, unless the handler has removed it already. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
+{ True when eff is a node of the creature's effect list. A caller holding a node across a removal checks it with this,
+  since the removal's handler may have removed and freed it. }
+function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
+
 { True when the creature has any of the effects a cure of disease removes (GDConsts.cureDiseaseEffects). }
 function HasDisease(creature: Types.PCharRecord): Boolean;
 
@@ -35,15 +39,25 @@ procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
   applied. }
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 
+{ The lowest cloud number, at most 15, that none of the caster's clouds on the GDVars.stinkHead list has, so the number
+  in the caster's Cast Stinking Cloud effect (strength div 16) names one cloud alone. }
+function FreeCloudNumber(caster: Types.PCharRecord): Byte;
+
+{ The Cast Stinking Cloud effect's strength: the cloud number (FreeCloudNumber) in the high nibble and the caster level
+  in the low one, which Dispel Magic reads. A level above 15 is stored as 15 rather than carrying into the number. }
+function CloudStrength(level, num: Byte): Byte;
+
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
-  becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when the roll is still >= 0 and roll +
-  sixtyMinusThac0 > defender^.acCur. }
+  becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
+  (GDVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
+  acCur, so a script's attack hit 5% less often than a creature's with the same THAC0 (#719). }
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 
 { Full attack roll: strip the attacker's invisibility (effect 25), roll d20 into gAttackRoll (1 misses, 20 becomes 100),
   run the attacker's C_Cond.ATTACK_ROLL_ATT (10) and the defender's C_Cond.ATTACK_ROLL_DEF (16) effects, and take the
-  GBVM modifier zmod (low byte of $6E71 when the attacker is allied, of $6E70 when hostile). Hit when the roll is still
-  >= 0 and roll + attacker^.thac0Cur + zmod >= sixtyMinusAc. }
+  GBVM modifier zmod (low byte of $6E71 when the attacker is allied, of $6E70 when hostile). Hit when no effect forced a
+  miss (GDVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >= sixtyMinusAc. Penalties that take the roll below
+  0 only lower it; SSI's took any roll below 0 for a forced miss (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 
 { d20 saving throw into GDVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
@@ -74,20 +88,13 @@ procedure RemoveAiEffects(creature: Types.PCharRecord);
 { If the creature has effect effId, print "<name> is Cured", remove that node and return True; otherwise return False. }
 function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Boolean;
 
-{ Encode Strength as an effect strength byte: base 18 gives excStr + 1, any other base gives baseStr + 100. Bit 7 is
-  left for the caller's "superseded" mark. }
-function StrengthModifier(baseStr, excStr: Byte): Byte;
-
-{ Decode an effect's strength byte (bit 7 masked off) into base and exceptional Strength: values <= 101 give base 18
-  with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
-procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
-
 { Apply a new Strength from a Strength effect. If it is weaker than the creature's current Strength, nothing changes:
   effStrength gets the new Strength encoded with bit 7 set and the result is False. Otherwise the first active Strength
   effect (id 12 or 38 with strength < $80), if any, is superseded: it is given the creature's current Strength, encoded
   with bit 7 set. The new Strength is stored, CharHlp.RecalcStats runs, effStrength gets the Strength to restore when
   the new effect ends (the superseded effect's previously stored Strength, else the current one) and the result is
-  True. }
+  True. The current Strength is taken with a disease's loss given back, and the new one is stored less it
+  (CharHlp.DiseaseStrLoss). }
 function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte; var effStrength: Byte): Boolean;
 
 { Non-weapon damage: post damage to GDVars.pendingDamage and run the C_Cond.NONWEAPON_DAMAGE (6) effects; when saved,
@@ -108,9 +115,13 @@ procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; da
   levels: paladins catch no disease. }
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
-{ AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when a
-  C_Cond.EFFECT_IMMUNITY (9) effect clears GDVars.pendingEffectId, when FxEngine.DiseaseImmune holds, or when saved and
-  saveNegates are both True.
+{ The immunity check: True when the creature is immune to effId, that is when one of its C_Cond.EFFECT_IMMUNITY (9)
+  effects (a ward, an immunity or magic resistance) clears GDVars.pendingEffectId, or when FxEngine.DiseaseImmune
+  holds. }
+function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
+
+{ AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when
+  FxEngine.EffectImmune holds, or when saved and saveNegates are both True.
   Otherwise an existing node with the same id is removed first if it is timed and the new duration is longer, or if the
   new effect is permanent (0); in any other case the new node is added alongside it. A non-empty msg is printed after
   the creature's name. }
@@ -163,23 +174,16 @@ begin
     p := creature^.effectsAddr;
     while (p <> nil) and (p^.id <> effId) do
       p := p^.next;
-  end else begin
+  end else if not FxEngine.HasEffectNode(creature, p) then
     { a node not in the list would walk the unlink below off its end }
-    prev := creature^.effectsAddr;
-    while (prev <> nil) and (prev <> p) do
-      prev := prev^.next;
-    p := prev;
-  end;
+    p := nil;
   if p = nil then Exit;
   if Types.PEffectRec(p)^.onRemove then begin
     FxEngine.CallEffectHandler(effId, creature, p, True);
     { The handler may have removed the node itself: Fight On's (eff 95) kills the creature, and a creature that falls
       dead loses its 0-HP effects (RemoveEffectsHp0), Fight On among them. The node is then gone and freed, and the
       unlink below would run off the list's end and write through nil, into the interrupt vectors. }
-    prev := creature^.effectsAddr;
-    while (prev <> nil) and (prev <> p) do
-      prev := prev^.next;
-    if prev = nil then Exit;
+    if not FxEngine.HasEffectNode(creature, p) then Exit;
   end;
   if creature^.effectsAddr = p then
     creature^.effectsAddr := p^.next
@@ -191,6 +195,16 @@ begin
     prev^.next := p^.next;
   end;
   FreeMem(p, SizeOf(Types.TEffectRec));
+end;
+
+function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
+var
+  p: Types.PEffectRec;
+begin
+  p := Types.PEffectRec(creature^.effectsAddr);
+  while (p <> nil) and (p <> eff) do
+    p := p^.next;
+  HasEffectNode := p <> nil;
 end;
 
 { Trigger one effect id on the creature: call its handler if the creature itself has the effect, or, for the aura
@@ -342,12 +356,14 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.DWARF_THAC0);
     end;
     C_Cond.DEFENDER_AC: begin
+      { the cough first: its handler recalculates the creature's stats, which SSI's ran last and so threw away the
+        Blindness and Shield changes (#717) }
+      FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
       FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL); FxEngine.TriggerEffect(creature,
                                                                                        C_Effect.PROT_GOOD);
       FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL_10FT); FxEngine.TriggerEffect(creature,
           C_Effect.PROT_GOOD_10FT);
-      FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
     end;
     C_Cond.SAVING_THROW: begin
       FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL); FxEngine.TriggerEffect(creature,
@@ -437,36 +453,67 @@ begin
   end;
 end;
 
-function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
+function FreeCloudNumber(caster: Types.PCharRecord): Byte;
+var
+  node: Types.PStinkRec;
+  n: Byte;
+  used: Boolean;
 begin
-  AttackRollNoAttacker := False;
+  n := 0;
+  repeat
+    used := False;
+    node := GDVars.stinkHead;
+    while node <> nil do begin
+      if (node^.caster = caster) and (node^.idx = n) then
+        used := True;
+      node := node^.next;
+    end;
+    if used then
+      Inc(n);
+  until (not used) or (n = 15);
+  FreeCloudNumber := n;
+end;
+
+function CloudStrength(level, num: Byte): Byte;
+begin
+  if level > 15 then
+    level := 15;
+  CloudStrength := level + num * 16;
+end;
+
+{ The d20 both attack rolls share: into gAttackRoll (1 misses, 20 becomes 100), then the attacker's
+  C_Cond.ATTACK_ROLL_ATT effects (none when attacker is nil) and the defender's C_Cond.ATTACK_ROLL_DEF. A hit when no
+  effect forced a miss and roll + toHit >= sixtyMinusAc. }
+function RollToHit(attacker, defender: Types.PCharRecord; toHit: Integer; sixtyMinusAc: Byte): Boolean;
+begin
+  RollToHit := False;
+  GDVars.gAttackAvoided := False;
   GDVars.gAttackRoll := Dice.RollDice(1, 20);
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
+    if attacker <> nil then
+      FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
-    if (GDVars.gAttackRoll >= 0) and (GDVars.gAttackRoll + sixtyMinusThac0 > defender^.acCur) then
-      AttackRollNoAttacker := True;
+    if not GDVars.gAttackAvoided and (GDVars.gAttackRoll + toHit >= sixtyMinusAc) then
+      RollToHit := True;
   end;
+end;
+
+function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
+begin
+  AttackRollNoAttacker := RollToHit(nil, defender, sixtyMinusThac0, defender^.acCur);
 end;
 
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 var
   zmod: ShortInt;
 begin
-  AttackRoll := False;
   FxEngine.RemoveInvisibility(attacker);
-  GDVars.gAttackRoll := Dice.RollDice(1, 20);
-  if GDVars.gAttackRoll > 1 then begin
-    if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
-    if attacker^.hostile = 0 then
-      zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD]))
-    else
-      zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD]));
-    if (GDVars.gAttackRoll >= 0) and (GDVars.gAttackRoll + attacker^.thac0Cur + zmod >= sixtyMinusAc) then
-      AttackRoll := True;
-  end;
+  if attacker^.hostile = 0 then
+    zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD]))
+  else
+    zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD]));
+  AttackRoll := RollToHit(attacker, defender, attacker^.thac0Cur + zmod, sixtyMinusAc);
 end;
 
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
@@ -573,24 +620,6 @@ begin
   end;
 end;
 
-function StrengthModifier(baseStr, excStr: Byte): Byte;
-begin
-  StrengthModifier := baseStr + 100;
-  if baseStr = 18 then
-    StrengthModifier := excStr + 1;
-end;
-
-procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
-begin
-  excStr := 0;
-  baseStr := Types.PEffectRec(effect)^.strength and $7F;
-  if baseStr <= 101 then begin
-    excStr := baseStr - 1;
-    baseStr := 18;
-  end else
-    baseStr := baseStr - 100;
-end;
-
 function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte; var effStrength: Byte): Boolean;
 var
   p: Types.PEffectRec;
@@ -598,12 +627,14 @@ var
   oldBase: Byte;
   oldExc: Byte;
   enc: Byte;
+  loss: Byte;
 begin
-  oldBase := creature^.strCur;
+  loss := CharHlp.DiseaseStrLoss(creature);
+  oldBase := creature^.strCur + loss;
   oldExc := creature^.strExc;
   if (baseStr < oldBase) or ((baseStr = 18) and (excStr < oldExc)) then begin
     AdjustForNewStrength := False;
-    effStrength := FxEngine.StrengthModifier(baseStr, excStr) + $80;
+    effStrength := CharHlp.StrengthModifier(baseStr, excStr) + $80;
   end else begin
     found := nil;
     p := creature^.effectsAddr;
@@ -614,14 +645,14 @@ begin
       p := p^.next;
     end;
     if found <> nil then begin
-      enc := FxEngine.StrengthModifier(oldBase, oldExc);
-      FxEngine.StrengthEffectToStrength(found, oldBase, oldExc);
+      enc := CharHlp.StrengthModifier(oldBase, oldExc);
+      CharHlp.StrengthEffectToStrength(found, oldBase, oldExc);
       Types.PEffectRec(found)^.strength := enc + $80;
     end;
-    creature^.strCur := AbilAdj.ClampScore(baseStr);
+    creature^.strCur := AbilAdj.ClampScore(Integer(baseStr) - loss);
     creature^.strExc := excStr;
     CharHlp.RecalcStats(creature);
-    effStrength := FxEngine.StrengthModifier(oldBase, oldExc);
+    effStrength := CharHlp.StrengthModifier(oldBase, oldExc);
     AdjustForNewStrength := True;
   end;
 end;
@@ -716,16 +747,19 @@ begin
     (effId in [C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT]);
 end;
 
+function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
+begin
+  GDVars.pendingEffectId := effId;
+  FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);
+  EffectImmune := (GDVars.pendingEffectId = 0) or FxEngine.DiseaseImmune(creature, effId);
+end;
+
 procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove,
                                saveNegates, saved: Boolean; msg: Types.TStr40);
 var
   effect: Types.PEffectRec;
 begin
-  GDVars.pendingEffectId := effId;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);
-  if FxEngine.DiseaseImmune(creature, effId) then
-    GDVars.pendingEffectId := 0;
-  if (GDVars.pendingEffectId = 0) or (saved and (saveNegates = True)) then
+  if FxEngine.EffectImmune(creature, effId) or (saved and (saveNegates = True)) then
     CharDisp.PrintNameString(creature, 'is Unaffected', 10, True)
   else begin
     if CharHlp.HasEffect(creature, effId, effect) then
@@ -905,19 +939,6 @@ var
   expiringDuration: array[1..MAX_EXPIRING] of Word;
   nExpiring: Byte;
   again: Boolean;
-
-  { Whether eff is still in cur's effect list: an earlier removal's handler may have removed and freed it (Slow
-    Poison's end removes the poison's damage effect). }
-  function InList(eff: Types.PEffectRec): Boolean;
-  var
-    p: Types.PEffectRec;
-  begin
-    p := Types.PEffectRec(cur^.effectsAddr);
-    while (p <> nil) and (p <> eff) do
-      p := p^.next;
-    InList := p <> nil;
-  end;
-
 begin
   if GDVars.ifcState <> C_Ifc.CAMPING then
     FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1)
@@ -962,10 +983,11 @@ begin
               again := True;
           e := e^.next;
         end;
-        { then remove them, skipping any an earlier removal has already taken away; a node a handler allocated since
-          can reuse a freed one's address, so the id and duration must still match }
+        { then remove them, skipping any an earlier removal's handler has already removed and freed (Slow Poison's end
+          removes the poison's damage effect); a node a handler allocated since can reuse a freed one's address, so the
+          id and duration must still match }
         for k := 1 to nExpiring do
-          if InList(expiring[k]) and (expiring[k]^.id = expiringId[k]) and
+          if FxEngine.HasEffectNode(cur, expiring[k]) and (expiring[k]^.id = expiringId[k]) and
               (expiring[k]^.duration = expiringDuration[k]) then
             FxEngine.RemoveEffect(cur, expiring[k]^.id, expiring[k]);
         { a removal's handler can add effects too: the creature is visited again while any timed effect is left }

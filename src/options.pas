@@ -15,8 +15,8 @@ interface
 procedure LoadOptions;
 
 { Write the settings to POOLOPT.CFG, keeping the lines whose keys this version does not know. The new file is written
-  beside it as POOLOPT.$$$ and renamed over it, so a failed write leaves the old file, and the settings then hold for
-  this session only. }
+  beside it as POOLOPT.CF$ (FileUtil.TempName) and put in its place, so a failed write leaves the old file, and the
+  settings then hold for this session only. }
 procedure SaveOptions;
 
 { Show the Settings screen until Exit or Escape. Up and Down (also Home and End) move the highlight through the
@@ -28,14 +28,13 @@ procedure OptionsMenu;
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo,
-  SoundDrv, DaxIo, DataArc, GDConsts, VidOps{$IFDEF FPC}, NatFile{$ENDIF};
+  SoundDrv, DaxIo, DataArc, GDConsts, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
 
 const
   CFG_NAME = 'POOLOPT.CFG';
-  TEMP_NAME = 'POOLOPT.$$$';
   { the most lines read from POOLOPT.CFG; anything after them is ignored, and dropped when the file is written }
   MAX_LINES = 100;
   { The settings, in the screen's order. }
@@ -254,7 +253,7 @@ var
   ok: Boolean;
   n: Integer;
 begin
-  Assign(newFile, GDVars.dsSaveDirectory + TEMP_NAME);
+  Assign(newFile, FileUtil.TempName(GDVars.dsSaveDirectory + CFG_NAME));
   Rewrite(newFile);
   if IOResult <> 0 then Exit;
   for opt := 1 to OPT_COUNT do
@@ -289,17 +288,10 @@ begin
   Close(newFile);
   if IOResult <> 0 then
     ok := False;
-  if ok then begin
-    { a missing old file is no error }
-    Erase(oldFile);
-    n := IOResult;
-    Rename(newFile, GDVars.dsSaveDirectory + CFG_NAME);
-    ok := IOResult = 0;
-  end;
-  if not ok then begin
-    Erase(newFile);
-    n := IOResult;
-  end;
+  if ok then
+    ok := FileUtil.PutInPlace(GDVars.dsSaveDirectory + CFG_NAME)
+  else
+    FileUtil.DeleteFile(FileUtil.TempName(GDVars.dsSaveDirectory + CFG_NAME));
 end;
 
 { value with a comma between each group of three digits. }

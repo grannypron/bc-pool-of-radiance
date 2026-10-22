@@ -781,6 +781,9 @@ end;
 { Burning Hands: caster-level damage, element mask 9. }
 procedure BurningHandsHandler;
 begin
+  { no dice are rolled: the fixed damage counts as one die for the per-die fire protections (effects 61 and 113),
+    which otherwise used the die count of whatever damage roll came before }
+  GDVars.gDamageDice := 1;
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
@@ -968,10 +971,19 @@ begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is silenced');
 end;
 
+{ Stand a downed creature back up with its hit points through FxEngine.ReviveDeadCreature, or, where it cannot stand
+  yet (another creature on its cell), a minute later through C_Effect.HEAL_WAKE. }
+procedure StandUpOrWake(tgt: Types.PCharRecord);
+begin
+  if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
+    FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+end;
+
 { Slow Poison: animated dead are skipped. A poisoned target (effect 55) has hpCur raised to at least 1, gets the spell's
-  effect at strength 255, gets back up through FxEngine.ReviveDeadCreature (or, where it cannot stand yet, a minute
-  later through C_Effect.HEAL_WAKE, as under Keoghtom's Ointment), and gains effect 15 for 10 minutes at strength
-  255. }
+  effect at strength 255 and gains effect 15 for 10 minutes at strength 255. One that is down (dead or out of play, and
+  not fled, petrified or gone) gets back up (StandUpOrWake, as under Keoghtom's Ointment); one still standing is left
+  as it is. SSI stood up every poisoned target, so a standing one "got back up" again and a stoned, disintegrated or
+  fled one was set Okay. }
 procedure SlowPoisonHandler;
 var
   effect: Types.PEffectRec;
@@ -984,8 +996,9 @@ begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 255, True, 0, 0, 'is affected');
-    if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
-      FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+    if ((tgt^.status = C_Status.DEAD) or (tgt^.enabled = 0)) and
+        not (tgt^.status in [C_Status.TEMPGONE, C_Status.RUNNING, C_Status.STONED, C_Status.GONE]) then
+      StandUpOrWake(tgt);
     FxEngine.AddEffect(tgt, C_Effect.SLOW_POISON_HIT, 10, 255, True);
   end;
 end;
@@ -1045,8 +1058,10 @@ begin
 end;
 
 { Stinking Cloud: append a node to the stinkHead list and give the caster effect 40 for caster-level minutes at strength
-  caster level + myClouds * 16, where myClouds counts the caster's clouds among the nodes passed while walking to the
-  tail (the old tail node itself is not checked). The cloud covers the 2x2 block whose upper-left is the aim cell
+  FxEngine.CloudStrength (caster level, at most 15, + myClouds * 16; SSI let a level above 15 carry into the number),
+  where myClouds is the lowest number none of the caster's clouds has (FxEngine.FreeCloudNumber; SSI counted the
+  caster's nodes on the walk to the tail and never checked the tail, so a second cloud could share the first one's
+  number and its end clear the older cloud). The cloud covers the 2x2 block whose upper-left is the aim cell
   (GDConsts.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
   takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_Terr.STINK_CLOUD;
   every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
@@ -1064,22 +1079,19 @@ var
 begin
   GDVars.gMultiTarget := 1;
   cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  myClouds := 0;
+  myClouds := FxEngine.FreeCloudNumber(GDVars.curChar);
   node := GDVars.stinkHead;
   if GDVars.stinkHead = nil then begin
     GetMem(GDVars.stinkHead, SizeOf(Types.TStinkRec));
     node := GDVars.stinkHead;
   end else begin
-    while node^.next <> nil do begin
-      if node^.caster = GDVars.curChar then
-        Inc(myClouds);
+    while node^.next <> nil do
       node := node^.next;
-    end;
     GetMem(node^.next, SizeOf(Types.TStinkRec));
     node := node^.next;
   end;
   FillChar(node^, SizeOf(Types.TStinkRec), 0);
-  FxEngine.AddEffect(GDVars.curChar, C_Effect.CAST_STINK, cl, cl + myClouds * 16, True);
+  FxEngine.AddEffect(GDVars.curChar, C_Effect.CAST_STINK, cl, FxEngine.CloudStrength(cl, myClouds), True);
   node^.caster := GDVars.curChar;
   node^.idx := myClouds;
   node^.ulX := GDVars.gTargetX;
@@ -1264,7 +1276,8 @@ end;
 
 { Dispel Magic: on each target, try every effect whose strength is below 255, with its low nibble as the effect's caster
   level: 50%, +5% per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are
-  left alone. }
+  left alone. A removal that frees the next effect (dispelled Animate Dead) ends that target's walk; SSI read on into
+  the freed node. }
 procedure DispelMagicHandler;
 var
   chance: Byte;
@@ -1302,6 +1315,10 @@ begin
         if Dice.RollDice(1, 100) <= chance then begin
           FxEngine.RemoveEffect(tgt, effect^.id, effect);
           removed := True;
+          { a removal that kills the creature (Animate Dead's) strips its 0-HP effects, which may free the next node:
+            the walk goes on only while that node is still in the list }
+          if (nxt <> nil) and not FxEngine.HasEffectNode(tgt, nxt) then
+            nxt := nil;
         end;
       end;
       effect := nxt;
@@ -1627,8 +1644,8 @@ begin
 end;
 
 { Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8. Poison
-  kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison; where it
-  cannot stand yet (another creature on its cell) it gets up a minute later through C_Effect.HEAL_WAKE. A dead target
+  kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison
+  (StandUpOrWake). A dead target
   still under Slow Poison was kept up through the poison and died of something else (a wound, bleeding out), so it
   stays dead, as at the temple (Temple.NeutralizePoison). }
 procedure KeoghtomsOintmentHandler;
@@ -1647,8 +1664,7 @@ begin
     if (tgt^.status = C_Status.DEAD) and not slowed then begin
       if tgt^.hpCur = 0 then
         tgt^.hpCur := 1;
-      if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
-        FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+      StandUpOrWake(tgt);
     end;
   end else if not Magic.RemoveDiseaseEffects(tgt) then begin
     if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(1, 4) + 8, False) then
@@ -1838,13 +1854,17 @@ end;
 { Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
   during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell)
   and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
-  the user's actions. When done, consume the scroll spell, or use quantity and then charges; remove the item when its
-  charges run out. announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
-  (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item data, does
-  nothing and leaves done clear. }
+  the user's actions and sets done, cast or not. Only when the spell was cast, consume the scroll spell, or use
+  quantity and then charges; remove the item when its charges run out (SSI spent them on done, so an aborted spell in
+  combat still used them up). announce (the Cast list's scroll lines) names the spell first, as casting a memorized
+  one does (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item
+  data, does nothing and leaves done clear. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 var
   id: Byte;
+  { set only when the spell was cast (not on an aborted aim); the item is spent on it, not on done, which in combat
+    also reports the end of the turn }
+  cast: Boolean;
 begin
   id := spell;
   if not CharHlp.ItemReadable(item) and (spell > 56) then
@@ -1880,12 +1900,14 @@ begin
   GDVars.usingItem := True;
   if announce then
     Magic.PrintCastSpellMsg(GDVars.curChar, 'casts', spell);
-  Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, done);
+  cast := False;
+  Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, cast);
   GDVars.usingItem := False;
+  done := cast;
   if GDVars.ifcState = C_Ifc.COMBAT then
     if GDConsts.spellTable[spell].whenCast <> 0 then
       done := CharHlp.EndActions(GDVars.curChar);
-  if done then begin
+  if cast then begin
     if CharHlp.ItemReadable(item) then
       Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell)
     else if item^.charges > 0 then begin

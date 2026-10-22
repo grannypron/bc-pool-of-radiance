@@ -648,6 +648,8 @@ var
   uniform: Boolean;
 begin
   if pic = nil then Exit;
+  { an empty rectangle fills nothing (SSI ran its row loop 65536 times for a zero height at a row of 0 or more, #728) }
+  if (width = 0) or (height = 0) then Exit;
   if (x >= pic^.width) or (x + width <= 0) or (y >= pic^.height) or (y + height <= 0) then Exit;
   if x < 0 then begin
     clipLeft := Abs(x);

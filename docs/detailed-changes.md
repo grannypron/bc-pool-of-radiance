@@ -89,6 +89,36 @@ Differs from SSI: SSI's tables stopped at 18 to 20 and multi-class warriors lost
 
 ---
 
+**Class ability minimums follow the PHB.** `GDConsts.classMin` gave every class Charisma 0, cleric, magic-user and thief Constitution 0, paladin and ranger Dexterity 0, and the multi-class rows only their 9s, so with the racial floor of 3 a Charisma of 3 to 5 was allowed. `classMin` now holds the eight single classes with the 1st-edition PHB minimums (Charisma 6 for every class, 17 for the paladin and 15 for the druid; Constitution 6 for cleric, magic-user and thief; Dexterity 6 for paladin and ranger; and the rest), and `ClassCal.ClassAbilityMin` gives a multi-class character the highest minimum of its classes (`GDConsts.classParts`). `ClampToLimits` and `StatMinimum` use it; the table is 54 bytes smaller. TClasCal checks it. SSI's code. CURSE-0058, #740.
+
+**Thief skills need leather or no armor and no shield.** Nothing tested readied armor or a shield, so a fighter/thief in plate with a shield kept full thief skills. `ClassCal.ArmorBarsThiefSkills` is true for body armor other than leather or any shield, and `RecalcThiefSkills` then sets all eight skills to 0, so every reader (picking locks, ECL CHECK PARTY, `SpecialReadZ1`) sees it. `RecalcStats` now calls `RecalcThiefSkills` for characters with thief levels, so readying armor or a shield or a Dexterity change updates the skills. The More Info Thief page keeps the parts and adds "Armor or shield bars these skills". `CbtActs.IsBackstab` uses the same test, so a shield now also stops a backstab. TClasCal checks it. Differs from SSI: SSI never limited thief skills by armor. CURSE-0068, #743.
+
+**Demi-human fighter limits use the character's own Strength.** `CharGen.TrainingMenu` had its own copy of the racial caps, tested with "=" against `strCur`, which Gauntlets of Ogre Power, Enlarge and Strength raise and disease lowers: a gnome fighter in the gauntlets trained past 5, and a dwarf fighter 8 below Strength 17 matched no branch and trained to 9. It now calls `CharHlp.AtLevelCap` (">=" bands), which bands on the new `CharHlp.PermanentStrength`: the restore value kept in the Enlarge or Strength effect whose strength is below $80, or `strCur` when there is none, less any disease loss. `StrengthModifier` and `StrengthEffectToStrength` move from FxEngine to CharHlp for it. TCharHlp checks it. SSI's code. CURSE-0315, #702.
+
+**Experience is cut only when the character trains.** `TrainingMenu` cut experience to one below the level-plus-two threshold before the hall's checks and before "Do you wish to train?", so No, Escape, "We don't train that class here" and "Not Enough Experience" all kept the cut. It is now made after Yes, with the fee. SSI's code. CURSE-0313, #701.
+
+**Free training stops when no class can train.** With free training on (STING, J) and every class at its limit, `TrainingMenu` reached Yes/No with a mask of 0, and `GainLevels` added 1 hit point per Train with no level (hpMax a Byte, so it could wrap). It now says "No class can train further" and stops. The creation hang in Curse's record does not apply to PoR. SSI's code. CURSE-0317, #703.
+
+**Starting Constitution follows the DMG's aging table.** `CreateCharacterMenu` lowered Constitution at mature, middle-aged and old but never gave the young adult's +1, so every age ended one low. The +1 is added first, as in Curse. SSI's code. CURSE-0318, #704.
+
+**Temple Raise Dead: the survival roll, and no raising a poisoned corpse.** `Temple.RaiseDead` always succeeded and quietly removed the poison from a poisoned corpse. A corpse still poisoned is now refused, uncharged, with "is still poisoned." (PoR #423: Raise Dead on a poisoned character normally fails; Neutralize Poison first, which revives a character the poison killed). Otherwise the raise rolls d100 against the new `AbilAdj.ConResurrectionSurvival` (PHB 40% at Constitution 3 up to 100% at 18, and 100% to 25), and a character who fails "does not survive." and becomes `C_Status.GONE`; the fee is spent. `ConfirmCureCost` is split into `PayCureCost` and `ReportCure` so a failed raise is not reported cured. TAbilAdj checks the table. Differs from SSI: a raise can now fail for good (Curse leaves a failed character dead, to be paid for again). CURSE-0168, #751; CURSE-0232, #752.
+
+**A paladin's protection from evil has its 10-foot radius.** Creation gave paladins effect 8 (Protection from Evil), which covers its holder only. `CreateCharacterMenu` now gives the permanent effect 45 (Protection from Evil 10' Radius), which `FxEngine.TriggerEffect` already lends to adjacent creatures, and `SaveLoad.LoadChar` turns an existing paladin's permanent effect 8 into 45. SSI's code. CURSE-0066, #742.
+
+**Weapon damage types follow the PHB.** The shipped ITEMS file gives the battle axe the piercing type and the bec de corbin, military fork, partisan, ranseur, spetum, short sword, trident and arrow the slashing type, which the half-damage-by-type effects (94, 115) read. `CharHlp.FixWeaponClasses`, run by `GameInit` after ITEMS is read, sets them by the 1st-edition types (the bec de corbin pierces, as the lucern hammer does; weapons that both pierce and slash stay slashing). The `WPN_` constants move from EffHndlr to `C_Item`, with names for the items. TCharHlp checks it. SSI's data. CURSE-0082, #746.
+
+**Launchers add their plus to hit only.** `CharHlp.WeaponAdjust` added a bow's or crossbow's own plus to damage as well as to hit. It now finds the ammunition (`FindDamagingRangedWeapon`): the launcher's plus is to hit, the arrows' or quarrels' to hit and damage, and other weapons keep their plus on both. (Base item 5, the bill-guisarme, carries the arrows bit; readied arrows no longer add their plus to it.) TCharHlp checks it. SSI's code. CURSE-0071, #744.
+
+**Protection from Normal Missiles against magical missiles.** `EffProtMissiles` stopped a non-magical missile and did nothing against a magical one. A magical missile at range now does 1 less per die, no die below 1, as the PHB spell. The per-die cut is `Dice.ReduceDamagePerDie`, which `EffRingFireRes` (2 per die) and `EffEfreetiFire` (1 per die) now share in place of their own loops. TAtkRoll checks it. SSI's code. CURSE-0079, #745.
+
+**Only Large monsters take vs.-Large damage.** `CbtActs.DoAttack` used a weapon's damage against large targets for a defender with the Large bit or a two-tile icon, so the wolf, wild boar, basilisk and large scorpion took it. It now tests the Large bit alone (`Types.ICON_LARGE`), and DataPat sets the bit on the two-tile monsters that are Large in the Monster Manual (see section 7). SSI's code and data. CURSE-0091, #748.
+
+**Dwarves and gnomes against ettins.** `GDConsts.giantFoes` lacked ETTIN, so a dwarf or gnome got no -4 against it. Added. SSI's data. CURSE-0118, #749.
+
+**Rear AC keeps a Dexterity penalty.** `CharHlp.RecalcStats` built `acBehind` without the Dexterity adjustment at all, dropping a penalty (Dexterity 1..6) with the bonus. A negative adjustment is now added; the bonus and the shield still do not count from behind. TCharHlp checks it. SSI's code. CURSE-0064, #741.
+
+**Curing a disease gives back the Strength it took.** `EffDiseaseStr` lowered `strCur` an hour at a time and kept no count. The disease node (effect 43) now counts the points taken in its strength's high nibble (up to 15), with the caster level, capped at 15, in the low one, and when a cure removes it (`Magic.RemoveDiseaseEffects`, `FxEngine.RemoveDiseases`: Cure Disease, Heal, camp Fix, the temple, a paladin) the handler adds them back. The Strength that Enlarge, Strength and the gauntlets store no longer includes the loss (`AdjustForNewStrength`, `EffExtraStr` take it out and put it back), so one of those ending mid-disease no longer undoes the loss. `CharHlp.DiseaseStrLoss` reads the count. TFxRemov checks it. SSI's code. CURSE-0333, #705.
+
 ## 3. SSI quirks fixed (and the ones labelled)
 
 During the byte-for-byte reconstruction SSI's oddities were kept and marked with `Note:` comments. Phase 3 of the refactor dealt with all of them, and a later batch fixed the ones first kept.
@@ -172,6 +202,30 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ---
 
+**Penalties lower an attack roll without forcing a miss.** An effect forced a miss by setting `gAttackRoll` to -1, and `AttackRoll` and `AttackRollNoAttacker` took any roll below 0 for that, so a penalty of 4 turned natural 2s and 3s into misses whatever the THAC0. A forced miss is now the flag `GDVars.gAttackAvoided` (set by `EffBlinking`, `EffDisplaced`, `AvoidRanged`), and both routines share `FxEngine.RollToHit`. Script attacks with no attacker needed roll + 60 - THAC0 greater than the AC, not at least it; they now use the same ">=". TAtkRoll checks it. SSI's code. CURSE-0331, #718; CURSE-0332, #719.
+
+**A coughing creature keeps its Shield and Blindness AC.** Under `C_Cond.DEFENDER_AC`, `EffStinkCough` ran after Blindness and Shield and reset `acCur` from a fresh `RecalcStats`. `TriggerEffectsWithCondition` now runs it first in that condition. SSI's code. CURSE-0329, #717.
+
+**A free attack keeps the attacker's sweep.** Checked for #770 (POD-0023): since #711 a free attack on a retreating creature costs the monster nothing, and breath, gazes and other specials (`MONSTER_SPECIAL`, at the start of `AiMoveAttack`) read none of what it changes. `DoAttack` also zeroed `sweepBudget` and set `madeAttack`, which were not put back, so a fighter that took a free attack could not sweep weak foes on its own turn; they are now restored too. #770.
+
+**Wards hold against a monster's touch.** `EffHndlr.PoisonTouch` and `ParalysisTouch` added their effect with a bare `AddEffect` after a failed save, so a paralysis ward (effect 109) never stopped a ghoul's, thri-kreen's or drider's touch, and a poison-immune creature (effects 111, 125) died of a poisonous hit on a natural 1, which skips the SAVING_THROW condition that makes its save succeed. `FxEngine.EffectImmune`, the check `AddEffectWithMessage` made inline, is now shared, and both touches run it (`EffHndlr.TouchImmune`); an immune target "is Unaffected". Magic resistance (105, 106) is part of that check, so it now rolls against these touches too. TFxRemov checks it. SSI's code. CURSE-0086, #767; CURSE-0336, #720.
+
+**Anhkheg acid is acid.** `EffAnhkhegAcid` never set `elementMask`, so the spit took the type of the last damage dealt ("from Fire", with fire protection's save and cut). It now sets `ELEM_ACID`. SSI's code. CURSE-0338, #721.
+
+**Readying a Cloak of Displacement writes through no nil pointer.** `EffReadyItem` called the item effect's handler with a nil node, and `EffDisplaced` wrote its strength at 0000:0003, in the interrupt vector table, on every ready. The handler now gets the node just added. SSI's code. CURSE-0114, #737.
+
+**Monsters' readied items take effect.** `EclMenu.LoadCreatureData` never ran the ready handlers for a loaded monster's readied items. It now calls each readied item's special handler (special above $7F), as `ToggleReadyItem` does, for combat loads and `AddCreatureToParty`. In the shipped data this gives the level-6 magic-user its Cloak of Displacement, Tyranthraxus (17 to 18/00) and the dwarven fighter their Gauntlets of Ogre Power, and the commandant and al-Hyam Dazid their Rings of Fire Resistance. `EffGauntlets` says "is stronger" only for the current character. Differs from SSI: these monsters are now stronger. CURSE-0089, #747.
+
+**Fire protection against Burning Hands.** Burning Hands deals the caster level as fixed damage and rolls no dice, and the per-die fire protections (effects 61 and 113) and the mummy's fire vulnerability (122) worked from whatever die count the last unrelated roll left in `gDamageDice`. `BurningHandsHandler` now sets it to 1, as Curse does. PoR has no fixed-damage fire breath. SSI's code. CURSE-0152, #750; CURSE-0205, #760.
+
+**Each stinking cloud has its own number.** `StinkingCloudHandler` counted the caster's clouds on the way to the list's tail without checking the tail, so a second cloud could share the first's number and `EffCastStink` cleared the older cloud when the newer one's effect ended or was dispelled. `FxEngine.FreeCloudNumber` gives the lowest number no cloud of the caster uses. The cast effect's strength packed the caster level in its low nibble with no cap, so a level above 15 carried into the number; `FxEngine.CloudStrength` stores it capped at 15 (the duration still uses the full level). TClouds checks both. SSI's code. CURSE-0296, #761; CURSE-0357, #762.
+
+**Dispel Magic walks no freed effect.** `DispelMagicHandler` kept the next effect across each `RemoveEffect`, and dispelling Animate Dead kills the corpse, whose 0-HP clean-up (`RemoveEffectsHp0`) can free that node. After a removal the walk goes on only while the saved node is still in the list (`FxEngine.HasEffectNode`, which also replaces `RemoveEffect`'s two copies of that walk and `TimeOutEffects`' nested `InList`). TFxRemov checks it. SSI's code. CURSE-0370, #763.
+
+**An aborted item spell is not spent.** In combat `Magic.UseItemSpell` replaced the cast's result with `EndActions` (always True) before deciding whether to spend the scroll spell, stack or charge, so an aborted cast still used it up. The cast's own result now decides; the turn still ends. As Curse (curse#409) and Secret (secret#359). #697.
+
+**Slow Poison stands up only a downed target.** `SlowPoisonHandler` revived every poisoned target not animated: a standing one "got back up", a stoned or disintegrated one was set Okay, a fled one stood up after combat. It now acts only on a target that is down (`DEAD` or disabled) and not fled, stoned or gone; the revive-or-wake step it shares with Keoghtom's Ointment is `StandUpOrWake`. As Secret (secret#444). #698.
+
 ## 5. User interface: menus, screens, keys and messages
 
 **The Companion Tools open on the map; Map and Notes are one tool.** F6's Tools screen no longer lists its tools: in a 3D area it opens on the whole area's map, "Companion Tools" centred in the frame's top where the area's name was, the name now heading the legend, with "Tools: Map Character Exit" (in the wilderness, the frame and title alone). Map is the former Notes tool: a cursor from the party's square, moved with the arrows, with "Map: Write Clear Exit" and the cursor's square and note below the map; Exit returns to the Tools menu on the same map. The read-only Map tool is gone. #691.
@@ -224,6 +278,20 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Escape in a script's list menu is not a choice.** VMENU (`EclVm.EclVMenu`) stored the menu's index whatever the result, so Escape stored the highlighted line as if chosen. The menu is now shown again until a line is chosen. SSI's code. CURSE-0348, #757.
 
+**Train Character is offered only where training is.** `CharGen.MainMenu` only ever turned the entry on in the persistent `menuItems` typed constant, so after a training hall it stayed on. It is now set on every redraw from the hall's mask or free training. SSI's code. CURSE-0323, #765.
+
+**The Drop message fits for long names.** "<name> breathes a sigh of relief." runs to 41 or 42 characters for a 14- or 15-letter name, past the 40-column bottom line. Those names get "<name> sighs with relief."; shorter ones keep SSI's line. Differs from SSI: the wording for those names. CURSE-0324, #766.
+
+**Dropping money updates the sheet.** View's Drop redrew only the money, leaving the Encumbrance and Movement shown for the old load. It now redraws the combat stats too. SSI's code. CURSE-0311, #700.
+
+**Selling gives the seller only the coins that fit.** When a sale overloaded the seller, `ViewChar.SellItem` said the money went to the pool but still gave the platinum (all of it when it fitted) and the gold. `Money.GiveCoins` (in place of `GivePlatinum`) gives platinum, then gold, as far as `CheckOverload` allows, pools the rest with one message and recalculates the seller; the appraiser's Sell uses it too. SSI's code. CURSE-0307, #739.
+
+**Scribing marks only scrolls.** `Camp.CampScribeMenu`'s marking walk set the pending flag on any item whose spell byte matched, and on a non-scroll item those bytes are its charges, effect or special, which gained 128 while nothing was scribed. It now checks `ItemReadable`, as the other scribe walks do. SSI's code. CURSE-0298, #738.
+
+**A 255-character message ends.** `TextRend.DisplayMessageWindow` counted with Bytes, so after a 255th character the index wrapped and the message reprinted for ever. The counts are Integers. SSI's code. CURSE-0299, #729.
+
+**An arrow key answering a pause does not leak.** An extended key answering `DisplayAndPause` (the last of STING Ctrl-Y's four pages, say) left `scanPending` set after the type-ahead drain ate the scan byte, so the next arrow came back as its scan byte's letter and the menu lost it. `GameIo.ReadAnyKey` reads an extended key whole, as Curse's does (curse#596); `DisplayAndPause` and `DiscardPendingKeys` use it, and `ReadGameKey`'s drains drop an extended key whole. Found by reading the code. CURSE-0371, #768.
+
 ## 6. Saving, loading, quick save and the vault
 
 **Full-screen Load/Save menu, with descriptions, areas and times.** Loading and saving chose a slot from a one-line letter prompt. The new `SaveMenu` unit shows the slots full screen, titled "Load/Save Game Menu": each slot shows its letter and description, then the area and the time the file was written. Up and Down move a slot at a time and the list scrolls, with "(more)" when slots are hidden, and Page Up and Page Down move a screenful; the menu opens on the newest save. Loading lists saved games only; saving lists every slot, an unused one as EMPTY. Saving asks for a description (30 characters at most) starting from the slot's old one. The description and area go in `savgam<x>.inf` beside the save, a small versioned record. The area comes from the new `AreaName` unit: the Clue Book's names for scripts 0..29, shortened to 18 columns, keyed by the script a save reopens (`previousScriptId`) and, for the four scripts that run two maps, the map; anything else reads UNKNOWN AREA; a save without an .inf has its area read from the save file. Camp redraws its screen after Save. #604. 3b2c103.
@@ -252,6 +320,22 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ---
 
+**Saves are written whole or not at all.** `SaveLoad.SaveToSlot` truncated savgam<x>.dat before writing, checked none of its writes, always set `recentSaved`, and `QuickSave` always said "Quick save done.", so a disk that filled mid-save lost the old save without a word. FileUtil gains a safe write (`TempName` (the last character becomes `$`), `RewriteTemp`, `WriteChecked`, `CloseTemp`, `PutInPlace`), and `WriteRecord` and `Options.SaveOptions` are built on it. `SaveToSlot`, now a function, writes savgam<x>.dat and every member's files (`WriteCharFiles`) to temporary copies and copies the vault; only when all are whole are they put in place (`PlaceCharFiles`). Otherwise the copies are erased, the old save stays, the game says "The game was not saved." and `recentSaved` stays clear. TFileUtl checks the helpers. Differs from SSI: SSI wrote in place. CURSE-0361, #755.
+
+**The vault keeps its contents when its ledger can't be written.** `Vault.WriteVault` rewrote tmpvault.dat in place and `ClearTreasure` then freed the items and money whatever happened; a failed `Rewrite` gave no message at all. It is now a function using the safe write, and the vault's Exit clears the pool only after a good write, else asks "Leave anyway?". `CopyOrDelete` copies the same way and reports, and `RestoreFromSlot` says "The vault's ledger was not copied." and forgets the session vault on failure. As Secret (secret#440). #699.
+
+**Camp's Save asks to quit only after a save.** `SaveGame` is now a function, True only when the game was saved, so Camp's Save asks "Quit TO DOS" only then, and `CheckFileElseQuit` exits only after a save (otherwise it puts back the party's position and disk and asks again). The party menu's quit and HeapErr's out-of-memory save loop use the result instead of `recentSaved`. SSI's code. CURSE-0310, #722.
+
+**Remove keeps a character whose save failed.** `SaveChar` is now a function, True only when every file was written and put in place; it adds the name to CHARLIST.TXT only then. Remove takes the character out of the party only after a good save, and `CreateCharacterMenu` asks "Try again?" before letting a new character go. SSI's code. CURSE-0359, #706.
+
+**A device name is saved to a file.** A character whose file name came out as CON, AUX, NUL, PRN, COM1..4, LPT1..3 or CLOCK$ was written to that device. `FileUtil.IsDeviceName` recognises them and `DaxIo.SanitizeFileName` adds an underscore (CON_.CHA), as Curse does. `LoadChar` now names a single character's file with `CharFileBase`, as `SaveChar` does, so a name with two periods in a row ("A..B") is found again. TFileUtl checks it. SSI's code. CURSE-0363, #707.
+
+**Read-only files open.** `DaxIo.FileExists`, `OpenWithRetry` and `OpenDax`'s second handle opened under the default FileMode 2, so a read-only ITEMS gave "Unable to read ITEMS", read-only pictures and maps failed and a read-only save was "damaged". They now use `FileUtil.OpenReadOnly`. GameInit no longer opens ITEMS twice, and GameBoot finds POOL.CFG with `DaxIo.FileExists` (130 bytes less data). SSI's code. CURSE-0364, #723.
+
+**Members' own files are kept.** `LoadSlot` and `SaveToSlot` erased each member's .cha, .itm, .spc, .mem and .sts, SSI's guard against duplicating characters. The owner chose to drop it: `EraseCharFiles` is gone, `SaveCharlist` keeps a party member's roster line (unmarked), and `SaveChar` adds a name only when it is missing. Drop forever now erases the dropped character's files and roster line (`SaveLoad.EraseChar`), so it does not come back on the Add list. Differs from SSI. CURSE-0029, #754.
+
+**A load from a script's party menu leaves the script.** After Load on the training hall's party menu, `EclProgram` only redrew and `CallEclScript` ran on over the loaded save's script bytes. PROG_TRAINING now stops the script when `CharGen.MainMenu` returns with a loaded game; `EclVm.Reloading` (a quick load, or `loadedSave`) makes `CallEclScript` run nothing and GameLoop return at once, and FixMain runs GameLoop again into the loaded area. SSI's code. CURSE-0273, #756.
+
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
 DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_Data.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
@@ -269,6 +353,8 @@ DataPat is the table of patches DataBld applies to SSI's data when it builds the
 **Tests for the patch table.** TDataPat checks the rules DataBld relies on: the parts use every byte of `patchBytes`, each names a family DataBld builds, its original bytes lie inside the block, its size is the block's after the parts before it, and a fix's parts are together. 41160a7.
 
 ---
+
+**The Large bit on gnolls, huge scorpions and phase spiders.** For #748, DataPat sets the Large bit (offset 108) on the two-tile monsters that are Large in the Monster Manual but lacked it: MON2CHA 73, MON4CHA 39, MON8CHA 73 and 116. `C_Data.VERSION` is 35. CURSE-0091, #748.
 
 ## 8. Video (the driver refactor, VGA), memory, overlays and EMS
 
@@ -301,6 +387,14 @@ This is phase 6 of the refactor plan, with the overlay and memory work around it
 Phase 5's overlay working-set changes are in section 10.
 
 ---
+
+**Wall symbol 45 in every slot.** `View3D.LoadWallSet` moved every wall symbol from 45 up into the slot's own 8x8 set, but `Put8x8Sym` puts 1..45 in set 0, so in slots 2 and 3 symbol 45 drew a glyph of another set. The remap now starts at 46 (`symSetFirst[1]`), as Curse's does; `GDConsts.symSetLast` is gone. SSI's code. CURSE-0340, #727.
+
+**A picture that loaded nothing is tried again.** `Portrait.LoadAnimation` recorded the picture as loaded as soon as its block was read, so one whose first frame did not fit in memory (or had a bad header, or a count of 0) stayed blank. It is recorded after the frame loop, and only when a frame loaded. SSI's code. CURSE-0325, #726.
+
+**A zero-sized box fill fills nothing.** `Blit.FillPicRect` with a height of 0 at a row of 0 or more ran its row loop 65536 times past the view buffer. It returns at once for a width or height of 0. TVidPic checks it. Latent. SSI's code. CURSE-0343, #728.
+
+**Monster icons stay in slots 8..12.** `EclLoadMon` capped its slot at 25, so a sixth monster kind between CLEAR MONSTERS loaded over the COMSPR combat sprites (13 on), and a mirror duel (`EclMenu.CharFightsAlone`) after five kinds put its icon there too. `MapTiles.FIRST_MONSTER_ICON` and `LAST_MONSTER_ICON` name the slots; a sixth LOAD MONSTER is ignored and the duel's clone shares slot 12, as in Curse. Latent with the shipped scripts. SSI's code. CURSE-0248, #724; CURSE-0264, #725.
 
 ## 9. Robustness guards from the source review
 
@@ -355,6 +449,10 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 **Hooks start unset.** Writing tests for CharHlp found that `CharHlp.faultHook` was never initialised to nil (globals are not cleared at start-up), so in a test program `RemoveItem` called garbage; CharHlp's initialization now unsets it, and GameIo's unsets `saveSettings` and `showMemory`. In the game all three are set during start-up. e77b594.
 
 ---
+
+**LOAD CHARACTER removes only a member it finds.** With bit 7 and both dump flags set, `EclVm.EclLoadChar` removed the current character even when the index found no one, and a removed character that was `savedChar` stayed there for EXIT, PROGRAM or `NewEclDone` to make current again. It now removes only a found member and moves `savedChar` to the new current character; `NewEclDone` keeps its starting character in `savedChar` (as Curse) rather than a local LOAD CHARACTER could not update. Latent. SSI's code. CURSE-0353, #759.
+
+**Fleeing counts Haste and Slow on the first member.** `EclMenu.MoveExtremes` seeded the party's fastest and slowest from the first member's unadjusted movement. They now start at 0 and 255, so only adjusted values count, and an empty list reads no nil pointer. SSI's code. CURSE-0350, #758.
 
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
@@ -485,6 +583,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 **Overlay and size tools.** `build/ovlsizes.py` (and `--units`), `tests/ovlloads.py`.
 
 ---
+
+**build.sh runs DOSBox-X headless.** `run_dosbox` unsets the display variables, uses SDL's dummy drivers, closes stdin, stops a stuck run with SIGKILL (a SIGTERM raised a quit dialog on the desktop) and caps each file at 2 GB, as Secret does (secret#528). #775.
 
 ## 12. Documentation
 

@@ -231,7 +231,8 @@ var
   dsCurrentAttackCurrent: Byte;
   { spell being cast }
   dsCurrentSpellBeing: Byte;
-  { dice count of the current damage roll }
+  { dice count of the current damage roll; Burning Hands, which rolls none, sets it to 1. The fire protections and the
+    mummy's fire vulnerability work per die. }
   gDamageDice: Byte;
   { 1 while calculating movement }
   dsCurrentCreatureCalculatingFlag: Byte;
@@ -243,8 +244,10 @@ var
   gMultiTarget: Byte;
   { redraw the inventory menu }
   dsRedrawInventoryMenuFlag: Byte;
-  { signed -- EffHndlr assigns -1, FxEngine guards >= 0 }
+  { the attack roll as effects modify it; signed, as penalties can take it below 0 }
   gAttackRoll: ShortInt;
+  { an effect (Blink, Displacement, an avoided missile) forced the attack to miss }
+  gAttackAvoided: Boolean;
   hitsMade: array[1..2] of Byte;
   { current morale }
   dsCurrentMorale: Byte;

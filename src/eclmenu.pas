@@ -61,8 +61,7 @@ procedure RobMoney(fraction: Real; creature: Types.PCharRecord);
 { Chance% per item to steal it; heavy items (weight > 255 / > 24 coins) reduce the chance }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 
-{ Highest/lowest movement in GDVars.creatureList (haste doubles, else slow halves); hiMove/loMove start from the head's
-  unadjusted movementCur, so that value always lies within the bounds }
+{ Highest/lowest movement in GDVars.creatureList (haste doubles, else slow halves); 0 and 255 for an empty list }
 procedure MoveExtremes(var hiMove, loMove: Byte);
 
 { Damage message + damage + party panel refresh; dead creatures are skipped }
@@ -70,7 +69,7 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
   derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
-  ignoring a trailing part record. }
+  ignoring a trailing part record, then call the effect handler of each readied special item (special > $7F). }
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
 { GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
@@ -100,7 +99,7 @@ begin
   GDVars.ceilFloorColorSel := 9;
   GDVars.picRegionW := True;
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
-  GDVars.gIconAnim := 8;
+  GDVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   GDVars.eclIp := $9900;
   GDVars.breathAim := False;
   GDVars.dsEclStackTopPtr := nil;
@@ -406,13 +405,16 @@ begin
 end;
 
 { Sets duelFlag and C_Gbvm.MIRROR_DUEL. A mirror duel appends a copy of the current character as hostile "ROLF" with the
-  CPIC 11 icon (items fully cloned, but prepended, so the clone's list is reversed; effects not cloned) }
+  CPIC 11 icon, in the next monster icon slot or, when they are used up, the last (items fully cloned, but prepended, so
+  the clone's list is reversed; effects not cloned) }
 procedure CharFightsAlone(mirror: ShortInt);
 var
   p: Types.PCharRecord;
   clone: Types.PCharRecord;
   cur: Types.PCharRecord;
   srcIt: Types.PItemRec;
+  { the clone's combat icon slot }
+  slot: Byte;
 begin
   GDVars.duelFlag := True;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := mirror;
@@ -424,7 +426,12 @@ begin
     p := p^.nextCharAddr;
   end;
   if mirror = 0 then Exit;
-  MapTiles.LoadIconAnim('CPIC', 11, GDVars.gIconAnim);
+  { after a fifth monster kind the clone shares the last monster slot; SSI loaded it over the first combat sprite
+    (#725) }
+  slot := GDVars.gIconAnim;
+  if slot > MapTiles.LAST_MONSTER_ICON then
+    slot := MapTiles.LAST_MONSTER_ICON;
+  MapTiles.LoadIconAnim('CPIC', 11, slot);
   p := Party.LastCreature;
   GetMem(clone, SizeOf(Types.TCharRecord));
   clone^ := cur^;
@@ -434,7 +441,7 @@ begin
   clone^.quickfight := 1;
   clone^.hostile := 1;
   clone^.npc := C_Npc.ANIMATED_NPC;
-  clone^.orderNumber := GDVars.gIconAnim;
+  clone^.orderNumber := slot;
   clone^.effectsAddr := nil;
   clone^.itemsAddr := nil;
   p^.nextCharAddr := clone;
@@ -482,16 +489,17 @@ begin
   end;
 end;
 
-{ The list head is read before the nil check, so callers must supply a nonempty list }
 procedure MoveExtremes(var hiMove, loMove: Byte);
 var
   p: Types.PCharRecord;
   effect: Types.PEffectRec;
   m: Byte;
 begin
+  { only the adjusted values count: SSI started from the first member's unadjusted movement, so an all-hasted party's
+    slowest, or a slowed first member's fastest, stayed at that member's normal rate (#758) }
+  hiMove := 0;
+  loMove := 255;
   p := GDVars.creatureList;
-  hiMove := p^.movementCur;
-  loMove := p^.movementCur;
   while p <> nil do begin
     m := p^.movementCur;
     if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
@@ -607,6 +615,14 @@ begin
     FreeMem(data, size);
   end;
   GDVars.dsSuppressingInsertDiskFlag := False;
+  { the readied special items take effect, as when readied (FxEngine.ToggleReadyItem): SSI skipped this, and a monster
+    never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747) }
+  item := creature^.itemsAddr;
+  while item <> nil do begin
+    if (item^.equipped <> 0) and (item^.special > $7F) then
+      FxEngine.CallEffectHandler(item^.special, creature, item, False);
+    item := item^.next;
+  end;
 end;
 
 procedure AddCreatureToParty(id: Byte);

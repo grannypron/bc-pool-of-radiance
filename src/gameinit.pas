@@ -378,7 +378,6 @@ begin
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
   opened := DaxIo.OpenWithRetry('ITEMS', GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':', False,
                                  itemsFile);
-  Reset(itemsFile, 1);
   Seek(itemsFile, 2);
   { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
   BlockRead(itemsFile, GDVars.baseItems^, SizeOf(GDVars.baseItems^), itemsRead);
@@ -386,6 +385,7 @@ begin
   if (IOResult <> 0) or (itemsRead < (Types.BASE_ITEM_LAST + 1) * SizeOf(Types.TBaseItemRec)) then begin
     GameIo.FatalError('Unable to read ITEMS.');
   end;
+  CharHlp.FixWeaponClasses(GDVars.baseItems);
   GDVars.gameDir := savedDir;
   TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }

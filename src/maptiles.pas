@@ -9,6 +9,12 @@ interface
 
 uses Types;
 
+const
+  { The combat icon slots (GDVars.dsIconAnimation): 0..7 the party's, 8..12 the monster kinds (LOAD MONSTER takes the
+    next, CLEAR MONSTERS starts them again), 13..24 the combat sprites (COMSPR) and 25 the cursor. }
+  FIRST_MONSTER_ICON = 8;
+  LAST_MONSTER_ICON = 12;
+
 procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);

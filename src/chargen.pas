@@ -13,7 +13,7 @@ procedure CustomizeIcon;
 procedure CustomizePortrait(canCancel: Boolean);
 
 { True when curChar can be modified at all: a player race (Dwarf..Human, whose limits
-  dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class in classMin (0..16). }
+  dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class C_Class.CLERIC..MAGE_THIEF (0..16). }
 function Modifiable: Boolean;
 
 { Arrow-key editor for curChar's six attributes and hit points (ModifyCharacterMenu's, which calls it for a character
@@ -88,6 +88,8 @@ var
   redraw: Boolean;
   stateB: Byte;
   quit: Boolean;
+  { SaveGame's result: the menu goes on either way }
+  saved: Boolean;
 begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
@@ -101,9 +103,9 @@ begin
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
-        if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0) then
-          { Only ever set in this branch: once enabled, Train stays enabled until no character is selected. }
-          GDConsts.menuItems[MENU_TRAIN].enabled := 1;
+        { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
+        GDConsts.menuItems[MENU_TRAIN].enabled :=
+          Ord((GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
         GDConsts.menuItems[MENU_VIEW].enabled := 1;
         GDConsts.menuItems[MENU_REMOVE].enabled := 1;
         GDConsts.menuItems[MENU_LOAD].enabled := 0;
@@ -157,8 +159,9 @@ begin
                CharGen.AddCharacterMenu;
         'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GDVars.curChar <> nil) then
              begin
-               SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '');
-               SaveLoad.RemoveCreature(False, True);
+               { a character whose save failed stays in the party }
+               if SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '') then
+                 SaveLoad.RemoveCreature(False, True);
              end;
         'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
              begin
@@ -169,7 +172,7 @@ begin
                end;
              end;
         'S': if (GDConsts.menuItems[MENU_SAVE].enabled <> 0) and (GDVars.creatureList <> nil) then
-               SaveLoad.SaveGame;
+               saved := SaveLoad.SaveGame;
         'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GDVars.creatureList <> nil) then
              begin
                GDVars.ifcState := stateB;
@@ -186,8 +189,7 @@ begin
                  quit := True;
                  if (GDVars.recentSaved = 0) and (GDVars.creatureList <> nil) then
                    if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then begin
-                     SaveLoad.SaveGame;
-                     quit := GDVars.recentSaved <> 0;
+                     quit := SaveLoad.SaveGame;
                    end;
                  if quit then
                    GameIo.ExitGame;
@@ -318,8 +320,8 @@ end;
 
 { CreateCharacterMenu: Choose race, gender, class and alignment, set the starting age, then roll attributes, hit points
   and gold until the player keeps the result; name the character, customize portrait and icon, save it with
-  SaveLoad.SaveChar and free it. Aborting a pick menu frees the string list and the character before it exits; at the
-  end SaveLoad.FreeCreature frees the record with its racial effects. }
+  SaveLoad.SaveChar (a save that fails is offered again, until No) and free it. Aborting a pick menu frees the string
+  list and the character before it exits; at the end SaveLoad.FreeCreature frees the record with its racial effects. }
 procedure CreateCharacterMenu;
 var
   creature: Types.PCharRecord;
@@ -351,8 +353,8 @@ var
         stats[i] := ClassCal.RaceAbilityMin(race, genderSp, i);
       if stats[i] > ClassCal.RaceAbilityMax(race, genderSp, i) then
         stats[i] := ClassCal.RaceAbilityMax(race, genderSp, i);
-      if stats[i] < GDConsts.classMin[charClass].values[i] then
-        stats[i] := GDConsts.classMin[charClass].values[i];
+      if stats[i] < ClassCal.ClassAbilityMin(charClass, i) then
+        stats[i] := ClassCal.ClassAbilityMin(charClass, i);
     end;
   end;
 
@@ -518,9 +520,10 @@ begin
         if (GDConsts.classParts[charClass].values[slot] >= C_Level.CLERIC)
            and (GDConsts.classParts[charClass].values[slot] <= C_Level.MONK) then
           classLevels[GDConsts.classParts[charClass].values[slot]] := 1;
-    { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it }
+    { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it. It is the 10'
+      radius one, as the paladin's has a 1" radius: SSI gave eff 8, which covered the paladin alone (#742). }
     if charClass = C_Class.PALADIN then
-      FxEngine.AddEffect(creature, C_Effect.PROT_EVIL, 0, 255, False);
+      FxEngine.AddEffect(creature, C_Effect.PROT_EVIL_10FT, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
     for cls := C_Level.CLERIC to C_Level.MONK do
@@ -649,6 +652,9 @@ begin
              end;
           { Constitution }
           C_Abil.CONSTITUTION: begin
+               { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
+                 out the +1, so every age came out one lower (#704). }
+               Inc(stats[i]);
                if GDConsts.ageCat[race].mature < age then
                  Dec(stats[i]);
                if GDConsts.ageCat[race].middleAged < age then
@@ -737,14 +743,18 @@ begin
   { the icon editor draws over the sheet the picker cleared }
   ViewChar.DisplayChar(GDVars.curChar);
   CharGen.CustomizeIcon;
-  SaveLoad.SaveChar(Types.PCharRecord(creature), '');
+  while not SaveLoad.SaveChar(Types.PCharRecord(creature), '') and
+        (MenuCore.YesNoMenu('Try again? ', Yellow, LightGreen, White) = 'Y') do
+    ;
   GDVars.curChar := savedCur;
   { with its racial effects }
   SaveLoad.FreeCreature(creature);
 end;
 
-{ DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon); the
-  farewell message depends on whether the character is enabled }
+{ DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon) and
+  erase its own files and roster line (SaveLoad.EraseChar), so it does not come back on the Add list; the farewell
+  message depends on whether the character is enabled. Declining shows the relief line, shortened for a name
+  too long for SSI's wording to fit the 40-column bottom row. }
 procedure DropCharacterMenu;
 begin
   if GDVars.curChar = nil then Exit;
@@ -756,9 +766,13 @@ begin
         CharDisp.PrintBottomLine('You dump ' + name + ' out back.')
       else
         CharDisp.PrintBottomLine(name + ' bids you farewell.');
+      SaveLoad.EraseChar(name);
       SaveLoad.RemoveCreature(False, True);
-    end else
-      CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.');
+    end else if Length(name) + Length(' breathes a sigh of relief.') <= 40 then
+      CharDisp.PrintBottomLine(name + ' breathes a sigh of relief.')
+    else
+      { a name of 14 or 15 letters takes the shorter line, which fits the bottom row (#766) }
+      CharDisp.PrintBottomLine(name + ' sighs with relief.');
   end;
 end;
 
@@ -811,8 +825,8 @@ var
     is higher }
   function StatMinimum(racialMin: Byte): Byte;
   begin
-    if GDConsts.classMin[GDVars.curChar^.charClass].values[statIdx] > racialMin then
-      StatMinimum := GDConsts.classMin[GDVars.curChar^.charClass].values[statIdx]
+    if ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx) > racialMin then
+      StatMinimum := ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx)
     else
       StatMinimum := racialMin;
   end;
@@ -1086,14 +1100,15 @@ begin
 end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
-  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
-  Applies the racial fighter (and half-elf cleric and ranger) level caps, and before the hall and experience checks
-  clamps experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and
-  restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
-  hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
+  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee,
+  but not the class and level limits, so a character with no class left to train is still sent away.
+  Applies the racial fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap).
+  A character who trains has experience clamped to one below the highest level + 2 threshold it has reached. Each
+  trained class gains a level and restores one drained level; a new magic-user level picks one spell; hit points grow
+  by the rolled dice (and, for hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as
+  GainLevels gives them. }
 procedure TrainingMenu;
 var
-  atCap: Boolean;
   xpClamp: LongInt;
   nextXp: LongInt;
   trainMask: Byte;
@@ -1118,32 +1133,9 @@ begin
     for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(classMask, GDConsts.classBit[cls]);
-        atCap := False;
         lvl := classLevels[cls];
-        case race of
-          C_Race.DWARF: if cls = C_Level.FIGHTER then
-               if ((lvl = 8) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 7) and (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-          C_Race.ELF: if cls = C_Level.FIGHTER then
-               if (lvl = 7) or ((lvl = 6) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 5) and
-                   (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-          C_Race.GNOME: if cls = C_Level.FIGHTER then
-               if (lvl = 6) or ((lvl = 5) and (stats[C_Abil.STRENGTH] < 18)) then
-                 atCap := True;
-          C_Race.HALFELF: if (cls = C_Level.CLERIC) and (lvl = 5) then
-               atCap := True
-             else if (cls = C_Level.FIGHTER) or (cls = C_Level.RANGER) then
-               if (lvl = 8) or ((lvl = 7) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 6) and
-                   (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-          C_Race.HALFLING: if cls = C_Level.FIGHTER then
-               if (lvl = 6) or ((lvl = 5) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 4) and
-                   (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-        end;
         { xp[] runs to level 9 }
-        if (not atCap) and (lvl < 9) then
+        if (not CharHlp.AtLevelCap(Types.PCharRecord(GDVars.curChar), cls)) and (lvl < 9) then
           if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);
@@ -1157,8 +1149,6 @@ begin
                     xpClamp := nextXp - 1;
             end;
       end;
-    if xpClamp > 0 then
-      experience := xpClamp;
     if stingMode = 0 then begin
       if Byte(classMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
@@ -1172,6 +1162,12 @@ begin
       trainable := trainMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]
     else
       trainable := trainMask;
+    { free training passes the hall's checks with every class at its limit: GainLevels would then gain no level and
+      still add a hit point (#703) }
+    if trainable = 0 then begin
+      TextRend.PrintAndPause('No class can train further', Yellow);
+      Exit;
+    end;
     Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
     row := 4;
     CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
@@ -1194,6 +1190,10 @@ begin
     CharDisp.PrintBottomLine('Congratulations...');
     if stingMode = 0 then
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
+    { only a character who trains loses the experience past the level + 2 threshold: SSI cut it before the hall's
+      checks and the question, so a refusal or a No kept the cut (#701) }
+    if xpClamp > 0 then
+      experience := xpClamp;
     CharGen.GainLevels(trainable, True);
   end;
 end;
@@ -1205,7 +1205,7 @@ end;
   with a paladin, and a party has at most 3 rangers. A character they refuse gets Curse's message on the bottom line
   until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do
   NPCs a script adds.
-  Added entries get a leading '* ' and the roster is saved back. }
+  Added entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
 procedure AddCharacterMenu;
 var
   list: Types.PItemRec;
@@ -1295,7 +1295,7 @@ begin
               if not CharHlp.IsNpc(creature) then
                 Inc(nonNpc);
             end else begin
-              { one the party has no room for keeps its roster line, which SaveCharlist would drop with the mark }
+              { one the party has no room for is unmarked, to be picked again }
               if p = nil then
                 m^.name := Copy(m^.name, 3, Length(m^.name) - 2);
               { with the items and effects LoadChar read }
@@ -1305,7 +1305,7 @@ begin
         end;
       end;
   until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
-  SaveLoad.SaveCharlist(list);
+  SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;
 

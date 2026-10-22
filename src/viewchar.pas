@@ -381,7 +381,8 @@ end;
 
 { The Thief page (#685): each thief skill's name, then its racial and Dexterity adjustments and its base for the thief
   level (ClassCal.ThiefSkillParts), and the total the game uses (thiefSkills), which is stopped at 0 and so need not be
-  the sum of the three. All are percentages, shown without the sign, which the game's font does not have. The window
+  the sum of the three; armor that bars the skills (ClassCal.ArmorBarsThiefSkills) makes every total 0, which a line
+  under the table explains. All are percentages, shown without the sign, which the game's font does not have. The window
   has 36 columns where the design has 44: the names start at column 2 and the headings fill 18..37, one space apart,
   each figure right-aligned under its heading. }
 procedure DrawThief(p: Types.PCharRecord);
@@ -416,6 +417,8 @@ begin
     s := ViewChar.SignedNum(p^.thiefSkills[j]);
     TextRend.DisplayString(38 - Length(s), 4 + j, White, s);
   end;
+  if ClassCal.ArmorBarsThiefSkills(p) then
+    TextRend.DisplayString(2, 14, Yellow, 'Armor or shield bars these skills');
 end;
 
 { The More Info page for the current character (#592, #685): its bottom line, More Info: Saves sTats Kills tHief Exit,
@@ -626,6 +629,8 @@ begin
       'D': begin
              ViewChar.DropMoneyMenu;
              ViewChar.PrintMoney;
+             { the lighter load shows in Encumbrance and Movement (#700) }
+             ViewChar.PrintCombatStats;
            end;
       'H': if ViewChar.CanHeal(shown) then
              ViewChar.LayOnHands(shown);
@@ -917,13 +922,10 @@ end;
 
 { Offer MoneyCal.ItemSalePrice for the item: half what it is worth, with ammunition valued per bundle of 20 at any
   quantity, so a single arrow fetches a twentieth of a bundle's price. Pay as platinum (price div 5) plus gold (price
-  mod 5); when overloaded, the platinum the character cannot take goes to the treasure pool. }
+  mod 5) through Money.GiveCoins: the coins the character cannot carry go to the treasure pool. }
 procedure SellItem(item: Types.PItemRec);
 var
   price: Word;
-  plat: Word;
-  gold: Word;
-  takable: Word;
 begin
   price := MoneyCal.ItemSalePrice(item);
   CharHlp.ItemLabel(item, False);
@@ -932,22 +934,8 @@ begin
   begin
     CharDisp.PrintBottomLine('Sold!');
     CharHlp.RemoveItem(GDVars.curChar, item);
-    plat := price div 5;
-    gold := price mod 5;
-    if Money.CheckOverload(GDVars.curChar, gold + plat, takable) then begin
-      CharDisp.PrintBottomLine('Overloaded.  Money will be put in pool.');
-      if takable > plat then
-        Inc(GDVars.curChar^.coins[C_Money.PLATINUM], plat)
-      else begin
-        Inc(GDVars.curChar^.coins[C_Money.PLATINUM], takable);
-        Inc(GDVars.treasureMoney[C_Money.PLATINUM], plat - takable);
-      end;
-      { added even when overloaded }
-      Inc(GDVars.curChar^.coins[C_Money.GOLD], gold);
-    end else begin
-      Inc(GDVars.curChar^.coins[C_Money.PLATINUM], plat);
-      Inc(GDVars.curChar^.coins[C_Money.GOLD], gold);
-    end;
+    { only the coins that fit: SSI gave all the platinum when there was room for it alone, and always the gold (#739) }
+    Money.GiveCoins(GDVars.curChar, price div 5, price mod 5);
   end;
   Border.ClearBox(1, 21, 38, 22);
 end;

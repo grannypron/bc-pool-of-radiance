@@ -246,18 +246,6 @@ uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal,
   C_Race, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice;
 
-const
-
-
-  { TBaseItemRec.wpnClass melee damage type. Pierce and bash are distinct bits, so wpnClass and (WPN_PIERCE or WPN_BASH)
-    tests pierce-or-bash; slash is zero. }
-  WPN_SLASH = 0;
-  WPN_PIERCE = $01;
-  WPN_BASH = $80;
-
-
-
-
 { Nullify the attack or effect: zero GDVars.pendingDamage and GDVars.pendingEffectId. effId 0 always matches; otherwise
   only when effId is the id under the immunity check (pendingEffectId). }
 procedure NullifyAttack(effId: Byte);
@@ -447,7 +435,8 @@ end;
 
 { Enlarge and Strength (eff 12, 38). Sets Strength to the value stored in this node, then applies the strongest other
   Enlarge or Strength node, which takes over the Strength to restore. A node whose strength byte is above $7F is
-  ignored. }
+  ignored. The Strength set is less a disease's loss, and the Strength handed over has it given back
+  (CharHlp.DiseaseStrLoss). }
 
 procedure EffExtraStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -457,10 +446,15 @@ var
   bestExc: Byte;
   q: Types.PEffectRec;
   best: Types.PEffectRec;
+  restored: Byte;
+  loss: Byte;
 begin
   if Types.PEffectRec(p)^.strength > $7F then Exit;
-  FxEngine.StrengthEffectToStrength(p, base, exc);
-  creature^.strCur := AbilAdj.ClampScore(base);
+  loss := CharHlp.DiseaseStrLoss(creature);
+  CharHlp.StrengthEffectToStrength(p, base, exc);
+  { the creature's own Strength, kept whole for the node that takes over }
+  restored := CharHlp.StrengthModifier(AbilAdj.ClampScore(base), exc);
+  creature^.strCur := AbilAdj.ClampScore(Integer(base) - loss);
   creature^.strExc := exc;
   best := nil;
   bestBase := 0;
@@ -469,7 +463,7 @@ begin
   while q <> nil do begin
     if (q^.id = C_Effect.ENLARGE) or (q^.id = C_Effect.STRENGTH) then
       if q <> Types.PEffectRec(p) then begin
-        FxEngine.StrengthEffectToStrength(q, base, exc);
+        CharHlp.StrengthEffectToStrength(q, base, exc);
         if (base > bestBase) or ((bestBase = 18) and (exc > bestExc)) then begin
           bestBase := base;
           bestExc := exc;
@@ -479,8 +473,8 @@ begin
     q := q^.next;
   end;
   if best <> nil then begin
-    Types.PEffectRec(best)^.strength := FxEngine.StrengthModifier(creature^.strCur, creature^.strExc);
-    creature^.strCur := AbilAdj.ClampScore(bestBase);
+    Types.PEffectRec(best)^.strength := restored;
+    creature^.strCur := AbilAdj.ClampScore(Integer(bestBase) - loss);
     creature^.strExc := bestExc;
   end;
 end;
@@ -651,7 +645,8 @@ begin
   GDVars.pendingDamage := GDVars.pendingDamage - GDVars.pendingDamage div 4;
 end;
 
-{ Coughing from Stinking Cloud (eff 30) }
+{ Coughing from Stinking Cloud (eff 30): no items or spells, and its AC from the front and behind is its rear AC less
+  2. It recalculates the creature's stats, so C_Cond.DEFENDER_AC runs it before Blindness and Shield change the AC. }
 
 procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -731,7 +726,7 @@ procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if creature^.combatAddr^.initiative > 0 then begin
     GDVars.dsCurrentSuppressTargetingFlag := 1;
-    GDVars.gAttackRoll := -1;
+    GDVars.gAttackAvoided := True;
   end;
 end;
 
@@ -819,7 +814,7 @@ begin
       if Dice.RollDice(1, 100) <= pct then begin
         CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
-        GDVars.gAttackRoll := -1;
+        GDVars.gAttackAvoided := True;
         phase := GDVars.curChar^.combatAddr^.attackPhase;
         { 1..2 = the bounds of hitsMade }
         if (phase >= 1) and (phase <= 2) then
@@ -845,13 +840,19 @@ begin
   FindDamagingWeapon := sel;
 end;
 
-{ Protection from Normal Missiles (eff 41) }
+{ Protection from Normal Missiles (eff 41): a normal missile (the damaging item has no plus) is stopped; a magical one
+  does 1 less per die, no die below 1 (#745) }
 
 procedure EffProtMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  missile: Types.PItemRec;
 begin
-  if EffHndlr.FindDamagingWeapon(GDVars.curChar) <> nil then
-    if Types.PItemRec(EffHndlr.FindDamagingWeapon(GDVars.curChar))^.plus = 0 then
-      EffHndlr.AvoidRanged(creature, 100);
+  missile := EffHndlr.FindDamagingWeapon(GDVars.curChar);
+  if missile <> nil then
+    if missile^.plus = 0 then
+      EffHndlr.AvoidRanged(creature, 100)
+    else if CbtMap.CalcDistance(GDVars.curChar, creature) > 1 then
+      Dice.ReduceDamagePerDie(1);
 end;
 
 { Slowed (eff 42) }
@@ -861,19 +862,41 @@ begin
   GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent div 2;
 end;
 
-{ Disease Strength drain (eff 43): re-arm for 60 minutes and lose 1 Strength; at Strength 3 become helpless }
+{ Disease Strength drain (eff 43; p is this node, or Diseased's, eff 34, as the disease starts): re-arm for 60 minutes
+  and lose 1 Strength; at Strength 3 become helpless. The node counts the Strength lost in its strength byte's upper
+  nibble (CharHlp.DiseaseStrLoss), up to 15, the most a natural 18 can lose; the lower keeps the caster level, at most
+  15. A cure removes the node under the effect lock, and the count is given back: SSI kept no count, and the Strength
+  stayed lost (#705). }
 
 procedure EffDiseaseStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
+  loss: Byte;
+  level: Byte;
+  weaken: Boolean;
 begin
-  if EffHndlr.AddEffectIfNoLock(creature, C_Effect.DISEASE_STR, Types.PEffectRec(p)^.strength, 60) then
-    if creature^.strCur > 3 then begin
+  if Types.PEffectRec(p)^.id = C_Effect.DISEASE_STR then begin
+    loss := Types.PEffectRec(p)^.strength shr 4;
+    level := Types.PEffectRec(p)^.strength and $F;
+  end else begin
+    loss := 0;
+    level := Types.PEffectRec(p)^.strength;
+    if level > 15 then
+      level := 15;
+  end;
+  weaken := (creature^.strCur > 3) and (loss < 15);
+  if EffHndlr.AddEffectIfNoLock(creature, C_Effect.DISEASE_STR, (loss + Ord(weaken)) * 16 + level, 60) then begin
+    if weaken then begin
       CharDisp.PrintNameString(creature, 'is weakened', 10, True);
       Dec(creature^.strCur);
-    end else
+      CharHlp.RecalcStats(creature);
+    end else if creature^.strCur <= 3 then
       if not CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_Effect.HELPLESS, 0, 255, False);
+  end else if removed and (Types.PEffectRec(p)^.id = C_Effect.DISEASE_STR) and (loss > 0) then begin
+    creature^.strCur := AbilAdj.ClampScore(creature^.strCur + loss);
+    CharHlp.RecalcStats(creature);
+  end;
 end;
 
 { Disease hit point drain (eff 44): re-arm for 10 minutes and deal 1 damage; at 1 HP become helpless }
@@ -901,7 +924,7 @@ var
 begin
   { The attacker is curChar: its name is tested, as are its type and size, not that of the defender's own target.
     charType 0, 1, 2 or 10 and size 1 or 2: the monster data gives the listed giants these (OGRE LEADER type 0 and size
-    1, HILL GIANT and FIRE GIANT type 2, TROLL type 10). }
+    1, HILL GIANT and FIRE GIANT type 2, TROLL type 10, OGRE and ETTIN type 1). }
   if GDVars.curChar^.charType in [0, 1, 2, 10] then
     if GDVars.curChar^.iconDimensions and $7F in [1, 2] then
       for i := 1 to SizeOf(GDConsts.giantFoes) div SizeOf(GDConsts.giantFoes[1]) do
@@ -993,16 +1016,9 @@ end;
   was) and +4 to save; non-magical fire is nullified }
 
 procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  i: Byte;
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then begin
-    for i := 1 to GDVars.gDamageDice do
-      { floor before taking 2 off, so damage of 0 or 1 cannot wrap the Byte to 254 or 255 }
-      if GDVars.pendingDamage >= Word(GDVars.gDamageDice) + 2 then
-        Dec(GDVars.pendingDamage, 2)
-      else if GDVars.pendingDamage > GDVars.gDamageDice then
-        GDVars.pendingDamage := GDVars.gDamageDice;
+    Dice.ReduceDamagePerDie(2);
     Inc(GDVars.gSaveRoll, 4);
     if GDVars.elementMask and C_Effect.ELEM_MAGIC = 0 then
       EffHndlr.NullifyAttack(0);
@@ -1024,30 +1040,48 @@ begin
       CharDisp.PrintHpRestoreMsg(creature);
 end;
 
+{ A touch's failed save: True, with "is Unaffected", when the target is immune to effId all the same
+  (FxEngine.EffectImmune, the check FxEngine.AddEffectWithMessage makes). SSI added the touch's effect with no
+  immunity check: a paralysis ward (eff 109) never stopped a paralyzing touch (#767), and a poison-immune creature (eff
+  111, 125), whose saves vs. poison otherwise always succeed, died of poison on a natural 1 (#720). }
+
+function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
+var
+  immune: Boolean;
+begin
+  immune := FxEngine.EffectImmune(target, effId);
+  if immune then
+    CharDisp.PrintNameString(target, 'is Unaffected', 10, True);
+  TouchImmune := immune;
+end;
+
 { Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod and its Constitution's
-  poison bonus (AbilAdj.ConPoisonSave), it gets eff 55 and is killed. }
+  poison bonus (AbilAdj.ConPoisonSave), or is immune to poison, it gets eff 55 and is killed. }
 
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE,
-                                  saveMod + AbilAdj.ConPoisonSave(GDVars.dsOtherCreatureCurrentPtr^.conCur)) then begin
-    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
-    TextRend.PauseOnly;
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
-    EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
-  end;
+                                  saveMod + AbilAdj.ConPoisonSave(GDVars.dsOtherCreatureCurrentPtr^.conCur)) then
+    if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED) then begin
+      CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
+      TextRend.PauseOnly;
+      FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
+      EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
+    end;
 end;
 
-{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation; saveMod is unused. }
+{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation or is immune to paralysis; saveMod
+  is unused. }
 
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then begin
-    CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
-  end;
+  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then
+    if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS) then begin
+      CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
+      FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
+    end;
 end;
 
 { Melee poison (eff 64): the target saves at +0 }
@@ -1475,7 +1509,7 @@ begin
     Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength and $F
   else
     if Types.PEffectRec(p)^.strength and $10 = 0 then begin
-      GDVars.gAttackRoll := -1;
+      GDVars.gAttackAvoided := True;
       Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
     end;
 end;
@@ -1517,7 +1551,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (WPN_PIERCE or WPN_BASH) <> 0 then
+    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (C_Item.WPN_PIERCE or C_Item.WPN_BASH) <> 0 then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1723,14 +1757,9 @@ end;
 { Efreeti fire resistance (eff 113): -1 per die, minimum = dice count (damage already below it is left alone) }
 
 procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
-var
-  i: Byte;
 begin
   if GDVars.elementMask and C_Effect.ELEM_FIRE <> 0 then
-    for i := 1 to GDVars.gDamageDice do
-      { only above the floor, so damage of 0 cannot wrap the Byte to 255 }
-      if GDVars.pendingDamage > GDVars.gDamageDice then
-        Dec(GDVars.pendingDamage);
+    Dice.ReduceDamagePerDie(1);
 end;
 
 { Half damage from electricity (eff 114) }
@@ -1749,8 +1778,8 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = WPN_SLASH) or
-        (CharHlp.BaseItem(w^.itemType)^.wpnClass and WPN_PIERCE <> 0) then
+    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = C_Item.WPN_SLASH) or
+        (CharHlp.BaseItem(w^.itemType)^.wpnClass and C_Item.WPN_PIERCE <> 0) then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1810,8 +1839,8 @@ begin
       EffHndlr.AvoidRanged(creature, 50);
 end;
 
-{ Anhkheg acid squirt (eff 121): 25% chance, range < 4, 8d4, save vs. breath for half; the effect removes itself (and
-  eff 80) after firing }
+{ Anhkheg acid squirt (eff 121): 25% chance, range < 4, 8d4 acid, save vs. breath for half; the effect removes itself
+  (and eff 80) after firing }
 
 procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1828,6 +1857,8 @@ begin
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
                                   CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 1, 30);
+  { acid, set before the save, whose effects read it too: SSI left the type of the last damage dealt (#721) }
+  GDVars.elementMask := C_Effect.ELEM_ACID;
   FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
                                   FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.BREATH, 0));
   FxEngine.RemoveEffect(creature, C_Effect.ANHKHEG_ACID, p);
@@ -1908,24 +1939,32 @@ begin
 end;
 
 { Ready item (eff 128, 129, 130, 133, 134, 136, 138, 139): p is the ITEM. Readying adds its effect byte as a permanent
-  effect (strength 12) and calls that handler; unreadying removes it. }
+  effect (strength 12) and calls that handler with the new node; unreadying removes it. SSI passed the handler nil, and
+  the Cloak of Displacement's (eff 89) wrote its strength through it, into the interrupt vectors (#737). }
 
 procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
+  effect: Types.PEffectRec;
 begin
   item := p;
   if removed then
     FxEngine.RemoveEffect(creature, item^.effect, nil)
   else begin
     FxEngine.AddEffect(creature, item^.effect, 0, 12, False);
-    FxEngine.CallEffectHandler(item^.effect, creature, nil, False);
+    { AddEffect appends: the new node is the last }
+    effect := creature^.effectsAddr;
+    while effect^.next <> nil do
+      effect := effect^.next;
+    FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
   end;
 end;
 
 { Gauntlets of Ogre Power (eff 131). Ready: Str 18/00 via FxEngine.AdjustForNewStrength plus a permanent eff 38 node
-  holding the Strength to restore. Unready: while the creature is still at 18/00, remove the first eff 38 node that is
-  not superseded, which restores its Strength }
+  holding the Strength to restore; "is stronger" shows only for the character readying them (GDVars.curChar), not for a
+  monster loaded wearing them (EclMenu.LoadCreatureData). Unready: while the creature is still at 18/00 (with a
+  disease's loss given back, CharHlp.DiseaseStrLoss), remove the first eff 38 node that is not superseded, which
+  restores its Strength }
 
 procedure EffGauntlets(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
@@ -1938,7 +1977,7 @@ begin
   if removed then begin
     found := False;
     q := creature^.effectsAddr;
-    if (creature^.strCur = 18) and (creature^.strExc = 100) then
+    if (creature^.strCur + CharHlp.DiseaseStrLoss(creature) = 18) and (creature^.strExc = 100) then
       isOgre := True
     else
       isOgre := False;
@@ -1956,7 +1995,7 @@ begin
       q := next;
     end;
   end else begin
-    if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) then
+    if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) and (creature = GDVars.curChar) then
       if GDVars.ifcState = C_Ifc.COMBAT then begin
         GDVars.ifcState := C_Ifc.CAMPING;
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);

@@ -361,11 +361,11 @@ begin
 end;
 
 { LoadWallSet: Loads WALLDEF<disk>.DAX record fileId into wallset slot wsSlot (1..3; each wall-def block fills one slot
-  of 5 wall types, and further blocks fill the following slots), remaps every symbol >= symSetLast[0] (45) by wsSlot's
-  8x8-set base offset, loads the matching 8x8 set(s), and stamps the slot cache. The size guard refuses a record that is
-  not whole blocks or whose blocks would run past slot 3. A multi-block load composes each 8x8-set id as fileId*10 + i,
-  with file 0 spelled as 10 for that product, so such a record above 25 is refused too; the cache is stamped with fileId
-  itself. }
+  of 5 wall types, and further blocks fill the following slots), remaps every symbol past set 0 (>= symSetFirst[1], 46)
+  by wsSlot's 8x8-set base offset, loads the matching 8x8 set(s), and stamps the slot cache. The size guard refuses a
+  record that is not whole blocks or whose blocks would run past slot 3. A multi-block load composes each 8x8-set id as
+  fileId*10 + i, with file 0 spelled as 10 for that product, so such a record above 25 is refused too; the cache is
+  stamped with fileId itself. }
 procedure LoadWallSet(fileId, wsSlot: Byte);
 var
   sizeRead: Word;
@@ -402,7 +402,9 @@ begin
       GDVars.dsWallSetCache[wsSlot + i - 1].symbolSlot := -1;
       for row := 1 to 5 do
         for col := 0 to 155 do begin
-          if GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GDConsts.symSetLast[0] then
+          { set 0's symbols (1..45) are shared by every slot; SSI also moved its last one, 45, into another slot's
+            set (#727) }
+          if GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GDConsts.symSetFirst[1] then
             Inc(GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
         end;
       if count > 1 then begin

@@ -14,8 +14,8 @@ uses C_Data;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 72;
-  BYTE_COUNT = 2393;
+  PART_COUNT = 76;
+  BYTE_COUNT = 2401;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -209,7 +209,14 @@ const
     (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1204; origLen: 2; newLen: 2),
     (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 2083; origLen: 2; newLen: 2),
     (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 6476; origLen: 0; newLen: 130),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6606; offset: 6606; origLen: 0; newLen: 181));
+    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6606; offset: 6606; origLen: 0; newLen: 181),
+    { #748: weapons do their damage against large targets to a Large creature (Types.ICON_LARGE), no longer to every
+      two-tile one; the gnolls (MON2CHA and MON8CHA block 73), the huge scorpion (MON4CHA block 39) and the phase
+      spider (MON8CHA block 116), two-tile and size L, get the Large bit, so they take it as before }
+    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 2; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
+    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 4; id: 39; size: 285; offset: 108; origLen: 1; newLen: 1),
+    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
+    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -861,7 +868,23 @@ const
     $2A, $01, $A2, $A1, $01, $7D, $6E, $01, $4F, $C0, { $B36C GETTABLE [$A1A2], [$6E7D], [$C04F] }
     $09, $00, $FF, $01, $C9, $6D,                     { $B376 SAVE $FF, [$6DC9] }
     $2D, $01, $90, $2C,                               { $B37C CALL [$2C90] }
-    $00);                                             { $B380 EXIT }
+    $00,                                              { $B380 EXIT }
+    { #748, MON2CHA gnoll, original }
+    $02,
+    { fixed: two tiles and Large }
+    $82,
+    { #748, MON4CHA huge scorpion, original }
+    $03,
+    { fixed }
+    $83,
+    { #748, MON8CHA gnoll, original }
+    $02,
+    { fixed }
+    $82,
+    { #748, MON8CHA phase spider, original }
+    $03,
+    { fixed }
+    $83);
 
 implementation
 

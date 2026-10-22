@@ -67,7 +67,7 @@ implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
   C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj, Dice, Blit;
+  CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
   { Primary and secondary attack counts. }
@@ -316,7 +316,9 @@ end;
   Helpless, effect-vetoed, blood-draining and bite-holding enemies are skipped. An enemy with no initiative left that
   has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone.
   The free attack is one attack and costs the enemy nothing: CombatAttack would spend every attack it has left and end
-  its turn, so its attacks, phase and turn state are put back afterwards while it is still up (#711). }
+  its turn, so its attacks, phase, turn state and sweep (madeAttack, sweepBudget) are put back afterwards while it is
+  still up (#711, #770). Its special attacks (breath, gaze, acid) still come at the start of its own move
+  (CombatAi.AiMoveAttack). }
 procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 var
   adj: array[1..12] of Byte;
@@ -339,6 +341,8 @@ var
   savedSpell: Byte;
   savedGuard: Byte;
   savedMove: Byte;
+  savedMade: Byte;
+  savedSweep: Byte;
 begin
   FillChar(adj, SizeOf(adj), 0);
   slot := CbtMap.CombatSlot(creature);
@@ -396,6 +400,8 @@ begin
                       savedSpell := p^.combatAddr^.spellCast;
                       savedGuard := p^.combatAddr^.guarding;
                       savedMove := p^.combatAddr^.movement;
+                      savedMade := p^.combatAddr^.madeAttack;
+                      savedSweep := p^.combatAddr^.sweepBudget;
                       { exactly one attack, in that phase }
                       Types.PAttackPhaseView(p)^.curAtt[1] := 0;
                       Types.PAttackPhaseView(p)^.curAtt[2] := 0;
@@ -413,6 +419,8 @@ begin
                         p^.combatAddr^.spellCast := savedSpell;
                         p^.combatAddr^.guarding := savedGuard;
                         p^.combatAddr^.movement := savedMove;
+                        p^.combatAddr^.madeAttack := savedMade;
+                        p^.combatAddr^.sweepBudget := savedSweep;
                       end;
                       if creature^.enabled <> 0 then
                         CharDisp.CombatPrintCreatureInfo(creature);
@@ -733,9 +741,9 @@ begin
     anyHit := True;
     done := True;
   end else begin
-    if (att^.equipped[C_Equip.WEAPON] <> nil)
-       and ((def^.iconDimensions > $80) or (def^.iconDimensions and 7 > 1)) then begin
-      { large target: swap in the large-damage dice }
+    if (att^.equipped[C_Equip.WEAPON] <> nil) and (def^.iconDimensions and Types.ICON_LARGE <> 0) then begin
+      { large target: swap in the large-damage dice. SSI's took any creature with a two-tile icon for Large, so
+        wolves, wild boars and basilisks took them (#748). }
       base := CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^;
       att^.curRollsA[1] := base.dmgLgRolls;
       att^.curDiceA[1] := base.dmgLgDice;
@@ -1198,12 +1206,12 @@ begin
   end;
 end;
 
-{ Backstabbing requires a thief in leather or no armor, using a club, dagger, broad, long or short sword, or no weapon.
+{ Backstabbing requires a thief in leather or no armor and with no shield (ClassCal.ArmorBarsThiefSkills), using a club,
+  dagger, broad, long or short sword, or no weapon.
   The target must have been attacked more than once this round and face away from the attacker. }
 function IsBackstab(att, def: Types.PCharRecord): Boolean;
 var
   weapon: Types.PItemRec;
-  armor: Types.PItemRec;
   wItem: Byte;
   can: Boolean;
 begin
@@ -1211,9 +1219,8 @@ begin
   weapon := att^.equipped[C_Equip.WEAPON];
   if weapon <> nil then
     wItem := weapon^.itemType;
-  armor := att^.equipped[C_Equip.ARMOR];
   if att^.classLevels[C_Level.THIEF] > 0 then
-    if (armor = nil) or (armor^.itemType = C_Item.LEATHER_ARMOR) then
+    if not ClassCal.ArmorBarsThiefSkills(att) then
       if (weapon = nil) or (wItem = C_Item.CLUB) or (wItem = C_Item.DAGGER)
          or ((wItem >= C_Item.BROAD_SWORD) and (wItem <= C_Item.SHORT_SWORD)) then
         can := True;

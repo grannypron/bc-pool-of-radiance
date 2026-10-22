@@ -30,6 +30,53 @@
 - Typed text (a character's name, a note) now starts right after the prompt, and a full-length entry fits on the line.
 - Alt-R no longer turns the sound on or off and rewrites your settings; only Ctrl-S does.
 - Escape in a list of choices that a scene asks you to pick from no longer picks the highlighted one; you must choose.
+- To-hit penalties now only lower an attack roll: a strong attacker no longer misses on a low roll that would still hit, and scripted trap attacks hit as often as a creature's attack with the same THAC0.
+- A creature coughing in a Stinking Cloud keeps its Shield and Blindness armor class changes when attacked.
+- Attacks from behind and backstabs no longer ignore a clumsy creature's Dexterity armor class penalty.
+- A magic bow or crossbow adds its bonus to hit only; magic arrows and quarrels add theirs to hit and damage.
+- Protection from Normal Missiles now takes 1 point per die off magical missiles (no die below 1).
+- Only Large monsters take a weapon's damage against large targets: wolves, wild boars, basilisks and large scorpions now take its normal damage, while gnolls, huge scorpions and phase spiders count as Large.
+- Dwarves and gnomes get their armor class bonus against ettins.
+- A free attack on a retreating foe no longer costs the attacker its sweep against weak foes on its own turn.
+- Protection from paralysis now stops a paralyzing touch, and creatures immune to poison no longer die of a poisonous hit when they roll a natural 1.
+- An anhkheg's acid spit now does acid damage; fire protection no longer reduces it.
+- Readying a Cloak of Displacement no longer corrupts memory.
+- A monster's readied magic cloak, gauntlets or ring now gives it the item's effect. Tyranthraxus, for one, now has the strength of his Gauntlets of Ogre Power.
+- A paladin's protection from evil now also guards allies within 10 feet.
+- Bec de corbin, military fork, partisan, ranseur, spetum, short sword, trident and arrows now count as piercing weapons, and the battle axe as a slashing one, against creatures that take half damage from some kinds of weapon.
+- Curing a disease now gives back the Strength it took.
+- Ring of Fire Resistance and other fire protection now take a steady amount off Burning Hands, instead of an amount left over from an earlier damage roll.
+- Dispelling a caster's newer stinking cloud now clears that cloud, not an older one, and clouds cast above level 15 are cleared and dispelled correctly.
+- Dispel Magic on an animated corpse no longer reads effects that were already removed.
+- A scroll spell, wand charge or other item use that is aborted in combat is no longer used up.
+- Slow Poison no longer "stands up" a character who is still standing, stoned, disintegrated or fled.
+- Scribing a scroll spell no longer adds 128 to a wand's charges (or changes another item) and scribes nothing.
+- Train Character is offered on the party menu only at a training hall (or with free training on), not on every later menu.
+- Declining to drop a character with a 14- or 15-letter name now shows the whole message.
+- Demi-human fighter level limits use the character's own Strength, not Gauntlets of Ogre Power, Enlarge or Strength, and a lowered Strength no longer lets a capped fighter train past the limit.
+- Declining training, or being turned away at the hall, no longer cuts the character's experience.
+- With free training on, a character with no class left to train is turned away instead of gaining a hit point per Train.
+- New characters get the Dungeon Master's Guide's young-adult +1 Constitution, so starting Constitution is no longer one low at every age.
+- Class ability minimums follow the 1st-edition Player's Handbook (Charisma 6 for most classes, and the other missing minimums), and a multi-class character must meet every class's minimums.
+- A thief, multi-class included, can use thief skills only in leather or no armor and without a shield; the More Info Thief page says when armor is stopping them. A shield also stops a backstab.
+- The temple will not raise a character who is still poisoned: cure the poison first.
+- Raise Dead at the temple now makes the resurrection survival roll for the character's Constitution; a character who fails it is dead for good.
+- Dropping money on the View screen updates the Encumbrance and Movement shown.
+- Selling an item while near capacity gives the seller only the coins they can carry; the rest really goes to the pool.
+- A 255-character message now prints once instead of repeating forever.
+- Walls loaded into the second or third wall slot no longer show a stray 8x8 cell from another wall set.
+- A picture that could not load for lack of memory is tried again instead of staying blank.
+- Fleeing an encounter now takes Haste and Slow on the first party member into account.
+- After the STING memory pop-up, the next arrow key works normally, and an arrow key that answers any "press a key" message no longer leaks into the next menu.
+- Several faults that the shipped scripts never reach are fixed too: a box fill of zero height, monster icons loaded over the combat sprites, and a script removing a character by number.
+- A save that runs out of disk space now says "The game was not saved." and keeps your old save in that slot, and a failed quick save no longer says it is done.
+- If the vault's ledger can't be written when you leave the vault, your stored items and money stay there for you to take back, unless you choose to leave anyway.
+- Camp's Save no longer asks whether to quit to DOS when you cancelled the save or it failed.
+- A character whose file can't be saved when you remove it now stays in the party, and you can try again to save a newly created character whose save failed.
+- Characters named Con, Aux, Nul, Prn, Com1 to Com4 or Lpt1 to Lpt3 are now saved to a file instead of being sent to a printer port or the screen.
+- The game now runs from read-only files (copied from a CD, or a read-only folder), and read-only saved games and characters load.
+- Loading or saving a game no longer deletes the separate saved copies of its characters, which stay on the Add list. Dropping a character forever deletes its copy.
+- A game loaded from the training hall's party menu now starts in the loaded game's area instead of carrying on with the hall's script.
 
 ## Pool of Radiance port: October 2026 update
 
