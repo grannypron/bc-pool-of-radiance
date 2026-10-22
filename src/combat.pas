@@ -251,15 +251,14 @@ begin
      and (creature^.combatAddr^.usedTurnUndead = 0) then
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';
-  { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-R, Alt-X or Alt-M
-    becomes C_Keys.NONE and is rejected. Alt-R is accepted here, but ManualControl has no arm for it. }
+  { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-X or Alt-M becomes
+    C_Keys.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
   repeat
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, hasSpell);
     if hasSpell then
-      if not (ch in [C_Keys.ALT_Q, C_Keys.ALT_R, C_Keys.ALT_X, C_Keys.ALT_M]) then
+      if not (ch in [C_Keys.ALT_Q, C_Keys.ALT_X, C_Keys.ALT_M]) then
         ch := C_Keys.NONE;
-  until ch in [C_Keys.ALT_Q, C_Keys.ALT_R, ' ', C_Keys.ALT_X, C_Keys.ALT_M, 'A', 'C', 'D', 'M', 'Q',
-               'T', 'U', 'V'];
+  until ch in [C_Keys.ALT_Q, ' ', C_Keys.ALT_X, C_Keys.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
 end;
 
 { Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at

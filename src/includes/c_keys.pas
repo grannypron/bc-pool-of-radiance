@@ -23,7 +23,6 @@ const
   PGUP = #73;
   PGDN = #81;
   ALT_Q = #16;
-  ALT_R = #19;
   ALT_X = #45;
   ALT_M = #50;
   { quick save and quick load, on the map menu }
