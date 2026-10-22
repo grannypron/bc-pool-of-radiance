@@ -920,9 +920,9 @@ begin
                           CbtMap.GetIconSize(creature), GDVars.arenaPtr);
   GDVars.arenaPtr^.distMode := 0;
   i := 1;
-  while (GDVars.creatureArr[GDVars.targetList[i].idx] <> other) and (i < GDVars.targetCount) do
+  while (i <= GDVars.targetCount) and (GDVars.creatureArr[GDVars.targetList[i].idx] <> other) do
     Inc(i);
-  if GDVars.creatureArr[GDVars.targetList[i].idx] = other then
+  if i <= GDVars.targetCount then
     CalcDistance := GDVars.targetList[i].dist shr 1
   else
     CalcDistance := 255;
