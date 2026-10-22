@@ -14,15 +14,17 @@ uses Types;
   the party get '* ' prepended. }
 procedure LoadCharlist(var list: Types.PItemRec);
 
-{ Rewrite <saveDir>charlist.txt, one name per line, skipping '*'-prefixed (party) members; retries with a put-save-disk
-  prompt until the file opens. }
+{ Rewrite <saveDir>charlist.txt, one name per line, a party member's without its '* ' mark: a character in the party
+  keeps its own files, so it stays on the roster (SSI dropped it, as saving or loading a game erased them). Retries
+  with a put-save-disk prompt until the file opens. }
 procedure SaveCharlist(list: Types.PItemRec);
 
 { Load curChar's CHEAD into icon-anim slot 11 and CBODY into slot orderNumber, OR-merge head onto body; when loading,
   remap the default icon colours to the character's iconColors1 nibbles. Icons live on virtual disk 3. }
 procedure LoadCharIconAnim(loading: Boolean);
 
-{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc and re-add the name to CHARLIST.TXT;
+{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc and add the name to CHARLIST.TXT
+  when it is not there;
   fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc. Each is written to a temporary copy, and only
   when all are whole are they put in place of the old ones; an empty item or effect list's old file is erased. The
   .mem and .sts files beside them are rewritten then, holding the character's usual spells and statistics when it has
@@ -43,10 +45,10 @@ function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk:
 
 { Load game: offer the existing SAVGAMA..J.DAT on the full-screen SaveMenu (Escape aborts), read the save file (one too
   short to hold it all is refused, with a message, before anything is read), reload each listed character, at most 8,
-  from its CHRDATxN.sav (one that is missing, short or unreadable is left out), delete their single-character files
-  (.mem included), reload icon anims, the 3D map and wall sets ('ICON' in the wilderness), and run Ending.YarashComplete
-  when the Yarash pyramid flag is set; the slot's vault becomes the session's (Vault.RestoreFromSlot). The save's game
-  speed and settings word are left in the GBVM zone: the game's own settings stay as they are. }
+  from its CHRDATxN.sav (one that is missing, short or unreadable is left out), reload icon anims, the 3D map and wall
+  sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set; the slot's vault
+  becomes the session's (Vault.RestoreFromSlot). The members' single-character files are left alone (SSI erased them).
+  The save's game speed and settings word are left in the GBVM zone: the game's own settings stay as they are. }
 procedure LoadGame;
 
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
@@ -54,9 +56,9 @@ procedure LoadGame;
   and music settings (SSI's copies, which loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT,
   each party member (the first 8) as CHRDATxN.sav, copy the session vault to the slot (Vault.CommitToSlot), and only
   when all of them were written whole put them in place of the old save's; then write the slot's description and the
-  current area (AreaName.CurrentArea) to SAVGAMx.INF, delete the members' single-character files (.mem included) and
-  set the recently-saved flag. A save not written whole leaves the old one as it was and says so. True when the game
-  was saved; False also for Escape on the menu. The caller redraws the screen. }
+  current area (AreaName.CurrentArea) to SAVGAMx.INF and set the recently-saved flag. The members' single-character
+  files are left alone (SSI erased them, here and on loading). A save not written whole leaves the old one as it was
+  and says so. True when the game was saved; False also for Escape on the menu. The caller redraws the screen. }
 function SaveGame: Boolean;
 
 const
@@ -115,16 +117,6 @@ begin
   CharFileBase := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
 end;
 
-{ Erase a character's single-character files <fn>.cha, .itm, .spc, .mem and .sts, those there are. }
-procedure EraseCharFiles(fn: Types.TPathStr);
-begin
-  FileUtil.DeleteFile(fn + '.cha');
-  FileUtil.DeleteFile(fn + '.itm');
-  FileUtil.DeleteFile(fn + '.spc');
-  FileUtil.DeleteFile(fn + '.mem');
-  FileUtil.DeleteFile(fn + '.sts');
-end;
-
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
 procedure LoadCharlist(var list: Types.PItemRec);
 var
@@ -165,7 +157,9 @@ begin
   until ioRes = 0;
   p := list;
   while p <> nil do begin
-    if p^.name[1] <> '*' then
+    if Copy(p^.name, 1, 2) = '* ' then
+      WriteLn(f, Copy(p^.name, 3, Length(p^.name) - 2))
+    else
       WriteLn(f, p^.name);
     p := p^.next;
   end;
@@ -311,7 +305,9 @@ var
   ext: String[4];
   list: Types.PItemRec;
   p: Types.PItemRec;
+  tail: Types.PItemRec;
   ok: Boolean;
+  found: Boolean;
 begin
   SaveMenu.CheckSaveDir;
   if Length(fname) = 0 then begin
@@ -326,15 +322,21 @@ begin
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.')
   else if Length(fname) = 0 then begin
-    { LoadCharlist marks party members with '* ' and SaveCharlist skips them, so this rewrite drops every current
-      party member's old line and then appends this character's name unmarked. }
+    { the name is added once: a party member's line, which LoadCharlist marks with '* ', is its own }
     SaveLoad.LoadCharlist(list);
     p := list;
-    if p <> nil then
-      while p^.next <> nil do
-        p := p^.next;
-    MenuCore.AppendMenuLine(list, p, creature^.name, False);
-    SaveLoad.SaveCharlist(list);
+    tail := nil;
+    found := False;
+    while p <> nil do begin
+      if (p^.name = creature^.name) or (p^.name = '* ' + creature^.name) then
+        found := True;
+      tail := p;
+      p := p^.next;
+    end;
+    if not found then begin
+      MenuCore.AppendMenuLine(list, tail, creature^.name, False);
+      SaveLoad.SaveCharlist(list);
+    end;
     MenuCore.FreeStringList(list);
   end;
   SaveChar := ok;
@@ -554,14 +556,6 @@ begin
       SaveMenu.CheckSaveDir;
     end;
   end;
-  creature := GDVars.creatureList;
-  while creature <> nil do begin
-    fn := SaveLoad.CharFileBase(creature^.name);
-    { only a character that has its own .cha file has the rest of the set }
-    if DaxIo.FileExists(fn + '.cha') then
-      SaveLoad.EraseCharFiles(fn);
-    creature := creature^.nextCharAddr;
-  end;
   GDVars.curChar := GDVars.creatureList;
   while GDVars.curChar <> nil do begin
     SaveLoad.LoadCharIconAnim(True);
@@ -715,12 +709,9 @@ begin
     ok := FileUtil.PutInPlace(fn);
     p := GDVars.creatureList;
     for n := 1 to count do begin
-      if ok then begin
-        ok := SaveLoad.PlaceCharFiles(p, GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
-        { each member's single-character files: the save holds it now }
-        if ok then
-          SaveLoad.EraseCharFiles(SaveLoad.CharFileBase(p^.name));
-      end else
+      if ok then
+        ok := SaveLoad.PlaceCharFiles(p, GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav')
+      else
         SaveLoad.DropCharFiles(GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
       p := p^.nextCharAddr;
     end;

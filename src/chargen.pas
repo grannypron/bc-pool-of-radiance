@@ -1203,7 +1203,7 @@ end;
   with a paladin, and a party has at most 3 rangers. A character they refuse gets Curse's message on the bottom line
   until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do
   NPCs a script adds.
-  Added entries get a leading '* ' and the roster is saved back. }
+  Added entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
 procedure AddCharacterMenu;
 var
   list: Types.PItemRec;
@@ -1293,7 +1293,7 @@ begin
               if not CharHlp.IsNpc(creature) then
                 Inc(nonNpc);
             end else begin
-              { one the party has no room for keeps its roster line, which SaveCharlist would drop with the mark }
+              { one the party has no room for is unmarked, to be picked again }
               if p = nil then
                 m^.name := Copy(m^.name, 3, Length(m^.name) - 2);
               { with the items and effects LoadChar read }
