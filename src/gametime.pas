@@ -13,7 +13,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_Time, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
+uses Types, C_TIME, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -24,11 +24,11 @@ var
 procedure ValidateRestTime;
 begin
   Clock.ValidateClock(GDVars.dsRestingTimeGbvm, False);
-  if GDVars.dsRestingTimeGbvm[C_Time.MONTHS] > 0 then begin
-    Inc(GDVars.dsRestingTimeGbvm[C_Time.DAYS],
-        GDConsts.unitScale[C_Time.DAYS] * GDVars.dsRestingTimeGbvm[C_Time.MONTHS]);
-    GDVars.dsRestingTimeGbvm[C_Time.MONTHS] := 0;
-    if GDVars.dsRestingTimeGbvm[C_Time.DAYS] > 99 then GDVars.dsRestingTimeGbvm[C_Time.DAYS] := 99;
+  if GDVars.dsRestingTimeGbvm[C_TIME.MONTHS] > 0 then begin
+    Inc(GDVars.dsRestingTimeGbvm[C_TIME.DAYS],
+        GDConsts.unitScale[C_TIME.DAYS] * GDVars.dsRestingTimeGbvm[C_TIME.MONTHS]);
+    GDVars.dsRestingTimeGbvm[C_TIME.MONTHS] := 0;
+    if GDVars.dsRestingTimeGbvm[C_TIME.DAYS] > 99 then GDVars.dsRestingTimeGbvm[C_TIME.DAYS] := 99;
   end;
 end;
 
@@ -39,14 +39,14 @@ var
   j: ShortInt;
   k: ShortInt;
 begin
-  if (GDVars.dsRestingTimeGbvm[C_Time.DAYS] <> 0) or (GDVars.dsRestingTimeGbvm[C_Time.HOURS] <> 0) or
-      (GDVars.dsRestingTimeGbvm[C_Time.TURNS] <> 0) or (GDVars.dsRestingTimeGbvm[C_Time.MINUTES] <> 0)
+  if (GDVars.dsRestingTimeGbvm[C_TIME.DAYS] <> 0) or (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] <> 0) or
+      (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] <> 0) or (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] <> 0)
   then begin
     while count > GDVars.dsRestingTimeGbvm[tUnit] do begin
       j := Succ(tUnit);
-      while (GDVars.dsRestingTimeGbvm[j] = 0) and (j < C_Time.MONTHS) do
+      while (GDVars.dsRestingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
         j := Succ(j);
-      if j = C_Time.MONTHS then begin
+      if j = C_TIME.MONTHS then begin
         FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
         count := 0;
       end else
@@ -73,14 +73,14 @@ begin
   colors[hl] := White;
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
-  for i := C_Time.DAYS downto C_Time.HOURS do begin
+  for i := C_TIME.DAYS downto C_TIME.HOURS do begin
     TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GDVars.dsRestingTimeGbvm[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
-  TextRend.DisplayString(x + 1, 17, colors[C_Time.TURNS],
-                         StrUtil.ZeroPad2(10 * GDVars.dsRestingTimeGbvm[C_Time.TURNS] +
-                           GDVars.dsRestingTimeGbvm[C_Time.MINUTES]));
+  TextRend.DisplayString(x + 1, 17, colors[C_TIME.TURNS],
+                         StrUtil.ZeroPad2(10 * GDVars.dsRestingTimeGbvm[C_TIME.TURNS] +
+                           GDVars.dsRestingTimeGbvm[C_TIME.MINUTES]));
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
@@ -93,7 +93,7 @@ var
   sel: ShortInt;
 begin
   CampRestMenu := False;
-  sel := C_Time.TURNS;
+  sel := C_TIME.TURNS;
   repeat
     GameTime.DisplayRestTime(sel);
     MenuCore.arrowsToCaller := True;
@@ -108,13 +108,13 @@ begin
         { left arrow }
         C_Keys.LEFT: begin
                        Inc(sel);
-                       if sel > C_Time.DAYS then sel := C_Time.TURNS;
+                       if sel > C_TIME.DAYS then sel := C_TIME.TURNS;
                        ch := #88;
                      end;
         { right arrow }
         C_Keys.RIGHT: begin
                         Dec(sel);
-                        if sel < C_Time.TURNS then sel := C_Time.DAYS;
+                        if sel < C_TIME.TURNS then sel := C_TIME.DAYS;
                         ch := #88;
                       end;
       else
@@ -122,19 +122,19 @@ begin
       end;
     case ch of
       'R': CampRestMenu := True;
-      'Y': sel := C_Time.DAYS;
-      'H': sel := C_Time.HOURS;
-      'M': sel := C_Time.TURNS;
+      'Y': sel := C_TIME.DAYS;
+      'H': sel := C_TIME.HOURS;
+      'M': sel := C_TIME.TURNS;
       'I': begin
-             if sel = C_Time.TURNS then
-               Inc(GDVars.dsRestingTimeGbvm[C_Time.MINUTES], 5)
+             if sel = C_TIME.TURNS then
+               Inc(GDVars.dsRestingTimeGbvm[C_TIME.MINUTES], 5)
              else
                Inc(GDVars.dsRestingTimeGbvm[sel]);
              GameTime.ValidateRestTime;
            end;
       'D': begin
-             if sel = C_Time.TURNS then
-               GameTime.DecrementRestTime(5, C_Time.MINUTES)
+             if sel = C_TIME.TURNS then
+               GameTime.DecrementRestTime(5, C_TIME.MINUTES)
              else
                GameTime.DecrementRestTime(1, sel);
              GameTime.ValidateRestTime;
@@ -336,8 +336,8 @@ begin
   else
     stop := False;
   while (not stop) and
-      ((GDVars.dsRestingTimeGbvm[C_Time.DAYS] > 0) or (GDVars.dsRestingTimeGbvm[C_Time.HOURS] > 0) or
-       (GDVars.dsRestingTimeGbvm[C_Time.TURNS] > 0) or (GDVars.dsRestingTimeGbvm[C_Time.MINUTES] > 0))
+      ((GDVars.dsRestingTimeGbvm[C_TIME.DAYS] > 0) or (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] > 0) or
+       (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] > 0) or (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] > 0))
   do begin
     if KeyPressed then begin
       GameTime.DisplayRestTime(0);
@@ -347,13 +347,13 @@ begin
         TextRend.ClearBottomLine;
     end;
     if not stop then begin
-      GameTime.DecrementRestTime(5, C_Time.MINUTES);
+      GameTime.DecrementRestTime(5, C_TIME.MINUTES);
       Inc(cnt);
       if cnt >= 5 then begin
         GameTime.DisplayRestTime(0);
         cnt := 0;
       end;
-      FxEngine.AdvanceTime(5, C_Time.MINUTES);
+      FxEngine.AdvanceTime(5, C_TIME.MINUTES);
       GameTime.CheckRestingHeal;
       GameTime.AdvanceSpellPrep;
       GameTime.AdvanceSpellPrepBase(tick);

@@ -17,7 +17,7 @@ procedure NoncombatCastMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
-  FxEngine, Portrait, Options, Border, C_Time, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
+  FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
 const
@@ -1023,8 +1023,8 @@ begin
     if total < CasterTime(i) then total := CasterTime(i);
   Clock.SetFromMinutes(GDVars.dsRestingTimeGbvm, total);
   interrupted := GameTime.CampRest(False);
-  done := (GDVars.dsRestingTimeGbvm[C_Time.DAYS] = 0) and (GDVars.dsRestingTimeGbvm[C_Time.HOURS] = 0) and
-          (GDVars.dsRestingTimeGbvm[C_Time.TURNS] = 0) and (GDVars.dsRestingTimeGbvm[C_Time.MINUTES] = 0);
+  done := (GDVars.dsRestingTimeGbvm[C_TIME.DAYS] = 0) and (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] = 0) and
+          (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] = 0) and (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] = 0);
   FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
   if done and not interrupted then begin
     for i := 1 to n do

@@ -16,7 +16,7 @@ procedure SetFromMinutes(var clock: Types.TClock; minutes: Word);
 
 implementation
 
-uses GDConsts, GDVars, C_Time;
+uses GDConsts, GDVars, C_TIME;
 
 { Carry each clock component that has reached its GDConsts.unitScale limit into the next one (one carry per component
   per call); the year has no limit. When ageOnYear is set, every creature in GDVars.creatureList ages by one as the
@@ -26,11 +26,11 @@ var
   i: ShortInt;
   cur: Types.PCharRecord;
 begin
-  for i := 0 to C_Time.MONTHS do
+  for i := 0 to C_TIME.MONTHS do
     if clock[i] >= GDConsts.unitScale[i] then begin
       Inc(clock[Succ(i)]);
       clock[i] := clock[i] - GDConsts.unitScale[i];
-      if (i = C_Time.MONTHS) and ageOnYear then begin
+      if (i = C_TIME.MONTHS) and ageOnYear then begin
         cur := GDVars.creatureList;
         while cur <> nil do begin
           Inc(cur^.age);
@@ -43,10 +43,10 @@ end;
 procedure SetFromMinutes(var clock: Types.TClock; minutes: Word);
 begin
   FillChar(clock, SizeOf(clock), 0);
-  clock[C_Time.DAYS] := minutes div 1440;
-  clock[C_Time.HOURS] := (minutes mod 1440) div 60;
-  clock[C_Time.TURNS] := (minutes mod 60) div 10;
-  clock[C_Time.MINUTES] := minutes mod 10;
+  clock[C_TIME.DAYS] := minutes div 1440;
+  clock[C_TIME.HOURS] := (minutes mod 1440) div 60;
+  clock[C_TIME.TURNS] := (minutes mod 60) div 10;
+  clock[C_TIME.MINUTES] := minutes mod 10;
 end;
 
 end.

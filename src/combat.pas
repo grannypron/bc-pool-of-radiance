@@ -14,7 +14,7 @@ function BandageDying(bandage: Boolean): Boolean;
 
 implementation
 
-uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
+uses Types, C_TIME, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
   C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
@@ -269,7 +269,7 @@ var
   p: Types.PCharRecord;
 begin
   { one minute }
-  FxEngine.AdvanceTime(1, C_Time.MINUTES);
+  FxEngine.AdvanceTime(1, C_TIME.MINUTES);
   Inc(GDVars.roundCounter);
   CbtActs.CalcHostileHpPercent;
   p := GDVars.creatureList;

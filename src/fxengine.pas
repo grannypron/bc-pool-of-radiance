@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_Time, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level, Crt, C_Item, C_Equip;
 
 const
@@ -973,8 +973,8 @@ begin
   end;
   total := count;
   u := tUnit;
-  if u = C_Time.SEGMENTS then
-    total := total div GDConsts.unitScale[C_Time.SEGMENTS];
+  if u = C_TIME.SEGMENTS then
+    total := total div GDConsts.unitScale[C_TIME.SEGMENTS];
   while u > 1 do begin
     total := GDConsts.unitScale[Pred(u)] * total;
     u := Pred(u);
