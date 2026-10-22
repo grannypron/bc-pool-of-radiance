@@ -92,7 +92,7 @@ begin
           end;
         end;
       end;
-      MapTiles.Copy2DTile(viewX + 1 - 1, viewY + 1 - 1, icon, 1);
+      MapTiles.Copy2DTile(viewX, viewY, icon, 1);
       Inc(viewX, 3);
     end;
     Inc(viewY, 3);

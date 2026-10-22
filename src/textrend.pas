@@ -128,18 +128,17 @@ end;
 { Draw count spaces from (col, row); an off-screen start is ignored. }
 procedure PrintSpaces(col, row, color, count: Byte);
 begin
-  if (col < 0) or (col > 39) or (row < 0) or (row > 24) then Exit;
+  if (col > 39) or (row > 24) then Exit;
   TextRend.RenderChar(col, row, color, count, 32, 1);
 end;
 
-{ Draw a string in the game font at the requested column, row and color. The row guard here tests 39, not 24; RenderChar
-  applies the real bound. }
+{ Draw a string in the game font at the requested column, row and color; nothing is drawn off the screen. }
 procedure DisplayString(col, row, color: Byte; source: string);
 var
   n: Byte;
   i: Byte;
 begin
-  if (col > 39) or (row > 39) then Exit;
+  if (col > 39) or (row > 24) then Exit;
   n := Length(source);
   for i := 1 to n do begin
     TextRend.RenderChar(col, row, color, 1, Ord(source[i]), 1);
