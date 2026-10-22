@@ -20,7 +20,7 @@ procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
   since the removal's handler may have removed and freed it. }
 function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
 
-{ True when the creature has any of the effects a cure of disease removes (GameDefs.cureDiseaseEffects). }
+{ True when the creature has any of the effects a cure of disease removes (cureDiseaseEffects). }
 function HasDisease(creature: Types.PCharRecord): Boolean;
 
 { Remove every effect a cure of disease removes, quietly, with the effect lock held: the temple's cure and the
@@ -168,6 +168,10 @@ uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_S
 const
   { EffectSource's side for a node cast by either side }
   ANY_SIDE = 255;
+  { CureDisease }
+  cureDiseaseEffects: array[1..6] of Byte = (
+    C_EFFECT.HELPLESS, C_EFFECT.DISEASED, C_EFFECT.DISEASE_STR, C_EFFECT.DISEASE_HP,
+    C_EFFECT.ROT_NO_HEAL, C_EFFECT.MUMMY_ROT);
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -613,19 +617,61 @@ begin
 end;
 
 procedure RemoveEffectsHp0(creature: Types.PCharRecord);
+const
+  { Effects removed by RemoveEffectsHp0 when a creature reaches zero hit points or is put out of play }
+  hpZeroEffects: array[1..16] of Byte = (
+    { Training/Manual }
+    C_EFFECT.TRAIN_MANUAL,
+    { Charm }
+    C_EFFECT.CHARM,
+    { Stinking cloud coughing }
+    C_EFFECT.STINK_COUGH,
+    { Helpless (nausea) }
+    C_EFFECT.HELPLESS,
+    { Animate Dead }
+    C_EFFECT.ANIMATE_DEAD,
+    { Snake Charm }
+    C_EFFECT.SNAKE_CHARM,
+    { Paralysis (Hold Person) }
+    C_EFFECT.PARALYSIS,
+    { Sleep }
+    C_EFFECT.SLEEP,
+    { Dragon Aura }
+    C_EFFECT.DRAGON_AURA,
+    { Immobile }
+    C_EFFECT.IMMOBILE,
+    { Troll Regeneration }
+    C_EFFECT.TROLL_REGEN,
+    { Fight On at 0 HP }
+    C_EFFECT.FIGHT_ON,
+    { Regeneration }
+    C_EFFECT.REGEN3,
+    { Spiritual Hammer expiry }
+    C_EFFECT.SPIRIT_HAMMER_GONE,
+    { Bite-and-Hold }
+    C_EFFECT.BITE_HOLD,
+    { Blood Drain }
+    C_EFFECT.BLOOD_DRAIN);
 var
   i: Byte;
 begin
   for i := 1 to 16 do
-    FxEngine.RemoveEffect(creature, GameDefs.hpZeroEffects[i], nil);
+    FxEngine.RemoveEffect(creature, hpZeroEffects[i], nil);
 end;
 
 procedure RemoveAiEffects(creature: Types.PCharRecord);
+const
+  { Effects removed by RemoveAiEffects at the start of CombatAi.CheckMorale }
+  aiRoundRemoveEffects: array[1..2] of Byte = (
+    { Bite-and-Hold }
+    C_EFFECT.BITE_HOLD,
+    { Blood Drain }
+    C_EFFECT.BLOOD_DRAIN);
 var
   i: Byte;
 begin
   for i := 1 to 2 do
-    FxEngine.RemoveEffect(creature, GameDefs.aiRoundRemoveEffects[i], nil);
+    FxEngine.RemoveEffect(creature, aiRoundRemoveEffects[i], nil);
 end;
 
 function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Boolean;
@@ -854,8 +900,8 @@ var
   found: Boolean;
 begin
   found := False;
-  for i := 1 to SizeOf(GameDefs.cureDiseaseEffects) do
-    if CharHlp.HasEffect(creature, GameDefs.cureDiseaseEffects[i], effect) then
+  for i := 1 to SizeOf(cureDiseaseEffects) do
+    if CharHlp.HasEffect(creature, cureDiseaseEffects[i], effect) then
       found := True;
   HasDisease := found;
 end;
@@ -865,8 +911,8 @@ var
   i: Byte;
 begin
   GameVars.effectLock := 1;
-  for i := 1 to SizeOf(GameDefs.cureDiseaseEffects) do
-    FxEngine.RemoveEffect(creature, GameDefs.cureDiseaseEffects[i], nil);
+  for i := 1 to SizeOf(cureDiseaseEffects) do
+    FxEngine.RemoveEffect(creature, cureDiseaseEffects[i], nil);
   GameVars.effectLock := 0;
 end;
 

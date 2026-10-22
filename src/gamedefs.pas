@@ -15,10 +15,6 @@ const
   GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';
 
 const
-  { CureDisease }
-  cureDiseaseEffects: array[1..6] of Byte = (
-    C_EFFECT.HELPLESS, C_EFFECT.DISEASED, C_EFFECT.DISEASE_STR, C_EFFECT.DISEASE_HP,
-    C_EFFECT.ROT_NO_HEAL, C_EFFECT.MUMMY_ROT);
   { AI step patterns (aiStance 1..6): five direction offsets tried in order, each added to the base direction mod 8 (8 =
     straight ahead, 1/7 = one step clockwise/counterclockwise, 2/6 = two, 3/5 = three, 4 = reverse). Patterns 1..4 are
     kept on three turns out of four; sweep patterns 5..6 are rerolled every turn. }
@@ -427,46 +423,6 @@ const
     '9th Level');
 
 const
-  { Effects removed by RemoveEffectsHp0 when a creature reaches zero hit points or is put out of play }
-  hpZeroEffects: array[1..16] of Byte = (
-    { Training/Manual }
-    C_EFFECT.TRAIN_MANUAL,
-    { Charm }
-    C_EFFECT.CHARM,
-    { Stinking cloud coughing }
-    C_EFFECT.STINK_COUGH,
-    { Helpless (nausea) }
-    C_EFFECT.HELPLESS,
-    { Animate Dead }
-    C_EFFECT.ANIMATE_DEAD,
-    { Snake Charm }
-    C_EFFECT.SNAKE_CHARM,
-    { Paralysis (Hold Person) }
-    C_EFFECT.PARALYSIS,
-    { Sleep }
-    C_EFFECT.SLEEP,
-    { Dragon Aura }
-    C_EFFECT.DRAGON_AURA,
-    { Immobile }
-    C_EFFECT.IMMOBILE,
-    { Troll Regeneration }
-    C_EFFECT.TROLL_REGEN,
-    { Fight On at 0 HP }
-    C_EFFECT.FIGHT_ON,
-    { Regeneration }
-    C_EFFECT.REGEN3,
-    { Spiritual Hammer expiry }
-    C_EFFECT.SPIRIT_HAMMER_GONE,
-    { Bite-and-Hold }
-    C_EFFECT.BITE_HOLD,
-    { Blood Drain }
-    C_EFFECT.BLOOD_DRAIN);
-  { Effects removed by RemoveAiEffects at the start of CombatAi.CheckMorale }
-  aiRoundRemoveEffects: array[1..2] of Byte = (
-    { Bite-and-Hold }
-    C_EFFECT.BITE_HOLD,
-    { Blood Drain }
-    C_EFFECT.BLOOD_DRAIN);
   { DisplayMapView }
   { Display color for each zone sky/ceiling selector; selectors 8..15 repeat 0..7. }
   skyCeilingColors: array[0..15] of Byte = (
