@@ -61,8 +61,8 @@ begin
 end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that archive and id are already the cached picture
-  (GDVars.picArcName/picArcId); a load that finds nothing is not cached. PIC 1 is capped at 4 frames, and any picture
-  at the 8 the record holds. A frame is loaded only while MaxAvail is at least 3900 and covers what loading it
+  (GDVars.picArcName/picArcId); a load that ends with no frames is not cached. PIC 1 is capped at 4 frames, and any
+  picture at the 8 the record holds. A frame is loaded only while MaxAvail is at least 3900 and covers what loading it
   allocates (FrameNeed): loaded frames are stored in order and count becomes the number loaded, a skipped frame's data
   is stepped over, and without room for the first frame (which the others are XORed with for PIC and FINAL) nothing is
   loaded. A frame with no height or width, or one that runs past the block, ends the loading, keeping the frames before
@@ -117,8 +117,6 @@ begin
   isPic := (name = 'PIC') or (name = 'FINAL');
   DaxIo.LoadDax(name + diskCh, '.dax', picId, sz, buf);
   if sz = 0 then Exit;
-  GDVars.picArcName := name + diskCh;
-  GDVars.picArcId := picId;
   offset := 0;
   gotXor := False;
   with a do begin
@@ -189,6 +187,12 @@ begin
       Inc(f);
     end;
     count := loaded;
+  end;
+  { only a picture with frames is cached, so one that loaded none is tried again (SSI cached it and kept it blank,
+    #726) }
+  if loaded > 0 then begin
+    GDVars.picArcName := name + diskCh;
+    GDVars.picArcId := picId;
   end;
   if isPic and gotXor then FreeMem(xorBuf, xorSz);
   FreeMem(buf, sz);
