@@ -583,6 +583,32 @@ end;
 { Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
   undead first) until a target resists. }
 procedure CombatTurnUndead(creature: Types.PCharRecord);
+const
+  { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
+    d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
+    automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. An undead level
+    above 10 (CbtActs.FindTurnUndeadTarget admits up to 12) is read from row 10. }
+  turnTable: Types.TTurnUndeadTable = (
+    { 1: Skeleton }
+    (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
+    { 2: Zombie }
+    (13, 10, 7, 1, 1, 0, 0, 0, -1, -1),
+    { 3: Ghoul }
+    (16, 13, 10, 4, 1, 1, 0, 0, 0, -1),
+    { 4: Shadow }
+    (19, 16, 13, 7, 4, 1, 1, 0, 0, -1),
+    { 5: Wight }
+    (20, 19, 16, 10, 7, 4, 1, 1, 0, 0),
+    { 6: Ghast }
+    (99, 20, 19, 13, 10, 7, 4, 1, 1, 0),
+    { 7: Wraith }
+    (99, 99, 20, 16, 13, 10, 7, 4, 1, 0),
+    { 8: Mummy }
+    (99, 99, 99, 20, 16, 13, 10, 7, 4, 1),
+    { 9: Spectre }
+    (99, 99, 99, 99, 20, 16, 13, 10, 7, 1),
+    { 10: Vampire }
+    (99, 99, 99, 99, 99, 20, 16, 13, 10, 4));
 var
   roll: Byte;
   attempts: Byte;
@@ -615,7 +641,7 @@ begin
     row := Types.PCharRecord(tgt)^.levelUndead;
     if row > 10 then
       row := 10;
-    turnVal := GameDefs.turnTable[row, col];
+    turnVal := turnTable[row, col];
     if roll >= Abs(turnVal) then begin
       any := True;
       CbtMap.DisplayMapViewCentered(Types.PCharRecord(tgt), 3, False);
