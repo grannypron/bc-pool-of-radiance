@@ -7,7 +7,8 @@ interface
 
 { Main game loop: set the interface state from the previous script id and view3dFlag, load (a saved game's too) and
   initialize the ECL script and run its on-load entry, then repeat the map menu, camp, search and movement until the
-  party is defeated or a quick load is asked for (Explore.quickLoadAsked) }
+  party is defeated, a quick load is asked for (Explore.quickLoadAsked) or a game was loaded from the training hall's
+  party menu (GDVars.loadedSave set); the program then runs it again on the loaded game. }
 procedure GameLoop;
 
 implementation
@@ -77,6 +78,13 @@ const
 
 
 procedure CallEclScript(address: Word); forward;
+
+{ True when GameLoop is to return so the program starts it again on another game: a quick load was asked for, or a
+  game was loaded from a script's party menu (GDVars.loadedSave, which GameLoop's EclInit clears). }
+function Reloading: Boolean;
+begin
+  Reloading := Explore.quickLoadAsked or (GDVars.loadedSave <> 0);
+end;
 
 { Free the whole GOSUB return stack. }
 procedure FreeEclStack;
@@ -1624,7 +1632,12 @@ begin
   case v of
     PROG_TRAINING: begin
       CharGen.MainMenu;
-      CharDisp.DisplayNoncombatInterface;
+      { a game loaded from the menu (Load, once the party is empty) leaves this script, which v1.3 ran on over the
+        loaded game: GameLoop returns and the program starts it again in the loaded area }
+      if GDVars.loadedSave <> 0 then
+        eclStop := 1
+      else
+        CharDisp.DisplayNoncombatInterface;
     end;
     PROG_WIN_GAME:
       Ending.WinGame;
@@ -1734,12 +1747,13 @@ begin
   end;
 end;
 
-{ Runs commands at address until EXIT/NEWECL stops the VM or the party is defeated }
+{ Runs commands at address until EXIT/NEWECL stops the VM or the party is defeated; nothing while GameLoop is to return
+  for another game (Reloading) }
 procedure CallEclScript(address: Word);
 begin
   GDVars.eclIp := address;
   eclStop := 0;
-  while (eclStop = 0) and (not GDVars.partyDefeated) do begin
+  while (eclStop = 0) and (not GDVars.partyDefeated) and not EclVm.Reloading do begin
     GDVars.curOpcode := GDVars.zone3^[GDVars.eclIp];
     { STING Ctrl-L's trace log (#612), as Curse writes it }
     if GDVars.debugTraceEnabled then
@@ -1829,12 +1843,12 @@ begin
     MapView.DisplayMapView;
   end;
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
-  repeat
+  while not GDVars.partyDefeated and not EclVm.Reloading do begin
     cmd := Explore.MapMainMenu;
     savedChar := GDVars.curChar;
     GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
     while ((GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
-        (not GDVars.partyDefeated) and (not Explore.quickLoadAsked) do begin
+        (not GDVars.partyDefeated) and not EclVm.Reloading do begin
       if UpCase(cmd) = 'E' then
         EclVm.EnterCamp
       else begin
@@ -1846,18 +1860,19 @@ begin
           EclVm.NewEclDone;
         GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.dsSearchModeFlag;
       end;
-      if not GDVars.partyDefeated then begin
+      if not GDVars.partyDefeated and not EclVm.Reloading then begin
         cmd := Explore.MapMainMenu;
         savedChar := GDVars.curChar;
       end;
     end;
-    { a quick load asked for on the map menu ends the loop at once: the program loads it and runs the loop again }
-    if not Explore.quickLoadAsked then begin
+    { a quick load asked for on the map menu, or a game loaded from a script's party menu, ends the loop at once: the
+      program runs it again on that game }
+    if not EclVm.Reloading then begin
       if not GDVars.partyDefeated then
         EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
       if newEclFlag <> 0 then
         EclVm.NewEclDone
-      else if not GDVars.partyDefeated then begin
+      else if not GDVars.partyDefeated and not EclVm.Reloading then begin
         GDVars.zone0^.previousX := GDVars.gMapX;
         GDVars.zone0^.previousY := GDVars.gMapY;
         Explore.ResolveMovement;
@@ -1872,7 +1887,7 @@ begin
           EclVm.NewEclDone;
       end;
     end;
-  until GDVars.partyDefeated or Explore.quickLoadAsked;
+  end;
   GDVars.partyDefeated := False;
 end;
 

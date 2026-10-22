@@ -95,11 +95,13 @@ begin
     CharGen.MainMenu;
     View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
     EclVm.GameLoop;
-    { F8 on the map menu ends GameLoop to load the quick save; the loop then starts again on the loaded game, as it
-      does after a load from the main menu }
-    while Explore.quickLoadAsked do begin
-      Explore.quickLoadAsked := False;
-      SaveLoad.QuickLoad;
+    { F8 on the map menu ends GameLoop to load the quick save, and a load from the training hall's party menu ends it
+      loaded; the loop then starts again on the loaded game, as it does after a load from the main menu }
+    while Explore.quickLoadAsked or (GDVars.loadedSave <> 0) do begin
+      if Explore.quickLoadAsked then begin
+        Explore.quickLoadAsked := False;
+        SaveLoad.QuickLoad;
+      end;
       EclVm.GameLoop;
     end;
     { the party was destroyed: a new game starts from the main menu, without the lost party's vault }
