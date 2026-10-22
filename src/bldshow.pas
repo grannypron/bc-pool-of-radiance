@@ -102,30 +102,13 @@ const
   NAME_NONE = 0;
   NAME_SHOWN = 1;
   NAME_FAILED = 2;
+  { the warning's rows in the status box, in place of the status lines, when the game folder cannot be written }
+  WARN_ROW = 5;
+  WARN_NEXT_ROW = 7;
   { steps }
   PHASE_READ = 0;
   PHASE_WRITE = 1;
   PHASE_CHECK = 2;
-  { BIOS timer ticks: 18.2 a second, back to 0 at midnight after TICKS_PER_DAY }
-  TICKS_PER_DAY = $1800B0;
-  ETA_FIRST = 36;
-  ETA_EVERY = 18;
-  HOLD_TICKS = 18;
-  { the most minutes the time left shows, and the most ticks it is worked out from }
-  ETA_MAX_MINUTES = 99;
-  ETA_MAX_TICKS = 200000;
-  TITLE = 'Please wait, preparing files';
-  { shown under the families when one failed, if DataBld could write its log }
-  NOTE = 'See DATABLD.LOG';
-  LOG_NAME = 'DATABLD.LOG';
-  { the hold's prompt on the bottom line, the game's own }
-  PROMPT = 'press <enter>/<return> to continue';
-  { shown in the status box when the game folder cannot be written: WARN_LABEL in light red, then WARN_TEXT }
-  WARN_ROW = 5;
-  WARN_LABEL = 'Warning:';
-  WARN_TEXT = ' Install folder is read only.';
-  WARN_NEXT_ROW = 7;
-  WARN_NEXT = 'Game data fixes will be unavailable.';
 
 type
   PShowState = ^TShowState;
@@ -358,6 +341,10 @@ end;
 
 { Show the time left: the elapsed time scaled by the work left over the work done, as m:ss. }
 procedure ShowEta;
+const
+  { the most minutes the time left shows, and the most ticks it is worked out from }
+  ETA_MAX_MINUTES = 99;
+  ETA_MAX_TICKS = 200000;
 var
   secs: LongInt;
   mins: LongInt;
@@ -380,6 +367,11 @@ end;
 { Add the BIOS ticks since the last call to elapsed, across midnight, and show the time left once ETA_FIRST ticks have
   gone and then every ETA_EVERY. }
 procedure Tick;
+const
+  { BIOS timer ticks: 18.2 a second, back to 0 at midnight after TICKS_PER_DAY }
+  TICKS_PER_DAY = $1800B0;
+  ETA_FIRST = 36;
+  ETA_EVERY = 18;
 var
   now: LongInt;
   delta: LongInt;
@@ -464,6 +456,12 @@ begin
 end;
 
 procedure Open(var stale: TStaleList; writable: Boolean);
+const
+  TITLE = 'Please wait, preparing files';
+  { shown when the game folder cannot be written: WARN_LABEL in light red, then WARN_TEXT, and WARN_NEXT below }
+  WARN_LABEL = 'Warning:';
+  WARN_TEXT = ' Install folder is read only.';
+  WARN_NEXT = 'Game data fixes will be unavailable.';
 var
   fam: Byte;
   disk: Byte;
@@ -615,6 +613,14 @@ begin
 end;
 
 procedure Finish(failed: Boolean);
+const
+  { how long the finished display stays, in BIOS ticks (18.2 a second) }
+  HOLD_TICKS = 18;
+  { shown under the families when one failed, if DataBld could write its log }
+  NOTE = 'See DATABLD.LOG';
+  LOG_NAME = 'DATABLD.LOG';
+  { the hold's prompt on the bottom line, the game's own }
+  PROMPT = 'press <enter>/<return> to continue';
 var
   start: LongInt;
   key: Char;
