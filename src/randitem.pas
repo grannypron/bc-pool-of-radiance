@@ -250,8 +250,8 @@ begin
              end;
            end;
       78: begin
-             { r is 2..4 vs labels 1..3: template 7 is never chosen and r = 4 leaves no template }
-             r := Dice.RollDice(1, 3) + 1;
+             { one in three each; SSI's roll of 1d3 + 1 never made template 7 and made nothing on a 4 (#817) }
+             r := Dice.RollDice(1, 3);
              case r of
                1: template := 7;
                2: template := 9;

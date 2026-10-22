@@ -12,21 +12,28 @@ var
   plain: Integer;
   lightning: Integer;
   ok: Boolean;
+  made: array[1..3] of Integer;
 
-{ Generate an item of kind and check it is template t of GDConsts.randomItemTemplates, with plus as its plus and save
-  bonus. }
-procedure CheckTemplate(kind, t: Byte; plus: ShortInt; what: String);
+{ True when it has template t's name, weight, value and properties. }
+function IsTemplate(t: Byte): Boolean;
 var
   k: Byte;
   same: Boolean;
 begin
-  RandItem.GenerateRandomItem(kind, @it);
   with GDConsts.randomItemTemplates[t] do begin
     same := (it.weight = weight) and (it.value = value) and (it.quantity = 0);
     for k := 1 to 3 do
       same := same and (it.nameIds[k] = Lo(nameIds[k])) and (it.spells[k] = Lo(properties[k]));
   end;
-  TestKit.Check(same, what + ': template ' + StrUtil.NumStr(t) + '''s name, weight, value and properties');
+  IsTemplate := same;
+end;
+
+{ Generate an item of kind and check it is template t of GDConsts.randomItemTemplates, with plus as its plus and save
+  bonus. }
+procedure CheckTemplate(kind, t: Byte; plus: ShortInt; what: String);
+begin
+  RandItem.GenerateRandomItem(kind, @it);
+  TestKit.Check(IsTemplate(t), what + ': template ' + StrUtil.NumStr(t) + '''s name, weight, value and properties');
   TestKit.CheckEqualsL(plus, it.plus, what + ': plus');
   TestKit.CheckEqualsL(plus, it.saveBonus, what + ': save bonus');
   TestKit.CheckEqualsL(kind, it.itemType, what + ': item type');
@@ -40,6 +47,25 @@ begin
   CheckTemplate(79, 8, 1, 'kind 79, Wand of Magic Missiles');
   CheckTemplate(84, 2, 1, 'kind 84, Potion of Giant Strength');
   CheckTemplate(92, 13, 2, 'kind 92, Cloak of Displacement');
+
+  { kind 78: templates 7 (the Wand of Lightning), 9 and 15, each about one time in three; SSI's roll never made 7 and
+    made nothing one time in three (#817) }
+  ok := True;
+  for j := 1 to 3 do
+    made[j] := 0;
+  for i := 1 to 300 do begin
+    RandItem.GenerateRandomItem(78, @it);
+    if IsTemplate(7) then
+      Inc(made[1])
+    else if IsTemplate(9) then
+      Inc(made[2])
+    else if IsTemplate(15) then
+      Inc(made[3])
+    else
+      ok := False;
+  end;
+  TestKit.Check(ok, 'kind 78 always makes template 7, 9 or 15');
+  TestKit.Check((made[1] > 50) and (made[2] > 50) and (made[3] > 50), 'kind 78 makes each of its templates often');
 
   { a long sword (kind 1..59): a plus of 1..3 named "+plus", no save bonus }
   ok := True;
