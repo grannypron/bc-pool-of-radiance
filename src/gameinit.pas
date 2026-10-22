@@ -320,7 +320,7 @@ begin
   { the heap the out-of-memory save needs }
   HeapErr.KeepReserve;
   GetMem(GameVars.gameFont, SizeOf(Types.TFontArr));
-  GetMem(GameVars.wallGfx, SizeOf(GameVars.wallGfx^));
+  GetMem(View3D.wallGfx, SizeOf(View3D.wallGfx^));
   GetMem(GameVars.map3d, SizeOf(Types.TGeoMap));
   Blit.AllocPic(8, 1, 1, 0, GameVars.current8x8SymbolPtr2);
   { the 168x168 view area }

@@ -5,6 +5,20 @@ unit View3D;
 
 interface
 
+uses Types;
+
+var
+  { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
+  wallGfx: Types.PWallSlices;
+  { Sky and ceiling color after palette mapping. }
+  colorSkyCeiling: Byte;
+  { 3D-view color register A (ceiling/horizon band) }
+  wallColorA: Byte;
+  { 3D-view color register B (mid band) }
+  wallColorB: Byte;
+  { 3D-view color register C (floor/wall band) }
+  wallColorC: Byte;
+
 { Stores the four 3D-view band colours (sky, horizon line, horizon band, floor). FixMain's boot sequence passes
   (11,0,7,6) for the default palette; MapView re-sets them for each 3D view }
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
@@ -33,7 +47,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses Types, GameDefs, GameVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
+uses GameDefs, GameVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
 
 const
   { Dungeon view geometry }
@@ -93,21 +107,21 @@ end;
 
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
 begin
-  GameVars.colorSkyCeiling := cSky;
-  GameVars.wallColorA := cHorz1;
-  GameVars.wallColorB := cHorz2;
-  GameVars.wallColorC := cFloor;
+  colorSkyCeiling := cSky;
+  wallColorA := cHorz1;
+  wallColorB := cHorz2;
+  wallColorC := cFloor;
 end;
 
 { Fill the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor rows 62..103;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, GameVars.colorSkyCeiling, GameDefs.iconColorMap,
+  Blit.FillPicRect(2, 16, 11, 43, colorSkyCeiling, GameDefs.iconColorMap,
                    GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 59, 11, 1, GameVars.wallColorA, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 60, 11, 2, GameVars.wallColorB, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 62, 11, 42, GameVars.wallColorC, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 59, 11, 1, wallColorA, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 60, 11, 2, wallColorB, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 62, 11, 42, wallColorC, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
 end;
 
 { Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
@@ -126,8 +140,8 @@ begin
   rowLim := viewSlotGeom.rows[slot] + y - 1;
   for row := y to rowLim do
     for col := x to colLim do begin
-      if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (GameVars.wallGfx^[wallType][cnt] > 0) then
-        Sym8x8.Put8x8Sym(col + 3 - 1, row + 3 - 1, GameVars.wallGfx^[wallType][cnt], True, True);
+      if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (wallGfx^[wallType][cnt] > 0) then
+        Sym8x8.Put8x8Sym(col + 3 - 1, row + 3 - 1, wallGfx^[wallType][cnt], True, True);
       Inc(cnt);
     end;
 end;
@@ -404,7 +418,7 @@ begin
   i := 1;
   repeat
     { slot wsSlot + i - 1's five wall types start at wall type 5 * (wsSlot + i - 2) + 1 }
-    Move(data^[offset], GameVars.wallGfx^[5 * (wsSlot + i - 2) + 1], SizeOf(Types.TView3dWallDef));
+    Move(data^[offset], wallGfx^[5 * (wsSlot + i - 2) + 1], SizeOf(Types.TView3dWallDef));
     Inc(offset, SizeOf(Types.TView3dWallDef));
     Inc(i);
   until offset >= sizeRead;
@@ -418,8 +432,8 @@ begin
         for col := 0 to 155 do begin
           { set 0's symbols (1..45) are shared by every slot; SSI also moved its last one, 45, into another slot's
             set (#727) }
-          if GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GameDefs.symSetFirst[1] then
-            Inc(GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
+          if wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GameDefs.symSetFirst[1] then
+            Inc(wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
         end;
       if count > 1 then begin
         if fileId = 0 then
@@ -458,4 +472,11 @@ begin
   GameVars.zone0^.mapId.value := mapId;
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  wallGfx := nil;
+  colorSkyCeiling := 0;
+  wallColorA := 0;
+  wallColorB := 0;
+  wallColorC := 0;
 end.

@@ -229,19 +229,9 @@ var
   { effect handlers, indexed by effect id }
   effectFns: array[C_EFFECT.BLESS..C_EFFECT.RECENT_CURE] of Types.TEffectHandler;
   { 3D view }
-  { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
-  wallGfx: Types.PWallSlices;
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;
-  { Sky and ceiling color after palette mapping. }
-  colorSkyCeiling: Byte;
   { View3D band colors; MapView recomputes them from the ECL color selectors after a script changes them (picRegionW) }
-  { 3D-view color register A (ceiling/horizon band) }
-  wallColorA: Byte;
-  { 3D-view color register B (mid band) }
-  wallColorB: Byte;
-  { 3D-view color register C (floor/wall band) }
-  wallColorC: Byte;
   { Map position, wall cache, animation and portrait cache }
   { automap shown in place of the 3D view }
   automapOn: Boolean;

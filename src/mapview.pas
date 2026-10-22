@@ -110,16 +110,16 @@ begin
     C_AREA.LOC_3D_MAP: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if GameVars.eventAtCell > $7F then
-        GameVars.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
+        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
       else
-        GameVars.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
+        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
       if GameVars.picRegionW then begin
-        GameVars.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
-        GameVars.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
-        GameVars.wallColorC := WallColor(GameVars.wallColorSel);
+        View3D.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
+        View3D.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
+        View3D.wallColorC := WallColor(GameVars.wallColorSel);
       end;
-      View3D.SetView3DColors(GameVars.colorSkyCeiling, GameVars.wallColorA, GameVars.wallColorB,
-                             GameVars.wallColorC);
+      View3D.SetView3DColors(View3D.colorSkyCeiling, View3D.wallColorA, View3D.wallColorB,
+                             View3D.wallColorC);
       if GameVars.zone0^.noAutomap <> 0 then GameVars.automapOn := False;
       View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;
