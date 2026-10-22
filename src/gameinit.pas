@@ -174,10 +174,10 @@ begin
   GDVars.effectFns[C_Effect.MUMMY_ROT] := EffHndlr.EffMummyRot;
   GDVars.effectFns[C_Effect.IMMOBILE] := EffHndlr.EffImmobile;
   GDVars.effectFns[C_Effect.TROLL_REGEN] := EffHndlr.EffTrollRegen;
-  GDVars.effectFns[60] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.NULL_DAMAGE] := EffHndlr.EffNull;
   GDVars.effectFns[C_Effect.RING_FIRE_RES] := EffHndlr.EffRingFireRes;
   GDVars.effectFns[C_Effect.CON_REGEN] := EffHndlr.EffConRegen;
-  GDVars.effectFns[63] := EffHndlr.EffNull;
+  GDVars.effectFns[C_Effect.NULL_TARGET_VETO] := EffHndlr.EffNull;
   GDVars.effectFns[C_Effect.POISON_HIT0] := EffHndlr.EffPoisonHit0;
   GDVars.effectFns[C_Effect.POISON_HIT4] := EffHndlr.EffPoisonHit4;
   GDVars.effectFns[C_Effect.POISON_HIT2] := EffHndlr.EffPoisonHit2;

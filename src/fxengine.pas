@@ -274,7 +274,7 @@ begin
   case cond of
     C_Cond.ATTACKER_VETO: FxEngine.TriggerEffect(creature, C_Effect.GAZE_BLOCK);
     C_Cond.TARGET_VETO: begin
-      FxEngine.TriggerEffect(creature, 63); FxEngine.TriggerEffect(creature, C_Effect.BLINKING);
+      FxEngine.TriggerEffect(creature, C_Effect.NULL_TARGET_VETO); FxEngine.TriggerEffect(creature, C_Effect.BLINKING);
       FxEngine.TriggerEffect(creature, C_Effect.INVISIBLE); FxEngine.TriggerEffect(creature, C_Effect.DUST_DISAPPEAR);
     end;
     C_Cond.HIT_PHASE_1: begin
@@ -304,12 +304,12 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.TROLL_HEAL); FxEngine.TriggerEffect(creature, C_Effect.HALF_PIERCE);
       FxEngine.TriggerEffect(creature, C_Effect.HALF_MAGICAL); FxEngine.TriggerEffect(creature, C_Effect.NEED_MAGIC);
       FxEngine.TriggerEffect(creature, C_Effect.SILVER_MAGIC); FxEngine.TriggerEffect(creature, C_Effect.NEED_SILVER);
-      FxEngine.TriggerEffect(creature, C_Effect.HALF_BASH); FxEngine.TriggerEffect(creature, 60);
+      FxEngine.TriggerEffect(creature, C_Effect.HALF_BASH); FxEngine.TriggerEffect(creature, C_Effect.NULL_DAMAGE);
       FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FIRE); FxEngine.TriggerEffect(creature, C_Effect.HOLY_WATER);
     end;
     C_Cond.NONWEAPON_DAMAGE: begin
       FxEngine.TriggerEffect(creature, C_Effect.EFREETI_FIRE); FxEngine.TriggerEffect(creature, C_Effect.RING_FIRE_RES);
-      FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FIRE); FxEngine.TriggerEffect(creature, 60);
+      FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FIRE); FxEngine.TriggerEffect(creature, C_Effect.NULL_DAMAGE);
       FxEngine.TriggerEffect(creature, C_Effect.IMMUNE_MM); FxEngine.TriggerEffect(creature, C_Effect.RESIST_COLD);
       FxEngine.TriggerEffect(creature, C_Effect.RESIST_FIRE); FxEngine.TriggerEffect(creature, C_Effect.MAGIC_RES50);
       FxEngine.TriggerEffect(creature, C_Effect.MAGIC_RES85); FxEngine.TriggerEffect(creature, C_Effect.NO_FIRE);
