@@ -30,7 +30,7 @@ procedure LoadCharIconAnim(loading: Boolean);
   reported on the bottom line. True when the character was saved. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
-{ Load one character: askDisk -> prepend the save directory to the sanitized name and prompt for the save disk, else
+{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else
   prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
   then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
   trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
@@ -358,7 +358,9 @@ var
   effectDisk: DiskRec.TEffectDisk;
 begin
   if askDisk then begin
-    name := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(name);
+    { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for
+      the extension }
+    name := SaveLoad.CharFileBase(name);
     msg := SaveMenu.SaveDiskMsg;
   end else
     msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';

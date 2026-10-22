@@ -70,7 +70,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_Data, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { DaxIo.FileExists IOResult }
@@ -248,7 +248,8 @@ begin
 end;
 
 { Remove invalid filename characters (with SanitizeString's single-pass rule), limit the name to eight characters and
-  uppercase it. }
+  uppercase it. A DOS device's name (FileUtil.IsDeviceName) gets an underscore, so a character called Con or Lpt1 is
+  kept in a file, as in Curse. }
 function SanitizeFileName(name: string): Types.TStr40;
 var i: Byte;
 begin
@@ -257,6 +258,8 @@ begin
   name := Copy(name, 1, 8);
   for i := 1 to Length(name) do
     name[i] := UpCase(name[i]);
+  if FileUtil.IsDeviceName(name) then
+    name := name + '_';
   SanitizeFileName := name;
 end;
 

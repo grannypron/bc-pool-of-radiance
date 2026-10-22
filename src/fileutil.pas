@@ -18,6 +18,10 @@ type
   TPathName = string[79];
 {$ENDIF}
 
+{ True when base, a file name without its extension, in capitals, is a DOS device's (CON, AUX, NUL, PRN, COM1..COM4,
+  LPT1..LPT3, CLOCK$): DOS opens the device for it, whatever the extension or directory, and makes no file. }
+function IsDeviceName(base: TPathName): Boolean;
+
 { Erase file name; a missing file, or any other error, is ignored. }
 procedure DeleteFile(name: TPathName);
 
@@ -56,6 +60,13 @@ implementation
 {$IFDEF FPC}
 uses NatFile;
 {$ENDIF}
+
+function IsDeviceName(base: TPathName): Boolean;
+begin
+  IsDeviceName := (base = 'CON') or (base = 'AUX') or (base = 'NUL') or (base = 'PRN') or (base = 'CLOCK$') or
+                  ((Length(base) = 4) and (Copy(base, 1, 3) = 'COM') and (base[4] in ['1'..'4'])) or
+                  ((Length(base) = 4) and (Copy(base, 1, 3) = 'LPT') and (base[4] in ['1'..'3']));
+end;
 
 procedure DeleteFile(name: TPathName);
 var

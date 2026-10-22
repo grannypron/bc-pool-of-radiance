@@ -1,5 +1,5 @@
 { Tests for FileUtil: a record written and read back, the size check, a read-only file, erasing, and the temporary copy
-  put in place only when whole. }
+  put in place only when whole, and DOS device names. }
 {$I COMPILER.INC}
 program TFileUtl;
 
@@ -77,5 +77,14 @@ begin
   TestKit.Check(not FileUtil.ReadRecord(NAME, back, SizeOf(back)), 'the file is the copy, empty');
   TestKit.Check(not FileUtil.OpenReadOnly(f, TEMP), 'and the copy is gone');
   FileUtil.DeleteFile(NAME);
+  { device names }
+  TestKit.Check(FileUtil.IsDeviceName('CON'), 'CON is a device');
+  TestKit.Check(FileUtil.IsDeviceName('NUL'), 'NUL is a device');
+  TestKit.Check(FileUtil.IsDeviceName('COM4'), 'COM4 is a device');
+  TestKit.Check(FileUtil.IsDeviceName('LPT1'), 'LPT1 is a device');
+  TestKit.Check(not FileUtil.IsDeviceName('LPT4'), 'LPT4 is not');
+  TestKit.Check(not FileUtil.IsDeviceName('CONAN'), 'CONAN is not');
+  TestKit.Check(not FileUtil.IsDeviceName('CON_'), 'CON_ is not');
+  TestKit.Check(not FileUtil.IsDeviceName('COM'), 'COM is not');
   TestKit.Done;
 end.
