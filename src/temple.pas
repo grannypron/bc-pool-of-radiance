@@ -123,11 +123,12 @@ begin
   end;
 end;
 
-{ RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). Remove
-  animation and poison under the effect lock, set one hit point, C_Status.OKAY and enabled, and lower constitution by
-  one unless it is 3 (AbilAdj.SCORE_MIN) or less. hpMax loses the hit points that point was worth, the Con table's
-  bonus at the old Constitution less the bonus at the new over every hit die (ClassCal.ConHpTotal), keeping at least
-  1. }
+{ RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). A dead or
+  animated character still poisoned "is still poisoned." and is not charged: the poison would kill the raised body
+  again, so Neutralize Poison comes first (PoR #423, #751). Remove animation under the effect lock, set one hit point,
+  C_Status.OKAY and enabled, and lower constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less. hpMax loses the
+  hit points that point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every
+  hit die (ClassCal.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
   effect: Types.PEffectRec;
@@ -144,14 +145,17 @@ begin
   if (creature^.status = C_Status.DEAD) or (creature^.status = C_Status.ANIMATED) then
     wasDead := True;
   if not wasDead then
-    c := Temple.ConfirmCureAnyway('is not dead.');
+    c := Temple.ConfirmCureAnyway('is not dead.')
+  else if CharHlp.HasEffect(creature, C_Effect.POISONED, effect) then begin
+    CharDisp.PrintNameString(creature, 'is still poisoned.', 0, True);
+    c := 'N';
+  end;
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Raise Dead', 5500);
     if c = 'Y' then begin
       if wasDead then begin
         GDVars.effectLock := 1;
         FxEngine.RemoveEffect(creature, C_Effect.ANIMATE_DEAD, nil);
-        FxEngine.RemoveEffect(creature, C_Effect.POISONED, nil);
         GDVars.effectLock := 0;
         creature^.hpCur := 1;
         creature^.status := C_Status.OKAY;
