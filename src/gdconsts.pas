@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_GENDER, C_CLASS, C_LEVEL, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
+uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -717,7 +717,7 @@ const
     '|');
   { Character, money and item name strings; compass names }
   { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. }
-  coinValuationCopper: array[C_Money.COPPER..C_Money.PLATINUM] of LongInt = (
+  coinValuationCopper: array[C_MONEY.COPPER..C_MONEY.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
   { Class names, indexed by TCharRecord.charClass. }
   classNames: array[C_CLASS.CLERIC..C_CLASS.MAGE_THIEF] of string[26] = (
@@ -764,7 +764,7 @@ const
     'Male',
     'Female');
   { Money names, indexed like TCharRecord.coins and TMoney. }
-  moneyNames: array[C_Money.COPPER..C_Money.JEWELRY] of string[10] = (
+  moneyNames: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of string[10] = (
     'Copper',
     'Silver',
     'Electrum',

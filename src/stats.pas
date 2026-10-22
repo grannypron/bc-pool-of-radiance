@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_GBVM, C_STATUS, C_IFC, C_Money, Party, MoneyCal;
+uses GDConsts, GDVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, MoneyCal;
 
 const
   ENTRIES = Types.MAX_PARTY;

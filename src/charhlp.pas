@@ -189,7 +189,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 implementation
 
 uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_LEVEL, C_STATUS, C_IFC,
-  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
+  C_MONEY, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
   { movement in body armour, by its weight in coins: up to LIGHT_ARMOR the creature's own, up to MEDIUM_ARMOR
@@ -494,7 +494,7 @@ begin
     end;
     item := item^.next;
   end;
-  for c := C_Money.COPPER to C_Money.JEWELRY do
+  for c := C_MONEY.COPPER to C_MONEY.JEWELRY do
     Inc(raw, creature^.coins[c]);
   for j := 1 to 2 do begin
     creature^.curRollsA[j] := creature^.unarmedRollsA[j];
@@ -611,7 +611,7 @@ begin
     Inc(w, CharHlp.ItemWeight(item));
     item := item^.next;
   end;
-  for c := C_Money.COPPER to C_Money.JEWELRY do
+  for c := C_MONEY.COPPER to C_MONEY.JEWELRY do
     Inc(w, creature^.coins[c]);
   RawWeight := w;
 end;

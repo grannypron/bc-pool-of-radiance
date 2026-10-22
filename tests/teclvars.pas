@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEclVars;
 
-uses Types, GDVars, C_GBVM, C_Money, C_DIR, C_STATUS, C_EFFECT, C_Save, EclVars, StrUtil, TestKit;
+uses Types, GDVars, C_GBVM, C_MONEY, C_DIR, C_STATUS, C_EFFECT, C_Save, EclVars, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -78,11 +78,11 @@ begin
       ok := False;
   end;
   TestKit.Check(ok, 'CHAR_THIEF_SKILLS..LAST are thief skills 1..8');
-  c^.coins[C_Money.COPPER] := 1;
-  c^.coins[C_Money.SILVER] := 2;
-  c^.coins[C_Money.ELECTRUM] := 3;
-  c^.coins[C_Money.GOLD] := 4;
-  c^.coins[C_Money.PLATINUM] := 5;
+  c^.coins[C_MONEY.COPPER] := 1;
+  c^.coins[C_MONEY.SILVER] := 2;
+  c^.coins[C_MONEY.ELECTRUM] := 3;
+  c^.coins[C_MONEY.GOLD] := 4;
+  c^.coins[C_MONEY.PLATINUM] := 5;
   TestKit.Check((EclVars.ReadGbvm(C_GBVM.CHAR_COPPER) = 1) and (EclVars.ReadGbvm(C_GBVM.CHAR_SILVER) = 2) and
                 (EclVars.ReadGbvm(C_GBVM.CHAR_ELECTRUM) = 3) and (EclVars.ReadGbvm(C_GBVM.CHAR_GOLD) = 4) and
                 (EclVars.ReadGbvm(C_GBVM.CHAR_PLATINUM) = 5), 'the coins, copper to platinum');
@@ -120,7 +120,7 @@ begin
   EclVars.WriteGbvm(C_GBVM.CHAR_NPC, $B5);
   TestKit.CheckEqualsL($B5 - $32, c^.npc, 'an npc value above $B2 loses $32');
   EclVars.WriteGbvm(C_GBVM.CHAR_GOLD, 77);
-  TestKit.CheckEqualsL(77, c^.coins[C_Money.GOLD], 'writing CHAR_GOLD sets the gold');
+  TestKit.CheckEqualsL(77, c^.coins[C_MONEY.GOLD], 'writing CHAR_GOLD sets the gold');
   EclVars.WriteGbvm(C_GBVM.CHAR_XP_AWARD, 450);
   TestKit.CheckEqualsL(450, c^.xpAward, 'writing CHAR_XP_AWARD');
   c^.enabled := 1;

@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -135,7 +135,7 @@ var
 begin
   Border.ClearBox(12, 7, 26, 14);
   row := 7;
-  for m := C_Money.JEWELRY downto C_Money.COPPER do
+  for m := C_MONEY.JEWELRY downto C_MONEY.COPPER do
     if GDVars.curChar^.coins[m] > 0 then begin
       s := GDConsts.moneyNames[m];
       TextRend.DisplayString(20 - Length(s), row, LightGreen, s);
@@ -271,7 +271,7 @@ begin
     if b <> nil then
       n := b^.counts[i];
     if i = Stats.COIN_LOOTED then
-      n := n div GDConsts.coinValuationCopper[C_Money.GOLD];
+      n := n div GDConsts.coinValuationCopper[C_MONEY.GOLD];
     Str(n, s);
     TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
     TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
@@ -594,7 +594,7 @@ begin
       if shown^.memorizedSpells[i] > 0 then
         hasSpells := True;
     { every coin type, gems and jewelry included }
-    for j := C_Money.COPPER to C_Money.JEWELRY do
+    for j := C_MONEY.COPPER to C_MONEY.JEWELRY do
       if shown^.coins[j] > 0 then
         hasMoney := True;
     if shown^.itemsAddr <> nil then
@@ -976,7 +976,7 @@ var
   ch: Char;
 begin
   p := nil;
-  for m := C_Money.COPPER to C_Money.JEWELRY do
+  for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
     if GDVars.curChar^.coins[m] <> 0 then begin
       { a menu-list node: only the name, inUse and next fields of a TItemRec }
       prev := p;
@@ -1034,7 +1034,7 @@ begin
           Money.TradeMoney(GDVars.curChar, tgt, amount, mType);
           exitInner := True;
           exitOuter := True;
-          for m := C_Money.COPPER to C_Money.JEWELRY do
+          for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
             if GDVars.curChar^.coins[m] > 0 then begin
               exitOuter := False;
               exitInner := False;
@@ -1073,7 +1073,7 @@ begin
       amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
       Money.DropMoney(GDVars.curChar, amount, mType);
       exitFlag := True;
-      for m := C_Money.COPPER to C_Money.JEWELRY do
+      for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
         if GDVars.curChar^.coins[m] > 0 then
           exitFlag := False;
     end;

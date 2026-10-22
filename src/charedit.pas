@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -413,7 +413,7 @@ begin
   repeat
     head := nil;
     tail := nil;
-    for m := C_Money.COPPER to C_Money.JEWELRY do
+    for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
       MenuCore.AppendMenuLine(head, tail, StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' +
                               StrUtil.NumStr(GDVars.curChar^.coins[m]), False);
     redraw := True;
@@ -422,7 +422,7 @@ begin
                                  redraw, idx, sel);
     m := -1;
     if (key <> C_KEYS.NONE) and (sel <> nil) then begin
-      m := C_Money.COPPER;
+      m := C_MONEY.COPPER;
       p := head;
       while (p <> nil) and (p <> sel) do begin
         p := p^.next;
@@ -430,14 +430,14 @@ begin
       end;
     end;
     MenuCore.FreeStringList(head);
-    if m >= C_Money.COPPER then begin
+    if m >= C_MONEY.COPPER then begin
       s := TextRend.ReadString(GDConsts.moneyNames[m] + ': ', LightGreen, 5);
       Val(s, count, code);
       if (code = 0) and (count >= 0) and (count <= 65535) then
         GDVars.curChar^.coins[m] := count;
       CharHlp.RecalcStats(Types.PCharRecord(GDVars.curChar));
     end;
-  until m < C_Money.COPPER;
+  until m < C_MONEY.COPPER;
 end;
 
 { The Gear tool, on the character sheet: Add an item, or set the Money. The Items menu drops what is not wanted. }

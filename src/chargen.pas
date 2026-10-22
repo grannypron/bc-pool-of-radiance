@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_Race, C_KEYS,
-  C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -683,7 +683,7 @@ begin
                end;
           end;
         end;
-      coins[C_Money.GOLD] := goldDice * 10 div clsCount;
+      coins[C_MONEY.GOLD] := goldDice * 10 div clsCount;
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
         too little) }
       hpRolled := ClassCal.RollFirstLevelHp(creature, $FF);

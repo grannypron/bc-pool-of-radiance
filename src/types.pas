@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_GENDER, C_Save, C_EQUIP, C_LEVEL, C_ABIL, C_Money, C_GBVM;
+uses C_GENDER, C_Save, C_EQUIP, C_LEVEL, C_ABIL, C_MONEY, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -157,7 +157,7 @@ type
     { reserved }
     unknown087: Byte;
     { Coins: copper, silver, electrum, gold, platinum, gems and jewelry. }
-    coins: array[C_Money.COPPER..C_Money.JEWELRY] of Word;
+    coins: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of Word;
     { Class levels; indexed by C_LEVEL. }
     classLevels: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt;
     { Gender; see GENDER_*. }
@@ -955,7 +955,7 @@ type
     lo: Word;
     hi: Word;
   end;
-  TMoney = array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
+  TMoney = array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
 
   { Pathing types. }
   TPathReq = record

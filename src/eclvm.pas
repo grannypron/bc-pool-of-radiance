@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_Sound, C_MONEY, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -987,7 +987,7 @@ var
   data: Types.PByteArr;
 begin
   EclVars.LoadEclVars(8);
-  for i := C_Money.COPPER to C_Money.JEWELRY do
+  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
     GDVars.treasureMoney[i] := EclVars.GetEclVar(Byte(i) + 1);
   tId := EclVars.GetEclVar(8);
   if tId < $80 then begin

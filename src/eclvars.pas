@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_Money, CharHlp, AbilAdj;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -183,11 +183,11 @@ begin
       SpecialReadZ1 := GDVars.curChar^.thiefSkills[t];
     end;
     C_GBVM.CHAR_NPC: SpecialReadZ1 := GDVars.curChar^.npc;
-    C_GBVM.CHAR_COPPER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.COPPER];
-    C_GBVM.CHAR_SILVER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.SILVER];
-    C_GBVM.CHAR_ELECTRUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.ELECTRUM];
-    C_GBVM.CHAR_GOLD: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.GOLD];
-    C_GBVM.CHAR_PLATINUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.PLATINUM];
+    C_GBVM.CHAR_COPPER: SpecialReadZ1 := GDVars.curChar^.coins[C_MONEY.COPPER];
+    C_GBVM.CHAR_SILVER: SpecialReadZ1 := GDVars.curChar^.coins[C_MONEY.SILVER];
+    C_GBVM.CHAR_ELECTRUM: SpecialReadZ1 := GDVars.curChar^.coins[C_MONEY.ELECTRUM];
+    C_GBVM.CHAR_GOLD: SpecialReadZ1 := GDVars.curChar^.coins[C_MONEY.GOLD];
+    C_GBVM.CHAR_PLATINUM: SpecialReadZ1 := GDVars.curChar^.coins[C_MONEY.PLATINUM];
     C_GBVM.CHAR_ALIGNMENT: SpecialReadZ1 := ShortInt(GDVars.curChar^.alignment);
     C_GBVM.CHAR_XP_AWARD: SpecialReadZ1 := GDVars.curChar^.xpAward;
     C_GBVM.CHAR_XP_PER_HP: SpecialReadZ1 := GDVars.curChar^.xpBonusPerHp;
@@ -238,11 +238,11 @@ begin
       if value > C_Npc.ANIMATED_NPC then Dec(value, $32);
       GDVars.curChar^.npc := value;
     end;
-    C_GBVM.CHAR_COPPER: GDVars.curChar^.coins[C_Money.COPPER] := value;
-    C_GBVM.CHAR_SILVER: GDVars.curChar^.coins[C_Money.SILVER] := value;
-    C_GBVM.CHAR_ELECTRUM: GDVars.curChar^.coins[C_Money.ELECTRUM] := value;
-    C_GBVM.CHAR_GOLD: GDVars.curChar^.coins[C_Money.GOLD] := value;
-    C_GBVM.CHAR_PLATINUM: GDVars.curChar^.coins[C_Money.PLATINUM] := value;
+    C_GBVM.CHAR_COPPER: GDVars.curChar^.coins[C_MONEY.COPPER] := value;
+    C_GBVM.CHAR_SILVER: GDVars.curChar^.coins[C_MONEY.SILVER] := value;
+    C_GBVM.CHAR_ELECTRUM: GDVars.curChar^.coins[C_MONEY.ELECTRUM] := value;
+    C_GBVM.CHAR_GOLD: GDVars.curChar^.coins[C_MONEY.GOLD] := value;
+    C_GBVM.CHAR_PLATINUM: GDVars.curChar^.coins[C_MONEY.PLATINUM] := value;
     C_GBVM.CHAR_XP_AWARD: GDVars.curChar^.xpAward := value;
     C_GBVM.CHAR_XP_PER_HP: GDVars.curChar^.xpBonusPerHp := value;
     C_GBVM.CHAR_ENABLED: begin

@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TMoneyCa;
 
-uses Types, GDVars, C_Money, MoneyCal, TestKit;
+uses Types, GDVars, C_MONEY, MoneyCal, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -14,24 +14,24 @@ var
 
 procedure SetMoney(var m: Types.TMoney; cp, sp, ep, gp, pp, gems, jewelry: LongInt);
 begin
-  m[C_Money.COPPER] := cp;
-  m[C_Money.SILVER] := sp;
-  m[C_Money.ELECTRUM] := ep;
-  m[C_Money.GOLD] := gp;
-  m[C_Money.PLATINUM] := pp;
-  m[C_Money.GEMS] := gems;
-  m[C_Money.JEWELRY] := jewelry;
+  m[C_MONEY.COPPER] := cp;
+  m[C_MONEY.SILVER] := sp;
+  m[C_MONEY.ELECTRUM] := ep;
+  m[C_MONEY.GOLD] := gp;
+  m[C_MONEY.PLATINUM] := pp;
+  m[C_MONEY.GEMS] := gems;
+  m[C_MONEY.JEWELRY] := jewelry;
 end;
 
 procedure CheckMoney(var m: Types.TMoney; cp, sp, ep, gp, pp, gems, jewelry: LongInt; what: String);
 begin
-  TestKit.CheckEqualsL(cp, m[C_Money.COPPER], what + ': copper');
-  TestKit.CheckEqualsL(sp, m[C_Money.SILVER], what + ': silver');
-  TestKit.CheckEqualsL(ep, m[C_Money.ELECTRUM], what + ': electrum');
-  TestKit.CheckEqualsL(gp, m[C_Money.GOLD], what + ': gold');
-  TestKit.CheckEqualsL(pp, m[C_Money.PLATINUM], what + ': platinum');
-  TestKit.CheckEqualsL(gems, m[C_Money.GEMS], what + ': gems');
-  TestKit.CheckEqualsL(jewelry, m[C_Money.JEWELRY], what + ': jewelry');
+  TestKit.CheckEqualsL(cp, m[C_MONEY.COPPER], what + ': copper');
+  TestKit.CheckEqualsL(sp, m[C_MONEY.SILVER], what + ': silver');
+  TestKit.CheckEqualsL(ep, m[C_MONEY.ELECTRUM], what + ': electrum');
+  TestKit.CheckEqualsL(gp, m[C_MONEY.GOLD], what + ': gold');
+  TestKit.CheckEqualsL(pp, m[C_MONEY.PLATINUM], what + ': platinum');
+  TestKit.CheckEqualsL(gems, m[C_MONEY.GEMS], what + ': gems');
+  TestKit.CheckEqualsL(jewelry, m[C_MONEY.JEWELRY], what + ': jewelry');
 end;
 
 procedure SetItem(itemType: Byte; value: Word; quantity: Byte);
@@ -59,29 +59,29 @@ begin
   SetMoney(m, 5, 3, 2, 4, 1, 9, 9);
   TestKit.CheckEqualsL(2035, MoneyCal.CopperValue(m), 'CopperValue counts the five coin types, not gems or jewelry');
   TestKit.CheckEqualsL(10, MoneyCal.CoinValueInGold(m), 'CoinValueInGold drops a part of a gold piece');
-  c^.coins[C_Money.COPPER] := 5;
-  c^.coins[C_Money.SILVER] := 3;
-  c^.coins[C_Money.ELECTRUM] := 2;
-  c^.coins[C_Money.GOLD] := 4;
-  c^.coins[C_Money.PLATINUM] := 1;
-  c^.coins[C_Money.GEMS] := 7;
-  c^.coins[C_Money.JEWELRY] := 8;
+  c^.coins[C_MONEY.COPPER] := 5;
+  c^.coins[C_MONEY.SILVER] := 3;
+  c^.coins[C_MONEY.ELECTRUM] := 2;
+  c^.coins[C_MONEY.GOLD] := 4;
+  c^.coins[C_MONEY.PLATINUM] := 1;
+  c^.coins[C_MONEY.GEMS] := 7;
+  c^.coins[C_MONEY.JEWELRY] := 8;
   MoneyCal.CoinsOf(c, m);
   CheckMoney(m, 5, 3, 2, 4, 1, 0, 0, 'CoinsOf');
   TestKit.CheckEqualsL(2035, MoneyCal.CreatureCopper(c), 'CreatureCopper');
   TestKit.CheckEqualsL(10, MoneyCal.CreatureGold(c), 'CreatureGold');
   FillChar(c^.coins, SizeOf(c^.coins), 0);
-  c^.coins[C_Money.GOLD] := 999;
-  c^.coins[C_Money.ELECTRUM] := 1;
+  c^.coins[C_MONEY.GOLD] := 999;
+  c^.coins[C_MONEY.ELECTRUM] := 1;
   TestKit.CheckEqualsL(999, MoneyCal.CreatureGold(c), '999 gp and an electrum piece are 999 gold');
-  c^.coins[C_Money.PLATINUM] := 65535;
-  c^.coins[C_Money.GOLD] := 65535;
+  c^.coins[C_MONEY.PLATINUM] := 65535;
+  c^.coins[C_MONEY.GOLD] := 65535;
   TestKit.CheckEqualsL(65535 * 5 + 65535, MoneyCal.CreatureGold(c), 'a full purse does not overflow');
   { the room left under 65535 (#781) }
-  TestKit.CheckEqualsL(0, MoneyCal.CoinRoom(c, C_Money.GOLD), 'a full count has no room');
-  c^.coins[C_Money.GOLD] := 65000;
-  TestKit.CheckEqualsL(535, MoneyCal.CoinRoom(c, C_Money.GOLD), '65000 gold has room for 535');
-  TestKit.CheckEqualsL(65535, MoneyCal.CoinRoom(c, C_Money.SILVER), 'no silver has room for 65535');
+  TestKit.CheckEqualsL(0, MoneyCal.CoinRoom(c, C_MONEY.GOLD), 'a full count has no room');
+  c^.coins[C_MONEY.GOLD] := 65000;
+  TestKit.CheckEqualsL(535, MoneyCal.CoinRoom(c, C_MONEY.GOLD), '65000 gold has room for 535');
+  TestKit.CheckEqualsL(65535, MoneyCal.CoinRoom(c, C_MONEY.SILVER), 'no silver has room for 65535');
 
   { making change: the largest coins first, each type capped, gems and jewelry kept }
   SetMoney(m, 0, 0, 0, 0, 0, 9, 4);
@@ -94,7 +94,7 @@ begin
 
   { who pays: the buyer with 10 gp, else a pool with 50 gp }
   FillChar(c^.coins, SizeOf(c^.coins), 0);
-  c^.coins[C_Money.GOLD] := 10;
+  c^.coins[C_MONEY.GOLD] := 10;
   SetMoney(GDVars.treasureMoney, 0, 0, 0, 50, 0, 1000, 1000);
   TestKit.CheckEqualsL(MoneyCal.PAY_CHARACTER, MoneyCal.WhoPays(c, 10), 'the buyer pays what it can');
   TestKit.CheckEqualsL(MoneyCal.PAY_POOL, MoneyCal.WhoPays(c, 11), 'else the pool pays');
@@ -124,14 +124,14 @@ begin
   TestKit.CheckEqualsL(65535, MoneyCal.ItemSalePrice(item), 'a sale price stops at 65535');
 
   { money type names }
-  CheckParse('Gold', C_Money.GOLD, 'Gold ');
-  CheckParse('Gems', C_Money.GEMS, 'Gems ');
-  CheckParse('GEMS', C_Money.GEMS, 'Gems ');
-  CheckParse('   Platinum', C_Money.PLATINUM, 'Platinum ');
-  CheckParse('Electrum', C_Money.ELECTRUM, 'electrum ');
-  CheckParse('Silver', C_Money.SILVER, 'silver ');
-  CheckParse('Copper', C_Money.COPPER, 'Copper ');
-  CheckParse('Jewelry', C_Money.JEWELRY, 'Jewelry ');
+  CheckParse('Gold', C_MONEY.GOLD, 'Gold ');
+  CheckParse('Gems', C_MONEY.GEMS, 'Gems ');
+  CheckParse('GEMS', C_MONEY.GEMS, 'Gems ');
+  CheckParse('   Platinum', C_MONEY.PLATINUM, 'Platinum ');
+  CheckParse('Electrum', C_MONEY.ELECTRUM, 'electrum ');
+  CheckParse('Silver', C_MONEY.SILVER, 'silver ');
+  CheckParse('Copper', C_MONEY.COPPER, 'Copper ');
+  CheckParse('Jewelry', C_MONEY.JEWELRY, 'Jewelry ');
   name := 'unchanged';
   mType := MoneyCal.ParseMoneyType('Xyz', name);
   TestKit.CheckEqualsS('unchanged', name, 'an unknown letter leaves the name');

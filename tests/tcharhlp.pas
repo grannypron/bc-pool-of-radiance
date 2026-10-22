@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_Race, C_EFFECT, C_STATUS, C_MONEY, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -178,8 +178,8 @@ begin
   NewItem(5, 0, 0, 5, 0, 150);
   CharHlp.AppendItemCopy(list, @it);
   c^.itemsAddr := list;
-  c^.coins[C_Money.GOLD] := 100;
-  c^.coins[C_Money.GEMS] := 3;
+  c^.coins[C_MONEY.GOLD] := 100;
+  c^.coins[C_MONEY.GEMS] := 3;
   TestKit.CheckEqualsL(40 + 150 + 103, CharHlp.RawWeight(c), 'raw weight: the items and every coin, gem and jewel');
 
   { item lists: appends go to the end, prepends to the front }

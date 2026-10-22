@@ -15,7 +15,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 implementation
 
 uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
-  C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
+  C_MONEY, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
   { Combat outcome. }
@@ -53,7 +53,7 @@ begin
       item := p^.itemsAddr;
       if (p^.hostile = 1) and (p^.status <> C_STATUS.RUNNING) then begin
         nonEscapedHostileFound := True;
-        for i := C_Money.COPPER to C_Money.JEWELRY do
+        for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
           Inc(GDVars.treasureMoney[i], p^.coins[i]);
         expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
         if GDVars.zone1^[C_GBVM.NO_COMBAT_ITEMS] <> 1 then
@@ -69,13 +69,13 @@ begin
       end;
       p := p^.nextCharAddr;
     end;
-    Inc(expTotal, GDVars.treasureMoney[C_Money.COPPER] div 200);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.SILVER] div 20);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.ELECTRUM] div 2);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.GOLD]);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.PLATINUM] * 5);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.GEMS] * 250);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.JEWELRY] * 2200);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.COPPER] div 200);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.SILVER] div 20);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.ELECTRUM] div 2);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.GOLD]);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.PLATINUM] * 5);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.GEMS] * 250);
+    Inc(expTotal, GDVars.treasureMoney[C_MONEY.JEWELRY] * 2200);
     q := GDVars.treasureItems;
     while (q <> nil) and (q <> GDVars.lastMissileItem) do begin
       if q^.plus > 0 then
@@ -495,7 +495,7 @@ begin
     p := p^.nextCharAddr;
   end;
   if npcShares > 0 then
-    for i := C_Money.COPPER to C_Money.JEWELRY do
+    for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
       if GDVars.treasureMoney[i] > 0 then begin
         cut := GDVars.treasureMoney[i] div total;
         Dec(GDVars.treasureMoney[i], npcShares * cut);

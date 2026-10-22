@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TDiskRec;
 
-uses Types, C_Money, C_EQUIP, DiskRec, TestKit;
+uses Types, C_MONEY, C_EQUIP, DiskRec, TestKit;
 
 var
   ch: Types.TCharRecord;
@@ -29,7 +29,7 @@ begin
   ch.nextCharAddr := nil;
   ch.combatAddr := nil;
   ch.gender := 1;
-  ch.coins[C_Money.PLATINUM] := 1234;
+  ch.coins[C_MONEY.PLATINUM] := 1234;
   ch.experience := 987654;
   ch.iconColors[5] := $C4;
   ch.portraitBody := 7;
@@ -43,7 +43,7 @@ begin
   for i := 127 to 130 do
     zeros := zeros and (chDisk[i] = 0);
   TestKit.Check(zeros, 'effectsAddr is 4 zero bytes at 127');
-  TestKit.CheckEqualsL(1234, chDisk[136 + 2 * C_Money.PLATINUM] + 256 * chDisk[137 + 2 * C_Money.PLATINUM],
+  TestKit.CheckEqualsL(1234, chDisk[136 + 2 * C_MONEY.PLATINUM] + 256 * chDisk[137 + 2 * C_MONEY.PLATINUM],
                        'platinum is where coins has it');
   FillChar(back, SizeOf(back), $A5);
   DiskRec.CharFromDisk(chDisk, back);

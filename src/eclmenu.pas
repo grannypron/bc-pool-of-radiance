@@ -81,7 +81,7 @@ procedure AddCreatureToParty(id: Byte);
 implementation
 
 uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
-  C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
+  C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -433,13 +433,13 @@ end;
 
 procedure RobMoney(fraction: Real; creature: Types.PCharRecord);
 begin
-  creature^.coins[C_Money.COPPER] := Trunc(creature^.coins[C_Money.COPPER] * fraction);
-  creature^.coins[C_Money.SILVER] := Trunc(creature^.coins[C_Money.SILVER] * fraction);
-  creature^.coins[C_Money.ELECTRUM] := Trunc(creature^.coins[C_Money.ELECTRUM] * fraction);
-  creature^.coins[C_Money.GOLD] := Trunc(creature^.coins[C_Money.GOLD] * fraction);
-  creature^.coins[C_Money.PLATINUM] := Trunc(creature^.coins[C_Money.PLATINUM] * fraction);
-  creature^.coins[C_Money.GEMS] := Trunc(creature^.coins[C_Money.GEMS] * fraction);
-  creature^.coins[C_Money.JEWELRY] := Trunc(creature^.coins[C_Money.JEWELRY] * fraction);
+  creature^.coins[C_MONEY.COPPER] := Trunc(creature^.coins[C_MONEY.COPPER] * fraction);
+  creature^.coins[C_MONEY.SILVER] := Trunc(creature^.coins[C_MONEY.SILVER] * fraction);
+  creature^.coins[C_MONEY.ELECTRUM] := Trunc(creature^.coins[C_MONEY.ELECTRUM] * fraction);
+  creature^.coins[C_MONEY.GOLD] := Trunc(creature^.coins[C_MONEY.GOLD] * fraction);
+  creature^.coins[C_MONEY.PLATINUM] := Trunc(creature^.coins[C_MONEY.PLATINUM] * fraction);
+  creature^.coins[C_MONEY.GEMS] := Trunc(creature^.coins[C_MONEY.GEMS] * fraction);
+  creature^.coins[C_MONEY.JEWELRY] := Trunc(creature^.coins[C_MONEY.JEWELRY] * fraction);
 end;
 
 { Each item is taken on a 1d100 roll within its own chance (CharHlp.TheftChance: heavy items are harder to steal; SSI

@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TStats;
 
-uses Types, GDVars, C_GBVM, C_STATUS, C_IFC, C_Money, Party, Stats, TestKit;
+uses Types, GDVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -109,11 +109,11 @@ begin
   TestKit.CheckEqualsL(6, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a power');
 
   { net coin: what each member comes away with, up or down }
-  a^.coins[C_Money.GOLD] := 10;
-  b^.coins[C_Money.SILVER] := 50;
+  a^.coins[C_MONEY.GOLD] := 10;
+  b^.coins[C_MONEY.SILVER] := 50;
   Stats.MarkCoins;
-  a^.coins[C_Money.GOLD] := 15;
-  b^.coins[C_Money.SILVER] := 0;
+  a^.coins[C_MONEY.GOLD] := 15;
+  b^.coins[C_MONEY.SILVER] := 0;
   Stats.SettleCoins;
   TestKit.CheckEqualsL(1000, Stats.BlockOf(a)^.counts[Stats.COIN_LOOTED], 'coin taken, in copper');
   TestKit.CheckEqualsL(-500, Stats.BlockOf(b)^.counts[Stats.COIN_LOOTED], 'coin pooled, below zero');
