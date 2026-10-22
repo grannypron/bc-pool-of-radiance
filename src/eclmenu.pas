@@ -82,7 +82,7 @@ implementation
 
 uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
+  C_Race, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { Picture id last shown, copied from C_GBVM.PIC_LOADING }
@@ -614,20 +614,20 @@ begin
     randByte := Random(256);
     cnt := 0;
     { classes holds 4; shipped monsters have at most 4 class levels set, and none a monk's }
-    for i := C_Level.CLERIC to C_Level.THIEF do
+    for i := C_LEVEL.CLERIC to C_LEVEL.THIEF do
       if (classLevels[i] > 0) and (cnt < 4) then begin
         Inc(cnt);
         classes[cnt] := i;
       end;
     if cnt = 0 then begin
       cnt := 1;
-      classes[cnt] := C_Level.FIGHTER;
+      classes[cnt] := C_LEVEL.FIGHTER;
     end;
     cnt := Dice.RollDice(1, cnt);
     case classes[cnt] of
-      C_Level.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, Dice.RollDice(1, 5)];
-      C_Level.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, Dice.RollDice(1, 5)];
-      C_Level.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, Dice.RollDice(1, 5)];
+      C_LEVEL.CLERIC: portraitBody := GDConsts.npcClericBodies[genderSp, Dice.RollDice(1, 5)];
+      C_LEVEL.MAGE: portraitBody := GDConsts.npcMageBodies[genderSp, Dice.RollDice(1, 5)];
+      C_LEVEL.THIEF: portraitBody := GDConsts.npcThiefBodies[genderSp, Dice.RollDice(1, 5)];
       else portraitBody := GDConsts.npcFighterBodies[genderSp, Dice.RollDice(1, 5)];
     end;
     portraitHead := GDConsts.npcPortraitHeads[genderSp, Dice.RollDice(1, 8)];

@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_Level,
+uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -474,7 +474,7 @@ var
 begin
   if not Camp.CanDoSpellActivity(ACT_SCRIBE) then
     Exit;
-  if GDVars.curChar^.classLevels[C_Level.MAGE] <= 0 then begin
+  if GDVars.curChar^.classLevels[C_LEVEL.MAGE] <= 0 then begin
     CharDisp.PrintMessage('Scribing a scroll requires arcane training.')
   end else begin
     done := False;
@@ -969,7 +969,7 @@ begin
     l3Free[n] := 0;
     l1Casts[n] := 0;
     l3Casts[n] := 0;
-    if p^.classLevels[C_Level.CLERIC] > 0 then begin
+    if p^.classLevels[C_LEVEL.CLERIC] > 0 then begin
       Inc(clerics);
       if p^.status = C_STATUS.OKAY then Inc(ableClerics);
     end;

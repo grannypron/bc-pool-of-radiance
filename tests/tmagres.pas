@@ -5,7 +5,7 @@
 {$I COMPILER.INC}
 program TMagRes;
 
-uses Types, C_EFFECT, C_SPELL, C_Level, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_SPELL, C_LEVEL, GDVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 1000;
@@ -43,15 +43,15 @@ begin
   GDVars.elementMask := 0;
 
   GDVars.currentSpellBeing := C_SPELL.MAGIC_MISSILE;
-  caster^.classLevels[C_Level.MAGE] := 1;
+  caster^.classLevels[C_LEVEL.MAGE] := 1;
   TestKit.CheckEqualsL(TRIES, Resisted, '50% against level 11 is 100% against level 1');
-  caster^.classLevels[C_Level.MAGE] := 21;
+  caster^.classLevels[C_LEVEL.MAGE] := 21;
   TestKit.CheckEqualsL(0, Resisted, 'and 0% against level 21');
 
   { no spell (#786) }
   GDVars.currentSpellBeing := C_SPELL.NONE;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'an effect that is no spell meets the listed 50%');
-  caster^.classLevels[C_Level.MAGE] := 1;
+  caster^.classLevels[C_LEVEL.MAGE] := 1;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'whatever the creature''s own level');
 
   { a touch's poison or paralysis is no magic (#800); the resistance still meets an effect under the plain check }

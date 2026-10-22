@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_ITEM, C_EQUIP, C_Level, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -79,19 +79,19 @@ begin
   SsiCap := False;
   case race of
     C_Race.DWARF:
-      SsiCap := (cls = C_Level.FIGHTER) and (((lvl = 8) and (str = 17)) or ((lvl = 7) and (str < 17)));
+      SsiCap := (cls = C_LEVEL.FIGHTER) and (((lvl = 8) and (str = 17)) or ((lvl = 7) and (str < 17)));
     C_Race.ELF:
-      SsiCap := (cls = C_Level.FIGHTER) and ((lvl = 7) or ((lvl = 6) and (str = 17)) or ((lvl = 5) and (str < 17)));
+      SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 7) or ((lvl = 6) and (str = 17)) or ((lvl = 5) and (str < 17)));
     C_Race.GNOME:
-      SsiCap := (cls = C_Level.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str < 18)));
+      SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str < 18)));
     C_Race.HALFELF:
-      if (cls = C_Level.CLERIC) and (lvl = 5) then
+      if (cls = C_LEVEL.CLERIC) and (lvl = 5) then
         SsiCap := True
       else
-        SsiCap := ((cls = C_Level.FIGHTER) or (cls = C_Level.RANGER)) and
+        SsiCap := ((cls = C_LEVEL.FIGHTER) or (cls = C_LEVEL.RANGER)) and
                   ((lvl = 8) or ((lvl = 7) and (str = 17)) or ((lvl = 6) and (str < 17)));
     C_Race.HALFLING:
-      SsiCap := (cls = C_Level.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str = 17)) or ((lvl = 4) and (str < 17)));
+      SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str = 17)) or ((lvl = 4) and (str < 17)));
   end;
 end;
 
@@ -108,7 +108,7 @@ var
   want: Boolean;
   bad: Integer;
 const
-  CLASSES: array[1..3] of Integer = (C_Level.FIGHTER, C_Level.RANGER, C_Level.CLERIC);
+  CLASSES: array[1..3] of Integer = (C_LEVEL.FIGHTER, C_LEVEL.RANGER, C_LEVEL.CLERIC);
 begin
   bad := 0;
   for race := C_Race.DWARF to C_Race.HUMAN do
@@ -201,12 +201,12 @@ begin
   { warrior level }
   ClearCreature;
   TestKit.CheckEqualsL(0, CharHlp.WarriorLevel(c), 'no warrior class: 0');
-  c^.classLevels[C_Level.MAGE] := 5;
-  c^.classLevels[C_Level.FIGHTER] := 3;
-  c^.classLevels[C_Level.RANGER] := 4;
+  c^.classLevels[C_LEVEL.MAGE] := 5;
+  c^.classLevels[C_LEVEL.FIGHTER] := 3;
+  c^.classLevels[C_LEVEL.RANGER] := 4;
   TestKit.CheckEqualsL(4, CharHlp.WarriorLevel(c), 'the highest of fighter, paladin and ranger');
-  c^.classLevels[C_Level.FIGHTER] := -1;
-  c^.classLevels[C_Level.RANGER] := -1;
+  c^.classLevels[C_LEVEL.FIGHTER] := -1;
+  c^.classLevels[C_LEVEL.RANGER] := -1;
   TestKit.CheckEqualsL(0, CharHlp.WarriorLevel(c), 'a level below 0 counts as none');
 
   CheckPersons;
@@ -240,19 +240,19 @@ begin
   { racial level caps }
   ClearCreature;
   c^.race := C_Race.ELF;
-  c^.classLevels[C_Level.FIGHTER] := 7;
-  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'an elf fighter stops at 7');
-  c^.classLevels[C_Level.FIGHTER] := 5;
+  c^.classLevels[C_LEVEL.FIGHTER] := 7;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'an elf fighter stops at 7');
+  c^.classLevels[C_LEVEL.FIGHTER] := 5;
   c^.strCur := 17;
-  TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'at 6 with Strength 17');
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'at 6 with Strength 17');
   c^.strCur := 16;
-  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'at 5 with Strength below 17');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'at 5 with Strength below 17');
   c^.race := C_Race.HUMAN;
-  c^.classLevels[C_Level.FIGHTER] := 8;
-  TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a human has no cap here');
+  c^.classLevels[C_LEVEL.FIGHTER] := 8;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a human has no cap here');
   c^.race := C_Race.HALFELF;
-  c^.classLevels[C_Level.CLERIC] := 5;
-  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.CLERIC), 'a half-elf cleric stops at 5');
+  c^.classLevels[C_LEVEL.CLERIC] := 5;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
 
   CheckCapsMatchSsi;
 
@@ -260,7 +260,7 @@ begin
     the one Strength or Enlarge node not superseded }
   ClearCreature;
   c^.race := C_Race.GNOME;
-  c^.classLevels[C_Level.FIGHTER] := 5;
+  c^.classLevels[C_LEVEL.FIGHTER] := 5;
   c^.strCur := 18;
   c^.strExc := 100;
   FillChar(e, SizeOf(e), 0);
@@ -270,16 +270,16 @@ begin
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'a superseded node holds no restore value');
   e.strength := AbilAdj.StrengthModifier(17, 0);
   TestKit.CheckEqualsL(17, CharHlp.PermanentStrength(c), 'the active node holds the own Strength');
-  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a gnome fighter with Strength 17 in gauntlets stops at 5');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a gnome fighter with Strength 17 in gauntlets stops at 5');
   e.id := C_EFFECT.ENLARGE;
   e.strength := AbilAdj.StrengthModifier(18, 50);
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'Enlarge''s restore value, 18/50');
-  TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'and with 18 of its own the gnome trains past 5');
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'and with 18 of its own the gnome trains past 5');
   c^.effectsAddr := nil;
   c^.race := C_Race.DWARF;
-  c^.classLevels[C_Level.FIGHTER] := 8;
+  c^.classLevels[C_LEVEL.FIGHTER] := 8;
   c^.strCur := 15;
-  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
   { under Enlarge the stored Strength is whole, and a disease's loss (#705) still counts against the cap }
   FillChar(d, SizeOf(d), 0);
   d.id := C_EFFECT.DISEASE_STR;
@@ -291,7 +291,7 @@ begin
   c^.strCur := 17;
   TestKit.CheckEqualsL(2, CharHlp.DiseaseStrLoss(c), 'the disease has taken 2');
   TestKit.CheckEqualsL(16, CharHlp.PermanentStrength(c), 'Enlarge''s 18/50 less the 2 the disease took');
-  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'so the diseased dwarf fighter 8 stays capped');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'so the diseased dwarf fighter 8 stays capped');
   c^.effectsAddr := nil;
   { Haste doubles, Slow halves, and the two cancel (#778) }
   FillChar(e, SizeOf(e), 0);

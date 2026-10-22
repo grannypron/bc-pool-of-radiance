@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_Level, C_STATUS, C_IFC,
+uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_LEVEL, C_STATUS, C_IFC,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -555,7 +555,7 @@ begin
   else
     creature^.attackLevel := 1;
   { readying or removing armor or a shield, or a change of Dexterity, changes the thief skills }
-  if creature^.classLevels[C_Level.THIEF] > 0 then
+  if creature^.classLevels[C_LEVEL.THIEF] > 0 then
     ClassCal.RecalcThiefSkills(creature);
 end;
 
@@ -866,8 +866,8 @@ end;
 function GetCasterLevel(spell: Byte): Byte;
 begin
   case GDConsts.spellTable[spell].castClass of
-    C_SPELL.CLASS_CLERIC: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.CLERIC];
-    C_SPELL.CLASS_MAGE: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.MAGE];
+    C_SPELL.CLASS_CLERIC: GetCasterLevel := GDVars.curChar^.classLevels[C_LEVEL.CLERIC];
+    C_SPELL.CLASS_MAGE: GetCasterLevel := GDVars.curChar^.classLevels[C_LEVEL.MAGE];
     C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
   if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
@@ -928,10 +928,10 @@ var
   lvl: ShortInt;
 begin
   CanTrain := False;
-  for cls := C_Level.CLERIC to C_Level.MONK do begin
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[cls];
-    { xp[] runs to C_Level.LEVEL_LAST }
-    if (lvl > 0) and (lvl < C_Level.LEVEL_LAST) then
+    { xp[] runs to C_LEVEL.LEVEL_LAST }
+    if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
         if GDConsts.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
           if GDConsts.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
@@ -959,10 +959,10 @@ begin
       band := STR_BAND_17
     else
       band := STR_BAND_18;
-    if (race = C_Race.HALFELF) and (cls = C_Level.CLERIC) then
+    if (race = C_Race.HALFELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
     else if (race in [C_Race.DWARF..C_Race.HALFLING]) and
-            ((cls = C_Level.FIGHTER) or ((cls = C_Level.RANGER) and (race = C_Race.HALFELF))) then
+            ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_Race.HALFELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
   end;
 end;
@@ -1000,11 +1000,11 @@ function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 var
   best: ShortInt;
 begin
-  best := creature^.classLevels[C_Level.FIGHTER];
-  if creature^.classLevels[C_Level.PALADIN] > best then
-    best := creature^.classLevels[C_Level.PALADIN];
-  if creature^.classLevels[C_Level.RANGER] > best then
-    best := creature^.classLevels[C_Level.RANGER];
+  best := creature^.classLevels[C_LEVEL.FIGHTER];
+  if creature^.classLevels[C_LEVEL.PALADIN] > best then
+    best := creature^.classLevels[C_LEVEL.PALADIN];
+  if creature^.classLevels[C_LEVEL.RANGER] > best then
+    best := creature^.classLevels[C_LEVEL.RANGER];
   if best < 0 then
     best := 0;
   WarriorLevel := best;
@@ -1064,7 +1064,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_EFFECT.READ_MAGIC, effect) or
-      ((creature^.classLevels[C_Level.CLERIC] > 0) and
+      ((creature^.classLevels[C_LEVEL.CLERIC] > 0) and
        (CharHlp.BaseItem(item^.itemType)^.slot = C_ITEM.SLOT_CLERIC_SCROLL)) then
     item^.unidMask := 0;
   ScrollLegible := item^.unidMask = 0;

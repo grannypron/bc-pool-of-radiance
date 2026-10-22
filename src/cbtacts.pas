@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_Level,
+uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -157,14 +157,14 @@ begin
   GDVars.pendingDamage := dmg;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
-    GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_Level.THIEF]) + 3) div 4 + 1);
-  if (att^.classLevels[C_Level.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
+    GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_LEVEL.THIEF]) + 3) div 4 + 1);
+  if (att^.classLevels[C_LEVEL.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
       if def^.name = GDConsts.rangerFoes[i] then
-        if GDVars.pendingDamage > 255 - att^.classLevels[C_Level.RANGER] then
+        if GDVars.pendingDamage > 255 - att^.classLevels[C_LEVEL.RANGER] then
           GDVars.pendingDamage := 255
         else
-          Inc(GDVars.pendingDamage, att^.classLevels[C_Level.RANGER]);
+          Inc(GDVars.pendingDamage, att^.classLevels[C_LEVEL.RANGER]);
   GDVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_DEF, def);
@@ -652,9 +652,9 @@ function TurnLevel(creature: Types.PCharRecord): ShortInt;
 var
   lvl: ShortInt;
 begin
-  lvl := creature^.classLevels[C_Level.CLERIC];
-  if creature^.classLevels[C_Level.PALADIN] - 2 > lvl then
-    lvl := creature^.classLevels[C_Level.PALADIN] - 2;
+  lvl := creature^.classLevels[C_LEVEL.CLERIC];
+  if creature^.classLevels[C_LEVEL.PALADIN] - 2 > lvl then
+    lvl := creature^.classLevels[C_LEVEL.PALADIN] - 2;
   if lvl < 0 then
     lvl := 0;
   TurnLevel := lvl;
@@ -1210,7 +1210,7 @@ begin
   weapon := att^.equipped[C_EQUIP.WEAPON];
   if weapon <> nil then
     wItem := weapon^.itemType;
-  if att^.classLevels[C_Level.THIEF] > 0 then
+  if att^.classLevels[C_LEVEL.THIEF] > 0 then
     if not ClassCal.ArmorBarsThiefSkills(att) then
       if (weapon = nil) or (wItem = C_ITEM.CLUB) or (wItem = C_ITEM.DAGGER)
          or ((wItem >= C_ITEM.BROAD_SWORD) and (wItem <= C_ITEM.SHORT_SWORD)) then

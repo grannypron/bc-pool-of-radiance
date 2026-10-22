@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_KEYS,
+uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_Race, C_KEYS,
   C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
@@ -214,7 +214,7 @@ procedure ShowRaceInfo(race: ShortInt);
 const
   ABIL_LABELS: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
   { by classLevels index }
-  PART_ABBREVS: array[C_Level.CLERIC..C_Level.MONK] of String[2] = (
+  PART_ABBREVS: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of String[2] = (
     'CL', 'DR', 'FI', 'PA', 'RA', 'MU', 'TH', 'MO');
   ABIL_COL = 19;
   ADJ_COL = 23;
@@ -242,7 +242,7 @@ var
   part: ShortInt;
   lvl: ShortInt;
   hasMulti: Boolean;
-  isSingle: array[C_Level.CLERIC..C_Level.MONK] of Boolean;
+  isSingle: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Boolean;
 begin
   Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_ABIL.CHARISMA);
   Border.ClearBox(1, HEADING_ROW, LAST_COL, NOTE_ROW + 1);
@@ -272,7 +272,7 @@ begin
       s := '';
       for p := 1 to 3 do begin
         part := GDConsts.classParts[cls].values[p];
-        if (part >= C_Level.CLERIC) and (part <= C_Level.MONK) then begin
+        if (part >= C_LEVEL.CLERIC) and (part <= C_LEVEL.MONK) then begin
           isSingle[part] := True;
           if s <> '' then
             s := s + '/';
@@ -292,7 +292,7 @@ begin
     TextRend.DisplayString(MULTI_COL, HEADING_ROW, LightMagenta, 'Multiclasses');
   { the single classes on the left; a single class's id is its classLevels index }
   row := FIRST_ROW;
-  for part := C_Level.CLERIC to C_Level.MONK do
+  for part := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if isSingle[part] and (row <= LAST_ROW) then begin
       lvl := GDConsts.raceMaxLevel[race].values[part];
       if lvl = 0 then
@@ -510,8 +510,8 @@ begin
     { first level in each part of the class }
     if (charClass >= C_CLASS.CLERIC) and (charClass <= C_CLASS.MAGE_THIEF) then
       for slot := 1 to 3 do
-        if (GDConsts.classParts[charClass].values[slot] >= C_Level.CLERIC)
-           and (GDConsts.classParts[charClass].values[slot] <= C_Level.MONK) then
+        if (GDConsts.classParts[charClass].values[slot] >= C_LEVEL.CLERIC)
+           and (GDConsts.classParts[charClass].values[slot] <= C_LEVEL.MONK) then
           classLevels[GDConsts.classParts[charClass].values[slot]] := 1;
     { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it. It is the 10'
       radius one, as the paladin's has a 1" radius: SSI gave eff 8, which covered the paladin alone (#742). }
@@ -519,7 +519,7 @@ begin
       FxEngine.AddEffect(creature, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         if GDConsts.thac0Tbl[cls, classLevels[cls]] > thac0Base then
           thac0Base := GDConsts.thac0Tbl[cls, classLevels[cls]];
@@ -642,7 +642,7 @@ begin
       ViewChar.PrintStat(i, False);
     end;
     { thief skills use the Dexterity just rolled }
-    if creature^.classLevels[C_Level.THIEF] > 0 then
+    if creature^.classLevels[C_LEVEL.THIEF] > 0 then
       ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     with creature^ do begin
       hpCur := hpMax;
@@ -654,24 +654,24 @@ begin
       { goldDice sums each class's starting-gold dice (startingGoldClass); gold = sum * 10 div class count }
       goldDice := 0;
       clsCount := 0;
-      for cls := C_Level.CLERIC to C_Level.MONK do
+      for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
         if classLevels[cls] > 0 then begin
           case cls of
-            C_Level.CLERIC: clericSpells[1] := 1;
-            C_Level.MAGE: mageSpells[1] := 1;
+            C_LEVEL.CLERIC: clericSpells[1] := 1;
+            C_LEVEL.MAGE: mageSpells[1] := 1;
           end;
           Inc(goldDice,
               Dice.RollDice(GDConsts.startingGoldClass[cls].num, GDConsts.startingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
-            C_Level.CLERIC: begin
+            C_LEVEL.CLERIC: begin
                  ClassCal.AwardWisdomBonus(Types.PCharRecord(creature));
                  for slot := 1 to SizeOf(spellsKnown) div SizeOf(spellsKnown[1]) do
                    with GDConsts.spellTable[slot] do
                      if (castClass = 0) and (level = 1) then
                        spellsKnown[slot] := 1;
                end;
-            C_Level.MAGE: begin
+            C_LEVEL.MAGE: begin
                  { Detect Magic }
                  spellsKnown[11] := 1;
                  { Read Magic }
@@ -1008,7 +1008,7 @@ begin
       ViewChar.PrintCombatStats;
       RedrawStat(True);
     until (not ext) and (key = 'K');
-    if classLevels[C_Level.THIEF] > 0 then
+    if classLevels[C_LEVEL.THIEF] > 0 then
       ClassCal.RecalcThiefSkills(Types.PCharRecord(GDVars.curChar));
     if not levelled then
       GDVars.curChar^.npcTreasureShare := 1;
@@ -1034,8 +1034,8 @@ var
 begin
   with GDVars.curChar^ do begin
     clsCount := 0;
-    oldMage := classLevels[C_Level.MAGE];
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    oldMage := classLevels[C_LEVEL.MAGE];
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         if GDConsts.classBit[cls] and trainable > 0 then begin
@@ -1047,7 +1047,7 @@ begin
         end;
       end;
     ClassCal.RecalcBaseSkills(Types.PCharRecord(GDVars.curChar));
-    if classLevels[C_Level.MAGE] > oldMage then begin
+    if classLevels[C_LEVEL.MAGE] > oldMage then begin
       idx := -1;
       repeat
         sel := Magic.SpellMenu(4, 4, idx, notEmpty);
@@ -1101,7 +1101,7 @@ begin
   classMask := 0;
   with GDVars.curChar^ do begin
     xpClamp := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(classMask, GDConsts.classBit[cls]);
         lvl := classLevels[cls];
@@ -1143,7 +1143,7 @@ begin
     row := 4;
     CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then
         if GDConsts.classBit[cls] and trainable > 0 then begin
           Inc(row);
@@ -1242,24 +1242,24 @@ begin
               { C_Npc.FLAG clear }
               if not CharHlp.IsNpc(p) then
                 Inc(nonNpc);
-              if p^.classLevels[C_Level.RANGER] > 0 then
+              if p^.classLevels[C_LEVEL.RANGER] > 0 then
                 Inc(rangers);
               if p^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL] then
                 hasEvil := True;
-              if p^.classLevels[C_Level.PALADIN] > 0 then
+              if p^.classLevels[C_LEVEL.PALADIN] > 0 then
                 paladin := p;
               p := p^.nextCharAddr;
             end;
-            newPaladin := creature^.classLevels[C_Level.PALADIN] > 0;
+            newPaladin := creature^.classLevels[C_LEVEL.PALADIN] > 0;
             newEvil := creature^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL];
             if (p = nil) and
-                ((newPaladin and hasEvil) or ((creature^.classLevels[C_Level.RANGER] > 0) and (rangers >= 3)) or
+                ((newPaladin and hasEvil) or ((creature^.classLevels[C_LEVEL.RANGER] > 0) and (rangers >= 3)) or
                  (newEvil and (paladin <> nil))) then begin
               { refused by the party rules: unmarked, so it stays on the roster; the reason stays up until a key }
               Delete(m^.name, 1, 2);
               if newPaladin and hasEvil then
                 TextRend.DisplayAndPause(Yellow, 'paladins do not join with evil scum')
-              else if (creature^.classLevels[C_Level.RANGER] > 0) and (rangers >= 3) then
+              else if (creature^.classLevels[C_LEVEL.RANGER] > 0) and (rangers >= 3) then
                 TextRend.DisplayAndPause(Yellow, 'too many rangers in party')
               else
                 TextRend.DisplayAndPause(Yellow, paladin^.name + ' will tolerate no evil!');

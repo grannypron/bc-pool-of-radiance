@@ -109,7 +109,7 @@ implementation
 
 uses DiskRec, Crt, C_AREA, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_KEYS, C_IFC, C_GBVM, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
-  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
+  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -489,7 +489,7 @@ begin
   end;
   { a paladin created by SSI's game, or before #742, has eff 8 as his own Protection from Evil (permanent, strength
     255): it becomes the 10' radius one character creation gives now }
-  if creature^.classLevels[C_Level.PALADIN] > 0 then begin
+  if creature^.classLevels[C_LEVEL.PALADIN] > 0 then begin
     effect := creature^.effectsAddr;
     while effect <> nil do begin
       if (effect^.id = C_EFFECT.PROT_EVIL) and (effect^.duration = 0) and (effect^.strength = 255) then

@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_Level, C_STATUS, C_IFC, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -97,7 +97,7 @@ begin
   multi := False;
   s := '';
   { one entry per class the character has levels in, joined with '/' }
-  for j := C_Level.CLERIC to C_Level.MONK do
+  for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if creature^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
@@ -170,7 +170,7 @@ begin
   used := 0;
   if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
     used := effect^.strength;
-  allowed := (p^.classLevels[C_Level.PALADIN] - 1) div 5 + 1;
+  allowed := (p^.classLevels[C_LEVEL.PALADIN] - 1) div 5 + 1;
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
@@ -187,7 +187,7 @@ begin
   if tgt = nil then
     Exit;
   hpBefore := tgt^.hpCur;
-  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then begin
+  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_LEVEL.PALADIN] * 2, False) then begin
     Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
     CharDisp.PrintBottomLine(tgt^.name + ' feels better')
   end
@@ -442,7 +442,7 @@ begin
   p := GDVars.curChar;
   CharHlp.RecalcStats(p);
   menu := 'Saves sTats Kills';
-  if p^.classLevels[C_Level.THIEF] > 0 then
+  if p^.classLevels[C_LEVEL.THIEF] > 0 then
     menu := menu + ' tHief';
   menu := menu + ' Exit';
   page := PAGE_SAVES;

@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_GENDER, C_CLASS, C_Level, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
+uses C_GENDER, C_CLASS, C_LEVEL, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -130,9 +130,9 @@ const
 const
   { CampOrderMenu }
   orderMenus: array[0..1] of String[40] = ('Select Exit', 'Place Exit');
-  { TCharRecord.itemLimits usability bit for each class-level slot (C_Level). The ranger shares the paladin's bit: the
+  { TCharRecord.itemLimits usability bit for each class-level slot (C_LEVEL). The ranger shares the paladin's bit: the
     item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
-  usabilityBit: array[C_Level.CLERIC..C_Level.MONK] of Byte = (
+  usabilityBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
     1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
   { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
     train with fighters; the monk combines two bits. }
@@ -1737,7 +1737,7 @@ const
 const
   { Class, race and level rules }
   { 60 - THAC0 }
-  thac0Tbl: array[C_Level.CLERIC..C_Level.MONK, 0..10] of Byte = (
+  thac0Tbl: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 0..10] of Byte = (
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46),
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46),
     (40, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49),
@@ -2004,7 +2004,7 @@ const
     -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
     at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
-  experienceSpellsClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleXp = (
+  experienceSpellsClass: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleXp = (
     (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
      slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
@@ -2021,12 +2021,12 @@ const
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))));
-  startingGoldClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleGold = (
+  startingGoldClass: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleGold = (
     (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
     (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
-  { ClassCal: Saving throws indexed by class-level slot (C_Level), level 1..9 and save column 0..4. The paladin's row is
+  { ClassCal: Saving throws indexed by class-level slot (C_LEVEL), level 1..9 and save column 0..4. The paladin's row is
     the fighter's less 2. }
-  saveTbl: array[C_Level.CLERIC..C_Level.MONK, 1..9] of Types.TRuleSaves = (
+  saveTbl: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 1..9] of Types.TRuleSaves = (
     { cleric }
     ((paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
      (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),

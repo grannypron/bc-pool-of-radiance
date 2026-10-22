@@ -163,7 +163,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_Level, Crt, C_ITEM, C_EQUIP;
+  TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP;
 
 const
   { EffectSource's side for a node cast by either side }
@@ -763,7 +763,7 @@ end;
 
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
-  DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_Level.PALADIN] > 0) and
+  DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_LEVEL.PALADIN] > 0) and
     (effId in C_EFFECT.DISEASES);
 end;
 

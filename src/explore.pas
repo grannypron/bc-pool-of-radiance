@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
-  C_KEYS, C_Level, C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -466,7 +466,7 @@ begin
                 menuStr[0] := #0;
                 if GDVars.doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Level.THIEF) then
+                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
                   menuStr := menuStr + ' Pick';
                 if (GDVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
                 then
@@ -488,9 +488,9 @@ begin
                 menuStr[0] := #0;
                 if GDVars.doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Level.THIEF) then
+                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GDVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_Level.MAGE) then
+                if (GDVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_LEVEL.MAGE) then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';
                 if menuStr = ' Exit' then

@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_Level, C_IFC, C_GBVM, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -738,8 +738,8 @@ begin
     hp := p^.hpCur;
     ac := p^.acCur;
     th := p^.thac0Cur;
-    mage := p^.classLevels[C_Level.MAGE];
-    cleric := p^.classLevels[C_Level.CLERIC];
+    mage := p^.classLevels[C_LEVEL.MAGE];
+    cleric := p^.classLevels[C_LEVEL.CLERIC];
     if ac > 60 then
       ac := ac - 60
     else

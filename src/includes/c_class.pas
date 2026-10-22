@@ -1,5 +1,5 @@
 { Class values (TCharRecord.charClass): single classes 0..7, then multiclass combinations 8..16. A single class's value
-  equals its C_Level index. }
+  equals its C_LEVEL index. }
 {$I COMPILER.INC}
 unit C_CLASS;
 

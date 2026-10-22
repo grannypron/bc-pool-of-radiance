@@ -250,7 +250,7 @@ implementation
 
 uses C_ITEM, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_Race, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
-  C_Level, Dice, Stats;
+  C_LEVEL, Dice, Stats;
 
 const
   { set by TouchImmune for its immunity check: a monster's poisonous or paralyzing touch is no magic, so magic
@@ -1340,7 +1340,7 @@ var
   begin
     xpMin := 0;
     bestLvl := 0;
-    for jj := C_Level.CLERIC to C_Level.MONK do begin
+    for jj := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
       lvl := creature^.classLevels[jj];
       { xp[] runs to level 9; a level above it reads level 9's entry }
       if lvl > 9 then
@@ -1373,7 +1373,7 @@ begin
     if creature^.status <> C_STATUS.GONE then begin
       Inc(creature^.drainedLevels);
       totalLevels := 0;
-      for j := C_Level.CLERIC to C_Level.MONK do
+      for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
         Inc(totalLevels, creature^.classLevels[j]);
       { a creature with no class levels (kobolds, bandits and other monsters) has no level to lose, and no divisor }
       if totalLevels = 0 then begin

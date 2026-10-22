@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_GENDER, C_Save, C_EQUIP, C_Level, C_ABIL, C_Money, C_GBVM;
+uses C_GENDER, C_Save, C_EQUIP, C_LEVEL, C_ABIL, C_Money, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -158,8 +158,8 @@ type
     unknown087: Byte;
     { Coins: copper, silver, electrum, gold, platinum, gems and jewelry. }
     coins: array[C_Money.COPPER..C_Money.JEWELRY] of Word;
-    { Class levels; indexed by C_Level. }
-    classLevels: array[C_Level.CLERIC..C_Level.MONK] of ShortInt;
+    { Class levels; indexed by C_LEVEL. }
+    classLevels: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt;
     { Gender; see GENDER_*. }
     gender: Byte;
     charType: Byte;
@@ -522,7 +522,7 @@ type
   { one value per classLevels index (GDConsts.raceMaxLevel), by index or by class name }
   TRuleClassLevels = packed record
     case Byte of
-      0: (values: array[C_Level.CLERIC..C_Level.MONK] of ShortInt);
+      0: (values: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt);
       1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
           thief: ShortInt; monk: ShortInt);
   end;
@@ -546,7 +546,7 @@ type
   end;
   TRuleXp = record
     { XP to reach level; -1 = unavailable }
-    xp: array[2..C_Level.LEVEL_LAST] of LongInt;
+    xp: array[2..C_LEVEL.LEVEL_LAST] of LongInt;
     { class level, spell level }
     slots: array[2..9, 1..3] of Byte;
   end;

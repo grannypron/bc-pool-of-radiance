@@ -187,7 +187,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 implementation
 
 uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
-  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_KEYS, C_Level, C_STATUS,
+  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_KEYS, C_LEVEL, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
 var
@@ -373,8 +373,8 @@ begin
           with GDConsts.spellTable[id] do
             if (levelSp >= 1) and (levelSp <= 3) then
               case castClassSp of
-                0: learnable := creature^.classLevels[C_Level.CLERIC] > 0;
-                1: learnable := creature^.classLevels[C_Level.MAGE] > 0;
+                0: learnable := creature^.classLevels[C_LEVEL.CLERIC] > 0;
+                1: learnable := creature^.classLevels[C_LEVEL.MAGE] > 0;
               end;
           if learnable then
             SpellMark := NOT_KNOWN_MARK;
@@ -1167,9 +1167,9 @@ begin
   exStr := 0;
   roll := 0;
   tgt := GDVars.targetCreaturePtr[1];
-  if tgt^.classLevels[C_Level.MAGE] > 0 then
+  if tgt^.classLevels[C_LEVEL.MAGE] > 0 then
     roll := Dice.RollDice(1, 4);
-  if (tgt^.classLevels[C_Level.CLERIC] > 0) or (tgt^.classLevels[C_Level.THIEF] > 0) then
+  if (tgt^.classLevels[C_LEVEL.CLERIC] > 0) or (tgt^.classLevels[C_LEVEL.THIEF] > 0) then
     roll := Dice.RollDice(1, 6);
   if CharHlp.WarriorLevel(tgt) > 0 then
     roll := Dice.RollDice(1, 8);
@@ -1636,7 +1636,7 @@ begin
     bestXp := 10000000;
     { no class picked yet }
     bestCls := -1;
-    for cls := C_Level.CLERIC to C_Level.MONK do begin
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
       lvl := tgt^.classLevels[cls];
       { xp[] runs to level 9 }
       if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] > 0) and

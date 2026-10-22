@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -42,13 +42,13 @@ type
   THeld = array[0..7] of ShortInt;
   TCodes = array[0..MAX_LINES] of Word;
 
-{ The class slots (C_Level) curChar has levels in, in order, and how many. }
+{ The class slots (C_LEVEL) curChar has levels in, in order, and how many. }
 procedure HeldClasses(var held: THeld; var count: Byte);
 var
   cls: ShortInt;
 begin
   count := 0;
-  for cls := C_Level.CLERIC to C_Level.MONK do
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if GDVars.curChar^.classLevels[cls] > 0 then begin
       held[count] := cls;
       Inc(count);
@@ -87,12 +87,12 @@ begin
       Dec(hpRolled, avg div clsCount);
     if classLevels[cls] = 1 then
       case cls of
-        C_Level.CLERIC: begin
+        C_LEVEL.CLERIC: begin
             FillChar(clericSpells, SizeOf(clericSpells), 0);
             clericSpells[1] := 1;
             ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
           end;
-        C_Level.MAGE: begin
+        C_LEVEL.MAGE: begin
             FillChar(mageSpells, SizeOf(mageSpells), 0);
             mageSpells[1] := 1;
           end;
@@ -138,7 +138,7 @@ begin
                          StrUtil.NumStr(GDVars.curChar^.hpMax) + '   ');
 end;
 
-{ The Levels tool: Up and Down pick a class, Left and Right lower or raise its level (1 to C_Level.LEVEL_LAST, past the
+{ The Levels tool: Up and Down pick a class, Left and Right lower or raise its level (1 to C_LEVEL.LEVEL_LAST, past the
   racial limits), the experience following into the level's range; Experience types a new total. }
 procedure LevelsTool;
 var
@@ -173,7 +173,7 @@ begin
                 experience := LevelXp(cls, classLevels[cls] + 1) - 1;
             end;
           C_KEYS.RIGHT:
-            if classLevels[cls] < C_Level.LEVEL_LAST then begin
+            if classLevels[cls] < C_LEVEL.LEVEL_LAST then begin
               CharGen.GainLevels(GDConsts.classBit[cls], False);
               if experience < LevelXp(cls, classLevels[cls]) then
                 experience := LevelXp(cls, classLevels[cls]);

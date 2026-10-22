@@ -44,7 +44,7 @@ const
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
 
-{ The Constitution hit-point adjustment class cls (C_Level) gets per hit die: GDConsts.conBonusTbl's, plus, for the
+{ The Constitution hit-point adjustment class cls (C_LEVEL) gets per hit die: GDConsts.conBonusTbl's, plus, for the
   fighter, paladin and ranger classes, 1 at Con 17, 2 at 18, 3 at 19..20, 4 at 21..23 and 5 at 24..25. The warrior
   bonus goes with the class, so a multi-class character's fighter, paladin or ranger levels get it too: the 1st-edition
   PHB works the bonus out per class, then divides by the class count (#616). A Constitution outside the table's 3..25
@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_CLASS, C_Level, C_Race, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GDConsts, GDVars, C_CLASS, C_LEVEL, C_Race, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -111,7 +111,7 @@ var
   m: Byte;
 begin
   creature^.thac0Base := 0;
-  for i := C_Level.CLERIC to C_Level.MONK do begin
+  for i := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[i];
     slotLvl := lvl;
     if slotLvl > 6 then
@@ -126,18 +126,18 @@ begin
     if creature^.levelHighest < lvl then
       creature^.levelHighest := lvl;
     case i of
-      C_Level.FIGHTER:
+      C_LEVEL.FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
       { after the fighter's slot, so these only raise it }
-      C_Level.PALADIN:
+      C_LEVEL.PALADIN:
         if lvl > 6 then creature^.attacks := 3;
-      C_Level.RANGER:
+      C_LEVEL.RANGER:
         if lvl > 7 then creature^.attacks := 3;
-      C_Level.CLERIC:
+      C_LEVEL.CLERIC:
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
-            creature^.clericSpells[k] := GDConsts.experienceSpellsClass[C_Level.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GDConsts.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           { Mark known every cleric spell (castClass 0) of a level with slots; slots exist for levels 1..3 only.
             56 = High(spellsKnown) }
@@ -146,15 +146,15 @@ begin
               if (castClass = 0) and (levelSp >= 1) and (levelSp <= 3) and (creature^.clericSpells[levelSp] > 0) then
                 creature^.spellsKnown[m] := 1;
         end;
-      C_Level.MAGE:
+      C_LEVEL.MAGE:
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
-            creature^.mageSpells[k] := GDConsts.experienceSpellsClass[C_Level.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GDConsts.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
   ClassCal.RecalcSaves(creature);
-  if creature^.classLevels[C_Level.THIEF] > 0 then
+  if creature^.classLevels[C_LEVEL.THIEF] > 0 then
     ClassCal.RecalcThiefSkills(creature);
 end;
 
@@ -190,7 +190,7 @@ begin
   { 4 = High(saves) }
   for i := 0 to 4 do begin
     creature^.saves[i] := 20;
-    for k := C_Level.CLERIC to C_Level.MONK do
+    for k := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if creature^.classLevels[k] > 0 then begin
         lvl := creature^.classLevels[k];
         if lvl > 9 then
@@ -214,7 +214,7 @@ var
   dexterity: ShortInt;
   barred: Boolean;
 begin
-  if creature^.classLevels[C_Level.THIEF] < 1 then
+  if creature^.classLevels[C_LEVEL.THIEF] < 1 then
     Exit;
   barred := ClassCal.ArmorBarsThiefSkills(creature);
   { 8 = High(thiefSkills) }
@@ -251,7 +251,7 @@ begin
   r := creature^.race;
   if (r < C_Race.DWARF) or (r > C_Race.HUMAN) then
     r := C_Race.HUMAN;
-  tl := creature^.classLevels[C_Level.THIEF];
+  tl := creature^.classLevels[C_LEVEL.THIEF];
   if tl < 1 then
     tl := 1
   else if tl > 9 then
@@ -334,7 +334,7 @@ begin
   else if con > 25 then
     con := 25;
   share := GDConsts.conBonusTbl[con];
-  if (cls = C_Level.FIGHTER) or (cls = C_Level.PALADIN) or (cls = C_Level.RANGER) then
+  if (cls = C_LEVEL.FIGHTER) or (cls = C_LEVEL.PALADIN) or (cls = C_LEVEL.RANGER) then
     case con of
       17: Inc(share);
       18: Inc(share, 2);
@@ -355,10 +355,10 @@ var
 begin
   bonus := 0;
   with creature^ do begin
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
         share := ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION]);
-        if (cls = C_Level.RANGER) and (classLevels[cls] = 1) then
+        if (cls = C_LEVEL.RANGER) and (classLevels[cls] = 1) then
           share := share * 2;
         Inc(bonus, share);
       end;
@@ -390,13 +390,13 @@ begin
   with creature^ do begin
     clsCount := 0;
     sum := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(sum, classLevels[cls]);
         Inc(clsCount);
         case cls of
-          C_Level.RANGER: Inc(sum);
-          C_Level.MONK: Inc(sum);
+          C_LEVEL.RANGER: Inc(sum);
+          C_LEVEL.MONK: Inc(sum);
         end;
       end;
   end;
@@ -415,7 +415,7 @@ begin
   with creature^ do begin
     clsCount := 0;
     sum := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         { hpDice at level 1, one die a level after }
@@ -453,7 +453,7 @@ var
 begin
   sum := 0;
   floor := ClassCal.HitDieFloor(creature^.stats[C_ABIL.CONSTITUTION]);
-  for cls := C_Level.CLERIC to C_Level.MONK do
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
       dieCount := GDConsts.hpDice[cls];
       if creature^.classLevels[cls] > 1 then
@@ -483,12 +483,12 @@ begin
   total := 0;
   clsCount := 0;
   with creature^ do begin
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         dice := classLevels[cls];
         { a ranger's first level has two hit dice }
-        if cls = C_Level.RANGER then
+        if cls = C_LEVEL.RANGER then
           Inc(dice);
         Inc(total, dice * ClassCal.ConHpPerDie(cls, con));
       end;
@@ -532,7 +532,7 @@ begin
   SpellFailureChance := 0;
   if (spell >= 1) and (spell <= C_SPELL.LAST) then
     if (GDConsts.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
-        (creature^.classLevels[C_Level.CLERIC] > 0) then
+        (creature^.classLevels[C_LEVEL.CLERIC] > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);
 end;
 
