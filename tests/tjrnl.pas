@@ -1,9 +1,9 @@
 { Tests for JrnlList: the kinds, numbers, labels and titles of the Journal's items, and that every item's text has lines
-  that fit the Journal pane (C_Jrnl.JOURNAL_WIDTH). }
+  that fit the Journal pane (C_JRNL.JOURNAL_WIDTH). }
 {$I COMPILER.INC}
 program TJrnl;
 
-uses C_Jrnl, JrnlList, StrUtil, TestKit;
+uses C_JRNL, JrnlList, StrUtil, TestKit;
 
 var
   i: Integer;
@@ -16,18 +16,18 @@ var
 
 begin
   TestKit.Start('TJRNL');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_PROCLAMATION, JrnlList.EntryKind(1), 'item 1 is a proclamation');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_PROCLAMATION, JrnlList.EntryKind(18), 'item 18 is the last proclamation');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_ENTRY, JrnlList.EntryKind(19), 'item 19 is the first journal entry');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_ENTRY, JrnlList.EntryKind(76), 'item 76 is the last');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_TALE, JrnlList.EntryKind(77), 'item 77 is the first tavern tale');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_TALE, JrnlList.EntryKind(C_Jrnl.JOURNAL_COUNT), 'the last item is a tale');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_NONE, JrnlList.EntryKind(0), 'item 0 is none');
-  TestKit.CheckEqualsL(C_Jrnl.KIND_NONE, JrnlList.EntryKind(C_Jrnl.JOURNAL_COUNT + 1), 'nor one past the list');
+  TestKit.CheckEqualsL(C_JRNL.KIND_PROCLAMATION, JrnlList.EntryKind(1), 'item 1 is a proclamation');
+  TestKit.CheckEqualsL(C_JRNL.KIND_PROCLAMATION, JrnlList.EntryKind(18), 'item 18 is the last proclamation');
+  TestKit.CheckEqualsL(C_JRNL.KIND_ENTRY, JrnlList.EntryKind(19), 'item 19 is the first journal entry');
+  TestKit.CheckEqualsL(C_JRNL.KIND_ENTRY, JrnlList.EntryKind(76), 'item 76 is the last');
+  TestKit.CheckEqualsL(C_JRNL.KIND_TALE, JrnlList.EntryKind(77), 'item 77 is the first tavern tale');
+  TestKit.CheckEqualsL(C_JRNL.KIND_TALE, JrnlList.EntryKind(C_JRNL.JOURNAL_COUNT), 'the last item is a tale');
+  TestKit.CheckEqualsL(C_JRNL.KIND_NONE, JrnlList.EntryKind(0), 'item 0 is none');
+  TestKit.CheckEqualsL(C_JRNL.KIND_NONE, JrnlList.EntryKind(C_JRNL.JOURNAL_COUNT + 1), 'nor one past the list');
 
   TestKit.CheckEqualsL(59, JrnlList.EntryNumber(1), 'proclamation 1 is LIX');
   TestKit.CheckEqualsL(1, JrnlList.EntryNumber(19), 'journal entries count from 1');
-  TestKit.CheckEqualsL(23, JrnlList.EntryNumber(C_Jrnl.JOURNAL_COUNT), 'there are 23 tavern tales');
+  TestKit.CheckEqualsL(23, JrnlList.EntryNumber(C_JRNL.JOURNAL_COUNT), 'there are 23 tavern tales');
   TestKit.CheckEqualsS('LIX', JrnlList.EntryLabel(1), 'a proclamation''s label is its numeral');
   TestKit.CheckEqualsS('CI', JrnlList.EntryLabel(4), '101 is CI');
   TestKit.CheckEqualsS('CXC', JrnlList.EntryLabel(15), '190 is CXC');
@@ -43,7 +43,7 @@ begin
   allHaveLines := True;
   widest := 0;
   where := '';
-  for i := 1 to C_Jrnl.JOURNAL_COUNT do begin
+  for i := 1 to C_JRNL.JOURNAL_COUNT do begin
     n := JrnlList.LineCount(i);
     if n <= 0 then begin
       allHaveLines := False;
@@ -56,7 +56,7 @@ begin
       nothingPast := False;
   end;
   TestKit.Check(allHaveLines, 'every item has text lines;' + where);
-  TestKit.Check(widest <= C_Jrnl.JOURNAL_WIDTH, 'every line fits the pane (widest ' + StrUtil.NumStr(widest) + ')');
+  TestKit.Check(widest <= C_JRNL.JOURNAL_WIDTH, 'every line fits the pane (widest ' + StrUtil.NumStr(widest) + ')');
   TestKit.Check(nothingPast, 'no item has a line past its LineCount');
   TestKit.CheckEqualsL(0, JrnlList.LineCount(0), 'no lines outside the list');
   TestKit.Done;

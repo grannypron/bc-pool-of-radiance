@@ -19,14 +19,14 @@ procedure JournalMenu;
 
 implementation
 
-uses Crt, Types, C_Jrnl, C_Keys, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
+uses Crt, Types, C_JRNL, C_Keys, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
     wrapped. The list column fills the rest of the frame on its left, one label a row, with the border column between
     them. }
   PANE_RIGHT = 38;
-  PANE_LEFT = PANE_RIGHT - C_Jrnl.JOURNAL_WIDTH + 1;
+  PANE_LEFT = PANE_RIGHT - C_JRNL.JOURNAL_WIDTH + 1;
   LIST_LEFT = 1;
   LIST_RIGHT = PANE_LEFT - 2;
   TOP_ROW = 1;
@@ -68,7 +68,7 @@ var
 begin
   Border.ClearBox(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW);
   n := top;
-  while (n <= C_Jrnl.JOURNAL_COUNT) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
+  while (n <= C_JRNL.JOURNAL_COUNT) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
     if n = sel then
       JrnlView.DrawLabel(n, White)
     else
@@ -182,8 +182,8 @@ var
   old: Integer;
 begin
   old := sel;
-  if n > C_Jrnl.JOURNAL_COUNT then
-    n := C_Jrnl.JOURNAL_COUNT;
+  if n > C_JRNL.JOURNAL_COUNT then
+    n := C_JRNL.JOURNAL_COUNT;
   if n < 1 then
     n := 1;
   if (n < top) or (n > top + BOTTOM_ROW - TOP_ROW) then begin
@@ -214,13 +214,13 @@ begin
     top := top + BOTTOM_ROW - TOP_ROW + 1
   else
     top := top - (BOTTOM_ROW - TOP_ROW + 1);
-  if top > C_Jrnl.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW) then
-    top := C_Jrnl.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW);
+  if top > C_JRNL.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW) then
+    top := C_JRNL.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW);
   if top < 1 then
     top := 1;
   sel := top + row;
-  if sel > C_Jrnl.JOURNAL_COUNT then
-    sel := C_Jrnl.JOURNAL_COUNT;
+  if sel > C_JRNL.JOURNAL_COUNT then
+    sel := C_JRNL.JOURNAL_COUNT;
   JrnlView.DrawList;
   JrnlView.Moved(old);
 end;
@@ -285,8 +285,8 @@ begin
         C_Keys.UP, C_Keys.HOME: if sel > 1 then
                                   JrnlView.MoveTo(sel - 1)
                                 else
-                                  JrnlView.MoveTo(C_Jrnl.JOURNAL_COUNT);
-        C_Keys.DOWN, C_Keys.END_KEY: if sel < C_Jrnl.JOURNAL_COUNT then
+                                  JrnlView.MoveTo(C_JRNL.JOURNAL_COUNT);
+        C_Keys.DOWN, C_Keys.END_KEY: if sel < C_JRNL.JOURNAL_COUNT then
                                        JrnlView.MoveTo(sel + 1)
                                      else
                                        JrnlView.MoveTo(1);
