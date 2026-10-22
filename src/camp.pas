@@ -774,8 +774,7 @@ begin
     if MenuCore.YesNoMenu('quit TO DOS: ', Yellow, LightGreen, White) = 'Y' then begin
       SaveLoad.RemoveCreature(False, True);
       GameIo.ExitGame;
-    end else
-      Exit;
+    end;
     Exit;
   end;
   CharDisp.PrintNameString(GDVars.curChar, 'will be gone', 10, False);
