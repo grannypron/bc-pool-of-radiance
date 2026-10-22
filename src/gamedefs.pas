@@ -26,17 +26,8 @@ const
   { Turning undead }
   { Movement menus }
   { Camp menus }
-  { camp actions }
-  campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';
-  { magic actions }
-  magicMenu: String[40] = 'Cast Memorize Scribe Display Rest Exit';
-  { Char (the character's icon or portrait) took Icon's place: the bottom line has no room for a seventh choice.
-    Settings (S, free since Speed left for it) holds the game speed with the other settings. }
-  alterMenu: String[40] = 'Order Drop Char Settings Exit';
 
 const
-  { CampOrderMenu }
-  orderMenus: array[0..1] of String[40] = ('Select Exit', 'Place Exit');
   { TCharRecord.itemLimits usability bit for each class-level slot (C_LEVEL). The ranger shares the paladin's bit: the
     item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
   usabilityBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (

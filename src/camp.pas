@@ -651,13 +651,16 @@ end;
 { Run the magic menu ('Cast Memorize Scribe Display Rest Exit'); extended keys switch character. Ends on Exit, Escape or
   an interrupted rest. }
 procedure CampMagicMenu(var interrupted: Boolean);
+const
+  { magic actions }
+  magicMenu: String[40] = 'Cast Memorize Scribe Display Rest Exit';
 var
   c: Char;
   ext: Boolean;
 begin
   c := ' ';
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
-    c := MenuCore.MenuHorizontal('', GameDefs.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
+    c := MenuCore.MenuHorizontal('', magicMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then
       Camp.SelectOtherChar(c)
     else
@@ -734,6 +737,8 @@ end;
 { Reorder the party through Select and Place modes. In Select mode extended keys pick a character; in Place mode Home or
   Up moves it up and End or Down moves it down. P and S switch modes; Enter takes the highlighted option. }
 procedure CampOrderMenu;
+const
+  orderMenus: array[0..1] of String[40] = ('Select Exit', 'Place Exit');
 var
   selected: ShortInt;
   ext: Boolean;
@@ -742,7 +747,7 @@ begin
   selected := 0;
   c := ' ';
   while not (c in [C_KEYS.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Party Order: ', GameDefs.orderMenus[selected], LightMagenta, LightGreen,
+    c := MenuCore.MenuHorizontal('Party Order: ', orderMenus[selected], LightMagenta, LightGreen,
                                  White, True, True, ext);
     if ext then begin
       if selected = 0 then begin
@@ -795,6 +800,10 @@ end;
   selection keys pick another character there too, as in Alter itself. Settings opens the Settings screen
   (Options.OptionsMenu), which holds the game speed with the other settings. }
 procedure CampAlterMenu;
+const
+  { Char (the character's icon or portrait) took Icon's place: the bottom line has no room for a seventh choice.
+    Settings (S, free since Speed left for it) holds the game speed with the other settings. }
+  alterMenu: String[40] = 'Order Drop Char Settings Exit';
 var
   c: Char;
   c2: Char;
@@ -803,7 +812,7 @@ var
 begin
   c := ' ';
   while not (c in [C_KEYS.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Alter: ', GameDefs.alterMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Alter: ', alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then
       Camp.SelectOtherChar(c)
@@ -1053,6 +1062,9 @@ begin
 end;
 
 procedure CampMainMenu(var interrupted: Boolean);
+const
+  { camp actions }
+  campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';
 var
   savedIfc: Byte;
   c: Char;
@@ -1074,7 +1086,7 @@ begin
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse, so the prompt has no space after it
       (#674) }
-    c := MenuCore.MenuHorizontal('Camp:', GameDefs.campMenu, LightMagenta, LightGreen, White, True, True,
+    c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
       if c = C_KEYS.F6 then begin
