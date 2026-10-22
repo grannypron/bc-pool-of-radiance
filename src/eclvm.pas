@@ -83,6 +83,17 @@ begin
   Reloading := Explore.quickLoadAsked or (GDVars.loadedSave <> 0);
 end;
 
+{ No monster loaded or set up: SETUP MONSTER sets the ids and CLEAR MONSTERS the count, but a script may APPROACH, LOAD
+  MONSTER or fight before either has run. At startup, since Turbo Pascal clears no variable (#826), and at the start of
+  every game, new or loaded, which would otherwise keep the last area's monsters (#829). }
+procedure ForgetMonsters;
+begin
+  creatureCnt := 0;
+  monId := 0;
+  monPicId := 0;
+  monstersOn := 0;
+end;
+
 { Free the whole GOSUB return stack. }
 procedure FreeEclStack;
 begin
@@ -1799,6 +1810,7 @@ begin
   restoreChar := 0;
   filesLoaded := 0;
   enteringLoop := 1;
+  ForgetMonsters;
   GDVars.ifcState := C_Ifc.INDOORS;
   newEclFlag := 0;
   GDVars.eclScriptId := Byte(GDVars.zone0^.previousScriptId);
@@ -1869,10 +1881,5 @@ begin
 end;
 
 begin
-  { no monster yet: SETUP MONSTER sets the ids and CLEAR MONSTERS the count, but a script may APPROACH, LOAD MONSTER or
-    fight before either has run, and Turbo Pascal clears no variable (#826) }
-  creatureCnt := 0;
-  monId := 0;
-  monPicId := 0;
-  monstersOn := 0;
+  ForgetMonsters;
 end.
