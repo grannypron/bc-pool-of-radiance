@@ -34,9 +34,15 @@ function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 
-{ The class minimum on ability (C_Abil) for charClass (C_Class): a single class's from GDConsts.classMin, a
-  multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it. }
-function ClassAbilityMin(charClass, ability: ShortInt): Byte;
+const
+  { a half-elf's multiclass with cleric needs this much Wisdom, more than the cleric's 9; a half-orc's needs only the 9
+    (the 1st-edition PHB, p. 20) }
+  HALFELF_MULTI_CLERIC_WIS = 13;
+
+{ The class minimum on ability (C_Abil) for charClass (C_Class) of race (C_Race): a single class's from
+  GDConsts.classMin, a multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it,
+  and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
+function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
 
 { The Constitution hit-point adjustment class cls (C_Level) gets per hit die: GDConsts.conBonusTbl's, plus, for the
   fighter, paladin and ranger classes, 1 at Con 17, 2 at 18, 3 at 19..20, 4 at 21..23 and 5 at 24..25. The warrior
@@ -293,7 +299,7 @@ begin
     end;
 end;
 
-function ClassAbilityMin(charClass, ability: ShortInt): Byte;
+function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
 var
   p: Byte;
   part: ShortInt;
@@ -306,6 +312,9 @@ begin
       if GDConsts.classMin[part].values[ability] > least then
         least := GDConsts.classMin[part].values[ability];
   end;
+  if (race = C_Race.HALFELF) and (ability = C_Abil.WISDOM)
+     and (charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
+    least := HALFELF_MULTI_CLERIC_WIS;
   ClassAbilityMin := least;
 end;
 

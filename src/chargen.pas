@@ -353,8 +353,8 @@ var
         stats[i] := ClassCal.RaceAbilityMin(race, genderSp, i);
       if stats[i] > ClassCal.RaceAbilityMax(race, genderSp, i) then
         stats[i] := ClassCal.RaceAbilityMax(race, genderSp, i);
-      if stats[i] < ClassCal.ClassAbilityMin(charClass, i) then
-        stats[i] := ClassCal.ClassAbilityMin(charClass, i);
+      if stats[i] < ClassCal.ClassAbilityMin(race, charClass, i) then
+        stats[i] := ClassCal.ClassAbilityMin(race, charClass, i);
     end;
   end;
 
@@ -637,10 +637,6 @@ begin
                if GDConsts.ageCat[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
-               if stats[i] < 13 then
-                 { cleric multiclasses need Wisdom 13 }
-                 if charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF] then
-                   stats[i] := 13;
              end;
           { Dexterity }
           C_Abil.DEXTERITY: begin
@@ -825,10 +821,11 @@ var
     is higher }
   function StatMinimum(racialMin: Byte): Byte;
   begin
-    if ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx) > racialMin then
-      StatMinimum := ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx)
-    else
-      StatMinimum := racialMin;
+    with GDVars.curChar^ do
+      if ClassCal.ClassAbilityMin(race, charClass, statIdx) > racialMin then
+        StatMinimum := ClassCal.ClassAbilityMin(race, charClass, statIdx)
+      else
+        StatMinimum := racialMin;
   end;
 
   { Left on ability a: up to the larger of its racial and class minimums. }

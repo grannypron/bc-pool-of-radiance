@@ -348,15 +348,27 @@ begin
   TestKit.CheckEqualsL(3, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 2), 'an elf''s least Wisdom');
 
   { class ability minimums, the 1st-edition PHB's (#740); a multiclass takes the highest of its classes' }
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.FIGHTER, 5), 'a fighter''s least Charisma');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.MAGE, 4), 'a magic-user''s least Constitution');
-  TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_Class.PALADIN, 5), 'a paladin''s least Charisma');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.RANGER, 3), 'a ranger''s least Dexterity');
-  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_Class.CLERIC_FIGHTER, 4), 'a cleric/fighter, the fighter''s Con');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Class.CLERIC_FIGHTER, 2), 'and the cleric''s Wisdom 9');
-  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Class.CLERIC_RANGER, 2), 'a cleric/ranger: the ranger''s Wis 14');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Class.FIGHTER_MAGE_THIEF, 3), 'a fighter/magic-user/thief''s Dex');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Class.MAGE_THIEF, 2), 'a magic-user/thief: the mage''s Wis 6');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.FIGHTER, 5), 'a fighter''s least Charisma');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.MAGE, 4), 'a magic-user''s least Constitution');
+  TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.PALADIN, 5), 'a paladin''s least Charisma');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.RANGER, 3), 'a ranger''s least Dexterity');
+  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER, 4),
+    'a cleric/fighter, the fighter''s Con');
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HALFORC, C_Class.CLERIC_FIGHTER, 2),
+    'and a half-orc''s the cleric''s Wisdom 9');
+  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER, 2),
+    'a half-elf''s Wisdom 13 (#780)');
+  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER_MAGE, 2),
+    'a half-elf cleric/fighter/magic-user''s too');
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC, 2), 'a half-elf cleric''s only 9');
+  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_RANGER, 2),
+    'a half-elf cleric/ranger''s the ranger''s 14');
+  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.CLERIC_RANGER, 2),
+    'a cleric/ranger: the ranger''s Wis 14');
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.FIGHTER_MAGE_THIEF, 3),
+    'a fighter/magic-user/thief''s Dex');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.MAGE_THIEF, 2),
+    'a magic-user/thief: the mage''s Wis 6');
 
   { hit points: the Constitution bonus per hit die, the warrior bonus by class (#616) }
   TestKit.CheckEqualsL(2, ClassCal.ConHpPerDie(C_Level.CLERIC, 18), 'a cleric at Constitution 18: +2');
