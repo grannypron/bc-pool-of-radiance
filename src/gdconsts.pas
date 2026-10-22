@@ -1136,9 +1136,8 @@ const
     'Insert disk 6 in drive ',
     'Insert disk 7 in drive ',
     'Insert disk 8 in drive ');
-  { Symbol-set ranges }
+  { The first symbol of each 8x8 symbol set; set 4 ends at 286 }
   symSetFirst: array[0..4] of Word = (1, 46, 116, 186, 256);
-  symSetLast: array[0..4] of Word = (45, 115, 185, 255, 286);
   { Direction steps, combat terrain, icon footprints, helpless effects }
   dirDX: array[C_Dir.NORTH..C_Dir.CENTER] of ShortInt = (
     0, 1, 1, 1, 0, -1, -1, -1, 0);
