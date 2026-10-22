@@ -20,6 +20,9 @@ var
   stop. Returns True when a scripted random interruption ends the rest. }
 function CampRest(interactive: Boolean): Boolean;
 
+{ Clear the time rested without a break, for a new game (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
 uses C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
@@ -28,6 +31,8 @@ uses C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic,
 var
   { Spell preparation timers for the eight party slots. }
   prepTimers: array[1..8] of Byte;
+  { Uninterrupted resting time when disturbable }
+  restTicks: Word;
 
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99. }
 procedure ValidateRestTime;
@@ -367,9 +372,9 @@ begin
       GameTime.AdvanceSpellPrepBase(tick);
       { When the area sets a safe-rest period, roll for an interruption each time it runs out }
       if GameVars.zone1^[C_GBVM.REST_SAFE_TIME] > 0 then begin
-        Inc(GameVars.restTicks);
-        if GameVars.restTicks >= GameVars.zone1^[C_GBVM.REST_SAFE_TIME] then begin
-          GameVars.restTicks := 0;
+        Inc(restTicks);
+        if restTicks >= GameVars.zone1^[C_GBVM.REST_SAFE_TIME] then begin
+          restTicks := 0;
           if Dice.RollDice(1, 100) <= GameVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] then begin
             CharDisp.ClearMessageWindow;
             GameTime.DisplayRestTime(0);
@@ -384,6 +389,11 @@ begin
   end;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   GameVars.suppressDrawingBorderFlag := 0;
+end;
+
+procedure ResetGame;
+begin
+  restTicks := 0;
 end;
 
 begin

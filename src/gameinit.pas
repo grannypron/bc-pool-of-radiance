@@ -21,7 +21,7 @@ implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps, Stats, Explored, MapNotes, Explore{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, Stats, Explored, MapNotes, Explore, GameTime{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { directory saved across resource loading }
@@ -273,7 +273,6 @@ begin
   GameVars.debugTraceEnabled := False;
   GameVars.bottomLineTaken := False;
   GameVars.loadedSave := 0;
-  GameVars.restTicks := 0;
   GameVars.creatureList := nil;
   GameVars.curChar := nil;
   GameVars.eclIp := $9900;
@@ -302,6 +301,7 @@ begin
   GameVars.wallColorSel := 219;
   GameVars.inEncMenu := 0;
   Explore.ResetGame;
+  GameTime.ResetGame;
   Stats.ResetGame;
 end;
 

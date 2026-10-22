@@ -72,8 +72,6 @@ var
   locTypePrev: Byte;
   { Party location type, current }
   gLocType: Byte;
-  { Uninterrupted resting time when disturbable }
-  restTicks: Word;
   partyDefeated: Boolean;
   { Delay in printing message to message window }
   msgDelayFlag: Byte;
