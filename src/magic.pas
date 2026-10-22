@@ -8,6 +8,12 @@ interface
 { Types supplies PCharRecord, PItemRec, PEffectRec, TStr40 and TCellList for the declarations below. }
 uses Types;
 
+var
+  { combat arena column, 0..49 }
+  gTargetX: ShortInt;
+  { combat arena row, 0..24 }
+  gTargetY: ShortInt;
+
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
@@ -696,7 +702,7 @@ begin
           x := CbtMap.CombatCellX(p);
           y := CbtMap.CombatCellY(p);
           k := 0;
-          while not Pathing.IsDirToward(x, y, GameVars.gTargetX, GameVars.gTargetY, k) do
+          while not Pathing.IsDirToward(x, y, gTargetX, gTargetY, k) do
             Inc(k);
           CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
@@ -706,7 +712,7 @@ begin
           else
             SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
           end;
-          CharDisp.CombatAnimateMovingIcon(x, y, GameVars.gTargetX, GameVars.gTargetY, 4, 30);
+          CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 30);
           SoundDrv.SoundSetAutoStop(10);
           if CbtMap.CombatIconVisible(p, 0) then begin
             CbtMap.SetCreatureFacing(p, p^.combatAddr^.direction, 1, 1);
@@ -1126,11 +1132,11 @@ begin
   FxEngine.AddEffect(GameVars.curChar, C_EFFECT.CAST_STINK, cl, FxEngine.CloudStrength(cl, myClouds), True);
   node^.caster := GameVars.curChar;
   node^.idx := myClouds;
-  node^.ulX := GameVars.gTargetX;
-  node^.ulY := GameVars.gTargetY;
+  node^.ulX := gTargetX;
+  node^.ulY := gTargetY;
   for k := 1 to 4 do begin
     d := GameDefs.cloudDir[k];
-    CbtMap.GetArenaContents(GameVars.gTargetX + GameDefs.dirDX[d], GameVars.gTargetY + GameDefs.dirDY[d], crIdx[k],
+    CbtMap.GetArenaContents(gTargetX + GameDefs.dirDX[d], gTargetY + GameDefs.dirDY[d], crIdx[k],
                             terr);
     if (terr > 0) and (GameDefs.terrainInfo[terr].cost < 255) then
       node^.exists[k] := 1
@@ -1142,25 +1148,25 @@ begin
         if p2 <> node then
           for j := 1 to 4 do
             if (p2^.exists[j] <> 0) and
-                (p2^.ulX + GameDefs.dirDX[GameDefs.cloudDir[j]] = GameVars.gTargetX + GameDefs.dirDX[d]) and
-                (p2^.ulY + GameDefs.dirDY[GameDefs.cloudDir[j]] = GameVars.gTargetY + GameDefs.dirDY[d]) then
+                (p2^.ulX + GameDefs.dirDX[GameDefs.cloudDir[j]] = gTargetX + GameDefs.dirDX[d]) and
+                (p2^.ulY + GameDefs.dirDY[GameDefs.cloudDir[j]] = gTargetY + GameDefs.dirDY[d]) then
               if p2^.under[j] <> C_TERR.STINK_CLOUD then
                 terr := p2^.under[j];
         p2 := p2^.next;
       end;
     end else if terr = C_TERR.CORPSE then begin
       for j := 1 to GameVars.downedCount do
-        if GameVars.downed[j].x = GameVars.gTargetX + GameDefs.dirDX[d] then
-          if GameVars.downed[j].y = GameVars.gTargetY + GameDefs.dirDY[d] then
+        if GameVars.downed[j].x = gTargetX + GameDefs.dirDX[d] then
+          if GameVars.downed[j].y = gTargetY + GameDefs.dirDY[d] then
             terr := GameVars.downed[j].terrain;
     end;
     node^.under[k] := terr;
     if node^.exists[k] <> 0 then
-      GameVars.arenaPtr^.cells[GameVars.gTargetY + GameDefs.dirDY[d],
-                               GameVars.gTargetX + GameDefs.dirDX[d]] := C_TERR.STINK_CLOUD;
+      GameVars.arenaPtr^.cells[gTargetY + GameDefs.dirDY[d],
+                               gTargetX + GameDefs.dirDX[d]] := C_TERR.STINK_CLOUD;
   end;
   CharDisp.PrintNameString(GameVars.curChar, 'Creates a noxious cloud', 10, False);
-  CbtMap.ScrollView(GameVars.gTargetX, GameVars.gTargetY, 255, C_DIR.CENTER);
+  CbtMap.ScrollView(gTargetX, gTargetY, 255, C_DIR.CENTER);
   TextRend.PauseOnly;
   CharDisp.ClearMessageWindow;
   for k := 1 to 4 do
@@ -1415,9 +1421,9 @@ begin
   else
     cl := CharHlp.GetCasterLevel(GameVars.currentSpellBeing);
   if GameVars.zone0^.view3dFlag = 0 then begin
-    Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, 2);
+    Pathing.TargetArea(gTargetX, gTargetY, 2);
   end;
-  CbtMap.ScrollView(GameVars.gTargetX, GameVars.gTargetY, 0, C_DIR.CENTER);
+  CbtMap.ScrollView(gTargetX, gTargetY, 0, C_DIR.CENTER);
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, Dice.RollDamageDice(cl, 6),
                      C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC, '');
 end;
@@ -1478,7 +1484,7 @@ begin
   end;
 end;
 
-{ Run a lightning bolt from the aim cell (GameVars.gTargetX/Y) directly away from the caster, attacking each creature
+{ Run a lightning bolt from the aim cell (gTargetX/Y) directly away from the caster, attacking each creature
   cell it reaches; callers attack the aim cell itself first. The budget is boltLen * 2 in Pathing's doubled distance
   units. Impassable terrain reflects the bolt back the other way; with bounce set, a first reflection at most 8 units
   from the caster costs 8 extra units. An off-map cell ends the bolt. }
@@ -1490,7 +1496,7 @@ begin
 end;
 
 { LightningPath's walk. With trace set it neither animates nor attacks: it lists every arena cell the bolt crosses in
-  cells and leaves GameVars.gTargetX/Y and GameVars.gMultiTarget as it found them. }
+  cells and leaves gTargetX/Y and GameVars.gMultiTarget as it found them. }
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
 var
   req: Types.TPathReq;
@@ -1512,27 +1518,27 @@ var
   savedMulti: Byte;
 begin
   cells.count := 0;
-  savedX := GameVars.gTargetX;
-  savedY := GameVars.gTargetY;
+  savedX := gTargetX;
+  savedY := gTargetY;
   savedMulti := GameVars.gMultiTarget;
   if not trace then
     CharDisp.BuildIconFacings(19);
-  CbtMap.GetArenaContents(GameVars.gTargetX, GameVars.gTargetY, prevCr, terr);
+  CbtMap.GetArenaContents(gTargetX, gTargetY, prevCr, terr);
   sign := 1;
   x0 := CbtMap.CombatCellX(GameVars.curChar);
   y0 := CbtMap.CombatCellY(GameVars.curChar);
   doBounce := bounce;
-  if x0 = GameVars.gTargetX then
-    if y0 = GameVars.gTargetY then
+  if x0 = gTargetX then
+    if y0 = gTargetY then
       Exit;
   budget := boltLen * 2;
   GameVars.gMultiTarget := 1;
   while budget > 0 do begin
     FillChar(req, SizeOf(req), 0);
-    req.sx := GameVars.gTargetX;
-    req.sy := GameVars.gTargetY;
-    req.ex := GameVars.gTargetX + (GameVars.gTargetX - x0) * sign * budget;
-    req.ey := GameVars.gTargetY + (GameVars.gTargetY - y0) * sign * budget;
+    req.sx := gTargetX;
+    req.sy := gTargetY;
+    req.ex := gTargetX + (gTargetX - x0) * sign * budget;
+    req.ey := gTargetY + (gTargetY - y0) * sign * budget;
     Pathing.PathFind(req);
     repeat
       prevX := req.cx;
@@ -1562,11 +1568,11 @@ begin
         Magic.LightningAttackAt(req.cx, req.cy, damage, saveType, blocked);
       end;
       if blocked then begin
-        GameVars.gTargetX := req.cx;
-        GameVars.gTargetY := req.cy;
+        gTargetX := req.cx;
+        gTargetY := req.cy;
         FillChar(req2, SizeOf(req2), 0);
-        req2.sx := GameVars.gTargetX;
-        req2.sy := GameVars.gTargetY;
+        req2.sx := gTargetX;
+        req2.sy := gTargetY;
         req2.ex := x0;
         req2.ey := y0;
         Pathing.PathFind(req2);
@@ -1586,8 +1592,8 @@ begin
   end;
   GameVars.gMultiTarget := 0;
   if trace then begin
-    GameVars.gTargetX := savedX;
-    GameVars.gTargetY := savedY;
+    gTargetX := savedX;
+    gTargetY := savedY;
     GameVars.gMultiTarget := savedMulti;
   end;
 end;
@@ -1599,7 +1605,7 @@ var
   junk: Boolean;
 begin
   dmg := Dice.RollDice(CharHlp.GetCasterLevel(GameVars.currentSpellBeing), 6);
-  Magic.LightningAttackAt(GameVars.gTargetX, GameVars.gTargetY, dmg, C_SAVE.SPELL, junk);
+  Magic.LightningAttackAt(gTargetX, gTargetY, dmg, C_SAVE.SPELL, junk);
   Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_SAVE.SPELL, True);
 end;
 
@@ -1608,13 +1614,13 @@ var
   savedX: ShortInt;
   savedY: ShortInt;
 begin
-  savedX := GameVars.gTargetX;
-  savedY := GameVars.gTargetY;
-  GameVars.gTargetX := x;
-  GameVars.gTargetY := y;
+  savedX := gTargetX;
+  savedY := gTargetY;
+  gTargetX := x;
+  gTargetY := y;
   Magic.WalkBolt(LIGHTNING_BOLT_CELLS, 0, C_SAVE.SPELL, True, True, cells);
-  GameVars.gTargetX := savedX;
-  GameVars.gTargetY := savedY;
+  gTargetX := savedX;
+  gTargetY := savedY;
 end;
 
 { Slow: the caster's enemies lose Hasted or are slowed (see HasteSlowLogic). }
@@ -1724,7 +1730,7 @@ procedure JavelinOfLightningHandler;
 var
   junk: Boolean;
 begin
-  Magic.LightningAttackAt(GameVars.gTargetX, GameVars.gTargetY, Dice.RollDice(1, 6) + 20, C_SAVE.SPELL, junk);
+  Magic.LightningAttackAt(gTargetX, gTargetY, Dice.RollDice(1, 6) + 20, C_SAVE.SPELL, junk);
   Magic.LightningPath(3, 20, C_SAVE.SPELL, False);
 end;
 
@@ -1782,16 +1788,16 @@ begin
   y := CbtMap.CombatCellY(creature);
   CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
   GameVars.castTargetMenu(C_SPELL.LIGHTNING_BOLT, True, GameVars.breathAim);
-  GameVars.gTargetX := x + Pathing.SignOf(GameVars.gTargetX - x);
-  GameVars.gTargetY := y + Pathing.SignOf(GameVars.gTargetY - y);
-  if GameVars.gTargetX = x + 1 then
-    Inc(GameVars.gTargetX);
-  if GameVars.gTargetY = y + 1 then
-    Inc(GameVars.gTargetY);
+  gTargetX := x + Pathing.SignOf(gTargetX - x);
+  gTargetY := y + Pathing.SignOf(gTargetY - y);
+  if gTargetX = x + 1 then
+    Inc(gTargetX);
+  if gTargetY = y + 1 then
+    Inc(gTargetY);
   FxEngine.RemoveInvisibility(creature);
   CharDisp.BuildIconFacings(19);
-  CharDisp.CombatAnimateMovingIcon(x, y, GameVars.gTargetX, GameVars.gTargetY, 4, 50);
-  Magic.LightningAttackAt(GameVars.gTargetX, GameVars.gTargetY, creature^.hpMax, C_SAVE.BREATH, junk);
+  CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 50);
+  Magic.LightningAttackAt(gTargetX, gTargetY, creature^.hpMax, C_SAVE.BREATH, junk);
   Magic.LightningPath(10, creature^.hpMax, C_SAVE.BREATH, False);
   { Remaining breath charges }
   if Types.PEffectRec(p)^.strength > 253 then
@@ -1979,4 +1985,8 @@ begin
     Magic.UseItemSpell(item, spell, False, done);
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  gTargetX := 0;
+  gTargetY := 0;
 end.

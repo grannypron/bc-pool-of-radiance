@@ -272,10 +272,6 @@ var
   targetCreaturePtr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { Remembered noncombat spell target, initially the caster. }
   castTarget: Types.PCharRecord;
-  { combat arena column, 0..49 }
-  gTargetX: ShortInt;
-  { combat arena row, 0..24 }
-  gTargetY: ShortInt;
   { Pointer to linked list of Stinking Clouds }
   stinkHead: Types.PStinkRec;
   usingItem: Boolean;

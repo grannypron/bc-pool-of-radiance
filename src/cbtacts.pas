@@ -1046,8 +1046,8 @@ begin
   end;
   if found then begin
     PickSpellTarget := True;
-    GameVars.gTargetX := tgt.x;
-    GameVars.gTargetY := tgt.y;
+    Magic.gTargetX := tgt.x;
+    Magic.gTargetY := tgt.y;
   end else begin
     PickSpellTarget := False;
     FillChar(tgt, SizeOf(tgt), 0);
@@ -1081,8 +1081,8 @@ begin
   cast := True;
   GameVars.spellTargetCount := 0;
   GameVars.gMultiTarget := 0;
-  GameVars.gTargetX := CbtMap.CombatCellX(GameVars.curChar);
-  GameVars.gTargetY := CbtMap.CombatCellY(GameVars.curChar);
+  Magic.gTargetX := CbtMap.CombatCellX(GameVars.curChar);
+  Magic.gTargetY := CbtMap.CombatCellY(GameVars.curChar);
   case GameDefs.spellTable[spell].area and $F of
     0:
       { self only }
@@ -1103,7 +1103,7 @@ begin
             GameVars.spellTargetCount := 1;
           end else begin
             { radius 0: the picked cell alone }
-            Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, 0);
+            Pathing.TargetArea(Magic.gTargetX, Magic.gTargetY, 0);
             GameVars.gMultiTarget := 1;
           end;
         end else
@@ -1131,7 +1131,7 @@ begin
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
-          Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, GameDefs.spellTable[spell].area and 7);
+          Pathing.TargetArea(Magic.gTargetX, Magic.gTargetY, GameDefs.spellTable[spell].area and 7);
           GameVars.gMultiTarget := 1;
         end else
           cast := False;
