@@ -1091,13 +1091,13 @@ end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
   class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
-  Applies the racial fighter (and half-elf cleric and ranger) level caps, and before the hall and experience checks
-  clamps experience to one below the highest level + 2 threshold it has reached. Each trained class gains a level and
+  Applies the racial fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap),
+  and before the hall and experience checks clamps experience to one below the highest level + 2 threshold it has
+  reached. Each trained class gains a level and
   restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
   hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
 procedure TrainingMenu;
 var
-  atCap: Boolean;
   xpClamp: LongInt;
   nextXp: LongInt;
   trainMask: Byte;
@@ -1122,32 +1122,9 @@ begin
     for cls := C_Level.CLERIC to C_Level.MONK do
       if classLevels[cls] > 0 then begin
         Inc(classMask, GDConsts.classBit[cls]);
-        atCap := False;
         lvl := classLevels[cls];
-        case race of
-          C_Race.DWARF: if cls = C_Level.FIGHTER then
-               if ((lvl = 8) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 7) and (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-          C_Race.ELF: if cls = C_Level.FIGHTER then
-               if (lvl = 7) or ((lvl = 6) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 5) and
-                   (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-          C_Race.GNOME: if cls = C_Level.FIGHTER then
-               if (lvl = 6) or ((lvl = 5) and (stats[C_Abil.STRENGTH] < 18)) then
-                 atCap := True;
-          C_Race.HALFELF: if (cls = C_Level.CLERIC) and (lvl = 5) then
-               atCap := True
-             else if (cls = C_Level.FIGHTER) or (cls = C_Level.RANGER) then
-               if (lvl = 8) or ((lvl = 7) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 6) and
-                   (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-          C_Race.HALFLING: if cls = C_Level.FIGHTER then
-               if (lvl = 6) or ((lvl = 5) and (stats[C_Abil.STRENGTH] = 17)) or ((lvl = 4) and
-                   (stats[C_Abil.STRENGTH] < 17)) then
-                 atCap := True;
-        end;
         { xp[] runs to level 9 }
-        if (not atCap) and (lvl < 9) then
+        if (not CharHlp.AtLevelCap(Types.PCharRecord(GDVars.curChar), cls)) and (lvl < 9) then
           if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);

@@ -213,6 +213,31 @@ begin
 
   CheckCapsMatchSsi;
 
+  { the caps follow the character's own Strength, not magic's (#702): Gauntlets or Strength leave the restore value in
+    the one Strength or Enlarge node not superseded }
+  ClearCreature;
+  c^.race := C_Race.GNOME;
+  c^.classLevels[C_Level.FIGHTER] := 5;
+  c^.strCur := 18;
+  c^.strExc := 100;
+  FillChar(e, SizeOf(e), 0);
+  e.id := C_Effect.STRENGTH;
+  e.strength := CharHlp.StrengthModifier(17, 0) + $80;
+  c^.effectsAddr := @e;
+  TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'a superseded node holds no restore value');
+  e.strength := CharHlp.StrengthModifier(17, 0);
+  TestKit.CheckEqualsL(17, CharHlp.PermanentStrength(c), 'the active node holds the own Strength');
+  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a gnome fighter with Strength 17 in gauntlets stops at 5');
+  e.id := C_Effect.ENLARGE;
+  e.strength := CharHlp.StrengthModifier(18, 50);
+  TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'Enlarge''s restore value, 18/50');
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'and with 18 of its own the gnome trains past 5');
+  c^.effectsAddr := nil;
+  c^.race := C_Race.DWARF;
+  c^.classLevels[C_Level.FIGHTER] := 8;
+  c^.strCur := 15;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
+
   FreeMem(c, SizeOf(Types.TCharRecord));
   { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }
   TestKit.CheckEqualsL(70, CharHlp.TheftChance(70, 24), 'a light item keeps the chance');

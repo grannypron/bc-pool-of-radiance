@@ -86,14 +86,6 @@ procedure RemoveAiEffects(creature: Types.PCharRecord);
 { If the creature has effect effId, print "<name> is Cured", remove that node and return True; otherwise return False. }
 function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Boolean;
 
-{ Encode Strength as an effect strength byte: base 18 gives excStr + 1, any other base gives baseStr + 100. Bit 7 is
-  left for the caller's "superseded" mark. }
-function StrengthModifier(baseStr, excStr: Byte): Byte;
-
-{ Decode an effect's strength byte (bit 7 masked off) into base and exceptional Strength: values <= 101 give base 18
-  with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
-procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
-
 { Apply a new Strength from a Strength effect. If it is weaker than the creature's current Strength, nothing changes:
   effStrength gets the new Strength encoded with bit 7 set and the result is False. Otherwise the first active Strength
   effect (id 12 or 38 with strength < $80), if any, is superseded: it is given the creature's current Strength, encoded
@@ -616,24 +608,6 @@ begin
   end;
 end;
 
-function StrengthModifier(baseStr, excStr: Byte): Byte;
-begin
-  StrengthModifier := baseStr + 100;
-  if baseStr = 18 then
-    StrengthModifier := excStr + 1;
-end;
-
-procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
-begin
-  excStr := 0;
-  baseStr := Types.PEffectRec(effect)^.strength and $7F;
-  if baseStr <= 101 then begin
-    excStr := baseStr - 1;
-    baseStr := 18;
-  end else
-    baseStr := baseStr - 100;
-end;
-
 function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte; var effStrength: Byte): Boolean;
 var
   p: Types.PEffectRec;
@@ -646,7 +620,7 @@ begin
   oldExc := creature^.strExc;
   if (baseStr < oldBase) or ((baseStr = 18) and (excStr < oldExc)) then begin
     AdjustForNewStrength := False;
-    effStrength := FxEngine.StrengthModifier(baseStr, excStr) + $80;
+    effStrength := CharHlp.StrengthModifier(baseStr, excStr) + $80;
   end else begin
     found := nil;
     p := creature^.effectsAddr;
@@ -657,14 +631,14 @@ begin
       p := p^.next;
     end;
     if found <> nil then begin
-      enc := FxEngine.StrengthModifier(oldBase, oldExc);
-      FxEngine.StrengthEffectToStrength(found, oldBase, oldExc);
+      enc := CharHlp.StrengthModifier(oldBase, oldExc);
+      CharHlp.StrengthEffectToStrength(found, oldBase, oldExc);
       Types.PEffectRec(found)^.strength := enc + $80;
     end;
     creature^.strCur := AbilAdj.ClampScore(baseStr);
     creature^.strExc := excStr;
     CharHlp.RecalcStats(creature);
-    effStrength := FxEngine.StrengthModifier(oldBase, oldExc);
+    effStrength := CharHlp.StrengthModifier(oldBase, oldExc);
     AdjustForNewStrength := True;
   end;
 end;

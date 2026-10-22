@@ -68,7 +68,22 @@ function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
 
+{ Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
+  PermanentStrength, and a half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
+
+{ Encode Strength as an effect strength byte: base 18 gives excStr + 1, any other base gives baseStr + 100. Bit 7 is
+  left for the caller's "superseded" mark. }
+function StrengthModifier(baseStr, excStr: Byte): Byte;
+
+{ Decode an effect's strength byte (bit 7 masked off) into base and exceptional Strength: values <= 101 give base 18
+  with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
+procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
+
+{ The character's own Strength score, without Enlarge, Strength or Gauntlets of Ogre Power: the Strength to restore
+  held by the one Enlarge or Strength effect not superseded (strength < $80; FxEngine.AdjustForNewStrength), else
+  strCur. }
+function PermanentStrength(creature: Types.PCharRecord): Byte;
 
 { True when the creature has enough experience to train a level in some class: the training hall's own test (not at the
   racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. }
@@ -839,22 +854,23 @@ begin
   end;
 end;
 
-{ Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by Strength, and a
-  half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts (SSI's tests matched some levels past it
-  and not others). Monsters, half-orcs and humans have no limit here. }
+{ SSI's tests matched some levels past the cap and not others, and read the Strength magic had raised or disease
+  lowered (#702). Monsters, half-orcs and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;
   band: Byte;
+  str: Byte;
 begin
   AtLevelCap := False;
   with creature^ do begin
     lvl := classLevels[cls];
     if lvl <= 0 then
       Exit;
-    if strCur < 17 then
+    str := CharHlp.PermanentStrength(creature);
+    if str < 17 then
       band := STR_BAND_LOW
-    else if strCur = 17 then
+    else if str = 17 then
       band := STR_BAND_17
     else
       band := STR_BAND_18;
@@ -863,6 +879,42 @@ begin
     else if (race in [C_Race.DWARF..C_Race.HALFLING]) and
             ((cls = C_Level.FIGHTER) or ((cls = C_Level.RANGER) and (race = C_Race.HALFELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
+  end;
+end;
+
+function StrengthModifier(baseStr, excStr: Byte): Byte;
+begin
+  StrengthModifier := baseStr + 100;
+  if baseStr = 18 then
+    StrengthModifier := excStr + 1;
+end;
+
+procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
+begin
+  excStr := 0;
+  baseStr := Types.PEffectRec(effect)^.strength and $7F;
+  if baseStr <= 101 then begin
+    excStr := baseStr - 1;
+    baseStr := 18;
+  end else
+    baseStr := baseStr - 100;
+end;
+
+function PermanentStrength(creature: Types.PCharRecord): Byte;
+var
+  p: Types.PEffectRec;
+  base: Byte;
+  exc: Byte;
+begin
+  PermanentStrength := creature^.strCur;
+  p := creature^.effectsAddr;
+  while p <> nil do begin
+    if ((p^.id = C_Effect.ENLARGE) or (p^.id = C_Effect.STRENGTH)) and (p^.strength < $80) then begin
+      CharHlp.StrengthEffectToStrength(p, base, exc);
+      PermanentStrength := base;
+      Exit;
+    end;
+    p := p^.next;
   end;
 end;
 

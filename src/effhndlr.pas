@@ -459,7 +459,7 @@ var
   best: Types.PEffectRec;
 begin
   if Types.PEffectRec(p)^.strength > $7F then Exit;
-  FxEngine.StrengthEffectToStrength(p, base, exc);
+  CharHlp.StrengthEffectToStrength(p, base, exc);
   creature^.strCur := AbilAdj.ClampScore(base);
   creature^.strExc := exc;
   best := nil;
@@ -469,7 +469,7 @@ begin
   while q <> nil do begin
     if (q^.id = C_Effect.ENLARGE) or (q^.id = C_Effect.STRENGTH) then
       if q <> Types.PEffectRec(p) then begin
-        FxEngine.StrengthEffectToStrength(q, base, exc);
+        CharHlp.StrengthEffectToStrength(q, base, exc);
         if (base > bestBase) or ((bestBase = 18) and (exc > bestExc)) then begin
           bestBase := base;
           bestExc := exc;
@@ -479,7 +479,7 @@ begin
     q := q^.next;
   end;
   if best <> nil then begin
-    Types.PEffectRec(best)^.strength := FxEngine.StrengthModifier(creature^.strCur, creature^.strExc);
+    Types.PEffectRec(best)^.strength := CharHlp.StrengthModifier(creature^.strCur, creature^.strExc);
     creature^.strCur := AbilAdj.ClampScore(bestBase);
     creature^.strExc := bestExc;
   end;
