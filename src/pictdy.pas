@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_Video, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -129,10 +129,10 @@ var
 begin
   for i := 0 to 199 do
     case i mod 4 of
-      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK0_SEG;
-      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK1_SEG;
-      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK2_SEG;
-      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK3_SEG;
+      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG;
+      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK1_SEG;
+      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK2_SEG;
+      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK3_SEG;
     end;
 end;
 

@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_Video, GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -171,9 +171,9 @@ var
 begin
   for i := 0 to 199 do
     if Odd(i) then
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK1_SEG
+      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
     else
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK0_SEG;
+      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
 end;
 
 end.

@@ -13,7 +13,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, GDVars, DaxIo, PicVga{$IFDEF FPC}, Host{$ENDIF};
+uses Types, C_VIDEO, GDVars, DaxIo, PicVga{$IFDEF FPC}, Host{$ENDIF};
 
 const
   { EGA's 16 colours as VGA DAC values (6 bits a component): the BIOS's own for entries 0..15 in mode 13h }
@@ -28,7 +28,7 @@ var
 {$IFDEF FPC}
   vgaMem: Host.TScreen absolute Host.screen;
 {$ELSE}
-  vgaMem: array[0..C_Video.VGA_ROW_BYTES * 200 - 1] of Byte absolute C_Video.VGA_VIDEO_SEG:0;
+  vgaMem: array[0..C_VIDEO.VGA_ROW_BYTES * 200 - 1] of Byte absolute C_VIDEO.VGA_VIDEO_SEG:0;
 {$ENDIF}
 
 procedure SetPalette(registerIndex, color: Byte); forward;

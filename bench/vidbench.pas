@@ -5,7 +5,7 @@
   Only rates measured at the same DOSBox-X speed compare. }
 program VidBench;
 
-uses Types, C_Video, GDVars, Blit, TextRend, VidCga, VidEga, VidTdy;
+uses Types, C_VIDEO, GDVars, Blit, TextRend, VidCga, VidEga, VidTdy;
 
 const
   { BIOS ticks each workload runs for, about 3 seconds }
@@ -102,15 +102,15 @@ begin
   { as GameInit2 sets them up }
   for i := 0 to 199 do begin
     if Odd(i) then
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK1_SEG
+      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
     else
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK0_SEG;
+      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
     GDVars.fbRowOfs[i] := i * 40;
     case i mod 4 of
-      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK0_SEG;
-      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK1_SEG;
-      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK2_SEG;
-      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK3_SEG;
+      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG;
+      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK1_SEG;
+      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK2_SEG;
+      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK3_SEG;
     end;
   end;
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));

@@ -11,14 +11,14 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, GDConsts, GDVars, DaxIo, PicTdy;
+uses Types, C_VIDEO, GDConsts, GDVars, DaxIo, PicTdy;
 
 var
   { the four banks from $B800: scanline n in bank n mod 4, 160 bytes a scanline }
-  tdyB800: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK0_SEG:$0000{$ENDIF};
-  tdyBA00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK1_SEG:$0000{$ENDIF};
-  tdyBC00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK2_SEG:$0000{$ENDIF};
-  tdyBE00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK3_SEG:$0000{$ENDIF};
+  tdyB800: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK0_SEG:$0000{$ENDIF};
+  tdyBA00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK1_SEG:$0000{$ENDIF};
+  tdyBC00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK2_SEG:$0000{$ENDIF};
+  tdyBE00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK3_SEG:$0000{$ENDIF};
 
 procedure Start;
 begin

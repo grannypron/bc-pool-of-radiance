@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_Video, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 { each DAX cell row (4 bytes, two pixels a byte, high nibble first) becomes 8 bytes; with a mask, a pixel of transpColor
   becomes PIC_KEY and sets its mask bit (bit 7 the leftmost) }
@@ -137,7 +137,7 @@ var
   i: Byte;
 begin
   for i := 0 to 199 do
-    GDVars.fbRowOfs[i] := i * C_Video.VGA_ROW_BYTES;
+    GDVars.fbRowOfs[i] := i * C_VIDEO.VGA_ROW_BYTES;
 end;
 
 end.
