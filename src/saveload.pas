@@ -851,12 +851,15 @@ end;
 
 { RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
   becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
-  A curChar not found in the list is left alone. }
+  A curChar not found in the list is left alone. When the creature removed was savedChar, savedChar follows the new
+  curChar. }
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
 var
   prev: Types.PCharRecord;
+  removed: Types.PCharRecord;
 begin
   if GDVars.creatureList = nil then Exit;
+  removed := GDVars.curChar;
   prev := GDVars.creatureList;
   if prev <> GDVars.curChar then begin
     while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
@@ -880,6 +883,9 @@ begin
     if not suppressSizeDec then
       Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
   end;
+  { the script engine makes savedChar current again: never the freed record (SSI left it there, as Curse's #609) }
+  if (GDVars.curChar <> removed) and (GDVars.savedChar = removed) then
+    GDVars.savedChar := GDVars.curChar;
 end;
 
 procedure FreeParty;

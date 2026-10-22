@@ -35,8 +35,6 @@ var
   mapLoaded: Byte;
   { monsters added by LOAD MONSTER since CLEAR MONSTERS (max 63) }
   creatureCnt: Byte;
-  { curChar backup }
-  savedChar: Types.PCharRecord;
   { Current monster ID }
   monId: Byte;
   { Current monster picture ID }
@@ -106,7 +104,7 @@ begin
       Border.DrawWindow(3, 3, 13, 13, 0, White, '');
   end;
   if restoreChar <> 0 then begin
-    GDVars.curChar := savedChar;
+    GDVars.curChar := GDVars.savedChar;
     restoreChar := 0;
   end;
   FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
@@ -239,14 +237,12 @@ begin
   if (flag80 <> 0) and GDVars.dumpCr6C00 and GDVars.dumpCr6B00 then begin
     { SSI removed the character current before when the index found no one (#759) }
     if p <> nil then begin
-      wasSaved := savedChar = GDVars.curChar;
+      wasSaved := GDVars.savedChar = GDVars.curChar;
       if wasSaved then
         restoreChar := 0;
+      { the record is freed: RemoveCreature moves savedChar to the new current character, which EXIT, PROGRAM and
+        NewEclDone then restore (SSI kept savedChar on the freed record, #759) }
       SaveLoad.RemoveCreature(False, True);
-      { the record is freed: EXIT, PROGRAM and NewEclDone restore the new current character instead (SSI kept savedChar
-        on the freed record, #759) }
-      if wasSaved then
-        savedChar := GDVars.curChar;
       CharDisp.DisplayParty(GDVars.curChar);
     end;
     GDVars.dumpCr6C00 := False;
@@ -1624,7 +1620,7 @@ var
   savedIp: Word;
 begin
   if restoreChar <> 0 then begin
-    GDVars.curChar := savedChar;
+    GDVars.curChar := GDVars.savedChar;
     restoreChar := 0;
   end;
   EclVars.LoadEclVars(1);
@@ -1773,8 +1769,8 @@ begin
   repeat
     GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
     GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 0;
-    { in savedChar, as in Curse, so a LOAD CHARACTER that removes it moves it on (SSI kept its own copy, #759) }
-    savedChar := GDVars.curChar;
+    { in GDVars, as in Curse, so removing it from the party moves it on (SSI kept its own copy, #759, #776) }
+    GDVars.savedChar := GDVars.curChar;
     GDVars.locTypePrev := GDVars.gLocType;
     GDVars.gLocType := C_Area.LOC_3D_MAP;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
@@ -1806,7 +1802,7 @@ begin
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
     if newEclFlag = 0 then begin
       EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
-      GDVars.curChar := savedChar;
+      GDVars.curChar := GDVars.savedChar;
       CharDisp.DisplayParty(GDVars.curChar);
     end;
   until newEclFlag = 0;
@@ -1845,7 +1841,7 @@ begin
   GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
   while not GDVars.partyDefeated and not EclVm.Reloading do begin
     cmd := Explore.MapMainMenu;
-    savedChar := GDVars.curChar;
+    GDVars.savedChar := GDVars.curChar;
     GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
     while ((GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
         (not GDVars.partyDefeated) and not EclVm.Reloading do begin
@@ -1862,7 +1858,7 @@ begin
       end;
       if not GDVars.partyDefeated and not EclVm.Reloading then begin
         cmd := Explore.MapMainMenu;
-        savedChar := GDVars.curChar;
+        GDVars.savedChar := GDVars.curChar;
       end;
     end;
     { a quick load asked for on the map menu, or a game loaded from a script's party menu, ends the loop at once: the
