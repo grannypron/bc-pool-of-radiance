@@ -733,7 +733,7 @@ begin
     { own-HP check holds }
     Exit;
   moraleSave := GameVars.currentMorale;
-  GameVars.currentMorale := GameVars.hostileHpPct;
+  GameVars.currentMorale := CbtActs.hostileHpPct;
   { the same effect adjustments, now to the group figure }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
   if (GameVars.currentMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])

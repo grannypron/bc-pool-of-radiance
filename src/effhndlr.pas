@@ -604,7 +604,7 @@ var
   effect: Types.PEffectRec;
 begin
   if not CharHlp.HasEffect(GameVars.curChar, C_EFFECT.SEE_INVISIBLE, effect) then
-    GameVars.currentSuppressTargetingFlag := 1;
+    CbtActs.currentSuppressTargetingFlag := 1;
   Dec(GameVars.gAttackRoll, 4);
 end;
 
@@ -722,7 +722,7 @@ end;
 procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.initiative > 0 then begin
-    GameVars.currentSuppressTargetingFlag := 1;
+    CbtActs.currentSuppressTargetingFlag := 1;
     GameVars.gAttackAvoided := True;
   end;
 end;
@@ -813,8 +813,8 @@ begin
         phase := GameVars.curChar^.combatAddr^.attackPhase;
         { 1..2 = the bounds of hitsMade }
         if (phase >= 1) and (phase <= 2) then
-          if GameVars.hitsMade[phase] > 0 then
-            Dec(GameVars.hitsMade[phase]);
+          if CbtActs.hitsMade[phase] > 0 then
+            Dec(CbtActs.hitsMade[phase]);
       end;
 end;
 
@@ -1112,7 +1112,7 @@ end;
   gAttackRoll by 4. }
 procedure EffDustDisappear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GameVars.currentSuppressTargetingFlag := 1;
+  CbtActs.currentSuppressTargetingFlag := 1;
   Dec(GameVars.gAttackRoll, 4);
 end;
 
@@ -1866,13 +1866,13 @@ var
 begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   item := GameVars.otherCreatureCurrentPtr^.itemsAddr;
-  while (item <> nil) and (GameVars.currentSuppressTargetingFlag = 0) do begin
+  while (item <> nil) and (CbtActs.currentSuppressTargetingFlag = 0) do begin
     if item^.equipped <> 0 then
       { 3 = High(TItemRec.nameIds) }
       for j := 1 to 3 do
         if ((item^.nameIds[j] = C_ITEM.NAME_HOLY_SYMBOL) and (item^.nameIds[3] = C_ITEM.NAME_WOODEN)) or
            (item^.nameIds[j] = C_ITEM.NAME_MIRROR) then
-          GameVars.currentSuppressTargetingFlag := 1;
+          CbtActs.currentSuppressTargetingFlag := 1;
     item := item^.next;
   end;
 end;

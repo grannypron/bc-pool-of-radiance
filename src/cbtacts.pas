@@ -7,6 +7,15 @@ interface
 
 uses Types;
 
+var
+  { suppress targeting }
+  currentSuppressTargetingFlag: Byte;
+  hitsMade: array[1..2] of Byte;
+  { Hostile creatures' hit points, percent remaining }
+  hostileHpPct: Byte;
+  { Done flag for the acting creature's attacks; combat menus also return their extended-key flag here }
+  doneRoundFlag: Boolean;
+
 procedure CombatRoundStartSetup(creature: Types.PCharRecord);
 
 function CalcCreatureMovement(creature: Types.PCharRecord): Byte;
@@ -403,7 +412,7 @@ begin
                       Types.PAttackPhaseView(p)^.curAtt[phase] := 1;
                       p^.combatAddr^.attackPhase := phase;
                       savedOther := p^.combatAddr^.other;
-                      CbtActs.CombatAttack(p, creature, True, nil, GameVars.doneRoundFlag);
+                      CbtActs.CombatAttack(p, creature, True, nil, doneRoundFlag);
                       attacked := True;
                       p^.combatAddr^.other := savedOther;
                       if p^.enabled <> 0 then begin
@@ -549,7 +558,7 @@ begin
         p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
         CbtActs.NoteAttackDirection(att, p);
         att^.curAttacks := 1;
-        CbtActs.CombatAttack(att, p, False, nil, GameVars.doneRoundFlag);
+        CbtActs.CombatAttack(att, p, False, nil, doneRoundFlag);
         Dec(weak);
       end;
   SweepAttempt := True;
@@ -569,15 +578,15 @@ begin
     CanAttackTarget := True;
     Exit;
   end;
-  GameVars.currentSuppressTargetingFlag := 0;
+  currentSuppressTargetingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.TARGET_VETO, other);
-  if GameVars.currentSuppressTargetingFlag = 0 then begin
+  if currentSuppressTargetingFlag = 0 then begin
     saved := creature^.combatAddr^.other;
     creature^.combatAddr^.other := other;
     FxEngine.TriggerEffectsWithCondition(C_COND.ATTACKER_VETO, creature);
     creature^.combatAddr^.other := saved;
   end;
-  CanAttackTarget := GameVars.currentSuppressTargetingFlag = 0;
+  CanAttackTarget := currentSuppressTargetingFlag = 0;
 end;
 
 { Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
@@ -670,7 +679,7 @@ begin
   if not any then
     CharDisp.PrintBottomLine('Nothing Happens...');
   CharHlp.CountTeams;
-  GameVars.doneRoundFlag := CharHlp.EndActions(creature);
+  doneRoundFlag := CharHlp.EndActions(creature);
   CharDisp.ClearMessageWindow;
 end;
 
@@ -732,8 +741,8 @@ var
 begin
   behind := fromBehind;
   done := False;
-  GameVars.hitsMade[1] := 0;
-  GameVars.hitsMade[2] := 0;
+  hitsMade[1] := 0;
+  hitsMade[2] := 0;
   attacksMade[1] := 0;
   attacksMade[2] := 0;
   anyHit := False;
@@ -808,7 +817,7 @@ begin
             if image^.strength = 0 then
               FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
           end else begin
-            Inc(GameVars.hitsMade[phase]);
+            Inc(hitsMade[phase]);
             SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
             CbtActs.CalcWeaponDamage(att, def, phase);
             CbtActs.ProcessAttackResult(att, def, atkType, GameVars.pendingDamage, GameVars.pendingDamage, True);
@@ -1343,7 +1352,7 @@ begin
   end;
   if maxSum > 0 then
     { LongInt: curSum * 20 passes a Word above 3276 }
-    GameVars.hostileHpPct := LongInt(curSum) * 20 div maxSum * 5;
+    hostileHpPct := LongInt(curSum) * 20 div maxSum * 5;
 end;
 
 { The fastest enabled enemy's movement in whole moves (CalcCreatureMovement div 2); no range or line-of-sight check. }
@@ -1575,7 +1584,7 @@ begin
       menu := 'Target ' + menu;
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('(Use Cursor keys) ', menu, LightMagenta, LightGreen, White, True, False,
-                                  GameVars.doneRoundFlag);
+                                  doneRoundFlag);
     case ch of
       'T':
         begin
@@ -1805,7 +1814,7 @@ procedure RearClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 var
   done: Boolean;
 begin
-  if GameVars.hitsMade[1] = 2 then
+  if hitsMade[1] = 2 then
     if creature^.combatAddr^.other^.enabled <> 0 then begin
       creature^.combatAddr^.attackPhase := 2;
       creature^.curAttacks2 := 2;
@@ -1881,4 +1890,10 @@ begin
       AreaHitsNonEnemy := True;
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  currentSuppressTargetingFlag := 0;
+  FillChar(hitsMade, SizeOf(hitsMade), 0);
+  hostileHpPct := 0;
+  doneRoundFlag := False;
 end.

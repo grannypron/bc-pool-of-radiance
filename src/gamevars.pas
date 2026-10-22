@@ -209,8 +209,6 @@ var
   gDamageDice: Byte;
   { 1 while calculating movement }
   currentCreatureCalculatingFlag: Byte;
-  { suppress targeting }
-  currentSuppressTargetingFlag: Byte;
   { Effect lock. }
   effectLock: Byte;
   { the spell affects multiple targets }
@@ -221,7 +219,6 @@ var
   gAttackRoll: ShortInt;
   { an effect (Blink, Displacement, an avoided missile) forced the attack to miss }
   gAttackAvoided: Boolean;
-  hitsMade: array[1..2] of Byte;
   { current morale }
   currentMorale: Byte;
   { creature this one is interacting with }
@@ -319,12 +316,8 @@ var
   roundCounter: Byte;
   { Potential-target creature indices. }
   potentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
-  { Hostile creatures' hit points, percent remaining }
-  hostileHpPct: Byte;
   { quick combat magic; toggled by Alt-M }
   quickMagic: Boolean;
-  { Done flag for the acting creature's attacks; combat menus also return their extended-key flag here }
-  doneRoundFlag: Boolean;
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
   moveIconSheet: Types.PImgBuf;

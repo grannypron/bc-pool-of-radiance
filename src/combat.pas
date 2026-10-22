@@ -327,7 +327,7 @@ begin
     MenuCore.arrowsToCaller := True;
     ch :=
       MenuCore.MenuHorizontal('Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +
-      ' ', '', LightGreen, LightGreen, White, True, False, GameVars.doneRoundFlag);
+      ' ', '', LightGreen, LightGreen, White, True, False, CbtActs.doneRoundFlag);
     case ch of
       { Escape: undo }
       C_KEYS.NONE: begin
@@ -436,7 +436,7 @@ begin
   while not (ch in [C_KEYS.NONE, 'E']) and not done do
   begin
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, False, False,
-                                  GameVars.doneRoundFlag);
+                                  CbtActs.doneRoundFlag);
     case ch of
       'G': begin
              done := CharHlp.Guard(creature);
@@ -502,7 +502,7 @@ begin
       menu := menu + 'Faster ';
     menu := menu + 'Exit';
     ch := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, False, False,
-                                  GameVars.doneRoundFlag);
+                                  CbtActs.doneRoundFlag);
     case ch of
       'S': Inc(GameVars.gameDelay);
       'F': Dec(GameVars.gameDelay);
