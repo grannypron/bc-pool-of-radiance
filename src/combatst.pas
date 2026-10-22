@@ -655,6 +655,7 @@ var
 begin
   firstPass := 1;
   giveUp := 0;
+  placed := 0;
   state := 1;
   legShift := 0;
   ring := 0;
@@ -719,7 +720,6 @@ begin
     end;
     { Outside the state > 1 guard: advance the search ring when the quad lies fully outside the grid. }
     if (offGrid <> 0) and CombatSt.QuadFullyOff(qx, qy) then begin
-      placed := 0;
       state := 0;
       while (ring < 3) and (state <> 1) do begin
         Inc(ring);
