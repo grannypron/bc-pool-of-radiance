@@ -244,8 +244,10 @@ var
   gMultiTarget: Byte;
   { redraw the inventory menu }
   dsRedrawInventoryMenuFlag: Byte;
-  { signed -- EffHndlr assigns -1, FxEngine guards >= 0 }
+  { the attack roll as effects modify it; signed, as penalties can take it below 0 }
   gAttackRoll: ShortInt;
+  { an effect (Blink, Displacement, an avoided missile) forced the attack to miss }
+  gAttackAvoided: Boolean;
   hitsMade: array[1..2] of Byte;
   { current morale }
   dsCurrentMorale: Byte;

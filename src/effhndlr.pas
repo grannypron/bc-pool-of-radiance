@@ -719,7 +719,7 @@ procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 begin
   if creature^.combatAddr^.initiative > 0 then begin
     GDVars.dsCurrentSuppressTargetingFlag := 1;
-    GDVars.gAttackRoll := -1;
+    GDVars.gAttackAvoided := True;
   end;
 end;
 
@@ -807,7 +807,7 @@ begin
       if Dice.RollDice(1, 100) <= pct then begin
         CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
         GDVars.pendingDamage := 0;
-        GDVars.gAttackRoll := -1;
+        GDVars.gAttackAvoided := True;
         phase := GDVars.curChar^.combatAddr^.attackPhase;
         { 1..2 = the bounds of hitsMade }
         if (phase >= 1) and (phase <= 2) then
@@ -1481,7 +1481,7 @@ begin
     Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength and $F
   else
     if Types.PEffectRec(p)^.strength and $10 = 0 then begin
-      GDVars.gAttackRoll := -1;
+      GDVars.gAttackAvoided := True;
       Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
     end;
 end;

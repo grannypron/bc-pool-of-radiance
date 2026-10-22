@@ -48,14 +48,16 @@ function FreeCloudNumber(caster: Types.PCharRecord): Byte;
 function CloudStrength(level, num: Byte): Byte;
 
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
-  becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when the roll is still >= 0 and roll +
-  sixtyMinusThac0 > defender^.acCur. }
+  becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
+  (GDVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
+  acCur, so a script's attack hit 5% less often than a creature's with the same THAC0 (#719). }
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 
 { Full attack roll: strip the attacker's invisibility (effect 25), roll d20 into gAttackRoll (1 misses, 20 becomes 100),
   run the attacker's C_Cond.ATTACK_ROLL_ATT (10) and the defender's C_Cond.ATTACK_ROLL_DEF (16) effects, and take the
-  GBVM modifier zmod (low byte of $6E71 when the attacker is allied, of $6E70 when hostile). Hit when the roll is still
-  >= 0 and roll + attacker^.thac0Cur + zmod >= sixtyMinusAc. }
+  GBVM modifier zmod (low byte of $6E71 when the attacker is allied, of $6E70 when hostile). Hit when no effect forced a
+  miss (GDVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >= sixtyMinusAc. Penalties that take the roll below
+  0 only lower it; SSI's took any roll below 0 for a forced miss (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 
 { d20 saving throw into GDVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
@@ -476,36 +478,39 @@ begin
   CloudStrength := level + num * 16;
 end;
 
-function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
+{ The d20 both attack rolls share: into gAttackRoll (1 misses, 20 becomes 100), then the attacker's
+  C_Cond.ATTACK_ROLL_ATT effects (none when attacker is nil) and the defender's C_Cond.ATTACK_ROLL_DEF. A hit when no
+  effect forced a miss and roll + toHit >= sixtyMinusAc. }
+function RollToHit(attacker, defender: Types.PCharRecord; toHit: Integer; sixtyMinusAc: Byte): Boolean;
 begin
-  AttackRollNoAttacker := False;
+  RollToHit := False;
+  GDVars.gAttackAvoided := False;
   GDVars.gAttackRoll := Dice.RollDice(1, 20);
   if GDVars.gAttackRoll > 1 then begin
     if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
+    if attacker <> nil then
+      FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
-    if (GDVars.gAttackRoll >= 0) and (GDVars.gAttackRoll + sixtyMinusThac0 > defender^.acCur) then
-      AttackRollNoAttacker := True;
+    if not GDVars.gAttackAvoided and (GDVars.gAttackRoll + toHit >= sixtyMinusAc) then
+      RollToHit := True;
   end;
+end;
+
+function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
+begin
+  AttackRollNoAttacker := RollToHit(nil, defender, sixtyMinusThac0, defender^.acCur);
 end;
 
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 var
   zmod: ShortInt;
 begin
-  AttackRoll := False;
   FxEngine.RemoveInvisibility(attacker);
-  GDVars.gAttackRoll := Dice.RollDice(1, 20);
-  if GDVars.gAttackRoll > 1 then begin
-    if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_ATT, attacker);
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACK_ROLL_DEF, defender);
-    if attacker^.hostile = 0 then
-      zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD]))
-    else
-      zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD]));
-    if (GDVars.gAttackRoll >= 0) and (GDVars.gAttackRoll + attacker^.thac0Cur + zmod >= sixtyMinusAc) then
-      AttackRoll := True;
-  end;
+  if attacker^.hostile = 0 then
+    zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD]))
+  else
+    zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD]));
+  AttackRoll := RollToHit(attacker, defender, attacker^.thac0Cur + zmod, sixtyMinusAc);
 end;
 
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
