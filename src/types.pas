@@ -501,7 +501,7 @@ type
       1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
           hideShadows: ShortInt);
   end;
-  { classes a race can take (GameDefs.classesByRace), in class-menu order }
+  { classes a race can take (ClassCal.classesByRace), in class-menu order }
   TRuleRaceClasses = record
     count: ShortInt;
     { class IDs; 0 fills past count }
@@ -533,7 +533,7 @@ type
       0: (values: array[1..5] of Word);
       1: (youngAdult: Word; mature: Word; middleAged: Word; old: Word; venerable: Word);
   end;
-  { alignments a class can take (GameDefs.alignByClass), in alignment-menu order }
+  { alignments a class can take (ClassCal.alignByClass), in alignment-menu order }
   TRuleClassAlignments = record
     count: ShortInt;
     { alignment IDs; 0 fills past count }

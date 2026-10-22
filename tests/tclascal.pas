@@ -1,5 +1,5 @@
 { Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws, thief skills, racial and class
-  ability limits, hit points and experience shares; and GameDefs.alignByClass' rows. }
+  ability limits, hit points and experience shares; and ClassCal.alignByClass' rows. }
 {$I COMPILER.INC}
 program TClasCal;
 
@@ -18,7 +18,7 @@ var
   armor: Types.TItemRec;
   shield: Types.TItemRec;
 
-{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, GameDefs.wisBonusSpells' rows from 13 to wis added
+{ Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, ClassCal.wisBonusSpells' rows from 13 to wis added
   up, against expected, one digit a level. }
 procedure CheckWisTotals(wis: Byte; expected: String);
 var
@@ -31,7 +31,7 @@ begin
   for lvl := 1 to 7 do begin
     total := 0;
     for w := 13 to wis do
-      Inc(total, GameDefs.wisBonusSpells[w, lvl]);
+      Inc(total, ClassCal.wisBonusSpells[w, lvl]);
     got := got + Chr(Ord('0') + total);
   end;
   TestKit.CheckEqualsS(expected, got, 'Wisdom ' + Chr(Ord('0') + wis div 10) + Chr(Ord('0') + wis mod 10) +
@@ -44,8 +44,8 @@ var
   slot: Integer;
 begin
   AlignAllowed := False;
-  for slot := 1 to GameDefs.alignByClass[cls].count do
-    if GameDefs.alignByClass[cls].alignments[slot] = al then
+  for slot := 1 to ClassCal.alignByClass[cls].count do
+    if ClassCal.alignByClass[cls].alignments[slot] = al then
       AlignAllowed := True;
 end;
 
@@ -70,19 +70,19 @@ begin
   TestKit.Check(noTn, 'no class with a cleric part can be true neutral');
   subset := True;
   for race := C_RACE.DWARF to C_RACE.HUMAN do
-    for slot := 1 to GameDefs.classesByRace[race].count do begin
-      cls := GameDefs.classesByRace[race].classes[slot];
+    for slot := 1 to ClassCal.classesByRace[race].count do begin
+      cls := ClassCal.classesByRace[race].classes[slot];
       for p := 1 to 3 do begin
         part := GameDefs.classParts[cls].values[p];
         if (part >= 0) and (part <> cls) then
-          for a := 1 to GameDefs.alignByClass[cls].count do
-            if not AlignAllowed(part, GameDefs.alignByClass[cls].alignments[a]) then
+          for a := 1 to ClassCal.alignByClass[cls].count do
+            if not AlignAllowed(part, ClassCal.alignByClass[cls].alignments[a]) then
               subset := False;
       end;
     end;
   TestKit.Check(subset, 'each multiclass offered takes only alignments all its classes allow');
-  TestKit.CheckEqualsL(8, GameDefs.alignByClass[C_CLASS.CLERIC].count, 'a cleric has 8 alignments');
-  TestKit.CheckEqualsL(6, GameDefs.alignByClass[C_CLASS.CLERIC_THIEF].count,
+  TestKit.CheckEqualsL(8, ClassCal.alignByClass[C_CLASS.CLERIC].count, 'a cleric has 8 alignments');
+  TestKit.CheckEqualsL(6, ClassCal.alignByClass[C_CLASS.CLERIC_THIEF].count,
                        'a cleric/thief has 6: neither true neutral nor LG or CG');
   TestKit.Check(AlignAllowed(C_CLASS.THIEF, C_ALIGN.TN), 'a thief can still be true neutral');
 end;

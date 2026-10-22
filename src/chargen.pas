@@ -272,7 +272,7 @@ end;
 { ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (raceAbilityAdj) beside the race
   list, and below, the single classes the race may take with the rule book's maximum level in each
   (raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
-  GameDefs.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
+  ClassCal.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
   which the note at the foot of the box says; a race without multiclasses shows neither the note nor the multiclass
   heading. The note sits under the single classes, so the multiclasses may run on beside it to the foot of the box. A
   race outside Dwarf..Human leaves the panes blank. }
@@ -346,12 +346,12 @@ begin
   { the multiclasses on the right, noting every part as a single class }
   FillChar(isSingle, SizeOf(isSingle), 0);
   hasMulti := False;
-  cnt := GameDefs.classesByRace[race].count;
+  cnt := ClassCal.classesByRace[race].count;
   if cnt > 13 then
     cnt := 13;
   row := FIRST_ROW;
   for slot := 1 to cnt do begin
-    cls := GameDefs.classesByRace[race].classes[slot];
+    cls := ClassCal.classesByRace[race].classes[slot];
     if (cls >= C_CLASS.CLERIC) and (cls <= C_CLASS.MAGE_THIEF) then begin
       s := '';
       for p := 1 to 3 do begin
@@ -574,7 +574,7 @@ begin
   creature^.genderSp := sel - 1;
   { class }
   MenuCore.FreeStringList(list);
-  cnt := GameDefs.classesByRace[creature^.race].count;
+  cnt := ClassCal.classesByRace[creature^.race].count;
   { the table's width }
   if cnt > 13 then
     cnt := 13;
@@ -583,13 +583,13 @@ begin
   list^.name := 'Pick Class';
   for slot := 1 to cnt do begin
     m := MenuCore.FindListMember(slot, list);
-    m^.name := '  ' + GameDefs.classNames[GameDefs.classesByRace[creature^.race].classes[slot]];
+    m^.name := '  ' + GameDefs.classNames[ClassCal.classesByRace[creature^.race].classes[slot]];
   end;
   if not PickFromList then Exit;
   if (sel < 1) or (sel > cnt) then
     sel := 1;
   with creature^ do begin
-    charClass := GameDefs.classesByRace[race].classes[sel];
+    charClass := ClassCal.classesByRace[race].classes[sel];
     levelHighest := 1;
     { first level in each part of the class }
     if (charClass >= C_CLASS.CLERIC) and (charClass <= C_CLASS.MAGE_THIEF) then
@@ -613,16 +613,16 @@ begin
   ClassCal.RecalcSaves(Types.PCharRecord(creature));
   { alignment }
   MenuCore.FreeStringList(list);
-  cnt := GameDefs.alignByClass[creature^.charClass].count;
+  cnt := ClassCal.alignByClass[creature^.charClass].count;
   MenuCore.AllocStringList(cnt + 1, list);
   list^.inUse := 1;
   list^.name := 'Pick Alignment';
   for slot := 1 to cnt do begin
     m := MenuCore.FindListMember(slot, list);
-    m^.name := '  ' + GameDefs.alignNames[GameDefs.alignByClass[creature^.charClass].alignments[slot]];
+    m^.name := '  ' + GameDefs.alignNames[ClassCal.alignByClass[creature^.charClass].alignments[slot]];
   end;
   if not PickFromList then Exit;
-  creature^.alignment := GameDefs.alignByClass[creature^.charClass].alignments[sel];
+  creature^.alignment := ClassCal.alignByClass[creature^.charClass].alignments[sel];
   MenuCore.FreeStringList(list);
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
     maximum) of one component class. }
