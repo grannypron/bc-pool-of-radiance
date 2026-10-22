@@ -12,11 +12,18 @@ procedure CombatMain;
   for a party member under Quick (CombatAi.AiMoveAttack). }
 function BandageDying(bandage: Boolean): Boolean;
 
+{ Let the Continue Battle prompt show again, for a new game (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
 uses Types, C_TIME, C_NPC, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
+
+var
+  { nonzero suppresses Combat's Continue Battle prompt }
+  suppressContinuePrompt: Byte;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
 
@@ -293,7 +300,7 @@ begin
   if (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0) then
     done := True;
   if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0)
-     and (GameVars.suppressContinuePrompt = 0) then
+     and (suppressContinuePrompt = 0) then
     if MenuCore.YesNoMenu('Continue Battle:', LightMagenta, LightGreen, White) = 'Y' then
       done := False;
 end;
@@ -520,6 +527,11 @@ begin
      and (creature^.combatAddr^.other^.hostile = creature^.hostile) then begin
     creature^.combatAddr^.other := nil;
   end;
+end;
+
+procedure ResetGame;
+begin
+  suppressContinuePrompt := 0;
 end;
 
 end.

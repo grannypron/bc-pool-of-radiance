@@ -35,8 +35,6 @@ var
   eclIp: Word;
   { Interface state, one of the IFC_ constants of C_IFC and Ending }
   ifcState: Byte;
-  { nonzero suppresses Combat's Continue Battle prompt }
-  suppressContinuePrompt: Byte;
   { zero disables ViewChar's disk-3 portrait branch }
   portraitsOn: Byte;
   { zero skips the close-up load when inEncMenu is nonzero }
