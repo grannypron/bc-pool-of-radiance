@@ -13,7 +13,7 @@ procedure CustomizeIcon;
 procedure CustomizePortrait(canCancel: Boolean);
 
 { True when curChar can be modified at all: a player race (Dwarf..Human, whose limits
-  dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class in classMin (0..16). }
+  dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class C_Class.CLERIC..MAGE_THIEF (0..16). }
 function Modifiable: Boolean;
 
 { Arrow-key editor for curChar's six attributes and hit points (ModifyCharacterMenu's, which calls it for a character
@@ -351,8 +351,8 @@ var
         stats[i] := ClassCal.RaceAbilityMin(race, genderSp, i);
       if stats[i] > ClassCal.RaceAbilityMax(race, genderSp, i) then
         stats[i] := ClassCal.RaceAbilityMax(race, genderSp, i);
-      if stats[i] < GDConsts.classMin[charClass].values[i] then
-        stats[i] := GDConsts.classMin[charClass].values[i];
+      if stats[i] < ClassCal.ClassAbilityMin(charClass, i) then
+        stats[i] := ClassCal.ClassAbilityMin(charClass, i);
     end;
   end;
 
@@ -818,8 +818,8 @@ var
     is higher }
   function StatMinimum(racialMin: Byte): Byte;
   begin
-    if GDConsts.classMin[GDVars.curChar^.charClass].values[statIdx] > racialMin then
-      StatMinimum := GDConsts.classMin[GDVars.curChar^.charClass].values[statIdx]
+    if ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx) > racialMin then
+      StatMinimum := ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx)
     else
       StatMinimum := racialMin;
   end;

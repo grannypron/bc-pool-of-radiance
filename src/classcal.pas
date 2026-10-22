@@ -29,6 +29,10 @@ function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 
+{ The class minimum on ability (C_Abil) for charClass (C_Class): a single class's from GDConsts.classMin, a
+  multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it. }
+function ClassAbilityMin(charClass, ability: ShortInt): Byte;
+
 { The Constitution hit-point adjustment class cls (C_Level) gets per hit die: GDConsts.conBonusTbl's, plus, for the
   fighter, paladin and ranger classes, 1 at Con 17, 2 at 18, 3 at 19..20, 4 at 21..23 and 5 at 24..25. The warrior
   bonus goes with the class, so a multi-class character's fighter, paladin or ranger levels get it too: the 1st-edition
@@ -266,6 +270,22 @@ begin
     else
       RaceAbilityMax := chaMax;
     end;
+end;
+
+function ClassAbilityMin(charClass, ability: ShortInt): Byte;
+var
+  p: Byte;
+  part: ShortInt;
+  least: Byte;
+begin
+  least := 0;
+  for p := 1 to 3 do begin
+    part := GDConsts.classParts[charClass].values[p];
+    if part >= C_Class.CLERIC then
+      if GDConsts.classMin[part].values[ability] > least then
+        least := GDConsts.classMin[part].values[ability];
+  end;
+  ClassAbilityMin := least;
 end;
 
 function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;

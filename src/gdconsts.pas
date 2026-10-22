@@ -1922,42 +1922,25 @@ const
     (youngAdult: 33; mature: 68; middleAged: 101; old: 144; venerable: 199), { halfling }
     (youngAdult: 15; mature: 30; middleAged: 45; old: 60; venerable: 80), { half-orc }
     (youngAdult: 20; mature: 40; middleAged: 60; old: 90; venerable: 120)); { human }
-  { Ability minimums by class }
-  classMin: array[0..16] of Types.TRuleAbilities = (
+  { Ability minimums by single class (C_Class.CLERIC..MONK), the 1st-edition PHB's: every class needs at least 3, and
+    most 6, in each ability (#740). A multiclass needs the highest of its classes' (ClassCal.ClassAbilityMin). }
+  classMin: array[C_Class.CLERIC..C_Class.MONK] of Types.TRuleAbilities = (
     { cleric }
-    (strength: 6; intelligence: 6; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
+    (strength: 6; intelligence: 6; wisdom: 9; dexterity: 3; constitution: 6; charisma: 6),
     { druid }
-    (strength: 0; intelligence: 0; wisdom: 12; dexterity: 0; constitution: 0; charisma: 15),
+    (strength: 6; intelligence: 6; wisdom: 12; dexterity: 6; constitution: 6; charisma: 15),
     { fighter }
-    (strength: 9; intelligence: 0; wisdom: 6; dexterity: 6; constitution: 7; charisma: 0),
+    (strength: 9; intelligence: 3; wisdom: 6; dexterity: 6; constitution: 7; charisma: 6),
     { paladin }
-    (strength: 12; intelligence: 9; wisdom: 13; dexterity: 0; constitution: 9; charisma: 17),
+    (strength: 12; intelligence: 9; wisdom: 13; dexterity: 6; constitution: 9; charisma: 17),
     { ranger }
-    (strength: 13; intelligence: 13; wisdom: 14; dexterity: 0; constitution: 14; charisma: 0),
+    (strength: 13; intelligence: 13; wisdom: 14; dexterity: 6; constitution: 14; charisma: 6),
     { magic-user }
-    (strength: 0; intelligence: 9; wisdom: 6; dexterity: 6; constitution: 0; charisma: 0),
+    (strength: 3; intelligence: 9; wisdom: 6; dexterity: 6; constitution: 6; charisma: 6),
     { thief }
-    (strength: 6; intelligence: 6; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
+    (strength: 6; intelligence: 6; wisdom: 3; dexterity: 9; constitution: 6; charisma: 6),
     { monk }
-    (strength: 15; intelligence: 0; wisdom: 15; dexterity: 15; constitution: 11; charisma: 0),
-    { cleric/fighter }
-    (strength: 9; intelligence: 0; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
-    { cleric/fighter/magic-user }
-    (strength: 9; intelligence: 9; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
-    { cleric/ranger }
-    (strength: 13; intelligence: 13; wisdom: 14; dexterity: 0; constitution: 14; charisma: 0),
-    { cleric/magic-user }
-    (strength: 0; intelligence: 9; wisdom: 9; dexterity: 0; constitution: 0; charisma: 0),
-    { cleric/thief }
-    (strength: 0; intelligence: 0; wisdom: 9; dexterity: 9; constitution: 0; charisma: 0),
-    { fighter/magic-user }
-    (strength: 9; intelligence: 9; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0),
-    { fighter/thief }
-    (strength: 9; intelligence: 0; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
-    { fighter/magic-user/thief }
-    (strength: 9; intelligence: 9; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0),
-    { magic-user/thief }
-    (strength: 0; intelligence: 9; wisdom: 0; dexterity: 9; constitution: 0; charisma: 0));
+    (strength: 15; intelligence: 6; wisdom: 15; dexterity: 15; constitution: 11; charisma: 6));
   { The alignments each class can take, in the order the alignment menu lists them. A cleric cannot be true neutral
     (1e PHB p.13), and a multiclass takes only the alignments all of its classes allow, so cleric/thief has neither
     true neutral nor the thief's LG and CG. Druid and monk are not offered at creation and keep SSI's rows. }
