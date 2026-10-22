@@ -339,16 +339,19 @@ begin
       repeat
         c := MenuCore.MenuHorizontal('Take: ', 'Money Items Exit', LightMagenta, LightGreen, White,
                                      True, True, ext);
-        case c of
-          'M': begin
-                 Money.TakeMoneyMenu;
-                 CharDisp.DisplayNoncombatInterface;
-               end;
-          'I': PostCbt.LootTakeItemMenu;
-          'E', C_Keys.NONE: done := True;
-          'G': Party.SelectPrevNextChar(c);
-          'O': Party.SelectPrevNextChar(c);
-        end;
+        { an extended key only steps the character: its scan code is no command letter (keypad 6 and 9 came back as 'M'
+          and 'I', #730) }
+        if ext then
+          Party.SelectPrevNextChar(c)
+        else
+          case c of
+            'M': begin
+                   Money.TakeMoneyMenu;
+                   CharDisp.DisplayNoncombatInterface;
+                 end;
+            'I': PostCbt.LootTakeItemMenu;
+            'E', C_Keys.NONE: done := True;
+          end;
         CharDisp.DisplayParty(GDVars.curChar);
         Money.DetermineTreasure(treasure, items);
         if not treasure or not items then
@@ -406,27 +409,27 @@ begin
     c := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, True, True, ext);
     { the coin each party member gains or puts back here, Take, Share, Pool or Drop alike, is Coin looted (net) (#611) }
     Stats.MarkCoins;
-    case c of
-      'V': ViewChar.ViewCharMenu(ext);
-      'T': PostCbt.LootTakeMenu(treasure, items);
-      'P': if not ext then Money.PoolMoney;
-      'S': Money.ShareMoney;
-      'D': Magic.CastSpellNC(detectSpell, False, False, ext);
-      'E', C_Keys.NONE: begin
-                 Money.DetermineTreasure(treasure, items);
-                 done := not (treasure or items) or
-                         not Money.GoBackForIt('There is still treasure left.  ',
-                                               'Do you want to go back and claim your treasure?');
-               end;
-      'G': begin
-             Party.SelectPrevNextChar(c);
-             CharDisp.DisplayParty(GDVars.curChar);
-           end;
-      'O': begin
-             Party.SelectPrevNextChar(c);
-             CharDisp.DisplayParty(GDVars.curChar);
-           end;
-    end;
+    { an extended key only steps the character: its scan code is no command letter (Delete came back as 'S' and shared
+      the money, F10 as 'D' and cast Detect Magic, #730) }
+    if ext then begin
+      Party.SelectPrevNextChar(c);
+      CharDisp.DisplayParty(GDVars.curChar);
+    end else
+      case c of
+        'V': ViewChar.ViewCharMenu(ext);
+        'T': PostCbt.LootTakeMenu(treasure, items);
+        'P': Money.PoolMoney;
+        'S': if treasure then
+               Money.ShareMoney;
+        'D': if hasDetect then
+               Magic.CastSpellNC(detectSpell, False, False, ext);
+        'E', C_Keys.NONE: begin
+                   Money.DetermineTreasure(treasure, items);
+                   done := not (treasure or items) or
+                           not Money.GoBackForIt('There is still treasure left.  ',
+                                                 'Do you want to go back and claim your treasure?');
+                 end;
+      end;
     Stats.SettleCoins;
   until done;
 end;

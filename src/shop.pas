@@ -155,33 +155,39 @@ begin
     else
       menu := first + ' View Pool Appraise Exit';
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
-    { extended keys come back as letters too: H is the up arrow, B is F8, P the down arrow }
-    case c of
-      'B': if not atTemple and not ext then command;
-      'H': if atTemple and not ext then command;
-      'V': ViewChar.ViewCharMenu(ext);
-      'T': Money.TakeMoneyMenu;
-      'P': if not ext then Money.PoolMoney;
-      'S': Money.ShareMoney;
-      'A': Money.AppraiseMenu(apprOk);
-      'E': begin
-             Money.DetermineTreasure(hasMoney, hasItems);
-             if atTemple then
-               done := not hasMoney or
-                       not Money.GoBackForIt(
-                         'As you leave a priest says, "Excuse me but you have left some money here" ',
-                         'Do you want to go back and retrieve your money?')
-             else
-               done := not hasMoney or
-                       not Money.GoBackForIt(
-                         'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ',
-                         'Do you want to go back and get your Money?');
-           end;
-      C_Keys.HOME, C_Keys.END_KEY: Party.SelectPrevNextChar(c);
-    end;
-    case c of
-      'B', 'T': CharDisp.DisplayNoncombatInterface;
-      'A': if apprOk then CharDisp.DisplayNoncombatInterface;
+    { an extended key only steps the character: its scan code is no command letter (H is the up arrow, P the down
+      arrow, Delete S, which shared the pool, F7 A, #731) }
+    if ext then
+      Party.SelectPrevNextChar(c)
+    else begin
+      case c of
+        'B': if not atTemple then command;
+        'H': if atTemple then command;
+        'V': ViewChar.ViewCharMenu(ext);
+        'T': if hasMoney then
+               Money.TakeMoneyMenu;
+        'P': Money.PoolMoney;
+        'S': if hasMoney then
+               Money.ShareMoney;
+        'A': Money.AppraiseMenu(apprOk);
+        'E': begin
+               Money.DetermineTreasure(hasMoney, hasItems);
+               if atTemple then
+                 done := not hasMoney or
+                         not Money.GoBackForIt(
+                           'As you leave a priest says, "Excuse me but you have left some money here" ',
+                           'Do you want to go back and retrieve your money?')
+               else
+                 done := not hasMoney or
+                         not Money.GoBackForIt(
+                           'As you Leave the Shopkeeper says, "Excuse me but you have Left Some Money here."  ',
+                           'Do you want to go back and get your Money?');
+             end;
+      end;
+      case c of
+        'B', 'T': CharDisp.DisplayNoncombatInterface;
+        'A': if apprOk then CharDisp.DisplayNoncombatInterface;
+      end;
     end;
     CharDisp.DisplayParty(GDVars.curChar);
   until done;

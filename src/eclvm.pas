@@ -581,7 +581,7 @@ begin
 end;
 
 { VMENU: show the prompt, then a vertical menu of the var 3 strings that follow (at most 20), and store the chosen
-  index at var 1's address }
+  index at var 1's address once one is chosen }
 procedure EclVMenu;
 var
   count: Byte;
@@ -617,11 +617,16 @@ begin
     list := list^.next;
     Inc(i);
   end;
-  list := head;
   idx := 0;
-  EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1,
-                          C_Msg.TEXT_RIGHT,
-                          C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
+  { the script needs a choice: Escape leaves list nil and idx on the highlighted line, which was stored as if chosen
+    (#757), so the menu is shown again }
+  repeat
+    list := head;
+    redraw := True;
+    EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_Msg.TEXT_LEFT, GDVars.curRow + 1,
+                            C_Msg.TEXT_RIGHT,
+                            C_Msg.TEXT_BOTTOM, list, False, redraw, idx, list);
+  until (list <> nil) or (head = nil);
   EclVars.WriteGbvm(address, idx);
   { the menu leaves list on the chosen line (nil on Escape), so free from the head }
   MenuCore.FreeStringList(head);

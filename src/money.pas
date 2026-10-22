@@ -118,10 +118,10 @@ begin
 end;
 
 { Read an amount from the bottom line. Accept digits, Backspace, Return and Escape; clamp to max as digits are entered.
-  Escape returns zero. }
+  Escape returns zero. The number is drawn afresh after each change: SSI kept a column that Backspace blanked one cell
+  past the last digit, so the digit deleted stayed on screen (#734). }
 function InputNumberMax;
 var
-  col: Byte;
   qLen: Byte;
   maxStr: String[5];
   s: String[6];
@@ -133,7 +133,6 @@ begin
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, query);
   qLen := Length(query);
-  col := qLen;
   Str(max, maxStr);
   s := '';
   repeat
@@ -142,19 +141,16 @@ begin
       '0'..'9': begin
           s := Concat(s, ch);
           Val(s, v, code);
-          if max >= v then
-            Inc(col)
-          else begin
+          if v > max then
             s := maxStr;
-            col := qLen + Length(maxStr);
-          end;
-          TextRend.DisplayString(qLen, 24, White, s);
         end;
-      C_Keys.BACKSPACE: if Length(s) > 0 then begin
+      C_Keys.BACKSPACE: if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
-          TextRend.PrintSpaces(col, 24, Black, 1);
-          Dec(col);
-        end;
+    end;
+    if (ch in ['0'..'9']) or (ch = C_Keys.BACKSPACE) then begin
+      { s holds at most 6 digits }
+      TextRend.PrintSpaces(qLen, 24, Black, 6);
+      TextRend.DisplayString(qLen, 24, White, s);
     end;
   until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
   TextRend.ClearBottomLine;
@@ -421,8 +417,8 @@ var
     HasRoom := (creature^.numberOfItems < 16) and not Money.CheckOverload(creature, 1, takable);
   end;
 
-  { Offer Sell, and Keep when someone has room, for the stone just appraised: name component nameId, worth gp. Keep
-    appends the stone to the holder's items; Sell pays gp div 5 in platinum. }
+  { Offer Sell, and Keep when someone has room, for the stone just appraised: name component nameId, worth gp, until
+    one is chosen. Keep appends the stone to the holder's items; Sell pays gp div 5 in platinum. }
   procedure SellOrKeep(nameId: Byte; worth: Word);
   var
     holder: Types.PCharRecord;
@@ -449,8 +445,12 @@ var
       actionStr := 'Sell Keep'
     else
       actionStr := 'Sell';
-    ch := MenuCore.MenuHorizontal('You can: ', actionStr, LightMagenta, LightGreen, White, True, False, ext);
-    if (ch = 'K') and (holder <> nil) then begin
+    { the stone is already out of the pool, so only Sell or Keep ends the prompt: Escape or any other key sold it
+      (#732) }
+    repeat
+      ch := MenuCore.MenuHorizontal('You can: ', actionStr, LightMagenta, LightGreen, White, True, False, ext);
+    until not ext and ((ch = 'S') or ((ch = 'K') and (holder <> nil)));
+    if ch = 'K' then begin
       { a whole item record }
       FillChar(gem, SizeOf(gem), 0);
       gem.next := nil;

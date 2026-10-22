@@ -208,6 +208,20 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ---
 
+**Extended keys no longer run treasure, shop and temple commands.** The loot menu, its Take menu and the shop and temple counter (`PostCbt.LootMenu`, `LootTakeMenu`, `Shop.CounterMenu`) ask `MenuHorizontal` to return extended keys, which come back as their scan codes with `ext` set, and the case arms took them as command letters: Delete ($53) as S shared the money, F10 ($44) as D cast Detect Magic (even with Detect not offered, and its spell id unset), F7 as A appraised, Shift-F1 as T took, keypad 6 and 9 as M and I in Take. An extended key now only steps the character (`Party.SelectPrevNextChar`); the letters are taken only without `ext`, and Take, Share and Detect only when offered. SSI's code. CURSE-0275, #730; CURSE-0303, #731.
+
+**Escape at Appraise's Sell/Keep no longer sells.** `Money.AppraiseMenu.SellOrKeep` kept the stone on K and sold it on any other key, Escape included, after the gem or jewelry had already left the pool. The prompt now repeats until Sell, or Keep when someone has room, is chosen. SSI's code. CURSE-0306, #732.
+
+**Other keys keep the selected character.** `Party.SelectPrevNextChar` stepped back on Home or Up and forward on End or Down, and for any other key selected the head of the party. Camp's menus and the script menus pass it every extended key, so a function key, Page Up or Down, Insert, Delete or keypad 3, 4, 6 or 9 jumped to the first member. Any other key now keeps the current character. SSI's code. CURSE-0308, #733.
+
+**Backspace in "How much ...?" erases the digit.** `Money.InputNumberMax` kept a column one past the last digit, so Backspace blanked an empty cell and the deleted digit stayed. The number is now drawn afresh after each change. SSI's code. CURSE-0309, #734.
+
+**Typed text starts after the prompt.** `TextRend.ReadString` moved its column before drawing each character, so the first appeared one column right of the prompt and a 40th went past the line. It now draws, then moves; Backspace moves back, then blanks. SSI's code. CURSE-0312, #735.
+
+**Alt-R is not Ctrl-S.** `GameIo.ReadGameKey` ran the sound toggle (and, under STING, the debug keys) on every byte it returned, and the menus and the AI's key check read an extended key's scan byte with a second call, so Alt-R (scan 19, as Ctrl-S) toggled the sound and rewrote POOLOPT.CFG, and under STING Ctrl-2 (scan 3) quit the game. After a #0 with a scan byte waiting, the next call now returns that byte without the controls (`DiscardPendingKeys`, which reads it itself, clears the flag). SSI's code. CURSE-0346, #736; CURSE-0158, #764.
+
+**Escape in a script's list menu is not a choice.** VMENU (`EclVm.EclVMenu`) stored the menu's index whatever the result, so Escape stored the highlighted line as if chosen. The menu is now shown again until a line is chosen. SSI's code. CURSE-0348, #757.
+
 ## 6. Saving, loading, quick save and the vault
 
 **Full-screen Load/Save menu, with descriptions, areas and times.** Loading and saving chose a slot from a one-line letter prompt. The new `SaveMenu` unit shows the slots full screen, titled "Load/Save Game Menu": each slot shows its letter and description, then the area and the time the file was written. Up and Down move a slot at a time and the list scrolls, with "(more)" when slots are hidden, and Page Up and Page Down move a screenful; the menu opens on the newest save. Loading lists saved games only; saving lists every slot, an unused one as EMPTY. Saving asks for a description (30 characters at most) starting from the slot's old one. The description and area go in `savgam<x>.inf` beside the save, a small versioned record. The area comes from the new `AreaName` unit: the Clue Book's names for scripts 0..29, shortened to 18 columns, keyed by the script a save reopens (`previousScriptId`) and, for the four scripts that run two maps, the map; anything else reads UNKNOWN AREA; a save without an .inf has its area read from the save file. Camp redraws its screen after Save. #604. 3b2c103.

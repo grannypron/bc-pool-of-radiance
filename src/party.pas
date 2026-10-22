@@ -14,7 +14,8 @@ function IsPartyMember(creature: Types.PCharRecord): Boolean;
 
 { Step curChar through the party on the extended scan codes the menus return: C_Keys.HOME or C_Keys.UP selects the
   previous character and C_Keys.END_KEY or C_Keys.DOWN the next (#650, #653). The previous from the head wraps to the
-  tail, the next from the tail to the head; any other code selects the head. }
+  tail, the next from the tail to the head; any other code keeps the current character (the head when there is none,
+  #733). }
 procedure SelectPrevNextChar(c: Char);
 
 { The last creature in GDVars.creatureList, or nil for an empty list. }
@@ -53,7 +54,11 @@ procedure SelectPrevNextChar(c: Char);
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  { any other key keeps the current character: SSI's fell back to the first, so a digit, F-key or other extended key in
+    a menu that passes them here jumped to the head of the party (#733) }
+  p := GDVars.curChar;
+  if p = nil then
+    p := GDVars.creatureList;
   if p <> nil then
     case c of
       C_Keys.HOME, C_Keys.UP: p := Party.PrevCreature(GDVars.curChar);
