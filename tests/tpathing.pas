@@ -1,6 +1,6 @@
 { Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
   straight step, 3 a diagonal one), IsDirToward and GetIconTileDelta; and RouteStep's walks on an arena of the test's
-  own, with walls and bodies (#668), and the hard cases of #769. }
+  own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807). }
 {$I COMPILER.INC}
 program TPathing;
 
@@ -199,6 +199,35 @@ begin
   TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_Terr.STINK_CLOUD, 60), 'and goes round by it');
 end;
 
+{ BuildTargetList from WALKER's cell: every creature it sees, nearest first, with the doubled distance and the facing
+  toward it; a wall hides one unless distMode is 1, as CbtMap.CalcDistance sets it (#807). }
+procedure CheckTargetList;
+begin
+  ClearArena;
+  GDVars.arenaPtr^.distMode := 0;
+  GDVars.arenaCount := 3;
+  Place(WALKER, 5, 5, 1);
+  Place(TARGET, 10, 5, 1);
+  { a 2x2 body whose nearest cell, (5, 9), is 4 cells south }
+  Place(BLOCKER, 4, 9, 4);
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
+  TestKit.CheckEqualsL(3, GDVars.targetCount, 'the target list holds everyone in sight, the looker too');
+  TestKit.Check((GDVars.targetList[1].idx = WALKER) and (GDVars.targetList[1].dist = 0), 'the looker first, at 0');
+  TestKit.Check((GDVars.targetList[2].idx = BLOCKER) and (GDVars.targetList[2].dist = 8) and
+                (GDVars.targetList[2].dir = C_Dir.SOUTH), 'then the 2x2 body, by its nearest cell, to the south');
+  TestKit.Check((GDVars.targetList[3].idx = TARGET) and (GDVars.targetList[3].dist = 10) and
+                (GDVars.targetList[3].dir = C_Dir.EAST), 'then the one 5 cells east');
+  WallColumn(8, 0, 7);
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
+  TestKit.CheckEqualsL(2, GDVars.targetCount, 'a wall hides the one behind it');
+  GDVars.arenaPtr^.distMode := 1;
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
+  TestKit.CheckEqualsL(3, GDVars.targetCount, 'unless distMode looks through walls');
+  GDVars.arenaPtr^.distMode := 0;
+  Pathing.BuildTargetList(5, 5, 2, 255, 1, GDVars.arenaPtr);
+  TestKit.CheckEqualsL(1, GDVars.targetCount, 'and a range of 2 reaches the looker alone');
+end;
+
 procedure CheckRoutes;
 begin
   GetMem(GDVars.arenaPtr, SizeOf(Types.TArena));
@@ -258,6 +287,7 @@ begin
   GDVars.arenaPtr^.cells[11, 8] := GROUND;
   TestKit.Check(RouteToTarget, 'but fits a two-cell one');
   CheckReachable;
+  CheckTargetList;
   FreeMem(GDVars.arenaPtr, SizeOf(Types.TArena));
 end;
 
