@@ -297,6 +297,11 @@ end;
   code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
   AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and the menu goes on. }
 function MapMainMenu: Char;
+const
+  { 3D exploration menu }
+  menu3D: String[40] = 'Area Cast View Encamp Search Look Jrnl';
+  { wilderness exploration menu }
+  menuWild: String[40] = 'Cast View Encamp Search Look Jrnl';
 var
   done: Boolean;
   c: Char;
@@ -310,7 +315,7 @@ begin
          repeat
            MenuCore.arrowsToCaller := True;
            MenuCore.quickKeysToCaller := True;
-           c := MenuCore.MenuHorizontal('', GameDefs.menu3D, LightMagenta, LightGreen, White, True, False,
+           c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False,
                                         ext);
            if not ext then begin
              case c of
@@ -386,7 +391,7 @@ begin
         repeat
           MenuCore.arrowsToCaller := True;
           MenuCore.quickKeysToCaller := True;
-          c := MenuCore.MenuHorizontal('', GameDefs.menuWild, LightMagenta, LightGreen, White, True, False,
+          c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False,
                                        ext);
           if not ext then begin
             case c of

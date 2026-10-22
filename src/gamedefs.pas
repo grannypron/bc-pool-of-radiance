@@ -25,10 +25,6 @@ const
     'GNOLL', 'BUGBEAR', 'ETTIN', 'OGRE', 'OGRE LEADER', 'TROLL', 'HILL GIANT', 'FIRE GIANT');
   { Turning undead }
   { Movement menus }
-  { 3D exploration menu }
-  menu3D: String[40] = 'Area Cast View Encamp Search Look Jrnl';
-  { wilderness exploration menu }
-  menuWild: String[40] = 'Cast View Encamp Search Look Jrnl';
   { Camp menus }
   { camp actions }
   campMenu: String[40] = 'Save View Magic Rest Alter Fix Exit';
