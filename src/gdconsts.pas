@@ -73,8 +73,9 @@ const
     'ORC', 'ORC LEADER', 'GOBLIN', 'GOBLIN LEADER',
     'HOBGOBLIN', 'HOBGOBLIN CHIEF', 'GAGOOL', 'MACE',
     'GOBLIN GUARD', 'HOBGOBLIN LDR', 'GRISHNAK');
-  giantFoes: array[1..5] of Types.TName15 = (
-    'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT');
+  { The giant class whose attacks a dwarf or gnome makes at -4: ogres, trolls, giants and the ettin (#749) }
+  giantFoes: array[1..6] of Types.TName15 = (
+    'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT', 'ETTIN');
   { The giant class a ranger does extra damage to in melee: the game's monster names for kobolds, goblins, orcs,
     hobgoblins, gnolls, bugbears, ettins, ogres, trolls and giants }
   rangerFoes: array[1..16] of Types.TName15 = (

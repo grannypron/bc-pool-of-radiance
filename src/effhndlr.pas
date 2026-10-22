@@ -896,7 +896,7 @@ var
 begin
   { The attacker is curChar: its name is tested, as are its type and size, not that of the defender's own target.
     charType 0, 1, 2 or 10 and size 1 or 2: the monster data gives the listed giants these (OGRE LEADER type 0 and size
-    1, HILL GIANT and FIRE GIANT type 2, TROLL type 10). }
+    1, HILL GIANT and FIRE GIANT type 2, TROLL type 10, OGRE and ETTIN type 1). }
   if GDVars.curChar^.charType in [0, 1, 2, 10] then
     if GDVars.curChar^.iconDimensions and $7F in [1, 2] then
       for i := 1 to SizeOf(GDConsts.giantFoes) div SizeOf(GDConsts.giantFoes[1]) do
