@@ -809,7 +809,8 @@ begin
     { back from the popup, the menu opens on the slot it was for }
     letter := SaveMenu.ChooseSlot(True, letter);
     if letter = C_Keys.NONE then Exit;
-    { an overwritten save's description is offered to edit }
+    { an overwritten save's description is offered to edit; ReadSlotInfo leaves it empty for a slot with none, so
+      whether it found one does not matter here }
     ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
     ok := SaveMenu.AskDescription(letter, area, desc);
   until ok;
