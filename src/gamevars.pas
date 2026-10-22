@@ -171,10 +171,6 @@ var
   arenaCount: Byte;
   { icon location and size per slot }
   arenaLoc: array[1..Types.ARENA_SLOTS] of Types.TArenaLoc;
-  { view-relative X deltas }
-  gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
-  { view-relative Y deltas }
-  gridY: array[1..Types.ARENA_SLOTS] of ShortInt;
   { creature per slot }
   creatureArr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { corpses on the arena }

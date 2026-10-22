@@ -518,8 +518,8 @@ begin
     slot := CbtMap.CombatSlot(creature);
     { slot 0: not on the map, so there is no cell to flash }
     if slot > 0 then begin
-      gx := GameVars.gridX[slot] * 3;
-      gy := GameVars.gridY[slot] * 3;
+      gx := CbtMap.gridX[slot] * 3;
+      gy := CbtMap.gridY[slot] * 3;
       for i := 0 to reps do
         for j := 0 to 3 do begin
           Blit.BlitTileClipped(gx, gy, j, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);

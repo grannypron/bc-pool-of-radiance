@@ -12,6 +12,10 @@ var
   { Lightning Bolt's path for the spell-aim preview; GameInit sets it to Magic.TraceLightningBolt, so CbtMap does not
     call Magic }
   boltTracer: Types.TCellTracer;
+  { view-relative X deltas }
+  gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
+  { view-relative Y deltas }
+  gridY: array[1..Types.ARENA_SLOTS] of ShortInt;
 
 { Where the mode has a palette (EGA), swap palette registers 0 and 8 so the combat map background is dark gray and
   register 8 black. }
@@ -187,7 +191,7 @@ begin
   CbtMap.GetArenaContents(x, y, c, t);
   if c > 0 then
     if CbtMap.CombatIconVisible(GameVars.creatureArr[c], 0) then
-      MapTiles.DrawIconAnimSprite(GameVars.gridX[c], GameVars.gridY[c], GameVars.creatureArr[c]^.combatAddr^.direction,
+      MapTiles.DrawIconAnimSprite(gridX[c], gridY[c], GameVars.creatureArr[c]^.combatAddr^.direction,
                                   0, GameVars.creatureArr[c]^.orderNumber);
 end;
 
@@ -385,8 +389,8 @@ var
   i: Byte;
 begin
   for i := 1 to GameVars.arenaCount do begin
-    GameVars.gridX[i] := GameVars.arenaLoc[i].x - GameVars.arenaPtr^.ox;
-    GameVars.gridY[i] := GameVars.arenaLoc[i].y - GameVars.arenaPtr^.oy;
+    gridX[i] := GameVars.arenaLoc[i].x - GameVars.arenaPtr^.ox;
+    gridY[i] := GameVars.arenaLoc[i].y - GameVars.arenaPtr^.oy;
   end;
 end;
 
@@ -457,8 +461,8 @@ begin
       for j := 0 to 3 do
         if Pathing.GetIconTileDelta(GameVars.arenaLoc[i].size, j, tdx, tdy) then
           crIdxArr[GameVars.arenaLoc[i].y + tdy, GameVars.arenaLoc[i].x + tdx] := i;
-      GameVars.gridX[i] := GameVars.arenaLoc[i].x - GameVars.arenaPtr^.ox;
-      GameVars.gridY[i] := GameVars.arenaLoc[i].y - GameVars.arenaPtr^.oy;
+      gridX[i] := GameVars.arenaLoc[i].x - GameVars.arenaPtr^.ox;
+      gridY[i] := GameVars.arenaLoc[i].y - GameVars.arenaPtr^.oy;
     end;
   end;
 end;
@@ -499,8 +503,8 @@ begin
     CbtMap.GetArenaContents(absX, absY, crIdx, t);
   end;
   if crIdx > 0 then begin
-    x := GameVars.gridX[crIdx];
-    y := GameVars.gridY[crIdx];
+    x := gridX[crIdx];
+    y := gridY[crIdx];
     absX := x + GameVars.arenaPtr^.ox;
     absY := y + GameVars.arenaPtr^.oy;
     size := GameVars.arenaLoc[crIdx].size;
@@ -536,7 +540,7 @@ begin
   else
     for i := 0 to 3 do begin
       if Pathing.GetIconTileDelta(GameVars.arenaLoc[slot].size, i, tdx, tdy) then
-        if not CbtMap.ViewCoordsValid(GameVars.gridX[slot] + tdx, GameVars.gridY[slot] + tdy) then begin
+        if not CbtMap.ViewCoordsValid(gridX[slot] + tdx, gridY[slot] + tdy) then begin
           CombatIconVisible := False;
           if whole <> 0 then Exit;
         end else begin
@@ -616,7 +620,7 @@ begin
       p := GameVars.creatureArr[i];
       if (p^.enabled <> 0) and (GameVars.arenaLoc[i].size > 0) then
         if CbtMap.CombatIconVisible(p, 0) then
-          MapTiles.DrawIconAnimSprite(GameVars.gridX[i], GameVars.gridY[i], p^.combatAddr^.direction, 0,
+          MapTiles.DrawIconAnimSprite(gridX[i], gridY[i], p^.combatAddr^.direction, 0,
                                       p^.orderNumber);
     end;
   end;
@@ -651,7 +655,7 @@ begin
     creature^.combatAddr^.direction := dir;
   if eraseOnly = 0 then
     if CbtMap.CombatIconVisible(creature, 1) then begin
-      MapTiles.DrawIconAnimSprite(GameVars.gridX[slot], GameVars.gridY[slot], dir, frame, creature^.orderNumber);
+      MapTiles.DrawIconAnimSprite(gridX[slot], gridY[slot], dir, frame, creature^.orderNumber);
       Blit.FlushView;
     end;
 end;
@@ -809,7 +813,7 @@ begin
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     for k := 0 to 3 do
       if Pathing.GetIconTileDelta(GameVars.arenaLoc[slot].size, k, tdx, tdy) then
-        Blit.BlitTileClipped((GameVars.gridX[slot] + tdx) * 3, (GameVars.gridY[slot] + tdy) * 3, 0, 5,
+        Blit.BlitTileClipped((gridX[slot] + tdx) * 3, (gridY[slot] + tdy) * 3, 0, 5,
                              GameVars.iconAnimation[24, 0],
                              GameVars.viewImageBufferPtr);
     Blit.FlushView;
@@ -936,4 +940,6 @@ end;
 begin
   previewOn := False;
   aimSet := False;
+  FillChar(gridX, SizeOf(gridX), 0);
+  FillChar(gridY, SizeOf(gridY), 0);
 end.
