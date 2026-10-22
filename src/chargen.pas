@@ -1090,7 +1090,8 @@ begin
 end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
-  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
+  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee,
+  but not the class and level limits, so a character with no class left to train is still sent away.
   Applies the racial fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap).
   A character who trains has experience clamped to one below the highest level + 2 threshold it has reached. Each
   trained class gains a level and restores one drained level; a new magic-user level picks one spell; hit points grow
@@ -1151,6 +1152,12 @@ begin
       trainable := trainMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]
     else
       trainable := trainMask;
+    { free training passes the hall's checks with every class at its limit: GainLevels would then gain no level and
+      still add a hit point (#703) }
+    if trainable = 0 then begin
+      TextRend.PrintAndPause('No class can train further', Yellow);
+      Exit;
+    end;
     Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
     row := 4;
     CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
