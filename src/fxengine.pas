@@ -744,7 +744,7 @@ end;
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
   DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_Level.PALADIN] > 0) and
-    (effId in [C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT]);
+    (effId in C_Effect.DISEASES);
 end;
 
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
