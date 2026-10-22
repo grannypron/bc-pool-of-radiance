@@ -1956,7 +1956,8 @@ begin
 end;
 
 { Ready item (eff 128, 129, 130, 133, 134, 136, 138, 139): p is the ITEM. Readying adds its effect byte as a permanent
-  effect (strength 12) and calls that handler with the new node; unreadying removes it. SSI passed the handler nil, and
+  effect (strength 12) and calls that handler with the new node, except the Cloak of Displacement's: a cloak readied in
+  combat had its first miss marked spent at once (#784). Unreadying removes the effect. SSI passed the handler nil, and
   the Cloak of Displacement's (eff 89) wrote its strength through it, into the interrupt vectors (#737). }
 
 procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -1973,7 +1974,9 @@ begin
     effect := creature^.effectsAddr;
     while effect^.next <> nil do
       effect := effect^.next;
-    FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
+    { displacement acts only on an attack: its handler would spend the first miss on the readying (#784) }
+    if item^.effect <> C_Effect.DISPLACED then
+      FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
   end;
 end;
 

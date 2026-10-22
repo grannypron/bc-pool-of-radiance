@@ -1,15 +1,18 @@
 { Tests for displacement (EffHndlr.EffDisplaced, eff 89): the first attack on the creature each combat misses,
   whatever the attack roll comes to, even a first-round roll modified to 0, which once cleared the displacement
-  instead (#791); EffHndlr.ResetDisplacement makes it due again for the next combat. }
+  instead (#791); EffHndlr.ResetDisplacement makes it due again for the next combat. A Cloak of Displacement readied
+  in combat (EffHndlr.EffReadyItem) displaces the next attack, rather than having its miss spent on the readying
+  (#784). }
 {$I COMPILER.INC}
 program TDisplac;
 
-uses Types, C_Effect, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_Effect, C_Ifc, GDVars, FxEngine, EffHndlr, TestKit;
 
 var
   att: Types.PCharRecord;
   def: Types.PCharRecord;
   rollTo: Integer;
+  cloak: Types.TItemRec;
   hit: Boolean;
 
 {$F+}
@@ -63,5 +66,16 @@ begin
   rollTo := 0;
   TestKit.Check(Displaced, 'a first-round roll of 0 is displaced');
   TestKit.Check(not Displaced, 'and has not made the displacement due again');
+
+  { a cloak readied in combat (#784) }
+  FxEngine.RemoveEffect(def, C_Effect.DISPLACED, nil);
+  GDVars.ifcState := C_Ifc.COMBAT;
+  GDVars.roundCounter := 3;
+  FillChar(cloak, SizeOf(cloak), 0);
+  cloak.effect := C_Effect.DISPLACED;
+  EffHndlr.EffReadyItem(def, @cloak, False);
+  rollTo := 10;
+  TestKit.Check(Displaced, 'a cloak readied in combat displaces the next attack');
+  TestKit.Check(not Displaced, 'and that one only');
   TestKit.Done;
 end.
