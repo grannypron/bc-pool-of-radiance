@@ -71,15 +71,11 @@ begin
   FillChar(item^, SizeOf(Types.TItemRec), 0);
   template := 0;
   with item^ do begin
-    FillChar(spells, SizeOf(spells), 0);
-    next := nil;
-    equipped := 0;
     unidMask := 6;
-    cursed := 0;
     itemType := kind;
-    FillChar(nameIds, SizeOf(nameIds), 0);
     case itemType of
-      1..59, 73, 77, 93: begin
+      { C_Item.RANDOM_ARMS_KINDS }
+      1..59, C_Item.ARROW, C_Item.BRACERS, C_Item.RANDOM_ARMS_LAST: begin
           plus := RandItem.RandomBonus;
           case itemType of
             { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18 and 19,
@@ -208,9 +204,9 @@ begin
           end;
         end;
       { scrolls }
-      61, 62: begin
+      C_Item.MAGE_SCROLL, C_Item.CLERIC_SCROLL: begin
           n := Dice.RollDice(1, 3);
-          if itemType = 61 then
+          if itemType = C_Item.MAGE_SCROLL then
             nameIds[3] := 209
           else
             nameIds[3] := 208;
@@ -222,7 +218,7 @@ begin
           value := 0;
           for j := 1 to n do begin
             r := Dice.RollDice(1, 3);
-            if itemType = 61 then
+            if itemType = C_Item.MAGE_SCROLL then
               { magic-user spell ids: 9..21, 29..35, 45..55 }
               case r of
                 1: spell := Dice.RollDice(1, 13) + 8;

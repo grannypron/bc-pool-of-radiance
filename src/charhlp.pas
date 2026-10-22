@@ -554,16 +554,16 @@ begin
 end;
 
 procedure FixWeaponClasses(items: Types.PBaseItems);
-const
-  PIERCING = [C_Item.BEC_DE_CORBIN, C_Item.MILITARY_FORK, C_Item.PARTISAN, C_Item.RANSEUR, C_Item.SPETUM,
-              C_Item.SHORT_SWORD, C_Item.TRIDENT, C_Item.ARROW];
-var
-  i: Byte;
 begin
   items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_SLASH;
-  for i := 0 to Types.BASE_ITEM_LAST do
-    if i in PIERCING then
-      items^[i].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.BEC_DE_CORBIN].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.MILITARY_FORK].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.PARTISAN].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.RANSEUR].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.SPETUM].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.SHORT_SWORD].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.TRIDENT].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.ARROW].wpnClass := C_Item.WPN_PIERCE;
 end;
 
 procedure FixAmmoBits(items: Types.PBaseItems);
