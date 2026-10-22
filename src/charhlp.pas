@@ -57,6 +57,10 @@ procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 
 function EnemyTeam(creature: Types.PCharRecord): ShortInt;
 
+{ The creature's team, 0 or 1: hostile and 1, as CombatSt places it. teamCount has only those entries, and an effect
+  that stores a side keeps one bit for it, while a damaged save can hold a larger hostile byte (#710, #827). }
+function Team(creature: Types.PCharRecord): Byte;
+
 procedure CountTeams;
 
 function EndActions(creature: Types.PCharRecord): Boolean;
@@ -799,7 +803,7 @@ begin
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       { a creature already down (dying or unconscious) left its team count when it fell }
       if wasUp then
-        Dec(GDVars.teamCount[creature^.hostile and 1]);
+        Dec(GDVars.teamCount[CharHlp.Team(creature)]);
       creature^.combatAddr^.initiative := 0;
     end;
   end else
@@ -817,8 +821,12 @@ begin
     EnemyTeam := 0;
 end;
 
-{ Recount the creatures still in action on each team. The team is hostile and 1, as CombatSt places it: teamCount has
-  only entries 0 and 1, and a damaged save can hold a larger byte (#710). }
+function Team(creature: Types.PCharRecord): Byte;
+begin
+  Team := Byte(creature^.hostile) and 1;
+end;
+
+{ Recount the creatures still in action on each team (CharHlp.Team). }
 procedure CountTeams;
 var
   p: Types.PCharRecord;
@@ -828,7 +836,7 @@ begin
   p := GDVars.creatureList;
   while p <> nil do begin
     if p^.enabled <> 0 then
-      Inc(GDVars.teamCount[p^.hostile and 1]);
+      Inc(GDVars.teamCount[CharHlp.Team(p)]);
     p := p^.nextCharAddr;
   end;
 end;

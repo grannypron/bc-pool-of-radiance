@@ -427,9 +427,18 @@ var
   movedParty: Boolean;
   { Redraw sky/ceiling in 3D view flag }
   redrawSky: Boolean;
-  { Currently in ECL opcode 29 ENCOUNTER MENU flag }
+  { Currently in ECL opcode 29 ENCOUNTER MENU flag. It stays the last variable: the initialization clears from video
+    through it. }
   inEncMenu: Byte;
 
 implementation
 
+{ Every variable here starts at zero, as the game and the tests take them to. Turbo Pascal clears no variable: each
+  starts with whatever its memory held, which another program run before may have dirtied (#826). Its variables lie in
+  one block in the order declared, video first and inEncMenu last, so one FillChar clears them all. Free Pascal clears
+  its variables itself. }
+begin
+{$IFNDEF FPC}
+  FillChar(video, Ofs(inEncMenu) - Ofs(video) + SizeOf(inEncMenu), 0);
+{$ENDIF}
 end.

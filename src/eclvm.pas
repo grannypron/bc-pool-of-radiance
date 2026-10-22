@@ -1868,4 +1868,11 @@ begin
   GDVars.partyDefeated := False;
 end;
 
+begin
+  { no monster yet: SETUP MONSTER sets the ids and CLEAR MONSTERS the count, but a script may APPROACH, LOAD MONSTER or
+    fight before either has run, and Turbo Pascal clears no variable (#826) }
+  creatureCnt := 0;
+  monId := 0;
+  monPicId := 0;
+  monstersOn := 0;
 end.

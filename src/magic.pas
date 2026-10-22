@@ -806,8 +806,8 @@ begin
 end;
 
 { Charm Person: only persons (CharHlp.IsPerson) can be charmed (#792). The Charm effect's strength is the caster's
-  hostile * 128 + caster level; afterwards the target's first Charm effect (normally the one just added) has its handler
-  called with removed = False. }
+  team (CharHlp.Team) * 128 + caster level; afterwards the target's first Charm effect (normally the one just added)
+  has its handler called with removed = False. }
 procedure CharmPersonHandler;
 var
   effect: Types.PEffectRec;
@@ -818,8 +818,8 @@ begin
     CharDisp.PrintNameString(tgt, 'is unaffected', 10, True)
   else begin
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
-                        GDVars.curChar^.hostile * 128 + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), True, 0,
-                        0, 'is charmed');
+                        CharHlp.Team(GDVars.curChar) * 128 + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+                        True, 0, 0, 'is charmed');
     if CharHlp.HasEffect(tgt, C_Effect.CHARM, effect) then
       FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.dsTargetCreaturePtr[1], effect, False);
   end;
@@ -1216,8 +1216,8 @@ begin
           strength := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
           if strength > 15 then
             strength := 15;
-          strength := (p^.hostile and 1) * 16 + strength;
-          p^.hostile := GDVars.curChar^.hostile;
+          strength := CharHlp.Team(p) * 16 + strength;
+          p^.hostile := CharHlp.Team(GDVars.curChar);
           p^.quickfight := 1;
           p^.levelUndead := 2;
           p^.attackLevel := 0;
@@ -1346,12 +1346,12 @@ begin
   end;
 end;
 
-{ Prayer: apply the spell's effect at strength caster team * C_Effect.PRAYER_SIDE + caster level. }
+{ Prayer: apply the spell's effect at FxEngine.PrayerStrength, the caster's team and level. }
 procedure PrayerHandler;
 begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
-                      GDVars.curChar^.hostile * C_Effect.PRAYER_SIDE
-                      + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), False, 0, 0, 'is praying');
+                      FxEngine.PrayerStrength(GDVars.curChar, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing)),
+                      False, 0, 0, 'is praying');
 end;
 
 procedure RemoveCurseSpell;

@@ -44,9 +44,6 @@ end;
 
 begin
   TestKit.Start('TDISPLAC');
-  { no other creatures: the aura and Prayer searches (FxEngine.EffectSource) walk this list, and Turbo Pascal does
-    not clear globals (#826) }
-  GDVars.creatureList := nil;
   GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
   FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
   GDVars.effectFns[C_Effect.BLESS] := SetRoll;

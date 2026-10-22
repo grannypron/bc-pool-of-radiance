@@ -1,7 +1,8 @@
 { Tests for Protection from Evil and from Good (EffHndlr.EffProtEvil, EffProtGood, triggered through FxEngine): a
   paladin's aura (eff 45) reaches only his own side (#782), and a protection applies once however many sources there
   are, a spell (eff 8) and an aura together giving +2 to saves, not +4 (#783), and its -2 to be hit is taken off the
-  rolled d20, not before it (#789). Prayer applies once from each side in reach (#801). }
+  rolled d20, not before it (#789). Prayer applies once from each side in reach (#801), and its side is the caster's
+  team, hostile and 1, whatever larger hostile byte a damaged save holds (#827). }
 {$I COMPILER.INC}
 program TProtect;
 
@@ -184,5 +185,27 @@ begin
   TestKit.CheckEqualsL(-1, SaveBonus, 'two enemy Prayers apply once');
   ClearEffects(foe);
   ClearEffects(att);
+
+  { Prayer's side is the caster's team, hostile and 1 (#827): a hostile of 2 or 3 set bits above the side bit }
+  foe^.hostile := 2;
+  TestKit.CheckEqualsL(5, FxEngine.PrayerStrength(foe, 5), 'a caster with hostile 2 prays for side 0');
+  foe^.hostile := 3;
+  TestKit.CheckEqualsL(C_Effect.PRAYER_SIDE + 5, FxEngine.PrayerStrength(foe, 5),
+                       'a caster with hostile 3 prays for side 1');
+  TestKit.CheckEqualsL(C_Effect.PRAYER_SIDE + 15, FxEngine.PrayerStrength(foe, 20),
+                       'and a level above 15 is kept out of the side');
+  FxEngine.AddEffect(foe, C_Effect.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
+  TestKit.CheckEqualsL(-1, SaveBonus, 'the hostile-3 caster''s Prayer is an enemy''s: -1');
+  ClearEffects(foe);
+  foe^.hostile := 2;
+  FxEngine.AddEffect(foe, C_Effect.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
+  TestKit.CheckEqualsL(1, SaveBonus, 'the hostile-2 caster''s Prayer is an ally''s: +1');
+  ClearEffects(foe);
+  foe^.hostile := 1;
+  def^.hostile := 2;
+  FxEngine.AddEffect(ally, C_Effect.PRAYER, 10, FxEngine.PrayerStrength(ally, 5), False);
+  TestKit.CheckEqualsL(1, SaveBonus, 'a defender with hostile 2 is on side 0: +1');
+  ClearEffects(ally);
+  def^.hostile := 0;
   TestKit.Done;
 end.
