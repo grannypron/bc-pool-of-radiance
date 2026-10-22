@@ -244,11 +244,18 @@ procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 { The handler for effects whose presence is all that matters: eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127 }
 procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
+function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
+
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
   C_Race, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
+
+const
+  { set by TouchImmune for its immunity check: a monster's poisonous or paralyzing touch is no magic, so magic
+    resistance does not meet it (MagicResistance; #800) }
+  mundaneCheck: Boolean = False;
 
 { Nullify the attack or effect: zero GDVars.pendingDamage and GDVars.pendingEffectId. effId 0 always matches; otherwise
   only when effId is the id under the immunity check (pendingEffectId). }
@@ -1004,14 +1011,17 @@ begin
 end;
 
 { A touch's failed save: True, with "is Unaffected", when the target is immune to effId all the same
-  (FxEngine.EffectImmune, the check FxEngine.AddEffectWithMessage makes). SSI added the touch's effect with no immunity
-  check: a paralysis ward (eff 109) never stopped a paralyzing touch (#767), and a poison-immune creature (eff 111,
-  125), whose saves vs. poison otherwise always succeed, died of poison on a natural 1 (#720). }
+  (FxEngine.EffectImmune, the check FxEngine.AddEffectWithMessage makes), magic resistance aside: the touch is no magic
+  (#800). SSI added the touch's effect with no immunity check: a paralysis ward (eff 109) never stopped a paralyzing
+  touch (#767), and a poison-immune creature (eff 111, 125), whose saves vs. poison otherwise always succeed, died of
+  poison on a natural 1 (#720). }
 function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 var
   immune: Boolean;
 begin
+  mundaneCheck := True;
   immune := FxEngine.EffectImmune(target, effId);
+  mundaneCheck := False;
   if immune then
     CharDisp.PrintNameString(target, 'is Unaffected', 10, True);
   TouchImmune := immune;
@@ -1593,13 +1603,13 @@ end;
 
 { pct is the creature's magic resistance against an 11th-level caster. As in the DMG, it rises 5% for each caster level
   below 11 and falls 5% for each level above: chance := pct + (11 - lvl) * 5, kept within 0..100, and a 1d100 roll <=
-  chance nullifies. Only an effect under the immunity check or magic damage is resisted. An item counts as a 6th-level
-  caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and
-  the javelin). Against an effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a touch, a monster's fear)
-  there is no caster level, and pct stands as listed, as against an 11th-level caster; SSI's read the level of spell 0,
-  from outside the spell table (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106
-  passing 15), so resistance grew with the caster level; Tyranthraxus (eff 106) still resists every caster the game
-  produces, as he did. }
+  chance nullifies. Only an effect under the immunity check or magic damage is resisted, and not a monster's poisonous
+  or paralyzing touch, which is no magic (TouchImmune; #800). An item counts as a 6th-level caster here, as a scroll
+  does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and the javelin). Against an
+  effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a monster's fear) there is no caster level, and pct
+  stands as listed, as against an 11th-level caster; SSI's read the level of spell 0, from outside the spell table
+  (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106 passing 15), so resistance grew
+  with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. }
 procedure MagicResistance(pct: Byte);
 const
   { the caster level pct is listed against }
@@ -1621,6 +1631,8 @@ begin
   else if chance > 100 then
     chance := 100;
   if (GDVars.pendingEffectId = 0) and (GDVars.elementMask and C_Effect.ELEM_MAGIC = 0) then
+    Exit;
+  if mundaneCheck then
     Exit;
   if Dice.RollDice(1, 100) <= chance then
     EffHndlr.NullifyAttack(0);
