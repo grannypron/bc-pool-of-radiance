@@ -88,6 +88,8 @@ var
   redraw: Boolean;
   stateB: Byte;
   quit: Boolean;
+  { SaveGame's result: the menu goes on either way }
+  saved: Boolean;
 begin
   GDVars.virtualDisk := 3;
   stateB := C_Ifc.INDOORS;
@@ -169,7 +171,7 @@ begin
                end;
              end;
         'S': if (GDConsts.menuItems[MENU_SAVE].enabled <> 0) and (GDVars.creatureList <> nil) then
-               SaveLoad.SaveGame;
+               saved := SaveLoad.SaveGame;
         'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GDVars.creatureList <> nil) then
              begin
                GDVars.ifcState := stateB;
@@ -186,8 +188,7 @@ begin
                  quit := True;
                  if (GDVars.recentSaved = 0) and (GDVars.creatureList <> nil) then
                    if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then begin
-                     SaveLoad.SaveGame;
-                     quit := GDVars.recentSaved <> 0;
+                     quit := SaveLoad.SaveGame;
                    end;
                  if quit then
                    GameIo.ExitGame;

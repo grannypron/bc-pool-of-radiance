@@ -69,9 +69,7 @@ begin
     if ch = C_Keys.ESC then
       done := True
     else begin
-      GDVars.recentSaved := 0;
-      SaveLoad.SaveGame;
-      done := GDVars.recentSaved <> 0;
+      done := SaveLoad.SaveGame;
     end;
   until done;
   GameIo.ExitGame;

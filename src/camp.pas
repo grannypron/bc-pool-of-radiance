@@ -1062,6 +1062,7 @@ var
   { ViewCharMenu's var out }
   viewDone: Boolean;
   ext: Boolean;
+  saved: Boolean;
 begin
   savedIfc := GDVars.ifcState;
   GDVars.ifcState := C_Ifc.CAMPING;
@@ -1091,11 +1092,13 @@ begin
     end else
       case c of
         'S': begin
-               SaveLoad.SaveGame;
+               saved := SaveLoad.SaveGame;
                { the save menu takes the whole screen }
                CharDisp.DisplayNoncombatInterface;
-               if MenuCore.YesNoMenu('Quit TO DOS ', Yellow, LightGreen, White) = 'Y' then
-                 GameIo.ExitGame;
+               { only after a save: one cancelled or not written goes back to the camp menu }
+               if saved then
+                 if MenuCore.YesNoMenu('Quit TO DOS ', Yellow, LightGreen, White) = 'Y' then
+                   GameIo.ExitGame;
              end;
         'V': ViewChar.ViewCharMenu(viewDone);
         'M': Camp.CampMagicMenu(interrupted);

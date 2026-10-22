@@ -55,9 +55,9 @@ procedure LoadGame;
   each party member (the first 8) as CHRDATxN.sav, copy the session vault to the slot (Vault.CommitToSlot), and only
   when all of them were written whole put them in place of the old save's; then write the slot's description and the
   current area (AreaName.CurrentArea) to SAVGAMx.INF, delete the members' single-character files (.mem included) and
-  set the recently-saved flag. A save not written whole leaves the old one as it was and says so. The caller redraws
-  the screen. }
-procedure SaveGame;
+  set the recently-saved flag. A save not written whole leaves the old one as it was and says so. True when the game
+  was saved; False also for Escape on the menu. The caller redraws the screen. }
+function SaveGame: Boolean;
 
 const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
@@ -80,7 +80,8 @@ procedure QuickLoad;
 procedure AddCharToParty(creature: Types.PCharRecord);
 
 { If name does not exist, offer 'Save and exit Insert disk #N'; on 'S' step the party back one square (0..15 wrap),
-  restore the previous virtual disk, SaveGame and exit to DOS (GameIo.ExitGame). }
+  restore the previous virtual disk, SaveGame and exit to DOS (GameIo.ExitGame). A save cancelled or not written puts
+  the party and the disk back and offers the choice again. }
 procedure CheckFileElseQuit(name: Types.TPathStr);
 
 procedure FreeCreature(creature: Types.PCharRecord);
@@ -94,7 +95,7 @@ implementation
 
 uses DiskRec, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level{$IFDEF FPC}, NatFile{$ENDIF};
+  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -735,15 +736,15 @@ begin
   SaveToSlot := ok;
 end;
 
-procedure SaveGame;
+function SaveGame: Boolean;
 var
   letter: Char;
   desc: SaveMenu.TSlotDesc;
   area: SaveMenu.TSlotArea;
   oldArea: SaveMenu.TSlotArea;
   ok: Boolean;
-  saved: Boolean;
 begin
+  SaveGame := False;
   SaveMenu.CheckSaveDir;
   area := AreaName.CurrentArea;
   letter := C_Keys.NONE;
@@ -755,7 +756,7 @@ begin
     ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
     ok := SaveMenu.AskDescription(letter, area, desc);
   until ok;
-  saved := SaveLoad.SaveToSlot(letter, desc, area);
+  SaveGame := SaveLoad.SaveToSlot(letter, desc, area);
 end;
 
 procedure QuickSave;
@@ -772,18 +773,33 @@ var
   msg: Types.TStr40;
   ch: Char;
   ext: Boolean;
+  saving: Boolean;
+  x: Byte;
+  y: Byte;
+  disk: Byte;
 begin
   if DaxIo.FileExists(name) then Exit;
   msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GDVars.virtualDisk);
-  ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
-  if (not ext) and (ch = 'S') then begin
-    Dec(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
-    Dec(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
-    View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
-    DaxIo.PopState;
-    SaveLoad.SaveGame;
-    GameIo.ExitGame;
-  end;
+  repeat
+    ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
+    saving := (not ext) and (ch = 'S');
+    if saving then begin
+      x := GDVars.gMapX;
+      y := GDVars.gMapY;
+      disk := GDVars.virtualDisk;
+      Dec(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
+      Dec(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
+      View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
+      DaxIo.PopState;
+      if SaveLoad.SaveGame then
+        GameIo.ExitGame;
+      { not saved: the party stands where it was, on the new disk, and chooses again over the redrawn view }
+      GDVars.gMapX := x;
+      GDVars.gMapY := y;
+      GDVars.virtualDisk := disk;
+      CharDisp.DisplayNoncombatInterface;
+    end;
+  until not saving;
 end;
 
 { FreeCreature: Free the combat record, every item, every effect node, then the record itself, forgetting its usual
