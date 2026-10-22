@@ -517,6 +517,10 @@ end;
 
 { Gnome THAC0 bonus (eff 18) }
 procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+const
+  { Favoured enemies }
+  gnomeFoes: array[1..5] of Types.TName15 = (
+    'KOBOLD', 'KOBOLD LEADER', 'GOBLIN', 'GOBLIN LEADER', 'GOBLIN GUARD');
 var
   i: Byte;
 begin
@@ -526,7 +530,7 @@ begin
     if GameVars.otherCreatureCurrentPtr^.iconDimensions = 1 then
       { 5 = High(gnomeFoes) }
       for i := 1 to 5 do
-        if GameVars.otherCreatureCurrentPtr^.name = GameDefs.gnomeFoes[i] then
+        if GameVars.otherCreatureCurrentPtr^.name = gnomeFoes[i] then
           Inc(GameVars.gAttackRoll);
 end;
 
@@ -606,6 +610,11 @@ end;
 
 { Dwarf THAC0 bonus (eff 26) }
 procedure EffDwarfThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+const
+  dwarfFoes: array[1..11] of Types.TName15 = (
+    'ORC', 'ORC LEADER', 'GOBLIN', 'GOBLIN LEADER',
+    'HOBGOBLIN', 'HOBGOBLIN CHIEF', 'GAGOOL', 'MACE',
+    'GOBLIN GUARD', 'HOBGOBLIN LDR', 'GRISHNAK');
 var
   i: Byte;
 begin
@@ -615,7 +624,7 @@ begin
     if GameVars.otherCreatureCurrentPtr^.iconDimensions = 1 then
       { 11 = High(dwarfFoes) }
       for i := 1 to 11 do
-        if GameVars.otherCreatureCurrentPtr^.name = GameDefs.dwarfFoes[i] then
+        if GameVars.otherCreatureCurrentPtr^.name = dwarfFoes[i] then
           Inc(GameVars.gAttackRoll);
 end;
 
@@ -899,6 +908,10 @@ end;
 
 { Dwarf/gnome AC bonus vs giants (eff 47) }
 procedure EffDwarfAcGiant(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+const
+  { The giant class whose attacks a dwarf or gnome makes at -4: ogres, trolls, giants and the ettin (#749) }
+  giantFoes: array[1..6] of Types.TName15 = (
+    'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT', 'ETTIN');
 var
   i: Byte;
 begin
@@ -907,8 +920,8 @@ begin
     1, HILL GIANT and FIRE GIANT type 2, TROLL type 10, OGRE and ETTIN type 1). }
   if GameVars.curChar^.charType in [0, 1, 2, 10] then
     if GameVars.curChar^.iconDimensions and $7F in [1, 2] then
-      for i := 1 to SizeOf(GameDefs.giantFoes) div SizeOf(GameDefs.giantFoes[1]) do
-        if GameVars.curChar^.name = GameDefs.giantFoes[i] then
+      for i := 1 to SizeOf(giantFoes) div SizeOf(giantFoes[1]) do
+        if GameVars.curChar^.name = giantFoes[i] then
           Dec(GameVars.gAttackRoll, 4);
 end;
 

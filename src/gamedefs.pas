@@ -15,18 +15,8 @@ const
   GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';
 
 const
-  { Favoured enemies }
-  gnomeFoes: array[1..5] of Types.TName15 = (
-    'KOBOLD', 'KOBOLD LEADER', 'GOBLIN', 'GOBLIN LEADER', 'GOBLIN GUARD');
-  dwarfFoes: array[1..11] of Types.TName15 = (
-    'ORC', 'ORC LEADER', 'GOBLIN', 'GOBLIN LEADER',
-    'HOBGOBLIN', 'HOBGOBLIN CHIEF', 'GAGOOL', 'MACE',
-    'GOBLIN GUARD', 'HOBGOBLIN LDR', 'GRISHNAK');
   { The game's one snake, the creature Snake Charm affects (#802): its charType, 14, the scorpions share }
   SNAKE_NAME = 'GIANT SNAKE';
-  { The giant class whose attacks a dwarf or gnome makes at -4: ogres, trolls, giants and the ettin (#749) }
-  giantFoes: array[1..6] of Types.TName15 = (
-    'OGRE', 'OGRE LEADER', 'TROLL', 'FIRE GIANT', 'HILL GIANT', 'ETTIN');
   { The monsters Charm Person and Hold Person affect, as the 1st-edition list names them (#792): rangerFoes' first
     RANGER_PERSONS (kobolds, goblins, orcs, hobgoblins and the gnoll) and these. CharHlp.IsPerson }
   RANGER_PERSONS = 9;
