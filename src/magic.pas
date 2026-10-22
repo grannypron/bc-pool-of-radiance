@@ -188,7 +188,7 @@ implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_Keys, C_Level, C_STATUS,
-  C_Ifc, C_DIR, C_SPELL, AbilAdj;
+  C_IFC, C_DIR, C_SPELL, AbilAdj;
 
 var
   { the menu string list }
@@ -449,7 +449,7 @@ var
   scrollOk: Boolean;
   item: Types.PItemRec;
 begin
-  memOk := (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.combatAddr^.castAllowed <> 0);
+  memOk := (GDVars.ifcState <> C_IFC.COMBAT) or (creature^.combatAddr^.castAllowed <> 0);
   scrollOk := CharHlp.CanUseItems(creature);
   lines := 0;
   for lvl := 1 to SPELL_LEVEL_LAST do begin
@@ -543,7 +543,7 @@ begin
     { Giant Strength }
     59: d := Dice.RollDice(1, 4) * 10 + 40;
     { Dust of Disappearance }
-    63: if GDVars.ifcState = C_Ifc.COMBAT then
+    63: if GDVars.ifcState = C_IFC.COMBAT then
           d := Dice.RollDice(2, 10) * 10
         else
           d := (Dice.RollDice(1, 10) + 10) * 10;
@@ -647,7 +647,7 @@ var
 begin
   p := GDVars.curChar;
   ok := True;
-  if (GDVars.ifcState <> C_Ifc.COMBAT) and (GDConsts.spellTable[spell].target = 0) then begin
+  if (GDVars.ifcState <> C_IFC.COMBAT) and (GDConsts.spellTable[spell].target = 0) then begin
     if GDVars.usingItem = False then begin
       Magic.ShowCombatOnlySpell(spell);
       if MenuCore.YesNoMenu('Lose it? ', LightMagenta, White, LightGreen) = 'Y' then
@@ -679,7 +679,7 @@ begin
         CharHlp.RemoveSpell(p, spell);
         CharDisp.PrintNameString(p, 'fails to cast ' + GDConsts.spellNames[spell] + '.', 10, True);
       end else begin
-        if GDVars.ifcState = C_Ifc.COMBAT then begin
+        if GDVars.ifcState = C_IFC.COMBAT then begin
           CharDisp.BuildIconFacings(18);
           x := CbtMap.CombatCellX(p);
           y := CbtMap.CombatCellY(p);
@@ -712,7 +712,7 @@ begin
         GDVars.gMultiTarget := 0;
       end;
     end else begin
-      if GDVars.ifcState <> C_Ifc.COMBAT then
+      if GDVars.ifcState <> C_IFC.COMBAT then
         ok := False
       else if b or (MenuCore.YesNoMenu('Abort Spell? ', Yellow, LightGreen, White) = 'Y') then
       begin
@@ -724,7 +724,7 @@ begin
     end;
   end;
   CharDisp.ClearMessageWindow;
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GDVars.ifcState = C_IFC.COMBAT then
     Border.ClearBox(0, 23, 39, 23);
 end;
 
@@ -743,7 +743,7 @@ begin
   GDVars.gMultiTarget := 1;
   for i := 1 to GDVars.spellTargetCount do begin
     if (GDVars.targetCreaturePtr[i]^.hostile <> hostFlag) or
-        ((GDVars.currentSpellBeing = C_SPELL.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
+        ((GDVars.currentSpellBeing = C_SPELL.BLESS) and (GDVars.ifcState = C_IFC.COMBAT) and
          (CbtMap.CountTargets(GDVars.targetCreaturePtr[i], 1) > 0)) then
       GDVars.targetCreaturePtr[i] := nil;
   end;
@@ -1231,7 +1231,7 @@ begin
             p^.npc := C_Npc.ANIMATED_PC;
           { Undead }
           p^.charType := 4;
-          if GDVars.ifcState = C_Ifc.COMBAT then
+          if GDVars.ifcState = C_IFC.COMBAT then
             p^.combatAddr^.other := nil;
           Dec(n);
           if FxEngine.ReviveDeadCreature(p, p^.hpMax) then begin
@@ -1809,7 +1809,7 @@ end;
 
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GDVars.ifcState = C_IFC.COMBAT then begin
     CharDisp.PrintNameString(creature, 'Casts a Spell', 10, True);
     Border.ClearBox(0, 23, 39, 23);
     TextRend.DisplayString(0, 23, LightGreen, 'Spell:' + GDConsts.spellNames[spell]);
@@ -1894,7 +1894,7 @@ begin
     done := False;
     Exit;
   end;
-  if CharHlp.ItemReadable(item) and (GDVars.ifcState <> C_Ifc.COMBAT) and
+  if CharHlp.ItemReadable(item) and (GDVars.ifcState <> C_IFC.COMBAT) and
       (GDConsts.spellTable[spell].target = 0) then begin
     Magic.ShowCombatOnlySpell(spell);
     done := MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y';
@@ -1903,14 +1903,14 @@ begin
       Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell);
     Exit;
   end;
-  if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
+  if (GDVars.ifcState = C_IFC.COMBAT) and (GDVars.curChar^.quickfight = 0) then
     CharDisp.DisplayCombatInterface;
   if not CharHlp.ItemReadable(item) then begin
     if spell > C_SPELL.LAST then
       { item effect -> spell id }
       Dec(spell, C_SPELL.ITEM_EFFECT_SHIFT);
     CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
-    if GDVars.ifcState = C_Ifc.COMBAT then begin
+    if GDVars.ifcState = C_IFC.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');
       CharDisp.PrintItemLabel(item, 5, 23);
     end else
@@ -1925,7 +1925,7 @@ begin
   Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, cast);
   GDVars.usingItem := False;
   done := cast;
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GDVars.ifcState = C_IFC.COMBAT then
     if GDConsts.spellTable[spell].whenCast <> 0 then
       done := CharHlp.EndActions(GDVars.curChar);
   if cast then begin

@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_Keys,
-  C_EFFECT, C_STATUS, C_Ifc, C_GBVM, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -56,7 +56,7 @@ procedure AddCharacterMenu; forward;
 
 { MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
   settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring
-  sets ifcState to 4 (C_Ifc.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save first: Yes
+  sets ifcState to 4 (C_IFC.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save first: Yes
   opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660). Game Settings opens the
   Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
 procedure MainMenu;
@@ -86,10 +86,10 @@ var
   saved: Boolean;
 begin
   GDVars.virtualDisk := 3;
-  stateB := C_Ifc.INDOORS;
+  stateB := C_IFC.INDOORS;
   redraw := True;
   stingMode := 0;
-  GDVars.ifcState := C_Ifc.MAIN_MENU;
+  GDVars.ifcState := C_IFC.MAIN_MENU;
   while True do begin
     if redraw then begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
@@ -160,7 +160,7 @@ begin
         'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
              begin
                SaveLoad.LoadGame;
-               if GDVars.ifcState <> C_Ifc.MAIN_MENU then begin
+               if GDVars.ifcState <> C_IFC.MAIN_MENU then begin
                  GDVars.loadedSave := 1;
                  Exit;
                end;

@@ -121,7 +121,7 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 implementation
 
-uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_DIR, C_Sound, Pathing, MenuCore,
+uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_Sound, Pathing, MenuCore,
   Blit, CharHlp;
 
 var
@@ -784,7 +784,7 @@ var
   cellY: ShortInt;
 begin
   SoundDrv.SoundSetAutoStop(0);
-  if GDVars.ifcState <> C_Ifc.COMBAT then begin
+  if GDVars.ifcState <> C_IFC.COMBAT then begin
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.DOWNED]);
     TextRend.PauseOnly;
   end else begin
@@ -840,7 +840,7 @@ var
   t: Byte;
   found: Boolean;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GDVars.ifcState = C_IFC.COMBAT then begin
     IsValidCreatureLoc := False;
     slot := CbtMap.CombatSlot(creature);
     { not in the combat arrays }

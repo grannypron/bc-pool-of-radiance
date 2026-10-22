@@ -249,7 +249,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
-  C_Race, C_STATUS, C_Ifc, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_Race, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
 const
@@ -301,7 +301,7 @@ begin
     CbtMap.CreatureDowned(creature);
   TextRend.PauseOnly;
   CharDisp.ClearMessageWindow;
-  if GDVars.ifcState <> C_Ifc.COMBAT then
+  if GDVars.ifcState <> C_IFC.COMBAT then
     CharDisp.DisplayParty(GDVars.curChar);
 end;
 
@@ -499,7 +499,7 @@ begin
     if creature^.hpCur > 1 then begin
       GDVars.elementMask := 0;
       FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
-      if GDVars.ifcState <> C_Ifc.COMBAT then
+      if GDVars.ifcState <> C_IFC.COMBAT then
         CharDisp.DisplayParty(GDVars.curChar);
     end;
 end;
@@ -890,7 +890,7 @@ begin
     if creature^.hpCur > 1 then begin
       GDVars.elementMask := 0;
       FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
-      if GDVars.ifcState <> C_Ifc.COMBAT then
+      if GDVars.ifcState <> C_IFC.COMBAT then
         CharDisp.DisplayParty(GDVars.curChar);
     end else
       if not CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then
@@ -1922,10 +1922,10 @@ begin
     end;
   end else begin
     if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) and (creature = GDVars.curChar) then
-      if GDVars.ifcState = C_Ifc.COMBAT then begin
-        GDVars.ifcState := C_Ifc.CAMPING;
+      if GDVars.ifcState = C_IFC.COMBAT then begin
+        GDVars.ifcState := C_IFC.CAMPING;
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);
-        GDVars.ifcState := C_Ifc.COMBAT;
+        GDVars.ifcState := C_IFC.COMBAT;
       end else
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);
     GDVars.redrawInventoryMenuFlag := 1;
@@ -1946,7 +1946,7 @@ begin
     item^.equipped := 0;
     dmg := item^.effect div 16;
     GDVars.elementMask := C_EFFECT.ELEM_MAGIC;
-    if GDVars.ifcState = C_Ifc.COMBAT then
+    if GDVars.ifcState = C_IFC.COMBAT then
       CharDisp.DisplayCombatInterface;
     FxEngine.InflictItemShock(creature, item, dmg);
     GDVars.redrawInventoryMenuFlag := 1;

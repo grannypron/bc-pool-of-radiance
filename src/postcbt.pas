@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_STATUS, C_Ifc, C_GBVM,
+uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_STATUS, C_IFC, C_GBVM,
   C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
@@ -306,7 +306,7 @@ begin
       done := False;
       Shop.GiveItemCopyToCreature(itemToTake, failed);
       { loot after a fight, not the vault's own items (#611) }
-      if not failed and (GDVars.ifcState = C_Ifc.LOOT) then
+      if not failed and (GDVars.ifcState = C_IFC.LOOT) then
         Stats.Count(GDVars.curChar, Stats.ITEMS_LOOTED, 1);
       if not failed then begin
         p := GDVars.treasureItems;
@@ -526,7 +526,7 @@ procedure PostCombat;
 begin
   GDVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
   nonEscapedHostileFound := False;
-  GDVars.ifcState := C_Ifc.LOOT;
+  GDVars.ifcState := C_IFC.LOOT;
   PostCbt.DetermineCombatResults;
   PostCbt.PostCombatCreatureCleanup;
   if not GDVars.partyDefeated or GDVars.duelFlag then begin

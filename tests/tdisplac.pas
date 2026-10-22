@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TDisplac;
 
-uses Types, C_EFFECT, C_Ifc, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_IFC, GDVars, FxEngine, EffHndlr, TestKit;
 
 var
   att: Types.PCharRecord;
@@ -69,7 +69,7 @@ begin
 
   { a cloak readied in combat (#784) }
   FxEngine.RemoveEffect(def, C_EFFECT.DISPLACED, nil);
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GDVars.ifcState := C_IFC.COMBAT;
   GDVars.roundCounter := 3;
   FillChar(cloak, SizeOf(cloak), 0);
   cloak.effect := C_EFFECT.DISPLACED;

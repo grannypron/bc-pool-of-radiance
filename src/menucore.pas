@@ -78,7 +78,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
+uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_IFC, TextRend;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -240,7 +240,7 @@ begin
         if ((ch = C_Keys.LEFT) or (ch = C_Keys.RIGHT)) and not arrowsToCaller then
           StepOption(ch = C_Keys.RIGHT)
         else if ((ch = C_Keys.F5) or (ch = C_Keys.F8)) and not quickKeysToCaller then begin
-          if GDVars.ifcState <> C_Ifc.COMBAT then begin
+          if GDVars.ifcState <> C_IFC.COMBAT then begin
             TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
             TextRend.ClearBottomLine;
             if Length(query) <> 0 then

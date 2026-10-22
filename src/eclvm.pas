@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_Level, C_Ifc, C_GBVM, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_Level, C_IFC, C_GBVM, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -927,9 +927,9 @@ begin
       GDVars.duelFlag := False;
   end;
   if GDVars.gLocType = C_AREA.LOC_3D_MAP then
-    GDVars.ifcState := C_Ifc.INDOORS
+    GDVars.ifcState := C_IFC.INDOORS
   else
-    GDVars.ifcState := C_Ifc.OUTDOORS;
+    GDVars.ifcState := C_IFC.OUTDOORS;
   GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
   FillChar(GDVars.monsterFlags, SizeOf(GDVars.monsterFlags), 0);
   GDVars.eclGraphics := False;
@@ -1765,22 +1765,22 @@ begin
     GDVars.locTypePrev := GDVars.gLocType;
     GDVars.gLocType := C_AREA.LOC_3D_MAP;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
-    GDVars.ifcState := C_Ifc.INDOORS;
+    GDVars.ifcState := C_IFC.INDOORS;
     if GDVars.zone0^.view3dFlag = 0 then
       case GDVars.eclScriptId of
         WILD_WEST_SCRIPT: begin
           GDVars.gLocType := C_AREA.LOC_WILD_WEST;
-          GDVars.ifcState := C_Ifc.OUTDOORS;
+          GDVars.ifcState := C_IFC.OUTDOORS;
         end;
         WILD_CENTRAL_SCRIPT: begin
           GDVars.gLocType := C_AREA.LOC_WILD_CENTRAL;
-          GDVars.ifcState := C_Ifc.OUTDOORS;
+          GDVars.ifcState := C_IFC.OUTDOORS;
           if (GDVars.zone0^.yarashMissionDone = 254) and (GDVars.zone0^.yarashPyramidLeft = 0) then
             Ending.YarashComplete(True);
         end;
         WILD_EAST_SCRIPT: begin
           GDVars.gLocType := C_AREA.LOC_WILD_EAST;
-          GDVars.ifcState := C_Ifc.OUTDOORS;
+          GDVars.ifcState := C_IFC.OUTDOORS;
         end;
       end;
     if (GDVars.locTypePrev > C_AREA.LOC_3D_MAP) and (GDVars.gLocType = C_AREA.LOC_3D_MAP) then
@@ -1811,20 +1811,20 @@ begin
   filesLoaded := 0;
   enteringLoop := 1;
   ForgetMonsters;
-  GDVars.ifcState := C_Ifc.INDOORS;
+  GDVars.ifcState := C_IFC.INDOORS;
   newEclFlag := 0;
   GDVars.eclScriptId := Byte(GDVars.zone0^.previousScriptId);
   case GDVars.eclScriptId of
     WILD_WEST_SCRIPT, WILD_CENTRAL_SCRIPT, WILD_EAST_SCRIPT:
       if GDVars.zone0^.view3dFlag = 0 then
-        GDVars.ifcState := C_Ifc.OUTDOORS;
+        GDVars.ifcState := C_IFC.OUTDOORS;
   end;
   { the area's script is loaded from the data even for a saved game (#609), as Secret of the Silver Blades does: the
     copy a save holds would keep a script from before a data fix (DataPat), and is SSI's size only }
   EclMenu.LoadEclScript(GDVars.eclScriptId);
   EclMenu.EclInit;
   EclVm.CallEclScript(GDVars.scriptEntryAddrs[5]);
-  if GDVars.ifcState <> C_Ifc.OUTDOORS then begin
+  if GDVars.ifcState <> C_IFC.OUTDOORS then begin
     if enteringLoop = 1 then begin
       CharDisp.DisplayNoncombatInterface;
       enteringLoop := 0;

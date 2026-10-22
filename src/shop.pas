@@ -18,7 +18,7 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Crt, C_MSG, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
+uses Crt, C_MSG, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_IFC, Border, CharHlp, MenuCore, TextRend,
   CharDisp, MoneyCal, Party;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
@@ -134,7 +134,7 @@ var
   apprOk: Boolean;
   p: Types.PItemRec;
 begin
-  GDVars.ifcState := C_Ifc.SHOP_TEMPLE;
+  GDVars.ifcState := C_IFC.SHOP_TEMPLE;
   CharDisp.DisplayNoncombatInterface;
   CharDisp.DisplayParty(GDVars.curChar);
   FillChar(GDVars.treasureMoney, SizeOf(Types.TMoney), 0);

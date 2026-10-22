@@ -15,7 +15,7 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_MSG, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_Keys,
-  C_STATUS, C_Ifc, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
+  C_STATUS, C_IFC, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
 var

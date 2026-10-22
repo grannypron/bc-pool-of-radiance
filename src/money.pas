@@ -46,7 +46,7 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_MSG,
+uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_IFC, C_Money, GameIo, MenuCore, C_MSG,
   EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
@@ -312,13 +312,13 @@ begin
     GDVars.treasureMoney[i] := rem[i];
 end;
 
-{ Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT,
-  C_Ifc.LOOT). Elsewhere it is discarded. }
+{ Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_IFC.SHOP_TEMPLE, C_IFC.VAULT,
+  C_IFC.LOOT). Elsewhere it is discarded. }
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   p^.coins[mType] := p^.coins[mType] - qty;
   CharHlp.RecalcStats(p);
-  if (GDVars.ifcState = C_Ifc.LOOT) or (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) or (GDVars.ifcState = C_Ifc.VAULT) then
+  if (GDVars.ifcState = C_IFC.LOOT) or (GDVars.ifcState = C_IFC.SHOP_TEMPLE) or (GDVars.ifcState = C_IFC.VAULT) then
     GDVars.treasureMoney[mType] := GDVars.treasureMoney[mType] + qty;
 end;
 

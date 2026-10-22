@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_GBVM, C_Ifc, Blit, TextRend, CharDisp,
+uses Types, Crt, C_Tile, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -58,13 +58,13 @@ end;
 
 { Play the endgame: the dragon's death, Tyranthraxus' possession threat and Bane's recall, each with its text and a
   FINAL animation. Pictures are blocks of FINAL<n>.DAX, where n is the virtual disk number; blocks 4, 5 and 6 add a
-  party figure when the party has more than 1, 2 and 3 members. The interface state is C_Ifc.WON_GAME for the duration,
+  party figure when the party has more than 1, 2 and 3 members. The interface state is C_IFC.WON_GAME for the duration,
   then the saved state is restored and the non-combat interface redrawn. }
 procedure WinGame;
 begin
   Str(GDVars.virtualDisk, finalSfx);
   savedIfc := GDVars.ifcState;
-  GDVars.ifcState := C_Ifc.WON_GAME;
+  GDVars.ifcState := C_IFC.WON_GAME;
   finalPic := nil;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');

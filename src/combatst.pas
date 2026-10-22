@@ -10,7 +10,7 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_GBVM, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+  MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
 var
@@ -881,7 +881,7 @@ begin
     p := p^.nextCharAddr;
   end;
   CbtActs.CalcHostileHpPercent;
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GDVars.ifcState := C_IFC.COMBAT;
 end;
 
 end.

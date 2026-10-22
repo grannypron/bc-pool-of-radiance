@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TStats;
 
-uses Types, GDVars, C_GBVM, C_STATUS, C_Ifc, C_Money, Party, Stats, TestKit;
+uses Types, GDVars, C_GBVM, C_STATUS, C_IFC, C_Money, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -51,7 +51,7 @@ begin
   TestKit.CheckEqualsL(0, Stats.game.counts[Stats.RAISED], 'a monster''s count reaches neither block nor game');
 
   { a party member fells a monster in combat }
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GDVars.ifcState := C_IFC.COMBAT;
   monster^.status := C_STATUS.DYING;
   Stats.Damaged(a, monster, 7, True);
   blk := Stats.BlockOf(a);
@@ -65,7 +65,7 @@ begin
   TestKit.CheckEqualsL(1, blk^.counts[Stats.KILLS], 'no kill for a creature already down');
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'damage on a fallen creature still counts');
   { outside combat a party member's blow is not credited }
-  GDVars.ifcState := C_Ifc.INDOORS;
+  GDVars.ifcState := C_IFC.INDOORS;
   Stats.Damaged(a, monster, 4, False);
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'no damage done outside combat');
 
@@ -83,7 +83,7 @@ begin
   TestKit.CheckEqualsL(2, Stats.game.counts[Stats.DIED], 'a monster''s death is not the party''s');
 
   { kinds past the table go under OTHER }
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GDVars.ifcState := C_IFC.COMBAT;
   for i := 1 to Stats.KINDS + 2 do begin
     Str(i, s);
     monster^.name := 'BEAST' + s;

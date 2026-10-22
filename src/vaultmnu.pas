@@ -16,7 +16,7 @@ procedure VaultMenu;
 
 implementation
 
-uses Crt, GDVars, C_Ifc, C_Keys, CharDisp, CharHlp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
+uses Crt, GDVars, C_IFC, C_Keys, CharDisp, CharHlp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
   {$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure VaultMenu;
@@ -28,7 +28,7 @@ var
   hasItems: Boolean;
   done: Boolean;
 begin
-  GDVars.ifcState := C_Ifc.VAULT;
+  GDVars.ifcState := C_IFC.VAULT;
   CharDisp.DisplayNoncombatInterface;
   CharDisp.DisplayParty(GDVars.curChar);
   Vault.ReadVault;

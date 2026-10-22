@@ -69,7 +69,7 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_Keys, C_Ifc, Blit,
+uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_Keys, C_IFC, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party;
 
 var
@@ -86,7 +86,7 @@ var
   row: Byte;
   band: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.MAIN_MENU then
+  if GDVars.ifcState = C_IFC.MAIN_MENU then
     col := 1
   else
     col := 17;
@@ -209,7 +209,7 @@ procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pau
 var
   top: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GDVars.ifcState = C_IFC.COMBAT then begin
     Border.ClearBox(C_MSG.COMBAT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
     CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
     TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, LightGreen, True,
@@ -235,7 +235,7 @@ end;
 
 procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GDVars.ifcState = C_IFC.COMBAT then begin
     if first then
       Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
     TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM,
@@ -258,7 +258,7 @@ procedure PrintTwoLines(line1, line2: string);
 var
   left: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GDVars.ifcState = C_IFC.COMBAT then
     left := C_MSG.COMBAT_LEFT
   else
     left := C_MSG.TEXT_LEFT;
@@ -276,7 +276,7 @@ end;
 { Clear whichever message window is active (combat or bottom), leaving its border alone. }
 procedure ClearMessageWindow;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GDVars.ifcState = C_IFC.COMBAT then
     Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM)
   else
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
@@ -491,7 +491,7 @@ var
   reps: Byte;
   slot: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GDVars.ifcState = C_IFC.COMBAT then begin
     SoundDrv.SoundSetAutoStop(0);
     if effect then
       cell := 22
@@ -540,7 +540,7 @@ begin
   else
     s := 'is partially healed';
   CharDisp.PrintNameString(creature, s, 10, True);
-  if GDVars.ifcState <> C_Ifc.COMBAT then
+  if GDVars.ifcState <> C_IFC.COMBAT then
     CharDisp.DisplayParty(GDVars.curChar);
 end;
 
@@ -561,14 +561,14 @@ end;
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of
-    C_Ifc.MAIN_MENU: Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM,
+    C_IFC.MAIN_MENU: Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM,
                                        0, White, '');
-    C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
+    C_IFC.SHOP_TEMPLE, C_IFC.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
       Portrait.LoadPortraitBufs(GDVars.currentPortraitHead, GDVars.currentPortraitHead2);
       Portrait.DisplayPortraitBufs(3, 3, True);
     end;
-    C_Ifc.CAMPING: begin
+    C_IFC.CAMPING: begin
       CharDisp.DrawNoncombatWindows(True);
       Portrait.LoadAnimation('PIC', 29, 0, GDVars.animData);
       { the campfire now, not only once an animating menu draws it: a plain prompt may come first (#666) }
@@ -577,19 +577,19 @@ begin
       CharDisp.DisplayParty(GDVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_Ifc.INDOORS: begin
+    C_IFC.INDOORS: begin
       CharDisp.DrawNoncombatWindows(True);
       MapView.DisplayMapView;
       CharDisp.DisplayParty(GDVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_Ifc.OUTDOORS: begin
+    C_IFC.OUTDOORS: begin
       CharDisp.DrawNoncombatWindows(False);
       MapView.DisplayMapView;
       CharDisp.DisplayParty(GDVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_Ifc.LOOT: begin
+    C_IFC.LOOT: begin
       CharDisp.DrawNoncombatWindows(True);
       Portrait.LoadAnimation('PIC', 1, 0, GDVars.animData);
       CharDisp.DisplayParty(GDVars.curChar);
@@ -630,7 +630,7 @@ begin
   { the STING trace log is on (Ctrl-L), as Curse shows it }
   if GDVars.debugTraceEnabled then
     info := info + '*';
-  if GDVars.ifcState = C_Ifc.CAMPING then
+  if GDVars.ifcState = C_IFC.CAMPING then
     info := info + ' camping'
   else if GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     info := info + ' search';
@@ -641,7 +641,7 @@ end;
 { Switch to the outdoor interface and draw it: the wilderness windows and map views, status line and party. }
 procedure DisplayWildernessInterface;
 begin
-  GDVars.ifcState := C_Ifc.OUTDOORS;
+  GDVars.ifcState := C_IFC.OUTDOORS;
   Wilds.DrawWildWindows;
   MapView.DisplayMapView;
   MapView.DisplayWildMapView;
@@ -681,7 +681,7 @@ begin
   while not ((ch in [C_Keys.ENTER, C_Keys.ESC, 'E', 'S']) or ((ch = C_Keys.NONE) and addExit)) do
   begin
     CharDisp.DisplayParty(sel);
-    if (GDVars.ifcState = C_Ifc.CAMPING) or (GDVars.ifcState = C_Ifc.LOOT) then
+    if (GDVars.ifcState = C_IFC.CAMPING) or (GDVars.ifcState = C_IFC.LOOT) then
       anim := True
     else
       anim := False;

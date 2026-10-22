@@ -108,7 +108,7 @@ procedure FreeParty;
 implementation
 
 uses DiskRec, Crt, C_AREA, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_Keys, C_Ifc, C_GBVM, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  C_Keys, C_IFC, C_GBVM, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type

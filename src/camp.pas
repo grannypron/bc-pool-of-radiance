@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_Keys, C_STATUS, C_Ifc, C_SPELL, C_Level,
+uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_Keys, C_STATUS, C_IFC, C_SPELL, C_Level,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -1062,7 +1062,7 @@ var
   saved: Boolean;
 begin
   savedIfc := GDVars.ifcState;
-  GDVars.ifcState := C_Ifc.CAMPING;
+  GDVars.ifcState := C_IFC.CAMPING;
   GDVars.healTicks := 0;
   FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
   CharDisp.DisplayNoncombatInterface;

@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_Keys, C_CLASS, C_Level, C_STATUS, C_Ifc, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_EQUIP, C_Keys, C_CLASS, C_Level, C_STATUS, C_IFC, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -148,7 +148,7 @@ end;
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
   PaladinReady := (p^.charClass = C_CLASS.PALADIN) and (p^.status = C_STATUS.OKAY) and
-    (GDVars.ifcState <> C_Ifc.COMBAT);
+    (GDVars.ifcState <> C_IFC.COMBAT);
 end;
 
 { True when paladin p has not laid on hands in the last day. }
@@ -576,7 +576,7 @@ var
   idx: Integer;
   shown: Types.PCharRecord;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GDVars.ifcState = C_IFC.COMBAT then
     CbtMap.SetNoncombatPalette;
   ch := ' ';
   done := False;
@@ -602,10 +602,10 @@ begin
     if hasSpells then
       s := s + 'Spells ';
     if CharHlp.MayTrade(shown) and hasMoney and
-        (GDVars.ifcState <> C_Ifc.COMBAT) then
+        (GDVars.ifcState <> C_IFC.COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
-    if hasMoney and (GDVars.ifcState = C_Ifc.VAULT) then
+    if hasMoney and (GDVars.ifcState = C_IFC.VAULT) then
       s := s + 'Deposit '
     else if hasMoney then
       s := s + 'Drop ';
@@ -639,7 +639,7 @@ begin
       ViewChar.DrawMoreInfoLabel;
     end;
   end;
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GDVars.ifcState = C_IFC.COMBAT then
     CbtMap.SetCombatPalette;
   CharDisp.DisplayNoncombatInterface;
 end;
@@ -733,9 +733,9 @@ begin
       s := 'Ready';
       if CharHlp.CanUseItems(creature) then
         s := s + ' Use';
-      if CharHlp.MayTrade(creature) and (GDVars.ifcState <> C_Ifc.COMBAT) then
+      if CharHlp.MayTrade(creature) and (GDVars.ifcState <> C_IFC.COMBAT) then
         s := s + ' Trade';
-      if GDVars.ifcState = C_Ifc.VAULT then
+      if GDVars.ifcState = C_IFC.VAULT then
         s := s + ' Deposit'
       else
         s := s + ' Drop';
@@ -743,9 +743,9 @@ begin
         s := s + ' Halve';
       s := s + ' Join';
       { the characters that may trade may sell, but only in a shop }
-      if CharHlp.MayTrade(creature) and (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
+      if CharHlp.MayTrade(creature) and (GDVars.ifcState = C_IFC.SHOP_TEMPLE) then
         s := s + ' Sell';
-      if GDVars.ifcState = C_Ifc.SHOP_TEMPLE then
+      if GDVars.ifcState = C_IFC.SHOP_TEMPLE then
         s := s + ' Id';
       { rebuild every item name }
       p := creature^.itemsAddr;
@@ -783,7 +783,7 @@ begin
                  ch := ' ';
                end else if CharHlp.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
                  Magic.UseItem(sel, done);
-                 if GDVars.ifcState <> C_Ifc.COMBAT then
+                 if GDVars.ifcState <> C_IFC.COMBAT then
                    { outside combat, using an item does not end the menu }
                    done := False;
                  if not done then
@@ -796,7 +796,7 @@ begin
                    ch := ' ';
                  needRedraw := True;
                end;
-          'D': if (GDVars.ifcState = C_Ifc.VAULT) and ViewChar.CheckItemAvail(sel) then begin
+          'D': if (GDVars.ifcState = C_IFC.VAULT) and ViewChar.CheckItemAvail(sel) then begin
                  { the vault keeps it, with the game it is saved with }
                  if Vault.HasRoom then begin
                    Vault.DepositItem(GDVars.curChar, sel);
@@ -1066,7 +1066,7 @@ begin
     else begin
       s2 := '';
       mType := MoneyCal.ParseMoneyType(prev^.name, s2);
-      if GDVars.ifcState = C_Ifc.VAULT then
+      if GDVars.ifcState = C_IFC.VAULT then
         s2 := 'How much ' + s2 + 'will you deposit? '
       else
         s2 := 'How much ' + s2 + 'will you drop? ';

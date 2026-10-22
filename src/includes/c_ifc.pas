@@ -1,6 +1,6 @@
 { Interface states. }
 {$I COMPILER.INC}
-unit C_Ifc;
+unit C_IFC;
 
 interface
 

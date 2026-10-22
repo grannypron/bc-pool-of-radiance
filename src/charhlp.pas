@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_Item, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_Level, C_STATUS, C_Ifc,
+uses C_Item, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_Level, C_STATUS, C_IFC,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -785,14 +785,14 @@ begin
     creature^.status := C_STATUS.DEAD
   else if over > 0 then begin
     creature^.status := C_STATUS.DYING;
-    if GDVars.ifcState = C_Ifc.COMBAT then
+    if GDVars.ifcState = C_IFC.COMBAT then
       creature^.combatAddr^.overkill := over;
   end else if remain = 0 then
     creature^.status := C_STATUS.UNCONSCIOUS;
   if not (creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED]) then begin
     creature^.enabled := 0;
     creature^.hpCur := 0;
-    if GDVars.ifcState = C_Ifc.COMBAT then begin
+    if GDVars.ifcState = C_IFC.COMBAT then begin
       { a creature already down (dying or unconscious) left its team count when it fell }
       if wasUp then
         Dec(GDVars.teamCount[CharHlp.Team(creature)]);
@@ -848,9 +848,9 @@ end;
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 begin
   CanUseItems := (creature^.enabled <> 0) and (GDVars.zone0^.antimagic = 0) and
-                 ((GDVars.ifcState = C_Ifc.CAMPING) or (GDVars.ifcState = C_Ifc.OUTDOORS) or
-                  (GDVars.ifcState = C_Ifc.INDOORS) or
-                  ((GDVars.ifcState = C_Ifc.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
+                 ((GDVars.ifcState = C_IFC.CAMPING) or (GDVars.ifcState = C_IFC.OUTDOORS) or
+                  (GDVars.ifcState = C_IFC.INDOORS) or
+                  ((GDVars.ifcState = C_IFC.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
 end;
 
 { End the creature's round and raise its guarding flag; the caller announces it ('Guarding'). Always returns True. }

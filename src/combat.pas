@@ -15,7 +15,7 @@ function BandageDying(bandage: Boolean): Boolean;
 implementation
 
 uses Types, C_TIME, C_Npc, C_COND, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_CLASS,
-  C_STATUS, C_Ifc, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
+  C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -63,7 +63,7 @@ var
   done: Boolean;
   creature: Types.PCharRecord;
 begin
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GDVars.ifcState := C_IFC.COMBAT;
   GDVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
   CombatSt.CombatStart;
   done := False;

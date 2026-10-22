@@ -163,7 +163,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_Ifc, C_DIR, C_Level, Crt, C_Item, C_EQUIP;
+  TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_Level, Crt, C_Item, C_EQUIP;
 
 const
   { EffectSource's side for a node cast by either side }
@@ -251,7 +251,7 @@ begin
     while (p <> nil) and not found do begin
       if Carries(p)
          and ((effId in [C_EFFECT.SILENCE, C_EFFECT.PRAYER]) or (p^.hostile = creature^.hostile)) then begin
-        if GDVars.ifcState = C_Ifc.COMBAT then begin
+        if GDVars.ifcState = C_IFC.COMBAT then begin
           if effId = C_EFFECT.PRAYER then
             range := 6
           else
@@ -720,7 +720,7 @@ begin
       CharDisp.MessageWait;
     end;
     CharHlp.InflictDamage(creature, GDVars.pendingDamage);
-    if GDVars.ifcState = C_Ifc.COMBAT then begin
+    if GDVars.ifcState = C_IFC.COMBAT then begin
       creature^.combatAddr^.castAllowed := 0;
       if creature^.combatAddr^.spellCast > 0 then begin
         CharDisp.PrintNameString(creature, 'lost a spell', 12, True);
@@ -736,7 +736,7 @@ begin
       if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
         s := 'is killed';
       CharDisp.PrintNameString(creature, s, GDVars.curRow + 1, False);
-      if GDVars.ifcState <> C_Ifc.COMBAT then
+      if GDVars.ifcState <> C_IFC.COMBAT then
         TextRend.PauseOnly
       else begin
         FxEngine.RemoveEffectsHp0(creature);
@@ -819,7 +819,7 @@ begin
   if creature^.enabled = 0 then begin
     if creature^.status = C_STATUS.DYING then
       creature^.status := C_STATUS.UNCONSCIOUS;
-    if (creature^.status = C_STATUS.UNCONSCIOUS) and (GDVars.ifcState <> C_Ifc.COMBAT) then
+    if (creature^.status = C_STATUS.UNCONSCIOUS) and (GDVars.ifcState <> C_IFC.COMBAT) then
       FxEngine.CallEffectHandler(C_EFFECT.HEAL_WAKE, creature, nil, True);
   end;
   RestoreHitPoints := True;
@@ -834,7 +834,7 @@ begin
     creature^.status := C_STATUS.OKAY;
     creature^.enabled := 1;
     creature^.hpCur := hp;
-    if GDVars.ifcState = C_Ifc.COMBAT then
+    if GDVars.ifcState = C_IFC.COMBAT then
       CbtMap.DisplayMapViewCentered(creature, 3, False);
     if creature^.hostile = 1 then
       s := 'stands up and grins'
@@ -931,7 +931,7 @@ begin
            CharHlp.ItemLabel(creature^.equipped[slot], False);
            CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
          end;
-      3: if (GDVars.ifcState <> C_Ifc.COMBAT) or (creature^.quickfight = 0) then
+      3: if (GDVars.ifcState <> C_IFC.COMBAT) or (creature^.quickfight = 0) then
            CharDisp.PrintBottomLine('Your hands are full!');
     end;
   end;
@@ -960,7 +960,7 @@ var
   nExpiring: Byte;
   again: Boolean;
 begin
-  if GDVars.ifcState <> C_Ifc.CAMPING then
+  if GDVars.ifcState <> C_IFC.CAMPING then
     FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1)
   else begin
     found := False;

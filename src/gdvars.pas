@@ -35,7 +35,7 @@ var
   scriptEntryAddrs: array[1..5] of Word;
   { ECL instruction pointer into zone3 }
   eclIp: Word;
-  { Interface state, one of the IFC_ constants of C_Ifc and Ending }
+  { Interface state, one of the IFC_ constants of C_IFC and Ending }
   ifcState: Byte;
   { nonzero suppresses Combat's Continue Battle prompt }
   suppressContinuePrompt: Byte;
