@@ -90,7 +90,7 @@ implementation
 
 uses DiskRec, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp,
-  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes{$IFDEF FPC}, NatFile{$ENDIF};
+  FileUtil, Party, StrUtil, UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -396,6 +396,16 @@ begin
         FreeMem(newEffect, SizeOf(Types.TEffectRec));
     end;
     Close(f);
+  end;
+  { a paladin created by SSI's game, or before #742, has eff 8 as his own Protection from Evil (permanent, strength
+    255): it becomes the 10' radius one character creation gives now }
+  if creature^.classLevels[C_Level.PALADIN] > 0 then begin
+    effect := creature^.effectsAddr;
+    while effect <> nil do begin
+      if (effect^.id = C_Effect.PROT_EVIL) and (effect^.duration = 0) and (effect^.strength = 255) then
+        effect^.id := C_Effect.PROT_EVIL_10FT;
+      effect := effect^.next;
+    end;
   end;
   { the slots pointed into the heap of the game that saved them }
   CharHlp.LinkEquipped(creature);

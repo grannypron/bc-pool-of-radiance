@@ -518,9 +518,10 @@ begin
         if (GDConsts.classParts[charClass].values[slot] >= C_Level.CLERIC)
            and (GDConsts.classParts[charClass].values[slot] <= C_Level.MONK) then
           classLevels[GDConsts.classParts[charClass].values[slot]] := 1;
-    { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it }
+    { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it. It is the 10'
+      radius one, as the paladin's has a 1" radius: SSI gave eff 8, which covered the paladin alone (#742). }
     if charClass = C_Class.PALADIN then
-      FxEngine.AddEffect(creature, C_Effect.PROT_EVIL, 0, 255, False);
+      FxEngine.AddEffect(creature, C_Effect.PROT_EVIL_10FT, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
     for cls := C_Level.CLERIC to C_Level.MONK do
