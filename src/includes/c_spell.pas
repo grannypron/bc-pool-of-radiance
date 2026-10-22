@@ -23,6 +23,8 @@ const
   NONE = 0;
   { the last spell; 57..67 are item effects }
   LAST = 56;
+  { an item's effect above LAST names spell entry effect - ITEM_EFFECT_SHIFT: effects 80..90 are entries 57..67 }
+  ITEM_EFFECT_SHIFT = 23;
   { the last line of a spell menu (spellIds, spellScrolls): Cast lists up to 21 memorized spells and 48 scroll spells,
     three on each of 16 items }
   LINE_LAST = 68;
