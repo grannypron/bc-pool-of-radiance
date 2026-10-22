@@ -620,8 +620,7 @@ begin
       p := GameVars.creatureArr[i];
       if (p^.enabled <> 0) and (GameVars.arenaLoc[i].size > 0) then
         if CbtMap.CombatIconVisible(p, 0) then
-          MapTiles.DrawIconAnimSprite(gridX[i], gridY[i], p^.combatAddr^.direction, 0,
-                                      p^.orderNumber);
+          MapTiles.DrawIconAnimSprite(gridX[i], gridY[i], p^.combatAddr^.direction, 0, p^.orderNumber);
     end;
   end;
   CbtMap.RedrawArenaCell(x, y);

@@ -272,16 +272,14 @@ begin
                         yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], True,
-                        GameVars.mapTilePtr);
+          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], True, GameVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
         if yarGreenTiles[t] > C_TILE.ID_MASK then
           Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], True,
-                        GameVars.mapTilePtr);
+          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], True, GameVars.mapTilePtr);
       Wilds.BuildWildernessMap(yarViewX[step], yarViewY[step]);
       Blit.FlushView;
     end;
@@ -293,16 +291,14 @@ begin
                     yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
                     MapTiles.SecondSheet)
     else
-      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], False,
-                    GameVars.mapTilePtr);
+      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], False, GameVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
     if yarGreenTiles[t] > C_TILE.ID_MASK then
       Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK,
                     False, MapTiles.SecondSheet)
     else
-      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], False,
-                    GameVars.mapTilePtr);
+      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], False, GameVars.mapTilePtr);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);
     Blit.FlushView;

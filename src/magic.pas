@@ -1136,8 +1136,7 @@ begin
   node^.ulY := gTargetY;
   for k := 1 to 4 do begin
     d := GameDefs.cloudDir[k];
-    CbtMap.GetArenaContents(gTargetX + GameDefs.dirDX[d], gTargetY + GameDefs.dirDY[d], crIdx[k],
-                            terr);
+    CbtMap.GetArenaContents(gTargetX + GameDefs.dirDX[d], gTargetY + GameDefs.dirDY[d], crIdx[k], terr);
     if (terr > 0) and (GameDefs.terrainInfo[terr].cost < 255) then
       node^.exists[k] := 1
     else
@@ -1162,8 +1161,7 @@ begin
     end;
     node^.under[k] := terr;
     if node^.exists[k] <> 0 then
-      GameVars.arenaPtr^.cells[gTargetY + GameDefs.dirDY[d],
-                               gTargetX + GameDefs.dirDX[d]] := C_TERR.STINK_CLOUD;
+      GameVars.arenaPtr^.cells[gTargetY + GameDefs.dirDY[d], gTargetX + GameDefs.dirDX[d]] := C_TERR.STINK_CLOUD;
   end;
   CharDisp.PrintNameString(GameVars.curChar, 'Creates a noxious cloud', 10, False);
   CbtMap.ScrollView(gTargetX, gTargetY, 255, C_DIR.CENTER);

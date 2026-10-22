@@ -118,8 +118,7 @@ begin
         View3D.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
         View3D.wallColorC := WallColor(GameVars.wallColorSel);
       end;
-      View3D.SetView3DColors(View3D.colorSkyCeiling, View3D.wallColorA, View3D.wallColorB,
-                             View3D.wallColorC);
+      View3D.SetView3DColors(View3D.colorSkyCeiling, View3D.wallColorA, View3D.wallColorB, View3D.wallColorC);
       if GameVars.zone0^.noAutomap <> 0 then GameVars.automapOn := False;
       View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;

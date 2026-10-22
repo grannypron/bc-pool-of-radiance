@@ -318,8 +318,7 @@ begin
          repeat
            MenuCore.arrowsToCaller := True;
            MenuCore.quickKeysToCaller := True;
-           c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False,
-                                        ext);
+           c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False, ext);
            if not ext then begin
              case c of
                { STING maps anywhere, as Curse's debug mode does }
@@ -394,8 +393,7 @@ begin
         repeat
           MenuCore.arrowsToCaller := True;
           MenuCore.quickKeysToCaller := True;
-          c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False,
-                                       ext);
+          c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False, ext);
           if not ext then begin
             case c of
               'C': Camp.NoncombatCastMenu;

@@ -812,8 +812,7 @@ var
 begin
   c := ' ';
   while not (c in [C_KEYS.NONE, 'E']) do begin
-    c := MenuCore.MenuHorizontal('Alter: ', alterMenu, LightMagenta, LightGreen, White, True, True,
-                                 ext);
+    c := MenuCore.MenuHorizontal('Alter: ', alterMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then
       Camp.SelectOtherChar(c)
     else
@@ -1086,8 +1085,7 @@ begin
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse, so the prompt has no space after it
       (#674) }
-    c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True,
-                                 ext);
+    c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
       if c = C_KEYS.F6 then begin
         { the Companion Tools, while the setting is on (phase 8) }

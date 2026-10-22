@@ -34,8 +34,7 @@ procedure ValidateRestTime;
 begin
   Clock.ValidateClock(restingTimeGbvm, False);
   if restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
-    Inc(restingTimeGbvm[C_TIME.DAYS],
-        GameDefs.unitScale[C_TIME.DAYS] * restingTimeGbvm[C_TIME.MONTHS]);
+    Inc(restingTimeGbvm[C_TIME.DAYS], GameDefs.unitScale[C_TIME.DAYS] * restingTimeGbvm[C_TIME.MONTHS]);
     restingTimeGbvm[C_TIME.MONTHS] := 0;
     if restingTimeGbvm[C_TIME.DAYS] > 99 then restingTimeGbvm[C_TIME.DAYS] := 99;
   end;

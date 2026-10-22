@@ -117,8 +117,7 @@ end;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, colorSkyCeiling, GameDefs.iconColorMap,
-                   GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 16, 11, 43, colorSkyCeiling, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
   Blit.FillPicRect(2, 59, 11, 1, wallColorA, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
   Blit.FillPicRect(2, 60, 11, 2, wallColorB, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
   Blit.FillPicRect(2, 62, 11, 42, wallColorC, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
@@ -257,15 +256,13 @@ var
         prevWall := 0;
       if wallFront <> 0 then begin
         if prevWall > 0 then
-          View3D.DrawWallSlice(viewSlotGeom.xCol[9] + symOfs + corner, viewSlotGeom.yRow[9],
-                               prevWall, 9);
+          View3D.DrawWallSlice(viewSlotGeom.xCol[9] + symOfs + corner, viewSlotGeom.yRow[9], prevWall, 9);
         prevWall := wallFront;
         View3D.DrawWallSlice(viewSlotGeom.xCol[0] + symOfs, viewSlotGeom.yRow[0], wallFront, 0);
       end else begin
         if (prevWall > 0) and
            (View3D.GetWallType(wx - GameDefs.dirDX[walk], wy - GameDefs.dirDY[walk], walk) <> 0) then
-          View3D.DrawWallSlice(viewSlotGeom.xCol[9] + symOfs + corner, viewSlotGeom.yRow[9],
-                               prevWall, 9);
+          View3D.DrawWallSlice(viewSlotGeom.xCol[9] + symOfs + corner, viewSlotGeom.yRow[9], prevWall, 9);
         prevWall := 0;
       end;
       Inc(side);
@@ -296,8 +293,7 @@ var
           View3D.DrawWallSlice(viewSlotGeom.xCol[slot] + symOfs, viewSlotGeom.yRow[slot], wallSide,
                                slot)
         else
-          View3D.DrawWallSlice(viewSlotGeom.xCol[slot] + symOfs + adjust, viewSlotGeom.yRow[slot],
-                               wallSide, slot);
+          View3D.DrawWallSlice(viewSlotGeom.xCol[slot] + symOfs + adjust, viewSlotGeom.yRow[slot], wallSide, slot);
       Inc(side);
       Inc(symOfs, step);
       wx := wx + GameDefs.dirDX[dir];
@@ -328,12 +324,10 @@ var
     while side < count do begin
       wallFront := View3D.GetWallType(wx, wy, facing);
       if wallFront <> 0 then
-        View3D.DrawWallSlice(viewSlotGeom.xCol[frontSlot] + symOfs, viewSlotGeom.yRow[frontSlot],
-                             wallFront, frontSlot);
+        View3D.DrawWallSlice(viewSlotGeom.xCol[frontSlot] + symOfs, viewSlotGeom.yRow[frontSlot], wallFront, frontSlot);
       wallSide := View3D.GetWallType(wx, wy, sideDir);
       if wallSide <> 0 then
-        View3D.DrawWallSlice(viewSlotGeom.xCol[sideSlot] + symOfs, viewSlotGeom.yRow[sideSlot],
-                             wallSide, sideSlot);
+        View3D.DrawWallSlice(viewSlotGeom.xCol[sideSlot] + symOfs, viewSlotGeom.yRow[sideSlot], wallSide, sideSlot);
       Inc(side);
       Inc(symOfs, symStep);
       wx := wx + GameDefs.dirDX[scan];

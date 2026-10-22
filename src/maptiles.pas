@@ -78,8 +78,7 @@ procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 begin
   if tile > C_TILE.ID_MASK then begin
     if MapTiles.SecondSheet <> nil then
-      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2,
-                        GameVars.viewImageBufferPtr);
+      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2, GameVars.viewImageBufferPtr);
   end else if GameVars.mapTilePtr <> nil then
     Blit.BlitTileCell(col, row, tile, 0, GameVars.mapTilePtr, GameVars.viewImageBufferPtr);
 end;
@@ -231,19 +230,15 @@ begin
     Blit.LoadPic(name + suffix, fileId, True, 0, GameVars.iconAnimation[animIdx, 0]);
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, GameVars.iconAnimation[animIdx, 1]);
     if name = 'ICON' then begin
-      Blit.RemapPic(iconColorIdentity, iconColorPinkToBlack, 0, False,
-                    GameVars.iconAnimation[animIdx, 0]);
-      Blit.RemapPic(iconColorIdentity, iconColorPinkToBlack, 0, False,
-                    GameVars.iconAnimation[animIdx, 1]);
+      Blit.RemapPic(iconColorIdentity, iconColorPinkToBlack, 0, False, GameVars.iconAnimation[animIdx, 0]);
+      Blit.RemapPic(iconColorIdentity, iconColorPinkToBlack, 0, False, GameVars.iconAnimation[animIdx, 1]);
     end;
   end else begin
     Str(GameVars.virtualDisk, suffix);
     Blit.LoadPic(name + suffix, fileId, True, 0, GameVars.iconAnimation[animIdx, 0]);
-    Blit.RemapPic(iconColorIdentity, iconColorPinkToDarkGray, 0, False,
-                  GameVars.iconAnimation[animIdx, 0]);
+    Blit.RemapPic(iconColorIdentity, iconColorPinkToDarkGray, 0, False, GameVars.iconAnimation[animIdx, 0]);
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, GameVars.iconAnimation[animIdx, 1]);
-    Blit.RemapPic(iconColorIdentity, iconColorPinkToDarkGray, 0, False,
-                  GameVars.iconAnimation[animIdx, 1]);
+    Blit.RemapPic(iconColorIdentity, iconColorPinkToDarkGray, 0, False, GameVars.iconAnimation[animIdx, 1]);
   end;
 end;
 
