@@ -181,12 +181,6 @@ const
   { Color bit (1, 2, 4, 8) carried by each of the four EGA planes. Blit uses it to split a 4-bit color into plane bytes
     and to select planes through the sequencer map mask. }
   egaPlaneBit: array[0..3] of Byte = ($01, $02, $04, $08);
-  { CGA color by pixel position within a packed byte. }
-  cgaPixPos: array[0..3, 0..3] of Byte = (
-    ($00, $00, $00, $00),
-    ($40, $10, $04, $01),
-    ($80, $20, $08, $02),
-    ($C0, $30, $0C, $03));
   { Packed EGA-to-CGA color map, two EGA colors per byte, used by Blit.FillPicRect for the CharGen icon previews and the
     View3D backgrounds }
   iconColorMap: Types.TColorMap = (

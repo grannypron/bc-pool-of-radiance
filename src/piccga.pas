@@ -25,6 +25,14 @@ implementation
 
 uses C_VIDEO, GameDefs, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
+const
+  { CGA color by pixel position within a packed byte. }
+  cgaPixPos: array[0..3, 0..3] of Byte = (
+    ($00, $00, $00, $00),
+    ($40, $10, $04, $01),
+    ($80, $20, $08, $02),
+    ($C0, $30, $0C, $03));
+
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
   chunk: TChunk;
@@ -59,19 +67,19 @@ begin
           end;
           for k := 0 to 3 do
             if Odd(k) then
-              data[dstOff] := data[dstOff] or GameDefs.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k]
+              data[dstOff] := data[dstOff] or cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k]
             else
               data[dstOff] := data[dstOff] or
-                GameDefs.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k];
+                cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k];
           if transp <> nil then
             data[dstOff] := data[dstOff] and not transp^[maskOff - 2];
           Inc(dstOff);
           for k := 4 to 7 do
             if Odd(k) then
-              data[dstOff] := data[dstOff] or GameDefs.cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k - 4]
+              data[dstOff] := data[dstOff] or cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k - 4]
             else
               data[dstOff] := data[dstOff] or
-                GameDefs.cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k - 4];
+                cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k - 4];
           if transp <> nil then
             data[dstOff] := data[dstOff] and not transp^[maskOff - 1];
           Inc(dstOff);
@@ -131,10 +139,10 @@ begin
         for col := 1 to rowBytes do begin
           for pixPos := 0 to 3 do
             if pic^.data[srcOff] and GameDefs.cgaPixelMask[pixPos + 4] =
-                GameDefs.cgaPixPos[Blit.SrcNibble(fromC, map)][pixPos] then
+                cgaPixPos[Blit.SrcNibble(fromC, map)][pixPos] then
               if not isDithered or isDithered and (Random(4) = 0) then
                 data[dstOff] := data[dstOff] and not GameDefs.cgaPixelMask[pixPos + 4] or
-                  GameDefs.cgaPixPos[Blit.SrcNibble(toC, map)][pixPos];
+                  cgaPixPos[Blit.SrcNibble(toC, map)][pixPos];
           Inc(srcOff);
           Inc(dstOff);
         end;
