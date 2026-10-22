@@ -697,7 +697,7 @@ begin
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       { a creature already down (dying or unconscious) left its team count when it fell }
       if wasUp then
-        Dec(GDVars.teamCount[creature^.hostile]);
+        Dec(GDVars.teamCount[creature^.hostile and 1]);
       creature^.combatAddr^.initiative := 0;
     end;
   end else
@@ -715,7 +715,8 @@ begin
     EnemyTeam := 0;
 end;
 
-{ Recount the creatures still in action on each team. }
+{ Recount the creatures still in action on each team. The team is hostile and 1, as CombatSt places it: teamCount has
+  only entries 0 and 1, and a damaged save can hold a larger byte (#710). }
 procedure CountTeams;
 var
   p: Types.PCharRecord;
@@ -725,7 +726,7 @@ begin
   p := GDVars.creatureList;
   while p <> nil do begin
     if p^.enabled <> 0 then
-      Inc(GDVars.teamCount[p^.hostile]);
+      Inc(GDVars.teamCount[p^.hostile and 1]);
     p := p^.nextCharAddr;
   end;
 end;

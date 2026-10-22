@@ -12,6 +12,8 @@ var
   p: Types.PItemRec;
   e: Types.TEffectRec;
   found: Types.PEffectRec;
+  crs: array[1..4] of Types.TCharRecord;
+  i: Byte;
 
 procedure NewItem(itemType, n1, n2, n3: Byte; quantity: Byte; weight: Word);
 begin
@@ -218,5 +220,22 @@ begin
   TestKit.CheckEqualsL(0, CharHlp.TheftChance(70, 256), 'over 255 coins, 90 less, not below 0');
   TestKit.CheckEqualsL(5, CharHlp.TheftChance(95, 300), '95 less 90');
   TestKit.CheckEqualsL(70, CharHlp.TheftChance(70, 10), 'and the next light item has the whole chance again');
+
+  { CountTeams counts each creature in action on team hostile and 1, as CombatSt places it: teamCount has only
+    entries 0 and 1, and a damaged byte of 2 or 3 once counted past them (#710) }
+  FillChar(crs, SizeOf(crs), 0);
+  for i := 1 to 4 do begin
+    crs[i].enabled := 1;
+    if i < 4 then
+      crs[i].nextCharAddr := @crs[i + 1];
+  end;
+  crs[1].hostile := 0;
+  crs[2].hostile := 1;
+  crs[3].hostile := 3;
+  crs[4].hostile := 2;
+  GDVars.creatureList := @crs[1];
+  CharHlp.CountTeams;
+  TestKit.CheckEqualsL(2, GDVars.teamCount[0], 'hostile 0 and 2 count on team 0');
+  TestKit.CheckEqualsL(2, GDVars.teamCount[1], 'hostile 1 and 3 count on team 1');
   TestKit.Done;
 end.

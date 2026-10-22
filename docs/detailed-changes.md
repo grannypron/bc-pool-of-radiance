@@ -148,6 +148,24 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Under Quick, the bottom line shows how to leave it and whether its magic is on.** While any of the player's characters fights under Quick, each AI turn shows "Quick: On (Space) Magic: On/Off (Alt-M)", labels in light magenta and the rest in white, and the moves-left prompt no longer writes over it. Alt-M redraws the line; with no one under Quick it still says Magic On or Off. #665. c06be1b.
 
+**Monsters strike the creature they closed on.** `CombatAi.AiMoveAttack` dropped the creature's target lock when the target was out of action or had `hostile = 0`. A monster's lock is always on the party, so it was always dropped, and the attack fell through to a 1dN pick among the enemies in reach. The test is now `hostile = creature^.hostile` (a lock on its own side), as `AcquireTarget` has it. SSI's code. CURSE-0286, #715.
+
+**A free attack on a creature stepping away is one attack, at no cost.** `CbtActs.MoveOpportunityAttacks` gave each enemy left behind a `CombatAttack`, which runs every attack the enemy has left and then ends its turn (`EndActions`), so stepping away from an enemy that had not acted used up its round. It now allows exactly one attack in the chosen phase, and puts back the enemy's attacks, phase, initiative, movement, pending spell and guard once it has struck, if the enemy is still up. SSI's code. CURSE-0279, #711.
+
+**Escape after a bump attack undoes only the later steps.** `Combat.MoveMenu` saved the movement, facing and start cell on entry, and Escape restored them even after an attack made by moving into an enemy, so a fighter could attack, press Escape and move again with its full move. An attack that is made now takes the current values as the new starting point. SSI's code. CURSE-0280, #712.
+
+**A cursed missile weapon no longer hangs the combat AI.** With a pure missile weapon and an enemy adjacent, `AiMoveAttack` re-equipped and returned with the creature still able to act. `EquipWeaponAndShield` never swaps a cursed weapon, so `CombatAiControl`'s loop called it again for ever. When the weapon is still a pure missile weapon after re-equipping, the turn now ends (`FinishRound`). SSI's code. CURSE-0282, #713.
+
+**A hostile cleric heals only its own side's dying.** `CbtActs.FindCureTarget` tested the side for living candidates but not for the downed bodies, and `downed` holds the party's. So an enemy (or charmed) caster with Cure Light Wounds healed a dying party member. The body must now be of the caster's side. SSI's code. CURSE-0285, #714.
+
+**The AI's item ratings stay inside the spell table.** `CombatAi.SelectItemToUse` passed an item's effect, less 23 above 56, to `DecideCastSpell`, which indexes `spellTable[1..67]` without a check. Shipped items use 80..90 (entries 57..67), but any effect above 90 read past the table. Such an item is now not rated, as `SelectSpellToCast` already leaves such spells out. SSI's code. CURSE-0258, #708.
+
+**A hold lets go of a victim that is no longer immobile.** `FxEngine.HoldTarget`, the start of the bite-and-hold and blood-drain handlers, kept the hold until it was removed or either side dropped. A victim that lost `IMMOBILE` some other way was still bitten or drained. The hold is now released when the victim lacks `IMMOBILE`. TFxRemov checks a hold that lasts and one that goes. Latent in PoR (nothing shipped removes `IMMOBILE` early). SSI's code. CURSE-0259, #709.
+
+**Side counts and Animate Dead's side byte.** `CharHlp.CountTeams` and `InflictDamage` indexed `teamCount` (entries 0 and 1) with the whole `hostile` byte. Animate Dead stored the corpse's old side as `hostile * 16 + caster level`, so a caster of level 16 or more carried into it, and `EffAnimateDead` gave the corpse a `hostile` of 2 or more when the spell ended. The level is now capped at 15 and the side read back with `and 1`, and the counts use `hostile and 1`, as `CombatSt` places creatures. TCharHlp checks the counts. SSI's code. CURSE-0261, #710.
+
+**An animated corpse that flees no longer reads its freed effect.** For a corpse leaving combat (`C_Status.RUNNING`), `EffAnimateDead`'s `InflictStatusMsg` removes the 0-HP effects again and frees the Animate Dead node, which the handler then read for the old side. The side is now read first. The double free was fixed earlier (`RemoveEffect`, 921147b). SSI's code. CURSE-0326, #716.
+
 **Space and Alt-M in combat.** See section 3 (POR-0166) and the plain '2' and '-' fix (POR-0154).
 
 **Combat slot 0 and the hold effects.** See section 9 (#515, #530).

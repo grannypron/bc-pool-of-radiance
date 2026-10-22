@@ -1,7 +1,7 @@
 { Tests for FxEngine.RemoveEffect when the removed effect's own handler removes the node first, as Fight On's does
   (eff 95: the creature falls dead, and RemoveEffectsHp0 takes its 0-HP effects, Fight On among them). The outer
   removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
-  vectors, and freed the node twice. }
+  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free. }
 {$I COMPILER.INC}
 program TFxRemov;
 
@@ -23,6 +23,9 @@ var
   second: Types.PEffectRec;
   vectors: array[0..3] of LongInt;
   before: LongInt;
+  victim: Types.PCharRecord;
+  hold: Types.PEffectRec;
+  released: Boolean;
 
 {$F+}
 { A handler that removes its own effect, as EffFightOn does through InflictStatusMsg and RemoveEffectsHp0. }
@@ -74,5 +77,28 @@ begin
   c^.effectsAddr := second;
   FxEngine.RemoveEffect(c, C_Effect.FIGHT_ON, second);
   TestKit.Check(c^.effectsAddr = nil, 'alone in the list, it is gone too');
+
+  { a bite-and-hold on creature 1 of the arena: it lasts while the victim is immobile, and goes once the victim is
+    not, rather than biting a victim that broke free (#709) }
+  GetMem(victim, SizeOf(Types.TCharRecord));
+  FillChar(victim^, SizeOf(Types.TCharRecord), 0);
+  victim^.enabled := 1;
+  c^.enabled := 1;
+  GDVars.arenaCount := 1;
+  GDVars.creatureArr[1] := victim;
+  victim^.effectsAddr := NewEffect(C_Effect.IMMOBILE, nil);
+  victim^.effectsAddr^.onRemove := False;
+  hold := NewEffect(C_Effect.BITE_HOLD, nil);
+  hold^.strength := 1;
+  hold^.onRemove := False;
+  c^.effectsAddr := hold;
+  TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_Effect.BITE_HOLD, released) = victim,
+                'a hold on an immobile victim lasts');
+  TestKit.Check(not released and (c^.effectsAddr = hold), 'and is kept');
+  FreeMem(victim^.effectsAddr, SizeOf(Types.TEffectRec));
+  victim^.effectsAddr := nil;
+  TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_Effect.BITE_HOLD, released) = nil,
+                'a victim no longer immobile is not held');
+  TestKit.Check(released and (c^.effectsAddr = nil), 'and the hold is released and removed');
   TestKit.Done;
 end.

@@ -212,11 +212,14 @@ begin
            and (item^.special < $80)
            and (item^.equipped <> 0)
            and (effect > 0) then begin
-          { Item effects 80..90 map to spell entries 57..67; 56 is the last real spell id }
+          { Item effects 80..90 map to spell entries 57..67; 56 is the last real spell id. An effect above 90 would read
+            past spellTable and is not rated, as SelectSpellToCast leaves such entries out (#708) }
           if effect > 56 then
             effect := effect - 23;
-          if CombatAi.DecideCastSpell(creature, effect, lowPri) then
-            chosen := item;
+          { 67 = High(spellTable) }
+          if effect <= 67 then
+            if CombatAi.DecideCastSpell(creature, effect, lowPri) then
+              chosen := item;
         end;
         item := item^.next;
       end;
@@ -490,9 +493,11 @@ begin
         weaponRange := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1;
       if (weaponRange = 0) or (weaponRange = 255) then
         weaponRange := 1;
-      { other is nil once AiMoveStep has dropped it }
+      { other is nil once AiMoveStep has dropped it. A lock on a creature of its own side, or one out of action, is
+        dropped. SSI tested hostile = 0, which dropped every monster's lock on the party, so monsters struck a random
+        enemy in reach rather than the one they had closed on (#715) }
       target := creature^.combatAddr^.other;
-      if (target <> nil) and ((target^.enabled = 0) or (target^.hostile = 0)) then
+      if (target <> nil) and ((target^.enabled = 0) or (target^.hostile = creature^.hostile)) then
         target := nil;
       if target <> nil then
         if CbtActs.CanAttackTarget(creature, target) then begin
@@ -518,9 +523,12 @@ begin
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
              and (CbtMap.CountTargets(creature, 1) > 0) then begin
-            { pure missile weapon with an enemy adjacent: re-equip }
+            { pure missile weapon with an enemy adjacent: re-equip. A cursed bow cannot be swapped: the turn ends, or
+              CombatAiControl would call back here for ever (#713) }
             CombatAi.EquipWeaponAndShield(creature);
             done := True;
+            if CharHlp.HasRangedWeapon(creature) and (not CharHlp.HasThrowableWeapon(creature)) then
+              canAct := CombatAi.FinishRound(creature) = False;
           end else if (CbtMap.CalcDistance(creature, target) = 1)
                   or CbtActs.CanAttackTarget(creature, target) then
             inRange := True;

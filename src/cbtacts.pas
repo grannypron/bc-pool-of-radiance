@@ -314,7 +314,9 @@ end;
 
 { Enemies adjacent before a step in dir but not after it get one free attack on the mover, made as from behind.
   Helpless, effect-vetoed, blood-draining and bite-holding enemies are skipped. An enemy with no initiative left that
-  has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone. }
+  has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone.
+  The free attack is one attack and costs the enemy nothing: CombatAttack would spend every attack it has left and end
+  its turn, so its attacks, phase and turn state are put back afterwards while it is still up (#711). }
 procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 var
   adj: array[1..12] of Byte;
@@ -331,6 +333,12 @@ var
   a: Byte;
   p: Types.PCharRecord;
   savedOther: Types.PCharRecord;
+  savedAtt: array[1..2] of Byte;
+  savedPhase: Byte;
+  savedInit: ShortInt;
+  savedSpell: Byte;
+  savedGuard: Byte;
+  savedMove: Byte;
 begin
   FillChar(adj, SizeOf(adj), 0);
   slot := CbtMap.CombatSlot(creature);
@@ -381,13 +389,31 @@ begin
                       for k := 1 to 2 do
                         if Types.PAttackPhaseView(p)^.curAtt[k] > 0 then
                           phase := k;
-                      if Types.PAttackPhaseView(p)^.curAtt[phase] = 0 then
-                        Types.PAttackPhaseView(p)^.curAtt[phase] := 1;
+                      savedAtt[1] := Types.PAttackPhaseView(p)^.curAtt[1];
+                      savedAtt[2] := Types.PAttackPhaseView(p)^.curAtt[2];
+                      savedPhase := p^.combatAddr^.attackPhase;
+                      savedInit := p^.combatAddr^.initiative;
+                      savedSpell := p^.combatAddr^.spellCast;
+                      savedGuard := p^.combatAddr^.guarding;
+                      savedMove := p^.combatAddr^.movement;
+                      { exactly one attack, in that phase }
+                      Types.PAttackPhaseView(p)^.curAtt[1] := 0;
+                      Types.PAttackPhaseView(p)^.curAtt[2] := 0;
+                      Types.PAttackPhaseView(p)^.curAtt[phase] := 1;
                       p^.combatAddr^.attackPhase := phase;
                       savedOther := p^.combatAddr^.other;
                       CbtActs.CombatAttack(p, creature, True, nil, GDVars.doneRoundFlag);
                       attacked := True;
                       p^.combatAddr^.other := savedOther;
+                      if p^.enabled <> 0 then begin
+                        Types.PAttackPhaseView(p)^.curAtt[1] := savedAtt[1];
+                        Types.PAttackPhaseView(p)^.curAtt[2] := savedAtt[2];
+                        p^.combatAddr^.attackPhase := savedPhase;
+                        p^.combatAddr^.initiative := savedInit;
+                        p^.combatAddr^.spellCast := savedSpell;
+                        p^.combatAddr^.guarding := savedGuard;
+                        p^.combatAddr^.movement := savedMove;
+                      end;
                       if creature^.enabled <> 0 then
                         CharDisp.CombatPrintCreatureInfo(creature);
                     end;
@@ -882,8 +908,8 @@ begin
 end;
 
 { Cure Light Wounds target in the creature's own cell or the 8 around it. Candidates: the wounded ally with the fewest
-  hp (the creature itself, checked last, also wins whenever below half its max) and the last downed, not dead body found
-  on a corpse cell. The body wins unless there is none or the ally has 7 hp or fewer. }
+  hp (the creature itself, checked last, also wins whenever below half its max) and the last downed, not dead body of
+  its own side found on a corpse cell. The body wins unless there is none or the ally has 7 hp or fewer. }
 function FindCureTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 var
   best: Pointer;
@@ -920,7 +946,9 @@ begin
                   [C_Status.DEAD, C_Status.STONED, C_Status.GONE]) then
             if GDVars.downed[j].x = nx then
               if GDVars.downed[j].y = ny then
-                downIdx := j;
+                { a body of its own side only: downed holds the party's, which a hostile cleric healed (#714) }
+                if GDVars.downed[j].cr^.hostile = creature^.hostile then
+                  downIdx := j;
   end;
   if (bestHp < 8) or (downIdx = 0) then
     tgt := best
@@ -1768,9 +1796,10 @@ end;
 
 { C_Effect.BITE_HOLD (74) handler; p is the effect, whose strength holds the victim's creature index. While the hold
   lasts, each trigger is one 3d4 bite on the victim as from behind, ending the creature's actions; a victim that drops
-  ends the hold. On removal, or when either side is down, the victim loses C_Effect.IMMOBILE (58), and the hold itself
-  is removed (onRemove cleared first) unless it is already being removed. An index outside creatureArr[1..arenaCount]
-  (CombatSlot's 0 for a creature not in the arena) has no victim: the hold just goes, as in Effhndlr.EffBloodDrain. }
+  ends the hold. On removal, when either side is down or when the victim is no longer immobile (#709), the victim loses
+  C_Effect.IMMOBILE (58), and the hold itself is removed (onRemove cleared first) unless it is already being removed.
+  An index outside creatureArr[1..arenaCount] (CombatSlot's 0 for a creature not in the arena) has no victim: the hold
+  just goes, as in Effhndlr.EffBloodDrain. }
 procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
