@@ -4,13 +4,13 @@
   replaces origLen bytes at offset in the decoded block with newLen bytes, so a fix may lengthen a block (a script
   that gains code at its end). It is made only when the block is size bytes long and holds the original bytes there;
   offsets and sizes are those of the block as the fixes before it in this table leave it. A part's bytes are the next
-  origLen + newLen bytes of patchBytes, the original first. Changing the fixes means raising C_Data.VERSION. }
+  origLen + newLen bytes of patchBytes, the original first. Changing the fixes means raising C_DATA.VERSION. }
 {$I COMPILER.INC}
 unit DataPat;
 
 interface
 
-uses C_Data;
+uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
@@ -36,166 +36,166 @@ const
     { #20: the Flame Tongue +2 Long Sword placed in Valjevo Castle's well (ITEM5 block 36, record 0) carries effect
       22 and special 0, so readying it never adds the Flame Tongue effect and Use casts Find Traps; it gets effect 6
       (Flame Tongue) and special 130, a ready-item handler }
-    (issue: 20; family: C_Data.FAMILY_ITEM; disk: 5; id: 36; size: 63; offset: 61; origLen: 2; newLen: 2),
+    (issue: 20; family: C_DATA.FAMILY_ITEM; disk: 5; id: 36; size: 63; offset: 61; origLen: 2; newLen: 2),
     { #27: the arms shop's south door in New Phlan, north wall of (9,14) and south wall of (9,13), is wall type 3, so
       the night lock (a type-9 shop door seen from the street) never stops the party; both become type 9 like every
       other shop door }
-    (issue: 27; family: C_Data.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 235; origLen: 1; newLen: 1),
-    (issue: 27; family: C_Data.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 475; origLen: 1; newLen: 1),
+    (issue: 27; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 235; origLen: 1; newLen: 1),
+    (issue: 27; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 475; origLen: 1; newLen: 1),
     { #28: the Slums' random-encounter result (script $B118-$B156): a win counts the encounter and gives a clear
       point only while the 15 random encounters are not all fought, so fights that interrupt a rest stop earning
       clear points }
-    (issue: 28; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 6170; origLen: 63; newLen: 63),
+    (issue: 28; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 6170; origLen: 63; newLen: 63),
     { #29: the Slums' clear-point routine (script $B69C) gives no point and returns from the script when the party
       fled, and the four set encounters that marked themselves done before calling it call it first, so running from
       a set encounter or from Ohlo neither counts nor removes the encounter }
-    (issue: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 7582; origLen: 32; newLen: 32),
-    (issue: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1391; origLen: 10; newLen: 10),
-    (issue: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1978; origLen: 10; newLen: 10),
-    (issue: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4483; origLen: 10; newLen: 10),
-    (issue: 29; family: C_Data.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4858; origLen: 10; newLen: 10),
+    (issue: 29; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 7582; origLen: 32; newLen: 32),
+    (issue: 29; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1391; origLen: 10; newLen: 10),
+    (issue: 29; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 1978; origLen: 10; newLen: 10),
+    (issue: 29; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4483; origLen: 10; newLen: 10),
+    (issue: 29; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 4858; origLen: 10; newLen: 10),
     { #31: Podal Plaza's pre-camp entry (script $9914-$992A) set the on-mission rest (an interruption every 5
       minutes, 99%) and then overwrote it with the default (every 10 minutes, 16%); the default now comes first }
-    (issue: 31; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 22; origLen: 23; newLen: 23),
+    (issue: 31; family: C_DATA.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 22; origLen: 23; newLen: 23),
     { #32: Podal Plaza's random encounters (script $9DEE-$9E1D) added to the clearing count before looking at the
       result, so fleeing counted as a win; the count now goes up only after a win ([$6DC7] = 0) while it is below the
       mission's $40 }
-    (issue: 32; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 1264; origLen: 48; newLen: 48),
+    (issue: 32; family: C_DATA.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 1264; origLen: 48; newLen: 48),
     { #33: the Pitt's tavern brawl (script $AAA6) always brought back the buccaneer beaten in the duel, with his Long
       Sword +1 and Chain Mail +1; the brawl now loads him only while [$4A37] = 0, from new code at the end of the
       script }
-    (issue: 33; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 4520; origLen: 7; newLen: 7),
-    (issue: 33; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 6550; origLen: 0; newLen: 26),
+    (issue: 33; family: C_DATA.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 4520; origLen: 7; newLen: 7),
+    (issue: 33; family: C_DATA.FAMILY_ECL; disk: 1; id: 18; size: 6550; offset: 6550; origLen: 0; newLen: 26),
     { #34: the Cadorna Textile House counted a random encounter as it began (script $9A65), so fleeing it counted
       toward clearing the block; the count now goes up after a won encounter, from new code at the end of the script,
       and [$6E7C] tells the counted encounters from the uncounted hobgoblin patrol }
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 318; origLen: 4; newLen: 4),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 359; origLen: 32; newLen: 32),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 493; origLen: 12; newLen: 12),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 562; origLen: 12; newLen: 12),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 647; origLen: 12; newLen: 12),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 728; origLen: 12; newLen: 12),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 797; origLen: 12; newLen: 12),
-    (issue: 34; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 6170; origLen: 0; newLen: 43),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 318; origLen: 4; newLen: 4),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 359; origLen: 32; newLen: 32),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 493; origLen: 12; newLen: 12),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 562; origLen: 12; newLen: 12),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 647; origLen: 12; newLen: 12),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 728; origLen: 12; newLen: 12),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 797; origLen: 12; newLen: 12),
+    (issue: 34; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6170; offset: 6170; origLen: 0; newLen: 43),
     { #35: the Cadorna Textile House's pre-camp entry (script $9949) made rest safe only once the block was cleared,
       so with nine encounters won a rest could be broken off with no fight; it is now also safe then unless the ogre
       lives and the party is on a patrol square, and with the ogre dead the block is cleared }
-    (issue: 35; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 75; origLen: 14; newLen: 14),
-    (issue: 35; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 6213; origLen: 0; newLen: 65),
+    (issue: 35; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 75; origLen: 14; newLen: 14),
+    (issue: 35; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6213; offset: 6213; origLen: 0; newLen: 65),
     { #36: the Ring of Feather Falling under the Wealthy Area's trap door (ITEM1 block 6, record 0) carries effect 0
       and special 0, so readying it gives no Feather Fall; it gets effect 27 and special 128, as a random one has }
-    (issue: 36; family: C_Data.FAMILY_ITEM; disk: 1; id: 6; size: 189; offset: 61; origLen: 2; newLen: 2),
+    (issue: 36; family: C_DATA.FAMILY_ITEM; disk: 1; id: 6; size: 189; offset: 61; origLen: 2; newLen: 2),
     { #37: Restal at the bottom of the Textile House well (script $AE71-$AF0A) kept his 'already resealed' flag in
       [$4A17], which entering the area clears, so he resealed and paid again on every visit; he now deals only while
       the party holds the sealed chest ([$4AC8] = 1) and once a game, flagged in the unused [$4A76] }
-    (issue: 37; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5491; origLen: 7; newLen: 7),
-    (issue: 37; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5504; origLen: 1; newLen: 1),
-    (issue: 37; family: C_Data.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5644; origLen: 1; newLen: 1),
+    (issue: 37; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5491; origLen: 7; newLen: 7),
+    (issue: 37; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5504; origLen: 1; newLen: 1),
+    (issue: 37; family: C_DATA.FAMILY_ECL; disk: 4; id: 2; size: 6278; offset: 5644; origLen: 1; newLen: 1),
     { #38: Kovel Mansion's weapons-pile ambush (script $AAB9-$AB0F): 0..7 thieves killed give 5 1st-level thieves,
       8..12 give c-7 6th-level and 12-c 1st-level as before, 13..16 give 5 6th-level and 17 gives 4, where the
       shipped script took the 1st-level count below zero or left it stale }
-    (issue: 38; family: C_Data.FAMILY_ECL; disk: 3; id: 14; size: 7332; offset: 4539; origLen: 87; newLen: 87),
+    (issue: 38; family: C_DATA.FAMILY_ECL; disk: 3; id: 14; size: 7332; offset: 4539; origLen: 87; newLen: 87),
     { #40: leaving the cleared Sorcerer's Pyramid (script $AE11, $AF2B, $AF3B) used the Valjevo commission state
       [$4A9A] as its scratch flag and left it at $FF, so the council's Valjevo summons never came; the flag is now
       the entry word [$4A1F], which this script uses nowhere else }
-    (issue: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5397; origLen: 1; newLen: 1),
-    (issue: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5681; origLen: 1; newLen: 1),
-    (issue: 40; family: C_Data.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5697; origLen: 1; newLen: 1),
+    (issue: 40; family: C_DATA.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5397; origLen: 1; newLen: 1),
+    (issue: 40; family: C_DATA.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5681; origLen: 1; newLen: 1),
+    (issue: 40; family: C_DATA.FAMILY_ECL; disk: 7; id: 26; size: 6569; offset: 5697; origLen: 1; newLen: 1),
     { #41: the Nomad Camp shaman's Bracers AC 2 (MON7ITM block 43, record 1) are priced and named for AC 2 but carry
       plus 6, which gives AC 4; the plus becomes 8 }
-    (issue: 41; family: C_Data.FAMILY_MONITM; disk: 7; id: 43; size: 189; offset: 113; origLen: 1; newLen: 1),
+    (issue: 41; family: C_DATA.FAMILY_MONITM; disk: 7; id: 43; size: 189; offset: 113; origLen: 1; newLen: 1),
     { #42: Lizardman Keep's 'press Return' prompt (script $9A64) wrote its answer into [$6E81], the old lizardman's
       record of which location the party is at, so a wrong friend-word at location 3 or 10 started location 1's
       fight; the prompt now writes [$6E7A], which nothing reads before setting it }
-    (issue: 42; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 360; origLen: 1; newLen: 1),
+    (issue: 42; family: C_DATA.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 360; origLen: 1; newLen: 1),
     { #43: Lizardman Keep's count of giant lizards still to come (script $99AD) subtracted the pool-treasure flags
       [$4A5E] instead of the giant lizards killed [$4A5F], so the catacomb ambush was always ten; it subtracts the
       kills }
-    (issue: 43; family: C_Data.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 177; origLen: 1; newLen: 1),
+    (issue: 43; family: C_DATA.FAMILY_ECL; disk: 8; id: 16; size: 5394; offset: 177; origLen: 1; newLen: 1),
     { #44: the Buccaneer Base slave pen (script $B4C7) tested a scratch word, not the heir's state, so it offered the
       boy again after he was bought, rescued or lost; it tests [$4AA9] }
-    (issue: 44; family: C_Data.FAMILY_ECL; disk: 6; id: 1; size: 7673; offset: 7115; origLen: 1; newLen: 1),
+    (issue: 44; family: C_DATA.FAMILY_ECL; disk: 6; id: 1; size: 7673; offset: 7115; origLen: 1; newLen: 1),
     { #45: the Zhentil Keep Outpost offered dinner after the party had fought the garrison or killed the commandant:
       the quarters (script $A400) offer it only while neither has happened, and a rest after fighting the guards
       brings four guards, not the dinner escort (entry 4). Entries 3 and 4 are rewritten in less room to fit, entry 3
       the same as before }
-    (issue: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 16; origLen: 2; newLen: 2),
-    (issue: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 2827; origLen: 2; newLen: 2),
-    (issue: 45; family: C_Data.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 7463; origLen: 110; newLen: 110),
+    (issue: 45; family: C_DATA.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 16; origLen: 2; newLen: 2),
+    (issue: 45; family: C_DATA.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 2827; origLen: 2; newLen: 2),
+    (issue: 45; family: C_DATA.FAMILY_ECL; disk: 6; id: 28; size: 7669; offset: 7463; origLen: 110; newLen: 110),
     { #46: at the Zhentil Keep Outpost a party that beat the guards outside its quarters could walk west and through
       the one-way wall at (2,0), never stepping on (4,1) where the dwarf and the commandant attack; (3,0) gets the
       same event, 5, keeping its outdoor bit }
-    (issue: 46; family: C_Data.FAMILY_GEO; disk: 6; id: 28; size: 1026; offset: 517; origLen: 1; newLen: 1),
+    (issue: 46; family: C_DATA.FAMILY_GEO; disk: 6; id: 28; size: 1026; offset: 517; origLen: 1; newLen: 1),
     { #47: the Zhentil Keep Outpost's commandant fight (MON6CHA block 86) uses a copy of Al-Hyam Dazid, whom the
       party meets alive later in Valjevo Castle; disk 6's copy is renamed Zhentarim Mage, disk 5's Al-Hyam is
       unchanged }
-    (issue: 47; family: C_Data.FAMILY_MONCHA; disk: 6; id: 86; size: 285; offset: 0; origLen: 16; newLen: 16),
+    (issue: 47; family: C_DATA.FAMILY_MONCHA; disk: 6; id: 86; size: 285; offset: 0; origLen: 16; newLen: 16),
     { #48: the graveyard's two tombs (script $A3D2 and $AD17) gave each other's treasure: the paladin's crypt had no
       armour and a magic-user scroll, the knight's tomb the paladin's plate, shield and lawful-good sword; the two
       item blocks trade places }
-    (issue: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 2788; origLen: 1; newLen: 1),
-    (issue: 48; family: C_Data.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 5161; origLen: 1; newLen: 1),
+    (issue: 48; family: C_DATA.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 2788; origLen: 1; newLen: 1),
+    (issue: 48; family: C_DATA.FAMILY_ECL; disk: 4; id: 10; size: 7672; offset: 5161; origLen: 1; newLen: 1),
     { #49: at Stojanow Gate, refusing the bugbears' 15 gold (or not having it) and being told to 'come back when
       you've learned the rules' (script $AC32) made them hostile for good; they now become more suspicious, attitude
       2, so the party may come back }
-    (issue: 49; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 4918; origLen: 1; newLen: 1),
+    (issue: 49; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 4918; origLen: 1; newLen: 1),
     { #50: at Stojanow Gate, bugbears who unmasked the party as impostors (script $ACF8) never turned hostile, so the
       wagon bluff could be tried again until it worked; they now set the hostile attitude, 3, in new code at the end
       of the script }
-    (issue: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 5114; origLen: 4; newLen: 4),
-    (issue: 50; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 6367; origLen: 0; newLen: 10),
+    (issue: 50; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 5114; origLen: 4; newLen: 4),
+    (issue: 50; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6367; offset: 6367; origLen: 0; newLen: 10),
     { #51: Stojanow Gate's alarm (script $9C0C) set its end hour from the stray word [$9800] instead of the hour it
       was raised, [$4A62], so it ended at once or never; it uses [$4A62] as Valjevo Castle's alarm does }
-    (issue: 51; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 786; origLen: 2; newLen: 2),
+    (issue: 51; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 786; origLen: 2; newLen: 2),
     { #52: Stojanow Gate's location 13 (script $B10F) always fought both tower garrisons, even one already killed;
       new code at the end of the script loads only the surviving garrison, as the alarm fight does, then fights as
       before }
-    (issue: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6161; origLen: 6; newLen: 6),
-    (issue: 52; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6377; origLen: 0; newLen: 99),
+    (issue: 52; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6161; origLen: 6; newLen: 6),
+    (issue: 52; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6377; offset: 6377; origLen: 0; newLen: 99),
     { #54: the false Tyranthraxus in the hedge maze (script $A9EE) confessed to an abusive weak party and fought a
       strong one; the test is turned round, so a party strength and Charisma bonus of 85 or more gets the confession }
-    (issue: 54; family: C_Data.FAMILY_ECL; disk: 5; id: 5; size: 4943; offset: 4336; origLen: 1; newLen: 1),
+    (issue: 54; family: C_DATA.FAMILY_ECL; disk: 5; id: 5; size: 4943; offset: 4336; origLen: 1; newLen: 1),
     { #55: beating Tyranthraxus in the Inner Tower (script $A81B) wrote its 'defeated' bit into the unused [$4A72],
       so he, the messenger and Genheeris could be fought again; the bit goes into [$4A6D] as the tower's other bits
       do }
-    (issue: 55; family: C_Data.FAMILY_ECL; disk: 5; id: 7; size: 4105; offset: 3876; origLen: 1; newLen: 1),
+    (issue: 55; family: C_DATA.FAMILY_ECL; disk: 5; id: 7; size: 4105; offset: 3876; origLen: 1; newLen: 1),
     { #70: the Wealthy Area's south walls at (4,15) and (11,15) could be walked through off the map, where no exit is
       set, and the game hung loading script area 255; both become solid }
-    (issue: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1014; origLen: 1; newLen: 1),
-    (issue: 70; family: C_Data.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1021; origLen: 1; newLen: 1),
+    (issue: 70; family: C_DATA.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1014; origLen: 1; newLen: 1),
+    (issue: 70; family: C_DATA.FAMILY_GEO; disk: 1; id: 31; size: 1026; offset: 1021; origLen: 1; newLen: 1),
     { #203: every Cloak of Displacement gives +2 AC and +2 saves, as a random one (template 13: type 92, plus 2, save
       bonus 2) does; the one with the basilisk's treasure (ITEM2 block 3, record 1) has save bonus 0, so it gets 2 }
-    (issue: 203; family: C_Data.FAMILY_ITEM; disk: 2; id: 3; size: 252; offset: 109; origLen: 6; newLen: 6),
+    (issue: 203; family: C_DATA.FAMILY_ITEM; disk: 2; id: 3; size: 252; offset: 109; origLen: 6; newLen: 6),
     { #203: the Level 6 MU's Cloak of Displacement (MON2ITM block 82, record 3) is on the Cloak of Elvenkind's type,
       67, whose AC descriptor leaves it out of AC and saves, with plus 8 and save bonus 0, so it gives nothing; it
       gets type 92, plus 2 and save bonus 2 }
-    (issue: 203; family: C_Data.FAMILY_MONITM; disk: 2; id: 82; size: 315; offset: 235; origLen: 6; newLen: 6),
+    (issue: 203; family: C_DATA.FAMILY_MONITM; disk: 2; id: 82; size: 315; offset: 235; origLen: 6; newLen: 6),
     { #355: the New Phlan training hall's notice (script $9A74) directs magic users and clerics north and fighters
       and rogues east, but says nothing of paladins and rangers, who train with the fighters; new code at the end of
       the script adds a sentence for them }
-    (issue: 355; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 488; origLen: 10; newLen: 10),
-    (issue: 355; family: C_Data.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 2171; origLen: 0; newLen: 49),
+    (issue: 355; family: C_DATA.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 488; origLen: 10; newLen: 10),
+    (issue: 355; family: C_DATA.FAMILY_ECL; disk: 3; id: 11; size: 2171; offset: 2171; origLen: 0; newLen: 49),
     { #606: New Phlan's tavern at (8,9) becomes a vault, The Hoarder's Respite: event 20's address in the event table
       (script $9B4C) goes to new code at the end of the script, which sends every other event-20 square on to the
       tavern ($A2C6) as before, and at (8,9) does what the arms shop does (once a visit, the shopkeeper, the refusal
       after an attack on the city watch) and enters the vault: [$6E6C] = 2, then COMBAT with no monsters }
-    (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 657; origLen: 2; newLen: 2),
-    (issue: 606; family: C_Data.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 7473; origLen: 0; newLen: 52),
+    (issue: 606; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 657; origLen: 2; newLen: 2),
+    (issue: 606; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7473; offset: 7473; origLen: 0; newLen: 52),
     { #670: the Pitt's buccaneer (script $A90D, PRINTCLEAR) runs his question into the next: WHO WILL IT BE?'WHAT DO
       YOU DO? gets a space after the quote. The packed string's last six-bit slot was empty, so it stays 66 bytes }
-    (issue: 670; family: C_Data.FAMILY_ECL; disk: 1; id: 18; size: 6576; offset: 4168; origLen: 12; newLen: 12),
+    (issue: 670; family: C_DATA.FAMILY_ECL; disk: 1; id: 18; size: 6576; offset: 4168; origLen: 12; newLen: 12),
     { #682: the Temple of Bane (script 24, map 24) freed with Dirten in the party. At the end of the fight (script
-      $AC59, $AC68) new code at the end of the script keeps the day in [$4A79] (C_Gbvm.DIRTEN_TEMPLE_DAY), $FFFF when
+      $AC59, $AC68) new code at the end of the script keeps the day in [$4A79] (C_GBVM.DIRTEN_TEMPLE_DAY), $FFFF when
       Dirten was not there; standing, he bids farewell as before, fallen, the temple guards come in and a cleric
       tends him. At the altar squares, (14,7) and (14,8) (script $A8B0), a freed temple's day is kept, or started for a
       game from before this whose party had Dirten ([$4A9C] = $FF); before 14 days the rebuilding is underway, after
       them Dirten welcomes the party and opens his temple a tenth off ([$6DE2] = 2) }
-    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4018; origLen: 11; newLen: 11),
-    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4957; origLen: 2; newLen: 2),
-    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4970; origLen: 11; newLen: 11),
-    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 7656; origLen: 0; newLen: 145),
-    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7801; offset: 7801; origLen: 0; newLen: 111),
-    (issue: 682; family: C_Data.FAMILY_ECL; disk: 1; id: 24; size: 7912; offset: 7912; origLen: 0; newLen: 178),
+    (issue: 682; family: C_DATA.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4018; origLen: 11; newLen: 11),
+    (issue: 682; family: C_DATA.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4957; origLen: 2; newLen: 2),
+    (issue: 682; family: C_DATA.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 4970; origLen: 11; newLen: 11),
+    (issue: 682; family: C_DATA.FAMILY_ECL; disk: 1; id: 24; size: 7656; offset: 7656; origLen: 0; newLen: 145),
+    (issue: 682; family: C_DATA.FAMILY_ECL; disk: 1; id: 24; size: 7801; offset: 7801; origLen: 0; newLen: 111),
+    (issue: 682; family: C_DATA.FAMILY_ECL; disk: 1; id: 24; size: 7912; offset: 7912; origLen: 0; newLen: 178),
     { #683: Stojanow Gate once the party has taken it ([$4A77] holds both barracks and the bugbears, $1C): new code at
       the end of the script, reached through events 1, 2, 7 and 13 of the event table (script $9D84). The guard rooms
       at (4,7) and (11,7) are makeshift barracks for New Phlan's troops, and at (7,9) and (8,9), before the gatehouse,
@@ -203,22 +203,22 @@ const
       once a visit, kept in [$4A01] as the guard rooms' text was, which entering the area clears. None waits for
       Return. Going through the gatehouse (script $A11F) makes the move without running the new square's event before
       the view is redrawn, so the cheer at (7,6) keeps its portrait }
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1168; origLen: 2; newLen: 2),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1171; origLen: 2; newLen: 2),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1186; origLen: 2; newLen: 2),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1204; origLen: 2; newLen: 2),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 2083; origLen: 2; newLen: 2),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 6476; origLen: 0; newLen: 130),
-    (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6606; offset: 6606; origLen: 0; newLen: 181),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1168; origLen: 2; newLen: 2),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1171; origLen: 2; newLen: 2),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1186; origLen: 2; newLen: 2),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 1204; origLen: 2; newLen: 2),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 2083; origLen: 2; newLen: 2),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 6476; origLen: 0; newLen: 130),
+    (issue: 683; family: C_DATA.FAMILY_ECL; disk: 2; id: 9; size: 6606; offset: 6606; origLen: 0; newLen: 181),
     { #748: weapons do their damage against large targets to a Large creature (Types.ICON_LARGE), no longer to every
       two-tile one; the gnolls (MON2CHA and MON8CHA block 73) and the phase spider (MON8CHA block 116), two-tile and
       size L, get the Large bit, so they take it as before. The huge scorpion, two-tile, is size M (#792) }
-    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 2; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
-    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
-    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1),
+    (issue: 748; family: C_DATA.FAMILY_MONCHA; disk: 2; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
+    (issue: 748; family: C_DATA.FAMILY_MONCHA; disk: 8; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
+    (issue: 748; family: C_DATA.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1),
     { #792: the ogre leader (MON1CHA block 9), size L, gets the Large bit its one-tile icon lacked, as the bugbear has:
       weapons do their large damage to it, and it is no person for Charm Person and Hold Person }
-    (issue: 792; family: C_Data.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1));
+    (issue: 792; family: C_DATA.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,

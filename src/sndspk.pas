@@ -6,12 +6,12 @@ unit SndSpk;
 
 interface
 
-{ Make this the sound driver: fill GDVars.sound. }
+{ Make this the sound driver: fill GameVars.sound. }
 procedure Install;
 
 implementation
 
-uses C_Sound, GDVars, SoundDrv;
+uses C_SOUND, GameVars, SoundDrv;
 
 { Load tune into the PC Speaker voices. }
 procedure Play(tune: Word);
@@ -21,10 +21,10 @@ end;
 
 procedure Install;
 begin
-  GDVars.sound.name := 'PC Speaker';
-  GDVars.sound.mode := C_Sound.MODE_SPEAKER;
-  GDVars.sound.Play := SndSpk.Play;
-  GDVars.sound.singleStep := False;
+  GameVars.sound.name := 'PC Speaker';
+  GameVars.sound.mode := C_SOUND.MODE_SPEAKER;
+  GameVars.sound.Play := SndSpk.Play;
+  GameVars.sound.singleStep := False;
 end;
 
 end.

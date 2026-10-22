@@ -23,9 +23,9 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
-  CharDisp, MoneyCal, C_Msg, ClassCal;
+uses Crt, C_NPC, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
+  FxEngine, C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats,
+  StrUtil, CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -62,32 +62,32 @@ var
   multi: Boolean;
 begin
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(creature, 1, 1, False);
-  { C_Npc.FLAG set: not a party member }
+  { C_NPC.FLAG set: not a party member }
   if CharHlp.IsNpc(creature) then
     TextRend.DisplayString(Length(creature^.name) + 3, 1, LightGreen, '(NPC)');
   col := 1;
-  s := GDConsts.genderNames[creature^.genderIdx];
+  s := GameDefs.genderNames[creature^.genderIdx];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
-  s := GDConsts.raceNames[creature^.race];
+  s := GameDefs.raceNames[creature^.race];
   TextRend.DisplayString(col, 3, White, s);
   col := col + Length(s) + 1;
   TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(creature^.age));
-  s := GDConsts.alignNames[creature^.alignmentIdx];
+  s := GameDefs.alignNames[creature^.alignmentIdx];
   TextRend.DisplayString(1, 4, White, s);
-  s := GDConsts.classNames[creature^.charClass];
+  s := GameDefs.classNames[creature^.charClass];
   TextRend.DisplayString(1, 5, White, s);
   { the six ability scores }
-  for i := C_Abil.STRENGTH to C_Abil.CHARISMA do begin
+  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     case i of
-      C_Abil.STRENGTH: s := 'STR ';
-      C_Abil.INTELLIGENCE: s := 'INT ';
-      C_Abil.WISDOM: s := 'WIS ';
-      C_Abil.DEXTERITY: s := 'DEX ';
-      C_Abil.CONSTITUTION: s := 'CON ';
-      C_Abil.CHARISMA: s := 'CHA ';
+      C_ABIL.STRENGTH: s := 'STR ';
+      C_ABIL.INTELLIGENCE: s := 'INT ';
+      C_ABIL.WISDOM: s := 'WIS ';
+      C_ABIL.DEXTERITY: s := 'DEX ';
+      C_ABIL.CONSTITUTION: s := 'CON ';
+      C_ABIL.CHARISMA: s := 'CHA ';
     end;
     TextRend.DisplayString(1, i + 7, LightGreen, s);
     ViewChar.PrintStat(i, False);
@@ -97,7 +97,7 @@ begin
   multi := False;
   s := '';
   { one entry per class the character has levels in, joined with '/' }
-  for j := C_Level.CLERIC to C_Level.MONK do
+  for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if creature^.classLevels[j] > 0 then begin
       if multi then
         s := s + '/';
@@ -108,20 +108,20 @@ begin
   TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(creature^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then begin
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
     TextRend.DisplayString(1, row, White, 'Weapon');
-    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.WEAPON], 8, row);
+    CharDisp.PrintItemLabel(creature^.equipped[C_EQUIP.WEAPON], 8, row);
   end;
   Inc(row);
-  if creature^.equipped[C_Equip.ARMOR] <> nil then begin
+  if creature^.equipped[C_EQUIP.ARMOR] <> nil then begin
     { 'Armor' starts one column right of 'Weapon' so the two labels end in the same column }
     TextRend.DisplayString(2, row, White, 'Armor');
-    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.ARMOR], 8, row);
+    CharDisp.PrintItemLabel(creature^.equipped[C_EQUIP.ARMOR], 8, row);
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
-  TextRend.DisplayString(8, row, LightGreen, GDConsts.statusStrs[creature^.status]);
-  if (GDVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
+  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusStrs[creature^.status]);
+  if (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
 
@@ -135,11 +135,11 @@ var
 begin
   Border.ClearBox(12, 7, 26, 14);
   row := 7;
-  for m := C_Money.JEWELRY downto C_Money.COPPER do
-    if GDVars.curChar^.coins[m] > 0 then begin
-      s := GDConsts.moneyNames[m];
+  for m := C_MONEY.JEWELRY downto C_MONEY.COPPER do
+    if GameVars.curChar^.coins[m] > 0 then begin
+      s := GameDefs.moneyNames[m];
       TextRend.DisplayString(20 - Length(s), row, LightGreen, s);
-      TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GDVars.curChar^.coins[m]));
+      TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GameVars.curChar^.coins[m]));
       Inc(row);
     end;
 end;
@@ -147,8 +147,8 @@ end;
 { True when p is a paladin who can use a paladin's powers now: okay, and out of combat. }
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
-  PaladinReady := (p^.charClass = C_Class.PALADIN) and (p^.status = C_Status.OKAY) and
-    (GDVars.ifcState <> C_Ifc.COMBAT);
+  PaladinReady := (p^.charClass = C_CLASS.PALADIN) and (p^.status = C_STATUS.OKAY) and
+    (GameVars.ifcState <> C_IFC.COMBAT);
 end;
 
 { True when paladin p has not laid on hands in the last day. }
@@ -156,11 +156,11 @@ function CanHeal(p: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
 begin
-  CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_Effect.RECENT_HEAL, effect);
+  CanHeal := ViewChar.PaladinReady(p) and not CharHlp.HasEffect(p, C_EFFECT.RECENT_HEAL, effect);
 end;
 
 { True when paladin p has a cure left this week: one a week, and one more for every five levels after the first. The
-  week starts with the first cure (effect C_Effect.RECENT_CURE, whose strength counts the cures made). }
+  week starts with the first cure (effect C_EFFECT.RECENT_CURE, whose strength counts the cures made). }
 function CanCure(p: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
@@ -168,37 +168,37 @@ var
   allowed: ShortInt;
 begin
   used := 0;
-  if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
+  if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
     used := effect^.strength;
-  allowed := (p^.classLevels[C_Level.PALADIN] - 1) div 5 + 1;
+  allowed := (p^.classLevels[C_LEVEL.PALADIN] - 1) div 5 + 1;
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
 { Lay on hands: paladin p restores 2 hit points per paladin level to the party member chosen, and cannot do so again for
-  a day (C_Effect.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
+  a day (C_EFFECT.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
 procedure LayOnHands(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
   hpBefore: Byte;
 begin
   CharDisp.DisplayNoncombatInterface;
-  tgt := GDVars.creatureList;
+  tgt := GameVars.creatureList;
   CharDisp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
   hpBefore := tgt^.hpCur;
-  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_Level.PALADIN] * 2, False) then begin
+  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_LEVEL.PALADIN] * 2, False) then begin
     Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
     CharDisp.PrintBottomLine(tgt^.name + ' feels better')
   end
   else
     CharDisp.PrintBottomLine(tgt^.name + ' is unaffected');
-  FxEngine.AddEffect(p, C_Effect.RECENT_HEAL, 1440, 255, False);
+  FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
 end;
 
-{ Cure disease: paladin p removes the disease effects (GDConsts.cureDiseaseEffects) from the party member chosen, asking
-  first when there are none, and spends one of the week's cures: the first starts C_Effect.RECENT_CURE for 10080 minutes
-  at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
+{ Cure disease: paladin p removes the disease effects (FxEngine's cureDiseaseEffects) from the party member chosen,
+  asking first when there are none, and spends one of the week's cures: the first starts C_EFFECT.RECENT_CURE for 10080
+  minutes at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
@@ -206,7 +206,7 @@ var
   ch: Char;
 begin
   CharDisp.DisplayNoncombatInterface;
-  tgt := GDVars.creatureList;
+  tgt := GameVars.creatureList;
   CharDisp.SelectChar('Cure whom? ', True, tgt);
   if tgt = nil then
     Exit;
@@ -219,10 +219,10 @@ begin
   if ch <> 'Y' then
     Exit;
   FxEngine.RemoveDiseases(tgt);
-  if CharHlp.HasEffect(p, C_Effect.RECENT_CURE, effect) then
+  if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
     Inc(effect^.strength)
   else
-    FxEngine.AddEffect(p, C_Effect.RECENT_CURE, 10080, 1, False);
+    FxEngine.AddEffect(p, C_EFFECT.RECENT_CURE, 10080, 1, False);
   CharDisp.PrintBottomLine(tgt^.name + ' is cured');
 end;
 
@@ -246,15 +246,15 @@ const
 procedure MoreHeading(creature: Types.PCharRecord);
 begin
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, 2, LightCyan, creature^.name);
 end;
 
 { A More Info page's top (MoreHeading) with title centred in white on row 4, under the name and a blank line. }
 procedure MoreTitle(creature: Types.PCharRecord; title: Types.TStr40);
 begin
   ViewChar.MoreHeading(creature);
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 4, White, title);
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, 4, White, title);
 end;
 
 { The Game Stats page: the creature's twelve counters in this game, from row 6, coin in gold; b nil reads every counter
@@ -271,7 +271,7 @@ begin
     if b <> nil then
       n := b^.counts[i];
     if i = Stats.COIN_LOOTED then
-      n := n div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+      n := n div GameDefs.coinValuationCopper[C_MONEY.GOLD];
     Str(n, s);
     TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
     TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
@@ -344,12 +344,12 @@ var
   s: Types.TStr40;
 begin
   ViewChar.MoreTitle(p, 'Saving Throws');
-  for i := C_Save.PARALYZE to C_Save.SPELL do begin
+  for i := C_SAVE.PARALYZE to C_SAVE.SPELL do begin
     case i of
-      C_Save.PARALYZE: s := 'Paralysis, Poison, Death';
-      C_Save.PETRIFY: s := 'Petrification, Polymorph';
-      C_Save.WAND: s := 'Rod, Staff, Wand';
-      C_Save.BREATH: s := 'Breath Weapon';
+      C_SAVE.PARALYZE: s := 'Paralysis, Poison, Death';
+      C_SAVE.PETRIFY: s := 'Petrification, Polymorph';
+      C_SAVE.WAND: s := 'Rod, Staff, Wand';
+      C_SAVE.BREATH: s := 'Breath Weapon';
     else
       s := 'Spell';
     end;
@@ -439,16 +439,16 @@ var
   ch: Char;
   ext: Boolean;
 begin
-  p := GDVars.curChar;
+  p := GameVars.curChar;
   CharHlp.RecalcStats(p);
   menu := 'Saves sTats Kills';
-  if p^.classLevels[C_Level.THIEF] > 0 then
+  if p^.classLevels[C_LEVEL.THIEF] > 0 then
     menu := menu + ' tHief';
   menu := menu + ' Exit';
   page := PAGE_SAVES;
   haveStats := False;
   top := 1;
-  GDVars.horizChoice := 1;
+  GameVars.horizChoice := 1;
   repeat
     case page of
       PAGE_STATS: ViewChar.DrawGameStats(p, b);
@@ -461,16 +461,16 @@ begin
     if ext then begin
       if page = PAGE_KILLS then
         case ch of
-          C_Keys.UP: if top > 1 then
+          C_KEYS.UP: if top > 1 then
                        Dec(top, 2);
-          C_Keys.DOWN: if top + KILLS_SHOWN <= kinds then
+          C_KEYS.DOWN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, 2);
-          C_Keys.PGUP: begin
+          C_KEYS.PGUP: begin
                          Dec(top, KILLS_SHOWN);
                          if top < 1 then
                            top := 1;
                        end;
-          C_Keys.PGDN: if top + KILLS_SHOWN <= kinds then
+          C_KEYS.PGDN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, KILLS_SHOWN);
         end;
     end else
@@ -489,7 +489,7 @@ begin
                end;
              end;
       end;
-  until (not ext) and (ch in [C_Keys.NONE, 'E']);
+  until (not ext) and (ch in [C_KEYS.NONE, 'E']);
 end;
 
 { Draw "More Info" under the character sheet's portrait frame (columns 28..38, rows 1..11), the M in white as a hotkey
@@ -511,7 +511,7 @@ var
   mv: Byte;
   s: Types.TStr40;
 begin
-  p := GDVars.curChar;
+  p := GameVars.curChar;
   CharHlp.RecalcStats(p);
   row := 17;
   TextRend.DisplayString(1, row, White, 'AC    ');
@@ -550,12 +550,12 @@ begin
     hlCol := LightGreen;
   col := 5;
   Border.ClearBox(col, statIdx + 7, 11, statIdx + 7);
-  if GDVars.curChar^.stats[statIdx] < 10 then
+  if GameVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
-  TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GDVars.curChar^.stats[statIdx]));
-  if (statIdx = C_Abil.STRENGTH) and (GDVars.curChar^.strCur = 18) and (GDVars.curChar^.strExc > 0) then begin
+  TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GameVars.curChar^.stats[statIdx]));
+  if (statIdx = C_ABIL.STRENGTH) and (GameVars.curChar^.strCur = 18) and (GameVars.curChar^.strExc > 0) then begin
     { 100 shows as 00 }
-    s := StrUtil.ZeroPad2(GDVars.curChar^.strExc);
+    s := StrUtil.ZeroPad2(GameVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');
   end;
 end;
@@ -576,15 +576,15 @@ var
   idx: Integer;
   shown: Types.PCharRecord;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GameVars.ifcState = C_IFC.COMBAT then
     CbtMap.SetNoncombatPalette;
   ch := ' ';
   done := False;
-  tradeTarget := GDVars.curChar;
-  shown := GDVars.curChar;
+  tradeTarget := GameVars.curChar;
+  shown := GameVars.curChar;
   ViewChar.DisplayChar(shown);
   ViewChar.DrawMoreInfoLabel;
-  while not (ch in [C_Keys.NONE, 'E']) and not done do
+  while not (ch in [C_KEYS.NONE, 'E']) and not done do
   begin
     s := '';
     hasSpells := False;
@@ -594,7 +594,7 @@ begin
       if shown^.memorizedSpells[i] > 0 then
         hasSpells := True;
     { every coin type, gems and jewelry included }
-    for j := C_Money.COPPER to C_Money.JEWELRY do
+    for j := C_MONEY.COPPER to C_MONEY.JEWELRY do
       if shown^.coins[j] > 0 then
         hasMoney := True;
     if shown^.itemsAddr <> nil then
@@ -602,10 +602,10 @@ begin
     if hasSpells then
       s := s + 'Spells ';
     if CharHlp.MayTrade(shown) and hasMoney and
-        (GDVars.ifcState <> C_Ifc.COMBAT) then
+        (GameVars.ifcState <> C_IFC.COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
-    if hasMoney and (GDVars.ifcState = C_Ifc.VAULT) then
+    if hasMoney and (GameVars.ifcState = C_IFC.VAULT) then
       s := s + 'Deposit '
     else if hasMoney then
       s := s + 'Drop ';
@@ -634,12 +634,12 @@ begin
       'M': ViewChar.MorePage;
     end;
     if not done and (ch in ['I', 'S', 'T', 'H', 'C', 'M']) then begin
-      shown := GDVars.curChar;
+      shown := GameVars.curChar;
       ViewChar.DisplayChar(shown);
       ViewChar.DrawMoreInfoLabel;
     end;
   end;
-  if GDVars.ifcState = C_Ifc.COMBAT then
+  if GameVars.ifcState = C_IFC.COMBAT then
     CbtMap.SetCombatPalette;
   CharDisp.DisplayNoncombatInterface;
 end;
@@ -654,9 +654,9 @@ begin
   else if not CharHlp.ItemReadable(item) then
     CheckItemAvail := True
   else if (item^.charges > $7F) or (item^.effect > $7F) or (item^.special > $7F) then begin
-    CharDisp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
-    GDVars.curCol := Length(GDVars.curChar^.name) + 2;
-    GDVars.curRow := 21;
+    CharDisp.DisplayCreatureName(GameVars.curChar, 1, 21, False);
+    GameVars.curCol := Length(GameVars.curChar^.name) + 2;
+    GameVars.curRow := 21;
     ViewChar.SayBelow(False, ' was going to scribe from that scroll');
     if MenuCore.YesNoMenu('is it Okay to lose it? ', LightMagenta, LightGreen, White) = 'Y' then
       CheckItemAvail := True;
@@ -696,7 +696,7 @@ begin
     v[15] := CharHlp.BaseItem(itemType)^.dmgLgDice;
   end;
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   for i := 1 to 15 do begin
     Str(v[i], s);
     TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
@@ -719,23 +719,23 @@ var
   creature: Types.PCharRecord;
   itemCount: Byte;
 begin
-  creature := GDVars.curChar;
+  creature := GameVars.curChar;
   ch := ' ';
   sel := creature^.itemsAddr;
   idx := 0;
   vmRedraw := True;
   needRedraw := True;
   { the list as well as the count: a stale count over a nil list would never leave the loop }
-  while not (ch in [C_Keys.NONE, 'E']) and not done and (creature^.numberOfItems > 0) and
+  while not (ch in [C_KEYS.NONE, 'E']) and not done and (creature^.numberOfItems > 0) and
       (creature^.itemsAddr <> nil) do begin
     itemCount := creature^.numberOfItems;
     if creature^.itemsAddr <> nil then begin
       s := 'Ready';
       if CharHlp.CanUseItems(creature) then
         s := s + ' Use';
-      if CharHlp.MayTrade(creature) and (GDVars.ifcState <> C_Ifc.COMBAT) then
+      if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.COMBAT) then
         s := s + ' Trade';
-      if GDVars.ifcState = C_Ifc.VAULT then
+      if GameVars.ifcState = C_IFC.VAULT then
         s := s + ' Deposit'
       else
         s := s + ' Drop';
@@ -743,9 +743,9 @@ begin
         s := s + ' Halve';
       s := s + ' Join';
       { the characters that may trade may sell, but only in a shop }
-      if CharHlp.MayTrade(creature) and (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) then
+      if CharHlp.MayTrade(creature) and (GameVars.ifcState = C_IFC.SHOP_TEMPLE) then
         s := s + ' Sell';
-      if GDVars.ifcState = C_Ifc.SHOP_TEMPLE then
+      if GameVars.ifcState = C_IFC.SHOP_TEMPLE then
         s := s + ' Id';
       { rebuild every item name }
       p := creature^.itemsAddr;
@@ -753,25 +753,25 @@ begin
         CharHlp.ItemLabel(p, True);
         p := p^.next;
       end;
-      if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
+      if needRedraw or (GameVars.redrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
-        Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+        Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
         CharDisp.DisplayCreatureName(creature, 1, 1, True);
         TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
         Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
         TextRend.DisplayString(1, 3, White, 'Ready Item');
         vmRedraw := True;
         needRedraw := False;
-        GDVars.dsRedrawInventoryMenuFlag := 0;
+        GameVars.redrawInventoryMenuFlag := 0;
       end;
       { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
-      if GDVars.stingArg then
+      if GameVars.stingArg then
         MenuCore.extraKeys := 'V';
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
       if sel <> nil then
         case ch of
-          'V': if GDVars.stingArg then begin
+          'V': if GameVars.stingArg then begin
                  ViewChar.ViewItemDetail(sel);
                  needRedraw := True;
                end;
@@ -783,7 +783,7 @@ begin
                  ch := ' ';
                end else if CharHlp.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
                  Magic.UseItem(sel, done);
-                 if GDVars.ifcState <> C_Ifc.COMBAT then
+                 if GameVars.ifcState <> C_IFC.COMBAT then
                    { outside combat, using an item does not end the menu }
                    done := False;
                  if not done then
@@ -796,10 +796,10 @@ begin
                    ch := ' ';
                  needRedraw := True;
                end;
-          'D': if (GDVars.ifcState = C_Ifc.VAULT) and ViewChar.CheckItemAvail(sel) then begin
+          'D': if (GameVars.ifcState = C_IFC.VAULT) and ViewChar.CheckItemAvail(sel) then begin
                  { the vault keeps it, with the game it is saved with }
                  if Vault.HasRoom then begin
-                   Vault.DepositItem(GDVars.curChar, sel);
+                   Vault.DepositItem(GameVars.curChar, sel);
                    vmRedraw := True;
                  end else
                    TextRend.DisplayAndPause(Yellow, 'The vault is full.');
@@ -810,7 +810,7 @@ begin
                  ViewChar.SayBelow(True, 'Your ' + sel^.name + 'will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
-                   CharHlp.RemoveItem(GDVars.curChar, sel);
+                   CharHlp.RemoveItem(GameVars.curChar, sel);
                    vmRedraw := True;
                  end;
                  Border.ClearBox(1, 21, 38, 22);
@@ -845,7 +845,7 @@ begin
       CharDisp.PrintBottomLine('Overloaded')
     else begin
       CharHlp.AppendItemCopy(tgt^.itemsAddr, item);
-      CharHlp.RemoveItem(GDVars.curChar, item);
+      CharHlp.RemoveItem(GameVars.curChar, item);
       CharHlp.RecalcStats(tgt);
     end;
   end;
@@ -890,7 +890,7 @@ begin
   if item^.quantity = 0 then Exit;
   dst := item;
   qty := dst^.quantity;
-  cur := GDVars.curChar^.itemsAddr;
+  cur := GameVars.curChar^.itemsAddr;
   while cur <> nil do begin
     next := cur^.next;
     if (cur <> dst) and (cur^.quantity > 0) and (cur^.nameIds[1] = dst^.nameIds[1]) and
@@ -902,7 +902,7 @@ begin
         Inc(qty, cur^.quantity);
         if cur^.equipped <> 0 then
           dst^.equipped := cur^.equipped;
-        CharHlp.RemoveItem(GDVars.curChar, cur);
+        CharHlp.RemoveItem(GameVars.curChar, cur);
       end else begin
         dst^.quantity := 255;
         cur^.quantity := cur^.quantity - (255 - qty);
@@ -928,9 +928,9 @@ begin
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
     CharDisp.PrintBottomLine('Sold!');
-    CharHlp.RemoveItem(GDVars.curChar, item);
+    CharHlp.RemoveItem(GameVars.curChar, item);
     { only the coins that fit: SSI gave all the platinum when there was room for it alone, and always the gold (#739) }
-    Money.GiveCoins(GDVars.curChar, price div 5, price mod 5);
+    Money.GiveCoins(GameVars.curChar, price div 5, price mod 5);
   end;
   Border.ClearBox(1, 21, 38, 22);
 end;
@@ -946,7 +946,7 @@ begin
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    paid := Money.PayGold(GDVars.curChar, 200);
+    paid := Money.PayGold(GameVars.curChar, 200);
   end;
   if paid then begin
     if item^.unidMask = 0 then
@@ -976,13 +976,13 @@ var
   ch: Char;
 begin
   p := nil;
-  for m := C_Money.COPPER to C_Money.JEWELRY do
-    if GDVars.curChar^.coins[m] <> 0 then begin
+  for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
+    if GameVars.curChar^.coins[m] <> 0 then begin
       { a menu-list node: only the name, inUse and next fields of a TItemRec }
       prev := p;
       GetMem(p, SizeOf(Types.TMenuNode));
       p^.next := prev;
-      p^.name := StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GDVars.curChar^.coins[m]);
+      p^.name := StrUtil.PadLeft(GameDefs.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GameVars.curChar^.coins[m]);
       p^.inUse := 0;
     end;
   list := p;
@@ -1018,7 +1018,7 @@ begin
     if tgt = nil then
       exitOuter := True
     else begin
-      ViewChar.DisplayChar(GDVars.curChar);
+      ViewChar.DisplayChar(GameVars.curChar);
       repeat
         ViewChar.PrintMoney;
         tradeTarget := tgt;
@@ -1030,12 +1030,12 @@ begin
           s2 := '';
           mType := MoneyCal.ParseMoneyType(prev^.name, s2);
           s2 := 'How much ' + s2 + 'will you trade? ';
-          amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
-          Money.TradeMoney(GDVars.curChar, tgt, amount, mType);
+          amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, 10);
+          Money.TradeMoney(GameVars.curChar, tgt, amount, mType);
           exitInner := True;
           exitOuter := True;
-          for m := C_Money.COPPER to C_Money.JEWELRY do
-            if GDVars.curChar^.coins[m] > 0 then begin
+          for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
+            if GameVars.curChar^.coins[m] > 0 then begin
               exitOuter := False;
               exitInner := False;
             end;
@@ -1066,15 +1066,15 @@ begin
     else begin
       s2 := '';
       mType := MoneyCal.ParseMoneyType(prev^.name, s2);
-      if GDVars.ifcState = C_Ifc.VAULT then
+      if GameVars.ifcState = C_IFC.VAULT then
         s2 := 'How much ' + s2 + 'will you deposit? '
       else
         s2 := 'How much ' + s2 + 'will you drop? ';
-      amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
-      Money.DropMoney(GDVars.curChar, amount, mType);
+      amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, 10);
+      Money.DropMoney(GameVars.curChar, amount, mType);
       exitFlag := True;
-      for m := C_Money.COPPER to C_Money.JEWELRY do
-        if GDVars.curChar^.coins[m] > 0 then
+      for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
+        if GameVars.curChar^.coins[m] > 0 then
           exitFlag := False;
     end;
     if list <> nil then

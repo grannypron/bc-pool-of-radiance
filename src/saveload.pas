@@ -44,7 +44,7 @@ procedure EraseChar(name: String);
   part record, and the usual spells are read from the .mem file (none when it is missing or not a usual-spells file for
   this character). False, with nothing read after the record, when the .sav/.cha file holds less than a whole record or
   cannot be read, or is not there and Escape at the save disk prompt gave up (askDisk); the caller then frees the
-  record unused. While the Quick Ends With Fight setting is on (GDVars.quickEnds), a party member leaves Quick
+  record unused. While the Quick Ends With Fight setting is on (GameVars.quickEnds), a party member leaves Quick
   (quickfight 0), so a loaded game or an added character starts under manual control; NPCs and animated creatures keep
   quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
@@ -107,9 +107,9 @@ procedure FreeParty;
 
 implementation
 
-uses DiskRec, Crt, C_Area, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_Status, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
-  UsualSpl, VidOps, Explored, MapNotes, C_Effect, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
+uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
+  C_KEYS, C_IFC, C_GBVM, C_NPC, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -136,7 +136,7 @@ end;
 
 function CharFileBase(name: String): Types.TPathStr;
 begin
-  CharFileBase := GDVars.dsSaveDirectory + SaveLoad.CharFileName(name);
+  CharFileBase := GameVars.saveDirectory + SaveLoad.CharFileName(name);
 end;
 
 function HasCharFile(name: String): Boolean;
@@ -153,13 +153,13 @@ var
 begin
   list := nil;
   SaveMenu.CheckSaveDir;
-  if not DaxIo.FileExists(GDVars.dsSaveDirectory + 'charlist.txt') then Exit;
-  Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
+  if not DaxIo.FileExists(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  Assign(f, GameVars.saveDirectory + 'charlist.txt');
   Reset(f);
   while not Eof(f) do begin
     MenuCore.AppendMenuLine(list, tail, '', False);
     ReadLn(f, tail^.name);
-    p := GDVars.creatureList;
+    p := GameVars.creatureList;
     while (p <> nil) and (p^.name <> tail^.name) do
       p := p^.nextCharAddr;
     if p <> nil then
@@ -177,10 +177,10 @@ var
 begin
   SaveMenu.CheckSaveDir;
   repeat
-    Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
+    Assign(f, GameVars.saveDirectory + 'charlist.txt');
     Rewrite(f);
     ioRes := IOResult;
-  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GDVars.dsSaveDirectory + 'charlist.txt');
+  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GameVars.saveDirectory + 'charlist.txt');
   { Escape gave up: the roster stays as it was }
   if ioRes <> 0 then Exit;
   p := list;
@@ -196,6 +196,11 @@ begin
 end;
 
 procedure LoadCharIconAnim(loading: Boolean);
+const
+  { CHEAD/CBODY filename suffix indexed by iconSize: S for 1 (dwarf, gnome, halfling), T for 2 (tall races) }
+  iconHeightSuffix: array[1..2] of Char = (
+    'S',
+    'T');
 var
   fromMap: Types.TColorTab;
   toMap: Types.TColorTab;
@@ -203,28 +208,28 @@ var
   height: Byte;
 begin
   DaxIo.PushState(3);
-  with GDVars.curChar^ do begin
+  with GameVars.curChar^ do begin
     { iconHeightSuffix is [1..2]; a monster's iconSize is 0 (LoadCreatureData sets it only for PC races), which v1.3
       read past the table and took as the small set }
     if iconSize = 2 then
       height := 2
     else
       height := 1;
-    MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[height], iconHead, 11);
-    MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[height], iconBody, orderNumber);
-    VidOps.MergePic(GDVars.dsIconAnimation[11, 0], GDVars.dsIconAnimation[orderNumber, 0]);
-    VidOps.MergePic(GDVars.dsIconAnimation[11, 1], GDVars.dsIconAnimation[orderNumber, 1]);
+    MapTiles.LoadIconAnim('CHEAD' + iconHeightSuffix[height], iconHead, 11);
+    MapTiles.LoadIconAnim('CBODY' + iconHeightSuffix[height], iconBody, orderNumber);
+    VidOps.MergePic(GameVars.iconAnimation[11, 0], GameVars.iconAnimation[orderNumber, 0]);
+    VidOps.MergePic(GameVars.iconAnimation[11, 1], GameVars.iconAnimation[orderNumber, 1]);
     if loading then begin
       for i := 0 to 15 do begin
         fromMap[i] := i;
         toMap[i] := i;
       end;
       for i := 1 to 6 do begin
-        toMap[GDConsts.defIconCol[i]] := iconColors1[i] and $F;
-        toMap[GDConsts.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
+        toMap[GameDefs.defIconCol[i]] := iconColors1[i] and $F;
+        toMap[GameDefs.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
       end;
-      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.dsIconAnimation[orderNumber, 0]);
-      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.dsIconAnimation[orderNumber, 1]);
+      Blit.RemapPic(fromMap, toMap, 0, False, GameVars.iconAnimation[orderNumber, 0]);
+      Blit.RemapPic(fromMap, toMap, 0, False, GameVars.iconAnimation[orderNumber, 1]);
     end;
   end;
   MapTiles.FreeIconAnim(11);
@@ -314,7 +319,7 @@ function RecoverChar(name: String): Boolean;
 var
   s: FileUtil.TFileSet;
 begin
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GameVars.saveDirectory);
   SaveMenu.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
   RecoverChar := FileUtil.RecoverSet(s);
 end;
@@ -350,7 +355,7 @@ begin
     base := fname;
   end;
   { a write that fails (a full disk) leaves the old files as they were }
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GameVars.saveDirectory);
   ok := SaveLoad.CommitWhole(s, SaveLoad.WriteCharFiles(s, creature, base, ext));
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + '.');
@@ -381,7 +386,7 @@ var
   list: Types.PItemRec;
   erased: Boolean;
 begin
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GameVars.saveDirectory);
   SaveMenu.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
   erased := FileUtil.CommitSet(s);
   SaveLoad.LoadCharlist(list);
@@ -439,7 +444,7 @@ begin
   creature^.combatAddr := nil;
   LoadChar := whole;
   if not whole then Exit;
-  if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
+  if (GameVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, False, not askDisk, f);
@@ -489,11 +494,11 @@ begin
   end;
   { a paladin created by SSI's game, or before #742, has eff 8 as his own Protection from Evil (permanent, strength
     255): it becomes the 10' radius one character creation gives now }
-  if creature^.classLevels[C_Level.PALADIN] > 0 then begin
+  if creature^.classLevels[C_LEVEL.PALADIN] > 0 then begin
     effect := creature^.effectsAddr;
     while effect <> nil do begin
-      if (effect^.id = C_Effect.PROT_EVIL) and (effect^.duration = 0) and (effect^.strength = 255) then
-        effect^.id := C_Effect.PROT_EVIL_10FT;
+      if (effect^.id = C_EFFECT.PROT_EVIL) and (effect^.duration = 0) and (effect^.strength = 255) then
+        effect^.id := C_EFFECT.PROT_EVIL_10FT;
       effect := effect^.next;
     end;
   end;
@@ -509,34 +514,34 @@ var
   used: array[0..Types.MAX_PARTY - 1] of Byte;
 begin
   creature^.orderNumber := 255;
-  if GDVars.creatureList = nil then begin
-    GDVars.creatureList := creature;
-    GDVars.curChar := creature;
+  if GameVars.creatureList = nil then begin
+    GameVars.creatureList := creature;
+    GameVars.curChar := creature;
   end else
     Party.LastCreature^.nextCharAddr := creature;
   FillChar(used, SizeOf(used), 0);
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if p^.orderNumber in [0..Types.MAX_PARTY - 1] then
       used[p^.orderNumber] := 1;
     p := p^.nextCharAddr;
   end;
-  GDVars.curChar := creature;
-  with GDVars.curChar^ do begin
+  GameVars.curChar := creature;
+  with GameVars.curChar^ do begin
     orderNumber := 0;
     while (orderNumber < Types.MAX_PARTY) and (used[orderNumber] <> 0) do
       Inc(orderNumber);
   end;
-  Inc(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+  Inc(GameVars.zone1^[C_GBVM.PARTY_SIZE]);
   ClassCal.RecalcBaseSkills(creature);
 end;
 
 { The least a savgam file holds: everything LoadSlot reads from it. }
 function SaveMinSize: LongInt;
 begin
-  SaveMinSize := LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
-                 SizeOf(GDVars.zone2^) + C_Gbvm.SAVED_SCRIPT_BYTES + 5 + SizeOf(GDVars.gLocType) +
-                 SizeOf(GDVars.ifcState) + SizeOf(Byte) + SizeOf(TSaveNames);
+  SaveMinSize := LongInt(SizeOf(GameVars.virtualDisk)) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) +
+                 SizeOf(GameVars.zone2^) + C_GBVM.SAVED_SCRIPT_BYTES + 5 + SizeOf(GameVars.gLocType) +
+                 SizeOf(GameVars.ifcState) + SizeOf(Byte) + SizeOf(TSaveNames);
 end;
 
 { Load saved game letter: the save file (one too short to hold it all is refused, with a message, before anything is
@@ -569,25 +574,25 @@ begin
     Exit;
   end;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
-  BlockRead(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), res);
+  BlockRead(f, GameVars.virtualDisk, SizeOf(GameVars.virtualDisk), res);
   { disks 1..8 only }
-  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
-    GDVars.virtualDisk := 1;
-  BlockRead(f, GDVars.zone0^, SizeOf(GDVars.zone0^), res);
-  BlockRead(f, GDVars.zone1^, SizeOf(GDVars.zone1^), res);
-  BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
+  if not (GameVars.virtualDisk in [1..Types.LAST_DISK]) then
+    GameVars.virtualDisk := 1;
+  BlockRead(f, GameVars.zone0^, SizeOf(GameVars.zone0^), res);
+  BlockRead(f, GameVars.zone1^, SizeOf(GameVars.zone1^), res);
+  BlockRead(f, GameVars.zone2^, SizeOf(GameVars.zone2^), res);
   { the script the save holds is passed over: GameLoop loads the area's script from the data (#609) }
-  Seek(f, FilePos(f) + C_Gbvm.SAVED_SCRIPT_BYTES);
+  Seek(f, FilePos(f) + C_GBVM.SAVED_SCRIPT_BYTES);
   { the party's map position: SSI's five bytes }
-  BlockRead(f, GDVars.gMapX, SizeOf(GDVars.gMapX), res);
-  BlockRead(f, GDVars.gMapY, SizeOf(GDVars.gMapY), res);
-  BlockRead(f, GDVars.gFacing, SizeOf(GDVars.gFacing), res);
-  BlockRead(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead), res);
-  BlockRead(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell), res);
+  BlockRead(f, GameVars.gMapX, SizeOf(GameVars.gMapX), res);
+  BlockRead(f, GameVars.gMapY, SizeOf(GameVars.gMapY), res);
+  BlockRead(f, GameVars.gFacing, SizeOf(GameVars.gFacing), res);
+  BlockRead(f, GameVars.wallAhead, SizeOf(GameVars.wallAhead), res);
+  BlockRead(f, GameVars.eventAtCell, SizeOf(GameVars.eventAtCell), res);
   { a cardinal facing only }
-  GDVars.gFacing := GDVars.gFacing and 6;
-  BlockRead(f, GDVars.gLocType, SizeOf(GDVars.gLocType), res);
-  BlockRead(f, GDVars.ifcState, SizeOf(GDVars.ifcState), res);
+  GameVars.gFacing := GameVars.gFacing and 6;
+  BlockRead(f, GameVars.gLocType, SizeOf(GameVars.gLocType), res);
+  BlockRead(f, GameVars.ifcState, SizeOf(GameVars.ifcState), res);
   BlockRead(f, nChars, SizeOf(nChars), res);
   BlockRead(f, names, SizeOf(names), res);
   Close(f);
@@ -602,10 +607,10 @@ begin
   if nChars > 8 then
     nChars := 8;
   { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+  GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
-    if DaxIo.FileExists(GDVars.dsSaveDirectory + fn + '.sav') then begin
+    if DaxIo.FileExists(GameVars.saveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
       { a short or unreadable .sav is left out, as a missing one is }
       if SaveLoad.LoadChar(fn, creature, True, True) then
@@ -615,30 +620,30 @@ begin
       SaveMenu.CheckSaveDir;
     end;
   end;
-  GDVars.curChar := GDVars.creatureList;
-  while GDVars.curChar <> nil do begin
+  GameVars.curChar := GameVars.creatureList;
+  while GameVars.curChar <> nil do begin
     SaveLoad.LoadCharIconAnim(True);
-    GDVars.curChar := GDVars.curChar^.nextCharAddr;
+    GameVars.curChar := GameVars.curChar^.nextCharAddr;
   end;
-  GDVars.curChar := GDVars.creatureList;
-  { the disk number SaveGame stored at C_Gbvm.DISK_NUM }
-  GDVars.virtualDisk := Lo(GDVars.zone1^[C_Gbvm.DISK_NUM]);
-  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
-    GDVars.virtualDisk := 1;
-  if GDVars.gLocType < C_Area.LOC_WILD_WEST then
-    View3D.Load3DMap(GDVars.zone0^.mapId.lo);
-  if GDVars.gLocType > C_Area.LOC_3D_MAP then
+  GameVars.curChar := GameVars.creatureList;
+  { the disk number SaveGame stored at C_GBVM.DISK_NUM }
+  GameVars.virtualDisk := Lo(GameVars.zone1^[C_GBVM.DISK_NUM]);
+  if not (GameVars.virtualDisk in [1..Types.LAST_DISK]) then
+    GameVars.virtualDisk := 1;
+  if GameVars.gLocType < C_AREA.LOC_WILD_WEST then
+    View3D.Load3DMap(GameVars.zone0^.mapId.lo);
+  if GameVars.gLocType > C_AREA.LOC_3D_MAP then
     MapTiles.LoadIconAnim('ICON', 0, 11)
   else
     for i := 1 to 3 do begin
-      GDVars.dsWallSetCache[i].wallDefId := GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + i];
-      GDVars.dsWallSetCache[i].symbolSlot := GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + i];
-      if GDVars.dsWallSetCache[i].wallDefId >= 0 then
-        View3D.LoadWallSet(GDVars.dsWallSetCache[i].wallDefId, GDVars.dsWallSetCache[i].symbolSlot);
+      GameVars.wallSetCache[i].wallDefId := GameVars.zone0^.words[C_GBVM.WALLSLOT_ID + i];
+      GameVars.wallSetCache[i].symbolSlot := GameVars.zone0^.words[C_GBVM.WALLSLOT_SLOT + i];
+      if GameVars.wallSetCache[i].wallDefId >= 0 then
+        View3D.LoadWallSet(GameVars.wallSetCache[i].wallDefId, GameVars.wallSetCache[i].symbolSlot);
     end;
   { the file's last wall slot shares the menu animation flag (#651), which no menu was showing when it was saved }
-  GDVars.zone0^.savedWalls.menuAnimation := 0;
-  if GDVars.zone0^.yarashPyramidLeft <> 0 then
+  GameVars.zone0^.savedWalls.menuAnimation := 0;
+  if GameVars.zone0^.yarashPyramidLeft <> 0 then
     Ending.YarashComplete(False);
   TextRend.ClearBottomLine;
 end;
@@ -648,8 +653,8 @@ var
   letter: Char;
 begin
   SaveMenu.CheckSaveDir;
-  letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
-  if letter <> C_Keys.NONE then
+  letter := SaveMenu.ChooseSlot(False, C_KEYS.NONE);
+  if letter <> C_KEYS.NONE then
     SaveLoad.LoadSlot(letter);
 end;
 
@@ -675,14 +680,14 @@ begin
     TextRend.DisplayAndPause(Yellow, 'There is no quick save.');
     TextRend.ClearBottomLine;
     { GameLoop resumes the game in memory, as after a load }
-    GDVars.loadedSave := 1;
+    GameVars.loadedSave := 1;
     Exit;
   end;
   SaveLoad.FreeParty;
   SaveLoad.LoadSlot(QUICK_SLOT);
   { as CharGen.MainMenu does after a load: GameLoop keeps the loaded script }
-  GDVars.loadedSave := 1;
-  GDVars.locTypePrev := C_Area.LOC_3D_MAP;
+  GameVars.loadedSave := 1;
+  GameVars.locTypePrev := C_AREA.LOC_3D_MAP;
 end;
 
 { Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. Every
@@ -705,11 +710,11 @@ var
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL leaves
     the old area's there until then }
-  GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
+  GameVars.zone0^.previousScriptId := GameVars.eclScriptId;
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
   SaveMenu.CheckSaveDir;
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GameVars.saveDirectory);
   fn := SaveMenu.SlotFile(letter, '.dat');
   { a save folder that cannot be written fails the save once Escape gives up (#794): nothing is written below }
   opened := SaveLoad.RewriteSaveFile(f, fn);
@@ -718,32 +723,32 @@ begin
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   { the wall slots go in the file only (#651): in memory their words are the script's, the last of them the menu
     animation flag, which would set the next menu animating the last picture loaded over the view }
-  walls := GDVars.zone0^.savedWalls;
+  walls := GameVars.zone0^.savedWalls;
   for n := 1 to 3 do begin
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := GDVars.dsWallSetCache[n].wallDefId;
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := GDVars.dsWallSetCache[n].symbolSlot;
+    GameVars.zone0^.words[C_GBVM.WALLSLOT_ID + n] := GameVars.wallSetCache[n].wallDefId;
+    GameVars.zone0^.words[C_GBVM.WALLSLOT_SLOT + n] := GameVars.wallSetCache[n].symbolSlot;
   end;
-  GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
-  GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;
-  GDVars.zone1^[C_Gbvm.DISK_NUM] := GDVars.virtualDisk;
-  FileUtil.WriteChecked(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), ok);
-  FileUtil.WriteChecked(f, GDVars.zone0^, SizeOf(GDVars.zone0^), ok);
-  GDVars.zone0^.savedWalls := walls;
-  FileUtil.WriteChecked(f, GDVars.zone1^, SizeOf(GDVars.zone1^), ok);
-  FileUtil.WriteChecked(f, GDVars.zone2^, SizeOf(GDVars.zone2^), ok);
+  GameVars.zone0^.gameSpeed.value := GameVars.gameDelay;
+  GameVars.zone0^.settings := (1 - GameVars.musicOn) * 4 + GameVars.monsterPics * 2 + GameVars.portraitsOn;
+  GameVars.zone1^[C_GBVM.DISK_NUM] := GameVars.virtualDisk;
+  FileUtil.WriteChecked(f, GameVars.virtualDisk, SizeOf(GameVars.virtualDisk), ok);
+  FileUtil.WriteChecked(f, GameVars.zone0^, SizeOf(GameVars.zone0^), ok);
+  GameVars.zone0^.savedWalls := walls;
+  FileUtil.WriteChecked(f, GameVars.zone1^, SizeOf(GameVars.zone1^), ok);
+  FileUtil.WriteChecked(f, GameVars.zone2^, SizeOf(GameVars.zone2^), ok);
   { SSI's part of the script buffer, so the file stays SSI's size }
-  FileUtil.WriteChecked(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES, ok);
+  FileUtil.WriteChecked(f, GameVars.zone3^, C_GBVM.SAVED_SCRIPT_BYTES, ok);
   { the party's map position: SSI's five bytes }
-  FileUtil.WriteChecked(f, GDVars.gMapX, SizeOf(GDVars.gMapX), ok);
-  FileUtil.WriteChecked(f, GDVars.gMapY, SizeOf(GDVars.gMapY), ok);
-  FileUtil.WriteChecked(f, GDVars.gFacing, SizeOf(GDVars.gFacing), ok);
-  FileUtil.WriteChecked(f, GDVars.wallAhead, SizeOf(GDVars.wallAhead), ok);
-  FileUtil.WriteChecked(f, GDVars.eventAtCell, SizeOf(GDVars.eventAtCell), ok);
-  FileUtil.WriteChecked(f, GDVars.gLocType, SizeOf(GDVars.gLocType), ok);
-  FileUtil.WriteChecked(f, GDVars.ifcState, SizeOf(GDVars.ifcState), ok);
+  FileUtil.WriteChecked(f, GameVars.gMapX, SizeOf(GameVars.gMapX), ok);
+  FileUtil.WriteChecked(f, GameVars.gMapY, SizeOf(GameVars.gMapY), ok);
+  FileUtil.WriteChecked(f, GameVars.gFacing, SizeOf(GameVars.gFacing), ok);
+  FileUtil.WriteChecked(f, GameVars.wallAhead, SizeOf(GameVars.wallAhead), ok);
+  FileUtil.WriteChecked(f, GameVars.eventAtCell, SizeOf(GameVars.eventAtCell), ok);
+  FileUtil.WriteChecked(f, GameVars.gLocType, SizeOf(GameVars.gLocType), ok);
+  FileUtil.WriteChecked(f, GameVars.ifcState, SizeOf(GameVars.ifcState), ok);
   { names holds 8, the most a party has }
   count := 0;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and (count < Types.MAX_PARTY) do begin
     Inc(count);
     names[count] := SaveMenu.MemberName(letter, count);
@@ -757,7 +762,7 @@ begin
   if ok then
     FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.dat'), True);
   { every member's files, while all are whole; the old files of a member the party no longer has go }
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   for n := 1 to Types.MAX_PARTY do
     if n <= count then begin
       ok := ok and SaveLoad.WriteCharFiles(s, p, SaveMenu.MemberName(letter, n), '.sav');
@@ -771,7 +776,7 @@ begin
   ok := SaveLoad.CommitWhole(s, ok);
   TextRend.ClearBottomLine;
   if ok then
-    GDVars.recentSaved := 1
+    GameVars.recentSaved := 1
   else begin
     TextRend.DisplayAndPause(Yellow, 'The game was not saved.');
     TextRend.ClearBottomLine;
@@ -790,11 +795,11 @@ begin
   SaveGame := False;
   SaveMenu.CheckSaveDir;
   area := AreaName.CurrentArea;
-  letter := C_Keys.NONE;
+  letter := C_KEYS.NONE;
   repeat
     { back from the popup, the menu opens on the slot it was for }
     letter := SaveMenu.ChooseSlot(True, letter);
-    if letter = C_Keys.NONE then Exit;
+    if letter = C_KEYS.NONE then Exit;
     { an overwritten save's description is offered to edit; ReadSlotInfo leaves it empty for a slot with none, so
       whether it found one does not matter here }
     ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);
@@ -823,24 +828,24 @@ var
   disk: Byte;
 begin
   if DaxIo.FileExists(name) then Exit;
-  msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GDVars.virtualDisk);
+  msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GameVars.virtualDisk);
   repeat
     ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
     saving := (not ext) and (ch = 'S');
     if saving then begin
-      x := GDVars.gMapX;
-      y := GDVars.gMapY;
-      disk := GDVars.virtualDisk;
-      Dec(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
-      Dec(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
-      View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
+      x := GameVars.gMapX;
+      y := GameVars.gMapY;
+      disk := GameVars.virtualDisk;
+      Dec(GameVars.gMapX, GameDefs.dirDX[GameVars.gFacing]);
+      Dec(GameVars.gMapY, GameDefs.dirDY[GameVars.gFacing]);
+      View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
       DaxIo.PopState;
       if SaveLoad.SaveGame then
         GameIo.ExitGame;
       { not saved: the party stands where it was, on the new disk, and chooses again over the redrawn view }
-      GDVars.gMapX := x;
-      GDVars.gMapY := y;
-      GDVars.virtualDisk := disk;
+      GameVars.gMapX := x;
+      GameVars.gMapY := y;
+      GameVars.virtualDisk := disk;
       CharDisp.DisplayNoncombatInterface;
     end;
   until not saving;
@@ -878,44 +883,44 @@ var
   prev: Types.PCharRecord;
   removed: Types.PCharRecord;
 begin
-  if GDVars.creatureList = nil then Exit;
-  removed := GDVars.curChar;
-  prev := GDVars.creatureList;
-  if prev <> GDVars.curChar then begin
-    while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
+  if GameVars.creatureList = nil then Exit;
+  removed := GameVars.curChar;
+  prev := GameVars.creatureList;
+  if prev <> GameVars.curChar then begin
+    while (prev^.nextCharAddr <> GameVars.curChar) and (prev^.nextCharAddr <> nil) do
       prev := prev^.nextCharAddr;
     if prev^.nextCharAddr <> nil then begin
       if freeAnim then
-        MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
-      prev^.nextCharAddr := GDVars.curChar^.nextCharAddr;
-      SaveLoad.FreeCreature(GDVars.curChar);
-      GDVars.curChar := prev;
+        MapTiles.FreeIconAnim(GameVars.curChar^.orderNumber);
+      prev^.nextCharAddr := GameVars.curChar^.nextCharAddr;
+      SaveLoad.FreeCreature(GameVars.curChar);
+      GameVars.curChar := prev;
       if not suppressSizeDec then
-        Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+        Dec(GameVars.zone1^[C_GBVM.PARTY_SIZE]);
     end;
   end else begin
     if freeAnim then
-      MapTiles.FreeIconAnim(GDVars.curChar^.orderNumber);
-    GDVars.creatureList := GDVars.curChar^.nextCharAddr;
-    prev := GDVars.curChar^.nextCharAddr;
-    SaveLoad.FreeCreature(GDVars.curChar);
-    GDVars.curChar := prev;
+      MapTiles.FreeIconAnim(GameVars.curChar^.orderNumber);
+    GameVars.creatureList := GameVars.curChar^.nextCharAddr;
+    prev := GameVars.curChar^.nextCharAddr;
+    SaveLoad.FreeCreature(GameVars.curChar);
+    GameVars.curChar := prev;
     if not suppressSizeDec then
-      Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+      Dec(GameVars.zone1^[C_GBVM.PARTY_SIZE]);
   end;
   { the script engine makes savedChar current again: never the freed record (SSI left it there, as Curse's #609) }
-  if (GDVars.curChar <> removed) and (GDVars.savedChar = removed) then
-    GDVars.savedChar := GDVars.curChar;
+  if (GameVars.curChar <> removed) and (GameVars.savedChar = removed) then
+    GameVars.savedChar := GameVars.curChar;
 end;
 
 procedure FreeParty;
 begin
   { RemoveCreature frees the head of the list while it is curChar }
-  while GDVars.creatureList <> nil do begin
-    GDVars.curChar := GDVars.creatureList;
+  while GameVars.creatureList <> nil do begin
+    GameVars.curChar := GameVars.creatureList;
     SaveLoad.RemoveCreature(False, True);
   end;
-  GDVars.curChar := nil;
+  GameVars.curChar := nil;
 end;
 
 end.

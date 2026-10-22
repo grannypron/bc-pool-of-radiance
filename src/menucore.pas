@@ -16,7 +16,7 @@ var
     adjusting a value); every return clears it. }
   arrowsToCaller: Boolean;
   { Set just before a MenuHorizontal call whose caller takes Enter itself (to change the highlighted line of a list):
-    Enter then returns C_Keys.ENTER in place of the current option's hotkey. Every return clears it. }
+    Enter then returns C_KEYS.ENTER in place of the current option's hotkey. Every return clears it. }
   enterToCaller: Boolean;
   { Set just before a MenuHorizontal call whose caller takes keys the menu line does not show (a letter drawn on the
     screen above it, say): a letter or digit in it ends the menu and is returned upper-cased, as a hotkey is, without
@@ -24,7 +24,7 @@ var
   extraKeys: string[16];
   { Set just before a MenuHorizontal call whose menu shows an option without a hotkey: its capital letter in here is
     drawn in the menu colour and does not choose the option, which is reached with the arrows (Enter on it returns the
-    letter, or C_Keys.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it. Every return
+    letter, or C_KEYS.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it. Every return
     clears it. }
   unmarked: string[4];
   { Set just before a MenuHorizontal call whose caller takes F5 and F8 (quick save and load) itself, as the map menu
@@ -42,7 +42,7 @@ var
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
-  option (GDVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
+  option (GameVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
   current option, and so do the Left and Right arrows unless arrowsToCaller is set. A hotkey (returned upper-cased, and
   made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
   is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
@@ -78,7 +78,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_Ifc, TextRend;
+uses GameDefs, GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -116,6 +116,10 @@ end;
   option's hotkey, as Curse does; without it, or when the menu has no options, Enter returns #13. }
 function HorizontalMenu(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate, takeOption: Boolean;
                         var ext: Boolean): Char;
+const
+  { keypad digits 1..9 to scan codes; MenuCore indexes Ord(ch) - Ord('1') }
+  keypadScan: array[0..8] of Byte = (
+    79, 80, 81, 75, 32, 77, 71, 72, 73);
 var
   frameTick: LongInt;
   tick30: LongInt;
@@ -179,22 +183,22 @@ var
   procedure StepOption(toNext: Boolean);
   begin
     if toNext then begin
-      if GDVars.horizChoice = optCnt then
-        GDVars.horizChoice := 1
+      if GameVars.horizChoice = optCnt then
+        GameVars.horizChoice := 1
       else
-        Inc(GDVars.horizChoice);
-    end else if GDVars.horizChoice = 1 then
-      GDVars.horizChoice := optCnt
+        Inc(GameVars.horizChoice);
+    end else if GameVars.horizChoice = 1 then
+      GameVars.horizChoice := optCnt
     else
-      Dec(GDVars.horizChoice);
-    DisplayOption(GDVars.horizChoice);
+      Dec(GameVars.horizChoice);
+    DisplayOption(GameVars.horizChoice);
   end;
 
 begin
   enterOk := (mCol <> 0) or (hlCol <> 0);
   ParseMenu(menu);
-  if (GDVars.horizChoice < 1) or (GDVars.horizChoice > optCnt) then
-    GDVars.horizChoice := 1;
+  if (GameVars.horizChoice < 1) or (GameVars.horizChoice > optCnt) then
+    GameVars.horizChoice := 1;
   mLen := Length(menu);
   ch := #0;
   ext := False;
@@ -205,31 +209,31 @@ begin
   if Length(query) <> 0 then
     TextRend.DisplayString(0, 24, qCol, query);
   qLen := Length(query);
-  DisplayOption(GDVars.horizChoice);
+  DisplayOption(GameVars.horizChoice);
   repeat
     if @idleHook <> nil then
       idleHook;
     { the tick count restarts at midnight: restart the frame timer with it }
     if TextRend.GetTicks < frameTick then
       frameTick := TextRend.GetTicks;
-    if ((GDVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (GDVars.animData.current > 0) then begin
-      Portrait.DisplayImageBuf(3, 3, animate, GDVars.animData.frames[GDVars.animData.current].pic);
-      if (TextRend.GetTicks - frameTick >= GDVars.animData.frames[GDVars.animData.current].time * 10)
-         or (GDVars.zone0^.savedWalls.menuAnimation <> 0) then begin
-        Inc(GDVars.animData.current);
-        if GDVars.animData.current > GDVars.animData.count then
-          GDVars.animData.current := 1;
+    if ((GameVars.zone0^.savedWalls.menuAnimation <> 0) or animate) and (GameVars.animData.current > 0) then begin
+      Portrait.DisplayImageBuf(3, 3, animate, GameVars.animData.frames[GameVars.animData.current].pic);
+      if (TextRend.GetTicks - frameTick >= GameVars.animData.frames[GameVars.animData.current].time * 10)
+         or (GameVars.zone0^.savedWalls.menuAnimation <> 0) then begin
+        Inc(GameVars.animData.current);
+        if GameVars.animData.current > GameVars.animData.count then
+          GameVars.animData.current := 1;
         frameTick := TextRend.GetTicks;
       end;
     end;
     if KeyPressed then begin
       ch := GameIo.ReadGameKey;
       { a STING pop-up (Ctrl-Y) wrote over the menu line }
-      if GDVars.bottomLineTaken then begin
-        GDVars.bottomLineTaken := False;
+      if GameVars.bottomLineTaken then begin
+        GameVars.bottomLineTaken := False;
         if Length(query) <> 0 then
           TextRend.DisplayString(0, 24, qCol, query);
-        DisplayOption(GDVars.horizChoice);
+        DisplayOption(GameVars.horizChoice);
       end;
       if ch = #0 then
       { #0 prefixes an extended key: the second ReadGameKey reads its scan code. Left and Right move the current option
@@ -237,15 +241,15 @@ begin
         otherwise ignored. }
       begin
         ch := GameIo.ReadGameKey;
-        if ((ch = C_Keys.LEFT) or (ch = C_Keys.RIGHT)) and not arrowsToCaller then
-          StepOption(ch = C_Keys.RIGHT)
-        else if ((ch = C_Keys.F5) or (ch = C_Keys.F8)) and not quickKeysToCaller then begin
-          if GDVars.ifcState <> C_Ifc.COMBAT then begin
+        if ((ch = C_KEYS.LEFT) or (ch = C_KEYS.RIGHT)) and not arrowsToCaller then
+          StepOption(ch = C_KEYS.RIGHT)
+        else if ((ch = C_KEYS.F5) or (ch = C_KEYS.F8)) and not quickKeysToCaller then begin
+          if GameVars.ifcState <> C_IFC.COMBAT then begin
             TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
             TextRend.ClearBottomLine;
             if Length(query) <> 0 then
               TextRend.DisplayString(0, 24, qCol, query);
-            DisplayOption(GDVars.horizChoice);
+            DisplayOption(GameVars.horizChoice);
           end;
         end else if reinterpret then begin
           ext := True;
@@ -254,15 +258,15 @@ begin
       end else
         case ch of
           { Escape returns #0. }
-          C_Keys.ESC: begin
+          C_KEYS.ESC: begin
                  done := True;
-                 ch := C_Keys.NONE;
+                 ch := C_KEYS.NONE;
                end;
-          C_Keys.ENTER: if enterOk then begin
-                 if takeOption and not enterToCaller and (opt[GDVars.horizChoice].first <> 0) then
-                   ch := menu[opt[GDVars.horizChoice].first]
+          C_KEYS.ENTER: if enterOk then begin
+                 if takeOption and not enterToCaller and (opt[GameVars.horizChoice].first <> 0) then
+                   ch := menu[opt[GameVars.horizChoice].first]
                  else
-                   ch := C_Keys.ENTER;
+                   ch := C_KEYS.ENTER;
                  done := True;
                end;
           ',': StepOption(False);
@@ -280,8 +284,8 @@ begin
                     j := 1;
                     while (j < optCnt) and (opt[j].first <> i) do
                       Inc(j);
-                    GDVars.horizChoice := j;
-                    DisplayOption(GDVars.horizChoice);
+                    GameVars.horizChoice := j;
+                    DisplayOption(GameVars.horizChoice);
                   end;
             if (ch <> ' ') and (Pos(ch, extraKeys) > 0) then
               done := True;
@@ -292,7 +296,7 @@ begin
                   { keypad-'*' scan code, not ASCII '7' }
                   ch := #55
                 else
-                  ch := Char(GDConsts.keypadScan[Ord(ch) - Ord('1')]);
+                  ch := Char(keypadScan[Ord(ch) - Ord('1')]);
                 ext := True;
                 done := True;
               end;
@@ -305,7 +309,7 @@ begin
   extraKeys := '';
   unmarked := '';
   quickKeysToCaller := False;
-  GDVars.zone0^.savedWalls.menuAnimation := 0;
+  GameVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
 end;
 
@@ -390,7 +394,7 @@ var
     pp := MenuCore.FindListMember(n, list);
     a := FirstNonBlank(pp^.name);
     b := LastNonBlank(pp^.name) - a + 1;
-    TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GDVars.vertTop), hlCol, Copy(pp^.name, a, b));
+    TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.vertTop), hlCol, Copy(pp^.name, a, b));
   end;
 
   { Redraw the text of member n, without its surrounding blanks, in its normal color. }
@@ -404,9 +408,9 @@ var
     a := FirstNonBlank(pp^.name);
     b := LastNonBlank(pp^.name) - a + 1;
     if pp^.inUse <> 0 then
-      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GDVars.vertTop), qCol, Copy(pp^.name, a, b))
+      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.vertTop), qCol, Copy(pp^.name, a, b))
     else
-      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GDVars.vertTop), mCol, Copy(pp^.name, a, b));
+      TextRend.DisplayString(ulCol + a - 1, ulRow + (n - GameVars.vertTop), mCol, Copy(pp^.name, a, b));
   end;
 
   { Move idx off label rows in the given direction, wrapping within the visible page; gives up after a page of rows. }
@@ -420,18 +424,18 @@ var
             and (MenuCore.FindListMember(idx, list)^.inUse <> 0) do begin
         Inc(k);
         Inc(idx);
-        if GDVars.vertTop + rows - 1 < idx then
-          idx := GDVars.vertTop;
+        if GameVars.vertTop + rows - 1 < idx then
+          idx := GameVars.vertTop;
         if count - 1 < idx then
-          idx := GDVars.vertTop;
+          idx := GameVars.vertTop;
       end;
     end else
       while (k < rows)
             and (MenuCore.FindListMember(idx, list)^.inUse <> 0) do begin
         Inc(k);
         Dec(idx);
-        if idx < GDVars.vertTop then
-          idx := GDVars.vertTop + rows - 1;
+        if idx < GameVars.vertTop then
+          idx := GameVars.vertTop + rows - 1;
         if count - 1 < idx then
           idx := count - 1;
       end;
@@ -442,19 +446,19 @@ var
   var
     rel: Integer;
   begin
-    rel := idx - GDVars.vertTop;
+    rel := idx - GameVars.vertTop;
     if down then begin
-      Inc(GDVars.vertTop, rows);
-      if count - rows < GDVars.vertTop then
-        GDVars.vertTop := count - rows;
+      Inc(GameVars.vertTop, rows);
+      if count - rows < GameVars.vertTop then
+        GameVars.vertTop := count - rows;
     end else begin
-      Dec(GDVars.vertTop, rows);
-      if GDVars.vertTop < 0 then
-        GDVars.vertTop := 0;
+      Dec(GameVars.vertTop, rows);
+      if GameVars.vertTop < 0 then
+        GameVars.vertTop := 0;
     end;
-    idx := GDVars.vertTop + rel;
+    idx := GameVars.vertTop + rel;
     SkipLabels(down);
-    DrawPage(GDVars.vertTop);
+    DrawPage(GameVars.vertTop);
   end;
 
   { Move the cursor one line, wrapping within the visible page and clamped to the list, then skip label rows. }
@@ -462,14 +466,14 @@ var
   begin
     if down then begin
       Inc(idx);
-      if GDVars.vertTop + rows - 1 < idx then
-        idx := GDVars.vertTop;
+      if GameVars.vertTop + rows - 1 < idx then
+        idx := GameVars.vertTop;
       if count - 1 < idx then
-        idx := GDVars.vertTop;
+        idx := GameVars.vertTop;
     end else begin
       Dec(idx);
-      if idx < GDVars.vertTop then
-        idx := GDVars.vertTop + rows - 1;
+      if idx < GameVars.vertTop then
+        idx := GameVars.vertTop + rows - 1;
       if count - 1 < idx then
         idx := count - 1;
     end;
@@ -485,9 +489,9 @@ begin
     listOnly := False;
     idx := 0;
     sel := nil;
-    MenuVertical := C_Keys.NONE;
+    MenuVertical := C_KEYS.NONE;
   end else begin
-    GDVars.horizChoice := 1;
+    GameVars.horizChoice := 1;
     width := lrCol - ulCol + 1;
     count := MenuCore.ListCount(list);
     rows := lrRow - ulRow + 1;
@@ -497,24 +501,24 @@ begin
       p := p^.next;
       Inc(headerCnt);
     end;
-    if GDVars.vertTop > idx then begin
-      GDVars.vertTop := idx;
+    if GameVars.vertTop > idx then begin
+      GameVars.vertTop := idx;
       redraw := True;
     end;
-    if GDVars.vertTop > count then begin
-      GDVars.vertTop := 0;
+    if GameVars.vertTop > count then begin
+      GameVars.vertTop := 0;
       redraw := True;
     end;
     Inc(idx);
     MoveLine(False);
     if redraw then
-      DrawPage(GDVars.vertTop);
+      DrawPage(GameVars.vertTop);
     redraw := False;
     if listOnly then begin
       listOnly := False;
       if count <= rows then begin
         sel := nil;
-        MenuVertical := C_Keys.NONE;
+        MenuVertical := C_KEYS.NONE;
         Exit;
       end;
     end;
@@ -523,11 +527,11 @@ begin
       hMenu := menu;
       hasNext := False;
       hasPrev := False;
-      if count - rows > GDVars.vertTop then begin
+      if count - rows > GameVars.vertTop then begin
         hMenu := hMenu + ' Next';
         hasNext := True;
       end;
-      if GDVars.vertTop > headerCnt then begin
+      if GameVars.vertTop > headerCnt then begin
         hMenu := hMenu + ' Prev';
         hasPrev := True;
       end;
@@ -538,26 +542,26 @@ begin
       ch := MenuCore.HorizontalMenu(query, hMenu, qCol, mCol, hlCol, True, False, False, ext);
       UnhighlightLine(idx);
       oldIdx := idx;
-      oldTop := GDVars.vertTop;
+      oldTop := GameVars.vertTop;
       if ext then
         case ch of
           { line up }
-          C_Keys.HOME, C_Keys.UP: MoveLine(False);
+          C_KEYS.HOME, C_KEYS.UP: MoveLine(False);
           { line down }
-          C_Keys.END_KEY, C_Keys.DOWN: MoveLine(True);
+          C_KEYS.END_KEY, C_KEYS.DOWN: MoveLine(True);
           { Page Up = previous page, when Prev is offered }
-          C_Keys.PGUP: if hasPrev then MovePage(False);
+          C_KEYS.PGUP: if hasPrev then MovePage(False);
           { Page Down = next page, when Next is offered }
-          C_Keys.PGDN: if hasNext then MovePage(True);
+          C_KEYS.PGDN: if hasNext then MovePage(True);
         end else
         case ch of
           { as for Page Up and Page Down, only when the bottom line offers Prev or Next }
           'P': if hasPrev then MovePage(False);
           'N': if hasNext then MovePage(True);
-          C_Keys.ESC, 'E', C_Keys.NONE:
+          C_KEYS.ESC, 'E', C_KEYS.NONE:
             begin
               sel := nil;
-              MenuVertical := C_Keys.NONE;
+              MenuVertical := C_KEYS.NONE;
               Exit;
             end;
         else begin
@@ -566,7 +570,7 @@ begin
             Exit;
           end;
         end;
-      if toCaller and ((idx <> oldIdx) or (GDVars.vertTop <> oldTop)) then begin
+      if toCaller and ((idx <> oldIdx) or (GameVars.vertTop <> oldTop)) then begin
         sel := MenuCore.FindListMember(idx, list);
         MenuVertical := ch;
         Exit;
@@ -581,7 +585,7 @@ var
   ch: Char;
 begin
   { default the highlight to "No" }
-  GDVars.horizChoice := 2;
+  GameVars.horizChoice := 2;
   repeat
     ch := MenuCore.MenuHorizontal(query, 'Yes No', qCol, mCol, hlCol, False, False, ext);
   until ch in ['Y', 'N'];

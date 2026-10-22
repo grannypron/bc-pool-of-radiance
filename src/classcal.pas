@@ -5,7 +5,93 @@ unit ClassCal;
 
 interface
 
-uses Types;
+uses Types, C_ALIGN, C_RACE, C_SPELL;
+
+const
+  { The cleric spells Wisdom adds, by spell level 1..7, at each score from 13: the 1st-edition PHB to 18, Deities &
+    Demigods for 19..25. Each score's row adds to those below it. }
+  wisBonusSpells: array[13..25, 1..7] of Byte = (
+    (1, 0, 0, 0, 0, 0, 0),
+    (1, 0, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 0, 0, 0),
+    (0, 0, 1, 0, 0, 0, 0),
+    (0, 0, 0, 1, 0, 0, 0),
+    (1, 0, 0, 1, 0, 0, 0),
+    (0, 1, 0, 1, 0, 0, 0),
+    (0, 0, 1, 0, 1, 0, 0),
+    (0, 0, 0, 1, 1, 0, 0),
+    (0, 0, 0, 0, 2, 0, 0),
+    (0, 0, 0, 0, 0, 2, 0),
+    (0, 0, 0, 0, 0, 1, 1));
+  { The classes each race can take, in the order the class menu lists them. Humans take paladins and rangers, and
+    half-elves rangers and cleric/rangers, in Curse's order. }
+  classesByRace: array[1..7] of Types.TRuleRaceClasses = (
+    { dwarf }
+    (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { elf }
+    (count: 7; classes: (2, 5, 6, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0)),
+    { gnome }
+    (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { half-elf }
+    (count: 13; classes: (0, 2, 5, 6, 4, 8, 10, 9, 11, 13, 14, 15, 16)),
+    { halfling }
+    (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { half-orc }
+    (count: 6; classes: (0, 2, 6, 8, 12, 14, 0, 0, 0, 0, 0, 0, 0)),
+    { human }
+    (count: 6; classes: (0, 2, 5, 6, 3, 4, 0, 0, 0, 0, 0, 0, 0)));
+  { The alignments each class can take, in the order the alignment menu lists them. A cleric cannot be true neutral (1e
+    PHB p.13), and a multiclass takes only the alignments all of its classes allow, so cleric/thief has neither true
+    neutral nor the thief's LG and CG. Druid and monk are not offered at creation and keep SSI's rows. }
+  alignByClass: array[0..16] of Types.TRuleClassAlignments = (
+    { cleric }
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
+    { druid }
+    (count: 5; alignments: (C_ALIGN.LN, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE, C_ALIGN.CN, 0, 0, 0, 0)),
+    { fighter }
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
+    { paladin }
+    (count: 1; alignments: (C_ALIGN.LG, 0, 0, 0, 0, 0, 0, 0, 0)),
+    { ranger }
+    (count: 3; alignments: (C_ALIGN.LG, C_ALIGN.NG, C_ALIGN.CG, 0, 0, 0, 0, 0, 0)),
+    { magic-user }
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
+    { thief }
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)),
+    { monk }
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
+    { cleric/fighter }
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
+    { cleric/fighter/magic-user }
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
+    { cleric/ranger }
+    (count: 3; alignments: (C_ALIGN.LG, C_ALIGN.NG, C_ALIGN.CG, 0, 0, 0, 0, 0, 0)),
+    { cleric/magic-user }
+    (count: 8; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE,
+                            C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE, 0)),
+    { cleric/thief }
+    (count: 6; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.NE, C_ALIGN.CN,
+                            C_ALIGN.CE, 0, 0, 0)),
+    { fighter/magic-user }
+    (count: 9; alignments: (C_ALIGN.LG, C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN,
+                            C_ALIGN.NE, C_ALIGN.CG, C_ALIGN.CN, C_ALIGN.CE)),
+    { fighter/thief }
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)),
+    { fighter/magic-user/thief }
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)),
+    { magic-user/thief }
+    (count: 7; alignments: (C_ALIGN.LN, C_ALIGN.LE, C_ALIGN.NG, C_ALIGN.TN, C_ALIGN.NE,
+                            C_ALIGN.CN, C_ALIGN.CE, 0, 0)));
 
 procedure RecalcBaseSkills(creature: Types.PCharRecord);
 
@@ -29,8 +115,8 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
   the racial penalty is larger than the base, so it need not equal the sum. }
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
-{ The racial limits on ability (C_Abil) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
-  depends on), from GDConsts.dsMinimumMaximumStatistics. }
+{ The racial limits on ability (C_ABIL) for race 1..7 (C_RACE.DWARF..HUMAN) and gender (C_GENDER, which only Strength
+  depends on), from GameDefs.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 
@@ -39,12 +125,12 @@ const
     (the 1st-edition PHB, p. 20) }
   HALFELF_MULTI_CLERIC_WIS = 13;
 
-{ The class minimum on ability (C_Abil) for charClass (C_Class) of race (C_Race): a single class's from
-  GDConsts.classMin, a multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it,
+{ The class minimum on ability (C_ABIL) for charClass (C_CLASS) of race (C_RACE): a single class's from
+  classMin, a multiclass's the highest of its classes' (GameDefs.classParts), as the 1st-edition PHB has it,
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
 
-{ The Constitution hit-point adjustment class cls (C_Level) gets per hit die: GDConsts.conBonusTbl's, plus, for the
+{ The Constitution hit-point adjustment class cls (C_LEVEL) gets per hit die: conBonusTbl's, plus, for the
   fighter, paladin and ranger classes, 1 at Con 17, 2 at 18, 3 at 19..20, 4 at 21..23 and 5 at 24..25. The warrior
   bonus goes with the class, so a multi-class character's fighter, paladin or ranger levels get it too: the 1st-edition
   PHB works the bonus out per class, then divides by the class count (#616). A Constitution outside the table's 3..25
@@ -84,15 +170,35 @@ const
 function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
 
 { The chance, in percent, that creature's casting of spell from memory fails: AbilAdj.WisSpellFailure for its Wisdom
-  when the spell is clerical (C_Spell.CLASS_CLERIC) and the creature has cleric levels, which in AD&D 1st edition is
+  when the spell is clerical (C_SPELL.CLASS_CLERIC) and the creature has cleric levels, which in AD&D 1st edition is
   the rule for clerics (#60); 0 otherwise. A paladin without cleric levels is not subject to it (he needs Wisdom 13, at
   which it is 0 anyway), and neither is a spell read from a scroll, which the caller does not ask about. 0 for an id
-  outside 1..C_Spell.LAST. }
+  outside 1..C_SPELL.LAST. }
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, C_Spell, Dice, CharHlp, AbilAdj;
+uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_ABIL, C_EQUIP, C_ITEM, Dice, CharHlp, AbilAdj;
+
+const
+  { dice per class, used by creation and training }
+  hpDice: array[0..7] of Byte = (
+    { Cleric: 1d8 }
+    1,
+    { Druid: 1d8 }
+    1,
+    { Fighter: 1d10 }
+    1,
+    { Paladin: 1d10 }
+    1,
+    { Ranger: 2d8 }
+    2,
+    { Magic-User: 1d4 }
+    1,
+    { Thief: 1d6 }
+    1,
+    { Monk: 2d4 }
+    2);
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -111,7 +217,7 @@ var
   m: Byte;
 begin
   creature^.thac0Base := 0;
-  for i := C_Level.CLERIC to C_Level.MONK do begin
+  for i := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[i];
     slotLvl := lvl;
     if slotLvl > 6 then
@@ -121,44 +227,44 @@ begin
       tl := 0
     else if tl > 10 then
       tl := 10;
-    if GDConsts.thac0Tbl[i, tl] > creature^.thac0Base then
-      creature^.thac0Base := GDConsts.thac0Tbl[i, tl];
+    if GameDefs.thac0Tbl[i, tl] > creature^.thac0Base then
+      creature^.thac0Base := GameDefs.thac0Tbl[i, tl];
     if creature^.levelHighest < lvl then
       creature^.levelHighest := lvl;
     case i of
-      C_Level.FIGHTER:
+      C_LEVEL.FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
       { after the fighter's slot, so these only raise it }
-      C_Level.PALADIN:
+      C_LEVEL.PALADIN:
         if lvl > 6 then creature^.attacks := 3;
-      C_Level.RANGER:
+      C_LEVEL.RANGER:
         if lvl > 7 then creature^.attacks := 3;
-      C_Level.CLERIC:
+      C_LEVEL.CLERIC:
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
-            creature^.clericSpells[k] := GDConsts.dsExperienceSpellsClass[C_Level.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           { Mark known every cleric spell (castClass 0) of a level with slots; slots exist for levels 1..3 only.
             56 = High(spellsKnown) }
           for m := 1 to 56 do
-            with GDConsts.spellTable[m] do
+            with GameDefs.spellTable[m] do
               if (castClass = 0) and (levelSp >= 1) and (levelSp <= 3) and (creature^.clericSpells[levelSp] > 0) then
                 creature^.spellsKnown[m] := 1;
         end;
-      C_Level.MAGE:
+      C_LEVEL.MAGE:
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
-            creature^.mageSpells[k] := GDConsts.dsExperienceSpellsClass[C_Level.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
   ClassCal.RecalcSaves(creature);
-  if creature^.classLevels[C_Level.THIEF] > 0 then
+  if creature^.classLevels[C_LEVEL.THIEF] > 0 then
     ClassCal.RecalcThiefSkills(creature);
 end;
 
-{ Add the Wisdom bonus cleric slots, cumulative over GDConsts.wisBonusSpells' rows from 13 to the creature's Wisdom
+{ Add the Wisdom bonus cleric slots, cumulative over wisBonusSpells' rows from 13 to the creature's Wisdom
   (above 25 counts as 25): Wisdom 13 and 14 each add a first-level slot, 15 and 16 a second-level slot, 17 a third-level
   slot, 18 a fourth, and so on to 25. Only the spell levels a cleric casts here (1..Types.CASTER_LEVEL_LAST) take them,
   and each only where that level's slot count is already non-zero. }
@@ -175,13 +281,97 @@ begin
     for w := 13 to wis do
       for lvl := 1 to Types.CASTER_LEVEL_LAST do
         if clericSpells[lvl] > 0 then
-          Inc(clericSpells[lvl], GDConsts.wisBonusSpells[w, lvl]);
+          Inc(clericSpells[lvl], wisBonusSpells[w, lvl]);
   end;
 end;
 
 { Start every saving throw at 20 and take the best (lowest) across all classes with a level above 0. saveTbl covers
   levels 1..9, and a higher level uses the level 9 row. }
 procedure RecalcSaves(creature: Types.PCharRecord);
+const
+  { ClassCal: Saving throws indexed by class-level slot (C_LEVEL), level 1..9 and save column 0..4. The paladin's row is
+    the fighter's less 2. }
+  saveTbl: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 1..9] of Types.TRuleSaves = (
+    { cleric }
+    ((paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12)),
+    { druid }
+    ((paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 9; petrify: 12; wand: 13; breath: 15; spell: 14),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12),
+     (paralyze: 7; petrify: 10; wand: 11; breath: 13; spell: 12)),
+    { fighter }
+    ((paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 9; spell: 11)),
+    { paladin }
+    ((paralyze: 12; petrify: 13; wand: 14; breath: 15; spell: 15),
+     (paralyze: 12; petrify: 13; wand: 14; breath: 15; spell: 15),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 14; spell: 14),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 14; spell: 14),
+     (paralyze: 9; petrify: 10; wand: 11; breath: 11; spell: 12),
+     (paralyze: 9; petrify: 10; wand: 11; breath: 11; spell: 12),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 10; spell: 11),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 10; spell: 11),
+     (paralyze: 6; petrify: 7; wand: 8; breath: 7; spell: 9)),
+    { ranger }
+    ((paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 14; petrify: 15; wand: 16; breath: 17; spell: 17),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 13; petrify: 14; wand: 15; breath: 16; spell: 16),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 11; petrify: 12; wand: 13; breath: 13; spell: 14),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 10; petrify: 11; wand: 12; breath: 12; spell: 13),
+     (paralyze: 8; petrify: 9; wand: 10; breath: 9; spell: 11)),
+    { magic-user }
+    ((paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 14; petrify: 13; wand: 11; breath: 15; spell: 12),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10),
+     (paralyze: 13; petrify: 11; wand: 9; breath: 13; spell: 10)),
+    { thief }
+    ((paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 11; petrify: 10; wand: 10; breath: 14; spell: 11)),
+    { monk }
+    ((paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 13; petrify: 12; wand: 14; breath: 16; spell: 15),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 12; petrify: 11; wand: 12; breath: 15; spell: 13),
+     (paralyze: 11; petrify: 10; wand: 10; breath: 14; spell: 11)));
 var
   i: ShortInt;
   k: ShortInt;
@@ -190,13 +380,13 @@ begin
   { 4 = High(saves) }
   for i := 0 to 4 do begin
     creature^.saves[i] := 20;
-    for k := C_Level.CLERIC to C_Level.MONK do
+    for k := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if creature^.classLevels[k] > 0 then begin
         lvl := creature^.classLevels[k];
         if lvl > 9 then
           lvl := 9;
-        if creature^.saves[i] > GDConsts.saveTbl[k, lvl].values[i] then
-          creature^.saves[i] := GDConsts.saveTbl[k, lvl].values[i];
+        if creature^.saves[i] > saveTbl[k, lvl].values[i] then
+          creature^.saves[i] := saveTbl[k, lvl].values[i];
       end;
   end;
 end;
@@ -214,7 +404,7 @@ var
   dexterity: ShortInt;
   barred: Boolean;
 begin
-  if creature^.classLevels[C_Level.THIEF] < 1 then
+  if creature^.classLevels[C_LEVEL.THIEF] < 1 then
     Exit;
   barred := ClassCal.ArmorBarsThiefSkills(creature);
   { 8 = High(thiefSkills) }
@@ -229,15 +419,72 @@ end;
 
 function ArmorBarsThiefSkills(creature: Types.PCharRecord): Boolean;
 begin
-  ArmorBarsThiefSkills := (creature^.equipped[C_Equip.SHIELD] <> nil) or
-                          ((creature^.equipped[C_Equip.ARMOR] <> nil) and
-                           (creature^.equipped[C_Equip.ARMOR]^.itemType <> C_Item.LEATHER_ARMOR));
+  ArmorBarsThiefSkills := (creature^.equipped[C_EQUIP.SHIELD] <> nil) or
+                          ((creature^.equipped[C_EQUIP.ARMOR] <> nil) and
+                           (creature^.equipped[C_EQUIP.ARMOR]^.itemType <> C_ITEM.LEATHER_ARMOR));
 end;
 
 { dexAdj covers Dexterity 9..25, a thief's minimum to Deities & Demigods' highest; a Dexterity outside that range uses
   the nearer end. thiefBase covers thief levels 1..9, and a higher level uses the level 9 row; a race outside the player
   races (raceAdj covers 1..7) takes the human row, which adjusts nothing. }
 procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial, dexterity: ShortInt);
+const
+  { Base thief abilities by thief level }
+  thiefBase: array[1..9] of Types.TRuleThief = (
+    (pickPockets: 30; openLocks: 25; findTraps: 20; moveSilently: 15; hideShadows: 10;
+     hearNoise: 10; climbWalls: 85; readLanguages: 0),
+    (pickPockets: 35; openLocks: 29; findTraps: 25; moveSilently: 21; hideShadows: 15;
+     hearNoise: 10; climbWalls: 86; readLanguages: 0),
+    (pickPockets: 40; openLocks: 33; findTraps: 30; moveSilently: 27; hideShadows: 20;
+     hearNoise: 15; climbWalls: 87; readLanguages: 0),
+    (pickPockets: 45; openLocks: 37; findTraps: 35; moveSilently: 33; hideShadows: 25;
+     hearNoise: 15; climbWalls: 88; readLanguages: 20),
+    (pickPockets: 50; openLocks: 42; findTraps: 40; moveSilently: 40; hideShadows: 31;
+     hearNoise: 20; climbWalls: 90; readLanguages: 25),
+    (pickPockets: 55; openLocks: 47; findTraps: 45; moveSilently: 47; hideShadows: 37;
+     hearNoise: 20; climbWalls: 92; readLanguages: 30),
+    (pickPockets: 60; openLocks: 52; findTraps: 50; moveSilently: 55; hideShadows: 43;
+     hearNoise: 25; climbWalls: 94; readLanguages: 35),
+    (pickPockets: 65; openLocks: 57; findTraps: 55; moveSilently: 62; hideShadows: 49;
+     hearNoise: 25; climbWalls: 96; readLanguages: 40),
+    (pickPockets: 70; openLocks: 62; findTraps: 60; moveSilently: 70; hideShadows: 56;
+     hearNoise: 30; climbWalls: 98; readLanguages: 45));
+  { Racial thief ability adjustments: dwarf, elf, gnome, half-elf, halfling, half-orc, human }
+  raceAdj: array[1..7] of Types.TRuleThief = (
+    (pickPockets: 0; openLocks: 10; findTraps: 15; moveSilently: 0; hideShadows: 0;
+     hearNoise: 0; climbWalls: -10; readLanguages: -5),
+    (pickPockets: 5; openLocks: -5; findTraps: 0; moveSilently: 5; hideShadows: 10;
+     hearNoise: 5; climbWalls: 0; readLanguages: 0),
+    (pickPockets: 0; openLocks: 5; findTraps: 10; moveSilently: 5; hideShadows: 5;
+     hearNoise: 10; climbWalls: -15; readLanguages: 0),
+    (pickPockets: 10; openLocks: 0; findTraps: 0; moveSilently: 0; hideShadows: 5;
+     hearNoise: 0; climbWalls: 0; readLanguages: 0),
+    (pickPockets: 5; openLocks: 5; findTraps: 5; moveSilently: 10; hideShadows: 15;
+     hearNoise: 5; climbWalls: -15; readLanguages: -5),
+    (pickPockets: -5; openLocks: 5; findTraps: 5; moveSilently: 0; hideShadows: 0;
+     hearNoise: 5; climbWalls: 5; readLanguages: -10),
+    (pickPockets: 0; openLocks: 0; findTraps: 0; moveSilently: 0; hideShadows: 0;
+     hearNoise: 0; climbWalls: 0; readLanguages: 0));
+  { Dexterity thief ability adjustments for Dexterity 9..25 }
+  dexAdj: array[9..25] of Types.TRuleThiefDex = (
+    (pickPockets: -15; openLocks: -10; findTraps: -10; moveSilently: -20; hideShadows: -10),
+    (pickPockets: -10; openLocks:  -5; findTraps: -10; moveSilently: -15; hideShadows:  -5),
+    (pickPockets:  -5; openLocks:   0; findTraps:  -5; moveSilently: -10; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:  -5; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   0; openLocks:   0; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   0; openLocks:   5; findTraps:   0; moveSilently:   0; hideShadows:   0),
+    (pickPockets:   5; openLocks:  10; findTraps:   0; moveSilently:   5; hideShadows:   5),
+    (pickPockets:  10; openLocks:  15; findTraps:   5; moveSilently:  10; hideShadows:  10),
+    (pickPockets:  15; openLocks:  20; findTraps:  10; moveSilently:  12; hideShadows:  12),
+    { 20..25 from Deities & Demigods }
+    (pickPockets:  20; openLocks:  25; findTraps:  15; moveSilently:  15; hideShadows:  15),
+    (pickPockets:  25; openLocks:  30; findTraps:  20; moveSilently:  18; hideShadows:  18),
+    (pickPockets:  30; openLocks:  35; findTraps:  25; moveSilently:  20; hideShadows:  20),
+    (pickPockets:  35; openLocks:  40; findTraps:  30; moveSilently:  23; hideShadows:  23),
+    (pickPockets:  40; openLocks:  45; findTraps:  35; moveSilently:  25; hideShadows:  25),
+    (pickPockets:  45; openLocks:  50; findTraps:  40; moveSilently:  30; hideShadows:  30));
 var
   dex: Byte;
   r: ShortInt;
@@ -249,19 +496,19 @@ begin
   else if dex > 25 then
     dex := 25;
   r := creature^.race;
-  if (r < C_Race.DWARF) or (r > C_Race.HUMAN) then
-    r := C_Race.HUMAN;
-  tl := creature^.classLevels[C_Level.THIEF];
+  if (r < C_RACE.DWARF) or (r > C_RACE.HUMAN) then
+    r := C_RACE.HUMAN;
+  tl := creature^.classLevels[C_LEVEL.THIEF];
   if tl < 1 then
     tl := 1
   else if tl > 9 then
     tl := 9;
-  base := GDConsts.thiefBase[tl].values[j];
-  racial := GDConsts.raceAdj[r].values[j];
+  base := thiefBase[tl].values[j];
+  racial := raceAdj[r].values[j];
   dexterity := 0;
   { dexAdj covers skills 1..5 only }
   if j < 6 then
-    dexterity := GDConsts.dexAdj[dex].values[j];
+    dexterity := dexAdj[dex].values[j];
 end;
 
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
@@ -280,13 +527,13 @@ end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 begin
-  with GDConsts.dsMinimumMaximumStatistics[race] do
+  with GameDefs.minimumMaximumStatistics[race] do
     case ability of
-      C_Abil.STRENGTH: RaceAbilityMin := strMin[gender];
-      C_Abil.INTELLIGENCE: RaceAbilityMin := intMin;
-      C_Abil.WISDOM: RaceAbilityMin := wisMin;
-      C_Abil.DEXTERITY: RaceAbilityMin := dexMin;
-      C_Abil.CONSTITUTION: RaceAbilityMin := conMin;
+      C_ABIL.STRENGTH: RaceAbilityMin := strMin[gender];
+      C_ABIL.INTELLIGENCE: RaceAbilityMin := intMin;
+      C_ABIL.WISDOM: RaceAbilityMin := wisMin;
+      C_ABIL.DEXTERITY: RaceAbilityMin := dexMin;
+      C_ABIL.CONSTITUTION: RaceAbilityMin := conMin;
     else
       RaceAbilityMin := chaMin;
     end;
@@ -294,19 +541,39 @@ end;
 
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 begin
-  with GDConsts.dsMinimumMaximumStatistics[race] do
+  with GameDefs.minimumMaximumStatistics[race] do
     case ability of
-      C_Abil.STRENGTH: RaceAbilityMax := strMax[gender];
-      C_Abil.INTELLIGENCE: RaceAbilityMax := intMax;
-      C_Abil.WISDOM: RaceAbilityMax := wisMax;
-      C_Abil.DEXTERITY: RaceAbilityMax := dexMax;
-      C_Abil.CONSTITUTION: RaceAbilityMax := conMax;
+      C_ABIL.STRENGTH: RaceAbilityMax := strMax[gender];
+      C_ABIL.INTELLIGENCE: RaceAbilityMax := intMax;
+      C_ABIL.WISDOM: RaceAbilityMax := wisMax;
+      C_ABIL.DEXTERITY: RaceAbilityMax := dexMax;
+      C_ABIL.CONSTITUTION: RaceAbilityMax := conMax;
     else
       RaceAbilityMax := chaMax;
     end;
 end;
 
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
+const
+  { Ability minimums by single class (C_CLASS.CLERIC..MONK), the 1st-edition PHB's: every class needs at least 3, and
+    most 6, in each ability (#740). A multiclass needs the highest of its classes' (ClassCal.ClassAbilityMin). }
+  classMin: array[C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAbilities = (
+    { cleric }
+    (strength: 6; intelligence: 6; wisdom: 9; dexterity: 3; constitution: 6; charisma: 6),
+    { druid }
+    (strength: 6; intelligence: 6; wisdom: 12; dexterity: 6; constitution: 6; charisma: 15),
+    { fighter }
+    (strength: 9; intelligence: 3; wisdom: 6; dexterity: 6; constitution: 7; charisma: 6),
+    { paladin }
+    (strength: 12; intelligence: 9; wisdom: 13; dexterity: 6; constitution: 9; charisma: 17),
+    { ranger }
+    (strength: 13; intelligence: 13; wisdom: 14; dexterity: 6; constitution: 14; charisma: 6),
+    { magic-user }
+    (strength: 3; intelligence: 9; wisdom: 6; dexterity: 6; constitution: 6; charisma: 6),
+    { thief }
+    (strength: 6; intelligence: 6; wisdom: 3; dexterity: 9; constitution: 6; charisma: 6),
+    { monk }
+    (strength: 15; intelligence: 6; wisdom: 15; dexterity: 15; constitution: 11; charisma: 6));
 var
   p: Byte;
   part: ShortInt;
@@ -314,18 +581,21 @@ var
 begin
   least := 0;
   for p := 1 to 3 do begin
-    part := GDConsts.classParts[charClass].values[p];
-    if part >= C_Class.CLERIC then
-      if GDConsts.classMin[part].values[ability] > least then
-        least := GDConsts.classMin[part].values[ability];
+    part := GameDefs.classParts[charClass].values[p];
+    if part >= C_CLASS.CLERIC then
+      if classMin[part].values[ability] > least then
+        least := classMin[part].values[ability];
   end;
-  if (race = C_Race.HALFELF) and (ability = C_Abil.WISDOM)
-     and (charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
+  if (race = C_RACE.HALFELF) and (ability = C_ABIL.WISDOM)
+     and (charClass in [C_CLASS.CLERIC_FIGHTER..C_CLASS.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
     least := HALFELF_MULTI_CLERIC_WIS;
   ClassAbilityMin := least;
 end;
 
 function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
+const
+  conBonusTbl: array[3..25] of ShortInt = (
+    -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
 var
   share: ShortInt;
 begin
@@ -333,8 +603,8 @@ begin
     con := 3
   else if con > 25 then
     con := 25;
-  share := GDConsts.conBonusTbl[con];
-  if (cls = C_Level.FIGHTER) or (cls = C_Level.PALADIN) or (cls = C_Level.RANGER) then
+  share := conBonusTbl[con];
+  if (cls = C_LEVEL.FIGHTER) or (cls = C_LEVEL.PALADIN) or (cls = C_LEVEL.RANGER) then
     case con of
       17: Inc(share);
       18: Inc(share, 2);
@@ -355,10 +625,10 @@ var
 begin
   bonus := 0;
   with creature^ do begin
-    for cls := C_Level.CLERIC to C_Level.MONK do
-      if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        share := ClassCal.ConHpPerDie(cls, stats[C_Abil.CONSTITUTION]);
-        if (cls = C_Level.RANGER) and (classLevels[cls] = 1) then
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+      if (classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) then begin
+        share := ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION]);
+        if (cls = C_LEVEL.RANGER) and (classLevels[cls] = 1) then
           share := share * 2;
         Inc(bonus, share);
       end;
@@ -390,20 +660,20 @@ begin
   with creature^ do begin
     clsCount := 0;
     sum := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(sum, classLevels[cls]);
         Inc(clsCount);
         case cls of
-          C_Level.RANGER: Inc(sum);
-          C_Level.MONK: Inc(sum);
+          C_LEVEL.RANGER: Inc(sum);
+          C_LEVEL.MONK: Inc(sum);
         end;
       end;
   end;
   HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
 end;
 
-{ The highest legal hpMax: the top of each class's hit dice (GDConsts.hpDice and hpSides: cleric and druid d8 per level,
+{ The highest legal hpMax: the top of each class's hit dice (hpDice and hpSides: cleric and druid d8 per level,
   fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the Con bonus,
   divided by the class count. }
 function HpMaximum(creature: Types.PCharRecord): Byte;
@@ -415,11 +685,11 @@ begin
   with creature^ do begin
     clsCount := 0;
     sum := 0;
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         { hpDice at level 1, one die a level after }
-        Inc(sum, (classLevels[cls] + GDConsts.hpDice[cls] - 1) * GDConsts.hpSides[cls]);
+        Inc(sum, (classLevels[cls] + hpDice[cls] - 1) * GameDefs.hpSides[cls]);
       end;
   end;
   HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.ConHpBonus(creature, $FF), clsCount);
@@ -452,22 +722,22 @@ var
   i: Byte;
 begin
   sum := 0;
-  floor := ClassCal.HitDieFloor(creature^.stats[C_Abil.CONSTITUTION]);
-  for cls := C_Level.CLERIC to C_Level.MONK do
-    if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-      dieCount := GDConsts.hpDice[cls];
+  floor := ClassCal.HitDieFloor(creature^.stats[C_ABIL.CONSTITUTION]);
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+    if (creature^.classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) then begin
+      dieCount := hpDice[cls];
       if creature^.classLevels[cls] > 1 then
         dieCount := 1;
       roll := 0;
       for i := 1 to dieCount do begin
-        die := Dice.RollDice(1, GDConsts.hpSides[cls]);
+        die := Dice.RollDice(1, GameDefs.hpSides[cls]);
         if die < floor then
           die := floor;
         Inc(roll, die);
       end;
       if creature^.classLevels[cls] = 1 then
-        if roll < GDConsts.hpSides[cls] * 2 div 3 then
-          roll := GDConsts.hpSides[cls] * 2 div 3;
+        if roll < GameDefs.hpSides[cls] * 2 div 3 then
+          roll := GameDefs.hpSides[cls] * 2 div 3;
       Inc(sum, roll);
     end;
   RollFirstLevelHp := sum;
@@ -483,12 +753,12 @@ begin
   total := 0;
   clsCount := 0;
   with creature^ do begin
-    for cls := C_Level.CLERIC to C_Level.MONK do
+    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(clsCount);
         dice := classLevels[cls];
         { a ranger's first level has two hit dice }
-        if cls = C_Level.RANGER then
+        if cls = C_LEVEL.RANGER then
           Inc(dice);
         Inc(total, dice * ClassCal.ConHpPerDie(cls, con));
       end;
@@ -506,22 +776,22 @@ begin
   share := experience;
   str := CharHlp.PermanentStrength(creature);
   case creature^.charClass of
-    C_Class.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.FIGHTER: if str > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.PALADIN:
+    C_CLASS.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.FIGHTER: if str > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.PALADIN:
       if (str > PRIME_STAT_THRESHOLD) and (creature^.wisCur > PRIME_STAT_THRESHOLD) then
         share := experience div 10 + experience;
-    C_Class.RANGER:
+    C_CLASS.RANGER:
       if (str > PRIME_STAT_THRESHOLD) and (creature^.intCur > PRIME_STAT_THRESHOLD) and
           (creature^.wisCur > PRIME_STAT_THRESHOLD) then
         share := experience div 10 + experience;
-    C_Class.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     { 2-class multi }
-    C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER, C_Class.CLERIC_MAGE, C_Class.CLERIC_THIEF, C_Class.FIGHTER_MAGE,
-      C_Class.FIGHTER_THIEF, C_Class.MAGE_THIEF: share := experience div 2;
+    C_CLASS.CLERIC_FIGHTER, C_CLASS.CLERIC_RANGER, C_CLASS.CLERIC_MAGE, C_CLASS.CLERIC_THIEF, C_CLASS.FIGHTER_MAGE,
+      C_CLASS.FIGHTER_THIEF, C_CLASS.MAGE_THIEF: share := experience div 2;
     { 3-class multi }
-    C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
+    C_CLASS.CLERIC_FIGHTER_MAGE, C_CLASS.FIGHTER_MAGE_THIEF:
       share := experience div 3;
   end;
   ExperienceShare := share;
@@ -530,9 +800,9 @@ end;
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 begin
   SpellFailureChance := 0;
-  if (spell >= 1) and (spell <= C_Spell.LAST) then
-    if (GDConsts.spellTable[spell].castClassSp = C_Spell.CLASS_CLERIC) and
-        (creature^.classLevels[C_Level.CLERIC] > 0) then
+  if (spell >= 1) and (spell <= C_SPELL.LAST) then
+    if (GameDefs.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
+        (creature^.classLevels[C_LEVEL.CLERIC] > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);
 end;
 

@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEvtKind;
 
-uses Types, GDVars, C_Gbvm, EvtKind, TestKit;
+uses Types, GameVars, C_GBVM, EvtKind, TestKit;
 
 { Lay bytes at GBVM address a. }
 procedure Put(a: Word; bytes: String);
@@ -11,14 +11,14 @@ var
   i: Byte;
 begin
   for i := 1 to Length(bytes) do
-    GDVars.zone3^[a + i - 1] := Ord(bytes[i]);
+    GameVars.zone3^[a + i - 1] := Ord(bytes[i]);
 end;
 
 begin
   TestKit.Start('TEVTKIND');
-  GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
-  FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
-  GetMem(GDVars.gbStrings, SizeOf(GDVars.gbStrings^));
+  GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
+  FillChar(GameVars.zone3^, SizeOf(GameVars.zone3^), 0);
+  GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
   { 1: AND #7F [C04F] [6E82]; ON GOTO [6E82] #3 [A000] [A010] [A020] }
   Put($9900, #$2F#$00#$7F#$01#$4F#$C0#$01#$82#$6E);
   Put($9909, #$25#$01#$82#$6E#$00#$03#$01#$00#$A0#$01#$10#$A0#$01#$20#$A0);
@@ -40,11 +40,11 @@ begin
   Put($A030, #$24#$00);
   Put($A040, #$27#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00);
   Put($A050, #$20#$00#$03);
-  GDVars.scriptEntryAddrs[1] := $9900;
-  GDVars.scriptEntryAddrs[2] := $9920;
-  GDVars.scriptEntryAddrs[3] := $9940;
-  GDVars.scriptEntryAddrs[4] := $9980;
-  GDVars.scriptEntryAddrs[5] := $99A0;
+  GameVars.scriptEntryAddrs[1] := $9900;
+  GameVars.scriptEntryAddrs[2] := $9920;
+  GameVars.scriptEntryAddrs[3] := $9940;
+  GameVars.scriptEntryAddrs[4] := $9980;
+  GameVars.scriptEntryAddrs[5] := $99A0;
   EvtKind.Prepare;
   TestKit.CheckEqualsL(EvtKind.KIND_NONE, EvtKind.Kind(0), 'no event');
   TestKit.CheckEqualsL(EvtKind.KIND_MESSAGE, EvtKind.Kind(1), 'ON GOTO: a message');

@@ -27,8 +27,8 @@ procedure OptionsMenu;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_Keys, C_Sound, C_Data, GDVars, TextRend, Border, MenuCore, GameIo,
-  SoundDrv, DaxIo, DataArc, GDConsts, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, GameVars, TextRend, Border, MenuCore, GameIo,
+  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -101,7 +101,7 @@ end;
 function SettingLabel(opt: Byte): Types.TStr40;
 begin
   case opt of
-    OPT_SPEED: SettingLabel := 'Game Speed (' + Chr(Ord('0') + GDVars.gameDelay mod (SLOWEST + 1)) + ')';
+    OPT_SPEED: SettingLabel := 'Game Speed (' + Chr(Ord('0') + GameVars.gameDelay mod (SLOWEST + 1)) + ')';
     OPT_MONSTERS: SettingLabel := 'Monster Pictures';
     OPT_PORTRAITS: SettingLabel := 'Character Portraits';
     OPT_MUSIC: SettingLabel := 'Music';
@@ -128,14 +128,14 @@ end;
 function StoredValue(opt: Byte): Types.TStr20;
 begin
   case opt of
-    OPT_SPEED: StoredValue := Chr(Ord('0') + GDVars.gameDelay mod (SLOWEST + 1));
-    OPT_MONSTERS: StoredValue := Options.OnOff(GDVars.monsterPics);
-    OPT_PORTRAITS: StoredValue := Options.OnOff(GDVars.portraitsOn);
-    OPT_MUSIC: StoredValue := Options.OnOff(GDVars.musicOn);
-    OPT_SOUND: StoredValue := Options.OnOff(GDVars.soundOn);
-    OPT_QUICK: StoredValue := Options.OnOff(GDVars.quickEnds);
-    OPT_MAGIC: StoredValue := Options.OnOff(GDVars.quickMagicOn);
-    OPT_COMPANION: StoredValue := Options.OnOff(GDVars.companionOn);
+    OPT_SPEED: StoredValue := Chr(Ord('0') + GameVars.gameDelay mod (SLOWEST + 1));
+    OPT_MONSTERS: StoredValue := Options.OnOff(GameVars.monsterPics);
+    OPT_PORTRAITS: StoredValue := Options.OnOff(GameVars.portraitsOn);
+    OPT_MUSIC: StoredValue := Options.OnOff(GameVars.musicOn);
+    OPT_SOUND: StoredValue := Options.OnOff(GameVars.soundOn);
+    OPT_QUICK: StoredValue := Options.OnOff(GameVars.quickEnds);
+    OPT_MAGIC: StoredValue := Options.OnOff(GameVars.quickMagicOn);
+    OPT_COMPANION: StoredValue := Options.OnOff(GameVars.companionOn);
   else
     StoredValue := '';
   end;
@@ -145,7 +145,7 @@ end;
 function ShownValue(opt: Byte): Types.TStr20;
 begin
   if opt = OPT_SOUND then
-    ShownValue := Options.OnOff(Ord(GDVars.soundMode <> C_Sound.MODE_DISABLED))
+    ShownValue := Options.OnOff(Ord(GameVars.soundMode <> C_SOUND.MODE_DISABLED))
   else
     ShownValue := Options.StoredValue(opt);
 end;
@@ -188,7 +188,7 @@ var
 begin
   if opt = OPT_SPEED then begin
     if (Length(value) = 1) and (value[1] in ['0'..'9']) then
-      GDVars.gameDelay := Ord(value[1]) - Ord('0');
+      GameVars.gameDelay := Ord(value[1]) - Ord('0');
     Exit;
   end;
   if (value = 'ON') or (value = '1') then
@@ -198,13 +198,13 @@ begin
   else
     Exit;
   case opt of
-    OPT_MONSTERS: GDVars.monsterPics := flag;
-    OPT_PORTRAITS: GDVars.portraitsOn := flag;
-    OPT_MUSIC: GDVars.musicOn := flag;
-    OPT_SOUND: GDVars.soundOn := flag;
-    OPT_QUICK: GDVars.quickEnds := flag;
-    OPT_MAGIC: GDVars.quickMagicOn := flag;
-    OPT_COMPANION: GDVars.companionOn := flag;
+    OPT_MONSTERS: GameVars.monsterPics := flag;
+    OPT_PORTRAITS: GameVars.portraitsOn := flag;
+    OPT_MUSIC: GameVars.musicOn := flag;
+    OPT_SOUND: GameVars.soundOn := flag;
+    OPT_QUICK: GameVars.quickEnds := flag;
+    OPT_MAGIC: GameVars.quickMagicOn := flag;
+    OPT_COMPANION: GameVars.companionOn := flag;
   end;
 end;
 
@@ -217,7 +217,7 @@ var
   done: Boolean;
   n: Integer;
 begin
-  Assign(f, GDVars.dsSaveDirectory + CFG_NAME);
+  Assign(f, GameVars.saveDirectory + CFG_NAME);
   Reset(f);
   if IOResult = 0 then begin
     lines := 0;
@@ -238,7 +238,7 @@ begin
     Close(f);
     n := IOResult;
   end;
-  GameIo.SetSound(GDVars.soundOn <> 0);
+  GameIo.SetSound(GameVars.soundOn <> 0);
   GameIo.saveSettings := Options.SaveOptions;
 end;
 
@@ -253,13 +253,13 @@ var
   ok: Boolean;
   n: Integer;
 begin
-  Assign(newFile, FileUtil.TempName(GDVars.dsSaveDirectory + CFG_NAME));
+  Assign(newFile, FileUtil.TempName(GameVars.saveDirectory + CFG_NAME));
   Rewrite(newFile);
   if IOResult <> 0 then Exit;
   for opt := 1 to OPT_COUNT do
     WriteLn(newFile, Options.KeyName(opt), '=', Options.StoredValue(opt));
   ok := IOResult = 0;
-  Assign(oldFile, GDVars.dsSaveDirectory + CFG_NAME);
+  Assign(oldFile, GameVars.saveDirectory + CFG_NAME);
   if ok then begin
     Reset(oldFile);
     if IOResult = 0 then begin
@@ -289,9 +289,9 @@ begin
   if IOResult <> 0 then
     ok := False;
   if ok then
-    ok := FileUtil.PutInPlace(GDVars.dsSaveDirectory + CFG_NAME)
+    ok := FileUtil.PutInPlace(GameVars.saveDirectory + CFG_NAME)
   else
-    FileUtil.DeleteFile(FileUtil.TempName(GDVars.dsSaveDirectory + CFG_NAME));
+    FileUtil.DeleteFile(FileUtil.TempName(GameVars.saveDirectory + CFG_NAME));
 end;
 
 { value with a comma between each group of three digits. }
@@ -317,7 +317,7 @@ var
   n: Byte;
 begin
   n := 0;
-  if GDVars.stingArg then begin
+  if GameVars.stingArg then begin
     Inc(n);
     notes[n] := 'STING ';
   end;
@@ -378,7 +378,7 @@ begin
   TextRend.DisplayString(INFO_COL, row, INFO_COLOR, value);
 end;
 
-{ The data archives' line: C_Data.VERSION, then how many of the families with files here read their merged archive. }
+{ The data archives' line: C_DATA.VERSION, then how many of the families with files here read their merged archive. }
 function DataLine: string;
 var
   fam: Byte;
@@ -389,7 +389,7 @@ var
 begin
   merged := 0;
   present := 0;
-  for fam := 1 to C_Data.FAMILIES do
+  for fam := 1 to C_DATA.FAMILIES do
     if DaxIo.FamilyUsable(fam) then begin
       Inc(merged);
       Inc(present);
@@ -397,11 +397,11 @@ begin
       found := False;
       for disk := 1 to 8 do
         if not found then
-          found := DataArc.FileLength(GDVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX') >= 0;
+          found := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX') >= 0;
       if found then
         Inc(present);
     end;
-  DataLine := 'V' + Options.Grouped(C_Data.VERSION) + '  Merged ' + Options.Grouped(merged) + '/' +
+  DataLine := 'V' + Options.Grouped(C_DATA.VERSION) + '  Merged ' + Options.Grouped(merged) + '/' +
               Options.Grouped(present);
 end;
 
@@ -409,10 +409,10 @@ end;
 procedure DrawInfoLines;
 begin
   Options.DrawInfo(CFG_TOP, 'Video', VidOps.ModeName);
-  Options.DrawInfo(CFG_TOP + 1, 'Sound Device', GDVars.sound.name);
-  Options.DrawInfo(CFG_TOP + 2, 'Data Path', GDVars.gameDir);
-  Options.DrawInfo(CFG_TOP + 3, 'Save Path', GDVars.dsSaveDirectory);
-  Options.DrawInfo(INFO_TOP, 'Version', GDConsts.GAME_VERSION);
+  Options.DrawInfo(CFG_TOP + 1, 'Sound Device', GameVars.sound.name);
+  Options.DrawInfo(CFG_TOP + 2, 'Data Path', GameVars.gameDir);
+  Options.DrawInfo(CFG_TOP + 3, 'Save Path', GameVars.saveDirectory);
+  Options.DrawInfo(INFO_TOP, 'Version', GameDefs.GAME_VERSION);
   Options.DrawInfo(INFO_TOP + 1, 'Commit', BUILD_COMMIT);
   Options.DrawInfo(INFO_TOP + 2, 'Data', Options.DataLine);
   Options.DrawInfo(INFO_TOP + 3, 'Free Memory', Options.Grouped(MemAvail));
@@ -426,21 +426,21 @@ procedure ChangeSetting(opt: Byte);
 begin
   case opt of
     OPT_SPEED: if speedChoice = CHOICE_SLOWER then begin
-                 if GDVars.gameDelay < SLOWEST then
-                   Inc(GDVars.gameDelay);
-               end else if GDVars.gameDelay > 0 then
-                 Dec(GDVars.gameDelay);
-    OPT_MONSTERS: GDVars.monsterPics := Ord(GDVars.monsterPics = 0);
-    OPT_PORTRAITS: GDVars.portraitsOn := Ord(GDVars.portraitsOn = 0);
+                 if GameVars.gameDelay < SLOWEST then
+                   Inc(GameVars.gameDelay);
+               end else if GameVars.gameDelay > 0 then
+                 Dec(GameVars.gameDelay);
+    OPT_MONSTERS: GameVars.monsterPics := Ord(GameVars.monsterPics = 0);
+    OPT_PORTRAITS: GameVars.portraitsOn := Ord(GameVars.portraitsOn = 0);
     OPT_MUSIC: begin
-                 GDVars.musicOn := Ord(GDVars.musicOn = 0);
-                 if GDVars.musicOn = 0 then
+                 GameVars.musicOn := Ord(GameVars.musicOn = 0);
+                 if GameVars.musicOn = 0 then
                    SoundDrv.StopMusic;
                end;
-    OPT_SOUND: GameIo.SetSound(GDVars.soundMode = C_Sound.MODE_DISABLED);
-    OPT_QUICK: GDVars.quickEnds := Ord(GDVars.quickEnds = 0);
-    OPT_MAGIC: GDVars.quickMagicOn := Ord(GDVars.quickMagicOn = 0);
-    OPT_COMPANION: GDVars.companionOn := Ord(GDVars.companionOn = 0);
+    OPT_SOUND: GameIo.SetSound(GameVars.soundMode = C_SOUND.MODE_DISABLED);
+    OPT_QUICK: GameVars.quickEnds := Ord(GameVars.quickEnds = 0);
+    OPT_MAGIC: GameVars.quickMagicOn := Ord(GameVars.quickMagicOn = 0);
+    OPT_COMPANION: GameVars.companionOn := Ord(GameVars.companionOn = 0);
   end;
 end;
 
@@ -477,7 +477,7 @@ var
   end;
 
 begin
-  savedChoice := GDVars.horizChoice;
+  savedChoice := GameVars.horizChoice;
   sel := 1;
   speedChoice := CHOICE_SLOWER;
   changed := False;
@@ -493,40 +493,40 @@ begin
   Options.DrawInfoLines;
   repeat
     { Ctrl-S on the bottom line turns the sound over too }
-    soundState := GDVars.soundMode;
+    soundState := GameVars.soundMode;
     touched := False;
-    GDVars.horizChoice := 1;
+    GameVars.horizChoice := 1;
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
     ch := MenuCore.MenuHorizontal('Settings: ', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then
       case ch of
-        C_Keys.UP, C_Keys.HOME: if sel > 1 then
+        C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
                                   MoveTo(sel - 1)
                                 else
                                   MoveTo(OPT_COUNT);
-        C_Keys.DOWN, C_Keys.END_KEY: if sel < OPT_COUNT then
+        C_KEYS.DOWN, C_KEYS.END_KEY: if sel < OPT_COUNT then
                                        MoveTo(sel + 1)
                                      else
                                        MoveTo(1);
-        C_Keys.LEFT: Arrow(CHOICE_SLOWER);
-        C_Keys.RIGHT: Arrow(CHOICE_FASTER);
+        C_KEYS.LEFT: Arrow(CHOICE_SLOWER);
+        C_KEYS.RIGHT: Arrow(CHOICE_FASTER);
       end
-    else if ch = C_Keys.ENTER then begin
+    else if ch = C_KEYS.ENTER then begin
       Options.ChangeSetting(sel);
       touched := True;
     end;
     if touched then
       changed := True;
-    if touched or (GDVars.soundMode <> soundState) then begin
+    if touched or (GameVars.soundMode <> soundState) then begin
       if sel <> OPT_SOUND then
         Options.DrawSetting(OPT_SOUND, LightGreen);
       Options.DrawSetting(sel, White);
     end;
-  until not ext and (ch in [C_Keys.NONE, 'E']);
+  until not ext and (ch in [C_KEYS.NONE, 'E']);
   if changed then
     Options.SaveOptions;
-  GDVars.horizChoice := savedChoice;
+  GameVars.horizChoice := savedChoice;
 end;
 
 end.

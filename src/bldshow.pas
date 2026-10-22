@@ -11,11 +11,11 @@ unit BldShow;
 
 interface
 
-uses C_Data;
+uses C_DATA;
 
 type
   { the families DataBld builds }
-  TStaleList = array[1..C_Data.FAMILIES] of Boolean;
+  TStaleList = array[1..C_DATA.FAMILIES] of Boolean;
 
 { Clear the screen and draw the display. A stale family's cells wait, or, when the game folder cannot be written
   (writable False), show it failed under a warning; any other family with per-disk archives shows them done. }
@@ -48,7 +48,7 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GameVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
 
 const
   { per-disk archives are numbered 1 to SOURCE_DISKS }
@@ -102,43 +102,26 @@ const
   NAME_NONE = 0;
   NAME_SHOWN = 1;
   NAME_FAILED = 2;
+  { the warning's rows in the status box, in place of the status lines, when the game folder cannot be written }
+  WARN_ROW = 5;
+  WARN_NEXT_ROW = 7;
   { steps }
   PHASE_READ = 0;
   PHASE_WRITE = 1;
   PHASE_CHECK = 2;
-  { BIOS timer ticks: 18.2 a second, back to 0 at midnight after TICKS_PER_DAY }
-  TICKS_PER_DAY = $1800B0;
-  ETA_FIRST = 36;
-  ETA_EVERY = 18;
-  HOLD_TICKS = 18;
-  { the most minutes the time left shows, and the most ticks it is worked out from }
-  ETA_MAX_MINUTES = 99;
-  ETA_MAX_TICKS = 200000;
-  TITLE = 'Please wait, preparing files';
-  { shown under the families when one failed, if DataBld could write its log }
-  NOTE = 'See DATABLD.LOG';
-  LOG_NAME = 'DATABLD.LOG';
-  { the hold's prompt on the bottom line, the game's own }
-  PROMPT = 'press <enter>/<return> to continue';
-  { shown in the status box when the game folder cannot be written: WARN_LABEL in light red, then WARN_TEXT }
-  WARN_ROW = 5;
-  WARN_LABEL = 'Warning:';
-  WARN_TEXT = ' Install folder is read only.';
-  WARN_NEXT_ROW = 7;
-  WARN_NEXT = 'Game data fixes will be unavailable.';
 
 type
   PShowState = ^TShowState;
   TShowState = record
     { each per-disk archive's size, -1 when it is not there, and its cell's place in the family's row, 0 for none }
-    size: array[1..C_Data.FAMILIES, 1..SOURCE_DISKS] of LongInt;
-    place: array[1..C_Data.FAMILIES, 1..SOURCE_DISKS] of Byte;
+    size: array[1..C_DATA.FAMILIES, 1..SOURCE_DISKS] of LongInt;
+    place: array[1..C_DATA.FAMILIES, 1..SOURCE_DISKS] of Byte;
     { what each cell and name shows now }
-    cell: array[1..C_Data.FAMILIES, 1..SOURCE_DISKS] of Byte;
-    name: array[1..C_Data.FAMILIES] of Byte;
+    cell: array[1..C_DATA.FAMILIES, 1..SOURCE_DISKS] of Byte;
+    name: array[1..C_DATA.FAMILIES] of Byte;
     shown: array[0..FIELDS - 1] of String[FIELD_WIDTH];
     { the families shown: those with files }
-    listed: array[1..C_Data.FAMILIES] of Boolean;
+    listed: array[1..C_DATA.FAMILIES] of Boolean;
     { the family being made, its per-disk bytes and the work done when it started }
     family: Byte;
     familyBytes: LongInt;
@@ -258,7 +241,7 @@ var
   row: Byte;
   col: Byte;
 begin
-  if (fam < 1) or (fam > C_Data.FAMILIES) or (disk < 1) or (disk > SOURCE_DISKS) then Exit;
+  if (fam < 1) or (fam > C_DATA.FAMILIES) or (disk < 1) or (disk > SOURCE_DISKS) then Exit;
   if (st^.place[fam, disk] = 0) or (st^.cell[fam, disk] = state) then Exit;
   if not BldShow.FamilyPlace(fam, row, col) then Exit;
   st^.cell[fam, disk] := state;
@@ -283,7 +266,7 @@ var
   col: Byte;
   color: Byte;
 begin
-  if (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   if not st^.listed[fam] or (st^.name[fam] = state) then Exit;
   if not BldShow.FamilyPlace(fam, row, col) then Exit;
   st^.name[fam] := state;
@@ -322,7 +305,7 @@ end;
 procedure ShowCount;
 begin
   BldShow.Field(FIELD_COUNT, VALUE_COL, OVERALL_ROW, LightCyan, StrUtil.PadLeft(StrUtil.NumStr(st^.finished), 2) + '/' +
-                StrUtil.NumStr(C_Data.FAMILIES), COUNT_WIDTH);
+                StrUtil.NumStr(C_DATA.FAMILIES), COUNT_WIDTH);
 end;
 
 { Fill the bar to px pixels, drawing only the cells that change. }
@@ -358,6 +341,10 @@ end;
 
 { Show the time left: the elapsed time scaled by the work left over the work done, as m:ss. }
 procedure ShowEta;
+const
+  { the most minutes the time left shows, and the most ticks it is worked out from }
+  ETA_MAX_MINUTES = 99;
+  ETA_MAX_TICKS = 200000;
 var
   secs: LongInt;
   mins: LongInt;
@@ -380,6 +367,11 @@ end;
 { Add the BIOS ticks since the last call to elapsed, across midnight, and show the time left once ETA_FIRST ticks have
   gone and then every ETA_EVERY. }
 procedure Tick;
+const
+  { BIOS timer ticks: 18.2 a second, back to 0 at midnight after TICKS_PER_DAY }
+  TICKS_PER_DAY = $1800B0;
+  ETA_FIRST = 36;
+  ETA_EVERY = 18;
 var
   now: LongInt;
   delta: LongInt;
@@ -464,6 +456,12 @@ begin
 end;
 
 procedure Open(var stale: TStaleList; writable: Boolean);
+const
+  TITLE = 'Please wait, preparing files';
+  { shown when the game folder cannot be written: WARN_LABEL in light red, then WARN_TEXT, and WARN_NEXT below }
+  WARN_LABEL = 'Warning:';
+  WARN_TEXT = ' Install folder is read only.';
+  WARN_NEXT = 'Game data fixes will be unavailable.';
 var
   fam: Byte;
   disk: Byte;
@@ -485,11 +483,11 @@ begin
   BldShow.MakeFrame(CELL_FAILED - CELL_WAIT, 1, 6, 6, LightRed, Black, False);
   for f := 0 to 8 do
     BldShow.MakeFrame(FRAME_BAR + f, 0, 7, f, LightGreen, DarkGray, False);
-  for fam := 1 to C_Data.FAMILIES do begin
+  for fam := 1 to C_DATA.FAMILIES do begin
     n := 0;
     bytes := 0;
     for disk := 1 to SOURCE_DISKS do begin
-      st^.size[fam, disk] := DataArc.FileLength(GDVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX');
+      st^.size[fam, disk] := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX');
       if st^.size[fam, disk] >= 0 then begin
         Inc(n);
         st^.place[fam, disk] := n;
@@ -524,7 +522,7 @@ begin
     BldShow.ShowBar(0);
     st^.nextPx := 1;
   end;
-  for fam := 1 to C_Data.FAMILIES do
+  for fam := 1 to C_DATA.FAMILIES do
     if not stale[fam] then begin
       BldShow.SetName(fam, NAME_SHOWN);
       BldShow.SetCells(fam, CELL_DONE);
@@ -541,7 +539,7 @@ procedure StartFamily(fam: Byte);
 var
   disk: Byte;
 begin
-  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   st^.family := fam;
   st^.familyBytes := 0;
   for disk := 1 to SOURCE_DISKS do
@@ -556,7 +554,7 @@ procedure Reading(fam, disk: Byte);
 var
   d: Byte;
 begin
-  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   for d := 1 to SOURCE_DISKS do
     if d < disk then
       BldShow.SetCell(fam, d, CELL_DONE)
@@ -568,7 +566,7 @@ end;
 
 procedure Fixing(fam, disk: Byte);
 begin
-  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   BldShow.SetCells(fam, CELL_DONE);
   BldShow.Step('Fixing:', DataArc.SourceName(fam, disk) + '.DAX');
   BldShow.Tick;
@@ -601,7 +599,7 @@ end;
 
 procedure EndFamily(fam: Byte; ok: Boolean);
 begin
-  if not BldShow.Active or (fam < 1) or (fam > C_Data.FAMILIES) then Exit;
+  if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   if ok then
     BldShow.SetCells(fam, CELL_DONE)
   else begin
@@ -615,6 +613,14 @@ begin
 end;
 
 procedure Finish(failed: Boolean);
+const
+  { how long the finished display stays, in BIOS ticks (18.2 a second) }
+  HOLD_TICKS = 18;
+  { shown under the families when one failed, if DataBld could write its log }
+  NOTE = 'See DATABLD.LOG';
+  LOG_NAME = 'DATABLD.LOG';
+  { the hold's prompt on the bottom line, the game's own }
+  PROMPT = 'press <enter>/<return> to continue';
 var
   start: LongInt;
   key: Char;
@@ -628,7 +634,7 @@ begin
     BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, '0:00', COUNT_WIDTH);
   end;
   if failed or st^.readOnly then begin
-    if not st^.readOnly and (DataArc.FileLength(GDVars.gameDir + LOG_NAME) > 0) then
+    if not st^.readOnly and (DataArc.FileLength(GameVars.gameDir + LOG_NAME) > 0) then
       TextRend.DisplayCentered(1, 38, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;

@@ -8,7 +8,7 @@ interface
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_Sound, GDConsts, GDVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_SOUND, GameDefs, GameVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
   SoundDrv, DaxIo, GameIo, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
   {$IFDEF FPC}, Host, NatFile{$ENDIF};
@@ -33,10 +33,10 @@ var
   { the overlay manager's own read routine, which CountOvrRead calls }
   ovrRead: OvrReadFunc;
 
-{ The overlay manager's read routine (OvrReadBuf), counting each overlay it loads in GDVars.ovrLoads (#612). }
+{ The overlay manager's read routine (OvrReadBuf), counting each overlay it loads in GameVars.ovrLoads (#612). }
 function CountOvrRead(ovrSeg: Word): Integer;
 begin
-  Inc(GDVars.ovrLoads);
+  Inc(GameVars.ovrLoads);
   CountOvrRead := ovrRead(ovrSeg);
 end;
 {$ENDIF}
@@ -100,10 +100,10 @@ end;
 
 { Game startup runs through this unit's initialization section. }
 begin
-  GDVars.stingArg := ParamStr(1) = 'STING';
+  GameVars.stingArg := ParamStr(1) = 'STING';
 {$IFDEF FPC}
   NatFile.EnterGameFolder;
-  GDVars.ovrInEms := False;
+  GameVars.ovrInEms := False;
 {$ELSE}
   DaxIo.WaitForFile('game.ovr', 'Please insert overlay disk.');
   OvrInit('GAME.OVR');
@@ -111,10 +111,8 @@ begin
     driver, or with too little EMS, they keep loading from GAME.OVR. This comes before CountOvrRead hooks in, since
     OvrInitEMS installs its own reader for CountOvrRead to call. }
   OvrInitEMS;
-  GDVars.ovrInEms := OvrResult = ovrOk;
-  GDVars.ovrLoads := 0;
-  GDVars.picBytes := 0;
-  GDVars.picPeak := 0;
+  GameVars.ovrInEms := OvrResult = ovrOk;
+  GameVars.ovrLoads := 0;
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
 {$ENDIF}
@@ -129,10 +127,10 @@ begin
   end;
   ReadLn(cfgText, cfgChar);
   { INT 10h AH=0Fh: get current video mode into AL }
-  GDVars.dsInterruptRegisters.ah := $F;
-  Intr($10, GDVars.dsInterruptRegisters);
-  GDVars.savedVideoMode := GDVars.dsInterruptRegisters.al;
-  GDVars.curVideoMode := GDVars.savedVideoMode;
+  GameVars.interruptRegisters.ah := $F;
+  Intr($10, GameVars.interruptRegisters);
+  GameVars.savedVideoMode := GameVars.interruptRegisters.al;
+  GameVars.curVideoMode := GameVars.savedVideoMode;
   { the video driver for POOL.CFG's mode: E for EGA, T for Tandy, V for VGA, anything else CGA; natively VGA, which
     shows EGA's colours }
 {$IFDEF FPC}
@@ -147,13 +145,13 @@ begin
   end;
   { Keep a screen that lives in system RAM (Tandy's) out of the heap: lower HeapEnd by it. The common code after the
     sound setting lowers HeapEnd by GFX_RESERVE_PARAS once more, so Tandy reserves twice as much. }
-  if GDVars.video.ramVideoParas > 0 then begin
-    gfxReserve := Ptr(heapEndW.s - GDVars.video.ramVideoParas, heapEndW.o);
+  if GameVars.video.ramVideoParas > 0 then begin
+    gfxReserve := Ptr(heapEndW.s - GameVars.video.ramVideoParas, heapEndW.o);
     HeapEnd := gfxReserve;
   end;
 {$ENDIF}
-  Blit.SetVideoMode(GDVars.video.biosMode);
-  GDVars.video.Start;
+  Blit.SetVideoMode(GameVars.video.biosMode);
+  GameVars.video.Start;
 {$IFNDEF FPC}
   if OVERLAY_BUF_BYTES - OvrGetBuf <= MemAvail then begin
     OvrSetBuf(OVERLAY_BUF_BYTES);
@@ -189,25 +187,25 @@ begin
   else
     SndNone.Install;
   end;
-  GDVars.soundMode := GDVars.sound.mode;
+  GameVars.soundMode := GameVars.sound.mode;
   { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
 {$IFNDEF FPC}
   gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
   HeapEnd := gfxReserve;
 {$ENDIF}
   SoundDrv.SoundSuspend;
-  ReadLn(cfgText, GDVars.gameDir);
-  ReadLn(cfgText, GDVars.dsSaveDirectory);
+  ReadLn(cfgText, GameVars.gameDir);
+  ReadLn(cfgText, GameVars.saveDirectory);
 {$IFDEF FPC}
-  NativeFolders(GDVars.gameDir, GDVars.dsSaveDirectory);
+  NativeFolders(GameVars.gameDir, GameVars.saveDirectory);
 {$ELSE}
-  GDVars.gameDir := NormalizePath(GDVars.gameDir);
-  GDVars.dsSaveDirectory := NormalizePath(GDVars.dsSaveDirectory);
+  GameVars.gameDir := NormalizePath(GameVars.gameDir);
+  GameVars.saveDirectory := NormalizePath(GameVars.saveDirectory);
 {$ENDIF}
   ReadLn(cfgText, cfgChar);
   if cfgChar = 'F' then
-    GDVars.fullIntro := True
+    GameVars.fullIntro := True
   else
-    GDVars.fullIntro := False;
+    GameVars.fullIntro := False;
   Close(cfgText);
 end.

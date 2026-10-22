@@ -2,7 +2,7 @@
   patches touch, the archive version and the reserved block ids. DataBld and DataPat are the only source for these
   values; no tool outside this repository keeps a copy. }
 {$I COMPILER.INC}
-unit C_Data;
+unit C_DATA;
 
 interface
 

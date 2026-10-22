@@ -6,29 +6,42 @@ unit GameTime;
 
 interface
 
+uses Types;
+
+var
+  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
+    parameter }
+  restingTimeGbvm: Types.TClock;
+  { Time rested today, in five-minute ticks. }
+  healTicks: Word;
+
 { Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
-  dsRestingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
+  restingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
   stop. Returns True when a scripted random interruption ends the rest. }
 function CampRest(interactive: Boolean): Boolean;
 
+{ Clear the time rested without a break, for a new game (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
-uses Types, C_TIME, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
+uses C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
   { Spell preparation timers for the eight party slots. }
   prepTimers: array[1..8] of Byte;
+  { Uninterrupted resting time when disturbable }
+  restTicks: Word;
 
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99. }
 procedure ValidateRestTime;
 begin
-  Clock.ValidateClock(GDVars.dsRestingTimeGbvm, False);
-  if GDVars.dsRestingTimeGbvm[C_TIME.MONTHS] > 0 then begin
-    Inc(GDVars.dsRestingTimeGbvm[C_TIME.DAYS],
-        GDConsts.unitScale[C_TIME.DAYS] * GDVars.dsRestingTimeGbvm[C_TIME.MONTHS]);
-    GDVars.dsRestingTimeGbvm[C_TIME.MONTHS] := 0;
-    if GDVars.dsRestingTimeGbvm[C_TIME.DAYS] > 99 then GDVars.dsRestingTimeGbvm[C_TIME.DAYS] := 99;
+  Clock.ValidateClock(restingTimeGbvm, False);
+  if restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
+    Inc(restingTimeGbvm[C_TIME.DAYS], GameDefs.unitScale[C_TIME.DAYS] * restingTimeGbvm[C_TIME.MONTHS]);
+    restingTimeGbvm[C_TIME.MONTHS] := 0;
+    if restingTimeGbvm[C_TIME.DAYS] > 99 then restingTimeGbvm[C_TIME.DAYS] := 99;
   end;
 end;
 
@@ -39,23 +52,23 @@ var
   j: ShortInt;
   k: ShortInt;
 begin
-  if (GDVars.dsRestingTimeGbvm[C_TIME.DAYS] <> 0) or (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] <> 0) or
-      (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] <> 0) or (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] <> 0)
+  if (restingTimeGbvm[C_TIME.DAYS] <> 0) or (restingTimeGbvm[C_TIME.HOURS] <> 0) or
+      (restingTimeGbvm[C_TIME.TURNS] <> 0) or (restingTimeGbvm[C_TIME.MINUTES] <> 0)
   then begin
-    while count > GDVars.dsRestingTimeGbvm[tUnit] do begin
+    while count > restingTimeGbvm[tUnit] do begin
       j := Succ(tUnit);
-      while (GDVars.dsRestingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
+      while (restingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
         j := Succ(j);
       if j = C_TIME.MONTHS then begin
-        FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+        FillChar(restingTimeGbvm, SizeOf(restingTimeGbvm), 0);
         count := 0;
       end else
         for k := j downto Succ(tUnit) do begin
-          Dec(GDVars.dsRestingTimeGbvm[k]);
-          Inc(GDVars.dsRestingTimeGbvm[Pred(k)], GDConsts.unitScale[Pred(k)]);
+          Dec(restingTimeGbvm[k]);
+          Inc(restingTimeGbvm[Pred(k)], GameDefs.unitScale[Pred(k)]);
         end;
     end;
-    Dec(GDVars.dsRestingTimeGbvm[tUnit], count);
+    Dec(restingTimeGbvm[tUnit], count);
     GameTime.ValidateRestTime;
   end;
 end;
@@ -74,13 +87,13 @@ begin
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
   for i := C_TIME.DAYS downto C_TIME.HOURS do begin
-    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GDVars.dsRestingTimeGbvm[i]));
+    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(restingTimeGbvm[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
   TextRend.DisplayString(x + 1, 17, colors[C_TIME.TURNS],
-                         StrUtil.ZeroPad2(10 * GDVars.dsRestingTimeGbvm[C_TIME.TURNS] +
-                           GDVars.dsRestingTimeGbvm[C_TIME.MINUTES]));
+                         StrUtil.ZeroPad2(10 * restingTimeGbvm[C_TIME.TURNS] +
+                           restingTimeGbvm[C_TIME.MINUTES]));
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
@@ -102,17 +115,17 @@ begin
     if ext then
       case ch of
         { up arrow -> 'I'nc }
-        C_Keys.UP: ch := 'I';
+        C_KEYS.UP: ch := 'I';
         { down arrow -> 'D'ec }
-        C_Keys.DOWN: ch := 'D';
+        C_KEYS.DOWN: ch := 'D';
         { left arrow }
-        C_Keys.LEFT: begin
+        C_KEYS.LEFT: begin
                        Inc(sel);
                        if sel > C_TIME.DAYS then sel := C_TIME.TURNS;
                        ch := #88;
                      end;
         { right arrow }
-        C_Keys.RIGHT: begin
+        C_KEYS.RIGHT: begin
                         Dec(sel);
                         if sel < C_TIME.TURNS then sel := C_TIME.DAYS;
                         ch := #88;
@@ -127,9 +140,9 @@ begin
       'M': sel := C_TIME.TURNS;
       'I': begin
              if sel = C_TIME.TURNS then
-               Inc(GDVars.dsRestingTimeGbvm[C_TIME.MINUTES], 5)
+               Inc(restingTimeGbvm[C_TIME.MINUTES], 5)
              else
-               Inc(GDVars.dsRestingTimeGbvm[sel]);
+               Inc(restingTimeGbvm[sel]);
              GameTime.ValidateRestTime;
            end;
       'D': begin
@@ -140,36 +153,36 @@ begin
              GameTime.ValidateRestTime;
            end;
     end;
-  until ch in [C_Keys.NONE, 'E', 'R'];
+  until ch in [C_KEYS.NONE, 'E', 'R'];
 end;
 
-{ Every 288 five-minute ticks (24 h) of rest, restore 1 hp to every creature in GDVars.creatureList. The "Healed" banner
-  prints unconditionally; the party pane redraws only if anyone actually healed. }
+{ Every 288 five-minute ticks (24 h) of rest, restore 1 hp to every creature in GameVars.creatureList. The "Healed"
+  banner prints unconditionally; the party pane redraws only if anyone actually healed. }
 procedure CheckRestingHeal;
 var
   healed: Boolean;
   cur: Types.PCharRecord;
 begin
-  Inc(GDVars.healTicks);
-  if GDVars.healTicks >= 288 then begin
+  Inc(healTicks);
+  if healTicks >= 288 then begin
     healed := False;
-    cur := GDVars.creatureList;
+    cur := GameVars.creatureList;
     while cur <> nil do begin
       if FxEngine.RestoreHitPoints(cur, 1, False) then healed := True;
       cur := cur^.nextCharAddr;
     end;
     GameTime.DisplayRestTime(0);
     TextRend.DisplayString(1, 19, LightGreen, 'The Whole Party Is Healed');
-    if healed then CharDisp.DisplayParty(GDVars.curChar);
+    if healed then CharDisp.DisplayParty(GameVars.curChar);
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
-    GDVars.healTicks := 0;
+    healTicks := 0;
   end;
 end;
 
 { Scan the 21 memorized-spell slots; bit 7 set = still memorizing. With done already True, return the first pending
   spell's level; otherwise clear the bit (spell finished), announce it and set done, so the scan goes on to return the
-  next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_Spell.LAST
+  next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_SPELL.LAST
   is passed over. }
 function CheckMemorizeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
@@ -180,11 +193,11 @@ begin
   i := 0;
   while (i <= Types.SPELL_SLOT_LAST) and (lvl = 0) do begin
     if (creature^.memorizedSpells[i] > $7F) and
-        (creature^.memorizedSpells[i] and C_Spell.ID_MASK in [1..C_Spell.LAST]) then
+        (creature^.memorizedSpells[i] and C_SPELL.ID_MASK in [1..C_SPELL.LAST]) then
       if done then
-        lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_Spell.ID_MASK].level
+        lvl := GameDefs.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].level
       else begin
-        Dec(creature^.memorizedSpells[i], C_Spell.PENDING_FLAG);
+        Dec(creature^.memorizedSpells[i], C_SPELL.PENDING_FLAG);
         GameTime.DisplayRestTime(0);
         Magic.PrintCastSpellMsg(creature, 'has memorized', creature^.memorizedSpells[i]);
         done := True;
@@ -201,7 +214,7 @@ end;
   "<spell> has been lost.", the spell gone from the scroll and not learned. The roll is made here rather than when the
   spell is queued, since a queued spell can still be dropped (Camp.ResetScribe) and the time spent is part of
   the attempt. A scroll freed with its last spell is left and the scan goes on with the next item. A spell id outside
-  1..C_Spell.LAST is passed over. }
+  1..C_SPELL.LAST is passed over. }
 function CheckScribeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   j: Byte;
@@ -219,11 +232,11 @@ begin
     if CharHlp.ItemReadable(item) then
       { 3 = High(TItemRec.spells) }
       while (j <= 3) and (lvl = 0) do begin
-        if (item^.spells[j] > $80) and (item^.spells[j] and C_Spell.ID_MASK <= C_Spell.LAST) then
+        if (item^.spells[j] > $80) and (item^.spells[j] and C_SPELL.ID_MASK <= C_SPELL.LAST) then
           if done then
-            lvl := GDConsts.spellTable[item^.spells[j] and C_Spell.ID_MASK].level
+            lvl := GameDefs.spellTable[item^.spells[j] and C_SPELL.ID_MASK].level
           else begin
-            sp := item^.spells[j] and C_Spell.ID_MASK;
+            sp := item^.spells[j] and C_SPELL.ID_MASK;
             Magic.RemoveSpellFromScroll(creature, item, sp);
             GameTime.DisplayRestTime(0);
             { the chance to know the spell, rolled as the scribing ends (#59) }
@@ -231,8 +244,8 @@ begin
               creature^.spellsKnown[sp] := 1;
               Magic.PrintCastSpellMsg(creature, 'has scribed', sp);
             end else
-              CharDisp.PrintTwoLines(creature^.name + ' failed to scribe ' + GDConsts.spellNames[sp] + '.',
-                                     GDConsts.spellNames[sp] + ' has been lost.');
+              CharDisp.PrintTwoLines(creature^.name + ' failed to scribe ' + GameDefs.spellNames[sp] + '.',
+                                     GameDefs.spellNames[sp] + ' has been lost.');
             done := True;
             held := creature^.itemsAddr;
             while (held <> nil) and (held <> item) do
@@ -259,7 +272,7 @@ var
   done: Boolean;
 begin
   i := 1;
-  cur := GDVars.creatureList;
+  cur := GameVars.creatureList;
   { the walk stops at the last prepTimers slot }
   while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
     Dec(prepTimers[i]);
@@ -289,7 +302,7 @@ begin
   if tick >= 12 then begin
     tick := 0;
     i := 1;
-    cur := GDVars.creatureList;
+    cur := GameVars.creatureList;
     while cur <> nil do begin
       if ShortInt(cur^.spellPrepTime) > 0 then begin
         Dec(cur^.spellPrepTime);
@@ -319,25 +332,25 @@ begin
   CampRest := False;
   dead3 := False;
   i := 1;
-  cur := GDVars.creatureList;
+  cur := GameVars.creatureList;
   while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
     prepTimers[i] := 0;
     Inc(i);
     cur := cur^.nextCharAddr;
   end;
-  FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1);
+  FillChar(FxEngine.effFlags, SizeOf(FxEngine.effFlags), 1);
   tick := 0;
   cnt := 0;
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   GameTime.DisplayRestTime(0);
-  GDVars.dsSuppressDrawingBorderFlag := 1;
+  GameVars.suppressDrawingBorderFlag := 1;
   if interactive then
     stop := not GameTime.CampRestMenu
   else
     stop := False;
   while (not stop) and
-      ((GDVars.dsRestingTimeGbvm[C_TIME.DAYS] > 0) or (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] > 0) or
-       (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] > 0) or (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] > 0))
+      ((restingTimeGbvm[C_TIME.DAYS] > 0) or (restingTimeGbvm[C_TIME.HOURS] > 0) or
+       (restingTimeGbvm[C_TIME.TURNS] > 0) or (restingTimeGbvm[C_TIME.MINUTES] > 0))
   do begin
     if KeyPressed then begin
       GameTime.DisplayRestTime(0);
@@ -358,11 +371,11 @@ begin
       GameTime.AdvanceSpellPrep;
       GameTime.AdvanceSpellPrepBase(tick);
       { When the area sets a safe-rest period, roll for an interruption each time it runs out }
-      if GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] > 0 then begin
-        Inc(GDVars.restTicks);
-        if GDVars.restTicks >= GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] then begin
-          GDVars.restTicks := 0;
-          if Dice.RollDice(1, 100) <= GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] then begin
+      if GameVars.zone1^[C_GBVM.REST_SAFE_TIME] > 0 then begin
+        Inc(restTicks);
+        if restTicks >= GameVars.zone1^[C_GBVM.REST_SAFE_TIME] then begin
+          restTicks := 0;
+          if Dice.RollDice(1, 100) <= GameVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] then begin
             CharDisp.ClearMessageWindow;
             GameTime.DisplayRestTime(0);
             TextRend.DisplayString(1, 19, White, 'The Party is rudely interrupted!');
@@ -374,8 +387,17 @@ begin
       end;
     end;
   end;
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-  GDVars.dsSuppressDrawingBorderFlag := 0;
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+  GameVars.suppressDrawingBorderFlag := 0;
 end;
 
+procedure ResetGame;
+begin
+  restTicks := 0;
+end;
+
+begin
+  { Turbo Pascal clears no variable }
+  FillChar(restingTimeGbvm, SizeOf(restingTimeGbvm), 0);
+  healTicks := 0;
 end.

@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TExplore;
 
-uses Types, GDVars, FileUtil, Explored, TestKit;
+uses Types, GameVars, FileUtil, Explored, TestKit;
 
 { Write the squares as file name in folder dir, a save of their own: True when they are in place. }
 function WriteMap(dir: FileUtil.TPathName; name: FileUtil.TSetName): Boolean;
@@ -15,11 +15,11 @@ end;
 
 begin
   TestKit.Start('TEXPLORE');
-  GetMem(GDVars.zone0, SizeOf(Types.TGbvmZone0State));
-  FillChar(GDVars.zone0^, SizeOf(Types.TGbvmZone0State), 0);
+  GetMem(GameVars.zone0, SizeOf(Types.TGbvmZone0State));
+  FillChar(GameVars.zone0^, SizeOf(Types.TGbvmZone0State), 0);
   Explored.Clear;
-  GDVars.eclScriptId := 18;
-  GDVars.zone0^.mapId.lo := 1;
+  GameVars.eclScriptId := 18;
+  GameVars.zone0^.mapId.lo := 1;
   Explored.Mark(5, 8);
   Explored.Mark(15, 15);
   Explored.Mark(16, 3);
@@ -29,8 +29,8 @@ begin
   TestKit.Check(not Explored.Visited(18, 2, 5, 8), 'nor the same square of another map');
   TestKit.Check(not Explored.Visited(19, 1, 5, 8), 'nor of another script');
   TestKit.Check(not Explored.Visited(18, 1, 16, 3), 'a square off the map is not kept');
-  GDVars.eclScriptId := 0;
-  GDVars.zone0^.mapId.lo := 0;
+  GameVars.eclScriptId := 0;
+  GameVars.zone0^.mapId.lo := 0;
   Explored.Mark(0, 0);
   TestKit.Check(WriteMap('', 'TEXPLORE.MAP'), 'the squares are written');
   TestKit.Check(not WriteMap('NODIR\', 'TEXPLORE.MAP'), 'a write into a missing folder says it failed');

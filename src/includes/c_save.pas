@@ -1,6 +1,6 @@
 { Saving-throw categories. }
 {$I COMPILER.INC}
-unit C_Save;
+unit C_SAVE;
 
 interface
 

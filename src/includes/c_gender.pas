@@ -1,6 +1,6 @@
 { Gender values (TCharRecord.gender). }
 {$I COMPILER.INC}
-unit C_Gender;
+unit C_GENDER;
 
 interface
 

@@ -19,14 +19,14 @@ procedure JournalMenu;
 
 implementation
 
-uses Crt, Types, C_Jrnl, C_Keys, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_Msg;
+uses Crt, Types, C_JRNL, C_KEYS, GameVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
     wrapped. The list column fills the rest of the frame on its left, one label a row, with the border column between
     them. }
   PANE_RIGHT = 38;
-  PANE_LEFT = PANE_RIGHT - C_Jrnl.JOURNAL_WIDTH + 1;
+  PANE_LEFT = PANE_RIGHT - C_JRNL.JOURNAL_WIDTH + 1;
   LIST_LEFT = 1;
   LIST_RIGHT = PANE_LEFT - 2;
   TOP_ROW = 1;
@@ -68,7 +68,7 @@ var
 begin
   Border.ClearBox(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW);
   n := top;
-  while (n <= C_Jrnl.JOURNAL_COUNT) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
+  while (n <= C_JRNL.JOURNAL_COUNT) and (n - top <= BOTTOM_ROW - TOP_ROW) do begin
     if n = sel then
       JrnlView.DrawLabel(n, White)
     else
@@ -182,8 +182,8 @@ var
   old: Integer;
 begin
   old := sel;
-  if n > C_Jrnl.JOURNAL_COUNT then
-    n := C_Jrnl.JOURNAL_COUNT;
+  if n > C_JRNL.JOURNAL_COUNT then
+    n := C_JRNL.JOURNAL_COUNT;
   if n < 1 then
     n := 1;
   if (n < top) or (n > top + BOTTOM_ROW - TOP_ROW) then begin
@@ -214,13 +214,13 @@ begin
     top := top + BOTTOM_ROW - TOP_ROW + 1
   else
     top := top - (BOTTOM_ROW - TOP_ROW + 1);
-  if top > C_Jrnl.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW) then
-    top := C_Jrnl.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW);
+  if top > C_JRNL.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW) then
+    top := C_JRNL.JOURNAL_COUNT - (BOTTOM_ROW - TOP_ROW);
   if top < 1 then
     top := 1;
   sel := top + row;
-  if sel > C_Jrnl.JOURNAL_COUNT then
-    sel := C_Jrnl.JOURNAL_COUNT;
+  if sel > C_JRNL.JOURNAL_COUNT then
+    sel := C_JRNL.JOURNAL_COUNT;
   JrnlView.DrawList;
   JrnlView.Moved(old);
 end;
@@ -253,7 +253,7 @@ var
   end;
 
 begin
-  savedChoice := GDVars.horizChoice;
+  savedChoice := GameVars.horizChoice;
   sel := 1;
   top := 1;
   shown := 0;
@@ -263,7 +263,7 @@ begin
   reading := False;
   lastKey := 'S';
   { the list's box goes first, then the text box and the title box, so the gold corners stay where the borders meet }
-  Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   Border.DrawBorder(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW, 0);
   Border.DrawBorder(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW, 0);
   Border.DrawBorder(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW, 0);
@@ -278,20 +278,20 @@ begin
     if reading and (page > 1) then
       menu := menu + ' Prev';
     menu := menu + ' Exit';
-    GDVars.horizChoice := OptionOf(lastKey);
+    GameVars.horizChoice := OptionOf(lastKey);
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       case ch of
-        C_Keys.UP, C_Keys.HOME: if sel > 1 then
+        C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
                                   JrnlView.MoveTo(sel - 1)
                                 else
-                                  JrnlView.MoveTo(C_Jrnl.JOURNAL_COUNT);
-        C_Keys.DOWN, C_Keys.END_KEY: if sel < C_Jrnl.JOURNAL_COUNT then
+                                  JrnlView.MoveTo(C_JRNL.JOURNAL_COUNT);
+        C_KEYS.DOWN, C_KEYS.END_KEY: if sel < C_JRNL.JOURNAL_COUNT then
                                        JrnlView.MoveTo(sel + 1)
                                      else
                                        JrnlView.MoveTo(1);
-        C_Keys.PGUP: JrnlView.ScrollColumn(False);
-        C_Keys.PGDN: JrnlView.ScrollColumn(True);
+        C_KEYS.PGUP: JrnlView.ScrollColumn(False);
+        C_KEYS.PGDN: JrnlView.ScrollColumn(True);
       end;
       if previewDue then begin
         reading := False;
@@ -315,9 +315,9 @@ begin
              end;
       end;
     end;
-  until not ext and (ch in [C_Keys.NONE, 'E']);
+  until not ext and (ch in [C_KEYS.NONE, 'E']);
   @MenuCore.idleHook := nil;
-  GDVars.horizChoice := savedChoice;
+  GameVars.horizChoice := savedChoice;
   CharDisp.DisplayNoncombatInterface;
 end;
 

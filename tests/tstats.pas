@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TStats;
 
-uses Types, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, Stats, TestKit;
+uses Types, GameVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -19,21 +19,21 @@ begin
   GetMem(p, SizeOf(Types.TCharRecord));
   FillChar(p^, SizeOf(Types.TCharRecord), 0);
   p^.name := name;
-  p^.status := C_Status.OKAY;
+  p^.status := C_STATUS.OKAY;
   p^.nextCharAddr := next;
   NewCreature := p;
 end;
 
 begin
   TestKit.Start('TSTATS');
-  GetMem(GDVars.zone1, SizeOf(Types.TGbvmZone1));
-  FillChar(GDVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
+  GetMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
+  FillChar(GameVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
   { a party of two, then a monster after them, as combat appends monsters }
   monster := NewCreature('KOBOLD', nil);
   b := NewCreature('ANNA', monster);
   a := NewCreature('TALONIA', b);
-  GDVars.creatureList := a;
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 2;
+  GameVars.creatureList := a;
+  GameVars.zone1^[C_GBVM.PARTY_SIZE] := 2;
 
   TestKit.Check(Party.IsPartyMember(a), 'first member is in the party');
   TestKit.Check(Party.IsPartyMember(b), 'second member is in the party');
@@ -51,8 +51,8 @@ begin
   TestKit.CheckEqualsL(0, Stats.game.counts[Stats.RAISED], 'a monster''s count reaches neither block nor game');
 
   { a party member fells a monster in combat }
-  GDVars.ifcState := C_Ifc.COMBAT;
-  monster^.status := C_Status.DYING;
+  GameVars.ifcState := C_IFC.COMBAT;
+  monster^.status := C_STATUS.DYING;
   Stats.Damaged(a, monster, 7, True);
   blk := Stats.BlockOf(a);
   TestKit.CheckEqualsL(7, blk^.counts[Stats.DAMAGE_DONE], 'damage done');
@@ -65,12 +65,12 @@ begin
   TestKit.CheckEqualsL(1, blk^.counts[Stats.KILLS], 'no kill for a creature already down');
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'damage on a fallen creature still counts');
   { outside combat a party member's blow is not credited }
-  GDVars.ifcState := C_Ifc.INDOORS;
+  GameVars.ifcState := C_IFC.INDOORS;
   Stats.Damaged(a, monster, 4, False);
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'no damage done outside combat');
 
   { a party member is hurt, knocked down, killed }
-  b^.status := C_Status.DEAD;
+  b^.status := C_STATUS.DEAD;
   Stats.Damaged(monster, b, 12, True);
   blk := Stats.BlockOf(b);
   TestKit.CheckEqualsL(12, blk^.counts[Stats.DAMAGE_TAKEN], 'damage taken');
@@ -83,11 +83,11 @@ begin
   TestKit.CheckEqualsL(2, Stats.game.counts[Stats.DIED], 'a monster''s death is not the party''s');
 
   { kinds past the table go under OTHER }
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GameVars.ifcState := C_IFC.COMBAT;
   for i := 1 to Stats.KINDS + 2 do begin
     Str(i, s);
     monster^.name := 'BEAST' + s;
-    monster^.status := C_Status.DEAD;
+    monster^.status := C_STATUS.DEAD;
     Stats.Damaged(a, monster, 1, True);
   end;
   blk := Stats.BlockOf(a);
@@ -97,23 +97,23 @@ begin
   TestKit.CheckEqualsL(4, blk^.kills[Stats.KINDS].count, 'OTHER counts every kind past the table');
 
   { healing given counts only while a spell is resolved }
-  GDVars.dsCurrentSpellBeing := 0;
+  GameVars.currentSpellBeing := 0;
   Stats.Healed(a, b, 5, False);
   TestKit.CheckEqualsL(5, Stats.BlockOf(b)^.counts[Stats.HEALED_TAKEN], 'healing taken');
   TestKit.CheckEqualsL(0, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'no healing given without a spell');
-  GDVars.dsCurrentSpellBeing := 3;
+  GameVars.currentSpellBeing := 3;
   Stats.Healed(a, b, 4, False);
   TestKit.CheckEqualsL(4, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a spell');
-  GDVars.dsCurrentSpellBeing := 0;
+  GameVars.currentSpellBeing := 0;
   Stats.Healed(a, b, 2, True);
   TestKit.CheckEqualsL(6, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a power');
 
   { net coin: what each member comes away with, up or down }
-  a^.coins[C_Money.GOLD] := 10;
-  b^.coins[C_Money.SILVER] := 50;
+  a^.coins[C_MONEY.GOLD] := 10;
+  b^.coins[C_MONEY.SILVER] := 50;
   Stats.MarkCoins;
-  a^.coins[C_Money.GOLD] := 15;
-  b^.coins[C_Money.SILVER] := 0;
+  a^.coins[C_MONEY.GOLD] := 15;
+  b^.coins[C_MONEY.SILVER] := 0;
   Stats.SettleCoins;
   TestKit.CheckEqualsL(1000, Stats.BlockOf(a)^.counts[Stats.COIN_LOOTED], 'coin taken, in copper');
   TestKit.CheckEqualsL(-500, Stats.BlockOf(b)^.counts[Stats.COIN_LOOTED], 'coin pooled, below zero');

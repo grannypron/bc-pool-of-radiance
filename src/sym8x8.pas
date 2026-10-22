@@ -6,7 +6,7 @@ unit Sym8x8;
 
 interface
 
-{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> dsSymbolSetPtrs[setID] (with a transparency mask
+{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> symbolSetPtrs[setID] (with a transparency mask
   for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the file name and fileID, waits for
   a key and quits to DOS. }
 procedure Load8x8Set(fileID, setID: Byte);
@@ -19,16 +19,16 @@ procedure Put8x8Sym(col, row: ShortInt; symbol: Word; inCombat, other: Boolean);
 
 implementation
 
-uses Crt, GDConsts, GDVars, Blit, GameIo, StrUtil;
+uses Crt, GameDefs, GameVars, Blit, GameIo, StrUtil;
 
 procedure Load8x8Set(fileID, setID: Byte);
 var
   s1: String[1];
 begin
   if setID in [0..4] then begin
-    Str(GDVars.virtualDisk, s1);
-    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GDVars.dsSymbolSetPtrs[setID]);
-    if GDVars.dsSymbolSetPtrs[setID] = nil then begin
+    Str(GameVars.virtualDisk, s1);
+    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GameVars.symbolSetPtrs[setID]);
+    if GameVars.symbolSetPtrs[setID] = nil then begin
       GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
     end;
   end;
@@ -48,16 +48,16 @@ begin
       GameIo.FatalError('Bad symbol number in Put8x8Symbol.');
     end;
   end;
-  if GDVars.dsSymbolSetPtrs[setIdx] <> nil then begin
-    Dec(symbol, GDConsts.symSetFirst[setIdx]);
-    with GDVars.dsSymbolSetPtrs[setIdx]^ do
+  if GameVars.symbolSetPtrs[setIdx] <> nil then begin
+    Dec(symbol, GameDefs.symSetFirst[setIdx]);
+    with GameVars.symbolSetPtrs[setIdx]^ do
       if (height <> 8) or (width <> 1) or (symbol >= count) then Exit;
     if inCombat then
-      Blit.BlitTileCell(col, row, symbol, Ord(other), GDVars.dsSymbolSetPtrs[setIdx], GDVars.dsViewImageBufferPtr)
+      Blit.BlitTileCell(col, row, symbol, Ord(other), GameVars.symbolSetPtrs[setIdx], GameVars.viewImageBufferPtr)
     else begin
-      with GDVars.dsSymbolSetPtrs[setIdx]^ do
-        Move(data[symbol * imgSize], GDVars.dsCurrent8x8SymbolPtr2^.data, imgSize);
-      Blit.ShowPic(col, row, GDVars.dsCurrent8x8SymbolPtr2);
+      with GameVars.symbolSetPtrs[setIdx]^ do
+        Move(data[symbol * imgSize], GameVars.current8x8SymbolPtr2^.data, imgSize);
+      Blit.ShowPic(col, row, GameVars.current8x8SymbolPtr2);
     end;
   end;
 end;

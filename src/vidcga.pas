@@ -7,17 +7,17 @@ unit VidCga;
 
 interface
 
-{ Make this the video driver: fill GDVars.video. }
+{ Make this the video driver: fill GameVars.video. }
 procedure Install;
 
 implementation
 
-uses Types, C_Video, GDConsts, GDVars, DaxIo, Blit, PicCga;
+uses Types, C_VIDEO, GameDefs, GameVars, DaxIo, Blit, PicCga;
 
 var
   { the two banks: even scanlines at $B800, odd at $BA00, 80 bytes a scanline and 4 scanlines of each to a text row }
-  cgaB800: array[0..255] of Types.TCgaRow {$IFNDEF FPC}absolute C_Video.GFX_BANK0_SEG:$0000{$ENDIF};
-  cgaBA00: array[0..255] of Types.TCgaRow {$IFNDEF FPC}absolute C_Video.GFX_BANK1_SEG:$0000{$ENDIF};
+  cgaB800: array[0..255] of Types.TCgaRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK0_SEG:$0000{$ENDIF};
+  cgaBA00: array[0..255] of Types.TCgaRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK1_SEG:$0000{$ENDIF};
 
 procedure Start;
 begin
@@ -27,11 +27,11 @@ procedure FlushSpans;
 var
   row: Word;
 begin
-  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
-    if GDVars.spanActive[row] <> 0 then
-      Move(GDVars.dsViewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
-           Mem[GDVars.cgaRowSeg[row + 8]:GDVars.spanScreenOfs[row] + 2],
-           GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
+  for row := 0 to SizeOf(GameVars.spanActive) - 1 do
+    if GameVars.spanActive[row] <> 0 then
+      Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
+           Mem[GameVars.cgaRowSeg[row + 8]:GameVars.spanScreenOfs[row] + 2],
+           GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
 end;
 
 { 2 bytes per 8-pixel cell, a row at a time through the row segments }
@@ -51,7 +51,7 @@ begin
     lastRow := firstRow + height - 1;
     colOff := screenX * 2;
     for row := firstRow to lastRow do begin
-      Move(pic^.data[srcOff], Mem[GDVars.cgaRowSeg[row]:colOff], rowBytes);
+      Move(pic^.data[srcOff], Mem[GameVars.cgaRowSeg[row]:colOff], rowBytes);
       Inc(srcOff, rowBytes);
     end;
   end;
@@ -59,6 +59,10 @@ end;
 
 { color is mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat }
 procedure DrawGlyph(col, row, color, glyph: Byte);
+const
+  { CGA colors 0..3 repeated across eight 2-bit pixels }
+  cgaColorPat: array[0..3] of Word = (
+    $0000, $5555, $AAAA, $FFFF);
 var
   dstOff: Word;
   cnt: Word;
@@ -67,15 +71,15 @@ var
   mask: Byte;
   outerRow: Byte;
 begin
-  color := GDConsts.attrTable[color];
+  color := GameDefs.attrTable[color];
   dstOff := row * 4;
   cnt := 0;
   for outerRow := 0 to 3 do begin
     cgaWord := 0;
     mask := $80;
     for k := 0 to 7 do begin
-      if (GDVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
+      if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
+        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
       mask := mask shr 1;
     end;
     cgaB800[dstOff][col] := Swap(cgaWord);
@@ -83,8 +87,8 @@ begin
     cgaWord := 0;
     mask := $80;
     for k := 0 to 7 do begin
-      if (GDVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GDConsts.cgaPixelMask[k] and GDConsts.cgaColorPat[color]);
+      if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
+        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
       mask := mask shr 1;
     end;
     cgaBA00[dstOff][col] := Swap(cgaWord);
@@ -114,13 +118,13 @@ end;
 { the attribute's colour (its low four bits) mapped through attrTable, on the one page }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, GDConsts.attrTable[attr and $0F], count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, GameDefs.attrTable[attr and $0F], count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
 begin
   { the colour map picks which of the 4 colours shows color }
-  FillChar(cell, SizeOf(cell), GDConsts.cgaColorFill[Blit.SrcNibble(color, colorMap)]);
+  FillChar(cell, SizeOf(cell), GameDefs.cgaColorFill[Blit.SrcNibble(color, colorMap)]);
 end;
 
 { no palette registers }
@@ -130,7 +134,7 @@ end;
 
 procedure Install;
 begin
-  with GDVars.video do begin
+  with GameVars.video do begin
     name := 'CGA';
     colours := 4;
     hasPalette := False;

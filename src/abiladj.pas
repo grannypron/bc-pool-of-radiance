@@ -1,5 +1,18 @@
-{ Ability score adjustments: the Strength and Dexterity tables for to-hit, damage, armor class and carrying. Resident
-  and using only Types, so combat can call it and tests can use it. }
+{ Ability score adjustments: what a score gives in to-hit, damage, armor class, carrying, saves, spells and loyalty.
+
+  AbilAdj was cut out of CharHlp in refactor phase 0 (9bda93c), when SSI's Strength and Dexterity tables moved into it.
+  The split follows a rule, not where the code came from.
+
+  AbilAdj: an ability score in, a number out.
+  - Its only dependency is Types: no GameVars, no heap and no screen.
+  - That lets combat call it and the tests (TAbilAdj) cover it.
+  - Everything added since follows the same rule: the Constitution save bonus, ClampScore, the Deities & Demigods
+    ranges above 18, Intelligence's chance to learn a spell, and Wisdom's spell failure.
+
+  CharHlp: operations on a creature.
+  - It applies those numbers to the creature's record (WeaponAdjust, EncumbranceAdjust, RecalcStats).
+  - It also handles inventory, damage, effects, teams and scrolls.
+  - It reads GameVars and the effect lists. }
 {$F+}
 {$I COMPILER.INC}
 unit AbilAdj;
@@ -55,6 +68,19 @@ function IntKnowSpellChance(intel: Byte): Byte;
 { The chance, in percent, that a clerical spell fails for Wisdom wis (1st-edition PHB): 20 at 9, 15 at 10, 10 at 11,
   5 at 12 and 0 from 13; below 9, which no cleric has, counts as 9. }
 function WisSpellFailure(wis: Byte): Byte;
+
+{ Encode Strength as an effect strength byte: base 18 gives excStr + 1, any other base gives baseStr + 100. Bit 7 is
+  left for the caller's "superseded" mark. }
+function StrengthModifier(baseStr, excStr: Byte): Byte;
+
+{ Decode an effect's strength byte (bit 7 masked off) into base and exceptional Strength: values <= 101 give base 18
+  with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
+procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
+
+{ The loyalty base a script reads for Charisma cha (C_GBVM.CHAR_LOYALTY): 0 at 3, 5 more a point to 20 at 7, 25 at
+  8..12, 30 at 13, 35 at 14, 40 at 15, 50 at 16, 55 at 17 and 60 from 18. The caller asks only for 3..25 (SCORE_MIN..
+  SCORE_MAX); outside it the script reads nothing. }
+function ChaLoyaltyBase(cha: Byte): Byte;
 
 implementation
 
@@ -252,6 +278,37 @@ begin
     ClampScore := SCORE_MAX
   else
     ClampScore := score;
+end;
+
+function StrengthModifier(baseStr, excStr: Byte): Byte;
+begin
+  StrengthModifier := baseStr + 100;
+  if baseStr = 18 then
+    StrengthModifier := excStr + 1;
+end;
+
+procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
+begin
+  excStr := 0;
+  baseStr := effect^.strength and $7F;
+  if baseStr <= 101 then begin
+    excStr := baseStr - 1;
+    baseStr := 18;
+  end else
+    baseStr := baseStr - 100;
+end;
+
+function ChaLoyaltyBase(cha: Byte): Byte;
+begin
+  case cha of
+    0..3: ChaLoyaltyBase := 0;
+    4..7: ChaLoyaltyBase := (cha - 3) * 5;
+    8..12: ChaLoyaltyBase := 25;
+    13..15: ChaLoyaltyBase := (cha - 7) * 5;
+    16..17: ChaLoyaltyBase := (cha - 6) * 5;
+  else
+    ChaLoyaltyBase := 60;
+  end;
 end;
 
 end.

@@ -1,6 +1,6 @@
 { TCharRecord.npc values. }
 {$I COMPILER.INC}
-unit C_Npc;
+unit C_NPC;
 
 interface
 

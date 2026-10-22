@@ -9,6 +9,12 @@ interface
 
 uses Types;
 
+var
+  { Portrait head ID. }
+  currentPortraitHead: Byte;
+  { Portrait body ID. }
+  currentPortraitHead2: Byte;
+
 procedure DisplayParty(hl: Types.PCharRecord);
 
 procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
@@ -69,8 +75,8 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_Area, C_Msg, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
+uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
+  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR;
 
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
@@ -86,7 +92,7 @@ var
   row: Byte;
   band: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.MAIN_MENU then
+  if GameVars.ifcState = C_IFC.MAIN_MENU then
     col := 1
   else
     col := 17;
@@ -94,7 +100,7 @@ begin
   TextRend.DisplayString(col, row, White, 'Name');
   TextRend.DisplayString(33, row, White, 'AC  HP');
   Inc(row, 2);
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     Border.ClearBox(col, row, 38, row);
     if p = hl then
@@ -163,16 +169,16 @@ begin
   Inc(row, 2);
   TextRend.DisplayString(23, row + 1, LightGreen, 'AC');
   CharDisp.PrintArmorClass(creature, 26, row + 1);
-  GDVars.curRow := row + 1;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then begin
+  GameVars.curRow := row + 1;
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
     Inc(row, 2);
-    CharHlp.ItemLabel(creature^.equipped[C_Equip.WEAPON], False);
+    CharHlp.ItemLabel(creature^.equipped[C_EQUIP.WEAPON], False);
     TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
-                                  creature^.equipped[C_Equip.WEAPON]^.name);
+                                  creature^.equipped[C_EQUIP.WEAPON]^.name);
   end;
-  row := GDVars.curRow + 1;
+  row := GameVars.curRow + 1;
   if creature^.enabled = 0 then
-    TextRend.DisplayString(23, row + 1, White, GDConsts.statusStrs[creature^.status])
+    TextRend.DisplayString(23, row + 1, White, GameDefs.statusStrs[creature^.status])
   else if CharHlp.IsHelpless(creature) then
     TextRend.DisplayString(23, row + 1, White, '(Helpless)');
 end;
@@ -187,37 +193,37 @@ begin
 end;
 
 { Ready the bottom message window outside combat and return its top row: row MESSAGE_TOP + 1 when
-  dsSuppressDrawingBorderFlag is set, else MESSAGE_TOP with the border drawn round it; the window is cleared. }
+  suppressDrawingBorderFlag is set, else MESSAGE_TOP with the border drawn round it; the window is cleared. }
 function OpenMessageWindow: Byte;
 var
   top: Byte;
 begin
-  if GDVars.dsSuppressDrawingBorderFlag <> 0 then
-    top := C_Msg.MESSAGE_TOP + 1
+  if GameVars.suppressDrawingBorderFlag <> 0 then
+    top := C_MSG.MESSAGE_TOP + 1
   else begin
-    top := C_Msg.MESSAGE_TOP;
-    Border.DrawBorder(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+    top := C_MSG.MESSAGE_TOP;
+    Border.DrawBorder(C_MSG.TEXT_LEFT, top, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   end;
-  Border.ClearBox(C_Msg.TEXT_LEFT, top, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Border.ClearBox(C_MSG.TEXT_LEFT, top, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   OpenMessageWindow := top;
 end;
 
 { Show "<name> <text>" in the message window: in combat, the combat window from column 23 at row; otherwise the
-  full-width bottom window (bordered unless dsSuppressDrawingBorderFlag is set), the name on its first line and the text
+  full-width bottom window (bordered unless suppressDrawingBorderFlag is set), the name on its first line and the text
   word-wrapped below. With pause, wait for a key and clear the window. }
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 var
   top: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
-    Border.ClearBox(C_Msg.COMBAT_LEFT, row, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
-    CharDisp.DisplayCreatureName(creature, C_Msg.COMBAT_LEFT, row, False);
-    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, row + 1, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM, LightGreen, True,
+  if GameVars.ifcState = C_IFC.COMBAT then begin
+    Border.ClearBox(C_MSG.COMBAT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+    CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
+    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, LightGreen, True,
                                   s);
   end else begin
     top := CharDisp.OpenMessageWindow;
     CharDisp.DisplayCreatureName(creature, 1, top + 1, False);
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, top + 1 + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, LightGreen, True,
+    TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, top + 1 + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, LightGreen, True,
                                   s);
   end;
   if pause then begin
@@ -235,15 +241,15 @@ end;
 
 procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GameVars.ifcState = C_IFC.COMBAT then begin
     if first then
-      Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM);
-    TextRend.DisplayMessageWindow(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM,
+      Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
+    TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM,
                                   color, first, s);
   end else begin
     if first then
       messageTop := CharDisp.OpenMessageWindow;
-    TextRend.DisplayMessageWindow(C_Msg.TEXT_LEFT, messageTop + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, color, first,
+    TextRend.DisplayMessageWindow(C_MSG.TEXT_LEFT, messageTop + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, color, first,
                                   s);
   end;
 end;
@@ -258,15 +264,15 @@ procedure PrintTwoLines(line1, line2: string);
 var
   left: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then
-    left := C_Msg.COMBAT_LEFT
+  if GameVars.ifcState = C_IFC.COMBAT then
+    left := C_MSG.COMBAT_LEFT
   else
-    left := C_Msg.TEXT_LEFT;
+    left := C_MSG.TEXT_LEFT;
   CharDisp.MessageText(line1, LightGreen, True);
   { a line that ended short of the window's edge leaves the cursor on it: line2 starts on the next }
-  if GDVars.curCol <> left then begin
-    GDVars.curCol := left;
-    Inc(GDVars.curRow);
+  if GameVars.curCol <> left then begin
+    GameVars.curCol := left;
+    Inc(GameVars.curRow);
   end;
   CharDisp.MessageText(line2, LightGreen, False);
   TextRend.PauseOnly;
@@ -276,10 +282,10 @@ end;
 { Clear whichever message window is active (combat or bottom), leaving its border alone. }
 procedure ClearMessageWindow;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then
-    Border.ClearBox(C_Msg.COMBAT_LEFT, C_Msg.COMBAT_MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.COMBAT_BOTTOM)
+  if GameVars.ifcState = C_IFC.COMBAT then
+    Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM)
   else
-    Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
 end;
 
 { Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to train)
@@ -302,8 +308,8 @@ begin
     TextRend.DisplayString(col + Length(creature^.name), row, color, '''s');
 end;
 
-{ Copy one icon half (GDVars.dsIconAnimation[cell, half]) into frame row of the moving-icon sheet
-  (GDVars.dsMoveIconSheet), mirrored through a scratch picture when asked. The pixel data copies imgSize bytes; the
+{ Copy one icon half (GameVars.iconAnimation[cell, half]) into frame row of the moving-icon sheet
+  (GameVars.moveIconSheet), mirrored through a scratch picture when asked. The pixel data copies imgSize bytes; the
   transparency mask copies Blit.MaskBytes of that. }
 procedure CopyIconFacing(cell, half, row: Byte; mirror: Boolean);
 var
@@ -311,17 +317,17 @@ var
   stride4: Word;
   stride: Word;
 begin
-  stride := GDVars.dsMoveIconSheet^.imgSize;
+  stride := GameVars.moveIconSheet^.imgSize;
   stride4 := Blit.MaskBytes(stride);
   if mirror then begin
     Blit.AllocPic(24, 3, 1, 1, tmp);
-    Blit.MirrorPic(GDVars.dsIconAnimation[cell, half], tmp);
-    Move(tmp^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
-    Move(tmp^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
+    Blit.MirrorPic(GameVars.iconAnimation[cell, half], tmp);
+    Move(tmp^.data, GameVars.moveIconSheet^.data[row * stride], stride);
+    Move(tmp^.transp^, GameVars.moveIconSheet^.transp^[row * stride4], stride4);
     Blit.FreePic(tmp);
   end else begin
-    Move(GDVars.dsIconAnimation[cell, half]^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
-    Move(GDVars.dsIconAnimation[cell, half]^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
+    Move(GameVars.iconAnimation[cell, half]^.data, GameVars.moveIconSheet^.data[row * stride], stride);
+    Move(GameVars.iconAnimation[cell, half]^.transp^, GameVars.moveIconSheet^.transp^[row * stride4], stride4);
   end;
 end;
 
@@ -385,45 +391,45 @@ begin
   if count < 2 then Exit;
   dirX := endX - startX;
   dirY := endY - startY;
-  if not CbtMap.ViewCoordsValid(startX - GDVars.arenaPtr^.ox, startY - GDVars.arenaPtr^.oy) or
-      not CbtMap.ViewCoordsValid(endX - GDVars.arenaPtr^.ox, endY - GDVars.arenaPtr^.oy) then begin
+  if not CbtMap.ViewCoordsValid(startX - GameVars.arenaPtr^.ox, startY - GameVars.arenaPtr^.oy) or
+      not CbtMap.ViewCoordsValid(endX - GameVars.arenaPtr^.ox, endY - GameVars.arenaPtr^.oy) then begin
     if (Abs(dirX) <= 6) and (Abs(dirY) <= 6) then begin
       lastPass := True;
       camX := startX + dirX div 2;
       camY := startY + dirY div 2;
     end else begin
       lastPass := False;
-      camX := GDVars.arenaPtr^.ox + 3;
-      camY := GDVars.arenaPtr^.oy + 3;
+      camX := GameVars.arenaPtr^.ox + 3;
+      camY := GameVars.arenaPtr^.oy + 3;
     end;
   end else begin
     lastPass := True;
-    camX := GDVars.arenaPtr^.ox + 3;
-    camY := GDVars.arenaPtr^.oy + 3;
+    camX := GameVars.arenaPtr^.ox + 3;
+    camY := GameVars.arenaPtr^.oy + 3;
   end;
   CbtMap.ScrollView(camX, camY, 255, 8);
   n := 0;
   accX := 0;
   accY := 0;
   repeat
-    pixX := (startX - GDVars.arenaPtr^.ox) * 3 + accX;
-    pixY := (startY - GDVars.arenaPtr^.oy) * 3 + accY;
+    pixX := (startX - GameVars.arenaPtr^.ox) * 3 + accX;
+    pixY := (startY - GameVars.arenaPtr^.oy) * 3 + accY;
     prevX := startX;
     prevY := startY;
     done := False;
     repeat
       if (pace > 0) or (pixX mod 3 = 0) or (pixY mod 3 = 0) then begin
-        Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, frame, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GameVars.iconImageBufferPtr, GameVars.viewImageBufferPtr);
         Inc(frame);
         if frame >= frames then
           frame := 0;
       end;
       Inc(n);
-      stepX := GDConsts.dirDX[steps[n]];
-      stepY := GDConsts.dirDY[steps[n]];
+      stepX := GameDefs.dirDX[steps[n]];
+      stepY := GameDefs.dirDY[steps[n]];
       Inc(pixX, stepX);
       Inc(pixY, stepY);
       if (pixX < 0) or (pixX > 18) or (pixY < 0) or (pixY > 18) then
@@ -447,29 +453,29 @@ begin
       dirX := Pathing.SignOf(prevX - startX);
       dirY := Pathing.SignOf(prevY - startY);
       if dirX <> 0 then begin
-        if startX >= GDVars.arenaPtr^.ox + 6 then
+        if startX >= GameVars.arenaPtr^.ox + 6 then
           camX := startX + 3
-        else if startX <= GDVars.arenaPtr^.ox then
+        else if startX <= GameVars.arenaPtr^.ox then
           camX := startX - 3;
       end;
       if dirY <> 0 then begin
-        if startY >= GDVars.arenaPtr^.oy + 6 then
+        if startY >= GameVars.arenaPtr^.oy + 6 then
           camY := startY + 3
-        else if startY <= GDVars.arenaPtr^.oy then
+        else if startY <= GameVars.arenaPtr^.oy then
           camY := startY - 3;
       end;
       CbtMap.ScrollView(camX, camY, 255, 8);
     end else begin
       lastPass := True;
-      if not CbtMap.ViewCoordsValid(endX - GDVars.arenaPtr^.ox, endY - GDVars.arenaPtr^.oy) then
+      if not CbtMap.ViewCoordsValid(endX - GameVars.arenaPtr^.ox, endY - GameVars.arenaPtr^.oy) then
         CbtMap.ScrollView(endX, endY, 3, 8);
-      pixX := (endX - GDVars.arenaPtr^.ox) * 3;
-      pixY := (endY - GDVars.arenaPtr^.oy) * 3;
-      Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+      pixX := (endX - GameVars.arenaPtr^.ox) * 3;
+      pixY := (endY - GameVars.arenaPtr^.oy) * 3;
+      Blit.BlitTileClipped(pixX, pixY, frame, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);
       if pace > 0 then begin
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GameVars.iconImageBufferPtr, GameVars.viewImageBufferPtr);
       end;
     end;
   until lastPass;
@@ -491,7 +497,7 @@ var
   reps: Byte;
   slot: Byte;
 begin
-  if GDVars.ifcState = C_Ifc.COMBAT then begin
+  if GameVars.ifcState = C_IFC.COMBAT then begin
     SoundDrv.SoundSetAutoStop(0);
     if effect then
       cell := 22
@@ -501,25 +507,25 @@ begin
     if not CbtMap.CombatIconVisible(creature, 1) then
       CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, 8);
     if effect then
-      SoundDrv.SoundCommand(GDConsts.soundIds.combat[0])
+      SoundDrv.SoundCommand(GameDefs.soundIds.combat[0])
     else
-      SoundDrv.SoundCommand(GDConsts.soundIds.damage);
+      SoundDrv.SoundCommand(GameDefs.soundIds.damage);
     CharDisp.PrintNameString(creature, s, 10, False);
     if effect then
-      reps := GDVars.gameDelay
+      reps := GameVars.gameDelay
     else
       reps := 0;
     slot := CbtMap.CombatSlot(creature);
     { slot 0: not on the map, so there is no cell to flash }
     if slot > 0 then begin
-      gx := GDVars.gridX[slot] * 3;
-      gy := GDVars.gridY[slot] * 3;
+      gx := CbtMap.gridX[slot] * 3;
+      gy := CbtMap.gridY[slot] * 3;
       for i := 0 to reps do
         for j := 0 to 3 do begin
-          Blit.BlitTileClipped(gx, gy, j, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, j, 5, GameVars.moveIconSheet, GameVars.viewImageBufferPtr);
           Blit.FlushView;
           Delay(70);
-          Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.dsIconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, 0, 0, GameVars.iconImageBufferPtr, GameVars.viewImageBufferPtr);
         end;
     end;
     SoundDrv.SoundSetAutoStop(10);
@@ -540,16 +546,16 @@ begin
   else
     s := 'is partially healed';
   CharDisp.PrintNameString(creature, s, 10, True);
-  if GDVars.ifcState <> C_Ifc.COMBAT then
-    CharDisp.DisplayParty(GDVars.curChar);
+  if GameVars.ifcState <> C_IFC.COMBAT then
+    CharDisp.DisplayParty(GameVars.curChar);
 end;
 
 { Draw the three standard noncombat windows (full screen minus the bottom line, message window, 3D/picture view), plus
   the picture inset border when asked. }
 procedure DrawNoncombatWindows(inset: Boolean);
 begin
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
   Border.DrawWindow(1, 1, 15, 15, 0, White, '');
   if inset then
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
@@ -560,39 +566,39 @@ end;
   picture and party. }
 procedure DisplayNoncombatInterface;
 begin
-  case GDVars.ifcState of
-    C_Ifc.MAIN_MENU: Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM,
+  case GameVars.ifcState of
+    C_IFC.MAIN_MENU: Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM,
                                        0, White, '');
-    C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
+    C_IFC.SHOP_TEMPLE, C_IFC.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
-      Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
+      Portrait.LoadPortraitBufs(currentPortraitHead, currentPortraitHead2);
       Portrait.DisplayPortraitBufs(3, 3, True);
     end;
-    C_Ifc.CAMPING: begin
+    C_IFC.CAMPING: begin
       CharDisp.DrawNoncombatWindows(True);
-      Portrait.LoadAnimation('PIC', 29, 0, GDVars.animData);
+      Portrait.LoadAnimation('PIC', 29, 0, GameVars.animData);
       { the campfire now, not only once an animating menu draws it: a plain prompt may come first (#666) }
-      if GDVars.animData.current > 0 then
-        Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[GDVars.animData.current].pic);
-      CharDisp.DisplayParty(GDVars.curChar);
+      if GameVars.animData.current > 0 then
+        Portrait.DisplayImageBuf(3, 3, True, GameVars.animData.frames[GameVars.animData.current].pic);
+      CharDisp.DisplayParty(GameVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_Ifc.INDOORS: begin
+    C_IFC.INDOORS: begin
       CharDisp.DrawNoncombatWindows(True);
       MapView.DisplayMapView;
-      CharDisp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GameVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_Ifc.OUTDOORS: begin
+    C_IFC.OUTDOORS: begin
       CharDisp.DrawNoncombatWindows(False);
       MapView.DisplayMapView;
-      CharDisp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GameVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_Ifc.LOOT: begin
+    C_IFC.LOOT: begin
       CharDisp.DrawNoncombatWindows(True);
-      Portrait.LoadAnimation('PIC', 1, 0, GDVars.animData);
-      CharDisp.DisplayParty(GDVars.curChar);
+      Portrait.LoadAnimation('PIC', 1, 0, GameVars.animData);
+      CharDisp.DisplayParty(GameVars.curChar);
     end;
   end;
 end;
@@ -601,6 +607,10 @@ end;
   is set; above location type 1 they come from the zone-0 party position, +13 for type 3 and +26 for type 4), compass
   facing, the zero-padded HH:MM clock, and the camping or search tag. }
 procedure PrintMiscInfo;
+const
+  { clockwise facing codes 0..7, starting at north }
+  dirNames: array[C_DIR.NORTH..C_DIR.NORTHWEST] of string[2] = (
+    'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW');
 var
   x: Byte;
   y: Byte;
@@ -609,30 +619,30 @@ var
   info: Types.TStr40;
 begin
   info := '';
-  x := GDVars.gMapX;
-  y := GDVars.gMapY;
-  if GDVars.gLocType > C_Area.LOC_3D_MAP then begin
-    x := GDVars.zone0^.partyX.lo;
-    y := GDVars.zone0^.partyY.lo;
-    if GDVars.gLocType = C_Area.LOC_WILD_CENTRAL then
+  x := GameVars.gMapX;
+  y := GameVars.gMapY;
+  if GameVars.gLocType > C_AREA.LOC_3D_MAP then begin
+    x := GameVars.zone0^.partyX.lo;
+    y := GameVars.zone0^.partyY.lo;
+    if GameVars.gLocType = C_AREA.LOC_WILD_CENTRAL then
       Inc(x, 13);
-    if GDVars.gLocType = C_Area.LOC_WILD_EAST then
+    if GameVars.gLocType = C_AREA.LOC_WILD_EAST then
       Inc(x, 26);
   end;
-  hrs := StrUtil.ZeroPad2(GDVars.zone0^.clock.hour);
+  hrs := StrUtil.ZeroPad2(GameVars.zone0^.clock.hour);
   { A turn is ten minutes and the minute counter rolls over at ten, so turn * 10 + minute is the minute of the hour (see
-    GDConsts.unitScale). }
-  mins := StrUtil.ZeroPad2(10 * GDVars.zone0^.clock.turn + GDVars.zone0^.clock.minute);
-  if GDVars.zone0^.noAutomap = 0 then
+    GameDefs.unitScale). }
+  mins := StrUtil.ZeroPad2(10 * GameVars.zone0^.clock.turn + GameVars.zone0^.clock.minute);
+  if GameVars.zone0^.noAutomap = 0 then
     info := StrUtil.NumStr(x) + ',' + StrUtil.NumStr(y) + ' ';
-  info := info + GDConsts.dirNames[GDVars.gFacing] + ' ';
+  info := info + dirNames[GameVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
   { the STING trace log is on (Ctrl-L), as Curse shows it }
-  if GDVars.debugTraceEnabled then
+  if GameVars.debugTraceEnabled then
     info := info + '*';
-  if GDVars.ifcState = C_Ifc.CAMPING then
+  if GameVars.ifcState = C_IFC.CAMPING then
     info := info + ' camping'
-  else if GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1 > 0 then
+  else if GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     info := info + ' search';
   Border.ClearBox(17, 15, 38, 15);
   TextRend.DisplayString(17, 15, LightGreen, info);
@@ -641,12 +651,12 @@ end;
 { Switch to the outdoor interface and draw it: the wilderness windows and map views, status line and party. }
 procedure DisplayWildernessInterface;
 begin
-  GDVars.ifcState := C_Ifc.OUTDOORS;
+  GameVars.ifcState := C_IFC.OUTDOORS;
   Wilds.DrawWildWindows;
   MapView.DisplayMapView;
   MapView.DisplayWildMapView;
   CharDisp.PrintMiscInfo;
-  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GameVars.curChar);
 end;
 
 { Draw the combat screen: combat palette, the two combat windows, the cleared bottom rows, and a forced rebuild of the
@@ -657,12 +667,12 @@ begin
   Border.DrawWindow(1, 1, 21, 21, 0, Black, '');
   Border.DrawWindow(23, 1, 38, 21, 0, Black, '');
   Border.ClearBox(0, 23, 39, 24);
-  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, 8);
+  CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, 8);
 end;
 
 { Let the player pick a character on the horizontal menu, starting from sel: End and Home (also keypad 1 and 7) cycle
   next/previous through the creature list. Return, Exit and Select leave the loop, Exit with sel nil. With addExit,
-  Escape (which MenuHorizontal returns as C_Keys.NONE) leaves like Exit; without it there is no way out but choosing,
+  Escape (which MenuHorizontal returns as C_KEYS.NONE) leaves like Exit; without it there is no way out but choosing,
   and Escape is ignored (a script's WHO needs a character). Does not set the current character. }
 procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PCharRecord);
 var
@@ -677,11 +687,11 @@ begin
   if addExit then
     exitStr := ' Exit';
   { open on Select: the highlight is shared by every menu, and Enter takes it }
-  GDVars.horizChoice := 1;
-  while not ((ch in [C_Keys.ENTER, C_Keys.ESC, 'E', 'S']) or ((ch = C_Keys.NONE) and addExit)) do
+  GameVars.horizChoice := 1;
+  while not ((ch in [C_KEYS.ENTER, C_KEYS.ESC, 'E', 'S']) or ((ch = C_KEYS.NONE) and addExit)) do
   begin
     CharDisp.DisplayParty(sel);
-    if (GDVars.ifcState = C_Ifc.CAMPING) or (GDVars.ifcState = C_Ifc.LOOT) then
+    if (GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.LOOT) then
       anim := True
     else
       anim := False;
@@ -691,10 +701,10 @@ begin
     if ext then
       case ch of
         { End: next character, wrapping to the head }
-        C_Keys.END_KEY: p := Party.NextCreature(p);
+        C_KEYS.END_KEY: p := Party.NextCreature(p);
         { Home: previous character, wrapping to the tail }
-        C_Keys.HOME: p := Party.PrevCreature(sel);
-      end else if ((ch = 'E') or (ch = C_Keys.NONE)) and addExit then
+        C_KEYS.HOME: p := Party.PrevCreature(sel);
+      end else if ((ch = 'E') or (ch = C_KEYS.NONE)) and addExit then
       p := nil;
     sel := p;
   end;
@@ -711,4 +721,8 @@ begin
   TextRend.DisplayAndPause(Yellow, msg);
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  currentPortraitHead := 0;
+  currentPortraitHead2 := 0;
 end.

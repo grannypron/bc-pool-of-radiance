@@ -14,8 +14,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_Status, C_Ifc, C_Gbvm,
-  C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
+uses Types, Crt, C_NPC, C_MSG, GameDefs, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
+  C_MONEY, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
   { Combat outcome. }
@@ -30,7 +30,7 @@ var
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
   div 20, electrum div 2, gold x1, platinum x5, gems x250, jewelry x2200), as does each taken item's positive plus x400
-  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonSharerCount, and the share
+  (items before GameVars.lastMissileItem). The total is divided by C_GBVM.PARTY_SIZE minus nonSharerCount, and the share
   is 0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
   level (levelHighest) of the current character. }
 procedure DetermineLootExp(var share: LongInt);
@@ -43,46 +43,46 @@ var
   cnt: Byte;
   sharers: Integer;
 begin
-  if GDVars.duelFlag and (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] <> 0) then
-    share := GDVars.curChar^.levelHighest * 100
+  if GameVars.duelFlag and (GameVars.zone1^[C_GBVM.MIRROR_DUEL] <> 0) then
+    share := GameVars.curChar^.levelHighest * 100
   else begin
     expTotal := 0;
-    p := GDVars.creatureList;
+    p := GameVars.creatureList;
     cnt := 0;
     while p <> nil do begin
       item := p^.itemsAddr;
-      if (p^.hostile = 1) and (p^.status <> C_Status.RUNNING) then begin
+      if (p^.hostile = 1) and (p^.status <> C_STATUS.RUNNING) then begin
         nonEscapedHostileFound := True;
-        for i := C_Money.COPPER to C_Money.JEWELRY do
-          Inc(GDVars.treasureMoney[i], p^.coins[i]);
+        for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+          Inc(GameVars.treasureMoney[i], p^.coins[i]);
         expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
-        if GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] <> 1 then
+        if GameVars.zone1^[C_GBVM.NO_COMBAT_ITEMS] <> 1 then
           while item <> nil do begin
             if (item^.value > 0) or ((cnt < 8) and (Dice.RollDice(1, 10) <= 3)) then begin
               Inc(cnt);
               CharHlp.ItemLabel(item, False);
-              CharHlp.PrependItemCopy(GDVars.treasureItems, item);
-              GDVars.treasureItems^.equipped := 0;
+              CharHlp.PrependItemCopy(GameVars.treasureItems, item);
+              GameVars.treasureItems^.equipped := 0;
             end;
             item := item^.next;
           end;
       end;
       p := p^.nextCharAddr;
     end;
-    Inc(expTotal, GDVars.treasureMoney[C_Money.COPPER] div 200);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.SILVER] div 20);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.ELECTRUM] div 2);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.GOLD]);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.PLATINUM] * 5);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.GEMS] * 250);
-    Inc(expTotal, GDVars.treasureMoney[C_Money.JEWELRY] * 2200);
-    q := GDVars.treasureItems;
-    while (q <> nil) and (q <> GDVars.lastMissileItem) do begin
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.COPPER] div 200);
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.SILVER] div 20);
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.ELECTRUM] div 2);
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.GOLD]);
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.PLATINUM] * 5);
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.GEMS] * 250);
+    Inc(expTotal, GameVars.treasureMoney[C_MONEY.JEWELRY] * 2200);
+    q := GameVars.treasureItems;
+    while (q <> nil) and (q <> GameVars.lastMissileItem) do begin
       if q^.plus > 0 then
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonSharerCount;
+    sharers := GameVars.zone1^[C_GBVM.PARTY_SIZE] - nonSharerCount;
     if sharers > 0 then
       share := expTotal div sharers
     else
@@ -95,9 +95,9 @@ procedure AwardExperience(experience: LongInt);
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
-    if (p^.enabled <> 0) and (p^.status <> C_Status.ANIMATED) then
+    if (p^.enabled <> 0) and (p^.status <> C_STATUS.ANIMATED) then
       Inc(p^.experience, ClassCal.ExperienceShare(p, experience));
     p := p^.nextCharAddr;
   end;
@@ -111,10 +111,10 @@ begin
 end;
 
 { Classify the combat outcome. Outside a duel the party (the creatures before the first notPcNpc = 1 entry) is defeated
-  unless some non-hostile, non-NPC member is Running, Animated or Okay; while C_Gbvm.MIRROR_DUEL is 1 any non-hostile,
+  unless some non-hostile, non-NPC member is Running, Animated or Okay; while C_GBVM.MIRROR_DUEL is 1 any non-hostile,
   non-NPC member will do, so a lost mirror duel does not end the game. Any Animated or Okay member wins the combat and
   experience is awarded; otherwise a Running member means the party fled. Not fled: Running members return Okay, Dying
-  ones become Unconscious and Unconscious ones with HP above 0 recover. Fled: C_Gbvm.COMBAT_RESULT becomes $81, Running
+  ones become Unconscious and Unconscious ones with HP above 0 recover. Fled: C_GBVM.COMBAT_RESULT becomes $81, Running
   members return and every other member is removed. Defeated: every party member is removed and the party size is set to
   0. In a duel the party is never defeated: each enabled, Okay, non-hostile creature sets combatWon and triggers an
   experience award, Okay and Animated creatures are re-enabled and Dying ones become Unconscious. }
@@ -125,30 +125,30 @@ var
   b: Boolean;
 begin
   nonSharerCount := 0;
-  GDVars.partyDefeated := True;
+  GameVars.partyDefeated := True;
   partyFled := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and (not IsMonster(p)) do begin
-    if p^.status = C_Status.RUNNING then
+    if p^.status = C_STATUS.RUNNING then
       partyFled := True;
     p := p^.nextCharAddr;
   end;
-  if GDVars.duelFlag then
-    GDVars.partyDefeated := False;
+  if GameVars.duelFlag then
+    GameVars.partyDefeated := False;
   combatWon := False;
-  p := GDVars.creatureList;
-  if not GDVars.duelFlag then begin
+  p := GameVars.creatureList;
+  if not GameVars.duelFlag then begin
     while (p <> nil) and (not IsMonster(p)) do begin
-      { C_Npc.FLAG clear }
-      if ((p^.status = C_Status.RUNNING) or (p^.status = C_Status.ANIMATED) or
-          (p^.status = C_Status.OKAY) or
-          (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
-        GDVars.partyDefeated := False;
-      if (p^.status = C_Status.ANIMATED) or (p^.status = C_Status.OKAY) then begin
+      { C_NPC.FLAG clear }
+      if ((p^.status = C_STATUS.RUNNING) or (p^.status = C_STATUS.ANIMATED) or
+          (p^.status = C_STATUS.OKAY) or
+          (GameVars.zone1^[C_GBVM.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
+        GameVars.partyDefeated := False;
+      if (p^.status = C_STATUS.ANIMATED) or (p^.status = C_STATUS.OKAY) then begin
         combatWon := True;
         partyFled := False;
       end;
-      if (p^.enabled = 0) or (p^.status = C_Status.ANIMATED) then
+      if (p^.enabled = 0) or (p^.status = C_STATUS.ANIMATED) then
         Inc(nonSharerCount);
       p := p^.nextCharAddr;
     end;
@@ -156,66 +156,66 @@ begin
       PostCbt.DetermineLootExp(expShare);
       PostCbt.AwardExperience(expShare);
     end;
-    p := GDVars.creatureList;
-    if not GDVars.partyDefeated then begin
+    p := GameVars.creatureList;
+    if not GameVars.partyDefeated then begin
       while (p <> nil) and (not IsMonster(p)) do begin
         { RemoveCreature below frees p }
         nxt := p^.nextCharAddr;
         if not partyFled then begin
           case p^.status of
-            C_Status.RUNNING: begin
-                                p^.status := C_Status.OKAY;
+            C_STATUS.RUNNING: begin
+                                p^.status := C_STATUS.OKAY;
                                 p^.enabled := 1;
                               end;
-            C_Status.DYING: p^.status := C_Status.UNCONSCIOUS;
-            C_Status.UNCONSCIOUS: if p^.hpCur > 0 then begin
-                                    p^.status := C_Status.OKAY;
+            C_STATUS.DYING: p^.status := C_STATUS.UNCONSCIOUS;
+            C_STATUS.UNCONSCIOUS: if p^.hpCur > 0 then begin
+                                    p^.status := C_STATUS.OKAY;
                                     p^.enabled := 1;
                                   end;
           end;
         end else begin
-          GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $81;
-          if p^.status = C_Status.RUNNING then begin
-            p^.status := C_Status.OKAY;
+          GameVars.zone1^[C_GBVM.COMBAT_RESULT] := $81;
+          if p^.status = C_STATUS.RUNNING then begin
+            p^.status := C_STATUS.OKAY;
             p^.enabled := 1;
           end else begin
-            GDVars.curChar := p;
+            GameVars.curChar := p;
             SaveLoad.RemoveCreature(False, True);
           end;
         end;
         p := nxt;
       end;
     end else begin
-      p := GDVars.creatureList;
+      p := GameVars.creatureList;
       b := False;
       while (p <> nil) and not b do begin
         { RemoveCreature frees p }
         nxt := p^.nextCharAddr;
         if not IsMonster(p) then begin
-          GDVars.curChar := p;
+          GameVars.curChar := p;
           SaveLoad.RemoveCreature(False, True);
         end else
           b := True;
         p := nxt;
       end;
-      GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+      GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
     end;
   end else begin
-    p := GDVars.creatureList;
+    p := GameVars.creatureList;
     while p <> nil do begin
-      if (p^.enabled = 1) and (p^.status = C_Status.OKAY) and (p^.hostile <> 1) then begin
+      if (p^.enabled = 1) and (p^.status = C_STATUS.OKAY) and (p^.hostile <> 1) then begin
         combatWon := True;
         PostCbt.DetermineLootExp(expShare);
         PostCbt.AwardExperience(expShare);
       end;
       p := p^.nextCharAddr;
     end;
-    p := GDVars.creatureList;
+    p := GameVars.creatureList;
     while p <> nil do begin
-      if (p^.status = C_Status.OKAY) or (p^.status = C_Status.ANIMATED) then
+      if (p^.status = C_STATUS.OKAY) or (p^.status = C_STATUS.ANIMATED) then
         p^.enabled := 1;
-      if p^.status = C_Status.DYING then
-        p^.status := C_Status.UNCONSCIOUS;
+      if p^.status = C_STATUS.DYING then
+        p^.status := C_STATUS.UNCONSCIOUS;
       p := p^.nextCharAddr;
     end;
   end;
@@ -232,12 +232,12 @@ var
   ext: Boolean;
 begin
   query[0] := #0;
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
-  if nonEscapedHostileFound or GDVars.duelFlag then begin
-    if GDVars.duelFlag and not combatWon then begin
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+  if nonEscapedHostileFound or GameVars.duelFlag then begin
+    if GameVars.duelFlag and not combatWon then begin
       TextRend.DisplayString(1, 3, LightGreen, 'You have lost the duel.');
       experience := 0;
-    end else if GDVars.duelFlag then
+    end else if GameVars.duelFlag then
       TextRend.DisplayString(1, 3, LightGreen, 'You have won the duel.')
     else
       TextRend.DisplayString(1, 3, LightGreen, 'The party has won.');
@@ -249,7 +249,7 @@ begin
       TextRend.DisplayString(1, 3, LightGreen, 'The party has found Treasure!');
   end;
   Str(experience, numStr);
-  if GDVars.duelFlag then
+  if GameVars.duelFlag then
     msg := 'The duelist receives ' + numStr
   else
     msg := 'Each character receives ' + numStr;
@@ -270,13 +270,13 @@ var
   p: Types.PItemRec;
 begin
   redraw := True;
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Loot');
-  p := GDVars.treasureItems;
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Loot');
+  p := GameVars.treasureItems;
   while p <> nil do begin
     CharHlp.ItemLabel(p, False);
     p := p^.next;
   end;
-  head := GDVars.treasureItems;
+  head := GameVars.treasureItems;
   c := MenuCore.MenuVertical('Items: ', 'Take', LightMagenta, LightGreen, White, 1, 4, 38, 22,
                              head, True, redraw, idx, cursor);
   itemToTake := cursor;
@@ -295,23 +295,23 @@ var
   failed: Boolean;
 begin
   itemToTake := nil;
-  cursor := GDVars.treasureItems;
+  cursor := GameVars.treasureItems;
   idx := 0;
   repeat
     PostCbt.LootTakeItemSelection(c, itemToTake, cursor, idx);
     { no item highlighted (an empty list) leaves too, before anything reads it }
-    if ((c <> 'T') and (c <> C_Keys.ENTER)) or (itemToTake = nil) then
+    if ((c <> 'T') and (c <> C_KEYS.ENTER)) or (itemToTake = nil) then
       done := True
     else begin
       done := False;
       Shop.GiveItemCopyToCreature(itemToTake, failed);
       { loot after a fight, not the vault's own items (#611) }
-      if not failed and (GDVars.ifcState = C_Ifc.LOOT) then
-        Stats.Count(GDVars.curChar, Stats.ITEMS_LOOTED, 1);
+      if not failed and (GameVars.ifcState = C_IFC.LOOT) then
+        Stats.Count(GameVars.curChar, Stats.ITEMS_LOOTED, 1);
       if not failed then begin
-        p := GDVars.treasureItems;
+        p := GameVars.treasureItems;
         if p = itemToTake then
-          GDVars.treasureItems := itemToTake^.next
+          GameVars.treasureItems := itemToTake^.next
         else begin
           while p^.next <> itemToTake do
             p := p^.next;
@@ -319,7 +319,7 @@ begin
         end;
         itemToTake^.next := nil;
         FreeMem(itemToTake, SizeOf(Types.TItemRec));
-        if GDVars.treasureItems = nil then
+        if GameVars.treasureItems = nil then
           done := True;
       end;
     end;
@@ -350,9 +350,9 @@ begin
                    CharDisp.DisplayNoncombatInterface;
                  end;
             'I': PostCbt.LootTakeItemMenu;
-            'E', C_Keys.NONE: done := True;
+            'E', C_KEYS.NONE: done := True;
           end;
-        CharDisp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GameVars.curChar);
         Money.DetermineTreasure(treasure, items);
         if not treasure or not items then
           done := True;
@@ -394,9 +394,9 @@ begin
     hasDetect := False;
     if items then
       while (i <= Types.SPELL_SLOT_LAST) and not hasDetect do begin
-        if (GDVars.curChar^.memorizedSpells[i] = 5) or (GDVars.curChar^.memorizedSpells[i] = 11) then begin
+        if (GameVars.curChar^.memorizedSpells[i] = 5) or (GameVars.curChar^.memorizedSpells[i] = 11) then begin
           hasDetect := True;
-          detectSpell := GDVars.curChar^.memorizedSpells[i];
+          detectSpell := GameVars.curChar^.memorizedSpells[i];
         end;
         Inc(i);
       end;
@@ -413,7 +413,7 @@ begin
       the money, F10 as 'D' and cast Detect Magic, #730) }
     if ext then begin
       Party.SelectPrevNextChar(c);
-      CharDisp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GameVars.curChar);
     end else
       case c of
         'V': ViewChar.ViewCharMenu(ext);
@@ -423,7 +423,7 @@ begin
                Money.ShareMoney;
         'D': if hasDetect then
                Magic.CastSpellNC(detectSpell, False, False, ext);
-        'E', C_Keys.NONE: begin
+        'E', C_KEYS.NONE: begin
                             Money.DetermineTreasure(treasure, items);
                             done := not (treasure or items) or
                                     not Money.GoBackForIt('There is still treasure left.  ',
@@ -434,8 +434,8 @@ begin
   until done;
 end;
 
-{ Monsters and hostile creatures are removed, counting the ones not enabled in C_Gbvm.MONSTERS_DEFEATED; the others get
-  their combat records freed, and while the Quick Ends With Fight setting is on (GDVars.quickEnds) party members leave
+{ Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
+  their combat records freed, and while the Quick Ends With Fight setting is on (GameVars.quickEnds) party members leave
   Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
   creatures keep quickfight, as Space in combat leaves them. curChar is left at the list head. }
 procedure PostCombatCreatureCleanup;
@@ -443,14 +443,14 @@ var
   p: Types.PCharRecord;
   next: Types.PCharRecord;
 begin
-  GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED] := 0;
-  p := GDVars.creatureList;
+  GameVars.zone1^[C_GBVM.MONSTERS_DEFEATED] := 0;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if IsMonster(p) or (p^.hostile = 1) then begin
       if p^.enabled <> 1 then
-        Inc(GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED]);
+        Inc(GameVars.zone1^[C_GBVM.MONSTERS_DEFEATED]);
       next := p^.nextCharAddr;
-      GDVars.curChar := p;
+      GameVars.curChar := p;
       SaveLoad.RemoveCreature(IsMonster(p), True);
       p := next;
     end else begin
@@ -458,12 +458,12 @@ begin
         FreeMem(p^.combatAddr, SizeOf(Types.TCombatRec));
         p^.combatAddr := nil;
       end;
-      if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(p) then
+      if (GameVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(p) then
         p^.quickfight := 0;
       p := p^.nextCharAddr;
     end;
   end;
-  GDVars.curChar := GDVars.creatureList;
+  GameVars.curChar := GameVars.creatureList;
 end;
 
 { Each Okay NPC claims (npcTreasureShare and 7) shares, every other creature one share. Each coin type above 0 is cut
@@ -482,12 +482,12 @@ var
   c: Char;
 begin
   took := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   npcShares := 0;
   total := 0;
   while p <> nil do begin
-    { C_Npc.FLAG set }
-    if CharHlp.IsNpc(p) and (p^.status = C_Status.OKAY) then begin
+    { C_NPC.FLAG set }
+    if CharHlp.IsNpc(p) and (p^.status = C_STATUS.OKAY) then begin
       Inc(npcShares, p^.npcTreasureShare and 7);
       Inc(total, p^.npcTreasureShare and 7);
     end else
@@ -495,19 +495,19 @@ begin
     p := p^.nextCharAddr;
   end;
   if npcShares > 0 then
-    for i := C_Money.COPPER to C_Money.JEWELRY do
-      if GDVars.treasureMoney[i] > 0 then begin
-        cut := GDVars.treasureMoney[i] div total;
-        Dec(GDVars.treasureMoney[i], npcShares * cut);
+    for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+      if GameVars.treasureMoney[i] > 0 then begin
+        cut := GameVars.treasureMoney[i] div total;
+        Dec(GameVars.treasureMoney[i], npcShares * cut);
         took := True;
       end;
   if took then begin
-    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, '');
-    p := GDVars.creatureList;
+    Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
+    p := GameVars.creatureList;
     row := 0;
     while p <> nil do begin
-      { C_Npc.FLAG set }
-      if CharHlp.IsNpc(p) and (p^.status = C_Status.OKAY) and (p^.npcTreasureShare > 0) then begin
+      { C_NPC.FLAG set }
+      if CharHlp.IsNpc(p) and (p^.status = C_STATUS.OKAY) and (p^.npcTreasureShare > 0) then begin
         TextRend.DisplayMessageWindow(5, row + 5, 34, 22, LightGreen, True,
                                       p^.name + ' takes and hides his share.');
         Inc(row, 2);
@@ -520,35 +520,35 @@ begin
 end;
 
 { Resolve combat results and remove combat state. On survival or in a duel, take the NPC shares, display the summary,
-  offer loot and free the leftover treasure items; on defeat, set C_Gbvm.COMBAT_RESULT to $80 and show the game-over
+  offer loot and free the leftover treasure items; on defeat, set C_GBVM.COMBAT_RESULT to $80 and show the game-over
   screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel. }
 procedure PostCombat;
 begin
-  GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := 0;
+  GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
   nonEscapedHostileFound := False;
-  GDVars.ifcState := C_Ifc.LOOT;
+  GameVars.ifcState := C_IFC.LOOT;
   PostCbt.DetermineCombatResults;
   PostCbt.PostCombatCreatureCleanup;
-  if not GDVars.partyDefeated or GDVars.duelFlag then begin
+  if not GameVars.partyDefeated or GameVars.duelFlag then begin
     PostCbt.NpcTreasureShare;
     PostCbt.PostCombatSummary(expShare);
     PostCbt.LootMenu;
-    CharHlp.FreeItemList(GDVars.treasureItems);
+    CharHlp.FreeItemList(GameVars.treasureItems);
   end else begin
-    GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $80;
-    Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'The END!');
-    GDVars.curCol := 2;
-    GDVars.curRow := 6;
+    GameVars.zone1^[C_GBVM.COMBAT_RESULT] := $80;
+    Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'The END!');
+    GameVars.curCol := 2;
+    GameVars.curRow := 6;
     TextRend.DisplayMessageWindow(2, 5, 37, 22, LightGreen, True,
                                   'The monsters rejoice for the party has been destroyed');
     TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
   end;
-  GDVars.msgDelayFlag := 1;
-  GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD] := 0;
-  GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD] := 0;
-  GDVars.zone1^[C_Gbvm.MOD_PARTY_MOVE] := 0;
-  GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] := 0;
-  GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := 0;
+  GameVars.msgDelayFlag := 1;
+  GameVars.zone1^[C_GBVM.MONSTER_HIT_MOD] := 0;
+  GameVars.zone1^[C_GBVM.PARTY_HIT_MOD] := 0;
+  GameVars.zone1^[C_GBVM.MOD_PARTY_MOVE] := 0;
+  GameVars.zone1^[C_GBVM.NO_COMBAT_ITEMS] := 0;
+  GameVars.zone1^[C_GBVM.MIRROR_DUEL] := 0;
 end;
 
 end.

@@ -20,9 +20,9 @@ procedure DisplayCharPortrait;
   or on any disk once the merged HEAD.DAX and BODY.DAX are read in place of its own. }
 function PlayerPortraitsHere: Boolean;
 
-{ How many GDConsts.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
+{ How many GameDefs.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
   all of them once the merged HEAD.DAX and BODY.DAX are read in place of its own, otherwise the ones HEAD3.DAX and
-  BODY3.DAX hold (GDConsts.DISK3_HEADS and DISK3_BODIES). }
+  BODY3.DAX hold (DISK3_HEADS and DISK3_BODIES). }
 function PlayerPortraitCount(body: Boolean): Byte;
 
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
@@ -31,9 +31,19 @@ procedure LoadPortraitBufs(headId, bodyId: Byte);
 
 procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 
+{ Forget which archive and picture are cached, so the next picture is loaded afresh, for a new game
+  (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDConsts, GDVars, Blit, GameIo, Border, DaxIo, StrUtil;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameDefs, GameVars, Blit, GameIo, Border, DaxIo, StrUtil;
+
+var
+  { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
+  picArcName: String[8];
+  { picture id loaded from picArcName; 255 invalidates the pair }
+  picArcId: Byte;
 
 { Draw pic at (col, row). An animation frame is composited transparently through the clipped blitter into the view
   buffer at (col-1, row-1) and the view is flushed; a plain image goes straight to the screen through Blit.ShowPic. A
@@ -42,7 +52,7 @@ procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
 begin
   if pic <> nil then
     if anim then begin
-      Blit.BlitTileClipped(col - 1, row - 1, 0, 1, pic, GDVars.dsViewImageBufferPtr);
+      Blit.BlitTileClipped(col - 1, row - 1, 0, 1, pic, GameVars.viewImageBufferPtr);
       Blit.FlushView;
     end else
       Blit.ShowPic(col, row, pic);
@@ -61,7 +71,7 @@ begin
 end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that archive and id are already the cached picture
-  (GDVars.picArcName/picArcId); a load that ends with no frames is not cached. PIC 1 is capped at 4 frames, and any
+  (picArcName/picArcId); a load that ends with no frames is not cached. PIC 1 is capped at 4 frames, and any
   picture at the 8 the record holds. A frame is loaded only while MaxAvail is at least 3900 and covers what loading it
   allocates (FrameNeed): loaded frames are stored in order and count becomes the number loaded, a skipped frame's data
   is stepped over, and without room for the first frame (which the others are XORed with for PIC and FINAL) nothing is
@@ -69,6 +79,58 @@ end;
   it; a later frame is XORed only over as many bytes as the first frame has. An odd transp remaps LightMagenta to Black
   outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
+const
+  { Sprite color remaps used when LoadAnimation's transp argument is odd (not under CGA). }
+  animRemapFrom: Types.TColorTab = (
+    Black,
+    Blue,
+    Green,
+    Cyan,
+    Red,
+    Magenta,
+    Brown,
+    LightGray,
+    DarkGray,
+    LightBlue,
+    LightGreen,
+    LightCyan,
+    LightRed,
+    LightMagenta,
+    Yellow,
+    White);
+  animRemapTo: Types.TColorTab = (
+    { Black -> Black }
+    Black,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> LightGray }
+    LightGray,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> Black }
+    Black,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
 var
   sz: Word;
   buf: Types.PByteArr;
@@ -111,8 +173,8 @@ var
   end;
 
 begin
-  Str(LongInt(GDVars.virtualDisk), diskCh);
-  if (name + diskCh = GDVars.picArcName) and (picId = GDVars.picArcId) then Exit;
+  Str(LongInt(GameVars.virtualDisk), diskCh);
+  if (name + diskCh = picArcName) and (picId = picArcId) then Exit;
   Portrait.FreeAnimation(a);
   isPic := (name = 'PIC') or (name = 'FINAL');
   DaxIo.LoadDax(name + diskCh, '.dax', picId, sz, buf);
@@ -176,7 +238,7 @@ begin
           end;
         Blit.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
         if (transp and 1 > 0) and (Blit.ColourCount = 16) then
-          Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
+          Blit.RemapPic(animRemapFrom, animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
       end else if f = 1 then
         { the other frames are drawn over, or XORed with, the first }
@@ -191,8 +253,8 @@ begin
   { only a picture with frames is cached, so one that loaded none is tried again (SSI cached it and kept it blank,
     #726) }
   if loaded > 0 then begin
-    GDVars.picArcName := name + diskCh;
-    GDVars.picArcId := picId;
+    picArcName := name + diskCh;
+    picArcId := picId;
   end;
   if isPic and gotXor then FreeMem(xorBuf, xorSz);
   FreeMem(buf, sz);
@@ -207,20 +269,20 @@ begin
     for k := 1 to count do
       Blit.FreePic(frames[k].pic);
   FillChar(a, SizeOf(a), 0);
-  GDVars.picArcName[0] := #0;
-  GDVars.picArcId := 255;
+  picArcName[0] := #0;
+  picArcId := 255;
 end;
 
 { Draw a bordered window at the top right, then the current character's portrait in it, its head and body numbers mapped
-  through GDConsts.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. }
+  through GameDefs.headTbl/bodyTbl. Does nothing when either number is 0 or past its table. }
 procedure DisplayCharPortrait;
 begin
-  with GDVars.curChar^ do
-    if (portraitHead = 0) or (portraitBody = 0) or (portraitHead > SizeOf(GDConsts.headTbl)) or
-        (portraitBody > SizeOf(GDConsts.bodyTbl)) then Exit;
+  with GameVars.curChar^ do
+    if (portraitHead = 0) or (portraitBody = 0) or (portraitHead > SizeOf(GameDefs.headTbl)) or
+        (portraitBody > SizeOf(GameDefs.bodyTbl)) then Exit;
   Border.DrawWindow(28, 1, 38, 11, 0, Black, '');
-  with GDVars.curChar^ do begin
-    Portrait.LoadPortraitBufs(GDConsts.headTbl[portraitHead], GDConsts.bodyTbl[portraitBody]);
+  with GameVars.curChar^ do begin
+    Portrait.LoadPortraitBufs(GameDefs.headTbl[portraitHead], GameDefs.bodyTbl[portraitBody]);
     Portrait.DisplayPortraitBufs(28, 1, True);
   end;
 end;
@@ -228,26 +290,30 @@ end;
 { True when this disk's HEAD and BODY loads read the merged HEAD.DAX and BODY.DAX, which hold every head and body. }
 function MergedPortraits: Boolean;
 begin
-  MergedPortraits := (DaxIo.ArchiveName('HEAD' + StrUtil.NumStr(GDVars.virtualDisk)) = 'HEAD') and
-                     (DaxIo.ArchiveName('BODY' + StrUtil.NumStr(GDVars.virtualDisk)) = 'BODY');
+  MergedPortraits := (DaxIo.ArchiveName('HEAD' + StrUtil.NumStr(GameVars.virtualDisk)) = 'HEAD') and
+                     (DaxIo.ArchiveName('BODY' + StrUtil.NumStr(GameVars.virtualDisk)) = 'BODY');
 end;
 
 function PlayerPortraitsHere: Boolean;
 begin
-  PlayerPortraitsHere := (GDVars.virtualDisk = 3) or MergedPortraits;
+  PlayerPortraitsHere := (GameVars.virtualDisk = 3) or MergedPortraits;
 end;
 
 function PlayerPortraitCount(body: Boolean): Byte;
+const
+  { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
+  DISK3_HEADS = 21;
+  DISK3_BODIES = 16;
 begin
   if MergedPortraits then begin
     if body then
-      PlayerPortraitCount := SizeOf(GDConsts.bodyTbl)
+      PlayerPortraitCount := SizeOf(GameDefs.bodyTbl)
     else
-      PlayerPortraitCount := SizeOf(GDConsts.headTbl);
+      PlayerPortraitCount := SizeOf(GameDefs.headTbl);
   end else if body then
-    PlayerPortraitCount := GDConsts.DISK3_BODIES
+    PlayerPortraitCount := DISK3_BODIES
   else
-    PlayerPortraitCount := GDConsts.DISK3_HEADS;
+    PlayerPortraitCount := DISK3_HEADS;
 end;
 
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping
@@ -256,26 +322,26 @@ procedure LoadPortraitBufs(headId, bodyId: Byte);
 var
   diskCh: String[1];
 begin
-  Str(LongInt(GDVars.virtualDisk), diskCh);
+  Str(LongInt(GameVars.virtualDisk), diskCh);
   if headId <> 255 then
-    if (GDVars.dsPortraitCache[1].pictureId = 255) or (GDVars.dsPortraitCache[1].pictureId <> headId) or
-        (GDVars.dsPortraitCache[1].disk <> GDVars.virtualDisk) then begin
-      Blit.LoadPic('HEAD' + diskCh, headId, False, 0, GDVars.dsPortraitCache[1].pic);
-      if GDVars.dsPortraitCache[1].pic <> nil then begin
-        GDVars.dsPortraitCache[1].pictureId := headId;
-        GDVars.dsPortraitCache[1].disk := GDVars.virtualDisk;
+    if (GameVars.portraitCache[1].pictureId = 255) or (GameVars.portraitCache[1].pictureId <> headId) or
+        (GameVars.portraitCache[1].disk <> GameVars.virtualDisk) then begin
+      Blit.LoadPic('HEAD' + diskCh, headId, False, 0, GameVars.portraitCache[1].pic);
+      if GameVars.portraitCache[1].pic <> nil then begin
+        GameVars.portraitCache[1].pictureId := headId;
+        GameVars.portraitCache[1].disk := GameVars.virtualDisk;
       end else
-        GDVars.dsPortraitCache[1].pictureId := 255;
+        GameVars.portraitCache[1].pictureId := 255;
     end;
   if bodyId <> 255 then
-    if (GDVars.dsPortraitCache[2].pictureId = 255) or (GDVars.dsPortraitCache[2].pictureId <> bodyId) or
-        (GDVars.dsPortraitCache[2].disk <> GDVars.virtualDisk) then begin
-      Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GDVars.dsPortraitCache[2].pic);
-      if GDVars.dsPortraitCache[2].pic <> nil then begin
-        GDVars.dsPortraitCache[2].pictureId := bodyId;
-        GDVars.dsPortraitCache[2].disk := GDVars.virtualDisk;
+    if (GameVars.portraitCache[2].pictureId = 255) or (GameVars.portraitCache[2].pictureId <> bodyId) or
+        (GameVars.portraitCache[2].disk <> GameVars.virtualDisk) then begin
+      Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GameVars.portraitCache[2].pic);
+      if GameVars.portraitCache[2].pic <> nil then begin
+        GameVars.portraitCache[2].pictureId := bodyId;
+        GameVars.portraitCache[2].disk := GameVars.virtualDisk;
       end else
-        GDVars.dsPortraitCache[2].pictureId := 255;
+        GameVars.portraitCache[2].pictureId := 255;
     end;
 end;
 
@@ -283,10 +349,10 @@ end;
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 begin
   if both then begin
-    Portrait.DisplayPortraitHead(col, row, GDVars.dsPortraitCache[1].pic);
-    Portrait.DisplayPortraitBody(col, row, GDVars.dsPortraitCache[2].pic);
+    Portrait.DisplayPortraitHead(col, row, GameVars.portraitCache[1].pic);
+    Portrait.DisplayPortraitBody(col, row, GameVars.portraitCache[2].pic);
   end else
-    Portrait.DisplayImageBuf(col, row, False, GDVars.dsPortraitCache[1].pic);
+    Portrait.DisplayImageBuf(col, row, False, GameVars.portraitCache[1].pic);
 end;
 
 { Draw frame dist (1..3, by view distance) of a into the view buffer at its origin + 2, then flush. Any other dist
@@ -297,10 +363,16 @@ begin
     GameIo.FatalError('Illegal range in Show3DSprite.');
   if a.frames[dist].pic <> nil then
     with a.frames[dist].pic^ do
-      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GDVars.dsViewImageBufferPtr)
+      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GameVars.viewImageBufferPtr)
   else
     Exit;
   Blit.FlushView;
+end;
+
+procedure ResetGame;
+begin
+  picArcName[0] := #0;
+  picArcId := 255;
 end;
 
 end.

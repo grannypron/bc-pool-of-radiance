@@ -1,6 +1,6 @@
 { The EGA Sequencer and Graphics Controller ports, registers and register values. }
 {$I COMPILER.INC}
-unit C_Ega;
+unit C_EGA;
 
 interface
 

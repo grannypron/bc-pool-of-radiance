@@ -10,12 +10,12 @@ unit SndSb;
 
 interface
 
-{ Make this the sound driver if a DSP answers, else the AdLib's (or the speaker's): fill GDVars.sound. }
+{ Make this the sound driver if a DSP answers, else the AdLib's (or the speaker's): fill GameVars.sound. }
 procedure Install;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, PortIO, {$ENDIF}Dos, Types, C_Sound, GDVars, FileUtil, SoundDrv, SndOpl;
+uses {$IFDEF FPC}TpCompat, PortIO, {$ENDIF}Dos, Types, C_SOUND, GameVars, FileUtil, SoundDrv, SndOpl;
 
 const
   EFFECTS_FILE = 'SBSFX.DAT';
@@ -27,7 +27,7 @@ const
   { a sample's format: unsigned 8-bit PCM, or 4-bit Creative ADPCM led by its reference byte }
   FORMAT_PCM8 = 0;
   FORMAT_ADPCM4 = 1;
-  { the tunes SBSFX.DAT may have a sample for: the effects (music starts at C_Sound.MUSIC_TITLE) }
+  { the tunes SBSFX.DAT may have a sample for: the effects (music starts at C_SOUND.MUSIC_TITLE) }
   LAST_EFFECT = 20;
   { the DSP's ports, from its base }
   DSP_RESET = $6;
@@ -213,7 +213,7 @@ var
 begin
   loadTried := True;
   FillChar(effects, SizeOf(effects), 0);
-  if not FileUtil.OpenReadOnly(f, GDVars.gameDir + EFFECTS_FILE) then Exit;
+  if not FileUtil.OpenReadOnly(f, GameVars.gameDir + EFFECTS_FILE) then Exit;
   size := FileSize(f);
   if (IOResult <> 0) or (size < HEADER_BYTES) or (size > $FFF0) or (size > MaxAvail) then begin
     Close(f);
@@ -310,7 +310,7 @@ begin
     if not loadTried then
       SndSb.LoadEffects;
     if (store <> nil) and (effects[tune].start <> 0) then begin
-      SoundDrv.SetSoundDevice(C_Sound.MODE_ADLIB);
+      SoundDrv.SetSoundDevice(C_SOUND.MODE_ADLIB);
       SoundDrv.ProgramTandyVoices(0);
       if SndSb.PlayEffect(effects[tune]) then
         Exit;
@@ -339,20 +339,20 @@ begin
     ok := DspWrite(DSP_SPEAKER_ON);
     { the card's OPL2 plays the music; without one it is the speaker's, and the effects still the DSP's }
     SndOpl.Install;
-    if GDVars.sound.mode = C_Sound.MODE_ADLIB then
-      GDVars.sound.name := 'Sound Blaster'
+    if GameVars.sound.mode = C_SOUND.MODE_ADLIB then
+      GameVars.sound.name := 'Sound Blaster'
     else begin
-      GDVars.sound.mode := C_Sound.MODE_ADLIB;
-      GDVars.sound.name := 'Blaster (no AdLib)';
+      GameVars.sound.mode := C_SOUND.MODE_ADLIB;
+      GameVars.sound.name := 'Blaster (no AdLib)';
     end;
-    GDVars.sound.Play := SndSb.Play;
-    GDVars.sound.singleStep := True;
+    GameVars.sound.Play := SndSb.Play;
+    GameVars.sound.singleStep := True;
     sbExitSaved := ExitProc;
     ExitProc := @SndSb.SbExit;
   end else begin
     SndOpl.Install;
-    if GDVars.sound.mode = C_Sound.MODE_ADLIB then
-      GDVars.sound.name := 'AdLib (no Blaster)';
+    if GameVars.sound.mode = C_SOUND.MODE_ADLIB then
+      GameVars.sound.name := 'AdLib (no Blaster)';
   end;
 end;
 

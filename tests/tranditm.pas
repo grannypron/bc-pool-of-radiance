@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TRandItm;
 
-uses Types, GDConsts, C_Item, RandItem, StrUtil, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, GameDefs, C_ITEM, RandItem, StrUtil, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   it: Types.TItemRec;
@@ -20,7 +20,7 @@ var
   k: Byte;
   same: Boolean;
 begin
-  with GDConsts.randomItemTemplates[t] do begin
+  with RandItem.randomItemTemplates[t] do begin
     same := (it.weight = weight) and (it.value = value) and (it.quantity = 0);
     for k := 1 to 3 do
       same := same and (it.nameIds[k] = Lo(nameIds[k])) and (it.spells[k] = Lo(properties[k]));
@@ -28,7 +28,7 @@ begin
   IsTemplate := same;
 end;
 
-{ Generate an item of kind and check it is template t of GDConsts.randomItemTemplates, with plus as its plus and save
+{ Generate an item of kind and check it is template t of RandItem.randomItemTemplates, with plus as its plus and save
   bonus. }
 procedure CheckTemplate(kind, t: Byte; plus: ShortInt; what: String);
 begin
@@ -71,7 +71,7 @@ begin
   ok := True;
   for i := 1 to 200 do begin
     RandItem.GenerateRandomItem(5, @it);
-    if (it.plus < 1) or (it.plus > 3) or (it.nameIds[3] <> 5) or (it.nameIds[2] <> it.plus + C_Item.NAME_PLUS_BASE) or
+    if (it.plus < 1) or (it.plus > 3) or (it.nameIds[3] <> 5) or (it.nameIds[2] <> it.plus + C_ITEM.NAME_PLUS_BASE) or
         (it.saveBonus <> 0) then
       ok := False;
   end;
@@ -98,10 +98,10 @@ begin
   ok := True;
   for i := 1 to 200 do begin
     RandItem.GenerateRandomItem(21, @it);
-    if (it.nameIds[1] = Lo(GDConsts.randomItemTemplates[14].nameIds[1])) and
-        (it.value = GDConsts.randomItemTemplates[14].value) then
+    if (it.nameIds[1] = Lo(RandItem.randomItemTemplates[14].nameIds[1])) and
+        (it.value = RandItem.randomItemTemplates[14].value) then
       Inc(lightning)
-    else if (it.nameIds[3] = 21) and (it.nameIds[2] = it.plus + C_Item.NAME_PLUS_BASE) then
+    else if (it.nameIds[3] = 21) and (it.nameIds[2] = it.plus + C_ITEM.NAME_PLUS_BASE) then
       Inc(plain)
     else
       ok := False;
@@ -121,10 +121,10 @@ begin
   RandItem.GenerateRandomItem(92, @it);
   RandItem.ApplyTemplate(@it, 13);
   TestKit.Check((it.itemType = 92) and (it.plus = 2) and (it.saveBonus = 2) and
-                (it.value = GDConsts.randomItemTemplates[13].value) and
-                (it.nameIds[3] = Lo(GDConsts.randomItemTemplates[13].nameIds[3])), 'the Cloak of Displacement, +2');
+                (it.value = RandItem.randomItemTemplates[13].value) and
+                (it.nameIds[3] = Lo(RandItem.randomItemTemplates[13].nameIds[3])), 'the Cloak of Displacement, +2');
   RandItem.ApplyTemplate(@it, 8);
-  TestKit.Check((it.plus = 1) and (it.spells[1] = Lo(GDConsts.randomItemTemplates[8].properties[1])),
+  TestKit.Check((it.plus = 1) and (it.spells[1] = Lo(RandItem.randomItemTemplates[8].properties[1])),
                 'a template over another: the Wand of Magic Missiles, its charges in spells');
   TestKit.Done;
 end.

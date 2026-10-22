@@ -20,7 +20,7 @@ procedure KeepReserve;
 
 implementation
 
-uses Crt, C_Keys, GDVars, SaveLoad, GameIo, TextRend;
+uses Crt, C_KEYS, GameVars, SaveLoad, GameIo, TextRend;
 
 const
   RESERVE_BYTES = 4096;
@@ -62,8 +62,8 @@ begin
     repeat
       { an extended key's scan byte is read and passed over }
       ch := GameIo.ReadAnyKey;
-    until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
-    if ch = C_Keys.ESC then
+    until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
+    if ch = C_KEYS.ESC then
       done := True
     else begin
       done := SaveLoad.SaveGame;

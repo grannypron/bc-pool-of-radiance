@@ -28,7 +28,7 @@ procedure ReadUsualSpells(creature: Types.PCharRecord; fn: Types.TPathStr);
 
 implementation
 
-uses GDVars, Party;
+uses GameVars, Party;
 
 const
   { the number of characters whose usual spells are kept at once: the party's size }

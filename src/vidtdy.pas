@@ -6,19 +6,19 @@ unit VidTdy;
 
 interface
 
-{ Make this the video driver: fill GDVars.video. }
+{ Make this the video driver: fill GameVars.video. }
 procedure Install;
 
 implementation
 
-uses Types, C_Video, GDConsts, GDVars, DaxIo, PicTdy;
+uses Types, C_VIDEO, GameDefs, GameVars, DaxIo, PicTdy;
 
 var
   { the four banks from $B800: scanline n in bank n mod 4, 160 bytes a scanline }
-  tdyB800: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK0_SEG:$0000{$ENDIF};
-  tdyBA00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK1_SEG:$0000{$ENDIF};
-  tdyBC00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK2_SEG:$0000{$ENDIF};
-  tdyBE00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_Video.GFX_BANK3_SEG:$0000{$ENDIF};
+  tdyB800: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK0_SEG:$0000{$ENDIF};
+  tdyBA00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK1_SEG:$0000{$ENDIF};
+  tdyBC00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK2_SEG:$0000{$ENDIF};
+  tdyBE00: array[0..255] of Types.TTdyRow {$IFNDEF FPC}absolute C_VIDEO.GFX_BANK3_SEG:$0000{$ENDIF};
 
 procedure Start;
 begin
@@ -28,11 +28,11 @@ procedure FlushSpans;
 var
   row: Word;
 begin
-  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
-    if GDVars.spanActive[row] <> 0 then
-      Move(GDVars.dsViewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
-           Mem[GDVars.tandyRowSeg[row + 8]:GDVars.spanScreenOfs[row] + 4],
-           GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
+  for row := 0 to SizeOf(GameVars.spanActive) - 1 do
+    if GameVars.spanActive[row] <> 0 then
+      Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
+           Mem[GameVars.tandyRowSeg[row + 8]:GameVars.spanScreenOfs[row] + 4],
+           GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
 end;
 
 { 4 bytes per 8-pixel cell, a row at a time through the row segments }
@@ -52,7 +52,7 @@ begin
     lastRow := firstRow + height - 1;
     colOff := screenX * 4;
     for row := firstRow to lastRow do begin
-      Move(pic^.data[srcOff], Mem[GDVars.tandyRowSeg[row]:colOff], rowBytes);
+      Move(pic^.data[srcOff], Mem[GameVars.tandyRowSeg[row]:colOff], rowBytes);
       Inc(srcOff, rowBytes);
     end;
   end;
@@ -77,12 +77,12 @@ begin
     for bank := 0 to 3 do begin
       mask := $80;
       for k := 0 to 3 do begin
-        if (GDVars.gameFont^[glyph][dstOff] and mask) > 0 then
+        if (GameVars.gameFont^[glyph][dstOff] and mask) > 0 then
           tandyPx := color shl 4
         else
           tandyPx := 0;
         mask := mask shr 1;
-        if (GDVars.gameFont^[glyph][dstOff] and mask) > 0 then
+        if (GameVars.gameFont^[glyph][dstOff] and mask) > 0 then
           tandyPx := tandyPx or color;
         mask := mask shr 1;
         case bank of
@@ -124,12 +124,16 @@ end;
 
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
+const
+  { Packed fill byte for each Tandy color, 0..15 (Black through White): two identical 4-bit pixels. }
+  tandyColorFill: array[0..15] of Byte = (
+    $00, $11, $22, $33, $44, $55, $66, $77, $88, $99, $AA, $BB, $CC, $DD, $EE, $FF);
 begin
-  FillChar(cell, SizeOf(cell), GDConsts.tandyColorFill[color]);
+  FillChar(cell, SizeOf(cell), tandyColorFill[color]);
 end;
 
 { no palette registers }
@@ -139,7 +143,7 @@ end;
 
 procedure Install;
 begin
-  with GDVars.video do begin
+  with GameVars.video do begin
     name := 'Tandy';
     colours := 16;
     hasPalette := False;

@@ -1,12 +1,12 @@
 { Spell values: the pending flag and id mask of a spell slot, and named spell ids. }
 {$I COMPILER.INC}
-unit C_Spell;
+unit C_SPELL;
 
 interface
 
 const
   KNOCK = 31;
-  { a spell's casting class (GDConsts.spellTable's castClass): a cleric's, a magic-user's, or one cast at a fixed
+  { a spell's casting class (GameDefs.spellTable's castClass): a cleric's, a magic-user's, or one cast at a fixed
     level }
   CLASS_CLERIC = 0;
   CLASS_MAGE = 1;
@@ -23,7 +23,7 @@ const
   NONE = 0;
   { the last spell; 57..67 are item effects }
   LAST = 56;
-  { GDConsts.spellTable's last entry }
+  { GameDefs.spellTable's last entry }
   TABLE_LAST = 67;
   { an item effect above LAST is the spell id effect - ITEM_EFFECT_SHIFT (item effects 80..90 are 57..67) }
   ITEM_EFFECT_SHIFT = 23;

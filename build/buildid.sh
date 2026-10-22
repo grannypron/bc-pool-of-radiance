@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # buildid.sh -- write obj/BUILDID.INC, which names the source for the Options screen. build.sh and build-native.sh run
-# it before compiling; gdconsts.pas and options.pas include the file from obj/.
+# it before compiling; gamedefs.pas and options.pas include the file from obj/.
 #
 #   build/buildid.sh
 

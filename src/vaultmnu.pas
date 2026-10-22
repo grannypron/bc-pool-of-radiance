@@ -7,7 +7,7 @@ interface
 
 uses Types;
 
-{ The vault's menu, entered from the New Phlan script (C_Gbvm.ENTER_SHOP set to 2, then a COMBAT with no monsters): the
+{ The vault's menu, entered from the New Phlan script (C_GBVM.ENTER_SHOP set to 2, then a COMBAT with no monsters): the
   merchant's greeting, then View (where Drop deposits), Take (money and items, while there are any), Pool, Share (while
   there is money) and Exit. Its money and items are the treasure pool, read from the session vault on entry and written
   back on Exit. A vault that could not be written keeps them, here to take back, unless the party leaves anyway (the
@@ -16,7 +16,7 @@ procedure VaultMenu;
 
 implementation
 
-uses Crt, GDVars, C_Ifc, C_Keys, CharDisp, CharHlp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
+uses Crt, GameVars, C_IFC, C_KEYS, CharDisp, CharHlp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
   {$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure VaultMenu;
@@ -28,9 +28,9 @@ var
   hasItems: Boolean;
   done: Boolean;
 begin
-  GDVars.ifcState := C_Ifc.VAULT;
+  GameVars.ifcState := C_IFC.VAULT;
   CharDisp.DisplayNoncombatInterface;
-  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GameVars.curChar);
   Vault.ReadVault;
   if Vault.WasVisited and (Random(20) = 0) then
     TextRend.ShowMessage(LightGreen, True, 'OH, YOU''RE ALIVE... I MEAN  WELCOME BACK!')
@@ -48,7 +48,7 @@ begin
     menu := menu + ' Exit';
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
-      if (c = C_Keys.HOME) or (c = C_Keys.END_KEY) then
+      if (c = C_KEYS.HOME) or (c = C_KEYS.END_KEY) then
         Party.SelectPrevNextChar(c);
     end else
       case c of
@@ -60,11 +60,11 @@ begin
         'P': Money.PoolMoney;
         'S': if hasMoney then
                Money.ShareMoney;
-        'E', C_Keys.NONE:
+        'E', C_KEYS.NONE:
           done := Vault.WriteVault or
                   (MenuCore.YesNoMenu('Leave anyway? ', Yellow, LightGreen, White) = 'Y');
       end;
-    CharDisp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GameVars.curChar);
   until done;
   CharHlp.ClearTreasure;
 end;

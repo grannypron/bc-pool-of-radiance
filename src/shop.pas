@@ -18,7 +18,7 @@ procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 
 implementation
 
-uses Crt, C_Msg, GDConsts, GDVars, EclMenu, ViewChar, Money, C_Keys, C_Ifc, Border, CharHlp, MenuCore, TextRend,
+uses Crt, C_MSG, GameDefs, GameVars, EclMenu, ViewChar, Money, C_KEYS, C_IFC, Border, CharHlp, MenuCore, TextRend,
   CharDisp, MoneyCal, Party;
 
 { Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
@@ -38,7 +38,7 @@ var
   redraw: Boolean;
 begin
   redraw := True;
-  p := GDVars.treasureItems;
+  p := GameVars.treasureItems;
   while p <> nil do begin
     { 30 blanks, the full width of s }
     s := '                              ';
@@ -57,12 +57,12 @@ begin
     p^.name[0] := Chr(SizeOf(s) - 1);
     p := p^.next;
   end;
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, White, 'Shop');
-  head := GDVars.treasureItems;
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Shop');
+  head := GameVars.treasureItems;
   c := MenuCore.MenuVertical('Items: ', 'Buy', LightMagenta, LightGreen, White, 1, 4, 38, 22, head,
                              True, redraw, idx, cursor);
   itemToBuy := cursor;
-  p := GDVars.treasureItems;
+  p := GameVars.treasureItems;
   while p <> nil do begin
     CharHlp.ItemLabel(p, False);
     p := p^.next;
@@ -73,13 +73,13 @@ end;
   it, print that it is overloaded and set failed instead. }
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
 begin
-  if ViewChar.CannotCarryItem(GDVars.curChar, item) then begin
+  if ViewChar.CannotCarryItem(GameVars.curChar, item) then begin
     CharDisp.PrintBottomLine('OverLoaded');
     failed := True;
   end else begin
     failed := False;
-    CharHlp.AppendItemCopy(GDVars.curChar^.itemsAddr, item);
-    CharHlp.RecalcStats(GDVars.curChar);
+    CharHlp.AppendItemCopy(GameVars.curChar^.itemsAddr, item);
+    CharHlp.RecalcStats(GameVars.curChar);
   end;
 end;
 
@@ -97,23 +97,23 @@ var
   idx: Integer;
 begin
   itemToBuy := nil;
-  cursor := GDVars.treasureItems;
+  cursor := GameVars.treasureItems;
   { MenuVertical counts idx from 0: open on the first item, as the loot Take menu does }
   idx := 0;
   repeat
     Shop.ShopBuyItemSelection(c, itemToBuy, cursor, idx);
-    if (c <> 'B') and (c <> C_Keys.ENTER) then
+    if (c <> 'B') and (c <> C_KEYS.ENTER) then
       done := True
     else begin
       done := False;
       price := itemToBuy^.value;
-      payer := MoneyCal.WhoPays(GDVars.curChar, price);
+      payer := MoneyCal.WhoPays(GameVars.curChar, price);
       if payer = MoneyCal.PAY_NOBODY then
         CharDisp.PrintBottomLine('Not enough money.')
       else begin
         Shop.GiveItemCopyToCreature(itemToBuy, failed);
         if not failed then
-          Money.PayBy(GDVars.curChar, payer, price);
+          Money.PayBy(GameVars.curChar, payer, price);
       end;
     end;
   until done;
@@ -134,16 +134,16 @@ var
   apprOk: Boolean;
   p: Types.PItemRec;
 begin
-  GDVars.ifcState := C_Ifc.SHOP_TEMPLE;
+  GameVars.ifcState := C_IFC.SHOP_TEMPLE;
   CharDisp.DisplayNoncombatInterface;
-  CharDisp.DisplayParty(GDVars.curChar);
-  FillChar(GDVars.treasureMoney, SizeOf(Types.TMoney), 0);
+  CharDisp.DisplayParty(GameVars.curChar);
+  FillChar(GameVars.treasureMoney, SizeOf(Types.TMoney), 0);
   done := False;
   if atTemple then
     first := 'Heal'
   else begin
     first := 'Buy';
-    p := GDVars.treasureItems;
+    p := GameVars.treasureItems;
     while p <> nil do begin
       CharHlp.ItemLabel(p, False);
       p := p^.next;
@@ -190,7 +190,7 @@ begin
         'A': if apprOk then CharDisp.DisplayNoncombatInterface;
       end;
     end;
-    CharDisp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GameVars.curChar);
   until done;
 end;
 

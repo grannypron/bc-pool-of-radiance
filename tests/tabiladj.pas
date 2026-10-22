@@ -1,4 +1,5 @@
-{ Tests for AbilAdj: the Strength scale and its to-hit, damage and carrying tables, and the Dexterity adjustments. }
+{ Tests for AbilAdj: the Strength scale and its to-hit, damage and carrying tables, the Dexterity adjustments, the other
+  abilities' tables, and the Strength an effect's strength byte holds. }
 {$I COMPILER.INC}
 program TAbilAdj;
 
@@ -6,6 +7,9 @@ uses Types, AbilAdj, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
+  e: Types.TEffectRec;
+  base: Byte;
+  exc: Byte;
 
 { Set the creature's Strength: str, with exc as its exceptional strength (100 is 18/00). }
 procedure SetStr(str, exc: Byte);
@@ -177,6 +181,30 @@ begin
   TestKit.CheckEqualsL(5, AbilAdj.WisSpellFailure(12), '12: 5%');
   TestKit.CheckEqualsL(0, AbilAdj.WisSpellFailure(13), '13: none');
   TestKit.CheckEqualsL(0, AbilAdj.WisSpellFailure(25), '25: none');
+
+  { the loyalty base a script reads for Charisma }
+  TestKit.CheckEqualsL(0, AbilAdj.ChaLoyaltyBase(3), 'Charisma 3: 0');
+  TestKit.CheckEqualsL(5, AbilAdj.ChaLoyaltyBase(4), '4: 5');
+  TestKit.CheckEqualsL(20, AbilAdj.ChaLoyaltyBase(7), '7: 20');
+  TestKit.CheckEqualsL(25, AbilAdj.ChaLoyaltyBase(8), '8: 25');
+  TestKit.CheckEqualsL(25, AbilAdj.ChaLoyaltyBase(12), '12: 25');
+  TestKit.CheckEqualsL(30, AbilAdj.ChaLoyaltyBase(13), '13: 30');
+  TestKit.CheckEqualsL(40, AbilAdj.ChaLoyaltyBase(15), '15: 40');
+  TestKit.CheckEqualsL(50, AbilAdj.ChaLoyaltyBase(16), '16: 50');
+  TestKit.CheckEqualsL(55, AbilAdj.ChaLoyaltyBase(17), '17: 55');
+  TestKit.CheckEqualsL(60, AbilAdj.ChaLoyaltyBase(18), '18: 60');
+  TestKit.CheckEqualsL(60, AbilAdj.ChaLoyaltyBase(25), '25: 60');
+
+  { Strength in an effect's strength byte: 18 with its exceptional strength + 1, any other score + 100 }
+  TestKit.CheckEqualsL(1, AbilAdj.StrengthModifier(18, 0), '18 is 1');
+  TestKit.CheckEqualsL(101, AbilAdj.StrengthModifier(18, 100), '18/00 is 101');
+  TestKit.CheckEqualsL(117, AbilAdj.StrengthModifier(17, 0), '17 is 117');
+  e.strength := AbilAdj.StrengthModifier(18, 76) + $80;
+  AbilAdj.StrengthEffectToStrength(@e, base, exc);
+  TestKit.Check((base = 18) and (exc = 76), '18/76 reads back, the superseded mark ignored');
+  e.strength := AbilAdj.StrengthModifier(25, 0);
+  AbilAdj.StrengthEffectToStrength(@e, base, exc);
+  TestKit.Check((base = 25) and (exc = 0), '25 reads back');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;

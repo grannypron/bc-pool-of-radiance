@@ -5,7 +5,7 @@ unit Wilds;
 
 interface
 
-{ Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GDConsts.wildMap, apply the
+{ Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GameDefs.wildMap, apply the
   special-location overrides gated on zone-0 quest flags, and draw each 24x24 tile three character cells apart through
   MapTiles.Copy2DTile. The corner is first moved so the 5x5 view lies inside the 44x36 map. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
@@ -15,7 +15,7 @@ procedure DrawWildWindows;
 
 implementation
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles, TextRend;
+uses Types, Crt, C_MSG, GameDefs, GameVars, Border, MapTiles, TextRend;
 
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
@@ -37,8 +37,30 @@ const
   { 25,27 = central 12,27 }
   WILD_PHLAN = 9;
 
-{ GDConsts.wildMap and the override table both hold 1-based tile ids, hence each - 1. }
+{ GameDefs.wildMap and the override table both hold 1-based tile ids, hence each - 1. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
+const
+  { Special-location overrides on the 44x36 wilderness map, indexed by the WILD_* constants. Entries 1 and 2 have no
+    case arm in BuildWildernessMap, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
+  wildernessSpecialLocations: array[1..9] of Types.TSpecLoc = (
+    { 1 WILD_SILVER_DRAGON_DEN }
+    (x: 10; y: 9; icon: 240),
+    { 2 WILD_ZHENTIL_OUTPOST }
+    (x: 3; y: 32; icon: 2),
+    { 3 WILD_BUCCANEERS_BASE }
+    (x: 12; y: 31; icon: 2),
+    { 4 WILD_NOMAD_CAMP }
+    (x: 25; y: 11; icon: 1),
+    { 5 WILD_KOBOLD_CAVES }
+    (x: 32; y: 15; icon: 165),
+    { 6 WILD_UNNAMED_SITE }
+    (x: 33; y: 23; icon: 157),
+    { 7 WILD_LIZARD_MAN_KEEP }
+    (x: 37; y: 8; icon: 147),
+    { 8 WILD_SORCERERS_ISLAND }
+    (x: 19; y: 16; icon: 247),
+    { 9 WILD_PHLAN }
+    (x: 25; y: 27; icon: 256));
 var
   viewX: ShortInt;
   viewY: ShortInt;
@@ -61,33 +83,33 @@ begin
     for col := 0 to 4 do begin
       mapX := col + ulX;
       mapY := row + ulY;
-      icon := GDConsts.wildMap[mapY, mapX] - 1;
+      icon := GameDefs.wildMap[mapY, mapX] - 1;
       { 9 = High(wildernessSpecialLocations) }
       for k := 1 to 9 do begin
-        if (mapX = GDConsts.wildernessSpecialLocations[k].x) and
-            (mapY = GDConsts.wildernessSpecialLocations[k].y) then begin
+        if (mapX = wildernessSpecialLocations[k].x) and
+            (mapY = wildernessSpecialLocations[k].y) then begin
           case k of
             WILD_BUCCANEERS_BASE: begin
-              if GDVars.zone0^.buccaneersBaseGate <> 255 then
-                icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
+              if GameVars.zone0^.buccaneersBaseGate <> 255 then
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_NOMAD_CAMP: begin
-              if (GDVars.zone0^.nomadCampPresent <> 0) or ((GDVars.zone0^.nomadCampFlags and 8) <> 0)
-                 or (GDVars.zone0^.nomadCampGate = 0) then
-                icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
+              if (GameVars.zone0^.nomadCampPresent <> 0) or ((GameVars.zone0^.nomadCampFlags and 8) <> 0)
+                 or (GameVars.zone0^.nomadCampGate = 0) then
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_KOBOLD_CAVES: begin
-              if (GDVars.zone0^.easternSitesGate and 2) = 0 then
-                icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
+              if (GameVars.zone0^.easternSitesGate and 2) = 0 then
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
-            WILD_UNNAMED_SITE: icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
+            WILD_UNNAMED_SITE: icon := wildernessSpecialLocations[k].icon - 1;
             WILD_LIZARD_MAN_KEEP: begin
-              if (GDVars.zone0^.easternSitesGate and 1) = 0 then
-                icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
+              if (GameVars.zone0^.easternSitesGate and 1) = 0 then
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_SORCERERS_ISLAND, WILD_PHLAN: begin
-              if GDVars.zone0^.yarashMissionDone > 253 then
-                icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
+              if GameVars.zone0^.yarashMissionDone > 253 then
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
           end;
         end;
@@ -103,7 +125,7 @@ procedure DrawWildWindows;
 begin
   Border.DrawWindow(1, 1, 15, 15, 0, Black, '');
   Border.DrawWindow(17, 1, 38, 15, 0, Black, '');
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
 end;
 
 end.

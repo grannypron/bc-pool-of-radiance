@@ -1,10 +1,10 @@
-{ Tests for Clock.ValidateClock: each part carries into the next at its GDConsts.unitScale limit (10 segments, 10
+{ Tests for Clock.ValidateClock: each part carries into the next at its GameDefs.unitScale limit (10 segments, 10
   minutes, 6 turns, 24 hours, 30 days, 12 months), once a call, upward through the parts in one call, and the party ages
   at a new year when asked; and Clock.SetFromMinutes, which turns a duration into days, hours, turns and minutes. }
 {$I COMPILER.INC}
 program TClock;
 
-uses Types, GDVars, Clock, TestKit;
+uses Types, GameVars, Clock, TestKit;
 
 var
   t: Types.TClock;
@@ -32,7 +32,7 @@ begin
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
   c^.age := 20;
-  GDVars.creatureList := c;
+  GameVars.creatureList := c;
 
   SetClock(9, 0, 0, 0, 0, 0, 0);
   Clock.ValidateClock(t, True);

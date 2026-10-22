@@ -1,6 +1,6 @@
 { Combat terrain values: types 26..29 are decoration; 30 and 31 represent Stinking Cloud and corpses. }
 {$I COMPILER.INC}
-unit C_Terr;
+unit C_TERR;
 
 interface
 

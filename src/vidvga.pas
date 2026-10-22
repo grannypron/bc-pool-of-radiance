@@ -8,12 +8,12 @@ unit VidVga;
 
 interface
 
-{ Make this the video driver: fill GDVars.video. }
+{ Make this the video driver: fill GameVars.video. }
 procedure Install;
 
 implementation
 
-uses Types, C_Video, GDVars, DaxIo, PicVga{$IFDEF FPC}, Host{$ENDIF};
+uses Types, C_VIDEO, GameVars, DaxIo, PicVga{$IFDEF FPC}, Host{$ENDIF};
 
 const
   { EGA's 16 colours as VGA DAC values (6 bits a component): the BIOS's own for entries 0..15 in mode 13h }
@@ -28,7 +28,7 @@ var
 {$IFDEF FPC}
   vgaMem: Host.TScreen absolute Host.screen;
 {$ELSE}
-  vgaMem: array[0..C_Video.VGA_ROW_BYTES * 200 - 1] of Byte absolute C_Video.VGA_VIDEO_SEG:0;
+  vgaMem: array[0..C_VIDEO.VGA_ROW_BYTES * 200 - 1] of Byte absolute C_VIDEO.VGA_VIDEO_SEG:0;
 {$ENDIF}
 
 procedure SetPalette(registerIndex, color: Byte); forward;
@@ -52,11 +52,11 @@ procedure FlushSpans;
 var
   row: Word;
 begin
-  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
-    if GDVars.spanActive[row] <> 0 then
-      Move(GDVars.dsViewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
-           vgaMem[GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 8],
-           GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
+  for row := 0 to SizeOf(GameVars.spanActive) - 1 do
+    if GameVars.spanActive[row] <> 0 then
+      Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
+           vgaMem[GameVars.fbRowOfs[row + 8] + GameVars.spanScreenOfs[row] + 8],
+           GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
 end;
 
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
@@ -69,7 +69,7 @@ begin
     rowBytes := width * 8;
     srcOff := 0;
     for row := screenY * 8 to screenY * 8 + height - 1 do begin
-      Move(data[srcOff], vgaMem[GDVars.fbRowOfs[row] + screenX * 8], rowBytes);
+      Move(data[srcOff], vgaMem[GameVars.fbRowOfs[row] + screenX * 8], rowBytes);
       Inc(srcOff, rowBytes);
     end;
   end;
@@ -84,8 +84,8 @@ var
   bits: Byte;
 begin
   for r := 0 to 7 do begin
-    dstOff := GDVars.fbRowOfs[row * 8 + r] + col * 8;
-    bits := GDVars.gameFont^[glyph][r];
+    dstOff := GameVars.fbRowOfs[row * 8 + r] + col * 8;
+    bits := GameVars.gameFont^[glyph][r];
     for k := 0 to 7 do begin
       if (bits and ($80 shr k)) <> 0 then
         vgaMem[dstOff + k] := color
@@ -100,7 +100,7 @@ var
   y: Word;
 begin
   for y := ulRow * 8 to lrRow * 8 + 7 do
-    FillChar(vgaMem[GDVars.fbRowOfs[y] + ulCol * 8], (lrCol - ulCol + 1) * 8, 0);
+    FillChar(vgaMem[GameVars.fbRowOfs[y] + ulCol * 8], (lrCol - ulCol + 1) * 8, 0);
 end;
 
 procedure ClearScreen;
@@ -110,7 +110,7 @@ end;
 
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
 end;
 
 { the 16 colours are DAC entries 0..15: registerIndex's entry takes color's RGB }
@@ -134,7 +134,7 @@ end;
 
 procedure Install;
 begin
-  with GDVars.video do begin
+  with GameVars.video do begin
     name := 'VGA';
     colours := 16;
     hasPalette := True;

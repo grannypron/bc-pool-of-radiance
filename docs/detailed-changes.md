@@ -101,7 +101,7 @@ Differs from SSI: SSI's tables stopped at 18 to 20 and multi-class warriors lost
 
 **Starting Constitution follows the DMG's aging table.** `CreateCharacterMenu` lowered Constitution at mature, middle-aged and old but never gave the young adult's +1, so every age ended one low. The +1 is added first, as in Curse. SSI's code. CURSE-0318, #704.
 
-**Temple Raise Dead: the survival roll, and no raising a poisoned corpse.** `Temple.RaiseDead` always succeeded and quietly removed the poison from a poisoned corpse. A corpse still poisoned is now refused, uncharged, with "is still poisoned." (PoR #423: Raise Dead on a poisoned character normally fails; Neutralize Poison first, which revives a character the poison killed). Otherwise the raise rolls d100 against the new `AbilAdj.ConResurrectionSurvival` (PHB 40% at Constitution 3 up to 100% at 18, and 100% to 25), and a character who fails "does not survive." and becomes `C_Status.GONE`; the fee is spent. `ConfirmCureCost` is split into `PayCureCost` and `ReportCure` so a failed raise is not reported cured. TAbilAdj checks the table. Differs from SSI: a raise can now fail for good (Curse leaves a failed character dead, to be paid for again). CURSE-0168, #751; CURSE-0232, #752.
+**Temple Raise Dead: the survival roll, and no raising a poisoned corpse.** `Temple.RaiseDead` always succeeded and quietly removed the poison from a poisoned corpse. A corpse still poisoned is now refused, uncharged, with "is still poisoned." (PoR #423: Raise Dead on a poisoned character normally fails; Neutralize Poison first, which revives a character the poison killed). Otherwise the raise rolls d100 against the new `AbilAdj.ConResurrectionSurvival` (PHB 40% at Constitution 3 up to 100% at 18, and 100% to 25), and a character who fails "does not survive." and becomes `C_STATUS.GONE`; the fee is spent. `ConfirmCureCost` is split into `PayCureCost` and `ReportCure` so a failed raise is not reported cured. TAbilAdj checks the table. Differs from SSI: a raise can now fail for good (Curse leaves a failed character dead, to be paid for again). CURSE-0168, #751; CURSE-0232, #752.
 
 **A paladin's protection from evil has its 10-foot radius.** Creation gave paladins effect 8 (Protection from Evil), which covers its holder only. `CreateCharacterMenu` now gives the permanent effect 45 (Protection from Evil 10' Radius), which `FxEngine.TriggerEffect` already lends to adjacent creatures, and `SaveLoad.LoadChar` turns an existing paladin's permanent effect 8 into 45. SSI's code. CURSE-0066, #742.
 
@@ -220,7 +220,7 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Side counts and Animate Dead's side byte.** `CharHlp.CountTeams` and `InflictDamage` indexed `teamCount` (entries 0 and 1) with the whole `hostile` byte. Animate Dead stored the corpse's old side as `hostile * 16 + caster level`, so a caster of level 16 or more carried into it, and `EffAnimateDead` gave the corpse a `hostile` of 2 or more when the spell ended. The level is now capped at 15 and the side read back with `and 1`, and the counts use `hostile and 1`, as `CombatSt` places creatures. TCharHlp checks the counts. SSI's code. CURSE-0261, #710.
 
-**An animated corpse that flees no longer reads its freed effect.** For a corpse leaving combat (`C_Status.RUNNING`), `EffAnimateDead`'s `InflictStatusMsg` removes the 0-HP effects again and frees the Animate Dead node, which the handler then read for the old side. The side is now read first. The double free was fixed earlier (`RemoveEffect`, 921147b). SSI's code. CURSE-0326, #716.
+**An animated corpse that flees no longer reads its freed effect.** For a corpse leaving combat (`C_STATUS.RUNNING`), `EffAnimateDead`'s `InflictStatusMsg` removes the 0-HP effects again and frees the Animate Dead node, which the handler then read for the old side. The side is now read first. The double free was fixed earlier (`RemoveEffect`, 921147b). SSI's code. CURSE-0326, #716.
 
 **Space and Alt-M in combat.** See section 3 (POR-0166) and the plain '2' and '-' fix (POR-0154).
 
@@ -262,7 +262,7 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **A paralyzing touch's save modifier.** `ParalysisTouch` was given the drider's -2 and rolled at +0; it now passes it, as `PoisonTouch` does. POR-0180, #785.
 
-**Magic resistance against non-spell effects.** Magic cleared `dsCurrentSpellBeing` after every spell, so a gaze or touch met magic resistance adjusted by `GetCasterLevel(0)`, an arbitrary level. A non-spell effect now meets the listed figure; spells still adjust 5% per caster level from 11 (`BASE_LEVEL`, `C_Spell.ITEM_CASTER_LEVEL`). TMagRes checks it. POR-0181, #786.
+**Magic resistance against non-spell effects.** Magic cleared `dsCurrentSpellBeing` after every spell, so a gaze or touch met magic resistance adjusted by `GetCasterLevel(0)`, an arbitrary level. A non-spell effect now meets the listed figure; spells still adjust 5% per caster level from 11 (`BASE_LEVEL`, `C_SPELL.ITEM_CASTER_LEVEL`). TMagRes checks it. POR-0181, #786.
 
 **Loaded monsters' aligned weapons and boulders.** Since #747 `EclMenu.LoadCreatureData` runs readied items' handlers; those for aligned weapons and boulders only check whether the creature may ready the item, and would shock or print. They are skipped. No shipped monster carries one. #788.
 
@@ -416,7 +416,7 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
-DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_Data.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
+DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_DATA.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
 
 **The vault's script (data version 32).** A DataPat fix sends event 20 in New Phlan's event table to new code at the end of the script. Every other event-20 square (six other tavern doors) goes on to the tavern as before; at (8,9) the code does what the arms shop does (once a visit, the shopkeeper, the refusal after an attack on the city watch), stores 2 in [$6E6C], the shop cell, and runs COMBAT with no monsters, which `EclCombat` now takes to the vault. 52 bytes; the script stayed under the then 7,682-byte limit with 157 to spare. A game saved inside New Phlan before this kept the tavern until the party left and came back (later fixed by #609, section 6). #606. a955646.
 
@@ -432,9 +432,9 @@ DataPat is the table of patches DataBld applies to SSI's data when it builds the
 
 ---
 
-**The Large bit on gnolls, huge scorpions and phase spiders.** For #748, DataPat sets the Large bit (offset 108) on the two-tile monsters that are Large in the Monster Manual but lacked it: MON2CHA 73, MON4CHA 39, MON8CHA 73 and 116. `C_Data.VERSION` is 35. CURSE-0091, #748.
+**The Large bit on gnolls, huge scorpions and phase spiders.** For #748, DataPat sets the Large bit (offset 108) on the two-tile monsters that are Large in the Monster Manual but lacked it: MON2CHA 73, MON4CHA 39, MON8CHA 73 and 116. `C_DATA.VERSION` is 35. CURSE-0091, #748.
 
-**Creature sizes (#792).** An inventory of the 104 monster records found SSI's Large bit nearly right. DataPat sets it on the Ogre Leader (MON1CHA 9, $01 to $81), an ogre chieftain, and no longer sets it on the huge scorpion (Medium, as the huge spider), which #748 had made Large. `C_Data.VERSION` is 36. POR-0185, #792.
+**Creature sizes (#792).** An inventory of the 104 monster records found SSI's Large bit nearly right. DataPat sets it on the Ogre Leader (MON1CHA 9, $01 to $81), an ogre chieftain, and no longer sets it on the huge scorpion (Medium, as the huge spider), which #748 had made Large. `C_DATA.VERSION` is 36. POR-0185, #792.
 
 ## 8. Video (the driver refactor, VGA), memory, overlays and EMS
 
@@ -488,7 +488,7 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **PostCbt.** `DetermineLootExp`'s per-hit-point experience product of two Bytes was computed as an Integer and could wrap negative (200 * 200 gives -25,536); one factor is now a LongInt. #459. 9126e4c.
 
-**GameTime.** `TimeOutEffects` summed minutes in a Word (overflowing at 46 days, or any months or years) and took segments as minutes; the total is a LongInt and segments count ten to the minute. An expiring effect is removed only while its id and duration still match, so a handler that frees one effect and allocates another at the same address cannot have the new one removed (caused under #144). `CheckMemorizeDone` and `CheckScribeDone` pass over a pending spell outside 1..`C_Spell.LAST`. `AdvanceSpellPrep`, `AdvanceSpellPrepBase` and `CampRest` stop at the last of the 8 prep timers. #444. a2a78a7.
+**GameTime.** `TimeOutEffects` summed minutes in a Word (overflowing at 46 days, or any months or years) and took segments as minutes; the total is a LongInt and segments count ten to the minute. An expiring effect is removed only while its id and duration still match, so a handler that frees one effect and allocates another at the same address cannot have the new one removed (caused under #144). `CheckMemorizeDone` and `CheckScribeDone` pass over a pending spell outside 1..`C_SPELL.LAST`. `AdvanceSpellPrep`, `AdvanceSpellPrepBase` and `CampRest` stop at the last of the 8 prep timers. #444. a2a78a7.
 
 **Money comments.** `MakeChange`'s comment now puts the copper-loss point at about 429,581 gp (caused under #130), and `TakeMoneyMenu`'s no longer says the coin list leaks (fixed under #162). #456. 8cd006c.
 
@@ -652,11 +652,11 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 
 **CbtActs names its item types.** C_Item gains `HAND_AXE`, `CLUB`, `DAGGER`, `DART`, `JAVELIN`, `QUARREL`, `SPEAR`, `BROAD_SWORD`, `LONG_SWORD`, `SHORT_SWORD`, `SLING`, `LEATHER_ARMOR` and `ARROW`, used by CbtActs, CharHlp and FxEngine. #649. 334d3bb.
 
-**CharHlp names its constants.** The bows, the scrolls' base slots, the spell casting classes and fixed caster levels (C_Spell), the attack-roll range, the parts of armour class (`Types.AC_*`), `C_Level.LEVEL_LAST` and the helpless effects get names; CharHlp's movement, encumbrance, Bag of Holding and theft rules become private constants; `AtLevelCap` reads a table (section 2). f8bcdf0.
+**CharHlp names its constants.** The bows, the scrolls' base slots, the spell casting classes and fixed caster levels (C_SPELL), the attack-roll range, the parts of armour class (`Types.AC_*`), `C_Level.LEVEL_LAST` and the helpless effects get names; CharHlp's movement, encumbrance, Bag of Holding and theft rules become private constants; `AtLevelCap` reads a table (section 2). f8bcdf0.
 
 ---
 
-**Code issues from the whole-unit cleanup.** The cleanup (PR #805) listed 100 code-level issues it could not change; the bugs among them are above (#806..#822). The rest, behaviour unchanged: dead stores, unused locals and parameters (`hasMask` through every picture driver, MenuCore's never-set auto-answer and `LastLabelBefore`, the sound driver's forced-shutdown path, `noteLen` and a duplicate Tandy tune setup, whose port-write digests TSndSeq shows unchanged); bare numbers named (`C_Spell.TABLE_LAST`, `ITEM_EFFECT_SHIFT`, `ITEM_JAVELIN_LIGHTNING`, `C_Effect.NULL_DAMAGE`/`NULL_TARGET_VETO`, `C_Item.RANDOM_ARMS_KINDS`, `MAGE_SCROLL`, `CLERIC_SCROLL`, `CbtMap.AREA_CELLS`), with `GDConsts.spellTable` and `GDVars.spellFns` sized by `TABLE_LAST`; misleading names (`ApproachOrParley`, `goldDice`, `nonSharerCount`); duplicated logic shared (`CharHlp.FindAmmo` for the AI's ammunition lookup, one starting-age lookup for multi-classes, `DrainLevels` picking its class once per level, with its `levels = 2` branch kept as SSI's and marked); `C_Gbvm`'s duplicate THAC0-modifier names removed. Turbo Pascal 6 builds with extended syntax off, so a function's unused result is still stored (or tested with `if ... then ;`).
+**Code issues from the whole-unit cleanup.** The cleanup (PR #805) listed 100 code-level issues it could not change; the bugs among them are above (#806..#822). The rest, behaviour unchanged: dead stores, unused locals and parameters (`hasMask` through every picture driver, MenuCore's never-set auto-answer and `LastLabelBefore`, the sound driver's forced-shutdown path, `noteLen` and a duplicate Tandy tune setup, whose port-write digests TSndSeq shows unchanged); bare numbers named (`C_SPELL.TABLE_LAST`, `ITEM_EFFECT_SHIFT`, `ITEM_JAVELIN_LIGHTNING`, `C_Effect.NULL_DAMAGE`/`NULL_TARGET_VETO`, `C_Item.RANDOM_ARMS_KINDS`, `MAGE_SCROLL`, `CLERIC_SCROLL`, `CbtMap.AREA_CELLS`), with `GDConsts.spellTable` and `GDVars.spellFns` sized by `TABLE_LAST`; misleading names (`ApproachOrParley`, `goldDice`, `nonSharerCount`); duplicated logic shared (`CharHlp.FindAmmo` for the AI's ammunition lookup, one starting-age lookup for multi-classes, `DrainLevels` picking its class once per level, with its `levels = 2` branch kept as SSI's and marked); `C_Gbvm`'s duplicate THAC0-modifier names removed. Turbo Pascal 6 builds with extended syntax off, so a function's unused result is still stored (or tested with `if ... then ;`).
 
 ## 11. Tools, CI, tests and regression scenarios
 
@@ -686,6 +686,6 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 
 **Comments.** The comment fixes from the source review (Money, Intro, C_Keys, CharGen, Camp, GDVars) are in section 9.
 
-**The merged archives have one model.** C_Data's header and DataArc's family table said goldbox-re-tools' mergedax held the same values, but that model went with its branch and nothing outside this repository reads the merged archives. They now name DataBld and DataPat, with DataArc's table, as the only source. #264 (PR #687). 882a0f1.
+**The merged archives have one model.** C_DATA's header and DataArc's family table said goldbox-re-tools' mergedax held the same values, but that model went with its branch and nothing outside this repository reads the merged archives. They now name DataBld and DataPat, with DataArc's table, as the only source. #264 (PR #687). 882a0f1.
 
 **The journal units are hand-maintained.** C_Jrnl, JrnlList and Journal1 to Journal4 were first written by goldbox-toolkit's `tools/por-journal-gen.py` (ddcdadc), and have been edited by hand since (54ba386, f04e389). The owner's ruling: the generator is kept only as a one-time bootstrap, and no Python script is part of the build path. Each unit's header now says so; edit the units directly. JrnlView was never generated. In goldbox-toolkit the generator's doc says the same, and that its `--check` reports differences by design. #299 (PR #687). 4496b3d.

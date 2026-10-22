@@ -27,7 +27,7 @@ function AddToSave(var s: FileUtil.TFileSet; letter: Char): Boolean;
   not written whole is reported, and the session vault forgotten, so no other game's vault stays in its place. }
 procedure RestoreFromSlot(letter: Char);
 
-{ True while the vault (GDVars.treasureItems, in the vault) has room for another item. }
+{ True while the vault (GameVars.treasureItems, in the vault) has room for another item. }
 function HasRoom: Boolean;
 
 { Deposit: move item from creature's pack to the end of the vault's items. }
@@ -46,7 +46,7 @@ function WasVisited: Boolean;
 
 implementation
 
-uses Crt, GDVars, Dos, CharHlp, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
+uses Crt, GameVars, Dos, CharHlp, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -104,7 +104,7 @@ end;
 
 procedure ForgetSessionVault;
 begin
-  FileUtil.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
+  FileUtil.DeleteFile(GameVars.saveDirectory + SESSION_FILE);
 end;
 
 function AddToSave(var s: FileUtil.TFileSet; letter: Char): Boolean;
@@ -113,7 +113,7 @@ var
   ok: Boolean;
 begin
   ok := True;
-  if not FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SESSION_FILE) then
+  if not FileUtil.OpenReadOnly(fIn, GameVars.saveDirectory + SESSION_FILE) then
     FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False)
   else begin
     ok := Vault.CopyToTemp(fIn, s.dir + SaveMenu.VaultName(letter));
@@ -129,11 +129,11 @@ var
   ok: Boolean;
 begin
   { the slot's copy becomes the session vault; a slot with none leaves no session vault }
-  if FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SaveMenu.VaultName(letter)) then
-    ok := Vault.CopyToTemp(fIn, GDVars.dsSaveDirectory + SESSION_FILE) and
-          FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE)
+  if FileUtil.OpenReadOnly(fIn, GameVars.saveDirectory + SaveMenu.VaultName(letter)) then
+    ok := Vault.CopyToTemp(fIn, GameVars.saveDirectory + SESSION_FILE) and
+          FileUtil.PutInPlace(GameVars.saveDirectory + SESSION_FILE)
   else
-    ok := FileUtil.DeleteChecked(GDVars.dsSaveDirectory + SESSION_FILE);
+    ok := FileUtil.DeleteChecked(GameVars.saveDirectory + SESSION_FILE);
   if not ok then begin
     Vault.ForgetSessionVault;
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not copied.');
@@ -146,7 +146,7 @@ var
   n: Word;
 begin
   n := 0;
-  p := GDVars.treasureItems;
+  p := GameVars.treasureItems;
   while p <> nil do begin
     Inc(n);
     p := p^.next;
@@ -161,7 +161,7 @@ end;
 
 procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
-  CharHlp.AppendItemCopy(GDVars.treasureItems, item);
+  CharHlp.AppendItemCopy(GameVars.treasureItems, item);
   CharHlp.RemoveItem(creature, item);
 end;
 
@@ -176,20 +176,20 @@ var
   ioRes: Integer;
 begin
   visited := 0;
-  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
-  if not FileUtil.OpenReadOnly(f, GDVars.dsSaveDirectory + SESSION_FILE) then
+  FillChar(GameVars.treasureMoney, SizeOf(GameVars.treasureMoney), 0);
+  if not FileUtil.OpenReadOnly(f, GameVars.saveDirectory + SESSION_FILE) then
     Exit;
   BlockRead(f, head, SizeOf(head), n);
   if (IOResult = 0) and (n = SizeOf(head)) and (head.sig = VAULT_SIG) and (head.version = VAULT_VERSION) then begin
     visited := head.visited;
-    Move(head.money, GDVars.treasureMoney, SizeOf(GDVars.treasureMoney));
+    Move(head.money, GameVars.treasureMoney, SizeOf(GameVars.treasureMoney));
     repeat
       BlockRead(f, disk, DiskRec.ITEM_DISK_BYTES, n);
       if IOResult <> 0 then
         n := 0;
       if (n = DiskRec.ITEM_DISK_BYTES) and Vault.HasRoom then begin
         DiskRec.ItemFromDisk(disk, item);
-        CharHlp.AppendItemCopy(GDVars.treasureItems, @item);
+        CharHlp.AppendItemCopy(GameVars.treasureItems, @item);
       end;
     until n <> DiskRec.ITEM_DISK_BYTES;
   end;
@@ -212,11 +212,11 @@ begin
   head.sig := VAULT_SIG;
   head.version := VAULT_VERSION;
   head.visited := 1;
-  Move(GDVars.treasureMoney, head.money, SizeOf(head.money));
-  ok := FileUtil.RewriteTemp(f, GDVars.dsSaveDirectory + SESSION_FILE);
+  Move(GameVars.treasureMoney, head.money, SizeOf(head.money));
+  ok := FileUtil.RewriteTemp(f, GameVars.saveDirectory + SESSION_FILE);
   if ok then begin
     FileUtil.WriteChecked(f, head, SizeOf(head), ok);
-    p := GDVars.treasureItems;
+    p := GameVars.treasureItems;
     while ok and (p <> nil) do begin
       { without its link, which ReadVault rebuilds: a heap address would make two saves of one vault differ }
       item := p^;
@@ -225,8 +225,8 @@ begin
       FileUtil.WriteChecked(f, disk, DiskRec.ITEM_DISK_BYTES, ok);
       p := p^.next;
     end;
-    ok := FileUtil.CloseTemp(f, GDVars.dsSaveDirectory + SESSION_FILE, ok) and
-          FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE);
+    ok := FileUtil.CloseTemp(f, GameVars.saveDirectory + SESSION_FILE, ok) and
+          FileUtil.PutInPlace(GameVars.saveDirectory + SESSION_FILE);
   end;
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not written.');

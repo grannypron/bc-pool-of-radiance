@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_Msg, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp,
+uses Types, Crt, C_TILE, C_MSG, GameDefs, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -38,13 +38,13 @@ begin
     Portrait.FreeAnimation(a);
     Exit;
   end;
-  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.dsViewImageBufferPtr);
+  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GameVars.viewImageBufferPtr);
   Blit.FlushView;
   repeat
     Portrait.DisplayImageBuf(col, row, True, a.frames[a.current].pic);
     tickNow := TextRend.GetTicks;
     { the tick count restarts at midnight }
-    if (tickNow - tickLast > a.frames[a.current].time * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
+    if (tickNow - tickLast > a.frames[a.current].time * (GameVars.gameDelay + 3)) or (tickNow < tickLast) then begin
       Inc(a.current);
       if a.current > a.count then begin
         a.current := 1;
@@ -58,45 +58,45 @@ end;
 
 { Play the endgame: the dragon's death, Tyranthraxus' possession threat and Bane's recall, each with its text and a
   FINAL animation. Pictures are blocks of FINAL<n>.DAX, where n is the virtual disk number; blocks 4, 5 and 6 add a
-  party figure when the party has more than 1, 2 and 3 members. The interface state is C_Ifc.WON_GAME for the duration,
+  party figure when the party has more than 1, 2 and 3 members. The interface state is C_IFC.WON_GAME for the duration,
   then the saved state is restored and the non-combat interface redrawn. }
 procedure WinGame;
 begin
-  Str(GDVars.virtualDisk, finalSfx);
-  savedIfc := GDVars.ifcState;
-  GDVars.ifcState := C_Ifc.WON_GAME;
+  Str(GameVars.virtualDisk, finalSfx);
+  savedIfc := GameVars.ifcState;
+  GameVars.ifcState := C_IFC.WON_GAME;
   finalPic := nil;
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');
   TextRend.DisplayString(1, 18, LightGreen, 'The spirit of Tyranthraxus flares up');
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
   CharDisp.DisplayNoncombatInterface;
   Blit.LoadPic('FINAL' + finalSfx, 1, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
-  Ending.PlayFinalAnim(3, 5, 2, Word(10 - GDVars.gameDelay) * 5 div 2);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+  Ending.PlayFinalAnim(3, 5, 2, Word(10 - GameVars.gameDelay) * 5 div 2);
   Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 1 then begin
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 1 then begin
     Blit.LoadPic('FINAL' + finalSfx, 4, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   end;
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 2 then begin
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 2 then begin
     Blit.LoadPic('FINAL' + finalSfx, 5, False, 0, finalPic);
-    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   end;
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 3 then begin
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 3 then begin
     Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   end;
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');
   TextRend.DisplayString(1, 18, LightGreen, 'I possessed.  I cannot be defeated!"');
   TextRend.DisplayString(1, 19, LightGreen, 'With the power of the pool of radiance');
   TextRend.DisplayString(1, 20, LightGreen, 'which I moved here, to my lair,');
   TextRend.DisplayString(1, 21, LightGreen, 'I will still rule, by possessing one');
   TextRend.DisplayString(1, 22, LightGreen, 'of you!"');
-  Ending.PlayFinalAnim(3, 1, 7, Word(10 - GDVars.gameDelay) * 5 div 2);
-  TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+  Ending.PlayFinalAnim(3, 1, 7, Word(10 - GameVars.gameDelay) * 5 div 2);
+  TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"No Lord Bane!  I can still rule here!');
   TextRend.DisplayString(1, 18, LightGreen, 'I have not failed.  Do not call me back');
   TextRend.DisplayString(1, 19, LightGreen, 'through the pool!"');
@@ -107,7 +107,7 @@ begin
   TextRend.PauseOnly;
   { the game goes on after the ending }
   Blit.FreePic(finalPic);
-  GDVars.ifcState := savedIfc;
+  GameVars.ifcState := savedIfc;
   CharDisp.DisplayNoncombatInterface;
 end;
 
@@ -115,6 +115,147 @@ end;
   nine steps that each apply a dithered (random partial) remap to the pyramid tiles and redraw the view at that step's
   viewport. Always apply the full, undithered remap; when animating, then show the view at (23,25) and pause twice. }
 procedure YarashComplete(animate: Boolean);
+const
+  { Wilderness tiles remapped Black to Blue and LightGray to Green. Bit 7 selects the second tile set (mapTilePtr2),
+    the low 7 bits the frame. }
+  yarBlueGreenTiles: array[0..10] of Byte = (
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    113,
+    128 + 96,
+    128 + 97,
+    128 + 98);
+  { Wilderness tiles remapped LightGray to Green. Bit 7 selects the second tile set, the low 7 bits the frame. }
+  yarGreenTiles: array[0..17] of Byte = (
+    86,
+    87,
+    88,
+    89,
+    108,
+    109,
+    110,
+    111,
+    112,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    128 + 95,
+    128 + 115,
+    128 + 117);
+  { Source side of both remaps: every color, in palette order. }
+  yarRemapFrom: Types.TColorTab = (
+    Black,
+    Blue,
+    Green,
+    Cyan,
+    Red,
+    Magenta,
+    Brown,
+    LightGray,
+    DarkGray,
+    LightBlue,
+    LightGreen,
+    LightCyan,
+    LightRed,
+    LightMagenta,
+    Yellow,
+    White);
+  yarBlueGreenTo: Types.TColorTab = (
+    { Black -> Blue }
+    Blue,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> Green }
+    Green,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> LightMagenta }
+    LightMagenta,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
+  yarGreenTo: Types.TColorTab = (
+    { Black -> Black }
+    Black,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> Green }
+    Green,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> LightMagenta }
+    LightMagenta,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
+  { Wilderness viewport left column for each animation step }
+  yarViewX: array[0..8] of Word = (
+    17,
+    17,
+    17,
+    19,
+    19,
+    19,
+    23,
+    23,
+    23);
+  { Wilderness viewport top row for each animation step }
+  yarViewY: array[0..8] of Word = (
+    15,
+    15,
+    15,
+    20,
+    20,
+    20,
+    25,
+    25,
+    25);
 var
   t: Byte;
   step: Byte;
@@ -126,42 +267,38 @@ begin
     for step := 0 to 8 do begin
       { 10 = High(yarBlueGreenTiles) }
       for t := 0 to 10 do
-        if GDConsts.yarBlueGreenTiles[t] > C_Tile.ID_MASK then
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
-                        GDConsts.yarBlueGreenTiles[t] and C_Tile.ID_MASK, True,
+        if yarBlueGreenTiles[t] > C_TILE.ID_MASK then
+          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo,
+                        yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], True,
-                        GDVars.ds2dMapTilePtr);
+          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], True, GameVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
-        if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_Tile.ID_MASK, True,
+        if yarGreenTiles[t] > C_TILE.ID_MASK then
+          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], True,
-                        GDVars.ds2dMapTilePtr);
-      Wilds.BuildWildernessMap(GDConsts.yarViewX[step], GDConsts.yarViewY[step]);
+          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], True, GameVars.mapTilePtr);
+      Wilds.BuildWildernessMap(yarViewX[step], yarViewY[step]);
       Blit.FlushView;
     end;
   end;
   { 10 = High(yarBlueGreenTiles) }
   for t := 0 to 10 do
-    if GDConsts.yarBlueGreenTiles[t] > C_Tile.ID_MASK then
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
-                    GDConsts.yarBlueGreenTiles[t] and C_Tile.ID_MASK, False,
+    if yarBlueGreenTiles[t] > C_TILE.ID_MASK then
+      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo,
+                    yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
                     MapTiles.SecondSheet)
     else
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], False,
-                    GDVars.ds2dMapTilePtr);
+      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], False, GameVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
-    if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_Tile.ID_MASK,
+    if yarGreenTiles[t] > C_TILE.ID_MASK then
+      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK,
                     False, MapTiles.SecondSheet)
     else
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], False,
-                    GDVars.ds2dMapTilePtr);
+      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], False, GameVars.mapTilePtr);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);
     Blit.FlushView;

@@ -46,7 +46,7 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_Ifc, C_Money, GameIo, MenuCore, C_Msg,
+uses Crt, C_NPC, GameDefs, GameVars, TextRend, Border, CharHlp, C_KEYS, C_IFC, C_MONEY, GameIo, MenuCore, C_MSG,
   EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
@@ -84,7 +84,7 @@ begin
 end;
 
 { How many coins of mType the creature can take: as many as it can carry (SpareCapacity), but no more than bring its
-  count to C_Money.MAX_COINS (MoneyCal.CoinRoom). }
+  count to C_MONEY.MAX_COINS (MoneyCal.CoinRoom). }
 function Takable(p: Types.PCharRecord; mType: ShortInt): Word;
 var
   n: Word;
@@ -104,9 +104,9 @@ var
   i: ShortInt;
 begin
   MoneyCal.CoinsOf(creature, m);
-  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], C_Money.MAX_COINS,
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD], C_MONEY.MAX_COINS,
                       m);
-  for i := C_Money.COPPER to C_Money.PLATINUM do
+  for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
     creature^.coins[i] := m[i];
   CharHlp.RecalcStats(creature);
 end;
@@ -114,8 +114,8 @@ end;
 { Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
 procedure PayFromPool(gp: LongInt);
 begin
-  MoneyCal.MakeChange(MoneyCal.CopperValue(GDVars.treasureMoney) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD],
-                      MaxLongInt, GDVars.treasureMoney);
+  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD],
+                      MaxLongInt, GameVars.treasureMoney);
 end;
 
 procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
@@ -124,18 +124,18 @@ var
   gpTaken: Word;
 begin
   ppTaken := pp;
-  if ppTaken > Money.Takable(creature, C_Money.PLATINUM) then
-    ppTaken := Money.Takable(creature, C_Money.PLATINUM);
-  Inc(creature^.coins[C_Money.PLATINUM], ppTaken);
+  if ppTaken > Money.Takable(creature, C_MONEY.PLATINUM) then
+    ppTaken := Money.Takable(creature, C_MONEY.PLATINUM);
+  Inc(creature^.coins[C_MONEY.PLATINUM], ppTaken);
   { the platinum taken already weighs in the gold's Takable }
   gpTaken := gp;
-  if gpTaken > Money.Takable(creature, C_Money.GOLD) then
-    gpTaken := Money.Takable(creature, C_Money.GOLD);
-  Inc(creature^.coins[C_Money.GOLD], gpTaken);
+  if gpTaken > Money.Takable(creature, C_MONEY.GOLD) then
+    gpTaken := Money.Takable(creature, C_MONEY.GOLD);
+  Inc(creature^.coins[C_MONEY.GOLD], gpTaken);
   if (ppTaken < pp) or (gpTaken < gp) then begin
     CharDisp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
-    Inc(GDVars.treasureMoney[C_Money.PLATINUM], pp - ppTaken);
-    Inc(GDVars.treasureMoney[C_Money.GOLD], gp - gpTaken);
+    Inc(GameVars.treasureMoney[C_MONEY.PLATINUM], pp - ppTaken);
+    Inc(GameVars.treasureMoney[C_MONEY.GOLD], gp - gpTaken);
   end;
   CharHlp.RecalcStats(creature);
 end;
@@ -168,17 +168,17 @@ begin
           if v > max then
             s := maxStr;
         end;
-      C_Keys.BACKSPACE: if Length(s) > 0 then
+      C_KEYS.BACKSPACE: if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
     end;
-    if (ch in ['0'..'9']) or (ch = C_Keys.BACKSPACE) then begin
+    if (ch in ['0'..'9']) or (ch = C_KEYS.BACKSPACE) then begin
       { s holds at most 6 digits }
       TextRend.PrintSpaces(qLen, 24, Black, 6);
       TextRend.DisplayString(qLen, 24, White, s);
     end;
-  until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
+  until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
   TextRend.ClearBottomLine;
-  if ch = C_Keys.ESC then
+  if ch = C_KEYS.ESC then
     n := 0
   else
     Val(s, n, code);
@@ -198,19 +198,19 @@ begin
     CharDisp.PrintBottomLine('Overloaded');
 end;
 
-{ Creatures with npc = 0 or C_Npc.ANIMATED_PC pour all seven money types into the treasure pool. }
+{ Creatures with npc = 0 or C_NPC.ANIMATED_PC pour all seven money types into the treasure pool. }
 procedure PoolMoney;
 var
   p: Types.PCharRecord;
   i: ShortInt;
   mt: ShortInt;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
-    if (p^.npc = 0) or (p^.npc = C_Npc.ANIMATED_PC) then begin
-      for i := C_Money.COPPER to C_Money.JEWELRY do begin
+    if (p^.npc = 0) or (p^.npc = C_NPC.ANIMATED_PC) then begin
+      for i := C_MONEY.COPPER to C_MONEY.JEWELRY do begin
         mt := i;
-        GDVars.treasureMoney[mt] := p^.coins[mt] + GDVars.treasureMoney[mt];
+        GameVars.treasureMoney[mt] := p^.coins[mt] + GameVars.treasureMoney[mt];
       end;
       FillChar(p^.coins, SizeOf(p^.coins), 0);
       CharHlp.RecalcStats(p);
@@ -219,13 +219,13 @@ begin
   end;
 end;
 
-{ Count the creatures ShareMoney's first pass pays: those without C_Npc.FLAG, hired NPCs among them. }
+{ Count the creatures ShareMoney's first pass pays: those without C_NPC.FLAG, hired NPCs among them. }
 function CountSharers: Byte;
 var
   p: Types.PCharRecord;
   n: Byte;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   n := 0;
   while p <> nil do begin
     if not CharHlp.IsNpc(p) then
@@ -236,11 +236,11 @@ begin
 end;
 
 { Split the treasure pool. Each type's share is the pool amount div CountSharers, with the remainder held back. Pass 1
-  walks the creatures with C_Npc.FLAG clear and, from jewelry (6) down to copper (0), gives each its share (or as much
+  walks the creatures with C_NPC.FLAG clear and, from jewelry (6) down to copper (0), gives each its share (or as much
   as it can take, Takable, the rest joining the remainder) plus one remainder coin when the whole outstanding remainder
   would fit. Pass 2 hands out the leftovers to every creature in list order up to what each can take, and any excess
   returns to the treasure pool. Shares and remainders are LongInt, as the pool is; with no creature to count, the pool
-  is left as it is. SSI divided by the creatures PoolMoney empties (npc 0 or C_Npc.ANIMATED_PC), so with a hired NPC
+  is left as it is. SSI divided by the creatures PoolMoney empties (npc 0 or C_NPC.ANIMATED_PC), so with a hired NPC
   along more shares were paid than the pool held. }
 procedure ShareMoney;
 var
@@ -248,29 +248,29 @@ var
   cnt: Byte;
   done: Boolean;
   takable: Word;
-  share: array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
-  rem: array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
+  share: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
+  rem: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
   i: ShortInt;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   done := False;
   cnt := Money.CountSharers;
   if cnt = 0 then Exit;
   FillChar(share, SizeOf(share), 0);
   FillChar(rem, SizeOf(rem), 0);
-  for i := C_Money.COPPER to C_Money.JEWELRY do
-    if GDVars.treasureMoney[i] > 0 then begin
-      share[i] := GDVars.treasureMoney[i] div cnt;
-      rem[i] := GDVars.treasureMoney[i] mod cnt;
+  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+    if GameVars.treasureMoney[i] > 0 then begin
+      share[i] := GameVars.treasureMoney[i] div cnt;
+      rem[i] := GameVars.treasureMoney[i] mod cnt;
     end else begin
       share[i] := 0;
       rem[i] := 0;
     end;
   { pass 1: shares }
   while p <> nil do begin
-    { C_Npc.FLAG clear }
+    { C_NPC.FLAG clear }
     if not CharHlp.IsNpc(p) then
-      for i := C_Money.JEWELRY downto C_Money.COPPER do
+      for i := C_MONEY.JEWELRY downto C_MONEY.COPPER do
         if share[i] <= Money.Takable(p, i) then begin
           p^.coins[i] := share[i] + p^.coins[i];
           CharHlp.RecalcStats(p);
@@ -289,9 +289,9 @@ begin
     p := p^.nextCharAddr;
   end;
   { pass 2: leftovers }
-  for i := C_Money.JEWELRY downto C_Money.COPPER do
+  for i := C_MONEY.JEWELRY downto C_MONEY.COPPER do
     if rem[i] > 0 then begin
-      p := GDVars.creatureList;
+      p := GameVars.creatureList;
       while p <> nil do begin
         takable := Money.Takable(p, i);
         if takable > 0 then
@@ -308,18 +308,19 @@ begin
       end;
     end;
   { return the rest to the pool }
-  for i := C_Money.COPPER to C_Money.JEWELRY do
-    GDVars.treasureMoney[i] := rem[i];
+  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+    GameVars.treasureMoney[i] := rem[i];
 end;
 
-{ Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT,
-  C_Ifc.LOOT). Elsewhere it is discarded. }
+{ Dropped money enters the treasure pool in a shop, temple, vault or loot menu (C_IFC.SHOP_TEMPLE, C_IFC.VAULT,
+  C_IFC.LOOT). Elsewhere it is discarded. }
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   p^.coins[mType] := p^.coins[mType] - qty;
   CharHlp.RecalcStats(p);
-  if (GDVars.ifcState = C_Ifc.LOOT) or (GDVars.ifcState = C_Ifc.SHOP_TEMPLE) or (GDVars.ifcState = C_Ifc.VAULT) then
-    GDVars.treasureMoney[mType] := GDVars.treasureMoney[mType] + qty;
+  if (GameVars.ifcState = C_IFC.LOOT) or (GameVars.ifcState = C_IFC.SHOP_TEMPLE) or
+      (GameVars.ifcState = C_IFC.VAULT) then
+    GameVars.treasureMoney[mType] := GameVars.treasureMoney[mType] + qty;
 end;
 
 { Take qty of mType from the pool; a qty above the pool amount is cut to the pool's low word. The whole take is refused
@@ -329,9 +330,9 @@ begin
   if qty > Money.Takable(p, mType) then
     CharDisp.PrintBottomLine('Overloaded')
   else begin
-    if qty > GDVars.treasureMoney[mType] then
-      qty := Word(GDVars.treasureMoney[mType]);
-    GDVars.treasureMoney[mType] := GDVars.treasureMoney[mType] - qty;
+    if qty > GameVars.treasureMoney[mType] then
+      qty := Word(GameVars.treasureMoney[mType]);
+    GameVars.treasureMoney[mType] := GameVars.treasureMoney[mType] - qty;
     p^.coins[mType] := p^.coins[mType] + qty;
     CharHlp.RecalcStats(p);
   end;
@@ -353,14 +354,14 @@ var
   redraw: Boolean;
   ch: Char;
 begin
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, LightGreen, '');
+  Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, LightGreen, '');
   idx := 0;
   repeat
     redraw := True;
     p := nil;
     sel := nil;
-    for i := C_Money.JEWELRY downto C_Money.COPPER do
-      if GDVars.treasureMoney[i] > 0 then begin
+    for i := C_MONEY.JEWELRY downto C_MONEY.COPPER do
+      if GameVars.treasureMoney[i] > 0 then begin
         if p = nil then begin
           GetMem(p, SizeOf(Types.TMenuNode));
           p^.next := nil;
@@ -369,31 +370,31 @@ begin
           GetMem(p, SizeOf(Types.TMenuNode));
           p^.next := sel;
         end;
-        Str(GDVars.treasureMoney[i], numStr);
-        p^.name := GDConsts.moneyNames[i] + ' ' + numStr;
+        Str(GameVars.treasureMoney[i], numStr);
+        p^.name := GameDefs.moneyNames[i] + ' ' + numStr;
         p^.inUse := 0;
       end;
     sel := p;
     save := p;
     ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 2, 2,
                                 15, 8, p, True, redraw, idx, sel);
-    if (sel = nil) or (ch = C_Keys.NONE) then begin
+    if (sel = nil) or (ch = C_KEYS.NONE) then begin
       MenuCore.FreeStringList(save);
       exitF := True;
     end else begin
       exitF := False;
       mType := MoneyCal.ParseMoneyType(sel^.name, numStr);
       numStr := 'How much ' + numStr + 'will you take? ';
-      if GDVars.treasureMoney[mType] > 65535 then
+      if GameVars.treasureMoney[mType] > 65535 then
         n := 65535
       else
-        n := GDVars.treasureMoney[mType];
+        n := GameVars.treasureMoney[mType];
       n := Money.InputNumberMax(n, numStr, LightGreen);
-      Money.TakeMoney(GDVars.curChar, n, mType);
+      Money.TakeMoney(GameVars.curChar, n, mType);
       MenuCore.FreeStringList(save);
       exitF := True;
-      for i := C_Money.COPPER to C_Money.JEWELRY do
-        if GDVars.treasureMoney[i] > 0 then
+      for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+        if GameVars.treasureMoney[i] > 0 then
           exitF := False;
     end;
   until exitF;
@@ -406,10 +407,10 @@ var
 begin
   treasure := False;
   items := False;
-  for i := C_Money.COPPER to C_Money.JEWELRY do
-    if GDVars.treasureMoney[i] <> 0 then
+  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+    if GameVars.treasureMoney[i] <> 0 then
       treasure := True;
-  if GDVars.treasureItems <> nil then
+  if GameVars.treasureItems <> nil then
     items := True;
 end;
 
@@ -448,14 +449,14 @@ var
     c: Types.PCharRecord;
   begin
     holder := nil;
-    if HasRoom(GDVars.curChar) then
-      holder := GDVars.curChar
+    if HasRoom(GameVars.curChar) then
+      holder := GameVars.curChar
     else begin
-      TextRend.DisplayString(1, 14, White, GDVars.curChar^.name + ' doesn''t have space');
-      c := GDVars.creatureList;
+      TextRend.DisplayString(1, 14, White, GameVars.curChar^.name + ' doesn''t have space');
+      c := GameVars.creatureList;
       while (c <> nil) and (holder = nil) do begin
-        { C_Npc.FLAG clear: a party member, not a hired NPC }
-        if (c <> GDVars.curChar) and not CharHlp.IsNpc(c) and HasRoom(c) then
+        { C_NPC.FLAG clear: a party member, not a hired NPC }
+        if (c <> GameVars.curChar) and not CharHlp.IsNpc(c) and HasRoom(c) then
           holder := c;
         c := c^.nextCharAddr;
       end;
@@ -489,49 +490,49 @@ var
       { the holder's item count and weight }
       CharHlp.RecalcStats(holder);
     end else
-      Money.GiveCoins(GDVars.curChar, worth div 5, 0);
+      Money.GiveCoins(GameVars.curChar, worth div 5, 0);
   end;
 
 begin
   ok := True;
-  if (GDVars.curChar^.coins[C_Money.GEMS] = 0) and
-      (GDVars.curChar^.coins[C_Money.JEWELRY] = 0) then begin
+  if (GameVars.curChar^.coins[C_MONEY.GEMS] = 0) and
+      (GameVars.curChar^.coins[C_MONEY.JEWELRY] = 0) then begin
     CharDisp.PrintBottomLine('No Gems or Jewelry');
     ok := False;
   end else
     repeat
-      if (GDVars.curChar^.coins[C_Money.GEMS] = 0) and (GDVars.curChar^.coins[C_Money.JEWELRY] = 0) then
+      if (GameVars.curChar^.coins[C_MONEY.GEMS] = 0) and (GameVars.curChar^.coins[C_MONEY.JEWELRY] = 0) then
         exitF := True
       else begin
         exitF := False;
-        Str(GDVars.curChar^.coins[C_Money.GEMS], gemStr);
-        Str(GDVars.curChar^.coins[C_Money.JEWELRY], jwlStr);
-        case GDVars.curChar^.coins[C_Money.GEMS] of
+        Str(GameVars.curChar^.coins[C_MONEY.GEMS], gemStr);
+        Str(GameVars.curChar^.coins[C_MONEY.JEWELRY], jwlStr);
+        case GameVars.curChar^.coins[C_MONEY.GEMS] of
           0: gemStr := '';
           1: gemStr := gemStr + ' Gem';
           else gemStr := gemStr + ' Gems';
         end;
-        case GDVars.curChar^.coins[C_Money.JEWELRY] of
+        case GameVars.curChar^.coins[C_MONEY.JEWELRY] of
           0: jwlStr := '';
           1: jwlStr := jwlStr + ' piece of Jewelry';
           else jwlStr := jwlStr + ' pieces of Jewelry';
         end;
-        TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-        CharDisp.DisplayCreatureName(GDVars.curChar, 1, 1, False);
+        TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+        CharDisp.DisplayCreatureName(GameVars.curChar, 1, 1, False);
         TextRend.DisplayString(1, 7, White, 'You have a fine collection of:');
         TextRend.DisplayString(1, 9, White, gemStr);
         TextRend.DisplayString(1, 10, White, jwlStr);
         menu := '';
-        if GDVars.curChar^.coins[C_Money.GEMS] <> 0 then
+        if GameVars.curChar^.coins[C_MONEY.GEMS] <> 0 then
           menu := 'Gems ';
-        if GDVars.curChar^.coins[C_Money.JEWELRY] <> 0 then
+        if GameVars.curChar^.coins[C_MONEY.JEWELRY] <> 0 then
           menu := menu + 'Jewelry ';
         menu := menu + 'Exit';
         ch := MenuCore.MenuHorizontal('Appraise: ', menu, LightMagenta, LightGreen, White, True,
                                       False, ext);
         case ch of
-          'G': if GDVars.curChar^.coins[C_Money.GEMS] <> 0 then begin
-              Dec(GDVars.curChar^.coins[C_Money.GEMS]);
+          'G': if GameVars.curChar^.coins[C_MONEY.GEMS] <> 0 then begin
+              Dec(GameVars.curChar^.coins[C_MONEY.GEMS]);
               r := Dice.RollDice(1, 100);
               case r of
                 1..25: value := 10;
@@ -546,8 +547,8 @@ begin
               TextRend.DisplayString(1, 12, White, gemStr);
               SellOrKeep(101, value);
             end;
-          'J': if GDVars.curChar^.coins[C_Money.JEWELRY] <> 0 then begin
-              Dec(GDVars.curChar^.coins[C_Money.JEWELRY]);
+          'J': if GameVars.curChar^.coins[C_MONEY.JEWELRY] <> 0 then begin
+              Dec(GameVars.curChar^.coins[C_MONEY.JEWELRY]);
               r := Dice.RollDice(1, 100);
               case r of
                 1..10: value := Trunc(Random(900)) + 100;
@@ -563,10 +564,10 @@ begin
               TextRend.DisplayString(1, 12, White, gemStr);
               SellOrKeep(214, value);
             end;
-          'E', C_Keys.NONE:
+          'E', C_KEYS.NONE:
             exitF := True;
         end;
-        CharHlp.RecalcStats(GDVars.curChar);
+        CharHlp.RecalcStats(GameVars.curChar);
       end;
     until exitF;
 end;
@@ -579,7 +580,7 @@ begin
   if EclMenu.MenuHorizontalCS('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
     GoBackForIt := False
   else begin
-    TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
+    TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
     GoBackForIt := True;
   end;
 end;

@@ -1,6 +1,6 @@
 { Equipped-item slot indices; they index TCharRecord.equipped. }
 {$I COMPILER.INC}
-unit C_Equip;
+unit C_EQUIP;
 
 interface
 

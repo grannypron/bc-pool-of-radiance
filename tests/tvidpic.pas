@@ -1,12 +1,12 @@
 { Tests for the video drivers' picture routines in each mode (CGA, EGA, Tandy, VGA), without video hardware: installing
-  a driver only fills GDVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0 transparent,
-  is converted from DAX's 4 bits a pixel (Blit.ExpandPicFrames) and its bytes and mask checked against the mode's
-  layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell fill and the
-  picture blitted through its mask. CGA's colour map takes colour c to CGA colour c mod 4. }
+  a driver only fills GameVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0
+  transparent, is converted from DAX's 4 bits a pixel (Blit.ExpandPicFrames) and its bytes and mask checked against the
+  mode's layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell fill
+  and the picture blitted through its mask. CGA's colour map takes colour c to CGA colour c mod 4. }
 {$I COMPILER.INC}
 program TVidPic;
 
-uses Types, GDConsts, GDVars, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
+uses Types, GameDefs, GameVars, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, TestKit;
 
 const
   { the DAX frame: row 0 is colours 0..7, row 1 is 7..0, two pixels a byte, high nibble first }
@@ -63,7 +63,7 @@ var
   i: Byte;
   map: Types.TColorMap;
 begin
-  TestKit.CheckEqualsS(name, GDVars.video.name, name + ' is installed');
+  TestKit.CheckEqualsS(name, GameVars.video.name, name + ' is installed');
   TestKit.CheckEqualsL(frameBytes, Blit.FrameBytes(2, 1), name + ': a frame of 2 rows, 1 cell');
   TestKit.CheckEqualsL(maskBytes, Blit.MaskBytes(frameBytes), name + ': its mask');
   pic := TestPic;
@@ -91,9 +91,9 @@ begin
   Blit.AllocPic(1, 1, 1, 0, cell);
   for i := 0 to 7 do
     map[i] := (((2 * i) mod 4) shl 4) or ((2 * i + 1) mod 4);
-  FillChar(GDVars.spanActive, SizeOf(GDVars.spanActive), 0);
-  FillChar(GDVars.spanFirstOfs, SizeOf(GDVars.spanFirstOfs), $FF);
-  FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
+  FillChar(GameVars.spanActive, SizeOf(GameVars.spanActive), 0);
+  FillChar(GameVars.spanFirstOfs, SizeOf(GameVars.spanFirstOfs), $FF);
+  FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
   Blit.FillPicRect(0, 0, 1, 1, 9, map, cell);
   CheckBytes(cell, fill, '', name + ' fill 9');
   { an empty rectangle fills nothing (#728) }

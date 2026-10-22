@@ -1,6 +1,6 @@
 { Money types. }
 {$I COMPILER.INC}
-unit C_Money;
+unit C_MONEY;
 
 interface
 

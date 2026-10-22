@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, MoneyCal;
+uses GameDefs, GameVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, MoneyCal;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -216,14 +216,14 @@ var
   b: PStatBlock;
   down: Boolean;
 begin
-  down := wasUp and not (victim^.status in [C_Status.OKAY, C_Status.ANIMATED]);
+  down := wasUp and not (victim^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED]);
   if Party.IsPartyMember(victim) then begin
     Stats.Count(victim, DAMAGE_TAKEN, hp);
     if down then
       Stats.Count(victim, KNOCKED_DOWN, 1);
-    if victim^.status = C_Status.DEAD then
+    if victim^.status = C_STATUS.DEAD then
       Stats.Count(victim, DIED, 1);
-  end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
+  end else if (GameVars.ifcState = C_IFC.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
     Stats.Count(actor, DAMAGE_DONE, hp);
     if down then begin
       Stats.Count(actor, KILLS, 1);
@@ -243,7 +243,7 @@ end;
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 begin
   Stats.Count(target, HEALED_TAKEN, hp);
-  if byPower or (GDVars.dsCurrentSpellBeing <> 0) then
+  if byPower or (GameVars.currentSpellBeing <> 0) then
     Stats.Count(actor, HEALED_GIVEN, hp);
 end;
 
@@ -264,9 +264,9 @@ var
   n: Byte;
 begin
   FillChar(marked, SizeOf(marked), 0);
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   n := 0;
-  while (p <> nil) and (n < GDVars.zone1^[C_Gbvm.PARTY_SIZE]) and (n < ENTRIES) do begin
+  while (p <> nil) and (n < GameVars.zone1^[C_GBVM.PARTY_SIZE]) and (n < ENTRIES) do begin
     Inc(n);
     marked[n] := p;
     markedWorth[n] := MoneyCal.CreatureCopper(p);

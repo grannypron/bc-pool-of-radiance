@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TDataPat;
 
-uses C_Data, DataPat, StrUtil, TestKit;
+uses C_DATA, DataPat, StrUtil, TestKit;
 
 var
   p: Word;
@@ -44,8 +44,8 @@ begin
   runsOk := True;
   for p := 1 to DataPat.PART_COUNT do begin
     with DataPat.parts[p] do begin
-      if not (family in [C_Data.FAMILY_ECL, C_Data.FAMILY_GEO, C_Data.FAMILY_ITEM, C_Data.FAMILY_MONCHA,
-                         C_Data.FAMILY_MONITM]) then begin
+      if not (family in [C_DATA.FAMILY_ECL, C_DATA.FAMILY_GEO, C_DATA.FAMILY_ITEM, C_DATA.FAMILY_MONCHA,
+                         C_DATA.FAMILY_MONITM]) then begin
         familiesOk := False;
         TestKit.Check(False, 'part ' + StrUtil.NumStr(p) + ': an unknown family');
       end;

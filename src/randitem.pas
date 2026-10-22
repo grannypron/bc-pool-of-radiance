@@ -8,15 +8,76 @@ interface
 
 uses Types;
 
+const
+  { Random item templates }
+  randomItemTemplates: array[1..19] of Types.TRandomItemTemplate = (
+    { Template 1: Potion of Extra Healing }
+    (nameIds: (187, 167, 64); weight: 1; value: 800;
+     properties: (3, 3, 0)),
+    { Template 2: Potion of Giant Strength }
+    (nameIds: (239, 167, 64); weight: 1; value: 1100;
+     properties: (1, 82, 0)),
+    { Template 3: Potion of Healing }
+    (nameIds: (185, 167, 64); weight: 1; value: 400;
+     properties: (1, 85, 0)),
+    { Template 4: Potion of Speed }
+    (nameIds: (173, 167, 64); weight: 1; value: 450;
+     properties: (1, 80, 0)),
+    { Template 5: Scroll of Restoring Levels }
+    (nameIds: (240, 167, 65); weight: 1; value: 2100;
+     properties: (56, 56, 0)),
+    { Template 6: Ring of Feather Falling }
+    (nameIds: (238, 167, 66); weight: 1; value: 5000;
+     properties: (0, 27, 128)),
+    { Template 7: Wand of Lightning }
+    (nameIds: (157, 167, 69); weight: 1; value: 6000;
+     properties: (20, 51, 0)),
+    { Template 8: Wand of Magic Missiles }
+    (nameIds: (206, 167, 69); weight: 1; value: 11000;
+     properties: (30, 88, 0)),
+    { Template 9: Wand of Paralyzation }
+    (nameIds: (225, 167, 69); weight: 1; value: 5000;
+     properties: (20, 84, 0)),
+    { Template 10: Gauntlets of Ogre Power }
+    (nameIds: (226, 167, 100); weight: 10; value: 15000;
+     properties: (0, 38, 131)),
+    { Template 11: Keoghtum's Ointment }
+    (nameIds: (0, 111, 182); weight: 1; value: 10000;
+     properties: (5, 81, 0)),
+    { Template 12: Necklace of Missiles }
+    (nameIds: (228, 167, 119); weight: 1; value: 16000;
+     properties: (20, 87, 0)),
+    { Template 13: Cloak of Displacement }
+    (nameIds: (170, 167, 88); weight: 25; value: 17500;
+     properties: (0, 89, 133)),
+    { Template 14: Javelin of Lightning }
+    (nameIds: (157, 167, 21); weight: 20; value: 3000;
+     properties: (1, 83, 0)),
+    { Template 15: Wand of Fireballs }
+    (nameIds: (242, 167, 69); weight: 1; value: 5000;
+     properties: (20, 47, 0)),
+    { Template 16: Ring of Fire Resistance }
+    (nameIds: (205, 167, 66); weight: 1; value: 5000;
+     properties: (0, 61, 129)),
+    { Template 17: Ring of Invisibility }
+    (nameIds: (227, 167, 66); weight: 1; value: 7500;
+     properties: (0, 56, 139)),
+    { Template 18: Bag of Holding }
+    (nameIds: (186, 167, 73); weight: 150; value: 25000;
+     properties: (0, 0, 0)),
+    { Template 19: Cloak of Elvenkind }
+    (nameIds: (229, 167, 88); weight: 25; value: 6000;
+     properties: (0, 72, 134)));
+
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
-{ Make item the magic item of GDConsts.randomItemTemplates[template]: its name parts, weight, value and properties, plus
+{ Make item the magic item of randomItemTemplates[template]: its name parts, weight, value and properties, plus
   1 (the Cloak of Displacement's 2). }
 procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
 
 implementation
 
-uses GDConsts, C_Item, Dice;
+uses GameDefs, C_ITEM, Dice;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;
@@ -36,7 +97,7 @@ var
   tpl: Types.TRandomItemTemplate;
   j: Byte;
 begin
-  tpl := GDConsts.randomItemTemplates[template];
+  tpl := randomItemTemplates[template];
   with item^ do begin
     for j := 1 to 3 do
       nameIds[j] := Lo(tpl.nameIds[j]);
@@ -57,7 +118,7 @@ end;
 
 { Build a random item of the given kind. Kinds 1..59, 73, 77 and 93 are weapons and armor, named from their type with a
   plus from RandomBonus and given a weight and value by type. 61 and 62 are magic-user and clerical scrolls holding 1d3
-  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GDConsts.randomItemTemplates, as does
+  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of randomItemTemplates, as does
   a javelin one time in five. Any other kind gets only itemType and the defaults. }
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 var
@@ -74,8 +135,8 @@ begin
     unidMask := 6;
     itemType := kind;
     case itemType of
-      { C_Item.RANDOM_ARMS_KINDS }
-      1..59, C_Item.ARROW, C_Item.BRACERS, C_Item.RANDOM_ARMS_LAST: begin
+      { C_ITEM.RANDOM_ARMS_KINDS }
+      1..59, C_ITEM.ARROW, C_ITEM.BRACERS, C_ITEM.RANDOM_ARMS_LAST: begin
           plus := RandItem.RandomBonus;
           case itemType of
             { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18 and 19,
@@ -85,53 +146,53 @@ begin
                    if r = 5 then
                      template := 14;
                    nameIds[3] := 21;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             28: begin
                    nameIds[3] := 28;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             50, 51: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 49;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             52: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 50;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             53..58: begin
                    nameIds[3] := itemType;
                    nameIds[2] := 48;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
             73: begin
                    nameIds[3] := 61;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             { bracers: plus 1..3 becomes 4/6/8, named AC 6/4/2 }
-            C_Item.BRACERS: begin
+            C_ITEM.BRACERS: begin
                    nameIds[3] := 79;
-                   nameIds[2] := C_Item.NAME_OF;
+                   nameIds[2] := C_ITEM.NAME_OF;
                    plus := plus * 2 + 2;
                    case plus of
-                     4: nameIds[1] := C_Item.NAME_AC_6;
-                     6: nameIds[1] := C_Item.NAME_AC_4;
-                     8: nameIds[1] := C_Item.NAME_AC_2;
+                     4: nameIds[1] := C_ITEM.NAME_AC_6;
+                     6: nameIds[1] := C_ITEM.NAME_AC_4;
+                     8: nameIds[1] := C_ITEM.NAME_AC_2;
                    end;
                  end;
             93: begin
                    nameIds[3] := 66;
                    nameIds[2] := 224;
-                   nameIds[1] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
             else begin
                    nameIds[3] := itemType;
-                   nameIds[2] := plus + C_Item.NAME_PLUS_BASE;
+                   nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
           end;
           saveBonus := 0;
@@ -199,14 +260,14 @@ begin
             55, 56: value := Word(plus) * 3500;
             57: value := Word(plus) * 4000;
             58: value := Word(plus) * 5000;
-            C_Item.BRACERS: value := Word(plus) * 3000;
+            C_ITEM.BRACERS: value := Word(plus) * 3000;
             else value := Word(plus) * 2000;
           end;
         end;
       { scrolls }
-      C_Item.MAGE_SCROLL, C_Item.CLERIC_SCROLL: begin
+      C_ITEM.MAGE_SCROLL, C_ITEM.CLERIC_SCROLL: begin
           n := Dice.RollDice(1, 3);
-          if itemType = C_Item.MAGE_SCROLL then
+          if itemType = C_ITEM.MAGE_SCROLL then
             nameIds[3] := 209
           else
             nameIds[3] := 208;
@@ -218,7 +279,7 @@ begin
           value := 0;
           for j := 1 to n do begin
             r := Dice.RollDice(1, 3);
-            if itemType = C_Item.MAGE_SCROLL then
+            if itemType = C_ITEM.MAGE_SCROLL then
               { magic-user spell ids: 9..21, 29..35, 45..55 }
               case r of
                 1: spell := Dice.RollDice(1, 13) + 8;

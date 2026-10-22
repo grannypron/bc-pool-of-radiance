@@ -1,6 +1,6 @@
 { ECL script opcodes, plus the search entry-header slot. }
 {$I COMPILER.INC}
-unit C_Ecl;
+unit C_ECL;
 
 interface
 

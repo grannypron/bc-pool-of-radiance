@@ -14,7 +14,7 @@ procedure ToolsMenu;
 
 implementation
 
-uses Crt, Types, C_Area, C_Dir, C_Keys, C_Msg, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
+uses Crt, Types, C_AREA, C_DIR, C_KEYS, C_MSG, GameDefs, GameVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
   Explored, EvtKind, CharEdit, MapNotes, StrUtil;
 
 const
@@ -25,7 +25,7 @@ const
   LEGEND_COL = 20;
   { the Map tool's line below the map: the cursor's square and its note }
   NOTE_ROW = 20;
-  { symbol set 4 (GDConsts.symSetFirst[4] = 256): the party's arrows by facing div 2, then the sixteen wall
+  { symbol set 4 (GameDefs.symSetFirst[4] = 256): the party's arrows by facing div 2, then the sixteen wall
     combinations, 260 + N + E * 2 + S * 4 + W * 8, as View3D.DrawAutoMap draws them }
   SYM_SET = 4;
   SYM_ARROW = 256;
@@ -51,17 +51,17 @@ var
   c: Byte;
   remap: Boolean;
 begin
-  symbols := GDVars.dsSymbolSetPtrs[SYM_SET];
-  glyph := GDVars.dsCurrent8x8SymbolPtr2;
+  symbols := GameVars.symbolSetPtrs[SYM_SET];
+  glyph := GameVars.current8x8SymbolPtr2;
   if (symbols = nil) or (glyph = nil) then Exit;
-  Move(symbols^.data[(symbol - GDConsts.symSetFirst[SYM_SET]) * symbols^.imgSize], glyph^.data, symbols^.imgSize);
+  Move(symbols^.data[(symbol - GameDefs.symSetFirst[SYM_SET]) * symbols^.imgSize], glyph^.data, symbols^.imgSize);
   { the set's colour map, which CGA's remap translates the tables' colours through }
   glyph^.map := symbols^.map;
   for c := 0 to 15 do begin
     fromT[c] := c;
     toT[c] := c;
   end;
-  if GDVars.video.colours >= 16 then begin
+  if GameVars.video.colours >= 16 then begin
     { the symbols draw light grey and white walls on a dark grey square: dimmed, the walls go dark grey and the square
       black }
     if dim then begin
@@ -76,7 +76,7 @@ begin
   if fill <> DarkGray then
     toT[DarkGray] := fill;
   if noted then begin
-    if GDVars.video.colours >= 16 then
+    if GameVars.video.colours >= 16 then
       toT[LightGray] := Yellow
     else
       toT[LightGray] := LightMagenta;
@@ -99,7 +99,7 @@ end;
 { The square colour of event kind in the current video mode. }
 function KindColour(kind: Byte): Byte;
 begin
-  if GDVars.video.colours >= 16 then
+  if GameVars.video.colours >= 16 then
     KindColour := KIND_COLOURS[kind]
   else
     KindColour := KIND_COLOURS_CGA[kind];
@@ -116,15 +116,15 @@ var
   script: Byte;
   map: Byte;
 begin
-  script := GDVars.eclScriptId;
-  map := GDVars.zone0^.mapId.lo;
+  script := GameVars.eclScriptId;
+  map := GameVars.zone0^.mapId.lo;
   sym := SYM_WALLS;
-  if View3D.GetWallType(mx, my, C_Dir.NORTH) > 0 then Inc(sym);
-  if View3D.GetWallType(mx, my, C_Dir.EAST) > 0 then Inc(sym, 2);
-  if View3D.GetWallType(mx, my, C_Dir.SOUTH) > 0 then Inc(sym, 4);
-  if View3D.GetWallType(mx, my, C_Dir.WEST) > 0 then Inc(sym, 8);
-  if (mx = GDVars.gMapX) and (my = GDVars.gMapY) then
-    sym := SYM_ARROW + GDVars.gFacing div 2;
+  if View3D.GetWallType(mx, my, C_DIR.NORTH) > 0 then Inc(sym);
+  if View3D.GetWallType(mx, my, C_DIR.EAST) > 0 then Inc(sym, 2);
+  if View3D.GetWallType(mx, my, C_DIR.SOUTH) > 0 then Inc(sym, 4);
+  if View3D.GetWallType(mx, my, C_DIR.WEST) > 0 then Inc(sym, 8);
+  if (mx = GameVars.gMapX) and (my = GameVars.gMapY) then
+    sym := SYM_ARROW + GameVars.gFacing div 2;
   kind := EvtKind.Kind(View3D.GetMapEvent(mx, my));
   fill := DarkGray;
   if kind <> EvtKind.KIND_NONE then
@@ -146,7 +146,7 @@ begin
   EvtKind.Prepare;
   FillChar(used, SizeOf(used), False);
   TextRend.ClearScreen;
-  Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+  Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   for my := 0 to 15 do
     for mx := 0 to 15 do begin
       DrawSquare(mx, my, False);
@@ -158,8 +158,8 @@ begin
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 2, LightGreen, 'Bright: visited');
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: not yet');
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: a note');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 5, LightGreen, 'Party at ' + StrUtil.NumStr(GDVars.gMapX) + ',' +
-                         StrUtil.NumStr(GDVars.gMapY));
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 5, LightGreen, 'Party at ' + StrUtil.NumStr(GameVars.gMapX) + ',' +
+                         StrUtil.NumStr(GameVars.gMapY));
   row := MAP_ROW + 7;
   for kind := EvtKind.KIND_EVENT to EvtKind.KIND_EXIT do
     if used[kind] then begin
@@ -172,8 +172,8 @@ end;
 { True in a 3D area; in the wilderness, which has its own map, it says so. }
 function OnAreaMap: Boolean;
 begin
-  OnAreaMap := GDVars.gLocType = C_Area.LOC_3D_MAP;
-  if GDVars.gLocType <> C_Area.LOC_3D_MAP then begin
+  OnAreaMap := GameVars.gLocType = C_AREA.LOC_3D_MAP;
+  if GameVars.gLocType <> C_AREA.LOC_3D_MAP then begin
     TextRend.DisplayAndPause(Yellow, 'The wilderness has its own map.');
     TextRend.ClearBottomLine;
   end;
@@ -182,13 +182,13 @@ end;
 { The Tools screen: the whole area's map in a 3D area, else the frame alone, and its title in the frame's top. }
 procedure DrawTools;
 begin
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  if GameVars.gLocType = C_AREA.LOC_3D_MAP then
     DrawMap
   else begin
     TextRend.ClearScreen;
-    Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
+    Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   end;
-  TextRend.DisplayCentered(C_Msg.TEXT_LEFT, C_Msg.TEXT_RIGHT, C_Msg.TEXT_TOP, White, 'Companion Tools');
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT, C_MSG.TEXT_RIGHT, C_MSG.TEXT_TOP, White, 'Companion Tools');
 end;
 
 { The Map tool, on the Tools screen's map: a cursor, from the party's square, which the arrows move; the note on its
@@ -206,13 +206,13 @@ var
   text: MapNotes.TNoteText;
 begin
   if not OnAreaMap then Exit;
-  script := GDVars.eclScriptId;
-  map := GDVars.zone0^.mapId.lo;
-  cx := GDVars.gMapX;
-  cy := GDVars.gMapY;
+  script := GameVars.eclScriptId;
+  map := GameVars.zone0^.mapId.lo;
+  cx := GameVars.gMapX;
+  cy := GameVars.gMapY;
   repeat
     DrawSquare(cx, cy, True);
-    TextRend.ClearRect(MAP_COL, NOTE_ROW, C_Msg.TEXT_RIGHT - 1, NOTE_ROW);
+    TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
     TextRend.DisplayString(MAP_COL, NOTE_ROW, LightGreen, StrUtil.NumStr(cx) + ',' + StrUtil.NumStr(cy) + ' ');
     TextRend.DisplayString(MAP_COL + 6, NOTE_ROW, Yellow, MapNotes.Note(script, map, cx, cy));
     MenuCore.arrowsToCaller := True;
@@ -221,10 +221,10 @@ begin
     ny := cy;
     if ext then
       case ch of
-        C_Keys.LEFT: if cx > 0 then Dec(nx);
-        C_Keys.RIGHT: if cx < 15 then Inc(nx);
-        C_Keys.UP: if cy > 0 then Dec(ny);
-        C_Keys.DOWN: if cy < 15 then Inc(ny);
+        C_KEYS.LEFT: if cx > 0 then Dec(nx);
+        C_KEYS.RIGHT: if cx < 15 then Inc(nx);
+        C_KEYS.UP: if cy > 0 then Dec(ny);
+        C_KEYS.DOWN: if cy < 15 then Inc(ny);
       end
     else
       case ch of
@@ -241,8 +241,8 @@ begin
       cx := nx;
       cy := ny;
     end;
-  until (not ext) and (ch in [C_Keys.NONE, 'E']);
-  TextRend.ClearRect(MAP_COL, NOTE_ROW, C_Msg.TEXT_RIGHT - 1, NOTE_ROW);
+  until (not ext) and (ch in [C_KEYS.NONE, 'E']);
+  TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
   TextRend.ClearBottomLine;
 end;
 
@@ -251,7 +251,7 @@ var
   ch: Char;
   ext: Boolean;
 begin
-  if GDVars.companionOn = 0 then Exit;
+  if GameVars.companionOn = 0 then Exit;
   DrawTools;
   repeat
     ch := MenuCore.MenuHorizontal('Tools: ', 'Map Character Exit', LightMagenta, LightGreen, White, False, False,
@@ -263,7 +263,7 @@ begin
              DrawTools;
            end;
     end;
-  until ch in [C_Keys.NONE, 'E'];
+  until ch in [C_KEYS.NONE, 'E'];
   TextRend.ClearBottomLine;
 end;
 

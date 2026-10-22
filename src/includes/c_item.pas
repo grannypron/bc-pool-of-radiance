@@ -1,6 +1,6 @@
 { Item values: TBaseItemRec's weapon-property bits and the base item IDs the code names. }
 {$I COMPILER.INC}
-unit C_Item;
+unit C_ITEM;
 
 interface
 
@@ -78,7 +78,7 @@ const
     RANDOM_ARMS_LAST }
   RANDOM_ARMS_LAST = 93;
   RANDOM_ARMS_KINDS = [1..59, ARROW, BRACERS, RANDOM_ARMS_LAST];
-  { Item name parts the code tests or builds (TItemRec.nameIds, GDConsts.nameParts) }
+  { Item name parts the code tests or builds (TItemRec.nameIds, CharHlp.ItemLabel's nameParts) }
   NAME_HAMMER = 20;
   { the bows' names, the same numbers as their item types }
   NAME_COMPOSITE_LONG_BOW = 41;
@@ -98,7 +98,7 @@ const
   NAME_WITH_1_SPELL = 210;
   NAME_SPIRITUAL = 243;
   NAME_WOODEN = 252;
-  { TBaseItemRec.slot past the equipment slots (C_Equip): a magic-user's scroll, a cleric's, and the last slot a
+  { TBaseItemRec.slot past the equipment slots (C_EQUIP): a magic-user's scroll, a cleric's, and the last slot a
     readable item has }
   SLOT_MAGE_SCROLL = 11;
   SLOT_CLERIC_SCROLL = 12;

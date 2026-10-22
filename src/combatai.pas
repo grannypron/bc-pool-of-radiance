@@ -23,14 +23,24 @@ procedure AllToManual;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
-  C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+uses C_ITEM, C_NPC, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
+  C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
   { AiMoveAttack's runaway-turn guard allows a pass for each step the creature's movement pays for and this many more,
     for its attacks and changes of target }
   TURN_SLACK = 20;
+  { AI step patterns (aiStance 1..6): five direction offsets tried in order, each added to the base direction mod 8 (8 =
+    straight ahead, 1/7 = one step clockwise/counterclockwise, 2/6 = two, 3/5 = three, 4 = reverse). Patterns 1..4 are
+    kept on three turns out of four; sweep patterns 5..6 are rerolled every turn. }
+  aiDirOffsets: array[1..6, 1..5] of Byte = (
+    ( 8, 7, 6, 1, 2),
+    ( 8, 1, 2, 7, 6),
+    ( 7, 1, 8, 6, 2),
+    ( 1, 7, 8, 2, 6),
+    ( 8, 7, 6, 5, 4),
+    ( 8, 1, 2, 3, 4));
 
 var
   { the AI's last step direction (8 = none) }
@@ -49,7 +59,7 @@ var
   quick: Boolean;
 begin
   quick := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if (p^.quickfight <> 0) and CharHlp.ComesUnderPlayer(p) then
       quick := True;
@@ -62,7 +72,7 @@ begin
   TextRend.DisplayString(0, 24, LightMagenta, 'Quick: ');
   TextRend.DisplayString(7, 24, White, 'On (Space) ');
   TextRend.DisplayString(18, 24, LightMagenta, 'Magic: ');
-  if GDVars.quickMagic then
+  if GameVars.quickMagic then
     TextRend.DisplayString(25, 24, White, 'On (Alt-M)')
   else
     TextRend.DisplayString(25, 24, White, 'Off (Alt-M)');
@@ -162,23 +172,23 @@ var
   j: Byte;
 begin
   DecideCastSpell := False;
-  if GDConsts.spellTable[spell].aiPriority < minPri then
+  if GameDefs.spellTable[spell].aiPriority < minPri then
     Exit;
-  if ((spell <> C_Spell.CURE_LIGHT_WOUNDS) and (GDConsts.spellTable[spell].offensive = 0))
-     or ((spell = C_Spell.CURE_LIGHT_WOUNDS) and CbtActs.FindCureTarget(creature, tgt)) then
+  if ((spell <> C_SPELL.CURE_LIGHT_WOUNDS) and (GameDefs.spellTable[spell].offensive = 0))
+     or ((spell = C_SPELL.CURE_LIGHT_WOUNDS) and CbtActs.FindCureTarget(creature, tgt)) then
     { buff or heal: no aiming }
     DecideCastSpell := True
   else begin
     cnt := CbtMap.CountTargets(creature, CharHlp.CalcSpellRange(spell));
     if cnt > 0 then
-      if GDConsts.spellTable[spell].aiRadius = 0 then
+      if GameDefs.spellTable[spell].aiRadius = 0 then
         DecideCastSpell := True
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
-          if CbtActs.AreaHitsNonEnemy(GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].x,
-                                      GDVars.arenaLoc[GDVars.dsPotentialTargetCreature[j]].y,
-                                      GDConsts.spellTable[spell].aiRadius) then
+          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].x,
+                                      GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].y,
+                                      GameDefs.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
       end;
@@ -204,8 +214,8 @@ begin
   lowPri := 7;
   roll := Dice.RollDice(1, 7);
   if (creature^.combatAddr^.itemUseAllowed <> 0)
-     and (GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
-     and (GDVars.zone0^.antimagic = 0) then
+     and (GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
+     and (GameVars.zone0^.antimagic = 0) then
     for i := 1 to roll do begin
       item := creature^.itemsAddr;
       while (item <> nil) and (chosen = nil) do begin
@@ -217,9 +227,9 @@ begin
            and (effect > 0) then begin
           { Item effects 80..90 map to spell entries 57..67; 56 is the last real spell id. An effect above 90 would read
             past spellTable and is not rated, as SelectSpellToCast leaves such entries out (#708) }
-          if effect > C_Spell.LAST then
-            effect := effect - C_Spell.ITEM_EFFECT_SHIFT;
-          if effect <= C_Spell.TABLE_LAST then
+          if effect > C_SPELL.LAST then
+            effect := effect - C_SPELL.ITEM_EFFECT_SHIFT;
+          if effect <= C_SPELL.TABLE_LAST then
             if CombatAi.DecideCastSpell(creature, effect, lowPri) then
               chosen := item;
         end;
@@ -254,7 +264,7 @@ begin
   if creature^.combatAddr^.castAllowed <> 0 then
     for k := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
       { a pending entry (bit 7) is past the table too }
-      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_Spell.TABLE_LAST) then begin
+      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_SPELL.TABLE_LAST) then begin
         list[count] := creature^.memorizedSpells[k];
         Inc(count);
       end;
@@ -263,9 +273,9 @@ begin
   roll := Dice.RollDice(1, 7);
   tries := 1;
   if count > 0 then
-    { C_Npc.FLAG set }
-    if CharHlp.IsNpc(creature) or GDVars.quickMagic then
-      if GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
+    { C_NPC.FLAG set }
+    if CharHlp.IsNpc(creature) or GameVars.quickMagic then
+      if GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
         while (tries <= roll) and (chosen = 0) do begin
           inner := 1;
           { three picks per pass }
@@ -286,16 +296,16 @@ begin
   SelectSpellToCast := ext;
 end;
 
-{ True when creature keeps out of a Stinking Cloud: unless it has C_Effect.ANIMATE_DEAD, C_Effect.STINK_COUGH,
-  C_Effect.NO_PARA_POISON or C_Effect.NO_CHARM_POISON. }
+{ True when creature keeps out of a Stinking Cloud: unless it has C_EFFECT.ANIMATE_DEAD, C_EFFECT.STINK_COUGH,
+  C_EFFECT.NO_PARA_POISON or C_EFFECT.NO_CHARM_POISON. }
 function AvoidsCloud(creature: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
 begin
-  AvoidsCloud := (not CharHlp.HasEffect(creature, C_Effect.ANIMATE_DEAD, effect)) and
-                 (not CharHlp.HasEffect(creature, C_Effect.STINK_COUGH, effect)) and
-                 (not CharHlp.HasEffect(creature, C_Effect.NO_PARA_POISON, effect)) and
-                 (not CharHlp.HasEffect(creature, C_Effect.NO_CHARM_POISON, effect));
+  AvoidsCloud := (not CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect)) and
+                 (not CharHlp.HasEffect(creature, C_EFFECT.STINK_COUGH, effect)) and
+                 (not CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect)) and
+                 (not CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect));
 end;
 
 { Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
@@ -318,14 +328,14 @@ begin
   if crIdx <> 0 then
     { a creature blocks the cell }
     Exit;
-  if GDConsts.terrainInfo[terrIdx].cost >= creature^.combatAddr^.movement then
+  if GameDefs.terrainInfo[terrIdx].cost >= creature^.combatAddr^.movement then
     Exit;
   stepCost := 2;
   { diagonal: doubled metric 3 }
   if Odd(dir) then
     stepCost := 3;
-  stepCost := stepCost * GDConsts.terrainInfo[terrIdx].cost;
-  if (terrIdx = C_Terr.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
+  stepCost := stepCost * GameDefs.terrainInfo[terrIdx].cost;
+  if (terrIdx = C_TERR.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
     stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
     CanStepDir := True;
@@ -335,7 +345,7 @@ end;
 function AiCanStep(creature: Types.PCharRecord; attempt, baseDir: Byte; var edge: Boolean): Boolean;
 begin
   AiCanStep := CombatAi.CanStepDir(creature,
-                                   (baseDir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
+                                   (baseDir + aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8,
                                    edge);
 end;
 
@@ -368,17 +378,17 @@ begin
     Exit;
   avoid := 0;
   if CombatAi.AvoidsCloud(creature) then
-    avoid := C_Terr.STINK_CLOUD;
+    avoid := C_TERR.STINK_CLOUD;
   found := Pathing.RouteStep(slot, [targetSlot], [], avoid, CbtMap.OccupantAt, dir, goal);
   if not found then begin
     enemies := [];
     friends := [];
-    last := GDVars.arenaCount;
+    last := GameVars.arenaCount;
     if last > Types.ARENA_SLOTS then
       last := Types.ARENA_SLOTS;
     for i := 1 to last do begin
-      p := GDVars.creatureArr[i];
-      if (i <> slot) and (p <> nil) and (GDVars.arenaLoc[i].size <> 0) then
+      p := GameVars.creatureArr[i];
+      if (i <> slot) and (p <> nil) and (GameVars.arenaLoc[i].size <> 0) then
         if p^.hostile <> CharHlp.EnemyTeam(creature) then
           friends := friends + [i]
         else if (p^.enabled <> 0) and CbtActs.CanAttackTarget(creature, p) then
@@ -393,7 +403,7 @@ begin
       end;
     end;
     if found then
-      creature^.combatAddr^.other := GDVars.creatureArr[goal];
+      creature^.combatAddr^.other := GameVars.creatureArr[goal];
   end;
   RouteToEnemy := found and not wait and CombatAi.CanStepDir(creature, dir, edge);
 end;
@@ -421,7 +431,7 @@ begin
   { A mage that is not fleeing does not walk }
   if (creature^.combatAddr^.movement div 2 > 0)
      and (creature^.combatAddr^.initiative > 0)
-     and ((creature^.combatAddr^.fleeing <> 0) or (creature^.charClass <> C_Class.MAGE)) then begin
+     and ((creature^.combatAddr^.fleeing <> 0) or (creature^.charClass <> C_CLASS.MAGE)) then begin
     routed := False;
     wait := False;
     if creature^.combatAddr^.fleeing = 0 then begin
@@ -431,9 +441,9 @@ begin
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other);
     end else begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
-      { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south into
+      { Hostiles flee along the party's facing (C_DIR 0, 2, 4, 6). SSI's arithmetic turned north into NW and south into
         SE (POR-0160). }
-      dir := GDVars.gFacing;
+      dir := GameVars.gFacing;
       if creature^.hostile = 0 then
         { allies flee the other way }
         dir := dir + 4;
@@ -464,7 +474,7 @@ begin
       end else begin
         { attempt 6 is past aiDirOffsets' row: there is no step to take }
         if attempt < 6 then
-          adjDir := (dir + GDConsts.aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
+          adjDir := (dir + aiDirOffsets[creature^.combatAddr^.aiStance, attempt]) mod 8
         else
           adjDir := dir;
         { nothing walkable }
@@ -525,13 +535,13 @@ var
   loopCount: Byte;
   loopLimit: Byte;
 begin
-  lastMoveDir := C_Dir.CENTER;
+  lastMoveDir := C_DIR.CENTER;
   stuckCount := 0;
   loopCount := 0;
   loopLimit := creature^.combatAddr^.movement div 2 + TURN_SLACK;
   canAct := True;
   done := False;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MONSTER_SPECIAL, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MONSTER_SPECIAL, creature);
   { as the combat menu's Bandage does }
   if (creature^.hostile = 0) and Combat.BandageDying(True) then
     done := CharHlp.EndActions(creature);
@@ -558,8 +568,8 @@ begin
       end;
       inRange := False;
       weaponRange := 1;
-      if creature^.equipped[C_Equip.WEAPON] <> nil then
-        weaponRange := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1;
+      if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+        weaponRange := CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.range - 1;
       if (weaponRange = 0) or (weaponRange = 255) then
         weaponRange := 1;
       { other is nil once AiMoveStep has dropped it. A lock on a creature of its own side, or one out of action, is
@@ -574,7 +584,7 @@ begin
           ty := CbtMap.CombatCellY(target);
           range := weaponRange;
           if Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), tx, ty, range,
-                              GDVars.arenaPtr) then
+                              GameVars.arenaPtr) then
             if range div 2 <= weaponRange then
               inRange := True;
         end;
@@ -588,7 +598,7 @@ begin
             done := CombatAi.FinishRound(creature);
         end else begin
           pick := Dice.RollDice(1, cnt);
-          target := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[pick]];
+          target := GameVars.creatureArr[GameVars.potentialTargetCreature[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
              and (CbtMap.CountTargets(creature, 1) > 0) then begin
@@ -662,7 +672,7 @@ begin
       { this second call can consume later pending bytes too }
       ch := GameIo.ReadGameKey;
     case ch of
-      C_Keys.ALT_M:
+      C_KEYS.ALT_M:
         if ext then
           CombatAi.ToggleQuickMagic;
       { Space: everyone manual }
@@ -675,7 +685,7 @@ begin
           end;
         end;
       { result ignored }
-      C_Keys.ALT_X:
+      C_KEYS.ALT_X:
         if ext then
           if CbtActs.StingVictoryCheat then
             begin end;
@@ -694,40 +704,40 @@ var
 begin
   CheckMorale := False;
   creature^.combatAddr^.fleeing := 0;
-  { Removes C_Effect.BITE_HOLD and C_Effect.BLOOD_DRAIN }
+  { Removes C_EFFECT.BITE_HOLD and C_EFFECT.BLOOD_DRAIN }
   FxEngine.RemoveAiEffects(creature);
   if creature^.combatAddr^.turned <> 0 then begin
     creature^.combatAddr^.fleeing := 1;
     CharDisp.PrintNameString(creature, 'is forced to flee', 10, True);
     Exit;
   end;
-  { C_Npc.FLAG clear }
+  { C_NPC.FLAG clear }
   if not CharHlp.IsNpc(creature) then
     { PCs never check morale }
     Exit;
   { packed morale rating }
-  GDVars.dsCurrentMorale := (creature^.npc and C_Npc.MORALE_MASK) * 2;
-  if GDVars.dsCurrentMorale > 102 then
+  GameVars.currentMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
+  if GameVars.currentMorale > 102 then
     { 0 is the fail sentinel: both checks below require morale <> 0 }
-    GDVars.dsCurrentMorale := 0;
+    GameVars.currentMorale := 0;
   { Effects adjust morale here: Bless +5, Curse -5 floored at 0 (so a curse below 5 fails both checks), Charm sets 100
     and flips the creature's side on its first call. Bless and Curse also adjust the attack roll. }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MORALE_CHECK, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
   { hpMax 0 counts as no hit points left }
   if creature^.hpMax = 0 then
     hpPct := 0
   else
     hpPct := creature^.hpCur * 100 div creature^.hpMax;
-  if (GDVars.dsCurrentMorale >= 100 - hpPct)
-     and (GDVars.dsCurrentMorale <> 0) then
+  if (GameVars.currentMorale >= 100 - hpPct)
+     and (GameVars.currentMorale <> 0) then
     { own-HP check holds }
     Exit;
-  moraleSave := GDVars.dsCurrentMorale;
-  GDVars.dsCurrentMorale := GDVars.hostileHpPct;
+  moraleSave := GameVars.currentMorale;
+  GameVars.currentMorale := CbtActs.hostileHpPct;
   { the same effect adjustments, now to the group figure }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.MORALE_CHECK, creature);
-  if (GDVars.dsCurrentMorale >= 100 - GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD])
-     and (GDVars.dsCurrentMorale <> 0)
+  FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
+  if (GameVars.currentMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])
+     and (GameVars.currentMorale <> 0)
      and (creature^.hostile <> 0) then
     { group check holds (hostiles) }
     Exit;
@@ -735,11 +745,11 @@ begin
   if enemyMove <= CbtActs.CalcCreatureMovement(creature) div 2 then begin
     { fast enough to get away: flee in panic }
     creature^.combatAddr^.fleeing := 1;
-    FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, nil);
-    FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, nil);
+    FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, nil);
+    FxEngine.RemoveEffect(creature, C_EFFECT.BLOOD_DRAIN, nil);
   end else if creature^.intCur > 5 then begin
     { Int 6+ creatures give up instead }
-    FxEngine.PutOutOfPlayWithStatus(creature, C_Status.UNCONSCIOUS, 'Surrenders');
+    FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.UNCONSCIOUS, 'Surrenders');
     CheckMorale := CharHlp.EndActions(creature);
   end;
 end;
@@ -758,12 +768,12 @@ begin
     pri := pri + item^.plus * 8;
   if base.dmgSmMod > 0 then
     pri := pri + base.dmgSmMod * 2;
-  if (item^.itemType = C_Item.HOLY_WATER_VIAL)
+  if (item^.itemType = C_ITEM.HOLY_WATER_VIAL)
      and (creature^.combatAddr^.other <> nil)
      and (creature^.combatAddr^.other^.levelUndead > 0) then
     pri := 8;
   { launcher: +2 per rateOfFire point above 1 }
-  if (base.props and C_Item.PROP_FIRES_AMMO) > 0 then
+  if (base.props and C_ITEM.PROP_FIRES_AMMO) > 0 then
     pri := pri + (base.rateOfFire - 1) * 2;
   if base.hands <= 1 then
     pri := pri + 3;
@@ -771,10 +781,10 @@ begin
     { not enough hands }
     pri := 0;
   { aligned weapon }
-  if item^.special = C_Effect.ALIGNED_WEAPON then
+  if item^.special = C_EFFECT.ALIGNED_WEAPON then
     if (item^.effect and $F) <> creature^.alignment then
       pri := 0;
-  if item^.effect = C_Spell.ITEM_JAVELIN_LIGHTNING + C_Spell.ITEM_EFFECT_SHIFT then
+  if item^.effect = C_SPELL.ITEM_JAVELIN_LIGHTNING + C_SPELL.ITEM_EFFECT_SHIFT then
     pri := 0;
   if item^.cursed <> 0 then
     pri := 0;
@@ -802,12 +812,12 @@ var
   hasAmmo: Boolean;
 begin
   { stop counting the current weapon/shield hands }
-  if creature^.equipped[C_Equip.WEAPON] <> nil then
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
-        - CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.hands;
-  if creature^.equipped[C_Equip.SHIELD] <> nil then
+        - CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.hands;
+  if creature^.equipped[C_EQUIP.SHIELD] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
-        - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
+        - CharHlp.BaseItem(creature^.equipped[C_EQUIP.SHIELD]^.itemType)^.hands;
   bestRanged := nil;
   bestMelee := nil;
   bestShield := nil;
@@ -820,23 +830,23 @@ begin
   while item <> nil do begin
     itType := item^.itemType;
     { weapon slot }
-    if CharHlp.BaseItem(itType)^.slot = C_Equip.WEAPON then
+    if CharHlp.BaseItem(itType)^.slot = C_EQUIP.WEAPON then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) <> 0 then begin
         pri := CombatAi.CalcWeaponPriority(creature, item);
-        if ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) <> 0)
-           or ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_THROWN) <> 0) then
+        if ((CharHlp.BaseItem(itType)^.props and C_ITEM.PROP_FIRES_AMMO) <> 0)
+           or ((CharHlp.BaseItem(itType)^.props and C_ITEM.PROP_THROWN) <> 0) then
           if pri > bestRangedPri then begin
             bestRanged := item;
             bestRangedPri := pri;
           end;
-        if (CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) = 0 then
+        if (CharHlp.BaseItem(itType)^.props and C_ITEM.PROP_FIRES_AMMO) = 0 then
           if pri > bestMeleePri then begin
             bestMelee := item;
             bestMeleePri := pri;
           end;
       end;
     { shield slot }
-    if CharHlp.BaseItem(itType)^.slot = C_Equip.SHIELD then
+    if CharHlp.BaseItem(itType)^.slot = C_EQUIP.SHIELD then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) > 0 then begin
         if item^.plus >= 0 then
           pri := item^.plus + 1
@@ -849,13 +859,13 @@ begin
       end;
     item := item^.next;
   end;
-  { trueRanged: range > 1 and both C_Item.PROPS_THROWABLE bits (thrown, Strength bonus); such a weapon is picked even
+  { trueRanged: range > 1 and both C_ITEM.PROPS_THROWABLE bits (thrown, Strength bonus); such a weapon is picked even
     with an enemy adjacent }
   if (bestRanged <> nil)
      and (CharHlp.BaseItem(bestRanged^.itemType)^.range > 1)
      and
        ((CharHlp.BaseItem(bestRanged^.itemType)^.props and
-         C_Item.PROPS_THROWABLE) = C_Item.PROPS_THROWABLE) then
+         C_ITEM.PROPS_THROWABLE) = C_ITEM.PROPS_THROWABLE) then
     trueRanged := True
   else
     trueRanged := False;
@@ -870,17 +880,17 @@ begin
     item := bestMelee;
   changed := False;
   needSwap := True;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then
-    if (creature^.equipped[C_Equip.WEAPON] = item) or (creature^.equipped[C_Equip.WEAPON]^.cursed <> 0) then
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+    if (creature^.equipped[C_EQUIP.WEAPON] = item) or (creature^.equipped[C_EQUIP.WEAPON]^.cursed <> 0) then
       needSwap := False;
   if needSwap then begin
-    if creature^.equipped[C_Equip.WEAPON] <> nil then
-      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.WEAPON]);
+    if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+      FxEngine.ToggleReadyItem(creature^.equipped[C_EQUIP.WEAPON]);
     CharHlp.RecalcStats(creature);
-    if creature^.equipped[C_Equip.SHIELD] <> nil then
-      if creature^.equipped[C_Equip.SHIELD]^.cursed = 0 then
+    if creature^.equipped[C_EQUIP.SHIELD] <> nil then
+      if creature^.equipped[C_EQUIP.SHIELD]^.cursed = 0 then
         creature^.handsEquipped := creature^.handsEquipped
-            - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
+            - CharHlp.BaseItem(creature^.equipped[C_EQUIP.SHIELD]^.itemType)^.hands;
     if item <> nil then
       FxEngine.ToggleReadyItem(item);
     changed := True;
@@ -888,25 +898,25 @@ begin
   CharHlp.RecalcStats(creature);
   CbtActs.SetCurAttacksX2(creature);
   needSwap := True;
-  if creature^.equipped[C_Equip.SHIELD] <> nil then
-    if (creature^.equipped[C_Equip.SHIELD] = bestShield)
-       or (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then
+  if creature^.equipped[C_EQUIP.SHIELD] <> nil then
+    if (creature^.equipped[C_EQUIP.SHIELD] = bestShield)
+       or (creature^.equipped[C_EQUIP.SHIELD]^.cursed <> 0) then
       needSwap := False;
   if creature^.handsEquipped > 2 then begin
     { Over-handed: drop the shield, or the chosen weapon when there is no shield or the shield is cursed }
-    if (creature^.equipped[C_Equip.SHIELD] = nil) or
-        (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then begin
+    if (creature^.equipped[C_EQUIP.SHIELD] = nil) or
+        (creature^.equipped[C_EQUIP.SHIELD]^.cursed <> 0) then begin
       { item is nil when no weapon was chosen }
       if item <> nil then
         FxEngine.ToggleReadyItem(item);
       changed := True;
     end else begin
-      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_EQUIP.SHIELD]);
       changed := True;
     end;
   end else if (creature^.handsEquipped < 2) and needSwap then begin
-    if creature^.equipped[C_Equip.SHIELD] <> nil then
-      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+    if creature^.equipped[C_EQUIP.SHIELD] <> nil then
+      FxEngine.ToggleReadyItem(creature^.equipped[C_EQUIP.SHIELD]);
     CharHlp.RecalcStats(creature);
     if bestShield <> nil then
       FxEngine.ToggleReadyItem(bestShield);
@@ -919,10 +929,10 @@ end;
 
 procedure ToggleQuickMagic;
 begin
-  GDVars.quickMagic := GDVars.quickMagic = False;
+  GameVars.quickMagic := GameVars.quickMagic = False;
   { the Quick line shows it; with no one under Quick, say which way it went }
   if not CombatAi.QuickLine then
-    if GDVars.quickMagic then
+    if GameVars.quickMagic then
       CharDisp.PrintBottomLine('Magic On')
     else
       CharDisp.PrintBottomLine('Magic Off');
@@ -932,7 +942,7 @@ procedure AllToManual;
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if CharHlp.ComesUnderPlayer(p) then
       p^.quickfight := 0;

@@ -9,9 +9,13 @@ procedure CombatStart;
 
 implementation
 
-uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GameDefs, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
+  MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
+
+const
+  quadDir: array[0..3] of Byte = (
+     7, 2, 3, 6);
 
 var
   { wildMap cell under party }
@@ -35,17 +39,17 @@ var
 begin
   for col := 0 to 49 do
     for row := 0 to 24 do
-      if GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
+      if GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
         roll := Dice.RollDice(1, 100);
         case roll of
           1..97: ;
-          98: GDVars.arenaPtr^.cells[row, col] := 26;
-          99: GDVars.arenaPtr^.cells[row, col] := 27;
-          100: if GDVars.eclScriptId <> 10 then
+          98: GameVars.arenaPtr^.cells[row, col] := 26;
+          99: GameVars.arenaPtr^.cells[row, col] := 27;
+          100: if GameVars.eclScriptId <> 10 then
                  if Dice.RollDice(1, 100) = 1 then
                    case Dice.RollDice(1, 10) of
-                     1..6: GDVars.arenaPtr^.cells[row, col] := 28;
-                     7..10: GDVars.arenaPtr^.cells[row, col] := 29;
+                     1..6: GameVars.arenaPtr^.cells[row, col] := 28;
+                     7..10: GameVars.arenaPtr^.cells[row, col] := 29;
                    end;
         end;
       end;
@@ -72,7 +76,7 @@ var
       else
         GetWallKind := 3;
     end else begin
-      if (py = GDVars.gMapY) and ((pdir = C_Dir.EAST) or (pdir = C_Dir.WEST)) then
+      if (py = GameVars.gMapY) and ((pdir = C_DIR.EAST) or (pdir = C_DIR.WEST)) then
         GetWallKind := 0
       else
         GetWallKind := 1;
@@ -82,7 +86,7 @@ var
 begin
   opp := (dir + 4) mod 8;
   k1 := GetWallKind(x, y, dir);
-  k2 := GetWallKind(x + GDConsts.dirDX[dir], y + GDConsts.dirDY[dir], opp);
+  k2 := GetWallKind(x + GameDefs.dirDX[dir], y + GameDefs.dirDY[dir], opp);
   WallBetween := k1 or k2;
 end;
 
@@ -107,7 +111,7 @@ var
     x := dx * 6 + dy * 5 + 21 + i;
     y := dy * 5 + 10 + j;
     if (x >= 0) and (x <= 49) and (y >= 0) and (y <= 24) then
-      GDVars.arenaPtr^.cells[y, x] := t + 1;
+      GameVars.arenaPtr^.cells[y, x] := t + 1;
   end;
 
   { The cell's floor (spots 0..5, rows 2..4) and its WEST wall }
@@ -157,8 +161,8 @@ var
     c4: Byte;
     open: Byte;
   begin
-    if (CombatSt.WallBetween(cellX, cellY - 1, C_Dir.WEST) = 0) and
-        (CombatSt.WallBetween(cellX - 1, cellY, C_Dir.NORTH) = 0) then
+    if (CombatSt.WallBetween(cellX, cellY - 1, C_DIR.WEST) = 0) and
+        (CombatSt.WallBetween(cellX - 1, cellY, C_DIR.NORTH) = 0) then
       open := 1
     else
       open := 0;
@@ -223,8 +227,8 @@ var
     kN: Byte;
     kE: Byte;
   begin
-    kN := CombatSt.WallBetween(cellX, cellY - 1, C_Dir.EAST);
-    kE := CombatSt.WallBetween(cellX + 1, cellY, C_Dir.NORTH);
+    kN := CombatSt.WallBetween(cellX, cellY - 1, C_DIR.EAST);
+    kE := CombatSt.WallBetween(cellX + 1, cellY, C_DIR.NORTH);
     if (kN = 0) and (kE = 0) then
       open := 1
     else
@@ -290,11 +294,11 @@ var
 begin
   for dy := -2 to 2 do
     for dx := -6 to 6 do begin
-      cellX := GDVars.gMapX + dx;
-      cellY := GDVars.gMapY + dy;
-      wallW := CombatSt.WallBetween(cellX, cellY, C_Dir.WEST);
-      wallN := CombatSt.WallBetween(cellX, cellY, C_Dir.NORTH);
-      wallE := CombatSt.WallBetween(cellX, cellY, C_Dir.EAST);
+      cellX := GameVars.gMapX + dx;
+      cellY := GameVars.gMapY + dy;
+      wallW := CombatSt.WallBetween(cellX, cellY, C_DIR.WEST);
+      wallN := CombatSt.WallBetween(cellX, cellY, C_DIR.NORTH);
+      wallE := CombatSt.WallBetween(cellX, cellY, C_DIR.EAST);
       DrawFloorWestWall;
       DrawNorthWall;
       FillCornerNW;
@@ -365,7 +369,7 @@ begin
     cls := $01;
   end;
   if cls and $80 <> 0 then
-    if GDVars.zone0^.yarashMissionDone = 255 then begin
+    if GameVars.zone0^.yarashMissionDone = 255 then begin
       Dec(cls, $80);
       cls := cls or 1;
     end;
@@ -386,8 +390,8 @@ var
   { Place a ford pair at adjacent cells and increment fordCnt. }
   procedure PlotFord(r, c: ShortInt);
   begin
-    GDVars.arenaPtr^.cells[r, c] := 52;
-    GDVars.arenaPtr^.cells[r, c + 1] := 53;
+    GameVars.arenaPtr^.cells[r, c] := 52;
+    GameVars.arenaPtr^.cells[r, c + 1] := 53;
     Inc(fordCnt);
   end;
 
@@ -404,8 +408,8 @@ begin
   for row := 0 to 24 do begin
     { the pair takes col and col + 1; at col 49 the second would land in the next row's column 0 }
     if col <= 48 then begin
-      GDVars.arenaPtr^.cells[row, col] := 50;
-      GDVars.arenaPtr^.cells[row, col + 1] := 51;
+      GameVars.arenaPtr^.cells[row, col] := 50;
+      GameVars.arenaPtr^.cells[row, col + 1] := 51;
       if (Dice.RollDice(1, 20) = 1) or Odd(fordCnt) then
         PlotFord(row, col);
       Inc(col);
@@ -436,8 +440,8 @@ begin
   if CombatSt.TerrainClassOf and $80 <> 0 then dens := 0;
   for col := 0 to 49 do
     for row := 1 to 24 do
-      if (GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row, col]].tileId = 22) and
-          (GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row - 1, col]].tileId = 22) and
+      if (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22) and
+          (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row - 1, col]].tileId = 22) and
           (Dice.RollDice(1, 100) <= dens) then begin
         h := Dice.RollDice(1, 10);
         if h > 8 then
@@ -446,9 +450,9 @@ begin
           h := (h + 1) div 2;
         if CombatSt.TerrainClassOf and $40 <> 0 then
           h := Dice.RollDice(1, 3) + 3;
-        GDVars.arenaPtr^.cells[row, col] := h + 31 + 4;
+        GameVars.arenaPtr^.cells[row, col] := h + 31 + 4;
         if h < 5 then
-          GDVars.arenaPtr^.cells[row - 1, col] := h + 31;
+          GameVars.arenaPtr^.cells[row - 1, col] := h + 31;
       end;
 end;
 
@@ -488,29 +492,29 @@ begin
   end;
   for col := 0 to 49 do
     for row := 0 to 24 do
-      if GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
+      if GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22 then begin
         r := Dice.RollDice(1, 255);
         if r <= tSwamp then begin
           r := Dice.RollDice(1, 4);
           if (r = 4) and (row > 0) and
-              (GDConsts.terrainInfo[GDVars.arenaPtr^.cells[row - 1, col]].tileId = 22) then begin
-            GDVars.arenaPtr^.cells[row - 1, col] := 65;
-            GDVars.arenaPtr^.cells[row, col] := 64;
+              (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row - 1, col]].tileId = 22) then begin
+            GameVars.arenaPtr^.cells[row - 1, col] := 65;
+            GameVars.arenaPtr^.cells[row, col] := 64;
           end;
           if r < 4 then
-            GDVars.arenaPtr^.cells[row, col] := r + 31 + 29;
+            GameVars.arenaPtr^.cells[row, col] := r + 31 + 29;
         end else if r <= tA + tSwamp then
-          GDVars.arenaPtr^.cells[row, col] := Dice.RollDice(1, 3) + 31 + 23
+          GameVars.arenaPtr^.cells[row, col] := Dice.RollDice(1, 3) + 31 + 23
         else if r <= tB + tSwamp + tA then
-          GDVars.arenaPtr^.cells[row, col] := Dice.RollDice(1, 4) + 31 + 10
+          GameVars.arenaPtr^.cells[row, col] := Dice.RollDice(1, 4) + 31 + 10
         else if r <= tD + tB + tSwamp + tA then begin
           r := (Dice.RollDice(1, 10) - 1) div 3 + 1;
-          GDVars.arenaPtr^.cells[row, col] := r + 31 + 25;
+          GameVars.arenaPtr^.cells[row, col] := r + 31 + 25;
         end else if r <= tA + (tC + tD + tB + tSwamp) then begin
           r := Dice.RollDice(1, 4);
           if (r = 4) and (CombatSt.TerrainClassOf and $40 = 0) then
             r := Dice.RollDice(1, 3);
-          GDVars.arenaPtr^.cells[row, col] := r + 31 + 14;
+          GameVars.arenaPtr^.cells[row, col] := r + 31 + 14;
         end;
       end;
 end;
@@ -522,12 +526,12 @@ var
   mapX: ShortInt;
   mapY: ShortInt;
 begin
-  FillChar(GDVars.arenaPtr^.cells, SizeOf(GDVars.arenaPtr^.cells), 23);
-  mapX := GDVars.zone0^.partyX.lo;
-  mapY := GDVars.zone0^.partyY.lo;
-  if GDVars.gLocType = C_Area.LOC_WILD_CENTRAL then Inc(mapX, 13);
-  if GDVars.gLocType = C_Area.LOC_WILD_EAST then Inc(mapX, 26);
-  terrainChar := GDConsts.wildMap[mapY, mapX];
+  FillChar(GameVars.arenaPtr^.cells, SizeOf(GameVars.arenaPtr^.cells), 23);
+  mapX := GameVars.zone0^.partyX.lo;
+  mapY := GameVars.zone0^.partyY.lo;
+  if GameVars.gLocType = C_AREA.LOC_WILD_CENTRAL then Inc(mapX, 13);
+  if GameVars.gLocType = C_AREA.LOC_WILD_EAST then Inc(mapX, 26);
+  terrainChar := GameDefs.wildMap[mapY, mapX];
   CombatSt.PlaceRiver;
   CombatSt.PlaceTrees;
   CombatSt.ScatterFeatures;
@@ -540,16 +544,16 @@ procedure LoadCombatTileSet;
 begin
   { combat's terrain is tiles 0..39 of the first set; the second is loaded again when next needed }
   MapTiles.FreeSecondSheet;
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  if GameVars.gLocType = C_AREA.LOC_3D_MAP then
     MapTiles.Load24x24Set('DungCom', 0, 24)
   else
     MapTiles.Load24x24Set('WildCom', 0, 33);
   MapTiles.Load24x24Set('RandCom', 34, 5);
-  GetMem(GDVars.arenaPtr, SizeOf(Types.TArena));
-  GDVars.arenaPtr^.cursorOn := False;
-  GDVars.arenaPtr^.cursorSize := 1;
-  GDVars.arenaPtr^.distMode := 0;
-  if GDVars.gLocType = C_Area.LOC_3D_MAP then
+  GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
+  GameVars.arenaPtr^.cursorOn := False;
+  GameVars.arenaPtr^.cursorSize := 1;
+  GameVars.arenaPtr^.distMode := 0;
+  if GameVars.gLocType = C_AREA.LOC_3D_MAP then
     CombatSt.BuildDungeonArena
   else
     CombatSt.BuildWildernessArena;
@@ -557,28 +561,28 @@ end;
 
 { Recalculate each creature's statistics and initialize its combat record; creatures past the party size get notPcNpc =
   1. Non-hostile creatures face quadDir[gFacing div 2]; hostiles face the opposite way. Friendly non-party creatures
-  whose morale is 0 or above 102 get the morale threshold plus C_Npc.FLAG. }
+  whose morale is 0 or above 102 get the morale threshold plus C_NPC.FLAG. }
 procedure InitCreatureCombatData;
 var
   p: Types.PCharRecord;
   count: Byte;
   m: Byte;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   count := 0;
   while p <> nil do begin
     CharHlp.RecalcStats(p);
     Inc(count);
     GetMem(p^.combatAddr, SizeOf(Types.TCombatRec));
     FillChar(p^.combatAddr^, SizeOf(Types.TCombatRec), 0);
-    if count > GDVars.zone1^[C_Gbvm.PARTY_SIZE] then
+    if count > GameVars.zone1^[C_GBVM.PARTY_SIZE] then
       p^.combatAddr^.notPcNpc := 1;
-    p^.combatAddr^.direction := GDConsts.quadDir[GDVars.gFacing div 2];
+    p^.combatAddr^.direction := quadDir[GameVars.gFacing div 2];
     if p^.hostile = 1 then
       p^.combatAddr^.direction := (p^.combatAddr^.direction + 4) mod 8;
-    m := p^.npc and C_Npc.MORALE_MASK;
+    m := p^.npc and C_NPC.MORALE_MASK;
     if (p^.hostile = 0) and (p^.combatAddr^.notPcNpc = 1) and ((m = 0) or (m > 102)) then
-      p^.npc := GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD] + C_Npc.FLAG;
+      p^.npc := GameVars.zone1^[C_GBVM.MORALE_THRESHOLD] + C_NPC.FLAG;
     p := p^.nextCharAddr;
   end;
 end;
@@ -606,10 +610,10 @@ begin
     TryPlaceAt := 0
   else begin
     { Store coordinates before probing }
-    GDVars.arenaLoc[slot].x := qx + bqx * 6 + bqy * 5 + 22;
-    GDVars.arenaLoc[slot].y := qy + bqy * 5 + 10;
-    CbtMap.ProbeDirection(GDVars.creatureArr[slot], C_Dir.CENTER, crIdx, terrIdx);
-    if (crIdx = 0) and (terrIdx > 0) and (GDConsts.terrainInfo[terrIdx].cost < 255) then begin
+    GameVars.arenaLoc[slot].x := qx + bqx * 6 + bqy * 5 + 22;
+    GameVars.arenaLoc[slot].y := qy + bqy * 5 + 10;
+    CbtMap.ProbeDirection(GameVars.creatureArr[slot], C_DIR.CENTER, crIdx, terrIdx);
+    if (crIdx = 0) and (terrIdx > 0) and (GameDefs.terrainInfo[terrIdx].cost < 255) then begin
       TryPlaceAt := 1;
       quadFree[team, ring, qy, qx] := 0;
     end else
@@ -625,6 +629,24 @@ end;
   fully-off quad advances to the next ring (up to 3) whose ringDirTbl direction is not a solid wall (always, outdoors),
   re-basing the grid one step that way. Return False when no ring remains. }
 function FindPlacement(team: ShortInt; slot: Byte): Boolean;
+const
+  { Combat placement tables }
+  ringDirTbl: array[0..3, 0..3] of Byte = (
+    ( 8, 4, 6, 2),
+    ( 8, 6, 4, 0),
+    ( 8, 0, 6, 2),
+    ( 8, 2, 0, 4));
+  ringStart: array[0..3, 0..3] of Byte = (
+    ( 0, 0, 2, 6),
+    ( 2, 2, 0, 4),
+    ( 4, 4, 2, 6),
+    ( 6, 6, 4, 0));
+  startQX: array[Boolean, 0..3] of ShortInt = (
+    ( 5, 4, 5, 6),
+    ( 3, 8, 7, 2));
+  startQY: array[Boolean, 0..3] of ShortInt = (
+    ( 3, 2, 2, 3),
+    ( 0, 2, 5, 3));
 var
   placed: Byte;
   firstPass: Byte;
@@ -659,13 +681,13 @@ begin
   baseQX := placeX[team];
   baseQY := placeY[team];
   repeat
-    quad := GDConsts.ringStart[teamDir[team], ring] div 2;
+    quad := ringStart[teamDir[team], ring] div 2;
     case state of
       1: begin
-           stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 2) mod 4]];
-           stepY := GDConsts.dirDY[GDConsts.quadDir[(quad + 2) mod 4]];
-           legX := GDConsts.startQX[ring > 0, quad] + stepX * legShift;
-           legY := GDConsts.startQY[ring > 0, quad] + stepY * legShift;
+           stepX := GameDefs.dirDX[quadDir[(quad + 2) mod 4]];
+           stepY := GameDefs.dirDY[quadDir[(quad + 2) mod 4]];
+           legX := startQX[ring > 0, quad] + stepX * legShift;
+           legY := startQY[ring > 0, quad] + stepY * legShift;
            qx := legX;
            qy := legY;
            legLen := 1;
@@ -673,16 +695,16 @@ begin
            tries := 1;
          end;
       2: begin
-           stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 1) mod 4]];
-           stepY := GDConsts.dirDY[GDConsts.quadDir[(quad + 1) mod 4]];
+           stepX := GameDefs.dirDX[quadDir[(quad + 1) mod 4]];
+           stepY := GameDefs.dirDY[quadDir[(quad + 1) mod 4]];
            qx := legX + stepX * legLen;
            qy := legY + stepY * legLen;
            state := 3;
            Inc(tries);
          end;
       3: begin
-           stepX := GDConsts.dirDX[GDConsts.quadDir[(quad + 3) mod 4]];
-           stepY := GDConsts.dirDY[GDConsts.quadDir[(quad + 3) mod 4]];
+           stepX := GameDefs.dirDX[quadDir[(quad + 3) mod 4]];
+           stepY := GameDefs.dirDY[quadDir[(quad + 3) mod 4]];
            qx := legX + stepX * legLen;
            qy := legY + stepY * legLen;
            state := 2;
@@ -700,12 +722,12 @@ begin
           ((firstPass = 0) and (tries > 11)) then begin
         Inc(legShift);
         if (team = 0) and Odd(teamDir[0]) and (ring = 0) and (legShift = 1) then begin
-          wallX := placeX[team] + GDVars.gMapX;
-          wallY := placeY[team] + GDVars.gMapY;
+          wallX := placeX[team] + GameVars.gMapX;
+          wallY := placeY[team] + GameVars.gMapY;
           open := 0;
           for k := 1 to 3 do begin
-            dir := GDConsts.ringDirTbl[teamDir[team], k];
-            if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
+            dir := ringDirTbl[teamDir[team], k];
+            if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
               open := 1;
           end;
           if open <> 0 then
@@ -720,12 +742,12 @@ begin
       state := 0;
       while (ring < 3) and (state <> 1) do begin
         Inc(ring);
-        wallX := placeX[team] + GDVars.gMapX;
-        wallY := placeY[team] + GDVars.gMapY;
-        dir := GDConsts.ringDirTbl[teamDir[team], ring];
-        if (GDVars.gLocType > C_Area.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
-          baseQX := placeX[team] + GDConsts.dirDX[dir];
-          baseQY := placeY[team] + GDConsts.dirDY[dir];
+        wallX := placeX[team] + GameVars.gMapX;
+        wallY := placeY[team] + GameVars.gMapY;
+        dir := ringDirTbl[teamDir[team], ring];
+        if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
+          baseQX := placeX[team] + GameDefs.dirDX[dir];
+          baseQY := placeY[team] + GameDefs.dirDY[dir];
           legShift := 0;
           state := 1;
         end;
@@ -742,11 +764,19 @@ begin
     FindPlacement := True;
 end;
 
-{ Place the party (team 0, at the origin) and the opposing team (C_Gbvm.MONSTER_DIST steps along gFacing, facing back)
+{ Place the party (team 0, at the origin) and the opposing team (C_GBVM.MONSTER_DIST steps along gFacing, facing back)
   and seed each team's quad grids from rowBand. Register creatures and find a valid cell for each. Disabled party
   members become corpses outside duels; non-party creatures that cannot be placed are removed, unplaced party members
   keep their slot with size 0. Terminate the surviving creature list afterward. }
 procedure PlaceAllCreatures;
+const
+  { [d, quad row]: the free quad-column range lo..hi; lo > hi closes the row }
+  rowBand: array[0..4, 0..5] of Types.TBandRec = (
+    ((lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)),
+    ((lo: 0; hi: 2), (lo: 0; hi: 3), (lo: 1; hi: 4), (lo: 2; hi: 5), (lo: 3; hi: 6), (lo: 4; hi: 7)),
+    ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 1; hi: 0)),
+    ((lo: 3; hi: 6), (lo: 4; hi: 7), (lo: 5; hi: 8), (lo: 6; hi: 9), (lo: 7; hi: 10), (lo: 8; hi: 10)),
+    ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)));
 var
   team: ShortInt;
   x: ShortInt;
@@ -764,14 +794,14 @@ begin
   removedCnt := 0;
   placedCnt := 0;
   for slot := 1 to Types.ARENA_SLOTS do
-    GDVars.arenaLoc[slot].size := 0;
+    GameVars.arenaLoc[slot].size := 0;
   CbtMap.BuildArenaArrays;
   placeX[0] := 0;
   placeY[0] := 0;
-  teamDir[0] := GDVars.gFacing div 2;
-  placeX[1] := GDConsts.dirDX[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + placeX[0];
-  placeY[1] := GDConsts.dirDY[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + placeY[0];
-  teamDir[1] := (GDVars.gFacing + 4) mod 8 div 2;
+  teamDir[0] := GameVars.gFacing div 2;
+  placeX[1] := GameDefs.dirDX[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeX[0];
+  placeY[1] := GameDefs.dirDY[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
+  teamDir[1] := (GameVars.gFacing + 4) mod 8 div 2;
   for team := 0 to 1 do
     teamRows[team] := (teamCount[team] + 1) div 2;
   for team := 0 to 1 do
@@ -784,50 +814,50 @@ begin
       for y := 0 to 5 do
         { x = quad column qx here }
         for x := 0 to 10 do
-          if (GDConsts.rowBand[d, y].lo > x) or (GDConsts.rowBand[d, y].hi < x) then
+          if (rowBand[d, y].lo > x) or (rowBand[d, y].hi < x) then
             quadFree[team, g, y, x] := 0
           else
             quadFree[team, g, y, x] := 1;
     end;
   slot := 1;
-  GDVars.arenaCount := 1;
+  GameVars.arenaCount := 1;
   prev := nil;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   { placing stops at the last slot, and the list is cut after the last creature placed }
   while (p <> nil) and (slot <= Types.ARENA_SLOTS) do begin
     GameIo.DiscardPendingKeys;
     { read before a removal frees p }
     next := p^.nextCharAddr;
-    GDVars.creatureArr[slot] := p;
+    GameVars.creatureArr[slot] := p;
     { teamCount, teamRows and the placement tables have teams 0 and 1 }
     team := CharHlp.Team(p);
-    GDVars.arenaLoc[slot].slotIndex := slot;
-    GDVars.arenaLoc[slot].size := p^.iconDimensions and 7;
+    GameVars.arenaLoc[slot].slotIndex := slot;
+    GameVars.arenaLoc[slot].size := p^.iconDimensions and 7;
     if CombatSt.FindPlacement(team, slot) then begin
       prev := p;
       if p^.enabled = 0 then begin
-        GDVars.arenaLoc[slot].size := 0;
-        if (not GDVars.duelFlag) and (p^.combatAddr^.notPcNpc = 0) then begin
-          x := GDVars.arenaLoc[slot].x;
-          y := GDVars.arenaLoc[slot].y;
+        GameVars.arenaLoc[slot].size := 0;
+        if (not GameVars.duelFlag) and (p^.combatAddr^.notPcNpc = 0) then begin
+          x := GameVars.arenaLoc[slot].x;
+          y := GameVars.arenaLoc[slot].y;
           CbtMap.RegisterDowned(p, x, y);
         end;
       end;
       CbtMap.BuildArenaArrays;
       Inc(slot);
-      Inc(GDVars.arenaCount);
+      Inc(GameVars.arenaCount);
       Inc(placedCnt);
     end else begin
-      GDVars.arenaLoc[slot].size := 0;
+      GameVars.arenaLoc[slot].size := 0;
       if p^.combatAddr^.notPcNpc = 1 then begin
         Inc(removedCnt);
-        GDVars.creatureArr[slot] := nil;
-        GDVars.curChar := p;
+        GameVars.creatureArr[slot] := nil;
+        GameVars.curChar := p;
         SaveLoad.RemoveCreature(True, False);
       end else begin
         prev := p;
         Inc(slot);
-        Inc(GDVars.arenaCount);
+        Inc(GameVars.arenaCount);
       end;
     end;
     p := next;
@@ -843,45 +873,45 @@ procedure CombatStart;
 var
   p: Types.PCharRecord;
 begin
-  Portrait.FreeAnimation(GDVars.animData);
-  Blit.FreePic(GDVars.dsPortraitCache[1].pic);
-  Blit.FreePic(GDVars.dsPortraitCache[2].pic);
-  GDVars.dsPortraitCache[1].pictureId := 255;
-  GDVars.dsPortraitCache[2].pictureId := 255;
+  Portrait.FreeAnimation(GameVars.animData);
+  Blit.FreePic(GameVars.portraitCache[1].pic);
+  Blit.FreePic(GameVars.portraitCache[2].pic);
+  GameVars.portraitCache[1].pictureId := 255;
+  GameVars.portraitCache[2].pictureId := 255;
   TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
   { the battle music runs until the first sound of the fight cuts it }
-  SoundDrv.PlayMusic(C_Sound.MUSIC_BATTLE);
+  SoundDrv.PlayMusic(C_SOUND.MUSIC_BATTLE);
   { the Quick Mode Magic setting; Alt-M changes it for this fight only }
-  GDVars.quickMagic := GDVars.quickMagicOn <> 0;
-  GDVars.roundCounter := 0;
-  GDVars.gAttackRoll := 0;
-  GDVars.downedCount := 0;
-  GDVars.stinkHead := nil;
-  GDVars.lastMissileItem := nil;
-  FillChar(GDVars.downed, SizeOf(GDVars.downed), 0);
-  GDVars.zone1^[C_Gbvm.ATTACKED_ALLIES] := 0;
-  if GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD] > 100 then
-    GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD] := 100;
+  GameVars.quickMagic := GameVars.quickMagicOn <> 0;
+  GameVars.roundCounter := 0;
+  GameVars.gAttackRoll := 0;
+  GameVars.downedCount := 0;
+  GameVars.stinkHead := nil;
+  GameVars.lastMissileItem := nil;
+  FillChar(GameVars.downed, SizeOf(GameVars.downed), 0);
+  GameVars.zone1^[C_GBVM.ATTACKED_ALLIES] := 0;
+  if GameVars.zone1^[C_GBVM.MORALE_THRESHOLD] > 100 then
+    GameVars.zone1^[C_GBVM.MORALE_THRESHOLD] := 100;
   CombatSt.LoadCombatTileSet;
   GameIo.DiscardPendingKeys;
   CombatSt.InitCreatureCombatData;
   GameIo.DiscardPendingKeys;
   CombatSt.PlaceAllCreatures;
   GameIo.DiscardPendingKeys;
-  Blit.AllocPic(24, 3, 4, 1, GDVars.dsMoveIconSheet);
-  GDVars.arenaPtr^.ox := CbtMap.CombatCellX(GDVars.creatureList) - 3;
-  GDVars.arenaPtr^.oy := CbtMap.CombatCellY(GDVars.creatureList) - 3;
+  Blit.AllocPic(24, 3, 4, 1, GameVars.moveIconSheet);
+  GameVars.arenaPtr^.ox := CbtMap.CombatCellX(GameVars.creatureList) - 3;
+  GameVars.arenaPtr^.oy := CbtMap.CombatCellY(GameVars.creatureList) - 3;
   CharDisp.DisplayCombatInterface;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     EffHndlr.ResetDisplacement(p);
-    FxEngine.TriggerEffectsWithCondition(C_Cond.COMBAT_START, p);
+    FxEngine.TriggerEffectsWithCondition(C_COND.COMBAT_START, p);
     p := p^.nextCharAddr;
   end;
   CbtActs.CalcHostileHpPercent;
-  GDVars.ifcState := C_Ifc.COMBAT;
+  GameVars.ifcState := C_IFC.COMBAT;
 end;
 
 end.

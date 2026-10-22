@@ -5,7 +5,7 @@ unit C_TIME;
 interface
 
 const
-  { Game-clock components in C_Gbvm.CLOCK word order: indices into TClock and GDConsts.unitScale, and the tUnit argument
+  { Game-clock components in C_GBVM.CLOCK word order: indices into TClock and GameDefs.unitScale, and the tUnit argument
     of FxEngine.AdvanceTime }
   SEGMENTS = 0;
   MINUTES = 1;

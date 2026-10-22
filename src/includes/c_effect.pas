@@ -1,7 +1,7 @@
 { Effect IDs: TEffectRec.id values used by FxEngine.AddEffect, FxEngine.RemoveEffect and CharHlp.HasEffect, and indices
   into EffHndlr's handler table. }
 {$I COMPILER.INC}
-unit C_Effect;
+unit C_EFFECT;
 
 interface
 
@@ -78,11 +78,11 @@ const
   MUMMY_ROT = 57;
   IMMOBILE = 58;
   TROLL_REGEN = 59;
-  { EffNull handler: C_Cond.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
+  { EffNull handler: C_COND.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
   NULL_DAMAGE = 60;
   RING_FIRE_RES = 61;
   CON_REGEN = 62;
-  { EffNull handler: C_Cond.TARGET_VETO triggers it, to no effect }
+  { EffNull handler: C_COND.TARGET_VETO triggers it, to no effect }
   NULL_TARGET_VETO = 63;
   POISON_HIT0 = 64;
   POISON_HIT4 = 65;
@@ -172,7 +172,7 @@ const
   { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
     and Dispel Magic leaves them to Cure Disease (#787) }
   DISEASES = [DISEASED, DISEASE_STR, DISEASE_HP, ROT_NO_HEAL, MUMMY_ROT];
-  { GDVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
+  { GameVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
   ELEM_FIRE = 1;
   ELEM_COLD = 2;
   ELEM_ELEC = 4;

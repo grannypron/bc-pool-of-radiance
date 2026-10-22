@@ -5,7 +5,7 @@
   Only rates measured at the same DOSBox-X speed compare. }
 program VidBench;
 
-uses Types, C_Video, GDVars, Blit, TextRend, VidCga, VidEga, VidTdy;
+uses Types, C_VIDEO, GameVars, Blit, TextRend, VidCga, VidEga, VidTdy;
 
 const
   { BIOS ticks each workload runs for, about 3 seconds }
@@ -43,19 +43,19 @@ var
 begin
   for y := 0 to 20 do
     for x := 0 to 20 do
-      Blit.BlitTileCell(x, y, 0, 1, tile, GDVars.dsViewImageBufferPtr);
+      Blit.BlitTileCell(x, y, 0, 1, tile, GameVars.dsViewImageBufferPtr);
 end;
 
 { The 3D view's backdrop: the whole 168 x 168 view filled }
 procedure FillView;
 begin
-  Blit.FillPicRect(0, 0, 21, 168, 1, noMap, GDVars.dsViewImageBufferPtr);
+  Blit.FillPicRect(0, 0, 21, 168, 1, noMap, GameVars.dsViewImageBufferPtr);
 end;
 
 { The backdrop, then every one of its 168 dirty rows flushed to the screen }
 procedure FillAndFlush;
 begin
-  Blit.FillPicRect(0, 0, 21, 168, 1, noMap, GDVars.dsViewImageBufferPtr);
+  Blit.FillPicRect(0, 0, 21, 168, 1, noMap, GameVars.dsViewImageBufferPtr);
   Blit.FlushView;
 end;
 
@@ -88,7 +88,7 @@ begin
   arg := ParamStr(1) + ' ';
   mode := UpCase(arg[1]);
   { RestoreVideoMode returns to it: 80-column text }
-  GDVars.savedVideoMode := 3;
+  GameVars.savedVideoMode := 3;
   case mode of
     'E': VidEga.Install;
     'T': VidTdy.Install;
@@ -97,29 +97,29 @@ begin
     VidCga.Install;
   end;
   end;
-  Blit.SetVideoMode(GDVars.video.biosMode);
-  GDVars.video.Start;
+  Blit.SetVideoMode(GameVars.video.biosMode);
+  GameVars.video.Start;
   { as GameInit2 sets them up }
   for i := 0 to 199 do begin
     if Odd(i) then
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK1_SEG
+      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
     else
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_Video.GFX_BANK0_SEG;
-    GDVars.fbRowOfs[i] := i * 40;
+      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
+    GameVars.fbRowOfs[i] := i * 40;
     case i mod 4 of
-      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK0_SEG;
-      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK1_SEG;
-      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK2_SEG;
-      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_Video.GFX_BANK3_SEG;
+      0: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG;
+      1: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK1_SEG;
+      2: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK2_SEG;
+      3: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK3_SEG;
     end;
   end;
-  GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
-  FillChar(GDVars.gameFont^, SizeOf(Types.TFontArr), $5A);
-  Blit.AllocPic(168, 21, 1, 0, GDVars.dsViewImageBufferPtr);
-  FillChar(GDVars.spanActive, SizeOf(GDVars.spanActive), 0);
-  FillChar(GDVars.spanScreenOfs, SizeOf(GDVars.spanScreenOfs), 0);
-  FillChar(GDVars.spanFirstOfs, SizeOf(GDVars.spanFirstOfs), $FF);
-  FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
+  GetMem(GameVars.gameFont, SizeOf(Types.TFontArr));
+  FillChar(GameVars.gameFont^, SizeOf(Types.TFontArr), $5A);
+  Blit.AllocPic(168, 21, 1, 0, GameVars.dsViewImageBufferPtr);
+  FillChar(GameVars.spanActive, SizeOf(GameVars.spanActive), 0);
+  FillChar(GameVars.spanScreenOfs, SizeOf(GameVars.spanScreenOfs), 0);
+  FillChar(GameVars.spanFirstOfs, SizeOf(GameVars.spanFirstOfs), $FF);
+  FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
   { one 8x8 tile with a mask }
   Blit.AllocPic(8, 1, 1, 1, tile);
   FillChar(noMap, SizeOf(noMap), 0);

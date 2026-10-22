@@ -12,11 +12,18 @@ procedure CombatMain;
   for a party member under Quick (CombatAi.AiMoveAttack). }
 function BandageDying(bandage: Boolean): Boolean;
 
+{ Let the Continue Battle prompt show again, for a new game (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
-uses Types, C_TIME, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
-  C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
+uses Types, C_TIME, C_NPC, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
+  C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
+
+var
+  { nonzero suppresses Combat's Continue Battle prompt }
+  suppressContinuePrompt: Byte;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
 
@@ -39,21 +46,21 @@ procedure SpeedMenu; forward;
 procedure TurnOnAuto(creature: Types.PCharRecord); forward;
 
 { Free the stinking-cloud list, the arena and the move-icon sheet, restore the noncombat palette and point the
-  cast-target menu (GDVars.castTargetMenu) back at the noncombat menu. }
+  cast-target menu (GameVars.castTargetMenu) back at the noncombat menu. }
 procedure CombatDoneCleanup;
 var
   p: Types.PStinkRec;
 begin
-  while GDVars.stinkHead <> nil do begin
-    p := GDVars.stinkHead^.next;
-    FreeMem(GDVars.stinkHead, SizeOf(Types.TStinkRec));
-    GDVars.stinkHead := p;
+  while GameVars.stinkHead <> nil do begin
+    p := GameVars.stinkHead^.next;
+    FreeMem(GameVars.stinkHead, SizeOf(Types.TStinkRec));
+    GameVars.stinkHead := p;
   end;
-  FreeMem(GDVars.arenaPtr, SizeOf(Types.TArena));
-  GDVars.arenaPtr := nil;
-  Blit.FreePic(GDVars.dsMoveIconSheet);
+  FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));
+  GameVars.arenaPtr := nil;
+  Blit.FreePic(GameVars.moveIconSheet);
   CbtMap.SetNoncombatPalette;
-  GDVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
+  GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
 end;
 
 { The combat loop. Each round: count teams, run every creature's round-start setup, clear the GBVM surprise flag, let
@@ -63,20 +70,20 @@ var
   done: Boolean;
   creature: Types.PCharRecord;
 begin
-  GDVars.ifcState := C_Ifc.COMBAT;
-  GDVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
+  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
   CombatSt.CombatStart;
   done := False;
-  if (GDVars.teamCount[0] = 0) or (GDVars.teamCount[1] = 0) then
+  if (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0) then
     done := True;
   while not done do begin
     CharHlp.CountTeams;
-    creature := GDVars.creatureList;
+    creature := GameVars.creatureList;
     while creature <> nil do begin
       CbtActs.CombatRoundStartSetup(creature);
       creature := creature^.nextCharAddr;
     end;
-    GDVars.zone1^[C_Gbvm.SURPRISE] := 0;
+    GameVars.zone1^[C_GBVM.SURPRISE] := 0;
     Combat.NextCreature(creature);
     while creature <> nil do begin
       Combat.CreatureAction(creature);
@@ -97,7 +104,7 @@ var
 begin
   best := 0;
   bestRoll := 0;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     roll := Dice.RollDice(1, 100);
     if p^.combatAddr^.initiative > best then
@@ -122,19 +129,19 @@ begin
   creature^.combatAddr^.flankSpread := 0;
   creature^.combatAddr^.guarding := 0;
   { turn-start effects, among them those that leave the creature helpless }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.TURN_START, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.TURN_START, creature);
   if creature^.combatAddr^.initiative <= 0 then
     Exit;
   { Initiative 20 marks a creature that switched between manual and AI control mid-turn (Alt-Q here, space in CombatAi)
     so that it acts again at once; clear the mark }
   if creature^.combatAddr^.initiative = 20 then
     creature^.combatAddr^.initiative := 19;
-  GDVars.curChar := creature;
+  GameVars.curChar := creature;
   CbtMap.DisplayMapViewCentered(creature, 2, True);
   CharHlp.RecalcStats(creature);
   CharDisp.CombatPrintCreatureInfo(creature);
   { once a turn: SSI's fired them again at every draw of the combat menu (#816) }
-  FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
+  FxEngine.TriggerEffectsWithCondition(C_COND.ACTION_START, creature);
   if creature^.combatAddr^.initiative > 0 then
     if creature^.quickfight <> 0 then
       CombatAi.CombatAiControl(creature)
@@ -193,14 +200,14 @@ begin
                end;
           'D': Combat.DoneMenu(creature, done);
           { Alt-M scan code: toggle quick magic }
-          C_Keys.ALT_M: CombatAi.ToggleQuickMagic;
+          C_KEYS.ALT_M: CombatAi.ToggleQuickMagic;
           { every creature under the player's control back to manual; NPCs and animated creatures stay on quick-fight,
             as during the AI's turns (#640) }
           ' ': CombatAi.AllToManual;
           { Alt-Q scan code: everyone to quick-fight; this creature acts again at once under the AI }
-          C_Keys.ALT_Q: begin
+          C_KEYS.ALT_Q: begin
                           creature^.combatAddr^.initiative := 20;
-                          p := GDVars.creatureList;
+                          p := GameVars.creatureList;
                           while p <> nil do begin
                             Combat.TurnOnAuto(p);
                             p := p^.nextCharAddr;
@@ -210,7 +217,7 @@ begin
                           done := True;
                         end;
           { Alt-X scan code: the STING cheat }
-          C_Keys.ALT_X: if CbtActs.StingVictoryCheat then begin
+          C_KEYS.ALT_X: if CbtActs.StingVictoryCheat then begin
                           CbtMap.DisplayMapViewCentered(creature, 3, False);
                           done := True;
                         end else
@@ -245,20 +252,20 @@ begin
       hasSpell := True;
   { Cast lists the memorized spells, while castAllowed, and the spells on readable scrolls }
   if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or CharHlp.HasScrollSpells(creature))
-     and (GDVars.zone0^.antimagic = 0) then
+     and (GameVars.zone0^.antimagic = 0) then
     menu := menu + 'Cast ';
   if (CbtActs.TurnLevel(creature) > 0)
      and (creature^.combatAddr^.usedTurnUndead = 0) then
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';
   { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-X or Alt-M becomes
-    C_Keys.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
+    C_KEYS.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
   repeat
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, hasSpell);
     if hasSpell then
-      if not (ch in [C_Keys.ALT_Q, C_Keys.ALT_X, C_Keys.ALT_M]) then
-        ch := C_Keys.NONE;
-  until ch in [C_Keys.ALT_Q, ' ', C_Keys.ALT_X, C_Keys.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
+      if not (ch in [C_KEYS.ALT_Q, C_KEYS.ALT_X, C_KEYS.ALT_M]) then
+        ch := C_KEYS.NONE;
+  until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
 end;
 
 { Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at
@@ -270,17 +277,17 @@ var
 begin
   { one minute }
   FxEngine.AdvanceTime(1, C_TIME.MINUTES);
-  Inc(GDVars.roundCounter);
+  Inc(GameVars.roundCounter);
   CbtActs.CalcHostileHpPercent;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
-    FxEngine.TriggerEffectsWithCondition(C_Cond.ROUND_END, p);
+    FxEngine.TriggerEffectsWithCondition(C_COND.ROUND_END, p);
     FxEngine.ConsiderStinkingCloud(p);
-    if p^.status = C_Status.DYING then begin
+    if p^.status = C_STATUS.DYING then begin
       Inc(p^.combatAddr^.overkill);
       if p^.combatAddr^.overkill > 9 then begin
         { dead at -10 }
-        p^.status := C_Status.DEAD;
+        p^.status := C_STATUS.DEAD;
         Stats.Death(p);
       end;
     end;
@@ -289,11 +296,11 @@ begin
   if Combat.BandageDying(False) then
     CharDisp.PrintBottomLine('Your Teammate is Dying');
   CharHlp.CountTeams;
-  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_Dir.CENTER);
-  if (GDVars.teamCount[0] = 0) or (GDVars.teamCount[1] = 0) then
+  CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
+  if (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0) then
     done := True;
-  if (GDVars.teamCount[0] > 0) and (GDVars.teamCount[1] = 0)
-     and (GDVars.suppressContinuePrompt = 0) then
+  if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0)
+     and (suppressContinuePrompt = 0) then
     if MenuCore.YesNoMenu('Continue Battle:', LightMagenta, LightGreen, White) = 'Y' then
       done := False;
 end;
@@ -320,52 +327,52 @@ begin
   startY := CbtMap.CombatCellY(creature);
   ch := ' ';
   done := False;
-  dir := C_Dir.CENTER;
-  while (creature^.combatAddr^.movement > 1) and (ch <> C_Keys.NONE)
-        and (ch <> C_Keys.ENTER) do begin
+  dir := C_DIR.CENTER;
+  while (creature^.combatAddr^.movement > 1) and (ch <> C_KEYS.NONE)
+        and (ch <> C_KEYS.ENTER) do begin
     Border.ClearBox(24, 24, 39, 24);
     MenuCore.arrowsToCaller := True;
     ch :=
       MenuCore.MenuHorizontal('Move/Attack, Move Left = ' + StrUtil.NumStr(creature^.combatAddr^.movement div 2) +
-      ' ', '', LightGreen, LightGreen, White, True, False, GDVars.doneRoundFlag);
+      ' ', '', LightGreen, LightGreen, White, True, False, CbtActs.doneRoundFlag);
     case ch of
       { Escape: undo }
-      C_Keys.NONE: begin
+      C_KEYS.NONE: begin
                      creature^.combatAddr^.movement := savedMove;
                      { slot 0 (not on the map) would redraw view cell 0, 0 instead }
                      if CbtMap.CombatSlot(creature) > 0 then
                        CbtMap.UpdateCombatMapTile(0, 0, CbtMap.CombatSlot(creature));
                      { Put it back on its start cell; the turn ends if that cell is no longer free }
                      done := CbtMap.IsValidCreatureLoc(creature, startX, startY, False) = False;
-                     CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_Dir.CENTER);
+                     CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_DIR.CENTER);
                      creature^.combatAddr^.direction := savedDir;
-                     dir := C_Dir.CENTER;
+                     dir := C_DIR.CENTER;
                    end;
       { Up arrow }
-      C_Keys.UP: dir := C_Dir.NORTH;
+      C_KEYS.UP: dir := C_DIR.NORTH;
       { Page Up }
-      C_Keys.PGUP: dir := C_Dir.NORTHEAST;
+      C_KEYS.PGUP: dir := C_DIR.NORTHEAST;
       { Right arrow }
-      C_Keys.RIGHT: dir := C_Dir.EAST;
+      C_KEYS.RIGHT: dir := C_DIR.EAST;
       { Page Down }
-      C_Keys.PGDN: dir := C_Dir.SOUTHEAST;
+      C_KEYS.PGDN: dir := C_DIR.SOUTHEAST;
       { Down arrow }
-      C_Keys.DOWN: dir := C_Dir.SOUTH;
+      C_KEYS.DOWN: dir := C_DIR.SOUTH;
       { End }
-      C_Keys.END_KEY: dir := C_Dir.SOUTHWEST;
+      C_KEYS.END_KEY: dir := C_DIR.SOUTHWEST;
       { Left arrow }
-      C_Keys.LEFT: dir := C_Dir.WEST;
+      C_KEYS.LEFT: dir := C_DIR.WEST;
       { Home }
-      C_Keys.HOME: dir := C_Dir.NORTHWEST;
+      C_KEYS.HOME: dir := C_DIR.NORTHWEST;
     else
-      dir := C_Dir.CENTER;
+      dir := C_DIR.CENTER;
     end;
-    if dir < C_Dir.CENTER then begin
+    if dir < C_DIR.CENTER then begin
       CbtMap.SetCreatureFacing(creature, dir, 0, 0);
       CbtMap.ProbeDirection(creature, dir, crIdx, terrIdx);
       if crIdx > 0 then begin
         attacksLeft := creature^.curAttacks + creature^.curAttacks2;
-        Combat.MeleeAttack(creature, GDVars.creatureArr[crIdx], done);
+        Combat.MeleeAttack(creature, GameVars.creatureArr[crIdx], done);
         if creature^.curAttacks + creature^.curAttacks2 <> attacksLeft then begin
           { attacked: the move so far stands }
           savedMove := creature^.combatAddr^.movement;
@@ -378,7 +385,7 @@ begin
           'Y': done := CbtActs.CombatFleeAttempt(creature);
           'N': done := False;
         end;
-      end else if GDConsts.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
+      end else if GameDefs.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
         CharDisp.PrintBottomLine('Blocked')
       else begin
         { free attacks from the enemies this step leaves }
@@ -433,10 +440,10 @@ begin
     menu := menu + 'Bandage ';
   menu := menu + 'Speed Exit';
   ch := ' ';
-  while not (ch in [C_Keys.NONE, 'E']) and not done do
+  while not (ch in [C_KEYS.NONE, 'E']) and not done do
   begin
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, False, False,
-                                  GDVars.doneRoundFlag);
+                                  CbtActs.doneRoundFlag);
     case ch of
       'G': begin
              done := CharHlp.Guard(creature);
@@ -463,13 +470,13 @@ var
   found: Boolean;
 begin
   found := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if (p^.combatAddr^.notPcNpc = 0) and (p^.hostile = 0)
-       and (p^.status = C_Status.DYING) then begin
+       and (p^.status = C_STATUS.DYING) then begin
       found := True;
       if bandage then begin
-        p^.status := C_Status.UNCONSCIOUS;
+        p^.status := C_STATUS.UNCONSCIOUS;
         p^.combatAddr^.overkill := 0;
         CharDisp.PrintNameString(p, 'is bandaged', 10, True);
         { Stop bandaging; keep scanning }
@@ -490,25 +497,25 @@ var
   ch: Char;
   speed: Byte;
 begin
-  speed := GDVars.gameDelay;
+  speed := GameVars.gameDelay;
   ch := ' ';
-  while not (ch in [C_Keys.NONE, 'E']) do
+  while not (ch in [C_KEYS.NONE, 'E']) do
   begin
-    query := 'GameSpeed (' + StrUtil.NumStr(GDVars.gameDelay) + ') :';
+    query := 'GameSpeed (' + StrUtil.NumStr(GameVars.gameDelay) + ') :';
     menu := ' ';
-    if GDVars.gameDelay < 9 then
+    if GameVars.gameDelay < 9 then
       menu := menu + 'Slower ';
-    if GDVars.gameDelay > 0 then
+    if GameVars.gameDelay > 0 then
       menu := menu + 'Faster ';
     menu := menu + 'Exit';
     ch := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, False, False,
-                                  GDVars.doneRoundFlag);
+                                  CbtActs.doneRoundFlag);
     case ch of
-      'S': Inc(GDVars.gameDelay);
-      'F': Dec(GDVars.gameDelay);
+      'S': Inc(GameVars.gameDelay);
+      'F': Dec(GameVars.gameDelay);
     end;
   end;
-  if GDVars.gameDelay <> speed then
+  if GameVars.gameDelay <> speed then
     Options.SaveOptions;
 end;
 
@@ -520,6 +527,11 @@ begin
      and (creature^.combatAddr^.other^.hostile = creature^.hostile) then begin
     creature^.combatAddr^.other := nil;
   end;
+end;
+
+procedure ResetGame;
+begin
+  suppressContinuePrompt := 0;
 end;
 
 end.

@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TSndSeq;
 
-uses C_Sound, SndTrc, TestKit;
+uses C_SOUND, SndTrc, TestKit;
 
 const
   { tunes 0..LAST_TUNE: the rows of both of the sequencer's tune tables }
@@ -25,7 +25,7 @@ type
 
 const
   { [device, tune]: the record, taken from SSI's sequencer at 30614a4 (sounddrv.asm before phase 7) }
-  EXPECTED: array[C_Sound.MODE_TANDY..C_Sound.MODE_SPEAKER, 0..LAST_TUNE] of TDigest = (
+  EXPECTED: array[C_SOUND.MODE_TANDY..C_SOUND.MODE_SPEAKER, 0..LAST_TUNE] of TDigest = (
     { Tandy }
     ((ticks: 1; writes: 4; crc: $B223DE06), (ticks: 193; writes: 2123; crc: $9967CC9F),
      (ticks: 51; writes: 561; crc: $C657B029), (ticks: 241; writes: 2651; crc: $C4B35CE9),
@@ -61,7 +61,7 @@ const
 
 var
   buf: array[0..BUF_WORDS - 1] of Word;
-  got: array[C_Sound.MODE_TANDY..C_Sound.MODE_SPEAKER, 0..LAST_TUNE] of TDigest;
+  got: array[C_SOUND.MODE_TANDY..C_SOUND.MODE_SPEAKER, 0..LAST_TUNE] of TDigest;
   dev: Word;
   tune: Word;
   f: Text;
@@ -89,7 +89,7 @@ var
   idle: Boolean;
 begin
   SndTrc.SetSoundDevice(dev);
-  if dev = C_Sound.MODE_SPEAKER then
+  if dev = C_SOUND.MODE_SPEAKER then
     SndTrc.ProgramSpeakerVoices(tune)
   else
     SndTrc.ProgramTandyVoices(tune);
@@ -133,24 +133,24 @@ end;
 
 begin
   TestKit.Start('TSNDSEQ');
-  for dev := C_Sound.MODE_TANDY to C_Sound.MODE_SPEAKER do
+  for dev := C_SOUND.MODE_TANDY to C_SOUND.MODE_SPEAKER do
     for tune := 0 to LAST_TUNE do
       Digest(dev, tune, got[dev, tune]);
-  SndTrc.SetSoundDevice(C_Sound.MODE_DISABLED);
+  SndTrc.SetSoundDevice(C_SOUND.MODE_DISABLED);
   if not RECORDED then begin
     Assign(f, 'SNDSEQ.TXT');
     Rewrite(f);
-    for dev := C_Sound.MODE_TANDY to C_Sound.MODE_SPEAKER do
+    for dev := C_SOUND.MODE_TANDY to C_SOUND.MODE_SPEAKER do
       for tune := 0 to LAST_TUNE do
         WriteLn(f, dev, ' ', tune, ' (ticks: ', got[dev, tune].ticks, '; writes: ', got[dev, tune].writes,
                 '; crc: ', Hex(got[dev, tune].crc), ')');
     Close(f);
     TestKit.Check(False, 'no record yet: the digests are in SNDSEQ.TXT');
   end else
-    for dev := C_Sound.MODE_TANDY to C_Sound.MODE_SPEAKER do
+    for dev := C_SOUND.MODE_TANDY to C_SOUND.MODE_SPEAKER do
       for tune := 0 to LAST_TUNE do begin
         Str(tune, s);
-        if dev = C_Sound.MODE_TANDY then
+        if dev = C_SOUND.MODE_TANDY then
           s := 'Tandy tune ' + s
         else
           s := 'speaker tune ' + s;

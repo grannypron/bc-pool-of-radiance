@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_Gender, C_Save, C_Equip, C_Level, C_Abil, C_Money, C_Gbvm;
+uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_ABIL, C_MONEY, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -15,8 +15,8 @@ const
   PTR_GROWTH = SizeOf(Pointer) - 4;
   { the most creatures in the party: a saved game's party names, the usual spells, the statistics, the icon slots }
   MAX_PARTY = 8;
-  { the most creatures in play at once, party and monsters: combat's slots (GDVars.creatureArr, arenaLoc and the target
-    lists) and the creature list's ordinals }
+  { the most creatures in play at once, party and monsters: combat's slots (GameVars.creatureArr, arenaLoc and the
+    target lists) and the creature list's ordinals }
   ARENA_SLOTS = 72;
   { the data disks the game shipped on, 1..LAST_DISK }
   LAST_DISK = 8;
@@ -26,10 +26,11 @@ const
   SPELL_SLOT_LAST = 20;
   { the highest spell level a cleric or magic-user casts here (TCharRecord.clericSpells and mageSpells) }
   CASTER_LEVEL_LAST = 3;
-  { the item types ITEMS holds, 0..BASE_ITEM_LAST; GDVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
+  { the item types ITEMS holds, 0..BASE_ITEM_LAST; CharHlp.baseItems has one entry more, BASE_ITEM_OVERFLOW }
   BASE_ITEM_LAST = 127;
   BASE_ITEM_OVERFLOW = 128;
-  { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
+  { the script strings EclVars.LoadEclVars keeps, GameVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the
+    last }
   GB_STRING_LAST = 20;
   { TAcAdjust's parts: Dexterity, the shield, the pluses of items with no AC of their own, the best ring, the best
     armour }
@@ -70,7 +71,7 @@ type
     rateOfFire: Byte;
     { AC adjustment descriptor }
     acDescr: Byte;
-    { melee damage type; the C_Item.WPN_ constants }
+    { melee damage type; the C_ITEM.WPN_ constants }
     wpnClass: Byte;
     { reserved }
     unk8: Byte;
@@ -84,7 +85,7 @@ type
     range: Byte;
     { class usability bitmask }
     classMask: Byte;
-    { weapon-property bitmask; see the PROP_ bits of C_Item and CharHlp }
+    { weapon-property bitmask; see the PROP_ bits of C_ITEM and CharHlp }
     props: Byte;
     { reserved }
     unkF: Byte;
@@ -95,7 +96,7 @@ type
   PEffectRec = ^TEffectRec;
   PItemRec = ^TItemRec;
   TIconCols = array[1..6] of Byte;
-  { A character's spell slots: spell IDs, 0 = empty, C_Spell.PENDING_FLAG set while still being memorized. }
+  { A character's spell slots: spell IDs, 0 = empty, C_SPELL.PENDING_FLAG set while still being memorized. }
   TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
   TCharRecord = record
     { character name }
@@ -134,7 +135,7 @@ type
     { the combat icon's size, with ICON_LARGE for a Large creature }
     iconDimensions: Byte;
     { Saving throws: paralysis, petrification, wand, breath and spell. }
-    saves: array[C_Save.PARALYZE..C_Save.SPELL] of Byte;
+    saves: array[C_SAVE.PARALYZE..C_SAVE.SPELL] of Byte;
     movementBase: Byte;
     { Highest level across the character's classes. }
     levelHighest: ShortInt;
@@ -148,7 +149,7 @@ type
     effectsAddr: PEffectRec;
     { reserved }
     unknown083: Byte;
-    { packed -- see C_Npc.NPC_* }
+    { packed -- see C_NPC.NPC_* }
     npc: Byte;
     { Low three bits hold the NPC's treasure-share weight. }
     npcTreasureShare: Byte;
@@ -157,9 +158,9 @@ type
     { reserved }
     unknown087: Byte;
     { Coins: copper, silver, electrum, gold, platinum, gems and jewelry. }
-    coins: array[C_Money.COPPER..C_Money.JEWELRY] of Word;
-    { Class levels; indexed by C_Level. }
-    classLevels: array[C_Level.CLERIC..C_Level.MONK] of ShortInt;
+    coins: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of Word;
+    { Class levels; indexed by C_LEVEL. }
+    classLevels: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt;
     { Gender; see GENDER_*. }
     gender: Byte;
     charType: Byte;
@@ -199,7 +200,7 @@ type
     { far ptr to item list }
     itemsAddr: PItemRec;
     { Readied items, indexed by EQUIP_*. }
-    equipped: array[C_Equip.WEAPON..C_Equip.BOLT] of PItemRec;
+    equipped: array[C_EQUIP.WEAPON..C_EQUIP.BOLT] of PItemRec;
     handsEquipped: Byte;
     { accumulated save bonus (signed) }
     saveBonus: ShortInt;
@@ -231,7 +232,7 @@ type
     movementCur: Byte);
       1: (
     { Current attributes as an array for character creation and display. }
-    stats: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of Byte);
+    stats: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of Byte);
       2: (
     { skips to gender }
     genderPad: array[0..141 + PTR_GROWTH] of Byte;
@@ -392,7 +393,7 @@ type
     { best facing direction }
     dir: Byte;
   end;
-  { the creatures Pathing.BuildTargetList finds, nearest first (GDVars.targetList) }
+  { the creatures Pathing.BuildTargetList finds, nearest first (GameVars.targetList) }
   TTargetList = array[1..ARENA_SLOTS] of TCombatTarget;
   TIconCoordinateDelta = record
     { cell X offset; negative marks an absent footprint cell }
@@ -469,12 +470,12 @@ type
     num: Byte;
     sides: Byte;
   end;
-  { racial ability limits (GDConsts.dsMinimumMaximumStatistics) }
+  { racial ability limits (GameDefs.minimumMaximumStatistics) }
   TRuleRace = record
     { by gender }
-    strMin: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
-    strMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
-    excMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
+    strMin: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
+    strMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
+    excMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
     intMin: Byte;
     intMax: Byte;
     wisMin: Byte;
@@ -486,67 +487,68 @@ type
     chaMin: Byte;
     chaMax: Byte;
   end;
-  { thief abilities (GDConsts.thiefBase and raceAdj), by skill number or by name }
+  { thief abilities (ClassCal.ThiefSkillParts' thiefBase and raceAdj), by skill number or by name }
   TRuleThief = packed record
     case Byte of
       0: (values: array[1..8] of ShortInt);
       1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
           hideShadows: ShortInt; hearNoise: ShortInt; climbWalls: ShortInt; readLanguages: ShortInt);
   end;
-  { Dexterity adjustments to the first five thief abilities (GDConsts.dexAdj), by skill number or by name }
+  { Dexterity adjustments to the first five thief abilities (ClassCal.ThiefSkillParts' dexAdj), by skill number or by
+    name }
   TRuleThiefDex = packed record
     case Byte of
       0: (values: array[1..5] of ShortInt);
       1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
           hideShadows: ShortInt);
   end;
-  { classes a race can take (GDConsts.classesByRace), in class-menu order }
+  { classes a race can take (ClassCal.classesByRace), in class-menu order }
   TRuleRaceClasses = record
     count: ShortInt;
     { class IDs; 0 fills past count }
     classes: array[1..13] of ShortInt;
   end;
-  { classLevels indexes a class trains (GDConsts.classParts), by position or by name; -1 fills a shorter list }
+  { classLevels indexes a class trains (GameDefs.classParts), by position or by name; -1 fills a shorter list }
   TRuleClassParts = packed record
     case Byte of
       0: (values: array[1..3] of ShortInt);
       1: (first: ShortInt; second: ShortInt; third: ShortInt);
   end;
-  { one value per ability (GDConsts.raceAbilityAdj and classMin), by C_Abil index or by name }
+  { one value per ability (CharGen's raceAbilityAdj, ClassCal.ClassAbilityMin's classMin), by C_ABIL index or by name }
   TRuleAbilities = packed record
     case Byte of
-      0: (values: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of ShortInt);
+      0: (values: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of ShortInt);
       1: (strength: ShortInt; intelligence: ShortInt; wisdom: ShortInt; dexterity: ShortInt; constitution: ShortInt;
           charisma: ShortInt);
   end;
-  { one value per classLevels index (GDConsts.raceMaxLevel), by index or by class name }
+  { one value per classLevels index (CharGen.ShowRaceInfo's raceMaxLevel), by index or by class name }
   TRuleClassLevels = packed record
     case Byte of
-      0: (values: array[C_Level.CLERIC..C_Level.MONK] of ShortInt);
+      0: (values: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt);
       1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
           thief: ShortInt; monk: ShortInt);
   end;
-  { the oldest age in each age category (GDConsts.ageCat), by category number or by name }
+  { the oldest age in each age category (CharGen.CreateCharacterMenu's ageCat), by category number or by name }
   TRuleAgeCategories = packed record
     case Byte of
       0: (values: array[1..5] of Word);
       1: (youngAdult: Word; mature: Word; middleAged: Word; old: Word; venerable: Word);
   end;
-  { alignments a class can take (GDConsts.alignByClass), in alignment-menu order }
+  { alignments a class can take (ClassCal.alignByClass), in alignment-menu order }
   TRuleClassAlignments = record
     count: ShortInt;
     { alignment IDs; 0 fills past count }
     alignments: array[1..9] of ShortInt;
   end;
-  { saving throws (GDConsts.saveTbl), by C_Save index or by name }
+  { saving throws (ClassCal.RecalcSaves' saveTbl), by C_SAVE index or by name }
   TRuleSaves = packed record
     case Byte of
-      0: (values: array[C_Save.PARALYZE..C_Save.SPELL] of Byte);
+      0: (values: array[C_SAVE.PARALYZE..C_SAVE.SPELL] of Byte);
       1: (paralyze: Byte; petrify: Byte; wand: Byte; breath: Byte; spell: Byte);
   end;
   TRuleXp = record
     { XP to reach level; -1 = unavailable }
-    xp: array[2..C_Level.LEVEL_LAST] of LongInt;
+    xp: array[2..C_LEVEL.LEVEL_LAST] of LongInt;
     { class level, spell level }
     slots: array[2..9, 1..3] of Byte;
   end;
@@ -573,7 +575,7 @@ type
     xCol: array[0..9] of Integer;
     yRow: array[0..9] of Integer;
   end;
-  { one loaded-wallset cache slot (GDVars.dsWallSetCache) }
+  { one loaded-wallset cache slot (GameVars.wallSetCache) }
   TWallSetCacheSlot = record
     { cached WALLDEF reload ID; -1 invalidates the slot }
     wallDefId: Integer;
@@ -651,10 +653,10 @@ type
         scriptWords4B00: array[$4B00..$4CFF] of Word);
   end;
   TGbvmZone1 = array[$6B00..$6EFF] of Word;
-  { the script strings (GDVars.gbStrings) }
+  { the script strings (GameVars.gbStrings) }
   TGbStrings = array[1..GB_STRING_LAST] of String;
   PGbStrings = ^TGbStrings;
-  { the base item types (GDVars.baseItems) and the zeroed overflow entry after them }
+  { the base item types (CharHlp.baseItems) and the zeroed overflow entry after them }
   TBaseItems = array[0..BASE_ITEM_OVERFLOW] of TBaseItemRec;
   PBaseItems = ^TBaseItems;
 
@@ -724,7 +726,7 @@ type
   end;
 
   { CharGen types. }
-  { dsStartingAge entries }
+  { startingAge entries }
   TAgeRec = record
     base: Word;
     { dice count }
@@ -732,18 +734,18 @@ type
     { dice sides }
     sides: Byte;
   end;
-  { dsStartingGoldClass }
+  { startingGoldClass }
   TGoldDice = record
     num: Byte;
     sides: Byte;
   end;
-  { dsMinimumMaximumStatistics entry }
+  { minimumMaximumStatistics entry }
   TRaceLim = record
     { by gender }
-    strMin: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
-    strMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
+    strMin: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
+    strMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
     { exceptional-Str cap }
-    excMax: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
+    excMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
     intMin: Byte;
     intMax: Byte;
     wisMin: Byte;
@@ -845,11 +847,11 @@ type
   { Load a tune into a sound device's voices; tune 0 silences them. }
   TSoundPlay = procedure(tune: Word);
   { One sound device's driver (docs/refactor-plan.md, phase 7): SoundDrv reaches the device only through it. GameBoot
-    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndNone) into GDVars.sound. }
+    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndNone) into GameVars.sound. }
   TSoundDriver = record
     { the device's name, for the settings screen }
     name: TStr20;
-    { the sequencer's device value (C_Sound.MODE_TANDY, MODE_SPEAKER or MODE_DISABLED), which SetSoundDevice takes and
+    { the sequencer's device value (C_SOUND.MODE_TANDY, MODE_SPEAKER or MODE_DISABLED), which SetSoundDevice takes and
       soundMode holds while sound is on }
     mode: Byte;
     { load a tune into the device's voices }
@@ -860,7 +862,7 @@ type
     singleStep: Boolean;
   end;
   { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
-    routines. GameBoot installs one (VidCga, VidEga, VidTdy or VidVga) into GDVars.video. }
+    routines. GameBoot installs one (VidCga, VidEga, VidTdy or VidVga) into GameVars.video. }
   TVideoDriver = record
     { the mode's name, for the settings screen }
     name: TStr20;
@@ -890,7 +892,7 @@ type
     ramVideoParas: Word;
     { set up the mode once the BIOS has set it (EGA's display pages) }
     Start: TVideoProc;
-    { copy the view buffer's dirty spans (GDVars.span*) to the screen; Blit.FlushView then clears the spans }
+    { copy the view buffer's dirty spans (GameVars.span*) to the screen; Blit.FlushView then clears the spans }
     FlushSpans: TVideoProc;
     { draw a picture's first frame straight to the screen at a cell position (Blit.ShowPic) }
     ShowPic: TShowPicProc;
@@ -913,7 +915,7 @@ type
     RecolorFrame: TRecolorFrameProc;
     { 8 pixel colours into scanline y of the one-cell-wide frame at pic^.data[at] (VidOps.PutPixelRow) }
     PutPixelRow: TPutPixelRowProc;
-    { build the mode's per-row screen addresses (GDVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
+    { build the mode's per-row screen addresses (GameVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
     InitRowTables: TVideoProc;
     { give palette register registerIndex the colour color (Blit.SetPaletteRegister; EGA's registers, VGA's DAC) }
     SetPalette: TSetPaletteProc;
@@ -931,8 +933,8 @@ type
   end;
   TMonFlags = array[0..1] of Boolean;
   TZone2 = array[$9700..$98FF] of Word;
-  { the script buffer (C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST) }
-  TZone3 = array[C_Gbvm.SCRIPT_FIRST..C_Gbvm.SCRIPT_LAST] of Byte;
+  { the script buffer (C_GBVM.SCRIPT_FIRST..SCRIPT_LAST) }
+  TZone3 = array[C_GBVM.SCRIPT_FIRST..C_GBVM.SCRIPT_LAST] of Byte;
 
   { EffHndlr types. }
   TEffectHandler = procedure(creature: PCharRecord; effectData: Pointer;
@@ -955,7 +957,7 @@ type
     lo: Word;
     hi: Word;
   end;
-  TMoney = array[C_Money.COPPER..C_Money.JEWELRY] of LongInt;
+  TMoney = array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
 
   { Pathing types. }
   TPathReq = record
@@ -993,7 +995,7 @@ type
     time: LongInt;
     pic: PImgBuf;
   end;
-  { A PIC or SPRIT animation (GDVars.animData, the ending's), as Portrait.LoadAnimation loads it. }
+  { A PIC or SPRIT animation (GameVars.animData, the ending's), as Portrait.LoadAnimation loads it. }
   TAnimRec = record
     { frames actually loaded }
     count: Byte;

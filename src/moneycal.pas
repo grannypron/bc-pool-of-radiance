@@ -14,7 +14,7 @@ const
   PAY_NOBODY = 0;
   PAY_CHARACTER = 1;
   PAY_POOL = 2;
-  { a temple's prices (TemplePrice), the value a script stores in C_Gbvm.ENTER_TEMPLE before the COMBAT that opens it:
+  { a temple's prices (TemplePrice), the value a script stores in C_GBVM.ENTER_TEMPLE before the COMBAT that opens it:
     SSI's full prices, or a tenth off (the Temple of Bane that Dirten rebuilds, #682) }
   TEMPLE_FULL_PRICE = 1;
   TEMPLE_TENTH_OFF = 2;
@@ -27,7 +27,7 @@ function CoinValueInGold(m: Types.TMoney): LongInt;
 { The creature's five coin types as a TMoney; its gems and jewelry are left out (0). }
 procedure CoinsOf(creature: Types.PCharRecord; var m: Types.TMoney);
 
-{ How many more of money type mType the creature can hold before its count reaches C_Money.MAX_COINS. }
+{ How many more of money type mType the creature can hold before its count reaches C_MONEY.MAX_COINS. }
 function CoinRoom(creature: Types.PCharRecord; mType: ShortInt): Word;
 
 { The creature's five coin types in copper. }
@@ -59,7 +59,7 @@ function TemplePrice(cost: Word; mode: Byte): Word;
 
 implementation
 
-uses GDConsts, GDVars, C_Money;
+uses GameDefs, GameVars, C_MONEY;
 
 function CopperValue(var m: Types.TMoney): LongInt;
 var
@@ -67,8 +67,8 @@ var
   i: ShortInt;
 begin
   total := 0;
-  for i := C_Money.COPPER to C_Money.PLATINUM do
-    Inc(total, GDConsts.dsCoinValuationCopper[i] * m[i]);
+  for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
+    Inc(total, GameDefs.coinValuationCopper[i] * m[i]);
   CopperValue := total;
 end;
 
@@ -76,7 +76,7 @@ end;
   electrum piece cannot pay 1000. }
 function CoinValueInGold(m: Types.TMoney): LongInt;
 begin
-  CoinValueInGold := MoneyCal.CopperValue(m) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+  CoinValueInGold := MoneyCal.CopperValue(m) div GameDefs.coinValuationCopper[C_MONEY.GOLD];
 end;
 
 procedure CoinsOf(creature: Types.PCharRecord; var m: Types.TMoney);
@@ -84,13 +84,13 @@ var
   i: ShortInt;
 begin
   FillChar(m, SizeOf(m), 0);
-  for i := C_Money.COPPER to C_Money.PLATINUM do
+  for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
     m[i] := creature^.coins[i];
 end;
 
 function CoinRoom(creature: Types.PCharRecord; mType: ShortInt): Word;
 begin
-  CoinRoom := C_Money.MAX_COINS - creature^.coins[mType];
+  CoinRoom := C_MONEY.MAX_COINS - creature^.coins[mType];
 end;
 
 function CreatureCopper(creature: Types.PCharRecord): LongInt;
@@ -103,7 +103,7 @@ end;
 
 function CreatureGold(creature: Types.PCharRecord): LongInt;
 begin
-  CreatureGold := MoneyCal.CreatureCopper(creature) div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+  CreatureGold := MoneyCal.CreatureCopper(creature) div GameDefs.coinValuationCopper[C_MONEY.GOLD];
 end;
 
 { Replace the five coin types in m with rem copper given as the largest coins, platinum first, each type at most cap.
@@ -116,12 +116,12 @@ var
 begin
   if rem < 0 then
     rem := 0;
-  for i := C_Money.PLATINUM downto C_Money.COPPER do begin
-    n := rem div GDConsts.dsCoinValuationCopper[i];
+  for i := C_MONEY.PLATINUM downto C_MONEY.COPPER do begin
+    n := rem div GameDefs.coinValuationCopper[i];
     if n > cap then
       n := cap;
     m[i] := n;
-    Dec(rem, n * GDConsts.dsCoinValuationCopper[i]);
+    Dec(rem, n * GameDefs.coinValuationCopper[i]);
   end;
 end;
 
@@ -129,7 +129,7 @@ function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
 begin
   if gp <= MoneyCal.CreatureGold(buyer) then
     WhoPays := PAY_CHARACTER
-  else if gp <= MoneyCal.CoinValueInGold(GDVars.treasureMoney) then
+  else if gp <= MoneyCal.CoinValueInGold(GameVars.treasureMoney) then
     WhoPays := PAY_POOL
   else
     WhoPays := PAY_NOBODY;
@@ -175,31 +175,31 @@ begin
     Inc(i);
   case s[i] of
     'G': if UpCase(s[i + 1]) = 'E' then begin
-           ParseMoneyType := C_Money.GEMS;
+           ParseMoneyType := C_MONEY.GEMS;
            typeName := 'Gems ';
          end else begin
            typeName := 'Gold ';
-           ParseMoneyType := C_Money.GOLD;
+           ParseMoneyType := C_MONEY.GOLD;
          end;
     'P': begin
            typeName := 'Platinum ';
-           ParseMoneyType := C_Money.PLATINUM;
+           ParseMoneyType := C_MONEY.PLATINUM;
          end;
     'E': begin
            typeName := 'electrum ';
-           ParseMoneyType := C_Money.ELECTRUM;
+           ParseMoneyType := C_MONEY.ELECTRUM;
          end;
     'S': begin
            typeName := 'silver ';
-           ParseMoneyType := C_Money.SILVER;
+           ParseMoneyType := C_MONEY.SILVER;
          end;
     'C': begin
            typeName := 'Copper ';
-           ParseMoneyType := C_Money.COPPER;
+           ParseMoneyType := C_MONEY.COPPER;
          end;
     'J': begin
            typeName := 'Jewelry ';
-           ParseMoneyType := C_Money.JEWELRY;
+           ParseMoneyType := C_MONEY.JEWELRY;
          end;
   end;
 end;

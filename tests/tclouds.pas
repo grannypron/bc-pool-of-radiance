@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TClouds;
 
-uses Types, GDVars, FxEngine, TestKit;
+uses Types, GameVars, FxEngine, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -20,10 +20,10 @@ begin
   FillChar(node^, SizeOf(Types.TStinkRec), 0);
   node^.caster := cr;
   node^.idx := idx;
-  if GDVars.stinkHead = nil then
-    GDVars.stinkHead := node
+  if GameVars.stinkHead = nil then
+    GameVars.stinkHead := node
   else begin
-    tail := GDVars.stinkHead;
+    tail := GameVars.stinkHead;
     while tail^.next <> nil do
       tail := tail^.next;
     tail^.next := node;
@@ -34,10 +34,10 @@ procedure FreeClouds;
 var
   node: Types.PStinkRec;
 begin
-  while GDVars.stinkHead <> nil do begin
-    node := GDVars.stinkHead^.next;
-    FreeMem(GDVars.stinkHead, SizeOf(Types.TStinkRec));
-    GDVars.stinkHead := node;
+  while GameVars.stinkHead <> nil do begin
+    node := GameVars.stinkHead^.next;
+    FreeMem(GameVars.stinkHead, SizeOf(Types.TStinkRec));
+    GameVars.stinkHead := node;
   end;
 end;
 
@@ -48,7 +48,7 @@ begin
   TestKit.Start('TCLOUDS');
   GetMem(a, SizeOf(Types.TCharRecord));
   GetMem(b, SizeOf(Types.TCharRecord));
-  GDVars.stinkHead := nil;
+  GameVars.stinkHead := nil;
   TestKit.CheckEqualsL(0, FxEngine.FreeCloudNumber(a), 'no clouds: number 0');
   AddCloud(a, 0);
   TestKit.CheckEqualsL(1, FxEngine.FreeCloudNumber(a), 'the caster''s one cloud, the list''s last node, is counted');

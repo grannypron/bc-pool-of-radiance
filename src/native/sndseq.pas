@@ -62,7 +62,7 @@ uses SysUtils;
 {$I SNDIMAGE.INC}
 
 const
-  { device values, as C_Sound's MODE_TANDY, MODE_SPEAKER, MODE_DISABLED and MODE_ADLIB }
+  { device values, as C_SOUND's MODE_TANDY, MODE_SPEAKER, MODE_DISABLED and MODE_ADLIB }
   DEV_TANDY = 0;
   DEV_SPEAKER = 1;
   DEV_NONE = 2;

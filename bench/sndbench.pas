@@ -9,7 +9,7 @@ program SndBench;
 const
   RUN_TICKS = 54;
   LOG_NAME = 'SNDBENCH.LOG';
-  { C_Sound's MODE_TANDY and MODE_SPEAKER }
+  { C_SOUND's MODE_TANDY and MODE_SPEAKER }
   MODE_TANDY = 0;
   MODE_SPEAKER = 1;
   MUSIC_TITLE = 21;

@@ -1,6 +1,6 @@
 { The video mode's cold operations: run at start-up, when a character's icon is built or loaded, and when the data
   archives are built, so kept in an overlay. Blit holds the hot primitives and the size and capability questions. Both
-  work through the installed video driver, GDVars.video (phase 6 of docs/refactor-plan.md). }
+  work through the installed video driver, GameVars.video (phase 6 of docs/refactor-plan.md). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit VidOps;
@@ -12,7 +12,7 @@ uses Types;
 { The video mode's name, for the settings screen. }
 function ModeName: Types.TStr20;
 
-{ Build the active video mode's per-row screen addresses (GDVars.cgaRowSeg, fbRowOfs or tandyRowSeg); GameInit2 calls
+{ Build the active video mode's per-row screen addresses (GameVars.cgaRowSeg, fbRowOfs or tandyRowSeg); GameInit2 calls
   it once the mode is set. }
 procedure InitRowTables;
 
@@ -35,16 +35,16 @@ procedure PutPixelRow(pic: Types.PImgBuf; frame, y: Byte; var px: Types.TPixelRo
 
 implementation
 
-uses GDVars, Blit;
+uses GameVars, Blit;
 
 function ModeName: Types.TStr20;
 begin
-  ModeName := GDVars.video.name;
+  ModeName := GameVars.video.name;
 end;
 
 procedure InitRowTables;
 begin
-  GDVars.video.InitRowTables;
+  GameVars.video.InitRowTables;
 end;
 
 procedure MergePic(src, dst: Types.PImgBuf);
@@ -55,7 +55,7 @@ begin
   if (src^.transp = nil) or (dst^.transp = nil) then Exit;
   { an empty picture would make the loops below run 65536 times }
   if src^.imgSize = 0 then Exit;
-  if GDVars.video.keyed then begin
+  if GameVars.video.keyed then begin
     { a colour key (VGA): src's opaque pixels replace dst's }
     for n := 0 to src^.imgSize - 1 do
       if src^.data[n] <> Types.PIC_KEY then
@@ -73,7 +73,7 @@ var
 begin
   if (src = nil) or (dst = nil) then Exit;
   if (src^.transp = nil) or (src^.imgSize <> dst^.imgSize) or (dst^.imgSize = 0) then Exit;
-  if GDVars.video.keyed then begin
+  if GameVars.video.keyed then begin
     { a colour key (VGA) }
     for n := 0 to dst^.imgSize - 1 do
       if src^.data[n] <> Types.PIC_KEY then
@@ -82,19 +82,19 @@ begin
   end;
   { one mask byte covers 1 shl maskShift picture bytes (EGA's cell row of four planes) }
   for n := 0 to dst^.imgSize - 1 do
-    dst^.data[n] := dst^.data[n] and src^.transp^[n shr GDVars.video.maskShift] or src^.data[n];
+    dst^.data[n] := dst^.data[n] and src^.transp^[n shr GameVars.video.maskShift] or src^.data[n];
 end;
 
 procedure RecolorPic(var toT: Types.TColorTab; pic: Types.PImgBuf);
 begin
   if pic = nil then Exit;
-  GDVars.video.RecolorFrame(toT, pic);
+  GameVars.video.RecolorFrame(toT, pic);
 end;
 
 procedure PutPixelRow(pic: Types.PImgBuf; frame, y: Byte; var px: Types.TPixelRow);
 begin
   if pic = nil then Exit;
-  GDVars.video.PutPixelRow(pic, frame * pic^.imgSize, y, px);
+  GameVars.video.PutPixelRow(pic, frame * pic^.imgSize, y, px);
 end;
 
 end.

@@ -9,7 +9,7 @@ procedure Introduction;
 
 implementation
 
-uses Types, GDConsts, GDVars, Crt, TextRend, Blit, Border, C_Sound, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
 procedure DelayOrKey(seconds: Word);
@@ -38,7 +38,7 @@ begin
   TextRend.DisplayString(1, 5, LightGreen, 'game created by:');
   TextRend.DisplayString(18, 5, Yellow, 'ssi special projects');
 
-  TextRend.DisplayCentered(0, 39, 6, LightCyan, GDConsts.GAME_VERSION);
+  TextRend.DisplayCentered(0, 39, 6, LightCyan, GameDefs.GAME_VERSION);
   TextRend.DisplayString(2, 7, Yellow, 'programming:');
   TextRend.DisplayString(20, 7, Yellow, 'original');
   TextRend.DisplayString(2, 8, LightCyan, 'scot bayless');
@@ -83,11 +83,11 @@ var
 begin
   rndAcc := 0;
   pic := nil;
-  savedDir := GDVars.gameDir;
-  GDVars.gameDir[0] := #0;
+  savedDir := GameVars.gameDir;
+  GameVars.gameDir[0] := #0;
   { Brazen Crows, when its picture is there: it is not one of the game's own files, so without it the introduction goes
     straight on to the title rather than asking for a disk }
-  if DaxIo.FileExists(GDVars.gameDir + 'RAVFULL.DAX') then begin
+  if DaxIo.FileExists(GameVars.gameDir + 'RAVFULL.DAX') then begin
     Blit.LoadPic('RAVFULL', 1, False, 0, pic);
     Blit.ShowPic(0, 0, pic);
     Intro.DelayOrKey(2);
@@ -96,15 +96,15 @@ begin
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);
   { the title theme plays out by itself, under the credits or the menu }
-  SoundDrv.PlayMusic(C_Sound.MUSIC_TITLE);
+  SoundDrv.PlayMusic(C_SOUND.MUSIC_TITLE);
   Intro.DelayOrKey(5);
-  if not GDVars.fullIntro then begin
-    GDVars.gameDir := savedDir;
+  if not GameVars.fullIntro then begin
+    GameVars.gameDir := savedDir;
     Blit.FreePic(pic);
     Exit;
   end;
   Blit.LoadPic('title', 2, False, 0, pic);
-  GDVars.gameDir := savedDir;
+  GameVars.gameDir := savedDir;
   Blit.ShowPic(0, 0, pic);
   Blit.FreePic(pic);
   deadline := TextRend.GetTicks + 500;

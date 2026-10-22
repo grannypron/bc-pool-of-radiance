@@ -14,27 +14,27 @@ procedure ShowMemory;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GDVars, TextRend, StrUtil{$IFNDEF FPC}, Overlay{$ENDIF};
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameVars, Blit, TextRend, StrUtil{$IFNDEF FPC}, Overlay{$ENDIF};
 
 procedure ShowMemory;
 var
   source: string[5];
 begin
-  if GDVars.ovrInEms then
+  if GameVars.ovrInEms then
     source := 'EMS'
   else
     source := 'disk';
   { the native build has no overlays }
 {$IFNDEF FPC}
-  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GDVars.ovrLoads));
+  TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GameVars.ovrLoads));
   TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
                                        StrUtil.NumStr(OvrGetRetry) + ' from ' + source);
 {$ENDIF}
   TextRend.DisplayAndPause(LightGreen, 'Heap free ' + StrUtil.NumStr(MemAvail) + ' big ' + StrUtil.NumStr(MaxAvail));
-  TextRend.DisplayAndPause(LightGreen, 'Pictures ' + StrUtil.NumStr(GDVars.picBytes) + ' peak ' +
-                                       StrUtil.NumStr(GDVars.picPeak));
+  TextRend.DisplayAndPause(LightGreen, 'Pictures ' + StrUtil.NumStr(Blit.picBytes) + ' peak ' +
+                                       StrUtil.NumStr(Blit.picPeak));
   TextRend.ClearBottomLine;
-  GDVars.bottomLineTaken := True;
+  GameVars.bottomLineTaken := True;
 end;
 
 end.
