@@ -1683,18 +1683,28 @@ end;
   below 11 and falls 5% for each level above: chance := pct + (11 - lvl) * 5, kept within 0..100, and a 1d100 roll <=
   chance nullifies. Only an effect under the immunity check or magic damage is resisted. An item counts as a 6th-level
   caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and
-  the javelin). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106 passing 15), so resistance
-  grew with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. }
+  the javelin). Against an effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a touch, a monster's
+  fear) there is no caster level, and pct stands as listed, as against an 11th-level caster; SSI's read the level of
+  spell 0, from outside the spell table (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with
+  eff 106 passing 15), so resistance grew with the caster level; Tyranthraxus (eff 106) still resists every caster
+  the game produces, as he did. }
 
 procedure MagicResistance(pct: Byte);
+const
+  { the caster level pct is listed against }
+  BASE_LEVEL = 11;
 var
   lvl: Byte;
   chance: Integer;
 begin
-  lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  if GDVars.usingItem and (lvl > 6) then
-    lvl := 6;
-  chance := Integer(pct) + (11 - Integer(lvl)) * 5;
+  if GDVars.dsCurrentSpellBeing = C_Spell.NONE then
+    lvl := BASE_LEVEL
+  else begin
+    lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+    if GDVars.usingItem and (lvl > C_Spell.ITEM_CASTER_LEVEL) then
+      lvl := C_Spell.ITEM_CASTER_LEVEL;
+  end;
+  chance := Integer(pct) + (BASE_LEVEL - Integer(lvl)) * 5;
   if chance < 0 then
     chance := 0
   else if chance > 100 then
