@@ -1091,11 +1091,11 @@ end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
   class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee.
-  Applies the racial fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap),
-  and before the hall and experience checks clamps experience to one below the highest level + 2 threshold it has
-  reached. Each trained class gains a level and
-  restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
-  hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
+  Applies the racial fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap).
+  A character who trains has experience clamped to one below the highest level + 2 threshold it has reached. Each
+  trained class gains a level and restores one drained level; a new magic-user level picks one spell; hit points grow
+  by the rolled dice (and, for hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as
+  GainLevels gives them. }
 procedure TrainingMenu;
 var
   xpClamp: LongInt;
@@ -1138,8 +1138,6 @@ begin
                     xpClamp := nextXp - 1;
             end;
       end;
-    if xpClamp > 0 then
-      experience := xpClamp;
     if stingMode = 0 then begin
       if Byte(classMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
@@ -1175,6 +1173,10 @@ begin
     CharDisp.PrintBottomLine('Congratulations...');
     if stingMode = 0 then
       Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
+    { only a character who trains loses the experience past the level + 2 threshold: SSI cut it before the hall's
+      checks and the question, so a refusal or a No kept the cut (#701) }
+    if xpClamp > 0 then
+      experience := xpClamp;
     CharGen.GainLevels(trainable, True);
   end;
 end;
