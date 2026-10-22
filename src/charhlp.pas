@@ -428,10 +428,11 @@ begin
 end;
 
 { Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
-  calculate armor class, rear armor class (no Dexterity or shield), attack level (CharHlp.WarriorLevel for a non-monster
-  warrior, else 1), movement and, for a thief, the thief skills (ClassCal.RecalcThiefSkills). An equipped Bag of
-  Holding (name component 'Holding') removes up to BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the
-  equipped items' weight. The weight is summed in 32 bits and stored as at most MAX_ENCUMBRANCE. }
+  calculate armor class, rear armor class (no shield or Dexterity bonus, but any Dexterity penalty), attack level
+  (CharHlp.WarriorLevel for a non-monster warrior, else 1), movement and, for a thief, the thief skills
+  (ClassCal.RecalcThiefSkills). An equipped Bag of Holding (name component 'Holding') removes up to
+  BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32
+  bits and stored as at most MAX_ENCUMBRANCE. }
 procedure RecalcStats(creature: Types.PCharRecord);
 var
   j: Byte;
@@ -517,6 +518,9 @@ begin
   for k := Types.AC_DEX to Types.AC_ARMOR do
     creature^.acCur := creature^.acCur + adj[k];
   creature^.acBehind := adj[Types.AC_ARMOR] + adj[Types.AC_PLUSES] + adj[Types.AC_RING] - 1 - 1;
+  { an attack from behind takes away a Dexterity bonus, not a penalty (#741) }
+  if adj[Types.AC_DEX] < 0 then
+    creature^.acBehind := creature^.acBehind + adj[Types.AC_DEX];
   if (CharHlp.WarriorLevel(creature) > 0) and (creature^.race > C_Race.MONSTER) then
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else

@@ -280,5 +280,18 @@ begin
   TestKit.CheckEqualsL(C_Item.WPN_BASH, items^[C_Item.CLUB].wpnClass, 'a club still bashes');
   TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.DAGGER].wpnClass, 'a dagger still pierces');
   Dispose(items);
+  { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
+  FillChar(crs[1], SizeOf(crs[1]), 0);
+  crs[1].race := C_Race.HUMAN;
+  crs[1].strCur := 10;
+  crs[1].acBase := 50;
+  crs[1].dexCur := 3;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(46, crs[1].acCur, 'Dexterity 3 makes AC 10 into AC 14');
+  TestKit.CheckEqualsL(44, crs[1].acBehind, 'and AC 16 from behind');
+  crs[1].dexCur := 18;
+  CharHlp.RecalcStats(@crs[1]);
+  TestKit.CheckEqualsL(54, crs[1].acCur, 'Dexterity 18 makes AC 10 into AC 6');
+  TestKit.CheckEqualsL(48, crs[1].acBehind, 'and AC 12 from behind, without the bonus');
   TestKit.Done;
 end.
