@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_Gender, C_Save, C_Equip, C_Level, C_Abil, C_Money, C_Gbvm;
+uses C_Gender, C_Save, C_Equip, C_Level, C_ABIL, C_Money, C_Gbvm;
 
 const
   { the longest name a character or creature has }
@@ -231,7 +231,7 @@ type
     movementCur: Byte);
       1: (
     { Current attributes as an array for character creation and display. }
-    stats: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of Byte);
+    stats: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of Byte);
       2: (
     { skips to gender }
     genderPad: array[0..141 + PTR_GROWTH] of Byte;
@@ -512,10 +512,10 @@ type
       0: (values: array[1..3] of ShortInt);
       1: (first: ShortInt; second: ShortInt; third: ShortInt);
   end;
-  { one value per ability (GDConsts.raceAbilityAdj and classMin), by C_Abil index or by name }
+  { one value per ability (GDConsts.raceAbilityAdj and classMin), by C_ABIL index or by name }
   TRuleAbilities = packed record
     case Byte of
-      0: (values: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of ShortInt);
+      0: (values: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of ShortInt);
       1: (strength: ShortInt; intelligence: ShortInt; wisdom: ShortInt; dexterity: ShortInt; constitution: ShortInt;
           charisma: ShortInt);
   end;

@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_ABIL, C_Item, C_Keys, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -68,7 +68,7 @@ begin
   with GDVars.curChar^ do begin
     if classLevels[cls] <= 1 then Exit;
     avg := GDConsts.hpSides[cls] div 2 + 1;
-    loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_Abil.CONSTITUTION])) div clsCount;
+    loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION])) div clsCount;
     if loss < 1 then
       loss := 1;
     Dec(classLevels[cls]);

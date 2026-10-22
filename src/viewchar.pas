@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_STATUS, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_STATUS, C_Ifc, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -80,14 +80,14 @@ begin
   s := GDConsts.classNames[creature^.charClass];
   TextRend.DisplayString(1, 5, White, s);
   { the six ability scores }
-  for i := C_Abil.STRENGTH to C_Abil.CHARISMA do begin
+  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     case i of
-      C_Abil.STRENGTH: s := 'STR ';
-      C_Abil.INTELLIGENCE: s := 'INT ';
-      C_Abil.WISDOM: s := 'WIS ';
-      C_Abil.DEXTERITY: s := 'DEX ';
-      C_Abil.CONSTITUTION: s := 'CON ';
-      C_Abil.CHARISMA: s := 'CHA ';
+      C_ABIL.STRENGTH: s := 'STR ';
+      C_ABIL.INTELLIGENCE: s := 'INT ';
+      C_ABIL.WISDOM: s := 'WIS ';
+      C_ABIL.DEXTERITY: s := 'DEX ';
+      C_ABIL.CONSTITUTION: s := 'CON ';
+      C_ABIL.CHARISMA: s := 'CHA ';
     end;
     TextRend.DisplayString(1, i + 7, LightGreen, s);
     ViewChar.PrintStat(i, False);
@@ -553,7 +553,7 @@ begin
   if GDVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
   TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GDVars.curChar^.stats[statIdx]));
-  if (statIdx = C_Abil.STRENGTH) and (GDVars.curChar^.strCur = 18) and (GDVars.curChar^.strExc > 0) then begin
+  if (statIdx = C_ABIL.STRENGTH) and (GDVars.curChar^.strCur = 18) and (GDVars.curChar^.strExc > 0) then begin
     { 100 shows as 00 }
     s := StrUtil.ZeroPad2(GDVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');

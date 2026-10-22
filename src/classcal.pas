@@ -29,7 +29,7 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
   the racial penalty is larger than the base, so it need not equal the sum. }
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
-{ The racial limits on ability (C_Abil) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
+{ The racial limits on ability (C_ABIL) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
   depends on), from GDConsts.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
@@ -39,7 +39,7 @@ const
     (the 1st-edition PHB, p. 20) }
   HALFELF_MULTI_CLERIC_WIS = 13;
 
-{ The class minimum on ability (C_Abil) for charClass (C_Class) of race (C_Race): a single class's from
+{ The class minimum on ability (C_ABIL) for charClass (C_Class) of race (C_Race): a single class's from
   GDConsts.classMin, a multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it,
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_ABIL, C_Equip, C_Item, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -282,11 +282,11 @@ function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 begin
   with GDConsts.minimumMaximumStatistics[race] do
     case ability of
-      C_Abil.STRENGTH: RaceAbilityMin := strMin[gender];
-      C_Abil.INTELLIGENCE: RaceAbilityMin := intMin;
-      C_Abil.WISDOM: RaceAbilityMin := wisMin;
-      C_Abil.DEXTERITY: RaceAbilityMin := dexMin;
-      C_Abil.CONSTITUTION: RaceAbilityMin := conMin;
+      C_ABIL.STRENGTH: RaceAbilityMin := strMin[gender];
+      C_ABIL.INTELLIGENCE: RaceAbilityMin := intMin;
+      C_ABIL.WISDOM: RaceAbilityMin := wisMin;
+      C_ABIL.DEXTERITY: RaceAbilityMin := dexMin;
+      C_ABIL.CONSTITUTION: RaceAbilityMin := conMin;
     else
       RaceAbilityMin := chaMin;
     end;
@@ -296,11 +296,11 @@ function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 begin
   with GDConsts.minimumMaximumStatistics[race] do
     case ability of
-      C_Abil.STRENGTH: RaceAbilityMax := strMax[gender];
-      C_Abil.INTELLIGENCE: RaceAbilityMax := intMax;
-      C_Abil.WISDOM: RaceAbilityMax := wisMax;
-      C_Abil.DEXTERITY: RaceAbilityMax := dexMax;
-      C_Abil.CONSTITUTION: RaceAbilityMax := conMax;
+      C_ABIL.STRENGTH: RaceAbilityMax := strMax[gender];
+      C_ABIL.INTELLIGENCE: RaceAbilityMax := intMax;
+      C_ABIL.WISDOM: RaceAbilityMax := wisMax;
+      C_ABIL.DEXTERITY: RaceAbilityMax := dexMax;
+      C_ABIL.CONSTITUTION: RaceAbilityMax := conMax;
     else
       RaceAbilityMax := chaMax;
     end;
@@ -319,7 +319,7 @@ begin
       if GDConsts.classMin[part].values[ability] > least then
         least := GDConsts.classMin[part].values[ability];
   end;
-  if (race = C_Race.HALFELF) and (ability = C_Abil.WISDOM)
+  if (race = C_Race.HALFELF) and (ability = C_ABIL.WISDOM)
      and (charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
     least := HALFELF_MULTI_CLERIC_WIS;
   ClassAbilityMin := least;
@@ -357,7 +357,7 @@ begin
   with creature^ do begin
     for cls := C_Level.CLERIC to C_Level.MONK do
       if (classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
-        share := ClassCal.ConHpPerDie(cls, stats[C_Abil.CONSTITUTION]);
+        share := ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION]);
         if (cls = C_Level.RANGER) and (classLevels[cls] = 1) then
           share := share * 2;
         Inc(bonus, share);
@@ -452,7 +452,7 @@ var
   i: Byte;
 begin
   sum := 0;
-  floor := ClassCal.HitDieFloor(creature^.stats[C_Abil.CONSTITUTION]);
+  floor := ClassCal.HitDieFloor(creature^.stats[C_ABIL.CONSTITUTION]);
   for cls := C_Level.CLERIC to C_Level.MONK do
     if (creature^.classLevels[cls] > 0) and (GDConsts.classBit[cls] and mask > 0) then begin
       dieCount := GDConsts.hpDice[cls];

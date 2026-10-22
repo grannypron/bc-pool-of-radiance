@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
-  C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -212,7 +212,7 @@ end;
   race outside Dwarf..Human leaves the panes blank. }
 procedure ShowRaceInfo(race: ShortInt);
 const
-  ABIL_LABELS: array[C_Abil.STRENGTH..C_Abil.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
+  ABIL_LABELS: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
   { by classLevels index }
   PART_ABBREVS: array[C_Level.CLERIC..C_Level.MONK] of String[2] = (
     'CL', 'DR', 'FI', 'PA', 'RA', 'MU', 'TH', 'MO');
@@ -244,11 +244,11 @@ var
   hasMulti: Boolean;
   isSingle: array[C_Level.CLERIC..C_Level.MONK] of Boolean;
 begin
-  Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_Abil.CHARISMA);
+  Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_ABIL.CHARISMA);
   Border.ClearBox(1, HEADING_ROW, LAST_COL, NOTE_ROW + 1);
   if (race < C_Race.DWARF) or (race > C_Race.HUMAN) then
     Exit;
-  for i := C_Abil.STRENGTH to C_Abil.CHARISMA do begin
+  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
     adj := GDConsts.raceAbilityAdj[race].values[i];
     if adj > 0 then
@@ -577,7 +577,7 @@ begin
       with creature^ do
         case i of
           { Strength }
-          C_Abil.STRENGTH: begin
+          C_ABIL.STRENGTH: begin
                if (stats[i] > 0) and (GDConsts.ageCat[race].youngAdult < age) then
                  Inc(stats[i]);
                if (stats[i] > 0) and (GDConsts.ageCat[race].mature < age) then
@@ -587,14 +587,14 @@ begin
                if (stats[i] > 0) and (GDConsts.ageCat[race].old < age) then
                  Dec(stats[i]);
                ClampToLimits(i);
-               if (stats[C_Abil.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
+               if (stats[C_ABIL.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
                  if GDConsts.minimumMaximumStatistics[race].excMax[genderSp] < strExc then
                    strExc := GDConsts.minimumMaximumStatistics[race].excMax[genderSp];
                end;
              end;
           { Intelligence }
-          C_Abil.INTELLIGENCE: begin
+          C_ABIL.INTELLIGENCE: begin
                if GDConsts.ageCat[race].mature < age then
                  Inc(stats[i]);
                if GDConsts.ageCat[race].old < age then
@@ -602,7 +602,7 @@ begin
                ClampToLimits(i);
              end;
           { Wisdom }
-          C_Abil.WISDOM: begin
+          C_ABIL.WISDOM: begin
                if GDConsts.ageCat[race].youngAdult >= age then
                  Dec(stats[i]);
                if GDConsts.ageCat[race].mature < age then
@@ -614,7 +614,7 @@ begin
                ClampToLimits(i);
              end;
           { Dexterity }
-          C_Abil.DEXTERITY: begin
+          C_ABIL.DEXTERITY: begin
                if GDConsts.ageCat[race].middleAged < age then
                  Dec(stats[i], 2);
                if GDConsts.ageCat[race].old < age then
@@ -622,7 +622,7 @@ begin
                ClampToLimits(i);
              end;
           { Constitution }
-          C_Abil.CONSTITUTION: begin
+          C_ABIL.CONSTITUTION: begin
                { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
                  out the +1, so every age came out one lower (#704). }
                Inc(stats[i]);
@@ -635,7 +635,7 @@ begin
                ClampToLimits(i);
              end;
           { Charisma }
-          C_Abil.CHARISMA: begin
+          C_ABIL.CHARISMA: begin
                ClampToLimits(i);
              end;
         end;
@@ -823,7 +823,7 @@ var
   procedure ShiftHp;
   begin
     with GDVars.curChar^ do begin
-      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), stats[C_Abil.CONSTITUTION]) -
+      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), stats[C_ABIL.CONSTITUTION]) -
                  ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), oldCon);
       if hpMax + hpShift < 1 then
         hpShift := 1 - hpMax;
@@ -880,7 +880,7 @@ begin
       key := MenuCore.MenuHorizontal('Modify character: ', 'Keep Exit', LightMagenta, LightGreen,
                                      White, True, False, ext);
       RedrawStat(False);
-      oldCon := stats[C_Abil.CONSTITUTION];
+      oldCon := stats[C_ABIL.CONSTITUTION];
       if ext then
         case key of
           C_Keys.DOWN, C_Keys.ENTER:
@@ -902,12 +902,12 @@ begin
               if stats[hold] > 0 then
                 Dec(stats[hold]);
               case hold of
-                C_Abil.STRENGTH: if strExc > 0 then begin
+                C_ABIL.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
                      Inc(stats[hold]);
                    end else
                      RaiseToMinimum(hold);
-                C_Abil.WISDOM: begin
+                C_ABIL.WISDOM: begin
                      RaiseToMinimum(hold);
                      { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
                        with no ceiling (they are 0 for a new first-level character) }
@@ -915,7 +915,7 @@ begin
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.CONSTITUTION: begin
+                C_ABIL.CONSTITUTION: begin
                      RaiseToMinimum(hold);
                      if levelled then
                        ShiftHp
@@ -926,7 +926,7 @@ begin
                      end;
                      statIdx := 6;
                      RedrawStat(False);
-                     statIdx := C_Abil.CONSTITUTION;
+                     statIdx := C_ABIL.CONSTITUTION;
                    end;
               else
                 { Intelligence, Dexterity, Charisma }
@@ -948,20 +948,20 @@ begin
               hold := statIdx;
               Inc(stats[hold]);
               case hold of
-                C_Abil.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
+                C_ABIL.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
                      if (stats[hold] > 18) and (CharHlp.WarriorLevel(GDVars.curChar) > 0) and
                          (GDConsts.minimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
                      stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
                    end;
-                C_Abil.WISDOM: begin
+                C_ABIL.WISDOM: begin
                      LowerToMaximum(hold);
                      { clericSpells[1] only, same shape as the Left arm above }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
                      ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
                    end;
-                C_Abil.CONSTITUTION: begin
+                C_ABIL.CONSTITUTION: begin
                      LowerToMaximum(hold);
                      if levelled then
                        ShiftHp
@@ -972,7 +972,7 @@ begin
                      end;
                      statIdx := 6;
                      RedrawStat(False);
-                     statIdx := C_Abil.CONSTITUTION;
+                     statIdx := C_ABIL.CONSTITUTION;
                    end;
               else
                 { Intelligence, Dexterity, Charisma }
