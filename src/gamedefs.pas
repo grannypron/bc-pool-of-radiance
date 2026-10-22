@@ -138,8 +138,6 @@ const
 
 const
   { Text-mode colour and pixel tables; EGA plane and CGA pixel tables; icon colour map }
-  { EGA plane masks, highest plane first; TextRend reads [3 - k] for plane k }
-  egaPlaneMask: array[0..3] of Byte = ($08, $04, $02, $01);
   { CGA colors 0..3 repeated across eight 2-bit pixels }
   cgaColorPat: array[0..3] of Word = (
     $0000, $5555, $AAAA, $FFFF);

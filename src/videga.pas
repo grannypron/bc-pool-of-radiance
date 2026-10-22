@@ -168,6 +168,9 @@ end;
 
 { all four planes, on both pages }
 procedure DrawGlyph(col, row, color, glyph: Byte);
+const
+  { EGA plane masks, highest plane first; TextRend reads [3 - k] for plane k }
+  egaPlaneMask: array[0..3] of Byte = ($08, $04, $02, $01);
 var
   dstOff: Word;
   k: Byte;
@@ -177,8 +180,8 @@ begin
   Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
   for outerRow := 0 to 7 do begin
     for k := 0 to 3 do begin
-      Port[C_EGA.SEQ_DATA_PORT] := GameDefs.egaPlaneMask[3 - k];
-      if (GameDefs.egaPlaneMask[3 - k] and color) > 0 then begin
+      Port[C_EGA.SEQ_DATA_PORT] := egaPlaneMask[3 - k];
+      if (egaPlaneMask[3 - k] and color) > 0 then begin
         Mem[egaCurPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
         Mem[egaOtherPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
       end else begin
