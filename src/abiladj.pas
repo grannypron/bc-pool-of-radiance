@@ -49,14 +49,14 @@ function ConRegenMinutes(con: Byte): Word;
 
 implementation
 
-{ Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased). }
+{ Armor class adjustment for the creature's Dexterity (positive is better, as AC is stored biased): -4 from 0 to 3. }
 function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
 var
   d: Byte;
 begin
   d := creature^.dexCur;
   case d of
-    1..3: DexterityArmorAdjustment := -4;
+    0..3: DexterityArmorAdjustment := -4;
     4..6: DexterityArmorAdjustment := d - 7;
     15..18: DexterityArmorAdjustment := d - 14;
     19..20: DexterityArmorAdjustment := 4;
