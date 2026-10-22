@@ -307,9 +307,6 @@ const
     32, 34,  5,  6, 13, 25, 30
   );
   { Menu key table }
-  { keypad digits 1..9 to scan codes; MenuCore indexes Ord(ch) - Ord('1') }
-  keypadScan: array[0..8] of Byte = (
-    79, 80, 81, 75, 32, 77, 71, 72, 73);
   { Cloud directions, spell names and spell table }
   { direction indices: center, E, SE, S }
   cloudDir: array[1..4] of Byte = (

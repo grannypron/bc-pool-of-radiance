@@ -116,6 +116,10 @@ end;
   option's hotkey, as Curse does; without it, or when the menu has no options, Enter returns #13. }
 function HorizontalMenu(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate, takeOption: Boolean;
                         var ext: Boolean): Char;
+const
+  { keypad digits 1..9 to scan codes; MenuCore indexes Ord(ch) - Ord('1') }
+  keypadScan: array[0..8] of Byte = (
+    79, 80, 81, 75, 32, 77, 71, 72, 73);
 var
   frameTick: LongInt;
   tick30: LongInt;
@@ -292,7 +296,7 @@ begin
                   { keypad-'*' scan code, not ASCII '7' }
                   ch := #55
                 else
-                  ch := Char(GameDefs.keypadScan[Ord(ch) - Ord('1')]);
+                  ch := Char(keypadScan[Ord(ch) - Ord('1')]);
                 ext := True;
                 done := True;
               end;
