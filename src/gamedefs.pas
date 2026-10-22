@@ -63,57 +63,6 @@ const
   { DisplayMapView }
   { BuildWildernessMap }
   { LoadAnimation }
-  { Sprite color remaps used when LoadAnimation's transp argument is odd (not under CGA). }
-  animRemapFrom: Types.TColorTab = (
-    Black,
-    Blue,
-    Green,
-    Cyan,
-    Red,
-    Magenta,
-    Brown,
-    LightGray,
-    DarkGray,
-    LightBlue,
-    LightGreen,
-    LightCyan,
-    LightRed,
-    LightMagenta,
-    Yellow,
-    White);
-  animRemapTo: Types.TColorTab = (
-    { Black -> Black }
-    Black,
-    { Blue -> Blue }
-    Blue,
-    { Green -> Green }
-    Green,
-    { Cyan -> Cyan }
-    Cyan,
-    { Red -> Red }
-    Red,
-    { Magenta -> Magenta }
-    Magenta,
-    { Brown -> Brown }
-    Brown,
-    { LightGray -> LightGray }
-    LightGray,
-    { DarkGray -> DarkGray }
-    DarkGray,
-    { LightBlue -> LightBlue }
-    LightBlue,
-    { LightGreen -> LightGreen }
-    LightGreen,
-    { LightCyan -> LightCyan }
-    LightCyan,
-    { LightRed -> LightRed }
-    LightRed,
-    { LightMagenta -> Black }
-    Black,
-    { Yellow -> Yellow }
-    Yellow,
-    { White -> White }
-    White);
   { Dungeon view geometry }
   viewSlotGeom: Types.TViewSlotGeom = (
     { First cell in a 156-cell WALLDEF slice }
@@ -532,9 +481,6 @@ const
     24, 26, 33, 35, 37,  9, 31,
     32, 34,  5,  6, 13, 25, 30
   );
-  { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
-  DISK3_HEADS = 21;
-  DISK3_BODIES = 16;
   { Menu key table }
   { keypad digits 1..9 to scan codes; MenuCore indexes Ord(ch) - Ord('1') }
   keypadScan: array[0..8] of Byte = (

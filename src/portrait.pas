@@ -22,7 +22,7 @@ function PlayerPortraitsHere: Boolean;
 
 { How many GameDefs.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
   all of them once the merged HEAD.DAX and BODY.DAX are read in place of its own, otherwise the ones HEAD3.DAX and
-  BODY3.DAX hold (GameDefs.DISK3_HEADS and DISK3_BODIES). }
+  BODY3.DAX hold (DISK3_HEADS and DISK3_BODIES). }
 function PlayerPortraitCount(body: Boolean): Byte;
 
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
@@ -69,6 +69,58 @@ end;
   it; a later frame is XORed only over as many bytes as the first frame has. An odd transp remaps LightMagenta to Black
   outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
+const
+  { Sprite color remaps used when LoadAnimation's transp argument is odd (not under CGA). }
+  animRemapFrom: Types.TColorTab = (
+    Black,
+    Blue,
+    Green,
+    Cyan,
+    Red,
+    Magenta,
+    Brown,
+    LightGray,
+    DarkGray,
+    LightBlue,
+    LightGreen,
+    LightCyan,
+    LightRed,
+    LightMagenta,
+    Yellow,
+    White);
+  animRemapTo: Types.TColorTab = (
+    { Black -> Black }
+    Black,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> LightGray }
+    LightGray,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> Black }
+    Black,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
 var
   sz: Word;
   buf: Types.PByteArr;
@@ -176,7 +228,7 @@ begin
           end;
         Blit.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
         if (transp and 1 > 0) and (Blit.ColourCount = 16) then
-          Blit.RemapPic(GameDefs.animRemapFrom, GameDefs.animRemapTo, 0, False, frames[loaded].pic);
+          Blit.RemapPic(animRemapFrom, animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
       end else if f = 1 then
         { the other frames are drawn over, or XORed with, the first }
@@ -238,6 +290,10 @@ begin
 end;
 
 function PlayerPortraitCount(body: Boolean): Byte;
+const
+  { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
+  DISK3_HEADS = 21;
+  DISK3_BODIES = 16;
 begin
   if MergedPortraits then begin
     if body then
@@ -245,9 +301,9 @@ begin
     else
       PlayerPortraitCount := SizeOf(GameDefs.headTbl);
   end else if body then
-    PlayerPortraitCount := GameDefs.DISK3_BODIES
+    PlayerPortraitCount := DISK3_BODIES
   else
-    PlayerPortraitCount := GameDefs.DISK3_HEADS;
+    PlayerPortraitCount := DISK3_HEADS;
 end;
 
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping
