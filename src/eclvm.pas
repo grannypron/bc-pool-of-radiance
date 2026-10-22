@@ -108,7 +108,7 @@ end;
   flags, stop the VM, step past the opcode, free the whole GOSUB return stack and park the message cursor }
 procedure EclExit;
 begin
-  if GameVars.protTextShown <> 0 then begin
+  if EclMenu.protTextShown <> 0 then begin
     Border.DrawWindow(1, 1, 15, 15, 0, White, '');
     if GameVars.zone0^.view3dFlag <> 0 then
       Border.DrawWindow(3, 3, 13, 13, 0, White, '');
@@ -117,9 +117,9 @@ begin
     GameVars.curChar := GameVars.savedChar;
     restoreChar := 0;
   end;
-  FillChar(GameVars.monsterFlags, SizeOf(GameVars.monsterFlags), 0);
+  FillChar(EclMenu.monsterFlags, SizeOf(EclMenu.monsterFlags), 0);
   GameVars.eclGraphics := False;
-  GameVars.protTextShown := 0;
+  EclMenu.protTextShown := 0;
   eclStop := 1;
   Inc(GameVars.eclIp);
   FreeEclStack;
@@ -272,7 +272,7 @@ begin
   if GameVars.zone1^[C_GBVM.MONSTER_DIST_REQ] < GameVars.zone1^[C_GBVM.MONSTER_DIST] then
     GameVars.zone1^[C_GBVM.MONSTER_DIST] := GameVars.zone1^[C_GBVM.MONSTER_DIST_REQ];
   EclMenu.DisplayMonster(monId, monPicId, Byte(GameVars.zone1^[C_GBVM.MONSTER_DIST]),
-                         GameVars.monsterFlags);
+                         EclMenu.monsterFlags);
 end;
 
 { LOAD MONSTER: load monster var 1 with EclMenu.InitCreature and append it to the creature list, then append var 2 - 1
@@ -302,7 +302,7 @@ begin
   { at most 63 monsters, and an icon slot for them }
   if creatureCnt >= MAX_LOADED_MONSTERS then Exit;
   { SSI went on to slot 25, loading a sixth kind over the combat sprites (#724) }
-  if GameVars.gIconAnim > MapTiles.LAST_MONSTER_ICON then Exit;
+  if EclMenu.gIconAnim > MapTiles.LAST_MONSTER_ICON then Exit;
   p := nil;
   q := nil;
   id := EclVars.GetEclVar(1);
@@ -314,11 +314,11 @@ begin
   if count = 0 then count := 1;
   picId := EclVars.GetEclVar(3);
   nm := 'CPIC';
-  MapTiles.LoadIconAnim(nm, picId, GameVars.gIconAnim);
+  MapTiles.LoadIconAnim(nm, picId, EclMenu.gIconAnim);
   p := Party.LastCreature;
   p^.nextCharAddr := creature;
   p := p^.nextCharAddr;
-  p^.orderNumber := GameVars.gIconAnim;
+  p^.orderNumber := EclMenu.gIconAnim;
   p^.nextCharAddr := nil;
   Inc(creatureCnt);
   Inc(i);
@@ -327,7 +327,7 @@ begin
     p^.nextCharAddr := q;
     p := p^.nextCharAddr;
     p^ := tmpl;
-    p^.orderNumber := GameVars.gIconAnim;
+    p^.orderNumber := EclMenu.gIconAnim;
     p^.nextCharAddr := nil;
     p^.effectsAddr := nil;
     p^.itemsAddr := nil;
@@ -344,7 +344,7 @@ begin
     end;
     ef := effHead;
   end;
-  Inc(GameVars.gIconAnim);
+  Inc(EclMenu.gIconAnim);
   monstersOn := 1;
   GameVars.curChar := savedCur;
 end;
@@ -355,7 +355,7 @@ begin
   if GameVars.zone1^[C_GBVM.MONSTER_DIST] > 0 then begin
     Dec(GameVars.zone1^[C_GBVM.MONSTER_DIST]);
     EclMenu.DisplayMonster(monId, monPicId, Byte(GameVars.zone1^[C_GBVM.MONSTER_DIST]),
-                           GameVars.monsterFlags);
+                           EclMenu.monsterFlags);
   end;
   Inc(GameVars.eclIp);
 end;
@@ -371,7 +371,7 @@ begin
   if (GameVars.zone0^.view3dFlag = 0) and (picId <> 255) then
     Border.DrawWindow(3, 3, 13, 13, 0, White, '');
   if picId <> 255 then begin
-    GameVars.monsterFlags[1] := True;
+    EclMenu.monsterFlags[1] := True;
     GameVars.eclGraphics := True;
     if GameVars.zone1^[C_GBVM.PIC_LOADING] = 255 then begin
       Portrait.LoadAnimation('PIC', picId, 0, GameVars.animData);
@@ -384,10 +384,10 @@ begin
       MapView.DisplayMapView;
       GameVars.eclGraphics := False;
       GameVars.sprShown := False;
-      GameVars.picDrawn := True;
+      EclMenu.picDrawn := True;
     end;
-    GameVars.monsterFlags[0] := False;
-    GameVars.monsterFlags[1] := False;
+    EclMenu.monsterFlags[0] := False;
+    EclMenu.monsterFlags[1] := False;
   end;
 end;
 
@@ -459,14 +459,14 @@ var
   v: array[1..4] of Word;
   i: Byte;
 begin
-  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
+  FillChar(EclMenu.cmpFlags, SizeOf(EclMenu.cmpFlags), 0);
   EclVars.LoadEclVars(4);
   for i := 1 to 4 do
     v[i] := EclVars.GetEclVar(i);
   if (v[1] = v[2]) and (v[3] = v[4]) then
-    GameVars.cmpFlags[0] := True
+    EclMenu.cmpFlags[0] := True
   else
-    GameVars.cmpFlags[1] := True;
+    EclMenu.cmpFlags[1] := True;
 end;
 
 { IF: skip the next command unless the comparison flag for this opcode is set }
@@ -474,12 +474,12 @@ procedure EclIf;
 begin
   Inc(GameVars.eclIp);
   case GameVars.curOpcode of
-    C_ECL.IF_EQ: if not GameVars.cmpFlags[0] then EclVars.SkipEclCmd;
-    C_ECL.IF_NE: if not GameVars.cmpFlags[1] then EclVars.SkipEclCmd;
-    C_ECL.IF_LT: if not GameVars.cmpFlags[2] then EclVars.SkipEclCmd;
-    C_ECL.IF_GT: if not GameVars.cmpFlags[3] then EclVars.SkipEclCmd;
-    C_ECL.IF_LE: if not GameVars.cmpFlags[4] then EclVars.SkipEclCmd;
-    C_ECL.IF_GE: if not GameVars.cmpFlags[5] then EclVars.SkipEclCmd;
+    C_ECL.IF_EQ: if not EclMenu.cmpFlags[0] then EclVars.SkipEclCmd;
+    C_ECL.IF_NE: if not EclMenu.cmpFlags[1] then EclVars.SkipEclCmd;
+    C_ECL.IF_LT: if not EclMenu.cmpFlags[2] then EclVars.SkipEclCmd;
+    C_ECL.IF_GT: if not EclMenu.cmpFlags[3] then EclVars.SkipEclCmd;
+    C_ECL.IF_LE: if not EclMenu.cmpFlags[4] then EclVars.SkipEclCmd;
+    C_ECL.IF_GE: if not EclMenu.cmpFlags[5] then EclVars.SkipEclCmd;
   end;
 end;
 
@@ -698,7 +698,7 @@ begin
     hlCol := White;
     mCol := LightGreen;
   end;
-  anim := GameVars.eclGraphics and GameVars.picDrawn;
+  anim := GameVars.eclGraphics and EclMenu.picDrawn;
   for i := 1 to count - 1 do
     menu := menu + '~' + GameVars.gbStrings^[i] + ' ';
   menu := menu + '~' + GameVars.gbStrings^[count];
@@ -713,7 +713,7 @@ begin
   Inc(GameVars.eclIp);
   creatureCnt := 0;
   monstersOn := 0;
-  GameVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
+  EclMenu.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   CharHlp.ClearTreasure;
 end;
 
@@ -931,7 +931,7 @@ begin
   else
     GameVars.ifcState := C_IFC.OUTDOORS;
   GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
-  FillChar(GameVars.monsterFlags, SizeOf(GameVars.monsterFlags), 0);
+  FillChar(EclMenu.monsterFlags, SizeOf(EclMenu.monsterFlags), 0);
   GameVars.eclGraphics := False;
   CharDisp.DisplayNoncombatInterface;
 end;
@@ -1126,7 +1126,7 @@ var
     if GameVars.zone1^[C_GBVM.MONSTER_DIST] <> 0 then begin
       Dec(GameVars.zone1^[C_GBVM.MONSTER_DIST]);
       EclMenu.DisplayMonster(monId, monPicId, Byte(GameVars.zone1^[C_GBVM.MONSTER_DIST]),
-                             GameVars.monsterFlags);
+                             EclMenu.monsterFlags);
     end else
       TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
     waited := True;
@@ -1140,7 +1140,7 @@ var
     else begin
       Dec(GameVars.zone1^[C_GBVM.MONSTER_DIST]);
       EclMenu.DisplayMonster(monId, monPicId, Byte(GameVars.zone1^[C_GBVM.MONSTER_DIST]),
-                             GameVars.monsterFlags);
+                             EclMenu.monsterFlags);
       waited := True;
     end;
   end;
@@ -1175,9 +1175,9 @@ begin
   if GameVars.zone1^[C_GBVM.MONSTER_DIST_REQ] < GameVars.zone1^[C_GBVM.MONSTER_DIST] then
     GameVars.zone1^[C_GBVM.MONSTER_DIST] := GameVars.zone1^[C_GBVM.MONSTER_DIST_REQ];
   EclMenu.DisplayMonster(monId, monPicId, Byte(GameVars.zone1^[C_GBVM.MONSTER_DIST]),
-                         GameVars.monsterFlags);
+                         EclMenu.monsterFlags);
   repeat
-    anim := GameVars.eclGraphics and GameVars.picDrawn;
+    anim := GameVars.eclGraphics and EclMenu.picDrawn;
     clearW := True;
     waited := False;
     GameVars.curCol := C_MSG.TEXT_LEFT;
@@ -1286,15 +1286,15 @@ begin
   EclVars.LoadEclVars(1);
   found := False;
   itemType := EclVars.GetEclVar(1);
-  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
-  GameVars.cmpFlags[1] := True;
+  FillChar(EclMenu.cmpFlags, SizeOf(EclMenu.cmpFlags), 0);
+  EclMenu.cmpFlags[1] := True;
   p := GameVars.creatureList;
   while (p <> nil) and (not found) do begin
     item := p^.itemsAddr;
     while (item <> nil) and (not found) do begin
       if itemType = item^.itemType then begin
-        GameVars.cmpFlags[0] := True;
-        GameVars.cmpFlags[1] := False;
+        EclMenu.cmpFlags[0] := True;
+        EclMenu.cmpFlags[1] := False;
         found := True;
       end;
       item := item^.next;
@@ -1648,7 +1648,7 @@ var
   c: Byte;
   done: Boolean;
 begin
-  FillChar(GameVars.monsterFlags, SizeOf(GameVars.monsterFlags), 0);
+  FillChar(EclMenu.monsterFlags, SizeOf(EclMenu.monsterFlags), 0);
   GameVars.eclGraphics := False;
   EclVars.LoadEclVars(1);
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
@@ -1657,7 +1657,7 @@ begin
   if (GameVars.ecl3dClearFlag <> 0) and (GameVars.curRow > 13) then begin
     GameVars.curRow := 5;
     GameVars.curCol := 2;
-    GameVars.protTextShown := 1;
+    EclMenu.protTextShown := 1;
   end;
   GameVars.protNewLine := 1;
   repeat
@@ -1870,7 +1870,7 @@ begin
         if (GameVars.gMapX <> GameVars.zone0^.previousX) or (GameVars.gMapY <> GameVars.zone0^.previousY) then
           SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
         GameVars.eclGraphics := False;
-        GameVars.picDrawn := True;
+        EclMenu.picDrawn := True;
         EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
         if newEclFlag <> 0 then
           EclVm.NewEclDone;

@@ -312,12 +312,8 @@ var
   eclStackTopPtr: Types.PEclRet;
   { Previous ECL return-stack node. }
   eclStackSecondPtr: Types.PEclRet;
-  { eq, ne, lt, gt, le, ge; cleared together by FillChar }
-  cmpFlags: array[0..5] of Boolean;
   { Current ECL opcode }
   curOpcode: Byte;
-  { Current icon animation slot. }
-  gIconAnim: Byte;
   { ECL variables and strings }
   { Decoded ECL variable types. }
   gbvmType: array[1..64] of Byte;
@@ -330,8 +326,6 @@ var
   { Script string buffers, on the heap; GameInit2 allocates and clears them. }
   gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }
-  { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
-  monsterFlags: Types.TMonFlags;
   { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
   { With dumpCr6B00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to
@@ -353,11 +347,6 @@ var
   protNewLine: Byte;
   { ECL currently displaying graphics flag }
   eclGraphics: Boolean;
-  { picture-drawn flag: gates ECL animation }
-  picDrawn: Boolean;
-  { Set when EclProtection moves its text into the 3D box (after a CLEAR BOX); EclExit then redraws the borders and
-    clears it }
-  protTextShown: Byte;
   { ECL displaying monster sprite flag }
   sprShown: Boolean;
   { 0 when an ECL script has written a message to the bottom text window; Explore.MapMainMenu clears that window on its

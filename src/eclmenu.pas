@@ -7,6 +7,19 @@ interface
 
 uses Types;
 
+var
+  { eq, ne, lt, gt, le, ge; cleared together by FillChar }
+  cmpFlags: array[0..5] of Boolean;
+  { Current icon animation slot. }
+  gIconAnim: Byte;
+  { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
+  monsterFlags: Types.TMonFlags;
+  { picture-drawn flag: gates ECL animation }
+  picDrawn: Boolean;
+  { Set when EclProtection moves its text into the 3D box (after a CLEAR BOX); EclExit then redraws the borders and
+    clears it }
+  protTextShown: Byte;
+
 { Reset ECL state, read the five script entry addresses from the header at $9900 and, unless a saved game was just
   loaded, zero GBVM $4A00..$4A1F and $6E79..$6E82 }
 procedure EclInit;
@@ -94,19 +107,19 @@ var
   i: Word;
 begin
   GameVars.eclGraphics := False;
-  GameVars.protTextShown := 0;
+  protTextShown := 0;
   GameVars.dumpCr6C00 := False;
   GameVars.dumpCr6B00 := False;
   GameVars.wallColorSel := 65;
   GameVars.ceilFloorColorSel := 9;
   GameVars.picRegionW := True;
-  FillChar(GameVars.monsterFlags, SizeOf(GameVars.monsterFlags), 0);
-  GameVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
+  FillChar(monsterFlags, SizeOf(monsterFlags), 0);
+  gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   GameVars.eclIp := $9900;
   GameVars.breathAim := False;
   GameVars.eclStackTopPtr := nil;
   GameVars.eclStackSecondPtr := nil;
-  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
+  FillChar(cmpFlags, SizeOf(cmpFlags), 0);
   { No portrait head (255), so DisplayMonster shows the PIC close-up }
   GameVars.zone1^[C_GBVM.PIC_LOADING] := 255;
   { rest interruption }
@@ -235,7 +248,7 @@ end;
 
 procedure DisplayPortrait(headId, bodyId: Byte);
 begin
-  GameVars.picDrawn := False;
+  picDrawn := False;
   CharDisp.currentPortraitHead := headId;
   CharDisp.currentPortraitHead2 := bodyId;
   Portrait.LoadPortraitBufs(headId, bodyId);
@@ -280,7 +293,7 @@ begin
   end else begin
     EclMenu.DisplayPortrait(Byte(GameVars.zone1^[C_GBVM.PIC_LOADING]), picId);
     flags[1] := True;
-    GameVars.picDrawn := False;
+    picDrawn := False;
   end;
 end;
 
@@ -334,24 +347,24 @@ end;
 { Set each of the six comparison flags: equal, not equal, less, greater, less or equal, greater or equal }
 procedure EclCompareStr(s1, s2: String);
 begin
-  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
-  if s1 = s2 then GameVars.cmpFlags[0] := True;
-  if s1 <> s2 then GameVars.cmpFlags[1] := True;
-  if s1 < s2 then GameVars.cmpFlags[2] := True;
-  if s1 > s2 then GameVars.cmpFlags[3] := True;
-  if s1 <= s2 then GameVars.cmpFlags[4] := True;
-  if s1 >= s2 then GameVars.cmpFlags[5] := True;
+  FillChar(cmpFlags, SizeOf(cmpFlags), 0);
+  if s1 = s2 then cmpFlags[0] := True;
+  if s1 <> s2 then cmpFlags[1] := True;
+  if s1 < s2 then cmpFlags[2] := True;
+  if s1 > s2 then cmpFlags[3] := True;
+  if s1 <= s2 then cmpFlags[4] := True;
+  if s1 >= s2 then cmpFlags[5] := True;
 end;
 
 procedure EclCompareInt(v1, v2: Word);
 begin
-  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
-  if v1 = v2 then GameVars.cmpFlags[0] := True;
-  if v1 <> v2 then GameVars.cmpFlags[1] := True;
-  if v1 < v2 then GameVars.cmpFlags[2] := True;
-  if v1 > v2 then GameVars.cmpFlags[3] := True;
-  if v1 <= v2 then GameVars.cmpFlags[4] := True;
-  if v1 >= v2 then GameVars.cmpFlags[5] := True;
+  FillChar(cmpFlags, SizeOf(cmpFlags), 0);
+  if v1 = v2 then cmpFlags[0] := True;
+  if v1 <> v2 then cmpFlags[1] := True;
+  if v1 < v2 then cmpFlags[2] := True;
+  if v1 > v2 then cmpFlags[3] := True;
+  if v1 <= v2 then cmpFlags[4] := True;
+  if v1 >= v2 then cmpFlags[5] := True;
 end;
 
 { Push IP on the ECL return stack, then jump to the address word in variable varIdx }
@@ -406,7 +419,7 @@ begin
   if mirror = 0 then Exit;
   { after a fifth monster kind the clone shares the last monster slot; SSI loaded it over the first combat sprite
     (#725) }
-  slot := GameVars.gIconAnim;
+  slot := gIconAnim;
   if slot > MapTiles.LAST_MONSTER_ICON then
     slot := MapTiles.LAST_MONSTER_ICON;
   MapTiles.LoadIconAnim('CPIC', 11, slot);
@@ -658,4 +671,11 @@ begin
   SaveLoad.LoadCharIconAnim(True);
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  FillChar(cmpFlags, SizeOf(cmpFlags), 0);
+  gIconAnim := 0;
+  FillChar(monsterFlags, SizeOf(monsterFlags), 0);
+  picDrawn := False;
+  protTextShown := 0;
 end.
