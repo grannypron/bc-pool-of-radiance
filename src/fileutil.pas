@@ -93,14 +93,23 @@ function WriteToSet(var s: TFileSet; name: TSetName; var rec; size: Word): Boole
 { Give s up: every temporary copy it holds is erased, and the old files are left as they were. }
 procedure DropSet(var s: TFileSet);
 
-{ Put s in place, all or none: each old file of s is renamed to its backup (BackupName), the first file first, then
-  each new copy renamed into place, the first file last, and only then are the backups erased. A rename that fails
-  undoes it all: the new files in place are erased, the backups renamed back and the copies erased, so the old files are
-  as they were. A backup left by a commit the game was ended in is erased first; one that cannot be fails the commit
-  before anything is moved. With the main file first (a save's .dat), a commit ended part way leaves a slot without
-  it, which no menu offers, rather than a mix of old and new files. True when the new files are in place (a backup that
-  could not then be erased is erased by the next commit). }
+{ Put s in place, all or none: each old file of s is renamed to its backup (BackupName), the first file first, and a
+  new file that had no old one gets an empty backup as a mark of that (none of the game's files is empty); then each new
+  copy is renamed into place, the first file last, and only then are the backups erased, the first file's first. A
+  rename that fails undoes it all: the new files in place are erased, the backups renamed back and the copies erased,
+  so the old files are as they were. A commit the game was ended in is settled first, as RecoverSet does: undone while
+  the first file's backup is there, else finished (its backups erased); one that cannot be fails the commit before
+  anything is moved. True when the new files are in place (a backup that could not then be erased goes with the next
+  commit). }
 function CommitSet(var s: TFileSet): Boolean;
+
+{ Undo a commit of s's files the game was ended in (a power cut, a crash) before it was done: while the backup of s's
+  first file is there, each backup is renamed back in place of its file (an empty one, the mark of a file that had none,
+  erases the file) and every temporary copy of s's files is erased, so the old files are exactly as they were. A
+  commit ended after the first file's backup was erased had put every new file in place; its other backups go with the
+  next commit. Only s's names are used: whether each is put or erased does not matter. True when nothing is left to
+  undo. }
+function RecoverSet(var s: TFileSet): Boolean;
 
 { name's backup while a set is committed: name with its last character '%' (savgamA.dat's is savgamA.da%). }
 function BackupName(name: TPathName): TPathName;
@@ -316,58 +325,106 @@ begin
   EraseBackup := FileUtil.DeleteChecked(name);
 end;
 
+{ True when backup, a backup, is an empty file: the mark CommitSet leaves for a file that had no old one. }
+function IsMark(backup: TPathName): Boolean;
+var
+  f: file;
+  ioRes: Integer;
+begin
+  IsMark := False;
+  if FileUtil.OpenReadOnly(f, backup) then begin
+    IsMark := (FileSize(f) = 0) and (IOResult = 0);
+    Close(f);
+    ioRes := IOResult;
+  end;
+end;
+
+{ Make name's backup the mark that name had no old file, an empty file: True when it was made. }
+function MakeMark(name: TPathName): Boolean;
+var
+  f: file;
+  ioRes: Integer;
+begin
+  ioRes := IOResult;
+  Assign(f, FileUtil.BackupName(name));
+  Rewrite(f, 1);
+  ioRes := IOResult;
+  if ioRes = 0 then begin
+    Close(f);
+    ioRes := IOResult;
+  end;
+  MakeMark := ioRes = 0;
+end;
+
+{ Settle the backups of s's files: back, each put back in place of its file (a mark erases the file), else each
+  erased; with copies, every temporary copy of s's files is erased too. True when no backup is left. }
+function Settle(var s: TFileSet; back, copies: Boolean): Boolean;
+var
+  i: Byte;
+  ok: Boolean;
+  name: TPathName;
+begin
+  ok := True;
+  for i := 1 to s.count do begin
+    name := s.dir + s.names[i];
+    if FileUtil.Exists(FileUtil.BackupName(name)) then
+      if not back then
+        ok := FileUtil.EraseBackup(name) and ok
+      else if FileUtil.IsMark(FileUtil.BackupName(name)) then
+        ok := FileUtil.DeleteChecked(name) and FileUtil.EraseBackup(name) and ok
+      else
+        ok := FileUtil.DeleteChecked(name) and FileUtil.RenameChecked(FileUtil.BackupName(name), name) and ok;
+    if copies then
+      FileUtil.DeleteFile(FileUtil.TempName(name));
+  end;
+  Settle := ok;
+end;
+
+{ True when the backup of s's first file is there: a commit of s was ended before it was done. }
+function Unfinished(var s: TFileSet): Boolean;
+begin
+  Unfinished := (s.count > 0) and FileUtil.Exists(FileUtil.BackupName(s.dir + s.names[1]));
+end;
+
+function RecoverSet(var s: TFileSet): Boolean;
+begin
+  RecoverSet := True;
+  if FileUtil.Unfinished(s) then
+    RecoverSet := FileUtil.Settle(s, True, True);
+end;
+
 function CommitSet(var s: TFileSet): Boolean;
 var
   i: Byte;
   ok: Boolean;
-  { a backup's erase or rename back, which nothing more can be done about }
+  name: TPathName;
+  { the backups' settling once the commit is done or undone, which nothing more can be done about }
   done: Boolean;
-  ioRes: Integer;
-  { file i's old file was renamed to its backup; its new copy was renamed into place }
-  moved: array[1..SET_FILES] of Boolean;
-  placed: array[1..SET_FILES] of Boolean;
 begin
-  FillChar(moved, SizeOf(moved), 0);
-  FillChar(placed, SizeOf(placed), 0);
-  ok := not s.overflow;
-  i := 0;
-  while ok and (i < s.count) do begin
-    Inc(i);
-    ok := FileUtil.EraseBackup(s.dir + s.names[i]);
-  end;
+  { a commit ended before: its temporary copies are this one's now }
+  ok := not s.overflow and FileUtil.Settle(s, FileUtil.Unfinished(s), False);
   { the old files aside, the first first }
   i := 0;
   while ok and (i < s.count) do begin
     Inc(i);
-    if FileUtil.Exists(s.dir + s.names[i]) then begin
-      ok := FileUtil.RenameChecked(s.dir + s.names[i], FileUtil.BackupName(s.dir + s.names[i]));
-      moved[i] := ok;
-    end;
+    name := s.dir + s.names[i];
+    if FileUtil.Exists(name) then
+      ok := FileUtil.RenameChecked(name, FileUtil.BackupName(name))
+    else if s.put[i] then
+      ok := FileUtil.MakeMark(name);
   end;
   { the new files in, the first last }
   i := s.count + 1;
   while ok and (i > 1) do begin
     Dec(i);
-    if s.put[i] then begin
+    if s.put[i] then
       ok := FileUtil.RenameChecked(FileUtil.TempName(s.dir + s.names[i]), s.dir + s.names[i]);
-      placed[i] := ok;
-    end;
   end;
-  for i := 1 to s.count do
-    if ok then begin
-      { in place: the old files go; a backup that cannot be erased now is erased by the next commit }
-      if moved[i] then
-        done := FileUtil.EraseBackup(s.dir + s.names[i]);
-    end else begin
-      { undone: the new files go and the old ones come back }
-      if placed[i] then
-        FileUtil.DeleteFile(s.dir + s.names[i]);
-      if moved[i] then
-        done := FileUtil.RenameChecked(FileUtil.BackupName(s.dir + s.names[i]), s.dir + s.names[i]);
-    end;
-  ioRes := IOResult;
+  { in place: the backups go, the first file's first, so a commit ended from here on is finished, not undone; undone:
+    the old files come back and the copies go }
+  done := FileUtil.Settle(s, not ok, not ok);
   if not ok then
-    FileUtil.DropSet(s);
+    s.count := 0;
   CommitSet := ok;
 end;
 

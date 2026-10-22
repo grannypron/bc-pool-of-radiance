@@ -37,16 +37,16 @@ function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
   CHARLIST.TXT: a character dropped forever, whose files loading or saving a game no longer erases (#754). }
 procedure EraseChar(name: String);
 
-{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else prompt
-  with the insert-game-disk message (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The list and
-  combat pointers are cleared, then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping
-  at a read error or a trailing part record, and the usual spells are read from the .mem file (none when it is missing
-  or not a usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file
-  holds less than a whole record or cannot be read, or is not there and Escape at the save disk prompt gave up
-  (askDisk); the caller then frees the record unused. While the Quick Ends With Fight setting is on (GDVars.quickEnds),
-  a party member leaves Quick (quickfight 0), so a loaded game or an added character starts under manual control; NPCs
-  and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the
-  saved quickfight stays. }
+{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk (a .cha
+  save the game was ended in is undone first, FileUtil.RecoverSet), else prompt with the insert-game-disk message
+  (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared, then
+  the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a trailing
+  part record, and the usual spells are read from the .mem file (none when it is missing or not a usual-spells file for
+  this character). False, with nothing read after the record, when the .sav/.cha file holds less than a whole record or
+  cannot be read, or is not there and Escape at the save disk prompt gave up (askDisk); the caller then frees the
+  record unused. While the Quick Ends With Fight setting is on (GDVars.quickEnds), a party member leaves Quick
+  (quickfight 0), so a loaded game or an added character starts under manual control; NPCs and animated creatures keep
+  quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
@@ -80,7 +80,8 @@ const
   saved. }
 procedure QuickSave;
 
-{ True when QUICK_SLOT holds a save file big enough to load. }
+{ True when QUICK_SLOT holds a save file big enough to load, once a save into it that the game was ended in is undone
+  (SaveMenu.RecoverSlot). }
 function QuickLoadable: Boolean;
 
 { Quick load, between two runs of EclVm.GameLoop: free the party (records, items, effects, usual spells and icon
@@ -307,14 +308,15 @@ begin
   WriteCharFiles := ok and UsualSpl.WriteUsualSpells(s, creature, base) and Stats.WriteChar(s, creature, base);
 end;
 
-{ Add to save s, to be erased, the files WriteCharFiles writes for a character: <base><ext>, .itm, .spc, .mem, .sts. }
-procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext: Types.TStr8);
+{ Undo a single-character save of the character called name that the game was ended in before it was done
+  (FileUtil.RecoverSet): True when nothing was left to undo. }
+function RecoverChar(name: String): Boolean;
+var
+  s: FileUtil.TFileSet;
 begin
-  FileUtil.AddToSet(s, base + ext, False);
-  FileUtil.AddToSet(s, base + '.itm', False);
-  FileUtil.AddToSet(s, base + '.spc', False);
-  FileUtil.AddToSet(s, base + '.mem', False);
-  FileUtil.AddToSet(s, base + '.sts', False);
+  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  SaveMenu.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
+  RecoverChar := FileUtil.RecoverSet(s);
 end;
 
 { Put save s in place (FileUtil.CommitSet) when ok, its files all written whole; else give it up (FileUtil.DropSet),
@@ -380,7 +382,7 @@ var
   erased: Boolean;
 begin
   FileUtil.NewSet(s, GDVars.dsSaveDirectory);
-  SaveLoad.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
+  SaveMenu.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
   erased := FileUtil.CommitSet(s);
   SaveLoad.LoadCharlist(list);
   if list <> nil then begin
@@ -407,6 +409,9 @@ var
   effectDisk: DiskRec.TEffectDisk;
 begin
   if askDisk then begin
+    { a single-character save the game was ended in gives the character back its old files }
+    if not savedGame then
+      found := SaveLoad.RecoverChar(name);
     { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for the
       extension }
     name := SaveLoad.CharFileBase(name);
@@ -547,6 +552,8 @@ var
   nChars: Byte;
   found: Boolean;
 begin
+  { a save the game was ended in gives the slot back its old one }
+  found := SaveMenu.RecoverSlot(letter);
   found := DaxIo.OpenWithRetry(SaveMenu.SlotFile(letter, '.dat'), SaveMenu.SaveDiskMsg, True, False, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
@@ -650,8 +657,10 @@ function QuickLoadable: Boolean;
 var
   f: file;
   ioRes: Integer;
+  recovered: Boolean;
 begin
   QuickLoadable := False;
+  recovered := SaveMenu.RecoverSlot(QUICK_SLOT);
   if FileUtil.OpenReadOnly(f, SaveMenu.SlotFile(QUICK_SLOT, '.dat')) then begin
     QuickLoadable := (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
     Close(f);
@@ -674,15 +683,6 @@ begin
   { as CharGen.MainMenu does after a load: GameLoop keeps the loaded script }
   GDVars.loadedSave := 1;
   GDVars.locTypePrev := C_Area.LOC_3D_MAP;
-end;
-
-{ CHRDAT<letter><n>: the base name of the n-th party member's files in saved game letter. }
-function MemberName(letter: Char; n: Byte): Types.TStr8;
-var
-  numStr: String[1];
-begin
-  Str(n, numStr);
-  MemberName := 'CHRDAT' + letter + numStr;
 end;
 
 { Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. Every
@@ -746,7 +746,7 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (count < Types.MAX_PARTY) do begin
     Inc(count);
-    names[count] := SaveLoad.MemberName(letter, count);
+    names[count] := SaveMenu.MemberName(letter, count);
     p := p^.nextCharAddr;
   end;
   FileUtil.WriteChecked(f, count, SizeOf(count), ok);
@@ -760,10 +760,10 @@ begin
   p := GDVars.creatureList;
   for n := 1 to Types.MAX_PARTY do
     if n <= count then begin
-      ok := ok and SaveLoad.WriteCharFiles(s, p, SaveLoad.MemberName(letter, n), '.sav');
+      ok := ok and SaveLoad.WriteCharFiles(s, p, SaveMenu.MemberName(letter, n), '.sav');
       p := p^.nextCharAddr;
     end else
-      SaveLoad.RemoveCharFiles(s, SaveLoad.MemberName(letter, n), '.sav');
+      SaveMenu.RemoveCharFiles(s, SaveMenu.MemberName(letter, n), '.sav');
   ok := ok and SaveMenu.WriteSlotInfo(s, letter, desc, area) and
         Stats.WriteGame(s, SaveMenu.SlotName(letter, '.sts')) and
         Explored.WriteSlot(s, SaveMenu.SlotName(letter, '.map')) and

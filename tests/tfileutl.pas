@@ -1,6 +1,6 @@
 { Tests for FileUtil: a record written and read back, the size check, a read-only file, erasing (DeleteChecked
   saying whether the file is gone), the temporary copy put in place only when whole, a set of files put in place all or
-  none (CommitSet), and DOS device names. }
+  none (CommitSet), a commit ended part way undone or finished (RecoverSet), and DOS device names. }
 {$I COMPILER.INC}
 program TFileUtl;
 
@@ -61,8 +61,80 @@ end;
 function NoneLeft: Boolean;
 begin
   NoneLeft := not FileUtil.Exists(FileUtil.TempName(FA)) and not FileUtil.Exists(FileUtil.TempName(FB)) and
-              not FileUtil.Exists(FileUtil.TempName(FC)) and not FileUtil.Exists(FileUtil.BackupName(FA)) and
-              not FileUtil.Exists(FileUtil.BackupName(FB)) and not FileUtil.Exists(FileUtil.BackupName(FC));
+              not FileUtil.Exists(FileUtil.TempName(FC)) and not FileUtil.Exists(FileUtil.TempName(FD)) and
+              not FileUtil.Exists(FileUtil.BackupName(FA)) and not FileUtil.Exists(FileUtil.BackupName(FB)) and
+              not FileUtil.Exists(FileUtil.BackupName(FC)) and not FileUtil.Exists(FileUtil.BackupName(FD));
+end;
+
+{ Rename file from to name to, as a commit does. }
+procedure MoveFile(from, name: FileUtil.TPathName);
+var
+  g: file;
+  res: Integer;
+begin
+  Assign(g, from);
+  Rename(g, name);
+  res := IOResult;
+end;
+
+{ A, B, C and D's names, as a slot's reader knows them (each to erase: RecoverSet does not look). }
+procedure NamesSet(var names: FileUtil.TFileSet);
+begin
+  FileUtil.NewSet(names, '');
+  FileUtil.AddToSet(names, FA, False);
+  FileUtil.AddToSet(names, FB, False);
+  FileUtil.AddToSet(names, FC, False);
+  FileUtil.AddToSet(names, FD, False);
+end;
+
+{ A set putting a new A, holding a, in place, and erasing B, C and D. }
+procedure NewASet(var t: FileUtil.TFileSet; a: Word);
+begin
+  FileUtil.NewSet(t, '');
+  r.a := a;
+  TestKit.Check(FileUtil.WriteToSet(t, FA, r, SizeOf(r)), 'the new A''s copy writes');
+  FileUtil.AddToSet(t, FB, False);
+  FileUtil.AddToSet(t, FC, False);
+  FileUtil.AddToSet(t, FD, False);
+end;
+
+{ The old files A 1, B 2 and C 3, D none, and a commit of A 11, B 12 and D 14, C erased, ended at stage: 1 A moved
+  aside; 2 every old file moved aside, and D's mark made; 3 D put in place; 4 B too, all but A; 5 A too, and A's backup
+  erased, the others' not yet. }
+procedure Interrupt(stage: Byte);
+var
+  t: FileUtil.TFileSet;
+  g: file;
+  res: Integer;
+begin
+  FileUtil.DeleteFile(FD);
+  WriteNumber(FA, 1);
+  WriteNumber(FB, 2);
+  WriteNumber(FC, 3);
+  FileUtil.NewSet(t, '');
+  r.a := 11;
+  TestKit.Check(FileUtil.WriteToSet(t, FA, r, SizeOf(r)), 'A''s copy writes');
+  r.a := 12;
+  TestKit.Check(FileUtil.WriteToSet(t, FB, r, SizeOf(r)), 'B''s copy writes');
+  r.a := 14;
+  TestKit.Check(FileUtil.WriteToSet(t, FD, r, SizeOf(r)), 'D''s copy writes');
+  MoveFile(FA, FileUtil.BackupName(FA));
+  if stage >= 2 then begin
+    MoveFile(FB, FileUtil.BackupName(FB));
+    MoveFile(FC, FileUtil.BackupName(FC));
+    Assign(g, FileUtil.BackupName(FD));
+    Rewrite(g, 1);
+    Close(g);
+    res := IOResult;
+  end;
+  if stage >= 3 then
+    MoveFile(FileUtil.TempName(FD), FD);
+  if stage >= 4 then
+    MoveFile(FileUtil.TempName(FB), FB);
+  if stage >= 5 then begin
+    MoveFile(FileUtil.TempName(FA), FA);
+    FileUtil.DeleteFile(FileUtil.BackupName(FA));
+  end;
 end;
 
 begin
@@ -168,8 +240,14 @@ begin
   TestKit.CheckEqualsL(12, NumberIn(FB), 'B, put in place before A failed, is as it was again');
   TestKit.CheckEqualsL(3, NumberIn(FC), 'C, to be erased, is back');
   TestKit.Check(NoneLeft, 'no copy or backup is left');
-  { a backup left by a commit ended part way is erased first }
-  WriteNumber(FileUtil.BackupName(FA), 99);
+  { a commit ended part way is undone before another starts }
+  { A's backup, as a commit ended part way leaves it }
+  Assign(f, FileUtil.BackupName(FA));
+  Rewrite(f, 1);
+  r.a := 99;
+  BlockWrite(f, r, SizeOf(r));
+  Close(f);
+  ioRes := IOResult;
   FileUtil.NewSet(s, '');
   r.a := 41;
   ok := FileUtil.WriteToSet(s, FA, r, SizeOf(r));
@@ -186,23 +264,42 @@ begin
   TestKit.Check(FileUtil.CommitSet(s), 'a set replacing a read-only file is put in place');
   TestKit.CheckEqualsL(51, NumberIn(FA), 'A is the new one');
   TestKit.Check(NoneLeft, 'and the read-only backup is gone');
-  { a backup that cannot be erased (a folder of its name) fails the set before anything is moved }
-  MkDir(FileUtil.BackupName(FB));
-  ioRes := IOResult;
-  FileUtil.NewSet(s, '');
-  r.a := 61;
-  ok := FileUtil.WriteToSet(s, FA, r, SizeOf(r));
-  r.a := 62;
-  ok := FileUtil.WriteToSet(s, FB, r, SizeOf(r));
-  TestKit.Check(not FileUtil.CommitSet(s), 'a set whose old backup cannot be erased is not put in place');
-  TestKit.CheckEqualsL(51, NumberIn(FA), 'A is as it was');
-  TestKit.CheckEqualsL(12, NumberIn(FB), 'B is as it was');
-  RmDir(FileUtil.BackupName(FB));
-  ioRes := IOResult;
-  TestKit.Check(NoneLeft, 'and no copy is left');
   Assign(f, FA);
   SetFAttr(f, 0);
   ioRes := IOResult;
+  { a commit ended at each stage before A, the first file, was put in place: undone, the old files back }
+  for n := 1 to 4 do begin
+    Interrupt(n);
+    NamesSet(s);
+    TestKit.Check(FileUtil.RecoverSet(s), 'a commit ended at stage ' + Chr(Ord('0') + n) + ' is undone');
+    TestKit.CheckEqualsL(1, NumberIn(FA), 'A is the old one');
+    TestKit.CheckEqualsL(2, NumberIn(FB), 'B is the old one');
+    TestKit.CheckEqualsL(3, NumberIn(FC), 'C, to be erased, is back');
+    TestKit.Check(not FileUtil.Exists(FD), 'D, which had no old file, is gone');
+    TestKit.Check(NoneLeft, 'no copy or backup is left');
+  end;
+  { ended once A was in place and its backup erased: the new files are whole, and stay }
+  Interrupt(5);
+  NamesSet(s);
+  TestKit.Check(FileUtil.RecoverSet(s), 'a commit ended after A''s backup was erased needs no undoing');
+  TestKit.CheckEqualsL(11, NumberIn(FA), 'A is the new one');
+  TestKit.CheckEqualsL(12, NumberIn(FB), 'B is the new one');
+  TestKit.Check(not FileUtil.Exists(FC), 'C is erased');
+  TestKit.CheckEqualsL(14, NumberIn(FD), 'D is the new one');
+  { the next commit erases its other backups }
+  NewASet(s, 21);
+  TestKit.Check(FileUtil.CommitSet(s), 'the next commit is put in place');
+  TestKit.CheckEqualsL(21, NumberIn(FA), 'A is its');
+  TestKit.Check(not FileUtil.Exists(FB) and not FileUtil.Exists(FD), 'B and D, erased by it, are gone');
+  TestKit.Check(NoneLeft, 'and the old commit''s backups with them');
+  { a commit ended before A was in place is undone by the next commit, which is then put in place }
+  Interrupt(4);
+  NewASet(s, 31);
+  TestKit.Check(FileUtil.CommitSet(s), 'a commit after one ended part way is put in place');
+  TestKit.CheckEqualsL(31, NumberIn(FA), 'A is its');
+  TestKit.Check(not FileUtil.Exists(FB) and not FileUtil.Exists(FC) and not FileUtil.Exists(FD),
+                'the files it erases are gone');
+  TestKit.Check(NoneLeft, 'no backup is left');
   FileUtil.DeleteFile(FA);
   FileUtil.DeleteFile(FB);
   FileUtil.DeleteFile(FC);

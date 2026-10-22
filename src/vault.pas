@@ -66,11 +66,6 @@ type
 var
   visited: Byte;
 
-{ Slot letter's vault file, vault<x>.dat. }
-function SlotName(letter: Char): FileUtil.TSetName;
-begin
-  SlotName := 'vault' + letter + '.dat';
-end;
 
 const
   { CopyToTemp's buffer, taken from the heap: the stack is not the place for it }
@@ -119,11 +114,11 @@ var
 begin
   ok := True;
   if not FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SESSION_FILE) then
-    FileUtil.AddToSet(s, Vault.SlotName(letter), False)
+    FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False)
   else begin
-    ok := Vault.CopyToTemp(fIn, s.dir + Vault.SlotName(letter));
+    ok := Vault.CopyToTemp(fIn, s.dir + SaveMenu.VaultName(letter));
     if ok then
-      FileUtil.AddToSet(s, Vault.SlotName(letter), True);
+      FileUtil.AddToSet(s, SaveMenu.VaultName(letter), True);
   end;
   AddToSave := ok;
 end;
@@ -134,7 +129,7 @@ var
   ok: Boolean;
 begin
   { the slot's copy becomes the session vault; a slot with none leaves no session vault }
-  if FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + Vault.SlotName(letter)) then
+  if FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SaveMenu.VaultName(letter)) then
     ok := Vault.CopyToTemp(fIn, GDVars.dsSaveDirectory + SESSION_FILE) and
           FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE)
   else
