@@ -1020,8 +1020,9 @@ begin
   end;
 end;
 
-{ Snake Charm: rebuild the target list from GDVars.creatureList: snakes whose hpCur still fits in a pool equal to the
-  caster's hpCur, paid in list order }
+{ Snake Charm: rebuild the target list from GDVars.creatureList: snakes (GDConsts.SNAKE_NAME) whose hpCur still fits in
+  a pool equal to the caster's hpCur, paid in list order. SSI's took charType 14, which the large and huge scorpions
+  share with the giant snake (#802). }
 procedure SnakeCharmHandler;
 var
   pool: Byte;
@@ -1031,8 +1032,7 @@ begin
   GDVars.spellTargetCount := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
-    { charType 14: snake }
-    if p^.charType = 14 then
+    if p^.name = GDConsts.SNAKE_NAME then
       if pool >= p^.hpCur then begin
         pool := pool - p^.hpCur;
         Inc(GDVars.spellTargetCount);
