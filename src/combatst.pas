@@ -13,6 +13,10 @@ uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GameDefs, GameVars, CbtActs, Sav
   MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
+const
+  quadDir: array[0..3] of Byte = (
+     7, 2, 3, 6);
+
 var
   { wildMap cell under party }
   terrainChar: Byte;
@@ -573,7 +577,7 @@ begin
     FillChar(p^.combatAddr^, SizeOf(Types.TCombatRec), 0);
     if count > GameVars.zone1^[C_GBVM.PARTY_SIZE] then
       p^.combatAddr^.notPcNpc := 1;
-    p^.combatAddr^.direction := GameDefs.quadDir[GameVars.gFacing div 2];
+    p^.combatAddr^.direction := quadDir[GameVars.gFacing div 2];
     if p^.hostile = 1 then
       p^.combatAddr^.direction := (p^.combatAddr^.direction + 4) mod 8;
     m := p^.npc and C_NPC.MORALE_MASK;
@@ -625,6 +629,24 @@ end;
   fully-off quad advances to the next ring (up to 3) whose ringDirTbl direction is not a solid wall (always, outdoors),
   re-basing the grid one step that way. Return False when no ring remains. }
 function FindPlacement(team: ShortInt; slot: Byte): Boolean;
+const
+  { Combat placement tables }
+  ringDirTbl: array[0..3, 0..3] of Byte = (
+    ( 8, 4, 6, 2),
+    ( 8, 6, 4, 0),
+    ( 8, 0, 6, 2),
+    ( 8, 2, 0, 4));
+  ringStart: array[0..3, 0..3] of Byte = (
+    ( 0, 0, 2, 6),
+    ( 2, 2, 0, 4),
+    ( 4, 4, 2, 6),
+    ( 6, 6, 4, 0));
+  startQX: array[Boolean, 0..3] of ShortInt = (
+    ( 5, 4, 5, 6),
+    ( 3, 8, 7, 2));
+  startQY: array[Boolean, 0..3] of ShortInt = (
+    ( 3, 2, 2, 3),
+    ( 0, 2, 5, 3));
 var
   placed: Byte;
   firstPass: Byte;
@@ -659,13 +681,13 @@ begin
   baseQX := placeX[team];
   baseQY := placeY[team];
   repeat
-    quad := GameDefs.ringStart[teamDir[team], ring] div 2;
+    quad := ringStart[teamDir[team], ring] div 2;
     case state of
       1: begin
-           stepX := GameDefs.dirDX[GameDefs.quadDir[(quad + 2) mod 4]];
-           stepY := GameDefs.dirDY[GameDefs.quadDir[(quad + 2) mod 4]];
-           legX := GameDefs.startQX[ring > 0, quad] + stepX * legShift;
-           legY := GameDefs.startQY[ring > 0, quad] + stepY * legShift;
+           stepX := GameDefs.dirDX[quadDir[(quad + 2) mod 4]];
+           stepY := GameDefs.dirDY[quadDir[(quad + 2) mod 4]];
+           legX := startQX[ring > 0, quad] + stepX * legShift;
+           legY := startQY[ring > 0, quad] + stepY * legShift;
            qx := legX;
            qy := legY;
            legLen := 1;
@@ -673,16 +695,16 @@ begin
            tries := 1;
          end;
       2: begin
-           stepX := GameDefs.dirDX[GameDefs.quadDir[(quad + 1) mod 4]];
-           stepY := GameDefs.dirDY[GameDefs.quadDir[(quad + 1) mod 4]];
+           stepX := GameDefs.dirDX[quadDir[(quad + 1) mod 4]];
+           stepY := GameDefs.dirDY[quadDir[(quad + 1) mod 4]];
            qx := legX + stepX * legLen;
            qy := legY + stepY * legLen;
            state := 3;
            Inc(tries);
          end;
       3: begin
-           stepX := GameDefs.dirDX[GameDefs.quadDir[(quad + 3) mod 4]];
-           stepY := GameDefs.dirDY[GameDefs.quadDir[(quad + 3) mod 4]];
+           stepX := GameDefs.dirDX[quadDir[(quad + 3) mod 4]];
+           stepY := GameDefs.dirDY[quadDir[(quad + 3) mod 4]];
            qx := legX + stepX * legLen;
            qy := legY + stepY * legLen;
            state := 2;
@@ -704,7 +726,7 @@ begin
           wallY := placeY[team] + GameVars.gMapY;
           open := 0;
           for k := 1 to 3 do begin
-            dir := GameDefs.ringDirTbl[teamDir[team], k];
+            dir := ringDirTbl[teamDir[team], k];
             if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then
               open := 1;
           end;
@@ -722,7 +744,7 @@ begin
         Inc(ring);
         wallX := placeX[team] + GameVars.gMapX;
         wallY := placeY[team] + GameVars.gMapY;
-        dir := GameDefs.ringDirTbl[teamDir[team], ring];
+        dir := ringDirTbl[teamDir[team], ring];
         if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
           baseQX := placeX[team] + GameDefs.dirDX[dir];
           baseQY := placeY[team] + GameDefs.dirDY[dir];
@@ -747,6 +769,14 @@ end;
   members become corpses outside duels; non-party creatures that cannot be placed are removed, unplaced party members
   keep their slot with size 0. Terminate the surviving creature list afterward. }
 procedure PlaceAllCreatures;
+const
+  { [d, quad row]: the free quad-column range lo..hi; lo > hi closes the row }
+  rowBand: array[0..4, 0..5] of Types.TBandRec = (
+    ((lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)),
+    ((lo: 0; hi: 2), (lo: 0; hi: 3), (lo: 1; hi: 4), (lo: 2; hi: 5), (lo: 3; hi: 6), (lo: 4; hi: 7)),
+    ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 1; hi: 0)),
+    ((lo: 3; hi: 6), (lo: 4; hi: 7), (lo: 5; hi: 8), (lo: 6; hi: 9), (lo: 7; hi: 10), (lo: 8; hi: 10)),
+    ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)));
 var
   team: ShortInt;
   x: ShortInt;
@@ -784,7 +814,7 @@ begin
       for y := 0 to 5 do
         { x = quad column qx here }
         for x := 0 to 10 do
-          if (GameDefs.rowBand[d, y].lo > x) or (GameDefs.rowBand[d, y].hi < x) then
+          if (rowBand[d, y].lo > x) or (rowBand[d, y].hi < x) then
             quadFree[team, g, y, x] := 0
           else
             quadFree[team, g, y, x] := 1;

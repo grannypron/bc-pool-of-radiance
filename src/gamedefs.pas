@@ -15,32 +15,6 @@ const
   GAME_VERSION: String[40] = BUILD_VERSION + ' (BC)';
 
 const
-  { Combat placement tables }
-  ringDirTbl: array[0..3, 0..3] of Byte = (
-    ( 8, 4, 6, 2),
-    ( 8, 6, 4, 0),
-    ( 8, 0, 6, 2),
-    ( 8, 2, 0, 4));
-  ringStart: array[0..3, 0..3] of Byte = (
-    ( 0, 0, 2, 6),
-    ( 2, 2, 0, 4),
-    ( 4, 4, 2, 6),
-    ( 6, 6, 4, 0));
-  quadDir: array[0..3] of Byte = (
-     7, 2, 3, 6);
-  startQX: array[Boolean, 0..3] of ShortInt = (
-    ( 5, 4, 5, 6),
-    ( 3, 8, 7, 2));
-  startQY: array[Boolean, 0..3] of ShortInt = (
-    ( 3, 2, 2, 3),
-    ( 0, 2, 5, 3));
-  { [d, quad row]: the free quad-column range lo..hi; lo > hi closes the row }
-  rowBand: array[0..4, 0..5] of Types.TBandRec = (
-    ((lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)),
-    ((lo: 0; hi: 2), (lo: 0; hi: 3), (lo: 1; hi: 4), (lo: 2; hi: 5), (lo: 3; hi: 6), (lo: 4; hi: 7)),
-    ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 1; hi: 0), (lo: 1; hi: 0), (lo: 1; hi: 0)),
-    ((lo: 3; hi: 6), (lo: 4; hi: 7), (lo: 5; hi: 8), (lo: 6; hi: 9), (lo: 7; hi: 10), (lo: 8; hi: 10)),
-    ((lo: 0; hi: 6), (lo: 0; hi: 7), (lo: 1; hi: 8), (lo: 2; hi: 9), (lo: 3; hi: 10), (lo: 4; hi: 10)));
   { Favoured enemies }
   gnomeFoes: array[1..5] of Types.TName15 = (
     'KOBOLD', 'KOBOLD LEADER', 'GOBLIN', 'GOBLIN LEADER', 'GOBLIN GUARD');
