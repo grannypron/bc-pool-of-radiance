@@ -1,8 +1,12 @@
-{ Tests for StrUtil: numbers, two-digit padding, and padding to a width. }
+{ Tests for StrUtil: numbers, two-digit padding, padding to a width, and '~'-hotkey menus. }
 {$I COMPILER.INC}
 program TStrUtil;
 
 uses StrUtil, TestKit;
+
+var
+  menu: String;
+  opts: String;
 
 begin
   TestKit.Start('TSTRUTIL');
@@ -19,5 +23,17 @@ begin
   TestKit.CheckEqualsS('   ab', StrUtil.PadLeft('ab', 5), 'PadLeft pads');
   TestKit.CheckEqualsS(' 7', StrUtil.PadLeft(StrUtil.NumStr(7), 2), 'a count kept in its place');
   TestKit.CheckEqualsS('abc', StrUtil.PadLeft('abcdef', 3), 'PadLeft cuts from the start');
+  menu := '~YES ~NO';
+  StrUtil.MenuToOptions(menu, opts);
+  TestKit.CheckEqualsS('Yes No', menu, 'a menu is lowercased but for its hotkeys');
+  TestKit.CheckEqualsS('YN', opts, 'and the hotkeys are collected');
+  menu := '~ROOM 12 ~1ST';
+  StrUtil.MenuToOptions(menu, opts);
+  TestKit.CheckEqualsS('Room 12 1st', menu, 'digits keep their glyphs (#810)');
+  TestKit.CheckEqualsS('R1', opts, 'a digit hotkey is collected as it is');
+  menu := '~A ~';
+  StrUtil.MenuToOptions(menu, opts);
+  TestKit.CheckEqualsS('A ', menu, 'a closing ~ with nothing after it is dropped');
+  TestKit.CheckEqualsS('A', opts, 'and adds no hotkey');
   TestKit.Done;
 end.

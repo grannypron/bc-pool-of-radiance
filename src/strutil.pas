@@ -1,5 +1,5 @@
-{ Number and padding helpers for text the game shows. Resident and depending on nothing, so any unit can use it, even
-  the ones that start before the overlay manager (GameIo, TextRend). }
+{ Number, padding and menu-text helpers for text the game shows. Resident and depending on nothing, so any unit can use
+  it, even the ones that start before the overlay manager (GameIo, TextRend). }
 {$F+}
 {$I COMPILER.INC}
 unit StrUtil;
@@ -21,6 +21,10 @@ function PadRight(s: String; width: Byte): String;
 
 { s cut, or padded with spaces on the left, to width. }
 function PadLeft(s: String; width: Byte): String;
+
+{ A '~'-hotkey menu as it is shown: letters lowercased, each '~' deleted and the character after it uppercased, the
+  hotkeys collected in opts. Digits are left alone (SSI shifted them by 32 as well, so a '1' showed as a 'Q', #810). }
+procedure MenuToOptions(var menu, opts: String);
 
 implementation
 
@@ -56,6 +60,26 @@ begin
   while Length(s) < width do
     s := ' ' + s;
   PadLeft := s;
+end;
+
+procedure MenuToOptions(var menu, opts: String);
+var
+  i: Byte;
+begin
+  opts := '';
+  i := 1;
+  while i <= Length(menu) do begin
+    if menu[i] in ['A'..'Z'] then
+      menu[i] := Chr(Ord(menu[i]) + 32);
+    if menu[i] = '~' then begin
+      Delete(menu, i, 1);
+      if i <= Length(menu) then begin
+        menu[i] := UpCase(menu[i]);
+        opts := opts + menu[i];
+      end;
+    end;
+    Inc(i);
+  end;
 end;
 
 end.

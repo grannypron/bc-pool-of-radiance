@@ -290,35 +290,17 @@ begin
   end;
 end;
 
-{ Lowercase menu (digits shift by 32 too), delete each '~' and uppercase the hotkey after it, collecting the hotkeys in
-  opts }
-procedure MenuToOptions(var menu: String; var opts: Types.TStr40);
-var
-  i: Byte;
-begin
-  opts := '';
-  for i := 1 to Length(menu) do begin
-    if menu[i] in ['0'..'9', 'A'..'Z'] then
-      menu[i] := Chr(Ord(menu[i]) + 32);
-    if menu[i] = '~' then begin
-      Delete(menu, i, 1);
-      menu[i] := UpCase(menu[i]);
-      opts := opts + menu[i];
-    end;
-  end;
-end;
-
 { Horizontal menu with character selection; query is limited to 40 characters and menu text to 255. Each script menu
   starts with its first option highlighted, so Enter never takes a highlight another menu left behind; switching
   characters keeps the highlight. }
 function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
 var
-  opts: Types.TStr40;
+  opts: String;
   idx: Byte;
   ch: Char;
   ext: Boolean;
 begin
-  EclMenu.MenuToOptions(menu, opts);
+  StrUtil.MenuToOptions(menu, opts);
   GDVars.horizChoice := 1;
   repeat
     ch := MenuCore.MenuHorizontal(query, menu, qCol, mCol, hlCol, True, animate, ext);
@@ -348,9 +330,9 @@ procedure EclVerticalMenu(query: Types.TStr40; menu: String; qCol, mCol, hlCol: 
                           var idx: Integer; var sel: Types.PItemRec);
 var
   ch: Char;
-  opts: Types.TStr40;
+  opts: String;
 begin
-  EclMenu.MenuToOptions(menu, opts);
+  StrUtil.MenuToOptions(menu, opts);
   ch := MenuCore.MenuVertical(query, menu, qCol, mCol, hlCol, ulCol, ulRow, lrCol, lrRow, list, addExit, redraw, idx,
                               sel);
 end;
