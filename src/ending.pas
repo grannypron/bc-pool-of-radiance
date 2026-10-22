@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
+uses Types, Crt, C_TILE, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -126,17 +126,17 @@ begin
     for step := 0 to 8 do begin
       { 10 = High(yarBlueGreenTiles) }
       for t := 0 to 10 do
-        if GDConsts.yarBlueGreenTiles[t] > C_Tile.ID_MASK then
+        if GDConsts.yarBlueGreenTiles[t] > C_TILE.ID_MASK then
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
-                        GDConsts.yarBlueGreenTiles[t] and C_Tile.ID_MASK, True,
+                        GDConsts.yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], True,
                         GDVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
-        if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
-          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_Tile.ID_MASK, True,
+        if GDConsts.yarGreenTiles[t] > C_TILE.ID_MASK then
+          Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], True,
@@ -147,17 +147,17 @@ begin
   end;
   { 10 = High(yarBlueGreenTiles) }
   for t := 0 to 10 do
-    if GDConsts.yarBlueGreenTiles[t] > C_Tile.ID_MASK then
+    if GDConsts.yarBlueGreenTiles[t] > C_TILE.ID_MASK then
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo,
-                    GDConsts.yarBlueGreenTiles[t] and C_Tile.ID_MASK, False,
+                    GDConsts.yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
                     MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], False,
                     GDVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
-    if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
-      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_Tile.ID_MASK,
+    if GDConsts.yarGreenTiles[t] > C_TILE.ID_MASK then
+      Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t] and C_TILE.ID_MASK,
                     False, MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], False,

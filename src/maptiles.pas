@@ -35,7 +35,7 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
-uses Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_DIR;
+uses Crt, C_TILE, GDConsts, GDVars, Blit, GameIo, C_DIR;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -72,9 +72,9 @@ end;
   is drawn from a tile set that is not loaded. }
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 begin
-  if tile > C_Tile.ID_MASK then begin
+  if tile > C_TILE.ID_MASK then begin
     if MapTiles.SecondSheet <> nil then
-      Blit.BlitTileCell(col, row, tile and C_Tile.ID_MASK, 0, GDVars.mapTilePtr2,
+      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, GDVars.mapTilePtr2,
                         GDVars.viewImageBufferPtr);
   end else if GDVars.mapTilePtr <> nil then
     Blit.BlitTileCell(col, row, tile, 0, GDVars.mapTilePtr, GDVars.viewImageBufferPtr);
