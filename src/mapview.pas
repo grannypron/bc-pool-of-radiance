@@ -45,6 +45,25 @@ end;
   selectors while picRegionW is set, and pass all four to View3D.SetView3DColors before View3D.Display3DMapView draws.
   For the wilderness, center the 5x5 view on the party, clamped to the map, then draw the party icon. }
 procedure DisplayMapView;
+const
+  { Display color for each zone sky/ceiling selector; selectors 8..15 repeat 0..7. }
+  skyCeilingColors: array[0..15] of Byte = (
+    Black,
+    White,
+    LightRed,
+    LightCyan,
+    LightMagenta,
+    LightGreen,
+    LightBlue,
+    Yellow,
+    Black,
+    White,
+    LightRed,
+    LightCyan,
+    LightMagenta,
+    LightGreen,
+    LightBlue,
+    Yellow);
 var
   wx: ShortInt;
   wy: ShortInt;
@@ -91,9 +110,9 @@ begin
     C_AREA.LOC_3D_MAP: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if GameVars.eventAtCell > $7F then
-        GameVars.colorSkyCeiling := GameDefs.skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
+        GameVars.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
       else
-        GameVars.colorSkyCeiling := GameDefs.skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
+        GameVars.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
       if GameVars.picRegionW then begin
         GameVars.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
         GameVars.wallColorB := FloorColor(GameVars.ceilFloorColorSel);

@@ -61,24 +61,6 @@ const
 
 const
   { DisplayMapView }
-  { Display color for each zone sky/ceiling selector; selectors 8..15 repeat 0..7. }
-  skyCeilingColors: array[0..15] of Byte = (
-    Black,
-    White,
-    LightRed,
-    LightCyan,
-    LightMagenta,
-    LightGreen,
-    LightBlue,
-    Yellow,
-    Black,
-    White,
-    LightRed,
-    LightCyan,
-    LightMagenta,
-    LightGreen,
-    LightBlue,
-    Yellow);
   { BuildWildernessMap }
   { Special-location overrides on the 44x36 wilderness map, indexed by the WILD_* constants. Entries 1 and 2 have no
     case arm in BuildWildernessMap, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
