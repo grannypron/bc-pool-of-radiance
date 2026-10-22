@@ -15,6 +15,7 @@ var
   { STING Ctrl-Y's memory display, MemShow.ShowMemory, which GameInit installs: it draws with TextRend, which GameIo
     cannot use without a unit cycle. }
   showMemory: TSettingsHook;
+  debugFile: Text;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
   byte. After a nonzero byte, drain pending input without repeating those controls and return the last plain key read
@@ -61,7 +62,7 @@ var
 procedure ExitGame;
 begin
   if GameVars.debugTraceEnabled then
-    Close(GameVars.debugFile);
+    Close(debugFile);
   GameVars.soundMode := GameVars.soundSaved;
   SoundDrv.SoundCommand(GameDefs.soundIds.commands[0]);
   GameVars.interruptRegisters.ah := 0;
@@ -92,7 +93,7 @@ begin
   while p <> nil do begin
     e := p^.effectsAddr;
     while e <> nil do begin
-      WriteLn(GameVars.debugFile, 'who: ', p^.name, '  sp#: ', e^.id);
+      WriteLn(debugFile, 'who: ', p^.name, '  sp#: ', e^.id);
       e := e^.next;
     end;
     p := p^.nextCharAddr;
@@ -139,14 +140,14 @@ begin
     if key = #12 then begin
       GameVars.debugTraceEnabled := not GameVars.debugTraceEnabled;
       if GameVars.debugTraceEnabled then begin
-        Assign(GameVars.debugFile, 'debug.txt');
+        Assign(debugFile, 'debug.txt');
         {$I-}
-        Rewrite(GameVars.debugFile);
+        Rewrite(debugFile);
         {$I+}
         if IOResult <> 0 then
           GameVars.debugTraceEnabled := False;
       end else
-        Close(GameVars.debugFile);
+        Close(debugFile);
     end;
     if (key = #26) and GameVars.debugTraceEnabled then
       GameIo.DumpEffects;

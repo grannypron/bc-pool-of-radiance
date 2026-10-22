@@ -59,7 +59,6 @@ var
   { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
     writes the creatures' effects there }
   debugTraceEnabled: Boolean;
-  debugFile: Text;
   { overlay loads since the program started, counted by GameBoot's OvrReadBuf hook (#612) }
   ovrLoads: LongInt;
   { the overlays load from EMS (GameBoot's OvrInitEMS succeeded) rather than from GAME.OVR on disk }

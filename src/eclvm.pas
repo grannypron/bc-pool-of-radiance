@@ -1744,7 +1744,7 @@ begin
     GameVars.curOpcode := GameVars.zone3^[GameVars.eclIp];
     { STING Ctrl-L's trace log (#612), as Curse writes it }
     if GameVars.debugTraceEnabled then
-      WriteLn(GameVars.debugFile, EclTrace.OpName(GameVars.curOpcode));
+      WriteLn(GameIo.debugFile, EclTrace.OpName(GameVars.curOpcode));
     EclVm.ExecNextEclCmd;
   end;
   eclStop := 0;
