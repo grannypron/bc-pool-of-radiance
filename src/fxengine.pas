@@ -39,6 +39,10 @@ procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
   in the caster's Cast Stinking Cloud effect (strength div 16) names one cloud alone. }
 function FreeCloudNumber(caster: Types.PCharRecord): Byte;
 
+{ The Cast Stinking Cloud effect's strength: the cloud number (FreeCloudNumber) in the high nibble and the caster level
+  in the low one, which Dispel Magic reads. A level above 15 is stored as 15 rather than carrying into the number. }
+function CloudStrength(level, num: Byte): Byte;
+
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
   becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when the roll is still >= 0 and roll +
   sixtyMinusThac0 > defender^.acCur. }
@@ -460,6 +464,13 @@ begin
       Inc(n);
   until (not used) or (n = 15);
   FreeCloudNumber := n;
+end;
+
+function CloudStrength(level, num: Byte): Byte;
+begin
+  if level > 15 then
+    level := 15;
+  CloudStrength := level + num * 16;
 end;
 
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;

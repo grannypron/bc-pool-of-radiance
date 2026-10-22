@@ -1,5 +1,6 @@
 { Tests for FxEngine.FreeCloudNumber (#761): each of a caster's stinking clouds gets its own number, the list's last
-  node counted too, so ending one cloud clears that cloud and not an older one. }
+  node counted too, so ending one cloud clears that cloud and not an older one. And for FxEngine.CloudStrength (#762):
+  a caster level above 15 does not carry into the cloud's number. }
 {$I COMPILER.INC}
 program TClouds;
 
@@ -65,6 +66,11 @@ begin
     AddCloud(a, i);
   TestKit.CheckEqualsL(15, FxEngine.FreeCloudNumber(a), 'never above 15, the most the strength''s high nibble holds');
   FreeClouds;
+  TestKit.CheckEqualsL(9 + 2 * 16, FxEngine.CloudStrength(9, 2), 'level 9, cloud 2');
+  TestKit.CheckEqualsL(15 + 2 * 16, FxEngine.CloudStrength(15, 2), 'level 15 still fits the low nibble');
+  TestKit.CheckEqualsL(2, FxEngine.CloudStrength(16, 2) div 16, 'level 16 leaves the number 2');
+  TestKit.CheckEqualsL(15, FxEngine.CloudStrength(20, 0) and $F, 'level 20 is stored as 15');
+  TestKit.CheckEqualsL(15 + 15 * 16, FxEngine.CloudStrength(255, 15), 'level 255, cloud 15: no wrap');
   FreeMem(a, SizeOf(Types.TCharRecord));
   FreeMem(b, SizeOf(Types.TCharRecord));
   TestKit.Done;

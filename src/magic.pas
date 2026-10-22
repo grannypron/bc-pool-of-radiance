@@ -1048,12 +1048,13 @@ begin
 end;
 
 { Stinking Cloud: append a node to the stinkHead list and give the caster effect 40 for caster-level minutes at strength
-  caster level + myClouds * 16, where myClouds is the lowest number none of the caster's clouds has
-  (FxEngine.FreeCloudNumber; SSI counted the caster's nodes on the walk to the tail and never checked the tail, so a
-  second cloud could share the first one's number and its end clear the older cloud). The cloud covers the 2x2 block
-  whose upper-left is the aim cell (GDConsts.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a
-  cell already under another cloud takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are
-  stamped C_Terr.STINK_CLOUD; every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
+  FxEngine.CloudStrength (caster level, at most 15, + myClouds * 16; SSI let a level above 15 carry into the number),
+  where myClouds is the lowest number none of the caster's clouds has (FxEngine.FreeCloudNumber; SSI counted the
+  caster's nodes on the walk to the tail and never checked the tail, so a second cloud could share the first one's
+  number and its end clear the older cloud). The cloud covers the 2x2 block whose upper-left is the aim cell
+  (GDConsts.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
+  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_Terr.STINK_CLOUD;
+  every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
 procedure StinkingCloudHandler;
 var
   p2: Types.PStinkRec;
@@ -1080,7 +1081,7 @@ begin
     node := node^.next;
   end;
   FillChar(node^, SizeOf(Types.TStinkRec), 0);
-  FxEngine.AddEffect(GDVars.curChar, C_Effect.CAST_STINK, cl, cl + myClouds * 16, True);
+  FxEngine.AddEffect(GDVars.curChar, C_Effect.CAST_STINK, cl, FxEngine.CloudStrength(cl, myClouds), True);
   node^.caster := GDVars.curChar;
   node^.idx := myClouds;
   node^.ulX := GDVars.gTargetX;
