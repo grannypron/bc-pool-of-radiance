@@ -6,8 +6,6 @@ interface
 
 const
   EXIT_SCRIPT = $00;
-  { Entry-header slot used for search and Look }
-  ENTRY_SEARCH = 2;
   JUMP = $01;
   GOSUB = $02;
   COMPARE = $03;
@@ -68,6 +66,9 @@ const
   SPELL = $3B;
   PROTECTION = $3C;
   CLEAR_BOX = $3D;
+
+  { Entry-header slot used for search and Look }
+  ENTRY_SEARCH = 2;
 
 implementation
 

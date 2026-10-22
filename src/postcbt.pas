@@ -544,8 +544,8 @@ begin
     TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
   end;
   GDVars.msgDelayFlag := 1;
-  GDVars.zone1^[C_Gbvm.MOD_MONSTER_THAC0] := 0;
-  GDVars.zone1^[C_Gbvm.MOD_PARTY_THAC0] := 0;
+  GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD] := 0;
+  GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD] := 0;
   GDVars.zone1^[C_Gbvm.MOD_PARTY_MOVE] := 0;
   GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] := 0;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := 0;

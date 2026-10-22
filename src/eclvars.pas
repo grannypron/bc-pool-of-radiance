@@ -503,6 +503,7 @@ var
 begin
   GDVars.gbStrings^[strIdx] := '';
   i := 0;
+  cur := 0;
   phase := 1;
   while i < len do begin
     if phase < 4 then begin

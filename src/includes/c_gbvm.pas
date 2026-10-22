@@ -158,10 +158,6 @@ const
   MONSTER_HIT_MOD = $6E70;
   { a to-hit bonus a script gives the party's attacks (signed, low byte) }
   PARTY_HIT_MOD = $6E71;
-  { int8 ad-hoc monster THAC0 modifier }
-  MOD_MONSTER_THAC0 = $6E70;
-  { int8 ad-hoc party THAC0 modifier }
-  MOD_PARTY_THAC0 = $6E71;
   { int8 ad-hoc party movement modifier }
   MOD_PARTY_MOVE = $6E72;
   { zone 4: special cells }
