@@ -17,6 +17,10 @@ procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer
   called with removed = True; the node is then unlinked and freed, unless the handler has removed it already. }
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
 
+{ True when eff is a node of the creature's effect list. A caller holding a node across a removal checks it with this,
+  since the removal's handler may have removed and freed it. }
+function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
+
 { True when the creature has any of the effects a cure of disease removes (GDConsts.cureDiseaseEffects). }
 function HasDisease(creature: Types.PCharRecord): Boolean;
 
@@ -171,23 +175,16 @@ begin
     p := creature^.effectsAddr;
     while (p <> nil) and (p^.id <> effId) do
       p := p^.next;
-  end else begin
+  end else if not FxEngine.HasEffectNode(creature, p) then
     { a node not in the list would walk the unlink below off its end }
-    prev := creature^.effectsAddr;
-    while (prev <> nil) and (prev <> p) do
-      prev := prev^.next;
-    p := prev;
-  end;
+    p := nil;
   if p = nil then Exit;
   if Types.PEffectRec(p)^.onRemove then begin
     FxEngine.CallEffectHandler(effId, creature, p, True);
     { The handler may have removed the node itself: Fight On's (eff 95) kills the creature, and a creature that falls
       dead loses its 0-HP effects (RemoveEffectsHp0), Fight On among them. The node is then gone and freed, and the
       unlink below would run off the list's end and write through nil, into the interrupt vectors. }
-    prev := creature^.effectsAddr;
-    while (prev <> nil) and (prev <> p) do
-      prev := prev^.next;
-    if prev = nil then Exit;
+    if not FxEngine.HasEffectNode(creature, p) then Exit;
   end;
   if creature^.effectsAddr = p then
     creature^.effectsAddr := p^.next
@@ -199,6 +196,16 @@ begin
     prev^.next := p^.next;
   end;
   FreeMem(p, SizeOf(Types.TEffectRec));
+end;
+
+function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
+var
+  p: Types.PEffectRec;
+begin
+  p := Types.PEffectRec(creature^.effectsAddr);
+  while (p <> nil) and (p <> eff) do
+    p := p^.next;
+  HasEffectNode := p <> nil;
 end;
 
 { Trigger one effect id on the creature: call its handler if the creature itself has the effect, or, for the aura
@@ -941,19 +948,6 @@ var
   expiringDuration: array[1..MAX_EXPIRING] of Word;
   nExpiring: Byte;
   again: Boolean;
-
-  { Whether eff is still in cur's effect list: an earlier removal's handler may have removed and freed it (Slow
-    Poison's end removes the poison's damage effect). }
-  function InList(eff: Types.PEffectRec): Boolean;
-  var
-    p: Types.PEffectRec;
-  begin
-    p := Types.PEffectRec(cur^.effectsAddr);
-    while (p <> nil) and (p <> eff) do
-      p := p^.next;
-    InList := p <> nil;
-  end;
-
 begin
   if GDVars.ifcState <> C_Ifc.CAMPING then
     FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1)
@@ -998,10 +992,11 @@ begin
               again := True;
           e := e^.next;
         end;
-        { then remove them, skipping any an earlier removal has already taken away; a node a handler allocated since
-          can reuse a freed one's address, so the id and duration must still match }
+        { then remove them, skipping any an earlier removal's handler has already removed and freed (Slow Poison's end
+          removes the poison's damage effect); a node a handler allocated since can reuse a freed one's address, so the
+          id and duration must still match }
         for k := 1 to nExpiring do
-          if InList(expiring[k]) and (expiring[k]^.id = expiringId[k]) and
+          if FxEngine.HasEffectNode(cur, expiring[k]) and (expiring[k]^.id = expiringId[k]) and
               (expiring[k]^.duration = expiringDuration[k]) then
             FxEngine.RemoveEffect(cur, expiring[k]^.id, expiring[k]);
         { a removal's handler can add effects too: the creature is visited again while any timed effect is left }

@@ -1266,7 +1266,8 @@ end;
 
 { Dispel Magic: on each target, try every effect whose strength is below 255, with its low nibble as the effect's caster
   level: 50%, +5% per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are
-  left alone. }
+  left alone. A removal that frees the next effect (dispelled Animate Dead) ends that target's walk; SSI read on into
+  the freed node. }
 procedure DispelMagicHandler;
 var
   chance: Byte;
@@ -1304,6 +1305,10 @@ begin
         if Dice.RollDice(1, 100) <= chance then begin
           FxEngine.RemoveEffect(tgt, effect^.id, effect);
           removed := True;
+          { a removal that kills the creature (Animate Dead's) strips its 0-HP effects, which may free the next node:
+            the walk goes on only while that node is still in the list }
+          if (nxt <> nil) and not FxEngine.HasEffectNode(tgt, nxt) then
+            nxt := nil;
         end;
       end;
       effect := nxt;

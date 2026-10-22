@@ -1,7 +1,8 @@
 { Tests for FxEngine.RemoveEffect when the removed effect's own handler removes the node first, as Fight On's does
   (eff 95: the creature falls dead, and RemoveEffectsHp0 takes its 0-HP effects, Fight On among them). The outer
   removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
-  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free. }
+  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free, and
+  FxEngine.HasEffectNode. }
 {$I COMPILER.INC}
 program TFxRemov;
 
@@ -100,5 +101,17 @@ begin
   TestKit.Check(FxEngine.HoldTarget(c, hold, False, C_Effect.BITE_HOLD, released) = nil,
                 'a victim no longer immobile is not held');
   TestKit.Check(released and (c^.effectsAddr = nil), 'and the hold is released and removed');
+  { HasEffectNode, which Dispel Magic's walk asks after each removal (#763) }
+  first := NewEffect(C_Effect.BLESS, nil);
+  second := NewEffect(C_Effect.FIGHT_ON, nil);
+  first^.next := second;
+  c^.effectsAddr := first;
+  TestKit.Check(FxEngine.HasEffectNode(c, first) and FxEngine.HasEffectNode(c, second),
+                'both nodes of the list are found');
+  first^.next := nil;
+  TestKit.Check(not FxEngine.HasEffectNode(c, second), 'a node taken out of the list is not');
+  TestKit.Check(not FxEngine.HasEffectNode(c, nil), 'nor is nil');
+  FreeMem(first, SizeOf(Types.TEffectRec));
+  FreeMem(second, SizeOf(Types.TEffectRec));
   TestKit.Done;
 end.
