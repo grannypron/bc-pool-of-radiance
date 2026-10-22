@@ -39,7 +39,7 @@ const
     (the 1st-edition PHB, p. 20) }
   HALFELF_MULTI_CLERIC_WIS = 13;
 
-{ The class minimum on ability (C_ABIL) for charClass (C_Class) of race (C_Race): a single class's from
+{ The class minimum on ability (C_ABIL) for charClass (C_CLASS) of race (C_Race): a single class's from
   GDConsts.classMin, a multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it,
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_ABIL, C_Equip, C_Item, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GDConsts, GDVars, C_CLASS, C_Level, C_Race, C_ABIL, C_Equip, C_Item, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -315,12 +315,12 @@ begin
   least := 0;
   for p := 1 to 3 do begin
     part := GDConsts.classParts[charClass].values[p];
-    if part >= C_Class.CLERIC then
+    if part >= C_CLASS.CLERIC then
       if GDConsts.classMin[part].values[ability] > least then
         least := GDConsts.classMin[part].values[ability];
   end;
   if (race = C_Race.HALFELF) and (ability = C_ABIL.WISDOM)
-     and (charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
+     and (charClass in [C_CLASS.CLERIC_FIGHTER..C_CLASS.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
     least := HALFELF_MULTI_CLERIC_WIS;
   ClassAbilityMin := least;
 end;
@@ -506,22 +506,22 @@ begin
   share := experience;
   str := CharHlp.PermanentStrength(creature);
   case creature^.charClass of
-    C_Class.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.FIGHTER: if str > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.PALADIN:
+    C_CLASS.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.FIGHTER: if str > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.PALADIN:
       if (str > PRIME_STAT_THRESHOLD) and (creature^.wisCur > PRIME_STAT_THRESHOLD) then
         share := experience div 10 + experience;
-    C_Class.RANGER:
+    C_CLASS.RANGER:
       if (str > PRIME_STAT_THRESHOLD) and (creature^.intCur > PRIME_STAT_THRESHOLD) and
           (creature^.wisCur > PRIME_STAT_THRESHOLD) then
         share := experience div 10 + experience;
-    C_Class.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_CLASS.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     { 2-class multi }
-    C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER, C_Class.CLERIC_MAGE, C_Class.CLERIC_THIEF, C_Class.FIGHTER_MAGE,
-      C_Class.FIGHTER_THIEF, C_Class.MAGE_THIEF: share := experience div 2;
+    C_CLASS.CLERIC_FIGHTER, C_CLASS.CLERIC_RANGER, C_CLASS.CLERIC_MAGE, C_CLASS.CLERIC_THIEF, C_CLASS.FIGHTER_MAGE,
+      C_CLASS.FIGHTER_THIEF, C_CLASS.MAGE_THIEF: share := experience div 2;
     { 3-class multi }
-    C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
+    C_CLASS.CLERIC_FIGHTER_MAGE, C_CLASS.FIGHTER_MAGE_THIEF:
       share := experience div 3;
   end;
   ExperienceShare := share;

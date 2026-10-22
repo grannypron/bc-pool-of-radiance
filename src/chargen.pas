@@ -13,7 +13,7 @@ procedure CustomizeIcon;
 procedure CustomizePortrait(canCancel: Boolean);
 
 { True when curChar can be modified at all: a player race (Dwarf..Human, whose limits minimumMaximumStatistics holds;
-  the hired Acolyte is race 0) and a class C_Class.CLERIC..MAGE_THIEF (0..16). }
+  the hired Acolyte is race 0) and a class C_CLASS.CLERIC..MAGE_THIEF (0..16). }
 function Modifiable: Boolean;
 
 { Arrow-key editor for curChar's six attributes and hit points (ModifyCharacterMenu's, which calls it for a character
@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
+uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_Keys,
   C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
@@ -268,7 +268,7 @@ begin
   row := FIRST_ROW;
   for slot := 1 to cnt do begin
     cls := GDConsts.classesByRace[race].classes[slot];
-    if (cls >= C_Class.CLERIC) and (cls <= C_Class.MAGE_THIEF) then begin
+    if (cls >= C_CLASS.CLERIC) and (cls <= C_CLASS.MAGE_THIEF) then begin
       s := '';
       for p := 1 to 3 do begin
         part := GDConsts.classParts[cls].values[p];
@@ -279,7 +279,7 @@ begin
           s := s + PART_ABBREVS[part];
         end;
       end;
-      if (cls > C_Class.MONK) and (row <= LAST_MULTI_ROW) then begin
+      if (cls > C_CLASS.MONK) and (row <= LAST_MULTI_ROW) then begin
         hasMulti := True;
         TextRend.DisplayString(MULTI_COL, row, LightGreen, Copy(s, 1, LAST_COL - MULTI_COL + 1));
         Inc(row);
@@ -508,14 +508,14 @@ begin
     charClass := GDConsts.classesByRace[race].classes[sel];
     levelHighest := 1;
     { first level in each part of the class }
-    if (charClass >= C_Class.CLERIC) and (charClass <= C_Class.MAGE_THIEF) then
+    if (charClass >= C_CLASS.CLERIC) and (charClass <= C_CLASS.MAGE_THIEF) then
       for slot := 1 to 3 do
         if (GDConsts.classParts[charClass].values[slot] >= C_Level.CLERIC)
            and (GDConsts.classParts[charClass].values[slot] <= C_Level.MONK) then
           classLevels[GDConsts.classParts[charClass].values[slot]] := 1;
     { a paladin's own Protection from Evil: permanent, and at strength 255 so Dispel Magic leaves it. It is the 10'
       radius one, as the paladin's has a 1" radius: SSI gave eff 8, which covered the paladin alone (#742). }
-    if charClass = C_Class.PALADIN then
+    if charClass = C_CLASS.PALADIN then
       FxEngine.AddEffect(creature, C_Effect.PROT_EVIL_10FT, 0, 255, False);
     itemLimits := 0;
     thac0Base := 0;
@@ -542,18 +542,18 @@ begin
   MenuCore.FreeStringList(list);
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
     maximum) of one component class. }
-  if creature^.charClass <= C_Class.MONK then
+  if creature^.charClass <= C_CLASS.MONK then
     with GDConsts.startingAge[creature^.race, creature^.charClass] do
       creature^.age := Dice.RollDice(num, sides) + base
   else
   begin
     case creature^.charClass of
-      C_Class.CLERIC_FIGHTER, C_Class.CLERIC_FIGHTER_MAGE, C_Class.CLERIC_RANGER, C_Class.CLERIC_MAGE,
-        C_Class.CLERIC_THIEF: cls := C_Class.CLERIC;
-      C_Class.FIGHTER_THIEF: cls := C_Class.FIGHTER;
+      C_CLASS.CLERIC_FIGHTER, C_CLASS.CLERIC_FIGHTER_MAGE, C_CLASS.CLERIC_RANGER, C_CLASS.CLERIC_MAGE,
+        C_CLASS.CLERIC_THIEF: cls := C_CLASS.CLERIC;
+      C_CLASS.FIGHTER_THIEF: cls := C_CLASS.FIGHTER;
     else
       { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
-      cls := C_Class.MAGE;
+      cls := C_CLASS.MAGE;
     end;
     with GDConsts.startingAge[creature^.race, cls] do
       creature^.age := base + sides * num;
@@ -750,7 +750,7 @@ end;
 function Modifiable: Boolean;
 begin
   Modifiable := (GDVars.curChar^.race >= C_Race.DWARF) and (GDVars.curChar^.race <= C_Race.HUMAN) and
-                (GDVars.curChar^.charClass >= C_Class.CLERIC) and (GDVars.curChar^.charClass <= C_Class.MAGE_THIEF);
+                (GDVars.curChar^.charClass >= C_CLASS.CLERIC) and (GDVars.curChar^.charClass <= C_CLASS.MAGE_THIEF);
 end;
 
 { ModifyCharacterMenu: Modify Character on the main menu: ModifyCharacter for a Modifiable character with no

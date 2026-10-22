@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
+uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -720,7 +720,7 @@ const
   coinValuationCopper: array[C_Money.COPPER..C_Money.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
   { Class names, indexed by TCharRecord.charClass. }
-  classNames: array[C_Class.CLERIC..C_Class.MAGE_THIEF] of string[26] = (
+  classNames: array[C_CLASS.CLERIC..C_CLASS.MAGE_THIEF] of string[26] = (
     'Cleric',
     'Druid',
     'Fighter',
@@ -1853,7 +1853,7 @@ const
     { human }
     (count: 6; classes: (0, 2, 5, 6, 3, 4, 0, 0, 0, 0, 0, 0, 0)));
   { The classLevels indexes each class trains, in the order its name gives them; -1 fills a shorter list. }
-  classParts: array[C_Class.CLERIC..C_Class.MAGE_THIEF] of Types.TRuleClassParts = (
+  classParts: array[C_CLASS.CLERIC..C_CLASS.MAGE_THIEF] of Types.TRuleClassParts = (
     (first: 0; second: -1; third: -1), { cleric }
     (first: 1; second: -1; third: -1), { druid }
     (first: 2; second: -1; third: -1), { fighter }
@@ -1899,7 +1899,7 @@ const
     { human }
     (cleric: 0; druid: -1; fighter: 0; paladin: 0; ranger: 0; mage: 0; thief: 0; monk: -1));
   { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
-  startingAge: array[1..7, C_Class.CLERIC..C_Class.MONK] of Types.TRuleAge = (
+  startingAge: array[1..7, C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
      (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
@@ -1930,9 +1930,9 @@ const
     (youngAdult: 33; mature: 68; middleAged: 101; old: 144; venerable: 199), { halfling }
     (youngAdult: 15; mature: 30; middleAged: 45; old: 60; venerable: 80), { half-orc }
     (youngAdult: 20; mature: 40; middleAged: 60; old: 90; venerable: 120)); { human }
-  { Ability minimums by single class (C_Class.CLERIC..MONK), the 1st-edition PHB's: every class needs at least 3, and
+  { Ability minimums by single class (C_CLASS.CLERIC..MONK), the 1st-edition PHB's: every class needs at least 3, and
     most 6, in each ability (#740). A multiclass needs the highest of its classes' (ClassCal.ClassAbilityMin). }
-  classMin: array[C_Class.CLERIC..C_Class.MONK] of Types.TRuleAbilities = (
+  classMin: array[C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAbilities = (
     { cleric }
     (strength: 6; intelligence: 6; wisdom: 9; dexterity: 3; constitution: 6; charisma: 6),
     { druid }

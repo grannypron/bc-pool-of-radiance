@@ -24,7 +24,7 @@ procedure AllToManual;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
-  C_Class, C_STATUS, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  C_CLASS, C_STATUS, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
@@ -421,7 +421,7 @@ begin
   { A mage that is not fleeing does not walk }
   if (creature^.combatAddr^.movement div 2 > 0)
      and (creature^.combatAddr^.initiative > 0)
-     and ((creature^.combatAddr^.fleeing <> 0) or (creature^.charClass <> C_Class.MAGE)) then begin
+     and ((creature^.combatAddr^.fleeing <> 0) or (creature^.charClass <> C_CLASS.MAGE)) then begin
     routed := False;
     wait := False;
     if creature^.combatAddr^.fleeing = 0 then begin

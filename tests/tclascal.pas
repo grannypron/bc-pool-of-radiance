@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_SPELL, C_Class, C_ALIGN, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
+uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -63,7 +63,7 @@ var
   subset: Boolean;
 begin
   noTn := True;
-  for cls := C_Class.CLERIC to C_Class.MAGE_THIEF do
+  for cls := C_CLASS.CLERIC to C_CLASS.MAGE_THIEF do
     for p := 1 to 3 do
       if (GDConsts.classParts[cls].values[p] = C_Level.CLERIC) and AlignAllowed(cls, C_ALIGN.TN) then
         noTn := False;
@@ -81,10 +81,10 @@ begin
       end;
     end;
   TestKit.Check(subset, 'each multiclass offered takes only alignments all its classes allow');
-  TestKit.CheckEqualsL(8, GDConsts.alignByClass[C_Class.CLERIC].count, 'a cleric has 8 alignments');
-  TestKit.CheckEqualsL(6, GDConsts.alignByClass[C_Class.CLERIC_THIEF].count,
+  TestKit.CheckEqualsL(8, GDConsts.alignByClass[C_CLASS.CLERIC].count, 'a cleric has 8 alignments');
+  TestKit.CheckEqualsL(6, GDConsts.alignByClass[C_CLASS.CLERIC_THIEF].count,
                        'a cleric/thief has 6: neither true neutral nor LG or CG');
-  TestKit.Check(AlignAllowed(C_Class.THIEF, C_ALIGN.TN), 'a thief can still be true neutral');
+  TestKit.Check(AlignAllowed(C_CLASS.THIEF, C_ALIGN.TN), 'a thief can still be true neutral');
 end;
 
 { A fresh character of race with no class levels. }
@@ -348,27 +348,27 @@ begin
   TestKit.CheckEqualsL(3, ClassCal.RaceAbilityMin(C_Race.ELF, 0, 2), 'an elf''s least Wisdom');
 
   { class ability minimums, the 1st-edition PHB's (#740); a multiclass takes the highest of its classes' }
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.FIGHTER, 5), 'a fighter''s least Charisma');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.MAGE, 4),
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.FIGHTER, 5), 'a fighter''s least Charisma');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.MAGE, 4),
     'a magic-user''s least Constitution');
-  TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.PALADIN, 5), 'a paladin''s least Charisma');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.RANGER, 3), 'a ranger''s least Dexterity');
-  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER, 4),
+  TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.PALADIN, 5), 'a paladin''s least Charisma');
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.RANGER, 3), 'a ranger''s least Dexterity');
+  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_CLASS.CLERIC_FIGHTER, 4),
     'a cleric/fighter, the fighter''s Con');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HALFORC, C_Class.CLERIC_FIGHTER, 2),
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HALFORC, C_CLASS.CLERIC_FIGHTER, 2),
     'and a half-orc''s the cleric''s Wisdom 9');
-  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER, 2),
+  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_CLASS.CLERIC_FIGHTER, 2),
     'a half-elf''s Wisdom 13 (#780)');
-  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_FIGHTER_MAGE, 2),
+  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_CLASS.CLERIC_FIGHTER_MAGE, 2),
     'a half-elf cleric/fighter/magic-user''s too');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC, 2), 'a half-elf cleric''s only 9');
-  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_Class.CLERIC_RANGER, 2),
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_CLASS.CLERIC, 2), 'a half-elf cleric''s only 9');
+  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Race.HALFELF, C_CLASS.CLERIC_RANGER, 2),
     'a half-elf cleric/ranger''s the ranger''s 14');
-  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.CLERIC_RANGER, 2),
+  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.CLERIC_RANGER, 2),
     'a cleric/ranger: the ranger''s Wis 14');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.FIGHTER_MAGE_THIEF, 3),
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.FIGHTER_MAGE_THIEF, 3),
     'a fighter/magic-user/thief''s Dex');
-  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_Class.MAGE_THIEF, 2),
+  TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_Race.HUMAN, C_CLASS.MAGE_THIEF, 2),
     'a magic-user/thief: the mage''s Wis 6');
 
   { hit points: the Constitution bonus per hit die, the warrior bonus by class (#616) }
@@ -382,12 +382,12 @@ begin
   TestKit.CheckEqualsL(2, ClassCal.ConHpPerDie(C_Level.MAGE, 25), 'a magic-user at 25: +2');
   TestKit.CheckEqualsL(-2, ClassCal.ConHpPerDie(C_Level.FIGHTER, 0), 'below 3 counts as 3');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.FIGHTER;
+  c^.charClass := C_CLASS.FIGHTER;
   c^.classLevels[C_Level.FIGHTER] := 1;
   c^.conCur := 18;
   TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, $FF), 'a fighter with Constitution 18: +2, +1 at 17, +1 at 18');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.CLERIC;
+  c^.charClass := C_CLASS.CLERIC;
   c^.classLevels[C_Level.CLERIC] := 1;
   c^.conCur := 16;
   TestKit.CheckEqualsL(2, ClassCal.ConHpBonus(c, $FF), 'a cleric with Constitution 16: +2');
@@ -396,14 +396,14 @@ begin
   c^.conCur := 0;
   TestKit.CheckEqualsL(-2, ClassCal.ConHpBonus(c, $FF), 'Constitution below 3 counts as 3');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.RANGER;
+  c^.charClass := C_CLASS.RANGER;
   c^.classLevels[C_Level.RANGER] := 1;
   c^.conCur := 16;
   TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, $FF), 'a first-level ranger counts its share twice');
   c^.classLevels[C_Level.RANGER] := 2;
   TestKit.CheckEqualsL(2, ClassCal.ConHpBonus(c, $FF), 'once from level 2');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.charClass := C_CLASS.CLERIC_FIGHTER;
   c^.classLevels[C_Level.CLERIC] := 1;
   c^.classLevels[C_Level.FIGHTER] := 1;
   c^.conCur := 18;
@@ -416,19 +416,19 @@ begin
 
   { the legal hpMax range }
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.FIGHTER;
+  c^.charClass := C_CLASS.FIGHTER;
   c^.classLevels[C_Level.FIGHTER] := 3;
   c^.conCur := 10;
   TestKit.CheckEqualsL(3, ClassCal.HpMinimum(c), 'a level 3 fighter: at least 1 a level');
   TestKit.CheckEqualsL(30, ClassCal.HpMaximum(c), 'at most 10 a level');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.RANGER;
+  c^.charClass := C_CLASS.RANGER;
   c^.classLevels[C_Level.RANGER] := 2;
   c^.conCur := 10;
   TestKit.CheckEqualsL(3, ClassCal.HpMinimum(c), 'a level 2 ranger: one more for its extra die');
   TestKit.CheckEqualsL(24, ClassCal.HpMaximum(c), 'and d8 on level + 1');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.charClass := C_CLASS.CLERIC_FIGHTER;
   c^.classLevels[C_Level.CLERIC] := 2;
   c^.classLevels[C_Level.FIGHTER] := 2;
   c^.conCur := 10;
@@ -436,21 +436,21 @@ begin
 
   { the Constitution bonus over every hit die }
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.FIGHTER;
+  c^.charClass := C_CLASS.FIGHTER;
   c^.classLevels[C_Level.FIGHTER] := 3;
   TestKit.CheckEqualsL(9, ClassCal.ConHpTotal(c, 17), 'a level 3 fighter at Constitution 17: 3 a level');
   TestKit.CheckEqualsL(0, ClassCal.ConHpTotal(c, 10), 'at Constitution 10: none');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.RANGER;
+  c^.charClass := C_CLASS.RANGER;
   c^.classLevels[C_Level.RANGER] := 2;
   TestKit.CheckEqualsL(3, ClassCal.ConHpTotal(c, 15), 'a level 2 ranger at Constitution 15: 1 on each of 3 dice');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.charClass := C_CLASS.CLERIC_FIGHTER;
   c^.classLevels[C_Level.CLERIC] := 2;
   c^.classLevels[C_Level.FIGHTER] := 2;
   TestKit.CheckEqualsL(5, ClassCal.ConHpTotal(c, 17), 'a cleric/fighter 2/2 at 17: (2 * 2 + 2 * 3) div 2');
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.FIGHTER;
+  c^.charClass := C_CLASS.FIGHTER;
   c^.classLevels[C_Level.FIGHTER] := 2;
   TestKit.CheckEqualsL(2, ClassCal.ConHpTotal(c, 19) - ClassCal.ConHpTotal(c, 18),
                        'Con 18 to 19 gives a fighter 1 a level');
@@ -531,7 +531,7 @@ begin
 
   { experience shares }
   Reset(C_Race.HUMAN);
-  c^.charClass := C_Class.FIGHTER;
+  c^.charClass := C_CLASS.FIGHTER;
   c^.strCur := 16;
   TestKit.CheckEqualsL(110, ClassCal.ExperienceShare(c, 100), 'a fighter with Strength 16 gets 10% more');
   c^.strCur := 15;
@@ -544,17 +544,17 @@ begin
   c^.strCur := 18;
   TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'magical Strength 18 over 15 earns no bonus');
   c^.effectsAddr := nil;
-  c^.charClass := C_Class.PALADIN;
+  c^.charClass := C_CLASS.PALADIN;
   c^.strCur := 17;
   c^.wisCur := 15;
   TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'a paladin needs Wisdom above 15 too');
   c^.wisCur := 16;
   TestKit.CheckEqualsL(110, ClassCal.ExperienceShare(c, 100), 'and with it gets the bonus');
-  c^.charClass := C_Class.CLERIC_FIGHTER;
+  c^.charClass := C_CLASS.CLERIC_FIGHTER;
   TestKit.CheckEqualsL(50, ClassCal.ExperienceShare(c, 101), 'a two-class character gets half (div 2)');
-  c^.charClass := C_Class.CLERIC_FIGHTER_MAGE;
+  c^.charClass := C_CLASS.CLERIC_FIGHTER_MAGE;
   TestKit.CheckEqualsL(33, ClassCal.ExperienceShare(c, 100), 'a three-class character a third (div 3)');
-  c^.charClass := C_Class.DRUID;
+  c^.charClass := C_CLASS.DRUID;
   TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'another single class gets it all');
 
   { low-Wisdom spell failure: a memorized clerical spell cast by a creature with cleric levels (#60) }

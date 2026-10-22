@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_Ecl, C_CLASS, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -848,7 +848,7 @@ begin
   p := GDVars.creatureList;
   mod1 := 0;
   while p <> nil do begin
-    if (p^.charClass = C_Class.RANGER) or (p^.charClass = C_Class.CLERIC_RANGER) then
+    if (p^.charClass = C_CLASS.RANGER) or (p^.charClass = C_CLASS.CLERIC_RANGER) then
       mod1 := 1;
     p := p^.nextCharAddr;
   end;
