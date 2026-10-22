@@ -249,7 +249,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 implementation
 
 uses C_ITEM, C_NPC, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
-  C_Race, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_LEVEL, Dice, Stats;
 
 const
@@ -1079,7 +1079,7 @@ end;
 { Ghoul paralysis (eff 68): 63 minutes, not vs. elves }
 procedure EffGhoulPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if creature^.combatAddr^.other^.race <> C_Race.ELF then
+  if creature^.combatAddr^.other^.race <> C_RACE.ELF then
     EffHndlr.ParalysisTouch(creature, 63, 0);
 end;
 
@@ -1235,7 +1235,7 @@ begin
         bonus := 0;
         if GDVars.teamCount[q^.hostile] >= 6 then
           Inc(bonus);
-        if q^.race = C_Race.HUMAN then
+        if q^.race = C_RACE.HUMAN then
           Inc(bonus, 2);
         saved := FxEngine.RollSavingThrow(q, C_Save.PARALYZE, bonus);
         FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYSIS, Dice.RollDice(1, 4), 12, False, True, saved,
@@ -1756,7 +1756,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if (w = nil) or (w^.plus = 0) then
-    if (GDVars.curChar^.race > C_Race.MONSTER) or (GDVars.curChar^.levelHighest < 4) then
+    if (GDVars.curChar^.race > C_RACE.MONSTER) or (GDVars.curChar^.levelHighest < 4) then
       GDVars.pendingDamage := 0;
 end;
 

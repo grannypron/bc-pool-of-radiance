@@ -187,7 +187,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 implementation
 
 uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
-  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_KEYS, C_LEVEL, C_STATUS,
+  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
 var
@@ -901,7 +901,7 @@ begin
 end;
 
 { Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
-  C_Race.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_STATUS.ANIMATED), targets already asleep (effect 53)
+  C_RACE.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_STATUS.ANIMATED), targets already asleep (effect 53)
   and targets the remaining pool cannot pay for are dropped; the pool is spent greedily in target order. }
 procedure SleepHandler;
 var
@@ -918,7 +918,7 @@ begin
       2: cost := 2;
       3: cost := 4;
       4: cost := 6;
-      5: if GDVars.targetCreaturePtr[i]^.race = C_Race.MONSTER then
+      5: if GDVars.targetCreaturePtr[i]^.race = C_RACE.MONSTER then
            cost := 10
          else
            cost := 20;

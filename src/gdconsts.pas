@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
+uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -739,7 +739,7 @@ const
     'Fighter/Magic-User/Thief',
     'Magic-User/Thief');
   { Race names, indexed by TCharRecord.race. }
-  raceNames: array[C_Race.MONSTER..C_Race.HUMAN] of string[9] = (
+  raceNames: array[C_RACE.MONSTER..C_RACE.HUMAN] of string[9] = (
     'Monster',
     'Dwarf',
     'Elf',
@@ -1872,7 +1872,7 @@ const
     (first: 2; second: 5; third: 6), { fighter/magic-user/thief }
     (first: 5; second: 6; third: -1)); { magic-user/thief }
   { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
-  raceAbilityAdj: array[C_Race.DWARF..C_Race.HUMAN] of Types.TRuleAbilities = (
+  raceAbilityAdj: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleAbilities = (
     (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -1), { dwarf }
     (strength: 0; intelligence: 0; wisdom: 0; dexterity: 1; constitution: -1; charisma: 0), { elf }
     (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { gnome }
@@ -1883,7 +1883,7 @@ const
   { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
     and -1 a class the race cannot take. A fighter's or ranger's is the best case, with Strength 18. Half-orcs are not
     offered at creation, so their row is empty. }
-  raceMaxLevel: array[C_Race.DWARF..C_Race.HUMAN] of Types.TRuleClassLevels = (
+  raceMaxLevel: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleClassLevels = (
     { dwarf }
     (cleric: -1; druid: -1; fighter: 9; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
     { elf }

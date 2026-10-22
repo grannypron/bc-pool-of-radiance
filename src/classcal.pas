@@ -29,7 +29,7 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
   the racial penalty is larger than the base, so it need not equal the sum. }
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
-{ The racial limits on ability (C_ABIL) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_GENDER, which only Strength
+{ The racial limits on ability (C_ABIL) for race 1..7 (C_RACE.DWARF..HUMAN) and gender (C_GENDER, which only Strength
   depends on), from GDConsts.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
@@ -39,7 +39,7 @@ const
     (the 1st-edition PHB, p. 20) }
   HALFELF_MULTI_CLERIC_WIS = 13;
 
-{ The class minimum on ability (C_ABIL) for charClass (C_CLASS) of race (C_Race): a single class's from
+{ The class minimum on ability (C_ABIL) for charClass (C_CLASS) of race (C_RACE): a single class's from
   GDConsts.classMin, a multiclass's the highest of its classes' (GDConsts.classParts), as the 1st-edition PHB has it,
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_CLASS, C_LEVEL, C_Race, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GDConsts, GDVars, C_CLASS, C_LEVEL, C_RACE, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -249,8 +249,8 @@ begin
   else if dex > 25 then
     dex := 25;
   r := creature^.race;
-  if (r < C_Race.DWARF) or (r > C_Race.HUMAN) then
-    r := C_Race.HUMAN;
+  if (r < C_RACE.DWARF) or (r > C_RACE.HUMAN) then
+    r := C_RACE.HUMAN;
   tl := creature^.classLevels[C_LEVEL.THIEF];
   if tl < 1 then
     tl := 1
@@ -319,7 +319,7 @@ begin
       if GDConsts.classMin[part].values[ability] > least then
         least := GDConsts.classMin[part].values[ability];
   end;
-  if (race = C_Race.HALFELF) and (ability = C_ABIL.WISDOM)
+  if (race = C_RACE.HALFELF) and (ability = C_ABIL.WISDOM)
      and (charClass in [C_CLASS.CLERIC_FIGHTER..C_CLASS.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
     least := HALFELF_MULTI_CLERIC_WIS;
   ClassAbilityMin := least;

@@ -82,7 +82,7 @@ implementation
 
 uses Crt, C_AREA, C_NPC, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_Race, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
+  C_RACE, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { Picture id last shown, copied from C_GBVM.PIC_LOADING }
@@ -535,8 +535,8 @@ begin
     nextCharAddr := nil;
     combatAddr := nil;
     case race of
-      C_Race.DWARF, C_Race.GNOME, C_Race.HALFLING: iconSize := 1;
-      C_Race.ELF, C_Race.HALFELF, C_Race.HALFORC, C_Race.HUMAN: iconSize := 2;
+      C_RACE.DWARF, C_RACE.GNOME, C_RACE.HALFLING: iconSize := 1;
+      C_RACE.ELF, C_RACE.HALFELF, C_RACE.HALFORC, C_RACE.HUMAN: iconSize := 2;
     end;
     for i := 1 to 3 do begin
       roll := Dice.RollDice(1, 6);

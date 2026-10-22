@@ -15,7 +15,7 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_MSG, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
-  C_STATUS, C_IFC, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
+  C_STATUS, C_IFC, C_RACE, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
 var
@@ -160,7 +160,7 @@ begin
     wasDead := True;
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
-  else if creature^.race = C_Race.ELF then begin
+  else if creature^.race = C_RACE.ELF then begin
     CharDisp.PrintTwoLines('RAISE DEAD cannot restore ' + creature^.name + '.', 'Elven souls lie beyond its reach.');
     c := 'N';
   end else if CharHlp.HasEffect(creature, C_EFFECT.POISONED, effect) then begin

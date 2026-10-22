@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_Race, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -34,7 +34,7 @@ end;
 procedure ClearCreature;
 begin
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
-  c^.race := C_Race.HUMAN;
+  c^.race := C_RACE.HUMAN;
 end;
 
 { CharHlp.IsPerson for a creature with the name, race byte, charType and iconDimensions of a record in the monster data
@@ -52,25 +52,25 @@ end;
 { Charm Person and Hold Person affect the persons of the 1st-edition list, as the monster data describes them. }
 procedure CheckPersons;
 begin
-  TestKit.Check(Person('GNOLL', C_Race.MONSTER, 1, $82), 'a gnoll is a person, two tiles and Large as it is');
-  TestKit.Check(Person('KOBOLD', C_Race.MONSTER, 1, $01), 'and a kobold');
-  TestKit.Check(Person('HOBGOBLIN LDR', C_Race.MONSTER, 0, $01), 'and a hobgoblin leader');
-  TestKit.Check(Person('GRISHNAK', C_Race.MONSTER, 0, $01), 'and Grishnak');
-  TestKit.Check(Person('LIZARDMAN', C_Race.MONSTER, 0, $01), 'and a lizard man');
-  TestKit.Check(Person('ACOLYTE', C_Race.MONSTER, 0, $01), 'and a human whose race byte is 0');
-  TestKit.Check(Person('MACE', C_Race.HALFORC, 0, $01), 'and a half-orc');
-  TestKit.Check(Person('TYRANITHRAXUS', C_Race.HUMAN, 0, $01), 'and the False Tyranthraxus, a hired human');
-  TestKit.Check(not Person('TYRANITHRAXUS', C_Race.MONSTER, 3, $84), 'but not Tyranthraxus the dragon');
-  TestKit.Check(not Person('OGRE LEADER', C_Race.MONSTER, 0, $81), 'nor the ogre leader, Large');
-  TestKit.Check(not Person('BUGBEAR', C_Race.MONSTER, 1, $81), 'nor a bugbear');
-  TestKit.Check(not Person('OGRE', C_Race.MONSTER, 1, $82), 'nor an ogre');
-  TestKit.Check(not Person('DRIDER', C_Race.ELF, 16, $83), 'nor a drider, though its race byte is elf');
-  TestKit.Check(not Person('HIPPOGRIFF', C_Race.MONSTER, 0, $83), 'nor a hippogriff');
-  TestKit.Check(not Person('MUTANT LIZ-MAN ', C_Race.MONSTER, 11, $01), 'nor the mutant lizard man');
-  TestKit.Check(not Person('DRYTHH', C_Race.MONSTER, 11, $01), 'nor Drythh');
-  TestKit.Check(not Person('MEDUSA', C_Race.MONSTER, 17, $01), 'nor a medusa');
-  TestKit.Check(not Person('SPECTRE', C_Race.HUMAN, 4, $01), 'nor an undead human');
-  TestKit.Check(not Person('GNOLL', C_Race.MONSTER, 4, $82), 'nor an undead gnoll');
+  TestKit.Check(Person('GNOLL', C_RACE.MONSTER, 1, $82), 'a gnoll is a person, two tiles and Large as it is');
+  TestKit.Check(Person('KOBOLD', C_RACE.MONSTER, 1, $01), 'and a kobold');
+  TestKit.Check(Person('HOBGOBLIN LDR', C_RACE.MONSTER, 0, $01), 'and a hobgoblin leader');
+  TestKit.Check(Person('GRISHNAK', C_RACE.MONSTER, 0, $01), 'and Grishnak');
+  TestKit.Check(Person('LIZARDMAN', C_RACE.MONSTER, 0, $01), 'and a lizard man');
+  TestKit.Check(Person('ACOLYTE', C_RACE.MONSTER, 0, $01), 'and a human whose race byte is 0');
+  TestKit.Check(Person('MACE', C_RACE.HALFORC, 0, $01), 'and a half-orc');
+  TestKit.Check(Person('TYRANITHRAXUS', C_RACE.HUMAN, 0, $01), 'and the False Tyranthraxus, a hired human');
+  TestKit.Check(not Person('TYRANITHRAXUS', C_RACE.MONSTER, 3, $84), 'but not Tyranthraxus the dragon');
+  TestKit.Check(not Person('OGRE LEADER', C_RACE.MONSTER, 0, $81), 'nor the ogre leader, Large');
+  TestKit.Check(not Person('BUGBEAR', C_RACE.MONSTER, 1, $81), 'nor a bugbear');
+  TestKit.Check(not Person('OGRE', C_RACE.MONSTER, 1, $82), 'nor an ogre');
+  TestKit.Check(not Person('DRIDER', C_RACE.ELF, 16, $83), 'nor a drider, though its race byte is elf');
+  TestKit.Check(not Person('HIPPOGRIFF', C_RACE.MONSTER, 0, $83), 'nor a hippogriff');
+  TestKit.Check(not Person('MUTANT LIZ-MAN ', C_RACE.MONSTER, 11, $01), 'nor the mutant lizard man');
+  TestKit.Check(not Person('DRYTHH', C_RACE.MONSTER, 11, $01), 'nor Drythh');
+  TestKit.Check(not Person('MEDUSA', C_RACE.MONSTER, 17, $01), 'nor a medusa');
+  TestKit.Check(not Person('SPECTRE', C_RACE.HUMAN, 4, $01), 'nor an undead human');
+  TestKit.Check(not Person('GNOLL', C_RACE.MONSTER, 4, $82), 'nor an undead gnoll');
 end;
 
 { SSI's racial level cap tests, as CharHlp.AtLevelCap had them: true only at the levels named }
@@ -78,19 +78,19 @@ function SsiCap(race, cls, lvl, str: Integer): Boolean;
 begin
   SsiCap := False;
   case race of
-    C_Race.DWARF:
+    C_RACE.DWARF:
       SsiCap := (cls = C_LEVEL.FIGHTER) and (((lvl = 8) and (str = 17)) or ((lvl = 7) and (str < 17)));
-    C_Race.ELF:
+    C_RACE.ELF:
       SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 7) or ((lvl = 6) and (str = 17)) or ((lvl = 5) and (str < 17)));
-    C_Race.GNOME:
+    C_RACE.GNOME:
       SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str < 18)));
-    C_Race.HALFELF:
+    C_RACE.HALFELF:
       if (cls = C_LEVEL.CLERIC) and (lvl = 5) then
         SsiCap := True
       else
         SsiCap := ((cls = C_LEVEL.FIGHTER) or (cls = C_LEVEL.RANGER)) and
                   ((lvl = 8) or ((lvl = 7) and (str = 17)) or ((lvl = 6) and (str < 17)));
-    C_Race.HALFLING:
+    C_RACE.HALFLING:
       SsiCap := (cls = C_LEVEL.FIGHTER) and ((lvl = 6) or ((lvl = 5) and (str = 17)) or ((lvl = 4) and (str < 17)));
   end;
 end;
@@ -111,7 +111,7 @@ const
   CLASSES: array[1..3] of Integer = (C_LEVEL.FIGHTER, C_LEVEL.RANGER, C_LEVEL.CLERIC);
 begin
   bad := 0;
-  for race := C_Race.DWARF to C_Race.HUMAN do
+  for race := C_RACE.DWARF to C_RACE.HUMAN do
     for k := 1 to 3 do
       for str := 3 to 18 do
         for lvl := 1 to 9 do begin
@@ -239,7 +239,7 @@ begin
 
   { racial level caps }
   ClearCreature;
-  c^.race := C_Race.ELF;
+  c^.race := C_RACE.ELF;
   c^.classLevels[C_LEVEL.FIGHTER] := 7;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'an elf fighter stops at 7');
   c^.classLevels[C_LEVEL.FIGHTER] := 5;
@@ -247,10 +247,10 @@ begin
   TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'at 6 with Strength 17');
   c^.strCur := 16;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'at 5 with Strength below 17');
-  c^.race := C_Race.HUMAN;
+  c^.race := C_RACE.HUMAN;
   c^.classLevels[C_LEVEL.FIGHTER] := 8;
   TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a human has no cap here');
-  c^.race := C_Race.HALFELF;
+  c^.race := C_RACE.HALFELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
 
@@ -259,7 +259,7 @@ begin
   { the caps follow the character's own Strength, not magic's (#702): Gauntlets or Strength leave the restore value in
     the one Strength or Enlarge node not superseded }
   ClearCreature;
-  c^.race := C_Race.GNOME;
+  c^.race := C_RACE.GNOME;
   c^.classLevels[C_LEVEL.FIGHTER] := 5;
   c^.strCur := 18;
   c^.strExc := 100;
@@ -276,7 +276,7 @@ begin
   TestKit.CheckEqualsL(18, CharHlp.PermanentStrength(c), 'Enlarge''s restore value, 18/50');
   TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'and with 18 of its own the gnome trains past 5');
   c^.effectsAddr := nil;
-  c^.race := C_Race.DWARF;
+  c^.race := C_RACE.DWARF;
   c^.classLevels[C_LEVEL.FIGHTER] := 8;
   c^.strCur := 15;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a dwarf fighter 8 whose Strength fell below 17 stays capped');
@@ -367,7 +367,7 @@ begin
   Dispose(items);
   { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
   FillChar(crs[1], SizeOf(crs[1]), 0);
-  crs[1].race := C_Race.HUMAN;
+  crs[1].race := C_RACE.HUMAN;
   crs[1].strCur := 10;
   crs[1].acBase := 50;
   crs[1].dexCur := 3;

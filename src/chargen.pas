@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_Race, C_KEYS,
+uses Types, Crt, C_AREA, C_NPC, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE, C_KEYS,
   C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
@@ -246,7 +246,7 @@ var
 begin
   Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_ABIL.CHARISMA);
   Border.ClearBox(1, HEADING_ROW, LAST_COL, NOTE_ROW + 1);
-  if (race < C_Race.DWARF) or (race > C_Race.HUMAN) then
+  if (race < C_RACE.DWARF) or (race > C_RACE.HUMAN) then
     Exit;
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
@@ -398,12 +398,12 @@ begin
   list^.name := 'Pick Race';
   for k := 1 to 7 do
     case k of
-      C_Race.DWARF..C_Race.HALFLING: begin
+      C_RACE.DWARF..C_RACE.HALFLING: begin
               m := MenuCore.FindListMember(k, list);
               m^.name := '  ' + GDConsts.raceNames[k];
             end;
       { half-orc (6) row skipped }
-      C_Race.HUMAN: begin
+      C_RACE.HUMAN: begin
               m := MenuCore.FindListMember(k - 1, list);
               m^.name := '  ' + GDConsts.raceNames[k];
             end;
@@ -413,7 +413,7 @@ begin
   Border.DrawBorder(1, RACE_TOP_BOTTOM + 2, 38, 22, 0);
   Border.DrawBorder(1, 1, RACE_SPLIT_COL - 1, RACE_TOP_BOTTOM, 0);
   Border.DrawBorder(RACE_SPLIT_COL + 1, 1, 38, RACE_TOP_BOTTOM, 0);
-  CharGen.ShowRaceInfo(C_Race.DWARF);
+  CharGen.ShowRaceInfo(C_RACE.DWARF);
   m := list;
   sel := 1;
   { the list starts at Dwarf, with the label row above the box }
@@ -432,7 +432,7 @@ begin
     if ch <> C_KEYS.ENTER then
       { 6 -> Human (7) }
       if sel = 6 then
-        CharGen.ShowRaceInfo(C_Race.HUMAN)
+        CharGen.ShowRaceInfo(C_RACE.HUMAN)
       else
         CharGen.ShowRaceInfo(sel);
   until ch = C_KEYS.ENTER;
@@ -445,30 +445,30 @@ begin
     race := sel;
     { Racial innate effects. }
     case race of
-      C_Race.HALFLING: begin
+      C_RACE.HALFLING: begin
            iconSize := 1;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_PSN_SAVE, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
          end;
-      C_Race.DWARF: begin
+      C_RACE.DWARF: begin
            iconSize := 1;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_PSN_SAVE, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_THAC0, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_AC_GIANT, 0, 255, False);
          end;
-      C_Race.GNOME: begin
+      C_RACE.GNOME: begin
            iconSize := 1;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_THAC0, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_AC_GIANT, 0, 255, False);
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_AC_BUG, 0, 255, False);
          end;
-      C_Race.ELF: begin
+      C_RACE.ELF: begin
            iconSize := 2;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.ELF_RESIST, 0, 255, False);
          end;
-      C_Race.HALFELF: begin
+      C_RACE.HALFELF: begin
            iconSize := 2;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.HALF_ELF_RESIST, 0, 255, False);
          end;
@@ -569,7 +569,7 @@ begin
       for j := 1 to 6 do begin
         roll := Dice.RollDice(3, 6);
         { racial adjustment; the racial limits below still apply }
-        if (creature^.race >= C_Race.DWARF) and (creature^.race <= C_Race.HUMAN) then
+        if (creature^.race >= C_RACE.DWARF) and (creature^.race <= C_RACE.HUMAN) then
           roll := roll + GDConsts.raceAbilityAdj[creature^.race].values[i];
         if creature^.stats[i] < roll then
           creature^.stats[i] := roll;
@@ -749,7 +749,7 @@ end;
 
 function Modifiable: Boolean;
 begin
-  Modifiable := (GDVars.curChar^.race >= C_Race.DWARF) and (GDVars.curChar^.race <= C_Race.HUMAN) and
+  Modifiable := (GDVars.curChar^.race >= C_RACE.DWARF) and (GDVars.curChar^.race <= C_RACE.HUMAN) and
                 (GDVars.curChar^.charClass >= C_CLASS.CLERIC) and (GDVars.curChar^.charClass <= C_CLASS.MAGE_THIEF);
 end;
 

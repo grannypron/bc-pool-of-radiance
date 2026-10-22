@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_LEVEL, C_STATUS, C_IFC,
+uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC,
   C_MONEY, Stats, C_NPC, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -223,7 +223,7 @@ const
   STR_BAND_LOW = 0;
   STR_BAND_17 = 1;
   STR_BAND_18 = 2;
-  FIGHTER_CAP: array[C_Race.DWARF..C_Race.HALFLING, STR_BAND_LOW..STR_BAND_18] of ShortInt = (
+  FIGHTER_CAP: array[C_RACE.DWARF..C_RACE.HALFLING, STR_BAND_LOW..STR_BAND_18] of ShortInt = (
     (7, 8, 0),
     (5, 6, 7),
     (5, 5, 6),
@@ -268,7 +268,7 @@ begin
     creature^.curModA[1] := creature^.curModA[1] + ammo^.plus;
   end else
     creature^.curModA[1] := creature^.curModA[1] + plus;
-  if (creature^.race = C_Race.ELF) and
+  if (creature^.race = C_RACE.ELF) and
       ((w^.itemType in [C_ITEM.COMPOSITE_LONG_BOW..C_ITEM.SHORT_BOW, C_ITEM.LONG_SWORD, C_ITEM.SHORT_SWORD]) or
        ((w^.itemType = C_ITEM.HEAVY_CROSSBOW) and
         (w^.nameIds[2] in [C_ITEM.NAME_COMPOSITE_LONG_BOW..C_ITEM.NAME_SHORT_BOW]))) then
@@ -550,7 +550,7 @@ begin
   { an attack from behind takes away a Dexterity bonus, not a penalty (#741) }
   if adj[Types.AC_DEX] < 0 then
     creature^.acBehind := creature^.acBehind + adj[Types.AC_DEX];
-  if (CharHlp.WarriorLevel(creature) > 0) and (creature^.race > C_Race.MONSTER) then
+  if (CharHlp.WarriorLevel(creature) > 0) and (creature^.race > C_RACE.MONSTER) then
     creature^.attackLevel := CharHlp.WarriorLevel(creature)
   else
     creature^.attackLevel := 1;
@@ -959,10 +959,10 @@ begin
       band := STR_BAND_17
     else
       band := STR_BAND_18;
-    if (race = C_Race.HALFELF) and (cls = C_LEVEL.CLERIC) then
+    if (race = C_RACE.HALFELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
-    else if (race in [C_Race.DWARF..C_Race.HALFLING]) and
-            ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_Race.HALFELF))) then
+    else if (race in [C_RACE.DWARF..C_RACE.HALFLING]) and
+            ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_RACE.HALFELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
   end;
 end;
@@ -1042,7 +1042,7 @@ begin
       named := True;
   IsPerson := (creature^.charType <> UNDEAD_TYPE) and
               (named or ((creature^.iconDimensions = 1) and
-                         ((creature^.race <> C_Race.MONSTER) or (creature^.charType = 0))));
+                         ((creature^.race <> C_RACE.MONSTER) or (creature^.charType = 0))));
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
