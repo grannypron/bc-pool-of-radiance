@@ -733,9 +733,9 @@ begin
     anyHit := True;
     done := True;
   end else begin
-    if (att^.equipped[C_Equip.WEAPON] <> nil)
-       and ((def^.iconDimensions > $80) or (def^.iconDimensions and 7 > 1)) then begin
-      { large target: swap in the large-damage dice }
+    if (att^.equipped[C_Equip.WEAPON] <> nil) and (def^.iconDimensions and Types.ICON_LARGE <> 0) then begin
+      { large target: swap in the large-damage dice. SSI's took any creature with a two-tile icon for Large, so
+        wolves, wild boars and basilisks took them (#748). }
       base := CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^;
       att^.curRollsA[1] := base.dmgLgRolls;
       att^.curDiceA[1] := base.dmgLgDice;

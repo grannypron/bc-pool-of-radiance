@@ -39,6 +39,9 @@ const
   AC_PLUSES = 2;
   AC_RING = 3;
   AC_ARMOR = 4;
+  { TCharRecord.iconDimensions: the low bits are the combat icon's size, and this bit marks a Large creature (size L),
+    which takes weapons' damage against large targets }
+  ICON_LARGE = $80;
 
   { a transparent pixel in a keyed video mode's picture (TVideoDriver.keyed, VGA): no colour drawn is 255 }
   PIC_KEY = $FF;
@@ -130,6 +133,7 @@ type
     { Known spells, indexed by spell ID. }
     spellsKnown: array[1..56] of Byte;
     attackLevel: Byte;
+    { the combat icon's size, with ICON_LARGE for a Large creature }
     iconDimensions: Byte;
     { Saving throws: paralysis, petrification, wand, breath and spell. }
     saves: array[C_Save.PARALYZE..C_Save.SPELL] of Byte;
