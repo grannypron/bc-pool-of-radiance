@@ -1162,10 +1162,10 @@ begin
 end;
 
 { Animate Dead: animate up to caster-level dead (C_Status.DEAD) human (charType 0) creatures whose cell is still a valid
-  location. Effect 32's strength is the old hostile * 16 + caster level. Each corpse joins the caster's team under
-  computer control (quickfight 1), becomes undead (charType 4, levelUndead 2, movementBase 6, attackLevel 0), loses its
-  memorized spells and gets the animated NPC or PC npc code; if ReviveDeadCreature succeeds at full hpMax it also gets
-  effect 32 and C_Status.ANIMATED. }
+  location. Effect 32's strength is the old side * 16 + caster level (at most 15). Each corpse joins the caster's team
+  under computer control (quickfight 1), becomes undead (charType 4, levelUndead 2, movementBase 6, attackLevel 0),
+  loses its memorized spells and gets the animated NPC or PC npc code; if ReviveDeadCreature succeeds at full hpMax it
+  also gets effect 32 and C_Status.ANIMATED. }
 procedure AnimateDeadHandler;
 var
   i: Byte;
@@ -1182,7 +1182,12 @@ begin
       { Human }
       if p^.charType = 0 then
         if CbtMap.IsValidCreatureLoc(p, CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), True) then begin
-          strength := p^.hostile * 16 + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+          { the corpse's side in bit 4, the caster level (at most 15) below it: a level of 16 or more carried into the
+            side, and EffAnimateDead gave the corpse back a hostile of 2 or more (#710) }
+          strength := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+          if strength > 15 then
+            strength := 15;
+          strength := (p^.hostile and 1) * 16 + strength;
           p^.hostile := GDVars.curChar^.hostile;
           p^.quickfight := 1;
           p^.levelUndead := 2;

@@ -669,14 +669,18 @@ begin
     CharDisp.CombatPrintCreatureInfo(creature);
 end;
 
-{ Animate Dead (eff 32). Fires on REMOVAL of the animation }
+{ Animate Dead (eff 32). Fires on REMOVAL of the animation. The old side is read first: for a corpse that fled
+  (C_Status.RUNNING), InflictStatusMsg removes the hp-zero effects again, which frees this node (#716). }
 
 procedure EffAnimateDead(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  side: Byte;
 begin
   Types.PEffectRec(p)^.onRemove := False;
+  side := Types.PEffectRec(p)^.strength div 16 and 1;
   if GDVars.effectLock = 0 then
     EffHndlr.InflictStatusMsg(creature, C_Status.DEAD, 'collapses');
-  creature^.hostile := Types.PEffectRec(p)^.strength div 16;
+  creature^.hostile := side;
   creature^.quickfight := 1;
   creature^.levelUndead := 0;
   creature^.attackLevel := CharHlp.WarriorLevel(creature);

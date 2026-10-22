@@ -16,6 +16,12 @@
 ### Fixes
 
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.
+- Monsters now strike the character they moved to attack. Before, they hit a random character within reach.
+- An enemy's free attack when you step away from it is now a single attack, and it no longer costs the enemy its own turn.
+- In combat, pressing Escape after attacking by moving into an enemy no longer puts your character back where it started with its full move.
+- The game no longer hangs when a monster with a cursed bow or crossbow has one of your characters next to it.
+- A hostile cleric's Cure Light Wounds no longer heals your dying characters.
+- A bite-and-hold creature lets go of a victim that is no longer held, and a corpse animated by a high-level caster returns to the right side when the spell ends. Several rare memory faults in combat are fixed too.
 
 ## Pool of Radiance port: October 2026 update
 

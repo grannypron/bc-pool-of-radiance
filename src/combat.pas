@@ -304,8 +304,9 @@ begin
 end;
 
 { Arrow-scan movement: H/I/M/Q/P/O/K/G extended scans = dirs 0..7; bump into a creature = melee attack; walk off the map
-  edge (terrain 0) = flee prompt; Escape undoes the whole move and leaves. movement is in half-moves (shown div 2); the
-  loop ends below 2 or on Enter. }
+  edge (terrain 0) = flee prompt; Escape undoes the move since the last attack and leaves: a bump attack that is made
+  keeps the steps before it, or Escape would put the creature back with its full move after attacking (#712). movement
+  is in half-moves (shown div 2); the loop ends below 2 or on Enter. }
 procedure MoveMenu(creature: Types.PCharRecord; var done: Boolean);
 var
   savedMove: Byte;
@@ -316,6 +317,7 @@ var
   crIdx: Byte;
   terrIdx: Byte;
   ch: Char;
+  attacksLeft: Word;
 begin
   savedMove := creature^.combatAddr^.movement;
   savedDir := creature^.combatAddr^.direction;
@@ -366,9 +368,17 @@ begin
     if dir < C_Dir.CENTER then begin
       CbtMap.SetCreatureFacing(creature, dir, 0, 0);
       CbtMap.ProbeDirection(creature, dir, crIdx, terrIdx);
-      if crIdx > 0 then
-        Combat.MeleeAttack(creature, GDVars.creatureArr[crIdx], done)
-      else if terrIdx = 0 then begin
+      if crIdx > 0 then begin
+        attacksLeft := creature^.curAttacks + creature^.curAttacks2;
+        Combat.MeleeAttack(creature, GDVars.creatureArr[crIdx], done);
+        if creature^.curAttacks + creature^.curAttacks2 <> attacksLeft then begin
+          { attacked: the move so far stands }
+          savedMove := creature^.combatAddr^.movement;
+          savedDir := creature^.combatAddr^.direction;
+          startX := CbtMap.CombatCellX(creature);
+          startY := CbtMap.CombatCellY(creature);
+        end;
+      end else if terrIdx = 0 then begin
         case MenuCore.YesNoMenu('Flee:', LightMagenta, LightGreen, White) of
           'Y': done := CbtActs.CombatFleeAttempt(creature);
           'N': done := False;
