@@ -22,6 +22,13 @@
 - The game no longer hangs when a monster with a cursed bow or crossbow has one of your characters next to it.
 - A hostile cleric's Cure Light Wounds no longer heals your dying characters.
 - A bite-and-hold creature lets go of a victim that is no longer held, and a corpse animated by a high-level caster returns to the right side when the spell ends. Several rare memory faults in combat are fixed too.
+- Function keys, Delete and the other special keys no longer run commands in the treasure, shop and temple menus. Before, Delete shared out the money and F10 cast Detect Magic.
+- Pressing Escape when asked to Sell or Keep an appraised gem or piece of jewelry no longer sells it; the question stays until you choose.
+- Pressing a digit, a function key or another special key in the camp menus no longer selects the first party member.
+- Backspace when typing an amount ("How much ...?") now erases the digit from the screen.
+- Typed text (a character's name, a note) now starts right after the prompt, and a full-length entry fits on the line.
+- Alt-R no longer turns the sound on or off and rewrites your settings; only Ctrl-S does.
+- Escape in a list of choices that a scene asks you to pick from no longer picks the highlighted one; you must choose.
 
 ## Pool of Radiance port: October 2026 update
 

@@ -232,7 +232,8 @@ end;
 
 { ReadString: Prompt with query on the bottom row, then edit a line of up to maxLen chars: printable keys ' '..'z'
   append + echo in white (game font), backspace trims, Return/Escape ends (Escape does not discard the input); the
-  result is uppercased }
+  result is uppercased. The first character goes right after the query: SSI moved the column before drawing, leaving a
+  gap and drawing a 40th character past the screen (#735). }
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 var
   col: Byte;
@@ -249,14 +250,14 @@ begin
       ' '..'z':
         if Length(reply) < maxLen then begin
           reply := reply + key;
-          Inc(col);
           TextRend.DisplayString(col, 24, White, key);
+          Inc(col);
         end;
       C_Keys.BACKSPACE:
         if Length(reply) > 0 then begin
           reply := Copy(reply, 1, Length(reply) - 1);
-          TextRend.PrintSpaces(col, 24, Black, 1);
           Dec(col);
+          TextRend.PrintSpaces(col, 24, Black, 1);
         end;
     end;
   until (key = C_Keys.ENTER) or (key = C_Keys.ESC);

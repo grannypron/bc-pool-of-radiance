@@ -17,10 +17,11 @@ var
   showMemory: TSettingsHook;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
-  byte. After a nonzero
-  byte, drain pending input without repeating those controls and return the last byte read. An initial zero is returned
-  at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear. Ctrl-S turns the Sound setting
-  over (SetSound) and, once POOLOPT.CFG has been read, writes it back (saveSettings). }
+  byte. After a nonzero byte, drain pending input without repeating those controls and return the last byte read. An
+  initial zero is returned at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear; the next
+  call returns that scan byte without the controls, so an extended key whose scan code matches one (Alt-R is 19, as
+  Ctrl-S) does not run it (#736, #764). Ctrl-S turns the Sound setting over (SetSound) and, once POOLOPT.CFG has been
+  read, writes it back (saveSettings). }
 function ReadGameKey: Char;
 
 { Turn sound on or off, as Ctrl-S does, and keep the Sound setting (GDVars.soundOn) in step. Off sends the stop command
@@ -47,6 +48,8 @@ uses C_Sound, GDConsts, GDVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, Nat
 var
   { showMemory is up: its own key waits do not open it again }
   memShown: Boolean;
+  { the last byte ReadGameKey returned was #0: the next is an extended key's scan byte }
+  scanPending: Boolean;
 
 procedure ExitGame;
 begin
@@ -94,7 +97,15 @@ var
   key: Char;
 begin
   key := ReadKey;
-  { Ctrl-S toggles sound; a cached extended scan code of 19 (Alt-R) also matches }
+  if scanPending then begin
+    scanPending := False;
+    while KeyPressed do
+      key := ReadKey;
+    ReadGameKey := key;
+    Exit;
+  end;
+  scanPending := (key = #0) and KeyPressed;
+  { Ctrl-S toggles sound }
   if key = #19 then begin
     GameIo.SetSound(GDVars.soundMode = C_Sound.MODE_DISABLED);
     if @saveSettings <> nil then
@@ -150,13 +161,16 @@ var key: Char;
 begin
   if KeyPressed then begin
     key := GameIo.ReadGameKey;
-    if (key = #0) and KeyPressed then
+    if (key = #0) and KeyPressed then begin
       key := ReadKey;
+      scanPending := False;
+    end;
   end;
 end;
 
 begin
   memShown := False;
+  scanPending := False;
   { the hooks start unset: global variables are not cleared at startup }
   @saveSettings := nil;
   @showMemory := nil;
