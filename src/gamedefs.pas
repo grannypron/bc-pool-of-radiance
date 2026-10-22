@@ -1,5 +1,5 @@
-{ Initialized data: every typed constant in the data segment, in link order. A new section starts wherever the data
-  needs a word boundary. }
+{ Initialized data that several units share; a table only one unit reads lives in that unit, in the routine that reads
+  it when there is only one. A new section starts wherever the data needs a word boundary. }
 {$I COMPILER.INC}
 unit GameDefs;
 
@@ -23,9 +23,6 @@ const
   rangerFoes: array[1..16] of Types.TName15 = (
     'KOBOLD', 'KOBOLD LEADER', 'GOBLIN GUARD', 'GOBLIN LEADER', 'ORC', 'ORC LEADER', 'HOBGOBLIN', 'HOBGOBLIN LDR',
     'GNOLL', 'BUGBEAR', 'ETTIN', 'OGRE', 'OGRE LEADER', 'TROLL', 'HILL GIANT', 'FIRE GIANT');
-  { Turning undead }
-  { Movement menus }
-  { Camp menus }
 
 const
   { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
@@ -53,21 +50,12 @@ const
     6,
     { Monk: d4 }
     4);
-  { LoadCharIconAnim }
-  { AddCreatureToParty }
-  { YarashComplete }
-
-  { AddSpellToList }
 
 const
-  { DisplayMapView }
-  { BuildWildernessMap }
-  { LoadAnimation }
   { Solid fill bytes for FillPicRect. Packed fill byte for each mapped CGA color (0..3), indexed by SrcNibble(color,
     map): four identical 2-bit pixels. }
   cgaColorFill: array[0..3] of Byte = ($00, $55, $AA, $FF);
-  { DisplayMessageWindow }
-  { Character, money and item name strings; compass names }
+  { Character and money names }
   { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. }
   coinValuationCopper: array[C_MONEY.COPPER..C_MONEY.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
@@ -306,7 +294,6 @@ const
     24, 26, 33, 35, 37,  9, 31,
     32, 34,  5,  6, 13, 25, 30
   );
-  { Menu key table }
   { Cloud directions, spell names and spell table }
   { direction indices: center, E, SE, S }
   cloudDir: array[1..4] of Byte = (

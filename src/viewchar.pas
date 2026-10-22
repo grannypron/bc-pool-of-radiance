@@ -196,9 +196,9 @@ begin
   FxEngine.AddEffect(p, C_EFFECT.RECENT_HEAL, 1440, 255, False);
 end;
 
-{ Cure disease: paladin p removes the disease effects (GameDefs.cureDiseaseEffects) from the party member chosen, asking
-  first when there are none, and spends one of the week's cures: the first starts C_EFFECT.RECENT_CURE for 10080 minutes
-  at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
+{ Cure disease: paladin p removes the disease effects (FxEngine's cureDiseaseEffects) from the party member chosen,
+  asking first when there are none, and spends one of the week's cures: the first starts C_EFFECT.RECENT_CURE for 10080
+  minutes at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;

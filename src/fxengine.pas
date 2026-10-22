@@ -168,7 +168,7 @@ uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_S
 const
   { EffectSource's side for a node cast by either side }
   ANY_SIDE = 255;
-  { CureDisease }
+  { the disease effects HasDisease looks for and RemoveDiseases removes }
   cureDiseaseEffects: array[1..6] of Byte = (
     C_EFFECT.HELPLESS, C_EFFECT.DISEASED, C_EFFECT.DISEASE_STR, C_EFFECT.DISEASE_HP,
     C_EFFECT.ROT_NO_HEAL, C_EFFECT.MUMMY_ROT);

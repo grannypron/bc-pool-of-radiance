@@ -78,7 +78,7 @@ const
     RANDOM_ARMS_LAST }
   RANDOM_ARMS_LAST = 93;
   RANDOM_ARMS_KINDS = [1..59, ARROW, BRACERS, RANDOM_ARMS_LAST];
-  { Item name parts the code tests or builds (TItemRec.nameIds, GameDefs.nameParts) }
+  { Item name parts the code tests or builds (TItemRec.nameIds, CharHlp.ItemLabel's nameParts) }
   NAME_HAMMER = 20;
   { the bows' names, the same numbers as their item types }
   NAME_COMPOSITE_LONG_BOW = 41;

@@ -487,14 +487,15 @@ type
     chaMin: Byte;
     chaMax: Byte;
   end;
-  { thief abilities (GameDefs.thiefBase and raceAdj), by skill number or by name }
+  { thief abilities (ClassCal.ThiefSkillParts' thiefBase and raceAdj), by skill number or by name }
   TRuleThief = packed record
     case Byte of
       0: (values: array[1..8] of ShortInt);
       1: (pickPockets: ShortInt; openLocks: ShortInt; findTraps: ShortInt; moveSilently: ShortInt;
           hideShadows: ShortInt; hearNoise: ShortInt; climbWalls: ShortInt; readLanguages: ShortInt);
   end;
-  { Dexterity adjustments to the first five thief abilities (GameDefs.dexAdj), by skill number or by name }
+  { Dexterity adjustments to the first five thief abilities (ClassCal.ThiefSkillParts' dexAdj), by skill number or by
+    name }
   TRuleThiefDex = packed record
     case Byte of
       0: (values: array[1..5] of ShortInt);
@@ -513,21 +514,21 @@ type
       0: (values: array[1..3] of ShortInt);
       1: (first: ShortInt; second: ShortInt; third: ShortInt);
   end;
-  { one value per ability (GameDefs.raceAbilityAdj and classMin), by C_ABIL index or by name }
+  { one value per ability (CharGen's raceAbilityAdj, ClassCal.ClassAbilityMin's classMin), by C_ABIL index or by name }
   TRuleAbilities = packed record
     case Byte of
       0: (values: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of ShortInt);
       1: (strength: ShortInt; intelligence: ShortInt; wisdom: ShortInt; dexterity: ShortInt; constitution: ShortInt;
           charisma: ShortInt);
   end;
-  { one value per classLevels index (GameDefs.raceMaxLevel), by index or by class name }
+  { one value per classLevels index (CharGen.ShowRaceInfo's raceMaxLevel), by index or by class name }
   TRuleClassLevels = packed record
     case Byte of
       0: (values: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of ShortInt);
       1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
           thief: ShortInt; monk: ShortInt);
   end;
-  { the oldest age in each age category (GameDefs.ageCat), by category number or by name }
+  { the oldest age in each age category (CharGen.CreateCharacterMenu's ageCat), by category number or by name }
   TRuleAgeCategories = packed record
     case Byte of
       0: (values: array[1..5] of Word);
@@ -539,7 +540,7 @@ type
     { alignment IDs; 0 fills past count }
     alignments: array[1..9] of ShortInt;
   end;
-  { saving throws (GameDefs.saveTbl), by C_SAVE index or by name }
+  { saving throws (ClassCal.RecalcSaves' saveTbl), by C_SAVE index or by name }
   TRuleSaves = packed record
     case Byte of
       0: (values: array[C_SAVE.PARALYZE..C_SAVE.SPELL] of Byte);

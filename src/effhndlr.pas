@@ -518,7 +518,7 @@ end;
 { Gnome THAC0 bonus (eff 18) }
 procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 const
-  { Favoured enemies }
+  { the monsters a gnome gets its THAC0 bonus against }
   gnomeFoes: array[1..5] of Types.TName15 = (
     'KOBOLD', 'KOBOLD LEADER', 'GOBLIN', 'GOBLIN LEADER', 'GOBLIN GUARD');
 var

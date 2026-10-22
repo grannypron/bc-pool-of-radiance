@@ -169,7 +169,7 @@ end;
 { all four planes, on both pages }
 procedure DrawGlyph(col, row, color, glyph: Byte);
 const
-  { EGA plane masks, highest plane first; TextRend reads [3 - k] for plane k }
+  { EGA plane masks, highest plane first: plane k's is [3 - k] }
   egaPlaneMask: array[0..3] of Byte = ($08, $04, $02, $01);
 var
   dstOff: Word;
