@@ -126,7 +126,7 @@ begin
       redraw := False;
     end;
 
-    ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, MAGENTA, Black,
+    ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, CYAN, Black,
                                   Black, True, False, ext);
     TextRend.ClearBottomLine;
     if ext then begin
