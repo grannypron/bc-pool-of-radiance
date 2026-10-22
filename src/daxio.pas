@@ -199,8 +199,19 @@ begin
 end;
 
 function DataDiskMsg: Types.TStr40;
+const
+  { Insert-disk prompts, indexed by virtualDisk, which SaveLoad and the ECL keep in 1..LAST_DISK }
+  insertDiskMsg: array[1..Types.LAST_DISK] of string[29] = (
+    'Insert disk 1 in drive ',
+    'Insert disk 2 in drive ',
+    'Insert disk 3 in drive ',
+    'Insert disk 4 in drive ',
+    'Insert disk 5 in drive ',
+    'Insert disk 6 in drive ',
+    'Insert disk 7 in drive ',
+    'Insert disk 8 in drive ');
 begin
-  DataDiskMsg := GameDefs.insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
+  DataDiskMsg := insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
 procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
@@ -289,10 +300,32 @@ end;
   uppercase it. A DOS device's name (FileUtil.IsDeviceName) gets an underscore, so a character called Con or Lpt1 is
   kept in a file, as in Curse. }
 function SanitizeFileName(name: string): Types.TStr40;
+const
+  invalidFileChars: array[1..10] of Char = (
+    { space }
+    ' ',
+    { period }
+    '.',
+    { asterisk }
+    '*',
+    { comma }
+    ',',
+    { question mark }
+    '?',
+    { slash }
+    '/',
+    { backslash }
+    '\',
+    { colon }
+    ':',
+    { semicolon }
+    ';',
+    { vertical bar }
+    '|');
 var i: Byte;
 begin
   for i := 1 to 10 do
-    name := DaxIo.SanitizeString(name, GameDefs.invalidFileChars[i]);
+    name := DaxIo.SanitizeString(name, invalidFileChars[i]);
   name := Copy(name, 1, 8);
   for i := 1 to Length(name) do
     name[i] := UpCase(name[i]);

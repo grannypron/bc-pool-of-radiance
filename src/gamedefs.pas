@@ -67,28 +67,6 @@ const
     map): four identical 2-bit pixels. }
   cgaColorFill: array[0..3] of Byte = ($00, $55, $AA, $FF);
   { DisplayMessageWindow }
-  { SanitizeFileName }
-  invalidFileChars: array[1..10] of Char = (
-    { space }
-    ' ',
-    { period }
-    '.',
-    { asterisk }
-    '*',
-    { comma }
-    ',',
-    { question mark }
-    '?',
-    { slash }
-    '/',
-    { backslash }
-    '\',
-    { colon }
-    ':',
-    { semicolon }
-    ';',
-    { vertical bar }
-    '|');
   { Character, money and item name strings; compass names }
   { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. }
   coinValuationCopper: array[C_MONEY.COPPER..C_MONEY.PLATINUM] of LongInt = (
@@ -251,16 +229,6 @@ const
     commands: (255, 0, 1, 2);
     damage: 3;
     combat: (4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14));
-  { Insert-disk prompts, indexed by virtualDisk, which SaveLoad and the ECL keep in 1..LAST_DISK }
-  insertDiskMsg: array[1..Types.LAST_DISK] of string[29] = (
-    'Insert disk 1 in drive ',
-    'Insert disk 2 in drive ',
-    'Insert disk 3 in drive ',
-    'Insert disk 4 in drive ',
-    'Insert disk 5 in drive ',
-    'Insert disk 6 in drive ',
-    'Insert disk 7 in drive ',
-    'Insert disk 8 in drive ');
   { The first symbol of each 8x8 symbol set; set 4 ends at 286 }
   symSetFirst: array[0..4] of Word = (1, 46, 116, 186, 256);
   { Direction steps, combat terrain, icon footprints, helpless effects }
