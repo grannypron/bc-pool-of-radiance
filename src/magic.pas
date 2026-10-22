@@ -1845,13 +1845,17 @@ end;
 { Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
   during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell)
   and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
-  the user's actions. When done, consume the scroll spell, or use quantity and then charges; remove the item when its
-  charges run out. announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
-  (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item data, does
-  nothing and leaves done clear. }
+  the user's actions and sets done, cast or not. Only when the spell was cast, consume the scroll spell, or use
+  quantity and then charges; remove the item when its charges run out (SSI spent them on done, so an aborted spell in
+  combat still used them up). announce (the Cast list's scroll lines) names the spell first, as casting a memorized
+  one does (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item
+  data, does nothing and leaves done clear. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 var
   id: Byte;
+  { set only when the spell was cast (not on an aborted aim); the item is spent on it, not on done, which in combat
+    also reports the end of the turn }
+  cast: Boolean;
 begin
   id := spell;
   if not CharHlp.ItemReadable(item) and (spell > 56) then
@@ -1887,12 +1891,14 @@ begin
   GDVars.usingItem := True;
   if announce then
     Magic.PrintCastSpellMsg(GDVars.curChar, 'casts', spell);
-  Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, done);
+  cast := False;
+  Magic.CastSpellNC(spell, Boolean(GDVars.curChar^.quickfight), False, cast);
   GDVars.usingItem := False;
+  done := cast;
   if GDVars.ifcState = C_Ifc.COMBAT then
     if GDConsts.spellTable[spell].whenCast <> 0 then
       done := CharHlp.EndActions(GDVars.curChar);
-  if done then begin
+  if cast then begin
     if CharHlp.ItemReadable(item) then
       Magic.RemoveSpellFromScroll(GDVars.curChar, item, spell)
     else if item^.charges > 0 then begin
