@@ -38,7 +38,7 @@ function Kind(event: Byte): Byte;
 
 implementation
 
-uses Types, GDVars, C_Ecl, C_Gbvm, EclVars;
+uses Types, GDVars, C_ECL, C_Gbvm, EclVars;
 
 const
   { the variables a scan follows the event byte into }
@@ -140,9 +140,9 @@ var
 begin
   WrittenVar := 0;
   case op of
-    C_Ecl.SAVE, C_Ecl.RANDOM_NUMBER, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR: WrittenVar := Operand(2, isAddr);
-    C_Ecl.DIVIDE, C_Ecl.MULTIPLY, C_Ecl.GETTABLE, C_Ecl.BIT_AND, C_Ecl.BIT_OR: WrittenVar := Operand(3, isAddr);
-    C_Ecl.VMENU, C_Ecl.HMENU: begin
+    C_ECL.SAVE, C_ECL.RANDOM_NUMBER, C_ECL.INPUT_NUM, C_ECL.INPUT_STR: WrittenVar := Operand(2, isAddr);
+    C_ECL.DIVIDE, C_ECL.MULTIPLY, C_ECL.GETTABLE, C_ECL.BIT_AND, C_ECL.BIT_OR: WrittenVar := Operand(3, isAddr);
+    C_ECL.VMENU, C_ECL.HMENU: begin
           ListHead(a, v, isAddr, n);
           WrittenVar := v;
         end;
@@ -264,20 +264,20 @@ begin
     Inc(head);
     op := Decode(a, next);
     case op of
-      C_Ecl.EXIT_SCRIPT, C_Ecl.RETURN, C_Ecl.NEWECL: next := 0;
-      C_Ecl.JUMP: begin
+      C_ECL.EXIT_SCRIPT, C_ECL.RETURN, C_ECL.NEWECL: next := 0;
+      C_ECL.JUMP: begin
             Follow(Operand(1, isAddr), live);
             next := 0;
           end;
-      C_Ecl.ONGOTO, C_Ecl.ONGOSUB: begin
+      C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
             ListHead(a, v1, isAddr, n);
             if isAddr and LiveVar(v1, live, mask, offset) then
               for i := 1 to n do
                 AddDispatch(mask, i - 1 + offset, Operand(i, isAddr2), False);
-            if op = C_Ecl.ONGOTO then
+            if op = C_ECL.ONGOTO then
               next := 0;
           end;
-      C_Ecl.COMPARE: begin
+      C_ECL.COMPARE: begin
             v1 := Operand(1, isAddr);
             v2 := Operand(2, isAddr2);
             mask := 0;
@@ -286,7 +286,7 @@ begin
               v2 := v1;
               isAddr2 := isAddr;
             end;
-            if (mask <> 0) and (Decode(next, afterIf) = C_Ecl.IF_EQ) then begin
+            if (mask <> 0) and (Decode(next, afterIf) = C_ECL.IF_EQ) then begin
               if isAddr2 then
                 { past the IF, the other variable holds it too }
                 Follow(afterIf, live or VarBit(v2, mask, offset))
@@ -294,17 +294,17 @@ begin
                 AddDispatch(mask, Lo(v2) + offset, afterIf, True);
             end;
           end;
-      C_Ecl.IF_EQ..C_Ecl.IF_GE: begin
+      C_ECL.IF_EQ..C_ECL.IF_GE: begin
             op := Decode(next, afterIf);
             Follow(afterIf, live);
           end;
-      C_Ecl.ADD, C_Ecl.SUBTRACT: begin
+      C_ECL.ADD, C_ECL.SUBTRACT: begin
             { a number added to or taken from a variable in place moves its offset; anything else written ends it }
             v1 := Operand(1, isAddr);
             v2 := Operand(2, isAddr2);
             w := Operand(3, isAddr3);
             if not isAddr and isAddr2 and (v2 = w) and LiveVar(w, live, mask, offset) then begin
-              if op = C_Ecl.ADD then
+              if op = C_ECL.ADD then
                 offset := offset - Lo(v1)
               else
                 offset := offset + Lo(v1);
@@ -368,34 +368,34 @@ begin
     Inc(head);
     op := Decode(a, next);
     case op of
-      C_Ecl.EXIT_SCRIPT, C_Ecl.RETURN, C_Ecl.NEWECL: { the path ends };
-      C_Ecl.JUMP: Push(Operand(1, isAddr));
-      C_Ecl.GOSUB: begin
+      C_ECL.EXIT_SCRIPT, C_ECL.RETURN, C_ECL.NEWECL: { the path ends };
+      C_ECL.JUMP: Push(Operand(1, isAddr));
+      C_ECL.GOSUB: begin
             Push(Operand(1, isAddr));
             Push(next);
           end;
-      C_Ecl.ONGOTO, C_Ecl.ONGOSUB: begin
+      C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
             ListHead(a, v1, isAddr, n);
             for i := 1 to n do
               Push(Operand(i, isAddr2));
-            if op = C_Ecl.ONGOSUB then
+            if op = C_ECL.ONGOSUB then
               Push(next);
           end;
-      C_Ecl.IF_EQ..C_Ecl.IF_GE: begin
+      C_ECL.IF_EQ..C_ECL.IF_GE: begin
             { the next instruction runs or is skipped }
             Push(next);
             op := Decode(next, afterIf);
             Push(afterIf);
           end;
     else begin
-        if op in [C_Ecl.BIT_AND, C_Ecl.COMPARE] then begin
+        if op in [C_ECL.BIT_AND, C_ECL.COMPARE] then begin
           v1 := Operand(1, isAddr);
           v2 := Operand(2, isAddr2);
           if (isAddr and (v1 = C_Gbvm.CELL_EVENT)) or (isAddr2 and (v2 = C_Gbvm.CELL_EVENT)) then begin
             { a fresh set of variables for each scan }
             varCount := 0;
             eventBit := VarBit(C_Gbvm.CELL_EVENT, $FF, 0);
-            if op = C_Ecl.COMPARE then
+            if op = C_ECL.COMPARE then
               Scan(a, eventBit)
             else begin
               { AND a, b, destination: the event byte and a mask, either way round }
@@ -462,40 +462,40 @@ begin
     Inc(head);
     op := Decode(a, next);
     case op of
-      C_Ecl.EXIT_SCRIPT, C_Ecl.RETURN: next := 0;
-      C_Ecl.NEWECL: begin
+      C_ECL.EXIT_SCRIPT, C_ECL.RETURN: next := 0;
+      C_ECL.NEWECL: begin
             sawExit := True;
             next := 0;
           end;
-      C_Ecl.START_COMBAT, C_Ecl.ENCOUNTER, C_Ecl.LOAD_MON: sawFight := True;
-      C_Ecl.RUN_PROGRAM: sawService := True;
-      C_Ecl.SAVE: begin
+      C_ECL.START_COMBAT, C_ECL.ENCOUNTER, C_ECL.LOAD_MON: sawFight := True;
+      C_ECL.RUN_PROGRAM: sawService := True;
+      C_ECL.SAVE: begin
             { a shop's or temple's flag: the COMBAT after it opens the shop }
             v := Operand(2, isAddr);
             if isAddr and ((v = C_Gbvm.ENTER_SHOP) or (v = C_Gbvm.ENTER_TEMPLE)) then
               sawService := True;
           end;
-      C_Ecl.TREASURE: sawTreasure := True;
-      C_Ecl.DAMAGE: sawTrap := True;
-      C_Ecl.PRINT, C_Ecl.PRINTCLEAR, C_Ecl.PRINT_RET: sawMessage := True;
-      C_Ecl.JUMP: begin
+      C_ECL.TREASURE: sawTreasure := True;
+      C_ECL.DAMAGE: sawTrap := True;
+      C_ECL.PRINT, C_ECL.PRINTCLEAR, C_ECL.PRINT_RET: sawMessage := True;
+      C_ECL.JUMP: begin
             Follow(Operand(1, isAddr));
             next := 0;
           end;
-      C_Ecl.GOSUB: Follow(Operand(1, isAddr));
-      C_Ecl.ONGOTO, C_Ecl.ONGOSUB: begin
+      C_ECL.GOSUB: Follow(Operand(1, isAddr));
+      C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
             ListHead(a, v, isAddr, n);
             for i := 1 to n do
               Follow(Operand(i, isAddr2));
-            if op = C_Ecl.ONGOTO then
+            if op = C_ECL.ONGOTO then
               next := 0;
           end;
-      C_Ecl.IF_EQ..C_Ecl.IF_GE: begin
+      C_ECL.IF_EQ..C_ECL.IF_GE: begin
             op := Decode(next, afterIf);
             Follow(afterIf);
           end;
     end;
-    if single and (head = 2) and not (op in [C_Ecl.JUMP, C_Ecl.GOSUB]) then
+    if single and (head = 2) and not (op in [C_ECL.JUMP, C_ECL.GOSUB]) then
       next := 0;
     if next <> 0 then
       Follow(next);

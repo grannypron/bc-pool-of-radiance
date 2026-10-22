@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_STATUS, C_Gbvm, C_DIR, C_Money, CharHlp, AbilAdj;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_ECL, C_STATUS, C_Gbvm, C_DIR, C_Money, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -571,39 +571,39 @@ begin
   { v1.3 skipped 2 operands for SETUP MONSTER and 1 for ADD NPC, which take 3 and 2, and only the opcode byte of the
     four commands with a count }
   case GDVars.curOpcode of
-    C_Ecl.JUMP, C_Ecl.GOSUB, C_Ecl.LOAD_CHAR, C_Ecl.PICTURE, C_Ecl.PRINT, C_Ecl.PRINTCLEAR,
-        C_Ecl.PARTY_STR, C_Ecl.NEWECL, C_Ecl.CALL,
-    C_Ecl.FIND_ITEM, C_Ecl.CLOCK, C_Ecl.RUN_PROGRAM, C_Ecl.WHO, C_Ecl.PROTECTION:
+    C_ECL.JUMP, C_ECL.GOSUB, C_ECL.LOAD_CHAR, C_ECL.PICTURE, C_ECL.PRINT, C_ECL.PRINTCLEAR,
+        C_ECL.PARTY_STR, C_ECL.NEWECL, C_ECL.CALL,
+    C_ECL.FIND_ITEM, C_ECL.CLOCK, C_ECL.RUN_PROGRAM, C_ECL.WHO, C_ECL.PROTECTION:
       EclVars.LoadEclVars(1);
-    C_Ecl.COMPARE, C_Ecl.RANDOM_NUMBER, C_Ecl.SAVE, C_Ecl.INPUT_NUM, C_Ecl.INPUT_STR,
-        $1F, C_Ecl.PARTY_SURPR, C_Ecl.ADD_NPC:
+    C_ECL.COMPARE, C_ECL.RANDOM_NUMBER, C_ECL.SAVE, C_ECL.INPUT_NUM, C_ECL.INPUT_STR,
+        $1F, C_ECL.PARTY_SURPR, C_ECL.ADD_NPC:
       EclVars.LoadEclVars(2);
-    C_Ecl.ADD..C_Ecl.MULTIPLY, C_Ecl.LOAD_MON, C_Ecl.LOADFILES, C_Ecl.ROB, C_Ecl.GETTABLE,
-        C_Ecl.BIT_AND, C_Ecl.BIT_OR, C_Ecl.SAVE_TABLE,
-    C_Ecl.LOADPIECES, C_Ecl.SPELL, C_Ecl.SETUP_MON:
+    C_ECL.ADD..C_ECL.MULTIPLY, C_ECL.LOAD_MON, C_ECL.LOADFILES, C_ECL.ROB, C_ECL.GETTABLE,
+        C_ECL.BIT_AND, C_ECL.BIT_OR, C_ECL.SAVE_TABLE,
+    C_ECL.LOADPIECES, C_ECL.SPELL, C_ECL.SETUP_MON:
       EclVars.LoadEclVars(3);
     { the count is the last operand before the list, as EclVMenu, EclHMenu and EclOnGoto read it }
-    C_Ecl.VMENU: begin
+    C_ECL.VMENU: begin
       EclVars.LoadEclVars(3);
       count := EclVars.GetEclVar(3);
       Dec(GDVars.eclIp);
       EclVars.LoadEclVars(count);
     end;
-    C_Ecl.HMENU, C_Ecl.ONGOTO, C_Ecl.ONGOSUB: begin
+    C_ECL.HMENU, C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
       EclVars.LoadEclVars(2);
       count := EclVars.GetEclVar(2);
       Dec(GDVars.eclIp);
       EclVars.LoadEclVars(count);
     end;
-    C_Ecl.COMPARE_AND, C_Ecl.SURPRISE:
+    C_ECL.COMPARE_AND, C_ECL.SURPRISE:
       EclVars.LoadEclVars(4);
-    C_Ecl.DAMAGE:
+    C_ECL.DAMAGE:
       EclVars.LoadEclVars(5);
-    C_Ecl.CHECK_PARTY, C_Ecl.PARLAY:
+    C_ECL.CHECK_PARTY, C_ECL.PARLAY:
       EclVars.LoadEclVars(6);
-    C_Ecl.TREASURE:
+    C_ECL.TREASURE:
       EclVars.LoadEclVars(8);
-    C_Ecl.ENCOUNTER:
+    C_ECL.ENCOUNTER:
       EclVars.LoadEclVars(14);
   else
     Inc(GDVars.eclIp);

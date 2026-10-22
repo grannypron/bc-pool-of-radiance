@@ -16,7 +16,7 @@ var
 
 implementation
 
-uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
+uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_Keys, C_Level, C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
@@ -328,7 +328,7 @@ begin
                'L': begin
                       GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
                       FxEngine.AdvanceTime(1, C_TIME.TURNS);
-                      GDVars.eclIp := GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH];
+                      GDVars.eclIp := GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
                       done := True;
                     end;
              end;
@@ -398,7 +398,7 @@ begin
               'L': begin
                      GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
                      FxEngine.AdvanceTime(1, C_TIME.TURNS);
-                     GDVars.eclIp := GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH];
+                     GDVars.eclIp := GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
                      done := True;
                    end;
             end;

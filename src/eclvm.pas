@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_Ecl, C_CLASS, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -66,7 +66,7 @@ const
   PROG_WIN_GAME = 8;
   PROG_CAMP = 9;
   { The ids of the three wilderness scripts; each selects a gLocType (C_AREA's LOC_WILD_WEST, LOC_WILD_CENTRAL or
-    LOC_WILD_EAST). Their values equal C_Ecl.IF_GT, C_Ecl.IF_LE and C_Ecl.IF_GE, but they are script ids, not opcodes. }
+    LOC_WILD_EAST). Their values equal C_ECL.IF_GT, C_ECL.IF_LE and C_ECL.IF_GE, but they are script ids, not opcodes. }
   { location type 2, Western Wilderness }
   WILD_WEST_SCRIPT = 25;
   { location type 3, Central Wilderness }
@@ -176,14 +176,14 @@ begin
     v[i] := EclVars.GetEclVar(i);
   address := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[3], GDVars.gbvmUpperByte[3]);
   case GDVars.curOpcode of
-    C_Ecl.ADD: r := v[1] + v[2];
-    C_Ecl.SUBTRACT: r := v[2] - v[1];
-    C_Ecl.DIVIDE:
+    C_ECL.ADD: r := v[1] + v[2];
+    C_ECL.SUBTRACT: r := v[2] - v[1];
+    C_ECL.DIVIDE:
       if v[2] = 0 then
         r := 0
       else
         r := v[1] div v[2];
-    C_Ecl.MULTIPLY: r := v[1] * v[2];
+    C_ECL.MULTIPLY: r := v[1] * v[2];
   end;
   EclVars.WriteGbvm(address, r);
 end;
@@ -429,7 +429,7 @@ begin
   GDVars.msgDelayFlag := 1;
   if GDVars.gbvmType[1] < $80 then
     GDVars.gbStrings^[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
-  if GDVars.curOpcode = C_Ecl.PRINT then
+  if GDVars.curOpcode = C_ECL.PRINT then
     TextRend.ShowMessage(LightGreen, False, GDVars.gbStrings^[1])
   else begin
     GDVars.curRow := C_MSG.MESSAGE_TOP;
@@ -474,12 +474,12 @@ procedure EclIf;
 begin
   Inc(GDVars.eclIp);
   case GDVars.curOpcode of
-    C_Ecl.IF_EQ: if not GDVars.cmpFlags[0] then EclVars.SkipEclCmd;
-    C_Ecl.IF_NE: if not GDVars.cmpFlags[1] then EclVars.SkipEclCmd;
-    C_Ecl.IF_LT: if not GDVars.cmpFlags[2] then EclVars.SkipEclCmd;
-    C_Ecl.IF_GT: if not GDVars.cmpFlags[3] then EclVars.SkipEclCmd;
-    C_Ecl.IF_LE: if not GDVars.cmpFlags[4] then EclVars.SkipEclCmd;
-    C_Ecl.IF_GE: if not GDVars.cmpFlags[5] then EclVars.SkipEclCmd;
+    C_ECL.IF_EQ: if not GDVars.cmpFlags[0] then EclVars.SkipEclCmd;
+    C_ECL.IF_NE: if not GDVars.cmpFlags[1] then EclVars.SkipEclCmd;
+    C_ECL.IF_LT: if not GDVars.cmpFlags[2] then EclVars.SkipEclCmd;
+    C_ECL.IF_GT: if not GDVars.cmpFlags[3] then EclVars.SkipEclCmd;
+    C_ECL.IF_LE: if not GDVars.cmpFlags[4] then EclVars.SkipEclCmd;
+    C_ECL.IF_GE: if not GDVars.cmpFlags[5] then EclVars.SkipEclCmd;
   end;
 end;
 
@@ -518,7 +518,7 @@ begin
   filesLoaded := 1;
   for i := 1 to 3 do
     f[i] := EclVars.GetEclVar(i);
-  if GDVars.curOpcode = C_Ecl.LOADFILES then begin
+  if GDVars.curOpcode = C_ECL.LOADFILES then begin
     mapLoaded := 1;
     if (f[1] <> 255) and (f[1] <> 127) and (GDVars.zone0^.view3dFlag <> 0) then begin
       GDVars.zone0^.mapId.value := f[1];
@@ -563,7 +563,7 @@ begin
   v1 := EclVars.GetEclVar(1);
   v2 := EclVars.GetEclVar(2);
   address := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[3], GDVars.gbvmUpperByte[3]);
-  if GDVars.curOpcode = C_Ecl.BIT_AND then
+  if GDVars.curOpcode = C_ECL.BIT_AND then
     r := v1 and v2
   else
     r := v1 or v2;
@@ -957,7 +957,7 @@ begin
   i := 0;
   while (i < count) and (not done) do begin
     if sel = i then begin
-      if GDVars.curOpcode = C_Ecl.ONGOTO then
+      if GDVars.curOpcode = C_ECL.ONGOTO then
         GDVars.eclIp := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[i + 1], GDVars.gbvmUpperByte[i + 1])
       else
         EclMenu.EclGosub(i + 1);
@@ -1680,55 +1680,55 @@ end;
 procedure ExecNextEclCmd;
 begin
   case GDVars.curOpcode of
-    C_Ecl.EXIT_SCRIPT: EclVm.EclExit;
-    C_Ecl.JUMP: EclVm.EclGoto;
-    C_Ecl.GOSUB: EclVm.EclGosubCmd;
-    C_Ecl.COMPARE: EclVm.EclCompare;
-    C_Ecl.ADD, C_Ecl.SUBTRACT, C_Ecl.DIVIDE, C_Ecl.MULTIPLY: EclVm.EclArith;
-    C_Ecl.RANDOM_NUMBER: EclVm.EclRandom;
-    C_Ecl.SAVE: EclVm.EclSave;
-    C_Ecl.LOAD_CHAR: EclVm.EclLoadChar;
-    C_Ecl.LOAD_MON: EclVm.EclLoadMon;
-    C_Ecl.SETUP_MON: EclVm.EclSetupMon;
-    C_Ecl.APPROACH: EclVm.EclApproach;
-    C_Ecl.PICTURE: EclVm.EclPicture;
-    C_Ecl.INPUT_NUM: EclVm.EclInputNum;
-    C_Ecl.INPUT_STR: EclVm.EclInputStr;
-    C_Ecl.PRINT, C_Ecl.PRINTCLEAR: EclVm.EclPrint;
-    C_Ecl.RETURN: EclVm.EclReturn;
-    C_Ecl.COMPARE_AND: EclVm.EclCompareAnd;
-    C_Ecl.VMENU: EclVm.EclVMenu;
-    C_Ecl.IF_EQ, C_Ecl.IF_NE, C_Ecl.IF_LT, C_Ecl.IF_GT, C_Ecl.IF_LE, C_Ecl.IF_GE: EclVm.EclIf;
-    C_Ecl.CLEAR_MON: EclVm.EclClearMon;
-    C_Ecl.PARTY_STR: EclVm.EclPartyStr;
-    C_Ecl.CHECK_PARTY: EclVm.EclCheckParty;
-    C_Ecl.NEWECL: EclVm.EclNewEcl;
-    C_Ecl.LOADFILES, C_Ecl.LOADPIECES: EclVm.EclLoadFiles;
-    C_Ecl.PARTY_SURPR: EclVm.EclPartySurprise;
-    C_Ecl.SURPRISE: EclVm.EclSurprise;
-    C_Ecl.START_COMBAT: EclVm.EclCombat;
-    C_Ecl.ONGOTO, C_Ecl.ONGOSUB: EclVm.EclOnGoto;
-    C_Ecl.TREASURE: EclVm.EclTreasure;
-    C_Ecl.ROB: EclVm.EclRob;
-    C_Ecl.ENCOUNTER: EclVm.EclEncounter;
-    C_Ecl.GETTABLE: EclVm.EclGetTable;
-    C_Ecl.HMENU: EclVm.EclHMenu;
-    C_Ecl.PARLAY: EclVm.EclParlay;
-    C_Ecl.CALL: EclVm.EclCall;
-    C_Ecl.DAMAGE: EclVm.EclDamage;
-    C_Ecl.BIT_AND, C_Ecl.BIT_OR: EclVm.EclAndOr;
-    C_Ecl.SPRITE_OFF: EclVm.EclSpriteOff;
-    C_Ecl.FIND_ITEM: EclVm.EclFindItem;
-    C_Ecl.PRINT_RET: EclVm.EclPrintRet;
-    C_Ecl.CLOCK: EclVm.EclClock;
-    C_Ecl.SAVE_TABLE: EclVm.EclSaveTable;
-    C_Ecl.ADD_NPC: EclVm.EclAddNpc;
-    C_Ecl.RUN_PROGRAM: EclVm.EclProgram;
-    C_Ecl.WHO: EclVm.EclWho;
-    C_Ecl.PAUSE: EclVm.EclDelay;
-    C_Ecl.SPELL: EclVm.EclSpell;
-    C_Ecl.PROTECTION: EclVm.EclProtection;
-    C_Ecl.CLEAR_BOX: EclVm.EclClearBox;
+    C_ECL.EXIT_SCRIPT: EclVm.EclExit;
+    C_ECL.JUMP: EclVm.EclGoto;
+    C_ECL.GOSUB: EclVm.EclGosubCmd;
+    C_ECL.COMPARE: EclVm.EclCompare;
+    C_ECL.ADD, C_ECL.SUBTRACT, C_ECL.DIVIDE, C_ECL.MULTIPLY: EclVm.EclArith;
+    C_ECL.RANDOM_NUMBER: EclVm.EclRandom;
+    C_ECL.SAVE: EclVm.EclSave;
+    C_ECL.LOAD_CHAR: EclVm.EclLoadChar;
+    C_ECL.LOAD_MON: EclVm.EclLoadMon;
+    C_ECL.SETUP_MON: EclVm.EclSetupMon;
+    C_ECL.APPROACH: EclVm.EclApproach;
+    C_ECL.PICTURE: EclVm.EclPicture;
+    C_ECL.INPUT_NUM: EclVm.EclInputNum;
+    C_ECL.INPUT_STR: EclVm.EclInputStr;
+    C_ECL.PRINT, C_ECL.PRINTCLEAR: EclVm.EclPrint;
+    C_ECL.RETURN: EclVm.EclReturn;
+    C_ECL.COMPARE_AND: EclVm.EclCompareAnd;
+    C_ECL.VMENU: EclVm.EclVMenu;
+    C_ECL.IF_EQ, C_ECL.IF_NE, C_ECL.IF_LT, C_ECL.IF_GT, C_ECL.IF_LE, C_ECL.IF_GE: EclVm.EclIf;
+    C_ECL.CLEAR_MON: EclVm.EclClearMon;
+    C_ECL.PARTY_STR: EclVm.EclPartyStr;
+    C_ECL.CHECK_PARTY: EclVm.EclCheckParty;
+    C_ECL.NEWECL: EclVm.EclNewEcl;
+    C_ECL.LOADFILES, C_ECL.LOADPIECES: EclVm.EclLoadFiles;
+    C_ECL.PARTY_SURPR: EclVm.EclPartySurprise;
+    C_ECL.SURPRISE: EclVm.EclSurprise;
+    C_ECL.START_COMBAT: EclVm.EclCombat;
+    C_ECL.ONGOTO, C_ECL.ONGOSUB: EclVm.EclOnGoto;
+    C_ECL.TREASURE: EclVm.EclTreasure;
+    C_ECL.ROB: EclVm.EclRob;
+    C_ECL.ENCOUNTER: EclVm.EclEncounter;
+    C_ECL.GETTABLE: EclVm.EclGetTable;
+    C_ECL.HMENU: EclVm.EclHMenu;
+    C_ECL.PARLAY: EclVm.EclParlay;
+    C_ECL.CALL: EclVm.EclCall;
+    C_ECL.DAMAGE: EclVm.EclDamage;
+    C_ECL.BIT_AND, C_ECL.BIT_OR: EclVm.EclAndOr;
+    C_ECL.SPRITE_OFF: EclVm.EclSpriteOff;
+    C_ECL.FIND_ITEM: EclVm.EclFindItem;
+    C_ECL.PRINT_RET: EclVm.EclPrintRet;
+    C_ECL.CLOCK: EclVm.EclClock;
+    C_ECL.SAVE_TABLE: EclVm.EclSaveTable;
+    C_ECL.ADD_NPC: EclVm.EclAddNpc;
+    C_ECL.RUN_PROGRAM: EclVm.EclProgram;
+    C_ECL.WHO: EclVm.EclWho;
+    C_ECL.PAUSE: EclVm.EclDelay;
+    C_ECL.SPELL: EclVm.EclSpell;
+    C_ECL.PROTECTION: EclVm.EclProtection;
+    C_ECL.CLEAR_BOX: EclVm.EclClearBox;
   else
     EclVars.SkipEclCmd;
   end;
@@ -1792,7 +1792,7 @@ begin
     newEclFlag := 0;
     EclVm.CallEclScript(GDVars.scriptEntryAddrs[1]);
     if newEclFlag = 0 then begin
-      EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+      EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
       GDVars.curChar := GDVars.savedChar;
       CharDisp.DisplayParty(GDVars.curChar);
     end;
@@ -1844,7 +1844,7 @@ begin
         GDVars.searchModeFlag := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1;
         GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := 1;
         MapView.DisplayMapView;
-        EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+        EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
         if newEclFlag <> 0 then
           EclVm.NewEclDone;
         GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.searchModeFlag;
@@ -1871,7 +1871,7 @@ begin
           SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
         GDVars.eclGraphics := False;
         GDVars.picDrawn := True;
-        EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH]);
+        EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
         if newEclFlag <> 0 then
           EclVm.NewEclDone;
       end;
