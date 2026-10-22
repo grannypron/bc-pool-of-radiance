@@ -108,6 +108,108 @@ end;
   number; ICON frames turn LightMagenta into Black. Any other name gets the virtual disk number appended and both frames
   turn LightMagenta into DarkGray. A slot past the table loads nothing. }
 procedure LoadIconAnim(name: string; fileId, animIdx: Byte);
+const
+  { LoadIconAnim: the identity table is the source side of both remaps, which turn LightMagenta into DarkGray or
+    Black. }
+  iconColorIdentity: Types.TColorTab = (
+    { Black -> Black }
+    Black,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> LightGray }
+    LightGray,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> LightMagenta }
+    LightMagenta,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
+  iconColorPinkToDarkGray: Types.TColorTab = (
+    { Black -> Black }
+    Black,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> LightGray }
+    LightGray,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> DarkGray }
+    DarkGray,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
+  iconColorPinkToBlack: Types.TColorTab = (
+    { Black -> Black }
+    Black,
+    { Blue -> Blue }
+    Blue,
+    { Green -> Green }
+    Green,
+    { Cyan -> Cyan }
+    Cyan,
+    { Red -> Red }
+    Red,
+    { Magenta -> Magenta }
+    Magenta,
+    { Brown -> Brown }
+    Brown,
+    { LightGray -> LightGray }
+    LightGray,
+    { DarkGray -> DarkGray }
+    DarkGray,
+    { LightBlue -> LightBlue }
+    LightBlue,
+    { LightGreen -> LightGreen }
+    LightGreen,
+    { LightCyan -> LightCyan }
+    LightCyan,
+    { LightRed -> LightRed }
+    LightRed,
+    { LightMagenta -> Black }
+    Black,
+    { Yellow -> Yellow }
+    Yellow,
+    { White -> White }
+    White);
 var
   suffix: string[1];
 begin
@@ -125,18 +227,18 @@ begin
     Blit.LoadPic(name + suffix, fileId, True, 0, GameVars.iconAnimation[animIdx, 0]);
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, GameVars.iconAnimation[animIdx, 1]);
     if name = 'ICON' then begin
-      Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToBlack, 0, False,
+      Blit.RemapPic(iconColorIdentity, iconColorPinkToBlack, 0, False,
                     GameVars.iconAnimation[animIdx, 0]);
-      Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToBlack, 0, False,
+      Blit.RemapPic(iconColorIdentity, iconColorPinkToBlack, 0, False,
                     GameVars.iconAnimation[animIdx, 1]);
     end;
   end else begin
     Str(GameVars.virtualDisk, suffix);
     Blit.LoadPic(name + suffix, fileId, True, 0, GameVars.iconAnimation[animIdx, 0]);
-    Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToDarkGray, 0, False,
+    Blit.RemapPic(iconColorIdentity, iconColorPinkToDarkGray, 0, False,
                   GameVars.iconAnimation[animIdx, 0]);
     Blit.LoadPic(name + suffix, fileId + 128, True, 0, GameVars.iconAnimation[animIdx, 1]);
-    Blit.RemapPic(GameDefs.iconColorIdentity, GameDefs.iconColorPinkToDarkGray, 0, False,
+    Blit.RemapPic(iconColorIdentity, iconColorPinkToDarkGray, 0, False,
                   GameVars.iconAnimation[animIdx, 1]);
   end;
 end;
