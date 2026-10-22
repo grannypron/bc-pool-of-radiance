@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_Spell, C_Level,
+uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_SPELL, C_Level,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -50,8 +50,8 @@ begin
   cntMem := 0;
   cntScr := 0;
   for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do
-    if creature^.memorizedSpells[i] > C_Spell.ID_MASK then begin
-      lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_Spell.ID_MASK].levelSp;
+    if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then begin
+      lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].levelSp;
       if lvl > maxMem then maxMem := lvl;
       Inc(cntMem, lvl);
     end;
@@ -59,8 +59,8 @@ begin
   while p <> nil do begin
     if CharHlp.ItemReadable(p) then
       for i := 1 to SizeOf(p^.spells) do
-        if p^.spells[i] > C_Spell.ID_MASK then begin
-          lvl := GDConsts.spellTable[p^.spells[i] and C_Spell.ID_MASK].levelSp;
+        if p^.spells[i] > C_SPELL.ID_MASK then begin
+          lvl := GDConsts.spellTable[p^.spells[i] and C_SPELL.ID_MASK].levelSp;
           if lvl > maxScr then maxScr := lvl;
           Inc(cntScr, lvl);
         end;
@@ -82,7 +82,7 @@ var
   i: Byte;
 begin
   for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do
-    if creature^.memorizedSpells[i] > C_Spell.ID_MASK then
+    if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
       creature^.memorizedSpells[i] := 0;
   creature^.spellPrepTime := 0;
 end;
@@ -97,7 +97,7 @@ begin
   while p <> nil do begin
     if CharHlp.ItemReadable(p) then
       for i := 1 to SizeOf(p^.spells) do
-        p^.spells[i] := p^.spells[i] and C_Spell.ID_MASK;
+        p^.spells[i] := p^.spells[i] and C_SPELL.ID_MASK;
     p := p^.next;
   end;
 end;
@@ -125,7 +125,7 @@ var
 begin
   count := 0;
   for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do begin
-    id := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+    id := GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
     if (id >= 1) and (id <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
       if (GDConsts.spellTable[id].levelSp = lvl) and (GDConsts.spellTable[id].castClassSp = typ) then
         Inc(count);
@@ -144,7 +144,7 @@ begin
     Inc(i);
   placed := i < SizeOf(GDVars.curChar^.memorizedSpells);
   if placed then
-    GDVars.curChar^.memorizedSpells[i] := id + C_Spell.PENDING_FLAG;
+    GDVars.curChar^.memorizedSpells[i] := id + C_SPELL.PENDING_FLAG;
 end;
 
 { Return the current character's spell allowance for a class and level minus its memorized and pending spells of that
@@ -222,7 +222,7 @@ begin
   if Camp.CanDoSpellActivity(ACT_CAST) then begin
     repeat
       spellId := Magic.CastSpellMenu(idx, notEmpty, scroll);
-      if spellId <> C_Spell.NONE then begin
+      if spellId <> C_SPELL.NONE then begin
         redraw := True;
         Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
         Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
@@ -241,7 +241,7 @@ begin
         else
           CharDisp.PrintNameString(GDVars.curChar, 'has no spells memorized', 10, True);
       end;
-    until spellId = C_Spell.NONE;
+    until spellId = C_SPELL.NONE;
   end;
   if redraw then
     CharDisp.DisplayNoncombatInterface;
@@ -325,8 +325,8 @@ var
 begin
   for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 2 do
     for j := i to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do
-      if (GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK) > (GDVars.curChar^.memorizedSpells[j] and
-                                                                     C_Spell.ID_MASK) then begin
+      if (GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK) > (GDVars.curChar^.memorizedSpells[j] and
+                                                                     C_SPELL.ID_MASK) then begin
         tmp := GDVars.curChar^.memorizedSpells[i];
         GDVars.curChar^.memorizedSpells[i] := GDVars.curChar^.memorizedSpells[j];
         GDVars.curChar^.memorizedSpells[j] := tmp;
@@ -340,7 +340,7 @@ var
   i: Byte;
 begin
   for i := 0 to SizeOf(spells) - 1 do
-    spells[i] := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+    spells[i] := GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
   UsualSpl.SetUsualSpells(GDVars.curChar, spells);
 end;
 
@@ -367,7 +367,7 @@ var
 begin
   if UsualSpl.GetUsualSpells(GDVars.curChar, usual) then begin
     for i := 0 to SizeOf(have) - 1 do
-      have[i] := GDVars.curChar^.memorizedSpells[i] and C_Spell.ID_MASK;
+      have[i] := GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
     for i := 0 to SizeOf(usual) - 1 do begin
       id := usual[i];
       if (id > 0) and (id <= SizeOf(GDVars.curChar^.spellsKnown)) then begin
@@ -406,7 +406,7 @@ begin
     done := False;
     pending := False;
     for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do
-      if GDVars.curChar^.memorizedSpells[i] > C_Spell.ID_MASK then
+      if GDVars.curChar^.memorizedSpells[i] > C_SPELL.ID_MASK then
         pending := True;
     if not pending then
       Camp.QueueUsualSpells;
@@ -430,7 +430,7 @@ begin
       else begin
         spellId := Magic.SpellMenu(1, 2, idx, notEmpty);
         redraw := True;
-        if spellId = C_Spell.NONE then
+        if spellId = C_SPELL.NONE then
           done := True
         else if Camp.SpellSlotsRemaining(GDConsts.spellTable[spellId].levelSp,
                                          GDConsts.spellTable[spellId].castClassSp) > 0
@@ -491,7 +491,7 @@ begin
     idx := -1;
     while done = False do begin
       spellId := Magic.SpellMenu(3, 3, idx, notEmpty);
-      if spellId = C_Spell.NONE then begin
+      if spellId = C_SPELL.NONE then begin
         done := True;
         if notEmpty = False then
           CharDisp.PrintNameString(GDVars.curChar, 'has no copyable scrolls.', 10, True)
@@ -513,8 +513,8 @@ begin
           while (p <> nil) and (found = False) do begin
             if CharHlp.ItemReadable(p) then
               for i := 1 to SizeOf(p^.spells) do
-                if (p^.spells[i] > C_Spell.ID_MASK) and
-                    (p^.spells[i] and C_Spell.ID_MASK = spellId) then begin
+                if (p^.spells[i] > C_SPELL.ID_MASK) and
+                    (p^.spells[i] and C_SPELL.ID_MASK = spellId) then begin
                   CharDisp.PrintBottomLine('You are already scribing that spell.');
                   found := True;
                 end;
@@ -530,7 +530,7 @@ begin
                   i := 1;
                   repeat
                     if p^.spells[i] = spellId then begin
-                      p^.spells[i] := p^.spells[i] or C_Spell.PENDING_FLAG;
+                      p^.spells[i] := p^.spells[i] or C_SPELL.PENDING_FLAG;
                       found := True;
                     end;
                     Inc(i);
@@ -907,10 +907,10 @@ var
   function CureSpell(cond: Byte): Byte;
   begin
     case cond of
-      FIX_DISEASE: CureSpell := C_Spell.CURE_DISEASE;
-      FIX_BLIND: CureSpell := C_Spell.CURE_BLINDNESS;
+      FIX_DISEASE: CureSpell := C_SPELL.CURE_DISEASE;
+      FIX_BLIND: CureSpell := C_SPELL.CURE_BLINDNESS;
     else
-      CureSpell := C_Spell.REMOVE_CURSE;
+      CureSpell := C_SPELL.REMOVE_CURSE;
     end;
   end;
 
@@ -974,7 +974,7 @@ begin
       if p^.status = C_Status.OKAY then Inc(ableClerics);
     end;
     if p^.status = C_Status.OKAY then begin
-      if p^.spellsKnown[C_Spell.CURE_LIGHT_WOUNDS] <> 0 then l1Free[n] := p^.clericSpells[1];
+      if p^.spellsKnown[C_SPELL.CURE_LIGHT_WOUNDS] <> 0 then l1Free[n] := p^.clericSpells[1];
       l3Free[n] := p^.clericSpells[3];
     end;
     if Treatable(p) and (p^.hpCur < p^.hpMax) then Inc(need, p^.hpMax - p^.hpCur);

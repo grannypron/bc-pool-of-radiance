@@ -5,7 +5,7 @@ unit GDVars;
 
 interface
 
-uses Types, Dos, C_Effect, C_Gbvm, C_Spell{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_Effect, C_Gbvm, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
@@ -304,7 +304,7 @@ var
   { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.CombatCastTargetMenu in combat }
   castTargetMenu: Types.TCastUI;
   { Spell handlers indexed by spell ID. }
-  spellFns: array[1..C_Spell.TABLE_LAST] of Types.TSpellProc;
+  spellFns: array[1..C_SPELL.TABLE_LAST] of Types.TSpellProc;
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }

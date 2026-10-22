@@ -24,7 +24,7 @@ procedure AllToManual;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
-  C_Class, C_Status, C_Gbvm, C_Dir, C_Spell, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  C_Class, C_Status, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
@@ -164,8 +164,8 @@ begin
   DecideCastSpell := False;
   if GDConsts.spellTable[spell].aiPriority < minPri then
     Exit;
-  if ((spell <> C_Spell.CURE_LIGHT_WOUNDS) and (GDConsts.spellTable[spell].offensive = 0))
-     or ((spell = C_Spell.CURE_LIGHT_WOUNDS) and CbtActs.FindCureTarget(creature, tgt)) then
+  if ((spell <> C_SPELL.CURE_LIGHT_WOUNDS) and (GDConsts.spellTable[spell].offensive = 0))
+     or ((spell = C_SPELL.CURE_LIGHT_WOUNDS) and CbtActs.FindCureTarget(creature, tgt)) then
     { buff or heal: no aiming }
     DecideCastSpell := True
   else begin
@@ -217,9 +217,9 @@ begin
            and (effect > 0) then begin
           { Item effects 80..90 map to spell entries 57..67; 56 is the last real spell id. An effect above 90 would read
             past spellTable and is not rated, as SelectSpellToCast leaves such entries out (#708) }
-          if effect > C_Spell.LAST then
-            effect := effect - C_Spell.ITEM_EFFECT_SHIFT;
-          if effect <= C_Spell.TABLE_LAST then
+          if effect > C_SPELL.LAST then
+            effect := effect - C_SPELL.ITEM_EFFECT_SHIFT;
+          if effect <= C_SPELL.TABLE_LAST then
             if CombatAi.DecideCastSpell(creature, effect, lowPri) then
               chosen := item;
         end;
@@ -254,7 +254,7 @@ begin
   if creature^.combatAddr^.castAllowed <> 0 then
     for k := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
       { a pending entry (bit 7) is past the table too }
-      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_Spell.TABLE_LAST) then begin
+      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_SPELL.TABLE_LAST) then begin
         list[count] := creature^.memorizedSpells[k];
         Inc(count);
       end;
@@ -774,7 +774,7 @@ begin
   if item^.special = C_Effect.ALIGNED_WEAPON then
     if (item^.effect and $F) <> creature^.alignment then
       pri := 0;
-  if item^.effect = C_Spell.ITEM_JAVELIN_LIGHTNING + C_Spell.ITEM_EFFECT_SHIFT then
+  if item^.effect = C_SPELL.ITEM_JAVELIN_LIGHTNING + C_SPELL.ITEM_EFFECT_SHIFT then
     pri := 0;
   if item^.cursed <> 0 then
     pri := 0;

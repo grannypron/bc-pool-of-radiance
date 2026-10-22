@@ -169,8 +169,8 @@ function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Bool
   it: the scroll spells the Cast list offers. }
 function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
-{ Spell range: rangeFixed + rangeVar * caster level, using C_Spell.ITEM_CASTER_LEVEL when GDVars.usingItem. A zero range
-  with a nonzero area (touch) and the attack-roll encoding (C_Spell.ATTACK_ROLL_RANGE) both become 1. }
+{ Spell range: rangeFixed + rangeVar * caster level, using C_SPELL.ITEM_CASTER_LEVEL when GDVars.usingItem. A zero range
+  with a nonzero area (touch) and the attack-roll encoding (C_SPELL.ATTACK_ROLL_RANGE) both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
 type
@@ -189,7 +189,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 implementation
 
 uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
-  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_Spell, ClassCal;
+  C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
   { movement in body armour, by its weight in coins: up to LIGHT_ARMOR the creature's own, up to MEDIUM_ARMOR
@@ -861,17 +861,17 @@ begin
 end;
 
 { Caster level for a spell id: the current character's cleric or magic-user level by casting class
-  (C_Spell.SPECIAL_CASTER_LEVEL for the special class), C_Spell.ITEM_CASTER_LEVEL when cast from an item
+  (C_SPELL.SPECIAL_CASTER_LEVEL for the special class), C_SPELL.ITEM_CASTER_LEVEL when cast from an item
   (GDVars.usingItem) unless the class is the special one. }
 function GetCasterLevel(spell: Byte): Byte;
 begin
   case GDConsts.spellTable[spell].castClass of
-    C_Spell.CLASS_CLERIC: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.CLERIC];
-    C_Spell.CLASS_MAGE: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.MAGE];
-    C_Spell.CLASS_SPECIAL: GetCasterLevel := C_Spell.SPECIAL_CASTER_LEVEL;
+    C_SPELL.CLASS_CLERIC: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.CLERIC];
+    C_SPELL.CLASS_MAGE: GetCasterLevel := GDVars.curChar^.classLevels[C_Level.MAGE];
+    C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
-  if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_Spell.CLASS_SPECIAL) then
-    GetCasterLevel := C_Spell.ITEM_CASTER_LEVEL;
+  if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
+    GetCasterLevel := C_SPELL.ITEM_CASTER_LEVEL;
 end;
 
 { True when the readied weapon has a range past 1 (thrown weapons count). }
@@ -1070,16 +1070,16 @@ begin
   ScrollLegible := item^.unidMask = 0;
 end;
 
-{ The spell in item's spell slot (1..3), bit 7 ignored, or C_Spell.NONE when the slot is out of range or holds no
+{ The spell in item's spell slot (1..3), bit 7 ignored, or C_SPELL.NONE when the slot is out of range or holds no
   spell. }
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 var
   id: Byte;
 begin
-  ScrollSpellAt := C_Spell.NONE;
+  ScrollSpellAt := C_SPELL.NONE;
   if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
-    id := item^.spells[slot] and C_Spell.ID_MASK;
-    if (id >= 1) and (id <= C_Spell.LAST) then
+    id := item^.spells[slot] and C_SPELL.ID_MASK;
+    if (id >= 1) and (id <= C_SPELL.LAST) then
       ScrollSpellAt := id;
   end;
 end;
@@ -1104,7 +1104,7 @@ begin
     while (item <> nil) and not found do begin
       if CharHlp.CastableScroll(creature, item) then
         for i := 1 to SizeOf(item^.spells) do
-          if CharHlp.ScrollSpellAt(item, i) <> C_Spell.NONE then
+          if CharHlp.ScrollSpellAt(item, i) <> C_SPELL.NONE then
             found := True;
       item := item^.next;
     end;
@@ -1119,11 +1119,11 @@ begin
   if GDVars.usingItem = False then
     r := GDConsts.spellTable[spell].rangeFixed + GDConsts.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
   else
-    r := GDConsts.spellTable[spell].rangeVar * C_Spell.ITEM_CASTER_LEVEL + GDConsts.spellTable[spell].rangeFixed;
+    r := GDConsts.spellTable[spell].rangeVar * C_SPELL.ITEM_CASTER_LEVEL + GDConsts.spellTable[spell].rangeFixed;
   { Touch: zero range with an area }
   if (r = 0) and (GDConsts.spellTable[spell].area <> 0) then
     r := 1;
-  if r = C_Spell.ATTACK_ROLL_RANGE then
+  if r = C_SPELL.ATTACK_ROLL_RANGE then
     r := 1;
   CalcSpellRange := r;
 end;

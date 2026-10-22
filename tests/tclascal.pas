@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_Spell, C_Class, C_Align, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
+uses Types, C_Level, C_Race, C_Save, C_SPELL, C_Class, C_Align, C_Equip, C_Item, C_Effect, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -560,18 +560,18 @@ begin
   { low-Wisdom spell failure: a memorized clerical spell cast by a creature with cleric levels (#60) }
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
   c^.wisCur := 9;
-  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_Spell.BLESS), 'no cleric levels: no failure');
+  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'no cleric levels: no failure');
   c^.classLevels[C_Level.PALADIN] := 9;
-  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_Spell.BLESS), 'nor for a paladin');
+  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'nor for a paladin');
   c^.classLevels[C_Level.CLERIC] := 1;
-  TestKit.CheckEqualsL(20, ClassCal.SpellFailureChance(c, C_Spell.BLESS), 'a cleric of Wisdom 9: 20%');
-  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_Spell.MAGIC_MISSILE), 'a magic-user spell never fails so');
-  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_Spell.NONE), 'nor does no spell');
-  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_Spell.LAST + 1), 'nor an item effect');
+  TestKit.CheckEqualsL(20, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'a cleric of Wisdom 9: 20%');
+  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.MAGIC_MISSILE), 'a magic-user spell never fails so');
+  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.NONE), 'nor does no spell');
+  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.LAST + 1), 'nor an item effect');
   c^.wisCur := 12;
-  TestKit.CheckEqualsL(5, ClassCal.SpellFailureChance(c, C_Spell.BLESS), 'Wisdom 12: 5%');
+  TestKit.CheckEqualsL(5, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'Wisdom 12: 5%');
   c^.wisCur := 13;
-  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_Spell.BLESS), 'Wisdom 13: none');
+  TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'Wisdom 13: none');
 
   CheckAlignments;
 

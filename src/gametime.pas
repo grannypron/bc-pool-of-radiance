@@ -13,7 +13,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_Spell,
+uses Types, C_TIME, C_Msg, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -169,7 +169,7 @@ end;
 
 { Scan the 21 memorized-spell slots; bit 7 set = still memorizing. With done already True, return the first pending
   spell's level; otherwise clear the bit (spell finished), announce it and set done, so the scan goes on to return the
-  next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_Spell.LAST
+  next pending spell's level. Returns 0 when nothing (more) is pending. A slot whose spell id is outside 1..C_SPELL.LAST
   is passed over. }
 function CheckMemorizeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
@@ -180,11 +180,11 @@ begin
   i := 0;
   while (i <= Types.SPELL_SLOT_LAST) and (lvl = 0) do begin
     if (creature^.memorizedSpells[i] > $7F) and
-        (creature^.memorizedSpells[i] and C_Spell.ID_MASK in [1..C_Spell.LAST]) then
+        (creature^.memorizedSpells[i] and C_SPELL.ID_MASK in [1..C_SPELL.LAST]) then
       if done then
-        lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_Spell.ID_MASK].level
+        lvl := GDConsts.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].level
       else begin
-        Dec(creature^.memorizedSpells[i], C_Spell.PENDING_FLAG);
+        Dec(creature^.memorizedSpells[i], C_SPELL.PENDING_FLAG);
         GameTime.DisplayRestTime(0);
         Magic.PrintCastSpellMsg(creature, 'has memorized', creature^.memorizedSpells[i]);
         done := True;
@@ -201,7 +201,7 @@ end;
   "<spell> has been lost.", the spell gone from the scroll and not learned. The roll is made here rather than when the
   spell is queued, since a queued spell can still be dropped (Camp.ResetScribe) and the time spent is part of
   the attempt. A scroll freed with its last spell is left and the scan goes on with the next item. A spell id outside
-  1..C_Spell.LAST is passed over. }
+  1..C_SPELL.LAST is passed over. }
 function CheckScribeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   j: Byte;
@@ -219,11 +219,11 @@ begin
     if CharHlp.ItemReadable(item) then
       { 3 = High(TItemRec.spells) }
       while (j <= 3) and (lvl = 0) do begin
-        if (item^.spells[j] > $80) and (item^.spells[j] and C_Spell.ID_MASK <= C_Spell.LAST) then
+        if (item^.spells[j] > $80) and (item^.spells[j] and C_SPELL.ID_MASK <= C_SPELL.LAST) then
           if done then
-            lvl := GDConsts.spellTable[item^.spells[j] and C_Spell.ID_MASK].level
+            lvl := GDConsts.spellTable[item^.spells[j] and C_SPELL.ID_MASK].level
           else begin
-            sp := item^.spells[j] and C_Spell.ID_MASK;
+            sp := item^.spells[j] and C_SPELL.ID_MASK;
             Magic.RemoveSpellFromScroll(creature, item, sp);
             GameTime.DisplayRestTime(0);
             { the chance to know the spell, rolled as the scribing ends (#59) }

@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_Area, C_TIME, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
-  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -174,15 +174,15 @@ begin
   FindCharWithSpell := p;
 end;
 
-{ PartyCastsKnock: the first party member with Knock (C_Spell.KNOCK) memorized uses it, clearing that slot, and the
+{ PartyCastsKnock: the first party member with Knock (C_SPELL.KNOCK) memorized uses it, clearing that slot, and the
   barrier opens from both sides; False when nobody has it. }
 function PartyCastsKnock: Boolean;
 var
   p: Types.PCharRecord;
 begin
-  p := Explore.FindCharWithSpell(C_Spell.KNOCK);
+  p := Explore.FindCharWithSpell(C_SPELL.KNOCK);
   if p <> nil then begin
-    CharHlp.RemoveSpell(p, C_Spell.KNOCK);
+    CharHlp.RemoveSpell(p, C_SPELL.KNOCK);
     Explore.OpenBarrierAhead;
     PartyCastsKnock := True;
   end else
@@ -468,7 +468,7 @@ begin
                   menuStr := 'Bash';
                 if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_Level.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GDVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_Spell.KNOCK) <> nil)
+                if (GDVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
                 then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';

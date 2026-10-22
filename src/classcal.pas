@@ -84,15 +84,15 @@ const
 function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
 
 { The chance, in percent, that creature's casting of spell from memory fails: AbilAdj.WisSpellFailure for its Wisdom
-  when the spell is clerical (C_Spell.CLASS_CLERIC) and the creature has cleric levels, which in AD&D 1st edition is
+  when the spell is clerical (C_SPELL.CLASS_CLERIC) and the creature has cleric levels, which in AD&D 1st edition is
   the rule for clerics (#60); 0 otherwise. A paladin without cleric levels is not subject to it (he needs Wisdom 13, at
   which it is 0 anyway), and neither is a spell read from a scroll, which the caller does not ask about. 0 for an id
-  outside 1..C_Spell.LAST. }
+  outside 1..C_SPELL.LAST. }
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, C_Spell, Dice, CharHlp, AbilAdj;
+uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
@@ -530,8 +530,8 @@ end;
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 begin
   SpellFailureChance := 0;
-  if (spell >= 1) and (spell <= C_Spell.LAST) then
-    if (GDConsts.spellTable[spell].castClassSp = C_Spell.CLASS_CLERIC) and
+  if (spell >= 1) and (spell <= C_SPELL.LAST) then
+    if (GDConsts.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
         (creature^.classLevels[C_Level.CLERIC] > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);
 end;

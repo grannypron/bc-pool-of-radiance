@@ -5,7 +5,7 @@
 {$I COMPILER.INC}
 program TMagRes;
 
-uses Types, C_Effect, C_Spell, C_Level, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_Effect, C_SPELL, C_Level, GDVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 1000;
@@ -42,14 +42,14 @@ begin
   GDVars.usingItem := False;
   GDVars.elementMask := 0;
 
-  GDVars.currentSpellBeing := C_Spell.MAGIC_MISSILE;
+  GDVars.currentSpellBeing := C_SPELL.MAGIC_MISSILE;
   caster^.classLevels[C_Level.MAGE] := 1;
   TestKit.CheckEqualsL(TRIES, Resisted, '50% against level 11 is 100% against level 1');
   caster^.classLevels[C_Level.MAGE] := 21;
   TestKit.CheckEqualsL(0, Resisted, 'and 0% against level 21');
 
   { no spell (#786) }
-  GDVars.currentSpellBeing := C_Spell.NONE;
+  GDVars.currentSpellBeing := C_SPELL.NONE;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'an effect that is no spell meets the listed 50%');
   caster^.classLevels[C_Level.MAGE] := 1;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'whatever the creature''s own level');

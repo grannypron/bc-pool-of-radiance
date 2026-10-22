@@ -95,7 +95,7 @@ type
   PEffectRec = ^TEffectRec;
   PItemRec = ^TItemRec;
   TIconCols = array[1..6] of Byte;
-  { A character's spell slots: spell IDs, 0 = empty, C_Spell.PENDING_FLAG set while still being memorized. }
+  { A character's spell slots: spell IDs, 0 = empty, C_SPELL.PENDING_FLAG set while still being memorized. }
   TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
   TCharRecord = record
     { character name }

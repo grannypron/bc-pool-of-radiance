@@ -188,15 +188,15 @@ implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_Status,
-  C_Ifc, C_Dir, C_Spell, AbilAdj;
+  C_Ifc, C_Dir, C_SPELL, AbilAdj;
 
 var
   { the menu string list }
   spellList: Types.PItemRec;
   { spell ID per menu line }
-  spellIds: array[0..C_Spell.LINE_LAST] of Byte;
+  spellIds: array[0..C_SPELL.LINE_LAST] of Byte;
   { the scroll each Cast line reads from, nil for a memorized spell }
-  spellScrolls: array[0..C_Spell.LINE_LAST] of Types.PItemRec;
+  spellScrolls: array[0..C_SPELL.LINE_LAST] of Types.PItemRec;
   scrollPtrs: array[0..48] of Types.PItemRec;
   scrollCount: Byte;
   { Current item used for spell casting. }
@@ -286,8 +286,8 @@ begin
     p := p^.next;
   end;
   scroll := nil;
-  if (ch in [C_Keys.NONE, 'E']) or (count > C_Spell.LINE_LAST) then
-    SpellSelection := C_Spell.NONE
+  if (ch in [C_Keys.NONE, 'E']) or (count > C_SPELL.LINE_LAST) then
+    SpellSelection := C_SPELL.NONE
   else begin
     SpellSelection := spellIds[count];
     scroll := spellScrolls[count];
@@ -327,27 +327,27 @@ begin
       p := p^.next;
     end;
     { a full list takes no more lines }
-    if count > C_Spell.LINE_LAST then
+    if count > C_SPELL.LINE_LAST then
       Exit;
     lastLevel := GDConsts.spellTable[spellIds[count - 1]].levelSp;
     GetMem(p^.next, SizeOf(Types.TMenuNode));
     p := p^.next;
   end;
   p^.next := nil;
-  if GDConsts.spellTable[spell and C_Spell.ID_MASK].levelSp <> lastLevel then begin
-    p^.name := GDConsts.spellLevelNames[GDConsts.spellTable[spell and C_Spell.ID_MASK].levelSp];
+  if GDConsts.spellTable[spell and C_SPELL.ID_MASK].levelSp <> lastLevel then begin
+    p^.name := GDConsts.spellLevelNames[GDConsts.spellTable[spell and C_SPELL.ID_MASK].levelSp];
     p^.inUse := 1;
     GetMem(p^.next, SizeOf(Types.TMenuNode));
     p := p^.next;
     p^.next := nil;
   end;
-  if spell > C_Spell.ID_MASK then
+  if spell > C_SPELL.ID_MASK then
     p^.name := ' *'
   else
     p^.name := ' ' + Magic.SpellMark(creature, spell, mark);
-  p^.name := p^.name + GDConsts.spellNames[spell and C_Spell.ID_MASK];
+  p^.name := p^.name + GDConsts.spellNames[spell and C_SPELL.ID_MASK];
   p^.inUse := 0;
-  spellIds[count] := spell and C_Spell.ID_MASK;
+  spellIds[count] := spell and C_SPELL.ID_MASK;
 end;
 
 { The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
@@ -361,7 +361,7 @@ var
   learnable: Boolean;
 begin
   SpellMark := ' ';
-  id := spell and C_Spell.ID_MASK;
+  id := spell and C_SPELL.ID_MASK;
   if (id >= 1) and (id <= SizeOf(creature^.spellsKnown)) then
     case mark of
       MARK_KNOWN:
@@ -392,7 +392,7 @@ begin
   if CharHlp.ScrollLegible(creature, currentScrollPtr) then
     { 3 = High(TItemRec.spells) }
     for i := 1 to 3 do begin
-      if (forScribe and (currentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
+      if (forScribe and (currentScrollPtr^.spells[i] > C_SPELL.PENDING_FLAG)) or
           (not forScribe and (currentScrollPtr^.spells[i] > 0)) then begin
         Magic.AddSpellToList(creature, currentScrollPtr^.spells[i], mark);
         { 48 = High(scrollPtrs) }
@@ -423,7 +423,7 @@ procedure AddScrollLine(creature: Types.PCharRecord; item: Types.PItemRec; slot:
 var
   p: Types.PItemRec;
 begin
-  if lines <= C_Spell.LINE_LAST then begin
+  if lines <= C_SPELL.LINE_LAST then begin
     Magic.AddSpellToList(creature, item^.spells[slot], MARK_NONE);
     spellScrolls[lines] := item;
     Inc(lines);
@@ -456,8 +456,8 @@ begin
     if memOk then
       for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
         id := creature^.memorizedSpells[i];
-        if (id >= 1) and (id <= C_Spell.LAST) then
-          if (GDConsts.spellTable[id].levelSp = lvl) and (lines <= C_Spell.LINE_LAST) then begin
+        if (id >= 1) and (id <= C_SPELL.LAST) then
+          if (GDConsts.spellTable[id].levelSp = lvl) and (lines <= C_SPELL.LINE_LAST) then begin
             Magic.AddSpellToList(creature, id, MARK_NONE);
             Inc(lines);
           end;
@@ -468,7 +468,7 @@ begin
         if CharHlp.CastableScroll(creature, item) then
           for i := 1 to SizeOf(item^.spells) do begin
             id := CharHlp.ScrollSpellAt(item, i);
-            if id <> C_Spell.NONE then
+            if id <> C_SPELL.NONE then
               if GDConsts.spellTable[id].levelSp = lvl then
                 Magic.AddScrollLine(creature, item, i, lines);
           end;
@@ -485,7 +485,7 @@ var
 begin
   GenerateSpellList := False;
   spellList := nil;
-  for i := 0 to C_Spell.LINE_LAST do begin
+  for i := 0 to C_SPELL.LINE_LAST do begin
     spellIds[i] := 0;
     spellScrolls[i] := nil;
   end;
@@ -497,10 +497,10 @@ begin
     7: Magic.AddAvailableSpells(creature);
     0: for i := 0 to Types.SPELL_SLOT_LAST do
          if (creature^.memorizedSpells[i] > 0) and
-             (creature^.memorizedSpells[i] < C_Spell.PENDING_FLAG) then
+             (creature^.memorizedSpells[i] < C_SPELL.PENDING_FLAG) then
            Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
     5: for i := 0 to Types.SPELL_SLOT_LAST do
-         if creature^.memorizedSpells[i] > C_Spell.ID_MASK then
+         if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then
            Magic.AddSpellToList(creature, creature^.memorizedSpells[i], MARK_NONE);
     { every known spell, Restoration (56) too: SSI stopped at 55 }
     1: for i := 1 to SizeOf(creature^.spellsKnown) do
@@ -512,7 +512,7 @@ begin
     3: Magic.AddAllScrollSpells(creature, False, MARK_KNOWN);
     6: Magic.AddAllScrollSpells(creature, True, MARK_NONE);
     { only spells inside slots[0..1, 1..3]: Restoration (spell 56, level 7) would read slots[0, 7], xpAward's low byte }
-    4: for i := 1 to C_Spell.LAST do
+    4: for i := 1 to C_SPELL.LAST do
          with GDConsts.spellTable[i] do
            if (castClassSp >= 0) and (castClassSp <= 1) and (levelSp >= 1) and (levelSp <= 3) then
              if (creature^.slots[castClassSp, levelSp] > 0) and (creature^.spellsKnown[i] = 0) then
@@ -689,8 +689,8 @@ begin
           CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
           case spell of
-            C_Spell.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
-            C_Spell.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
+            C_SPELL.FIREBALL: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.FIREBALL]);
+            C_SPELL.LIGHTNING_BOLT: SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.LIGHTNING]);
           else
             SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
           end;
@@ -708,7 +708,7 @@ begin
         end;
         GDVars.currentSpellBeing := spell;
         GDVars.spellFns[GDVars.currentSpellBeing];
-        GDVars.currentSpellBeing := C_Spell.NONE;
+        GDVars.currentSpellBeing := C_SPELL.NONE;
         GDVars.gMultiTarget := 0;
       end;
     end else begin
@@ -743,7 +743,7 @@ begin
   GDVars.gMultiTarget := 1;
   for i := 1 to GDVars.spellTargetCount do begin
     if (GDVars.targetCreaturePtr[i]^.hostile <> hostFlag) or
-        ((GDVars.currentSpellBeing = C_Spell.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
+        ((GDVars.currentSpellBeing = C_SPELL.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
          (CbtMap.CountTargets(GDVars.targetCreaturePtr[i], 1) > 0)) then
       GDVars.targetCreaturePtr[i] := nil;
   end;
@@ -946,7 +946,7 @@ var
   smod: ShortInt;
 begin
   case GDVars.spellTargetCount of
-    1: if GDVars.currentSpellBeing = C_Spell.HOLD_PERSON then
+    1: if GDVars.currentSpellBeing = C_SPELL.HOLD_PERSON then
          smod := -2
        else
          smod := -3;
@@ -1395,7 +1395,7 @@ var
   cl: Byte;
 begin
   GDVars.gMultiTarget := 1;
-  if GDVars.currentSpellBeing = C_Spell.ITEM_FIREBALL then
+  if GDVars.currentSpellBeing = C_SPELL.ITEM_FIREBALL then
     cl := Dice.RollDice(1, 3) * 2 + 1
   else
     cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
@@ -1766,7 +1766,7 @@ begin
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);
   CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
-  GDVars.castTargetMenu(C_Spell.LIGHTNING_BOLT, True, GDVars.breathAim);
+  GDVars.castTargetMenu(C_SPELL.LIGHTNING_BOLT, True, GDVars.breathAim);
   GDVars.gTargetX := x + Pathing.SignOf(GDVars.gTargetX - x);
   GDVars.gTargetY := y + Pathing.SignOf(GDVars.gTargetY - y);
   if GDVars.gTargetX = x + 1 then
@@ -1792,11 +1792,11 @@ var
   i: Byte;
   found: Byte;
 begin
-  sp := spell and C_Spell.ID_MASK;
+  sp := spell and C_SPELL.ID_MASK;
   found := 0;
   { 3 = High(TItemRec.spells) }
   for i := 1 to 3 do
-    if Types.PItemRec(it)^.spells[i] and C_Spell.ID_MASK = sp then
+    if Types.PItemRec(it)^.spells[i] and C_SPELL.ID_MASK = sp then
       found := i;
   if found = 0 then
     Exit;
@@ -1871,8 +1871,8 @@ begin
   CastSpellMenu := Magic.ChooseSpell(7, 1, idx, notEmpty, scroll);
 end;
 
-{ Cast spell from item, a scroll or an effect-bearing item (an effect past C_Spell.LAST maps to spell effect -
-  C_Spell.ITEM_EFFECT_SHIFT), setting usingItem during the cast. A combat-only scroll spell outside combat is not cast:
+{ Cast spell from item, a scroll or an effect-bearing item (an effect past C_SPELL.LAST maps to spell effect -
+  C_SPELL.ITEM_EFFECT_SHIFT), setting usingItem during the cast. A combat-only scroll spell outside combat is not cast:
   Cast's message (Magic.ShowCombatOnlySpell) and 'Use it?', where Yes sets done and spends the scroll spell and No
   leaves done clear. In combat, a spell castable in combat (whenCast <> 0) ends the user's actions and sets done, cast
   or not. Past that prompt, only when the spell was cast, consume the scroll spell, or use quantity and then charges;
@@ -1888,8 +1888,8 @@ var
   cast: Boolean;
 begin
   id := spell;
-  if not CharHlp.ItemReadable(item) and (spell > C_Spell.LAST) then
-    id := spell - C_Spell.ITEM_EFFECT_SHIFT;
+  if not CharHlp.ItemReadable(item) and (spell > C_SPELL.LAST) then
+    id := spell - C_SPELL.ITEM_EFFECT_SHIFT;
   if (id < 1) or (id > SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then begin
     done := False;
     Exit;
@@ -1906,9 +1906,9 @@ begin
   if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
     CharDisp.DisplayCombatInterface;
   if not CharHlp.ItemReadable(item) then begin
-    if spell > C_Spell.LAST then
+    if spell > C_SPELL.LAST then
       { item effect -> spell id }
-      Dec(spell, C_Spell.ITEM_EFFECT_SHIFT);
+      Dec(spell, C_SPELL.ITEM_EFFECT_SHIFT);
     CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');

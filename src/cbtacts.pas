@@ -66,7 +66,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
-  C_Status, C_Gbvm, C_Dir, C_Sound, C_Spell, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
+  C_Status, C_Gbvm, C_Dir, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
@@ -978,7 +978,7 @@ begin
   end else begin
     if GDConsts.spellTable[spell].offensive = 0 then begin
       tgt.cr := GDVars.curChar;
-      if (spell <> C_Spell.CURE_LIGHT_WOUNDS) or CbtActs.FindCureTarget(GDVars.curChar, tgt.cr) then begin
+      if (spell <> C_SPELL.CURE_LIGHT_WOUNDS) or CbtActs.FindCureTarget(GDVars.curChar, tgt.cr) then begin
         tgt.x := CbtMap.CombatCellX(tgt.cr);
         tgt.y := CbtMap.CombatCellY(tgt.cr);
         found := True;
@@ -1082,11 +1082,11 @@ begin
           uses radius 2 when view3dFlag is clear). }
         if not b then begin
           radius := GDConsts.spellTable[spell].area and 7;
-          if spell = C_Spell.LIGHTNING_BOLT then
+          if spell = C_SPELL.LIGHTNING_BOLT then
             CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING)
-          else if spell = C_Spell.STINKING_CLOUD then
+          else if spell = C_SPELL.STINKING_CLOUD then
             CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE)
-          else if (spell = C_Spell.FIREBALL) or (spell = C_Spell.ITEM_FIREBALL) then begin
+          else if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then begin
             if GDVars.zone0^.view3dFlag = 0 then
               radius := 2;
             CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST);
@@ -1136,7 +1136,7 @@ begin
   end;
 end;
 
-{ Pick (C_Spell.NONE: from the Cast list) and validate a spell, rejecting camp-only ones. A casting time (castTime div
+{ Pick (C_SPELL.NONE: from the Cast list) and validate a spell, rejecting camp-only ones. A casting time (castTime div
   3) of 0 casts it now and ends the caster's actions; otherwise the caster "Begins Casting": spellCast holds the spell
   and initiative drops by the casting time (to at least 1), so it resolves on a later action. A scroll spell picked from
   the list gets the same camp-only check, then is cast from its scroll as Use does (Magic.UseItemSpell), but named as a
@@ -1156,15 +1156,15 @@ begin
   cast := False;
   spellId := spell;
   scroll := nil;
-  if spellId = C_Spell.NONE then begin
+  if spellId = C_SPELL.NONE then begin
     spellId := Magic.CastSpellMenu(idx, notEmpty, scroll);
-    if spellId = C_Spell.NONE then
+    if spellId = C_SPELL.NONE then
       scroll := nil;
   end;
-  if spellId > C_Spell.NONE then
+  if spellId > C_SPELL.NONE then
     if GDConsts.spellTable[spellId].whenCast = 0 then begin
       CharDisp.PrintBottomLine('Camp Only Spell');
-      spellId := C_Spell.NONE;
+      spellId := C_SPELL.NONE;
       scroll := nil;
     end;
   if scroll <> nil then begin
@@ -1180,7 +1180,7 @@ begin
     CbtMap.DisplayMapViewCentered(caster, 3, True);
     CharDisp.CombatPrintCreatureInfo(caster);
   end;
-  if spellId > C_Spell.NONE then begin
+  if spellId > C_SPELL.NONE then begin
     castTime := GDConsts.spellTable[spellId].castTime div 3;
     if castTime = 0 then begin
       Magic.CastSpellNC(spellId, Boolean(ai), True, cast);

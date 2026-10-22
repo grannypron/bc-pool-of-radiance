@@ -249,7 +249,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_Race, C_Status, C_Ifc, C_Align, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
 const
@@ -511,7 +511,7 @@ begin
   if creature^.acCur < 57 then
     creature^.acCur := 57;
   Inc(GDVars.gSaveRoll);
-  if GDVars.currentSpellBeing = C_Spell.MAGIC_MISSILE then
+  if GDVars.currentSpellBeing = C_SPELL.MAGIC_MISSILE then
     GDVars.pendingDamage := 0;
 end;
 
@@ -1297,7 +1297,7 @@ begin
   y := CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr);
   if not CbtActs.CanAttackTarget(creature, GDVars.otherCreatureCurrentPtr) then Exit;
   { the range budget in cells, read by WalkLine on entry: that of the Charm Person the gaze applies }
-  dist := GDConsts.spellTable[C_Spell.CHARM_PERSON].rangeFixed;
+  dist := GDConsts.spellTable[C_SPELL.CHARM_PERSON].rangeFixed;
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
                           GDVars.arenaPtr) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
@@ -1476,7 +1476,7 @@ end;
 { Immunity to electricity + Magic Missile (eff 91) }
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.currentSpellBeing = C_Spell.MAGIC_MISSILE then begin
+  if GDVars.currentSpellBeing = C_SPELL.MAGIC_MISSILE then begin
     EffHndlr.NullifyAttack(0);
     CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
   end else
@@ -1616,12 +1616,12 @@ var
   lvl: Byte;
   chance: Integer;
 begin
-  if GDVars.currentSpellBeing = C_Spell.NONE then
+  if GDVars.currentSpellBeing = C_SPELL.NONE then
     lvl := BASE_LEVEL
   else begin
     lvl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
-    if GDVars.usingItem and (lvl > C_Spell.ITEM_CASTER_LEVEL) then
-      lvl := C_Spell.ITEM_CASTER_LEVEL;
+    if GDVars.usingItem and (lvl > C_SPELL.ITEM_CASTER_LEVEL) then
+      lvl := C_SPELL.ITEM_CASTER_LEVEL;
   end;
   chance := Integer(pct) + (BASE_LEVEL - Integer(lvl)) * 5;
   if chance < 0 then

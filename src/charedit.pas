@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_Spell, C_Status, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_SPELL, C_Status, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -478,7 +478,7 @@ begin
     head := nil;
     tail := nil;
     n := 0;
-    for m := 1 to C_Spell.LAST do
+    for m := 1 to C_SPELL.LAST do
       with GDConsts.spellTable[m] do
         if (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
           mark := '  ';
