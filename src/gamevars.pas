@@ -283,11 +283,6 @@ var
   wildAnimFrame: Byte;
 
 var
-  { Door-opening flags }
-  { Door-opening flags: bash, pick and knock. }
-  doorOpen: array[0..2] of Byte;
-
-var
   { Combat round }
   { Combat round counter, 0-indexed }
   roundCounter: Byte;

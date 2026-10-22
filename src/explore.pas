@@ -17,11 +17,19 @@ var
     way out and sets it back to 1 }
   bottomMsgCleared: Byte;
 
+{ Put the doors in a new game's state, every way of opening one (bash, pick, knock) still to try
+  (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
+
+var
+  { Door-opening flags: bash, pick and knock. }
+  doorOpen: array[0..2] of Byte;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
   nibbles are untouched, and coordinates outside the map (0..Types.MAP_LAST) are ignored. }
@@ -95,7 +103,7 @@ begin
                  91..99: if Dice.RollDice(1, 6) = 1 then success := True;
                  100..255: if Dice.RollDice(1, 6) <= 2 then success := True;
                else
-                 GameVars.doorOpen[0] := 0;
+                 doorOpen[0] := 0;
                end;
           19, 20: if Dice.RollDice(1, 6) <= 3 then success := True;
           21, 22: if Dice.RollDice(1, 6) <= 4 then success := True;
@@ -103,7 +111,7 @@ begin
           24: if Dice.RollDice(1, 8) <= 7 then success := True;
           25..255: if Dice.RollDice(1, 10) <= 9 then success := True;
         else
-          GameVars.doorOpen[0] := 0;
+          doorOpen[0] := 0;
         end;
       end else
         case strCur of
@@ -145,7 +153,7 @@ begin
         success := True;
     p := p^.nextCharAddr;
   end;
-  GameVars.doorOpen[1] := 0;
+  doorOpen[1] := 0;
   if success then
     Explore.OpenBarrierAhead;
   PickLock := success;
@@ -238,7 +246,7 @@ begin
   Inc(GameVars.gMapY, GameDefs.dirDY[GameVars.gFacing]);
   View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
   GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-  FillChar(GameVars.doorOpen, SizeOf(GameVars.doorOpen), 1);
+  FillChar(doorOpen, SizeOf(doorOpen), 1);
   GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
   if GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     FxEngine.AdvanceTime(1, C_TIME.TURNS)
@@ -470,11 +478,11 @@ begin
            1: moved := True;
            2: begin
                 menuStr[0] := #0;
-                if GameVars.doorOpen[0] <> 0 then
+                if doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GameVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
+                if (doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GameVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
+                if (doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
                 then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';
@@ -492,11 +500,11 @@ begin
               end;
            3: begin
                 menuStr[0] := #0;
-                if GameVars.doorOpen[0] <> 0 then
+                if doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GameVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
+                if (doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GameVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_LEVEL.MAGE) then
+                if (doorOpen[2] <> 0) and Explore.PartyHasClass(C_LEVEL.MAGE) then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';
                 if menuStr = ' Exit' then
@@ -506,7 +514,7 @@ begin
                                                 White, False, False, unusedExtendedKey);
                   case c2 of
                     'B': moved := Explore.BashDoor;
-                    'P': GameVars.doorOpen[1] := 0;
+                    'P': doorOpen[1] := 0;
                     'K': moved := Explore.PartyCastsKnock;
                   end;
                 end;
@@ -530,6 +538,11 @@ begin
   Blit.FreePic(GameVars.portraitCache[2].pic);
   GameVars.portraitCache[1].pictureId := 255;
   GameVars.portraitCache[2].pictureId := 255;
+end;
+
+procedure ResetGame;
+begin
+  FillChar(doorOpen, SizeOf(doorOpen), 1);
 end;
 
 begin
