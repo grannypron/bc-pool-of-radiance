@@ -21,8 +21,8 @@ var
   { Combat outcome. }
   nonEscapedHostileFound: Boolean;
   partyFled: Boolean;
-  { Count of disabled or Animated creatures, which get no experience share }
-  nonAnimCount: Byte;
+  { party members who get no experience share: the disabled and the Animated }
+  nonSharerCount: Byte;
   { Experience share before individual bonuses. }
   expShare: LongInt;
   combatWon: Boolean;
@@ -30,8 +30,8 @@ var
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
   div 20, electrum div 2, gold x1, platinum x5, gems x250, jewelry x2200), as does each taken item's positive plus x400
-  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonAnimCount, and the share is
-  0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
+  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonSharerCount, and the share
+  is 0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
   level (levelHighest) of the current character. }
 procedure DetermineLootExp(var share: LongInt);
 var
@@ -82,7 +82,7 @@ begin
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonAnimCount;
+    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonSharerCount;
     if sharers > 0 then
       share := expTotal div sharers
     else
@@ -124,7 +124,7 @@ var
   nxt: Types.PCharRecord;
   b: Boolean;
 begin
-  nonAnimCount := 0;
+  nonSharerCount := 0;
   GDVars.partyDefeated := True;
   partyFled := False;
   p := GDVars.creatureList;
@@ -149,7 +149,7 @@ begin
         partyFled := False;
       end;
       if (p^.enabled = 0) or (p^.status = C_Status.ANIMATED) then
-        Inc(nonAnimCount);
+        Inc(nonSharerCount);
       p := p^.nextCharAddr;
     end;
     if combatWon then begin
