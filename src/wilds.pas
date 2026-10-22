@@ -39,6 +39,28 @@ const
 
 { GameDefs.wildMap and the override table both hold 1-based tile ids, hence each - 1. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
+const
+  { Special-location overrides on the 44x36 wilderness map, indexed by the WILD_* constants. Entries 1 and 2 have no
+    case arm in BuildWildernessMap, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
+  wildernessSpecialLocations: array[1..9] of Types.TSpecLoc = (
+    { 1 WILD_SILVER_DRAGON_DEN }
+    (x: 10; y: 9; icon: 240),
+    { 2 WILD_ZHENTIL_OUTPOST }
+    (x: 3; y: 32; icon: 2),
+    { 3 WILD_BUCCANEERS_BASE }
+    (x: 12; y: 31; icon: 2),
+    { 4 WILD_NOMAD_CAMP }
+    (x: 25; y: 11; icon: 1),
+    { 5 WILD_KOBOLD_CAVES }
+    (x: 32; y: 15; icon: 165),
+    { 6 WILD_UNNAMED_SITE }
+    (x: 33; y: 23; icon: 157),
+    { 7 WILD_LIZARD_MAN_KEEP }
+    (x: 37; y: 8; icon: 147),
+    { 8 WILD_SORCERERS_ISLAND }
+    (x: 19; y: 16; icon: 247),
+    { 9 WILD_PHLAN }
+    (x: 25; y: 27; icon: 256));
 var
   viewX: ShortInt;
   viewY: ShortInt;
@@ -64,30 +86,30 @@ begin
       icon := GameDefs.wildMap[mapY, mapX] - 1;
       { 9 = High(wildernessSpecialLocations) }
       for k := 1 to 9 do begin
-        if (mapX = GameDefs.wildernessSpecialLocations[k].x) and
-            (mapY = GameDefs.wildernessSpecialLocations[k].y) then begin
+        if (mapX = wildernessSpecialLocations[k].x) and
+            (mapY = wildernessSpecialLocations[k].y) then begin
           case k of
             WILD_BUCCANEERS_BASE: begin
               if GameVars.zone0^.buccaneersBaseGate <> 255 then
-                icon := GameDefs.wildernessSpecialLocations[k].icon - 1;
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_NOMAD_CAMP: begin
               if (GameVars.zone0^.nomadCampPresent <> 0) or ((GameVars.zone0^.nomadCampFlags and 8) <> 0)
                  or (GameVars.zone0^.nomadCampGate = 0) then
-                icon := GameDefs.wildernessSpecialLocations[k].icon - 1;
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_KOBOLD_CAVES: begin
               if (GameVars.zone0^.easternSitesGate and 2) = 0 then
-                icon := GameDefs.wildernessSpecialLocations[k].icon - 1;
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
-            WILD_UNNAMED_SITE: icon := GameDefs.wildernessSpecialLocations[k].icon - 1;
+            WILD_UNNAMED_SITE: icon := wildernessSpecialLocations[k].icon - 1;
             WILD_LIZARD_MAN_KEEP: begin
               if (GameVars.zone0^.easternSitesGate and 1) = 0 then
-                icon := GameDefs.wildernessSpecialLocations[k].icon - 1;
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_SORCERERS_ISLAND, WILD_PHLAN: begin
               if GameVars.zone0^.yarashMissionDone > 253 then
-                icon := GameDefs.wildernessSpecialLocations[k].icon - 1;
+                icon := wildernessSpecialLocations[k].icon - 1;
             end;
           end;
         end;
