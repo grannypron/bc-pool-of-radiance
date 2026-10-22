@@ -5,12 +5,16 @@ unit GameInit;
 
 interface
 
+{ Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
+  defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
+  (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
+  effect handlers. }
 procedure GameInit2;
 
-{ Puts the game in a new game's state, as at startup: the GBVM banks cleared, the party at (15, 1) facing west in the
-  3D map with no members, the script at its start and the game's statistics cleared. The settings, the loaded pictures
-  and wall sets, and their caches, are left alone. GameInit2 calls it; so does the main program after a party is
-  destroyed, having freed the party (SaveLoad.FreeParty), before the main menu. }
+{ Puts the game in a new game's state, as at startup: the GBVM banks cleared, the party at (15, 1) facing west in the 3D
+  map with no members, the script at its start and the game's statistics cleared. The settings, the loaded pictures and
+  wall sets, and their caches, are left alone. GameInit2 calls it; so does the main program after a party is destroyed,
+  having freed the party (SaveLoad.FreeParty), before the main menu. }
 procedure ResetGameState;
 
 implementation
@@ -24,7 +28,7 @@ var
   savedDir: Types.TPathStr;
   { ITEMS loading file record }
   itemsFile: file;
-  { ITEMS read result. }
+  { bytes read from ITEMS }
   itemsRead: Word;
 
 { Install every spell handler in GDVars.spellFns, the noncombat cast-target menu, and Magic.DragonBreathHandler as
@@ -106,8 +110,8 @@ begin
   GDVars.effectFns[88] := Magic.DragonBreathHandler;
 end;
 
-{ Install the effect handlers. Magic assigns slot 88; slots 73 and 74 use the CbtActs combat action handlers. }
-
+{ Install the effect handlers. InitSpellFns assigns slot 88 (Magic.DragonBreathHandler); slots 73 and 74 use the CbtActs
+  combat action handlers. }
 procedure InitEffectHandlers;
 begin
   GDVars.effectFns[C_Effect.BLESS] := EffHndlr.EffBless;
@@ -302,10 +306,6 @@ begin
   Stats.ResetGame;
 end;
 
-{ Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
-  defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
-  (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
-  effect handlers. }
 procedure GameInit2;
 var
   opened: Boolean;
@@ -390,8 +390,8 @@ begin
   TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }
   Options.LoadOptions;
-  { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs
-    given the same keys roll the same dice. }
+  { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs given
+    the same keys roll the same dice. }
   if ParamStr(2) = 'NORAND' then
     RandSeed := 1
   else

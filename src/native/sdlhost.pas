@@ -1,14 +1,13 @@
-{ The native build's window: shows Host's screen through its DAC and turns the window's key presses into the BIOS's
-  scan codes and characters in Host's keyboard buffer, as a PC's keyboard and BIOS did (a US layout, as the BIOS's).
-  It hooks Host.Service, which Crt's ReadKey, KeyPressed and Delay run, so the screen is shown and keys arrive while
-  the game waits; the screen is shown at most 60 times a second. Closing the window ends the program. For testing,
-  POOLRAD_SHOT names a file the screen is written to (a PPM image) twice a second, and POOLRAD_KEYS gives keys to
-  press, as if typed: words separated by spaces, each a wait in milliseconds (a number of two digits or more), a
-  character (a, A, 1, ?) or a key's name (enter, esc, space, tab, bs, up, down, left, right, home, end, pgup, pgdn,
-  ins, del, f1..f12), the names optionally after shift-, ctrl- or alt-. Each key is followed by KEY_GAP_MS: the game
-  drops keys typed ahead of the one it reads (GameIo.ReadGameKey), as a player's are not. The program
-  uses this unit (the unit tests do not, so they need no SDL). Objfpc mode, for its initialization and finalization.
-  Free Pascal only. }
+{ The native build's window: shows Host's screen through its DAC and turns the window's key presses into the BIOS's scan
+  codes and characters in Host's keyboard buffer, as a PC's keyboard and BIOS did (a US layout, as the BIOS's). It hooks
+  Host.Service, which Crt's ReadKey, KeyPressed and Delay run, so the screen is shown and keys arrive while the game
+  waits; the screen is shown at most once every 15 ms. Closing the window ends the program. For testing, POOLRAD_SHOT
+  names a file the screen is written to (a PPM image) twice a second, and POOLRAD_KEYS gives keys to press, as if typed:
+  words separated by spaces, each a wait in milliseconds (a number of two digits or more), a character (a, A, 1, ?) or a
+  key's name (enter, esc, space, tab, bs, up, down, left, right, home, end, pgup, pgdn, ins, del, f1..f12), the names
+  optionally after shift-, ctrl- or alt-. Each key is followed by KEY_GAP_MS: the game drops keys typed ahead of the one
+  it reads (GameIo.ReadGameKey), as a player's are not. The program uses this unit (the unit tests do not, so they need
+  no SDL). Objfpc mode, for its initialization and finalization. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 unit SdlHost;
@@ -252,7 +251,8 @@ begin
     ch := #0;
   end else if ((sc >= SC_INSERT) and (sc <= SC_UP)) or
               ((sc >= SC_KP_1) and (sc <= SC_KP_PERIOD) and not (num xor shift)) then begin
-    { a cursor key: with Ctrl, Home 77h, End 75h, Page Up 84h, Page Down 76h, Left 73h, Right 74h }
+    { a cursor key: with Ctrl, Home 77h, End 75h, Page Up 84h, Page Down 76h, Left 73h, Right 74h, Up 8Dh, Down 91h,
+      Insert 92h, Delete 93h; keypad 5 and Alt give nothing }
     ch := #0;
     if ctrl then
       case scan of
@@ -381,8 +381,8 @@ end;
 procedure Open;
 begin
   { Free Pascal traps floating-point errors (an invalid operation, a division by zero); C code never expects that, and
-    the system's own libraries make NaNs and infinities freely: macOS's Core Animation stopped the program as SDL
-    made the window (CFNumberCreate, from CALayer). Masked, as a C program has them, before SDL runs any. }
+    the system's own libraries make NaNs and infinities freely: macOS's Core Animation stopped the program as SDL made
+    the window (CFNumberCreate, from CALayer). Masked, as a C program has them, before SDL runs any. }
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   if not SDL_Init(SDL_INIT_VIDEO) then
     Fail('cannot start SDL');

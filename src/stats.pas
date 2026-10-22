@@ -28,7 +28,7 @@ const
   KNOCKED_DOWN = 11;
   DIED = 12;
   STAT_COUNT = 12;
-  { the kinds of creature a block keeps kills of; one past that goes under OTHER }
+  { the kill slots in a block: KINDS - 1 kinds of creature by name, then OTHER for every kind past them }
   KINDS = 48;
   { the counters' names, for the Stats page }
   NAMES: array[1..STAT_COUNT] of string[17] = ('Kills', 'Damage done', 'Damage taken', 'Healing given',
@@ -56,10 +56,10 @@ function BlockOf(creature: Types.PCharRecord): PStatBlock;
 { Add n to counter stat of creature, when it is a party member, and of the game. }
 procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
 
-{ CharHlp.InflictDamage's report: victim lost hp hit points to actor (curChar, the creature acting; may be nil), and
-  was up (okay or animated) before it. In combat a party member's blow on a creature outside the party counts as
-  damage done, and its fall as a kill of the victim's kind; a party member's loss counts as damage taken, its fall as
-  knocked down, and its death as died. }
+{ CharHlp.InflictDamage's report: victim lost hp hit points to actor (curChar, the creature acting; may be nil), and was
+  up (okay or animated) before it. In combat a party member's blow on a creature outside the party counts as damage
+  done, and its fall as a kill of the victim's kind; a party member's loss counts as damage taken, its fall as knocked
+  down, and its death as died. }
 procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
 
 { A party member that bled to death in combat. }
@@ -69,9 +69,9 @@ procedure BledOut(creature: Types.PCharRecord);
   spell, is being resolved, or when byPower (a paladin's laying on of hands). }
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 
-{ Around one action in the loot menu after a fight: MarkCoins notes each party member's coin (copper to platinum, at
-  its worth in copper), and SettleCoins adds what each has gained since, or takes off what it put back, to its Coin
-  looted (net) and the game's. }
+{ Around one action in the loot menu after a fight: MarkCoins notes each party member's coin (copper to platinum, at its
+  worth in copper), and SettleCoins adds what each has gained since, or takes off what it put back, to its Coin looted
+  (net) and the game's. }
 procedure MarkCoins;
 procedure SettleCoins;
 
@@ -84,8 +84,8 @@ procedure ResetGame;
 { Write creature's block to <fn>.sts, erasing an old one first; nothing is written for a creature with no block. }
 procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
 
-{ Read creature's block from <fn>.sts: one of this format, made for a character of this name and randByte. Without
-  one the creature starts with an empty block when it next counts. }
+{ Read creature's block from <fn>.sts: one of this format, made for a character of this name and randByte. Without one
+  the creature starts with an empty block when it next counts. }
 procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
 
 { Write the game's totals to <fn> / read them back (the totals are cleared when the file is not one of this format). }

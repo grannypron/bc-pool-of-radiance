@@ -1,10 +1,14 @@
-{ Resting, spell preparation and game-clock advancement, including expiration of timed effects. }
+{ Resting: the rest timer and its menu, and the healing and spell preparation a rest brings, advancing the game clock
+  and timing out effects through FxEngine.AdvanceTime. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit GameTime;
 
 interface
 
+{ Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
+  dsRestingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
+  stop. Returns True when a scripted random interruption ends the rest. }
 function CampRest(interactive: Boolean): Boolean;
 
 implementation
@@ -16,7 +20,7 @@ var
   { Spell preparation timers for the eight party slots. }
   prepTimers: array[1..8] of Byte;
 
-{ Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99 }
+{ Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99. }
 procedure ValidateRestTime;
 begin
   Clock.ValidateClock(GDVars.dsRestingTimeGbvm, False);
@@ -81,7 +85,7 @@ end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
   highlighted column (sel 2 = Mins, 3 = Hours, 4 = Days); Enter = the highlighted option. Inc/Dec on the Mins column
-  steps by 5 minutes }
+  steps by 5 minutes. }
 function CampRestMenu: Boolean;
 var
   ext: Boolean;
@@ -97,22 +101,22 @@ begin
                                   White, True, False, ext);
     if ext then
       case ch of
-        { up arrow    -> 'I'nc }
+        { up arrow -> 'I'nc }
         C_Keys.UP: ch := 'I';
         { down arrow -> 'D'ec }
         C_Keys.DOWN: ch := 'D';
         { left arrow }
         C_Keys.LEFT: begin
-                    Inc(sel);
-                    if sel > C_Time.DAYS then sel := C_Time.TURNS;
-                    ch := #88;
-                  end;
+                       Inc(sel);
+                       if sel > C_Time.DAYS then sel := C_Time.TURNS;
+                       ch := #88;
+                     end;
         { right arrow }
         C_Keys.RIGHT: begin
-                     Dec(sel);
-                     if sel < C_Time.TURNS then sel := C_Time.DAYS;
-                     ch := #88;
-                   end;
+                        Dec(sel);
+                        if sel < C_Time.TURNS then sel := C_Time.DAYS;
+                        ch := #88;
+                      end;
       else
         ch := #88;
       end;
@@ -140,7 +144,7 @@ begin
 end;
 
 { Every 288 five-minute ticks (24 h) of rest, restore 1 hp to every creature in GDVars.creatureList. The "Healed" banner
-  prints unconditionally; the party pane redraws only if anyone actually healed }
+  prints unconditionally; the party pane redraws only if anyone actually healed. }
 procedure CheckRestingHeal;
 var
   healed: Boolean;
@@ -237,7 +241,7 @@ end;
 
 { Per rest tick: count each party slot's prep timer down (a zero timer wraps to 255); when it reaches zero with the base
   time expired (spellPrepTime = 0), finish the pending scribe or memorization and reload the timer with 3 ticks per
-  level of the next pending spell (15 min/level) }
+  level of the next pending spell (15 min/level). }
 procedure AdvanceSpellPrep;
 var
   i: Byte;
@@ -294,9 +298,6 @@ begin
   end;
 end;
 
-{ Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
-  dsRestingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers
-  to stop. Returns True when a scripted random interruption ends the rest. }
 function CampRest(interactive: Boolean): Boolean;
 var
   cur: Types.PCharRecord;

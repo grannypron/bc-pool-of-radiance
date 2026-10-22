@@ -89,9 +89,9 @@ begin
     GDVars.arenaPtr^.cells[y, x] := WALL;
 end;
 
-{ Walk WALKER to one of goals a RouteStep at a time, through the bodies in open and keeping off terrain avoid; the
-  steps taken until it arrives or its next step is onto a body (where the AI waits), or -1 when it takes more than
-  limit or lands on a wall or on avoid. }
+{ Walk WALKER to one of goals a RouteStep at a time, through the bodies in open and keeping off terrain avoid; the steps
+  taken until it arrives or its next step is onto a body (where the AI waits), or -1 when it takes more than limit or
+  lands on a wall or on avoid. }
 function WalkSteps(goals, open: Pathing.TSlotSet; avoid: Byte; limit: Integer): Integer;
 var
   n: Integer;
@@ -133,8 +133,8 @@ begin
     GDVars.arenaPtr^.cells[y, x] := WALL;
 end;
 
-{ #769: a dead-end corridor, one cell wide, from (19, 10) east to (30, 10), walled at (31, 10); TARGET at its end
-  with FRONT in front of it, and WALKER out in the open at (5, 10). }
+{ #769: a dead-end corridor, one cell wide, from (19, 10) east to (30, 10), walled at (31, 10); TARGET at its end with
+  FRONT in front of it, and WALKER out in the open at (5, 10). }
 procedure CorridorArena;
 begin
   ClearArena;
@@ -146,8 +146,8 @@ begin
   Place(FRONT, 29, 10, 1);
 end;
 
-{ Monsters reach a party they can reach (#769): a target hemmed in by its own side, a corridor blocked by the
-  walker's own side, and a Stinking Cloud in the short way. }
+{ Monsters reach a party they can reach (#769): a target hemmed in by its own side, a corridor blocked by the walker's
+  own side, and a Stinking Cloud in the short way. }
 procedure CheckReachable;
 begin
   { the target is shut in behind FRONT: no walk to it, but one to FRONT, which becomes the goal }
@@ -183,8 +183,8 @@ begin
   Place(BLOCKER, 0, 0, 0);
   occ[0, 0] := 0;
   TestKit.CheckEqualsL(4, WalkSteps([TARGET, FRONT], [], 0, 60), 'once it has gone the walk goes on');
-  { a Stinking Cloud in the near gap of a wall: through it for a walker that does not mind it, round by the far gap
-    for one that keeps out }
+  { a Stinking Cloud in the near gap of a wall: through it for a walker that does not mind it, round by the far gap for
+    one that keeps out }
   ClearArena;
   WallColumn(8, 0, 4);
   WallColumn(8, 6, 19);
@@ -219,8 +219,8 @@ begin
                 'a wall in the way: the first step heads for the gap');
   { 11 steps down to the gap at (8, 16) and 10 back up beside the target }
   TestKit.CheckEqualsL(21, WalkSteps([TARGET], [], 0, 60), 'and the walk goes round the wall''s foot');
-  { a dead end: a pocket walled north, south and east (the long wall), open to the west, away from the target; the
-    walk backs out of it, where heading at the target would only push into the wall }
+  { a dead end: a pocket walled north, south and east (the long wall), open to the west, away from the target; the walk
+    backs out of it, where heading at the target would only push into the wall }
   ClearArena;
   WallColumn(8, 0, 15);
   GDVars.arenaPtr^.cells[3, 5] := WALL;

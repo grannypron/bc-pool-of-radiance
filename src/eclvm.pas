@@ -74,7 +74,6 @@ const
   { location type 4, Eastern Wilderness }
   WILD_EAST_SCRIPT = 27;
 
-
 procedure CallEclScript(address: Word); forward;
 
 { True when GameLoop is to return so the program starts it again on another game: a quick load was asked for, or a
@@ -152,8 +151,8 @@ begin
   end;
 end;
 
-{ ADD, SUBTRACT, DIVIDE, MULTIPLY: combine vars 1 and 2 and store the result at var 3's address. SUBTRACT computes var 2
-  - var 1. DIVIDE by zero stores 0; v1.3 divided anyway and halted with runtime error 200. }
+{ ADD, SUBTRACT, DIVIDE, MULTIPLY: combine vars 1 and 2 and store the result at var 3's address. SUBTRACT computes
+  var 2 - var 1. DIVIDE by zero stores 0; v1.3 divided anyway and halted with runtime error 200. }
 procedure EclArith;
 var
   address: Word;
@@ -887,8 +886,8 @@ begin
 end;
 
 { COMBAT: with no monsters and no duel, enter the shop when C_Gbvm.ENTER_SHOP is 1, the vault when it is 2, or the
-  temple when C_Gbvm.ENTER_TEMPLE is 1 (MoneyCal.TEMPLE_FULL_PRICE) or 2 (TEMPLE_TENTH_OFF), else run PostCbt.PostCombat.
-  Otherwise fight, then run PostCbt.PostCombat. Afterwards restore the interface state. }
+  temple when C_Gbvm.ENTER_TEMPLE is 1 (MoneyCal.TEMPLE_FULL_PRICE) or 2 (TEMPLE_TENTH_OFF), else run
+  PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat. Afterwards restore the interface state. }
 procedure EclCombat;
 var
   dist: Word;
@@ -1134,7 +1133,7 @@ var
     waited := True;
   end;
 
-  { The party closes in and the menu comes round again, or with the monsters at hand it is a fight (3). }
+  { The party closes in and the menu comes round again, or with the monsters at hand it is a parley (3). }
   procedure ApproachOrFight;
   begin
     if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
@@ -1683,8 +1682,8 @@ begin
   Inc(GDVars.curRow);
 end;
 
-{ Run the command at the IP (curOpcode). An opcode with no handler, such as $1F, is stepped over as SkipEclCmd steps over
-  it (its operands where SkipEclCmd knows them, otherwise the opcode byte alone); v1.3 left the IP on it, so
+{ Run the command at the IP (curOpcode). An opcode with no handler, such as $1F, is stepped over as SkipEclCmd steps
+  over it (its operands where SkipEclCmd knows them, otherwise the opcode byte alone); v1.3 left the IP on it, so
   CallEclScript ran it forever. }
 procedure ExecNextEclCmd;
 begin
@@ -1808,7 +1807,8 @@ begin
   until newEclFlag = 0;
 end;
 
-{ Run the initial script, then process map, camp, search and movement actions until the party is defeated. }
+{ Run the initial script, then process map, camp, search and movement actions until the party is defeated or GameLoop
+  is to return for another game (Reloading). }
 procedure GameLoop;
 var
   cmd: Char;

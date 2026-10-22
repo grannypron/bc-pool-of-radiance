@@ -8,7 +8,7 @@ const
   { TBaseItemRec.props weapon-property bit flags }
   { relates to arrow ammo (bow shoots / is arrows) }
   PROP_ARROWS = $01;
-  { TBaseItemRec.props weapon-property bit: the Dexterity missile-attack bonus applies }
+  { the Dexterity missile-attack bonus applies }
   PROP_DEX_MISSILE = $02;
   { Strength damage bonus applies }
   PROP_STR_BONUS = $04;
@@ -52,6 +52,7 @@ const
   RANSEUR = 29;
   SPETUM = 32;
   TRIDENT = 39;
+  { the swords a thief may backstab with run BROAD_SWORD..SHORT_SWORD; FixWeaponClasses also corrects SHORT_SWORD }
   BROAD_SWORD = 35;
   LONG_SWORD = 36;
   SHORT_SWORD = 37;

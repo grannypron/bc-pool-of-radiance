@@ -24,7 +24,7 @@ procedure PathFind(var req: Types.TPathReq);
 function NextPathStep(var req: Types.TPathReq): Boolean;
 
 { True when dir (0..7) is a best direction from (x,y) toward (tx,ty), by a 90-degree cone test around the cell one step
-  in dir; 8 and above (no direction) is always True. False if any coordinate is outside 0..49 / 0..24 }
+  in dir; 8 and above (no direction) is always True. False if any coordinate is outside 0..49 / 0..24. }
 function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
 
 { Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
@@ -42,23 +42,23 @@ procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte;
   with a negative X offset. }
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 
-{ Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: dsTargetCreaturePtr
-  and spellTargetCount. }
+{ Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: dsTargetCreaturePtr and
+  spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 
 { The first step of a shortest walk that brings the creature in arena slot slot next to one of the creatures in goals
-  (some cell of each body within one step of the other's), found breadth first over the arena (#668); goal returns
-  which one. A cell the creature's body would cover must be on the arena, not a wall (terrain cost 255), not terrain
-  avoid (0 for none) and not another creature's (occupant) unless that one is in open (#769); the steps are the eight
-  directions, the ones nearest the heading straight at the nearest goal tried first. False, with dir and goal
-  unchanged, when the creature is next to a goal already or no walk reaches one. }
+  (some cell of each body within one step of the other's), found breadth first over the arena (#668); goal returns which
+  one. A cell the creature's body would cover must be on the arena, not a wall (terrain cost 255), not terrain avoid (0
+  for none) and not another creature's (occupant) unless that one is in open (#769); the steps are the eight directions,
+  the ones nearest the heading straight at the nearest goal tried first. False, with dir and goal unchanged, when the
+  creature is next to a goal already or no walk reaches one. }
 function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOccupant;
                    var dir, goal: Byte): Boolean;
 
 implementation
 
-
 uses GDConsts, GDVars, C_Dir;
+
 function SignOf(v: Integer): Integer;
 begin
   if v < 0 then
@@ -359,8 +359,8 @@ type
   { the cells to visit, x + 50 * y }
   TRouteQueue = array[0..(ARENA_LAST_X + 1) * (ARENA_LAST_Y + 1) - 1] of Word;
 
-{ True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, no wall, not terrain
-  avoid, and nobody on it but slot itself and the creatures in open. }
+{ True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, not terrain 0, no wall,
+  not terrain avoid, and nobody on it but slot itself and the creatures in open. }
 function CanStand(x, y: ShortInt; size, slot: Byte; open: TSlotSet; avoid: Byte; occupant: TOccupant): Boolean;
 var
   i: Byte;
@@ -404,8 +404,8 @@ begin
       end;
 end;
 
-{ Mark in near each cell within one step of a goal's body with that goal (the first goal marked keeps a cell), and
-  point heading from (sx, sy) straight at the nearest goal. }
+{ Mark in near each cell within one step of a goal's body with that goal (the first goal marked keeps a cell), and point
+  heading from (sx, sy) straight at the nearest goal. }
 procedure MarkGoals(goals: TSlotSet; sx, sy: ShortInt; var near: TRouteMarks; var heading: Byte);
 var
   s: Byte;

@@ -5,14 +5,14 @@
   routine follows its assembly line by line, registers as variables, 16-bit arithmetic wrapping as the 8086's does.
 
   The port writes go to PortWrite (SndChip's speaker and SN76489 emulation, which SdlSound sets up), or, once
-  SetTraceBuffer has been called, into its buffer, as the TASM trace build's do: tests/sndtrc.pas forwards to the
-  trace entries here, so TSndSeq checks this sequencer against the record taken from SSI's.
+  SetTraceBuffer has been called, into its buffer, as the TASM trace build's do: tests/sndtrc.pas forwards to the trace
+  entries here, so TSndSeq checks this sequencer against the record taken from SSI's.
 
-  The timer interrupt is Tick, which the sound output runs 236.7 times a second of sound (SndChip.Render); it runs
-  only while InstallSoundTimer has the timer "hooked". With no sound output (Rendered False: no audio device, or the
-  tests), SoundTimerTicks and SoundVoiceTune run the ticks the clock owes instead, so the game's waits and its music's
-  end still come. The output runs on its own thread: Lock and Unlock (SdlSound's) keep a tick out of the entries, as
-  seqBusy does on DOS. Objfpc mode for the procedure variables' nil. Free Pascal only. }
+  The timer interrupt is Tick, which the sound output runs 236.7 times a second of sound (SndChip.Render); it runs only
+  while InstallSoundTimer has the timer "hooked". With no sound output (Rendered False: no audio device, or the tests),
+  SoundTimerTicks and SoundVoiceTune run the ticks the clock owes instead, so the game's waits and its music's end still
+  come. The output runs on its own thread: Lock and Unlock (SdlSound's) keep a tick out of the entries, as seqBusy does
+  on DOS. Objfpc mode for the procedure variables' nil. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 {$R-}
@@ -409,8 +409,8 @@ begin
   PortOut(PORT_GATE, (GateIn and $FC) or bl);
 end;
 
-{ tick_tandy: step the four Tandy voices, then write all four to the SN76489. dl walks the latch bytes 80h, 0A0h,
-  0C0h, 0E0h; 0E0h is the noise voice, which takes no second period byte. }
+{ tick_tandy: step the four Tandy voices, then write all four to the SN76489. dl walks the latch bytes 80h, 0A0h, 0C0h,
+  0E0h; 0E0h is the noise voice, which takes no second period byte. }
 procedure TickTandy;
 var
   si: Word;

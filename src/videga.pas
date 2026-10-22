@@ -20,7 +20,7 @@ const
   EGA_STAGE_SEG = $A200;
 
 var
-  { the video segments of the displayed page and of the other page; RenderChar writes both }
+  { the video segments of the displayed page and of the other page; DrawGlyph writes both }
   egaCurPage: Word;
   egaOtherPage: Word;
 
@@ -57,8 +57,7 @@ begin
   egaCurPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);
 end;
 
-{ SetupEgaOtherPage: Store the other page's segment base in egaOtherPage using the same 512-paragraph stride, without a
-  BIOS call }
+{ Store the other page's segment base in egaOtherPage, with the same 512-paragraph stride and no BIOS call. }
 procedure SetupEgaOtherPage(page: Byte);
 begin
   egaOtherPage := C_Video.EGA_VIDEO_SEG + (Word(page) shl 9);

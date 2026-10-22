@@ -13,8 +13,8 @@ procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, dr
 
 implementation
 
-
 uses Crt, GDConsts, GDVars, TextRend, StrUtil;
+
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 begin
   if GDVars.stingHpFlag <> 0 then begin

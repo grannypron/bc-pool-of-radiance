@@ -103,8 +103,8 @@ begin
   end;
 end;
 
-{ True for a monster: notPcNpc = 1 in its combat record. A creature without a combat record counts as a party member;
-  a COMBAT with no monsters (a treasure-only pickup) reaches the results without giving the party combat records. }
+{ True for a monster: notPcNpc = 1 in its combat record. A creature without a combat record counts as a party member; a
+  COMBAT with no monsters (a treasure-only pickup) reaches the results without giving the party combat records. }
 function IsMonster(p: Types.PCharRecord): Boolean;
 begin
   IsMonster := (p^.combatAddr <> nil) and (p^.combatAddr^.notPcNpc = 1);
@@ -164,14 +164,14 @@ begin
         if not partyFled then begin
           case p^.status of
             C_Status.RUNNING: begin
-                 p^.status := C_Status.OKAY;
-                 p^.enabled := 1;
-               end;
+                                p^.status := C_Status.OKAY;
+                                p^.enabled := 1;
+                              end;
             C_Status.DYING: p^.status := C_Status.UNCONSCIOUS;
             C_Status.UNCONSCIOUS: if p^.hpCur > 0 then begin
-                 p^.status := C_Status.OKAY;
-                 p^.enabled := 1;
-               end;
+                                    p^.status := C_Status.OKAY;
+                                    p^.enabled := 1;
+                                  end;
           end;
         end else begin
           GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $81;
@@ -365,8 +365,8 @@ begin
     PostCbt.LootTakeItemMenu;
 end;
 
-{ The loot menu is 'View Take Pool Share' with money left, 'View Take Pool' with only items left (each followed by '
-  Detect Exit' when items are left and the current character has Detect Magic, spell 5 cleric / 11 magic-user,
+{ The loot menu is 'View Take Pool Share' with money left, 'View Take Pool' with only items left (each followed by
+  ' Detect Exit' when items are left and the current character has Detect Magic, spell 5 cleric / 11 magic-user,
   memorized, else ' Exit'), or 'View Pool Exit' with nothing left. Leaving with treasure left asks for confirmation. }
 procedure LootMenu;
 var
@@ -424,11 +424,11 @@ begin
         'D': if hasDetect then
                Magic.CastSpellNC(detectSpell, False, False, ext);
         'E', C_Keys.NONE: begin
-                   Money.DetermineTreasure(treasure, items);
-                   done := not (treasure or items) or
-                           not Money.GoBackForIt('There is still treasure left.  ',
-                                                 'Do you want to go back and claim your treasure?');
-                 end;
+                            Money.DetermineTreasure(treasure, items);
+                            done := not (treasure or items) or
+                                    not Money.GoBackForIt('There is still treasure left.  ',
+                                                          'Do you want to go back and claim your treasure?');
+                          end;
       end;
     Stats.SettleCoins;
   until done;
@@ -436,8 +436,8 @@ end;
 
 { Monsters and hostile creatures are removed, counting the ones not enabled in C_Gbvm.MONSTERS_DEFEATED; the others get
   their combat records freed, and while the Quick Ends With Fight setting is on (GDVars.quickEnds) party members leave
-  Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and
-  animated creatures keep quickfight, as Space in combat leaves them. curChar is left at the list head. }
+  Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
+  creatures keep quickfight, as Space in combat leaves them. curChar is left at the list head. }
 procedure PostCombatCreatureCleanup;
 var
   p: Types.PCharRecord;

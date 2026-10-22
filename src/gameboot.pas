@@ -42,10 +42,10 @@ end;
 {$ENDIF}
 
 { A POOL.CFG path made ready for file names to be appended: spaces trimmed, the current drive (or, for a relative path,
-  the current directory) put in front of a path without a drive letter, and a closing backslash. An empty path gives
-  the current directory, and a drive alone (C:) the current directory on that drive. A path that leaves no room for a
-  file name within a DOS path (Types.TPathStr; the longest names, such as WALLDEF1.DAX, are 12 characters) stops the
-  game with a message. }
+  the current directory) put in front of a path without a drive letter, and a closing backslash. An empty path gives the
+  current directory, and a drive alone (C:) the current directory on that drive. A path that leaves no room for a file
+  name within a DOS path (Types.TPathStr; the longest names, such as WALLDEF1.DAX, are 12 characters) stops the game
+  with a message. }
 function NormalizePath(path: String): String;
 const
   LONGEST_NAME = 12;
@@ -79,8 +79,8 @@ end;
 
 {$IFDEF FPC}
 { POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game is the current folder
-  (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\ when it
-  names one elsewhere. NatFile turns the backslashes into the system's separator as each file is opened. }
+  (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\
+  when it names one elsewhere. NatFile turns the backslashes into the system's separator as each file is opened. }
 procedure NativeFolders(var gameDir, saveDir: String);
 var
   game: String;
@@ -157,8 +157,8 @@ begin
 {$IFNDEF FPC}
   if OVERLAY_BUF_BYTES - OvrGetBuf <= MemAvail then begin
     OvrSetBuf(OVERLAY_BUF_BYTES);
-    { probation (#612): an overlay called while it sits in the last third of the buffer is kept rather than dropped,
-      so the units a stretch of play keeps calling stay loaded }
+    { probation (#612): an overlay called while it sits in the last third of the buffer is kept rather than dropped, so
+      the units a stretch of play keeps calling stay loaded }
     OvrSetRetry(OvrGetBuf div 3);
   end else begin
     Blit.RestoreVideoMode;

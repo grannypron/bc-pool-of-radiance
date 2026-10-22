@@ -1,8 +1,8 @@
-{ Tests for the video drivers' picture routines in each mode (CGA, EGA, Tandy, VGA), without video hardware:
-  installing a driver only fills GDVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0
-  transparent, is converted from DAX's 4 bits a pixel (Blit.ExpandPicFrames) and its bytes and mask checked against
-  the mode's layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell
-  fill and the picture blitted through its mask. CGA's colour map takes colour c to CGA colour c mod 4. }
+{ Tests for the video drivers' picture routines in each mode (CGA, EGA, Tandy, VGA), without video hardware: installing
+  a driver only fills GDVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0 transparent,
+  is converted from DAX's 4 bits a pixel (Blit.ExpandPicFrames) and its bytes and mask checked against the mode's
+  layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell fill and the
+  picture blitted through its mask. CGA's colour map takes colour c to CGA colour c mod 4. }
 {$I COMPILER.INC}
 program TVidPic;
 
@@ -154,8 +154,8 @@ begin
   VidTdy.Install;
   CheckMode('Tandy', 8, 8, '0123456776543210', 'F00000000000000F', '7654321001234567', '0000000FF0000000',
             '01234C6776C43210', '99999999', 'F12345677654321F');
-  { EGA: four plane bytes a row (bit p of each pixel's colour in plane p, leftmost pixel in bit 7); one mask byte a
-    row, a bit for each colour-0 pixel }
+  { EGA: four plane bytes a row (bit p of each pixel's colour in plane p, leftmost pixel in bit 7); one mask byte a row,
+    a bit for each colour-0 pixel }
   VidEga.Install;
   CheckMode('EGA', 8, 2, '55330F00AACCF000', '8001', 'AACCF00055330F00', '0180', '51330F048ACCF020', 'FF0000FF',
             'D5B38F80ABCDF101');

@@ -33,8 +33,8 @@ const
   BOTTOM_ROW = 22;
   TITLE_ROW = 1;
   TEXT_TOP = 3;
-  { the pane's text rows; an item longer than that gives up a row to "(more)" above a page with one before it and
-    below a page with one after it }
+  { the pane's text rows; an item longer than that gives up a row to "(more)" above a page with one before it and below
+    a page with one after it }
   TEXT_ROWS = BOTTOM_ROW - TEXT_TOP + 1;
   { how long the highlight rests before the pane shows its item, in TextRend.GetTicks centiseconds }
   PREVIEW_DELAY = 25;

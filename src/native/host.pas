@@ -1,8 +1,8 @@
 {$I COMPILER.INC}
 { The native build's stand-ins for the PC the game ran on: the VGA's memory and DAC, the video BIOS's INT 10h, the BIOS
   clock and the BIOS's keyboard buffer. Plain memory, no SDL, so the unit tests link without it: SdlHost shows this
-  screen and fills the keyboard buffer, through serviceHook. Free Pascal only: the DOS build has the hardware. The
-  units that call INT 10h use this unit after Dos, so its Registers and Intr are the ones they see. }
+  screen and fills the keyboard buffer, through serviceHook. Free Pascal only: the DOS build has the hardware. The units
+  that call INT 10h use this unit after Dos, so its Registers and Intr are the ones they see. }
 unit Host;
 
 interface
@@ -40,8 +40,8 @@ var
   (waiting for a key, Delay). }
 procedure Service;
 
-{ The BIOS keyboard buffer: a key as INT 16h gives it, scan code in the high byte and character in the low (0 for a
-  key with no character: a function key, a cursor key, an Alt combination). A full buffer drops the key, as the BIOS's
+{ The BIOS keyboard buffer: a key as INT 16h gives it, scan code in the high byte and character in the low (0 for a key
+  with no character: a function key, a cursor key, an Alt combination). A full buffer drops the key, as the BIOS's
   does. }
 procedure PushKey(scan, ch: Byte);
 function KeyWaiting: Boolean;
@@ -69,7 +69,7 @@ uses SysUtils;
 {$I BIOSFONT.INC}
 
 const
-  { the BIOS's buffer holds 15 keys }
+  { a ring of 16 words, one always empty: it holds 15 keys, as the BIOS's does }
   KEY_BUFFER_KEYS = 16;
 
 var

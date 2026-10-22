@@ -37,10 +37,10 @@ uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo, StrUtil, Explo
 
 procedure DisplayViewBuf; forward;
 
-{ DrawAutoMap: The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols
-  260 + N|E*2|S*4|W*8 from the wall-TYPE nibbles, then the party arrow 256 + facing div 2. 256 is symSetFirst[4],
-  so the four arrows are 256..259 and the sixteen wall combinations 260..275, all inside 8x8 symbol set 4. The
-  window origin clamps to 0..5 (16-wide map, 11-wide window) }
+{ The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols 260 + N|E*2|S*4|W*8 from the
+  wall-TYPE nibbles, then the party arrow 256 + facing div 2. 256 is symSetFirst[4], so the four arrows are 256..259 and
+  the sixteen wall combinations 260..275, all inside 8x8 symbol set 4. The window origin clamps to 0..5 (16-wide map,
+  11-wide window). }
 procedure DrawAutoMap(x, y: ShortInt; facing: Byte);
 var
   pwx: ShortInt;
@@ -85,8 +85,8 @@ begin
   GDVars.dsWallColorC := cFloor;
 end;
 
-{ DrawBackdrop: Fills the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor
-  rows 62..103; x=2, width=11 chars }
+{ Fill the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor rows 62..103;
+  x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
   Blit.FillPicRect(2, 16, 11, 43, GDVars.dsColorSkyCeiling, GDConsts.dsIconColorMap,
@@ -96,9 +96,9 @@ begin
   Blit.FillPicRect(2, 62, 11, 42, GDVars.dsWallColorC, GDConsts.dsIconColorMap, GDVars.dsViewImageBufferPtr);
 end;
 
-{ DrawWallSlice: Blits view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice
-  from viewSlotGeom.start[slot], skipping zero symbols and cells outside the 11x11 view. cnt advances on every cell,
-  drawn or clipped }
+{ Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
+  viewSlotGeom.start[slot], skipping zero symbols and cells outside the 11x11 view. cnt advances on every cell, drawn or
+  clipped. }
 procedure DrawWallSlice(x, y: ShortInt; wallType, slot: Byte);
 var
   colLim: Integer;
@@ -135,9 +135,8 @@ begin
     Valid3DCoords := True;
 end;
 
-{ GetBarrierType: Returns the 2-bit barrier field for the facing, defaulting to 1 (passable) when the square has no wall
-  graphic in that facing. Out-of-range coords wrap to the far edge, except under ECL script 0 or 10, where they read as
-  0 }
+{ The 2-bit barrier field for the facing, defaulting to 1 (passable) when the square has no wall graphic in that facing.
+  Out-of-range coords wrap to the far edge, except under ECL script 0 or 10, where they read as 0. }
 function GetBarrierType(x, y: ShortInt; facing: Byte): Byte;
 var
   b: Byte;
@@ -158,8 +157,8 @@ begin
   end;
 end;
 
-{ GetWallType: Wall-type nibble 0..15 (0 = no wall) for the facing, from wallsNE/wallsSW, with the same coordinate guard
-  and wrap as GetBarrierType; 0 for a facing that is not a cardinal direction }
+{ The wall-type nibble 0..15 (0 = no wall) for the facing, from wallsNE/wallsSW, with the same coordinate guard and wrap
+  as GetBarrierType; 0 for a facing that is not a cardinal direction. }
 function GetWallType(x, y: ShortInt; facing: Byte): Byte;
 begin
   if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
@@ -176,7 +175,8 @@ begin
   end;
 end;
 
-{ GetMapEvent: The EVENT byte of the square. MapView tests bit 7 of this for the sky colour choice }
+{ The EVENT byte of the square, with the same coordinate guard and wrap as GetBarrierType. MapView tests bit 7 of this
+  for the sky colour choice. }
 function GetMapEvent(x, y: ShortInt): Byte;
 begin
   if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
@@ -360,12 +360,12 @@ begin
   end;
 end;
 
-{ LoadWallSet: Loads WALLDEF<disk>.DAX record fileId into wallset slot wsSlot (1..3; each wall-def block fills one slot
-  of 5 wall types, and further blocks fill the following slots), remaps every symbol past set 0 (>= symSetFirst[1], 46)
-  by wsSlot's 8x8-set base offset, loads the matching 8x8 set(s), and stamps the slot cache. The size guard refuses a
-  record that is not whole blocks or whose blocks would run past slot 3. A multi-block load composes each 8x8-set id as
-  fileId*10 + i, with file 0 spelled as 10 for that product, so such a record above 25 is refused too; the cache is
-  stamped with fileId itself. }
+{ Load WALLDEF<disk>.DAX record fileId into wallset slot wsSlot (1..3; each wall-def block fills one slot of 5 wall
+  types, and further blocks fill the following slots), remap every symbol past set 0 (>= symSetFirst[1], 46) by wsSlot's
+  8x8-set base offset, load the matching 8x8 set(s), and stamp the slot cache. The size guard refuses a record that is
+  not whole blocks or whose blocks would run past slot 3. A multi-block load composes each 8x8-set id as fileId*10 + i,
+  with file 0 spelled as 10 for that product, so such a record above 25 is refused too; the cache is stamped with fileId
+  itself. }
 procedure LoadWallSet(fileId, wsSlot: Byte);
 var
   sizeRead: Word;
@@ -420,8 +420,8 @@ begin
   GDVars.dsWallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
 
-{ Load3DMap: Loads GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte
-  planes of a TGeoMap), copies the planes, frees, and records the map id in the GBVM mapId variable }
+{ Load GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte planes of a
+  TGeoMap), copy the planes, free the record, and record the map id in the GBVM mapId variable. }
 procedure Load3DMap(mapId: Byte);
 var
   sizeRead: Word;

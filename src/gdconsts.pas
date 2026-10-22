@@ -17,7 +17,7 @@ const
   { CureDisease }
   cureDiseaseEffects: array[1..6] of Byte = (
     C_Effect.HELPLESS, C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP,
-        C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT);
+    C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT);
   { HealMenu }
   templeSpells: array[1..10] of String[20] = (
     'Cure Blindness',
@@ -86,10 +86,10 @@ const
     'KOBOLD', 'KOBOLD LEADER', 'GOBLIN GUARD', 'GOBLIN LEADER', 'ORC', 'ORC LEADER', 'HOBGOBLIN', 'HOBGOBLIN LDR',
     'GNOLL', 'BUGBEAR', 'ETTIN', 'OGRE', 'OGRE LEADER', 'TROLL', 'HILL GIANT', 'FIRE GIANT');
   { Turning undead }
-    { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
-      d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
-      automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. An undead
-      level above 10 (CbtActs.FindTurnUndeadTarget admits up to 12) is read from row 10. }
+  { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
+    d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
+    automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. An undead level
+    above 10 (CbtActs.FindTurnUndeadTarget admits up to 12) is read from row 10. }
   turnTable: Types.TTurnUndeadTable = (
     { 1: Skeleton }
     (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
@@ -97,6 +97,7 @@ const
     (13, 10, 7, 1, 1, 0, 0, 0, -1, -1),
     { 3: Ghoul }
     (16, 13, 10, 4, 1, 1, 0, 0, 0, -1),
+    { 4: Shadow }
     (19, 16, 13, 7, 4, 1, 1, 0, 0, -1),
     { 5: Wight }
     (20, 19, 16, 10, 7, 4, 1, 1, 0, 0),
@@ -176,22 +177,22 @@ const
     2);
   { hit-die sides per class }
   hpSides: array[0..7] of Byte = (
-     { Cleric: d8 }
-     8,
-     { Druid: d8 }
-     8,
+    { Cleric: d8 }
+    8,
+    { Druid: d8 }
+    8,
     { Fighter: d10 }
     10,
     { Paladin: d10 }
     10,
-     { Ranger: d8 }
-     8,
-     { Magic-User: d4 }
-     4,
-     { Thief: d6 }
-     6,
-     { Monk: d4 }
-     4);
+    { Ranger: d8 }
+    8,
+    { Magic-User: d4 }
+    4,
+    { Thief: d6 }
+    6,
+    { Monk: d4 }
+    4);
   { LoadCharIconAnim }
   { CHEAD/CBODY filename suffix indexed by iconSize: S for 1 (dwarf, gnome, halfling), T for 2 (tall races) }
   iconHeightSuffix: array[1..2] of Char = (
@@ -496,7 +497,7 @@ const
     Yellow);
   { BuildWildernessMap }
   { Special-location overrides on the 44x36 wilderness map, indexed by the WILD_* constants. Entries 1 and 2 have no
-    case arm below, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
+    case arm in BuildWildernessMap, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
   wildernessSpecialLocations: array[1..9] of Types.TSpecLoc = (
     { 1 WILD_SILVER_DRAGON_DEN }
     (x: 10; y: 9; icon: 240),
@@ -769,7 +770,7 @@ const
     'Platinum',
     'Gems',
     'Jewelry');
-  { Status names, indexed by TCharRecord.status; see the STATUS_ constants. }
+  { Status names, indexed by TCharRecord.status; see C_Status. }
   statusStrs: array[C_Status.OKAY..C_Status.GONE] of string[12] = (
     'Okay',
     'Animated',
@@ -1230,17 +1231,17 @@ const
   { portraitHead -> HEAD DAX ID: SSI's 14 player heads, then the other heads HEAD3.DAX holds, then the heads only the
     other disks hold. New heads go at the end so the numbers saved characters carry keep their faces. }
   headTbl: array[1..41] of Byte = (
-     0,  8,  9, 13, 16, 18, 22, 
+     0,  8,  9, 13, 16, 18, 22,
     34, 45, 51, 53, 57, 67, 68,
     24, 32, 42, 44, 55, 63, 71,
-     1,  3,  5,  6, 10, 11, 12, 
-    14, 25, 48, 52, 54, 56, 59, 
+     1,  3,  5,  6, 10, 11, 12,
+    14, 25, 48, 52, 54, 56, 59,
     61, 62, 69, 70, 72, 74
   );
   { portraitBody -> BODY DAX ID, extended the same way }
   bodyTbl: array[1..21] of Byte = (
-     1,  2,  3,  4,  7,  8, 18, 
-    24, 26, 33, 35, 37,  9, 31, 
+     1,  2,  3,  4,  7,  8, 18,
+    24, 26, 33, 35, 37,  9, 31,
     32, 34,  5,  6, 13, 25, 30
   );
   { how many of the first headTbl and bodyTbl entries HEAD3.DAX and BODY3.DAX hold }
@@ -1832,8 +1833,8 @@ const
      wisMin: 3; wisMax: 14; dexMin: 3; dexMax: 17; conMin: 13; conMax: 19; chaMin: 3; chaMax: 12),
     (strMin: (3, 3); strMax: (18, 18); excMax: (100, 100); intMin: 3; intMax: 18;
      wisMin: 3; wisMax: 18; dexMin: 3; dexMax: 18; conMin: 3; conMax: 18; chaMin: 3; chaMax: 18));
-  { The classes each race can take, in the order the class menu lists them. Humans take
-    paladins and rangers, and half-elves rangers and cleric/rangers, in Curse's order. }
+  { The classes each race can take, in the order the class menu lists them. Humans take paladins and rangers, and
+    half-elves rangers and cleric/rangers, in Curse's order. }
   classesByRace: array[1..7] of Types.TRuleRaceClasses = (
     { dwarf }
     (count: 3; classes: (2, 6, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
@@ -1946,9 +1947,9 @@ const
     (strength: 6; intelligence: 6; wisdom: 3; dexterity: 9; constitution: 6; charisma: 6),
     { monk }
     (strength: 15; intelligence: 6; wisdom: 15; dexterity: 15; constitution: 11; charisma: 6));
-  { The alignments each class can take, in the order the alignment menu lists them. A cleric cannot be true neutral
-    (1e PHB p.13), and a multiclass takes only the alignments all of its classes allow, so cleric/thief has neither
-    true neutral nor the thief's LG and CG. Druid and monk are not offered at creation and keep SSI's rows. }
+  { The alignments each class can take, in the order the alignment menu lists them. A cleric cannot be true neutral (1e
+    PHB p.13), and a multiclass takes only the alignments all of its classes allow, so cleric/thief has neither true
+    neutral nor the thief's LG and CG. Druid and monk are not offered at creation and keep SSI's rows. }
   alignByClass: array[0..16] of Types.TRuleClassAlignments = (
     { cleric }
     (count: 8; alignments: (C_Align.LG, C_Align.LN, C_Align.LE, C_Align.NG, C_Align.NE,
@@ -2021,8 +2022,8 @@ const
   dsStartingGoldClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleGold = (
     (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
     (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
-  { ClassCal: Saving throws indexed by class-level slot (C_Level), level 1..9 and save column 0..4. The paladin's row
-    is the fighter's less 2. }
+  { ClassCal: Saving throws indexed by class-level slot (C_Level), level 1..9 and save column 0..4. The paladin's row is
+    the fighter's less 2. }
   saveTbl: array[C_Level.CLERIC..C_Level.MONK, 1..9] of Types.TRuleSaves = (
     { cleric }
     ((paralyze: 10; petrify: 13; wand: 14; breath: 16; spell: 15),

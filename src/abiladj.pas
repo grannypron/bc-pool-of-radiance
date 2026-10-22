@@ -23,7 +23,8 @@ function DexMissileAdjust(creature: Types.PCharRecord): ShortInt;
 function DexterityArmorAdjustment(creature: Types.PCharRecord): ShortInt;
 
 { The Constitution bonus to poison saves (dwarves, halflings) and to spell and wand saves (dwarves, gnomes, halflings):
-  +1 per 3 1/2 points of Constitution, so 1 at 4..6, 2 at 7..10, 3 at 11..13, 4 at 14..17, 5 at 18..20, 6 at 21..24. }
+  +1 per 3 1/2 points of Constitution, so 1 at 4..6, 2 at 7..10, 3 at 11..13, 4 at 14..17, 5 at 18..20, 6 at 21..24,
+  7 at 25. }
 function ConSaveBonus(con: Byte): Byte;
 
 const
@@ -34,8 +35,8 @@ const
 { score kept within SCORE_MIN..SCORE_MAX, for every change play makes to an ability score (#615). }
 function ClampScore(score: Integer): Byte;
 
-{ The resurrection survival chance, in percent, for Constitution con (1st-edition PHB): 40 at 3, 5 more a point to 85
-  at 12, then 2 more a point to 100 at 18, and 100 above it (Deities & Demigods); below 3 counts as 3. }
+{ The resurrection survival chance, in percent, for Constitution con (1st-edition PHB): 40 at 3, 5 more a point to 90 at
+  13, then 2 more a point to 100 at 18, and 100 above it (Deities & Demigods); below 3 counts as 3. }
 function ConResurrectionSurvival(con: Byte): Byte;
 
 { The poison save bonus any creature gets from a Constitution above 18 (Deities & Demigods): +1 at 19..20, +2 at

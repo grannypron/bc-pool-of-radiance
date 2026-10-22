@@ -110,8 +110,13 @@ procedure TickSpellPreview;
 { End the spell-aim preview: remove the idle hook and repaint every cell it drew over. }
 procedure StopSpellPreview;
 
+{ Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
+  indices into GDVars.dsPotentialTargetCreature. Return the remaining count. }
 function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
 
+{ Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
+  Restore the previous list afterward. Stored distances are doubled, so halve the result; 255 when other is not in the
+  list (nil, or off the map). The list's count is restored with it (SSI left the rebuilt list's count). }
 function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 implementation
@@ -124,7 +129,7 @@ var
   crIdxArr: array[0..24, 0..49] of Byte;
 
 const
-  { The cursor sprite cell in GDVars.dsIconAnimation }
+  { The cursor sprite cell in GDVars.dsIconAnimation ([24, 0] is the COMSPR 11 skull) }
   CURSOR_CELL = 25;
   { Hundredths of a second between preview frames }
   PREVIEW_PACE = 12;
@@ -133,8 +138,6 @@ const
   PREVIEW_GAP = 2;
 
 var
-                                           { [24,0] = COMSPR 11 skull;
-                                             [25] = the cursor sprite   }
   { Spell-aim preview settings (StartSpellPreview). }
   previewOn: Boolean;
   previewRadius: Byte;
@@ -185,8 +188,8 @@ begin
                                   0, GDVars.creatureArr[c]^.orderNumber);
 end;
 
-{ Put back what belongs on top of a view cell after its terrain was drawn: the cursor box when the cell is under the
-  aim footprint, then the creature standing on the cell. relX, relY are the cell's view coordinates. }
+{ Put back what belongs on top of a view cell after its terrain was drawn: the cursor box when the cell is under the aim
+  footprint, then the creature standing on the cell. relX, relY are the cell's view coordinates. }
 procedure DrawCellTop(x, y, relX, relY: ShortInt);
 begin
   if InAimFootprint(x, y) then
@@ -208,9 +211,9 @@ begin
   end;
 end;
 
-{ Draw frame half of combat sprite art over arena cell (x, y), when it is in view; a facing of 4 or more mirrors it.
-  The creature on the cell is put back over the art, but the cursor box is not: under the aim footprint the cell
-  already shows the cursor box (DrawCursorCell, RepaintCell), so the art lies on top of it. }
+{ Draw frame half of combat sprite art over arena cell (x, y), when it is in view; a facing of 4 or more mirrors it. The
+  creature on the cell is put back over the art, but the cursor box is not: under the aim footprint the cell already
+  shows the cursor box (DrawCursorCell, RepaintCell), so the art lies on top of it. }
 procedure DrawPreviewArt(x, y: ShortInt; art, facing, half: Byte);
 var
   relX: ShortInt;
@@ -286,12 +289,12 @@ begin
   ringCount := 0;
   case previewShape of
     Types.AimBolt: begin
-         AddAreaCell(x, y, 0);
-         CbtMap.boltTracer(x, y, bolt);
-         { two cells a frame }
-         for i := 1 to bolt.count do
-           AddAreaCell(bolt.x[i], bolt.y[i], (i + 1) div 2);
-       end;
+        AddAreaCell(x, y, 0);
+        CbtMap.boltTracer(x, y, bolt);
+        { two cells a frame }
+        for i := 1 to bolt.count do
+          AddAreaCell(bolt.x[i], bolt.y[i], (i + 1) div 2);
+      end;
     Types.AimCloud:
       for i := 1 to 4 do begin
         tx := x + GDConsts.dirDX[GDConsts.cloudDir[i]];
@@ -767,7 +770,8 @@ begin
   GDVars.downed[free].y := y;
 end;
 
-{ Mark a downed creature: in combat, draw its corpse and record it once in GDVars.downed (CbtMap.RegisterDowned). }
+{ Mark a downed creature: in combat, flash the skull over it and, for the party side, record its corpse once in
+  GDVars.downed (CbtMap.RegisterDowned). }
 procedure CreatureDowned(creature: Types.PCharRecord);
 var
   slot: Byte;
@@ -784,8 +788,8 @@ begin
   end else begin
     for k := 1 to GDVars.downedCount do
       if GDVars.downed[k].cr = creature then begin
-        { already listed (a body hit again): put the sound timer back as the normal path does, or the BIOS clock
-          stays stopped and the next SoundDelay waits for ever }
+        { already listed (a body hit again): put the sound timer back as the normal path does, or the BIOS clock stays
+          stopped and the next SoundDelay waits for ever }
         SoundDrv.SoundSetAutoStop(10);
         Exit;
       end;
@@ -879,8 +883,6 @@ begin
   GDVars.arenaPtr^.cursorSize := 1;
 end;
 
-{ Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
-  indices into GDVars.dsPotentialTargetCreature. Return the remaining count. }
 function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
 var
   n: Byte;
@@ -905,9 +907,6 @@ begin
     GDVars.dsPotentialTargetCreature[i] := GDVars.targetList[i].idx;
 end;
 
-{ Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
-  Restore the previous list afterward. Stored distances are doubled, so halve the result; 255 when other is not in the
-  list (nil, or off the map). The list's count is restored with it (SSI left the rebuilt list's count). }
 function CalcDistance(creature, other: Types.PCharRecord): Byte;
 var
   saved: Types.TTargetList;

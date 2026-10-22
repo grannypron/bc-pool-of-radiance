@@ -18,8 +18,8 @@ function CurrentArea: Types.TStr40;
 
 implementation
 
-
 uses GDVars;
+
 const
   { the last script id: ECL1..ECL8 hold scripts 0..29, all but 12 }
   LAST_SCRIPT = 29;

@@ -4,8 +4,9 @@
 ; and tune loader (sndtdy.inc) step as they do for the SN76489, and tick_opl turns
 ; each voice into FM.  The three tone voices play on OPL channels 0 to 2.  The noise
 ; voice plays the rhythm section's snare drum, the OPL's own noise, held keyed and
-; its level set each tick like the tones'; channel 7's pitch colours it.  A register is written only when its value
-; changes, since every OPL write waits on the chip.  sounddrv.asm includes it.
+; its level set each tick like the tones'; channel 7's pitch colours it.  A register
+; is written only when its value changes, since every OPL write waits on the chip.
+; sounddrv.asm includes it.
 ;
 ; Pitch: an SN76489 tone of period n sounds at 3579545 / (32 n) Hz, and an OPL2
 ; note at fnum * 49716 / 2^(20 - block) Hz, so fnum = 9 * 2^(18 - block) / n.  The
@@ -109,8 +110,8 @@ opl_level:
 ol_done:
         ret
 
-; Voice DI's B0h:A0h pair to AX, on its channel (oplChan), if it differs.  Keeps every
-; register.
+; Voice DI's B0h:A0h pair to AX, on its channel (oplChan), if it differs.
+; Keeps every register.
 opl_freq:
         push    bx
         mov     bx, di
@@ -321,8 +322,8 @@ or_pair:
         pop     ax
         retf
 
-; Every voice silent and keyed off, the snare too, at the timer's removal.  Keeps every
-; register.
+; Every voice silent and keyed off, the snare too, at the timer's removal.
+; Keeps every register.
 opl_silence:
         push    ax
         push    di

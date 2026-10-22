@@ -6,7 +6,7 @@ interface
 
 const
   { Game-clock components in C_Gbvm.CLOCK word order: indices into TClock and GDConsts.unitScale, and the tUnit argument
-    of GameTime.AdvanceTime }
+    of FxEngine.AdvanceTime }
   SEGMENTS = 0;
   MINUTES = 1;
   { ten minutes }

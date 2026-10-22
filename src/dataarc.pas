@@ -1,7 +1,7 @@
 { The merged data archives: which per-disk archives each data family gathers into one archive, and the file checks the
-  game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named
-  in C_Data. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a
-  missing one. }
+  game and DataBld share. A merged archive is an ordinary DAX archive whose last blocks are the reserved ones named in
+  C_Data. The file checks open the file read-only, whatever FileMode is, so a read-only file is not taken for a missing
+  one. }
 {$I COMPILER.INC}
 unit DataArc;
 
@@ -26,8 +26,8 @@ function SourceName(family, disk: Byte): Types.TStr20;
   range. }
 function MergedName(family: Byte): Types.TStr20;
 
-{ The family whose per-disk archive fileName (any case, no extension) names, with that archive's disk, 1..8, in disk;
-  0 when it names none. }
+{ The family whose per-disk archive fileName (any case, no extension) names, with that archive's disk, 1..8, in disk; 0
+  when it names none. }
 function MatchFamily(fileName: Types.TStr20; var disk: Byte): Byte;
 
 { True when the file at path is a whole merged archive: its directory is non-empty, its last entry is the version block,
@@ -42,8 +42,8 @@ function FileLength(path: Types.TPathStr): LongInt;
 
 implementation
 
-
 uses C_Data, FileUtil;
+
 type
   { A data family: its per-disk archives are <prefix><disk digit><suffix>.DAX, merged into <merged>.DAX. }
   TFamily = record

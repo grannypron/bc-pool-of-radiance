@@ -85,10 +85,10 @@ function StrengthModifier(baseStr, excStr: Byte): Byte;
   with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
 procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
 
-{ The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of
-  the effect's strength byte, the lower holding the caster level (at most 15) as Dispel Magic reads it. 0 when it has
-  no disease. The Strength the Enlarge and Strength effects (eff 12, 38) store and set is the creature's own, without
-  this loss: they take it off when they set the creature's Strength, and give it back when they store it (#705). }
+{ The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
+  effect's strength byte, the lower holding the caster level (at most 15) as Dispel Magic reads it. 0 when it has no
+  disease. The Strength the Enlarge and Strength effects (eff 12, 38) store and set is the creature's own, without this
+  loss: they take it off when they set the creature's Strength, and give it back when they store it (#705). }
 function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
 
 { The character's own Strength score, without Enlarge, Strength or Gauntlets of Ogre Power but with what a disease has
@@ -108,8 +108,8 @@ function RawWeight(creature: Types.PCharRecord): LongInt;
   unstacked item). }
 function ItemWeight(item: Types.PItemRec): LongInt;
 
-{ The highest of the creature's fighter, paladin and ranger levels, or 0 when it has none: the level at which it
-  fights as a warrior. }
+{ The highest of the creature's fighter, paladin and ranger levels, or 0 when it has none: the level at which it fights
+  as a warrior. }
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 
 { The base item record for an item type: its GDVars.baseItems entry, or the zeroed overflow entry for a type past the
@@ -136,13 +136,13 @@ function IsNpc(creature: Types.PCharRecord): Boolean;
 function MayTrade(creature: Types.PCharRecord): Boolean;
 
 { True for a person, whom Charm Person and Hold Person affect (#792): not undead (charType 4), and either a monster the
-  1st-edition list names (GDConsts.rangerFoes' first RANGER_PERSONS, personFoes), or a creature of one tile, not
-  Large, of a player race or charType 0 (the humans, some with race byte 0). SSI tested charType 0..1 and a one-tile
-  icon, which kept the gnoll out and let the ogre leader in. }
+  1st-edition list names (GDConsts.rangerFoes' first RANGER_PERSONS, personFoes), or a creature of one tile, not Large,
+  of a player race or charType 0 (the humans, some with race byte 0). SSI tested charType 0..1 and a one-tile icon,
+  which kept the gnoll out and let the ogre leader in. }
 function IsPerson(creature: Types.PCharRecord): Boolean;
 
-{ True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends
-  With Fight after it, return to the player's control. }
+{ True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends With
+  Fight after it, return to the player's control. }
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 
 { True when it is non-nil and its base item's slot is a scroll's, C_Item.SLOT_MAGE_SCROLL..SLOT_LAST_READABLE. }
@@ -163,8 +163,8 @@ function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Bool
   it: the scroll spells the Cast list offers. }
 function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
-{ Spell range: rangeFixed + rangeVar * caster level, using C_Spell.ITEM_CASTER_LEVEL when GDVars.usingItem. A zero
-  range with a nonzero area (touch) and the attack-roll encoding (C_Spell.ATTACK_ROLL_RANGE) both become 1. }
+{ Spell range: rangeFixed + rangeVar * caster level, using C_Spell.ITEM_CASTER_LEVEL when GDVars.usingItem. A zero range
+  with a nonzero area (touch) and the attack-roll encoding (C_Spell.ATTACK_ROLL_RANGE) both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
 type
@@ -175,7 +175,6 @@ var
   { RemoveItem's messages for a nil item or one not in the list; GameInit sets it to CharDisp.ShowFault (nil in a test
     program, which shows nothing) }
   faultHook: TFaultHook;
-
 
 { The chance (in 100) a robbery of chance takes an item of weight coins: 90 less for over 255 coins, 50 less for over
   24, never below 0 (EclMenu.RobItems). }
@@ -213,8 +212,8 @@ const
   HEAVY_LOOT_PENALTY = 90;
   MEDIUM_LOOT = 24;
   MEDIUM_LOOT_PENALTY = 50;
-  { a fighter's (and a half-elf ranger's) racial level cap by Strength: below 17, 17, and 18 or more; 0 for none.
-    Humans and half-orcs have none. }
+  { a fighter's (and a half-elf ranger's) racial level cap by Strength: below 17, 17, and 18 or more; 0 for none. Humans
+    and half-orcs have none. }
   STR_BAND_LOW = 0;
   STR_BAND_17 = 1;
   STR_BAND_18 = 2;
@@ -236,8 +235,8 @@ var
   and modifier come from the base item's small/medium entry plus Strength damage (C_Item.PROP_STR_BONUS). The weapon's
   plus is added to both, except that a launcher's (CharHlp.FindDamagingRangedWeapon: a bow or crossbow) is to-hit only,
   and the plus of the arrows or quarrels it fires is added to both. An elf gets a further +1 to-hit with a bow, a long
-  sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it
-  counts as a bow when its second name component is a bow's name, which a Heavy Crossbow never carries. }
+  sword or a short sword. The Fine Composite Long Bow is built on the Heavy Crossbow's row; it counts as a bow when its
+  second name component is a bow's name, which a Heavy Crossbow never carries. }
 procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
@@ -274,8 +273,8 @@ begin
 end;
 
 { Body armor only (base slot C_Equip.ARMOR): set current movement from the armor's weight (up to LIGHT_ARMOR, the base
-  movement; up to MEDIUM_ARMOR, MOVE_LOADED; heavier, MOVE_HEAVY), then MAGIC_ARMOR_MOVE more if the armor has a
-  nonzero plus and the movement is still at most MOVE_LOADED. }
+  movement; up to MEDIUM_ARMOR, MOVE_LOADED; heavier, MOVE_HEAVY), then MAGIC_ARMOR_MOVE more if the armor has a nonzero
+  plus and the movement is still at most MOVE_LOADED. }
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
   if CharHlp.BaseItem(item^.itemType)^.slot = C_Equip.ARMOR then begin
@@ -354,9 +353,9 @@ begin
 end;
 
 { Build the item label in item^.name: the ' Yes  '/' No   ' equipped marker (inventory listings only), a '*' when
-  any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when
-  nonzero, then the identified name components from 3 down to 1, one of them pluralized with 's' when the quantity
-  is 2 or more. CharDisp.PrintItemLabel also prints it. }
+  any creature in the list has Detect Magic and the item has a plus, a save bonus or a curse, the quantity when nonzero,
+  then the identified name components from 3 down to 1, one of them pluralized with 's' when the quantity is 2 or more.
+  CharDisp.PrintItemLabel also prints it. }
 procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
 var
   i: Byte;
@@ -419,8 +418,8 @@ begin
       IsHelpless := True;
 end;
 
-{ Point creature's equipment slots at its readied items, every other slot nil: a second ring goes in RING2, arrows
-  and quarrels in their own slots (C_Equip.ARROW and BOLT) as well as their base item's. }
+{ Point creature's equipment slots at its readied items, every other slot nil: a second ring goes in RING2, arrows and
+  quarrels in their own slots (C_Equip.ARROW and BOLT) as well as their base item's. }
 procedure LinkEquipped(creature: Types.PCharRecord);
 var
   i: ShortInt;
@@ -451,12 +450,12 @@ begin
   end;
 end;
 
-{ Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then
-  calculate armor class, rear armor class (no shield or Dexterity bonus, but any Dexterity penalty), attack level
+{ Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then calculate
+  armor class, rear armor class (no shield or Dexterity bonus, but any Dexterity penalty), attack level
   (CharHlp.WarriorLevel for a non-monster warrior, else 1), movement and, for a thief, the thief skills
-  (ClassCal.RecalcThiefSkills). An equipped Bag of Holding (name component 'Holding') removes up to
-  BAG_OF_HOLDING_COINS of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32
-  bits and stored as at most MAX_ENCUMBRANCE. }
+  (ClassCal.RecalcThiefSkills). An equipped Bag of Holding (name component 'Holding') removes up to BAG_OF_HOLDING_COINS
+  of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32 bits and stored as at
+  most MAX_ENCUMBRANCE. }
 procedure RecalcStats(creature: Types.PCharRecord);
 var
   j: Byte;
@@ -518,8 +517,8 @@ begin
     end;
     item := item^.next;
   end;
-  { a Ring of Protection guards saves as well as AC: the best ring counts once, and magical body armor cancels only
-    its AC }
+  { a Ring of Protection guards saves as well as AC: the best ring counts once, and magical body armor cancels only its
+    AC }
   creature^.saveBonus := creature^.saveBonus + ringSave;
   { rings do not add to magical body armor }
   if magicBody then
@@ -930,8 +929,8 @@ begin
   end;
 end;
 
-{ SSI's tests matched some levels past the cap and not others, and read the Strength magic had raised or disease
-  lowered (#702). Monsters, half-orcs and humans have no limit here. }
+{ SSI's tests matched some levels past the cap and not others, and read the Strength magic had raised or disease lowered
+  (#702). Monsters, half-orcs and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;

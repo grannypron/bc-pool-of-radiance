@@ -85,8 +85,8 @@ begin
   pic := nil;
   savedDir := GDVars.gameDir;
   GDVars.gameDir[0] := #0;
-  { Brazen Crows, when its picture is there: it is not one of the game's own files, so without it the introduction
-    goes straight on to the title rather than asking for a disk }
+  { Brazen Crows, when its picture is there: it is not one of the game's own files, so without it the introduction goes
+    straight on to the title rather than asking for a disk }
   if DaxIo.FileExists(GDVars.gameDir + 'RAVFULL.DAX') then begin
     Blit.LoadPic('RAVFULL', 1, False, 0, pic);
     Blit.ShowPic(0, 0, pic);

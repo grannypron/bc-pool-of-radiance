@@ -27,8 +27,8 @@ procedure CombatTurnUndead(creature: Types.PCharRecord);
 
 function FindTurnUndeadTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
-{ The cleric level the creature turns undead at: its cleric level, or its paladin level less 2 when that is higher, so
-  a paladin turns from level 3; 0 when it cannot turn. }
+{ The cleric level the creature turns undead at: its cleric level, or its paladin level less 2 when that is higher, so a
+  paladin turns from level 3; 0 when it cannot turn. }
 function TurnLevel(creature: Types.PCharRecord): ShortInt;
 
 procedure NoteAttackDirection(att, def: Types.PCharRecord);
@@ -314,10 +314,10 @@ end;
 
 { Enemies adjacent before a step in dir but not after it get one free attack on the mover, made as from behind.
   Helpless, effect-vetoed, blood-draining and bite-holding enemies are skipped. An enemy with no initiative left that
-  has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone.
-  The free attack is one attack and costs the enemy nothing: CombatAttack would spend every attack it has left and end
-  its turn, so its attacks, phase, turn state and sweep (madeAttack, sweepBudget) are put back afterwards while it is
-  still up (#711, #770). Its special attacks (breath, gaze, acid) still come at the start of its own move
+  has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone. The
+  free attack is one attack and costs the enemy nothing: CombatAttack would spend every attack it has left and end its
+  turn, so its attacks, phase, turn state and sweep (madeAttack, sweepBudget) are put back afterwards while it is still
+  up (#711, #770). Its special attacks (breath, gaze, acid) still come at the start of its own move
   (CombatAi.AiMoveAttack). }
 procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 var
@@ -378,14 +378,11 @@ begin
           if CbtActs.CanAttackTarget(p, creature) then
             if not CharHlp.HasEffect(p, C_Effect.BLOOD_DRAIN, effect) then
               if not CharHlp.HasEffect(p, C_Effect.BITE_HOLD, effect) then
-                for a := p^.combatAddr^.direction + 6
-                    to p^.combatAddr^.direction + 10 do
+                for a := p^.combatAddr^.direction + 6 to p^.combatAddr^.direction + 10 do
                   if not attacked then
-                    if (p^.combatAddr^.initiative > 0)
-                       or (p^.combatAddr^.flankCount = 0)
-                       or
-                         Pathing.IsDirToward(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), CbtMap.CombatCellX(creature),
-                                             CbtMap.CombatCellY(creature), a mod 8) then begin
+                    if (p^.combatAddr^.initiative > 0) or (p^.combatAddr^.flankCount = 0) or
+                        Pathing.IsDirToward(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), CbtMap.CombatCellX(creature),
+                                            CbtMap.CombatCellY(creature), a mod 8) then begin
                       phase := 1;
                       if p^.attacks = 0 then
                         phase := 2;
@@ -742,13 +739,12 @@ begin
     done := True;
   end else begin
     if (att^.equipped[C_Equip.WEAPON] <> nil) and (def^.iconDimensions and Types.ICON_LARGE <> 0) then begin
-      { large target: swap in the large-damage dice. SSI's took any creature with a two-tile icon for Large, so
-        wolves, wild boars and basilisks took them (#748). }
+      { large target: swap in the large-damage dice. SSI's took any creature with a two-tile icon for Large, so wolves,
+        wild boars and basilisks took them (#748). }
       base := CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^;
       att^.curRollsA[1] := base.dmgLgRolls;
       att^.curDiceA[1] := base.dmgLgDice;
-      att^.curModA[1] := att^.curModA[1] - base.dmgSmMod
-          + base.dmgLgMod;
+      att^.curModA[1] := att^.curModA[1] - base.dmgSmMod + base.dmgLgMod;
     end;
     CharHlp.RecalcStats(def);
     FxEngine.TriggerEffectsWithCondition(C_Cond.DEFENDER_AC, def);
@@ -900,8 +896,7 @@ var
 begin
   dist := CbtMap.CalcDistance(att, def);
   if CharHlp.HasRangedWeapon(att) then
-    subrange := (CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1)
-        div 3
+    subrange := (CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1) div 3
   else
     subrange := dist;
   if dist - subrange > 0 then begin
@@ -1147,9 +1142,9 @@ end;
 
 { Pick (C_Spell.NONE: from the Cast list) and validate a spell, rejecting camp-only ones. A casting time (castTime div
   3) of 0 casts it now and ends the caster's actions; otherwise the caster "Begins Casting": spellCast holds the spell
-  and initiative drops by the casting time (to at least 1), so it resolves on a later action. A scroll spell picked
-  from the list gets the same camp-only check, then is cast from its scroll as Use does (Magic.UseItemSpell), but
-  named as a memorized spell is, followed by Use's stat and attack updates. }
+  and initiative drops by the casting time (to at least 1), so it resolves on a later action. A scroll spell picked from
+  the list gets the same camp-only check, then is cast from its scroll as Use does (Magic.UseItemSpell), but named as a
+  memorized spell is, followed by Use's stat and attack updates. }
 procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
 var
   spellId: Byte;
@@ -1207,8 +1202,8 @@ begin
 end;
 
 { Backstabbing requires a thief in leather or no armor and with no shield (ClassCal.ArmorBarsThiefSkills), using a club,
-  dagger, broad, long or short sword, or no weapon.
-  The target must have been attacked more than once this round and face away from the attacker. }
+  dagger, broad, long or short sword, or no weapon. The target must have been attacked more than once this round and
+  face away from the attacker. }
 function IsBackstab(att, def: Types.PCharRecord): Boolean;
 var
   weapon: Types.PItemRec;
@@ -1349,8 +1344,8 @@ begin
   HighestEnemyMovement := best;
 end;
 
-{ Confirm a physical attack on an ally (enemies and quick-fighting attackers pass unasked). Yes sets the GBVM attacked-allies
-  flag, and every NPC-flagged creature in okay status turns hostile and drops its target. }
+{ Confirm a physical attack on an ally (enemies and quick-fighting attackers pass unasked). Yes sets the GBVM
+  attacked-allies flag, and every NPC-flagged creature in okay status turns hostile and drops its target. }
 function CheckAttackAlly(att, def: Types.PCharRecord): Boolean;
 var
   p: Types.PCharRecord;
@@ -1375,8 +1370,8 @@ begin
   end;
 end;
 
-{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_Dir.CENTER for any
-  other key. }
+{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_Dir.CENTER for any other
+  key. }
 function DirOfKey(ch: Char): Byte;
 begin
   case ch of
@@ -1395,9 +1390,9 @@ end;
 
 { One aim-menu round on the target: center the view on it, show the range (weapon mode) and offer Target when it is in
   range (a weapon attack needs another creature, and a ranged weapon needs damaging ammunition plus either no adjacent
-  enemy or a throwable weapon), then Next/Prev/Manual/Center/Exit. A cursor key (keypad digits included) returns
-  through dir the direction it points, so the caller can switch to manual aim and move the cursor that way; any other
-  choice sets dir to C_Dir.CENTER. ground is unused. }
+  enemy or a throwable weapon), then Next/Prev/Manual/Center/Exit. A cursor key (keypad digits included) returns through
+  dir the direction it points, so the caller can switch to manual aim and move the cursor that way; any other choice
+  sets dir to C_Dir.CENTER. ground is unused. }
 function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte; var dir: Byte): Char;
 var
   menu: String[40];
@@ -1471,9 +1466,9 @@ begin
 end;
 
 { The free cursor aim: the arrow-key scans move a cell cursor (clamped to the arena) from underCursor's cell, after a
-  first step toward startDir (C_Dir.CENTER stays put), Pathing.WalkLine checks the line and range, Target takes a
-  valid cell (a weapon attack goes through ConfirmAttackTarget), Center recenters and Exit/Escape cancels. A bare cell
-  is valid only when ground is set. }
+  first step toward startDir (C_Dir.CENTER stays put), Pathing.WalkLine checks the line and range, Target takes a valid
+  cell (a weapon attack goes through ConfirmAttackTarget), Center recenters and Exit/Escape cancels. A bare cell is
+  valid only when ground is set. }
 procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground, startDir: Byte;
                           var done: Boolean; var sel: Types.TAimTarget);
 var
@@ -1804,9 +1799,9 @@ end;
 { C_Effect.BITE_HOLD (74) handler; p is the effect, whose strength holds the victim's creature index. While the hold
   lasts, each trigger is one 3d4 bite on the victim as from behind, ending the creature's actions; a victim that drops
   ends the hold. On removal, when either side is down or when the victim is no longer immobile (#709), the victim loses
-  C_Effect.IMMOBILE (58), and the hold itself is removed (onRemove cleared first) unless it is already being removed.
-  An index outside creatureArr[1..arenaCount] (CombatSlot's 0 for a creature not in the arena) has no victim: the hold
-  just goes, as in Effhndlr.EffBloodDrain. }
+  C_Effect.IMMOBILE (58), and the hold itself is removed (onRemove cleared first) unless it is already being removed. An
+  index outside creatureArr[1..arenaCount] (CombatSlot's 0 for a creature not in the arena) has no victim: the hold just
+  goes, as in EffHndlr.EffBloodDrain. }
 procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;

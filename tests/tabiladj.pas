@@ -97,7 +97,6 @@ begin
   CheckDex(24, 5, 6);
   CheckDex(25, 5, 6);
 
-  { the Constitution save bonus, +1 per 3 1/2 points }
   { ability scores in play stay within 3..25 (#615) }
   TestKit.CheckEqualsL(3, AbilAdj.ClampScore(-1), 'below 3 counts as 3');
   TestKit.CheckEqualsL(3, AbilAdj.ClampScore(1), '1 counts as 3');
@@ -134,6 +133,8 @@ begin
   TestKit.CheckEqualsL(30, AbilAdj.ConRegenMinutes(23), '23: every 3 turns');
   TestKit.CheckEqualsL(10, AbilAdj.ConRegenMinutes(25), '25: every turn');
   TestKit.CheckEqualsL(10, AbilAdj.ConRegenMinutes(30), 'above 25 as 25');
+
+  { the Constitution save bonus, +1 per 3 1/2 points }
   TestKit.CheckEqualsL(0, AbilAdj.ConSaveBonus(3), 'Constitution 3: no save bonus');
   TestKit.CheckEqualsL(1, AbilAdj.ConSaveBonus(4), 'Constitution 4: +1');
   TestKit.CheckEqualsL(1, AbilAdj.ConSaveBonus(6), 'Constitution 6: +1');

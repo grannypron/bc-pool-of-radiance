@@ -10,8 +10,8 @@ uses Types;
 
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 
-{ Make item the magic item of GDConsts.randomItemTemplates[template]: its name parts, weight, value and properties,
-  plus 1 (the Cloak of Displacement's 2). }
+{ Make item the magic item of GDConsts.randomItemTemplates[template]: its name parts, weight, value and properties, plus
+  1 (the Cloak of Displacement's 2). }
 procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
 
 implementation
@@ -57,8 +57,8 @@ end;
 
 { Build a random item of the given kind. Kinds 1..59, 73, 77 and 93 are weapons and armor, named from their type with a
   plus from RandomBonus and given a weight and value by type. 61 and 62 are magic-user and clerical scrolls holding 1d3
-  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GDConsts.randomItemTemplates, as
-  does a javelin one time in five. Any other kind gets only itemType and the defaults. }
+  rolled spells in the spells field. 63, 67, 69..71, 78, 79, 84 and 92 pick one of GDConsts.randomItemTemplates, as does
+  a javelin one time in five. Any other kind gets only itemType and the defaults. }
 procedure GenerateRandomItem(kind: Byte; item: Types.PItemRec);
 var
   r: Byte;
@@ -82,8 +82,8 @@ begin
       1..59, 73, 77, 93: begin
           plus := RandItem.RandomBonus;
           case itemType of
-            { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18
-              and 19, making an item named from neither (POR-0165) }
+            { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18 and 19,
+              making an item named from neither (POR-0165) }
             21: begin
                    r := Dice.RollDice(1, 5);
                    if r = 5 then
@@ -250,7 +250,7 @@ begin
              end;
            end;
       78: begin
-             { r is 2..4 vs labels 1..3: 49 is never chosen and r = 4 leaves no template }
+             { r is 2..4 vs labels 1..3: template 7 is never chosen and r = 4 leaves no template }
              r := Dice.RollDice(1, 3) + 1;
              case r of
                1: template := 7;

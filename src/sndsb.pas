@@ -77,8 +77,8 @@ var
     play on the speaker) }
   store: Types.PBytes;
   storeSize: Word;
-  { a buffer that crosses no 64 KB page, as long as the longest sample: one whose bytes in store cross a page (which
-    DMA cannot) is copied here to play; nil if none could be placed, and such a sample then plays on the speaker }
+  { a buffer that crosses no 64 KB page, as long as the longest sample: one whose bytes in store cross a page (which DMA
+    cannot) is copied here to play; nil if none could be placed, and such a sample then plays on the speaker }
   bounce: ^Byte;
   bounceSize: Word;
   loadTried: Boolean;
@@ -168,8 +168,8 @@ begin
   Crosses := (Physical(p) and $FFFF) + len > $10000;
 end;
 
-{ A block of size bytes that crosses no 64 KB page, or nil: blocks that cross one are held while another is tried,
-  then freed. }
+{ A block of size bytes that crosses no 64 KB page, or nil: blocks that cross one are held while another is tried, then
+  freed. }
 function PlaceBlock(size: Word): Pointer;
 var
   held: array[1..PLACE_TRIES] of Pointer;
@@ -260,8 +260,8 @@ begin
     bounce := SndSb.PlaceBlock(bounceSize);
 end;
 
-{ Play the effect as one single-cycle DMA transfer: its bytes in place, or copied to the bounce buffer when they cross
-  a 64 KB page. False when it cannot be played (crossing, with no bounce buffer). }
+{ Play the effect as one single-cycle DMA transfer: its bytes in place, or copied to the bounce buffer when they cross a
+  64 KB page. False when it cannot be played (crossing, with no bounce buffer). }
 function PlayEffect(var e: TEffect): Boolean;
 var
   p: Pointer;

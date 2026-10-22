@@ -174,8 +174,8 @@ begin
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
-{ Lay on hands: paladin p restores 2 hit points per paladin level to the party member chosen, and cannot do so again
-  for a day (C_Effect.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
+{ Lay on hands: paladin p restores 2 hit points per paladin level to the party member chosen, and cannot do so again for
+  a day (C_Effect.RECENT_HEAL, 1440 minutes, at strength 255). Choosing Exit spends nothing. }
 procedure LayOnHands(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
@@ -197,8 +197,8 @@ begin
 end;
 
 { Cure disease: paladin p removes the disease effects (GDConsts.cureDiseaseEffects) from the party member chosen, asking
-  first when there are none, and spends one of the week's cures: the first starts C_Effect.RECENT_CURE for 10080
-  minutes at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
+  first when there are none, and spends one of the week's cures: the first starts C_Effect.RECENT_CURE for 10080 minutes
+  at strength 1, later ones count up its strength. Choosing Exit, or No to the question, spends nothing. }
 procedure CureDisease(p: Types.PCharRecord);
 var
   tgt: Types.PCharRecord;
@@ -257,8 +257,8 @@ begin
   TextRend.DisplayCentered(C_Msg.TEXT_LEFT + 1, C_Msg.TEXT_RIGHT - 1, 4, White, title);
 end;
 
-{ The Game Stats page: the creature's twelve counters in this game, from row 6, coin in gold; b nil reads every
-  counter as 0. }
+{ The Game Stats page: the creature's twelve counters in this game, from row 6, coin in gold; b nil reads every counter
+  as 0. }
 procedure DrawGameStats(creature: Types.PCharRecord; b: Stats.PStatBlock);
 var
   i: Byte;
@@ -279,8 +279,8 @@ begin
 end;
 
 { The Kill Count page from entry top of order (b's kinds, sorted by name): left then right along each row, each count
-  right-aligned to the widest and its name after it, cut to fit the column, and "(more)" above or below when entries
-  are hidden there. }
+  right-aligned to the widest and its name after it, cut to fit the column, and "(more)" above or below when entries are
+  hidden there. }
 procedure DrawKills(creature: Types.PCharRecord; b: Stats.PStatBlock; var order: TKillOrder; kinds, top: Byte);
 var
   i: Byte;
@@ -335,8 +335,8 @@ end;
 
 { The Saves page: the five saving throws from row 6, under its title as on the other pages, each the d20 roll needed
   (saves[] less saveBonus, held to 2..20 since a 1 always fails and a 20 always succeeds). Situational bonuses, such as
-  a dwarf's or halfling's against magic and poison, apply only at the roll and are not included. The names are
-  literals, in the overlay, rather than a typed constant in the data segment. }
+  a dwarf's or halfling's against magic and poison, apply only at the roll and are not included. The names are literals,
+  in the overlay, rather than a typed constant in the data segment. }
 procedure DrawSaves(p: Types.PCharRecord);
 var
   i: ShortInt;
@@ -422,10 +422,10 @@ begin
 end;
 
 { The More Info page for the current character (#592, #685): its bottom line, More Info: Saves sTats Kills tHief Exit,
-  turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with thief levels, Thief.
-  On Kill Count, Up and Down scroll the list a row (two entries) at a time and Page Up and Page Down a page. The
-  statistics block is read when Stats or Kills is first chosen, since reading it makes one for the character, which a
-  save then writes. Exit or Escape returns to the character sheet, which the caller redraws. }
+  turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with thief levels, Thief. On
+  Kill Count, Up and Down scroll the list a row (two entries) at a time and Page Up and Page Down a page. The statistics
+  block is read when Stats or Kills is first chosen, since reading it makes one for the character, which a save then
+  writes. Exit or Escape returns to the character sheet, which the caller redraws. }
 procedure MorePage;
 var
   p: Types.PCharRecord;
@@ -665,8 +665,6 @@ begin
   Border.ClearBox(1, 21, 38, 22);
 end;
 
-{ Run curChar's inventory menu, offering actions according to the character's state and the current interface state,
-  until Escape, done, or no items remain. }
 { STING's raw item viewer (V in the Items menu, #612), Curse's ViewItemDetail: the item's type, name ids, plus, save
   bonus, ready, identified mask, cursed, value, charges, effect and special, and its base type's large-creature damage
   dice, until a key. The caller redraws the screen. }
@@ -707,6 +705,8 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'press a key');
 end;
 
+{ Run curChar's inventory menu, offering actions according to the character's state and the current interface state,
+  until Escape, done, or no items remain. }
 procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
@@ -963,8 +963,8 @@ begin
   Border.ClearBox(1, 21, 38, 22);
 end;
 
-{ Show the current character's coins as a menu (one line per type it holds: the name right-aligned in 8 columns and
-  the count, jewelry first) and return the line picked, or nil on Escape. list receives the menu list, for
+{ Show the current character's coins as a menu (one line per type it holds: the name right-aligned in 8 columns and the
+  count, jewelry first) and return the line picked, or nil on Escape. list receives the menu list, for
   MenuCore.FreeStringList (nil when there is no coin). }
 function PickCoinType(var list: Types.PItemRec): Types.PItemRec;
 var

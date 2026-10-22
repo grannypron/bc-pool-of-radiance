@@ -115,20 +115,20 @@ begin
   FreeMem(p, (n + 7) and $FFF8);
 end;
 
-{ AllocRounded: GetMem, size rounded up to a multiple of 8 }
+{ GetMem, with the size rounded up to a multiple of 8. }
 procedure AllocRounded(var p: Pointer; n: Word);
 begin
   GetMem(p, (n + 7) and $FFF8);
 end;
 
-{ WriteChar: count copies of ch in attr at (col, row) through the BIOS, as the video driver writes them
-  (GDVars.video.WriteChar, which calls BiosWriteChar for each display page it keeps). }
+{ Count copies of ch in attr at (col, row) through the BIOS, as the video driver writes them (GDVars.video.WriteChar,
+  which calls BiosWriteChar for each display page it keeps). }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
   GDVars.video.WriteChar(col, row, attr, count, ch);
 end;
 
-{ BiosWriteChar: Position the cursor on page (INT 10h AH=2), then write count copies of ch in attr there (AH=9). }
+{ Position the cursor on page (INT 10h AH=2), then write count copies of ch in attr there (AH=9). }
 procedure BiosWriteChar(page, col, row, attr, count, ch: Byte);
 begin
   GDVars.dsInterruptRegisters.ah := 2;
@@ -144,7 +144,7 @@ begin
   Intr($10, GDVars.dsInterruptRegisters);
 end;
 
-{ WriteString: Write each char of source at (col,row)/attr, advancing col }
+{ Write each char of source at (col, row) in attr, advancing col. }
 procedure WriteString(col, row, attr: Byte; source: string);
 var
   n: Byte;
@@ -157,7 +157,7 @@ begin
   end;
 end;
 
-{ WriteBlock: Write count solid blocks (219) }
+{ Write count solid blocks (219). }
 procedure WriteBlock(col, row, attr, count: Byte);
 begin
   DaxIo.WriteChar(col, row, attr, count, 219);
@@ -226,11 +226,11 @@ begin
   end;
 end;
 
-{ OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), say which file is missing,
-  with its path, then ask with promptMsg (AskForDisk), and retry. Escape at promptMsg gives up, or with escQuits (the
-  game's data, which it cannot go on without) quits to DOS (GameIo.ExitGame); SSI asked until the file was there
-  (#794). On success open the caller's untyped file f for reading only (FileUtil.OpenReadOnly, recsize 1), so a
-  read-only file opens too: every caller only reads. Returns found }
+{ Try to open fileName; if missing and prompts are allowed (noPrompt False), say which file is missing, with its path,
+  then ask with promptMsg (AskForDisk), and retry. Escape at promptMsg gives up, or with escQuits (the game's data,
+  which it cannot go on without) quits to DOS (GameIo.ExitGame); SSI asked until the file was there (#794). On success
+  open the caller's untyped file f for reading only (FileUtil.OpenReadOnly, recsize 1), so a read-only file opens too:
+  every caller only reads. Returns found. }
 function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, escQuits: Boolean;
   var f: file): Boolean;
 var
@@ -252,8 +252,8 @@ begin
   OpenWithRetry := found;
 end;
 
-{ FileExists: open the name for reading only (FileUtil.OpenReadOnly, so a read-only file counts), close it and report
-  success: opened and closed clean AND the name non-empty }
+{ Open name for reading only (FileUtil.OpenReadOnly, so a read-only file counts), close it and report success: opened
+  and closed clean AND the name non-empty. }
 function FileExists(name: Types.TPathStr): Boolean;
 var
   f: file;
@@ -307,7 +307,8 @@ end;
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
 var
   srcIdx: Word;
-  dstIdx: Word; b: ShortInt;
+  dstIdx: Word;
+  b: ShortInt;
   n: Word;
 begin
   srcIdx := 0;
@@ -340,8 +341,8 @@ end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with DataDiskMsg (Escape quits),
-  unless GDVars.dsSuppressingInsertDiskFlag is set. False, with both handles closed, when the header size
-  cannot be read or the directory it gives runs past the end of the file, whose scan would never end. }
+  unless GDVars.dsSuppressingInsertDiskFlag is set. False, with both handles closed, when the header size cannot be read
+  or the directory it gives runs past the end of the file, whose scan would never end. }
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
@@ -365,7 +366,7 @@ begin
     OpenDax := False;
 end;
 
-{ CloseDax: Close both archive file handles (they refer to the same physical file) }
+{ Close both archive file handles (they refer to the same physical file). }
 procedure CloseDax(var f1, f2: file);
 begin
   Close(f1);
@@ -504,12 +505,19 @@ end;
   36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the archive cannot be opened or
   the ID is absent. }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
-var compSize: Word; offset: LongInt; id: Byte; n: Word;
-    f1: file;
-    f2: file; hdrSize: Word; pad802: Byte; numStr: String[6];
-    family: Byte;
-    disk: Byte;
-    cut: Boolean;
+var
+  compSize: Word;
+  offset: LongInt;
+  id: Byte;
+  n: Word;
+  f1: file;
+  f2: file;
+  hdrSize: Word;
+  pad802: Byte;
+  numStr: String[6];
+  family: Byte;
+  disk: Byte;
+  cut: Boolean;
 begin
   family := DataArc.MatchFamily(fileName, disk);
   { the reserved ids name the merged archive's own blocks, which no per-disk archive holds: such a load reads the

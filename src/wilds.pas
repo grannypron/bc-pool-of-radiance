@@ -15,8 +15,8 @@ procedure DrawWildWindows;
 
 implementation
 
-
 uses Types, Crt, C_Msg, GDConsts, GDVars, Border, MapTiles, TextRend;
+
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
   WILD_SILVER_DRAGON_DEN = 1;
@@ -103,8 +103,7 @@ procedure DrawWildWindows;
 begin
   Border.DrawWindow(1, 1, 15, 15, 0, Black, '');
   Border.DrawWindow(17, 1, 38, 15, 0, Black, '');
-  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black,
-                    '');
+  Border.DrawWindow(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0, Black, '');
 end;
 
 end.

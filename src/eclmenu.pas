@@ -173,8 +173,8 @@ begin
     end;
   DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
   if sizeRead < 2 then begin
-    { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first
-      disk that has the block, without the insert-disk prompt }
+    { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first disk
+      that has the block, without the insert-disk prompt }
     GDVars.dsSuppressingInsertDiskFlag := True;
     disk := 1;
     while (sizeRead < 2) and (disk <= 8) do begin
@@ -509,8 +509,8 @@ begin
   end;
 end;
 
-{ "dies" when dmg > hpCur + 10, else the hit message (dmgStr holds at most 3 digits); then apply the damage, clear the
-  panel at (17,1)-(38,15) and redraw the party. A dead, stoned or gone character is left alone, with no message. }
+{ "dies" when dmg > hpCur + 10, else the hit message; then apply the damage, clear the panel at (17,1)-(38,15) and
+  redraw the party. A dead, stoned or gone character is left alone, with no message. }
 procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 var
   msg: String;
@@ -626,7 +626,6 @@ begin
 end;
 
 procedure AddCreatureToParty(id: Byte);
-
 var
   creature: Types.PCharRecord;
   cnt: Byte;

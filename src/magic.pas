@@ -5,7 +5,7 @@ unit Magic;
 
 interface
 
-{ Types supplies PCharRecord, PItemRec, PEffectRec and TStr40 for the declarations below. }
+{ Types supplies PCharRecord, PItemRec, PEffectRec, TStr40 and TCellList for the declarations below. }
 uses Types;
 
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
@@ -203,8 +203,8 @@ var
 const
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;
-  { AddSpellToList's markers, in the indent column: none; KNOWN_MARK on a spell already in curChar's spell book; or
-    NOT_KNOWN_MARK on a spell curChar's classes could learn but its spell book lacks }
+  { AddSpellToList's markers, in the indent column: none; KNOWN_MARK on a spell already in the creature's spell book; or
+    NOT_KNOWN_MARK on a spell the creature's classes could learn but its spell book lacks }
   MARK_NONE = 0;
   MARK_KNOWN = 1;
   MARK_NOT_KNOWN = 2;
@@ -349,7 +349,7 @@ begin
 end;
 
 { The indent-column marker for spell (bit 7 ignored) on a spell list, otherwise a blank: KNOWN_MARK for MARK_KNOWN when
-  curChar's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell curChar's classes
+  creature's spell book has it; NOT_KNOWN_MARK for MARK_NOT_KNOWN when the spell book lacks a spell creature's classes
   could learn. A class could learn a spell of its own (castClass 0 needs a cleric level, castClass 1 a magic-user level)
   at spell level 1..3, the levels a character has slots for, whatever the character's current level. An ID outside the
   spell book (1..56) gets a blank. }
@@ -402,7 +402,7 @@ begin
     end;
 end;
 
-{ Walk curChar's inventory: each readable item becomes dsCurrentScrollPtr and feeds AddScrollSpells with forScribe and
+{ Walk creature's inventory: each readable item becomes dsCurrentScrollPtr and feeds AddScrollSpells with forScribe and
   mark. dsCurrentScrollPtr itself is the loop variable, so it ends as nil. }
 procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
 begin
@@ -433,8 +433,8 @@ begin
   end;
 end;
 
-{ The Cast list, level by level: curChar's memorized spells (not those still being memorized), then a line for each
-  spell on each scroll curChar can read and use (CastableScroll), in inventory order, marked with SCROLL_MARK. In
+{ The Cast list, level by level: creature's memorized spells (not those still being memorized), then a line for each
+  spell on each scroll creature can read and use (CastableScroll), in inventory order, marked with SCROLL_MARK. In
   combat the memorized spells need castAllowed, as the Cast command does, and the scroll spells CharHlp.CanUseItems, as
   Use does. }
 procedure AddAvailableSpells(creature: Types.PCharRecord);
@@ -542,9 +542,9 @@ begin
     59: d := Dice.RollDice(1, 4) * 10 + 40;
     { Dust of Disappearance }
     63: if GDVars.ifcState = C_Ifc.COMBAT then
-                d := Dice.RollDice(2, 10) * 10
-              else
-                d := (Dice.RollDice(1, 10) + 10) * 10;
+          d := Dice.RollDice(2, 10) * 10
+        else
+          d := (Dice.RollDice(1, 10) + 10) * 10;
     { Manual of Bodily Health: 1440 minutes, 24 hours }
     67: d := 1440;
   else
@@ -788,9 +788,9 @@ begin
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
-{ Charm Person: only persons (CharHlp.IsPerson) can be charmed (#792). The Charm effect's strength is the
-  caster's hostile * 128 + caster level; afterwards the target's first Charm effect (normally the one just added) has
-  its handler called with removed = False. }
+{ Charm Person: only persons (CharHlp.IsPerson) can be charmed (#792). The Charm effect's strength is the caster's
+  hostile * 128 + caster level; afterwards the target's first Charm effect (normally the one just added) has its handler
+  called with removed = False. }
 procedure CharmPersonHandler;
 var
   effect: Types.PEffectRec;
@@ -902,9 +902,9 @@ begin
       3: cost := 4;
       4: cost := 6;
       5: if GDVars.dsTargetCreaturePtr[i]^.race = C_Race.MONSTER then
-              cost := 10
-            else
-              cost := 20;
+           cost := 10
+         else
+           cost := 20;
     else
       cost := 20;
     end;
@@ -1239,9 +1239,8 @@ begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is blind');
 end;
 
-{ Remove disease from tgt with effectLock held: Diseased, the Strength-draining disease (also
-  dropping its hit-point and helpless effects) and rot (also dropping mummy rot). Returns True if any of the three was
-  present. }
+{ Remove disease from tgt with effectLock held: Diseased, the Strength-draining disease (also dropping its hit-point and
+  helpless effects) and rot (also dropping mummy rot). Returns True if any of the three was present. }
 function RemoveDiseaseEffects(tgt: Types.PCharRecord): Boolean;
 begin
   RemoveDiseaseEffects := False;
@@ -1373,7 +1372,7 @@ begin
 end;
 
 { Fireball: spell 64 (an item fireball) uses level 1d3 * 2 + 1. When zone0^.view3dFlag is 0 the target list is rebuilt
-  with Pathing.BuildTargetList, radius 2 around the aim cell. Damage is level d6, element mask 9. }
+  with Pathing.TargetArea, radius 2 around the aim cell. Damage is level d6, element mask 9. }
 procedure FireballHandler;
 var
   cl: Byte;
@@ -1647,9 +1646,8 @@ end;
 
 { Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8. Poison
   kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison
-  (StandUpOrWake). A dead target
-  still under Slow Poison was kept up through the poison and died of something else (a wound, bleeding out), so it
-  stays dead, as at the temple (Temple.NeutralizePoison). }
+  (StandUpOrWake). A dead target still under Slow Poison was kept up through the poison and died of something else (a
+  wound, bleeding out), so it stays dead, as at the temple (Temple.NeutralizePoison). }
 procedure KeoghtomsOintmentHandler;
 var
   tgt: Types.PCharRecord;
@@ -1854,13 +1852,13 @@ begin
 end;
 
 { Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
-  during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell)
-  and 'Use it?', where Yes sets done and No leaves it clear. In combat, a spell castable in combat (whenCast <> 0) ends
-  the user's actions and sets done, cast or not. Only when the spell was cast, consume the scroll spell, or use
-  quantity and then charges; remove the item when its charges run out (SSI spent them on done, so an aborted spell in
-  combat still used them up). announce (the Cast list's scroll lines) names the spell first, as casting a memorized
-  one does (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item
-  data, does nothing and leaves done clear. }
+  during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell) and
+  'Use it?', where Yes sets done and spends the scroll spell and No leaves done clear. In combat, a spell castable in
+  combat (whenCast <> 0) ends the user's actions and sets done, cast or not. Past that prompt, only when the spell was
+  cast, consume the scroll spell, or use quantity and then charges; remove the item when its charges run out (SSI spent
+  them on done, so an aborted spell in combat still used them up). announce (the Cast list's scroll lines) names the
+  spell first, as casting a memorized one does (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell
+  table, from corrupt or edited item data, does nothing and leaves done clear. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 var
   id: Byte;

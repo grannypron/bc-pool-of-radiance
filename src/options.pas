@@ -1,9 +1,9 @@
 { The Settings screen and POOLOPT.CFG. The game's settings (speed, monster pictures, portraits, music, sound, Quick
-  ending with the fight, quick-mode magic and the Companion Tools) are global: POOLOPT.CFG in the save folder keeps
-  them as KEY=VALUE lines. GameInit reads it at start-up, before the title music, and every change writes it back; a
-  saved game no longer changes them. The screen lists the settings above what the game runs with from POOL.CFG and a
-  few lines about the build, the data archives and memory. The NORAND and STING notes, when they are given, stand at
-  the right of the last settings rows. }
+  ending with the fight, quick-mode magic and the Companion Tools) are global: POOLOPT.CFG in the save folder keeps them
+  as KEY=VALUE lines. GameInit reads it at start-up, before the title music, and every change writes it back; a saved
+  game no longer changes them. The screen lists the settings above what the game runs with from POOL.CFG and a few lines
+  about the build, the data archives and memory. The NORAND and STING notes, when they are given, stand at the right of
+  the last settings rows. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Options;
@@ -123,8 +123,8 @@ begin
     OnOff := 'OFF';
 end;
 
-{ The value of setting opt as POOLOPT.CFG keeps it. Sound is the setting, which stays as it was when POOL.CFG names
-  no sound device. }
+{ The value of setting opt as POOLOPT.CFG keeps it. Sound is the setting, which stays as it was when POOL.CFG names no
+  sound device. }
 function StoredValue(opt: Byte): Types.TStr20;
 begin
   case opt of
@@ -180,8 +180,8 @@ begin
       KeyOf := opt;
 end;
 
-{ Set setting opt from value (tidied): a digit 0..9 for the speed, ON or OFF (or 1 or 0) for the others. Any other
-  value leaves the setting as it is. }
+{ Set setting opt from value (tidied): a digit 0..9 for the speed, ON or OFF (or 1 or 0) for the others. Any other value
+  leaves the setting as it is. }
 procedure ReadValue(opt: Byte; value: string);
 var
   flag: Byte;
@@ -330,8 +330,8 @@ begin
     NoteOnRow := notes[SETTINGS_BOTTOM - row + 1];
 end;
 
-{ Draw setting opt on its row, its label and value in color, then the row's note, if any. The speed line's value is
-  its two choices; while it is highlighted (color White) the choice not picked stays LightGreen. }
+{ Draw setting opt on its row, its label and value in color, then the row's note, if any. The speed line's value is its
+  two choices; while it is highlighted (color White) the choice not picked stays LightGreen. }
 procedure DrawSetting(opt: Byte; color: Byte);
 var
   row: Byte;
@@ -359,9 +359,9 @@ begin
   TextRend.DisplayString(RIGHT_COL + 1 - Length(note), row, NOTE_COLOR, note);
 end;
 
-{ Draw a display-only line on row: its label, and value cut to the space after INFO_COL; a value too long keeps its
-  end, after '...', as a path's last folders say the most. The game font has no backslash (that character is a solid
-  block), so a path shows '/' in its place. }
+{ Draw a display-only line on row: its label, and value cut to the space after INFO_COL; a value too long keeps its end,
+  after '...', as a path's last folders say the most. The game font has no backslash (that character is a solid block),
+  so a path shows '/' in its place. }
 procedure DrawInfo(row: Byte; lab, value: string);
 const
   WIDTH = RIGHT_COL - INFO_COL + 1;
@@ -405,8 +405,7 @@ begin
               Options.Grouped(present);
 end;
 
-{ Draw the display-only lines: POOL.CFG's values as the game runs with them, the build, the data archives and
-  memory. }
+{ Draw the display-only lines: POOL.CFG's values as the game runs with them, the build, the data archives and memory. }
 procedure DrawInfoLines;
 begin
   Options.DrawInfo(CFG_TOP, 'Video', VidOps.ModeName);

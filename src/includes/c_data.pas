@@ -20,9 +20,9 @@ const
     now. }
   VERSION = 36;
   { Reserved block ids, the last blocks of a merged archive; the remap block is there only when some ids collided. The
-    sources block lists, per per-disk archive read, its disk, file size and CRC-32; the remap block holds the
-    collisions as triples (disk, original id, merged id); the version block holds VERSION and the CRC-32 of every byte
-    of the file before that block's data. }
+    sources block lists, per per-disk archive read, its disk, file size and CRC-32; the remap block holds the collisions
+    as triples (disk, original id, merged id); the version block holds VERSION and the CRC-32 of every byte of the file
+    before that block's data. }
   SOURCES_BLOCK = 253;
   REMAP_BLOCK = 254;
   VERSION_BLOCK = 255;

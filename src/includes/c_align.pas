@@ -17,7 +17,7 @@ const
   CHAOTIC_GOOD = 6;
   CHAOTIC_NEUTRAL = 7;
   CHAOTIC_EVIL = 8;
-  
+
   { short names }
   LG = LAWFUL_GOOD;
   LN = LAWFUL_NEUTRAL;

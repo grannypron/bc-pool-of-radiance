@@ -1,5 +1,5 @@
-{ The party: which creatures in GDVars.creatureList are its members. Resident and using only GDVars, so units with
-  tests (Stats) can use it. }
+{ The party: which creatures in GDVars.creatureList are its members. Resident and using only GDVars, so units with tests
+  (Stats) can use it. }
 {$F+}
 {$I COMPILER.INC}
 unit Party;

@@ -1,6 +1,6 @@
 { Tests for FxEngine.FreeCloudNumber (#761): each of a caster's stinking clouds gets its own number, the list's last
-  node counted too, so ending one cloud clears that cloud and not an older one. And for FxEngine.CloudStrength (#762):
-  a caster level above 15 does not carry into the cloud's number. }
+  node counted too, so ending one cloud clears that cloud and not an older one. And for FxEngine.CloudStrength (#762): a
+  caster level above 15 does not carry into the cloud's number. }
 {$I COMPILER.INC}
 program TClouds;
 

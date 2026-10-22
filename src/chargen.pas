@@ -12,8 +12,8 @@ procedure CustomizeIcon;
 { The portrait picker for curChar; canCancel lets Escape leave it with the portrait unchanged (camp's Alter). }
 procedure CustomizePortrait(canCancel: Boolean);
 
-{ True when curChar can be modified at all: a player race (Dwarf..Human, whose limits
-  dsMinimumMaximumStatistics holds; the hired Acolyte is race 0) and a class C_Class.CLERIC..MAGE_THIEF (0..16). }
+{ True when curChar can be modified at all: a player race (Dwarf..Human, whose limits dsMinimumMaximumStatistics holds;
+  the hired Acolyte is race 0) and a class C_Class.CLERIC..MAGE_THIEF (0..16). }
 function Modifiable: Boolean;
 
 { Arrow-key editor for curChar's six attributes and hit points (ModifyCharacterMenu's, which calls it for a character
@@ -29,14 +29,12 @@ implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
   C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
-  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice, VidOps
-  {$IFDEF FPC}, TpRand{$ENDIF};
+  DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice,
+  VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { STING training override. }
   stingMode: Byte;
-
-
 
 const
   { The race screen's frames: the race list and the ability adjustments share rows 1..RACE_TOP_BOTTOM, on either side
@@ -56,15 +54,11 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-
-
-
-
 { MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
-  settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin
-  Adventuring sets ifcState to 4 (C_Ifc.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save
-  first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660). Game
-  Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
+  settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring
+  sets ifcState to 4 (C_Ifc.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save first: Yes
+  opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660). Game Settings opens the
+  Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
 procedure MainMenu;
 const
   MENU_CREATE = 0;
@@ -132,8 +126,8 @@ begin
       redraw := False;
     end;
 
-    ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, MAGENTA, Black, Black, 
-            True, False, ext);
+    ch := MenuCore.MenuHorizontal('pool of radiance ' + GDConsts.GAME_VERSION, GDConsts.menuKeys, MAGENTA, Black,
+                                  Black, True, False, ext);
     TextRend.ClearBottomLine;
     if ext then begin
       { Home, End, Up and Down step through the party (Party.SelectPrevNextChar) }
@@ -226,8 +220,8 @@ const
   ABIL_COL = 19;
   ADJ_COL = 23;
   HEADING_ROW = 11;
-  { the data starts a row below the headings; the single classes end above the note's two rows, and the
-    multiclasses, right of the note, at the foot of the box }
+  { the data starts a row below the headings; the single classes end above the note's two rows, and the multiclasses,
+    right of the note, at the foot of the box }
   FIRST_ROW = 13;
   LAST_ROW = 19;
   NOTE_ROW = 20;
@@ -747,10 +741,10 @@ begin
   SaveLoad.FreeCreature(creature);
 end;
 
-{ DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon) and
-  erase its own files and roster line (SaveLoad.EraseChar), so it does not come back on the Add list; the farewell
-  message depends on whether the character is enabled. Declining shows the relief line, shortened for a name
-  too long for SSI's wording to fit the 40-column bottom row. }
+{ DropCharacterMenu: Ask twice, then drop curChar from the party with RemoveCreature (freeing it and its icon) and erase
+  its own files and roster line (SaveLoad.EraseChar), so it does not come back on the Add list; the farewell message
+  depends on whether the character is enabled. Declining shows the relief line, shortened for a name too long for SSI's
+  wording to fit the 40-column bottom row. }
 procedure DropCharacterMenu;
 begin
   if GDVars.curChar = nil then Exit;
@@ -789,10 +783,10 @@ begin
 end;
 
 { ModifyCharacter: Up and Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and
-  hit-point limits. Keep recalculates a thief's skills for the new Dexterity and, unless levelled, sets
-  npcTreasureShare to 1; Exit restores the saved attributes, strExc, hpMax (and, levelled, hpCur) and cleric spell
-  slots. A lowered attribute stops at the higher of the racial and class minimums; one already at 0 is not lowered
-  further, so it rises to that minimum. }
+  hit-point limits. Keep recalculates a thief's skills for the new Dexterity and, unless levelled, sets npcTreasureShare
+  to 1; Exit restores the saved attributes, strExc, hpMax (and, levelled, hpCur) and cleric spell slots. A lowered
+  attribute stops at the higher of the racial and class minimums; one already at 0 is not lowered further, so it rises
+  to that minimum. }
 procedure ModifyCharacter(levelled: Boolean);
 var
   savedStats: array[0..5] of Byte;
@@ -1097,13 +1091,12 @@ begin
 end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
-  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee,
-  but not the class and level limits, so a character with no class left to train is still sent away.
-  Applies the racial fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap).
-  A character who trains has experience clamped to one below the highest level + 2 threshold it has reached. Each
-  trained class gains a level and restores one drained level; a new magic-user level picks one spell; hit points grow
-  by the rolled dice (and, for hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as
-  GainLevels gives them. }
+  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
+  not the class and level limits, so a character with no class left to train is still sent away. Applies the racial
+  fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap). A character who trains
+  has experience clamped to one below the highest level + 2 threshold it has reached. Each trained class gains a level
+  and restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
+  hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
 procedure TrainingMenu;
 var
   xpClamp: LongInt;
@@ -1200,9 +1193,9 @@ end;
   unreadable, which the bottom line reports as a damaged file until a key: at most 6 non-NPCs and 8 members in all.
   Curse's party rules also apply: a paladin does not join a party with an evil member, nor an evil character a party
   with a paladin, and a party has at most 3 rangers. A character they refuse gets Curse's message on the bottom line
-  until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do
-  NPCs a script adds. A character with no file, once Escape gives up at the save disk prompt, is taken off the roster.
-  Added entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
+  until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do NPCs
+  a script adds. A character with no file, once Escape gives up at the save disk prompt, is taken off the roster. Added
+  entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
 procedure AddCharacterMenu;
 var
   list: Types.PItemRec;
@@ -1473,22 +1466,20 @@ begin
   TextRend.ClearBottomLine;
 end;
 
-{ CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the
-  icon's ready and action frames, Head and Weapon (each with its place among the shapes there are), Size, the seven
-  coloured parts ("1 2" beside the five with two colours) and, on the bottom line, the menu: Keep and Exit. Up and Down
-  choose an item, the menu being the last; on the menu Left and Right choose Keep or Exit and Enter takes it, as K and
-  E do.
-  Enter on Size toggles small and large; on any other item it fills the right pane with a 4x4 grid of the icon with
-  each option of that item: every head, every weapon, or the part in each of the 16 colours. The arrows move the
-  game's cursor box (COMSPR 25, the square behind the active icon in combat) through the grid, turning the page past
-  its last or first row, and the ready and action frames on the left show the boxed option. Enter keeps it, Escape
-  goes back to the left with the icon as it was, and Space switches a two-colour part between colour 1 and colour 2.
-  The menu is not offered while the grid is up. Keep asks whether the icon is ok: Yes ends the editor with the icon as
-  it is and No goes back to it. Exit, or Escape on the left, ends the editor with the icon as it was when the editor
-  opened. Only the field chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a party member's icon in
-  its slot (orderNumber) is rebuilt at the end. A page's icons are kept, so moving the box loads
-  at most one frame from CHEAD or CBODY.
-  (SSI's editor stepped through each choice with Next and Prev under an old and a new copy of the icon.) }
+{ CustomizeIcon: The combat-icon editor for curChar, on its own two-pane page. The left pane shows the name, the icon's
+  ready and action frames, Head and Weapon (each with its place among the shapes there are), Size, the seven coloured
+  parts ("1 2" beside the five with two colours) and, on the bottom line, the menu: Keep and Exit. Up and Down choose an
+  item, the menu being the last; on the menu Left and Right choose Keep or Exit and Enter takes it, as K and E do. Enter
+  on Size toggles small and large; on any other item it fills the right pane with a 4x4 grid of the icon with each
+  option of that item: every head, every weapon, or the part in each of the 16 colours. The arrows move the game's
+  cursor box (COMSPR 25, the square behind the active icon in combat) through the grid, turning the page past its last
+  or first row, and the ready and action frames on the left show the boxed option. Enter keeps it, Escape goes back to
+  the left with the icon as it was, and Space switches a two-colour part between colour 1 and colour 2. The menu is not
+  offered while the grid is up. Keep asks whether the icon is ok: Yes ends the editor with the icon as it is and No goes
+  back to it. Exit, or Escape on the left, ends the editor with the icon as it was when the editor opened. Only the
+  field chosen is stored (iconHead, iconBody, iconSize or iconColors1), and a party member's icon in its slot
+  (orderNumber) is rebuilt at the end. A page's icons are kept, so moving the box loads at most one frame from CHEAD or
+  CBODY. (SSI's editor stepped through each choice with Next and Prev under an old and a new copy of the icon.) }
 procedure CustomizeIcon;
 const
   { CHEAD and CBODY each hold 14 heads and 32 weapons per size }
@@ -1532,7 +1523,6 @@ const
   PART_COUNT: array[0..1] of Byte = (NUM_HEADS, NUM_WEAPONS);
   { no block loaded; real blocks go up to 223 }
   NO_BLOCK = 255;
-
 var
   key: Char;
   ext: Boolean;

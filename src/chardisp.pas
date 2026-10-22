@@ -25,7 +25,7 @@ procedure PrintMessage(s: string);
 
 { Show s in color in the message window (the combat window in combat, else the bottom window), word-wrapped. first
   clears and opens the window; otherwise s carries on from where the last part stopped, so a message can be shown in
-  parts of different colours. MessageWait then waits for a key. }
+  parts of different colors. MessageWait then waits for a key. }
 procedure MessageText(s: string; color: Byte; first: Boolean);
 
 { Wait for a key at the 'Press any key to continue' prompt and clear the prompt; the window keeps the text. }
@@ -261,8 +261,8 @@ begin
     Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP + 1, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
 end;
 
-{ Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to
-  train) or light cyan (friendly), optionally followed by the possessive 's. }
+{ Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to train)
+  or light cyan (friendly), optionally followed by the possessive 's. }
 procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; possessive: Boolean);
 var
   color: Byte;
@@ -535,9 +535,8 @@ begin
 end;
 
 { Redraw the screen for the current interface state: the main-menu frame; the shop, temple or vault windows with the
-  portrait;
-  the camp picture, party and status line; the indoor or outdoor map view, party and status line; or the loot picture
-  and party. }
+  portrait; the camp picture, party and status line; the indoor or outdoor map view, party and status line; or the loot
+  picture and party. }
 procedure DisplayNoncombatInterface;
 begin
   case GDVars.ifcState of

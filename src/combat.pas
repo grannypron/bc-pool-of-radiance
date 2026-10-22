@@ -1,5 +1,4 @@
 { Combat loop, initiative selection and manual-control menus. }
-
 {$O+,F+}
 {$I COMPILER.INC}
 unit Combat;
@@ -18,7 +17,6 @@ implementation
 uses Types, C_Time, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
   C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
-
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
 
@@ -195,27 +193,27 @@ begin
           'D': Combat.DoneMenu(creature, done);
           { Alt-M scan code: toggle quick magic }
           C_Keys.ALT_M: CombatAi.ToggleQuickMagic;
-          { every creature under the player's control back to manual; NPCs and animated creatures stay on
-            quick-fight, as during the AI's turns (#640) }
+          { every creature under the player's control back to manual; NPCs and animated creatures stay on quick-fight,
+            as during the AI's turns (#640) }
           ' ': CombatAi.AllToManual;
           { Alt-Q scan code: everyone to quick-fight; this creature acts again at once under the AI }
           C_Keys.ALT_Q: begin
-                      creature^.combatAddr^.initiative := 20;
-                      p := GDVars.creatureList;
-                      while p <> nil do begin
-                        Combat.TurnOnAuto(p);
-                        p := p^.nextCharAddr;
-                      end;
-                      TextRend.ClearBottomLine;
-                      Delay(200);
-                      done := True;
-                    end;
+                          creature^.combatAddr^.initiative := 20;
+                          p := GDVars.creatureList;
+                          while p <> nil do begin
+                            Combat.TurnOnAuto(p);
+                            p := p^.nextCharAddr;
+                          end;
+                          TextRend.ClearBottomLine;
+                          Delay(200);
+                          done := True;
+                        end;
           { Alt-X scan code: the STING cheat }
           C_Keys.ALT_X: if CbtActs.StingVictoryCheat then begin
-                      CbtMap.DisplayMapViewCentered(creature, 3, False);
-                      done := True;
-                    end else
-                      CharDisp.PrintBottomLine('That doesn''t work');
+                          CbtMap.DisplayMapViewCentered(creature, 3, False);
+                          done := True;
+                        end else
+                          CharDisp.PrintBottomLine('That doesn''t work');
         end;
         if not done then begin
           CbtMap.DisplayMapViewCentered(creature, 2, True);
@@ -272,7 +270,7 @@ var
   p: Types.PCharRecord;
   cnt: Byte;
 begin
-  { one minute (tUnit 1) }
+  { one minute }
   FxEngine.AdvanceTime(1, C_Time.MINUTES);
   Inc(GDVars.roundCounter);
   CbtActs.CalcHostileHpPercent;
@@ -337,16 +335,16 @@ begin
     case ch of
       { Escape: undo }
       C_Keys.NONE: begin
-                  creature^.combatAddr^.movement := savedMove;
-                  { slot 0 (not on the map) would redraw view cell 0, 0 instead }
-                  if CbtMap.CombatSlot(creature) > 0 then
-                    CbtMap.UpdateCombatMapTile(0, 0, CbtMap.CombatSlot(creature));
-                  { Put it back on its start cell; the turn ends if that cell is no longer free }
-                  done := CbtMap.IsValidCreatureLoc(creature, startX, startY, False) = False;
-                  CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_Dir.CENTER);
-                  creature^.combatAddr^.direction := savedDir;
-                  dir := C_Dir.CENTER;
-                end;
+                     creature^.combatAddr^.movement := savedMove;
+                     { slot 0 (not on the map) would redraw view cell 0, 0 instead }
+                     if CbtMap.CombatSlot(creature) > 0 then
+                       CbtMap.UpdateCombatMapTile(0, 0, CbtMap.CombatSlot(creature));
+                     { Put it back on its start cell; the turn ends if that cell is no longer free }
+                     done := CbtMap.IsValidCreatureLoc(creature, startX, startY, False) = False;
+                     CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_Dir.CENTER);
+                     creature^.combatAddr^.direction := savedDir;
+                     dir := C_Dir.CENTER;
+                   end;
       { Up arrow }
       C_Keys.UP: dir := C_Dir.NORTH;
       { Page Up }

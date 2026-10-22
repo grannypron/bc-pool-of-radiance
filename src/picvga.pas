@@ -25,8 +25,8 @@ implementation
 
 uses C_Video, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
-{ each DAX cell row (4 bytes, two pixels a byte, high nibble first) becomes 8 bytes; with a mask, a pixel of
-  transpColor becomes PIC_KEY and sets its mask bit (bit 7 the leftmost) }
+{ each DAX cell row (4 bytes, two pixels a byte, high nibble first) becomes 8 bytes; with a mask, a pixel of transpColor
+  becomes PIC_KEY and sets its mask bit (bit 7 the leftmost) }
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: Types.PImgBuf);
 var
   chunk: TChunk;

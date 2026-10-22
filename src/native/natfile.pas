@@ -1,12 +1,12 @@
 { The native build's file names as DOS took them: a backslash is a separator, and case does not matter. The game names
   its files in either case ('pool.cfg', 'POOL.CFG', 'savgam' + letter + '.dat') and the files of a DOS install are in
   capitals, which a case-sensitive file system (Linux; macOS's can be) tells apart. Each unit that opens a file uses
-  this one last, so its Assign, Rename and MkDir, which find a name's file whatever its case, are the ones it calls;
-  a file or folder that is not there yet is named in capitals, as DOS stored it. Objfpc mode: its routines must have
+  this one last, so its Assign, Rename and MkDir, which find a name's file whatever its case, are the ones it calls; a
+  file or folder that is not there yet is named in capitals, as DOS stored it. Objfpc mode: its routines must have
   System's own parameters (out, const) to be taken over System's. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
-{ the callers check IOResult (they are compiled {$I-}), so an error stays there rather than raising }
+{ the callers check IOResult (they are compiled $I-), so an error stays there rather than raising }
 {$I-}
 unit NatFile;
 

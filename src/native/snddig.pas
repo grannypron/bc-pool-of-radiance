@@ -155,8 +155,8 @@ begin
   FreeMem(p, size);
 end;
 
-{ An effect with a recording on the DSP, the Tandy's voices silenced first; the music, every other effect, and
-  silence (which also stops a recording) on the Tandy. }
+{ An effect with a recording on the DSP, the Tandy's voices silenced first; the music, every other effect, and silence
+  (which also stops a recording) on the Tandy. }
 procedure Play(tune: Word);
 begin
   if (tune >= 1) and (tune <= LAST_EFFECT) then begin

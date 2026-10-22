@@ -18,16 +18,16 @@ var
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
   byte. After a nonzero byte, drain pending input without repeating those controls and return the last plain key read
-  (an extended key in it is dropped whole, #0 and scan byte, so no scan byte is returned as a key). An
-  initial zero is returned at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear; the next
-  call returns that scan byte without the controls, so an extended key whose scan code matches one (Alt-R is 19, as
-  Ctrl-S) does not run it (#736, #764). Ctrl-S turns the Sound setting over (SetSound) and, once POOLOPT.CFG has been
-  read, writes it back (saveSettings). }
+  (an extended key in it is dropped whole, #0 and scan byte, so no scan byte is returned as a key). An initial zero is
+  returned at once, leaving the extended scan byte pending when Crt's Ctrl-Break flag is clear; the next call returns
+  that scan byte without the controls, so an extended key whose scan code matches one (Alt-R is 19, as Ctrl-S) does not
+  run it (#736, #764). Ctrl-S turns the Sound setting over (SetSound) and, once POOLOPT.CFG has been read, writes it
+  back (saveSettings). }
 function ReadGameKey: Char;
 
-{ ReadGameKey for a wait on one key: an extended key's scan byte is read too and dropped, so the next read does not
-  take it for a typed key (after STING Ctrl-Y's last wait the menu took the next arrow for its scan byte's letter,
-  #768). Returns #0 for an extended key. }
+{ ReadGameKey for a wait on one key: an extended key's scan byte is read too and dropped, so the next read does not take
+  it for a typed key (after STING Ctrl-Y's last wait the menu took the next arrow for its scan byte's letter, #768).
+  Returns #0 for an extended key. }
 function ReadAnyKey: Char;
 
 { Turn sound on or off, as Ctrl-S does, and keep the Sound setting (GDVars.soundOn) in step. Off sends the stop command
@@ -39,7 +39,8 @@ procedure SetSound(turnOn: Boolean);
   key's scan byte is read and discarded too, so it is not taken for Ctrl-S. }
 procedure DiscardPendingKeys;
 
-{ Restore the saved sound mode, send the stop command, set the saved video mode through the BIOS and exit to DOS. }
+{ Close the STING trace log if it is open, restore the saved sound mode, send the stop command, set the saved video mode
+  through the BIOS and exit to DOS. }
 procedure ExitGame;
 
 { Quit on an error the game cannot go on from: the text mode the game started in (GDVars.savedVideoMode, set directly,
@@ -189,7 +190,8 @@ begin
 end;
 
 procedure DiscardPendingKeys;
-var key: Char;
+var
+  key: Char;
 begin
   if KeyPressed then
     key := GameIo.ReadAnyKey;

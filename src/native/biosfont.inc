@@ -1,6 +1,6 @@
-{ The BIOS's 8x8 font for characters 0..127, which INT 10h AH=9 draws in a graphics mode: the public-domain IBM VGA
-  font as Daniel Hepper's font8x8 (font8x8_basic.h) has it, a byte a scanline, leftmost pixel in bit 7. Generated;
-  characters 128..255 (the BIOS's extended set) draw blank. }
+{ The BIOS's 8x8 font for characters 0..127, which INT 10h AH=9 draws in a graphics mode: the public-domain IBM VGA font
+  as Daniel Hepper's font8x8 (font8x8_basic.h) has it, a byte a scanline, leftmost pixel in bit 7. Generated; characters
+  128..255 (the BIOS's extended set) draw blank. }
 const
   BIOS_FONT: array[0..127, 0..7] of Byte = (
     ($00, $00, $00, $00, $00, $00, $00, $00),
