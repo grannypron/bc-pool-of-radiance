@@ -789,7 +789,6 @@ var
   bestShieldPri: Byte;
   pri: Byte;
   itType: Byte;
-  props: Byte;
   needSwap: Boolean;
   changed: Boolean;
   trueRanged: Boolean;
@@ -853,25 +852,7 @@ begin
     trueRanged := True
   else
     trueRanged := False;
-  hasAmmo := False;
-  ammo := nil;
-  props := 0;
-  if bestRanged <> nil then begin
-    props := CharHlp.BaseItem(bestRanged^.itemType)^.props;
-    if (props and C_Item.PROP_THROWN) <> 0 then
-      { thrown: is its own ammo }
-      ammo := bestRanged;
-    if (props and C_Item.PROP_FIRES_AMMO) <> 0 then begin
-      if (props and C_Item.PROP_ARROWS) <> 0 then
-        ammo := creature^.equipped[C_Equip.ARROW];
-      if (props and C_Item.PROP_QUARRELS) <> 0 then
-        ammo := creature^.equipped[C_Equip.BOLT];
-    end;
-  end;
-  { props = $A exactly (C_Item.PROP_FIRES_AMMO + C_Item.PROP_DEX_MISSILE, no arrow, quarrel or thrown bit): a launcher
-    with no ammo to look up counts as supplied }
-  if (ammo <> nil) or (props = $A) then
-    hasAmmo := True;
+  hasAmmo := CharHlp.FindAmmo(creature, bestRanged, ammo);
   { pick the weapon }
   if (bestRanged <> nil)
      and (bestRangedPri > bestMeleePri div 2)

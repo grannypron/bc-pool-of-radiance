@@ -71,7 +71,15 @@ function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
 
 function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 
+{ FindAmmo for the readied weapon (equipped[C_Equip.WEAPON]). }
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
+
+{ Find the item that does the damage when the creature shoots or throws weapon w: w itself if C_Item.PROP_THROWN, else
+  the arrows (equipped[C_Equip.ARROW]) with a bow (C_Item.PROP_ARROWS) or the quarrels (equipped[C_Equip.BOLT]) with a
+  crossbow (C_Item.PROP_QUARRELS). A launcher with neither ammunition bit (props exactly C_Item.PROP_DEX_MISSILE +
+  C_Item.PROP_FIRES_AMMO) returns True with sel nil; no weapon (nil), a pure melee weapon or a launcher with no
+  ammunition readied returns False. }
+function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 
 { Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
   PermanentStrength, and a half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts. }
@@ -883,18 +891,16 @@ begin
     HasThrowableWeapon := False;
 end;
 
-{ Find the item that does the damage for a ranged attack: the readied weapon itself if C_Item.PROP_THROWN, else the
-  arrows (equipped[C_Equip.ARROW]) with a bow (C_Item.PROP_ARROWS) or the quarrels (equipped[C_Equip.BOLT]) with a
-  crossbow (C_Item.PROP_QUARRELS). A launcher with neither ammunition bit (props exactly C_Item.PROP_DEX_MISSILE +
-  C_Item.PROP_FIRES_AMMO) returns True with sel nil; a pure melee weapon or a launcher with no ammunition readied
-  returns False. }
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
+begin
+  FindDamagingRangedWeapon := CharHlp.FindAmmo(creature, creature^.equipped[C_Equip.WEAPON], sel);
+end;
+
+function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 var
-  w: Types.PItemRec;
   props: Byte;
 begin
-  FindDamagingRangedWeapon := False;
-  w := creature^.equipped[C_Equip.WEAPON];
+  FindAmmo := False;
   sel := nil;
   props := 0;
   if w <> nil then begin
@@ -909,7 +915,7 @@ begin
     end;
   end;
   if (sel <> nil) or (props = C_Item.PROP_DEX_MISSILE + C_Item.PROP_FIRES_AMMO) then
-    FindDamagingRangedWeapon := True;
+    FindAmmo := True;
 end;
 
 function CanTrain(creature: Types.PCharRecord): Boolean;
