@@ -154,6 +154,10 @@ procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 
 procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
+{ Make the creature's displacement (eff 89) due again: CombatSt.CombatStart calls it for every creature. Only the first
+  node counts, as only it is triggered. }
+procedure ResetDisplacement(creature: Types.PCharRecord);
+
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -1507,17 +1511,24 @@ begin
   end;
 end;
 
-{ Displaced (eff 89). strength bit 4 = "already displaced an attack this round" }
+{ Displaced (eff 89): the first attack on the creature each combat misses. strength bit 4 = "has displaced an attack
+  this combat", cleared by ResetDisplacement as combat starts. SSI's cleared it from here, in the first round whenever
+  the attack roll stood at 0, so a first-round attack modified to exactly 0 cleared it instead of missing (#791). }
 
 procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.roundCounter = 0) and (GDVars.gAttackRoll = 0) then
-    Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength and $F
-  else
-    if Types.PEffectRec(p)^.strength and $10 = 0 then begin
-      GDVars.gAttackAvoided := True;
-      Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
-    end;
+  if Types.PEffectRec(p)^.strength and $10 = 0 then begin
+    GDVars.gAttackAvoided := True;
+    Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
+  end;
+end;
+
+procedure ResetDisplacement(creature: Types.PCharRecord);
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_Effect.DISPLACED, effect) then
+    effect^.strength := effect^.strength and not $10;
 end;
 
 { Con poison saving throw bonus (eff 90) }

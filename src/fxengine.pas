@@ -349,10 +349,9 @@ begin
     C_Cond.COMBAT_START: begin
       FxEngine.TriggerEffect(creature, C_Effect.CAN_FIGHT_ON); FxEngine.TriggerEffect(creature,
           C_Effect.DRAGON_FEAR);
-      FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FEAR); FxEngine.TriggerEffect(creature,
-                                                                                        C_Effect.DISPLACED);
-      FxEngine.TriggerEffect(creature, C_Effect.CAMOUFLAGE); FxEngine.TriggerEffect(creature,
-          C_Effect.RING_INVIS);
+      { displacement is made due again by EffHndlr.ResetDisplacement }
+      FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FEAR); FxEngine.TriggerEffect(creature, C_Effect.CAMOUFLAGE);
+      FxEngine.TriggerEffect(creature, C_Effect.RING_INVIS);
     end;
     C_Cond.EFFECT_IMMUNITY: begin
       FxEngine.TriggerEffect(creature, C_Effect.MAGIC_RES50); FxEngine.TriggerEffect(creature,
