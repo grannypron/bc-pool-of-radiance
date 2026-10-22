@@ -137,9 +137,6 @@ const
     'Gone');
 
 const
-  { clockwise facing codes 0..7, starting at north }
-  dirNames: array[C_DIR.NORTH..C_DIR.NORTHWEST] of string[2] = (
-    'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW');
   { Text-mode colour and pixel tables; EGA plane and CGA pixel tables; icon colour map }
   { Direction code for a one-cell step, indexed [dy + 1, dx + 1]; the center entry (C_DIR.CENTER) means no movement. }
   dirByDelta: array[0..2, 0..2] of Byte = (

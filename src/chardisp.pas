@@ -70,7 +70,7 @@ procedure ShowFault(msg: Types.TStr40);
 implementation
 
 uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party;
+  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR;
 
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
@@ -601,6 +601,10 @@ end;
   is set; above location type 1 they come from the zone-0 party position, +13 for type 3 and +26 for type 4), compass
   facing, the zero-padded HH:MM clock, and the camping or search tag. }
 procedure PrintMiscInfo;
+const
+  { clockwise facing codes 0..7, starting at north }
+  dirNames: array[C_DIR.NORTH..C_DIR.NORTHWEST] of string[2] = (
+    'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW');
 var
   x: Byte;
   y: Byte;
@@ -625,7 +629,7 @@ begin
   mins := StrUtil.ZeroPad2(10 * GameVars.zone0^.clock.turn + GameVars.zone0^.clock.minute);
   if GameVars.zone0^.noAutomap = 0 then
     info := StrUtil.NumStr(x) + ',' + StrUtil.NumStr(y) + ' ';
-  info := info + GameDefs.dirNames[GameVars.gFacing] + ' ';
+  info := info + dirNames[GameVars.gFacing] + ' ';
   info := info + hrs + ':' + mins;
   { the STING trace log is on (Ctrl-L), as Curse shows it }
   if GameVars.debugTraceEnabled then
