@@ -283,7 +283,7 @@ begin
 end;
 
 { Take loop: give a copy to the current character, then unlink and free the treasure node. Ends on any key other than
-  'T' or Enter, or when no treasure items are left. }
+  'T' or Enter, with no item highlighted, or when no treasure items are left. }
 procedure LootTakeItemMenu;
 var
   itemToTake: Types.PItemRec;
@@ -299,7 +299,8 @@ begin
   idx := 0;
   repeat
     PostCbt.LootTakeItemSelection(c, itemToTake, cursor, idx);
-    if (c <> 'T') and (c <> C_Keys.ENTER) then
+    { no item highlighted (an empty list) leaves too, before anything reads it }
+    if ((c <> 'T') and (c <> C_Keys.ENTER)) or (itemToTake = nil) then
       done := True
     else begin
       done := False;
@@ -317,8 +318,7 @@ begin
           p^.next := itemToTake^.next;
         end;
         itemToTake^.next := nil;
-        if itemToTake <> nil then
-          FreeMem(itemToTake, SizeOf(Types.TItemRec));
+        FreeMem(itemToTake, SizeOf(Types.TItemRec));
         if GDVars.treasureItems = nil then
           done := True;
       end;
