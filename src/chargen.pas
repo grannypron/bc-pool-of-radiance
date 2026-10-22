@@ -101,9 +101,9 @@ begin
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
-        if (GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0) then
-          { Only ever set in this branch: once enabled, Train stays enabled until no character is selected. }
-          GDConsts.menuItems[MENU_TRAIN].enabled := 1;
+        { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
+        GDConsts.menuItems[MENU_TRAIN].enabled :=
+          Ord((GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
         GDConsts.menuItems[MENU_VIEW].enabled := 1;
         GDConsts.menuItems[MENU_REMOVE].enabled := 1;
         GDConsts.menuItems[MENU_LOAD].enabled := 0;
