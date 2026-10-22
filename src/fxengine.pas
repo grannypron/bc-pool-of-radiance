@@ -209,9 +209,11 @@ end;
 
 { Trigger one effect id on the creature: call its handler if the creature itself has the effect, or, for the aura
   effects 21 (Silence 15'), 45 (Prot Evil 10'), 46 (Prot Good 10') and 49 (Prayer), if any creature carrying it has this
-  one in range (6 for Prayer, else 1; out of combat any carrier counts). The handler gets the node found: the creature's
-  own, or the carrier's for an aura. The range test uses Pathing.BuildTargetList, saving and restoring the caller's
-  target list around it. }
+  one in range (6 for Prayer, else 1; out of combat any carrier counts). A protection aura reaches only the carrier's
+  side; SSI's lent it to enemies too, so the monsters a paladin fought were protected from evil (#782). Silence
+  silences everyone, and Prayer's handler sorts the sides itself. The handler gets the node found: the creature's own,
+  or the carrier's for an aura. The range test uses Pathing.BuildTargetList, saving and restoring the caller's target
+  list around it. }
 procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
 var
   save: Types.TTargetList;
@@ -229,7 +231,8 @@ begin
                     C_Effect.PRAYER] then begin
     Move(GDVars.targetList, save, SizeOf(GDVars.targetList));
     while (p <> nil) and not found do begin
-      if CharHlp.HasEffect(p, effId, effect) then begin
+      if CharHlp.HasEffect(p, effId, effect)
+         and ((effId in [C_Effect.SILENCE, C_Effect.PRAYER]) or (p^.hostile = creature^.hostile)) then begin
         if GDVars.ifcState = C_Ifc.COMBAT then begin
           if effId = C_Effect.PRAYER then
             range := 6
