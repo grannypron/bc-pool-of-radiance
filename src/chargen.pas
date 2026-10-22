@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_Keys,
-  C_EFFECT, C_STATUS, C_Ifc, C_Gbvm, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_EFFECT, C_STATUS, C_Ifc, C_GBVM, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -99,7 +99,7 @@ begin
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
         { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
         GDConsts.menuItems[MENU_TRAIN].enabled :=
-          Ord((GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
+          Ord((GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
         GDConsts.menuItems[MENU_VIEW].enabled := 1;
         GDConsts.menuItems[MENU_REMOVE].enabled := 1;
         GDConsts.menuItems[MENU_LOAD].enabled := 0;
@@ -1072,7 +1072,7 @@ begin
 end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_STATUS.OKAY, have under 1000 gp, have no
-  class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
+  class this hall trains (C_GBVM.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
   not the class and level limits, so a character with no class left to train is still sent away. Applies the racial
   fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap). A character who trains
   has experience clamped to one below the highest level + 2 threshold it has reached. Each trained class gains a level
@@ -1121,16 +1121,16 @@ begin
             end;
       end;
     if stingMode = 0 then begin
-      if Byte(classMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]) = 0 then begin
+      if Byte(classMask and GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
         Exit;
-      end else if Byte(trainMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]) = 0 then begin
+      end else if Byte(trainMask and GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('Not Enough Experience', Yellow);
         Exit;
       end;
     end;
     if stingMode = 0 then
-      trainable := trainMask and GDVars.zone1^[C_Gbvm.TRAIN_CLASS_MASK]
+      trainable := trainMask and GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]
     else
       trainable := trainMask;
     { free training passes the hall's checks with every class at its limit: GainLevels would then gain no level and
@@ -1230,7 +1230,7 @@ begin
         end else begin
           m^.name := '* ' + m^.name;
           if GDVars.creatureList = nil then begin
-            GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+            GDVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
             SaveLoad.AddCharToParty(Types.PCharRecord(creature));
             SaveLoad.LoadCharIconAnim(True);
           end else begin
@@ -1269,7 +1269,7 @@ begin
             { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
               non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
-            else if (p = nil) and (GDVars.zone1^[C_Gbvm.PARTY_SIZE] < Types.MAX_PARTY) and
+            else if (p = nil) and (GDVars.zone1^[C_GBVM.PARTY_SIZE] < Types.MAX_PARTY) and
                 (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
@@ -1286,7 +1286,7 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY);
+  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;

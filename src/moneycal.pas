@@ -14,7 +14,7 @@ const
   PAY_NOBODY = 0;
   PAY_CHARACTER = 1;
   PAY_POOL = 2;
-  { a temple's prices (TemplePrice), the value a script stores in C_Gbvm.ENTER_TEMPLE before the COMBAT that opens it:
+  { a temple's prices (TemplePrice), the value a script stores in C_GBVM.ENTER_TEMPLE before the COMBAT that opens it:
     SSI's full prices, or a tenth off (the Temple of Bane that Dirten rebuilds, #682) }
   TEMPLE_FULL_PRICE = 1;
   TEMPLE_TENTH_OFF = 2;

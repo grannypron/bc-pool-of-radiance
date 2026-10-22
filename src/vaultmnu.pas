@@ -7,7 +7,7 @@ interface
 
 uses Types;
 
-{ The vault's menu, entered from the New Phlan script (C_Gbvm.ENTER_SHOP set to 2, then a COMBAT with no monsters): the
+{ The vault's menu, entered from the New Phlan script (C_GBVM.ENTER_SHOP set to 2, then a COMBAT with no monsters): the
   merchant's greeting, then View (where Drop deposits), Take (money and items, while there are any), Pool, Share (while
   there is money) and Exit. Its money and items are the treasure pool, read from the session vault on entry and written
   back on Exit. A vault that could not be written keeps them, here to take back, unless the party leaves anyway (the

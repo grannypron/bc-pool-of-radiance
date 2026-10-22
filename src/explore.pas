@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
-  C_Keys, C_Level, C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_Keys, C_Level, C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -189,8 +189,8 @@ begin
     PartyCastsKnock := False;
 end;
 
-{ MoveForward: clear C_Gbvm.LEAVE_MAP, then, unless the barrier ahead is type 0, compute the next square without moving
-  there. A step off the 16x16 map puts gMapX/gMapY on that edge and sets C_Gbvm.LEAVE_MAP to 1. }
+{ MoveForward: clear C_GBVM.LEAVE_MAP, then, unless the barrier ahead is type 0, compute the next square without moving
+  there. A step off the 16x16 map puts gMapX/gMapY on that edge and sets C_GBVM.LEAVE_MAP to 1. }
 procedure MoveForward;
 var
   nx: Integer;
@@ -200,31 +200,31 @@ begin
   nx := GDVars.gMapX;
   ny := GDVars.gMapY;
   f := GDVars.gFacing;
-  GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 0;
+  GDVars.zone1^[C_GBVM.LEAVE_MAP] := 0;
   if View3D.GetBarrierType(nx, ny, f) <> 0 then begin
     Inc(nx, GDConsts.dirDX[f]);
     Inc(ny, GDConsts.dirDY[f]);
     if nx > 15 then begin
       GDVars.gMapX := 15;
-      GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 1;
+      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if nx < 0 then begin
       GDVars.gMapX := 0;
-      GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 1;
+      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if ny > 15 then begin
       GDVars.gMapY := 15;
-      GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 1;
+      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if ny < 0 then begin
       GDVars.gMapY := 0;
-      GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 1;
+      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
   end;
 end;
 
 { MovePartyForward3D: play the step sound, step with 16x16 edge wrap, refresh wallAhead and eventAtCell, reset the door
-  flags and advance the clock one minute, or one turn when Search (C_Gbvm.SEARCH_FLAGS bit 0) is on. EclVm.GameLoop
+  flags and advance the clock one minute, or one turn when Search (C_GBVM.SEARCH_FLAGS bit 0) is on. EclVm.GameLoop
   plays the step sound again once the party has moved, as SSI's code does; a driver that sets singleStep (the Sound
   Blaster's) gets GameLoop's alone (POR-0170). }
 procedure MovePartyForward3D;
@@ -237,7 +237,7 @@ begin
   GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
-  if GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1 > 0 then
+  if GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     FxEngine.AdvanceTime(1, C_TIME.TURNS)
   else
     FxEngine.AdvanceTime(1, C_TIME.MINUTES);
@@ -293,7 +293,7 @@ begin
 end;
 
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
-  C_Gbvm.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
+  C_GBVM.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
   code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
   AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and the menu goes on. }
 function MapMainMenu: Char;
@@ -303,7 +303,7 @@ var
   ext: Boolean;
   viewDone: Boolean;
 begin
-  GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
+  GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
   case GDVars.gLocType of
     C_AREA.LOC_3D_MAP: begin
          done := False;
@@ -324,9 +324,9 @@ begin
                'V': ViewChar.ViewCharMenu(viewDone);
                'J': JrnlView.JournalMenu;
                'E': done := True;
-               'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
+               'S': GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
                'L': begin
-                      GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
+                      GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
                       FxEngine.AdvanceTime(1, C_TIME.TURNS);
                       GDVars.eclIp := GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
                       done := True;
@@ -394,9 +394,9 @@ begin
               'V': ViewChar.ViewCharMenu(viewDone);
               'J': JrnlView.JournalMenu;
               'E': done := True;
-              'S': GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] xor 1;
+              'S': GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
               'L': begin
-                     GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] or 2;
+                     GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
                      FxEngine.AdvanceTime(1, C_TIME.TURNS);
                      GDVars.eclIp := GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
                      done := True;
@@ -444,7 +444,7 @@ begin
   MapMainMenu := c;
 end;
 
-{ ResolveMovement: while C_Gbvm.MOVE_LOCKED is 255 movement is refused and the flag is reset to 0 instead. On a 3D map
+{ ResolveMovement: while C_GBVM.MOVE_LOCKED is 255 movement is refused and the flag is reset to 0 instead. On a 3D map
   BARRIER type 1 steps forward and type 0 or an unopened door plays the impact sound. Types 2 and 3 run the 'Locked.'
   door menu assembled from the door flags: Bash, Pick (party has a thief), Knock (type 2: someone has Knock memorized;
   type 3: party has a mage) and Exit; a bare ' Exit' walls the door off. On a type 3 door Pick only clears doorOpen[1].
@@ -459,7 +459,7 @@ var
 begin
   moved := False;
   case GDVars.gLocType of
-    C_AREA.LOC_3D_MAP: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
+    C_AREA.LOC_3D_MAP: if GDVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
          case View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) of
            1: moved := True;
            2: begin
@@ -512,12 +512,12 @@ begin
            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.IMPACT]);
          CharDisp.PrintMiscInfo;
        end else
-         GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
-    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: if GDVars.zone1^[C_Gbvm.MOVE_LOCKED] < 255 then begin
+         GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
+    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: if GDVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
             Explore.MovePartyWilderness;
             CharDisp.PrintMiscInfo;
           end else
-            GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
+            GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
   end;
   Portrait.FreeAnimation(GDVars.animData);
   Blit.FreePic(GDVars.portraitCache[1].pic);

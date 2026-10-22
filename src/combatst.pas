@@ -10,7 +10,7 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+  MapTiles, Blit, GameIo, C_Ifc, C_GBVM, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
 var
@@ -571,14 +571,14 @@ begin
     Inc(count);
     GetMem(p^.combatAddr, SizeOf(Types.TCombatRec));
     FillChar(p^.combatAddr^, SizeOf(Types.TCombatRec), 0);
-    if count > GDVars.zone1^[C_Gbvm.PARTY_SIZE] then
+    if count > GDVars.zone1^[C_GBVM.PARTY_SIZE] then
       p^.combatAddr^.notPcNpc := 1;
     p^.combatAddr^.direction := GDConsts.quadDir[GDVars.gFacing div 2];
     if p^.hostile = 1 then
       p^.combatAddr^.direction := (p^.combatAddr^.direction + 4) mod 8;
     m := p^.npc and C_Npc.MORALE_MASK;
     if (p^.hostile = 0) and (p^.combatAddr^.notPcNpc = 1) and ((m = 0) or (m > 102)) then
-      p^.npc := GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD] + C_Npc.FLAG;
+      p^.npc := GDVars.zone1^[C_GBVM.MORALE_THRESHOLD] + C_Npc.FLAG;
     p := p^.nextCharAddr;
   end;
 end;
@@ -742,7 +742,7 @@ begin
     FindPlacement := True;
 end;
 
-{ Place the party (team 0, at the origin) and the opposing team (C_Gbvm.MONSTER_DIST steps along gFacing, facing back)
+{ Place the party (team 0, at the origin) and the opposing team (C_GBVM.MONSTER_DIST steps along gFacing, facing back)
   and seed each team's quad grids from rowBand. Register creatures and find a valid cell for each. Disabled party
   members become corpses outside duels; non-party creatures that cannot be placed are removed, unplaced party members
   keep their slot with size 0. Terminate the surviving creature list afterward. }
@@ -769,8 +769,8 @@ begin
   placeX[0] := 0;
   placeY[0] := 0;
   teamDir[0] := GDVars.gFacing div 2;
-  placeX[1] := GDConsts.dirDX[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + placeX[0];
-  placeY[1] := GDConsts.dirDY[GDVars.gFacing] * GDVars.zone1^[C_Gbvm.MONSTER_DIST] + placeY[0];
+  placeX[1] := GDConsts.dirDX[GDVars.gFacing] * GDVars.zone1^[C_GBVM.MONSTER_DIST] + placeX[0];
+  placeY[1] := GDConsts.dirDY[GDVars.gFacing] * GDVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
   teamDir[1] := (GDVars.gFacing + 4) mod 8 div 2;
   for team := 0 to 1 do
     teamRows[team] := (teamCount[team] + 1) div 2;
@@ -861,9 +861,9 @@ begin
   GDVars.stinkHead := nil;
   GDVars.lastMissileItem := nil;
   FillChar(GDVars.downed, SizeOf(GDVars.downed), 0);
-  GDVars.zone1^[C_Gbvm.ATTACKED_ALLIES] := 0;
-  if GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD] > 100 then
-    GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD] := 100;
+  GDVars.zone1^[C_GBVM.ATTACKED_ALLIES] := 0;
+  if GDVars.zone1^[C_GBVM.MORALE_THRESHOLD] > 100 then
+    GDVars.zone1^[C_GBVM.MORALE_THRESHOLD] := 100;
   CombatSt.LoadCombatTileSet;
   GameIo.DiscardPendingKeys;
   CombatSt.InitCreatureCombatData;

@@ -1,6 +1,6 @@
 { Script-visible game-memory addresses. }
 {$I COMPILER.INC}
-unit C_Gbvm;
+unit C_GBVM;
 
 interface
 

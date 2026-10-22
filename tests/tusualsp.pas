@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TUsualSp;
 
-uses Types, C_Gbvm, GDVars, FileUtil, UsualSpl, TestKit;
+uses Types, C_GBVM, GDVars, FileUtil, UsualSpl, TestKit;
 
 const
   FN = 'TUS';
@@ -60,7 +60,7 @@ begin
       c[i - 1]^.nextCharAddr := c[i];
   end;
   GDVars.creatureList := c[1];
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := COUNT - 2;
+  GDVars.zone1^[C_GBVM.PARTY_SIZE] := COUNT - 2;
 
   TestKit.Check(not UsualSpl.GetUsualSpells(c[1], back), 'none remembered at first');
   TestKit.Check(not UsualSpl.GetUsualSpells(nil, back), 'nor for nil');

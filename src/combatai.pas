@@ -24,7 +24,7 @@ procedure AllToManual;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
-  C_CLASS, C_STATUS, C_Gbvm, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
@@ -726,7 +726,7 @@ begin
   GDVars.currentMorale := GDVars.hostileHpPct;
   { the same effect adjustments, now to the group figure }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
-  if (GDVars.currentMorale >= 100 - GDVars.zone1^[C_Gbvm.MORALE_THRESHOLD])
+  if (GDVars.currentMorale >= 100 - GDVars.zone1^[C_GBVM.MORALE_THRESHOLD])
      and (GDVars.currentMorale <> 0)
      and (creature^.hostile <> 0) then
     { group check holds (hostiles) }

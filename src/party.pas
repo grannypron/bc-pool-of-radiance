@@ -29,7 +29,7 @@ function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
 
 implementation
 
-uses GDVars, C_Gbvm, C_Keys;
+uses GDVars, C_GBVM, C_Keys;
 
 function IsPartyMember(creature: Types.PCharRecord): Boolean;
 var
@@ -39,7 +39,7 @@ begin
   IsPartyMember := False;
   if creature = nil then Exit;
   p := GDVars.creatureList;
-  n := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
+  n := GDVars.zone1^[C_GBVM.PARTY_SIZE];
   while (p <> nil) and (n > 0) do begin
     if p = creature then begin
       IsPartyMember := True;

@@ -64,7 +64,7 @@ function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte
 
 { Full attack roll: strip the attacker's invisibility (effect 25), roll d20 into gAttackRoll (1 misses, 20 becomes 100),
   run the attacker's C_COND.ATTACK_ROLL_ATT (10) and the defender's C_COND.ATTACK_ROLL_DEF (16) effects, and take the
-  GBVM modifier zmod (the low byte of C_Gbvm.PARTY_HIT_MOD when the attacker is allied, of C_Gbvm.MONSTER_HIT_MOD when
+  GBVM modifier zmod (the low byte of C_GBVM.PARTY_HIT_MOD when the attacker is allied, of C_GBVM.MONSTER_HIT_MOD when
   hostile). Hit when no effect forced a miss (GDVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >=
   sixtyMinusAc. Penalties that take the roll below 0 only lower it; SSI's took any roll below 0 for a forced miss
   (#718). }
@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_Ifc, C_DIR, C_Level, Crt, C_Item, C_EQUIP;
 
 const
@@ -530,9 +530,9 @@ var
 begin
   FxEngine.RemoveInvisibility(attacker);
   if attacker^.hostile = 0 then
-    zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD]))
+    zmod := ShortInt(Lo(GDVars.zone1^[C_GBVM.PARTY_HIT_MOD]))
   else
-    zmod := ShortInt(Lo(GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD]));
+    zmod := ShortInt(Lo(GDVars.zone1^[C_GBVM.MONSTER_HIT_MOD]));
   AttackRoll := RollToHit(attacker, defender, attacker^.thac0Cur + zmod, sixtyMinusAc);
 end;
 
@@ -968,7 +968,7 @@ begin
     repeat
       if GDVars.effFlags[i] <> 0 then found := True;
       Inc(i);
-    until found or (i > GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+    until found or (i > GDVars.zone1^[C_GBVM.PARTY_SIZE]);
     if not found then Exit;
   end;
   total := count;
@@ -1035,13 +1035,13 @@ var
   j: Byte;
 begin
   for i := 0 to 6 do
-    time[i] := GDVars.zone0^.words[C_Gbvm.CLOCK + i];
+    time[i] := GDVars.zone0^.words[C_GBVM.CLOCK + i];
   for j := 1 to amount do begin
     Inc(time[tUnit]);
     Clock.ValidateClock(time, True);
   end;
   for i := 0 to 6 do
-    GDVars.zone0^.words[C_Gbvm.CLOCK + i] := time[i];
+    GDVars.zone0^.words[C_GBVM.CLOCK + i] := time[i];
   FxEngine.TimeOutEffects(amount, tUnit);
 end;
 

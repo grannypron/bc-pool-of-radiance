@@ -66,7 +66,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 implementation
 
 uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_Keys, C_Level,
-  C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
+  C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
@@ -111,7 +111,7 @@ begin
       if initiative < 1 then
         initiative := 1;
       { Surprise mask: bit 0 for the party, bit 1 for monsters }
-      if Byte((creature^.hostile + 1) and Integer(GDVars.zone1^[C_Gbvm.SURPRISE])) <> 0 then
+      if Byte((creature^.hostile + 1) and Integer(GDVars.zone1^[C_GBVM.SURPRISE])) <> 0 then
         Dec(initiative, 6);
       if (initiative < 0) or (initiative > 20) then
         initiative := 0;
@@ -129,7 +129,7 @@ var
 begin
   m := creature^.movementCur;
   if creature^.hostile = 0 then
-    m := m + GDVars.zone1^[C_Gbvm.MOD_PARTY_MOVE];
+    m := m + GDVars.zone1^[C_GBVM.MOD_PARTY_MOVE];
   GDVars.currentCreatureCalculatingFlag := 1;
   if (m < 1) or (m > 96) then
     m := 1;
@@ -1352,7 +1352,7 @@ begin
     CheckAttackAlly := False
   else begin
     CheckAttackAlly := True;
-    GDVars.zone1^[C_Gbvm.ATTACKED_ALLIES] := 1;
+    GDVars.zone1^[C_GBVM.ATTACKED_ALLIES] := 1;
     p := GDVars.creatureList;
     while p <> nil do begin
       { NPC flag (high bit) set }

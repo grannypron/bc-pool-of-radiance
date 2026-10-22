@@ -20,14 +20,14 @@ procedure InitCreature(id: Byte; var creature: Types.PCharRecord; var inv: Types
                        var effect: Types.PEffectRec);
 
 { Farthest distance (0..2) monsters may appear in front of the party: 2 when view3dFlag = 0 (also stored in
-  C_Gbvm.MONSTER_DIST), else the open cells ahead before the first wall, at most 2 }
+  C_GBVM.MONSTER_DIST), else the open cells ahead before the first wall, at most 2 }
 function MaxMonsterDist(x, y, facing: Byte): Byte;
 
 { Load and show the portrait with this head and body, remembering both for later redraws. }
 procedure DisplayPortrait(headId, bodyId: Byte);
 
 { Draw monster sprite SPRIT sprId at distance dist + 1 (2 when gLocType <> 1) until a close-up is shown; at dist 0 in
-  gLocType 1, show the close-up: PIC picId, or the portrait with head C_Gbvm.PIC_LOADING and body picId when that byte
+  gLocType 1, show the close-up: PIC picId, or the portrait with head C_GBVM.PIC_LOADING and body picId when that byte
   is not 255. flags: [0] sprite loaded, [1] close-up shown }
 procedure DisplayMonster(sprId, picId, dist: Byte; var flags: Types.TMonFlags);
 
@@ -75,17 +75,17 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
 { GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
-  LoadCharIconAnim(True). No-op when the party already has 8 members (C_Gbvm.PARTY_SIZE > 7). }
+  LoadCharIconAnim(True). No-op when the party already has 8 members (C_GBVM.PARTY_SIZE > 7). }
 procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_Keys, C_STATUS, C_Gbvm, C_DIR,
+uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_Keys, C_STATUS, C_GBVM, C_DIR,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
-  { Picture id last shown, copied from C_Gbvm.PIC_LOADING }
+  { Picture id last shown, copied from C_GBVM.PIC_LOADING }
   picIdShown: Byte;
 
 { A just-loaded save (loadedSave <> 0) keeps its script words; the flag is cleared instead }
@@ -108,10 +108,10 @@ begin
   GDVars.eclStackSecondPtr := nil;
   FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
   { No portrait head (255), so DisplayMonster shows the PIC close-up }
-  GDVars.zone1^[C_Gbvm.PIC_LOADING] := 255;
+  GDVars.zone1^[C_GBVM.PIC_LOADING] := 255;
   { rest interruption }
-  GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] := 0;
-  GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] := 0;
+  GDVars.zone1^[C_GBVM.REST_SAFE_TIME] := 0;
+  GDVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] := 0;
   GDVars.zone0^.antimagic := 0;
   for i := 1 to 5 do begin
     EclVars.LoadEclVars(1);
@@ -216,7 +216,7 @@ begin
   MaxMonsterDist := 0;
   if GDVars.zone0^.view3dFlag = 0 then begin
     MaxMonsterDist := 2;
-    GDVars.zone1^[C_Gbvm.MONSTER_DIST] := 2;
+    GDVars.zone1^[C_GBVM.MONSTER_DIST] := 2;
   end else
     while (dist < 2) and (not blocked) do begin
       if View3D.GetWallType(x, y, facing) = 0 then begin
@@ -266,19 +266,19 @@ begin
       Portrait.Show3DSprite(2, GDVars.animData);
   end;
   if flags[1] then
-    if picIdShown = GDVars.zone1^[C_Gbvm.PIC_LOADING] then
+    if picIdShown = GDVars.zone1^[C_GBVM.PIC_LOADING] then
       Exit;
   if dist <> 0 then Exit;
   if GDVars.gLocType <> C_AREA.LOC_3D_MAP then Exit;
   if (GDVars.inEncMenu <> 0) and (GDVars.monsterPics = 0) then Exit;
-  picIdShown := Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]);
+  picIdShown := Byte(GDVars.zone1^[C_GBVM.PIC_LOADING]);
   GDVars.eclGraphics := True;
-  if GDVars.zone1^[C_Gbvm.PIC_LOADING] = 255 then begin
+  if GDVars.zone1^[C_GBVM.PIC_LOADING] = 255 then begin
     Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);
     flags[1] := True;
     Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[1].pic);
   end else begin
-    EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]), picId);
+    EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_GBVM.PIC_LOADING]), picId);
     flags[1] := True;
     GDVars.picDrawn := False;
   end;
@@ -382,7 +382,7 @@ begin
   GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
 end;
 
-{ Sets duelFlag and C_Gbvm.MIRROR_DUEL. A mirror duel appends a copy of the current character as hostile "ROLF" with the
+{ Sets duelFlag and C_GBVM.MIRROR_DUEL. A mirror duel appends a copy of the current character as hostile "ROLF" with the
   CPIC 11 icon, in the next monster icon slot or, when they are used up, the last (items fully cloned, but prepended, so
   the clone's list is reversed; effects not cloned) }
 procedure CharFightsAlone(mirror: ShortInt);
@@ -395,7 +395,7 @@ var
   slot: Byte;
 begin
   GDVars.duelFlag := True;
-  GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := mirror;
+  GDVars.zone1^[C_GBVM.MIRROR_DUEL] := mirror;
   cur := GDVars.curChar;
   p := GDVars.creatureList;
   while p <> nil do begin
@@ -607,7 +607,7 @@ var
   i: ShortInt;
   classes: array[1..4] of Byte;
 begin
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
+  if GDVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
   GetMem(creature, SizeOf(Types.TCharRecord));
   EclMenu.LoadCreatureData(id, creature);
   with creature^ do begin

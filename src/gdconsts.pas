@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
+uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_EFFECT, C_DIR, C_Race, C_STATUS, C_ALIGN, C_GBVM, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -134,7 +134,7 @@ const
     item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
   usabilityBit: array[C_Level.CLERIC..C_Level.MONK] of Byte = (
     1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
-  { Training-hall class bits (C_Gbvm.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
+  { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
     train with fighters; the monk combines two bits. }
   classBit: array[0..16] of Byte = (
     2, 2, 8, 8, 8, 1, 4, 6, 16, 16, 16, 32, 32, 32, 64, 64, 64);

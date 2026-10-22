@@ -6,7 +6,7 @@ unit Temple;
 interface
 
 { The temple: its counter and Heal menu, at prices by mode, MoneyCal.TEMPLE_FULL_PRICE or TEMPLE_TENTH_OFF (the value
-  the script stored in C_Gbvm.ENTER_TEMPLE). }
+  the script stored in C_GBVM.ENTER_TEMPLE). }
 procedure TempleMainMenu(mode: Byte);
 
 { The Heal menu: the cures and spells the temple sells, for the current character. }

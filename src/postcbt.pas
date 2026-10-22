@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_STATUS, C_Ifc, C_Gbvm,
+uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_STATUS, C_Ifc, C_GBVM,
   C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
@@ -30,7 +30,7 @@ var
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
   div 20, electrum div 2, gold x1, platinum x5, gems x250, jewelry x2200), as does each taken item's positive plus x400
-  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonSharerCount, and the share
+  (items before GDVars.lastMissileItem). The total is divided by C_GBVM.PARTY_SIZE minus nonSharerCount, and the share
   is 0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
   level (levelHighest) of the current character. }
 procedure DetermineLootExp(var share: LongInt);
@@ -43,7 +43,7 @@ var
   cnt: Byte;
   sharers: Integer;
 begin
-  if GDVars.duelFlag and (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] <> 0) then
+  if GDVars.duelFlag and (GDVars.zone1^[C_GBVM.MIRROR_DUEL] <> 0) then
     share := GDVars.curChar^.levelHighest * 100
   else begin
     expTotal := 0;
@@ -56,7 +56,7 @@ begin
         for i := C_Money.COPPER to C_Money.JEWELRY do
           Inc(GDVars.treasureMoney[i], p^.coins[i]);
         expTotal := expTotal + p^.xpAward + LongInt(p^.xpBonusPerHp) * p^.hpRolled;
-        if GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] <> 1 then
+        if GDVars.zone1^[C_GBVM.NO_COMBAT_ITEMS] <> 1 then
           while item <> nil do begin
             if (item^.value > 0) or ((cnt < 8) and (Dice.RollDice(1, 10) <= 3)) then begin
               Inc(cnt);
@@ -82,7 +82,7 @@ begin
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonSharerCount;
+    sharers := GDVars.zone1^[C_GBVM.PARTY_SIZE] - nonSharerCount;
     if sharers > 0 then
       share := expTotal div sharers
     else
@@ -111,10 +111,10 @@ begin
 end;
 
 { Classify the combat outcome. Outside a duel the party (the creatures before the first notPcNpc = 1 entry) is defeated
-  unless some non-hostile, non-NPC member is Running, Animated or Okay; while C_Gbvm.MIRROR_DUEL is 1 any non-hostile,
+  unless some non-hostile, non-NPC member is Running, Animated or Okay; while C_GBVM.MIRROR_DUEL is 1 any non-hostile,
   non-NPC member will do, so a lost mirror duel does not end the game. Any Animated or Okay member wins the combat and
   experience is awarded; otherwise a Running member means the party fled. Not fled: Running members return Okay, Dying
-  ones become Unconscious and Unconscious ones with HP above 0 recover. Fled: C_Gbvm.COMBAT_RESULT becomes $81, Running
+  ones become Unconscious and Unconscious ones with HP above 0 recover. Fled: C_GBVM.COMBAT_RESULT becomes $81, Running
   members return and every other member is removed. Defeated: every party member is removed and the party size is set to
   0. In a duel the party is never defeated: each enabled, Okay, non-hostile creature sets combatWon and triggers an
   experience award, Okay and Animated creatures are re-enabled and Dying ones become Unconscious. }
@@ -142,7 +142,7 @@ begin
       { C_Npc.FLAG clear }
       if ((p^.status = C_STATUS.RUNNING) or (p^.status = C_STATUS.ANIMATED) or
           (p^.status = C_STATUS.OKAY) or
-          (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
+          (GDVars.zone1^[C_GBVM.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
         GDVars.partyDefeated := False;
       if (p^.status = C_STATUS.ANIMATED) or (p^.status = C_STATUS.OKAY) then begin
         combatWon := True;
@@ -174,7 +174,7 @@ begin
                                   end;
           end;
         end else begin
-          GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $81;
+          GDVars.zone1^[C_GBVM.COMBAT_RESULT] := $81;
           if p^.status = C_STATUS.RUNNING then begin
             p^.status := C_STATUS.OKAY;
             p^.enabled := 1;
@@ -198,7 +198,7 @@ begin
           b := True;
         p := nxt;
       end;
-      GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+      GDVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
     end;
   end else begin
     p := GDVars.creatureList;
@@ -434,7 +434,7 @@ begin
   until done;
 end;
 
-{ Monsters and hostile creatures are removed, counting the ones not enabled in C_Gbvm.MONSTERS_DEFEATED; the others get
+{ Monsters and hostile creatures are removed, counting the ones not enabled in C_GBVM.MONSTERS_DEFEATED; the others get
   their combat records freed, and while the Quick Ends With Fight setting is on (GDVars.quickEnds) party members leave
   Quick (quickfight 0) so that the treasure screen and the next combat find them under manual control. NPCs and animated
   creatures keep quickfight, as Space in combat leaves them. curChar is left at the list head. }
@@ -443,12 +443,12 @@ var
   p: Types.PCharRecord;
   next: Types.PCharRecord;
 begin
-  GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED] := 0;
+  GDVars.zone1^[C_GBVM.MONSTERS_DEFEATED] := 0;
   p := GDVars.creatureList;
   while p <> nil do begin
     if IsMonster(p) or (p^.hostile = 1) then begin
       if p^.enabled <> 1 then
-        Inc(GDVars.zone1^[C_Gbvm.MONSTERS_DEFEATED]);
+        Inc(GDVars.zone1^[C_GBVM.MONSTERS_DEFEATED]);
       next := p^.nextCharAddr;
       GDVars.curChar := p;
       SaveLoad.RemoveCreature(IsMonster(p), True);
@@ -520,11 +520,11 @@ begin
 end;
 
 { Resolve combat results and remove combat state. On survival or in a duel, take the NPC shares, display the summary,
-  offer loot and free the leftover treasure items; on defeat, set C_Gbvm.COMBAT_RESULT to $80 and show the game-over
+  offer loot and free the leftover treasure items; on defeat, set C_GBVM.COMBAT_RESULT to $80 and show the game-over
   screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel. }
 procedure PostCombat;
 begin
-  GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := 0;
+  GDVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
   nonEscapedHostileFound := False;
   GDVars.ifcState := C_Ifc.LOOT;
   PostCbt.DetermineCombatResults;
@@ -535,7 +535,7 @@ begin
     PostCbt.LootMenu;
     CharHlp.FreeItemList(GDVars.treasureItems);
   end else begin
-    GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $80;
+    GDVars.zone1^[C_GBVM.COMBAT_RESULT] := $80;
     Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'The END!');
     GDVars.curCol := 2;
     GDVars.curRow := 6;
@@ -544,11 +544,11 @@ begin
     TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
   end;
   GDVars.msgDelayFlag := 1;
-  GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD] := 0;
-  GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD] := 0;
-  GDVars.zone1^[C_Gbvm.MOD_PARTY_MOVE] := 0;
-  GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] := 0;
-  GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := 0;
+  GDVars.zone1^[C_GBVM.MONSTER_HIT_MOD] := 0;
+  GDVars.zone1^[C_GBVM.PARTY_HIT_MOD] := 0;
+  GDVars.zone1^[C_GBVM.MOD_PARTY_MOVE] := 0;
+  GDVars.zone1^[C_GBVM.NO_COMBAT_ITEMS] := 0;
+  GDVars.zone1^[C_GBVM.MIRROR_DUEL] := 0;
 end;
 
 end.

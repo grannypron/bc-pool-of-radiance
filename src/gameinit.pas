@@ -20,7 +20,7 @@ procedure ResetGameState;
 implementation
 
 uses Types, Crt, C_AREA, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
-  MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
+  MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
   VidOps, Stats, Explored, MapNotes{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -284,7 +284,7 @@ begin
   GDVars.automapOn := False;
   GDVars.locTypePrev := C_AREA.LOC_3D_MAP;
   GDVars.gLocType := C_AREA.LOC_3D_MAP;
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+  GDVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   GDVars.wildAnimFrame := 0;
   GDVars.vertTop := 1;
   GDVars.duelFlag := False;

@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TParty;
 
-uses Types, GDVars, C_Gbvm, C_Keys, Party, TestKit;
+uses Types, GDVars, C_GBVM, C_Keys, Party, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -27,7 +27,7 @@ begin
   b := NewCreature(c);
   a := NewCreature(b);
   GDVars.creatureList := a;
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 3;
+  GDVars.zone1^[C_GBVM.PARTY_SIZE] := 3;
 
   GDVars.curChar := a;
   Party.SelectPrevNextChar(C_Keys.DOWN);

@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_Gbvm, C_STATUS, C_Ifc, C_Money, Party, MoneyCal;
+uses GDConsts, GDVars, C_GBVM, C_STATUS, C_Ifc, C_Money, Party, MoneyCal;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -266,7 +266,7 @@ begin
   FillChar(marked, SizeOf(marked), 0);
   p := GDVars.creatureList;
   n := 0;
-  while (p <> nil) and (n < GDVars.zone1^[C_Gbvm.PARTY_SIZE]) and (n < ENTRIES) do begin
+  while (p <> nil) and (n < GDVars.zone1^[C_GBVM.PARTY_SIZE]) and (n < ENTRIES) do begin
     Inc(n);
     marked[n] := p;
     markedWorth[n] := MoneyCal.CreatureCopper(p);

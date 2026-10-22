@@ -5,7 +5,7 @@ unit GDVars;
 
 interface
 
-uses Types, Dos, C_EFFECT, C_Gbvm, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_EFFECT, C_GBVM, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
@@ -387,9 +387,9 @@ var
   { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
   { With dumpCr6B00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to
-    C_Gbvm.CHAR_ENABLED (EclVars.SpecialWriteZ1) }
+    C_GBVM.CHAR_ENABLED (EclVars.SpecialWriteZ1) }
   dumpCr6C00: Boolean;
-  { With dumpCr6C00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to C_Gbvm.CHAR_DUMP
+  { With dumpCr6C00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to C_GBVM.CHAR_DUMP
     (EclVars.SpecialWriteZ1) }
   dumpCr6B00: Boolean;
   duelFlag: Boolean;
@@ -398,7 +398,7 @@ var
   { ECL flags }
   { ECL script ID }
   eclScriptId: Byte;
-  { Backup of the search-mode bit (C_Gbvm.SEARCH_FLAGS bit 0) }
+  { Backup of the search-mode bit (C_GBVM.SEARCH_FLAGS bit 0) }
   searchModeFlag: Byte;
   { ECL 3D CLEAR BOX executed flag }
   ecl3dClearFlag: Byte;

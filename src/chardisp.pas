@@ -70,7 +70,7 @@ procedure ShowFault(msg: Types.TStr40);
 implementation
 
 uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_Keys, C_Ifc, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
+  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party;
 
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
@@ -632,7 +632,7 @@ begin
     info := info + '*';
   if GDVars.ifcState = C_Ifc.CAMPING then
     info := info + ' camping'
-  else if GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1 > 0 then
+  else if GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     info := info + ' search';
   Border.ClearBox(17, 15, 38, 15);
   TextRend.DisplayString(17, 15, LightGreen, info);

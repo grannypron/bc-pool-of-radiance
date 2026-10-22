@@ -185,7 +185,7 @@ const
       YOU DO? gets a space after the quote. The packed string's last six-bit slot was empty, so it stays 66 bytes }
     (issue: 670; family: C_DATA.FAMILY_ECL; disk: 1; id: 18; size: 6576; offset: 4168; origLen: 12; newLen: 12),
     { #682: the Temple of Bane (script 24, map 24) freed with Dirten in the party. At the end of the fight (script
-      $AC59, $AC68) new code at the end of the script keeps the day in [$4A79] (C_Gbvm.DIRTEN_TEMPLE_DAY), $FFFF when
+      $AC59, $AC68) new code at the end of the script keeps the day in [$4A79] (C_GBVM.DIRTEN_TEMPLE_DAY), $FFFF when
       Dirten was not there; standing, he bids farewell as before, fallen, the temple guards come in and a cleric
       tends him. At the altar squares, (14,7) and (14,8) (script $A8B0), a freed temple's day is kept, or started for a
       game from before this whose party had Dirten ([$4A9C] = $FF); before 14 days the rebuilding is underway, after

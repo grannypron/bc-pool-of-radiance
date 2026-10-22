@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_Level, C_Ifc, C_GBVM, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -61,7 +61,7 @@ const
     { the Lizardman Keep champion: "Will you champion me?" }
     (script: 16; at: $A300; back: $A287));
 
-  { training hall (class bitmask in C_Gbvm.TRAIN_CLASS_MASK) }
+  { training hall (class bitmask in C_GBVM.TRAIN_CLASS_MASK) }
   PROG_TRAINING = 0;
   PROG_WIN_GAME = 8;
   PROG_CAMP = 9;
@@ -266,12 +266,12 @@ procedure EclSetupMon;
 begin
   EclVars.LoadEclVars(3);
   monId := EclVars.GetEclVar(1);
-  GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
+  GDVars.zone1^[C_GBVM.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
   monPicId := EclVars.GetEclVar(3);
-  GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-  if GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
-    GDVars.zone1^[C_Gbvm.MONSTER_DIST] := GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ];
-  EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+  GDVars.zone1^[C_GBVM.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+  if GDVars.zone1^[C_GBVM.MONSTER_DIST_REQ] < GDVars.zone1^[C_GBVM.MONSTER_DIST] then
+    GDVars.zone1^[C_GBVM.MONSTER_DIST] := GDVars.zone1^[C_GBVM.MONSTER_DIST_REQ];
+  EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_GBVM.MONSTER_DIST]),
                          GDVars.monsterFlags);
 end;
 
@@ -352,15 +352,15 @@ end;
 { APPROACH: bring the monster one step closer and redraw it }
 procedure EclApproach;
 begin
-  if GDVars.zone1^[C_Gbvm.MONSTER_DIST] > 0 then begin
-    Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-    EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+  if GDVars.zone1^[C_GBVM.MONSTER_DIST] > 0 then begin
+    Dec(GDVars.zone1^[C_GBVM.MONSTER_DIST]);
+    EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_GBVM.MONSTER_DIST]),
                            GDVars.monsterFlags);
   end;
   Inc(GDVars.eclIp);
 end;
 
-{ PICTURE: show picture var 1 in the view window, as an animation or a portrait depending on C_Gbvm.PIC_LOADING. 255
+{ PICTURE: show picture var 1 in the view window, as an animation or a portrait depending on C_GBVM.PIC_LOADING. 255
   removes the picture, redrawing the map view when ECL graphics or a sprite were showing. }
 procedure EclPicture;
 var
@@ -373,11 +373,11 @@ begin
   if picId <> 255 then begin
     GDVars.monsterFlags[1] := True;
     GDVars.eclGraphics := True;
-    if GDVars.zone1^[C_Gbvm.PIC_LOADING] = 255 then begin
+    if GDVars.zone1^[C_GBVM.PIC_LOADING] = 255 then begin
       Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);
       Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[1].pic);
     end else
-      EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_Gbvm.PIC_LOADING]), picId);
+      EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_GBVM.PIC_LOADING]), picId);
   end else begin
     if ((GDVars.locTypePrev > C_AREA.LOC_3D_MAP) or (GDVars.gLocType = C_AREA.LOC_3D_MAP)) and
         (GDVars.eclGraphics or GDVars.sprShown) then begin
@@ -523,7 +523,7 @@ begin
     if (f[1] <> 255) and (f[1] <> 127) and (GDVars.zone0^.view3dFlag <> 0) then begin
       GDVars.zone0^.mapId.value := f[1];
       View3D.Load3DMap(f[1]);
-      GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
+      GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
     end;
     if (f[3] <> 255) and (GDVars.zone0^.view3dFlag = 0) then
       MapTiles.Load24x24Set('BACPAC', 0, 40);
@@ -757,8 +757,8 @@ begin
   EclVars.WriteGbvm(address, strength);
 end;
 
-{ CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = C_Gbvm.CHAR_FIND_TRAPS or
-  C_Gbvm.CHAR_MOVEMENT, report the party's lowest, highest and average value (all 0 for an empty list). The results go
+{ CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = C_GBVM.CHAR_FIND_TRAPS or
+  C_GBVM.CHAR_MOVEMENT, report the party's lowest, highest and average value (all 0 for an empty list). The results go
   to the addresses of vars 3..6 (lowest, highest, average, found). }
 procedure EclCheckParty;
 var
@@ -812,10 +812,10 @@ begin
       outv[1] := 0;
       Write4Gbvm;
     end;
-    C_Gbvm.CHAR_FIND_TRAPS, C_Gbvm.CHAR_MOVEMENT: begin
+    C_GBVM.CHAR_FIND_TRAPS, C_GBVM.CHAR_MOVEMENT: begin
       while p <> nil do begin
         Inc(count);
-        if attr = C_Gbvm.CHAR_FIND_TRAPS then
+        if attr = C_GBVM.CHAR_FIND_TRAPS then
           value := p^.thiefSkills[3]
         else
           value := p^.movementCur;
@@ -858,7 +858,7 @@ begin
   EclVars.WriteGbvm(addr2, 0);
 end;
 
-{ SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE, a
+{ SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_GBVM.SURPRISE, a
   bitmask combat reads (CbtActs): 1 when the first roll succeeds, 2 when the second does, 3 when both do (both sides
   surprised; SSI overwrote that 3 with 2, POR-0159), 0 when neither does. }
 procedure EclSurprise;
@@ -883,11 +883,11 @@ begin
     result := 1;
   if r2 <= t2 then
     result := result or 2;
-  EclVars.WriteGbvm(C_Gbvm.SURPRISE, result);
+  EclVars.WriteGbvm(C_GBVM.SURPRISE, result);
 end;
 
-{ COMBAT: with no monsters and no duel, enter the shop when C_Gbvm.ENTER_SHOP is 1, the vault when it is 2, or the
-  temple when C_Gbvm.ENTER_TEMPLE is 1 (MoneyCal.TEMPLE_FULL_PRICE) or 2 (TEMPLE_TENTH_OFF), else run
+{ COMBAT: with no monsters and no duel, enter the shop when C_GBVM.ENTER_SHOP is 1, the vault when it is 2, or the
+  temple when C_GBVM.ENTER_TEMPLE is 1 (MoneyCal.TEMPLE_FULL_PRICE) or 2 (TEMPLE_TENTH_OFF), else run
   PostCbt.PostCombat. Otherwise fight, then run PostCbt.PostCombat. Afterwards restore the interface state. }
 procedure EclCombat;
 var
@@ -896,25 +896,25 @@ var
 begin
   Inc(GDVars.eclIp);
   if (monstersOn = 0) and (not GDVars.duelFlag) then begin
-    if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 1 then begin
-      GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
+    if GDVars.zone1^[C_GBVM.ENTER_SHOP] = 1 then begin
+      GDVars.zone1^[C_GBVM.ENTER_SHOP] := 0;
       Shop.ShopMainMenu;
-    end else if GDVars.zone1^[C_Gbvm.ENTER_SHOP] = 2 then begin
+    end else if GDVars.zone1^[C_GBVM.ENTER_SHOP] = 2 then begin
       { New Phlan's vault, The Hoarder's Respite: the data patch for #606 stores 2 }
-      GDVars.zone1^[C_Gbvm.ENTER_SHOP] := 0;
+      GDVars.zone1^[C_GBVM.ENTER_SHOP] := 0;
       VaultMnu.VaultMenu;
-    end else if (GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = MoneyCal.TEMPLE_FULL_PRICE) or
-        (GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] = MoneyCal.TEMPLE_TENTH_OFF) then begin
+    end else if (GDVars.zone1^[C_GBVM.ENTER_TEMPLE] = MoneyCal.TEMPLE_FULL_PRICE) or
+        (GDVars.zone1^[C_GBVM.ENTER_TEMPLE] = MoneyCal.TEMPLE_TENTH_OFF) then begin
       { the Temple of Bane that Dirten rebuilds, a tenth off: the data patch for #682 stores 2 }
-      mode := GDVars.zone1^[C_Gbvm.ENTER_TEMPLE];
-      GDVars.zone1^[C_Gbvm.ENTER_TEMPLE] := 0;
+      mode := GDVars.zone1^[C_GBVM.ENTER_TEMPLE];
+      GDVars.zone1^[C_GBVM.ENTER_TEMPLE] := 0;
       Temple.TempleMainMenu(mode);
     end else
       PostCbt.PostCombat;
   end else begin
     dist := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-    if dist < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
-      GDVars.zone1^[C_Gbvm.MONSTER_DIST] := dist;
+    if dist < GDVars.zone1^[C_GBVM.MONSTER_DIST] then
+      GDVars.zone1^[C_GBVM.MONSTER_DIST] := dist;
     Combat.CombatMain;
     PostCbt.PostCombat;
     if GDVars.zone0^.view3dFlag = 0 then begin
@@ -930,7 +930,7 @@ begin
     GDVars.ifcState := C_Ifc.INDOORS
   else
     GDVars.ifcState := C_Ifc.OUTDOORS;
-  GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1;
+  GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
   FillChar(GDVars.monsterFlags, SizeOf(GDVars.monsterFlags), 0);
   GDVars.eclGraphics := False;
   CharDisp.DisplayNoncombatInterface;
@@ -1123,9 +1123,9 @@ var
   { The party closes in, or with the monsters at hand both sides wait; the menu comes round again. }
   procedure ApproachOrWait;
   begin
-    if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <> 0 then begin
-      Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-      EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+    if GDVars.zone1^[C_GBVM.MONSTER_DIST] <> 0 then begin
+      Dec(GDVars.zone1^[C_GBVM.MONSTER_DIST]);
+      EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_GBVM.MONSTER_DIST]),
                              GDVars.monsterFlags);
     end else
       TextRend.ShowMessage(LightGreen, True, 'Both sides wait.');
@@ -1135,11 +1135,11 @@ var
   { The party closes in and the menu comes round again, or with the monsters at hand it is a parley (3). }
   procedure ApproachOrParley;
   begin
-    if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
+    if GDVars.zone1^[C_GBVM.MONSTER_DIST] <= 0 then
       EclVars.WriteGbvm(address, 3)
     else begin
-      Dec(GDVars.zone1^[C_Gbvm.MONSTER_DIST]);
-      EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+      Dec(GDVars.zone1^[C_GBVM.MONSTER_DIST]);
+      EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_GBVM.MONSTER_DIST]),
                              GDVars.monsterFlags);
       waited := True;
     end;
@@ -1162,7 +1162,7 @@ begin
   q := '';
   EclVars.LoadEclVars(14);
   monId := EclVars.GetEclVar(1);
-  GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
+  GDVars.zone1^[C_GBVM.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
   monPicId := EclVars.GetEclVar(3);
   address := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[4], GDVars.gbvmUpperByte[4]);
   for i := 0 to 4 do
@@ -1171,10 +1171,10 @@ begin
     msgs[i] := GDVars.gbStrings^[i];
   fleePar := EclVars.GetEclVar(13);
   fleeMon := EclVars.GetEclVar(14);
-  GDVars.zone1^[C_Gbvm.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-  if GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ] < GDVars.zone1^[C_Gbvm.MONSTER_DIST] then
-    GDVars.zone1^[C_Gbvm.MONSTER_DIST] := GDVars.zone1^[C_Gbvm.MONSTER_DIST_REQ];
-  EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_Gbvm.MONSTER_DIST]),
+  GDVars.zone1^[C_GBVM.MONSTER_DIST] := EclMenu.MaxMonsterDist(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+  if GDVars.zone1^[C_GBVM.MONSTER_DIST_REQ] < GDVars.zone1^[C_GBVM.MONSTER_DIST] then
+    GDVars.zone1^[C_GBVM.MONSTER_DIST] := GDVars.zone1^[C_GBVM.MONSTER_DIST_REQ];
+  EclMenu.DisplayMonster(monId, monPicId, Byte(GDVars.zone1^[C_GBVM.MONSTER_DIST]),
                          GDVars.monsterFlags);
   repeat
     anim := GDVars.eclGraphics and GDVars.picDrawn;
@@ -1183,8 +1183,8 @@ begin
     GDVars.curCol := C_MSG.TEXT_LEFT;
     GDVars.curRow := C_MSG.MESSAGE_TOP;
     { the message for the distance, else the next one after it that is set, wrapping round the three }
-    if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 2 then begin
-      k := GDVars.zone1^[C_Gbvm.MONSTER_DIST] + 1;
+    if GDVars.zone1^[C_GBVM.MONSTER_DIST] <= 2 then begin
+      k := GDVars.zone1^[C_GBVM.MONSTER_DIST] + 1;
       tried := 0;
       repeat
         msg := msgs[k];
@@ -1196,12 +1196,12 @@ begin
     if msg = '' then
       clearW := False;
     TextRend.ShowMessage(LightGreen, clearW, msg);
-    if (GDVars.zone1^[C_Gbvm.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0) then
+    if (GDVars.zone1^[C_GBVM.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0) then
       menu := '~COMBAT ~WAIT ~FLEE ~PARLAY'
     else
       menu := '~COMBAT ~WAIT ~FLEE ~ADVANCE';
     sel := EclMenu.MenuHorizontalCS(q, menu, LightMagenta, LightGreen, White, False, anim);
-    if ((GDVars.zone1^[C_Gbvm.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0)) and (sel = 3) then
+    if ((GDVars.zone1^[C_GBVM.MONSTER_DIST] = 0) or (GDVars.zone0^.view3dFlag = 0)) and (sel = 3) then
       sel := 4;
     choice := resp[sel];
     case choice of
@@ -1346,7 +1346,7 @@ begin
   if attack and $40 <> 0 then
     allParty := 1
   else
-    count := Dice.RollDice(1, Byte(GDVars.zone1^[C_Gbvm.PARTY_SIZE]));
+    count := Dice.RollDice(1, Byte(GDVars.zone1^[C_GBVM.PARTY_SIZE]));
   if attack and $80 <> 0 then begin
     saveMod := attack and $1F;
     saveType := value and 7;
@@ -1372,7 +1372,7 @@ begin
   end else begin
     for i := 1 to attack do begin
       p := GDVars.creatureList;
-      count := Dice.RollDice(1, Byte(GDVars.zone1^[C_Gbvm.PARTY_SIZE]));
+      count := Dice.RollDice(1, Byte(GDVars.zone1^[C_GBVM.PARTY_SIZE]));
       k := 1;
       while k < count do begin
         p := p^.nextCharAddr;
@@ -1482,9 +1482,9 @@ var
 begin
   EclVars.LoadEclVars(2);
   id := EclVars.GetEclVar(1);
-  partySize := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
+  partySize := GDVars.zone1^[C_GBVM.PARTY_SIZE];
   EclMenu.AddCreatureToParty(id);
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] = partySize then Exit;
+  if GDVars.zone1^[C_GBVM.PARTY_SIZE] = partySize then Exit;
   morale := EclVars.GetEclVar(2);
   morale := morale div 2;
   morale := morale or C_Npc.FLAG;
@@ -1759,7 +1759,7 @@ procedure NewEclDone;
 begin
   repeat
     GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
-    GDVars.zone1^[C_Gbvm.LEAVE_MAP] := 0;
+    GDVars.zone1^[C_GBVM.LEAVE_MAP] := 0;
     { in GDVars, as in Curse, so removing it from the party moves it on (SSI kept its own copy, #759, #776) }
     GDVars.savedChar := GDVars.curChar;
     GDVars.locTypePrev := GDVars.gLocType;
@@ -1836,18 +1836,18 @@ begin
     cmd := Explore.MapMainMenu;
     GDVars.savedChar := GDVars.curChar;
     GDVars.zone0^.previousScriptId := GDVars.eclScriptId;
-    while ((GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
+    while ((GDVars.zone1^[C_GBVM.SEARCH_FLAGS] > 1) or (UpCase(cmd) = 'E')) and
         (not GDVars.partyDefeated) and not EclVm.Reloading do begin
       if UpCase(cmd) = 'E' then
         EclVm.EnterCamp
       else begin
-        GDVars.searchModeFlag := GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] and 1;
-        GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := 1;
+        GDVars.searchModeFlag := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
+        GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := 1;
         MapView.DisplayMapView;
         EclVm.CallEclScript(GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
         if newEclFlag <> 0 then
           EclVm.NewEclDone;
-        GDVars.zone1^[C_Gbvm.SEARCH_FLAGS] := GDVars.searchModeFlag;
+        GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.searchModeFlag;
       end;
       if not GDVars.partyDefeated and not EclVm.Reloading then begin
         cmd := Explore.MapMainMenu;

@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TStats;
 
-uses Types, GDVars, C_Gbvm, C_STATUS, C_Ifc, C_Money, Party, Stats, TestKit;
+uses Types, GDVars, C_GBVM, C_STATUS, C_Ifc, C_Money, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -33,7 +33,7 @@ begin
   b := NewCreature('ANNA', monster);
   a := NewCreature('TALONIA', b);
   GDVars.creatureList := a;
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 2;
+  GDVars.zone1^[C_GBVM.PARTY_SIZE] := 2;
 
   TestKit.Check(Party.IsPartyMember(a), 'first member is in the party');
   TestKit.Check(Party.IsPartyMember(b), 'second member is in the party');

@@ -13,7 +13,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_MSG, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_Gbvm, C_SPELL,
+uses Types, C_TIME, C_MSG, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_GBVM, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -358,11 +358,11 @@ begin
       GameTime.AdvanceSpellPrep;
       GameTime.AdvanceSpellPrepBase(tick);
       { When the area sets a safe-rest period, roll for an interruption each time it runs out }
-      if GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] > 0 then begin
+      if GDVars.zone1^[C_GBVM.REST_SAFE_TIME] > 0 then begin
         Inc(GDVars.restTicks);
-        if GDVars.restTicks >= GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] then begin
+        if GDVars.restTicks >= GDVars.zone1^[C_GBVM.REST_SAFE_TIME] then begin
           GDVars.restTicks := 0;
-          if Dice.RollDice(1, 100) <= GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] then begin
+          if Dice.RollDice(1, 100) <= GDVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] then begin
             CharDisp.ClearMessageWindow;
             GameTime.DisplayRestTime(0);
             TextRend.DisplayString(1, 19, White, 'The Party is rudely interrupted!');

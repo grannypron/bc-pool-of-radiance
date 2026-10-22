@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEvtKind;
 
-uses Types, GDVars, C_Gbvm, EvtKind, TestKit;
+uses Types, GDVars, C_GBVM, EvtKind, TestKit;
 
 { Lay bytes at GBVM address a. }
 procedure Put(a: Word; bytes: String);

@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_Gender, C_Save, C_EQUIP, C_Level, C_ABIL, C_Money, C_Gbvm;
+uses C_Gender, C_Save, C_EQUIP, C_Level, C_ABIL, C_Money, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -931,8 +931,8 @@ type
   end;
   TMonFlags = array[0..1] of Boolean;
   TZone2 = array[$9700..$98FF] of Word;
-  { the script buffer (C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST) }
-  TZone3 = array[C_Gbvm.SCRIPT_FIRST..C_Gbvm.SCRIPT_LAST] of Byte;
+  { the script buffer (C_GBVM.SCRIPT_FIRST..SCRIPT_LAST) }
+  TZone3 = array[C_GBVM.SCRIPT_FIRST..C_GBVM.SCRIPT_LAST] of Byte;
 
   { EffHndlr types. }
   TEffectHandler = procedure(creature: PCharRecord; effectData: Pointer;

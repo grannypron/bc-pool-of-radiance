@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_Tile, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_Gbvm, C_Ifc, Blit, TextRend, CharDisp,
+uses Types, Crt, C_Tile, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_GBVM, C_Ifc, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -76,15 +76,15 @@ begin
   Ending.PlayFinalAnim(3, 5, 2, Word(10 - GDVars.gameDelay) * 5 div 2);
   Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
   Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.viewImageBufferPtr);
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 1 then begin
+  if GDVars.zone1^[C_GBVM.PARTY_SIZE] > 1 then begin
     Blit.LoadPic('FINAL' + finalSfx, 4, False, 0, finalPic);
     Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 2 then begin
+  if GDVars.zone1^[C_GBVM.PARTY_SIZE] > 2 then begin
     Blit.LoadPic('FINAL' + finalSfx, 5, False, 0, finalPic);
     Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;
-  if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 3 then begin
+  if GDVars.zone1^[C_GBVM.PARTY_SIZE] > 3 then begin
     Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
     Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;

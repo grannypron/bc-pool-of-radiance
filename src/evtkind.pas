@@ -38,7 +38,7 @@ function Kind(event: Byte): Byte;
 
 implementation
 
-uses Types, GDVars, C_ECL, C_Gbvm, EclVars;
+uses Types, GDVars, C_ECL, C_GBVM, EclVars;
 
 const
   { the variables a scan follows the event byte into }
@@ -53,7 +53,7 @@ const
   UNKNOWN = $FF;
 
 type
-  TVisited = array[0..(C_Gbvm.SCRIPT_LAST - C_Gbvm.SCRIPT_FIRST) div 8] of Byte;
+  TVisited = array[0..(C_GBVM.SCRIPT_LAST - C_GBVM.SCRIPT_FIRST) div 8] of Byte;
   TDispatch = record
     { the event byte masked with mask equals value }
     mask: Byte;
@@ -112,7 +112,7 @@ end;
 { True when a is inside the script. }
 function InScript(a: Word): Boolean;
 begin
-  InScript := (a >= C_Gbvm.SCRIPT_FIRST) and (a <= C_Gbvm.SCRIPT_LAST);
+  InScript := (a >= C_GBVM.SCRIPT_FIRST) and (a <= C_GBVM.SCRIPT_LAST);
 end;
 
 { Decode the instruction at a: its opcode, and the address after it. }
@@ -329,7 +329,7 @@ var
   k: Word;
 begin
   if not InScript(a) then Exit;
-  k := a - C_Gbvm.SCRIPT_FIRST;
+  k := a - C_GBVM.SCRIPT_FIRST;
   if visited^[k div 8] and (1 shl (k mod 8)) <> 0 then Exit;
   visited^[k div 8] := visited^[k div 8] or (1 shl (k mod 8));
   if queueLen < MAX_QUEUE then begin
@@ -391,15 +391,15 @@ begin
         if op in [C_ECL.BIT_AND, C_ECL.COMPARE] then begin
           v1 := Operand(1, isAddr);
           v2 := Operand(2, isAddr2);
-          if (isAddr and (v1 = C_Gbvm.CELL_EVENT)) or (isAddr2 and (v2 = C_Gbvm.CELL_EVENT)) then begin
+          if (isAddr and (v1 = C_GBVM.CELL_EVENT)) or (isAddr2 and (v2 = C_GBVM.CELL_EVENT)) then begin
             { a fresh set of variables for each scan }
             varCount := 0;
-            eventBit := VarBit(C_Gbvm.CELL_EVENT, $FF, 0);
+            eventBit := VarBit(C_GBVM.CELL_EVENT, $FF, 0);
             if op = C_ECL.COMPARE then
               Scan(a, eventBit)
             else begin
               { AND a, b, destination: the event byte and a mask, either way round }
-              if v1 = C_Gbvm.CELL_EVENT then
+              if v1 = C_GBVM.CELL_EVENT then
                 v1 := v2;
               Scan(next, eventBit or VarBit(Operand(3, isAddr), Lo(v1), 0));
             end;
@@ -472,7 +472,7 @@ begin
       C_ECL.SAVE: begin
             { a shop's or temple's flag: the COMBAT after it opens the shop }
             v := Operand(2, isAddr);
-            if isAddr and ((v = C_Gbvm.ENTER_SHOP) or (v = C_Gbvm.ENTER_TEMPLE)) then
+            if isAddr and ((v = C_GBVM.ENTER_SHOP) or (v = C_GBVM.ENTER_TEMPLE)) then
               sawService := True;
           end;
       C_ECL.TREASURE: sawTreasure := True;

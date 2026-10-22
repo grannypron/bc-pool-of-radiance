@@ -77,7 +77,7 @@ function StrengthModifier(baseStr, excStr: Byte): Byte;
   with exceptional value - 1, larger values give base value - 100 with exceptional 0. }
 procedure StrengthEffectToStrength(effect: Types.PEffectRec; var baseStr, excStr: Byte);
 
-{ The loyalty base a script reads for Charisma cha (C_Gbvm.CHAR_LOYALTY): 0 at 3, 5 more a point to 20 at 7, 25 at
+{ The loyalty base a script reads for Charisma cha (C_GBVM.CHAR_LOYALTY): 0 at 3, 5 more a point to 20 at 7, 25 at
   8..12, 30 at 13, 35 at 14, 40 at 15, 50 at 16, 55 at 17 and 60 from 18. The caller asks only for 3..25 (SCORE_MIN..
   SCORE_MAX); outside it the script reads nothing. }
 function ChaLoyaltyBase(cha: Byte): Byte;

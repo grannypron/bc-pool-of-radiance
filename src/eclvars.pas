@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_ECL, C_STATUS, C_Gbvm, C_DIR, C_Money, CharHlp, AbilAdj;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_Money, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -135,15 +135,15 @@ begin
     DecodeGameCharacter := Chr(c + 64);
 end;
 
-{ GBVM zone of address: 0 = $4900..$4CFF, 1 = $6B00..$6EFF, 2 = $9700..$98FF, 3 = C_Gbvm.SCRIPT_FIRST..SCRIPT_LAST
+{ GBVM zone of address: 0 = $4900..$4CFF, 1 = $6B00..$6EFF, 2 = $9700..$98FF, 3 = C_GBVM.SCRIPT_FIRST..SCRIPT_LAST
   (script), else 4 (special registers) }
 function GbvmZone(address: Word): Byte;
 begin
   GbvmZone := 4;
-  if (address >= C_Gbvm.ZONE0_FIRST) and (address <= C_Gbvm.ZONE0_LAST) then GbvmZone := 0;
-  if (address >= C_Gbvm.ZONE1_FIRST) and (address <= C_Gbvm.ZONE1_LAST) then GbvmZone := 1;
-  if (address >= C_Gbvm.ZONE2_FIRST) and (address <= C_Gbvm.ZONE2_LAST) then GbvmZone := 2;
-  if (address >= C_Gbvm.SCRIPT_FIRST) and (address <= C_Gbvm.SCRIPT_LAST) then GbvmZone := 3;
+  if (address >= C_GBVM.ZONE0_FIRST) and (address <= C_GBVM.ZONE0_LAST) then GbvmZone := 0;
+  if (address >= C_GBVM.ZONE1_FIRST) and (address <= C_GBVM.ZONE1_LAST) then GbvmZone := 1;
+  if (address >= C_GBVM.ZONE2_FIRST) and (address <= C_GBVM.ZONE2_LAST) then GbvmZone := 2;
+  if (address >= C_GBVM.SCRIPT_FIRST) and (address <= C_GBVM.SCRIPT_LAST) then GbvmZone := 3;
 end;
 
 { Return the creature's zero-based index in GDVars.creatureList (the list length if it is absent) }
@@ -175,28 +175,28 @@ var
 begin
   found := True;
   case address of
-    C_Gbvm.CHAR_CON: SpecialReadZ1 := GDVars.curChar^.conCur;
-    C_Gbvm.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GDVars.curChar^.saves[C_Save.PETRIFY];
-    C_Gbvm.CHAR_LEVEL: SpecialReadZ1 := GDVars.curChar^.levelHighest;
-    C_Gbvm.CHAR_THIEF_SKILLS..C_Gbvm.CHAR_THIEF_SKILLS_LAST: begin
-      t := address - C_Gbvm.CHAR_THIEF_SKILLS + 1;
+    C_GBVM.CHAR_CON: SpecialReadZ1 := GDVars.curChar^.conCur;
+    C_GBVM.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GDVars.curChar^.saves[C_Save.PETRIFY];
+    C_GBVM.CHAR_LEVEL: SpecialReadZ1 := GDVars.curChar^.levelHighest;
+    C_GBVM.CHAR_THIEF_SKILLS..C_GBVM.CHAR_THIEF_SKILLS_LAST: begin
+      t := address - C_GBVM.CHAR_THIEF_SKILLS + 1;
       SpecialReadZ1 := GDVars.curChar^.thiefSkills[t];
     end;
-    C_Gbvm.CHAR_NPC: SpecialReadZ1 := GDVars.curChar^.npc;
-    C_Gbvm.CHAR_COPPER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.COPPER];
-    C_Gbvm.CHAR_SILVER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.SILVER];
-    C_Gbvm.CHAR_ELECTRUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.ELECTRUM];
-    C_Gbvm.CHAR_GOLD: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.GOLD];
-    C_Gbvm.CHAR_PLATINUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.PLATINUM];
-    C_Gbvm.CHAR_ALIGNMENT: SpecialReadZ1 := ShortInt(GDVars.curChar^.alignment);
-    C_Gbvm.CHAR_XP_AWARD: SpecialReadZ1 := GDVars.curChar^.xpAward;
-    C_Gbvm.CHAR_XP_PER_HP: SpecialReadZ1 := GDVars.curChar^.xpBonusPerHp;
-    C_Gbvm.CHAR_ENABLED:
+    C_GBVM.CHAR_NPC: SpecialReadZ1 := GDVars.curChar^.npc;
+    C_GBVM.CHAR_COPPER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.COPPER];
+    C_GBVM.CHAR_SILVER: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.SILVER];
+    C_GBVM.CHAR_ELECTRUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.ELECTRUM];
+    C_GBVM.CHAR_GOLD: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.GOLD];
+    C_GBVM.CHAR_PLATINUM: SpecialReadZ1 := GDVars.curChar^.coins[C_Money.PLATINUM];
+    C_GBVM.CHAR_ALIGNMENT: SpecialReadZ1 := ShortInt(GDVars.curChar^.alignment);
+    C_GBVM.CHAR_XP_AWARD: SpecialReadZ1 := GDVars.curChar^.xpAward;
+    C_GBVM.CHAR_XP_PER_HP: SpecialReadZ1 := GDVars.curChar^.xpBonusPerHp;
+    C_GBVM.CHAR_ENABLED:
       if GDVars.curChar^.enabled <> 0 then
         SpecialReadZ1 := 1
       else
         SpecialReadZ1 := $80;
-    C_Gbvm.CHAR_CONTROL:
+    C_GBVM.CHAR_CONTROL:
       if (GDVars.curChar^.hostile = 0) and (GDVars.curChar^.quickfight <> 0) then
         SpecialReadZ1 := $80
       else if GDVars.curChar^.hostile = 1 then
@@ -204,16 +204,16 @@ begin
       else
         SpecialReadZ1 := 0;
     { handled, but no value is returned }
-    C_Gbvm.CHAR_CONTROL_HI: ;
-    C_Gbvm.CHAR_MOVEMENT: SpecialReadZ1 := GDVars.curChar^.movementCur;
-    C_Gbvm.CHAR_PARTY_INDEX: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
-    C_Gbvm.CHAR_PARTY_INDEX2: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
-    C_Gbvm.CHAR_LOYALTY:
+    C_GBVM.CHAR_CONTROL_HI: ;
+    C_GBVM.CHAR_MOVEMENT: SpecialReadZ1 := GDVars.curChar^.movementCur;
+    C_GBVM.CHAR_PARTY_INDEX: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
+    C_GBVM.CHAR_PARTY_INDEX2: SpecialReadZ1 := EclVars.FindCurCharIdx(GDVars.curChar);
+    C_GBVM.CHAR_LOYALTY:
       { no result for charisma outside 3..25 }
       if GDVars.curChar^.chaCur in [AbilAdj.SCORE_MIN..AbilAdj.SCORE_MAX] then
         SpecialReadZ1 := AbilAdj.ChaLoyaltyBase(GDVars.curChar^.chaCur);
-    C_Gbvm.DISK_NUM: SpecialReadZ1 := GDVars.virtualDisk;
-    C_Gbvm.PARTY_SIZE: SpecialReadZ1 := GDVars.zone1^[C_Gbvm.PARTY_SIZE];
+    C_GBVM.DISK_NUM: SpecialReadZ1 := GDVars.virtualDisk;
+    C_GBVM.PARTY_SIZE: SpecialReadZ1 := GDVars.zone1^[C_GBVM.PARTY_SIZE];
   else
     found := False;
   end;
@@ -226,33 +226,33 @@ var
   t: Byte;
 begin
   case address of
-    C_Gbvm.CHAR_DUMP:
+    C_GBVM.CHAR_DUMP:
       if value = 0 then GDVars.dumpCr6B00 := True;
     { a raw window into the character record, starting at memorizedSpells[1] and running on past it }
-    C_Gbvm.CHAR_MEMORIZED_FIRST..C_Gbvm.CHAR_MEMORIZED_LAST: begin
-      t := address - C_Gbvm.CHAR_MEMORIZED_FIRST + 1;
+    C_GBVM.CHAR_MEMORIZED_FIRST..C_GBVM.CHAR_MEMORIZED_LAST: begin
+      t := address - C_GBVM.CHAR_MEMORIZED_FIRST + 1;
       GDVars.curChar^.memorizedSpells[t] := value;
     end;
-    C_Gbvm.CHAR_NPC: begin
+    C_GBVM.CHAR_NPC: begin
       { values above C_Npc.ANIMATED_NPC ($B2) lose $32 (= C_Npc.ANIMATED_NPC and C_Npc.MORALE_MASK) }
       if value > C_Npc.ANIMATED_NPC then Dec(value, $32);
       GDVars.curChar^.npc := value;
     end;
-    C_Gbvm.CHAR_COPPER: GDVars.curChar^.coins[C_Money.COPPER] := value;
-    C_Gbvm.CHAR_SILVER: GDVars.curChar^.coins[C_Money.SILVER] := value;
-    C_Gbvm.CHAR_ELECTRUM: GDVars.curChar^.coins[C_Money.ELECTRUM] := value;
-    C_Gbvm.CHAR_GOLD: GDVars.curChar^.coins[C_Money.GOLD] := value;
-    C_Gbvm.CHAR_PLATINUM: GDVars.curChar^.coins[C_Money.PLATINUM] := value;
-    C_Gbvm.CHAR_XP_AWARD: GDVars.curChar^.xpAward := value;
-    C_Gbvm.CHAR_XP_PER_HP: GDVars.curChar^.xpBonusPerHp := value;
-    C_Gbvm.CHAR_ENABLED: begin
+    C_GBVM.CHAR_COPPER: GDVars.curChar^.coins[C_Money.COPPER] := value;
+    C_GBVM.CHAR_SILVER: GDVars.curChar^.coins[C_Money.SILVER] := value;
+    C_GBVM.CHAR_ELECTRUM: GDVars.curChar^.coins[C_Money.ELECTRUM] := value;
+    C_GBVM.CHAR_GOLD: GDVars.curChar^.coins[C_Money.GOLD] := value;
+    C_GBVM.CHAR_PLATINUM: GDVars.curChar^.coins[C_Money.PLATINUM] := value;
+    C_GBVM.CHAR_XP_AWARD: GDVars.curChar^.xpAward := value;
+    C_GBVM.CHAR_XP_PER_HP: GDVars.curChar^.xpBonusPerHp := value;
+    C_GBVM.CHAR_ENABLED: begin
       if value >= $80 then begin
         GDVars.curChar^.enabled := 0;
         if value = $87 then GDVars.curChar^.status := C_STATUS.STONED;
       end;
       if value = 0 then GDVars.dumpCr6C00 := True;
     end;
-    C_Gbvm.CHAR_CONTROL:
+    C_GBVM.CHAR_CONTROL:
       case value of
         0: begin
           GDVars.curChar^.hostile := 0;
@@ -268,15 +268,15 @@ begin
         end;
       end;
     { disks 1..8 only }
-    C_Gbvm.DISK_NUM:
+    C_GBVM.DISK_NUM:
       if (value >= 1) and (value <= 8) then EclVars.diskHook(value);
     { $80 + id loads wall set id into slot 1, 2 or 3, the cells a word apart }
-    C_Gbvm.WALLSET_LOAD1, C_Gbvm.WALLSET_LOAD2, C_Gbvm.WALLSET_LOAD3:
+    C_GBVM.WALLSET_LOAD1, C_GBVM.WALLSET_LOAD2, C_GBVM.WALLSET_LOAD3:
       if value > $80 then
-        EclVars.wallSetHook(value and $7F, (address - C_Gbvm.WALLSET_LOAD1) div 2 + 1);
+        EclVars.wallSetHook(value and $7F, (address - C_GBVM.WALLSET_LOAD1) div 2 + 1);
   end;
   { the coins, copper to platinum, every other cell }
-  if (address >= C_Gbvm.CHAR_COPPER) and (address <= C_Gbvm.CHAR_PLATINUM) and Odd(address) then
+  if (address >= C_GBVM.CHAR_COPPER) and (address <= C_GBVM.CHAR_PLATINUM) and Odd(address) then
     CharHlp.RecalcStats(GDVars.curChar);
 end;
 
@@ -289,7 +289,7 @@ begin
   case zone of
     0: begin
       GDVars.zone0^.words[address] := value;
-      if (address = C_Gbvm.SKY_CEILING_COLOR) or (address = C_Gbvm.ALT_SKY_COLOR) then
+      if (address = C_GBVM.SKY_CEILING_COLOR) or (address = C_GBVM.ALT_SKY_COLOR) then
         GDVars.redrawSky := True;
     end;
     1: begin
@@ -303,18 +303,18 @@ begin
     4:
       case address of
         { the script registers keep nothing written to them }
-        C_Gbvm.READ_REG1, C_Gbvm.READ_REG2, C_Gbvm.READ_REG3, C_Gbvm.WRITE_REG1, C_Gbvm.WRITE_REG2: ;
-        C_Gbvm.SOUND_EFFECT: GDVars.sndEffect := value;
-        C_Gbvm.CELL_PARTY_X: begin
+        C_GBVM.READ_REG1, C_GBVM.READ_REG2, C_GBVM.READ_REG3, C_GBVM.WRITE_REG1, C_GBVM.WRITE_REG2: ;
+        C_GBVM.SOUND_EFFECT: GDVars.sndEffect := value;
+        C_GBVM.CELL_PARTY_X: begin
           GDVars.movedParty := True;
           GDVars.gMapX := value;
         end;
-        C_Gbvm.CELL_PARTY_Y: begin
+        C_GBVM.CELL_PARTY_Y: begin
           GDVars.gMapY := value;
           GDVars.movedParty := True;
         end;
         { facing, mod-4 loop }
-        C_Gbvm.CELL_FACING: begin
+        C_GBVM.CELL_FACING: begin
           repeat
             ok := True;
             case value of
@@ -330,16 +330,16 @@ begin
           until ok = True;
           GDVars.movedParty := True;
         end;
-        C_Gbvm.CELL_WALL_COLOR: begin
+        C_GBVM.CELL_WALL_COLOR: begin
           GDVars.wallColorSel := value;
           GDVars.picRegionW := True;
         end;
-        C_Gbvm.CELL_CEIL_FLOOR_COLOR: begin
+        C_GBVM.CELL_CEIL_FLOOR_COLOR: begin
           GDVars.ceilFloorColorSel := value;
           GDVars.picRegionW := True;
         end;
         { accepted, ignored }
-        C_Gbvm.CELL_IGNORED: ;
+        C_GBVM.CELL_IGNORED: ;
       end;
   end;
 end;
@@ -357,7 +357,7 @@ var
   effect: Types.PEffectRec;
 begin
   PartyEffectsTable := 0;
-  k := (address - C_Gbvm.PARTY_EFFECTS) mod (C_Gbvm.PARTY_EFFECT_OWNERS - C_Gbvm.PARTY_EFFECTS);
+  k := (address - C_GBVM.PARTY_EFFECTS) mod (C_GBVM.PARTY_EFFECT_OWNERS - C_GBVM.PARTY_EFFECTS);
   e := 0;
   n := 0;
   p := GDVars.creatureList;
@@ -365,7 +365,7 @@ begin
     effect := p^.effectsAddr;
     while effect <> nil do begin
       if e = k then
-        if address < C_Gbvm.PARTY_EFFECT_OWNERS then
+        if address < C_GBVM.PARTY_EFFECT_OWNERS then
           PartyEffectsTable := effect^.id
         else
           PartyEffectsTable := n;
@@ -378,7 +378,7 @@ begin
 end;
 
 { Zone 0 reads of $4900..$497F come from the party's effects (PartyEffectsTable), the rest from storage. Zone 4 reads
-  are the special cells C_Gbvm names: registers, the party's position and facing, and the view. Unhandled zone-4
+  are the special cells C_GBVM names: registers, the party's position and facing, and the view. Unhandled zone-4
   addresses leave the result unassigned }
 function ReadGbvm(address: Word): Word;
 var
@@ -389,7 +389,7 @@ begin
   found := False;
   case zone of
     0:
-      if address <= C_Gbvm.PARTY_EFFECTS_LAST then
+      if address <= C_GBVM.PARTY_EFFECTS_LAST then
         ReadGbvm := EclVars.PartyEffectsTable(address)
       else
         ReadGbvm := GDVars.zone0^.words[address];
@@ -405,18 +405,18 @@ begin
     4:
       case address of
         { the read registers always read 0 }
-        C_Gbvm.READ_REG1, C_Gbvm.READ_REG2, C_Gbvm.READ_REG3: ReadGbvm := 0;
-        C_Gbvm.FACING_RAW: ReadGbvm := GDVars.gFacing;
+        C_GBVM.READ_REG1, C_GBVM.READ_REG2, C_GBVM.READ_REG3: ReadGbvm := 0;
+        C_GBVM.FACING_RAW: ReadGbvm := GDVars.gFacing;
         { handled, but no value is returned }
-        C_Gbvm.CELL_35F: ;
+        C_GBVM.CELL_35F: ;
         { sign-extends (ShortInt) }
-        C_Gbvm.CELL_PARTY_X: ReadGbvm := GDVars.gMapX;
-        C_Gbvm.CELL_PARTY_Y: ReadGbvm := GDVars.gMapY;
-        C_Gbvm.CELL_FACING: ReadGbvm := GDVars.gFacing div 2;
-        C_Gbvm.CELL_WALL_AHEAD: ReadGbvm := GDVars.wallAhead;
-        C_Gbvm.CELL_EVENT: ReadGbvm := GDVars.eventAtCell;
+        C_GBVM.CELL_PARTY_X: ReadGbvm := GDVars.gMapX;
+        C_GBVM.CELL_PARTY_Y: ReadGbvm := GDVars.gMapY;
+        C_GBVM.CELL_FACING: ReadGbvm := GDVars.gFacing div 2;
+        C_GBVM.CELL_WALL_AHEAD: ReadGbvm := GDVars.wallAhead;
+        C_GBVM.CELL_EVENT: ReadGbvm := GDVars.eventAtCell;
         { write only: the result is unassigned }
-        C_Gbvm.CELL_WALL_COLOR: ;
+        C_GBVM.CELL_WALL_COLOR: ;
       end;
   end;
 end;
@@ -425,10 +425,10 @@ end;
 function ZoneLast(zone: Byte): Word;
 begin
   case zone of
-    0: ZoneLast := C_Gbvm.ZONE0_LAST;
-    1: ZoneLast := C_Gbvm.ZONE1_LAST;
-    2: ZoneLast := C_Gbvm.ZONE2_LAST;
-    3: ZoneLast := C_Gbvm.SCRIPT_LAST;
+    0: ZoneLast := C_GBVM.ZONE0_LAST;
+    1: ZoneLast := C_GBVM.ZONE1_LAST;
+    2: ZoneLast := C_GBVM.ZONE2_LAST;
+    3: ZoneLast := C_GBVM.SCRIPT_LAST;
   else
     ZoneLast := 0;
   end;
@@ -457,7 +457,7 @@ begin
       GDVars.zone0^.words[address + len] := 0;
     end;
     1:
-      if address = C_Gbvm.CHAR_NAME then
+      if address = C_GBVM.CHAR_NAME then
         GDVars.curChar^.name := s
       else begin
         for i := 0 to len - 1 do
@@ -542,7 +542,7 @@ var
 begin
   zone := EclVars.GbvmZone(address);
   GDVars.gbStrings^[strIdx] := '';
-  if (zone = 1) and (address = C_Gbvm.CHAR_NAME) then
+  if (zone = 1) and (address = C_GBVM.CHAR_NAME) then
     GDVars.gbStrings^[strIdx] := GDVars.curChar^.name
   else if zone < 4 then begin
     last := EclVars.ZoneLast(zone);

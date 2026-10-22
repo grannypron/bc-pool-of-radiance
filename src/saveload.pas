@@ -108,7 +108,7 @@ procedure FreeParty;
 implementation
 
 uses DiskRec, Crt, C_AREA, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_Keys, C_Ifc, C_Gbvm, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  C_Keys, C_Ifc, C_GBVM, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
@@ -527,7 +527,7 @@ begin
     while (orderNumber < Types.MAX_PARTY) and (used[orderNumber] <> 0) do
       Inc(orderNumber);
   end;
-  Inc(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+  Inc(GDVars.zone1^[C_GBVM.PARTY_SIZE]);
   ClassCal.RecalcBaseSkills(creature);
 end;
 
@@ -535,7 +535,7 @@ end;
 function SaveMinSize: LongInt;
 begin
   SaveMinSize := LongInt(SizeOf(GDVars.virtualDisk)) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) +
-                 SizeOf(GDVars.zone2^) + C_Gbvm.SAVED_SCRIPT_BYTES + 5 + SizeOf(GDVars.gLocType) +
+                 SizeOf(GDVars.zone2^) + C_GBVM.SAVED_SCRIPT_BYTES + 5 + SizeOf(GDVars.gLocType) +
                  SizeOf(GDVars.ifcState) + SizeOf(Byte) + SizeOf(TSaveNames);
 end;
 
@@ -577,7 +577,7 @@ begin
   BlockRead(f, GDVars.zone1^, SizeOf(GDVars.zone1^), res);
   BlockRead(f, GDVars.zone2^, SizeOf(GDVars.zone2^), res);
   { the script the save holds is passed over: GameLoop loads the area's script from the data (#609) }
-  Seek(f, FilePos(f) + C_Gbvm.SAVED_SCRIPT_BYTES);
+  Seek(f, FilePos(f) + C_GBVM.SAVED_SCRIPT_BYTES);
   { the party's map position: SSI's five bytes }
   BlockRead(f, GDVars.gMapX, SizeOf(GDVars.gMapX), res);
   BlockRead(f, GDVars.gMapY, SizeOf(GDVars.gMapY), res);
@@ -602,7 +602,7 @@ begin
   if nChars > 8 then
     nChars := 8;
   { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
-  GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
+  GDVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
     if DaxIo.FileExists(GDVars.saveDirectory + fn + '.sav') then begin
@@ -621,8 +621,8 @@ begin
     GDVars.curChar := GDVars.curChar^.nextCharAddr;
   end;
   GDVars.curChar := GDVars.creatureList;
-  { the disk number SaveGame stored at C_Gbvm.DISK_NUM }
-  GDVars.virtualDisk := Lo(GDVars.zone1^[C_Gbvm.DISK_NUM]);
+  { the disk number SaveGame stored at C_GBVM.DISK_NUM }
+  GDVars.virtualDisk := Lo(GDVars.zone1^[C_GBVM.DISK_NUM]);
   if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
     GDVars.virtualDisk := 1;
   if GDVars.gLocType < C_AREA.LOC_WILD_WEST then
@@ -631,8 +631,8 @@ begin
     MapTiles.LoadIconAnim('ICON', 0, 11)
   else
     for i := 1 to 3 do begin
-      GDVars.wallSetCache[i].wallDefId := GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + i];
-      GDVars.wallSetCache[i].symbolSlot := GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + i];
+      GDVars.wallSetCache[i].wallDefId := GDVars.zone0^.words[C_GBVM.WALLSLOT_ID + i];
+      GDVars.wallSetCache[i].symbolSlot := GDVars.zone0^.words[C_GBVM.WALLSLOT_SLOT + i];
       if GDVars.wallSetCache[i].wallDefId >= 0 then
         View3D.LoadWallSet(GDVars.wallSetCache[i].wallDefId, GDVars.wallSetCache[i].symbolSlot);
     end;
@@ -720,19 +720,19 @@ begin
     animation flag, which would set the next menu animating the last picture loaded over the view }
   walls := GDVars.zone0^.savedWalls;
   for n := 1 to 3 do begin
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := GDVars.wallSetCache[n].wallDefId;
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := GDVars.wallSetCache[n].symbolSlot;
+    GDVars.zone0^.words[C_GBVM.WALLSLOT_ID + n] := GDVars.wallSetCache[n].wallDefId;
+    GDVars.zone0^.words[C_GBVM.WALLSLOT_SLOT + n] := GDVars.wallSetCache[n].symbolSlot;
   end;
   GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
   GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;
-  GDVars.zone1^[C_Gbvm.DISK_NUM] := GDVars.virtualDisk;
+  GDVars.zone1^[C_GBVM.DISK_NUM] := GDVars.virtualDisk;
   FileUtil.WriteChecked(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), ok);
   FileUtil.WriteChecked(f, GDVars.zone0^, SizeOf(GDVars.zone0^), ok);
   GDVars.zone0^.savedWalls := walls;
   FileUtil.WriteChecked(f, GDVars.zone1^, SizeOf(GDVars.zone1^), ok);
   FileUtil.WriteChecked(f, GDVars.zone2^, SizeOf(GDVars.zone2^), ok);
   { SSI's part of the script buffer, so the file stays SSI's size }
-  FileUtil.WriteChecked(f, GDVars.zone3^, C_Gbvm.SAVED_SCRIPT_BYTES, ok);
+  FileUtil.WriteChecked(f, GDVars.zone3^, C_GBVM.SAVED_SCRIPT_BYTES, ok);
   { the party's map position: SSI's five bytes }
   FileUtil.WriteChecked(f, GDVars.gMapX, SizeOf(GDVars.gMapX), ok);
   FileUtil.WriteChecked(f, GDVars.gMapY, SizeOf(GDVars.gMapY), ok);
@@ -891,7 +891,7 @@ begin
       SaveLoad.FreeCreature(GDVars.curChar);
       GDVars.curChar := prev;
       if not suppressSizeDec then
-        Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+        Dec(GDVars.zone1^[C_GBVM.PARTY_SIZE]);
     end;
   end else begin
     if freeAnim then
@@ -901,7 +901,7 @@ begin
     SaveLoad.FreeCreature(GDVars.curChar);
     GDVars.curChar := prev;
     if not suppressSizeDec then
-      Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
+      Dec(GDVars.zone1^[C_GBVM.PARTY_SIZE]);
   end;
   { the script engine makes savedChar current again: never the freed record (SSI left it there, as Curse's #609) }
   if (GDVars.curChar <> removed) and (GDVars.savedChar = removed) then
