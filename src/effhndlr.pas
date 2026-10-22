@@ -1081,13 +1081,13 @@ begin
     end;
 end;
 
-{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation or is immune to paralysis; saveMod
-  is unused. }
+{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation with saveMod or is immune to
+  paralysis. SSI's ignored saveMod, so the drider's -2 was lost (#785). }
 
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then
+  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then
     if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS) then begin
       CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
       FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
@@ -1130,7 +1130,7 @@ begin
     EffHndlr.ParalysisTouch(creature, 63, 0);
 end;
 
-{ Drider paralysis (eff 69): 1d9+10 minutes. The -2 save modifier is passed but ParalysisTouch ignores it }
+{ Drider paralysis (eff 69): 1d9+10 minutes, saved against at -2 }
 
 procedure EffDriderPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
