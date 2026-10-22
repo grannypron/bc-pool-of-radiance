@@ -227,8 +227,6 @@ begin
       TextRend.DisplayString(23, row, LightGreen, 'and is Dying');
     if def^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then
       CharDisp.PrintNameString(def, 'is killed', row, False);
-    { dead store: row is never read again }
-    Inc(row, 2);
     FxEngine.RemoveEffectsHp0(def);
     FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, def);
     if def^.enabled = 0 then
@@ -479,16 +477,14 @@ begin
   GDVars.dsCurrentCreatureCalculatingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
   adj := CbtActs.AdjustedAttacks(GDVars.dsCurrentAttackCurrent);
-  if ranged then
-    if weapon <> nil then begin
-      qty := 1;
-      if weapon <> nil then
-        if weapon^.quantity > qty then
-          qty := weapon^.quantity;
-      if qty < adj then
-        { ammo-limited }
-        adj := qty;
-    end;
+  if ranged and (weapon <> nil) then begin
+    qty := 1;
+    if weapon^.quantity > qty then
+      qty := weapon^.quantity;
+    if qty < adj then
+      { ammo-limited }
+      adj := qty;
+  end;
   if (creature^.combatAddr^.madeAttack = 0) or (adj < saved)
      or ((creature^.combatAddr^.madeAttack <> 0) and (adj < saved * 2) and (not ranged)) then
     creature^.curAttacks := adj;
@@ -1071,8 +1067,8 @@ begin
             GDVars.dsTargetCreaturePtr[1] := GDVars.curChar^.combatAddr^.other;
             GDVars.spellTargetCount := 1;
           end else begin
-            { (area and $F) shr 4 is always 0: a zero radius }
-            Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, (GDConsts.spellTable[spell].area and $F) shr 4);
+            { radius 0: the picked cell alone }
+            Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, 0);
             GDVars.gMultiTarget := 1;
           end;
         end else

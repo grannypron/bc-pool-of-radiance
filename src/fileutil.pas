@@ -25,6 +25,10 @@ function IsDeviceName(base: TPathName): Boolean;
 { Erase file name; a missing file, or any other error, is ignored. }
 procedure DeleteFile(name: TPathName);
 
+{ Erase file name: True when there is no such file afterwards (a missing one included), False when it could not be
+  erased (a read-only file). }
+function DeleteChecked(name: TPathName): Boolean;
+
 { Open name for reading only, whatever FileMode is (a read-only file opens too), with record size 1. True when it
   opened; the caller closes it. }
 function OpenReadOnly(var f: file; name: TPathName): Boolean;
@@ -76,6 +80,19 @@ begin
   Assign(f, name);
   Erase(f);
   ioRes := IOResult;
+end;
+
+function DeleteChecked(name: TPathName): Boolean;
+var
+  f: file;
+  ioRes: Integer;
+begin
+  DeleteChecked := True;
+  if not FileUtil.OpenReadOnly(f, name) then Exit;
+  Close(f);
+  ioRes := IOResult;
+  Erase(f);
+  DeleteChecked := IOResult = 0;
 end;
 
 function OpenReadOnly(var f: file; name: TPathName): Boolean;

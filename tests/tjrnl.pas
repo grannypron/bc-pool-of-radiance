@@ -9,7 +9,7 @@ var
   i: Integer;
   n: Integer;
   k: Integer;
-  fits: Boolean;
+  nothingPast: Boolean;
   allHaveLines: Boolean;
   widest: Integer;
   where: String;
@@ -39,7 +39,7 @@ begin
   TestKit.CheckEqualsS('TAVERN TALE 23', JrnlList.EntryTitle(99), 'a tale''s title');
 
   { every item's text: some lines, none wider than the pane, and nothing past the last }
-  fits := True;
+  nothingPast := True;
   allHaveLines := True;
   widest := 0;
   where := '';
@@ -53,11 +53,11 @@ begin
       if Length(JrnlList.TextLine(i, k)) > widest then
         widest := Length(JrnlList.TextLine(i, k));
     if JrnlList.TextLine(i, n + 1) <> '' then
-      fits := False;
+      nothingPast := False;
   end;
   TestKit.Check(allHaveLines, 'every item has text lines;' + where);
   TestKit.Check(widest <= C_Jrnl.JOURNAL_WIDTH, 'every line fits the pane (widest ' + StrUtil.NumStr(widest) + ')');
-  TestKit.Check(fits, 'no item has a line past its LineCount');
+  TestKit.Check(nothingPast, 'no item has a line past its LineCount');
   TestKit.CheckEqualsL(0, JrnlList.LineCount(0), 'no lines outside the list');
   TestKit.Done;
 end.

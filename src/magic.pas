@@ -510,7 +510,7 @@ begin
     3: Magic.AddAllScrollSpells(creature, False, MARK_KNOWN);
     6: Magic.AddAllScrollSpells(creature, True, MARK_NONE);
     { only spells inside slots[0..1, 1..3]: Restoration (spell 56, level 7) would read slots[0, 7], xpAward's low byte }
-    4: for i := 1 to 56 do
+    4: for i := 1 to C_Spell.LAST do
          with GDConsts.spellTable[i] do
            if (castClassSp >= 0) and (castClassSp <= 1) and (levelSp >= 1) and (levelSp <= 3) then
              if (creature^.slots[castClassSp, levelSp] > 0) and (creature^.spellsKnown[i] = 0) then
@@ -1376,7 +1376,6 @@ end;
 procedure FireballHandler;
 var
   cl: Byte;
-  i: Byte;
 begin
   GDVars.gMultiTarget := 1;
   if GDVars.dsCurrentSpellBeing = C_Spell.ITEM_FIREBALL then
@@ -1712,10 +1711,10 @@ begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is invisible');
 end;
 
-{ Wand of Magic Missiles: 2d4 + 2 damage, element mask 8. }
+{ Wand of Magic Missiles: 2d4 + 2 damage, element C_Effect.ELEM_MAGIC. }
 procedure WandMagicMissilesHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, 8, '');
+  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, C_Effect.ELEM_MAGIC, '');
 end;
 
 { Unused item spell slot: does nothing. }
@@ -1746,7 +1745,7 @@ begin
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);
   CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
-  GDVars.castTargetMenu(51, True, GDVars.breathAim);
+  GDVars.castTargetMenu(C_Spell.LIGHTNING_BOLT, True, GDVars.breathAim);
   GDVars.gTargetX := x + Pathing.SignOf(GDVars.gTargetX - x);
   GDVars.gTargetY := y + Pathing.SignOf(GDVars.gTargetY - y);
   if GDVars.gTargetX = x + 1 then
@@ -1851,14 +1850,15 @@ begin
   CastSpellMenu := Magic.ChooseSpell(7, 1, idx, notEmpty, scroll);
 end;
 
-{ Cast spell from item, a scroll or an effect-bearing item (effect > 56 maps to spell effect - 23), setting usingItem
-  during the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell) and
-  'Use it?', where Yes sets done and spends the scroll spell and No leaves done clear. In combat, a spell castable in
-  combat (whenCast <> 0) ends the user's actions and sets done, cast or not. Past that prompt, only when the spell was
-  cast, consume the scroll spell, or use quantity and then charges; remove the item when its charges run out (SSI spent
-  them on done, so an aborted spell in combat still used them up). announce (the Cast list's scroll lines) names the
-  spell first, as casting a memorized one does (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell
-  table, from corrupt or edited item data, does nothing and leaves done clear. }
+{ Cast spell from item, a scroll or an effect-bearing item (an effect past C_Spell.LAST maps to spell effect -
+  C_Spell.ITEM_EFFECT_SHIFT), setting usingItem during the cast. A combat-only scroll spell outside combat is not cast:
+  Cast's message (Magic.ShowCombatOnlySpell) and 'Use it?', where Yes sets done and spends the scroll spell and No
+  leaves done clear. In combat, a spell castable in combat (whenCast <> 0) ends the user's actions and sets done, cast
+  or not. Past that prompt, only when the spell was cast, consume the scroll spell, or use quantity and then charges;
+  remove the item when its charges run out (SSI spent them on done, so an aborted spell in combat still used them up).
+  announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
+  (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item data, does
+  nothing and leaves done clear. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 var
   id: Byte;
@@ -1867,8 +1867,8 @@ var
   cast: Boolean;
 begin
   id := spell;
-  if not CharHlp.ItemReadable(item) and (spell > 56) then
-    id := spell - 23;
+  if not CharHlp.ItemReadable(item) and (spell > C_Spell.LAST) then
+    id := spell - C_Spell.ITEM_EFFECT_SHIFT;
   if (id < 1) or (id > SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then begin
     done := False;
     Exit;
@@ -1885,9 +1885,9 @@ begin
   if (GDVars.ifcState = C_Ifc.COMBAT) and (GDVars.curChar^.quickfight = 0) then
     CharDisp.DisplayCombatInterface;
   if not CharHlp.ItemReadable(item) then begin
-    if spell > 56 then
+    if spell > C_Spell.LAST then
       { item effect -> spell id }
-      Dec(spell, 23);
+      Dec(spell, C_Spell.ITEM_EFFECT_SHIFT);
     CharDisp.PrintNameString(GDVars.curChar, 'uses an item', 10, False);
     if GDVars.ifcState = C_Ifc.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');

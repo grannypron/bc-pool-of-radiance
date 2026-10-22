@@ -212,10 +212,9 @@ begin
            and (effect > 0) then begin
           { Item effects 80..90 map to spell entries 57..67; 56 is the last real spell id. An effect above 90 would read
             past spellTable and is not rated, as SelectSpellToCast leaves such entries out (#708) }
-          if effect > 56 then
-            effect := effect - 23;
-          { 67 = High(spellTable) }
-          if effect <= 67 then
+          if effect > C_Spell.LAST then
+            effect := effect - C_Spell.ITEM_EFFECT_SHIFT;
+          if effect <= C_Spell.TABLE_LAST then
             if CombatAi.DecideCastSpell(creature, effect, lowPri) then
               chosen := item;
         end;
@@ -249,8 +248,8 @@ begin
   count := 0;
   if creature^.combatAddr^.castAllowed <> 0 then
     for k := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
-      { 67 = High(spellTable); a pending entry (bit 7) is above it too }
-      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= 67) then begin
+      { a pending entry (bit 7) is past the table too }
+      if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_Spell.TABLE_LAST) then begin
         list[count] := creature^.memorizedSpells[k];
         Inc(count);
       end;
@@ -766,8 +765,7 @@ begin
   if item^.special = C_Effect.ALIGNED_WEAPON then
     if (item^.effect and $F) <> creature^.alignment then
       pri := 0;
-  { Javelin of Lightning }
-  if item^.effect = 83 then
+  if item^.effect = C_Spell.ITEM_JAVELIN_LIGHTNING + C_Spell.ITEM_EFFECT_SHIFT then
     pri := 0;
   if item^.cursed <> 0 then
     pri := 0;
@@ -789,7 +787,6 @@ var
   bestShieldPri: Byte;
   pri: Byte;
   itType: Byte;
-  props: Byte;
   needSwap: Boolean;
   changed: Boolean;
   trueRanged: Boolean;
@@ -853,25 +850,7 @@ begin
     trueRanged := True
   else
     trueRanged := False;
-  hasAmmo := False;
-  ammo := nil;
-  props := 0;
-  if bestRanged <> nil then begin
-    props := CharHlp.BaseItem(bestRanged^.itemType)^.props;
-    if (props and C_Item.PROP_THROWN) <> 0 then
-      { thrown: is its own ammo }
-      ammo := bestRanged;
-    if (props and C_Item.PROP_FIRES_AMMO) <> 0 then begin
-      if (props and C_Item.PROP_ARROWS) <> 0 then
-        ammo := creature^.equipped[C_Equip.ARROW];
-      if (props and C_Item.PROP_QUARRELS) <> 0 then
-        ammo := creature^.equipped[C_Equip.BOLT];
-    end;
-  end;
-  { props = $A exactly (C_Item.PROP_FIRES_AMMO + C_Item.PROP_DEX_MISSILE, no arrow, quarrel or thrown bit): a launcher
-    with no ammo to look up counts as supplied }
-  if (ammo <> nil) or (props = $A) then
-    hasAmmo := True;
+  hasAmmo := CharHlp.FindAmmo(creature, bestRanged, ammo);
   { pick the weapon }
   if (bestRanged <> nil)
      and (bestRangedPri > bestMeleePri div 2)

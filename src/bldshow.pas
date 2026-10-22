@@ -226,7 +226,7 @@ begin
         else
           px[x] := bg;
     end;
-    if (frame < FRAMES) and (y <= 7) then
+    if frame < FRAMES then
       VidOps.PutPixelRow(st^.art, frame, y, px);
   end;
 end;

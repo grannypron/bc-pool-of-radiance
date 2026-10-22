@@ -133,6 +133,7 @@ begin
   CbtMap.DisplayMapViewCentered(creature, 2, True);
   CharHlp.RecalcStats(creature);
   CharDisp.CombatPrintCreatureInfo(creature);
+  { once a turn: SSI's fired them again at every draw of the combat menu (#816) }
   FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
   if creature^.combatAddr^.initiative > 0 then
     if creature^.quickfight <> 0 then
@@ -232,7 +233,6 @@ var
   i: Byte;
   hasSpell: Boolean;
 begin
-  FxEngine.TriggerEffectsWithCondition(C_Cond.ACTION_START, creature);
   menu := '';
   if creature^.combatAddr^.movement > 0 then
     menu := menu + 'Move ';
@@ -251,15 +251,14 @@ begin
      and (creature^.combatAddr^.usedTurnUndead = 0) then
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';
-  { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-R, Alt-X or Alt-M
-    becomes C_Keys.NONE and is rejected. Alt-R is accepted here, but ManualControl has no arm for it. }
+  { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-X or Alt-M becomes
+    C_Keys.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
   repeat
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, hasSpell);
     if hasSpell then
-      if not (ch in [C_Keys.ALT_Q, C_Keys.ALT_R, C_Keys.ALT_X, C_Keys.ALT_M]) then
+      if not (ch in [C_Keys.ALT_Q, C_Keys.ALT_X, C_Keys.ALT_M]) then
         ch := C_Keys.NONE;
-  until ch in [C_Keys.ALT_Q, C_Keys.ALT_R, ' ', C_Keys.ALT_X, C_Keys.ALT_M, 'A', 'C', 'D', 'M', 'Q',
-               'T', 'U', 'V'];
+  until ch in [C_Keys.ALT_Q, ' ', C_Keys.ALT_X, C_Keys.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
 end;
 
 { Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at
@@ -268,14 +267,12 @@ end;
 procedure EndOfRound(var done: Boolean);
 var
   p: Types.PCharRecord;
-  cnt: Byte;
 begin
   { one minute }
   FxEngine.AdvanceTime(1, C_Time.MINUTES);
   Inc(GDVars.roundCounter);
   CbtActs.CalcHostileHpPercent;
   p := GDVars.creatureList;
-  cnt := 1;
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_Cond.ROUND_END, p);
     FxEngine.ConsiderStinkingCloud(p);
@@ -287,7 +284,6 @@ begin
         Stats.BledOut(p);
       end;
     end;
-    Inc(cnt);
     p := p^.nextCharAddr;
   end;
   if Combat.BandageDying(False) then
@@ -453,8 +449,7 @@ begin
            end;
       'Q': done := CharHlp.EndActions(creature);
       'B': begin
-             done := Combat.BandageDying(True);
-             { Bandage result is overwritten }
+             if Combat.BandageDying(True) then ;
              done := CharHlp.EndActions(creature);
            end;
       'S': Combat.SpeedMenu;

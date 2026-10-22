@@ -67,12 +67,10 @@ end;
   pointed at page, and afterwards write mode 0 is restored and egaOtherPage is re-pointed at pageNum. }
 procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: Byte; page, color: Byte);
 var
-  savedPage: Byte;
   dstOff: Word;
   rowCount: Word;
   i: Word;
 begin
-  savedPage := GDVars.pageNum;
   dstOff := Word(ulRow) * 40 * 8 + ulCol;
   rowCount := (lrRow - ulRow + 1) * 8 - 1;
   VidEga.SetupEgaOtherPage(page);
@@ -85,7 +83,6 @@ begin
   end;
   Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
   Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
-  GDVars.pageNum := savedPage;
   VidEga.SetupEgaOtherPage(GDVars.pageNum);
 end;
 

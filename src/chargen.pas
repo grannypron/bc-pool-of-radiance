@@ -182,9 +182,8 @@ begin
                begin
                  quit := True;
                  if (GDVars.recentSaved = 0) and (GDVars.creatureList <> nil) then
-                   if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then begin
+                   if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then
                      quit := SaveLoad.SaveGame;
-                   end;
                  if quit then
                    GameIo.ExitGame;
                end;
@@ -334,7 +333,7 @@ var
   cnt: Byte;
   conB: Integer;
   clsCount: Byte;
-  hpTotal: Byte;
+  goldDice: Byte;
   addExit: Boolean;
   redraw: Boolean;
 
@@ -547,36 +546,18 @@ begin
     with GDConsts.dsStartingAge[creature^.race, creature^.charClass] do
       creature^.age := Dice.RollDice(num, sides) + base
   else
-    with creature^ do
-      case charClass of
-        C_Class.CLERIC_FIGHTER: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
-                   GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
-                       C_Class.CLERIC].num;
-        C_Class.CLERIC_FIGHTER_MAGE: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
-                   GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
-                       C_Class.CLERIC].num;
-        C_Class.CLERIC_RANGER: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
-                   GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
-                       C_Class.CLERIC].num;
-        C_Class.CLERIC_MAGE: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
-                   GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
-                       C_Class.CLERIC].num;
-        C_Class.CLERIC_THIEF: age := GDConsts.dsStartingAge[race, C_Class.CLERIC].base +
-                   GDConsts.dsStartingAge[race, C_Class.CLERIC].sides * GDConsts.dsStartingAge[race,
-                       C_Class.CLERIC].num;
-        C_Class.FIGHTER_MAGE: age := GDConsts.dsStartingAge[race, C_Class.MAGE].base +
-                   GDConsts.dsStartingAge[race, C_Class.MAGE].sides * GDConsts.dsStartingAge[race,
-                       C_Class.MAGE].num;
-        C_Class.FIGHTER_THIEF: age := GDConsts.dsStartingAge[race, C_Class.FIGHTER].base +
-                   GDConsts.dsStartingAge[race, C_Class.FIGHTER].sides * GDConsts.dsStartingAge[race,
-                       C_Class.FIGHTER].num;
-        C_Class.FIGHTER_MAGE_THIEF: age := GDConsts.dsStartingAge[race, C_Class.MAGE].base +
-                   GDConsts.dsStartingAge[race, C_Class.MAGE].sides * GDConsts.dsStartingAge[race,
-                       C_Class.MAGE].num;
-        C_Class.MAGE_THIEF: age := GDConsts.dsStartingAge[race, C_Class.MAGE].base +
-                   GDConsts.dsStartingAge[race, C_Class.MAGE].sides * GDConsts.dsStartingAge[race,
-                       C_Class.MAGE].num;
-      end;
+  begin
+    case creature^.charClass of
+      C_Class.CLERIC_FIGHTER, C_Class.CLERIC_FIGHTER_MAGE, C_Class.CLERIC_RANGER, C_Class.CLERIC_MAGE,
+        C_Class.CLERIC_THIEF: cls := C_Class.CLERIC;
+      C_Class.FIGHTER_THIEF: cls := C_Class.FIGHTER;
+    else
+      { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
+      cls := C_Class.MAGE;
+    end;
+    with GDConsts.dsStartingAge[creature^.race, cls] do
+      creature^.age := base + sides * num;
+  end;
   { stat roll / derived / keep loop }
   savedCur := GDVars.curChar;
   GDVars.curChar := creature;
@@ -670,8 +651,8 @@ begin
       unarmedDiceA[1] := 2;
       useStrength := 1;
       movementBase := 12;
-      { hpTotal sums each class's starting-gold dice (dsStartingGoldClass); gold = sum * 10 div class count }
-      hpTotal := 0;
+      { goldDice sums each class's starting-gold dice (dsStartingGoldClass); gold = sum * 10 div class count }
+      goldDice := 0;
       clsCount := 0;
       for cls := C_Level.CLERIC to C_Level.MONK do
         if classLevels[cls] > 0 then begin
@@ -679,7 +660,7 @@ begin
             C_Level.CLERIC: clericSpells[1] := 1;
             C_Level.MAGE: mageSpells[1] := 1;
           end;
-          Inc(hpTotal,
+          Inc(goldDice,
               Dice.RollDice(GDConsts.dsStartingGoldClass[cls].num, GDConsts.dsStartingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
@@ -702,7 +683,7 @@ begin
                end;
           end;
         end;
-      coins[C_Money.GOLD] := hpTotal * 10 div clsCount;
+      coins[C_Money.GOLD] := goldDice * 10 div clsCount;
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
         too little) }
       hpRolled := ClassCal.RollFirstLevelHp(creature, $FF);
@@ -769,7 +750,7 @@ end;
 function Modifiable: Boolean;
 begin
   Modifiable := (GDVars.curChar^.race >= C_Race.DWARF) and (GDVars.curChar^.race <= C_Race.HUMAN) and
-                (GDVars.curChar^.charClass >= 0) and (GDVars.curChar^.charClass <= 16);
+                (GDVars.curChar^.charClass >= C_Class.CLERIC) and (GDVars.curChar^.charClass <= C_Class.MAGE_THIEF);
 end;
 
 { ModifyCharacterMenu: Modify Character on the main menu: ModifyCharacter for a Modifiable character with no

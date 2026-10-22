@@ -1,7 +1,7 @@
 { Load terrain tiles and creature icon frames, copy tiles into the view buffer and draw animated icons.
 
   Tile IDs use seven bits for the index and the high bit to select the second tile-set buffer. }
-{$O+,F+,I-} { I/O checking is disabled for the range-error message. }
+{$O+,F+}
 {$I COMPILER.INC}
 unit MapTiles;
 
@@ -48,9 +48,8 @@ var
   i: Integer;
   tiles: Integer;
 begin
-  if mult > 127 then begin
+  if mult > 127 then
     GameIo.FatalError('Start range error in Load24x24Set');
-  end;
   pic := nil;
   Blit.LoadPic(name, 1, False, 0, pic);
   if pic = nil then Exit;

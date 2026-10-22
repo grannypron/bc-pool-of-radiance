@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil;
+uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil, C_Spell;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -1314,7 +1314,7 @@ const
     'Slow',
     'Restoration');
   { IDs 57..67 are item effects }
-  spellTable: array[1..67] of Types.TSpellRec = (
+  spellTable: array[1..C_Spell.TABLE_LAST] of Types.TSpellRec = (
     { Spell 1: Bless }
     (castClass: 0; level: 1; rangeFixed: 6; rangeVar: 0;
      durFixed: 6; durVar: 0; area: 10; target: 4;

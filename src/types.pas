@@ -836,7 +836,7 @@ type
   TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
   TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
   TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
-  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: PImgBuf);
+  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; transpColor: Byte; pic: PImgBuf);
   TMirrorFrameProc = procedure(src, dst: PImgBuf);
   TRemapColourProc = procedure(pic, scratch: PImgBuf; srcOff: Word; nFrames: Byte; fromC, toC: Byte;
                                isDithered: Boolean);
@@ -945,12 +945,6 @@ type
   end;
 
   { MenuCore types. }
-  TMenuAuto = record
-    { centiseconds before auto-answer, 0=off }
-    timeout: LongInt;
-    { the auto-answer key }
-    key: Char;
-  end;
   TOptRange = record
     first: Byte;
     last: Byte;

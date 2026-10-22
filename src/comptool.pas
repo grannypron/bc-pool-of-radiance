@@ -204,7 +204,6 @@ var
   script: Byte;
   map: Byte;
   text: MapNotes.TNoteText;
-  written: Boolean;
 begin
   if not OnAreaMap then Exit;
   script := GDVars.eclScriptId;
@@ -231,13 +230,11 @@ begin
       case ch of
         'W': begin
                text := TextRend.ReadString('Note: ', LightGreen, MapNotes.NOTE_LEN);
-               if text <> '' then begin
-                 written := MapNotes.SetNote(script, map, cx, cy, text);
-                 if not written then
+               if text <> '' then
+                 if not MapNotes.SetNote(script, map, cx, cy, text) then
                    TextRend.DisplayAndPause(Yellow, 'The notes are full.');
-               end;
              end;
-        'C': written := MapNotes.SetNote(script, map, cx, cy, '');
+        'C': MapNotes.ClearNote(script, map, cx, cy);
       end;
     if (nx <> cx) or (ny <> cy) or not ext then begin
       DrawSquare(cx, cy, False);

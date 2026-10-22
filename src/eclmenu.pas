@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Ecl, C_Keys, C_Status, C_Gbvm, C_Dir,
+uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_Status, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -113,17 +113,10 @@ begin
   GDVars.zone1^[C_Gbvm.REST_SAFE_TIME] := 0;
   GDVars.zone1^[C_Gbvm.REST_INTERRUPT_PCT] := 0;
   GDVars.zone0^.antimagic := 0;
-  EclVars.LoadEclVars(1);
-  GDVars.scriptEntryAddrs[1] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  EclVars.LoadEclVars(1);
-  GDVars.scriptEntryAddrs[C_Ecl.ENTRY_SEARCH] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1],
-                                                                            GDVars.dsGbvmUpperByte[1]);
-  EclVars.LoadEclVars(1);
-  GDVars.scriptEntryAddrs[3] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  EclVars.LoadEclVars(1);
-  GDVars.scriptEntryAddrs[4] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
-  EclVars.LoadEclVars(1);
-  GDVars.scriptEntryAddrs[5] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  for i := 1 to 5 do begin
+    EclVars.LoadEclVars(1);
+    GDVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+  end;
   { Select the 3D view (MapView treats view3dFlag <> 0 as location type 1) }
   GDVars.zone0^.view3dFlag := 1;
   if GDVars.loadedSave = 0 then begin
@@ -149,6 +142,7 @@ var
   data: Types.PByteArr;
   disk: Byte;
   n: Word;
+  found: Boolean;
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
   GDVars.dsSuppressingInsertDiskFlag := False;
@@ -161,12 +155,12 @@ begin
   if DaxIo.ArchiveName('ECL' + s) <> 'ECL' + s then
     if not DaxIo.DiskHasBlock('ECL' + s, scriptId) then begin
       disk := 1;
-      while disk <= 8 do begin
+      found := False;
+      while (disk <= Types.LAST_DISK) and not found do begin
         Str(disk, s);
-        if DaxIo.DiskHasBlock('ECL' + s, scriptId) then begin
+        found := DaxIo.DiskHasBlock('ECL' + s, scriptId);
+        if found then
           DaxIo.PushState(disk);
-          disk := 8;
-        end;
         Inc(disk);
       end;
       Str(GDVars.virtualDisk, s);
@@ -177,7 +171,7 @@ begin
       that has the block, without the insert-disk prompt }
     GDVars.dsSuppressingInsertDiskFlag := True;
     disk := 1;
-    while (sizeRead < 2) and (disk <= 8) do begin
+    while (sizeRead < 2) and (disk <= Types.LAST_DISK) do begin
       if disk <> GDVars.virtualDisk then begin
         Str(disk, s);
         DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
@@ -290,35 +284,17 @@ begin
   end;
 end;
 
-{ Lowercase menu (digits shift by 32 too), delete each '~' and uppercase the hotkey after it, collecting the hotkeys in
-  opts }
-procedure MenuToOptions(var menu: String; var opts: Types.TStr40);
-var
-  i: Byte;
-begin
-  opts := '';
-  for i := 1 to Length(menu) do begin
-    if menu[i] in ['0'..'9', 'A'..'Z'] then
-      menu[i] := Chr(Ord(menu[i]) + 32);
-    if menu[i] = '~' then begin
-      Delete(menu, i, 1);
-      menu[i] := UpCase(menu[i]);
-      opts := opts + menu[i];
-    end;
-  end;
-end;
-
 { Horizontal menu with character selection; query is limited to 40 characters and menu text to 255. Each script menu
   starts with its first option highlighted, so Enter never takes a highlight another menu left behind; switching
   characters keeps the highlight. }
 function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
 var
-  opts: Types.TStr40;
+  opts: String;
   idx: Byte;
   ch: Char;
   ext: Boolean;
 begin
-  EclMenu.MenuToOptions(menu, opts);
+  StrUtil.MenuToOptions(menu, opts);
   GDVars.horizChoice := 1;
   repeat
     ch := MenuCore.MenuHorizontal(query, menu, qCol, mCol, hlCol, True, animate, ext);
@@ -348,9 +324,9 @@ procedure EclVerticalMenu(query: Types.TStr40; menu: String; qCol, mCol, hlCol: 
                           var idx: Integer; var sel: Types.PItemRec);
 var
   ch: Char;
-  opts: Types.TStr40;
+  opts: String;
 begin
-  EclMenu.MenuToOptions(menu, opts);
+  StrUtil.MenuToOptions(menu, opts);
   ch := MenuCore.MenuVertical(query, menu, qCol, mCol, hlCol, ulCol, ulRow, lrCol, lrRow, list, addExit, redraw, idx,
                               sel);
 end;
@@ -518,7 +494,6 @@ var
 begin
   { a dead, stoned or gone character takes no damage, as in CharHlp.InflictDamage }
   if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
-  pause := False;
   if creature^.hpCur + 10 < dmg then
     msg := '  ' + creature^.name + ' dies. '
   else

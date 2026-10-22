@@ -261,7 +261,8 @@ begin
 end;
 
 { Play the effect as one single-cycle DMA transfer: its bytes in place, or copied to the bounce buffer when they cross a
-  64 KB page. False when it cannot be played (crossing, with no bounce buffer). }
+  64 KB page. False when it cannot be played (crossing, with no bounce buffer) or the DSP did not take the commands
+  that start it. }
 function PlayEffect(var e: TEffect): Boolean;
 var
   p: Pointer;
@@ -277,7 +278,8 @@ begin
     p := bounce;
   end;
   phys := SndSb.Physical(p);
-  { acknowledge the last transfer's end, and stop one still playing }
+  { acknowledge the last transfer's end, and stop one still playing (the commands that start this one say whether the
+    DSP is there) }
   b := Port[base + DSP_READY];
   ok := DspWrite(DSP_HALT_DMA);
   Port[DMA_MASK] := DMA_MASK_ON or dma;
@@ -295,7 +297,7 @@ begin
   else
     ok := ok and DspWrite(DSP_DMA_8BIT);
   ok := ok and DspWrite(Lo(e.len - 1)) and DspWrite(Hi(e.len - 1));
-  PlayEffect := True;
+  PlayEffect := ok;
 end;
 
 { Music on the AdLib, as SndOpl plays it; an effect with a sample on the DSP, the AdLib's voices silenced first so the

@@ -81,7 +81,8 @@ begin
   SetStr(3, 0);
   TestKit.CheckEqualsL(0, AbilAdj.StrToHitAdjust(c), 'no Strength bonus: no to-hit penalty either');
 
-  CheckDex(0, -4, 0);
+  { a Dexterity of 0 is as bad as 1, as for missiles (#811) }
+  CheckDex(0, -4, -4);
   CheckDex(1, -4, -4);
   CheckDex(3, -3, -4);
   CheckDex(4, -2, -3);

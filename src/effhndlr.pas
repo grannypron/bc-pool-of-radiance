@@ -1309,12 +1309,12 @@ end;
 { Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
   the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
   level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0. Its highest level and
-  experience are then reset from that class. }
+  experience are then reset from the class ClassToDrain picks after the loss. }
 procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
 var
   numStr: Types.TStr40;
-  xpTry: LongInt;
   xpMin: LongInt;
+  cls: ShortInt;
   j: ShortInt;
   i: Byte;
   totalLevels: Byte;
@@ -1326,6 +1326,7 @@ var
     at the chosen entry (0 for level 0 or 1, level 9's above level 9). }
   function ClassToDrain: ShortInt;
   var
+    xpTry: LongInt;
     jj: ShortInt;
     bestLvl: ShortInt;
     lvl: ShortInt;
@@ -1386,20 +1387,23 @@ begin
           Dec(creature^.hpCur);
         Inc(creature^.drainedHps);
       end;
+      cls := ClassToDrain;
       if creature^.levelHighest < 2 then begin
         EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
         creature^.hpMax := 0;
-        if creature^.classLevels[ClassToDrain] > 0 then
-          if levels = 2 then
-            creature^.classLevels[ClassToDrain] := 0;
+        { SSI's: only a two-level drain clears the class's level }
+        if levels = 2 then
+          creature^.classLevels[cls] := 0;
       end else begin
-        Dec(creature^.classLevels[ClassToDrain]);
+        Dec(creature^.classLevels[cls]);
         if creature^.hpCur = 0 then
           if creature^.status <> C_Status.DEAD then
             EffHndlr.InflictStatusMsg(creature, C_Status.DEAD, 'is killed');
         ClassCal.RecalcBaseSkills(creature);
       end;
-      creature^.levelHighest := creature^.classLevels[ClassToDrain];
+      { picked again, after the loss, with xpMin for it }
+      cls := ClassToDrain;
+      creature^.levelHighest := creature^.classLevels[cls];
       creature^.experience := xpMin;
       CharHlp.RecalcStats(creature);
     end;

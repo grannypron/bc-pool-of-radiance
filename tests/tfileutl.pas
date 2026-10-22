@@ -1,5 +1,5 @@
-{ Tests for FileUtil: a record written and read back, the size check, a read-only file, erasing, and the temporary copy
-  put in place only when whole, and DOS device names. }
+{ Tests for FileUtil: a record written and read back, the size check, a read-only file, erasing (DeleteChecked
+  saying whether the file is gone), and the temporary copy put in place only when whole, and DOS device names. }
 {$I COMPILER.INC}
 program TFileUtl;
 
@@ -48,8 +48,9 @@ begin
   TestKit.Check(FileUtil.ReadRecord(NAME, back, SizeOf(back)), 'a read-only file reads');
   SetFAttr(f, 0);
   ioRes := IOResult;
-  FileUtil.DeleteFile(NAME);
+  TestKit.Check(FileUtil.DeleteChecked(NAME), 'a file is erased');
   TestKit.Check(not FileUtil.OpenReadOnly(f, NAME), 'an erased file is gone');
+  TestKit.Check(FileUtil.DeleteChecked(NAME), 'a missing file counts as erased');
   { the temporary copy }
   TestKit.CheckEqualsS(TEMP, FileUtil.TempName(NAME), 'the copy''s name ends in $');
   TestKit.Check(FileUtil.WriteRecord(NAME, r, SizeOf(r)), 'a record writes again');

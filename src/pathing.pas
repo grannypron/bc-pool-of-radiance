@@ -169,7 +169,6 @@ var
   walk: Types.TPathReq;
   meter: Types.TPathReq;
   done: Boolean;
-  stepped: Boolean;
   maxDist: Word;
 begin
   if (x < 0) or (x > 49) or (y < 0) or (y > 24) or (tx < 0) or (tx > 49) or (ty < 0) or (ty > 24) then begin
@@ -202,7 +201,7 @@ begin
       WalkLine := False;
       Exit;
     end;
-    stepped := Pathing.NextPathStep(meter);
+    if Pathing.NextPathStep(meter) then ;
     done := not Pathing.NextPathStep(walk);
   until done;
   dist := walk.dist;
@@ -278,7 +277,7 @@ begin
   for i := 1 to last do
     if GDVars.arenaLoc[i].size > 0 then begin
       found := False;
-      bestDist := 255;
+      bestDist := 0;
       bestK := 0;
       bestJ := 0;
       for j := 0 to 3 do
@@ -295,14 +294,13 @@ begin
                 tx := tgX[j];
                 ty := tgY[j];
                 dist := range;
-                if Pathing.WalkLine(myX[k], myY[k], tx, ty, dist, view) then begin
-                  found := True;
-                  if dist < bestDist then begin
+                if Pathing.WalkLine(myX[k], myY[k], tx, ty, dist, view) then
+                  if not found or (dist < bestDist) then begin
+                    found := True;
                     bestDist := dist;
                     bestK := k;
                     bestJ := j;
                   end;
-                end;
               end;
       if found then begin
         Inc(GDVars.targetCount);

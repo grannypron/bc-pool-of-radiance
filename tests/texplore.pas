@@ -23,7 +23,8 @@ begin
   GDVars.eclScriptId := 0;
   GDVars.zone0^.mapId.lo := 0;
   Explored.Mark(0, 0);
-  Explored.WriteSlot('TEXPLORE.MAP');
+  TestKit.Check(Explored.WriteSlot('TEXPLORE.MAP'), 'the squares are written');
+  TestKit.Check(not Explored.WriteSlot('NODIR\TEXPLORE.MAP'), 'a write into a missing folder says it failed');
   Explored.Clear;
   TestKit.Check(not Explored.Visited(18, 1, 5, 8), 'cleared, nothing is visited');
   Explored.ReadSlot('TEXPLORE.MAP');

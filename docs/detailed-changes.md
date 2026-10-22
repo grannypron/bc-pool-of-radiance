@@ -133,6 +133,12 @@ Differs from SSI: SSI's tables stopped at 18 to 20 and multi-class warriors lost
 
 **Charm Person and Hold Person take persons, by the 1st-edition list.** Both refused any target with `charType > 1` or a two-tile icon, so gnolls (two-tile) could never be charmed or held, while the one-tile Ogre Leader could. `CharHlp.IsPerson` is one test for both: not undead, and either a name on the 1st-edition list (the first nine `rangerFoes`, kobold to hobgoblin leader and the gnoll, `RANGER_PERSONS`, then `GDConsts.personFoes`: Grishnak and the lizardman) or one tile, not Large, and a player race or charType 0 (the race-0 human NPCs; the drider's race byte is elf, hence the size test). TCharHlp checks it against records from the monster data. Tyranthraxus the dragon is not a person; the human False Tyranthraxus is. See section 7 for the size data. POR-0185, #792.
 
+**Dexterity 0's armor class.** `AbilAdj.DexterityArmorAdjustment` gave 0 for Dexterity 0 and -4 for 1..3; 0..3 now give -4, as `DexMissileAdjust` does. TAbilAdj checks it. POR-0199, #811.
+
+**Random treasure kind 78.** It rolled 1d3+1 against cases 1..3, so the Wand of Lightning (template 7) was never made and a 4 made a bare item. It rolls 1d3. TRandItm checks 300 rolls. POR-0205, #817.
+
+**Spell preparation time.** `Camp.CampSpellPrepTime` summed pending spell levels in Bytes, and scroll levels are unbounded; the counts are Words. POR-0200, #812.
+
 ## 3. SSI quirks fixed (and the ones labelled)
 
 During the byte-for-byte reconstruction SSI's oddities were kept and marked with `Note:` comments. Phase 3 of the refactor dealt with all of them, and a later batch fixed the ones first kept.
@@ -256,6 +262,12 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **The died count.** In `Combat.EndOfRound`, `Stats.BledOut` sat outside `if overkill > 9` (a missing begin/end), so a dying party member's Died count rose every round. It is inside. #790.
 
+**Start-of-action effects once per turn.** `C_Cond.ACTION_START` effects (Silence, the cough, bite hold, blood drain, charm) ran in `CreatureAction` and again every time `CombatMenu` was built, so several times in one manual turn. They run in `CreatureAction` only. And Alt-R, accepted by the menu but answered by no command, only redrew it; it is now refused like any unbound key (`C_Keys.ALT_R` is gone). POR-0204, #816; POR-0206, #818.
+
+**Combat placement and distances.** `CombatSt.FindPlacement` could test `placed` before setting it, on a first quad partly off the grid, so a creature could be left unplaced. `CbtMap.CalcDistance` read a stale `targetList[1]` when the list came back empty; it searches only `targetCount` entries and returns 255. `Pathing.BuildTargetList` started `bestDist` at 255, so a line of sight that long was never recorded (out of reach on the 50x25 arena); it takes the first line found. TPathing checks the target list. POR-0201, #813; POR-0196, #808; POR-0195, #807.
+
+**Nil checks in combat and loot.** `FxEngine.ConsiderStinkingCloud` passes an explicit nil node rather than whatever the last `HasEffect` left (nil, so nothing changes), and `PostCbt.LootTakeItemMenu` leaves its loop on no item before using one. POR-0202, #814; POR-0203, #815.
+
 ## 5. User interface: menus, screens, keys and messages
 
 **The Companion Tools open on the map; Map and Notes are one tool.** F6's Tools screen no longer lists its tools: in a 3D area it opens on the whole area's map, "Companion Tools" centred in the frame's top where the area's name was, the name now heading the legend, with "Tools: Map Character Exit" (in the wilderness, the frame and title alone). Map is the former Notes tool: a cursor from the party's square, moved with the arrows, with "Map: Write Clear Exit" and the cursor's square and note below the map; Exit returns to the Tools menu on the same map. The read-only Map tool is gone. #691.
@@ -324,6 +336,12 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **One-key waits read an extended key whole.** DaxIo's `PromptBox`, BldShow's pause, Money's `InputNumberMax`, HeapErr, GameBoot's startup-disk prompt, `GameIo.FatalError`, `TextRend.ReadString` and SaveMenu's description entry read with `ReadGameKey`, so an arrow or function key left its scan byte for the next menu. They use `GameIo.ReadAnyKey` (MenuCore and the AI's key check still need the scan byte). POR-0172, #777.
 
+**Party paging with no character selected.** `Party.SelectPrevNextChar` fell back to the head of the party and then stepped from the nil current character: Down read through nil, Up landed on the last. It steps from the fallback. TParty checks the steps. POR-0194, #806.
+
+**Script menu digits.** `MenuToOptions` (moved from EclMenu to StrUtil so TStrUtil can test it) added 32 to digits as well as letters, so a digit inside an option's text became a stray capital hotkey ("12" became "QR"); a hotkey digit after `~` was never shifted. It lowercases letters only, and a closing `~` at the end of the string reads nothing past it. No shipped menu has a digit. POR-0198, #810.
+
+**CHECK PARTY with no creatures.** `EclVm.EclCheckParty` divided by the member count unguarded; its Find Traps (`C_Gbvm.CHAR_FIND_TRAPS`) and movement arms are one loop that reports 0s for an empty list. POR-0197, #809.
+
 ## 6. Saving, loading, quick save and the vault
 
 **Full-screen Load/Save menu, with descriptions, areas and times.** Loading and saving chose a slot from a one-line letter prompt. The new `SaveMenu` unit shows the slots full screen, titled "Load/Save Game Menu": each slot shows its letter and description, then the area and the time the file was written. Up and Down move a slot at a time and the list scrolls, with "(more)" when slots are hidden, and Page Up and Page Down move a screenful; the menu opens on the newest save. Loading lists saved games only; saving lists every slot, an unused one as EMPTY. Saving asks for a description (30 characters at most) starting from the slot's old one. The description and area go in `savgam<x>.inf` beside the save, a small versioned record. The area comes from the new `AreaName` unit: the Clue Book's names for scripts 0..29, shortened to 18 columns, keyed by the script a save reopens (`previousScriptId`) and, for the four scripts that run two maps, the map; anything else reads UNKNOWN AREA; a save without an .inf has its area read from the save file. Camp redraws its screen after Save. #604. 3b2c103.
@@ -371,6 +389,12 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 **Disk prompts name their file, and Escape gets out.** `OpenWithRetry`, `RewriteSaveFile`, `SaveCharlist` and `CheckSaveDir` asked for the save disk until it worked, so a roster character with no file, or a save folder that could not be written, held the player for good. Every prompt now says what is wrong ("Not found:", "Cannot write:", "Cannot create:", with the path, its start cut by `DaxIo.PathForLine` when long) and then asks for the disk (`DaxIo.AskForDisk`). Escape at the save disk prompt gives up: Add takes a character whose file is gone off the roster (`SaveLoad.HasCharFile`), a save fails as #755's do, the roster stays as it was and the folder is not made. Escape at a game data prompt ("Insert disk N in drive X: (Esc quits)") quits to DOS (`GameIo.ExitGame`), and at the GAME.OVR or POOL.CFG prompt, before the screen is up, with `Halt`; `DaxIo.WaitForFile` replaces `OverlayPrompt` and GameBoot's loop. `LoadChar` no longer reads or closes a file that did not open. POR-0187, #794.
 
 **A removed character is not made current again.** `savedChar` moves from EclVm to GDVars, and `SaveLoad.RemoveCreature` moves it to the new current character when it frees the record it points at (Curse #609), so a drop during a script's camp PROGRAM no longer leaves `NewEclDone` to restore a freed record. `EclLoadChar` relies on it. POR-0171, #776.
+
+**Side files report a failed write.** `UsualSpl`, `Stats.WriteChar`/`WriteGame`, `SaveMenu.WriteSlotInfo` and the `WriteSlot` routines of Explored and MapNotes dropped `FileUtil.WriteRecord`'s result. They return it; `PlaceCharFiles` gathers the members' into `whole`, `SaveChar` says a character was not saved in full and `SaveToSlot` that "The game was saved, but not in full." MapTool's Clear uses the new `MapNotes.ClearNote`. TMapNote, TExplore and TUsualSp check it. #821.
+
+**An empty vault's commit.** `Vault.CopyOrDelete` returned True when the source could not be opened even if erasing the slot's old vault failed; it returns `FileUtil.DeleteChecked` (True when no such file is left). TFileUtl checks it. #819.
+
+**DataBld's remap table.** Checked for #822: a remap entry belongs to one disk, so a disk sharing another's spare id still needs its own, and a full table must fail. A comment says so. #822.
 
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
@@ -433,6 +457,8 @@ Phase 5's overlay working-set changes are in section 10.
 **A zero-sized box fill fills nothing.** `Blit.FillPicRect` with a height of 0 at a row of 0 or more ran its row loop 65536 times past the view buffer. It returns at once for a width or height of 0. TVidPic checks it. Latent. SSI's code. CURSE-0343, #728.
 
 **Monster icons stay in slots 8..12.** `EclLoadMon` capped its slot at 25, so a sixth monster kind between CLEAR MONSTERS loaded over the COMSPR combat sprites (13 on), and a mirror duel (`EclMenu.CharFightsAlone`) after five kinds put its icon there too. `MapTiles.FIRST_MONSTER_ICON` and `LAST_MONSTER_ICON` name the slots; a sixth LOAD MONSTER is ignored and the duel's clone shares slot 12, as in Curse. Latent with the shipped scripts. SSI's code. CURSE-0248, #724; CURSE-0264, #725.
+
+**The Sound Blaster falls back to the speaker.** `SndSb.PlayEffect` ignored whether the DSP took its start commands and returned True, so `Play` never fell back. It returns the result. #820.
 
 ## 9. Robustness guards from the source review
 
@@ -605,6 +631,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 **CharHlp names its constants.** The bows, the scrolls' base slots, the spell casting classes and fixed caster levels (C_Spell), the attack-roll range, the parts of armour class (`Types.AC_*`), `C_Level.LEVEL_LAST` and the helpless effects get names; CharHlp's movement, encumbrance, Bag of Holding and theft rules become private constants; `AtLevelCap` reads a table (section 2). f8bcdf0.
 
 ---
+
+**Code issues from the whole-unit cleanup.** The cleanup (PR #805) listed 100 code-level issues it could not change; the bugs among them are above (#806..#822). The rest, behaviour unchanged: dead stores, unused locals and parameters (`hasMask` through every picture driver, MenuCore's never-set auto-answer and `LastLabelBefore`, the sound driver's forced-shutdown path, `noteLen` and a duplicate Tandy tune setup, whose port-write digests TSndSeq shows unchanged); bare numbers named (`C_Spell.TABLE_LAST`, `ITEM_EFFECT_SHIFT`, `ITEM_JAVELIN_LIGHTNING`, `C_Effect.NULL_DAMAGE`/`NULL_TARGET_VETO`, `C_Item.RANDOM_ARMS_KINDS`, `MAGE_SCROLL`, `CLERIC_SCROLL`, `CbtMap.AREA_CELLS`), with `GDConsts.spellTable` and `GDVars.spellFns` sized by `TABLE_LAST`; misleading names (`ApproachOrParley`, `goldDice`, `nonSharerCount`); duplicated logic shared (`CharHlp.FindAmmo` for the AI's ammunition lookup, one starting-age lookup for multi-classes, `DrainLevels` picking its class once per level, with its `levels = 2` branch kept as SSI's and marked); `C_Gbvm`'s duplicate THAC0-modifier names removed. Turbo Pascal 6 builds with extended syntax off, so a function's unused result is still stored (or tested with `if ... then ;`).
 
 ## 11. Tools, CI, tests and regression scenarios
 

@@ -94,6 +94,16 @@
 - An arrow or function key pressed at a "press a key" prompt, a disk prompt or a number or name entry no longer types a letter or picks a menu option afterwards.
 - Every "insert disk" prompt now names the file it is looking for (or could not write). Escape at the save disk prompt gives up: a roster character whose file is gone is taken off the roster, and a save to a folder that can't be written fails instead of asking forever. Escape at a game data prompt quits to DOS.
 - Charm Person and Hold Person now work on gnolls, as in 1st edition, and no longer on the ogre leader, who also takes weapons' damage against large creatures now; the huge scorpion counts as Medium.
+- Effects that act at the start of a character's action in combat (Silence, Stinking Cloud coughing, holds, blood drain, charm) now act once per turn, not every time the combat menu is redrawn.
+- Creatures placed at the start of combat are no longer sometimes left unplaced at random, and distance checks no longer report a distance to a creature they could not find.
+- Alt-R is no longer accepted on the combat menu, where no command answered it.
+- Random treasure can include the Wand of Lightning again, and no longer sometimes produces an empty item.
+- A character with a Dexterity of 0 takes the same -4 armor class penalty as one with 1 to 3.
+- Paging through the party with no character selected starts from the first character instead of crashing.
+- Resting to prepare a very long list of scroll spells no longer comes up far too short.
+- A save whose side files (the slot's description, statistics, explored map, map notes, usual spells) could not be written now says so, and saving an empty vault reports a failure when the slot's old vault file cannot be erased.
+- On a Sound Blaster that does not answer, sound effects play on the speaker instead of not at all.
+- Digits in a script's menu options show as digits instead of turning into letters (no menu in this game has one).
 
 ## Pool of Radiance port: October 2026 update
 

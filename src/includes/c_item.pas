@@ -16,10 +16,6 @@ const
   PROP_FIRES_AMMO = $08;
   { thrown weapon: is its own ammo }
   PROP_THROWN = $10;
-  { eff 120 "boulder evasion" }
-  BOULDER = 87;
-  { eff 120 "boulder evasion" }
-  LARGE_BOULDER = 88;
   { relates to quarrel ammo (crossbow shoots / is quarrels) }
   PROP_QUARRELS = $80;
   { TBaseItemRec.wpnClass melee damage type. Pierce and bash are distinct bits, so wpnClass and (WPN_PIERCE or WPN_BASH)
@@ -42,17 +38,17 @@ const
   JAVELIN = 21;
   QUARREL = 28;
   SPEAR = 31;
-  { the weapons whose damage type CharHlp.FixWeaponClasses corrects }
+  { the weapons whose damage type CharHlp.FixWeaponClasses corrects, with SHORT_SWORD and ARROW below }
   BATTLE_AXE = 1;
   BEC_DE_CORBIN = 4;
-  { carries the arrows bit in ITEMS, which CharHlp.FixAmmoBits clears }
-  BILL_GUISARME = 5;
   MILITARY_FORK = 13;
   PARTISAN = 25;
   RANSEUR = 29;
   SPETUM = 32;
   TRIDENT = 39;
-  { the swords a thief may backstab with run BROAD_SWORD..SHORT_SWORD; FixWeaponClasses also corrects SHORT_SWORD }
+  { carries the arrows bit in ITEMS, which CharHlp.FixAmmoBits clears }
+  BILL_GUISARME = 5;
+  { the swords a thief may backstab with run BROAD_SWORD..SHORT_SWORD }
   BROAD_SWORD = 35;
   LONG_SWORD = 36;
   SHORT_SWORD = 37;
@@ -67,10 +63,20 @@ const
   ARROW = 73;
   { named by the armor class they give, not by their plus }
   BRACERS = 77;
+  { scrolls: a magic-user's and a cleric's }
+  MAGE_SCROLL = 61;
+  CLERIC_SCROLL = 62;
   { eff 117 "vulnerability to holy water" }
   HOLY_WATER_VIAL = 85;
   { eff 122 "mummy vulnerability to fire" }
   FLASK_OF_OIL = 86;
+  { eff 120 "boulder evasion" }
+  BOULDER = 87;
+  LARGE_BOULDER = 88;
+  { the kinds RandItem.GenerateRandomItem makes as weapons and armor with a plus: 1..59, ARROW, BRACERS and
+    RANDOM_ARMS_LAST }
+  RANDOM_ARMS_LAST = 93;
+  RANDOM_ARMS_KINDS = [1..59, ARROW, BRACERS, RANDOM_ARMS_LAST];
   { Item name parts the code tests or builds (TItemRec.nameIds, GDConsts.nameParts) }
   NAME_HAMMER = 20;
   { the bows' names, the same numbers as their item types }

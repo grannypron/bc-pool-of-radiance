@@ -15,7 +15,7 @@ function IsPartyMember(creature: Types.PCharRecord): Boolean;
 { Step curChar through the party on the extended scan codes the menus return: C_Keys.HOME or C_Keys.UP selects the
   previous character and C_Keys.END_KEY or C_Keys.DOWN the next (#650, #653). The previous from the head wraps to the
   tail, the next from the tail to the head; any other code keeps the current character (the head when there is none,
-  #733). }
+  #733). With no current character the step starts from the head (#806). }
 procedure SelectPrevNextChar(c: Char);
 
 { The last creature in GDVars.creatureList, or nil for an empty list. }
@@ -61,8 +61,8 @@ begin
     p := GDVars.creatureList;
   if p <> nil then
     case c of
-      C_Keys.HOME, C_Keys.UP: p := Party.PrevCreature(GDVars.curChar);
-      C_Keys.END_KEY, C_Keys.DOWN: p := Party.NextCreature(GDVars.curChar);
+      C_Keys.HOME, C_Keys.UP: p := Party.PrevCreature(p);
+      C_Keys.END_KEY, C_Keys.DOWN: p := Party.NextCreature(p);
     end;
   GDVars.curChar := p;
 end;

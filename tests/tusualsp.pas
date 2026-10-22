@@ -70,11 +70,12 @@ begin
 
   { the .mem sidecar }
   FileUtil.DeleteFile(FN + '.mem');
-  UsualSpl.WriteUsualSpells(c[1], FN);
-  TestKit.Check(not FileUtil.ReadRecord(FN + '.mem', back, 1), 'no file for a character with none');
+  TestKit.Check(UsualSpl.WriteUsualSpells(c[1], FN), 'a character with none needs no file');
+  TestKit.Check(not FileUtil.ReadRecord(FN + '.mem', back, 1), 'and has none');
   MarkSpells(30);
   UsualSpl.SetUsualSpells(c[1], spells);
-  UsualSpl.WriteUsualSpells(c[1], FN);
+  TestKit.Check(not UsualSpl.WriteUsualSpells(c[1], 'NODIR\' + FN), 'a write into a missing folder says it failed');
+  TestKit.Check(UsualSpl.WriteUsualSpells(c[1], FN), 'the spells are written');
   UsualSpl.ForgetUsualSpells(c[1]);
   UsualSpl.ReadUsualSpells(c[1], FN);
   TestKit.Check(HasMarked(c[1], 30), 'spells written and read back');

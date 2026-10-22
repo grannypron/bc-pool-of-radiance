@@ -22,8 +22,8 @@ procedure Mark(x, y: ShortInt);
 { True when square (x, y) of the area of script and map has been visited. }
 function Visited(script, map: Byte; x, y: ShortInt): Boolean;
 
-{ Write the visited squares as file fn. }
-procedure WriteSlot(fn: String);
+{ Write the visited squares as file fn: True when they were written (FileUtil.WriteRecord). }
+function WriteSlot(fn: String): Boolean;
 
 { Read the visited squares from file fn; a missing, short or foreign file leaves none. }
 procedure ReadSlot(fn: String);
@@ -104,11 +104,9 @@ begin
     Visited := rec.areas[i].cells[y] and (1 shl x) <> 0;
 end;
 
-procedure WriteSlot(fn: String);
-var
-  written: Boolean;
+function WriteSlot(fn: String): Boolean;
 begin
-  written := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
+  WriteSlot := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
 end;
 
 procedure ReadSlot(fn: String);

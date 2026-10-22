@@ -9,7 +9,7 @@ interface
 
 uses Types;
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: Types.PImgBuf);
+procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 
 procedure MirrorFrame(src, dst: Types.PImgBuf);
 
@@ -25,7 +25,7 @@ implementation
 
 uses C_Video, GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: Types.PImgBuf);
+procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
   chunk: TChunk;
   frame: Byte;

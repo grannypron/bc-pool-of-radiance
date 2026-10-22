@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_Status, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_Spell, C_Status, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -347,8 +347,8 @@ begin
   tail := nil;
   n := 0;
   AddLine(head, tail, codes, n, 'Weapons and armor', 0);
-  for k := 1 to 93 do
-    if k in [1..59, 73, 77, 93] then begin
+  for k := 1 to C_Item.RANDOM_ARMS_LAST do
+    if k in C_Item.RANDOM_ARMS_KINDS then begin
       RandItem.GenerateRandomItem(k, item);
       if Named(item) <> '' then
         AddLine(head, tail, codes, n, Named(item), k);
@@ -360,7 +360,7 @@ begin
       item^.unidMask := 0;
       AddLine(head, tail, codes, n, Named(item), TEMPLATE_CODE + k);
     end;
-  for k := 61 to 62 do begin
+  for k := C_Item.MAGE_SCROLL to C_Item.CLERIC_SCROLL do begin
     RandItem.GenerateRandomItem(k, item);
     AddLine(head, tail, codes, n, Named(item), k);
   end;
@@ -478,8 +478,7 @@ begin
     head := nil;
     tail := nil;
     n := 0;
-    { 56 = High(spellsKnown) }
-    for m := 1 to 56 do
+    for m := 1 to C_Spell.LAST do
       with GDConsts.spellTable[m] do
         if (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
           mark := '  ';

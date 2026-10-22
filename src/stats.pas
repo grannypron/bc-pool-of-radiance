@@ -81,15 +81,17 @@ procedure Forget(creature: Types.PCharRecord);
 { Clear the game's totals, for a game that has none (a new one, or a save made before them). }
 procedure ResetGame;
 
-{ Write creature's block to <fn>.sts, erasing an old one first; nothing is written for a creature with no block. }
-procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
+{ Write creature's block to <fn>.sts, erasing an old one first; nothing is written for a creature with no block. False
+  when the write failed (FileUtil.WriteRecord). }
+function WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr): Boolean;
 
 { Read creature's block from <fn>.sts: one of this format, made for a character of this name and randByte. Without one
   the creature starts with an empty block when it next counts. }
 procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);
 
-{ Write the game's totals to <fn> / read them back (the totals are cleared when the file is not one of this format). }
-procedure WriteGame(fn: Types.TPathStr);
+{ Write the game's totals to <fn> (True when they were written) / read them back (the totals are cleared when the file
+  is not one of this format). }
+function WriteGame(fn: Types.TPathStr): Boolean;
 procedure ReadGame(fn: Types.TPathStr);
 
 implementation
@@ -304,11 +306,11 @@ begin
   FillChar(game, SizeOf(game), 0);
 end;
 
-procedure WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr);
+function WriteChar(creature: Types.PCharRecord; fn: Types.TPathStr): Boolean;
 var
   i: Byte;
-  written: Boolean;
 begin
+  WriteChar := True;
   FileUtil.DeleteFile(fn + '.sts');
   i := Stats.FindEntry(creature);
   if i = 0 then Exit;
@@ -319,7 +321,7 @@ begin
   rec.randByte := creature^.randByte;
   rec.block := blocks[i]^;
   { a failed write leaves none: the old one is erased above }
-  written := FileUtil.WriteRecord(fn + '.sts', rec, SizeOf(rec));
+  WriteChar := FileUtil.WriteRecord(fn + '.sts', rec, SizeOf(rec));
 end;
 
 { Read a TStatFile from name into rec: True when it is whole and of this format. }
@@ -341,15 +343,13 @@ begin
     blocks[i]^ := rec.block;
 end;
 
-procedure WriteGame(fn: Types.TPathStr);
-var
-  written: Boolean;
+function WriteGame(fn: Types.TPathStr): Boolean;
 begin
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := SIG;
   rec.version := VERSION;
   rec.block := game;
-  written := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
+  WriteGame := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
 end;
 
 procedure ReadGame(fn: Types.TPathStr);

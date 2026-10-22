@@ -21,8 +21,8 @@ var
   { Combat outcome. }
   nonEscapedHostileFound: Boolean;
   partyFled: Boolean;
-  { Count of disabled or Animated creatures, which get no experience share }
-  nonAnimCount: Byte;
+  { party members who get no experience share: the disabled and the Animated }
+  nonSharerCount: Byte;
   { Experience share before individual bonuses. }
   expShare: LongInt;
   combatWon: Boolean;
@@ -30,8 +30,8 @@ var
 { Collect coins, experience and items from hostile creatures that did not run away. An item is taken when its value is
   above 0, or on a 3-in-10 roll while fewer than 8 items have been taken. Coins add experience (copper div 200, silver
   div 20, electrum div 2, gold x1, platinum x5, gems x250, jewelry x2200), as does each taken item's positive plus x400
-  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonAnimCount, and the share is
-  0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
+  (items before GDVars.lastMissileItem). The total is divided by C_Gbvm.PARTY_SIZE minus nonSharerCount, and the share
+  is 0 when that leaves no one (a fight won by Animated members alone). A mirror duel instead awards 100 experience per
   level (levelHighest) of the current character. }
 procedure DetermineLootExp(var share: LongInt);
 var
@@ -82,7 +82,7 @@ begin
         Inc(expTotal, q^.plus * 400);
       q := q^.next;
     end;
-    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonAnimCount;
+    sharers := GDVars.zone1^[C_Gbvm.PARTY_SIZE] - nonSharerCount;
     if sharers > 0 then
       share := expTotal div sharers
     else
@@ -124,7 +124,7 @@ var
   nxt: Types.PCharRecord;
   b: Boolean;
 begin
-  nonAnimCount := 0;
+  nonSharerCount := 0;
   GDVars.partyDefeated := True;
   partyFled := False;
   p := GDVars.creatureList;
@@ -149,7 +149,7 @@ begin
         partyFled := False;
       end;
       if (p^.enabled = 0) or (p^.status = C_Status.ANIMATED) then
-        Inc(nonAnimCount);
+        Inc(nonSharerCount);
       p := p^.nextCharAddr;
     end;
     if combatWon then begin
@@ -283,7 +283,7 @@ begin
 end;
 
 { Take loop: give a copy to the current character, then unlink and free the treasure node. Ends on any key other than
-  'T' or Enter, or when no treasure items are left. }
+  'T' or Enter, with no item highlighted, or when no treasure items are left. }
 procedure LootTakeItemMenu;
 var
   itemToTake: Types.PItemRec;
@@ -299,7 +299,8 @@ begin
   idx := 0;
   repeat
     PostCbt.LootTakeItemSelection(c, itemToTake, cursor, idx);
-    if (c <> 'T') and (c <> C_Keys.ENTER) then
+    { no item highlighted (an empty list) leaves too, before anything reads it }
+    if ((c <> 'T') and (c <> C_Keys.ENTER)) or (itemToTake = nil) then
       done := True
     else begin
       done := False;
@@ -317,8 +318,7 @@ begin
           p^.next := itemToTake^.next;
         end;
         itemToTake^.next := nil;
-        if itemToTake <> nil then
-          FreeMem(itemToTake, SizeOf(Types.TItemRec));
+        FreeMem(itemToTake, SizeOf(Types.TItemRec));
         if GDVars.treasureItems = nil then
           done := True;
       end;
@@ -544,8 +544,8 @@ begin
     TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
   end;
   GDVars.msgDelayFlag := 1;
-  GDVars.zone1^[C_Gbvm.MOD_MONSTER_THAC0] := 0;
-  GDVars.zone1^[C_Gbvm.MOD_PARTY_THAC0] := 0;
+  GDVars.zone1^[C_Gbvm.MONSTER_HIT_MOD] := 0;
+  GDVars.zone1^[C_Gbvm.PARTY_HIT_MOD] := 0;
   GDVars.zone1^[C_Gbvm.MOD_PARTY_MOVE] := 0;
   GDVars.zone1^[C_Gbvm.NO_COMBAT_ITEMS] := 0;
   GDVars.zone1^[C_Gbvm.MIRROR_DUEL] := 0;

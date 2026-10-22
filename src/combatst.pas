@@ -16,8 +16,6 @@ uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveL
 var
   { wildMap cell under party }
   terrainChar: Byte;
-
-var
   { Combat placement, by team }
   { quad occupancy [team, ring 0..3, qy 0..5, qx 0..10]; 1 = free }
   quadFree: array[0..1, 0..3, 0..5, 0..10] of Byte;
@@ -421,9 +419,9 @@ begin
   end;
 end;
 
-{ Plant trees on vertical grass pairs; density by class bits (2/4/$40/8/$80 give 1/3/4/7/0%, later bits win). Height: a
-  1d10 roll of 9..10 gives 1d2+4, else (roll+1) div 2; class $40 overrides with 1d3+3. Bottom = h+31+4, top (h < 5 only)
-  = h+31. }
+{ Plant trees on vertical grass pairs; density 1% unless class bits say otherwise (4/$40/8/$80 give 3/4/7/0%, later
+  bits win). Height: a 1d10 roll of 9..10 gives 1d2+4, else (roll+1) div 2; class $40 overrides with 1d3+3. Bottom =
+  h+31+4, top (h < 5 only) = h+31. }
 procedure PlaceTrees;
 var
   dens: Byte;
@@ -432,7 +430,6 @@ var
   row: ShortInt;
 begin
   dens := 1;
-  if CombatSt.TerrainClassOf and $02 <> 0 then dens := 1;
   if CombatSt.TerrainClassOf and $04 <> 0 then dens := 3;
   if CombatSt.TerrainClassOf and $40 <> 0 then dens := 4;
   if CombatSt.TerrainClassOf and $08 <> 0 then dens := 7;
@@ -655,6 +652,7 @@ var
 begin
   firstPass := 1;
   giveUp := 0;
+  placed := 0;
   state := 1;
   legShift := 0;
   ring := 0;
@@ -719,7 +717,6 @@ begin
     end;
     { Outside the state > 1 guard: advance the search ring when the quad lies fully outside the grid. }
     if (offGrid <> 0) and CombatSt.QuadFullyOff(qx, qy) then begin
-      placed := 0;
       state := 0;
       while (ring < 3) and (state <> 1) do begin
         Inc(ring);

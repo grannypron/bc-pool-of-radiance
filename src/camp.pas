@@ -37,9 +37,9 @@ var
   { highest pending level per kind }
   maxMem: Byte;
   maxScr: Byte;
-  { the sum of pending spell levels }
-  cntMem: Byte;
-  cntScr: Byte;
+  { the sum of pending spell levels; a Word, as scrolls can hold more than 255 levels (#812) }
+  cntMem: Word;
+  cntScr: Word;
   p: Types.PItemRec;
   i: Byte;
   lvl: Byte;
@@ -72,7 +72,7 @@ begin
   if (maxMem > 2) or (maxScr > 2) then
     base := 6;
   creature^.spellPrepTime := base;
-  CampSpellPrepTime := base * 60 + cntMem * 15 + cntScr * 15;
+  CampSpellPrepTime := Word(base) * 60 + (cntMem + cntScr) * 15;
 end;
 
 { Clear every slot marked for memorizing (removing the spell entirely, unlike ResetScribe, which only strips the mark)
@@ -774,8 +774,7 @@ begin
     if MenuCore.YesNoMenu('quit TO DOS: ', Yellow, LightGreen, White) = 'Y' then begin
       SaveLoad.RemoveCreature(False, True);
       GameIo.ExitGame;
-    end else
-      Exit;
+    end;
     Exit;
   end;
   CharDisp.PrintNameString(GDVars.curChar, 'will be gone', 10, False);

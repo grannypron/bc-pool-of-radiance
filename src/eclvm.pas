@@ -300,7 +300,7 @@ begin
   invHead := item;
   effHead := ef;
   count := EclVars.GetEclVar(2);
-  if count <= 0 then count := 1;
+  if count = 0 then count := 1;
   picId := EclVars.GetEclVar(3);
   nm := 'CPIC';
   MapTiles.LoadIconAnim(nm, picId, GDVars.gIconAnim);
@@ -746,9 +746,9 @@ begin
   EclVars.WriteGbvm(address, strength);
 end;
 
-{ CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = $6BA7 (thiefSkills[3]) or $6C1B
-  (movement), report the party's lowest, highest and average value. The results go to the addresses of vars 3..6
-  (lowest, highest, average, found). }
+{ CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = C_Gbvm.CHAR_FIND_TRAPS or
+  C_Gbvm.CHAR_MOVEMENT, report the party's lowest, highest and average value (all 0 for an empty list). The results go
+  to the addresses of vars 3..6 (lowest, highest, average, found). }
 procedure EclCheckParty;
 var
   attr: Word;
@@ -763,6 +763,7 @@ var
   addr3: Word;
   addr4: Word;
   count: Byte;
+  value: Integer;
 
   { Store the three results and the found flag at the addresses of vars 3..6 }
   procedure Write4Gbvm;
@@ -790,40 +791,35 @@ begin
   count := 0;
   outv[1] := 255;
   outv[2] := 0;
+  outv[3] := 0;
   case attr of
     0: begin
       while (p <> nil) and (not found) do begin
         found := CharHlp.HasEffect(p, effId, effect);
         p := p^.nextCharAddr;
       end;
-      for count := 1 to 3 do
-        outv[count] := 0;
+      outv[1] := 0;
       Write4Gbvm;
     end;
-    $6BA7: begin
+    C_Gbvm.CHAR_FIND_TRAPS, C_Gbvm.CHAR_MOVEMENT: begin
       while p <> nil do begin
         Inc(count);
-        if p^.thiefSkills[3] < outv[1] then
-          outv[1] := p^.thiefSkills[3];
-        if p^.thiefSkills[3] > outv[2] then
-          outv[2] := p^.thiefSkills[3];
-        Inc(sum, p^.thiefSkills[3]);
+        if attr = C_Gbvm.CHAR_FIND_TRAPS then
+          value := p^.thiefSkills[3]
+        else
+          value := p^.movementCur;
+        if value < outv[1] then
+          outv[1] := value;
+        if value > outv[2] then
+          outv[2] := value;
+        Inc(sum, value);
         p := p^.nextCharAddr;
       end;
-      outv[3] := sum div count;
-      Write4Gbvm;
-    end;
-    $6C1B: begin
-      while p <> nil do begin
-        Inc(count);
-        if p^.movementCur < outv[1] then
-          outv[1] := p^.movementCur;
-        if p^.movementCur > outv[2] then
-          outv[2] := p^.movementCur;
-        Inc(sum, p^.movementCur);
-        p := p^.nextCharAddr;
-      end;
-      outv[3] := sum div count;
+      { SSI divided by the count unguarded, which an empty list would make a division by zero (#809) }
+      if count = 0 then
+        outv[1] := 0
+      else
+        outv[3] := sum div count;
       Write4Gbvm;
     end;
   end;
@@ -834,27 +830,21 @@ procedure EclPartySurprise;
 var
   p: Types.PCharRecord;
   mod1: Byte;
-  mod2: Byte;
-  rangerDead: Byte;
   addr1: Word;
   addr2: Word;
 begin
   EclVars.LoadEclVars(2);
   p := GDVars.creatureList;
   mod1 := 0;
-  mod2 := 0;
-  rangerDead := 0;
   while p <> nil do begin
-    if (p^.charClass = C_Class.RANGER) or (p^.charClass = C_Class.CLERIC_RANGER) then begin
+    if (p^.charClass = C_Class.RANGER) or (p^.charClass = C_Class.CLERIC_RANGER) then
       mod1 := 1;
-      rangerDead := 1;
-    end;
     p := p^.nextCharAddr;
   end;
   addr1 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
   addr2 := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[2], GDVars.dsGbvmUpperByte[2]);
   EclVars.WriteGbvm(addr1, mod1);
-  EclVars.WriteGbvm(addr2, mod2);
+  EclVars.WriteGbvm(addr2, 0);
 end;
 
 { SURPRISE: roll 1d6 for each side against targets built from vars 1..4 and store the result at C_Gbvm.SURPRISE, a
@@ -1070,7 +1060,6 @@ var
   pct: Byte;
   chance: Byte;
   p: Types.PCharRecord;
-  inv: Types.PItemRec;
   fraction: Real;
 begin
   EclVars.LoadEclVars(3);
@@ -1087,7 +1076,6 @@ begin
   end else begin
     p := GDVars.creatureList;
     while p <> nil do begin
-      inv := p^.itemsAddr;
       EclMenu.RobMoney(fraction, p);
       EclMenu.RobItems(chance, p);
       CharHlp.RecalcStats(p);
@@ -1134,7 +1122,7 @@ var
   end;
 
   { The party closes in and the menu comes round again, or with the monsters at hand it is a parley (3). }
-  procedure ApproachOrFight;
+  procedure ApproachOrParley;
   begin
     if GDVars.zone1^[C_Gbvm.MONSTER_DIST] <= 0 then
       EclVars.WriteGbvm(address, 3)
@@ -1224,7 +1212,7 @@ begin
           end;
           2: EclVars.WriteGbvm(address, 2);
           3: ApproachOrWait;
-          4: ApproachOrFight;
+          4: ApproachOrParley;
         end;
       2:
         case sel of
@@ -1240,12 +1228,12 @@ begin
           0: EclVars.WriteGbvm(address, 1);
           1, 3: ApproachOrWait;
           2: EclVars.WriteGbvm(address, 2);
-          4: ApproachOrFight;
+          4: ApproachOrParley;
         end;
       4:
         case sel of
           0: EclVars.WriteGbvm(address, 1);
-          1, 3, 4: ApproachOrFight;
+          1, 3, 4: ApproachOrParley;
           2: EclVars.WriteGbvm(address, 2);
         end;
     end;
@@ -1332,11 +1320,9 @@ var
   p: Types.PCharRecord;
   q: Types.PCharRecord;
   savedCur: Types.PCharRecord;
-  dead19: Byte;
   allParty: Byte;
 begin
   savedCur := GDVars.curChar;
-  dead19 := 0;
   allParty := 0;
   p := GDVars.creatureList;
   EclVars.LoadEclVars(5);
@@ -1434,14 +1420,9 @@ end;
 procedure EclPrintRet;
 begin
   Inc(GDVars.eclIp);
-  if GDVars.protNewLine <> 0 then begin
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    Inc(GDVars.curRow);
-    GDVars.protNewLine := 0;
-  end else begin
-    GDVars.curCol := C_Msg.TEXT_LEFT;
-    Inc(GDVars.curRow);
-  end;
+  GDVars.curCol := C_Msg.TEXT_LEFT;
+  Inc(GDVars.curRow);
+  GDVars.protNewLine := 0;
 end;
 
 { CLEAR BOX: clear the 3D view box and note it for PROTECTION }

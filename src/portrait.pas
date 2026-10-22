@@ -1,6 +1,6 @@
 { Picture loading, portrait composition and 3D sprite display. PIC and FINAL frames after the first are XOR deltas
   against the first frame. }
-{$O+,F+,I-} { I/O checking is disabled for the sprite range-error message. }
+{$O+,F+}
 {$I COMPILER.INC}
 unit Portrait;
 
@@ -174,7 +174,7 @@ begin
             for j := offset to offset + xorLast do
               buf^[j] := buf^[j] xor xorBuf^[j - offset];
           end;
-        Blit.ExpandPicFrames(buf, offset, Boolean(transp), 0, frames[loaded].pic);
+        Blit.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
         if (transp and 1 > 0) and (Blit.ColourCount = 16) then
           Blit.RemapPic(GDConsts.animRemapFrom, GDConsts.animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
@@ -293,9 +293,8 @@ end;
   restores the video mode, prints an error and exits the game. }
 procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
 begin
-  if (dist < 1) or (dist > 3) then begin
+  if (dist < 1) or (dist > 3) then
     GameIo.FatalError('Illegal range in Show3DSprite.');
-  end;
   if a.frames[dist].pic <> nil then
     with a.frames[dist].pic^ do
       Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GDVars.dsViewImageBufferPtr)

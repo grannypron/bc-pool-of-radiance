@@ -148,7 +148,6 @@ end;
 { Show the creature's name, hit points, armor class, equipped weapon and status in the combat information panel. }
 procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 var
-  col: Byte;
   row: Byte;
 begin
   Border.ClearBox(23, 1, 38, 21);
@@ -163,7 +162,6 @@ begin
   GDVars.curRow := row + 1;
   if creature^.equipped[C_Equip.WEAPON] <> nil then begin
     Inc(row, 2);
-    col := 23;
     CharHlp.ItemLabel(creature^.equipped[C_Equip.WEAPON], False);
     TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
                                   creature^.equipped[C_Equip.WEAPON]^.name);

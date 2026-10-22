@@ -511,8 +511,8 @@ begin
     C_Class.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     C_Class.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     { 2-class multi }
-    C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER..C_Class.FIGHTER_THIEF,
-      C_Class.MAGE_THIEF: share := experience div 2;
+    C_Class.CLERIC_FIGHTER, C_Class.CLERIC_RANGER, C_Class.CLERIC_MAGE, C_Class.CLERIC_THIEF, C_Class.FIGHTER_MAGE,
+      C_Class.FIGHTER_THIEF, C_Class.MAGE_THIEF: share := experience div 2;
     { 3-class multi }
     C_Class.CLERIC_FIGHTER_MAGE, C_Class.FIGHTER_MAGE_THIEF:
       share := experience div 3;

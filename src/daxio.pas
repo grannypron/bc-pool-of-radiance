@@ -513,7 +513,6 @@ var
   f1: file;
   f2: file;
   hdrSize: Word;
-  pad802: Byte;
   numStr: String[6];
   family: Byte;
   disk: Byte;

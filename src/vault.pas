@@ -19,7 +19,7 @@ const
 procedure ForgetSessionVault;
 
 { Saving into slot letter: copy the session vault to vault<x>.dat, or delete that file when the vault is empty. False
-  when the copy was not written whole (vault<x>.dat is then left as it was). }
+  when the copy was not written whole or the file could not be deleted (vault<x>.dat is then left as it was). }
 function CommitToSlot(letter: Char): Boolean;
 
 { Loading slot letter: copy its vault<x>.dat to the session vault, or forget the session vault when it has none. A copy
@@ -77,8 +77,8 @@ const
 type
   TCopyBuf = array[1..COPY_BUF] of Byte;
 
-{ Copy file src to dst, or delete dst when src cannot be opened: False when a copy was not read and written whole, and
-  dst is left as it was. }
+{ Copy file src to dst, or delete dst when src cannot be opened: False when a copy was not read and written whole, or
+  dst could not be deleted, and dst is left as it was. }
 function CopyOrDelete(src, dst: Types.TPathStr): Boolean;
 var
   fIn: file;
@@ -88,9 +88,8 @@ var
   ok: Boolean;
   ioRes: Integer;
 begin
-  CopyOrDelete := True;
   if not FileUtil.OpenReadOnly(fIn, src) then begin
-    FileUtil.DeleteFile(dst);
+    CopyOrDelete := FileUtil.DeleteChecked(dst);
     Exit;
   end;
   ok := FileUtil.RewriteTemp(fOut, dst);
