@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_Status, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_Effect, C_Equip, C_Keys, C_Class, C_Level, C_STATUS, C_Ifc, C_Abil, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_Msg, ClassCal;
 
 var
@@ -147,7 +147,7 @@ end;
 { True when p is a paladin who can use a paladin's powers now: okay, and out of combat. }
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
-  PaladinReady := (p^.charClass = C_Class.PALADIN) and (p^.status = C_Status.OKAY) and
+  PaladinReady := (p^.charClass = C_Class.PALADIN) and (p^.status = C_STATUS.OKAY) and
     (GDVars.ifcState <> C_Ifc.COMBAT);
 end;
 

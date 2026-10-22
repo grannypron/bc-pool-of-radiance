@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_Status, C_Ifc, C_SPELL, C_Level,
+uses Types, Crt, C_Msg, GDConsts, GDVars, CharGen, GameTime, C_Effect, C_Keys, C_STATUS, C_Ifc, C_SPELL, C_Level,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -170,7 +170,7 @@ begin
   msg := '';
   if (activity = ACT_CAST) and (GDVars.zone0^.antimagic > 0) then
     msg := 'cannot cast spells in this area'
-  else if (GDVars.curChar^.status = C_Status.ANIMATED) or (GDVars.curChar^.enabled = 0) then begin
+  else if (GDVars.curChar^.status = C_STATUS.ANIMATED) or (GDVars.curChar^.enabled = 0) then begin
     msg := 'is in no condition to ';
     case activity of
       ACT_CAST: msg := msg + 'cast any spells';
@@ -887,7 +887,7 @@ var
   { Fix treats the statuses RestoreHitPoints accepts. }
   function Treatable(creature: Types.PCharRecord): Boolean;
   begin
-    Treatable := creature^.status in [C_Status.OKAY, C_Status.ANIMATED, C_Status.UNCONSCIOUS, C_Status.DYING];
+    Treatable := creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED, C_STATUS.UNCONSCIOUS, C_STATUS.DYING];
   end;
 
   function HasCondition(creature: Types.PCharRecord; cond: Byte): Boolean;
@@ -971,9 +971,9 @@ begin
     l3Casts[n] := 0;
     if p^.classLevels[C_Level.CLERIC] > 0 then begin
       Inc(clerics);
-      if p^.status = C_Status.OKAY then Inc(ableClerics);
+      if p^.status = C_STATUS.OKAY then Inc(ableClerics);
     end;
-    if p^.status = C_Status.OKAY then begin
+    if p^.status = C_STATUS.OKAY then begin
       if p^.spellsKnown[C_SPELL.CURE_LIGHT_WOUNDS] <> 0 then l1Free[n] := p^.clericSpells[1];
       l3Free[n] := p^.clericSpells[3];
     end;

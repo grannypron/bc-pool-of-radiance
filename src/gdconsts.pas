@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_Status, C_Align, C_Gbvm, C_Abil, C_SPELL;
+uses C_Gender, C_Class, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_STATUS, C_Align, C_Gbvm, C_Abil, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -772,8 +772,8 @@ const
     'Platinum',
     'Gems',
     'Jewelry');
-  { Status names, indexed by TCharRecord.status; see C_Status. }
-  statusStrs: array[C_Status.OKAY..C_Status.GONE] of string[12] = (
+  { Status names, indexed by TCharRecord.status; see C_STATUS. }
+  statusStrs: array[C_STATUS.OKAY..C_STATUS.GONE] of string[12] = (
     'Okay',
     'Animated',
     'tempgone',

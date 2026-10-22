@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_SPELL, C_Status, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_Abil, C_Item, C_Keys, C_Level, C_Money, C_Msg, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -204,26 +204,26 @@ begin
       case key of
         'H': begin
                hpCur := hpMax;
-               if status in [C_Status.UNCONSCIOUS, C_Status.DYING] then
-                 status := C_Status.OKAY;
-               enabled := Ord(status in [C_Status.OKAY, C_Status.ANIMATED]);
+               if status in [C_STATUS.UNCONSCIOUS, C_STATUS.DYING] then
+                 status := C_STATUS.OKAY;
+               enabled := Ord(status in [C_STATUS.OKAY, C_STATUS.ANIMATED]);
              end;
         'S': begin
                case status of
-                 C_Status.OKAY: status := C_Status.UNCONSCIOUS;
-                 C_Status.UNCONSCIOUS: status := C_Status.DYING;
-                 C_Status.DYING: status := C_Status.DEAD;
-                 C_Status.DEAD: status := C_Status.STONED;
-                 C_Status.STONED: status := C_Status.GONE;
+                 C_STATUS.OKAY: status := C_STATUS.UNCONSCIOUS;
+                 C_STATUS.UNCONSCIOUS: status := C_STATUS.DYING;
+                 C_STATUS.DYING: status := C_STATUS.DEAD;
+                 C_STATUS.DEAD: status := C_STATUS.STONED;
+                 C_STATUS.STONED: status := C_STATUS.GONE;
                else
-                 status := C_Status.OKAY;
+                 status := C_STATUS.OKAY;
                end;
-               if status = C_Status.OKAY then begin
+               if status = C_STATUS.OKAY then begin
                  if hpCur = 0 then
                    hpCur := 1;
                end else
                  hpCur := 0;
-               enabled := Ord(status in [C_Status.OKAY, C_Status.ANIMATED]);
+               enabled := Ord(status in [C_STATUS.OKAY, C_STATUS.ANIMATED]);
              end;
       end;
   until key in ['E', C_Keys.NONE];

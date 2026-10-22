@@ -249,7 +249,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_Effect, C_Equip,
-  C_Race, C_Status, C_Ifc, C_Align, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
+  C_Race, C_STATUS, C_Ifc, C_Align, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
 const
@@ -288,12 +288,12 @@ procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types
 begin
   CharDisp.PrintNameString(creature, msg, 10, False);
   case creature^.status of
-    C_Status.STONED, C_Status.DEAD, C_Status.GONE: Exit;
+    C_STATUS.STONED, C_STATUS.DEAD, C_STATUS.GONE: Exit;
   end;
   creature^.status := status;
   creature^.enabled := 0;
   creature^.hpCur := 0;
-  if status in [C_Status.DEAD, C_Status.GONE] then
+  if status in [C_STATUS.DEAD, C_STATUS.GONE] then
     Stats.Death(creature);
   FxEngine.RemoveEffectsHp0(creature);
   FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, creature);
@@ -554,7 +554,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_Effect.POISONED, effect) then
-    EffHndlr.InflictStatusMsg(creature, C_Status.DEAD, 'dies from poison');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'dies from poison');
   GDVars.effectLock := 1;
   FxEngine.RemoveEffect(creature, C_Effect.SLOW_POISON_HIT, nil);
   GDVars.effectLock := 0;
@@ -659,7 +659,7 @@ begin
 end;
 
 { Animate Dead (eff 32). Fires on REMOVAL of the animation. The old side is read first: for a corpse that fled
-  (C_Status.RUNNING), InflictStatusMsg removes the hp-zero effects again, which frees this node (#716). }
+  (C_STATUS.RUNNING), InflictStatusMsg removes the hp-zero effects again, which frees this node (#716). }
 procedure EffAnimateDead(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   side: Byte;
@@ -667,7 +667,7 @@ begin
   Types.PEffectRec(p)^.onRemove := False;
   side := Types.PEffectRec(p)^.strength div 16 and 1;
   if GDVars.effectLock = 0 then
-    EffHndlr.InflictStatusMsg(creature, C_Status.DEAD, 'collapses');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'collapses');
   creature^.hostile := side;
   creature^.quickfight := 1;
   creature^.levelUndead := 0;
@@ -965,7 +965,7 @@ begin
     Dec(Types.PEffectRec(p)^.strength, $10);
     if EffHndlr.AddEffectIfNoLock(creature, C_Effect.MUMMY_ROT, Types.PEffectRec(p)^.strength, 43200) then ;
   end else
-    EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'Dies rots away');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.GONE, 'Dies rots away');
 end;
 
 { Immobile (eff 58) }
@@ -1036,7 +1036,7 @@ begin
       CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'is Poisoned', 10, False);
       TextRend.PauseOnly;
       FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
-      EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
+      EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_STATUS.DEAD, 'is killed');
     end;
 end;
 
@@ -1278,7 +1278,7 @@ begin
     end;
   end;
   if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PETRIFY, 0) then
-    EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_Status.STONED, 'is Stoned');
+    EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_STATUS.STONED, 'is Stoned');
 end;
 
 { Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person's
@@ -1364,20 +1364,20 @@ begin
   else
     numStr := 'a level';
   CharDisp.PrintNameString(creature, 'is drained ' + numStr, 10, True);
-  if creature^.status = C_Status.ANIMATED then begin
-    EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
+  if creature^.status = C_STATUS.ANIMATED then begin
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.GONE, 'is dead forever');
     creature^.hpMax := 0;
     Exit;
   end;
   for i := 1 to levels do begin
-    if creature^.status <> C_Status.GONE then begin
+    if creature^.status <> C_STATUS.GONE then begin
       Inc(creature^.drainedLevels);
       totalLevels := 0;
       for j := C_Level.CLERIC to C_Level.MONK do
         Inc(totalLevels, creature^.classLevels[j]);
       { a creature with no class levels (kobolds, bandits and other monsters) has no level to lose, and no divisor }
       if totalLevels = 0 then begin
-        EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
+        EffHndlr.InflictStatusMsg(creature, C_STATUS.GONE, 'is dead forever');
         creature^.hpMax := 0;
         Exit;
       end;
@@ -1396,7 +1396,7 @@ begin
       end;
       cls := ClassToDrain;
       if creature^.levelHighest < 2 then begin
-        EffHndlr.InflictStatusMsg(creature, C_Status.GONE, 'is dead forever');
+        EffHndlr.InflictStatusMsg(creature, C_STATUS.GONE, 'is dead forever');
         creature^.hpMax := 0;
         { SSI's: only a two-level drain clears the class's level }
         if levels = 2 then
@@ -1404,8 +1404,8 @@ begin
       end else begin
         Dec(creature^.classLevels[cls]);
         if creature^.hpCur = 0 then
-          if creature^.status <> C_Status.DEAD then
-            EffHndlr.InflictStatusMsg(creature, C_Status.DEAD, 'is killed');
+          if creature^.status <> C_STATUS.DEAD then
+            EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'is killed');
         ClassCal.RecalcBaseSkills(creature);
       end;
       { picked again, after the loss, with xpMin for it }
@@ -1507,7 +1507,7 @@ procedure EffFightOn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
   if creature^.enabled <> 0 then
-    EffHndlr.InflictStatusMsg(creature, C_Status.DEAD, 'Falls dead');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'Falls dead');
 end;
 
 { Immune to weapons neither magical nor silver, and to attacks without a weapon (eff 96). Silver = name component 177 }
@@ -1545,10 +1545,10 @@ var
   hp: Byte;
 begin
   hp := 0;
-  if creature^.status = C_Status.DYING then
+  if creature^.status = C_STATUS.DYING then
     if creature^.combatAddr^.overkill < 6 then
       hp := 6 - creature^.combatAddr^.overkill;
-  if creature^.status = C_Status.UNCONSCIOUS then
+  if creature^.status = C_STATUS.UNCONSCIOUS then
     hp := 6;
   if hp > 0 then
     if FxEngine.ReviveDeadCreature(creature, hp) then begin
@@ -1590,7 +1590,7 @@ procedure EffGaseous(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
   CbtMap.DisplayMapViewCentered(creature, 3, False);
-  FxEngine.PutOutOfPlayWithStatus(creature, C_Status.RUNNING, 'Turns gaseous and escapes');
+  FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.RUNNING, 'Turns gaseous and escapes');
 end;
 
 { Thri-kreen missile evasion (eff 104) }

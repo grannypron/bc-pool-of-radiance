@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEclVars;
 
-uses Types, GDVars, C_Gbvm, C_Money, C_Dir, C_Status, C_Effect, C_Save, EclVars, StrUtil, TestKit;
+uses Types, GDVars, C_Gbvm, C_Money, C_Dir, C_STATUS, C_Effect, C_Save, EclVars, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -43,7 +43,7 @@ begin
   FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
-  c^.status := C_Status.OKAY;
+  c^.status := C_STATUS.OKAY;
   GDVars.curChar := c;
   GDVars.creatureList := c;
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 1;
@@ -125,7 +125,7 @@ begin
   TestKit.CheckEqualsL(450, c^.xpAward, 'writing CHAR_XP_AWARD');
   c^.enabled := 1;
   EclVars.WriteGbvm(C_Gbvm.CHAR_ENABLED, $87);
-  TestKit.Check((c^.enabled = 0) and (c^.status = C_Status.STONED), '$87 to CHAR_ENABLED disables and stones');
+  TestKit.Check((c^.enabled = 0) and (c^.status = C_STATUS.STONED), '$87 to CHAR_ENABLED disables and stones');
   GDVars.dumpCr6C00 := False;
   EclVars.WriteGbvm(C_Gbvm.CHAR_ENABLED, 0);
   TestKit.Check(GDVars.dumpCr6C00, '0 to CHAR_ENABLED marks the character for removal');

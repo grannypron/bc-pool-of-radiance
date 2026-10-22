@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_Status, C_Gbvm, C_Dir,
+uses Crt, C_Area, C_Npc, C_Msg, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_Dir,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -493,7 +493,7 @@ var
   pause: Boolean;
 begin
   { a dead, stoned or gone character takes no damage, as in CharHlp.InflictDamage }
-  if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
+  if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
   if creature^.hpCur + 10 < dmg then
     msg := '  ' + creature^.name + ' dies. '
   else

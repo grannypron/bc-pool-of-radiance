@@ -28,7 +28,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_Area, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_Class, C_Level, C_Race, C_Keys,
-  C_Effect, C_Status, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_Effect, C_STATUS, C_Ifc, C_Gbvm, C_Abil, C_Money, Money, C_Align, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_Msg, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -385,7 +385,7 @@ begin
       iconColors1[slot] := GDConsts.defIconCol[slot] + (GDConsts.defIconCol[slot] + 8) * 16;
     acBase := 50;
     thac0Base := 40;
-    status := C_Status.OKAY;
+    status := C_STATUS.OKAY;
     enabled := 1;
     portraitHead := 1;
     portraitBody := 1;
@@ -1071,7 +1071,7 @@ begin
   end;
 end;
 
-{ TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_Status.OKAY, have under 1000 gp, have no
+{ TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_STATUS.OKAY, have under 1000 gp, have no
   class this hall trains (C_Gbvm.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
   not the class and level limits, so a character with no class left to train is still sent away. Applies the racial
   fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap). A character who trains
@@ -1089,7 +1089,7 @@ var
   row: ShortInt;
   lvl: ShortInt;
 begin
-  if (GDVars.curChar^.status <> C_Status.OKAY) and (stingMode = 0) then begin
+  if (GDVars.curChar^.status <> C_STATUS.OKAY) and (stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;

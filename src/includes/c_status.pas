@@ -1,6 +1,6 @@
 { Creature status values (TCharRecord.status). }
 {$I COMPILER.INC}
-unit C_Status;
+unit C_STATUS;
 
 interface
 

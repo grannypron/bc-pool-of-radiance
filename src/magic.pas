@@ -187,7 +187,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, TextRend,
-  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_Status,
+  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_STATUS,
   C_Ifc, C_Dir, C_SPELL, AbilAdj;
 
 var
@@ -901,7 +901,7 @@ begin
 end;
 
 { Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
-  C_Race.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_Status.ANIMATED), targets already asleep (effect 53)
+  C_Race.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_STATUS.ANIMATED), targets already asleep (effect 53)
   and targets the remaining pool cannot pay for are dropped; the pool is spent greedily in target order. }
 procedure SleepHandler;
 var
@@ -925,7 +925,7 @@ begin
     else
       cost := 20;
     end;
-    if (GDVars.targetCreaturePtr[i]^.status <> C_Status.ANIMATED) and
+    if (GDVars.targetCreaturePtr[i]^.status <> C_STATUS.ANIMATED) and
         (not CharHlp.HasEffect(GDVars.targetCreaturePtr[i], C_Effect.SLEEP, effect)) and
         (pool >= cost) then
       Dec(pool, cost)
@@ -1007,14 +1007,14 @@ var
   tgt: Types.PCharRecord;
 begin
   tgt := GDVars.targetCreaturePtr[1];
-  if tgt^.status = C_Status.ANIMATED then
+  if tgt^.status = C_STATUS.ANIMATED then
     GDVars.targetCreaturePtr[1] := nil
   else if CharHlp.HasEffect(tgt, C_Effect.POISONED, effect) then begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
     Magic.ResolveSpell(GDVars.currentSpellBeing, 255, True, 0, 0, 'is affected');
-    if ((tgt^.status = C_Status.DEAD) or (tgt^.enabled = 0)) and
-        not (tgt^.status in [C_Status.TEMPGONE, C_Status.RUNNING, C_Status.STONED, C_Status.GONE]) then
+    if ((tgt^.status = C_STATUS.DEAD) or (tgt^.enabled = 0)) and
+        not (tgt^.status in [C_STATUS.TEMPGONE, C_STATUS.RUNNING, C_STATUS.STONED, C_STATUS.GONE]) then
       StandUpOrWake(tgt);
     FxEngine.AddEffect(tgt, C_Effect.SLOW_POISON_HIT, 10, 255, True);
   end;
@@ -1190,11 +1190,11 @@ begin
   FxEngine.AddEffect(tgt, C_Effect.STRENGTH, Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
-{ Animate Dead: animate up to caster-level dead (C_Status.DEAD) human (charType 0) creatures whose cell is still a valid
+{ Animate Dead: animate up to caster-level dead (C_STATUS.DEAD) human (charType 0) creatures whose cell is still a valid
   location. Effect 32's strength is the old side * 16 + caster level (at most 15). Each corpse joins the caster's team
   under computer control (quickfight 1), becomes undead (charType 4, levelUndead 2, movementBase 6, attackLevel 0),
   loses its memorized spells and gets the animated NPC or PC npc code; if ReviveDeadCreature succeeds at full hpMax it
-  also gets effect 32 and C_Status.ANIMATED. }
+  also gets effect 32 and C_STATUS.ANIMATED. }
 procedure AnimateDeadHandler;
 var
   i: Byte;
@@ -1207,7 +1207,7 @@ begin
   GDVars.spellTargetCount := 0;
   p := GDVars.creatureList;
   while (p <> nil) and (n > 0) do begin
-    if p^.status = C_Status.DEAD then
+    if p^.status = C_STATUS.DEAD then
       { Human }
       if p^.charType = 0 then
         if CbtMap.IsValidCreatureLoc(p, CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), True) then begin
@@ -1236,7 +1236,7 @@ begin
           Dec(n);
           if FxEngine.ReviveDeadCreature(p, p^.hpMax) then begin
             FxEngine.AddEffectWithMessage(p, C_Effect.ANIMATE_DEAD, 0, strength, True, False, False, 'is animated');
-            p^.status := C_Status.ANIMATED;
+            p^.status := C_STATUS.ANIMATED;
           end;
         end;
     p := p^.nextCharAddr;
@@ -1681,7 +1681,7 @@ begin
     GDVars.effectLock := 1;
     FxEngine.RemoveEffect(tgt, C_Effect.SLOW_POISON_END, nil);
     GDVars.effectLock := 0;
-    if (tgt^.status = C_Status.DEAD) and not slowed then begin
+    if (tgt^.status = C_STATUS.DEAD) and not slowed then begin
       if tgt^.hpCur = 0 then
         tgt^.hpCur := 1;
       StandUpOrWake(tgt);

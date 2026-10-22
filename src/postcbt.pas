@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_Status, C_Ifc, C_Gbvm,
+uses Types, Crt, C_Npc, C_Msg, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_STATUS, C_Ifc, C_Gbvm,
   C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
@@ -51,7 +51,7 @@ begin
     cnt := 0;
     while p <> nil do begin
       item := p^.itemsAddr;
-      if (p^.hostile = 1) and (p^.status <> C_Status.RUNNING) then begin
+      if (p^.hostile = 1) and (p^.status <> C_STATUS.RUNNING) then begin
         nonEscapedHostileFound := True;
         for i := C_Money.COPPER to C_Money.JEWELRY do
           Inc(GDVars.treasureMoney[i], p^.coins[i]);
@@ -97,7 +97,7 @@ var
 begin
   p := GDVars.creatureList;
   while p <> nil do begin
-    if (p^.enabled <> 0) and (p^.status <> C_Status.ANIMATED) then
+    if (p^.enabled <> 0) and (p^.status <> C_STATUS.ANIMATED) then
       Inc(p^.experience, ClassCal.ExperienceShare(p, experience));
     p := p^.nextCharAddr;
   end;
@@ -129,7 +129,7 @@ begin
   partyFled := False;
   p := GDVars.creatureList;
   while (p <> nil) and (not IsMonster(p)) do begin
-    if p^.status = C_Status.RUNNING then
+    if p^.status = C_STATUS.RUNNING then
       partyFled := True;
     p := p^.nextCharAddr;
   end;
@@ -140,15 +140,15 @@ begin
   if not GDVars.duelFlag then begin
     while (p <> nil) and (not IsMonster(p)) do begin
       { C_Npc.FLAG clear }
-      if ((p^.status = C_Status.RUNNING) or (p^.status = C_Status.ANIMATED) or
-          (p^.status = C_Status.OKAY) or
+      if ((p^.status = C_STATUS.RUNNING) or (p^.status = C_STATUS.ANIMATED) or
+          (p^.status = C_STATUS.OKAY) or
           (GDVars.zone1^[C_Gbvm.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
         GDVars.partyDefeated := False;
-      if (p^.status = C_Status.ANIMATED) or (p^.status = C_Status.OKAY) then begin
+      if (p^.status = C_STATUS.ANIMATED) or (p^.status = C_STATUS.OKAY) then begin
         combatWon := True;
         partyFled := False;
       end;
-      if (p^.enabled = 0) or (p^.status = C_Status.ANIMATED) then
+      if (p^.enabled = 0) or (p^.status = C_STATUS.ANIMATED) then
         Inc(nonSharerCount);
       p := p^.nextCharAddr;
     end;
@@ -163,20 +163,20 @@ begin
         nxt := p^.nextCharAddr;
         if not partyFled then begin
           case p^.status of
-            C_Status.RUNNING: begin
-                                p^.status := C_Status.OKAY;
+            C_STATUS.RUNNING: begin
+                                p^.status := C_STATUS.OKAY;
                                 p^.enabled := 1;
                               end;
-            C_Status.DYING: p^.status := C_Status.UNCONSCIOUS;
-            C_Status.UNCONSCIOUS: if p^.hpCur > 0 then begin
-                                    p^.status := C_Status.OKAY;
+            C_STATUS.DYING: p^.status := C_STATUS.UNCONSCIOUS;
+            C_STATUS.UNCONSCIOUS: if p^.hpCur > 0 then begin
+                                    p^.status := C_STATUS.OKAY;
                                     p^.enabled := 1;
                                   end;
           end;
         end else begin
           GDVars.zone1^[C_Gbvm.COMBAT_RESULT] := $81;
-          if p^.status = C_Status.RUNNING then begin
-            p^.status := C_Status.OKAY;
+          if p^.status = C_STATUS.RUNNING then begin
+            p^.status := C_STATUS.OKAY;
             p^.enabled := 1;
           end else begin
             GDVars.curChar := p;
@@ -203,7 +203,7 @@ begin
   end else begin
     p := GDVars.creatureList;
     while p <> nil do begin
-      if (p^.enabled = 1) and (p^.status = C_Status.OKAY) and (p^.hostile <> 1) then begin
+      if (p^.enabled = 1) and (p^.status = C_STATUS.OKAY) and (p^.hostile <> 1) then begin
         combatWon := True;
         PostCbt.DetermineLootExp(expShare);
         PostCbt.AwardExperience(expShare);
@@ -212,10 +212,10 @@ begin
     end;
     p := GDVars.creatureList;
     while p <> nil do begin
-      if (p^.status = C_Status.OKAY) or (p^.status = C_Status.ANIMATED) then
+      if (p^.status = C_STATUS.OKAY) or (p^.status = C_STATUS.ANIMATED) then
         p^.enabled := 1;
-      if p^.status = C_Status.DYING then
-        p^.status := C_Status.UNCONSCIOUS;
+      if p^.status = C_STATUS.DYING then
+        p^.status := C_STATUS.UNCONSCIOUS;
       p := p^.nextCharAddr;
     end;
   end;
@@ -487,7 +487,7 @@ begin
   total := 0;
   while p <> nil do begin
     { C_Npc.FLAG set }
-    if CharHlp.IsNpc(p) and (p^.status = C_Status.OKAY) then begin
+    if CharHlp.IsNpc(p) and (p^.status = C_STATUS.OKAY) then begin
       Inc(npcShares, p^.npcTreasureShare and 7);
       Inc(total, p^.npcTreasureShare and 7);
     end else
@@ -507,7 +507,7 @@ begin
     row := 0;
     while p <> nil do begin
       { C_Npc.FLAG set }
-      if CharHlp.IsNpc(p) and (p^.status = C_Status.OKAY) and (p^.npcTreasureShare > 0) then begin
+      if CharHlp.IsNpc(p) and (p^.status = C_STATUS.OKAY) and (p^.npcTreasureShare > 0) then begin
         TextRend.DisplayMessageWindow(5, row + 5, 34, 22, LightGreen, True,
                                       p^.name + ' takes and hides his share.');
         Inc(row, 2);

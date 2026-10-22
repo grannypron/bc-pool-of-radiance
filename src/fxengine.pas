@@ -81,7 +81,7 @@ function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortI
 procedure AddEffect(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove: Boolean);
 
 { Take an enabled creature out of play: center the map view on it, print msg after its name, disable it and set its
-  status. Its hit points drop to 0 unless the status is C_Status.RUNNING (fled). Its sprite is erased from the combat
+  status. Its hit points drop to 0 unless the status is C_STATUS.RUNNING (fled). Its sprite is erased from the combat
   map, its arena location cleared and the arena arrays rebuilt; then its per-round combat state is reset
   (CharHlp.EndActions) and the hpZeroEffects removed. }
 procedure PutOutOfPlayWithStatus(creature: Types.PCharRecord; status: Byte; msg: Types.TStr40);
@@ -163,7 +163,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_Cond, GDConsts, GDVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_Status, C_Ifc, C_Dir, C_Level, Crt, C_Item, C_Equip;
+  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_STATUS, C_Ifc, C_Dir, C_Level, Crt, C_Item, C_Equip;
 
 const
   { EffectSource's side for a node cast by either side }
@@ -590,8 +590,8 @@ begin
   CharDisp.PrintNameString(creature, msg, 10, True);
   creature^.enabled := 0;
   creature^.status := status;
-  { a creature that fled (C_Status.RUNNING) keeps its hit points }
-  if creature^.status <> C_Status.RUNNING then
+  { a creature that fled (C_STATUS.RUNNING) keeps its hit points }
+  if creature^.status <> C_STATUS.RUNNING then
     creature^.hpCur := 0;
   { slot 0: not on the map, so there is no icon to erase }
   if slot > 0 then begin
@@ -685,7 +685,7 @@ var
   { the longest is 'takes 255 points of damage from Electricity' }
   s: String[43];
 begin
-  if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
+  if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
   GDVars.pendingDamage := damage;
   FxEngine.TriggerEffectsWithCondition(C_Cond.NONWEAPON_DAMAGE, creature);
   if saved then
@@ -730,10 +730,10 @@ begin
     end;
     if creature^.enabled = 0 then begin
       s := 'Goes Down';
-      if creature^.status = C_Status.DYING then
+      if creature^.status = C_STATUS.DYING then
         s := s + ', and is Dying';
       { 6..8 = dead, stoned, gone }
-      if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then
+      if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
         s := 'is killed';
       CharDisp.PrintNameString(creature, s, GDVars.curRow + 1, False);
       if GDVars.ifcState <> C_Ifc.COMBAT then
@@ -800,8 +800,8 @@ var
   hpBefore: Byte;
 begin
   RestoreHitPoints := False;
-  if not (creature^.status in [C_Status.OKAY, C_Status.ANIMATED, C_Status.UNCONSCIOUS,
-                               C_Status.DYING]) then Exit;
+  if not (creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED, C_STATUS.UNCONSCIOUS,
+                               C_STATUS.DYING]) then Exit;
   if (creature^.hpCur >= creature^.hpMax) or not bypassRot then begin
     { 50 = mummy rot }
     if CharHlp.HasEffect(creature, C_Effect.ROT_NO_HEAL, effect) then Exit;
@@ -817,9 +817,9 @@ begin
   { the statistics (#611): healing given only by a spell's or an item's caster }
   Stats.Healed(GDVars.curChar, creature, creature^.hpCur - hpBefore, False);
   if creature^.enabled = 0 then begin
-    if creature^.status = C_Status.DYING then
-      creature^.status := C_Status.UNCONSCIOUS;
-    if (creature^.status = C_Status.UNCONSCIOUS) and (GDVars.ifcState <> C_Ifc.COMBAT) then
+    if creature^.status = C_STATUS.DYING then
+      creature^.status := C_STATUS.UNCONSCIOUS;
+    if (creature^.status = C_STATUS.UNCONSCIOUS) and (GDVars.ifcState <> C_Ifc.COMBAT) then
       FxEngine.CallEffectHandler(C_Effect.HEAL_WAKE, creature, nil, True);
   end;
   RestoreHitPoints := True;
@@ -831,7 +831,7 @@ var
 begin
   if CbtMap.IsValidCreatureLoc(creature, CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), True)
   then begin
-    creature^.status := C_Status.OKAY;
+    creature^.status := C_STATUS.OKAY;
     creature^.enabled := 1;
     creature^.hpCur := hp;
     if GDVars.ifcState = C_Ifc.COMBAT then

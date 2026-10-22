@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_Status, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_Effect, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -222,7 +222,7 @@ begin
   c^.enabled := 0;
   TestKit.Check(CharHlp.MayTrade(c), 'a disabled NPC can be traded with');
   ClearCreature;
-  c^.status := C_Status.ANIMATED;
+  c^.status := C_STATUS.ANIMATED;
   TestKit.Check(not CharHlp.ComesUnderPlayer(c), 'an animated party member stays under the AI');
 
   { spells }

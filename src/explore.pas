@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_Area, C_TIME, C_Msg, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
-  C_Keys, C_Level, C_Status, C_Gbvm, C_Dir, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_Keys, C_Level, C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -84,7 +84,7 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (not success) do begin
     { only an Okay member can force the door }
-    if p^.status = C_Status.OKAY then
+    if p^.status = C_STATUS.OKAY then
     with p^ do begin
       if View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) = 3 then begin
         case strCur of
@@ -138,7 +138,7 @@ begin
   p := GDVars.creatureList;
   while (p <> nil) and (not success) do begin
     with p^ do
-      if (Dice.RollDice(1, 100) <= thiefSkills[2]) and (status = C_Status.OKAY) then
+      if (Dice.RollDice(1, 100) <= thiefSkills[2]) and (status = C_STATUS.OKAY) then
         success := True;
     p := p^.nextCharAddr;
   end;
@@ -169,7 +169,7 @@ var
   p: Types.PCharRecord;
 begin
   p := GDVars.creatureList;
-  while (p <> nil) and ((p^.status <> C_Status.OKAY) or (Explore.FindMemorizedSpell(spellId, p) = 255)) do
+  while (p <> nil) and ((p^.status <> C_STATUS.OKAY) or (Explore.FindMemorizedSpell(spellId, p) = 255)) do
     p := p^.nextCharAddr;
   FindCharWithSpell := p;
 end;
@@ -320,7 +320,7 @@ begin
                       View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                     end else
                       TextRend.PrintAndPause('Not Here', Yellow);
-               'C': if GDVars.curChar^.status = C_Status.OKAY then Camp.NoncombatCastMenu;
+               'C': if GDVars.curChar^.status = C_STATUS.OKAY then Camp.NoncombatCastMenu;
                'V': ViewChar.ViewCharMenu(viewDone);
                'J': JrnlView.JournalMenu;
                'E': done := True;

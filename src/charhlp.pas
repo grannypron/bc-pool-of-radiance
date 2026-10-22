@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_Status, C_Ifc,
+uses C_Item, GDConsts, GDVars, C_Effect, C_Equip, C_Race, C_Level, C_STATUS, C_Ifc,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -772,8 +772,8 @@ var
   wasUp: Boolean;
   hpBefore: Byte;
 begin
-  if creature^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then Exit;
-  wasUp := creature^.status in [C_Status.OKAY, C_Status.ANIMATED];
+  if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
+  wasUp := creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED];
   hpBefore := creature^.hpCur;
   over := 0;
   remain := 0;
@@ -781,15 +781,15 @@ begin
     remain := creature^.hpCur - dmg
   else
     over := dmg - creature^.hpCur;
-  if (over > 9) or ((remain = 0) and (creature^.status = C_Status.ANIMATED)) then
-    creature^.status := C_Status.DEAD
+  if (over > 9) or ((remain = 0) and (creature^.status = C_STATUS.ANIMATED)) then
+    creature^.status := C_STATUS.DEAD
   else if over > 0 then begin
-    creature^.status := C_Status.DYING;
+    creature^.status := C_STATUS.DYING;
     if GDVars.ifcState = C_Ifc.COMBAT then
       creature^.combatAddr^.overkill := over;
   end else if remain = 0 then
-    creature^.status := C_Status.UNCONSCIOUS;
-  if not (creature^.status in [C_Status.OKAY, C_Status.ANIMATED]) then begin
+    creature^.status := C_STATUS.UNCONSCIOUS;
+  if not (creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED]) then begin
     creature^.enabled := 0;
     creature^.hpCur := 0;
     if GDVars.ifcState = C_Ifc.COMBAT then begin
@@ -1025,7 +1025,7 @@ end;
 
 function MayTrade(creature: Types.PCharRecord): Boolean;
 begin
-  MayTrade := not CharHlp.IsNpc(creature) or (creature^.enabled = 0) or (creature^.status = C_Status.ANIMATED);
+  MayTrade := not CharHlp.IsNpc(creature) or (creature^.enabled = 0) or (creature^.status = C_STATUS.ANIMATED);
 end;
 
 function IsPerson(creature: Types.PCharRecord): Boolean;
@@ -1047,7 +1047,7 @@ end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 begin
-  ComesUnderPlayer := not CharHlp.IsNpc(creature) and (creature^.status <> C_Status.ANIMATED);
+  ComesUnderPlayer := not CharHlp.IsNpc(creature) and (creature^.status <> C_STATUS.ANIMATED);
 end;
 
 function ItemReadable(it: Pointer): Boolean;

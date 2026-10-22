@@ -24,7 +24,7 @@ procedure AllToManual;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
-  C_Class, C_Status, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  C_Class, C_STATUS, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
@@ -739,7 +739,7 @@ begin
     FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, nil);
   end else if creature^.intCur > 5 then begin
     { Int 6+ creatures give up instead }
-    FxEngine.PutOutOfPlayWithStatus(creature, C_Status.UNCONSCIOUS, 'Surrenders');
+    FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.UNCONSCIOUS, 'Surrenders');
     CheckMorale := CharHlp.EndActions(creature);
   end;
 end;

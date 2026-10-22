@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GDConsts, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, MoneyCal;
+uses GDConsts, GDVars, C_Gbvm, C_STATUS, C_Ifc, C_Money, Party, MoneyCal;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -216,12 +216,12 @@ var
   b: PStatBlock;
   down: Boolean;
 begin
-  down := wasUp and not (victim^.status in [C_Status.OKAY, C_Status.ANIMATED]);
+  down := wasUp and not (victim^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED]);
   if Party.IsPartyMember(victim) then begin
     Stats.Count(victim, DAMAGE_TAKEN, hp);
     if down then
       Stats.Count(victim, KNOCKED_DOWN, 1);
-    if victim^.status = C_Status.DEAD then
+    if victim^.status = C_STATUS.DEAD then
       Stats.Count(victim, DIED, 1);
   end else if (GDVars.ifcState = C_Ifc.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
     Stats.Count(actor, DAMAGE_DONE, hp);

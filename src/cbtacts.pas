@@ -66,7 +66,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 implementation
 
 uses C_Item, C_Terr, C_Cond, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
-  C_Status, C_Gbvm, C_Dir, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
+  C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
@@ -223,9 +223,9 @@ begin
   if def^.enabled = 0 then begin
     CharDisp.PrintNameString(def, 'goes down', row, False);
     Inc(row, 2);
-    if def^.status = C_Status.DYING then
+    if def^.status = C_STATUS.DYING then
       TextRend.DisplayString(23, row, LightGreen, 'and is Dying');
-    if def^.status in [C_Status.DEAD, C_Status.STONED, C_Status.GONE] then
+    if def^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
       CharDisp.PrintNameString(def, 'is killed', row, False);
     FxEngine.RemoveEffectsHp0(def);
     FxEngine.TriggerEffectsWithCondition(C_Cond.HP_ZERO, def);
@@ -425,7 +425,7 @@ end;
 
 { Flee: automatic when the target list (range 255) holds no enemy; otherwise it succeeds when the creature's movement in
   whole moves beats the fastest enemy's (HighestEnemyMovement), on 1 in 2 when they tie. Success takes it out of play as
-  'Got Away' (C_Status.RUNNING). EndActions runs on both outcomes and supplies the result. }
+  'Got Away' (C_STATUS.RUNNING). EndActions runs on both outcomes and supplies the result. }
 function CombatFleeAttempt(creature: Types.PCharRecord): Boolean;
 var
   ok: Boolean;
@@ -445,7 +445,7 @@ begin
         ok := True;
   end;
   if ok then
-    FxEngine.PutOutOfPlayWithStatus(creature, C_Status.RUNNING, 'Got Away')
+    FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.RUNNING, 'Got Away')
   else
     CharDisp.PrintBottomLine('Escape is blocked');
   CombatFleeAttempt := CharHlp.EndActions(creature);
@@ -626,7 +626,7 @@ begin
       end else begin
         CharDisp.PrintNameString(Types.PCharRecord(tgt), 'Is destroyed', 10, False);
         CbtMap.CreatureDowned(Types.PCharRecord(tgt));
-        Types.PCharRecord(tgt)^.status := C_Status.GONE;
+        Types.PCharRecord(tgt)^.status := C_STATUS.GONE;
         Types.PCharRecord(tgt)^.enabled := 0;
       end;
       if destroys > 0 then
@@ -942,7 +942,7 @@ begin
       for j := 1 to GDVars.downedCount do
         if GDVars.downed[j].cr <> nil then
           if not (GDVars.downed[j].cr^.status in
-                  [C_Status.DEAD, C_Status.STONED, C_Status.GONE]) then
+                  [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE]) then
             if GDVars.downed[j].x = nx then
               if GDVars.downed[j].y = ny then
                 { a body of its own side only: downed holds the party's, which a hostile cleric healed (#714) }
@@ -1356,7 +1356,7 @@ begin
     p := GDVars.creatureList;
     while p <> nil do begin
       { NPC flag (high bit) set }
-      if (p^.status = C_Status.OKAY) and CharHlp.IsNpc(p) then begin
+      if (p^.status = C_STATUS.OKAY) and CharHlp.IsNpc(p) then begin
         p^.hostile := 1;
         p^.combatAddr^.other := nil;
       end;
@@ -1832,7 +1832,7 @@ begin
   while p <> nil do begin
     if p^.hostile = 1 then begin
       p^.enabled := 0;
-      p^.status := C_Status.DEAD;
+      p^.status := C_STATUS.DEAD;
       slot := CbtMap.CombatSlot(p);
       { slot 0: not on the map }
       if slot > 0 then

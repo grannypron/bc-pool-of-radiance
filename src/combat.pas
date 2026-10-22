@@ -15,7 +15,7 @@ function BandageDying(bandage: Boolean): Boolean;
 implementation
 
 uses Types, C_TIME, C_Npc, C_Cond, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_Class,
-  C_Status, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
+  C_STATUS, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -276,11 +276,11 @@ begin
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_Cond.ROUND_END, p);
     FxEngine.ConsiderStinkingCloud(p);
-    if p^.status = C_Status.DYING then begin
+    if p^.status = C_STATUS.DYING then begin
       Inc(p^.combatAddr^.overkill);
       if p^.combatAddr^.overkill > 9 then begin
         { dead at -10 }
-        p^.status := C_Status.DEAD;
+        p^.status := C_STATUS.DEAD;
         Stats.Death(p);
       end;
     end;
@@ -466,10 +466,10 @@ begin
   p := GDVars.creatureList;
   while p <> nil do begin
     if (p^.combatAddr^.notPcNpc = 0) and (p^.hostile = 0)
-       and (p^.status = C_Status.DYING) then begin
+       and (p^.status = C_STATUS.DYING) then begin
       found := True;
       if bandage then begin
-        p^.status := C_Status.UNCONSCIOUS;
+        p^.status := C_STATUS.UNCONSCIOUS;
         p^.combatAddr^.overkill := 0;
         CharDisp.PrintNameString(p, 'is bandaged', 10, True);
         { Stop bandaging; keep scanning }

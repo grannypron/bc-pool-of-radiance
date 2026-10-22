@@ -14,7 +14,7 @@ procedure GameLoop;
 implementation
 
 uses Types, C_Area, C_Npc, C_Msg, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_Status, VaultMnu, EclTrace, Border, Camp,
+  DaxIo, GameIo, C_Ecl, C_Class, C_Level, C_Ifc, C_Gbvm, C_Sound, C_Money, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -1522,7 +1522,7 @@ begin
   found := False;
   p := GDVars.creatureList;
   while (p <> nil) and (not found) do begin
-    if p^.status = C_Status.OKAY then
+    if p^.status = C_STATUS.OKAY then
       for k := 1 to SizeOf(p^.memorizedSpells) - 1 do
         if (not found) and (p^.memorizedSpells[k] = spellId) then begin
           found := True;

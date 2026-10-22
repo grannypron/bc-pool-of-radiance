@@ -15,7 +15,7 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys,
-  C_Status, C_Ifc, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
+  C_STATUS, C_Ifc, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
 var
@@ -141,7 +141,7 @@ end;
   A dead or animated character still poisoned "is poisoned, and RAISE DEAD cannot help." and is not charged: the poison
   would kill the raised body again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation
   under the effect lock and rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not
-  survive." and is C_Status.GONE, dead for good, the fee spent. A success sets one hit point, C_Status.OKAY and enabled,
+  survive." and is C_STATUS.GONE, dead for good, the fee spent. A success sets one hit point, C_STATUS.OKAY and enabled,
   lowers Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points
   that point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
   (ClassCal.ConHpTotal), keeping at least 1. }
@@ -156,7 +156,7 @@ begin
   creature := GDVars.curChar;
   wasDead := False;
   c := 'Y';
-  if (creature^.status = C_Status.DEAD) or (creature^.status = C_Status.ANIMATED) then
+  if (creature^.status = C_STATUS.DEAD) or (creature^.status = C_STATUS.ANIMATED) then
     wasDead := True;
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
@@ -178,13 +178,13 @@ begin
         GDVars.effectLock := 0;
         { the resurrection survival roll, which SSI never made (#752): a failure is dead for good }
         if Dice.RollDice(1, 100) > AbilAdj.ConResurrectionSurvival(creature^.conCur) then begin
-          creature^.status := C_Status.GONE;
+          creature^.status := C_STATUS.GONE;
           creature^.enabled := 0;
           creature^.hpCur := 0;
           Temple.ReportCure('does not survive.');
         end else begin
           creature^.hpCur := 1;
-          creature^.status := C_Status.OKAY;
+          creature^.status := C_STATUS.OKAY;
           creature^.enabled := 1;
           Stats.Count(creature, Stats.RAISED, 1);
           { Constitution goes no lower than AbilAdj.SCORE_MIN (#615) }
@@ -232,9 +232,9 @@ begin
       FxEngine.RemoveEffect(GDVars.curChar, C_Effect.SLOW_POISON_END, nil);
       FxEngine.RemoveEffect(GDVars.curChar, C_Effect.SLOW_POISON_HIT, nil);
       GDVars.effectLock := 0;
-      if found and not slowed and (GDVars.curChar^.status = C_Status.DEAD) then begin
+      if found and not slowed and (GDVars.curChar^.status = C_STATUS.DEAD) then begin
         GDVars.curChar^.hpCur := 1;
-        GDVars.curChar^.status := C_Status.OKAY;
+        GDVars.curChar^.status := C_STATUS.OKAY;
         GDVars.curChar^.enabled := 1;
       end;
     end;
@@ -271,20 +271,20 @@ begin
   end;
 end;
 
-{ StoneToFlesh: C_Status.STONED (7), 2000 gp; if still stoned after paying, the character becomes C_Status.OKAY and
+{ StoneToFlesh: C_STATUS.STONED (7), 2000 gp; if still stoned after paying, the character becomes C_STATUS.OKAY and
   enabled, with hpCur 1 }
 procedure StoneToFlesh;
 var
   c: Char;
 begin
   c := 'Y';
-  if GDVars.curChar^.status <> C_Status.STONED then
+  if GDVars.curChar^.status <> C_STATUS.STONED then
     c := Temple.ConfirmCureAnyway('is not stoned.');
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Stone to Flesh', 2000);
     if c = 'Y' then
-      if GDVars.curChar^.status = C_Status.STONED then begin
-        GDVars.curChar^.status := C_Status.OKAY;
+      if GDVars.curChar^.status = C_STATUS.STONED then begin
+        GDVars.curChar^.status := C_STATUS.OKAY;
         GDVars.curChar^.enabled := 1;
         GDVars.curChar^.hpCur := 1;
       end;

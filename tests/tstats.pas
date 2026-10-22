@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TStats;
 
-uses Types, GDVars, C_Gbvm, C_Status, C_Ifc, C_Money, Party, Stats, TestKit;
+uses Types, GDVars, C_Gbvm, C_STATUS, C_Ifc, C_Money, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -19,7 +19,7 @@ begin
   GetMem(p, SizeOf(Types.TCharRecord));
   FillChar(p^, SizeOf(Types.TCharRecord), 0);
   p^.name := name;
-  p^.status := C_Status.OKAY;
+  p^.status := C_STATUS.OKAY;
   p^.nextCharAddr := next;
   NewCreature := p;
 end;
@@ -52,7 +52,7 @@ begin
 
   { a party member fells a monster in combat }
   GDVars.ifcState := C_Ifc.COMBAT;
-  monster^.status := C_Status.DYING;
+  monster^.status := C_STATUS.DYING;
   Stats.Damaged(a, monster, 7, True);
   blk := Stats.BlockOf(a);
   TestKit.CheckEqualsL(7, blk^.counts[Stats.DAMAGE_DONE], 'damage done');
@@ -70,7 +70,7 @@ begin
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'no damage done outside combat');
 
   { a party member is hurt, knocked down, killed }
-  b^.status := C_Status.DEAD;
+  b^.status := C_STATUS.DEAD;
   Stats.Damaged(monster, b, 12, True);
   blk := Stats.BlockOf(b);
   TestKit.CheckEqualsL(12, blk^.counts[Stats.DAMAGE_TAKEN], 'damage taken');
@@ -87,7 +87,7 @@ begin
   for i := 1 to Stats.KINDS + 2 do begin
     Str(i, s);
     monster^.name := 'BEAST' + s;
-    monster^.status := C_Status.DEAD;
+    monster^.status := C_STATUS.DEAD;
     Stats.Damaged(a, monster, 1, True);
   end;
   blk := Stats.BlockOf(a);

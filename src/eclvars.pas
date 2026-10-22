@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_Status, C_Gbvm, C_Dir, C_Money, CharHlp, AbilAdj;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_STATUS, C_Gbvm, C_Dir, C_Money, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -248,7 +248,7 @@ begin
     C_Gbvm.CHAR_ENABLED: begin
       if value >= $80 then begin
         GDVars.curChar^.enabled := 0;
-        if value = $87 then GDVars.curChar^.status := C_Status.STONED;
+        if value = $87 then GDVars.curChar^.status := C_STATUS.STONED;
       end;
       if value = 0 then GDVars.dumpCr6C00 := True;
     end;
