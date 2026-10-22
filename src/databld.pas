@@ -570,6 +570,7 @@ begin
         if (hit = 0) and (remapFrom[r] = id) and (failNote = '') then
           if DataBld.SameBlock(fam, blocks^[remapBlock[r]], sources^[i]) then
             hit := r;
+      { an entry is a disk's (DaxIo.RemapId): sharing another disk's spare id (hit) still takes one }
       if remapCount = MAX_REMAPS then
         DataBld.Fail('too many collisions')
       else if failNote = '' then begin
