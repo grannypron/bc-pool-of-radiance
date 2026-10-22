@@ -1552,13 +1552,13 @@ begin
     $AC91: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if filesLoaded <> 0 then
-        if GameVars.eclGraphics or GameVars.sprShown or GameVars.picRegionW or GameVars.movedParty or
-            GameVars.redrawSky then begin
+        if GameVars.eclGraphics or GameVars.sprShown or GameVars.picRegionW or EclVars.movedParty or
+            EclVars.redrawSky then begin
           MapView.DisplayMapView;
           CharDisp.PrintMiscInfo;
-          GameVars.redrawSky := False;
+          EclVars.redrawSky := False;
           GameVars.picRegionW := False;
-          GameVars.movedParty := False;
+          EclVars.movedParty := False;
           GameVars.eclGraphics := False;
           GameVars.sprShown := False;
         end;
@@ -1571,7 +1571,7 @@ begin
       EclMenu.CharFightsAlone(0);
     { address $BA03 }
     $3A04: begin
-      case GameVars.sndEffect of
+      case EclVars.sndEffect of
         8: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
         10: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.ECL_CUE]);
       end;

@@ -17,6 +17,12 @@ var
   { set by GameInit (a test program sets its own), so EclVars uses neither DaxIo nor View3D }
   diskHook: TDiskHook;
   wallSetHook: TWallSetHook;
+  { Sound effect selected by a script write (EclVars.WriteGbvm) }
+  sndEffect: Word;
+  { ECL write moved party flag }
+  movedParty: Boolean;
+  { Redraw sky/ceiling in 3D view flag }
+  redrawSky: Boolean;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
   $81 (string reference) gives its GBVM address; $80 (string value) gives 0, as its text is in gbStrings. }
@@ -290,7 +296,7 @@ begin
     0: begin
       GameVars.zone0^.words[address] := value;
       if (address = C_GBVM.SKY_CEILING_COLOR) or (address = C_GBVM.ALT_SKY_COLOR) then
-        GameVars.redrawSky := True;
+        redrawSky := True;
     end;
     1: begin
       GameVars.zone1^[address] := value;
@@ -304,14 +310,14 @@ begin
       case address of
         { the script registers keep nothing written to them }
         C_GBVM.READ_REG1, C_GBVM.READ_REG2, C_GBVM.READ_REG3, C_GBVM.WRITE_REG1, C_GBVM.WRITE_REG2: ;
-        C_GBVM.SOUND_EFFECT: GameVars.sndEffect := value;
+        C_GBVM.SOUND_EFFECT: sndEffect := value;
         C_GBVM.CELL_PARTY_X: begin
-          GameVars.movedParty := True;
+          movedParty := True;
           GameVars.gMapX := value;
         end;
         C_GBVM.CELL_PARTY_Y: begin
           GameVars.gMapY := value;
-          GameVars.movedParty := True;
+          movedParty := True;
         end;
         { facing, mod-4 loop }
         C_GBVM.CELL_FACING: begin
@@ -328,7 +334,7 @@ begin
             end;
             end;
           until ok = True;
-          GameVars.movedParty := True;
+          movedParty := True;
         end;
         C_GBVM.CELL_WALL_COLOR: begin
           GameVars.wallColorSel := value;
@@ -610,4 +616,9 @@ begin
   end;
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  sndEffect := 0;
+  movedParty := False;
+  redrawSky := False;
 end.

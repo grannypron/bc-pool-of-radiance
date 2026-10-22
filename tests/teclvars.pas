@@ -150,9 +150,9 @@ begin
   TestKit.CheckEqualsL(0, lastWallSet, 'but $80 loads nothing');
 
   { zone 4: the party and the view }
-  GameVars.movedParty := False;
+  EclVars.movedParty := False;
   EclVars.WriteGbvm(C_GBVM.CELL_PARTY_X, 7);
-  TestKit.Check((GameVars.gMapX = 7) and GameVars.movedParty, 'CELL_PARTY_X moves the party');
+  TestKit.Check((GameVars.gMapX = 7) and EclVars.movedParty, 'CELL_PARTY_X moves the party');
   Same(7, C_GBVM.CELL_PARTY_X, 'and reads gMapX');
   EclVars.WriteGbvm(C_GBVM.CELL_PARTY_Y, 3);
   Same(3, C_GBVM.CELL_PARTY_Y, 'CELL_PARTY_Y is gMapY');
@@ -170,15 +170,15 @@ begin
   EclVars.WriteGbvm(C_GBVM.CELL_CEIL_FLOOR_COLOR, 2);
   TestKit.CheckEqualsL(2, GameVars.ceilFloorColorSel, 'CELL_CEIL_FLOOR_COLOR');
   EclVars.WriteGbvm(C_GBVM.SOUND_EFFECT, 12);
-  TestKit.CheckEqualsL(12, GameVars.sndEffect, 'SOUND_EFFECT');
+  TestKit.CheckEqualsL(12, EclVars.sndEffect, 'SOUND_EFFECT');
   EclVars.WriteGbvm(C_GBVM.READ_REG1, 99);
   EclVars.WriteGbvm(C_GBVM.WRITE_REG1, 99);
   Same(0, C_GBVM.READ_REG1, 'READ_REG1 reads 0, even written');
   Same(0, C_GBVM.READ_REG2, 'READ_REG2 reads 0');
   Same(0, C_GBVM.READ_REG3, 'READ_REG3 reads 0');
-  GameVars.redrawSky := False;
+  EclVars.redrawSky := False;
   EclVars.WriteGbvm(C_GBVM.SKY_CEILING_COLOR, 3);
-  TestKit.Check(GameVars.redrawSky, 'a sky colour write redraws the sky');
+  TestKit.Check(EclVars.redrawSky, 'a sky colour write redraws the sky');
 
   { the party's effects table }
   FillChar(e1, SizeOf(e1), 0);

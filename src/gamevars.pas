@@ -326,8 +326,6 @@ var
   { Script string buffers, on the heap; GameInit2 allocates and clears them. }
   gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }
-  { Sound effect selected by a script write (EclVars.WriteGbvm) }
-  sndEffect: Word;
   { With dumpCr6B00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to
     C_GBVM.CHAR_ENABLED (EclVars.SpecialWriteZ1) }
   dumpCr6C00: Boolean;
@@ -354,10 +352,6 @@ var
   bottomMsgCleared: Byte;
   { Set when a script changes a view color selector; MapView then applies them }
   picRegionW: Boolean;
-  { ECL write moved party flag }
-  movedParty: Boolean;
-  { Redraw sky/ceiling in 3D view flag }
-  redrawSky: Boolean;
   { Currently in ECL opcode 29 ENCOUNTER MENU flag. It stays the last variable: the initialization clears from video
     through it. }
   inEncMenu: Byte;
