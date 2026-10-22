@@ -38,15 +38,15 @@ function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 procedure EraseChar(name: String);
 
 { Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else
-  prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
-  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
-  trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
-  usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file holds less
-  than a whole record or cannot be read, or is not there and Escape at the save disk prompt gave up (askDisk); the
-  caller then frees the record unused. While the Quick Ends With Fight
-  setting is on (GDVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game or an added character
-  starts under manual control; NPCs and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves
-  them. With the setting off the saved quickfight stays. }
+  prompt with the insert-game-disk message (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The
+  list and combat pointers are cleared, then the item/effect lists are rebuilt from the .itm/.spc files when they
+  exist, stopping at a read error or a trailing part record, and the usual spells are read from the .mem file (none
+  when it is missing or not a usual-spells file for this character). False, with nothing read after the record, when
+  the .sav/.cha file holds less than a whole record or cannot be read, or is not there and Escape at the save disk
+  prompt gave up (askDisk); the caller then frees the record unused. While the Quick Ends With Fight setting is on
+  (GDVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game or an added character starts under
+  manual control; NPCs and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With
+  the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
@@ -121,7 +121,7 @@ var
 begin
   repeat
     opened := FileUtil.RewriteTemp(f, name);
-  until opened or not SaveMenu.AskSaveDisk;
+  until opened or not SaveMenu.AskSaveDisk('Cannot write', name);
   RewriteSaveFile := opened;
 end;
 
@@ -172,7 +172,7 @@ begin
     Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
     Rewrite(f);
     ioRes := IOResult;
-  until (ioRes = 0) or not SaveMenu.AskSaveDisk;
+  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GDVars.dsSaveDirectory + 'charlist.txt');
   { Escape gave up: the roster stays as it was }
   if ioRes <> 0 then Exit;
   p := list;
@@ -405,13 +405,13 @@ begin
     name := SaveLoad.CharFileBase(name);
     msg := SaveMenu.SaveDiskMsg;
   end else
-    msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
+    msg := DaxIo.DataDiskMsg;
   if savedGame then
     ext := '.sav'
   else
     ext := '.cha';
   { Escape at the save disk prompt gives up on a character whose file is gone (#794) }
-  found := DaxIo.OpenWithRetry(name + ext, msg, False, askDisk, f);
+  found := DaxIo.OpenWithRetry(name + ext, msg, False, not askDisk, f);
   LoadChar := False;
   if not found then Exit;
   res := 0;
@@ -430,7 +430,7 @@ begin
   if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
-    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, askDisk, f);
+    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, not askDisk, f);
     item := nil;
     whole := found;
     while whole and not Eof(f) do begin
@@ -453,7 +453,7 @@ begin
       Close(f);
   end;
   if DaxIo.FileExists(name + '.spc') then begin
-    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, askDisk, f);
+    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, not askDisk, f);
     effect := nil;
     whole := found;
     while whole and not Eof(f) do begin
@@ -541,7 +541,7 @@ var
   found: Boolean;
 begin
   found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveMenu.SaveDiskMsg, True,
-                         True, f);
+                         False, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin

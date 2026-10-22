@@ -47,9 +47,10 @@ procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
 { 'Put save disk in X: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
 
-{ Ask for the save disk (SaveDiskMsg) on the bottom line until a key: False when it was Escape, giving up (SSI asked
-  until the disk was there, so a folder that could not be written held the player for good, #794). }
-function AskSaveDisk: Boolean;
+{ Say on the bottom line that name could not be made (problem: 'Cannot write', 'Cannot create'), with its path, then
+  ask for the save disk (SaveDiskMsg), each until a key (DaxIo.AskForDisk): False when Escape answered, giving up (SSI
+  asked until the disk was there, so a folder that could not be written held the player for good, #794). }
+function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 
 { Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
   directory already exists) counts as success. Prompt for the save disk until MkDir succeeds or Escape gives up
@@ -393,9 +394,9 @@ begin
   SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ': (Esc gives up)';
 end;
 
-function AskSaveDisk: Boolean;
+function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 begin
-  AskSaveDisk := TextRend.DisplayAndReadKey(Yellow, SaveMenu.SaveDiskMsg) <> C_Keys.ESC;
+  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_Keys.ESC;
 end;
 
 procedure CheckSaveDir;
@@ -415,7 +416,8 @@ begin
     MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
     ioRes := IOResult;
     made := (ioRes = 0) or (ioRes = 5);
-  until made or not SaveMenu.AskSaveDisk;
+  until made or not SaveMenu.AskSaveDisk('Cannot create',
+                                         Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
 end;
 
 end.

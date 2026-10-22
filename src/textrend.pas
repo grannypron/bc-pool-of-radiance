@@ -34,9 +34,6 @@ function InputUint16(query: Types.TStr40; color: Byte): Word;
 { Show msg on the bottom line and wait for a key; an extended key is read whole (GameIo.ReadAnyKey). }
 procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
 
-{ DisplayAndPause, returning the key (#0 for an extended key). }
-function DisplayAndReadKey(color: Byte; msg: Types.TStr40): Char;
-
 { The BIOS tick count (18.2 a second since midnight), read until two reads agree, so a timer tick between the two words
   of a read is not taken. }
 function TickCount: LongInt;
@@ -294,14 +291,9 @@ procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
 var
   key: Char;
 begin
-  key := TextRend.DisplayAndReadKey(color, msg);
-end;
-
-function DisplayAndReadKey(color: Byte; msg: Types.TStr40): Char;
-begin
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, color, msg);
-  DisplayAndReadKey := GameIo.ReadAnyKey;
+  key := GameIo.ReadAnyKey;
 end;
 
 function TickCount: LongInt;

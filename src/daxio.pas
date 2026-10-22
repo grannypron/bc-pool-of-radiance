@@ -26,9 +26,22 @@ procedure PromptBox(attr: Byte; message: Types.TStr40);
 { PromptBox, returning the key (#0 for an extended key). }
 function PromptKey(attr: Byte; message: Types.TStr40): Char;
 
-procedure OverlayPrompt;
+{ name's full path (expanded from the current directory), or its end, where the file's name is, after '...' when it
+  is longer than room characters. }
+function PathForLine(name: Types.TPathStr; room: Byte): Types.TPathStr;
 
-function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, canGiveUp: Boolean;
+{ On the bottom line, problem and name's path ('Not found: C:\POOL\ITEMS'), then diskMsg, each until a key: the key
+  that answered diskMsg. }
+function AskForDisk(problem: Types.TStr40; name: Types.TPathStr; diskMsg: Types.TStr40): Char;
+
+{ 'Insert disk N in drive X: (Esc quits)', for the current virtual disk and the data drive. }
+function DataDiskMsg: Types.TStr40;
+
+{ Before the game's screen is up (plain DOS text): until file name is there, say it is not, with its path, and ask
+  with diskMsg, each time until a key; Escape quits to DOS (SSI asked until it was there). }
+procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
+
+function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, escQuits: Boolean;
   var f: file): Boolean;
 
 { The drive the game's data is read from: GDVars.gameDir's, or the current drive while GDVars.gameDir is empty (GameInit
@@ -165,21 +178,40 @@ begin
   DaxIo.WriteBlock(0, 24, Black, 40);
 end;
 
-{ I/O checking is off ($I-) across OverlayPrompt/OpenWithRetry/FileExists so IOResult is usable; it is back on ($I+) for
+{ I/O checking is off ($I-) across WaitForFile/OpenWithRetry/FileExists so IOResult is usable; it is back on ($I+) for
   the rest of the unit }
 {$I-}
 
-{ Wait for GAME.OVR to be found, asking for the overlay disk and a key between tries. }
-procedure OverlayPrompt;
-var key: Char; found: Boolean;
+function PathForLine(name: Types.TPathStr; room: Byte): Types.TPathStr;
+var
+  full: Types.TPathStr;
 begin
-  repeat
-    found := DaxIo.FileExists('game.ovr');
-    if not found then begin
-      WriteLn('Please insert overlay disk.');
-      key := GameIo.ReadAnyKey;
-    end;
-  until found;
+  full := FExpand(name);
+  if Length(full) > room then
+    full := '...' + Copy(full, Length(full) - room + 4, room - 3);
+  PathForLine := full;
+end;
+
+function AskForDisk(problem: Types.TStr40; name: Types.TPathStr; diskMsg: Types.TStr40): Char;
+begin
+  DaxIo.PromptBox(Yellow, problem + ': ' + DaxIo.PathForLine(name, 38 - Length(problem)));
+  AskForDisk := DaxIo.PromptKey(Yellow, diskMsg);
+end;
+
+function DataDiskMsg: Types.TStr40;
+begin
+  DataDiskMsg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
+end;
+
+procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
+begin
+  while not DaxIo.FileExists(name) do begin
+    WriteLn('Not found: ', DaxIo.PathForLine(name, 68));
+    WriteLn(diskMsg, ' (Esc quits)');
+    { nothing is set up yet: no screen mode or sound to put back }
+    if GameIo.ReadAnyKey = C_Keys.ESC then
+      Halt;
+  end;
 end;
 
 function DataDrive: Char;
@@ -195,30 +227,25 @@ begin
 end;
 
 { OpenWithRetry: Try to open fileName; if missing and prompts are allowed (noPrompt = #0), say which file is missing,
-  by its full path (the name expanded from the current directory), then show promptMsg (attr 14) through PromptBox,
-  each until a key, and retry; with canGiveUp, Escape at promptMsg gives up (a save disk's file, which may be gone for
-  good, #794; the game's data has no way on without its file). On success open the caller's untyped file f for reading
-  only (FileUtil.OpenReadOnly, recsize 1), so a read-only file opens too: every caller only reads. Returns found }
-function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, canGiveUp: Boolean;
+  with its path, then ask with promptMsg (AskForDisk), and retry. Escape at promptMsg gives up, or with escQuits (the
+  game's data, which it cannot go on without) quits to DOS (GameIo.ExitGame); SSI asked until the file was there
+  (#794). On success open the caller's untyped file f for reading only (FileUtil.OpenReadOnly, recsize 1), so a
+  read-only file opens too: every caller only reads. Returns found }
+function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, escQuits: Boolean;
   var f: file): Boolean;
 var
   found: Boolean;
   gaveUp: Boolean;
-  full: Types.TPathStr;
-  msg: Types.TStr40;
 begin
   gaveUp := False;
   repeat
     found := DaxIo.FileExists(fileName);
-    if (not found) and not noPrompt then begin
-      full := FExpand(fileName);
-      { the end of a path too long for the line, where the file's name is }
-      if Length(full) > 29 then
-        full := '...' + Copy(full, Length(full) - 25, 26);
-      msg := 'Not found: ' + full;
-      DaxIo.PromptBox(Yellow, msg);
-      gaveUp := (DaxIo.PromptKey(Yellow, promptMsg) = C_Keys.ESC) and canGiveUp;
-    end;
+    if (not found) and not noPrompt then
+      if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_Keys.ESC then begin
+        if escQuits then
+          GameIo.ExitGame;
+        gaveUp := True;
+      end;
   until found or noPrompt or gaveUp;
   if found then
     found := FileUtil.OpenReadOnly(f, fileName);
@@ -312,14 +339,13 @@ begin
 end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
-  the two-byte header size and directory. Missing media prompts through OpenWithRetry with insertDiskMsg for the current
-  virtual disk, unless GDVars.dsSuppressingInsertDiskFlag is set. False, with both handles closed, when the header size
+  the two-byte header size and directory. Missing media prompts through OpenWithRetry with DataDiskMsg (Escape quits),
+  unless GDVars.dsSuppressingInsertDiskFlag is set. False, with both handles closed, when the header size
   cannot be read or the directory it gives runs past the end of the file, whose scan would never end. }
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
-  if DaxIo.OpenWithRetry(dirName + ext, GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':',
-                         GDVars.dsSuppressingInsertDiskFlag, False, f1) then begin
+  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GDVars.dsSuppressingInsertDiskFlag, True, f1) then begin
     { read-only, as f1 is }
     if not FileUtil.OpenReadOnly(f2, dirName + ext) then begin
       Close(f1);
