@@ -23,7 +23,8 @@ const
   WPN_SLASH = 0;
   WPN_PIERCE = $01;
   WPN_BASH = $80;
-  { A Strength-bonus weapon that can also be thrown (dagger, hand axe, spear, javelin); consumers require both bits }
+  { A Strength-bonus weapon that can also be thrown (hand axe, spear, and the javelin from CharHlp.FixAmmoBits); it
+    strikes in melee too. Consumers require both bits }
   PROPS_THROWABLE = PROP_THROWN or PROP_STR_BONUS;
   { Base item IDs. }
   { Base item for Spiritual Hammer. EffHndlr also sets nameIds[2] to name component 20; item IDs and name-component IDs

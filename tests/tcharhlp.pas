@@ -358,6 +358,12 @@ begin
   TestKit.CheckEqualsL($0B, items^[C_Item.LONG_BOW].props, 'a long bow still shoots arrows');
   TestKit.CheckEqualsL($8A, items^[C_Item.QUARREL].props, 'a quarrel keeps its bits');
   TestKit.CheckEqualsL($14, items^[C_Item.DAGGER].props, 'a dagger is still thrown');
+  { the javelin (#798) is thrown or melee; holy water stays thrown only }
+  items^[C_Item.JAVELIN].props := C_Item.PROP_THROWN or C_Item.PROP_FIRES_AMMO or C_Item.PROP_DEX_MISSILE;
+  items^[C_Item.HOLY_WATER_VIAL].props := C_Item.PROP_THROWN or C_Item.PROP_FIRES_AMMO or C_Item.PROP_DEX_MISSILE;
+  CharHlp.FixAmmoBits(items);
+  TestKit.CheckEqualsL($16, items^[C_Item.JAVELIN].props, 'a javelin is throwable, not a launcher');
+  TestKit.CheckEqualsL($1A, items^[C_Item.HOLY_WATER_VIAL].props, 'holy water is still thrown only');
   Dispose(items);
   { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
   FillChar(crs[1], SizeOf(crs[1]), 0);
