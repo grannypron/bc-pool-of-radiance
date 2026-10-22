@@ -376,28 +376,33 @@ begin
   end;
 end;
 
+{ Protection from Evil and from Good: +2 to saving throws and -2 to be hit when foe holds, that is when the attacker or
+  caster (GDVars.curChar) has the alignment warded against, and it is on the other side. A script's attack or damage
+  has no attacker, and curChar is then a party member. The penalty is taken under C_Cond.ATTACK_ROLL_DEF, after the
+  d20 is rolled; SSI's took it under C_Cond.DEFENDER_AC, before the roll replaced it, so it never applied (#789). }
+
+procedure Protection(creature: Types.PCharRecord; foe: Boolean);
+begin
+  if foe and (GDVars.curChar^.hostile <> creature^.hostile) then begin
+    Inc(GDVars.gSaveRoll, 2);
+    Dec(GDVars.gAttackRoll, 2);
+  end;
+end;
+
 { Protection from Evil (eff 8, 45) }
 
 procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.curChar^.alignment = C_Align.LAWFUL_EVIL) or
-      (GDVars.curChar^.alignment = C_Align.NEUTRAL_EVIL) or
-      (GDVars.curChar^.alignment = C_Align.CHAOTIC_EVIL) then begin
-    Inc(GDVars.gSaveRoll, 2);
-    Dec(GDVars.gAttackRoll, 2);
-  end;
+  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL,
+                                                               C_Align.CHAOTIC_EVIL]);
 end;
 
 { Protection from Good (eff 9, 46) }
 
 procedure EffProtGood(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.curChar^.alignment = C_Align.LAWFUL_GOOD) or
-      (GDVars.curChar^.alignment = C_Align.NEUTRAL_GOOD) or
-      (GDVars.curChar^.alignment = C_Align.CHAOTIC_GOOD) then begin
-    Inc(GDVars.gSaveRoll, 2);
-    Dec(GDVars.gAttackRoll, 2);
-  end;
+  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_GOOD, C_Align.NEUTRAL_GOOD,
+                                                               C_Align.CHAOTIC_GOOD]);
 end;
 
 { Resist Cold (eff 10) }

@@ -262,8 +262,8 @@ begin
 end;
 
 { Trigger a protection once: the creature's own spell (own, eff 8 or 9) or else an aura it stands in or carries (aura,
-  eff 45 or 46). SSI's triggered both, so a paladin's aura and a Protection from Evil spell gave -4 to be hit and +4
-  to saves (#783). }
+  eff 45 or 46). SSI's triggered both, so a paladin's aura and a Protection from Evil spell gave +4 to saves (#783).
+  It runs under C_Cond.ATTACK_ROLL_DEF and SAVING_THROW. }
 procedure TriggerProtection(creature: Types.PCharRecord; own, aura: Byte);
 var
   effect: Types.PEffectRec;
@@ -381,8 +381,6 @@ begin
         Blindness and Shield changes (#717) }
       FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
-      FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
-      FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
     end;
     C_Cond.SAVING_THROW: begin
       FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
@@ -417,6 +415,9 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.CHARM);
     end;
     C_Cond.ATTACK_ROLL_DEF: begin
+      { after the d20, which AttackRoll rolls after C_Cond.DEFENDER_AC (#789) }
+      FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
+      FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
       FxEngine.TriggerEffect(creature, C_Effect.INVISIBLE); FxEngine.TriggerEffect(creature,
           C_Effect.DUST_DISAPPEAR);
       FxEngine.TriggerEffect(creature, C_Effect.BLINKING); FxEngine.TriggerEffect(creature,
