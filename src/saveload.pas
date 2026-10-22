@@ -30,7 +30,7 @@ procedure LoadCharIconAnim(loading: Boolean);
   when all are whole are they put in place of the old ones; an empty item or effect list's old file is erased. The .mem
   and .sts files beside them are rewritten then, holding the character's usual spells and statistics when it has any. A
   set that cannot be written whole (a full disk) leaves the old files and CHARLIST.TXT as they were and is reported on
-  the bottom line. True when the character was saved. }
+  the bottom line, as is a .mem or .sts that could not be written. True when the character was saved. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
 { Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, those there are) and take its name off
@@ -67,7 +67,8 @@ procedure LoadGame;
   when all of them were written whole put them in place of the old save's; then write the slot's description and the
   current area (AreaName.CurrentArea) to SAVGAMx.INF and set the recently-saved flag. The members' single-character
   files are left alone (SSI erased them, here and on loading). A save not written whole leaves the old one as it was and
-  says so. True when the game was saved; False also for Escape on the menu. The caller redraws the screen. }
+  says so, as does a save whose side files (.inf, .sts, .map, .nts, the members' .mem and .sts) were not all written.
+  True when the game was saved; False also for Escape on the menu. The caller redraws the screen. }
 function SaveGame: Boolean;
 
 const
@@ -295,9 +296,9 @@ begin
 end;
 
 { Put the copies WriteCharFiles wrote for creature in place of <fn><ext>, .itm and .spc (an empty list's old file is
-  erased), then write its .mem and .sts beside them: True when every copy was put in place. A record that is not put in
-  place takes none of the rest with it. }
-function PlaceCharFiles(creature: Types.PCharRecord; fn: Types.TPathStr; ext: Types.TStr8): Boolean;
+  erased), then write its .mem and .sts beside them, clearing whole when either was not written: True when every copy
+  was put in place. A record that is not put in place takes none of the rest with it. }
+function PlaceCharFiles(creature: Types.PCharRecord; fn: Types.TPathStr; ext: Types.TStr8; var whole: Boolean): Boolean;
 var
   ok: Boolean;
 begin
@@ -312,8 +313,8 @@ begin
       ok := FileUtil.PutInPlace(fn + '.spc') and ok
     else
       FileUtil.DeleteFile(fn + '.spc');
-    UsualSpl.WriteUsualSpells(creature, fn);
-    Stats.WriteChar(creature, fn);
+    whole := UsualSpl.WriteUsualSpells(creature, fn) and whole;
+    whole := Stats.WriteChar(creature, fn) and whole;
   end else
     SaveLoad.DropCharFiles(fn, ext);
   PlaceCharFiles := ok;
@@ -327,6 +328,8 @@ var
   p: Types.PItemRec;
   tail: Types.PItemRec;
   ok: Boolean;
+  { the .mem and .sts were written too }
+  whole: Boolean;
   found: Boolean;
 begin
   SaveMenu.CheckSaveDir;
@@ -338,10 +341,11 @@ begin
     fn := GDVars.dsSaveDirectory + fname;
   end;
   { a write that fails (a full disk) leaves the old files as they were }
-  ok := SaveLoad.WriteCharFiles(creature, fn, ext) and SaveLoad.PlaceCharFiles(creature, fn, ext);
-  if not ok then
-    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.')
-  else if Length(fname) = 0 then begin
+  whole := True;
+  ok := SaveLoad.WriteCharFiles(creature, fn, ext) and SaveLoad.PlaceCharFiles(creature, fn, ext, whole);
+  if not (ok and whole) then
+    TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + ' in full.');
+  if ok and (Length(fname) = 0) then begin
     { the name is added once: a party member's line, which LoadCharlist marks with '* ', is its own }
     SaveLoad.LoadCharlist(list);
     p := list;
@@ -693,6 +697,8 @@ var
   ok: Boolean;
   { the save file's copy was created: it is closed after the writes }
   opened: Boolean;
+  { the side files were written too }
+  whole: Boolean;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL leaves
     the old area's there until then }
@@ -753,29 +759,34 @@ begin
   end;
   { the vault's own copy is put in place, or not, by itself }
   ok := ok and Vault.CommitToSlot(letter);
+  whole := True;
   if ok then begin
     ok := FileUtil.PutInPlace(fn);
     p := GDVars.creatureList;
     for n := 1 to count do begin
       if ok then
-        ok := SaveLoad.PlaceCharFiles(p, GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav')
+        ok := SaveLoad.PlaceCharFiles(p, GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav', whole)
       else
         SaveLoad.DropCharFiles(GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
       p := p^.nextCharAddr;
     end;
-    SaveMenu.WriteSlotInfo(letter, desc, area);
-    Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts');
-    Explored.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map');
-    MapNotes.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts');
+    whole := SaveMenu.WriteSlotInfo(letter, desc, area) and whole;
+    whole := Stats.WriteGame(GDVars.dsSaveDirectory + 'savgam' + letter + '.sts') and whole;
+    whole := Explored.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.map') and whole;
+    whole := MapNotes.WriteSlot(GDVars.dsSaveDirectory + 'savgam' + letter + '.nts') and whole;
   end else begin
     FileUtil.DeleteFile(FileUtil.TempName(fn));
     for n := 1 to count do
       SaveLoad.DropCharFiles(GDVars.dsSaveDirectory + SaveLoad.MemberName(letter, n), '.sav');
   end;
   TextRend.ClearBottomLine;
-  if ok then
-    GDVars.recentSaved := 1
-  else begin
+  if ok then begin
+    GDVars.recentSaved := 1;
+    if not whole then begin
+      TextRend.DisplayAndPause(Yellow, 'The game was saved, but not in full.');
+      TextRend.ClearBottomLine;
+    end;
+  end else begin
     TextRend.DisplayAndPause(Yellow, 'The game was not saved.');
     TextRend.ClearBottomLine;
   end;

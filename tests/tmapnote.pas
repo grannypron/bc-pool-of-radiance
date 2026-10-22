@@ -22,11 +22,17 @@ begin
   ok := MapNotes.SetNote(18, 1, 5, 8, '');
   TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 5, 8), 'an empty note removes it');
   TestKit.CheckEqualsS('next door', MapNotes.Note(18, 1, 6, 8), 'leaving the others');
-  MapNotes.WriteSlot('TMAPNOTE.NTS');
+  TestKit.Check(MapNotes.WriteSlot('TMAPNOTE.NTS'), 'the notes are written');
+  TestKit.Check(not MapNotes.WriteSlot('NODIR\TMAPNOTE.NTS'), 'a write into a missing folder says it failed');
   MapNotes.Clear;
   TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 6, 8), 'cleared, there are none');
   MapNotes.ReadSlot('TMAPNOTE.NTS');
   TestKit.CheckEqualsS('next door', MapNotes.Note(18, 1, 6, 8), 'read back from its file');
+  MapNotes.ClearNote(18, 1, 6, 8);
+  TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 6, 8), 'ClearNote removes a note');
+  MapNotes.ClearNote(18, 1, 6, 8);
+  TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 6, 8), 'and a square with none is no matter');
+  MapNotes.ReadSlot('TMAPNOTE.NTS');
   MapNotes.ReadSlot('NOSUCH.NTS');
   TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 6, 8), 'a missing file leaves none');
   ok := True;

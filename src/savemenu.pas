@@ -41,8 +41,8 @@ function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boo
   False with both empty. }
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
 
-{ Write slot letter's savgam<x>.inf. A failed write leaves the old one (FileUtil.WriteRecord). }
-procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
+{ Write slot letter's savgam<x>.inf: True when it was. A failed write leaves the old one (FileUtil.WriteRecord). }
+function WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
 
 { 'Put save disk in X: (Esc gives up)', for the save directory's drive. }
 function SaveDiskMsg: Types.TStr40;
@@ -129,10 +129,9 @@ begin
   ReadSlotInfo := ok;
 end;
 
-procedure WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea);
+function WriteSlotInfo(letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
 var
   rec: TSlotInfoFile;
-  written: Boolean;
 begin
   FillChar(rec, SizeOf(rec), 0);
   rec.sig := INFO_SIG;
@@ -140,7 +139,7 @@ begin
   rec.desc := desc;
   rec.area := area;
   { a failed write leaves the old one }
-  written := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
+  WriteSlotInfo := FileUtil.WriteRecord(SaveMenu.SlotFile(letter, '.inf'), rec, SizeOf(rec));
 end;
 
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as hh:mm and

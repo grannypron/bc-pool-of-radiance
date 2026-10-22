@@ -20,11 +20,15 @@ procedure Clear;
 { The note on square (x, y) of the area of script and map; '' for none. }
 function Note(script, map: Byte; x, y: ShortInt): TNoteText;
 
-{ Set the note on square (x, y) of the area of script and map; '' removes it. False when the notes are full. }
+{ Set the note on square (x, y) of the area of script and map; '' removes it (ClearNote). False when the notes are
+  full. }
 function SetNote(script, map: Byte; x, y: ShortInt; text: TNoteText): Boolean;
 
-{ Write the notes as file fn. }
-procedure WriteSlot(fn: String);
+{ Remove the note on square (x, y) of the area of script and map, if it has one. }
+procedure ClearNote(script, map: Byte; x, y: ShortInt);
+
+{ Write the notes as file fn: True when they were written (FileUtil.WriteRecord). }
+function WriteSlot(fn: String): Boolean;
 
 { Read the notes from file fn; a missing, short or foreign file leaves none. }
 procedure ReadSlot(fn: String);
@@ -91,15 +95,11 @@ var
   i: Byte;
 begin
   SetNote := True;
-  i := MapNotes.Find(script, map, x, y);
   if text = '' then begin
-    { the last note takes the removed one's place }
-    if i <> 0 then begin
-      rec.notes[i] := rec.notes[rec.count];
-      Dec(rec.count);
-    end;
+    MapNotes.ClearNote(script, map, x, y);
     Exit;
   end;
+  i := MapNotes.Find(script, map, x, y);
   if i = 0 then begin
     if rec.count >= MAX_NOTES then begin
       SetNote := False;
@@ -115,11 +115,21 @@ begin
   rec.notes[i].text := text;
 end;
 
-procedure WriteSlot(fn: String);
+procedure ClearNote(script, map: Byte; x, y: ShortInt);
 var
-  written: Boolean;
+  i: Byte;
 begin
-  written := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
+  { the last note takes the removed one's place }
+  i := MapNotes.Find(script, map, x, y);
+  if i <> 0 then begin
+    rec.notes[i] := rec.notes[rec.count];
+    Dec(rec.count);
+  end;
+end;
+
+function WriteSlot(fn: String): Boolean;
+begin
+  WriteSlot := FileUtil.WriteRecord(fn, rec, SizeOf(rec));
 end;
 
 procedure ReadSlot(fn: String);

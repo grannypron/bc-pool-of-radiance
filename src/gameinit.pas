@@ -308,7 +308,6 @@ end;
 
 procedure GameInit2;
 var
-  opened: Boolean;
   i: Byte;
 begin
   GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
@@ -376,14 +375,15 @@ begin
   for i := 0 to 11 do
     MapTiles.LoadIconAnim('COMSPR', i, i + 13);
   MapTiles.LoadIconAnim('COMSPR', 25, 25);
-  opened := DaxIo.OpenWithRetry('ITEMS', DaxIo.DataDiskMsg, False, True, itemsFile);
-  Seek(itemsFile, 2);
-  { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
-  BlockRead(itemsFile, GDVars.baseItems^, SizeOf(GDVars.baseItems^), itemsRead);
-  Close(itemsFile);
-  if (IOResult <> 0) or (itemsRead < (Types.BASE_ITEM_LAST + 1) * SizeOf(Types.TBaseItemRec)) then begin
-    GameIo.FatalError('Unable to read ITEMS.');
+  itemsRead := 0;
+  if DaxIo.OpenWithRetry('ITEMS', DaxIo.DataDiskMsg, False, True, itemsFile) then begin
+    Seek(itemsFile, 2);
+    { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
+    BlockRead(itemsFile, GDVars.baseItems^, SizeOf(GDVars.baseItems^), itemsRead);
+    Close(itemsFile);
   end;
+  if (IOResult <> 0) or (itemsRead < (Types.BASE_ITEM_LAST + 1) * SizeOf(Types.TBaseItemRec)) then
+    GameIo.FatalError('Unable to read ITEMS.');
   CharHlp.FixWeaponClasses(GDVars.baseItems);
   CharHlp.FixAmmoBits(GDVars.baseItems);
   GDVars.gameDir := savedDir;
