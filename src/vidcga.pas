@@ -59,6 +59,10 @@ end;
 
 { color is mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat }
 procedure DrawGlyph(col, row, color, glyph: Byte);
+const
+  { CGA colors 0..3 repeated across eight 2-bit pixels }
+  cgaColorPat: array[0..3] of Word = (
+    $0000, $5555, $AAAA, $FFFF);
 var
   dstOff: Word;
   cnt: Word;
@@ -75,7 +79,7 @@ begin
     mask := $80;
     for k := 0 to 7 do begin
       if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and GameDefs.cgaColorPat[color]);
+        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
       mask := mask shr 1;
     end;
     cgaB800[dstOff][col] := Swap(cgaWord);
@@ -84,7 +88,7 @@ begin
     mask := $80;
     for k := 0 to 7 do begin
       if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and GameDefs.cgaColorPat[color]);
+        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
       mask := mask shr 1;
     end;
     cgaBA00[dstOff][col] := Swap(cgaWord);

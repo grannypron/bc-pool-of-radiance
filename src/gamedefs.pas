@@ -138,9 +138,6 @@ const
 
 const
   { Text-mode colour and pixel tables; EGA plane and CGA pixel tables; icon colour map }
-  { CGA colors 0..3 repeated across eight 2-bit pixels }
-  cgaColorPat: array[0..3] of Word = (
-    $0000, $5555, $AAAA, $FFFF);
   { EGA-to-CGA font color map. }
   attrTable: array[0..15] of Byte = (
     { EGA 0 Black -> CGA colour 0 }
