@@ -544,7 +544,6 @@ begin
   c^.strCur := 18;
   TestKit.CheckEqualsL(100, ClassCal.ExperienceShare(c, 100), 'magical Strength 18 over 15 earns no bonus');
   c^.effectsAddr := nil;
-  c^.strCur := 15;
   c^.charClass := C_Class.PALADIN;
   c^.strCur := 17;
   c^.wisCur := 15;
