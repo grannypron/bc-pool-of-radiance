@@ -294,6 +294,18 @@ end;
 { HealMenu: Allocates a 10-node string list with MenuCore.AllocStringList, fills it from templeSpells, runs
   MenuCore.MenuVertical over it and dispatches idx 0..8 to the cures (idx 9 'Exit', or a #0 key, leaves) }
 procedure HealMenu;
+const
+  templeSpells: array[1..10] of String[20] = (
+    'Cure Blindness',
+    'Cure Disease',
+    'Cure Light Wounds',
+    'Cure Serious Wounds',
+    'Cure Critical Wounds',
+    'Neutralize Poison',
+    'Raise Dead',
+    'Remove Curse',
+    'Stone to Flesh',
+    'Exit');
 var
   list: Types.PItemRec;
   sel: Types.PItemRec;
@@ -311,7 +323,7 @@ begin
   sel := list;
   i := 1;
   while list <> nil do begin
-    list^.name := GameDefs.templeSpells[i];
+    list^.name := templeSpells[i];
     list^.inUse := 0;
     list := list^.next;
     Inc(i);

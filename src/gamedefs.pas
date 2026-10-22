@@ -19,18 +19,6 @@ const
   cureDiseaseEffects: array[1..6] of Byte = (
     C_EFFECT.HELPLESS, C_EFFECT.DISEASED, C_EFFECT.DISEASE_STR, C_EFFECT.DISEASE_HP,
     C_EFFECT.ROT_NO_HEAL, C_EFFECT.MUMMY_ROT);
-  { HealMenu }
-  templeSpells: array[1..10] of String[20] = (
-    'Cure Blindness',
-    'Cure Disease',
-    'Cure Light Wounds',
-    'Cure Serious Wounds',
-    'Cure Critical Wounds',
-    'Neutralize Poison',
-    'Raise Dead',
-    'Remove Curse',
-    'Stone to Flesh',
-    'Exit');
   { AI step patterns (aiStance 1..6): five direction offsets tried in order, each added to the base direction mod 8 (8 =
     straight ahead, 1/7 = one step clockwise/counterclockwise, 2/6 = two, 3/5 = three, 4 = reverse). Patterns 1..4 are
     kept on three turns out of four; sweep patterns 5..6 are rerolled every turn. }
