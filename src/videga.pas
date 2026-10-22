@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_Video, C_Ega, GDConsts, GDVars, DaxIo, Crt, Dos, PicEga;
+uses Types, C_Video, C_EGA, GDConsts, GDVars, DaxIo, Crt, Dos, PicEga;
 
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
@@ -27,24 +27,24 @@ var
 { Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
 procedure ResetEgaGC;
 begin
-  Port[C_Ega.GC_ADDR_PORT] := 0;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 1;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 2;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 3;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 4;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 5;
-  Port[C_Ega.GC_DATA_PORT] := 0;
-  Port[C_Ega.GC_ADDR_PORT] := 7;
-  Port[C_Ega.GC_DATA_PORT] := $0F;
-  Port[C_Ega.GC_ADDR_PORT] := 8;
-  Port[C_Ega.GC_DATA_PORT] := $FF;
-  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
-  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+  Port[C_EGA.GC_ADDR_PORT] := 0;
+  Port[C_EGA.GC_DATA_PORT] := 0;
+  Port[C_EGA.GC_ADDR_PORT] := 1;
+  Port[C_EGA.GC_DATA_PORT] := 0;
+  Port[C_EGA.GC_ADDR_PORT] := 2;
+  Port[C_EGA.GC_DATA_PORT] := 0;
+  Port[C_EGA.GC_ADDR_PORT] := 3;
+  Port[C_EGA.GC_DATA_PORT] := 0;
+  Port[C_EGA.GC_ADDR_PORT] := 4;
+  Port[C_EGA.GC_DATA_PORT] := 0;
+  Port[C_EGA.GC_ADDR_PORT] := 5;
+  Port[C_EGA.GC_DATA_PORT] := 0;
+  Port[C_EGA.GC_ADDR_PORT] := 7;
+  Port[C_EGA.GC_DATA_PORT] := $0F;
+  Port[C_EGA.GC_ADDR_PORT] := 8;
+  Port[C_EGA.GC_DATA_PORT] := $FF;
+  Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
+  Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
 end;
 
 { Make page the active display page (INT10 AH=5) and store its segment base, with a 512-paragraph stride, in egaCurPage.
@@ -75,14 +75,14 @@ begin
   rowCount := (lrRow - ulRow + 1) * 8 - 1;
   VidEga.SetupEgaOtherPage(page);
   VidEga.ResetEgaGC;
-  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
-  Port[C_Ega.GC_DATA_PORT] := 2;
+  Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
+  Port[C_EGA.GC_DATA_PORT] := 2;
   for i := 0 to rowCount do begin
     FillChar(Mem[egaOtherPage: dstOff], lrCol - ulCol + 1, color);
     Inc(dstOff, 40);
   end;
-  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
-  Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
+  Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
+  Port[C_EGA.GC_DATA_PORT] := C_EGA.GC_WRITE_MODE_0;
   VidEga.SetupEgaOtherPage(GDVars.pageNum);
 end;
 
@@ -106,13 +106,13 @@ var
   dstBase: Word;
   plane: Byte;
 begin
-  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+  Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
   for row := 0 to SizeOf(GDVars.spanActive) - 1 do
     if GDVars.spanActive[row] <> 0 then begin
       dstBase := GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 1;
       { each plane's bytes, every fourth from its own in the view buffer }
       for plane := 0 to 3 do begin
-        Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+        Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
         srcOff := GDVars.spanFirstOfs[row] + plane;
         dstOff := dstBase;
         repeat
@@ -122,10 +122,10 @@ begin
         until srcOff > GDVars.spanLastOfs[row];
       end;
     end;
-  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+  Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
   dstOff := GDVars.fbRowOfs[8] + 1;
-  Port[C_Ega.GC_ADDR_PORT] := C_Ega.GC_MODE_REG;
-  Port[C_Ega.GC_DATA_PORT] := GC_WRITE_MODE_1;
+  Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
+  Port[C_EGA.GC_DATA_PORT] := GC_WRITE_MODE_1;
   for row := 0 to SizeOf(GDVars.spanActive) - 1 do begin
     if GDVars.spanActive[row] <> 0 then
       Move(Mem[EGA_STAGE_SEG:dstOff + GDVars.spanScreenOfs[row]],
@@ -133,7 +133,7 @@ begin
            (GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row]) div 4 + 1);
     Inc(dstOff, 40);
   end;
-  Port[C_Ega.GC_DATA_PORT] := C_Ega.GC_WRITE_MODE_0;
+  Port[C_EGA.GC_DATA_PORT] := C_EGA.GC_WRITE_MODE_0;
 end;
 
 { 4 plane bytes per cell through the sequencer's map mask }
@@ -154,15 +154,15 @@ begin
     lastRow := firstRow + height - 1;
     colOff := screenX;
     colEnd := colOff + width - 1;
-    Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+    Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
     for row := firstRow to lastRow do
       for col := colOff to colEnd do
         for plane := 0 to 3 do begin
-          Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
+          Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
           Mem[C_Video.EGA_VIDEO_SEG:GDVars.fbRowOfs[row] + col] := pic^.data[srcOff];
           Inc(srcOff);
         end;
-    Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+    Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
   end;
 end;
 
@@ -174,10 +174,10 @@ var
   outerRow: Byte;
 begin
   dstOff := (row * 8) * 40 + col;
-  Port[C_Ega.SEQ_ADDR_PORT] := C_Ega.SEQ_MAP_MASK_REG;
+  Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
   for outerRow := 0 to 7 do begin
     for k := 0 to 3 do begin
-      Port[C_Ega.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
+      Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
       if (GDConsts.egaPlaneMask[3 - k] and color) > 0 then begin
         Mem[egaCurPage: dstOff] := GDVars.gameFont^[glyph][outerRow];
         Mem[egaOtherPage: dstOff] := GDVars.gameFont^[glyph][outerRow];
@@ -188,7 +188,7 @@ begin
     end;
     Inc(dstOff, 40);
   end;
-  Port[C_Ega.SEQ_DATA_PORT] := C_Ega.MAP_MASK_ALL_PLANES;
+  Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
 end;
 
 { on both pages }
