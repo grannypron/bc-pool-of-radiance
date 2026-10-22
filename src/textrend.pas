@@ -150,10 +150,11 @@ end;
   and include trailing punctuation before deciding where to wrap. }
 procedure DisplayMessageWindow(ulCol, ulRow, lrCol, lrRow, color: Byte; clearFirst: Boolean; source: string);
 var
-  len: Byte;
+  { Integers, so idx can step past a 255-character source (a Byte wrapped to 0 and reprinted forever, #729) }
+  len: Integer;
   width: Byte;
-  idx: Byte;
-  lineEnd: Byte;
+  idx: Integer;
+  lineEnd: Integer;
 
   { PrintCharInWindow: Flush source[idx..lineEnd] at the cursor, advancing idx/curCol, stopping at lrCol; per-char Delay
     when slow text is on }
