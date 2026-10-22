@@ -163,7 +163,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_Gbvm, CharDisp, C_TIME, Dice, Clock, C_Terr, C_Save, C_COND, GDConsts, GDVars, Blit,
-  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_STATUS, C_Ifc, C_Dir, C_Level, Crt, C_Item, C_Equip;
+  TextRend, CharHlp, Pathing, CbtMap, C_Effect, C_STATUS, C_Ifc, C_DIR, C_Level, Crt, C_Item, C_Equip;
 
 const
   { EffectSource's side for a node cast by either side }
@@ -442,7 +442,7 @@ var
   saved: Boolean;
 begin
   if creature^.enabled = 0 then Exit;
-  CbtMap.ProbeDirection(creature, C_Dir.CENTER, crIdx, terrIdx);
+  CbtMap.ProbeDirection(creature, C_DIR.CENTER, crIdx, terrIdx);
   if terrIdx <> C_Terr.STINK_CLOUD then Exit;
   if CharHlp.HasEffect(creature, C_Effect.STINK_COUGH, effect) then Exit;
   if CharHlp.HasEffect(creature, C_Effect.HELPLESS, effect) then Exit;

@@ -1,6 +1,6 @@
 { Direction indices. }
 {$I COMPILER.INC}
-unit C_Dir;
+unit C_DIR;
 
 interface
 

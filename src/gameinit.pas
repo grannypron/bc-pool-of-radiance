@@ -19,7 +19,7 @@ procedure ResetGameState;
 
 implementation
 
-uses Types, Crt, C_AREA, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_Dir, Options, Blit, DaxIo, GameIo,
+uses Types, Crt, C_AREA, GDConsts, GDVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, TextRend, C_Gbvm, CbtActs, C_Effect, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
   VidOps, Stats, Explored, MapNotes{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -269,7 +269,7 @@ begin
   GDVars.eventAtCell := 0;
   GDVars.gMapX := 15;
   GDVars.gMapY := 1;
-  GDVars.gFacing := C_Dir.WEST;
+  GDVars.gFacing := C_DIR.WEST;
   FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
   GDVars.debugTraceEnabled := False;
   GDVars.bottomLineTaken := False;

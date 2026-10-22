@@ -33,7 +33,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses Types, GDConsts, GDVars, Blit, Sym8x8, C_Dir, DaxIo, GameIo, StrUtil, Explored;
+uses Types, GDConsts, GDVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
 
 procedure DisplayViewBuf; forward;
 
@@ -66,10 +66,10 @@ begin
     for wx := 0 to 10 do begin
       mx := wx + xLo;
       sym := 260;
-      if View3D.GetWallType(mx, my, C_Dir.NORTH) > 0 then Inc(sym);
-      if View3D.GetWallType(mx, my, C_Dir.EAST) > 0 then Inc(sym, 2);
-      if View3D.GetWallType(mx, my, C_Dir.SOUTH) > 0 then Inc(sym, 4);
-      if View3D.GetWallType(mx, my, C_Dir.WEST) > 0 then Inc(sym, 8);
+      if View3D.GetWallType(mx, my, C_DIR.NORTH) > 0 then Inc(sym);
+      if View3D.GetWallType(mx, my, C_DIR.EAST) > 0 then Inc(sym, 2);
+      if View3D.GetWallType(mx, my, C_DIR.SOUTH) > 0 then Inc(sym, 4);
+      if View3D.GetWallType(mx, my, C_DIR.WEST) > 0 then Inc(sym, 8);
       Sym8x8.Put8x8Sym(wx + 3 - 1, wy + 3 - 1, sym, True, False);
     end;
   end;
@@ -148,10 +148,10 @@ begin
     b := 1;
     if View3D.GetWallType(x, y, facing) > 0 then
       case facing of
-        C_Dir.WEST: b := (GDVars.map3d^.barriers[y][x] and $C0) shr 6;
-        C_Dir.SOUTH: b := (GDVars.map3d^.barriers[y][x] and $30) shr 4;
-        C_Dir.EAST: b := (GDVars.map3d^.barriers[y][x] and $0C) shr 2;
-        C_Dir.NORTH: b := GDVars.map3d^.barriers[y][x] and $03;
+        C_DIR.WEST: b := (GDVars.map3d^.barriers[y][x] and $C0) shr 6;
+        C_DIR.SOUTH: b := (GDVars.map3d^.barriers[y][x] and $30) shr 4;
+        C_DIR.EAST: b := (GDVars.map3d^.barriers[y][x] and $0C) shr 2;
+        C_DIR.NORTH: b := GDVars.map3d^.barriers[y][x] and $03;
       end;
     GetBarrierType := b;
   end;
@@ -167,10 +167,10 @@ begin
     View3D.WrapCoords(x, y);
     GetWallType := 0;
     case facing of
-      C_Dir.NORTH: GetWallType := (GDVars.map3d^.wallsNE[y][x] and $F0) shr 4;
-      C_Dir.EAST: GetWallType := GDVars.map3d^.wallsNE[y][x] and $0F;
-      C_Dir.SOUTH: GetWallType := (GDVars.map3d^.wallsSW[y][x] and $F0) shr 4;
-      C_Dir.WEST: GetWallType := GDVars.map3d^.wallsSW[y][x] and $0F;
+      C_DIR.NORTH: GetWallType := (GDVars.map3d^.wallsNE[y][x] and $F0) shr 4;
+      C_DIR.EAST: GetWallType := GDVars.map3d^.wallsNE[y][x] and $0F;
+      C_DIR.SOUTH: GetWallType := (GDVars.map3d^.wallsSW[y][x] and $F0) shr 4;
+      C_DIR.WEST: GetWallType := GDVars.map3d^.wallsSW[y][x] and $0F;
     end;
   end;
 end;

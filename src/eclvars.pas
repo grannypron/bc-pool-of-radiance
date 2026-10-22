@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_STATUS, C_Gbvm, C_Dir, C_Money, CharHlp, AbilAdj;
+uses Types, Crt, C_Npc, C_Save, GDVars, C_Ecl, C_STATUS, C_Gbvm, C_DIR, C_Money, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -318,10 +318,10 @@ begin
           repeat
             ok := True;
             case value of
-              0: GDVars.gFacing := C_Dir.NORTH;
-              1: GDVars.gFacing := C_Dir.EAST;
-              2: GDVars.gFacing := C_Dir.SOUTH;
-              3: GDVars.gFacing := C_Dir.WEST;
+              0: GDVars.gFacing := C_DIR.NORTH;
+              1: GDVars.gFacing := C_DIR.EAST;
+              2: GDVars.gFacing := C_DIR.SOUTH;
+              3: GDVars.gFacing := C_DIR.WEST;
             else begin
               ok := False;
               Dec(value, 4);

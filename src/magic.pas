@@ -188,7 +188,7 @@ implementation
 
 uses Stats, CharDisp, C_Sound, C_Item, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_Effect, C_Race, C_Keys, C_Level, C_STATUS,
-  C_Ifc, C_Dir, C_SPELL, AbilAdj;
+  C_Ifc, C_DIR, C_SPELL, AbilAdj;
 
 var
   { the menu string list }
@@ -1145,7 +1145,7 @@ begin
                                GDVars.gTargetX + GDConsts.dirDX[d]] := C_Terr.STINK_CLOUD;
   end;
   CharDisp.PrintNameString(GDVars.curChar, 'Creates a noxious cloud', 10, False);
-  CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 255, C_Dir.CENTER);
+  CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 255, C_DIR.CENTER);
   TextRend.PauseOnly;
   CharDisp.ClearMessageWindow;
   for k := 1 to 4 do
@@ -1402,7 +1402,7 @@ begin
   if GDVars.zone0^.view3dFlag = 0 then begin
     Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, 2);
   end;
-  CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_Dir.CENTER);
+  CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_DIR.CENTER);
   Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(cl, 6),
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;

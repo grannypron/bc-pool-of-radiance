@@ -5,7 +5,7 @@ unit GDConsts;
 
 interface
 
-uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_Effect, C_Dir, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
+uses C_Gender, C_CLASS, C_Level, C_Money, Types, Crt, C_Effect, C_DIR, C_Race, C_STATUS, C_ALIGN, C_Gbvm, C_ABIL, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -1043,10 +1043,10 @@ const
 
 const
   { clockwise facing codes 0..7, starting at north }
-  dirNames: array[C_Dir.NORTH..C_Dir.NORTHWEST] of string[2] = (
+  dirNames: array[C_DIR.NORTH..C_DIR.NORTHWEST] of string[2] = (
     'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW');
   { Text-mode colour and pixel tables; EGA plane and CGA pixel tables; icon colour map }
-  { Direction code for a one-cell step, indexed [dy + 1, dx + 1]; the center entry (C_Dir.CENTER) means no movement. }
+  { Direction code for a one-cell step, indexed [dy + 1, dx + 1]; the center entry (C_DIR.CENTER) means no movement. }
   dirByDelta: array[0..2, 0..2] of Byte = (
     (7, 0, 1),
     (6, 8, 2),
@@ -1147,9 +1147,9 @@ const
   { The first symbol of each 8x8 symbol set; set 4 ends at 286 }
   symSetFirst: array[0..4] of Word = (1, 46, 116, 186, 256);
   { Direction steps, combat terrain, icon footprints, helpless effects }
-  dirDX: array[C_Dir.NORTH..C_Dir.CENTER] of ShortInt = (
+  dirDX: array[C_DIR.NORTH..C_DIR.CENTER] of ShortInt = (
     0, 1, 1, 1, 0, -1, -1, -1, 0);
-  dirDY: array[C_Dir.NORTH..C_Dir.CENTER] of ShortInt = (
+  dirDY: array[C_DIR.NORTH..C_DIR.CENTER] of ShortInt = (
     -1, -1, 0, 1, 1, 1, 0, -1, 0);
   { Combat terrain by arena cell value: movement cost (255 = impassable), line-walk clearance and blocking, and the
     combat tile graphic }

@@ -66,7 +66,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 implementation
 
 uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_Effect, C_Equip, C_Keys, C_Level,
-  C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
+  C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
 var
@@ -250,7 +250,7 @@ begin
     if creature^.enabled <> 0 then begin
       p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
       if (p^.combatAddr^.guarding <> 0) and (not CharHlp.IsHelpless(p)) then begin
-        CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2, C_Dir.CENTER);
+        CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2, C_DIR.CENTER);
         p^.combatAddr^.guarding := 0;
         CbtActs.NoteAttackDirection(p, creature);
         CbtActs.CombatAttack(p, creature, False, nil, done);
@@ -294,13 +294,13 @@ begin
   if creature^.quickfight <> 0 then begin
     cost := 3;
     if not CbtMap.ViewCoordsValid(nx - GDVars.arenaPtr^.ox, ny - GDVars.arenaPtr^.oy) then
-      CbtMap.ScrollView(x, y, 2, C_Dir.CENTER);
+      CbtMap.ScrollView(x, y, 2, C_DIR.CENTER);
   end;
   CbtMap.UpdateCombatMapTile(0, 0, slot);
   GDVars.arenaLoc[slot].x := nx;
   GDVars.arenaLoc[slot].y := ny;
   CbtMap.BuildArenaArrays;
-  CbtMap.ScrollView(nx, ny, cost, C_Dir.CENTER);
+  CbtMap.ScrollView(nx, ny, cost, C_DIR.CENTER);
   { flanking accumulators reset }
   creature^.combatAddr^.flankCount := 0;
   creature^.combatAddr^.flankSpread := 0;
@@ -924,7 +924,7 @@ begin
   best := nil;
   downIdx := 0;
   bestHp := 255;
-  for d := 0 to C_Dir.CENTER do begin
+  for d := 0 to C_DIR.CENTER do begin
     nx := CbtMap.CombatCellX(creature) + GDConsts.dirDX[d];
     ny := CbtMap.CombatCellY(creature) + GDConsts.dirDY[d];
     CbtMap.GetArenaContents(nx, ny, crIdx, terrIdx);
@@ -1259,10 +1259,10 @@ begin
     { straight-flying missiles }
     C_Item.DART, C_Item.JAVELIN, C_Item.QUARREL, C_Item.SPEAR, C_Item.ARROW:
       if Odd(dir) then begin
-        if (dir = C_Dir.SOUTHEAST) or (dir = C_Dir.SOUTHWEST) then
-          CharDisp.CopyIconFacing(sym + 1, 1, 0, dir = C_Dir.SOUTHWEST)
+        if (dir = C_DIR.SOUTHEAST) or (dir = C_DIR.SOUTHWEST) then
+          CharDisp.CopyIconFacing(sym + 1, 1, 0, dir = C_DIR.SOUTHWEST)
         else
-          CharDisp.CopyIconFacing(sym + 1, 0, 0, dir = C_Dir.NORTHWEST);
+          CharDisp.CopyIconFacing(sym + 1, 0, 0, dir = C_DIR.NORTHWEST);
       end else
         CharDisp.CopyIconFacing(sym + dir mod 4, dir div 4, 0, False);
     { spinning thrown weapons }
@@ -1366,21 +1366,21 @@ begin
   end;
 end;
 
-{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_Dir.CENTER for any other
+{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_DIR.CENTER for any other
   key. }
 function DirOfKey(ch: Char): Byte;
 begin
   case ch of
-    C_Keys.UP: DirOfKey := C_Dir.NORTH;
-    C_Keys.PGUP: DirOfKey := C_Dir.NORTHEAST;
-    C_Keys.RIGHT: DirOfKey := C_Dir.EAST;
-    C_Keys.PGDN: DirOfKey := C_Dir.SOUTHEAST;
-    C_Keys.DOWN: DirOfKey := C_Dir.SOUTH;
-    C_Keys.END_KEY: DirOfKey := C_Dir.SOUTHWEST;
-    C_Keys.LEFT: DirOfKey := C_Dir.WEST;
-    C_Keys.HOME: DirOfKey := C_Dir.NORTHWEST;
+    C_Keys.UP: DirOfKey := C_DIR.NORTH;
+    C_Keys.PGUP: DirOfKey := C_DIR.NORTHEAST;
+    C_Keys.RIGHT: DirOfKey := C_DIR.EAST;
+    C_Keys.PGDN: DirOfKey := C_DIR.SOUTHEAST;
+    C_Keys.DOWN: DirOfKey := C_DIR.SOUTH;
+    C_Keys.END_KEY: DirOfKey := C_DIR.SOUTHWEST;
+    C_Keys.LEFT: DirOfKey := C_DIR.WEST;
+    C_Keys.HOME: DirOfKey := C_DIR.NORTHWEST;
   else
-    DirOfKey := C_Dir.CENTER;
+    DirOfKey := C_DIR.CENTER;
   end;
 end;
 
@@ -1388,7 +1388,7 @@ end;
   range (a weapon attack needs another creature, and a ranged weapon needs damaging ammunition plus either no adjacent
   enemy or a throwable weapon), then Next/Prev/Manual/Center/Exit. A cursor key (keypad digits included) returns through
   dir the direction it points, so the caller can switch to manual aim and move the cursor that way; any other choice
-  sets dir to C_Dir.CENTER. ground is unused. }
+  sets dir to C_DIR.CENTER. ground is unused. }
 function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte; var dir: Byte): Char;
 var
   menu: String[40];
@@ -1418,10 +1418,10 @@ begin
   repeat
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('Aim: ', menu, LightMagenta, LightGreen, White, True, False, ext);
-    dir := C_Dir.CENTER;
+    dir := C_DIR.CENTER;
     if ext then
       dir := CbtActs.DirOfKey(ch);
-  until (not ext) or (dir <> C_Dir.CENTER);
+  until (not ext) or (dir <> C_DIR.CENTER);
   AimTargetMenu := ch;
 end;
 
@@ -1443,7 +1443,7 @@ begin
     sel.x := CbtMap.CombatCellX(tgt);
     sel.y := CbtMap.CombatCellY(tgt);
     GDVars.arenaPtr^.cursorOn := False;
-    CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 3, C_Dir.CENTER);
+    CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
     if weaponMode = 1 then begin
       if CbtActs.SweepAttempt(cur, tgt) then
         done := CharHlp.EndActions(cur)
@@ -1462,7 +1462,7 @@ begin
 end;
 
 { The free cursor aim: the arrow-key scans move a cell cursor (clamped to the arena) from underCursor's cell, after a
-  first step toward startDir (C_Dir.CENTER stays put), Pathing.WalkLine checks the line and range, Target takes a valid
+  first step toward startDir (C_DIR.CENTER stays put), Pathing.WalkLine checks the line and range, Target takes a valid
   cell (a weapon attack goes through ConfirmAttackTarget), Center recenters and Exit/Escape cancels. A bare cell is
   valid only when ground is set. }
 procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode, ground, startDir: Byte;
@@ -1580,8 +1580,8 @@ begin
         end;
       'C':
         begin
-          CbtMap.ScrollView(cx, cy, 0, C_Dir.CENTER);
-          dir := C_Dir.CENTER;
+          CbtMap.ScrollView(cx, cy, 0, C_DIR.CENTER);
+          dir := C_DIR.CENTER;
         end;
     else
       dir := CbtActs.DirOfKey(ch);
@@ -1670,7 +1670,7 @@ begin
     else begin
       ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, groundOk, keyDir);
       { a cursor key goes straight to manual aim }
-      if keyDir <> C_Dir.CENTER then
+      if keyDir <> C_DIR.CENTER then
         ch := 'M';
       case ch of
         'N':
@@ -1700,7 +1700,7 @@ begin
           end;
         'C':
           begin
-            CbtMap.ScrollView(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), 0, C_Dir.CENTER);
+            CbtMap.ScrollView(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), 0, C_DIR.CENTER);
             menuStep := 0;
           end;
       end;
@@ -1841,7 +1841,7 @@ begin
     done := CharHlp.EndActions(p);
     p := p^.nextCharAddr;
   end;
-  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_Dir.CENTER);
+  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
 end;
 
 function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;

@@ -35,7 +35,7 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 
 implementation
 
-uses Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_Dir;
+uses Crt, C_Tile, GDConsts, GDVars, Blit, GameIo, C_DIR;
 
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
@@ -142,7 +142,7 @@ begin
 end;
 
 { Draw one icon-animation frame at character cell (col*3, row*3): copy the frame into a scratch buffer, mirrored for
-  facings past C_Dir.SOUTHEAST, then blit it transparently and clipped into the view buffer. On EGA the transparency
+  facings past C_DIR.SOUTHEAST, then blit it transparently and clipped into the view buffer. On EGA the transparency
   mask is a quarter of the image size. Nothing is drawn if the frame is not loaded or lies outside the table. }
 procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 var
@@ -155,7 +155,7 @@ begin
     Exit;
   with GDVars.iconAnimation[animIdx, frame]^ do begin
     Blit.AllocPic(height, width, 1, 1, work);
-    if facing > C_Dir.SOUTHEAST then
+    if facing > C_DIR.SOUTHEAST then
       Blit.MirrorPic(GDVars.iconAnimation[animIdx, frame], work)
     else begin
       Move(data, work^.data, imgSize);

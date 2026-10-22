@@ -24,7 +24,7 @@ procedure AllToManual;
 implementation
 
 uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_Effect, C_Equip,
-  C_CLASS, C_STATUS, C_Gbvm, C_Dir, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  C_CLASS, C_STATUS, C_Gbvm, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
@@ -431,7 +431,7 @@ begin
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other);
     end else begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
-      { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south into
+      { Hostiles flee along the party's facing (C_DIR 0, 2, 4, 6). SSI's arithmetic turned north into NW and south into
         SE (POR-0160). }
       dir := GDVars.gFacing;
       if creature^.hostile = 0 then
@@ -525,7 +525,7 @@ var
   loopCount: Byte;
   loopLimit: Byte;
 begin
-  lastMoveDir := C_Dir.CENTER;
+  lastMoveDir := C_DIR.CENTER;
   stuckCount := 0;
   loopCount := 0;
   loopLimit := creature^.combatAddr^.movement div 2 + TURN_SLACK;

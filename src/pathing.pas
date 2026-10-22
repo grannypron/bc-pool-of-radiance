@@ -57,7 +57,7 @@ function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOc
 
 implementation
 
-uses GDConsts, GDVars, C_Dir;
+uses GDConsts, GDVars, C_DIR;
 
 function SignOf(v: Integer): Integer;
 begin
@@ -217,8 +217,8 @@ begin
     IsDirToward := False;
     Exit;
   end;
-  if dir > C_Dir.CENTER then
-    dir := C_Dir.CENTER;
+  if dir > C_DIR.CENTER then
+    dir := C_DIR.CENTER;
   nx := x + GDConsts.dirDX[dir];
   ny := y + GDConsts.dirDY[dir];
   if ((x = tx) and (y = ty)) or ((nx = tx) and (ny = ty)) then begin
@@ -227,19 +227,19 @@ begin
   end;
   { Test the 90-degree cone for the requested direction. }
   case dir of
-    C_Dir.NORTH: IsDirToward := ((tx >= nx) and (ty <= (nx - tx) + ny)) or ((tx <= nx) and (ty <= (tx - nx) + ny));
-    C_Dir.NORTHEAST: IsDirToward := ((tx >= nx) and (ty <= (nx - tx) + ny)) or
+    C_DIR.NORTH: IsDirToward := ((tx >= nx) and (ty <= (nx - tx) + ny)) or ((tx <= nx) and (ty <= (tx - nx) + ny));
+    C_DIR.NORTHEAST: IsDirToward := ((tx >= nx) and (ty <= (nx - tx) + ny)) or
       ((tx >= (nx + ny) - ty) and (ty <= ny));
-    C_Dir.EAST: IsDirToward := ((tx >= (nx + ny) - ty) and (ty <= ny)) or ((tx >= (nx + ty) - ny) and (ty >= ny));
-    C_Dir.SOUTHEAST: IsDirToward := ((tx >= (nx + ty) - ny) and (ty >= ny)) or
+    C_DIR.EAST: IsDirToward := ((tx >= (nx + ny) - ty) and (ty <= ny)) or ((tx >= (nx + ty) - ny) and (ty >= ny));
+    C_DIR.SOUTHEAST: IsDirToward := ((tx >= (nx + ty) - ny) and (ty >= ny)) or
       ((tx >= nx) and (ty >= (tx - nx) + ny));
-    C_Dir.SOUTH: IsDirToward := ((tx >= nx) and (ty >= (tx - nx) + ny)) or ((tx <= nx) and (ty >= (nx - tx) + ny));
-    C_Dir.SOUTHWEST: IsDirToward := ((tx <= nx) and (ty >= (nx - tx) + ny)) or
+    C_DIR.SOUTH: IsDirToward := ((tx >= nx) and (ty >= (tx - nx) + ny)) or ((tx <= nx) and (ty >= (nx - tx) + ny));
+    C_DIR.SOUTHWEST: IsDirToward := ((tx <= nx) and (ty >= (nx - tx) + ny)) or
       ((tx <= (nx + ny) - ty) and (ty >= ny));
-    C_Dir.WEST: IsDirToward := ((tx <= (nx + ny) - ty) and (ty >= ny)) or ((tx <= (nx + ty) - ny) and (ty <= ny));
-    C_Dir.NORTHWEST: IsDirToward := ((tx <= (nx + ty) - ny) and (ty <= ny)) or
+    C_DIR.WEST: IsDirToward := ((tx <= (nx + ny) - ty) and (ty >= ny)) or ((tx <= (nx + ty) - ny) and (ty <= ny));
+    C_DIR.NORTHWEST: IsDirToward := ((tx <= (nx + ty) - ny) and (ty <= ny)) or
       ((tx <= nx) and (ty <= (tx - nx) + ny));
-    C_Dir.CENTER: IsDirToward := True;
+    C_DIR.CENTER: IsDirToward := True;
   end;
 end;
 
@@ -307,7 +307,7 @@ begin
         GDVars.targetList[GDVars.targetCount].idx := i;
         GDVars.targetList[GDVars.targetCount].dist := bestDist;
         bestDir := 0;
-        if filter < C_Dir.CENTER then
+        if filter < C_DIR.CENTER then
           bestDir := filter
         else
           while not Pathing.IsDirToward(myX[bestK], myY[bestK], tgX[bestJ], tgY[bestJ], bestDir) do
@@ -440,8 +440,8 @@ begin
         ty := GDVars.arenaLoc[s].y;
       end;
     end;
-  heading := C_Dir.NORTH;
-  for d := C_Dir.NORTH to C_Dir.NORTHWEST do
+  heading := C_DIR.NORTH;
+  for d := C_DIR.NORTH to C_DIR.NORTHWEST do
     if (GDConsts.dirDX[d] = Pathing.SignOf(tx - sx)) and (GDConsts.dirDY[d] = Pathing.SignOf(ty - sy)) then
       heading := d;
 end;

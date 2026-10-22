@@ -14,7 +14,7 @@ procedure ToolsMenu;
 
 implementation
 
-uses Crt, Types, C_AREA, C_Dir, C_Keys, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
+uses Crt, Types, C_AREA, C_DIR, C_Keys, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
   Explored, EvtKind, CharEdit, MapNotes, StrUtil;
 
 const
@@ -119,10 +119,10 @@ begin
   script := GDVars.eclScriptId;
   map := GDVars.zone0^.mapId.lo;
   sym := SYM_WALLS;
-  if View3D.GetWallType(mx, my, C_Dir.NORTH) > 0 then Inc(sym);
-  if View3D.GetWallType(mx, my, C_Dir.EAST) > 0 then Inc(sym, 2);
-  if View3D.GetWallType(mx, my, C_Dir.SOUTH) > 0 then Inc(sym, 4);
-  if View3D.GetWallType(mx, my, C_Dir.WEST) > 0 then Inc(sym, 8);
+  if View3D.GetWallType(mx, my, C_DIR.NORTH) > 0 then Inc(sym);
+  if View3D.GetWallType(mx, my, C_DIR.EAST) > 0 then Inc(sym, 2);
+  if View3D.GetWallType(mx, my, C_DIR.SOUTH) > 0 then Inc(sym, 4);
+  if View3D.GetWallType(mx, my, C_DIR.WEST) > 0 then Inc(sym, 8);
   if (mx = GDVars.gMapX) and (my = GDVars.gMapY) then
     sym := SYM_ARROW + GDVars.gFacing div 2;
   kind := EvtKind.Kind(View3D.GetMapEvent(mx, my));

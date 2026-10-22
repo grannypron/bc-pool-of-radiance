@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_Ecl,
-  C_Keys, C_Level, C_STATUS, C_Gbvm, C_Dir, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_Keys, C_Level, C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -26,10 +26,10 @@ procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
 begin
   if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
-    C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F;
-    C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF;
-    C_Dir.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3;
-    C_Dir.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC;
+    C_DIR.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F;
+    C_DIR.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF;
+    C_DIR.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3;
+    C_DIR.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC;
   end;
 end;
 
@@ -39,10 +39,10 @@ procedure ChangeBarrierPassable(x, y: ShortInt; facing: Byte);
 begin
   if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
-    C_Dir.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F or $40;
-    C_Dir.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF or $10;
-    C_Dir.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3 or $4;
-    C_Dir.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC or $1;
+    C_DIR.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F or $40;
+    C_DIR.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF or $10;
+    C_DIR.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3 or $4;
+    C_DIR.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC or $1;
   end;
 end;
 
@@ -406,13 +406,13 @@ begin
             done := True;
             case c of
               { up arrow }
-              C_Keys.UP: GDVars.gFacing := C_Dir.NORTH;
+              C_Keys.UP: GDVars.gFacing := C_DIR.NORTH;
               { right arrow }
-              C_Keys.RIGHT: GDVars.gFacing := C_Dir.EAST;
+              C_Keys.RIGHT: GDVars.gFacing := C_DIR.EAST;
               { down arrow }
-              C_Keys.DOWN: GDVars.gFacing := C_Dir.SOUTH;
+              C_Keys.DOWN: GDVars.gFacing := C_DIR.SOUTH;
               { left arrow }
-              C_Keys.LEFT: GDVars.gFacing := C_Dir.WEST;
+              C_Keys.LEFT: GDVars.gFacing := C_DIR.WEST;
               C_Keys.F5: begin
                            SaveLoad.QuickSave;
                            done := False;

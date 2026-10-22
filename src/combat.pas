@@ -15,7 +15,7 @@ function BandageDying(bandage: Boolean): Boolean;
 implementation
 
 uses Types, C_TIME, C_Npc, C_COND, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_CLASS,
-  C_STATUS, C_Ifc, C_Gbvm, C_Dir, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
+  C_STATUS, C_Ifc, C_Gbvm, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
@@ -289,7 +289,7 @@ begin
   if Combat.BandageDying(False) then
     CharDisp.PrintBottomLine('Your Teammate is Dying');
   CharHlp.CountTeams;
-  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_Dir.CENTER);
+  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
   if (GDVars.teamCount[0] = 0) or (GDVars.teamCount[1] = 0) then
     done := True;
   if (GDVars.teamCount[0] > 0) and (GDVars.teamCount[1] = 0)
@@ -320,7 +320,7 @@ begin
   startY := CbtMap.CombatCellY(creature);
   ch := ' ';
   done := False;
-  dir := C_Dir.CENTER;
+  dir := C_DIR.CENTER;
   while (creature^.combatAddr^.movement > 1) and (ch <> C_Keys.NONE)
         and (ch <> C_Keys.ENTER) do begin
     Border.ClearBox(24, 24, 39, 24);
@@ -337,30 +337,30 @@ begin
                        CbtMap.UpdateCombatMapTile(0, 0, CbtMap.CombatSlot(creature));
                      { Put it back on its start cell; the turn ends if that cell is no longer free }
                      done := CbtMap.IsValidCreatureLoc(creature, startX, startY, False) = False;
-                     CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_Dir.CENTER);
+                     CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 0, C_DIR.CENTER);
                      creature^.combatAddr^.direction := savedDir;
-                     dir := C_Dir.CENTER;
+                     dir := C_DIR.CENTER;
                    end;
       { Up arrow }
-      C_Keys.UP: dir := C_Dir.NORTH;
+      C_Keys.UP: dir := C_DIR.NORTH;
       { Page Up }
-      C_Keys.PGUP: dir := C_Dir.NORTHEAST;
+      C_Keys.PGUP: dir := C_DIR.NORTHEAST;
       { Right arrow }
-      C_Keys.RIGHT: dir := C_Dir.EAST;
+      C_Keys.RIGHT: dir := C_DIR.EAST;
       { Page Down }
-      C_Keys.PGDN: dir := C_Dir.SOUTHEAST;
+      C_Keys.PGDN: dir := C_DIR.SOUTHEAST;
       { Down arrow }
-      C_Keys.DOWN: dir := C_Dir.SOUTH;
+      C_Keys.DOWN: dir := C_DIR.SOUTH;
       { End }
-      C_Keys.END_KEY: dir := C_Dir.SOUTHWEST;
+      C_Keys.END_KEY: dir := C_DIR.SOUTHWEST;
       { Left arrow }
-      C_Keys.LEFT: dir := C_Dir.WEST;
+      C_Keys.LEFT: dir := C_DIR.WEST;
       { Home }
-      C_Keys.HOME: dir := C_Dir.NORTHWEST;
+      C_Keys.HOME: dir := C_DIR.NORTHWEST;
     else
-      dir := C_Dir.CENTER;
+      dir := C_DIR.CENTER;
     end;
-    if dir < C_Dir.CENTER then begin
+    if dir < C_DIR.CENTER then begin
       CbtMap.SetCreatureFacing(creature, dir, 0, 0);
       CbtMap.ProbeDirection(creature, dir, crIdx, terrIdx);
       if crIdx > 0 then begin

@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEclVars;
 
-uses Types, GDVars, C_Gbvm, C_Money, C_Dir, C_STATUS, C_Effect, C_Save, EclVars, StrUtil, TestKit;
+uses Types, GDVars, C_Gbvm, C_Money, C_DIR, C_STATUS, C_Effect, C_Save, EclVars, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -157,9 +157,9 @@ begin
   EclVars.WriteGbvm(C_Gbvm.CELL_PARTY_Y, 3);
   Same(3, C_Gbvm.CELL_PARTY_Y, 'CELL_PARTY_Y is gMapY');
   EclVars.WriteGbvm(C_Gbvm.CELL_FACING, 5);
-  TestKit.CheckEqualsL(C_Dir.EAST, GDVars.gFacing, 'CELL_FACING takes a facing mod 4 (5 is east)');
+  TestKit.CheckEqualsL(C_DIR.EAST, GDVars.gFacing, 'CELL_FACING takes a facing mod 4 (5 is east)');
   Same(1, C_Gbvm.CELL_FACING, 'and reads it back as 0..3');
-  Same(C_Dir.EAST, C_Gbvm.FACING_RAW, 'FACING_RAW reads the stored facing');
+  Same(C_DIR.EAST, C_Gbvm.FACING_RAW, 'FACING_RAW reads the stored facing');
   GDVars.wallAhead := 4;
   GDVars.eventAtCell := 9;
   Same(4, C_Gbvm.CELL_WALL_AHEAD, 'CELL_WALL_AHEAD');

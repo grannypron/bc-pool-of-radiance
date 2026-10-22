@@ -121,7 +121,7 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 
 implementation
 
-uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_Dir, C_Sound, Pathing, MenuCore,
+uses Crt, C_Terr, GDConsts, GDVars, MapTiles, TextRend, SoundDrv, C_Ifc, C_DIR, C_Sound, Pathing, MenuCore,
   Blit, CharHlp;
 
 var
@@ -642,7 +642,7 @@ begin
     Exit;
   end;
   if not CbtMap.CombatIconVisible(creature, 1) then
-    CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, C_Dir.CENTER);
+    CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, C_DIR.CENTER);
   if (creature^.combatAddr^.direction div 4 <> dir div 4)
      or (frame <> 0) or (eraseOnly <> 0) then
     CbtMap.UpdateCombatMapTile(0, 0, slot);
@@ -804,7 +804,7 @@ begin
     cellX := CbtMap.CombatCellX(creature);
     cellY := CbtMap.CombatCellY(creature);
     if not CbtMap.CombatIconVisible(creature, 1) then
-      CbtMap.ScrollView(cellX, cellY, 3, C_Dir.CENTER);
+      CbtMap.ScrollView(cellX, cellY, 3, C_DIR.CENTER);
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     for k := 0 to 3 do
       if Pathing.GetIconTileDelta(GDVars.arenaLoc[slot].size, k, tdx, tdy) then
@@ -819,7 +819,7 @@ begin
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     GDVars.arenaLoc[slot].size := 0;
     CbtMap.BuildArenaArrays;
-    CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 3, C_Dir.CENTER);
+    CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
     creature^.combatAddr^.initiative := 0;
     creature^.combatAddr^.movement := 0;
     creature^.combatAddr^.spellCast := 0;
@@ -849,7 +849,7 @@ begin
     GDVars.arenaLoc[slot].size := creature^.iconDimensions and $7F;
     GDVars.arenaLoc[slot].x := x;
     GDVars.arenaLoc[slot].y := y;
-    CbtMap.ProbeDirection(creature, C_Dir.CENTER, c, t);
+    CbtMap.ProbeDirection(creature, C_DIR.CENTER, c, t);
     if (c <> 0) or (t = 0) or (GDConsts.terrainInfo[t].cost = 255) then
       GDVars.arenaLoc[slot].size := 0
     else begin
@@ -880,7 +880,7 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
 begin
   GDVars.arenaPtr^.cursorOn := cursor;
   GDVars.arenaPtr^.cursorSize := CbtMap.GetIconSize(creature);
-  CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), delta, C_Dir.CENTER);
+  CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), delta, C_DIR.CENTER);
   GDVars.arenaPtr^.cursorOn := False;
   GDVars.arenaPtr^.cursorSize := 1;
 end;

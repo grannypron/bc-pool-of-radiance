@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TPathing;
 
-uses Types, C_Dir, C_Terr, GDConsts, GDVars, Pathing, StrUtil, TestKit;
+uses Types, C_DIR, C_Terr, GDConsts, GDVars, Pathing, StrUtil, TestKit;
 
 const
   { RouteStep's arena: open ground (terrain 5, cost 1) and wall (terrain 1, cost 255) }
@@ -156,7 +156,7 @@ begin
                 'a target shut in behind its own side cannot be walked to');
   goal := 0;
   TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal) and (goal = FRONT) and
-                (dir = C_Dir.EAST), 'but the one in front of it can');
+                (dir = C_DIR.EAST), 'but the one in front of it can');
   TestKit.CheckEqualsL(23, WalkSteps([TARGET, FRONT], [], 0, 60), 'and 23 steps bring the walker to it');
   TestKit.Check(GDVars.arenaLoc[WALKER].x = 28, 'beside the front one');
   { of two goals the nearer one is reached }
@@ -165,7 +165,7 @@ begin
   Place(TARGET, 30, 10, 1);
   Place(FRONT, 4, 10, 1);
   TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal) and (goal = FRONT) and
-                (dir = C_Dir.WEST), 'of two goals the walk is to the nearer');
+                (dir = C_DIR.WEST), 'of two goals the walk is to the nearer');
   { next to one goal already: no step }
   Place(FRONT, 11, 11, 1);
   TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal),
@@ -176,9 +176,9 @@ begin
   TestKit.Check(not Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal),
                 'its own side in the corridor shuts the walk');
   TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [BLOCKER], 0, TestOccupant, dir, goal) and
-                (goal = FRONT) and (dir = C_Dir.EAST), 'a walk through its own side heads up the corridor');
+                (goal = FRONT) and (dir = C_DIR.EAST), 'a walk through its own side heads up the corridor');
   TestKit.CheckEqualsL(19, WalkSteps([TARGET, FRONT], [BLOCKER], 0, 60), 'and 19 steps close up behind it');
-  TestKit.Check((GDVars.arenaLoc[WALKER].x = 24) and (dir = C_Dir.EAST), 'where the next step is onto it: it waits');
+  TestKit.Check((GDVars.arenaLoc[WALKER].x = 24) and (dir = C_DIR.EAST), 'where the next step is onto it: it waits');
   { the ally moves on (here it is gone): the walk goes on to FRONT }
   Place(BLOCKER, 0, 0, 0);
   occ[0, 0] := 0;
@@ -192,10 +192,10 @@ begin
   GDVars.arenaPtr^.cells[5, 8] := C_Terr.STINK_CLOUD;
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 11, 5, 1);
-  TestKit.Check(RouteToTarget and (dir = C_Dir.EAST),
+  TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
                 'a walker that does not mind the cloud goes through it');
   TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], C_Terr.STINK_CLOUD, TestOccupant, dir, goal) and
-                (dir in [C_Dir.SOUTHWEST, C_Dir.SOUTH, C_Dir.SOUTHEAST]), 'one that keeps out heads for the far gap');
+                (dir in [C_DIR.SOUTHWEST, C_DIR.SOUTH, C_DIR.SOUTHEAST]), 'one that keeps out heads for the far gap');
   TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_Terr.STINK_CLOUD, 60), 'and goes round by it');
 end;
 
@@ -214,9 +214,9 @@ begin
   TestKit.CheckEqualsL(3, GDVars.targetCount, 'the target list holds everyone in sight, the looker too');
   TestKit.Check((GDVars.targetList[1].idx = WALKER) and (GDVars.targetList[1].dist = 0), 'the looker first, at 0');
   TestKit.Check((GDVars.targetList[2].idx = BLOCKER) and (GDVars.targetList[2].dist = 8) and
-                (GDVars.targetList[2].dir = C_Dir.SOUTH), 'then the 2x2 body, by its nearest cell, to the south');
+                (GDVars.targetList[2].dir = C_DIR.SOUTH), 'then the 2x2 body, by its nearest cell, to the south');
   TestKit.Check((GDVars.targetList[3].idx = TARGET) and (GDVars.targetList[3].dist = 10) and
-                (GDVars.targetList[3].dir = C_Dir.EAST), 'then the one 5 cells east');
+                (GDVars.targetList[3].dir = C_DIR.EAST), 'then the one 5 cells east');
   WallColumn(8, 0, 7);
   Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
   TestKit.CheckEqualsL(2, GDVars.targetCount, 'a wall hides the one behind it');
@@ -235,7 +235,7 @@ begin
   ClearArena;
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 10, 5, 1);
-  TestKit.Check(RouteToTarget and (dir = C_Dir.EAST),
+  TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
                 'on open ground the first step is straight at the target');
   TestKit.CheckEqualsL(4, WalkSteps([TARGET], [], 0, 50), 'and four steps bring it alongside');
   TestKit.Check(not RouteToTarget, 'alongside, there is no step to take');
@@ -244,7 +244,7 @@ begin
   WallColumn(8, 0, 15);
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 11, 5, 1);
-  TestKit.Check(RouteToTarget and (dir in [C_Dir.SOUTH, C_Dir.SOUTHEAST]),
+  TestKit.Check(RouteToTarget and (dir in [C_DIR.SOUTH, C_DIR.SOUTHEAST]),
                 'a wall in the way: the first step heads for the gap');
   { 11 steps down to the gap at (8, 16) and 10 back up beside the target }
   TestKit.CheckEqualsL(21, WalkSteps([TARGET], [], 0, 60), 'and the walk goes round the wall''s foot');
@@ -260,8 +260,8 @@ begin
   GDVars.arenaPtr^.cells[7, 7] := WALL;
   Place(WALKER, 6, 5, 1);
   Place(TARGET, 11, 5, 1);
-  TestKit.Check(RouteToTarget and (dir in [C_Dir.SOUTHWEST, C_Dir.WEST,
-                C_Dir.NORTHWEST]), 'in a dead end the first step is back out of it');
+  TestKit.Check(RouteToTarget and (dir in [C_DIR.SOUTHWEST, C_DIR.WEST,
+                C_DIR.NORTHWEST]), 'in a dead end the first step is back out of it');
   TestKit.Check(WalkSteps([TARGET], [], 0, 60) > 0, 'out of a dead end and round the wall');
   { walled in: no walk }
   ClearArena;
@@ -303,10 +303,10 @@ begin
   CheckWalk(0, 0, 4, 2, 4, 10, 'two diagonal and two straight steps');
   CheckWalk(10, 10, 10, 10, 0, 0, 'no walk to the start cell');
 
-  TestKit.Check(Pathing.IsDirToward(10, 10, 15, 10, C_Dir.EAST), 'east is toward a cell east');
-  TestKit.Check(not Pathing.IsDirToward(10, 10, 15, 10, C_Dir.WEST), 'west is not');
-  TestKit.Check(Pathing.IsDirToward(10, 10, 15, 10, C_Dir.CENTER), 'no direction is always toward');
-  TestKit.Check(not Pathing.IsDirToward(10, 10, 50, 10, C_Dir.EAST), 'a target off the arena is never toward');
+  TestKit.Check(Pathing.IsDirToward(10, 10, 15, 10, C_DIR.EAST), 'east is toward a cell east');
+  TestKit.Check(not Pathing.IsDirToward(10, 10, 15, 10, C_DIR.WEST), 'west is not');
+  TestKit.Check(Pathing.IsDirToward(10, 10, 15, 10, C_DIR.CENTER), 'no direction is always toward');
+  TestKit.Check(not Pathing.IsDirToward(10, 10, 50, 10, C_DIR.EAST), 'a target off the arena is never toward');
 
   TestKit.Check(Pathing.GetIconTileDelta(1, 0, dx, dy) and (dx = 0) and (dy = 0),
                 'a one-cell icon''s only tile is at its corner');

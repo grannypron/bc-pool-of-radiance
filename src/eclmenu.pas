@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_Dir,
+uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_Effect, C_Keys, C_STATUS, C_Gbvm, C_DIR,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -223,10 +223,10 @@ begin
         Inc(dist);
         MaxMonsterDist := dist;
         case facing of
-          C_Dir.NORTH: Dec(y);
-          C_Dir.EAST: Inc(x);
-          C_Dir.SOUTH: Inc(y);
-          C_Dir.WEST: Dec(x);
+          C_DIR.NORTH: Dec(y);
+          C_DIR.EAST: Inc(x);
+          C_DIR.SOUTH: Inc(y);
+          C_DIR.WEST: Dec(x);
         end;
       end else
         blocked := True;
@@ -373,10 +373,10 @@ end;
 procedure EclMoveForward;
 begin
   case GDVars.gFacing of
-    C_Dir.NORTH: if GDVars.gMapY > 0 then Dec(GDVars.gMapY) else GDVars.gMapY := 15;
-    C_Dir.EAST: if GDVars.gMapX < 15 then Inc(GDVars.gMapX) else GDVars.gMapX := 0;
-    C_Dir.SOUTH: if GDVars.gMapY < 15 then Inc(GDVars.gMapY) else GDVars.gMapY := 0;
-    C_Dir.WEST: if GDVars.gMapX > 0 then Dec(GDVars.gMapX) else GDVars.gMapX := 15;
+    C_DIR.NORTH: if GDVars.gMapY > 0 then Dec(GDVars.gMapY) else GDVars.gMapY := 15;
+    C_DIR.EAST: if GDVars.gMapX < 15 then Inc(GDVars.gMapX) else GDVars.gMapX := 0;
+    C_DIR.SOUTH: if GDVars.gMapY < 15 then Inc(GDVars.gMapY) else GDVars.gMapY := 0;
+    C_DIR.WEST: if GDVars.gMapX > 0 then Dec(GDVars.gMapX) else GDVars.gMapX := 15;
   end;
   GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
   GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);

@@ -10,7 +10,7 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_AREA, C_Npc, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
 var
@@ -72,7 +72,7 @@ var
       else
         GetWallKind := 3;
     end else begin
-      if (py = GDVars.gMapY) and ((pdir = C_Dir.EAST) or (pdir = C_Dir.WEST)) then
+      if (py = GDVars.gMapY) and ((pdir = C_DIR.EAST) or (pdir = C_DIR.WEST)) then
         GetWallKind := 0
       else
         GetWallKind := 1;
@@ -157,8 +157,8 @@ var
     c4: Byte;
     open: Byte;
   begin
-    if (CombatSt.WallBetween(cellX, cellY - 1, C_Dir.WEST) = 0) and
-        (CombatSt.WallBetween(cellX - 1, cellY, C_Dir.NORTH) = 0) then
+    if (CombatSt.WallBetween(cellX, cellY - 1, C_DIR.WEST) = 0) and
+        (CombatSt.WallBetween(cellX - 1, cellY, C_DIR.NORTH) = 0) then
       open := 1
     else
       open := 0;
@@ -223,8 +223,8 @@ var
     kN: Byte;
     kE: Byte;
   begin
-    kN := CombatSt.WallBetween(cellX, cellY - 1, C_Dir.EAST);
-    kE := CombatSt.WallBetween(cellX + 1, cellY, C_Dir.NORTH);
+    kN := CombatSt.WallBetween(cellX, cellY - 1, C_DIR.EAST);
+    kE := CombatSt.WallBetween(cellX + 1, cellY, C_DIR.NORTH);
     if (kN = 0) and (kE = 0) then
       open := 1
     else
@@ -292,9 +292,9 @@ begin
     for dx := -6 to 6 do begin
       cellX := GDVars.gMapX + dx;
       cellY := GDVars.gMapY + dy;
-      wallW := CombatSt.WallBetween(cellX, cellY, C_Dir.WEST);
-      wallN := CombatSt.WallBetween(cellX, cellY, C_Dir.NORTH);
-      wallE := CombatSt.WallBetween(cellX, cellY, C_Dir.EAST);
+      wallW := CombatSt.WallBetween(cellX, cellY, C_DIR.WEST);
+      wallN := CombatSt.WallBetween(cellX, cellY, C_DIR.NORTH);
+      wallE := CombatSt.WallBetween(cellX, cellY, C_DIR.EAST);
       DrawFloorWestWall;
       DrawNorthWall;
       FillCornerNW;
@@ -608,7 +608,7 @@ begin
     { Store coordinates before probing }
     GDVars.arenaLoc[slot].x := qx + bqx * 6 + bqy * 5 + 22;
     GDVars.arenaLoc[slot].y := qy + bqy * 5 + 10;
-    CbtMap.ProbeDirection(GDVars.creatureArr[slot], C_Dir.CENTER, crIdx, terrIdx);
+    CbtMap.ProbeDirection(GDVars.creatureArr[slot], C_DIR.CENTER, crIdx, terrIdx);
     if (crIdx = 0) and (terrIdx > 0) and (GDConsts.terrainInfo[terrIdx].cost < 255) then begin
       TryPlaceAt := 1;
       quadFree[team, ring, qy, qx] := 0;
