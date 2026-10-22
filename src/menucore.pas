@@ -639,6 +639,7 @@ end;
 begin
   listOnly := False;
   arrowsToCaller := False;
+  enterToCaller := False;
   movesToCaller := False;
   extraKeys := '';
   unmarked := '';
