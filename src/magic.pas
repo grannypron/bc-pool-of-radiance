@@ -971,10 +971,19 @@ begin
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is silenced');
 end;
 
+{ Stand a downed creature back up with its hit points through FxEngine.ReviveDeadCreature, or, where it cannot stand
+  yet (another creature on its cell), a minute later through C_Effect.HEAL_WAKE. }
+procedure StandUpOrWake(tgt: Types.PCharRecord);
+begin
+  if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
+    FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+end;
+
 { Slow Poison: animated dead are skipped. A poisoned target (effect 55) has hpCur raised to at least 1, gets the spell's
-  effect at strength 255, gets back up through FxEngine.ReviveDeadCreature (or, where it cannot stand yet, a minute
-  later through C_Effect.HEAL_WAKE, as under Keoghtom's Ointment), and gains effect 15 for 10 minutes at strength
-  255. }
+  effect at strength 255 and gains effect 15 for 10 minutes at strength 255. One that is down (dead or out of play, and
+  not fled, petrified or gone) gets back up (StandUpOrWake, as under Keoghtom's Ointment); one still standing is left
+  as it is. SSI stood up every poisoned target, so a standing one "got back up" again and a stoned, disintegrated or
+  fled one was set Okay. }
 procedure SlowPoisonHandler;
 var
   effect: Types.PEffectRec;
@@ -987,8 +996,9 @@ begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 255, True, 0, 0, 'is affected');
-    if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
-      FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+    if ((tgt^.status = C_Status.DEAD) or (tgt^.enabled = 0)) and
+        not (tgt^.status in [C_Status.TEMPGONE, C_Status.RUNNING, C_Status.STONED, C_Status.GONE]) then
+      StandUpOrWake(tgt);
     FxEngine.AddEffect(tgt, C_Effect.SLOW_POISON_HIT, 10, 255, True);
   end;
 end;
@@ -1634,8 +1644,8 @@ begin
 end;
 
 { Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8. Poison
-  kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison; where it
-  cannot stand yet (another creature on its cell) it gets up a minute later through C_Effect.HEAL_WAKE. A dead target
+  kills on the spot, so a target the poison left dead gets back up with at least 1 hp, as under Slow Poison
+  (StandUpOrWake). A dead target
   still under Slow Poison was kept up through the poison and died of something else (a wound, bleeding out), so it
   stays dead, as at the temple (Temple.NeutralizePoison). }
 procedure KeoghtomsOintmentHandler;
@@ -1654,8 +1664,7 @@ begin
     if (tgt^.status = C_Status.DEAD) and not slowed then begin
       if tgt^.hpCur = 0 then
         tgt^.hpCur := 1;
-      if not FxEngine.ReviveDeadCreature(tgt, tgt^.hpCur) then
-        FxEngine.AddEffect(tgt, C_Effect.HEAL_WAKE, 1, 0, True);
+      StandUpOrWake(tgt);
     end;
   end else if not Magic.RemoveDiseaseEffects(tgt) then begin
     if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(1, 4) + 8, False) then
