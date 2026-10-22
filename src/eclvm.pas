@@ -11,6 +11,10 @@ interface
   party menu (GameVars.loadedSave set); the program then runs it again on the loaded game. }
 procedure GameLoop;
 
+{ Clear the script engine's search-mode backup and its CLEAR BOX and PROTECTION flags, for a new game
+  (GameInit.ResetGameState). }
+procedure ResetGame;
+
 implementation
 
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
@@ -74,6 +78,13 @@ const
   { location type 4, Eastern Wilderness }
   WILD_EAST_SCRIPT = 27;
 
+var
+  { Backup of the search-mode bit (C_GBVM.SEARCH_FLAGS bit 0) }
+  searchModeFlag: Byte;
+  { ECL 3D CLEAR BOX executed flag }
+  ecl3dClearFlag: Byte;
+  protNewLine: Byte;
+
 procedure CallEclScript(address: Word); forward;
 
 { True when GameLoop is to return so the program starts it again on another game: a quick load was asked for, or a
@@ -125,7 +136,7 @@ begin
   FreeEclStack;
   GameVars.curRow := C_MSG.MESSAGE_TOP;
   GameVars.curCol := C_MSG.TEXT_LEFT;
-  GameVars.ecl3dClearFlag := 0;
+  ecl3dClearFlag := 0;
 end;
 
 { GOTO: jump to var 1's address }
@@ -1433,7 +1444,7 @@ begin
   Inc(GameVars.eclIp);
   GameVars.curCol := C_MSG.TEXT_LEFT;
   Inc(GameVars.curRow);
-  GameVars.protNewLine := 0;
+  protNewLine := 0;
 end;
 
 { CLEAR BOX: clear the 3D view box and note it for PROTECTION }
@@ -1441,7 +1452,7 @@ procedure EclClearBox;
 begin
   Inc(GameVars.eclIp);
   TextRend.ClearRect(1, 1, 15, 15);
-  GameVars.ecl3dClearFlag := 1;
+  ecl3dClearFlag := 1;
 end;
 
 { WHO: let the player pick a party member, prompting with var 1; the choice becomes the current character. A WHO that
@@ -1654,12 +1665,12 @@ begin
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
   i := 0;
   done := False;
-  if (GameVars.ecl3dClearFlag <> 0) and (GameVars.curRow > 13) then begin
+  if (ecl3dClearFlag <> 0) and (GameVars.curRow > 13) then begin
     GameVars.curRow := 5;
     GameVars.curCol := 2;
     EclMenu.protTextShown := 1;
   end;
-  GameVars.protNewLine := 1;
+  protNewLine := 1;
   repeat
     a := address + i;
     c := EclVars.ReadGbvm(a) + 1;
@@ -1841,13 +1852,13 @@ begin
       if UpCase(cmd) = 'E' then
         EclVm.EnterCamp
       else begin
-        GameVars.searchModeFlag := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
+        searchModeFlag := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
         GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := 1;
         MapView.DisplayMapView;
         EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
         if newEclFlag <> 0 then
           EclVm.NewEclDone;
-        GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.searchModeFlag;
+        GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := searchModeFlag;
       end;
       if not GameVars.partyDefeated and not EclVm.Reloading then begin
         cmd := Explore.MapMainMenu;
@@ -1878,6 +1889,13 @@ begin
     end;
   end;
   GameVars.partyDefeated := False;
+end;
+
+procedure ResetGame;
+begin
+  searchModeFlag := 0;
+  ecl3dClearFlag := 0;
+  protNewLine := 0;
 end;
 
 begin

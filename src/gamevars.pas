@@ -320,11 +320,6 @@ var
   { ECL flags }
   { ECL script ID }
   eclScriptId: Byte;
-  { Backup of the search-mode bit (C_GBVM.SEARCH_FLAGS bit 0) }
-  searchModeFlag: Byte;
-  { ECL 3D CLEAR BOX executed flag }
-  ecl3dClearFlag: Byte;
-  protNewLine: Byte;
   { ECL currently displaying graphics flag }
   eclGraphics: Boolean;
   { ECL displaying monster sprite flag }
