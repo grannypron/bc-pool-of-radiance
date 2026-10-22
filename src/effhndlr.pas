@@ -1024,30 +1024,48 @@ begin
       CharDisp.PrintHpRestoreMsg(creature);
 end;
 
+{ A touch's failed save: True, with "is Unaffected", when the target is immune to effId all the same
+  (FxEngine.EffectImmune, the check FxEngine.AddEffectWithMessage makes). SSI added the touch's effect with no
+  immunity check: a paralysis ward (eff 109) never stopped a paralyzing touch (#767), and a poison-immune creature (eff
+  111, 125), whose saves vs. poison otherwise always succeed, died of poison on a natural 1 (#720). }
+
+function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
+var
+  immune: Boolean;
+begin
+  immune := FxEngine.EffectImmune(target, effId);
+  if immune then
+    CharDisp.PrintNameString(target, 'is Unaffected', 10, True);
+  TouchImmune := immune;
+end;
+
 { Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod and its Constitution's
-  poison bonus (AbilAdj.ConPoisonSave), it gets eff 55 and is killed. }
+  poison bonus (AbilAdj.ConPoisonSave), or is immune to poison, it gets eff 55 and is killed. }
 
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
   if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE,
-                                  saveMod + AbilAdj.ConPoisonSave(GDVars.dsOtherCreatureCurrentPtr^.conCur)) then begin
-    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
-    TextRend.PauseOnly;
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
-    EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
-  end;
+                                  saveMod + AbilAdj.ConPoisonSave(GDVars.dsOtherCreatureCurrentPtr^.conCur)) then
+    if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED) then begin
+      CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
+      TextRend.PauseOnly;
+      FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
+      EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
+    end;
 end;
 
-{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation; saveMod is unused. }
+{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation or is immune to paralysis; saveMod
+  is unused. }
 
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then begin
-    CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
-  end;
+  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then
+    if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS) then begin
+      CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
+      FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
+    end;
 end;
 
 { Melee poison (eff 64): the target saves at +0 }

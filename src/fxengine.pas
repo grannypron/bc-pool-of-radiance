@@ -112,9 +112,13 @@ procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; da
   levels: paladins catch no disease. }
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
-{ AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when a
-  C_Cond.EFFECT_IMMUNITY (9) effect clears GDVars.pendingEffectId, when FxEngine.DiseaseImmune holds, or when saved and
-  saveNegates are both True.
+{ The immunity check: True when the creature is immune to effId, that is when one of its C_Cond.EFFECT_IMMUNITY (9)
+  effects (a ward, an immunity or magic resistance) clears GDVars.pendingEffectId, or when FxEngine.DiseaseImmune
+  holds. }
+function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
+
+{ AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when
+  FxEngine.EffectImmune holds, or when saved and saveNegates are both True.
   Otherwise an existing node with the same id is removed first if it is timed and the new duration is longer, or if the
   new effect is permanent (0); in any other case the new node is added alongside it. A non-empty msg is printed after
   the creature's name. }
@@ -733,16 +737,19 @@ begin
     (effId in [C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT]);
 end;
 
+function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
+begin
+  GDVars.pendingEffectId := effId;
+  FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);
+  EffectImmune := (GDVars.pendingEffectId = 0) or FxEngine.DiseaseImmune(creature, effId);
+end;
+
 procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove,
                                saveNegates, saved: Boolean; msg: Types.TStr40);
 var
   effect: Types.PEffectRec;
 begin
-  GDVars.pendingEffectId := effId;
-  FxEngine.TriggerEffectsWithCondition(C_Cond.EFFECT_IMMUNITY, creature);
-  if FxEngine.DiseaseImmune(creature, effId) then
-    GDVars.pendingEffectId := 0;
-  if (GDVars.pendingEffectId = 0) or (saved and (saveNegates = True)) then
+  if FxEngine.EffectImmune(creature, effId) or (saved and (saveNegates = True)) then
     CharDisp.PrintNameString(creature, 'is Unaffected', 10, True)
   else begin
     if CharHlp.HasEffect(creature, effId, effect) then
