@@ -23,6 +23,8 @@ var
   { the video segments of the displayed page and of the other page; DrawGlyph writes both }
   egaCurPage: Word;
   egaOtherPage: Word;
+  { the other page's number (always 0; Start sets it) }
+  pageNum: Byte;
 
 { Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
 procedure ResetEgaGC;
@@ -83,16 +85,16 @@ begin
   end;
   Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
   Port[C_EGA.GC_DATA_PORT] := C_EGA.GC_WRITE_MODE_0;
-  VidEga.SetupEgaOtherPage(GameVars.pageNum);
+  VidEga.SetupEgaOtherPage(pageNum);
 end;
 
 { both display pages 0 }
 procedure Start;
 begin
   GameVars.pageMain := 0;
-  GameVars.pageNum := 0;
+  pageNum := 0;
   VidEga.SetupEgaCurrentPage(GameVars.pageMain);
-  VidEga.SetupEgaOtherPage(GameVars.pageNum);
+  VidEga.SetupEgaOtherPage(pageNum);
 end;
 
 { Each span is staged plane by plane in off-screen video memory and then copied to the visible page in one latch-copy
@@ -211,7 +213,7 @@ end;
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
   DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
-  DaxIo.BiosWriteChar(GameVars.pageNum, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(pageNum, col, row, attr, count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);

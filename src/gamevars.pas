@@ -90,8 +90,6 @@ var
   { Register record handed to Dos.Intr (Host.Intr natively) for BIOS video calls; every unit calling the BIOS uses this
     one record. }
   interruptRegisters: Registers;
-  { Other EGA page number (always 0) }
-  pageNum: Byte;
   { Currently displayed EGA page number (always 0) }
   pageMain: Byte;
   { BIOS mode queried at init, then the mode active before the latest Blit.SetVideoMode call; RestoreVideoMode returns
