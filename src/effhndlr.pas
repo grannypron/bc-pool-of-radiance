@@ -1928,18 +1928,24 @@ begin
 end;
 
 { Ready item (eff 128, 129, 130, 133, 134, 136, 138, 139): p is the ITEM. Readying adds its effect byte as a permanent
-  effect (strength 12) and calls that handler; unreadying removes it. }
+  effect (strength 12) and calls that handler with the new node; unreadying removes it. SSI passed the handler nil, and
+  the Cloak of Displacement's (eff 89) wrote its strength through it, into the interrupt vectors (#737). }
 
 procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
+  effect: Types.PEffectRec;
 begin
   item := p;
   if removed then
     FxEngine.RemoveEffect(creature, item^.effect, nil)
   else begin
     FxEngine.AddEffect(creature, item^.effect, 0, 12, False);
-    FxEngine.CallEffectHandler(item^.effect, creature, nil, False);
+    { AddEffect appends: the new node is the last }
+    effect := creature^.effectsAddr;
+    while effect^.next <> nil do
+      effect := effect^.next;
+    FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
   end;
 end;
 
