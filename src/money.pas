@@ -31,6 +31,11 @@ procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
 procedure PayFromPool(gp: LongInt);
 
+{ Give creature pp platinum and then gp gold, as many as it can carry (CheckOverload); whatever does not fit goes to
+  the treasure pool, which the bottom line reports. The coins' weight changes, so the creature's stats are
+  recalculated. }
+procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
+
 { Pay gp gold pieces from payer (WhoPays): buyer's coins or the pool's. }
 procedure PayBy(buyer: Types.PCharRecord; payer: Byte; gp: LongInt);
 
@@ -101,20 +106,26 @@ begin
                       MaxLongInt, GDVars.treasureMoney);
 end;
 
-{ Give pp platinum to creature; whatever does not fit goes to the treasure pool. }
-procedure GivePlatinum(creature: Types.PCharRecord; pp: Word);
+procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
 var
   takable: Word;
+  ppTaken: Word;
+  gpTaken: Word;
 begin
-  if Money.CheckOverload(creature, pp, takable) then begin
+  ppTaken := pp;
+  gpTaken := gp;
+  if Money.CheckOverload(creature, LongInt(pp) + gp, takable) then begin
     CharDisp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
-    Inc(creature^.coins[C_Money.PLATINUM], takable);
-    CharHlp.RecalcStats(creature);
-    GDVars.treasureMoney[C_Money.PLATINUM] := pp + GDVars.treasureMoney[C_Money.PLATINUM] - takable;
-  end else begin
-    Inc(creature^.coins[C_Money.PLATINUM], pp);
-    CharHlp.RecalcStats(creature);
+    if ppTaken > takable then
+      ppTaken := takable;
+    if gpTaken > takable - ppTaken then
+      gpTaken := takable - ppTaken;
+    Inc(GDVars.treasureMoney[C_Money.PLATINUM], pp - ppTaken);
+    Inc(GDVars.treasureMoney[C_Money.GOLD], gp - gpTaken);
   end;
+  Inc(creature^.coins[C_Money.PLATINUM], ppTaken);
+  Inc(creature^.coins[C_Money.GOLD], gpTaken);
+  CharHlp.RecalcStats(creature);
 end;
 
 { Read an amount from the bottom line. Accept digits, Backspace, Return and Escape; clamp to max as digits are entered.
@@ -390,7 +401,7 @@ begin
     items := True;
 end;
 
-{ Appraise the current character's gems and jewelry one at a time. Sell pays val div 5 in platinum through GivePlatinum
+{ Appraise the current character's gems and jewelry one at a time. Sell pays val div 5 in platinum through GiveCoins
   (the remainder is lost). Keep builds an itemType 70 item worth the appraisal and gives it to the appraiser or, when
   the appraiser has no room (16 items, or one more coin would overload them), to the first other party member (not a
   hired NPC) who has; the screen says which, and with no one to take it only Sell is offered. CharHlp.RecalcStats runs
@@ -466,7 +477,7 @@ var
       { the holder's item count and weight }
       CharHlp.RecalcStats(holder);
     end else
-      Money.GivePlatinum(GDVars.curChar, worth div 5);
+      Money.GiveCoins(GDVars.curChar, worth div 5, 0);
   end;
 
 begin
