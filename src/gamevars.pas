@@ -74,10 +74,6 @@ var
   gLocType: Byte;
   { Uninterrupted resting time when disturbable }
   restTicks: Word;
-  { Portrait head ID. }
-  currentPortraitHead: Byte;
-  { Portrait body ID. }
-  currentPortraitHead2: Byte;
   partyDefeated: Boolean;
   { Delay in printing message to message window }
   msgDelayFlag: Byte;

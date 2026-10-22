@@ -236,8 +236,8 @@ end;
 procedure DisplayPortrait(headId, bodyId: Byte);
 begin
   GameVars.picDrawn := False;
-  GameVars.currentPortraitHead := headId;
-  GameVars.currentPortraitHead2 := bodyId;
+  CharDisp.currentPortraitHead := headId;
+  CharDisp.currentPortraitHead2 := bodyId;
   Portrait.LoadPortraitBufs(headId, bodyId);
   Portrait.DisplayPortraitBufs(3, 3, True);
 end;

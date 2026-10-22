@@ -9,6 +9,12 @@ interface
 
 uses Types;
 
+var
+  { Portrait head ID. }
+  currentPortraitHead: Byte;
+  { Portrait body ID. }
+  currentPortraitHead2: Byte;
+
 procedure DisplayParty(hl: Types.PCharRecord);
 
 procedure PrintArmorClass(creature: Types.PCharRecord; col, row: Byte);
@@ -565,7 +571,7 @@ begin
                                        0, White, '');
     C_IFC.SHOP_TEMPLE, C_IFC.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
-      Portrait.LoadPortraitBufs(GameVars.currentPortraitHead, GameVars.currentPortraitHead2);
+      Portrait.LoadPortraitBufs(currentPortraitHead, currentPortraitHead2);
       Portrait.DisplayPortraitBufs(3, 3, True);
     end;
     C_IFC.CAMPING: begin
@@ -715,4 +721,8 @@ begin
   TextRend.DisplayAndPause(Yellow, msg);
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  currentPortraitHead := 0;
+  currentPortraitHead2 := 0;
 end.
