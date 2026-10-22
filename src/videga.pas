@@ -6,12 +6,12 @@ unit VidEga;
 
 interface
 
-{ Make this the video driver: fill GDVars.video. }
+{ Make this the video driver: fill GameVars.video. }
 procedure Install;
 
 implementation
 
-uses Types, C_VIDEO, C_EGA, GDConsts, GDVars, DaxIo, Crt, Dos, PicEga;
+uses Types, C_VIDEO, C_EGA, GDConsts, GameVars, DaxIo, Crt, Dos, PicEga;
 
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
@@ -51,9 +51,9 @@ end;
   Start sets both page selectors to 0; DrawGlyph then writes through both equal page segments. }
 procedure SetupEgaCurrentPage(page: Byte);
 begin
-  GDVars.interruptRegisters.ah := 5;
-  GDVars.interruptRegisters.al := page;
-  Intr($10, GDVars.interruptRegisters);
+  GameVars.interruptRegisters.ah := 5;
+  GameVars.interruptRegisters.al := page;
+  Intr($10, GameVars.interruptRegisters);
   egaCurPage := C_VIDEO.EGA_VIDEO_SEG + (Word(page) shl 9);
 end;
 
@@ -83,16 +83,16 @@ begin
   end;
   Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
   Port[C_EGA.GC_DATA_PORT] := C_EGA.GC_WRITE_MODE_0;
-  VidEga.SetupEgaOtherPage(GDVars.pageNum);
+  VidEga.SetupEgaOtherPage(GameVars.pageNum);
 end;
 
 { both display pages 0 }
 procedure Start;
 begin
-  GDVars.pageMain := 0;
-  GDVars.pageNum := 0;
-  VidEga.SetupEgaCurrentPage(GDVars.pageMain);
-  VidEga.SetupEgaOtherPage(GDVars.pageNum);
+  GameVars.pageMain := 0;
+  GameVars.pageNum := 0;
+  VidEga.SetupEgaCurrentPage(GameVars.pageMain);
+  VidEga.SetupEgaOtherPage(GameVars.pageNum);
 end;
 
 { Each span is staged plane by plane in off-screen video memory and then copied to the visible page in one latch-copy
@@ -107,30 +107,30 @@ var
   plane: Byte;
 begin
   Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
-  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
-    if GDVars.spanActive[row] <> 0 then begin
-      dstBase := GDVars.fbRowOfs[row + 8] + GDVars.spanScreenOfs[row] + 1;
+  for row := 0 to SizeOf(GameVars.spanActive) - 1 do
+    if GameVars.spanActive[row] <> 0 then begin
+      dstBase := GameVars.fbRowOfs[row + 8] + GameVars.spanScreenOfs[row] + 1;
       { each plane's bytes, every fourth from its own in the view buffer }
       for plane := 0 to 3 do begin
         Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
-        srcOff := GDVars.spanFirstOfs[row] + plane;
+        srcOff := GameVars.spanFirstOfs[row] + plane;
         dstOff := dstBase;
         repeat
-          Mem[EGA_STAGE_SEG:dstOff] := GDVars.viewImageBufferPtr^.data[srcOff];
+          Mem[EGA_STAGE_SEG:dstOff] := GameVars.viewImageBufferPtr^.data[srcOff];
           Inc(srcOff, 4);
           Inc(dstOff);
-        until srcOff > GDVars.spanLastOfs[row];
+        until srcOff > GameVars.spanLastOfs[row];
       end;
     end;
   Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
-  dstOff := GDVars.fbRowOfs[8] + 1;
+  dstOff := GameVars.fbRowOfs[8] + 1;
   Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
   Port[C_EGA.GC_DATA_PORT] := GC_WRITE_MODE_1;
-  for row := 0 to SizeOf(GDVars.spanActive) - 1 do begin
-    if GDVars.spanActive[row] <> 0 then
-      Move(Mem[EGA_STAGE_SEG:dstOff + GDVars.spanScreenOfs[row]],
-           Mem[C_VIDEO.EGA_VIDEO_SEG:dstOff + GDVars.spanScreenOfs[row]],
-           (GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row]) div 4 + 1);
+  for row := 0 to SizeOf(GameVars.spanActive) - 1 do begin
+    if GameVars.spanActive[row] <> 0 then
+      Move(Mem[EGA_STAGE_SEG:dstOff + GameVars.spanScreenOfs[row]],
+           Mem[C_VIDEO.EGA_VIDEO_SEG:dstOff + GameVars.spanScreenOfs[row]],
+           (GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row]) div 4 + 1);
     Inc(dstOff, 40);
   end;
   Port[C_EGA.GC_DATA_PORT] := C_EGA.GC_WRITE_MODE_0;
@@ -159,7 +159,7 @@ begin
       for col := colOff to colEnd do
         for plane := 0 to 3 do begin
           Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneBit[plane];
-          Mem[C_VIDEO.EGA_VIDEO_SEG:GDVars.fbRowOfs[row] + col] := pic^.data[srcOff];
+          Mem[C_VIDEO.EGA_VIDEO_SEG:GameVars.fbRowOfs[row] + col] := pic^.data[srcOff];
           Inc(srcOff);
         end;
     Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
@@ -179,8 +179,8 @@ begin
     for k := 0 to 3 do begin
       Port[C_EGA.SEQ_DATA_PORT] := GDConsts.egaPlaneMask[3 - k];
       if (GDConsts.egaPlaneMask[3 - k] and color) > 0 then begin
-        Mem[egaCurPage: dstOff] := GDVars.gameFont^[glyph][outerRow];
-        Mem[egaOtherPage: dstOff] := GDVars.gameFont^[glyph][outerRow];
+        Mem[egaCurPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
+        Mem[egaOtherPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
       end else begin
         Mem[egaCurPage: dstOff] := 0;
         Mem[egaOtherPage: dstOff] := 0;
@@ -207,8 +207,8 @@ end;
 { the main page, then the same again, unmapped, on the other page }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, attr, count, ch);
-  DaxIo.BiosWriteChar(GDVars.pageNum, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageNum, col, row, attr, count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
@@ -227,19 +227,19 @@ end;
   palette values }
 procedure SetPalette(registerIndex, color: Byte);
 begin
-  GDVars.interruptRegisters.ah := $10;
-  GDVars.interruptRegisters.al := 0;
+  GameVars.interruptRegisters.ah := $10;
+  GameVars.interruptRegisters.al := 0;
   if color < 8 then
-    GDVars.interruptRegisters.bh := color
+    GameVars.interruptRegisters.bh := color
   else
-    GDVars.interruptRegisters.bh := color + 8;
-  GDVars.interruptRegisters.bl := registerIndex;
-  Intr($10, GDVars.interruptRegisters);
+    GameVars.interruptRegisters.bh := color + 8;
+  GameVars.interruptRegisters.bl := registerIndex;
+  Intr($10, GameVars.interruptRegisters);
 end;
 
 procedure Install;
 begin
-  with GDVars.video do begin
+  with GameVars.video do begin
     name := 'EGA';
     colours := 16;
     hasPalette := True;

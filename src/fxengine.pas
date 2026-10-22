@@ -7,7 +7,7 @@ interface
 
 uses Types;
 
-{ Call the effect handler for effId (1..141) through GDVars.effectFns; an id outside the table calls nothing. p is the
+{ Call the effect handler for effId (1..141) through GameVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -40,8 +40,8 @@ procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
   applied. }
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 
-{ The lowest cloud number, at most 15, that none of the caster's clouds on the GDVars.stinkHead list has, so the number
-  in the caster's Cast Stinking Cloud effect (strength div 16) names one cloud alone. }
+{ The lowest cloud number, at most 15, that none of the caster's clouds on the GameVars.stinkHead list has, so the
+  number in the caster's Cast Stinking Cloud effect (strength div 16) names one cloud alone. }
 function FreeCloudNumber(caster: Types.PCharRecord): Byte;
 
 { The Cast Stinking Cloud effect's strength: the cloud number (FreeCloudNumber) in the high nibble and the caster level
@@ -58,19 +58,19 @@ function PrayerSide(effect: Types.PEffectRec): Byte;
 
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
   becomes 100, then the defender's C_COND.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
-  (GDVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
+  (GameVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
   acCur, so a script's attack hit 5% less often than a creature's with the same THAC0 (#719). }
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 
 { Full attack roll: strip the attacker's invisibility (effect 25), roll d20 into gAttackRoll (1 misses, 20 becomes 100),
   run the attacker's C_COND.ATTACK_ROLL_ATT (10) and the defender's C_COND.ATTACK_ROLL_DEF (16) effects, and take the
   GBVM modifier zmod (the low byte of C_GBVM.PARTY_HIT_MOD when the attacker is allied, of C_GBVM.MONSTER_HIT_MOD when
-  hostile). Hit when no effect forced a miss (GDVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >=
+  hostile). Hit when no effect forced a miss (GameVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >=
   sixtyMinusAc. Penalties that take the roll below 0 only lower it; SSI's took any roll below 0 for a forced miss
   (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 
-{ d20 saving throw into GDVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
+{ d20 saving throw into GameVars.gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
   creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
   the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_SAVE.PARALYZE..SPELL (an
   ECL script supplies it) is rolled as C_SAVE.SPELL. }
@@ -107,9 +107,9 @@ function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Bool
   (CharHlp.DiseaseStrLoss). }
 function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte; var effStrength: Byte): Boolean;
 
-{ Non-weapon damage: post damage to GDVars.pendingDamage and run the C_COND.NONWEAPON_DAMAGE (6) effects; when saved,
+{ Non-weapon damage: post damage to GameVars.pendingDamage and run the C_COND.NONWEAPON_DAMAGE (6) effects; when saved,
   saveReduction 1 cancels the damage and 2 halves it. If any damage remains, print it with its element from
-  GDVars.elementMask (Fire, Cold, Electricity, Acid, or "from Magic" when no bit but magic is set), apply it with
+  GameVars.elementMask (Fire, Cold, Electricity, Acid, or "from Magic" when no bit but magic is set), apply it with
   CharHlp.InflictDamage and, in combat, clear castAllowed and lose any spell being cast. A creature it disables "Goes
   Down" (", and is Dying") or "is killed" (status 6..8); in combat the hpZeroEffects are removed, the C_COND.HP_ZERO
   (13) effects run and CbtMap.CreatureDowned is called if the creature is still disabled. A dead, stoned or gone
@@ -126,7 +126,7 @@ procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; da
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
 { The immunity check: True when the creature is immune to effId: one of its C_COND.EFFECT_IMMUNITY (9) effects (a ward,
-  an immunity or magic resistance) clears GDVars.pendingEffectId, or FxEngine.DiseaseImmune holds. }
+  an immunity or magic resistance) clears GameVars.pendingEffectId, or FxEngine.DiseaseImmune holds. }
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
 { AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when FxEngine.EffectImmune
@@ -152,7 +152,7 @@ procedure ToggleReadyItem(item: Types.PItemRec);
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
 { The start of a hold effect's handler (bite and hold, blood drain): p is the effect, its strength the victim's creature
-  index. Returns the victim (also set in GDVars.otherCreatureCurrentPtr) while the hold lasts, else nil: with no
+  index. Returns the victim (also set in GameVars.otherCreatureCurrentPtr) while the hold lasts, else nil: with no
   victim in the arena the effect just goes (released False); when the effect is being removed, either side is down or
   the victim is no longer C_EFFECT.IMMOBILE (it broke free, #709), the victim loses C_EFFECT.IMMOBILE and the effect
   goes (released True). The effect is removed here with onRemove cleared first, unless removed says it is already being
@@ -162,7 +162,7 @@ function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; e
 
 implementation
 
-uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GDConsts, GDVars, Blit,
+uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GDConsts, GameVars, Blit,
   TextRend, CharHlp, Pathing, CbtMap, C_EFFECT, C_STATUS, C_IFC, C_DIR, C_LEVEL, Crt, C_ITEM, C_EQUIP;
 
 const
@@ -172,7 +172,7 @@ const
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if (effId >= C_EFFECT.BLESS) and (effId <= C_EFFECT.RECENT_CURE) then
-    GDVars.effectFns[effId](creature, p, removed);
+    GameVars.effectFns[effId](creature, p, removed);
 end;
 
 procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
@@ -242,31 +242,31 @@ var
 
 begin
   found := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   if Carries(creature) then
     found := True
   else if effId in [C_EFFECT.SILENCE, C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT,
                     C_EFFECT.PRAYER] then begin
-    Move(GDVars.targetList, save, SizeOf(GDVars.targetList));
+    Move(GameVars.targetList, save, SizeOf(GameVars.targetList));
     while (p <> nil) and not found do begin
       if Carries(p)
          and ((effId in [C_EFFECT.SILENCE, C_EFFECT.PRAYER]) or (p^.hostile = creature^.hostile)) then begin
-        if GDVars.ifcState = C_IFC.COMBAT then begin
+        if GameVars.ifcState = C_IFC.COMBAT then begin
           if effId = C_EFFECT.PRAYER then
             range := 6
           else
             range := 1;
           Pathing.BuildTargetList(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), range, 255, CbtMap.GetIconSize(p),
-                                  GDVars.arenaPtr);
-          for i := 1 to GDVars.targetCount do
-            if GDVars.targetList[i].idx = CbtMap.CombatSlot(creature) then
+                                  GameVars.arenaPtr);
+          for i := 1 to GameVars.targetCount do
+            if GameVars.targetList[i].idx = CbtMap.CombatSlot(creature) then
               found := True;
         end else
           found := True;
       end;
       p := p^.nextCharAddr;
     end;
-    Move(save, GDVars.targetList, SizeOf(GDVars.targetList));
+    Move(save, GameVars.targetList, SizeOf(GameVars.targetList));
   end;
   EffectSource := found;
 end;
@@ -470,7 +470,7 @@ begin
   n := 0;
   repeat
     used := False;
-    node := GDVars.stinkHead;
+    node := GameVars.stinkHead;
     while node <> nil do begin
       if (node^.caster = caster) and (node^.idx = n) then
         used := True;
@@ -507,14 +507,14 @@ end;
 function RollToHit(attacker, defender: Types.PCharRecord; toHit: Integer; sixtyMinusAc: Byte): Boolean;
 begin
   RollToHit := False;
-  GDVars.gAttackAvoided := False;
-  GDVars.gAttackRoll := Dice.RollDice(1, 20);
-  if GDVars.gAttackRoll > 1 then begin
-    if GDVars.gAttackRoll = 20 then GDVars.gAttackRoll := 100;
+  GameVars.gAttackAvoided := False;
+  GameVars.gAttackRoll := Dice.RollDice(1, 20);
+  if GameVars.gAttackRoll > 1 then begin
+    if GameVars.gAttackRoll = 20 then GameVars.gAttackRoll := 100;
     if attacker <> nil then
       FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_ATT, attacker);
     FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_DEF, defender);
-    if not GDVars.gAttackAvoided and (GDVars.gAttackRoll + toHit >= sixtyMinusAc) then
+    if not GameVars.gAttackAvoided and (GameVars.gAttackRoll + toHit >= sixtyMinusAc) then
       RollToHit := True;
   end;
 end;
@@ -530,9 +530,9 @@ var
 begin
   FxEngine.RemoveInvisibility(attacker);
   if attacker^.hostile = 0 then
-    zmod := ShortInt(Lo(GDVars.zone1^[C_GBVM.PARTY_HIT_MOD]))
+    zmod := ShortInt(Lo(GameVars.zone1^[C_GBVM.PARTY_HIT_MOD]))
   else
-    zmod := ShortInt(Lo(GDVars.zone1^[C_GBVM.MONSTER_HIT_MOD]));
+    zmod := ShortInt(Lo(GameVars.zone1^[C_GBVM.MONSTER_HIT_MOD]));
   AttackRoll := RollToHit(attacker, defender, attacker^.thac0Cur + zmod, sixtyMinusAc);
 end;
 
@@ -540,15 +540,15 @@ function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortI
 begin
   if (saveType < C_SAVE.PARALYZE) or (saveType > C_SAVE.SPELL) then
     saveType := C_SAVE.SPELL;
-  GDVars.gSaveRoll := Dice.RollDice(1, 20);
-  case GDVars.gSaveRoll of
+  GameVars.gSaveRoll := Dice.RollDice(1, 20);
+  case GameVars.gSaveRoll of
     1: RollSavingThrow := False;
     20: RollSavingThrow := True;
   else begin
-    GDVars.gSaveRoll := GDVars.gSaveRoll + creature^.saveBonus + modifier;
-    GDVars.gSaveType := saveType;
+    GameVars.gSaveRoll := GameVars.gSaveRoll + creature^.saveBonus + modifier;
+    GameVars.gSaveType := saveType;
     FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, creature);
-    if creature^.saves[saveType] <= GDVars.gSaveRoll then
+    if creature^.saves[saveType] <= GameVars.gSaveRoll then
       RollSavingThrow := True
     else
       RollSavingThrow := False;
@@ -597,7 +597,7 @@ begin
   if slot > 0 then begin
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     Blit.FlushView;
-    GDVars.arenaLoc[slot].size := 0;
+    GameVars.arenaLoc[slot].size := 0;
   end;
   CbtMap.BuildArenaArrays;
   if CharHlp.EndActions(creature) then
@@ -686,26 +686,26 @@ var
   s: String[43];
 begin
   if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
-  GDVars.pendingDamage := damage;
+  GameVars.pendingDamage := damage;
   FxEngine.TriggerEffectsWithCondition(C_COND.NONWEAPON_DAMAGE, creature);
   if saved then
     case saveReduction of
-      1: GDVars.pendingDamage := 0;
-      2: GDVars.pendingDamage := GDVars.pendingDamage div 2;
+      1: GameVars.pendingDamage := 0;
+      2: GameVars.pendingDamage := GameVars.pendingDamage div 2;
     end;
-  if GDVars.pendingDamage > 0 then begin
-    if GDVars.pendingDamage <> 1 then
-      s := 'takes ' + StrUtil.NumStr(GDVars.pendingDamage) + ' points of damage '
+  if GameVars.pendingDamage > 0 then begin
+    if GameVars.pendingDamage <> 1 then
+      s := 'takes ' + StrUtil.NumStr(GameVars.pendingDamage) + ' points of damage '
     else
       s := 'takes 1 point of damage ';
-    case GDVars.elementMask and not C_EFFECT.ELEM_MAGIC of
+    case GameVars.elementMask and not C_EFFECT.ELEM_MAGIC of
       C_EFFECT.ELEM_FIRE: s := s + 'from Fire';
       C_EFFECT.ELEM_COLD: s := s + 'from Cold';
       C_EFFECT.ELEM_ELEC: s := s + 'from Electricity';
       C_EFFECT.ELEM_ACID: s := s + 'from Acid';
     end;
     { magic bit alone, or no element bit at all }
-    if (GDVars.elementMask and C_EFFECT.ELEM_MAGIC) = GDVars.elementMask then
+    if (GameVars.elementMask and C_EFFECT.ELEM_MAGIC) = GameVars.elementMask then
       s := s + 'from Magic';
     if shockItem = nil then
       CharDisp.PrintNameStringAnim(creature, False, s)
@@ -715,12 +715,12 @@ begin
       CharDisp.MessageText(shockItem^.name, LightGreen, True);
       CharDisp.MessageText('shocks ', White, False);
       CharDisp.MessageText(creature^.name, LightGreen, False);
-      CharDisp.MessageText(' for ' + StrUtil.NumStr(GDVars.pendingDamage) + ' damage, and has been unequipped.', White,
-                           False);
+      CharDisp.MessageText(' for ' + StrUtil.NumStr(GameVars.pendingDamage) + ' damage, and has been unequipped.',
+                           White, False);
       CharDisp.MessageWait;
     end;
-    CharHlp.InflictDamage(creature, GDVars.pendingDamage);
-    if GDVars.ifcState = C_IFC.COMBAT then begin
+    CharHlp.InflictDamage(creature, GameVars.pendingDamage);
+    if GameVars.ifcState = C_IFC.COMBAT then begin
       creature^.combatAddr^.castAllowed := 0;
       if creature^.combatAddr^.spellCast > 0 then begin
         CharDisp.PrintNameString(creature, 'lost a spell', 12, True);
@@ -735,8 +735,8 @@ begin
       { 6..8 = dead, stoned, gone }
       if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
         s := 'is killed';
-      CharDisp.PrintNameString(creature, s, GDVars.curRow + 1, False);
-      if GDVars.ifcState <> C_IFC.COMBAT then
+      CharDisp.PrintNameString(creature, s, GameVars.curRow + 1, False);
+      if GameVars.ifcState <> C_IFC.COMBAT then
         TextRend.PauseOnly
       else begin
         FxEngine.RemoveEffectsHp0(creature);
@@ -769,9 +769,9 @@ end;
 
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
-  GDVars.pendingEffectId := effId;
+  GameVars.pendingEffectId := effId;
   FxEngine.TriggerEffectsWithCondition(C_COND.EFFECT_IMMUNITY, creature);
-  EffectImmune := (GDVars.pendingEffectId = 0) or FxEngine.DiseaseImmune(creature, effId);
+  EffectImmune := (GameVars.pendingEffectId = 0) or FxEngine.DiseaseImmune(creature, effId);
 end;
 
 procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove,
@@ -815,11 +815,11 @@ begin
   else
     creature^.hpCur := creature^.hpCur + hp;
   { the statistics (#611): healing given only by a spell's or an item's caster }
-  Stats.Healed(GDVars.curChar, creature, creature^.hpCur - hpBefore, False);
+  Stats.Healed(GameVars.curChar, creature, creature^.hpCur - hpBefore, False);
   if creature^.enabled = 0 then begin
     if creature^.status = C_STATUS.DYING then
       creature^.status := C_STATUS.UNCONSCIOUS;
-    if (creature^.status = C_STATUS.UNCONSCIOUS) and (GDVars.ifcState <> C_IFC.COMBAT) then
+    if (creature^.status = C_STATUS.UNCONSCIOUS) and (GameVars.ifcState <> C_IFC.COMBAT) then
       FxEngine.CallEffectHandler(C_EFFECT.HEAL_WAKE, creature, nil, True);
   end;
   RestoreHitPoints := True;
@@ -834,7 +834,7 @@ begin
     creature^.status := C_STATUS.OKAY;
     creature^.enabled := 1;
     creature^.hpCur := hp;
-    if GDVars.ifcState = C_IFC.COMBAT then
+    if GameVars.ifcState = C_IFC.COMBAT then
       CbtMap.DisplayMapViewCentered(creature, 3, False);
     if creature^.hostile = 1 then
       s := 'stands up and grins'
@@ -864,10 +864,10 @@ procedure RemoveDiseases(creature: Types.PCharRecord);
 var
   i: Byte;
 begin
-  GDVars.effectLock := 1;
+  GameVars.effectLock := 1;
   for i := 1 to SizeOf(GDConsts.cureDiseaseEffects) do
     FxEngine.RemoveEffect(creature, GDConsts.cureDiseaseEffects[i], nil);
-  GDVars.effectLock := 0;
+  GameVars.effectLock := 0;
 end;
 
 { Toggle an item's readied state for curChar. Unreadying fails on a cursed item. Readying checks, with later checks
@@ -882,7 +882,7 @@ var
   creature: Types.PCharRecord;
 begin
   hasSpecial := item^.special > $7F;
-  creature := GDVars.curChar;
+  creature := GameVars.curChar;
   if item^.equipped <> 0 then begin
     if item^.cursed <> 0 then
       CharDisp.PrintBottomLine('It''s Cursed')
@@ -931,7 +931,7 @@ begin
            CharHlp.ItemLabel(creature^.equipped[slot], False);
            CharDisp.PrintBottomLine('already using ' + creature^.equipped[slot]^.name);
          end;
-      3: if (GDVars.ifcState <> C_IFC.COMBAT) or (creature^.quickfight = 0) then
+      3: if (GameVars.ifcState <> C_IFC.COMBAT) or (creature^.quickfight = 0) then
            CharDisp.PrintBottomLine('Your hands are full!');
     end;
   end;
@@ -939,7 +939,7 @@ end;
 
 { Age every timed effect (duration > 0 minutes) of each creature by count units of tUnit (ten segments to the minute),
   in steps of at most 10 minutes, removing those that run out. Outside camp every creature is visited; in camp only
-  those GDVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
+  those GameVars.effFlags marks as still holding timed effects. Each step first ages the effects and notes the expiring
   ones, then removes those still in the list, since a removal's handler can remove (and free) another effect. }
 procedure TimeOutEffects(count: Byte; tUnit: ShortInt);
 const
@@ -960,15 +960,15 @@ var
   nExpiring: Byte;
   again: Boolean;
 begin
-  if GDVars.ifcState <> C_IFC.CAMPING then
-    FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1)
+  if GameVars.ifcState <> C_IFC.CAMPING then
+    FillChar(GameVars.effFlags, SizeOf(GameVars.effFlags), 1)
   else begin
     found := False;
     i := 1;
     repeat
-      if GDVars.effFlags[i] <> 0 then found := True;
+      if GameVars.effFlags[i] <> 0 then found := True;
       Inc(i);
-    until found or (i > GDVars.zone1^[C_GBVM.PARTY_SIZE]);
+    until found or (i > GameVars.zone1^[C_GBVM.PARTY_SIZE]);
     if not found then Exit;
   end;
   total := count;
@@ -982,9 +982,9 @@ begin
   while total > 0 do begin
     if total > 10 then step := 10 else step := total;
     i := 1;
-    cur := GDVars.creatureList;
+    cur := GameVars.creatureList;
     while cur <> nil do begin
-      if (i > SizeOf(GDVars.effFlags)) or (GDVars.effFlags[i] <> 0) then begin
+      if (i > SizeOf(GameVars.effFlags)) or (GameVars.effFlags[i] <> 0) then begin
         again := False;
         { age the timed effects, and note those that run out in this step; 0 is permanent }
         nExpiring := 0;
@@ -1016,8 +1016,8 @@ begin
           if e^.duration > 0 then again := True;
           e := e^.next;
         end;
-        if i <= SizeOf(GDVars.effFlags) then
-          if again then GDVars.effFlags[i] := 1 else GDVars.effFlags[i] := 0;
+        if i <= SizeOf(GameVars.effFlags) then
+          if again then GameVars.effFlags[i] := 1 else GameVars.effFlags[i] := 0;
       end;
       Inc(i);
       cur := cur^.nextCharAddr;
@@ -1035,13 +1035,13 @@ var
   j: Byte;
 begin
   for i := 0 to 6 do
-    time[i] := GDVars.zone0^.words[C_GBVM.CLOCK + i];
+    time[i] := GameVars.zone0^.words[C_GBVM.CLOCK + i];
   for j := 1 to amount do begin
     Inc(time[tUnit]);
     Clock.ValidateClock(time, True);
   end;
   for i := 0 to 6 do
-    GDVars.zone0^.words[C_GBVM.CLOCK + i] := time[i];
+    GameVars.zone0^.words[C_GBVM.CLOCK + i] := time[i];
   FxEngine.TimeOutEffects(amount, tUnit);
 end;
 
@@ -1052,7 +1052,7 @@ var
 begin
   HoldTarget := nil;
   released := False;
-  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GDVars.arenaCount) or
+  if (Types.PEffectRec(p)^.strength = 0) or (Types.PEffectRec(p)^.strength > GameVars.arenaCount) or
       (Types.PEffectRec(p)^.strength > Types.ARENA_SLOTS) then begin
     if not removed then begin
       Types.PEffectRec(p)^.onRemove := False;
@@ -1060,17 +1060,17 @@ begin
     end;
     Exit;
   end;
-  GDVars.otherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
-  if removed or (creature^.enabled = 0) or (GDVars.otherCreatureCurrentPtr^.enabled = 0)
-     or not CharHlp.HasEffect(GDVars.otherCreatureCurrentPtr, C_EFFECT.IMMOBILE, held) then begin
-    FxEngine.RemoveEffect(GDVars.otherCreatureCurrentPtr, C_EFFECT.IMMOBILE, nil);
+  GameVars.otherCreatureCurrentPtr := GameVars.creatureArr[Types.PEffectRec(p)^.strength];
+  if removed or (creature^.enabled = 0) or (GameVars.otherCreatureCurrentPtr^.enabled = 0)
+     or not CharHlp.HasEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.IMMOBILE, held) then begin
+    FxEngine.RemoveEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.IMMOBILE, nil);
     if not removed then begin
       Types.PEffectRec(p)^.onRemove := False;
       FxEngine.RemoveEffect(creature, effId, p);
     end;
     released := True;
   end else
-    HoldTarget := GDVars.otherCreatureCurrentPtr;
+    HoldTarget := GameVars.otherCreatureCurrentPtr;
 end;
 
 end.

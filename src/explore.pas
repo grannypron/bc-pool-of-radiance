@@ -16,7 +16,7 @@ var
 
 implementation
 
-uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
+uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
@@ -26,10 +26,10 @@ procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
 begin
   if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
-    C_DIR.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F;
-    C_DIR.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF;
-    C_DIR.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3;
-    C_DIR.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC;
+    C_DIR.WEST: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $3F;
+    C_DIR.SOUTH: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $CF;
+    C_DIR.EAST: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $F3;
+    C_DIR.NORTH: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $FC;
   end;
 end;
 
@@ -39,19 +39,19 @@ procedure ChangeBarrierPassable(x, y: ShortInt; facing: Byte);
 begin
   if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
   case facing of
-    C_DIR.WEST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $3F or $40;
-    C_DIR.SOUTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $CF or $10;
-    C_DIR.EAST: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $F3 or $4;
-    C_DIR.NORTH: GDVars.map3d^.barriers[y, x] := GDVars.map3d^.barriers[y, x] and $FC or $1;
+    C_DIR.WEST: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $3F or $40;
+    C_DIR.SOUTH: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $CF or $10;
+    C_DIR.EAST: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $F3 or $4;
+    C_DIR.NORTH: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $FC or $1;
   end;
 end;
 
 { Open the barrier the party faces, from both sides: its own cell's side and the facing cell's opposite side. }
 procedure OpenBarrierAhead;
 begin
-  Explore.ChangeBarrierPassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-  Explore.ChangeBarrierPassable(GDVars.gMapX + GDConsts.dirDX[GDVars.gFacing],
-                                GDVars.gMapY + GDConsts.dirDY[GDVars.gFacing], (GDVars.gFacing + 4) mod 8);
+  Explore.ChangeBarrierPassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+  Explore.ChangeBarrierPassable(GameVars.gMapX + GDConsts.dirDX[GameVars.gFacing],
+                                GameVars.gMapY + GDConsts.dirDY[GameVars.gFacing], (GameVars.gFacing + 4) mod 8);
 end;
 
 { Return True if any party member has a level in the requested class. }
@@ -61,7 +61,7 @@ var
   found: Boolean;
 begin
   found := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and (not found) do begin
     if p^.classLevels[idx] > 0 then found := True;
     p := p^.nextCharAddr;
@@ -81,18 +81,18 @@ var
   success: Boolean;
 begin
   success := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and (not success) do begin
     { only an Okay member can force the door }
     if p^.status = C_STATUS.OKAY then
     with p^ do begin
-      if View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) = 3 then begin
+      if View3D.GetBarrierType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing) = 3 then begin
         case strCur of
           18: case strExc of
                  91..99: if Dice.RollDice(1, 6) = 1 then success := True;
                  100..255: if Dice.RollDice(1, 6) <= 2 then success := True;
                else
-                 GDVars.doorOpen[0] := 0;
+                 GameVars.doorOpen[0] := 0;
                end;
           19, 20: if Dice.RollDice(1, 6) <= 3 then success := True;
           21, 22: if Dice.RollDice(1, 6) <= 4 then success := True;
@@ -100,7 +100,7 @@ begin
           24: if Dice.RollDice(1, 8) <= 7 then success := True;
           25..255: if Dice.RollDice(1, 10) <= 9 then success := True;
         else
-          GDVars.doorOpen[0] := 0;
+          GameVars.doorOpen[0] := 0;
         end;
       end else
         case strCur of
@@ -135,14 +135,14 @@ var
   success: Boolean;
 begin
   success := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and (not success) do begin
     with p^ do
       if (Dice.RollDice(1, 100) <= thiefSkills[2]) and (status = C_STATUS.OKAY) then
         success := True;
     p := p^.nextCharAddr;
   end;
-  GDVars.doorOpen[1] := 0;
+  GameVars.doorOpen[1] := 0;
   if success then
     Explore.OpenBarrierAhead;
   PickLock := success;
@@ -168,7 +168,7 @@ function FindCharWithSpell(spellId: Byte): Types.PCharRecord;
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and ((p^.status <> C_STATUS.OKAY) or (Explore.FindMemorizedSpell(spellId, p) = 255)) do
     p := p^.nextCharAddr;
   FindCharWithSpell := p;
@@ -197,28 +197,28 @@ var
   ny: Integer;
   f: Integer;
 begin
-  nx := GDVars.gMapX;
-  ny := GDVars.gMapY;
-  f := GDVars.gFacing;
-  GDVars.zone1^[C_GBVM.LEAVE_MAP] := 0;
+  nx := GameVars.gMapX;
+  ny := GameVars.gMapY;
+  f := GameVars.gFacing;
+  GameVars.zone1^[C_GBVM.LEAVE_MAP] := 0;
   if View3D.GetBarrierType(nx, ny, f) <> 0 then begin
     Inc(nx, GDConsts.dirDX[f]);
     Inc(ny, GDConsts.dirDY[f]);
     if nx > 15 then begin
-      GDVars.gMapX := 15;
-      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
+      GameVars.gMapX := 15;
+      GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if nx < 0 then begin
-      GDVars.gMapX := 0;
-      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
+      GameVars.gMapX := 0;
+      GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if ny > 15 then begin
-      GDVars.gMapY := 15;
-      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
+      GameVars.gMapY := 15;
+      GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if ny < 0 then begin
-      GDVars.gMapY := 0;
-      GDVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
+      GameVars.gMapY := 0;
+      GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
   end;
 end;
@@ -229,15 +229,15 @@ end;
   Blaster's) gets GameLoop's alone (POR-0170). }
 procedure MovePartyForward3D;
 begin
-  if not GDVars.sound.singleStep then
+  if not GameVars.sound.singleStep then
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
-  Inc(GDVars.gMapX, GDConsts.dirDX[GDVars.gFacing]);
-  Inc(GDVars.gMapY, GDConsts.dirDY[GDVars.gFacing]);
-  View3D.WrapCoords(GDVars.gMapX, GDVars.gMapY);
-  GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-  FillChar(GDVars.doorOpen, SizeOf(GDVars.doorOpen), 1);
-  GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
-  if GDVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
+  Inc(GameVars.gMapX, GDConsts.dirDX[GameVars.gFacing]);
+  Inc(GameVars.gMapY, GDConsts.dirDY[GameVars.gFacing]);
+  View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
+  GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+  FillChar(GameVars.doorOpen, SizeOf(GameVars.doorOpen), 1);
+  GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
+  if GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1 > 0 then
     FxEngine.AdvanceTime(1, C_TIME.TURNS)
   else
     FxEngine.AdvanceTime(1, C_TIME.MINUTES);
@@ -252,28 +252,28 @@ var
   nx: ShortInt;
   ny: ShortInt;
 begin
-  nx := GDVars.zone0^.partyX.value + GDConsts.dirDX[GDVars.gFacing];
-  ny := GDVars.zone0^.partyY.value + GDConsts.dirDY[GDVars.gFacing];
+  nx := GameVars.zone0^.partyX.value + GDConsts.dirDX[GameVars.gFacing];
+  ny := GameVars.zone0^.partyY.value + GDConsts.dirDY[GameVars.gFacing];
   if nx < 0 then nx := 0;
   if nx > 15 then nx := 15;
   if ny < 0 then ny := 0;
   { High(wildMap) on the first dimension }
   if ny > 35 then ny := 35;
-  col := nx + GDConsts.wildColOfs[GDVars.gLocType];
+  col := nx + GDConsts.wildColOfs[GameVars.gLocType];
   case GDConsts.wildMap[ny, col] of
     78, 126..128, 130..132, 168..172, 174..179, 188, 221..222,
     225..233, 245: ;
     102..108, 114:
-      if GDVars.zone0^.yarashPyramidLeft = 0 then
+      if GameVars.zone0^.yarashPyramidLeft = 0 then
         TextRend.PrintAndPause('The river''s stench drives you back.', Yellow)
       else begin
-        GDVars.zone0^.partyX.value := nx;
-        GDVars.zone0^.partyY.value := ny;
+        GameVars.zone0^.partyX.value := nx;
+        GameVars.zone0^.partyY.value := ny;
         FxEngine.AdvanceTime(12, C_TIME.HOURS);
       end;
   else begin
-    GDVars.zone0^.partyX.value := nx;
-    GDVars.zone0^.partyY.value := ny;
+    GameVars.zone0^.partyX.value := nx;
+    GameVars.zone0^.partyY.value := ny;
     FxEngine.AdvanceTime(12, C_TIME.HOURS);
   end;
   end;
@@ -303,8 +303,8 @@ var
   ext: Boolean;
   viewDone: Boolean;
 begin
-  GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
-  case GDVars.gLocType of
+  GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
+  case GameVars.gLocType of
     C_AREA.LOC_3D_MAP: begin
          done := False;
          repeat
@@ -315,20 +315,20 @@ begin
            if not ext then begin
              case c of
                { STING maps anywhere, as Curse's debug mode does }
-               'A': if (GDVars.zone0^.noAutomap = 0) or GDVars.stingArg then begin
-                      GDVars.automapOn := GDVars.automapOn = False;
-                      View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+               'A': if (GameVars.zone0^.noAutomap = 0) or GameVars.stingArg then begin
+                      GameVars.automapOn := GameVars.automapOn = False;
+                      View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                     end else
                       TextRend.PrintAndPause('Not Here', Yellow);
-               'C': if GDVars.curChar^.status = C_STATUS.OKAY then Camp.NoncombatCastMenu;
+               'C': if GameVars.curChar^.status = C_STATUS.OKAY then Camp.NoncombatCastMenu;
                'V': ViewChar.ViewCharMenu(viewDone);
                'J': JrnlView.JournalMenu;
                'E': done := True;
-               'S': GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
+               'S': GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
                'L': begin
-                      GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
+                      GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
                       FxEngine.AdvanceTime(1, C_TIME.TURNS);
-                      GDVars.eclIp := GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
+                      GameVars.eclIp := GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
                       done := True;
                     end;
              end;
@@ -341,34 +341,34 @@ begin
                        end;
                { down arrow: turn around }
                C_KEYS.DOWN: begin
-                           GDVars.gFacing := (GDVars.gFacing + 4) mod 8;
-                           GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-                           View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+                           GameVars.gFacing := (GameVars.gFacing + 4) mod 8;
+                           GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+                           View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                          end;
                { left arrow: turn left }
                C_KEYS.LEFT: begin
-                           GDVars.gFacing := (GDVars.gFacing + 6) mod 8;
+                           GameVars.gFacing := (GameVars.gFacing + 6) mod 8;
                            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
-                           GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-                           View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+                           GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+                           View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                          end;
                { right arrow: turn right }
                C_KEYS.RIGHT: begin
-                            GDVars.gFacing := (GDVars.gFacing + 2) mod 8;
+                            GameVars.gFacing := (GameVars.gFacing + 2) mod 8;
                             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.STEP]);
-                            GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
-                            View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+                            GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+                            View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                           end;
                C_KEYS.F5: SaveLoad.QuickSave;
                C_KEYS.F8: done := Explore.AskQuickLoad;
                { the Companion Tools, while the setting is on (phase 8) }
-               C_KEYS.F6: if GDVars.companionOn <> 0 then begin
+               C_KEYS.F6: if GameVars.companionOn <> 0 then begin
                             CompTool.ToolsMenu;
                             CharDisp.DisplayNoncombatInterface;
                           end;
              else begin
                Party.SelectPrevNextChar(c);
-               CharDisp.DisplayParty(GDVars.curChar);
+               CharDisp.DisplayParty(GameVars.curChar);
              end;
              end;
            end;
@@ -376,7 +376,7 @@ begin
          until done;
        end;
     C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
-        if GDVars.locTypePrev < C_AREA.LOC_WILD_WEST then begin
+        if GameVars.locTypePrev < C_AREA.LOC_WILD_WEST then begin
           MapTiles.LoadIconAnim('ICON', 0, 9);
           MapTiles.LoadIconAnim('ICON', 1, 10);
           MapTiles.LoadIconAnim('ICON', 2, 11);
@@ -394,11 +394,11 @@ begin
               'V': ViewChar.ViewCharMenu(viewDone);
               'J': JrnlView.JournalMenu;
               'E': done := True;
-              'S': GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
+              'S': GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
               'L': begin
-                     GDVars.zone1^[C_GBVM.SEARCH_FLAGS] := GDVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
+                     GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
                      FxEngine.AdvanceTime(1, C_TIME.TURNS);
-                     GDVars.eclIp := GDVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
+                     GameVars.eclIp := GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
                      done := True;
                    end;
             end;
@@ -406,20 +406,20 @@ begin
             done := True;
             case c of
               { up arrow }
-              C_KEYS.UP: GDVars.gFacing := C_DIR.NORTH;
+              C_KEYS.UP: GameVars.gFacing := C_DIR.NORTH;
               { right arrow }
-              C_KEYS.RIGHT: GDVars.gFacing := C_DIR.EAST;
+              C_KEYS.RIGHT: GameVars.gFacing := C_DIR.EAST;
               { down arrow }
-              C_KEYS.DOWN: GDVars.gFacing := C_DIR.SOUTH;
+              C_KEYS.DOWN: GameVars.gFacing := C_DIR.SOUTH;
               { left arrow }
-              C_KEYS.LEFT: GDVars.gFacing := C_DIR.WEST;
+              C_KEYS.LEFT: GameVars.gFacing := C_DIR.WEST;
               C_KEYS.F5: begin
                            SaveLoad.QuickSave;
                            done := False;
                          end;
               C_KEYS.F8: done := Explore.AskQuickLoad;
               C_KEYS.F6: begin
-                           if GDVars.companionOn <> 0 then begin
+                           if GameVars.companionOn <> 0 then begin
                              CompTool.ToolsMenu;
                              CharDisp.DisplayWildernessInterface;
                            end;
@@ -427,7 +427,7 @@ begin
                          end;
             else begin
               Party.SelectPrevNextChar(c);
-              CharDisp.DisplayParty(GDVars.curChar);
+              CharDisp.DisplayParty(GameVars.curChar);
               done := False;
             end;
             end;
@@ -436,10 +436,10 @@ begin
         until done;
       end;
   end;
-  GDVars.locTypePrev := GDVars.gLocType;
-  if GDVars.bottomMsgCleared = 0 then begin
+  GameVars.locTypePrev := GameVars.gLocType;
+  if GameVars.bottomMsgCleared = 0 then begin
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-    GDVars.bottomMsgCleared := 1;
+    GameVars.bottomMsgCleared := 1;
   end;
   MapMainMenu := c;
 end;
@@ -458,22 +458,22 @@ var
   c2: Char;
 begin
   moved := False;
-  case GDVars.gLocType of
-    C_AREA.LOC_3D_MAP: if GDVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
-         case View3D.GetBarrierType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing) of
+  case GameVars.gLocType of
+    C_AREA.LOC_3D_MAP: if GameVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
+         case View3D.GetBarrierType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing) of
            1: moved := True;
            2: begin
                 menuStr[0] := #0;
-                if GDVars.doorOpen[0] <> 0 then
+                if GameVars.doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
+                if (GameVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GDVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
+                if (GameVars.doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
                 then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';
                 if menuStr = ' Exit' then
-                  Explore.ChangeBarrierImpassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing)
+                  Explore.ChangeBarrierImpassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing)
                 else begin
                   c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen,
                                                 White, False, False, unusedExtendedKey);
@@ -486,21 +486,21 @@ begin
               end;
            3: begin
                 menuStr[0] := #0;
-                if GDVars.doorOpen[0] <> 0 then
+                if GameVars.doorOpen[0] <> 0 then
                   menuStr := 'Bash';
-                if (GDVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
+                if (GameVars.doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
                   menuStr := menuStr + ' Pick';
-                if (GDVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_LEVEL.MAGE) then
+                if (GameVars.doorOpen[2] <> 0) and Explore.PartyHasClass(C_LEVEL.MAGE) then
                   menuStr := menuStr + ' Knock';
                 menuStr := menuStr + ' Exit';
                 if menuStr = ' Exit' then
-                  Explore.ChangeBarrierImpassable(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing)
+                  Explore.ChangeBarrierImpassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing)
                 else begin
                   c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen,
                                                 White, False, False, unusedExtendedKey);
                   case c2 of
                     'B': moved := Explore.BashDoor;
-                    'P': GDVars.doorOpen[1] := 0;
+                    'P': GameVars.doorOpen[1] := 0;
                     'K': moved := Explore.PartyCastsKnock;
                   end;
                 end;
@@ -512,18 +512,18 @@ begin
            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
          CharDisp.PrintMiscInfo;
        end else
-         GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
-    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: if GDVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
+         GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
+    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: if GameVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
             Explore.MovePartyWilderness;
             CharDisp.PrintMiscInfo;
           end else
-            GDVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
+            GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
   end;
-  Portrait.FreeAnimation(GDVars.animData);
-  Blit.FreePic(GDVars.portraitCache[1].pic);
-  Blit.FreePic(GDVars.portraitCache[2].pic);
-  GDVars.portraitCache[1].pictureId := 255;
-  GDVars.portraitCache[2].pictureId := 255;
+  Portrait.FreeAnimation(GameVars.animData);
+  Blit.FreePic(GameVars.portraitCache[1].pic);
+  Blit.FreePic(GameVars.portraitCache[2].pic);
+  GameVars.portraitCache[1].pictureId := 255;
+  GameVars.portraitCache[2].pictureId := 255;
 end;
 
 begin

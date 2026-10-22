@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_ITEM, C_NPC, C_TERR, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_TERR, C_COND, GDConsts, GameVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -49,7 +49,7 @@ var
   quick: Boolean;
 begin
   quick := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if (p^.quickfight <> 0) and CharHlp.ComesUnderPlayer(p) then
       quick := True;
@@ -62,7 +62,7 @@ begin
   TextRend.DisplayString(0, 24, LightMagenta, 'Quick: ');
   TextRend.DisplayString(7, 24, White, 'On (Space) ');
   TextRend.DisplayString(18, 24, LightMagenta, 'Magic: ');
-  if GDVars.quickMagic then
+  if GameVars.quickMagic then
     TextRend.DisplayString(25, 24, White, 'On (Alt-M)')
   else
     TextRend.DisplayString(25, 24, White, 'Off (Alt-M)');
@@ -176,8 +176,8 @@ begin
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
-          if CbtActs.AreaHitsNonEnemy(GDVars.arenaLoc[GDVars.potentialTargetCreature[j]].x,
-                                      GDVars.arenaLoc[GDVars.potentialTargetCreature[j]].y,
+          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].x,
+                                      GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].y,
                                       GDConsts.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
@@ -204,8 +204,8 @@ begin
   lowPri := 7;
   roll := Dice.RollDice(1, 7);
   if (creature^.combatAddr^.itemUseAllowed <> 0)
-     and (GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
-     and (GDVars.zone0^.antimagic = 0) then
+     and (GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
+     and (GameVars.zone0^.antimagic = 0) then
     for i := 1 to roll do begin
       item := creature^.itemsAddr;
       while (item <> nil) and (chosen = nil) do begin
@@ -264,8 +264,8 @@ begin
   tries := 1;
   if count > 0 then
     { C_NPC.FLAG set }
-    if CharHlp.IsNpc(creature) or GDVars.quickMagic then
-      if GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
+    if CharHlp.IsNpc(creature) or GameVars.quickMagic then
+      if GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
         while (tries <= roll) and (chosen = 0) do begin
           inner := 1;
           { three picks per pass }
@@ -373,12 +373,12 @@ begin
   if not found then begin
     enemies := [];
     friends := [];
-    last := GDVars.arenaCount;
+    last := GameVars.arenaCount;
     if last > Types.ARENA_SLOTS then
       last := Types.ARENA_SLOTS;
     for i := 1 to last do begin
-      p := GDVars.creatureArr[i];
-      if (i <> slot) and (p <> nil) and (GDVars.arenaLoc[i].size <> 0) then
+      p := GameVars.creatureArr[i];
+      if (i <> slot) and (p <> nil) and (GameVars.arenaLoc[i].size <> 0) then
         if p^.hostile <> CharHlp.EnemyTeam(creature) then
           friends := friends + [i]
         else if (p^.enabled <> 0) and CbtActs.CanAttackTarget(creature, p) then
@@ -393,7 +393,7 @@ begin
       end;
     end;
     if found then
-      creature^.combatAddr^.other := GDVars.creatureArr[goal];
+      creature^.combatAddr^.other := GameVars.creatureArr[goal];
   end;
   RouteToEnemy := found and not wait and CombatAi.CanStepDir(creature, dir, edge);
 end;
@@ -433,7 +433,7 @@ begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
       { Hostiles flee along the party's facing (C_DIR 0, 2, 4, 6). SSI's arithmetic turned north into NW and south into
         SE (POR-0160). }
-      dir := GDVars.gFacing;
+      dir := GameVars.gFacing;
       if creature^.hostile = 0 then
         { allies flee the other way }
         dir := dir + 4;
@@ -574,7 +574,7 @@ begin
           ty := CbtMap.CombatCellY(target);
           range := weaponRange;
           if Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), tx, ty, range,
-                              GDVars.arenaPtr) then
+                              GameVars.arenaPtr) then
             if range div 2 <= weaponRange then
               inRange := True;
         end;
@@ -588,7 +588,7 @@ begin
             done := CombatAi.FinishRound(creature);
         end else begin
           pick := Dice.RollDice(1, cnt);
-          target := GDVars.creatureArr[GDVars.potentialTargetCreature[pick]];
+          target := GameVars.creatureArr[GameVars.potentialTargetCreature[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
              and (CbtMap.CountTargets(creature, 1) > 0) then begin
@@ -706,10 +706,10 @@ begin
     { PCs never check morale }
     Exit;
   { packed morale rating }
-  GDVars.currentMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
-  if GDVars.currentMorale > 102 then
+  GameVars.currentMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
+  if GameVars.currentMorale > 102 then
     { 0 is the fail sentinel: both checks below require morale <> 0 }
-    GDVars.currentMorale := 0;
+    GameVars.currentMorale := 0;
   { Effects adjust morale here: Bless +5, Curse -5 floored at 0 (so a curse below 5 fails both checks), Charm sets 100
     and flips the creature's side on its first call. Bless and Curse also adjust the attack roll. }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
@@ -718,16 +718,16 @@ begin
     hpPct := 0
   else
     hpPct := creature^.hpCur * 100 div creature^.hpMax;
-  if (GDVars.currentMorale >= 100 - hpPct)
-     and (GDVars.currentMorale <> 0) then
+  if (GameVars.currentMorale >= 100 - hpPct)
+     and (GameVars.currentMorale <> 0) then
     { own-HP check holds }
     Exit;
-  moraleSave := GDVars.currentMorale;
-  GDVars.currentMorale := GDVars.hostileHpPct;
+  moraleSave := GameVars.currentMorale;
+  GameVars.currentMorale := GameVars.hostileHpPct;
   { the same effect adjustments, now to the group figure }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
-  if (GDVars.currentMorale >= 100 - GDVars.zone1^[C_GBVM.MORALE_THRESHOLD])
-     and (GDVars.currentMorale <> 0)
+  if (GameVars.currentMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])
+     and (GameVars.currentMorale <> 0)
      and (creature^.hostile <> 0) then
     { group check holds (hostiles) }
     Exit;
@@ -919,10 +919,10 @@ end;
 
 procedure ToggleQuickMagic;
 begin
-  GDVars.quickMagic := GDVars.quickMagic = False;
+  GameVars.quickMagic := GameVars.quickMagic = False;
   { the Quick line shows it; with no one under Quick, say which way it went }
   if not CombatAi.QuickLine then
-    if GDVars.quickMagic then
+    if GameVars.quickMagic then
       CharDisp.PrintBottomLine('Magic On')
     else
       CharDisp.PrintBottomLine('Magic Off');
@@ -932,7 +932,7 @@ procedure AllToManual;
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if CharHlp.ComesUnderPlayer(p) then
       p^.quickfight := 0;

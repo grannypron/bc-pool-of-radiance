@@ -27,8 +27,8 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE, C_KEYS,
-  C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+uses Types, Crt, C_AREA, C_NPC, GDConsts, GameVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE,
+  C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -85,21 +85,21 @@ var
   { SaveGame's result: the menu goes on either way }
   saved: Boolean;
 begin
-  GDVars.virtualDisk := 3;
+  GameVars.virtualDisk := 3;
   stateB := C_IFC.INDOORS;
   redraw := True;
   stingMode := 0;
-  GDVars.ifcState := C_IFC.MAIN_MENU;
+  GameVars.ifcState := C_IFC.MAIN_MENU;
   while True do begin
     if redraw then begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
-      if GDVars.curChar <> nil then begin
-        CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
+      if GameVars.curChar <> nil then begin
+        CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
         GDConsts.menuItems[MENU_DROP].enabled := 1;
         GDConsts.menuItems[MENU_MODIFY].enabled := 1;
         { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
         GDConsts.menuItems[MENU_TRAIN].enabled :=
-          Ord((GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
+          Ord((GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
         GDConsts.menuItems[MENU_VIEW].enabled := 1;
         GDConsts.menuItems[MENU_REMOVE].enabled := 1;
         GDConsts.menuItems[MENU_LOAD].enabled := 0;
@@ -133,11 +133,11 @@ begin
       { Home, End, Up and Down step through the party (Party.SelectPrevNextChar) }
       if ch in [C_KEYS.HOME, C_KEYS.END_KEY, C_KEYS.UP, C_KEYS.DOWN] then begin
         Party.SelectPrevNextChar(ch);
-        CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
+        CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
       end;
     end else begin
       if not (ch in ['E', 'S']) then
-        GDVars.recentSaved := 0;
+        GameVars.recentSaved := 0;
       case ch of
         'C': if GDConsts.menuItems[MENU_CREATE].enabled <> 0 then
                CharGen.CreateCharacterMenu;
@@ -151,25 +151,25 @@ begin
                ViewChar.ViewCharMenu(ext2);
         'A': if GDConsts.menuItems[MENU_ADD].enabled <> 0 then
                CharGen.AddCharacterMenu;
-        'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GDVars.curChar <> nil) then
+        'R': if (GDConsts.menuItems[MENU_REMOVE].enabled <> 0) and (GameVars.curChar <> nil) then
              begin
                { a character whose save failed stays in the party }
-               if SaveLoad.SaveChar(Types.PCharRecord(GDVars.curChar), '') then
+               if SaveLoad.SaveChar(Types.PCharRecord(GameVars.curChar), '') then
                  SaveLoad.RemoveCreature(False, True);
              end;
         'L': if GDConsts.menuItems[MENU_LOAD].enabled <> 0 then
              begin
                SaveLoad.LoadGame;
-               if GDVars.ifcState <> C_IFC.MAIN_MENU then begin
-                 GDVars.loadedSave := 1;
+               if GameVars.ifcState <> C_IFC.MAIN_MENU then begin
+                 GameVars.loadedSave := 1;
                  Exit;
                end;
              end;
-        'S': if (GDConsts.menuItems[MENU_SAVE].enabled <> 0) and (GDVars.creatureList <> nil) then
+        'S': if (GDConsts.menuItems[MENU_SAVE].enabled <> 0) and (GameVars.creatureList <> nil) then
                saved := SaveLoad.SaveGame;
-        'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GDVars.creatureList <> nil) then
+        'B': if (GDConsts.menuItems[MENU_BEGIN].enabled <> 0) and (GameVars.creatureList <> nil) then
              begin
-               GDVars.ifcState := stateB;
+               GameVars.ifcState := stateB;
                TextRend.ClearBottomLine;
                Exit;
              end;
@@ -181,7 +181,7 @@ begin
                if ch = 'Y' then
                begin
                  quit := True;
-                 if (GDVars.recentSaved = 0) and (GDVars.creatureList <> nil) then
+                 if (GameVars.recentSaved = 0) and (GameVars.creatureList <> nil) then
                    if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then
                      quit := SaveLoad.SaveGame;
                  if quit then
@@ -189,7 +189,7 @@ begin
                end;
              end;
         { free training, turned on and off as in Curse }
-        'J': if GDVars.stingArg then
+        'J': if GameVars.stingArg then
              begin
                stingMode := Ord(stingMode = 0);
                if stingMode <> 0 then
@@ -417,7 +417,7 @@ begin
   m := list;
   sel := 1;
   { the list starts at Dwarf, with the label row above the box }
-  GDVars.vertTop := 1;
+  GameVars.vertTop := 1;
   redraw := True;
   addExit := True;
   repeat
@@ -559,9 +559,9 @@ begin
       creature^.age := base + sides * num;
   end;
   { stat roll / derived / keep loop }
-  savedCur := GDVars.curChar;
-  GDVars.curChar := creature;
-  ViewChar.DisplayChar(GDVars.curChar);
+  savedCur := GameVars.curChar;
+  GameVars.curChar := creature;
+  ViewChar.DisplayChar(GameVars.curChar);
   repeat
     creature^.strExc := 0;
     for i := 0 to 5 do begin
@@ -703,21 +703,21 @@ begin
     ViewChar.PrintMoney;
     ch := MenuCore.YesNoMenu('Keep this character? ', LightMagenta, LightGreen, White);
   until ch = 'Y';
-  ViewChar.DisplayChar(GDVars.curChar);
-  GDVars.curChar := savedCur;
+  ViewChar.DisplayChar(GameVars.curChar);
+  GameVars.curChar := savedCur;
   repeat
     creature^.name := TextRend.ReadString('Character name: ', LightMagenta, Types.NAME_LEN);
   until creature^.name <> '';
-  savedCur := GDVars.curChar;
-  GDVars.curChar := creature;
+  savedCur := GameVars.curChar;
+  GameVars.curChar := creature;
   CharGen.CustomizePortrait(False);
   { the icon editor draws over the sheet the picker cleared }
-  ViewChar.DisplayChar(GDVars.curChar);
+  ViewChar.DisplayChar(GameVars.curChar);
   CharGen.CustomizeIcon;
   while not SaveLoad.SaveChar(Types.PCharRecord(creature), '') and
         (MenuCore.YesNoMenu('Try again? ', Yellow, LightGreen, White) = 'Y') do
     ;
-  GDVars.curChar := savedCur;
+  GameVars.curChar := savedCur;
   { with its racial effects }
   SaveLoad.FreeCreature(creature);
 end;
@@ -728,8 +728,8 @@ end;
   wording to fit the 40-column bottom row. }
 procedure DropCharacterMenu;
 begin
-  if GDVars.curChar = nil then Exit;
-  with GDVars.curChar^ do begin
+  if GameVars.curChar = nil then Exit;
+  with GameVars.curChar^ do begin
     if (MenuCore.YesNoMenu('Drop ' + name + ' forever? ', Yellow, LightGreen, White) = 'Y') and
         (MenuCore.YesNoMenu('Are you sure? ', Yellow, LightGreen, White) = 'Y') then
     begin
@@ -749,16 +749,16 @@ end;
 
 function Modifiable: Boolean;
 begin
-  Modifiable := (GDVars.curChar^.race >= C_RACE.DWARF) and (GDVars.curChar^.race <= C_RACE.HUMAN) and
-                (GDVars.curChar^.charClass >= C_CLASS.CLERIC) and (GDVars.curChar^.charClass <= C_CLASS.MAGE_THIEF);
+  Modifiable := (GameVars.curChar^.race >= C_RACE.DWARF) and (GameVars.curChar^.race <= C_RACE.HUMAN) and
+                (GameVars.curChar^.charClass >= C_CLASS.CLERIC) and (GameVars.curChar^.charClass <= C_CLASS.MAGE_THIEF);
 end;
 
 { ModifyCharacterMenu: Modify Character on the main menu: ModifyCharacter for a Modifiable character with no
   experience. }
 procedure ModifyCharacterMenu;
 begin
-  if (GDVars.curChar^.experience > 0) or not CharGen.Modifiable then
-    TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow)
+  if (GameVars.curChar^.experience > 0) or not CharGen.Modifiable then
+    TextRend.PrintAndPause(GameVars.curChar^.name + ' can''t be modified.', Yellow)
   else
     CharGen.ModifyCharacter(False);
 end;
@@ -789,14 +789,14 @@ var
     if statIdx < 6 then
       ViewChar.PrintStat(statIdx, hotPink)
     else
-      CharDisp.PrintHitPoints(Types.PCharRecord(GDVars.curChar), 4, 18, hotPink);
+      CharDisp.PrintHitPoints(Types.PCharRecord(GameVars.curChar), 4, 18, hotPink);
   end;
 
   { StatMinimum: The lowest value the selected attribute may be lowered to: racialMin, or the class minimum when that
     is higher }
   function StatMinimum(racialMin: Byte): Byte;
   begin
-    with GDVars.curChar^ do
+    with GameVars.curChar^ do
       if ClassCal.ClassAbilityMin(race, charClass, statIdx) > racialMin then
         StatMinimum := ClassCal.ClassAbilityMin(race, charClass, statIdx)
       else
@@ -806,7 +806,7 @@ var
   { Left on ability a: up to the larger of its racial and class minimums. }
   procedure RaiseToMinimum(a: ShortInt);
   begin
-    with GDVars.curChar^ do
+    with GameVars.curChar^ do
       if stats[a] < StatMinimum(ClassCal.RaceAbilityMin(race, genderSp, a)) then
         stats[a] := StatMinimum(ClassCal.RaceAbilityMin(race, genderSp, a));
   end;
@@ -814,7 +814,7 @@ var
   { Right on ability a: down to its racial maximum. }
   procedure LowerToMaximum(a: ShortInt);
   begin
-    with GDVars.curChar^ do
+    with GameVars.curChar^ do
       if stats[a] > ClassCal.RaceAbilityMax(race, genderSp, a) then
         stats[a] := ClassCal.RaceAbilityMax(race, genderSp, a);
   end;
@@ -822,9 +822,9 @@ var
   { Levelled, the hit points a Constitution change from oldCon gives or takes over every hit die, damage kept. }
   procedure ShiftHp;
   begin
-    with GDVars.curChar^ do begin
-      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), stats[C_ABIL.CONSTITUTION]) -
-                 ClassCal.ConHpTotal(Types.PCharRecord(GDVars.curChar), oldCon);
+    with GameVars.curChar^ do begin
+      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GameVars.curChar), stats[C_ABIL.CONSTITUTION]) -
+                 ClassCal.ConHpTotal(Types.PCharRecord(GameVars.curChar), oldCon);
       if hpMax + hpShift < 1 then
         hpShift := 1 - hpMax;
       hpMax := hpMax + hpShift;
@@ -841,13 +841,13 @@ var
     dmg: Integer;
     hp: Integer;
   begin
-    with GDVars.curChar^ do begin
+    with GameVars.curChar^ do begin
       dmg := hpMax - hpCur;
       hp := hpMax + k;
-      if hp > ClassCal.HpMaximum(GDVars.curChar) then
-        hp := ClassCal.HpMaximum(GDVars.curChar);
-      if hp < ClassCal.HpMinimum(GDVars.curChar) then
-        hp := ClassCal.HpMinimum(GDVars.curChar);
+      if hp > ClassCal.HpMaximum(GameVars.curChar) then
+        hp := ClassCal.HpMaximum(GameVars.curChar);
+      if hp < ClassCal.HpMinimum(GameVars.curChar) then
+        hp := ClassCal.HpMinimum(GameVars.curChar);
       if hp < 1 then
         hp := 1;
       hpMax := hp;
@@ -860,21 +860,21 @@ var
 
 begin
   if not CharGen.Modifiable then begin
-    TextRend.PrintAndPause(GDVars.curChar^.name + ' can''t be modified.', Yellow);
+    TextRend.PrintAndPause(GameVars.curChar^.name + ' can''t be modified.', Yellow);
     Exit;
   end;
-  ViewChar.DisplayChar(GDVars.curChar);
-  Move(GDVars.curChar^.stats, savedStats, SizeOf(GDVars.curChar^.stats));
-  savedExc := GDVars.curChar^.strExc;
-  savedHp := GDVars.curChar^.hpMax;
-  savedHpCur := GDVars.curChar^.hpCur;
+  ViewChar.DisplayChar(GameVars.curChar);
+  Move(GameVars.curChar^.stats, savedStats, SizeOf(GameVars.curChar^.stats));
+  savedExc := GameVars.curChar^.strExc;
+  savedHp := GameVars.curChar^.hpMax;
+  savedHpCur := GameVars.curChar^.hpCur;
   { a Wisdom change recalculates the cleric spell slots }
-  Move(GDVars.curChar^.clericSpells, savedClericSpells, SizeOf(savedClericSpells));
+  Move(GameVars.curChar^.clericSpells, savedClericSpells, SizeOf(savedClericSpells));
   statIdx := 6;
   RedrawStat(False);
   statIdx := 0;
   RedrawStat(True);
-  with GDVars.curChar^ do begin
+  with GameVars.curChar^ do begin
     repeat
       MenuCore.arrowsToCaller := True;
       key := MenuCore.MenuHorizontal('Modify character: ', 'Keep Exit', LightMagenta, LightGreen,
@@ -913,15 +913,15 @@ begin
                        with no ceiling (they are 0 for a new first-level character) }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
-                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
+                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
                    end;
                 C_ABIL.CONSTITUTION: begin
                      RaiseToMinimum(hold);
                      if levelled then
                        ShiftHp
                      else begin
-                       if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
-                         hpMax := ClassCal.HpMaximum(GDVars.curChar);
+                       if ClassCal.HpMaximum(GameVars.curChar) < hpMax then
+                         hpMax := ClassCal.HpMaximum(GameVars.curChar);
                        hpCur := hpMax;
                      end;
                      statIdx := 6;
@@ -938,8 +938,8 @@ begin
               StepHp(-1)
             else begin
               Dec(hpMax);
-              if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
-                hpMax := ClassCal.HpMinimum(GDVars.curChar);
+              if ClassCal.HpMinimum(GameVars.curChar) > hpMax then
+                hpMax := ClassCal.HpMinimum(GameVars.curChar);
               hpCur := hpMax;
             end;
           { Right = increase }
@@ -949,7 +949,7 @@ begin
               Inc(stats[hold]);
               case hold of
                 C_ABIL.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
-                     if (stats[hold] > 18) and (CharHlp.WarriorLevel(GDVars.curChar) > 0) and
+                     if (stats[hold] > 18) and (CharHlp.WarriorLevel(GameVars.curChar) > 0) and
                          (GDConsts.minimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
                      stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
@@ -959,15 +959,15 @@ begin
                      { clericSpells[1] only, same shape as the Left arm above }
                      if clericSpells[1] > 0 then
                        clericSpells[1] := 1;
-                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
+                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
                    end;
                 C_ABIL.CONSTITUTION: begin
                      LowerToMaximum(hold);
                      if levelled then
                        ShiftHp
                      else begin
-                       if ClassCal.HpMinimum(GDVars.curChar) > hpMax then
-                         hpMax := ClassCal.HpMinimum(GDVars.curChar);
+                       if ClassCal.HpMinimum(GameVars.curChar) > hpMax then
+                         hpMax := ClassCal.HpMinimum(GameVars.curChar);
                        hpCur := hpMax;
                      end;
                      statIdx := 6;
@@ -984,8 +984,8 @@ begin
               StepHp(1)
             else begin
               Inc(hpMax);
-              if ClassCal.HpMaximum(GDVars.curChar) < hpMax then
-                hpMax := ClassCal.HpMaximum(GDVars.curChar);
+              if ClassCal.HpMaximum(GameVars.curChar) < hpMax then
+                hpMax := ClassCal.HpMaximum(GameVars.curChar);
               hpCur := hpMax;
             end;
         end else
@@ -993,25 +993,25 @@ begin
           'E', C_KEYS.NONE:
             begin
               for hold := 0 to 5 do
-                GDVars.curChar^.stats[hold] := savedStats[hold];
-              GDVars.curChar^.strExc := savedExc;
-              GDVars.curChar^.hpMax := savedHp;
-              GDVars.curChar^.hpCur := hpMax;
+                GameVars.curChar^.stats[hold] := savedStats[hold];
+              GameVars.curChar^.strExc := savedExc;
+              GameVars.curChar^.hpMax := savedHp;
+              GameVars.curChar^.hpCur := hpMax;
               if levelled then
-                GDVars.curChar^.hpCur := savedHpCur;
-              Move(savedClericSpells, GDVars.curChar^.clericSpells, SizeOf(savedClericSpells));
-              CharHlp.RecalcStats(Types.PCharRecord(GDVars.curChar));
+                GameVars.curChar^.hpCur := savedHpCur;
+              Move(savedClericSpells, GameVars.curChar^.clericSpells, SizeOf(savedClericSpells));
+              CharHlp.RecalcStats(Types.PCharRecord(GameVars.curChar));
               Exit;
             end;
         end;
-      CharHlp.RecalcStats(Types.PCharRecord(GDVars.curChar));
+      CharHlp.RecalcStats(Types.PCharRecord(GameVars.curChar));
       ViewChar.PrintCombatStats;
       RedrawStat(True);
     until (not ext) and (key = 'K');
     if classLevels[C_LEVEL.THIEF] > 0 then
-      ClassCal.RecalcThiefSkills(Types.PCharRecord(GDVars.curChar));
+      ClassCal.RecalcThiefSkills(Types.PCharRecord(GameVars.curChar));
     if not levelled then
-      GDVars.curChar^.npcTreasureShare := 1;
+      GameVars.curChar^.npcTreasureShare := 1;
   end;
 end;
 
@@ -1032,7 +1032,7 @@ var
   idx: Integer;
   notEmpty: Boolean;
 begin
-  with GDVars.curChar^ do begin
+  with GameVars.curChar^ do begin
     clsCount := 0;
     oldMage := classLevels[C_LEVEL.MAGE];
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
@@ -1046,7 +1046,7 @@ begin
           end;
         end;
       end;
-    ClassCal.RecalcBaseSkills(Types.PCharRecord(GDVars.curChar));
+    ClassCal.RecalcBaseSkills(Types.PCharRecord(GameVars.curChar));
     if classLevels[C_LEVEL.MAGE] > oldMage then begin
       idx := -1;
       repeat
@@ -1056,12 +1056,12 @@ begin
       if sel > 0 then
         spellsKnown[sel] := 1;
     end;
-    rolled := ClassCal.RollFirstLevelHp(GDVars.curChar, trainable);
+    rolled := ClassCal.RollFirstLevelHp(GameVars.curChar, trainable);
     gain := rolled div clsCount;
     if gain = 0 then
       gain := 1;
     Inc(hpRolled, gain);
-    conB := ClassCal.ConHpBonus(GDVars.curChar, trainable);
+    conB := ClassCal.ConHpBonus(GameVars.curChar, trainable);
     gain := (rolled + conB) div clsCount;
     if gain < 1 then
       gain := 1;
@@ -1089,24 +1089,24 @@ var
   row: ShortInt;
   lvl: ShortInt;
 begin
-  if (GDVars.curChar^.status <> C_STATUS.OKAY) and (stingMode = 0) then begin
+  if (GameVars.curChar^.status <> C_STATUS.OKAY) and (stingMode = 0) then begin
     TextRend.PrintAndPause('we only train conscious people', Yellow);
     Exit;
   end;
-  if (MoneyCal.CreatureGold(Types.PCharRecord(GDVars.curChar)) < 1000) and (stingMode = 0) then begin
+  if (MoneyCal.CreatureGold(Types.PCharRecord(GameVars.curChar)) < 1000) and (stingMode = 0) then begin
     TextRend.PrintAndPause('Training costs 1000 gp.', Yellow);
     Exit;
   end;
   trainMask := 0;
   classMask := 0;
-  with GDVars.curChar^ do begin
+  with GameVars.curChar^ do begin
     xpClamp := 0;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
         Inc(classMask, GDConsts.classBit[cls]);
         lvl := classLevels[cls];
         { xp[] runs to level 9 }
-        if (not CharHlp.AtLevelCap(Types.PCharRecord(GDVars.curChar), cls)) and (lvl < 9) then
+        if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < 9) then
           if (GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);
@@ -1121,16 +1121,16 @@ begin
             end;
       end;
     if stingMode = 0 then begin
-      if Byte(classMask and GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
+      if Byte(classMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('We don''t train that class here', Yellow);
         Exit;
-      end else if Byte(trainMask and GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
+      end else if Byte(trainMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
         TextRend.PrintAndPause('Not Enough Experience', Yellow);
         Exit;
       end;
     end;
     if stingMode = 0 then
-      trainable := trainMask and GDVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]
+      trainable := trainMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]
     else
       trainable := trainMask;
     { free training passes the hall's checks with every class at its limit: GainLevels would then gain no level and
@@ -1141,7 +1141,7 @@ begin
     end;
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
     row := 4;
-    CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), 4, row, False);
+    CharDisp.DisplayCreatureName(Types.PCharRecord(GameVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then
@@ -1160,7 +1160,7 @@ begin
       Exit;
     CharDisp.PrintBottomLine('Congratulations...');
     if stingMode = 0 then
-      Money.PayFromCreature(Types.PCharRecord(GDVars.curChar), 1000);
+      Money.PayFromCreature(Types.PCharRecord(GameVars.curChar), 1000);
     { only a character who trains loses the experience past the level + 2 threshold: SSI cut it before the hall's
       checks and the question, so a refusal or a No kept the cut (#701) }
     if xpClamp > 0 then
@@ -1229,15 +1229,15 @@ begin
           end;
         end else begin
           m^.name := '* ' + m^.name;
-          if GDVars.creatureList = nil then begin
-            GDVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
+          if GameVars.creatureList = nil then begin
+            GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
             SaveLoad.AddCharToParty(Types.PCharRecord(creature));
             SaveLoad.LoadCharIconAnim(True);
           end else begin
             rangers := 0;
             hasEvil := False;
             paladin := nil;
-            p := GDVars.creatureList;
+            p := GameVars.creatureList;
             while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
               { C_NPC.FLAG clear }
               if not CharHlp.IsNpc(p) then
@@ -1269,7 +1269,7 @@ begin
             { Add if not already in the party and the party is under 8: a non-NPC (C_NPC.FLAG clear) while under 6
               non-NPCs, or an NPC (C_NPC.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
-            else if (p = nil) and (GDVars.zone1^[C_GBVM.PARTY_SIZE] < Types.MAX_PARTY) and
+            else if (p = nil) and (GameVars.zone1^[C_GBVM.PARTY_SIZE] < Types.MAX_PARTY) and
                 (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
@@ -1286,7 +1286,7 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
+  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc > 5) or (GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;
@@ -1334,7 +1334,7 @@ var
   var
     k: Integer;
   begin
-    with GDVars.curChar^ do
+    with GameVars.curChar^ do
       for k := -1 to 1 do
         if body then begin
           Blit.LoadPic('BODY' + diskCh, GDConsts.bodyTbl[Wrap(portraitBody, k, nBodies)], False, 0, bodies[k + 1]);
@@ -1357,7 +1357,7 @@ var
   var
     col: Byte;
   begin
-    with GDVars.curChar^ do begin
+    with GameVars.curChar^ do begin
       if onBody then col := LightGreen else col := White;
       Centered(17, col, 'Head ' + StrUtil.PadLeft(StrUtil.NumStr(portraitHead), 2) + ' of ' + StrUtil.NumStr(nHeads));
       if onBody then col := White else col := LightGreen;
@@ -1366,14 +1366,14 @@ var
   end;
 
 begin
-  Str(LongInt(GDVars.virtualDisk), diskCh);
+  Str(LongInt(GameVars.virtualDisk), diskCh);
   nHeads := Portrait.PlayerPortraitCount(False);
   nBodies := Portrait.PlayerPortraitCount(True);
   for i := 0 to 2 do begin
     heads[i] := nil;
     bodies[i] := nil;
   end;
-  with GDVars.curChar^ do begin
+  with GameVars.curChar^ do begin
     savedHead := portraitHead;
     savedBody := portraitBody;
     if (portraitHead = 0) or (portraitHead > nHeads) then
@@ -1390,7 +1390,7 @@ begin
     onBody := False;
     done := False;
     { Keep, the fifth option }
-    GDVars.horizChoice := 5;
+    GameVars.horizChoice := 5;
     repeat
       ShowCounts;
       MenuCore.arrowsToCaller := True;
@@ -1427,7 +1427,7 @@ begin
                 ShowRow(False);
                 ShowRow(True);
                 Centered(HINT_ROW, LightGreen, 'Arrow keys for selection');
-                GDVars.horizChoice := 5;
+                GameVars.horizChoice := 5;
               end;
             end;
         end;
@@ -1601,9 +1601,9 @@ var
       FillChar(dst^.data, dst^.imgSize, 0);
     if boxed and (Blit.ColourCount = 16) then
       if frame = 0 then
-        VidOps.OverlayPic(GDVars.iconAnimation[25, 0], dst)
+        VidOps.OverlayPic(GameVars.iconAnimation[25, 0], dst)
       else
-        VidOps.OverlayPic(GDVars.iconAnimation[25, 1], dst);
+        VidOps.OverlayPic(GameVars.iconAnimation[25, 1], dst);
     VidOps.OverlayPic(src, dst);
   end;
 
@@ -1859,7 +1859,7 @@ var
   { Revert: Make the icon shown the stored one; a size other than small reads as large }
   procedure Revert;
   begin
-    with GDVars.curChar^ do begin
+    with GameVars.curChar^ do begin
       tHead := iconHead;
       tBody := iconBody;
       if iconSize = 1 then tSize := 1 else tSize := 2;
@@ -1936,7 +1936,7 @@ var
       end else
         case key of
           C_KEYS.ENTER: begin
-              with GDVars.curChar^ do
+              with GameVars.curChar^ do
                 case cur of
                   ITEM_HEAD: iconHead := tHead;
                   ITEM_WEAPON: iconBody := tBody;
@@ -1971,14 +1971,14 @@ var
     if MenuCore.YesNoMenu('Is this icon ok? ', LightMagenta, LightGreen, White) = 'Y' then
       Confirmed := True
     else begin
-      GDVars.horizChoice := 1;
+      GameVars.horizChoice := 1;
       Confirmed := False;
     end;
   end;
 
 begin
-  savedChoice := GDVars.horizChoice;
-  with GDVars.curChar^ do begin
+  savedChoice := GameVars.horizChoice;
+  with GameVars.curChar^ do begin
     savedHead := iconHead;
     savedBody := iconBody;
     savedSize := iconSize;
@@ -2005,7 +2005,7 @@ begin
   Border.DrawBorder(1, 1, 16, 22, 0);
   Border.DrawBorder(18, 1, 38, 22, 0);
   Border.DrawBorder(18, MSG_TOP, 38, MSG_BOTTOM, 0);
-  with GDVars.curChar^ do
+  with GameVars.curChar^ do
     TextRend.DisplayCentered(1, 16, 1, Cyan, name);
   TextRend.DisplayString(READY_COL - 1, LABEL_ROW, LightGreen, 'Ready');
   TextRend.DisplayString(ACTION_COL - 1, LABEL_ROW, LightGreen, 'Action');
@@ -2014,7 +2014,7 @@ begin
     DrawItem(i);
   ShowPreviews;
   done := False;
-  GDVars.horizChoice := 1;
+  GameVars.horizChoice := 1;
   repeat
     { on the left pane the arrows and Enter come back here; on the menu Left and Right step through it and Enter takes
       the option there }
@@ -2038,7 +2038,7 @@ begin
         C_KEYS.ENTER: case cur of
             ITEM_SIZE: begin
                 tSize := 3 - tSize;
-                GDVars.curChar^.iconSize := tSize;
+                GameVars.curChar^.iconSize := tSize;
                 DrawItem(cur);
                 ShowPreviews;
               end;
@@ -2047,7 +2047,7 @@ begin
           end;
         'K': done := Confirmed;
         'E', C_KEYS.NONE: begin
-            with GDVars.curChar^ do begin
+            with GameVars.curChar^ do begin
               iconHead := savedHead;
               iconBody := savedBody;
               iconSize := savedSize;
@@ -2067,18 +2067,18 @@ begin
   Blit.FreePic(actionPic);
   Blit.FreePic(shownPic);
   { a party member's combat icon; a character being created has no slot of its own yet }
-  p := GDVars.creatureList;
-  while (p <> nil) and (p <> GDVars.curChar) do
+  p := GameVars.creatureList;
+  while (p <> nil) and (p <> GameVars.curChar) do
     p := p^.nextCharAddr;
-  if (p <> nil) and (GDVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
+  if (p <> nil) and (GameVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
     SaveLoad.LoadCharIconAnim(True);
-    if GDVars.gLocType > C_AREA.LOC_3D_MAP then
+    if GameVars.gLocType > C_AREA.LOC_3D_MAP then
       { the party map icon LoadCharIconAnim freed }
       MapTiles.LoadIconAnim('ICON', 0, 11);
   end;
   TextRend.ClearBottomLine;
   CbtMap.SetNoncombatPalette;
-  GDVars.horizChoice := savedChoice;
+  GameVars.horizChoice := savedChoice;
 end;
 
 end.

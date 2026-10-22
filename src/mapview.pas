@@ -14,7 +14,7 @@ procedure DisplayWildMapView;
 
 implementation
 
-uses Crt, C_AREA, GDConsts, GDVars, Wilds, View3D, Blit, MapTiles;
+uses Crt, C_AREA, GDConsts, GameVars, Wilds, View3D, Blit, MapTiles;
 
 { Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
   DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
@@ -24,19 +24,19 @@ var
   wx: ShortInt;
   wy: Byte;
 begin
-  if not (GDVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST]) then Exit;
-  wx := GDConsts.wildColOfs[GDVars.gLocType] + GDVars.zone0^.partyX.value;
+  if not (GameVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST]) then Exit;
+  wx := GDConsts.wildColOfs[GameVars.gLocType] + GameVars.zone0^.partyX.value;
   if wx < 2 then
   else if wx < 42 then wx := 2
   else if wx < 43 then wx := 3
   else wx := 4;
-  if GDVars.zone0^.partyY.value < 2 then wy := GDVars.zone0^.partyY.value
-  else if GDVars.zone0^.partyY.value < 34 then wy := 2
-  else if GDVars.zone0^.partyY.value < 35 then wy := 3
+  if GameVars.zone0^.partyY.value < 2 then wy := GameVars.zone0^.partyY.value
+  else if GameVars.zone0^.partyY.value < 34 then wy := 2
+  else if GameVars.zone0^.partyY.value < 35 then wy := 3
   else wy := 4;
-  MapTiles.DrawIconAnimSprite(wx, wy, GDVars.gFacing, GDVars.wildAnimFrame mod 2,
-                              GDVars.wildAnimFrame div 2 + 9);
-  GDVars.wildAnimFrame := (GDVars.wildAnimFrame + 1) mod 6;
+  MapTiles.DrawIconAnimSprite(wx, wy, GameVars.gFacing, GameVars.wildAnimFrame mod 2,
+                              GameVars.wildAnimFrame div 2 + 9);
+  GameVars.wildAnimFrame := (GameVars.wildAnimFrame + 1) mod 6;
   Blit.FlushView;
 end;
 
@@ -85,31 +85,31 @@ var
   end;
 
 begin
-  loc := GDVars.gLocType;
-  if GDVars.zone0^.view3dFlag <> 0 then loc := C_AREA.LOC_3D_MAP;
+  loc := GameVars.gLocType;
+  if GameVars.zone0^.view3dFlag <> 0 then loc := C_AREA.LOC_3D_MAP;
   case loc of
     C_AREA.LOC_3D_MAP: begin
-      GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
-      if GDVars.eventAtCell > $7F then
-        GDVars.colorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.alternateSkyColor and $0F]
+      GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
+      if GameVars.eventAtCell > $7F then
+        GameVars.colorSkyCeiling := GDConsts.skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
       else
-        GDVars.colorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.skyCeilingColor and $0F];
-      if GDVars.picRegionW then begin
-        GDVars.wallColorA := CeilColor(GDVars.ceilFloorColorSel);
-        GDVars.wallColorB := FloorColor(GDVars.ceilFloorColorSel);
-        GDVars.wallColorC := WallColor(GDVars.wallColorSel);
+        GameVars.colorSkyCeiling := GDConsts.skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
+      if GameVars.picRegionW then begin
+        GameVars.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
+        GameVars.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
+        GameVars.wallColorC := WallColor(GameVars.wallColorSel);
       end;
-      View3D.SetView3DColors(GDVars.colorSkyCeiling, GDVars.wallColorA, GDVars.wallColorB,
-                             GDVars.wallColorC);
-      if GDVars.zone0^.noAutomap <> 0 then GDVars.automapOn := False;
-      View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+      View3D.SetView3DColors(GameVars.colorSkyCeiling, GameVars.wallColorA, GameVars.wallColorB,
+                             GameVars.wallColorC);
+      if GameVars.zone0^.noAutomap <> 0 then GameVars.automapOn := False;
+      View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;
     C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
-      wx := GDConsts.wildColOfs[loc] + GDVars.zone0^.partyX.value - 1 - 1;
+      wx := GDConsts.wildColOfs[loc] + GameVars.zone0^.partyX.value - 1 - 1;
       if wx < 0 then wx := 0;
       { last column origin for the 5-wide view }
       if wx > 39 then wx := 39;
-      wy := GDVars.zone0^.partyY.value - 1 - 1;
+      wy := GameVars.zone0^.partyY.value - 1 - 1;
       if wy < 0 then wy := 0;
       { last row origin for the 5-tall view }
       if wy > 31 then wy := 31;

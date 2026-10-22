@@ -92,7 +92,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GDConsts, GDVars, C_CLASS, C_LEVEL, C_RACE, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
+uses GDConsts, GameVars, C_CLASS, C_LEVEL, C_RACE, C_ABIL, C_EQUIP, C_ITEM, C_SPELL, Dice, CharHlp, AbilAdj;
 
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every

@@ -6,12 +6,12 @@ unit SndTdy;
 
 interface
 
-{ Make this the sound driver: fill GDVars.sound. }
+{ Make this the sound driver: fill GameVars.sound. }
 procedure Install;
 
 implementation
 
-uses C_SOUND, GDVars, SoundDrv;
+uses C_SOUND, GameVars, SoundDrv;
 
 { Load tune into the Tandy voices. }
 procedure Play(tune: Word);
@@ -21,10 +21,10 @@ end;
 
 procedure Install;
 begin
-  GDVars.sound.name := 'Tandy';
-  GDVars.sound.mode := C_SOUND.MODE_TANDY;
-  GDVars.sound.Play := SndTdy.Play;
-  GDVars.sound.singleStep := False;
+  GameVars.sound.name := 'Tandy';
+  GameVars.sound.mode := C_SOUND.MODE_TANDY;
+  GameVars.sound.Play := SndTdy.Play;
+  GameVars.sound.singleStep := False;
 end;
 
 end.

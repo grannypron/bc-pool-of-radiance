@@ -48,7 +48,7 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GDVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GameVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
 
 const
   { per-disk archives are numbered 1 to SOURCE_DISKS }
@@ -487,7 +487,7 @@ begin
     n := 0;
     bytes := 0;
     for disk := 1 to SOURCE_DISKS do begin
-      st^.size[fam, disk] := DataArc.FileLength(GDVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX');
+      st^.size[fam, disk] := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX');
       if st^.size[fam, disk] >= 0 then begin
         Inc(n);
         st^.place[fam, disk] := n;
@@ -634,7 +634,7 @@ begin
     BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, '0:00', COUNT_WIDTH);
   end;
   if failed or st^.readOnly then begin
-    if not st^.readOnly and (DataArc.FileLength(GDVars.gameDir + LOG_NAME) > 0) then
+    if not st^.readOnly and (DataArc.FileLength(GameVars.gameDir + LOG_NAME) > 0) then
       TextRend.DisplayCentered(1, 38, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;

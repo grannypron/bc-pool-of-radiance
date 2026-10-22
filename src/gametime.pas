@@ -13,7 +13,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_MSG, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
+uses Types, C_TIME, C_MSG, GDConsts, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -23,12 +23,12 @@ var
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99. }
 procedure ValidateRestTime;
 begin
-  Clock.ValidateClock(GDVars.restingTimeGbvm, False);
-  if GDVars.restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
-    Inc(GDVars.restingTimeGbvm[C_TIME.DAYS],
-        GDConsts.unitScale[C_TIME.DAYS] * GDVars.restingTimeGbvm[C_TIME.MONTHS]);
-    GDVars.restingTimeGbvm[C_TIME.MONTHS] := 0;
-    if GDVars.restingTimeGbvm[C_TIME.DAYS] > 99 then GDVars.restingTimeGbvm[C_TIME.DAYS] := 99;
+  Clock.ValidateClock(GameVars.restingTimeGbvm, False);
+  if GameVars.restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
+    Inc(GameVars.restingTimeGbvm[C_TIME.DAYS],
+        GDConsts.unitScale[C_TIME.DAYS] * GameVars.restingTimeGbvm[C_TIME.MONTHS]);
+    GameVars.restingTimeGbvm[C_TIME.MONTHS] := 0;
+    if GameVars.restingTimeGbvm[C_TIME.DAYS] > 99 then GameVars.restingTimeGbvm[C_TIME.DAYS] := 99;
   end;
 end;
 
@@ -39,23 +39,23 @@ var
   j: ShortInt;
   k: ShortInt;
 begin
-  if (GDVars.restingTimeGbvm[C_TIME.DAYS] <> 0) or (GDVars.restingTimeGbvm[C_TIME.HOURS] <> 0) or
-      (GDVars.restingTimeGbvm[C_TIME.TURNS] <> 0) or (GDVars.restingTimeGbvm[C_TIME.MINUTES] <> 0)
+  if (GameVars.restingTimeGbvm[C_TIME.DAYS] <> 0) or (GameVars.restingTimeGbvm[C_TIME.HOURS] <> 0) or
+      (GameVars.restingTimeGbvm[C_TIME.TURNS] <> 0) or (GameVars.restingTimeGbvm[C_TIME.MINUTES] <> 0)
   then begin
-    while count > GDVars.restingTimeGbvm[tUnit] do begin
+    while count > GameVars.restingTimeGbvm[tUnit] do begin
       j := Succ(tUnit);
-      while (GDVars.restingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
+      while (GameVars.restingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
         j := Succ(j);
       if j = C_TIME.MONTHS then begin
-        FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
+        FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
         count := 0;
       end else
         for k := j downto Succ(tUnit) do begin
-          Dec(GDVars.restingTimeGbvm[k]);
-          Inc(GDVars.restingTimeGbvm[Pred(k)], GDConsts.unitScale[Pred(k)]);
+          Dec(GameVars.restingTimeGbvm[k]);
+          Inc(GameVars.restingTimeGbvm[Pred(k)], GDConsts.unitScale[Pred(k)]);
         end;
     end;
-    Dec(GDVars.restingTimeGbvm[tUnit], count);
+    Dec(GameVars.restingTimeGbvm[tUnit], count);
     GameTime.ValidateRestTime;
   end;
 end;
@@ -74,13 +74,13 @@ begin
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
   for i := C_TIME.DAYS downto C_TIME.HOURS do begin
-    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GDVars.restingTimeGbvm[i]));
+    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GameVars.restingTimeGbvm[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
   TextRend.DisplayString(x + 1, 17, colors[C_TIME.TURNS],
-                         StrUtil.ZeroPad2(10 * GDVars.restingTimeGbvm[C_TIME.TURNS] +
-                           GDVars.restingTimeGbvm[C_TIME.MINUTES]));
+                         StrUtil.ZeroPad2(10 * GameVars.restingTimeGbvm[C_TIME.TURNS] +
+                           GameVars.restingTimeGbvm[C_TIME.MINUTES]));
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
@@ -127,9 +127,9 @@ begin
       'M': sel := C_TIME.TURNS;
       'I': begin
              if sel = C_TIME.TURNS then
-               Inc(GDVars.restingTimeGbvm[C_TIME.MINUTES], 5)
+               Inc(GameVars.restingTimeGbvm[C_TIME.MINUTES], 5)
              else
-               Inc(GDVars.restingTimeGbvm[sel]);
+               Inc(GameVars.restingTimeGbvm[sel]);
              GameTime.ValidateRestTime;
            end;
       'D': begin
@@ -143,27 +143,27 @@ begin
   until ch in [C_KEYS.NONE, 'E', 'R'];
 end;
 
-{ Every 288 five-minute ticks (24 h) of rest, restore 1 hp to every creature in GDVars.creatureList. The "Healed" banner
-  prints unconditionally; the party pane redraws only if anyone actually healed. }
+{ Every 288 five-minute ticks (24 h) of rest, restore 1 hp to every creature in GameVars.creatureList. The "Healed"
+  banner prints unconditionally; the party pane redraws only if anyone actually healed. }
 procedure CheckRestingHeal;
 var
   healed: Boolean;
   cur: Types.PCharRecord;
 begin
-  Inc(GDVars.healTicks);
-  if GDVars.healTicks >= 288 then begin
+  Inc(GameVars.healTicks);
+  if GameVars.healTicks >= 288 then begin
     healed := False;
-    cur := GDVars.creatureList;
+    cur := GameVars.creatureList;
     while cur <> nil do begin
       if FxEngine.RestoreHitPoints(cur, 1, False) then healed := True;
       cur := cur^.nextCharAddr;
     end;
     GameTime.DisplayRestTime(0);
     TextRend.DisplayString(1, 19, LightGreen, 'The Whole Party Is Healed');
-    if healed then CharDisp.DisplayParty(GDVars.curChar);
+    if healed then CharDisp.DisplayParty(GameVars.curChar);
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
-    GDVars.healTicks := 0;
+    GameVars.healTicks := 0;
   end;
 end;
 
@@ -259,7 +259,7 @@ var
   done: Boolean;
 begin
   i := 1;
-  cur := GDVars.creatureList;
+  cur := GameVars.creatureList;
   { the walk stops at the last prepTimers slot }
   while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
     Dec(prepTimers[i]);
@@ -289,7 +289,7 @@ begin
   if tick >= 12 then begin
     tick := 0;
     i := 1;
-    cur := GDVars.creatureList;
+    cur := GameVars.creatureList;
     while cur <> nil do begin
       if ShortInt(cur^.spellPrepTime) > 0 then begin
         Dec(cur^.spellPrepTime);
@@ -319,25 +319,25 @@ begin
   CampRest := False;
   dead3 := False;
   i := 1;
-  cur := GDVars.creatureList;
+  cur := GameVars.creatureList;
   while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin
     prepTimers[i] := 0;
     Inc(i);
     cur := cur^.nextCharAddr;
   end;
-  FillChar(GDVars.effFlags, SizeOf(GDVars.effFlags), 1);
+  FillChar(GameVars.effFlags, SizeOf(GameVars.effFlags), 1);
   tick := 0;
   cnt := 0;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   GameTime.DisplayRestTime(0);
-  GDVars.suppressDrawingBorderFlag := 1;
+  GameVars.suppressDrawingBorderFlag := 1;
   if interactive then
     stop := not GameTime.CampRestMenu
   else
     stop := False;
   while (not stop) and
-      ((GDVars.restingTimeGbvm[C_TIME.DAYS] > 0) or (GDVars.restingTimeGbvm[C_TIME.HOURS] > 0) or
-       (GDVars.restingTimeGbvm[C_TIME.TURNS] > 0) or (GDVars.restingTimeGbvm[C_TIME.MINUTES] > 0))
+      ((GameVars.restingTimeGbvm[C_TIME.DAYS] > 0) or (GameVars.restingTimeGbvm[C_TIME.HOURS] > 0) or
+       (GameVars.restingTimeGbvm[C_TIME.TURNS] > 0) or (GameVars.restingTimeGbvm[C_TIME.MINUTES] > 0))
   do begin
     if KeyPressed then begin
       GameTime.DisplayRestTime(0);
@@ -358,11 +358,11 @@ begin
       GameTime.AdvanceSpellPrep;
       GameTime.AdvanceSpellPrepBase(tick);
       { When the area sets a safe-rest period, roll for an interruption each time it runs out }
-      if GDVars.zone1^[C_GBVM.REST_SAFE_TIME] > 0 then begin
-        Inc(GDVars.restTicks);
-        if GDVars.restTicks >= GDVars.zone1^[C_GBVM.REST_SAFE_TIME] then begin
-          GDVars.restTicks := 0;
-          if Dice.RollDice(1, 100) <= GDVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] then begin
+      if GameVars.zone1^[C_GBVM.REST_SAFE_TIME] > 0 then begin
+        Inc(GameVars.restTicks);
+        if GameVars.restTicks >= GameVars.zone1^[C_GBVM.REST_SAFE_TIME] then begin
+          GameVars.restTicks := 0;
+          if Dice.RollDice(1, 100) <= GameVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] then begin
             CharDisp.ClearMessageWindow;
             GameTime.DisplayRestTime(0);
             TextRend.DisplayString(1, 19, White, 'The Party is rudely interrupted!');
@@ -375,7 +375,7 @@ begin
     end;
   end;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-  GDVars.suppressDrawingBorderFlag := 0;
+  GameVars.suppressDrawingBorderFlag := 0;
 end;
 
 end.

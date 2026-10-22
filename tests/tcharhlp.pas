@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
+uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -134,7 +134,7 @@ begin
   TestKit.Start('TCHARHLP');
   GetMem(c, SizeOf(Types.TCharRecord));
   ClearCreature;
-  GDVars.creatureList := nil;
+  GameVars.creatureList := nil;
 
   { labels }
   NewItem(21, 0, C_ITEM.NAME_PLUS_BASE + 1, 21, 0, 20);
@@ -157,7 +157,7 @@ begin
   FillChar(e, SizeOf(e), 0);
   e.id := C_EFFECT.DETECT_MAGIC;
   c^.effectsAddr := @e;
-  GDVars.creatureList := c;
+  GameVars.creatureList := c;
   NewItem(21, 0, C_ITEM.NAME_PLUS_BASE + 1, 21, 0, 20);
   it.plus := 1;
   CharHlp.ItemLabel(@it, False);
@@ -165,7 +165,7 @@ begin
   TestKit.Check(CharHlp.HasEffect(c, C_EFFECT.DETECT_MAGIC, found) and (found = @e), 'HasEffect finds the effect');
   TestKit.Check(not CharHlp.HasEffect(c, C_EFFECT.BLESS, found) and (found = nil), 'and not one it lacks');
   c^.effectsAddr := nil;
-  GDVars.creatureList := nil;
+  GameVars.creatureList := nil;
 
   { weights }
   NewItem(61, 0, 0, 61, 0, 2);
@@ -328,10 +328,10 @@ begin
   crs[2].hostile := 1;
   crs[3].hostile := 3;
   crs[4].hostile := 2;
-  GDVars.creatureList := @crs[1];
+  GameVars.creatureList := @crs[1];
   CharHlp.CountTeams;
-  TestKit.CheckEqualsL(2, GDVars.teamCount[0], 'hostile 0 and 2 count on team 0');
-  TestKit.CheckEqualsL(2, GDVars.teamCount[1], 'hostile 1 and 3 count on team 1');
+  TestKit.CheckEqualsL(2, GameVars.teamCount[0], 'hostile 0 and 2 count on team 0');
+  TestKit.CheckEqualsL(2, GameVars.teamCount[1], 'hostile 1 and 3 count on team 1');
 
   { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
   New(items);
@@ -380,11 +380,11 @@ begin
   TestKit.CheckEqualsL(48, crs[1].acBehind, 'and AC 12 from behind, without the bonus');
 
   { a bow's plus is to hit only, its arrows' to hit and damage (#744); a sword's is to both }
-  GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
-  FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
-  GDVars.baseItems^[C_ITEM.LONG_BOW].props := C_ITEM.PROP_ARROWS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
-  GDVars.baseItems^[C_ITEM.ARROW].slot := C_EQUIP.RING2;
-  GDVars.baseItems^[C_ITEM.LONG_SWORD].props := C_ITEM.PROP_STR_BONUS;
+  GetMem(GameVars.baseItems, SizeOf(GameVars.baseItems^));
+  FillChar(GameVars.baseItems^, SizeOf(GameVars.baseItems^), 0);
+  GameVars.baseItems^[C_ITEM.LONG_BOW].props := C_ITEM.PROP_ARROWS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
+  GameVars.baseItems^[C_ITEM.ARROW].slot := C_EQUIP.RING2;
+  GameVars.baseItems^[C_ITEM.LONG_SWORD].props := C_ITEM.PROP_STR_BONUS;
   FillChar(weapon, SizeOf(weapon), 0);
   FillChar(arrows, SizeOf(arrows), 0);
   weapon.itemType := C_ITEM.LONG_BOW;
@@ -406,6 +406,6 @@ begin
   TestKit.CheckEqualsL(42, crs[1].thac0Cur, 'a sword +2 is +2 to hit');
   TestKit.CheckEqualsL(2, crs[1].curModA[1], 'and +2 to damage');
   crs[1].itemsAddr := nil;
-  FreeMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
+  FreeMem(GameVars.baseItems, SizeOf(GameVars.baseItems^));
   TestKit.Done;
 end.

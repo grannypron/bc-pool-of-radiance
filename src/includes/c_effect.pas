@@ -172,7 +172,7 @@ const
   { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
     and Dispel Magic leaves them to Cure Disease (#787) }
   DISEASES = [DISEASED, DISEASE_STR, DISEASE_HP, ROT_NO_HEAL, MUMMY_ROT];
-  { GDVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
+  { GameVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
   ELEM_FIRE = 1;
   ELEM_COLD = 2;
   ELEM_ELEC = 4;

@@ -18,7 +18,7 @@ function CurrentArea: Types.TStr40;
 
 implementation
 
-uses GDVars;
+uses GameVars;
 
 const
   { the last script id: ECL1..ECL8 hold scripts 0..29, all but 12 }
@@ -56,7 +56,7 @@ end;
 
 function CurrentArea: Types.TStr40;
 begin
-  CurrentArea := AreaName.AreaFor(Lo(GDVars.zone0^.previousScriptId), GDVars.zone0^.mapId.lo);
+  CurrentArea := AreaName.AreaFor(Lo(GameVars.zone0^.previousScriptId), GameVars.zone0^.mapId.lo);
 end;
 
 end.

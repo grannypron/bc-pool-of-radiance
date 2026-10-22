@@ -20,7 +20,7 @@ procedure KeepReserve;
 
 implementation
 
-uses Crt, C_KEYS, GDVars, SaveLoad, GameIo, TextRend;
+uses Crt, C_KEYS, GameVars, SaveLoad, GameIo, TextRend;
 
 const
   RESERVE_BYTES = 4096;

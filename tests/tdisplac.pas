@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TDisplac;
 
-uses Types, C_EFFECT, C_IFC, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_IFC, GameVars, FxEngine, EffHndlr, TestKit;
 
 var
   att: Types.PCharRecord;
@@ -19,7 +19,7 @@ var
 { The attacker's C_COND.ATTACK_ROLL_ATT effect: a roll above 1 becomes rollTo, as penalties or bonuses would make it. }
 procedure SetRoll(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.gAttackRoll := rollTo;
+  GameVars.gAttackRoll := rollTo;
 end;
 {$F-}
 
@@ -36,23 +36,23 @@ end;
 function Displaced: Boolean;
 begin
   repeat
-    GDVars.gAttackRoll := 0;
+    GameVars.gAttackRoll := 0;
     hit := FxEngine.AttackRoll(att, def, 0);
-  until GDVars.gAttackRoll = rollTo;
-  Displaced := GDVars.gAttackAvoided;
+  until GameVars.gAttackRoll = rollTo;
+  Displaced := GameVars.gAttackAvoided;
 end;
 
 begin
   TestKit.Start('TDISPLAC');
-  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
-  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  GDVars.effectFns[C_EFFECT.BLESS] := SetRoll;
-  GDVars.effectFns[C_EFFECT.DISPLACED] := EffHndlr.EffDisplaced;
+  GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
+  FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
+  GameVars.effectFns[C_EFFECT.BLESS] := SetRoll;
+  GameVars.effectFns[C_EFFECT.DISPLACED] := EffHndlr.EffDisplaced;
   att := NewCreature;
   def := NewCreature;
   FxEngine.AddEffect(att, C_EFFECT.BLESS, 0, 0, False);
   FxEngine.AddEffect(def, C_EFFECT.DISPLACED, 0, 12, False);
-  GDVars.roundCounter := 0;
+  GameVars.roundCounter := 0;
 
   rollTo := 10;
   TestKit.Check(Displaced, 'the first attack is displaced');
@@ -69,8 +69,8 @@ begin
 
   { a cloak readied in combat (#784) }
   FxEngine.RemoveEffect(def, C_EFFECT.DISPLACED, nil);
-  GDVars.ifcState := C_IFC.COMBAT;
-  GDVars.roundCounter := 3;
+  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.roundCounter := 3;
   FillChar(cloak, SizeOf(cloak), 0);
   cloak.effect := C_EFFECT.DISPLACED;
   EffHndlr.EffReadyItem(def, @cloak, False);

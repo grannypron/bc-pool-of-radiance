@@ -33,7 +33,7 @@ procedure WrapCoords(var x, y: ShortInt);
 
 implementation
 
-uses Types, GDConsts, GDVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
+uses Types, GDConsts, GameVars, Blit, Sym8x8, C_DIR, DaxIo, GameIo, StrUtil, Explored;
 
 procedure DisplayViewBuf; forward;
 
@@ -79,21 +79,21 @@ end;
 
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
 begin
-  GDVars.colorSkyCeiling := cSky;
-  GDVars.wallColorA := cHorz1;
-  GDVars.wallColorB := cHorz2;
-  GDVars.wallColorC := cFloor;
+  GameVars.colorSkyCeiling := cSky;
+  GameVars.wallColorA := cHorz1;
+  GameVars.wallColorB := cHorz2;
+  GameVars.wallColorC := cFloor;
 end;
 
 { Fill the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor rows 62..103;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, GDVars.colorSkyCeiling, GDConsts.iconColorMap,
-                   GDVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 59, 11, 1, GDVars.wallColorA, GDConsts.iconColorMap, GDVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 60, 11, 2, GDVars.wallColorB, GDConsts.iconColorMap, GDVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 62, 11, 42, GDVars.wallColorC, GDConsts.iconColorMap, GDVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 16, 11, 43, GameVars.colorSkyCeiling, GDConsts.iconColorMap,
+                   GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 59, 11, 1, GameVars.wallColorA, GDConsts.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 60, 11, 2, GameVars.wallColorB, GDConsts.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 62, 11, 42, GameVars.wallColorC, GDConsts.iconColorMap, GameVars.viewImageBufferPtr);
 end;
 
 { Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
@@ -112,8 +112,8 @@ begin
   rowLim := GDConsts.viewSlotGeom.rows[slot] + y - 1;
   for row := y to rowLim do
     for col := x to colLim do begin
-      if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (GDVars.wallGfx^[wallType][cnt] > 0) then
-        Sym8x8.Put8x8Sym(col + 3 - 1, row + 3 - 1, GDVars.wallGfx^[wallType][cnt], True, True);
+      if (row >= 0) and (row <= 10) and (col >= 0) and (col <= 10) and (GameVars.wallGfx^[wallType][cnt] > 0) then
+        Sym8x8.Put8x8Sym(col + 3 - 1, row + 3 - 1, GameVars.wallGfx^[wallType][cnt], True, True);
       Inc(cnt);
     end;
 end;
@@ -141,17 +141,17 @@ function GetBarrierType(x, y: ShortInt; facing: Byte): Byte;
 var
   b: Byte;
 begin
-  if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
+  if not View3D.Valid3DCoords(x, y) and ((GameVars.eclScriptId = 0) or (GameVars.eclScriptId = 10)) then
     GetBarrierType := 0
   else begin
     View3D.WrapCoords(x, y);
     b := 1;
     if View3D.GetWallType(x, y, facing) > 0 then
       case facing of
-        C_DIR.WEST: b := (GDVars.map3d^.barriers[y][x] and $C0) shr 6;
-        C_DIR.SOUTH: b := (GDVars.map3d^.barriers[y][x] and $30) shr 4;
-        C_DIR.EAST: b := (GDVars.map3d^.barriers[y][x] and $0C) shr 2;
-        C_DIR.NORTH: b := GDVars.map3d^.barriers[y][x] and $03;
+        C_DIR.WEST: b := (GameVars.map3d^.barriers[y][x] and $C0) shr 6;
+        C_DIR.SOUTH: b := (GameVars.map3d^.barriers[y][x] and $30) shr 4;
+        C_DIR.EAST: b := (GameVars.map3d^.barriers[y][x] and $0C) shr 2;
+        C_DIR.NORTH: b := GameVars.map3d^.barriers[y][x] and $03;
       end;
     GetBarrierType := b;
   end;
@@ -161,16 +161,16 @@ end;
   as GetBarrierType; 0 for a facing that is not a cardinal direction. }
 function GetWallType(x, y: ShortInt; facing: Byte): Byte;
 begin
-  if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
+  if not View3D.Valid3DCoords(x, y) and ((GameVars.eclScriptId = 0) or (GameVars.eclScriptId = 10)) then
     GetWallType := 0
   else begin
     View3D.WrapCoords(x, y);
     GetWallType := 0;
     case facing of
-      C_DIR.NORTH: GetWallType := (GDVars.map3d^.wallsNE[y][x] and $F0) shr 4;
-      C_DIR.EAST: GetWallType := GDVars.map3d^.wallsNE[y][x] and $0F;
-      C_DIR.SOUTH: GetWallType := (GDVars.map3d^.wallsSW[y][x] and $F0) shr 4;
-      C_DIR.WEST: GetWallType := GDVars.map3d^.wallsSW[y][x] and $0F;
+      C_DIR.NORTH: GetWallType := (GameVars.map3d^.wallsNE[y][x] and $F0) shr 4;
+      C_DIR.EAST: GetWallType := GameVars.map3d^.wallsNE[y][x] and $0F;
+      C_DIR.SOUTH: GetWallType := (GameVars.map3d^.wallsSW[y][x] and $F0) shr 4;
+      C_DIR.WEST: GetWallType := GameVars.map3d^.wallsSW[y][x] and $0F;
     end;
   end;
 end;
@@ -179,11 +179,11 @@ end;
   for the sky colour choice. }
 function GetMapEvent(x, y: ShortInt): Byte;
 begin
-  if not View3D.Valid3DCoords(x, y) and ((GDVars.eclScriptId = 0) or (GDVars.eclScriptId = 10)) then
+  if not View3D.Valid3DCoords(x, y) and ((GameVars.eclScriptId = 0) or (GameVars.eclScriptId = 10)) then
     GetMapEvent := 0
   else begin
     View3D.WrapCoords(x, y);
-    GetMapEvent := GDVars.map3d^.events[y][x];
+    GetMapEvent := GameVars.map3d^.events[y][x];
   end;
 end;
 
@@ -316,7 +316,7 @@ var
 begin
   { the Companion Tools' map remembers every square the view is drawn from (phase 8) }
   Explored.Mark(x, y);
-  if GDVars.automapOn then
+  if GameVars.automapOn then
     View3D.DrawAutoMap(x, y, facing)
   else begin
     View3D.DrawBackdrop;
@@ -379,7 +379,7 @@ var
   setFile: Byte;
 begin
   if (wsSlot < 1) or (wsSlot > 3) then Exit;
-  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', fileId, sizeRead, data);
+  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', fileId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead mod SizeOf(Types.TView3dWallDef) <> 0) or
       (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) or
       ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
@@ -390,7 +390,7 @@ begin
   i := 1;
   repeat
     { slot wsSlot + i - 1's five wall types start at wall type 5 * (wsSlot + i - 2) + 1 }
-    Move(data^[offset], GDVars.wallGfx^[5 * (wsSlot + i - 2) + 1], SizeOf(Types.TView3dWallDef));
+    Move(data^[offset], GameVars.wallGfx^[5 * (wsSlot + i - 2) + 1], SizeOf(Types.TView3dWallDef));
     Inc(offset, SizeOf(Types.TView3dWallDef));
     Inc(i);
   until offset >= sizeRead;
@@ -398,14 +398,14 @@ begin
   count := i - 1;
   for i := 1 to count do
     if (wsSlot + i - 1) in [1..3] then begin
-      GDVars.wallSetCache[wsSlot + i - 1].wallDefId := -1;
-      GDVars.wallSetCache[wsSlot + i - 1].symbolSlot := -1;
+      GameVars.wallSetCache[wsSlot + i - 1].wallDefId := -1;
+      GameVars.wallSetCache[wsSlot + i - 1].symbolSlot := -1;
       for row := 1 to 5 do
         for col := 0 to 155 do begin
           { set 0's symbols (1..45) are shared by every slot; SSI also moved its last one, 45, into another slot's
             set (#727) }
-          if GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GDConsts.symSetFirst[1] then
-            Inc(GDVars.wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
+          if GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col] >= GDConsts.symSetFirst[1] then
+            Inc(GameVars.wallGfx^[5 * (wsSlot + i - 2) + row][col], symOfs);
         end;
       if count > 1 then begin
         if fileId = 0 then
@@ -416,8 +416,8 @@ begin
       end else
         Sym8x8.Load8x8Set(fileId, wsSlot + i - 1);
     end;
-  GDVars.wallSetCache[wsSlot].wallDefId := fileId;
-  GDVars.wallSetCache[wsSlot].symbolSlot := wsSlot;
+  GameVars.wallSetCache[wsSlot].wallDefId := fileId;
+  GameVars.wallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
 
 { Load GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte planes of a
@@ -428,20 +428,20 @@ var
   data: Types.PByteArr;
   offset: Word;
 begin
-  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GDVars.virtualDisk), '.dax', mapId, sizeRead, data);
+  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', mapId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead <> SizeOf(Types.TGeoMap) + 2) then begin
     GameIo.FatalError('Unable to load geo in Load3DMap.');
   end;
   offset := 2;
-  Move(data^[offset], GDVars.map3d^.wallsNE, SizeOf(Types.TGeoPlane));
+  Move(data^[offset], GameVars.map3d^.wallsNE, SizeOf(Types.TGeoPlane));
   Inc(offset, SizeOf(Types.TGeoPlane));
-  Move(data^[offset], GDVars.map3d^.wallsSW, SizeOf(Types.TGeoPlane));
+  Move(data^[offset], GameVars.map3d^.wallsSW, SizeOf(Types.TGeoPlane));
   Inc(offset, SizeOf(Types.TGeoPlane));
-  Move(data^[offset], GDVars.map3d^.events, SizeOf(Types.TGeoPlane));
+  Move(data^[offset], GameVars.map3d^.events, SizeOf(Types.TGeoPlane));
   Inc(offset, SizeOf(Types.TGeoPlane));
-  Move(data^[offset], GDVars.map3d^.barriers, SizeOf(Types.TGeoPlane));
+  Move(data^[offset], GameVars.map3d^.barriers, SizeOf(Types.TGeoPlane));
   FreeMem(data, sizeRead);
-  GDVars.zone0^.mapId.value := mapId;
+  GameVars.zone0^.mapId.value := mapId;
 end;
 
 end.

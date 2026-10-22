@@ -2,7 +2,7 @@
 {$I COMPILER.INC}
 program TStats;
 
-uses Types, GDVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, Stats, TestKit;
+uses Types, GameVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, Stats, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -26,14 +26,14 @@ end;
 
 begin
   TestKit.Start('TSTATS');
-  GetMem(GDVars.zone1, SizeOf(Types.TGbvmZone1));
-  FillChar(GDVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
+  GetMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
+  FillChar(GameVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
   { a party of two, then a monster after them, as combat appends monsters }
   monster := NewCreature('KOBOLD', nil);
   b := NewCreature('ANNA', monster);
   a := NewCreature('TALONIA', b);
-  GDVars.creatureList := a;
-  GDVars.zone1^[C_GBVM.PARTY_SIZE] := 2;
+  GameVars.creatureList := a;
+  GameVars.zone1^[C_GBVM.PARTY_SIZE] := 2;
 
   TestKit.Check(Party.IsPartyMember(a), 'first member is in the party');
   TestKit.Check(Party.IsPartyMember(b), 'second member is in the party');
@@ -51,7 +51,7 @@ begin
   TestKit.CheckEqualsL(0, Stats.game.counts[Stats.RAISED], 'a monster''s count reaches neither block nor game');
 
   { a party member fells a monster in combat }
-  GDVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.COMBAT;
   monster^.status := C_STATUS.DYING;
   Stats.Damaged(a, monster, 7, True);
   blk := Stats.BlockOf(a);
@@ -65,7 +65,7 @@ begin
   TestKit.CheckEqualsL(1, blk^.counts[Stats.KILLS], 'no kill for a creature already down');
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'damage on a fallen creature still counts');
   { outside combat a party member's blow is not credited }
-  GDVars.ifcState := C_IFC.INDOORS;
+  GameVars.ifcState := C_IFC.INDOORS;
   Stats.Damaged(a, monster, 4, False);
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'no damage done outside combat');
 
@@ -83,7 +83,7 @@ begin
   TestKit.CheckEqualsL(2, Stats.game.counts[Stats.DIED], 'a monster''s death is not the party''s');
 
   { kinds past the table go under OTHER }
-  GDVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.COMBAT;
   for i := 1 to Stats.KINDS + 2 do begin
     Str(i, s);
     monster^.name := 'BEAST' + s;
@@ -97,14 +97,14 @@ begin
   TestKit.CheckEqualsL(4, blk^.kills[Stats.KINDS].count, 'OTHER counts every kind past the table');
 
   { healing given counts only while a spell is resolved }
-  GDVars.currentSpellBeing := 0;
+  GameVars.currentSpellBeing := 0;
   Stats.Healed(a, b, 5, False);
   TestKit.CheckEqualsL(5, Stats.BlockOf(b)^.counts[Stats.HEALED_TAKEN], 'healing taken');
   TestKit.CheckEqualsL(0, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'no healing given without a spell');
-  GDVars.currentSpellBeing := 3;
+  GameVars.currentSpellBeing := 3;
   Stats.Healed(a, b, 4, False);
   TestKit.CheckEqualsL(4, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a spell');
-  GDVars.currentSpellBeing := 0;
+  GameVars.currentSpellBeing := 0;
   Stats.Healed(a, b, 2, True);
   TestKit.CheckEqualsL(6, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a power');
 

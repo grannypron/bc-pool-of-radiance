@@ -16,10 +16,10 @@ procedure SetFromMinutes(var clock: Types.TClock; minutes: Word);
 
 implementation
 
-uses GDConsts, GDVars, C_TIME;
+uses GDConsts, GameVars, C_TIME;
 
 { Carry each clock component that has reached its GDConsts.unitScale limit into the next one (one carry per component
-  per call); the year has no limit. When ageOnYear is set, every creature in GDVars.creatureList ages by one as the
+  per call); the year has no limit. When ageOnYear is set, every creature in GameVars.creatureList ages by one as the
   months carry into a new year. }
 procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
 var
@@ -31,7 +31,7 @@ begin
       Inc(clock[Succ(i)]);
       clock[i] := clock[i] - GDConsts.unitScale[i];
       if (i = C_TIME.MONTHS) and ageOnYear then begin
-        cur := GDVars.creatureList;
+        cur := GameVars.creatureList;
         while cur <> nil do begin
           Inc(cur^.age);
           cur := cur^.nextCharAddr;

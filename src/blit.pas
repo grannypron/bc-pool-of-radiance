@@ -1,5 +1,5 @@
 { Image loading, conversion and compositing for CGA, EGA, Tandy and VGA displays, through the installed video driver
-  (GDVars.video). Drawing into the view buffer stages dirty spans; FlushView copies those spans to the screen.
+  (GameVars.video). Drawing into the view buffer stages dirty spans; FlushView copies those spans to the screen.
 
   The drivers' video-memory layouts: CGA packs eight pixels into two bytes and interleaves even and odd scanlines
   between two banks. EGA stores eight pixels as four plane bytes, selected through the sequencer map mask; each row
@@ -204,7 +204,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 
 implementation
 
-uses GDConsts, GDVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
+uses GDConsts, GameVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
 
 type
   PLongInt = ^LongInt;
@@ -248,16 +248,16 @@ end;
 
 procedure SetVideoMode(mode: Byte);
 begin
-  GDVars.savedVideoMode := GDVars.curVideoMode;
-  GDVars.interruptRegisters.ah := 0;
-  GDVars.interruptRegisters.al := mode;
-  Intr($10, GDVars.interruptRegisters);
-  GDVars.curVideoMode := mode;
+  GameVars.savedVideoMode := GameVars.curVideoMode;
+  GameVars.interruptRegisters.ah := 0;
+  GameVars.interruptRegisters.al := mode;
+  Intr($10, GameVars.interruptRegisters);
+  GameVars.curVideoMode := mode;
 end;
 
 procedure RestoreVideoMode;
 begin
-  Blit.SetVideoMode(GDVars.savedVideoMode);
+  Blit.SetVideoMode(GameVars.savedVideoMode);
 end;
 
 procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; var pic: Types.PImgBuf);
@@ -296,7 +296,7 @@ procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: By
 begin
   { each block of the picture (pic^.more), its frames taking 4 DAX bytes a cell row }
   while pic <> nil do begin
-    GDVars.video.ExpandFrames(imgData, srcOff, transpColor, pic);
+    GameVars.video.ExpandFrames(imgData, srcOff, transpColor, pic);
     Inc(srcOff, pic^.count * pic^.height * pic^.width * 4);
     pic := pic^.more;
   end;
@@ -388,9 +388,9 @@ begin
   end;
   { the driver's layout: 1 shl cellShift picture bytes a cell row, 1 shl screenShift screen bytes a cell column, one
     mask byte for 1 shl maskShift picture bytes }
-  cs := GDVars.video.cellShift;
-  ms := GDVars.video.maskShift;
-  screenOff := leftSkip shl GDVars.video.screenShift;
+  cs := GameVars.video.cellShift;
+  ms := GameVars.video.maskShift;
+  screenOff := leftSkip shl GameVars.video.screenShift;
   rowBytes := (gfx^.width - clipLeft - clipRight) shl cs;
   clipLeft := clipLeft shl cs;
   clipRight := clipRight shl cs;
@@ -407,18 +407,18 @@ begin
   maskEach := useMask and (ms = 0);
   destOff := destOff shl cs;
   for y := 0 to lastRow do begin
-    GDVars.spanActive[scanline] := 1;
+    GameVars.spanActive[scanline] := 1;
     Inc(srcOff, clipLeft);
     Inc(saveOff, clipLeft);
     Inc(destOff, leftSkip);
-    if GDVars.spanFirstOfs[scanline] > destOff then begin
-      GDVars.spanScreenOfs[scanline] := screenOff;
-      GDVars.spanFirstOfs[scanline] := destOff;
+    if GameVars.spanFirstOfs[scanline] > destOff then begin
+      GameVars.spanScreenOfs[scanline] := screenOff;
+      GameVars.spanFirstOfs[scanline] := destOff;
     end;
     if saveRequested then
-      Move(dest^.data[destOff], GDVars.iconImageBufferPtr^.data[saveOff], rowBytes);
+      Move(dest^.data[destOff], GameVars.iconImageBufferPtr^.data[saveOff], rowBytes);
     Inc(saveOff, rowBytes);
-    if useMask and GDVars.video.keyed then begin
+    if useMask and GameVars.video.keyed then begin
       { a colour key (VGA): every pixel but PIC_KEY is drawn }
       for i := 1 to rowBytes do begin
         if gfx^.data[srcOff] <> Types.PIC_KEY then
@@ -452,8 +452,8 @@ begin
       Inc(srcOff, rowBytes);
       Inc(destOff, rowBytes);
     end;
-    if destOff - 1 > GDVars.spanLastOfs[scanline] then
-      GDVars.spanLastOfs[scanline] := destOff - 1;
+    if destOff - 1 > GameVars.spanLastOfs[scanline] then
+      GameVars.spanLastOfs[scanline] := destOff - 1;
     Inc(srcOff, clipRight);
     Inc(saveOff, clipRight);
     Inc(destOff, rightSkip);
@@ -515,21 +515,21 @@ procedure MirrorPic(src, dst: Types.PImgBuf);
 begin
   if (src = nil) or (dst = nil) then Exit;
   Move(src^.map, dst^.map, SizeOf(src^.map));
-  GDVars.video.MirrorFrame(src, dst);
+  GameVars.video.MirrorFrame(src, dst);
 end;
 
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
 begin
   if pic = nil then Exit;
-  GDVars.video.ShowPic(screenX, screenY, pic);
+  GameVars.video.ShowPic(screenX, screenY, pic);
 end;
 
 procedure FlushView;
 begin
-  GDVars.video.FlushSpans;
-  FillChar(GDVars.spanActive, SizeOf(GDVars.spanActive), 0);
-  FillChar(GDVars.spanFirstOfs, SizeOf(GDVars.spanFirstOfs), $FF);
-  FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
+  GameVars.video.FlushSpans;
+  FillChar(GameVars.spanActive, SizeOf(GameVars.spanActive), 0);
+  FillChar(GameVars.spanFirstOfs, SizeOf(GameVars.spanFirstOfs), $FF);
+  FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
 end;
 
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
@@ -561,7 +561,7 @@ begin
   Move(pic^.data[srcOff], scratchPic^.data, scratchPic^.count * scratchPic^.imgSize);
   for pairIdx := 0 to 15 do
     if fromColors[pairIdx] <> toColors[pairIdx] then
-      GDVars.video.RemapColour(pic, scratchPic, srcOff, nFrames, fromColors[pairIdx], toColors[pairIdx], isDithered);
+      GameVars.video.RemapColour(pic, scratchPic, srcOff, nFrames, fromColors[pairIdx], toColors[pairIdx], isDithered);
   with pic^ do
     Move(scratchPic^.data, data[frame * imgSize], nFrames * imgSize);
   Blit.FreePic(scratchPic);
@@ -582,7 +582,7 @@ begin
   fit := (65520 - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) div frameSize;
   if fit = 0 then
     GameIo.FatalError('A picture of ' + StrUtil.NumStr(height) + ' rows and ' + StrUtil.NumStr(width) +
-                      ' cells is too large for the ' + GDVars.video.name + ' video mode.');
+                      ' cells is too large for the ' + GameVars.video.name + ' video mode.');
   rest := 0;
   if count > fit then begin
     rest := count - fit;
@@ -679,7 +679,7 @@ begin
       lastRow := height - 1;
   end;
   { the driver's layout: 1 shl cellShift picture bytes a cell row, 1 shl screenShift screen bytes a cell column }
-  with GDVars.video do begin
+  with GameVars.video do begin
     screenOfs := clampedX shl screenShift;
     cells := width - clipLeft - clipRight;
     runLen := cells shl cellShift;
@@ -695,11 +695,11 @@ begin
         uniform := False;
   end;
   for row := 0 to lastRow do begin
-    GDVars.spanActive[absRow] := 1;
+    GameVars.spanActive[absRow] := 1;
     Inc(dstOff, clampedX);
-    if GDVars.spanFirstOfs[absRow] > dstOff then begin
-      GDVars.spanScreenOfs[absRow] := screenOfs;
-      GDVars.spanFirstOfs[absRow] := dstOff;
+    if GameVars.spanFirstOfs[absRow] > dstOff then begin
+      GameVars.spanScreenOfs[absRow] := screenOfs;
+      GameVars.spanFirstOfs[absRow] := dstOff;
     end;
     if uniform then begin
       FillChar(pic^.data[dstOff], runLen, cell[0]);
@@ -715,8 +715,8 @@ begin
         Move(cell, pic^.data[dstOff], cellLen);
         Inc(dstOff, cellLen);
       end;
-    if dstOff - 1 > GDVars.spanLastOfs[absRow] then
-      GDVars.spanLastOfs[absRow] := dstOff - 1;
+    if dstOff - 1 > GameVars.spanLastOfs[absRow] then
+      GameVars.spanLastOfs[absRow] := dstOff - 1;
     Inc(dstOff, rightMargin);
     Inc(absRow);
   end;
@@ -725,7 +725,7 @@ end;
 procedure SetPaletteRegister(registerIndex, color: Byte);
 begin
   if Blit.HasPalette then
-    GDVars.video.SetPalette(registerIndex, color);
+    GameVars.video.SetPalette(registerIndex, color);
 end;
 
 procedure FrameBlock(var pic: Types.PImgBuf; var frame: Word);
@@ -753,7 +753,7 @@ var
   clear: Byte;
 begin
   if pic = nil then Exit;
-  if GDVars.video.keyed then
+  if GameVars.video.keyed then
     clear := Types.PIC_KEY
   else
     clear := 0;
@@ -764,22 +764,22 @@ end;
 
 function FrameBytes(height, width: Word): Word;
 begin
-  FrameBytes := (height * width) shl GDVars.video.cellShift;
+  FrameBytes := (height * width) shl GameVars.video.cellShift;
 end;
 
 function MaskBytes(imageBytes: Word): Word;
 begin
-  MaskBytes := imageBytes shr GDVars.video.maskShift;
+  MaskBytes := imageBytes shr GameVars.video.maskShift;
 end;
 
 function ColourCount: Byte;
 begin
-  ColourCount := GDVars.video.colours;
+  ColourCount := GameVars.video.colours;
 end;
 
 function HasPalette: Boolean;
 begin
-  HasPalette := GDVars.video.hasPalette;
+  HasPalette := GameVars.video.hasPalette;
 end;
 
 begin

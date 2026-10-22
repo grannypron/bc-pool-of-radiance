@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TPathing;
 
-uses Types, C_DIR, C_TERR, GDConsts, GDVars, Pathing, StrUtil, TestKit;
+uses Types, C_DIR, C_TERR, GDConsts, GameVars, Pathing, StrUtil, TestKit;
 
 const
   { RouteStep's arena: open ground (terrain 5, cost 1) and wall (terrain 1, cost 255) }
@@ -56,9 +56,9 @@ end;
 { Open ground everywhere and nobody on it. }
 procedure ClearArena;
 begin
-  FillChar(GDVars.arenaPtr^.cells, SizeOf(GDVars.arenaPtr^.cells), GROUND);
+  FillChar(GameVars.arenaPtr^.cells, SizeOf(GameVars.arenaPtr^.cells), GROUND);
   FillChar(occ, SizeOf(occ), 0);
-  FillChar(GDVars.arenaLoc, SizeOf(GDVars.arenaLoc), 0);
+  FillChar(GameVars.arenaLoc, SizeOf(GameVars.arenaLoc), 0);
 end;
 
 { Put slot's body of size with its corner at (x, y), taking it off where it was. }
@@ -72,9 +72,9 @@ begin
     for cx := 0 to 49 do
       if occ[cy, cx] = slot then
         occ[cy, cx] := 0;
-  GDVars.arenaLoc[slot].x := x;
-  GDVars.arenaLoc[slot].y := y;
-  GDVars.arenaLoc[slot].size := size;
+  GameVars.arenaLoc[slot].x := x;
+  GameVars.arenaLoc[slot].y := y;
+  GameVars.arenaLoc[slot].size := size;
   for i := 0 to 3 do
     if Pathing.GetIconTileDelta(size, i, dx, dy) then
       occ[y + dy, x + dx] := slot;
@@ -86,7 +86,7 @@ var
   y: ShortInt;
 begin
   for y := y1 to y2 do
-    GDVars.arenaPtr^.cells[y, x] := WALL;
+    GameVars.arenaPtr^.cells[y, x] := WALL;
 end;
 
 { Walk WALKER to one of goals a RouteStep at a time, through the bodies in open and keeping off terrain avoid; the steps
@@ -100,9 +100,9 @@ var
 begin
   n := 0;
   while Pathing.RouteStep(WALKER, goals, open, avoid, TestOccupant, dir, goal) and (n <= limit) do begin
-    x := GDVars.arenaLoc[WALKER].x + GDConsts.dirDX[dir];
-    y := GDVars.arenaLoc[WALKER].y + GDConsts.dirDY[dir];
-    if (GDVars.arenaPtr^.cells[y, x] = WALL) or (GDVars.arenaPtr^.cells[y, x] = avoid) then begin
+    x := GameVars.arenaLoc[WALKER].x + GDConsts.dirDX[dir];
+    y := GameVars.arenaLoc[WALKER].y + GDConsts.dirDY[dir];
+    if (GameVars.arenaPtr^.cells[y, x] = WALL) or (GameVars.arenaPtr^.cells[y, x] = avoid) then begin
       WalkSteps := -1;
       Exit;
     end;
@@ -110,7 +110,7 @@ begin
       WalkSteps := n;
       Exit;
     end;
-    Place(WALKER, x, y, GDVars.arenaLoc[WALKER].size);
+    Place(WALKER, x, y, GameVars.arenaLoc[WALKER].size);
     Inc(n);
   end;
   if n > limit then
@@ -130,7 +130,7 @@ var
   x: ShortInt;
 begin
   for x := x1 to x2 do
-    GDVars.arenaPtr^.cells[y, x] := WALL;
+    GameVars.arenaPtr^.cells[y, x] := WALL;
 end;
 
 { #769: a dead-end corridor, one cell wide, from (19, 10) east to (30, 10), walled at (31, 10); TARGET at its end with
@@ -140,7 +140,7 @@ begin
   ClearArena;
   WallRow(9, 19, 31);
   WallRow(11, 19, 31);
-  GDVars.arenaPtr^.cells[10, 31] := WALL;
+  GameVars.arenaPtr^.cells[10, 31] := WALL;
   Place(WALKER, 5, 10, 1);
   Place(TARGET, 30, 10, 1);
   Place(FRONT, 29, 10, 1);
@@ -158,7 +158,7 @@ begin
   TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [], 0, TestOccupant, dir, goal) and (goal = FRONT) and
                 (dir = C_DIR.EAST), 'but the one in front of it can');
   TestKit.CheckEqualsL(23, WalkSteps([TARGET, FRONT], [], 0, 60), 'and 23 steps bring the walker to it');
-  TestKit.Check(GDVars.arenaLoc[WALKER].x = 28, 'beside the front one');
+  TestKit.Check(GameVars.arenaLoc[WALKER].x = 28, 'beside the front one');
   { of two goals the nearer one is reached }
   ClearArena;
   Place(WALKER, 10, 10, 1);
@@ -178,7 +178,7 @@ begin
   TestKit.Check(Pathing.RouteStep(WALKER, [TARGET, FRONT], [BLOCKER], 0, TestOccupant, dir, goal) and
                 (goal = FRONT) and (dir = C_DIR.EAST), 'a walk through its own side heads up the corridor');
   TestKit.CheckEqualsL(19, WalkSteps([TARGET, FRONT], [BLOCKER], 0, 60), 'and 19 steps close up behind it');
-  TestKit.Check((GDVars.arenaLoc[WALKER].x = 24) and (dir = C_DIR.EAST), 'where the next step is onto it: it waits');
+  TestKit.Check((GameVars.arenaLoc[WALKER].x = 24) and (dir = C_DIR.EAST), 'where the next step is onto it: it waits');
   { the ally moves on (here it is gone): the walk goes on to FRONT }
   Place(BLOCKER, 0, 0, 0);
   occ[0, 0] := 0;
@@ -189,7 +189,7 @@ begin
   WallColumn(8, 0, 4);
   WallColumn(8, 6, 19);
   WallColumn(8, 21, 24);
-  GDVars.arenaPtr^.cells[5, 8] := C_TERR.STINK_CLOUD;
+  GameVars.arenaPtr^.cells[5, 8] := C_TERR.STINK_CLOUD;
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 11, 5, 1);
   TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
@@ -204,33 +204,33 @@ end;
 procedure CheckTargetList;
 begin
   ClearArena;
-  GDVars.arenaPtr^.distMode := 0;
-  GDVars.arenaCount := 3;
+  GameVars.arenaPtr^.distMode := 0;
+  GameVars.arenaCount := 3;
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 10, 5, 1);
   { a 2x2 body whose nearest cell, (5, 9), is 4 cells south }
   Place(BLOCKER, 4, 9, 4);
-  Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
-  TestKit.CheckEqualsL(3, GDVars.targetCount, 'the target list holds everyone in sight, the looker too');
-  TestKit.Check((GDVars.targetList[1].idx = WALKER) and (GDVars.targetList[1].dist = 0), 'the looker first, at 0');
-  TestKit.Check((GDVars.targetList[2].idx = BLOCKER) and (GDVars.targetList[2].dist = 8) and
-                (GDVars.targetList[2].dir = C_DIR.SOUTH), 'then the 2x2 body, by its nearest cell, to the south');
-  TestKit.Check((GDVars.targetList[3].idx = TARGET) and (GDVars.targetList[3].dist = 10) and
-                (GDVars.targetList[3].dir = C_DIR.EAST), 'then the one 5 cells east');
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GameVars.arenaPtr);
+  TestKit.CheckEqualsL(3, GameVars.targetCount, 'the target list holds everyone in sight, the looker too');
+  TestKit.Check((GameVars.targetList[1].idx = WALKER) and (GameVars.targetList[1].dist = 0), 'the looker first, at 0');
+  TestKit.Check((GameVars.targetList[2].idx = BLOCKER) and (GameVars.targetList[2].dist = 8) and
+                (GameVars.targetList[2].dir = C_DIR.SOUTH), 'then the 2x2 body, by its nearest cell, to the south');
+  TestKit.Check((GameVars.targetList[3].idx = TARGET) and (GameVars.targetList[3].dist = 10) and
+                (GameVars.targetList[3].dir = C_DIR.EAST), 'then the one 5 cells east');
   WallColumn(8, 0, 7);
-  Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
-  TestKit.CheckEqualsL(2, GDVars.targetCount, 'a wall hides the one behind it');
-  GDVars.arenaPtr^.distMode := 1;
-  Pathing.BuildTargetList(5, 5, 127, 255, 1, GDVars.arenaPtr);
-  TestKit.CheckEqualsL(3, GDVars.targetCount, 'unless distMode looks through walls');
-  GDVars.arenaPtr^.distMode := 0;
-  Pathing.BuildTargetList(5, 5, 2, 255, 1, GDVars.arenaPtr);
-  TestKit.CheckEqualsL(1, GDVars.targetCount, 'and a range of 2 reaches the looker alone');
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GameVars.arenaPtr);
+  TestKit.CheckEqualsL(2, GameVars.targetCount, 'a wall hides the one behind it');
+  GameVars.arenaPtr^.distMode := 1;
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GameVars.arenaPtr);
+  TestKit.CheckEqualsL(3, GameVars.targetCount, 'unless distMode looks through walls');
+  GameVars.arenaPtr^.distMode := 0;
+  Pathing.BuildTargetList(5, 5, 2, 255, 1, GameVars.arenaPtr);
+  TestKit.CheckEqualsL(1, GameVars.targetCount, 'and a range of 2 reaches the looker alone');
 end;
 
 procedure CheckRoutes;
 begin
-  GetMem(GDVars.arenaPtr, SizeOf(Types.TArena));
+  GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
   { open ground: straight at it }
   ClearArena;
   Place(WALKER, 5, 5, 1);
@@ -252,12 +252,12 @@ begin
     backs out of it, where heading at the target would only push into the wall }
   ClearArena;
   WallColumn(8, 0, 15);
-  GDVars.arenaPtr^.cells[3, 5] := WALL;
-  GDVars.arenaPtr^.cells[3, 6] := WALL;
-  GDVars.arenaPtr^.cells[3, 7] := WALL;
-  GDVars.arenaPtr^.cells[7, 5] := WALL;
-  GDVars.arenaPtr^.cells[7, 6] := WALL;
-  GDVars.arenaPtr^.cells[7, 7] := WALL;
+  GameVars.arenaPtr^.cells[3, 5] := WALL;
+  GameVars.arenaPtr^.cells[3, 6] := WALL;
+  GameVars.arenaPtr^.cells[3, 7] := WALL;
+  GameVars.arenaPtr^.cells[7, 5] := WALL;
+  GameVars.arenaPtr^.cells[7, 6] := WALL;
+  GameVars.arenaPtr^.cells[7, 7] := WALL;
   Place(WALKER, 6, 5, 1);
   Place(TARGET, 11, 5, 1);
   TestKit.Check(RouteToTarget and (dir in [C_DIR.SOUTHWEST, C_DIR.WEST,
@@ -284,11 +284,11 @@ begin
   Place(WALKER, 4, 5, 4);
   TestKit.Check(not RouteToTarget, 'a 2x2 body does not fit a one-cell gap');
   WallColumn(8, 11, 11);
-  GDVars.arenaPtr^.cells[11, 8] := GROUND;
+  GameVars.arenaPtr^.cells[11, 8] := GROUND;
   TestKit.Check(RouteToTarget, 'but fits a two-cell one');
   CheckReachable;
   CheckTargetList;
-  FreeMem(GDVars.arenaPtr, SizeOf(Types.TArena));
+  FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));
 end;
 
 begin

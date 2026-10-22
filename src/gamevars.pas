@@ -1,7 +1,7 @@
 { Global variables: every variable in the data segment, in link order. A new section starts wherever the data needs a
   word boundary. }
 {$I COMPILER.INC}
-unit GDVars;
+unit GameVars;
 
 interface
 

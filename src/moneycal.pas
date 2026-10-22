@@ -59,7 +59,7 @@ function TemplePrice(cost: Word; mode: Byte): Word;
 
 implementation
 
-uses GDConsts, GDVars, C_MONEY;
+uses GDConsts, GameVars, C_MONEY;
 
 function CopperValue(var m: Types.TMoney): LongInt;
 var
@@ -129,7 +129,7 @@ function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
 begin
   if gp <= MoneyCal.CreatureGold(buyer) then
     WhoPays := PAY_CHARACTER
-  else if gp <= MoneyCal.CoinValueInGold(GDVars.treasureMoney) then
+  else if gp <= MoneyCal.CoinValueInGold(GameVars.treasureMoney) then
     WhoPays := PAY_POOL
   else
     WhoPays := PAY_NOBODY;

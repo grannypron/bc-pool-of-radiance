@@ -38,7 +38,7 @@ function Kind(event: Byte): Byte;
 
 implementation
 
-uses Types, GDVars, C_ECL, C_GBVM, EclVars;
+uses Types, GameVars, C_ECL, C_GBVM, EclVars;
 
 const
   { the variables a scan follows the event byte into }
@@ -82,11 +82,11 @@ var
 { Operand i of the instruction last decoded, as an address (a GBVM read) when isAddr. }
 function Operand(i: Byte; var isAddr: Boolean): Word;
 begin
-  isAddr := GDVars.gbvmType[i] in [1, 3];
-  if GDVars.gbvmType[i] in [1, 2, 3] then
-    Operand := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[i], GDVars.gbvmUpperByte[i])
+  isAddr := GameVars.gbvmType[i] in [1, 3];
+  if GameVars.gbvmType[i] in [1, 2, 3] then
+    Operand := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[i], GameVars.gbvmUpperByte[i])
   else
-    Operand := GDVars.gbvmLowerByte[i];
+    Operand := GameVars.gbvmLowerByte[i];
 end;
 
 { The first operand and the count of the ON GOTO, ON GOSUB or menu at a, read from the script itself: decoding loads the
@@ -96,17 +96,17 @@ procedure ListHead(a: Word; var v: Word; var isAddr: Boolean; var n: Byte);
 var
   t: Byte;
 begin
-  t := GDVars.zone3^[a + 1];
+  t := GameVars.zone3^[a + 1];
   isAddr := t in [1, 3];
-  v := GDVars.zone3^[a + 2];
+  v := GameVars.zone3^[a + 2];
   Inc(a, 3);
   if t in [1, 2, 3] then begin
-    v := EclVars.CombineBytesToWord(Lo(v), GDVars.zone3^[a]);
+    v := EclVars.CombineBytesToWord(Lo(v), GameVars.zone3^[a]);
     Inc(a);
   end;
   n := 0;
-  if GDVars.zone3^[a] in [0, 2] then
-    n := GDVars.zone3^[a + 1];
+  if GameVars.zone3^[a] in [0, 2] then
+    n := GameVars.zone3^[a + 1];
 end;
 
 { True when a is inside the script. }
@@ -121,14 +121,14 @@ var
   savedIp: Word;
   savedOp: Byte;
 begin
-  savedIp := GDVars.eclIp;
-  savedOp := GDVars.curOpcode;
-  GDVars.eclIp := a;
+  savedIp := GameVars.eclIp;
+  savedOp := GameVars.curOpcode;
+  GameVars.eclIp := a;
   EclVars.SkipEclCmd;
-  Decode := GDVars.curOpcode;
-  next := GDVars.eclIp;
-  GDVars.eclIp := savedIp;
-  GDVars.curOpcode := savedOp;
+  Decode := GameVars.curOpcode;
+  next := GameVars.eclIp;
+  GameVars.eclIp := savedIp;
+  GameVars.curOpcode := savedOp;
 end;
 
 { The variable the instruction at a, op, writes (decoded last); 0 for none. }
@@ -361,7 +361,7 @@ begin
   New(visited);
   FillChar(visited^, SizeOf(TVisited), 0);
   for i := 1 to 5 do
-    Push(GDVars.scriptEntryAddrs[i]);
+    Push(GameVars.scriptEntryAddrs[i]);
   head := 1;
   while head <= queueLen do begin
     a := queue[head];

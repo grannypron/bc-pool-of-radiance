@@ -51,7 +51,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
-uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
+uses GDConsts, GameVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
 
 {$IFDEF FPC}
 { the native build's count of the same ticks }
@@ -78,28 +78,28 @@ begin
   n := compSize;
   if n > SizeOf(Types.TFontArr) then
     n := SizeOf(Types.TFontArr);
-  Move(dataPtr^, GDVars.gameFont^, n);
+  Move(dataPtr^, GameVars.gameFont^, n);
   FreeMem(dataPtr, compSize);
 end;
 
 { Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
   through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded font;
   later copies are not range-checked. A glyph index past the font draws nothing. The video driver draws each copy
-  (GDVars.video.DrawGlyph). }
+  (GameVars.video.DrawGlyph). }
 procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
 var
   i: Byte;
   charIdx: Byte;
 begin
-  if (col > 39) or (row > 24) or (GDVars.gameFont = nil) then Exit;
+  if (col > 39) or (row > 24) or (GameVars.gameFont = nil) then Exit;
   if isASCII <> 0 then
     charIdx := Ord(UpCase(Chr(ch))) mod 64
   else begin
-    if ch >= SizeOf(Types.TFontArr) div SizeOf(GDVars.gameFont^[0]) then Exit;
+    if ch >= SizeOf(Types.TFontArr) div SizeOf(GameVars.gameFont^[0]) then Exit;
     charIdx := ch;
   end;
   for i := 1 to count do begin
-    GDVars.video.DrawGlyph(col, row, color, charIdx);
+    GameVars.video.DrawGlyph(col, row, color, charIdx);
     Inc(col);
   end;
 end;
@@ -160,11 +160,11 @@ var
     on. }
   procedure PrintCharInWindow;
   begin
-    while (idx <= lineEnd) and (GDVars.curCol <= lrCol) do begin
-      TextRend.RenderChar(GDVars.curCol, GDVars.curRow, color, 1, Ord(source[idx]), 1);
-      if GDVars.msgDelayFlag <> 0 then Delay(GDVars.gameDelay * 10);
+    while (idx <= lineEnd) and (GameVars.curCol <= lrCol) do begin
+      TextRend.RenderChar(GameVars.curCol, GameVars.curRow, color, 1, Ord(source[idx]), 1);
+      if GameVars.msgDelayFlag <> 0 then Delay(GameVars.gameDelay * 10);
       Inc(idx);
-      Inc(GDVars.curCol);
+      Inc(GameVars.curCol);
     end;
   end;
 
@@ -176,15 +176,15 @@ var
 
 begin
   if (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
-  if (GDVars.curCol < ulCol) or (GDVars.curCol > lrCol) or (GDVars.curRow < ulRow) or
-      (GDVars.curRow > lrRow) then begin
-    GDVars.curCol := ulCol;
-    GDVars.curRow := ulRow;
+  if (GameVars.curCol < ulCol) or (GameVars.curCol > lrCol) or (GameVars.curRow < ulRow) or
+      (GameVars.curRow > lrRow) then begin
+    GameVars.curCol := ulCol;
+    GameVars.curRow := ulRow;
   end;
   if clearFirst then begin
     TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
-    GDVars.curCol := ulCol;
-    GDVars.curRow := ulRow;
+    GameVars.curCol := ulCol;
+    GameVars.curRow := ulRow;
   end;
   idx := 1;
   len := Length(source);
@@ -200,34 +200,34 @@ begin
       while (lineEnd + 1 < len) and (source[lineEnd + 1] in GDConsts.breakChars) do
         Inc(lineEnd);
     { a word wider than the window is split: what fits on this row now, the rest carried on to the next }
-    if (GDVars.curCol <= lrCol) and (lineEnd - idx + Ord(source[lineEnd] <> ' ') > width) then
-      lineEnd := idx + lrCol - GDVars.curCol;
-    if lineEnd - idx + GDVars.curCol > lrCol then begin
+    if (GameVars.curCol <= lrCol) and (lineEnd - idx + Ord(source[lineEnd] <> ' ') > width) then
+      lineEnd := idx + lrCol - GameVars.curCol;
+    if lineEnd - idx + GameVars.curCol > lrCol then begin
       { the word fits and only its trailing space hangs over the edge: print the word, then wrap }
-      if (lineEnd - idx + GDVars.curCol = lrCol + 1) and (source[lineEnd] = ' ') then begin
+      if (lineEnd - idx + GameVars.curCol = lrCol + 1) and (source[lineEnd] = ' ') then begin
         Dec(lineEnd);
         PrintCharInWindow;
       end;
-      GDVars.curCol := ulCol;
-      Inc(GDVars.curRow);
+      GameVars.curCol := ulCol;
+      Inc(GameVars.curRow);
       FindNewIndex;
       { FindNewIndex stops at len, so text is still waiting when idx < len or source[len] is not a space; a last
         one-character word waits too }
-      if (GDVars.curRow > lrRow) and ((idx < len) or (source[idx] <> ' ')) then begin
-        GDVars.curCol := ulCol;
-        GDVars.curRow := ulRow;
+      if (GameVars.curRow > lrRow) and ((idx < len) or (source[idx] <> ' ')) then begin
+        GameVars.curCol := ulCol;
+        GameVars.curRow := ulRow;
         TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
         TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
         PrintCharInWindow;
-      end else if GDVars.curRow > lrRow then
+      end else if GameVars.curRow > lrRow then
         { only a trailing space is left: nothing to print below the window }
         Exit;
     end else
       PrintCharInWindow;
   until idx > len;
-  if GDVars.curCol > lrCol then begin
-    GDVars.curCol := ulCol;
-    Inc(GDVars.curRow);
+  if GameVars.curCol > lrCol then begin
+    GameVars.curCol := ulCol;
+    Inc(GameVars.curRow);
   end;
 end;
 
@@ -322,7 +322,7 @@ end;
 { Clear the whole screen to black (the video driver's ClearScreen: both EGA pages, every CGA or Tandy bank). }
 procedure ClearScreen;
 begin
-  GDVars.video.ClearScreen;
+  GameVars.video.ClearScreen;
 end;
 
 { Clear the bottom row, print msg in color, pause on the text delay (not a keywait), clear again. The parameters are
@@ -338,7 +338,7 @@ end;
 { Crt.Delay scaled by the shared text delay: gameDelay * 225 ms. }
 procedure PauseOnly;
 begin
-  Delay(GDVars.gameDelay * 225);
+  Delay(GameVars.gameDelay * 225);
 end;
 
 { Clear a character-cell rectangle to black (on both EGA pages). }
@@ -346,7 +346,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 begin
   { the rectangle must lie on the 40 x 25 screen, corners in order }
   if (ulCol < 0) or (ulRow < 0) or (ulCol > lrCol) or (ulRow > lrRow) or (lrCol > 39) or (lrRow > 24) then Exit;
-  GDVars.video.ClearRect(ulCol, ulRow, lrCol, lrRow);
+  GameVars.video.ClearRect(ulCol, ulRow, lrCol, lrRow);
 end;
 
 end.

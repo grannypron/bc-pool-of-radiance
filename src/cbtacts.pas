@@ -59,13 +59,13 @@ procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 
 function StingVictoryCheat: Boolean;
 
-{ Would an area spell aimed at cell (x, y) with walk budget radius catch anyone not on GDVars.curChar's enemy team?
+{ Would an area spell aimed at cell (x, y) with walk budget radius catch anyone not on GameVars.curChar's enemy team?
   Rebuilds the target list around the aim point. }
 function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_TERR, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
+uses C_ITEM, C_TERR, C_COND, GDConsts, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -101,17 +101,17 @@ begin
     madeAttack := 0;
     attackPhase := 2;
     CbtActs.SetCurAttacksX2(creature);
-    GDVars.currentAttackCurrent := creature^.attacks2;
-    GDVars.currentCreatureCalculatingFlag := 0;
+    GameVars.currentAttackCurrent := creature^.attacks2;
+    GameVars.currentCreatureCalculatingFlag := 0;
     FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
-    creature^.curAttacks2 := CbtActs.AdjustedAttacks(GDVars.currentAttackCurrent);
+    creature^.curAttacks2 := CbtActs.AdjustedAttacks(GameVars.currentAttackCurrent);
     sweepBudget := creature^.attackLevel;
     if creature^.enabled <> 0 then begin
       initiative := Dice.RollDice(1, 6) + AbilAdj.DexMissileAdjust(creature);
       if initiative < 1 then
         initiative := 1;
       { Surprise mask: bit 0 for the party, bit 1 for monsters }
-      if Byte((creature^.hostile + 1) and Integer(GDVars.zone1^[C_GBVM.SURPRISE])) <> 0 then
+      if Byte((creature^.hostile + 1) and Integer(GameVars.zone1^[C_GBVM.SURPRISE])) <> 0 then
         Dec(initiative, 6);
       if (initiative < 0) or (initiative > 20) then
         initiative := 0;
@@ -129,14 +129,14 @@ var
 begin
   m := creature^.movementCur;
   if creature^.hostile = 0 then
-    m := m + GDVars.zone1^[C_GBVM.MOD_PARTY_MOVE];
-  GDVars.currentCreatureCalculatingFlag := 1;
+    m := m + GameVars.zone1^[C_GBVM.MOD_PARTY_MOVE];
+  GameVars.currentCreatureCalculatingFlag := 1;
   if (m < 1) or (m > 96) then
     m := 1;
-  GDVars.currentAttackCurrent := m * 2;
+  GameVars.currentAttackCurrent := m * 2;
   FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
-  GDVars.currentCreatureCalculatingFlag := 0;
-  CalcCreatureMovement := GDVars.currentAttackCurrent;
+  GameVars.currentCreatureCalculatingFlag := 0;
+  CalcCreatureMovement := GameVars.currentAttackCurrent;
 end;
 
 { Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it on a backstab by the AD&D band
@@ -154,18 +154,18 @@ begin
     dmg := 0;
   if dmg > 255 then
     dmg := 255;
-  GDVars.pendingDamage := dmg;
+  GameVars.pendingDamage := dmg;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
-    GDVars.pendingDamage := GDVars.pendingDamage * ((Word(att^.classLevels[C_LEVEL.THIEF]) + 3) div 4 + 1);
+    GameVars.pendingDamage := GameVars.pendingDamage * ((Word(att^.classLevels[C_LEVEL.THIEF]) + 3) div 4 + 1);
   if (att^.classLevels[C_LEVEL.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GDConsts.rangerFoes) div SizeOf(GDConsts.rangerFoes[1]) do
       if def^.name = GDConsts.rangerFoes[i] then
-        if GDVars.pendingDamage > 255 - att^.classLevels[C_LEVEL.RANGER] then
-          GDVars.pendingDamage := 255
+        if GameVars.pendingDamage > 255 - att^.classLevels[C_LEVEL.RANGER] then
+          GameVars.pendingDamage := 255
         else
-          Inc(GDVars.pendingDamage, att^.classLevels[C_LEVEL.RANGER]);
-  GDVars.elementMask := 0;
+          Inc(GameVars.pendingDamage, att^.classLevels[C_LEVEL.RANGER]);
+  GameVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_DEF, def);
 end;
@@ -208,7 +208,7 @@ begin
   end else
     verb := verb + 'and Misses';
   TextRend.DisplayMessageWindow(23, row, 38, row + 3, LightGreen, True, verb);
-  row := GDVars.curRow + 1;
+  row := GameVars.curRow + 1;
   if dmg > 0 then begin
     def^.combatAddr^.castAllowed := 0;
     if def^.combatAddr^.spellCast > 0 then begin
@@ -248,7 +248,7 @@ begin
   cnt := CbtMap.CountTargets(creature, 1);
   for i := 1 to cnt do
     if creature^.enabled <> 0 then begin
-      p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
+      p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
       if (p^.combatAddr^.guarding <> 0) and (not CharHlp.IsHelpless(p)) then begin
         CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2, C_DIR.CENTER);
         p^.combatAddr^.guarding := 0;
@@ -285,20 +285,20 @@ begin
     creature^.combatAddr^.movement := 0;
     Exit;
   end;
-  x := GDVars.arenaLoc[slot].x;
-  y := GDVars.arenaLoc[slot].y;
+  x := GameVars.arenaLoc[slot].x;
+  y := GameVars.arenaLoc[slot].y;
   nx := x + GDConsts.dirDX[dir];
   ny := y + GDConsts.dirDY[dir];
   { cost is reused as the ScrollView delta: 1 under manual control, 3 under quickfight }
   cost := 1;
   if creature^.quickfight <> 0 then begin
     cost := 3;
-    if not CbtMap.ViewCoordsValid(nx - GDVars.arenaPtr^.ox, ny - GDVars.arenaPtr^.oy) then
+    if not CbtMap.ViewCoordsValid(nx - GameVars.arenaPtr^.ox, ny - GameVars.arenaPtr^.oy) then
       CbtMap.ScrollView(x, y, 2, C_DIR.CENTER);
   end;
   CbtMap.UpdateCombatMapTile(0, 0, slot);
-  GDVars.arenaLoc[slot].x := nx;
-  GDVars.arenaLoc[slot].y := ny;
+  GameVars.arenaLoc[slot].x := nx;
+  GameVars.arenaLoc[slot].y := ny;
   CbtMap.BuildArenaArrays;
   CbtMap.ScrollView(nx, ny, cost, C_DIR.CENTER);
   { flanking accumulators reset }
@@ -351,18 +351,18 @@ begin
   if cntBefore = 0 then
     Exit;
   for i := 1 to cntBefore do
-    adj[i] := GDVars.potentialTargetCreature[i];
+    adj[i] := GameVars.potentialTargetCreature[i];
   { probe: step the icon, recount, step back }
-  Inc(GDVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
-  Inc(GDVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
+  Inc(GameVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
+  Inc(GameVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
   cntAfter := CbtMap.CountTargets(creature, 1);
-  Dec(GDVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
-  Dec(GDVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
+  Dec(GameVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
+  Dec(GameVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
   { enemies still adjacent after the step get no free attack }
   for i := 1 to cntBefore do begin
     still := False;
     for j := 1 to cntAfter do
-      if GDVars.potentialTargetCreature[j] = adj[i] then
+      if GameVars.potentialTargetCreature[j] = adj[i] then
         still := True;
     if still then
       adj[i] := 0;
@@ -371,7 +371,7 @@ begin
     if adj[i] > 0 then
       if creature^.enabled <> 0 then begin
         attacked := False;
-        p := GDVars.creatureArr[adj[i]];
+        p := GameVars.creatureArr[adj[i]];
         if not CharHlp.IsHelpless(p) then
           if CbtActs.CanAttackTarget(p, creature) then
             if not CharHlp.HasEffect(p, C_EFFECT.BLOOD_DRAIN, effect) then
@@ -403,7 +403,7 @@ begin
                       Types.PAttackPhaseView(p)^.curAtt[phase] := 1;
                       p^.combatAddr^.attackPhase := phase;
                       savedOther := p^.combatAddr^.other;
-                      CbtActs.CombatAttack(p, creature, True, nil, GDVars.doneRoundFlag);
+                      CbtActs.CombatAttack(p, creature, True, nil, GameVars.doneRoundFlag);
                       attacked := True;
                       p^.combatAddr^.other := savedOther;
                       if p^.enabled <> 0 then begin
@@ -471,12 +471,12 @@ begin
     rof := CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.rateOfFire;
     if rof < 2 then
       rof := 2;
-    GDVars.currentAttackCurrent := rof;
+    GameVars.currentAttackCurrent := rof;
   end else
-    GDVars.currentAttackCurrent := creature^.attacks;
-  GDVars.currentCreatureCalculatingFlag := 0;
+    GameVars.currentAttackCurrent := creature^.attacks;
+  GameVars.currentCreatureCalculatingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
-  adj := CbtActs.AdjustedAttacks(GDVars.currentAttackCurrent);
+  adj := CbtActs.AdjustedAttacks(GameVars.currentAttackCurrent);
   if ranged and (weapon <> nil) then begin
     qty := 1;
     if weapon^.quantity > qty then
@@ -496,7 +496,7 @@ var
   v: Byte;
 begin
   v := n;
-  if Odd(GDVars.roundCounter) then
+  if Odd(GameVars.roundCounter) then
     Inc(v);
   AdjustedAttacks := v div 2;
 end;
@@ -523,7 +523,7 @@ begin
   weak := 0;
   defIdx := 0;
   for i := 1 to cnt do begin
-    p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
+    p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
     if p = def then
       defIdx := i;
     if p^.levelHighest = 0 then
@@ -538,18 +538,18 @@ begin
     weak := att^.combatAddr^.sweepBudget;
   CharDisp.PrintNameString(att, 'sweeps', 10, True);
   { def becomes the first sweep target }
-  p := GDVars.creatureArr[GDVars.potentialTargetCreature[1]];
+  p := GameVars.creatureArr[GameVars.potentialTargetCreature[1]];
   if p <> def then begin
-    GDVars.potentialTargetCreature[defIdx] := GDVars.potentialTargetCreature[1];
-    GDVars.potentialTargetCreature[1] := CbtMap.CombatSlot(def);
+    GameVars.potentialTargetCreature[defIdx] := GameVars.potentialTargetCreature[1];
+    GameVars.potentialTargetCreature[1] := CbtMap.CombatSlot(def);
   end;
   for i := 1 to cnt do
     if weak > 0 then
-      if GDVars.creatureArr[GDVars.potentialTargetCreature[i]]^.levelHighest = 0 then begin
-        p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
+      if GameVars.creatureArr[GameVars.potentialTargetCreature[i]]^.levelHighest = 0 then begin
+        p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
         CbtActs.NoteAttackDirection(att, p);
         att^.curAttacks := 1;
-        CbtActs.CombatAttack(att, p, False, nil, GDVars.doneRoundFlag);
+        CbtActs.CombatAttack(att, p, False, nil, GameVars.doneRoundFlag);
         Dec(weak);
       end;
   SweepAttempt := True;
@@ -569,15 +569,15 @@ begin
     CanAttackTarget := True;
     Exit;
   end;
-  GDVars.currentSuppressTargetingFlag := 0;
+  GameVars.currentSuppressTargetingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.TARGET_VETO, other);
-  if GDVars.currentSuppressTargetingFlag = 0 then begin
+  if GameVars.currentSuppressTargetingFlag = 0 then begin
     saved := creature^.combatAddr^.other;
     creature^.combatAddr^.other := other;
     FxEngine.TriggerEffectsWithCondition(C_COND.ATTACKER_VETO, creature);
     creature^.combatAddr^.other := saved;
   end;
-  CanAttackTarget := GDVars.currentSuppressTargetingFlag = 0;
+  CanAttackTarget := GameVars.currentSuppressTargetingFlag = 0;
 end;
 
 { Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
@@ -644,7 +644,7 @@ begin
   if not any then
     CharDisp.PrintBottomLine('Nothing Happens...');
   CharHlp.CountTeams;
-  GDVars.doneRoundFlag := CharHlp.EndActions(creature);
+  GameVars.doneRoundFlag := CharHlp.EndActions(creature);
   CharDisp.ClearMessageWindow;
 end;
 
@@ -673,7 +673,7 @@ begin
   cnt := CbtMap.CountTargets(creature, 255);
   FindTurnUndeadTarget := False;
   for i := 1 to cnt do begin
-    p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
+    p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
     if (p^.combatAddr^.turned = 0) and (p^.levelUndead > 0)
        and (p^.levelUndead < best) then begin
       best := p^.levelUndead;
@@ -706,13 +706,13 @@ var
 begin
   behind := fromBehind;
   done := False;
-  GDVars.hitsMade[1] := 0;
-  GDVars.hitsMade[2] := 0;
+  GameVars.hitsMade[1] := 0;
+  GameVars.hitsMade[2] := 0;
   attacksMade[1] := 0;
   attacksMade[2] := 0;
   anyHit := False;
   defDowned := False;
-  GDVars.pendingDamage := 0;
+  GameVars.pendingDamage := 0;
   att^.combatAddr^.madeAttack := 1;
   if CharHlp.IsHelpless(def) then begin
     SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
@@ -782,10 +782,10 @@ begin
             if image^.strength = 0 then
               FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
           end else begin
-            Inc(GDVars.hitsMade[phase]);
+            Inc(GameVars.hitsMade[phase]);
             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_SOUND.IMPACT]);
             CbtActs.CalcWeaponDamage(att, def, phase);
-            CbtActs.ProcessAttackResult(att, def, atkType, GDVars.pendingDamage, GDVars.pendingDamage, True);
+            CbtActs.ProcessAttackResult(att, def, atkType, GameVars.pendingDamage, GameVars.pendingDamage, True);
             if def^.enabled <> 0 then
               { C_COND.HIT_PHASE_1/2 }
               FxEngine.TriggerEffectsWithCondition(phase + 1, att);
@@ -855,8 +855,8 @@ begin
     CbtActs.RangedAttackAnim(att, def, att^.equipped[C_EQUIP.WEAPON]);
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
-    savedCur := GDVars.curChar;
-    GDVars.curChar := att;
+    savedCur := GameVars.curChar;
+    GameVars.curChar := att;
     CbtActs.DoAttack(att, def, fromBehind, done);
     if weapon <> nil then begin
       if weapon^.quantity > 0 then
@@ -864,16 +864,16 @@ begin
       if weapon^.quantity = 0 then
         if CharHlp.HasThrowableWeapon(att) and (weapon^.special <> C_EFFECT.SPIRIT_HAMMER_GONE) then begin
           { the expended thrown weapon drops into the loot pile }
-          CharHlp.PrependItemCopy(GDVars.treasureItems, weapon);
-          item := GDVars.treasureItems;
+          CharHlp.PrependItemCopy(GameVars.treasureItems, weapon);
+          item := GameVars.treasureItems;
           item^.equipped := 0;
           CharHlp.RemoveItem(att, weapon);
-          GDVars.lastMissileItem := item;
+          GameVars.lastMissileItem := item;
         end else
           CharHlp.RemoveItem(att, weapon);
     end;
     CharHlp.RecalcStats(att);
-    GDVars.curChar := savedCur;
+    GameVars.curChar := savedCur;
   end;
   if done then
     done := CharHlp.EndActions(att);
@@ -930,7 +930,7 @@ begin
     CbtMap.GetArenaContents(nx, ny, crIdx, terrIdx);
     if crIdx > 0 then begin
       { the var param is the scratch }
-      tgt := GDVars.creatureArr[crIdx];
+      tgt := GameVars.creatureArr[crIdx];
       if Types.PCharRecord(tgt)^.hostile = creature^.hostile then
         if Types.PCharRecord(tgt)^.hpCur < Types.PCharRecord(tgt)^.hpMax then
           if (Types.PCharRecord(tgt)^.hpCur < bestHp)
@@ -939,20 +939,20 @@ begin
             bestHp := Types.PCharRecord(tgt)^.hpCur;
           end;
     end else if terrIdx = C_TERR.CORPSE then
-      for j := 1 to GDVars.downedCount do
-        if GDVars.downed[j].cr <> nil then
-          if not (GDVars.downed[j].cr^.status in
+      for j := 1 to GameVars.downedCount do
+        if GameVars.downed[j].cr <> nil then
+          if not (GameVars.downed[j].cr^.status in
                   [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE]) then
-            if GDVars.downed[j].x = nx then
-              if GDVars.downed[j].y = ny then
+            if GameVars.downed[j].x = nx then
+              if GameVars.downed[j].y = ny then
                 { a body of its own side only: downed holds the party's, which a hostile cleric healed (#714) }
-                if GDVars.downed[j].cr^.hostile = creature^.hostile then
+                if GameVars.downed[j].cr^.hostile = creature^.hostile then
                   downIdx := j;
   end;
   if (bestHp < 8) or (downIdx = 0) then
     tgt := best
   else
-    tgt := GDVars.downed[downIdx].cr;
+    tgt := GameVars.downed[downIdx].cr;
   if tgt <> nil then
     FindCureTarget := True
   else
@@ -973,12 +973,12 @@ var
 begin
   found := False;
   if not ai then begin
-    CbtActs.CombatAimMenu(GDVars.curChar, CharHlp.CalcSpellRange(spell), 0, ground, found, tgt);
-    GDVars.curChar^.combatAddr^.other := tgt.cr;
+    CbtActs.CombatAimMenu(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, ground, found, tgt);
+    GameVars.curChar^.combatAddr^.other := tgt.cr;
   end else begin
     if GDConsts.spellTable[spell].offensive = 0 then begin
-      tgt.cr := GDVars.curChar;
-      if (spell <> C_SPELL.CURE_LIGHT_WOUNDS) or CbtActs.FindCureTarget(GDVars.curChar, tgt.cr) then begin
+      tgt.cr := GameVars.curChar;
+      if (spell <> C_SPELL.CURE_LIGHT_WOUNDS) or CbtActs.FindCureTarget(GameVars.curChar, tgt.cr) then begin
         tgt.x := CbtMap.CombatCellX(tgt.cr);
         tgt.y := CbtMap.CombatCellY(tgt.cr);
         found := True;
@@ -987,8 +987,8 @@ begin
       tries := 20;
       while (tries > 0) and (found = False) do begin
         ok := True;
-        if CbtActs.AcquireTarget(GDVars.curChar, CharHlp.CalcSpellRange(spell), 0, 1) then begin
-          p := GDVars.curChar^.combatAddr^.other;
+        if CbtActs.AcquireTarget(GameVars.curChar, CharHlp.CalcSpellRange(spell), 0, 1) then begin
+          p := GameVars.curChar^.combatAddr^.other;
           if GDConsts.spellTable[spell].aiRadius > 0 then begin
             if CbtActs.AreaHitsNonEnemy(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p),
                                         GDConsts.spellTable[spell].aiRadius) then
@@ -999,7 +999,7 @@ begin
               if GDConsts.spellTable[spell].effect = GDConsts.helplessFx[i] then
                 ok := False;
           if ok then begin
-            tgt.cr := GDVars.curChar^.combatAddr^.other;
+            tgt.cr := GameVars.curChar^.combatAddr^.other;
             tgt.x := CbtMap.CombatCellX(tgt.cr);
             tgt.y := CbtMap.CombatCellY(tgt.cr);
             found := True;
@@ -1011,8 +1011,8 @@ begin
   end;
   if found then begin
     PickSpellTarget := True;
-    GDVars.gTargetX := tgt.x;
-    GDVars.gTargetY := tgt.y;
+    GameVars.gTargetX := tgt.x;
+    GameVars.gTargetY := tgt.y;
   end else begin
     PickSpellTarget := False;
     FillChar(tgt, SizeOf(tgt), 0);
@@ -1029,10 +1029,10 @@ begin
       AimMarker := SPRITE_MISSILE;
 end;
 
-{ The cast-target menu in combat (GDVars.castTargetMenu): build the spell-target list from the low nibble of the spell's
-  area. 0: the caster; 15: the picked creature (a bare cell gets a zero-radius area); 8..14: everything within area and
-  7 of the picked cell; 1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget. While the
-  player aims, the CbtMap spell-aim preview shows the cells the spell will reach. }
+{ The cast-target menu in combat (GameVars.castTargetMenu): build the spell-target list from the low nibble of the
+  spell's area. 0: the caster; 15: the picked creature (a bare cell gets a zero-radius area); 8..14: everything within
+  area and 7 of the picked cell; 1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget.
+  While the player aims, the CbtMap spell-aim preview shows the cells the spell will reach. }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -1044,16 +1044,16 @@ var
   picked: Boolean;
 begin
   cast := True;
-  GDVars.spellTargetCount := 0;
-  GDVars.gMultiTarget := 0;
-  GDVars.gTargetX := CbtMap.CombatCellX(GDVars.curChar);
-  GDVars.gTargetY := CbtMap.CombatCellY(GDVars.curChar);
+  GameVars.spellTargetCount := 0;
+  GameVars.gMultiTarget := 0;
+  GameVars.gTargetX := CbtMap.CombatCellX(GameVars.curChar);
+  GameVars.gTargetY := CbtMap.CombatCellY(GameVars.curChar);
   case GDConsts.spellTable[spell].area and $F of
     0:
       { self only }
       begin
-        GDVars.targetCreaturePtr[1] := GDVars.curChar;
-        GDVars.spellTargetCount := 1;
+        GameVars.targetCreaturePtr[1] := GameVars.curChar;
+        GameVars.spellTargetCount := 1;
       end;
     15:
       { the picked creature, or an area at the picked cell }
@@ -1063,13 +1063,13 @@ begin
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
-          if GDVars.curChar^.combatAddr^.other <> nil then begin
-            GDVars.targetCreaturePtr[1] := GDVars.curChar^.combatAddr^.other;
-            GDVars.spellTargetCount := 1;
+          if GameVars.curChar^.combatAddr^.other <> nil then begin
+            GameVars.targetCreaturePtr[1] := GameVars.curChar^.combatAddr^.other;
+            GameVars.spellTargetCount := 1;
           end else begin
             { radius 0: the picked cell alone }
-            Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, 0);
-            GDVars.gMultiTarget := 1;
+            Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, 0);
+            GameVars.gMultiTarget := 1;
           end;
         end else
           cast := False;
@@ -1087,7 +1087,7 @@ begin
           else if spell = C_SPELL.STINKING_CLOUD then
             CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE)
           else if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then begin
-            if GDVars.zone0^.view3dFlag = 0 then
+            if GameVars.zone0^.view3dFlag = 0 then
               radius := 2;
             CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST);
           end else
@@ -1096,8 +1096,8 @@ begin
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
-          Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, GDConsts.spellTable[spell].area and 7);
-          GDVars.gMultiTarget := 1;
+          Pathing.TargetArea(GameVars.gTargetX, GameVars.gTargetY, GDConsts.spellTable[spell].area and 7);
+          GameVars.gMultiTarget := 1;
         end else
           cast := False;
       end;
@@ -1114,22 +1114,22 @@ begin
         if picked then begin
           dup := False;
           for j := 1 to k do
-            if GDVars.targetCreaturePtr[j] = sel.cr then
+            if GameVars.targetCreaturePtr[j] = sel.cr then
               dup := True;
           if not dup then begin
             Inc(k);
-            GDVars.targetCreaturePtr[k] := sel.cr;
+            GameVars.targetCreaturePtr[k] := sel.cr;
             Dec(remaining);
           end else if not b then
             CharDisp.PrintBottomLine('Already been targeted')
           else
             Dec(remaining);
-          CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GDVars.targetCreaturePtr[k]),
-                                 CbtMap.CombatCellY(GDVars.targetCreaturePtr[k]));
+          CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GameVars.targetCreaturePtr[k]),
+                                 CbtMap.CombatCellY(GameVars.targetCreaturePtr[k]));
         end else
           Dec(remaining);
       end;
-      GDVars.spellTargetCount := k;
+      GameVars.spellTargetCount := k;
       if k = 0 then
         cast := False;
     end;
@@ -1150,7 +1150,7 @@ var
   caster: Types.PCharRecord;
   scroll: Types.PItemRec;
 begin
-  caster := GDVars.curChar;
+  caster := GameVars.curChar;
   notEmpty := True;
   idx := -1;
   cast := False;
@@ -1254,7 +1254,7 @@ begin
   frames := 1;
   pace := 10;
   sym := 13;
-  size := Blit.MaskBytes(GDVars.moveIconSheet^.imgSize);
+  size := Blit.MaskBytes(GameVars.moveIconSheet^.imgSize);
   case weapon^.itemType of
     { straight-flying missiles }
     C_ITEM.DART, C_ITEM.JAVELIN, C_ITEM.QUARREL, C_ITEM.SPEAR, C_ITEM.ARROW:
@@ -1306,7 +1306,7 @@ var
 begin
   maxSum := 0;
   curSum := 0;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if p^.hostile = 1 then begin
       if p^.enabled <> 0 then
@@ -1317,7 +1317,7 @@ begin
   end;
   if maxSum > 0 then
     { LongInt: curSum * 20 passes a Word above 3276 }
-    GDVars.hostileHpPct := LongInt(curSum) * 20 div maxSum * 5;
+    GameVars.hostileHpPct := LongInt(curSum) * 20 div maxSum * 5;
 end;
 
 { The fastest enabled enemy's movement in whole moves (CalcCreatureMovement div 2); no range or line-of-sight check. }
@@ -1328,7 +1328,7 @@ var
   p: Types.PCharRecord;
 begin
   best := 0;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if (CharHlp.EnemyTeam(creature) = p^.hostile) and (p^.enabled <> 0) then begin
       m := CbtActs.CalcCreatureMovement(p) div 2;
@@ -1352,8 +1352,8 @@ begin
     CheckAttackAlly := False
   else begin
     CheckAttackAlly := True;
-    GDVars.zone1^[C_GBVM.ATTACKED_ALLIES] := 1;
-    p := GDVars.creatureList;
+    GameVars.zone1^[C_GBVM.ATTACKED_ALLIES] := 1;
+    p := GameVars.creatureList;
     while p <> nil do begin
       { NPC flag (high bit) set }
       if (p^.status = C_STATUS.OKAY) and CharHlp.IsNpc(p) then begin
@@ -1442,8 +1442,8 @@ begin
     sel.cr := tgt;
     sel.x := CbtMap.CombatCellX(tgt);
     sel.y := CbtMap.CombatCellY(tgt);
-    GDVars.arenaPtr^.cursorOn := False;
-    CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
+    GameVars.arenaPtr^.cursorOn := False;
+    CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
     if weaponMode = 1 then begin
       if CbtActs.SweepAttempt(cur, tgt) then
         done := CharHlp.EndActions(cur)
@@ -1488,8 +1488,8 @@ begin
   ch := ' ';
   dir := startDir;
   done := False;
-  GDVars.arenaPtr^.cursorOn := True;
-  GDVars.arenaPtr^.cursorSize := 1;
+  GameVars.arenaPtr^.cursorOn := True;
+  GameVars.arenaPtr^.cursorSize := 1;
   while not (ch in [C_KEYS.NONE, 'E', 'T']) do
   begin
     CbtMap.ScrollView(cx, cy, 3, dir);
@@ -1508,7 +1508,7 @@ begin
     dist := 255;
     wx := cx;
     wy := cy;
-    if Pathing.WalkLine(CbtMap.CombatCellX(cur), CbtMap.CombatCellY(cur), wx, wy, dist, GDVars.arenaPtr) then begin
+    if Pathing.WalkLine(CbtMap.CombatCellX(cur), CbtMap.CombatCellY(cur), wx, wy, dist, GameVars.arenaPtr) then begin
       valid := True;
       if weaponMode <> 0 then
         TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist div 2) + '  ');
@@ -1518,12 +1518,12 @@ begin
     underCursor := nil;
     if valid then begin
       if crIdx > 0 then
-        underCursor := GDVars.creatureArr[crIdx]
+        underCursor := GameVars.creatureArr[crIdx]
       else if terrIdx = C_TERR.CORPSE then
-        for j := 1 to GDVars.downedCount do
-          if GDVars.downed[j].x = cx then
-            if GDVars.downed[j].y = cy then
-              underCursor := GDVars.downed[j].cr;
+        for j := 1 to GameVars.downedCount do
+          if GameVars.downed[j].x = cx then
+            if GameVars.downed[j].y = cy then
+              underCursor := GameVars.downed[j].cr;
     end;
     if underCursor <> nil then
       CharDisp.CombatPrintCreatureInfo(underCursor)
@@ -1549,11 +1549,11 @@ begin
       menu := 'Target ' + menu;
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('(Use Cursor keys) ', menu, LightMagenta, LightGreen, White, True, False,
-                                  GDVars.doneRoundFlag);
+                                  GameVars.doneRoundFlag);
     case ch of
       'T':
         begin
-          GDVars.arenaPtr^.cursorOn := False;
+          GameVars.arenaPtr^.cursorOn := False;
           if valid then begin
             sel.x := cx;
             sel.y := cy;
@@ -1614,10 +1614,10 @@ var
     i: Byte;
   begin
     Pathing.BuildTargetList(CbtMap.CombatCellX(c), CbtMap.CombatCellY(c), 127, 255, CbtMap.GetIconSize(c),
-                            GDVars.arenaPtr);
-    tgtCount := GDVars.targetCount;
+                            GameVars.arenaPtr);
+    tgtCount := GameVars.targetCount;
     for i := 1 to tgtCount do
-      targets[i] := GDVars.targetList[i];
+      targets[i] := GameVars.targetList[i];
   end;
 
   { Move the aim highlight step entries through the list (wrapping) and return that creature; animate flies the cursor
@@ -1625,8 +1625,8 @@ var
   function AdvanceAimTarget(step: ShortInt; animate: Boolean): Types.PCharRecord;
   begin
     if animate then begin
-      curX := GDVars.arenaLoc[targets[curIdx].idx].x;
-      curY := GDVars.arenaLoc[targets[curIdx].idx].y;
+      curX := GameVars.arenaLoc[targets[curIdx].idx].x;
+      curY := GameVars.arenaLoc[targets[curIdx].idx].y;
     end else
       CbtMap.RedrawArenaCell(curX, curY);
     Inc(curIdx, step);
@@ -1634,9 +1634,9 @@ var
       curIdx := tgtCount;
     if curIdx > tgtCount then
       curIdx := 1;
-    AdvanceAimTarget := GDVars.creatureArr[targets[curIdx].idx];
-    nextX := GDVars.arenaLoc[targets[curIdx].idx].x;
-    nextY := GDVars.arenaLoc[targets[curIdx].idx].y;
+    AdvanceAimTarget := GameVars.creatureArr[targets[curIdx].idx];
+    nextX := GameVars.arenaLoc[targets[curIdx].idx].x;
+    nextY := GameVars.arenaLoc[targets[curIdx].idx].y;
     if animate then begin
       CharDisp.CombatAnimateMovingIcon(curX, curY, nextX, nextY, 1, 0);
       curX := nextX;
@@ -1740,23 +1740,23 @@ begin
   while (not found) and (not second) do begin
     second := pass;
     if pass and (forceNew = 0) then
-      GDVars.arenaPtr^.distMode := 1;
+      GameVars.arenaPtr^.distMode := 1;
     tries := 20;
     cnt := CbtMap.CountTargets(creature, range);
     while (tries > 0) and (not found) and (cnt > 0) do begin
       Dec(tries);
       pick := Dice.RollDice(1, cnt);
-      if GDVars.potentialTargetCreature[pick] > 0 then begin
-        p := GDVars.creatureArr[GDVars.potentialTargetCreature[pick]];
-        if ((relaxed <> 0) and (GDVars.arenaPtr^.distMode <> 0))
+      if GameVars.potentialTargetCreature[pick] > 0 then begin
+        p := GameVars.creatureArr[GameVars.potentialTargetCreature[pick]];
+        if ((relaxed <> 0) and (GameVars.arenaPtr^.distMode <> 0))
            or CbtActs.CanAttackTarget(creature, p) then begin
           found := True;
           creature^.combatAddr^.other := p;
         end else begin
-          GDVars.potentialTargetCreature[pick] := 0;
+          GameVars.potentialTargetCreature[pick] := 0;
           { pick is reused as the index: do any targets remain? }
           for pick := 1 to cnt do
-            if GDVars.potentialTargetCreature[pick] > 0 then
+            if GameVars.potentialTargetCreature[pick] > 0 then
               found := True;
           if found then
             found := False
@@ -1768,7 +1768,7 @@ begin
     if not pass then
       pass := True;
   end;
-  GDVars.arenaPtr^.distMode := 0;
+  GameVars.arenaPtr^.distMode := 0;
   AcquireTarget := found;
 end;
 
@@ -1779,7 +1779,7 @@ procedure RearClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 var
   done: Boolean;
 begin
-  if GDVars.hitsMade[1] = 2 then
+  if GameVars.hitsMade[1] = 2 then
     if creature^.combatAddr^.other^.enabled <> 0 then begin
       creature^.combatAddr^.attackPhase := 2;
       creature^.curAttacks2 := 2;
@@ -1808,9 +1808,9 @@ begin
     creature^.curAttacks2 := 0;
     creature^.curRollsA[1] := 3;
     creature^.curDiceA[1] := 4;
-    CbtActs.CombatAttack(creature, GDVars.otherCreatureCurrentPtr, True, nil, done);
+    CbtActs.CombatAttack(creature, GameVars.otherCreatureCurrentPtr, True, nil, done);
     done := CharHlp.EndActions(creature);
-    if GDVars.otherCreatureCurrentPtr^.enabled = 0 then
+    if GameVars.otherCreatureCurrentPtr^.enabled = 0 then
       FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, p);
   end;
 end;
@@ -1824,11 +1824,11 @@ var
   slot: Byte;
 begin
   StingVictoryCheat := False;
-  if not GDVars.stingArg then
+  if not GameVars.stingArg then
     Exit;
   StingVictoryCheat := True;
   CharDisp.PrintBottomLine('The Gods intervene!');
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if p^.hostile = 1 then begin
       p^.enabled := 0;
@@ -1836,12 +1836,12 @@ begin
       slot := CbtMap.CombatSlot(p);
       { slot 0: not on the map }
       if slot > 0 then
-        GDVars.arenaLoc[slot].size := 0;
+        GameVars.arenaLoc[slot].size := 0;
     end;
     done := CharHlp.EndActions(p);
     p := p^.nextCharAddr;
   end;
-  CbtMap.ScrollView(GDVars.arenaPtr^.ox + 3, GDVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
+  CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
 end;
 
 function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
@@ -1849,9 +1849,9 @@ var
   i: Byte;
 begin
   AreaHitsNonEnemy := False;
-  Pathing.BuildTargetList(x, y, radius, 255, 1, GDVars.arenaPtr);
-  for i := 1 to GDVars.targetCount do
-    if GDVars.creatureArr[GDVars.targetList[i].idx]^.hostile <> CharHlp.EnemyTeam(GDVars.curChar) then
+  Pathing.BuildTargetList(x, y, radius, 255, 1, GameVars.arenaPtr);
+  for i := 1 to GameVars.targetCount do
+    if GameVars.creatureArr[GameVars.targetList[i].idx]^.hostile <> CharHlp.EnemyTeam(GameVars.curChar) then
       AreaHitsNonEnemy := True;
 end;
 

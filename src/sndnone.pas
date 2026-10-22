@@ -6,12 +6,12 @@ unit SndNone;
 
 interface
 
-{ Make this the sound driver: fill GDVars.sound. }
+{ Make this the sound driver: fill GameVars.sound. }
 procedure Install;
 
 implementation
 
-uses C_SOUND, GDVars;
+uses C_SOUND, GameVars;
 
 { Nothing to play. }
 procedure Play(tune: Word);
@@ -20,10 +20,10 @@ end;
 
 procedure Install;
 begin
-  GDVars.sound.name := 'None';
-  GDVars.sound.mode := C_SOUND.MODE_DISABLED;
-  GDVars.sound.Play := SndNone.Play;
-  GDVars.sound.singleStep := False;
+  GameVars.sound.name := 'None';
+  GameVars.sound.mode := C_SOUND.MODE_DISABLED;
+  GameVars.sound.Play := SndNone.Play;
+  GameVars.sound.singleStep := False;
 end;
 
 end.

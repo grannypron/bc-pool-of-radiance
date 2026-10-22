@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TClock;
 
-uses Types, GDVars, Clock, TestKit;
+uses Types, GameVars, Clock, TestKit;
 
 var
   t: Types.TClock;
@@ -32,7 +32,7 @@ begin
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
   c^.age := 20;
-  GDVars.creatureList := c;
+  GameVars.creatureList := c;
 
   SetClock(9, 0, 0, 0, 0, 0, 0);
   Clock.ValidateClock(t, True);

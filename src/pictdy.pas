@@ -1,5 +1,5 @@
 { The Tandy video driver's cold routines, which convert and recolour pictures: run when pictures load, icons are built,
-  the data archives are built, and at start-up, so kept in an overlay. VidTdy installs them into GDVars.video (phase 6
+  the data archives are built, and at start-up, so kept in an overlay. VidTdy installs them into GameVars.video (phase 6
   of docs/refactor-plan.md). }
 {$O+,F+}
 {$I COMPILER.INC}
@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_VIDEO, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -129,10 +129,10 @@ var
 begin
   for i := 0 to 199 do
     case i mod 4 of
-      0: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG;
-      1: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK1_SEG;
-      2: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK2_SEG;
-      3: GDVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK3_SEG;
+      0: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG;
+      1: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK1_SEG;
+      2: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK2_SEG;
+      3: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK3_SEG;
     end;
 end;
 

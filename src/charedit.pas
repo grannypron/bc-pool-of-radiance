@@ -14,8 +14,8 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
-  CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
+uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GDConsts, GameVars, Border,
+  CharDisp, CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
   { the Levels screen's first row and its columns }
@@ -49,7 +49,7 @@ var
 begin
   count := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if GDVars.curChar^.classLevels[cls] > 0 then begin
+    if GameVars.curChar^.classLevels[cls] > 0 then begin
       held[count] := cls;
       Inc(count);
     end;
@@ -65,7 +65,7 @@ var
   dmg: Integer;
   hp: Integer;
 begin
-  with GDVars.curChar^ do begin
+  with GameVars.curChar^ do begin
     if classLevels[cls] <= 1 then Exit;
     avg := GDConsts.hpSides[cls] div 2 + 1;
     loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION])) div clsCount;
@@ -74,8 +74,8 @@ begin
     Dec(classLevels[cls]);
     dmg := hpMax - hpCur;
     hp := hpMax - loss;
-    if hp < ClassCal.HpMinimum(GDVars.curChar) then
-      hp := ClassCal.HpMinimum(GDVars.curChar);
+    if hp < ClassCal.HpMinimum(GameVars.curChar) then
+      hp := ClassCal.HpMinimum(GameVars.curChar);
     if hp < 1 then
       hp := 1;
     hpMax := hp;
@@ -90,7 +90,7 @@ begin
         C_LEVEL.CLERIC: begin
             FillChar(clericSpells, SizeOf(clericSpells), 0);
             clericSpells[1] := 1;
-            ClassCal.AwardWisdomBonus(Types.PCharRecord(GDVars.curChar));
+            ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
           end;
         C_LEVEL.MAGE: begin
             FillChar(mageSpells, SizeOf(mageSpells), 0);
@@ -99,7 +99,7 @@ begin
       end;
     { the level drained or lowered to is the creature's level, as EffHndlr's drain sets it }
     levelHighest := 0;
-    ClassCal.RecalcBaseSkills(Types.PCharRecord(GDVars.curChar));
+    ClassCal.RecalcBaseSkills(Types.PCharRecord(GameVars.curChar));
   end;
 end;
 
@@ -122,20 +122,20 @@ var
 begin
   HeldClasses(held, count);
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-  CharDisp.DisplayCreatureName(Types.PCharRecord(GDVars.curChar), NAME_COL, 2, False);
+  CharDisp.DisplayCreatureName(Types.PCharRecord(GameVars.curChar), NAME_COL, 2, False);
   for i := 0 to count - 1 do begin
     colour := LightGreen;
     if i = sel then
       colour := LightMagenta;
     TextRend.DisplayString(NAME_COL, LEVEL_ROW + i, colour, GDConsts.classNames[held[i]]);
     TextRend.DisplayString(VALUE_COL, LEVEL_ROW + i, White,
-                           'level ' + StrUtil.NumStr(GDVars.curChar^.classLevels[held[i]]) + ' ');
+                           'level ' + StrUtil.NumStr(GameVars.curChar^.classLevels[held[i]]) + ' ');
   end;
   TextRend.DisplayString(NAME_COL, LEVEL_ROW + count + 1, LightGreen, 'Experience');
-  TextRend.DisplayString(VALUE_COL, LEVEL_ROW + count + 1, White, StrUtil.NumStr(GDVars.curChar^.experience) + '   ');
+  TextRend.DisplayString(VALUE_COL, LEVEL_ROW + count + 1, White, StrUtil.NumStr(GameVars.curChar^.experience) + '   ');
   TextRend.DisplayString(NAME_COL, LEVEL_ROW + count + 2, LightGreen, 'Hit points');
-  TextRend.DisplayString(VALUE_COL, LEVEL_ROW + count + 2, White, StrUtil.NumStr(GDVars.curChar^.hpCur) + '/' +
-                         StrUtil.NumStr(GDVars.curChar^.hpMax) + '   ');
+  TextRend.DisplayString(VALUE_COL, LEVEL_ROW + count + 2, White, StrUtil.NumStr(GameVars.curChar^.hpCur) + '/' +
+                         StrUtil.NumStr(GameVars.curChar^.hpMax) + '   ');
 end;
 
 { The Levels tool: Up and Down pick a class, Left and Right lower or raise its level (1 to C_LEVEL.LEVEL_LAST, past the
@@ -161,7 +161,7 @@ begin
     key := MenuCore.MenuHorizontal('Levels: ', 'Experience Done', LightMagenta, LightGreen, White, True, False, ext);
     cls := held[sel];
     if ext then
-      with GDVars.curChar^ do
+      with GameVars.curChar^ do
         case key of
           C_KEYS.DOWN: sel := (sel + 1) mod count;
           C_KEYS.UP: sel := (sel + count - 1) mod count;
@@ -183,7 +183,7 @@ begin
       s := TextRend.ReadString('Experience: ', LightGreen, 7);
       Val(s, xp, code);
       if (code = 0) and (xp >= 0) then
-        GDVars.curChar^.experience := xp;
+        GameVars.curChar^.experience := xp;
     end;
   until (not ext) and (key in ['D', C_KEYS.NONE]);
 end;
@@ -198,9 +198,9 @@ var
   ext: Boolean;
 begin
   repeat
-    ViewChar.DisplayChar(GDVars.curChar);
+    ViewChar.DisplayChar(GameVars.curChar);
     key := MenuCore.MenuHorizontal('Health: ', 'Heal Status Exit', LightMagenta, LightGreen, White, False, False, ext);
-    with GDVars.curChar^ do
+    with GameVars.curChar^ do
       case key of
         'H': begin
                hpCur := hpMax;
@@ -415,7 +415,7 @@ begin
     tail := nil;
     for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
       MenuCore.AppendMenuLine(head, tail, StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' +
-                              StrUtil.NumStr(GDVars.curChar^.coins[m]), False);
+                              StrUtil.NumStr(GameVars.curChar^.coins[m]), False);
     redraw := True;
     sel := nil;
     key := MenuCore.MenuVertical('Money: ', 'Set', LightMagenta, LightGreen, White, 12, 7, 27, 13, head, True,
@@ -434,8 +434,8 @@ begin
       s := TextRend.ReadString(GDConsts.moneyNames[m] + ': ', LightGreen, 5);
       Val(s, count, code);
       if (code = 0) and (count >= 0) and (count <= 65535) then
-        GDVars.curChar^.coins[m] := count;
-      CharHlp.RecalcStats(Types.PCharRecord(GDVars.curChar));
+        GameVars.curChar^.coins[m] := count;
+      CharHlp.RecalcStats(Types.PCharRecord(GameVars.curChar));
     end;
   until m < C_MONEY.COPPER;
 end;
@@ -447,7 +447,7 @@ var
   ext: Boolean;
 begin
   repeat
-    ViewChar.DisplayChar(GDVars.curChar);
+    ViewChar.DisplayChar(GameVars.curChar);
     key := MenuCore.MenuHorizontal('Gear: ', 'Add Money Exit', LightMagenta, LightGreen, White, False, False, ext);
     case key of
       'A': AddItem;
@@ -482,7 +482,7 @@ begin
       with GDConsts.spellTable[m] do
         if (castClass = cls) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) then begin
           mark := '  ';
-          if GDVars.curChar^.spellsKnown[m] <> 0 then
+          if GameVars.curChar^.spellsKnown[m] <> 0 then
             mark := '* ';
           MenuCore.AppendMenuLine(head, tail, mark + StrUtil.NumStr(levelSp) + ' ' + GDConsts.spellNames[m], False);
           Inc(n);
@@ -506,7 +506,7 @@ begin
     end;
     MenuCore.FreeStringList(head);
     if k <> 0 then
-      with GDVars.curChar^ do
+      with GameVars.curChar^ do
         spellsKnown[spells[k]] := Ord(spellsKnown[spells[k]] = 0);
   until k = 0;
 end;
@@ -518,7 +518,7 @@ var
   ext: Boolean;
 begin
   repeat
-    ViewChar.DisplayChar(GDVars.curChar);
+    ViewChar.DisplayChar(GameVars.curChar);
     key := MenuCore.MenuHorizontal('Spells known: ', 'Mage Cleric Exit', LightMagenta, LightGreen, White, False,
                                    False, ext);
     case key of
@@ -533,9 +533,9 @@ var
   key: Char;
   ext: Boolean;
 begin
-  if GDVars.curChar = nil then Exit;
+  if GameVars.curChar = nil then Exit;
   repeat
-    ViewChar.DisplayChar(GDVars.curChar);
+    ViewChar.DisplayChar(GameVars.curChar);
     key := MenuCore.MenuHorizontal('', 'Abilities Levels Gear Magic Health Exit', LightMagenta, LightGreen, White,
                                    False, False, ext);
     if ext then begin

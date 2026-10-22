@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TEclVars;
 
-uses Types, GDVars, C_GBVM, C_MONEY, C_DIR, C_STATUS, C_EFFECT, C_SAVE, EclVars, StrUtil, TestKit;
+uses Types, GameVars, C_GBVM, C_MONEY, C_DIR, C_STATUS, C_EFFECT, C_SAVE, EclVars, StrUtil, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -33,20 +33,20 @@ end;
 
 begin
   TestKit.Start('TECLVARS');
-  GetMem(GDVars.zone0, SizeOf(GDVars.zone0^));
-  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
-  GetMem(GDVars.zone2, SizeOf(GDVars.zone2^));
-  GetMem(GDVars.zone3, SizeOf(GDVars.zone3^));
-  FillChar(GDVars.zone0^, SizeOf(GDVars.zone0^), 0);
-  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  FillChar(GDVars.zone2^, SizeOf(GDVars.zone2^), 0);
-  FillChar(GDVars.zone3^, SizeOf(GDVars.zone3^), 0);
+  GetMem(GameVars.zone0, SizeOf(GameVars.zone0^));
+  GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
+  GetMem(GameVars.zone2, SizeOf(GameVars.zone2^));
+  GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
+  FillChar(GameVars.zone0^, SizeOf(GameVars.zone0^), 0);
+  FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
+  FillChar(GameVars.zone2^, SizeOf(GameVars.zone2^), 0);
+  FillChar(GameVars.zone3^, SizeOf(GameVars.zone3^), 0);
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
   c^.status := C_STATUS.OKAY;
-  GDVars.curChar := c;
-  GDVars.creatureList := c;
-  GDVars.zone1^[C_GBVM.PARTY_SIZE] := 1;
+  GameVars.curChar := c;
+  GameVars.creatureList := c;
+  GameVars.zone1^[C_GBVM.PARTY_SIZE] := 1;
   EclVars.diskHook := TestDisk;
   EclVars.wallSetHook := TestWallSet;
 
@@ -108,7 +108,7 @@ begin
   Same(0, C_GBVM.CHAR_PARTY_INDEX2, 'at either cell');
   c^.chaCur := 16;
   Same(50, C_GBVM.CHAR_LOYALTY, 'Charisma 16 gives loyalty 50');
-  GDVars.virtualDisk := 4;
+  GameVars.virtualDisk := 4;
   Same(4, C_GBVM.DISK_NUM, 'DISK_NUM is virtualDisk');
   Same(1, C_GBVM.PARTY_SIZE, 'PARTY_SIZE');
 
@@ -126,12 +126,12 @@ begin
   c^.enabled := 1;
   EclVars.WriteGbvm(C_GBVM.CHAR_ENABLED, $87);
   TestKit.Check((c^.enabled = 0) and (c^.status = C_STATUS.STONED), '$87 to CHAR_ENABLED disables and stones');
-  GDVars.dumpCr6C00 := False;
+  GameVars.dumpCr6C00 := False;
   EclVars.WriteGbvm(C_GBVM.CHAR_ENABLED, 0);
-  TestKit.Check(GDVars.dumpCr6C00, '0 to CHAR_ENABLED marks the character for removal');
-  GDVars.dumpCr6B00 := False;
+  TestKit.Check(GameVars.dumpCr6C00, '0 to CHAR_ENABLED marks the character for removal');
+  GameVars.dumpCr6B00 := False;
   EclVars.WriteGbvm(C_GBVM.CHAR_DUMP, 0);
-  TestKit.Check(GDVars.dumpCr6B00, '0 to CHAR_DUMP marks it too');
+  TestKit.Check(GameVars.dumpCr6B00, '0 to CHAR_DUMP marks it too');
   EclVars.WriteGbvm(C_GBVM.CHAR_CONTROL, $81);
   TestKit.Check((c^.hostile = 1) and (c^.quickfight = 1), '$81 to CHAR_CONTROL: hostile');
   EclVars.WriteGbvm(C_GBVM.CHAR_CONTROL, 0);
@@ -150,35 +150,35 @@ begin
   TestKit.CheckEqualsL(0, lastWallSet, 'but $80 loads nothing');
 
   { zone 4: the party and the view }
-  GDVars.movedParty := False;
+  GameVars.movedParty := False;
   EclVars.WriteGbvm(C_GBVM.CELL_PARTY_X, 7);
-  TestKit.Check((GDVars.gMapX = 7) and GDVars.movedParty, 'CELL_PARTY_X moves the party');
+  TestKit.Check((GameVars.gMapX = 7) and GameVars.movedParty, 'CELL_PARTY_X moves the party');
   Same(7, C_GBVM.CELL_PARTY_X, 'and reads gMapX');
   EclVars.WriteGbvm(C_GBVM.CELL_PARTY_Y, 3);
   Same(3, C_GBVM.CELL_PARTY_Y, 'CELL_PARTY_Y is gMapY');
   EclVars.WriteGbvm(C_GBVM.CELL_FACING, 5);
-  TestKit.CheckEqualsL(C_DIR.EAST, GDVars.gFacing, 'CELL_FACING takes a facing mod 4 (5 is east)');
+  TestKit.CheckEqualsL(C_DIR.EAST, GameVars.gFacing, 'CELL_FACING takes a facing mod 4 (5 is east)');
   Same(1, C_GBVM.CELL_FACING, 'and reads it back as 0..3');
   Same(C_DIR.EAST, C_GBVM.FACING_RAW, 'FACING_RAW reads the stored facing');
-  GDVars.wallAhead := 4;
-  GDVars.eventAtCell := 9;
+  GameVars.wallAhead := 4;
+  GameVars.eventAtCell := 9;
   Same(4, C_GBVM.CELL_WALL_AHEAD, 'CELL_WALL_AHEAD');
   Same(9, C_GBVM.CELL_EVENT, 'CELL_EVENT');
-  GDVars.picRegionW := False;
+  GameVars.picRegionW := False;
   EclVars.WriteGbvm(C_GBVM.CELL_WALL_COLOR, 6);
-  TestKit.Check((GDVars.wallColorSel = 6) and GDVars.picRegionW, 'CELL_WALL_COLOR');
+  TestKit.Check((GameVars.wallColorSel = 6) and GameVars.picRegionW, 'CELL_WALL_COLOR');
   EclVars.WriteGbvm(C_GBVM.CELL_CEIL_FLOOR_COLOR, 2);
-  TestKit.CheckEqualsL(2, GDVars.ceilFloorColorSel, 'CELL_CEIL_FLOOR_COLOR');
+  TestKit.CheckEqualsL(2, GameVars.ceilFloorColorSel, 'CELL_CEIL_FLOOR_COLOR');
   EclVars.WriteGbvm(C_GBVM.SOUND_EFFECT, 12);
-  TestKit.CheckEqualsL(12, GDVars.sndEffect, 'SOUND_EFFECT');
+  TestKit.CheckEqualsL(12, GameVars.sndEffect, 'SOUND_EFFECT');
   EclVars.WriteGbvm(C_GBVM.READ_REG1, 99);
   EclVars.WriteGbvm(C_GBVM.WRITE_REG1, 99);
   Same(0, C_GBVM.READ_REG1, 'READ_REG1 reads 0, even written');
   Same(0, C_GBVM.READ_REG2, 'READ_REG2 reads 0');
   Same(0, C_GBVM.READ_REG3, 'READ_REG3 reads 0');
-  GDVars.redrawSky := False;
+  GameVars.redrawSky := False;
   EclVars.WriteGbvm(C_GBVM.SKY_CEILING_COLOR, 3);
-  TestKit.Check(GDVars.redrawSky, 'a sky colour write redraws the sky');
+  TestKit.Check(GameVars.redrawSky, 'a sky colour write redraws the sky');
 
   { the party's effects table }
   FillChar(e1, SizeOf(e1), 0);
@@ -200,11 +200,11 @@ begin
   TestKit.Check((EclVars.ReadGbvm($4A20) = Ord('H')) and (EclVars.ReadGbvm($4A21) = Ord('I')) and
                 (EclVars.ReadGbvm($4A22) = 0), 'a string elsewhere is one character a cell, then 0');
   { a string value has no number (POR-0162): GetEclVar gives 0 rather than reading the GBVM }
-  GDVars.gbvmType[5] := $80;
-  GDVars.gbvmLowerByte[5] := 7;
-  GDVars.gbvmUpperByte[5] := $6B;
+  GameVars.gbvmType[5] := $80;
+  GameVars.gbvmLowerByte[5] := 7;
+  GameVars.gbvmUpperByte[5] := $6B;
   TestKit.CheckEqualsL(0, EclVars.GetEclVar(5), 'a string value reads as 0');
-  GDVars.gbvmType[5] := 2;
+  GameVars.gbvmType[5] := 2;
   TestKit.CheckEqualsL($6B07, EclVars.GetEclVar(5), 'a word gives its value');
   TestKit.Done;
 end.

@@ -23,7 +23,7 @@ procedure BuildDataFiles;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GDVars, DataArc, DataPat, DaxIo, TextRend, MenuCore,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GameVars, DataArc, DataPat, DaxIo, TextRend, MenuCore,
   BldShow, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
@@ -261,7 +261,7 @@ end;
 { The path of the file called name in the game folder. }
 function GamePath(name: Types.TStr20): Types.TPathStr;
 begin
-  GamePath := GDVars.gameDir + name;
+  GamePath := GameVars.gameDir + name;
 end;
 
 { Remove a file from the game folder if it is there; an error is ignored. }
@@ -304,8 +304,9 @@ begin
       Inc(need, size);
   end;
   free := -1;
-  if (Length(GDVars.gameDir) >= 2) and (GDVars.gameDir[2] = ':') and (UpCase(GDVars.gameDir[1]) in ['A'..'Z']) then
-    free := DiskFree(Ord(UpCase(GDVars.gameDir[1])) - Ord('A') + 1);
+  if (Length(GameVars.gameDir) >= 2) and (GameVars.gameDir[2] = ':') and
+      (UpCase(GameVars.gameDir[1]) in ['A'..'Z']) then
+    free := DiskFree(Ord(UpCase(GameVars.gameDir[1])) - Ord('A') + 1);
   if (free >= 0) and (free < need) then
     DataBld.Fail('not enough room on the disk: ' + StrUtil.NumStr(need) + ' bytes wanted, ' + StrUtil.NumStr(free) +
                  ' free');

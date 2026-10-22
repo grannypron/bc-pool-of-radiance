@@ -13,11 +13,11 @@ procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, dr
 
 implementation
 
-uses Crt, GDConsts, GDVars, TextRend, StrUtil;
+uses Crt, GDConsts, GameVars, TextRend, StrUtil;
 
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 begin
-  if GDVars.stingHpFlag <> 0 then begin
+  if GameVars.stingHpFlag <> 0 then begin
     { columns 0..39: the whole row, wider than the TEXT_RIGHT window }
     TextRend.ClearRect(0, 0, 39, 0);
     TextRend.DisplayString(0, 0, Yellow, StrUtil.NumStr(maximumHitPoints) + ' , ' + StrUtil.NumStr(currentHitPoints) +

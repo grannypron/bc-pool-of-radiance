@@ -17,7 +17,7 @@ const
 { Forget every square: a new game, or a save without a .map file. }
 procedure Clear;
 
-{ Mark square (x, y) of the current area (GDVars.eclScriptId, the GBVM mapId) visited. Squares off the 16x16 map, and
+{ Mark square (x, y) of the current area (GameVars.eclScriptId, the GBVM mapId) visited. Squares off the 16x16 map, and
   areas past MAX_AREAS, are not kept. }
 procedure Mark(x, y: ShortInt);
 
@@ -32,7 +32,7 @@ procedure ReadSlot(fn: String);
 
 implementation
 
-uses GDVars;
+uses GameVars;
 
 const
   SIG = 'EXPL';
@@ -82,8 +82,8 @@ var
   map: Byte;
 begin
   if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
-  script := GDVars.eclScriptId;
-  map := GDVars.zone0^.mapId.lo;
+  script := GameVars.eclScriptId;
+  map := GameVars.zone0^.mapId.lo;
   i := Explored.Find(script, map);
   if i = 0 then begin
     if rec.count >= MAX_AREAS then Exit;

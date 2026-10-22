@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TAtkRoll;
 
-uses Types, C_EFFECT, GDVars, Dice, FxEngine, TestKit;
+uses Types, C_EFFECT, GameVars, Dice, FxEngine, TestKit;
 
 const
   TRIES = 200;
@@ -24,27 +24,27 @@ var
 { An attacker's effect: note the natural roll, count the rolls above 1 and take penalty off it. }
 procedure Penalize(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  natural := GDVars.gAttackRoll;
+  natural := GameVars.gAttackRoll;
   Inc(calls);
-  Dec(GDVars.gAttackRoll, penalty);
+  Dec(GameVars.gAttackRoll, penalty);
 end;
 
 { A defender's effect: note the roll, and force a miss when asked, as Blink and Displacement do. }
 procedure Defend(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  natural := GDVars.gAttackRoll;
+  natural := GameVars.gAttackRoll;
   if forceMiss then
-    GDVars.gAttackAvoided := True;
+    GameVars.gAttackAvoided := True;
 end;
 {$F-}
 
 { ReduceDamagePerDie's result for damage from count dice, perDie off each }
 function Reduced(damage, count, perDie: Byte): Byte;
 begin
-  GDVars.pendingDamage := damage;
-  GDVars.gDamageDice := count;
+  GameVars.pendingDamage := damage;
+  GameVars.gDamageDice := count;
   Dice.ReduceDamagePerDie(perDie);
-  Reduced := GDVars.pendingDamage;
+  Reduced := GameVars.pendingDamage;
 end;
 
 function NewCreature(effId: Byte): Types.PCharRecord;
@@ -61,10 +61,10 @@ end;
 
 begin
   TestKit.Start('TATKROLL');
-  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
-  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  GDVars.effectFns[C_EFFECT.BLESS] := Penalize;
-  GDVars.effectFns[C_EFFECT.DISPLACED] := Defend;
+  GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
+  FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
+  GameVars.effectFns[C_EFFECT.BLESS] := Penalize;
+  GameVars.effectFns[C_EFFECT.DISPLACED] := Defend;
   att := NewCreature(C_EFFECT.BLESS);
   def := NewCreature(C_EFFECT.DISPLACED);
 

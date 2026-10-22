@@ -61,7 +61,7 @@ procedure RobMoney(fraction: Real; creature: Types.PCharRecord);
 { Chance% per item to steal it; heavy items (weight > 255 / > 24 coins) reduce the chance }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 
-{ Highest/lowest movement in GDVars.creatureList, as Haste and Slow make it (CharHlp.HasteSlowRate); 0 and 255 for an
+{ Highest/lowest movement in GameVars.creatureList, as Haste and Slow make it (CharHlp.HasteSlowRate); 0 and 255 for an
   empty list }
 procedure MoveExtremes(var hiMove, loMove: Byte);
 
@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_NPC, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
+uses Crt, C_AREA, C_NPC, C_MSG, GameVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_RACE, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -93,41 +93,41 @@ procedure EclInit;
 var
   i: Word;
 begin
-  GDVars.eclGraphics := False;
-  GDVars.protTextShown := 0;
-  GDVars.dumpCr6C00 := False;
-  GDVars.dumpCr6B00 := False;
-  GDVars.wallColorSel := 65;
-  GDVars.ceilFloorColorSel := 9;
-  GDVars.picRegionW := True;
-  FillChar(GDVars.monsterFlags, SizeOf(GDVars.monsterFlags), 0);
-  GDVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
-  GDVars.eclIp := $9900;
-  GDVars.breathAim := False;
-  GDVars.eclStackTopPtr := nil;
-  GDVars.eclStackSecondPtr := nil;
-  FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
+  GameVars.eclGraphics := False;
+  GameVars.protTextShown := 0;
+  GameVars.dumpCr6C00 := False;
+  GameVars.dumpCr6B00 := False;
+  GameVars.wallColorSel := 65;
+  GameVars.ceilFloorColorSel := 9;
+  GameVars.picRegionW := True;
+  FillChar(GameVars.monsterFlags, SizeOf(GameVars.monsterFlags), 0);
+  GameVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
+  GameVars.eclIp := $9900;
+  GameVars.breathAim := False;
+  GameVars.eclStackTopPtr := nil;
+  GameVars.eclStackSecondPtr := nil;
+  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
   { No portrait head (255), so DisplayMonster shows the PIC close-up }
-  GDVars.zone1^[C_GBVM.PIC_LOADING] := 255;
+  GameVars.zone1^[C_GBVM.PIC_LOADING] := 255;
   { rest interruption }
-  GDVars.zone1^[C_GBVM.REST_SAFE_TIME] := 0;
-  GDVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] := 0;
-  GDVars.zone0^.antimagic := 0;
+  GameVars.zone1^[C_GBVM.REST_SAFE_TIME] := 0;
+  GameVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] := 0;
+  GameVars.zone0^.antimagic := 0;
   for i := 1 to 5 do begin
     EclVars.LoadEclVars(1);
-    GDVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[1], GDVars.gbvmUpperByte[1]);
+    GameVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
   end;
   { Select the 3D view (MapView treats view3dFlag <> 0 as location type 1) }
-  GDVars.zone0^.view3dFlag := 1;
-  if GDVars.loadedSave = 0 then begin
+  GameVars.zone0^.view3dFlag := 1;
+  if GameVars.loadedSave = 0 then begin
     for i := 1 to 32 do
       { GBVM $4A00..$4A1F }
-      GDVars.zone0^.words[i + $49FF] := 0;
+      GameVars.zone0^.words[i + $49FF] := 0;
     for i := 0 to 9 do
       { GBVM $6E79..$6E82 }
-      GDVars.zone1^[i + $6E79] := 0;
+      GameVars.zone1^[i + $6E79] := 0;
   end else
-    GDVars.loadedSave := 0;
+    GameVars.loadedSave := 0;
 end;
 
 { Clears the script zone first; the first 2 bytes of the block are skipped, and no more than the zone holds is copied.
@@ -144,13 +144,13 @@ var
   n: Word;
   found: Boolean;
 begin
-  FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
-  GDVars.suppressingInsertDiskFlag := False;
+  FillChar(GameVars.zone3^, SizeOf(Types.TZone3), 0);
+  GameVars.suppressingInsertDiskFlag := False;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
-  if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
+  if not (GameVars.virtualDisk in [1..Types.LAST_DISK]) then
     DaxIo.PushState(1);
-  Str(GDVars.virtualDisk, s);
+  Str(GameVars.virtualDisk, s);
   { the merged ECL.DAX holds every disk's scripts, so the search below would not run }
   if DaxIo.ArchiveName('ECL' + s) <> 'ECL' + s then
     if not DaxIo.DiskHasBlock('ECL' + s, scriptId) then begin
@@ -163,16 +163,16 @@ begin
           DaxIo.PushState(disk);
         Inc(disk);
       end;
-      Str(GDVars.virtualDisk, s);
+      Str(GameVars.virtualDisk, s);
     end;
   DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
   if sizeRead < 2 then begin
     { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first disk
       that has the block, without the insert-disk prompt }
-    GDVars.suppressingInsertDiskFlag := True;
+    GameVars.suppressingInsertDiskFlag := True;
     disk := 1;
     while (sizeRead < 2) and (disk <= Types.LAST_DISK) do begin
-      if disk <> GDVars.virtualDisk then begin
+      if disk <> GameVars.virtualDisk then begin
         Str(disk, s);
         DaxIo.LoadDax('ECL' + s, '.dax', scriptId, sizeRead, data);
         if sizeRead >= 2 then
@@ -180,7 +180,7 @@ begin
       end;
       Inc(disk);
     end;
-    GDVars.suppressingInsertDiskFlag := False;
+    GameVars.suppressingInsertDiskFlag := False;
     if sizeRead < 2 then begin
       Str(scriptId, s);
       DaxIo.PromptBox(Yellow, 'Script area ' + s + ' is missing');
@@ -190,7 +190,7 @@ begin
   n := sizeRead - 2;
   if n > SizeOf(Types.TZone3) then
     n := SizeOf(Types.TZone3);
-  Move(data^[2], GDVars.zone3^, n);
+  Move(data^[2], GameVars.zone3^, n);
   FreeMem(data, sizeRead);
   TextRend.ClearBottomLine;
 end;
@@ -214,9 +214,9 @@ begin
   dist := 0;
   blocked := False;
   MaxMonsterDist := 0;
-  if GDVars.zone0^.view3dFlag = 0 then begin
+  if GameVars.zone0^.view3dFlag = 0 then begin
     MaxMonsterDist := 2;
-    GDVars.zone1^[C_GBVM.MONSTER_DIST] := 2;
+    GameVars.zone1^[C_GBVM.MONSTER_DIST] := 2;
   end else
     while (dist < 2) and (not blocked) do begin
       if View3D.GetWallType(x, y, facing) = 0 then begin
@@ -235,9 +235,9 @@ end;
 
 procedure DisplayPortrait(headId, bodyId: Byte);
 begin
-  GDVars.picDrawn := False;
-  GDVars.currentPortraitHead := headId;
-  GDVars.currentPortraitHead2 := bodyId;
+  GameVars.picDrawn := False;
+  GameVars.currentPortraitHead := headId;
+  GameVars.currentPortraitHead2 := bodyId;
   Portrait.LoadPortraitBufs(headId, bodyId);
   Portrait.DisplayPortraitBufs(3, 3, True);
 end;
@@ -252,35 +252,35 @@ begin
   d3 := dist + 1;
   if not flags[1] then begin
     if not flags[0] then begin
-      if GDVars.automapOn then begin
-        GDVars.automapOn := False;
+      if GameVars.automapOn then begin
+        GameVars.automapOn := False;
         MapView.DisplayMapView;
       end;
-      Portrait.LoadAnimation('SPRIT', sprId, 1, GDVars.animData);
+      Portrait.LoadAnimation('SPRIT', sprId, 1, GameVars.animData);
       flags[0] := True;
-      GDVars.sprShown := True;
+      GameVars.sprShown := True;
     end;
-    if GDVars.gLocType = C_AREA.LOC_3D_MAP then
-      Portrait.Show3DSprite(d3, GDVars.animData)
+    if GameVars.gLocType = C_AREA.LOC_3D_MAP then
+      Portrait.Show3DSprite(d3, GameVars.animData)
     else
-      Portrait.Show3DSprite(2, GDVars.animData);
+      Portrait.Show3DSprite(2, GameVars.animData);
   end;
   if flags[1] then
-    if picIdShown = GDVars.zone1^[C_GBVM.PIC_LOADING] then
+    if picIdShown = GameVars.zone1^[C_GBVM.PIC_LOADING] then
       Exit;
   if dist <> 0 then Exit;
-  if GDVars.gLocType <> C_AREA.LOC_3D_MAP then Exit;
-  if (GDVars.inEncMenu <> 0) and (GDVars.monsterPics = 0) then Exit;
-  picIdShown := Byte(GDVars.zone1^[C_GBVM.PIC_LOADING]);
-  GDVars.eclGraphics := True;
-  if GDVars.zone1^[C_GBVM.PIC_LOADING] = 255 then begin
-    Portrait.LoadAnimation('PIC', picId, 0, GDVars.animData);
+  if GameVars.gLocType <> C_AREA.LOC_3D_MAP then Exit;
+  if (GameVars.inEncMenu <> 0) and (GameVars.monsterPics = 0) then Exit;
+  picIdShown := Byte(GameVars.zone1^[C_GBVM.PIC_LOADING]);
+  GameVars.eclGraphics := True;
+  if GameVars.zone1^[C_GBVM.PIC_LOADING] = 255 then begin
+    Portrait.LoadAnimation('PIC', picId, 0, GameVars.animData);
     flags[1] := True;
-    Portrait.DisplayImageBuf(3, 3, True, GDVars.animData.frames[1].pic);
+    Portrait.DisplayImageBuf(3, 3, True, GameVars.animData.frames[1].pic);
   end else begin
-    EclMenu.DisplayPortrait(Byte(GDVars.zone1^[C_GBVM.PIC_LOADING]), picId);
+    EclMenu.DisplayPortrait(Byte(GameVars.zone1^[C_GBVM.PIC_LOADING]), picId);
     flags[1] := True;
-    GDVars.picDrawn := False;
+    GameVars.picDrawn := False;
   end;
 end;
 
@@ -295,12 +295,12 @@ var
   ext: Boolean;
 begin
   StrUtil.MenuToOptions(menu, opts);
-  GDVars.horizChoice := 1;
+  GameVars.horizChoice := 1;
   repeat
     ch := MenuCore.MenuHorizontal(query, menu, qCol, mCol, hlCol, True, animate, ext);
     if ext then begin
       Party.SelectPrevNextChar(ch);
-      CharDisp.DisplayParty(GDVars.curChar);
+      CharDisp.DisplayParty(GameVars.curChar);
       ch := C_KEYS.NONE;
     end;
   until (ch in ['0'..'9', 'A'..'Z']) or ((ch = C_KEYS.ENTER) and enterOk);
@@ -334,52 +334,52 @@ end;
 { Set each of the six comparison flags: equal, not equal, less, greater, less or equal, greater or equal }
 procedure EclCompareStr(s1, s2: String);
 begin
-  FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
-  if s1 = s2 then GDVars.cmpFlags[0] := True;
-  if s1 <> s2 then GDVars.cmpFlags[1] := True;
-  if s1 < s2 then GDVars.cmpFlags[2] := True;
-  if s1 > s2 then GDVars.cmpFlags[3] := True;
-  if s1 <= s2 then GDVars.cmpFlags[4] := True;
-  if s1 >= s2 then GDVars.cmpFlags[5] := True;
+  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
+  if s1 = s2 then GameVars.cmpFlags[0] := True;
+  if s1 <> s2 then GameVars.cmpFlags[1] := True;
+  if s1 < s2 then GameVars.cmpFlags[2] := True;
+  if s1 > s2 then GameVars.cmpFlags[3] := True;
+  if s1 <= s2 then GameVars.cmpFlags[4] := True;
+  if s1 >= s2 then GameVars.cmpFlags[5] := True;
 end;
 
 procedure EclCompareInt(v1, v2: Word);
 begin
-  FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
-  if v1 = v2 then GDVars.cmpFlags[0] := True;
-  if v1 <> v2 then GDVars.cmpFlags[1] := True;
-  if v1 < v2 then GDVars.cmpFlags[2] := True;
-  if v1 > v2 then GDVars.cmpFlags[3] := True;
-  if v1 <= v2 then GDVars.cmpFlags[4] := True;
-  if v1 >= v2 then GDVars.cmpFlags[5] := True;
+  FillChar(GameVars.cmpFlags, SizeOf(GameVars.cmpFlags), 0);
+  if v1 = v2 then GameVars.cmpFlags[0] := True;
+  if v1 <> v2 then GameVars.cmpFlags[1] := True;
+  if v1 < v2 then GameVars.cmpFlags[2] := True;
+  if v1 > v2 then GameVars.cmpFlags[3] := True;
+  if v1 <= v2 then GameVars.cmpFlags[4] := True;
+  if v1 >= v2 then GameVars.cmpFlags[5] := True;
 end;
 
 { Push IP on the ECL return stack, then jump to the address word in variable varIdx }
 procedure EclGosub(varIdx: Byte);
 begin
-  if GDVars.eclStackTopPtr = nil then begin
-    GetMem(GDVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-    GDVars.eclStackTopPtr^.next := nil;
+  if GameVars.eclStackTopPtr = nil then begin
+    GetMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
+    GameVars.eclStackTopPtr^.next := nil;
   end else begin
-    GDVars.eclStackSecondPtr := GDVars.eclStackTopPtr;
-    GetMem(GDVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-    GDVars.eclStackTopPtr^.next := GDVars.eclStackSecondPtr;
+    GameVars.eclStackSecondPtr := GameVars.eclStackTopPtr;
+    GetMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
+    GameVars.eclStackTopPtr^.next := GameVars.eclStackSecondPtr;
   end;
-  GDVars.eclStackTopPtr^.addr := GDVars.eclIp;
-  GDVars.eclIp := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[varIdx], GDVars.gbvmUpperByte[varIdx]);
+  GameVars.eclStackTopPtr^.addr := GameVars.eclIp;
+  GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[varIdx], GameVars.gbvmUpperByte[varIdx]);
 end;
 
 { Step with 0..15 wraparound, then refresh the event and wall-ahead bytes for the new cell }
 procedure EclMoveForward;
 begin
-  case GDVars.gFacing of
-    C_DIR.NORTH: if GDVars.gMapY > 0 then Dec(GDVars.gMapY) else GDVars.gMapY := 15;
-    C_DIR.EAST: if GDVars.gMapX < 15 then Inc(GDVars.gMapX) else GDVars.gMapX := 0;
-    C_DIR.SOUTH: if GDVars.gMapY < 15 then Inc(GDVars.gMapY) else GDVars.gMapY := 0;
-    C_DIR.WEST: if GDVars.gMapX > 0 then Dec(GDVars.gMapX) else GDVars.gMapX := 15;
+  case GameVars.gFacing of
+    C_DIR.NORTH: if GameVars.gMapY > 0 then Dec(GameVars.gMapY) else GameVars.gMapY := 15;
+    C_DIR.EAST: if GameVars.gMapX < 15 then Inc(GameVars.gMapX) else GameVars.gMapX := 0;
+    C_DIR.SOUTH: if GameVars.gMapY < 15 then Inc(GameVars.gMapY) else GameVars.gMapY := 0;
+    C_DIR.WEST: if GameVars.gMapX > 0 then Dec(GameVars.gMapX) else GameVars.gMapX := 15;
   end;
-  GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
-  GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
+  GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
+  GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
 end;
 
 { Sets duelFlag and C_GBVM.MIRROR_DUEL. A mirror duel appends a copy of the current character as hostile "ROLF" with the
@@ -394,10 +394,10 @@ var
   { the clone's combat icon slot }
   slot: Byte;
 begin
-  GDVars.duelFlag := True;
-  GDVars.zone1^[C_GBVM.MIRROR_DUEL] := mirror;
-  cur := GDVars.curChar;
-  p := GDVars.creatureList;
+  GameVars.duelFlag := True;
+  GameVars.zone1^[C_GBVM.MIRROR_DUEL] := mirror;
+  cur := GameVars.curChar;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if p^.name <> cur^.name then
       p^.enabled := 0;
@@ -406,7 +406,7 @@ begin
   if mirror = 0 then Exit;
   { after a fifth monster kind the clone shares the last monster slot; SSI loaded it over the first combat sprite
     (#725) }
-  slot := GDVars.gIconAnim;
+  slot := GameVars.gIconAnim;
   if slot > MapTiles.LAST_MONSTER_ICON then
     slot := MapTiles.LAST_MONSTER_ICON;
   MapTiles.LoadIconAnim('CPIC', 11, slot);
@@ -476,7 +476,7 @@ begin
     slowest, or a slowed first member's fastest, stayed at that member's normal rate (#758) }
   hiMove := 0;
   loMove := 255;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     m := CharHlp.HasteSlowRate(p, p^.movementCur);
     if m > hiMove then hiMove := m;
@@ -498,17 +498,17 @@ begin
     msg := '  ' + creature^.name + ' dies. '
   else
     msg := '  ' + creature^.name + ' is hit FOR ' + StrUtil.NumStr(dmg) + ' points of Damage.';
-  if GDVars.curRow > C_MSG.TEXT_BOTTOM then begin
-    GDVars.curRow := C_MSG.MESSAGE_TOP;
+  if GameVars.curRow > C_MSG.TEXT_BOTTOM then begin
+    GameVars.curRow := C_MSG.MESSAGE_TOP;
     pause := True;
     TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
   end else
     pause := False;
-  GDVars.curCol := C_MSG.TEXT_RIGHT;
+  GameVars.curCol := C_MSG.TEXT_RIGHT;
   TextRend.ShowMessage(White, pause, msg);
   CharHlp.InflictDamage(creature, dmg);
   TextRend.ClearRect(17, 1, 38, 15);
-  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GameVars.curChar);
 end;
 
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
@@ -522,7 +522,7 @@ var
   i: Byte;
   roll: Byte;
 begin
-  Str(GDVars.virtualDisk, numStr);
+  Str(GameVars.virtualDisk, numStr);
   DaxIo.LoadDax('MON' + numStr + 'CHA', '.dax', id, size, data);
   if size < DiskRec.CHAR_DISK_BYTES then begin
     TextRend.DisplayAndPause(White, 'Unable to load monster');
@@ -549,7 +549,7 @@ begin
     end;
   end;
   FreeMem(data, size);
-  GDVars.suppressingInsertDiskFlag := True;
+  GameVars.suppressingInsertDiskFlag := True;
   DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
     if size >= DiskRec.EFFECT_DISK_BYTES then begin
@@ -586,7 +586,7 @@ begin
     end;
     FreeMem(data, size);
   end;
-  GDVars.suppressingInsertDiskFlag := False;
+  GameVars.suppressingInsertDiskFlag := False;
   { the readied special items take effect, as when readied (FxEngine.ToggleReadyItem): SSI skipped this, and a monster
     never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747). An aligned
     weapon's and a boulder's handlers only test whether the creature may ready them, shocking it or printing a message
@@ -607,7 +607,7 @@ var
   i: ShortInt;
   classes: array[1..4] of Byte;
 begin
-  if GDVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY then Exit;
   GetMem(creature, SizeOf(Types.TCharRecord));
   EclMenu.LoadCreatureData(id, creature);
   with creature^ do begin

@@ -15,8 +15,8 @@ const
   PTR_GROWTH = SizeOf(Pointer) - 4;
   { the most creatures in the party: a saved game's party names, the usual spells, the statistics, the icon slots }
   MAX_PARTY = 8;
-  { the most creatures in play at once, party and monsters: combat's slots (GDVars.creatureArr, arenaLoc and the target
-    lists) and the creature list's ordinals }
+  { the most creatures in play at once, party and monsters: combat's slots (GameVars.creatureArr, arenaLoc and the
+    target lists) and the creature list's ordinals }
   ARENA_SLOTS = 72;
   { the data disks the game shipped on, 1..LAST_DISK }
   LAST_DISK = 8;
@@ -26,10 +26,11 @@ const
   SPELL_SLOT_LAST = 20;
   { the highest spell level a cleric or magic-user casts here (TCharRecord.clericSpells and mageSpells) }
   CASTER_LEVEL_LAST = 3;
-  { the item types ITEMS holds, 0..BASE_ITEM_LAST; GDVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
+  { the item types ITEMS holds, 0..BASE_ITEM_LAST; GameVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
   BASE_ITEM_LAST = 127;
   BASE_ITEM_OVERFLOW = 128;
-  { the script strings EclVars.LoadEclVars keeps, GDVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the last }
+  { the script strings EclVars.LoadEclVars keeps, GameVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the
+    last }
   GB_STRING_LAST = 20;
   { TAcAdjust's parts: Dexterity, the shield, the pluses of items with no AC of their own, the best ring, the best
     armour }
@@ -392,7 +393,7 @@ type
     { best facing direction }
     dir: Byte;
   end;
-  { the creatures Pathing.BuildTargetList finds, nearest first (GDVars.targetList) }
+  { the creatures Pathing.BuildTargetList finds, nearest first (GameVars.targetList) }
   TTargetList = array[1..ARENA_SLOTS] of TCombatTarget;
   TIconCoordinateDelta = record
     { cell X offset; negative marks an absent footprint cell }
@@ -573,7 +574,7 @@ type
     xCol: array[0..9] of Integer;
     yRow: array[0..9] of Integer;
   end;
-  { one loaded-wallset cache slot (GDVars.wallSetCache) }
+  { one loaded-wallset cache slot (GameVars.wallSetCache) }
   TWallSetCacheSlot = record
     { cached WALLDEF reload ID; -1 invalidates the slot }
     wallDefId: Integer;
@@ -651,10 +652,10 @@ type
         scriptWords4B00: array[$4B00..$4CFF] of Word);
   end;
   TGbvmZone1 = array[$6B00..$6EFF] of Word;
-  { the script strings (GDVars.gbStrings) }
+  { the script strings (GameVars.gbStrings) }
   TGbStrings = array[1..GB_STRING_LAST] of String;
   PGbStrings = ^TGbStrings;
-  { the base item types (GDVars.baseItems) and the zeroed overflow entry after them }
+  { the base item types (GameVars.baseItems) and the zeroed overflow entry after them }
   TBaseItems = array[0..BASE_ITEM_OVERFLOW] of TBaseItemRec;
   PBaseItems = ^TBaseItems;
 
@@ -845,7 +846,7 @@ type
   { Load a tune into a sound device's voices; tune 0 silences them. }
   TSoundPlay = procedure(tune: Word);
   { One sound device's driver (docs/refactor-plan.md, phase 7): SoundDrv reaches the device only through it. GameBoot
-    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndNone) into GDVars.sound. }
+    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndNone) into GameVars.sound. }
   TSoundDriver = record
     { the device's name, for the settings screen }
     name: TStr20;
@@ -860,7 +861,7 @@ type
     singleStep: Boolean;
   end;
   { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
-    routines. GameBoot installs one (VidCga, VidEga, VidTdy or VidVga) into GDVars.video. }
+    routines. GameBoot installs one (VidCga, VidEga, VidTdy or VidVga) into GameVars.video. }
   TVideoDriver = record
     { the mode's name, for the settings screen }
     name: TStr20;
@@ -890,7 +891,7 @@ type
     ramVideoParas: Word;
     { set up the mode once the BIOS has set it (EGA's display pages) }
     Start: TVideoProc;
-    { copy the view buffer's dirty spans (GDVars.span*) to the screen; Blit.FlushView then clears the spans }
+    { copy the view buffer's dirty spans (GameVars.span*) to the screen; Blit.FlushView then clears the spans }
     FlushSpans: TVideoProc;
     { draw a picture's first frame straight to the screen at a cell position (Blit.ShowPic) }
     ShowPic: TShowPicProc;
@@ -913,7 +914,7 @@ type
     RecolorFrame: TRecolorFrameProc;
     { 8 pixel colours into scanline y of the one-cell-wide frame at pic^.data[at] (VidOps.PutPixelRow) }
     PutPixelRow: TPutPixelRowProc;
-    { build the mode's per-row screen addresses (GDVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
+    { build the mode's per-row screen addresses (GameVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
     InitRowTables: TVideoProc;
     { give palette register registerIndex the colour color (Blit.SetPaletteRegister; EGA's registers, VGA's DAC) }
     SetPalette: TSetPaletteProc;
@@ -993,7 +994,7 @@ type
     time: LongInt;
     pic: PImgBuf;
   end;
-  { A PIC or SPRIT animation (GDVars.animData, the ending's), as Portrait.LoadAnimation loads it. }
+  { A PIC or SPRIT animation (GameVars.animData, the ending's), as Portrait.LoadAnimation loads it. }
   TAnimRec = record
     { frames actually loaded }
     count: Byte;

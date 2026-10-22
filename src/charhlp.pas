@@ -116,7 +116,7 @@ function ItemWeight(item: Types.PItemRec): LongInt;
   as a warrior. }
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 
-{ The base item record for an item type: its GDVars.baseItems entry, or the zeroed overflow entry for a type past the
+{ The base item record for an item type: its GameVars.baseItems entry, or the zeroed overflow entry for a type past the
   table, which only damaged save or monster data can carry.
   @param(itemType TItemRec.itemType.)
   @returns(A pointer to the record; the caller does not change it.) }
@@ -169,8 +169,8 @@ function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Bool
   it: the scroll spells the Cast list offers. }
 function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
-{ Spell range: rangeFixed + rangeVar * caster level, using C_SPELL.ITEM_CASTER_LEVEL when GDVars.usingItem. A zero range
-  with a nonzero area (touch) and the attack-roll encoding (C_SPELL.ATTACK_ROLL_RANGE) both become 1. }
+{ Spell range: rangeFixed + rangeVar * caster level, using C_SPELL.ITEM_CASTER_LEVEL when GameVars.usingItem. A zero
+  range with a nonzero area (touch) and the attack-roll encoding (C_SPELL.ATTACK_ROLL_RANGE) both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
 type
@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC,
+uses C_ITEM, GDConsts, GameVars, C_EFFECT, C_EQUIP, C_RACE, C_LEVEL, C_STATUS, C_IFC,
   C_MONEY, Stats, C_NPC, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -379,7 +379,7 @@ begin
       item^.name := ' No   ';
   end;
   found := False;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and not found do begin
     if CharHlp.HasEffect(p, C_EFFECT.DETECT_MAGIC, effect) then
       found := True;
@@ -673,8 +673,8 @@ end;
 
 procedure ClearTreasure;
 begin
-  CharHlp.FreeItemList(GDVars.treasureItems);
-  FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
+  CharHlp.FreeItemList(GameVars.treasureItems);
+  FillChar(GameVars.treasureMoney, SizeOf(GameVars.treasureMoney), 0);
 end;
 
 { Report a fault through faultHook, when one is set. }
@@ -785,23 +785,23 @@ begin
     creature^.status := C_STATUS.DEAD
   else if over > 0 then begin
     creature^.status := C_STATUS.DYING;
-    if GDVars.ifcState = C_IFC.COMBAT then
+    if GameVars.ifcState = C_IFC.COMBAT then
       creature^.combatAddr^.overkill := over;
   end else if remain = 0 then
     creature^.status := C_STATUS.UNCONSCIOUS;
   if not (creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED]) then begin
     creature^.enabled := 0;
     creature^.hpCur := 0;
-    if GDVars.ifcState = C_IFC.COMBAT then begin
+    if GameVars.ifcState = C_IFC.COMBAT then begin
       { a creature already down (dying or unconscious) left its team count when it fell }
       if wasUp then
-        Dec(GDVars.teamCount[CharHlp.Team(creature)]);
+        Dec(GameVars.teamCount[CharHlp.Team(creature)]);
       creature^.combatAddr^.initiative := 0;
     end;
   end else
     creature^.hpCur := remain;
   { the statistics (#611), credited to the creature acting }
-  Stats.Damaged(GDVars.curChar, creature, hpBefore - creature^.hpCur, wasUp);
+  Stats.Damaged(GameVars.curChar, creature, hpBefore - creature^.hpCur, wasUp);
 end;
 
 { Return the opposing team index: 1 for a friendly creature (hostile = 0), else 0. }
@@ -823,12 +823,12 @@ procedure CountTeams;
 var
   p: Types.PCharRecord;
 begin
-  GDVars.teamCount[0] := 0;
-  GDVars.teamCount[1] := 0;
-  p := GDVars.creatureList;
+  GameVars.teamCount[0] := 0;
+  GameVars.teamCount[1] := 0;
+  p := GameVars.creatureList;
   while p <> nil do begin
     if p^.enabled <> 0 then
-      Inc(GDVars.teamCount[CharHlp.Team(p)]);
+      Inc(GameVars.teamCount[CharHlp.Team(p)]);
     p := p^.nextCharAddr;
   end;
 end;
@@ -847,10 +847,10 @@ end;
   indoors, or in combat while still allowed an item this round. }
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 begin
-  CanUseItems := (creature^.enabled <> 0) and (GDVars.zone0^.antimagic = 0) and
-                 ((GDVars.ifcState = C_IFC.CAMPING) or (GDVars.ifcState = C_IFC.OUTDOORS) or
-                  (GDVars.ifcState = C_IFC.INDOORS) or
-                  ((GDVars.ifcState = C_IFC.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
+  CanUseItems := (creature^.enabled <> 0) and (GameVars.zone0^.antimagic = 0) and
+                 ((GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.OUTDOORS) or
+                  (GameVars.ifcState = C_IFC.INDOORS) or
+                  ((GameVars.ifcState = C_IFC.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
 end;
 
 { End the creature's round and raise its guarding flag; the caller announces it ('Guarding'). Always returns True. }
@@ -862,15 +862,15 @@ end;
 
 { Caster level for a spell id: the current character's cleric or magic-user level by casting class
   (C_SPELL.SPECIAL_CASTER_LEVEL for the special class), C_SPELL.ITEM_CASTER_LEVEL when cast from an item
-  (GDVars.usingItem) unless the class is the special one. }
+  (GameVars.usingItem) unless the class is the special one. }
 function GetCasterLevel(spell: Byte): Byte;
 begin
   case GDConsts.spellTable[spell].castClass of
-    C_SPELL.CLASS_CLERIC: GetCasterLevel := GDVars.curChar^.classLevels[C_LEVEL.CLERIC];
-    C_SPELL.CLASS_MAGE: GetCasterLevel := GDVars.curChar^.classLevels[C_LEVEL.MAGE];
+    C_SPELL.CLASS_CLERIC: GetCasterLevel := GameVars.curChar^.classLevels[C_LEVEL.CLERIC];
+    C_SPELL.CLASS_MAGE: GetCasterLevel := GameVars.curChar^.classLevels[C_LEVEL.MAGE];
     C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
-  if GDVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
+  if GameVars.usingItem and (GDConsts.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
     GetCasterLevel := C_SPELL.ITEM_CASTER_LEVEL;
 end;
 
@@ -1013,9 +1013,9 @@ end;
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 begin
   if itemType > Types.BASE_ITEM_LAST then
-    BaseItem := @GDVars.baseItems^[Types.BASE_ITEM_OVERFLOW]
+    BaseItem := @GameVars.baseItems^[Types.BASE_ITEM_OVERFLOW]
   else
-    BaseItem := @GDVars.baseItems^[itemType];
+    BaseItem := @GameVars.baseItems^[itemType];
 end;
 
 function IsNpc(creature: Types.PCharRecord): Boolean;
@@ -1116,7 +1116,7 @@ function CalcSpellRange(spell: Byte): Byte;
 var
   r: Byte;
 begin
-  if GDVars.usingItem = False then
+  if GameVars.usingItem = False then
     r := GDConsts.spellTable[spell].rangeFixed + GDConsts.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
   else
     r := GDConsts.spellTable[spell].rangeVar * C_SPELL.ITEM_CASTER_LEVEL + GDConsts.spellTable[spell].rangeFixed;

@@ -14,7 +14,7 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
+uses Types, Crt, C_MSG, GDConsts, GameVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
   C_STATUS, C_IFC, C_RACE, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
@@ -25,7 +25,7 @@ var
 { ConfirmCureAnyway: Print "<name> <msg>", ask "cast cure anyway: " Y/N, clear the message window and return the key }
 function ConfirmCureAnyway(msg: String): Char;
 begin
-  CharDisp.PrintNameString(GDVars.curChar, msg, 0, False);
+  CharDisp.PrintNameString(GameVars.curChar, msg, 0, False);
   ConfirmCureAnyway := MenuCore.YesNoMenu('cast cure anyway: ', LightMagenta, LightGreen, White);
   CharDisp.ClearMessageWindow;
 end;
@@ -42,7 +42,7 @@ begin
   TextRend.ShowMessage(LightGreen, True, spell);
   c := MenuCore.YesNoMenu('pay for cure ', LightMagenta, White, LightGreen);
   if c = 'Y' then begin
-    if not Money.PayGold(GDVars.curChar, cost) then
+    if not Money.PayGold(GameVars.curChar, cost) then
       c := 'N';
   end;
   PayCureCost := c;
@@ -52,7 +52,7 @@ end;
 procedure ReportCure(msg: String);
 begin
   CharDisp.ClearMessageWindow;
-  CharDisp.PrintNameString(GDVars.curChar, msg, 0, True);
+  CharDisp.PrintNameString(GameVars.curChar, msg, 0, True);
 end;
 
 { ConfirmCureCost: PayCureCost, and a paid cure prints "<name> is cured." (ReportCure). Returns Y or N. }
@@ -73,12 +73,12 @@ var
   c: Char;
 begin
   c := 'Y';
-  if not CharHlp.HasEffect(GDVars.curChar, C_EFFECT.BLIND, effect) then
+  if not CharHlp.HasEffect(GameVars.curChar, C_EFFECT.BLIND, effect) then
     c := Temple.ConfirmCureAnyway('is not blind.');
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Cure Blindness', 1000);
     if c = 'Y' then
-      FxEngine.RemoveEffect(GDVars.curChar, C_EFFECT.BLIND, nil);
+      FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.BLIND, nil);
   end;
 end;
 
@@ -89,11 +89,11 @@ var
   c: Char;
 begin
   c := 'Y';
-  if not FxEngine.HasDisease(GDVars.curChar) then
+  if not FxEngine.HasDisease(GameVars.curChar) then
     c := Temple.ConfirmCureAnyway('is not Diseased.');
   if c = 'Y' then
     if Temple.ConfirmCureCost('Cure Disease', 1000) = 'Y' then
-      FxEngine.RemoveDiseases(GDVars.curChar);
+      FxEngine.RemoveDiseases(GameVars.curChar);
 end;
 
 { CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp; the RestoreHitPoints result is
@@ -131,7 +131,7 @@ begin
   if c = 'Y' then begin
     { spell d8, plus the bonus }
     hp := Dice.RollDice(spell, 8) + bonus;
-    restored := FxEngine.RestoreHitPoints(GDVars.curChar, hp, False);
+    restored := FxEngine.RestoreHitPoints(GameVars.curChar, hp, False);
   end;
 end;
 
@@ -153,7 +153,7 @@ var
   hpLoss: Integer;
   creature: Types.PCharRecord;
 begin
-  creature := GDVars.curChar;
+  creature := GameVars.curChar;
   wasDead := False;
   c := 'Y';
   if (creature^.status = C_STATUS.DEAD) or (creature^.status = C_STATUS.ANIMATED) then
@@ -173,9 +173,9 @@ begin
       if not wasDead then
         Temple.ReportCure('is cured.')
       else begin
-        GDVars.effectLock := 1;
+        GameVars.effectLock := 1;
         FxEngine.RemoveEffect(creature, C_EFFECT.ANIMATE_DEAD, nil);
-        GDVars.effectLock := 0;
+        GameVars.effectLock := 0;
         { the resurrection survival roll, which SSI never made (#752): a failure is dead for good }
         if Dice.RollDice(1, 100) > AbilAdj.ConResurrectionSurvival(creature^.conCur) then begin
           creature^.status := C_STATUS.GONE;
@@ -218,24 +218,24 @@ var
 begin
   found := False;
   c := 'Y';
-  if CharHlp.HasEffect(GDVars.curChar, C_EFFECT.POISONED, effect) then
+  if CharHlp.HasEffect(GameVars.curChar, C_EFFECT.POISONED, effect) then
     found := True;
-  slowed := CharHlp.HasEffect(GDVars.curChar, C_EFFECT.SLOW_POISON_END, effect) or
-            CharHlp.HasEffect(GDVars.curChar, C_EFFECT.SLOW_POISON_HIT, effect);
+  slowed := CharHlp.HasEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_END, effect) or
+            CharHlp.HasEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_HIT, effect);
   if not found then
     c := Temple.ConfirmCureAnyway('is not poisoned.');
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Neutralize Poison', 1000);
     if c = 'Y' then begin
-      GDVars.effectLock := 1;
-      FxEngine.RemoveEffect(GDVars.curChar, C_EFFECT.POISONED, nil);
-      FxEngine.RemoveEffect(GDVars.curChar, C_EFFECT.SLOW_POISON_END, nil);
-      FxEngine.RemoveEffect(GDVars.curChar, C_EFFECT.SLOW_POISON_HIT, nil);
-      GDVars.effectLock := 0;
-      if found and not slowed and (GDVars.curChar^.status = C_STATUS.DEAD) then begin
-        GDVars.curChar^.hpCur := 1;
-        GDVars.curChar^.status := C_STATUS.OKAY;
-        GDVars.curChar^.enabled := 1;
+      GameVars.effectLock := 1;
+      FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.POISONED, nil);
+      FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_END, nil);
+      FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_HIT, nil);
+      GameVars.effectLock := 0;
+      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD) then begin
+        GameVars.curChar^.hpCur := 1;
+        GameVars.curChar^.status := C_STATUS.OKAY;
+        GameVars.curChar^.enabled := 1;
       end;
     end;
   end;
@@ -253,19 +253,19 @@ var
 begin
   c := 'Y';
   cursed := False;
-  item := GDVars.curChar^.itemsAddr;
+  item := GameVars.curChar^.itemsAddr;
   while (item <> nil) and (not cursed) do begin
     if item^.cursed <> 0 then
       cursed := True;
     item := item^.next;
   end;
   if not cursed then
-    if not CharHlp.HasEffect(GDVars.curChar, C_EFFECT.BESTOW_CURSE, effect) then
+    if not CharHlp.HasEffect(GameVars.curChar, C_EFFECT.BESTOW_CURSE, effect) then
       c := Temple.ConfirmCureAnyway('is not cursed.');
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Remove Curse', 3500);
     if c = 'Y' then begin
-      GDVars.targetCreaturePtr[1] := GDVars.curChar;
+      GameVars.targetCreaturePtr[1] := GameVars.curChar;
       Magic.RemoveCurseSpell;
     end;
   end;
@@ -278,15 +278,15 @@ var
   c: Char;
 begin
   c := 'Y';
-  if GDVars.curChar^.status <> C_STATUS.STONED then
+  if GameVars.curChar^.status <> C_STATUS.STONED then
     c := Temple.ConfirmCureAnyway('is not stoned.');
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Stone to Flesh', 2000);
     if c = 'Y' then
-      if GDVars.curChar^.status = C_STATUS.STONED then begin
-        GDVars.curChar^.status := C_STATUS.OKAY;
-        GDVars.curChar^.enabled := 1;
-        GDVars.curChar^.hpCur := 1;
+      if GameVars.curChar^.status = C_STATUS.STONED then begin
+        GameVars.curChar^.status := C_STATUS.OKAY;
+        GameVars.curChar^.enabled := 1;
+        GameVars.curChar^.hpCur := 1;
       end;
   end;
 end;
@@ -325,7 +325,7 @@ begin
   { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }
   idx := 0;
   repeat
-    s := GDVars.curChar^.name + ', how can we help you?';
+    s := GameVars.curChar^.name + ', how can we help you?';
     TextRend.DisplayString(1, 1, White, s);
     Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
     c := MenuCore.MenuVertical('', 'Heal Exit', LightMagenta, LightGreen, White, 2, 4, 38, 15, list, False, redraw, idx,
@@ -350,7 +350,7 @@ begin
   MenuCore.FreeStringList(list);
   TextRend.ClearRect(0, 0, 39, 24);
   CharDisp.DisplayNoncombatInterface;
-  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GameVars.curChar);
 end;
 
 { TempleMainMenu: Run the temple counter (Shop.CounterMenu, on the shared treasure state) with HealMenu as its Heal

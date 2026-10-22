@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TProtect;
 
-uses Types, C_EFFECT, C_COND, C_ALIGN, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_COND, C_ALIGN, GameVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 200;
@@ -25,13 +25,13 @@ var
 { The attacker's C_COND.ATTACK_ROLL_ATT effect: note the d20. }
 procedure NoteNatural(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  natural := GDVars.gAttackRoll;
+  natural := GameVars.gAttackRoll;
 end;
 
 { The defender's C_COND.ATTACK_ROLL_DEF effect, run after its protection: note the roll as it then stands. }
 procedure NoteSeen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  seen := GDVars.gAttackRoll;
+  seen := GameVars.gAttackRoll;
 end;
 {$F-}
 
@@ -53,19 +53,19 @@ begin
     FxEngine.RemoveEffect(c, Types.PEffectRec(c^.effectsAddr)^.id, nil);
 end;
 
-{ The defender's saving-throw bonus against the attacker (GDVars.curChar), from its C_COND.SAVING_THROW effects }
+{ The defender's saving-throw bonus against the attacker (GameVars.curChar), from its C_COND.SAVING_THROW effects }
 function SaveBonus: Integer;
 begin
-  GDVars.curChar := att;
-  GDVars.gSaveRoll := 10;
+  GameVars.curChar := att;
+  GameVars.gSaveRoll := 10;
   FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, def);
-  SaveBonus := Integer(GDVars.gSaveRoll) - 10;
+  SaveBonus := Integer(GameVars.gSaveRoll) - 10;
 end;
 
-{ What the defender's protection takes off the attacker's (GDVars.curChar's) d20 }
+{ What the defender's protection takes off the attacker's (GameVars.curChar's) d20 }
 function HitPenalty: Integer;
 begin
-  GDVars.curChar := att;
+  GameVars.curChar := att;
   repeat
     natural := 0;
     hit := FxEngine.AttackRoll(att, def, 50);
@@ -78,7 +78,7 @@ function ScriptAttackHighest(cur: Types.PCharRecord): Integer;
 var
   highest: Integer;
 begin
-  GDVars.curChar := cur;
+  GameVars.curChar := cur;
   highest := 0;
   for i := 1 to TRIES do begin
     seen := 0;
@@ -91,21 +91,21 @@ end;
 
 begin
   TestKit.Start('TPROTECT');
-  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
-  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
-  GDVars.effectFns[C_EFFECT.BLESS] := NoteNatural;
-  GDVars.effectFns[C_EFFECT.DISPLACED] := NoteSeen;
-  GDVars.effectFns[C_EFFECT.PROT_EVIL] := EffHndlr.EffProtEvil;
-  GDVars.effectFns[C_EFFECT.PROT_GOOD] := EffHndlr.EffProtGood;
-  GDVars.effectFns[C_EFFECT.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
-  GDVars.effectFns[C_EFFECT.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
+  GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
+  FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
+  GameVars.effectFns[C_EFFECT.BLESS] := NoteNatural;
+  GameVars.effectFns[C_EFFECT.DISPLACED] := NoteSeen;
+  GameVars.effectFns[C_EFFECT.PROT_EVIL] := EffHndlr.EffProtEvil;
+  GameVars.effectFns[C_EFFECT.PROT_GOOD] := EffHndlr.EffProtGood;
+  GameVars.effectFns[C_EFFECT.PROT_EVIL_10FT] := EffHndlr.EffProtEvil;
+  GameVars.effectFns[C_EFFECT.PROT_GOOD_10FT] := EffHndlr.EffProtGood;
   { out of combat any carrier is in range }
-  GDVars.ifcState := 0;
+  GameVars.ifcState := 0;
   att := NewCreature(1, C_ALIGN.CHAOTIC_EVIL);
   def := NewCreature(0, C_ALIGN.LAWFUL_GOOD);
   ally := NewCreature(0, C_ALIGN.LAWFUL_GOOD);
   foe := NewCreature(1, C_ALIGN.LAWFUL_GOOD);
-  GDVars.creatureList := def;
+  GameVars.creatureList := def;
   def^.nextCharAddr := ally;
   ally^.nextCharAddr := foe;
   foe^.nextCharAddr := att;
@@ -169,7 +169,7 @@ begin
   ClearEffects(ally);
 
   { Prayer (#801): one from each side in reach applies, two from one side once }
-  GDVars.effectFns[C_EFFECT.PRAYER] := EffHndlr.EffPrayer;
+  GameVars.effectFns[C_EFFECT.PRAYER] := EffHndlr.EffPrayer;
   FxEngine.AddEffect(ally, C_EFFECT.PRAYER, 10, 0 * C_EFFECT.PRAYER_SIDE + 5, False);
   TestKit.CheckEqualsL(1, SaveBonus, 'an ally''s Prayer: +1');
   FxEngine.AddEffect(def, C_EFFECT.PRAYER, 10, 0 * C_EFFECT.PRAYER_SIDE + 5, False);

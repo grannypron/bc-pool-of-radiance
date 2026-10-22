@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TSaveLay;
 
-uses Types, GDVars, C_GBVM, TestKit;
+uses Types, GameVars, C_GBVM, TestKit;
 
 var
   total: LongInt;
@@ -18,26 +18,26 @@ end;
 
 begin
   TestKit.Start('TSAVELAY');
-  TestKit.CheckEqualsL(1, SizeOf(GDVars.virtualDisk), 'the disk number is a byte');
-  TestKit.CheckEqualsL(2048, SizeOf(GDVars.zone0^), 'zone 0');
-  TestKit.CheckEqualsL(2048, SizeOf(GDVars.zone1^), 'zone 1');
-  TestKit.CheckEqualsL(1024, SizeOf(GDVars.zone2^), 'zone 2');
+  TestKit.CheckEqualsL(1, SizeOf(GameVars.virtualDisk), 'the disk number is a byte');
+  TestKit.CheckEqualsL(2048, SizeOf(GameVars.zone0^), 'zone 0');
+  TestKit.CheckEqualsL(2048, SizeOf(GameVars.zone1^), 'zone 1');
+  TestKit.CheckEqualsL(1024, SizeOf(GameVars.zone2^), 'zone 2');
   TestKit.CheckEqualsL(7680, C_GBVM.SAVED_SCRIPT_BYTES, 'the saved part of the script buffer is SSI''s whole buffer');
-  TestKit.Check(SizeOf(GDVars.zone3^) >= C_GBVM.SAVED_SCRIPT_BYTES, 'the script buffer holds the saved part');
+  TestKit.Check(SizeOf(GameVars.zone3^) >= C_GBVM.SAVED_SCRIPT_BYTES, 'the script buffer holds the saved part');
   { the party's map position, one byte each }
-  mapPos := SizeOf(GDVars.gMapX) + SizeOf(GDVars.gMapY) + SizeOf(GDVars.gFacing) + SizeOf(GDVars.wallAhead) +
-            SizeOf(GDVars.eventAtCell);
+  mapPos := SizeOf(GameVars.gMapX) + SizeOf(GameVars.gMapY) + SizeOf(GameVars.gFacing) + SizeOf(GameVars.wallAhead) +
+            SizeOf(GameVars.eventAtCell);
   TestKit.CheckEqualsL(5, mapPos, 'the map position is five bytes');
-  TestKit.CheckEqualsL(1, SizeOf(GDVars.gLocType), 'gLocType is a byte');
-  TestKit.CheckEqualsL(1, SizeOf(GDVars.ifcState), 'ifcState is a byte');
+  TestKit.CheckEqualsL(1, SizeOf(GameVars.gLocType), 'gLocType is a byte');
+  TestKit.CheckEqualsL(1, SizeOf(GameVars.ifcState), 'ifcState is a byte');
   TestKit.CheckEqualsL(8, Types.MAX_PARTY, 'eight names');
   TestKit.CheckEqualsL(41, SizeOf(Types.TStr40), 'of 41 bytes each');
-  total := SizeOf(GDVars.virtualDisk) + SizeOf(GDVars.zone0^) + SizeOf(GDVars.zone1^) + SizeOf(GDVars.zone2^) +
-           C_GBVM.SAVED_SCRIPT_BYTES + mapPos + SizeOf(GDVars.gLocType) + SizeOf(GDVars.ifcState) + 1 +
+  total := SizeOf(GameVars.virtualDisk) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) + SizeOf(GameVars.zone2^) +
+           C_GBVM.SAVED_SCRIPT_BYTES + mapPos + SizeOf(GameVars.gLocType) + SizeOf(GameVars.ifcState) + 1 +
            Types.MAX_PARTY * SizeOf(Types.TStr40);
   TestKit.CheckEqualsL(13137, total, 'a saved game is SSI''s 13,137 bytes');
 
-  with GDVars.zone0^ do begin
+  with GameVars.zone0^ do begin
     Zone0At($49C3, Ofs(partyX) - Ofs(words), 'partyX');
     Zone0At($49C4, Ofs(partyY) - Ofs(words), 'partyY');
     Zone0At($49C5, Ofs(mapId) - Ofs(words), 'mapId');

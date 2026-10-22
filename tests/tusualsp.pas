@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TUsualSp;
 
-uses Types, C_GBVM, GDVars, FileUtil, UsualSpl, TestKit;
+uses Types, C_GBVM, GameVars, FileUtil, UsualSpl, TestKit;
 
 const
   FN = 'TUS';
@@ -49,8 +49,8 @@ end;
 
 begin
   TestKit.Start('TUSUALSP');
-  GetMem(GDVars.zone1, SizeOf(GDVars.zone1^));
-  FillChar(GDVars.zone1^, SizeOf(GDVars.zone1^), 0);
+  GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
+  FillChar(GameVars.zone1^, SizeOf(GameVars.zone1^), 0);
   for i := 1 to COUNT do begin
     GetMem(c[i], SizeOf(Types.TCharRecord));
     FillChar(c[i]^, SizeOf(Types.TCharRecord), 0);
@@ -59,8 +59,8 @@ begin
     if i > 1 then
       c[i - 1]^.nextCharAddr := c[i];
   end;
-  GDVars.creatureList := c[1];
-  GDVars.zone1^[C_GBVM.PARTY_SIZE] := COUNT - 2;
+  GameVars.creatureList := c[1];
+  GameVars.zone1^[C_GBVM.PARTY_SIZE] := COUNT - 2;
 
   TestKit.Check(not UsualSpl.GetUsualSpells(c[1], back), 'none remembered at first');
   TestKit.Check(not UsualSpl.GetUsualSpells(nil, back), 'nor for nil');
@@ -117,6 +117,6 @@ begin
 
   for i := 1 to COUNT do
     FreeMem(c[i], SizeOf(Types.TCharRecord));
-  FreeMem(GDVars.zone1, SizeOf(GDVars.zone1^));
+  FreeMem(GameVars.zone1, SizeOf(GameVars.zone1^));
   TestKit.Done;
 end.

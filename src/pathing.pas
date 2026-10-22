@@ -8,9 +8,9 @@ interface
 uses Types;
 
 type
-  { The creature on arena cell (x, y): its slot in GDVars.arenaLoc, 0 for none (CbtMap.OccupantAt). }
+  { The creature on arena cell (x, y): its slot in GameVars.arenaLoc, 0 for none (CbtMap.OccupantAt). }
   TOccupant = function(x, y: ShortInt): Byte;
-  { Arena slots (GDVars.arenaLoc): RouteStep's goals, and the bodies it may plan a walk through. }
+  { Arena slots (GameVars.arenaLoc): RouteStep's goals, and the bodies it may plan a walk through. }
   TSlotSet = set of Byte;
 
 { Return the sign of an Integer: -1, 0 or 1. }
@@ -57,7 +57,7 @@ function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOc
 
 implementation
 
-uses GDConsts, GDVars, C_DIR;
+uses GDConsts, GameVars, C_DIR;
 
 function SignOf(v: Integer): Integer;
 begin
@@ -79,17 +79,17 @@ var
   auxI: Byte;
   tmp: Types.TCombatTarget;
 begin
-  if GDVars.targetCount <= 1 then Exit;
-  for i := 1 to GDVars.targetCount - 1 do
-    for j := i + 1 to GDVars.targetCount do begin
-      auxI := GDVars.targetList[i].dir;
-      auxJ := GDVars.targetList[j].dir;
-      if (GDVars.targetList[j].dist < GDVars.targetList[i].dist) or
-          ((GDVars.targetList[j].dist = GDVars.targetList[i].dist) and (auxJ < auxI) and
+  if GameVars.targetCount <= 1 then Exit;
+  for i := 1 to GameVars.targetCount - 1 do
+    for j := i + 1 to GameVars.targetCount do begin
+      auxI := GameVars.targetList[i].dir;
+      auxJ := GameVars.targetList[j].dir;
+      if (GameVars.targetList[j].dist < GameVars.targetList[i].dist) or
+          ((GameVars.targetList[j].dist = GameVars.targetList[i].dist) and (auxJ < auxI) and
            (auxJ mod 2 <= auxI mod 2)) then begin
-        tmp := GDVars.targetList[i];
-        GDVars.targetList[i] := GDVars.targetList[j];
-        GDVars.targetList[j] := tmp;
+        tmp := GameVars.targetList[i];
+        GameVars.targetList[i] := GameVars.targetList[j];
+        GameVars.targetList[j] := tmp;
       end;
     end;
 end;
@@ -270,20 +270,20 @@ begin
       myY[k] := y + dy8;
     end else
       myX[k] := -1;
-  GDVars.targetCount := 0;
-  last := GDVars.arenaCount;
+  GameVars.targetCount := 0;
+  last := GameVars.arenaCount;
   if last > Types.ARENA_SLOTS then
     last := Types.ARENA_SLOTS;
   for i := 1 to last do
-    if GDVars.arenaLoc[i].size > 0 then begin
+    if GameVars.arenaLoc[i].size > 0 then begin
       found := False;
       bestDist := 0;
       bestK := 0;
       bestJ := 0;
       for j := 0 to 3 do
-        if Pathing.GetIconTileDelta(GDVars.arenaLoc[i].size, j, dx8, dy8) then begin
-          tgX[j] := GDVars.arenaLoc[i].x + dx8;
-          tgY[j] := GDVars.arenaLoc[i].y + dy8;
+        if Pathing.GetIconTileDelta(GameVars.arenaLoc[i].size, j, dx8, dy8) then begin
+          tgX[j] := GameVars.arenaLoc[i].x + dx8;
+          tgY[j] := GameVars.arenaLoc[i].y + dy8;
         end else
           tgX[j] := -1;
       for j := 0 to 3 do
@@ -303,16 +303,16 @@ begin
                   end;
               end;
       if found then begin
-        Inc(GDVars.targetCount);
-        GDVars.targetList[GDVars.targetCount].idx := i;
-        GDVars.targetList[GDVars.targetCount].dist := bestDist;
+        Inc(GameVars.targetCount);
+        GameVars.targetList[GameVars.targetCount].idx := i;
+        GameVars.targetList[GameVars.targetCount].dist := bestDist;
         bestDir := 0;
         if filter < C_DIR.CENTER then
           bestDir := filter
         else
           while not Pathing.IsDirToward(myX[bestK], myY[bestK], tgX[bestJ], tgY[bestJ], bestDir) do
             Inc(bestDir);
-        GDVars.targetList[GDVars.targetCount].dir := bestDir;
+        GameVars.targetList[GameVars.targetCount].dir := bestDir;
       end;
     end;
   Pathing.SortTargets;
@@ -333,10 +333,10 @@ procedure TargetArea(x, y: ShortInt; radius: Byte);
 var
   k: Byte;
 begin
-  Pathing.BuildTargetList(x, y, radius, 255, 1, GDVars.arenaPtr);
-  for k := 1 to GDVars.targetCount do
-    GDVars.targetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
-  GDVars.spellTargetCount := GDVars.targetCount;
+  Pathing.BuildTargetList(x, y, radius, 255, 1, GameVars.arenaPtr);
+  for k := 1 to GameVars.targetCount do
+    GameVars.targetCreaturePtr[k] := GameVars.creatureArr[GameVars.targetList[k].idx];
+  GameVars.spellTargetCount := GameVars.targetCount;
 end;
 
 const
@@ -376,7 +376,7 @@ begin
       cy := y + dy;
       if (cx < 0) or (cx > ARENA_LAST_X) or (cy < 0) or (cy > ARENA_LAST_Y) then
         Exit;
-      t := GDVars.arenaPtr^.cells[cy, cx];
+      t := GameVars.arenaPtr^.cells[cy, cx];
       if (t = 0) or (t = avoid) or (GDConsts.terrainInfo[t].cost = WALL_COST) then
         Exit;
       c := occupant(cx, cy);
@@ -423,21 +423,21 @@ begin
   tx := sx;
   ty := sy;
   for s := 1 to Types.ARENA_SLOTS do
-    if (s in goals) and (GDVars.arenaLoc[s].size <> 0) then begin
+    if (s in goals) and (GameVars.arenaLoc[s].size <> 0) then begin
       for i := 0 to 3 do
-        if Pathing.GetIconTileDelta(GDVars.arenaLoc[s].size, i, dx, dy) then
-          for y := GDVars.arenaLoc[s].y + dy - 1 to GDVars.arenaLoc[s].y + dy + 1 do
-            for x := GDVars.arenaLoc[s].x + dx - 1 to GDVars.arenaLoc[s].x + dx + 1 do
+        if Pathing.GetIconTileDelta(GameVars.arenaLoc[s].size, i, dx, dy) then
+          for y := GameVars.arenaLoc[s].y + dy - 1 to GameVars.arenaLoc[s].y + dy + 1 do
+            for x := GameVars.arenaLoc[s].x + dx - 1 to GameVars.arenaLoc[s].x + dx + 1 do
               if (x >= 0) and (x <= ARENA_LAST_X) and (y >= 0) and (y <= ARENA_LAST_Y) then
                 if near[y, x] = 0 then
                   near[y, x] := s;
-      span := Abs(GDVars.arenaLoc[s].x - sx);
-      if Abs(GDVars.arenaLoc[s].y - sy) > span then
-        span := Abs(GDVars.arenaLoc[s].y - sy);
+      span := Abs(GameVars.arenaLoc[s].x - sx);
+      if Abs(GameVars.arenaLoc[s].y - sy) > span then
+        span := Abs(GameVars.arenaLoc[s].y - sy);
       if span < best then begin
         best := span;
-        tx := GDVars.arenaLoc[s].x;
-        ty := GDVars.arenaLoc[s].y;
+        tx := GameVars.arenaLoc[s].x;
+        ty := GameVars.arenaLoc[s].y;
       end;
     end;
   heading := C_DIR.NORTH;
@@ -468,9 +468,9 @@ var
   reached: Byte;
 begin
   RouteStep := False;
-  sx := GDVars.arenaLoc[slot].x;
-  sy := GDVars.arenaLoc[slot].y;
-  size := GDVars.arenaLoc[slot].size;
+  sx := GameVars.arenaLoc[slot].x;
+  sy := GameVars.arenaLoc[slot].y;
+  size := GameVars.arenaLoc[slot].size;
   if size = 0 then
     Exit;
   GetMem(near, SizeOf(TRouteMarks));

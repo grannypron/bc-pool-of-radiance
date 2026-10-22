@@ -44,8 +44,8 @@ procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
 function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, escQuits: Boolean;
   var f: file): Boolean;
 
-{ The drive the game's data is read from: GDVars.gameDir's, or the current drive while GDVars.gameDir is empty (GameInit
-  and the introduction clear it to read their files from the current directory, as SSI's startup disk). }
+{ The drive the game's data is read from: GameVars.gameDir's, or the current drive while GameVars.gameDir is empty
+  (GameInit and the introduction clear it to read their files from the current directory, as SSI's startup disk). }
 function DataDrive: Char;
 
 function FileExists(name: Types.TPathStr): Boolean;
@@ -76,7 +76,7 @@ procedure ResetArchiveCache;
   itself. A load of one of C_DATA's reserved ids always opens fileName (LoadDax). }
 function ArchiveName(fileName: Types.TStr20): Types.TStr20;
 
-{ True when the per-disk archive GDVars.gameDir + fileName + '.DAX' itself, never a merged archive read in its place,
+{ True when the per-disk archive GameVars.gameDir + fileName + '.DAX' itself, never a merged archive read in its place,
   lists block fileID. False, with no prompt, when that file cannot be read. }
 function DiskHasBlock(fileName: Types.TStr20; fileID: Byte): Boolean;
 
@@ -86,7 +86,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GDConsts, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -121,27 +121,27 @@ begin
   GetMem(p, (n + 7) and $FFF8);
 end;
 
-{ Count copies of ch in attr at (col, row) through the BIOS, as the video driver writes them (GDVars.video.WriteChar,
+{ Count copies of ch in attr at (col, row) through the BIOS, as the video driver writes them (GameVars.video.WriteChar,
   which calls BiosWriteChar for each display page it keeps). }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  GDVars.video.WriteChar(col, row, attr, count, ch);
+  GameVars.video.WriteChar(col, row, attr, count, ch);
 end;
 
 { Position the cursor on page (INT 10h AH=2), then write count copies of ch in attr there (AH=9). }
 procedure BiosWriteChar(page, col, row, attr, count, ch: Byte);
 begin
-  GDVars.interruptRegisters.ah := 2;
-  GDVars.interruptRegisters.bh := page;
-  GDVars.interruptRegisters.dh := row;
-  GDVars.interruptRegisters.dl := col;
-  Intr($10, GDVars.interruptRegisters);
-  GDVars.interruptRegisters.ah := 9;
-  GDVars.interruptRegisters.al := ch;
-  GDVars.interruptRegisters.bh := page;
-  GDVars.interruptRegisters.bl := attr;
-  GDVars.interruptRegisters.cx := count;
-  Intr($10, GDVars.interruptRegisters);
+  GameVars.interruptRegisters.ah := 2;
+  GameVars.interruptRegisters.bh := page;
+  GameVars.interruptRegisters.dh := row;
+  GameVars.interruptRegisters.dl := col;
+  Intr($10, GameVars.interruptRegisters);
+  GameVars.interruptRegisters.ah := 9;
+  GameVars.interruptRegisters.al := ch;
+  GameVars.interruptRegisters.bh := page;
+  GameVars.interruptRegisters.bl := attr;
+  GameVars.interruptRegisters.cx := count;
+  Intr($10, GameVars.interruptRegisters);
 end;
 
 { Write each char of source at (col, row) in attr, advancing col. }
@@ -200,7 +200,7 @@ end;
 
 function DataDiskMsg: Types.TStr40;
 begin
-  DataDiskMsg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
+  DataDiskMsg := GDConsts.insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
 procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
@@ -218,8 +218,8 @@ function DataDrive: Char;
 var
   s: String;
 begin
-  if Length(GDVars.gameDir) > 0 then
-    DataDrive := UpCase(GDVars.gameDir[1])
+  if Length(GameVars.gameDir) > 0 then
+    DataDrive := UpCase(GameVars.gameDir[1])
   else begin
     GetDir(0, s);
     DataDrive := UpCase(s[1]);
@@ -341,12 +341,12 @@ end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with DataDiskMsg (Escape quits),
-  unless GDVars.suppressingInsertDiskFlag is set. False, with both handles closed, when the header size cannot be read
+  unless GameVars.suppressingInsertDiskFlag is set. False, with both handles closed, when the header size cannot be read
   or the directory it gives runs past the end of the file, whose scan would never end. }
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
-  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GDVars.suppressingInsertDiskFlag, True, f1) then begin
+  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GameVars.suppressingInsertDiskFlag, True, f1) then begin
     { read-only, as f1 is }
     if not FileUtil.OpenReadOnly(f2, dirName + ext) then begin
       Close(f1);
@@ -398,13 +398,13 @@ begin
     if ok then begin
       Move(data^[i + 1], listed, SizeOf(listed));
       familyDisks[family] := familyDisks[family] or (1 shl (d - 1));
-      ok := DataArc.FileLength(GDVars.gameDir + DataArc.SourceName(family, d) + '.DAX') = listed;
+      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(family, d) + '.DAX') = listed;
     end;
     Inc(i, C_DATA.SOURCE_RECORD);
   end;
   for d := 1 to 8 do
     if ok and not DaxIo.DiskHasSource(family, d) then
-      ok := DataArc.FileLength(GDVars.gameDir + DataArc.SourceName(family, d) + '.DAX') < 0;
+      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(family, d) + '.DAX') < 0;
   SourcesMatch := ok;
 end;
 
@@ -417,7 +417,7 @@ var
 begin
   if familyState[family] = 0 then begin
     familyState[family] := 2;
-    if DataArc.ArchiveIntact(GDVars.gameDir + DataArc.MergedName(family) + '.DAX') then begin
+    if DataArc.ArchiveIntact(GameVars.gameDir + DataArc.MergedName(family) + '.DAX') then begin
       DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_DATA.VERSION_BLOCK, size, data);
       if data <> nil then begin
         if (size >= 1) and (Byte(data^[0]) = C_DATA.VERSION) then begin
@@ -494,16 +494,16 @@ end;
 
 function DiskHasBlock(fileName: Types.TStr20; fileID: Byte): Boolean;
 begin
-  DiskHasBlock := DataArc.HasBlock(GDVars.gameDir + fileName + '.DAX', fileID);
+  DiskHasBlock := DataArc.HasBlock(GameVars.gameDir + fileName + '.DAX', fileID);
 end;
 
-{ Find a DAX block by ID in GDVars.gameDir + fileName + ext, read and decompress it into a new buffer of sizeRead bytes,
-  then release the compressed buffer. A per-disk archive name of a data family whose merged archive is usable reads the
-  merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_DATA's reserved ids),
-  with fileID remapped where that disk's block was stored under another id. Only the bytes actually read are decoded, so
-  a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a compressed size above
-  36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the archive cannot be opened or
-  the ID is absent. }
+{ Find a DAX block by ID in GameVars.gameDir + fileName + ext, read and decompress it into a new buffer of sizeRead
+  bytes, then release the compressed buffer. A per-disk archive name of a data family whose merged archive is usable
+  reads the merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_DATA's
+  reserved ids), with fileID remapped where that disk's block was stored under another id. Only the bytes actually read
+  are decoded, so a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a
+  compressed size above 36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the
+  archive cannot be opened or the ID is absent. }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var
   compSize: Word;
@@ -526,7 +526,7 @@ begin
       fileID := DaxIo.RemapId(family, disk, fileID);
       fileName := DataArc.MergedName(family);
     end;
-  if not DaxIo.OpenDax(GDVars.gameDir + fileName, ext, hdrSize, f1, f2) then begin
+  if not DaxIo.OpenDax(GameVars.gameDir + fileName, ext, hdrSize, f1, f2) then begin
     sizeRead := 0;
     data := nil;
     Exit;
@@ -565,14 +565,14 @@ end;
 { Save the current resource disk and select a new one. }
 procedure PushState(v: Byte);
 begin
-  GDVars.prevVirtualDisk := GDVars.virtualDisk;
-  GDVars.virtualDisk := v;
+  GameVars.prevVirtualDisk := GameVars.virtualDisk;
+  GameVars.virtualDisk := v;
 end;
 
 { Restore the saved resource disk. }
 procedure PopState;
 begin
-  GDVars.virtualDisk := GDVars.prevVirtualDisk;
+  GameVars.virtualDisk := GameVars.prevVirtualDisk;
 end;
 
 begin

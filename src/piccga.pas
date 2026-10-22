@@ -1,5 +1,5 @@
 { The CGA video driver's cold routines, which convert and recolour pictures: run when pictures load, icons are built,
-  the data archives are built, and at start-up, so kept in an overlay. VidCga installs them into GDVars.video (phase 6
+  the data archives are built, and at start-up, so kept in an overlay. VidCga installs them into GameVars.video (phase 6
   of docs/refactor-plan.md). }
 {$O+,F+}
 {$I COMPILER.INC}
@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_VIDEO, GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GDConsts, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -171,9 +171,9 @@ var
 begin
   for i := 0 to 199 do
     if Odd(i) then
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
+      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
     else
-      GDVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
+      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
 end;
 
 end.

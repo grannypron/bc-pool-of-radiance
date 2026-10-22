@@ -7,7 +7,7 @@ program FixMain;
 { Natively SdlHost comes first: its window is open before any other unit's initialization runs. }
 uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types,
   {$IFNDEF FPC}Overlay, {$ENDIF}Crt, Dos,
-  GDConsts, GDVars,
+  GDConsts, GameVars,
   SoundDrv, GameIo, DaxIo, TextRend, Blit, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga, GameBoot,
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,
@@ -82,7 +82,7 @@ begin
   GameInit.GameInit2;
   DataBld.BuildDataFiles;
   { STING skips the introduction }
-  if not GDVars.stingArg then begin
+  if not GameVars.stingArg then begin
     Intro.Introduction;
     { the key that skipped the introduction is not a main-menu choice }
     while KeyPressed do
@@ -97,7 +97,7 @@ begin
     EclVm.GameLoop;
     { F8 on the map menu ends GameLoop to load the quick save, and a load from the training hall's party menu ends it
       loaded; the loop then starts again on the loaded game, as it does after a load from the main menu }
-    while Explore.quickLoadAsked or (GDVars.loadedSave <> 0) do begin
+    while Explore.quickLoadAsked or (GameVars.loadedSave <> 0) do begin
       if Explore.quickLoadAsked then begin
         Explore.quickLoadAsked := False;
         SaveLoad.QuickLoad;

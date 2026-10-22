@@ -1,5 +1,5 @@
 { The EGA video driver's cold routines, which convert and recolour pictures: run when pictures load, icons are built,
-  the data archives are built, and at start-up, so kept in an overlay. VidEga installs them into GDVars.video (phase 6
+  the data archives are built, and at start-up, so kept in an overlay. VidEga installs them into GameVars.video (phase 6
   of docs/refactor-plan.md). }
 {$O+,F+}
 {$I COMPILER.INC}
@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses GDConsts, GDVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses GDConsts, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 var
@@ -189,7 +189,7 @@ var
   i: Byte;
 begin
   for i := 0 to 199 do
-    GDVars.fbRowOfs[i] := i * 40;
+    GameVars.fbRowOfs[i] := i * 40;
 end;
 
 end.

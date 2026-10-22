@@ -6,12 +6,12 @@ unit VidTdy;
 
 interface
 
-{ Make this the video driver: fill GDVars.video. }
+{ Make this the video driver: fill GameVars.video. }
 procedure Install;
 
 implementation
 
-uses Types, C_VIDEO, GDConsts, GDVars, DaxIo, PicTdy;
+uses Types, C_VIDEO, GDConsts, GameVars, DaxIo, PicTdy;
 
 var
   { the four banks from $B800: scanline n in bank n mod 4, 160 bytes a scanline }
@@ -28,11 +28,11 @@ procedure FlushSpans;
 var
   row: Word;
 begin
-  for row := 0 to SizeOf(GDVars.spanActive) - 1 do
-    if GDVars.spanActive[row] <> 0 then
-      Move(GDVars.viewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
-           Mem[GDVars.tandyRowSeg[row + 8]:GDVars.spanScreenOfs[row] + 4],
-           GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
+  for row := 0 to SizeOf(GameVars.spanActive) - 1 do
+    if GameVars.spanActive[row] <> 0 then
+      Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
+           Mem[GameVars.tandyRowSeg[row + 8]:GameVars.spanScreenOfs[row] + 4],
+           GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
 end;
 
 { 4 bytes per 8-pixel cell, a row at a time through the row segments }
@@ -52,7 +52,7 @@ begin
     lastRow := firstRow + height - 1;
     colOff := screenX * 4;
     for row := firstRow to lastRow do begin
-      Move(pic^.data[srcOff], Mem[GDVars.tandyRowSeg[row]:colOff], rowBytes);
+      Move(pic^.data[srcOff], Mem[GameVars.tandyRowSeg[row]:colOff], rowBytes);
       Inc(srcOff, rowBytes);
     end;
   end;
@@ -77,12 +77,12 @@ begin
     for bank := 0 to 3 do begin
       mask := $80;
       for k := 0 to 3 do begin
-        if (GDVars.gameFont^[glyph][dstOff] and mask) > 0 then
+        if (GameVars.gameFont^[glyph][dstOff] and mask) > 0 then
           tandyPx := color shl 4
         else
           tandyPx := 0;
         mask := mask shr 1;
-        if (GDVars.gameFont^[glyph][dstOff] and mask) > 0 then
+        if (GameVars.gameFont^[glyph][dstOff] and mask) > 0 then
           tandyPx := tandyPx or color;
         mask := mask shr 1;
         case bank of
@@ -124,7 +124,7 @@ end;
 
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
-  DaxIo.BiosWriteChar(GDVars.pageMain, col, row, attr, count, ch);
+  DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
@@ -139,7 +139,7 @@ end;
 
 procedure Install;
 begin
-  with GDVars.video do begin
+  with GameVars.video do begin
     name := 'Tandy';
     colours := 16;
     hasPalette := False;

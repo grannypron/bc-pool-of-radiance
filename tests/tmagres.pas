@@ -5,7 +5,7 @@
 {$I COMPILER.INC}
 program TMagRes;
 
-uses Types, C_EFFECT, C_SPELL, C_LEVEL, GDVars, FxEngine, EffHndlr, TestKit;
+uses Types, C_EFFECT, C_SPELL, C_LEVEL, GameVars, FxEngine, EffHndlr, TestKit;
 
 const
   TRIES = 1000;
@@ -24,9 +24,9 @@ var
 begin
   n := 0;
   for i := 1 to TRIES do begin
-    GDVars.pendingEffectId := C_EFFECT.HELPLESS;
+    GameVars.pendingEffectId := C_EFFECT.HELPLESS;
     EffHndlr.EffMagicRes50(target, nil, False);
-    if GDVars.pendingEffectId = 0 then
+    if GameVars.pendingEffectId = 0 then
       Inc(n);
   end;
   Resisted := n;
@@ -38,24 +38,24 @@ begin
   FillChar(caster^, SizeOf(Types.TCharRecord), 0);
   GetMem(target, SizeOf(Types.TCharRecord));
   FillChar(target^, SizeOf(Types.TCharRecord), 0);
-  GDVars.curChar := caster;
-  GDVars.usingItem := False;
-  GDVars.elementMask := 0;
+  GameVars.curChar := caster;
+  GameVars.usingItem := False;
+  GameVars.elementMask := 0;
 
-  GDVars.currentSpellBeing := C_SPELL.MAGIC_MISSILE;
+  GameVars.currentSpellBeing := C_SPELL.MAGIC_MISSILE;
   caster^.classLevels[C_LEVEL.MAGE] := 1;
   TestKit.CheckEqualsL(TRIES, Resisted, '50% against level 11 is 100% against level 1');
   caster^.classLevels[C_LEVEL.MAGE] := 21;
   TestKit.CheckEqualsL(0, Resisted, 'and 0% against level 21');
 
   { no spell (#786) }
-  GDVars.currentSpellBeing := C_SPELL.NONE;
+  GameVars.currentSpellBeing := C_SPELL.NONE;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'an effect that is no spell meets the listed 50%');
   caster^.classLevels[C_LEVEL.MAGE] := 1;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'whatever the creature''s own level');
 
   { a touch's poison or paralysis is no magic (#800); the resistance still meets an effect under the plain check }
-  GDVars.effectFns[C_EFFECT.MAGIC_RES85] := EffHndlr.EffMagicRes85;
+  GameVars.effectFns[C_EFFECT.MAGIC_RES85] := EffHndlr.EffMagicRes85;
   FxEngine.AddEffect(target, C_EFFECT.MAGIC_RES85, 0, 0, False);
   n := 0;
   for i := 1 to TRIES do

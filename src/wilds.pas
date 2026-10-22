@@ -15,7 +15,7 @@ procedure DrawWildWindows;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, Border, MapTiles, TextRend;
+uses Types, Crt, C_MSG, GDConsts, GameVars, Border, MapTiles, TextRend;
 
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
@@ -68,25 +68,25 @@ begin
             (mapY = GDConsts.wildernessSpecialLocations[k].y) then begin
           case k of
             WILD_BUCCANEERS_BASE: begin
-              if GDVars.zone0^.buccaneersBaseGate <> 255 then
+              if GameVars.zone0^.buccaneersBaseGate <> 255 then
                 icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_NOMAD_CAMP: begin
-              if (GDVars.zone0^.nomadCampPresent <> 0) or ((GDVars.zone0^.nomadCampFlags and 8) <> 0)
-                 or (GDVars.zone0^.nomadCampGate = 0) then
+              if (GameVars.zone0^.nomadCampPresent <> 0) or ((GameVars.zone0^.nomadCampFlags and 8) <> 0)
+                 or (GameVars.zone0^.nomadCampGate = 0) then
                 icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_KOBOLD_CAVES: begin
-              if (GDVars.zone0^.easternSitesGate and 2) = 0 then
+              if (GameVars.zone0^.easternSitesGate and 2) = 0 then
                 icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_UNNAMED_SITE: icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
             WILD_LIZARD_MAN_KEEP: begin
-              if (GDVars.zone0^.easternSitesGate and 1) = 0 then
+              if (GameVars.zone0^.easternSitesGate and 1) = 0 then
                 icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_SORCERERS_ISLAND, WILD_PHLAN: begin
-              if GDVars.zone0^.yarashMissionDone > 253 then
+              if GameVars.zone0^.yarashMissionDone > 253 then
                 icon := GDConsts.wildernessSpecialLocations[k].icon - 1;
             end;
           end;

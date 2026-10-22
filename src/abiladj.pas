@@ -4,7 +4,7 @@
   The split follows a rule, not where the code came from.
 
   AbilAdj: an ability score in, a number out.
-  - Its only dependency is Types: no GDVars, no heap and no screen.
+  - Its only dependency is Types: no GameVars, no heap and no screen.
   - That lets combat call it and the tests (TAbilAdj) cover it.
   - Everything added since follows the same rule: the Constitution save bonus, ClampScore, the Deities & Demigods
     ranges above 18, Intelligence's chance to learn a spell, and Wisdom's spell failure.
@@ -12,7 +12,7 @@
   CharHlp: operations on a creature.
   - It applies those numbers to the creature's record (WeaponAdjust, EncumbranceAdjust, RecalcStats).
   - It also handles inventory, damage, effects, teams and scrolls.
-  - It reads GDVars and the effect lists. }
+  - It reads GameVars and the effect lists. }
 {$F+}
 {$I COMPILER.INC}
 unit AbilAdj;

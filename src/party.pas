@@ -1,5 +1,5 @@
-{ The party: which creatures in GDVars.creatureList are its members. Resident and using only GDVars, so units with tests
-  (Stats) can use it. }
+{ The party: which creatures in GameVars.creatureList are its members. Resident and using only GameVars, so units with
+  tests (Stats) can use it. }
 {$F+}
 {$I COMPILER.INC}
 unit Party;
@@ -8,7 +8,7 @@ interface
 
 uses Types;
 
-{ True when creature is one of the party's PARTY_SIZE members, which lead GDVars.creatureList: in combat the monsters
+{ True when creature is one of the party's PARTY_SIZE members, which lead GameVars.creatureList: in combat the monsters
   follow them in the list, and are not members. False for nil. }
 function IsPartyMember(creature: Types.PCharRecord): Boolean;
 
@@ -18,18 +18,18 @@ function IsPartyMember(creature: Types.PCharRecord): Boolean;
   #733). With no current character the step starts from the head (#806). }
 procedure SelectPrevNextChar(c: Char);
 
-{ The last creature in GDVars.creatureList, or nil for an empty list. }
+{ The last creature in GameVars.creatureList, or nil for an empty list. }
 function LastCreature: Types.PCharRecord;
 
-{ The creature before c in GDVars.creatureList, wrapping from the head to the last; nil when c is not in the list. }
+{ The creature before c in GameVars.creatureList, wrapping from the head to the last; nil when c is not in the list. }
 function PrevCreature(c: Types.PCharRecord): Types.PCharRecord;
 
-{ The creature after c in GDVars.creatureList, wrapping from the last to the head. }
+{ The creature after c in GameVars.creatureList, wrapping from the last to the head. }
 function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
 
 implementation
 
-uses GDVars, C_GBVM, C_KEYS;
+uses GameVars, C_GBVM, C_KEYS;
 
 function IsPartyMember(creature: Types.PCharRecord): Boolean;
 var
@@ -38,8 +38,8 @@ var
 begin
   IsPartyMember := False;
   if creature = nil then Exit;
-  p := GDVars.creatureList;
-  n := GDVars.zone1^[C_GBVM.PARTY_SIZE];
+  p := GameVars.creatureList;
+  n := GameVars.zone1^[C_GBVM.PARTY_SIZE];
   while (p <> nil) and (n > 0) do begin
     if p = creature then begin
       IsPartyMember := True;
@@ -56,22 +56,22 @@ var
 begin
   { any other key keeps the current character: SSI's fell back to the first, so a digit, F-key or other extended key in
     a menu that passes them here jumped to the head of the party (#733) }
-  p := GDVars.curChar;
+  p := GameVars.curChar;
   if p = nil then
-    p := GDVars.creatureList;
+    p := GameVars.creatureList;
   if p <> nil then
     case c of
       C_KEYS.HOME, C_KEYS.UP: p := Party.PrevCreature(p);
       C_KEYS.END_KEY, C_KEYS.DOWN: p := Party.NextCreature(p);
     end;
-  GDVars.curChar := p;
+  GameVars.curChar := p;
 end;
 
 function LastCreature: Types.PCharRecord;
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   if p <> nil then
     while p^.nextCharAddr <> nil do
       p := p^.nextCharAddr;
@@ -82,7 +82,7 @@ function PrevCreature(c: Types.PCharRecord): Types.PCharRecord;
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   if p = c then
     p := Party.LastCreature
   else
@@ -96,7 +96,7 @@ begin
   if c^.nextCharAddr <> nil then
     NextCreature := c^.nextCharAddr
   else
-    NextCreature := GDVars.creatureList;
+    NextCreature := GameVars.creatureList;
 end;
 
 end.

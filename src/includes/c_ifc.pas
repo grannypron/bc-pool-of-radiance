@@ -5,7 +5,7 @@ unit C_IFC;
 interface
 
 const
-  { Interface states (GDVars.ifcState) }
+  { Interface states (GameVars.ifcState) }
   { incl. training hall }
   MAIN_MENU = 0;
   SHOP_TEMPLE = 1;

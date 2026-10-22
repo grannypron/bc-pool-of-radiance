@@ -2,7 +2,7 @@
   per-command cleanup. SoundSuspend saves the mode and silences the devices; PlayMusic and StopMusic start and end a
   piece of music; SoundSetAutoStop controls the timer driver's lifetime. The timer stays hooked while a resident window
   (auto-stop 0), a sound command or the music needs it. SOUNDDRV.OBJ owns the timer sequencer, streams and device voice
-  state; GDVars holds the current and saved modes and the auto-stop setting. }
+  state; GameVars holds the current and saved modes and the auto-stop setting. }
 {$F+}
 {$I COMPILER.INC}
 unit SoundDrv;
@@ -75,7 +75,7 @@ procedure SetSoundDevice(mode: Word);
 
 implementation
 
-uses C_SOUND, Dos, GDConsts, GDVars{$IFDEF FPC}, SndSeq{$ENDIF};
+uses C_SOUND, Dos, GDConsts, GameVars{$IFDEF FPC}, SndSeq{$ENDIF};
 
 var
   { the exit procedure SoundDrv.SoundExit hands on to }
@@ -200,10 +200,10 @@ end;
 
 procedure SoundCommand(cmd: Word);
 begin
-  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
-  SoundDrv.SetSoundDevice(GDVars.sound.mode);
+  if GameVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
+  SoundDrv.SetSoundDevice(GameVars.sound.mode);
   if cmd <> CMD_ENABLE then musicTune := 0;
-  if GDVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
+  if GameVars.soundAutoStop > 0 then SoundDrv.InstallSoundTimer;
   case cmd of
     CMD_DISABLE: begin
       SoundDrv.SilenceAll;
@@ -212,10 +212,10 @@ begin
     CMD_ENABLE: SoundDrv.SetSoundOutputEnabled(OUTPUT_ENABLED);
     CMD_STOP: SoundDrv.SilenceAll;
   else
-    GDVars.sound.Play(cmd - 1);
+    GameVars.sound.Play(cmd - 1);
   end;
   { only CMD_ENABLE leaves music playing, and the music keeps the timer }
-  if (GDVars.soundAutoStop > 0) and not SoundDrv.MusicPlaying then begin
+  if (GameVars.soundAutoStop > 0) and not SoundDrv.MusicPlaying then begin
     SoundDrv.SoundDelay(10);
     SoundDrv.SilenceAll;
     SoundDrv.UninstallSoundTimer;
@@ -224,10 +224,10 @@ end;
 
 procedure SoundSuspend;
 begin
-  GDVars.soundSaved := GDVars.soundMode;
-  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
+  GameVars.soundSaved := GameVars.soundMode;
+  if GameVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
   musicTune := 0;
-  SoundDrv.SetSoundDevice(GDVars.sound.mode);
+  SoundDrv.SetSoundDevice(GameVars.sound.mode);
   SoundDrv.InstallSoundTimer;
   SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
   SoundDrv.ProgramTandyVoices(SILENT_TUNE);
@@ -236,30 +236,30 @@ end;
 
 procedure SoundSetAutoStop(autoStop: Word);
 begin
-  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
+  if GameVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
   if autoStop > 0 then begin
-    if (GDVars.soundAutoStop = 0) and not SoundDrv.MusicPlaying then SoundDrv.UninstallSoundTimer;
+    if (GameVars.soundAutoStop = 0) and not SoundDrv.MusicPlaying then SoundDrv.UninstallSoundTimer;
   end else
     SoundDrv.InstallSoundTimer;
-  GDVars.soundAutoStop := autoStop;
+  GameVars.soundAutoStop := autoStop;
 end;
 
 procedure PlayMusic(tune: Word);
 begin
-  if (GDVars.soundMode = C_SOUND.MODE_DISABLED) or (GDVars.musicOn = 0) then Exit;
-  SoundDrv.SetSoundDevice(GDVars.sound.mode);
+  if (GameVars.soundMode = C_SOUND.MODE_DISABLED) or (GameVars.musicOn = 0) then Exit;
+  SoundDrv.SetSoundDevice(GameVars.sound.mode);
   SoundDrv.InstallSoundTimer;
   musicTune := tune;
-  GDVars.sound.Play(tune);
+  GameVars.sound.Play(tune);
 end;
 
 procedure StopMusic;
 begin
   if musicTune = 0 then Exit;
   musicTune := 0;
-  if GDVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
-  GDVars.sound.Play(SILENT_TUNE);
-  if GDVars.soundAutoStop > 0 then SoundDrv.UninstallSoundTimer;
+  if GameVars.soundMode = C_SOUND.MODE_DISABLED then Exit;
+  GameVars.sound.Play(SILENT_TUNE);
+  if GameVars.soundAutoStop > 0 then SoundDrv.UninstallSoundTimer;
 end;
 
 function MusicPlaying: Boolean;

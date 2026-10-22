@@ -7,7 +7,7 @@
 {$I COMPILER.INC}
 program TFxRemov;
 
-uses Types, C_EFFECT, GDVars, CharHlp, AbilAdj, FxEngine, TestKit;
+uses Types, C_EFFECT, GameVars, CharHlp, AbilAdj, FxEngine, TestKit;
 
 { The heap's free bytes. Natively MemAvail is a fixed figure (TpCompat), so the heap's used bytes count instead. }
 function HeapFree: LongInt;
@@ -41,8 +41,8 @@ end;
 { A paralysis ward, as EffNoParalysis is (eff 109): it refuses paralysis under the immunity check. }
 procedure WardsParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.pendingEffectId = C_EFFECT.PARALYSIS then
-    GDVars.pendingEffectId := 0;
+  if GameVars.pendingEffectId = C_EFFECT.PARALYSIS then
+    GameVars.pendingEffectId := 0;
 end;
 {$F-}
 
@@ -62,7 +62,7 @@ begin
   TestKit.Start('TFXREMOV');
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
-  GDVars.effectFns[C_EFFECT.FIGHT_ON] := RemovesItself;
+  GameVars.effectFns[C_EFFECT.FIGHT_ON] := RemovesItself;
   { Fight On second in the list, so the unlink would walk for it; the heap is measured before its node is made, so
     one free brings it back }
   first := NewEffect(C_EFFECT.BLESS, nil);
@@ -94,8 +94,8 @@ begin
   FillChar(victim^, SizeOf(Types.TCharRecord), 0);
   victim^.enabled := 1;
   c^.enabled := 1;
-  GDVars.arenaCount := 1;
-  GDVars.creatureArr[1] := victim;
+  GameVars.arenaCount := 1;
+  GameVars.creatureArr[1] := victim;
   victim^.effectsAddr := NewEffect(C_EFFECT.IMMOBILE, nil);
   victim^.effectsAddr^.onRemove := False;
   hold := NewEffect(C_EFFECT.BITE_HOLD, nil);
@@ -126,7 +126,7 @@ begin
 
   { EffectImmune, the immunity check a paralyzing or poisonous touch now makes too (#767, #720): a ward refuses its
     effect and lets others through }
-  GDVars.effectFns[C_EFFECT.NO_PARALYSIS] := WardsParalysis;
+  GameVars.effectFns[C_EFFECT.NO_PARALYSIS] := WardsParalysis;
   c^.effectsAddr := NewEffect(C_EFFECT.NO_PARALYSIS, nil);
   TestKit.Check(FxEngine.EffectImmune(c, C_EFFECT.PARALYSIS), 'a paralysis ward refuses paralysis');
   TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.POISONED), 'but not poison');

@@ -1,4 +1,4 @@
-{ The dice. Resident, and using only GDVars, so every unit can roll without loading an overlay and tests can fix
+{ The dice. Resident, and using only GameVars, so every unit can roll without loading an overlay and tests can fix
   RandSeed (#642). }
 {$F+}
 {$I COMPILER.INC}
@@ -9,16 +9,16 @@ interface
 { Roll n dice with the given number of sides and return the total (0 when n = 0; the Byte sum wraps past 255). }
 function RollDice(n, sides: Byte): Byte;
 
-{ RollDice that also posts the dice count n to gDamageDice. Does not set GDVars.pendingDamage. }
+{ RollDice that also posts the dice count n to gDamageDice. Does not set GameVars.pendingDamage. }
 function RollDamageDice(n, sides: Byte): Byte;
 
-{ Take perDie off GDVars.pendingDamage for each of the gDamageDice dice rolled, leaving no die below 1: the damage stops
-  at the dice count, and damage already at or below it is left alone. }
+{ Take perDie off GameVars.pendingDamage for each of the gDamageDice dice rolled, leaving no die below 1: the damage
+  stops at the dice count, and damage already at or below it is left alone. }
 procedure ReduceDamagePerDie(perDie: Byte);
 
 implementation
 
-uses GDVars{$IFDEF FPC}, TpRand{$ENDIF};
+uses GameVars{$IFDEF FPC}, TpRand{$ENDIF};
 
 function RollDice(n, sides: Byte): Byte;
 var
@@ -34,17 +34,17 @@ end;
 
 function RollDamageDice(n, sides: Byte): Byte;
 begin
-  GDVars.gDamageDice := n;
+  GameVars.gDamageDice := n;
   RollDamageDice := Dice.RollDice(n, sides);
 end;
 
 procedure ReduceDamagePerDie(perDie: Byte);
 begin
-  if GDVars.pendingDamage > GDVars.gDamageDice then
-    if GDVars.pendingDamage - GDVars.gDamageDice > Word(perDie) * GDVars.gDamageDice then
-      Dec(GDVars.pendingDamage, perDie * GDVars.gDamageDice)
+  if GameVars.pendingDamage > GameVars.gDamageDice then
+    if GameVars.pendingDamage - GameVars.gDamageDice > Word(perDie) * GameVars.gDamageDice then
+      Dec(GameVars.pendingDamage, perDie * GameVars.gDamageDice)
     else
-      GDVars.pendingDamage := GDVars.gDamageDice;
+      GameVars.pendingDamage := GameVars.gDamageDice;
 end;
 
 end.

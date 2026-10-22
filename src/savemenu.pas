@@ -77,7 +77,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_KEYS, StrUtil
+uses Crt, Dos, GameVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_KEYS, StrUtil
   {$IFDEF FPC}, NatFile{$ENDIF};
 
 const
@@ -96,7 +96,7 @@ const
   RIGHT_COL = 37;
   { the save popup's description line }
   POP_DESC_ROW = LIST_TOP + 5;
-  { the bottom line's options, by GDVars.horizChoice }
+  { the bottom line's options, by GameVars.horizChoice }
   OPT_NEXT = 1;
   OPT_PREV = 2;
   OPT_TAKE = 3;
@@ -133,7 +133,7 @@ end;
 
 function SlotFile(letter: Char; ext: Types.TStr8): Types.TPathStr;
 begin
-  SlotFile := GDVars.saveDirectory + SaveMenu.SlotName(letter, ext);
+  SlotFile := GameVars.saveDirectory + SaveMenu.SlotName(letter, ext);
 end;
 
 function MemberName(letter: Char; n: Byte): Types.TStr8;
@@ -163,7 +163,7 @@ var
   s: FileUtil.TFileSet;
   n: Byte;
 begin
-  FileUtil.NewSet(s, GDVars.saveDirectory);
+  FileUtil.NewSet(s, GameVars.saveDirectory);
   { the .dat first, as SaveLoad.SaveToSlot puts it }
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.dat'), False);
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.inf'), False);
@@ -240,9 +240,9 @@ begin
       dates[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day);
     end;
     if not SaveMenu.ReadSlotInfo(letter, descs[i], areas[i]) then begin
-      Seek(f, 1 + Ofs(GDVars.zone0^.previousScriptId) - Ofs(GDVars.zone0^));
+      Seek(f, 1 + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
       BlockRead(f, script, SizeOf(script), n1);
-      Seek(f, 1 + Ofs(GDVars.zone0^.mapId) - Ofs(GDVars.zone0^));
+      Seek(f, 1 + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
       BlockRead(f, map, SizeOf(map), n2);
       if (IOResult = 0) and (n1 = SizeOf(script)) and (n2 = SizeOf(map)) then
         areas[i] := AreaName.AreaFor(Lo(script), map.lo)
@@ -352,7 +352,7 @@ begin
   else
     action := 'Load';
   chosen := ' ';
-  GDVars.horizChoice := OPT_TAKE;
+  GameVars.horizChoice := OPT_TAKE;
   repeat
     MenuCore.extraKeys := listed;
     MenuCore.unmarked := 'E';
@@ -361,7 +361,7 @@ begin
                                   False, ext);
     { Enter takes the bottom line's current option }
     if (not ext) and (ch = C_KEYS.ENTER) then
-      case GDVars.horizChoice of
+      case GameVars.horizChoice of
         OPT_NEXT: ch := 'N';
         OPT_PREV: ch := 'P';
         OPT_TAKE: ch := action[1];
@@ -453,7 +453,7 @@ end;
 
 function SaveDiskMsg: Types.TStr40;
 begin
-  SaveDiskMsg := 'Put save disk in ' + GDVars.saveDirectory[1] + ': (Esc gives up)';
+  SaveDiskMsg := 'Put save disk in ' + GameVars.saveDirectory[1] + ': (Esc gives up)';
 end;
 
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
@@ -467,19 +467,19 @@ var
   i: Byte;
   made: Boolean;
 begin
-  if Length(GDVars.saveDirectory) <= 3 then Exit;
+  if Length(GameVars.saveDirectory) <= 3 then Exit;
   repeat
     { each parent first, from the one below the root; its errors show again in the last MkDir }
-    for i := 4 to Length(GDVars.saveDirectory) - 1 do
-      if GDVars.saveDirectory[i] = '\' then begin
-        MkDir(Copy(GDVars.saveDirectory, 1, i - 1));
+    for i := 4 to Length(GameVars.saveDirectory) - 1 do
+      if GameVars.saveDirectory[i] = '\' then begin
+        MkDir(Copy(GameVars.saveDirectory, 1, i - 1));
         ioRes := IOResult;
       end;
-    MkDir(Copy(GDVars.saveDirectory, 1, Length(GDVars.saveDirectory) - 1));
+    MkDir(Copy(GameVars.saveDirectory, 1, Length(GameVars.saveDirectory) - 1));
     ioRes := IOResult;
     made := (ioRes = 0) or (ioRes = 5);
   until made or not SaveMenu.AskSaveDisk('Cannot create',
-                                         Copy(GDVars.saveDirectory, 1, Length(GDVars.saveDirectory) - 1));
+                                         Copy(GameVars.saveDirectory, 1, Length(GameVars.saveDirectory) - 1));
 end;
 
 end.

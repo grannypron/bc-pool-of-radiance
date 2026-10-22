@@ -19,7 +19,7 @@ procedure JournalMenu;
 
 implementation
 
-uses Crt, Types, C_JRNL, C_KEYS, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
+uses Crt, Types, C_JRNL, C_KEYS, GameVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
@@ -253,7 +253,7 @@ var
   end;
 
 begin
-  savedChoice := GDVars.horizChoice;
+  savedChoice := GameVars.horizChoice;
   sel := 1;
   top := 1;
   shown := 0;
@@ -278,7 +278,7 @@ begin
     if reading and (page > 1) then
       menu := menu + ' Prev';
     menu := menu + ' Exit';
-    GDVars.horizChoice := OptionOf(lastKey);
+    GameVars.horizChoice := OptionOf(lastKey);
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       case ch of
@@ -317,7 +317,7 @@ begin
     end;
   until not ext and (ch in [C_KEYS.NONE, 'E']);
   @MenuCore.idleHook := nil;
-  GDVars.horizChoice := savedChoice;
+  GameVars.horizChoice := savedChoice;
   CharDisp.DisplayNoncombatInterface;
 end;
 

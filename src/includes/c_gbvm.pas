@@ -72,7 +72,7 @@ const
   { saved wall-set symbol slots: base + 1..3 }
   WALLSLOT_SLOT = $4AFC;
   { zone 1 ($6B00 bank: zone1) }
-  { The current character (GDVars.curChar), which EclVars' map reads and writes in place of these cells. }
+  { The current character (GameVars.curChar), which EclVars' map reads and writes in place of these cells. }
   { its name, as a string (a read or write of a string at this address) }
   CHAR_NAME = $6B00;
   { a write of 0 marks the character for removal (with CHAR_ENABLED's 0) }

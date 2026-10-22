@@ -30,9 +30,9 @@ function ReadGameKey: Char;
   Returns #0 for an extended key. }
 function ReadAnyKey: Char;
 
-{ Turn sound on or off, as Ctrl-S does, and keep the Sound setting (GDVars.soundOn) in step. Off sends the stop command
-  and disables soundMode, keeping the device in soundSaved; on restores the device. Without a sound device (POOL.CFG
-  names none) nothing changes. }
+{ Turn sound on or off, as Ctrl-S does, and keep the Sound setting (GameVars.soundOn) in step. Off sends the stop
+  command and disables soundMode, keeping the device in soundSaved; on restores the device. Without a sound device
+  (POOL.CFG names none) nothing changes. }
 procedure SetSound(turnOn: Boolean);
 
 { If input is pending, call ReadAnyKey once and discard its result. That call may consume several bytes; an extended
@@ -43,14 +43,14 @@ procedure DiscardPendingKeys;
   through the BIOS and exit to DOS. }
 procedure ExitGame;
 
-{ Quit on an error the game cannot go on from: the text mode the game started in (GDVars.savedVideoMode, set directly,
+{ Quit on an error the game cannot go on from: the text mode the game started in (GameVars.savedVideoMode, set directly,
   not through Blit.RestoreVideoMode, which would swap it with the game's mode), msg, a key, then ExitGame, which leaves
   DOS in that text mode (#641). }
 procedure FatalError(msg: String);
 
 implementation
 
-uses C_SOUND, GDConsts, GDVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses C_SOUND, GDConsts, GameVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { showMemory is up: its own key waits do not open it again }
@@ -60,13 +60,13 @@ var
 
 procedure ExitGame;
 begin
-  if GDVars.debugTraceEnabled then
-    Close(GDVars.debugFile);
-  GDVars.soundMode := GDVars.soundSaved;
+  if GameVars.debugTraceEnabled then
+    Close(GameVars.debugFile);
+  GameVars.soundMode := GameVars.soundSaved;
   SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
-  GDVars.interruptRegisters.ah := 0;
-  GDVars.interruptRegisters.al := GDVars.savedVideoMode;
-  Intr($10, GDVars.interruptRegisters);
+  GameVars.interruptRegisters.ah := 0;
+  GameVars.interruptRegisters.al := GameVars.savedVideoMode;
+  Intr($10, GameVars.interruptRegisters);
   Halt(0);
 end;
 
@@ -74,9 +74,9 @@ procedure FatalError(msg: String);
 var
   key: Char;
 begin
-  GDVars.interruptRegisters.ah := 0;
-  GDVars.interruptRegisters.al := GDVars.savedVideoMode;
-  Intr($10, GDVars.interruptRegisters);
+  GameVars.interruptRegisters.ah := 0;
+  GameVars.interruptRegisters.al := GameVars.savedVideoMode;
+  Intr($10, GameVars.interruptRegisters);
   WriteLn(msg);
   key := GameIo.ReadAnyKey;
   GameIo.ExitGame;
@@ -88,11 +88,11 @@ var
   p: Types.PCharRecord;
   e: Types.PEffectRec;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     e := p^.effectsAddr;
     while e <> nil do begin
-      WriteLn(GDVars.debugFile, 'who: ', p^.name, '  sp#: ', e^.id);
+      WriteLn(GameVars.debugFile, 'who: ', p^.name, '  sp#: ', e^.id);
       e := e^.next;
     end;
     p := p^.nextCharAddr;
@@ -128,27 +128,27 @@ begin
   scanPending := (key = #0) and KeyPressed;
   { Ctrl-S toggles sound }
   if key = #19 then begin
-    GameIo.SetSound(GDVars.soundMode = C_SOUND.MODE_DISABLED);
+    GameIo.SetSound(GameVars.soundMode = C_SOUND.MODE_DISABLED);
     if @saveSettings <> nil then
       saveSettings;
   end;
-  if GDVars.stingArg then begin
-    if key = #4 then GDVars.stingHpFlag := Ord(GDVars.stingHpFlag = 0);
+  if GameVars.stingArg then begin
+    if key = #4 then GameVars.stingHpFlag := Ord(GameVars.stingHpFlag = 0);
     if key = #3 then GameIo.ExitGame;
     { Ctrl-L: the script trace log, Curse's Ctrl-D (here Ctrl-D stays the hit-point pop-up) }
     if key = #12 then begin
-      GDVars.debugTraceEnabled := not GDVars.debugTraceEnabled;
-      if GDVars.debugTraceEnabled then begin
-        Assign(GDVars.debugFile, 'debug.txt');
+      GameVars.debugTraceEnabled := not GameVars.debugTraceEnabled;
+      if GameVars.debugTraceEnabled then begin
+        Assign(GameVars.debugFile, 'debug.txt');
         {$I-}
-        Rewrite(GDVars.debugFile);
+        Rewrite(GameVars.debugFile);
         {$I+}
         if IOResult <> 0 then
-          GDVars.debugTraceEnabled := False;
+          GameVars.debugTraceEnabled := False;
       end else
-        Close(GDVars.debugFile);
+        Close(GameVars.debugFile);
     end;
-    if (key = #26) and GDVars.debugTraceEnabled then
+    if (key = #26) and GameVars.debugTraceEnabled then
       GameIo.DumpEffects;
     if (key = #25) and not memShown and (@showMemory <> nil) then begin
       memShown := True;
@@ -176,17 +176,17 @@ end;
 
 procedure SetSound(turnOn: Boolean);
 begin
-  if GDVars.sound.mode = C_SOUND.MODE_DISABLED then Exit;
+  if GameVars.sound.mode = C_SOUND.MODE_DISABLED then Exit;
   if not turnOn then begin
-    if GDVars.soundMode <> C_SOUND.MODE_DISABLED then begin
+    if GameVars.soundMode <> C_SOUND.MODE_DISABLED then begin
       SoundDrv.SoundCommand(GDConsts.soundIds.commands[0]);
-      GDVars.soundMode := C_SOUND.MODE_DISABLED;
+      GameVars.soundMode := C_SOUND.MODE_DISABLED;
     end;
-  end else if GDVars.soundMode = C_SOUND.MODE_DISABLED then begin
-    GDVars.soundMode := GDVars.soundSaved;
+  end else if GameVars.soundMode = C_SOUND.MODE_DISABLED then begin
+    GameVars.soundMode := GameVars.soundSaved;
     SoundDrv.SoundSuspend;
   end;
-  GDVars.soundOn := Ord(turnOn);
+  GameVars.soundOn := Ord(turnOn);
 end;
 
 procedure DiscardPendingKeys;

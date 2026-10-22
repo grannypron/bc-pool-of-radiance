@@ -9,12 +9,12 @@ unit SndDig;
 
 interface
 
-{ Make this the sound driver: fill GDVars.sound. }
+{ Make this the sound driver: fill GameVars.sound. }
 procedure Install;
 
 implementation
 
-uses Types, C_SOUND, GDVars, FileUtil, SoundDrv, SndChip;
+uses Types, C_SOUND, GameVars, FileUtil, SoundDrv, SndChip;
 
 const
   EFFECTS_FILE = 'SBSFX.DAT';
@@ -110,7 +110,7 @@ var
 begin
   loadTried := True;
   FillChar(effects, SizeOf(effects), 0);
-  if not FileUtil.OpenReadOnly(f, GDVars.gameDir + EFFECTS_FILE) then Exit;
+  if not FileUtil.OpenReadOnly(f, GameVars.gameDir + EFFECTS_FILE) then Exit;
   size := FileSize(f);
   if (IOResult <> 0) or (size < HEADER_BYTES) or (size > $FFF0) then begin
     Close(f);
@@ -175,11 +175,11 @@ end;
 
 procedure Install;
 begin
-  GDVars.sound.name := 'Digital Audio';
-  GDVars.sound.mode := C_SOUND.MODE_TANDY;
-  GDVars.sound.Play := SndDig.Play;
+  GameVars.sound.name := 'Digital Audio';
+  GameVars.sound.mode := C_SOUND.MODE_TANDY;
+  GameVars.sound.Play := SndDig.Play;
   { the recorded step plays once a step, as the Sound Blaster's does (POR-0170) }
-  GDVars.sound.singleStep := True;
+  GameVars.sound.singleStep := True;
 end;
 
 begin

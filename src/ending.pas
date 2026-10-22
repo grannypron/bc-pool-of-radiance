@@ -11,7 +11,7 @@ procedure YarashComplete(animate: Boolean);
 
 implementation
 
-uses Types, Crt, C_TILE, C_MSG, GDConsts, GDVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
+uses Types, Crt, C_TILE, C_MSG, GDConsts, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
   MapTiles;
 
 var
@@ -38,13 +38,13 @@ begin
     Portrait.FreeAnimation(a);
     Exit;
   end;
-  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GameVars.viewImageBufferPtr);
   Blit.FlushView;
   repeat
     Portrait.DisplayImageBuf(col, row, True, a.frames[a.current].pic);
     tickNow := TextRend.GetTicks;
     { the tick count restarts at midnight }
-    if (tickNow - tickLast > a.frames[a.current].time * (GDVars.gameDelay + 3)) or (tickNow < tickLast) then begin
+    if (tickNow - tickLast > a.frames[a.current].time * (GameVars.gameDelay + 3)) or (tickNow < tickLast) then begin
       Inc(a.current);
       if a.current > a.count then begin
         a.current := 1;
@@ -62,9 +62,9 @@ end;
   then the saved state is restored and the non-combat interface redrawn. }
 procedure WinGame;
 begin
-  Str(GDVars.virtualDisk, finalSfx);
-  savedIfc := GDVars.ifcState;
-  GDVars.ifcState := C_IFC.WON_GAME;
+  Str(GameVars.virtualDisk, finalSfx);
+  savedIfc := GameVars.ifcState;
+  GameVars.ifcState := C_IFC.WON_GAME;
   finalPic := nil;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, 'Mortally wounded, the dragon roars!');
@@ -72,21 +72,21 @@ begin
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
   CharDisp.DisplayNoncombatInterface;
   Blit.LoadPic('FINAL' + finalSfx, 1, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.viewImageBufferPtr);
-  Ending.PlayFinalAnim(3, 5, 2, Word(10 - GDVars.gameDelay) * 5 div 2);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+  Ending.PlayFinalAnim(3, 5, 2, Word(10 - GameVars.gameDelay) * 5 div 2);
   Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.viewImageBufferPtr);
-  if GDVars.zone1^[C_GBVM.PARTY_SIZE] > 1 then begin
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 1 then begin
     Blit.LoadPic('FINAL' + finalSfx, 4, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GDVars.viewImageBufferPtr);
+    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   end;
-  if GDVars.zone1^[C_GBVM.PARTY_SIZE] > 2 then begin
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 2 then begin
     Blit.LoadPic('FINAL' + finalSfx, 5, False, 0, finalPic);
-    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
+    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   end;
-  if GDVars.zone1^[C_GBVM.PARTY_SIZE] > 3 then begin
+  if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 3 then begin
     Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
+    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   end;
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');
@@ -95,7 +95,7 @@ begin
   TextRend.DisplayString(1, 20, LightGreen, 'which I moved here, to my lair,');
   TextRend.DisplayString(1, 21, LightGreen, 'I will still rule, by possessing one');
   TextRend.DisplayString(1, 22, LightGreen, 'of you!"');
-  Ending.PlayFinalAnim(3, 1, 7, Word(10 - GDVars.gameDelay) * 5 div 2);
+  Ending.PlayFinalAnim(3, 1, 7, Word(10 - GameVars.gameDelay) * 5 div 2);
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"No Lord Bane!  I can still rule here!');
   TextRend.DisplayString(1, 18, LightGreen, 'I have not failed.  Do not call me back');
@@ -107,7 +107,7 @@ begin
   TextRend.PauseOnly;
   { the game goes on after the ending }
   Blit.FreePic(finalPic);
-  GDVars.ifcState := savedIfc;
+  GameVars.ifcState := savedIfc;
   CharDisp.DisplayNoncombatInterface;
 end;
 
@@ -132,7 +132,7 @@ begin
                         MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], True,
-                        GDVars.mapTilePtr);
+                        GameVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
         if GDConsts.yarGreenTiles[t] > C_TILE.ID_MASK then
@@ -140,7 +140,7 @@ begin
                         MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], True,
-                        GDVars.mapTilePtr);
+                        GameVars.mapTilePtr);
       Wilds.BuildWildernessMap(GDConsts.yarViewX[step], GDConsts.yarViewY[step]);
       Blit.FlushView;
     end;
@@ -153,7 +153,7 @@ begin
                     MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], False,
-                    GDVars.mapTilePtr);
+                    GameVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
     if GDConsts.yarGreenTiles[t] > C_TILE.ID_MASK then
@@ -161,7 +161,7 @@ begin
                     False, MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], False,
-                    GDVars.mapTilePtr);
+                    GameVars.mapTilePtr);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);
     Blit.FlushView;

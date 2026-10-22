@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
+uses Types, Crt, C_MSG, GDConsts, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -107,7 +107,7 @@ procedure ResetPartySpellActivities;
 var
   p: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     Camp.ResetMemorize(p);
     Camp.ResetScribe(p);
@@ -124,8 +124,8 @@ var
   id: Byte;
 begin
   count := 0;
-  for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do begin
-    id := GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
+  for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do begin
+    id := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
     if (id >= 1) and (id <= SizeOf(GDConsts.spellTable) div SizeOf(GDConsts.spellTable[1])) then
       if (GDConsts.spellTable[id].levelSp = lvl) and (GDConsts.spellTable[id].castClassSp = typ) then
         Inc(count);
@@ -140,11 +140,11 @@ var
   i: Byte;
 begin
   i := 0;
-  while (i < SizeOf(GDVars.curChar^.memorizedSpells)) and (GDVars.curChar^.memorizedSpells[i] <> 0) do
+  while (i < SizeOf(GameVars.curChar^.memorizedSpells)) and (GameVars.curChar^.memorizedSpells[i] <> 0) do
     Inc(i);
-  placed := i < SizeOf(GDVars.curChar^.memorizedSpells);
+  placed := i < SizeOf(GameVars.curChar^.memorizedSpells);
   if placed then
-    GDVars.curChar^.memorizedSpells[i] := id + C_SPELL.PENDING_FLAG;
+    GameVars.curChar^.memorizedSpells[i] := id + C_SPELL.PENDING_FLAG;
 end;
 
 { Return the current character's spell allowance for a class and level minus its memorized and pending spells of that
@@ -154,10 +154,10 @@ var
   count: Byte;
 begin
   count := Camp.SlotsUsed(lvl, typ);
-  if count >= GDVars.curChar^.slots[typ, lvl] then
+  if count >= GameVars.curChar^.slots[typ, lvl] then
     SpellSlotsRemaining := 0
   else
-    SpellSlotsRemaining := GDVars.curChar^.slots[typ, lvl] - count;
+    SpellSlotsRemaining := GameVars.curChar^.slots[typ, lvl] - count;
 end;
 
 { Check whether the current character can cast, memorize or scribe. Anti-magic blocks casting; animated or disabled
@@ -168,9 +168,9 @@ var
   msg: Types.TStr40;
 begin
   msg := '';
-  if (activity = ACT_CAST) and (GDVars.zone0^.antimagic > 0) then
+  if (activity = ACT_CAST) and (GameVars.zone0^.antimagic > 0) then
     msg := 'cannot cast spells in this area'
-  else if (GDVars.curChar^.status = C_STATUS.ANIMATED) or (GDVars.curChar^.enabled = 0) then begin
+  else if (GameVars.curChar^.status = C_STATUS.ANIMATED) or (GameVars.curChar^.enabled = 0) then begin
     msg := 'is in no condition to ';
     case activity of
       ACT_CAST: msg := msg + 'cast any spells';
@@ -182,7 +182,7 @@ begin
     CanDoSpellActivity := True
   else begin
     CanDoSpellActivity := False;
-    CharDisp.PrintNameString(GDVars.curChar, msg, 10, False);
+    CharDisp.PrintNameString(GameVars.curChar, msg, 10, False);
   end;
 end;
 
@@ -193,11 +193,11 @@ procedure SelectOtherChar(c: Char);
 var
   was: Types.PCharRecord;
 begin
-  was := GDVars.curChar;
+  was := GameVars.curChar;
   Party.SelectPrevNextChar(c);
-  if GDVars.curChar <> was then
+  if GameVars.curChar <> was then
     CharDisp.ClearMessageWindow;
-  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GameVars.curChar);
 end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
@@ -218,7 +218,7 @@ var
 begin
   redraw := False;
   idx := -1;
-  GDVars.castTarget := nil;
+  GameVars.castTarget := nil;
   if Camp.CanDoSpellActivity(ACT_CAST) then begin
     repeat
       spellId := Magic.CastSpellMenu(idx, notEmpty, scroll);
@@ -229,7 +229,7 @@ begin
         if scroll = nil then
           Magic.CastSpellNC(spellId, False, True, castSel)
         else begin
-          caster := GDVars.curChar;
+          caster := GameVars.curChar;
           Magic.UseItemSpell(scroll, spellId, True, castSel);
           { recount the items and their weight, as Items > Use does: the scroll may be gone }
           CharHlp.RecalcStats(caster);
@@ -239,7 +239,7 @@ begin
         if notEmpty then
           redraw := True
         else
-          CharDisp.PrintNameString(GDVars.curChar, 'has no spells memorized', 10, True);
+          CharDisp.PrintNameString(GameVars.curChar, 'has no spells memorized', 10, True);
       end;
     until spellId = C_SPELL.NONE;
   end;
@@ -265,7 +265,7 @@ begin
     canDo[typ] := 0;
     for lvl := 1 to 3 do begin
       slotStr[lvl, typ] := StrUtil.NumStr(Camp.SpellSlotsRemaining(lvl, typ));
-      if GDVars.curChar^.slots[typ, lvl] = 0 then
+      if GameVars.curChar^.slots[typ, lvl] = 0 then
         slotStr[lvl, typ] := ' '
       else begin
         canDo[typ] := 1;
@@ -274,7 +274,7 @@ begin
     end;
   end;
   if any then begin
-    CharDisp.PrintNameString(GDVars.curChar, 'can memorize:', 10, False);
+    CharDisp.PrintNameString(GameVars.curChar, 'can memorize:', 10, False);
     row := 3;
     for typ := 0 to 1 do begin
       if canDo[typ] <> 0 then begin
@@ -304,15 +304,15 @@ var
   t: Word;
 begin
   total := 0;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while p <> nil do begin
     t := Camp.CampSpellPrepTime(p);
     if total < t then total := t;
     p := p^.nextCharAddr;
   end;
-  Clock.SetFromMinutes(GDVars.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameVars.restingTimeGbvm, total);
   interrupted := GameTime.CampRest(True);
-  FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
+  FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
   CharDisp.PrintMiscInfo;
 end;
 
@@ -323,13 +323,13 @@ var
   j: Byte;
   tmp: Byte;
 begin
-  for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 2 do
-    for j := i to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do
-      if (GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK) > (GDVars.curChar^.memorizedSpells[j] and
-                                                                     C_SPELL.ID_MASK) then begin
-        tmp := GDVars.curChar^.memorizedSpells[i];
-        GDVars.curChar^.memorizedSpells[i] := GDVars.curChar^.memorizedSpells[j];
-        GDVars.curChar^.memorizedSpells[j] := tmp;
+  for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 2 do
+    for j := i to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do
+      if (GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK) > (GameVars.curChar^.memorizedSpells[j] and
+                                                                       C_SPELL.ID_MASK) then begin
+        tmp := GameVars.curChar^.memorizedSpells[i];
+        GameVars.curChar^.memorizedSpells[i] := GameVars.curChar^.memorizedSpells[j];
+        GameVars.curChar^.memorizedSpells[j] := tmp;
       end;
 end;
 
@@ -340,8 +340,8 @@ var
   i: Byte;
 begin
   for i := 0 to SizeOf(spells) - 1 do
-    spells[i] := GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
-  UsualSpl.SetUsualSpells(GDVars.curChar, spells);
+    spells[i] := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
+  UsualSpl.SetUsualSpells(GameVars.curChar, spells);
 end;
 
 { True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it bounds the
@@ -350,7 +350,7 @@ function SlotFree(lvl, typ: ShortInt): Boolean;
 begin
   SlotFree := False;
   if (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1) then
-    SlotFree := Camp.SlotsUsed(lvl, typ) < GDVars.curChar^.slots[typ, lvl];
+    SlotFree := Camp.SlotsUsed(lvl, typ) < GameVars.curChar^.slots[typ, lvl];
 end;
 
 { Mark as pending each of the current character's usual spells that it lacks, still knows and has a free slot for, in
@@ -365,12 +365,12 @@ var
   found: Boolean;
   placed: Boolean;
 begin
-  if UsualSpl.GetUsualSpells(GDVars.curChar, usual) then begin
+  if UsualSpl.GetUsualSpells(GameVars.curChar, usual) then begin
     for i := 0 to SizeOf(have) - 1 do
-      have[i] := GDVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
+      have[i] := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
     for i := 0 to SizeOf(usual) - 1 do begin
       id := usual[i];
-      if (id > 0) and (id <= SizeOf(GDVars.curChar^.spellsKnown)) then begin
+      if (id > 0) and (id <= SizeOf(GameVars.curChar^.spellsKnown)) then begin
         { a copy already memorized or pending covers this one }
         found := False;
         for j := 0 to SizeOf(have) - 1 do
@@ -378,7 +378,7 @@ begin
             have[j] := 0;
             found := True;
           end;
-        if (not found) and (GDVars.curChar^.spellsKnown[id] <> 0) then
+        if (not found) and (GameVars.curChar^.spellsKnown[id] <> 0) then
           if Camp.SlotFree(GDConsts.spellTable[id].levelSp, GDConsts.spellTable[id].castClassSp) then
             Camp.PutPending(id, placed);
       end;
@@ -405,8 +405,8 @@ begin
   if Camp.CanDoSpellActivity(ACT_MEMORIZE) then begin
     done := False;
     pending := False;
-    for i := 0 to SizeOf(GDVars.curChar^.memorizedSpells) - 1 do
-      if GDVars.curChar^.memorizedSpells[i] > C_SPELL.ID_MASK then
+    for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do
+      if GameVars.curChar^.memorizedSpells[i] > C_SPELL.ID_MASK then
         pending := True;
     if not pending then
       Camp.QueueUsualSpells;
@@ -415,7 +415,7 @@ begin
     redraw := True;
     if notEmpty then begin
       if MenuCore.YesNoMenu('Memorize These Spells? ', Yellow, LightGreen, White) = 'N' then
-        Camp.ResetMemorize(GDVars.curChar)
+        Camp.ResetMemorize(GameVars.curChar)
       else begin
         Camp.RememberUsualSpells;
         done := True;
@@ -426,7 +426,7 @@ begin
     while done = False do begin
       done := Camp.DisplaySpellSlots = False;
       if done then
-        CharDisp.PrintNameString(GDVars.curChar, 'cannot memorize any spells', 10, True)
+        CharDisp.PrintNameString(GameVars.curChar, 'cannot memorize any spells', 10, True)
       else begin
         spellId := Magic.SpellMenu(1, 2, idx, notEmpty);
         redraw := True;
@@ -447,7 +447,7 @@ begin
       spellId := Magic.SpellMenu(5, 5, idx, notEmpty);
       if notEmpty then
         if MenuCore.YesNoMenu('Memorize these spells? ', Yellow, LightGreen, White) = 'N' then
-          Camp.ResetMemorize(GDVars.curChar)
+          Camp.ResetMemorize(GameVars.curChar)
         else
           Camp.RememberUsualSpells;
     end;
@@ -474,7 +474,7 @@ var
 begin
   if not Camp.CanDoSpellActivity(ACT_SCRIBE) then
     Exit;
-  if GDVars.curChar^.classLevels[C_LEVEL.MAGE] <= 0 then begin
+  if GameVars.curChar^.classLevels[C_LEVEL.MAGE] <= 0 then begin
     CharDisp.PrintMessage('Scribing a scroll requires arcane training.')
   end else begin
     done := False;
@@ -483,7 +483,7 @@ begin
     redraw := True;
     if notEmpty then begin
       if MenuCore.YesNoMenu('Scribe These Spells? ', Yellow, LightGreen, White) = 'N' then
-        Camp.ResetScribe(GDVars.curChar)
+        Camp.ResetScribe(GameVars.curChar)
       else
         done := True;
     end else
@@ -494,10 +494,10 @@ begin
       if spellId = C_SPELL.NONE then begin
         done := True;
         if notEmpty = False then
-          CharDisp.PrintNameString(GDVars.curChar, 'has no copyable scrolls.', 10, True)
+          CharDisp.PrintNameString(GameVars.curChar, 'has no copyable scrolls.', 10, True)
         else
           redraw := True;
-      end else if (spellId > SizeOf(GDVars.curChar^.spellsKnown)) or (GDConsts.spellTable[spellId].levelSp < 1) or
+      end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or (GDConsts.spellTable[spellId].levelSp < 1) or
           (GDConsts.spellTable[spellId].levelSp > 3) or (GDConsts.spellTable[spellId].castClassSp < 0) or
           (GDConsts.spellTable[spellId].castClassSp > 1) then begin
         { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
@@ -505,10 +505,10 @@ begin
         CharDisp.PrintBottomLine('You can not scribe that spell.');
       end else begin
         redraw := True;
-        if GDVars.curChar^.spellsKnown[spellId] <> 0 then
+        if GameVars.curChar^.spellsKnown[spellId] <> 0 then
           CharDisp.PrintBottomLine('You already know that spell.')
         else begin
-          p := GDVars.curChar^.itemsAddr;
+          p := GameVars.curChar^.itemsAddr;
           found := False;
           while (p <> nil) and (found = False) do begin
             if CharHlp.ItemReadable(p) then
@@ -521,10 +521,10 @@ begin
             p := p^.next;
           end;
           if found = False then begin
-            if GDVars.curChar^.slots[GDConsts.spellTable[spellId].castClassSp,
+            if GameVars.curChar^.slots[GDConsts.spellTable[spellId].castClassSp,
                                        GDConsts.spellTable[spellId].levelSp] > 0
             then begin
-              p := GDVars.curChar^.itemsAddr;
+              p := GameVars.curChar^.itemsAddr;
               while (p <> nil) and (found = False) do begin
                 if CharHlp.ItemReadable(p) then begin
                   i := 1;
@@ -549,7 +549,7 @@ begin
       spellId := Magic.SpellMenu(6, 0, idx, notEmpty);
       if notEmpty then
         if MenuCore.YesNoMenu('Scribe these spells? ', Yellow, LightGreen, White) = 'N' then
-          Camp.ResetScribe(GDVars.curChar);
+          Camp.ResetScribe(GameVars.curChar);
     end;
     if redraw then
       CharDisp.DisplayNoncombatInterface;
@@ -581,7 +581,7 @@ begin
   cur^.inUse := 0;
   cur^.name := ' ';
   cur^.next := nil;
-  ch := GDVars.creatureList;
+  ch := GameVars.creatureList;
   while ch <> nil do begin
     cnt := 0;
     MenuCore.AppendMenuLine(head, cur, ch^.name, True);
@@ -679,30 +679,30 @@ var
   p: Types.PCharRecord;
   savedNext: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   prev := nil;
-  if p = GDVars.curChar then
+  if p = GameVars.curChar then
     p := Party.LastCreature
   else
-    while p^.nextCharAddr <> GDVars.curChar do begin
+    while p^.nextCharAddr <> GameVars.curChar do begin
       prev := p;
       p := p^.nextCharAddr;
     end;
-  savedNext := GDVars.curChar^.nextCharAddr;
-  if GDVars.creatureList = GDVars.curChar then begin
+  savedNext := GameVars.curChar^.nextCharAddr;
+  if GameVars.creatureList = GameVars.curChar then begin
     { first -> last (p walked to the tail above) }
     if savedNext <> nil then
-      GDVars.creatureList := savedNext;
-    p^.nextCharAddr := GDVars.curChar;
-    GDVars.curChar^.nextCharAddr := nil;
+      GameVars.creatureList := savedNext;
+    p^.nextCharAddr := GameVars.curChar;
+    GameVars.curChar^.nextCharAddr := nil;
   end else begin
     { p = predecessor: unlink and reinsert one earlier }
     p^.nextCharAddr := savedNext;
-    GDVars.curChar^.nextCharAddr := p;
-    if (p = GDVars.creatureList) or (prev = nil) then
-      GDVars.creatureList := GDVars.curChar
+    GameVars.curChar^.nextCharAddr := p;
+    if (p = GameVars.creatureList) or (prev = nil) then
+      GameVars.creatureList := GameVars.curChar
     else
-      prev^.nextCharAddr := GDVars.curChar;
+      prev^.nextCharAddr := GameVars.curChar;
   end;
 end;
 
@@ -712,22 +712,22 @@ var
   p: Types.PCharRecord;
   next: Types.PCharRecord;
 begin
-  p := GDVars.creatureList;
-  if p <> GDVars.curChar then
-    while p^.nextCharAddr <> GDVars.curChar do
+  p := GameVars.creatureList;
+  if p <> GameVars.curChar then
+    while p^.nextCharAddr <> GameVars.curChar do
       p := p^.nextCharAddr;
-  next := GDVars.curChar^.nextCharAddr;
+  next := GameVars.curChar^.nextCharAddr;
   if next = nil then begin
-    GDVars.curChar^.nextCharAddr := GDVars.creatureList;
-    GDVars.creatureList := GDVars.curChar;
+    GameVars.curChar^.nextCharAddr := GameVars.creatureList;
+    GameVars.creatureList := GameVars.curChar;
     p^.nextCharAddr := next;
   end else begin
-    GDVars.curChar^.nextCharAddr := next^.nextCharAddr;
-    if GDVars.creatureList = GDVars.curChar then
-      GDVars.creatureList := next;
-    if p <> GDVars.curChar then
+    GameVars.curChar^.nextCharAddr := next^.nextCharAddr;
+    if GameVars.creatureList = GameVars.curChar then
+      GameVars.creatureList := next;
+    if p <> GameVars.curChar then
       p^.nextCharAddr := next;
-    next^.nextCharAddr := GDVars.curChar;
+    next^.nextCharAddr := GameVars.curChar;
   end;
 end;
 
@@ -752,13 +752,13 @@ begin
           C_KEYS.HOME, C_KEYS.UP: Camp.OrderMoveUp;
           C_KEYS.END_KEY, C_KEYS.DOWN: Camp.OrderMoveDown;
         end;
-        CharDisp.DisplayParty(GDVars.curChar);
+        CharDisp.DisplayParty(GameVars.curChar);
       end;
     end else
       if c in ['P', 'S'] then begin
         selected := Ord(selected = 0);
         if selected <> 0 then
-          CharDisp.PrintNameString(GDVars.curChar, 'has been selected', 10, False)
+          CharDisp.PrintNameString(GameVars.curChar, 'has been selected', 10, False)
         else
           CharDisp.ClearMessageWindow;
       end;
@@ -769,7 +769,7 @@ end;
   clear the roster panel and redraw the party. For the last party member, offer to quit to DOS instead. }
 procedure CampDropMenu;
 begin
-  if (GDVars.curChar^.nextCharAddr = nil) and (GDVars.curChar = GDVars.creatureList) then begin
+  if (GameVars.curChar^.nextCharAddr = nil) and (GameVars.curChar = GameVars.creatureList) then begin
     { last member: quit-to-DOS confirm }
     if MenuCore.YesNoMenu('quit TO DOS: ', Yellow, LightGreen, White) = 'Y' then begin
       SaveLoad.RemoveCreature(False, True);
@@ -777,17 +777,17 @@ begin
     end;
     Exit;
   end;
-  CharDisp.PrintNameString(GDVars.curChar, 'will be gone', 10, False);
+  CharDisp.PrintNameString(GameVars.curChar, 'will be gone', 10, False);
   if MenuCore.YesNoMenu('Drop from party? ', Yellow, LightGreen, White) = 'Y' then begin
-    if GDVars.curChar^.enabled <> 0 then
-      CharDisp.PrintNameString(GDVars.curChar, 'bids you farewell.', 10, True)
+    if GameVars.curChar^.enabled <> 0 then
+      CharDisp.PrintNameString(GameVars.curChar, 'bids you farewell.', 10, True)
     else
-      CharDisp.PrintNameString(GDVars.curChar, 'is dumped in a ditch.', 10, True);
+      CharDisp.PrintNameString(GameVars.curChar, 'is dumped in a ditch.', 10, True);
     SaveLoad.RemoveCreature(False, True);
     Border.ClearBox(17, 1, 38, 11);
-    CharDisp.DisplayParty(GDVars.curChar);
+    CharDisp.DisplayParty(GameVars.curChar);
   end else
-    CharDisp.PrintNameString(GDVars.curChar, 'Breathes A sigh of relief.', 10, True);
+    CharDisp.PrintNameString(GameVars.curChar, 'Breathes A sigh of relief.', 10, True);
 end;
 
 { Run the Alter menu ('Order Drop Char Settings Exit'). Char opens a submenu for the current character's icon or
@@ -961,7 +961,7 @@ begin
   need := 0;
   clerics := 0;
   ableClerics := 0;
-  p := GDVars.creatureList;
+  p := GameVars.creatureList;
   while (p <> nil) and (n < MAX_PARTY) do begin
     Inc(n);
     members[n] := p;
@@ -1021,16 +1021,16 @@ begin
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
-  Clock.SetFromMinutes(GDVars.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameVars.restingTimeGbvm, total);
   interrupted := GameTime.CampRest(False);
-  done := (GDVars.restingTimeGbvm[C_TIME.DAYS] = 0) and (GDVars.restingTimeGbvm[C_TIME.HOURS] = 0) and
-          (GDVars.restingTimeGbvm[C_TIME.TURNS] = 0) and (GDVars.restingTimeGbvm[C_TIME.MINUTES] = 0);
-  FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
+  done := (GameVars.restingTimeGbvm[C_TIME.DAYS] = 0) and (GameVars.restingTimeGbvm[C_TIME.HOURS] = 0) and
+          (GameVars.restingTimeGbvm[C_TIME.TURNS] = 0) and (GameVars.restingTimeGbvm[C_TIME.MINUTES] = 0);
+  FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
   if done and not interrupted then begin
     for i := 1 to n do
       for kind := FIX_DISEASE to FIX_CURSE do
         if cures[i, kind] then begin
-          GDVars.targetCreaturePtr[1] := members[i];
+          GameVars.targetCreaturePtr[1] := members[i];
           case kind of
             FIX_DISEASE: Magic.CureDiseaseHandler;
             FIX_BLIND: Magic.CureBlindnessHandler;
@@ -1048,7 +1048,7 @@ begin
       end;
     end;
   end;
-  CharDisp.DisplayParty(GDVars.curChar);
+  CharDisp.DisplayParty(GameVars.curChar);
   CharDisp.PrintMiscInfo;
 end;
 
@@ -1061,10 +1061,10 @@ var
   ext: Boolean;
   saved: Boolean;
 begin
-  savedIfc := GDVars.ifcState;
-  GDVars.ifcState := C_IFC.CAMPING;
-  GDVars.healTicks := 0;
-  FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
+  savedIfc := GameVars.ifcState;
+  GameVars.ifcState := C_IFC.CAMPING;
+  GameVars.healTicks := 0;
+  FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
   CharDisp.DisplayNoncombatInterface;
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 18, LightGreen, 'The party makes camp...');
@@ -1079,7 +1079,7 @@ begin
     if ext then begin
       if c = C_KEYS.F6 then begin
         { the Companion Tools, while the setting is on (phase 8) }
-        if GDVars.companionOn <> 0 then begin
+        if GameVars.companionOn <> 0 then begin
           CompTool.ToolsMenu;
           CharDisp.DisplayNoncombatInterface;
         end;
@@ -1105,8 +1105,8 @@ begin
       end;
   end;
   Camp.ResetPartySpellActivities;
-  GDVars.castTarget := nil;
-  GDVars.ifcState := savedIfc;
+  GameVars.castTarget := nil;
+  GameVars.ifcState := savedIfc;
   CharDisp.PrintMiscInfo;
   CharDisp.ClearMessageWindow;
   TextRend.ClearBottomLine;

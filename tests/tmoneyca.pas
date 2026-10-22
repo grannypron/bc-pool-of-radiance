@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TMoneyCa;
 
-uses Types, GDVars, C_MONEY, MoneyCal, TestKit;
+uses Types, GameVars, C_MONEY, MoneyCal, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -95,7 +95,7 @@ begin
   { who pays: the buyer with 10 gp, else a pool with 50 gp }
   FillChar(c^.coins, SizeOf(c^.coins), 0);
   c^.coins[C_MONEY.GOLD] := 10;
-  SetMoney(GDVars.treasureMoney, 0, 0, 0, 50, 0, 1000, 1000);
+  SetMoney(GameVars.treasureMoney, 0, 0, 0, 50, 0, 1000, 1000);
   TestKit.CheckEqualsL(MoneyCal.PAY_CHARACTER, MoneyCal.WhoPays(c, 10), 'the buyer pays what it can');
   TestKit.CheckEqualsL(MoneyCal.PAY_POOL, MoneyCal.WhoPays(c, 11), 'else the pool pays');
   TestKit.CheckEqualsL(MoneyCal.PAY_POOL, MoneyCal.WhoPays(c, 50), 'the pool pays all it holds');

@@ -8,7 +8,7 @@ unit SndOpl;
 
 interface
 
-{ Make this the sound driver if an OPL2 answers, else the speaker's: fill GDVars.sound. }
+{ Make this the sound driver if an OPL2 answers, else the speaker's: fill GameVars.sound. }
 procedure Install;
 
 { Music on the AdLib, an effect on the speaker (SndSb plays the effects it has no sample for this way). }
@@ -19,7 +19,7 @@ function Detect: Boolean;
 
 implementation
 
-uses C_SOUND, GDVars, SoundDrv, SndSpk{$IFDEF FPC}, PortIO{$ENDIF};
+uses C_SOUND, GameVars, SoundDrv, SndSpk{$IFDEF FPC}, PortIO{$ENDIF};
 
 const
   OPL_STATUS = $388;
@@ -73,13 +73,13 @@ procedure Install;
 begin
   if SndOpl.Detect then begin
     SoundDrv.OplReset;
-    GDVars.sound.name := 'AdLib';
-    GDVars.sound.mode := C_SOUND.MODE_ADLIB;
-    GDVars.sound.Play := SndOpl.Play;
-    GDVars.sound.singleStep := False;
+    GameVars.sound.name := 'AdLib';
+    GameVars.sound.mode := C_SOUND.MODE_ADLIB;
+    GameVars.sound.Play := SndOpl.Play;
+    GameVars.sound.singleStep := False;
   end else begin
     SndSpk.Install;
-    GDVars.sound.name := 'Speaker (no AdLib)';
+    GameVars.sound.name := 'Speaker (no AdLib)';
   end;
 end;
 

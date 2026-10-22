@@ -23,9 +23,9 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 implementation
 
-uses Crt, C_NPC, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats, StrUtil,
-  CharDisp, MoneyCal, C_MSG, ClassCal;
+uses Crt, C_NPC, GDConsts, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
+  FxEngine, C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats,
+  StrUtil, CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -121,7 +121,7 @@ begin
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
   TextRend.DisplayString(8, row, LightGreen, GDConsts.statusStrs[creature^.status]);
-  if (GDVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
+  if (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
 
@@ -136,10 +136,10 @@ begin
   Border.ClearBox(12, 7, 26, 14);
   row := 7;
   for m := C_MONEY.JEWELRY downto C_MONEY.COPPER do
-    if GDVars.curChar^.coins[m] > 0 then begin
+    if GameVars.curChar^.coins[m] > 0 then begin
       s := GDConsts.moneyNames[m];
       TextRend.DisplayString(20 - Length(s), row, LightGreen, s);
-      TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GDVars.curChar^.coins[m]));
+      TextRend.DisplayString(21, row, LightGreen, StrUtil.NumStr(GameVars.curChar^.coins[m]));
       Inc(row);
     end;
 end;
@@ -148,7 +148,7 @@ end;
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
   PaladinReady := (p^.charClass = C_CLASS.PALADIN) and (p^.status = C_STATUS.OKAY) and
-    (GDVars.ifcState <> C_IFC.COMBAT);
+    (GameVars.ifcState <> C_IFC.COMBAT);
 end;
 
 { True when paladin p has not laid on hands in the last day. }
@@ -182,7 +182,7 @@ var
   hpBefore: Byte;
 begin
   CharDisp.DisplayNoncombatInterface;
-  tgt := GDVars.creatureList;
+  tgt := GameVars.creatureList;
   CharDisp.SelectChar('Heal whom? ', True, tgt);
   if tgt = nil then
     Exit;
@@ -206,7 +206,7 @@ var
   ch: Char;
 begin
   CharDisp.DisplayNoncombatInterface;
-  tgt := GDVars.creatureList;
+  tgt := GameVars.creatureList;
   CharDisp.SelectChar('Cure whom? ', True, tgt);
   if tgt = nil then
     Exit;
@@ -439,7 +439,7 @@ var
   ch: Char;
   ext: Boolean;
 begin
-  p := GDVars.curChar;
+  p := GameVars.curChar;
   CharHlp.RecalcStats(p);
   menu := 'Saves sTats Kills';
   if p^.classLevels[C_LEVEL.THIEF] > 0 then
@@ -448,7 +448,7 @@ begin
   page := PAGE_SAVES;
   haveStats := False;
   top := 1;
-  GDVars.horizChoice := 1;
+  GameVars.horizChoice := 1;
   repeat
     case page of
       PAGE_STATS: ViewChar.DrawGameStats(p, b);
@@ -511,7 +511,7 @@ var
   mv: Byte;
   s: Types.TStr40;
 begin
-  p := GDVars.curChar;
+  p := GameVars.curChar;
   CharHlp.RecalcStats(p);
   row := 17;
   TextRend.DisplayString(1, row, White, 'AC    ');
@@ -550,12 +550,12 @@ begin
     hlCol := LightGreen;
   col := 5;
   Border.ClearBox(col, statIdx + 7, 11, statIdx + 7);
-  if GDVars.curChar^.stats[statIdx] < 10 then
+  if GameVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
-  TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GDVars.curChar^.stats[statIdx]));
-  if (statIdx = C_ABIL.STRENGTH) and (GDVars.curChar^.strCur = 18) and (GDVars.curChar^.strExc > 0) then begin
+  TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GameVars.curChar^.stats[statIdx]));
+  if (statIdx = C_ABIL.STRENGTH) and (GameVars.curChar^.strCur = 18) and (GameVars.curChar^.strExc > 0) then begin
     { 100 shows as 00 }
-    s := StrUtil.ZeroPad2(GDVars.curChar^.strExc);
+    s := StrUtil.ZeroPad2(GameVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');
   end;
 end;
@@ -576,12 +576,12 @@ var
   idx: Integer;
   shown: Types.PCharRecord;
 begin
-  if GDVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.COMBAT then
     CbtMap.SetNoncombatPalette;
   ch := ' ';
   done := False;
-  tradeTarget := GDVars.curChar;
-  shown := GDVars.curChar;
+  tradeTarget := GameVars.curChar;
+  shown := GameVars.curChar;
   ViewChar.DisplayChar(shown);
   ViewChar.DrawMoreInfoLabel;
   while not (ch in [C_KEYS.NONE, 'E']) and not done do
@@ -602,10 +602,10 @@ begin
     if hasSpells then
       s := s + 'Spells ';
     if CharHlp.MayTrade(shown) and hasMoney and
-        (GDVars.ifcState <> C_IFC.COMBAT) then
+        (GameVars.ifcState <> C_IFC.COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
-    if hasMoney and (GDVars.ifcState = C_IFC.VAULT) then
+    if hasMoney and (GameVars.ifcState = C_IFC.VAULT) then
       s := s + 'Deposit '
     else if hasMoney then
       s := s + 'Drop ';
@@ -634,12 +634,12 @@ begin
       'M': ViewChar.MorePage;
     end;
     if not done and (ch in ['I', 'S', 'T', 'H', 'C', 'M']) then begin
-      shown := GDVars.curChar;
+      shown := GameVars.curChar;
       ViewChar.DisplayChar(shown);
       ViewChar.DrawMoreInfoLabel;
     end;
   end;
-  if GDVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.COMBAT then
     CbtMap.SetCombatPalette;
   CharDisp.DisplayNoncombatInterface;
 end;
@@ -654,9 +654,9 @@ begin
   else if not CharHlp.ItemReadable(item) then
     CheckItemAvail := True
   else if (item^.charges > $7F) or (item^.effect > $7F) or (item^.special > $7F) then begin
-    CharDisp.DisplayCreatureName(GDVars.curChar, 1, 21, False);
-    GDVars.curCol := Length(GDVars.curChar^.name) + 2;
-    GDVars.curRow := 21;
+    CharDisp.DisplayCreatureName(GameVars.curChar, 1, 21, False);
+    GameVars.curCol := Length(GameVars.curChar^.name) + 2;
+    GameVars.curRow := 21;
     ViewChar.SayBelow(False, ' was going to scribe from that scroll');
     if MenuCore.YesNoMenu('is it Okay to lose it? ', LightMagenta, LightGreen, White) = 'Y' then
       CheckItemAvail := True;
@@ -719,7 +719,7 @@ var
   creature: Types.PCharRecord;
   itemCount: Byte;
 begin
-  creature := GDVars.curChar;
+  creature := GameVars.curChar;
   ch := ' ';
   sel := creature^.itemsAddr;
   idx := 0;
@@ -733,9 +733,9 @@ begin
       s := 'Ready';
       if CharHlp.CanUseItems(creature) then
         s := s + ' Use';
-      if CharHlp.MayTrade(creature) and (GDVars.ifcState <> C_IFC.COMBAT) then
+      if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.COMBAT) then
         s := s + ' Trade';
-      if GDVars.ifcState = C_IFC.VAULT then
+      if GameVars.ifcState = C_IFC.VAULT then
         s := s + ' Deposit'
       else
         s := s + ' Drop';
@@ -743,9 +743,9 @@ begin
         s := s + ' Halve';
       s := s + ' Join';
       { the characters that may trade may sell, but only in a shop }
-      if CharHlp.MayTrade(creature) and (GDVars.ifcState = C_IFC.SHOP_TEMPLE) then
+      if CharHlp.MayTrade(creature) and (GameVars.ifcState = C_IFC.SHOP_TEMPLE) then
         s := s + ' Sell';
-      if GDVars.ifcState = C_IFC.SHOP_TEMPLE then
+      if GameVars.ifcState = C_IFC.SHOP_TEMPLE then
         s := s + ' Id';
       { rebuild every item name }
       p := creature^.itemsAddr;
@@ -753,7 +753,7 @@ begin
         CharHlp.ItemLabel(p, True);
         p := p^.next;
       end;
-      if needRedraw or (GDVars.redrawInventoryMenuFlag <> 0) then begin
+      if needRedraw or (GameVars.redrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
         Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
         CharDisp.DisplayCreatureName(creature, 1, 1, True);
@@ -762,16 +762,16 @@ begin
         TextRend.DisplayString(1, 3, White, 'Ready Item');
         vmRedraw := True;
         needRedraw := False;
-        GDVars.redrawInventoryMenuFlag := 0;
+        GameVars.redrawInventoryMenuFlag := 0;
       end;
       { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
-      if GDVars.stingArg then
+      if GameVars.stingArg then
         MenuCore.extraKeys := 'V';
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
       if sel <> nil then
         case ch of
-          'V': if GDVars.stingArg then begin
+          'V': if GameVars.stingArg then begin
                  ViewChar.ViewItemDetail(sel);
                  needRedraw := True;
                end;
@@ -783,7 +783,7 @@ begin
                  ch := ' ';
                end else if CharHlp.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
                  Magic.UseItem(sel, done);
-                 if GDVars.ifcState <> C_IFC.COMBAT then
+                 if GameVars.ifcState <> C_IFC.COMBAT then
                    { outside combat, using an item does not end the menu }
                    done := False;
                  if not done then
@@ -796,10 +796,10 @@ begin
                    ch := ' ';
                  needRedraw := True;
                end;
-          'D': if (GDVars.ifcState = C_IFC.VAULT) and ViewChar.CheckItemAvail(sel) then begin
+          'D': if (GameVars.ifcState = C_IFC.VAULT) and ViewChar.CheckItemAvail(sel) then begin
                  { the vault keeps it, with the game it is saved with }
                  if Vault.HasRoom then begin
-                   Vault.DepositItem(GDVars.curChar, sel);
+                   Vault.DepositItem(GameVars.curChar, sel);
                    vmRedraw := True;
                  end else
                    TextRend.DisplayAndPause(Yellow, 'The vault is full.');
@@ -810,7 +810,7 @@ begin
                  ViewChar.SayBelow(True, 'Your ' + sel^.name + 'will be gone forever');
                  if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
                  begin
-                   CharHlp.RemoveItem(GDVars.curChar, sel);
+                   CharHlp.RemoveItem(GameVars.curChar, sel);
                    vmRedraw := True;
                  end;
                  Border.ClearBox(1, 21, 38, 22);
@@ -845,7 +845,7 @@ begin
       CharDisp.PrintBottomLine('Overloaded')
     else begin
       CharHlp.AppendItemCopy(tgt^.itemsAddr, item);
-      CharHlp.RemoveItem(GDVars.curChar, item);
+      CharHlp.RemoveItem(GameVars.curChar, item);
       CharHlp.RecalcStats(tgt);
     end;
   end;
@@ -890,7 +890,7 @@ begin
   if item^.quantity = 0 then Exit;
   dst := item;
   qty := dst^.quantity;
-  cur := GDVars.curChar^.itemsAddr;
+  cur := GameVars.curChar^.itemsAddr;
   while cur <> nil do begin
     next := cur^.next;
     if (cur <> dst) and (cur^.quantity > 0) and (cur^.nameIds[1] = dst^.nameIds[1]) and
@@ -902,7 +902,7 @@ begin
         Inc(qty, cur^.quantity);
         if cur^.equipped <> 0 then
           dst^.equipped := cur^.equipped;
-        CharHlp.RemoveItem(GDVars.curChar, cur);
+        CharHlp.RemoveItem(GameVars.curChar, cur);
       end else begin
         dst^.quantity := 255;
         cur^.quantity := cur^.quantity - (255 - qty);
@@ -928,9 +928,9 @@ begin
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
     CharDisp.PrintBottomLine('Sold!');
-    CharHlp.RemoveItem(GDVars.curChar, item);
+    CharHlp.RemoveItem(GameVars.curChar, item);
     { only the coins that fit: SSI gave all the platinum when there was room for it alone, and always the gold (#739) }
-    Money.GiveCoins(GDVars.curChar, price div 5, price mod 5);
+    Money.GiveCoins(GameVars.curChar, price div 5, price mod 5);
   end;
   Border.ClearBox(1, 21, 38, 22);
 end;
@@ -946,7 +946,7 @@ begin
   ViewChar.SayBelow(True, 'For 200 gold pieces I''ll identify your ' + item^.name);
   if MenuCore.YesNoMenu('Is It a Deal? ', LightMagenta, LightGreen, White) = 'Y' then
   begin
-    paid := Money.PayGold(GDVars.curChar, 200);
+    paid := Money.PayGold(GameVars.curChar, 200);
   end;
   if paid then begin
     if item^.unidMask = 0 then
@@ -977,12 +977,12 @@ var
 begin
   p := nil;
   for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
-    if GDVars.curChar^.coins[m] <> 0 then begin
+    if GameVars.curChar^.coins[m] <> 0 then begin
       { a menu-list node: only the name, inUse and next fields of a TItemRec }
       prev := p;
       GetMem(p, SizeOf(Types.TMenuNode));
       p^.next := prev;
-      p^.name := StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GDVars.curChar^.coins[m]);
+      p^.name := StrUtil.PadLeft(GDConsts.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GameVars.curChar^.coins[m]);
       p^.inUse := 0;
     end;
   list := p;
@@ -1018,7 +1018,7 @@ begin
     if tgt = nil then
       exitOuter := True
     else begin
-      ViewChar.DisplayChar(GDVars.curChar);
+      ViewChar.DisplayChar(GameVars.curChar);
       repeat
         ViewChar.PrintMoney;
         tradeTarget := tgt;
@@ -1030,12 +1030,12 @@ begin
           s2 := '';
           mType := MoneyCal.ParseMoneyType(prev^.name, s2);
           s2 := 'How much ' + s2 + 'will you trade? ';
-          amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
-          Money.TradeMoney(GDVars.curChar, tgt, amount, mType);
+          amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, 10);
+          Money.TradeMoney(GameVars.curChar, tgt, amount, mType);
           exitInner := True;
           exitOuter := True;
           for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
-            if GDVars.curChar^.coins[m] > 0 then begin
+            if GameVars.curChar^.coins[m] > 0 then begin
               exitOuter := False;
               exitInner := False;
             end;
@@ -1066,15 +1066,15 @@ begin
     else begin
       s2 := '';
       mType := MoneyCal.ParseMoneyType(prev^.name, s2);
-      if GDVars.ifcState = C_IFC.VAULT then
+      if GameVars.ifcState = C_IFC.VAULT then
         s2 := 'How much ' + s2 + 'will you deposit? '
       else
         s2 := 'How much ' + s2 + 'will you drop? ';
-      amount := Money.InputNumberMax(GDVars.curChar^.coins[mType], s2, 10);
-      Money.DropMoney(GDVars.curChar, amount, mType);
+      amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, 10);
+      Money.DropMoney(GameVars.curChar, amount, mType);
       exitFlag := True;
       for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
-        if GDVars.curChar^.coins[m] > 0 then
+        if GameVars.curChar^.coins[m] > 0 then
           exitFlag := False;
     end;
     if list <> nil then
