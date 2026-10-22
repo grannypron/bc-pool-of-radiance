@@ -7,6 +7,10 @@ interface
 
 uses Types;
 
+var
+  { disk saved by DaxIo.PushState for PopState }
+  prevVirtualDisk: Byte;
+
 procedure FreeRounded(var p: Pointer; n: Word);
 
 procedure AllocRounded(var p: Pointer; n: Word);
@@ -598,16 +602,17 @@ end;
 { Save the current resource disk and select a new one. }
 procedure PushState(v: Byte);
 begin
-  GameVars.prevVirtualDisk := GameVars.virtualDisk;
+  prevVirtualDisk := GameVars.virtualDisk;
   GameVars.virtualDisk := v;
 end;
 
 { Restore the saved resource disk. }
 procedure PopState;
 begin
-  GameVars.virtualDisk := GameVars.prevVirtualDisk;
+  GameVars.virtualDisk := prevVirtualDisk;
 end;
 
 begin
   DaxIo.ResetArchiveCache;
+  prevVirtualDisk := 0;
 end.

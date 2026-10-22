@@ -280,7 +280,7 @@ begin
   GameVars.eclIp := $9900;
   GameVars.suppressContinuePrompt := 0;
   GameVars.virtualDisk := 1;
-  GameVars.prevVirtualDisk := 1;
+  DaxIo.prevVirtualDisk := 1;
   GameVars.automapOn := False;
   GameVars.locTypePrev := C_AREA.LOC_3D_MAP;
   GameVars.gLocType := C_AREA.LOC_3D_MAP;

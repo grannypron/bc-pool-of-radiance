@@ -124,8 +124,6 @@ var
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
-  { disk saved by DaxIo.PushState for PopState }
-  prevVirtualDisk: Byte;
   { Save directory from line 4 of POOL.CFG. }
   saveDirectory: String[255];
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
