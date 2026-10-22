@@ -355,12 +355,14 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.DWARF_THAC0);
     end;
     C_Cond.DEFENDER_AC: begin
+      { the cough first: its handler recalculates the creature's stats, which SSI's ran last and so threw away the
+        Blindness and Shield changes (#717) }
+      FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
       FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL); FxEngine.TriggerEffect(creature,
                                                                                        C_Effect.PROT_GOOD);
       FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL_10FT); FxEngine.TriggerEffect(creature,
           C_Effect.PROT_GOOD_10FT);
-      FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
     end;
     C_Cond.SAVING_THROW: begin
       FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL); FxEngine.TriggerEffect(creature,

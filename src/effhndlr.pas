@@ -639,7 +639,8 @@ begin
   GDVars.pendingDamage := GDVars.pendingDamage - GDVars.pendingDamage div 4;
 end;
 
-{ Coughing from Stinking Cloud (eff 30) }
+{ Coughing from Stinking Cloud (eff 30): no items or spells, and its AC from the front and behind is its rear AC less
+  2. It recalculates the creature's stats, so C_Cond.DEFENDER_AC runs it before Blindness and Shield change the AC. }
 
 procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
