@@ -50,6 +50,17 @@ candidate: checkpoint add-plus
 candidate: press t
 candidate: wait GEAR
 candidate: checkpoint gear
+# Bracers choose their AC like a plus (#772): AC 6 first, Right twice to AC 2, taken
+candidate: press a
+candidate: wait TAKE NEXT
+candidate: press pgdn pgdn up up up ret
+candidate: wait TAKE EXIT
+candidate: checkpoint bracers-ac6
+candidate: press right right
+candidate: checkpoint bracers-ac2
+candidate: press t
+candidate: wait GEAR
+candidate: checkpoint bracers-taken
 candidate: press m
 candidate: wait MONEY
 candidate: checkpoint money
