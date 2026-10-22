@@ -417,11 +417,11 @@ begin
   saved := FxEngine.RollSavingThrow(creature, C_Save.PARALYZE, AbilAdj.ConPoisonSave(creature^.conCur));
   if saved then begin
     FxEngine.AddEffectWithMessage(creature, C_Effect.STINK_COUGH, 1, 255, False, False, saved, 'starts to cough');
-    FxEngine.CallEffectHandler(C_Effect.STINK_COUGH, creature, effect, False);
+    FxEngine.CallEffectHandler(C_Effect.STINK_COUGH, creature, nil, False);
   end else begin
     FxEngine.AddEffectWithMessage(creature, C_Effect.HELPLESS, Dice.RollDice(1, 4) + 1, 255, False, False,
                                   saved, 'chokes and gags from nausea');
-    FxEngine.CallEffectHandler(C_Effect.HELPLESS, creature, effect, False);
+    FxEngine.CallEffectHandler(C_Effect.HELPLESS, creature, nil, False);
   end;
 end;
 
