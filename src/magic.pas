@@ -1409,7 +1409,8 @@ end;
 
 { Haste and Slow: keep up to caster-level targets on team hostFlag and drop the rest. A kept target carrying removeId,
   the opposing Slowed or Hasted effect, just loses it; the others get the spell's effect and have their
-  C_Cond.MOVE_ATTACK_RATE effects re-run. }
+  C_Cond.MOVE_ATTACK_RATE effects re-run on their own attack count, as at a round's start (#797), so a hasted one ages
+  at once; its rates are worked out where they are used (CbtActs). }
 procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40);
 var
   cl: Byte;
@@ -1427,8 +1428,11 @@ begin
   end;
   Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, msg);
   for i := 1 to GDVars.spellTargetCount do
-    if GDVars.dsTargetCreaturePtr[i] <> nil then
+    if GDVars.dsTargetCreaturePtr[i] <> nil then begin
+      GDVars.dsCurrentAttackCurrent := GDVars.dsTargetCreaturePtr[i]^.attacks2;
+      GDVars.dsCurrentCreatureCalculatingFlag := 0;
       FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, GDVars.dsTargetCreaturePtr[i]);
+    end;
 end;
 
 { Haste: the caster's team loses Slowed or is hasted (see HasteSlowLogic). }
