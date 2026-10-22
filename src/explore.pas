@@ -520,10 +520,10 @@ begin
             GDVars.zone1^[C_Gbvm.MOVE_LOCKED] := 0;
   end;
   Portrait.FreeAnimation(GDVars.animData);
-  Blit.FreePic(GDVars.dsPortraitCache[1].pic);
-  Blit.FreePic(GDVars.dsPortraitCache[2].pic);
-  GDVars.dsPortraitCache[1].pictureId := 255;
-  GDVars.dsPortraitCache[2].pictureId := 255;
+  Blit.FreePic(GDVars.portraitCache[1].pic);
+  Blit.FreePic(GDVars.portraitCache[2].pic);
+  GDVars.portraitCache[1].pictureId := 255;
+  GDVars.portraitCache[2].pictureId := 255;
 end;
 
 begin

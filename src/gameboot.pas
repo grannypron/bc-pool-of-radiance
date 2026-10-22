@@ -195,12 +195,12 @@ begin
 {$ENDIF}
   SoundDrv.SoundSuspend;
   ReadLn(cfgText, GDVars.gameDir);
-  ReadLn(cfgText, GDVars.dsSaveDirectory);
+  ReadLn(cfgText, GDVars.saveDirectory);
 {$IFDEF FPC}
-  NativeFolders(GDVars.gameDir, GDVars.dsSaveDirectory);
+  NativeFolders(GDVars.gameDir, GDVars.saveDirectory);
 {$ELSE}
   GDVars.gameDir := NormalizePath(GDVars.gameDir);
-  GDVars.dsSaveDirectory := NormalizePath(GDVars.dsSaveDirectory);
+  GDVars.saveDirectory := NormalizePath(GDVars.saveDirectory);
 {$ENDIF}
   ReadLn(cfgText, cfgChar);
   if cfgChar = 'F' then

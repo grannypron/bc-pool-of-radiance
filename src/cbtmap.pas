@@ -111,7 +111,7 @@ procedure TickSpellPreview;
 procedure StopSpellPreview;
 
 { Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
-  indices into GDVars.dsPotentialTargetCreature. Return the remaining count. }
+  indices into GDVars.potentialTargetCreature. Return the remaining count. }
 function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
 
 { Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
@@ -129,7 +129,7 @@ var
   crIdxArr: array[0..24, 0..49] of Byte;
 
 const
-  { The cursor sprite cell in GDVars.dsIconAnimation ([24, 0] is the COMSPR 11 skull) }
+  { The cursor sprite cell in GDVars.iconAnimation ([24, 0] is the COMSPR 11 skull) }
   CURSOR_CELL = 25;
   { Hundredths of a second between preview frames }
   PREVIEW_PACE = 12;
@@ -809,8 +809,8 @@ begin
     for k := 0 to 3 do
       if Pathing.GetIconTileDelta(GDVars.arenaLoc[slot].size, k, tdx, tdy) then
         Blit.BlitTileClipped((GDVars.gridX[slot] + tdx) * 3, (GDVars.gridY[slot] + tdy) * 3, 0, 5,
-                             GDVars.dsIconAnimation[24, 0],
-                             GDVars.dsViewImageBufferPtr);
+                             GDVars.iconAnimation[24, 0],
+                             GDVars.viewImageBufferPtr);
     Blit.FlushView;
     if creature^.combatAddr^.notPcNpc = 0 then
       CbtMap.RegisterDowned(creature, cellX, cellY);
@@ -906,7 +906,7 @@ begin
   end;
   CountTargets := n;
   for i := 1 to n do
-    GDVars.dsPotentialTargetCreature[i] := GDVars.targetList[i].idx;
+    GDVars.potentialTargetCreature[i] := GDVars.targetList[i].idx;
 end;
 
 function CalcDistance(creature, other: Types.PCharRecord): Byte;

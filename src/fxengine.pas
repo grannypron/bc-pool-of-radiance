@@ -152,7 +152,7 @@ procedure ToggleReadyItem(item: Types.PItemRec);
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
 { The start of a hold effect's handler (bite and hold, blood drain): p is the effect, its strength the victim's creature
-  index. Returns the victim (also set in GDVars.dsOtherCreatureCurrentPtr) while the hold lasts, else nil: with no
+  index. Returns the victim (also set in GDVars.otherCreatureCurrentPtr) while the hold lasts, else nil: with no
   victim in the arena the effect just goes (released False); when the effect is being removed, either side is down or
   the victim is no longer C_Effect.IMMOBILE (it broke free, #709), the victim loses C_Effect.IMMOBILE and the effect
   goes (released True). The effect is removed here with onRemove cleared first, unless removed says it is already being
@@ -1060,17 +1060,17 @@ begin
     end;
     Exit;
   end;
-  GDVars.dsOtherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
-  if removed or (creature^.enabled = 0) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0)
-     or not CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, held) then begin
-    FxEngine.RemoveEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);
+  GDVars.otherCreatureCurrentPtr := GDVars.creatureArr[Types.PEffectRec(p)^.strength];
+  if removed or (creature^.enabled = 0) or (GDVars.otherCreatureCurrentPtr^.enabled = 0)
+     or not CharHlp.HasEffect(GDVars.otherCreatureCurrentPtr, C_Effect.IMMOBILE, held) then begin
+    FxEngine.RemoveEffect(GDVars.otherCreatureCurrentPtr, C_Effect.IMMOBILE, nil);
     if not removed then begin
       Types.PEffectRec(p)^.onRemove := False;
       FxEngine.RemoveEffect(creature, effId, p);
     end;
     released := True;
   end else
-    HoldTarget := GDVars.dsOtherCreatureCurrentPtr;
+    HoldTarget := GDVars.otherCreatureCurrentPtr;
 end;
 
 end.

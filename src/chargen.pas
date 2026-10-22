@@ -12,7 +12,7 @@ procedure CustomizeIcon;
 { The portrait picker for curChar; canCancel lets Escape leave it with the portrait unchanged (camp's Alter). }
 procedure CustomizePortrait(canCancel: Boolean);
 
-{ True when curChar can be modified at all: a player race (Dwarf..Human, whose limits dsMinimumMaximumStatistics holds;
+{ True when curChar can be modified at all: a player race (Dwarf..Human, whose limits minimumMaximumStatistics holds;
   the hired Acolyte is race 0) and a class C_Class.CLERIC..MAGE_THIEF (0..16). }
 function Modifiable: Boolean;
 
@@ -543,7 +543,7 @@ begin
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
     maximum) of one component class. }
   if creature^.charClass <= C_Class.MONK then
-    with GDConsts.dsStartingAge[creature^.race, creature^.charClass] do
+    with GDConsts.startingAge[creature^.race, creature^.charClass] do
       creature^.age := Dice.RollDice(num, sides) + base
   else
   begin
@@ -555,7 +555,7 @@ begin
       { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
       cls := C_Class.MAGE;
     end;
-    with GDConsts.dsStartingAge[creature^.race, cls] do
+    with GDConsts.startingAge[creature^.race, cls] do
       creature^.age := base + sides * num;
   end;
   { stat roll / derived / keep loop }
@@ -589,8 +589,8 @@ begin
                ClampToLimits(i);
                if (stats[C_Abil.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
-                 if GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] < strExc then
-                   strExc := GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp];
+                 if GDConsts.minimumMaximumStatistics[race].excMax[genderSp] < strExc then
+                   strExc := GDConsts.minimumMaximumStatistics[race].excMax[genderSp];
                end;
              end;
           { Intelligence }
@@ -651,7 +651,7 @@ begin
       unarmedDiceA[1] := 2;
       useStrength := 1;
       movementBase := 12;
-      { goldDice sums each class's starting-gold dice (dsStartingGoldClass); gold = sum * 10 div class count }
+      { goldDice sums each class's starting-gold dice (startingGoldClass); gold = sum * 10 div class count }
       goldDice := 0;
       clsCount := 0;
       for cls := C_Level.CLERIC to C_Level.MONK do
@@ -661,7 +661,7 @@ begin
             C_Level.MAGE: mageSpells[1] := 1;
           end;
           Inc(goldDice,
-              Dice.RollDice(GDConsts.dsStartingGoldClass[cls].num, GDConsts.dsStartingGoldClass[cls].sides));
+              Dice.RollDice(GDConsts.startingGoldClass[cls].num, GDConsts.startingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
             C_Level.CLERIC: begin
@@ -950,7 +950,7 @@ begin
               case hold of
                 C_Abil.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
                      if (stats[hold] > 18) and (CharHlp.WarriorLevel(GDVars.curChar) > 0) and
-                         (GDConsts.dsMinimumMaximumStatistics[race].excMax[genderSp] > strExc) then
+                         (GDConsts.minimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
                      stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
                    end;
@@ -1107,11 +1107,11 @@ begin
         lvl := classLevels[cls];
         { xp[] runs to level 9 }
         if (not CharHlp.AtLevelCap(Types.PCharRecord(GDVars.curChar), cls)) and (lvl < 9) then
-          if (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
-            if GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
+          if (GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
+            if GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GDConsts.classBit[cls]);
               if lvl < 8 then
-                nextXp := GDConsts.dsExperienceSpellsClass[cls].xp[Succ(Succ(lvl))]
+                nextXp := GDConsts.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
               else
                 nextXp := 0;
               if nextXp > 0 then
@@ -1596,14 +1596,14 @@ var
     if dst = nil then Exit;
     { the cursor box picture needs 16 colours }
     if boxed and (Blit.ColourCount < 16) then
-      FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.dsIconColorMap)])
+      FillChar(dst^.data, dst^.imgSize, GDConsts.cgaColorFill[Blit.SrcNibble(Cyan, GDConsts.iconColorMap)])
     else
       FillChar(dst^.data, dst^.imgSize, 0);
     if boxed and (Blit.ColourCount = 16) then
       if frame = 0 then
-        VidOps.OverlayPic(GDVars.dsIconAnimation[25, 0], dst)
+        VidOps.OverlayPic(GDVars.iconAnimation[25, 0], dst)
       else
-        VidOps.OverlayPic(GDVars.dsIconAnimation[25, 1], dst);
+        VidOps.OverlayPic(GDVars.iconAnimation[25, 1], dst);
     VidOps.OverlayPic(src, dst);
   end;
 

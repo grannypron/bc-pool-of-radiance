@@ -104,7 +104,7 @@ end;
 
 procedure ForgetSessionVault;
 begin
-  FileUtil.DeleteFile(GDVars.dsSaveDirectory + SESSION_FILE);
+  FileUtil.DeleteFile(GDVars.saveDirectory + SESSION_FILE);
 end;
 
 function AddToSave(var s: FileUtil.TFileSet; letter: Char): Boolean;
@@ -113,7 +113,7 @@ var
   ok: Boolean;
 begin
   ok := True;
-  if not FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SESSION_FILE) then
+  if not FileUtil.OpenReadOnly(fIn, GDVars.saveDirectory + SESSION_FILE) then
     FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False)
   else begin
     ok := Vault.CopyToTemp(fIn, s.dir + SaveMenu.VaultName(letter));
@@ -129,11 +129,11 @@ var
   ok: Boolean;
 begin
   { the slot's copy becomes the session vault; a slot with none leaves no session vault }
-  if FileUtil.OpenReadOnly(fIn, GDVars.dsSaveDirectory + SaveMenu.VaultName(letter)) then
-    ok := Vault.CopyToTemp(fIn, GDVars.dsSaveDirectory + SESSION_FILE) and
-          FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE)
+  if FileUtil.OpenReadOnly(fIn, GDVars.saveDirectory + SaveMenu.VaultName(letter)) then
+    ok := Vault.CopyToTemp(fIn, GDVars.saveDirectory + SESSION_FILE) and
+          FileUtil.PutInPlace(GDVars.saveDirectory + SESSION_FILE)
   else
-    ok := FileUtil.DeleteChecked(GDVars.dsSaveDirectory + SESSION_FILE);
+    ok := FileUtil.DeleteChecked(GDVars.saveDirectory + SESSION_FILE);
   if not ok then begin
     Vault.ForgetSessionVault;
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not copied.');
@@ -177,7 +177,7 @@ var
 begin
   visited := 0;
   FillChar(GDVars.treasureMoney, SizeOf(GDVars.treasureMoney), 0);
-  if not FileUtil.OpenReadOnly(f, GDVars.dsSaveDirectory + SESSION_FILE) then
+  if not FileUtil.OpenReadOnly(f, GDVars.saveDirectory + SESSION_FILE) then
     Exit;
   BlockRead(f, head, SizeOf(head), n);
   if (IOResult = 0) and (n = SizeOf(head)) and (head.sig = VAULT_SIG) and (head.version = VAULT_VERSION) then begin
@@ -213,7 +213,7 @@ begin
   head.version := VAULT_VERSION;
   head.visited := 1;
   Move(GDVars.treasureMoney, head.money, SizeOf(head.money));
-  ok := FileUtil.RewriteTemp(f, GDVars.dsSaveDirectory + SESSION_FILE);
+  ok := FileUtil.RewriteTemp(f, GDVars.saveDirectory + SESSION_FILE);
   if ok then begin
     FileUtil.WriteChecked(f, head, SizeOf(head), ok);
     p := GDVars.treasureItems;
@@ -225,8 +225,8 @@ begin
       FileUtil.WriteChecked(f, disk, DiskRec.ITEM_DISK_BYTES, ok);
       p := p^.next;
     end;
-    ok := FileUtil.CloseTemp(f, GDVars.dsSaveDirectory + SESSION_FILE, ok) and
-          FileUtil.PutInPlace(GDVars.dsSaveDirectory + SESSION_FILE);
+    ok := FileUtil.CloseTemp(f, GDVars.saveDirectory + SESSION_FILE, ok) and
+          FileUtil.PutInPlace(GDVars.saveDirectory + SESSION_FILE);
   end;
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'The vault''s ledger was not written.');

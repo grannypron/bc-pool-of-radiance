@@ -97,14 +97,14 @@ begin
   TestKit.CheckEqualsL(4, blk^.kills[Stats.KINDS].count, 'OTHER counts every kind past the table');
 
   { healing given counts only while a spell is resolved }
-  GDVars.dsCurrentSpellBeing := 0;
+  GDVars.currentSpellBeing := 0;
   Stats.Healed(a, b, 5, False);
   TestKit.CheckEqualsL(5, Stats.BlockOf(b)^.counts[Stats.HEALED_TAKEN], 'healing taken');
   TestKit.CheckEqualsL(0, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'no healing given without a spell');
-  GDVars.dsCurrentSpellBeing := 3;
+  GDVars.currentSpellBeing := 3;
   Stats.Healed(a, b, 4, False);
   TestKit.CheckEqualsL(4, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a spell');
-  GDVars.dsCurrentSpellBeing := 0;
+  GDVars.currentSpellBeing := 0;
   Stats.Healed(a, b, 2, True);
   TestKit.CheckEqualsL(6, Stats.BlockOf(a)^.counts[Stats.HEALED_GIVEN], 'healing given by a power');
 

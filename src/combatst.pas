@@ -844,10 +844,10 @@ var
   p: Types.PCharRecord;
 begin
   Portrait.FreeAnimation(GDVars.animData);
-  Blit.FreePic(GDVars.dsPortraitCache[1].pic);
-  Blit.FreePic(GDVars.dsPortraitCache[2].pic);
-  GDVars.dsPortraitCache[1].pictureId := 255;
-  GDVars.dsPortraitCache[2].pictureId := 255;
+  Blit.FreePic(GDVars.portraitCache[1].pic);
+  Blit.FreePic(GDVars.portraitCache[2].pic);
+  GDVars.portraitCache[1].pictureId := 255;
+  GDVars.portraitCache[2].pictureId := 255;
   TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');
@@ -870,7 +870,7 @@ begin
   GameIo.DiscardPendingKeys;
   CombatSt.PlaceAllCreatures;
   GameIo.DiscardPendingKeys;
-  Blit.AllocPic(24, 3, 4, 1, GDVars.dsMoveIconSheet);
+  Blit.AllocPic(24, 3, 4, 1, GDVars.moveIconSheet);
   GDVars.arenaPtr^.ox := CbtMap.CombatCellX(GDVars.creatureList) - 3;
   GDVars.arenaPtr^.oy := CbtMap.CombatCellY(GDVars.creatureList) - 3;
   CharDisp.DisplayCombatInterface;

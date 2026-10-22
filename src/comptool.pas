@@ -51,8 +51,8 @@ var
   c: Byte;
   remap: Boolean;
 begin
-  symbols := GDVars.dsSymbolSetPtrs[SYM_SET];
-  glyph := GDVars.dsCurrent8x8SymbolPtr2;
+  symbols := GDVars.symbolSetPtrs[SYM_SET];
+  glyph := GDVars.current8x8SymbolPtr2;
   if (symbols = nil) or (glyph = nil) then Exit;
   Move(symbols^.data[(symbol - GDConsts.symSetFirst[SYM_SET]) * symbols^.imgSize], glyph^.data, symbols^.imgSize);
   { the set's colour map, which CGA's remap translates the tables' colours through }

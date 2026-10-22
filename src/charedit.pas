@@ -109,7 +109,7 @@ begin
   if level < 2 then
     LevelXp := 0
   else
-    LevelXp := GDConsts.dsExperienceSpellsClass[cls].xp[level];
+    LevelXp := GDConsts.experienceSpellsClass[cls].xp[level];
 end;
 
 { The Levels screen: each class's level, the experience and hit points; row sel highlighted. }

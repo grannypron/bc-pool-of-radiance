@@ -25,7 +25,7 @@ begin
 {$ENDIF}
   TestKit.Check(GDVars.creatureList = nil, 'there is no creature list');
   TestKit.Check(GDVars.stinkHead = nil, 'no Stinking Cloud list');
-  TestKit.Check(GDVars.dsEclStackTopPtr = nil, 'no script return stack');
+  TestKit.Check(GDVars.eclStackTopPtr = nil, 'no script return stack');
   TestKit.Check(GDVars.treasureItems = nil, 'no treasure');
   TestKit.CheckEqualsL(0, GDVars.pageMain, 'the screen is page 0');
   TestKit.CheckEqualsL(0, GDVars.downedCount, 'no one is down');

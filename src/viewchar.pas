@@ -271,7 +271,7 @@ begin
     if b <> nil then
       n := b^.counts[i];
     if i = Stats.COIN_LOOTED then
-      n := n div GDConsts.dsCoinValuationCopper[C_Money.GOLD];
+      n := n div GDConsts.coinValuationCopper[C_Money.GOLD];
     Str(n, s);
     TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
     TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
@@ -753,7 +753,7 @@ begin
         CharHlp.ItemLabel(p, True);
         p := p^.next;
       end;
-      if needRedraw or (GDVars.dsRedrawInventoryMenuFlag <> 0) then begin
+      if needRedraw or (GDVars.redrawInventoryMenuFlag <> 0) then begin
         TextRend.ClearScreen;
         Border.DrawBorder(C_Msg.TEXT_LEFT, C_Msg.TEXT_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM, 0);
         CharDisp.DisplayCreatureName(creature, 1, 1, True);
@@ -762,7 +762,7 @@ begin
         TextRend.DisplayString(1, 3, White, 'Ready Item');
         vmRedraw := True;
         needRedraw := False;
-        GDVars.dsRedrawInventoryMenuFlag := 0;
+        GDVars.redrawInventoryMenuFlag := 0;
       end;
       { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
       if GDVars.stingArg then

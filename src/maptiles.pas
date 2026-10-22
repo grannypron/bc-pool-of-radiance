@@ -10,7 +10,7 @@ interface
 uses Types;
 
 const
-  { The combat icon slots (GDVars.dsIconAnimation): 0..7 the party's, 8..12 the monster kinds (LOAD MONSTER takes the
+  { The combat icon slots (GDVars.iconAnimation): 0..7 the party's, 8..12 the monster kinds (LOAD MONSTER takes the
     next, CLEAR MONSTERS starts them again), 13..24 the combat sprites (COMSPR) and 25 the cursor. }
   FIRST_MONSTER_ICON = 8;
   LAST_MONSTER_ICON = 12;
@@ -19,7 +19,7 @@ procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 
-{ The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into GDVars.ds2dMapTilePtr2 the first time
+{ The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into GDVars.mapTilePtr2 the first time
   it is needed: only the wilderness and the ending draw from it, so it is not loaded at start-up and combat frees it
   (FreeSecondSheet). Nil when it does not load. }
 function SecondSheet: Types.PImgBuf;
@@ -53,13 +53,13 @@ begin
   pic := nil;
   Blit.LoadPic(name, 1, False, 0, pic);
   if pic = nil then Exit;
-  if GDVars.ds2dMapTilePtr <> nil then begin
+  if GDVars.mapTilePtr <> nil then begin
     tiles := pic^.count;
-    if mult + tiles > Blit.FrameCount(GDVars.ds2dMapTilePtr) then
-      tiles := Blit.FrameCount(GDVars.ds2dMapTilePtr) - mult;
+    if mult + tiles > Blit.FrameCount(GDVars.mapTilePtr) then
+      tiles := Blit.FrameCount(GDVars.mapTilePtr) - mult;
     { a tile at a time, as the sheet may continue in a further block (Blit.FrameBlock) }
     for i := 0 to tiles - 1 do begin
-      dst := GDVars.ds2dMapTilePtr;
+      dst := GDVars.mapTilePtr;
       frame := mult + i;
       Blit.FrameBlock(dst, frame);
       Move(pic^.data[i * pic^.imgSize], dst^.data[frame * dst^.imgSize], pic^.imgSize);
@@ -74,33 +74,33 @@ procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
 begin
   if tile > C_Tile.ID_MASK then begin
     if MapTiles.SecondSheet <> nil then
-      Blit.BlitTileCell(col, row, tile and C_Tile.ID_MASK, 0, GDVars.ds2dMapTilePtr2,
-                        GDVars.dsViewImageBufferPtr);
-  end else if GDVars.ds2dMapTilePtr <> nil then
-    Blit.BlitTileCell(col, row, tile, 0, GDVars.ds2dMapTilePtr, GDVars.dsViewImageBufferPtr);
+      Blit.BlitTileCell(col, row, tile and C_Tile.ID_MASK, 0, GDVars.mapTilePtr2,
+                        GDVars.viewImageBufferPtr);
+  end else if GDVars.mapTilePtr <> nil then
+    Blit.BlitTileCell(col, row, tile, 0, GDVars.mapTilePtr, GDVars.viewImageBufferPtr);
 end;
 
 function SecondSheet: Types.PImgBuf;
 begin
-  if GDVars.ds2dMapTilePtr2 = nil then
-    Blit.LoadPic('sqrpaci', 2, False, 0, GDVars.ds2dMapTilePtr2);
-  SecondSheet := GDVars.ds2dMapTilePtr2;
+  if GDVars.mapTilePtr2 = nil then
+    Blit.LoadPic('sqrpaci', 2, False, 0, GDVars.mapTilePtr2);
+  SecondSheet := GDVars.mapTilePtr2;
 end;
 
 procedure FreeSecondSheet;
 begin
-  Blit.FreePic(GDVars.ds2dMapTilePtr2);
+  Blit.FreePic(GDVars.mapTilePtr2);
 end;
 
 { Release both frame buffers of icon-animation slot animIdx; a slot past the table is ignored. }
 procedure FreeIconAnim(animIdx: Byte);
 begin
-  { 25 = High(GDVars.dsIconAnimation) }
+  { 25 = High(GDVars.iconAnimation) }
   if animIdx > 25 then Exit;
-  if GDVars.dsIconAnimation[animIdx, 0] <> nil then
-    Blit.FreePic(GDVars.dsIconAnimation[animIdx, 0]);
-  if GDVars.dsIconAnimation[animIdx, 1] <> nil then
-    Blit.FreePic(GDVars.dsIconAnimation[animIdx, 1]);
+  if GDVars.iconAnimation[animIdx, 0] <> nil then
+    Blit.FreePic(GDVars.iconAnimation[animIdx, 0]);
+  if GDVars.iconAnimation[animIdx, 1] <> nil then
+    Blit.FreePic(GDVars.iconAnimation[animIdx, 1]);
 end;
 
 { Load both frames (blocks fileId and fileId+128) of icon-animation slot animIdx, with color 0 transparent. CHEAD and
@@ -111,33 +111,33 @@ procedure LoadIconAnim(name: string; fileId, animIdx: Byte);
 var
   suffix: string[1];
 begin
-  { 25 = High(GDVars.dsIconAnimation) }
+  { 25 = High(GDVars.iconAnimation) }
   if animIdx > 25 then Exit;
   if (Copy(name, 1, 5) = 'CHEAD') or (Copy(name, 1, 5) = 'CBODY') then begin
     if UpCase(name[Length(name)]) = 'T' then
       Inc(fileId, 64);
     name := Copy(name, 1, Length(name) - 1);
     suffix := '';
-    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.dsIconAnimation[animIdx, 0]);
-    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.dsIconAnimation[animIdx, 1]);
+    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.iconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.iconAnimation[animIdx, 1]);
   end else if (name = 'COMSPR') or (name = 'ICON') then begin
     suffix := '';
-    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.dsIconAnimation[animIdx, 0]);
-    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.dsIconAnimation[animIdx, 1]);
+    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.iconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.iconAnimation[animIdx, 1]);
     if name = 'ICON' then begin
       Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False,
-                    GDVars.dsIconAnimation[animIdx, 0]);
+                    GDVars.iconAnimation[animIdx, 0]);
       Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToBlack, 0, False,
-                    GDVars.dsIconAnimation[animIdx, 1]);
+                    GDVars.iconAnimation[animIdx, 1]);
     end;
   end else begin
     Str(GDVars.virtualDisk, suffix);
-    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.dsIconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId, True, 0, GDVars.iconAnimation[animIdx, 0]);
     Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False,
-                  GDVars.dsIconAnimation[animIdx, 0]);
-    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.dsIconAnimation[animIdx, 1]);
+                  GDVars.iconAnimation[animIdx, 0]);
+    Blit.LoadPic(name + suffix, fileId + 128, True, 0, GDVars.iconAnimation[animIdx, 1]);
     Blit.RemapPic(GDConsts.iconColorIdentity, GDConsts.iconColorPinkToDarkGray, 0, False,
-                  GDVars.dsIconAnimation[animIdx, 1]);
+                  GDVars.iconAnimation[animIdx, 1]);
   end;
 end;
 
@@ -148,21 +148,21 @@ procedure DrawIconAnimSprite(col, row: ShortInt; facing, frame, animIdx: Byte);
 var
   work: Types.PImgBuf;
 begin
-  { GDVars.dsIconAnimation is [0..25, 0..1] }
+  { GDVars.iconAnimation is [0..25, 0..1] }
   if (animIdx > 25) or (frame > 1) then
     Exit;
-  if GDVars.dsIconAnimation[animIdx, frame] = nil then
+  if GDVars.iconAnimation[animIdx, frame] = nil then
     Exit;
-  with GDVars.dsIconAnimation[animIdx, frame]^ do begin
+  with GDVars.iconAnimation[animIdx, frame]^ do begin
     Blit.AllocPic(height, width, 1, 1, work);
     if facing > C_Dir.SOUTHEAST then
-      Blit.MirrorPic(GDVars.dsIconAnimation[animIdx, frame], work)
+      Blit.MirrorPic(GDVars.iconAnimation[animIdx, frame], work)
     else begin
       Move(data, work^.data, imgSize);
       Move(transp^, work^.transp^, Blit.MaskBytes(imgSize));
     end;
   end;
-  Blit.BlitTileClipped(col * 3, row * 3, 0, 1, work, GDVars.dsViewImageBufferPtr);
+  Blit.BlitTileClipped(col * 3, row * 3, 0, 1, work, GDVars.viewImageBufferPtr);
   Blit.FreePic(work);
 end;
 

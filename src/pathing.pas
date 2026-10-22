@@ -42,7 +42,7 @@ procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte;
   with a negative X offset. }
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 
-{ Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: dsTargetCreaturePtr and
+{ Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: targetCreaturePtr and
   spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 
@@ -335,7 +335,7 @@ var
 begin
   Pathing.BuildTargetList(x, y, radius, 255, 1, GDVars.arenaPtr);
   for k := 1 to GDVars.targetCount do
-    GDVars.dsTargetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
+    GDVars.targetCreaturePtr[k] := GDVars.creatureArr[GDVars.targetList[k].idx];
   GDVars.spellTargetCount := GDVars.targetCount;
 end;
 

@@ -13,7 +13,7 @@ uses Types;
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
   idx is the menu cursor and persists across calls; idx < 0 clears the window and opens at the top of the list on its
   first spell (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's
-  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets dsCurrentScrollPtr to the chosen
+  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets currentScrollPtr to the chosen
   spell's scroll. Frees spellList before returning. }
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 
@@ -36,7 +36,7 @@ procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
   Wisdom, for a clerical spell, #60); a failure spends the spell and shows "<name> fails to cast <spell>." and nothing
   else happens. Otherwise, in combat turn to face the aim, play the cast sound and animate the projectile; then remove
   the caster's invisibility, consume the memorized spell unless GDVars.usingItem, and run GDVars.spellFns[spell] with
-  dsCurrentSpellBeing set. With no pick, outside combat it just returns; in combat b, or Yes to 'Abort Spell?', aborts
+  currentSpellBeing set. With no pick, outside combat it just returns; in combat b, or Yes to 'Abort Spell?', aborts
   and consumes the spell, and otherwise targeting repeats. b means automatic targeting (AI or quick fight); sel returns
   whether targets were picked. }
 procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
@@ -53,11 +53,11 @@ procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
   bottom line. Otherwise show the creature name, msg and the spell name in the message window, pause, then clear it. }
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 
-{ Remove Curse (spellFns[43], also called by Temple): remove Bestow Curse (effect 36) from dsTargetCreaturePtr[1], or
+{ Remove Curse (spellFns[43], also called by Temple): remove Bestow Curse (effect 36) from targetCreaturePtr[1], or
   else clear the curse on its first cursed item. }
 procedure RemoveCurseSpell;
 
-{ Spell handlers: each acts on GDVars.curChar, dsTargetCreaturePtr and dsCurrentSpellBeing; GameInit.InitSpellFns maps
+{ Spell handlers: each acts on GDVars.curChar, targetCreaturePtr and currentSpellBeing; GameInit.InitSpellFns maps
   spell IDs to them }
 procedure BlessHandler;
 
@@ -200,7 +200,7 @@ var
   scrollPtrs: array[0..48] of Types.PItemRec;
   scrollCount: Byte;
   { Current item used for spell casting. }
-  dsCurrentScrollPtr: Types.PItemRec;
+  currentScrollPtr: Types.PItemRec;
 
 const
   { Lightning Bolt's length, in cells past the aim cell }
@@ -295,9 +295,9 @@ begin
   if selType = 3 then
     { 48 = High(scrollPtrs) }
     if count <= 48 then
-      dsCurrentScrollPtr := scrollPtrs[count]
+      currentScrollPtr := scrollPtrs[count]
     else
-      dsCurrentScrollPtr := nil;
+      currentScrollPtr := nil;
   MenuCore.FreeStringList(spellList);
 end;
 
@@ -382,37 +382,37 @@ begin
     end;
 end;
 
-{ Add dsCurrentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
+{ Add currentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
   and record the scroll in scrollPtrs for each while scrollPtrs has room. Read Magic (effect 16), or any cleric level
   with a scroll whose base item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. }
 procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
 var
   i: Byte;
 begin
-  if CharHlp.ScrollLegible(creature, dsCurrentScrollPtr) then
+  if CharHlp.ScrollLegible(creature, currentScrollPtr) then
     { 3 = High(TItemRec.spells) }
     for i := 1 to 3 do begin
-      if (forScribe and (dsCurrentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
-          (not forScribe and (dsCurrentScrollPtr^.spells[i] > 0)) then begin
-        Magic.AddSpellToList(creature, dsCurrentScrollPtr^.spells[i], mark);
+      if (forScribe and (currentScrollPtr^.spells[i] > C_Spell.PENDING_FLAG)) or
+          (not forScribe and (currentScrollPtr^.spells[i] > 0)) then begin
+        Magic.AddSpellToList(creature, currentScrollPtr^.spells[i], mark);
         { 48 = High(scrollPtrs) }
         if scrollCount <= 48 then begin
-          scrollPtrs[scrollCount] := dsCurrentScrollPtr;
+          scrollPtrs[scrollCount] := currentScrollPtr;
           Inc(scrollCount);
         end;
       end;
     end;
 end;
 
-{ Walk creature's inventory: each readable item becomes dsCurrentScrollPtr and feeds AddScrollSpells with forScribe and
-  mark. dsCurrentScrollPtr itself is the loop variable, so it ends as nil. }
+{ Walk creature's inventory: each readable item becomes currentScrollPtr and feeds AddScrollSpells with forScribe and
+  mark. currentScrollPtr itself is the loop variable, so it ends as nil. }
 procedure AddAllScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
 begin
-  dsCurrentScrollPtr := creature^.itemsAddr;
-  while dsCurrentScrollPtr <> nil do begin
-    if CharHlp.ItemReadable(dsCurrentScrollPtr) then
+  currentScrollPtr := creature^.itemsAddr;
+  while currentScrollPtr <> nil do begin
+    if CharHlp.ItemReadable(currentScrollPtr) then
       Magic.AddScrollSpells(creature, forScribe, mark);
-    dsCurrentScrollPtr := dsCurrentScrollPtr^.next;
+    currentScrollPtr := currentScrollPtr^.next;
   end;
 end;
 
@@ -555,8 +555,8 @@ begin
   CalcSpellDuration := d;
 end;
 
-{ Apply spell to every non-nil dsTargetCreaturePtr entry. The save is rolled only when the spell's saveEffect is set.
-  When dsCurrentSpellBeing's rangeFixed is 255 an attack roll is needed too; a miss counts as saved and zeroes damage
+{ Apply spell to every non-nil targetCreaturePtr entry. The save is rolled only when the spell's saveEffect is set.
+  When currentSpellBeing's rangeFixed is 255 an attack roll is needed too; a miss counts as saved and zeroes damage
   for this and every later target. damage > 0 is dealt with elem as GDVars.elementMask and saveEffect as the save
   reduction. The spell's effect, if any, is added for CalcSpellDuration minutes at strength eff (0 = caster level) with
   onRemove, saveEffect as save-negates, and msg. With no targets it returns at once, leaving elementMask set. }
@@ -578,13 +578,13 @@ begin
   else
     effLevel := eff;
   for i := 1 to GDVars.spellTargetCount do begin
-    if GDVars.dsTargetCreaturePtr[i] <> nil then begin
-      tgt := GDVars.dsTargetCreaturePtr[i];
+    if GDVars.targetCreaturePtr[i] <> nil then begin
+      tgt := GDVars.targetCreaturePtr[i];
       if not GDConsts.spellTable[spell].saveEffect then
         saved := False
       else
         saved := FxEngine.RollSavingThrow(tgt, GDConsts.spellTable[spell].saveType, 0);
-      if GDConsts.spellTable[GDVars.dsCurrentSpellBeing].rangeFixed = 255 then begin
+      if GDConsts.spellTable[GDVars.currentSpellBeing].rangeFixed = 255 then begin
         CharHlp.RecalcStats(tgt);
         FxEngine.TriggerEffectsWithCondition(C_Cond.DEFENDER_AC, tgt);
         if not FxEngine.AttackRoll(GDVars.curChar, tgt, tgt^.acCur) then begin
@@ -606,7 +606,7 @@ procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 begin
   if GDVars.castTarget = nil then
     GDVars.castTarget := GDVars.curChar;
-  GDVars.dsTargetCreaturePtr[1] := GDVars.curChar;
+  GDVars.targetCreaturePtr[1] := GDVars.curChar;
   GDVars.spellTargetCount := 1;
   cast := True;
   case GDConsts.spellTable[spell].target of
@@ -615,17 +615,17 @@ begin
          CharDisp.DisplayNoncombatInterface;
          CharDisp.SelectChar('Cast Spell on whom', True, GDVars.castTarget);
          if GDVars.castTarget = nil then begin
-           GDVars.dsTargetCreaturePtr[1] := nil;
+           GDVars.targetCreaturePtr[1] := nil;
            GDVars.spellTargetCount := 0;
            cast := False;
          end else
-           GDVars.dsTargetCreaturePtr[1] := GDVars.castTarget;
+           GDVars.targetCreaturePtr[1] := GDVars.castTarget;
        end;
     4: begin
-         GDVars.dsTargetCreaturePtr[GDVars.spellTargetCount] := GDVars.creatureList;
-         while GDVars.dsTargetCreaturePtr[GDVars.spellTargetCount]^.nextCharAddr <> nil do begin
-           GDVars.dsTargetCreaturePtr[GDVars.spellTargetCount + 1] :=
-             GDVars.dsTargetCreaturePtr[GDVars.spellTargetCount]^.nextCharAddr;
+         GDVars.targetCreaturePtr[GDVars.spellTargetCount] := GDVars.creatureList;
+         while GDVars.targetCreaturePtr[GDVars.spellTargetCount]^.nextCharAddr <> nil do begin
+           GDVars.targetCreaturePtr[GDVars.spellTargetCount + 1] :=
+             GDVars.targetCreaturePtr[GDVars.spellTargetCount]^.nextCharAddr;
            Inc(GDVars.spellTargetCount);
          end;
        end;
@@ -706,9 +706,9 @@ begin
           CharHlp.RemoveSpell(GDVars.curChar, spell);
           Stats.Count(p, Stats.SPELLS_CAST, 1);
         end;
-        GDVars.dsCurrentSpellBeing := spell;
-        GDVars.spellFns[GDVars.dsCurrentSpellBeing];
-        GDVars.dsCurrentSpellBeing := C_Spell.NONE;
+        GDVars.currentSpellBeing := spell;
+        GDVars.spellFns[GDVars.currentSpellBeing];
+        GDVars.currentSpellBeing := C_Spell.NONE;
         GDVars.gMultiTarget := 0;
       end;
     end else begin
@@ -742,12 +742,12 @@ var
 begin
   GDVars.gMultiTarget := 1;
   for i := 1 to GDVars.spellTargetCount do begin
-    if (GDVars.dsTargetCreaturePtr[i]^.hostile <> hostFlag) or
-        ((GDVars.dsCurrentSpellBeing = C_Spell.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
-         (CbtMap.CountTargets(GDVars.dsTargetCreaturePtr[i], 1) > 0)) then
-      GDVars.dsTargetCreaturePtr[i] := nil;
+    if (GDVars.targetCreaturePtr[i]^.hostile <> hostFlag) or
+        ((GDVars.currentSpellBeing = C_Spell.BLESS) and (GDVars.ifcState = C_Ifc.COMBAT) and
+         (CbtMap.CountTargets(GDVars.targetCreaturePtr[i], 1) > 0)) then
+      GDVars.targetCreaturePtr[i] := nil;
   end;
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, msg);
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, msg);
 end;
 
 { Bless: apply the spell to the caster's own team (see CastOneSide). }
@@ -767,32 +767,32 @@ procedure CureLightWoundsHandler;
 begin
   if GDVars.spellTargetCount = 0 then
     Exit;
-  if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(1, 8), False) then
-    CharDisp.PrintHpRestoreMsg(GDVars.dsTargetCreaturePtr[1]);
+  if FxEngine.RestoreHitPoints(GDVars.targetCreaturePtr[1], Dice.RollDice(1, 8), False) then
+    CharDisp.PrintHpRestoreMsg(GDVars.targetCreaturePtr[1]);
 end;
 
 { Cause Light Wounds: 1d8 damage, element mask 8. }
 procedure CauseLightWoundsHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(1, 8), C_Effect.ELEM_MAGIC, '');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(1, 8), C_Effect.ELEM_MAGIC, '');
 end;
 
 { Shared handler for the detection-style spells: apply the spell's effect. }
 procedure DetectionHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is affected');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is affected');
 end;
 
 { Shared handler for the protection spells: apply the spell's effect. }
 procedure ProtectionHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is protected');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is protected');
 end;
 
 { Resist Cold: apply the spell's effect. }
 procedure ResistColdHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is cold-resistant');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is cold-resistant');
 end;
 
 { Burning Hands: caster-level damage, element mask 9. }
@@ -801,7 +801,7 @@ begin
   { no dice are rolled: the fixed damage counts as one die for the per-die fire protections (effects 61 and 113),
     which otherwise used the die count of whatever damage roll came before }
   GDVars.gDamageDice := 1;
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, CharHlp.GetCasterLevel(GDVars.currentSpellBeing),
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
@@ -813,15 +813,15 @@ var
   effect: Types.PEffectRec;
   tgt: Types.PCharRecord;
 begin
-  tgt := GDVars.dsTargetCreaturePtr[1];
+  tgt := GDVars.targetCreaturePtr[1];
   if not CharHlp.IsPerson(tgt) then
     CharDisp.PrintNameString(tgt, 'is unaffected', 10, True)
   else begin
-    Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
-                        CharHlp.Team(GDVars.curChar) * 128 + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+    Magic.ResolveSpell(GDVars.currentSpellBeing,
+                        CharHlp.Team(GDVars.curChar) * 128 + CharHlp.GetCasterLevel(GDVars.currentSpellBeing),
                         True, 0, 0, 'is charmed');
     if CharHlp.HasEffect(tgt, C_Effect.CHARM, effect) then
-      FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.dsTargetCreaturePtr[1], effect, False);
+      FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.targetCreaturePtr[1], effect, False);
   end;
 end;
 
@@ -836,7 +836,7 @@ var
 begin
   { Strength 18 with exceptional Strength 0, 1, 51, 76, 91 or 100 for caster levels 1..6; 100 above 6, 0 for level 0 }
   baseStr := 18;
-  lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+  lvl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   case lvl of
     1: excStr := 0;
     2: excStr := 1;
@@ -850,20 +850,20 @@ begin
     else
       excStr := 0;
   end;
-  if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], baseStr, excStr, enc) then
-    CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
+  if FxEngine.AdjustForNewStrength(GDVars.targetCreaturePtr[1], baseStr, excStr, enc) then
+    CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'is stronger', 10, True);
   { enc: the Strength encoding AdjustForNewStrength returned, kept as the effect's strength }
-  FxEngine.AddEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.ENLARGE,
-                     Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing), enc, True);
+  FxEngine.AddEffect(GDVars.targetCreaturePtr[1], C_Effect.ENLARGE,
+                     Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
-{ Reduce: if dsTargetCreaturePtr[1] fails a spell save, remove its Enlarge effect (12) }
+{ Reduce: if targetCreaturePtr[1] fails a spell save, remove its Enlarge effect (12) }
 procedure ReduceHandler;
 begin
   if GDVars.spellTargetCount > 0 then
-    if not FxEngine.RollSavingThrow(GDVars.dsTargetCreaturePtr[1], C_Save.SPELL, 0) then
-      if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.ENLARGE) then
-        CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'has been reduced', 10, True);
+    if not FxEngine.RollSavingThrow(GDVars.targetCreaturePtr[1], C_Save.SPELL, 0) then
+      if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.ENLARGE) then
+        CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'has been reduced', 10, True);
 end;
 
 { Friends: +2d4 Charisma, capped at 25; the effect's strength is the old Charisma, restored on removal }
@@ -871,9 +871,9 @@ procedure FriendsHandler;
 var
   oldCha: Byte;
 begin
-  oldCha := GDVars.dsTargetCreaturePtr[1]^.chaCur;
-  GDVars.dsTargetCreaturePtr[1]^.chaCur := AbilAdj.ClampScore(oldCha + Dice.RollDice(2, 4));
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, oldCha, True, 0, 0, 'is friendly');
+  oldCha := GDVars.targetCreaturePtr[1]^.chaCur;
+  GDVars.targetCreaturePtr[1]^.chaCur := AbilAdj.ClampScore(oldCha + Dice.RollDice(2, 4));
+  Magic.ResolveSpell(GDVars.currentSpellBeing, oldCha, True, 0, 0, 'is friendly');
 end;
 
 { Magic Missile: (caster level div 2)d4 + caster level div 2 damage, element mask 8. }
@@ -881,22 +881,22 @@ procedure MagicMissileHandler;
 var
   cl: Byte;
 begin
-  cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, cl div 2 + Dice.RollDamageDice(cl div 2, 4),
+  cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, cl div 2 + Dice.RollDamageDice(cl div 2, 4),
                      C_Effect.ELEM_MAGIC, '');
 end;
 
 { Shield: apply the spell's effect. }
 procedure ShieldHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is shielded');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is shielded');
 end;
 
 { Shocking Grasp: 1d8 + caster level damage, element mask $C. }
 procedure ShockingGraspHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False,
-                      Dice.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing),
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False,
+                      Dice.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GDVars.currentSpellBeing),
                       C_Effect.ELEM_ELEC or C_Effect.ELEM_MAGIC, '');
 end;
 
@@ -913,26 +913,26 @@ begin
   GDVars.gMultiTarget := 1;
   pool := Dice.RollDice(4, 4);
   for i := 1 to GDVars.spellTargetCount do begin
-    case GDVars.dsTargetCreaturePtr[i]^.levelHighest of
+    case GDVars.targetCreaturePtr[i]^.levelHighest of
       0..1: cost := 1;
       2: cost := 2;
       3: cost := 4;
       4: cost := 6;
-      5: if GDVars.dsTargetCreaturePtr[i]^.race = C_Race.MONSTER then
+      5: if GDVars.targetCreaturePtr[i]^.race = C_Race.MONSTER then
            cost := 10
          else
            cost := 20;
     else
       cost := 20;
     end;
-    if (GDVars.dsTargetCreaturePtr[i]^.status <> C_Status.ANIMATED) and
-        (not CharHlp.HasEffect(GDVars.dsTargetCreaturePtr[i], C_Effect.SLEEP, effect)) and
+    if (GDVars.targetCreaturePtr[i]^.status <> C_Status.ANIMATED) and
+        (not CharHlp.HasEffect(GDVars.targetCreaturePtr[i], C_Effect.SLEEP, effect)) and
         (pool >= cost) then
       Dec(pool, cost)
     else
-      GDVars.dsTargetCreaturePtr[i] := nil;
+      GDVars.targetCreaturePtr[i] := nil;
   end;
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'falls asleep');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'falls asleep');
 end;
 
 { Hold Person (spells 23 and 49): save modifier -2 (cleric) or -3 (mage) for one target, -1 for two, 0 for three or
@@ -946,7 +946,7 @@ var
   smod: ShortInt;
 begin
   case GDVars.spellTargetCount of
-    1: if GDVars.dsCurrentSpellBeing = C_Spell.HOLD_PERSON then
+    1: if GDVars.currentSpellBeing = C_Spell.HOLD_PERSON then
          smod := -2
        else
          smod := -3;
@@ -955,8 +955,8 @@ begin
     smod := 0;
   end;
   for i := GDVars.spellTargetCount downto 1 do begin
-    if GDVars.dsTargetCreaturePtr[i] <> nil then begin
-      tgt := GDVars.dsTargetCreaturePtr[i];
+    if GDVars.targetCreaturePtr[i] <> nil then begin
+      tgt := GDVars.targetCreaturePtr[i];
       if i < GDVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
         SoundDrv.SoundCommand(GDConsts.soundIds.commands[C_Sound.CAST]);
@@ -965,13 +965,13 @@ begin
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
         SoundDrv.SoundSetAutoStop(10);
       end;
-      saved := FxEngine.RollSavingThrow(tgt, GDConsts.spellTable[GDVars.dsCurrentSpellBeing].saveType, smod);
+      saved := FxEngine.RollSavingThrow(tgt, GDConsts.spellTable[GDVars.currentSpellBeing].saveType, smod);
       if not CharHlp.IsPerson(tgt) then
         saved := True;
-      FxEngine.AddEffectWithMessage(tgt, GDConsts.spellTable[GDVars.dsCurrentSpellBeing].effect,
-                                    Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing),
-                                    CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), False,
-                                    GDConsts.spellTable[GDVars.dsCurrentSpellBeing].saveEffect, saved, 'is held');
+      FxEngine.AddEffectWithMessage(tgt, GDConsts.spellTable[GDVars.currentSpellBeing].effect,
+                                    Magic.CalcSpellDuration(GDVars.currentSpellBeing),
+                                    CharHlp.GetCasterLevel(GDVars.currentSpellBeing), False,
+                                    GDConsts.spellTable[GDVars.currentSpellBeing].saveEffect, saved, 'is held');
     end;
   end;
 end;
@@ -979,13 +979,13 @@ end;
 { Resist Fire: apply the spell's effect. }
 procedure ResistFireHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is fire resistant');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is fire resistant');
 end;
 
 { Silence: apply the spell's effect. }
 procedure SilenceHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is silenced');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is silenced');
 end;
 
 { Stand a downed creature back up with its hit points through FxEngine.ReviveDeadCreature, or, where it cannot stand
@@ -1006,13 +1006,13 @@ var
   effect: Types.PEffectRec;
   tgt: Types.PCharRecord;
 begin
-  tgt := GDVars.dsTargetCreaturePtr[1];
+  tgt := GDVars.targetCreaturePtr[1];
   if tgt^.status = C_Status.ANIMATED then
-    GDVars.dsTargetCreaturePtr[1] := nil
+    GDVars.targetCreaturePtr[1] := nil
   else if CharHlp.HasEffect(tgt, C_Effect.POISONED, effect) then begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
-    Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 255, True, 0, 0, 'is affected');
+    Magic.ResolveSpell(GDVars.currentSpellBeing, 255, True, 0, 0, 'is affected');
     if ((tgt^.status = C_Status.DEAD) or (tgt^.enabled = 0)) and
         not (tgt^.status in [C_Status.TEMPGONE, C_Status.RUNNING, C_Status.STONED, C_Status.GONE]) then
       StandUpOrWake(tgt);
@@ -1036,42 +1036,42 @@ begin
       if pool >= p^.hpCur then begin
         pool := pool - p^.hpCur;
         Inc(GDVars.spellTargetCount);
-        GDVars.dsTargetCreaturePtr[GDVars.spellTargetCount] := p;
+        GDVars.targetCreaturePtr[GDVars.spellTargetCount] := p;
       end;
     p := p^.nextCharAddr;
   end;
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is charmed');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is charmed');
 end;
 
 { Spiritual Hammer: apply the spell's effect, then run the Spiritual Hammer effect handler for the first target. }
 procedure SpiritualHammerHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, True, 0, 0, '');
-  FxEngine.CallEffectHandler(C_Effect.SPIRIT_HAMMER, GDVars.dsTargetCreaturePtr[1], nil, False);
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, True, 0, 0, '');
+  FxEngine.CallEffectHandler(C_Effect.SPIRIT_HAMMER, GDVars.targetCreaturePtr[1], nil, False);
 end;
 
 { Invisibility: apply the spell's effect. }
 procedure InvisibilityHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is invisible');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is invisible');
 end;
 
 { Knock: apply the spell's effect. }
 procedure KnockHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'Knock-Knock');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'Knock-Knock');
 end;
 
 { Mirror Image: apply the spell's effect with 1d4 images as its strength. }
 procedure MirrorImageHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, Dice.RollDice(1, 4), False, 0, 0, 'is duplicated');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, Dice.RollDice(1, 4), False, 0, 0, 'is duplicated');
 end;
 
 { Ray of Enfeeblement: apply the spell's effect. }
 procedure RayOfEnfeeblementHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is weakened');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is weakened');
 end;
 
 { Stinking Cloud: append a node to the stinkHead list and give the caster effect 40 for caster-level minutes at strength
@@ -1095,7 +1095,7 @@ var
   d: Byte;
 begin
   GDVars.gMultiTarget := 1;
-  cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+  cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   myClouds := FxEngine.FreeCloudNumber(GDVars.curChar);
   node := GDVars.stinkHead;
   if GDVars.stinkHead = nil then begin
@@ -1166,7 +1166,7 @@ var
 begin
   exStr := 0;
   roll := 0;
-  tgt := GDVars.dsTargetCreaturePtr[1];
+  tgt := GDVars.targetCreaturePtr[1];
   if tgt^.classLevels[C_Level.MAGE] > 0 then
     roll := Dice.RollDice(1, 4);
   if (tgt^.classLevels[C_Level.CLERIC] > 0) or (tgt^.classLevels[C_Level.THIEF] > 0) then
@@ -1187,7 +1187,7 @@ begin
   end;
   if FxEngine.AdjustForNewStrength(tgt, newStr, exStr, enc) then
     CharDisp.PrintNameString(tgt, 'is stronger', 10, True);
-  FxEngine.AddEffect(tgt, C_Effect.STRENGTH, Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing), enc, True);
+  FxEngine.AddEffect(tgt, C_Effect.STRENGTH, Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
 { Animate Dead: animate up to caster-level dead (C_Status.DEAD) human (charType 0) creatures whose cell is still a valid
@@ -1203,7 +1203,7 @@ var
   p: Types.PCharRecord;
 begin
   GDVars.gMultiTarget := 1;
-  n := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+  n := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   GDVars.spellTargetCount := 0;
   p := GDVars.creatureList;
   while (p <> nil) and (n > 0) do begin
@@ -1213,7 +1213,7 @@ begin
         if CbtMap.IsValidCreatureLoc(p, CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), True) then begin
           { the corpse's side in bit 4, the caster level (at most 15) below it: a level of 16 or more carried into the
             side, and EffAnimateDead gave the corpse back a hostile of 2 or more (#710) }
-          strength := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+          strength := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
           if strength > 15 then
             strength := 15;
           strength := CharHlp.Team(p) * 16 + strength;
@@ -1246,14 +1246,14 @@ end;
 { Cure Blindness: remove the first target's blindness. }
 procedure CureBlindnessHandler;
 begin
-  if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.BLIND) then
-    CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'can see');
+  if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.BLIND) then
+    CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, 'can see');
 end;
 
 { Cause Blindness: apply the spell's effect. }
 procedure CauseBlindnessHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is blind');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is blind');
 end;
 
 { Remove disease from tgt with effectLock held: Diseased, the Strength-draining disease (also dropping its hit-point and
@@ -1281,13 +1281,13 @@ procedure CureDiseaseHandler;
 var
   junk: Boolean;
 begin
-  junk := Magic.RemoveDiseaseEffects(GDVars.dsTargetCreaturePtr[1]);
+  junk := Magic.RemoveDiseaseEffects(GDVars.targetCreaturePtr[1]);
 end;
 
 { Cause Disease: apply the spell's effect. }
 procedure CauseDiseaseHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, True, 0, 0, 'is diseased');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, True, 0, 0, 'is diseased');
 end;
 
 { Dispel Magic: on each target, try every effect whose strength is below 255, with its low nibble as the effect's caster
@@ -1307,11 +1307,11 @@ var
   nxt: Types.PEffectRec;
 begin
   GDVars.gMultiTarget := 1;
-  cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+  cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   for i := 1 to GDVars.spellTargetCount do begin
     removed := False;
     if i <= Types.ARENA_SLOTS then
-      tgt := GDVars.dsTargetCreaturePtr[i]
+      tgt := GDVars.targetCreaturePtr[i]
     else
       tgt := nil;
     if tgt <> nil then
@@ -1349,8 +1349,8 @@ end;
 { Prayer: apply the spell's effect at FxEngine.PrayerStrength, the caster's team and level. }
 procedure PrayerHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
-                      FxEngine.PrayerStrength(GDVars.curChar, CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing)),
+  Magic.ResolveSpell(GDVars.currentSpellBeing,
+                      FxEngine.PrayerStrength(GDVars.curChar, CharHlp.GetCasterLevel(GDVars.currentSpellBeing)),
                       False, 0, 0, 'is praying');
 end;
 
@@ -1359,11 +1359,11 @@ var
   item: Types.PItemRec;
   found: Boolean;
 begin
-  if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.BESTOW_CURSE) then
-    CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is un-cursed')
+  if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.BESTOW_CURSE) then
+    CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, 'is un-cursed')
   else begin
     found := False;
-    item := GDVars.dsTargetCreaturePtr[1]^.itemsAddr;
+    item := GDVars.targetCreaturePtr[1]^.itemsAddr;
     while (item <> nil) and (found = False) do begin
       if item^.cursed <> 0 then begin
         found := True;
@@ -1372,20 +1372,20 @@ begin
       item := item^.next;
     end;
     if found then
-      CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, '''s item is un-cursed');
+      CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, '''s item is un-cursed');
   end;
 end;
 
 { Bestow Curse: apply the spell's effect. }
 procedure BestowCurseHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'has been cursed!');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'has been cursed!');
 end;
 
 { Blink: apply the spell's effect. }
 procedure BlinkHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is blinking');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is blinking');
 end;
 
 { Fireball: spell 64 (an item fireball) uses level 1d3 * 2 + 1. When zone0^.view3dFlag is 0 the target list is rebuilt
@@ -1395,15 +1395,15 @@ var
   cl: Byte;
 begin
   GDVars.gMultiTarget := 1;
-  if GDVars.dsCurrentSpellBeing = C_Spell.ITEM_FIREBALL then
+  if GDVars.currentSpellBeing = C_Spell.ITEM_FIREBALL then
     cl := Dice.RollDice(1, 3) * 2 + 1
   else
-    cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+    cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   if GDVars.zone0^.view3dFlag = 0 then begin
     Pathing.TargetArea(GDVars.gTargetX, GDVars.gTargetY, 2);
   end;
   CbtMap.ScrollView(GDVars.gTargetX, GDVars.gTargetY, 0, C_Dir.CENTER);
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(cl, 6),
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(cl, 6),
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
@@ -1417,21 +1417,21 @@ var
   i: Byte;
 begin
   GDVars.gMultiTarget := 1;
-  cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+  cl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
   for i := 1 to GDVars.spellTargetCount do begin
-    if (GDVars.dsTargetCreaturePtr[i]^.hostile = hostFlag) and (cl > 0) then begin
+    if (GDVars.targetCreaturePtr[i]^.hostile = hostFlag) and (cl > 0) then begin
       Dec(cl);
-      if FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[i], removeId) then
-        GDVars.dsTargetCreaturePtr[i] := nil;
+      if FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[i], removeId) then
+        GDVars.targetCreaturePtr[i] := nil;
     end else
-      GDVars.dsTargetCreaturePtr[i] := nil;
+      GDVars.targetCreaturePtr[i] := nil;
   end;
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, msg);
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, msg);
   for i := 1 to GDVars.spellTargetCount do
-    if GDVars.dsTargetCreaturePtr[i] <> nil then begin
-      GDVars.dsCurrentAttackCurrent := GDVars.dsTargetCreaturePtr[i]^.attacks2;
-      GDVars.dsCurrentCreatureCalculatingFlag := 0;
-      FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, GDVars.dsTargetCreaturePtr[i]);
+    if GDVars.targetCreaturePtr[i] <> nil then begin
+      GDVars.currentAttackCurrent := GDVars.targetCreaturePtr[i]^.attacks2;
+      GDVars.currentCreatureCalculatingFlag := 0;
+      FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, GDVars.targetCreaturePtr[i]);
     end;
 end;
 
@@ -1583,7 +1583,7 @@ var
   dmg: Byte;
   junk: Boolean;
 begin
-  dmg := Dice.RollDice(CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing), 6);
+  dmg := Dice.RollDice(CharHlp.GetCasterLevel(GDVars.currentSpellBeing), 6);
   Magic.LightningAttackAt(GDVars.gTargetX, GDVars.gTargetY, dmg, C_Save.SPELL, junk);
   Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_Save.SPELL, True);
 end;
@@ -1622,7 +1622,7 @@ var
   bestCls: ShortInt;
   cls: ShortInt;
 begin
-  tgt := GDVars.dsTargetCreaturePtr[1];
+  tgt := GDVars.targetCreaturePtr[1];
   if tgt^.drainedLevels > 0 then begin
     share := tgt^.drainedHps div tgt^.drainedLevels;
     Inc(tgt^.hpMax, share);
@@ -1639,12 +1639,12 @@ begin
     for cls := C_Level.CLERIC to C_Level.MONK do begin
       lvl := tgt^.classLevels[cls];
       { xp[] runs to level 9 }
-      if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
-          (GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)] < bestXp) and
+      if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
+          (GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)] < bestXp) and
           (not CharHlp.AtLevelCap(tgt, cls)) then begin
         bestLvl := lvl;
         bestCls := cls;
-        bestXp := GDConsts.dsExperienceSpellsClass[cls].xp[Succ(lvl)];
+        bestXp := GDConsts.experienceSpellsClass[cls].xp[Succ(lvl)];
       end;
     end;
     if bestCls >= 0 then begin
@@ -1660,8 +1660,8 @@ end;
 { Potion of Speed: remove Slowed, or else apply the potion's effect. }
 procedure PotionOfSpeedHandler;
 begin
-  if not FxEngine.RemoveEffectWithMessage(GDVars.dsTargetCreaturePtr[1], C_Effect.SLOWED) then
-    Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is Speedy');
+  if not FxEngine.RemoveEffectWithMessage(GDVars.targetCreaturePtr[1], C_Effect.SLOWED) then
+    Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is Speedy');
 end;
 
 { Keoghtom's Ointment: cure poison (also removing effect 22 silently), else cure disease, else heal 1d4 + 8. Poison
@@ -1674,7 +1674,7 @@ var
   effect: Types.PEffectRec;
   slowed: Boolean;
 begin
-  tgt := GDVars.dsTargetCreaturePtr[1];
+  tgt := GDVars.targetCreaturePtr[1];
   slowed := CharHlp.HasEffect(tgt, C_Effect.SLOW_POISON_END, effect) or
             CharHlp.HasEffect(tgt, C_Effect.SLOW_POISON_HIT, effect);
   if FxEngine.RemoveEffectWithMessage(tgt, C_Effect.POISONED) then begin
@@ -1687,8 +1687,8 @@ begin
       StandUpOrWake(tgt);
     end;
   end else if not Magic.RemoveDiseaseEffects(tgt) then begin
-    if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(1, 4) + 8, False) then
-      CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
+    if FxEngine.RestoreHitPoints(GDVars.targetCreaturePtr[1], Dice.RollDice(1, 4) + 8, False) then
+      CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, 'is Healed');
   end;
 end;
 
@@ -1698,10 +1698,10 @@ procedure GiantStrengthHandler;
 var
   enc: Byte;
 begin
-  if FxEngine.AdjustForNewStrength(GDVars.dsTargetCreaturePtr[1], 21, 0, enc) then
-    CharDisp.PrintNameString(GDVars.dsTargetCreaturePtr[1], 'is stronger', 10, True);
-  FxEngine.AddEffect(GDVars.dsTargetCreaturePtr[1], C_Effect.STRENGTH,
-                     Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing), enc, True);
+  if FxEngine.AdjustForNewStrength(GDVars.targetCreaturePtr[1], 21, 0, enc) then
+    CharDisp.PrintNameString(GDVars.targetCreaturePtr[1], 'is stronger', 10, True);
+  FxEngine.AddEffect(GDVars.targetCreaturePtr[1], C_Effect.STRENGTH,
+                     Magic.CalcSpellDuration(GDVars.currentSpellBeing), enc, True);
 end;
 
 { Javelin of Lightning: 1d6 + 20 damage at the aim cell, then a 3-cell bolt of 20 damage. }
@@ -1716,26 +1716,26 @@ end;
 { Wand of Paralyzation: apply the item's effect. }
 procedure WandParalyzationHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is paralyzed');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is paralyzed');
 end;
 
 { Potion of Healing: restore 2d4 + 2 hit points. }
 procedure PotionOfHealingHandler;
 begin
-  if FxEngine.RestoreHitPoints(GDVars.dsTargetCreaturePtr[1], Dice.RollDice(2, 4) + 2, False) then
-    CharDisp.PrintNameStringAnim(GDVars.dsTargetCreaturePtr[1], True, 'is Healed');
+  if FxEngine.RestoreHitPoints(GDVars.targetCreaturePtr[1], Dice.RollDice(2, 4) + 2, False) then
+    CharDisp.PrintNameStringAnim(GDVars.targetCreaturePtr[1], True, 'is Healed');
 end;
 
 { Dust of Disappearance: apply the item's effect. }
 procedure DustDisappearanceHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, 0, 0, 'is invisible');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, 0, 0, 'is invisible');
 end;
 
 { Wand of Magic Missiles: 2d4 + 2 damage, element C_Effect.ELEM_MAGIC. }
 procedure WandMagicMissilesHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, C_Effect.ELEM_MAGIC, '');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 0, False, Dice.RollDamageDice(2, 4) + 2, C_Effect.ELEM_MAGIC, '');
 end;
 
 { Unused item spell slot: does nothing. }
@@ -1746,7 +1746,7 @@ end;
 { Manual of Bodily Health: apply the item's effect at strength 255. }
 procedure ManualBodilyHealthHandler;
 begin
-  Magic.ResolveSpell(GDVars.dsCurrentSpellBeing, 255, True, 0, 0, 'is Reading');
+  Magic.ResolveSpell(GDVars.currentSpellBeing, 255, True, 0, 0, 'is Reading');
 end;
 
 { Bronze dragon breath, effect 88's handler. After the first round (roundCounter <> 0) it holds fire half the time.
@@ -1954,7 +1954,7 @@ begin
   GDVars.usingItem := False;
   spell := 0;
   if CharHlp.ItemReadable(item) then begin
-    dsCurrentScrollPtr := item;
+    currentScrollPtr := item;
     spell := Magic.SpellMenu(2, 1, idx, notEmpty);
   end else if (item^.effect > 0) and (item^.special < $80) then
     spell := item^.effect;

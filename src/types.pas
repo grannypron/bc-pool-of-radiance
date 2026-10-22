@@ -469,7 +469,7 @@ type
     num: Byte;
     sides: Byte;
   end;
-  { racial ability limits (GDConsts.dsMinimumMaximumStatistics) }
+  { racial ability limits (GDConsts.minimumMaximumStatistics) }
   TRuleRace = record
     { by gender }
     strMin: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;
@@ -573,7 +573,7 @@ type
     xCol: array[0..9] of Integer;
     yRow: array[0..9] of Integer;
   end;
-  { one loaded-wallset cache slot (GDVars.dsWallSetCache) }
+  { one loaded-wallset cache slot (GDVars.wallSetCache) }
   TWallSetCacheSlot = record
     { cached WALLDEF reload ID; -1 invalidates the slot }
     wallDefId: Integer;
@@ -724,7 +724,7 @@ type
   end;
 
   { CharGen types. }
-  { dsStartingAge entries }
+  { startingAge entries }
   TAgeRec = record
     base: Word;
     { dice count }
@@ -732,12 +732,12 @@ type
     { dice sides }
     sides: Byte;
   end;
-  { dsStartingGoldClass }
+  { startingGoldClass }
   TGoldDice = record
     num: Byte;
     sides: Byte;
   end;
-  { dsMinimumMaximumStatistics entry }
+  { minimumMaximumStatistics entry }
   TRaceLim = record
     { by gender }
     strMin: array[C_Gender.MALE..C_Gender.FEMALE] of Byte;

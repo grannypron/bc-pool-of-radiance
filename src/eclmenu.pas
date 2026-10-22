@@ -100,12 +100,12 @@ begin
   GDVars.wallColorSel := 65;
   GDVars.ceilFloorColorSel := 9;
   GDVars.picRegionW := True;
-  FillChar(GDVars.dsMonsterFlags, SizeOf(GDVars.dsMonsterFlags), 0);
+  FillChar(GDVars.monsterFlags, SizeOf(GDVars.monsterFlags), 0);
   GDVars.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   GDVars.eclIp := $9900;
   GDVars.breathAim := False;
-  GDVars.dsEclStackTopPtr := nil;
-  GDVars.dsEclStackSecondPtr := nil;
+  GDVars.eclStackTopPtr := nil;
+  GDVars.eclStackSecondPtr := nil;
   FillChar(GDVars.cmpFlags, SizeOf(GDVars.cmpFlags), 0);
   { No portrait head (255), so DisplayMonster shows the PIC close-up }
   GDVars.zone1^[C_Gbvm.PIC_LOADING] := 255;
@@ -115,7 +115,7 @@ begin
   GDVars.zone0^.antimagic := 0;
   for i := 1 to 5 do begin
     EclVars.LoadEclVars(1);
-    GDVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[1], GDVars.dsGbvmUpperByte[1]);
+    GDVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[1], GDVars.gbvmUpperByte[1]);
   end;
   { Select the 3D view (MapView treats view3dFlag <> 0 as location type 1) }
   GDVars.zone0^.view3dFlag := 1;
@@ -145,7 +145,7 @@ var
   found: Boolean;
 begin
   FillChar(GDVars.zone3^, SizeOf(Types.TZone3), 0);
-  GDVars.dsSuppressingInsertDiskFlag := False;
+  GDVars.suppressingInsertDiskFlag := False;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, White, 'Loading...Please Wait');
   if not (GDVars.virtualDisk in [1..Types.LAST_DISK]) then
@@ -169,7 +169,7 @@ begin
   if sizeRead < 2 then begin
     { not on this disk: a script changed area without setting the disk first (Stojanow Gate's flee); take the first disk
       that has the block, without the insert-disk prompt }
-    GDVars.dsSuppressingInsertDiskFlag := True;
+    GDVars.suppressingInsertDiskFlag := True;
     disk := 1;
     while (sizeRead < 2) and (disk <= Types.LAST_DISK) do begin
       if disk <> GDVars.virtualDisk then begin
@@ -180,7 +180,7 @@ begin
       end;
       Inc(disk);
     end;
-    GDVars.dsSuppressingInsertDiskFlag := False;
+    GDVars.suppressingInsertDiskFlag := False;
     if sizeRead < 2 then begin
       Str(scriptId, s);
       DaxIo.PromptBox(Yellow, 'Script area ' + s + ' is missing');
@@ -236,8 +236,8 @@ end;
 procedure DisplayPortrait(headId, bodyId: Byte);
 begin
   GDVars.picDrawn := False;
-  GDVars.dsCurrentPortraitHead := headId;
-  GDVars.dsCurrentPortraitHead2 := bodyId;
+  GDVars.currentPortraitHead := headId;
+  GDVars.currentPortraitHead2 := bodyId;
   Portrait.LoadPortraitBufs(headId, bodyId);
   Portrait.DisplayPortraitBufs(3, 3, True);
 end;
@@ -357,16 +357,16 @@ end;
 { Push IP on the ECL return stack, then jump to the address word in variable varIdx }
 procedure EclGosub(varIdx: Byte);
 begin
-  if GDVars.dsEclStackTopPtr = nil then begin
-    GetMem(GDVars.dsEclStackTopPtr, SizeOf(Types.TEclRet));
-    GDVars.dsEclStackTopPtr^.next := nil;
+  if GDVars.eclStackTopPtr = nil then begin
+    GetMem(GDVars.eclStackTopPtr, SizeOf(Types.TEclRet));
+    GDVars.eclStackTopPtr^.next := nil;
   end else begin
-    GDVars.dsEclStackSecondPtr := GDVars.dsEclStackTopPtr;
-    GetMem(GDVars.dsEclStackTopPtr, SizeOf(Types.TEclRet));
-    GDVars.dsEclStackTopPtr^.next := GDVars.dsEclStackSecondPtr;
+    GDVars.eclStackSecondPtr := GDVars.eclStackTopPtr;
+    GetMem(GDVars.eclStackTopPtr, SizeOf(Types.TEclRet));
+    GDVars.eclStackTopPtr^.next := GDVars.eclStackSecondPtr;
   end;
-  GDVars.dsEclStackTopPtr^.addr := GDVars.eclIp;
-  GDVars.eclIp := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[varIdx], GDVars.dsGbvmUpperByte[varIdx]);
+  GDVars.eclStackTopPtr^.addr := GDVars.eclIp;
+  GDVars.eclIp := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[varIdx], GDVars.gbvmUpperByte[varIdx]);
 end;
 
 { Step with 0..15 wraparound, then refresh the event and wall-ahead bytes for the new cell }
@@ -549,7 +549,7 @@ begin
     end;
   end;
   FreeMem(data, size);
-  GDVars.dsSuppressingInsertDiskFlag := True;
+  GDVars.suppressingInsertDiskFlag := True;
   DaxIo.LoadDax('MON' + numStr + 'SPC', '.dax', id, size, data);
   if size <> 0 then begin
     if size >= DiskRec.EFFECT_DISK_BYTES then begin
@@ -586,7 +586,7 @@ begin
     end;
     FreeMem(data, size);
   end;
-  GDVars.dsSuppressingInsertDiskFlag := False;
+  GDVars.suppressingInsertDiskFlag := False;
   { the readied special items take effect, as when readied (FxEngine.ToggleReadyItem): SSI skipped this, and a monster
     never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747). An aligned
     weapon's and a boulder's handlers only test whether the creature may ready them, shocking it or printing a message

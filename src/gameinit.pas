@@ -32,14 +32,14 @@ var
   itemsRead: Word;
 
 { Install every spell handler in GDVars.spellFns, the noncombat cast-target menu, and Magic.DragonBreathHandler as
-  effect 88's handler; clear effectLock, GDVars.usingItem and GDVars.castTarget, and set dsRedrawInventoryMenuFlag. }
+  effect 88's handler; clear effectLock, GDVars.usingItem and GDVars.castTarget, and set redrawInventoryMenuFlag. }
 procedure InitSpellFns;
 begin
   GDVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
   GDVars.effectLock := 0;
   GDVars.usingItem := False;
   GDVars.castTarget := nil;
-  GDVars.dsRedrawInventoryMenuFlag := 1;
+  GDVars.redrawInventoryMenuFlag := 1;
   GDVars.spellFns[1] := Magic.BlessHandler;
   GDVars.spellFns[2] := Magic.CurseHandler;
   GDVars.spellFns[3] := Magic.CureLightWoundsHandler;
@@ -285,17 +285,17 @@ begin
   GDVars.locTypePrev := C_Area.LOC_3D_MAP;
   GDVars.gLocType := C_Area.LOC_3D_MAP;
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
-  GDVars.dsWildAnimFrame := 0;
+  GDVars.wildAnimFrame := 0;
   GDVars.vertTop := 1;
   GDVars.duelFlag := False;
-  GDVars.dsSuppressDrawingBorderFlag := 0;
-  GDVars.dsSearchModeFlag := 0;
-  GDVars.dsEcl3dClearFlag := 0;
+  GDVars.suppressDrawingBorderFlag := 0;
+  GDVars.searchModeFlag := 0;
+  GDVars.ecl3dClearFlag := 0;
   GDVars.protNewLine := 0;
   GDVars.eclGraphics := False;
   GDVars.partyDefeated := False;
   GDVars.sprShown := False;
-  GDVars.dsSuppressingInsertDiskFlag := False;
+  GDVars.suppressingInsertDiskFlag := False;
   GDVars.picArcName[0] := #0;
   GDVars.picArcId := 255;
   GDVars.recentSaved := 0;
@@ -322,9 +322,9 @@ begin
   GetMem(GDVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(GDVars.wallGfx, SizeOf(GDVars.wallGfx^));
   GetMem(GDVars.map3d, SizeOf(Types.TGeoMap));
-  Blit.AllocPic(8, 1, 1, 0, GDVars.dsCurrent8x8SymbolPtr2);
+  Blit.AllocPic(8, 1, 1, 0, GDVars.current8x8SymbolPtr2);
   { the 168x168 view area }
-  Blit.AllocPic(168, 21, 1, 0, GDVars.dsViewImageBufferPtr);
+  Blit.AllocPic(168, 21, 1, 0, GDVars.viewImageBufferPtr);
   { 24x24 save-under block }
   Blit.AllocPic(24, 3, 1, 0, GDVars.iconImageBufferPtr);
   FillChar(GDVars.spanActive, SizeOf(GDVars.spanActive), 0);
@@ -332,22 +332,22 @@ begin
   FillChar(GDVars.spanFirstOfs, SizeOf(GDVars.spanFirstOfs), $FF);
   FillChar(GDVars.spanLastOfs, SizeOf(GDVars.spanLastOfs), 0);
   VidOps.InitRowTables;
-  FillChar(GDVars.dsSymbolSetPtrs, SizeOf(GDVars.dsSymbolSetPtrs), 0);
-  FillChar(GDVars.ds2dMapTilePtr, SizeOf(GDVars.ds2dMapTilePtr) + SizeOf(GDVars.ds2dMapTilePtr2), 0);
-  FillChar(GDVars.dsIconAnimation, SizeOf(GDVars.dsIconAnimation), 0);
+  FillChar(GDVars.symbolSetPtrs, SizeOf(GDVars.symbolSetPtrs), 0);
+  FillChar(GDVars.mapTilePtr, SizeOf(GDVars.mapTilePtr) + SizeOf(GDVars.mapTilePtr2), 0);
+  FillChar(GDVars.iconAnimation, SizeOf(GDVars.iconAnimation), 0);
   for i := 1 to 2 do begin
-    GDVars.dsPortraitCache[i].pictureId := 255;
-    GDVars.dsPortraitCache[i].pic := nil;
+    GDVars.portraitCache[i].pictureId := 255;
+    GDVars.portraitCache[i].pic := nil;
   end;
   FillChar(GDVars.animData, SizeOf(GDVars.animData), 0);
   GDVars.treasureItems := nil;
   { WALLDEF reload ID 0, symbol slot 1 }
-  GDVars.dsWallSetCache[1].wallDefId := 0;
-  GDVars.dsWallSetCache[1].symbolSlot := 1;
+  GDVars.wallSetCache[1].wallDefId := 0;
+  GDVars.wallSetCache[1].symbolSlot := 1;
   for i := 2 to 3 do begin
     { slots 2-3 = empty }
-    GDVars.dsWallSetCache[i].wallDefId := -1;
-    GDVars.dsWallSetCache[i].symbolSlot := -1;
+    GDVars.wallSetCache[i].wallDefId := -1;
+    GDVars.wallSetCache[i].symbolSlot := -1;
   end;
   GDVars.portraitsOn := 1;
   GDVars.monsterPics := 1;
@@ -369,7 +369,7 @@ begin
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
   Sym8x8.Load8x8Set(202, 4);
   Sym8x8.Load8x8Set(203, 0);
-  Blit.LoadPic('sqrpaci', 1, False, 0, GDVars.ds2dMapTilePtr);
+  Blit.LoadPic('sqrpaci', 1, False, 0, GDVars.mapTilePtr);
   { the second tile set loads when the wilderness or the ending first needs it (MapTiles.SecondSheet) }
   for i := 0 to 11 do
     MapTiles.LoadIconAnim('COMSPR', i, i + 13);

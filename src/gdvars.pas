@@ -78,9 +78,9 @@ var
   { Uninterrupted resting time when disturbable }
   restTicks: Word;
   { Portrait head ID. }
-  dsCurrentPortraitHead: Byte;
+  currentPortraitHead: Byte;
   { Portrait body ID. }
-  dsCurrentPortraitHead2: Byte;
+  currentPortraitHead2: Byte;
   partyDefeated: Boolean;
   { Delay in printing message to message window }
   msgDelayFlag: Byte;
@@ -103,7 +103,7 @@ var
 var
   { Off-screen 168x168 view buffer that the compositors draw into and Blit.FlushView copies to the screen; GameInit
     allocates it. }
-  dsViewImageBufferPtr: Types.PImgBuf;
+  viewImageBufferPtr: Types.PImgBuf;
   { Backdrop buffer that Blit.BlitTileClipped fills with the destination bytes it is about to cover (when the save flag
     is set), so CharHlp can restore the background afterwards. }
   iconImageBufferPtr: Types.PImgBuf;
@@ -141,11 +141,11 @@ var
   { disk saved by DaxIo.PushState for PopState }
   prevVirtualDisk: Byte;
   { Save directory from line 4 of POOL.CFG. }
-  dsSaveDirectory: String[255];
+  saveDirectory: String[255];
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
   gameDir: String;
   { Flag for suppressing insert disk prompt }
-  dsSuppressingInsertDiskFlag: Boolean;
+  suppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
   { ITEMS catalogue }
@@ -174,16 +174,16 @@ var
   { Symbol sets and map tile sets }
   { the five 8x8 symbol-set images, by set id 0..4: Sym8x8.Load8x8Set loads an 8X8D picture into a slot and Put8x8Sym
     draws from it }
-  dsSymbolSetPtrs: array[0..4] of Types.PImgBuf;
+  symbolSetPtrs: array[0..4] of Types.PImgBuf;
   { Pointer to current 8x8 symbol image buffer }
-  dsCurrent8x8SymbolPtr2: Types.PImgBuf;
+  current8x8SymbolPtr2: Types.PImgBuf;
   { 2D map tile set image buffer 1 }
-  ds2dMapTilePtr: Types.PImgBuf;
+  mapTilePtr: Types.PImgBuf;
   { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
-  ds2dMapTilePtr2: Types.PImgBuf;
+  mapTilePtr2: Types.PImgBuf;
   { Icon images }
   { Animation images for creature, death and cursor icons. }
-  dsIconAnimation: array[0..25, 0..1] of Types.PImgBuf;
+  iconAnimation: array[0..25, 0..1] of Types.PImgBuf;
   { Combat arena }
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;
@@ -225,31 +225,31 @@ var
   { C_Effect.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
   elementMask: Byte;
   { current attack *or* current movement times 2 }
-  dsCurrentAttackCurrent: Byte;
+  currentAttackCurrent: Byte;
   { spell being cast }
-  dsCurrentSpellBeing: Byte;
+  currentSpellBeing: Byte;
   { dice count of the current damage roll; Burning Hands, which rolls none, sets it to 1. The fire protections and the
     mummy's fire vulnerability work per die. }
   gDamageDice: Byte;
   { 1 while calculating movement }
-  dsCurrentCreatureCalculatingFlag: Byte;
+  currentCreatureCalculatingFlag: Byte;
   { suppress targeting }
-  dsCurrentSuppressTargetingFlag: Byte;
+  currentSuppressTargetingFlag: Byte;
   { Effect lock. }
   effectLock: Byte;
   { the spell affects multiple targets }
   gMultiTarget: Byte;
   { redraw the inventory menu }
-  dsRedrawInventoryMenuFlag: Byte;
+  redrawInventoryMenuFlag: Byte;
   { the attack roll as effects modify it; signed, as penalties can take it below 0 }
   gAttackRoll: ShortInt;
   { an effect (Blink, Displacement, an avoided missile) forced the attack to miss }
   gAttackAvoided: Boolean;
   hitsMade: array[1..2] of Byte;
   { current morale }
-  dsCurrentMorale: Byte;
+  currentMorale: Byte;
   { creature this one is interacting with }
-  dsOtherCreatureCurrentPtr: Types.PCharRecord;
+  otherCreatureCurrentPtr: Types.PCharRecord;
   { saving throw type, 0..4 }
   gSaveType: Byte;
 
@@ -263,14 +263,14 @@ var
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;
   { Sky and ceiling color after palette mapping. }
-  dsColorSkyCeiling: Byte;
+  colorSkyCeiling: Byte;
   { View3D band colors; MapView recomputes them from the ECL color selectors after a script changes them (picRegionW) }
   { 3D-view color register A (ceiling/horizon band) }
-  dsWallColorA: Byte;
+  wallColorA: Byte;
   { 3D-view color register B (mid band) }
-  dsWallColorB: Byte;
+  wallColorB: Byte;
   { 3D-view color register C (floor/wall band) }
-  dsWallColorC: Byte;
+  wallColorC: Byte;
   { Map position, wall cache, animation and portrait cache }
   { automap shown in place of the 3D view }
   automapOn: Boolean;
@@ -284,11 +284,11 @@ var
   wallAhead: Byte;
   { Event byte at the party's square; bit 7 is a flag, not a wall }
   eventAtCell: Byte;
-  dsWallSetCache: array[1..3] of Types.TWallSetCacheSlot;
+  wallSetCache: array[1..3] of Types.TWallSetCacheSlot;
   { the picture animation showing (PIC or SPRIT) }
   animData: Types.TAnimRec;
   { HEAD and BODY image caches. }
-  dsPortraitCache: array[1..2] of Types.TPortSlot;
+  portraitCache: array[1..2] of Types.TPortSlot;
   { Picture archive and menu state }
   { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
   picArcName: String[8];
@@ -308,7 +308,7 @@ var
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }
-  dsTargetCreaturePtr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
+  targetCreaturePtr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { Remembered noncombat spell target, initially the caster. }
   castTarget: Types.PCharRecord;
   { combat arena column, 0..49 }
@@ -323,16 +323,16 @@ var
   { Rest and healing }
   { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
     parameter }
-  dsRestingTimeGbvm: Types.TClock;
+  restingTimeGbvm: Types.TClock;
   { Time rested today, in five-minute ticks. }
   healTicks: Word;
   { Suppress the window border. }
-  dsSuppressDrawingBorderFlag: Byte;
+  suppressDrawingBorderFlag: Byte;
 
 var
   { Wilderness animation }
   { Party icon frame, 0..5: parity selects the icon frame, div 2 the icon animation. }
-  dsWildAnimFrame: Byte;
+  wildAnimFrame: Byte;
 
 var
   { Door-opening flags }
@@ -344,7 +344,7 @@ var
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
   { Potential-target creature indices. }
-  dsPotentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
+  potentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
   { Hostile creatures' hit points, percent remaining }
   hostileHpPct: Byte;
   { quick combat magic; toggled by Alt-M }
@@ -353,7 +353,7 @@ var
   doneRoundFlag: Boolean;
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
     it }
-  dsMoveIconSheet: Types.PImgBuf;
+  moveIconSheet: Types.PImgBuf;
   { ECL color selectors }
   { Script-controlled wall color; script writes request a view redraw. }
   wallColorSel: Byte;
@@ -361,9 +361,9 @@ var
   ceilFloorColorSel: Byte;
   { ECL interpreter }
   { Top ECL return-stack node. }
-  dsEclStackTopPtr: Types.PEclRet;
+  eclStackTopPtr: Types.PEclRet;
   { Previous ECL return-stack node. }
-  dsEclStackSecondPtr: Types.PEclRet;
+  eclStackSecondPtr: Types.PEclRet;
   { eq, ne, lt, gt, le, ge; cleared together by FillChar }
   cmpFlags: array[0..5] of Boolean;
   { Current ECL opcode }
@@ -372,18 +372,18 @@ var
   gIconAnim: Byte;
   { ECL variables and strings }
   { Decoded ECL variable types. }
-  dsGbvmType: array[1..64] of Byte;
+  gbvmType: array[1..64] of Byte;
   { High bytes of decoded ECL variables. }
-  dsGbvmUpperByte: array[1..64] of Byte;
+  gbvmUpperByte: array[1..64] of Byte;
   { Low bytes of decoded ECL variables. }
-  dsGbvmLowerByte: array[1..64] of Byte;
+  gbvmLowerByte: array[1..64] of Byte;
   { Receives the aim result for the bronze-dragon breath attack. }
   breathAim: Boolean;
   { Script string buffers, on the heap; GameInit2 allocates and clears them. }
   gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }
   { Monster display flags used by the ECL VM; EclVm and EclMenu clear both together }
-  dsMonsterFlags: Types.TMonFlags;
+  monsterFlags: Types.TMonFlags;
   { Sound effect selected by a script write (EclVars.WriteGbvm) }
   sndEffect: Word;
   { With dumpCr6B00, ECL LOAD CHARACTER with bit 7 removes the creature; set when a script writes 0 to
@@ -399,9 +399,9 @@ var
   { ECL script ID }
   eclScriptId: Byte;
   { Backup of the search-mode bit (C_Gbvm.SEARCH_FLAGS bit 0) }
-  dsSearchModeFlag: Byte;
+  searchModeFlag: Byte;
   { ECL 3D CLEAR BOX executed flag }
-  dsEcl3dClearFlag: Byte;
+  ecl3dClearFlag: Byte;
   protNewLine: Byte;
   { ECL currently displaying graphics flag }
   eclGraphics: Boolean;

@@ -133,7 +133,7 @@ end;
 
 function SlotFile(letter: Char; ext: Types.TStr8): Types.TPathStr;
 begin
-  SlotFile := GDVars.dsSaveDirectory + SaveMenu.SlotName(letter, ext);
+  SlotFile := GDVars.saveDirectory + SaveMenu.SlotName(letter, ext);
 end;
 
 function MemberName(letter: Char; n: Byte): Types.TStr8;
@@ -163,7 +163,7 @@ var
   s: FileUtil.TFileSet;
   n: Byte;
 begin
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GDVars.saveDirectory);
   { the .dat first, as SaveLoad.SaveToSlot puts it }
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.dat'), False);
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.inf'), False);
@@ -453,7 +453,7 @@ end;
 
 function SaveDiskMsg: Types.TStr40;
 begin
-  SaveDiskMsg := 'Put save disk in ' + GDVars.dsSaveDirectory[1] + ': (Esc gives up)';
+  SaveDiskMsg := 'Put save disk in ' + GDVars.saveDirectory[1] + ': (Esc gives up)';
 end;
 
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
@@ -467,19 +467,19 @@ var
   i: Byte;
   made: Boolean;
 begin
-  if Length(GDVars.dsSaveDirectory) <= 3 then Exit;
+  if Length(GDVars.saveDirectory) <= 3 then Exit;
   repeat
     { each parent first, from the one below the root; its errors show again in the last MkDir }
-    for i := 4 to Length(GDVars.dsSaveDirectory) - 1 do
-      if GDVars.dsSaveDirectory[i] = '\' then begin
-        MkDir(Copy(GDVars.dsSaveDirectory, 1, i - 1));
+    for i := 4 to Length(GDVars.saveDirectory) - 1 do
+      if GDVars.saveDirectory[i] = '\' then begin
+        MkDir(Copy(GDVars.saveDirectory, 1, i - 1));
         ioRes := IOResult;
       end;
-    MkDir(Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
+    MkDir(Copy(GDVars.saveDirectory, 1, Length(GDVars.saveDirectory) - 1));
     ioRes := IOResult;
     made := (ioRes = 0) or (ioRes = 5);
   until made or not SaveMenu.AskSaveDisk('Cannot create',
-                                         Copy(GDVars.dsSaveDirectory, 1, Length(GDVars.dsSaveDirectory) - 1));
+                                         Copy(GDVars.saveDirectory, 1, Length(GDVars.saveDirectory) - 1));
 end;
 
 end.

@@ -29,7 +29,7 @@ var
 begin
   for row := 0 to SizeOf(GDVars.spanActive) - 1 do
     if GDVars.spanActive[row] <> 0 then
-      Move(GDVars.dsViewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
+      Move(GDVars.viewImageBufferPtr^.data[GDVars.spanFirstOfs[row]],
            Mem[GDVars.cgaRowSeg[row + 8]:GDVars.spanScreenOfs[row] + 2],
            GDVars.spanLastOfs[row] - GDVars.spanFirstOfs[row] + 1);
 end;

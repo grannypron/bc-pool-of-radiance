@@ -7,7 +7,7 @@ unit GameTime;
 interface
 
 { Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
-  dsRestingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
+  restingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
   stop. Returns True when a scripted random interruption ends the rest. }
 function CampRest(interactive: Boolean): Boolean;
 
@@ -23,12 +23,12 @@ var
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99. }
 procedure ValidateRestTime;
 begin
-  Clock.ValidateClock(GDVars.dsRestingTimeGbvm, False);
-  if GDVars.dsRestingTimeGbvm[C_TIME.MONTHS] > 0 then begin
-    Inc(GDVars.dsRestingTimeGbvm[C_TIME.DAYS],
-        GDConsts.unitScale[C_TIME.DAYS] * GDVars.dsRestingTimeGbvm[C_TIME.MONTHS]);
-    GDVars.dsRestingTimeGbvm[C_TIME.MONTHS] := 0;
-    if GDVars.dsRestingTimeGbvm[C_TIME.DAYS] > 99 then GDVars.dsRestingTimeGbvm[C_TIME.DAYS] := 99;
+  Clock.ValidateClock(GDVars.restingTimeGbvm, False);
+  if GDVars.restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
+    Inc(GDVars.restingTimeGbvm[C_TIME.DAYS],
+        GDConsts.unitScale[C_TIME.DAYS] * GDVars.restingTimeGbvm[C_TIME.MONTHS]);
+    GDVars.restingTimeGbvm[C_TIME.MONTHS] := 0;
+    if GDVars.restingTimeGbvm[C_TIME.DAYS] > 99 then GDVars.restingTimeGbvm[C_TIME.DAYS] := 99;
   end;
 end;
 
@@ -39,23 +39,23 @@ var
   j: ShortInt;
   k: ShortInt;
 begin
-  if (GDVars.dsRestingTimeGbvm[C_TIME.DAYS] <> 0) or (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] <> 0) or
-      (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] <> 0) or (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] <> 0)
+  if (GDVars.restingTimeGbvm[C_TIME.DAYS] <> 0) or (GDVars.restingTimeGbvm[C_TIME.HOURS] <> 0) or
+      (GDVars.restingTimeGbvm[C_TIME.TURNS] <> 0) or (GDVars.restingTimeGbvm[C_TIME.MINUTES] <> 0)
   then begin
-    while count > GDVars.dsRestingTimeGbvm[tUnit] do begin
+    while count > GDVars.restingTimeGbvm[tUnit] do begin
       j := Succ(tUnit);
-      while (GDVars.dsRestingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
+      while (GDVars.restingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
         j := Succ(j);
       if j = C_TIME.MONTHS then begin
-        FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+        FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
         count := 0;
       end else
         for k := j downto Succ(tUnit) do begin
-          Dec(GDVars.dsRestingTimeGbvm[k]);
-          Inc(GDVars.dsRestingTimeGbvm[Pred(k)], GDConsts.unitScale[Pred(k)]);
+          Dec(GDVars.restingTimeGbvm[k]);
+          Inc(GDVars.restingTimeGbvm[Pred(k)], GDConsts.unitScale[Pred(k)]);
         end;
     end;
-    Dec(GDVars.dsRestingTimeGbvm[tUnit], count);
+    Dec(GDVars.restingTimeGbvm[tUnit], count);
     GameTime.ValidateRestTime;
   end;
 end;
@@ -74,13 +74,13 @@ begin
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
   for i := C_TIME.DAYS downto C_TIME.HOURS do begin
-    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GDVars.dsRestingTimeGbvm[i]));
+    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GDVars.restingTimeGbvm[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
   TextRend.DisplayString(x + 1, 17, colors[C_TIME.TURNS],
-                         StrUtil.ZeroPad2(10 * GDVars.dsRestingTimeGbvm[C_TIME.TURNS] +
-                           GDVars.dsRestingTimeGbvm[C_TIME.MINUTES]));
+                         StrUtil.ZeroPad2(10 * GDVars.restingTimeGbvm[C_TIME.TURNS] +
+                           GDVars.restingTimeGbvm[C_TIME.MINUTES]));
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
@@ -127,9 +127,9 @@ begin
       'M': sel := C_TIME.TURNS;
       'I': begin
              if sel = C_TIME.TURNS then
-               Inc(GDVars.dsRestingTimeGbvm[C_TIME.MINUTES], 5)
+               Inc(GDVars.restingTimeGbvm[C_TIME.MINUTES], 5)
              else
-               Inc(GDVars.dsRestingTimeGbvm[sel]);
+               Inc(GDVars.restingTimeGbvm[sel]);
              GameTime.ValidateRestTime;
            end;
       'D': begin
@@ -330,14 +330,14 @@ begin
   cnt := 0;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   GameTime.DisplayRestTime(0);
-  GDVars.dsSuppressDrawingBorderFlag := 1;
+  GDVars.suppressDrawingBorderFlag := 1;
   if interactive then
     stop := not GameTime.CampRestMenu
   else
     stop := False;
   while (not stop) and
-      ((GDVars.dsRestingTimeGbvm[C_TIME.DAYS] > 0) or (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] > 0) or
-       (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] > 0) or (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] > 0))
+      ((GDVars.restingTimeGbvm[C_TIME.DAYS] > 0) or (GDVars.restingTimeGbvm[C_TIME.HOURS] > 0) or
+       (GDVars.restingTimeGbvm[C_TIME.TURNS] > 0) or (GDVars.restingTimeGbvm[C_TIME.MINUTES] > 0))
   do begin
     if KeyPressed then begin
       GameTime.DisplayRestTime(0);
@@ -375,7 +375,7 @@ begin
     end;
   end;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
-  GDVars.dsSuppressDrawingBorderFlag := 0;
+  GDVars.suppressDrawingBorderFlag := 0;
 end;
 
 end.

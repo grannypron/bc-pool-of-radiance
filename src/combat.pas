@@ -51,7 +51,7 @@ begin
   end;
   FreeMem(GDVars.arenaPtr, SizeOf(Types.TArena));
   GDVars.arenaPtr := nil;
-  Blit.FreePic(GDVars.dsMoveIconSheet);
+  Blit.FreePic(GDVars.moveIconSheet);
   CbtMap.SetNoncombatPalette;
   GDVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
 end;

@@ -243,7 +243,7 @@ end;
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 begin
   Stats.Count(target, HEALED_TAKEN, hp);
-  if byPower or (GDVars.dsCurrentSpellBeing <> 0) then
+  if byPower or (GDVars.currentSpellBeing <> 0) then
     Stats.Count(actor, HEALED_GIVEN, hp);
 end;
 

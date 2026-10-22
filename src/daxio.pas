@@ -90,7 +90,7 @@ uses Crt, GDConsts, GDVars, Dos, GameIo, C_DATA, C_Keys, DataArc, FileUtil{$IFDE
 
 var
   { Temporary compressed DAX data buffer. }
-  dsDaxCompressedFilePtr: Types.PByteArr;
+  daxCompressedFilePtr: Types.PByteArr;
 
 const
   { the most remap entries kept from all merged archives together: as many per family as DataBld builds }
@@ -341,12 +341,12 @@ end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with DataDiskMsg (Escape quits),
-  unless GDVars.dsSuppressingInsertDiskFlag is set. False, with both handles closed, when the header size cannot be read
+  unless GDVars.suppressingInsertDiskFlag is set. False, with both handles closed, when the header size cannot be read
   or the directory it gives runs past the end of the file, whose scan would never end. }
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
-  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GDVars.dsSuppressingInsertDiskFlag, True, f1) then begin
+  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GDVars.suppressingInsertDiskFlag, True, f1) then begin
     { read-only, as f1 is }
     if not FileUtil.OpenReadOnly(f2, dirName + ext) then begin
       Close(f1);
@@ -551,14 +551,14 @@ begin
     data := nil;
     DaxIo.CloseDax(f1, f2);
   end else begin
-    DaxIo.AllocRounded(Pointer(dsDaxCompressedFilePtr), compSize);
+    DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
     GetMem(data, sizeRead);
     Seek(f1, hdrSize + offset);
-    BlockRead(f1, dsDaxCompressedFilePtr^, compSize, n);
+    BlockRead(f1, daxCompressedFilePtr^, compSize, n);
     DaxIo.CloseDax(f1, f2);
     { n, the bytes read: FreeRounded still needs compSize }
-    DaxIo.DecompressDax(dsDaxCompressedFilePtr, data, n, sizeRead);
-    DaxIo.FreeRounded(Pointer(dsDaxCompressedFilePtr), compSize);
+    DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
+    DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
   end;
 end;
 

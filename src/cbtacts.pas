@@ -101,10 +101,10 @@ begin
     madeAttack := 0;
     attackPhase := 2;
     CbtActs.SetCurAttacksX2(creature);
-    GDVars.dsCurrentAttackCurrent := creature^.attacks2;
-    GDVars.dsCurrentCreatureCalculatingFlag := 0;
+    GDVars.currentAttackCurrent := creature^.attacks2;
+    GDVars.currentCreatureCalculatingFlag := 0;
     FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
-    creature^.curAttacks2 := CbtActs.AdjustedAttacks(GDVars.dsCurrentAttackCurrent);
+    creature^.curAttacks2 := CbtActs.AdjustedAttacks(GDVars.currentAttackCurrent);
     sweepBudget := creature^.attackLevel;
     if creature^.enabled <> 0 then begin
       initiative := Dice.RollDice(1, 6) + AbilAdj.DexMissileAdjust(creature);
@@ -130,13 +130,13 @@ begin
   m := creature^.movementCur;
   if creature^.hostile = 0 then
     m := m + GDVars.zone1^[C_Gbvm.MOD_PARTY_MOVE];
-  GDVars.dsCurrentCreatureCalculatingFlag := 1;
+  GDVars.currentCreatureCalculatingFlag := 1;
   if (m < 1) or (m > 96) then
     m := 1;
-  GDVars.dsCurrentAttackCurrent := m * 2;
+  GDVars.currentAttackCurrent := m * 2;
   FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
-  GDVars.dsCurrentCreatureCalculatingFlag := 0;
-  CalcCreatureMovement := GDVars.dsCurrentAttackCurrent;
+  GDVars.currentCreatureCalculatingFlag := 0;
+  CalcCreatureMovement := GDVars.currentAttackCurrent;
 end;
 
 { Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it on a backstab by the AD&D band
@@ -248,7 +248,7 @@ begin
   cnt := CbtMap.CountTargets(creature, 1);
   for i := 1 to cnt do
     if creature^.enabled <> 0 then begin
-      p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
+      p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
       if (p^.combatAddr^.guarding <> 0) and (not CharHlp.IsHelpless(p)) then begin
         CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2, C_Dir.CENTER);
         p^.combatAddr^.guarding := 0;
@@ -351,7 +351,7 @@ begin
   if cntBefore = 0 then
     Exit;
   for i := 1 to cntBefore do
-    adj[i] := GDVars.dsPotentialTargetCreature[i];
+    adj[i] := GDVars.potentialTargetCreature[i];
   { probe: step the icon, recount, step back }
   Inc(GDVars.arenaLoc[slot].x, GDConsts.dirDX[dir]);
   Inc(GDVars.arenaLoc[slot].y, GDConsts.dirDY[dir]);
@@ -362,7 +362,7 @@ begin
   for i := 1 to cntBefore do begin
     still := False;
     for j := 1 to cntAfter do
-      if GDVars.dsPotentialTargetCreature[j] = adj[i] then
+      if GDVars.potentialTargetCreature[j] = adj[i] then
         still := True;
     if still then
       adj[i] := 0;
@@ -471,12 +471,12 @@ begin
     rof := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.rateOfFire;
     if rof < 2 then
       rof := 2;
-    GDVars.dsCurrentAttackCurrent := rof;
+    GDVars.currentAttackCurrent := rof;
   end else
-    GDVars.dsCurrentAttackCurrent := creature^.attacks;
-  GDVars.dsCurrentCreatureCalculatingFlag := 0;
+    GDVars.currentAttackCurrent := creature^.attacks;
+  GDVars.currentCreatureCalculatingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.MOVE_ATTACK_RATE, creature);
-  adj := CbtActs.AdjustedAttacks(GDVars.dsCurrentAttackCurrent);
+  adj := CbtActs.AdjustedAttacks(GDVars.currentAttackCurrent);
   if ranged and (weapon <> nil) then begin
     qty := 1;
     if weapon^.quantity > qty then
@@ -523,7 +523,7 @@ begin
   weak := 0;
   defIdx := 0;
   for i := 1 to cnt do begin
-    p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
+    p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
     if p = def then
       defIdx := i;
     if p^.levelHighest = 0 then
@@ -538,15 +538,15 @@ begin
     weak := att^.combatAddr^.sweepBudget;
   CharDisp.PrintNameString(att, 'sweeps', 10, True);
   { def becomes the first sweep target }
-  p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[1]];
+  p := GDVars.creatureArr[GDVars.potentialTargetCreature[1]];
   if p <> def then begin
-    GDVars.dsPotentialTargetCreature[defIdx] := GDVars.dsPotentialTargetCreature[1];
-    GDVars.dsPotentialTargetCreature[1] := CbtMap.CombatSlot(def);
+    GDVars.potentialTargetCreature[defIdx] := GDVars.potentialTargetCreature[1];
+    GDVars.potentialTargetCreature[1] := CbtMap.CombatSlot(def);
   end;
   for i := 1 to cnt do
     if weak > 0 then
-      if GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]]^.levelHighest = 0 then begin
-        p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
+      if GDVars.creatureArr[GDVars.potentialTargetCreature[i]]^.levelHighest = 0 then begin
+        p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
         CbtActs.NoteAttackDirection(att, p);
         att^.curAttacks := 1;
         CbtActs.CombatAttack(att, p, False, nil, GDVars.doneRoundFlag);
@@ -557,7 +557,7 @@ end;
 
 { Check whether effects permit creature to attack other: False for nil, True for itself. Otherwise the target's veto
   effects run first, then the attacker's with other as its temporary target; any veto sets
-  dsCurrentSuppressTargetingFlag. }
+  currentSuppressTargetingFlag. }
 function CanAttackTarget(creature, other: Types.PCharRecord): Boolean;
 var
   saved: Types.PCharRecord;
@@ -569,15 +569,15 @@ begin
     CanAttackTarget := True;
     Exit;
   end;
-  GDVars.dsCurrentSuppressTargetingFlag := 0;
+  GDVars.currentSuppressTargetingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_Cond.TARGET_VETO, other);
-  if GDVars.dsCurrentSuppressTargetingFlag = 0 then begin
+  if GDVars.currentSuppressTargetingFlag = 0 then begin
     saved := creature^.combatAddr^.other;
     creature^.combatAddr^.other := other;
     FxEngine.TriggerEffectsWithCondition(C_Cond.ATTACKER_VETO, creature);
     creature^.combatAddr^.other := saved;
   end;
-  CanAttackTarget := GDVars.dsCurrentSuppressTargetingFlag = 0;
+  CanAttackTarget := GDVars.currentSuppressTargetingFlag = 0;
 end;
 
 { Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
@@ -673,7 +673,7 @@ begin
   cnt := CbtMap.CountTargets(creature, 255);
   FindTurnUndeadTarget := False;
   for i := 1 to cnt do begin
-    p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[i]];
+    p := GDVars.creatureArr[GDVars.potentialTargetCreature[i]];
     if (p^.combatAddr^.turned = 0) and (p^.levelUndead > 0)
        and (p^.levelUndead < best) then begin
       best := p^.levelUndead;
@@ -1052,7 +1052,7 @@ begin
     0:
       { self only }
       begin
-        GDVars.dsTargetCreaturePtr[1] := GDVars.curChar;
+        GDVars.targetCreaturePtr[1] := GDVars.curChar;
         GDVars.spellTargetCount := 1;
       end;
     15:
@@ -1064,7 +1064,7 @@ begin
         CbtMap.StopSpellPreview;
         if picked then begin
           if GDVars.curChar^.combatAddr^.other <> nil then begin
-            GDVars.dsTargetCreaturePtr[1] := GDVars.curChar^.combatAddr^.other;
+            GDVars.targetCreaturePtr[1] := GDVars.curChar^.combatAddr^.other;
             GDVars.spellTargetCount := 1;
           end else begin
             { radius 0: the picked cell alone }
@@ -1114,18 +1114,18 @@ begin
         if picked then begin
           dup := False;
           for j := 1 to k do
-            if GDVars.dsTargetCreaturePtr[j] = sel.cr then
+            if GDVars.targetCreaturePtr[j] = sel.cr then
               dup := True;
           if not dup then begin
             Inc(k);
-            GDVars.dsTargetCreaturePtr[k] := sel.cr;
+            GDVars.targetCreaturePtr[k] := sel.cr;
             Dec(remaining);
           end else if not b then
             CharDisp.PrintBottomLine('Already been targeted')
           else
             Dec(remaining);
-          CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GDVars.dsTargetCreaturePtr[k]),
-                                 CbtMap.CombatCellY(GDVars.dsTargetCreaturePtr[k]));
+          CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GDVars.targetCreaturePtr[k]),
+                                 CbtMap.CombatCellY(GDVars.targetCreaturePtr[k]));
         end else
           Dec(remaining);
       end;
@@ -1254,7 +1254,7 @@ begin
   frames := 1;
   pace := 10;
   sym := 13;
-  size := Blit.MaskBytes(GDVars.dsMoveIconSheet^.imgSize);
+  size := Blit.MaskBytes(GDVars.moveIconSheet^.imgSize);
   case weapon^.itemType of
     { straight-flying missiles }
     C_Item.DART, C_Item.JAVELIN, C_Item.QUARREL, C_Item.SPEAR, C_Item.ARROW:
@@ -1746,17 +1746,17 @@ begin
     while (tries > 0) and (not found) and (cnt > 0) do begin
       Dec(tries);
       pick := Dice.RollDice(1, cnt);
-      if GDVars.dsPotentialTargetCreature[pick] > 0 then begin
-        p := GDVars.creatureArr[GDVars.dsPotentialTargetCreature[pick]];
+      if GDVars.potentialTargetCreature[pick] > 0 then begin
+        p := GDVars.creatureArr[GDVars.potentialTargetCreature[pick]];
         if ((relaxed <> 0) and (GDVars.arenaPtr^.distMode <> 0))
            or CbtActs.CanAttackTarget(creature, p) then begin
           found := True;
           creature^.combatAddr^.other := p;
         end else begin
-          GDVars.dsPotentialTargetCreature[pick] := 0;
+          GDVars.potentialTargetCreature[pick] := 0;
           { pick is reused as the index: do any targets remain? }
           for pick := 1 to cnt do
-            if GDVars.dsPotentialTargetCreature[pick] > 0 then
+            if GDVars.potentialTargetCreature[pick] > 0 then
               found := True;
           if found then
             found := False
@@ -1808,9 +1808,9 @@ begin
     creature^.curAttacks2 := 0;
     creature^.curRollsA[1] := 3;
     creature^.curDiceA[1] := 4;
-    CbtActs.CombatAttack(creature, GDVars.dsOtherCreatureCurrentPtr, True, nil, done);
+    CbtActs.CombatAttack(creature, GDVars.otherCreatureCurrentPtr, True, nil, done);
     done := CharHlp.EndActions(creature);
-    if GDVars.dsOtherCreatureCurrentPtr^.enabled = 0 then
+    if GDVars.otherCreatureCurrentPtr^.enabled = 0 then
       FxEngine.RemoveEffect(creature, C_Effect.BITE_HOLD, p);
   end;
 end;

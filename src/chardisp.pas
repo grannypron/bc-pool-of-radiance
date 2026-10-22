@@ -187,12 +187,12 @@ begin
 end;
 
 { Ready the bottom message window outside combat and return its top row: row MESSAGE_TOP + 1 when
-  dsSuppressDrawingBorderFlag is set, else MESSAGE_TOP with the border drawn round it; the window is cleared. }
+  suppressDrawingBorderFlag is set, else MESSAGE_TOP with the border drawn round it; the window is cleared. }
 function OpenMessageWindow: Byte;
 var
   top: Byte;
 begin
-  if GDVars.dsSuppressDrawingBorderFlag <> 0 then
+  if GDVars.suppressDrawingBorderFlag <> 0 then
     top := C_Msg.MESSAGE_TOP + 1
   else begin
     top := C_Msg.MESSAGE_TOP;
@@ -203,7 +203,7 @@ begin
 end;
 
 { Show "<name> <text>" in the message window: in combat, the combat window from column 23 at row; otherwise the
-  full-width bottom window (bordered unless dsSuppressDrawingBorderFlag is set), the name on its first line and the text
+  full-width bottom window (bordered unless suppressDrawingBorderFlag is set), the name on its first line and the text
   word-wrapped below. With pause, wait for a key and clear the window. }
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 var
@@ -302,8 +302,8 @@ begin
     TextRend.DisplayString(col + Length(creature^.name), row, color, '''s');
 end;
 
-{ Copy one icon half (GDVars.dsIconAnimation[cell, half]) into frame row of the moving-icon sheet
-  (GDVars.dsMoveIconSheet), mirrored through a scratch picture when asked. The pixel data copies imgSize bytes; the
+{ Copy one icon half (GDVars.iconAnimation[cell, half]) into frame row of the moving-icon sheet
+  (GDVars.moveIconSheet), mirrored through a scratch picture when asked. The pixel data copies imgSize bytes; the
   transparency mask copies Blit.MaskBytes of that. }
 procedure CopyIconFacing(cell, half, row: Byte; mirror: Boolean);
 var
@@ -311,17 +311,17 @@ var
   stride4: Word;
   stride: Word;
 begin
-  stride := GDVars.dsMoveIconSheet^.imgSize;
+  stride := GDVars.moveIconSheet^.imgSize;
   stride4 := Blit.MaskBytes(stride);
   if mirror then begin
     Blit.AllocPic(24, 3, 1, 1, tmp);
-    Blit.MirrorPic(GDVars.dsIconAnimation[cell, half], tmp);
-    Move(tmp^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
-    Move(tmp^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
+    Blit.MirrorPic(GDVars.iconAnimation[cell, half], tmp);
+    Move(tmp^.data, GDVars.moveIconSheet^.data[row * stride], stride);
+    Move(tmp^.transp^, GDVars.moveIconSheet^.transp^[row * stride4], stride4);
     Blit.FreePic(tmp);
   end else begin
-    Move(GDVars.dsIconAnimation[cell, half]^.data, GDVars.dsMoveIconSheet^.data[row * stride], stride);
-    Move(GDVars.dsIconAnimation[cell, half]^.transp^, GDVars.dsMoveIconSheet^.transp^[row * stride4], stride4);
+    Move(GDVars.iconAnimation[cell, half]^.data, GDVars.moveIconSheet^.data[row * stride], stride);
+    Move(GDVars.iconAnimation[cell, half]^.transp^, GDVars.moveIconSheet^.transp^[row * stride4], stride4);
   end;
 end;
 
@@ -413,10 +413,10 @@ begin
     done := False;
     repeat
       if (pace > 0) or (pixX mod 3 = 0) or (pixY mod 3 = 0) then begin
-        Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.moveIconSheet, GDVars.viewImageBufferPtr);
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.iconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.iconImageBufferPtr, GDVars.viewImageBufferPtr);
         Inc(frame);
         if frame >= frames then
           frame := 0;
@@ -465,11 +465,11 @@ begin
         CbtMap.ScrollView(endX, endY, 3, 8);
       pixX := (endX - GDVars.arenaPtr^.ox) * 3;
       pixY := (endY - GDVars.arenaPtr^.oy) * 3;
-      Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+      Blit.BlitTileClipped(pixX, pixY, frame, 5, GDVars.moveIconSheet, GDVars.viewImageBufferPtr);
       if pace > 0 then begin
         Blit.FlushView;
         Delay(pace);
-        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.iconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+        Blit.BlitTileClipped(pixX, pixY, 0, 0, GDVars.iconImageBufferPtr, GDVars.viewImageBufferPtr);
       end;
     end;
   until lastPass;
@@ -516,10 +516,10 @@ begin
       gy := GDVars.gridY[slot] * 3;
       for i := 0 to reps do
         for j := 0 to 3 do begin
-          Blit.BlitTileClipped(gx, gy, j, 5, GDVars.dsMoveIconSheet, GDVars.dsViewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, j, 5, GDVars.moveIconSheet, GDVars.viewImageBufferPtr);
           Blit.FlushView;
           Delay(70);
-          Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.iconImageBufferPtr, GDVars.dsViewImageBufferPtr);
+          Blit.BlitTileClipped(gx, gy, 0, 0, GDVars.iconImageBufferPtr, GDVars.viewImageBufferPtr);
         end;
     end;
     SoundDrv.SoundSetAutoStop(10);
@@ -565,7 +565,7 @@ begin
                                        0, White, '');
     C_Ifc.SHOP_TEMPLE, C_Ifc.VAULT: begin
       CharDisp.DrawNoncombatWindows(True);
-      Portrait.LoadPortraitBufs(GDVars.dsCurrentPortraitHead, GDVars.dsCurrentPortraitHead2);
+      Portrait.LoadPortraitBufs(GDVars.currentPortraitHead, GDVars.currentPortraitHead2);
       Portrait.DisplayPortraitBufs(3, 3, True);
     end;
     C_Ifc.CAMPING: begin

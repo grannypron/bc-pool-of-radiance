@@ -79,21 +79,21 @@ end;
 
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
 begin
-  GDVars.dsColorSkyCeiling := cSky;
-  GDVars.dsWallColorA := cHorz1;
-  GDVars.dsWallColorB := cHorz2;
-  GDVars.dsWallColorC := cFloor;
+  GDVars.colorSkyCeiling := cSky;
+  GDVars.wallColorA := cHorz1;
+  GDVars.wallColorB := cHorz2;
+  GDVars.wallColorC := cFloor;
 end;
 
 { Fill the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor rows 62..103;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, GDVars.dsColorSkyCeiling, GDConsts.dsIconColorMap,
-                   GDVars.dsViewImageBufferPtr);
-  Blit.FillPicRect(2, 59, 11, 1, GDVars.dsWallColorA, GDConsts.dsIconColorMap, GDVars.dsViewImageBufferPtr);
-  Blit.FillPicRect(2, 60, 11, 2, GDVars.dsWallColorB, GDConsts.dsIconColorMap, GDVars.dsViewImageBufferPtr);
-  Blit.FillPicRect(2, 62, 11, 42, GDVars.dsWallColorC, GDConsts.dsIconColorMap, GDVars.dsViewImageBufferPtr);
+  Blit.FillPicRect(2, 16, 11, 43, GDVars.colorSkyCeiling, GDConsts.iconColorMap,
+                   GDVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 59, 11, 1, GDVars.wallColorA, GDConsts.iconColorMap, GDVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 60, 11, 2, GDVars.wallColorB, GDConsts.iconColorMap, GDVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 62, 11, 42, GDVars.wallColorC, GDConsts.iconColorMap, GDVars.viewImageBufferPtr);
 end;
 
 { Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
@@ -398,8 +398,8 @@ begin
   count := i - 1;
   for i := 1 to count do
     if (wsSlot + i - 1) in [1..3] then begin
-      GDVars.dsWallSetCache[wsSlot + i - 1].wallDefId := -1;
-      GDVars.dsWallSetCache[wsSlot + i - 1].symbolSlot := -1;
+      GDVars.wallSetCache[wsSlot + i - 1].wallDefId := -1;
+      GDVars.wallSetCache[wsSlot + i - 1].symbolSlot := -1;
       for row := 1 to 5 do
         for col := 0 to 155 do begin
           { set 0's symbols (1..45) are shared by every slot; SSI also moved its last one, 45, into another slot's
@@ -416,8 +416,8 @@ begin
       end else
         Sym8x8.Load8x8Set(fileId, wsSlot + i - 1);
     end;
-  GDVars.dsWallSetCache[wsSlot].wallDefId := fileId;
-  GDVars.dsWallSetCache[wsSlot].symbolSlot := wsSlot;
+  GDVars.wallSetCache[wsSlot].wallDefId := fileId;
+  GDVars.wallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
 
 { Load GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte planes of a

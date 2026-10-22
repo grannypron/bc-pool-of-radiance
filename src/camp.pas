@@ -310,9 +310,9 @@ begin
     if total < t then total := t;
     p := p^.nextCharAddr;
   end;
-  Clock.SetFromMinutes(GDVars.dsRestingTimeGbvm, total);
+  Clock.SetFromMinutes(GDVars.restingTimeGbvm, total);
   interrupted := GameTime.CampRest(True);
-  FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+  FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
   CharDisp.PrintMiscInfo;
 end;
 
@@ -1021,16 +1021,16 @@ begin
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
-  Clock.SetFromMinutes(GDVars.dsRestingTimeGbvm, total);
+  Clock.SetFromMinutes(GDVars.restingTimeGbvm, total);
   interrupted := GameTime.CampRest(False);
-  done := (GDVars.dsRestingTimeGbvm[C_TIME.DAYS] = 0) and (GDVars.dsRestingTimeGbvm[C_TIME.HOURS] = 0) and
-          (GDVars.dsRestingTimeGbvm[C_TIME.TURNS] = 0) and (GDVars.dsRestingTimeGbvm[C_TIME.MINUTES] = 0);
-  FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+  done := (GDVars.restingTimeGbvm[C_TIME.DAYS] = 0) and (GDVars.restingTimeGbvm[C_TIME.HOURS] = 0) and
+          (GDVars.restingTimeGbvm[C_TIME.TURNS] = 0) and (GDVars.restingTimeGbvm[C_TIME.MINUTES] = 0);
+  FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
   if done and not interrupted then begin
     for i := 1 to n do
       for kind := FIX_DISEASE to FIX_CURSE do
         if cures[i, kind] then begin
-          GDVars.dsTargetCreaturePtr[1] := members[i];
+          GDVars.targetCreaturePtr[1] := members[i];
           case kind of
             FIX_DISEASE: Magic.CureDiseaseHandler;
             FIX_BLIND: Magic.CureBlindnessHandler;
@@ -1064,7 +1064,7 @@ begin
   savedIfc := GDVars.ifcState;
   GDVars.ifcState := C_Ifc.CAMPING;
   GDVars.healTicks := 0;
-  FillChar(GDVars.dsRestingTimeGbvm, SizeOf(GDVars.dsRestingTimeGbvm), 0);
+  FillChar(GDVars.restingTimeGbvm, SizeOf(GDVars.restingTimeGbvm), 0);
   CharDisp.DisplayNoncombatInterface;
   Border.ClearBox(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 18, LightGreen, 'The party makes camp...');

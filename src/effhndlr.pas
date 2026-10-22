@@ -308,26 +308,26 @@ end;
 { Bless (eff 1) }
 procedure EffBless(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  Inc(GDVars.dsCurrentMorale, 5);
+  Inc(GDVars.currentMorale, 5);
   Inc(GDVars.gAttackRoll);
 end;
 
 { Curse (eff 2) }
 procedure EffCurse(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.dsCurrentMorale < 5 then
-    GDVars.dsCurrentMorale := 0
+  if GDVars.currentMorale < 5 then
+    GDVars.currentMorale := 0
   else
-    Dec(GDVars.dsCurrentMorale, 5);
+    Dec(GDVars.currentMorale, 5);
   Dec(GDVars.gAttackRoll);
 end;
 
 { Undead slaying weapon (eff 3) }
 procedure EffUndeadSlayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   { undead }
-  if GDVars.dsOtherCreatureCurrentPtr^.charType = 4 then begin
+  if GDVars.otherCreatureCurrentPtr^.charType = 4 then begin
     Inc(GDVars.gAttackRoll, 2);
     Inc(GDVars.pendingDamage, 2);
   end;
@@ -345,8 +345,8 @@ procedure EffFlameTongue(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   bonus: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  case GDVars.dsOtherCreatureCurrentPtr^.charType of
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  case GDVars.otherCreatureCurrentPtr^.charType of
     { regenerating }
     10: bonus := 1;
     { cold-based / avian }
@@ -437,7 +437,7 @@ begin
       creature^.combatAddr^.other := nil;
       CharHlp.CountTeams;
     end;
-    GDVars.dsCurrentMorale := 100;
+    GDVars.currentMorale := 100;
   end;
 end;
 
@@ -511,7 +511,7 @@ begin
   if creature^.acCur < 57 then
     creature^.acCur := 57;
   Inc(GDVars.gSaveRoll);
-  if GDVars.dsCurrentSpellBeing = C_Spell.MAGIC_MISSILE then
+  if GDVars.currentSpellBeing = C_Spell.MAGIC_MISSILE then
     GDVars.pendingDamage := 0;
 end;
 
@@ -520,13 +520,13 @@ procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 var
   i: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   { charType 0 or 1: the monster data gives some listed foes type 0 (HOBGOBLIN LDR, GRISHNAK) }
-  if GDVars.dsOtherCreatureCurrentPtr^.charType <= 1 then
-    if GDVars.dsOtherCreatureCurrentPtr^.iconDimensions = 1 then
+  if GDVars.otherCreatureCurrentPtr^.charType <= 1 then
+    if GDVars.otherCreatureCurrentPtr^.iconDimensions = 1 then
       { 5 = High(gnomeFoes) }
       for i := 1 to 5 do
-        if GDVars.dsOtherCreatureCurrentPtr^.name = GDConsts.gnomeFoes[i] then
+        if GDVars.otherCreatureCurrentPtr^.name = GDConsts.gnomeFoes[i] then
           Inc(GDVars.gAttackRoll);
 end;
 
@@ -600,7 +600,7 @@ var
   effect: Types.PEffectRec;
 begin
   if not CharHlp.HasEffect(GDVars.curChar, C_Effect.SEE_INVISIBLE, effect) then
-    GDVars.dsCurrentSuppressTargetingFlag := 1;
+    GDVars.currentSuppressTargetingFlag := 1;
   Dec(GDVars.gAttackRoll, 4);
 end;
 
@@ -609,22 +609,22 @@ procedure EffDwarfThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 var
   i: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   { charType 0 or 1: the monster data gives some listed foes type 0 (HOBGOBLIN LDR, GRISHNAK) }
-  if GDVars.dsOtherCreatureCurrentPtr^.charType <= 1 then
-    if GDVars.dsOtherCreatureCurrentPtr^.iconDimensions = 1 then
+  if GDVars.otherCreatureCurrentPtr^.charType <= 1 then
+    if GDVars.otherCreatureCurrentPtr^.iconDimensions = 1 then
       { 11 = High(dwarfFoes) }
       for i := 1 to 11 do
-        if GDVars.dsOtherCreatureCurrentPtr^.name = GDConsts.dwarfFoes[i] then
+        if GDVars.otherCreatureCurrentPtr^.name = GDConsts.dwarfFoes[i] then
           Inc(GDVars.gAttackRoll);
 end;
 
-{ Mirror Image (eff 28). strength = images left; against a single-target spell (dsCurrentSpellBeing > 0, gMultiTarget =
+{ Mirror Image (eff 28). strength = images left; against a single-target spell (currentSpellBeing > 0, gMultiTarget =
   0) an image absorbs it unless 1d(images + 1) rolls 1. Weapon hits are tested in CbtActs.DoAttack. }
 procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if Dice.RollDice(1, Types.PEffectRec(p)^.strength + 1) > 1 then
-    if GDVars.dsCurrentSpellBeing > 0 then
+    if GDVars.currentSpellBeing > 0 then
       if GDVars.gMultiTarget = 0 then begin
         EffHndlr.NullifyAttack(0);
         CharDisp.PrintNameString(creature, 'lost an image', 10, True);
@@ -713,13 +713,13 @@ end;
 procedure EffBlinking(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.initiative > 0 then begin
-    GDVars.dsCurrentSuppressTargetingFlag := 1;
+    GDVars.currentSuppressTargetingFlag := 1;
     GDVars.gAttackAvoided := True;
   end;
 end;
 
 { Hasted (eff 39). Ages the creature one year the first time it fires (strength bit 4 marks that it has), and doubles
-  dsCurrentAttackCurrent by CharHlp.HasteSlowRate: with Slowed too, the two cancel, and each handler leaves the rate as
+  currentAttackCurrent by CharHlp.HasteSlowRate: with Slowed too, the two cancel, and each handler leaves the rate as
   it is. }
 procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -728,7 +728,7 @@ begin
     CharDisp.PrintNameString(creature, 'ages', 10, True);
     Inc(creature^.age);
   end;
-  GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
+  GDVars.currentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.currentAttackCurrent);
 end;
 
 { Cast Stinking Cloud (eff 40). Removes the cloud this caster is responsible for (strength upper nibble = its idx),
@@ -839,10 +839,10 @@ begin
       Dice.ReduceDamagePerDie(1);
 end;
 
-{ Slowed (eff 42): halves dsCurrentAttackCurrent by CharHlp.HasteSlowRate, as EffHasted doubles it. }
+{ Slowed (eff 42): halves currentAttackCurrent by CharHlp.HasteSlowRate, as EffHasted doubles it. }
 procedure EffSlowed(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
+  GDVars.currentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.currentAttackCurrent);
 end;
 
 { Disease Strength drain (eff 43; p is this node, or Diseased's, eff 34, as the disease starts): re-arm for 60 minutes
@@ -972,8 +972,8 @@ end;
 procedure EffImmobile(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   creature^.combatAddr^.movement := 0;
-  if GDVars.dsCurrentCreatureCalculatingFlag <> 0 then
-    GDVars.dsCurrentAttackCurrent := 0;
+  if GDVars.currentCreatureCalculatingFlag <> 0 then
+    GDVars.currentAttackCurrent := 0;
 end;
 
 { Troll: add regeneration (eff 59): add eff 98 permanently }
@@ -1029,14 +1029,14 @@ end;
   poison bonus (AbilAdj.ConPoisonSave), or is immune to poison, it gets eff 55 and is killed. }
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE,
-                                  saveMod + AbilAdj.ConPoisonSave(GDVars.dsOtherCreatureCurrentPtr^.conCur)) then
-    if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED) then begin
-      CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Poisoned', 10, False);
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PARALYZE,
+                                  saveMod + AbilAdj.ConPoisonSave(GDVars.otherCreatureCurrentPtr^.conCur)) then
+    if not EffHndlr.TouchImmune(GDVars.otherCreatureCurrentPtr, C_Effect.POISONED) then begin
+      CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'is Poisoned', 10, False);
       TextRend.PauseOnly;
-      FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
-      EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
+      FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.POISONED, 0, 255, False);
+      EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_Status.DEAD, 'is killed');
     end;
 end;
 
@@ -1044,11 +1044,11 @@ end;
   paralysis. SSI's ignored saveMod, so the drider's -2 was lost (#785). }
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then
-    if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS) then begin
-      CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
-      FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then
+    if not EffHndlr.TouchImmune(GDVars.otherCreatureCurrentPtr, C_Effect.PARALYSIS) then begin
+      CharDisp.PrintNameStringAnim(GDVars.otherCreatureCurrentPtr, True, 'is Paralyzed');
+      FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
     end;
 end;
 
@@ -1095,11 +1095,11 @@ begin
   EffHndlr.PoisonTouch(creature, -2);
 end;
 
-{ Dust of Disappearance (eff 71): a stronger form of invisibility. Sets dsCurrentSuppressTargetingFlag and lowers
+{ Dust of Disappearance (eff 71): a stronger form of invisibility. Sets currentSuppressTargetingFlag and lowers
   gAttackRoll by 4. }
 procedure EffDustDisappear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.dsCurrentSuppressTargetingFlag := 1;
+  GDVars.currentSuppressTargetingFlag := 1;
   Dec(GDVars.gAttackRoll, 4);
 end;
 
@@ -1121,15 +1121,15 @@ var
 begin
   if FxEngine.HoldTarget(creature, p, removed, C_Effect.BLOOD_DRAIN, released) = nil then begin
     if released and (creature^.enabled <> 0) then
-      if GDVars.dsOtherCreatureCurrentPtr^.enabled <> 0 then
+      if GDVars.otherCreatureCurrentPtr^.enabled <> 0 then
         creature^.combatAddr^.turned := 1;
   end else begin
     CharDisp.PrintNameString(creature, 'Sucks some Blood', 10, True);
     dmg := Dice.RollDamageDice(1, 4);
     GDVars.elementMask := 0;
-    FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, dmg, 0, False);
+    FxEngine.InflictNonWeaponDamage(GDVars.otherCreatureCurrentPtr, dmg, 0, False);
     done := CharHlp.EndActions(creature);
-    if (GDVars.dsOtherCreatureCurrentPtr^.enabled <> 0) and (Types.PEffectRec(p)^.duration div 16 > dmg) then
+    if (GDVars.otherCreatureCurrentPtr^.enabled <> 0) and (Types.PEffectRec(p)^.duration div 16 > dmg) then
       Dec(Types.PEffectRec(p)^.duration, dmg * 16)
     else
       FxEngine.RemoveEffect(creature, C_Effect.BLOOD_DRAIN, p);
@@ -1142,16 +1142,16 @@ procedure EffBloodAttach(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   slot: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if GDVars.dsOtherCreatureCurrentPtr = nil then
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if GDVars.otherCreatureCurrentPtr = nil then
     Exit;
-  slot := CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr);
+  slot := CbtMap.CombatSlot(GDVars.otherCreatureCurrentPtr);
   if slot = 0 then
     Exit;
   { a 12 hp budget in the upper bits of the duration }
   FxEngine.AddEffect(creature, C_Effect.BLOOD_DRAIN, 12 * 16 + 15, slot, True);
-  FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
-  FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
+  FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
+  FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.otherCreatureCurrentPtr, nil, False);
 end;
 
 { Bite attach (eff 77): add eff 74 (bite and hold, handled by CbtActs.BiteAndHold) on the biter and immobilize the
@@ -1160,17 +1160,17 @@ procedure EffBiteHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 var
   slot: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if GDVars.dsOtherCreatureCurrentPtr = nil then
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if GDVars.otherCreatureCurrentPtr = nil then
     Exit;
-  slot := CbtMap.CombatSlot(GDVars.dsOtherCreatureCurrentPtr);
+  slot := CbtMap.CombatSlot(GDVars.otherCreatureCurrentPtr);
   if slot = 0 then
     Exit;
-  if GDVars.dsOtherCreatureCurrentPtr^.strCur < 19 then begin
+  if GDVars.otherCreatureCurrentPtr^.strCur < 19 then begin
     FxEngine.AddEffect(creature, C_Effect.BITE_HOLD, 0, slot, True);
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
-    FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.dsOtherCreatureCurrentPtr, nil, False);
-    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is held fast', 10, True);
+    FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.IMMOBILE, 0, 255, False);
+    FxEngine.CallEffectHandler(C_Effect.IMMOBILE, GDVars.otherCreatureCurrentPtr, nil, False);
+    CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'is held fast', 10, True);
   end;
 end;
 
@@ -1253,32 +1253,32 @@ var
   reflected: Boolean;
   effect: Types.PEffectRec;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   CharDisp.PrintNameString(creature, 'gazes...', 10, False);
   CharDisp.BuildIconFacings(18);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
-                                  CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
-                                  CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
+                                  CbtMap.CombatCellX(GDVars.otherCreatureCurrentPtr),
+                                  CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr), 4, 45);
   if CharHlp.HasEffect(creature, C_Effect.GAZE_REFLECTABLE, effect) then begin
     reflected := False;
-    item := GDVars.dsOtherCreatureCurrentPtr^.itemsAddr;
+    item := GDVars.otherCreatureCurrentPtr^.itemsAddr;
     while (item <> nil) and (reflected = False) do begin
       if item^.equipped <> 0 then
         { "Mirror" }
         if (item^.nameIds[1] = C_Item.NAME_MIRROR) or (item^.nameIds[2] = C_Item.NAME_MIRROR) or
            (item^.nameIds[3] = C_Item.NAME_MIRROR) then begin
-          CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'reflects it!', 12, False);
-          CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
-                                          CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr),
+          CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'reflects it!', 12, False);
+          CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GDVars.otherCreatureCurrentPtr),
+                                          CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr),
                                           CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 4, 45);
           reflected := True;
-          GDVars.dsOtherCreatureCurrentPtr := creature;
+          GDVars.otherCreatureCurrentPtr := creature;
         end;
       item := item^.next;
     end;
   end;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PETRIFY, 0) then
-    EffHndlr.InflictStatusMsg(GDVars.dsOtherCreatureCurrentPtr, C_Status.STONED, 'is Stoned');
+  if not FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.PETRIFY, 0) then
+    EffHndlr.InflictStatusMsg(GDVars.otherCreatureCurrentPtr, C_Status.STONED, 'is Stoned');
 end;
 
 { Charming gaze (eff 84): with a clear line to an attackable target within Charm Person's range, apply Charm Person's
@@ -1292,10 +1292,10 @@ var
   x: ShortInt;
   y: ShortInt;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  x := CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr);
-  y := CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr);
-  if not CbtActs.CanAttackTarget(creature, GDVars.dsOtherCreatureCurrentPtr) then Exit;
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  x := CbtMap.CombatCellX(GDVars.otherCreatureCurrentPtr);
+  y := CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr);
+  if not CbtActs.CanAttackTarget(creature, GDVars.otherCreatureCurrentPtr) then Exit;
   { the range budget in cells, read by WalkLine on entry: that of the Charm Person the gaze applies }
   dist := GDConsts.spellTable[C_Spell.CHARM_PERSON].rangeFixed;
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
@@ -1303,14 +1303,14 @@ begin
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
   CharDisp.BuildIconFacings(18);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
-                                  CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
-                                  CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 4, 45);
-  FxEngine.AddEffectWithMessage(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, 0, CharHlp.Team(creature) * 128 + 12,
+                                  CbtMap.CombatCellX(GDVars.otherCreatureCurrentPtr),
+                                  CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr), 4, 45);
+  FxEngine.AddEffectWithMessage(GDVars.otherCreatureCurrentPtr, C_Effect.CHARM, 0, CharHlp.Team(creature) * 128 + 12,
                                 True, True,
                                 FxEngine.RollSavingThrow(creature^.combatAddr^.other, C_Save.SPELL, -2),
                                 'is charmed');
-  if CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.CHARM, effect) then
-    FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.dsOtherCreatureCurrentPtr, effect, False);
+  if CharHlp.HasEffect(GDVars.otherCreatureCurrentPtr, C_Effect.CHARM, effect) then
+    FxEngine.CallEffectHandler(C_Effect.CHARM, GDVars.otherCreatureCurrentPtr, effect, False);
 end;
 
 { Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
@@ -1344,9 +1344,9 @@ var
       lvl := creature^.classLevels[jj];
       { xp[] runs to level 9; a level above it reads level 9's entry }
       if lvl > 9 then
-        xpTry := GDConsts.dsExperienceSpellsClass[jj].xp[9]
+        xpTry := GDConsts.experienceSpellsClass[jj].xp[9]
       else if lvl > 1 then
-        xpTry := GDConsts.dsExperienceSpellsClass[jj].xp[lvl]
+        xpTry := GDConsts.experienceSpellsClass[jj].xp[lvl]
       else
         xpTry := 0;
       if lvl >= bestLvl then
@@ -1435,14 +1435,14 @@ procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 var
   effect: Types.PEffectRec;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if FxEngine.DiseaseImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL) then
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  if FxEngine.DiseaseImmune(GDVars.otherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL) then
     Exit;
-  if not CharHlp.HasEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, effect) then begin
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, 14400, 255, True);
-    FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.MUMMY_ROT, 43200,
+  if not CharHlp.HasEffect(GDVars.otherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, effect) then begin
+    FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.ROT_NO_HEAL, 14400, 255, True);
+    FxEngine.AddEffect(GDVars.otherCreatureCurrentPtr, C_Effect.MUMMY_ROT, 43200,
                        Dice.RollDice(1, 6) * 16 + 15, True);
-    CharDisp.PrintNameString(GDVars.dsOtherCreatureCurrentPtr, 'is Diseased', 10, True);
+    CharDisp.PrintNameString(GDVars.otherCreatureCurrentPtr, 'is Diseased', 10, True);
   end;
 end;
 
@@ -1476,7 +1476,7 @@ end;
 { Immunity to electricity + Magic Missile (eff 91) }
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if GDVars.dsCurrentSpellBeing = C_Spell.MAGIC_MISSILE then begin
+  if GDVars.currentSpellBeing = C_Spell.MAGIC_MISSILE then begin
     EffHndlr.NullifyAttack(0);
     CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
   end else
@@ -1604,7 +1604,7 @@ end;
   chance nullifies. Only an effect under the immunity check or magic damage is resisted, and not a monster's poisonous
   or paralyzing touch, which is no magic (TouchImmune; #800). An item counts as a 6th-level caster here, as a scroll
   does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and the javelin). Against an
-  effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a monster's fear) there is no caster level, and pct
+  effect that is no spell (GDVars.currentSpellBeing NONE: a gaze, a monster's fear) there is no caster level, and pct
   stands as listed, as against an 11th-level caster; SSI's read the level of spell 0, from outside the spell table
   (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106 passing 15), so resistance grew
   with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. }
@@ -1616,10 +1616,10 @@ var
   lvl: Byte;
   chance: Integer;
 begin
-  if GDVars.dsCurrentSpellBeing = C_Spell.NONE then
+  if GDVars.currentSpellBeing = C_Spell.NONE then
     lvl := BASE_LEVEL
   else begin
-    lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+    lvl := CharHlp.GetCasterLevel(GDVars.currentSpellBeing);
     if GDVars.usingItem and (lvl > C_Spell.ITEM_CASTER_LEVEL) then
       lvl := C_Spell.ITEM_CASTER_LEVEL;
   end;
@@ -1777,21 +1777,21 @@ procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boole
 var
   dummy: Boolean;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   { other is nil before the anhkheg's first target, and may be a creature since taken out of play }
-  if (GDVars.dsOtherCreatureCurrentPtr = nil) or (GDVars.dsOtherCreatureCurrentPtr^.enabled = 0) then Exit;
+  if (GDVars.otherCreatureCurrentPtr = nil) or (GDVars.otherCreatureCurrentPtr^.enabled = 0) then Exit;
   if Dice.RollDice(1, 100) > 25 then Exit;
-  if CbtMap.CalcDistance(creature, GDVars.dsOtherCreatureCurrentPtr) >= 4 then Exit;
+  if CbtMap.CalcDistance(creature, GDVars.otherCreatureCurrentPtr) >= 4 then Exit;
   dummy := CharHlp.EndActions(creature);
   CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
   CharDisp.BuildIconFacings(23);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
-                                  CbtMap.CombatCellX(GDVars.dsOtherCreatureCurrentPtr),
-                                  CbtMap.CombatCellY(GDVars.dsOtherCreatureCurrentPtr), 1, 30);
+                                  CbtMap.CombatCellX(GDVars.otherCreatureCurrentPtr),
+                                  CbtMap.CombatCellY(GDVars.otherCreatureCurrentPtr), 1, 30);
   { acid, set before the save, whose effects read it too: SSI left the type of the last damage dealt (#721) }
   GDVars.elementMask := C_Effect.ELEM_ACID;
-  FxEngine.InflictNonWeaponDamage(GDVars.dsOtherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
-                                  FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.BREATH, 0));
+  FxEngine.InflictNonWeaponDamage(GDVars.otherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
+                                  FxEngine.RollSavingThrow(GDVars.otherCreatureCurrentPtr, C_Save.BREATH, 0));
   FxEngine.RemoveEffect(creature, C_Effect.ANHKHEG_ACID, p);
   FxEngine.RemoveEffect(creature, C_Effect.ACID_SQUIRT, nil);
 end;
@@ -1851,15 +1851,15 @@ var
   item: Types.PItemRec;
   j: Byte;
 begin
-  GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  item := GDVars.dsOtherCreatureCurrentPtr^.itemsAddr;
-  while (item <> nil) and (GDVars.dsCurrentSuppressTargetingFlag = 0) do begin
+  GDVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  item := GDVars.otherCreatureCurrentPtr^.itemsAddr;
+  while (item <> nil) and (GDVars.currentSuppressTargetingFlag = 0) do begin
     if item^.equipped <> 0 then
       { 3 = High(TItemRec.nameIds) }
       for j := 1 to 3 do
         if ((item^.nameIds[j] = C_Item.NAME_HOLY_SYMBOL) and (item^.nameIds[3] = C_Item.NAME_WOODEN)) or
            (item^.nameIds[j] = C_Item.NAME_MIRROR) then
-          GDVars.dsCurrentSuppressTargetingFlag := 1;
+          GDVars.currentSuppressTargetingFlag := 1;
     item := item^.next;
   end;
 end;
@@ -1928,7 +1928,7 @@ begin
         GDVars.ifcState := C_Ifc.COMBAT;
       end else
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);
-    GDVars.dsRedrawInventoryMenuFlag := 1;
+    GDVars.redrawInventoryMenuFlag := 1;
     FxEngine.AddEffect(creature, C_Effect.STRENGTH, 0, enc, True);
   end;
 end;
@@ -1949,7 +1949,7 @@ begin
     if GDVars.ifcState = C_Ifc.COMBAT then
       CharDisp.DisplayCombatInterface;
     FxEngine.InflictItemShock(creature, item, dmg);
-    GDVars.dsRedrawInventoryMenuFlag := 1;
+    GDVars.redrawInventoryMenuFlag := 1;
   end;
 end;
 

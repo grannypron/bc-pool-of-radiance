@@ -217,7 +217,7 @@ var
   done: Boolean;
   n: Integer;
 begin
-  Assign(f, GDVars.dsSaveDirectory + CFG_NAME);
+  Assign(f, GDVars.saveDirectory + CFG_NAME);
   Reset(f);
   if IOResult = 0 then begin
     lines := 0;
@@ -253,13 +253,13 @@ var
   ok: Boolean;
   n: Integer;
 begin
-  Assign(newFile, FileUtil.TempName(GDVars.dsSaveDirectory + CFG_NAME));
+  Assign(newFile, FileUtil.TempName(GDVars.saveDirectory + CFG_NAME));
   Rewrite(newFile);
   if IOResult <> 0 then Exit;
   for opt := 1 to OPT_COUNT do
     WriteLn(newFile, Options.KeyName(opt), '=', Options.StoredValue(opt));
   ok := IOResult = 0;
-  Assign(oldFile, GDVars.dsSaveDirectory + CFG_NAME);
+  Assign(oldFile, GDVars.saveDirectory + CFG_NAME);
   if ok then begin
     Reset(oldFile);
     if IOResult = 0 then begin
@@ -289,9 +289,9 @@ begin
   if IOResult <> 0 then
     ok := False;
   if ok then
-    ok := FileUtil.PutInPlace(GDVars.dsSaveDirectory + CFG_NAME)
+    ok := FileUtil.PutInPlace(GDVars.saveDirectory + CFG_NAME)
   else
-    FileUtil.DeleteFile(FileUtil.TempName(GDVars.dsSaveDirectory + CFG_NAME));
+    FileUtil.DeleteFile(FileUtil.TempName(GDVars.saveDirectory + CFG_NAME));
 end;
 
 { value with a comma between each group of three digits. }
@@ -411,7 +411,7 @@ begin
   Options.DrawInfo(CFG_TOP, 'Video', VidOps.ModeName);
   Options.DrawInfo(CFG_TOP + 1, 'Sound Device', GDVars.sound.name);
   Options.DrawInfo(CFG_TOP + 2, 'Data Path', GDVars.gameDir);
-  Options.DrawInfo(CFG_TOP + 3, 'Save Path', GDVars.dsSaveDirectory);
+  Options.DrawInfo(CFG_TOP + 3, 'Save Path', GDVars.saveDirectory);
   Options.DrawInfo(INFO_TOP, 'Version', GDConsts.GAME_VERSION);
   Options.DrawInfo(INFO_TOP + 1, 'Commit', BUILD_COMMIT);
   Options.DrawInfo(INFO_TOP + 2, 'Data', Options.DataLine);

@@ -22,7 +22,7 @@ var
   $81 (string reference) gives its GBVM address; $80 (string value) gives 0, as its text is in gbStrings. }
 function GetEclVar(idx: ShortInt): Word;
 
-{ Read count ECL variables at the ECL IP into dsGbvmType/dsGbvmLowerByte/dsGbvmUpperByte, decoding string values and
+{ Read count ECL variables at the ECL IP into gbvmType/gbvmLowerByte/gbvmUpperByte, decoding string values and
   string references into gbStrings. Only the first 64 variables and 20 strings are kept (later strings overwrite the
   20th); the IP still steps past them all. }
 procedure LoadEclVars(count: Byte);
@@ -93,12 +93,12 @@ begin
         EclVars.DerefGbString(strIdx, v);
       end;
     end;
-    { 64 = High(dsGbvmType); the upper byte is kept only for the types that carry one }
+    { 64 = High(gbvmType); the upper byte is kept only for the types that carry one }
     if i <= 64 then begin
-      GDVars.dsGbvmType[i] := t;
-      GDVars.dsGbvmLowerByte[i] := lo;
+      GDVars.gbvmType[i] := t;
+      GDVars.gbvmLowerByte[i] := lo;
       if (t in [1, 2, 3]) or (t = $81) then
-        GDVars.dsGbvmUpperByte[i] := hi;
+        GDVars.gbvmUpperByte[i] := hi;
     end;
   end;
   Inc(GDVars.eclIp);
@@ -109,9 +109,9 @@ var
   lo: Byte;
   hi: Byte;
 begin
-  lo := GDVars.dsGbvmLowerByte[idx];
-  hi := GDVars.dsGbvmUpperByte[idx];
-  case GDVars.dsGbvmType[idx] of
+  lo := GDVars.gbvmLowerByte[idx];
+  hi := GDVars.gbvmUpperByte[idx];
+  case GDVars.gbvmType[idx] of
     0: GetEclVar := lo;
     1, 3: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
     { a string value has no number: its text is in gbStrings (SSI read the GBVM at an address made of the packed length

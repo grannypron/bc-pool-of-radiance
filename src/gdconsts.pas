@@ -223,7 +223,7 @@ const
     (6, 6, 6, 6, 6),
     (8, 10, 8, 10, 8));
   { YarashComplete }
-  { Wilderness tiles remapped Black to Blue and LightGray to Green. Bit 7 selects the second tile set (ds2dMapTilePtr2),
+  { Wilderness tiles remapped Black to Blue and LightGray to Green. Bit 7 selects the second tile set (mapTilePtr2),
     the low 7 bits the frame. }
   yarBlueGreenTiles: array[0..10] of Byte = (
     101,
@@ -717,7 +717,7 @@ const
     '|');
   { Character, money and item name strings; compass names }
   { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. }
-  dsCoinValuationCopper: array[C_Money.COPPER..C_Money.PLATINUM] of LongInt = (
+  coinValuationCopper: array[C_Money.COPPER..C_Money.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
   { Class names, indexed by TCharRecord.charClass. }
   classNames: array[C_Class.CLERIC..C_Class.MAGE_THIEF] of string[26] = (
@@ -1107,7 +1107,7 @@ const
     ($C0, $30, $0C, $03));
   { Packed EGA-to-CGA color map, two EGA colors per byte, used by Blit.FillPicRect for the CharGen icon previews and the
     View3D backgrounds }
-  dsIconColorMap: Types.TColorMap = (
+  iconColorMap: Types.TColorMap = (
     { EGA 0 Black -> CGA 0; EGA 1 Blue -> CGA 0 }
     $00,
     { EGA 2 Green -> CGA 1; EGA 3 Cyan -> CGA 1 }
@@ -1820,7 +1820,7 @@ const
     (pickPockets:  40; openLocks:  45; findTraps:  35; moveSilently:  25; hideShadows:  25),
     (pickPockets:  45; openLocks:  50; findTraps:  40; moveSilently:  30; hideShadows:  30));
   { Racial ability limits, by race; the strength columns are by gender. Human women reach 18/00 like human men. }
-  dsMinimumMaximumStatistics: array[1..7] of Types.TRuleRace = (
+  minimumMaximumStatistics: array[1..7] of Types.TRuleRace = (
     (strMin: (8, 8); strMax: (18, 17); excMax: (99, 0); intMin: 3; intMax: 18;
      wisMin: 3; wisMax: 18; dexMin: 3; dexMax: 17; conMin: 12; conMax: 19; chaMin: 3; chaMax: 16),
     (strMin: (3, 3); strMax: (18, 16); excMax: (75, 0); intMin: 8; intMax: 18;
@@ -1899,7 +1899,7 @@ const
     { human }
     (cleric: 0; druid: -1; fighter: 0; paladin: 0; ranger: 0; mage: 0; thief: 0; monk: -1));
   { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
-  dsStartingAge: array[1..7, C_Class.CLERIC..C_Class.MONK] of Types.TRuleAge = (
+  startingAge: array[1..7, C_Class.CLERIC..C_Class.MONK] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
      (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
      (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
@@ -2004,7 +2004,7 @@ const
     -2, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
     at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
-  dsExperienceSpellsClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleXp = (
+  experienceSpellsClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleXp = (
     (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
      slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
@@ -2021,7 +2021,7 @@ const
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))));
-  dsStartingGoldClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleGold = (
+  startingGoldClass: array[C_Level.CLERIC..C_Level.MONK] of Types.TRuleGold = (
     (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
     (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
   { ClassCal: Saving throws indexed by class-level slot (C_Level), level 1..9 and save column 0..4. The paladin's row is

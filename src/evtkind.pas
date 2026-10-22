@@ -82,11 +82,11 @@ var
 { Operand i of the instruction last decoded, as an address (a GBVM read) when isAddr. }
 function Operand(i: Byte; var isAddr: Boolean): Word;
 begin
-  isAddr := GDVars.dsGbvmType[i] in [1, 3];
-  if GDVars.dsGbvmType[i] in [1, 2, 3] then
-    Operand := EclVars.CombineBytesToWord(GDVars.dsGbvmLowerByte[i], GDVars.dsGbvmUpperByte[i])
+  isAddr := GDVars.gbvmType[i] in [1, 3];
+  if GDVars.gbvmType[i] in [1, 2, 3] then
+    Operand := EclVars.CombineBytesToWord(GDVars.gbvmLowerByte[i], GDVars.gbvmUpperByte[i])
   else
-    Operand := GDVars.dsGbvmLowerByte[i];
+    Operand := GDVars.gbvmLowerByte[i];
 end;
 
 { The first operand and the count of the ON GOTO, ON GOSUB or menu at a, read from the script itself: decoding loads the

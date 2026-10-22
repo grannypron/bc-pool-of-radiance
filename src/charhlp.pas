@@ -933,8 +933,8 @@ begin
     { xp[] runs to C_Level.LEVEL_LAST }
     if (lvl > 0) and (lvl < C_Level.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
-        if GDConsts.dsExperienceSpellsClass[cls].xp[lvl + 1] > 0 then
-          if GDConsts.dsExperienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
+        if GDConsts.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
+          if GDConsts.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
             CanTrain := True;
   end;
 end;

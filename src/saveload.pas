@@ -136,7 +136,7 @@ end;
 
 function CharFileBase(name: String): Types.TPathStr;
 begin
-  CharFileBase := GDVars.dsSaveDirectory + SaveLoad.CharFileName(name);
+  CharFileBase := GDVars.saveDirectory + SaveLoad.CharFileName(name);
 end;
 
 function HasCharFile(name: String): Boolean;
@@ -153,8 +153,8 @@ var
 begin
   list := nil;
   SaveMenu.CheckSaveDir;
-  if not DaxIo.FileExists(GDVars.dsSaveDirectory + 'charlist.txt') then Exit;
-  Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
+  if not DaxIo.FileExists(GDVars.saveDirectory + 'charlist.txt') then Exit;
+  Assign(f, GDVars.saveDirectory + 'charlist.txt');
   Reset(f);
   while not Eof(f) do begin
     MenuCore.AppendMenuLine(list, tail, '', False);
@@ -177,10 +177,10 @@ var
 begin
   SaveMenu.CheckSaveDir;
   repeat
-    Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
+    Assign(f, GDVars.saveDirectory + 'charlist.txt');
     Rewrite(f);
     ioRes := IOResult;
-  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GDVars.dsSaveDirectory + 'charlist.txt');
+  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GDVars.saveDirectory + 'charlist.txt');
   { Escape gave up: the roster stays as it was }
   if ioRes <> 0 then Exit;
   p := list;
@@ -212,8 +212,8 @@ begin
       height := 1;
     MapTiles.LoadIconAnim('CHEAD' + GDConsts.iconHeightSuffix[height], iconHead, 11);
     MapTiles.LoadIconAnim('CBODY' + GDConsts.iconHeightSuffix[height], iconBody, orderNumber);
-    VidOps.MergePic(GDVars.dsIconAnimation[11, 0], GDVars.dsIconAnimation[orderNumber, 0]);
-    VidOps.MergePic(GDVars.dsIconAnimation[11, 1], GDVars.dsIconAnimation[orderNumber, 1]);
+    VidOps.MergePic(GDVars.iconAnimation[11, 0], GDVars.iconAnimation[orderNumber, 0]);
+    VidOps.MergePic(GDVars.iconAnimation[11, 1], GDVars.iconAnimation[orderNumber, 1]);
     if loading then begin
       for i := 0 to 15 do begin
         fromMap[i] := i;
@@ -223,8 +223,8 @@ begin
         toMap[GDConsts.defIconCol[i]] := iconColors1[i] and $F;
         toMap[GDConsts.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
       end;
-      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.dsIconAnimation[orderNumber, 0]);
-      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.dsIconAnimation[orderNumber, 1]);
+      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.iconAnimation[orderNumber, 0]);
+      Blit.RemapPic(fromMap, toMap, 0, False, GDVars.iconAnimation[orderNumber, 1]);
     end;
   end;
   MapTiles.FreeIconAnim(11);
@@ -314,7 +314,7 @@ function RecoverChar(name: String): Boolean;
 var
   s: FileUtil.TFileSet;
 begin
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GDVars.saveDirectory);
   SaveMenu.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
   RecoverChar := FileUtil.RecoverSet(s);
 end;
@@ -350,7 +350,7 @@ begin
     base := fname;
   end;
   { a write that fails (a full disk) leaves the old files as they were }
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GDVars.saveDirectory);
   ok := SaveLoad.CommitWhole(s, SaveLoad.WriteCharFiles(s, creature, base, ext));
   if not ok then
     TextRend.DisplayAndPause(Yellow, 'Could not save ' + Copy(creature^.name, 1, Types.NAME_LEN) + '.');
@@ -381,7 +381,7 @@ var
   list: Types.PItemRec;
   erased: Boolean;
 begin
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GDVars.saveDirectory);
   SaveMenu.RemoveCharFiles(s, SaveLoad.CharFileName(name), '.cha');
   erased := FileUtil.CommitSet(s);
   SaveLoad.LoadCharlist(list);
@@ -605,7 +605,7 @@ begin
   GDVars.zone1^[C_Gbvm.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
-    if DaxIo.FileExists(GDVars.dsSaveDirectory + fn + '.sav') then begin
+    if DaxIo.FileExists(GDVars.saveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
       { a short or unreadable .sav is left out, as a missing one is }
       if SaveLoad.LoadChar(fn, creature, True, True) then
@@ -631,10 +631,10 @@ begin
     MapTiles.LoadIconAnim('ICON', 0, 11)
   else
     for i := 1 to 3 do begin
-      GDVars.dsWallSetCache[i].wallDefId := GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + i];
-      GDVars.dsWallSetCache[i].symbolSlot := GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + i];
-      if GDVars.dsWallSetCache[i].wallDefId >= 0 then
-        View3D.LoadWallSet(GDVars.dsWallSetCache[i].wallDefId, GDVars.dsWallSetCache[i].symbolSlot);
+      GDVars.wallSetCache[i].wallDefId := GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + i];
+      GDVars.wallSetCache[i].symbolSlot := GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + i];
+      if GDVars.wallSetCache[i].wallDefId >= 0 then
+        View3D.LoadWallSet(GDVars.wallSetCache[i].wallDefId, GDVars.wallSetCache[i].symbolSlot);
     end;
   { the file's last wall slot shares the menu animation flag (#651), which no menu was showing when it was saved }
   GDVars.zone0^.savedWalls.menuAnimation := 0;
@@ -709,7 +709,7 @@ begin
   { the names' unused characters too, so a save holds nothing left over in memory }
   FillChar(names, SizeOf(names), 0);
   SaveMenu.CheckSaveDir;
-  FileUtil.NewSet(s, GDVars.dsSaveDirectory);
+  FileUtil.NewSet(s, GDVars.saveDirectory);
   fn := SaveMenu.SlotFile(letter, '.dat');
   { a save folder that cannot be written fails the save once Escape gives up (#794): nothing is written below }
   opened := SaveLoad.RewriteSaveFile(f, fn);
@@ -720,8 +720,8 @@ begin
     animation flag, which would set the next menu animating the last picture loaded over the view }
   walls := GDVars.zone0^.savedWalls;
   for n := 1 to 3 do begin
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := GDVars.dsWallSetCache[n].wallDefId;
-    GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := GDVars.dsWallSetCache[n].symbolSlot;
+    GDVars.zone0^.words[C_Gbvm.WALLSLOT_ID + n] := GDVars.wallSetCache[n].wallDefId;
+    GDVars.zone0^.words[C_Gbvm.WALLSLOT_SLOT + n] := GDVars.wallSetCache[n].symbolSlot;
   end;
   GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
   GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;

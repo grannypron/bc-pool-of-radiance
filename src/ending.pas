@@ -38,7 +38,7 @@ begin
     Portrait.FreeAnimation(a);
     Exit;
   end;
-  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.dsViewImageBufferPtr);
+  Blit.BlitTileClipped(col - 1, row - 1, 0, 0, a.frames[1].pic, GDVars.viewImageBufferPtr);
   Blit.FlushView;
   repeat
     Portrait.DisplayImageBuf(col, row, True, a.frames[a.current].pic);
@@ -72,21 +72,21 @@ begin
   TextRend.DisplayString(1, 19, LightGreen, 'from the dragon''s body.');
   CharDisp.DisplayNoncombatInterface;
   Blit.LoadPic('FINAL' + finalSfx, 1, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   Ending.PlayFinalAnim(3, 5, 2, Word(10 - GDVars.gameDelay) * 5 div 2);
   Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
-  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+  Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 1 then begin
     Blit.LoadPic('FINAL' + finalSfx, 4, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.BlitTileClipped(0, 11, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 2 then begin
     Blit.LoadPic('FINAL' + finalSfx, 5, False, 0, finalPic);
-    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.BlitTileClipped(13, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;
   if GDVars.zone1^[C_Gbvm.PARTY_SIZE] > 3 then begin
     Blit.LoadPic('FINAL' + finalSfx, 6, False, 0, finalPic);
-    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.dsViewImageBufferPtr);
+    Blit.BlitTileClipped(0, 9, 0, 0, finalPic, GDVars.viewImageBufferPtr);
   end;
   TextRend.ClearRect(C_Msg.TEXT_LEFT, C_Msg.MESSAGE_TOP, C_Msg.TEXT_RIGHT, C_Msg.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"Fools, you have but slain the body');
@@ -132,7 +132,7 @@ begin
                         MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], True,
-                        GDVars.ds2dMapTilePtr);
+                        GDVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
         if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
@@ -140,7 +140,7 @@ begin
                         MapTiles.SecondSheet)
         else
           Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], True,
-                        GDVars.ds2dMapTilePtr);
+                        GDVars.mapTilePtr);
       Wilds.BuildWildernessMap(GDConsts.yarViewX[step], GDConsts.yarViewY[step]);
       Blit.FlushView;
     end;
@@ -153,7 +153,7 @@ begin
                     MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarBlueGreenTo, GDConsts.yarBlueGreenTiles[t], False,
-                    GDVars.ds2dMapTilePtr);
+                    GDVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
     if GDConsts.yarGreenTiles[t] > C_Tile.ID_MASK then
@@ -161,7 +161,7 @@ begin
                     False, MapTiles.SecondSheet)
     else
       Blit.RemapPic(GDConsts.yarRemapFrom, GDConsts.yarGreenTo, GDConsts.yarGreenTiles[t], False,
-                    GDVars.ds2dMapTilePtr);
+                    GDVars.mapTilePtr);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);
     Blit.FlushView;

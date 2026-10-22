@@ -30,7 +30,7 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
 { The racial limits on ability (C_Abil) for race 1..7 (C_Race.DWARF..HUMAN) and gender (C_Gender, which only Strength
-  depends on), from GDConsts.dsMinimumMaximumStatistics. }
+  depends on), from GDConsts.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 
@@ -137,7 +137,7 @@ begin
         if lvl > 1 then begin
           { 3 = High(clericSpells) }
           for k := 1 to 3 do
-            creature^.clericSpells[k] := GDConsts.dsExperienceSpellsClass[C_Level.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GDConsts.experienceSpellsClass[C_Level.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           { Mark known every cleric spell (castClass 0) of a level with slots; slots exist for levels 1..3 only.
             56 = High(spellsKnown) }
@@ -150,7 +150,7 @@ begin
         if lvl > 1 then
           { 3 = High(mageSpells) }
           for k := 1 to 3 do
-            creature^.mageSpells[k] := GDConsts.dsExperienceSpellsClass[C_Level.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GDConsts.experienceSpellsClass[C_Level.MAGE].slots[slotLvl, k];
     end;
   end;
   ClassCal.RecalcSaves(creature);
@@ -280,7 +280,7 @@ end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 begin
-  with GDConsts.dsMinimumMaximumStatistics[race] do
+  with GDConsts.minimumMaximumStatistics[race] do
     case ability of
       C_Abil.STRENGTH: RaceAbilityMin := strMin[gender];
       C_Abil.INTELLIGENCE: RaceAbilityMin := intMin;
@@ -294,7 +294,7 @@ end;
 
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 begin
-  with GDConsts.dsMinimumMaximumStatistics[race] do
+  with GDConsts.minimumMaximumStatistics[race] do
     case ability of
       C_Abil.STRENGTH: RaceAbilityMax := strMax[gender];
       C_Abil.INTELLIGENCE: RaceAbilityMax := intMax;

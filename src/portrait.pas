@@ -42,7 +42,7 @@ procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
 begin
   if pic <> nil then
     if anim then begin
-      Blit.BlitTileClipped(col - 1, row - 1, 0, 1, pic, GDVars.dsViewImageBufferPtr);
+      Blit.BlitTileClipped(col - 1, row - 1, 0, 1, pic, GDVars.viewImageBufferPtr);
       Blit.FlushView;
     end else
       Blit.ShowPic(col, row, pic);
@@ -258,24 +258,24 @@ var
 begin
   Str(LongInt(GDVars.virtualDisk), diskCh);
   if headId <> 255 then
-    if (GDVars.dsPortraitCache[1].pictureId = 255) or (GDVars.dsPortraitCache[1].pictureId <> headId) or
-        (GDVars.dsPortraitCache[1].disk <> GDVars.virtualDisk) then begin
-      Blit.LoadPic('HEAD' + diskCh, headId, False, 0, GDVars.dsPortraitCache[1].pic);
-      if GDVars.dsPortraitCache[1].pic <> nil then begin
-        GDVars.dsPortraitCache[1].pictureId := headId;
-        GDVars.dsPortraitCache[1].disk := GDVars.virtualDisk;
+    if (GDVars.portraitCache[1].pictureId = 255) or (GDVars.portraitCache[1].pictureId <> headId) or
+        (GDVars.portraitCache[1].disk <> GDVars.virtualDisk) then begin
+      Blit.LoadPic('HEAD' + diskCh, headId, False, 0, GDVars.portraitCache[1].pic);
+      if GDVars.portraitCache[1].pic <> nil then begin
+        GDVars.portraitCache[1].pictureId := headId;
+        GDVars.portraitCache[1].disk := GDVars.virtualDisk;
       end else
-        GDVars.dsPortraitCache[1].pictureId := 255;
+        GDVars.portraitCache[1].pictureId := 255;
     end;
   if bodyId <> 255 then
-    if (GDVars.dsPortraitCache[2].pictureId = 255) or (GDVars.dsPortraitCache[2].pictureId <> bodyId) or
-        (GDVars.dsPortraitCache[2].disk <> GDVars.virtualDisk) then begin
-      Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GDVars.dsPortraitCache[2].pic);
-      if GDVars.dsPortraitCache[2].pic <> nil then begin
-        GDVars.dsPortraitCache[2].pictureId := bodyId;
-        GDVars.dsPortraitCache[2].disk := GDVars.virtualDisk;
+    if (GDVars.portraitCache[2].pictureId = 255) or (GDVars.portraitCache[2].pictureId <> bodyId) or
+        (GDVars.portraitCache[2].disk <> GDVars.virtualDisk) then begin
+      Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GDVars.portraitCache[2].pic);
+      if GDVars.portraitCache[2].pic <> nil then begin
+        GDVars.portraitCache[2].pictureId := bodyId;
+        GDVars.portraitCache[2].disk := GDVars.virtualDisk;
       end else
-        GDVars.dsPortraitCache[2].pictureId := 255;
+        GDVars.portraitCache[2].pictureId := 255;
     end;
 end;
 
@@ -283,10 +283,10 @@ end;
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 begin
   if both then begin
-    Portrait.DisplayPortraitHead(col, row, GDVars.dsPortraitCache[1].pic);
-    Portrait.DisplayPortraitBody(col, row, GDVars.dsPortraitCache[2].pic);
+    Portrait.DisplayPortraitHead(col, row, GDVars.portraitCache[1].pic);
+    Portrait.DisplayPortraitBody(col, row, GDVars.portraitCache[2].pic);
   end else
-    Portrait.DisplayImageBuf(col, row, False, GDVars.dsPortraitCache[1].pic);
+    Portrait.DisplayImageBuf(col, row, False, GDVars.portraitCache[1].pic);
 end;
 
 { Draw frame dist (1..3, by view distance) of a into the view buffer at its origin + 2, then flush. Any other dist
@@ -297,7 +297,7 @@ begin
     GameIo.FatalError('Illegal range in Show3DSprite.');
   if a.frames[dist].pic <> nil then
     with a.frames[dist].pic^ do
-      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GDVars.dsViewImageBufferPtr)
+      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GDVars.viewImageBufferPtr)
   else
     Exit;
   Blit.FlushView;

@@ -6,7 +6,7 @@ unit Sym8x8;
 
 interface
 
-{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> dsSymbolSetPtrs[setID] (with a transparency mask
+{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> symbolSetPtrs[setID] (with a transparency mask
   for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the file name and fileID, waits for
   a key and quits to DOS. }
 procedure Load8x8Set(fileID, setID: Byte);
@@ -27,8 +27,8 @@ var
 begin
   if setID in [0..4] then begin
     Str(GDVars.virtualDisk, s1);
-    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GDVars.dsSymbolSetPtrs[setID]);
-    if GDVars.dsSymbolSetPtrs[setID] = nil then begin
+    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GDVars.symbolSetPtrs[setID]);
+    if GDVars.symbolSetPtrs[setID] = nil then begin
       GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
     end;
   end;
@@ -48,16 +48,16 @@ begin
       GameIo.FatalError('Bad symbol number in Put8x8Symbol.');
     end;
   end;
-  if GDVars.dsSymbolSetPtrs[setIdx] <> nil then begin
+  if GDVars.symbolSetPtrs[setIdx] <> nil then begin
     Dec(symbol, GDConsts.symSetFirst[setIdx]);
-    with GDVars.dsSymbolSetPtrs[setIdx]^ do
+    with GDVars.symbolSetPtrs[setIdx]^ do
       if (height <> 8) or (width <> 1) or (symbol >= count) then Exit;
     if inCombat then
-      Blit.BlitTileCell(col, row, symbol, Ord(other), GDVars.dsSymbolSetPtrs[setIdx], GDVars.dsViewImageBufferPtr)
+      Blit.BlitTileCell(col, row, symbol, Ord(other), GDVars.symbolSetPtrs[setIdx], GDVars.viewImageBufferPtr)
     else begin
-      with GDVars.dsSymbolSetPtrs[setIdx]^ do
-        Move(data[symbol * imgSize], GDVars.dsCurrent8x8SymbolPtr2^.data, imgSize);
-      Blit.ShowPic(col, row, GDVars.dsCurrent8x8SymbolPtr2);
+      with GDVars.symbolSetPtrs[setIdx]^ do
+        Move(data[symbol * imgSize], GDVars.current8x8SymbolPtr2^.data, imgSize);
+      Blit.ShowPic(col, row, GDVars.current8x8SymbolPtr2);
     end;
   end;
 end;

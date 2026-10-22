@@ -34,9 +34,9 @@ begin
   else if GDVars.zone0^.partyY.value < 34 then wy := 2
   else if GDVars.zone0^.partyY.value < 35 then wy := 3
   else wy := 4;
-  MapTiles.DrawIconAnimSprite(wx, wy, GDVars.gFacing, GDVars.dsWildAnimFrame mod 2,
-                              GDVars.dsWildAnimFrame div 2 + 9);
-  GDVars.dsWildAnimFrame := (GDVars.dsWildAnimFrame + 1) mod 6;
+  MapTiles.DrawIconAnimSprite(wx, wy, GDVars.gFacing, GDVars.wildAnimFrame mod 2,
+                              GDVars.wildAnimFrame div 2 + 9);
+  GDVars.wildAnimFrame := (GDVars.wildAnimFrame + 1) mod 6;
   Blit.FlushView;
 end;
 
@@ -91,16 +91,16 @@ begin
     C_Area.LOC_3D_MAP: begin
       GDVars.eventAtCell := View3D.GetMapEvent(GDVars.gMapX, GDVars.gMapY);
       if GDVars.eventAtCell > $7F then
-        GDVars.dsColorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.alternateSkyColor and $0F]
+        GDVars.colorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.alternateSkyColor and $0F]
       else
-        GDVars.dsColorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.skyCeilingColor and $0F];
+        GDVars.colorSkyCeiling := GDConsts.skyCeilingColors[GDVars.zone0^.skyCeilingColor and $0F];
       if GDVars.picRegionW then begin
-        GDVars.dsWallColorA := CeilColor(GDVars.ceilFloorColorSel);
-        GDVars.dsWallColorB := FloorColor(GDVars.ceilFloorColorSel);
-        GDVars.dsWallColorC := WallColor(GDVars.wallColorSel);
+        GDVars.wallColorA := CeilColor(GDVars.ceilFloorColorSel);
+        GDVars.wallColorB := FloorColor(GDVars.ceilFloorColorSel);
+        GDVars.wallColorC := WallColor(GDVars.wallColorSel);
       end;
-      View3D.SetView3DColors(GDVars.dsColorSkyCeiling, GDVars.dsWallColorA, GDVars.dsWallColorB,
-                             GDVars.dsWallColorC);
+      View3D.SetView3DColors(GDVars.colorSkyCeiling, GDVars.wallColorA, GDVars.wallColorB,
+                             GDVars.wallColorC);
       if GDVars.zone0^.noAutomap <> 0 then GDVars.automapOn := False;
       View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
     end;
