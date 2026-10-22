@@ -28,32 +28,10 @@ const
   { Camp menus }
 
 const
-  { TCharRecord.itemLimits usability bit for each class-level slot (C_LEVEL). The ranger shares the paladin's bit: the
-    item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
-  usabilityBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
-    1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
   { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
     train with fighters; the monk combines two bits. }
   classBit: array[0..16] of Byte = (
     2, 2, 8, 8, 8, 1, 4, 6, 16, 16, 16, 32, 32, 32, 64, 64, 64);
-
-const
-  { MainMenu }
-  menuKeys: String[40] = 'C D M T V A R L S B G E J';
-  { initial empty-roster state }
-  menuItems: array[0..11] of Types.TMenuItem = (
-    (name: 'Create New Character'; enabled: 1),
-    (name: 'Drop Character'; enabled: 0),
-    (name: 'Modify Character'; enabled: 0),
-    (name: 'Train Character'; enabled: 0),
-    (name: 'View Character'; enabled: 0),
-    (name: 'Add Character to Party'; enabled: 1),
-    (name: 'Remove Character from Party'; enabled: 0),
-    (name: 'Load Saved Game'; enabled: 1),
-    (name: 'Save Current Game'; enabled: 0),
-    (name: 'BEGIN Adventuring'; enabled: 0),
-    (name: 'Game Settings'; enabled: 1),
-    (name: 'Exit to DOS'; enabled: 1));
 
 const
   { RollFirstLevelHp }
@@ -1461,65 +1439,6 @@ const
     (first: 2; second: 6; third: -1), { fighter/thief }
     (first: 2; second: 5; third: 6), { fighter/magic-user/thief }
     (first: 5; second: 6; third: -1)); { magic-user/thief }
-  { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
-  raceAbilityAdj: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleAbilities = (
-    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -1), { dwarf }
-    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 1; constitution: -1; charisma: 0), { elf }
-    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { gnome }
-    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { half-elf }
-    (strength: -1; intelligence: 0; wisdom: 0; dexterity: 1; constitution: 0; charisma: 0), { halfling }
-    (strength: 1; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -2), { half-orc }
-    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0)); { human }
-  { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
-    and -1 a class the race cannot take. A fighter's or ranger's is the best case, with Strength 18. Half-orcs are not
-    offered at creation, so their row is empty. }
-  raceMaxLevel: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleClassLevels = (
-    { dwarf }
-    (cleric: -1; druid: -1; fighter: 9; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
-    { elf }
-    (cleric: -1; druid: -1; fighter: 7; paladin: -1; ranger: -1; mage: 11; thief: 0; monk: -1),
-    { gnome }
-    (cleric: -1; druid: -1; fighter: 6; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
-    { half-elf }
-    (cleric: 5; druid: -1; fighter: 8; paladin: -1; ranger: 8; mage: 8; thief: 0; monk: -1),
-    { halfling }
-    (cleric: -1; druid: -1; fighter: 6; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
-    { half-orc }
-    (cleric: -1; druid: -1; fighter: -1; paladin: -1; ranger: -1; mage: -1; thief: -1; monk: -1),
-    { human }
-    (cleric: 0; druid: -1; fighter: 0; paladin: 0; ranger: 0; mage: 0; thief: 0; monk: -1));
-  { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
-  startingAge: array[1..7, C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAge = (
-    ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
-    ((base: 650; num: 10; sides: 10), (base: 0; num: 0; sides: 0), (base: 130; num: 5; sides: 6),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 150; num: 5; sides: 6),
-     (base: 100; num: 5; sides: 6), (base: 0; num: 0; sides: 0)),
-    ((base: 300; num: 3; sides: 12), (base: 0; num: 0; sides: 0), (base: 60; num: 5; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
-     (base: 80; num: 5; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
-     (base: 22; num: 3; sides: 8), (base: 0; num: 0; sides: 0)),
-    ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 20; num: 1; sides: 4), (base: 0; num: 0; sides: 0), (base: 13; num: 1; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 20; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
-     (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 4),
-     (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
-  { The oldest age in each age category, in years, by race }
-  ageCat: array[1..7] of Types.TRuleAgeCategories = (
-    (youngAdult: 50; mature: 150; middleAged: 250; old: 350; venerable: 450), { dwarf }
-    (youngAdult: 175; mature: 550; middleAged: 875; old: 1200; venerable: 1600), { elf }
-    (youngAdult: 90; mature: 300; middleAged: 450; old: 600; venerable: 750), { gnome }
-    (youngAdult: 40; mature: 100; middleAged: 175; old: 250; venerable: 325), { half-elf }
-    (youngAdult: 33; mature: 68; middleAged: 101; old: 144; venerable: 199), { halfling }
-    (youngAdult: 15; mature: 30; middleAged: 45; old: 60; venerable: 80), { half-orc }
-    (youngAdult: 20; mature: 40; middleAged: 60; old: 90; venerable: 120)); { human }
   { Ability minimums by single class (C_CLASS.CLERIC..MONK), the 1st-edition PHB's: every class needs at least 3, and
     most 6, in each ability (#740). A multiclass needs the highest of its classes' (ClassCal.ClassAbilityMin). }
   classMin: array[C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAbilities = (
@@ -1611,9 +1530,6 @@ const
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);
      slots: ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0))));
-  startingGoldClass: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleGold = (
-    (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
-    (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
   { ClassCal: Saving throws indexed by class-level slot (C_LEVEL), level 1..9 and save column 0..4. The paladin's row is
     the fighter's less 2. }
   saveTbl: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 1..9] of Types.TRuleSaves = (

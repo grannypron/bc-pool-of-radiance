@@ -32,6 +32,17 @@ uses Types, Crt, C_AREA, C_NPC, GameDefs, GameVars, SaveLoad, ViewChar, Border, 
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
+const
+  { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
+  raceAbilityAdj: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleAbilities = (
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -1), { dwarf }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 1; constitution: -1; charisma: 0), { elf }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { gnome }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0), { half-elf }
+    (strength: -1; intelligence: 0; wisdom: 0; dexterity: 1; constitution: 0; charisma: 0), { halfling }
+    (strength: 1; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 1; charisma: -2), { half-orc }
+    (strength: 0; intelligence: 0; wisdom: 0; dexterity: 0; constitution: 0; charisma: 0)); { human }
+
 var
   { STING training override. }
   stingMode: Byte;
@@ -45,6 +56,46 @@ const
   RACE_LIST_ROW = 2;
 
 procedure CreateCharacterMenu; forward;
+const
+  { TCharRecord.itemLimits usability bit for each class-level slot (C_LEVEL). The ranger shares the paladin's bit: the
+    item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
+  usabilityBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
+    1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
+  { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
+  startingAge: array[1..7, C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAge = (
+    ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
+     (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
+    ((base: 650; num: 10; sides: 10), (base: 0; num: 0; sides: 0), (base: 130; num: 5; sides: 6),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 150; num: 5; sides: 6),
+     (base: 100; num: 5; sides: 6), (base: 0; num: 0; sides: 0)),
+    ((base: 300; num: 3; sides: 12), (base: 0; num: 0; sides: 0), (base: 60; num: 5; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
+     (base: 80; num: 5; sides: 4), (base: 0; num: 0; sides: 0)),
+    ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
+     (base: 22; num: 3; sides: 8), (base: 0; num: 0; sides: 0)),
+    ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
+     (base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
+    ((base: 20; num: 1; sides: 4), (base: 0; num: 0; sides: 0), (base: 13; num: 1; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
+     (base: 20; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
+    ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
+     (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 4),
+     (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
+  { The oldest age in each age category, in years, by race }
+  ageCat: array[1..7] of Types.TRuleAgeCategories = (
+    (youngAdult: 50; mature: 150; middleAged: 250; old: 350; venerable: 450), { dwarf }
+    (youngAdult: 175; mature: 550; middleAged: 875; old: 1200; venerable: 1600), { elf }
+    (youngAdult: 90; mature: 300; middleAged: 450; old: 600; venerable: 750), { gnome }
+    (youngAdult: 40; mature: 100; middleAged: 175; old: 250; venerable: 325), { half-elf }
+    (youngAdult: 33; mature: 68; middleAged: 101; old: 144; venerable: 199), { halfling }
+    (youngAdult: 15; mature: 30; middleAged: 45; old: 60; venerable: 80), { half-orc }
+    (youngAdult: 20; mature: 40; middleAged: 60; old: 90; venerable: 120)); { human }
+  startingGoldClass: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleGold = (
+    (num: 3; sides: 6), (num: 3; sides: 6), (num: 5; sides: 4), (num: 5; sides: 4),
+    (num: 5; sides: 4), (num: 2; sides: 4), (num: 2; sides: 6), (num: 5; sides: 4));
 
 procedure DropCharacterMenu; forward;
 
@@ -73,6 +124,21 @@ const
   MENU_BEGIN = 9;
   MENU_SETTINGS = 10;
   MENU_QUIT = 11;
+  menuKeys: String[40] = 'C D M T V A R L S B G E J';
+  { initial empty-roster state }
+  menuItems: array[0..11] of Types.TMenuItem = (
+    (name: 'Create New Character'; enabled: 1),
+    (name: 'Drop Character'; enabled: 0),
+    (name: 'Modify Character'; enabled: 0),
+    (name: 'Train Character'; enabled: 0),
+    (name: 'View Character'; enabled: 0),
+    (name: 'Add Character to Party'; enabled: 1),
+    (name: 'Remove Character from Party'; enabled: 0),
+    (name: 'Load Saved Game'; enabled: 1),
+    (name: 'Save Current Game'; enabled: 0),
+    (name: 'BEGIN Adventuring'; enabled: 0),
+    (name: 'Game Settings'; enabled: 1),
+    (name: 'Exit to DOS'; enabled: 1));
 var
   i: Byte;
   ch: Char;
@@ -95,38 +161,38 @@ begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
       if GameVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
-        GameDefs.menuItems[MENU_DROP].enabled := 1;
-        GameDefs.menuItems[MENU_MODIFY].enabled := 1;
+        menuItems[MENU_DROP].enabled := 1;
+        menuItems[MENU_MODIFY].enabled := 1;
         { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
-        GameDefs.menuItems[MENU_TRAIN].enabled :=
+        menuItems[MENU_TRAIN].enabled :=
           Ord((GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
-        GameDefs.menuItems[MENU_VIEW].enabled := 1;
-        GameDefs.menuItems[MENU_REMOVE].enabled := 1;
-        GameDefs.menuItems[MENU_LOAD].enabled := 0;
-        GameDefs.menuItems[MENU_SAVE].enabled := 1;
-        GameDefs.menuItems[MENU_BEGIN].enabled := 1;
+        menuItems[MENU_VIEW].enabled := 1;
+        menuItems[MENU_REMOVE].enabled := 1;
+        menuItems[MENU_LOAD].enabled := 0;
+        menuItems[MENU_SAVE].enabled := 1;
+        menuItems[MENU_BEGIN].enabled := 1;
       end else begin
-        GameDefs.menuItems[MENU_DROP].enabled := 0;
-        GameDefs.menuItems[MENU_MODIFY].enabled := 0;
-        GameDefs.menuItems[MENU_TRAIN].enabled := 0;
-        GameDefs.menuItems[MENU_VIEW].enabled := 0;
-        GameDefs.menuItems[MENU_REMOVE].enabled := 0;
-        GameDefs.menuItems[MENU_LOAD].enabled := 1;
-        GameDefs.menuItems[MENU_SAVE].enabled := 0;
-        GameDefs.menuItems[MENU_BEGIN].enabled := 0;
+        menuItems[MENU_DROP].enabled := 0;
+        menuItems[MENU_MODIFY].enabled := 0;
+        menuItems[MENU_TRAIN].enabled := 0;
+        menuItems[MENU_VIEW].enabled := 0;
+        menuItems[MENU_REMOVE].enabled := 0;
+        menuItems[MENU_LOAD].enabled := 1;
+        menuItems[MENU_SAVE].enabled := 0;
+        menuItems[MENU_BEGIN].enabled := 0;
       end;
       n := 0;
       for i := MENU_CREATE to MENU_QUIT do
-        if GameDefs.menuItems[i].enabled <> 0 then begin
-          TextRend.DisplayString(2, n + 12, White, GameDefs.menuItems[i].name[1]);
+        if menuItems[i].enabled <> 0 then begin
+          TextRend.DisplayString(2, n + 12, White, menuItems[i].name[1]);
           TextRend.DisplayString(3, n + 12, LightGreen,
-                                 Copy(GameDefs.menuItems[i].name, 2, Length(GameDefs.menuItems[i].name) - 1));
+                                 Copy(menuItems[i].name, 2, Length(menuItems[i].name) - 1));
           Inc(n);
         end;
       redraw := False;
     end;
 
-    ch := MenuCore.MenuHorizontal('pool of radiance ' + GameDefs.GAME_VERSION, GameDefs.menuKeys, CYAN, Black,
+    ch := MenuCore.MenuHorizontal('pool of radiance ' + GameDefs.GAME_VERSION, menuKeys, CYAN, Black,
                                   Black, True, False, ext);
     TextRend.ClearBottomLine;
     if ext then begin
@@ -139,25 +205,25 @@ begin
       if not (ch in ['E', 'S']) then
         GameVars.recentSaved := 0;
       case ch of
-        'C': if GameDefs.menuItems[MENU_CREATE].enabled <> 0 then
+        'C': if menuItems[MENU_CREATE].enabled <> 0 then
                CharGen.CreateCharacterMenu;
-        'D': if GameDefs.menuItems[MENU_DROP].enabled <> 0 then
+        'D': if menuItems[MENU_DROP].enabled <> 0 then
                CharGen.DropCharacterMenu;
-        'M': if GameDefs.menuItems[MENU_MODIFY].enabled <> 0 then
+        'M': if menuItems[MENU_MODIFY].enabled <> 0 then
                CharGen.ModifyCharacterMenu;
-        'T': if GameDefs.menuItems[MENU_TRAIN].enabled <> 0 then
+        'T': if menuItems[MENU_TRAIN].enabled <> 0 then
                CharGen.TrainingMenu;
-        'V': if GameDefs.menuItems[MENU_VIEW].enabled <> 0 then
+        'V': if menuItems[MENU_VIEW].enabled <> 0 then
                ViewChar.ViewCharMenu(ext2);
-        'A': if GameDefs.menuItems[MENU_ADD].enabled <> 0 then
+        'A': if menuItems[MENU_ADD].enabled <> 0 then
                CharGen.AddCharacterMenu;
-        'R': if (GameDefs.menuItems[MENU_REMOVE].enabled <> 0) and (GameVars.curChar <> nil) then
+        'R': if (menuItems[MENU_REMOVE].enabled <> 0) and (GameVars.curChar <> nil) then
              begin
                { a character whose save failed stays in the party }
                if SaveLoad.SaveChar(Types.PCharRecord(GameVars.curChar), '') then
                  SaveLoad.RemoveCreature(False, True);
              end;
-        'L': if GameDefs.menuItems[MENU_LOAD].enabled <> 0 then
+        'L': if menuItems[MENU_LOAD].enabled <> 0 then
              begin
                SaveLoad.LoadGame;
                if GameVars.ifcState <> C_IFC.MAIN_MENU then begin
@@ -165,17 +231,17 @@ begin
                  Exit;
                end;
              end;
-        'S': if (GameDefs.menuItems[MENU_SAVE].enabled <> 0) and (GameVars.creatureList <> nil) then
+        'S': if (menuItems[MENU_SAVE].enabled <> 0) and (GameVars.creatureList <> nil) then
                saved := SaveLoad.SaveGame;
-        'B': if (GameDefs.menuItems[MENU_BEGIN].enabled <> 0) and (GameVars.creatureList <> nil) then
+        'B': if (menuItems[MENU_BEGIN].enabled <> 0) and (GameVars.creatureList <> nil) then
              begin
                GameVars.ifcState := stateB;
                TextRend.ClearBottomLine;
                Exit;
              end;
-        'G': if GameDefs.menuItems[MENU_SETTINGS].enabled <> 0 then
+        'G': if menuItems[MENU_SETTINGS].enabled <> 0 then
                Options.OptionsMenu;
-        'E': if GameDefs.menuItems[MENU_QUIT].enabled <> 0 then
+        'E': if menuItems[MENU_QUIT].enabled <> 0 then
              begin
                ch := MenuCore.YesNoMenu('Quit to DOS ', Yellow, LightGreen, White);
                if ch = 'Y' then
@@ -203,9 +269,9 @@ begin
   end;
 end;
 
-{ ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (GameDefs.raceAbilityAdj) beside the race
+{ ShowRaceInfo: Fill the race screen's panes for race: its ability adjustments (raceAbilityAdj) beside the race
   list, and below, the single classes the race may take with the rule book's maximum level in each
-  (GameDefs.raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
+  (raceMaxLevel; U for no maximum), and beside them the race's multiclasses, abbreviated. A single class is one
   GameDefs.classesByRace offers alone or as part of a multiclass. A multiclass trains each part to the same maximum,
   which the note at the foot of the box says; a race without multiclasses shows neither the note nor the multiclass
   heading. The note sits under the single classes, so the multiclasses may run on beside it to the foot of the box. A
@@ -230,6 +296,24 @@ const
   CLASS_COL = 7;
   MULTI_COL = 21;
   LAST_COL = 38;
+  { The rule book's racial level maximums (Character Race Limits), by race and classLevels index: 0 is no maximum (U)
+    and -1 a class the race cannot take. A fighter's or ranger's is the best case, with Strength 18. Half-orcs are not
+    offered at creation, so their row is empty. }
+  raceMaxLevel: array[C_RACE.DWARF..C_RACE.HUMAN] of Types.TRuleClassLevels = (
+    { dwarf }
+    (cleric: -1; druid: -1; fighter: 9; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
+    { elf }
+    (cleric: -1; druid: -1; fighter: 7; paladin: -1; ranger: -1; mage: 11; thief: 0; monk: -1),
+    { gnome }
+    (cleric: -1; druid: -1; fighter: 6; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
+    { half-elf }
+    (cleric: 5; druid: -1; fighter: 8; paladin: -1; ranger: 8; mage: 8; thief: 0; monk: -1),
+    { halfling }
+    (cleric: -1; druid: -1; fighter: 6; paladin: -1; ranger: -1; mage: -1; thief: 0; monk: -1),
+    { half-orc }
+    (cleric: -1; druid: -1; fighter: -1; paladin: -1; ranger: -1; mage: -1; thief: -1; monk: -1),
+    { human }
+    (cleric: 0; druid: -1; fighter: 0; paladin: 0; ranger: 0; mage: 0; thief: 0; monk: -1));
 var
   i: ShortInt;
   slot: Byte;
@@ -250,7 +334,7 @@ begin
     Exit;
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
-    adj := GameDefs.raceAbilityAdj[race].values[i];
+    adj := raceAbilityAdj[race].values[i];
     if adj > 0 then
       s := '+' + StrUtil.NumStr(adj)
     else if adj < 0 then
@@ -294,7 +378,7 @@ begin
   row := FIRST_ROW;
   for part := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if isSingle[part] and (row <= LAST_ROW) then begin
-      lvl := GameDefs.raceMaxLevel[race].values[part];
+      lvl := raceMaxLevel[race].values[part];
       if lvl = 0 then
         s := 'U'
       else if lvl > 0 then
@@ -523,7 +607,7 @@ begin
       if classLevels[cls] > 0 then begin
         if GameDefs.thac0Tbl[cls, classLevels[cls]] > thac0Base then
           thac0Base := GameDefs.thac0Tbl[cls, classLevels[cls]];
-        itemLimits := itemLimits or GameDefs.usabilityBit[cls];
+        itemLimits := itemLimits or usabilityBit[cls];
       end;
   end;
   ClassCal.RecalcSaves(Types.PCharRecord(creature));
@@ -543,7 +627,7 @@ begin
   { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
     maximum) of one component class. }
   if creature^.charClass <= C_CLASS.MONK then
-    with GameDefs.startingAge[creature^.race, creature^.charClass] do
+    with startingAge[creature^.race, creature^.charClass] do
       creature^.age := Dice.RollDice(num, sides) + base
   else
   begin
@@ -555,7 +639,7 @@ begin
       { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
       cls := C_CLASS.MAGE;
     end;
-    with GameDefs.startingAge[creature^.race, cls] do
+    with startingAge[creature^.race, cls] do
       creature^.age := base + sides * num;
   end;
   { stat roll / derived / keep loop }
@@ -570,7 +654,7 @@ begin
         roll := Dice.RollDice(3, 6);
         { racial adjustment; the racial limits below still apply }
         if (creature^.race >= C_RACE.DWARF) and (creature^.race <= C_RACE.HUMAN) then
-          roll := roll + GameDefs.raceAbilityAdj[creature^.race].values[i];
+          roll := roll + raceAbilityAdj[creature^.race].values[i];
         if creature^.stats[i] < roll then
           creature^.stats[i] := roll;
       end;
@@ -578,13 +662,13 @@ begin
         case i of
           { Strength }
           C_ABIL.STRENGTH: begin
-               if (stats[i] > 0) and (GameDefs.ageCat[race].youngAdult < age) then
+               if (stats[i] > 0) and (ageCat[race].youngAdult < age) then
                  Inc(stats[i]);
-               if (stats[i] > 0) and (GameDefs.ageCat[race].mature < age) then
+               if (stats[i] > 0) and (ageCat[race].mature < age) then
                  Dec(stats[i]);
-               if (stats[i] > 0) and (GameDefs.ageCat[race].middleAged < age) then
+               if (stats[i] > 0) and (ageCat[race].middleAged < age) then
                  Dec(stats[i], 2);
-               if (stats[i] > 0) and (GameDefs.ageCat[race].old < age) then
+               if (stats[i] > 0) and (ageCat[race].old < age) then
                  Dec(stats[i]);
                ClampToLimits(i);
                if (stats[C_ABIL.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
@@ -595,29 +679,29 @@ begin
              end;
           { Intelligence }
           C_ABIL.INTELLIGENCE: begin
-               if GameDefs.ageCat[race].mature < age then
+               if ageCat[race].mature < age then
                  Inc(stats[i]);
-               if GameDefs.ageCat[race].old < age then
+               if ageCat[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
              end;
           { Wisdom }
           C_ABIL.WISDOM: begin
-               if GameDefs.ageCat[race].youngAdult >= age then
+               if ageCat[race].youngAdult >= age then
                  Dec(stats[i]);
-               if GameDefs.ageCat[race].mature < age then
+               if ageCat[race].mature < age then
                  Inc(stats[i]);
-               if GameDefs.ageCat[race].middleAged < age then
+               if ageCat[race].middleAged < age then
                  Inc(stats[i]);
-               if GameDefs.ageCat[race].old < age then
+               if ageCat[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
              end;
           { Dexterity }
           C_ABIL.DEXTERITY: begin
-               if GameDefs.ageCat[race].middleAged < age then
+               if ageCat[race].middleAged < age then
                  Dec(stats[i], 2);
-               if GameDefs.ageCat[race].old < age then
+               if ageCat[race].old < age then
                  Dec(stats[i]);
                ClampToLimits(i);
              end;
@@ -626,11 +710,11 @@ begin
                { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
                  out the +1, so every age came out one lower (#704). }
                Inc(stats[i]);
-               if GameDefs.ageCat[race].mature < age then
+               if ageCat[race].mature < age then
                  Dec(stats[i]);
-               if GameDefs.ageCat[race].middleAged < age then
+               if ageCat[race].middleAged < age then
                  Dec(stats[i]);
-               if GameDefs.ageCat[race].old < age then
+               if ageCat[race].old < age then
                  Dec(stats[i]);
                ClampToLimits(i);
              end;
@@ -661,7 +745,7 @@ begin
             C_LEVEL.MAGE: mageSpells[1] := 1;
           end;
           Inc(goldDice,
-              Dice.RollDice(GameDefs.startingGoldClass[cls].num, GameDefs.startingGoldClass[cls].sides));
+              Dice.RollDice(startingGoldClass[cls].num, startingGoldClass[cls].sides));
           Inc(clsCount);
           case cls of
             C_LEVEL.CLERIC: begin
