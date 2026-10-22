@@ -116,7 +116,7 @@ function ItemWeight(item: Types.PItemRec): LongInt;
   as a warrior. }
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
 
-{ The base item record for an item type: its GameVars.baseItems entry, or the zeroed overflow entry for a type past the
+{ The base item record for an item type: its baseItems entry, or the zeroed overflow entry for a type past the
   table, which only damaged save or monster data can carry.
   @param(itemType TItemRec.itemType.)
   @returns(A pointer to the record; the caller does not change it.) }
@@ -181,6 +181,10 @@ var
   { RemoveItem's messages for a nil item or one not in the list; GameInit sets it to CharDisp.ShowFault (nil in a test
     program, which shows nothing) }
   faultHook: TFaultHook;
+  { Base item types, indexed by TItemRec.itemType, on the heap; GameInit2 allocates and clears them before reading
+    ITEMS. The last entry, Types.BASE_ITEM_OVERFLOW, stays zero: it keeps the ITEMS read's request for 129 records in
+    bounds (the shipped ITEMS holds 128), and CharHlp.BaseItem gives it for an item type past the table. }
+  baseItems: Types.PBaseItems;
 
 { The chance (in 100) a robbery of chance takes an item of weight coins: 90 less for over 255 coins, 50 less for over
   24, never below 0 (EclMenu.RobItems). }
@@ -1271,9 +1275,9 @@ end;
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 begin
   if itemType > Types.BASE_ITEM_LAST then
-    BaseItem := @GameVars.baseItems^[Types.BASE_ITEM_OVERFLOW]
+    BaseItem := @baseItems^[Types.BASE_ITEM_OVERFLOW]
   else
-    BaseItem := @GameVars.baseItems^[itemType];
+    BaseItem := @baseItems^[itemType];
 end;
 
 function IsNpc(creature: Types.PCharRecord): Boolean;
@@ -1407,4 +1411,5 @@ end;
 begin
   { unset until GameInit sets it: global variables are not cleared at startup }
   @faultHook := nil;
+  baseItems := nil;
 end.

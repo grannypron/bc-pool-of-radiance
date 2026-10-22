@@ -315,8 +315,8 @@ begin
   GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
   GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
   FillChar(GameVars.gbStrings^, SizeOf(GameVars.gbStrings^), 0);
-  GetMem(GameVars.baseItems, SizeOf(GameVars.baseItems^));
-  FillChar(GameVars.baseItems^, SizeOf(GameVars.baseItems^), 0);
+  GetMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
+  FillChar(CharHlp.baseItems^, SizeOf(CharHlp.baseItems^), 0);
   { the heap the out-of-memory save needs }
   HeapErr.KeepReserve;
   GetMem(GameVars.gameFont, SizeOf(Types.TFontArr));
@@ -378,13 +378,13 @@ begin
   if DaxIo.OpenWithRetry('ITEMS', DaxIo.DataDiskMsg, False, True, itemsFile) then begin
     Seek(itemsFile, 2);
     { This asks for every entry, the overflow entry too; the file must hold the BASE_ITEM_LAST + 1 item types. }
-    BlockRead(itemsFile, GameVars.baseItems^, SizeOf(GameVars.baseItems^), itemsRead);
+    BlockRead(itemsFile, CharHlp.baseItems^, SizeOf(CharHlp.baseItems^), itemsRead);
     Close(itemsFile);
   end;
   if (IOResult <> 0) or (itemsRead < (Types.BASE_ITEM_LAST + 1) * SizeOf(Types.TBaseItemRec)) then
     GameIo.FatalError('Unable to read ITEMS.');
-  CharHlp.FixWeaponClasses(GameVars.baseItems);
-  CharHlp.FixAmmoBits(GameVars.baseItems);
+  CharHlp.FixWeaponClasses(CharHlp.baseItems);
+  CharHlp.FixAmmoBits(CharHlp.baseItems);
   GameVars.gameDir := savedDir;
   TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }

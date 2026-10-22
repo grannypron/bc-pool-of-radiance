@@ -380,11 +380,11 @@ begin
   TestKit.CheckEqualsL(48, crs[1].acBehind, 'and AC 12 from behind, without the bonus');
 
   { a bow's plus is to hit only, its arrows' to hit and damage (#744); a sword's is to both }
-  GetMem(GameVars.baseItems, SizeOf(GameVars.baseItems^));
-  FillChar(GameVars.baseItems^, SizeOf(GameVars.baseItems^), 0);
-  GameVars.baseItems^[C_ITEM.LONG_BOW].props := C_ITEM.PROP_ARROWS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
-  GameVars.baseItems^[C_ITEM.ARROW].slot := C_EQUIP.RING2;
-  GameVars.baseItems^[C_ITEM.LONG_SWORD].props := C_ITEM.PROP_STR_BONUS;
+  GetMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
+  FillChar(CharHlp.baseItems^, SizeOf(CharHlp.baseItems^), 0);
+  CharHlp.baseItems^[C_ITEM.LONG_BOW].props := C_ITEM.PROP_ARROWS or C_ITEM.PROP_DEX_MISSILE or C_ITEM.PROP_FIRES_AMMO;
+  CharHlp.baseItems^[C_ITEM.ARROW].slot := C_EQUIP.RING2;
+  CharHlp.baseItems^[C_ITEM.LONG_SWORD].props := C_ITEM.PROP_STR_BONUS;
   FillChar(weapon, SizeOf(weapon), 0);
   FillChar(arrows, SizeOf(arrows), 0);
   weapon.itemType := C_ITEM.LONG_BOW;
@@ -406,6 +406,6 @@ begin
   TestKit.CheckEqualsL(42, crs[1].thac0Cur, 'a sword +2 is +2 to hit');
   TestKit.CheckEqualsL(2, crs[1].curModA[1], 'and +2 to damage');
   crs[1].itemsAddr := nil;
-  FreeMem(GameVars.baseItems, SizeOf(GameVars.baseItems^));
+  FreeMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
   TestKit.Done;
 end.

@@ -26,7 +26,7 @@ const
   SPELL_SLOT_LAST = 20;
   { the highest spell level a cleric or magic-user casts here (TCharRecord.clericSpells and mageSpells) }
   CASTER_LEVEL_LAST = 3;
-  { the item types ITEMS holds, 0..BASE_ITEM_LAST; GameVars.baseItems has one entry more, BASE_ITEM_OVERFLOW }
+  { the item types ITEMS holds, 0..BASE_ITEM_LAST; CharHlp.baseItems has one entry more, BASE_ITEM_OVERFLOW }
   BASE_ITEM_LAST = 127;
   BASE_ITEM_OVERFLOW = 128;
   { the script strings EclVars.LoadEclVars keeps, GameVars.gbStrings^[1..GB_STRING_LAST]; later ones overwrite the
@@ -656,7 +656,7 @@ type
   { the script strings (GameVars.gbStrings) }
   TGbStrings = array[1..GB_STRING_LAST] of String;
   PGbStrings = ^TGbStrings;
-  { the base item types (GameVars.baseItems) and the zeroed overflow entry after them }
+  { the base item types (CharHlp.baseItems) and the zeroed overflow entry after them }
   TBaseItems = array[0..BASE_ITEM_OVERFLOW] of TBaseItemRec;
   PBaseItems = ^TBaseItems;
 
