@@ -72,13 +72,15 @@ const
   (Wisdom, Strength, Intelligence, Dexterity) is above PRIME_STAT_THRESHOLD gets 10% more (experience div 10 added), as
   does a paladin with Strength and Wisdom or a ranger with Strength, Intelligence and Wisdom above it; other single
   classes get experience unchanged; two-class characters get experience div 2, three-class (cleric/fighter/magic-user,
-  fighter/magic-user/thief) experience div 3. }
+  fighter/magic-user/thief) experience div 3. Strength is the character's own (CharHlp.PermanentStrength), so Enlarge,
+  the Strength spell or Gauntlets of Ogre Power earn no bonus, as SSI's strCur did (#779); nothing raises Wisdom,
+  Intelligence or Dexterity by magic, so their current scores are the character's own. }
 function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
 
 implementation
 
 
-uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, Dice;
+uses GDConsts, GDVars, C_Class, C_Level, C_Race, C_Abil, C_Equip, C_Item, Dice, CharHlp;
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
@@ -483,16 +485,18 @@ end;
 function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
 var
   share: LongInt;
+  str: Byte;
 begin
   share := experience;
+  str := CharHlp.PermanentStrength(creature);
   case creature^.charClass of
     C_Class.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_Class.FIGHTER: if creature^.strCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
+    C_Class.FIGHTER: if str > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     C_Class.PALADIN:
-      if (creature^.strCur > PRIME_STAT_THRESHOLD) and (creature^.wisCur > PRIME_STAT_THRESHOLD) then
+      if (str > PRIME_STAT_THRESHOLD) and (creature^.wisCur > PRIME_STAT_THRESHOLD) then
         share := experience div 10 + experience;
     C_Class.RANGER:
-      if (creature^.strCur > PRIME_STAT_THRESHOLD) and (creature^.intCur > PRIME_STAT_THRESHOLD) and
+      if (str > PRIME_STAT_THRESHOLD) and (creature^.intCur > PRIME_STAT_THRESHOLD) and
           (creature^.wisCur > PRIME_STAT_THRESHOLD) then
         share := experience div 10 + experience;
     C_Class.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
