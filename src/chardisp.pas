@@ -31,6 +31,10 @@ procedure MessageText(s: string; color: Byte; first: Boolean);
 { Wait for a key at the 'Press any key to continue' prompt and clear the prompt; the window keeps the text. }
 procedure MessageWait;
 
+{ Show line1 and then line2 from the start of the next line, both in light green, in the message window as MessageText
+  does (cleared first), pause (TextRend.PauseOnly) and clear the window. }
+procedure PrintTwoLines(line1, line2: string);
+
 procedure PrintBottomLine(s: Types.TStr40);
 
 procedure ClearMessageWindow;
@@ -248,6 +252,25 @@ procedure MessageWait;
 begin
   TextRend.DisplayAndPause(LightMagenta, 'Press any key to continue');
   Border.ClearBox(0, 24, 39, 24);
+end;
+
+procedure PrintTwoLines(line1, line2: string);
+var
+  left: Byte;
+begin
+  if GDVars.ifcState = C_Ifc.COMBAT then
+    left := C_Msg.COMBAT_LEFT
+  else
+    left := C_Msg.TEXT_LEFT;
+  CharDisp.MessageText(line1, LightGreen, True);
+  { a line that ended short of the window's edge leaves the cursor on it: line2 starts on the next }
+  if GDVars.curCol <> left then begin
+    GDVars.curCol := left;
+    Inc(GDVars.curRow);
+  end;
+  CharDisp.MessageText(line2, LightGreen, False);
+  TextRend.PauseOnly;
+  CharDisp.ClearMessageWindow;
 end;
 
 { Clear whichever message window is active (combat or bottom), leaving its border alone. }

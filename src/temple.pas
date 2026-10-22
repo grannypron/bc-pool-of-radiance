@@ -15,7 +15,7 @@ procedure HealMenu;
 implementation
 
 uses Types, Crt, C_Msg, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_Effect, C_Keys,
-  C_Status, C_Ifc, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
+  C_Status, C_Ifc, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
 var
@@ -136,12 +136,14 @@ begin
 end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). A dead or
-  animated character still poisoned "is poisoned, and RAISE DEAD cannot help." and is not charged: the poison would kill the raised body
-  again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation under the effect lock and
-  rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not survive." and is
-  C_Status.GONE, dead for good, the fee spent. A success sets one hit point, C_Status.OKAY and enabled, lowers
-  Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points that point
-  was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
+  animated elf is refused, uncharged, as AD&D 1st edition has it (half-elves can be raised): "RAISE DEAD cannot restore
+  <name>." then "Elven souls lie beyond its reach." (#61). That comes before the poison test, as nothing raises an elf.
+  A dead or animated character still poisoned "is poisoned, and RAISE DEAD cannot help." and is not charged: the poison
+  would kill the raised body again, so Neutralize Poison comes first (PoR #423, #751). The paid raise removes animation
+  under the effect lock and rolls resurrection survival on d100 (AbilAdj.ConResurrectionSurvival): a failure "does not
+  survive." and is C_Status.GONE, dead for good, the fee spent. A success sets one hit point, C_Status.OKAY and enabled,
+  lowers Constitution by one unless it is 3 (AbilAdj.SCORE_MIN) or less, and "is cured.". hpMax loses the hit points
+  that point was worth, the Con table's bonus at the old Constitution less the bonus at the new over every hit die
   (ClassCal.ConHpTotal), keeping at least 1. }
 procedure RaiseDead;
 var
@@ -158,7 +160,10 @@ begin
     wasDead := True;
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
-  else if CharHlp.HasEffect(creature, C_Effect.POISONED, effect) then begin
+  else if creature^.race = C_Race.ELF then begin
+    CharDisp.PrintTwoLines('RAISE DEAD cannot restore ' + creature^.name + '.', 'Elven souls lie beyond its reach.');
+    c := 'N';
+  end else if CharHlp.HasEffect(creature, C_Effect.POISONED, effect) then begin
     CharDisp.PrintNameString(creature, 'is poisoned, and RAISE DEAD cannot help.', 0, True);
     c := 'N';
   end;
