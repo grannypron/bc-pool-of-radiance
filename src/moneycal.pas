@@ -27,6 +27,9 @@ function CoinValueInGold(m: Types.TMoney): LongInt;
 { The creature's five coin types as a TMoney; its gems and jewelry are left out (0). }
 procedure CoinsOf(creature: Types.PCharRecord; var m: Types.TMoney);
 
+{ How many more of money type mType the creature can hold before its count reaches C_Money.MAX_COINS. }
+function CoinRoom(creature: Types.PCharRecord; mType: ShortInt): Word;
+
 { The creature's five coin types in copper. }
 function CreatureCopper(creature: Types.PCharRecord): LongInt;
 
@@ -83,6 +86,11 @@ begin
   FillChar(m, SizeOf(m), 0);
   for i := C_Money.COPPER to C_Money.PLATINUM do
     m[i] := creature^.coins[i];
+end;
+
+function CoinRoom(creature: Types.PCharRecord; mType: ShortInt): Word;
+begin
+  CoinRoom := C_Money.MAX_COINS - creature^.coins[mType];
 end;
 
 function CreatureCopper(creature: Types.PCharRecord): LongInt;

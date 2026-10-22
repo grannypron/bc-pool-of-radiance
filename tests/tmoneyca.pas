@@ -77,6 +77,11 @@ begin
   c^.coins[C_Money.PLATINUM] := 65535;
   c^.coins[C_Money.GOLD] := 65535;
   TestKit.CheckEqualsL(65535 * 5 + 65535, MoneyCal.CreatureGold(c), 'a full purse does not overflow');
+  { the room left under 65535 (#781) }
+  TestKit.CheckEqualsL(0, MoneyCal.CoinRoom(c, C_Money.GOLD), 'a full count has no room');
+  c^.coins[C_Money.GOLD] := 65000;
+  TestKit.CheckEqualsL(535, MoneyCal.CoinRoom(c, C_Money.GOLD), '65000 gold has room for 535');
+  TestKit.CheckEqualsL(65535, MoneyCal.CoinRoom(c, C_Money.SILVER), 'no silver has room for 65535');
 
   { making change: the largest coins first, each type capped, gems and jewelry kept }
   SetMoney(m, 0, 0, 0, 0, 0, 9, 4);
