@@ -13,7 +13,7 @@ procedure GameLoop;
 
 implementation
 
-uses Types, C_AREA, C_Npc, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
+uses Types, C_AREA, C_NPC, C_MSG, GDConsts, GDVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_Sound, C_MONEY, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
@@ -1487,7 +1487,7 @@ begin
   if GDVars.zone1^[C_GBVM.PARTY_SIZE] = partySize then Exit;
   morale := EclVars.GetEclVar(2);
   morale := morale div 2;
-  morale := morale or C_Npc.FLAG;
+  morale := morale or C_NPC.FLAG;
   GDVars.curChar^.npc := morale;
   if id <> 24 then
     GDVars.curChar^.hostile := 0

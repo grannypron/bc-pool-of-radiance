@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_Race, C_EFFECT, C_STATUS, C_MONEY, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_ITEM, C_EQUIP, C_LEVEL, C_Race, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -215,7 +215,7 @@ begin
   ClearCreature;
   TestKit.Check(not CharHlp.IsNpc(c), 'a player character is not an NPC');
   TestKit.Check(CharHlp.MayTrade(c) and CharHlp.ComesUnderPlayer(c), 'it trades and comes under the player');
-  c^.npc := C_Npc.FLAG;
+  c^.npc := C_NPC.FLAG;
   c^.enabled := 1;
   TestKit.Check(CharHlp.IsNpc(c), 'the NPC flag makes an NPC');
   TestKit.Check(not CharHlp.MayTrade(c) and not CharHlp.ComesUnderPlayer(c), 'which neither trades nor comes under');

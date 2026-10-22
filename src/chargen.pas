@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_Race, C_KEYS,
+uses Types, Crt, C_AREA, C_NPC, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_Race, C_KEYS,
   C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
@@ -1239,7 +1239,7 @@ begin
             paladin := nil;
             p := GDVars.creatureList;
             while (p <> nil) and ((p^.name <> creature^.name) or (p^.randByte <> creature^.randByte)) do begin
-              { C_Npc.FLAG clear }
+              { C_NPC.FLAG clear }
               if not CharHlp.IsNpc(p) then
                 Inc(nonNpc);
               if p^.classLevels[C_LEVEL.RANGER] > 0 then
@@ -1266,14 +1266,14 @@ begin
               Border.ClearBox(0, 24, 39, 24);
               SaveLoad.FreeCreature(Types.PCharRecord(creature));
             end
-            { Add if not already in the party and the party is under 8: a non-NPC (C_Npc.FLAG clear) while under 6
-              non-NPCs, or an NPC (C_Npc.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
+            { Add if not already in the party and the party is under 8: a non-NPC (C_NPC.FLAG clear) while under 6
+              non-NPCs, or an NPC (C_NPC.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
             else if (p = nil) and (GDVars.zone1^[C_GBVM.PARTY_SIZE] < Types.MAX_PARTY) and
                 (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
-              { C_Npc.FLAG clear }
+              { C_NPC.FLAG clear }
               if not CharHlp.IsNpc(creature) then
                 Inc(nonNpc);
             end else begin

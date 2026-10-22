@@ -48,7 +48,7 @@ function GbvmZone(address: Word): Byte;
 
 implementation
 
-uses Types, Crt, C_Npc, C_Save, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj;
+uses Types, Crt, C_NPC, C_Save, GDVars, C_ECL, C_STATUS, C_GBVM, C_DIR, C_MONEY, CharHlp, AbilAdj;
 
 procedure ConvGbString(len, strIdx: Byte); forward;
 
@@ -234,8 +234,8 @@ begin
       GDVars.curChar^.memorizedSpells[t] := value;
     end;
     C_GBVM.CHAR_NPC: begin
-      { values above C_Npc.ANIMATED_NPC ($B2) lose $32 (= C_Npc.ANIMATED_NPC and C_Npc.MORALE_MASK) }
-      if value > C_Npc.ANIMATED_NPC then Dec(value, $32);
+      { values above C_NPC.ANIMATED_NPC ($B2) lose $32 (= C_NPC.ANIMATED_NPC and C_NPC.MORALE_MASK) }
+      if value > C_NPC.ANIMATED_NPC then Dec(value, $32);
       GDVars.curChar^.npc := value;
     end;
     C_GBVM.CHAR_COPPER: GDVars.curChar^.coins[C_MONEY.COPPER] := value;

@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_ITEM, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -263,7 +263,7 @@ begin
   roll := Dice.RollDice(1, 7);
   tries := 1;
   if count > 0 then
-    { C_Npc.FLAG set }
+    { C_NPC.FLAG set }
     if CharHlp.IsNpc(creature) or GDVars.quickMagic then
       if GDVars.teamCount[CharHlp.EnemyTeam(creature)] > 0 then
         while (tries <= roll) and (chosen = 0) do begin
@@ -701,12 +701,12 @@ begin
     CharDisp.PrintNameString(creature, 'is forced to flee', 10, True);
     Exit;
   end;
-  { C_Npc.FLAG clear }
+  { C_NPC.FLAG clear }
   if not CharHlp.IsNpc(creature) then
     { PCs never check morale }
     Exit;
   { packed morale rating }
-  GDVars.currentMorale := (creature^.npc and C_Npc.MORALE_MASK) * 2;
+  GDVars.currentMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
   if GDVars.currentMorale > 102 then
     { 0 is the fail sentinel: both checks below require morale <> 0 }
     GDVars.currentMorale := 0;

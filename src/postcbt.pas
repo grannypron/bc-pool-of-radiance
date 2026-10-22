@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
+uses Types, Crt, C_NPC, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
   C_MONEY, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
@@ -139,7 +139,7 @@ begin
   p := GDVars.creatureList;
   if not GDVars.duelFlag then begin
     while (p <> nil) and (not IsMonster(p)) do begin
-      { C_Npc.FLAG clear }
+      { C_NPC.FLAG clear }
       if ((p^.status = C_STATUS.RUNNING) or (p^.status = C_STATUS.ANIMATED) or
           (p^.status = C_STATUS.OKAY) or
           (GDVars.zone1^[C_GBVM.MIRROR_DUEL] = 1)) and (p^.hostile = 0) and not CharHlp.IsNpc(p) then
@@ -486,7 +486,7 @@ begin
   npcShares := 0;
   total := 0;
   while p <> nil do begin
-    { C_Npc.FLAG set }
+    { C_NPC.FLAG set }
     if CharHlp.IsNpc(p) and (p^.status = C_STATUS.OKAY) then begin
       Inc(npcShares, p^.npcTreasureShare and 7);
       Inc(total, p^.npcTreasureShare and 7);
@@ -506,7 +506,7 @@ begin
     p := GDVars.creatureList;
     row := 0;
     while p <> nil do begin
-      { C_Npc.FLAG set }
+      { C_NPC.FLAG set }
       if CharHlp.IsNpc(p) and (p^.status = C_STATUS.OKAY) and (p^.npcTreasureShare > 0) then begin
         TextRend.DisplayMessageWindow(5, row + 5, 34, 22, LightGreen, True,
                                       p^.name + ' takes and hides his share.');

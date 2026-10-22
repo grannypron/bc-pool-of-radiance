@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
+uses Crt, C_AREA, C_NPC, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_LEVEL, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -418,7 +418,7 @@ begin
   clone^.name := 'ROLF';
   clone^.quickfight := 1;
   clone^.hostile := 1;
-  clone^.npc := C_Npc.ANIMATED_NPC;
+  clone^.npc := C_NPC.ANIMATED_NPC;
   clone^.orderNumber := slot;
   clone^.effectsAddr := nil;
   clone^.itemsAddr := nil;

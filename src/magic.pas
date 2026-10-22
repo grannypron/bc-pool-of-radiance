@@ -186,7 +186,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
+uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_NPC, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_KEYS, C_LEVEL, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
@@ -1224,11 +1224,11 @@ begin
           p^.movementBase := 6;
           for i := 0 to Types.SPELL_SLOT_LAST do
             p^.memorizedSpells[i] := 0;
-          { C_Npc.FLAG set }
+          { C_NPC.FLAG set }
           if CharHlp.IsNpc(p) then
-            p^.npc := C_Npc.ANIMATED_NPC
+            p^.npc := C_NPC.ANIMATED_NPC
           else
-            p^.npc := C_Npc.ANIMATED_PC;
+            p^.npc := C_NPC.ANIMATED_PC;
           { Undead }
           p^.charType := 4;
           if GDVars.ifcState = C_IFC.COMBAT then

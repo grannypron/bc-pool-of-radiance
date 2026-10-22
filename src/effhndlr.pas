@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
+uses C_ITEM, C_NPC, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_Race, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_LEVEL, Dice, Stats;
 
@@ -424,16 +424,16 @@ procedure EffCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if removed then begin
     creature^.hostile := (Types.PEffectRec(p)^.strength and $40) div 64;
-    if creature^.npc = C_Npc.ANIMATED_PC then
+    if creature^.npc = C_NPC.ANIMATED_PC then
       creature^.npc := 0;
   end else begin
     if Types.PEffectRec(p)^.strength and $20 = 0 then begin
       Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength + $20 + CharHlp.Team(creature) * 64;
       creature^.hostile := Types.PEffectRec(p)^.strength div 128;
       creature^.quickfight := 1;
-      { C_Npc.FLAG clear }
+      { C_NPC.FLAG clear }
       if not CharHlp.IsNpc(creature) then
-        creature^.npc := C_Npc.ANIMATED_PC;
+        creature^.npc := C_NPC.ANIMATED_PC;
       creature^.combatAddr^.other := nil;
       CharHlp.CountTeams;
     end;
@@ -673,7 +673,7 @@ begin
   creature^.levelUndead := 0;
   creature^.attackLevel := CharHlp.WarriorLevel(creature);
   creature^.movementBase := 12;
-  if creature^.npc = C_Npc.ANIMATED_PC then
+  if creature^.npc = C_NPC.ANIMATED_PC then
     creature^.npc := 0;
   creature^.charType := 0;
 end;

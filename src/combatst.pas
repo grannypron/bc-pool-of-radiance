@@ -9,7 +9,7 @@ procedure CombatStart;
 
 implementation
 
-uses Types, Crt, C_AREA, C_Npc, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
+uses Types, Crt, C_AREA, C_NPC, C_Terr, C_COND, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
   EffHndlr;
 
@@ -557,7 +557,7 @@ end;
 
 { Recalculate each creature's statistics and initialize its combat record; creatures past the party size get notPcNpc =
   1. Non-hostile creatures face quadDir[gFacing div 2]; hostiles face the opposite way. Friendly non-party creatures
-  whose morale is 0 or above 102 get the morale threshold plus C_Npc.FLAG. }
+  whose morale is 0 or above 102 get the morale threshold plus C_NPC.FLAG. }
 procedure InitCreatureCombatData;
 var
   p: Types.PCharRecord;
@@ -576,9 +576,9 @@ begin
     p^.combatAddr^.direction := GDConsts.quadDir[GDVars.gFacing div 2];
     if p^.hostile = 1 then
       p^.combatAddr^.direction := (p^.combatAddr^.direction + 4) mod 8;
-    m := p^.npc and C_Npc.MORALE_MASK;
+    m := p^.npc and C_NPC.MORALE_MASK;
     if (p^.hostile = 0) and (p^.combatAddr^.notPcNpc = 1) and ((m = 0) or (m > 102)) then
-      p^.npc := GDVars.zone1^[C_GBVM.MORALE_THRESHOLD] + C_Npc.FLAG;
+      p^.npc := GDVars.zone1^[C_GBVM.MORALE_THRESHOLD] + C_NPC.FLAG;
     p := p^.nextCharAddr;
   end;
 end;

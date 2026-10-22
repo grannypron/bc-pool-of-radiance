@@ -23,7 +23,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
+uses Crt, C_NPC, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
   C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
@@ -64,7 +64,7 @@ begin
   TextRend.ClearScreen;
   Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   CharDisp.DisplayCreatureName(creature, 1, 1, False);
-  { C_Npc.FLAG set: not a party member }
+  { C_NPC.FLAG set: not a party member }
   if CharHlp.IsNpc(creature) then
     TextRend.DisplayString(Length(creature^.name) + 3, 1, LightGreen, '(NPC)');
   col := 1;

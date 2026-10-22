@@ -134,7 +134,7 @@ procedure FixWeaponClasses(items: Types.PBaseItems);
   be thrown or used in melee (#798); holy water, oil and boulders stay thrown only. }
 procedure FixAmmoBits(items: Types.PBaseItems);
 
-{ True for an NPC or a monster: a creature whose npc has bit 7 (C_Npc.FLAG) set, not one of the player's own
+{ True for an NPC or a monster: a creature whose npc has bit 7 (C_NPC.FLAG) set, not one of the player's own
   characters. }
 function IsNpc(creature: Types.PCharRecord): Boolean;
 
@@ -189,7 +189,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 implementation
 
 uses C_ITEM, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_LEVEL, C_STATUS, C_IFC,
-  C_MONEY, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
+  C_MONEY, Stats, C_NPC, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
   { movement in body armour, by its weight in coins: up to LIGHT_ARMOR the creature's own, up to MEDIUM_ARMOR
@@ -1020,7 +1020,7 @@ end;
 
 function IsNpc(creature: Types.PCharRecord): Boolean;
 begin
-  IsNpc := creature^.npc >= C_Npc.FLAG;
+  IsNpc := creature^.npc >= C_NPC.FLAG;
 end;
 
 function MayTrade(creature: Types.PCharRecord): Boolean;

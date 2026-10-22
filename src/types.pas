@@ -148,7 +148,7 @@ type
     effectsAddr: PEffectRec;
     { reserved }
     unknown083: Byte;
-    { packed -- see C_Npc.NPC_* }
+    { packed -- see C_NPC.NPC_* }
     npc: Byte;
     { Low three bits hold the NPC's treasure-share weight. }
     npcTreasureShare: Byte;
