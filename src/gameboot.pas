@@ -121,7 +121,7 @@ begin
   { a read-only POOL.CFG is there too (DaxIo.FileExists) }
   while not DaxIo.FileExists('pool.cfg') do begin
     WriteLn('Please insert startup disk.');
-    cfgChar := GameIo.ReadGameKey;
+    cfgChar := GameIo.ReadAnyKey;
   end;
   CheckBreak := False;
   Assign(cfgText, 'POOL.CFG');

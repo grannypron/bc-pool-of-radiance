@@ -147,7 +147,8 @@ begin
   Str(max, maxStr);
   s := '';
   repeat
-    ch := GameIo.ReadGameKey;
+    { an extended key (an arrow, Delete) types nothing }
+    ch := GameIo.ReadAnyKey;
     case ch of
       '0'..'9': begin
           s := Concat(s, ch);

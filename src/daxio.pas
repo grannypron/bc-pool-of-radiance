@@ -153,7 +153,7 @@ var key: Char;
 begin
   DaxIo.WriteBlock(0, 24, Black, 40);
   DaxIo.WriteString(0, 24, attr, message);
-  key := GameIo.ReadGameKey;
+  key := GameIo.ReadAnyKey;
   DaxIo.WriteBlock(0, 24, Black, 40);
 end;
 
@@ -169,7 +169,7 @@ begin
     found := DaxIo.FileExists('game.ovr');
     if not found then begin
       WriteLn('Please insert overlay disk.');
-      key := GameIo.ReadGameKey;
+      key := GameIo.ReadAnyKey;
     end;
   until found;
 end;

@@ -77,7 +77,7 @@ begin
   GDVars.dsInterruptRegisters.al := GDVars.savedVideoMode;
   Intr($10, GDVars.dsInterruptRegisters);
   WriteLn(msg);
-  key := GameIo.ReadGameKey;
+  key := GameIo.ReadAnyKey;
   GameIo.ExitGame;
 end;
 

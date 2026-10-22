@@ -61,10 +61,8 @@ begin
     TextRend.DisplayString(0, 24, Yellow, 'OUT OF MEMORY: ENTER SAVES, ESC QUITS');
     GameIo.DiscardPendingKeys;
     repeat
-      ch := GameIo.ReadGameKey;
       { an extended key's scan byte is read and passed over }
-      if ch = C_Keys.NONE then
-        ch := GameIo.ReadGameKey;
+      ch := GameIo.ReadAnyKey;
     until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
     if ch = C_Keys.ESC then
       done := True

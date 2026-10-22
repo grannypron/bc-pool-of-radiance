@@ -364,10 +364,9 @@ begin
       SaveMenu.DrawDescLine(default)
     else
       SaveMenu.DrawDescLine(s);
-    key := GameIo.ReadGameKey;
+    { an extended key's scan code is read with its #0: neither is typed }
+    key := GameIo.ReadAnyKey;
     case key of
-      { an extended key's scan code follows its #0: neither is typed }
-      #0: key := GameIo.ReadGameKey;
       ' '..'z':
         if Length(s) < DESC_SHOWN then
           s := s + UpCase(key);

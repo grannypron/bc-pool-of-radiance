@@ -635,7 +635,7 @@ begin
     TextRend.ClearBottomLine;
     TextRend.DisplayString(0, 24, White, PROMPT);
     repeat
-      key := GameIo.ReadGameKey;
+      key := GameIo.ReadAnyKey;
     until key = #13;
     TextRend.ClearBottomLine;
   end else begin
