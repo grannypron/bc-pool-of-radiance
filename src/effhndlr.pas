@@ -246,18 +246,6 @@ uses C_Item, C_Npc, C_Terr, C_Save, C_Cond, GDConsts, GDVars, CbtActs, ClassCal,
   C_Race, C_Status, C_Ifc, C_Align, C_Spell, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice;
 
-const
-
-
-  { TBaseItemRec.wpnClass melee damage type. Pierce and bash are distinct bits, so wpnClass and (WPN_PIERCE or WPN_BASH)
-    tests pierce-or-bash; slash is zero. }
-  WPN_SLASH = 0;
-  WPN_PIERCE = $01;
-  WPN_BASH = $80;
-
-
-
-
 { Nullify the attack or effect: zero GDVars.pendingDamage and GDVars.pendingEffectId. effId 0 always matches; otherwise
   only when effId is the id under the immunity check (pendingEffectId). }
 procedure NullifyAttack(effId: Byte);
@@ -1535,7 +1523,7 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (WPN_PIERCE or WPN_BASH) <> 0 then
+    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (C_Item.WPN_PIERCE or C_Item.WPN_BASH) <> 0 then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 
@@ -1767,8 +1755,8 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GDVars.curChar);
   if w <> nil then
-    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = WPN_SLASH) or
-        (CharHlp.BaseItem(w^.itemType)^.wpnClass and WPN_PIERCE <> 0) then
+    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = C_Item.WPN_SLASH) or
+        (CharHlp.BaseItem(w^.itemType)^.wpnClass and C_Item.WPN_PIERCE <> 0) then
       GDVars.pendingDamage := GDVars.pendingDamage div 2;
 end;
 

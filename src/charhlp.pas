@@ -107,6 +107,11 @@ function WarriorLevel(creature: Types.PCharRecord): ShortInt;
   @returns(A pointer to the record; the caller does not change it.) }
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 
+{ Correct the damage types (wpnClass) the shipped ITEMS file gets wrong, by the 1st edition weapons (#746): the battle
+  axe cuts (slash, not pierce), and the bec de corbin, military fork, partisan, ranseur, spetum, short sword, trident
+  and arrow pierce (not slash). }
+procedure FixWeaponClasses(items: Types.PBaseItems);
+
 { True for an NPC or a monster: a creature whose npc has bit 7 (C_Npc.FLAG) set, not one of the player's own
   characters. }
 function IsNpc(creature: Types.PCharRecord): Boolean;
@@ -519,6 +524,19 @@ begin
   { readying or removing armor or a shield, or a change of Dexterity, changes the thief skills }
   if creature^.classLevels[C_Level.THIEF] > 0 then
     ClassCal.RecalcThiefSkills(creature);
+end;
+
+procedure FixWeaponClasses(items: Types.PBaseItems);
+const
+  PIERCING = [C_Item.BEC_DE_CORBIN, C_Item.MILITARY_FORK, C_Item.PARTISAN, C_Item.RANSEUR, C_Item.SPETUM,
+              C_Item.SHORT_SWORD, C_Item.TRIDENT, C_Item.ARROW];
+var
+  i: Byte;
+begin
+  items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_SLASH;
+  for i := 0 to Types.BASE_ITEM_LAST do
+    if i in PIERCING then
+      items^[i].wpnClass := C_Item.WPN_PIERCE;
 end;
 
 { True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }

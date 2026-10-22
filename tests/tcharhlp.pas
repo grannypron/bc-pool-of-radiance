@@ -14,6 +14,7 @@ var
   found: Types.PEffectRec;
   crs: array[1..4] of Types.TCharRecord;
   i: Byte;
+  items: Types.PBaseItems;
 
 procedure NewItem(itemType, n1, n2, n3: Byte; quantity: Byte; weight: Word);
 begin
@@ -262,5 +263,22 @@ begin
   CharHlp.CountTeams;
   TestKit.CheckEqualsL(2, GDVars.teamCount[0], 'hostile 0 and 2 count on team 0');
   TestKit.CheckEqualsL(2, GDVars.teamCount[1], 'hostile 1 and 3 count on team 1');
+
+  { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
+  New(items);
+  FillChar(items^, SizeOf(items^), 0);
+  items^[C_Item.BATTLE_AXE].wpnClass := C_Item.WPN_PIERCE;
+  items^[C_Item.CLUB].wpnClass := C_Item.WPN_BASH;
+  items^[C_Item.DAGGER].wpnClass := C_Item.WPN_PIERCE;
+  CharHlp.FixWeaponClasses(items);
+  TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.BATTLE_AXE].wpnClass, 'a battle axe slashes');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.BEC_DE_CORBIN].wpnClass, 'a bec de corbin pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.TRIDENT].wpnClass, 'a trident pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.SHORT_SWORD].wpnClass, 'a short sword pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.ARROW].wpnClass, 'an arrow pierces');
+  TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.LONG_SWORD].wpnClass, 'a long sword still slashes');
+  TestKit.CheckEqualsL(C_Item.WPN_BASH, items^[C_Item.CLUB].wpnClass, 'a club still bashes');
+  TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.DAGGER].wpnClass, 'a dagger still pierces');
+  Dispose(items);
   TestKit.Done;
 end.

@@ -69,7 +69,7 @@ type
     rateOfFire: Byte;
     { AC adjustment descriptor }
     acDescr: Byte;
-    { melee damage type; WPN_* constants }
+    { melee damage type; the C_Item.WPN_ constants }
     wpnClass: Byte;
     { reserved }
     unk8: Byte;

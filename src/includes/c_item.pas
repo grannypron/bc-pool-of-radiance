@@ -22,6 +22,11 @@ const
   LARGE_BOULDER = 88;
   { relates to quarrel ammo (crossbow shoots / is quarrels) }
   PROP_QUARRELS = $80;
+  { TBaseItemRec.wpnClass melee damage type. Pierce and bash are distinct bits, so wpnClass and (WPN_PIERCE or WPN_BASH)
+    tests pierce-or-bash; slash is zero. }
+  WPN_SLASH = 0;
+  WPN_PIERCE = $01;
+  WPN_BASH = $80;
   { A Strength-bonus weapon that can also be thrown (dagger, hand axe, spear, javelin); consumers require both bits }
   PROPS_THROWABLE = PROP_THROWN or PROP_STR_BONUS;
   { Base item IDs. }
@@ -37,6 +42,14 @@ const
   JAVELIN = 21;
   QUARREL = 28;
   SPEAR = 31;
+  { the weapons whose damage type CharHlp.FixWeaponClasses corrects }
+  BATTLE_AXE = 1;
+  BEC_DE_CORBIN = 4;
+  MILITARY_FORK = 13;
+  PARTISAN = 25;
+  RANSEUR = 29;
+  SPETUM = 32;
+  TRIDENT = 39;
   BROAD_SWORD = 35;
   LONG_SWORD = 36;
   SHORT_SWORD = 37;
