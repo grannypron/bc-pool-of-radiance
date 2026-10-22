@@ -10,7 +10,8 @@ procedure CombatStart;
 implementation
 
 uses Types, Crt, C_Area, C_Npc, C_Terr, C_Cond, GDConsts, GDVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice;
+  MapTiles, Blit, GameIo, C_Ifc, C_Gbvm, C_Dir, C_Sound, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+  EffHndlr;
 
 var
   { wildMap cell under party }
@@ -880,6 +881,7 @@ begin
   CharDisp.DisplayCombatInterface;
   p := GDVars.creatureList;
   while p <> nil do begin
+    EffHndlr.ResetDisplacement(p);
     FxEngine.TriggerEffectsWithCondition(C_Cond.COMBAT_START, p);
     p := p^.nextCharAddr;
   end;

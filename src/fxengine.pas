@@ -29,7 +29,8 @@ function HasDisease(creature: Types.PCharRecord): Boolean;
 procedure RemoveDiseases(creature: Types.PCharRecord);
 
 { Fire, on one creature, every effect id registered under condition cond (0..19, the C_Cond constants). Each id goes
-  through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures. }
+  through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures;
+  Protection from Evil (8, 45) and from Good (9, 46) each apply once however many sources there are. }
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 
 { Stinking-cloud check for an enabled creature: CbtMap.ProbeDirection (dir 8, its own cells) must report terrain 30
@@ -207,16 +208,16 @@ begin
   HasEffectNode := p <> nil;
 end;
 
-{ Trigger one effect id on the creature: call its handler if the creature itself has the effect, or, for the aura
-  effects 21 (Silence 15'), 45 (Prot Evil 10'), 46 (Prot Good 10') and 49 (Prayer), if any creature carrying it has this
-  one in range (6 for Prayer, else 1; out of combat any carrier counts). The handler gets the node found: the creature's
-  own, or the carrier's for an aura. The range test uses Pathing.BuildTargetList, saving and restoring the caller's
-  target list around it. }
-procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
+{ True when effect id effId acts on the creature, with effect the node that does: the creature's own, or, for the aura
+  effects 21 (Silence 15'), 45 (Prot Evil 10'), 46 (Prot Good 10') and 49 (Prayer), that of a creature carrying it
+  with this one in range (6 for Prayer, else 1; out of combat any carrier counts). A protection aura reaches only the
+  carrier's side; SSI's lent it to enemies too, so the monsters a paladin fought were protected from evil (#782).
+  Silence silences everyone, and Prayer's handler sorts the sides itself. The range test uses Pathing.BuildTargetList,
+  saving and restoring the caller's target list around it. }
+function EffectSource(creature: Types.PCharRecord; effId: Byte; var effect: Types.PEffectRec): Boolean;
 var
   save: Types.TTargetList;
   p: Types.PCharRecord;
-  effect: Types.PEffectRec;
   found: Boolean;
   i: Byte;
   range: Byte;
@@ -229,7 +230,8 @@ begin
                     C_Effect.PRAYER] then begin
     Move(GDVars.targetList, save, SizeOf(GDVars.targetList));
     while (p <> nil) and not found do begin
-      if CharHlp.HasEffect(p, effId, effect) then begin
+      if CharHlp.HasEffect(p, effId, effect)
+         and ((effId in [C_Effect.SILENCE, C_Effect.PRAYER]) or (p^.hostile = creature^.hostile)) then begin
         if GDVars.ifcState = C_Ifc.COMBAT then begin
           if effId = C_Effect.PRAYER then
             range := 6
@@ -247,8 +249,27 @@ begin
     end;
     Move(save, GDVars.targetList, SizeOf(GDVars.targetList));
   end;
-  if found then
+  EffectSource := found;
+end;
+
+{ Trigger one effect id on the creature: call its handler with the node FxEngine.EffectSource finds, if any. }
+procedure TriggerEffect(creature: Types.PCharRecord; effId: Byte);
+var
+  effect: Types.PEffectRec;
+begin
+  if FxEngine.EffectSource(creature, effId, effect) then
     FxEngine.CallEffectHandler(effId, creature, effect, False);
+end;
+
+{ Trigger a protection once: the creature's own spell (own, eff 8 or 9) or else an aura it stands in or carries (aura,
+  eff 45 or 46). SSI's triggered both, so a paladin's aura and a Protection from Evil spell gave +4 to saves (#783).
+  It runs under C_Cond.ATTACK_ROLL_DEF and SAVING_THROW. }
+procedure TriggerProtection(creature: Types.PCharRecord; own, aura: Byte);
+var
+  effect: Types.PEffectRec;
+begin
+  if FxEngine.EffectSource(creature, own, effect) or FxEngine.EffectSource(creature, aura, effect) then
+    FxEngine.CallEffectHandler(effect^.id, creature, effect, False);
 end;
 
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
@@ -328,10 +349,9 @@ begin
     C_Cond.COMBAT_START: begin
       FxEngine.TriggerEffect(creature, C_Effect.CAN_FIGHT_ON); FxEngine.TriggerEffect(creature,
           C_Effect.DRAGON_FEAR);
-      FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FEAR); FxEngine.TriggerEffect(creature,
-                                                                                        C_Effect.DISPLACED);
-      FxEngine.TriggerEffect(creature, C_Effect.CAMOUFLAGE); FxEngine.TriggerEffect(creature,
-          C_Effect.RING_INVIS);
+      { displacement is made due again by EffHndlr.ResetDisplacement }
+      FxEngine.TriggerEffect(creature, C_Effect.MUMMY_FEAR); FxEngine.TriggerEffect(creature, C_Effect.CAMOUFLAGE);
+      FxEngine.TriggerEffect(creature, C_Effect.RING_INVIS);
     end;
     C_Cond.EFFECT_IMMUNITY: begin
       FxEngine.TriggerEffect(creature, C_Effect.MAGIC_RES50); FxEngine.TriggerEffect(creature,
@@ -360,20 +380,13 @@ begin
         Blindness and Shield changes (#717) }
       FxEngine.TriggerEffect(creature, C_Effect.STINK_COUGH);
       FxEngine.TriggerEffect(creature, C_Effect.BLIND); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
-      FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL); FxEngine.TriggerEffect(creature,
-                                                                                       C_Effect.PROT_GOOD);
-      FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL_10FT); FxEngine.TriggerEffect(creature,
-          C_Effect.PROT_GOOD_10FT);
     end;
     C_Cond.SAVING_THROW: begin
-      FxEngine.TriggerEffect(creature, C_Effect.PROT_EVIL); FxEngine.TriggerEffect(creature,
-                                                                                       C_Effect.PROT_GOOD);
+      FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
+      FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
       FxEngine.TriggerEffect(creature, C_Effect.RESIST_COLD); FxEngine.TriggerEffect(creature, C_Effect.SHIELD);
       FxEngine.TriggerEffect(creature, C_Effect.RESIST_FIRE); FxEngine.TriggerEffect(creature, C_Effect.BLIND);
-      FxEngine.TriggerEffect(creature, C_Effect.BESTOW_CURSE); FxEngine.TriggerEffect(creature,
-          C_Effect.PROT_EVIL_10FT);
-      FxEngine.TriggerEffect(creature, C_Effect.PROT_GOOD_10FT); FxEngine.TriggerEffect(creature,
-                                                                                            C_Effect.PRAYER);
+      FxEngine.TriggerEffect(creature, C_Effect.BESTOW_CURSE); FxEngine.TriggerEffect(creature, C_Effect.PRAYER);
       FxEngine.TriggerEffect(creature, C_Effect.RING_FIRE_RES); FxEngine.TriggerEffect(creature,
           C_Effect.NO_PARA_POISON);
       FxEngine.TriggerEffect(creature, C_Effect.NO_CHARM_POISON); FxEngine.TriggerEffect(creature,
@@ -401,6 +414,9 @@ begin
       FxEngine.TriggerEffect(creature, C_Effect.CHARM);
     end;
     C_Cond.ATTACK_ROLL_DEF: begin
+      { after the d20, which AttackRoll rolls after C_Cond.DEFENDER_AC (#789) }
+      FxEngine.TriggerProtection(creature, C_Effect.PROT_EVIL, C_Effect.PROT_EVIL_10FT);
+      FxEngine.TriggerProtection(creature, C_Effect.PROT_GOOD, C_Effect.PROT_GOOD_10FT);
       FxEngine.TriggerEffect(creature, C_Effect.INVISIBLE); FxEngine.TriggerEffect(creature,
           C_Effect.DUST_DISAPPEAR);
       FxEngine.TriggerEffect(creature, C_Effect.BLINKING); FxEngine.TriggerEffect(creature,
@@ -744,7 +760,7 @@ end;
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
   DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_Level.PALADIN] > 0) and
-    (effId in [C_Effect.DISEASED, C_Effect.DISEASE_STR, C_Effect.DISEASE_HP, C_Effect.ROT_NO_HEAL, C_Effect.MUMMY_ROT]);
+    (effId in C_Effect.DISEASES);
 end;
 
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;

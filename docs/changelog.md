@@ -77,6 +77,23 @@
 - The game now runs from read-only files (copied from a CD, or a read-only folder), and read-only saved games and characters load.
 - Loading or saving a game no longer deletes the separate saved copies of its characters, which stay on the Add list. Dropping a character forever deletes its copy.
 - A game loaded from the training hall's party menu now starts in the loaded game's area instead of carrying on with the hall's script.
+- Monsters now find their way to any party member they can reach: they switch to a reachable target, wait their turn behind their own side in narrow passages, and walk round Stinking Clouds. A party can no longer stay out of reach of monsters that have a way to it.
+- A paladin's protection aura no longer protects the monsters fighting him.
+- Protection from Evil or Good no longer stacks when it comes from more than one source, such as a paladin's aura and the spell, and it now makes the protected character 2 harder to hit as well as giving +2 to saves.
+- A Cloak of Displacement readied during combat gives its free miss in that combat, and the free miss is no longer lost when a first-round attack's roll comes to exactly 0.
+- A drider's paralyzing touch is now saved against at -2.
+- Magic resistance against gazes and touches now uses the creature's listed resistance.
+- Haste and Slow cancel each other out everywhere, so a character both hasted and slowed moves at its normal rate on the View screen and when the party tries to flee an encounter.
+- Gauntlets of Ogre Power, Enlarge or the Strength spell no longer earn the 10% experience bonus.
+- A half-elf's cleric multi-class needs Wisdom 13 on the modify screen too, as it does when rolled.
+- A character's coins stop at 65,535 of a kind; anything more goes to the treasure pool instead of wrapping to zero.
+- Dispel Magic no longer makes a disease worse; Cure Disease is what removes it.
+- The bill-guisarme no longer counts as a bow for arrows.
+- The statistics count a death once, not once for every round a character lay dying.
+- Removing a character from the party while an area's script is running no longer brings the removed character back as the current one.
+- An arrow or function key pressed at a "press a key" prompt, a disk prompt or a number or name entry no longer types a letter or picks a menu option afterwards.
+- Every "insert disk" prompt now names the file it is looking for (or could not write). Escape at the save disk prompt gives up: a roster character whose file is gone is taken off the roster, and a save to a folder that can't be written fails instead of asking forever. Escape at a game data prompt quits to DOS.
+- Charm Person and Hold Person now work on gnolls, as in 1st edition, and no longer on the ogre leader, who also takes weapons' damage against large creatures now; the huge scorpion counts as Medium.
 
 ## Pool of Radiance port: October 2026 update
 

@@ -36,6 +36,42 @@ begin
   c^.race := C_Race.HUMAN;
 end;
 
+{ CharHlp.IsPerson for a creature with the name, race byte, charType and iconDimensions of a record in the monster
+  data (#792). }
+function Person(name: Types.TName15; race, charType, icon: Byte): Boolean;
+begin
+  ClearCreature;
+  c^.name := name;
+  c^.race := race;
+  c^.charType := charType;
+  c^.iconDimensions := icon;
+  Person := CharHlp.IsPerson(c);
+end;
+
+{ Charm Person and Hold Person affect the persons of the 1st-edition list, as the monster data describes them. }
+procedure CheckPersons;
+begin
+  TestKit.Check(Person('GNOLL', C_Race.MONSTER, 1, $82), 'a gnoll is a person, two tiles and Large as it is');
+  TestKit.Check(Person('KOBOLD', C_Race.MONSTER, 1, $01), 'and a kobold');
+  TestKit.Check(Person('HOBGOBLIN LDR', C_Race.MONSTER, 0, $01), 'and a hobgoblin leader');
+  TestKit.Check(Person('GRISHNAK', C_Race.MONSTER, 0, $01), 'and Grishnak');
+  TestKit.Check(Person('LIZARDMAN', C_Race.MONSTER, 0, $01), 'and a lizard man');
+  TestKit.Check(Person('ACOLYTE', C_Race.MONSTER, 0, $01), 'and a human whose race byte is 0');
+  TestKit.Check(Person('MACE', C_Race.HALFORC, 0, $01), 'and a half-orc');
+  TestKit.Check(Person('TYRANITHRAXUS', C_Race.HUMAN, 0, $01), 'and the False Tyranthraxus, a hired human');
+  TestKit.Check(not Person('TYRANITHRAXUS', C_Race.MONSTER, 3, $84), 'but not Tyranthraxus the dragon');
+  TestKit.Check(not Person('OGRE LEADER', C_Race.MONSTER, 0, $81), 'nor the ogre leader, Large');
+  TestKit.Check(not Person('BUGBEAR', C_Race.MONSTER, 1, $81), 'nor a bugbear');
+  TestKit.Check(not Person('OGRE', C_Race.MONSTER, 1, $82), 'nor an ogre');
+  TestKit.Check(not Person('DRIDER', C_Race.ELF, 16, $83), 'nor a drider, though its race byte is elf');
+  TestKit.Check(not Person('HIPPOGRIFF', C_Race.MONSTER, 0, $83), 'nor a hippogriff');
+  TestKit.Check(not Person('MUTANT LIZ-MAN ', C_Race.MONSTER, 11, $01), 'nor the mutant lizard man');
+  TestKit.Check(not Person('DRYTHH', C_Race.MONSTER, 11, $01), 'nor Drythh');
+  TestKit.Check(not Person('MEDUSA', C_Race.MONSTER, 17, $01), 'nor a medusa');
+  TestKit.Check(not Person('SPECTRE', C_Race.HUMAN, 4, $01), 'nor an undead human');
+  TestKit.Check(not Person('GNOLL', C_Race.MONSTER, 4, $82), 'nor an undead gnoll');
+end;
+
 { SSI's racial level cap tests, as CharHlp.AtLevelCap had them: true only at the levels named }
 function SsiCap(race, cls, lvl, str: Integer): Boolean;
 begin
@@ -172,6 +208,8 @@ begin
   c^.classLevels[C_Level.RANGER] := -1;
   TestKit.CheckEqualsL(0, CharHlp.WarriorLevel(c), 'a level below 0 counts as none');
 
+  CheckPersons;
+
   { the NPC tests }
   ClearCreature;
   TestKit.Check(not CharHlp.IsNpc(c), 'a player character is not an NPC');
@@ -254,6 +292,20 @@ begin
   TestKit.CheckEqualsL(16, CharHlp.PermanentStrength(c), 'Enlarge''s 18/50 less the 2 the disease took');
   TestKit.Check(CharHlp.AtLevelCap(c, C_Level.FIGHTER), 'so the diseased dwarf fighter 8 stays capped');
   c^.effectsAddr := nil;
+  { Haste doubles, Slow halves, and the two cancel (#778) }
+  FillChar(e, SizeOf(e), 0);
+  FillChar(d, SizeOf(d), 0);
+  TestKit.CheckEqualsL(12, CharHlp.HasteSlowRate(c, 12), 'neither leaves the rate');
+  e.id := C_Effect.HASTED;
+  c^.effectsAddr := @e;
+  TestKit.CheckEqualsL(24, CharHlp.HasteSlowRate(c, 12), 'Haste doubles it');
+  TestKit.CheckEqualsL(255, CharHlp.HasteSlowRate(c, 192), 'to at most 255');
+  d.id := C_Effect.SLOWED;
+  e.next := @d;
+  TestKit.CheckEqualsL(13, CharHlp.HasteSlowRate(c, 13), 'Haste and Slow cancel');
+  c^.effectsAddr := @d;
+  TestKit.CheckEqualsL(6, CharHlp.HasteSlowRate(c, 13), 'Slow halves it');
+  c^.effectsAddr := nil;
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   { a robbery's chance per item (POR-0163): each item's weight penalty comes off the robbery's chance, not the last }
@@ -295,6 +347,16 @@ begin
   TestKit.CheckEqualsL(C_Item.WPN_SLASH, items^[C_Item.LONG_SWORD].wpnClass, 'a long sword still slashes');
   TestKit.CheckEqualsL(C_Item.WPN_BASH, items^[C_Item.CLUB].wpnClass, 'a club still bashes');
   TestKit.CheckEqualsL(C_Item.WPN_PIERCE, items^[C_Item.DAGGER].wpnClass, 'a dagger still pierces');
+  { FixAmmoBits (#793) over the shipped rows: the bill-guisarme loses its arrows bit, launchers keep theirs }
+  items^[C_Item.BILL_GUISARME].props := C_Item.PROP_ARROWS;
+  items^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
+  items^[C_Item.QUARREL].props := C_Item.PROP_QUARRELS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
+  items^[C_Item.DAGGER].props := C_Item.PROP_THROWN or C_Item.PROP_STR_BONUS;
+  CharHlp.FixAmmoBits(items);
+  TestKit.CheckEqualsL(0, items^[C_Item.BILL_GUISARME].props, 'a bill-guisarme takes no arrows');
+  TestKit.CheckEqualsL($0B, items^[C_Item.LONG_BOW].props, 'a long bow still shoots arrows');
+  TestKit.CheckEqualsL($8A, items^[C_Item.QUARREL].props, 'a quarrel keeps its bits');
+  TestKit.CheckEqualsL($14, items^[C_Item.DAGGER].props, 'a dagger is still thrown');
   Dispose(items);
   { the rear AC loses a Dexterity bonus but keeps a penalty (#741); unarmored, AC 10 (50) and 2 worse from behind }
   FillChar(crs[1], SizeOf(crs[1]), 0);

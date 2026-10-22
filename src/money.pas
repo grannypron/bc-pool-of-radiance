@@ -31,8 +31,9 @@ procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
 procedure PayFromPool(gp: LongInt);
 
-{ Give creature pp platinum and then gp gold, as many as it can carry (CheckOverload); whatever does not fit goes to
-  the treasure pool, which the bottom line reports. The coins' weight changes, so the creature's stats are
+{ Give creature pp platinum and then gp gold, as many as it can carry and hold (Takable); whatever does not fit goes to
+  the treasure pool, which the bottom line reports. SSI capped only by weight, so a count could pass 65535 and wrap
+  (#781). The coins' weight changes, so the creature's stats are
   recalculated. }
 procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
 
@@ -84,6 +85,18 @@ begin
   end;
 end;
 
+{ How many coins of mType the creature can take: as many as it can carry (SpareCapacity), but no more than bring its
+  count to C_Money.MAX_COINS (MoneyCal.CoinRoom). }
+function Takable(p: Types.PCharRecord; mType: ShortInt): Word;
+var
+  n: Word;
+begin
+  n := Money.SpareCapacity(p);
+  if MoneyCal.CoinRoom(p, mType) < n then
+    n := MoneyCal.CoinRoom(p, mType);
+  Takable := n;
+end;
+
 { Pay gp gold pieces from the creature's coins, worked out in copper, with the change given back in the largest coins.
   The caller has checked the creature can pay (CreatureGold); if not, every coin goes. The coins'
   weight changes, so the creature's stats are recalculated. }
@@ -93,7 +106,8 @@ var
   i: ShortInt;
 begin
   MoneyCal.CoinsOf(creature, m);
-  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], 65535, m);
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GDConsts.dsCoinValuationCopper[C_Money.GOLD], C_Money.MAX_COINS,
+                      m);
   for i := C_Money.COPPER to C_Money.PLATINUM do
     creature^.coins[i] := m[i];
   CharHlp.RecalcStats(creature);
@@ -108,23 +122,23 @@ end;
 
 procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
 var
-  takable: Word;
   ppTaken: Word;
   gpTaken: Word;
 begin
   ppTaken := pp;
+  if ppTaken > Money.Takable(creature, C_Money.PLATINUM) then
+    ppTaken := Money.Takable(creature, C_Money.PLATINUM);
+  Inc(creature^.coins[C_Money.PLATINUM], ppTaken);
+  { the platinum taken already weighs in the gold's Takable }
   gpTaken := gp;
-  if Money.CheckOverload(creature, LongInt(pp) + gp, takable) then begin
+  if gpTaken > Money.Takable(creature, C_Money.GOLD) then
+    gpTaken := Money.Takable(creature, C_Money.GOLD);
+  Inc(creature^.coins[C_Money.GOLD], gpTaken);
+  if (ppTaken < pp) or (gpTaken < gp) then begin
     CharDisp.PrintBottomLine('Overloaded.  Money will be put in Pool.');
-    if ppTaken > takable then
-      ppTaken := takable;
-    if gpTaken > takable - ppTaken then
-      gpTaken := takable - ppTaken;
     Inc(GDVars.treasureMoney[C_Money.PLATINUM], pp - ppTaken);
     Inc(GDVars.treasureMoney[C_Money.GOLD], gp - gpTaken);
   end;
-  Inc(creature^.coins[C_Money.PLATINUM], ppTaken);
-  Inc(creature^.coins[C_Money.GOLD], gpTaken);
   CharHlp.RecalcStats(creature);
 end;
 
@@ -147,7 +161,8 @@ begin
   Str(max, maxStr);
   s := '';
   repeat
-    ch := GameIo.ReadGameKey;
+    { an extended key (an arrow, Delete) types nothing }
+    ch := GameIo.ReadAnyKey;
     case ch of
       '0'..'9': begin
           s := Concat(s, ch);
@@ -172,10 +187,11 @@ begin
   InputNumberMax := n;
 end;
 
-{ Move qty coins of mType, and their weight, from giver to rcv if rcv can carry them, else print 'Overloaded'. }
+{ Move qty coins of mType, and their weight, from giver to rcv if rcv can carry and hold them (Takable), else print
+  'Overloaded'. }
 procedure TradeMoney(var giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
-  if qty <= Money.SpareCapacity(rcv) then begin
+  if qty <= Money.Takable(rcv, mType) then begin
     giver^.coins[mType] := giver^.coins[mType] - qty;
     CharHlp.RecalcStats(giver);
     rcv^.coins[mType] := rcv^.coins[mType] + qty;
@@ -223,8 +239,9 @@ end;
 
 { Split the treasure pool. Each type's share is the pool amount div CountSharers, with the remainder held back. Pass 1
   walks the creatures with C_Npc.FLAG clear and, from jewelry (6) down to copper (0), gives each its share (or as much
-  as fits, the rest joining the remainder) plus one remainder coin when the whole outstanding remainder would fit. Pass
-  2 hands out the leftovers to every creature in list order up to capacity, and any excess returns to the treasure pool.
+  as it can take, Takable, the rest joining the remainder) plus one remainder coin when the whole outstanding remainder
+  would fit. Pass 2 hands out the leftovers to every creature in list order up to what each can take, and any excess
+  returns to the treasure pool.
   Shares and remainders are LongInt, as the pool is; with no creature to count, the pool is left as it is. SSI divided
   by the creatures PoolMoney empties (npc 0 or C_Npc.ANIMATED_PC), so with a hired NPC along more shares were paid than
   the pool held. }
@@ -257,16 +274,17 @@ begin
     { C_Npc.FLAG clear }
     if not CharHlp.IsNpc(p) then
       for i := C_Money.JEWELRY downto C_Money.COPPER do
-        if not Money.CheckOverload(p, share[i], takable) then begin
+        if share[i] <= Money.Takable(p, i) then begin
           p^.coins[i] := share[i] + p^.coins[i];
           CharHlp.RecalcStats(p);
           if rem[i] > 0 then
-            if not Money.CheckOverload(p, rem[i], takable) then begin
+            if rem[i] <= Money.Takable(p, i) then begin
               p^.coins[i] := p^.coins[i] + 1;
               CharHlp.RecalcStats(p);
               Dec(rem[i]);
             end;
         end else begin
+          takable := Money.Takable(p, i);
           p^.coins[i] := p^.coins[i] + takable;
           rem[i] := rem[i] + share[i] - takable;
           CharHlp.RecalcStats(p);
@@ -278,7 +296,7 @@ begin
     if rem[i] > 0 then begin
       p := GDVars.creatureList;
       while p <> nil do begin
-        takable := Money.SpareCapacity(p);
+        takable := Money.Takable(p, i);
         if takable > 0 then
           if rem[i] > takable then begin
             p^.coins[i] := p^.coins[i] + takable;
@@ -309,12 +327,10 @@ begin
 end;
 
 { Take qty of mType from the pool; a qty above the pool amount is cut to the pool's low word. The whole take is refused
-  ('Overloaded') if the uncapped qty would overload; there is no partial take. }
+  ('Overloaded') if the uncapped qty is more than p can carry or hold (Takable); there is no partial take. }
 procedure TakeMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
-var
-  takable: Word;
 begin
-  if Money.CheckOverload(p, qty, takable) then
+  if qty > Money.Takable(p, mType) then
     CharDisp.PrintBottomLine('Overloaded')
   else begin
     if qty > GDVars.treasureMoney[mType] then

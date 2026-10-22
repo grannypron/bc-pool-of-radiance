@@ -788,7 +788,7 @@ begin
                      C_Effect.ELEM_FIRE or C_Effect.ELEM_MAGIC, '');
 end;
 
-{ Charm Person: only targets with charType 0..1 and icon size 1 can be charmed. The Charm effect's strength is the
+{ Charm Person: only persons (CharHlp.IsPerson) can be charmed (#792). The Charm effect's strength is the
   caster's hostile * 128 + caster level; afterwards the target's first Charm effect (normally the one just added) has
   its handler called with removed = False. }
 procedure CharmPersonHandler;
@@ -797,7 +797,7 @@ var
   tgt: Types.PCharRecord;
 begin
   tgt := GDVars.dsTargetCreaturePtr[1];
-  if (tgt^.charType > 1) or (tgt^.iconDimensions > 1) then
+  if not CharHlp.IsPerson(tgt) then
     CharDisp.PrintNameString(tgt, 'is unaffected', 10, True)
   else begin
     Magic.ResolveSpell(GDVars.dsCurrentSpellBeing,
@@ -920,7 +920,7 @@ end;
 
 { Hold Person (spells 23 and 49): save modifier -2 (cleric) or -3 (mage) for one target, -1 for two, 0 for three or
   more. Targets are processed in reverse; each one after the first processed (i < spellTargetCount) gets its own
-  projectile animation. Targets with charType > 1 or icon size > 1 always save. }
+  projectile animation. Targets that are not persons (CharHlp.IsPerson, #792) always save. }
 procedure HoldPersonHandler;
 var
   tgt: Types.PCharRecord;
@@ -949,7 +949,7 @@ begin
         SoundDrv.SoundSetAutoStop(10);
       end;
       saved := FxEngine.RollSavingThrow(tgt, GDConsts.spellTable[GDVars.dsCurrentSpellBeing].saveType, smod);
-      if (tgt^.charType > 1) or (tgt^.iconDimensions > 1) then
+      if not CharHlp.IsPerson(tgt) then
         saved := True;
       FxEngine.AddEffectWithMessage(tgt, GDConsts.spellTable[GDVars.dsCurrentSpellBeing].effect,
                                     Magic.CalcSpellDuration(GDVars.dsCurrentSpellBeing),
@@ -1276,8 +1276,9 @@ end;
 
 { Dispel Magic: on each target, try every effect whose strength is below 255, with its low nibble as the effect's caster
   level: 50%, +5% per caster level above it, -2% per level below. A paladin's lay-on-hands and cure-disease timers are
-  left alone. A removal that frees the next effect (dispelled Animate Dead) ends that target's walk; SSI read on into
-  the freed node. }
+  left alone, and so are the diseases (C_Effect.DISEASES), which Cure Disease removes: SSI's dispelled Strength drain
+  re-armed itself and took another point (#787). A removal that frees the next effect (dispelled Animate Dead) ends that
+  target's walk; SSI read on into the freed node. }
 procedure DispelMagicHandler;
 var
   chance: Byte;
@@ -1303,7 +1304,8 @@ begin
       effect := nil;
     while effect <> nil do begin
       nxt := effect^.next;
-      if (effect^.strength < 255) and not (effect^.id in [C_Effect.RECENT_HEAL, C_Effect.RECENT_CURE]) then begin
+      if (effect^.strength < 255)
+         and not (effect^.id in C_Effect.DISEASES + [C_Effect.RECENT_HEAL, C_Effect.RECENT_CURE]) then begin
         { dispel treats the low nibble as caster level }
         effLevel := effect^.strength and $F;
         if cl > effLevel then

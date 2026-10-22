@@ -353,8 +353,8 @@ var
         stats[i] := ClassCal.RaceAbilityMin(race, genderSp, i);
       if stats[i] > ClassCal.RaceAbilityMax(race, genderSp, i) then
         stats[i] := ClassCal.RaceAbilityMax(race, genderSp, i);
-      if stats[i] < ClassCal.ClassAbilityMin(charClass, i) then
-        stats[i] := ClassCal.ClassAbilityMin(charClass, i);
+      if stats[i] < ClassCal.ClassAbilityMin(race, charClass, i) then
+        stats[i] := ClassCal.ClassAbilityMin(race, charClass, i);
     end;
   end;
 
@@ -637,10 +637,6 @@ begin
                if GDConsts.ageCat[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
-               if stats[i] < 13 then
-                 { cleric multiclasses need Wisdom 13 }
-                 if charClass in [C_Class.CLERIC_FIGHTER..C_Class.CLERIC_THIEF] then
-                   stats[i] := 13;
              end;
           { Dexterity }
           C_Abil.DEXTERITY: begin
@@ -825,10 +821,11 @@ var
     is higher }
   function StatMinimum(racialMin: Byte): Byte;
   begin
-    if ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx) > racialMin then
-      StatMinimum := ClassCal.ClassAbilityMin(GDVars.curChar^.charClass, statIdx)
-    else
-      StatMinimum := racialMin;
+    with GDVars.curChar^ do
+      if ClassCal.ClassAbilityMin(race, charClass, statIdx) > racialMin then
+        StatMinimum := ClassCal.ClassAbilityMin(race, charClass, statIdx)
+      else
+        StatMinimum := racialMin;
   end;
 
   { Left on ability a: up to the larger of its racial and class minimums. }
@@ -1204,7 +1201,7 @@ end;
   Curse's party rules also apply: a paladin does not join a party with an evil member, nor an evil character a party
   with a paladin, and a party has at most 3 rangers. A character they refuse gets Curse's message on the bottom line
   until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do
-  NPCs a script adds.
+  NPCs a script adds. A character with no file, once Escape gives up at the save disk prompt, is taken off the roster.
   Added entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
 procedure AddCharacterMenu;
 var
@@ -1243,8 +1240,19 @@ begin
           as the put-save-disk prompt does, with the name cut to fit the line }
         if not SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False, True) then begin
           FreeMem(creature, SizeOf(Types.TCharRecord));
-          TextRend.DisplayAndPause(Yellow, Copy(m^.name, 1, 21) + '''s file is damaged.');
-          Border.ClearBox(0, 24, 39, 24);
+          if not SaveLoad.HasCharFile(m^.name) then begin
+            { Escape gave up on a character with no file: it leaves the roster (SSI asked for the disk forever, #794) }
+            SaveLoad.SaveCharlist(list, m^.name);
+            MenuCore.FreeStringList(list);
+            SaveLoad.LoadCharlist(list);
+            if list = nil then Exit;
+            idx := 0;
+            m := list;
+            redraw := True;
+          end else begin
+            TextRend.DisplayAndPause(Yellow, Copy(m^.name, 1, 21) + '''s file is damaged.');
+            Border.ClearBox(0, 24, 39, 24);
+          end;
         end else begin
           m^.name := '* ' + m^.name;
           if GDVars.creatureList = nil then begin

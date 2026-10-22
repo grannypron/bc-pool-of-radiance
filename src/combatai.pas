@@ -284,13 +284,23 @@ begin
   SelectSpellToCast := ext;
 end;
 
-{ Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
-  (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the remaining movement. Stinking Cloud is
-  avoided unless the creature has C_Effect.ANIMATE_DEAD, C_Effect.STINK_COUGH, C_Effect.NO_PARA_POISON or
-  C_Effect.NO_CHARM_POISON. }
-function CanStepDir(creature: Types.PCharRecord; dir: Byte; var edge: Boolean): Boolean;
+{ True when creature keeps out of a Stinking Cloud: unless it has C_Effect.ANIMATE_DEAD, C_Effect.STINK_COUGH,
+  C_Effect.NO_PARA_POISON or C_Effect.NO_CHARM_POISON. }
+function AvoidsCloud(creature: Types.PCharRecord): Boolean;
 var
   effect: Types.PEffectRec;
+begin
+  AvoidsCloud := (not CharHlp.HasEffect(creature, C_Effect.ANIMATE_DEAD, effect)) and
+                 (not CharHlp.HasEffect(creature, C_Effect.STINK_COUGH, effect)) and
+                 (not CharHlp.HasEffect(creature, C_Effect.NO_PARA_POISON, effect)) and
+                 (not CharHlp.HasEffect(creature, C_Effect.NO_CHARM_POISON, effect));
+end;
+
+{ Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
+  (orthogonal) or 3 (diagonal) times the terrain cost and must fit in the remaining movement. Stinking Cloud is
+  avoided (AvoidsCloud). }
+function CanStepDir(creature: Types.PCharRecord; dir: Byte; var edge: Boolean): Boolean;
+var
   crIdx: Byte;
   terrIdx: Byte;
   stepCost: Byte;
@@ -313,12 +323,8 @@ begin
   if Odd(dir) then
     stepCost := 3;
   stepCost := stepCost * GDConsts.terrainInfo[terrIdx].cost;
-  if terrIdx = C_Terr.STINK_CLOUD then
-    if (not CharHlp.HasEffect(creature, C_Effect.ANIMATE_DEAD, effect)) and
-        (not CharHlp.HasEffect(creature, C_Effect.STINK_COUGH, effect))
-       and (not CharHlp.HasEffect(creature, C_Effect.NO_PARA_POISON, effect))
-       and (not CharHlp.HasEffect(creature, C_Effect.NO_CHARM_POISON, effect)) then
-      stepCost := creature^.combatAddr^.movement + 1;
+  if (terrIdx = C_Terr.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
+    stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
     CanStepDir := True;
 end;
@@ -331,10 +337,69 @@ begin
                                    edge);
 end;
 
-{ One AI movement step. Toward the locked target it takes the first step of a walk round walls and bodies
-  (Pathing.RouteStep, #668) when it can pay for it; otherwise, and when fleeing, it heads at the target (or in the flee
-  direction) with aiDirOffsets supplying up to five fallback directions, and oscillation detection through lastMoveDir
-  and stuckCount. }
+{ The first step, in dir, of creature's walk to an enemy (Pathing.RouteStep): round walls and bodies to its locked
+  target (#668); else to the nearest enemy it may attack, which becomes its target, so that a target hemmed in by its
+  own side or walled off does not leave it stranded (#769); a creature that keeps out of a Stinking Cloud walks round
+  it. When bodies close every walk, a walk through its own side's bodies stands in: it closes up behind them, and when
+  its first step is onto one of them it waits there (wait). False when there is no step, or none it can pay for. }
+function RouteToEnemy(creature: Types.PCharRecord; var dir: Byte; var wait: Boolean): Boolean;
+var
+  slot: Byte;
+  targetSlot: Byte;
+  goal: Byte;
+  avoid: Byte;
+  i: Byte;
+  last: Byte;
+  crIdx: Byte;
+  terrIdx: Byte;
+  found: Boolean;
+  edge: Boolean;
+  p: Types.PCharRecord;
+  enemies: Pathing.TSlotSet;
+  friends: Pathing.TSlotSet;
+begin
+  RouteToEnemy := False;
+  wait := False;
+  slot := CbtMap.CombatSlot(creature);
+  targetSlot := CbtMap.CombatSlot(creature^.combatAddr^.other);
+  if (slot = 0) or (targetSlot = 0) then
+    Exit;
+  avoid := 0;
+  if CombatAi.AvoidsCloud(creature) then
+    avoid := C_Terr.STINK_CLOUD;
+  found := Pathing.RouteStep(slot, [targetSlot], [], avoid, CbtMap.OccupantAt, dir, goal);
+  if not found then begin
+    enemies := [];
+    friends := [];
+    last := GDVars.arenaCount;
+    if last > Types.ARENA_SLOTS then
+      last := Types.ARENA_SLOTS;
+    for i := 1 to last do begin
+      p := GDVars.creatureArr[i];
+      if (i <> slot) and (p <> nil) and (GDVars.arenaLoc[i].size <> 0) then
+        if p^.hostile <> CharHlp.EnemyTeam(creature) then
+          friends := friends + [i]
+        else if (p^.enabled <> 0) and CbtActs.CanAttackTarget(creature, p) then
+          enemies := enemies + [i];
+    end;
+    found := Pathing.RouteStep(slot, enemies, [], avoid, CbtMap.OccupantAt, dir, goal);
+    if not found then begin
+      found := Pathing.RouteStep(slot, enemies, friends, avoid, CbtMap.OccupantAt, dir, goal);
+      if found then begin
+        CbtMap.ProbeDirection(creature, dir, crIdx, terrIdx);
+        wait := crIdx <> 0;
+      end;
+    end;
+    if found then
+      creature^.combatAddr^.other := GDVars.creatureArr[goal];
+  end;
+  RouteToEnemy := found and not wait and CombatAi.CanStepDir(creature, dir, edge);
+end;
+
+{ One AI movement step. Toward the locked target it takes the first step of a walk to an enemy (RouteToEnemy) when it
+  can pay for it, and guards when that walk waits on its own side; otherwise, and when fleeing, it heads at the target
+  (or in the flee direction) with aiDirOffsets supplying up to five fallback directions, and oscillation detection
+  through lastMoveDir and stuckCount. }
 procedure AiMoveStep(creature: Types.PCharRecord);
 var
   dir: Byte;
@@ -343,8 +408,7 @@ var
   edge: Boolean;
   done: Boolean;
   routed: Boolean;
-  slot: Byte;
-  targetSlot: Byte;
+  wait: Boolean;
 begin
   if not quickShown then
     TextRend.DisplayString(0, 24, LightGreen,
@@ -357,16 +421,12 @@ begin
      and (creature^.combatAddr^.initiative > 0)
      and ((creature^.combatAddr^.fleeing <> 0) or (creature^.charClass <> C_Class.MAGE)) then begin
     routed := False;
+    wait := False;
     if creature^.combatAddr^.fleeing = 0 then begin
+      if creature^.combatAddr^.other <> nil then
+        routed := CombatAi.RouteToEnemy(creature, adjDir, wait);
+      { after RouteToEnemy, which may change the target }
       dir := CbtActs.DirTowardTarget(creature, creature^.combatAddr^.other);
-      { a walk round walls and bodies to the target, when its first step can be paid for (#668) }
-      if creature^.combatAddr^.other <> nil then begin
-        slot := CbtMap.CombatSlot(creature);
-        targetSlot := CbtMap.CombatSlot(creature^.combatAddr^.other);
-        if (slot <> 0) and (targetSlot <> 0) then
-          routed := Pathing.RouteStep(slot, targetSlot, CbtMap.OccupantAt, adjDir) and
-                    CombatAi.CanStepDir(creature, adjDir, edge);
-      end;
     end else begin
       creature^.combatAddr^.aiStance := Dice.RollDice(1, 2);
       { Hostiles flee along the party's facing (C_Dir 0, 2, 4, 6). SSI's arithmetic turned north into NW and south
@@ -380,7 +440,10 @@ begin
     edge := False;
     done := False;
     attempt := 1;
-    if routed then begin
+    if wait then
+      { its own side is in the way: it holds its ground until they move }
+      done := CombatAi.FinishRound(creature)
+    else if routed then begin
       lastMoveDir := adjDir;
       stuckCount := 0;
     end else begin

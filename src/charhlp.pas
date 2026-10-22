@@ -48,6 +48,11 @@ procedure AppendItemCopy(var list: Types.PItemRec; item: Types.PItemRec);
 
 function HasEffect(creature: Types.PCharRecord; id: Byte; var effect: Types.PEffectRec): Boolean;
 
+{ A movement or attack rate n as Haste and Slow make it: doubled (at most 255) while the creature is Hasted (eff 39),
+  halved while it is Slowed (eff 42), and unchanged with both, which cancel, as in the 1st edition (#778). Combat (the
+  two effects' handlers), the encounter menu's flee test (EclMenu.MoveExtremes) and the View screen all use it. }
+function HasteSlowRate(creature: Types.PCharRecord; n: Byte): Byte;
+
 procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 
 function EnemyTeam(creature: Types.PCharRecord): ShortInt;
@@ -118,12 +123,23 @@ function BaseItem(itemType: Byte): Types.PBaseItemRec;
   and arrow pierce (not slash). }
 procedure FixWeaponClasses(items: Types.PBaseItems);
 
+{ Clear the ammunition bits (C_Item.PROP_ARROWS, PROP_QUARRELS) of a weapon that is not a launcher (no
+  C_Item.PROP_FIRES_AMMO): the shipped ITEMS file gives the bill-guisarme and the unused item type 0 the arrows bit
+  (#793). The quarrel's own row keeps its bits; it is ammunition, never readied as a weapon. }
+procedure FixAmmoBits(items: Types.PBaseItems);
+
 { True for an NPC or a monster: a creature whose npc has bit 7 (C_Npc.FLAG) set, not one of the player's own
   characters. }
 function IsNpc(creature: Types.PCharRecord): Boolean;
 
 { True when creature may trade and sell: one of the player's own characters, or an NPC that is disabled or animated. }
 function MayTrade(creature: Types.PCharRecord): Boolean;
+
+{ True for a person, whom Charm Person and Hold Person affect (#792): not undead (charType 4), and either a monster the
+  1st-edition list names (GDConsts.rangerFoes' first RANGER_PERSONS, personFoes), or a creature of one tile, not
+  Large, of a player race or charType 0 (the humans, some with race byte 0). SSI tested charType 0..1 and a one-tile
+  icon, which kept the gnoll out and let the ogre leader in. }
+function IsPerson(creature: Types.PCharRecord): Boolean;
 
 { True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends
   With Fight after it, return to the player's control. }
@@ -180,6 +196,8 @@ const
   MOVE_LOADED = 9;
   MOVE_HEAVY = 6;
   MOVE_OVERLOADED = 3;
+  { TCharRecord.charType of the undead }
+  UNDEAD_TYPE = 4;
   { coins carried over the weight allowance: up to OVER_LIGHT, no change; up to OVER_LOADED, MOVE_LOADED; up to
     OVER_HEAVY, MOVE_HEAVY; more, MOVE_OVERLOADED }
   OVER_LIGHT = 512;
@@ -549,6 +567,15 @@ begin
       items^[i].wpnClass := C_Item.WPN_PIERCE;
 end;
 
+procedure FixAmmoBits(items: Types.PBaseItems);
+var
+  i: Byte;
+begin
+  for i := 0 to Types.BASE_ITEM_LAST do
+    if (items^[i].props and C_Item.PROP_FIRES_AMMO) = 0 then
+      items^[i].props := items^[i].props and not (C_Item.PROP_ARROWS or C_Item.PROP_QUARRELS);
+end;
+
 { True when the creature has a Bag of Holding readied (name component C_Item.NAME_HOLDING). }
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 var
@@ -707,6 +734,24 @@ begin
       effect := effect^.next;
   end;
   HasEffect := found;
+end;
+
+function HasteSlowRate(creature: Types.PCharRecord; n: Byte): Byte;
+var
+  effect: Types.PEffectRec;
+  hasted: Boolean;
+  slowed: Boolean;
+begin
+  hasted := CharHlp.HasEffect(creature, C_Effect.HASTED, effect);
+  slowed := CharHlp.HasEffect(creature, C_Effect.SLOWED, effect);
+  if hasted and not slowed then begin
+    if n > 127 then
+      n := 255
+    else
+      n := n * 2;
+  end else if slowed and not hasted then
+    n := n div 2;
+  HasteSlowRate := n;
 end;
 
 { Apply damage and update status. More than nine points of overkill kills; lesser overkill leaves the creature dying.
@@ -990,6 +1035,23 @@ end;
 function MayTrade(creature: Types.PCharRecord): Boolean;
 begin
   MayTrade := not CharHlp.IsNpc(creature) or (creature^.enabled = 0) or (creature^.status = C_Status.ANIMATED);
+end;
+
+function IsPerson(creature: Types.PCharRecord): Boolean;
+var
+  i: Byte;
+  named: Boolean;
+begin
+  named := False;
+  for i := 1 to GDConsts.RANGER_PERSONS do
+    if creature^.name = GDConsts.rangerFoes[i] then
+      named := True;
+  for i := 1 to SizeOf(GDConsts.personFoes) div SizeOf(GDConsts.personFoes[1]) do
+    if creature^.name = GDConsts.personFoes[i] then
+      named := True;
+  IsPerson := (creature^.charType <> UNDEAD_TYPE) and
+              (named or ((creature^.iconDimensions = 1) and
+                         ((creature^.race <> C_Race.MONSTER) or (creature^.charType = 0))));
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;

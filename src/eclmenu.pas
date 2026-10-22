@@ -61,7 +61,8 @@ procedure RobMoney(fraction: Real; creature: Types.PCharRecord);
 { Chance% per item to steal it; heavy items (weight > 255 / > 24 coins) reduce the chance }
 procedure RobItems(chance: Byte; creature: Types.PCharRecord);
 
-{ Highest/lowest movement in GDVars.creatureList (haste doubles, else slow halves); 0 and 255 for an empty list }
+{ Highest/lowest movement in GDVars.creatureList, as Haste and Slow make it (CharHlp.HasteSlowRate); 0 and 255 for an
+  empty list }
 procedure MoveExtremes(var hiMove, loMove: Byte);
 
 { Damage message + damage + party panel refresh; dead creatures are skipped }
@@ -69,7 +70,8 @@ procedure EclInflictDamage(dmg: Word; creature: Types.PCharRecord);
 
 { Load creature id from MON<disk>CHA/SPC/ITM.dax (a missing or short CHA record exits the game); nil the list pointers,
   derive iconSize from race, roll random icon colours (slot 4, hair, is fixed at $C4), convert effects/items to lists,
-  ignoring a trailing part record, then call the effect handler of each readied special item (special > $7F). }
+  ignoring a trailing part record, then call the effect handler of each readied special item (special > $7F) but an
+  aligned weapon or a boulder. }
 procedure LoadCreatureData(id: Byte; creature: Types.PCharRecord);
 
 { GetMem + LoadCreatureData + random portrait head and body by gender and a randomly picked class + AddCharToParty +
@@ -492,7 +494,6 @@ end;
 procedure MoveExtremes(var hiMove, loMove: Byte);
 var
   p: Types.PCharRecord;
-  effect: Types.PEffectRec;
   m: Byte;
 begin
   { only the adjusted values count: SSI started from the first member's unadjusted movement, so an all-hasted party's
@@ -501,11 +502,7 @@ begin
   loMove := 255;
   p := GDVars.creatureList;
   while p <> nil do begin
-    m := p^.movementCur;
-    if CharHlp.HasEffect(p, C_Effect.HASTED, effect) then
-      m := m * 2
-    else if CharHlp.HasEffect(p, C_Effect.SLOWED, effect) then
-      m := m div 2;
+    m := CharHlp.HasteSlowRate(p, p^.movementCur);
     if m > hiMove then hiMove := m;
     if m < loMove then loMove := m;
     p := p^.nextCharAddr;
@@ -616,10 +613,13 @@ begin
   end;
   GDVars.dsSuppressingInsertDiskFlag := False;
   { the readied special items take effect, as when readied (FxEngine.ToggleReadyItem): SSI skipped this, and a monster
-    never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747) }
+    never had the displacement, Strength or fire resistance of the cloak, gauntlets or ring it wore (#747). An aligned
+    weapon's and a boulder's handlers only test whether the creature may ready them, shocking it or printing a message
+    when not: a monster comes armed as its data has it (#788). }
   item := creature^.itemsAddr;
   while item <> nil do begin
-    if (item^.equipped <> 0) and (item^.special > $7F) then
+    if (item^.equipped <> 0) and (item^.special > $7F)
+       and not (item^.special in [C_Effect.ALIGNED_WEAPON, C_Effect.BOULDER]) then
       FxEngine.CallEffectHandler(item^.special, creature, item, False);
     item := item^.next;
   end;

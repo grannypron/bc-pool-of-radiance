@@ -247,7 +247,8 @@ begin
   col := Length(query);
   reply := '';
   repeat
-    key := GameIo.ReadGameKey;
+    { an extended key (an arrow, Delete) types nothing }
+    key := GameIo.ReadAnyKey;
     case key of
       ' '..'z':
         if Length(reply) < maxLen then begin

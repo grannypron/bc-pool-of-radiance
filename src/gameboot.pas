@@ -105,7 +105,7 @@ begin
   NatFile.EnterGameFolder;
   GDVars.ovrInEms := False;
 {$ELSE}
-  DaxIo.OverlayPrompt;
+  DaxIo.WaitForFile('game.ovr', 'Please insert overlay disk.');
   OvrInit('GAME.OVR');
   { Copy the overlays into EMS when there is enough of it, so they load from memory rather than disk; without an EMS
     driver, or with too little EMS, they keep loading from GAME.OVR. This comes before CountOvrRead hooks in, since
@@ -119,10 +119,7 @@ begin
   OvrReadBuf := CountOvrRead;
 {$ENDIF}
   { a read-only POOL.CFG is there too (DaxIo.FileExists) }
-  while not DaxIo.FileExists('pool.cfg') do begin
-    WriteLn('Please insert startup disk.');
-    cfgChar := GameIo.ReadGameKey;
-  end;
+  DaxIo.WaitForFile('pool.cfg', 'Please insert startup disk.');
   CheckBreak := False;
   Assign(cfgText, 'POOL.CFG');
   Reset(cfgText);

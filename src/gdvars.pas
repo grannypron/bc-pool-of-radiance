@@ -164,6 +164,9 @@ var
   curChar: Types.PCharRecord;
   { Pointer to linked list of creatures }
   creatureList: Types.PCharRecord;
+  { The current character before a script step, LOAD CHARACTER or a script switch; the scripts' EXIT and PROGRAM and
+    EclVm.NewEclDone make it current again. SaveLoad.RemoveCreature moves it off the record it frees. }
+  savedChar: Types.PCharRecord;
   { last missile item added to the treasure list in combat }
   lastMissileItem: Types.PItemRec;
   { Font and text cursor }

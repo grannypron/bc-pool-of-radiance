@@ -38,15 +38,19 @@ function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 procedure EraseChar(name: String);
 
 { Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk, else
-  prompt with the insert-game-disk message; ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared,
-  then the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a
-  trailing part record, and the usual spells are read from the .mem file (none when it is missing or not a
-  usual-spells file for this character). False, with nothing read after the record, when the .sav/.cha file holds less
-  than a whole record or cannot be read; the caller then frees the record unused. While the Quick Ends With Fight
-  setting is on (GDVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game or an added character
-  starts under manual control; NPCs and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves
-  them. With the setting off the saved quickfight stays. }
+  prompt with the insert-game-disk message (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The
+  list and combat pointers are cleared, then the item/effect lists are rebuilt from the .itm/.spc files when they
+  exist, stopping at a read error or a trailing part record, and the usual spells are read from the .mem file (none
+  when it is missing or not a usual-spells file for this character). False, with nothing read after the record, when
+  the .sav/.cha file holds less than a whole record or cannot be read, or is not there and Escape at the save disk
+  prompt gave up (askDisk); the caller then frees the record unused. While the Quick Ends With Fight setting is on
+  (GDVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game or an added character starts under
+  manual control; NPCs and animated creatures keep quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With
+  the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
+
+{ True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
+function HasCharFile(name: String): Boolean;
 
 { Load game: offer the existing SAVGAMA..J.DAT on the full-screen SaveMenu (Escape aborts), read the save file (one too
   short to hold it all is refused, with a message, before anything is read), reload each listed character, at most 8,
@@ -109,17 +113,27 @@ type
   TSaveNames = array[1..Types.MAX_PARTY] of Types.TStr40;
 
 
-{ Create file name's temporary copy (FileUtil.RewriteTemp) for writing, asking for the save disk until it can be. }
-procedure RewriteSaveFile(var f: file; name: Types.TPathStr);
+{ Create file name's temporary copy (FileUtil.RewriteTemp) for writing, asking for the save disk until it can be:
+  False when Escape gave up (SaveMenu.AskSaveDisk), with nothing open. }
+function RewriteSaveFile(var f: file; name: Types.TPathStr): Boolean;
+var
+  opened: Boolean;
 begin
-  while not FileUtil.RewriteTemp(f, name) do
-    TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
+  repeat
+    opened := FileUtil.RewriteTemp(f, name);
+  until opened or not SaveMenu.AskSaveDisk('Cannot write', name);
+  RewriteSaveFile := opened;
 end;
 
 { A character's single-character files' path and base name, from its name: <saveDir><name>, sanitized for DOS. }
 function CharFileBase(name: String): Types.TPathStr;
 begin
   CharFileBase := GDVars.dsSaveDirectory + DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
+end;
+
+function HasCharFile(name: String): Boolean;
+begin
+  HasCharFile := DaxIo.FileExists(SaveLoad.CharFileBase(name) + '.cha');
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -158,9 +172,9 @@ begin
     Assign(f, GDVars.dsSaveDirectory + 'charlist.txt');
     Rewrite(f);
     ioRes := IOResult;
-    if ioRes <> 0 then
-      TextRend.DisplayAndPause(Yellow, SaveMenu.SaveDiskMsg);
-  until ioRes = 0;
+  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GDVars.dsSaveDirectory + 'charlist.txt');
+  { Escape gave up: the roster stays as it was }
+  if ioRes <> 0 then Exit;
   p := list;
   while p <> nil do begin
     name := p^.name;
@@ -237,7 +251,7 @@ var
   itemDisk: DiskRec.TItemDisk;
   effectDisk: DiskRec.TEffectDisk;
 begin
-  SaveLoad.RewriteSaveFile(f, fn + ext);
+  ok := SaveLoad.RewriteSaveFile(f, fn + ext);
   rec := creature^;
   rec.effectsAddr := nil;
   rec.itemsAddr := nil;
@@ -245,9 +259,10 @@ begin
   rec.combatAddr := nil;
   FillChar(rec.equipped, SizeOf(rec.equipped), 0);
   DiskRec.CharToDisk(rec, recDisk);
-  ok := True;
-  FileUtil.WriteChecked(f, recDisk, DiskRec.CHAR_DISK_BYTES, ok);
-  ok := FileUtil.CloseTemp(f, fn + ext, ok);
+  if ok then begin
+    FileUtil.WriteChecked(f, recDisk, DiskRec.CHAR_DISK_BYTES, ok);
+    ok := FileUtil.CloseTemp(f, fn + ext, ok);
+  end;
   if ok and (creature^.itemsAddr <> nil) then begin
     ok := FileUtil.RewriteTemp(f, fn + '.itm');
     if ok then begin
@@ -390,12 +405,15 @@ begin
     name := SaveLoad.CharFileBase(name);
     msg := SaveMenu.SaveDiskMsg;
   end else
-    msg := GDConsts.insertDiskMsg[GDVars.virtualDisk] + DaxIo.DataDrive + ':';
+    msg := DaxIo.DataDiskMsg;
   if savedGame then
     ext := '.sav'
   else
     ext := '.cha';
-  found := DaxIo.OpenWithRetry(name + ext, msg, False, f);
+  { Escape at the save disk prompt gives up on a character whose file is gone (#794) }
+  found := DaxIo.OpenWithRetry(name + ext, msg, False, not askDisk, f);
+  LoadChar := False;
+  if not found then Exit;
   res := 0;
   { a short file overwrites only the record's start, as a read straight into it did }
   DiskRec.CharToDisk(creature^, recDisk);
@@ -412,9 +430,9 @@ begin
   if (GDVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
   if DaxIo.FileExists(name + '.itm') then begin
-    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, f);
+    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, not askDisk, f);
     item := nil;
-    whole := True;
+    whole := found;
     while whole and not Eof(f) do begin
       GetMem(newItem, SizeOf(Types.TItemRec));
       res := 0;
@@ -431,12 +449,13 @@ begin
       end else
         FreeMem(newItem, SizeOf(Types.TItemRec));
     end;
-    Close(f);
+    if found then
+      Close(f);
   end;
   if DaxIo.FileExists(name + '.spc') then begin
-    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, f);
+    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, not askDisk, f);
     effect := nil;
-    whole := True;
+    whole := found;
     while whole and not Eof(f) do begin
       GetMem(newEffect, SizeOf(Types.TEffectRec));
       res := 0;
@@ -453,7 +472,8 @@ begin
       end else
         FreeMem(newEffect, SizeOf(Types.TEffectRec));
     end;
-    Close(f);
+    if found then
+      Close(f);
   end;
   { a paladin created by SSI's game, or before #742, has eff 8 as his own Protection from Evil (permanent, strength
     255): it becomes the 10' radius one character creation gives now }
@@ -520,7 +540,8 @@ var
   nChars: Byte;
   found: Boolean;
 begin
-  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveMenu.SaveDiskMsg, True, f);
+  found := DaxIo.OpenWithRetry(GDVars.dsSaveDirectory + 'savgam' + letter + '.dat', SaveMenu.SaveDiskMsg, True,
+                         False, f);
   TextRend.ClearBottomLine;
   { a save shorter than everything read below is refused before any of it replaces the game in memory }
   if found then begin
@@ -672,6 +693,8 @@ var
   walls: Types.TGbvmSavedWalls;
   fn: Types.TPathStr;
   ok: Boolean;
+  { the save file's copy was created: it is closed after the writes }
+  opened: Boolean;
 begin
   { the script a load reopens (#609): GameLoop records the running one only once the map menu returns, and NEWECL
     leaves the old area's there until then }
@@ -680,7 +703,9 @@ begin
   FillChar(names, SizeOf(names), 0);
   SaveMenu.CheckSaveDir;
   fn := GDVars.dsSaveDirectory + 'savgam' + letter + '.dat';
-  SaveLoad.RewriteSaveFile(f, fn);
+  { a save folder that cannot be written fails the save once Escape gives up (#794): nothing is written below }
+  opened := SaveLoad.RewriteSaveFile(f, fn);
+  ok := opened;
   TextRend.ClearBottomLine;
   TextRend.DisplayString(0, 24, LightGreen, 'Saving...Please Wait');
   { the wall slots go in the file only (#651): in memory their words are the script's, the last of them the menu
@@ -693,7 +718,6 @@ begin
   GDVars.zone0^.gameSpeed.value := GDVars.gameDelay;
   GDVars.zone0^.settings := (1 - GDVars.musicOn) * 4 + GDVars.monsterPics * 2 + GDVars.portraitsOn;
   GDVars.zone1^[C_Gbvm.DISK_NUM] := GDVars.virtualDisk;
-  ok := True;
   FileUtil.WriteChecked(f, GDVars.virtualDisk, SizeOf(GDVars.virtualDisk), ok);
   FileUtil.WriteChecked(f, GDVars.zone0^, SizeOf(GDVars.zone0^), ok);
   GDVars.zone0^.savedWalls := walls;
@@ -719,7 +743,8 @@ begin
   end;
   FileUtil.WriteChecked(f, count, SizeOf(count), ok);
   FileUtil.WriteChecked(f, names, SizeOf(names), ok);
-  ok := FileUtil.CloseTemp(f, fn, ok);
+  if opened then
+    ok := FileUtil.CloseTemp(f, fn, ok);
   { every member's copies, while all are whole }
   p := GDVars.creatureList;
   n := 0;
@@ -851,12 +876,15 @@ end;
 
 { RemoveCreature: Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar
   becomes the next creature (head case) or the previous one (mid case), and the party size drops unless suppressSizeDec.
-  A curChar not found in the list is left alone. }
+  A curChar not found in the list is left alone. When the creature removed was savedChar, savedChar follows the new
+  curChar. }
 procedure RemoveCreature(suppressSizeDec, freeAnim: Boolean);
 var
   prev: Types.PCharRecord;
+  removed: Types.PCharRecord;
 begin
   if GDVars.creatureList = nil then Exit;
+  removed := GDVars.curChar;
   prev := GDVars.creatureList;
   if prev <> GDVars.curChar then begin
     while (prev^.nextCharAddr <> GDVars.curChar) and (prev^.nextCharAddr <> nil) do
@@ -880,6 +908,9 @@ begin
     if not suppressSizeDec then
       Dec(GDVars.zone1^[C_Gbvm.PARTY_SIZE]);
   end;
+  { the script engine makes savedChar current again: never the freed record (SSI left it there, as Curse's #609) }
+  if (GDVars.curChar <> removed) and (GDVars.savedChar = removed) then
+    GDVars.savedChar := GDVars.curChar;
 end;
 
 procedure FreeParty;

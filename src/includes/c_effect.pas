@@ -49,7 +49,7 @@ const
   BESTOW_CURSE = 36;
   BLINKING = 37;
   STRENGTH = 38;
-  { EclMenu.MoveExtremes doubles movement on it }
+  { doubles movement and attacks, unless Slowed too (CharHlp.HasteSlowRate) }
   HASTED = 39;
   CAST_STINK = 40;
   PROT_MISSILES = 41;
@@ -163,6 +163,9 @@ const
   RECENT_HEAL = 140;
   { A paladin's week of curing disease; the strength counts the cures made. }
   RECENT_CURE = 141;
+  { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
+    and Dispel Magic leaves them to Cure Disease (#787) }
+  DISEASES = [DISEASED, DISEASE_STR, DISEASE_HP, ROT_NO_HEAL, MUMMY_ROT];
   { GDVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
   ELEM_FIRE = 1;
   ELEM_COLD = 2;

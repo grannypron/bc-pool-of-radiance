@@ -119,6 +119,20 @@ Differs from SSI: SSI's tables stopped at 18 to 20 and multi-class warriors lost
 
 **Curing a disease gives back the Strength it took.** `EffDiseaseStr` lowered `strCur` an hour at a time and kept no count. The disease node (effect 43) now counts the points taken in its strength's high nibble (up to 15), with the caster level, capped at 15, in the low one, and when a cure removes it (`Magic.RemoveDiseaseEffects`, `FxEngine.RemoveDiseases`: Cure Disease, Heal, camp Fix, the temple, a paladin) the handler adds them back. The Strength that Enlarge, Strength and the gauntlets store no longer includes the loss (`AdjustForNewStrength`, `EffExtraStr` take it out and put it back), so one of those ending mid-disease no longer undoes the loss. `CharHlp.DiseaseStrLoss` reads the count. TFxRemov checks it. SSI's code. CURSE-0333, #705.
 
+**Haste and Slow cancel everywhere.** `EclMenu.MoveExtremes` let Haste win over Slow, and `ViewChar.PrintCombatStats` halved and then doubled, losing an odd half. `CharHlp.HasteSlowRate` is the one rule (doubled, at most 255, when hasted; halved when slowed; unchanged with both), used by both and by `EffHndlr.EffHasted` and `EffSlowed` for movement and attacks. TCharHlp checks it. POR-0173, #778.
+
+**The prime-requisite bonus reads the character's own Strength.** `ClassCal.ExperienceShare` tested `strCur`, so magically raised Strength earned a warrior the 10% bonus. It reads `CharHlp.PermanentStrength`. Nothing in PoR raises Wisdom, Intelligence or Dexterity by magic. TClasCal checks it. POR-0174, #779.
+
+**Wisdom 13 for a half-elf's cleric multi-class, by race.** The creation roll loop forced Wisdom 13 on every cleric multi-class, and the modify screen never applied it. `ClassCal.ClassAbilityMin` now takes the race: a half-elf cleric multi-class needs 13 (`HALFELF_MULTI_CLERIC_WIS`), a half-orc's the cleric's 9 (PHB p. 20); the roll and the modify screen share it. TClasCal checks it. POR-0175, #780.
+
+**Coins stop at 65535.** `Money.GiveCoins`, `TakeMoney`, `TradeMoney` and `ShareMoney` could wrap a character's Word coin counts. `Money.Takable` (the lesser of `SpareCapacity` and `MoneyCal.CoinRoom` to `C_Money.MAX_COINS`) bounds them, and the rest goes to the pool, whose LongInt counts always hold it. TMoneyCa checks it. POR-0176, #781.
+
+**Dispel Magic leaves diseases alone.** A dispelled Strength drain re-armed itself and took another point. `DispelMagicHandler` skips `C_Effect.DISEASES` (diseased, Strength and hit-point drain, rot), which `FxEngine.DiseaseImmune` now shares; Cure Disease removes them. POR-0182, #787.
+
+**The bill-guisarme loses its arrows bit.** Base item 5 (and unused type 0) carried the arrows bit with no launcher bit. `CharHlp.FixAmmoBits`, run after `FixWeaponClasses`, clears the arrows and quarrels bits on every item that does not fire ammunition. TCharHlp checks it. POR-0186, #793.
+
+**Charm Person and Hold Person take persons, by the 1st-edition list.** Both refused any target with `charType > 1` or a two-tile icon, so gnolls (two-tile) could never be charmed or held, while the one-tile Ogre Leader could. `CharHlp.IsPerson` is one test for both: not undead, and either a name on the 1st-edition list (the first nine `rangerFoes`, kobold to hobgoblin leader and the gnoll, `RANGER_PERSONS`, then `GDConsts.personFoes`: Grishnak and the lizardman) or one tile, not Large, and a player race or charType 0 (the race-0 human NPCs; the drider's race byte is elf, hence the size test). TCharHlp checks it against records from the monster data. Tyranthraxus the dragon is not a person; the human False Tyranthraxus is. See section 7 for the size data. POR-0185, #792.
+
 ## 3. SSI quirks fixed (and the ones labelled)
 
 During the byte-for-byte reconstruction SSI's oddities were kept and marked with `Note:` comments. Phase 3 of the refactor dealt with all of them, and a later batch fixed the ones first kept.
@@ -226,6 +240,22 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Slow Poison stands up only a downed target.** `SlowPoisonHandler` revived every poisoned target not animated: a standing one "got back up", a stoned or disintegrated one was set Okay, a fled one stood up after combat. It now acts only on a target that is down (`DEAD` or disabled) and not fled, stoned or gone; the revive-or-wake step it shares with Keoghtom's Ointment is `StandUpOrWake`. As Secret (secret#444). #698.
 
+**Monsters reach any party member they can reach.** Checked for #769 (POD-0019): hiding never wins a fight, since morale and flight do not react to the party being out of reach. But a monster with a route could still end up guarding: when its locked target was reachable only through another party member's cell, when one of its own side blocked a corridor, or when the shortest way ran through a Stinking Cloud that `CanStepDir` then refused. `Pathing.RouteStep` now walks to the nearest of a set of goal creatures (`MarkGoals` builds the "next to a goal" grid, at the old cost), may plan through given bodies and keeps off given terrain. `CombatAi.RouteToEnemy` tries the locked target, then the nearest enemy it may attack (which becomes its target), then a walk through its own side's bodies, closing up behind them and guarding when its next step is onto an ally. `AvoidsCloud` is shared by the planner and `CanStepDir`. TPathing checks a shut-in target, the nearer of two goals, a queue in a corridor and a cloud in a gap. #769.
+
+**Protection auras are for the carrier's side.** `FxEngine.TriggerEffect` lent Protection from Evil and Good 10' (45, 46) to anyone next to the carrier, so a paladin's foes were protected too. A carrier now counts only for its own side. Prayer (49) stays lent to all, since `EffPrayer` gives the other side its -1; Silence (21) affects everyone. POR-0177, #782.
+
+**Protection from Evil or Good applies once.** Effects 8 and 45 (and 9 and 46) both triggered. `FxEngine.TriggerProtection` runs the creature's own protection, or failing that the aura, once; `EffectSource` is the search it shares with `TriggerEffect`. And the -2 to be hit never applied: it ran under `DEFENDER_AC`, before `RollToHit` rolled afresh. The protections now run under `ATTACK_ROLL_DEF`, after the roll, for weapon and spell attacks alike, and `EffHndlr.Protection` (shared by `EffProtEvil` and `EffProtGood`) needs the attacker on the other side. TProtect checks all three. POR-0178, #783; POR-0183, #789.
+
+**Displacement.** `EffDisplaced` took round 0 with an attack roll of 0 for its combat-start reset, so a first-round attack modified to exactly 0 reset it instead of missing; the reset is now `EffHndlr.ResetDisplacement`, called for every creature at `CombatSt.CombatStart`. And readying the cloak ran `EffDisplaced` on the new effect, spending the free miss at once; `EffReadyItem` no longer does that for displacement. TDisplac checks both. POR-0184, #791; POR-0179, #784.
+
+**A paralyzing touch's save modifier.** `ParalysisTouch` was given the drider's -2 and rolled at +0; it now passes it, as `PoisonTouch` does. POR-0180, #785.
+
+**Magic resistance against non-spell effects.** Magic cleared `dsCurrentSpellBeing` after every spell, so a gaze or touch met magic resistance adjusted by `GetCasterLevel(0)`, an arbitrary level. A non-spell effect now meets the listed figure; spells still adjust 5% per caster level from 11 (`BASE_LEVEL`, `C_Spell.ITEM_CASTER_LEVEL`). TMagRes checks it. POR-0181, #786.
+
+**Loaded monsters' aligned weapons and boulders.** Since #747 `EclMenu.LoadCreatureData` runs readied items' handlers; those for aligned weapons and boulders only check whether the creature may ready the item, and would shock or print. They are skipped. No shipped monster carries one. #788.
+
+**The died count.** In `Combat.EndOfRound`, `Stats.BledOut` sat outside `if overkill > 9` (a missing begin/end), so a dying party member's Died count rose every round. It is inside. #790.
+
 ## 5. User interface: menus, screens, keys and messages
 
 **The Companion Tools open on the map; Map and Notes are one tool.** F6's Tools screen no longer lists its tools: in a 3D area it opens on the whole area's map, "Companion Tools" centred in the frame's top where the area's name was, the name now heading the legend, with "Tools: Map Character Exit" (in the wilderness, the frame and title alone). Map is the former Notes tool: a cursor from the party's square, moved with the arrows, with "Map: Write Clear Exit" and the cursor's square and note below the map; Exit returns to the Tools menu on the same map. The read-only Map tool is gone. #691.
@@ -292,6 +322,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **An arrow key answering a pause does not leak.** An extended key answering `DisplayAndPause` (the last of STING Ctrl-Y's four pages, say) left `scanPending` set after the type-ahead drain ate the scan byte, so the next arrow came back as its scan byte's letter and the menu lost it. `GameIo.ReadAnyKey` reads an extended key whole, as Curse's does (curse#596); `DisplayAndPause` and `DiscardPendingKeys` use it, and `ReadGameKey`'s drains drop an extended key whole. Found by reading the code. CURSE-0371, #768.
 
+**One-key waits read an extended key whole.** DaxIo's `PromptBox`, BldShow's pause, Money's `InputNumberMax`, HeapErr, GameBoot's startup-disk prompt, `GameIo.FatalError`, `TextRend.ReadString` and SaveMenu's description entry read with `ReadGameKey`, so an arrow or function key left its scan byte for the next menu. They use `GameIo.ReadAnyKey` (MenuCore and the AI's key check still need the scan byte). POR-0172, #777.
+
 ## 6. Saving, loading, quick save and the vault
 
 **Full-screen Load/Save menu, with descriptions, areas and times.** Loading and saving chose a slot from a one-line letter prompt. The new `SaveMenu` unit shows the slots full screen, titled "Load/Save Game Menu": each slot shows its letter and description, then the area and the time the file was written. Up and Down move a slot at a time and the list scrolls, with "(more)" when slots are hidden, and Page Up and Page Down move a screenful; the menu opens on the newest save. Loading lists saved games only; saving lists every slot, an unused one as EMPTY. Saving asks for a description (30 characters at most) starting from the slot's old one. The description and area go in `savgam<x>.inf` beside the save, a small versioned record. The area comes from the new `AreaName` unit: the Clue Book's names for scripts 0..29, shortened to 18 columns, keyed by the script a save reopens (`previousScriptId`) and, for the four scripts that run two maps, the map; anything else reads UNKNOWN AREA; a save without an .inf has its area read from the save file. Camp redraws its screen after Save. #604. 3b2c103.
@@ -336,6 +368,10 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **A load from a script's party menu leaves the script.** After Load on the training hall's party menu, `EclProgram` only redrew and `CallEclScript` ran on over the loaded save's script bytes. PROG_TRAINING now stops the script when `CharGen.MainMenu` returns with a loaded game; `EclVm.Reloading` (a quick load, or `loadedSave`) makes `CallEclScript` run nothing and GameLoop return at once, and FixMain runs GameLoop again into the loaded area. SSI's code. CURSE-0273, #756.
 
+**Disk prompts name their file, and Escape gets out.** `OpenWithRetry`, `RewriteSaveFile`, `SaveCharlist` and `CheckSaveDir` asked for the save disk until it worked, so a roster character with no file, or a save folder that could not be written, held the player for good. Every prompt now says what is wrong ("Not found:", "Cannot write:", "Cannot create:", with the path, its start cut by `DaxIo.PathForLine` when long) and then asks for the disk (`DaxIo.AskForDisk`). Escape at the save disk prompt gives up: Add takes a character whose file is gone off the roster (`SaveLoad.HasCharFile`), a save fails as #755's do, the roster stays as it was and the folder is not made. Escape at a game data prompt ("Insert disk N in drive X: (Esc quits)") quits to DOS (`GameIo.ExitGame`), and at the GAME.OVR or POOL.CFG prompt, before the screen is up, with `Halt`; `DaxIo.WaitForFile` replaces `OverlayPrompt` and GameBoot's loop. `LoadChar` no longer reads or closes a file that did not open. POR-0187, #794.
+
+**A removed character is not made current again.** `savedChar` moves from EclVm to GDVars, and `SaveLoad.RemoveCreature` moves it to the new current character when it frees the record it points at (Curse #609), so a drop during a script's camp PROGRAM no longer leaves `NewEclDone` to restore a freed record. `EclLoadChar` relies on it. POR-0171, #776.
+
 ## 7. Data fixes to the shipped scripts and items (DataPat)
 
 DataPat is the table of patches DataBld applies to SSI's data when it builds the merged archives. `C_Data.VERSION` is the data version; raising it makes the game rebuild the merged archives at the next start.
@@ -355,6 +391,8 @@ DataPat is the table of patches DataBld applies to SSI's data when it builds the
 ---
 
 **The Large bit on gnolls, huge scorpions and phase spiders.** For #748, DataPat sets the Large bit (offset 108) on the two-tile monsters that are Large in the Monster Manual but lacked it: MON2CHA 73, MON4CHA 39, MON8CHA 73 and 116. `C_Data.VERSION` is 35. CURSE-0091, #748.
+
+**Creature sizes (#792).** An inventory of the 104 monster records found SSI's Large bit nearly right. DataPat sets it on the Ogre Leader (MON1CHA 9, $01 to $81), an ogre chieftain, and no longer sets it on the huge scorpion (Medium, as the huge spider), which #748 had made Large. `C_Data.VERSION` is 36. POR-0185, #792.
 
 ## 8. Video (the driver refactor, VGA), memory, overlays and EMS
 

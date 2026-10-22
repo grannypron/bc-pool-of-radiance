@@ -211,12 +211,14 @@ const
     (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6476; offset: 6476; origLen: 0; newLen: 130),
     (issue: 683; family: C_Data.FAMILY_ECL; disk: 2; id: 9; size: 6606; offset: 6606; origLen: 0; newLen: 181),
     { #748: weapons do their damage against large targets to a Large creature (Types.ICON_LARGE), no longer to every
-      two-tile one; the gnolls (MON2CHA and MON8CHA block 73), the huge scorpion (MON4CHA block 39) and the phase
-      spider (MON8CHA block 116), two-tile and size L, get the Large bit, so they take it as before }
+      two-tile one; the gnolls (MON2CHA and MON8CHA block 73) and the phase spider (MON8CHA block 116), two-tile and
+      size L, get the Large bit, so they take it as before. The huge scorpion, two-tile, is size M (#792) }
     (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 2; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
-    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 4; id: 39; size: 285; offset: 108; origLen: 1; newLen: 1),
     (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 73; size: 285; offset: 108; origLen: 1; newLen: 1),
-    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1));
+    (issue: 748; family: C_Data.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1),
+    { #792: the ogre leader (MON1CHA block 9), size L, gets the Large bit its one-tile icon lacked, as the bugbear has:
+      weapons do their large damage to it, and it is no person for Charm Person and Hold Person }
+    (issue: 792; family: C_Data.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -873,10 +875,6 @@ const
     $02,
     { fixed: two tiles and Large }
     $82,
-    { #748, MON4CHA huge scorpion, original }
-    $03,
-    { fixed }
-    $83,
     { #748, MON8CHA gnoll, original }
     $02,
     { fixed }
@@ -884,7 +882,11 @@ const
     { #748, MON8CHA phase spider, original }
     $03,
     { fixed }
-    $83);
+    $83,
+    { #792, MON1CHA ogre leader, original }
+    $01,
+    { fixed: one tile and Large }
+    $81);
 
 implementation
 

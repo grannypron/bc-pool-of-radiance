@@ -45,6 +45,8 @@ const
   { the weapons whose damage type CharHlp.FixWeaponClasses corrects }
   BATTLE_AXE = 1;
   BEC_DE_CORBIN = 4;
+  { carries the arrows bit in ITEMS, which CharHlp.FixAmmoBits clears }
+  BILL_GUISARME = 5;
   MILITARY_FORK = 13;
   PARTISAN = 25;
   RANSEUR = 29;

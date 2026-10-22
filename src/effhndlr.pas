@@ -154,6 +154,10 @@ procedure EffRotTouch(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 
 procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
+{ Make the creature's displacement (eff 89) due again: CombatSt.CombatStart calls it for every creature. Only the first
+  node counts, as only it is triggered. }
+procedure ResetDisplacement(creature: Types.PCharRecord);
+
 procedure EffConPsnSave(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -376,28 +380,33 @@ begin
   end;
 end;
 
+{ Protection from Evil and from Good: +2 to saving throws and -2 to be hit when foe holds, that is when the attacker or
+  caster (GDVars.curChar) has the alignment warded against, and it is on the other side. A script's attack or damage
+  has no attacker, and curChar is then a party member. The penalty is taken under C_Cond.ATTACK_ROLL_DEF, after the
+  d20 is rolled; SSI's took it under C_Cond.DEFENDER_AC, before the roll replaced it, so it never applied (#789). }
+
+procedure Protection(creature: Types.PCharRecord; foe: Boolean);
+begin
+  if foe and (GDVars.curChar^.hostile <> creature^.hostile) then begin
+    Inc(GDVars.gSaveRoll, 2);
+    Dec(GDVars.gAttackRoll, 2);
+  end;
+end;
+
 { Protection from Evil (eff 8, 45) }
 
 procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.curChar^.alignment = C_Align.LAWFUL_EVIL) or
-      (GDVars.curChar^.alignment = C_Align.NEUTRAL_EVIL) or
-      (GDVars.curChar^.alignment = C_Align.CHAOTIC_EVIL) then begin
-    Inc(GDVars.gSaveRoll, 2);
-    Dec(GDVars.gAttackRoll, 2);
-  end;
+  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_EVIL, C_Align.NEUTRAL_EVIL,
+                                                               C_Align.CHAOTIC_EVIL]);
 end;
 
 { Protection from Good (eff 9, 46) }
 
 procedure EffProtGood(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.curChar^.alignment = C_Align.LAWFUL_GOOD) or
-      (GDVars.curChar^.alignment = C_Align.NEUTRAL_GOOD) or
-      (GDVars.curChar^.alignment = C_Align.CHAOTIC_GOOD) then begin
-    Inc(GDVars.gSaveRoll, 2);
-    Dec(GDVars.gAttackRoll, 2);
-  end;
+  EffHndlr.Protection(creature, GDVars.curChar^.alignment in [C_Align.LAWFUL_GOOD, C_Align.NEUTRAL_GOOD,
+                                                               C_Align.CHAOTIC_GOOD]);
 end;
 
 { Resist Cold (eff 10) }
@@ -731,7 +740,8 @@ begin
 end;
 
 { Hasted (eff 39). Ages the creature one year the first time it fires (strength bit 4 marks that it has), and doubles
-  dsCurrentAttackCurrent }
+  dsCurrentAttackCurrent by CharHlp.HasteSlowRate: with Slowed too, the two cancel, and each handler leaves the rate
+  as it is. }
 
 procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -740,7 +750,7 @@ begin
     CharDisp.PrintNameString(creature, 'ages', 10, True);
     Inc(creature^.age);
   end;
-  GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent * 2;
+  GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
 end;
 
 { Cast Stinking Cloud (eff 40). Removes the cloud this caster is responsible for (strength upper nibble = its idx),
@@ -855,11 +865,11 @@ begin
       Dice.ReduceDamagePerDie(1);
 end;
 
-{ Slowed (eff 42) }
+{ Slowed (eff 42): halves dsCurrentAttackCurrent by CharHlp.HasteSlowRate, as EffHasted doubles it. }
 
 procedure EffSlowed(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  GDVars.dsCurrentAttackCurrent := GDVars.dsCurrentAttackCurrent div 2;
+  GDVars.dsCurrentAttackCurrent := CharHlp.HasteSlowRate(creature, GDVars.dsCurrentAttackCurrent);
 end;
 
 { Disease Strength drain (eff 43; p is this node, or Diseased's, eff 34, as the disease starts): re-arm for 60 minutes
@@ -1071,13 +1081,13 @@ begin
     end;
 end;
 
-{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation or is immune to paralysis; saveMod
-  is unused. }
+{ Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation with saveMod or is immune to
+  paralysis. SSI's ignored saveMod, so the drider's -2 was lost (#785). }
 
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GDVars.dsOtherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, 0) then
+  if not FxEngine.RollSavingThrow(GDVars.dsOtherCreatureCurrentPtr, C_Save.PARALYZE, saveMod) then
     if not EffHndlr.TouchImmune(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS) then begin
       CharDisp.PrintNameStringAnim(GDVars.dsOtherCreatureCurrentPtr, True, 'is Paralyzed');
       FxEngine.AddEffect(GDVars.dsOtherCreatureCurrentPtr, C_Effect.PARALYSIS, minutes, 12, False);
@@ -1120,7 +1130,7 @@ begin
     EffHndlr.ParalysisTouch(creature, 63, 0);
 end;
 
-{ Drider paralysis (eff 69): 1d9+10 minutes. The -2 save modifier is passed but ParalysisTouch ignores it }
+{ Drider paralysis (eff 69): 1d9+10 minutes, saved against at -2 }
 
 procedure EffDriderPara(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -1501,17 +1511,24 @@ begin
   end;
 end;
 
-{ Displaced (eff 89). strength bit 4 = "already displaced an attack this round" }
+{ Displaced (eff 89): the first attack on the creature each combat misses. strength bit 4 = "has displaced an attack
+  this combat", cleared by ResetDisplacement as combat starts. SSI's cleared it from here, in the first round whenever
+  the attack roll stood at 0, so a first-round attack modified to exactly 0 cleared it instead of missing (#791). }
 
 procedure EffDisplaced(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  if (GDVars.roundCounter = 0) and (GDVars.gAttackRoll = 0) then
-    Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength and $F
-  else
-    if Types.PEffectRec(p)^.strength and $10 = 0 then begin
-      GDVars.gAttackAvoided := True;
-      Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
-    end;
+  if Types.PEffectRec(p)^.strength and $10 = 0 then begin
+    GDVars.gAttackAvoided := True;
+    Types.PEffectRec(p)^.strength := Types.PEffectRec(p)^.strength or $10;
+  end;
+end;
+
+procedure ResetDisplacement(creature: Types.PCharRecord);
+var
+  effect: Types.PEffectRec;
+begin
+  if CharHlp.HasEffect(creature, C_Effect.DISPLACED, effect) then
+    effect^.strength := effect^.strength and not $10;
 end;
 
 { Con poison saving throw bonus (eff 90) }
@@ -1666,18 +1683,28 @@ end;
   below 11 and falls 5% for each level above: chance := pct + (11 - lvl) * 5, kept within 0..100, and a 1d100 roll <=
   chance nullifies. Only an effect under the immunity check or magic damage is resisted. An item counts as a 6th-level
   caster here, as a scroll does, not the 12 GetCasterLevel gives the class-2 item spells (the wands, the necklace and
-  the javelin). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106 passing 15), so resistance
-  grew with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. }
+  the javelin). Against an effect that is no spell (GDVars.dsCurrentSpellBeing NONE: a gaze, a touch, a monster's
+  fear) there is no caster level, and pct stands as listed, as against an 11th-level caster; SSI's read the level of
+  spell 0, from outside the spell table (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with
+  eff 106 passing 15), so resistance grew with the caster level; Tyranthraxus (eff 106) still resists every caster
+  the game produces, as he did. }
 
 procedure MagicResistance(pct: Byte);
+const
+  { the caster level pct is listed against }
+  BASE_LEVEL = 11;
 var
   lvl: Byte;
   chance: Integer;
 begin
-  lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  if GDVars.usingItem and (lvl > 6) then
-    lvl := 6;
-  chance := Integer(pct) + (11 - Integer(lvl)) * 5;
+  if GDVars.dsCurrentSpellBeing = C_Spell.NONE then
+    lvl := BASE_LEVEL
+  else begin
+    lvl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
+    if GDVars.usingItem and (lvl > C_Spell.ITEM_CASTER_LEVEL) then
+      lvl := C_Spell.ITEM_CASTER_LEVEL;
+  end;
+  chance := Integer(pct) + (BASE_LEVEL - Integer(lvl)) * 5;
   if chance < 0 then
     chance := 0
   else if chance > 100 then
@@ -1939,7 +1966,8 @@ begin
 end;
 
 { Ready item (eff 128, 129, 130, 133, 134, 136, 138, 139): p is the ITEM. Readying adds its effect byte as a permanent
-  effect (strength 12) and calls that handler with the new node; unreadying removes it. SSI passed the handler nil, and
+  effect (strength 12) and calls that handler with the new node, except the Cloak of Displacement's: a cloak readied in
+  combat had its first miss marked spent at once (#784). Unreadying removes the effect. SSI passed the handler nil, and
   the Cloak of Displacement's (eff 89) wrote its strength through it, into the interrupt vectors (#737). }
 
 procedure EffReadyItem(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
@@ -1956,7 +1984,9 @@ begin
     effect := creature^.effectsAddr;
     while effect^.next <> nil do
       effect := effect^.next;
-    FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
+    { displacement acts only on an attack: its handler would spend the first miss on the readying (#784) }
+    if item^.effect <> C_Effect.DISPLACED then
+      FxEngine.CallEffectHandler(item^.effect, creature, effect, False);
   end;
 end;
 

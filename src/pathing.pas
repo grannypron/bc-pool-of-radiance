@@ -10,6 +10,8 @@ uses Types;
 type
   { The creature on arena cell (x, y): its slot in GDVars.arenaLoc, 0 for none (CbtMap.OccupantAt). }
   TOccupant = function(x, y: ShortInt): Byte;
+  { Arena slots (GDVars.arenaLoc): RouteStep's goals, and the bodies it may plan a walk through. }
+  TSlotSet = set of Byte;
 
 { Return the sign of an Integer: -1, 0 or 1. }
 function SignOf(v: Integer): Integer;
@@ -44,12 +46,14 @@ function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
   and spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 
-{ The first step of a shortest walk that brings the creature in arena slot slot next to the one in targetSlot (some
-  cell of each body within one step of the other's), found breadth first over the arena (#668). A cell the creature's
-  body would cover must be on the arena, not a wall (terrain cost 255) and not another creature's (occupant); the
-  steps are the eight directions, the ones nearest the heading straight at the target tried first. False, with dir
-  unchanged, when the creature is next to the target already or no walk reaches it. }
-function RouteStep(slot, targetSlot: Byte; occupant: TOccupant; var dir: Byte): Boolean;
+{ The first step of a shortest walk that brings the creature in arena slot slot next to one of the creatures in goals
+  (some cell of each body within one step of the other's), found breadth first over the arena (#668); goal returns
+  which one. A cell the creature's body would cover must be on the arena, not a wall (terrain cost 255), not terrain
+  avoid (0 for none) and not another creature's (occupant) unless that one is in open (#769); the steps are the eight
+  directions, the ones nearest the heading straight at the nearest goal tried first. False, with dir and goal
+  unchanged, when the creature is next to a goal already or no walk reaches one. }
+function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOccupant;
+                   var dir, goal: Byte): Boolean;
 
 implementation
 
@@ -350,14 +354,14 @@ const
   TURNS: array[0..7] of Byte = (0, 1, 7, 2, 6, 3, 5, 4);
 
 type
-  { per cell, the first step of the walk that reached it }
+  { per cell, the first step of the walk that reached it; or the goal next to it }
   TRouteMarks = array[0..ARENA_LAST_Y, 0..ARENA_LAST_X] of Byte;
   { the cells to visit, x + 50 * y }
   TRouteQueue = array[0..(ARENA_LAST_X + 1) * (ARENA_LAST_Y + 1) - 1] of Word;
 
-{ True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, no wall, and nobody but
-  slot itself on it. }
-function CanStand(x, y: ShortInt; size, slot: Byte; occupant: TOccupant): Boolean;
+{ True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, no wall, not terrain
+  avoid, and nobody on it but slot itself and the creatures in open. }
+function CanStand(x, y: ShortInt; size, slot: Byte; open: TSlotSet; avoid: Byte; occupant: TOccupant): Boolean;
 var
   i: Byte;
   dx: ShortInt;
@@ -375,109 +379,146 @@ begin
       if (cx < 0) or (cx > ARENA_LAST_X) or (cy < 0) or (cy > ARENA_LAST_Y) then
         Exit;
       t := GDVars.arenaPtr^.cells[cy, cx];
-      if (t = 0) or (GDConsts.terrainInfo[t].cost = WALL_COST) then
+      if (t = 0) or (t = avoid) or (GDConsts.terrainInfo[t].cost = WALL_COST) then
         Exit;
       c := occupant(cx, cy);
-      if (c <> 0) and (c <> slot) then
+      if (c <> 0) and (c <> slot) and not (c in open) then
         Exit;
     end;
   CanStand := True;
 end;
 
-{ True when a body of size at (x, y) has a cell within one step of a cell of the target's body (tsize at (tx, ty)). }
-function Reaches(x, y: ShortInt; size: Byte; tx, ty: ShortInt; tsize: Byte): Boolean;
+{ The goal a body of size at (x, y) is next to, by near (per cell, the goal within one step of it, or 0); 0 for none. }
+function Reaches(x, y: ShortInt; size: Byte; var near: TRouteMarks): Byte;
 var
   i: Byte;
-  j: Byte;
   dx: ShortInt;
   dy: ShortInt;
-  ex: ShortInt;
-  ey: ShortInt;
 begin
-  Reaches := False;
+  Reaches := 0;
   for i := 0 to 3 do
     if Pathing.GetIconTileDelta(size, i, dx, dy) then
-      for j := 0 to 3 do
-        if Pathing.GetIconTileDelta(tsize, j, ex, ey) then
-          if (Abs(x + dx - tx - ex) <= 1) and (Abs(y + dy - ty - ey) <= 1) then begin
-            Reaches := True;
-            Exit;
-          end;
+      if near[y + dy, x + dx] <> 0 then begin
+        Reaches := near[y + dy, x + dx];
+        Exit;
+      end;
 end;
 
-function RouteStep(slot, targetSlot: Byte; occupant: TOccupant; var dir: Byte): Boolean;
+{ Mark in near each cell within one step of a goal's body with that goal (the first goal marked keeps a cell), and
+  point heading from (sx, sy) straight at the nearest goal. }
+procedure MarkGoals(goals: TSlotSet; sx, sy: ShortInt; var near: TRouteMarks; var heading: Byte);
+var
+  s: Byte;
+  i: Byte;
+  dx: ShortInt;
+  dy: ShortInt;
+  x: ShortInt;
+  y: ShortInt;
+  d: Byte;
+  span: Integer;
+  best: Integer;
+  tx: ShortInt;
+  ty: ShortInt;
+begin
+  FillChar(near, SizeOf(TRouteMarks), 0);
+  best := MaxInt;
+  tx := sx;
+  ty := sy;
+  for s := 1 to Types.ARENA_SLOTS do
+    if (s in goals) and (GDVars.arenaLoc[s].size <> 0) then begin
+      for i := 0 to 3 do
+        if Pathing.GetIconTileDelta(GDVars.arenaLoc[s].size, i, dx, dy) then
+          for y := GDVars.arenaLoc[s].y + dy - 1 to GDVars.arenaLoc[s].y + dy + 1 do
+            for x := GDVars.arenaLoc[s].x + dx - 1 to GDVars.arenaLoc[s].x + dx + 1 do
+              if (x >= 0) and (x <= ARENA_LAST_X) and (y >= 0) and (y <= ARENA_LAST_Y) then
+                if near[y, x] = 0 then
+                  near[y, x] := s;
+      span := Abs(GDVars.arenaLoc[s].x - sx);
+      if Abs(GDVars.arenaLoc[s].y - sy) > span then
+        span := Abs(GDVars.arenaLoc[s].y - sy);
+      if span < best then begin
+        best := span;
+        tx := GDVars.arenaLoc[s].x;
+        ty := GDVars.arenaLoc[s].y;
+      end;
+    end;
+  heading := C_Dir.NORTH;
+  for d := C_Dir.NORTH to C_Dir.NORTHWEST do
+    if (GDConsts.dirDX[d] = Pathing.SignOf(tx - sx)) and (GDConsts.dirDY[d] = Pathing.SignOf(ty - sy)) then
+      heading := d;
+end;
+
+function RouteStep(slot: Byte; goals, open: TSlotSet; avoid: Byte; occupant: TOccupant;
+                   var dir, goal: Byte): Boolean;
 var
   marks: ^TRouteMarks;
+  near: ^TRouteMarks;
   queue: ^TRouteQueue;
   head: Word;
   tail: Word;
   sx: ShortInt;
   sy: ShortInt;
-  tx: ShortInt;
-  ty: ShortInt;
   x: ShortInt;
   y: ShortInt;
   nx: ShortInt;
   ny: ShortInt;
   size: Byte;
-  tsize: Byte;
   heading: Byte;
   d: Byte;
   k: Byte;
   first: Byte;
-  found: Boolean;
+  reached: Byte;
 begin
   RouteStep := False;
   sx := GDVars.arenaLoc[slot].x;
   sy := GDVars.arenaLoc[slot].y;
   size := GDVars.arenaLoc[slot].size;
-  tx := GDVars.arenaLoc[targetSlot].x;
-  ty := GDVars.arenaLoc[targetSlot].y;
-  tsize := GDVars.arenaLoc[targetSlot].size;
-  if (size = 0) or (tsize = 0) or Reaches(sx, sy, size, tx, ty, tsize) then
+  if size = 0 then
     Exit;
-  { the heading straight at the target }
-  heading := C_Dir.NORTH;
-  for d := C_Dir.NORTH to C_Dir.NORTHWEST do
-    if (GDConsts.dirDX[d] = Pathing.SignOf(tx - sx)) and (GDConsts.dirDY[d] = Pathing.SignOf(ty - sy)) then
-      heading := d;
-  GetMem(marks, SizeOf(TRouteMarks));
-  GetMem(queue, SizeOf(TRouteQueue));
-  FillChar(marks^, SizeOf(TRouteMarks), UNREACHED);
-  marks^[sy, sx] := START;
-  queue^[0] := sx + (ARENA_LAST_X + 1) * sy;
-  head := 0;
-  tail := 1;
-  found := False;
-  while (head < tail) and not found do begin
-    x := queue^[head] mod (ARENA_LAST_X + 1);
-    y := queue^[head] div (ARENA_LAST_X + 1);
-    Inc(head);
-    k := 0;
-    while (k <= 7) and not found do begin
-      d := (heading + TURNS[k]) mod 8;
-      nx := x + GDConsts.dirDX[d];
-      ny := y + GDConsts.dirDY[d];
-      if (nx >= 0) and (nx <= ARENA_LAST_X) and (ny >= 0) and (ny <= ARENA_LAST_Y) then
-        if (marks^[ny, nx] = UNREACHED) and CanStand(nx, ny, size, slot, occupant) then begin
-          first := marks^[y, x];
-          if first = START then
-            first := d;
-          marks^[ny, nx] := first;
-          if Reaches(nx, ny, size, tx, ty, tsize) then begin
-            dir := first;
-            found := True;
-          end else begin
-            queue^[tail] := nx + (ARENA_LAST_X + 1) * ny;
-            Inc(tail);
+  GetMem(near, SizeOf(TRouteMarks));
+  MarkGoals(goals, sx, sy, near^, heading);
+  { next to a goal already: no step to take }
+  if Reaches(sx, sy, size, near^) = 0 then begin
+    GetMem(marks, SizeOf(TRouteMarks));
+    GetMem(queue, SizeOf(TRouteQueue));
+    FillChar(marks^, SizeOf(TRouteMarks), UNREACHED);
+    marks^[sy, sx] := START;
+    queue^[0] := sx + (ARENA_LAST_X + 1) * sy;
+    head := 0;
+    tail := 1;
+    reached := 0;
+    while (head < tail) and (reached = 0) do begin
+      x := queue^[head] mod (ARENA_LAST_X + 1);
+      y := queue^[head] div (ARENA_LAST_X + 1);
+      Inc(head);
+      k := 0;
+      while (k <= 7) and (reached = 0) do begin
+        d := (heading + TURNS[k]) mod 8;
+        nx := x + GDConsts.dirDX[d];
+        ny := y + GDConsts.dirDY[d];
+        if (nx >= 0) and (nx <= ARENA_LAST_X) and (ny >= 0) and (ny <= ARENA_LAST_Y) then
+          if (marks^[ny, nx] = UNREACHED) and CanStand(nx, ny, size, slot, open, avoid, occupant) then begin
+            first := marks^[y, x];
+            if first = START then
+              first := d;
+            marks^[ny, nx] := first;
+            reached := Reaches(nx, ny, size, near^);
+            if reached <> 0 then begin
+              dir := first;
+              goal := reached;
+              RouteStep := True;
+            end else begin
+              queue^[tail] := nx + (ARENA_LAST_X + 1) * ny;
+              Inc(tail);
+            end;
           end;
-        end;
-      Inc(k);
+        Inc(k);
+      end;
     end;
+    FreeMem(queue, SizeOf(TRouteQueue));
+    FreeMem(marks, SizeOf(TRouteMarks));
   end;
-  FreeMem(queue, SizeOf(TRouteQueue));
-  FreeMem(marks, SizeOf(TRouteMarks));
-  RouteStep := found;
+  FreeMem(near, SizeOf(TRouteMarks));
 end;
 
 end.

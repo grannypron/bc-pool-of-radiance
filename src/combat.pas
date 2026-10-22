@@ -283,10 +283,11 @@ begin
     FxEngine.ConsiderStinkingCloud(p);
     if p^.status = C_Status.DYING then begin
       Inc(p^.combatAddr^.overkill);
-      if p^.combatAddr^.overkill > 9 then
+      if p^.combatAddr^.overkill > 9 then begin
         { dead at -10 }
         p^.status := C_Status.DEAD;
         Stats.BledOut(p);
+      end;
     end;
     Inc(cnt);
     p := p^.nextCharAddr;
