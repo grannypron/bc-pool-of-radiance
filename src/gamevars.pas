@@ -278,11 +278,6 @@ var
 
 var
   { Rest and healing }
-  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
-    parameter }
-  restingTimeGbvm: Types.TClock;
-  { Time rested today, in five-minute ticks. }
-  healTicks: Word;
   { Suppress the window border. }
   suppressDrawingBorderFlag: Byte;
 

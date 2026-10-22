@@ -310,9 +310,9 @@ begin
     if total < t then total := t;
     p := p^.nextCharAddr;
   end;
-  Clock.SetFromMinutes(GameVars.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameTime.restingTimeGbvm, total);
   interrupted := GameTime.CampRest(True);
-  FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
+  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
   CharDisp.PrintMiscInfo;
 end;
 
@@ -1030,11 +1030,11 @@ begin
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
-  Clock.SetFromMinutes(GameVars.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameTime.restingTimeGbvm, total);
   interrupted := GameTime.CampRest(False);
-  done := (GameVars.restingTimeGbvm[C_TIME.DAYS] = 0) and (GameVars.restingTimeGbvm[C_TIME.HOURS] = 0) and
-          (GameVars.restingTimeGbvm[C_TIME.TURNS] = 0) and (GameVars.restingTimeGbvm[C_TIME.MINUTES] = 0);
-  FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
+  done := (GameTime.restingTimeGbvm[C_TIME.DAYS] = 0) and (GameTime.restingTimeGbvm[C_TIME.HOURS] = 0) and
+          (GameTime.restingTimeGbvm[C_TIME.TURNS] = 0) and (GameTime.restingTimeGbvm[C_TIME.MINUTES] = 0);
+  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
   if done and not interrupted then begin
     for i := 1 to n do
       for kind := FIX_DISEASE to FIX_CURSE do
@@ -1075,8 +1075,8 @@ var
 begin
   savedIfc := GameVars.ifcState;
   GameVars.ifcState := C_IFC.CAMPING;
-  GameVars.healTicks := 0;
-  FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
+  GameTime.healTicks := 0;
+  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
   CharDisp.DisplayNoncombatInterface;
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 18, LightGreen, 'The party makes camp...');

@@ -6,6 +6,15 @@ unit GameTime;
 
 interface
 
+uses Types;
+
+var
+  { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
+    parameter }
+  restingTimeGbvm: Types.TClock;
+  { Time rested today, in five-minute ticks. }
+  healTicks: Word;
+
 { Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
   restingTimeGbvm. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
   stop. Returns True when a scripted random interruption ends the rest. }
@@ -13,7 +22,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
+uses C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -23,12 +32,12 @@ var
 { Normalize the rest timer: carry components and fold any months into days (30 each), capping the days at 99. }
 procedure ValidateRestTime;
 begin
-  Clock.ValidateClock(GameVars.restingTimeGbvm, False);
-  if GameVars.restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
-    Inc(GameVars.restingTimeGbvm[C_TIME.DAYS],
-        GameDefs.unitScale[C_TIME.DAYS] * GameVars.restingTimeGbvm[C_TIME.MONTHS]);
-    GameVars.restingTimeGbvm[C_TIME.MONTHS] := 0;
-    if GameVars.restingTimeGbvm[C_TIME.DAYS] > 99 then GameVars.restingTimeGbvm[C_TIME.DAYS] := 99;
+  Clock.ValidateClock(restingTimeGbvm, False);
+  if restingTimeGbvm[C_TIME.MONTHS] > 0 then begin
+    Inc(restingTimeGbvm[C_TIME.DAYS],
+        GameDefs.unitScale[C_TIME.DAYS] * restingTimeGbvm[C_TIME.MONTHS]);
+    restingTimeGbvm[C_TIME.MONTHS] := 0;
+    if restingTimeGbvm[C_TIME.DAYS] > 99 then restingTimeGbvm[C_TIME.DAYS] := 99;
   end;
 end;
 
@@ -39,23 +48,23 @@ var
   j: ShortInt;
   k: ShortInt;
 begin
-  if (GameVars.restingTimeGbvm[C_TIME.DAYS] <> 0) or (GameVars.restingTimeGbvm[C_TIME.HOURS] <> 0) or
-      (GameVars.restingTimeGbvm[C_TIME.TURNS] <> 0) or (GameVars.restingTimeGbvm[C_TIME.MINUTES] <> 0)
+  if (restingTimeGbvm[C_TIME.DAYS] <> 0) or (restingTimeGbvm[C_TIME.HOURS] <> 0) or
+      (restingTimeGbvm[C_TIME.TURNS] <> 0) or (restingTimeGbvm[C_TIME.MINUTES] <> 0)
   then begin
-    while count > GameVars.restingTimeGbvm[tUnit] do begin
+    while count > restingTimeGbvm[tUnit] do begin
       j := Succ(tUnit);
-      while (GameVars.restingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
+      while (restingTimeGbvm[j] = 0) and (j < C_TIME.MONTHS) do
         j := Succ(j);
       if j = C_TIME.MONTHS then begin
-        FillChar(GameVars.restingTimeGbvm, SizeOf(GameVars.restingTimeGbvm), 0);
+        FillChar(restingTimeGbvm, SizeOf(restingTimeGbvm), 0);
         count := 0;
       end else
         for k := j downto Succ(tUnit) do begin
-          Dec(GameVars.restingTimeGbvm[k]);
-          Inc(GameVars.restingTimeGbvm[Pred(k)], GameDefs.unitScale[Pred(k)]);
+          Dec(restingTimeGbvm[k]);
+          Inc(restingTimeGbvm[Pred(k)], GameDefs.unitScale[Pred(k)]);
         end;
     end;
-    Dec(GameVars.restingTimeGbvm[tUnit], count);
+    Dec(restingTimeGbvm[tUnit], count);
     GameTime.ValidateRestTime;
   end;
 end;
@@ -74,13 +83,13 @@ begin
   TextRend.DisplayString(1, 17, LightGreen, 'Rest Time:');
   x := 11;
   for i := C_TIME.DAYS downto C_TIME.HOURS do begin
-    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(GameVars.restingTimeGbvm[i]));
+    TextRend.DisplayString(x + 1, 17, colors[i], StrUtil.ZeroPad2(restingTimeGbvm[i]));
     TextRend.DisplayString(x + 1 + 2, 17, LightGreen, ':');
     Inc(x, 3);
   end;
   TextRend.DisplayString(x + 1, 17, colors[C_TIME.TURNS],
-                         StrUtil.ZeroPad2(10 * GameVars.restingTimeGbvm[C_TIME.TURNS] +
-                           GameVars.restingTimeGbvm[C_TIME.MINUTES]));
+                         StrUtil.ZeroPad2(10 * restingTimeGbvm[C_TIME.TURNS] +
+                           restingTimeGbvm[C_TIME.MINUTES]));
 end;
 
 { Rest-duration menu; returns True when the player picks Rest. Arrow keys: up = Inc, down = Dec, left/right = cycle the
@@ -127,9 +136,9 @@ begin
       'M': sel := C_TIME.TURNS;
       'I': begin
              if sel = C_TIME.TURNS then
-               Inc(GameVars.restingTimeGbvm[C_TIME.MINUTES], 5)
+               Inc(restingTimeGbvm[C_TIME.MINUTES], 5)
              else
-               Inc(GameVars.restingTimeGbvm[sel]);
+               Inc(restingTimeGbvm[sel]);
              GameTime.ValidateRestTime;
            end;
       'D': begin
@@ -150,8 +159,8 @@ var
   healed: Boolean;
   cur: Types.PCharRecord;
 begin
-  Inc(GameVars.healTicks);
-  if GameVars.healTicks >= 288 then begin
+  Inc(healTicks);
+  if healTicks >= 288 then begin
     healed := False;
     cur := GameVars.creatureList;
     while cur <> nil do begin
@@ -163,7 +172,7 @@ begin
     if healed then CharDisp.DisplayParty(GameVars.curChar);
     TextRend.PauseOnly;
     CharDisp.ClearMessageWindow;
-    GameVars.healTicks := 0;
+    healTicks := 0;
   end;
 end;
 
@@ -336,8 +345,8 @@ begin
   else
     stop := False;
   while (not stop) and
-      ((GameVars.restingTimeGbvm[C_TIME.DAYS] > 0) or (GameVars.restingTimeGbvm[C_TIME.HOURS] > 0) or
-       (GameVars.restingTimeGbvm[C_TIME.TURNS] > 0) or (GameVars.restingTimeGbvm[C_TIME.MINUTES] > 0))
+      ((restingTimeGbvm[C_TIME.DAYS] > 0) or (restingTimeGbvm[C_TIME.HOURS] > 0) or
+       (restingTimeGbvm[C_TIME.TURNS] > 0) or (restingTimeGbvm[C_TIME.MINUTES] > 0))
   do begin
     if KeyPressed then begin
       GameTime.DisplayRestTime(0);
@@ -378,4 +387,8 @@ begin
   GameVars.suppressDrawingBorderFlag := 0;
 end;
 
+begin
+  { Turbo Pascal clears no variable }
+  FillChar(restingTimeGbvm, SizeOf(restingTimeGbvm), 0);
+  healTicks := 0;
 end.
