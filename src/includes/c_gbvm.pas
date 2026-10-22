@@ -85,6 +85,8 @@ const
   CHAR_LEVEL = $6BA0;
   { thief skills 1..8 }
   CHAR_THIEF_SKILLS = $6BA5;
+  { thief skill 3, Find Traps }
+  CHAR_FIND_TRAPS = $6BA7;
   CHAR_THIEF_SKILLS_LAST = $6BAC;
   CHAR_NPC = $6BB8;
   { coins, copper to platinum, a cell apart; a write recalculates the character's stats }

@@ -746,9 +746,9 @@ begin
   EclVars.WriteGbvm(address, strength);
 end;
 
-{ CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = $6BA7 (thiefSkills[3]) or $6C1B
-  (movement), report the party's lowest, highest and average value. The results go to the addresses of vars 3..6
-  (lowest, highest, average, found). }
+{ CHECK PARTY: with var 1 = 0, report whether any member has effect var 2; with var 1 = C_Gbvm.CHAR_FIND_TRAPS or
+  C_Gbvm.CHAR_MOVEMENT, report the party's lowest, highest and average value (all 0 for an empty list). The results go
+  to the addresses of vars 3..6 (lowest, highest, average, found). }
 procedure EclCheckParty;
 var
   attr: Word;
@@ -763,6 +763,7 @@ var
   addr3: Word;
   addr4: Word;
   count: Byte;
+  value: Integer;
 
   { Store the three results and the found flag at the addresses of vars 3..6 }
   procedure Write4Gbvm;
@@ -790,40 +791,35 @@ begin
   count := 0;
   outv[1] := 255;
   outv[2] := 0;
+  outv[3] := 0;
   case attr of
     0: begin
       while (p <> nil) and (not found) do begin
         found := CharHlp.HasEffect(p, effId, effect);
         p := p^.nextCharAddr;
       end;
-      for count := 1 to 3 do
-        outv[count] := 0;
+      outv[1] := 0;
       Write4Gbvm;
     end;
-    $6BA7: begin
+    C_Gbvm.CHAR_FIND_TRAPS, C_Gbvm.CHAR_MOVEMENT: begin
       while p <> nil do begin
         Inc(count);
-        if p^.thiefSkills[3] < outv[1] then
-          outv[1] := p^.thiefSkills[3];
-        if p^.thiefSkills[3] > outv[2] then
-          outv[2] := p^.thiefSkills[3];
-        Inc(sum, p^.thiefSkills[3]);
+        if attr = C_Gbvm.CHAR_FIND_TRAPS then
+          value := p^.thiefSkills[3]
+        else
+          value := p^.movementCur;
+        if value < outv[1] then
+          outv[1] := value;
+        if value > outv[2] then
+          outv[2] := value;
+        Inc(sum, value);
         p := p^.nextCharAddr;
       end;
-      outv[3] := sum div count;
-      Write4Gbvm;
-    end;
-    $6C1B: begin
-      while p <> nil do begin
-        Inc(count);
-        if p^.movementCur < outv[1] then
-          outv[1] := p^.movementCur;
-        if p^.movementCur > outv[2] then
-          outv[2] := p^.movementCur;
-        Inc(sum, p^.movementCur);
-        p := p^.nextCharAddr;
-      end;
-      outv[3] := sum div count;
+      { SSI divided by the count unguarded, which an empty list would make a division by zero (#809) }
+      if count = 0 then
+        outv[1] := 0
+      else
+        outv[3] := sum div count;
       Write4Gbvm;
     end;
   end;
