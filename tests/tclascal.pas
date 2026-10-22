@@ -3,7 +3,7 @@
 {$I COMPILER.INC}
 program TClasCal;
 
-uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_Equip, C_Item, C_EFFECT, GDConsts, ClassCal, AbilAdj,
+uses Types, C_Level, C_Race, C_Save, C_SPELL, C_CLASS, C_ALIGN, C_EQUIP, C_Item, C_EFFECT, GDConsts, ClassCal, AbilAdj,
   Dice, TestKit{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -265,18 +265,18 @@ begin
   c^.dexCur := 15;
   FillChar(armor, SizeOf(armor), 0);
   armor.itemType := C_Item.LEATHER_ARMOR;
-  c^.equipped[C_Equip.ARMOR] := @armor;
+  c^.equipped[C_EQUIP.ARMOR] := @armor;
   ClassCal.RecalcThiefSkills(c);
   CheckSkills(30, 25, 20, 15, 10, 10, 85, 0, 'a fighter/thief in leather');
   armor.itemType := C_Item.LEATHER_ARMOR + 1;
   ClassCal.RecalcThiefSkills(c);
   CheckSkills(0, 0, 0, 0, 0, 0, 0, 0, 'in any other body armor: no skills');
-  c^.equipped[C_Equip.ARMOR] := nil;
+  c^.equipped[C_EQUIP.ARMOR] := nil;
   FillChar(shield, SizeOf(shield), 0);
-  c^.equipped[C_Equip.SHIELD] := @shield;
+  c^.equipped[C_EQUIP.SHIELD] := @shield;
   ClassCal.RecalcThiefSkills(c);
   CheckSkills(0, 0, 0, 0, 0, 0, 0, 0, 'with a shield: no skills');
-  c^.equipped[C_Equip.SHIELD] := nil;
+  c^.equipped[C_EQUIP.SHIELD] := nil;
 
   { a thief skill's parts, as More Info's Thief page shows them }
   Reset(C_Race.HALFLING);

@@ -23,7 +23,7 @@ procedure AllToManual;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_Gbvm, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
@@ -558,8 +558,8 @@ begin
       end;
       inRange := False;
       weaponRange := 1;
-      if creature^.equipped[C_Equip.WEAPON] <> nil then
-        weaponRange := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1;
+      if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+        weaponRange := CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.range - 1;
       if (weaponRange = 0) or (weaponRange = 255) then
         weaponRange := 1;
       { other is nil once AiMoveStep has dropped it. A lock on a creature of its own side, or one out of action, is
@@ -802,12 +802,12 @@ var
   hasAmmo: Boolean;
 begin
   { stop counting the current weapon/shield hands }
-  if creature^.equipped[C_Equip.WEAPON] <> nil then
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
-        - CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.hands;
-  if creature^.equipped[C_Equip.SHIELD] <> nil then
+        - CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.hands;
+  if creature^.equipped[C_EQUIP.SHIELD] <> nil then
     creature^.handsEquipped := creature^.handsEquipped
-        - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
+        - CharHlp.BaseItem(creature^.equipped[C_EQUIP.SHIELD]^.itemType)^.hands;
   bestRanged := nil;
   bestMelee := nil;
   bestShield := nil;
@@ -820,7 +820,7 @@ begin
   while item <> nil do begin
     itType := item^.itemType;
     { weapon slot }
-    if CharHlp.BaseItem(itType)^.slot = C_Equip.WEAPON then
+    if CharHlp.BaseItem(itType)^.slot = C_EQUIP.WEAPON then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) <> 0 then begin
         pri := CombatAi.CalcWeaponPriority(creature, item);
         if ((CharHlp.BaseItem(itType)^.props and C_Item.PROP_FIRES_AMMO) <> 0)
@@ -836,7 +836,7 @@ begin
           end;
       end;
     { shield slot }
-    if CharHlp.BaseItem(itType)^.slot = C_Equip.SHIELD then
+    if CharHlp.BaseItem(itType)^.slot = C_EQUIP.SHIELD then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) > 0 then begin
         if item^.plus >= 0 then
           pri := item^.plus + 1
@@ -870,17 +870,17 @@ begin
     item := bestMelee;
   changed := False;
   needSwap := True;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then
-    if (creature^.equipped[C_Equip.WEAPON] = item) or (creature^.equipped[C_Equip.WEAPON]^.cursed <> 0) then
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+    if (creature^.equipped[C_EQUIP.WEAPON] = item) or (creature^.equipped[C_EQUIP.WEAPON]^.cursed <> 0) then
       needSwap := False;
   if needSwap then begin
-    if creature^.equipped[C_Equip.WEAPON] <> nil then
-      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.WEAPON]);
+    if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+      FxEngine.ToggleReadyItem(creature^.equipped[C_EQUIP.WEAPON]);
     CharHlp.RecalcStats(creature);
-    if creature^.equipped[C_Equip.SHIELD] <> nil then
-      if creature^.equipped[C_Equip.SHIELD]^.cursed = 0 then
+    if creature^.equipped[C_EQUIP.SHIELD] <> nil then
+      if creature^.equipped[C_EQUIP.SHIELD]^.cursed = 0 then
         creature^.handsEquipped := creature^.handsEquipped
-            - CharHlp.BaseItem(creature^.equipped[C_Equip.SHIELD]^.itemType)^.hands;
+            - CharHlp.BaseItem(creature^.equipped[C_EQUIP.SHIELD]^.itemType)^.hands;
     if item <> nil then
       FxEngine.ToggleReadyItem(item);
     changed := True;
@@ -888,25 +888,25 @@ begin
   CharHlp.RecalcStats(creature);
   CbtActs.SetCurAttacksX2(creature);
   needSwap := True;
-  if creature^.equipped[C_Equip.SHIELD] <> nil then
-    if (creature^.equipped[C_Equip.SHIELD] = bestShield)
-       or (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then
+  if creature^.equipped[C_EQUIP.SHIELD] <> nil then
+    if (creature^.equipped[C_EQUIP.SHIELD] = bestShield)
+       or (creature^.equipped[C_EQUIP.SHIELD]^.cursed <> 0) then
       needSwap := False;
   if creature^.handsEquipped > 2 then begin
     { Over-handed: drop the shield, or the chosen weapon when there is no shield or the shield is cursed }
-    if (creature^.equipped[C_Equip.SHIELD] = nil) or
-        (creature^.equipped[C_Equip.SHIELD]^.cursed <> 0) then begin
+    if (creature^.equipped[C_EQUIP.SHIELD] = nil) or
+        (creature^.equipped[C_EQUIP.SHIELD]^.cursed <> 0) then begin
       { item is nil when no weapon was chosen }
       if item <> nil then
         FxEngine.ToggleReadyItem(item);
       changed := True;
     end else begin
-      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+      FxEngine.ToggleReadyItem(creature^.equipped[C_EQUIP.SHIELD]);
       changed := True;
     end;
   end else if (creature^.handsEquipped < 2) and needSwap then begin
-    if creature^.equipped[C_Equip.SHIELD] <> nil then
-      FxEngine.ToggleReadyItem(creature^.equipped[C_Equip.SHIELD]);
+    if creature^.equipped[C_EQUIP.SHIELD] <> nil then
+      FxEngine.ToggleReadyItem(creature^.equipped[C_EQUIP.SHIELD]);
     CharHlp.RecalcStats(creature);
     if bestShield <> nil then
       FxEngine.ToggleReadyItem(bestShield);

@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TDiskRec;
 
-uses Types, C_Money, C_Equip, DiskRec, TestKit;
+uses Types, C_Money, C_EQUIP, DiskRec, TestKit;
 
 var
   ch: Types.TCharRecord;
@@ -53,7 +53,7 @@ begin
   TestKit.CheckEqualsL(12, back.movementCur, 'movementCur, the last field, comes back');
   TestKit.CheckEqualsL(1, back.genderSp, 'genderSp is gender');
   TestKit.CheckEqualsL($C4, back.iconColors1[6], 'iconColors1 is iconColors');
-  TestKit.Check((back.effectsAddr = nil) and (back.itemsAddr = nil) and (back.equipped[C_Equip.BOLT] = nil) and
+  TestKit.Check((back.effectsAddr = nil) and (back.itemsAddr = nil) and (back.equipped[C_EQUIP.BOLT] = nil) and
                 (back.nextCharAddr = nil) and (back.combatAddr = nil), 'the pointers come back nil');
 
   FillChar(it, SizeOf(it), $33);

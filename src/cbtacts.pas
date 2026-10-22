@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_Equip, C_Keys, C_Level,
+uses C_Item, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_Keys, C_Level,
   C_STATUS, C_Gbvm, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -468,7 +468,7 @@ begin
   saved := creature^.curAttacks;
   if CharHlp.HasRangedWeapon(creature) and CharHlp.FindDamagingRangedWeapon(creature, weapon) then begin
     ranged := True;
-    rof := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.rateOfFire;
+    rof := CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.rateOfFire;
     if rof < 2 then
       rof := 2;
     GDVars.currentAttackCurrent := rof;
@@ -734,10 +734,10 @@ begin
     anyHit := True;
     done := True;
   end else begin
-    if (att^.equipped[C_Equip.WEAPON] <> nil) and (def^.iconDimensions and Types.ICON_LARGE <> 0) then begin
+    if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (def^.iconDimensions and Types.ICON_LARGE <> 0) then begin
       { large target: swap in the large-damage dice. SSI's took any creature with a two-tile icon for Large, so wolves,
         wild boars and basilisks took them (#748). }
-      base := CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^;
+      base := CharHlp.BaseItem(att^.equipped[C_EQUIP.WEAPON]^.itemType)^;
       att^.curRollsA[1] := base.dmgLgRolls;
       att^.curDiceA[1] := base.dmgLgDice;
       att^.curModA[1] := att^.curModA[1] - base.dmgSmMod + base.dmgLgMod;
@@ -851,8 +851,8 @@ begin
   if weapon <> nil then
     CbtActs.RangedAttackAnim(att, def, weapon);
   { a sling's stone animates a second time }
-  if (att^.equipped[C_Equip.WEAPON] <> nil) and (att^.equipped[C_Equip.WEAPON]^.itemType = C_Item.SLING) then
-    CbtActs.RangedAttackAnim(att, def, att^.equipped[C_Equip.WEAPON]);
+  if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (att^.equipped[C_EQUIP.WEAPON]^.itemType = C_Item.SLING) then
+    CbtActs.RangedAttackAnim(att, def, att^.equipped[C_EQUIP.WEAPON]);
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
     savedCur := GDVars.curChar;
@@ -892,7 +892,7 @@ var
 begin
   dist := CbtMap.CalcDistance(att, def);
   if CharHlp.HasRangedWeapon(att) then
-    subrange := (CharHlp.BaseItem(att^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1) div 3
+    subrange := (CharHlp.BaseItem(att^.equipped[C_EQUIP.WEAPON]^.itemType)^.range - 1) div 3
   else
     subrange := dist;
   if dist - subrange > 0 then begin
@@ -1207,7 +1207,7 @@ var
   can: Boolean;
 begin
   can := False;
-  weapon := att^.equipped[C_Equip.WEAPON];
+  weapon := att^.equipped[C_EQUIP.WEAPON];
   if weapon <> nil then
     wItem := weapon^.itemType;
   if att^.classLevels[C_Level.THIEF] > 0 then
@@ -1651,8 +1651,8 @@ begin
   done := False;
   effRange := range;
   if effRange = 255 then
-    if creature^.equipped[C_Equip.WEAPON] <> nil then
-      effRange := CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range - 1
+    if creature^.equipped[C_EQUIP.WEAPON] <> nil then
+      effRange := CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.range - 1
     else
       effRange := 1;
   if (effRange = 0) or (effRange = 255) then

@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_Gender, C_Save, C_Equip, C_Level, C_ABIL, C_Money, C_Gbvm;
+uses C_Gender, C_Save, C_EQUIP, C_Level, C_ABIL, C_Money, C_Gbvm;
 
 const
   { the longest name a character or creature has }
@@ -199,7 +199,7 @@ type
     { far ptr to item list }
     itemsAddr: PItemRec;
     { Readied items, indexed by EQUIP_*. }
-    equipped: array[C_Equip.WEAPON..C_Equip.BOLT] of PItemRec;
+    equipped: array[C_EQUIP.WEAPON..C_EQUIP.BOLT] of PItemRec;
     handsEquipped: Byte;
     { accumulated save bonus (signed) }
     saveBonus: ShortInt;

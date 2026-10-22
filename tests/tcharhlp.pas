@@ -4,7 +4,7 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GDVars, C_Item, C_Equip, C_Level, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
+uses Types, GDVars, C_Item, C_EQUIP, C_Level, C_Race, C_EFFECT, C_STATUS, C_Money, C_Npc, CharHlp, AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -383,7 +383,7 @@ begin
   GetMem(GDVars.baseItems, SizeOf(GDVars.baseItems^));
   FillChar(GDVars.baseItems^, SizeOf(GDVars.baseItems^), 0);
   GDVars.baseItems^[C_Item.LONG_BOW].props := C_Item.PROP_ARROWS or C_Item.PROP_DEX_MISSILE or C_Item.PROP_FIRES_AMMO;
-  GDVars.baseItems^[C_Item.ARROW].slot := C_Equip.RING2;
+  GDVars.baseItems^[C_Item.ARROW].slot := C_EQUIP.RING2;
   GDVars.baseItems^[C_Item.LONG_SWORD].props := C_Item.PROP_STR_BONUS;
   FillChar(weapon, SizeOf(weapon), 0);
   FillChar(arrows, SizeOf(arrows), 0);

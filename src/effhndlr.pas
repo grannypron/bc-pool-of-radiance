@@ -248,7 +248,7 @@ function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
 implementation
 
-uses C_Item, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_Equip,
+uses C_Item, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_Race, C_STATUS, C_Ifc, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
   C_Level, Dice, Stats;
 
@@ -795,7 +795,7 @@ procedure AvoidRanged(creature: Types.PCharRecord; pct: Byte);
 var
   phase: Byte;
 begin
-  if GDVars.curChar^.equipped[C_Equip.WEAPON] <> nil then
+  if GDVars.curChar^.equipped[C_EQUIP.WEAPON] <> nil then
     if CbtMap.CalcDistance(GDVars.curChar, creature) > 1 then
       if Dice.RollDice(1, 100) <= pct then begin
         CharDisp.PrintNameString(creature, 'Avoids it', 10, True);
@@ -817,10 +817,10 @@ var
   ok: Boolean;
 begin
   sel := nil;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then begin
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
     ok := CharHlp.FindDamagingRangedWeapon(creature, sel);
     if (ok = False) or (sel = nil) then
-      sel := creature^.equipped[C_Equip.WEAPON];
+      sel := creature^.equipped[C_EQUIP.WEAPON];
   end;
   FindDamagingWeapon := sel;
 end;
@@ -1736,7 +1736,7 @@ procedure EffHolyWater(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 var
   item: Types.PItemRec;
 begin
-  item := GDVars.curChar^.equipped[C_Equip.WEAPON];
+  item := GDVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
     if item^.itemType = C_Item.HOLY_WATER_VIAL then
       GDVars.pendingDamage := Dice.RollDamageDice(1, 6) + 1;
@@ -1765,7 +1765,7 @@ procedure EffBoulderDodge(creature: Types.PCharRecord; p: Pointer; removed: Bool
 var
   item: Types.PItemRec;
 begin
-  item := GDVars.curChar^.equipped[C_Equip.WEAPON];
+  item := GDVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
     if (item^.itemType = C_Item.BOULDER) or (item^.itemType = C_Item.LARGE_BOULDER) then
       EffHndlr.AvoidRanged(creature, 50);
@@ -1801,7 +1801,7 @@ procedure EffMummyFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 var
   item: Types.PItemRec;
 begin
-  item := GDVars.curChar^.equipped[C_Equip.WEAPON];
+  item := GDVars.curChar^.equipped[C_EQUIP.WEAPON];
   if item <> nil then
     if item^.itemType = C_Item.FLASK_OF_OIL then
       GDVars.pendingDamage := Dice.RollDamageDice(3, 8);

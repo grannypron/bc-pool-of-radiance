@@ -75,11 +75,11 @@ function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
 
 function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 
-{ FindAmmo for the readied weapon (equipped[C_Equip.WEAPON]). }
+{ FindAmmo for the readied weapon (equipped[C_EQUIP.WEAPON]). }
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
 
 { Find the item that does the damage when the creature shoots or throws weapon w: w itself if C_Item.PROP_THROWN, else
-  the arrows (equipped[C_Equip.ARROW]) with a bow (C_Item.PROP_ARROWS) or the quarrels (equipped[C_Equip.BOLT]) with a
+  the arrows (equipped[C_EQUIP.ARROW]) with a bow (C_Item.PROP_ARROWS) or the quarrels (equipped[C_EQUIP.BOLT]) with a
   crossbow (C_Item.PROP_QUARRELS). A launcher with neither ammunition bit (props exactly C_Item.PROP_DEX_MISSILE +
   C_Item.PROP_FIRES_AMMO) returns True with sel nil; no weapon (nil), a pure melee weapon or a launcher with no
   ammunition readied returns False. }
@@ -188,7 +188,7 @@ function TheftChance(chance: Byte; weight: Word): Byte;
 
 implementation
 
-uses C_Item, GDConsts, GDVars, C_EFFECT, C_Equip, C_Race, C_Level, C_STATUS, C_Ifc,
+uses C_Item, GDConsts, GDVars, C_EFFECT, C_EQUIP, C_Race, C_Level, C_STATUS, C_Ifc,
   C_Money, Stats, C_Npc, StrUtil, AbilAdj, C_SPELL, ClassCal;
 
 const
@@ -250,7 +250,7 @@ var
   wtype: Byte;
   plus: ShortInt;
 begin
-  w := creature^.equipped[C_Equip.WEAPON];
+  w := creature^.equipped[C_EQUIP.WEAPON];
   if w = nil then Exit;
   wtype := w^.itemType;
   creature^.thac0Cur := creature^.thac0Base;
@@ -278,12 +278,12 @@ begin
   creature^.curDiceA[1] := CharHlp.BaseItem(wtype)^.dmgSmDice;
 end;
 
-{ Body armor only (base slot C_Equip.ARMOR): set current movement from the armor's weight (up to LIGHT_ARMOR, the base
+{ Body armor only (base slot C_EQUIP.ARMOR): set current movement from the armor's weight (up to LIGHT_ARMOR, the base
   movement; up to MEDIUM_ARMOR, MOVE_LOADED; heavier, MOVE_HEAVY), then MAGIC_ARMOR_MOVE more if the armor has a nonzero
   plus and the movement is still at most MOVE_LOADED. }
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
 begin
-  if CharHlp.BaseItem(item^.itemType)^.slot = C_Equip.ARMOR then begin
+  if CharHlp.BaseItem(item^.itemType)^.slot = C_EQUIP.ARMOR then begin
     case item^.weight of
       0..LIGHT_ARMOR: creature^.movementCur := creature^.movementBase;
       LIGHT_ARMOR + 1..MEDIUM_ARMOR: creature^.movementCur := MOVE_LOADED;
@@ -311,10 +311,10 @@ begin
   if descr > $7F then begin
     descr := descr and $7F;
     slot := CharHlp.BaseItem(item^.itemType)^.slot;
-    if slot = C_Equip.SHIELD then
+    if slot = C_EQUIP.SHIELD then
       adj^[Types.AC_SHIELD] := descr + item^.plus
     else if descr = 0 then begin
-      if slot = C_Equip.RING1 then begin
+      if slot = C_EQUIP.RING1 then begin
         if item^.plus > adj^[Types.AC_RING] then
           adj^[Types.AC_RING] := item^.plus;
         if item^.plus > ringSave then
@@ -329,7 +329,7 @@ begin
       if descr + item^.plus > adj^[Types.AC_ARMOR] then begin
         adj^[Types.AC_ARMOR] := descr + item^.plus;
         if item^.plus > 0 then
-          if slot = C_Equip.ARMOR then
+          if slot = C_EQUIP.ARMOR then
             isMagicBody^ := True;
       end;
     end;
@@ -425,32 +425,32 @@ begin
 end;
 
 { Point creature's equipment slots at its readied items, every other slot nil: a second ring goes in RING2, arrows and
-  quarrels in their own slots (C_Equip.ARROW and BOLT) as well as their base item's. }
+  quarrels in their own slots (C_EQUIP.ARROW and BOLT) as well as their base item's. }
 procedure LinkEquipped(creature: Types.PCharRecord);
 var
   i: ShortInt;
   item: Types.PItemRec;
   slot: 0..127;
 begin
-  for i := C_Equip.WEAPON to C_Equip.BOLT do
+  for i := C_EQUIP.WEAPON to C_EQUIP.BOLT do
     creature^.equipped[i] := nil;
   item := creature^.itemsAddr;
   while item <> nil do begin
     if item^.equipped <> 0 then begin
       slot := CharHlp.BaseItem(item^.itemType)^.slot;
       case Byte(slot) of
-        C_Equip.WEAPON..C_Equip.BOOTS: creature^.equipped[slot] := item;
-        C_Equip.RING1:
-          if creature^.equipped[C_Equip.RING1] <> nil then begin
-            if creature^.equipped[C_Equip.RING2] = nil then
-              creature^.equipped[C_Equip.RING2] := item;
+        C_EQUIP.WEAPON..C_EQUIP.BOOTS: creature^.equipped[slot] := item;
+        C_EQUIP.RING1:
+          if creature^.equipped[C_EQUIP.RING1] <> nil then begin
+            if creature^.equipped[C_EQUIP.RING2] = nil then
+              creature^.equipped[C_EQUIP.RING2] := item;
           end else
-            creature^.equipped[C_Equip.RING1] := item;
+            creature^.equipped[C_EQUIP.RING1] := item;
       end;
       if item^.itemType = C_Item.ARROW then
-        creature^.equipped[C_Equip.ARROW] := item;
+        creature^.equipped[C_EQUIP.ARROW] := item;
       if item^.itemType = C_Item.QUARREL then
-        creature^.equipped[C_Equip.BOLT] := item;
+        creature^.equipped[C_EQUIP.BOLT] := item;
     end;
     item := item^.next;
   end;
@@ -510,7 +510,7 @@ begin
   creature^.movementCur := creature^.movementBase;
   creature^.thac0Cur := creature^.thac0Base;
   adj[Types.AC_DEX] := AbilAdj.DexterityArmorAdjustment(creature);
-  if creature^.equipped[C_Equip.WEAPON] = nil then begin
+  if creature^.equipped[C_EQUIP.WEAPON] = nil then begin
     creature^.thac0Cur := AbilAdj.StrToHitAdjust(creature) + creature^.thac0Cur;
     creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
@@ -877,8 +877,8 @@ end;
 { True when the readied weapon has a range past 1 (thrown weapons count). }
 function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
 begin
-  if (creature^.equipped[C_Equip.WEAPON] <> nil) and
-      (CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.range > 1) then
+  if (creature^.equipped[C_EQUIP.WEAPON] <> nil) and
+      (CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.range > 1) then
     HasRangedWeapon := True
   else
     HasRangedWeapon := False;
@@ -888,7 +888,7 @@ end;
 function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 begin
   if CharHlp.HasRangedWeapon(creature) and
-      ((CharHlp.BaseItem(creature^.equipped[C_Equip.WEAPON]^.itemType)^.props and
+      ((CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.props and
         C_Item.PROPS_THROWABLE) = C_Item.PROPS_THROWABLE) then
     HasThrowableWeapon := True
   else
@@ -897,7 +897,7 @@ end;
 
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
 begin
-  FindDamagingRangedWeapon := CharHlp.FindAmmo(creature, creature^.equipped[C_Equip.WEAPON], sel);
+  FindDamagingRangedWeapon := CharHlp.FindAmmo(creature, creature^.equipped[C_EQUIP.WEAPON], sel);
 end;
 
 function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
@@ -913,9 +913,9 @@ begin
       sel := w;
     if (props and C_Item.PROP_FIRES_AMMO) <> 0 then begin
       if (props and C_Item.PROP_ARROWS) <> 0 then
-        sel := creature^.equipped[C_Equip.ARROW];
+        sel := creature^.equipped[C_EQUIP.ARROW];
       if (props and C_Item.PROP_QUARRELS) <> 0 then
-        sel := creature^.equipped[C_Equip.BOLT];
+        sel := creature^.equipped[C_EQUIP.BOLT];
     end;
   end;
   if (sel <> nil) or (props = C_Item.PROP_DEX_MISSILE + C_Item.PROP_FIRES_AMMO) then

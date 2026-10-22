@@ -98,7 +98,7 @@ const
   NAME_WITH_1_SPELL = 210;
   NAME_SPIRITUAL = 243;
   NAME_WOODEN = 252;
-  { TBaseItemRec.slot past the equipment slots (C_Equip): a magic-user's scroll, a cleric's, and the last slot a
+  { TBaseItemRec.slot past the equipment slots (C_EQUIP): a magic-user's scroll, a cleric's, and the last slot a
     readable item has }
   SLOT_MAGE_SCROLL = 11;
   SLOT_CLERIC_SCROLL = 12;

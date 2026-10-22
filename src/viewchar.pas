@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_Equip, C_Keys, C_CLASS, C_Level, C_STATUS, C_Ifc, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_EQUIP, C_Keys, C_CLASS, C_Level, C_STATUS, C_Ifc, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -108,15 +108,15 @@ begin
   TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(creature^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then begin
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
     TextRend.DisplayString(1, row, White, 'Weapon');
-    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.WEAPON], 8, row);
+    CharDisp.PrintItemLabel(creature^.equipped[C_EQUIP.WEAPON], 8, row);
   end;
   Inc(row);
-  if creature^.equipped[C_Equip.ARMOR] <> nil then begin
+  if creature^.equipped[C_EQUIP.ARMOR] <> nil then begin
     { 'Armor' starts one column right of 'Weapon' so the two labels end in the same column }
     TextRend.DisplayString(2, row, White, 'Armor');
-    CharDisp.PrintItemLabel(creature^.equipped[C_Equip.ARMOR], 8, row);
+    CharDisp.PrintItemLabel(creature^.equipped[C_EQUIP.ARMOR], 8, row);
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');

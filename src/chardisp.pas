@@ -69,7 +69,7 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_Equip, C_Keys, C_Ifc, Blit,
+uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_Keys, C_Ifc, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_Gbvm, Party;
 
 var
@@ -164,11 +164,11 @@ begin
   TextRend.DisplayString(23, row + 1, LightGreen, 'AC');
   CharDisp.PrintArmorClass(creature, 26, row + 1);
   GDVars.curRow := row + 1;
-  if creature^.equipped[C_Equip.WEAPON] <> nil then begin
+  if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
     Inc(row, 2);
-    CharHlp.ItemLabel(creature^.equipped[C_Equip.WEAPON], False);
+    CharHlp.ItemLabel(creature^.equipped[C_EQUIP.WEAPON], False);
     TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
-                                  creature^.equipped[C_Equip.WEAPON]^.name);
+                                  creature^.equipped[C_EQUIP.WEAPON]^.name);
   end;
   row := GDVars.curRow + 1;
   if creature^.enabled = 0 then
