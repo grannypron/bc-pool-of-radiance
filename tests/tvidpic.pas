@@ -26,7 +26,7 @@ begin
     { colours 2i and 2i + 1 to CGA colours (2i) mod 4 and (2i + 1) mod 4 }
     pic^.map[i] := (((2 * i) mod 4) shl 4) or ((2 * i + 1) mod 4);
   Move(DAX, dax_, SizeOf(dax_));
-  Blit.ExpandPicFrames(Types.PByteArr(@dax_), 0, True, 0, pic);
+  Blit.ExpandPicFrames(Types.PByteArr(@dax_), 0, 0, pic);
   TestPic := pic;
 end;
 

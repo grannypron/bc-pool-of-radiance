@@ -121,9 +121,8 @@ begin
     end;
     p := p^.nextCharAddr;
   end;
-  if success then begin
+  if success then
     Explore.OpenBarrierAhead;
-  end;
   BashDoor := success;
 end;
 
@@ -144,9 +143,8 @@ begin
     p := p^.nextCharAddr;
   end;
   GDVars.doorOpen[1] := 0;
-  if success then begin
+  if success then
     Explore.OpenBarrierAhead;
-  end;
   PickLock := success;
 end;
 

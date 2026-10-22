@@ -836,7 +836,7 @@ type
   TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
   TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
   TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
-  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte; pic: PImgBuf);
+  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; transpColor: Byte; pic: PImgBuf);
   TMirrorFrameProc = procedure(src, dst: PImgBuf);
   TRemapColourProc = procedure(pic, scratch: PImgBuf; srcOff: Word; nFrames: Byte; fromC, toC: Byte;
                                isDithered: Boolean);

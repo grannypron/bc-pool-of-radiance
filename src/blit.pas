@@ -54,15 +54,12 @@ procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byt
   buffer, block by block (pic^.more), and, when the buffer has one, its transparency mask. CGA produces two pixel bytes
   and a two-byte mask per eight-pixel cell; EGA produces four plane bytes and one mask byte; Tandy copies the pixels
   as-is and derives its mask in place. Transparent pixels are cleared in the pixel data so masked drawing can keep the
-  background under them and OR the graphic in. Mask generation is decided by the buffer having a mask; hasMask is not
-  read.
+  background under them and OR the graphic in. A mask is built when the buffer has one.
   @param(imgData Raw decompressed block holding the artwork.)
   @param(srcOff Offset within imgData of the first pixel byte, just past the picture header.)
-  @param(hasMask Unused.)
   @param(transpColor Color index treated as transparent when building masks.)
   @param(pic Destination buffer, sized by AllocPic; nothing happens if nil.) }
-procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
-                          pic: Types.PImgBuf);
+procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 
 { Draws one frame of a graphic into a destination buffer at a character-cell position and marks the touched scanlines
   dirty so FlushView will push them to the screen. Each span records the first and inclusive last byte changed on its
@@ -286,16 +283,15 @@ begin
     map := colorMap;
   end;
   readOfs := SizeOf(TDaxPicHeader);
-  Blit.ExpandPicFrames(data, readOfs, hasMask, transpColor, pic);
+  Blit.ExpandPicFrames(data, readOfs, transpColor, pic);
   FreeMem(data, dataSize);
 end;
 
-procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; hasMask: Boolean; transpColor: Byte;
-                          pic: Types.PImgBuf);
+procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 begin
   { each block of the picture (pic^.more), its frames taking 4 DAX bytes a cell row }
   while pic <> nil do begin
-    GDVars.video.ExpandFrames(imgData, srcOff, hasMask, transpColor, pic);
+    GDVars.video.ExpandFrames(imgData, srcOff, transpColor, pic);
     Inc(srcOff, pic^.count * pic^.height * pic^.width * 4);
     pic := pic^.more;
   end;
@@ -368,7 +364,6 @@ begin
       srcOff := 0;
       scanline := screenY * 8;
       destOff := scanline * dest^.width;
-      lastRow := gfx^.height - 1;
       if dest^.height < screenY * 8 + gfx^.height then
         lastRow := dest^.height - 1 - screenY * 8
       else
@@ -535,7 +530,6 @@ end;
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
 var
   srcOff: Word;
-  dstOff: Word;
   nFrames: Byte;
   pairIdx: Byte;
   scratchPic: Types.PImgBuf;
@@ -557,16 +551,12 @@ begin
       nFrames := 1;
     srcOff := frame * imgSize;
   end;
-  dstOff := 0;
   Blit.AllocPic(pic^.height, pic^.width, nFrames, 0, scratchPic);
   scratchPic^.map := pic^.map;
-  Move(pic^.data[srcOff], scratchPic^.data[dstOff], scratchPic^.count * scratchPic^.imgSize);
-  for pairIdx := 0 to 15 do begin
-    srcOff := frame * pic^.imgSize;
-    dstOff := 0;
+  Move(pic^.data[srcOff], scratchPic^.data, scratchPic^.count * scratchPic^.imgSize);
+  for pairIdx := 0 to 15 do
     if fromColors[pairIdx] <> toColors[pairIdx] then
       GDVars.video.RemapColour(pic, scratchPic, srcOff, nFrames, fromColors[pairIdx], toColors[pairIdx], isDithered);
-  end;
   with pic^ do
     Move(scratchPic^.data, data[frame * imgSize], nFrames * imgSize);
   Blit.FreePic(scratchPic);
@@ -678,7 +668,6 @@ begin
   end else begin
     absRow := y;
     dstOff := absRow * pic^.width;
-    lastRow := height - 1;
     if pic^.height < y + height then
       lastRow := pic^.height - 1 - y
     else
