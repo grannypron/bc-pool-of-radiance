@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, C_Npc, GDConsts, GDVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_Keys, C_CLASS, C_Level, C_STATUS, C_IFC, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
+  C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_Level, C_STATUS, C_IFC, C_ABIL, C_Money, C_Save, Vault, Stats, StrUtil,
   CharDisp, MoneyCal, C_MSG, ClassCal;
 
 var
@@ -461,16 +461,16 @@ begin
     if ext then begin
       if page = PAGE_KILLS then
         case ch of
-          C_Keys.UP: if top > 1 then
+          C_KEYS.UP: if top > 1 then
                        Dec(top, 2);
-          C_Keys.DOWN: if top + KILLS_SHOWN <= kinds then
+          C_KEYS.DOWN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, 2);
-          C_Keys.PGUP: begin
+          C_KEYS.PGUP: begin
                          Dec(top, KILLS_SHOWN);
                          if top < 1 then
                            top := 1;
                        end;
-          C_Keys.PGDN: if top + KILLS_SHOWN <= kinds then
+          C_KEYS.PGDN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, KILLS_SHOWN);
         end;
     end else
@@ -489,7 +489,7 @@ begin
                end;
              end;
       end;
-  until (not ext) and (ch in [C_Keys.NONE, 'E']);
+  until (not ext) and (ch in [C_KEYS.NONE, 'E']);
 end;
 
 { Draw "More Info" under the character sheet's portrait frame (columns 28..38, rows 1..11), the M in white as a hotkey
@@ -584,7 +584,7 @@ begin
   shown := GDVars.curChar;
   ViewChar.DisplayChar(shown);
   ViewChar.DrawMoreInfoLabel;
-  while not (ch in [C_Keys.NONE, 'E']) and not done do
+  while not (ch in [C_KEYS.NONE, 'E']) and not done do
   begin
     s := '';
     hasSpells := False;
@@ -726,7 +726,7 @@ begin
   vmRedraw := True;
   needRedraw := True;
   { the list as well as the count: a stale count over a nil list would never leave the loop }
-  while not (ch in [C_Keys.NONE, 'E']) and not done and (creature^.numberOfItems > 0) and
+  while not (ch in [C_KEYS.NONE, 'E']) and not done and (creature^.numberOfItems > 0) and
       (creature^.itemsAddr <> nil) do begin
     itemCount := creature^.numberOfItems;
     if creature^.itemsAddr <> nil then begin

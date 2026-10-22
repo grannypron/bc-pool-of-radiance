@@ -16,7 +16,7 @@ var
     adjusting a value); every return clears it. }
   arrowsToCaller: Boolean;
   { Set just before a MenuHorizontal call whose caller takes Enter itself (to change the highlighted line of a list):
-    Enter then returns C_Keys.ENTER in place of the current option's hotkey. Every return clears it. }
+    Enter then returns C_KEYS.ENTER in place of the current option's hotkey. Every return clears it. }
   enterToCaller: Boolean;
   { Set just before a MenuHorizontal call whose caller takes keys the menu line does not show (a letter drawn on the
     screen above it, say): a letter or digit in it ends the menu and is returned upper-cased, as a hotkey is, without
@@ -24,7 +24,7 @@ var
   extraKeys: string[16];
   { Set just before a MenuHorizontal call whose menu shows an option without a hotkey: its capital letter in here is
     drawn in the menu colour and does not choose the option, which is reached with the arrows (Enter on it returns the
-    letter, or C_Keys.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it. Every return
+    letter, or C_KEYS.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it. Every return
     clears it. }
   unmarked: string[4];
   { Set just before a MenuHorizontal call whose caller takes F5 and F8 (quick save and load) itself, as the map menu
@@ -78,7 +78,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_Keys, C_IFC, TextRend;
+uses GDConsts, GDVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -237,9 +237,9 @@ begin
         otherwise ignored. }
       begin
         ch := GameIo.ReadGameKey;
-        if ((ch = C_Keys.LEFT) or (ch = C_Keys.RIGHT)) and not arrowsToCaller then
-          StepOption(ch = C_Keys.RIGHT)
-        else if ((ch = C_Keys.F5) or (ch = C_Keys.F8)) and not quickKeysToCaller then begin
+        if ((ch = C_KEYS.LEFT) or (ch = C_KEYS.RIGHT)) and not arrowsToCaller then
+          StepOption(ch = C_KEYS.RIGHT)
+        else if ((ch = C_KEYS.F5) or (ch = C_KEYS.F8)) and not quickKeysToCaller then begin
           if GDVars.ifcState <> C_IFC.COMBAT then begin
             TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
             TextRend.ClearBottomLine;
@@ -254,15 +254,15 @@ begin
       end else
         case ch of
           { Escape returns #0. }
-          C_Keys.ESC: begin
+          C_KEYS.ESC: begin
                  done := True;
-                 ch := C_Keys.NONE;
+                 ch := C_KEYS.NONE;
                end;
-          C_Keys.ENTER: if enterOk then begin
+          C_KEYS.ENTER: if enterOk then begin
                  if takeOption and not enterToCaller and (opt[GDVars.horizChoice].first <> 0) then
                    ch := menu[opt[GDVars.horizChoice].first]
                  else
-                   ch := C_Keys.ENTER;
+                   ch := C_KEYS.ENTER;
                  done := True;
                end;
           ',': StepOption(False);
@@ -485,7 +485,7 @@ begin
     listOnly := False;
     idx := 0;
     sel := nil;
-    MenuVertical := C_Keys.NONE;
+    MenuVertical := C_KEYS.NONE;
   end else begin
     GDVars.horizChoice := 1;
     width := lrCol - ulCol + 1;
@@ -514,7 +514,7 @@ begin
       listOnly := False;
       if count <= rows then begin
         sel := nil;
-        MenuVertical := C_Keys.NONE;
+        MenuVertical := C_KEYS.NONE;
         Exit;
       end;
     end;
@@ -542,22 +542,22 @@ begin
       if ext then
         case ch of
           { line up }
-          C_Keys.HOME, C_Keys.UP: MoveLine(False);
+          C_KEYS.HOME, C_KEYS.UP: MoveLine(False);
           { line down }
-          C_Keys.END_KEY, C_Keys.DOWN: MoveLine(True);
+          C_KEYS.END_KEY, C_KEYS.DOWN: MoveLine(True);
           { Page Up = previous page, when Prev is offered }
-          C_Keys.PGUP: if hasPrev then MovePage(False);
+          C_KEYS.PGUP: if hasPrev then MovePage(False);
           { Page Down = next page, when Next is offered }
-          C_Keys.PGDN: if hasNext then MovePage(True);
+          C_KEYS.PGDN: if hasNext then MovePage(True);
         end else
         case ch of
           { as for Page Up and Page Down, only when the bottom line offers Prev or Next }
           'P': if hasPrev then MovePage(False);
           'N': if hasNext then MovePage(True);
-          C_Keys.ESC, 'E', C_Keys.NONE:
+          C_KEYS.ESC, 'E', C_KEYS.NONE:
             begin
               sel := nil;
-              MenuVertical := C_Keys.NONE;
+              MenuVertical := C_KEYS.NONE;
               Exit;
             end;
         else begin

@@ -80,7 +80,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_Keys, C_STATUS, C_GBVM, C_DIR,
+uses Crt, C_AREA, C_Npc, C_MSG, GDVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_Money, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_Race, C_Level, GDConsts, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -301,11 +301,11 @@ begin
     if ext then begin
       Party.SelectPrevNextChar(ch);
       CharDisp.DisplayParty(GDVars.curChar);
-      ch := C_Keys.NONE;
+      ch := C_KEYS.NONE;
     end;
-  until (ch in ['0'..'9', 'A'..'Z']) or ((ch = C_Keys.ENTER) and enterOk);
+  until (ch in ['0'..'9', 'A'..'Z']) or ((ch = C_KEYS.ENTER) and enterOk);
   case ch of
-    C_Keys.ENTER: MenuHorizontalCS := 0;
+    C_KEYS.ENTER: MenuHorizontalCS := 0;
   else begin
     idx := 1;
     while (idx <= Length(opts)) and (opts[idx] <> ch) do

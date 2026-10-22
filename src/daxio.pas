@@ -86,7 +86,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GDConsts, GDVars, Dos, GameIo, C_DATA, C_Keys, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GDConsts, GDVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -209,7 +209,7 @@ begin
     WriteLn('Not found: ', DaxIo.PathForLine(name, 68));
     WriteLn(diskMsg, ' (Esc quits)');
     { nothing is set up yet: no screen mode or sound to put back }
-    if GameIo.ReadAnyKey = C_Keys.ESC then
+    if GameIo.ReadAnyKey = C_KEYS.ESC then
       Halt;
   end;
 end;
@@ -241,7 +241,7 @@ begin
   repeat
     found := DaxIo.FileExists(fileName);
     if (not found) and not noPrompt then
-      if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_Keys.ESC then begin
+      if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_KEYS.ESC then begin
         if escQuits then
           GameIo.ExitGame;
         gaveUp := True;

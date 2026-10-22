@@ -14,7 +14,7 @@ procedure ToolsMenu;
 
 implementation
 
-uses Crt, Types, C_AREA, C_DIR, C_Keys, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
+uses Crt, Types, C_AREA, C_DIR, C_KEYS, C_MSG, GDConsts, GDVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
   Explored, EvtKind, CharEdit, MapNotes, StrUtil;
 
 const
@@ -221,10 +221,10 @@ begin
     ny := cy;
     if ext then
       case ch of
-        C_Keys.LEFT: if cx > 0 then Dec(nx);
-        C_Keys.RIGHT: if cx < 15 then Inc(nx);
-        C_Keys.UP: if cy > 0 then Dec(ny);
-        C_Keys.DOWN: if cy < 15 then Inc(ny);
+        C_KEYS.LEFT: if cx > 0 then Dec(nx);
+        C_KEYS.RIGHT: if cx < 15 then Inc(nx);
+        C_KEYS.UP: if cy > 0 then Dec(ny);
+        C_KEYS.DOWN: if cy < 15 then Inc(ny);
       end
     else
       case ch of
@@ -241,7 +241,7 @@ begin
       cx := nx;
       cy := ny;
     end;
-  until (not ext) and (ch in [C_Keys.NONE, 'E']);
+  until (not ext) and (ch in [C_KEYS.NONE, 'E']);
   TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
   TextRend.ClearBottomLine;
 end;
@@ -263,7 +263,7 @@ begin
              DrawTools;
            end;
     end;
-  until ch in [C_Keys.NONE, 'E'];
+  until ch in [C_KEYS.NONE, 'E'];
   TextRend.ClearBottomLine;
 end;
 

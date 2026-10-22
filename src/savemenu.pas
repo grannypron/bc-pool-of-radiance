@@ -22,8 +22,8 @@ type
   TSlotDesc = string[DESC_LEN];
   TSlotArea = string[AREA_LEN];
 
-{ Run the menu and return the slot chosen, or C_Keys.NONE for Escape or Exit. Saving lists every slot, an unused one as
-  EMPTY; loading lists only the slots holding a saved game, and returns C_Keys.NONE at once when there are none. A slot
+{ Run the menu and return the slot chosen, or C_KEYS.NONE for Escape or Exit. Saving lists every slot, an unused one as
+  EMPTY; loading lists only the slots holding a saved game, and returns C_KEYS.NONE at once when there are none. A slot
   shows its letter (white: the key that takes it), description and time saved, and below them its area and date. Up and
   Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a time, scrolling the list a
   slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load) takes the selected slot, and
@@ -77,7 +77,7 @@ procedure CheckSaveDir;
 
 implementation
 
-uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_Keys, StrUtil
+uses Crt, Dos, GDVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_KEYS, StrUtil
   {$IFDEF FPC}, NatFile{$ENDIF};
 
 const
@@ -320,7 +320,7 @@ var
   chosen: Char;
   letters: string[16];
 begin
-  ChooseSlot := C_Keys.NONE;
+  ChooseSlot := C_KEYS.NONE;
   { a string constant cannot be indexed }
   letters := SLOT_LETTERS;
   count := 0;
@@ -360,30 +360,30 @@ begin
     ch := MenuCore.MenuHorizontal('Game: ', 'Next Prev ' + action + ' Exit', LightMagenta, LightGreen, White, True,
                                   False, ext);
     { Enter takes the bottom line's current option }
-    if (not ext) and (ch = C_Keys.ENTER) then
+    if (not ext) and (ch = C_KEYS.ENTER) then
       case GDVars.horizChoice of
         OPT_NEXT: ch := 'N';
         OPT_PREV: ch := 'P';
         OPT_TAKE: ch := action[1];
       else
-        ch := C_Keys.NONE;
+        ch := C_KEYS.NONE;
       end;
     if ext then
       case ch of
-        C_Keys.UP, C_Keys.HOME: SaveMenu.MoveTo(sel - 1);
-        C_Keys.DOWN, C_Keys.END_KEY: SaveMenu.MoveTo(sel + 1);
+        C_KEYS.UP, C_KEYS.HOME: SaveMenu.MoveTo(sel - 1);
+        C_KEYS.DOWN, C_KEYS.END_KEY: SaveMenu.MoveTo(sel + 1);
         { a screenful, stopping at the first or last slot rather than wrapping }
-        C_Keys.PGUP: if sel > VISIBLE then
+        C_KEYS.PGUP: if sel > VISIBLE then
                        SaveMenu.MoveTo(sel - VISIBLE)
                      else
                        SaveMenu.MoveTo(1);
-        C_Keys.PGDN: if sel + VISIBLE < count then
+        C_KEYS.PGDN: if sel + VISIBLE < count then
                        SaveMenu.MoveTo(sel + VISIBLE)
                      else
                        SaveMenu.MoveTo(count);
       end
-    else if ch = C_Keys.NONE then
-      chosen := C_Keys.NONE
+    else if ch = C_KEYS.NONE then
+      chosen := C_KEYS.NONE
     { a slot's letter takes it, as Save or Load on it does (#652) }
     else if (ch <> ' ') and (Pos(ch, listed) > 0) then
       chosen := ch
@@ -438,17 +438,17 @@ begin
       ' '..'z':
         if Length(s) < DESC_SHOWN then
           s := s + UpCase(key);
-      C_Keys.BACKSPACE:
+      C_KEYS.BACKSPACE:
         if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
     end;
-  until (key = C_Keys.ENTER) or (key = C_Keys.ESC);
+  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESC);
   TextRend.ClearBottomLine;
   if s = '' then
     s := default;
-  if key = C_Keys.ENTER then
+  if key = C_KEYS.ENTER then
     desc := s;
-  AskDescription := key = C_Keys.ENTER;
+  AskDescription := key = C_KEYS.ENTER;
 end;
 
 function SaveDiskMsg: Types.TStr40;
@@ -458,7 +458,7 @@ end;
 
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 begin
-  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_Keys.ESC;
+  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_KEYS.ESC;
 end;
 
 procedure CheckSaveDir;

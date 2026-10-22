@@ -16,7 +16,7 @@ procedure NoncombatCastMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_Keys, C_STATUS, C_IFC, C_SPELL, C_Level,
+uses Types, Crt, C_MSG, GDConsts, GDVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_Level,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
   CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
 
@@ -656,7 +656,7 @@ var
   ext: Boolean;
 begin
   c := ' ';
-  while (interrupted = False) and (not (c in [C_Keys.NONE, 'E'])) do begin
+  while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     c := MenuCore.MenuHorizontal('', GDConsts.magicMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then
       Camp.SelectOtherChar(c)
@@ -741,7 +741,7 @@ var
 begin
   selected := 0;
   c := ' ';
-  while not (c in [C_Keys.NONE, 'E']) do begin
+  while not (c in [C_KEYS.NONE, 'E']) do begin
     c := MenuCore.MenuHorizontal('Party Order: ', GDConsts.orderMenus[selected], LightMagenta, LightGreen,
                                  White, True, True, ext);
     if ext then begin
@@ -749,8 +749,8 @@ begin
         Camp.SelectOtherChar(c);
       end else begin
         case c of
-          C_Keys.HOME, C_Keys.UP: Camp.OrderMoveUp;
-          C_Keys.END_KEY, C_Keys.DOWN: Camp.OrderMoveDown;
+          C_KEYS.HOME, C_KEYS.UP: Camp.OrderMoveUp;
+          C_KEYS.END_KEY, C_KEYS.DOWN: Camp.OrderMoveDown;
         end;
         CharDisp.DisplayParty(GDVars.curChar);
       end;
@@ -802,7 +802,7 @@ var
   s: Types.TStr40;
 begin
   c := ' ';
-  while not (c in [C_Keys.NONE, 'E']) do begin
+  while not (c in [C_KEYS.NONE, 'E']) do begin
     c := MenuCore.MenuHorizontal('Alter: ', GDConsts.alterMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then
@@ -830,7 +830,7 @@ begin
                           CharDisp.DisplayNoncombatInterface;
                         end;
                  end;
-             until (not ext) and (c2 in [C_Keys.NONE, 'E']);
+             until (not ext) and (c2 in [C_KEYS.NONE, 'E']);
         'S': begin
                Options.OptionsMenu;
                CharDisp.DisplayNoncombatInterface;
@@ -1071,13 +1071,13 @@ begin
   Camp.ResetPartySpellActivities;
   interrupted := False;
   c := ' ';
-  while (interrupted = False) and (not (c in [C_Keys.NONE, 'E'])) do begin
+  while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse, so the prompt has no space after it
       (#674) }
     c := MenuCore.MenuHorizontal('Camp:', GDConsts.campMenu, LightMagenta, LightGreen, White, True, True,
                                  ext);
     if ext then begin
-      if c = C_Keys.F6 then begin
+      if c = C_KEYS.F6 then begin
         { the Companion Tools, while the setting is on (phase 8) }
         if GDVars.companionOn <> 0 then begin
           CompTool.ToolsMenu;

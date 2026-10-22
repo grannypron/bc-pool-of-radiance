@@ -65,7 +65,7 @@ function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 implementation
 
-uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_Keys, C_Level,
+uses C_ITEM, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_Level,
   C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal;
 
@@ -1371,14 +1371,14 @@ end;
 function DirOfKey(ch: Char): Byte;
 begin
   case ch of
-    C_Keys.UP: DirOfKey := C_DIR.NORTH;
-    C_Keys.PGUP: DirOfKey := C_DIR.NORTHEAST;
-    C_Keys.RIGHT: DirOfKey := C_DIR.EAST;
-    C_Keys.PGDN: DirOfKey := C_DIR.SOUTHEAST;
-    C_Keys.DOWN: DirOfKey := C_DIR.SOUTH;
-    C_Keys.END_KEY: DirOfKey := C_DIR.SOUTHWEST;
-    C_Keys.LEFT: DirOfKey := C_DIR.WEST;
-    C_Keys.HOME: DirOfKey := C_DIR.NORTHWEST;
+    C_KEYS.UP: DirOfKey := C_DIR.NORTH;
+    C_KEYS.PGUP: DirOfKey := C_DIR.NORTHEAST;
+    C_KEYS.RIGHT: DirOfKey := C_DIR.EAST;
+    C_KEYS.PGDN: DirOfKey := C_DIR.SOUTHEAST;
+    C_KEYS.DOWN: DirOfKey := C_DIR.SOUTH;
+    C_KEYS.END_KEY: DirOfKey := C_DIR.SOUTHWEST;
+    C_KEYS.LEFT: DirOfKey := C_DIR.WEST;
+    C_KEYS.HOME: DirOfKey := C_DIR.NORTHWEST;
   else
     DirOfKey := C_DIR.CENTER;
   end;
@@ -1490,7 +1490,7 @@ begin
   done := False;
   GDVars.arenaPtr^.cursorOn := True;
   GDVars.arenaPtr^.cursorSize := 1;
-  while not (ch in [C_Keys.NONE, 'E', 'T']) do
+  while not (ch in [C_KEYS.NONE, 'E', 'T']) do
   begin
     CbtMap.ScrollView(cx, cy, 3, dir);
     Inc(cx, GDConsts.dirDX[dir]);
@@ -1572,7 +1572,7 @@ begin
             FillChar(sel, SizeOf(sel), 0);
           end;
         end;
-      C_Keys.NONE, 'E':
+      C_KEYS.NONE, 'E':
         begin
           CbtMap.RedrawArenaCell(cx, cy);
           FillChar(sel, SizeOf(sel), 0);
@@ -1663,7 +1663,7 @@ begin
   p := AdvanceAimTarget(skipStep, True);
   skipStep := 1;
   ch := ' ';
-  while (done = False) and (not (ch in [C_Keys.NONE, 'E'])) do
+  while (done = False) and (not (ch in [C_KEYS.NONE, 'E'])) do
   begin
     if not CbtActs.CanAttackTarget(creature, p) then
       p := AdvanceAimTarget(skipStep, False)
@@ -1705,7 +1705,7 @@ begin
           end;
       end;
       CbtMap.RedrawArenaCell(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p));
-      p := AdvanceAimTarget(menuStep, (done = False) and (not (ch in [C_Keys.NONE, 'E'])));
+      p := AdvanceAimTarget(menuStep, (done = False) and (not (ch in [C_KEYS.NONE, 'E'])));
     end;
   end;
   if weaponMode <> 0 then

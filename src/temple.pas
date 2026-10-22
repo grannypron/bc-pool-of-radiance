@@ -14,7 +14,7 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_Keys,
+uses Types, Crt, C_MSG, GDConsts, GDVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
   C_STATUS, C_IFC, C_Race, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
   MoneyCal;
 
@@ -331,7 +331,7 @@ begin
     c := MenuCore.MenuVertical('', 'Heal Exit', LightMagenta, LightGreen, White, 2, 4, 38, 15, list, False, redraw, idx,
                                sel);
     case c of
-      'H', C_Keys.ENTER:
+      'H', C_KEYS.ENTER:
         case idx of
           0: Temple.CureBlindness;
           1: Temple.CureDisease;
@@ -344,7 +344,7 @@ begin
           8: Temple.StoneToFlesh;
           9: done := True;
         end;
-      C_Keys.NONE: done := True;
+      C_KEYS.NONE: done := True;
     end;
   until done;
   MenuCore.FreeStringList(list);

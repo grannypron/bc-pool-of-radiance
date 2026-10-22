@@ -69,7 +69,7 @@ procedure ShowFault(msg: Types.TStr40);
 
 implementation
 
-uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_Keys, C_IFC, Blit,
+uses CharHlp, Crt, C_AREA, C_MSG, GDConsts, GDVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
   Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party;
 
 var
@@ -662,7 +662,7 @@ end;
 
 { Let the player pick a character on the horizontal menu, starting from sel: End and Home (also keypad 1 and 7) cycle
   next/previous through the creature list. Return, Exit and Select leave the loop, Exit with sel nil. With addExit,
-  Escape (which MenuHorizontal returns as C_Keys.NONE) leaves like Exit; without it there is no way out but choosing,
+  Escape (which MenuHorizontal returns as C_KEYS.NONE) leaves like Exit; without it there is no way out but choosing,
   and Escape is ignored (a script's WHO needs a character). Does not set the current character. }
 procedure SelectChar(query: Types.TStr40; addExit: Boolean; var sel: Types.PCharRecord);
 var
@@ -678,7 +678,7 @@ begin
     exitStr := ' Exit';
   { open on Select: the highlight is shared by every menu, and Enter takes it }
   GDVars.horizChoice := 1;
-  while not ((ch in [C_Keys.ENTER, C_Keys.ESC, 'E', 'S']) or ((ch = C_Keys.NONE) and addExit)) do
+  while not ((ch in [C_KEYS.ENTER, C_KEYS.ESC, 'E', 'S']) or ((ch = C_KEYS.NONE) and addExit)) do
   begin
     CharDisp.DisplayParty(sel);
     if (GDVars.ifcState = C_IFC.CAMPING) or (GDVars.ifcState = C_IFC.LOOT) then
@@ -691,10 +691,10 @@ begin
     if ext then
       case ch of
         { End: next character, wrapping to the head }
-        C_Keys.END_KEY: p := Party.NextCreature(p);
+        C_KEYS.END_KEY: p := Party.NextCreature(p);
         { Home: previous character, wrapping to the tail }
-        C_Keys.HOME: p := Party.PrevCreature(sel);
-      end else if ((ch = 'E') or (ch = C_Keys.NONE)) and addExit then
+        C_KEYS.HOME: p := Party.PrevCreature(sel);
+      end else if ((ch = 'E') or (ch = C_KEYS.NONE)) and addExit then
       p := nil;
     sel := p;
   end;

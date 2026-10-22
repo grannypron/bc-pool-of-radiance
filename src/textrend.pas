@@ -51,7 +51,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
-uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_Keys, C_MSG{$IFDEF FPC}, Host{$ENDIF};
+uses GDConsts, GDVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
 
 {$IFDEF FPC}
 { the native build's count of the same ticks }
@@ -255,14 +255,14 @@ begin
           TextRend.DisplayString(col, 24, White, key);
           Inc(col);
         end;
-      C_Keys.BACKSPACE:
+      C_KEYS.BACKSPACE:
         if Length(reply) > 0 then begin
           reply := Copy(reply, 1, Length(reply) - 1);
           Dec(col);
           TextRend.PrintSpaces(col, 24, Black, 1);
         end;
     end;
-  until (key = C_Keys.ENTER) or (key = C_Keys.ESC);
+  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESC);
   TextRend.ClearBottomLine;
   for col := 1 to Length(reply) do
     reply[col] := UpCase(reply[col]);

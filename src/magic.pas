@@ -187,7 +187,7 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 implementation
 
 uses Stats, CharDisp, C_Sound, C_ITEM, Dice, Crt, C_Npc, C_Terr, C_Save, C_COND, GDConsts, GDVars, TextRend,
-  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_Keys, C_Level, C_STATUS,
+  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_Race, C_KEYS, C_Level, C_STATUS,
   C_IFC, C_DIR, C_SPELL, AbilAdj;
 
 var
@@ -277,7 +277,7 @@ begin
     MenuCore.listOnly := selType = 5;
     ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, 5, 38,
                                 bottomRow, spellList, addExit, redraw, idx, sel);
-  until ch in [C_Keys.NONE, C_Keys.ENTER, 'C', 'E', 'L', 'M', 'S'];
+  until ch in [C_KEYS.NONE, C_KEYS.ENTER, 'C', 'E', 'L', 'M', 'S'];
   p := spellList;
   count := 0;
   while p <> sel do begin
@@ -286,7 +286,7 @@ begin
     p := p^.next;
   end;
   scroll := nil;
-  if (ch in [C_Keys.NONE, 'E']) or (count > C_SPELL.LINE_LAST) then
+  if (ch in [C_KEYS.NONE, 'E']) or (count > C_SPELL.LINE_LAST) then
     SpellSelection := C_SPELL.NONE
   else begin
     SpellSelection := spellIds[count];

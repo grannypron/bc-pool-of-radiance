@@ -16,7 +16,7 @@ procedure VaultMenu;
 
 implementation
 
-uses Crt, GDVars, C_IFC, C_Keys, CharDisp, CharHlp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
+uses Crt, GDVars, C_IFC, C_KEYS, CharDisp, CharHlp, MenuCore, Money, Party, PostCbt, TextRend, Vault, ViewChar
   {$IFDEF FPC}, TpRand{$ENDIF};
 
 procedure VaultMenu;
@@ -48,7 +48,7 @@ begin
     menu := menu + ' Exit';
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
-      if (c = C_Keys.HOME) or (c = C_Keys.END_KEY) then
+      if (c = C_KEYS.HOME) or (c = C_KEYS.END_KEY) then
         Party.SelectPrevNextChar(c);
     end else
       case c of
@@ -60,7 +60,7 @@ begin
         'P': Money.PoolMoney;
         'S': if hasMoney then
                Money.ShareMoney;
-        'E', C_Keys.NONE:
+        'E', C_KEYS.NONE:
           done := Vault.WriteVault or
                   (MenuCore.YesNoMenu('Leave anyway? ', Yellow, LightGreen, White) = 'Y');
       end;

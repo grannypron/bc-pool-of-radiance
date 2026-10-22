@@ -24,7 +24,7 @@ procedure AllToManual;
 implementation
 
 uses C_ITEM, C_Npc, C_Terr, C_COND, GDConsts, GDVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
-  C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_Keys, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
+  C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
   CharDisp, Dice, Combat;
 
 const
@@ -662,7 +662,7 @@ begin
       { this second call can consume later pending bytes too }
       ch := GameIo.ReadGameKey;
     case ch of
-      C_Keys.ALT_M:
+      C_KEYS.ALT_M:
         if ext then
           CombatAi.ToggleQuickMagic;
       { Space: everyone manual }
@@ -675,7 +675,7 @@ begin
           end;
         end;
       { result ignored }
-      C_Keys.ALT_X:
+      C_KEYS.ALT_X:
         if ext then
           if CbtActs.StingVictoryCheat then
             begin end;

@@ -19,7 +19,7 @@ procedure JournalMenu;
 
 implementation
 
-uses Crt, Types, C_JRNL, C_Keys, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
+uses Crt, Types, C_JRNL, C_KEYS, GDVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
@@ -282,16 +282,16 @@ begin
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       case ch of
-        C_Keys.UP, C_Keys.HOME: if sel > 1 then
+        C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
                                   JrnlView.MoveTo(sel - 1)
                                 else
                                   JrnlView.MoveTo(C_JRNL.JOURNAL_COUNT);
-        C_Keys.DOWN, C_Keys.END_KEY: if sel < C_JRNL.JOURNAL_COUNT then
+        C_KEYS.DOWN, C_KEYS.END_KEY: if sel < C_JRNL.JOURNAL_COUNT then
                                        JrnlView.MoveTo(sel + 1)
                                      else
                                        JrnlView.MoveTo(1);
-        C_Keys.PGUP: JrnlView.ScrollColumn(False);
-        C_Keys.PGDN: JrnlView.ScrollColumn(True);
+        C_KEYS.PGUP: JrnlView.ScrollColumn(False);
+        C_KEYS.PGDN: JrnlView.ScrollColumn(True);
       end;
       if previewDue then begin
         reading := False;
@@ -315,7 +315,7 @@ begin
              end;
       end;
     end;
-  until not ext and (ch in [C_Keys.NONE, 'E']);
+  until not ext and (ch in [C_KEYS.NONE, 'E']);
   @MenuCore.idleHook := nil;
   GDVars.horizChoice := savedChoice;
   CharDisp.DisplayNoncombatInterface;

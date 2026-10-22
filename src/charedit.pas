@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_ITEM, C_Keys, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
+uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_Level, C_Money, C_MSG, C_SPELL, C_STATUS, GDConsts, GDVars, Border, CharDisp,
   CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -163,16 +163,16 @@ begin
     if ext then
       with GDVars.curChar^ do
         case key of
-          C_Keys.DOWN: sel := (sel + 1) mod count;
-          C_Keys.UP: sel := (sel + count - 1) mod count;
-          C_Keys.LEFT:
+          C_KEYS.DOWN: sel := (sel + 1) mod count;
+          C_KEYS.UP: sel := (sel + count - 1) mod count;
+          C_KEYS.LEFT:
             if classLevels[cls] > 1 then begin
               LowerLevel(cls, count);
               { past the level's range, the experience comes down to one short of the next level }
               if experience >= LevelXp(cls, classLevels[cls] + 1) then
                 experience := LevelXp(cls, classLevels[cls] + 1) - 1;
             end;
-          C_Keys.RIGHT:
+          C_KEYS.RIGHT:
             if classLevels[cls] < C_Level.LEVEL_LAST then begin
               CharGen.GainLevels(GDConsts.classBit[cls], False);
               if experience < LevelXp(cls, classLevels[cls]) then
@@ -185,7 +185,7 @@ begin
       if (code = 0) and (xp >= 0) then
         GDVars.curChar^.experience := xp;
     end;
-  until (not ext) and (key in ['D', C_Keys.NONE]);
+  until (not ext) and (key in ['D', C_KEYS.NONE]);
 end;
 
 { The Health tool, on the character sheet: Heal restores every hit point and wakes the unconscious and dying; Status
@@ -226,7 +226,7 @@ begin
                enabled := Ord(status in [C_STATUS.OKAY, C_STATUS.ANIMATED]);
              end;
       end;
-  until key in ['E', C_Keys.NONE];
+  until key in ['E', C_KEYS.NONE];
 end;
 
 { Add a line to the Add list with its code, while there is room. }
@@ -304,9 +304,9 @@ begin
     MenuCore.arrowsToCaller := True;
     key := MenuCore.MenuHorizontal('Add: ', 'Take Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext and (pos <> 0) then begin
-      if (key = C_Keys.LEFT) and (item^.plus > 0) then
+      if (key = C_KEYS.LEFT) and (item^.plus > 0) then
         Dec(item^.plus);
-      if (key = C_Keys.RIGHT) and (item^.plus < PLUS_LAST) then
+      if (key = C_KEYS.RIGHT) and (item^.plus < PLUS_LAST) then
         Inc(item^.plus);
       if item^.plus = 0 then
         item^.nameIds[pos] := 0
@@ -314,13 +314,13 @@ begin
         item^.nameIds[pos] := C_ITEM.NAME_PLUS_BASE + item^.plus;
       item^.value := per * Word(item^.plus);
     end else if ext and (item^.itemType = C_ITEM.BRACERS) then begin
-      if (key = C_Keys.LEFT) and (ac > 1) then
+      if (key = C_KEYS.LEFT) and (ac > 1) then
         Dec(ac);
-      if (key = C_Keys.RIGHT) and (ac < BRACERS_LAST) then
+      if (key = C_KEYS.RIGHT) and (ac < BRACERS_LAST) then
         Inc(ac);
       SetBracers;
     end;
-  until (not ext) and (key in ['T', 'E', C_Keys.NONE]);
+  until (not ext) and (key in ['T', 'E', C_KEYS.NONE]);
   ChoosePlus := key = 'T';
 end;
 
@@ -371,7 +371,7 @@ begin
   key := MenuCore.MenuVertical('Add: ', 'Take', LightMagenta, LightGreen, White, 1, 1, 38, 22, head, True, redraw,
                                idx, sel);
   code := 0;
-  if (key <> C_Keys.NONE) and (sel <> nil) then begin
+  if (key <> C_KEYS.NONE) and (sel <> nil) then begin
     p := head;
     k := 0;
     while (p <> nil) and (p <> sel) do begin
@@ -421,7 +421,7 @@ begin
     key := MenuCore.MenuVertical('Money: ', 'Set', LightMagenta, LightGreen, White, 12, 7, 27, 13, head, True,
                                  redraw, idx, sel);
     m := -1;
-    if (key <> C_Keys.NONE) and (sel <> nil) then begin
+    if (key <> C_KEYS.NONE) and (sel <> nil) then begin
       m := C_Money.COPPER;
       p := head;
       while (p <> nil) and (p <> sel) do begin
@@ -453,7 +453,7 @@ begin
       'A': AddItem;
       'M': MoneyTool;
     end;
-  until key in ['E', C_Keys.NONE];
+  until key in ['E', C_KEYS.NONE];
 end;
 
 { The spells of class cls (a spellTable castClass: 0 cleric, 1 magic-user) a character here can know, levels 1 to
@@ -494,7 +494,7 @@ begin
     key := MenuCore.MenuVertical('Known: ', 'Toggle', LightMagenta, LightGreen, White, 1, 1, 38, 22, head, True,
                                  redraw, idx, sel);
     k := 0;
-    if (key <> C_Keys.NONE) and (sel <> nil) then begin
+    if (key <> C_KEYS.NONE) and (sel <> nil) then begin
       p := head;
       k := 1;
       while (p <> nil) and (p <> sel) do begin
@@ -525,7 +525,7 @@ begin
       'M': SpellList(1);
       'C': SpellList(0);
     end;
-  until key in ['E', C_Keys.NONE];
+  until key in ['E', C_KEYS.NONE];
 end;
 
 procedure EditMenu;
@@ -539,7 +539,7 @@ begin
     key := MenuCore.MenuHorizontal('', 'Abilities Levels Gear Magic Health Exit', LightMagenta, LightGreen, White,
                                    False, False, ext);
     if ext then begin
-      if key in [C_Keys.HOME, C_Keys.END_KEY, C_Keys.UP, C_Keys.DOWN] then
+      if key in [C_KEYS.HOME, C_KEYS.END_KEY, C_KEYS.UP, C_KEYS.DOWN] then
         Party.SelectPrevNextChar(key);
     end else
       case key of
@@ -549,7 +549,7 @@ begin
         'M': MagicTool;
         'H': HealthTool;
       end;
-  until (not ext) and (key in ['E', C_Keys.NONE]);
+  until (not ext) and (key in ['E', C_KEYS.NONE]);
 end;
 
 end.

@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_Keys, C_STATUS, C_IFC, C_GBVM,
+uses Types, Crt, C_Npc, C_MSG, GDConsts, GDVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
   C_Money, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
@@ -300,7 +300,7 @@ begin
   repeat
     PostCbt.LootTakeItemSelection(c, itemToTake, cursor, idx);
     { no item highlighted (an empty list) leaves too, before anything reads it }
-    if ((c <> 'T') and (c <> C_Keys.ENTER)) or (itemToTake = nil) then
+    if ((c <> 'T') and (c <> C_KEYS.ENTER)) or (itemToTake = nil) then
       done := True
     else begin
       done := False;
@@ -350,7 +350,7 @@ begin
                    CharDisp.DisplayNoncombatInterface;
                  end;
             'I': PostCbt.LootTakeItemMenu;
-            'E', C_Keys.NONE: done := True;
+            'E', C_KEYS.NONE: done := True;
           end;
         CharDisp.DisplayParty(GDVars.curChar);
         Money.DetermineTreasure(treasure, items);
@@ -423,7 +423,7 @@ begin
                Money.ShareMoney;
         'D': if hasDetect then
                Magic.CastSpellNC(detectSpell, False, False, ext);
-        'E', C_Keys.NONE: begin
+        'E', C_KEYS.NONE: begin
                             Money.DetermineTreasure(treasure, items);
                             done := not (treasure or items) or
                                     not Money.GoBackForIt('There is still treasure left.  ',

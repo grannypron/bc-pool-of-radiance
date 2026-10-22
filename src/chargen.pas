@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_Keys,
+uses Types, Crt, C_AREA, C_Npc, GDConsts, GDVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_Level, C_Race, C_KEYS,
   C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_Money, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps{$IFDEF FPC}, TpRand{$ENDIF};
@@ -131,7 +131,7 @@ begin
     TextRend.ClearBottomLine;
     if ext then begin
       { Home, End, Up and Down step through the party (Party.SelectPrevNextChar) }
-      if ch in [C_Keys.HOME, C_Keys.END_KEY, C_Keys.UP, C_Keys.DOWN] then begin
+      if ch in [C_KEYS.HOME, C_KEYS.END_KEY, C_KEYS.UP, C_KEYS.DOWN] then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GDVars.curChar));
       end;
@@ -368,13 +368,13 @@ var
     repeat
       key := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, 2, 38, 22, list, withExit, repaint, sel,
                                    picked);
-      if key = C_Keys.NONE then begin
+      if key = C_KEYS.NONE then begin
         MenuCore.FreeStringList(list);
         SaveLoad.FreeCreature(creature);
         PickFromList := False;
         Exit;
       end;
-    until key = C_Keys.ENTER;
+    until key = C_KEYS.ENTER;
   end;
 
 begin
@@ -424,18 +424,18 @@ begin
     MenuCore.movesToCaller := True;
     ch := MenuCore.MenuVertical('', '', LightMagenta, LightGreen, White, 1, RACE_LIST_ROW, RACE_SPLIT_COL - 1,
                                 RACE_LIST_ROW + 5, list, addExit, redraw, sel, m);
-    if ch = C_Keys.NONE then begin
+    if ch = C_KEYS.NONE then begin
       MenuCore.FreeStringList(list);
       SaveLoad.FreeCreature(creature);
       Exit;
     end;
-    if ch <> C_Keys.ENTER then
+    if ch <> C_KEYS.ENTER then
       { 6 -> Human (7) }
       if sel = 6 then
         CharGen.ShowRaceInfo(C_Race.HUMAN)
       else
         CharGen.ShowRaceInfo(sel);
-  until ch = C_Keys.ENTER;
+  until ch = C_KEYS.ENTER;
   { back to the one frame the following lists use }
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
   if sel = 6 then
@@ -883,20 +883,20 @@ begin
       oldCon := stats[C_ABIL.CONSTITUTION];
       if ext then
         case key of
-          C_Keys.DOWN, C_Keys.ENTER:
+          C_KEYS.DOWN, C_KEYS.ENTER:
             begin
               Inc(statIdx);
               if statIdx > 6 then
                 statIdx := 0;
             end;
-          C_Keys.UP:
+          C_KEYS.UP:
             begin
               Dec(statIdx);
               if statIdx = 255 then
                 statIdx := 6;
             end;
           { Left = decrease }
-          C_Keys.LEFT:
+          C_KEYS.LEFT:
             if statIdx < 6 then begin
               hold := statIdx;
               if stats[hold] > 0 then
@@ -943,7 +943,7 @@ begin
               hpCur := hpMax;
             end;
           { Right = increase }
-          C_Keys.RIGHT:
+          C_KEYS.RIGHT:
             if statIdx < 6 then begin
               hold := statIdx;
               Inc(stats[hold]);
@@ -990,7 +990,7 @@ begin
             end;
         end else
         case key of
-          'E', C_Keys.NONE:
+          'E', C_KEYS.NONE:
             begin
               for hold := 0 to 5 do
                 GDVars.curChar^.stats[hold] := savedStats[hold];
@@ -1205,7 +1205,7 @@ begin
     { the menu string already holds Exit, so MenuVertical adds none }
     key := MenuCore.MenuVertical('Add a character: ', 'Add Exit', LightMagenta, LightGreen, White,
                                  1, 2, 38, 22, list, False, redraw, idx, m);
-    if (key = C_Keys.ENTER) or (key = 'A') then
+    if (key = C_KEYS.ENTER) or (key = 'A') then
       if m^.name[1] <> '*' then
       begin
         GetMem(creature, SizeOf(Types.TCharRecord));
@@ -1286,7 +1286,7 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_Keys.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
+  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc > 5) or (GDVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;
@@ -1400,9 +1400,9 @@ begin
       step := 0;
       if ext then
         case key of
-          C_Keys.UP, C_Keys.DOWN: onBody := not onBody;
-          C_Keys.LEFT: step := -1;
-          C_Keys.RIGHT: step := 1;
+          C_KEYS.UP, C_KEYS.DOWN: onBody := not onBody;
+          C_KEYS.LEFT: step := -1;
+          C_KEYS.RIGHT: step := 1;
         end
       else
         case key of
@@ -1411,12 +1411,12 @@ begin
           'H': onBody := False;
           'B': onBody := True;
           { Escape }
-          C_Keys.NONE: if canCancel then begin
+          C_KEYS.NONE: if canCancel then begin
               portraitHead := savedHead;
               portraitBody := savedBody;
               done := True;
             end;
-          'K', ' ', C_Keys.ENTER: begin
+          'K', ' ', C_KEYS.ENTER: begin
               { the pick alone: no neighbours, no counts }
               Border.ClearBox(PIC_COL[0], PIC_ROW, PIC_COL[0] + 10, PIC_ROW + 10);
               Border.ClearBox(PIC_COL[2], PIC_ROW, PIC_COL[2] + 10, PIC_ROW + 10);
@@ -1877,15 +1877,15 @@ var
     n := OptionCount;
     v := pick;
     case arrow of
-      C_Keys.LEFT: if v > 0 then Dec(v) else v := n - 1;
-      C_Keys.RIGHT: if v < n - 1 then Inc(v) else v := 0;
-      C_Keys.DOWN: if v + 4 < n then
+      C_KEYS.LEFT: if v > 0 then Dec(v) else v := n - 1;
+      C_KEYS.RIGHT: if v < n - 1 then Inc(v) else v := 0;
+      C_KEYS.DOWN: if v + 4 < n then
                      Inc(v, 4)
                    else if v div 4 < (n - 1) div 4 then
                      v := n - 1
                    else
                      v := v mod 4;
-      C_Keys.UP: if v >= 4 then
+      C_KEYS.UP: if v >= 4 then
                    Dec(v, 4)
                  else begin
                    v := ((n - 1) div 4) * 4 + v;
@@ -1918,7 +1918,7 @@ var
       MenuCore.arrowsToCaller := True;
       key := MenuCore.MenuHorizontal('', '', LightMagenta, LightGreen, White, True, False, ext);
       if ext then begin
-        if key in [C_Keys.UP, C_Keys.DOWN, C_Keys.LEFT, C_Keys.RIGHT] then begin
+        if key in [C_KEYS.UP, C_KEYS.DOWN, C_KEYS.LEFT, C_KEYS.RIGHT] then begin
           old := pick;
           MovePick(key);
           if pick <> old then begin
@@ -1935,7 +1935,7 @@ var
         end;
       end else
         case key of
-          C_Keys.ENTER: begin
+          C_KEYS.ENTER: begin
               with GDVars.curChar^ do
                 case cur of
                   ITEM_HEAD: iconHead := tHead;
@@ -1945,7 +1945,7 @@ var
                 end;
               finished := True;
             end;
-          C_Keys.NONE: begin
+          C_KEYS.NONE: begin
               Revert;
               finished := True;
             end;
@@ -2022,9 +2022,9 @@ begin
     MenuCore.enterToCaller := cur <> ITEM_MENU;
     key := MenuCore.MenuHorizontal('', 'Keep Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
-      if key in [C_Keys.UP, C_Keys.DOWN] then begin
+      if key in [C_KEYS.UP, C_KEYS.DOWN] then begin
         i := cur;
-        if key = C_Keys.UP then begin
+        if key = C_KEYS.UP then begin
           if cur = ITEM_HEAD then cur := ITEM_MENU else Dec(cur);
         end else if cur = ITEM_MENU then
           cur := ITEM_HEAD
@@ -2035,7 +2035,7 @@ begin
       end;
     end else
       case key of
-        C_Keys.ENTER: case cur of
+        C_KEYS.ENTER: case cur of
             ITEM_SIZE: begin
                 tSize := 3 - tSize;
                 GDVars.curChar^.iconSize := tSize;
@@ -2046,7 +2046,7 @@ begin
             ChooseInGrid;
           end;
         'K': done := Confirmed;
-        'E', C_Keys.NONE: begin
+        'E', C_KEYS.NONE: begin
             with GDVars.curChar^ do begin
               iconHead := savedHead;
               iconBody := savedBody;

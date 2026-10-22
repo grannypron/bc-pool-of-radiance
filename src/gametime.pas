@@ -13,7 +13,7 @@ function CampRest(interactive: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_MSG, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_Keys, C_GBVM, C_SPELL,
+uses Types, C_TIME, C_MSG, GDConsts, GDVars, Crt, TextRend, CharHlp, MenuCore, Magic, C_KEYS, C_GBVM, C_SPELL,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
@@ -102,17 +102,17 @@ begin
     if ext then
       case ch of
         { up arrow -> 'I'nc }
-        C_Keys.UP: ch := 'I';
+        C_KEYS.UP: ch := 'I';
         { down arrow -> 'D'ec }
-        C_Keys.DOWN: ch := 'D';
+        C_KEYS.DOWN: ch := 'D';
         { left arrow }
-        C_Keys.LEFT: begin
+        C_KEYS.LEFT: begin
                        Inc(sel);
                        if sel > C_TIME.DAYS then sel := C_TIME.TURNS;
                        ch := #88;
                      end;
         { right arrow }
-        C_Keys.RIGHT: begin
+        C_KEYS.RIGHT: begin
                         Dec(sel);
                         if sel < C_TIME.TURNS then sel := C_TIME.DAYS;
                         ch := #88;
@@ -140,7 +140,7 @@ begin
              GameTime.ValidateRestTime;
            end;
     end;
-  until ch in [C_Keys.NONE, 'E', 'R'];
+  until ch in [C_KEYS.NONE, 'E', 'R'];
 end;
 
 { Every 288 five-minute ticks (24 h) of rest, restore 1 hp to every creature in GDVars.creatureList. The "Healed" banner

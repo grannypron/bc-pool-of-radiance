@@ -17,7 +17,7 @@ var
 implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GDConsts, GDVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
-  C_Keys, C_Level, C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
+  C_KEYS, C_Level, C_STATUS, C_GBVM, C_DIR, C_Sound, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
   MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
 
 { ChangeBarrierImpassable: clear the facing's two BARRIER bits (barriers plane), making it barrier type 0; the wall
@@ -335,34 +335,34 @@ begin
            end else begin
              case c of
                { up arrow: step forward }
-               C_Keys.UP: begin
+               C_KEYS.UP: begin
                          Explore.MoveForward;
                          done := True;
                        end;
                { down arrow: turn around }
-               C_Keys.DOWN: begin
+               C_KEYS.DOWN: begin
                            GDVars.gFacing := (GDVars.gFacing + 4) mod 8;
                            GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                            View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                          end;
                { left arrow: turn left }
-               C_Keys.LEFT: begin
+               C_KEYS.LEFT: begin
                            GDVars.gFacing := (GDVars.gFacing + 6) mod 8;
                            SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
                            GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                            View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                          end;
                { right arrow: turn right }
-               C_Keys.RIGHT: begin
+               C_KEYS.RIGHT: begin
                             GDVars.gFacing := (GDVars.gFacing + 2) mod 8;
                             SoundDrv.SoundCommand(GDConsts.soundIds.combat[C_Sound.STEP]);
                             GDVars.wallAhead := View3D.GetWallType(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                             View3D.Display3DMapView(GDVars.gMapX, GDVars.gMapY, GDVars.gFacing);
                           end;
-               C_Keys.F5: SaveLoad.QuickSave;
-               C_Keys.F8: done := Explore.AskQuickLoad;
+               C_KEYS.F5: SaveLoad.QuickSave;
+               C_KEYS.F8: done := Explore.AskQuickLoad;
                { the Companion Tools, while the setting is on (phase 8) }
-               C_Keys.F6: if GDVars.companionOn <> 0 then begin
+               C_KEYS.F6: if GDVars.companionOn <> 0 then begin
                             CompTool.ToolsMenu;
                             CharDisp.DisplayNoncombatInterface;
                           end;
@@ -406,19 +406,19 @@ begin
             done := True;
             case c of
               { up arrow }
-              C_Keys.UP: GDVars.gFacing := C_DIR.NORTH;
+              C_KEYS.UP: GDVars.gFacing := C_DIR.NORTH;
               { right arrow }
-              C_Keys.RIGHT: GDVars.gFacing := C_DIR.EAST;
+              C_KEYS.RIGHT: GDVars.gFacing := C_DIR.EAST;
               { down arrow }
-              C_Keys.DOWN: GDVars.gFacing := C_DIR.SOUTH;
+              C_KEYS.DOWN: GDVars.gFacing := C_DIR.SOUTH;
               { left arrow }
-              C_Keys.LEFT: GDVars.gFacing := C_DIR.WEST;
-              C_Keys.F5: begin
+              C_KEYS.LEFT: GDVars.gFacing := C_DIR.WEST;
+              C_KEYS.F5: begin
                            SaveLoad.QuickSave;
                            done := False;
                          end;
-              C_Keys.F8: done := Explore.AskQuickLoad;
-              C_Keys.F6: begin
+              C_KEYS.F8: done := Explore.AskQuickLoad;
+              C_KEYS.F6: begin
                            if GDVars.companionOn <> 0 then begin
                              CompTool.ToolsMenu;
                              CharDisp.DisplayWildernessInterface;

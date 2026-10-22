@@ -108,7 +108,7 @@ procedure FreeParty;
 implementation
 
 uses DiskRec, Crt, C_AREA, GDConsts, GDVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_Keys, C_IFC, C_GBVM, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  C_KEYS, C_IFC, C_GBVM, C_Npc, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_Level, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
@@ -648,8 +648,8 @@ var
   letter: Char;
 begin
   SaveMenu.CheckSaveDir;
-  letter := SaveMenu.ChooseSlot(False, C_Keys.NONE);
-  if letter <> C_Keys.NONE then
+  letter := SaveMenu.ChooseSlot(False, C_KEYS.NONE);
+  if letter <> C_KEYS.NONE then
     SaveLoad.LoadSlot(letter);
 end;
 
@@ -790,11 +790,11 @@ begin
   SaveGame := False;
   SaveMenu.CheckSaveDir;
   area := AreaName.CurrentArea;
-  letter := C_Keys.NONE;
+  letter := C_KEYS.NONE;
   repeat
     { back from the popup, the menu opens on the slot it was for }
     letter := SaveMenu.ChooseSlot(True, letter);
-    if letter = C_Keys.NONE then Exit;
+    if letter = C_KEYS.NONE then Exit;
     { an overwritten save's description is offered to edit; ReadSlotInfo leaves it empty for a slot with none, so
       whether it found one does not matter here }
     ok := SaveMenu.ReadSlotInfo(letter, desc, oldArea);

@@ -27,7 +27,7 @@ procedure OptionsMenu;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_Keys, C_Sound, C_DATA, GDVars, TextRend, Border, MenuCore, GameIo,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_Sound, C_DATA, GDVars, TextRend, Border, MenuCore, GameIo,
   SoundDrv, DaxIo, DataArc, GDConsts, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
@@ -501,18 +501,18 @@ begin
     ch := MenuCore.MenuHorizontal('Settings: ', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then
       case ch of
-        C_Keys.UP, C_Keys.HOME: if sel > 1 then
+        C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
                                   MoveTo(sel - 1)
                                 else
                                   MoveTo(OPT_COUNT);
-        C_Keys.DOWN, C_Keys.END_KEY: if sel < OPT_COUNT then
+        C_KEYS.DOWN, C_KEYS.END_KEY: if sel < OPT_COUNT then
                                        MoveTo(sel + 1)
                                      else
                                        MoveTo(1);
-        C_Keys.LEFT: Arrow(CHOICE_SLOWER);
-        C_Keys.RIGHT: Arrow(CHOICE_FASTER);
+        C_KEYS.LEFT: Arrow(CHOICE_SLOWER);
+        C_KEYS.RIGHT: Arrow(CHOICE_FASTER);
       end
-    else if ch = C_Keys.ENTER then begin
+    else if ch = C_KEYS.ENTER then begin
       Options.ChangeSetting(sel);
       touched := True;
     end;
@@ -523,7 +523,7 @@ begin
         Options.DrawSetting(OPT_SOUND, LightGreen);
       Options.DrawSetting(sel, White);
     end;
-  until not ext and (ch in [C_Keys.NONE, 'E']);
+  until not ext and (ch in [C_KEYS.NONE, 'E']);
   if changed then
     Options.SaveOptions;
   GDVars.horizChoice := savedChoice;

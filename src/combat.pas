@@ -14,7 +14,7 @@ function BandageDying(bandage: Boolean): Boolean;
 
 implementation
 
-uses Types, C_TIME, C_Npc, C_COND, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_Keys, C_CLASS,
+uses Types, C_TIME, C_Npc, C_COND, GDConsts, GDVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice;
 
@@ -193,12 +193,12 @@ begin
                end;
           'D': Combat.DoneMenu(creature, done);
           { Alt-M scan code: toggle quick magic }
-          C_Keys.ALT_M: CombatAi.ToggleQuickMagic;
+          C_KEYS.ALT_M: CombatAi.ToggleQuickMagic;
           { every creature under the player's control back to manual; NPCs and animated creatures stay on quick-fight,
             as during the AI's turns (#640) }
           ' ': CombatAi.AllToManual;
           { Alt-Q scan code: everyone to quick-fight; this creature acts again at once under the AI }
-          C_Keys.ALT_Q: begin
+          C_KEYS.ALT_Q: begin
                           creature^.combatAddr^.initiative := 20;
                           p := GDVars.creatureList;
                           while p <> nil do begin
@@ -210,7 +210,7 @@ begin
                           done := True;
                         end;
           { Alt-X scan code: the STING cheat }
-          C_Keys.ALT_X: if CbtActs.StingVictoryCheat then begin
+          C_KEYS.ALT_X: if CbtActs.StingVictoryCheat then begin
                           CbtMap.DisplayMapViewCentered(creature, 3, False);
                           done := True;
                         end else
@@ -252,13 +252,13 @@ begin
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';
   { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-X or Alt-M becomes
-    C_Keys.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
+    C_KEYS.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
   repeat
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, hasSpell);
     if hasSpell then
-      if not (ch in [C_Keys.ALT_Q, C_Keys.ALT_X, C_Keys.ALT_M]) then
-        ch := C_Keys.NONE;
-  until ch in [C_Keys.ALT_Q, ' ', C_Keys.ALT_X, C_Keys.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
+      if not (ch in [C_KEYS.ALT_Q, C_KEYS.ALT_X, C_KEYS.ALT_M]) then
+        ch := C_KEYS.NONE;
+  until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
 end;
 
 { Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at
@@ -321,8 +321,8 @@ begin
   ch := ' ';
   done := False;
   dir := C_DIR.CENTER;
-  while (creature^.combatAddr^.movement > 1) and (ch <> C_Keys.NONE)
-        and (ch <> C_Keys.ENTER) do begin
+  while (creature^.combatAddr^.movement > 1) and (ch <> C_KEYS.NONE)
+        and (ch <> C_KEYS.ENTER) do begin
     Border.ClearBox(24, 24, 39, 24);
     MenuCore.arrowsToCaller := True;
     ch :=
@@ -330,7 +330,7 @@ begin
       ' ', '', LightGreen, LightGreen, White, True, False, GDVars.doneRoundFlag);
     case ch of
       { Escape: undo }
-      C_Keys.NONE: begin
+      C_KEYS.NONE: begin
                      creature^.combatAddr^.movement := savedMove;
                      { slot 0 (not on the map) would redraw view cell 0, 0 instead }
                      if CbtMap.CombatSlot(creature) > 0 then
@@ -342,21 +342,21 @@ begin
                      dir := C_DIR.CENTER;
                    end;
       { Up arrow }
-      C_Keys.UP: dir := C_DIR.NORTH;
+      C_KEYS.UP: dir := C_DIR.NORTH;
       { Page Up }
-      C_Keys.PGUP: dir := C_DIR.NORTHEAST;
+      C_KEYS.PGUP: dir := C_DIR.NORTHEAST;
       { Right arrow }
-      C_Keys.RIGHT: dir := C_DIR.EAST;
+      C_KEYS.RIGHT: dir := C_DIR.EAST;
       { Page Down }
-      C_Keys.PGDN: dir := C_DIR.SOUTHEAST;
+      C_KEYS.PGDN: dir := C_DIR.SOUTHEAST;
       { Down arrow }
-      C_Keys.DOWN: dir := C_DIR.SOUTH;
+      C_KEYS.DOWN: dir := C_DIR.SOUTH;
       { End }
-      C_Keys.END_KEY: dir := C_DIR.SOUTHWEST;
+      C_KEYS.END_KEY: dir := C_DIR.SOUTHWEST;
       { Left arrow }
-      C_Keys.LEFT: dir := C_DIR.WEST;
+      C_KEYS.LEFT: dir := C_DIR.WEST;
       { Home }
-      C_Keys.HOME: dir := C_DIR.NORTHWEST;
+      C_KEYS.HOME: dir := C_DIR.NORTHWEST;
     else
       dir := C_DIR.CENTER;
     end;
@@ -433,7 +433,7 @@ begin
     menu := menu + 'Bandage ';
   menu := menu + 'Speed Exit';
   ch := ' ';
-  while not (ch in [C_Keys.NONE, 'E']) and not done do
+  while not (ch in [C_KEYS.NONE, 'E']) and not done do
   begin
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, False, False,
                                   GDVars.doneRoundFlag);
@@ -492,7 +492,7 @@ var
 begin
   speed := GDVars.gameDelay;
   ch := ' ';
-  while not (ch in [C_Keys.NONE, 'E']) do
+  while not (ch in [C_KEYS.NONE, 'E']) do
   begin
     query := 'GameSpeed (' + StrUtil.NumStr(GDVars.gameDelay) + ') :';
     menu := ' ';

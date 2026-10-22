@@ -46,7 +46,7 @@ procedure AppraiseMenu(var ok: Boolean);
 
 implementation
 
-uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_Keys, C_IFC, C_Money, GameIo, MenuCore, C_MSG,
+uses Crt, C_Npc, GDConsts, GDVars, TextRend, Border, CharHlp, C_KEYS, C_IFC, C_Money, GameIo, MenuCore, C_MSG,
   EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
@@ -168,17 +168,17 @@ begin
           if v > max then
             s := maxStr;
         end;
-      C_Keys.BACKSPACE: if Length(s) > 0 then
+      C_KEYS.BACKSPACE: if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
     end;
-    if (ch in ['0'..'9']) or (ch = C_Keys.BACKSPACE) then begin
+    if (ch in ['0'..'9']) or (ch = C_KEYS.BACKSPACE) then begin
       { s holds at most 6 digits }
       TextRend.PrintSpaces(qLen, 24, Black, 6);
       TextRend.DisplayString(qLen, 24, White, s);
     end;
-  until (ch = C_Keys.ENTER) or (ch = C_Keys.ESC);
+  until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
   TextRend.ClearBottomLine;
-  if ch = C_Keys.ESC then
+  if ch = C_KEYS.ESC then
     n := 0
   else
     Val(s, n, code);
@@ -377,7 +377,7 @@ begin
     save := p;
     ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 2, 2,
                                 15, 8, p, True, redraw, idx, sel);
-    if (sel = nil) or (ch = C_Keys.NONE) then begin
+    if (sel = nil) or (ch = C_KEYS.NONE) then begin
       MenuCore.FreeStringList(save);
       exitF := True;
     end else begin
@@ -563,7 +563,7 @@ begin
               TextRend.DisplayString(1, 12, White, gemStr);
               SellOrKeep(214, value);
             end;
-          'E', C_Keys.NONE:
+          'E', C_KEYS.NONE:
             exitF := True;
         end;
         CharHlp.RecalcStats(GDVars.curChar);
