@@ -1028,7 +1028,8 @@ type
     ulX: ShortInt;
     { target Y }
     ulY: ShortInt;
-    { caster cloud # }
+    { the cloud's number, unique among its caster's clouds (FxEngine.FreeCloudNumber), matched against the Cast Stinking
+      Cloud effect's strength div 16 }
     idx: Byte;
   end;
 

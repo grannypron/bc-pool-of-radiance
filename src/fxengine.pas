@@ -35,6 +35,10 @@ procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
   applied. }
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 
+{ The lowest cloud number, at most 15, that none of the caster's clouds on the GDVars.stinkHead list has, so the number
+  in the caster's Cast Stinking Cloud effect (strength div 16) names one cloud alone. }
+function FreeCloudNumber(caster: Types.PCharRecord): Byte;
+
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
   becomes 100, then the defender's C_Cond.ATTACK_ROLL_DEF (16) effects run. Hit when the roll is still >= 0 and roll +
   sixtyMinusThac0 > defender^.acCur. }
@@ -435,6 +439,27 @@ begin
                                   saved, 'chokes and gags from nausea');
     FxEngine.CallEffectHandler(C_Effect.HELPLESS, creature, effect, False);
   end;
+end;
+
+function FreeCloudNumber(caster: Types.PCharRecord): Byte;
+var
+  node: Types.PStinkRec;
+  n: Byte;
+  used: Boolean;
+begin
+  n := 0;
+  repeat
+    used := False;
+    node := GDVars.stinkHead;
+    while node <> nil do begin
+      if (node^.caster = caster) and (node^.idx = n) then
+        used := True;
+      node := node^.next;
+    end;
+    if used then
+      Inc(n);
+  until (not used) or (n = 15);
+  FreeCloudNumber := n;
 end;
 
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;

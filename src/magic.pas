@@ -1048,11 +1048,12 @@ begin
 end;
 
 { Stinking Cloud: append a node to the stinkHead list and give the caster effect 40 for caster-level minutes at strength
-  caster level + myClouds * 16, where myClouds counts the caster's clouds among the nodes passed while walking to the
-  tail (the old tail node itself is not checked). The cloud covers the 2x2 block whose upper-left is the aim cell
-  (GDConsts.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
-  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_Terr.STINK_CLOUD;
-  every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
+  caster level + myClouds * 16, where myClouds is the lowest number none of the caster's clouds has
+  (FxEngine.FreeCloudNumber; SSI counted the caster's nodes on the walk to the tail and never checked the tail, so a
+  second cloud could share the first one's number and its end clear the older cloud). The cloud covers the 2x2 block
+  whose upper-left is the aim cell (GDConsts.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a
+  cell already under another cloud takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are
+  stamped C_Terr.STINK_CLOUD; every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
 procedure StinkingCloudHandler;
 var
   p2: Types.PStinkRec;
@@ -1067,17 +1068,14 @@ var
 begin
   GDVars.gMultiTarget := 1;
   cl := CharHlp.GetCasterLevel(GDVars.dsCurrentSpellBeing);
-  myClouds := 0;
+  myClouds := FxEngine.FreeCloudNumber(GDVars.curChar);
   node := GDVars.stinkHead;
   if GDVars.stinkHead = nil then begin
     GetMem(GDVars.stinkHead, SizeOf(Types.TStinkRec));
     node := GDVars.stinkHead;
   end else begin
-    while node^.next <> nil do begin
-      if node^.caster = GDVars.curChar then
-        Inc(myClouds);
+    while node^.next <> nil do
       node := node^.next;
-    end;
     GetMem(node^.next, SizeOf(Types.TStinkRec));
     node := node^.next;
   end;
