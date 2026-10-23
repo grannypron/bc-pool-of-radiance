@@ -313,7 +313,7 @@ begin
   { flanking accumulators reset }
   creature^.combatAddr^.flankCount := 0;
   creature^.combatAddr^.flankSpread := 0;
-  SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+  SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
   CbtActs.GuardingAttacks(creature);
   if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
     creature^.combatAddr^.movement := 0;
@@ -724,8 +724,8 @@ end;
   AC. Add range penalties, roll the attacks from attackPhase down to 1 until def drops, and spend the sweep budget. A
   hit on a defender with Mirror Image (C_EFFECT.MIRROR_IMAGE) strikes an image unless 1d(images + 1) rolls 1: it shows
   as a miss, the defender loses the image and the blow does no damage and has no on-hit effects. With no attacks left,
-  att's actions end. }
-procedure DoAttack(att, def: Types.PCharRecord; fromBehind: Boolean; var done: Boolean);
+  att's actions end. The blows' sounds are of the Settings screen's ranged kind for a ranged attack, else melee. }
+procedure DoAttack(att, def: Types.PCharRecord; fromBehind, ranged: Boolean; var done: Boolean);
 var
   base: Types.TBaseItemRec;
   anyHit: Boolean;
@@ -738,7 +738,13 @@ var
   behindIdx: ShortInt;
   image: Types.PEffectRec;
   slay: Byte;
+  { the Settings screen's kind for the blows' sounds }
+  group: Byte;
 begin
+  if ranged then
+    group := C_SOUND.GROUP_RANGED
+  else
+    group := C_SOUND.GROUP_MELEE;
   behind := fromBehind;
   done := False;
   hitsMade[1] := 0;
@@ -750,7 +756,7 @@ begin
   GameVars.pendingDamage := 0;
   att^.combatAddr^.madeAttack := 1;
   if CharHlp.IsHelpless(def) then begin
-    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
+    SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.IMPACT], group);
     { phase 1 is curAtt's lower bound }
     while (att^.combatAddr^.attackPhase > 1)
           and (Types.PAttackPhaseView(att)^.curAtt[att^.combatAddr^.attackPhase] = 0) do
@@ -810,7 +816,7 @@ begin
           if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image)
              and (Dice.RollDice(1, image^.strength + 1) > 1) then begin
             { the blow strikes an image }
-            SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.MISS]);
+            SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.MISS], group);
             CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
             CharDisp.PrintNameString(def, 'lost an image', 10, True);
             Dec(image^.strength);
@@ -818,7 +824,7 @@ begin
               FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
           end else begin
             Inc(hitsMade[phase]);
-            SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
+            SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.IMPACT], group);
             CbtActs.CalcWeaponDamage(att, def, phase);
             CbtActs.ProcessAttackResult(att, def, atkType, GameVars.pendingDamage, GameVars.pendingDamage, True);
             if def^.enabled <> 0 then
@@ -830,7 +836,7 @@ begin
         end;
       end;
     if not anyHit then begin
-      SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.MISS]);
+      SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.MISS], group);
       CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
     end;
     done := True;
@@ -870,7 +876,10 @@ var
   item: Types.PItemRec;
   savedCur: Types.PCharRecord;
   dir: Byte;
+  { a missile or thrown weapon, or an equipped sling: the attack is ranged }
+  ranged: Boolean;
 begin
+  ranged := weapon <> nil;
   if (def^.combatAddr^.flankCount < 3) and (not fromBehind) then begin
     dir := CbtActs.DirTowardTarget(def, att);
     if CbtMap.CombatIconVisible(def, 0) then
@@ -886,13 +895,15 @@ begin
   if weapon <> nil then
     CbtActs.RangedAttackAnim(att, def, weapon);
   { a sling's stone animates a second time }
-  if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (att^.equipped[C_EQUIP.WEAPON]^.itemType = C_ITEM.SLING) then
+  if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (att^.equipped[C_EQUIP.WEAPON]^.itemType = C_ITEM.SLING) then begin
     CbtActs.RangedAttackAnim(att, def, att^.equipped[C_EQUIP.WEAPON]);
+    ranged := True;
+  end;
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
     savedCur := GameVars.curChar;
     GameVars.curChar := att;
-    CbtActs.DoAttack(att, def, fromBehind, done);
+    CbtActs.DoAttack(att, def, fromBehind, ranged, done);
     if weapon <> nil then begin
       if weapon^.quantity > 0 then
         Dec(weapon^.quantity, attacksMade[1]);
@@ -1324,10 +1335,10 @@ begin
     end;
   end;
   SoundDrv.SoundSetAutoStop(0);
-  SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.RANGED_START]);
+  SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.RANGED_START], C_SOUND.GROUP_RANGED);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
                                   CbtMap.CombatCellY(def), frames, pace);
-  SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.RANGED_END]);
+  SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.RANGED_END], C_SOUND.GROUP_RANGED);
   SoundDrv.SoundSetAutoStop(10);
 end;
 

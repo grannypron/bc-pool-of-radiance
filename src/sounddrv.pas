@@ -35,13 +35,17 @@ procedure SoundDelay(centiseconds: Word);
     select tune cmd minus one for the active device.) }
 procedure SoundCommand(cmd: Word);
 
+{ SoundCommand(cmd) for a sound effect of kind group (C_SOUND.GROUP_FOOTSTEPS..), when the Settings screen has that kind
+  on (GameVars.soundGroups). }
+procedure SoundEffect(cmd: Word; group: Byte);
+
 { Remembers the configured mode and, unless sound is disabled, ends the music, hooks the timer driver, silences both
   devices and unhooks it again so the game can leave sound idle. }
 procedure SoundSuspend;
 
 { Starts a piece of music on the configured device and keeps the timer driver hooked while it plays. The piece ends by
-  itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled or the Music setting is
-  off.
+  itself, or earlier at StopMusic or the next sound effect. Does nothing when sound is disabled, the Music setting is
+  off or the tune's own setting is (GameVars.musicGroups).
   @param(tune A music tune, C_SOUND.MUSIC_TITLE and on.) }
 procedure PlayMusic(tune: Word);
 
@@ -50,6 +54,9 @@ procedure StopMusic;
 
 { @returns(True while the piece PlayMusic started is still playing.) }
 function MusicPlaying: Boolean;
+
+{ Ends the music when the Music setting, or the playing tune's own, is now off. }
+procedure ApplyMusicSettings;
 
 { Chooses between a resident timer driver with persistent playback and per-command cleanup that unhooks the driver after
   each sound.
@@ -251,9 +258,34 @@ begin
   soundAutoStop := autoStop;
 end;
 
+{ The GameVars.musicGroups bit of tune: C_SOUND.GROUP_TITLE_MUSIC or GROUP_BATTLE_MUSIC, or 0 for a tune with no setting
+  of its own. }
+function TuneGroup(tune: Word): Byte;
+begin
+  case tune of
+    C_SOUND.MUSIC_TITLE: TuneGroup := C_SOUND.GROUP_TITLE_MUSIC;
+    C_SOUND.MUSIC_BATTLE: TuneGroup := C_SOUND.GROUP_BATTLE_MUSIC;
+  else
+    TuneGroup := 0;
+  end;
+end;
+
+{ True when the Music setting and tune's own setting let it play. }
+function TuneAllowed(tune: Word): Boolean;
+begin
+  TuneAllowed := (GameVars.musicOn <> 0) and
+                 ((SoundDrv.TuneGroup(tune) = 0) or (GameVars.musicGroups and SoundDrv.TuneGroup(tune) <> 0));
+end;
+
+procedure SoundEffect(cmd: Word; group: Byte);
+begin
+  if GameVars.soundGroups and group <> 0 then
+    SoundDrv.SoundCommand(cmd);
+end;
+
 procedure PlayMusic(tune: Word);
 begin
-  if (GameVars.soundMode = C_SOUND.MODE_DISABLED) or (GameVars.musicOn = 0) then Exit;
+  if (GameVars.soundMode = C_SOUND.MODE_DISABLED) or not SoundDrv.TuneAllowed(tune) then Exit;
   SoundDrv.SetSoundDevice(GameVars.sound.mode);
   SoundDrv.InstallSoundTimer;
   musicTune := tune;
@@ -273,6 +305,12 @@ function MusicPlaying: Boolean;
 begin
   MusicPlaying := (musicTune <> 0) and SoundDrv.SoundTimerHooked and
                   (SoundDrv.SoundVoiceTune(0) = musicTune);
+end;
+
+procedure ApplyMusicSettings;
+begin
+  if (musicTune <> 0) and not SoundDrv.TuneAllowed(musicTune) then
+    SoundDrv.StopMusic;
 end;
 
 { Unhooks the timer on every way out of the program, Halt and run-time errors included: an INT 8 vector left pointing

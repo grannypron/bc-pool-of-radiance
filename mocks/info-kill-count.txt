@@ -1,0 +1,36 @@
++======================================+
+|                                      |
+|                 GINS                 |
+|                                      |
+|              KILL COUNT              |
+|                                      |
+| 12 1ST LEVEL THIEF 2 AIDES           |
+|  1 BASILISK        2 CORPORAL        |
+|  5 GHOUL           1 GIANT SNAKE     |
+|  5 GNOLL           34 GOBLIN GUARD   |
+|  4 GOBLIN LEADER   51 HOBGOBLIN      |
+|  2 HOBGOBLIN LDR   61 KOBOLD         |
+| 10 KOBOLD LEADER    9 LIZARDMAN      |
+|  2 MUTANT LIZ-MAN   3 OGRE           |
+| 83 ORC              4 ORC LEADER     |
+|  2 POISONOUS FROG   1 QUICKLINGS     |
+| 32 SKELETON         1 SPECTRE        |
+|  3 STIRGE           3 TROLL          |
+|  4 WIGHT            5 WILD BOAR      |
+|  1 YARASH          19 ZOMBIE         |
+|                                      |
+|                                      |
+|======================================+
+INFO: SAVES STATS KILLS THIEF EXIT
+
+Color Key:
+    PC NAME             CYAN
+    KILL COUNT          WHITE
+    CREATURE NAME       GREEN
+    INFO:               MAGENTA
+
+Command Key:
+    SAVES               S
+    STATS               T
+    KILLS               K
+    EXIT                E

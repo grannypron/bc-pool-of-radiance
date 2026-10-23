@@ -35,12 +35,18 @@ var
   eclIp: Word;
   { Interface state, one of the IFC_ constants of C_IFC and Ending }
   ifcState: Byte;
-  { zero disables ViewChar's disk-3 portrait branch }
+  { the Portraits setting, over the two below: zero shows neither (#835) }
+  portraitsAll: Byte;
+  { the Character Portraits setting: zero disables ViewChar's disk-3 portrait branch }
   portraitsOn: Byte;
-  { zero skips the close-up load when inEncMenu is nonzero }
+  { the Monster Portraits setting: zero skips the close-up load when inEncMenu is nonzero }
   monsterPics: Byte;
-  { zero makes SoundDrv.PlayMusic do nothing }
+  { the Music setting: zero makes SoundDrv.PlayMusic do nothing }
   musicOn: Byte;
+  { the tunes the Music setting plays, C_SOUND.GROUP_TITLE_MUSIC and GROUP_BATTLE_MUSIC bits }
+  musicGroups: Byte;
+  { the sound effects the Sound setting plays of those turned on and off by kind, C_SOUND.GROUP_FOOTSTEPS.. bits }
+  soundGroups: Byte;
   { the Sound setting: zero starts the game with sound off (soundMode disabled); GameIo.SetSound keeps it in step }
   soundOn: Byte;
   { nonzero: PostCbt and SaveLoad.LoadChar take the party's characters off Quick after each fight and on loading }

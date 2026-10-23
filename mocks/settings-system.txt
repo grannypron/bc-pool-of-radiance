@@ -1,0 +1,35 @@
++======================================+
+|             SYSTEM INFO              |
+|                                      |
+| VIDEO             EGA                |
+| SOUND DEVICE      SOUND BLASTER      |
+| VERSION           V1.3-1162 (BC)     |
+| COMMIT            879B891 MODIFIED   |
+|                                      |
+| DATA              V36                |
+| MERGED FILES      14/14              |
+|                                      |
+| FREE MEMORY       197,888            |
+| LARGEST BLOCK     133,072            |
+| EMS ACTIVE        YES                |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+SETTINGS: GAME PATHS SYSTEM EXIT
+
+Color Key:
+    KEY:                WHITE
+    VALUE:              GREEN
+
+Command Key:
+    GAME                G
+    PATHS               P
+    SYSTEM              S
+    EXIT                E / ESCAPE

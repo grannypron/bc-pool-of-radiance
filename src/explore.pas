@@ -241,7 +241,7 @@ end;
 procedure MovePartyForward3D;
 begin
   if not GameVars.sound.singleStep then
-    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+    SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
   Inc(GameVars.gMapX, GameDefs.dirDX[GameVars.gFacing]);
   Inc(GameVars.gMapY, GameDefs.dirDY[GameVars.gFacing]);
   View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
@@ -363,14 +363,14 @@ begin
                { left arrow: turn left }
                C_KEYS.LEFT: begin
                            GameVars.gFacing := (GameVars.gFacing + 6) mod 8;
-                           SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+                           SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
                            GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                            View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                          end;
                { right arrow: turn right }
                C_KEYS.RIGHT: begin
                             GameVars.gFacing := (GameVars.gFacing + 2) mod 8;
-                            SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.STEP]);
+                            SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
                             GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                             View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
                           end;
@@ -523,7 +523,7 @@ begin
          if moved then
            Explore.MovePartyForward3D
          else
-           SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.IMPACT]);
+           SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.IMPACT], C_SOUND.GROUP_WALL);
          CharDisp.PrintMiscInfo;
        end else
          GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;

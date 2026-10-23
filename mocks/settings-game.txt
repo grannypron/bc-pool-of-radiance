@@ -1,0 +1,36 @@
++======================================+
+|             GAME SETTINGS            |
+|                                      |
+| GAME SPEED (1)        SLOWER FASTER  |
+| PORTRAITS             ON             |
+|   MONSTER PORTRAITS   ON             |
+|   CHARACTER PORTRAITS ON             |
+| MUSIC                 ON             |
+|   TITLE MUSIC         ON             |
+|   BATTLE MUSIC        ON             |
+| SOUND                 ON             |
+|   FOOTSTEPS           ON             |
+|   RANGED WEAPON USAGE ON             |
+|   MELEE ATTACKS       ON             |
+|   DEATH SCREAM        ON             |
+|   WALL HIT            ON             |
+| QUICK MODE                           |
+|   AUTO END QUICK MODE ON             |
+|   USE MAGIC           OFF            |
+| COMPANION TOOLS       ON             |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+SETTINGS: GAME PATHS SYSTEM EXIT
+
+Color Key:
+    SETTING NAME        GREEN
+    SETTING VALUE       GREEN
+    CURRENT SETTING     WHITE
+
+Command Key:
+    GAME                G
+    PATHS               P
+    SYSTEM              S
+    EXIT                E / ESCAPE

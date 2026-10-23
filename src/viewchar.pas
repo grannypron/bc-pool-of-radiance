@@ -121,7 +121,7 @@ begin
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
   TextRend.DisplayString(8, row, LightGreen, GameDefs.statusStrs[creature^.status]);
-  if (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
+  if (GameVars.portraitsAll <> 0) and (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
 
@@ -501,8 +501,8 @@ begin
   TextRend.DisplayString(30, 13, LightGreen, 'ore Info');
 end;
 
-{ Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, encumbrance and
-  movement (as Haste and Slow make it, CharHlp.HasteSlowRate). }
+{ Recalculate curChar's stats, then display armor class, hit points, THAC0 (60 - thac0Cur), damage, attacks a round,
+  encumbrance and movement (as Haste and Slow make it, CharHlp.HasteSlowRate). }
 procedure PrintCombatStats;
 var
   p: Types.PCharRecord;
@@ -528,6 +528,9 @@ begin
     s := s + '-' + StrUtil.NumStr(Abs(p^.curModA[1]));
   TextRend.DisplayString(col, row + 1, White, 'Damage        ');
   TextRend.DisplayString(col + 7, row + 1, LightGreen, s);
+  { the attacks a round the character's classes give (ClassCal.RecalcBaseSkills), under Damage (#836) }
+  TextRend.DisplayString(col - 1, row + 2, White, 'Att/Rnd       ');
+  TextRend.DisplayString(col + 7, row + 2, LightGreen, StrUtil.HalvesStr(p^.attacks));
   col := 22;
   TextRend.DisplayString(col, row, White, 'Encumbrance      ');
   TextRend.DisplayString(col + 12, row, LightGreen, StrUtil.NumStr(p^.encumbrance));

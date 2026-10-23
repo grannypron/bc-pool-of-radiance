@@ -20,8 +20,9 @@ procedure ResetGameState;
 implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
-  MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D, HeapErr,
-  VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm, Portrait{$IFDEF FPC}, TpRand{$ENDIF};
+  MenuCore, SoundDrv, C_SOUND, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
+  HeapErr, VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
+  Portrait{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { directory saved across resource loading }
@@ -346,9 +347,12 @@ begin
     GameVars.wallSetCache[i].wallDefId := -1;
     GameVars.wallSetCache[i].symbolSlot := -1;
   end;
+  GameVars.portraitsAll := 1;
   GameVars.portraitsOn := 1;
   GameVars.monsterPics := 1;
   GameVars.musicOn := 1;
+  GameVars.musicGroups := C_SOUND.MUSIC_GROUPS_ALL;
+  GameVars.soundGroups := C_SOUND.GROUPS_ALL;
   GameVars.soundOn := 1;
   GameVars.quickEnds := 1;
   GameVars.quickMagicOn := 0;

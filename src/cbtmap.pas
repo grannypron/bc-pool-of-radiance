@@ -789,7 +789,7 @@ var
 begin
   SoundDrv.SoundSetAutoStop(0);
   if GameVars.ifcState <> C_IFC.COMBAT then begin
-    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.DOWNED]);
+    SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.DOWNED], C_SOUND.GROUP_DEATH);
     TextRend.PauseOnly;
   end else begin
     for k := 1 to GameVars.downedCount do
@@ -818,7 +818,7 @@ begin
     Blit.FlushView;
     if creature^.combatAddr^.notPcNpc = 0 then
       CbtMap.RegisterDowned(creature, cellX, cellY);
-    SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.DOWNED]);
+    SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.DOWNED], C_SOUND.GROUP_DEATH);
     TextRend.PauseOnly;
     CbtMap.UpdateCombatMapTile(0, 0, slot);
     GameVars.arenaLoc[slot].size := 0;

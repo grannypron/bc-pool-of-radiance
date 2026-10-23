@@ -1,0 +1,36 @@
++======================================+
+|              GAME PATHS              |
+|                                      |
+| POOL OF RADIANCE                     |
+|   DATA PATH       C:/POOLRAD/        |
+|   SAVE PATH       C:/POOLRAD/SAVE/   |
+|                                      |
+| CURSE OF THE AZURE BONDS             |
+|   DATA PATH       C:/CURSE/          |
+|   SAVE PATH       C:/CURSE/SAVE/     |
+|                                      |
+| SECRET OF THE SILVER BLADES          |
+|   DATA PATH       C:/SECRET/         |
+|   SAVE PATH       C:/SECRET/SAVE/    |
+|                                      |
+| POOLS OF DARKNESS                    |
+|   DATA PATH       C:/POOLS/          |
+|   SAVE PATH       C:/POOLS/SAVE/     |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+SETTINGS: GAME PATHS SYSTEM EXIT
+
+Color Key:
+    GAME NAME           WHITE
+    DATA PATH/SAVE PATH GREEN
+    PATH VALUE          GREEN
+
+Command Key:
+    GAME                G
+    PATHS               P
+    SYSTEM              S
+    EXIT                E / ESCAPE

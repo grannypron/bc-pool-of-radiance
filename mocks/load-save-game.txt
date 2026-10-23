@@ -1,0 +1,25 @@
++======================================+
+|            LOAD/SAVE GAME            |
++======================================+
+|                                      |
+| A: SAVE GAME A                 20:57 |
+|    NEW PHLAN              2026/10/21 |
+|                                      |
+| B: BIG FIGHT                   20:39 |
+|    VALHINGEN GRAVES       2026/10/21 |
+|                                      |
+| C: SPELLED UP                  20:03 |
+|    YARASH'S PYRAMID       2026/10/21 |
+|                                      |
+| D: SAVE GAME D                 12:04 |
+|    TRAINING HALL          2026/10/17 |
+|                                      |
+| E: SAVE GAME                   20:47 |
+|    VALHINGEN GRAVES       2026/10/21 |
+|                                      |
+| I:                             21:01 |
+|    PODAL PLAZA                       |
+|                                      |
+|                 (MORE)               |
+|======================================+
+GAME: NEXT PREV LOAD EXIT

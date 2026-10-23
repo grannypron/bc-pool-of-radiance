@@ -1,0 +1,40 @@
++======================================+
+|                PC NAME               |
+|                                      |
+|                 RACE DEX LEVEL TOTAL |
+| PICK POCKETS     + 0 + 0   +40   +40 |
+| OPEN LOCK        + 0 + 0   +35   +35 |
+| FIND TRAPS       + 0 + 0   +35   +35 |
+| MOVE SILENTLY    + 0 + 0   +35   +35 |
+| HIDE IN SHADOWS  + 0 + 0   +35   +35 |
+| HEAR NOISE       + 0 + 0   +35   +35 |
+| CLIMB WALLS      + 0 + 0   +35   +35 |
+| READ LANGUAGES   + 0 + 0   +35   +35 |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
++======================================+
+INFO: SAVES STATS KILLS THIEF EXIT
+
+Color Key:
+    PC NAME             CYAN
+    SKILL NAME          GREEN
+    SKILL NUMBER        WHITE
+    INFO:               MAGENTA
+
+Command Key:
+    SAVES               S
+    STATS               T
+    KILLS               K
+    THIEF               H
+    EXIT                E
+
+THIEF ONLY APPEARS IF THE CHARACTER HAS A LEVEL IN THIEF.
