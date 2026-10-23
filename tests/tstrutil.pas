@@ -1,4 +1,4 @@
-{ Tests for StrUtil: numbers, two-digit padding, padding to a width, and '~'-hotkey menus. }
+{ Tests for StrUtil: numbers, attacks a round, two-digit padding, padding to a width, and '~'-hotkey menus. }
 {$I COMPILER.INC}
 program TStrUtil;
 
@@ -13,6 +13,9 @@ begin
   TestKit.CheckEqualsS('0', StrUtil.NumStr(0), 'zero');
   TestKit.CheckEqualsS('-42', StrUtil.NumStr(-42), 'a negative number');
   TestKit.CheckEqualsS('2147483647', StrUtil.NumStr(MaxLongInt), 'MaxLongInt');
+  TestKit.CheckEqualsS('1', StrUtil.HalvesStr(2), 'two half attacks are one a round');
+  TestKit.CheckEqualsS('3/2', StrUtil.HalvesStr(3), 'three are three every two rounds');
+  TestKit.CheckEqualsS('2', StrUtil.HalvesStr(4), 'four are two a round');
   TestKit.CheckEqualsS('-2147483648', StrUtil.NumStr(-MaxLongInt - 1), 'the most negative LongInt');
   TestKit.CheckEqualsS('07', StrUtil.ZeroPad2(7), 'one digit gets a 0 in front');
   TestKit.CheckEqualsS('42', StrUtil.ZeroPad2(42), 'two digits as they are');

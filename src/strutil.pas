@@ -16,6 +16,10 @@ function NumStr(n: LongInt): TNumStr;
 { n in two digits, a 0 in front of one below 10 (only the last two digits of a larger one). }
 function ZeroPad2(n: Word): TNumStr;
 
+{ halves, a count of half attacks (TCharRecord.attacks), as attacks a round: a whole number, or an odd count over 2,
+  so 2 is '1' and 3 is '3/2'. }
+function HalvesStr(halves: Byte): TNumStr;
+
 { s cut, or padded with spaces on the right, to width. }
 function PadRight(s: String; width: Byte): String;
 
@@ -34,6 +38,14 @@ var
 begin
   Str(n, s);
   NumStr := s;
+end;
+
+function HalvesStr(halves: Byte): TNumStr;
+begin
+  if Odd(halves) then
+    HalvesStr := StrUtil.NumStr(halves) + '/2'
+  else
+    HalvesStr := StrUtil.NumStr(halves div 2);
 end;
 
 function ZeroPad2(n: Word): TNumStr;
