@@ -1,0 +1,25 @@
++======================================+
+| GIN'S AVAILABLE SPELLS               |
++======================================+
+|                                      |
+| 1ST LEVEL                            |
+|    BLESS (X3)                        |
+|    PROTECTION FROM EVIL              |
+| 2ND LEVEL                            |
+|    HOLD PERSON (X5)                  |
+| 3RD LEVEL                            |
+|    PRAYER                            |
+|    REMOVE CURSE                      |
+|    BESTOW CURSE                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+CHOOSE SPELL: CAST NEXT PREV EXIT

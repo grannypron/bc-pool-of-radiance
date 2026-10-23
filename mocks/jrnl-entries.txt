@@ -1,0 +1,50 @@
++======================================+
+|            JOURNAL ENTRIES           |
++======================================+
+|  1   8  15  22  29  36  43  50  57   |
+|  2   9  16  23  30  37  44  51  58   |
+|  3  10  17  24  31  38  45  52       |
+|  4  11  18  25  32  39  46  53       |
+|  5  12  19  26  33  40  47  54       |
+|  6  13  20  27  34  41  48  55       |
+|  7  14  21  28  35  42  49  56       |
++======================================+
+| #1: A LOUD VOICE COMING FROM A MAGIC |
+| MOUTH CAST ON A STONE TABLET.        |
+|                                      |
+| "I AM YARASH THE SORCEROR!           |
+|
+| "BE KNOWN THAT FOR EVERY LIVING      |
+| GIANT INSECT YOU RETURN TO           |
+| SORCEROR'S ISLAND I WILL PAY A       |
+| GENEROUS BOUNTY, INCLUDING A WEAPON  |
+| EMPOWERED BY MAGIC. I WILL PAY FOR   |
+| GIANT INSECTS SUCH AS THRI-KREEN,    |
+| GIANT MANTIS, AND ANK
+| UNDERTAKE A MISSION TO RESCUE THE    |
+| DUCCHESS OF MELVAUNT. THE DUCCHESS   |
+| IS SUPPOSEDLY BEING HELD BY A BAND   |
+| OF OGRES IN A CAMP TO THE NORTHEAST  |
+| OF PHLAN. A GENEROUS REWARD IS       |
+| OFFERED FOR THE SAFE RETURN OF THE   |
+| DUCHESS. APPLY TO THE COUNCIL CLERK  |
+| FOR COMMISSION AND ADDITIONAL        |
+| INFORMATION CONCERNING THE           |
+| ABDUCTION.                           |
+|                                      |
+|======================================+
+JOURNAL: ENTRIES PROCS TALES EXIT
+
+Color Key:
+    PROCLAMATIONS HEADER    WHITE
+    PROCLAMATIONS LIST      GREEN
+    CURRENT PROCLAMATIONS   WHITE
+    CLVI: PREFIX            WHITE
+    PROCLAMATION TEXT       GREEN
+
+Command Key:
+    ENTRIES             E
+    PROCS               P
+    TALES               T
+    EXIT                ESCAPE
+

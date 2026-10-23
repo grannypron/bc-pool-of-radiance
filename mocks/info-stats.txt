@@ -1,0 +1,41 @@
++======================================+
+|                                      |
+|                 GINS                 |
+|                                      |
+|              GAME STATS              |
+|                                      |
+| KILLS                          362   |
+| DAMAGE DONE                   2563   |
+| DAMAGE TAKEN                   456   |
+| HEALING GIVEN                   10   |
+| HEALING TAKEN                  427   |
+| RAISED                           0   |
+| POISONED                         0   |
+| ITEMS LOOTED                   129   |
+| COIN LOOTED (NET)             4508   |
+| SPELLS CAST                     58   |
+| KNOCKED DOWN                     7   |
+| DIED                             4   |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+INFO: SAVES STATS KILLS THIEF EXIT
+
+Color Key:
+    PC NAME             CYAN
+    GAME STATS          WHITE
+    STAT NAME           WHITE
+    STAT NUMBER         GREEN
+    INFO:               MAGENTA
+
+Command Key:
+    SAVES               S
+    STATS               T
+    KILLS               K
+    THIEF               H
+    EXIT                E
+
+THIEF ONLY APPEARS IF THE CHARACTER HAS A LEVEL IN THIEF.

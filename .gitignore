@@ -31,4 +31,4 @@ capture/
 
 # Golden builds the behaviour regression compares against (tests/scenarios; goldbox-player tools/regress.py)
 /.golden/
-.vscode/GTEMP.pas
+/.vscode/

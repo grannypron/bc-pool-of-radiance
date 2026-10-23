@@ -1,0 +1,37 @@
++======================================+
+|                                      |
+|                 GINS                 |
+|                                      |
+|             SAVING THROWS            |
+|                                      |
+| PARALYSIS, POISON, DEATH       7     |
+| PETRIFICATION, POLYMORPH      10     |
+| ROD, STAFF, WAND              11     |
+| BREATH WEAPON                 13     |
+| SPELL                         12     |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|======================================+
+INFO: SAVES STATS KILLS THIEF EXIT
+
+Color Key:
+    PC NAME             CYAN
+    SAVING THROWS       WHITE
+    SAVING THROW NAME   GREEN
+    INFO:               MAGENTA
+
+Command Key:
+    SAVES               S
+    STATS               T
+    KILLS               K
+    EXIT                E
