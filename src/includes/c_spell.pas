@@ -59,6 +59,35 @@ const
   ITEM_FIREBALL = 64;
   { spellFns[51] = LightningBoltHandler }
   LIGHTNING_BOLT = 51;
+  { Lightning Bolt's length, in cells past the aim cell }
+  LIGHTNING_BOLT_CELLS = 8;
+  { the shape of the cells a spell reaches, as CharHlp.SpellArea gives it from spellTable's area mode and the handlers'
+    own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..7); one creature, or a
+    bare square (mode 15); everything within a radius of the aim (modes 8..14); Stinking Cloud's 2x2 block; or
+    Lightning Bolt's path }
+  AREA_SELF = 0;
+  AREA_TARGETS = 1;
+  AREA_SPOT = 2;
+  AREA_RADIUS = 3;
+  AREA_CLOUD = 4;
+  AREA_BOLT = 5;
+  { spellTable's area modes, its low nibble: the caster, the first and last of the radius modes, and the picked spot }
+  AREA_MODE_SELF = 0;
+  AREA_MODE_RADIUS_FIRST = 8;
+  AREA_MODE_RADIUS_LAST = 14;
+  AREA_MODE_SPOT = 15;
+  { what a saving throw does against a spell (spellTable's saveResult, and SpellInf's save table): nothing is rolled;
+    a save negates the spell; it halves the damage; or the handler decides (Stinking Cloud's, and Silence's, which
+    Magic.ResolveSpell takes for a save that negates) }
+  SAVE_NONE = 0;
+  SAVE_NEGATES = 1;
+  SAVE_HALF = 2;
+  SAVE_SPECIAL = 3;
+  { SpellInf's save table only: a save lessens the spell but does not end it (Stinking Cloud's cough) }
+  SAVE_PARTIAL = 4;
+  { a spell list line's spell cast from an item (a scroll) rather than from memory, for SpellInf: the spell id with this
+    bit set }
+  FROM_ITEM = $80;
 
 implementation
 

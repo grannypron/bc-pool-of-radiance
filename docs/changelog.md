@@ -9,10 +9,9 @@
 - While you aim an area spell in combat, the line above the menu names the spell and counts who it will catch where the cursor is: your enemies, and your own characters and allies (in yellow, for an attack spell), or "No one". Fireball, Lightning Bolt (its bounce too), Stinking Cloud and the other area spells all count, even creatures just out of view. Stinking Cloud also says how many are immune, and Sleep how many on each side it can put to sleep at most.
 - A human can now change class at a training hall that trains the new class, as in Curse of the Azure Bonds: Human Change Class on the party menu shows what leaving the class needs and which classes the character can take. It costs 2,500 gp. The character keeps its old levels and starts again at level 1 in the new class, with no experience; the old class's skills rest, with no hit points gained, until the new class passes it, and then the character uses the better of both, training only the new class. A character can change again later once its old classes are back.
 - The Journal's new Quests page lists the City Council's missions you have been given: a block of the old city to clear, a proclamation's quest once the council has posted it outside City Hall, and the commissions the clerk, Bishop Braccio, Cadorna, Lord Urslingen and the council hand out. Each one shows DONE once it is finished. Choosing a quest that came from a proclamation takes you back to the Journal with that proclamation shown.
-
 - The Companion Tools' map now shows the Clue Book's numbered map keys ("1. Boat", "3. Temple of Tyr") on the squares where the book's maps print them, in every area the book maps, with each key on every place it appears. Keyed squares have light cyan walls, and the Map tool shows the key under the cursor above your own note, which it never replaces. Turn the keys off with Clue Book Notes under Companion Tools in Settings.
-
 - A Bestiary, opened with F2 on the map, in the wilderness and in camp, lists every creature you have met and what your party has learned about each: how often you have met and killed them, their size, armor class (narrowed from your attack rolls until it is exact), hit dice once you have killed one, the most damage one has done in a blow, and the defenses and attacks you have seen at work, such as half damage from blunt weapons, immunity to sleep, regeneration, poison or level drain. What you have not yet learned shows as ??. The Bestiary is kept in BESTIARY.DAT in the save folder, not in your saved games, so what you learn carries over to every game you play.
+- Every spell list (Cast, Memorize, Scribe, the spells in memory, learning a spell on gaining a level, and a scroll's spells under Use) now shows a summary line under the list for the highlighted spell: its range in squares, area or number of targets, duration, saving throw, and whether it is cast only in camp or only in combat, worked out for the character casting it (a scroll's spell at the scroll's level). Info (I) opens a page for the spell with those figures, its casting time and a description of what it does in this game; Next and Prev step through the list's spells, and Exit goes back to the list on the spell you were reading.
 
 ### Interface improvements
 
@@ -127,6 +126,8 @@
 - The statistics count a death by poison, level drain or mummy rot as Died.
 - Several values the DOS game assumed would start at zero now do: the first menu of a session no longer sometimes answers Enter to the wrong place, a script's monster setup starts empty, and the Stinking Cloud list starts clear.
 - Loading a game or starting a new one no longer keeps the monsters the last area set up.
+- Magic Missile now fires one missile at levels 1 and 2, two at 3 and 4, and so on, as the rule book says. Before, a 1st-level magic-user's Magic Missile did no damage and each later missile came a level late.
+- A successful saving throw against Silence, 15' Radius now spares the target, as the rule book says. Before, the save was rolled and then ignored.
 
 ## Pool of Radiance port: October 2026 update
 

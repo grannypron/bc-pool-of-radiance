@@ -1275,11 +1275,13 @@ begin
   CbtActs.ShowAreaTally(side, rule, CbtActs.HostileSpell(aimSpell));
 end;
 
-{ The cast-target menu in combat (GameVars.castTargetMenu): build the spell-target list from the low nibble of the
-  spell's area. 0: the caster; 15: the picked creature (a bare cell gets a zero-radius area); 8..14: everything within
-  area and 7 of the picked cell; 1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget.
-  While the player aims, the CbtMap spell-aim preview shows the cells the spell will reach and, for 8..14, line 23 who
-  it will catch (ReportAreaCatch). }
+{ The cast-target menu in combat (GameVars.castTargetMenu): build the spell-target list from the spell's shape
+  (CharHlp.SpellArea). The caster alone; one picked creature (a bare cell gets a zero-radius area); everything within
+  the table radius (area and 7) of the picked cell, for a radius, a bolt or a cloud (the Fireball, Lightning Bolt and
+  Stinking Cloud handlers then take their own cells); or up to its count of creatures picked one at a time. b is the
+  AI flag, passed to PickSpellTarget. While the player aims, the CbtMap spell-aim preview shows the cells the spell
+  will reach: Lightning Bolt's path, Stinking Cloud's 2x2 block, or the blast at SpellArea's radius (a fireball bursts
+  in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -1287,7 +1289,9 @@ var
   j: Byte;
   sel: Types.TAimTarget;
   dup: Boolean;
-  radius: Byte;
+  { CharHlp.SpellArea's shape, and its radius or creature count }
+  kind: Byte;
+  size: Byte;
   picked: Boolean;
 begin
   cast := True;
@@ -1295,14 +1299,14 @@ begin
   GameVars.gMultiTarget := 0;
   Magic.gTargetX := CbtMap.CombatCellX(GameVars.curChar);
   Magic.gTargetY := CbtMap.CombatCellY(GameVars.curChar);
-  case GameDefs.spellTable[spell].area and $F of
-    0:
-      { self only }
+  kind := CharHlp.SpellArea(spell, size);
+  case kind of
+    C_SPELL.AREA_SELF:
       begin
         GameVars.targetCreaturePtr[1] := GameVars.curChar;
         GameVars.spellTargetCount := 1;
       end;
-    15:
+    C_SPELL.AREA_SPOT:
       { the picked creature, or an area at the picked cell }
       begin
         if not b then
@@ -1321,26 +1325,21 @@ begin
         end else
           cast := False;
       end;
-    8..14:
+    C_SPELL.AREA_RADIUS, C_SPELL.AREA_CLOUD, C_SPELL.AREA_BOLT:
       { fixed radius, ground OK }
       begin
-        { Preview the spell while the player aims: Lightning Bolt's path, Stinking Cloud's 2x2 block (its handler
-          ignores the table radius), or the blast at the table radius (a fireball bursts in flame, and FireballHandler
-          uses radius 2 when view3dFlag is clear). }
         if not b then begin
-          radius := GameDefs.spellTable[spell].area and 7;
           { line 23 counts who the spell will catch (#840) }
           aimSpell := spell;
-          if spell = C_SPELL.LIGHTNING_BOLT then
-            CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING, True)
-          else if spell = C_SPELL.STINKING_CLOUD then
-            CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE, True)
-          else if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then begin
-            if GameVars.zone0^.view3dFlag = 0 then
-              radius := 2;
-            CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST, True);
-          end else
-            CbtMap.StartSpellPreview(Types.AimBlast, radius, CbtActs.AimMarker(spell), True);
+          case kind of
+            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING, True);
+            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE, True);
+          else
+            if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then
+              CbtMap.StartSpellPreview(Types.AimBlast, size, SPRITE_BURST, True)
+            else
+              CbtMap.StartSpellPreview(Types.AimBlast, size, CbtActs.AimMarker(spell), True);
+          end;
         end;
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
@@ -1351,9 +1350,9 @@ begin
           cast := False;
       end;
   else
-    { 1..7: (area and 3) + 1 individual targets }
+    { C_SPELL.AREA_TARGETS: up to size creatures, picked one at a time }
     begin
-      remaining := (GameDefs.spellTable[spell].area and 3) + 1;
+      remaining := size;
       k := 0;
       while remaining > 0 do begin
         if not b then

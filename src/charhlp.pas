@@ -206,6 +206,19 @@ function HasScrollSpells(creature: Types.PCharRecord): Boolean;
   range with a nonzero area (touch) and the attack-roll encoding (C_SPELL.ATTACK_ROLL_RANGE) both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
+{ The shape of the cells spell reaches in combat (a C_SPELL.AREA_* kind), from spellTable's area mode and the shapes
+  the handlers use in its place, which the aim preview and the spell page both show: Lightning Bolt's path
+  (C_SPELL.AREA_BOLT, size the C_SPELL.LIGHTNING_BOLT_CELLS it runs past the aim), Stinking Cloud's 2x2 block (size 2),
+  and a fireball's radius of 2 where zone0's view3dFlag is clear (outdoors) and the table's 3 elsewhere. size is the
+  radius for C_SPELL.AREA_RADIUS, the most creatures for C_SPELL.AREA_TARGETS and 0 otherwise. }
+function SpellArea(spell: Byte; var size: Byte): Byte;
+
+{ A spell's duration in minutes as dice, for Magic.CalcSpellDuration to roll and the spell page to show: Cause Disease
+  and the item spells below roll theirs (Dust of Disappearance by whether combat is on); any other spell's is
+  durFixed + durVar * caster level (GetCasterLevel), whole in add with mult 1. A duration of 0 is instant, or permanent
+  for a spell that adds an effect. }
+procedure SpellDuration(spell: Byte; var d: Types.TDurDice);
+
 type
   { a message for a fault that should not happen }
   TFaultHook = procedure(msg: Types.TStr40);
@@ -1497,6 +1510,69 @@ begin
   if r = C_SPELL.ATTACK_ROLL_RANGE then
     r := 1;
   CalcSpellRange := r;
+end;
+
+function SpellArea(spell: Byte; var size: Byte): Byte;
+var
+  mode: Byte;
+begin
+  size := 0;
+  mode := GameDefs.spellTable[spell].area and $F;
+  case mode of
+    C_SPELL.AREA_MODE_SELF: SpellArea := C_SPELL.AREA_SELF;
+    C_SPELL.AREA_MODE_SPOT: SpellArea := C_SPELL.AREA_SPOT;
+    C_SPELL.AREA_MODE_RADIUS_FIRST..C_SPELL.AREA_MODE_RADIUS_LAST:
+      if spell = C_SPELL.LIGHTNING_BOLT then begin
+        size := C_SPELL.LIGHTNING_BOLT_CELLS;
+        SpellArea := C_SPELL.AREA_BOLT;
+      end else if spell = C_SPELL.STINKING_CLOUD then begin
+        size := 2;
+        SpellArea := C_SPELL.AREA_CLOUD;
+      end else begin
+        size := mode and 7;
+        { FireballHandler's outdoor radius }
+        if ((spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL)) and (GameVars.zone0 <> nil) then
+          if GameVars.zone0^.view3dFlag = 0 then
+            size := 2;
+        SpellArea := C_SPELL.AREA_RADIUS;
+      end;
+  else
+    begin
+      size := (mode and 3) + 1;
+      SpellArea := C_SPELL.AREA_TARGETS;
+    end;
+  end;
+end;
+
+procedure SpellDuration(spell: Byte; var d: Types.TDurDice);
+
+  procedure Rolled(count, sides: Byte; add: Word; mult: Byte);
+  begin
+    d.count := count;
+    d.sides := sides;
+    d.add := add;
+    d.mult := mult;
+  end;
+
+begin
+  case spell of
+    { Cause Disease: the disease sets in after 1d6 turns }
+    40: Rolled(1, 6, 0, 10);
+    { Potion of Speed, Wand of Paralyzation }
+    57, 61: Rolled(5, 4, 0, 1);
+    { Giant Strength: 1d4 * 10 + 40 }
+    59: Rolled(1, 4, 4, 10);
+    { Dust of Disappearance }
+    63: if GameVars.ifcState = C_IFC.COMBAT then
+          Rolled(2, 10, 0, 10)
+        else
+          Rolled(1, 10, 10, 10);
+    { Manual of Bodily Health: 24 hours }
+    67: Rolled(0, 0, 24, 60);
+  else
+    with GameDefs.spellTable[spell] do
+      Rolled(0, 0, durFixed + durVar * CharHlp.GetCasterLevel(spell), 1);
+  end;
 end;
 
 function TheftChance(chance: Byte; weight: Word): Byte;

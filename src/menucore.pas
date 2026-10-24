@@ -39,6 +39,9 @@ var
     highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
     call again. The call clears it. }
   movesToCaller: Boolean;
+  { Set by every MenuVertical return: True when it returned because the highlight moved (movesToCaller), so the key it
+    returns is a movement key, which may share its code with a letter (Page Up's scan code is 'I'), and not a choice. }
+  moved: Boolean;
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
 
@@ -507,6 +510,7 @@ begin
   extraKeys := '';
   toCaller := movesToCaller;
   movesToCaller := False;
+  moved := False;
   if list = nil then begin
     listOnly := False;
     idx := 0;
@@ -594,6 +598,7 @@ begin
         end;
       if toCaller and ((idx <> oldIdx) or (GameVars.vertTop <> oldTop)) then begin
         sel := MenuCore.FindListMember(idx, list);
+        moved := True;
         MenuVertical := ch;
         Exit;
       end;
@@ -667,6 +672,7 @@ begin
   arrowsToCaller := False;
   enterToCaller := False;
   movesToCaller := False;
+  moved := False;
   extraKeys := '';
   unmarked := '';
   quickKeysToCaller := False;

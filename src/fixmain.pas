@@ -62,6 +62,8 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O MoneyCal}
 {$O RandItem}
 {$O Magic}
+{$O SpellInf}
+{$O SpellTxt}
 {$O ClassCal}
 {$O FxEngine}
 {$O CharDisp}
