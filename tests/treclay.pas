@@ -101,6 +101,8 @@ begin
   At(281, DiskRec.CharDiskOfs(Ofs(ch.curModA) - Ofs(ch)), 'TCharRecord.curModA');
   At(283, DiskRec.CharDiskOfs(Ofs(ch.hpCur) - Ofs(ch)), 'TCharRecord.hpCur');
   At(284, DiskRec.CharDiskOfs(Ofs(ch.movementCur) - Ofs(ch)), 'TCharRecord.movementCur');
+  { the port's own fields (#838) follow the saved bytes, so the files keep SSI's 285 }
+  At(285, DiskRec.CharDiskOfs(Ofs(ch.portExt) - Ofs(ch)), 'TCharRecord.portExt');
   At(16, DiskRec.CharDiskOfs(Ofs(ch.stats) - Ofs(ch)), 'TCharRecord.stats');
   At(16, DiskRec.CharDiskOfs(Ofs(ch.genderPad) - Ofs(ch)), 'TCharRecord.genderPad');
   At(158, DiskRec.CharDiskOfs(Ofs(ch.genderSp) - Ofs(ch)), 'TCharRecord.genderSp');

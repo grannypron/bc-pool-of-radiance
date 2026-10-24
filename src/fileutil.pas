@@ -59,9 +59,9 @@ function CloseTemp(var f: file; name: TPathName; ok: Boolean): Boolean;
 function PutInPlace(name: TPathName): Boolean;
 
 const
-  { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map and .nts, its vault copy, and five files
+  { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map and .nts, its vault copy, and six files
     for each of the 8 members }
-  SET_FILES = 48;
+  SET_FILES = 54;
 
 type
   { a file of a set, without the set's folder: a DOS name, 8.3 }

@@ -1,0 +1,40 @@
++======================================+
+|                QUESTS                |
++======================================+
+| CI: CLEAR SOKAL KEEP            DONE |
+| LIX: CLEAR SLUMS                DONE |
+| LIX: CLEAR PODOL PLAZA          DONE |
+| LIX: CLEAR KUTO'S WELL          DONE |
+| LIX: CLEAR WEALTHY AREA         DONE | 
+| LIX: CLEAR TEMPLE               DONE |
+| LXIV: CLEAR VALHINGEN           DONE |
+| CXIV: RESCUE BIVANT HEIR        DONE |
+| CXXVI: RETRIEVE BOOKS           ---- |
+| CXXIX: CLEANSE STOJANOW         ---- |
+| CXXXIV: CLEAR KOVEL MANSION     ---- |
+| CCIV: DEFUSE KOBOLDS            ---- |
+| CCXIV: DEFUSE NOMADS            ---- |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
++=========+============================+
+JOURNAL: SELECT QUESTS EXIT
+
+Quest data above is mocked and isn't to 
+be used for actual game.
+
+Color Key:
+    JOURNAL:                MAGENTA
+    HEADER TEXT             WHITE
+    QUEST LIST              GREEN
+    SELECTED QUEST          WHITE
+
+Command Key:
+    SELECT              S / ENTER
+    QUESTS              Q
+    EXIT                E / ESCAPE
+

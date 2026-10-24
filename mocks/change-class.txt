@@ -1,0 +1,69 @@
++======================================+
+|           DUAL CLASS ALIAS           |
+|                                      |
+| NOW         LEVEL 5 FIGHTER          |
+|                                      |
+| NEW CLASS   NEEDS          HAS       |
+| CLERIC      WIS 17         12        |
+| MAGIC-USER  INT 17         17        |
+| THIEF       DEX 17         16        |
+| PALADIN     STR 17         18        |
+|             WIS 17         12        |
+| RANGER      STR 17         18        |
+|             INT 17         17        |
+|             WIS 17         12        |
+|                                      |
+| TO DUAL CLASS A CHARACTER MUST HAVE  |
+| 15 OR MORE IN THE PRIME REQUISITES   |
+| OF THEIR CURRENT CLASS, AND 17 OR    |
+| MORE IN THEIR NEW CLASS' PRIME       |
+| REQUISITES.                          |
+|                                      |
+| {STATUS MESSAGE}                     |
+|                                      |
+|======================================+
+CHANGE CLASS: CHOOSE EXIT
+
+Color Key:
+    TITLE, NAME                         CYAN
+    LABELS, HEADINGS                    GREEN
+    NOW AND TO LEAVE VALUES             WHITE
+    CLASS THE CHARACTER QUALIFIES FOR   WHITE
+    CLASS IT DOES NOT                   DARK GRAY
+    HIGHLIGHTED CLASS                   YELLOW
+    EXPLANATION                         GREEN
+
+Command Key:
+    CHOOSE              C / ENTER (then "Change Alias to a Magic-User? Yes No")
+    EXIT                E / ESCAPE
+    UP / DOWN           move the highlight between the classes it qualifies for
+
+Status message when dual class is unavailable due to current class
+prime requisites being too low:
+
+{NAME} DOES NOT MEET CURRENT CLASS REQUIREMENTS.
+
+Status message when highlighted dual class is unavailable due to not meeting
+new class prime requisite requirements:
+
+{NAME} DOES NOT MEET {CLASS} REQUIREMENTS.
+
+The character screen, while the old class rests (top part):
+
+ ALIAS
+ MALE HUMAN AGE 22
+ LAWFUL GOOD
+ MAGIC-USER (FIGHTER)
+ ...
+ LEVEL 3 (5)      EXP 2,750
+
+and once the magic-user has passed level 5:
+
+ MAGIC-USER (FIGHTER)
+ ...
+ LEVEL 6/5        EXP 23,500
+
+Color Key:
+    ACTIVE CLASS, LEVEL                  WHITE
+    RESTING CLASS, LEVEL (IN BRACKETS)   DARK GRAY
+    FORMER CLASS ONCE AWAKE              WHITE, STILL IN BRACKETS ON THE CLASS LINE

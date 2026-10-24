@@ -38,6 +38,10 @@ const
   BLESS = 1;
   { spellFns[15] = MagicMissileHandler; the Magic Missile immunities test for it }
   MAGIC_MISSILE = 15;
+  { spellFns[21] = SleepHandler; its pool of hit dice is SLEEP_DICE d SLEEP_DIE, rolled at casting }
+  SLEEP = 21;
+  SLEEP_DICE = 4;
+  SLEEP_DIE = 4;
   { spellFns[23] = HoldPersonHandler; one target saves at -2 }
   HOLD_PERSON = 23;
   { the magic-user's Charm Person, which a charming gaze applies }

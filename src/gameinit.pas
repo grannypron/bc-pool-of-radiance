@@ -401,6 +401,7 @@ begin
   { Install effect function pointers. }
   GameInit.InitEffectHandlers;
   CbtMap.boltTracer := Magic.TraceLightningBolt;
+  CbtMap.aimReport := CbtActs.ReportAreaCatch;
   GameIo.showMemory := MemShow.ShowMemory;
   CharHlp.faultHook := CharDisp.ShowFault;
   EclVars.diskHook := DaxIo.PushState;
