@@ -670,6 +670,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 
 **The release step reaches Forgejo by the event's repository URL.** `release.sh` built its API URL from `GITHUB_SERVER_URL`. forgejo-runner sets that to its own connection, which on forgejo.brazencrows.com is Forgejo's loopback address (`http://127.0.0.1:3000/`), and a job cannot reach that, so the Release step failed to connect. The step now gives `release.sh` the event's `repository.url` in `REPO_API`, as Curse and Secret do; the checkout already uses the event's `clone_url` the same way. #843.
 
+**The manual run shows its tag field.** Forgejo's Run workflow form showed `invalid input type ""` instead of the tag, because the `workflow_dispatch` input gave no `type:` (GitHub assumes `string`; Forgejo does not). The input is now `type: string`. #845.
+
 **Build ID.** `build.sh` writes `obj/BUILDID.INC` (version and commit) from git; sources that do not include it, such as SSI's tags, build the same bytes. efccdbf.
 
 **Unit tests.** TestKit and `build.sh --test` (ad2cadc, b88a6d7, 9945bc4); the test programs added in the range are TStats, TAreas, TStrUtil, TFileUtl, TClasCal, TDataPat, TAbilAdj, TMoneyCa, TRecLay, TSaveLay, TRandItm, TCharHlp, TPathing, TJrnl, TDataArc, TEclTrc, TEclVars, TClock, TUsualSp and TVidPic. Many later fixes add checks to them (for example TClasCal for #616 and the Wisdom totals, TCharHlp for `TheftChance` and `AtLevelCap`, TEclVars for the string value's 0, TPathing for `RouteStep`).

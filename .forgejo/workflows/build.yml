@@ -37,6 +37,7 @@ on:
       tag:
         description: The version tag to build and release, for example v1.1
         required: true
+        type: string
 
 jobs:
   build:
