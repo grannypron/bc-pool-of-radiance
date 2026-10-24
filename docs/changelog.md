@@ -7,6 +7,8 @@
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
 
+- A Bestiary, opened with F2 on the map, in the wilderness and in camp, lists every creature you have met and what your party has learned about each: how often you have met and killed them, their size, armor class (narrowed from your attack rolls until it is exact), hit dice once you have killed one, the most damage one has done in a blow, and the defenses and attacks you have seen at work, such as half damage from blunt weapons, immunity to sleep, regeneration, poison or level drain. What you have not yet learned shows as ??. The Bestiary is kept in BESTIARY.DAT in the save folder, not in your saved games, so what you learn carries over to every game you play.
+
 ### Interface improvements
 
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.
