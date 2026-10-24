@@ -15,7 +15,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 implementation
 
 uses Types, Crt, C_NPC, C_MSG, GameDefs, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
-  C_MONEY, Stats, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
+  C_MONEY, Stats, Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party,
+  Dice, ClassCal;
 
 var
   { Combat outcome. }
@@ -521,7 +522,8 @@ end;
 
 { Resolve combat results and remove combat state. On survival or in a duel, take the NPC shares, display the summary,
   offer loot and free the leftover treasure items; on defeat, set C_GBVM.COMBAT_RESULT to $80 and show the game-over
-  screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel. }
+  screen. Then clear the one-combat GBVM modifiers: THAC0 adjustments, party movement, no-items and mirror duel, and
+  write what the Bestiary learned in the fight, the next fight a new encounter for it (#842). }
 procedure PostCombat;
 begin
   GameVars.zone1^[C_GBVM.COMBAT_RESULT] := 0;
@@ -549,6 +551,8 @@ begin
   GameVars.zone1^[C_GBVM.MOD_PARTY_MOVE] := 0;
   GameVars.zone1^[C_GBVM.NO_COMBAT_ITEMS] := 0;
   GameVars.zone1^[C_GBVM.MIRROR_DUEL] := 0;
+  Bestiary.NewEncounter;
+  BeastFil.Flush;
 end;
 
 end.

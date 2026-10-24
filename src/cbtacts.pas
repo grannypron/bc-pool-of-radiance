@@ -76,7 +76,7 @@ implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj, Dice, Blit, ClassCal;
+  CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary;
 
 var
   { Primary and secondary attack counts. }
@@ -182,7 +182,8 @@ end;
 { Print the attack message and inflict the damage (dmg = inflicted, dmgDisp = displayed). atkType: 1 = from behind, 2 =
   backstab, 3 = slays a helpless target, else a plain attack. Any damage cancels the defender's casting for the round
   and loses a spell being cast; a defender that goes down gets its hp-0 effects and, if still disabled,
-  CbtMap.CreatureDowned. }
+  CbtMap.CreatureDowned. A monster's hit on a party member, but for slaying it helpless, is the Bestiary's most damage
+  in a blow if it is more (#842). }
 procedure ProcessAttackResult(att, def: Types.PCharRecord; atkType, dmg, dmgDisp: Byte; isHit: Boolean);
 var
   row: Byte;
@@ -214,6 +215,9 @@ begin
       verb := verb + 'of damage';
     end;
     CharHlp.InflictDamage(def, dmg);
+    { slaying the helpless is no measure of a blow }
+    if atkType <> 3 then
+      Bestiary.LearnBlow(att, def, dmg);
   end else
     verb := verb + 'and Misses';
   TextRend.DisplayMessageWindow(23, row, 38, row + 3, LightGreen, True, verb);
@@ -724,7 +728,9 @@ end;
   AC. Add range penalties, roll the attacks from attackPhase down to 1 until def drops, and spend the sweep budget. A
   hit on a defender with Mirror Image (C_EFFECT.MIRROR_IMAGE) strikes an image unless 1d(images + 1) rolls 1: it shows
   as a miss, the defender loses the image and the blow does no damage and has no on-hit effects. With no attacks left,
-  att's actions end. The blows' sounds are of the Settings screen's ranged kind for a ranged attack, else melee. }
+  att's actions end. The blows' sounds are of the Settings screen's ranged kind for a ranged attack, else melee. A
+  party member's armed blow shows the Bestiary whether def is Large, and each roll from the front narrows def's armor
+  class there (#842). }
 procedure DoAttack(att, def: Types.PCharRecord; fromBehind, ranged: Boolean; var done: Boolean);
 var
   base: Types.TBaseItemRec;
@@ -740,6 +746,8 @@ var
   slay: Byte;
   { the Settings screen's kind for the blows' sounds }
   group: Byte;
+  { the attack roll hit }
+  rolled: Boolean;
 begin
   if ranged then
     group := C_SOUND.GROUP_RANGED
@@ -783,6 +791,8 @@ begin
       att^.curDiceA[1] := base.dmgLgDice;
       att^.curModA[1] := att^.curModA[1] - base.dmgSmMod + base.dmgLgMod;
     end;
+    if att^.equipped[C_EQUIP.WEAPON] <> nil then
+      Bestiary.LearnSize(def, att, def^.iconDimensions and Types.ICON_LARGE <> 0);
     CharHlp.RecalcStats(def);
     FxEngine.TriggerEffectsWithCondition(C_COND.DEFENDER_AC, def);
     behindIdx := 0;
@@ -811,7 +821,12 @@ begin
         Dec(Types.PAttackPhaseView(att)^.curAtt[phase]);
         att^.combatAddr^.attackPhase := phase;
         Inc(attacksMade[phase]);
-        if FxEngine.AttackRoll(att, def, defense) or CharHlp.IsHelpless(def) then begin
+        rolled := FxEngine.AttackRoll(att, def, defense);
+        { the roll against the front armor, without the range's penalty }
+        if atkType = 0 then
+          Bestiary.LearnArmor(def, att, GameVars.gAttackRoll + FxEngine.HitBonus(att) -
+                              (Integer(defense) - Types.PAttackPhaseView(def)^.acCurArr[0]), rolled);
+        if rolled or CharHlp.IsHelpless(def) then begin
           anyHit := True;
           if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image)
              and (Dice.RollDice(1, image^.strength + 1) > 1) then begin

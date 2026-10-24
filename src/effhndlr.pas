@@ -250,7 +250,7 @@ implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
-  C_LEVEL, Dice, Stats;
+  C_LEVEL, Dice, Stats, Bestiary, C_BEAST;
 
 const
   { set by TouchImmune for its immunity check: a monster's poisonous or paralyzing touch is no magic, so magic
@@ -265,6 +265,44 @@ begin
     GameVars.pendingDamage := 0;
     GameVars.pendingEffectId := 0;
   end;
+end;
+
+{ The Bestiary's fact for an immunity to effect effId: sleep and charm, paralysis or poison; 255, no fact, for any
+  other. }
+function ImmunityFact(effId: Byte): Byte;
+begin
+  case effId of
+    C_EFFECT.SLEEP, C_EFFECT.CHARM: ImmunityFact := C_BEAST.IMMUNE_SLEEP_CHARM;
+    C_EFFECT.PARALYSIS: ImmunityFact := C_BEAST.IMMUNE_PARALYSIS;
+    C_EFFECT.POISONED: ImmunityFact := C_BEAST.IMMUNE_POISON;
+  else
+    ImmunityFact := 255;
+  end;
+end;
+
+{ After an immunity handler of creature's ran its NullifyAttack calls: when they cleared the effect effId or the damage
+  dmg pending before them, the party member acting (GameVars.curChar) has seen creature shrug it off, fact in the
+  Bestiary (#842). }
+procedure NoteNullified(creature: Types.PCharRecord; effId, dmg, fact: Byte);
+begin
+  if ((effId <> 0) and (GameVars.pendingEffectId = 0)) or ((dmg <> 0) and (GameVars.pendingDamage = 0)) then
+    Bestiary.Learn(creature, GameVars.curChar, fact);
+end;
+
+{ An immunity handler's NullifyAttack calls on creature have run with effect effId pending before them: when they
+  cleared it, the fact ImmunityFact gives it goes in the Bestiary (NoteNullified). }
+procedure NoteImmunity(creature: Types.PCharRecord; effId: Byte);
+begin
+  EffHndlr.NoteNullified(creature, effId, 0, EffHndlr.ImmunityFact(effId));
+end;
+
+{ A half-damage handler of creature's halves the pending damage: the party member whose blow or spell it was
+  (GameVars.curChar) sees it, fact in the Bestiary (#842). }
+procedure HalveDamage(creature: Types.PCharRecord; fact: Byte);
+begin
+  if GameVars.pendingDamage > 0 then
+    Bestiary.Learn(creature, GameVars.curChar, fact);
+  GameVars.pendingDamage := GameVars.pendingDamage div 2;
 end;
 
 { FxEngine.AddEffect unless the effect lock is on; returns True when the effect was added. The parameter order differs
@@ -1039,10 +1077,12 @@ begin
 end;
 
 { Poison the attacker's combat target: unless it saves vs. paralyzation/poison with saveMod and its Constitution's
-  poison bonus (AbilAdj.ConPoisonSave), or is immune to poison, it gets eff 55 and is killed. }
+  poison bonus (AbilAdj.ConPoisonSave), or is immune to poison, it gets eff 55 and is killed. A party member it is tried
+  on has seen the poison, saved or not (the Bestiary, #842). }
 procedure PoisonTouch(creature: Types.PCharRecord; saveMod: ShortInt);
 begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_POISON);
   if not FxEngine.RollSavingThrow(GameVars.otherCreatureCurrentPtr, C_SAVE.PARALYZE,
                                   saveMod + AbilAdj.ConPoisonSave(GameVars.otherCreatureCurrentPtr^.conCur)) then
     if not EffHndlr.TouchImmune(GameVars.otherCreatureCurrentPtr, C_EFFECT.POISONED) then begin
@@ -1054,10 +1094,12 @@ begin
 end;
 
 { Paralyze the attacker's combat target for minutes unless it saves vs. paralyzation with saveMod or is immune to
-  paralysis. SSI's ignored saveMod, so the drider's -2 was lost (#785). }
+  paralysis. SSI's ignored saveMod, so the drider's -2 was lost (#785). As with poison, a party member it is tried on
+  has seen it (#842). }
 procedure ParalysisTouch(creature: Types.PCharRecord; minutes: Word; saveMod: ShortInt);
 begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_PARALYZE);
   if not FxEngine.RollSavingThrow(GameVars.otherCreatureCurrentPtr, C_SAVE.PARALYZE, saveMod) then
     if not EffHndlr.TouchImmune(GameVars.otherCreatureCurrentPtr, C_EFFECT.PARALYSIS) then begin
       CharDisp.PrintNameStringAnim(GameVars.otherCreatureCurrentPtr, True, 'is Paralyzed');
@@ -1267,6 +1309,7 @@ var
   effect: Types.PEffectRec;
 begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_PETRIFY);
   CharDisp.PrintNameString(creature, 'gazes...', 10, False);
   CharDisp.BuildIconFacings(18);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
@@ -1314,6 +1357,7 @@ begin
   if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
                           GameVars.arenaPtr) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
+  Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_CHARM);
   CharDisp.BuildIconFacings(18);
   CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
                                   CbtMap.CombatCellX(GameVars.otherCreatureCurrentPtr),
@@ -1430,15 +1474,17 @@ begin
   end;
 end;
 
-{ Melee level drain (eff 85): the target loses one level }
+{ Melee level drain (eff 85): the target loses one level; a party member drained knows the drainer for it (#842) }
 procedure EffDrainOne(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
+  Bestiary.Learn(creature, creature^.combatAddr^.other, C_BEAST.ATK_DRAIN);
   EffHndlr.DrainLevels(creature^.combatAddr^.other, 1);
 end;
 
-{ Melee level drain (eff 86): the target loses two levels }
+{ Melee level drain (eff 86): the target loses two levels, as EffDrainOne }
 procedure EffDrainTwo(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
+  Bestiary.Learn(creature, creature^.combatAddr^.other, C_BEAST.ATK_DRAIN);
   EffHndlr.DrainLevels(creature^.combatAddr^.other, 2);
 end;
 
@@ -1449,6 +1495,7 @@ var
   effect: Types.PEffectRec;
 begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
+  Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_ROT);
   if FxEngine.DiseaseImmune(GameVars.otherCreatureCurrentPtr, C_EFFECT.ROT_NO_HEAL) then
     Exit;
   if not CharHlp.HasEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.ROT_NO_HEAL, effect) then begin
@@ -1488,20 +1535,28 @@ end;
 
 { Immunity to electricity + Magic Missile (eff 91) }
 procedure EffImmuneMM(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
+  dmg: Byte;
 begin
+  effId := GameVars.pendingEffectId;
+  dmg := GameVars.pendingDamage;
   if GameVars.currentSpellBeing = C_SPELL.MAGIC_MISSILE then begin
     EffHndlr.NullifyAttack(0);
     CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
+    Bestiary.Learn(creature, GameVars.curChar, C_BEAST.IMMUNE_MM);
   end else
-    if GameVars.elementMask and C_EFFECT.ELEM_ELEC <> 0 then
+    if GameVars.elementMask and C_EFFECT.ELEM_ELEC <> 0 then begin
       EffHndlr.NullifyAttack(0);
+      EffHndlr.NoteNullified(creature, effId, dmg, C_BEAST.IMMUNE_ELEC);
+    end;
 end;
 
 { Half damage from fire (eff 93) }
 procedure EffHalfFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then
-    GameVars.pendingDamage := GameVars.pendingDamage div 2;
+    EffHndlr.HalveDamage(creature, C_BEAST.HALF_FIRE);
 end;
 
 { Half damage from blunt/piercing (eff 94) }
@@ -1511,8 +1566,10 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if w <> nil then
-    if CharHlp.BaseItem(w^.itemType)^.wpnClass and (C_ITEM.WPN_PIERCE or C_ITEM.WPN_BASH) <> 0 then
-      GameVars.pendingDamage := GameVars.pendingDamage div 2;
+    if CharHlp.BaseItem(w^.itemType)^.wpnClass and C_ITEM.WPN_BASH <> 0 then
+      EffHndlr.HalveDamage(creature, C_BEAST.HALF_BLUNT)
+    else if CharHlp.BaseItem(w^.itemType)^.wpnClass and C_ITEM.WPN_PIERCE <> 0 then
+      EffHndlr.HalveDamage(creature, C_BEAST.HALF_PIERCE);
 end;
 
 { Fight on at 0 HP (eff 95): when it expires, a creature still fighting falls dead }
@@ -1541,9 +1598,11 @@ begin
   end;
 end;
 
-{ Regenerate 3 hp per round (eff 98) }
+{ Regenerate 3 hp per round (eff 98); a monster seen to heal so regenerates in the Bestiary (#842) }
 procedure EffRegen3(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
+  if creature^.hpCur < creature^.hpMax then
+    Bestiary.Learn(creature, nil, C_BEAST.REGENERATES);
   { capped before the add, so hpCur 253..255 cannot wrap the Byte }
   if Word(creature^.hpCur) + 3 > creature^.hpMax then
     creature^.hpCur := creature^.hpMax
@@ -1589,12 +1648,15 @@ begin
       FxEngine.AddEffect(creature, C_EFFECT.TROLL_REGEN, 3, 255, True);
 end;
 
-{ Troll returning from going down (eff 102): revive at full HP, or retry in 1 minute if that fails }
+{ Troll returning from going down (eff 102): revive at full HP, or retry in 1 minute if that fails. One that gets back
+  up regenerates, in the Bestiary (#842). }
 procedure EffTrollReturn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   dummy: Boolean;
 begin
-  if not FxEngine.ReviveDeadCreature(creature, creature^.hpMax) then
+  if FxEngine.ReviveDeadCreature(creature, creature^.hpMax) then
+    Bestiary.Learn(creature, nil, C_BEAST.REGENERATES)
+  else
     dummy := EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.TROLL_RETURN, Types.PEffectRec(p)^.strength, 1);
 end;
 
@@ -1620,8 +1682,9 @@ end;
   effect that is no spell (GameVars.currentSpellBeing NONE: a gaze, a monster's fear) there is no caster level, and pct
   stands as listed, as against an 11th-level caster; SSI's read the level of spell 0, from outside the spell table
   (#786). Shipped v1.3 had the sign the other way (pct - (11 - lvl) * 5, with eff 106 passing 15), so resistance grew
-  with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. }
-procedure MagicResistance(pct: Byte);
+  with the caster level; Tyranthraxus (eff 106) still resists every caster the game produces, as he did. Creature,
+  resisting, resists magic in the Bestiary when it was a party member's doing (curChar, #842). }
+procedure MagicResistance(creature: Types.PCharRecord; pct: Byte);
 const
   { the caster level pct is listed against }
   BASE_LEVEL = 11;
@@ -1645,20 +1708,22 @@ begin
     Exit;
   if mundaneCheck then
     Exit;
-  if Dice.RollDice(1, 100) <= chance then
+  if Dice.RollDice(1, 100) <= chance then begin
     EffHndlr.NullifyAttack(0);
+    Bestiary.Learn(creature, GameVars.curChar, C_BEAST.MAGIC_RES);
+  end;
 end;
 
 { Magic resistance 50% (eff 105) }
 procedure EffMagicRes50(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.MagicResistance(50);
+  EffHndlr.MagicResistance(creature, 50);
 end;
 
 { Magic resistance 85% (eff 106) }
 procedure EffMagicRes85(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.MagicResistance(85);
+  EffHndlr.MagicResistance(creature, 85);
 end;
 
 { Elf 90% resistance to sleep/charm (eff 107) }
@@ -1672,39 +1737,65 @@ end;
 
 { Immunity to sleep/charm (eff 108) }
 procedure EffNoSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
 begin
+  effId := GameVars.pendingEffectId;
   EffHndlr.NullifyAttack(C_EFFECT.CHARM);
   EffHndlr.NullifyAttack(C_EFFECT.SLEEP);
+  EffHndlr.NoteImmunity(creature, effId);
 end;
 
 { Immunity to paralysis (eff 109) }
 procedure EffNoParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
 begin
+  effId := GameVars.pendingEffectId;
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
+  EffHndlr.NoteImmunity(creature, effId);
 end;
 
 { Immunity to cold (eff 110) }
 procedure EffNoCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
+  dmg: Byte;
 begin
-  if GameVars.elementMask and C_EFFECT.ELEM_COLD <> 0 then
+  effId := GameVars.pendingEffectId;
+  dmg := GameVars.pendingDamage;
+  if GameVars.elementMask and C_EFFECT.ELEM_COLD <> 0 then begin
     EffHndlr.NullifyAttack(0);
+    EffHndlr.NoteNullified(creature, effId, dmg, C_BEAST.IMMUNE_COLD);
+  end;
 end;
 
 { Immunity to paralysis + poison (eff 111). Saves of type 0 (paralyzation/poison, e.g. Stinking Cloud) succeed
   automatically }
 procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
 begin
+  effId := GameVars.pendingEffectId;
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
+  EffHndlr.NoteImmunity(creature, effId);
   if FxEngine.gSaveType = C_SAVE.PARALYZE then
     FxEngine.gSaveRoll := 100;
 end;
 
 { Immunity to fire (eff 112) }
 procedure EffNoFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
+  dmg: Byte;
 begin
-  if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then
+  effId := GameVars.pendingEffectId;
+  dmg := GameVars.pendingDamage;
+  if GameVars.elementMask and C_EFFECT.ELEM_FIRE <> 0 then begin
     EffHndlr.NullifyAttack(0);
+    EffHndlr.NoteNullified(creature, effId, dmg, C_BEAST.IMMUNE_FIRE);
+  end;
 end;
 
 { Efreeti fire resistance (eff 113): -1 per die, minimum = dice count (damage already below it is left alone) }
@@ -1718,7 +1809,7 @@ end;
 procedure EffHalfElec(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_ELEC <> 0 then
-    GameVars.pendingDamage := GameVars.pendingDamage div 2;
+    EffHndlr.HalveDamage(creature, C_BEAST.HALF_ELEC);
 end;
 
 { Half damage from piercing/slashing (eff 115) }
@@ -1728,9 +1819,10 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if w <> nil then
-    if (CharHlp.BaseItem(w^.itemType)^.wpnClass = C_ITEM.WPN_SLASH) or
-        (CharHlp.BaseItem(w^.itemType)^.wpnClass and C_ITEM.WPN_PIERCE <> 0) then
-      GameVars.pendingDamage := GameVars.pendingDamage div 2;
+    if CharHlp.BaseItem(w^.itemType)^.wpnClass = C_ITEM.WPN_SLASH then
+      EffHndlr.HalveDamage(creature, C_BEAST.HALF_SLASH)
+    else if CharHlp.BaseItem(w^.itemType)^.wpnClass and C_ITEM.WPN_PIERCE <> 0 then
+      EffHndlr.HalveDamage(creature, C_BEAST.HALF_PIERCE);
 end;
 
 { Half damage from magical weapons (eff 116) }
@@ -1741,7 +1833,7 @@ begin
   w := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if w <> nil then
     if w^.plus > 0 then
-      GameVars.pendingDamage := GameVars.pendingDamage div 2;
+      EffHndlr.HalveDamage(creature, C_BEAST.HALF_MAGICAL);
 end;
 
 { Vulnerability to holy water (eff 117): a holy water vial does 1d6+1 }
@@ -1759,7 +1851,7 @@ end;
 procedure EffHalfCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_COLD <> 0 then
-    GameVars.pendingDamage := GameVars.pendingDamage div 2;
+    EffHndlr.HalveDamage(creature, C_BEAST.HALF_COLD);
 end;
 
 { Immunity to non-magical weapons and unarmed attacks (eff 119): only vs PC races or attackers with levelHighest < 4 }
@@ -1769,8 +1861,12 @@ var
 begin
   w := EffHndlr.FindDamagingWeapon(GameVars.curChar);
   if (w = nil) or (w^.plus = 0) then
-    if (GameVars.curChar^.race > C_RACE.MONSTER) or (GameVars.curChar^.levelHighest < 4) then
+    if (GameVars.curChar^.race > C_RACE.MONSTER) or (GameVars.curChar^.levelHighest < 4) then begin
+      { a blow that would have hurt it shows the party it needs a magical weapon (#842) }
+      if GameVars.pendingDamage > 0 then
+        Bestiary.Learn(creature, GameVars.curChar, C_BEAST.NEEDS_MAGIC);
       GameVars.pendingDamage := 0;
+    end;
 end;
 
 { Boulder evasion (eff 120): 50% chance to avoid a thrown C_ITEM.BOULDER or C_ITEM.LARGE_BOULDER }
@@ -1848,11 +1944,15 @@ end;
 
 { Immunity to sleep/charm/para/poison (eff 125). Saves of type 0 succeed automatically }
 procedure EffNoCharmPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+var
+  effId: Byte;
 begin
+  effId := GameVars.pendingEffectId;
   EffHndlr.NullifyAttack(C_EFFECT.CHARM);
   EffHndlr.NullifyAttack(C_EFFECT.SLEEP);
   EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
+  EffHndlr.NoteImmunity(creature, effId);
   if FxEngine.gSaveType = C_SAVE.PARALYZE then
     FxEngine.gSaveRoll := 100;
 end;

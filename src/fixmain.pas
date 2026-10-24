@@ -77,6 +77,8 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O CompTool}
 {$O EvtKind}
 {$O CharEdit}
+{$O BeastMnu}
+{$O BeastFil}
 
 begin
   GameInit.GameInit2;

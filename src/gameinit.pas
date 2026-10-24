@@ -7,8 +7,8 @@ interface
 
 { Allocate the GBVM zones and graphics buffers, build the per-row video address tables and reset the game state to its
   defaults, then load the font, symbol sets, tile sets, combat icons and item table, read the settings from POOLOPT.CFG
-  (Options.LoadOptions), seed the random numbers (with 1 when NORAND is the second argument) and install the spell and
-  effect handlers. }
+  (Options.LoadOptions) and the Bestiary from BESTIARY.DAT (BeastFil.Load), seed the random numbers (with 1 when NORAND
+  is the second argument) and install the spell and effect handlers. }
 procedure GameInit2;
 
 { Puts the game in a new game's state, as at startup: the GBVM banks cleared, the party at (15, 1) facing west in the 3D
@@ -22,7 +22,7 @@ implementation
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, C_SOUND, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
   HeapErr, VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
-  Portrait{$IFDEF FPC}, TpRand{$ENDIF};
+  Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { directory saved across resource loading }
@@ -390,6 +390,9 @@ begin
   TextRend.ClearBottomLine;
   { the settings, over the defaults above, before the title music }
   Options.LoadOptions;
+  { what the player has learned of the creatures, from every game played (#842), written again on the way out }
+  BeastFil.Load;
+  GameIo.beforeExit := BeastFil.Flush;
   { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs given
     the same keys roll the same dice. }
   if ParamStr(2) = 'NORAND' then

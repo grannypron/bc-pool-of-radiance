@@ -78,6 +78,9 @@ function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte
   (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
 
+{ What AttackRoll adds to attacker's roll: its thac0Cur (60 - THAC0) and the GBVM modifier zmod of its side. }
+function HitBonus(attacker: Types.PCharRecord): Integer;
+
 { d20 saving throw into gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
   creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
   the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_SAVE.PARALYZE..SPELL (an
@@ -536,16 +539,21 @@ begin
   AttackRollNoAttacker := RollToHit(nil, defender, sixtyMinusThac0, defender^.acCur);
 end;
 
-function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
+function HitBonus(attacker: Types.PCharRecord): Integer;
 var
   zmod: ShortInt;
 begin
-  FxEngine.RemoveInvisibility(attacker);
   if attacker^.hostile = 0 then
     zmod := ShortInt(Lo(GameVars.zone1^[C_GBVM.PARTY_HIT_MOD]))
   else
     zmod := ShortInt(Lo(GameVars.zone1^[C_GBVM.MONSTER_HIT_MOD]));
-  AttackRoll := RollToHit(attacker, defender, attacker^.thac0Cur + zmod, sixtyMinusAc);
+  HitBonus := attacker^.thac0Cur + zmod;
+end;
+
+function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
+begin
+  FxEngine.RemoveInvisibility(attacker);
+  AttackRoll := RollToHit(attacker, defender, FxEngine.HitBonus(attacker), sixtyMinusAc);
 end;
 
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
