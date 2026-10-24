@@ -1,23 +1,25 @@
 +======================================+
-|          HUMAN CHANGE CLASS          |
+|           DUAL CLASS ALIAS           |
 |                                      |
-|                ALIAS                 |
+| NOW         LEVEL 5 FIGHTER          |
 |                                      |
-| NOW          FIGHTER, LEVEL 5        |
-| TO LEAVE     STR 15         18       |
+| NEW CLASS   NEEDS          HAS       |
+| CLERIC      WIS 17         12        |
+| MAGIC-USER  INT 17         17        |
+| THIEF       DEX 17         16        |
+| PALADIN     STR 17         18        |
+|             WIS 17         12        |
+| RANGER      STR 17         18        |
+|             INT 17         17        |
+|             WIS 17         12        |
 |                                      |
-| NEW CLASS    NEEDS          HAS      |
-|   CLERIC     WIS 17         12       |
-|   MAGIC-USER INT 17         17       |
-|   THIEF      DEX 17         16       |
-|   PALADIN    STR/WIS 17     18/12    |
-|   RANGER     STR/INT/WIS 17 18/17/12 |
+| TO DUAL CLASS A CHARACTER MUST HAVE  |
+| 15 OR MORE IN THE PRIME REQUISITES   |
+| OF THEIR CURRENT CLASS, AND 17 OR    |
+| MORE IN THEIR NEW CLASS' PRIME       |
+| REQUISITES.                          |
 |                                      |
-| ALIAS WILL BE A LEVEL 1 MAGIC-USER.  |
-| THE FIGHTER'S SKILLS REST UNTIL      |
-| ALIAS PASSES LEVEL 5 AS A            |
-| MAGIC-USER.                          |
-|                                      |
+| {STATUS MESSAGE}                     |
 |                                      |
 |======================================+
 CHANGE CLASS: CHOOSE EXIT
@@ -36,11 +38,15 @@ Command Key:
     EXIT                E / ESCAPE
     UP / DOWN           move the highlight between the classes it qualifies for
 
-The issue's mock (#838) with three changes: the class names are the game's own (MAGIC-USER, not MAGE), so the NEEDS
-column moves from 14 to 15; HAS gives the scores alone, in the order NEEDS names them; and every class a human may take
-is listed (the PHB's prime requisites: a paladin's are Strength and Wisdom, a ranger's Strength, Intelligence and
-Wisdom). A class qualifies when the character has 17 in each of its prime requisites, its minimums and an alignment it
-allows, and the hall trains it. With none qualifying the menu is EXIT alone and the explanation says why.
+Status message when dual class is unavailable due to current class
+prime requisites being too low:
+
+{NAME} DOES NOT MEET CURRENT CLASS REQUIREMENTS.
+
+Status message when highlighted dual class is unavailable due to not meeting
+new class prime requisite requirements:
+
+{NAME} DOES NOT MEET {CLASS} REQUIREMENTS.
 
 The character screen, while the old class rests (top part):
 
