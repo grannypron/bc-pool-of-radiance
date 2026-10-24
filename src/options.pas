@@ -1,9 +1,10 @@
 { The Settings screen and POOLOPT.CFG. The game's settings (speed, portraits, music and sound with the kinds of each
-  that can be turned off on their own, Quick ending with the fight, quick-mode magic and the Companion Tools) are
-  global: POOLOPT.CFG in the save folder keeps them as KEY=VALUE lines, with the provisional data and save paths of the
-  later Gold Box games, which only the configuration program will set. GameInit reads it at start-up, before the title
-  music, and every change writes it back; a saved game no longer changes them. The screen has three pages (#835): the
-  settings, the games' paths, and the system's details (video, sound device, build, data archives and memory). }
+  that can be turned off on their own, Quick ending with the fight, quick-mode magic, the Companion Tools and their Clue
+  Book notes) are global: POOLOPT.CFG in the save folder keeps them as KEY=VALUE lines, with the provisional data and
+  save paths of the later Gold Box games, which only the configuration program will set. GameInit reads it at start-up,
+  before the title music, and every change writes it back; a saved game no longer changes them. The screen has three
+  pages (#835): the settings, the games' paths, and the system's details (video, sound device, build, data archives and
+  memory). }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Options;
@@ -57,7 +58,8 @@ const
   OPT_QUICK = 15;
   OPT_MAGIC = 16;
   OPT_COMPANION = 17;
-  OPT_COUNT = 17;
+  OPT_CLUES = 18;
+  OPT_COUNT = 18;
   { POOLOPT.CFG's keys past the settings: the later games' data and save paths, by laterPaths index }
   KEY_PATHS = OPT_COUNT;
   LATER_PATHS = 6;
@@ -115,6 +117,7 @@ begin
     OPT_QUICK: KeyName := 'AUTOENDQUICK';
     OPT_MAGIC: KeyName := 'QUICKMAGIC';
     OPT_COMPANION: KeyName := 'COMPANION';
+    OPT_CLUES: KeyName := 'CLUENOTES';
     KEY_PATHS + 1: KeyName := 'CURSEDATA';
     KEY_PATHS + 2: KeyName := 'CURSESAVE';
     KEY_PATHS + 3: KeyName := 'SECRETDATA';
@@ -147,6 +150,7 @@ begin
     OPT_QUICK: SettingLabel := '  Auto End Quick Mode';
     OPT_MAGIC: SettingLabel := '  Use Magic';
     OPT_COMPANION: SettingLabel := 'Companion Tools';
+    OPT_CLUES: SettingLabel := '  Clue Book Notes';
   else
     SettingLabel := '';
   end;
@@ -198,6 +202,7 @@ begin
     OPT_QUICK: Flag := GameVars.quickEnds;
     OPT_MAGIC: Flag := GameVars.quickMagicOn;
     OPT_COMPANION: Flag := GameVars.companionOn;
+    OPT_CLUES: Flag := GameVars.clueNotesOn;
   else
     Flag := 0;
   end;
@@ -228,6 +233,7 @@ begin
     OPT_QUICK: GameVars.quickEnds := isOn;
     OPT_MAGIC: GameVars.quickMagicOn := isOn;
     OPT_COMPANION: GameVars.companionOn := isOn;
+    OPT_CLUES: GameVars.clueNotesOn := isOn;
   end;
 end;
 

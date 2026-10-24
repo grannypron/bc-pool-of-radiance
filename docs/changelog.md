@@ -10,6 +10,8 @@
 - A human can now change class at a training hall that trains the new class, as in Curse of the Azure Bonds: Human Change Class on the party menu shows what leaving the class needs and which classes the character can take. It costs 2,500 gp. The character keeps its old levels and starts again at level 1 in the new class, with no experience; the old class's skills rest, with no hit points gained, until the new class passes it, and then the character uses the better of both, training only the new class. A character can change again later once its old classes are back.
 - The Journal's new Quests page lists the City Council's missions you have been given: a block of the old city to clear, a proclamation's quest once the council has posted it outside City Hall, and the commissions the clerk, Bishop Braccio, Cadorna, Lord Urslingen and the council hand out. Each one shows DONE once it is finished. Choosing a quest that came from a proclamation takes you back to the Journal with that proclamation shown.
 
+- The Companion Tools' map now shows the Clue Book's numbered map keys ("1. Boat", "3. Temple of Tyr") on the squares where the book's maps print them, in every area the book maps, with each key on every place it appears. Keyed squares have light cyan walls, and the Map tool shows the key under the cursor above your own note, which it never replaces. Turn the keys off with Clue Book Notes under Companion Tools in Settings.
+
 ### Interface improvements
 
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.
