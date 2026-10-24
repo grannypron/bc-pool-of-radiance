@@ -1,12 +1,25 @@
 +======================================+
 |             COMMAND KEYS             |
++======================================+
 |                                      |
 | F1  THIS SCREEN                      |
 | F2  BESTIARY                         |
 | F5  QUICK SAVE                       |
 | F6  COMPANION TOOLS                  |
 | F8  QUICK LOAD                       |
+|                                      |
 | CTRL-Y MEMORY STATS                  |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
 |                                      |
 |======================================+
 HELP: EXIT
