@@ -813,10 +813,11 @@ begin
           CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
           case spell of
-            C_SPELL.FIREBALL: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.FIREBALL]);
-            C_SPELL.LIGHTNING_BOLT: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.LIGHTNING]);
+            C_SPELL.FIREBALL: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.FIREBALL], C_SOUND.GROUP_SPELL);
+            C_SPELL.LIGHTNING_BOLT:
+              SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.LIGHTNING], C_SOUND.GROUP_SPELL);
           else
-            SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
+            SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
           end;
           CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 30);
           SoundDrv.SoundSetAutoStop(10);
@@ -1083,7 +1084,7 @@ begin
       tgt := GameVars.targetCreaturePtr[i];
       if i < GameVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
-        SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
+        SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
         CharDisp.BuildIconFacings(18);
         CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GameVars.curChar), CbtMap.CombatCellY(GameVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
