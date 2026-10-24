@@ -6,6 +6,7 @@
 
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
+- In combat, F7 shows the fight's messages so far: who attacked whom, hits and damage, misses, spells cast and lost, effects and characters going down, a page at a time with the newest at the bottom, each round under its number. Up, Down, Page Up, Page Down, Home and End move through them. The Settings screen turns it on or off (Combat Log) and sets how many messages it keeps (Log Lines, 10 to 60; 50 to start). It needs EMS: without it the two settings are grey and Combat Log says Needs EMS. The messages are not saved and are gone after the fight.
 
 ### Interface improvements
 
