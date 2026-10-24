@@ -127,8 +127,8 @@ fi
 mkdir -p "$root/obj" "$root/build/logs"
 rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
 
-# obj/BUILDID.INC names the source for the Options screen (build/buildid.sh says how).
-"$root/build/buildid.sh"
+# obj/BUILDID.INC names the source for the Options screen (tools/buildid.sh says how).
+"$root/tools/buildid.sh"
 
 echo "build.sh: compiling in DOSBox-X..."
 # DOSBox-X's own messages go to build/logs/DOSBOX.OUT. A build takes seconds; one that has not finished in ten minutes
