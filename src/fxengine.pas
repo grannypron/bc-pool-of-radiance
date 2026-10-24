@@ -41,8 +41,17 @@ procedure RemoveDiseases(creature: Types.PCharRecord);
   once for each side that has one in reach. }
 procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 
-{ Stinking-cloud check for an enabled creature: CbtMap.ProbeDirection (dir 8, its own cells) must report terrain 30
-  (C_TERR.STINK_CLOUD), and any of effects 30, 31, 32, 111 and 125 prevents it. A successful save vs.
+{ True when a Stinking Cloud cannot touch creature, whatever the dice: it is animated dead (C_EFFECT.ANIMATE_DEAD), is
+  coughing already (STINK_COUGH), or is immune to poison (NO_PARA_POISON, NO_CHARM_POISON). CombatAi keeps every other
+  creature out of a cloud. }
+function CloudProof(creature: Types.PCharRecord): Boolean;
+
+{ True when a Stinking Cloud does nothing to creature now: it is disabled, nauseated already (C_EFFECT.HELPLESS) or
+  CloudProof. ConsiderStinkingCloud passes over it, and the spell-aim count (#840) calls it immune. }
+function CloudSpares(creature: Types.PCharRecord): Boolean;
+
+{ Stinking-cloud check for a creature the cloud does not spare (CloudSpares): CbtMap.ProbeDirection (dir 8, its own
+  cells) must report terrain 30 (C_TERR.STINK_CLOUD). A successful save vs.
   paralyzation/poison (type 0) gives effect 30 "starts to cough" for 1 minute, a failure effect 31 "chokes and gags from
   nausea" for 1d4+1 minutes; that effect's handler is then called at once with a nil node, whether or not the effect was
   applied. }
@@ -77,6 +86,9 @@ function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte
   sixtyMinusAc. Penalties that take the roll below 0 only lower it; SSI's took any roll below 0 for a forced miss
   (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
+
+{ What AttackRoll adds to attacker's roll: its thac0Cur (60 - THAC0) and the GBVM modifier zmod of its side. }
+function HitBonus(attacker: Types.PCharRecord): Integer;
 
 { d20 saving throw into gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
   creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
@@ -457,21 +469,33 @@ begin
   end;
 end;
 
+function CloudProof(creature: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  CloudProof := CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect) or
+                CharHlp.HasEffect(creature, C_EFFECT.STINK_COUGH, effect) or
+                CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect) or
+                CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect);
+end;
+
+function CloudSpares(creature: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  CloudSpares := (creature^.enabled = 0) or CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) or
+                 FxEngine.CloudProof(creature);
+end;
+
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 var
   terrIdx: Byte;
   crIdx: Byte;
-  effect: Types.PEffectRec;
   saved: Boolean;
 begin
-  if creature^.enabled = 0 then Exit;
+  if FxEngine.CloudSpares(creature) then Exit;
   CbtMap.ProbeDirection(creature, C_DIR.CENTER, crIdx, terrIdx);
   if terrIdx <> C_TERR.STINK_CLOUD then Exit;
-  if CharHlp.HasEffect(creature, C_EFFECT.STINK_COUGH, effect) then Exit;
-  if CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then Exit;
-  if CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect) then Exit;
-  if CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect) then Exit;
-  if CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect) then Exit;
   { save vs. paralyzation, poison and death magic, with the Constitution's poison bonus }
   saved := FxEngine.RollSavingThrow(creature, C_SAVE.PARALYZE, AbilAdj.ConPoisonSave(creature^.conCur));
   if saved then begin
@@ -547,16 +571,21 @@ begin
   AttackRollNoAttacker := RollToHit(nil, defender, sixtyMinusThac0, defender^.acCur);
 end;
 
-function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
+function HitBonus(attacker: Types.PCharRecord): Integer;
 var
   zmod: ShortInt;
 begin
-  FxEngine.RemoveInvisibility(attacker);
   if attacker^.hostile = 0 then
     zmod := ShortInt(Lo(GameVars.zone1^[C_GBVM.PARTY_HIT_MOD]))
   else
     zmod := ShortInt(Lo(GameVars.zone1^[C_GBVM.MONSTER_HIT_MOD]));
-  AttackRoll := RollToHit(attacker, defender, attacker^.thac0Cur + zmod, sixtyMinusAc);
+  HitBonus := attacker^.thac0Cur + zmod;
+end;
+
+function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
+begin
+  FxEngine.RemoveInvisibility(attacker);
+  AttackRoll := RollToHit(attacker, defender, FxEngine.HitBonus(attacker), sixtyMinusAc);
 end;
 
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
@@ -828,7 +857,7 @@ end;
 
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
-  DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_LEVEL.PALADIN] > 0) and
+  DiseaseImmune := (creature <> nil) and ((CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) > 0)) and
     (effId in C_EFFECT.DISEASES);
 end;
 

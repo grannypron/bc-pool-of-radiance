@@ -56,6 +56,8 @@ var
   quickMagicOn: Byte;
   { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
   companionOn: Byte;
+  { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
+  clueNotesOn: Byte;
   { GameInit clears it; GameIo toggles it on STING Ctrl-D; nonzero enables PrintHpDebug }
   stingHpFlag: Byte;
   { Started as START STING: the debug keys and cheats are on. GameBoot sets it before anything reads a key. }

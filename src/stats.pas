@@ -58,8 +58,8 @@ procedure Count(creature: Types.PCharRecord; stat: Byte; n: LongInt);
 
 { CharHlp.InflictDamage's report: victim lost hp hit points to actor (curChar, the creature acting; may be nil), and was
   up (okay or animated) before it. In combat a party member's blow on a creature outside the party counts as damage
-  done, and its fall as a kill of the victim's kind; a party member's loss counts as damage taken, its fall as knocked
-  down, and its death as died. }
+  done, and its fall as a kill of the victim's kind, in the Bestiary too (#842); a party member's loss counts as damage
+  taken, its fall as knocked down, and its death as died. }
 procedure Damaged(actor, victim: Types.PCharRecord; hp: Byte; wasUp: Boolean);
 
 { A party member that died other than by InflictDamage's blow (which Damaged counts): bled to death in combat, or
@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GameDefs, GameVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, MoneyCal;
+uses GameDefs, GameVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, MoneyCal, Bestiary;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -231,6 +231,7 @@ begin
       if b <> nil then
         Stats.AddKill(b^, victim^.name);
       Stats.AddKill(game, victim^.name);
+      Bestiary.Killed(victim);
     end;
   end;
 end;

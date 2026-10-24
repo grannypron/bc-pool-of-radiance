@@ -30,7 +30,7 @@ implementation
 uses Types, Crt, C_AREA, C_NPC, GameDefs, GameVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE,
   C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
-  VidOps{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, ChgClass{$IFDEF FPC}, TpRand{$ENDIF};
 
 const
   { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
@@ -57,10 +57,6 @@ const
 
 procedure CreateCharacterMenu; forward;
 const
-  { TCharRecord.itemLimits usability bit for each class-level slot (C_LEVEL). The ranger shares the paladin's bit: the
-    item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
-  usabilityBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
-    1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
   { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
   startingAge: array[1..7, C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAge = (
     ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
@@ -105,32 +101,35 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-{ MainMenu: The party-roster main menu (create, drop, modify, train, view, add, remove, load, save, begin, game
-  settings, exit). Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring
-  sets ifcState to 4 (C_IFC.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save first: Yes
-  opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660). Game Settings opens the
-  Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
+{ MainMenu: The party-roster main menu (create, drop, modify, train, change class, view, add, remove, load, save, begin,
+  game settings, exit). Human Change Class (ChgClass.ChangeClassMenu, #838) is offered with Train, to a human of one
+  class. Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets
+  ifcState to 4 (C_IFC.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save first: Yes opens the
+  save menu, and leaving it without saving stays in the menu; No quits unsaved (#660). Game Settings opens the Settings
+  screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
 procedure MainMenu;
 const
   MENU_CREATE = 0;
   MENU_DROP = 1;
   MENU_MODIFY = 2;
   MENU_TRAIN = 3;
-  MENU_VIEW = 4;
-  MENU_ADD = 5;
-  MENU_REMOVE = 6;
-  MENU_LOAD = 7;
-  MENU_SAVE = 8;
-  MENU_BEGIN = 9;
-  MENU_SETTINGS = 10;
-  MENU_QUIT = 11;
-  menuKeys: String[40] = 'C D M T V A R L S B G E J';
+  MENU_CHANGE = 4;
+  MENU_VIEW = 5;
+  MENU_ADD = 6;
+  MENU_REMOVE = 7;
+  MENU_LOAD = 8;
+  MENU_SAVE = 9;
+  MENU_BEGIN = 10;
+  MENU_SETTINGS = 11;
+  MENU_QUIT = 12;
+  menuKeys: String[40] = 'C D M T H V A R L S B G E J';
   { initial empty-roster state }
-  menuItems: array[0..11] of Types.TMenuItem = (
+  menuItems: array[0..12] of Types.TMenuItem = (
     (name: 'Create New Character'; enabled: 1),
     (name: 'Drop Character'; enabled: 0),
     (name: 'Modify Character'; enabled: 0),
     (name: 'Train Character'; enabled: 0),
+    (name: 'Human Change Class'; enabled: 0),
     (name: 'View Character'; enabled: 0),
     (name: 'Add Character to Party'; enabled: 1),
     (name: 'Remove Character from Party'; enabled: 0),
@@ -166,6 +165,9 @@ begin
         { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
         menuItems[MENU_TRAIN].enabled :=
           Ord((GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
+        { a human of one class may change class where training is offered (#838); the screen says what it needs }
+        menuItems[MENU_CHANGE].enabled := Ord((menuItems[MENU_TRAIN].enabled <> 0) and
+          (GameVars.curChar^.race = C_RACE.HUMAN) and (GameVars.curChar^.charClass <= C_CLASS.MONK));
         menuItems[MENU_VIEW].enabled := 1;
         menuItems[MENU_REMOVE].enabled := 1;
         menuItems[MENU_LOAD].enabled := 0;
@@ -175,6 +177,7 @@ begin
         menuItems[MENU_DROP].enabled := 0;
         menuItems[MENU_MODIFY].enabled := 0;
         menuItems[MENU_TRAIN].enabled := 0;
+        menuItems[MENU_CHANGE].enabled := 0;
         menuItems[MENU_VIEW].enabled := 0;
         menuItems[MENU_REMOVE].enabled := 0;
         menuItems[MENU_LOAD].enabled := 1;
@@ -213,6 +216,8 @@ begin
                CharGen.ModifyCharacterMenu;
         'T': if menuItems[MENU_TRAIN].enabled <> 0 then
                CharGen.TrainingMenu;
+        'H': if menuItems[MENU_CHANGE].enabled <> 0 then
+               ChgClass.ChangeClassMenu(stingMode <> 0);
         'V': if menuItems[MENU_VIEW].enabled <> 0 then
                ViewChar.ViewCharMenu(ext2);
         'A': if menuItems[MENU_ADD].enabled <> 0 then
@@ -607,7 +612,7 @@ begin
       if classLevels[cls] > 0 then begin
         if GameDefs.thac0Tbl[cls, classLevels[cls]] > thac0Base then
           thac0Base := GameDefs.thac0Tbl[cls, classLevels[cls]];
-        itemLimits := itemLimits or usabilityBit[cls];
+        itemLimits := itemLimits or ClassCal.usabilityBit[cls];
       end;
   end;
   ClassCal.RecalcSaves(Types.PCharRecord(creature));
@@ -740,32 +745,10 @@ begin
       clsCount := 0;
       for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
         if classLevels[cls] > 0 then begin
-          case cls of
-            C_LEVEL.CLERIC: clericSpells[1] := 1;
-            C_LEVEL.MAGE: mageSpells[1] := 1;
-          end;
           Inc(goldDice,
               Dice.RollDice(startingGoldClass[cls].num, startingGoldClass[cls].sides));
           Inc(clsCount);
-          case cls of
-            C_LEVEL.CLERIC: begin
-                 ClassCal.AwardWisdomBonus(Types.PCharRecord(creature));
-                 for slot := 1 to SizeOf(spellsKnown) div SizeOf(spellsKnown[1]) do
-                   with GameDefs.spellTable[slot] do
-                     if (castClass = 0) and (level = 1) then
-                       spellsKnown[slot] := 1;
-               end;
-            C_LEVEL.MAGE: begin
-                 { Detect Magic }
-                 spellsKnown[11] := 1;
-                 { Read Magic }
-                 spellsKnown[18] := 1;
-                 { Shield }
-                 spellsKnown[19] := 1;
-                 { Sleep }
-                 spellsKnown[21] := 1;
-               end;
-          end;
+          ClassCal.StartCasterClass(Types.PCharRecord(creature), cls);
         end;
       coins[C_MONEY.GOLD] := goldDice * 10 div clsCount;
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
@@ -838,10 +821,10 @@ begin
 end;
 
 { ModifyCharacterMenu: Modify Character on the main menu: ModifyCharacter for a Modifiable character with no
-  experience. }
+  experience. A dual-classed human, whose experience starts again at 0, is not one, as Curse refuses it (#838). }
 procedure ModifyCharacterMenu;
 begin
-  if (GameVars.curChar^.experience > 0) or not CharGen.Modifiable then
+  if (GameVars.curChar^.experience > 0) or not CharGen.Modifiable or CharHlp.IsDualClass(GameVars.curChar) then
     TextRend.PrintAndPause(GameVars.curChar^.name + ' can''t be modified.', Yellow)
   else
     CharGen.ModifyCharacter(False);
@@ -1102,7 +1085,9 @@ end;
 { GainLevels: curChar gains a level in each of its classes in mask (GameDefs.classBit), as training gives it: with
   restoreDrain, one drained level is restored for each; base skills are recalculated; a new magic-user level picks one
   spell; hit points grow by the rolled dice (and, for hpMax, the classes' Con bonus) divided by the class count, at
-  least 1, damage kept. }
+  least 1, damage kept. A dual-classed human (#838) gains no level in a class it has left, and no hit points until the
+  class it follows passes every class it left (ClassCal.HitDice): then its own die alone, undivided. A class that
+  wakes with the level is announced (ChgClass.AnnounceWoken). }
 procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 var
   clsCount: Byte;
@@ -1115,14 +1100,15 @@ var
   sel: Byte;
   idx: Integer;
   notEmpty: Boolean;
+  resting: Byte;
 begin
+  resting := ChgClass.RestingMask(GameVars.curChar);
   with GameVars.curChar^ do begin
-    clsCount := 0;
+    clsCount := ClassCal.HpClassCount(GameVars.curChar);
     oldMage := classLevels[C_LEVEL.MAGE];
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
-        Inc(clsCount);
-        if GameDefs.classBit[cls] and trainable > 0 then begin
+        if (GameDefs.classBit[cls] and trainable > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
           Inc(classLevels[cls]);
           if restoreDrain and (drainedLevels > 0) then begin
             Dec(drainedHps, drainedHps div drainedLevels);
@@ -1140,28 +1126,33 @@ begin
       if sel > 0 then
         spellsKnown[sel] := 1;
     end;
-    rolled := ClassCal.RollFirstLevelHp(GameVars.curChar, trainable);
-    gain := rolled div clsCount;
-    if gain = 0 then
-      gain := 1;
-    Inc(hpRolled, gain);
-    conB := ClassCal.ConHpBonus(GameVars.curChar, trainable);
-    gain := (rolled + conB) div clsCount;
-    if gain < 1 then
-      gain := 1;
-    dmg := hpMax - hpCur;
-    Inc(hpMax, gain);
-    hpCur := hpMax - dmg;
+    if not CharHlp.IsDualClass(GameVars.curChar) or (ClassCal.HitDice(GameVars.curChar, charClass) > 0) then begin
+      rolled := ClassCal.RollFirstLevelHp(GameVars.curChar, trainable);
+      gain := rolled div clsCount;
+      if gain = 0 then
+        gain := 1;
+      Inc(hpRolled, gain);
+      conB := ClassCal.ConHpBonus(GameVars.curChar, trainable);
+      gain := (rolled + conB) div clsCount;
+      if gain < 1 then
+        gain := 1;
+      dmg := hpMax - hpCur;
+      Inc(hpMax, gain);
+      hpCur := hpMax - dmg;
+    end;
   end;
+  if resting <> 0 then
+    ChgClass.AnnounceWoken(GameVars.curChar, resting);
 end;
 
 { TrainingMenu: Train curChar for 1000 gp. Refuses characters that are not C_STATUS.OKAY, have under 1000 gp, have no
   class this hall trains (C_GBVM.TRAIN_CLASS_MASK) or lack the experience; stingMode skips these checks and the fee, but
   not the class and level limits, so a character with no class left to train is still sent away. Applies the racial
   fighter (and half-elf cleric and ranger) level caps by permanent Strength (CharHlp.AtLevelCap). A character who trains
-  has experience clamped to one below the highest level + 2 threshold it has reached. Each trained class gains a level
-  and restores one drained level; a new magic-user level picks one spell; hit points grow by the rolled dice (and, for
-  hpMax, the trained classes' Con bonus) divided by the class count, at least 1, as GainLevels gives them. }
+  has experience clamped to one below the highest level + 2 threshold it has reached. A class a dual-classed human has
+  left neither trains nor counts for the hall (#838). Each trained class gains a level and restores one drained level; a
+  new magic-user level picks one spell; hit points grow by the rolled dice (and, for hpMax, the trained classes' Con
+  bonus) divided by the class count, at least 1, as GainLevels gives them. }
 procedure TrainingMenu;
 var
   xpClamp: LongInt;
@@ -1186,7 +1177,8 @@ begin
   with GameVars.curChar^ do begin
     xpClamp := 0;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-      if classLevels[cls] > 0 then begin
+      { a class a dual-classed human has left never trains (#838) }
+      if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
         Inc(classMask, GameDefs.classBit[cls]);
         lvl := classLevels[cls];
         { xp[] runs to level 9 }
@@ -1228,7 +1220,7 @@ begin
     CharDisp.DisplayCreatureName(Types.PCharRecord(GameVars.curChar), 4, row, False);
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-      if classLevels[cls] > 0 then
+      if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then
         if GameDefs.classBit[cls] and trainable > 0 then begin
           Inc(row);
           if row = 5 then
@@ -1276,6 +1268,7 @@ var
   paladin: Types.PCharRecord;
   newEvil: Boolean;
   newPaladin: Boolean;
+  newRanger: Boolean;
 begin
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   SaveLoad.LoadCharlist(list);
@@ -1326,24 +1319,25 @@ begin
               { C_NPC.FLAG clear }
               if not CharHlp.IsNpc(p) then
                 Inc(nonNpc);
-              if p^.classLevels[C_LEVEL.RANGER] > 0 then
+              if CharHlp.GetClassLevel(p, C_LEVEL.RANGER_BIT) > 0 then
                 Inc(rangers);
               if p^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL] then
                 hasEvil := True;
-              if p^.classLevels[C_LEVEL.PALADIN] > 0 then
+              if CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0 then
                 paladin := p;
               p := p^.nextCharAddr;
             end;
-            newPaladin := creature^.classLevels[C_LEVEL.PALADIN] > 0;
+            newPaladin := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) > 0;
+            newRanger := CharHlp.GetClassLevel(creature, C_LEVEL.RANGER_BIT) > 0;
             newEvil := creature^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL];
             if (p = nil) and
-                ((newPaladin and hasEvil) or ((creature^.classLevels[C_LEVEL.RANGER] > 0) and (rangers >= 3)) or
+                ((newPaladin and hasEvil) or (newRanger and (rangers >= 3)) or
                  (newEvil and (paladin <> nil))) then begin
               { refused by the party rules: unmarked, so it stays on the roster; the reason stays up until a key }
               Delete(m^.name, 1, 2);
               if newPaladin and hasEvil then
                 TextRend.DisplayAndPause(Yellow, 'paladins do not join with evil scum')
-              else if (creature^.classLevels[C_LEVEL.RANGER] > 0) and (rangers >= 3) then
+              else if newRanger and (rangers >= 3) then
                 TextRend.DisplayAndPause(Yellow, 'too many rangers in party')
               else
                 TextRend.DisplayAndPause(Yellow, paladin^.name + ' will tolerate no evil!');

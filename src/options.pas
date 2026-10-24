@@ -1,9 +1,10 @@
 { The Settings screen and POOLOPT.CFG. The game's settings (speed, portraits, music and sound with the kinds of each
-  that can be turned off on their own, Quick ending with the fight, quick-mode magic and the Companion Tools) are
-  global: POOLOPT.CFG in the save folder keeps them as KEY=VALUE lines, with the provisional data and save paths of the
-  later Gold Box games, which only the configuration program will set. GameInit reads it at start-up, before the title
-  music, and every change writes it back; a saved game no longer changes them. The screen has three pages (#835): the
-  settings, the games' paths, and the system's details (video, sound device, build, data archives and memory). }
+  that can be turned off on their own, Quick ending with the fight, quick-mode magic, the Companion Tools and their Clue
+  Book notes) are global: POOLOPT.CFG in the save folder keeps them as KEY=VALUE lines, with the provisional data and
+  save paths of the later Gold Box games, which only the configuration program will set. GameInit reads it at start-up,
+  before the title music, and every change writes it back; a saved game no longer changes them. The screen has three
+  pages (#835): the settings, the games' paths, and the system's details (video, sound device, build, data archives and
+  memory). }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Options;
@@ -52,11 +53,13 @@ const
   OPT_MELEE = 11;
   OPT_DEATH = 12;
   OPT_WALL = 13;
+  OPT_SPELLS = 14;
   { the first setting under the Quick Mode heading }
-  OPT_QUICK = 14;
-  OPT_MAGIC = 15;
-  OPT_COMPANION = 16;
-  OPT_COUNT = 16;
+  OPT_QUICK = 15;
+  OPT_MAGIC = 16;
+  OPT_COMPANION = 17;
+  OPT_CLUES = 18;
+  OPT_COUNT = 18;
   { POOLOPT.CFG's keys past the settings: the later games' data and save paths, by laterPaths index }
   KEY_PATHS = OPT_COUNT;
   LATER_PATHS = 6;
@@ -110,9 +113,11 @@ begin
     OPT_MELEE: KeyName := 'MELEESOUND';
     OPT_DEATH: KeyName := 'DEATHSCREAM';
     OPT_WALL: KeyName := 'WALLHIT';
+    OPT_SPELLS: KeyName := 'SPELLSOUND';
     OPT_QUICK: KeyName := 'AUTOENDQUICK';
     OPT_MAGIC: KeyName := 'QUICKMAGIC';
     OPT_COMPANION: KeyName := 'COMPANION';
+    OPT_CLUES: KeyName := 'CLUENOTES';
     KEY_PATHS + 1: KeyName := 'CURSEDATA';
     KEY_PATHS + 2: KeyName := 'CURSESAVE';
     KEY_PATHS + 3: KeyName := 'SECRETDATA';
@@ -141,9 +146,11 @@ begin
     OPT_MELEE: SettingLabel := '  Melee Attacks';
     OPT_DEATH: SettingLabel := '  Death Scream';
     OPT_WALL: SettingLabel := '  Wall Hit';
+    OPT_SPELLS: SettingLabel := '  Spell Effects';
     OPT_QUICK: SettingLabel := '  Auto End Quick Mode';
     OPT_MAGIC: SettingLabel := '  Use Magic';
     OPT_COMPANION: SettingLabel := 'Companion Tools';
+    OPT_CLUES: SettingLabel := '  Clue Book Notes';
   else
     SettingLabel := '';
   end;
@@ -175,6 +182,7 @@ begin
     OPT_MELEE: GroupBit := C_SOUND.GROUP_MELEE;
     OPT_DEATH: GroupBit := C_SOUND.GROUP_DEATH;
     OPT_WALL: GroupBit := C_SOUND.GROUP_WALL;
+    OPT_SPELLS: GroupBit := C_SOUND.GROUP_SPELL;
   else
     GroupBit := 0;
   end;
@@ -190,10 +198,11 @@ begin
     OPT_MUSIC: Flag := GameVars.musicOn;
     OPT_TITLE_MUSIC, OPT_BATTLE_MUSIC: Flag := Ord(GameVars.musicGroups and Options.GroupBit(opt) <> 0);
     OPT_SOUND: Flag := GameVars.soundOn;
-    OPT_FOOTSTEPS..OPT_WALL: Flag := Ord(GameVars.soundGroups and Options.GroupBit(opt) <> 0);
+    OPT_FOOTSTEPS..OPT_SPELLS: Flag := Ord(GameVars.soundGroups and Options.GroupBit(opt) <> 0);
     OPT_QUICK: Flag := GameVars.quickEnds;
     OPT_MAGIC: Flag := GameVars.quickMagicOn;
     OPT_COMPANION: Flag := GameVars.companionOn;
+    OPT_CLUES: Flag := GameVars.clueNotesOn;
   else
     Flag := 0;
   end;
@@ -216,7 +225,7 @@ begin
       else
         GameVars.musicGroups := GameVars.musicGroups and not Options.GroupBit(opt);
     OPT_SOUND: GameVars.soundOn := isOn;
-    OPT_FOOTSTEPS..OPT_WALL:
+    OPT_FOOTSTEPS..OPT_SPELLS:
       if isOn <> 0 then
         GameVars.soundGroups := GameVars.soundGroups or Options.GroupBit(opt)
       else
@@ -224,6 +233,7 @@ begin
     OPT_QUICK: GameVars.quickEnds := isOn;
     OPT_MAGIC: GameVars.quickMagicOn := isOn;
     OPT_COMPANION: GameVars.companionOn := isOn;
+    OPT_CLUES: GameVars.clueNotesOn := isOn;
   end;
 end;
 

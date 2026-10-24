@@ -15,6 +15,8 @@ var
   { STING Ctrl-Y's memory display, MemShow.ShowMemory, which GameInit installs: it draws with TextRend, which GameIo
     cannot use without a unit cycle. }
   showMemory: TSettingsHook;
+  { BeastFil.Flush, which GameInit installs: ExitGame writes the Bestiary's knowledge before the game ends (#842). }
+  beforeExit: TSettingsHook;
   debugFile: Text;
 
 { Read a key and process the sound (Ctrl-S) and STING (Ctrl-D, Ctrl-L, Ctrl-Z, Ctrl-Y, Ctrl-C) controls on that first
@@ -40,8 +42,8 @@ procedure SetSound(turnOn: Boolean);
   key's scan byte is read and discarded too, so it is not taken for Ctrl-S. }
 procedure DiscardPendingKeys;
 
-{ Close the STING trace log if it is open, restore the saved sound mode, send the stop command, set the saved video mode
-  through the BIOS and exit to DOS. }
+{ Write what the Bestiary has learned (beforeExit), close the STING trace log if it is open, restore the saved sound
+  mode, send the stop command, set the saved video mode through the BIOS and exit to DOS. }
 procedure ExitGame;
 
 { Quit on an error the game cannot go on from: the text mode the game started in (GameVars.savedVideoMode, set directly,
@@ -60,7 +62,14 @@ var
   scanPending: Boolean;
 
 procedure ExitGame;
+var
+  hook: TSettingsHook;
 begin
+  { cleared first, so an exit from inside it does not run it again }
+  hook := beforeExit;
+  @beforeExit := nil;
+  if @hook <> nil then
+    hook;
   if GameVars.debugTraceEnabled then
     Close(debugFile);
   GameVars.soundMode := SoundDrv.soundSaved;
@@ -204,4 +213,5 @@ begin
   { the hooks start unset: global variables are not cleared at startup }
   @saveSettings := nil;
   @showMemory := nil;
+  @beforeExit := nil;
 end.

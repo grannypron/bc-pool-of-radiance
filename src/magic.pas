@@ -200,7 +200,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, C_MSG, SpellInf;
+  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, C_MSG, ChgClass, SpellInf;
 
 var
   { the menu string list }
@@ -523,8 +523,8 @@ begin
           with GameDefs.spellTable[id] do
             if (levelSp >= 1) and (levelSp <= 3) then
               case castClassSp of
-                0: learnable := creature^.classLevels[C_LEVEL.CLERIC] > 0;
-                1: learnable := creature^.classLevels[C_LEVEL.MAGE] > 0;
+                0: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0;
+                1: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) > 0;
               end;
           if learnable then
             SpellMark := NOT_KNOWN_MARK;
@@ -937,10 +937,11 @@ begin
           CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
           case spell of
-            C_SPELL.FIREBALL: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.FIREBALL]);
-            C_SPELL.LIGHTNING_BOLT: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.LIGHTNING]);
+            C_SPELL.FIREBALL: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.FIREBALL], C_SOUND.GROUP_SPELL);
+            C_SPELL.LIGHTNING_BOLT:
+              SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.LIGHTNING], C_SOUND.GROUP_SPELL);
           else
-            SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
+            SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
           end;
           CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 30);
           SoundDrv.SoundSetAutoStop(10);
@@ -1150,38 +1151,19 @@ begin
                       C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC, '');
 end;
 
-{ Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
-  C_RACE.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_STATUS.ANIMATED), targets already asleep (effect 53)
-  and targets the remaining pool cannot pay for are dropped; the pool is spent greedily in target order. }
+{ Sleep: a 4d4 hit-dice pool (C_SPELL.SLEEP_DICE d SLEEP_DIE), spent greedily in target order through
+  CharHlp.SleepTakes: animated dead, targets already asleep and targets the remaining pool cannot pay for
+  (CharHlp.SleepCost) are dropped. }
 procedure SleepHandler;
 var
   pool: Byte;
-  cost: Byte;
   i: Byte;
-  effect: Types.PEffectRec;
 begin
   GameVars.gMultiTarget := 1;
-  pool := Dice.RollDice(4, 4);
-  for i := 1 to GameVars.spellTargetCount do begin
-    case GameVars.targetCreaturePtr[i]^.levelHighest of
-      0..1: cost := 1;
-      2: cost := 2;
-      3: cost := 4;
-      4: cost := 6;
-      5: if GameVars.targetCreaturePtr[i]^.race = C_RACE.MONSTER then
-           cost := 10
-         else
-           cost := 20;
-    else
-      cost := 20;
-    end;
-    if (GameVars.targetCreaturePtr[i]^.status <> C_STATUS.ANIMATED) and
-        (not CharHlp.HasEffect(GameVars.targetCreaturePtr[i], C_EFFECT.SLEEP, effect)) and
-        (pool >= cost) then
-      Dec(pool, cost)
-    else
+  pool := Dice.RollDice(C_SPELL.SLEEP_DICE, C_SPELL.SLEEP_DIE);
+  for i := 1 to GameVars.spellTargetCount do
+    if not CharHlp.SleepTakes(GameVars.targetCreaturePtr[i], pool) then
       GameVars.targetCreaturePtr[i] := nil;
-  end;
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, 0, 0, 'falls asleep');
 end;
 
@@ -1209,7 +1191,7 @@ begin
       tgt := GameVars.targetCreaturePtr[i];
       if i < GameVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
-        SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
+        SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
         CharDisp.BuildIconFacings(18);
         CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GameVars.curChar), CbtMap.CombatCellY(GameVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
@@ -1419,9 +1401,9 @@ begin
   exStr := 0;
   roll := 0;
   tgt := GameVars.targetCreaturePtr[1];
-  if tgt^.classLevels[C_LEVEL.MAGE] > 0 then
+  if CharHlp.GetClassLevel(tgt, C_LEVEL.MAGE_BIT) > 0 then
     roll := Dice.RollDice(1, 4);
-  if (tgt^.classLevels[C_LEVEL.CLERIC] > 0) or (tgt^.classLevels[C_LEVEL.THIEF] > 0) then
+  if CharHlp.GetClassLevel(tgt, C_LEVEL.CLERIC_BIT + C_LEVEL.THIEF_BIT) > 0 then
     roll := Dice.RollDice(1, 6);
   if CharHlp.WarriorLevel(tgt) > 0 then
     roll := Dice.RollDice(1, 8);
@@ -1863,7 +1845,9 @@ end;
 { Restoration: give back one drained level. hpMax, hpCur and hpRolled regain drainedHps div drainedLevels. Scanning
   classes 0..7, a class becomes the pick when its level is not above the current pick's, its next-level XP is nonzero
   and smaller, and it is not at its level cap. The pick gains a level and experience is raised to its next-level XP if
-  lower; with no pick the hit points alone come back. }
+  lower; with no pick the hit points alone come back. A class a dual-classed human has left is never the pick, as
+  Curse restores classLevels alone (curse-disassembly v13 magic.pas:2016-2047), and a class the restored level passes
+  wakes again (ChgClass.AnnounceWoken, #838). }
 procedure RestorationHandler;
 var
   tgt: Types.PCharRecord;
@@ -1873,9 +1857,11 @@ var
   bestXp: LongInt;
   bestCls: ShortInt;
   cls: ShortInt;
+  resting: Byte;
 begin
   tgt := GameVars.targetCreaturePtr[1];
   if tgt^.drainedLevels > 0 then begin
+    resting := ChgClass.RestingMask(tgt);
     share := tgt^.drainedHps div tgt^.drainedLevels;
     Inc(tgt^.hpMax, share);
     Inc(tgt^.hpCur, share);
@@ -1890,6 +1876,8 @@ begin
     bestCls := -1;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
       lvl := tgt^.classLevels[cls];
+      if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
+        lvl := 0;
       { xp[] runs to level 9 }
       if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
           (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] < bestXp) and
@@ -1906,6 +1894,8 @@ begin
     end;
     ClassCal.RecalcBaseSkills(tgt);
     CharDisp.PrintNameString(tgt, 'is restored', 10, True);
+    if resting <> 0 then
+      ChgClass.AnnounceWoken(tgt, resting);
   end;
 end;
 

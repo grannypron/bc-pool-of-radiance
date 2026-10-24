@@ -7,7 +7,8 @@ unit Camp;
 interface
 
 { Run the camp menu, preserving the interface state and clearing rest timers and pending spell activities. Return
-  interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). }
+  interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). F2 opens the Bestiary (#842)
+  and F6 the Companion Tools. }
 procedure CampMainMenu(var interrupted: Boolean);
 
 { Run the noncombat Cast menu. Clear the remembered target on entry and redraw the noncombat interface afterwards if a
@@ -18,7 +19,7 @@ implementation
 
 uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
+  CharDisp, Party, Dice, UsualSpl, Clock, CompTool, KeyHelp, BeastMnu;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -484,7 +485,7 @@ var
 begin
   if not Camp.CanDoSpellActivity(ACT_SCRIBE) then
     Exit;
-  if GameVars.curChar^.classLevels[C_LEVEL.MAGE] <= 0 then begin
+  if CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT) <= 0 then begin
     CharDisp.PrintMessage('Scribing a scroll requires arcane training.')
   end else begin
     done := False;
@@ -987,7 +988,7 @@ begin
     l3Free[n] := 0;
     l1Casts[n] := 0;
     l3Casts[n] := 0;
-    if p^.classLevels[C_LEVEL.CLERIC] > 0 then begin
+    if CharHlp.GetClassLevel(p, C_LEVEL.CLERIC_BIT) > 0 then begin
       Inc(clerics);
       if p^.status = C_STATUS.OKAY then Inc(ableClerics);
     end;
@@ -1095,14 +1096,23 @@ begin
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse, so the prompt has no space after it
       (#674) }
+    MenuCore.helpToCaller := True;
     c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
-      if c = C_KEYS.F6 then begin
+      if c = C_KEYS.F2 then begin
+        { the Bestiary (#842) }
+        BeastMnu.BestiaryMenu;
+        CharDisp.DisplayNoncombatInterface;
+      end else if c = C_KEYS.F6 then begin
         { the Companion Tools, while the setting is on (phase 8) }
         if GameVars.companionOn <> 0 then begin
           CompTool.ToolsMenu;
           CharDisp.DisplayNoncombatInterface;
         end;
+      end else if c = C_KEYS.F1 then begin
+        { the Command Keys window, without F5 and F8, which camp does not take (#855) }
+        KeyHelp.ShowKeys(False);
+        CharDisp.DisplayNoncombatInterface;
       end else begin
         Camp.SelectOtherChar(c);
       end;
