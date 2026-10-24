@@ -143,6 +143,8 @@ jobs:
           git checkout "$TAG" -- src build
           # Date the zip's files by the tag's commit, as a pushed tag would.
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
+          # HEAD is still the dispatching commit: the build ID names the tag (#849).
+          echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
 
       # The same source and image as the build job; reproduce shows the build gives the same bytes every time.
       - name: Build

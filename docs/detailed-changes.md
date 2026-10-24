@@ -672,6 +672,8 @@ Planning: proposed from three surveys (39ac97d), what the ECL can see through Ec
 
 **The manual run shows its tag field.** Forgejo's Run workflow form showed `invalid input type ""` instead of the tag, because the `workflow_dispatch` input gave no `type:` (GitHub assumes `string`; Forgejo does not). The input is now `type: string`. #845.
 
+**A release by hand of an older tag builds, and names the tag.** The release job builds a dispatched tag's `src/` and `build/` with today's `build.sh`, which ran `build/buildid.sh`; tags from before the native build have no such file, so `obj/BUILDID.INC` was never written and the game did not compile (#848). The script is now `tools/buildid.sh`, outside the directories the job takes from the tag. The job also left HEAD at the dispatching commit, so the build ID would have named main's version and commit, marked MODIFIED; the script now describes `BUILD_REF` (HEAD unless set) and compares `src/` and `build/` with it, and the dispatched release sets `BUILD_REF` to the tag (#849).
+
 **Build ID.** `build.sh` writes `obj/BUILDID.INC` (version and commit) from git; sources that do not include it, such as SSI's tags, build the same bytes. efccdbf.
 
 **Unit tests.** TestKit and `build.sh --test` (ad2cadc, b88a6d7, 9945bc4); the test programs added in the range are TStats, TAreas, TStrUtil, TFileUtl, TClasCal, TDataPat, TAbilAdj, TMoneyCa, TRecLay, TSaveLay, TRandItm, TCharHlp, TPathing, TJrnl, TDataArc, TEclTrc, TEclVars, TClock, TUsualSp and TVidPic. Many later fixes add checks to them (for example TClasCal for #616 and the Wisdom totals, TCharHlp for `TheftChance` and `AtLevelCap`, TEclVars for the string value's 0, TPathing for `RouteStep`).
