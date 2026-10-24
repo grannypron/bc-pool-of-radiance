@@ -318,6 +318,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Escape leaves camp's portrait picker unchanged.** From camp (Alter, Character, Portrait), Escape now closes the portrait picker and restores the head and body the character had, discarding whatever was being tried; before, the picker had no way out but choosing a portrait. During character creation it still has none, so a new character always gets a portrait picked. `CharGen.CustomizePortrait` takes `canCancel`. #686.
 
+**The Journal's menu reads JOURNAL: and offers Quests.** `JrnlView.JournalMenu`'s bottom line had no prompt; it now has JOURNAL: in magenta, as the other screens' prompts are, and a Quests option before Exit. Quests turns to the Quests page (`ShowQuests`): a QUESTS heading over a box the width of the frame, with JOURNAL: QUESTS EXIT below. Its Quests turns back to the Journal as it was (`DrawJournal`, split out of `JournalMenu`, redraws the list and the pane's page), and its Exit leaves the Journal. The pane's preview (`TickPreview`, MenuCore's idle hook) is off while the page is up. The mock-up is mocks/jrnl-entries.txt. #852.
+
 **Statistics screen, View menu, Settings screen, Load/Save menu, Fix messages, Journal "(more)", scribing message.** See sections 1, 2 and 6.
 
 ---

@@ -16,6 +16,7 @@
 - The character screen shows the attacks a round the character's classes give (Att/Rnd), under Damage: 1, or 3/2 for a fighter of 7th level or more.
 - A spell memorized more than once now shows once, with how many copies are memorized after it ("Bless (x3)"), on the Cast list, the Spells in Memory list and the Memorize screen's list of spells still to be memorized. Spells on scrolls show once on the Cast list too, counted across all your scrolls, and casting one uses up the scroll with the fewest spells left on it first.
 - When adding bracers with the Companion's character editor, Left and Right now choose Bracers of AC 6, 4 or 2, as they choose a weapon's plus; before, the AC was whatever was rolled.
+- The Journal's bottom line now reads JOURNAL: and offers Quests, which turns to a Quests page; Quests there turns back to the Journal as you left it, and Exit leaves the Journal.
 
 ### Fixes
 
