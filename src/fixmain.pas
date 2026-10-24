@@ -12,7 +12,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,
   VidOps, PicCga, PicEga, PicTdy, PicVga, UsualSpl, SaveLoad, CharGen, Camp,
-  Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options,
+  Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlQst, JrnlView, Options,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, Temple,
   EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp;
 
@@ -40,6 +40,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O Explore}
 {$O Options}
 {$O JrnlList}
+{$O JrnlQst}
 {$O JrnlView}
 {$O Journal4}
 {$O Journal3}
