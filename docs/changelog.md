@@ -7,6 +7,8 @@
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
 
+- The Companion Tools' map now shows the Clue Book's numbered map keys ("1. Boat", "3. Temple of Tyr") on the squares where the book's maps print them, in every area the book maps, with each key on every place it appears. Keyed squares have light cyan walls, and the Map tool shows the key under the cursor above your own note, which it never replaces. Turn the keys off with Clue Book Notes under Companion Tools in Settings.
+
 ### Interface improvements
 
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.
