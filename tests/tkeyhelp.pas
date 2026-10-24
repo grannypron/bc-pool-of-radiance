@@ -38,6 +38,6 @@ begin
   TestKit.Check(not Shows('CTRL-S', True), 'Ctrl-S not without a sound device');
   GameVars.sound.mode := C_SOUND.MODE_ADLIB;
   TestKit.Check(Shows('CTRL-S', True), 'and with one');
-  TestKit.Check(LineOf('F2 ') = 0, 'no F2 line until the bestiary is in (#842)');
+  TestKit.Check(Shows('F2 ', True) and Shows('F2 ', False), 'F2, the Bestiary, shows on either menu (#842)');
   TestKit.Done;
 end.
