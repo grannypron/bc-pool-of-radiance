@@ -24,6 +24,11 @@ function EntryKind(index: Integer): Byte;
   @returns(The number, or 0 outside the list.) }
 function EntryNumber(index: Integer): Integer;
 
+{ The item that is proclamation number in the Journal's list.
+  @param(number The proclamation's number, 59 for LIX.)
+  @returns(Its place in the list, or 0 when the Journal holds no such proclamation.) }
+function ProclamationItem(number: Integer): Integer;
+
 { The item's label for the list column: LIX (a proclamation's numeral), ENTRY 5 or TALE 1, at most 10 characters.
   @param(index The item's place in the list.)
   @returns(The label, or an empty string outside the list.) }
@@ -143,6 +148,16 @@ begin
     77..99: EntryNumber := index - 76;
     else EntryNumber := 0;
   end;
+end;
+
+function ProclamationItem(number: Integer): Integer;
+var
+  i: Integer;
+begin
+  ProclamationItem := 0;
+  for i := 1 to C_JRNL.JOURNAL_COUNT do
+    if (JrnlList.EntryKind(i) = C_JRNL.KIND_PROCLAMATION) and (JrnlList.EntryNumber(i) = number) then
+      ProclamationItem := i;
 end;
 
 function EntryLabel(index: Integer): string;

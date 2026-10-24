@@ -21,6 +21,9 @@ const
   KIND_PROCLAMATION = 1;
   KIND_ENTRY = 2;
   KIND_TALE = 3;
+  { Quests on the Journal's Quests page (JrnlQst), and the columns a quest's label takes there, before its state }
+  QUEST_COUNT = 21;
+  QUEST_WIDTH = 31;
 
 implementation
 
