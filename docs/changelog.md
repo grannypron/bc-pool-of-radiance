@@ -6,6 +6,7 @@
 
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
+- The Journal's new Quests page lists the City Council's missions you have been given: a block of the old city to clear, a proclamation's quest once the council has posted it outside City Hall, and the commissions the clerk, Bishop Braccio, Cadorna, Lord Urslingen and the council hand out. Each one shows DONE once it is finished. Choosing a quest that came from a proclamation takes you back to the Journal with that proclamation shown.
 
 ### Interface improvements
 
