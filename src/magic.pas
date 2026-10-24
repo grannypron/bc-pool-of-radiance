@@ -679,18 +679,23 @@ begin
   CalcSpellDuration := d;
 end;
 
-{ Apply spell to every non-nil targetCreaturePtr entry. The save is rolled only when the spell's saveEffect is set.
-  When currentSpellBeing's rangeFixed is 255 an attack roll is needed too; a miss counts as saved and zeroes damage
-  for this and every later target. damage > 0 is dealt with elem as GameVars.elementMask and saveEffect as the save
-  reduction. The spell's effect, if any, is added for CalcSpellDuration minutes at strength eff (0 = caster level) with
-  onRemove, saveEffect as save-negates, and msg. With no targets it returns at once, leaving elementMask set. }
+{ Apply spell to every non-nil targetCreaturePtr entry. The save is rolled only when the spell's saveResult is not
+  C_SPELL.SAVE_NONE. When currentSpellBeing's rangeFixed is 255 an attack roll is needed too; a miss counts as saved
+  and zeroes damage for this and every later target. damage > 0 is dealt with elem as GameVars.elementMask and
+  saveResult as the save reduction (C_SPELL.SAVE_NEGATES none, C_SPELL.SAVE_HALF half). The spell's effect, if any, is
+  added for CalcSpellDuration minutes at strength eff (0 = caster level) with onRemove and msg, a save negating it for
+  C_SPELL.SAVE_NEGATES and C_SPELL.SAVE_SPECIAL (Silence, whose aura then never starts). SSI's code read saveResult as a
+  Boolean, so Silence's 3 negated under Free Pascal and not under Turbo Pascal (#860). With no targets it returns at
+  once, leaving elementMask set. }
 procedure ResolveSpell(spell, eff: Byte; onRemove: Boolean; damage, elem: Byte; msg: Types.TStr40);
 var
   effLevel: Byte;
   i: Byte;
   tgt: Types.PCharRecord;
   saved: Boolean;
+  saveResult: Byte;
 begin
+  saveResult := GameDefs.spellTable[spell].saveResult;
   if damage = 0 then
     GameVars.elementMask := 0
   else
@@ -704,7 +709,7 @@ begin
   for i := 1 to GameVars.spellTargetCount do begin
     if GameVars.targetCreaturePtr[i] <> nil then begin
       tgt := GameVars.targetCreaturePtr[i];
-      if not GameDefs.spellTable[spell].saveEffect then
+      if saveResult = C_SPELL.SAVE_NONE then
         saved := False
       else
         saved := FxEngine.RollSavingThrow(tgt, GameDefs.spellTable[spell].saveType, 0);
@@ -717,10 +722,10 @@ begin
         end;
       end;
       if damage > 0 then
-        FxEngine.InflictNonWeaponDamage(tgt, damage, Byte(GameDefs.spellTable[spell].saveEffect), saved);
+        FxEngine.InflictNonWeaponDamage(tgt, damage, saveResult, saved);
       if GameDefs.spellTable[spell].effect > 0 then
         FxEngine.AddEffectWithMessage(tgt, GameDefs.spellTable[spell].effect, Magic.CalcSpellDuration(spell), effLevel,
-                                      onRemove, GameDefs.spellTable[spell].saveEffect, saved, msg);
+                                      onRemove, saveResult in [C_SPELL.SAVE_NEGATES, C_SPELL.SAVE_SPECIAL], saved, msg);
     end;
   end;
   GameVars.elementMask := 0;
@@ -1000,13 +1005,15 @@ begin
   Magic.ResolveSpell(GameVars.currentSpellBeing, oldCha, True, 0, 0, 'is friendly');
 end;
 
-{ Magic Missile: (caster level div 2)d4 + caster level div 2 damage, element mask 8. }
+{ Magic Missile: one missile of 1d4 + 1 for every two caster levels, the first at level 1 (1st edition and the rule
+  book: two at levels 3 and 4, three at 5 and 6), element mask 8. SSI's counted caster level div 2, so a 1st-level
+  caster's did no damage and every later pair of levels got its missile a level late (#859). }
 procedure MagicMissileHandler;
 var
-  cl: Byte;
+  missiles: Byte;
 begin
-  cl := CharHlp.GetCasterLevel(GameVars.currentSpellBeing);
-  Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, cl div 2 + Dice.RollDamageDice(cl div 2, 4),
+  missiles := (CharHlp.GetCasterLevel(GameVars.currentSpellBeing) + 1) div 2;
+  Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, missiles + Dice.RollDamageDice(missiles, 4),
                      C_EFFECT.ELEM_MAGIC, '');
 end;
 
@@ -1095,7 +1102,8 @@ begin
       FxEngine.AddEffectWithMessage(tgt, GameDefs.spellTable[GameVars.currentSpellBeing].effect,
                                     Magic.CalcSpellDuration(GameVars.currentSpellBeing),
                                     CharHlp.GetCasterLevel(GameVars.currentSpellBeing), False,
-                                    GameDefs.spellTable[GameVars.currentSpellBeing].saveEffect, saved, 'is held');
+                                    GameDefs.spellTable[GameVars.currentSpellBeing].saveResult = C_SPELL.SAVE_NEGATES,
+                                    saved, 'is held');
     end;
   end;
 end;

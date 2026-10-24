@@ -785,7 +785,7 @@ type
         area: Byte;
         { targeting mode }
         target: Byte;
-        { saving-throw result; Magic reads it as Boolean saveEffect }
+        { what a save does (C_SPELL.SAVE_NONE, SAVE_NEGATES, SAVE_HALF or SAVE_SPECIAL), as Magic.ResolveSpell reads it }
         saveResult: Byte;
         { saving-throw column 0..4 }
         saveType: Byte;
@@ -805,11 +805,6 @@ type
         { Signed class and level view. }
         castClassSp: ShortInt;
         levelSp: ShortInt);
-      2: (
-        { castClass..target }
-        savePrefix: array[0..7] of Byte;
-        { Boolean view of saveResult }
-        saveEffect: Boolean);
   end;
 
   { Combat types. }

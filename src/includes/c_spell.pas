@@ -55,6 +55,13 @@ const
   ITEM_FIREBALL = 64;
   { spellFns[51] = LightningBoltHandler }
   LIGHTNING_BOLT = 51;
+  { what a saving throw does against a spell (spellTable's saveResult): nothing is rolled;
+    a save negates the spell; it halves the damage; or the handler decides (Stinking Cloud's, and Silence's, which
+    Magic.ResolveSpell takes for a save that negates) }
+  SAVE_NONE = 0;
+  SAVE_NEGATES = 1;
+  SAVE_HALF = 2;
+  SAVE_SPECIAL = 3;
 
 implementation
 
