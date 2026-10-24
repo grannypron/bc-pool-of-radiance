@@ -1,10 +1,11 @@
 { Tests for FxEngine.FreeCloudNumber (#761): each of a caster's stinking clouds gets its own number, the list's last
   node counted too, so ending one cloud clears that cloud and not an older one. And for FxEngine.CloudStrength (#762): a
-  caster level above 15 does not carry into the cloud's number. }
+  caster level above 15 does not carry into the cloud's number. And who a cloud cannot touch (CloudProof) or does
+  nothing to now (CloudSpares), which ConsiderStinkingCloud, CombatAi and the spell-aim count (#840) share. }
 {$I COMPILER.INC}
 program TClouds;
 
-uses Types, GameVars, FxEngine, TestKit;
+uses Types, C_EFFECT, GameVars, FxEngine, TestKit;
 
 var
   a: Types.PCharRecord;
@@ -41,6 +42,22 @@ begin
   end;
 end;
 
+{ CloudProof and CloudSpares for b with effect id alone (0: none). }
+procedure CheckSpared(id: Byte; proof, spares: Boolean; what: String);
+var
+  e: Types.TEffectRec;
+begin
+  FillChar(e, SizeOf(e), 0);
+  e.id := id;
+  if id = 0 then
+    b^.effectsAddr := nil
+  else
+    b^.effectsAddr := @e;
+  TestKit.Check(FxEngine.CloudProof(b) = proof, what + ': proof');
+  TestKit.Check(FxEngine.CloudSpares(b) = spares, what + ': spared');
+  b^.effectsAddr := nil;
+end;
+
 var
   i: Byte;
 
@@ -71,6 +88,16 @@ begin
   TestKit.CheckEqualsL(2, FxEngine.CloudStrength(16, 2) div 16, 'level 16 leaves the number 2');
   TestKit.CheckEqualsL(15, FxEngine.CloudStrength(20, 0) and $F, 'level 20 is stored as 15');
   TestKit.CheckEqualsL(15 + 15 * 16, FxEngine.CloudStrength(255, 15), 'level 255, cloud 15: no wrap');
+  FillChar(b^, SizeOf(Types.TCharRecord), 0);
+  b^.enabled := 1;
+  CheckSpared(0, False, False, 'a plain creature');
+  CheckSpared(C_EFFECT.ANIMATE_DEAD, True, True, 'animated dead');
+  CheckSpared(C_EFFECT.STINK_COUGH, True, True, 'one coughing already');
+  CheckSpared(C_EFFECT.NO_PARA_POISON, True, True, 'one immune to paralysis and poison');
+  CheckSpared(C_EFFECT.NO_CHARM_POISON, True, True, 'one immune to charm and poison');
+  CheckSpared(C_EFFECT.HELPLESS, False, True, 'one nauseated already, who may still walk in');
+  b^.enabled := 0;
+  CheckSpared(0, False, True, 'a disabled creature');
   FreeMem(a, SizeOf(Types.TCharRecord));
   FreeMem(b, SizeOf(Types.TCharRecord));
   TestKit.Done;

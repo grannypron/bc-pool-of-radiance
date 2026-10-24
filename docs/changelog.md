@@ -6,6 +6,7 @@
 
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
+- While you aim an area spell in combat, the line above the menu names the spell and counts who it will catch where the cursor is: your enemies, and your own characters and allies (in yellow, for an attack spell), or "No one". Fireball, Lightning Bolt (its bounce too), Stinking Cloud and the other area spells all count, even creatures just out of view. Stinking Cloud also says how many are immune, and Sleep how many on each side it can put to sleep at most.
 
 ### Interface improvements
 
