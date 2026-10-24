@@ -108,7 +108,7 @@ done
 # Compiler output mentions every file; a line of this shape is a real failure.
 fpc_error='(Error|Fatal):'
 failed=0
-"$root/build/buildid.sh"
+"$root/tools/buildid.sh"
 # the sound sequencer's tunes, as SndSeq's image of the driver's segment
 python3 -I "$root/tools/snd2pas.py" --src "$root/src" --out "$root/obj/SNDIMAGE.INC" || exit 1
 
