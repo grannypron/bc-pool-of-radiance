@@ -22,4 +22,4 @@
 |                                      |
 |                 (MORE)               |
 |======================================+
-GAME: NEXT PREV LOAD EXIT
+GAME: NEXT PREV LOAD QUIT EXIT
