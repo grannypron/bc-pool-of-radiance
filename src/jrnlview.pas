@@ -3,7 +3,10 @@
 
   The pane follows the highlight, but only once the highlight has rested for PREVIEW_DELAY: reading an item can load an
   overlay, so the preview is drawn from MenuCore's idle hook while the bottom line waits for a key, and a held arrow key
-  scrolls the list without stopping to draw each item on the way. }
+  scrolls the list without stopping to draw each item on the way.
+
+  The bottom line is the Journal's menu, after a JOURNAL: prompt; its Quests option turns the screen to the Quests page
+  and back (#852). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit JrnlView;
@@ -14,7 +17,8 @@ interface
   highlight through the list, scrolling it at either end of the column and wrapping at either end of the list; Page Up
   and Page Down scroll it a column at a time. The highlighted item's title and first page show in the pane once the
   highlight rests. Select shows the highlighted item at once and turns to its text: Next and Prev, offered while the
-  selected item has a later or an earlier page, turn its pages until the highlight moves again. }
+  selected item has a later or an earlier page, turn its pages until the highlight moves again. Quests turns to the
+  Quests page, whose Quests turns back to the list as it was, and whose Exit leaves the Journal (#852). }
 procedure JournalMenu;
 
 implementation
@@ -38,6 +42,12 @@ const
   TEXT_ROWS = BOTTOM_ROW - TEXT_TOP + 1;
   { how long the highlight rests before the pane shows its item, in TextRend.GetTicks centiseconds }
   PREVIEW_DELAY = 25;
+  { the bottom line's prompt, on the Journal and on its Quests page }
+  PROMPT = 'Journal: ';
+  { the Quests page: its heading on TITLE_ROW and its list from QUESTS_TOP down to BOTTOM_ROW, across the frame }
+  QUESTS_LEFT = LIST_LEFT;
+  QUESTS_RIGHT = PANE_RIGHT;
+  QUESTS_TOP = TEXT_TOP;
 
 var
   { the highlighted item, and the item on the list's first row }
@@ -174,6 +184,38 @@ begin
   end;
 end;
 
+{ Draw the Journal: the list's box, then the text box and the title box, so the gold corners stay where the borders
+  meet, the list from item top and the pane's page when it shows an item. }
+procedure DrawJournal;
+begin
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+  Border.DrawBorder(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW, 0);
+  Border.DrawBorder(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW, 0);
+  Border.DrawBorder(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW, 0);
+  JrnlView.DrawList;
+  if shown <> 0 then
+    JrnlView.DrawPage;
+end;
+
+{ Show the Quests page until Quests or Exit: its heading over the list's box, with the Journal's menu below.
+  @returns(True when Exit or Escape left the Journal; False when Quests turned back to the list.) }
+function ShowQuests: Boolean;
+var
+  ch: Char;
+  ext: Boolean;
+begin
+  { the list's box first, then the heading's, as on the Journal }
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+  Border.DrawBorder(QUESTS_LEFT, QUESTS_TOP, QUESTS_RIGHT, BOTTOM_ROW, 0);
+  Border.DrawBorder(QUESTS_LEFT, TITLE_ROW, QUESTS_RIGHT, TITLE_ROW, 0);
+  TextRend.DisplayCentered(QUESTS_LEFT, QUESTS_RIGHT, TITLE_ROW, White, 'QUESTS');
+  GameVars.horizChoice := 1;
+  repeat
+    ch := MenuCore.MenuHorizontal(PROMPT, 'Quests Exit', LightMagenta, LightGreen, White, True, False, ext);
+  until not ext and (ch in [C_KEYS.NONE, 'Q', 'E']);
+  ShowQuests := ch <> 'Q';
+end;
+
 { Move the highlight to item n, kept within the list, scrolling the list when n is off the column, and start the wait
   before the pane follows it.
   @param(n The item's place in the list.) }
@@ -262,12 +304,7 @@ begin
   pages := 1;
   reading := False;
   lastKey := 'S';
-  { the list's box goes first, then the text box and the title box, so the gold corners stay where the borders meet }
-  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-  Border.DrawBorder(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW, 0);
-  Border.DrawBorder(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW, 0);
-  Border.DrawBorder(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW, 0);
-  JrnlView.DrawList;
+  JrnlView.DrawJournal;
   previewDue := True;
   movedAt := TextRend.GetTicks;
   MenuCore.idleHook := JrnlView.TickPreview;
@@ -277,9 +314,9 @@ begin
       menu := menu + ' Next';
     if reading and (page > 1) then
       menu := menu + ' Prev';
-    menu := menu + ' Exit';
+    menu := menu + ' Quests Exit';
     GameVars.horizChoice := OptionOf(lastKey);
-    ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
+    ch := MenuCore.MenuHorizontal(PROMPT, menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       case ch of
         C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
@@ -312,6 +349,16 @@ begin
         'P': if page > 1 then begin
                Dec(page);
                JrnlView.DrawPage;
+             end;
+        'Q': begin
+               { the pane's preview waits while the Quests page is up }
+               @MenuCore.idleHook := nil;
+               if JrnlView.ShowQuests then
+                 ch := 'E'
+               else begin
+                 JrnlView.DrawJournal;
+                 MenuCore.idleHook := JrnlView.TickPreview;
+               end;
              end;
       end;
     end;
