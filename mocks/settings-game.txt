@@ -3,8 +3,8 @@
 |                                      |
 | GAME SPEED (1)        SLOWER FASTER  |
 | PORTRAITS             ON             |
-|   MONSTER PORTRAITS   ON             |
-|   CHARACTER PORTRAITS ON             |
+|   MONSTERS            ON             |
+|   CHARACTER           ON             |
 | MUSIC                 ON             |
 |   TITLE MUSIC         ON             |
 |   BATTLE MUSIC        ON             |
