@@ -9,6 +9,9 @@ interface
 uses Types;
 
 var
+  { Set by a caller whose screen below a memorize list (Camp's spell slots) is covered by the spell page:
+    SpellSelection calls it, when set, after the page closes, to draw that part again. }
+  belowListHook: Types.TIdleProc;
   { combat arena column, 0..49 }
   gTargetX: ShortInt;
   { combat arena row, 0..24 }
@@ -18,9 +21,12 @@ var
   (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
   for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
   idx is the menu cursor and persists across calls; idx < 0 clears the window and opens at the top of the list on its
-  first spell (cast and learn always redraw). Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's
-  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets currentScrollPtr to the chosen
-  spell's scroll. Frees spellList before returning. }
+  first spell (cast and learn always redraw). Every list but show only has the highlighted spell's summary line
+  (SpellInf.ShowSummary) under it, on row 22 below a list that ends at row 20, or for memorize on the message window's
+  top row, and Info (I) on the bottom line, which opens the spell page (SpellInf.ShowPage) and comes back to the list
+  on the spell the page showed last (#839). A line read from a scroll is worked out at the scroll's caster level.
+  Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's scroll in spellScrolls (nil for Exit or a
+  memorized spell); scribe also sets currentScrollPtr to the chosen spell's scroll. Frees spellList before returning. }
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 
 { Build spellList and spellIds for a menu of creature's spells. menuType: 0 memorized, 5 still being memorized (bit 7
@@ -194,7 +200,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil;
+  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, C_MSG, SpellInf;
 
 var
   { the menu string list }
@@ -207,10 +213,10 @@ var
   scrollCount: Byte;
   { Current item used for spell casting. }
   currentScrollPtr: Types.PItemRec;
+  { the list is one scroll's spells (GenerateSpellList's menu 2, read with Use), each cast from the scroll }
+  scrollList: Boolean;
 
 const
-  { Lightning Bolt's length, in cells past the aim cell }
-  LIGHTNING_BOLT_CELLS = 8;
   { AddSpellToList's markers, in the indent column: none; KNOWN_MARK on a spell already in the creature's spell book; or
     NOT_KNOWN_MARK on a spell the creature's classes could learn but its spell book lacks }
   MARK_NONE = 0;
@@ -230,17 +236,108 @@ function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forwar
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
   forward;
 
+{ The number of selectable lines (spells) before member n of spellList: its index in spellIds and spellScrolls. }
+function LineBefore(n: Integer): Integer;
+var
+  p: Types.PItemRec;
+  k: Integer;
+  lines: Integer;
+begin
+  p := spellList;
+  k := 0;
+  lines := 0;
+  while (p <> nil) and (k < n) do begin
+    if p^.inUse = 0 then
+      Inc(lines);
+    p := p^.next;
+    Inc(k);
+  end;
+  LineBefore := lines;
+end;
+
+{ Member n of spellList as SpellInf takes a list line: its spell id, with C_SPELL.FROM_ITEM set when it is read from a
+  scroll (the one-scroll list, or a Cast line with a scroll); 0 for a level heading or past the list. }
+function LineSpell(n: Integer): Byte;
+var
+  p: Types.PItemRec;
+  line: Integer;
+begin
+  LineSpell := 0;
+  p := MenuCore.FindListMember(n, spellList);
+  if (p <> nil) and (n >= 0) then
+    if p^.inUse = 0 then begin
+      line := Magic.LineBefore(n);
+      if line <= C_SPELL.LINE_LAST then
+        if scrollList or (spellScrolls[line] <> nil) then
+          LineSpell := spellIds[line] or C_SPELL.FROM_ITEM
+        else
+          LineSpell := spellIds[line];
+    end;
+end;
+
+{ Show the spell page for spellList's member idx, stepping through every spell on the list, then point idx at the
+  spell it showed last, scrolled into the rows firstRow..lastRow, and redraw the window down to windowRow and, for
+  memorize, what lies below it (belowListHook). }
+procedure SpellPage(var idx: Integer; firstRow, lastRow, windowRow: Byte; memorize: Boolean);
+var
+  lines: SpellInf.TLineSpells;
+  p: Types.PItemRec;
+  n: Integer;
+  count: Integer;
+  cur: Integer;
+  rows: Integer;
+begin
+  count := 0;
+  cur := 0;
+  p := spellList;
+  n := 0;
+  while p <> nil do begin
+    if (p^.inUse = 0) and (count <= C_SPELL.LINE_LAST) then begin
+      if n = idx then
+        cur := count;
+      lines[count] := Magic.LineSpell(n);
+      Inc(count);
+    end;
+    p := p^.next;
+    Inc(n);
+  end;
+  SpellInf.ShowPage(lines, count, cur);
+  { back to the list, on the spell shown last }
+  p := spellList;
+  n := 0;
+  while (p <> nil) and ((p^.inUse <> 0) or (Magic.LineBefore(n) < cur)) do begin
+    p := p^.next;
+    Inc(n);
+  end;
+  if p <> nil then
+    idx := n;
+  rows := lastRow - firstRow + 1;
+  if idx < GameVars.vertTop then
+    GameVars.vertTop := idx;
+  if idx > GameVars.vertTop + rows - 1 then
+    GameVars.vertTop := idx - rows + 1;
+  Border.DrawWindow(1, 3, 38, windowRow, 0, Black, '');
+  if memorize and (@belowListHook <> nil) then
+    belowListHook;
+end;
+
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
+const
+  LIST_TOP = 5;
 var
   sel: Types.PItemRec;
   p: Types.PItemRec;
   prompt: Types.TStr40;
   title: Types.TStr40;
   count: Byte;
+  { the list window's last row, the list's own, and the summary line's (0 for none) }
+  windowRow: Byte;
   bottomRow: Byte;
+  summaryRow: Byte;
   ch: Char;
   addExit: Boolean;
   redraw: Boolean;
+  moved: Boolean;
 begin
   case selType of
     1: title := 'Cast';
@@ -254,17 +351,40 @@ begin
     prompt := 'Choose Spell: '
   else
     prompt := '';
-  if selType = 2 then
-    bottomRow := 15
+  case selType of
+    2: begin
+         windowRow := 15;
+         bottomRow := 15;
+         { the message window's top row, above Camp.DisplaySpellSlots' lines }
+         summaryRow := C_MSG.MESSAGE_TOP;
+       end;
+    5: begin
+         windowRow := 22;
+         bottomRow := 22;
+         summaryRow := 0;
+       end;
   else
-    bottomRow := 22;
+    begin
+      windowRow := 22;
+      bottomRow := 20;
+      summaryRow := 22;
+    end;
+  end;
+  if summaryRow > 0 then
+    if title = '' then
+      title := 'Info'
+    else
+      title := title + ' Info';
+  { the bottom line holds 40 columns: with Next, Prev and Exit after it, Memorize Info takes 'Spell: ' }
+  if Length(prompt) + Length(title) + Length(' Next Prev Exit') > 40 then
+    prompt := 'Spell: ';
   if selType = 4 then
     addExit := False
   else
     addExit := True;
   redraw := False;
   if idx < 0 then begin
-    Border.DrawWindow(1, 3, 38, bottomRow, 0, Black, '');
+    Border.DrawWindow(1, 3, 38, windowRow, 0, Black, '');
     redraw := True;
     { open at the top of the list on its first spell, the line under the first level heading (MenuVertical, given the
       heading, would wrap up to the page's last line) }
@@ -282,10 +402,20 @@ begin
     redraw := True;
   sel := nil;
   repeat
+    if summaryRow > 0 then
+      SpellInf.ShowSummary(Magic.LineSpell(idx), summaryRow);
     MenuCore.listOnly := selType = 5;
-    ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, 5, 38,
+    MenuCore.movesToCaller := summaryRow > 0;
+    ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, LIST_TOP, 38,
                                 bottomRow, spellList, addExit, redraw, idx, sel);
-  until ch in [C_KEYS.NONE, C_KEYS.ENTER, 'C', 'E', 'L', 'M', 'S'];
+    moved := MenuCore.moved;
+    if not moved and (ch = 'I') and (summaryRow > 0) and (sel <> nil) then begin
+      Magic.SpellPage(idx, LIST_TOP, bottomRow, windowRow, selType = 2);
+      redraw := True;
+    end;
+  until not moved and (ch in [C_KEYS.NONE, C_KEYS.ENTER, 'C', 'E', 'L', 'M', 'S']);
+  if summaryRow > 0 then
+    SpellInf.ShowSummary(0, summaryRow);
   p := spellList;
   count := 0;
   while p <> sel do begin
@@ -617,6 +747,7 @@ begin
   for i := 0 to 48 do
     scrollPtrs[i] := nil;
   scrollCount := 0;
+  scrollList := menuType = 2;
   case menuType of
     7: Magic.AddAvailableSpells(creature);
     0: for i := 0 to Types.SPELL_SLOT_LAST do
@@ -654,29 +785,17 @@ begin
   end;
 end;
 
-{ Spell duration in minutes: durFixed + durVar * caster level, except for the item spells below with their own rolls }
+{ Spell duration in minutes: CharHlp.SpellDuration's dice rolled, or its fixed figure }
 function CalcSpellDuration(spell: Byte): Word;
 var
-  d: Word;
+  d: Types.TDurDice;
+  m: Word;
 begin
-  case spell of
-    { Cause Disease }
-    40: d := Dice.RollDice(1, 6) * 10;
-    { Potion of Speed, Wand of Paralyzation }
-    57, 61: d := Dice.RollDice(5, 4);
-    { Giant Strength }
-    59: d := Dice.RollDice(1, 4) * 10 + 40;
-    { Dust of Disappearance }
-    63: if GameVars.ifcState = C_IFC.COMBAT then
-          d := Dice.RollDice(2, 10) * 10
-        else
-          d := (Dice.RollDice(1, 10) + 10) * 10;
-    { Manual of Bodily Health: 1440 minutes, 24 hours }
-    67: d := 1440;
-  else
-    d := GameDefs.spellTable[spell].durFixed + GameDefs.spellTable[spell].durVar * CharHlp.GetCasterLevel(spell);
-  end;
-  CalcSpellDuration := d;
+  CharHlp.SpellDuration(spell, d);
+  m := d.add;
+  if d.count > 0 then
+    Inc(m, Dice.RollDice(d.count, d.sides));
+  CalcSpellDuration := m * d.mult;
 end;
 
 { Apply spell to every non-nil targetCreaturePtr entry. The save is rolled only when the spell's saveResult is not
@@ -1718,7 +1837,7 @@ var
 begin
   dmg := Dice.RollDice(CharHlp.GetCasterLevel(GameVars.currentSpellBeing), 6);
   Magic.LightningAttackAt(gTargetX, gTargetY, dmg, C_SAVE.SPELL, junk);
-  Magic.LightningPath(LIGHTNING_BOLT_CELLS, dmg, C_SAVE.SPELL, True);
+  Magic.LightningPath(C_SPELL.LIGHTNING_BOLT_CELLS, dmg, C_SAVE.SPELL, True);
 end;
 
 procedure TraceLightningBolt(x, y: ShortInt; var cells: Types.TCellList);
@@ -1730,7 +1849,7 @@ begin
   savedY := gTargetY;
   gTargetX := x;
   gTargetY := y;
-  Magic.WalkBolt(LIGHTNING_BOLT_CELLS, 0, C_SAVE.SPELL, True, True, cells);
+  Magic.WalkBolt(C_SPELL.LIGHTNING_BOLT_CELLS, 0, C_SAVE.SPELL, True, True, cells);
   gTargetX := savedX;
   gTargetY := savedY;
 end;
@@ -2101,4 +2220,6 @@ begin
   { Turbo Pascal clears no variable }
   gTargetX := 0;
   gTargetY := 0;
+  @belowListHook := nil;
+  scrollList := False;
 end.

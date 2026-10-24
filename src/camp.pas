@@ -387,6 +387,14 @@ begin
   end;
 end;
 
+{ Magic.belowListHook for the memorize list: show the spell slots again under it after the spell page covers them. }
+procedure RedrawSpellSlots;
+var
+  junk: Boolean;
+begin
+  junk := Camp.DisplaySpellSlots;
+end;
+
 { With nothing pending, first queue the character's usual spells that it lacks. Then show the pending list under the
   question (Yes keeps it and skips selection, No clears it), so the usual spells are one keypress away and No leads to
   choosing. Otherwise loop the spellbook menu, marking picks as pending while slots remain, and confirm again at the end
@@ -423,6 +431,7 @@ begin
     end else
       redraw := False;
     idx := -1;
+    Magic.belowListHook := Camp.RedrawSpellSlots;
     while done = False do begin
       done := Camp.DisplaySpellSlots = False;
       if done then
@@ -442,6 +451,7 @@ begin
         end;
       end;
     end;
+    @Magic.belowListHook := nil;
     if idx <> -1 then begin
       idx := -1;
       spellId := Magic.SpellMenu(5, 5, idx, notEmpty);

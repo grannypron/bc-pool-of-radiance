@@ -168,6 +168,11 @@ procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 function HoldTarget(creature: Types.PCharRecord; p: Pointer; removed: Boolean; effId: Byte;
                     var released: Boolean): Types.PCharRecord;
 
+{ The reach of an aura effect, which acts in combat on the creatures within that range of the one carrying it
+  (EffectSource): 6 for Prayer and 1 for Silence 15' and Protection from Evil and from Good 10'. 0 for an effect that
+  acts only on its carrier. }
+function AuraRange(effId: Byte): Byte;
+
 implementation
 
 uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, Blit,
@@ -257,17 +262,13 @@ begin
   p := GameVars.creatureList;
   if Carries(creature) then
     found := True
-  else if effId in [C_EFFECT.SILENCE, C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT,
-                    C_EFFECT.PRAYER] then begin
+  else if FxEngine.AuraRange(effId) > 0 then begin
     Move(GameVars.targetList, save, SizeOf(GameVars.targetList));
     while (p <> nil) and not found do begin
       if Carries(p)
          and ((effId in [C_EFFECT.SILENCE, C_EFFECT.PRAYER]) or (p^.hostile = creature^.hostile)) then begin
         if GameVars.ifcState = C_IFC.COMBAT then begin
-          if effId = C_EFFECT.PRAYER then
-            range := 6
-          else
-            range := 1;
+          range := FxEngine.AuraRange(effId);
           Pathing.BuildTargetList(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), range, 255, CbtMap.GetIconSize(p),
                                   GameVars.arenaPtr);
           for i := 1 to GameVars.targetCount do
@@ -281,6 +282,16 @@ begin
     Move(save, GameVars.targetList, SizeOf(GameVars.targetList));
   end;
   EffectSource := found;
+end;
+
+function AuraRange(effId: Byte): Byte;
+begin
+  case effId of
+    C_EFFECT.PRAYER: AuraRange := 6;
+    C_EFFECT.SILENCE, C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT: AuraRange := 1;
+  else
+    AuraRange := 0;
+  end;
 end;
 
 { Trigger one effect id on the creature: call its handler with the node FxEngine.EffectSource finds, if any. }

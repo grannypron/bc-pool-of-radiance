@@ -766,6 +766,14 @@ type
 
   { Spell and downed-record types. }
   PDownedRec = ^TDownedRec;
+  { A spell's duration in minutes, as CharHlp.SpellDuration gives it: count dice of sides, plus add, all times mult
+    (rounds 1, turns 10, hours 60); count 0 for one that rolls nothing, add then holding the whole figure }
+  TDurDice = record
+    count: Byte;
+    sides: Byte;
+    add: Word;
+    mult: Byte;
+  end;
   TSpellRec = record
     case Integer of
       0: (
@@ -781,11 +789,13 @@ type
         durFixed: Byte;
         { duration per caster level }
         durVar: Byte;
-        { PACKED: lo nibble area mode, hi nibble radius }
+        { the low nibble is the area mode (C_SPELL.AREA_MODE_*): 0 the caster, 1..7 (mode and 3) + 1 creatures picked
+          one at a time, 8..14 everything within radius (mode and 7) of the aim, 15 one creature or a bare square
+          (CbtActs.CombatCastTargetMenu, CharHlp.SpellArea); no code reads the high nibble }
         area: Byte;
         { targeting mode }
         target: Byte;
-        { what a save does (C_SPELL.SAVE_NONE, SAVE_NEGATES, SAVE_HALF or SAVE_SPECIAL), as Magic.ResolveSpell reads it }
+        { saving-throw result; Magic reads it as Boolean saveEffect }
         saveResult: Byte;
         { saving-throw column 0..4 }
         saveType: Byte;
