@@ -16,6 +16,7 @@
 - Spell sounds can now be turned off on their own in Settings: Spell Effects, under Sound, silences spells being cast and the flash and damage of their effects, while the other sounds play on.
 - The character screen shows the attacks a round the character's classes give (Att/Rnd), under Damage: 1, or 3/2 for a fighter of 7th level or more.
 - A spell memorized more than once now shows once, with how many copies are memorized after it ("Bless (x3)"), on the Cast list, the Spells in Memory list and the Memorize screen's list of spells still to be memorized. Spells on scrolls show once on the Cast list too, counted across all your scrolls, and casting one uses up the scroll with the fewest spells left on it first.
+- F1 on the map or in camp shows the command keys: F5 and F8 (quick save and load) on the map, F6 while the Companion Tools are on, and Ctrl-S to turn the sound on or off. Escape or Exit closes it.
 - When adding bracers with the Companion's character editor, Left and Right now choose Bracers of AC 6, 4 or 2, as they choose a weapon's plus; before, the AC was whatever was rolled.
 
 ### Fixes

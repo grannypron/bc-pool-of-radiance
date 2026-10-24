@@ -18,7 +18,7 @@ implementation
 
 uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock, CompTool;
+  CharDisp, Party, Dice, UsualSpl, Clock, CompTool, KeyHelp;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -1085,6 +1085,7 @@ begin
   while (interrupted = False) and (not (c in [C_KEYS.NONE, 'E'])) do begin
     { 'Camp:' plus the menu fills the 40-column bottom line exactly, as in Curse, so the prompt has no space after it
       (#674) }
+    MenuCore.helpToCaller := True;
     c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
       if c = C_KEYS.F6 then begin
@@ -1093,6 +1094,10 @@ begin
           CompTool.ToolsMenu;
           CharDisp.DisplayNoncombatInterface;
         end;
+      end else if c = C_KEYS.F1 then begin
+        { the Command Keys window, without F5 and F8, which camp does not take (#855) }
+        KeyHelp.ShowKeys(False);
+        CharDisp.DisplayNoncombatInterface;
       end else begin
         Camp.SelectOtherChar(c);
       end;
