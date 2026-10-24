@@ -23,6 +23,10 @@ procedure PrintHitPoints(creature: Types.PCharRecord; col, row: Byte; hotPink: B
 
 procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; possessive: Boolean);
 
+{ Add the creature's name to the combat log's message (#841) in the colour DisplayCreatureName gives it, on a line of
+  its own as the combat window shows it. }
+procedure LogCreatureName(creature: Types.PCharRecord);
+
 procedure CombatPrintCreatureInfo(creature: Types.PCharRecord);
 
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
@@ -76,7 +80,7 @@ procedure ShowFault(msg: Types.TStr40);
 implementation
 
 uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR;
+  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR, CbtLog;
 
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
@@ -183,9 +187,15 @@ begin
     TextRend.DisplayString(23, row + 1, White, '(Helpless)');
 end;
 
-{ Show a message on the bottom row in light green, wait for a key, then clear the row again. }
+{ Show a message on the bottom row in light green, wait for a key, then clear the row again. In combat it is a combat
+  log message of its own (#841). }
 procedure PrintBottomLine(s: Types.TStr40);
 begin
+  if GameVars.ifcState = C_IFC.COMBAT then begin
+    CbtLog.NewEntry;
+    CbtLog.Add(LightGreen, s);
+    CbtLog.NewEntry;
+  end;
   Border.ClearBox(0, 24, 39, 24);
   TextRend.DisplayString(0, 24, LightGreen, s);
   TextRend.PauseOnly;
@@ -210,12 +220,19 @@ end;
 
 { Show "<name> <text>" in the message window: in combat, the combat window from column 23 at row; otherwise the
   full-width bottom window (bordered unless suppressDrawingBorderFlag is set), the name on its first line and the text
-  word-wrapped below. With pause, wait for a key and clear the window. }
+  word-wrapped below. With pause, wait for a key and clear the window. In combat's message rows (not the creature's
+  panel above them) it starts a combat log message (#841). }
 procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pause: Boolean);
 var
   top: Byte;
 begin
   if GameVars.ifcState = C_IFC.COMBAT then begin
+    if row >= C_MSG.COMBAT_MESSAGE_TOP then begin
+      CbtLog.NewEntry;
+      CharDisp.LogCreatureName(creature);
+      CbtLog.NextLine;
+      CbtLog.Add(LightGreen, s);
+    end;
     Border.ClearBox(C_MSG.COMBAT_LEFT, row, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
     CharDisp.DisplayCreatureName(creature, C_MSG.COMBAT_LEFT, row, False);
     TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, row + 1, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM, LightGreen, True,
@@ -242,6 +259,9 @@ end;
 procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
   if GameVars.ifcState = C_IFC.COMBAT then begin
+    if first then
+      CbtLog.NewEntry;
+    CbtLog.Add(color, s);
     if first then
       Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM);
     TextRend.DisplayMessageWindow(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM,
@@ -274,6 +294,8 @@ begin
     GameVars.curCol := left;
     Inc(GameVars.curRow);
   end;
+  if GameVars.ifcState = C_IFC.COMBAT then
+    CbtLog.NextLine;
   CharDisp.MessageText(line2, LightGreen, False);
   TextRend.PauseOnly;
   CharDisp.ClearMessageWindow;
@@ -288,21 +310,33 @@ begin
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
 end;
 
-{ Print the creature's name in light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to train)
-  or light cyan (friendly), optionally followed by the possessive 's. }
+{ The colour of the creature's name: light red (out of action, enabled = 0), yellow (hostile), light magenta (ready to
+  train) or light cyan (friendly). }
+function NameColor(creature: Types.PCharRecord): Byte;
+begin
+  if creature^.enabled = 0 then
+    NameColor := LightRed
+  else if creature^.hostile = 1 then
+    NameColor := Yellow
+  else if CharHlp.CanTrain(creature) then
+    { ready to train, as in Pools of Darkness }
+    NameColor := LightMagenta
+  else
+    NameColor := LightCyan;
+end;
+
+procedure LogCreatureName(creature: Types.PCharRecord);
+begin
+  CbtLog.NextLine;
+  CbtLog.Add(CharDisp.NameColor(creature), creature^.name);
+end;
+
+{ Print the creature's name in its colour (NameColor), optionally followed by the possessive 's. }
 procedure DisplayCreatureName(creature: Types.PCharRecord; col, row: Byte; possessive: Boolean);
 var
   color: Byte;
 begin
-  if creature^.enabled = 0 then
-    color := LightRed
-  else if creature^.hostile = 1 then
-    color := Yellow
-  else if CharHlp.CanTrain(creature) then
-    { ready to train, as in Pools of Darkness }
-    color := LightMagenta
-  else
-    color := LightCyan;
+  color := CharDisp.NameColor(creature);
   TextRend.DisplayString(col, row, color, creature^.name);
   if possessive then
     TextRend.DisplayString(col + Length(creature^.name), row, color, '''s');

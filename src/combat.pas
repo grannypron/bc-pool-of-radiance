@@ -19,7 +19,11 @@ implementation
 
 uses Types, C_TIME, C_NPC, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp, Dice;
+  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView;
+
+const
+  { CombatMenu's answer for F7, the combat log (#841): F7's scan code is the character code of 'A', which is Aim }
+  SHOW_LOG = #255;
 
 var
   { nonzero suppresses Combat's Continue Battle prompt }
@@ -64,7 +68,8 @@ begin
 end;
 
 { The combat loop. Each round: count teams, run every creature's round-start setup, clear the GBVM surprise flag, let
-  the creatures act in initiative order, then EndOfRound decides whether the battle goes on. }
+  the creatures act in initiative order, then EndOfRound decides whether the battle goes on. The combat log starts
+  empty, sized and turned on by the settings, and each round's messages come under the round's number (#841). }
 procedure CombatMain;
 var
   done: Boolean;
@@ -72,11 +77,13 @@ var
 begin
   GameVars.ifcState := C_IFC.COMBAT;
   GameVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
+  CbtLog.Clear(GameVars.combatLogLines, GameVars.combatLogOn <> 0);
   CombatSt.CombatStart;
   done := False;
   if (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0) then
     done := True;
   while not done do begin
+    CbtLog.Heading(White, 'Round ' + StrUtil.NumStr(GameVars.roundCounter + 1));
     CharHlp.CountTeams;
     creature := GameVars.creatureList;
     while creature <> nil do begin
@@ -199,6 +206,10 @@ begin
                  CombatAi.CombatAiControl(creature);
                end;
           'D': Combat.DoneMenu(creature, done);
+          SHOW_LOG: begin
+                      LogView.ShowLog('Combat Messages');
+                      CharDisp.DisplayCombatInterface;
+                    end;
           { Alt-M scan code: toggle quick magic }
           C_KEYS.ALT_M: CombatAi.ToggleQuickMagic;
           { every creature under the player's control back to manual; NPCs and animated creatures stay on quick-fight,
@@ -233,7 +244,8 @@ begin
     done := CharHlp.EndActions(creature);
 end;
 
-{ Build the command list and run the horizontal menu until an accepted key arrives }
+{ Build the command list and run the horizontal menu until an accepted key arrives. F7, while the combat log is kept,
+  is answered as SHOW_LOG; it is on no menu line, as Move View Aim Use Cast Turn Quick Done fills it (#841). }
 procedure CombatMenu(creature: Types.PCharRecord; var ch: Char);
 var
   menu: String[40];
@@ -263,9 +275,11 @@ begin
   repeat
     ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, hasSpell);
     if hasSpell then
-      if not (ch in [C_KEYS.ALT_Q, C_KEYS.ALT_X, C_KEYS.ALT_M]) then
+      if (ch = C_KEYS.F7) and CbtLog.Active then
+        ch := SHOW_LOG
+      else if not (ch in [C_KEYS.ALT_Q, C_KEYS.ALT_X, C_KEYS.ALT_M]) then
         ch := C_KEYS.NONE;
-  until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
+  until ch in [C_KEYS.ALT_Q, ' ', C_KEYS.ALT_X, C_KEYS.ALT_M, SHOW_LOG, 'A', 'C', 'D', 'M', 'Q', 'T', 'U', 'V'];
 end;
 
 { Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at
