@@ -76,7 +76,7 @@ procedure ShowFault(msg: Types.TStr40);
 implementation
 
 uses CharHlp, Crt, C_AREA, C_MSG, GameDefs, GameVars, MenuCore, MapView, Pathing, CbtMap, C_EQUIP, C_KEYS, C_IFC, Blit,
-  Border, Portrait, SoundDrv, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR;
+  Border, Portrait, SoundDrv, C_SOUND, C_SPELL, TextRend, Wilds, StrUtil, C_GBVM, Party, C_DIR;
 
 var
   { the bottom message window's top row, from MessageText's first part for the parts after it }
@@ -484,7 +484,9 @@ end;
 
 { Show "<name> <text>" with the damage or effect flash: build the facings from icon cell 23 (damage) or 22 (effect),
   scroll the creature on screen if needed, play the sound, print, then flash the four facing frames at the creature's
-  grid cell (gameDelay + 1 times for an effect, once for damage, which then waits for a key).
+  grid cell (gameDelay + 1 times for an effect, once for damage, which then waits for a key). The effect's sound, the
+  spells' own wherever it plays, and a spell's damage are of the Settings screen's Spell Effects kind (#854); other
+  damage, a breath's or a touch's, follows the Sound setting alone.
   SoundDrv.SoundSetAutoStop(0) keeps the sound driver resident during the flash, then 10 restores per-sound cleanup. Out
   of combat it is just PrintNameString with a pause. }
 procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: string);
@@ -507,7 +509,9 @@ begin
     if not CbtMap.CombatIconVisible(creature, 1) then
       CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 3, 8);
     if effect then
-      SoundDrv.SoundCommand(GameDefs.soundIds.combat[0])
+      SoundDrv.SoundEffect(GameDefs.soundIds.combat[0], C_SOUND.GROUP_SPELL)
+    else if GameVars.currentSpellBeing <> C_SPELL.NONE then
+      SoundDrv.SoundEffect(GameDefs.soundIds.damage, C_SOUND.GROUP_SPELL)
     else
       SoundDrv.SoundCommand(GameDefs.soundIds.damage);
     CharDisp.PrintNameString(creature, s, 10, False);
