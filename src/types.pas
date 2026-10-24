@@ -697,6 +697,13 @@ type
   end;
   { Fills cells with the path of a spell aimed at (x, y): CbtMap.boltTracer. }
   TCellTracer = procedure(x, y: ShortInt; var cells: TCellList);
+  { Arena slots (GameVars.arenaLoc) in order, such as the creatures an aimed area spell will catch. }
+  TSlotList = record
+    count: Byte;
+    slot: array[1..ARENA_SLOTS] of Byte;
+  end;
+  { Shows who the spell being aimed will catch, given them nearest first: CbtMap.aimReport. }
+  TAimReport = procedure(var caught: TSlotList);
   { TCharRecord view: armor class and attacks as arrays }
   TAttackPhaseView = record
     { skips to acCur }

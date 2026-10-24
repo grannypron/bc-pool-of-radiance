@@ -1024,38 +1024,19 @@ begin
                       C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC, '');
 end;
 
-{ Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
-  C_RACE.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_STATUS.ANIMATED), targets already asleep (effect 53)
-  and targets the remaining pool cannot pay for are dropped; the pool is spent greedily in target order. }
+{ Sleep: a 4d4 hit-dice pool (C_SPELL.SLEEP_DICE d SLEEP_DIE), spent greedily in target order through
+  CharHlp.SleepTakes: animated dead, targets already asleep and targets the remaining pool cannot pay for
+  (CharHlp.SleepCost) are dropped. }
 procedure SleepHandler;
 var
   pool: Byte;
-  cost: Byte;
   i: Byte;
-  effect: Types.PEffectRec;
 begin
   GameVars.gMultiTarget := 1;
-  pool := Dice.RollDice(4, 4);
-  for i := 1 to GameVars.spellTargetCount do begin
-    case GameVars.targetCreaturePtr[i]^.levelHighest of
-      0..1: cost := 1;
-      2: cost := 2;
-      3: cost := 4;
-      4: cost := 6;
-      5: if GameVars.targetCreaturePtr[i]^.race = C_RACE.MONSTER then
-           cost := 10
-         else
-           cost := 20;
-    else
-      cost := 20;
-    end;
-    if (GameVars.targetCreaturePtr[i]^.status <> C_STATUS.ANIMATED) and
-        (not CharHlp.HasEffect(GameVars.targetCreaturePtr[i], C_EFFECT.SLEEP, effect)) and
-        (pool >= cost) then
-      Dec(pool, cost)
-    else
+  pool := Dice.RollDice(C_SPELL.SLEEP_DICE, C_SPELL.SLEEP_DIE);
+  for i := 1 to GameVars.spellTargetCount do
+    if not CharHlp.SleepTakes(GameVars.targetCreaturePtr[i], pool) then
       GameVars.targetCreaturePtr[i] := nil;
-  end;
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, 0, 0, 'falls asleep');
 end;
 
