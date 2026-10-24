@@ -183,7 +183,8 @@ begin
   case address of
     C_GBVM.CHAR_CON: SpecialReadZ1 := GameVars.curChar^.conCur;
     C_GBVM.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GameVars.curChar^.saves[C_SAVE.PETRIFY];
-    C_GBVM.CHAR_LEVEL: SpecialReadZ1 := GameVars.curChar^.levelHighest;
+    { the level of the class the character follows now: a dual-classed human's current class's (#838) }
+    C_GBVM.CHAR_LEVEL: SpecialReadZ1 := CharHlp.CurrentClassLevel(GameVars.curChar);
     C_GBVM.CHAR_THIEF_SKILLS..C_GBVM.CHAR_THIEF_SKILLS_LAST: begin
       t := address - C_GBVM.CHAR_THIEF_SKILLS + 1;
       SpecialReadZ1 := GameVars.curChar^.thiefSkills[t];

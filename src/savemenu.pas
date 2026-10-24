@@ -51,7 +51,8 @@ function MemberName(letter: Char; n: Byte): Types.TStr8;
 { vault<x>.dat: slot letter's copy of the vault (Vault). }
 function VaultName(letter: Char): FileUtil.TSetName;
 
-{ Add to save s, to be erased, a character's files (SaveLoad writes them): <base><ext>, .itm, .spc, .mem and .sts. }
+{ Add to save s, to be erased, a character's files (SaveLoad writes them): <base><ext>, .itm, .spc, .mem, .sts and
+  .chx. }
 procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext: Types.TStr8);
 
 { Undo a save into slot letter that the game was ended in before it was done (FileUtil.RecoverSet), over every file a
@@ -156,6 +157,7 @@ begin
   FileUtil.AddToSet(s, base + '.spc', False);
   FileUtil.AddToSet(s, base + '.mem', False);
   FileUtil.AddToSet(s, base + '.sts', False);
+  FileUtil.AddToSet(s, base + '.chx', False);
 end;
 
 function RecoverSlot(letter: Char): Boolean;

@@ -296,16 +296,10 @@ begin
   SelectSpellToCast := ext;
 end;
 
-{ True when creature keeps out of a Stinking Cloud: unless it has C_EFFECT.ANIMATE_DEAD, C_EFFECT.STINK_COUGH,
-  C_EFFECT.NO_PARA_POISON or C_EFFECT.NO_CHARM_POISON. }
+{ True when creature keeps out of a Stinking Cloud: any creature the cloud can touch (not FxEngine.CloudProof). }
 function AvoidsCloud(creature: Types.PCharRecord): Boolean;
-var
-  effect: Types.PEffectRec;
 begin
-  AvoidsCloud := (not CharHlp.HasEffect(creature, C_EFFECT.ANIMATE_DEAD, effect)) and
-                 (not CharHlp.HasEffect(creature, C_EFFECT.STINK_COUGH, effect)) and
-                 (not CharHlp.HasEffect(creature, C_EFFECT.NO_PARA_POISON, effect)) and
-                 (not CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect));
+  AvoidsCloud := not FxEngine.CloudProof(creature);
 end;
 
 { Can creature step in direction dir? Off the map sets edge and fails, and an occupied cell fails. The step costs 2
