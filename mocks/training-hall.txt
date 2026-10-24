@@ -1,0 +1,40 @@
++======================================+
+| NAME                          AC  HP |
+| MORRIGAN                     -14  74 |
+| GINS                         -14  46 |
+| BLAIR                         -7  28 |
+| MORGAN                        -9  26 |
+| SHADOW                        -5  53 |
+|                                      |
+| CHARACTER         PARTY              |
+|   CREATE            ADD              |
+|   VIEW              REMOVE           |
+|   MODIFY                             |
+|   DROP            GAME               |
+|   TRAIN             SAVE             |
+|   DUAL CLASS        LOAD             |
+|                     SETTINGS         |
+|                     EXIT TO DOS      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+| BEGIN ADVENTURING                    |
+|======================================+
+                          V1.3-1202 (BC)
+
+Command Key:
+    CREATE CHARACTER        C
+    VIEW CHARACTER          V
+    MODIFY CHARACTER        M
+    DROP CHARACTER          D
+    TRAIN CHARACTER         T
+    DUAL CLASS              U
+    ADD TO PARTY            A
+    REMOVE FROM PARTY       R
+    SAVE CURRENT GAME       S
+    LOAD GAME               L
+    SETTINGS                G
+    EXIT TO DOS             E
+    

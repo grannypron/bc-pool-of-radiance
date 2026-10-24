@@ -25,7 +25,7 @@ implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu;
 
 var
   { Door-opening flags: bash, pick and knock. }
@@ -74,7 +74,7 @@ begin
   found := False;
   p := GameVars.creatureList;
   while (p <> nil) and (not found) do begin
-    if p^.classLevels[idx] > 0 then found := True;
+    if CharHlp.GetClassLevel(p, 1 shl idx) > 0 then found := True;
     p := p^.nextCharAddr;
   end;
   PartyHasClass := found;
@@ -306,7 +306,9 @@ end;
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
   C_GBVM.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
   code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
-  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and the menu goes on. }
+  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave), F2 opens the Bestiary (#842), F6 the
+  Companion Tools while that setting is on and F1 the Command Keys window (KeyHelp.ShowKeys, #855); the screen is drawn
+  again after each, and the menu goes on. }
 function MapMainMenu: Char;
 const
   { 3D exploration menu }
@@ -326,6 +328,7 @@ begin
          repeat
            MenuCore.arrowsToCaller := True;
            MenuCore.quickKeysToCaller := True;
+           MenuCore.helpToCaller := True;
            c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False, ext);
            if not ext then begin
              case c of
@@ -376,9 +379,18 @@ begin
                           end;
                C_KEYS.F5: SaveLoad.QuickSave;
                C_KEYS.F8: done := Explore.AskQuickLoad;
+               { the Bestiary (#842) }
+               C_KEYS.F2: begin
+                            BeastMnu.BestiaryMenu;
+                            CharDisp.DisplayNoncombatInterface;
+                          end;
                { the Companion Tools, while the setting is on (phase 8) }
                C_KEYS.F6: if GameVars.companionOn <> 0 then begin
                             CompTool.ToolsMenu;
+                            CharDisp.DisplayNoncombatInterface;
+                          end;
+               C_KEYS.F1: begin
+                            KeyHelp.ShowKeys(True);
                             CharDisp.DisplayNoncombatInterface;
                           end;
              else begin
@@ -401,6 +413,7 @@ begin
         repeat
           MenuCore.arrowsToCaller := True;
           MenuCore.quickKeysToCaller := True;
+          MenuCore.helpToCaller := True;
           c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False, ext);
           if not ext then begin
             case c of
@@ -432,11 +445,21 @@ begin
                            done := False;
                          end;
               C_KEYS.F8: done := Explore.AskQuickLoad;
+              C_KEYS.F2: begin
+                           BeastMnu.BestiaryMenu;
+                           CharDisp.DisplayWildernessInterface;
+                           done := False;
+                         end;
               C_KEYS.F6: begin
                            if GameVars.companionOn <> 0 then begin
                              CompTool.ToolsMenu;
                              CharDisp.DisplayWildernessInterface;
                            end;
+                           done := False;
+                         end;
+              C_KEYS.F1: begin
+                           KeyHelp.ShowKeys(True);
+                           CharDisp.DisplayWildernessInterface;
                            done := False;
                          end;
             else begin

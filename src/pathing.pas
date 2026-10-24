@@ -42,7 +42,12 @@ procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte;
   with a negative X offset. }
 function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
 
-{ Make the spell's targets everyone within radius of cell (x, y), as BuildTargetList walks it: targetCreaturePtr and
+{ Build GameVars.targetList as an area spell gathers its targets: every creature within radius of cell (x, y), as
+  BuildTargetList walks it from a one-tile body there, nearest first. TargetArea, CbtActs.AreaHitsNonEnemy and the
+  spell-aim preview's count (CbtMap, #840) all gather through it, so they agree on who is in the area. }
+procedure BuildAreaList(x, y: ShortInt; radius: Byte);
+
+{ Make the spell's targets everyone within radius of cell (x, y) (BuildAreaList): targetCreaturePtr and
   spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 
@@ -342,11 +347,16 @@ begin
     GetIconTileDelta := True;
 end;
 
+procedure BuildAreaList(x, y: ShortInt; radius: Byte);
+begin
+  Pathing.BuildTargetList(x, y, radius, 255, 1, GameVars.arenaPtr);
+end;
+
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 var
   k: Byte;
 begin
-  Pathing.BuildTargetList(x, y, radius, 255, 1, GameVars.arenaPtr);
+  Pathing.BuildAreaList(x, y, radius);
   for k := 1 to GameVars.targetCount do
     GameVars.targetCreaturePtr[k] := GameVars.creatureArr[GameVars.targetList[k].idx];
   GameVars.spellTargetCount := GameVars.targetCount;

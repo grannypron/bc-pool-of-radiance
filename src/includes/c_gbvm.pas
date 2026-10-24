@@ -58,15 +58,70 @@ const
   ALT_SKY_COLOR = $49FE;
   { SaveLoad packs 2 * monster-pictures flag + portraits flag }
   SETTINGS = $49FF;
+  { Mendor's Library's fights won: LIBRARY_SPECTRE the spectre that guards the books, LIBRARY_BASILISK the basilisk;
+    the block is cleared, and the clerk pays for it, with both, LIBRARY_CLEARED (#851) }
+  LIBRARY_FIGHTS = $4A31;
+  LIBRARY_SPECTRE = $20;
+  LIBRARY_BASILISK = $40;
+  LIBRARY_CLEARED = LIBRARY_SPECTRE or LIBRARY_BASILISK;
   { The day the Temple of Bane was freed with Dirten in the party (#682, a DataPat fix to its script): year * 360 +
     month * 30 + day + 1 from CLOCK, so 0 is none; $FFFF when it was freed without him. 14 days on, Dirten serves the
     party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71, $4A79..$4A7B:
     every script's disassembly, its indexed tables included, and the source). }
   DIRTEN_TEMPLE_DAY = $4A79;
+  { The Buccaneer Base: $FF once the party took the fort, BUCCANEER_FLED once it ran and left the Bivant boy behind
+    (#851) }
+  BUCCANEER_BASE = $4A8B;
+  BUCCANEER_FLED = $80;
+  { $FF once the clerk has offered the commission to rescue the Bivant heir (#851) }
+  BIVANT_OFFERED = $4A8C;
+  { $FF once the party has accepted the commission to cleanse Valhingen Graveyard, and its enchanted weapon (#851) }
+  GRAVEYARD_ACCEPTED = $4A96;
+  { The summonses the clerk gives: QUEST_DONE when she sends the party to the one who gives the commission, $FF once he
+    has given it. Cadorna's mission to Zhentil Keep, Lord Urslingen's to take Stojanow Gate, the council's to lead
+    the attack on Valjevo Castle and Bishop Braccio's to free the Temple of Bane with Dirten (#851). }
+  ZHENTIL_SUMMONS = $4A98;
+  URSLINGEN_SUMMONS = $4A99;
+  VALJEVO_SUMMONS = $4A9A;
+  BRACCIO_SUMMONS = $4A9B;
   { quest: left Yarash pyramid, cleared }
   YARASH_PYRAMID_LEFT = $4AA2;
-  { quest: Yarash mission successful }
+  { A mission's reward cell is QUEST_DONE or more once the mission is done: the script that ends it writes QUEST_DONE
+    and the clerk writes $FF as she pays (#851). }
+  QUEST_DONE = $FE;
+  { The clerk's reward cells, in her order: Norris the Gray's band in Kuto's Well, Sokal Keep, the Wealthy Area
+    beside the Temple of Bane, the Bivant heir (a lost heir is BUCCANEER_FLED here until she says what it cost),
+    the five tomes from Mendor's Library, from REWARD_TOMES to REWARD_TOMES_LAST, the auction in Podol Plaza (1 once she
+    has offered it), Valhingen Graveyard and Kovel Mansion. YARASH_MISSION_DONE, the river, comes next. }
+  REWARD_NORRIS = $4AA6;
+  REWARD_SOKAL = $4AA7;
+  REWARD_WEALTHY = $4AA8;
+  REWARD_BIVANT = $4AA9;
+  REWARD_TOMES = $4AAA;
+  REWARD_TOMES_LAST = $4AAE;
+  REWARD_AUCTION = $4AB0;
+  REWARD_GRAVEYARD = $4AB1;
+  REWARD_KOVEL = $4AB2;
+  { the river's poisoning ended: Yarash beaten in his pyramid (a reward cell, QUEST_DONE) }
   YARASH_MISSION_DONE = $4AB3;
+  { The rest of the clerk's reward cells: the mission to Zhentil Keep, the lizard men, the kobolds, the nomads,
+    Stojanow Gate, Tyranthraxus beaten in Valjevo Castle, the Slums (a count of the block's clear points up to then),
+    the Temple of Bane, Cadorna shown a traitor (the council's order to kill him) and Cadorna killed (#851). }
+  REWARD_ZHENTIL = $4AB4;
+  REWARD_LIZARDMEN = $4AB5;
+  REWARD_KOBOLDS = $4AB6;
+  REWARD_NOMADS = $4AB7;
+  REWARD_GATE = $4AB9;
+  REWARD_VALJEVO = $4ABA;
+  REWARD_SLUMS = $4ABB;
+  REWARD_BANE_TEMPLE = $4ABD;
+  REWARD_CADORNA_TRAITOR = $4ABE;
+  REWARD_CADORNA_DEAD = $4ABF;
+  { How many of the major rewards the clerk has paid; the proclamations posted outside City Hall follow it (#851) }
+  COUNCIL_REWARDS = $4AC1;
+  { QUEST_DONE once the Cadorna Textile House block and Podol Plaza are cleared (#851) }
+  TEXTILE_CLEARED = $4AE6;
+  PODOL_CLEARED = $4AE7;
   { saved wall-set IDs: base + slot 1..3 }
   WALLSLOT_ID = $4AF9;
   { saved wall-set symbol slots: base + 1..3 }

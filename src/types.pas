@@ -98,6 +98,15 @@ type
   TIconCols = array[1..6] of Byte;
   { A character's spell slots: spell IDs, 0 = empty, C_SPELL.PENDING_FLAG set while still being memorized. }
   TSpellSlots = array[0..SPELL_SLOT_LAST] of Byte;
+  { The port's own fields of a character, kept past the record's saved bytes: no file of SSI's has them. A character's
+    are kept in its .chx file (CharExt), read when it is loaded; a record from SSI's form (DiskRec.CharFromDisk: a
+    .cha or .sav, a monster from MONxCHA.DAX) has them all zero. }
+  TCharExt = record
+    { The classes a human has left (dual-classing, #838), one C_LEVEL bit (1 shl slot) each: a class it can no longer
+      train, whose levels it may use only once the class it follows now (charClass) is the higher
+      (CharHlp.GetClassLevel). 0 for every other character. }
+    formerClasses: Byte;
+  end;
   TCharRecord = record
     { character name }
     name: string[NAME_LEN];
@@ -229,7 +238,9 @@ type
     { current hit points }
     hpCur: Byte;
     { current movement }
-    movementCur: Byte);
+    movementCur: Byte;
+    { the port's own fields, after the saved bytes (DiskRec.CHAR_DISK_BYTES) }
+    portExt: TCharExt);
       1: (
     { Current attributes as an array for character creation and display. }
     stats: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of Byte);
@@ -697,6 +708,13 @@ type
   end;
   { Fills cells with the path of a spell aimed at (x, y): CbtMap.boltTracer. }
   TCellTracer = procedure(x, y: ShortInt; var cells: TCellList);
+  { Arena slots (GameVars.arenaLoc) in order, such as the creatures an aimed area spell will catch. }
+  TSlotList = record
+    count: Byte;
+    slot: array[1..ARENA_SLOTS] of Byte;
+  end;
+  { Shows who the spell being aimed will catch, given them nearest first: CbtMap.aimReport. }
+  TAimReport = procedure(var caught: TSlotList);
   { TCharRecord view: armor class and attacks as arrays }
   TAttackPhaseView = record
     { skips to acCur }
@@ -766,6 +784,14 @@ type
 
   { Spell and downed-record types. }
   PDownedRec = ^TDownedRec;
+  { A spell's duration in minutes, as CharHlp.SpellDuration gives it: count dice of sides, plus add, all times mult
+    (rounds 1, turns 10, hours 60); count 0 for one that rolls nothing, add then holding the whole figure }
+  TDurDice = record
+    count: Byte;
+    sides: Byte;
+    add: Word;
+    mult: Byte;
+  end;
   TSpellRec = record
     case Integer of
       0: (
@@ -781,7 +807,9 @@ type
         durFixed: Byte;
         { duration per caster level }
         durVar: Byte;
-        { PACKED: lo nibble area mode, hi nibble radius }
+        { the low nibble is the area mode (C_SPELL.AREA_MODE_*): 0 the caster, 1..7 (mode and 3) + 1 creatures picked
+          one at a time, 8..14 everything within radius (mode and 7) of the aim, 15 one creature or a bare square
+          (CbtActs.CombatCastTargetMenu, CharHlp.SpellArea); no code reads the high nibble }
         area: Byte;
         { targeting mode }
         target: Byte;
@@ -805,11 +833,6 @@ type
         { Signed class and level view. }
         castClassSp: ShortInt;
         levelSp: ShortInt);
-      2: (
-        { castClass..target }
-        savePrefix: array[0..7] of Byte;
-        { Boolean view of saveResult }
-        saveEffect: Boolean);
   end;
 
   { Combat types. }

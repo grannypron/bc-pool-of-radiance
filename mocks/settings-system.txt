@@ -1,6 +1,5 @@
 +======================================+
 |             SYSTEM INFO              |
-|                                      |
 | VIDEO             EGA                |
 | SOUND DEVICE      SOUND BLASTER      |
 | VERSION           V1.3-1162 (BC)     |

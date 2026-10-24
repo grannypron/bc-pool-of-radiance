@@ -54,14 +54,17 @@ procedure WriteChecked(var f: file; var buf; size: Word; var ok: Boolean);
   erased. }
 function CloseTemp(var f: file; name: TPathName; ok: Boolean): Boolean;
 
+{ Rename file from to name: True when it was. }
+function RenameChecked(from, name: TPathName): Boolean;
+
 { Put name's whole temporary copy in its place: erase name (a missing one is no error) and rename the copy to it. True
   when it did; else the copy is erased, and name is left as it was when it could not be erased (a read-only file). }
 function PutInPlace(name: TPathName): Boolean;
 
 const
-  { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map and .nts, its vault copy, and five files
+  { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map and .nts, its vault copy, and six files
     for each of the 8 members }
-  SET_FILES = 48;
+  SET_FILES = 54;
 
 type
   { a file of a set, without the set's folder: a DOS name, 8.3 }
@@ -298,7 +301,6 @@ begin
   s.count := 0;
 end;
 
-{ Rename file from to name to: True when it was. }
 function RenameChecked(from, name: TPathName): Boolean;
 var
   f: file;

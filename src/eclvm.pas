@@ -20,7 +20,7 @@ implementation
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
   DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, VaultMnu, EclTrace, Border, Camp,
   EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
-  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal{$IFDEF FPC}, TpRand{$ENDIF};
+  StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { stop the VM and return control to the player }
@@ -96,9 +96,11 @@ end;
 
 { No monster loaded or set up: SETUP MONSTER sets the ids and CLEAR MONSTERS the count, but a script may APPROACH, LOAD
   MONSTER or fight before either has run. At startup, since Turbo Pascal clears no variable (#826), and at the start of
-  every game, new or loaded, which would otherwise keep the last area's monsters (#829). }
+  every game, new or loaded, which would otherwise keep the last area's monsters (#829). The Bestiary starts a new
+  encounter (#842). }
 procedure ForgetMonsters;
 begin
+  Bestiary.NewEncounter;
   creatureCnt := 0;
   monId := 0;
   monPicId := 0;
@@ -289,7 +291,7 @@ end;
 { LOAD MONSTER: load monster var 1 with EclMenu.InitCreature and append it to the creature list, then append var 2 - 1
   copies, each with its own copy of the item and effect lists (prepended, so in reverse order). All use the combat icon
   var 3, loaded into the next icon slot. Stops at 63 monsters, and loads none when the monster icon slots (8..12) are
-  used up. }
+  used up. The party has met the kind, fight or not (Bestiary.Met, #842). }
 procedure EclLoadMon;
 var
   id: Byte;
@@ -318,6 +320,7 @@ begin
   q := nil;
   id := EclVars.GetEclVar(1);
   EclMenu.InitCreature(id, creature, item, ef);
+  Bestiary.Met(creature);
   tmpl := creature^;
   invHead := item;
   effHead := ef;
@@ -718,10 +721,12 @@ begin
   TextRend.ClearRect(0, 24, 39, 24);
 end;
 
-{ CLEAR MONSTERS: forget the loaded monsters, reset the monster icon slot, and clear the treasure money and items }
+{ CLEAR MONSTERS: forget the loaded monsters, reset the monster icon slot, and clear the treasure money and items; the
+  Bestiary's next meeting is a new encounter (#842) }
 procedure EclClearMon;
 begin
   Inc(GameVars.eclIp);
+  Bestiary.NewEncounter;
   creatureCnt := 0;
   monstersOn := 0;
   EclMenu.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
@@ -859,7 +864,7 @@ begin
   p := GameVars.creatureList;
   mod1 := 0;
   while p <> nil do begin
-    if (p^.charClass = C_CLASS.RANGER) or (p^.charClass = C_CLASS.CLERIC_RANGER) then
+    if p^.classLevels[C_LEVEL.RANGER] > 0 then
       mod1 := 1;
     p := p^.nextCharAddr;
   end;

@@ -12,9 +12,9 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
   Sym8x8, Border, Debug, MapTiles, CbtMap, Pathing, View3D, Portrait, Wilds, MapView,
   MenuCore, CharHlp, CharDisp, FxEngine, ClassCal, Magic, Money, MoneyCal, RandItem, GameTime, ViewChar, Ending,
   VidOps, PicCga, PicEga, PicTdy, PicVga, UsualSpl, SaveLoad, CharGen, Camp,
-  Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlView, Options, CbtLog, LogWrap, LogView,
+  Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlQst, JrnlView, Options, CbtLog, LogWrap, LogView,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, Temple,
-  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace;
+  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp;
 
 {$O EclTrace}
 {$O Vault}
@@ -42,6 +42,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O LogView}
 {$O LogWrap}
 {$O JrnlList}
+{$O JrnlQst}
 {$O JrnlView}
 {$O Journal4}
 {$O Journal3}
@@ -63,6 +64,8 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O MoneyCal}
 {$O RandItem}
 {$O Magic}
+{$O SpellInf}
+{$O SpellTxt}
 {$O ClassCal}
 {$O FxEngine}
 {$O CharDisp}
@@ -78,7 +81,13 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O Sym8x8}
 {$O CompTool}
 {$O EvtKind}
+{$O ClueBook}
 {$O CharEdit}
+{$O CharExt}
+{$O ChgClass}
+{$O KeyHelp}
+{$O BeastMnu}
+{$O BeastFil}
 
 begin
   GameInit.GameInit2;

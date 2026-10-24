@@ -3,7 +3,10 @@
 
   The pane follows the highlight, but only once the highlight has rested for PREVIEW_DELAY: reading an item can load an
   overlay, so the preview is drawn from MenuCore's idle hook while the bottom line waits for a key, and a held arrow key
-  scrolls the list without stopping to draw each item on the way. }
+  scrolls the list without stopping to draw each item on the way.
+
+  The bottom line is the Journal's menu, after a JOURNAL: prompt; its Quests option turns the screen to the Quests page
+  and back (#852), which lists the quests the party has been given, done or not (JrnlQst, #851). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit JrnlView;
@@ -14,12 +17,15 @@ interface
   highlight through the list, scrolling it at either end of the column and wrapping at either end of the list; Page Up
   and Page Down scroll it a column at a time. The highlighted item's title and first page show in the pane once the
   highlight rests. Select shows the highlighted item at once and turns to its text: Next and Prev, offered while the
-  selected item has a later or an earlier page, turn its pages until the highlight moves again. }
+  selected item has a later or an earlier page, turn its pages until the highlight moves again. Quests turns to the
+  Quests page, whose Quests turns back to the list as it was, and whose Exit leaves the Journal (#852); Select there on
+  a quest a proclamation gives turns back to the list with that proclamation shown (#851). }
 procedure JournalMenu;
 
 implementation
 
-uses Crt, Types, C_JRNL, C_KEYS, GameVars, TextRend, Border, MenuCore, CharHlp, JrnlList, CharDisp, C_MSG;
+uses Crt, Types, C_JRNL, C_KEYS, GameVars, TextRend, Border, MenuCore, CharHlp, JrnlList, JrnlQst, CharDisp,
+  C_MSG;
 
 const
   { The pane holds the item: its title on TITLE_ROW and its text from TEXT_TOP down, each as wide as the text is
@@ -38,6 +44,12 @@ const
   TEXT_ROWS = BOTTOM_ROW - TEXT_TOP + 1;
   { how long the highlight rests before the pane shows its item, in TextRend.GetTicks centiseconds }
   PREVIEW_DELAY = 25;
+  { the bottom line's prompt, on the Journal and on its Quests page }
+  PROMPT = 'Journal: ';
+  { the Quests page: its heading on TITLE_ROW and its list from QUESTS_TOP down to BOTTOM_ROW, across the frame }
+  QUESTS_LEFT = LIST_LEFT;
+  QUESTS_RIGHT = PANE_RIGHT;
+  QUESTS_TOP = TEXT_TOP;
 
 var
   { the highlighted item, and the item on the list's first row }
@@ -174,6 +186,80 @@ begin
   end;
 end;
 
+{ Draw the Journal: the list's box, then the text box and the title box, so the gold corners stay where the borders
+  meet, the list from item top and the pane's page when it shows an item. }
+procedure DrawJournal;
+begin
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+  Border.DrawBorder(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW, 0);
+  Border.DrawBorder(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW, 0);
+  Border.DrawBorder(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW, 0);
+  JrnlView.DrawList;
+  if shown <> 0 then
+    JrnlView.DrawPage;
+end;
+
+{ The Quests page's line for quest n: a blank, its label padded to C_JRNL.QUEST_WIDTH, a blank and DONE or ----. }
+function QuestLine(n: Integer): Types.TStr40;
+var
+  line: Types.TStr40;
+begin
+  line := ' ' + Copy(JrnlQst.QuestLabel(n), 1, C_JRNL.QUEST_WIDTH);
+  while Length(line) < C_JRNL.QUEST_WIDTH + 2 do
+    line := line + ' ';
+  if JrnlQst.IsDone(n) then
+    QuestLine := line + 'DONE'
+  else
+    QuestLine := line + '----';
+end;
+
+{ Show the Quests page until Quests or Exit, or Select on a quest a proclamation gives: its heading over the list of
+  the quests the party has been given (JrnlQst.IsGiven), each DONE or not yet (----), with the Journal's menu below.
+  Up and Down move the highlight and Page Up and Page Down turn the list's pages (MenuCore.MenuVertical). The list is
+  never empty: LIX is posted from the start. Select on a quest no proclamation gives stays on the page.
+  @param(item Set to the Journal item of the selected quest's proclamation, or 0.)
+  @returns(True when Exit or Escape left the Journal; False when Quests or Select turned back to it.) }
+function ShowQuests(var item: Integer): Boolean;
+var
+  ch: Char;
+  head: Types.PItemRec;
+  tail: Types.PItemRec;
+  pick: Types.PItemRec;
+  redraw: Boolean;
+  idx: Integer;
+  n: Integer;
+  count: Integer;
+  { the quest on each line of the list }
+  quest: array[0..C_JRNL.QUEST_COUNT - 1] of Byte;
+begin
+  item := 0;
+  head := nil;
+  tail := nil;
+  count := 0;
+  for n := 1 to C_JRNL.QUEST_COUNT do
+    if JrnlQst.IsGiven(n) then begin
+      MenuCore.AppendMenuLine(head, tail, JrnlView.QuestLine(n), False);
+      quest[count] := n;
+      Inc(count);
+    end;
+  { the list's box first, then the heading's, as on the Journal }
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
+  Border.DrawBorder(QUESTS_LEFT, QUESTS_TOP, QUESTS_RIGHT, BOTTOM_ROW, 0);
+  Border.DrawBorder(QUESTS_LEFT, TITLE_ROW, QUESTS_RIGHT, TITLE_ROW, 0);
+  TextRend.DisplayCentered(QUESTS_LEFT, QUESTS_RIGHT, TITLE_ROW, White, 'QUESTS');
+  idx := 0;
+  GameVars.vertTop := 0;
+  redraw := True;
+  repeat
+    ch := MenuCore.MenuVertical(PROMPT, 'Select Quests', LightMagenta, LightGreen, White, QUESTS_LEFT, QUESTS_TOP,
+                                QUESTS_RIGHT, BOTTOM_ROW, head, True, redraw, idx, pick);
+    if (ch in ['S', C_KEYS.ENTER]) and (idx < count) then
+      item := JrnlQst.QuestItem(quest[idx]);
+  until (ch in [C_KEYS.NONE, 'Q']) or (item <> 0);
+  MenuCore.FreeStringList(head);
+  ShowQuests := ch = C_KEYS.NONE;
+end;
+
 { Move the highlight to item n, kept within the list, scrolling the list when n is off the column, and start the wait
   before the pane follows it.
   @param(n The item's place in the list.) }
@@ -235,6 +321,8 @@ var
   { set by Select: Next and Prev page the item until the highlight moves }
   reading: Boolean;
   savedChoice: Byte;
+  { the Journal item Select chose on the Quests page }
+  item: Integer;
 
   { The option number of hotkey key on the bottom line, or 1 (Select) when it is not offered. }
   function OptionOf(key: Char): Byte;
@@ -262,12 +350,7 @@ begin
   pages := 1;
   reading := False;
   lastKey := 'S';
-  { the list's box goes first, then the text box and the title box, so the gold corners stay where the borders meet }
-  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
-  Border.DrawBorder(LIST_LEFT, TOP_ROW, LIST_RIGHT, BOTTOM_ROW, 0);
-  Border.DrawBorder(PANE_LEFT, TEXT_TOP, PANE_RIGHT, BOTTOM_ROW, 0);
-  Border.DrawBorder(PANE_LEFT, TITLE_ROW, PANE_RIGHT, TITLE_ROW, 0);
-  JrnlView.DrawList;
+  JrnlView.DrawJournal;
   previewDue := True;
   movedAt := TextRend.GetTicks;
   MenuCore.idleHook := JrnlView.TickPreview;
@@ -277,9 +360,9 @@ begin
       menu := menu + ' Next';
     if reading and (page > 1) then
       menu := menu + ' Prev';
-    menu := menu + ' Exit';
+    menu := menu + ' Quests Exit';
     GameVars.horizChoice := OptionOf(lastKey);
-    ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
+    ch := MenuCore.MenuHorizontal(PROMPT, menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       case ch of
         C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
@@ -312,6 +395,23 @@ begin
         'P': if page > 1 then begin
                Dec(page);
                JrnlView.DrawPage;
+             end;
+        'Q': begin
+               { the pane's preview waits while the Quests page is up }
+               @MenuCore.idleHook := nil;
+               if JrnlView.ShowQuests(item) then
+                 ch := 'E'
+               else begin
+                 JrnlView.DrawJournal;
+                 MenuCore.idleHook := JrnlView.TickPreview;
+                 { Select on a quest shows its proclamation }
+                 if item <> 0 then begin
+                   JrnlView.MoveTo(item);
+                   JrnlView.ShowSelected;
+                   reading := True;
+                   lastKey := 'S';
+                 end;
+               end;
              end;
       end;
     end;

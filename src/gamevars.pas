@@ -56,6 +56,8 @@ var
   quickMagicOn: Byte;
   { the Companion Tools setting: nonzero lets F6 open the Tools screen outside combat (phase 8) }
   companionOn: Byte;
+  { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
+  clueNotesOn: Byte;
   { the Combat Log setting: nonzero keeps the fight's messages for F7 in combat, when CbtLog.Usable (#841) }
   combatLogOn: Byte;
   { the Log Lines setting: how many messages the combat log keeps, CbtLog.MIN_ENTRIES..MAX_ENTRIES }

@@ -31,10 +31,17 @@ var
     does; every return clears it. Without it those keys end no menu: outside combat they say quick save and load are
     unavailable here, and in combat they are ignored. }
   quickKeysToCaller: Boolean;
+  { Set just before a MenuHorizontal call whose caller shows the Command Keys window on F1 (KeyHelp.ShowKeys), as the
+    map and camp menus do: F1 then ends the menu with ext set, with or without reinterpret. Every return clears it.
+    Without it F1 ends no menu: outside combat it says where the window is, and in combat it is ignored (#855). }
+  helpToCaller: Boolean;
   { Set just before a MenuVertical call whose caller shows something for the highlighted entry: a key that moves the
     highlight then returns that key at once, with sel set to the entry now highlighted, so the caller can redraw and
     call again. The call clears it. }
   movesToCaller: Boolean;
+  { Set by every MenuVertical return: True when it returned because the highlight moved (movesToCaller), so the key it
+    returns is a movement key, which may share its code with a letter (Page Up's scan code is 'I'), and not a choice. }
+  moved: Boolean;
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
 
@@ -47,8 +54,9 @@ function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
   made the current option), a key in extraKeys (returned upper-cased) or space ends the menu; Enter, when mCol or hlCol
   is nonzero, returns the current option's hotkey (#13 for a menu without options, or while enterToCaller is set);
   Escape returns #0. With reinterpret, any other extended key returns its scan code and digits 1-9 and backslash map to
-  keypad scan codes, all with ext set. The picture animates when animate is set or the GBVM menuAnimation
-  flag is nonzero (that flag also advances a frame every pass and is cleared on exit). }
+  keypad scan codes, all with ext set; F1 returns its scan code, with ext set, only under helpToCaller. The picture
+  animates when animate is set or the GBVM menuAnimation flag is nonzero (that flag also advances a frame every pass and
+  is cleared on exit). }
 function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate: Boolean;
                         var ext: Boolean): Char;
 
@@ -179,6 +187,24 @@ var
     end;
   end;
 
+  { Draw the query and the menu again, after a message over them. }
+  procedure RedrawLine;
+  begin
+    if Length(query) <> 0 then
+      TextRend.DisplayString(0, 24, qCol, query);
+    DisplayOption(GameVars.horizChoice);
+  end;
+
+  { Outside combat, show msg on the bottom line until a key, then the menu again; in combat, nothing. }
+  procedure Unavailable(msg: Types.TStr40);
+  begin
+    if GameVars.ifcState <> C_IFC.COMBAT then begin
+      TextRend.DisplayAndPause(Yellow, msg);
+      TextRend.ClearBottomLine;
+      RedrawLine;
+    end;
+  end;
+
   { Make the next option current, or the previous one when toNext is clear, wrapping at the ends, and redraw. }
   procedure StepOption(toNext: Boolean);
   begin
@@ -231,9 +257,7 @@ begin
       { a STING pop-up (Ctrl-Y) wrote over the menu line }
       if GameVars.bottomLineTaken then begin
         GameVars.bottomLineTaken := False;
-        if Length(query) <> 0 then
-          TextRend.DisplayString(0, 24, qCol, query);
-        DisplayOption(GameVars.horizChoice);
+        RedrawLine;
       end;
       if ch = #0 then
       { #0 prefixes an extended key: the second ReadGameKey reads its scan code. Left and Right move the current option
@@ -243,14 +267,14 @@ begin
         ch := GameIo.ReadGameKey;
         if ((ch = C_KEYS.LEFT) or (ch = C_KEYS.RIGHT)) and not arrowsToCaller then
           StepOption(ch = C_KEYS.RIGHT)
-        else if ((ch = C_KEYS.F5) or (ch = C_KEYS.F8)) and not quickKeysToCaller then begin
-          if GameVars.ifcState <> C_IFC.COMBAT then begin
-            TextRend.DisplayAndPause(Yellow, 'Quick save and load unavailable.');
-            TextRend.ClearBottomLine;
-            if Length(query) <> 0 then
-              TextRend.DisplayString(0, 24, qCol, query);
-            DisplayOption(GameVars.horizChoice);
-          end;
+        else if ((ch = C_KEYS.F5) or (ch = C_KEYS.F8)) and not quickKeysToCaller then
+          Unavailable('Quick save and load unavailable.')
+        else if ch = C_KEYS.F1 then begin
+          if helpToCaller then begin
+            ext := True;
+            done := True;
+          end else
+            Unavailable('Help is on the map and camp menus.');
         end else if reinterpret then begin
           ext := True;
           done := True;
@@ -309,6 +333,7 @@ begin
   extraKeys := '';
   unmarked := '';
   quickKeysToCaller := False;
+  helpToCaller := False;
   GameVars.zone0^.savedWalls.menuAnimation := 0;
   HorizontalMenu := ch;
 end;
@@ -485,6 +510,7 @@ begin
   extraKeys := '';
   toCaller := movesToCaller;
   movesToCaller := False;
+  moved := False;
   if list = nil then begin
     listOnly := False;
     idx := 0;
@@ -572,6 +598,7 @@ begin
         end;
       if toCaller and ((idx <> oldIdx) or (GameVars.vertTop <> oldTop)) then begin
         sel := MenuCore.FindListMember(idx, list);
+        moved := True;
         MenuVertical := ch;
         Exit;
       end;
@@ -645,8 +672,10 @@ begin
   arrowsToCaller := False;
   enterToCaller := False;
   movesToCaller := False;
+  moved := False;
   extraKeys := '';
   unmarked := '';
   quickKeysToCaller := False;
+  helpToCaller := False;
   @idleHook := nil;
 end.

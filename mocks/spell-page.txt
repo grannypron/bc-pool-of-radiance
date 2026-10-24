@@ -1,0 +1,43 @@
++======================================+
+| ANDREA'S AVAILABLE SPELLS            |
++======================================+
+|            STINKING CLOUD            |
+|          MAGIC-USER LEVEL 2          |
+|                                      |
+| CAST BY       ANDREA, LEVEL 5        |
+| RANGE         3 SQUARES              |
+| AREA          2x2 SQUARES            |
+| DURATION      5 ROUNDS               |
+| SAVING THROW  LESSENS (VS POISON)    |
+| CAST          IN COMBAT              |
+| CASTING TIME  AT ONCE                |
+|                                      |
+| A CLOUD FILLS FOUR SQUARES. A        |
+| CREATURE IN IT WHO FAILS TO SAVE IS  |
+| HELPLESS WITH COUGHING FOR 2 TO 5    |
+| ROUNDS; ONE WHO SAVES CAN USE NO     |
+| ITEMS OR SPELLS, AND IS EASIER TO    |
+| HIT, FOR A ROUND. CREATURES IMMUNE   |
+| TO POISON ARE UNHARMED.              |
+|                                      |
+|======================================+
+SPELL: NEXT PREV EXIT
+
+The page covers the list window (rows 3 to 22) and leaves the list's heading. Rows 6 to 12 hold the figures, values
+from column 15 (24 columns); rows 14 to 22 the description (SpellTxt), up to 9 lines of 36 columns. A spell read from
+a scroll shows CAST BY  A SCROLL, LEVEL 6. CASTING TIME is AT ONCE, or LATER: -N INITIATIVE for a spell that goes off
+later in the round; a spell cast only in camp has none. With one spell on the list the bottom line is SPELL: EXIT.
+
+Color Key:
+    SPELL NAME          WHITE
+    CLASS AND LEVEL     GREEN
+    FIGURE NAME         GREEN
+    FIGURE VALUE        WHITE
+    CASTER NAME         CYAN (the name's own status color)
+    DESCRIPTION         GREEN
+    SPELL:              MAGENTA
+
+Command Key:
+    NEXT                N / PAGE DOWN / DOWN ARROW (wraps to the first)
+    PREV                P / PAGE UP / UP ARROW (wraps to the last)
+    EXIT                E / ESCAPE (back to the list, on the spell shown last)
