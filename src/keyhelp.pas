@@ -1,5 +1,5 @@
 { The Command Keys window (#855): F1 on the map menus and the camp menu lists the keys that work there. The lines come
-  from a table, so a key added later (F2's bestiary, #842) adds its line in one place. }
+  from a table, so a key added later adds its line in one place, as F2's Bestiary (#842) did. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit KeyHelp;
@@ -15,7 +15,7 @@ const
   SHOW_STING = 3;
   SHOW_SOUND = 4;
   { the table's lines }
-  KEY_LINES = 6;
+  KEY_LINES = 7;
 
 type
   { A line of the window: the key, padded to where its description starts, the description and when it shows. }
@@ -29,6 +29,7 @@ const
   { The lines, in the window's order. }
   KEYS: array[1..KEY_LINES] of TKeyLine = (
     (key: 'F1  '; what: 'This Screen'; show: SHOW_ALWAYS),
+    (key: 'F2  '; what: 'Bestiary'; show: SHOW_ALWAYS),
     (key: 'F5  '; what: 'Quick Save'; show: SHOW_QUICK),
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
     (key: 'F8  '; what: 'Quick Load'; show: SHOW_QUICK),

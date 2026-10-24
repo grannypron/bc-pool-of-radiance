@@ -12,6 +12,8 @@
 
 - The Companion Tools' map now shows the Clue Book's numbered map keys ("1. Boat", "3. Temple of Tyr") on the squares where the book's maps print them, in every area the book maps, with each key on every place it appears. Keyed squares have light cyan walls, and the Map tool shows the key under the cursor above your own note, which it never replaces. Turn the keys off with Clue Book Notes under Companion Tools in Settings.
 
+- A Bestiary, opened with F2 on the map, in the wilderness and in camp, lists every creature you have met and what your party has learned about each: how often you have met and killed them, their size, armor class (narrowed from your attack rolls until it is exact), hit dice once you have killed one, the most damage one has done in a blow, and the defenses and attacks you have seen at work, such as half damage from blunt weapons, immunity to sleep, regeneration, poison or level drain. What you have not yet learned shows as ??. The Bestiary is kept in BESTIARY.DAT in the save folder, not in your saved games, so what you learn carries over to every game you play.
+
 ### Interface improvements
 
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.

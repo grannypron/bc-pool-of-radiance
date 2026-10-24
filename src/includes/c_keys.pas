@@ -27,6 +27,8 @@ const
   ALT_M = #50;
   { the Command Keys window (#855), on the map and camp menus }
   F1 = #59;
+  { the Bestiary (#842), on the map and camp menus }
+  F2 = #60;
   { quick save and quick load, on the map menu }
   F5 = #63;
   { the Companion Tools (phase 8), when the setting is on }

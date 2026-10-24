@@ -25,7 +25,7 @@ implementation
 
 uses Types, Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu;
 
 var
   { Door-opening flags: bash, pick and knock. }
@@ -306,9 +306,9 @@ end;
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
   C_GBVM.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
   code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
-  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave), F6 opens the Companion Tools while that
-  setting is on and F1 the Command Keys window (KeyHelp.ShowKeys, #855); the screen is drawn again after either, and
-  the menu goes on. }
+  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave), F2 opens the Bestiary (#842), F6 the
+  Companion Tools while that setting is on and F1 the Command Keys window (KeyHelp.ShowKeys, #855); the screen is drawn
+  again after each, and the menu goes on. }
 function MapMainMenu: Char;
 const
   { 3D exploration menu }
@@ -379,6 +379,11 @@ begin
                           end;
                C_KEYS.F5: SaveLoad.QuickSave;
                C_KEYS.F8: done := Explore.AskQuickLoad;
+               { the Bestiary (#842) }
+               C_KEYS.F2: begin
+                            BeastMnu.BestiaryMenu;
+                            CharDisp.DisplayNoncombatInterface;
+                          end;
                { the Companion Tools, while the setting is on (phase 8) }
                C_KEYS.F6: if GameVars.companionOn <> 0 then begin
                             CompTool.ToolsMenu;
@@ -440,6 +445,11 @@ begin
                            done := False;
                          end;
               C_KEYS.F8: done := Explore.AskQuickLoad;
+              C_KEYS.F2: begin
+                           BeastMnu.BestiaryMenu;
+                           CharDisp.DisplayWildernessInterface;
+                           done := False;
+                         end;
               C_KEYS.F6: begin
                            if GameVars.companionOn <> 0 then begin
                              CompTool.ToolsMenu;

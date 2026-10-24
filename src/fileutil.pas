@@ -54,6 +54,9 @@ procedure WriteChecked(var f: file; var buf; size: Word; var ok: Boolean);
   erased. }
 function CloseTemp(var f: file; name: TPathName; ok: Boolean): Boolean;
 
+{ Rename file from to name: True when it was. }
+function RenameChecked(from, name: TPathName): Boolean;
+
 { Put name's whole temporary copy in its place: erase name (a missing one is no error) and rename the copy to it. True
   when it did; else the copy is erased, and name is left as it was when it could not be erased (a read-only file). }
 function PutInPlace(name: TPathName): Boolean;
@@ -298,7 +301,6 @@ begin
   s.count := 0;
 end;
 
-{ Rename file from to name to: True when it was. }
 function RenameChecked(from, name: TPathName): Boolean;
 var
   f: file;

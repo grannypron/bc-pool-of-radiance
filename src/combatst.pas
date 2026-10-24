@@ -11,7 +11,7 @@ implementation
 
 uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GameDefs, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
   MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
-  EffHndlr;
+  EffHndlr, Bestiary;
 
 const
   quadDir: array[0..3] of Byte = (
@@ -907,6 +907,8 @@ begin
   p := GameVars.creatureList;
   while p <> nil do begin
     EffHndlr.ResetDisplacement(p);
+    { a creature the party fights has been met, once in the encounter however it was loaded (#842) }
+    Bestiary.Met(p);
     FxEngine.TriggerEffectsWithCondition(C_COND.COMBAT_START, p);
     p := p^.nextCharAddr;
   end;

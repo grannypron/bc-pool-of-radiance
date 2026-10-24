@@ -111,7 +111,7 @@ implementation
 
 uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_KEYS, C_IFC, C_GBVM, C_NPC, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
-  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt{$IFDEF FPC}, NatFile{$ENDIF};
+  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt, BeastFil{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -697,7 +697,8 @@ end;
 { Write saved game letter, with desc and area for its slot-info file: the rest SaveGame describes after the menu. Every
   file of the save is written to a temporary copy first, and only when every one is whole are they put in place of the
   old ones, all or none (FileUtil.CommitSet); else the old save is left as it was and the bottom line says the game was
-  not saved. True when it was. }
+  not saved. True when it was. What the Bestiary has learned is written then too, to its own file, which is no part of
+  the save (#842). }
 function SaveToSlot(letter: Char; desc: SaveMenu.TSlotDesc; area: SaveMenu.TSlotArea): Boolean;
 var
   names: TSaveNames;
@@ -779,6 +780,7 @@ begin
         Explored.WriteSlot(s, SaveMenu.SlotName(letter, '.map')) and
         MapNotes.WriteSlot(s, SaveMenu.SlotName(letter, '.nts')) and Vault.AddToSave(s, letter);
   ok := SaveLoad.CommitWhole(s, ok);
+  BeastFil.Flush;
   TextRend.ClearBottomLine;
   if ok then
     GameVars.recentSaved := 1

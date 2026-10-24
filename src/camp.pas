@@ -7,7 +7,8 @@ unit Camp;
 interface
 
 { Run the camp menu, preserving the interface state and clearing rest timers and pending spell activities. Return
-  interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). }
+  interrupted=True when a scripted random interruption ends a rest (GameTime.CampRest). F2 opens the Bestiary (#842)
+  and F6 the Companion Tools. }
 procedure CampMainMenu(var interrupted: Boolean);
 
 { Run the noncombat Cast menu. Clear the remembered target on entry and redraw the noncombat interface afterwards if a
@@ -18,7 +19,7 @@ implementation
 
 uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock, CompTool, KeyHelp;
+  CharDisp, Party, Dice, UsualSpl, Clock, CompTool, KeyHelp, BeastMnu;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -1088,7 +1089,11 @@ begin
     MenuCore.helpToCaller := True;
     c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
-      if c = C_KEYS.F6 then begin
+      if c = C_KEYS.F2 then begin
+        { the Bestiary (#842) }
+        BeastMnu.BestiaryMenu;
+        CharDisp.DisplayNoncombatInterface;
+      end else if c = C_KEYS.F6 then begin
         { the Companion Tools, while the setting is on (phase 8) }
         if GameVars.companionOn <> 0 then begin
           CompTool.ToolsMenu;

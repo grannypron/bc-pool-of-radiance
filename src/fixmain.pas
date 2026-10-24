@@ -82,6 +82,8 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O CharExt}
 {$O ChgClass}
 {$O KeyHelp}
+{$O BeastMnu}
+{$O BeastFil}
 
 begin
   GameInit.GameInit2;
