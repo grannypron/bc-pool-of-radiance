@@ -101,7 +101,8 @@ function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
 function PermanentStrength(creature: Types.PCharRecord): Byte;
 
 { True when the creature has enough experience to train a level in some class: the training hall's own test (not at the
-  racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. }
+  racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. A class
+  a dual-classed human has left does not train. }
 function CanTrain(creature: Types.PCharRecord): Boolean;
 
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
@@ -112,9 +113,27 @@ function RawWeight(creature: Types.PCharRecord): LongInt;
   unstacked item). }
 function ItemWeight(item: Types.PItemRec): LongInt;
 
-{ The highest of the creature's fighter, paladin and ranger levels, or 0 when it has none: the level at which it fights
-  as a warrior. }
+{ The highest of the creature's fighter, paladin and ranger levels it can use (GetClassLevel), or 0 when it has none:
+  the level at which it fights as a warrior. }
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
+
+{ The level creature can use in the classes of mask (C_LEVEL bits, 1 shl slot: C_LEVEL.MAGE_BIT, WARRIOR_BITS): the
+  highest of their levels, 0 when it has none. A class a dual-classed human has left (portExt.formerClasses) has its
+  level only once the class it follows now (charClass) has a higher one, and 0 until then: the old class's skills rest,
+  as the 1st-edition PHB has it (#838). Every rule that asks what a class can do asks this; classLevels holds the levels
+  as they are, for training, experience, the scripts and the screens. }
+function GetClassLevel(creature: Types.PCharRecord; mask: Byte): ShortInt;
+
+{ True when creature is a dual-classed human: it has left a class (portExt.formerClasses). }
+function IsDualClass(creature: Types.PCharRecord): Boolean;
+
+{ True when class cls (C_LEVEL slot) is one creature has left and cannot use yet: its level is not below the level of
+  the class it follows now. }
+function ClassResting(creature: Types.PCharRecord; cls: ShortInt): Boolean;
+
+{ The level of the class creature follows now: a dual-classed human's charClass level, levelHighest for anyone else.
+  The scripts' CHAR_LEVEL (C_GBVM) reads it. }
+function CurrentClassLevel(creature: Types.PCharRecord): ShortInt;
 
 { The base item record for an item type: its baseItems entry, or the zeroed overflow entry for a type past the
   table, which only damaged save or monster data can carry.
@@ -146,6 +165,20 @@ function MayTrade(creature: Types.PCharRecord): Boolean;
   of a player race or charType 0 (the humans, some with race byte 0). SSI tested charType 0..1 and a one-tile icon,
   which kept the gnoll out and let the ogre leader in. }
 function IsPerson(creature: Types.PCharRecord): Boolean;
+
+{ What putting creature to sleep costs Sleep's pool of hit dice, by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6,
+  5 -> 10 for C_RACE.MONSTER and 20 otherwise, higher -> 20. }
+function SleepCost(creature: Types.PCharRecord): Byte;
+
+{ True when Sleep, with pool hit dice left, takes creature: not animated dead (C_STATUS.ANIMATED), not asleep already
+  (C_EFFECT.SLEEP), and pool covers SleepCost, which is then taken from pool. Magic.SleepHandler spends its pool through
+  it in target order, and the spell-aim count (#840) through it too. }
+function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
+
+{ True when creature cannot be put to sleep at all, whatever the dice: it has C_EFFECT.NO_SLEEP_CHARM or
+  NO_CHARM_POISON, whose handlers cancel the Sleep effect as it is added (an elf's 90% and a half-elf's 30% are rolls,
+  so they don't count). Sleep still spends its pool on such a creature. }
+function SleepProof(creature: Types.PCharRecord): Boolean;
 
 { True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends With
   Fight after it, return to the player's control. }
@@ -1128,8 +1161,8 @@ end;
 function GetCasterLevel(spell: Byte): Byte;
 begin
   case GameDefs.spellTable[spell].castClass of
-    C_SPELL.CLASS_CLERIC: GetCasterLevel := GameVars.curChar^.classLevels[C_LEVEL.CLERIC];
-    C_SPELL.CLASS_MAGE: GetCasterLevel := GameVars.curChar^.classLevels[C_LEVEL.MAGE];
+    C_SPELL.CLASS_CLERIC: GetCasterLevel := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.CLERIC_BIT);
+    C_SPELL.CLASS_MAGE: GetCasterLevel := CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT);
     C_SPELL.CLASS_SPECIAL: GetCasterLevel := C_SPELL.SPECIAL_CASTER_LEVEL;
   end;
   if GameVars.usingItem and (GameDefs.spellTable[spell].castClass <> C_SPELL.CLASS_SPECIAL) then
@@ -1192,6 +1225,9 @@ begin
   CanTrain := False;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[cls];
+    { a class a dual-classed human has left never trains again (#838) }
+    if creature^.portExt.formerClasses and (1 shl cls) <> 0 then
+      lvl := 0;
     { xp[] runs to C_LEVEL.LEVEL_LAST }
     if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
@@ -1259,17 +1295,50 @@ begin
 end;
 
 function WarriorLevel(creature: Types.PCharRecord): ShortInt;
+begin
+  WarriorLevel := CharHlp.GetClassLevel(creature, C_LEVEL.WARRIOR_BITS);
+end;
+
+{ The level of the class a dual-classed creature follows now: its charClass's, a single class (C_CLASS, which is its
+  C_LEVEL slot); 0 for a class outside them. }
+function FollowedLevel(creature: Types.PCharRecord): ShortInt;
+begin
+  if (creature^.charClass >= C_LEVEL.CLERIC) and (creature^.charClass <= C_LEVEL.MONK) then
+    FollowedLevel := creature^.classLevels[creature^.charClass]
+  else
+    FollowedLevel := 0;
+end;
+
+function ClassResting(creature: Types.PCharRecord; cls: ShortInt): Boolean;
+begin
+  ClassResting := (creature^.portExt.formerClasses and (1 shl cls) <> 0) and
+                  (creature^.classLevels[cls] >= CharHlp.FollowedLevel(creature));
+end;
+
+function GetClassLevel(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   best: ShortInt;
+  cls: ShortInt;
 begin
-  best := creature^.classLevels[C_LEVEL.FIGHTER];
-  if creature^.classLevels[C_LEVEL.PALADIN] > best then
-    best := creature^.classLevels[C_LEVEL.PALADIN];
-  if creature^.classLevels[C_LEVEL.RANGER] > best then
-    best := creature^.classLevels[C_LEVEL.RANGER];
-  if best < 0 then
-    best := 0;
-  WarriorLevel := best;
+  best := 0;
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+    if (mask and (1 shl cls) <> 0) and (creature^.classLevels[cls] > best) then
+      if not CharHlp.ClassResting(creature, cls) then
+        best := creature^.classLevels[cls];
+  GetClassLevel := best;
+end;
+
+function IsDualClass(creature: Types.PCharRecord): Boolean;
+begin
+  IsDualClass := creature^.portExt.formerClasses <> 0;
+end;
+
+function CurrentClassLevel(creature: Types.PCharRecord): ShortInt;
+begin
+  if CharHlp.IsDualClass(creature) then
+    CurrentClassLevel := CharHlp.FollowedLevel(creature)
+  else
+    CurrentClassLevel := creature^.levelHighest;
 end;
 
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
@@ -1309,6 +1378,44 @@ begin
                          ((creature^.race <> C_RACE.MONSTER) or (creature^.charType = 0))));
 end;
 
+function SleepCost(creature: Types.PCharRecord): Byte;
+begin
+  case creature^.levelHighest of
+    0..1: SleepCost := 1;
+    2: SleepCost := 2;
+    3: SleepCost := 4;
+    4: SleepCost := 6;
+    5: if creature^.race = C_RACE.MONSTER then
+         SleepCost := 10
+       else
+         SleepCost := 20;
+  else
+    SleepCost := 20;
+  end;
+end;
+
+function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
+var
+  effect: Types.PEffectRec;
+  cost: Byte;
+begin
+  cost := CharHlp.SleepCost(creature);
+  SleepTakes := False;
+  if (creature^.status <> C_STATUS.ANIMATED) and not CharHlp.HasEffect(creature, C_EFFECT.SLEEP, effect) and
+     (pool >= cost) then begin
+    Dec(pool, cost);
+    SleepTakes := True;
+  end;
+end;
+
+function SleepProof(creature: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  SleepProof := CharHlp.HasEffect(creature, C_EFFECT.NO_SLEEP_CHARM, effect) or
+                CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect);
+end;
+
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
 begin
   ComesUnderPlayer := not CharHlp.IsNpc(creature) and (creature^.status <> C_STATUS.ANIMATED);
@@ -1328,7 +1435,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_EFFECT.READ_MAGIC, effect) or
-      ((creature^.classLevels[C_LEVEL.CLERIC] > 0) and
+      ((CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0) and
        (CharHlp.BaseItem(item^.itemType)^.slot = C_ITEM.SLOT_CLERIC_SCROLL)) then
     item^.unidMask := 0;
   ScrollLegible := item^.unidMask = 0;

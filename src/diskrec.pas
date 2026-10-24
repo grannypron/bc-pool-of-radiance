@@ -4,7 +4,8 @@
   the record in memory is the same bytes, but a 64-bit one's pointers are 8, so every field after one moves. These
   routines copy between the two: natively a pointer goes to disk as 4 zero bytes and comes back nil. Under Turbo Pascal
   both forms are one and each routine is a Move, so a pointer goes as it is: the game clears them before saving, and
-  rebuilds its lists on loading. }
+  rebuilds its lists on loading. A character's disk form ends where the port's own fields (TCharRecord.portExt) start:
+  they are not written, and a record read from disk has them zero (CharExt keeps them in a file of their own). }
 {$I COMPILER.INC}
 unit DiskRec;
 
@@ -32,7 +33,7 @@ procedure ItemToDisk(var it: Types.TItemRec; var disk);
 procedure EffectToDisk(var ef: Types.TEffectRec; var disk);
 
 { A record from its disk form: a file's or a DAX block's bytes. Its pointers are nil natively; under Turbo Pascal they
-  are the bytes the file held, which the callers clear. }
+  are the bytes the file held, which the callers clear. A character's port fields (portExt) are cleared. }
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
 procedure EffectFromDisk(var disk; var ef: Types.TEffectRec);
@@ -57,6 +58,8 @@ type
   PByteBuf = ^TByteBuf;
 
 var
+  { the bytes of TCharRecord in memory before portExt, the part the disk form holds }
+  charMem: Word;
   charPtrs: TPtrOffsets;
   itemPtrs: TPtrOffsets;
   effectPtrs: TPtrOffsets;
@@ -125,6 +128,7 @@ var
   ef: Types.TEffectRec;
   i: Byte;
 begin
+  charMem := PtrUInt(@c.portExt) - PtrUInt(@c);
   charPtrs[0] := PtrUInt(@c.effectsAddr) - PtrUInt(@c);
   charPtrs[1] := PtrUInt(@c.itemsAddr) - PtrUInt(@c);
   for i := 0 to 12 do
@@ -139,7 +143,7 @@ end;
 procedure CharToDisk(var c: Types.TCharRecord; var disk);
 begin
 {$IFDEF FPC}
-  Pack(c, SizeOf(c), disk, charPtrs, CHAR_POINTERS);
+  Pack(c, charMem, disk, charPtrs, CHAR_POINTERS);
 {$ELSE}
   Move(c, disk, CHAR_DISK_BYTES);
 {$ENDIF}
@@ -166,10 +170,11 @@ end;
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
 begin
 {$IFDEF FPC}
-  Unpack(disk, c, SizeOf(c), charPtrs, CHAR_POINTERS);
+  Unpack(disk, c, charMem, charPtrs, CHAR_POINTERS);
 {$ELSE}
   Move(disk, c, CHAR_DISK_BYTES);
 {$ENDIF}
+  FillChar(c.portExt, SizeOf(c.portExt), 0);
 end;
 
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
@@ -218,8 +223,16 @@ begin
 end;
 
 function CharDiskSize: Word;
+{$IFNDEF FPC}
+var
+  c: Types.TCharRecord;
+{$ENDIF}
 begin
-  CharDiskSize := SizeOf(Types.TCharRecord) - CHAR_POINTERS * Types.PTR_GROWTH;
+{$IFDEF FPC}
+  CharDiskSize := charMem - CHAR_POINTERS * Types.PTR_GROWTH;
+{$ELSE}
+  CharDiskSize := Ofs(c.portExt) - Ofs(c);
+{$ENDIF}
 end;
 
 function ItemDiskSize: Word;
