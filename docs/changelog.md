@@ -6,6 +6,7 @@
 
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
+- Every spell list (Cast, Memorize, Scribe, the spells in memory, learning a spell on gaining a level, and a scroll's spells under Use) now shows a summary line under the list for the highlighted spell: its range in squares, area or number of targets, duration, saving throw, and whether it is cast only in camp or only in combat, worked out for the character casting it (a scroll's spell at the scroll's level). Info (I) opens a page for the spell with those figures, its casting time and a description of what it does in this game; Next and Prev step through the list's spells, and Exit goes back to the list on the spell you were reading.
 
 ### Interface improvements
 
@@ -117,6 +118,8 @@
 - The statistics count a death by poison, level drain or mummy rot as Died.
 - Several values the DOS game assumed would start at zero now do: the first menu of a session no longer sometimes answers Enter to the wrong place, a script's monster setup starts empty, and the Stinking Cloud list starts clear.
 - Loading a game or starting a new one no longer keeps the monsters the last area set up.
+- Magic Missile now fires one missile at levels 1 and 2, two at 3 and 4, and so on, as the rule book says. Before, a 1st-level magic-user's Magic Missile did no damage and each later missile came a level late.
+- A successful saving throw against Silence, 15' Radius now spares the target, as the rule book says. Before, the save was rolled and then ignored.
 
 ## Pool of Radiance port: October 2026 update
 
