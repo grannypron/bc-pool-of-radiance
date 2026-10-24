@@ -21,7 +21,7 @@ implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
   MenuCore, SoundDrv, C_SOUND, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
-  HeapErr, VidOps, Stats, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
+  HeapErr, VidOps, Stats, CbtLog, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
   Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -358,6 +358,8 @@ begin
   GameVars.quickMagicOn := 0;
   GameVars.companionOn := 0;
   GameVars.clueNotesOn := 1;
+  GameVars.combatLogOn := 1;
+  GameVars.combatLogLines := CbtLog.DEFAULT_ENTRIES;
   GameVars.stingHpFlag := 0;
   GameVars.msgDelayFlag := 1;
   GameVars.gameDelay := 1;

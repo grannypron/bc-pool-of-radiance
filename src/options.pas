@@ -4,7 +4,8 @@
   save paths of the later Gold Box games, which only the configuration program will set. GameInit reads it at start-up,
   before the title music, and every change writes it back; a saved game no longer changes them. The screen has three
   pages (#835): the settings, the games' paths, and the system's details (video, sound device, build, data archives and
-  memory). }
+  memory). The combat log and its size (#841) are settings too, which only a combat log with a store (CbtLog.Usable)
+  can change. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Options;
@@ -20,17 +21,19 @@ procedure LoadOptions;
   settings then hold for this session only. }
 procedure SaveOptions;
 
-{ Show the Settings screen until Exit or Escape. Game, Paths and System on the bottom line show its pages. On
-  the Game page Up and Down (also Home and End) move the highlight through the settings, wrapping at either end, past
-  the Quick Mode heading; Enter, Left or Right turn the highlighted one over, at once. On the speed line Left and Right
-  pick Slower or Faster instead, and Enter applies the one picked. The Paths and System pages only show. Leaving writes
-  POOLOPT.CFG when something changed. The caller redraws its own screen afterwards. }
+{ Show the Settings screen until Exit or Escape. Game, Paths and System on the bottom line show its pages. On the Game
+  page Up and Down (also Home and End) move the highlight through the settings, wrapping at either end, past the Quick
+  Mode heading; Enter, Left or Right turn the highlighted one over, at once. On the Game Speed and Log Lines lines Left
+  and Right pick Slower or Faster (Less or More) instead, and Enter applies the one picked. Without a store for the
+  combat log (CbtLog.Usable) its two lines are grey, Combat Log says it needs EMS, and the highlight passes them by. The
+  Paths and System pages only show. Leaving writes POOLOPT.CFG when something changed. The caller redraws its own screen
+  afterwards. }
 procedure OptionsMenu;
 
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, GameVars, TextRend, Border, MenuCore, GameIo,
-  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil{$IFDEF FPC}, NatFile{$ENDIF};
+  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil, CbtLog{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -59,40 +62,47 @@ const
   OPT_MAGIC = 16;
   OPT_COMPANION = 17;
   OPT_CLUES = 18;
-  OPT_COUNT = 18;
+  { the combat log (#841), and how many messages it keeps }
+  OPT_COMBAT_LOG = 19;
+  OPT_LOG_LINES = 20;
+  OPT_COUNT = 20;
   { POOLOPT.CFG's keys past the settings: the later games' data and save paths, by laterPaths index }
   KEY_PATHS = OPT_COUNT;
   LATER_PATHS = 6;
   KEY_COUNT = KEY_PATHS + LATER_PATHS;
   { the slowest game speed; 0 is the fastest }
   SLOWEST = 9;
-  { The speed line's two choices, by speedChoice. }
-  CHOICE_SLOWER = 0;
-  CHOICE_FASTER = 1;
+  { Log Lines' step, between CbtLog.MIN_ENTRIES and MAX_ENTRIES }
+  LOG_STEP = 5;
+  { The two choices of a line that steps a number (speed, log lines), by stepChoice: Slower or Less on the left, Faster
+    or More on the right. }
+  CHOICE_LEFT = 0;
+  CHOICE_RIGHT = 1;
   { The pages, in the bottom line's order. }
   PAGE_GAME = 1;
   PAGE_PATHS = 2;
   PAGE_SYSTEM = 3;
-  { One framed box from TOP_ROW to BOTTOM_ROW: the page's title on TOP_ROW, a blank row, then its lines from FIRST_ROW.
-    The Game page's settings have their labels at LABEL_COL and their values at SETTING_COL, with the Quick Mode heading
-    on its own row; the other pages' values start at VALUE_COL. }
+  { One framed box from TOP_ROW to BOTTOM_ROW: the page's title on TOP_ROW, then its lines from FIRST_ROW, the row
+    below (the Game page's settings fill the box to BOTTOM_ROW). The Game page's settings have their labels at
+    LABEL_COL and their values at SETTING_COL, with the Quick Mode heading on its own row; the other pages' values start
+    at VALUE_COL. }
   LEFT_COL = 1;
   RIGHT_COL = 38;
   TOP_ROW = 1;
   BOTTOM_ROW = 22;
-  FIRST_ROW = TOP_ROW + 2;
+  FIRST_ROW = TOP_ROW + 1;
   LABEL_COL = 2;
   SETTING_COL = 24;
-  { the speed line's Faster, after Slower and a space }
-  FASTER_COL = SETTING_COL + 7;
   VALUE_COL = 20;
-  { the colours: titles and the Paths page's game names, and the lines; the Game page's highlight is TITLE_COLOR too }
+  { the colours: titles and the Paths page's game names, and the lines; the Game page's highlight is TITLE_COLOR too,
+    and a setting that cannot be changed here is OFF_COLOR }
   TITLE_COLOR = White;
   LINE_COLOR = LightGreen;
+  OFF_COLOR = DarkGray;
 
 var
-  { the speed line's choice, CHOICE_SLOWER or CHOICE_FASTER, while the screen is up }
-  speedChoice: Byte;
+  { a stepping line's choice, CHOICE_LEFT or CHOICE_RIGHT, while the screen is up }
+  stepChoice: Byte;
   { the later games' paths POOLOPT.CFG holds: Curse's data and save paths, then Secret's, then Pools' }
   laterPaths: array[1..LATER_PATHS] of Types.TPathStr;
 
@@ -118,6 +128,8 @@ begin
     OPT_MAGIC: KeyName := 'QUICKMAGIC';
     OPT_COMPANION: KeyName := 'COMPANION';
     OPT_CLUES: KeyName := 'CLUENOTES';
+    OPT_COMBAT_LOG: KeyName := 'COMBATLOG';
+    OPT_LOG_LINES: KeyName := 'LOGLINES';
     KEY_PATHS + 1: KeyName := 'CURSEDATA';
     KEY_PATHS + 2: KeyName := 'CURSESAVE';
     KEY_PATHS + 3: KeyName := 'SECRETDATA';
@@ -131,6 +143,8 @@ end;
 
 { The label of setting opt on the Game page, a sub-setting's indented under its setting. }
 function SettingLabel(opt: Byte): Types.TStr40;
+var
+  n: Types.TStr20;
 begin
   case opt of
     OPT_SPEED: SettingLabel := 'Game Speed (' + Chr(Ord('0') + GameVars.gameDelay mod (SLOWEST + 1)) + ')';
@@ -151,6 +165,11 @@ begin
     OPT_MAGIC: SettingLabel := '  Use Magic';
     OPT_COMPANION: SettingLabel := 'Companion Tools';
     OPT_CLUES: SettingLabel := '  Clue Book Notes';
+    OPT_COMBAT_LOG: SettingLabel := 'Combat Log';
+    OPT_LOG_LINES: begin
+                     Str(GameVars.combatLogLines, n);
+                     SettingLabel := '  Log Lines (' + n + ')';
+                   end;
   else
     SettingLabel := '';
   end;
@@ -188,7 +207,7 @@ begin
   end;
 end;
 
-{ Setting opt (not the speed) as 1 for on and 0 for off. }
+{ Setting opt (not the speed or log lines) as 1 for on and 0 for off. }
 function Flag(opt: Byte): Byte;
 begin
   case opt of
@@ -203,12 +222,13 @@ begin
     OPT_MAGIC: Flag := GameVars.quickMagicOn;
     OPT_COMPANION: Flag := GameVars.companionOn;
     OPT_CLUES: Flag := GameVars.clueNotesOn;
+    OPT_COMBAT_LOG: Flag := GameVars.combatLogOn;
   else
     Flag := 0;
   end;
 end;
 
-{ Set setting opt (not the speed) on for a nonzero value, else off. }
+{ Set setting opt (not the speed or log lines) on for a nonzero value, else off. }
 procedure SetFlag(opt, value: Byte);
 var
   isOn: Byte;
@@ -234,26 +254,35 @@ begin
     OPT_MAGIC: GameVars.quickMagicOn := isOn;
     OPT_COMPANION: GameVars.companionOn := isOn;
     OPT_CLUES: GameVars.clueNotesOn := isOn;
+    OPT_COMBAT_LOG: GameVars.combatLogOn := isOn;
   end;
 end;
 
 { The value of setting or path key as POOLOPT.CFG keeps it. Sound is the setting, which stays as it was when POOL.CFG
   names no sound device. }
 function StoredValue(key: Byte): Types.TPathStr;
+var
+  n: Types.TStr20;
 begin
   if key = OPT_SPEED then
     StoredValue := Chr(Ord('0') + GameVars.gameDelay mod (SLOWEST + 1))
-  else if key > KEY_PATHS then
+  else if key = OPT_LOG_LINES then begin
+    Str(GameVars.combatLogLines, n);
+    StoredValue := n;
+  end else if key > KEY_PATHS then
     StoredValue := laterPaths[key - KEY_PATHS]
   else
     StoredValue := Options.OnOff(Options.Flag(key));
 end;
 
-{ The value of setting opt as the screen shows it: Sound shows whether sound is on now. }
+{ The value of setting opt as the screen shows it: Sound shows whether sound is on now, and Combat Log that it needs
+  EMS when it has no store. }
 function ShownValue(opt: Byte): Types.TStr20;
 begin
   if opt = OPT_SOUND then
     ShownValue := Options.OnOff(Ord(GameVars.soundMode <> C_SOUND.MODE_DISABLED))
+  else if (opt = OPT_COMBAT_LOG) and not CbtLog.Usable then
+    ShownValue := 'Needs EMS'
   else
     ShownValue := Options.StoredValue(opt);
 end;
@@ -288,13 +317,21 @@ begin
       KeyOf := k;
 end;
 
-{ Set setting or path key from value (tidied): a digit 0..9 for the speed, a path as it is, ON or OFF (or 1 or 0) for
-  the others. Any other value leaves the setting as it is. }
+{ Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from CbtLog.MIN_ENTRIES to
+  MAX_ENTRIES for the log lines, a path as it is, ON or OFF (or 1 or 0) for the others. Any other value leaves the
+  setting as it is. }
 procedure ReadValue(key: Byte; value: string);
+var
+  n: Integer;
+  code: Integer;
 begin
   if key = OPT_SPEED then begin
     if (Length(value) = 1) and (value[1] in ['0'..'9']) then
       GameVars.gameDelay := Ord(value[1]) - Ord('0');
+  end else if key = OPT_LOG_LINES then begin
+    Val(value, n, code);
+    if (code = 0) and (n >= CbtLog.MIN_ENTRIES) and (n <= CbtLog.MAX_ENTRIES) then
+      GameVars.combatLogLines := n;
   end else if key > KEY_PATHS then begin
     if value <> '' then
       laterPaths[key - KEY_PATHS] := value;
@@ -411,28 +448,71 @@ begin
   Grouped := s;
 end;
 
-{ Draw setting opt on its row, its label and value in color. The speed line's value is its two choices; while it is
-  highlighted (color TITLE_COLOR) the choice not picked stays LINE_COLOR. }
+{ True for a setting the Game page can change: the combat log's two only when it has a store. }
+function Changeable(opt: Byte): Boolean;
+begin
+  Changeable := not (opt in [OPT_COMBAT_LOG, OPT_LOG_LINES]) or CbtLog.Usable;
+end;
+
+{ The setting after opt that can be changed, or before it when down is clear, wrapping at either end. }
+function NextSetting(opt: Byte; down: Boolean): Byte;
+begin
+  repeat
+    if down then
+      opt := opt mod OPT_COUNT + 1
+    else if opt > 1 then
+      Dec(opt)
+    else
+      opt := OPT_COUNT;
+  until Options.Changeable(opt);
+  NextSetting := opt;
+end;
+
+{ True when setting opt steps a number with two choices, the left lowering it and the right raising it, and if so
+  their names. }
+function StepNames(opt: Byte; var left, right: Types.TStr20): Boolean;
+begin
+  StepNames := True;
+  case opt of
+    OPT_SPEED: begin
+                 left := 'Slower';
+                 right := 'Faster';
+               end;
+    OPT_LOG_LINES: begin
+                     left := 'Less';
+                     right := 'More';
+                   end;
+  else
+    StepNames := False;
+  end;
+end;
+
+{ Draw setting opt on its row, its label and value in color, or in OFF_COLOR when the page cannot change it. A stepping
+  line's value is its two choices; while it is highlighted (color TITLE_COLOR) the choice not picked stays LINE_COLOR. }
 procedure DrawSetting(opt: Byte; color: Byte);
 var
   row: Byte;
-  slowerColor: Byte;
-  fasterColor: Byte;
+  leftColor: Byte;
+  rightColor: Byte;
+  left: Types.TStr20;
+  right: Types.TStr20;
 begin
   if (opt < 1) or (opt > OPT_COUNT) then Exit;
+  if not Options.Changeable(opt) then
+    color := OFF_COLOR;
   row := Options.SettingRow(opt);
   TextRend.PrintSpaces(LABEL_COL, row, Black, RIGHT_COL - LABEL_COL + 1);
   TextRend.DisplayString(LABEL_COL, row, color, Options.SettingLabel(opt));
-  if opt = OPT_SPEED then begin
-    slowerColor := color;
-    fasterColor := color;
+  if Options.StepNames(opt, left, right) then begin
+    leftColor := color;
+    rightColor := color;
     if color = TITLE_COLOR then
-      if speedChoice = CHOICE_FASTER then
-        slowerColor := LINE_COLOR
+      if stepChoice = CHOICE_RIGHT then
+        leftColor := LINE_COLOR
       else
-        fasterColor := LINE_COLOR;
-    TextRend.DisplayString(SETTING_COL, row, slowerColor, 'Slower');
-    TextRend.DisplayString(FASTER_COL, row, fasterColor, 'Faster');
+        rightColor := LINE_COLOR;
+    TextRend.DisplayString(SETTING_COL, row, leftColor, left);
+    TextRend.DisplayString(SETTING_COL + Length(left) + 1, row, rightColor, right);
   end else
     TextRend.DisplayString(SETTING_COL, row, color, Options.ShownValue(opt));
 end;
@@ -584,16 +664,27 @@ begin
 end;
 
 { Change setting opt, as Enter does. The speed takes the speed line's choice, a step within 0..SLOWEST: Slower raises
-  gameDelay (the game's text and animation delays grow with it) and Faster lowers it. Every other setting turns over.
-  A music setting turned off ends the tune it covers now; Sound goes through GameIo.SetSound, as Ctrl-S does. }
+  gameDelay (the game's text and animation delays grow with it) and Faster lowers it. Log Lines takes its line's choice
+  too, LOG_STEP less or more within CbtLog.MIN_ENTRIES..MAX_ENTRIES; the next fight's log has the new size. Every other
+  setting turns over. A music setting turned off ends the tune it covers now; Sound goes through GameIo.SetSound, as
+  Ctrl-S does. }
 procedure ChangeSetting(opt: Byte);
 begin
   case opt of
-    OPT_SPEED: if speedChoice = CHOICE_SLOWER then begin
+    OPT_SPEED: if stepChoice = CHOICE_LEFT then begin
                  if GameVars.gameDelay < SLOWEST then
                    Inc(GameVars.gameDelay);
                end else if GameVars.gameDelay > 0 then
                  Dec(GameVars.gameDelay);
+    OPT_LOG_LINES: if stepChoice = CHOICE_LEFT then begin
+                     if GameVars.combatLogLines >= CbtLog.MIN_ENTRIES + LOG_STEP then
+                       Dec(GameVars.combatLogLines, LOG_STEP)
+                     else
+                       GameVars.combatLogLines := CbtLog.MIN_ENTRIES;
+                   end else if GameVars.combatLogLines <= CbtLog.MAX_ENTRIES - LOG_STEP then
+                     Inc(GameVars.combatLogLines, LOG_STEP)
+                   else
+                     GameVars.combatLogLines := CbtLog.MAX_ENTRIES;
     OPT_SOUND: GameIo.SetSound(GameVars.soundMode = C_SOUND.MODE_DISABLED);
   else begin
       Options.SetFlag(opt, Ord(Options.Flag(opt) = 0));
@@ -623,11 +714,14 @@ var
     Options.DrawSetting(sel, TITLE_COLOR);
   end;
 
-  { Turn setting sel over, or on the speed line pick choice. }
+  { Turn setting sel over, or on a stepping line pick choice. }
   procedure Arrow(choice: Byte);
+  var
+    left: Types.TStr20;
+    right: Types.TStr20;
   begin
-    if sel = OPT_SPEED then begin
-      speedChoice := choice;
+    if Options.StepNames(sel, left, right) then begin
+      stepChoice := choice;
       Options.DrawSetting(sel, TITLE_COLOR);
     end else begin
       Options.ChangeSetting(sel);
@@ -645,7 +739,7 @@ var
 begin
   savedChoice := GameVars.horizChoice;
   sel := 1;
-  speedChoice := CHOICE_SLOWER;
+  stepChoice := CHOICE_LEFT;
   changed := False;
   ShowPage(PAGE_GAME);
   repeat
@@ -661,16 +755,10 @@ begin
     if ext then begin
       if page = PAGE_GAME then
         case ch of
-          C_KEYS.UP, C_KEYS.HOME: if sel > 1 then
-                                    MoveTo(sel - 1)
-                                  else
-                                    MoveTo(OPT_COUNT);
-          C_KEYS.DOWN, C_KEYS.END_KEY: if sel < OPT_COUNT then
-                                         MoveTo(sel + 1)
-                                       else
-                                         MoveTo(1);
-          C_KEYS.LEFT: Arrow(CHOICE_SLOWER);
-          C_KEYS.RIGHT: Arrow(CHOICE_FASTER);
+          C_KEYS.UP, C_KEYS.HOME: MoveTo(Options.NextSetting(sel, False));
+          C_KEYS.DOWN, C_KEYS.END_KEY: MoveTo(Options.NextSetting(sel, True));
+          C_KEYS.LEFT: Arrow(CHOICE_LEFT);
+          C_KEYS.RIGHT: Arrow(CHOICE_RIGHT);
         end;
     end else
       case ch of

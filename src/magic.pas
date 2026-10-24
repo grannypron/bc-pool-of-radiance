@@ -62,7 +62,8 @@ procedure ShowCombatOnlySpell(spell: Byte);
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
 
 { Announce a cast. In combat, print 'Casts a Spell' for the creature (msg is ignored) and show the spell name on the
-  bottom line. Otherwise show the creature name, msg and the spell name in the message window, pause, then clear it. }
+  line above the bottom line, the combat log naming it after the message (#841). Otherwise show the creature name, msg
+  and the spell name in the message window, pause, then clear it. }
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 
 { Remove Curse (spellFns[43], also called by Temple): remove Bestow Curse (effect 36) from targetCreaturePtr[1], or
@@ -200,7 +201,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, C_MSG, ChgClass, SpellInf;
+  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, C_MSG, ChgClass, SpellInf, CbtLog;
 
 var
   { the menu string list }
@@ -2053,6 +2054,8 @@ procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spel
 begin
   if GameVars.ifcState = C_IFC.COMBAT then begin
     CharDisp.PrintNameString(creature, 'Casts a Spell', 10, True);
+    { the combat log names the spell after the message (#841) }
+    CbtLog.Add(LightGreen, ' (' + GameDefs.spellNames[spell] + ')');
     Border.ClearBox(0, 23, 39, 23);
     TextRend.DisplayString(0, 23, LightGreen, 'Spell:' + GameDefs.spellNames[spell]);
   end else begin

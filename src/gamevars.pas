@@ -58,6 +58,10 @@ var
   companionOn: Byte;
   { the Clue Book Notes setting, under the Companion Tools: nonzero shows the Clue Book's map keys on their map (#856) }
   clueNotesOn: Byte;
+  { the Combat Log setting: nonzero keeps the fight's messages for F7 in combat, when CbtLog.Usable (#841) }
+  combatLogOn: Byte;
+  { the Log Lines setting: how many messages the combat log keeps, CbtLog.MIN_ENTRIES..MAX_ENTRIES }
+  combatLogLines: Byte;
   { GameInit clears it; GameIo toggles it on STING Ctrl-D; nonzero enables PrintHpDebug }
   stingHpFlag: Byte;
   { Started as START STING: the debug keys and cheats are on. GameBoot sets it before anything reads a key. }

@@ -1,6 +1,5 @@
 +======================================+
 |              GAME PATHS              |
-|                                      |
 | POOL OF RADIANCE                     |
 |   DATA PATH       C:/POOLRAD/        |
 |   SAVE PATH       C:/POOLRAD/SAVE/   |

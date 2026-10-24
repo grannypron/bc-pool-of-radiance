@@ -1,5 +1,5 @@
-{ Startup configuration: initialize the overlay manager, read POOL.CFG, select the video mode and reserve graphics
-  memory. }
+{ Startup configuration: initialize the overlay manager, find the combat log's store, read POOL.CFG, select the video
+  mode and reserve graphics memory. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit GameBoot;
@@ -9,7 +9,7 @@ interface
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_SOUND, GameDefs, GameVars, Crt, Dos, {$IFNDEF FPC}Overlay, {$ENDIF}Blit,
-  SoundDrv, DaxIo, GameIo, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
+  SoundDrv, DaxIo, GameIo, CbtLog, {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
   {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
@@ -116,6 +116,8 @@ begin
   ovrRead := OvrReadBuf;
   OvrReadBuf := CountOvrRead;
 {$ENDIF}
+  { the combat log's store (#841): under DOS an EMS page, taken after the overlays have taken theirs }
+  CbtLog.Startup;
   { a read-only POOL.CFG is there too (DaxIo.FileExists) }
   DaxIo.WaitForFile('pool.cfg', 'Please insert startup disk.');
   CheckBreak := False;

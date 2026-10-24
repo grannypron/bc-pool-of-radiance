@@ -1,6 +1,5 @@
 +======================================+
 |             GAME SETTINGS            |
-|                                      |
 | GAME SPEED (1)        SLOWER FASTER  |
 | PORTRAITS             ON             |
 |   MONSTERS            ON             |
@@ -19,6 +18,7 @@
 |   AUTO END QUICK MODE ON             |
 |   USE MAGIC           OFF            |
 | COMPANION TOOLS       ON             |
+|   CLUE BOOK NOTES     ON             |
 | COMBAT LOG            ON             |
 |   LOG LINES (50)      LESS MORE      |
 |======================================+

@@ -84,7 +84,7 @@ implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary;
+  CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog;
 
 type
   { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
@@ -216,8 +216,8 @@ end;
 { Print the attack message and inflict the damage (dmg = inflicted, dmgDisp = displayed). atkType: 1 = from behind, 2 =
   backstab, 3 = slays a helpless target, else a plain attack. Any damage cancels the defender's casting for the round
   and loses a spell being cast; a defender that goes down gets its hp-0 effects and, if still disabled,
-  CbtMap.CreatureDowned. A monster's hit on a party member, but for slaying it helpless, is the Bestiary's most damage
-  in a blow if it is more (#842). }
+  CbtMap.CreatureDowned. The attack and its result are one combat log message (#841). A monster's hit on a party
+  member, but for slaying it helpless, is the Bestiary's most damage in a blow if it is more (#842). }
 procedure ProcessAttackResult(att, def: Types.PCharRecord; atkType, dmg, dmgDisp: Byte; isHit: Boolean);
 var
   row: Byte;
@@ -232,6 +232,7 @@ begin
   CharDisp.PrintNameString(att, verb, 10, False);
   row := 12;
   CharDisp.DisplayCreatureName(def, 23, row, False);
+  CharDisp.LogCreatureName(def);
   Inc(row);
   if atkType = 1 then
     verb := '(from behind) '
@@ -254,6 +255,8 @@ begin
       Bestiary.LearnBlow(att, def, dmg);
   end else
     verb := verb + 'and Misses';
+  CbtLog.NextLine;
+  CbtLog.Add(LightGreen, verb);
   TextRend.DisplayMessageWindow(23, row, 38, row + 3, LightGreen, True, verb);
   row := GameVars.curRow + 1;
   if dmg > 0 then begin
@@ -270,8 +273,11 @@ begin
   if def^.enabled = 0 then begin
     CharDisp.PrintNameString(def, 'goes down', row, False);
     Inc(row, 2);
-    if def^.status = C_STATUS.DYING then
+    if def^.status = C_STATUS.DYING then begin
+      CbtLog.NextLine;
+      CbtLog.Add(LightGreen, 'and is Dying');
       TextRend.DisplayString(23, row, LightGreen, 'and is Dying');
+    end;
     if def^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
       CharDisp.PrintNameString(def, 'is killed', row, False);
     FxEngine.RemoveEffectsHp0(def);

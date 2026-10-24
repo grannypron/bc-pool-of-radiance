@@ -33,6 +33,8 @@ const
   F5 = #63;
   { the Companion Tools (phase 8), when the setting is on }
   F6 = #64;
+  { the combat log (#841), in combat; its scan code is the character code of 'A' }
+  F7 = #65;
   F8 = #66;
 
 implementation
