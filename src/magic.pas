@@ -813,10 +813,11 @@ begin
           CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
           case spell of
-            C_SPELL.FIREBALL: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.FIREBALL]);
-            C_SPELL.LIGHTNING_BOLT: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.LIGHTNING]);
+            C_SPELL.FIREBALL: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.FIREBALL], C_SOUND.GROUP_SPELL);
+            C_SPELL.LIGHTNING_BOLT:
+              SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.LIGHTNING], C_SOUND.GROUP_SPELL);
           else
-            SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
+            SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
           end;
           CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 30);
           SoundDrv.SoundSetAutoStop(10);
@@ -1024,38 +1025,19 @@ begin
                       C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC, '');
 end;
 
-{ Sleep: a 4d4 hit-dice pool. Cost per target by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6, 5 -> 10 for
-  C_RACE.MONSTER and 20 otherwise, higher -> 20. Animated dead (C_STATUS.ANIMATED), targets already asleep (effect 53)
-  and targets the remaining pool cannot pay for are dropped; the pool is spent greedily in target order. }
+{ Sleep: a 4d4 hit-dice pool (C_SPELL.SLEEP_DICE d SLEEP_DIE), spent greedily in target order through
+  CharHlp.SleepTakes: animated dead, targets already asleep and targets the remaining pool cannot pay for
+  (CharHlp.SleepCost) are dropped. }
 procedure SleepHandler;
 var
   pool: Byte;
-  cost: Byte;
   i: Byte;
-  effect: Types.PEffectRec;
 begin
   GameVars.gMultiTarget := 1;
-  pool := Dice.RollDice(4, 4);
-  for i := 1 to GameVars.spellTargetCount do begin
-    case GameVars.targetCreaturePtr[i]^.levelHighest of
-      0..1: cost := 1;
-      2: cost := 2;
-      3: cost := 4;
-      4: cost := 6;
-      5: if GameVars.targetCreaturePtr[i]^.race = C_RACE.MONSTER then
-           cost := 10
-         else
-           cost := 20;
-    else
-      cost := 20;
-    end;
-    if (GameVars.targetCreaturePtr[i]^.status <> C_STATUS.ANIMATED) and
-        (not CharHlp.HasEffect(GameVars.targetCreaturePtr[i], C_EFFECT.SLEEP, effect)) and
-        (pool >= cost) then
-      Dec(pool, cost)
-    else
+  pool := Dice.RollDice(C_SPELL.SLEEP_DICE, C_SPELL.SLEEP_DIE);
+  for i := 1 to GameVars.spellTargetCount do
+    if not CharHlp.SleepTakes(GameVars.targetCreaturePtr[i], pool) then
       GameVars.targetCreaturePtr[i] := nil;
-  end;
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, 0, 0, 'falls asleep');
 end;
 
@@ -1083,7 +1065,7 @@ begin
       tgt := GameVars.targetCreaturePtr[i];
       if i < GameVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
-        SoundDrv.SoundCommand(GameDefs.soundIds.commands[C_SOUND.CAST]);
+        SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
         CharDisp.BuildIconFacings(18);
         CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GameVars.curChar), CbtMap.CombatCellY(GameVars.curChar),
                                         CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
