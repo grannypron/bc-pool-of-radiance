@@ -152,5 +152,6 @@ jobs:
 
       - name: Release
         env:
+          REPO_API: ${{ github.event.repository.url }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .forgejo/scripts/release.sh "$TAG"

@@ -4,7 +4,9 @@
 #
 #   .forgejo/scripts/release.sh v1.1
 #
-# Runs in the build workflow, which provides GITHUB_SERVER_URL, GITHUB_REPOSITORY and, in TOKEN, the job's token.
+# Runs in the build workflow, which provides the repository's API URL in REPO_API (the event's repository.url) and,
+# in TOKEN, the job's token. Not GITHUB_SERVER_URL: the runner sets that to its own connection, which on
+# forgejo.brazencrows.com is Forgejo's loopback address and unreachable from a job.
 # A re-run replaces the asset and the notes, so a release can be rebuilt without editing it by hand. The new zip is
 # attached before the old one is removed, so a failed upload leaves the release as it was.
 
@@ -14,7 +16,7 @@ tag="$1"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 asset="pool-of-radiance-$tag-dos.zip"
 zip="$root/dist/$asset"
-api="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
+api="${REPO_API:?REPO_API is not set: the workflow sets it to the event repository.url}"
 auth="Authorization: token $TOKEN"
 
 [ -f "$zip" ] || { echo "release.sh: dist/$asset is missing; run package.sh first." >&2; exit 1; }
