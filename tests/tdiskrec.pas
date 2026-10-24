@@ -55,6 +55,7 @@ begin
   TestKit.CheckEqualsL($C4, back.iconColors1[6], 'iconColors1 is iconColors');
   TestKit.Check((back.effectsAddr = nil) and (back.itemsAddr = nil) and (back.equipped[C_EQUIP.BOLT] = nil) and
                 (back.nextCharAddr = nil) and (back.combatAddr = nil), 'the pointers come back nil');
+  TestKit.CheckEqualsL(0, back.portExt.formerClasses, 'the port''s fields (portExt) are not on disk: they come back 0');
 
   FillChar(it, SizeOf(it), $33);
   it.name := 'Long Sword';

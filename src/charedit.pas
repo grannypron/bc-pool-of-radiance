@@ -15,7 +15,7 @@ procedure EditMenu;
 implementation
 
 uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GameDefs, GameVars, Border,
-  CharDisp, CharGen, CharHlp, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
+  CharDisp, CharGen, CharHlp, ChgClass, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
   { the Levels screen's first row and its columns }
@@ -42,14 +42,16 @@ type
   THeld = array[0..7] of ShortInt;
   TCodes = array[0..MAX_LINES] of Word;
 
-{ The class slots (C_LEVEL) curChar has levels in, in order, and how many. }
+{ The class slots (C_LEVEL) curChar has levels in, in order, and how many; a class a dual-classed human has left is not
+  one, as its level is kept as it was (#838). }
 procedure HeldClasses(var held: THeld; var count: Byte);
 var
   cls: ShortInt;
 begin
   count := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if GameVars.curChar^.classLevels[cls] > 0 then begin
+    if (GameVars.curChar^.classLevels[cls] > 0) and (GameVars.curChar^.portExt.formerClasses and (1 shl cls) = 0) then
+    begin
       held[count] := cls;
       Inc(count);
     end;
@@ -57,34 +59,40 @@ end;
 
 { A level of class slot cls taken off curChar: hit points less a hit die's average and the class's Constitution bonus
   divided by the class count (at least 1, not below ClassCal.HpMinimum, damage kept), the skills recalculated, and a
-  cleric or magic-user back at level 1 given level 1's one slot. }
+  cleric or magic-user back at level 1 given level 1's one slot. A dual-classed human's level that gave no hit points
+  (ClassCal.HitDice) takes none, and a class it left that the lower level puts back to rest rests
+  (ChgClass.SyncClassPowers). }
 procedure LowerLevel(cls: ShortInt; clsCount: Byte);
 var
   avg: Integer;
   loss: Integer;
   dmg: Integer;
   hp: Integer;
+  gave: Boolean;
 begin
   with GameVars.curChar^ do begin
     if classLevels[cls] <= 1 then Exit;
+    gave := ClassCal.HitDice(GameVars.curChar, cls) > 0;
     avg := GameDefs.hpSides[cls] div 2 + 1;
     loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION])) div clsCount;
     if loss < 1 then
       loss := 1;
     Dec(classLevels[cls]);
-    dmg := hpMax - hpCur;
-    hp := hpMax - loss;
-    if hp < ClassCal.HpMinimum(GameVars.curChar) then
-      hp := ClassCal.HpMinimum(GameVars.curChar);
-    if hp < 1 then
-      hp := 1;
-    hpMax := hp;
-    if hp - dmg < 0 then
-      hpCur := 0
-    else
-      hpCur := hp - dmg;
-    if hpRolled > avg div clsCount then
-      Dec(hpRolled, avg div clsCount);
+    if gave then begin
+      dmg := hpMax - hpCur;
+      hp := hpMax - loss;
+      if hp < ClassCal.HpMinimum(GameVars.curChar) then
+        hp := ClassCal.HpMinimum(GameVars.curChar);
+      if hp < 1 then
+        hp := 1;
+      hpMax := hp;
+      if hp - dmg < 0 then
+        hpCur := 0
+      else
+        hpCur := hp - dmg;
+      if hpRolled > avg div clsCount then
+        Dec(hpRolled, avg div clsCount);
+    end;
     if classLevels[cls] = 1 then
       case cls of
         C_LEVEL.CLERIC: begin
@@ -101,6 +109,7 @@ begin
     levelHighest := 0;
     ClassCal.RecalcBaseSkills(Types.PCharRecord(GameVars.curChar));
   end;
+  ChgClass.SyncClassPowers(Types.PCharRecord(GameVars.curChar));
 end;
 
 { The experience a level of class slot cls starts at: 0 for level 1. }
@@ -167,7 +176,7 @@ begin
           C_KEYS.UP: sel := (sel + count - 1) mod count;
           C_KEYS.LEFT:
             if classLevels[cls] > 1 then begin
-              LowerLevel(cls, count);
+              LowerLevel(cls, ClassCal.HpClassCount(Types.PCharRecord(GameVars.curChar)));
               { past the level's range, the experience comes down to one short of the next level }
               if experience >= LevelXp(cls, classLevels[cls] + 1) then
                 experience := LevelXp(cls, classLevels[cls] + 1) - 1;

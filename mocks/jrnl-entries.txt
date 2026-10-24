@@ -1,50 +1,36 @@
-+======================================+
-|            JOURNAL ENTRIES           |
-+======================================+
-|  1   8  15  22  29  36  43  50  57   |
-|  2   9  16  23  30  37  44  51  58   |
-|  3  10  17  24  31  38  45  52       |
-|  4  11  18  25  32  39  46  53       |
-|  5  12  19  26  33  40  47  54       |
-|  6  13  20  27  34  41  48  55       |
-|  7  14  21  28  35  42  49  56       |
-+======================================+
-| #1: A LOUD VOICE COMING FROM A MAGIC |
-| MOUTH CAST ON A STONE TABLET.        |
-|                                      |
-| "I AM YARASH THE SORCEROR!           |
-|
-| "BE KNOWN THAT FOR EVERY LIVING      |
-| GIANT INSECT YOU RETURN TO           |
-| SORCEROR'S ISLAND I WILL PAY A       |
-| GENEROUS BOUNTY, INCLUDING A WEAPON  |
-| EMPOWERED BY MAGIC. I WILL PAY FOR   |
-| GIANT INSECTS SUCH AS THRI-KREEN,    |
-| GIANT MANTIS, AND ANK
-| UNDERTAKE A MISSION TO RESCUE THE    |
-| DUCCHESS OF MELVAUNT. THE DUCCHESS   |
-| IS SUPPOSEDLY BEING HELD BY A BAND   |
-| OF OGRES IN A CAMP TO THE NORTHEAST  |
-| OF PHLAN. A GENEROUS REWARD IS       |
-| OFFERED FOR THE SAFE RETURN OF THE   |
-| DUCHESS. APPLY TO THE COUNCIL CLERK  |
-| FOR COMMISSION AND ADDITIONAL        |
-| INFORMATION CONCERNING THE           |
-| ABDUCTION.                           |
-|                                      |
-|======================================+
-JOURNAL: ENTRIES PROCS TALES EXIT
++=========+============================+
+|LIX      |      PROCLAMATION LIX      |
+|XIV      +============================+
+|LXXVIII  | BE IT KNOWN THAT THE       |
+|CI       | COUNCIL IS INTERESTED IN   |
+|CIX      | RECLAIMING THE REMAINING   |
+|CX       | BLOCKS OF THE CITY OF NEW  |
+|CXIV     | PHLAN. TO RECLAIM SAID     |
+|CXX      | BLOCKS THEY MUST BE FIRST  |
+|CXXVI    | CLEARED OF MONSTERS,       |
+|CLIV     | VERMIN, AND OTHER          |
+|CLVI     | UNCIVILIZED INHABITANTS. TO|
+|CLXX     | THIS END THE COUNCIL IS    |
+|CXC      | OFFERING A REWARD TO ANY   |
+|CCI      | PERSON OR GROUP WHO IS     |
+|CCIV     | RESPONSIBLE FOR CLEARING   |
+|CCXIV    | ANY BLOCK OF THE OLD CITY. |
+|ENTRY 1  |                            |
+|ENTRY 2  |                            |
+|ENTRY 3  |                            |
+|ENTRY 4  |                            |
++=========+============================+
+JOURNAL: SELECT QUESTS EXIT
 
 Color Key:
-    PROCLAMATIONS HEADER    WHITE
-    PROCLAMATIONS LIST      GREEN
-    CURRENT PROCLAMATIONS   WHITE
-    CLVI: PREFIX            WHITE
-    PROCLAMATION TEXT       GREEN
+    JOURNAL:                MAGENTA
+    HEADER TEXT             WHITE
+    JOURNAL LIST            GREEN
+    SELECTED PROCLAMATION   WHITE
+    JOURNAL TEXT            GREEN
 
 Command Key:
-    ENTRIES             E
-    PROCS               P
-    TALES               T
-    EXIT                ESCAPE
+    SELECT              S / ENTER
+    QUESTS              Q
+    EXIT                E / ESCAPE
 

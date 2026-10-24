@@ -7,15 +7,16 @@ unit CompTool;
 
 interface
 
-{ The Tools screen, on the whole area's map (explored squares, events and notes marked) in a 3D area (#691): Map, a
-  cursor on it to write the player's notes on squares, and Character, the character editor, until Exit or Escape.
+{ The Tools screen, on the whole area's map (explored squares, events, notes and the Clue Book's keys marked) in a 3D
+  area (#691, #856): Map, a cursor on it to read the keys and write the player's notes on squares, and Character, the
+  character editor, until Exit or Escape.
   Nothing happens with the setting off. The caller redraws its screen afterwards. }
 procedure ToolsMenu;
 
 implementation
 
 uses Crt, Types, C_AREA, C_DIR, C_KEYS, C_MSG, GameDefs, GameVars, TextRend, Border, MenuCore, Blit, View3D, AreaName,
-  Explored, EvtKind, CharEdit, MapNotes, StrUtil;
+  Explored, EvtKind, CharEdit, MapNotes, ClueBook, StrUtil;
 
 const
   { the map's top-left character cell; a square is one 8x8 symbol }
@@ -23,8 +24,14 @@ const
   MAP_ROW = 3;
   { the legend's column, right of the map }
   LEGEND_COL = 20;
-  { the Map tool's line below the map: the cursor's square and its note }
-  NOTE_ROW = 20;
+  { the Map tool's lines below the map: the cursor's square and the Clue Book's key there, then the player's note }
+  KEY_ROW = 20;
+  PLAYER_ROW = KEY_ROW + 1;
+  NOTE_COL = MAP_COL + 6;
+  { how ShowSymbol marks a square's walls: not at all, the Clue Book's key, the player's note (which shows over a key) }
+  MARK_NONE = 0;
+  MARK_CLUE = 1;
+  MARK_NOTE = 2;
   { symbol set 4 (GameDefs.symSetFirst[4] = 256): the party's arrows by facing div 2, then the sixteen wall
     combinations, 260 + N + E * 2 + S * 4 + W * 8, as View3D.DrawAutoMap draws them }
   SYM_SET = 4;
@@ -41,8 +48,9 @@ const
 
 { Draw symbol at (col, row), straight to the screen, a step darker when dim, on a square of colour fill unless fill is
   DarkGray (the symbols' own); in CGA's four colours, which draw both greys alike, a square not dim has white walls
-  instead. A noted square's walls are yellow (CGA's light magenta), and the cursor's square black walls on white. }
-procedure ShowSymbol(col, row: ShortInt; symbol: Word; dim: Boolean; fill: Byte; noted, cursor: Boolean);
+  instead. A square marked MARK_NOTE has yellow walls (CGA's light magenta), one marked MARK_CLUE light cyan walls, and
+  the cursor's square black walls on white. }
+procedure ShowSymbol(col, row: ShortInt; symbol: Word; dim: Boolean; fill: Byte; mark: Byte; cursor: Boolean);
 var
   symbols: Types.PImgBuf;
   glyph: Types.PImgBuf;
@@ -75,8 +83,10 @@ begin
     toT[LightGray] := White;
   if fill <> DarkGray then
     toT[DarkGray] := fill;
-  if noted then begin
-    if GameVars.video.colours >= 16 then
+  if mark <> MARK_NONE then begin
+    if mark = MARK_CLUE then
+      toT[LightGray] := LightCyan
+    else if GameVars.video.colours >= 16 then
       toT[LightGray] := Yellow
     else
       toT[LightGray] := LightMagenta;
@@ -105,14 +115,21 @@ begin
     KindColour := KIND_COLOURS_CGA[kind];
 end;
 
+{ True when the Clue Book's keys show: the Companion Tools' Clue Book Notes setting is on. }
+function CluesShown: Boolean;
+begin
+  CluesShown := GameVars.clueNotesOn <> 0;
+end;
+
 { Square (mx, my) of the current 3D area on the map: its walls (secret ones too, as the map data holds them), dimmed
-  unless visited, coloured by what its event does (EvtKind, prepared), its note marked, and the cursor on it when
-  cursor; the party's arrow on the party's square. }
+  unless visited, coloured by what its event does (EvtKind, prepared), its note or else its Clue Book key marked, and
+  the cursor on it when cursor; the party's arrow on the party's square. }
 procedure DrawSquare(mx, my: ShortInt; cursor: Boolean);
 var
   sym: Word;
   kind: Byte;
   fill: Byte;
+  mark: Byte;
   script: Byte;
   map: Byte;
 begin
@@ -129,12 +146,16 @@ begin
   fill := DarkGray;
   if kind <> EvtKind.KIND_NONE then
     fill := KindColour(kind);
-  ShowSymbol(MAP_COL + mx, MAP_ROW + my, sym, not Explored.Visited(script, map, mx, my), fill,
-             MapNotes.Note(script, map, mx, my) <> '', cursor);
+  mark := MARK_NONE;
+  if MapNotes.Note(script, map, mx, my) <> '' then
+    mark := MARK_NOTE
+  else if CompTool.CluesShown and ClueBook.Marked(map, mx, my) then
+    mark := MARK_CLUE;
+  ShowSymbol(MAP_COL + mx, MAP_ROW + my, sym, not Explored.Visited(script, map, mx, my), fill, mark, cursor);
 end;
 
-{ The whole current 3D area, square by square (DrawSquare), and a legend headed by the area's name: the kinds of event
-  the area has, each beside a square of its colour. }
+{ The whole current 3D area, square by square (DrawSquare), and a legend headed by the area's name: the marks, the
+  party's square, and the kinds of event the area has, each beside a square of its colour. }
 procedure DrawMap;
 var
   mx: ShortInt;
@@ -158,12 +179,17 @@ begin
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 2, LightGreen, 'Bright: visited');
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: not yet');
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: a note');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 5, LightGreen, 'Party at ' + StrUtil.NumStr(GameVars.gMapX) + ',' +
+  row := MAP_ROW + 5;
+  if CompTool.CluesShown then begin
+    TextRend.DisplayString(LEGEND_COL, row, LightCyan, 'Cyan: Clue Book');
+    Inc(row);
+  end;
+  TextRend.DisplayString(LEGEND_COL, row, LightGreen, 'Party at ' + StrUtil.NumStr(GameVars.gMapX) + ',' +
                          StrUtil.NumStr(GameVars.gMapY));
-  row := MAP_ROW + 7;
+  Inc(row, 2);
   for kind := EvtKind.KIND_EVENT to EvtKind.KIND_EXIT do
     if used[kind] then begin
-      ShowSymbol(LEGEND_COL, row, SYM_WALLS, False, KindColour(kind), False, False);
+      ShowSymbol(LEGEND_COL, row, SYM_WALLS, False, KindColour(kind), MARK_NONE, False);
       TextRend.DisplayString(LEGEND_COL + 2, row, LightGreen, KIND_NAMES[kind]);
       Inc(row);
     end;
@@ -191,8 +217,9 @@ begin
   TextRend.DisplayCentered(C_MSG.TEXT_LEFT, C_MSG.TEXT_RIGHT, C_MSG.TEXT_TOP, White, 'Companion Tools');
 end;
 
-{ The Map tool, on the Tools screen's map: a cursor, from the party's square, which the arrows move; the note on its
-  square shows below the map, and Write and Clear change it. }
+{ The Map tool, on the Tools screen's map: a cursor, from the party's square, which the arrows move. Below the map show
+  the square, the Clue Book's key on it (while the Clue Book Notes setting is on) and, under that, the player's note on
+  it, which Write and Clear change; the key stays whatever the note says. }
 procedure MapTool;
 var
   ch: Char;
@@ -212,9 +239,11 @@ begin
   cy := GameVars.gMapY;
   repeat
     DrawSquare(cx, cy, True);
-    TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
-    TextRend.DisplayString(MAP_COL, NOTE_ROW, LightGreen, StrUtil.NumStr(cx) + ',' + StrUtil.NumStr(cy) + ' ');
-    TextRend.DisplayString(MAP_COL + 6, NOTE_ROW, Yellow, MapNotes.Note(script, map, cx, cy));
+    TextRend.ClearRect(MAP_COL, KEY_ROW, C_MSG.TEXT_RIGHT - 1, PLAYER_ROW);
+    TextRend.DisplayString(MAP_COL, KEY_ROW, LightGreen, StrUtil.NumStr(cx) + ',' + StrUtil.NumStr(cy) + ' ');
+    if CompTool.CluesShown then
+      TextRend.DisplayString(NOTE_COL, KEY_ROW, LightCyan, ClueBook.Note(map, cx, cy));
+    TextRend.DisplayString(NOTE_COL, PLAYER_ROW, Yellow, MapNotes.Note(script, map, cx, cy));
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('Map: ', 'Write Clear Exit', LightMagenta, LightGreen, White, True, False, ext);
     nx := cx;
@@ -242,7 +271,7 @@ begin
       cy := ny;
     end;
   until (not ext) and (ch in [C_KEYS.NONE, 'E']);
-  TextRend.ClearRect(MAP_COL, NOTE_ROW, C_MSG.TEXT_RIGHT - 1, NOTE_ROW);
+  TextRend.ClearRect(MAP_COL, KEY_ROW, C_MSG.TEXT_RIGHT - 1, PLAYER_ROW);
   TextRend.ClearBottomLine;
 end;
 

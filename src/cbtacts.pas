@@ -72,15 +72,40 @@ function StingVictoryCheat: Boolean;
   Rebuilds the target list around the aim point. }
 function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
+{ The spell-aim preview's count (CbtMap.aimReport, #840): line 23 shows the spell being aimed and who it will catch,
+  caught (nearest first): how many of the caster's enemies and how many allies, the caster too. An offensive spell
+  (offensive 1, target 0) names the enemies first and the allies in yellow; any other spell names the allies first.
+  Where a spell's rule (areaRules) says so before any roll, a side's count is followed by how many of them are immune
+  (Stinking Cloud: FxEngine.CloudSpares) or, for Sleep, by how many may fall asleep at most: the most CharHlp.SleepTakes
+  takes, not counting the SleepProof, over every pool the dice can roll. }
+procedure ReportAreaCatch(var caught: Types.TSlotList);
+
 implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
   C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
   CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary;
 
+type
+  { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
+  TAreaRule = record
+    spell: Byte;
+    rule: Byte;
+  end;
+  { Who an aimed area spell catches on one side: how many, and the note after them (the immune, or for Sleep the most
+    that may fall asleep) }
+  TSideTally = record
+    count: Byte;
+    note: Byte;
+  end;
+  { [True] the caster's enemies, [False] everyone else }
+  TAreaTally = array[Boolean] of TSideTally;
+
 var
   { Primary and secondary attack counts. }
   attacksMade: array[1..2] of Byte;
+  { The spell the player is aiming, for ReportAreaCatch. }
+  aimSpell: Byte;
 
 const
   { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
@@ -89,6 +114,14 @@ const
   SPRITE_LIGHTNING = 19;
   SPRITE_SPARKLE = 22;
   SPRITE_BURST = 23;
+  { The spell-aim count's rules: none, Sleep's pool, Stinking Cloud's immunities. Curse, Secret and Pools keep their
+    own table here. }
+  RULE_NONE = 0;
+  RULE_SLEEP = 1;
+  RULE_CLOUD = 2;
+  areaRules: array[1..2] of TAreaRule = (
+    (spell: C_SPELL.SLEEP; rule: RULE_SLEEP),
+    (spell: C_SPELL.STINKING_CLOUD; rule: RULE_CLOUD));
 
 function AdjustedAttacks(n: Byte): Byte; forward;
 
@@ -166,14 +199,15 @@ begin
   GameVars.pendingDamage := dmg;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
-    GameVars.pendingDamage := GameVars.pendingDamage * ((Word(att^.classLevels[C_LEVEL.THIEF]) + 3) div 4 + 1);
-  if (att^.classLevels[C_LEVEL.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
+    GameVars.pendingDamage := GameVars.pendingDamage *
+                              ((Word(CharHlp.GetClassLevel(att, C_LEVEL.THIEF_BIT)) + 3) div 4 + 1);
+  if (CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT) > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GameDefs.rangerFoes) div SizeOf(GameDefs.rangerFoes[1]) do
       if def^.name = GameDefs.rangerFoes[i] then
-        if GameVars.pendingDamage > 255 - att^.classLevels[C_LEVEL.RANGER] then
+        if GameVars.pendingDamage > 255 - CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT) then
           GameVars.pendingDamage := 255
         else
-          Inc(GameVars.pendingDamage, att^.classLevels[C_LEVEL.RANGER]);
+          Inc(GameVars.pendingDamage, CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT));
   GameVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_DEF, def);
@@ -691,9 +725,9 @@ function TurnLevel(creature: Types.PCharRecord): ShortInt;
 var
   lvl: ShortInt;
 begin
-  lvl := creature^.classLevels[C_LEVEL.CLERIC];
-  if creature^.classLevels[C_LEVEL.PALADIN] - 2 > lvl then
-    lvl := creature^.classLevels[C_LEVEL.PALADIN] - 2;
+  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
+  if CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2 > lvl then
+    lvl := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
   if lvl < 0 then
     lvl := 0;
   TurnLevel := lvl;
@@ -1080,20 +1114,172 @@ begin
   end;
 end;
 
-{ The sprite cell the spell-aim preview marks a spell's cells with: the spell missile for a hostile spell (spellTable
-  offensive 1 and target 0), otherwise the sparkle. A spell outside the table sparkles. }
+{ True for a hostile spell: spellTable offensive 1 and target 0. A spell outside the table is not. }
+function HostileSpell(spell: Byte): Boolean;
+begin
+  HostileSpell := False;
+  if (spell >= 1) and (spell <= SizeOf(GameDefs.spellTable) div SizeOf(GameDefs.spellTable[1])) then
+    HostileSpell := (GameDefs.spellTable[spell].offensive = 1) and (GameDefs.spellTable[spell].target = 0);
+end;
+
+{ The sprite cell the spell-aim preview marks a spell's cells with: the spell missile for a hostile spell
+  (HostileSpell), otherwise the sparkle. }
 function AimMarker(spell: Byte): Byte;
 begin
-  AimMarker := SPRITE_SPARKLE;
-  if (spell >= 1) and (spell <= SizeOf(GameDefs.spellTable) div SizeOf(GameDefs.spellTable[1])) then
-    if (GameDefs.spellTable[spell].offensive = 1) and (GameDefs.spellTable[spell].target = 0) then
-      AimMarker := SPRITE_MISSILE;
+  if CbtActs.HostileSpell(spell) then
+    AimMarker := SPRITE_MISSILE
+  else
+    AimMarker := SPRITE_SPARKLE;
+end;
+
+{ The spell-aim count's rule for spell (areaRules), RULE_NONE when it has none. }
+function AreaRuleOf(spell: Byte): Byte;
+var
+  i: Byte;
+begin
+  AreaRuleOf := RULE_NONE;
+  for i := 1 to SizeOf(areaRules) div SizeOf(areaRules[1]) do
+    if areaRules[i].spell = spell then
+      AreaRuleOf := areaRules[i].rule;
+end;
+
+{ The name line 23 gives spell while it is aimed: its own, the Fireball's for the item fireball, and none for another
+  item spell. }
+function AimSpellName(spell: Byte): Types.TStr40;
+begin
+  AimSpellName := '';
+  if spell = C_SPELL.ITEM_FIREBALL then
+    spell := C_SPELL.FIREBALL;
+  if (spell >= 1) and (spell <= C_SPELL.LAST) then
+    AimSpellName := GameDefs.spellNames[spell];
+end;
+
+{ Line 23 for ReportAreaCatch: the spell's name and ': ', then the two sides, as "3 ENEMIES (1 IMMUNE), 1 ALLY", or
+  'NO ONE'. A line too long for the screen drops the spell's name, then the space after the comma. }
+procedure ShowAreaTally(var side: TAreaTally; rule: Byte; hostile: Boolean);
+const
+  SEGS = 8;
+  LINE_WIDTH = 40;
+var
+  text: array[1..SEGS] of Types.TStr40;
+  tint: array[1..SEGS] of Byte;
+  n: Byte;
+  len: Byte;
+  squeeze: Byte;
+  col: Byte;
+  i: Byte;
+  name: Types.TStr40;
+
+  procedure Add(color: Byte; s: Types.TStr40);
+  begin
+    Inc(n);
+    text[n] := s;
+    tint[n] := color;
+    Inc(len, Length(s));
+  end;
+
+  procedure AddSide(foe: Boolean);
+  var
+    noun: Types.TStr40;
+    color: Byte;
+  begin
+    if foe then begin
+      if side[foe].count = 1 then
+        noun := ' ENEMY'
+      else
+        noun := ' ENEMIES';
+    end else if side[foe].count = 1 then
+      noun := ' ALLY'
+    else
+      noun := ' ALLIES';
+    color := LightGreen;
+    if hostile and not foe then
+      color := Yellow;
+    if side[foe].count = 0 then
+      Add(LightGreen, 'NO' + noun)
+    else begin
+      Add(color, StrUtil.NumStr(side[foe].count) + noun);
+      if rule = RULE_SLEEP then
+        Add(LightGray, ' (UP TO ' + StrUtil.NumStr(side[foe].note) + ')')
+      else if side[foe].note > 0 then
+        Add(LightGray, ' (' + StrUtil.NumStr(side[foe].note) + ' IMMUNE)');
+    end;
+  end;
+
+begin
+  name := CbtActs.AimSpellName(aimSpell);
+  len := 0;
+  for squeeze := 0 to 2 do
+    if (squeeze = 0) or (len > LINE_WIDTH) then begin
+      n := 0;
+      len := 0;
+      if (squeeze = 0) and (name <> '') then begin
+        Add(White, name);
+        Add(White, ': ');
+      end;
+      if (side[True].count = 0) and (side[False].count = 0) then
+        Add(LightGreen, 'NO ONE')
+      else begin
+        AddSide(hostile);
+        if squeeze < 2 then
+          Add(LightGreen, ', ')
+        else
+          Add(LightGreen, ',');
+        AddSide(not hostile);
+      end;
+    end;
+  Border.ClearBox(0, 23, 39, 23);
+  col := 0;
+  for i := 1 to n do begin
+    TextRend.DisplayString(col, 23, tint[i], text[i]);
+    Inc(col, Length(text[i]));
+  end;
+end;
+
+procedure ReportAreaCatch(var caught: Types.TSlotList);
+var
+  side: TAreaTally;
+  asleep: array[Boolean] of Byte;
+  rule: Byte;
+  i: Byte;
+  pool: Byte;
+  left: Byte;
+  foe: Boolean;
+  cr: Types.PCharRecord;
+begin
+  rule := CbtActs.AreaRuleOf(aimSpell);
+  FillChar(side, SizeOf(side), 0);
+  for i := 1 to caught.count do begin
+    cr := GameVars.creatureArr[caught.slot[i]];
+    foe := cr^.hostile = CharHlp.EnemyTeam(GameVars.curChar);
+    Inc(side[foe].count);
+    if rule = RULE_CLOUD then
+      if FxEngine.CloudSpares(cr) then
+        Inc(side[foe].note);
+  end;
+  { Sleep spends one pool on both sides in target order, so every pool the dice can roll is tried }
+  if rule = RULE_SLEEP then
+    for pool := C_SPELL.SLEEP_DICE to C_SPELL.SLEEP_DICE * C_SPELL.SLEEP_DIE do begin
+      asleep[False] := 0;
+      asleep[True] := 0;
+      left := pool;
+      for i := 1 to caught.count do begin
+        cr := GameVars.creatureArr[caught.slot[i]];
+        if CharHlp.SleepTakes(cr, left) and not CharHlp.SleepProof(cr) then
+          Inc(asleep[cr^.hostile = CharHlp.EnemyTeam(GameVars.curChar)]);
+      end;
+      for foe := False to True do
+        if asleep[foe] > side[foe].note then
+          side[foe].note := asleep[foe];
+    end;
+  CbtActs.ShowAreaTally(side, rule, CbtActs.HostileSpell(aimSpell));
 end;
 
 { The cast-target menu in combat (GameVars.castTargetMenu): build the spell-target list from the low nibble of the
   spell's area. 0: the caster; 15: the picked creature (a bare cell gets a zero-radius area); 8..14: everything within
   area and 7 of the picked cell; 1..7: (area and 3) + 1 individual picks. b is the AI flag, passed to PickSpellTarget.
-  While the player aims, the CbtMap spell-aim preview shows the cells the spell will reach. }
+  While the player aims, the CbtMap spell-aim preview shows the cells the spell will reach and, for 8..14, line 23 who
+  it will catch (ReportAreaCatch). }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -1120,7 +1306,7 @@ begin
       { the picked creature, or an area at the picked cell }
       begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell));
+          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
@@ -1143,16 +1329,18 @@ begin
           uses radius 2 when view3dFlag is clear). }
         if not b then begin
           radius := GameDefs.spellTable[spell].area and 7;
+          { line 23 counts who the spell will catch (#840) }
+          aimSpell := spell;
           if spell = C_SPELL.LIGHTNING_BOLT then
-            CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING)
+            CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING, True)
           else if spell = C_SPELL.STINKING_CLOUD then
-            CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE)
+            CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE, True)
           else if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then begin
             if GameVars.zone0^.view3dFlag = 0 then
               radius := 2;
-            CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST);
+            CbtMap.StartSpellPreview(Types.AimBlast, radius, SPRITE_BURST, True);
           end else
-            CbtMap.StartSpellPreview(Types.AimBlast, radius, CbtActs.AimMarker(spell));
+            CbtMap.StartSpellPreview(Types.AimBlast, radius, CbtActs.AimMarker(spell), True);
         end;
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
@@ -1169,7 +1357,7 @@ begin
       k := 0;
       while remaining > 0 do begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell));
+          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
@@ -1271,7 +1459,7 @@ begin
   weapon := att^.equipped[C_EQUIP.WEAPON];
   if weapon <> nil then
     wItem := weapon^.itemType;
-  if att^.classLevels[C_LEVEL.THIEF] > 0 then
+  if CharHlp.GetClassLevel(att, C_LEVEL.THIEF_BIT) > 0 then
     if not ClassCal.ArmorBarsThiefSkills(att) then
       if (weapon = nil) or (wItem = C_ITEM.CLUB) or (wItem = C_ITEM.DAGGER)
          or ((wItem >= C_ITEM.BROAD_SWORD) and (wItem <= C_ITEM.SHORT_SWORD)) then
@@ -1910,7 +2098,7 @@ var
   i: Byte;
 begin
   AreaHitsNonEnemy := False;
-  Pathing.BuildTargetList(x, y, radius, 255, 1, GameVars.arenaPtr);
+  Pathing.BuildAreaList(x, y, radius);
   for i := 1 to GameVars.targetCount do
     if GameVars.creatureArr[GameVars.targetList[i].idx]^.hostile <> CharHlp.EnemyTeam(GameVars.curChar) then
       AreaHitsNonEnemy := True;
@@ -1919,6 +2107,7 @@ end;
 begin
   { Turbo Pascal clears no variable }
   currentSuppressTargetingFlag := 0;
+  aimSpell := C_SPELL.NONE;
   FillChar(hitsMade, SizeOf(hitsMade), 0);
   hostileHpPct := 0;
   doneRoundFlag := False;

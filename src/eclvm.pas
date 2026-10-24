@@ -864,7 +864,7 @@ begin
   p := GameVars.creatureList;
   mod1 := 0;
   while p <> nil do begin
-    if (p^.charClass = C_CLASS.RANGER) or (p^.charClass = C_CLASS.CLERIC_RANGER) then
+    if p^.classLevels[C_LEVEL.RANGER] > 0 then
       mod1 := 1;
     p := p^.nextCharAddr;
   end;
