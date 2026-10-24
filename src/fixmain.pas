@@ -76,6 +76,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O Sym8x8}
 {$O CompTool}
 {$O EvtKind}
+{$O ClueBook}
 {$O CharEdit}
 
 begin

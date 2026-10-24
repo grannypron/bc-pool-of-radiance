@@ -357,6 +357,7 @@ begin
   GameVars.quickEnds := 1;
   GameVars.quickMagicOn := 0;
   GameVars.companionOn := 0;
+  GameVars.clueNotesOn := 1;
   GameVars.stingHpFlag := 0;
   GameVars.msgDelayFlag := 1;
   GameVars.gameDelay := 1;
