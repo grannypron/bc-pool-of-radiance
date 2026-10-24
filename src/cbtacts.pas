@@ -199,14 +199,15 @@ begin
   GameVars.pendingDamage := dmg;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
-    GameVars.pendingDamage := GameVars.pendingDamage * ((Word(att^.classLevels[C_LEVEL.THIEF]) + 3) div 4 + 1);
-  if (att^.classLevels[C_LEVEL.RANGER] > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
+    GameVars.pendingDamage := GameVars.pendingDamage *
+                              ((Word(CharHlp.GetClassLevel(att, C_LEVEL.THIEF_BIT)) + 3) div 4 + 1);
+  if (CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT) > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GameDefs.rangerFoes) div SizeOf(GameDefs.rangerFoes[1]) do
       if def^.name = GameDefs.rangerFoes[i] then
-        if GameVars.pendingDamage > 255 - att^.classLevels[C_LEVEL.RANGER] then
+        if GameVars.pendingDamage > 255 - CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT) then
           GameVars.pendingDamage := 255
         else
-          Inc(GameVars.pendingDamage, att^.classLevels[C_LEVEL.RANGER]);
+          Inc(GameVars.pendingDamage, CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT));
   GameVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_DEF, def);
@@ -720,9 +721,9 @@ function TurnLevel(creature: Types.PCharRecord): ShortInt;
 var
   lvl: ShortInt;
 begin
-  lvl := creature^.classLevels[C_LEVEL.CLERIC];
-  if creature^.classLevels[C_LEVEL.PALADIN] - 2 > lvl then
-    lvl := creature^.classLevels[C_LEVEL.PALADIN] - 2;
+  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
+  if CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2 > lvl then
+    lvl := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
   if lvl < 0 then
     lvl := 0;
   TurnLevel := lvl;
@@ -1443,7 +1444,7 @@ begin
   weapon := att^.equipped[C_EQUIP.WEAPON];
   if weapon <> nil then
     wItem := weapon^.itemType;
-  if att^.classLevels[C_LEVEL.THIEF] > 0 then
+  if CharHlp.GetClassLevel(att, C_LEVEL.THIEF_BIT) > 0 then
     if not ClassCal.ArmorBarsThiefSkills(att) then
       if (weapon = nil) or (wItem = C_ITEM.CLUB) or (wItem = C_ITEM.DAGGER)
          or ((wItem >= C_ITEM.BROAD_SWORD) and (wItem <= C_ITEM.SHORT_SWORD)) then

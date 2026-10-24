@@ -250,7 +250,7 @@ implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
   C_RACE, C_STATUS, C_IFC, C_ALIGN, C_SPELL, CbtMap, CharHlp, Pathing, TextRend, StrUtil, CharDisp, AbilAdj,
-  C_LEVEL, Dice, Stats;
+  C_LEVEL, Dice, Stats, ChgClass;
 
 const
   { set by TouchImmune for its immunity check: a monster's poisonous or paralyzing touch is no magic, so magic
@@ -1329,7 +1329,11 @@ end;
 { Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
   the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
   level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0. Its highest level and
-  experience are then reset from the class ClassToDrain picks after the loss. }
+  experience are then reset from the class ClassToDrain picks after the loss. A dual-classed human (#838) is drained in
+  the class it follows alone, as Pools of Darkness drains it (pools-disassembly v11 effhndlr.pas:1829-1834): it loses
+  hit points only for a level that gave them (ClassCal.HitDice), it is dead forever when that class is below level 2,
+  a class it left rests again when the class it follows falls back to it (ChgClass.SyncClassPowers), and its highest
+  level is that of its highest class. }
 procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
 var
   numStr: Types.TStr40;
@@ -1340,6 +1344,8 @@ var
   totalLevels: Byte;
   hpPerLevel: Byte;
   k: Byte;
+  dual: Boolean;
+  top: ShortInt;
 
   { Which class to drain: scanning classes 0..7, take each one whose level is >= the best so far and whose XP table
     entry for that level is >= the best so far (or is the -1 "at cap" sentinel); later classes win ties. xpMin is left
@@ -1355,6 +1361,9 @@ var
     bestLvl := 0;
     for jj := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
       lvl := creature^.classLevels[jj];
+      { a dual-classed human's classes left are never drained }
+      if creature^.portExt.formerClasses and (1 shl jj) <> 0 then
+        lvl := -1;
       { xp[] runs to level 9; a level above it reads level 9's entry }
       if lvl > 9 then
         xpTry := GameDefs.experienceSpellsClass[jj].xp[9]
@@ -1362,7 +1371,7 @@ var
         xpTry := GameDefs.experienceSpellsClass[jj].xp[lvl]
       else
         xpTry := 0;
-      if lvl >= bestLvl then
+      if (lvl >= bestLvl) and (lvl >= 0) then
         if (xpTry >= xpMin) or (xpTry = -1) then begin
           xpMin := xpTry;
           ClassToDrain := jj;
@@ -1386,8 +1395,12 @@ begin
     if creature^.status <> C_STATUS.GONE then begin
       Inc(creature^.drainedLevels);
       totalLevels := 0;
+      dual := CharHlp.IsDualClass(creature);
       for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
-        Inc(totalLevels, creature^.classLevels[j]);
+        if dual then
+          Inc(totalLevels, ClassCal.HitDice(creature, j))
+        else
+          Inc(totalLevels, creature^.classLevels[j]);
       { a creature with no class levels (kobolds, bandits and other monsters) has no level to lose, and no divisor }
       if totalLevels = 0 then begin
         EffHndlr.InflictStatusMsg(creature, C_STATUS.GONE, 'is dead forever');
@@ -1395,6 +1408,9 @@ begin
         Exit;
       end;
       hpPerLevel := creature^.hpMax div totalLevels;
+      { a level of the class a dual-classed human follows gave hit points only past the classes it left }
+      if dual and (ClassCal.HitDice(creature, creature^.charClass) = 0) then
+        hpPerLevel := 0;
       { tested here, so a drain loads Debug only with the STING display on }
       if GameVars.stingHpFlag <> 0 then
         Debug.PrintHpDebug('max,cur,lost', creature^.hpMax, creature^.hpCur, creature^.drainedHps);
@@ -1408,7 +1424,11 @@ begin
         Inc(creature^.drainedHps);
       end;
       cls := ClassToDrain;
-      if creature^.levelHighest < 2 then begin
+      if dual then
+        top := creature^.classLevels[cls]
+      else
+        top := creature^.levelHighest;
+      if top < 2 then begin
         EffHndlr.InflictStatusMsg(creature, C_STATUS.GONE, 'is dead forever');
         creature^.hpMax := 0;
         { SSI's: only a two-level drain clears the class's level }
@@ -1424,8 +1444,14 @@ begin
       { picked again, after the loss, with xpMin for it }
       cls := ClassToDrain;
       creature^.levelHighest := creature^.classLevels[cls];
+      if dual then
+        for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
+          if creature^.classLevels[j] > creature^.levelHighest then
+            creature^.levelHighest := creature^.classLevels[j];
       creature^.experience := xpMin;
       CharHlp.RecalcStats(creature);
+      if dual then
+        ChgClass.SyncClassPowers(creature);
     end;
   end;
 end;

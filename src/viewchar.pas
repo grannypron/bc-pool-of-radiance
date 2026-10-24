@@ -51,7 +51,44 @@ begin
   TextRend.DisplayMessageWindow(1, 21, 38, 22, Yellow, clearFirst, s);
 end;
 
-{ Draw creature's character sheet; the portrait is curChar's (Portrait.DisplayCharPortrait), which every caller shows. }
+{ The class and level lines of a dual-classed human (#838), from column 1 and 7 of their rows: the class it follows,
+  white, then each class it has left in brackets, dark gray while it rests and white once it is usable again; its level,
+  then each class left's level, in brackets and dark gray while it rests, after a '/' and white once usable ('Level 3
+  (5)', 'Level 6/5'). }
+procedure DrawDualClass(creature: Types.PCharRecord; classRow, levelRow: Byte);
+var
+  col: Byte;
+  cls: ShortInt;
+  color: Byte;
+  s: Types.TStr40;
+  levelCol: Byte;
+begin
+  s := GameDefs.classNames[creature^.charClass];
+  TextRend.DisplayString(1, classRow, White, s);
+  col := 1 + Length(s);
+  s := StrUtil.NumStr(creature^.classLevels[creature^.charClass]);
+  levelCol := 7;
+  TextRend.DisplayString(levelCol, levelRow, White, s);
+  Inc(levelCol, Length(s));
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+    if (creature^.portExt.formerClasses and (1 shl cls) <> 0) and (creature^.classLevels[cls] > 0) then begin
+      if CharHlp.ClassResting(creature, cls) then begin
+        color := DarkGray;
+        s := ' (' + StrUtil.NumStr(creature^.classLevels[cls]) + ')';
+      end else begin
+        color := White;
+        s := '/' + StrUtil.NumStr(creature^.classLevels[cls]);
+      end;
+      TextRend.DisplayString(levelCol, levelRow, color, s);
+      Inc(levelCol, Length(s));
+      s := ' (' + GameDefs.classNames[cls] + ')';
+      TextRend.DisplayString(col, classRow, color, s);
+      Inc(col, Length(s));
+    end;
+end;
+
+{ Draw creature's character sheet; the portrait is curChar's (Portrait.DisplayCharPortrait), which every caller shows.
+  A dual-classed human's class and level lines show the classes it has left too (DrawDualClass). }
 procedure DisplayChar(creature: Types.PCharRecord);
 var
   row: Byte;
@@ -77,8 +114,8 @@ begin
   TextRend.DisplayString(col, 3, White, 'Age ' + StrUtil.NumStr(creature^.age));
   s := GameDefs.alignNames[creature^.alignmentIdx];
   TextRend.DisplayString(1, 4, White, s);
-  s := GameDefs.classNames[creature^.charClass];
-  TextRend.DisplayString(1, 5, White, s);
+  if not CharHlp.IsDualClass(creature) then
+    TextRend.DisplayString(1, 5, White, GameDefs.classNames[creature^.charClass]);
   { the six ability scores }
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
     case i of
@@ -94,17 +131,21 @@ begin
   end;
   ViewChar.PrintMoney;
   TextRend.DisplayString(1, 15, White, 'Level');
-  multi := False;
-  s := '';
-  { one entry per class the character has levels in, joined with '/' }
-  for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if creature^.classLevels[j] > 0 then begin
-      if multi then
-        s := s + '/';
-      s := s + StrUtil.NumStr(creature^.classLevels[j]);
-      multi := True;
-    end;
-  TextRend.DisplayString(7, 15, White, s);
+  if CharHlp.IsDualClass(creature) then
+    ViewChar.DrawDualClass(creature, 5, 15)
+  else begin
+    multi := False;
+    s := '';
+    { one entry per class the character has levels in, joined with '/' }
+    for j := C_LEVEL.CLERIC to C_LEVEL.MONK do
+      if creature^.classLevels[j] > 0 then begin
+        if multi then
+          s := s + '/';
+        s := s + StrUtil.NumStr(creature^.classLevels[j]);
+        multi := True;
+      end;
+    TextRend.DisplayString(7, 15, White, s);
+  end;
   TextRend.DisplayString(17, 15, White, 'Exp ' + StrUtil.NumStr(creature^.experience));
   ViewChar.PrintCombatStats;
   row := 20;
@@ -147,7 +188,7 @@ end;
 { True when p is a paladin who can use a paladin's powers now: okay, and out of combat. }
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
-  PaladinReady := (p^.charClass = C_CLASS.PALADIN) and (p^.status = C_STATUS.OKAY) and
+  PaladinReady := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0) and (p^.status = C_STATUS.OKAY) and
     (GameVars.ifcState <> C_IFC.COMBAT);
 end;
 
@@ -170,7 +211,7 @@ begin
   used := 0;
   if CharHlp.HasEffect(p, C_EFFECT.RECENT_CURE, effect) then
     used := effect^.strength;
-  allowed := (p^.classLevels[C_LEVEL.PALADIN] - 1) div 5 + 1;
+  allowed := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) - 1) div 5 + 1;
   CanCure := ViewChar.PaladinReady(p) and (allowed > 0) and (used < allowed);
 end;
 
@@ -187,7 +228,7 @@ begin
   if tgt = nil then
     Exit;
   hpBefore := tgt^.hpCur;
-  if FxEngine.RestoreHitPoints(tgt, p^.classLevels[C_LEVEL.PALADIN] * 2, False) then begin
+  if FxEngine.RestoreHitPoints(tgt, CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) * 2, False) then begin
     Stats.Count(p, Stats.HEALED_GIVEN, tgt^.hpCur - hpBefore);
     CharDisp.PrintBottomLine(tgt^.name + ' feels better')
   end
@@ -442,7 +483,7 @@ begin
   p := GameVars.curChar;
   CharHlp.RecalcStats(p);
   menu := 'Saves sTats Kills';
-  if p^.classLevels[C_LEVEL.THIEF] > 0 then
+  if CharHlp.GetClassLevel(p, C_LEVEL.THIEF_BIT) > 0 then
     menu := menu + ' tHief';
   menu := menu + ' Exit';
   page := PAGE_SAVES;

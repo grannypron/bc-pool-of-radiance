@@ -74,7 +74,7 @@ begin
   found := False;
   p := GameVars.creatureList;
   while (p <> nil) and (not found) do begin
-    if p^.classLevels[idx] > 0 then found := True;
+    if CharHlp.GetClassLevel(p, 1 shl idx) > 0 then found := True;
     p := p^.nextCharAddr;
   end;
   PartyHasClass := found;

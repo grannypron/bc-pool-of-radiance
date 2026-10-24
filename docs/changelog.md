@@ -8,6 +8,8 @@
 - If Dirten is in your party when you free the Temple of Bane, he stays to restore it, as before; and if he has fallen in the fight, the temple guards come in and a cleric rushes to his side. Two weeks of game time later, Dirten welcomes you at the old altar and offers the temple's healing at a tenth off. Before then you are told the rebuilding is underway. A game saved before this update in which Dirten joined you and the temple is already free starts the two weeks on your first visit to the altar.
 - While you aim an area spell in combat, the line above the menu names the spell and counts who it will catch where the cursor is: your enemies, and your own characters and allies (in yellow, for an attack spell), or "No one". Fireball, Lightning Bolt (its bounce too), Stinking Cloud and the other area spells all count, even creatures just out of view. Stinking Cloud also says how many are immune, and Sleep how many on each side it can put to sleep at most.
 
+- A human can now change class at a training hall that trains the new class, as in Curse of the Azure Bonds: Human Change Class on the party menu shows what leaving the class needs and which classes the character can take. It costs 2,500 gp. The character keeps its old levels and starts again at level 1 in the new class, with no experience; the old class's skills rest, with no hit points gained, until the new class passes it, and then the character uses the better of both, training only the new class. A character can change again later once its old classes are back.
+
 ### Interface improvements
 
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.

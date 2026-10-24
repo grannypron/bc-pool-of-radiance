@@ -24,29 +24,31 @@ procedure SaveCharlist(list: Types.PItemRec; omit: String);
   remap the default icon colours to the character's iconColors1 nibbles. Icons live on virtual disk 3. }
 procedure LoadCharIconAnim(loading: Boolean);
 
-{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc/.mem/.sts and add the name to
+{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc/.mem/.sts/.chx and add the name to
   CHARLIST.TXT when it is not there;
-  fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc/.mem/.sts. They are written to temporary copies
-  and put in place of the old ones together, all or none (FileUtil.CommitSet); an empty item or effect list's old file,
-  and the .mem or .sts of a character with no usual spells or statistics, is erased with them. A set that cannot be
+  fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc/.mem/.sts/.chx. They are written to temporary
+  copies and put in place of the old ones together, all or none (FileUtil.CommitSet); an empty item or effect list's
+  old file, and the .mem, .sts or .chx of a character with no usual spells, statistics or port fields, is erased with
+  them. A set that cannot be
   written whole (a full disk) or put in place leaves the old files and CHARLIST.TXT as they were and is reported on the
   bottom line. True when the character was saved. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
-{ Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, those there are) and take its name off
+{ Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, .chx, those there are) and take its name off
   CHARLIST.TXT: a character dropped forever, whose files loading or saving a game no longer erases (#754). }
 procedure EraseChar(name: String);
 
-{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk (a .cha
-  save the game was ended in is undone first, FileUtil.RecoverSet), else prompt with the insert-game-disk message
+{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk (a .cha save
+  the game was ended in is undone first, FileUtil.RecoverSet), else prompt with the insert-game-disk message
   (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared, then
   the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a trailing
-  part record, and the usual spells are read from the .mem file (none when it is missing or not a usual-spells file for
-  this character). False, with nothing read after the record, when the .sav/.cha file holds less than a whole record or
-  cannot be read, or is not there and Escape at the save disk prompt gave up (askDisk); the caller then frees the
-  record unused. While the Quick Ends With Fight setting is on (GameVars.quickEnds), a party member leaves Quick
-  (quickfight 0), so a loaded game or an added character starts under manual control; NPCs and animated creatures keep
-  quickfight, as PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the saved quickfight stays. }
+  part record, the usual spells are read from the .mem file (none when it is missing or not a usual-spells file for this
+  character), and the port's own fields (TCharRecord.portExt) from the .chx (CharExt.ReadExt; 0 without one). False,
+  with nothing read after the record, when the .sav/.cha file holds less than a whole record or cannot be read, or is
+  not there and Escape at the save disk prompt gave up (askDisk); the caller then frees the record unused. While the
+  Quick Ends With Fight setting is on (GameVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game
+  or an added character starts under manual control; NPCs and animated creatures keep quickfight, as
+  PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the saved quickfight stays. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
 
 { True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
@@ -63,13 +65,13 @@ procedure LoadGame;
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
   Escape on the menu aborts, Exit in the description popup goes back to the menu), store wall slots, game speed, picture
   and music settings (SSI's copies, which loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT,
-  each party member (the first 8) as CHRDATxN.sav with its .itm, .spc, .mem and .sts, the slot's description and the
-  current area (AreaName.CurrentArea) as SAVGAMx.INF, the game's statistics, explored map and notes (.sts, .map, .nts)
-  and the session vault's copy (Vault.AddToSave), and only when every one was written whole put them all in place of
-  the old save's, all or none (FileUtil.CommitSet), the old files of members the party no longer has erased with them;
-  then set the recently-saved flag. The members' single-character files are left alone (SSI erased them, here and on
-  loading). A save not written whole, or not put in place, leaves the old one as it was and says so. True when the game
-  was saved; False also for Escape on the menu. The caller redraws the screen. }
+  each party member (the first 8) as CHRDATxN.sav with its .itm, .spc, .mem, .sts and .chx, the slot's description and
+  the current area (AreaName.CurrentArea) as SAVGAMx.INF, the game's statistics, explored map and notes (.sts, .map,
+  .nts) and the session vault's copy (Vault.AddToSave), and only when every one was written whole put them all in place
+  of the old save's, all or none (FileUtil.CommitSet), the old files of members the party no longer has erased with
+  them; then set the recently-saved flag. The members' single-character files are left alone (SSI erased them, here and
+  on loading). A save not written whole, or not put in place, leaves the old one as it was and says so. True when the
+  game was saved; False also for Escape on the menu. The caller redraws the screen. }
 function SaveGame: Boolean;
 
 const
@@ -109,7 +111,7 @@ implementation
 
 uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
   C_KEYS, C_IFC, C_GBVM, C_NPC, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
-  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp{$IFDEF FPC}, NatFile{$ENDIF};
+  UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
   { the party's names in a savgam file: the CHRDATxN files they are kept in }
@@ -237,11 +239,11 @@ begin
 end;
 
 { Write creature's record, items and effects to the temporary copies (FileUtil.TempName) of <base><ext>, <base>.itm and
-  <base>.spc, and its usual spells and statistics to <base>.mem and .sts, adding each to save s (an empty list's file,
-  and a .mem or .sts with nothing to hold, as one to erase): True when every one is whole. Else the copy that failed is
-  not left, and the caller drops s. The records go out with their pointers cleared: loading rebuilds the lists from the
-  .itm and .spc files, and the equipment slots from the items, so their values meant nothing, and a heap address made
-  two saves of the same game differ. }
+  <base>.spc, and its usual spells, statistics and port fields to <base>.mem, .sts and .chx, adding each to save s (an
+  empty list's file, and a .mem, .sts or .chx with nothing to hold, as one to erase): True when every one is whole. Else
+  the copy that failed is not left, and the caller drops s. The records go out with their pointers cleared: loading
+  rebuilds the lists from the .itm and .spc files, and the equipment slots from the items, so their values meant
+  nothing, and a heap address made two saves of the same game differ. }
 function WriteCharFiles(var s: FileUtil.TFileSet; creature: Types.PCharRecord; base: FileUtil.TSetName;
                         ext: Types.TStr8): Boolean;
 var
@@ -310,7 +312,8 @@ begin
           FileUtil.AddToSet(s, base + '.spc', True);
       end;
     end;
-  WriteCharFiles := ok and UsualSpl.WriteUsualSpells(s, creature, base) and Stats.WriteChar(s, creature, base);
+  WriteCharFiles := ok and UsualSpl.WriteUsualSpells(s, creature, base) and Stats.WriteChar(s, creature, base) and
+                    CharExt.WriteExt(s, creature, base);
 end;
 
 { Undo a single-character save of the character called name that the game was ended in before it was done
@@ -506,6 +509,7 @@ begin
   CharHlp.LinkEquipped(creature);
   UsualSpl.ReadUsualSpells(creature, name);
   Stats.ReadChar(creature, name);
+  CharExt.ReadExt(creature, name);
 end;
 
 procedure AddCharToParty(creature: Types.PCharRecord);
