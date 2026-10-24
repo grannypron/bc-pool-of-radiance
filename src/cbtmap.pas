@@ -12,6 +12,9 @@ var
   { Lightning Bolt's path for the spell-aim preview; GameInit sets it to Magic.TraceLightningBolt, so CbtMap does not
     call Magic }
   boltTracer: Types.TCellTracer;
+  { Who the spell being aimed will catch, for the spell-aim preview's count on line 23 (#840); GameInit sets it to
+    CbtActs.ReportAreaCatch, so CbtMap does not call CbtActs }
+  aimReport: Types.TAimReport;
   { view-relative X deltas }
   gridX: array[1..Types.ARENA_SLOTS] of ShortInt;
   { view-relative Y deltas }
@@ -106,13 +109,16 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
   Lightning Bolt's path from the cursor cell (boltTracer). AimCloud covers the passable cells of
   Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead of areaCell. The
-  frames are drawn from MenuCore.MenuHorizontal's idle hook. }
-procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte);
+  frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands aimReport the
+  creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at radius, over the
+  whole arena and not just the view, as the spell gathers them; for a bolt or cloud the creatures on its cells. }
+procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte; report: Boolean);
 
 { Advance the spell-aim preview by one frame once enough time has passed since the last one. }
 procedure TickSpellPreview;
 
-{ End the spell-aim preview: remove the idle hook and repaint every cell it drew over. }
+{ End the spell-aim preview: remove the idle hook, repaint every cell it drew over and, when it reported who the spell
+  catches, clear line 23. }
 procedure StopSpellPreview;
 
 { Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
@@ -127,7 +133,7 @@ function CalcDistance(creature, other: Types.PCharRecord): Byte;
 implementation
 
 uses Crt, C_TERR, GameDefs, GameVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR, C_SOUND, Pathing, MenuCore,
-  Blit, CharHlp;
+  Blit, CharHlp, Border;
 
 var
   { creature slot per arena cell }
@@ -150,6 +156,7 @@ var
   previewRadius: Byte;
   previewShape: Types.TAimShape;
   areaArt: Byte;
+  previewReport: Boolean;
   { The cursor cell and footprint size the preview is aimed at; aimSet is clear until a cursor draw sets them. }
   aimSet: Boolean;
   aimX: ShortInt;
@@ -275,7 +282,52 @@ begin
   end;
 end;
 
-{ Aim the preview at arena cell (x, y): work out the area and start the cycle over. }
+{ Add arena slot c to list, unless it is there already. }
+procedure AddCaught(var list: Types.TSlotList; c: Byte);
+var
+  i: Byte;
+begin
+  for i := 1 to list.count do
+    if list.slot[i] = c then
+      Exit;
+  if list.count < Types.ARENA_SLOTS then begin
+    Inc(list.count);
+    list.slot[list.count] := c;
+  end;
+end;
+
+{ Hand aimReport the creatures the spell aimed at arena cell (x, y) will catch, nearest first. A blast gathers them with
+  Pathing.BuildAreaList, as the spell does, over the whole arena (the lit cells cover only the view), and puts the
+  target list back as it was, as CalcDistance does; a bolt or cloud takes the creatures on its area cells, each once. }
+procedure ReportCaught(x, y: ShortInt);
+var
+  caught: Types.TSlotList;
+  saved: Types.TTargetList;
+  savedCount: Byte;
+  i: Byte;
+  c: Byte;
+  t: Byte;
+begin
+  caught.count := 0;
+  if previewShape = Types.AimBlast then begin
+    Move(GameVars.targetList, saved, SizeOf(GameVars.targetList));
+    savedCount := GameVars.targetCount;
+    Pathing.BuildAreaList(x, y, previewRadius);
+    for i := 1 to GameVars.targetCount do
+      AddCaught(caught, GameVars.targetList[i].idx);
+    Move(saved, GameVars.targetList, SizeOf(GameVars.targetList));
+    GameVars.targetCount := savedCount;
+  end else
+    for i := 1 to areaCount do begin
+      CbtMap.GetArenaContents(areaX[i], areaY[i], c, t);
+      if c > 0 then
+        AddCaught(caught, c);
+    end;
+  CbtMap.aimReport(caught);
+end;
+
+{ Aim the preview at arena cell (x, y): work out the area, report who it catches when asked to, and start the cycle
+  over. }
 procedure RestartSpellPreview(x, y: ShortInt);
 var
   bolt: Types.TCellList;
@@ -323,16 +375,19 @@ begin
           AddAreaCell(GameVars.arenaPtr^.ox + relX, GameVars.arenaPtr^.oy + relY, dist div 2);
       end;
   end;
+  if previewReport then
+    ReportCaught(x, y);
   frameNo := 0;
   lastTick := TextRend.GetTicks - PREVIEW_PACE;
 end;
 
-procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte);
+procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte; report: Boolean);
 begin
   CbtMap.StopSpellPreview;
   previewShape := shape;
   previewRadius := radius;
   areaArt := areaCell;
+  previewReport := report;
   aimSet := False;
   ringsShown := 0;
   areaCount := 0;
@@ -379,6 +434,9 @@ begin
     aimSet := False;
     EraseSpellPreview;
     Blit.FlushView;
+    if previewReport then
+      Border.ClearBox(0, 23, 39, 23);
+    previewReport := False;
     previewOn := False;
   end;
 end;
@@ -938,6 +996,7 @@ end;
 
 begin
   previewOn := False;
+  previewReport := False;
   aimSet := False;
   FillChar(gridX, SizeOf(gridX), 0);
   FillChar(gridY, SizeOf(gridY), 0);

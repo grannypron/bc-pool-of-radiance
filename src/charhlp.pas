@@ -166,6 +166,20 @@ function MayTrade(creature: Types.PCharRecord): Boolean;
   which kept the gnoll out and let the ogre leader in. }
 function IsPerson(creature: Types.PCharRecord): Boolean;
 
+{ What putting creature to sleep costs Sleep's pool of hit dice, by levelHighest: 0..1 -> 1, 2 -> 2, 3 -> 4, 4 -> 6,
+  5 -> 10 for C_RACE.MONSTER and 20 otherwise, higher -> 20. }
+function SleepCost(creature: Types.PCharRecord): Byte;
+
+{ True when Sleep, with pool hit dice left, takes creature: not animated dead (C_STATUS.ANIMATED), not asleep already
+  (C_EFFECT.SLEEP), and pool covers SleepCost, which is then taken from pool. Magic.SleepHandler spends its pool through
+  it in target order, and the spell-aim count (#840) through it too. }
+function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
+
+{ True when creature cannot be put to sleep at all, whatever the dice: it has C_EFFECT.NO_SLEEP_CHARM or
+  NO_CHARM_POISON, whose handlers cancel the Sleep effect as it is added (an elf's 90% and a half-elf's 30% are rolls,
+  so they don't count). Sleep still spends its pool on such a creature. }
+function SleepProof(creature: Types.PCharRecord): Boolean;
+
 { True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends With
   Fight after it, return to the player's control. }
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
@@ -1362,6 +1376,44 @@ begin
   IsPerson := (creature^.charType <> UNDEAD_TYPE) and
               (named or ((creature^.iconDimensions = 1) and
                          ((creature^.race <> C_RACE.MONSTER) or (creature^.charType = 0))));
+end;
+
+function SleepCost(creature: Types.PCharRecord): Byte;
+begin
+  case creature^.levelHighest of
+    0..1: SleepCost := 1;
+    2: SleepCost := 2;
+    3: SleepCost := 4;
+    4: SleepCost := 6;
+    5: if creature^.race = C_RACE.MONSTER then
+         SleepCost := 10
+       else
+         SleepCost := 20;
+  else
+    SleepCost := 20;
+  end;
+end;
+
+function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
+var
+  effect: Types.PEffectRec;
+  cost: Byte;
+begin
+  cost := CharHlp.SleepCost(creature);
+  SleepTakes := False;
+  if (creature^.status <> C_STATUS.ANIMATED) and not CharHlp.HasEffect(creature, C_EFFECT.SLEEP, effect) and
+     (pool >= cost) then begin
+    Dec(pool, cost);
+    SleepTakes := True;
+  end;
+end;
+
+function SleepProof(creature: Types.PCharRecord): Boolean;
+var
+  effect: Types.PEffectRec;
+begin
+  SleepProof := CharHlp.HasEffect(creature, C_EFFECT.NO_SLEEP_CHARM, effect) or
+                CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect);
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;
