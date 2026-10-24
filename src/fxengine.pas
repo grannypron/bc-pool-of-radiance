@@ -817,7 +817,7 @@ end;
 
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 begin
-  DiseaseImmune := (creature <> nil) and (creature^.classLevels[C_LEVEL.PALADIN] > 0) and
+  DiseaseImmune := (creature <> nil) and ((CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) > 0)) and
     (effId in C_EFFECT.DISEASES);
 end;
 

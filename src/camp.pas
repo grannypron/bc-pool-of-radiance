@@ -474,7 +474,7 @@ var
 begin
   if not Camp.CanDoSpellActivity(ACT_SCRIBE) then
     Exit;
-  if GameVars.curChar^.classLevels[C_LEVEL.MAGE] <= 0 then begin
+  if CharHlp.GetClassLevel(GameVars.curChar, C_LEVEL.MAGE_BIT) <= 0 then begin
     CharDisp.PrintMessage('Scribing a scroll requires arcane training.')
   end else begin
     done := False;
@@ -977,7 +977,7 @@ begin
     l3Free[n] := 0;
     l1Casts[n] := 0;
     l3Casts[n] := 0;
-    if p^.classLevels[C_LEVEL.CLERIC] > 0 then begin
+    if CharHlp.GetClassLevel(p, C_LEVEL.CLERIC_BIT) > 0 then begin
       Inc(clerics);
       if p^.status = C_STATUS.OKAY then Inc(ableClerics);
     end;

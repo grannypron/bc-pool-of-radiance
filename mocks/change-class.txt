@@ -1,0 +1,63 @@
++======================================+
+|          HUMAN CHANGE CLASS          |
+|                                      |
+|                ALIAS                 |
+|                                      |
+| NOW          FIGHTER, LEVEL 5        |
+| TO LEAVE     STR 15         18       |
+|                                      |
+| NEW CLASS    NEEDS          HAS      |
+|   CLERIC     WIS 17         12       |
+|   MAGIC-USER INT 17         17       |
+|   THIEF      DEX 17         16       |
+|   PALADIN    STR/WIS 17     18/12    |
+|   RANGER     STR/INT/WIS 17 18/17/12 |
+|                                      |
+| ALIAS WILL BE A LEVEL 1 MAGIC-USER.  |
+| THE FIGHTER'S SKILLS REST UNTIL      |
+| ALIAS PASSES LEVEL 5 AS A            |
+| MAGIC-USER.                          |
+|                                      |
+|                                      |
+|======================================+
+CHANGE CLASS: CHOOSE EXIT
+
+Color Key:
+    TITLE, NAME                         CYAN
+    LABELS, HEADINGS                    GREEN
+    NOW AND TO LEAVE VALUES             WHITE
+    CLASS THE CHARACTER QUALIFIES FOR   WHITE
+    CLASS IT DOES NOT                   DARK GRAY
+    HIGHLIGHTED CLASS                   YELLOW
+    EXPLANATION                         GREEN
+
+Command Key:
+    CHOOSE              C / ENTER (then "Change Alias to a Magic-User? Yes No")
+    EXIT                E / ESCAPE
+    UP / DOWN           move the highlight between the classes it qualifies for
+
+The issue's mock (#838) with three changes: the class names are the game's own (MAGIC-USER, not MAGE), so the NEEDS
+column moves from 14 to 15; HAS gives the scores alone, in the order NEEDS names them; and every class a human may take
+is listed (the PHB's prime requisites: a paladin's are Strength and Wisdom, a ranger's Strength, Intelligence and
+Wisdom). A class qualifies when the character has 17 in each of its prime requisites, its minimums and an alignment it
+allows, and the hall trains it. With none qualifying the menu is EXIT alone and the explanation says why.
+
+The character screen, while the old class rests (top part):
+
+ ALIAS
+ MALE HUMAN AGE 22
+ LAWFUL GOOD
+ MAGIC-USER (FIGHTER)
+ ...
+ LEVEL 3 (5)      EXP 2,750
+
+and once the magic-user has passed level 5:
+
+ MAGIC-USER (FIGHTER)
+ ...
+ LEVEL 6/5        EXP 23,500
+
+Color Key:
+    ACTIVE CLASS, LEVEL                  WHITE
+    RESTING CLASS, LEVEL (IN BRACKETS)   DARK GRAY
+    FORMER CLASS ONCE AWAKE              WHITE, STILL IN BRACKETS ON THE CLASS LINE

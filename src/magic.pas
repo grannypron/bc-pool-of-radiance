@@ -194,7 +194,7 @@ implementation
 
 uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
   Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil;
+  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, ChgClass;
 
 var
   { the menu string list }
@@ -393,8 +393,8 @@ begin
           with GameDefs.spellTable[id] do
             if (levelSp >= 1) and (levelSp <= 3) then
               case castClassSp of
-                0: learnable := creature^.classLevels[C_LEVEL.CLERIC] > 0;
-                1: learnable := creature^.classLevels[C_LEVEL.MAGE] > 0;
+                0: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0;
+                1: learnable := CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) > 0;
               end;
           if learnable then
             SpellMark := NOT_KNOWN_MARK;
@@ -1292,9 +1292,9 @@ begin
   exStr := 0;
   roll := 0;
   tgt := GameVars.targetCreaturePtr[1];
-  if tgt^.classLevels[C_LEVEL.MAGE] > 0 then
+  if CharHlp.GetClassLevel(tgt, C_LEVEL.MAGE_BIT) > 0 then
     roll := Dice.RollDice(1, 4);
-  if (tgt^.classLevels[C_LEVEL.CLERIC] > 0) or (tgt^.classLevels[C_LEVEL.THIEF] > 0) then
+  if CharHlp.GetClassLevel(tgt, C_LEVEL.CLERIC_BIT + C_LEVEL.THIEF_BIT) > 0 then
     roll := Dice.RollDice(1, 6);
   if CharHlp.WarriorLevel(tgt) > 0 then
     roll := Dice.RollDice(1, 8);
@@ -1736,7 +1736,9 @@ end;
 { Restoration: give back one drained level. hpMax, hpCur and hpRolled regain drainedHps div drainedLevels. Scanning
   classes 0..7, a class becomes the pick when its level is not above the current pick's, its next-level XP is nonzero
   and smaller, and it is not at its level cap. The pick gains a level and experience is raised to its next-level XP if
-  lower; with no pick the hit points alone come back. }
+  lower; with no pick the hit points alone come back. A class a dual-classed human has left is never the pick, as
+  Curse restores classLevels alone (curse-disassembly v13 magic.pas:2016-2047), and a class the restored level passes
+  wakes again (ChgClass.AnnounceWoken, #838). }
 procedure RestorationHandler;
 var
   tgt: Types.PCharRecord;
@@ -1746,9 +1748,11 @@ var
   bestXp: LongInt;
   bestCls: ShortInt;
   cls: ShortInt;
+  resting: Byte;
 begin
   tgt := GameVars.targetCreaturePtr[1];
   if tgt^.drainedLevels > 0 then begin
+    resting := ChgClass.RestingMask(tgt);
     share := tgt^.drainedHps div tgt^.drainedLevels;
     Inc(tgt^.hpMax, share);
     Inc(tgt^.hpCur, share);
@@ -1763,6 +1767,8 @@ begin
     bestCls := -1;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
       lvl := tgt^.classLevels[cls];
+      if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
+        lvl := 0;
       { xp[] runs to level 9 }
       if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
           (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] < bestXp) and
@@ -1779,6 +1785,8 @@ begin
     end;
     ClassCal.RecalcBaseSkills(tgt);
     CharDisp.PrintNameString(tgt, 'is restored', 10, True);
+    if resting <> 0 then
+      ChgClass.AnnounceWoken(tgt, resting);
   end;
 end;
 
