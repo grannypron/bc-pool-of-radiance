@@ -258,7 +258,7 @@ begin
     msg := 'Each character receives ' + numStr;
   TextRend.DisplayString(1, 5, LightGreen, msg);
   TextRend.DisplayString(1, 7, LightGreen, 'experience points.');
-  c := MenuCore.MenuHorizontal(query, 'press <enter>/<return> to continue', White, White, White,
+  c := MenuCore.MenuHorizontal(query, C_MSG.CONTINUE_PROMPT, White, White, White,
                                True, False, ext);
 end;
 
@@ -512,7 +512,7 @@ begin
       end;
       p := p^.nextCharAddr;
     end;
-    c := MenuCore.MenuHorizontal('', 'press <enter>/<return> to continue', White, White, White,
+    c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White,
                                  True, False, ext);
   end;
 end;

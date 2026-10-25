@@ -490,7 +490,7 @@ begin
   if GameVars.curRow > C_MSG.TEXT_BOTTOM then begin
     GameVars.curRow := C_MSG.MESSAGE_TOP;
     pause := True;
-    TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
+    TextRend.DisplayAndPause(White, C_MSG.CONTINUE_PROMPT);
   end else
     pause := False;
   GameVars.curCol := C_MSG.TEXT_RIGHT;

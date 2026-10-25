@@ -1404,7 +1404,7 @@ begin
     Delay(3000);
   end;
   GameVars.curChar := savedCur;
-  TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
+  TextRend.DisplayAndPause(White, C_MSG.CONTINUE_PROMPT);
 end;
 
 { SPRITE OFF: if a sprite is showing, redraw the map view over it }
