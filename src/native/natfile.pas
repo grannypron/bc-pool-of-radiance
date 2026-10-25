@@ -26,8 +26,8 @@ procedure Rename(var t: Text; const name: ShortString); overload;
 procedure MkDir(const name: ShortString); overload;
 
 { Make the game's folder the current one: the first of POOLRAD_DIR, the current folder, the program's folder and, for a
-  program in a macOS app (Pool of Radiance.app/Contents/MacOS), the folder the app is in, that holds POOL.CFG. With
-  none, the current folder stays (the game then reports POOL.CFG missing, as on DOS). }
+  program in a macOS app (Pool of Radiance.app/Contents/MacOS), the folder the app is in, that holds POOL.CFG or the
+  game's data. With none, the current folder stays. POOLCFG finds the game's folder the same way. }
 procedure EnterGameFolder;
 
 implementation
@@ -135,10 +135,13 @@ begin
   System.MkDir(NativeName(name));
 end;
 
-{ True when folder dir holds POOL.CFG, whatever its case }
+{ True when folder dir holds POOL.CFG or, for a game not set up yet (#894), the game's data (GEO1.DAX), whatever its
+  case }
 function HoldsGame(const dir: ShortString): Boolean;
 begin
-  Result := (dir <> '') and DirectoryExists(dir) and (FindPart(IncludeTrailingPathDelimiter(dir), 'POOL.CFG') <> '');
+  Result := (dir <> '') and DirectoryExists(dir) and
+            ((FindPart(IncludeTrailingPathDelimiter(dir), 'POOL.CFG') <> '') or
+             (FindPart(IncludeTrailingPathDelimiter(dir), 'GEO1.DAX') <> ''));
 end;
 
 procedure EnterGameFolder;
