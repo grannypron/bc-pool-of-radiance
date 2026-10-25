@@ -1,9 +1,9 @@
-{ Tests for MapNotes (phase 8): notes set, changed and removed per square and area, the notes full, and the round trip
-  through savgam<x>.nts. }
+{ Tests for MapNotes (phase 8): notes set, changed and removed per square and area, the notes full, the round trip
+  through savgam<x>.nts, squares off the map (#918) and damaged notes on disk (#917). }
 {$I COMPILER.INC}
 program TMapNote;
 
-uses FileUtil, MapNotes, TestKit;
+uses Types, FileUtil, MapNotes, TestKit;
 
 var
   i: Byte;
@@ -16,6 +16,18 @@ var
 begin
   FileUtil.NewSet(s, dir);
   WriteNotes := MapNotes.WriteSlot(s, name) and FileUtil.CommitSet(s);
+end;
+
+{ Put byte b at offset pos of file name. }
+procedure Poke(name: string; pos: LongInt; b: Byte);
+var
+  f: file;
+begin
+  Assign(f, name);
+  Reset(f, 1);
+  Seek(f, pos);
+  BlockWrite(f, b, 1);
+  Close(f);
 end;
 
 begin
@@ -49,5 +61,33 @@ begin
     ok := ok and MapNotes.SetNote(0, 0, i mod 16, i div 16, 'x');
   TestKit.Check(ok, 'MAX_NOTES notes fit');
   TestKit.Check(not MapNotes.SetNote(1, 0, 0, 0, 'one more'), 'one more does not');
+  { off the map (#918): refused, and no slot taken }
+  MapNotes.Clear;
+  TestKit.Check(not MapNotes.SetNote(18, 1, -1, 5, 'west'), 'a note at x -1 is refused');
+  TestKit.Check(not MapNotes.SetNote(18, 1, 5, Types.MAP_LAST + 1, 'south'), 'and at y MAP_LAST + 1');
+  TestKit.CheckEqualsS('', MapNotes.Note(18, 1, -1, 5), 'and is not there');
+  ok := True;
+  for i := 1 to MapNotes.MAX_NOTES do
+    ok := ok and MapNotes.SetNote(0, 0, i mod 16, i div 16, 'x');
+  TestKit.Check(ok, 'the refused notes took none of the MAX_NOTES slots');
+  { damaged notes on disk: the header is 7 bytes, a note 35 (script, map, x, y and a 31-byte string) }
+  MapNotes.Clear;
+  ok := MapNotes.SetNote(18, 1, 1, 1, 'first');
+  ok := MapNotes.SetNote(18, 1, 2, 2, 'second');
+  ok := MapNotes.SetNote(18, 1, 3, 3, 'third');
+  TestKit.Check(WriteNotes('', 'TMAPNOTE.NTS'), 'three notes are written');
+  Poke('TMAPNOTE.NTS', 7 + 2, 200);
+  Poke('TMAPNOTE.NTS', 7 + 2 * 35 + 4, $FF);
+  MapNotes.ReadSlot('TMAPNOTE.NTS');
+  TestKit.CheckEqualsS('second', MapNotes.Note(18, 1, 2, 2), 'a sound note is kept');
+  TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 1, 1), 'one off the map is dropped');
+  TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 3, 3), 'and one whose length byte is past NOTE_LEN');
+  Poke('TMAPNOTE.NTS', 7 + 2 * 35 + 4, MapNotes.NOTE_LEN + 1);
+  MapNotes.ReadSlot('TMAPNOTE.NTS');
+  TestKit.CheckEqualsS('', MapNotes.Note(18, 1, 3, 3), 'past it by one too');
+  ok := True;
+  for i := 2 to MapNotes.MAX_NOTES do
+    ok := ok and MapNotes.SetNote(0, 0, i mod 16, i div 16, 'x');
+  TestKit.Check(ok, 'the dropped notes free their slots');
   TestKit.Done;
 end.
