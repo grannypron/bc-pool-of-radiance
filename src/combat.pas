@@ -385,9 +385,6 @@ begin
       else begin
         if CbtActs.StepCreature(creature, dir) then
           done := True;
-        { helpless now ends the turn; one the free attacks left helpless has still stepped (#933) }
-        if CharHlp.IsHelpless(creature) then
-          done := CharHlp.EndActions(creature);
       end;
     end;
   end;

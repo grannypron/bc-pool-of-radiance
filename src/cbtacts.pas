@@ -25,9 +25,10 @@ procedure CombatMoveCreature(creature: Types.PCharRecord; dir: Byte);
 procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 
 { One combat step in dir with what comes with it: the free attacks of the enemies the step leaves
-  (MoveOpportunityAttacks), then, while the mover is still up, the step (CombatMoveCreature, where guarding enemies
-  attack) and the Stinking Cloud check. A mover that goes down on the way ends its actions, and True is returned.
-  Combat's move menu and CombatAi's step share it. }
+  (MoveOpportunityAttacks), then, while the mover is still up and not helpless, the step (CombatMoveCreature, where
+  guarding enemies attack) and the Stinking Cloud check. A mover that goes down or is left helpless on the way ends its
+  actions, and True is returned: one paralysed, held or put to sleep by the free attacks does not take the step
+  (POR-0216, #933). Combat's move menu and CombatAi's step share it. }
 function StepCreature(creature: Types.PCharRecord; dir: Byte): Boolean;
 
 { Clear creature's flanking accumulators (flankCount, flankSpread): at the start of its turn and when it moves. }
@@ -509,13 +510,17 @@ var
 begin
   done := False;
   CbtActs.MoveOpportunityAttacks(creature, dir);
-  if creature^.enabled = 0 then
+  { a mover the free attacks leave down or helpless neither steps nor acts again this turn (POR-0216, #933) }
+  if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
     done := CharHlp.EndActions(creature)
   else begin
     CbtActs.CombatMoveCreature(creature, dir);
     if creature^.enabled = 0 then
       done := CharHlp.EndActions(creature);
     FxEngine.ConsiderStinkingCloud(creature);
+    { helpless after the step (a guarding enemy's blow, the cloud): the turn ends }
+    if CharHlp.IsHelpless(creature) then
+      done := CharHlp.EndActions(creature);
   end;
   StepCreature := done;
 end;
