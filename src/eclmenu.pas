@@ -116,7 +116,6 @@ begin
   FillChar(monsterFlags, SizeOf(monsterFlags), 0);
   gIconAnim := MapTiles.FIRST_MONSTER_ICON;
   GameVars.eclIp := $9900;
-  GameVars.breathAim := False;
   GameVars.eclStackTopPtr := nil;
   GameVars.eclStackSecondPtr := nil;
   FillChar(cmpFlags, SizeOf(cmpFlags), 0);
