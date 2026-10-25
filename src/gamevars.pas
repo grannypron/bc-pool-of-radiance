@@ -5,7 +5,7 @@ unit GameVars;
 
 interface
 
-uses Types, Dos, C_EFFECT, C_GBVM, C_SPELL, C_TILE{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_EFFECT, C_SPELL, C_TILE{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }

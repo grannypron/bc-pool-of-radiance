@@ -97,7 +97,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GameDefs, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }

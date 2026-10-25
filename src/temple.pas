@@ -14,9 +14,8 @@ procedure HealMenu;
 
 implementation
 
-uses Types, Crt, C_MSG, GameDefs, GameVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS,
-  C_STATUS, C_IFC, C_RACE, Stats, Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj,
-  MoneyCal;
+uses Types, Crt, C_MSG, GameVars, TextRend, EclMenu, Money, Magic, FxEngine, C_EFFECT, C_KEYS, C_STATUS, C_RACE, Stats,
+  Border, CharHlp, MenuCore, ViewChar, StrUtil, Shop, CharDisp, Dice, ClassCal, AbilAdj, MoneyCal;
 
 var
   { the prices TempleMainMenu was entered with, for ConfirmCureCost }

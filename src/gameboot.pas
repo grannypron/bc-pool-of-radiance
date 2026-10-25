@@ -9,7 +9,7 @@ interface
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_SOUND, C_OPT, CfgFile, GameDefs, GameVars, Crt, Dos,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_OPT, CfgFile, GameVars, Crt, Dos,
   {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, GameIo, CbtLog,
   {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone

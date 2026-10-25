@@ -14,9 +14,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_NPC, C_MSG, C_SPELL, GameDefs, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
-  C_MONEY, Stats, Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party,
-  Dice, ClassCal;
+uses Types, Crt, C_MSG, C_SPELL, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM, C_MONEY, Stats,
+  Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
   { Combat outcome. }

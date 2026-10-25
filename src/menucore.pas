@@ -110,7 +110,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GameDefs, GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
+uses GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
