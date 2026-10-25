@@ -26,8 +26,9 @@
 # the app and runs the native unit tests for every push and pull request, and release-macos signs, notarizes and
 # staples the app for a release and attaches it, once release has made the release. The Mac keeps the Free Pascal and
 # SDL3 that tools/fpc-setup.sh and tools/sdl3-setup.sh build for build/toolchain's pins (the first job builds them).
-# Signing uses the runner's own keychain and notarizing its App Store Connect API key, both under
-# /etc/forgejo-runner/signing; no secret passes through Forgejo.
+# Signing uses the runner's Developer ID .p12 (with rcodesign: under launchd, codesign searches only the System
+# keychain) and notarizing its App Store Connect API key, both under /etc/forgejo-runner/signing, readable by
+# ci-runner only; no secret passes through Forgejo.
 
 # 2026-10-16 - bms - Forgejo splits the YAML up when doing job parsing, so YAML anchors don't work as intended. Removed
 #                    the container and checkout anchor definitions; cut and paste for the win. The jobs have to remain
@@ -233,8 +234,8 @@ jobs:
         run: ./build-native.sh macos
       - name: Sign, notarize and staple
         env:
-          SIGN_KEYCHAIN: /Users/ci-runner/Library/Keychains/signing.keychain-db
-          SIGN_KEYCHAIN_PASSWORD_FILE: /etc/forgejo-runner/signing/keychain-password
+          SIGN_P12: /etc/forgejo-runner/signing/developer-id.p12
+          SIGN_P12_PASSWORD_FILE: /etc/forgejo-runner/signing/developer-id.p12-password
           NOTARY_KEY: /etc/forgejo-runner/signing/notary-key.p8
         run: |
           export NOTARY_KEY_ID="$(cat /etc/forgejo-runner/signing/notary-key-id)"
