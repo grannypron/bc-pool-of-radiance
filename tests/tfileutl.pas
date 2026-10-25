@@ -192,6 +192,13 @@ begin
 {$I+}
   TestKit.Check(FileUtil.Exists(NAME), 'a file is there with an error pending');
   TestKit.Check(not FileUtil.Exists(''), 'an empty name is no file, and standard input is not opened (#962)');
+  { a folder is no file, natively as under DOS (#1057) }
+  MkDir('TFUDIR.ZZZ');
+  ioRes := IOResult;
+  TestKit.Check(not FileUtil.Exists('TFUDIR.ZZZ'), 'a folder is no file (#1057)');
+  TestKit.Check(not FileUtil.OpenReadOnly(f, 'TFUDIR.ZZZ'), 'and does not open');
+  RmDir('TFUDIR.ZZZ');
+  ioRes := IOResult;
   { a copy not whole is dropped, and the old file stays }
   TestKit.Check(FileUtil.RewriteTemp(f, NAME), 'a copy opens');
   ok := True;
@@ -334,9 +341,8 @@ begin
   TestKit.Check(CopyNumber(FA, 62) and FileUtil.PutInPlace(FA), 'an old file is replaced');
   TestKit.CheckEqualsL(62, NumberIn(FA), 'A is the new one');
   TestKit.Check(NoneLeft, 'and its backup is gone');
-  { the old file cannot be moved aside: a folder holds its backup's name (DOS only: Linux opens a folder as a file, so
-    FileUtil.Exists takes it for a backup left by an ended commit) }
-{$IFNDEF FPC}
+  { the old file cannot be moved aside: a folder holds its backup's name, which FileUtil.Exists does not take for a
+    backup left by an ended commit (#1057) }
   MkDir(FileUtil.BackupName(FA));
   ioRes := IOResult;
   TestKit.Check(CopyNumber(FA, 63) and not FileUtil.PutInPlace(FA), 'an old file that cannot move aside fails');
@@ -344,7 +350,6 @@ begin
   TestKit.Check(not FileUtil.Exists(FileUtil.TempName(FA)), 'the copy erased');
   RmDir(FileUtil.BackupName(FA));
   ioRes := IOResult;
-{$ENDIF}
   { the copy cannot be renamed in: it is gone by then }
   TestKit.Check(CopyNumber(FA, 64), 'a copy is written');
   FileUtil.DeleteFile(FileUtil.TempName(FA));
