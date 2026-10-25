@@ -79,6 +79,18 @@ begin
   TestKit.Check(not SfxFile.GetEntry(p, SIZE, 0, e), 'bytes inside the header do not play');
   SetEntry(0, 1, C_SOUND.SFX_PCM8, 121, $FFFF, $FFF0);
   TestKit.Check(not SfxFile.GetEntry(p, SIZE, 0, e), 'an offset and length that pass 64K do not wrap');
+  { an ADPCM entry decodes to 2 * len - 1 samples, which SndDig counts in a Word (#916) }
+  SetEntry(0, 1, C_SOUND.SFX_ADPCM4, 121, 1, DATA_START);
+  TestKit.Check(SfxFile.GetEntry(p, SIZE, 0, e), 'an ADPCM entry of one byte plays');
+  TestKit.CheckEqualsL(1, SfxFile.DecodedLength(e), 'as one sample');
+  SetEntry(0, 1, C_SOUND.SFX_ADPCM4, 121, 32768, DATA_START);
+  TestKit.Check(SfxFile.GetEntry(p, $FFF0, 0, e), 'one of 32768 bytes plays');
+  TestKit.CheckEqualsL(65535, SfxFile.DecodedLength(e), 'as 65535 samples');
+  SetEntry(0, 1, C_SOUND.SFX_ADPCM4, 121, 32769, DATA_START);
+  TestKit.Check(not SfxFile.GetEntry(p, $FFF0, 0, e), 'one of 32769 bytes does not');
+  SetEntry(0, 1, C_SOUND.SFX_PCM8, 121, 32769, DATA_START);
+  TestKit.Check(SfxFile.GetEntry(p, $FFF0, 0, e), 'an 8-bit PCM entry of 32769 bytes still plays');
+  TestKit.CheckEqualsL(32769, SfxFile.DecodedLength(e), 'its samples are its bytes');
   FreeMem(p, SIZE);
   TestKit.Done;
 end.
