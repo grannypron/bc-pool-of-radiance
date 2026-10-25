@@ -2,7 +2,11 @@
   straight into the text screen's memory (so the bottom right cell can be written without the screen scrolling), double
   framed boxes, the title bar and key line, a line editor, and the pop-ups: a message, a Yes/No/Cancel question and a
   pick list. The game's own screen units (TextRend, Border, MenuCore) draw in graphics modes, so none of them fit; this
-  is the program's only screen unit. Columns and rows count from 1, as Crt's do. DOS only: the native tool is #894. }
+  is the program's only screen unit. Columns and rows count from 1, as Crt's do. Natively (#894) the same 80x25 cells
+  are a buffer of the unit's own, drawn in the terminal through Free Pascal's Video unit (in the middle of a bigger
+  one) each time a key is awaited, and the keys are given as the BIOS's: on Windows from its Keyboard unit, on Linux
+  and macOS read from the terminal here, since that unit takes a lone Escape for the start of an Alt key. Only Init,
+  Done, the cursor and GetKey differ. Not Crt natively: src/native/crt.pas is the game's SDL one. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit TuiKit;
@@ -125,11 +129,22 @@ function EditLine(x, y, width: Byte; var text: string; maxLen: Byte; first: Char
 
 implementation
 
-uses Crt, Dos, C_KEYS, LineEdit;
+uses {$IFDEF FPC}Video, {$IFDEF UNIX}BaseUnix, TermIO{$ELSE}Keyboard{$ENDIF}{$ELSE}Crt, Dos{$ENDIF}, C_KEYS, LineEdit;
 
 var
-  { the text screen's segment }
-  videoSeg: Word;
+  { the screen's cells, each a character and its colour: the text screen's memory under DOS, natively a buffer }
+  cells: ^TScreen;
+{$IFDEF FPC}
+  buffer: TScreen;
+  { where the cursor is shown, and as what (Video's crHidden, crUnderLine or crBlock) }
+  cursorX: Byte;
+  cursorY: Byte;
+  cursorType: Word;
+{$IFDEF UNIX}
+  { the terminal's settings before Init made it raw }
+  oldTio: Termios;
+{$ENDIF}
+{$ELSE}
   { the screen Init found: its mode, characters, cursor and cursor shape }
   oldMode: Word;
   oldScreen: TScreen;
@@ -138,12 +153,210 @@ var
   oldShape: Word;
   { Init switched the mode }
   switched: Boolean;
+{$ENDIF}
 
-{ The offset in the text screen of column x, row y. }
-function CellOfs(x, y: Byte): Word;
+{ The cell of column x, row y. }
+function CellAt(x, y: Byte): Word;
 begin
-  CellOfs := ((y - 1) * COLS + (x - 1)) * 2;
+  CellAt := (y - 1) * COLS + x;
 end;
+
+{$IFDEF FPC}
+{ The column and row of the terminal where the 80x25 screen starts (from 0): in the middle of a bigger terminal. }
+function Origin(size, used: Word): Word;
+begin
+  if size > used then
+    Origin := (size - used) div 2
+  else
+    Origin := 0;
+end;
+
+{ Put the cells on the terminal, and the cursor. A terminal smaller than 80x25 shows the part that fits. }
+procedure Flush;
+var
+  x: Word;
+  y: Word;
+  x0: Word;
+  y0: Word;
+begin
+  x0 := TuiKit.Origin(ScreenWidth, COLS);
+  y0 := TuiKit.Origin(ScreenHeight, ROWS);
+  for y := 0 to ROWS - 1 do
+    if y0 + y < ScreenHeight then
+      for x := 0 to COLS - 1 do
+        if x0 + x < ScreenWidth then
+          VideoBuf^[(y0 + y) * ScreenWidth + x0 + x] := buffer[y * COLS + x + 1];
+  if cursorType <> crHidden then
+    SetCursorPos(x0 + cursorX - 1, y0 + cursorY - 1);
+  SetCursorType(cursorType);
+  UpdateScreen(False);
+end;
+
+procedure Init;
+{$IFDEF UNIX}
+var
+  tio: Termios;
+{$ENDIF}
+begin
+  InitVideo;
+{$IFDEF UNIX}
+  { raw: each key as it is pressed, unechoed, as the Keyboard unit sets it }
+  TCGetAttr(0, oldTio);
+  tio := oldTio;
+  CFMakeRaw(tio);
+  TCSetAttr(0, TCSANOW, tio);
+{$ELSE}
+  InitKeyboard;
+{$ENDIF}
+  ClearScreen;
+  cells := @buffer;
+  FillChar(buffer, SizeOf(buffer), 0);
+  cursorX := 1;
+  cursorY := 1;
+  TuiKit.HideCursor;
+end;
+
+procedure Done;
+begin
+  SetCursorType(crUnderLine);
+{$IFDEF UNIX}
+  TCSetAttr(0, TCSANOW, oldTio);
+{$ELSE}
+  DoneKeyboard;
+{$ENDIF}
+  DoneVideo;
+end;
+
+procedure HideCursor;
+begin
+  cursorType := crHidden;
+end;
+
+procedure ShowCursor(x, y: Byte; block: Boolean);
+begin
+  cursorX := x;
+  cursorY := y;
+  if block then
+    cursorType := crBlock
+  else
+    cursorType := crUnderLine;
+end;
+
+{$IFDEF UNIX}
+{ The terminal's next byte into b, waiting at most wait milliseconds for it (forever when negative). False when none
+  came. }
+function ReadByte(wait: LongInt; var b: Byte): Boolean;
+var
+  fds: TFDSet;
+  n: LongInt;
+begin
+  fpFD_ZERO(fds);
+  fpFD_SET(0, fds);
+  if wait < 0 then
+    n := fpSelect(1, @fds, nil, nil, nil)
+  else
+    n := fpSelect(1, @fds, nil, nil, wait);
+  ReadByte := (n > 0) and (fpRead(0, b, 1) = 1);
+end;
+
+{ The BIOS scan code of the key a terminal's escape sequence names: ESC [ or ESC O, then params (digits, or the Linux
+  console's '[' and a letter for F1..F5) and the final character. #0 for a key POOLCFG does not use. }
+function SeqKey(params: string; final: Char): Char;
+var
+  n: Integer;
+  code: Integer;
+begin
+  SeqKey := #0;
+  if (params <> '') and (params[1] = '[') then begin
+    { the Linux console's F1..F5: ESC [ [ A..E }
+    if final in ['A'..'E'] then
+      SeqKey := Chr(Ord(C_KEYS.F1) + Ord(final) - Ord('A'));
+    Exit;
+  end;
+  case final of
+    'A': SeqKey := C_KEYS.UP;
+    'B': SeqKey := C_KEYS.DOWN;
+    'C': SeqKey := C_KEYS.RIGHT;
+    'D': SeqKey := C_KEYS.LEFT;
+    'H': SeqKey := C_KEYS.HOME;
+    'F': SeqKey := C_KEYS.END_KEY;
+    'P'..'S': SeqKey := Chr(Ord(C_KEYS.F1) + Ord(final) - Ord('P'));
+    '~': begin
+           { a modifier after ';' is passed over }
+           if Pos(';', params) > 0 then
+             params := Copy(params, 1, Pos(';', params) - 1);
+           Val(params, n, code);
+           if code = 0 then
+             case n of
+               1, 7: SeqKey := C_KEYS.HOME;
+               2: SeqKey := C_KEYS.INS;
+               3: SeqKey := C_KEYS.DEL;
+               4, 8: SeqKey := C_KEYS.END_KEY;
+               5: SeqKey := C_KEYS.PGUP;
+               6: SeqKey := C_KEYS.PGDN;
+               11..15: SeqKey := Chr(Ord(C_KEYS.F1) + n - 11);
+               17..21: SeqKey := Chr(Ord(C_KEYS.F1) + 5 + n - 17);
+             end;
+         end;
+  end;
+end;
+
+{ A key from the terminal: a character, or (ext set) the scan code of a key whose escape sequence SeqKey knows. Escape
+  alone is Escape once no more of a sequence comes within 50 ms; Escape before another key (Alt and it) is Escape too.
+  Delete (#127) is Backspace, and a line feed Enter. Bytes past ASCII (UTF-8's) are passed over. }
+procedure GetKey(var ch: Char; var ext: Boolean);
+const
+  { how long the rest of an escape sequence may take to come, in milliseconds }
+  SEQ_WAIT = 50;
+var
+  b: Byte;
+  params: string;
+  done: Boolean;
+begin
+  TuiKit.Flush;
+  repeat
+    ext := False;
+    repeat
+    until TuiKit.ReadByte(-1, b);
+    ch := Chr(b);
+    done := b < $80;
+    if b = $7F then
+      ch := C_KEYS.BACKSPACE
+    else if b = 10 then
+      ch := C_KEYS.ENTER
+    else if (b = 27) and TuiKit.ReadByte(SEQ_WAIT, b) then begin
+      ch := C_KEYS.ESC;
+      if (b = Ord('[')) or (b = Ord('O')) then begin
+        params := '';
+        while TuiKit.ReadByte(SEQ_WAIT, b) and (Chr(b) in ['0'..'9', ';', '[']) and (Length(params) < 8) do
+          params := params + Chr(b);
+        ch := TuiKit.SeqKey(params, Chr(b));
+        ext := True;
+        { the Linux console's Escape key, as the Keyboard unit sets it: ESC [ 0 ~ }
+        if params = '0' then begin
+          ch := C_KEYS.ESC;
+          ext := False;
+        end;
+        done := ch <> #0;
+      end;
+    end;
+  until done;
+end;
+{$ELSE}
+{ Keyboard gives a key untranslated as the BIOS does: a character, or #0 (or #$E0, the grey keys) and the scan code. }
+procedure GetKey(var ch: Char; var ext: Boolean);
+var
+  code: Word;
+begin
+  TuiKit.Flush;
+  code := GetKeyEventCode(GetKeyEvent);
+  ch := Chr(Lo(code));
+  ext := (ch = #0) or (ch = #$E0);
+  if ext then
+    ch := Chr(Hi(code));
+end;
+{$ENDIF}
+{$ELSE}
 
 { Set the cursor's shape: its first and last scan lines, through the BIOS (INT 10h, AH=1). }
 procedure SetShape(shape: Word);
@@ -164,9 +377,9 @@ begin
   if switched then
     TextMode(CO80);
   if LastMode = Mono then
-    videoSeg := $B000
+    cells := Ptr($B000, 0)
   else
-    videoSeg := $B800;
+    cells := Ptr($B800, 0);
   TuiKit.SaveScreen(oldScreen);
   oldX := WhereX;
   oldY := WhereY;
@@ -189,33 +402,61 @@ begin
   GotoXY(oldX, oldY);
 end;
 
+procedure HideCursor;
+begin
+  TuiKit.SetShape($2000);
+end;
+
+procedure ShowCursor(x, y: Byte; block: Boolean);
+begin
+  GotoXY(x, y);
+  if LastMode = Mono then begin
+    if block then
+      TuiKit.SetShape($000D)
+    else
+      TuiKit.SetShape($0C0D);
+  end else if block then
+    TuiKit.SetShape($0007)
+  else
+    TuiKit.SetShape($0607);
+end;
+
+procedure GetKey(var ch: Char; var ext: Boolean);
+begin
+  ch := ReadKey;
+  ext := ch = #0;
+  if ext then
+    ch := ReadKey;
+end;
+{$ENDIF}
+
 procedure PutText(x, y, attr: Byte; s: string);
 var
   i: Byte;
-  ofs: Word;
+  cell: Word;
 begin
   if (y < 1) or (y > ROWS) or (x < 1) then Exit;
-  ofs := TuiKit.CellOfs(x, y);
+  cell := TuiKit.CellAt(x, y);
   i := 0;
   while (i < Length(s)) and (x + i <= COLS) do begin
     Inc(i);
-    MemW[videoSeg:ofs] := attr shl 8 + Ord(s[i]);
-    Inc(ofs, 2);
+    cells^[cell] := attr shl 8 + Ord(s[i]);
+    Inc(cell);
   end;
 end;
 
 procedure PutRun(x, y, attr: Byte; ch: Char; count: Byte);
 var
   i: Byte;
-  ofs: Word;
+  cell: Word;
 begin
   if (y < 1) or (y > ROWS) or (x < 1) then Exit;
-  ofs := TuiKit.CellOfs(x, y);
+  cell := TuiKit.CellAt(x, y);
   i := 0;
   while (i < count) and (x + i <= COLS) do begin
     Inc(i);
-    MemW[videoSeg:ofs] := attr shl 8 + Ord(ch);
-    Inc(ofs, 2);
+    cells^[cell] := attr shl 8 + Ord(ch);
+    Inc(cell);
   end;
 end;
 
@@ -230,15 +471,15 @@ end;
 procedure Recolor(x, y, count, attr: Byte);
 var
   i: Byte;
-  ofs: Word;
+  cell: Word;
 begin
   if (y < 1) or (y > ROWS) or (x < 1) then Exit;
-  ofs := TuiKit.CellOfs(x, y) + 1;
+  cell := TuiKit.CellAt(x, y);
   i := 0;
   while (i < count) and (x + i <= COLS) do begin
     Inc(i);
-    Mem[videoSeg:ofs] := attr;
-    Inc(ofs, 2);
+    cells^[cell] := attr shl 8 + Lo(cells^[cell]);
+    Inc(cell);
   end;
 end;
 
@@ -300,39 +541,12 @@ end;
 
 procedure SaveScreen(var s: TScreen);
 begin
-  Move(Mem[videoSeg:0], s, SizeOf(s));
+  s := cells^;
 end;
 
 procedure RestoreScreen(var s: TScreen);
 begin
-  Move(s, Mem[videoSeg:0], SizeOf(s));
-end;
-
-procedure HideCursor;
-begin
-  TuiKit.SetShape($2000);
-end;
-
-procedure ShowCursor(x, y: Byte; block: Boolean);
-begin
-  GotoXY(x, y);
-  if LastMode = Mono then begin
-    if block then
-      TuiKit.SetShape($000D)
-    else
-      TuiKit.SetShape($0C0D);
-  end else if block then
-    TuiKit.SetShape($0007)
-  else
-    TuiKit.SetShape($0607);
-end;
-
-procedure GetKey(var ch: Char; var ext: Boolean);
-begin
-  ch := ReadKey;
-  ext := ch = #0;
-  if ext then
-    ch := ReadKey;
+  cells^ := s;
 end;
 
 procedure ClearLines(var lines: TLines);

@@ -7,13 +7,20 @@
   copy put in place, so a failed write leaves that file as it was. The files are read and written through CfgFile, as
   the game reads them. The exit code is 0 when it saved or there was nothing to save, and 1 when it left with changes
   unsaved (START then leaves to DOS too). Run by START (C_OPT.SETUP_FROM_START) for a damaged POOL.CFG, its notice first
-  says so. }
+  says so.
+
+  Natively (#894) it is poolcfg, a terminal program beside poolrad, which never runs it. It finds the game's folder as
+  the game does (NatFile.EnterGameFolder), and shows the folders as the native game takes them: the data is always
+  that folder, shown and not edited, and the saves must lie inside it (CfgFile.SaveFolderIn). The Hardware page says
+  what each letter does natively, where the video is always VGA and every sound card Digital Audio. }
+{$IFNDEF FPC}
 {$M 16384,0,16384}
+{$ENDIF}
 {$F+,I-}
 {$I COMPILER.INC}
 program PoolCfg;
 
-uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, TuiKit;
+uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, TuiKit{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -38,6 +45,12 @@ const
   { the Paths page's path values: their column, and the edit field's }
   PATH_COL = 20;
   FIELD_WIDTH = 56;
+  { the program that reads POOL.CFG: START under DOS, the game itself natively }
+{$IFDEF FPC}
+  GAME_PROG = 'POOLRAD';
+{$ELSE}
+  GAME_PROG = 'START';
+{$ENDIF}
 
 var
   { POOL.CFG as Setup will write it (its paths normalized), and as it was read; what the read found, and its notes }
@@ -45,6 +58,8 @@ var
   cfgRead: CfgFile.TPoolCfg;
   cfgState: CfgFile.TReadResult;
   notes: CfgFile.TCfgNotes;
+  { POOL.CFG's defaults (CfgFile.PoolDefaults), for a missing file and F5 }
+  cfgDefaults: CfgFile.TPoolCfg;
   { a Pool path, as read, that START refuses as too long for DOS: shown in red until corrected }
   tooLong: array[PATH_DATA..PATH_SAVE] of Boolean;
   { POOLOPT.CFG as Setup will write it, as it was read, and every setting's default; what the read found, and how many
@@ -84,9 +99,19 @@ begin
   Pad := s;
 end;
 
-{ path cut to width characters: a path too long keeps its end, after '...', as its last folders say the most. }
+{ path as shown, cut to width characters: a path too long keeps its end, after '...', as its last folders say the most.
+  On Linux and macOS its backslashes are shown as the system's '/'. }
 function CutPath(path: string; width: Byte): string;
+{$IFDEF UNIX}
+var
+  i: Byte;
+{$ENDIF}
 begin
+{$IFDEF UNIX}
+  for i := 1 to Length(path) do
+    if path[i] = '\' then
+      path[i] := '/';
+{$ENDIF}
   if Length(path) > width then
     path := '...' + Copy(path, Length(path) - (width - 3) + 1, width - 3);
   CutPath := path;
@@ -212,6 +237,14 @@ begin
     DefaultPath := defaults.paths[line - 2];
   end;
 end;
+
+{$IFDEF FPC}
+{ True when folder path (a normalized one) lies inside the game's folder, as the native game takes a save folder. }
+function InGameFolder(path: string): Boolean;
+begin
+  InGameFolder := NatFile.SameName(homeDir + CfgFile.SaveFolderIn(homeDir, path), path);
+end;
+{$ENDIF}
 
 { True when folder dir holds Pool of Radiance's data: ITEMS or GEO1.DAX. }
 function HasPoolData(dir: string): Boolean;
@@ -480,6 +513,36 @@ var
 begin
   TuiKit.Fill(4, 10, 77, 22, TuiKit.A_TEXT);
   row := 10;
+{$IFDEF FPC}
+  case line of
+    HW_VIDEO: begin
+                Put(0, 'The graphics card the DOS game draws with. The native game always');
+                Put(0, 'draws in VGA (EGA''s 16 colours), whatever this says:');
+                Inc(row);
+                Put(2, 'CGA, EGA, Tandy, VGA   all VGA natively');
+                Inc(row);
+                Put(0, 'It is kept for a copy of the game run under DOS or DOSBox.');
+                Put(0, 'POOLRAD reads this as POOL.CFG''s first line.');
+              end;
+    HW_SOUND: begin
+                Put(0, 'What the native game plays its music and effects on:');
+                Inc(row);
+                Put(2, 'None            silence');
+                Put(2, 'PC Speaker      music and effects as the PC speaker beeps them');
+                Put(2, 'Tandy           Digital Audio: the Tandy''s music and the');
+                Put(2, 'AdLib             Sound Blaster''s recorded effects, the same');
+                Put(2, 'Sound Blaster     for all three');
+                Inc(row);
+                Put(0, 'POOLRAD reads this as POOL.CFG''s second line.');
+              end;
+  else begin
+      Put(0, 'Full: SSI''s whole title sequence. Short: the title and straight to');
+      Put(0, 'the menu.');
+      Inc(row);
+      Put(0, 'POOLRAD reads this as POOL.CFG''s fifth line.');
+    end;
+  end;
+{$ELSE}
   case line of
     HW_VIDEO: begin
                 Put(0, 'The graphics card the game draws with:');
@@ -509,6 +572,7 @@ begin
       Put(0, 'START reads this as POOL.CFG''s fifth line.');
     end;
   end;
+{$ENDIF}
 end;
 
 { Hardware line on its row, highlighted when sel. }
@@ -570,10 +634,10 @@ begin
         C_KEYS.LEFT: if i > 1 then SetChoice(sel, i - 1) else SetChoice(sel, ChoiceCount(sel));
         C_KEYS.RIGHT: SetChoice(sel, i mod ChoiceCount(sel) + 1);
         C_KEYS.F5: case sel of
-                     HW_VIDEO: cfg.video := C_OPT.VIDEO_VGA;
-                     HW_SOUND: cfg.sound := C_OPT.SOUND_SILENT;
+                     HW_VIDEO: cfg.video := cfgDefaults.video;
+                     HW_SOUND: cfg.sound := cfgDefaults.sound;
                    else
-                     cfg.intro := C_OPT.INTRO_FULL;
+                     cfg.intro := cfgDefaults.intro;
                    end;
         C_KEYS.F10: begin
                       SaveAndLeave;
@@ -781,6 +845,12 @@ end;
 procedure DrawPathNote(line: Byte);
 begin
   TuiKit.Fill(3, 21, 78, 23, TuiKit.A_TEXT);
+{$IFDEF FPC}
+  if line = PATH_DATA then begin
+    TuiKit.PutText(5, 21, TuiKit.A_HELP, 'The native game reads its data from the folder it runs in, so this is');
+    TuiKit.PutText(5, 22, TuiKit.A_HELP, 'shown and not edited. Its save folder must lie inside it.');
+  end else
+{$ENDIF}
   if (line <= PATH_SAVE) and tooLong[line] then begin
     TuiKit.PutText(5, 21, TuiKit.A_BAD, 'This path is too long for DOS (' + NumStr(C_OPT.MAX_PATH_TEXT) +
                    ' characters at most).');
@@ -858,7 +928,7 @@ var
   lines: TuiKit.TLines;
   accepted: Boolean;
 begin
-  text := PathOf(cfg, opts, line);
+  text := CutPath(PathOf(cfg, opts, line), 255);
   accepted := False;
   { the field in place of the highlight, its brackets on the page's own colour }
   DrawPathLine(line, False);
@@ -869,7 +939,14 @@ begin
     if key = C_KEYS.ENTER then begin
       check := CfgFile.CheckPath(text, full);
       case check of
+{$IFDEF FPC}
+        CfgFile.PATH_OK: if (line <> PATH_SAVE) or InGameFolder(full) then
+                           accepted := True
+                         else
+                           ShowError('The save folder must lie inside the game''s:', CutPath(homeDir, 38));
+{$ELSE}
         CfgFile.PATH_OK: accepted := True;
+{$ENDIF}
         CfgFile.PATH_EMPTY: ShowError('Please type the folder''s path.', '');
         CfgFile.PATH_BAD_CHAR: ShowError('A folder''s path cannot hold * ? " < > or |.', CutPath(full, 38));
         CfgFile.PATH_TOO_LONG: ShowError('This path is too long for DOS (' + NumStr(C_OPT.MAX_PATH_TEXT) +
@@ -924,6 +1001,10 @@ begin
                       done := leave;
                     end;
       end
+{$IFDEF FPC}
+    else if (sel = PATH_DATA) and (ch <> C_KEYS.ESC) then
+      { the native game's data is its own folder: not edited }
+{$ENDIF}
     else
       case ch of
         C_KEYS.ENTER: EditPath(sel, #0);
@@ -959,17 +1040,18 @@ begin
   cfgState := CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, cfg, notes);
   tooLong[PATH_DATA] := False;
   tooLong[PATH_SAVE] := False;
-  if cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then begin
-    cfg.video := C_OPT.VIDEO_VGA;
-    cfg.sound := C_OPT.SOUND_SILENT;
-    cfg.intro := C_OPT.INTRO_FULL;
-    cfg.dataDir := homeDir;
-    cfg.saveDir := homeDir + 'SAVE\';
-    cfg.extraCount := 0;
-  end else begin
+  CfgFile.PoolDefaults(cfgDefaults, homeDir);
+  if cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then
+    cfg := cfgDefaults
+  else begin
     NormalizeRead(PATH_DATA);
     NormalizeRead(PATH_SAVE);
   end;
+{$IFDEF FPC}
+  { the folders as the native game takes them (GameBoot.NativeFolders) }
+  cfg.saveDir := homeDir + CfgFile.SaveFolderIn(cfg.dataDir, cfg.saveDir);
+  cfg.dataDir := homeDir;
+{$ENDIF}
   cfgRead := cfg;
   optDir := cfg.saveDir;
   CfgFile.Defaults(defaults);
@@ -999,7 +1081,12 @@ begin
     CfgFile.CFG_MISSING: begin
                            TuiKit.AddLine(lines, 'POOL.CFG was not found in ' + CutPath(homeDir, 30) + '.', 0);
                            TuiKit.AddLine(lines, '', 0);
+{$IFDEF FPC}
+                           TuiKit.AddLine(lines, 'Setup starts from the defaults: VGA, Digital Audio, the full',
+                                          0);
+{$ELSE}
                            TuiKit.AddLine(lines, 'Setup starts from the defaults: VGA, no sound, the full', 0);
+{$ENDIF}
                            TuiKit.AddLine(lines, 'introduction, the data in this folder and the saves in', 0);
                            TuiKit.AddLine(lines, 'SAVE\ under it. Nothing is written until you save.', 0);
                          end;
@@ -1011,7 +1098,7 @@ begin
                               TuiKit.AddLine(lines, 'file it could not read.', 0);
                             end;
     CfgFile.CFG_FIXED: begin
-                         TuiKit.AddLine(lines, 'POOL.CFG holds values START does not know:', 0);
+                         TuiKit.AddLine(lines, 'POOL.CFG holds values ' + GAME_PROG + ' does not know:', 0);
                          TuiKit.AddLine(lines, '', 0);
                          for i := 1 to notes.count do begin
                            if notes.items[i].missing then
@@ -1019,19 +1106,19 @@ begin
                            else
                              raw := '''' + notes.items[i].raw + '''';
                            case notes.items[i].line of
-                             1: reads := 'START reads it as ' + ChoiceName(HW_VIDEO, ChoiceOf(cfg, HW_VIDEO));
-                             2: reads := 'START reads it as none';
-                             5: reads := 'START reads it as short';
+                             1: reads := GAME_PROG + ' reads it as ' + ChoiceName(HW_VIDEO, ChoiceOf(cfg, HW_VIDEO));
+                             2: reads := GAME_PROG + ' reads it as none';
+                             5: reads := GAME_PROG + ' reads it as short';
                            else
-                             reads := 'START uses this folder';
+                             reads := GAME_PROG + ' uses this folder';
                            end;
                            TuiKit.AddLine(lines, '  ' + Pad('Line ' + NumStr(notes.items[i].line) + ' (' +
                                           WHAT[notes.items[i].line] + ')', 21) + Pad(raw, 15) + reads,
                                           TuiKit.A_POP_VALUE);
                          end;
                          TuiKit.AddLine(lines, '', 0);
-                         TuiKit.AddLine(lines, 'Setup shows what START would use. Saving writes the', 0);
-                         TuiKit.AddLine(lines, 'file back in the form START expects.', 0);
+                         TuiKit.AddLine(lines, 'Setup shows what ' + GAME_PROG + ' would use. Saving writes the', 0);
+                         TuiKit.AddLine(lines, 'file back in the form ' + GAME_PROG + ' expects.', 0);
                        end;
   else
     Exit;
@@ -1107,6 +1194,9 @@ begin
 end;
 
 begin
+{$IFDEF FPC}
+  NatFile.EnterGameFolder;
+{$ENDIF}
   fromStart := ParamStr(1) = C_OPT.SETUP_FROM_START;
   exitCode := 0;
   leave := False;

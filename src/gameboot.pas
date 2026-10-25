@@ -59,15 +59,21 @@ begin
 end;
 
 { Read POOL.CFG (CfgFile.ReadPoolCfg): its letters into cfgVideo, cfgSound and cfgIntro, and its paths, as written,
-  into GameVars.gameDir and saveDirectory. A file that will not open stops the game with a message. }
+  into GameVars.gameDir and saveDirectory. A file that will not open stops the game with a message; natively, where
+  nothing asks for a startup disk, the game goes on with CfgFile.PoolDefaults and a line on the error output (#894). }
 procedure ReadConfig;
 var
   c: CfgFile.TPoolCfg;
   notes: CfgFile.TCfgNotes;
 begin
   if CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, c, notes) in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then begin
+{$IFDEF FPC}
+    WriteLn(StdErr, 'POOL.CFG is missing or unreadable: playing with the defaults. Run poolcfg to set up the game.');
+    CfgFile.PoolDefaults(c, '');
+{$ELSE}
     WriteLn('Unable to read POOL.CFG. Run POOLCFG to set up the game.');
     Halt;
+{$ENDIF}
   end;
   cfgVideo := c.video;
   cfgSound := c.sound;
@@ -120,21 +126,17 @@ end;
 {$IFDEF FPC}
 { POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game is the current folder
   (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\
-  when it names one elsewhere. NatFile turns the backslashes into the system's separator as each file is opened. }
+  when it names one elsewhere (CfgFile.SaveFolderIn, which POOLCFG shows too). NatFile turns the backslashes into the
+  system's separator as each file is opened. }
 procedure NativeFolders(var gameDir, saveDir: String);
 var
-  game: String;
-  save: String;
+  inside: String;
 begin
-  game := NormalizePath(gameDir);
-  save := NormalizePath(saveDir);
+  inside := CfgFile.SaveFolderIn(gameDir, saveDir);
   GetDir(0, gameDir);
   if gameDir[Length(gameDir)] <> '/' then
     gameDir := gameDir + '/';
-  if (Length(save) > Length(game)) and NatFile.SameName(Copy(save, 1, Length(game)), game) then
-    saveDir := gameDir + Copy(save, Length(game) + 1, 255)
-  else
-    saveDir := gameDir + 'SAVE\';
+  saveDir := gameDir + inside;
 end;
 {$ENDIF}
 
@@ -161,8 +163,10 @@ begin
 {$IFNDEF FPC}
   GameBoot.RunSetup;
 {$ENDIF}
+{$IFNDEF FPC}
   { a read-only POOL.CFG is there too (DaxIo.FileExists) }
   DaxIo.WaitForFile(C_OPT.CFG_NAME, 'Run POOLCFG to set up the game, or insert the startup disk.');
+{$ENDIF}
   CheckBreak := False;
   GameBoot.ReadConfig;
   { INT 10h AH=0Fh: get current video mode into AL }
