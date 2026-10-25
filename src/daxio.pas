@@ -212,19 +212,15 @@ begin
 end;
 
 function DataDiskMsg: Types.TStr40;
-const
-  { Insert-disk prompts, indexed by virtualDisk, which SaveLoad and the ECL keep in 1..LAST_DISK }
-  insertDiskMsg: array[1..Types.LAST_DISK] of string[29] = (
-    'Insert disk 1 in drive ',
-    'Insert disk 2 in drive ',
-    'Insert disk 3 in drive ',
-    'Insert disk 4 in drive ',
-    'Insert disk 5 in drive ',
-    'Insert disk 6 in drive ',
-    'Insert disk 7 in drive ',
-    'Insert disk 8 in drive ');
+var
+  disk: Types.TStr40;
 begin
-  DataDiskMsg := insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
+  { SaveLoad and the ECL keep virtualDisk in 1..LAST_DISK; another names no disk rather than reading past SSI's table of
+    eight lines }
+  disk := '';
+  if (GameVars.virtualDisk >= 1) and (GameVars.virtualDisk <= Types.LAST_DISK) then
+    disk := Chr(Ord('0') + GameVars.virtualDisk) + ' ';
+  DataDiskMsg := 'Insert disk ' + disk + 'in drive ' + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
 procedure WaitForFile(name: Types.TPathStr; diskMsg: string);
@@ -277,18 +273,18 @@ begin
 end;
 
 { Open name for reading only (FileUtil.OpenReadOnly, so a read-only file counts), close it and report success: opened
-  and closed clean AND the name non-empty. }
+  and closed clean. An empty name is no file and is not opened: an unnamed file opens standard input (#962). }
 function FileExists(name: Types.TPathStr): Boolean;
 var
   f: file;
   found: Boolean;
 begin
-  found := FileUtil.OpenReadOnly(f, name);
+  found := (name <> '') and FileUtil.OpenReadOnly(f, name);
   if found then begin
     Close(f);
     found := IOResult = 0;
   end;
-  FileExists := found and (name <> '');
+  FileExists := found;
 end;
 
 {$I+}
@@ -551,9 +547,7 @@ end;
   if the archive cannot be opened or the ID is absent. }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var
-  compSize: Word;
-  offset: LongInt;
-  id: Byte;
+  e: DataArc.TDirEntry;
   n: Word;
   f1: file;
   f2: file;
@@ -561,7 +555,8 @@ var
   numStr: String[6];
   family: Byte;
   disk: Byte;
-  cut: Boolean;
+  whole: Boolean;
+  found: Boolean;
 begin
   family := DataArc.MatchFamily(fileName, disk);
   { the reserved ids name the merged archive's own blocks, which no per-disk archive holds: such a load reads the
@@ -576,26 +571,27 @@ begin
     data := nil;
     Exit;
   end;
-  repeat
-    BlockRead(f2, id, SizeOf(id), n);
-    BlockRead(f2, offset, SizeOf(offset), n);
-    { decompressed size }
-    BlockRead(f2, sizeRead, SizeOf(sizeRead), n);
-    { compressed size }
-    BlockRead(f2, compSize, SizeOf(compSize), n);
-    { an entry cut short by the end of the file ends the scan, unfound }
-    cut := n < SizeOf(compSize);
-    if not cut and (compSize > C_DATA.PACKED_LIMIT) then begin
-      Str(LongInt(compSize), numStr);
+  { only whole entries inside the directory: SSI read one before asking, so an empty directory, or one that is not a
+    whole number of entries, had the first data bytes read as an entry (#962) }
+  found := False;
+  whole := True;
+  while whole and not found and (FilePos(f2) + SizeOf(e) <= hdrSize) do begin
+    BlockRead(f2, e, SizeOf(e), n);
+    whole := n = SizeOf(e);
+    if whole and (e.packedSize > C_DATA.PACKED_LIMIT) then begin
+      Str(LongInt(e.packedSize), numStr);
       DaxIo.PromptBox(Yellow, 'tempsize ' + numStr);
       GameIo.ExitGame;
     end;
-  until cut or (id = fileID) or (FilePos(f2) >= hdrSize);
-  if cut or (id <> fileID) then begin
+    found := whole and (e.id = fileID);
+  end;
+  if found then begin
+    sizeRead := e.rawSize;
+    DaxIo.ReadBlock(f1, hdrSize, e.offset, e.packedSize, sizeRead, data);
+  end else begin
     sizeRead := 0;
     data := nil;
-  end else
-    DaxIo.ReadBlock(f1, hdrSize, offset, compSize, sizeRead, data);
+  end;
   DaxIo.CloseDax(f1, f2);
 end;
 
