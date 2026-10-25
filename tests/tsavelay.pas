@@ -56,7 +56,7 @@ begin
     Zone0At(C_GBVM.SETTINGS, Ofs(settings) - Ofs(words), 'settings');
     Zone0At($4A00, Ofs(entryWords) - Ofs(words), 'entryWords');
     Zone0At($4A7C, Ofs(nomadCampFlags) - Ofs(words), 'nomadCampFlags');
-    Zone0At($4A8C, Ofs(buccaneersBaseGate) - Ofs(words), 'buccaneersBaseGate');
+    Zone0At(C_GBVM.BUCCANEERS_BASE_VISIBLE, Ofs(buccaneersBaseVisible) - Ofs(words), 'buccaneersBaseVisible');
     Zone0At($4A9F, Ofs(nomadCampGate) - Ofs(words), 'nomadCampGate');
     Zone0At($4AA0, Ofs(easternSitesGate) - Ofs(words), 'easternSitesGate');
     Zone0At(C_GBVM.YARASH_PYRAMID_LEFT, Ofs(yarashPyramidLeft) - Ofs(words), 'yarashPyramidLeft');

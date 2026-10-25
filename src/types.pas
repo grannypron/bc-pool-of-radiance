@@ -622,7 +622,9 @@ type
         { Bit 3 enables the camp icon. }
         nomadCampFlags: Word;
         scriptWords4A7D: array[$4A7D..$4A8B] of Word;
-        buccaneersBaseGate: Word;
+        { C_GBVM.BUCCANEERS_BASE_VISIBLE: set by the script when the heir of Bivant quest is offered; Wilds shows the
+          Buccaneer Base from it }
+        buccaneersBaseVisible: Word;
         scriptWords4A8D: array[$4A8D..$4A9E] of Word;
         { Zero enables the camp icon. }
         nomadCampGate: Word;

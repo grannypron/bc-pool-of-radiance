@@ -82,8 +82,9 @@ const
     (#851) }
   BUCCANEER_BASE = $4A8B;
   BUCCANEER_FLED = $80;
-  { $FF once the clerk has offered the commission to rescue the Bivant heir (#851) }
-  BIVANT_OFFERED = $4A8C;
+  { The Buccaneer Base on the wilderness map: the script sets it ($FF) when the clerk offers the commission to rescue
+    the heir of Bivant from the buccaneers, and Wilds shows the base from it (#851) }
+  BUCCANEERS_BASE_VISIBLE = $4A8C;
   { $FF once the party has accepted the commission to cleanse Valhingen Graveyard, and its enchanted weapon (#851) }
   GRAVEYARD_ACCEPTED = $4A96;
   { The summonses the clerk gives: QUEST_DONE when she sends the party to the one who gives the commission, $FF once he
