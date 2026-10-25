@@ -187,10 +187,11 @@ function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
   which Sleep passes over, do not count; so a group that is all asleep counts 0. }
 procedure SleepMost(var caught: Types.TSlotList; enemy: ShortInt; var foes, friends: Byte);
 
-{ An area spell's count of one side on the aim line (#840): count, then ' OF ' and most when most is the side's whole
-  count (Sleep, whose most may fall asleep: SleepMost), as '3 OF 3'; the count alone when most is 0 or below the count,
-  or for a spell with no most. }
-function CatchText(count, most: Byte): Types.TStr40;
+{ An area spell's count of one side on the aim line (#840), the enemies when foes is set and the allies otherwise:
+  count, then ' OF ' and most when most is below it (Sleep, whose most may fall asleep: SleepMost), then the side's
+  noun, as '3 OF 2 ENEMIES' or '1 ALLY'. The most is left out when it is 0 or the whole count, and for a spell with no
+  most. }
+function CatchText(count, most: Byte; foes: Boolean): Types.TStr40;
 
 { True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends With
   Fight after it, return to the player's control. }
@@ -1464,12 +1465,23 @@ begin
   end;
 end;
 
-function CatchText(count, most: Byte): Types.TStr40;
+function CatchText(count, most: Byte; foes: Boolean): Types.TStr40;
+var
+  s: Types.TStr40;
 begin
-  if (most > 0) and (most >= count) then
-    CatchText := StrUtil.NumStr(count) + ' OF ' + StrUtil.NumStr(most)
+  s := StrUtil.NumStr(count);
+  if (most > 0) and (most < count) then
+    s := s + ' OF ' + StrUtil.NumStr(most);
+  if foes then begin
+    if count = 1 then
+      s := s + ' ENEMY'
+    else
+      s := s + ' ENEMIES';
+  end else if count = 1 then
+    s := s + ' ALLY'
   else
-    CatchText := StrUtil.NumStr(count);
+    s := s + ' ALLIES';
+  CatchText := s;
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;

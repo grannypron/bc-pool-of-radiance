@@ -1158,8 +1158,8 @@ end;
 
 { Line 23 for ReportAreaCatch (#840): the spell's name and ': ', then the enemies it catches in yellow and the allies
   in light cyan, the colours their names have in combat, each side as CharHlp.CatchText gives it, as
-  "SLEEP: 3 OF 3, 1."; a side it catches no one of is left out, and "NO TARGETS" stands for both. A line too long for
-  the screen drops the spell's name. }
+  "SLEEP: 3 OF 2 ENEMIES, 1 ALLY"; a side it catches no one of is left out, and "NO TARGETS" stands for both. A line
+  too long for the screen drops the spell's name. }
 procedure ShowAreaTally(var side: TAreaTally);
 const
   SEGS = 6;
@@ -1188,12 +1188,11 @@ var
       Add(LightGreen, 'NO TARGETS')
     else begin
       if side[True].count > 0 then
-        Add(Yellow, CharHlp.CatchText(side[True].count, side[True].most));
+        Add(Yellow, CharHlp.CatchText(side[True].count, side[True].most, True));
       if (side[True].count > 0) and (side[False].count > 0) then
         Add(LightGreen, ', ');
       if side[False].count > 0 then
-        Add(LightCyan, CharHlp.CatchText(side[False].count, side[False].most));
-      Add(LightGreen, '.');
+        Add(LightCyan, CharHlp.CatchText(side[False].count, side[False].most, False));
     end;
   end;
 

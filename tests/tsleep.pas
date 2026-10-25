@@ -123,10 +123,13 @@ begin
   TestKit.Check((foes = 0) and (friends = 0), 'an empty area counts 0 on both sides');
 
   { a side's count on the aim line }
-  TestKit.CheckEqualsS('3 OF 3', CharHlp.CatchText(3, 3), 'the most when all may be taken');
-  TestKit.CheckEqualsS('3', CharHlp.CatchText(3, 2), 'no most below the count');
-  TestKit.CheckEqualsS('3', CharHlp.CatchText(3, 0), 'no most of 0');
-  TestKit.CheckEqualsS('12', CharHlp.CatchText(12, 0), 'and none for a spell without one');
+  TestKit.CheckEqualsS('3 OF 2 ENEMIES', CharHlp.CatchText(3, 2, True), 'the most when fewer may be taken');
+  TestKit.CheckEqualsS('3 ENEMIES', CharHlp.CatchText(3, 3, True), 'no most when all may be');
+  TestKit.CheckEqualsS('3 ENEMIES', CharHlp.CatchText(3, 0, True), 'no most of 0');
+  TestKit.CheckEqualsS('1 ENEMY', CharHlp.CatchText(1, 0, True), 'one enemy');
+  TestKit.CheckEqualsS('2 OF 1 ALLIES', CharHlp.CatchText(2, 1, False), 'the allies, with their most');
+  TestKit.CheckEqualsS('1 ALLY', CharHlp.CatchText(1, 1, False), 'one ally');
+  TestKit.CheckEqualsS('12 ALLIES', CharHlp.CatchText(12, 0, False), 'and none for a spell without one');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
