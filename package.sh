@@ -4,8 +4,8 @@
 #
 #   ./package.sh v1.1
 #
-# Run it after build.sh. The zip holds START.EXE and GAME.OVR from obj/, a README.TXT and their SHA-256 sums in
-# SHA256.TXT; every name fits DOS's 8.3 limit, so the files read the same inside DOSBox.
+# Run it after build.sh. The zip holds START.EXE and GAME.OVR from obj/ (and POOLCFG.EXE, the set-up program, for a
+# source with src/poolcfg.pas), a README.TXT and their SHA-256 sums in SHA256.TXT; every name fits DOS's 8.3 limit, so the files read the same inside DOSBox.
 
 set -eu
 
@@ -25,7 +25,10 @@ if [ -z "${SOURCE_DATE_EPOCH:-}" ] \
     echo "package.sh: warning: HEAD is not the commit tagged $version, which README.TXT names as the source." >&2
 fi
 
-for f in START.EXE GAME.OVR; do
+# the programs the zip holds: the game, and its set-up program when the source has one (#876)
+files=(START.EXE GAME.OVR)
+[ -f "$root/src/poolcfg.pas" ] && files+=(POOLCFG.EXE)
+for f in "${files[@]}"; do
     [ -f "$root/obj/$f" ] || { echo "package.sh: obj/$f is missing; run ./build.sh first." >&2; exit 1; }
 done
 
@@ -39,8 +42,8 @@ esac
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
-cp "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$stage/"
-(cd "$stage" && sha256sum START.EXE GAME.OVR) > "$stage/SHA256.TXT"
+(cd "$root/obj" && cp "${files[@]}" "$stage/")
+(cd "$stage" && sha256sum "${files[@]}") > "$stage/SHA256.TXT"
 
 cat > "$stage/README.TXT" <<EOF
 Pool of Radiance $version for DOS
@@ -55,6 +58,16 @@ are not included: you need your own copy of Pool of Radiance.
 
 SHA256.TXT holds the SHA-256 of each file.
 EOF
+if [ -f "$root/src/poolcfg.pas" ]; then
+    cat >> "$stage/README.TXT" <<EOF
+
+POOLCFG.EXE sets the video mode, sound device, folders and game
+settings. Copy it into the game's folder with the other two, and run
+it there before the first START, and whenever you want to change
+them. With no POOL.CFG, START runs it itself first. It creates no
+folders: a folder you type must already exist.
+EOF
+fi
 # Sources with src/databld.pas build the combined data files at startup (older tags do not).
 if [ -f "$root/src/databld.pas" ]; then
     cat >> "$stage/README.TXT" <<EOF
@@ -83,5 +96,5 @@ touch -d "@$stamp" "$stage"/*
 
 mkdir -p "$root/dist"
 rm -f "$root/dist/$name.zip"
-(cd "$stage" && TZ=UTC zip -q -X "$root/dist/$name.zip" START.EXE GAME.OVR README.TXT SHA256.TXT)
+(cd "$stage" && TZ=UTC zip -q -X "$root/dist/$name.zip" "${files[@]}" README.TXT SHA256.TXT)
 echo "package.sh: dist/$name.zip"

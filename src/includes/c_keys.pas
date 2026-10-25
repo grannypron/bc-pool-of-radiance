@@ -36,6 +36,10 @@ const
   { the combat log (#841), in combat; its scan code is the character code of 'A' }
   F7 = #65;
   F8 = #66;
+  { POOLCFG (#876): F10 saves and leaves, and its line editor's Insert and Delete }
+  F10 = #68;
+  INS = #82;
+  DEL = #83;
 
 implementation
 
