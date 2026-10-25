@@ -2,7 +2,8 @@
   paladin's aura (eff 45) reaches only his own side (#782), and a protection applies once however many sources there
   are, a spell (eff 8) and an aura together giving +2 to saves, not +4 (#783), and its -2 to be hit is taken off the
   rolled d20, not before it (#789). Prayer applies once from each side in reach (#801), and its side is the caster's
-  team, hostile and 1, whatever larger hostile byte a damaged save holds (#827). }
+  team, hostile and 1, whatever larger hostile byte a damaged save holds (#827). A protection aura or Prayer lapses
+  while its carrier is out of action (POR-0220, #941). }
 {$I COMPILER.INC}
 program TProtect;
 
@@ -42,6 +43,7 @@ begin
   GetMem(c, SizeOf(Types.TCharRecord));
   FillChar(c^, SizeOf(Types.TCharRecord), 0);
   c^.hostile := hostile;
+  c^.enabled := 1;
   c^.alignment := alignment;
   NewCreature := c;
 end;
@@ -222,5 +224,19 @@ begin
   TestKit.CheckEqualsL(2, SaveBonus, 'an ally with hostile 2 lends its aura');
   ClearEffects(ally);
   ally^.hostile := 0;
+
+  { an aura or a Prayer lapses while its carrier is out of action (POR-0220, #941) }
+  FxEngine.AddEffect(ally, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
+  ally^.enabled := 0;
+  TestKit.CheckEqualsL(0, SaveBonus, 'a downed ally''s aura protects no one');
+  ally^.enabled := 1;
+  TestKit.CheckEqualsL(2, SaveBonus, 'and does again once it is back up');
+  ClearEffects(ally);
+  FxEngine.AddEffect(foe, C_EFFECT.PRAYER, 10, FxEngine.PrayerStrength(foe, 5), False);
+  foe^.enabled := 0;
+  TestKit.CheckEqualsL(0, SaveBonus, 'nor does a downed enemy''s Prayer');
+  foe^.enabled := 1;
+  TestKit.CheckEqualsL(-1, SaveBonus, 'which counts again once it is back up');
+  ClearEffects(foe);
   TestKit.Done;
 end.

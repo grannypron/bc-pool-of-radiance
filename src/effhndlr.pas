@@ -342,13 +342,14 @@ begin
   CharDisp.RedrawPartyOutOfCombat;
 end;
 
-{ A disease's or Slow Poison's tick: 1 point of damage, of no element, while the creature has more than 1 hit point,
-  and the party redrawn out of combat. False, with no damage, at 1 hit point or less. }
-function TickDamage(creature: Types.PCharRecord): Boolean;
+{ A disease's or Slow Poison's tick: 1 point of damage from source (C_EFFECT.ELEM_DISEASE or ELEM_POISON, which its
+  message names) while the creature has more than 1 hit point, and the party redrawn out of combat. False, with no
+  damage, at 1 hit point or less. }
+function TickDamage(creature: Types.PCharRecord; source: Byte): Boolean;
 begin
   TickDamage := creature^.hpCur > 1;
   if creature^.hpCur > 1 then begin
-    GameVars.elementMask := 0;
+    GameVars.elementMask := source;
     FxEngine.InflictNonWeaponDamage(creature, 1, 0, False);
     CharDisp.RedrawPartyOutOfCombat;
   end;
@@ -637,7 +638,7 @@ end;
 procedure EffSlowPoisonHit(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.SLOW_POISON_HIT, Types.PEffectRec(p)^.strength, 10) then
-    if EffHndlr.TickDamage(creature) then ;
+    if EffHndlr.TickDamage(creature, C_EFFECT.ELEM_POISON) then ;
 end;
 
 { Shield (eff 17) }
@@ -1006,7 +1007,7 @@ var
   effect: Types.PEffectRec;
 begin
   if EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.DISEASE_HP, Types.PEffectRec(p)^.strength, 10) then
-    if not EffHndlr.TickDamage(creature) then
+    if not EffHndlr.TickDamage(creature, C_EFFECT.ELEM_DISEASE) then
       if not CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_EFFECT.HELPLESS, 0, 255, False);
 end;
@@ -1244,7 +1245,7 @@ begin
   end else begin
     CharDisp.PrintNameString(creature, 'Sucks some Blood', 10, True);
     dmg := Dice.RollDamageDice(1, 4);
-    GameVars.elementMask := 0;
+    GameVars.elementMask := C_EFFECT.ELEM_BLOOD;
     FxEngine.InflictNonWeaponDamage(GameVars.otherCreatureCurrentPtr, dmg, 0, False);
     if CharHlp.EndActions(creature) then ;
     if (GameVars.otherCreatureCurrentPtr^.enabled <> 0) and (Types.PEffectRec(p)^.duration div 16 > dmg) then

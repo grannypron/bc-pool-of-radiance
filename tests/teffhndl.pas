@@ -2,7 +2,8 @@
   (ResistElement), the immunities to fire, cold and electricity (ElementImmunity), the elves' and half-elves' resistance
   to sleep and charm (SleepCharmResist), the racial to-hit and armor bonuses by the foe's name (NamedIn,
   RacialFoeBonus), Mirror Image's roll (FxEngine.ImageStruck), and Healed from Unconscious (eff 78) called with no node,
-  as FxEngine.RestoreHitPoints calls it, whose retry SSI read through nil. }
+  as FxEngine.RestoreHitPoints calls it, whose retry SSI read through nil. And the immunity check leaves no effect
+  pending, so magic resistance passes over later damage of no magic (POR-0219, #940). }
 {$I COMPILER.INC}
 program TEffHndl;
 
@@ -161,6 +162,28 @@ begin
     if FxEngine.ImageStruck(@image) then
       Inc(n);
   TestKit.CheckEqualsL(0, n, 'no image is struck when none is left');
+
+  { the immunity check leaves no effect pending, and magic resistance then lets acid through (POR-0219, #940) }
+  TestKit.Check(not FxEngine.EffectImmune(c, C_EFFECT.SLEEP), 'a creature with no wards is not immune to sleep');
+  TestKit.CheckEqualsL(0, GameVars.pendingEffectId, 'and no effect is left pending');
+  n := 0;
+  for i := 1 to 100 do begin
+    GameVars.elementMask := C_EFFECT.ELEM_ACID;
+    GameVars.pendingDamage := 9;
+    EffHndlr.EffMagicRes50(c, nil, False);
+    if GameVars.pendingDamage = 9 then
+      Inc(n);
+  end;
+  TestKit.CheckEqualsL(100, n, 'magic resistance never stops acid after an immunity check');
+  n := 0;
+  for i := 1 to 100 do begin
+    GameVars.elementMask := C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC;
+    GameVars.pendingDamage := 9;
+    EffHndlr.EffMagicRes50(c, nil, False);
+    if GameVars.pendingDamage = 9 then
+      Inc(n);
+  end;
+  TestKit.Check((n > 20) and (n < 80), 'but resists magical fire about half the time');
 
   { Healed from Unconscious with no node: a revival that fails retries in a minute, at strength 0 }
   GameVars.ifcState := C_IFC.COMBAT;

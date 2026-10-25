@@ -51,10 +51,11 @@ function CloudProof(creature: Types.PCharRecord): Boolean;
 function CloudSpares(creature: Types.PCharRecord): Boolean;
 
 { Stinking-cloud check for a creature the cloud does not spare (CloudSpares): CbtMap.ProbeDirection (dir 8, its own
-  cells) must report terrain 30 (C_TERR.STINK_CLOUD). A successful save vs.
-  paralyzation/poison (type 0) gives effect 30 "starts to cough" for 1 minute, a failure effect 31 "chokes and gags from
-  nausea" for 1d4+1 minutes; that effect's handler is then called at once with a nil node, whether or not the effect was
-  applied. }
+  cells) must report terrain 30 (C_TERR.STINK_CLOUD). It saves vs. paralyzation/poison (type 0); a failure, unless the
+  creature is immune (magic resistance), gives effect 31 "chokes and gags from nausea" for 1d4+1 minutes, whose handler
+  then runs at once with the new node. A save or an immunity leaves it "Unaffected", with no effect at all. SSI's gave a
+  save effect 30, coughing, and ran the handler whether or not the effect was applied, so a creature whose resistance
+  refused it still coughed or retched (POR-0218, #939). }
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 
 { The lowest cloud number, at most 15, that none of the caster's clouds on the GameVars.stinkHead list has, so the
@@ -136,8 +137,8 @@ function AdjustForNewStrength(creature: Types.PCharRecord; baseStr, excStr: Byte
 
 { Non-weapon damage: post damage to GameVars.pendingDamage and run the C_COND.NONWEAPON_DAMAGE (6) effects; when saved,
   saveReduction 1 cancels the damage and 2 halves it. If any damage remains, print it with its element from
-  GameVars.elementMask (Fire, Cold, Electricity, Acid, or "from Magic" when no bit but magic is set, or none is), apply
-  it with
+  GameVars.elementMask (Fire, Cold, Electricity, Acid, poison, disease, blood drain, or "from Magic" when no bit but
+  magic is set, or none is), apply it with
   CharHlp.InflictDamage and, in combat, clear castAllowed and lose any spell being cast. A creature it disables "Goes
   Down" (", and is Dying") or "is killed" (status 6..8); in combat the hpZeroEffects are removed, the C_COND.HP_ZERO
   (13) effects run and CbtMap.CreatureDowned is called if the creature is still disabled. A dead, stoned or gone
@@ -154,7 +155,9 @@ procedure InflictItemShock(creature: Types.PCharRecord; item: Types.PItemRec; da
 function DiseaseImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
 { The immunity check: True when the creature is immune to effId: one of its C_COND.EFFECT_IMMUNITY (9) effects (a ward,
-  an immunity or magic resistance) clears GameVars.pendingEffectId, or FxEngine.DiseaseImmune holds. }
+  an immunity or magic resistance) clears GameVars.pendingEffectId, or FxEngine.DiseaseImmune holds. pendingEffectId is
+  0 again afterwards: SSI's left effId in it, and magic resistance, which takes any damage while it is set, then
+  resisted later damage of no magic, such as acid or blood drain (POR-0219, #940). }
 function EffectImmune(creature: Types.PCharRecord; effId: Byte): Boolean;
 
 { AddEffect with an immunity check and a message. The effect is refused with "is Unaffected" when FxEngine.EffectImmune
@@ -265,7 +268,9 @@ end;
   effects 21 (Silence 15'), 45 (Prot Evil 10'), 46 (Prot Good 10') and 49 (Prayer), that of a creature carrying it with
   this one in range (6 for Prayer, else 1; out of combat any carrier counts). A protection aura reaches only the
   carrier's side; SSI's lent it to enemies too, so the monsters a paladin fought were protected from evil (#782).
-  Silence silences everyone, and Prayer's handler sorts the sides itself. The sides are teams (CharHlp.Team), as a
+  Silence silences everyone, and Prayer's handler sorts the sides itself. A protection aura or a Prayer is the
+  carrier's own and lapses while it is out of action (enabled 0: down, dead or fled); Silence is on its spot and stays.
+  SSI's took any carrier's (POR-0220, #941). The sides are teams (CharHlp.Team), as a
   damaged save can hold a hostile byte above 1. side, for Prayer, takes only a node cast by that side
   (C_EFFECT.PRAYER_SIDE of its strength); ANY_SIDE takes any node. The range test uses Pathing.BuildTargetList, saving
   and restoring the caller's target list and its count around it (SSI's left the rebuilt list's count). }
@@ -297,7 +302,7 @@ begin
     saveCount := GameVars.targetCount;
     slot := CbtMap.CombatSlot(creature);
     while (p <> nil) and not found do begin
-      if Carries(p)
+      if Carries(p) and ((effId = C_EFFECT.SILENCE) or (p^.enabled <> 0))
          and ((effId in [C_EFFECT.SILENCE, C_EFFECT.PRAYER]) or (CharHlp.Team(p) = CharHlp.Team(creature))) then begin
         if GameVars.ifcState = C_IFC.COMBAT then begin
           Pathing.BuildTargetList(CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), range, 255, CbtMap.GetIconSize(p),
@@ -508,6 +513,7 @@ end;
 
 procedure ConsiderStinkingCloud(creature: Types.PCharRecord);
 var
+  effect: Types.PEffectRec;
   terrIdx: Byte;
   crIdx: Byte;
   saved: Boolean;
@@ -517,13 +523,13 @@ begin
   if terrIdx <> C_TERR.STINK_CLOUD then Exit;
   { save vs. paralyzation, poison and death magic, with the Constitution's poison bonus }
   saved := FxEngine.RollSavingThrow(creature, C_SAVE.PARALYZE, AbilAdj.ConPoisonSave(creature^.conCur));
-  if saved then begin
-    FxEngine.AddEffectWithMessage(creature, C_EFFECT.STINK_COUGH, 1, 255, False, False, saved, 'starts to cough');
-    FxEngine.CallEffectHandler(C_EFFECT.STINK_COUGH, creature, nil, False);
-  end else begin
+  if saved then
+    CharDisp.PrintNameString(creature, 'is Unaffected', 10, True)
+  else begin
     FxEngine.AddEffectWithMessage(creature, C_EFFECT.HELPLESS, Dice.RollDice(1, 4) + 1, 255, False, False,
                                   saved, 'chokes and gags from nausea');
-    FxEngine.CallEffectHandler(C_EFFECT.HELPLESS, creature, nil, False);
+    if CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then
+      FxEngine.CallEffectHandler(C_EFFECT.HELPLESS, creature, effect, False);
   end;
 end;
 
@@ -826,6 +832,9 @@ begin
       C_EFFECT.ELEM_COLD: s := s + 'from Cold';
       C_EFFECT.ELEM_ELEC: s := s + 'from Electricity';
       C_EFFECT.ELEM_ACID: s := s + 'from Acid';
+      C_EFFECT.ELEM_POISON: s := s + 'from poison';
+      C_EFFECT.ELEM_DISEASE: s := s + 'from disease';
+      C_EFFECT.ELEM_BLOOD: s := s + 'from blood drain';
     end;
     { magic bit alone, or no element bit at all }
     if (GameVars.elementMask and C_EFFECT.ELEM_MAGIC) = GameVars.elementMask then
@@ -895,6 +904,7 @@ begin
   GameVars.pendingEffectId := effId;
   FxEngine.TriggerEffectsWithCondition(C_COND.EFFECT_IMMUNITY, creature);
   EffectImmune := (GameVars.pendingEffectId = 0) or FxEngine.DiseaseImmune(creature, effId);
+  GameVars.pendingEffectId := 0;
 end;
 
 procedure AddEffectWithMessage(creature: Types.PCharRecord; effId: Byte; minutes: Word; strength: Byte; onRemove,
