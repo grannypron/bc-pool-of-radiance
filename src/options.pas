@@ -343,7 +343,7 @@ begin
   switches := '';
   if GameVars.stingArg then
     switches := 'STING ';
-  if ParamStr(2) = 'NORAND' then
+  if GameVars.norandArg then
     switches := switches + 'NORAND';
   if switches <> '' then
     Options.DrawInfo(FIRST_ROW + 12, 'Switches', switches);

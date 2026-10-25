@@ -53,13 +53,21 @@ procedure FatalError(msg: String);
 
 implementation
 
-uses C_SOUND, GameDefs, GameVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses C_KEYS, C_SOUND, GameDefs, GameVars, Crt, Dos, SoundDrv, Types{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { showMemory is up: its own key waits do not open it again }
   memShown: Boolean;
   { the last byte ReadGameKey returned was #0: the next is an extended key's scan byte }
   scanPending: Boolean;
+
+{ Set the video mode the game started in (GameVars.savedVideoMode) through the BIOS. }
+procedure SetStartMode;
+begin
+  GameVars.interruptRegisters.ah := 0;
+  GameVars.interruptRegisters.al := GameVars.savedVideoMode;
+  Intr($10, GameVars.interruptRegisters);
+end;
 
 procedure ExitGame;
 var
@@ -74,9 +82,7 @@ begin
     Close(debugFile);
   GameVars.soundMode := SoundDrv.soundSaved;
   SoundDrv.SoundCommand(GameDefs.soundIds.commands[0]);
-  GameVars.interruptRegisters.ah := 0;
-  GameVars.interruptRegisters.al := GameVars.savedVideoMode;
-  Intr($10, GameVars.interruptRegisters);
+  GameIo.SetStartMode;
   Halt(0);
 end;
 
@@ -84,9 +90,7 @@ procedure FatalError(msg: String);
 var
   key: Char;
 begin
-  GameVars.interruptRegisters.ah := 0;
-  GameVars.interruptRegisters.al := GameVars.savedVideoMode;
-  Intr($10, GameVars.interruptRegisters);
+  GameIo.SetStartMode;
   WriteLn(msg);
   key := GameIo.ReadAnyKey;
   GameIo.ExitGame;
@@ -136,17 +140,16 @@ begin
     Exit;
   end;
   scanPending := (key = #0) and KeyPressed;
-  { Ctrl-S toggles sound }
-  if key = #19 then begin
+  if key = C_KEYS.CTRL_S then begin
     GameIo.SetSound(GameVars.soundMode = C_SOUND.MODE_DISABLED);
     if @saveSettings <> nil then
       saveSettings;
   end;
   if GameVars.stingArg then begin
-    if key = #4 then GameVars.stingHpFlag := Ord(GameVars.stingHpFlag = 0);
-    if key = #3 then GameIo.ExitGame;
-    { Ctrl-L: the script trace log, Curse's Ctrl-D (here Ctrl-D stays the hit-point pop-up) }
-    if key = #12 then begin
+    if key = C_KEYS.CTRL_D then GameVars.stingHpFlag := Ord(GameVars.stingHpFlag = 0);
+    if key = C_KEYS.CTRL_C then GameIo.ExitGame;
+    { the script trace log, Curse's Ctrl-D (here Ctrl-D stays the hit-point pop-up) }
+    if key = C_KEYS.CTRL_L then begin
       GameVars.debugTraceEnabled := not GameVars.debugTraceEnabled;
       if GameVars.debugTraceEnabled then begin
         Assign(debugFile, 'debug.txt');
@@ -158,9 +161,9 @@ begin
       end else
         Close(debugFile);
     end;
-    if (key = #26) and GameVars.debugTraceEnabled then
+    if (key = C_KEYS.CTRL_Z) and GameVars.debugTraceEnabled then
       GameIo.DumpEffects;
-    if (key = #25) and not memShown and (@showMemory <> nil) then begin
+    if (key = C_KEYS.CTRL_Y) and not memShown and (@showMemory <> nil) then begin
       memShown := True;
       showMemory;
       memShown := False;
