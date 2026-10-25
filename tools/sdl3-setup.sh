@@ -12,6 +12,11 @@
 #   x86_64-win64    lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
 #   aarch64-darwin  lib/libSDL3.a (on an Apple Silicon Mac; there is no Intel Mac target)
 # A target already built is skipped.
+#
+# The build needs cmake and ninja. Linux takes them from its packages. A Mac has neither unless someone installed them,
+# so when either is missing there, the pinned release below is downloaded, checked against its SHA-256 (Kitware's and
+# ninja's published release files) and kept in $FPC_PREFIX/tools/bin, which a later run finds; nothing outside
+# FPC_PREFIX is changed.
 
 set -euo pipefail
 
@@ -32,6 +37,34 @@ case "$(uname -s)-$(uname -m)" in
     Darwin-arm64) targets=(aarch64-darwin) ;;
     *) echo "sdl3-setup.sh: no recipe for this host." >&2; exit 1 ;;
 esac
+
+# macOS: cmake and ninja from their releases when they are not on PATH (the Forgejo runner's account has neither)
+if [ "$(uname -s)" = Darwin ]; then
+    bin="$prefix_root/tools/bin"
+    cmake_sha=330b9514f5112e5ed4fb08b8b05803b776fd9b539a6ae12927d14dcc0ee2ba8d
+    ninja_sha=89a287444b5b3e98f88a945afa50ce937b8ffd1dcc59c555ad9b1baf855298c9
+    export PATH="$bin:$PATH"
+    mkdir -p "$bin" "$prefix_root/tools/dl"
+    if ! command -v cmake > /dev/null 2>&1; then
+        echo "sdl3-setup.sh: downloading cmake 3.31.6..."
+        dl="$prefix_root/tools/dl/cmake.tgz"
+        curl -fsSL -o "$dl" \
+            https://github.com/Kitware/CMake/releases/download/v3.31.6/cmake-3.31.6-macos-universal.tar.gz
+        [ "$(shasum -a 256 "$dl" | cut -d' ' -f1)" = "$cmake_sha" ] \
+            || { echo "sdl3-setup.sh: the cmake download does not match its SHA-256." >&2; exit 1; }
+        tar -xzf "$dl" -C "$prefix_root/tools"
+        ln -sf "$prefix_root/tools/cmake-3.31.6-macos-universal/CMake.app/Contents/bin/cmake" "$bin/cmake"
+    fi
+    if ! command -v ninja > /dev/null 2>&1; then
+        echo "sdl3-setup.sh: downloading ninja 1.12.1..."
+        dl="$prefix_root/tools/dl/ninja.zip"
+        curl -fsSL -o "$dl" https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-mac.zip
+        [ "$(shasum -a 256 "$dl" | cut -d' ' -f1)" = "$ninja_sha" ] \
+            || { echo "sdl3-setup.sh: the ninja download does not match its SHA-256." >&2; exit 1; }
+        unzip -oq "$dl" -d "$bin"
+        chmod +x "$bin/ninja"
+    fi
+fi
 
 problems=()
 for tool in curl tar cmake ninja; do
