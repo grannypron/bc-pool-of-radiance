@@ -1,7 +1,7 @@
 { Tests for FxEngine.FreeCloudNumber (#761): each of a caster's stinking clouds gets its own number, the list's last
   node counted too, so ending one cloud clears that cloud and not an older one. And for FxEngine.CloudStrength (#762): a
   caster level above 15 does not carry into the cloud's number. And who a cloud cannot touch (CloudProof) or does
-  nothing to now (CloudSpares), which ConsiderStinkingCloud, CombatAi and the spell-aim count (#840) share. }
+  nothing to now (CloudSpares), which ConsiderStinkingCloud and CombatAi share. }
 {$I COMPILER.INC}
 program TClouds;
 

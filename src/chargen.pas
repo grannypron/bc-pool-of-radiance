@@ -27,7 +27,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, GameDefs, GameVars, SaveLoad, ViewChar, Border, GameIo, C_CLASS, C_LEVEL, C_RACE,
+uses Types, Crt, C_AREA, C_NPC, GameDefs, GameVars, SaveLoad, ViewChar, Border, C_CLASS, C_LEVEL, C_RACE,
   C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps, ChgClass, PartyMnu{$IFDEF FPC}, TpRand{$ENDIF};
@@ -109,9 +109,10 @@ procedure AddCharacterMenu; forward;
   always offered: ChgClass.Refusal's reason, if any, shows on the bottom line for two seconds or until a key
   (TextRend.FlashBottomLine), and otherwise ChgClass.ChangeClassMenu opens for the character selected then. Returns
   once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets ifcState to 4
-  (C_IFC.INDOORS). Exit to DOS, with a party not saved since it changed, asks to save first: Yes opens the save menu,
-  and leaving it without saving stays in the menu; No quits unsaved (#660). Settings opens the Settings screen
-  (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
+  (C_IFC.INDOORS). Exit to DOS asks through SaveLoad.QuitToDos: with a party not saved since it changed, it asks to
+  save first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660).
+  Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter
+  is STING. }
 procedure MainMenu;
 var
   ch: Char;
@@ -119,7 +120,6 @@ var
   ext2: Boolean;
   redraw: Boolean;
   stateB: Byte;
-  quit: Boolean;
   { SaveGame's result: the menu goes on either way }
   saved: Boolean;
   { a training hall here, or free training on }
@@ -204,18 +204,7 @@ begin
                Exit;
              end;
         'G': Options.OptionsMenu;
-        'E': begin
-               ch := MenuCore.YesNoMenu('Quit to DOS ', Yellow, LightGreen, White);
-               if ch = 'Y' then
-               begin
-                 quit := True;
-                 if (GameVars.recentSaved = 0) and (GameVars.creatureList <> nil) then
-                   if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'Y' then
-                     quit := SaveLoad.SaveGame;
-                 if quit then
-                   GameIo.ExitGame;
-               end;
-             end;
+        'E': SaveLoad.QuitToDos;
         { free training, turned on and off as in Curse }
         'J': if GameVars.stingArg then
              begin

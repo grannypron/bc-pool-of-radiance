@@ -47,6 +47,11 @@ procedure PrintTwoLines(line1, line2: string);
 
 procedure PrintBottomLine(s: Types.TStr40);
 
+{ PrintBottomLine for something creature does in combat ('Guarding'): the bottom line shows s as ever, and the combat
+  log's message names the creature first, in the colour names have in combat, then says logged, as
+  "MORRIGAN is Guarding" (#875). Outside combat it is PrintBottomLine. }
+procedure PrintActionLine(creature: Types.PCharRecord; s: Types.TStr40; logged: string);
+
 procedure ClearMessageWindow;
 
 procedure CopyIconFacing(cell, half, row: Byte; mirror: Boolean);
@@ -196,6 +201,15 @@ begin
     TextRend.DisplayString(23, row + 1, White, '(Helpless)');
 end;
 
+{ Show s on the bottom row in light green, wait for a key, then clear the row again. }
+procedure ShowBottomLine(s: Types.TStr40);
+begin
+  Border.ClearBox(0, 24, 39, 24);
+  TextRend.DisplayString(0, 24, LightGreen, s);
+  TextRend.PauseOnly;
+  Border.ClearBox(0, 24, 39, 24);
+end;
+
 { Show a message on the bottom row in light green, wait for a key, then clear the row again. In combat it is a combat
   log message of its own (#841). }
 procedure PrintBottomLine(s: Types.TStr40);
@@ -205,10 +219,19 @@ begin
     CbtLog.Add(LightGreen, s);
     CbtLog.NewEntry;
   end;
-  Border.ClearBox(0, 24, 39, 24);
-  TextRend.DisplayString(0, 24, LightGreen, s);
-  TextRend.PauseOnly;
-  Border.ClearBox(0, 24, 39, 24);
+  CharDisp.ShowBottomLine(s);
+end;
+
+procedure PrintActionLine(creature: Types.PCharRecord; s: Types.TStr40; logged: string);
+begin
+  if GameVars.ifcState = C_IFC.COMBAT then begin
+    CbtLog.NewEntry;
+    CharDisp.LogCreatureName(creature);
+    CbtLog.NextLine;
+    CbtLog.Add(LightGreen, logged);
+    CbtLog.NewEntry;
+  end;
+  CharDisp.ShowBottomLine(s);
 end;
 
 { Ready the bottom message window outside combat and return its top row: row MESSAGE_TOP + 1 when

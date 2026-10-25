@@ -67,6 +67,10 @@ function EndActions(creature: Types.PCharRecord): Boolean;
 
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 
+{ True where magic does not work: the party is in an anti-magic area (the GBVM's antimagic word, which the scripts set).
+  No spell is cast there, in camp or in combat, no item is used and Fix heals no one (#877). }
+function AntiMagicArea: Boolean;
+
 function Guard(creature: Types.PCharRecord): Boolean;
 
 function GetCasterLevel(spell: Byte): Byte;
@@ -172,13 +176,21 @@ function SleepCost(creature: Types.PCharRecord): Byte;
 
 { True when Sleep, with pool hit dice left, takes creature: not animated dead (C_STATUS.ANIMATED), not asleep already
   (C_EFFECT.SLEEP), and pool covers SleepCost, which is then taken from pool. Magic.SleepHandler spends its pool through
-  it in target order, and the spell-aim count (#840) through it too. }
+  it in target order, and the spell-aim count (#840, SleepMost) through it too. }
 function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
 
-{ True when creature cannot be put to sleep at all, whatever the dice: it has C_EFFECT.NO_SLEEP_CHARM or
-  NO_CHARM_POISON, whose handlers cancel the Sleep effect as it is added (an elf's 90% and a half-elf's 30% are rolls,
-  so they don't count). Sleep still spends its pool on such a creature. }
-function SleepProof(creature: Types.PCharRecord): Boolean;
+{ The most of the creatures in caught (arena slots, GameVars.creatureArr, nearest first) that one Sleep may put to sleep
+  on each side, for the spell-aim count (#840): foes for those on team enemy, friends for the rest. Sleep spends one
+  pool on both sides in target order, as Magic.SleepHandler does through SleepTakes, so every pool the dice can roll is
+  tried and each side keeps its best. A creature with an immunity to sleep counts as one that may fall asleep: it takes
+  its share of the pool, and the count does not give its immunity away. The asleep already and the animated dead,
+  which Sleep passes over, do not count; so a group that is all asleep counts 0. }
+procedure SleepMost(var caught: Types.TSlotList; enemy: ShortInt; var foes, friends: Byte);
+
+{ An area spell's count of one side on the aim line (#840): count, then ' OF ' and most when most is the side's whole
+  count (Sleep, whose most may fall asleep: SleepMost), as '3 OF 3'; the count alone when most is 0 or below the count,
+  or for a spell with no most. }
+function CatchText(count, most: Byte): Types.TStr40;
 
 { True for one of the player's own characters that is not animated: the creatures Space in combat, and Quick Ends With
   Fight after it, return to the player's control. }
@@ -1151,11 +1163,16 @@ begin
   EndActions := True;
 end;
 
+function AntiMagicArea: Boolean;
+begin
+  AntiMagicArea := GameVars.zone0^.antimagic > 0;
+end;
+
 { True when the creature may use an item now: an able character outside an anti-magic area, in camp, outdoors or
   indoors, or in combat while still allowed an item this round. }
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 begin
-  CanUseItems := (creature^.enabled <> 0) and (GameVars.zone0^.antimagic = 0) and
+  CanUseItems := (creature^.enabled <> 0) and not CharHlp.AntiMagicArea and
                  ((GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.OUTDOORS) or
                   (GameVars.ifcState = C_IFC.INDOORS) or
                   ((GameVars.ifcState = C_IFC.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
@@ -1421,12 +1438,38 @@ begin
   end;
 end;
 
-function SleepProof(creature: Types.PCharRecord): Boolean;
+procedure SleepMost(var caught: Types.TSlotList; enemy: ShortInt; var foes, friends: Byte);
 var
-  effect: Types.PEffectRec;
+  pool: Byte;
+  left: Byte;
+  i: Byte;
+  cr: Types.PCharRecord;
+  asleep: array[Boolean] of Byte;
 begin
-  SleepProof := CharHlp.HasEffect(creature, C_EFFECT.NO_SLEEP_CHARM, effect) or
-                CharHlp.HasEffect(creature, C_EFFECT.NO_CHARM_POISON, effect);
+  foes := 0;
+  friends := 0;
+  for pool := C_SPELL.SLEEP_DICE to C_SPELL.SLEEP_DICE * C_SPELL.SLEEP_DIE do begin
+    asleep[False] := 0;
+    asleep[True] := 0;
+    left := pool;
+    for i := 1 to caught.count do begin
+      cr := GameVars.creatureArr[caught.slot[i]];
+      if CharHlp.SleepTakes(cr, left) then
+        Inc(asleep[cr^.hostile = enemy]);
+    end;
+    if asleep[True] > foes then
+      foes := asleep[True];
+    if asleep[False] > friends then
+      friends := asleep[False];
+  end;
+end;
+
+function CatchText(count, most: Byte): Types.TStr40;
+begin
+  if (most > 0) and (most >= count) then
+    CatchText := StrUtil.NumStr(count) + ' OF ' + StrUtil.NumStr(most)
+  else
+    CatchText := StrUtil.NumStr(count);
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;

@@ -73,11 +73,10 @@ function StingVictoryCheat: Boolean;
 function AreaHitsNonEnemy(x, y: ShortInt; radius: Byte): Boolean;
 
 { The spell-aim preview's count (CbtMap.aimReport, #840): line 23 shows the spell being aimed and who it will catch,
-  caught (nearest first): how many of the caster's enemies and how many allies, the caster too. An offensive spell
-  (offensive 1, target 0) names the enemies first and the allies in yellow; any other spell names the allies first.
-  Where a spell's rule (areaRules) says so before any roll, a side's count is followed by how many of them are immune
-  (Stinking Cloud: FxEngine.CloudSpares) or, for Sleep, by how many may fall asleep at most: the most CharHlp.SleepTakes
-  takes, not counting the SleepProof, over every pool the dice can roll. }
+  caught (nearest first): how many of the caster's enemies and how many allies, the caster too, every spell the
+  enemies first. Where a spell's rule (areaRules) says so, a side's count is followed by the most of it the spell may
+  take: for Sleep, the most CharHlp.SleepMost finds over every pool the dice can roll. No immunity is shown or left out
+  of a count: the creature counts as any other would. }
 procedure ReportAreaCatch(var caught: Types.TSlotList);
 
 implementation
@@ -92,11 +91,10 @@ type
     spell: Byte;
     rule: Byte;
   end;
-  { Who an aimed area spell catches on one side: how many, and the note after them (the immune, or for Sleep the most
-    that may fall asleep) }
+  { Who an aimed area spell catches on one side: how many, and the most of them it may take (Sleep), 0 for none }
   TSideTally = record
     count: Byte;
-    note: Byte;
+    most: Byte;
   end;
   { [True] the caster's enemies, [False] everyone else }
   TAreaTally = array[Boolean] of TSideTally;
@@ -114,14 +112,12 @@ const
   SPRITE_LIGHTNING = 19;
   SPRITE_SPARKLE = 22;
   SPRITE_BURST = 23;
-  { The spell-aim count's rules: none, Sleep's pool, Stinking Cloud's immunities. Curse, Secret and Pools keep their
+  { The spell-aim count's rules: none, or Sleep's pool, which takes only so many. Curse, Secret and Pools keep their
     own table here. }
   RULE_NONE = 0;
   RULE_SLEEP = 1;
-  RULE_CLOUD = 2;
-  areaRules: array[1..2] of TAreaRule = (
-    (spell: C_SPELL.SLEEP; rule: RULE_SLEEP),
-    (spell: C_SPELL.STINKING_CLOUD; rule: RULE_CLOUD));
+  areaRules: array[1..1] of TAreaRule = (
+    (spell: C_SPELL.SLEEP; rule: RULE_SLEEP));
 
 function AdjustedAttacks(n: Byte): Byte; forward;
 
@@ -500,7 +496,7 @@ begin
   if ok then
     FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.RUNNING, 'Got Away')
   else
-    CharDisp.PrintBottomLine('Escape is blocked');
+    CharDisp.PrintActionLine(creature, 'Escape is blocked', 'is blocked from escaping');
   CombatFleeAttempt := CharHlp.EndActions(creature);
 end;
 
@@ -1160,18 +1156,19 @@ begin
     AimSpellName := GameDefs.spellNames[spell];
 end;
 
-{ Line 23 for ReportAreaCatch: the spell's name and ': ', then the two sides, as "3 ENEMIES (1 IMMUNE), 1 ALLY", or
-  'NO ONE'. A line too long for the screen drops the spell's name, then the space after the comma. }
-procedure ShowAreaTally(var side: TAreaTally; rule: Byte; hostile: Boolean);
+{ Line 23 for ReportAreaCatch (#840): the spell's name and ': ', then the enemies it catches in yellow and the allies
+  in light cyan, the colours their names have in combat, each side as CharHlp.CatchText gives it, as
+  "SLEEP: 3 OF 3, 1."; a side it catches no one of is left out, and "NO TARGETS" stands for both. A line too long for
+  the screen drops the spell's name. }
+procedure ShowAreaTally(var side: TAreaTally);
 const
-  SEGS = 8;
+  SEGS = 6;
   LINE_WIDTH = 40;
 var
   text: array[1..SEGS] of Types.TStr40;
   tint: array[1..SEGS] of Byte;
   n: Byte;
   len: Byte;
-  squeeze: Byte;
   col: Byte;
   i: Byte;
   name: Types.TStr40;
@@ -1184,56 +1181,36 @@ var
     Inc(len, Length(s));
   end;
 
-  procedure AddSide(foe: Boolean);
-  var
-    noun: Types.TStr40;
-    color: Byte;
+  { Add the sides' parts. }
+  procedure AddSides;
   begin
-    if foe then begin
-      if side[foe].count = 1 then
-        noun := ' ENEMY'
-      else
-        noun := ' ENEMIES';
-    end else if side[foe].count = 1 then
-      noun := ' ALLY'
-    else
-      noun := ' ALLIES';
-    color := LightGreen;
-    if hostile and not foe then
-      color := Yellow;
-    if side[foe].count = 0 then
-      Add(LightGreen, 'NO' + noun)
+    if (side[True].count = 0) and (side[False].count = 0) then
+      Add(LightGreen, 'NO TARGETS')
     else begin
-      Add(color, StrUtil.NumStr(side[foe].count) + noun);
-      if rule = RULE_SLEEP then
-        Add(LightGray, ' (UP TO ' + StrUtil.NumStr(side[foe].note) + ')')
-      else if side[foe].note > 0 then
-        Add(LightGray, ' (' + StrUtil.NumStr(side[foe].note) + ' IMMUNE)');
+      if side[True].count > 0 then
+        Add(Yellow, CharHlp.CatchText(side[True].count, side[True].most));
+      if (side[True].count > 0) and (side[False].count > 0) then
+        Add(LightGreen, ', ');
+      if side[False].count > 0 then
+        Add(LightCyan, CharHlp.CatchText(side[False].count, side[False].most));
+      Add(LightGreen, '.');
     end;
   end;
 
 begin
   name := CbtActs.AimSpellName(aimSpell);
+  n := 0;
   len := 0;
-  for squeeze := 0 to 2 do
-    if (squeeze = 0) or (len > LINE_WIDTH) then begin
-      n := 0;
-      len := 0;
-      if (squeeze = 0) and (name <> '') then begin
-        Add(White, name);
-        Add(White, ': ');
-      end;
-      if (side[True].count = 0) and (side[False].count = 0) then
-        Add(LightGreen, 'NO ONE')
-      else begin
-        AddSide(hostile);
-        if squeeze < 2 then
-          Add(LightGreen, ', ')
-        else
-          Add(LightGreen, ',');
-        AddSide(not hostile);
-      end;
-    end;
+  if name <> '' then begin
+    Add(White, name);
+    Add(White, ': ');
+  end;
+  AddSides;
+  if len > LINE_WIDTH then begin
+    n := 0;
+    len := 0;
+    AddSides;
+  end;
   Border.ClearBox(0, 23, 39, 23);
   col := 0;
   for i := 1 to n do begin
@@ -1245,40 +1222,16 @@ end;
 procedure ReportAreaCatch(var caught: Types.TSlotList);
 var
   side: TAreaTally;
-  asleep: array[Boolean] of Byte;
-  rule: Byte;
   i: Byte;
-  pool: Byte;
-  left: Byte;
-  foe: Boolean;
-  cr: Types.PCharRecord;
+  enemy: ShortInt;
 begin
-  rule := CbtActs.AreaRuleOf(aimSpell);
   FillChar(side, SizeOf(side), 0);
-  for i := 1 to caught.count do begin
-    cr := GameVars.creatureArr[caught.slot[i]];
-    foe := cr^.hostile = CharHlp.EnemyTeam(GameVars.curChar);
-    Inc(side[foe].count);
-    if rule = RULE_CLOUD then
-      if FxEngine.CloudSpares(cr) then
-        Inc(side[foe].note);
-  end;
-  { Sleep spends one pool on both sides in target order, so every pool the dice can roll is tried }
-  if rule = RULE_SLEEP then
-    for pool := C_SPELL.SLEEP_DICE to C_SPELL.SLEEP_DICE * C_SPELL.SLEEP_DIE do begin
-      asleep[False] := 0;
-      asleep[True] := 0;
-      left := pool;
-      for i := 1 to caught.count do begin
-        cr := GameVars.creatureArr[caught.slot[i]];
-        if CharHlp.SleepTakes(cr, left) and not CharHlp.SleepProof(cr) then
-          Inc(asleep[cr^.hostile = CharHlp.EnemyTeam(GameVars.curChar)]);
-      end;
-      for foe := False to True do
-        if asleep[foe] > side[foe].note then
-          side[foe].note := asleep[foe];
-    end;
-  CbtActs.ShowAreaTally(side, rule, CbtActs.HostileSpell(aimSpell));
+  enemy := CharHlp.EnemyTeam(GameVars.curChar);
+  for i := 1 to caught.count do
+    Inc(side[GameVars.creatureArr[caught.slot[i]]^.hostile = enemy].count);
+  if CbtActs.AreaRuleOf(aimSpell) = RULE_SLEEP then
+    CharHlp.SleepMost(caught, enemy, side[True].most, side[False].most);
+  CbtActs.ShowAreaTally(side);
 end;
 
 { The cast-target menu in combat (GameVars.castTargetMenu): build the spell-target list from the spell's shape

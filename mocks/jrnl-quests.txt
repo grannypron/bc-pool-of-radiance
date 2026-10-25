@@ -22,7 +22,7 @@
 |                                      |
 |                                      |
 +=========+============================+
-JOURNAL: SELECT QUESTS EXIT
+JOURNAL: ENTRIES QUESTS EXIT
 
 Quest data above is mocked and isn't to 
 be used for actual game.
@@ -31,10 +31,9 @@ Color Key:
     JOURNAL:                MAGENTA
     HEADER TEXT             WHITE
     QUEST LIST              GREEN
-    SELECTED QUEST          WHITE
 
 Command Key:
-    SELECT              S / ENTER
+    ENTRIES             E
     QUESTS              Q
-    EXIT                E / ESCAPE
+    EXIT                ESCAPE
 

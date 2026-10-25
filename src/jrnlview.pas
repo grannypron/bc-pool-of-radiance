@@ -6,7 +6,8 @@
   scrolls the list without stopping to draw each item on the way.
 
   The bottom line is the Journal's menu, after a JOURNAL: prompt; its Quests option turns the screen to the Quests page
-  and back (#852), which lists the quests the party has been given, done or not (JrnlQst, #851). }
+  (#852), which lists the quests the party has been given, done or not (JrnlQst, #851), and whose Entries turns it back
+  (#874). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit JrnlView;
@@ -18,8 +19,8 @@ interface
   and Page Down scroll it a column at a time. The highlighted item's title and first page show in the pane once the
   highlight rests. Select shows the highlighted item at once and turns to its text: Next and Prev, offered while the
   selected item has a later or an earlier page, turn its pages until the highlight moves again. Quests turns to the
-  Quests page, whose Quests turns back to the list as it was, and whose Exit leaves the Journal (#852); Select there on
-  a quest a proclamation gives turns back to the list with that proclamation shown (#851). }
+  Quests page (ShowQuests), whose Entries turns back to the list as it was, and whose Exit or Escape leaves the Journal
+  (#852, #874). }
 procedure JournalMenu;
 
 implementation
@@ -213,32 +214,48 @@ begin
     QuestLine := line + '----';
 end;
 
-{ Show the Quests page until Quests or Exit, or Select on a quest a proclamation gives: its heading over the list of
-  the quests the party has been given (JrnlQst.IsGiven), each DONE or not yet (----), with the Journal's menu below.
-  Up and Down move the highlight and Page Up and Page Down turn the list's pages (MenuCore.MenuVertical). The list is
-  never empty: LIX is posted from the start. Select on a quest no proclamation gives stays on the page.
-  @param(item Set to the Journal item of the selected quest's proclamation, or 0.)
-  @returns(True when Exit or Escape left the Journal; False when Quests or Select turned back to it.) }
-function ShowQuests(var item: Integer): Boolean;
+{ Show the Quests page until Entries or Exit: its heading over the list of the quests the party has been given
+  (JrnlQst.IsGiven), each DONE or not yet (----), a page at a time, with the Journal's menu below (#874). Entries (E)
+  turns back to the Journal's list, Quests (Q) stays on the page, and Exit, which has no key since E is Entries', or
+  Escape leaves the Journal. Next and Prev, offered while the list has a page after or before this one, and Page Down
+  and Page Up turn its pages. The list is only read: Enter takes the bottom line's current option, as it does on every
+  menu, and nothing on the list is selected. The list is never empty: LIX is posted from the start.
+  @returns(True when Exit or Escape left the Journal; False when Entries turned back to it.) }
+function ShowQuests: Boolean;
+const
+  ROWS = BOTTOM_ROW - QUESTS_TOP + 1;
 var
   ch: Char;
-  head: Types.PItemRec;
-  tail: Types.PItemRec;
-  pick: Types.PItemRec;
-  redraw: Boolean;
-  idx: Integer;
+  ext: Boolean;
   n: Integer;
   count: Integer;
+  { the list's first quest on the page, from 0 }
+  top: Integer;
+  menu: Types.TStr40;
+  { the hotkey of each option on the bottom line, X for Exit, which has none }
+  keys: string[5];
+  { the option chosen last, by its key }
+  lastKey: Char;
   { the quest on each line of the list }
   quest: array[0..C_JRNL.QUEST_COUNT - 1] of Byte;
+
+  { Clear the list's box and draw its page from quest top. }
+  procedure DrawQuestPage;
+  var
+    k: Integer;
+  begin
+    Border.ClearBox(QUESTS_LEFT, QUESTS_TOP, QUESTS_RIGHT, BOTTOM_ROW);
+    k := top;
+    while (k < count) and (k - top < ROWS) do begin
+      TextRend.DisplayString(QUESTS_LEFT, QUESTS_TOP + k - top, LightGreen, JrnlView.QuestLine(quest[k]));
+      Inc(k);
+    end;
+  end;
+
 begin
-  item := 0;
-  head := nil;
-  tail := nil;
   count := 0;
   for n := 1 to C_JRNL.QUEST_COUNT do
     if JrnlQst.IsGiven(n) then begin
-      MenuCore.AppendMenuLine(head, tail, JrnlView.QuestLine(n), False);
       quest[count] := n;
       Inc(count);
     end;
@@ -247,17 +264,57 @@ begin
   Border.DrawBorder(QUESTS_LEFT, QUESTS_TOP, QUESTS_RIGHT, BOTTOM_ROW, 0);
   Border.DrawBorder(QUESTS_LEFT, TITLE_ROW, QUESTS_RIGHT, TITLE_ROW, 0);
   TextRend.DisplayCentered(QUESTS_LEFT, QUESTS_RIGHT, TITLE_ROW, White, 'QUESTS');
-  idx := 0;
-  GameVars.vertTop := 0;
-  redraw := True;
+  top := 0;
+  DrawQuestPage;
+  lastKey := 'Q';
   repeat
-    ch := MenuCore.MenuVertical(PROMPT, 'Select Quests', LightMagenta, LightGreen, White, QUESTS_LEFT, QUESTS_TOP,
-                                QUESTS_RIGHT, BOTTOM_ROW, head, True, redraw, idx, pick);
-    if (ch in ['S', C_KEYS.ENTER]) and (idx < count) then
-      item := JrnlQst.QuestItem(quest[idx]);
-  until (ch in [C_KEYS.NONE, 'Q']) or (item <> 0);
-  MenuCore.FreeStringList(head);
-  ShowQuests := ch = C_KEYS.NONE;
+    menu := 'Entries Quests';
+    keys := 'EQ';
+    if top + ROWS < count then begin
+      menu := menu + ' Next';
+      keys := keys + 'N';
+    end;
+    if top > 0 then begin
+      menu := menu + ' Prev';
+      keys := keys + 'P';
+    end;
+    menu := menu + ' Exit';
+    keys := keys + 'X';
+    if Pos(lastKey, keys) > 0 then
+      GameVars.horizChoice := Pos(lastKey, keys)
+    else
+      GameVars.horizChoice := 2;
+    MenuCore.unmarked := [Length(keys)];
+    MenuCore.enterToCaller := True;
+    ch := MenuCore.MenuHorizontal(PROMPT, menu, LightMagenta, LightGreen, White, True, False, ext);
+    if ext then begin
+      case ch of
+        C_KEYS.PGDN: ch := 'N';
+        C_KEYS.PGUP: ch := 'P';
+      else
+        ch := ' ';
+      end;
+      { only when the bottom line offers it }
+      if Pos(ch, keys) = 0 then
+        ch := ' ';
+    end else if ch = C_KEYS.ENTER then
+      ch := keys[GameVars.horizChoice];
+    case ch of
+      'N': begin
+             Inc(top, ROWS);
+             DrawQuestPage;
+           end;
+      'P': begin
+             Dec(top, ROWS);
+             if top < 0 then
+               top := 0;
+             DrawQuestPage;
+           end;
+    end;
+    if ch in ['E', 'Q', 'N', 'P', 'X'] then
+      lastKey := ch;
+  until ch in [C_KEYS.NONE, 'E', 'X'];
+  ShowQuests := ch <> 'E';
 end;
 
 { Move the highlight to item n, kept within the list, scrolling the list when n is off the column, and start the wait
@@ -321,8 +378,6 @@ var
   { set by Select: Next and Prev page the item until the highlight moves }
   reading: Boolean;
   savedChoice: Byte;
-  { the Journal item Select chose on the Quests page }
-  item: Integer;
 
   { The option number of hotkey key on the bottom line, or 1 (Select) when it is not offered. }
   function OptionOf(key: Char): Byte;
@@ -399,18 +454,11 @@ begin
         'Q': begin
                { the pane's preview waits while the Quests page is up }
                @MenuCore.idleHook := nil;
-               if JrnlView.ShowQuests(item) then
+               if JrnlView.ShowQuests then
                  ch := 'E'
                else begin
                  JrnlView.DrawJournal;
                  MenuCore.idleHook := JrnlView.TickPreview;
-                 { Select on a quest shows its proclamation }
-                 if item <> 0 then begin
-                   JrnlView.MoveTo(item);
-                   JrnlView.ShowSelected;
-                   reading := True;
-                   lastKey := 'S';
-                 end;
                end;
              end;
       end;
