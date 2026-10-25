@@ -260,12 +260,6 @@ begin
   end;
 end;
 
-{ Draw "(more)" centered on row. }
-procedure DrawMore(row: Byte);
-begin
-  TextRend.DisplayCentered(1, 38, row, White, '(more)');
-end;
-
 { Draw the slots from top, each letter in white, the selected slot in white and the rest in light green, with "(more)"
   above when a slot is hidden above and below when one is hidden below. }
 procedure DrawList;
@@ -277,7 +271,7 @@ var
 begin
   Border.ClearBox(1, LIST_TOP, 38, LIST_BOTTOM);
   if top > 1 then
-    SaveMenu.DrawMore(LIST_TOP);
+    MenuCore.DrawMore(1, 38, LIST_TOP);
   for k := 0 to VISIBLE - 1 do begin
     i := top + k;
     if i <= count then begin
@@ -298,7 +292,7 @@ begin
     end;
   end;
   if top + VISIBLE - 1 < count then
-    SaveMenu.DrawMore(LIST_BOTTOM);
+    MenuCore.DrawMore(1, 38, LIST_BOTTOM);
 end;
 
 { Select listed entry i, wrapping past either end, scroll it into view and redraw the list. }

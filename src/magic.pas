@@ -9,24 +9,27 @@ interface
 uses Types;
 
 var
-  { Set by a caller whose screen below a memorize list (Camp's spell slots) is covered by the spell page:
-    SpellSelection calls it, when set, after the page closes, to draw that part again. }
+  { Set by a caller whose screen below a memorize list (Camp's spell slots) is drawn by the caller: SpellSelection calls
+    it, when set, after it frames the window under the list, when the list opens and after the spell page closes. }
   belowListHook: Types.TIdleProc;
   { combat arena column, 0..49 }
   gTargetX: ShortInt;
   { combat arena row, 0..24 }
   gTargetY: ShortInt;
 
-{ Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList. selType: 1 cast, 2 memorize
-  (shorter window, bottom row 15), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and left
-  for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no title or prompt).
-  idx is the menu cursor and persists across calls; idx < 0 clears the window and opens at the top of the list on its
-  first spell (cast and learn always redraw). Every list but show only has the highlighted spell's summary line
-  (SpellInf.ShowSummary) under it, on row 22 below a list that ends at row 20, or for memorize on the message window's
-  top row, and Info (I) on the bottom line, which opens the spell page (SpellInf.ShowPage) and comes back to the list
-  on the spell the page showed last (#839). A line read from a scroll is worked out at the scroll's caster level.
-  Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's scroll in spellScrolls (nil for Exit or a
-  memorized spell); scribe also sets currentScrollPtr to the chosen spell's scroll. Frees spellList before returning. }
+{ Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList, its list from row 3, paged
+  with MenuCore.fullPaging (Next and Prev on every page of a list longer than its window, '(more)' under a page with
+  more below it). selType: 1 cast, 2 memorize (its list ends at row 16, above a window of spell slots that
+  belowListHook fills, rows 18 to 20), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and
+  left for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no prompt). The
+  bottom line names the action: 'Cast: Cast Info Exit' (#900). idx is the menu cursor and persists across calls; idx <
+  0 clears the windows and opens at the top of the list on its first spell (cast and learn always redraw). Every list
+  but show only has the highlighted spell's summary line (SpellInf.ShowSummary) on row 22, above the window's bottom
+  border (a list other than memorize's ends at row 20), and Info (I) on the bottom line, which opens the spell page
+  (SpellInf.ShowPage) and comes back to the list on the spell the page showed last (#839). A line read from a scroll
+  is worked out at the scroll's caster level. Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's
+  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets currentScrollPtr to the chosen spell's
+  scroll. Frees spellList before returning. }
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 
 { Build spellList and spellIds for a menu of creature's spells. menuType: 0 memorized, 5 still being memorized (bit 7
@@ -186,8 +189,8 @@ procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: 
 
 { Generate the spell list for menuType (0 in memory, 1 spell book, 2 scroll, 3 scrolls, 4 choosing a spell on gaining a
   level, 5 to be memorized, 6 to be scribed, 7 available to cast) and run Magic.SpellSelection on it, returning the
-  chosen spell, or 0 when the list is empty. idx < 0 also draws the "<name>'s Spells ..." heading ("<name>'s Available
-  Spells" for 7); notEmpty receives whether the list has entries. }
+  chosen spell, or 0 when the list is empty. idx < 0 also draws the heading, "<name>'s Spells" on every list (#900);
+  notEmpty receives whether the list has entries. }
 function SpellMenu(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean): Byte;
 
 { The Cast menu (SpellMenu 7, select 1): the spell chosen, as SpellMenu returns it, with scroll the scroll it is cast
@@ -232,6 +235,9 @@ const
   SPELL_LEVEL_LAST = 7;
   { the columns a spell list's line has, from the list window's left edge to its right }
   LINE_WIDTH = 38;
+  { a spell line's marker column, in the indent before its name (#900): a level heading starts in the list's first
+    column, and a spell's name three columns in }
+  MARK_COL = 3;
 
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forward;
 
@@ -278,10 +284,22 @@ begin
     end;
 end;
 
+{ Clear and frame the spell list's window, from C_SPELL.LIST_TOP down to windowRow; for memorize, also the spell
+  slots' window under it, to C_SPELL.SUMMARY_ROW, filled by belowListHook (#900). }
+procedure DrawListWindows(windowRow: Byte; memorize: Boolean);
+begin
+  Border.DrawWindow(1, C_SPELL.LIST_TOP, 38, windowRow, 0, Black, '');
+  if memorize then begin
+    Border.DrawWindow(1, C_SPELL.SLOTS_TOP, 38, C_SPELL.SUMMARY_ROW, 0, Black, '');
+    if @belowListHook <> nil then
+      belowListHook;
+  end;
+end;
+
 { Show the spell page for spellList's member idx, stepping through every spell on the list, then point idx at the
-  spell it showed last, scrolled into the rows firstRow..lastRow, and redraw the window down to windowRow and, for
-  memorize, what lies below it (belowListHook). }
-procedure SpellPage(var idx: Integer; firstRow, lastRow, windowRow: Byte; memorize: Boolean);
+  spell it showed last, scrolled into the list's rows C_SPELL.LIST_TOP..lastRow as MenuVertical pages them
+  (fullPaging), and draw the windows again (DrawListWindows). }
+procedure SpellPage(var idx: Integer; lastRow, windowRow: Byte; memorize: Boolean);
 var
   lines: SpellInf.TLineSpells;
   p: Types.PItemRec;
@@ -314,19 +332,15 @@ begin
   end;
   if p <> nil then
     idx := n;
-  rows := lastRow - firstRow + 1;
+  rows := MenuCore.PageRows(spellList, C_SPELL.LIST_TOP, lastRow, True);
   if idx < GameVars.vertTop then
     GameVars.vertTop := idx;
   if idx > GameVars.vertTop + rows - 1 then
     GameVars.vertTop := idx - rows + 1;
-  Border.DrawWindow(1, 3, 38, windowRow, 0, Black, '');
-  if memorize and (@belowListHook <> nil) then
-    belowListHook;
+  Magic.DrawListWindows(windowRow, memorize);
 end;
 
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
-const
-  LIST_TOP = 5;
 var
   sel: Types.PItemRec;
   p: Types.PItemRec;
@@ -350,27 +364,27 @@ begin
   else
     title := '';
   end;
-  if selType in [1..4] then
-    prompt := 'Choose Spell: '
+  { the action names the screen on the bottom line: 'Cast: Cast Info Exit' (#900) }
+  if title <> '' then
+    prompt := title + ': '
   else
     prompt := '';
   case selType of
     2: begin
-         windowRow := 15;
-         bottomRow := 15;
-         { the message window's top row, above Camp.DisplaySpellSlots' lines }
-         summaryRow := C_MSG.MESSAGE_TOP;
+         windowRow := C_SPELL.MEMORIZE_LIST_BOTTOM;
+         bottomRow := C_SPELL.MEMORIZE_LIST_BOTTOM;
+         summaryRow := C_SPELL.SUMMARY_ROW;
        end;
     5: begin
-         windowRow := 22;
-         bottomRow := 22;
+         windowRow := C_SPELL.SUMMARY_ROW;
+         bottomRow := C_SPELL.SUMMARY_ROW;
          summaryRow := 0;
        end;
   else
     begin
-      windowRow := 22;
-      bottomRow := 20;
-      summaryRow := 22;
+      windowRow := C_SPELL.SUMMARY_ROW;
+      bottomRow := C_SPELL.LIST_BOTTOM;
+      summaryRow := C_SPELL.SUMMARY_ROW;
     end;
   end;
   if summaryRow > 0 then
@@ -378,16 +392,13 @@ begin
       title := 'Info'
     else
       title := title + ' Info';
-  { the bottom line holds 40 columns: with Next, Prev and Exit after it, Memorize Info takes 'Spell: ' }
-  if Length(prompt) + Length(title) + Length(' Next Prev Exit') > 40 then
-    prompt := 'Spell: ';
   if selType = 4 then
     addExit := False
   else
     addExit := True;
   redraw := False;
   if idx < 0 then begin
-    Border.DrawWindow(1, 3, 38, windowRow, 0, Black, '');
+    Magic.DrawListWindows(windowRow, selType = 2);
     redraw := True;
     { open at the top of the list on its first spell, the line under the first level heading (MenuVertical, given the
       heading, would wrap up to the page's last line) }
@@ -409,11 +420,12 @@ begin
       SpellInf.ShowSummary(Magic.LineSpell(idx), summaryRow);
     MenuCore.listOnly := selType = 5;
     MenuCore.movesToCaller := summaryRow > 0;
-    ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, LIST_TOP, 38,
+    MenuCore.fullPaging := True;
+    ch := MenuCore.MenuVertical(prompt, title, LightMagenta, LightGreen, White, 1, C_SPELL.LIST_TOP, 38,
                                 bottomRow, spellList, addExit, redraw, idx, sel);
     moved := MenuCore.moved;
     if not moved and (ch = 'I') and (summaryRow > 0) and (sel <> nil) then begin
-      Magic.SpellPage(idx, LIST_TOP, bottomRow, windowRow, selType = 2);
+      Magic.SpellPage(idx, bottomRow, windowRow, selType = 2);
       redraw := True;
     end;
   until not moved and (ch in [C_KEYS.NONE, C_KEYS.ENTER, 'C', 'E', 'L', 'M', 'S']);
@@ -443,9 +455,9 @@ begin
 end;
 
 { Append spell to spellList, first adding a level heading entry (inUse = 1) when its spell level differs from the
-  previous spell's. Bit 7 set (pending memorization or scribing) prefixes ' *'; otherwise the second column holds
-  SpellMark's character for mark (MARK_NONE, MARK_KNOWN or MARK_NOT_KNOWN). Stores spell and $7F in spellIds at the
-  entry's selectable index. }
+  previous spell's. The spell's name is indented under its heading (#900): bit 7 set (pending memorization or
+  scribing) puts '*' in MARK_COL; otherwise MARK_COL holds SpellMark's character for mark (MARK_NONE, MARK_KNOWN or
+  MARK_NOT_KNOWN). Stores spell and $7F in spellIds at the entry's selectable index. }
 procedure AddSpellToList(creature: Types.PCharRecord; spell, mark: Byte);
 const
   { Spell-list headings indexed by spell level }
@@ -495,9 +507,9 @@ begin
     p^.next := nil;
   end;
   if spell > C_SPELL.ID_MASK then
-    p^.name := ' *'
+    p^.name := '  *'
   else
-    p^.name := ' ' + Magic.SpellMark(creature, spell, mark);
+    p^.name := '  ' + Magic.SpellMark(creature, spell, mark);
   p^.name := p^.name + GameDefs.spellNames[spell and C_SPELL.ID_MASK];
   p^.inUse := 0;
   spellIds[count] := spell and C_SPELL.ID_MASK;
@@ -645,8 +657,8 @@ begin
     p := spellList;
     while p^.next <> nil do
       p := p^.next;
-    if Length(p^.name) >= 2 then
-      p^.name[2] := SCROLL_MARK;
+    if Length(p^.name) >= MARK_COL then
+      p^.name[MARK_COL] := SCROLL_MARK;
     Magic.AddCopies(copies);
   end;
 end;
@@ -2095,31 +2107,13 @@ end;
 { SpellMenu's work, with the chosen line's scroll in scroll. }
 function ChooseSpell(menuType, selType: Byte; var idx: Integer; var notEmpty: Boolean;
   var scroll: Types.PItemRec): Byte;
-var
-  s: Types.TStr40;
 begin
-  case menuType of
-    0: s := 'in Memory';
-    1: s := 'in Spell Book';
-    2: s := 'on Scroll';
-    3: s := 'on Scrolls';
-    4: s := 'to choose from';
-    5: s := 'to be memorized';
-    6: s := 'to be scribed';
-    7: s := '';
-  else
-    s := '';
-  end;
   notEmpty := Magic.GenerateSpellList(GameVars.curChar, menuType);
   if notEmpty then begin
+    { every spell list has the same heading, centred in light cyan: "<name>'s Spells" (#900) }
     if idx < 0 then begin
       Border.DrawWindow(1, 1, 38, 1, 0, Black, '');
-      CharDisp.DisplayCreatureName(GameVars.curChar, 1, 1, True);
-      if menuType = 7 then
-        s := 'Available Spells'
-      else
-        s := 'Spells ' + s;
-      TextRend.DisplayString(Length(GameVars.curChar^.name) + 4, 1, LightGreen, s);
+      TextRend.DisplayCentered(1, 38, 1, LightCyan, GameVars.curChar^.name + '''s Spells');
     end;
     ChooseSpell := Magic.SpellSelection(selType, idx, scroll);
   end else begin

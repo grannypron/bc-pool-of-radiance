@@ -33,6 +33,14 @@ const
   { the last line of a spell menu (spellIds, spellScrolls): Cast lists up to 21 memorized spells and 48 scroll spells,
     three on each of 16 items }
   LINE_LAST = 68;
+  { the spell lists' rows (#900): the list window's first row, the last row of the list above the summary line, which
+    is the windows' last text row, and memorize's list window's last row, with the spell slots' window under it from
+    SLOTS_TOP: its heading there and a row for each spellcasting class under it }
+  LIST_TOP = 3;
+  LIST_BOTTOM = 20;
+  SUMMARY_ROW = 22;
+  MEMORIZE_LIST_BOTTOM = 16;
+  SLOTS_TOP = 18;
   { spellFns[3] = CureLightWoundsHandler; the cure-targeting special case in the AI + manual cast paths }
   CURE_LIGHT_WOUNDS = 3;
   { spellFns[1] = BlessHandler; Bless spares a creature already in melee in combat }
