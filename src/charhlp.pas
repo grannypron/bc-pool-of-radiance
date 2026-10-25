@@ -67,6 +67,10 @@ function EndActions(creature: Types.PCharRecord): Boolean;
 
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 
+{ True where magic does not work: the party is in an anti-magic area (the GBVM's antimagic word, which the scripts set).
+  No spell is cast there, in camp or in combat, no item is used and Fix heals no one (#877). }
+function AntiMagicArea: Boolean;
+
 function Guard(creature: Types.PCharRecord): Boolean;
 
 function GetCasterLevel(spell: Byte): Byte;
@@ -1159,11 +1163,16 @@ begin
   EndActions := True;
 end;
 
+function AntiMagicArea: Boolean;
+begin
+  AntiMagicArea := GameVars.zone0^.antimagic > 0;
+end;
+
 { True when the creature may use an item now: an able character outside an anti-magic area, in camp, outdoors or
   indoors, or in combat while still allowed an item this round. }
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 begin
-  CanUseItems := (creature^.enabled <> 0) and (GameVars.zone0^.antimagic = 0) and
+  CanUseItems := (creature^.enabled <> 0) and not CharHlp.AntiMagicArea and
                  ((GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.OUTDOORS) or
                   (GameVars.ifcState = C_IFC.INDOORS) or
                   ((GameVars.ifcState = C_IFC.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));

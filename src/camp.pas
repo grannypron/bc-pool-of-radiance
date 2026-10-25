@@ -169,7 +169,7 @@ var
   msg: Types.TStr40;
 begin
   msg := '';
-  if (activity = ACT_CAST) and (GameVars.zone0^.antimagic > 0) then
+  if (activity = ACT_CAST) and CharHlp.AntiMagicArea then
     msg := 'cannot cast spells in this area'
   else if (GameVars.curChar^.status = C_STATUS.ANIMATED) or (GameVars.curChar^.enabled = 0) then begin
     msg := 'is in no condition to ';
@@ -866,7 +866,8 @@ end;
   spell) plus 15 minutes per spell level. Nothing happens unless the whole rest is completed; interrupted reports a rest
   broken off by a scripted random interruption. A party with no cleric, or with none conscious, is told so and does not
   rest, as is a party with nothing Fix can treat or no slot to treat it with; the message stays in the message window,
-  without waiting for a key (#681). }
+  without waiting for a key (#681). Fix's healing is spells, so in an anti-magic area (CharHlp.AntiMagicArea) it says
+  "Spells cannot be cast in this area." and nobody rests (#877). }
 procedure CampFixMenu(var interrupted: Boolean);
 const
   { the members planned for; a longer creature list is not looked at past this }
@@ -976,6 +977,10 @@ var
 
 begin
   interrupted := False;
+  if CharHlp.AntiMagicArea then begin
+    CharDisp.PrintMessage('Spells cannot be cast in this area.');
+    Exit;
+  end;
   n := 0;
   need := 0;
   clerics := 0;

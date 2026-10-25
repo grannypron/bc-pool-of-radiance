@@ -215,7 +215,7 @@ begin
   roll := Dice.RollDice(1, 7);
   if (creature^.combatAddr^.itemUseAllowed <> 0)
      and (GameVars.teamCount[CharHlp.EnemyTeam(creature)] > 0)
-     and (GameVars.zone0^.antimagic = 0) then
+     and not CharHlp.AntiMagicArea then
     for i := 1 to roll do begin
       item := creature^.itemsAddr;
       while (item <> nil) and (chosen = nil) do begin

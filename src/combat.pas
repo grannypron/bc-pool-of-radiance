@@ -264,7 +264,7 @@ begin
       hasSpell := True;
   { Cast lists the memorized spells, while castAllowed, and the spells on readable scrolls }
   if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or CharHlp.HasScrollSpells(creature))
-     and (GameVars.zone0^.antimagic = 0) then
+     and not CharHlp.AntiMagicArea then
     menu := menu + 'Cast ';
   if (CbtActs.TurnLevel(creature) > 0)
      and (creature^.combatAddr^.usedTurnUndead = 0) then
