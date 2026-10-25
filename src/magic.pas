@@ -1623,15 +1623,15 @@ begin
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, 0, 0, 'is blinking');
 end;
 
-{ Fireball: spell 64 (an item fireball) uses level 1d3 * 2 + 1. When zone0^.view3dFlag is 0 the target list is rebuilt
-  with Pathing.TargetArea, radius 2 around the aim cell. Damage is level d6, element mask 9. }
+{ Fireball: spell 64 (an item fireball) uses level 1d C_SPELL.ITEM_FIREBALL_DIE * 2 + 1. When zone0^.view3dFlag is 0 the
+  target list is rebuilt with Pathing.TargetArea, radius 2 around the aim cell. Damage is level d6, element mask 9. }
 procedure FireballHandler;
 var
   cl: Byte;
 begin
   GameVars.gMultiTarget := 1;
   if GameVars.currentSpellBeing = C_SPELL.ITEM_FIREBALL then
-    cl := Dice.RollDice(1, 3) * 2 + 1
+    cl := Dice.RollDice(1, C_SPELL.ITEM_FIREBALL_DIE) * 2 + 1
   else
     cl := CharHlp.GetCasterLevel(GameVars.currentSpellBeing);
   if GameVars.zone0^.view3dFlag = 0 then begin
@@ -1947,13 +1947,14 @@ begin
                      Magic.CalcSpellDuration(GameVars.currentSpellBeing), enc, True);
 end;
 
-{ Javelin of Lightning: 1d6 + 20 damage at the aim cell, then a 3-cell bolt of 20 damage. }
+{ Javelin of Lightning: 1d6 + 20 damage at the aim cell, then a bolt of 20 damage C_SPELL.JAVELIN_BOLT_CELLS cells
+  on. }
 procedure JavelinOfLightningHandler;
 var
   junk: Boolean;
 begin
   Magic.LightningAttackAt(gTargetX, gTargetY, Dice.RollDice(1, 6) + 20, C_SAVE.SPELL, junk);
-  Magic.LightningPath(3, 20, C_SAVE.SPELL, False);
+  Magic.LightningPath(C_SPELL.JAVELIN_BOLT_CELLS, 20, C_SAVE.SPELL, False);
 end;
 
 { Wand of Paralyzation: apply the item's effect. }
@@ -2116,26 +2117,21 @@ begin
   CastSpellMenu := Magic.ChooseSpell(7, 1, idx, notEmpty, scroll);
 end;
 
-{ Cast spell from item, a scroll or an effect-bearing item (an effect past C_SPELL.LAST maps to spell effect -
-  C_SPELL.ITEM_EFFECT_SHIFT), setting usingItem during the cast. A combat-only scroll spell outside combat is not cast:
-  Cast's message (Magic.ShowCombatOnlySpell) and 'Use it?', where Yes sets done and spends the scroll spell and No
-  leaves done clear. In combat, a spell castable in combat (whenCast <> 0) ends the user's actions and sets done, cast
-  or not. Past that prompt, only when the spell was cast, consume the scroll spell, or use quantity and then charges;
-  remove the item when its charges run out (SSI spent them on done, so an aborted spell in combat still used them up).
-  announce (the Cast list's scroll lines) names the spell first, as casting a memorized one does
-  (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table, from corrupt or edited item data, does
-  nothing and leaves done clear. }
+{ Cast spell from item, a scroll or an effect-bearing item (spell is then CharHlp.ItemSpell's), setting usingItem during
+  the cast. A combat-only scroll spell outside combat is not cast: Cast's message (Magic.ShowCombatOnlySpell) and 'Use
+  it?', where Yes sets done and spends the scroll spell and No leaves done clear. In combat, a spell castable in combat
+  (whenCast <> 0) ends the user's actions and sets done, cast or not. Past that prompt, only when the spell was cast,
+  consume the scroll spell, or use quantity and then charges; remove the item when its charges run out (SSI spent them
+  on done, so an aborted spell in combat still used them up). announce (the Cast list's scroll lines) names the spell
+  first, as casting a memorized one does (Magic.PrintCastSpellMsg); Use names none. A spell id past the spell table,
+  from corrupt or edited item data, does nothing and leaves done clear. }
 procedure UseItemSpell(item: Types.PItemRec; spell: Byte; announce: Boolean; var done: Boolean);
 var
-  id: Byte;
   { set only when the spell was cast (not on an aborted aim); the item is spent on it, not on done, which in combat
     also reports the end of the turn }
   cast: Boolean;
 begin
-  id := spell;
-  if not CharHlp.ItemReadable(item) and (spell > C_SPELL.LAST) then
-    id := spell - C_SPELL.ITEM_EFFECT_SHIFT;
-  if (id < 1) or (id > SizeOf(GameDefs.spellTable) div SizeOf(GameDefs.spellTable[1])) then begin
+  if (spell < 1) or (spell > C_SPELL.TABLE_LAST) then begin
     done := False;
     Exit;
   end;
@@ -2151,9 +2147,6 @@ begin
   if (GameVars.ifcState = C_IFC.COMBAT) and (GameVars.curChar^.quickfight = 0) then
     CharDisp.DisplayCombatInterface;
   if not CharHlp.ItemReadable(item) then begin
-    if spell > C_SPELL.LAST then
-      { item effect -> spell id }
-      Dec(spell, C_SPELL.ITEM_EFFECT_SHIFT);
     CharDisp.PrintNameString(GameVars.curChar, 'uses an item', 10, False);
     if GameVars.ifcState = C_IFC.COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');
@@ -2201,8 +2194,8 @@ begin
   if CharHlp.ItemReadable(item) then begin
     currentScrollPtr := item;
     spell := Magic.SpellMenu(2, 1, idx, notEmpty);
-  end else if (item^.effect > 0) and (item^.special < $80) then
-    spell := item^.effect;
+  end else
+    spell := CharHlp.ItemSpell(item);
   if spell = 0 then
     done := False
   else

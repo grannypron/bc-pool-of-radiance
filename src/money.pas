@@ -47,7 +47,7 @@ procedure AppraiseMenu(var ok: Boolean);
 implementation
 
 uses Crt, C_NPC, GameDefs, GameVars, TextRend, Border, CharHlp, C_KEYS, C_IFC, C_MONEY, GameIo, MenuCore, C_MSG,
-  EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
+  C_ITEM, EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
   against CharHlp.RawWeight, the weight before the bag takes its share. }
@@ -433,12 +433,12 @@ var
   exitF: Boolean;
   ext: Boolean;
 
-  { True when the creature holds under 16 items and one more coin's weight would not overload it. Recalculates its stats
-    first. }
+  { True when the creature holds under C_ITEM.CARRY_MAX items and one more coin's weight would not overload it.
+    Recalculates its stats first. }
   function HasRoom(creature: Types.PCharRecord): Boolean;
   begin
     CharHlp.RecalcStats(creature);
-    HasRoom := (creature^.numberOfItems < 16) and not Money.CheckOverload(creature, 1, takable);
+    HasRoom := (creature^.numberOfItems < C_ITEM.CARRY_MAX) and not Money.CheckOverload(creature, 1, takable);
   end;
 
   { Offer Sell, and Keep when someone has room, for the stone just appraised: name component nameId, worth gp, until one
