@@ -8,8 +8,8 @@
 | F6  COMPANION TOOLS                  |
 | F8  QUICK LOAD                       |
 |                                      |
+| CTRL-S SOUND ON/OFF                  |
 | CTRL-Y MEMORY STATS                  |
-|                                      |
 |                                      |
 |                                      |
 |                                      |
