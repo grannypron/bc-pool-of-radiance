@@ -16,8 +16,6 @@ uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_SOUND, C_OPT, CfgFile, GameDefs, Gam
   {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
-  { lowered HeapEnd snapshot }
-  gfxReserve: Pointer;
   { POOL.CFG's video, sound and introduction letters, as START takes them (CfgFile.ReadPoolCfg) }
   cfgVideo: Char;
   cfgSound: Char;
@@ -41,10 +39,9 @@ begin
   Inc(GameVars.ovrLoads);
   CountOvrRead := ovrRead(ovrSeg);
 end;
-{$ENDIF}
 
 { A POOL.CFG path made ready for file names to be appended (CfgFile.NormalizePath). A path that leaves no room for a
-  file name within a DOS path stops the game with a message. }
+  file name within a DOS path stops the game with a message. Natively NativeFolders places the folders instead. }
 function NormalizePath(path: String): String;
 var
   full: String;
@@ -57,6 +54,7 @@ begin
   end;
   NormalizePath := full;
 end;
+{$ENDIF}
 
 { Read POOL.CFG (CfgFile.ReadPoolCfg): its letters into cfgVideo, cfgSound and cfgIntro, and its paths, as written,
   into GameVars.gameDir and saveDirectory. A file that will not open stops the game with a message; natively, where
@@ -143,6 +141,7 @@ end;
 { Game startup runs through this unit's initialization section. }
 begin
   GameVars.stingArg := ParamStr(1) = 'STING';
+  GameVars.norandArg := ParamStr(2) = 'NORAND';
 {$IFDEF FPC}
   NatFile.EnterGameFolder;
   GameVars.ovrInEms := False;
@@ -162,8 +161,6 @@ begin
   CbtLog.Startup;
 {$IFNDEF FPC}
   GameBoot.RunSetup;
-{$ENDIF}
-{$IFNDEF FPC}
   { a read-only POOL.CFG is there too (DaxIo.FileExists) }
   DaxIo.WaitForFile(C_OPT.CFG_NAME, 'Run POOLCFG to set up the game, or insert the startup disk.');
 {$ENDIF}
@@ -188,10 +185,8 @@ begin
   end;
   { Keep a screen that lives in system RAM (Tandy's) out of the heap: lower HeapEnd by it. The common code after the
     sound setting lowers HeapEnd by GFX_RESERVE_PARAS once more, so Tandy reserves twice as much. }
-  if GameVars.video.ramVideoParas > 0 then begin
-    gfxReserve := Ptr(heapEndW.s - GameVars.video.ramVideoParas, heapEndW.o);
-    HeapEnd := gfxReserve;
-  end;
+  if GameVars.video.ramVideoParas > 0 then
+    HeapEnd := Ptr(heapEndW.s - GameVars.video.ramVideoParas, heapEndW.o);
 {$ENDIF}
   Blit.SetVideoMode(GameVars.video.biosMode);
   GameVars.video.Start;
@@ -232,10 +227,9 @@ begin
     SndNone.Install;
   end;
   GameVars.soundMode := GameVars.sound.mode;
-  { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
 {$IFNDEF FPC}
-  gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
-  HeapEnd := gfxReserve;
+  { lower HeapEnd by GFX_RESERVE_PARAS (16 KB) }
+  HeapEnd := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
 {$ENDIF}
   SoundDrv.SoundSuspend;
 {$IFDEF FPC}

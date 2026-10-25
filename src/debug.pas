@@ -13,7 +13,7 @@ procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, dr
 
 implementation
 
-uses Crt, GameDefs, GameVars, TextRend, StrUtil;
+uses Crt, GameVars, TextRend, StrUtil;
 
 procedure PrintHpDebug(msg: Types.TStr40; maximumHitPoints, currentHitPoints, drainedHitPoints: Byte);
 begin

@@ -165,7 +165,10 @@ end;
 function OpenReadOnly(var f: file; name: TPathName): Boolean;
 var
   mode: Byte;
+  ioRes: Integer;
 begin
+  { an error still pending would make the Reset do nothing, and a file that is there read as missing }
+  ioRes := IOResult;
   Assign(f, name);
   mode := FileMode;
   FileMode := 0;
@@ -194,11 +197,17 @@ begin
   ReadRecord := ok;
 end;
 
-function TempName(name: TPathName): TPathName;
+{ name with its last character c: a temporary copy's or a backup's name. }
+function WithLast(name: TPathName; c: Char): TPathName;
 begin
   if Length(name) > 0 then
-    name[Length(name)] := '$';
-  TempName := name;
+    name[Length(name)] := c;
+  WithLast := name;
+end;
+
+function TempName(name: TPathName): TPathName;
+begin
+  TempName := FileUtil.WithLast(name, '$');
 end;
 
 function RewriteTemp(var f: file; name: TPathName): Boolean;
@@ -250,9 +259,7 @@ end;
 
 function BackupName(name: TPathName): TPathName;
 begin
-  if Length(name) > 0 then
-    name[Length(name)] := '%';
-  BackupName := name;
+  BackupName := FileUtil.WithLast(name, '%');
 end;
 
 procedure NewSet(var s: TFileSet; dir: TPathName);
