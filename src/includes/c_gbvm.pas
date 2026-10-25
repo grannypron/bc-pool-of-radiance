@@ -56,7 +56,7 @@ const
   { the sky and ceiling colour and the alternate sky colour; a write redraws the sky }
   SKY_CEILING_COLOR = $49FD;
   ALT_SKY_COLOR = $49FE;
-  { SaveLoad packs 2 * monster-pictures flag + portraits flag }
+  { SaveLoad packs 4 * music off + 2 * monster-pictures flag + portraits flag (TGbvmZone0State.settings) }
   SETTINGS = $49FF;
   { New Phlan's script (ECL block 0), one of the cells $4A00..$4A1F each script has to itself (EclMenu.EclInit clears
     them): 1 once a shop's, the vault's (#606) or the sage's (#868) greeting has been given this visit (the script's

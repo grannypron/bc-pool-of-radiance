@@ -10,7 +10,7 @@ var
   total: LongInt;
   mapPos: LongInt;
 
-{ Check that zone 0's field at actual is at GBVM word address addr. }
+{ Check that zone 0's field at actual is at GBVM word address addr: C_GBVM's name for it, where it has one. }
 procedure Zone0At(addr: Word; actual: Word; what: String);
 begin
   TestKit.CheckEqualsL(LongInt(addr - $4900) * 2, actual, 'zone 0''s ' + what + ' is at its GBVM address');
@@ -38,22 +38,30 @@ begin
   TestKit.CheckEqualsL(13137, total, 'a saved game is SSI''s 13,137 bytes');
 
   with GameVars.zone0^ do begin
-    Zone0At($49C3, Ofs(partyX) - Ofs(words), 'partyX');
-    Zone0At($49C4, Ofs(partyY) - Ofs(words), 'partyY');
-    Zone0At($49C5, Ofs(mapId) - Ofs(words), 'mapId');
-    Zone0At($49C6, Ofs(clock) - Ofs(words), 'clock');
-    Zone0At($49E5, Ofs(antimagic) - Ofs(words), 'antimagic');
-    Zone0At($49F0, Ofs(previousX) - Ofs(words), 'previousX');
-    Zone0At($49F2, Ofs(previousScriptId) - Ofs(words), 'previousScriptId');
-    Zone0At($49FB, Ofs(noAutomap) - Ofs(words), 'noAutomap');
-    Zone0At($49FC, Ofs(gameSpeed) - Ofs(words), 'gameSpeed');
-    Zone0At($49FF, Ofs(settings) - Ofs(words), 'settings');
+    Zone0At(C_GBVM.PARTY_X, Ofs(partyX) - Ofs(words), 'partyX');
+    Zone0At(C_GBVM.PARTY_Y, Ofs(partyY) - Ofs(words), 'partyY');
+    Zone0At(C_GBVM.MAP_ID, Ofs(mapId) - Ofs(words), 'mapId');
+    Zone0At(C_GBVM.CLOCK, Ofs(clock) - Ofs(words), 'clock');
+    Zone0At(C_GBVM.ANTIMAGIC, Ofs(antimagic) - Ofs(words), 'antimagic');
+    Zone0At(C_GBVM.VIEW_3D, Ofs(view3dFlag) - Ofs(words), 'view3dFlag');
+    Zone0At(C_GBVM.MAP_3D_GFX1, Ofs(mapGraphics1) - Ofs(words), 'mapGraphics1');
+    Zone0At(C_GBVM.MAP_3D_GFX2, Ofs(mapGraphics2) - Ofs(words), 'mapGraphics2');
+    Zone0At(C_GBVM.PREV_X, Ofs(previousX) - Ofs(words), 'previousX');
+    Zone0At(C_GBVM.PREV_Y, Ofs(previousY) - Ofs(words), 'previousY');
+    Zone0At(C_GBVM.PREV_SCRIPT_ID, Ofs(previousScriptId) - Ofs(words), 'previousScriptId');
+    Zone0At(C_GBVM.NO_AUTOMAP, Ofs(noAutomap) - Ofs(words), 'noAutomap');
+    Zone0At(C_GBVM.GAME_SPEED, Ofs(gameSpeed) - Ofs(words), 'gameSpeed');
+    Zone0At(C_GBVM.SKY_CEILING_COLOR, Ofs(skyCeilingColor) - Ofs(words), 'skyCeilingColor');
+    Zone0At(C_GBVM.ALT_SKY_COLOR, Ofs(alternateSkyColor) - Ofs(words), 'alternateSkyColor');
+    Zone0At(C_GBVM.SETTINGS, Ofs(settings) - Ofs(words), 'settings');
     Zone0At($4A00, Ofs(entryWords) - Ofs(words), 'entryWords');
     Zone0At($4A7C, Ofs(nomadCampFlags) - Ofs(words), 'nomadCampFlags');
     Zone0At($4A8C, Ofs(buccaneersBaseGate) - Ofs(words), 'buccaneersBaseGate');
     Zone0At($4A9F, Ofs(nomadCampGate) - Ofs(words), 'nomadCampGate');
     Zone0At($4AA0, Ofs(easternSitesGate) - Ofs(words), 'easternSitesGate');
-    Zone0At($4AA2, Ofs(yarashPyramidLeft) - Ofs(words), 'yarashPyramidLeft');
+    Zone0At(C_GBVM.YARASH_PYRAMID_LEFT, Ofs(yarashPyramidLeft) - Ofs(words), 'yarashPyramidLeft');
+    Zone0At(C_GBVM.YARASH_MISSION_DONE, Ofs(yarashMissionDone) - Ofs(words), 'yarashMissionDone');
+    Zone0At(C_GBVM.WALLSLOT_ID + 1, Ofs(savedWalls) - Ofs(words), 'savedWalls');
   end;
   TestKit.Done;
 end.
