@@ -471,6 +471,27 @@ begin
   TestKit.CheckEqualsL(1, c^.spellsKnown[C_SPELL.SHIELD], 'and knows Shield');
   TestKit.CheckEqualsL(0, c^.spellsKnown[C_SPELL.MAGIC_MISSILE], 'but not Magic Missile');
 
+  { a cleric drained from level 2 to 1 keeps no second slot and no spell past its slots (POR-0223, #955) }
+  Reset(C_RACE.HUMAN);
+  c^.charClass := C_CLASS.CLERIC;
+  c^.classLevels[C_LEVEL.CLERIC] := 1;
+  c^.wisCur := 9;
+  c^.clericSpells[1] := 2;
+  c^.memorizedSpells[0] := C_SPELL.BLESS;
+  c^.memorizedSpells[1] := C_SPELL.MAGIC_MISSILE;
+  c^.memorizedSpells[2] := C_SPELL.BLESS + C_SPELL.PENDING_FLAG;
+  ClassCal.FitSpellsToLevel(c);
+  TestKit.CheckEqualsL(1, c^.clericSpells[1], 'level 1''s one slot');
+  TestKit.CheckEqualsL(C_SPELL.BLESS, c^.memorizedSpells[0], 'the first Bless stays');
+  TestKit.CheckEqualsL(0, c^.memorizedSpells[2], 'the second, pending, is cleared');
+  TestKit.CheckEqualsL(0, c^.memorizedSpells[1], 'and a magic-user spell with no magic-user slots');
+  c^.classLevels[C_LEVEL.CLERIC] := 2;
+  c^.clericSpells[1] := 2;
+  c^.memorizedSpells[2] := C_SPELL.BLESS;
+  ClassCal.FitSpellsToLevel(c);
+  TestKit.CheckEqualsL(2, c^.clericSpells[1], 'at level 2 the slots are RecalcBaseSkills''s, left alone');
+  TestKit.CheckEqualsL(C_SPELL.BLESS, c^.memorizedSpells[2], 'and both Blesses stay');
+
   { the Constitution bonus over every hit die }
   Reset(C_RACE.HUMAN);
   c^.charClass := C_CLASS.FIGHTER;

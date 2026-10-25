@@ -224,9 +224,16 @@ function ItemLimitsFor(creature: Types.PCharRecord): Byte;
 
 { The spell slots of a first-level caster in class cls (C_LEVEL): a cleric's one first-level slot and its Wisdom bonus
   (AwardWisdomBonus), a magic-user's one first-level slot, and none of a higher level; other classes are left alone.
-  Creation and a change of class (StartCasterClass) and a class that wakes at level 1 (ChgClass.AnnounceWoken) set
-  them, as RecalcBaseSkills sets only the slots of level 2 and up. }
+  Creation and a change of class (StartCasterClass), a class that wakes at level 1 (ChgClass.AnnounceWoken) and one
+  drained back to level 1 (FitSpellsToLevel) set them, as RecalcBaseSkills sets only the slots of level 2 and up. }
 procedure FirstLevelSlots(creature: Types.PCharRecord; cls: ShortInt);
+
+{ Bring creature's spells into line with the cleric and magic-user levels it can use after losing levels (a drain,
+  EffHndlr.DrainLevels, after RecalcBaseSkills): a class back at level 1 has level 1's slots (FirstLevelSlots), as
+  RecalcBaseSkills sets only those of level 2 and up, and the memorized spells, pending ones too, past the slots of
+  their class and spell level are cleared, the last first. So a caster drained from level 2 keeps no second slot, and
+  no spell it could not have memorized at its new level (POR-0223, #955). }
+procedure FitSpellsToLevel(creature: Types.PCharRecord);
 
 { A caster's first level in class cls (C_LEVEL), as creation gives it and a change of class does: its first-level slots
   (FirstLevelSlots); a cleric knows every first-level cleric spell, a magic-user Detect Magic, Read Magic, Shield and
@@ -306,6 +313,39 @@ begin
       if (castClass = C_SPELL.CLASS_CLERIC) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) and
           (creature^.clericSpells[levelSp] > 0) then
         creature^.spellsKnown[m] := 1;
+end;
+
+procedure FitSpellsToLevel(creature: Types.PCharRecord);
+var
+  kind: Byte;
+  lvl: Byte;
+  room: Byte;
+  have: Byte;
+  i: Byte;
+  id: Byte;
+begin
+  if CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) = 1 then
+    ClassCal.FirstLevelSlots(creature, C_LEVEL.CLERIC);
+  if CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) = 1 then
+    ClassCal.FirstLevelSlots(creature, C_LEVEL.MAGE);
+  with creature^ do
+    for kind := C_SPELL.CLASS_CLERIC to C_SPELL.CLASS_MAGE do
+      for lvl := 1 to Types.CASTER_LEVEL_LAST do begin
+        if kind = C_SPELL.CLASS_CLERIC then
+          room := clericSpells[lvl]
+        else
+          room := mageSpells[lvl];
+        have := 0;
+        for i := 0 to Types.SPELL_SLOT_LAST do begin
+          id := memorizedSpells[i] and C_SPELL.ID_MASK;
+          if (id >= 1) and (id <= C_SPELL.LAST) then
+            if (GameDefs.spellTable[id].castClass = kind) and (GameDefs.spellTable[id].levelSp = lvl) then begin
+              Inc(have);
+              if have > room then
+                memorizedSpells[i] := 0;
+            end;
+        end;
+      end;
 end;
 
 procedure StartCasterClass(creature: Types.PCharRecord; cls: ShortInt);
