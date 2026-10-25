@@ -1012,7 +1012,7 @@ type
   { View3D types. }
   PGeoMap = ^TGeoMap;
   PWallSlices = ^TWallSlices;
-  TGeoPlane = array[0..15, 0..15] of Byte;
+  TGeoPlane = array[0..MAP_LAST, 0..MAP_LAST] of Byte;
   TGeoMap = record
     { N = high nibble, E = low }
     wallsNE: TGeoPlane;
@@ -1027,6 +1027,14 @@ type
   { the three wall-set slots' 15 wall types in a row: slot s holds wall types 5s - 4 .. 5s }
   TWallSlices = array[1..15, 0..155] of Byte;
 
+{ True when square (x, y) lies on a 3D map, 0..MAP_LAST each way: the one bound Explored, ClueBook and MapNotes keep. }
+function OnMap(x, y: Integer): Boolean;
+
 implementation
+
+function OnMap(x, y: Integer): Boolean;
+begin
+  OnMap := (x >= 0) and (x <= MAP_LAST) and (y >= 0) and (y <= MAP_LAST);
+end;
 
 end.

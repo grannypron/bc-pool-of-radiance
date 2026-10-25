@@ -73,7 +73,7 @@ var
     map, east/west probes on the party's row are open; all other cells are solid. }
   function GetWallKind(px, py: ShortInt; pdir: Byte): Byte;
   begin
-    if (px >= 0) and (px <= 15) and (py >= 0) and (py <= 15) then begin
+    if Types.OnMap(px, py) then begin
       if View3D.GetBarrierType(px, py, pdir) = 0 then
         GetWallKind := 1
       else if View3D.GetWallType(px, py, pdir) = 0 then

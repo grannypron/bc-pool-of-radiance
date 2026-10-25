@@ -30,8 +30,8 @@ uses C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
-  { Spell preparation timers for the eight party slots. }
-  prepTimers: array[1..8] of Byte;
+  { Spell preparation timers for the party slots. }
+  prepTimers: array[1..Types.MAX_PARTY] of Byte;
   { Uninterrupted resting time when disturbable }
   restTicks: Word;
 

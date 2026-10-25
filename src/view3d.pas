@@ -153,12 +153,6 @@ begin
   y := y and Types.MAP_LAST;
 end;
 
-{ True when (x, y) lies on the 16x16 map }
-function Valid3DCoords(x, y: ShortInt): Boolean;
-begin
-  Valid3DCoords := (x >= 0) and (x <= Types.MAP_LAST) and (y >= 0) and (y <= Types.MAP_LAST);
-end;
-
 { The square GetBarrierType, GetWallType and GetMapEvent read: False for a square off the map in the areas of scripts
   0 (New Phlan) and 10 (Valhingen Graves), which read as 0 there; otherwise True, with (x, y) wrapped onto the map. }
 function MapSquare(var x, y: ShortInt): Boolean;
@@ -166,7 +160,7 @@ const
   SCRIPT_NEW_PHLAN = 0;
   SCRIPT_VALHINGEN = 10;
 begin
-  MapSquare := View3D.Valid3DCoords(x, y) or
+  MapSquare := Types.OnMap(x, y) or
                ((GameVars.eclScriptId <> SCRIPT_NEW_PHLAN) and (GameVars.eclScriptId <> SCRIPT_VALHINGEN));
   View3D.WrapCoords(x, y);
 end;
@@ -255,7 +249,7 @@ var
     prevWall := 0;
     while side < 4 do begin
       wallFront := View3D.GetWallType(wx, wy, facing);
-      if not View3D.Valid3DCoords(wx, wy) and (View3D.GetWallType(wx, wy, other) = 0) then
+      if not Types.OnMap(wx, wy) and (View3D.GetWallType(wx, wy, other) = 0) then
         prevWall := 0;
       if wallFront <> 0 then begin
         if prevWall > 0 then
