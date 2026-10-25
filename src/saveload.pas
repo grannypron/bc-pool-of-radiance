@@ -165,6 +165,8 @@ var
 begin
   list := nil;
   SaveMenu.CheckSaveDir;
+  { a write the game was ended in is undone first }
+  if not FileUtil.RecoverFile(GameVars.saveDirectory + 'charlist.txt') then Exit;
   if not FileUtil.Exists(GameVars.saveDirectory + 'charlist.txt') then Exit;
   { an error still pending would make the Reset do nothing }
   ioRes := IOResult;

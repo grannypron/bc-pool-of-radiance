@@ -1,7 +1,7 @@
 { Tests for FileUtil: a record written and read back, the size check, a read-only file, a file opened with an I/O error
   pending, erasing (DeleteChecked saying whether the file is gone), the temporary copy and backup names, the copy put in
   place only when whole, a set of files put in place all or none (CommitSet), a commit ended part way undone or
-  finished (RecoverSet), and DOS device names. }
+  finished (RecoverSet), one file put in place the same way (PutInPlace, RecoverFile, #914), and DOS device names. }
 {$I COMPILER.INC}
 program TFileUtl;
 
@@ -76,6 +76,21 @@ begin
   Assign(g, from);
   Rename(g, name);
   res := IOResult;
+end;
+
+{ Write r holding number a as name's temporary copy: True when it is whole. }
+function CopyNumber(name: FileUtil.TPathName; a: Word): Boolean;
+var
+  g: file;
+  good: Boolean;
+begin
+  r.a := a;
+  good := FileUtil.RewriteTemp(g, name);
+  if good then begin
+    FileUtil.WriteChecked(g, r, SizeOf(r), good);
+    good := FileUtil.CloseTemp(g, name, good);
+  end;
+  CopyNumber := good;
 end;
 
 { A, B, C and D's names, as a slot's reader knows them (each to erase: RecoverSet does not look). }
@@ -312,6 +327,62 @@ begin
   FileUtil.DeleteFile(FA);
   FileUtil.DeleteFile(FB);
   FileUtil.DeleteFile(FC);
+  { one file put in place (#914): no old file, then an old one replaced, no backup left either way }
+  TestKit.Check(CopyNumber(FA, 61) and FileUtil.PutInPlace(FA), 'a file with no old one is put in place');
+  TestKit.CheckEqualsL(61, NumberIn(FA), 'A is the new one');
+  TestKit.Check(NoneLeft, 'with no copy or backup left');
+  TestKit.Check(CopyNumber(FA, 62) and FileUtil.PutInPlace(FA), 'an old file is replaced');
+  TestKit.CheckEqualsL(62, NumberIn(FA), 'A is the new one');
+  TestKit.Check(NoneLeft, 'and its backup is gone');
+  { the old file cannot be moved aside: a folder holds its backup's name (DOS only: Linux opens a folder as a file, so
+    FileUtil.Exists takes it for a backup left by an ended commit) }
+{$IFNDEF FPC}
+  MkDir(FileUtil.BackupName(FA));
+  ioRes := IOResult;
+  TestKit.Check(CopyNumber(FA, 63) and not FileUtil.PutInPlace(FA), 'an old file that cannot move aside fails');
+  TestKit.CheckEqualsL(62, NumberIn(FA), 'and A is the old one');
+  TestKit.Check(not FileUtil.Exists(FileUtil.TempName(FA)), 'the copy erased');
+  RmDir(FileUtil.BackupName(FA));
+  ioRes := IOResult;
+{$ENDIF}
+  { the copy cannot be renamed in: it is gone by then }
+  TestKit.Check(CopyNumber(FA, 64), 'a copy is written');
+  FileUtil.DeleteFile(FileUtil.TempName(FA));
+  TestKit.Check(not FileUtil.PutInPlace(FA), 'a copy that cannot be renamed in fails');
+  TestKit.CheckEqualsL(62, NumberIn(FA), 'and the old A is put back');
+  TestKit.Check(NoneLeft, 'with no backup left');
+  { a read-only file stays as it was (DOS only: Free Pascal's SetFAttr sets no attribute on Linux) }
+{$IFNDEF FPC}
+  Assign(f, FA);
+  SetFAttr(f, ReadOnly);
+  ioRes := IOResult;
+  TestKit.Check(CopyNumber(FA, 65) and not FileUtil.PutInPlace(FA), 'a read-only file is not replaced');
+  TestKit.CheckEqualsL(62, NumberIn(FA), 'A is the old one');
+  TestKit.Check(NoneLeft, 'and the copy erased');
+  Assign(f, FA);
+  SetFAttr(f, 0);
+  ioRes := IOResult;
+{$ENDIF}
+  { the game ended with the old file aside and the copy not yet in: RecoverFile puts the old one back }
+  TestKit.Check(CopyNumber(FA, 66), 'a copy is written');
+  MoveFile(FA, FileUtil.BackupName(FA));
+  TestKit.Check(not FileUtil.Exists(FA), 'A is aside');
+  TestKit.Check(FileUtil.RecoverFile(FA), 'an ended PutInPlace is undone');
+  TestKit.CheckEqualsL(62, NumberIn(FA), 'A is the old one');
+  TestKit.Check(NoneLeft, 'with no copy or backup left');
+  TestKit.Check(FileUtil.RecoverFile(FA), 'and with nothing to undo, RecoverFile is no matter');
+  TestKit.CheckEqualsL(62, NumberIn(FA), 'A stays');
+  { the game ended after a file that had none was given its mark: RecoverFile leaves none }
+  FileUtil.DeleteFile(FB);
+  TestKit.Check(CopyNumber(FB, 67), 'a copy of B is written');
+  Assign(f, FileUtil.BackupName(FB));
+  Rewrite(f, 1);
+  Close(f);
+  ioRes := IOResult;
+  TestKit.Check(FileUtil.RecoverFile(FB), 'an ended PutInPlace of a new file is undone');
+  TestKit.Check(not FileUtil.Exists(FB), 'B is not there');
+  TestKit.Check(NoneLeft, 'with no copy or mark left');
+  FileUtil.DeleteFile(FA);
   { device names }
   TestKit.Check(FileUtil.IsDeviceName('CON'), 'CON is a device');
   TestKit.Check(FileUtil.IsDeviceName('NUL'), 'NUL is a device');

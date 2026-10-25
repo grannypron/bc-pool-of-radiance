@@ -71,6 +71,8 @@ var
   short: Boolean;
 begin
   Bestiary.Clear;
+  { a write the game was ended in is undone first }
+  ok := FileUtil.RecoverFile(fn);
   if not FileUtil.OpenReadOnly(f, fn) then Exit;
   BlockRead(f, h, SizeOf(h), n);
   ok := (IOResult = 0) and (n = SizeOf(h)) and (h.sig = SIG) and (h.version >= 1) and

@@ -163,6 +163,9 @@ var
 begin
   visited := 0;
   FillChar(GameVars.treasureMoney, SizeOf(GameVars.treasureMoney), 0);
+  { a write the game was ended in is undone first }
+  if not FileUtil.RecoverFile(GameVars.saveDirectory + SESSION_FILE) then
+    Exit;
   if not FileUtil.OpenReadOnly(f, GameVars.saveDirectory + SESSION_FILE) then
     Exit;
   BlockRead(f, head, SizeOf(head), n);
