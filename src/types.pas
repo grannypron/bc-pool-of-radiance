@@ -24,6 +24,8 @@ const
   MAP_LAST = 15;
   { the last memorized-spell slot (TSpellSlots); Turbo Pascal 6 has no High() }
   SPELL_SLOT_LAST = 20;
+  { the most classes a race takes (TRuleRaceClasses.classes), 1..RACE_CLASSES_LAST }
+  RACE_CLASSES_LAST = 13;
   { the highest spell level a cleric or magic-user casts here (TCharRecord.clericSpells and mageSpells) }
   CASTER_LEVEL_LAST = 3;
   { the item types ITEMS holds, 0..BASE_ITEM_LAST; CharHlp.baseItems has one entry more, BASE_ITEM_OVERFLOW }
@@ -493,7 +495,7 @@ type
   TRuleRaceClasses = record
     count: ShortInt;
     { class IDs; 0 fills past count }
-    classes: array[1..13] of ShortInt;
+    classes: array[1..RACE_CLASSES_LAST] of ShortInt;
   end;
   { classLevels indexes a class trains (GameDefs.classParts), by position or by name; -1 fills a shorter list }
   TRuleClassParts = packed record

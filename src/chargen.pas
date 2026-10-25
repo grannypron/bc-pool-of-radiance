@@ -9,6 +9,8 @@ interface
   play (inGame), #885. }
 procedure MainMenu(inGame: Boolean);
 
+{ The combat-icon editor for curChar: head, weapon, size and colours, each picked from a grid of the icon with every
+  option; Keep keeps the icon, Exit puts it back as it was. }
 procedure CustomizeIcon;
 
 { The portrait picker for curChar; canCancel lets Escape leave it with the portrait unchanged (camp's Alter). }
@@ -25,6 +27,12 @@ function Modifiable: Boolean;
   npcTreasureShare as it is. }
 procedure ModifyCharacter(levelled: Boolean);
 
+{ Set curChar's hpMax to hp, but not below ClassCal.HpMinimum or 1, keeping the damage it has taken (hpCur not below
+  0): ModifyCharacter's hit-point row, levelled, and the Companion Tools' lowered level. }
+procedure SetHpMax(hp: Integer);
+
+{ curChar gains a level in each class of trainable (GameDefs.classBit), with its hit points, as a training hall gives
+  it; restoreDrain restores a drained level for each. The Companion Tools' editor raises levels with it too. }
 procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
@@ -59,29 +67,6 @@ const
 
 procedure CreateCharacterMenu; forward;
 const
-  { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
-  startingAge: array[1..7, C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAge = (
-    ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
-    ((base: 650; num: 10; sides: 10), (base: 0; num: 0; sides: 0), (base: 130; num: 5; sides: 6),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 150; num: 5; sides: 6),
-     (base: 100; num: 5; sides: 6), (base: 0; num: 0; sides: 0)),
-    ((base: 300; num: 3; sides: 12), (base: 0; num: 0; sides: 0), (base: 60; num: 5; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
-     (base: 80; num: 5; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
-     (base: 22; num: 3; sides: 8), (base: 0; num: 0; sides: 0)),
-    ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 20; num: 1; sides: 4), (base: 0; num: 0; sides: 0), (base: 13; num: 1; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 20; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
-     (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 4),
-     (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
   { The oldest age in each age category, in years, by race }
   ageCat: array[1..7] of Types.TRuleAgeCategories = (
     (youngAdult: 50; mature: 150; middleAged: 250; old: 350; venerable: 450), { dwarf }
@@ -124,7 +109,6 @@ var
   ext: Boolean;
   ext2: Boolean;
   redraw: Boolean;
-  stateB: Byte;
   { SaveGame's result: the menu goes on either way }
   saved: Boolean;
   { a training hall here, or free training on }
@@ -136,7 +120,6 @@ var
   refusal: Types.TStr40;
 begin
   GameVars.virtualDisk := 3;
-  stateB := C_IFC.INDOORS;
   redraw := True;
   stingMode := 0;
   cur := PartyMnu.CMD_ADD;
@@ -179,7 +162,8 @@ begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
       end;
     end else begin
-      if not (ch in ['E', 'S']) then
+      { a command that may change the party marks it unsaved; Exit, Save, Settings and free training do not }
+      if not (ch in ['E', 'S', 'G', 'J']) then
         GameVars.recentSaved := 0;
       case ch of
         'C': CharGen.CreateCharacterMenu;
@@ -212,7 +196,7 @@ begin
                saved := SaveLoad.SaveGame;
         'B': if GameVars.creatureList <> nil then
              begin
-               GameVars.ifcState := stateB;
+               GameVars.ifcState := C_IFC.INDOORS;
                TextRend.ClearBottomLine;
                Exit;
              end;
@@ -242,7 +226,6 @@ end;
   race outside Dwarf..Human leaves the panes blank. }
 procedure ShowRaceInfo(race: ShortInt);
 const
-  ABIL_LABELS: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
   { by classLevels index }
   PART_ABBREVS: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of String[2] = (
     'CL', 'DR', 'FI', 'PA', 'RA', 'MU', 'TH', 'MO');
@@ -297,7 +280,7 @@ begin
   if (race < C_RACE.DWARF) or (race > C_RACE.HUMAN) then
     Exit;
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
-    TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
+    TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, GameDefs.abilityNames[i]);
     adj := raceAbilityAdj[race].values[i];
     if adj > 0 then
       s := '+' + StrUtil.NumStr(adj)
@@ -311,8 +294,8 @@ begin
   FillChar(isSingle, SizeOf(isSingle), 0);
   hasMulti := False;
   cnt := ClassCal.classesByRace[race].count;
-  if cnt > 13 then
-    cnt := 13;
+  if cnt > Types.RACE_CLASSES_LAST then
+    cnt := Types.RACE_CLASSES_LAST;
   row := FIRST_ROW;
   for slot := 1 to cnt do begin
     cls := ClassCal.classesByRace[race].classes[slot];
@@ -379,7 +362,6 @@ var
   cls: ShortInt;
   i: ShortInt;
   cnt: Byte;
-  conB: Integer;
   clsCount: Byte;
   goldDice: Byte;
   addExit: Boolean;
@@ -540,8 +522,8 @@ begin
   MenuCore.FreeStringList(list);
   cnt := ClassCal.classesByRace[creature^.race].count;
   { the table's width }
-  if cnt > 13 then
-    cnt := 13;
+  if cnt > Types.RACE_CLASSES_LAST then
+    cnt := Types.RACE_CLASSES_LAST;
   MenuCore.AllocStringList(cnt + 1, list);
   list^.inUse := 1;
   list^.name := 'Pick Class';
@@ -588,24 +570,7 @@ begin
   if not PickFromList then Exit;
   creature^.alignment := ClassCal.alignByClass[creature^.charClass].alignments[sel];
   MenuCore.FreeStringList(list);
-  { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
-    maximum) of one component class. }
-  if creature^.charClass <= C_CLASS.MONK then
-    with startingAge[creature^.race, creature^.charClass] do
-      creature^.age := Dice.RollDice(num, sides) + base
-  else
-  begin
-    case creature^.charClass of
-      C_CLASS.CLERIC_FIGHTER, C_CLASS.CLERIC_FIGHTER_MAGE, C_CLASS.CLERIC_RANGER, C_CLASS.CLERIC_MAGE,
-        C_CLASS.CLERIC_THIEF: cls := C_CLASS.CLERIC;
-      C_CLASS.FIGHTER_THIEF: cls := C_CLASS.FIGHTER;
-    else
-      { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
-      cls := C_CLASS.MAGE;
-    end;
-    with startingAge[creature^.race, cls] do
-      creature^.age := base + sides * num;
-  end;
+  creature^.age := ClassCal.StartingAge(creature^.race, creature^.charClass);
   { stat roll / derived / keep loop }
   savedCur := GameVars.curChar;
   GameVars.curChar := creature;
@@ -693,7 +658,6 @@ begin
     if creature^.classLevels[C_LEVEL.THIEF] > 0 then
       ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     with creature^ do begin
-      hpCur := hpMax;
       attacks := 2;
       unarmedRollsA[1] := 1;
       unarmedDiceA[1] := 2;
@@ -713,15 +677,7 @@ begin
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
         too little) }
       hpRolled := ClassCal.RollFirstLevelHp(creature, $FF);
-      hpMax := hpRolled;
-      conB := ClassCal.ConHpBonus(creature, $FF);
-      if conB < 0 then begin
-        if hpMax > Abs(conB) + clsCount then
-          hpMax := (hpMax + conB) div clsCount
-        else
-          hpMax := 1;
-      end else
-        hpMax := (hpMax + conB) div clsCount;
+      hpMax := ClassCal.DivideAmongClasses(hpRolled, ClassCal.ConHpBonus(creature, $FF), clsCount);
       hpCur := hpMax;
       hpRolled := hpRolled div clsCount;
     end;
@@ -789,6 +745,24 @@ begin
     CharGen.ModifyCharacter(False);
 end;
 
+procedure SetHpMax(hp: Integer);
+var
+  dmg: Integer;
+begin
+  with GameVars.curChar^ do begin
+    dmg := hpMax - hpCur;
+    if hp < ClassCal.HpMinimum(GameVars.curChar) then
+      hp := ClassCal.HpMinimum(GameVars.curChar);
+    if hp < 1 then
+      hp := 1;
+    hpMax := hp;
+    if hp - dmg < 0 then
+      hpCur := 0
+    else
+      hpCur := hp - dmg;
+  end;
+end;
+
 { ModifyCharacter: Up and Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and
   hit-point limits. Keep recalculates a thief's skills for the new Dexterity and, unless levelled, sets npcTreasureShare
   to 1; Exit restores the saved attributes, strExc, hpMax (and, levelled, hpCur) and cleric spell slots. A lowered
@@ -800,7 +774,7 @@ var
   savedExc: Byte;
   savedHp: Byte;
   savedHpCur: Byte;
-  savedClericSpells: array[1..3] of Byte;
+  savedClericSpells: array[1..Types.CASTER_LEVEL_LAST] of Byte;
   hold: ShortInt;
   key: Char;
   ext: Boolean;
@@ -864,24 +838,12 @@ var
   { Levelled, hpMax moved by k within the levels' limits, damage kept. }
   procedure StepHp(k: Integer);
   var
-    dmg: Integer;
     hp: Integer;
   begin
-    with GameVars.curChar^ do begin
-      dmg := hpMax - hpCur;
-      hp := hpMax + k;
-      if hp > ClassCal.HpMaximum(GameVars.curChar) then
-        hp := ClassCal.HpMaximum(GameVars.curChar);
-      if hp < ClassCal.HpMinimum(GameVars.curChar) then
-        hp := ClassCal.HpMinimum(GameVars.curChar);
-      if hp < 1 then
-        hp := 1;
-      hpMax := hp;
-      if hp - dmg < 0 then
-        hpCur := 0
-      else
-        hpCur := hp - dmg;
-    end;
+    hp := GameVars.curChar^.hpMax + k;
+    if hp > ClassCal.HpMaximum(GameVars.curChar) then
+      hp := ClassCal.HpMaximum(GameVars.curChar);
+    CharGen.SetHpMax(hp);
   end;
 
 begin
@@ -935,11 +897,9 @@ begin
                      RaiseToMinimum(hold);
                 C_ABIL.WISDOM: begin
                      RaiseToMinimum(hold);
-                     { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
-                       with no ceiling (they are 0 for a new first-level character) }
-                     if clericSpells[1] > 0 then
-                       clericSpells[1] := 1;
-                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
+                     { the cleric slots again for the new Wisdom, at any level: setting the first-level count to 1
+                       and adding the bonus again was right only at level 1 }
+                     ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
                    end;
                 C_ABIL.CONSTITUTION: begin
                      RaiseToMinimum(hold);
@@ -982,10 +942,7 @@ begin
                    end;
                 C_ABIL.WISDOM: begin
                      LowerToMaximum(hold);
-                     { clericSpells[1] only, same shape as the Left arm above }
-                     if clericSpells[1] > 0 then
-                       clericSpells[1] := 1;
-                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
+                     ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
                    end;
                 C_ABIL.CONSTITUTION: begin
                      LowerToMaximum(hold);
@@ -1026,6 +983,10 @@ begin
               if levelled then
                 GameVars.curChar^.hpCur := savedHpCur;
               Move(savedClericSpells, GameVars.curChar^.clericSpells, SizeOf(savedClericSpells));
+              { a Wisdom change above cleric level 1 ran RecalcBaseSkills, whose thief skills read the Dexterity
+                then }
+              if classLevels[C_LEVEL.THIEF] > 0 then
+                ClassCal.RecalcThiefSkills(Types.PCharRecord(GameVars.curChar));
               CharHlp.RecalcStats(Types.PCharRecord(GameVars.curChar));
               Exit;
             end;
@@ -1140,12 +1101,12 @@ begin
       if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
         Inc(classMask, GameDefs.classBit[cls]);
         lvl := classLevels[cls];
-        { xp[] runs to level 9 }
-        if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < 9) then
+        { xp[] runs to C_LEVEL.LEVEL_LAST }
+        if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < C_LEVEL.LEVEL_LAST) then
           if (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GameDefs.classBit[cls]);
-              if lvl < 8 then
+              if lvl < C_LEVEL.LEVEL_LAST - 1 then
                 nextXp := GameDefs.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
               else
                 nextXp := 0;
@@ -1213,6 +1174,9 @@ end;
   a script adds. A character with no file, once Escape gives up at the save disk prompt, is taken off the roster. Added
   entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
 procedure AddCharacterMenu;
+const
+  { the most player characters, not NPCs, a party takes }
+  MAX_PCS = 6;
 var
   list: Types.PItemRec;
   m: Types.PItemRec;
@@ -1280,7 +1244,7 @@ begin
                 Inc(nonNpc);
               if CharHlp.GetClassLevel(p, C_LEVEL.RANGER_BIT) > 0 then
                 Inc(rangers);
-              if p^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL] then
+              if p^.alignment in C_ALIGN.EVIL_ALIGNMENTS then
                 hasEvil := True;
               if CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0 then
                 paladin := p;
@@ -1288,7 +1252,7 @@ begin
             end;
             newPaladin := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) > 0;
             newRanger := CharHlp.GetClassLevel(creature, C_LEVEL.RANGER_BIT) > 0;
-            newEvil := creature^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL];
+            newEvil := creature^.alignment in C_ALIGN.EVIL_ALIGNMENTS;
             if (p = nil) and
                 ((newPaladin and hasEvil) or (newRanger and (rangers >= 3)) or
                  (newEvil and (paladin <> nil))) then begin
@@ -1307,7 +1271,7 @@ begin
               non-NPCs, or an NPC (C_NPC.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
             else if (p = nil) and (GameVars.zone1^[C_GBVM.PARTY_SIZE] < Types.MAX_PARTY) and
-                (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
+                (CharHlp.IsNpc(creature) or (nonNpc < MAX_PCS)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
               { C_NPC.FLAG clear }
@@ -1323,7 +1287,8 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc > 5) or (GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
+  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc >= MAX_PCS) or
+        (GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;
@@ -1571,7 +1536,6 @@ var
   readyPic: Types.PImgBuf;
   actionPic: Types.PImgBuf;
   shownPic: Types.PImgBuf;
-  p: Types.PCharRecord;
 
   { PartPic: Frame frame of head (kind 0) or weapon (kind 1) id at tSize, loaded from CHEAD or CBODY on disk 3 unless
     it is the one loaded last; nil when id is past the ones there are or the block is missing }
@@ -2104,10 +2068,7 @@ begin
   Blit.FreePic(actionPic);
   Blit.FreePic(shownPic);
   { a party member's combat icon; a character being created has no slot of its own yet }
-  p := GameVars.creatureList;
-  while (p <> nil) and (p <> GameVars.curChar) do
-    p := p^.nextCharAddr;
-  if (p <> nil) and (GameVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
+  if Party.IsPartyMember(GameVars.curChar) and (GameVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
     SaveLoad.LoadCharIconAnim(True);
     if GameVars.gLocType > C_AREA.LOC_3D_MAP then
       { the party map icon LoadCharIconAnim freed }

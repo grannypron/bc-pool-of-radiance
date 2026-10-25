@@ -97,6 +97,16 @@ procedure RecalcBaseSkills(creature: Types.PCharRecord);
 
 procedure AwardWisdomBonus(creature: Types.PCharRecord);
 
+{ Work creature's cleric spell slots out again from its cleric level (CharHlp.GetClassLevel) and its Wisdom, as a
+  Wisdom change or a lowered level needs: at level 1 the one first-level slot, and above it the level's slots
+  (RecalcBaseSkills), each with the Wisdom bonus (AwardWisdomBonus). No usable cleric level leaves them as they are. }
+procedure ResetClericSlots(creature: Types.PCharRecord);
+
+{ A new character's age in years, by race (Dwarf..Human) and charClass, from the DMG's Character Age table (p.12): a
+  single class rolls its dice on its base, and a multiclass takes the oldest of its classes, the largest base plus the
+  dice's maximum (POR-0221, #945). }
+function StartingAge(race, charClass: ShortInt): Word;
+
 procedure RecalcSaves(creature: Types.PCharRecord);
 
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
@@ -258,6 +268,54 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 implementation
 
 uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_ABIL, C_EQUIP, C_ITEM, Dice, CharHlp, AbilAdj;
+
+const
+  { StartingAge's dice: the DMG's starting ages (p.12), by race and class (C_LEVEL); the monk column (7) has only the
+    DMG's human monk, 21 + 1d4, as creation offers no monk }
+  ageDice: array[C_RACE.DWARF..C_RACE.HUMAN, C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleAge = (
+    ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
+     (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
+    ((base: 650; num: 10; sides: 10), (base: 0; num: 0; sides: 0), (base: 130; num: 5; sides: 6),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 150; num: 5; sides: 6),
+     (base: 100; num: 5; sides: 6), (base: 0; num: 0; sides: 0)),
+    ((base: 300; num: 3; sides: 12), (base: 0; num: 0; sides: 0), (base: 60; num: 5; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
+     (base: 80; num: 5; sides: 4), (base: 0; num: 0; sides: 0)),
+    ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
+     (base: 22; num: 3; sides: 8), (base: 0; num: 0; sides: 0)),
+    ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
+     (base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
+    ((base: 20; num: 1; sides: 4), (base: 0; num: 0; sides: 0), (base: 13; num: 1; sides: 4),
+     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
+     (base: 20; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
+    ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
+     (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 8),
+     (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
+
+function StartingAge(race, charClass: ShortInt): Word;
+var
+  p: Byte;
+  part: ShortInt;
+  oldest: Word;
+begin
+  if charClass <= C_CLASS.MONK then
+    with ageDice[race, charClass] do
+      StartingAge := Dice.RollDice(num, sides) + base
+  else begin
+    oldest := 0;
+    for p := 1 to 3 do begin
+      part := GameDefs.classParts[charClass].values[p];
+      if (part >= C_LEVEL.CLERIC) and (part <= C_LEVEL.MONK) then
+        with ageDice[race, part] do
+          if base + sides * num > oldest then
+            oldest := base + sides * num;
+    end;
+    StartingAge := oldest;
+  end;
+end;
 
 function ItemLimitsFor(creature: Types.PCharRecord): Byte;
 var
@@ -480,6 +538,20 @@ begin
       for lvl := 1 to Types.CASTER_LEVEL_LAST do
         if clericSpells[lvl] > 0 then
           Inc(clericSpells[lvl], wisBonusSpells[w, lvl]);
+  end;
+end;
+
+procedure ResetClericSlots(creature: Types.PCharRecord);
+var
+  lvl: ShortInt;
+begin
+  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
+  if lvl > 1 then
+    ClassCal.RecalcBaseSkills(creature)
+  else if lvl = 1 then begin
+    FillChar(creature^.clericSpells, SizeOf(creature^.clericSpells), 0);
+    creature^.clericSpells[1] := 1;
+    ClassCal.AwardWisdomBonus(creature);
   end;
 end;
 

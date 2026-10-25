@@ -78,6 +78,9 @@ const
     'Fighter/Thief',
     'Fighter/Magic-User/Thief',
     'Magic-User/Thief');
+  { The abilities' three-letter labels, indexed like TCharRecord.stats (C_ABIL): the character sheet's, the race
+    screen's and the Dual Class screen's. }
+  abilityNames: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of string[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
   { Race names, indexed by TCharRecord.race. }
   raceNames: array[C_RACE.MONSTER..C_RACE.HUMAN] of string[8] = (
     'Monster',

@@ -120,15 +120,7 @@ begin
     TextRend.DisplayString(1, 5, White, GameDefs.classNames[creature^.charClass]);
   { the six ability scores }
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
-    case i of
-      C_ABIL.STRENGTH: s := 'STR ';
-      C_ABIL.INTELLIGENCE: s := 'INT ';
-      C_ABIL.WISDOM: s := 'WIS ';
-      C_ABIL.DEXTERITY: s := 'DEX ';
-      C_ABIL.CONSTITUTION: s := 'CON ';
-      C_ABIL.CHARISMA: s := 'CHA ';
-    end;
-    TextRend.DisplayString(1, i + 7, LightGreen, s);
+    TextRend.DisplayString(1, i + 7, LightGreen, GameDefs.abilityNames[i] + ' ');
     ViewChar.PrintStat(i, False);
   end;
   ViewChar.PrintMoney;
