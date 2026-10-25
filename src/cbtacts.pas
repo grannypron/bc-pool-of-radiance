@@ -104,8 +104,8 @@ procedure ReportAreaCatch(var caught: Types.TSlotList);
 implementation
 
 uses C_ITEM, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, Magic, C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL,
-  C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend, StrUtil,
-  CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog;
+  C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, C_SPRITE, Border, CbtMap, CharHlp, FxEngine, Pathing, SoundDrv, TextRend,
+  StrUtil, CharDisp, AbilAdj, Dice, Blit, ClassCal, Bestiary, CbtLog;
 
 type
   { A spell's rule for the spell-aim count (#840): how it tells who the spell cannot affect, whatever the dice }
@@ -128,12 +128,6 @@ var
   aimSpell: Byte;
 
 const
-  { Combat sprite cells the spell-aim preview draws with: the spell missile, the lightning bolt, the effect sparkle and
-    the damage burst }
-  SPRITE_MISSILE = 18;
-  SPRITE_LIGHTNING = 19;
-  SPRITE_SPARKLE = 22;
-  SPRITE_BURST = 23;
   { The spell-aim count's rules: none, or Sleep's pool, which takes only so many. Curse, Secret and Pools keep their
     own table here. }
   RULE_NONE = 0;
@@ -880,15 +874,11 @@ begin
                               (Integer(defense) - Types.PAttackPhaseView(def)^.acCurArr[0]), rolled);
         if rolled or CharHlp.IsHelpless(def) then begin
           anyHit := True;
-          if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image)
-             and (Dice.RollDice(1, image^.strength + 1) > 1) then begin
+          if CharHlp.HasEffect(def, C_EFFECT.MIRROR_IMAGE, image) and FxEngine.ImageStruck(image) then begin
             { the blow strikes an image }
             SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.MISS], group);
             CbtActs.ProcessAttackResult(att, def, atkType, 0, 0, False);
-            CharDisp.PrintNameString(def, 'lost an image', 10, True);
-            Dec(image^.strength);
-            if image^.strength = 0 then
-              FxEngine.RemoveEffect(def, C_EFFECT.MIRROR_IMAGE, nil);
+            FxEngine.LoseImage(def, image);
           end else begin
             Inc(hitsMade[phase]);
             SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.IMPACT], group);
@@ -1144,9 +1134,9 @@ end;
 function AimMarker(spell: Byte): Byte;
 begin
   if CbtActs.HostileSpell(spell) then
-    AimMarker := SPRITE_MISSILE
+    AimMarker := C_SPRITE.MISSILE
   else
-    AimMarker := SPRITE_SPARKLE;
+    AimMarker := C_SPRITE.SPARKLE;
 end;
 
 { The spell-aim count's rule for spell (areaRules), RULE_NONE when it has none. }
@@ -1286,7 +1276,7 @@ begin
         if not b then
           if spell = C_SPELL.ITEM_JAVELIN_LIGHTNING then begin
             aimSpell := spell;
-            CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, SPRITE_LIGHTNING, True);
+            CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, C_SPRITE.LIGHTNING, True);
           end else
             CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
@@ -1311,11 +1301,11 @@ begin
           { line 23 counts who the spell will catch (#840) }
           aimSpell := spell;
           case kind of
-            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, SPRITE_LIGHTNING, True);
-            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, spell, 0, SPRITE_SPARKLE, True);
+            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, C_SPRITE.LIGHTNING, True);
+            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, spell, 0, C_SPRITE.SPARKLE, True);
           else
             if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then
-              CbtMap.StartSpellPreview(Types.AimBlast, spell, size, SPRITE_BURST, True)
+              CbtMap.StartSpellPreview(Types.AimBlast, spell, size, C_SPRITE.BURST, True)
             else
               CbtMap.StartSpellPreview(Types.AimBlast, spell, size, CbtActs.AimMarker(spell), True);
           end;

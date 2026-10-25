@@ -200,7 +200,7 @@ var
   pendingEffectId: Byte;
   { damage before hit-point subtraction }
   pendingDamage: Byte;
-  { C_EFFECT.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
+  { C_EFFECT.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid; 32 poison, 64 disease, 128 blood drain }
   elementMask: Byte;
   { current attack *or* current movement times 2 }
   currentAttackCurrent: Byte;

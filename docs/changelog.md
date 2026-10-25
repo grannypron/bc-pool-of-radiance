@@ -46,6 +46,11 @@
 - Changing the settings or turning on free training at the party menu no longer makes Exit to DOS ask you to save a party you have just saved.
 - The native version no longer quits as the first fight of a session begins.
 - A combatant paralysed, held or put to sleep by the free attacks of the enemies it steps away from now stays where it is, and its turn ends. Before, it finished the step, and a monster could even attack afterwards.
+- A basilisk's or medusa's petrifying gaze now reaches only a character who is up, within 3 squares and in sight. Before, it could stone a dying character anywhere on the map, and on the monster's first turn it gazed at no one, which could crash the native game or corrupt memory under DOS.
+- A creature that saves against a Stinking Cloud, or resists it, is now unaffected. Before, a save still left it coughing, and a creature whose magic resistance refused the cloud coughed or retched all the same.
+- Magic resistance no longer stops acid, blood drain or the damage of poison and disease.
+- A paladin's protection aura and a cleric's Prayer end while their carrier is down or dead. Silence, 15' Radius stays where it was cast.
+- Damage from poison, disease and blood drain now says so, rather than "from Magic".
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.

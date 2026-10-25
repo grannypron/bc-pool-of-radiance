@@ -7,6 +7,10 @@ interface
 
 uses Types;
 
+const
+  { TCharRecord.charType of the undead }
+  UNDEAD_TYPE = 4;
+
 procedure WeaponAdjust(creature: Types.PCharRecord);
 
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -273,8 +277,6 @@ const
   MOVE_LOADED = 9;
   MOVE_HEAVY = 6;
   MOVE_OVERLOADED = 3;
-  { TCharRecord.charType of the undead }
-  UNDEAD_TYPE = 4;
   { coins carried over the weight allowance: up to OVER_LIGHT, no change; up to OVER_LOADED, MOVE_LOADED; up to
     OVER_HEAVY, MOVE_HEAVY; more, MOVE_OVERLOADED }
   OVER_LIGHT = 512;

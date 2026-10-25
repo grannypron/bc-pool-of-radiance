@@ -67,6 +67,10 @@ procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: s
 
 procedure PrintHpRestoreMsg(creature: Types.PCharRecord);
 
+{ Out of combat, redraw the party list with the current character highlighted (DisplayParty), after a change to its hit
+  points or status; in combat nothing. }
+procedure RedrawPartyOutOfCombat;
+
 procedure DrawNoncombatWindows(inset: Boolean);
 
 procedure DisplayNoncombatInterface;
@@ -622,6 +626,11 @@ begin
   else
     s := 'is partially healed';
   CharDisp.PrintNameString(creature, s, 10, True);
+  CharDisp.RedrawPartyOutOfCombat;
+end;
+
+procedure RedrawPartyOutOfCombat;
+begin
   if GameVars.ifcState <> C_IFC.COMBAT then
     CharDisp.DisplayParty(GameVars.curChar);
 end;
