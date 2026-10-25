@@ -206,6 +206,12 @@ function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boole
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
+{ The spell Use casts from item: its effect, an effect past C_SPELL.LAST being item spell effect -
+  C_SPELL.ITEM_EFFECT_SHIFT (item effects 80..90 are spells 57..67). C_SPELL.NONE for a scroll, whose spells are picked
+  from its list, for an item with no effect or one readying applies (special $80 and up), and for an effect past the
+  spell table, from corrupt or edited item data (#708). }
+function ItemSpell(item: Types.PItemRec): Byte;
+
 { True when item is a scroll creature can read (ScrollLegible) and could use: readied, or of a class Ready accepts. The
   two hands a readied scroll takes are not asked for. The Cast list offers these scrolls' spells, and Items > Use takes
   them unreadied. }
@@ -1514,6 +1520,20 @@ begin
     id := item^.spells[slot] and C_SPELL.ID_MASK;
     if (id >= 1) and (id <= C_SPELL.LAST) then
       ScrollSpellAt := id;
+  end;
+end;
+
+function ItemSpell(item: Types.PItemRec): Byte;
+var
+  id: Byte;
+begin
+  ItemSpell := C_SPELL.NONE;
+  if not CharHlp.ItemReadable(item) and (item^.effect > 0) and (item^.special < $80) then begin
+    id := item^.effect;
+    if id > C_SPELL.LAST then
+      id := id - C_SPELL.ITEM_EFFECT_SHIFT;
+    if id <= C_SPELL.TABLE_LAST then
+      ItemSpell := id;
   end;
 end;
 

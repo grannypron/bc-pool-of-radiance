@@ -36,10 +36,6 @@ procedure CombatTurnUndead(creature: Types.PCharRecord);
 
 function FindTurnUndeadTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
-{ The cleric level the creature turns undead at: its cleric level, or its paladin level less 2 when that is higher, so a
-  paladin turns from level 3; 0 when it cannot turn. }
-function TurnLevel(creature: Types.PCharRecord): ShortInt;
-
 procedure NoteAttackDirection(att, def: Types.PCharRecord);
 
 procedure CombatAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
@@ -624,35 +620,10 @@ begin
   CanAttackTarget := currentSuppressTargetingFlag = 0;
 end;
 
-{ Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
-  undead first) until a target resists. }
+{ Turn undead at ClassCal.TurnLevel: one d20 roll against the turning table (ClassCal.TurnValue), applied to up to 1d12
+  targets (lowest-level undead first) until a target resists. A negative value extends exhausted attempts until six
+  successes. }
 procedure CombatTurnUndead(creature: Types.PCharRecord);
-const
-  { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
-    d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
-    automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. An undead level
-    above 10 (CbtActs.FindTurnUndeadTarget admits up to 12) is read from row 10. }
-  turnTable: Types.TTurnUndeadTable = (
-    { 1: Skeleton }
-    (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
-    { 2: Zombie }
-    (13, 10, 7, 1, 1, 0, 0, 0, -1, -1),
-    { 3: Ghoul }
-    (16, 13, 10, 4, 1, 1, 0, 0, 0, -1),
-    { 4: Shadow }
-    (19, 16, 13, 7, 4, 1, 1, 0, 0, -1),
-    { 5: Wight }
-    (20, 19, 16, 10, 7, 4, 1, 1, 0, 0),
-    { 6: Ghast }
-    (99, 20, 19, 13, 10, 7, 4, 1, 1, 0),
-    { 7: Wraith }
-    (99, 99, 20, 16, 13, 10, 7, 4, 1, 0),
-    { 8: Mummy }
-    (99, 99, 99, 20, 16, 13, 10, 7, 4, 1),
-    { 9: Spectre }
-    (99, 99, 99, 99, 20, 16, 13, 10, 7, 1),
-    { 10: Vampire }
-    (99, 99, 99, 99, 99, 20, 16, 13, 10, 4));
 var
   roll: Byte;
   attempts: Byte;
@@ -661,8 +632,7 @@ var
   any: Boolean;
   stop: Boolean;
   tgt: Pointer;
-  col: ShortInt;
-  row: ShortInt;
+  lvl: ShortInt;
 begin
   CharDisp.PrintNameString(creature, 'turns undead...', 10, False);
   TextRend.ClearBottomLine;
@@ -673,19 +643,11 @@ begin
   destroys := 6;
   attempts := Dice.RollDice(1, 12);
   roll := Dice.RollDice(1, 20);
-  case CbtActs.TurnLevel(creature) of
-    1..8: col := CbtActs.TurnLevel(creature);
-    9..13: col := 9;
-  else
-    col := 10;
-  end;
+  lvl := ClassCal.TurnLevel(creature);
   while CbtActs.FindTurnUndeadTarget(creature, tgt) and (attempts > 0)
         and (stop = False) do begin
-    { FindTurnUndeadTarget admits undead levels up to 12; the table's rows stop at 10 }
-    row := Types.PCharRecord(tgt)^.levelUndead;
-    if row > 10 then
-      row := 10;
-    turnVal := turnTable[row, col];
+    { FindTurnUndeadTarget admits undead levels up to 12; TurnValue reads those above 10 from row 10 }
+    turnVal := ClassCal.TurnValue(Types.PCharRecord(tgt)^.levelUndead, lvl);
     if roll >= Abs(turnVal) then begin
       any := True;
       CbtMap.DisplayMapViewCentered(Types.PCharRecord(tgt), 3, False);
@@ -716,18 +678,6 @@ begin
   CharHlp.CountTeams;
   doneRoundFlag := CharHlp.EndActions(creature);
   CharDisp.ClearMessageWindow;
-end;
-
-function TurnLevel(creature: Types.PCharRecord): ShortInt;
-var
-  lvl: ShortInt;
-begin
-  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
-  if CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2 > lvl then
-    lvl := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
-  if lvl < 0 then
-    lvl := 0;
-  TurnLevel := lvl;
 end;
 
 { The lowest-level unturned undead in the target list (any range); equal levels keep the earlier, nearer one. }
@@ -1234,7 +1184,8 @@ end;
   Stinking Cloud handlers then take their own cells); or up to its count of creatures picked one at a time. b is the
   AI flag, passed to PickSpellTarget. While the player aims, the CbtMap spell-aim preview shows the cells the spell
   will reach: Lightning Bolt's path, Stinking Cloud's 2x2 block, or the blast at SpellArea's radius (a fireball bursts
-  in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). }
+  in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). The Javelin of
+  Lightning is aimed at one creature, but its preview and count show the bolt that runs on past it (#861). }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -1263,7 +1214,11 @@ begin
       { the picked creature, or an area at the picked cell }
       begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell), False);
+          if spell = C_SPELL.ITEM_JAVELIN_LIGHTNING then begin
+            aimSpell := spell;
+            CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, SPRITE_LIGHTNING, True);
+          end else
+            CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
@@ -1285,13 +1240,13 @@ begin
           { line 23 counts who the spell will catch (#840) }
           aimSpell := spell;
           case kind of
-            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING, True);
-            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE, True);
+            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, SPRITE_LIGHTNING, True);
+            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, spell, 0, SPRITE_SPARKLE, True);
           else
             if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then
-              CbtMap.StartSpellPreview(Types.AimBlast, size, SPRITE_BURST, True)
+              CbtMap.StartSpellPreview(Types.AimBlast, spell, size, SPRITE_BURST, True)
             else
-              CbtMap.StartSpellPreview(Types.AimBlast, size, CbtActs.AimMarker(spell), True);
+              CbtMap.StartSpellPreview(Types.AimBlast, spell, size, CbtActs.AimMarker(spell), True);
           end;
         end;
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
@@ -1309,7 +1264,7 @@ begin
       k := 0;
       while remaining > 0 do begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell), False);
+          CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin

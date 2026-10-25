@@ -1,0 +1,39 @@
+POOLCFG (#876): Leaving with changes
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+
+               ╔══════════════════ Main Menu ═══════════════════╗
+               ║                                                ║
+               ║   Hardware        Video, sound, introduction   ║
+               ║   Game Settings   The Settings screen's list   ║
+               ║   Paths           Data and save folders        ║
+               ║                                                ║
+               ║  ╔══════════════════ Exit ══════════════════╗  ║
+               ║  ║                                          ║  ║
+               ║  ║  Save the changes before leaving?        ║  ║
+               ╚══║                                          ║══╝
+                  ║      Yes        No        Cancel         ║
+                  ║                                          ║
+  ╔═══════════════╚══════════════════════════════════════════╝═══════════════╗
+  ║ POOL.CFG     C:\POOLRAD\POOL.CFG             read                        ║
+  ║ POOLOPT.CFG  C:\POOLRAD\SAVE\POOLOPT.CFG    not found: defaults          ║
+  ║ Changes      Hardware, Paths                                             ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+
+
+
+
+ Lt Rt Move  Enter Choose  Y Yes  N No  Esc Cancel
+
+Color Key:
+    DIALOG              BLACK ON LIGHT GRAY, FRAME WHITE
+    CHOICE              BLACK ON LIGHT GRAY, HOT LETTER RED
+    HIGHLIGHTED CHOICE  WHITE ON BLACK
+
+Command Key:
+    MOVE                LEFT, RIGHT, TAB
+    YES                 Y (SAVE, THEN EXIT)
+    NO                  N (EXIT WITHOUT SAVING)
+    CANCEL              C / ESC (BACK TO THE MENU)
+    CHOOSE              ENTER

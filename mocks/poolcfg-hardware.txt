@@ -1,0 +1,73 @@
+POOLCFG (#876): Hardware (POOL.CFG)
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+
+  ╔══════════════════════════ Hardware (POOL.CFG) ═══════════════════════════╗
+  ║                                                                          ║
+  ║  Video               EGA                                                 ║
+  ║  Sound Device        Sound Blaster                                       ║
+  ║  Introduction        Full                                                ║
+  ║                                                                          ║
+  ╟──────────────────────────────────────────────────────────────────────────╢
+  ║  The graphics card the game draws with:                                  ║
+  ║                                                                          ║
+  ║    CGA     4 colours                                                     ║
+  ║    EGA     16 colours                                                    ║
+  ║    Tandy   16 colours, Tandy 1000 and PCjr                               ║
+  ║    VGA     EGA's 16 colours in VGA's 320x200 mode (not in SSI's game)    ║
+  ║                                                                          ║
+  ║  START reads this as POOL.CFG's first line.                              ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+ Up Dn Move  Lt Rt Change  Enter List  F5 Default  Esc Main Menu  F10 Save+Exit
+
+The lower half describes the highlighted line. For Sound Device it lists the five devices (next mock); for Introduction: "Full: SSI's whole title sequence. Short: the title and straight to the menu. START reads this as POOL.CFG's fifth line."
+
+Pressing Enter on a line opens its list:
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+
+  ╔══════════════════════════ Hardware (POOL.CFG) ═══════════════════════════╗
+  ║                                     ╔═════ Sound Device ═════╗           ║
+  ║  Video               EGA            ║  None                  ║           ║
+  ║  Sound Device        Sound Blaster  ║  PC Speaker            ║           ║
+  ║  Introduction        Full           ║  Tandy                 ║           ║
+  ║                                     ║  AdLib                 ║           ║
+  ╟─────────────────────────────────────║  Sound Blaster         ║───────────╢
+  ║  The card the game plays music and e╚════════════════════════╝           ║
+  ║                                                                          ║
+  ║    None            silence                                               ║
+  ║    PC Speaker      music and effects on the speaker                      ║
+  ║    Tandy           the Tandy 1000's three voices                         ║
+  ║    AdLib           AdLib music, effects on the speaker                   ║
+  ║    Sound Blaster   AdLib music, SSI's recorded effects                   ║
+  ║                                                                          ║
+  ║  START reads this as POOL.CFG's second line.                             ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ║                                                                          ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+ Up Dn Move  Enter Choose  Esc Cancel
+
+Color Key:
+    LABEL               LIGHT GRAY ON BLUE
+    VALUE               YELLOW ON BLUE
+    HIGHLIGHTED LINE    BLACK ON CYAN
+    CHANGED VALUE       WHITE ON BLUE, WITH A "*" AFTER IT
+    HELP TEXT           LIGHT CYAN ON BLUE
+    PICK LIST           BLACK ON LIGHT GRAY, FRAME WHITE; ITS HIGHLIGHT WHITE ON BLACK; THE CURRENT VALUE MARKED
+
+Command Key:
+    UP / DOWN           UP, DOWN, HOME, END
+    CHANGE              LEFT, RIGHT (THROUGH THE CHOICES), SPACE (NEXT)
+    LIST                ENTER
+    DEFAULT             F5 (THE HIGHLIGHTED LINE)
+    BACK                ESC (TO THE MAIN MENU; NOTHING IS LOST)
+    SAVE AND EXIT       F10
