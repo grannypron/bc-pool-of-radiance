@@ -152,9 +152,10 @@ procedure HasteHandler;
 
 procedure LightningBoltHandler;
 
-{ The cells a Lightning Bolt aimed at (x, y) by GameVars.curChar would cross after the aim cell itself, in order,
-  bounces included, judged on the arena as it stands. Nothing is drawn or damaged. }
-procedure TraceLightningBolt(x, y: ShortInt; var cells: Types.TCellList);
+{ The cells the bolt of spell (Lightning Bolt, or the Javelin of Lightning's, BoltShape) aimed at (x, y) by
+  GameVars.curChar would cross after the aim cell itself, in order, bounces included, judged on the arena as it
+  stands. Nothing is drawn or damaged. }
+procedure TraceBolt(spell: Byte; x, y: ShortInt; var cells: Types.TCellList);
 
 procedure SlowHandler;
 
@@ -236,6 +237,7 @@ function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forwar
 
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
   forward;
+procedure BoltShape(spell: Byte; var boltLen: Byte; var bounce: Boolean); forward;
 
 { The number of selectable lines (spells) before member n of spellList: its index in spellIds and spellScrolls. }
 function LineBefore(n: Integer): Integer;
@@ -1812,27 +1814,45 @@ begin
   end;
 end;
 
+{ The bolt spell runs past its aim cell: Lightning Bolt's C_SPELL.LIGHTNING_BOLT_CELLS, with LightningPath's extra
+  cost for a first rebound near the caster (bounce), or the Javelin of Lightning's C_SPELL.JAVELIN_BOLT_CELLS,
+  without it. Their handlers and TraceBolt's preview share it. }
+procedure BoltShape(spell: Byte; var boltLen: Byte; var bounce: Boolean);
+begin
+  bounce := spell <> C_SPELL.ITEM_JAVELIN_LIGHTNING;
+  if bounce then
+    boltLen := C_SPELL.LIGHTNING_BOLT_CELLS
+  else
+    boltLen := C_SPELL.JAVELIN_BOLT_CELLS;
+end;
+
 { Lightning Bolt: caster-level d6 damage at the aim cell, then a bouncing bolt of 8 cells. }
 procedure LightningBoltHandler;
 var
   dmg: Byte;
   junk: Boolean;
+  boltLen: Byte;
+  bounce: Boolean;
 begin
   dmg := Dice.RollDice(CharHlp.GetCasterLevel(GameVars.currentSpellBeing), 6);
   Magic.LightningAttackAt(gTargetX, gTargetY, dmg, C_SAVE.SPELL, junk);
-  Magic.LightningPath(C_SPELL.LIGHTNING_BOLT_CELLS, dmg, C_SAVE.SPELL, True);
+  Magic.BoltShape(C_SPELL.LIGHTNING_BOLT, boltLen, bounce);
+  Magic.LightningPath(boltLen, dmg, C_SAVE.SPELL, bounce);
 end;
 
-procedure TraceLightningBolt(x, y: ShortInt; var cells: Types.TCellList);
+procedure TraceBolt(spell: Byte; x, y: ShortInt; var cells: Types.TCellList);
 var
   savedX: ShortInt;
   savedY: ShortInt;
+  boltLen: Byte;
+  bounce: Boolean;
 begin
   savedX := gTargetX;
   savedY := gTargetY;
   gTargetX := x;
   gTargetY := y;
-  Magic.WalkBolt(C_SPELL.LIGHTNING_BOLT_CELLS, 0, C_SAVE.SPELL, True, True, cells);
+  Magic.BoltShape(spell, boltLen, bounce);
+  Magic.WalkBolt(boltLen, 0, C_SAVE.SPELL, bounce, True, cells);
   gTargetX := savedX;
   gTargetY := savedY;
 end;
@@ -1952,9 +1972,12 @@ end;
 procedure JavelinOfLightningHandler;
 var
   junk: Boolean;
+  boltLen: Byte;
+  bounce: Boolean;
 begin
   Magic.LightningAttackAt(gTargetX, gTargetY, Dice.RollDice(1, 6) + 20, C_SAVE.SPELL, junk);
-  Magic.LightningPath(C_SPELL.JAVELIN_BOLT_CELLS, 20, C_SAVE.SPELL, False);
+  Magic.BoltShape(C_SPELL.ITEM_JAVELIN_LIGHTNING, boltLen, bounce);
+  Magic.LightningPath(boltLen, 20, C_SAVE.SPELL, bounce);
 end;
 
 { Wand of Paralyzation: apply the item's effect. }

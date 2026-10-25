@@ -8,7 +8,7 @@
 | RANGE         3 SQUARES              |
 | AREA          2x2 SQUARES            |
 | DURATION      5 ROUNDS               |
-| SAVING THROW  LESSENS (VS POISON)    |
+| SAVING THROW  LESSENS (VS PARALYSIS) |
 | CAST          IN COMBAT              |
 | CASTING TIME  AT ONCE                |
 |                                      |

@@ -47,6 +47,10 @@ function RangeText(line: Byte; long: Boolean): Types.TStr40;
   the field (AREA ALL) or the whole party in camp (AREA PARTY). A single creature, or the caster, has no short term. }
 function AreaText(line: Byte; long: Boolean): Types.TStr40;
 
+{ AreaText's page value for a spell an item casts: a potion or other item cast only on its user reads USER, not THE
+  CASTER (#861). }
+function ItemAreaText(line: Byte): Types.TStr40;
+
 { The duration (CharHlp.SpellDuration) in rounds (RD), turns of 10 (TU) or hours (HR), whichever both its fixed part
   and its part per caster level come in (Hold Person's 4 + 1 a level stays in rounds at level 6), or as dice for one
   that rolls it (DUR 1D6 TU); INST for a spell that adds no effect, PERM for one whose effect lasts until it is ended. }
@@ -115,9 +119,11 @@ const
     { 57..67, the item spells: Potion of Speed .. Manual of Bodily Health; the Javelin of Lightning's bolt
       (Magic.LightningAttackAt), the Wand of Paralyzation and the item fireball }
     0, 0, 0, 2, 1, 0, 0, 2, 0, 0, 0);
-  { the save columns' names, by C_SAVE }
-  saveNames: array[0..4] of String[7] = (
-    'POISON', 'PETRIFY', 'WAND', 'BREATH', 'SPELL');
+  { AreaText's value for a spell cast only on its caster }
+  CASTER_AREA = 'THE CASTER';
+  { the save columns' names, by C_SAVE; column 0 is paralyzation, poison and death magic, named PARALYSIS }
+  saveNames: array[0..4] of String[9] = (
+    'PARALYSIS', 'PETRIFY', 'WAND', 'BREATH', 'SPELL');
 
 { line's spell id, with GameVars.usingItem set as casting it would set it; old receives usingItem to restore. }
 function UseLine(line: Byte; var old: Boolean): Byte;
@@ -204,7 +210,7 @@ begin
       l := 'ONE DOOR'
     else if CampOnly(spell) then
       case target of
-        1: l := 'THE CASTER';
+        1: l := CASTER_AREA;
         4: begin
              s := 'AREA PARTY';
              l := 'THE WHOLE PARTY';
@@ -222,7 +228,7 @@ begin
       case kind of
         C_SPELL.AREA_SELF:
           if target = 1 then
-            l := 'THE CASTER'
+            l := CASTER_AREA
           else begin
             s := 'AREA ALL';
             l := 'THE WHOLE FIELD';
@@ -254,6 +260,16 @@ begin
   else
     AreaText := s;
   GameVars.usingItem := old;
+end;
+
+function ItemAreaText(line: Byte): Types.TStr40;
+var
+  s: Types.TStr40;
+begin
+  s := SpellInf.AreaText(line, True);
+  if s = CASTER_AREA then
+    s := 'USER';
+  ItemAreaText := s;
 end;
 
 function DurationText(line: Byte; long: Boolean): Types.TStr40;
@@ -534,7 +550,10 @@ begin
   end;
   row := FIGURE_TOP + 1;
   Figure(row, 'RANGE', SpellInf.RangeText(line, True));
-  Figure(row + 1, 'AREA', SpellInf.AreaText(line, True));
+  if item <> nil then
+    Figure(row + 1, 'AREA', SpellInf.ItemAreaText(line))
+  else
+    Figure(row + 1, 'AREA', SpellInf.AreaText(line, True));
   Figure(row + 2, 'DURATION', SpellInf.DurationText(line, True));
   Figure(row + 3, 'SAVING THROW', SpellInf.SaveText(line, True));
   Figure(row + 4, 'CAST', SpellInf.WhenText(line, True));

@@ -105,7 +105,8 @@ begin
   TestKit.CheckEqualsS('DUR 6 HR', SpellInf.DurationText(26, False), 'Slow Poison: an hour a level');
   SetLevel(5);
   TestKit.CheckEqualsS('1D6 TURNS', SpellInf.DurationText(40, True), 'Cause Disease''s duration');
-  TestKit.CheckEqualsS('LESSENS (VS POISON)', SpellInf.SaveText(C_SPELL.STINKING_CLOUD, True), 'Stinking Cloud''s save');
+  TestKit.CheckEqualsS('LESSENS (VS PARALYSIS)', SpellInf.SaveText(C_SPELL.STINKING_CLOUD, True),
+                       'Stinking Cloud''s save');
   TestKit.CheckEqualsS('HALVES DAMAGE (VS SPELL)', SpellInf.SaveText(C_SPELL.FIREBALL, True), 'Fireball''s save');
   TestKit.CheckEqualsS('NONE', SpellInf.SaveText(C_SPELL.BLESS, True), 'Bless has no save');
   TestKit.CheckEqualsS('IN CAMP OR COMBAT', SpellInf.WhenText(C_SPELL.BLESS, True), 'Bless, either');
@@ -165,6 +166,12 @@ begin
   TestKit.CheckEqualsS('BOLT, 3 SQUARES PAST AIM',
                        SpellInf.AreaText(C_SPELL.ITEM_JAVELIN_LIGHTNING or C_SPELL.FROM_ITEM, True),
                        'the javelin''s bolt');
+  TestKit.CheckEqualsS('BOLT, 3 SQUARES PAST AIM',
+                       SpellInf.ItemAreaText(C_SPELL.ITEM_JAVELIN_LIGHTNING or C_SPELL.FROM_ITEM),
+                       'the javelin''s bolt on its item page');
+  TestKit.CheckEqualsS('THE CASTER', SpellInf.AreaText(59 or C_SPELL.FROM_ITEM, True), 'a potion''s area');
+  TestKit.CheckEqualsS('USER', SpellInf.ItemAreaText(59 or C_SPELL.FROM_ITEM), 'reads USER on its item page');
+  TestKit.CheckEqualsS('NEGATES (VS PARALYSIS)', SpellInf.SaveText(61, True), 'the Wand of Paralyzation''s save');
   TestKit.CheckEqualsS('RNG TOUCH  TGT 1-4  DUR 1D10+10 TU', SpellInf.Summary(63 or C_SPELL.FROM_ITEM),
                        'Dust of Disappearance in camp');
   GameVars.ifcState := C_IFC.COMBAT;
@@ -229,7 +236,7 @@ begin
   TestKit.CheckEqualsS('A CLOUD FILLS FOUR SQUARES. A', SpellInf.TextLine(C_SPELL.STINKING_CLOUD, 1),
                        'Stinking Cloud''s first line');
   TestKit.CheckEqualsL(0, SpellTxt.LineCount(66), 'no text for the unused item spell');
-  TestKit.CheckEqualsS('THE DRINKER MOVES AND ATTACKS TWICE', SpellInf.TextLine(57, 1),
+  TestKit.CheckEqualsS('THE DRINKER MOVES AND ATTACKS AT', SpellInf.TextLine(57, 1),
                        'the Potion of Speed''s first line');
   TestKit.Done;
 end.
