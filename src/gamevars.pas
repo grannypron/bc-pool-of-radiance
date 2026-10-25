@@ -5,7 +5,7 @@ unit GameVars;
 
 interface
 
-uses Types, Dos, C_EFFECT, C_GBVM, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_EFFECT, C_GBVM, C_SPELL, C_TILE{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
@@ -167,7 +167,7 @@ var
   mapTilePtr: Types.PImgBuf;
   { Icon images }
   { Animation images for creature, death and cursor icons. }
-  iconAnimation: array[0..25, 0..1] of Types.PImgBuf;
+  iconAnimation: array[0..C_TILE.ICON_LAST, 0..1] of Types.PImgBuf;
   { Combat arena }
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;

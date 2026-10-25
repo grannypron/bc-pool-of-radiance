@@ -127,20 +127,19 @@ const
   yarViewX: array[0..8] of Byte = (17, 17, 17, 19, 19, 19, 23, 23, 23);
   yarViewY: array[0..8] of Byte = (15, 15, 15, 20, 20, 20, 25, 25, 25);
 var
-  { every colour to itself, the source side of both remaps; blueGreenTo and greenTo differ from it only as named }
-  fromT: Types.TColorTab;
+  { GameDefs.colorIdentity, every colour to itself, is the source side of both remaps; blueGreenTo and greenTo differ
+    from it only as named }
   blueGreenTo: Types.TColorTab;
   greenTo: Types.TColorTab;
-  c: Byte;
   step: Byte;
 
   { Remap tile (bit 7 the second sheet) to toT, dithered or whole. }
   procedure RemapTile(tile: Byte; var toT: Types.TColorTab; dither: Boolean);
   begin
     if tile > C_TILE.ID_MASK then
-      Blit.RemapPic(fromT, toT, tile and C_TILE.ID_MASK, dither, MapTiles.SecondSheet)
+      Blit.RemapPic(GameDefs.colorIdentity, toT, tile and C_TILE.ID_MASK, dither, MapTiles.SecondSheet)
     else
-      Blit.RemapPic(fromT, toT, tile, dither, GameVars.mapTilePtr);
+      Blit.RemapPic(GameDefs.colorIdentity, toT, tile, dither, GameVars.mapTilePtr);
   end;
 
   { Remap every pyramid tile, dithered or whole. }
@@ -156,9 +155,7 @@ var
   end;
 
 begin
-  for c := 0 to 15 do
-    fromT[c] := c;
-  greenTo := fromT;
+  greenTo := GameDefs.colorIdentity;
   greenTo[LightGray] := Green;
   blueGreenTo := greenTo;
   blueGreenTo[Black] := Blue;

@@ -7,15 +7,19 @@ interface
 
 { Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GameDefs.wildMap, apply the
   special-location overrides gated on zone-0 quest flags, and draw each 24x24 tile three character cells apart through
-  MapTiles.Copy2DTile. The corner is first moved so the 5x5 view lies inside the 44x36 map. }
+  MapTiles.Copy2DTile. The corner is first moved so the 5x5 view lies inside the 44x36 map (ViewCorner). }
 procedure BuildWildernessMap(ulX, ulY: Integer);
+
+{ Corner ul of the 5x5 wilderness view, along a map side whose last cell is last (C_AREA.WILD_LAST_COL or
+  WILD_LAST_ROW), moved so that the view lies inside the map. }
+function ViewCorner(ul, last: Integer): Integer;
 
 { Draw the empty bordered windows of the wilderness screen: two side by side at the top and the message area. }
 procedure DrawWildWindows;
 
 implementation
 
-uses Types, Crt, C_MSG, GameDefs, GameVars, Border, MapTiles, TextRend;
+uses Types, Crt, C_AREA, C_MSG, GameDefs, GameVars, Border, MapTiles, TextRend;
 
 const
   { 10,9 = western 10,9, in Dragon Den Pass }
@@ -36,13 +40,22 @@ const
   WILD_SORCERERS_ISLAND = 8;
   { 25,27 = central 12,27 }
   WILD_PHLAN = 9;
+  { the last special location }
+  WILD_LAST_SITE = WILD_PHLAN;
+
+function ViewCorner(ul, last: Integer): Integer;
+begin
+  if ul > last - C_AREA.WILD_VIEW_LAST then ul := last - C_AREA.WILD_VIEW_LAST;
+  if ul < 0 then ul := 0;
+  ViewCorner := ul;
+end;
 
 { GameDefs.wildMap and the override table both hold 1-based tile ids, hence each - 1. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
 const
   { Special-location overrides on the 44x36 wilderness map, indexed by the WILD_* constants. Entries 1 and 2 have no
     case arm in BuildWildernessMap, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
-  wildernessSpecialLocations: array[1..9] of Types.TSpecLoc = (
+  wildernessSpecialLocations: array[1..WILD_LAST_SITE] of Types.TSpecLoc = (
     { 1 WILD_SILVER_DRAGON_DEN }  (x: 10; y:  9; icon: 240),
     { 2 WILD_ZHENTIL_OUTPOST }    (x:  3; y: 32; icon:   2),
     { 3 WILD_BUCCANEERS_BASE }    (x: 12; y: 31; icon:   2),
@@ -63,21 +76,16 @@ var
   col: Byte;
   row: Byte;
 begin
-  if ulX < 0 then ulX := 0;
-  { last column origin for the 5-wide view }
-  if ulX > 39 then ulX := 39;
-  if ulY < 0 then ulY := 0;
-  { last row origin for the 5-tall view }
-  if ulY > 31 then ulY := 31;
+  ulX := Wilds.ViewCorner(ulX, C_AREA.WILD_LAST_COL);
+  ulY := Wilds.ViewCorner(ulY, C_AREA.WILD_LAST_ROW);
   viewY := 0;
-  for row := 0 to 4 do begin
+  for row := 0 to C_AREA.WILD_VIEW_LAST do begin
     viewX := 0;
-    for col := 0 to 4 do begin
+    for col := 0 to C_AREA.WILD_VIEW_LAST do begin
       mapX := col + ulX;
       mapY := row + ulY;
       icon := GameDefs.wildMap[mapY, mapX] - 1;
-      { 9 = High(wildernessSpecialLocations) }
-      for k := 1 to 9 do begin
+      for k := 1 to WILD_LAST_SITE do begin
         if (mapX = wildernessSpecialLocations[k].x) and
             (mapY = wildernessSpecialLocations[k].y) then begin
           case k of

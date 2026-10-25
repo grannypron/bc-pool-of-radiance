@@ -10,13 +10,13 @@ uses Types;
 var
   { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
   wallGfx: Types.PWallSlices;
-  { Sky and ceiling color after palette mapping. }
+  { the sky or ceiling band's color (rows 16..58 of the view) }
   colorSkyCeiling: Byte;
-  { 3D-view color register A (ceiling/horizon band) }
+  { the horizon line's color (row 59) }
   wallColorA: Byte;
-  { 3D-view color register B (mid band) }
+  { the horizon band's color (rows 60..61) }
   wallColorB: Byte;
-  { 3D-view color register C (floor/wall band) }
+  { the floor band's color (rows 62..103) }
   wallColorC: Byte;
 
 { Stores the four 3D-view band colours (sky, horizon line, horizon band, floor). FixMain's boot sequence passes
@@ -41,8 +41,9 @@ procedure LoadWallSet(fileId, wsSlot: Byte);
 { Load GEO map mapId into the 3D map }
 procedure Load3DMap(mapId: Byte);
 
-{ Bring a square one step off the 16 by 16 map back on at the other edge (x or y of -1 becomes MAP_LAST, MAP_LAST + 1
-  becomes 0), as the party walks off one side of a map and on at the other. }
+{ Bring a square off the 16 by 16 map back on from the other edge, as the party walks off one side of a map and on at
+  the other: x or y of -1 becomes MAP_LAST, MAP_LAST + 1 becomes 0, and so on for squares further off, which the 3D
+  view's far rows read (POR-0227). }
 procedure WrapCoords(var x, y: ShortInt);
 
 implementation
@@ -147,31 +148,38 @@ end;
 
 procedure WrapCoords(var x, y: ShortInt);
 begin
-  if x > Types.MAP_LAST then x := 0;
-  if x < 0 then x := Types.MAP_LAST;
-  if y > Types.MAP_LAST then y := 0;
-  if y < 0 then y := Types.MAP_LAST;
+  { SSI's code moved a square past either edge onto the edge square itself, right only one step off (POR-0227) }
+  x := x and Types.MAP_LAST;
+  y := y and Types.MAP_LAST;
 end;
 
 { True when (x, y) lies on the 16x16 map }
 function Valid3DCoords(x, y: ShortInt): Boolean;
 begin
-  if (x > Types.MAP_LAST) or (x < 0) or (y > Types.MAP_LAST) or (y < 0) then
-    Valid3DCoords := False
-  else
-    Valid3DCoords := True;
+  Valid3DCoords := (x >= 0) and (x <= Types.MAP_LAST) and (y >= 0) and (y <= Types.MAP_LAST);
+end;
+
+{ The square GetBarrierType, GetWallType and GetMapEvent read: False for a square off the map in the areas of scripts
+  0 (New Phlan) and 10 (Valhingen Graves), which read as 0 there; otherwise True, with (x, y) wrapped onto the map. }
+function MapSquare(var x, y: ShortInt): Boolean;
+const
+  SCRIPT_NEW_PHLAN = 0;
+  SCRIPT_VALHINGEN = 10;
+begin
+  MapSquare := View3D.Valid3DCoords(x, y) or
+               ((GameVars.eclScriptId <> SCRIPT_NEW_PHLAN) and (GameVars.eclScriptId <> SCRIPT_VALHINGEN));
+  View3D.WrapCoords(x, y);
 end;
 
 { The 2-bit barrier field for the facing, defaulting to 1 (passable) when the square has no wall graphic in that facing.
-  Out-of-range coords wrap to the far edge, except under ECL script 0 or 10, where they read as 0. }
+  Out-of-range coords wrap to the far edge, except under ECL script 0 or 10, where they read as 0 (MapSquare). }
 function GetBarrierType(x, y: ShortInt; facing: Byte): Byte;
 var
   b: Byte;
 begin
-  if not View3D.Valid3DCoords(x, y) and ((GameVars.eclScriptId = 0) or (GameVars.eclScriptId = 10)) then
+  if not View3D.MapSquare(x, y) then
     GetBarrierType := 0
   else begin
-    View3D.WrapCoords(x, y);
     b := 1;
     if View3D.GetWallType(x, y, facing) > 0 then
       case facing of
@@ -188,30 +196,24 @@ end;
   as GetBarrierType; 0 for a facing that is not a cardinal direction. }
 function GetWallType(x, y: ShortInt; facing: Byte): Byte;
 begin
-  if not View3D.Valid3DCoords(x, y) and ((GameVars.eclScriptId = 0) or (GameVars.eclScriptId = 10)) then
-    GetWallType := 0
-  else begin
-    View3D.WrapCoords(x, y);
-    GetWallType := 0;
+  GetWallType := 0;
+  if View3D.MapSquare(x, y) then
     case facing of
       C_DIR.NORTH: GetWallType := (GameVars.map3d^.wallsNE[y][x] and $F0) shr 4;
       C_DIR.EAST: GetWallType := GameVars.map3d^.wallsNE[y][x] and $0F;
       C_DIR.SOUTH: GetWallType := (GameVars.map3d^.wallsSW[y][x] and $F0) shr 4;
       C_DIR.WEST: GetWallType := GameVars.map3d^.wallsSW[y][x] and $0F;
     end;
-  end;
 end;
 
 { The EVENT byte of the square, with the same coordinate guard and wrap as GetBarrierType. MapView tests bit 7 of this
   for the sky colour choice. }
 function GetMapEvent(x, y: ShortInt): Byte;
 begin
-  if not View3D.Valid3DCoords(x, y) and ((GameVars.eclScriptId = 0) or (GameVars.eclScriptId = 10)) then
-    GetMapEvent := 0
-  else begin
-    View3D.WrapCoords(x, y);
-    GetMapEvent := GameVars.map3d^.events[y][x];
-  end;
+  if View3D.MapSquare(x, y) then
+    GetMapEvent := GameVars.map3d^.events[y][x]
+  else
+    GetMapEvent := 0;
 end;
 
 { Flush the view buffer to the screen }
@@ -229,8 +231,9 @@ var
   fB: Byte;
   cxPos: Integer;
   cyPos: Integer;
-  dxF: Word;
-  dyF: Word;
+  { the facing's step: -1, 0 or 1 (SSI held these in Words, right only by 16-bit wraparound) }
+  dxF: ShortInt;
+  dyF: ShortInt;
   dist: Byte;
 
   { The far row's fronts and their corner slot 9, from the centre cell walking walk (left or right) four cells; other

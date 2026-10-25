@@ -933,9 +933,7 @@ begin
     PostCbt.PostCombat;
     if GameVars.zone0^.view3dFlag = 0 then begin
       MapTiles.Load24x24Set('BACPAC', 0, 40);
-      MapTiles.LoadIconAnim('ICON', 0, 9);
-      MapTiles.LoadIconAnim('ICON', 1, 10);
-      MapTiles.LoadIconAnim('ICON', 2, 11);
+      MapTiles.LoadWildIcons;
     end;
     GameVars.duelFlag := False;
   end;

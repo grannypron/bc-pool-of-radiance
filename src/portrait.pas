@@ -67,58 +67,6 @@ end;
   it; a later frame is XORed only over as many bytes as the first frame has. An odd transp remaps LightMagenta to Black
   outside CGA. }
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
-const
-  { Sprite color remaps used when LoadAnimation's transp argument is odd (not under CGA). }
-  animRemapFrom: Types.TColorTab = (
-    Black,
-    Blue,
-    Green,
-    Cyan,
-    Red,
-    Magenta,
-    Brown,
-    LightGray,
-    DarkGray,
-    LightBlue,
-    LightGreen,
-    LightCyan,
-    LightRed,
-    LightMagenta,
-    Yellow,
-    White);
-  animRemapTo: Types.TColorTab = (
-    { Black -> Black }
-    Black,
-    { Blue -> Blue }
-    Blue,
-    { Green -> Green }
-    Green,
-    { Cyan -> Cyan }
-    Cyan,
-    { Red -> Red }
-    Red,
-    { Magenta -> Magenta }
-    Magenta,
-    { Brown -> Brown }
-    Brown,
-    { LightGray -> LightGray }
-    LightGray,
-    { DarkGray -> DarkGray }
-    DarkGray,
-    { LightBlue -> LightBlue }
-    LightBlue,
-    { LightGreen -> LightGreen }
-    LightGreen,
-    { LightCyan -> LightCyan }
-    LightCyan,
-    { LightRed -> LightRed }
-    LightRed,
-    { LightMagenta -> Black }
-    Black,
-    { Yellow -> Yellow }
-    Yellow,
-    { White -> White }
-    White);
 var
   sz: Word;
   buf: Types.PByteArr;
@@ -228,7 +176,7 @@ begin
           end;
         VidOps.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
         if (transp and 1 > 0) and (Blit.ColourCount = 16) then
-          Blit.RemapPic(animRemapFrom, animRemapTo, 0, False, frames[loaded].pic);
+          Blit.RemapPic(GameDefs.colorIdentity, GameDefs.colorPinkToBlack, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);
       end else if f = 1 then
         { the other frames are drawn over, or XORed with, the first }

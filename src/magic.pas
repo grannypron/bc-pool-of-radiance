@@ -60,8 +60,15 @@ procedure CastSpellNC(spell: Byte; b, announce: Boolean; var sel: Boolean);
   message window. }
 procedure ShowCombatOnlySpell(spell: Byte);
 
-{ Clear the last of the scroll's spell slots holding spell (bit 7 ignored) and decrement its spell-count name component,
-  nameIds[2]; remove the item from cr once that drops below 210. Does nothing if no slot matches. }
+{ How many times spell is on the scrolls creature can read and use (CharHlp.CastableScroll), and the one of them to
+  read it from: the scroll with the fewest spells on it, the first in the inventory among equals, so a part-used scroll
+  is used up before a full one is started (#833). best is nil when no such scroll holds spell. }
+procedure FindScrollCopies(creature: Types.PCharRecord; spell: Byte; var copies: Byte; var best: Types.PItemRec);
+
+{ Clear a scroll spell slot holding spell and decrement its spell-count name component, nameIds[2]; remove the item
+  from cr once that drops below 210. The slot is the last holding spell exactly, its pending flag (C_SPELL.PENDING_FLAG)
+  included, or else the last holding it with either flag, so that a scribed spell clears its own slot and a used one a
+  copy not queued for scribing (POR-0228). Does nothing if no slot matches. }
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
 
 { Announce a cast. In combat, print 'Casts a Spell' for the creature (msg is ignored) and show the spell name on the
@@ -2108,6 +2115,9 @@ begin
   found := 0;
   for i := 1 to SizeOf(item^.spells) do
     if item^.spells[i] and C_SPELL.ID_MASK = sp then
+      found := i;
+  for i := 1 to 3 do
+    if Types.PItemRec(it)^.spells[i] = spell then
       found := i;
   if found = 0 then
     Exit;

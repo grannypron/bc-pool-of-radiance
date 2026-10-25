@@ -191,6 +191,43 @@ const
     $30,
     { EGA 14 Yellow -> CGA 3; EGA 15 White -> CGA 3 }
     $33);
+  { Every color, in palette order: the source side of Blit.RemapPic's remaps. }
+  colorIdentity: Types.TColorTab = (
+    Black,
+    Blue,
+    Green,
+    Cyan,
+    Red,
+    Magenta,
+    Brown,
+    LightGray,
+    DarkGray,
+    LightBlue,
+    LightGreen,
+    LightCyan,
+    LightRed,
+    LightMagenta,
+    Yellow,
+    White);
+  { Every color but LightMagenta, which becomes Black: the transparent sprite color made black (MapTiles' ICON frames,
+    Portrait's animations). }
+  colorPinkToBlack: Types.TColorTab = (
+    Black,
+    Blue,
+    Green,
+    Cyan,
+    Red,
+    Magenta,
+    Brown,
+    LightGray,
+    DarkGray,
+    LightBlue,
+    LightGreen,
+    LightCyan,
+    LightRed,
+    Black,
+    Yellow,
+    White);
   { Sound command tables }
   { One table of sound command ids, a slice for each subsystem (C_SOUND names the indexes). }
   soundIds: record
