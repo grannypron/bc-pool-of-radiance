@@ -15,7 +15,7 @@ uses C_DATA;
 const
   { the parts of all the fixes, and their bytes together }
   PART_COUNT = 86;
-  BYTE_COUNT = 2514;
+  BYTE_COUNT = 2618;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -239,13 +239,14 @@ const
     (issue: 868; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 7679; origLen: 0; newLen: 10),
     { #868: event 20's address in New Phlan's event table (script $9B4C), which #606 sent to its code at $B62F, goes to
       new code at the end of the script, which sends every other event-20 square on to #606's ($B62F) as before. At
-      (15,12) it does nothing until the Slums are cleared (C_GBVM.REWARD_SLUMS at C_GBVM.QUEST_DONE or past it) with
-      the fortune teller alive (C_GBVM.GYPSY_KILLED 0); then it does what the shops do (the greeting once a visit,
-      C_GBVM.PHLAN_GREETED; the refusal after a fight with the city watch, C_GBVM.WATCH_FOUGHT), shows her as the Slums
-      do (head $19 on body $0D) and runs PROGRAM 10 (EclVm.PROG_SAGE). Nothing in the new code jumps into itself, so a
-      fix before this one that lengthens the script moves only its address in the event table. }
+      (15,12) it greets the party once a visit as the shops do (C_GBVM.PHLAN_GREETED). Until the Slums are cleared
+      (C_GBVM.REWARD_SLUMS at C_GBVM.QUEST_DONE or past it) with the fortune teller alive (C_GBVM.GYPSY_KILLED 0) it
+      shows her empty shop, with the shattered crystal ball when she was murdered; then it refuses the party after a
+      fight with the city watch (C_GBVM.WATCH_FOUGHT), shows her as the Slums do (head $19 on body $0D) and runs
+      PROGRAM 10 (EclVm.PROG_SAGE). The new code's two jumps to the empty shop are to itself, so a fix before this one
+      that lengthens the script moves them as well as its address in the event table. }
     (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7537; offset: 657; origLen: 2; newLen: 2),
-    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7537; offset: 7537; origLen: 0; newLen: 69));
+    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7537; offset: 7537; origLen: 0; newLen: 173));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -948,27 +949,42 @@ const
     $2F, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB62F }
     { fixed: event 20 goes to new code at the end of the script }
     $6F, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB66F }
-    { #868 New Phlan part 2, added at $B66F: #606's code but at (15,12); there, once the Slums are cleared with the
-      fortune teller alive, as the shops, the greeting, then the sage }
+    { #868 New Phlan part 2, added at $B66F: #606's code but at (15,12); there the greeting once a visit, then, once the
+      Slums are cleared with the fortune teller alive, as the shops, the sage; otherwise her empty shop, and her
+      shattered crystal ball if she was murdered }
     $14, $01, $4B, $C0, $00, $0F, $01, $4C, $C0, $00, $0C,{ $B66F COMPARE AND [$C04B], $0F, [$C04C], $0C }
     $17,                                              { $B67A IF <> }
     $01, $01, $2F, $B6,                               { $B67B GOTO LB62F }
-    $03, $01, $BB, $4A, $00, $FE,                     { $B67F COMPARE [$4ABB], $FE }
-    $18,                                              { $B685 IF < }
-    $00,                                              { $B686 EXIT }
-    $03, $01, $53, $4A, $00, $00,                     { $B687 COMPARE [$4A53], $00 }
-    $17,                                              { $B68D IF <> }
-    $00,                                              { $B68E EXIT }
-    $02, $01, $89, $AE,                               { $B68F GOSUB LAE89 }
-    $09, $00, $19, $01, $E1, $6D,                     { $B693 SAVE $19, [$6DE1] }
-    $0E, $00, $0D,                                    { $B699 PICTURE $0D }
-    $03, $01, $C0, $4A, $00, $00,                     { $B69C COMPARE [$4AC0], $00 }
-    $19,                                              { $B6A2 IF > }
-    $01, $01, $1D, $AE,                               { $B6A3 GOTO LAE1D }
-    $38, $00, $0A,                                    { $B6A7 PROGRAM $0A }
-    $09, $00, $FF, $01, $E1, $6D,                     { $B6AA SAVE $FF, [$6DE1] }
-    $0E, $00, $FF,                                    { $B6B0 PICTURE $FF }
-    $00);                                             { $B6B3 EXIT }
+    $02, $01, $89, $AE,                               { $B67F GOSUB LAE89 }
+    $03, $01, $BB, $4A, $00, $FE,                     { $B683 COMPARE [$4ABB], $FE }
+    $18,                                              { $B689 IF < }
+    $01, $01, $BA, $B6,                               { $B68A GOTO LB6BA }
+    $03, $01, $53, $4A, $00, $00,                     { $B68E COMPARE [$4A53], $00 }
+    $17,                                              { $B694 IF <> }
+    $01, $01, $BA, $B6,                               { $B695 GOTO LB6BA }
+    $09, $00, $19, $01, $E1, $6D,                     { $B699 SAVE $19, [$6DE1] }
+    $0E, $00, $0D,                                    { $B69F PICTURE $0D }
+    $03, $01, $C0, $4A, $00, $00,                     { $B6A2 COMPARE [$4AC0], $00 }
+    $19,                                              { $B6A8 IF > }
+    $01, $01, $1D, $AE,                               { $B6A9 GOTO LAE1D }
+    $38, $00, $0A,                                    { $B6AD PROGRAM $0A }
+    $09, $00, $FF, $01, $E1, $6D,                     { $B6B0 SAVE $FF, [$6DE1] }
+    $0E, $00, $FF,                                    { $B6B6 PICTURE $FF }
+    $00,                                              { $B6B9 EXIT }
+    $12, $80, $10,                                    { $B6BA PRINTCLEAR "A BARE, RICKETY SHOP." }
+    $06, $00, $81, $48, $5B, $20, $48, $90, $CB, $15, $46, $60,
+    $4C, $83, $D0, $B8,
+    $03, $01, $53, $4A, $00, $00,                     { $B6CD COMPARE [$4A53], $00 }
+    $17,                                              { $B6D3 IF <> }
+    $11, $80, $44,                                    { $B6D4 PRINT, after the PRINTCLEAR: }
+    { " THE ONLY CONTENT OF NOTE IS A SHATTERED CRYSTAL BALL, ITS PIECES STREWN ACROSS THE FLOOR." }
+    $81, $42, $05, $80, $F3, $8C, $66, $00, $CF, $39, $41, $4E,
+    $52, $03, $C6, $80, $E3, $D4, $16, $02, $53, $80, $18, $13,
+    $20, $15, $14, $15, $21, $44, $80, $34, $99, $4D, $40, $4C,
+    $80, $20, $4C, $32, $C8, $09, $51, $38, $10, $24, $50, $C5,
+    $4E, $04, $D4, $48, $55, $CE, $80, $10, $D2, $3D, $34, $E0,
+    $50, $81, $60, $18, $C3, $CF, $4A, $E0,
+    $00);                                             { $B71B EXIT }
 
 implementation
 
