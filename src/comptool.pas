@@ -177,8 +177,8 @@ begin
     end;
   TextRend.DisplayString(LEGEND_COL, MAP_ROW, White, AreaName.CurrentArea);
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 2, LightGreen, 'Bright: visited');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: not yet');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: a note');
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: Not Visited');
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: Player Note');
   row := MAP_ROW + 5;
   if CompTool.CluesShown then begin
     TextRend.DisplayString(LEGEND_COL, row, LightCyan, 'Cyan: Clue Book');
