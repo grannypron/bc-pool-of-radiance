@@ -36,6 +36,8 @@ const
   CLEAR_MON = $1C;
   PARTY_STR = $1D;
   CHECK_PARTY = $1E;
+  { no handler runs it (EclVm.ExecNextEclCmd steps over it); it takes two operands (EclVars.SkipEclCmd) }
+  UNUSED_1F = $1F;
   NEWECL = $20;
   LOADFILES = $21;
   PARTY_SURPR = $22;
@@ -67,8 +69,19 @@ const
   PROTECTION = $3C;
   CLEAR_BOX = $3D;
 
-  { Entry-header slot used for search and Look }
+  { The script header's entry slots (GameVars.scriptEntryAddrs), the addresses EclMenu.EclInit reads from the script's
+    first ENTRY_COUNT variables. }
+  { run after each map-menu command, before the party moves }
+  ENTRY_MOVE = 1;
+  { run after a step, and for search and Look }
   ENTRY_SEARCH = 2;
+  { run before the camp menu }
+  ENTRY_PRE_CAMP = 3;
+  { run when the party's rest is interrupted }
+  ENTRY_CAMP_INTERRUPT = 4;
+  { run when the script is loaded }
+  ENTRY_LOAD = 5;
+  ENTRY_COUNT = 5;
 
 implementation
 
