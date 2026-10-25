@@ -6,11 +6,11 @@
 | F2  BESTIARY                         |
 | F5  QUICK SAVE                       |
 | F6  COMPANION TOOLS                  |
+| F7  ACTION LOG (COMBAT ONLY)         |
 | F8  QUICK LOAD                       |
 |                                      |
 | CTRL-S SOUND ON/OFF                  |
 | CTRL-Y MEMORY STATS                  |
-|                                      |
 |                                      |
 |                                      |
 |                                      |

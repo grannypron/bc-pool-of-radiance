@@ -39,5 +39,9 @@ begin
   GameVars.sound.mode := C_SOUND.MODE_ADLIB;
   TestKit.Check(Shows('CTRL-S', True), 'and with one');
   TestKit.Check(Shows('F2 ', True) and Shows('F2 ', False), 'F2, the Bestiary, shows on either menu (#842)');
+  GameVars.combatLogOn := 0;
+  TestKit.Check(not Shows('F7 ', True), 'F7 not with the Combat Log off');
+  GameVars.combatLogOn := 1;
+  TestKit.Check(Shows('F7 ', True) and Shows('F7 ', False), 'and with it on, on either menu (#903)');
   TestKit.Done;
 end.
