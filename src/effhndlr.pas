@@ -254,6 +254,10 @@ function InSight(gazer, target: Types.PCharRecord; range: Byte): Boolean;
   PETRIFY_GAZE_RANGE. }
 function PetrifyGazeReaches(gazer, target: Types.PCharRecord): Boolean;
 
+{ True when creature bears a silver shield: the item readied in its shield slot (C_EQUIP.SHIELD) has a "Silver" name
+  component (C_ITEM.NAME_SILVER). It turns a petrifying gaze aside (#981). }
+function SilverShielded(creature: Types.PCharRecord): Boolean;
+
 implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
@@ -428,11 +432,24 @@ begin
         Inc(GameVars.gAttackRoll);
 end;
 
+{ True when one of item's name components (TItemRec.nameIds) is name. }
+function HasName(item: Types.PItemRec; name: Byte): Boolean;
+begin
+  HasName := (item^.nameIds[1] = name) or (item^.nameIds[2] = name) or (item^.nameIds[3] = name);
+end;
+
 { True for a mirror: an item with a "Mirror" name component (C_ITEM.NAME_MIRROR), which turns back a gaze. }
 function IsMirror(item: Types.PItemRec): Boolean;
 begin
-  IsMirror := (item^.nameIds[1] = C_ITEM.NAME_MIRROR) or (item^.nameIds[2] = C_ITEM.NAME_MIRROR) or
-              (item^.nameIds[3] = C_ITEM.NAME_MIRROR);
+  IsMirror := EffHndlr.HasName(item, C_ITEM.NAME_MIRROR);
+end;
+
+function SilverShielded(creature: Types.PCharRecord): Boolean;
+var
+  shield: Types.PItemRec;
+begin
+  shield := creature^.equipped[C_EQUIP.SHIELD];
+  SilverShielded := (shield <> nil) and EffHndlr.HasName(shield, C_ITEM.NAME_SILVER);
 end;
 
 { The start of a hold (blood drain, bite and hold): True, with the creature's combat target in
@@ -1388,7 +1405,8 @@ begin
 end;
 
 { Petrifying gaze (eff 83): the target saves vs. petrification or is stoned. Effect 127 on the gazer marks the gaze
-  reflectable: an equipped mirror (EffHndlr.IsMirror) turns it back on the gazer. The gaze runs as the gazer's AI turn
+  reflectable: an equipped mirror (EffHndlr.IsMirror) turns it back on the gazer. A silver shield on whoever the gaze
+  then meets turns it aside, the gaze lost (EffHndlr.SilverShielded, #981). The gaze runs as the gazer's AI turn
   starts (C_COND.MONSTER_SPECIAL), at the target it last chose: there is a gaze only when PetrifyGazeReaches it (in
   action, within PETRIFY_GAZE_RANGE squares and in sight). SSI's gazed at that target wherever it was and whatever its
   state, so a basilisk stoned a dying character across the map, and on the gazer's first turn, with no target yet
@@ -1416,6 +1434,10 @@ begin
       end;
       item := item^.next;
     end;
+  end;
+  if EffHndlr.SilverShielded(GameVars.otherCreatureCurrentPtr) then begin
+    CharDisp.PrintNameString(GameVars.otherCreatureCurrentPtr, 'is shielded from it!', 12, False);
+    Exit;
   end;
   if not FxEngine.RollSavingThrow(GameVars.otherCreatureCurrentPtr, C_SAVE.PETRIFY, 0) then
     EffHndlr.InflictStatusMsg(GameVars.otherCreatureCurrentPtr, C_STATUS.STONED, 'is Stoned');
