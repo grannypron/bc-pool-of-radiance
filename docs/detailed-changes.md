@@ -671,6 +671,12 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **DiskRec (2026-10-25 review).** `FindPointers` and `CHAR_POINTERS` count the equipped-item pointers from `C_EQUIP.WEAPON..BOLT` rather than 0..12 and 17. TDiskRec checks the count. #965. c93e4be.
 
+**ViewChar: the 2026-10-25 review.** `UseItemMenu`'s Deposit/Drop case called `CheckItemAvail` again when the first call refused in the vault, falling through to the Drop branch: No to "is it Okay to lose it?" for a scroll the character was scribing from asked again, and Yes to the repeat offered to drop the scroll forever instead of depositing it. It asks once and then deposits or drops by the interface state; the loop's inner `itemsAddr <> nil` test, which repeated its own condition, is gone. `ViewItemDetail`'s labels are literals in the overlay rather than a typed constant (210 bytes of the data segment back), `CannotCarryItem` tests `C_ITEM.CARRY_MAX`, `TradeTreasureMenu` and `DropMoneyMenu` pass `LightGreen` to `InputNumberMax`, and `IdentifyItem` pauses in its one paid block. Left: `ItemInfo` finds an item's list line as CharEdit's `LineOf` does (PR #959); a MenuCore helper for both waits for #959. #973.
+
+**CharDisp, TextRend, Border and Sym8x8: the 2026-10-25 review.** `ShowBottomLine`, `PrintBottomLine` and `PrintNameStringAnim` say they pause on the text delay, not wait for a key; `SelectChar` no longer tests for `C_KEYS.ESC`, which MenuHorizontal never returns (#974). TextRend's `ClearRect` has back its comment, which sat over `DelayOrKey`'s body, and `LoadGameFont`'s `compSize`, LoadDax's unpacked size, is `size` (#976). `Border.DrawWindow` says it centres between `ulCol` and `lrCol - 1` because that is SSI's placement (#977), and Sym8x8 drops a `{$I-}` (#978).
+
+**MenuCore: the 2026-10-25 review.** `MenuVertical` holds `idx` to the list and moves the page down to it on entry: `GameVars.vertTop` is every list's, and an `idx` below the page drew the highlight under the box (`Magic.SpellPage` did this by hand). No caller was seen to reach it. `HorizontalMenu` loses `tick30` and `tick80`, set on every call and never read. #975.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.
