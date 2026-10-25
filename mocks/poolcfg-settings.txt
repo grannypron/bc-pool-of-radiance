@@ -1,0 +1,49 @@
+POOLCFG (#876): Game Settings (POOLOPT.CFG)
+
+The Settings screen's Game page, line for line: the same labels, order, indent, Quick Mode heading and stepping lines (`CfgFile.SettingName`, `StepNames`, `NextSetting`), so the two can't drift. The About panel explains the highlighted setting, with its default and key.
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+ ╔══════ Game Settings (POOLOPT.CFG) ═══════╗╔════════════ About ═════════════╗
+ ║ Game Speed (1)          Slower Faster    ║║ Combat Log                     ║
+ ║ Portraits               ON               ║║                                ║
+ ║   Monster Portraits     ON               ║║ Keeps the fight's messages for ║
+ ║   Character Portraits   ON               ║║ F7 to page back through.       ║
+ ║ Music                   ON               ║║                                ║
+ ║   Title Music           ON               ║║ Under DOS the log needs EMS:   ║
+ ║   Battle Music          ON               ║║ without it the game keeps none,║
+ ║ Sound                   ON               ║║ whatever this says.            ║
+ ║   Footsteps             ON               ║║                                ║
+ ║   Ranged Weapon Usage   ON               ║║ Default  ON                    ║
+ ║   Melee Attacks         ON               ║║ Key      COMBATLOG             ║
+ ║   Death Scream          ON               ║║                                ║
+ ║   Wall Hit              ON               ║║                                ║
+ ║   Spell Effects         ON               ║║                                ║
+ ║ Quick Mode                               ║║                                ║
+ ║   Auto End Quick Mode   ON               ║║                                ║
+ ║   Use Magic             OFF              ║║                                ║
+ ║ Companion Tools         OFF              ║║                                ║
+ ║   Clue Book Notes       ON               ║║                                ║
+ ║ Combat Log              ON               ║║                                ║
+ ║   Log Lines (50)        Less More        ║║                                ║
+ ╚══════════════════════════════════════════╝╚════════════════════════════════╝
+ Up Dn Move  Lt Rt Change  F5 Default  Esc Main Menu  F10 Save and Exit
+
+Color Key:
+    SETTING NAME        LIGHT GRAY ON BLUE (QUICK MODE HEADING WHITE)
+    SETTING VALUE       YELLOW ON BLUE
+    HIGHLIGHTED SETTING BLACK ON CYAN; ON A STEPPING LINE THE CHOICE PICKED BLACK ON CYAN, THE OTHER BLUE ON CYAN
+    CHANGED VALUE       WHITE ON BLUE, WITH A "*" AFTER IT
+    ABOUT TITLE         WHITE ON BLUE
+    ABOUT TEXT          LIGHT CYAN ON BLUE
+    DEFAULT / KEY       LIGHT GRAY ON BLUE
+
+Command Key:
+    UP / DOWN           UP, DOWN (WRAP, PASSING THE QUICK MODE HEADING), HOME, END
+    CHANGE              ENTER, SPACE, LEFT, RIGHT TURN A FLAG OVER;
+                        ON GAME SPEED AND LOG LINES LEFT/RIGHT PICK SLOWER/FASTER (LESS/MORE) AND ENTER APPLIES IT,
+                        AS IN THE GAME
+    DEFAULT             F5 (THE HIGHLIGHTED SETTING)
+    BACK                ESC
+    SAVE AND EXIT       F10
+
+Sound and Combat Log show the stored setting, not the game's state at run time. Their About text says so: "With no sound device in POOL.CFG the game stays silent whatever this says", and the EMS note shown above.

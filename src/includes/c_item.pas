@@ -5,6 +5,8 @@ unit C_ITEM;
 interface
 
 const
+  { the most items a character carries: Halve, a found item and the Spiritual Hammer's need fewer }
+  CARRY_MAX = 16;
   { TBaseItemRec.props weapon-property bit flags }
   { relates to arrow ammo (bow shoots / is arrows) }
   PROP_ARROWS = $01;

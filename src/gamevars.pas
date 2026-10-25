@@ -127,7 +127,7 @@ var
 
 var
   { Sound mode }
-  { Active sound device; GameBoot maps POOL.CFG line 2: 'T' = 0, 'P' = 1, else 2. }
+  { Active sound device, a C_SOUND.MODE_ value: the mode of the driver GameBoot installs for POOL.CFG's second line. }
   soundMode: Byte;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }

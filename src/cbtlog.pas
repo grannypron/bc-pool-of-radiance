@@ -17,11 +17,13 @@ unit CbtLog;
 
 interface
 
+uses C_OPT;
+
 const
-  { the fewest and most entries a ring holds, and the default }
-  MIN_ENTRIES = 10;
-  MAX_ENTRIES = 60;
-  DEFAULT_ENTRIES = 50;
+  { the fewest and most entries a ring holds, and the default: the Log Lines setting's range (#876) }
+  MIN_ENTRIES = C_OPT.LOG_MIN;
+  MAX_ENTRIES = C_OPT.LOG_MAX;
+  DEFAULT_ENTRIES = C_OPT.LOG_DEFAULT;
   { an entry's slot: a whole string }
   SLOT_SIZE = 256;
   { an entry's colour change: this character, then the colour }

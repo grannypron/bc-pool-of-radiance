@@ -700,8 +700,8 @@ type
     x: array[1..64] of ShortInt;
     y: array[1..64] of ShortInt;
   end;
-  { Fills cells with the path of a spell aimed at (x, y): CbtMap.boltTracer. }
-  TCellTracer = procedure(x, y: ShortInt; var cells: TCellList);
+  { Fills cells with the path of bolt spell spell aimed at (x, y): CbtMap.boltTracer. }
+  TCellTracer = procedure(spell: Byte; x, y: ShortInt; var cells: TCellList);
   { Arena slots (GameVars.arenaLoc) in order, such as the creatures an aimed area spell will catch. }
   TSlotList = record
     count: Byte;

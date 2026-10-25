@@ -19,7 +19,7 @@ implementation
 
 uses Types, C_TIME, C_NPC, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
-  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView;
+  TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal;
 
 const
   { CombatMenu's answer for F7, the combat log (#841): F7's scan code is the character code of 'A', which is Aim }
@@ -266,7 +266,7 @@ begin
   if ((hasSpell and (creature^.combatAddr^.castAllowed <> 0)) or CharHlp.HasScrollSpells(creature))
      and not CharHlp.AntiMagicArea then
     menu := menu + 'Cast ';
-  if (CbtActs.TurnLevel(creature) > 0)
+  if (ClassCal.TurnLevel(creature) > 0)
      and (creature^.combatAddr^.usedTurnUndead = 0) then
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';

@@ -27,8 +27,7 @@ const
   CMD_DUAL = 11;
   CMD_EXIT = 12;
   CMD_LAST = 12;
-  { each command's key, by command (index CMD_ + 1), as the two-column menu's Command Key has them; SSI's menu keys
-    Dual Class as H, for Human Change Class }
+  { each command's key, by command (index CMD_ + 1), as the two-column menu's Command Key has them }
   cmdKeys: string[CMD_LAST + 1] = 'ARSLGBCVMDTUE';
   { the row of the PARTY and CHARACTER headings under a roster of up to five, as the mock-up has it }
   MENU_TOP = 8;
@@ -72,9 +71,9 @@ function ListTop(count: Byte): Byte;
 procedure DrawList(offered: TCmdSet);
 
 { Wait for a command of SSI's menu with 'pool of radiance' and the version on the bottom line, as before #879. The
-  first letter of a command listed returns that command's key in cmdKeys (U for H, Human Change Class); a letter of one
-  not listed is ignored, and so are Escape, Space and Enter. J (CharGen's free training) returns J, and an extended
-  key, such as Home, End, Up and Down, its scan code with ext set. }
+  first letter of a command listed returns that command's key in cmdKeys; a letter of one not listed is ignored, and
+  so are Escape, Space and Enter. J (CharGen's free training) returns J, and an extended key, such as Home, End, Up
+  and Down, its scan code with ext set. }
 function ChooseListed(offered: TCmdSet; var ext: Boolean): Char;
 
 implementation
@@ -95,17 +94,17 @@ const
   GAME_HEAD_ROW = 4;
   { the commands of the left column; the others are the right's }
   leftCmds: TCmdSet = [CMD_ADD..CMD_BEGIN];
-  { SSI's menu: its commands in its order, and their names (START.EXE's, with the port's Human Change Class and Game
-    Settings) }
-  LIST_LAST = 12;
-  listCmds: array[0..LIST_LAST] of Byte = (CMD_CREATE, CMD_DROP, CMD_MODIFY, CMD_TRAIN, CMD_DUAL, CMD_VIEW, CMD_ADD,
+  { SSI's menu: its commands in its order, and their names (START.EXE's, with the port's Game Settings); Dual Class is
+    on the training hall's menu alone }
+  LIST_LAST = 11;
+  listCmds: array[0..LIST_LAST] of Byte = (CMD_CREATE, CMD_DROP, CMD_MODIFY, CMD_TRAIN, CMD_VIEW, CMD_ADD,
     CMD_REMOVE, CMD_LOAD, CMD_SAVE, CMD_BEGIN, CMD_SETTINGS, CMD_EXIT);
   listNames: array[0..LIST_LAST] of string[27] = (
-    'Create New Character', 'Drop Character', 'Modify Character', 'Train Character', 'Human Change Class',
-    'View Character', 'Add Character to Party', 'Remove Character from Party', 'Load Saved Game', 'Save Current Game',
+    'Create New Character', 'Drop Character', 'Modify Character', 'Train Character', 'View Character',
+    'Add Character to Party', 'Remove Character from Party', 'Load Saved Game', 'Save Current Game',
     'BEGIN Adventuring', 'Game Settings', 'Exit to DOS');
   { SSI's menu's keys, given as the bottom-line menu's options in black so that none shows }
-  LIST_KEYS = 'C D M T H V A R L S B G E J';
+  LIST_KEYS = 'C D M T V A R L S B G E J';
 
 function MenuTop(members: Byte): Byte;
 begin
