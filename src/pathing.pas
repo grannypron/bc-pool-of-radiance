@@ -29,7 +29,7 @@ function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
 
 { Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
   the doubled distance (2 per straight step, 3 per diagonal) exceeds dist * 2 + 1, or, when the arena's distMode is 0,
-  at a cell whose terrain blocking exceeds the start cell's clearance. On failure, return the blocking cell in tx,ty and
+  at a cell whose terrain blocks it (blocking above 0). On failure, return the blocking cell in tx,ty and
   the doubled distance in dist; reaching the target returns True with the doubled distance. An endpoint outside 0..49 /
   0..24 fails at once, with dist 0 and tx,ty unchanged. }
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
@@ -193,13 +193,15 @@ begin
   walk.ex := tx;
   walk.ey := ty;
   Pathing.PathFind(walk);
+  { SSI's meter runs from the start cell's clearance to the same, and every terrain's clearance was 0: the table no
+    longer keeps it }
   meter.sx := 0;
-  meter.sy := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
+  meter.sy := 0;
   if walk.adx > walk.ady then
     meter.ex := walk.adx
   else
     meter.ex := walk.ady;
-  meter.ey := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
+  meter.ey := 0;
   Pathing.PathFind(meter);
   done := False;
   repeat
