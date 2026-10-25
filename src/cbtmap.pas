@@ -958,7 +958,7 @@ begin
   cnt := 0;
   if n > 0 then begin
     for i := 1 to n do
-      if CharHlp.EnemyTeam(creature) = GameVars.creatureArr[GameVars.targetList[i].idx]^.hostile then begin
+      if CharHlp.EnemyTeam(creature) = CharHlp.Team(GameVars.creatureArr[GameVars.targetList[i].idx]) then begin
         Inc(cnt);
         Move(GameVars.targetList[i], GameVars.targetList[cnt], SizeOf(GameVars.targetList[i]));
       end;

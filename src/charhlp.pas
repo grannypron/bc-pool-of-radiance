@@ -1499,7 +1499,7 @@ begin
     for i := 1 to caught.count do begin
       cr := GameVars.creatureArr[caught.slot[i]];
       if CharHlp.SleepTakes(cr, left) then
-        Inc(asleep[cr^.hostile = enemy]);
+        Inc(asleep[CharHlp.Team(cr) = enemy]);
     end;
     if asleep[True] > foes then
       foes := asleep[True];
