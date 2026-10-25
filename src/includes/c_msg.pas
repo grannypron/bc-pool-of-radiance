@@ -15,6 +15,8 @@ const
   COMBAT_LEFT = 23;
   COMBAT_MESSAGE_TOP = 10;
   COMBAT_BOTTOM = 21;
+  { the bottom-line prompt that waits for Enter, SSI's 'PRESS <RETURN> TO CONTINUE' in the port's words }
+  CONTINUE_PROMPT = 'press <enter>/<return> to continue';
 
 implementation
 

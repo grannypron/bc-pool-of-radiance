@@ -174,7 +174,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 
 implementation
 
-uses GameDefs, GameVars, DaxIo, Dos, GameIo, StrUtil, VidOps{$IFDEF FPC}, Host{$ENDIF};
+uses GameVars, DaxIo, Dos, GameIo, StrUtil, VidOps{$IFDEF FPC}, Host{$ENDIF};
 
 type
   PLongInt = ^LongInt;

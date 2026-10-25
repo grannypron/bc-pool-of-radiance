@@ -35,7 +35,7 @@ const
 function PendingLevel(b: Byte): Byte;
 begin
   PendingLevel := 0;
-  if (b > C_SPELL.ID_MASK) and (b and C_SPELL.ID_MASK >= 1) and (b and C_SPELL.ID_MASK <= C_SPELL.LAST) then
+  if (b > C_SPELL.ID_MASK) and CharHlp.IsSpell(b and C_SPELL.ID_MASK) then
     PendingLevel := GameDefs.spellTable[b and C_SPELL.ID_MASK].levelSp;
 end;
 
@@ -134,7 +134,7 @@ begin
   count := 0;
   for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do begin
     id := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
-    if (id >= 1) and (id <= C_SPELL.LAST) then
+    if CharHlp.IsSpell(id) then
       if (GameDefs.spellTable[id].levelSp = lvl) and (GameDefs.spellTable[id].castClassSp = typ) then
         Inc(count);
   end;

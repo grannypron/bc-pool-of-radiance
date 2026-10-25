@@ -51,15 +51,16 @@ begin
       BlockRead(f2, e, SizeOf(e), n);
       ended := (n < SizeOf(e)) or (FilePos(f2) >= hdrSize);
       if (n = SizeOf(e)) and (e.id < C_DATA.SOURCES_BLOCK) and (e.rawSize >= DiskRec.CHAR_DISK_BYTES) then begin
-        DaxIo.ReadBlock(f1, hdrSize, e.offset, e.packedSize, e.rawSize, data);
-        { the record's first field is its name, a string[NAME_LEN] }
-        if Byte(data^[0]) <= Types.NAME_LEN then begin
-          Move(data^[0], s, SizeOf(s));
-          found := s = wanted;
+        if DaxIo.ReadBlock(f1, hdrSize, e.offset, e.packedSize, e.rawSize, data) then begin
+          { the record's first field is its name, a string[NAME_LEN] }
+          if Byte(data^[0]) <= Types.NAME_LEN then begin
+            Move(data^[0], s, SizeOf(s));
+            found := s = wanted;
+          end;
+          FreeMem(data, e.rawSize);
+          if found then
+            id := e.id;
         end;
-        FreeMem(data, e.rawSize);
-        if found then
-          id := e.id;
       end;
     end;
     DaxIo.CloseDax(f1, f2);

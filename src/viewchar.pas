@@ -23,9 +23,9 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 
 implementation
 
-uses Crt, C_NPC, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
-  FxEngine, C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats,
-  StrUtil, CharDisp, MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf;
+uses Crt, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
+  C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats, StrUtil, CharDisp,
+  MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -878,14 +878,8 @@ begin
     p := p^.next;
   end;
   SpellInf.ShowItemPage(items, count, cur);
-  if count > 0 then begin
-    idx := 0;
-    p := creature^.itemsAddr;
-    while (p <> nil) and (p <> items[cur]) do begin
-      Inc(idx);
-      p := p^.next;
-    end;
-  end;
+  if count > 0 then
+    idx := MenuCore.ListIndex(creature^.itemsAddr, items[cur]);
 end;
 
 { Run curChar's inventory menu, offering actions according to the character's state, the current interface state and

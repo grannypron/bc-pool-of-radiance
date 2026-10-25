@@ -402,11 +402,14 @@ begin
 end;
 
 { Open text file name for reading: CFG_READ when it opened, CFG_MISSING when there is no such file (or folder),
-  CFG_UNREADABLE when it is there but would not open. }
+  CFG_UNREADABLE when it is there but would not open. A write of it the game was ended in is undone first
+  (FileUtil.RecoverFile). }
 function OpenText(var f: Text; name: FileUtil.TPathName): TReadResult;
 var
   ioRes: Integer;
+  recovered: Boolean;
 begin
+  recovered := FileUtil.RecoverFile(name);
   ioRes := IOResult;
   Assign(f, name);
   Reset(f);

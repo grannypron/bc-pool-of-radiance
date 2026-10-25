@@ -73,7 +73,7 @@ var
     map, east/west probes on the party's row are open; all other cells are solid. }
   function GetWallKind(px, py: ShortInt; pdir: Byte): Byte;
   begin
-    if (px >= 0) and (px <= 15) and (py >= 0) and (py <= 15) then begin
+    if Types.OnMap(px, py) then begin
       if View3D.GetBarrierType(px, py, pdir) = 0 then
         GetWallKind := 1
       else if View3D.GetWallType(px, py, pdir) = 0 then
@@ -115,7 +115,7 @@ var
   begin
     x := dx * 6 + dy * 5 + 21 + i;
     y := dy * 5 + 10 + j;
-    if (x >= 0) and (x <= 49) and (y >= 0) and (y <= 24) then
+    if (x >= 0) and (x <= Types.ARENA_LAST_X) and (y >= 0) and (y <= Types.ARENA_LAST_Y) then
       GameVars.arenaPtr^.cells[y, x] := t + 1;
   end;
 
@@ -530,10 +530,10 @@ begin
   { combat's terrain is tiles 0..39 of the first set; the second is loaded again when next needed }
   MapTiles.FreeSecondSheet;
   if GameVars.gLocType = C_AREA.LOC_3D_MAP then
-    MapTiles.Load24x24Set('DungCom', 0, 24)
+    MapTiles.Load24x24Set('DungCom', 0)
   else
-    MapTiles.Load24x24Set('WildCom', 0, 33);
-  MapTiles.Load24x24Set('RandCom', 34, 5);
+    MapTiles.Load24x24Set('WildCom', 0);
+  MapTiles.Load24x24Set('RandCom', 34);
   GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
   GameVars.arenaPtr^.cursorOn := False;
   GameVars.arenaPtr^.cursorSize := 1;

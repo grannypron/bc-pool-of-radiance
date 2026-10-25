@@ -8,6 +8,10 @@ interface
 
 uses Types;
 
+const
+  { a portrait's body is drawn this many rows below its head }
+  BODY_ROW_OFFSET = 5;
+
 procedure DisplayImageBuf(col, row: Integer; anim: Boolean; pic: Types.PImgBuf);
 
 procedure LoadAnimation(name: Types.TStr8; picId: Byte; transp: Byte; var a: Types.TAnimRec);
@@ -283,7 +287,7 @@ procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 begin
   Portrait.DisplayImageBuf(col, row, False, GameVars.portraitCache[1].pic);
   if both then
-    Portrait.DisplayImageBuf(col, row + 5, False, GameVars.portraitCache[2].pic);
+    Portrait.DisplayImageBuf(col, row + Portrait.BODY_ROW_OFFSET, False, GameVars.portraitCache[2].pic);
 end;
 
 { Draw frame dist (1..3, by view distance) of a into the view buffer at its origin + 2, then flush. Any other dist

@@ -19,8 +19,8 @@ procedure ResetGameState;
 
 implementation
 
-uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
-  MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
+uses Types, Crt, C_AREA, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
+  SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
   HeapErr, VidOps, Stats, CfgFile, Explored, MapNotes, Explore, GameTime, MapView, EclVm,
   Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -235,13 +235,13 @@ begin
   GameVars.effectFns[C_EFFECT.GAZE_REFLECTABLE] := EffHndlr.EffNull;
   GameVars.effectFns[C_EFFECT.READY_FEATHER_FALL] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.READY_FIRE_RES] := EffHndlr.EffReadyItem;
-  GameVars.effectFns[130] := EffHndlr.EffReadyItem;
+  GameVars.effectFns[C_EFFECT.READY_FLAME_TONGUE] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.GAUNTLETS] := EffHndlr.EffGauntlets;
   GameVars.effectFns[C_EFFECT.ALIGNED_WEAPON] := EffHndlr.EffAlignedWeapon;
   GameVars.effectFns[C_EFFECT.READY_DISPLACEMENT] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.READY_ELVENKIND] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.BOULDER] := EffHndlr.EffBoulder;
-  GameVars.effectFns[136] := EffHndlr.EffReadyItem;
+  GameVars.effectFns[C_EFFECT.READY_UNDEAD_SLAYER] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.SPIRIT_HAMMER_GONE] := EffHndlr.EffHammerGone;
   GameVars.effectFns[138] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.READY_RING_INVIS] := EffHndlr.EffReadyItem;

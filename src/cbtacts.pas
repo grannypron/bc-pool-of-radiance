@@ -1157,7 +1157,7 @@ begin
   AimSpellName := '';
   if spell = C_SPELL.ITEM_FIREBALL then
     spell := C_SPELL.FIREBALL;
-  if (spell >= 1) and (spell <= C_SPELL.LAST) then
+  if CharHlp.IsSpell(spell) then
     AimSpellName := GameDefs.spellNames[spell];
 end;
 
@@ -1232,7 +1232,7 @@ begin
   FillChar(side, SizeOf(side), 0);
   enemy := CharHlp.EnemyTeam(GameVars.curChar);
   for i := 1 to caught.count do
-    Inc(side[GameVars.creatureArr[caught.slot[i]]^.hostile = enemy].count);
+    Inc(side[CharHlp.Team(GameVars.creatureArr[caught.slot[i]]) = enemy].count);
   if CbtActs.AreaRuleOf(aimSpell) = RULE_SLEEP then
     CharHlp.SleepMost(caught, enemy, side[True].most, side[False].most);
   CbtActs.ShowAreaTally(side);
@@ -1495,8 +1495,7 @@ begin
   end;
   SoundDrv.SoundSetAutoStop(0);
   SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.RANGED_START], C_SOUND.GROUP_RANGED);
-  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
-                                  CbtMap.CombatCellY(def), frames, pace);
+  CharDisp.AnimateIconBetween(att, def, frames, pace);
   SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.RANGED_END], C_SOUND.GROUP_RANGED);
   SoundDrv.SoundSetAutoStop(10);
 end;
@@ -1535,7 +1534,7 @@ begin
   best := 0;
   p := GameVars.creatureList;
   while p <> nil do begin
-    if (CharHlp.EnemyTeam(creature) = p^.hostile) and (p^.enabled <> 0) then begin
+    if (CharHlp.EnemyTeam(creature) = CharHlp.Team(p)) and (p^.enabled <> 0) then begin
       m := CbtActs.CalcCreatureMovement(p) div 2;
       if m > best then
         best := m;
@@ -1551,7 +1550,7 @@ function CheckAttackAlly(att, def: Types.PCharRecord): Boolean;
 var
   p: Types.PCharRecord;
 begin
-  if (CharHlp.EnemyTeam(def) = att^.hostile) or (att^.quickfight <> 0) then
+  if (CharHlp.EnemyTeam(def) = CharHlp.Team(att)) or (att^.quickfight <> 0) then
     CheckAttackAlly := True
   else if MenuCore.YesNoMenu('Attack Ally: ', LightMagenta, LightGreen, White) <> 'Y' then
     CheckAttackAlly := False
@@ -1714,10 +1713,10 @@ begin
       cx := 0;
     if cy < 0 then
       cy := 0;
-    if cx > 49 then
-      cx := 49;
-    if cy > 24 then
-      cy := 24;
+    if cx > Types.ARENA_LAST_X then
+      cx := Types.ARENA_LAST_X;
+    if cy > Types.ARENA_LAST_Y then
+      cy := Types.ARENA_LAST_Y;
     CbtMap.GetArenaContents(cx, cy, crIdx, terrIdx);
     valid := False;
     dist := 255;
@@ -2066,7 +2065,7 @@ begin
   AreaHitsNonEnemy := False;
   Pathing.BuildAreaList(x, y, radius);
   for i := 1 to GameVars.targetCount do
-    if GameVars.creatureArr[GameVars.targetList[i].idx]^.hostile <> CharHlp.EnemyTeam(GameVars.curChar) then
+    if CharHlp.Team(GameVars.creatureArr[GameVars.targetList[i].idx]) <> CharHlp.EnemyTeam(GameVars.curChar) then
       AreaHitsNonEnemy := True;
 end;
 

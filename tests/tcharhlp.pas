@@ -4,8 +4,8 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, C_IFC, CharHlp, AbilAdj,
-  TestKit;
+uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, C_IFC, C_SPELL, CharHlp,
+  AbilAdj, TestKit;
 
 var
   c: Types.PCharRecord;
@@ -477,5 +477,8 @@ begin
   TestKit.CheckEqualsL(2, crs[1].curModA[1], 'and +2 to damage');
   crs[1].itemsAddr := nil;
   FreeMem(CharHlp.baseItems, SizeOf(CharHlp.baseItems^));
+  TestKit.Check(not CharHlp.IsSpell(0), 'spell id 0 is no spell');
+  TestKit.Check(CharHlp.IsSpell(1) and CharHlp.IsSpell(C_SPELL.LAST), 'ids 1 and C_SPELL.LAST are spells');
+  TestKit.Check(not CharHlp.IsSpell(C_SPELL.LAST + 1), 'an item spell past C_SPELL.LAST is not');
   TestKit.Done;
 end.

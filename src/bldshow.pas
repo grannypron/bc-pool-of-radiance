@@ -48,7 +48,8 @@ procedure Finish(failed: Boolean);
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GameVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_MSG, GameVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil,
+  VidOps;
 
 const
   { the frame's three parts: title, status and families, each a text rectangle inside its border }
@@ -618,8 +619,6 @@ const
   { shown under the families when one failed, if DataBld could write its log }
   NOTE = 'See DATABLD.LOG';
   LOG_NAME = 'DATABLD.LOG';
-  { the hold's prompt on the bottom line, the game's own }
-  PROMPT = 'press <enter>/<return> to continue';
 var
   start: LongInt;
   key: Char;
@@ -638,7 +637,7 @@ begin
     while KeyPressed do
       GameIo.DiscardPendingKeys;
     TextRend.ClearBottomLine;
-    TextRend.DisplayString(0, 24, White, PROMPT);
+    TextRend.DisplayString(0, 24, White, C_MSG.CONTINUE_PROMPT);
     repeat
       key := GameIo.ReadAnyKey;
     until key = #13;

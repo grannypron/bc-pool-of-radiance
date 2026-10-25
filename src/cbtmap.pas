@@ -222,7 +222,7 @@ begin
   relX := x - GameVars.arenaPtr^.ox;
   relY := y - GameVars.arenaPtr^.oy;
   if CbtMap.ViewCoordsValid(relX, relY) then begin
-    MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId, 0);
+    MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId);
     DrawCellTop(x, y, relX, relY);
   end;
 end;
@@ -253,7 +253,7 @@ begin
     relX := areaX[i] - GameVars.arenaPtr^.ox;
     relY := areaY[i] - GameVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId, 0);
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId);
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -485,7 +485,7 @@ begin
     if Pathing.GetIconTileDelta(GameVars.arenaPtr^.cursorSize, i, tdx, tdy) then
       if CbtMap.ViewCoordsValid(relX + tdx, relY + tdy) then begin
         MapTiles.Copy2DTile((relX + tdx) * 3, (relY + tdy) * 3,
-                            GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId, 0);
+                            GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId);
         if GameVars.arenaPtr^.cursorOn then
           MapTiles.DrawIconAnimSprite(relX + tdx, relY + tdy, 0, 0, CURSOR_CELL);
       end;
@@ -567,9 +567,9 @@ begin
       if Pathing.GetIconTileDelta(size, i, tdx, tdy) then
         if CbtMap.ViewCoordsValid(x + tdx, y + tdy) then
           MapTiles.Copy2DTile((x + tdx) * 3, (y + tdy) * 3,
-                              GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId, 0);
+                              GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId);
   end else if CbtMap.ViewCoordsValid(x, y) then
-    MapTiles.Copy2DTile(x * 3, y * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId, 0);
+    MapTiles.Copy2DTile(x * 3, y * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId);
 end;
 
 function ViewCoordsValid(x, y: ShortInt): Boolean;
@@ -650,7 +650,7 @@ begin
     pixX := 0;
     cX := GameVars.arenaPtr^.ox;
     for i := 0 to 6 do begin
-      MapTiles.Copy2DTile(pixX, pixY, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId, 1);
+      MapTiles.Copy2DTile(pixX, pixY, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId);
       Inc(pixX, 3);
       Inc(cX);
     end;
@@ -958,7 +958,7 @@ begin
   cnt := 0;
   if n > 0 then begin
     for i := 1 to n do
-      if CharHlp.EnemyTeam(creature) = GameVars.creatureArr[GameVars.targetList[i].idx]^.hostile then begin
+      if CharHlp.EnemyTeam(creature) = CharHlp.Team(GameVars.creatureArr[GameVars.targetList[i].idx]) then begin
         Inc(cnt);
         Move(GameVars.targetList[i], GameVars.targetList[cnt], SizeOf(GameVars.targetList[i]));
       end;

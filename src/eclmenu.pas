@@ -92,7 +92,7 @@ implementation
 
 uses Crt, C_AREA, C_ECL, C_NPC, C_MSG, GameVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
-  C_RACE, C_LEVEL, GameDefs, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
+  C_RACE, C_LEVEL, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
   { Picture id last shown, copied from C_GBVM.PIC_LOADING }
@@ -490,7 +490,7 @@ begin
   if GameVars.curRow > C_MSG.TEXT_BOTTOM then begin
     GameVars.curRow := C_MSG.MESSAGE_TOP;
     pause := True;
-    TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
+    TextRend.DisplayAndPause(White, C_MSG.CONTINUE_PROMPT);
   end else
     pause := False;
   GameVars.curCol := C_MSG.TEXT_RIGHT;

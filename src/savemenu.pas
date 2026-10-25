@@ -26,14 +26,15 @@ type
   TSlotDesc = string[DESC_LEN];
   TSlotArea = string[AREA_LEN];
 
-{ Run the menu and return the slot chosen, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape or Exit. Saving lists every
-  slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and returns C_KEYS.NONE at once when
-  there are none. A slot shows its letter (white: the key that takes it), description and time saved, and below them
-  its area and date. Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a
-  time, scrolling the list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load)
-  takes the selected slot, and a slot's letter takes that slot at once. Quit (#872) and Exit have no key (Q and E are
-  slots'); the arrows reach them. The caller asks whether to exit to DOS (SaveLoad.QuitToDos). The selection starts on
-  slot start when it is listed, else on the newest saved game. The caller redraws the screen afterwards. }
+{ Run the menu and return the slot chosen, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape or Exit (X, #910). Saving
+  lists every slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and returns C_KEYS.NONE
+  at once when there are none. A slot shows its letter (white: the key that takes it), description and time saved, and
+  below them its area and date. Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a
+  slot at a time, scrolling the list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save
+  (or Load) takes the selected slot, and a slot's letter takes that slot at once. Quit (#872) has no key (Q is a slot's)
+  and Exit's is X (E is a slot's), not marked on the line; the arrows reach both. The caller asks whether to exit to DOS
+  (SaveLoad.QuitToDos). The selection starts on slot start when it is listed, else on the newest saved game. The caller
+  redraws the screen afterwards. }
 function ChooseSlot(saving: Boolean; start: Char): Char;
 
 { The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
@@ -110,6 +111,8 @@ const
   OPT_TAKE = 3;
   OPT_QUIT = 4;
   OPT_EXIT = 5;
+  { Exit's key, which no slot has (#910) }
+  EXIT_KEY = 'X';
 
 type
   { A savgam<x>.inf file. }
@@ -358,7 +361,8 @@ begin
   chosen := ' ';
   GameVars.horizChoice := OPT_TAKE;
   repeat
-    MenuCore.extraKeys := listed;
+    { the slots' letters, and X for Exit (#910) }
+    MenuCore.extraKeys := listed + EXIT_KEY;
     MenuCore.unmarked := [OPT_QUIT, OPT_EXIT];
     MenuCore.enterToCaller := True;
     ch := MenuCore.MenuHorizontal('Game: ', 'Next Prev ' + action + ' Quit Exit', LightMagenta, LightGreen, White,
@@ -389,6 +393,8 @@ begin
       end
     else if (ch = C_KEYS.NONE) or (ch = QUIT_CHOSEN) then
       chosen := ch
+    else if ch = EXIT_KEY then
+      chosen := C_KEYS.NONE
     { a slot's letter takes it, as Save or Load on it does (#652) }
     else if (ch <> ' ') and (Pos(ch, listed) > 0) then
       chosen := ch

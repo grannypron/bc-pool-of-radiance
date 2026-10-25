@@ -79,7 +79,7 @@ procedure ApplyTemplate(item: Types.PItemRec; template: Byte);
 
 implementation
 
-uses GameDefs, C_ITEM, Dice;
+uses C_ITEM, Dice;
 
 { Roll the magical plus for a random weapon or armor on a d20: 1 (70%), 2 (25%) or 3 (5%). }
 function RandomBonus: ShortInt;

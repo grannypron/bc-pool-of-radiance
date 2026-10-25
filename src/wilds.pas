@@ -114,7 +114,7 @@ begin
           end;
         end;
       end;
-      MapTiles.Copy2DTile(viewX, viewY, icon, 1);
+      MapTiles.Copy2DTile(viewX, viewY, icon);
       Inc(viewX, 3);
     end;
     Inc(viewY, 3);

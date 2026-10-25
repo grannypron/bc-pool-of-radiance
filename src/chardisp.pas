@@ -63,6 +63,13 @@ procedure BuildIconFacings(cell: Byte);
 
 procedure CombatAnimateMovingIcon(startX, startY, endX, endY: ShortInt; frames, pace: Byte);
 
+{ Fly the moving icon already built (BuildIconFacings, CopyIconFacing) from one creature's combat cell to another's, in
+  frames frames at pace (CombatAnimateMovingIcon). }
+procedure AnimateIconBetween(from, dest: Types.PCharRecord; frames, pace: Byte);
+
+{ Build combat sprite sprite's facings and fly it from one creature's cell to another's (AnimateIconBetween). }
+procedure AnimateBetween(from, dest: Types.PCharRecord; sprite, frames, pace: Byte);
+
 procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: string);
 
 procedure PrintHpRestoreMsg(creature: Types.PCharRecord);
@@ -556,6 +563,18 @@ begin
     end;
   until lastPass;
   Blit.FlushView;
+end;
+
+procedure AnimateIconBetween(from, dest: Types.PCharRecord; frames, pace: Byte);
+begin
+  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(from), CbtMap.CombatCellY(from), CbtMap.CombatCellX(dest),
+                                  CbtMap.CombatCellY(dest), frames, pace);
+end;
+
+procedure AnimateBetween(from, dest: Types.PCharRecord; sprite, frames, pace: Byte);
+begin
+  CharDisp.BuildIconFacings(sprite);
+  CharDisp.AnimateIconBetween(from, dest, frames, pace);
 end;
 
 { Show "<name> <text>" with the damage or effect flash: build the facings from icon cell 23 (damage) or 22 (effect),

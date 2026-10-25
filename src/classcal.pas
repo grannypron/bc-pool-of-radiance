@@ -396,7 +396,7 @@ begin
         have := 0;
         for i := 0 to Types.SPELL_SLOT_LAST do begin
           id := memorizedSpells[i] and C_SPELL.ID_MASK;
-          if (id >= 1) and (id <= C_SPELL.LAST) then
+          if CharHlp.IsSpell(id) then
             if (GameDefs.spellTable[id].castClass = kind) and (GameDefs.spellTable[id].levelSp = lvl) then begin
               Inc(have);
               if have > room then
@@ -1209,7 +1209,7 @@ end;
 function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 begin
   SpellFailureChance := 0;
-  if (spell >= 1) and (spell <= C_SPELL.LAST) then
+  if CharHlp.IsSpell(spell) then
     if (GameDefs.spellTable[spell].castClassSp = C_SPELL.CLASS_CLERIC) and
         (CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) > 0) then
       SpellFailureChance := AbilAdj.WisSpellFailure(creature^.wisCur);

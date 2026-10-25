@@ -4,6 +4,7 @@
 
 ### New features
 
+- A character with a silver shield readied is safe from a basilisk's or a medusa's petrifying gaze: the gaze is turned aside.
 - A set-up program, POOLCFG.EXE, comes with the game. Run it in the game's folder to choose the video mode, the sound device and the introduction, every setting on the Settings screen, and the data and save folders of Pool of Radiance and the three later games. A folder you type must already exist: if it is not there you are told "Please verify the directory exists.", and nothing is created. Nothing is written until you choose Save and Exit (or press F10). If there is no POOL.CFG, or it is damaged, START now runs POOLCFG for you (saying "POOL.CFG was damaged, unreadable, or unparseable. Please reconfigure the game." first when it is damaged) and then starts the game with what you chose; leave POOLCFG without saving and you are back at DOS. A letter in lower case in POOL.CFG now counts too.
 - The Linux, Windows and macOS versions now come with the set-up program too, as `poolcfg` beside `poolrad`: run it from a terminal (on a Mac, from Terminal) and it finds the game's folder as the game does. It has the same pages as POOLCFG.EXE, with what each choice means there: the picture is always VGA, and Tandy, AdLib and Sound Blaster all play the game's digital music and sound effects. The data folder is always the game's own, shown but not changed, and the save folder you choose must be inside it. The game never starts it for you: with no POOL.CFG, or one that cannot be read, the game now plays with the defaults (digital sound, the full introduction, saves in SAVE) and says on the terminal that poolcfg can set it up, where before it asked for the startup disk. It also finds its folder by the game's data when there is no POOL.CFG yet.
 - Stojanow Gate changes once you have taken it. New Phlan's guards on the walls cheer as you come up to the gate and again once you are through it (once each visit, with a guard's portrait), and the two guard rooms have become makeshift barracks for New Phlan's troops. None of these waits for Return.
@@ -20,6 +21,7 @@
 
 ### Interface improvements
 
+- On the Load/Save menu, Quit now just asks "Exit to DOS?", without offering to save first, and X chooses Exit.
 - At the vault's counter the Up and Down arrows now step through the party, as they do at the shop's.
 - The menu for taking coins from the treasure now lists them as a character's coin menus do, jewelry first, with the names lined up.
 - Cast on the map for a character who cannot cast now says why, as it does in the wilderness and in camp, instead of doing nothing.
@@ -41,6 +43,7 @@
 
 ### Fixes
 
+- A settings file, the Bestiary, the character roster or the vault that could not be written in full, or whose writing was cut off, now keeps its old copy. Before, the old file could be lost.
 - A Sound Blaster with no AdLib on the card now plays the music on the PC speaker. Before, the music was silent.
 - A character whose name has two spaces or several periods in a row now saves under a proper file name. Before, "SIR  BOB" was saved with a space in its file name and "A....B" under a name DOS took for another file's.
 - Depositing a scroll in the vault that a character was going to scribe from now asks once. Before, a No asked again, and a Yes to the repeat offered to drop the scroll for good instead of depositing it.

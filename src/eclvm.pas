@@ -18,7 +18,7 @@ procedure ResetGame;
 implementation
 
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
+  DaxIo, GameIo, C_ECL, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
   Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -539,7 +539,7 @@ begin
       GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
     end;
     if (f[3] <> 255) and (GameVars.zone0^.view3dFlag = 0) then
-      MapTiles.Load24x24Set('BACPAC', 0, 40);
+      MapTiles.Load24x24Set('BACPAC', 0);
   end else begin
     piecesLoaded := 1;
     if f[1] = 127 then
@@ -932,7 +932,7 @@ begin
     Combat.CombatMain;
     PostCbt.PostCombat;
     if GameVars.zone0^.view3dFlag = 0 then begin
-      MapTiles.Load24x24Set('BACPAC', 0, 40);
+      MapTiles.Load24x24Set('BACPAC', 0);
       MapTiles.LoadWildIcons;
     end;
     GameVars.duelFlag := False;
@@ -1404,7 +1404,7 @@ begin
     Delay(3000);
   end;
   GameVars.curChar := savedCur;
-  TextRend.DisplayAndPause(White, 'press <enter>/<return> to continue');
+  TextRend.DisplayAndPause(White, C_MSG.CONTINUE_PROMPT);
 end;
 
 { SPRITE OFF: if a sprite is showing, redraw the map view over it }

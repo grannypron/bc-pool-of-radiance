@@ -193,6 +193,10 @@ function ReviveDeadCreature(creature: Types.PCharRecord; hp: Byte): Boolean;
   effect handler when readied and when unreadied. }
 procedure ToggleReadyItem(item: Types.PItemRec);
 
+{ Put creature's readied item away, cursed or not: it is no longer equipped, and a special item (special > $7F) calls
+  its effect handler to undo what readying did. ToggleReadyItem and ChgClass.SyncClassPowers use it. }
+procedure UnreadyItem(creature: Types.PCharRecord; item: Types.PItemRec);
+
 { Read the game clock from the GBVM clock words, bump component tUnit (C_TIME) amount times (validating after each
   bump), write it back, then time out effects by the same duration (whole minutes: segments short of one age none). }
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
@@ -281,13 +285,12 @@ end;
   and restoring the caller's target list and its count around it (SSI's left the rebuilt list's count). }
 function EffectSource(creature: Types.PCharRecord; effId, side: Byte; var effect: Types.PEffectRec): Boolean;
 var
-  save: Types.TTargetList;
+  save: Types.TTargetSnapshot;
   p: Types.PCharRecord;
   found: Boolean;
   i: Byte;
   range: Byte;
   slot: Byte;
-  saveCount: Byte;
 
   { the creature carries an effId node of the side wanted }
   function Carries(c: Types.PCharRecord): Boolean;
@@ -303,8 +306,7 @@ begin
   if Carries(creature) then
     found := True
   else if range > 0 then begin
-    Move(GameVars.targetList, save, SizeOf(GameVars.targetList));
-    saveCount := GameVars.targetCount;
+    Pathing.SaveTargets(save);
     slot := CbtMap.CombatSlot(creature);
     while (p <> nil) and not found do begin
       if Carries(p) and ((effId = C_EFFECT.SILENCE) or (p^.enabled <> 0))
@@ -320,8 +322,7 @@ begin
       end;
       p := p^.nextCharAddr;
     end;
-    Move(save, GameVars.targetList, SizeOf(GameVars.targetList));
-    GameVars.targetCount := saveCount;
+    Pathing.RestoreTargets(save);
   end;
   EffectSource := found;
 end;
@@ -1039,6 +1040,13 @@ begin
     FriendsEndCha := AbilAdj.ClampScore(strength);
 end;
 
+procedure UnreadyItem(creature: Types.PCharRecord; item: Types.PItemRec);
+begin
+  item^.equipped := 0;
+  if item^.special > $7F then
+    FxEngine.CallEffectHandler(item^.special, creature, item, True);
+end;
+
 procedure ToggleReadyItem(item: Types.PItemRec);
 var
   hasSpecial: Boolean;
@@ -1051,11 +1059,8 @@ begin
   if item^.equipped <> 0 then begin
     if item^.cursed <> 0 then
       CharDisp.PrintBottomLine('It''s Cursed')
-    else begin
-      item^.equipped := 0;
-      if hasSpecial then
-        FxEngine.CallEffectHandler(item^.special, creature, item, True);
-    end;
+    else
+      FxEngine.UnreadyItem(creature, item);
   end else begin
     err := 0;
     if creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands > 2 then

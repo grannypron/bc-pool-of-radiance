@@ -32,8 +32,14 @@ function Load(var p: Types.PBytes; var size: Word; var count: Byte): Boolean;
 function CheckHeader(p: Types.PBytes; size: Word; var count: Byte): Boolean;
 
 { Entry i (0 to count - 1) of a file CheckHeader passed, in e. True when it is a recording that can play: tune 1 to
-  C_SOUND.SFX_LAST, a known format, and at least one byte, all past the header and inside the file. }
+  C_SOUND.SFX_LAST, a known format, and at least one byte, all past the header and inside the file, and for ADPCM no
+  more bytes than decode to a Word's count of samples (MAX_ADPCM_BYTES), for SndDig's buffer (#916). The drivers both
+  take a later entry for a tune over an earlier one. }
 function GetEntry(p: Types.PBytes; size: Word; i: Byte; var e: TSfxEntry): Boolean;
+
+{ The samples entry e plays: its bytes for 8-bit PCM; for 4-bit ADPCM a first byte that is a sample and two in each
+  byte after it. }
+function DecodedLength(var e: TSfxEntry): LongInt;
 
 implementation
 
@@ -47,6 +53,8 @@ const
   ENTRY_BYTES = 7;
   { the largest block the heap gives }
   MAX_SIZE = $FFF0;
+  { the most ADPCM bytes whose samples (DecodedLength) a Word counts: 2 * 32768 - 1 = 65535 }
+  MAX_ADPCM_BYTES = 32768;
 
 function CheckHeader(p: Types.PBytes; size: Word; var count: Byte): Boolean;
 var
@@ -72,7 +80,16 @@ begin
   Move(p^[rec + 3], e.len, 2);
   Move(p^[rec + 5], e.start, 2);
   GetEntry := (e.tune >= 1) and (e.tune <= C_SOUND.SFX_LAST) and (e.format <= C_SOUND.SFX_ADPCM4) and (e.len > 0) and
-              (e.start >= HEADER_BYTES) and (LongInt(e.start) + e.len <= size);
+              (e.start >= HEADER_BYTES) and (LongInt(e.start) + e.len <= size) and
+              ((e.format <> C_SOUND.SFX_ADPCM4) or (e.len <= MAX_ADPCM_BYTES));
+end;
+
+function DecodedLength(var e: TSfxEntry): LongInt;
+begin
+  if e.format = C_SOUND.SFX_ADPCM4 then
+    DecodedLength := 2 * (LongInt(e.len) - 1) + 1
+  else
+    DecodedLength := e.len;
 end;
 
 function Load(var p: Types.PBytes; var size: Word; var count: Byte): Boolean;

@@ -12,9 +12,9 @@ var
   { Set by a caller whose screen below a memorize list (Camp's spell slots) is drawn by the caller: SpellSelection calls
     it, when set, after it frames the window under the list, when the list opens and after the spell page closes. }
   belowListHook: Types.TIdleProc;
-  { combat arena column, 0..49 }
+  { combat arena column, 0..Types.ARENA_LAST_X }
   gTargetX: ShortInt;
-  { combat arena row, 0..24 }
+  { combat arena row, 0..Types.ARENA_LAST_Y }
   gTargetY: ShortInt;
 
 { Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList, its list from row 3, paged
@@ -210,9 +210,9 @@ procedure UseItem(item: Types.PItemRec; var done: Boolean);
 
 implementation
 
-uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend,
-  Border, CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_RACE, C_KEYS, C_LEVEL, C_STATUS,
-  C_IFC, C_DIR, C_SPELL, AbilAdj, StrUtil, C_MSG, ChgClass, SpellInf, CbtLog;
+uses Stats, CharDisp, C_SOUND, C_ITEM, Dice, Crt, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, TextRend, Border,
+  CharHlp, SoundDrv, MenuCore, Pathing, CbtMap, ClassCal, FxEngine, C_EFFECT, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_DIR,
+  C_SPELL, AbilAdj, StrUtil, ChgClass, SpellInf, CbtLog, C_SPRITE;
 
 var
   { the menu string list }
@@ -731,7 +731,7 @@ begin
     if memOk then
       for i := 0 to Types.SPELL_SLOT_LAST do begin
         id := creature^.memorizedSpells[i];
-        if (id >= 1) and (id <= C_SPELL.LAST) then
+        if CharHlp.IsSpell(id) then
           if GameDefs.spellTable[id].levelSp = lvl then
             Magic.AddMemorizedSpell(creature, i, lines);
       end;
@@ -950,7 +950,7 @@ begin
         CharDisp.PrintNameString(p, 'fails to cast ' + GameDefs.spellNames[spell] + '.', 10, True);
       end else begin
         if GameVars.ifcState = C_IFC.COMBAT then begin
-          CharDisp.BuildIconFacings(18);
+          CharDisp.BuildIconFacings(C_SPRITE.MISSILE);
           x := CbtMap.CombatCellX(p);
           y := CbtMap.CombatCellY(p);
           k := Pathing.DirToward(x, y, gTargetX, gTargetY);
@@ -1241,9 +1241,7 @@ begin
       if i < GameVars.spellTargetCount then begin
         SoundDrv.SoundSetAutoStop(0);
         SoundDrv.SoundEffect(GameDefs.soundIds.commands[C_SOUND.CAST], C_SOUND.GROUP_SPELL);
-        CharDisp.BuildIconFacings(18);
-        CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(GameVars.curChar), CbtMap.CombatCellY(GameVars.curChar),
-                                        CbtMap.CombatCellX(tgt), CbtMap.CombatCellY(tgt), 4, 30);
+        CharDisp.AnimateBetween(GameVars.curChar, tgt, C_SPRITE.MISSILE, 4, 30);
         SoundDrv.SoundSetAutoStop(10);
       end;
       saved := FxEngine.RollSavingThrow(tgt, GameDefs.spellTable[GameVars.currentSpellBeing].saveType, smod);
@@ -1744,7 +1742,7 @@ begin
     tgt := GameVars.creatureArr[crIdx];
     GameVars.elementMask := C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC;
     FxEngine.InflictNonWeaponDamage(tgt, damage, C_SPELL.SAVE_HALF, FxEngine.RollSavingThrow(tgt, saveType, 0));
-    CharDisp.BuildIconFacings(19);
+    CharDisp.BuildIconFacings(C_SPRITE.LIGHTNING);
     GameVars.elementMask := 0;
   end;
 end;
@@ -1787,7 +1785,7 @@ begin
   savedY := gTargetY;
   savedMulti := GameVars.gMultiTarget;
   if not trace then
-    CharDisp.BuildIconFacings(19);
+    CharDisp.BuildIconFacings(C_SPRITE.LIGHTNING);
   CbtMap.GetArenaContents(gTargetX, gTargetY, prevCr, terr);
   sign := 1;
   x0 := CbtMap.CombatCellX(GameVars.curChar);
@@ -2091,7 +2089,7 @@ begin
   if gTargetY = y + 1 then
     Inc(gTargetY);
   FxEngine.RemoveInvisibility(creature);
-  CharDisp.BuildIconFacings(19);
+  CharDisp.BuildIconFacings(C_SPRITE.LIGHTNING);
   CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 50);
   Magic.LightningAttackAt(gTargetX, gTargetY, creature^.hpMax, C_SAVE.BREATH, junk);
   Magic.LightningPath(C_SPELL.DRAGON_BOLT_CELLS, creature^.hpMax, C_SAVE.BREATH, False);

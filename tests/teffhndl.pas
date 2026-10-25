@@ -4,11 +4,11 @@
   RacialFoeBonus), Mirror Image's roll (FxEngine.ImageStruck), and Healed from Unconscious (eff 78) called with no node,
   as FxEngine.RestoreHitPoints calls it, whose retry SSI read through nil. And the immunity check leaves no effect
   pending, so magic resistance passes over later damage of no magic (POR-0219, #940). And the petrifying gaze's reach:
-  a target in action, within 3 squares and in sight (POR-0217, #938). }
+  a target in action, within 3 squares and in sight (POR-0217, #938), and the silver shield that turns it (#981). }
 {$I COMPILER.INC}
 program TEffHndl;
 
-uses Types, C_EFFECT, C_IFC, C_SPELL, GameVars, FxEngine, EffHndlr, CharHlp, TestKit;
+uses Types, C_EFFECT, C_EQUIP, C_IFC, C_ITEM, C_SPELL, GameVars, FxEngine, EffHndlr, CharHlp, TestKit;
 
 const
   TRIES = 400;
@@ -23,6 +23,7 @@ var
   i: Integer;
   n: Integer;
   image: Types.TEffectRec;
+  shield: Types.TItemRec;
 
 function NewCreature: Types.PCharRecord;
 var
@@ -227,6 +228,21 @@ begin
   TestKit.Check(not EffHndlr.PetrifyGazeReaches(c, foe), 'nor one off the map');
   GameVars.arenaCount := 0;
   FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));
+
+  { a silver shield: one readied in the shield slot with a "Silver" name component }
+  FillChar(shield, SizeOf(shield), 0);
+  TestKit.Check(not EffHndlr.SilverShielded(foe), 'no shield turns no gaze');
+  foe^.equipped[C_EQUIP.SHIELD] := @shield;
+  TestKit.Check(not EffHndlr.SilverShielded(foe), 'nor a plain shield');
+  shield.nameIds[3] := C_ITEM.NAME_SILVER;
+  TestKit.Check(EffHndlr.SilverShielded(foe), 'a silver shield does');
+  shield.nameIds[3] := 0;
+  shield.nameIds[1] := C_ITEM.NAME_SILVER;
+  TestKit.Check(EffHndlr.SilverShielded(foe), 'whichever name component is Silver');
+  foe^.equipped[C_EQUIP.SHIELD] := nil;
+  foe^.equipped[C_EQUIP.WEAPON] := @shield;
+  TestKit.Check(not EffHndlr.SilverShielded(foe), 'but a silver item in another slot does not');
+  foe^.equipped[C_EQUIP.WEAPON] := nil;
 
   { Healed from Unconscious with no node: a revival that fails retries in a minute, at strength 0 }
   GameVars.ifcState := C_IFC.COMBAT;

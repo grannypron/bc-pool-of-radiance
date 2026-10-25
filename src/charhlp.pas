@@ -117,6 +117,11 @@ function PermanentStrength(creature: Types.PCharRecord): Byte;
   a dual-classed human has left does not train. }
 function CanTrain(creature: Types.PCharRecord): Boolean;
 
+{ The classes creature can train a level in, as C_LEVEL bits (1 shl slot): a class it follows (a level above 0, not one
+  a dual-classed human has left, #838) that is not at its racial cap (AtLevelCap) and has a next level in the
+  experience table, with the experience for it unless anyXp (free training). CanTrain and CharGen.TrainingMenu ask it. }
+function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
+
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 
 function RawWeight(creature: Types.PCharRecord): LongInt;
@@ -211,6 +216,9 @@ function ItemReadable(it: Pointer): Boolean;
 { True when creature can read item's spells, that is when the scroll is identified. Read Magic (effect 16), or any
   cleric level with a cleric's scroll (base slot C_ITEM.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
+
+{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row. }
+function IsSpell(id: Byte): Boolean;
 
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
@@ -1258,11 +1266,17 @@ begin
 end;
 
 function CanTrain(creature: Types.PCharRecord): Boolean;
+begin
+  CanTrain := CharHlp.TrainClasses(creature, False) <> 0;
+end;
+
+function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
 var
   cls: ShortInt;
   lvl: ShortInt;
+  mask: Byte;
 begin
-  CanTrain := False;
+  mask := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[cls];
     { a class a dual-classed human has left never trains again (#838) }
@@ -1272,9 +1286,10 @@ begin
     if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
         if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
-          if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
-            CanTrain := True;
+          if anyXp or (GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience) then
+            mask := mask or (1 shl cls);
   end;
+  TrainClasses := mask;
 end;
 
 { A half-orc's cap in class cls, 0 for none: its cleric cap by Wisdom and its thief cap by Dexterity, each one level
@@ -1496,7 +1511,7 @@ begin
     for i := 1 to caught.count do begin
       cr := GameVars.creatureArr[caught.slot[i]];
       if CharHlp.SleepTakes(cr, left) then
-        Inc(asleep[cr^.hostile = enemy]);
+        Inc(asleep[CharHlp.Team(cr) = enemy]);
     end;
     if asleep[True] > foes then
       foes := asleep[True];
@@ -1544,6 +1559,11 @@ end;
 
 { The spell in item's spell slot (1..3), bit 7 ignored, or C_SPELL.NONE when the slot is out of range or holds no
   spell. }
+function IsSpell(id: Byte): Boolean;
+begin
+  IsSpell := (id >= 1) and (id <= C_SPELL.LAST);
+end;
+
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 var
   id: Byte;
@@ -1551,7 +1571,7 @@ begin
   ScrollSpellAt := C_SPELL.NONE;
   if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
     id := item^.spells[slot] and C_SPELL.ID_MASK;
-    if (id >= 1) and (id <= C_SPELL.LAST) then
+    if CharHlp.IsSpell(id) then
       ScrollSpellAt := id;
   end;
 end;

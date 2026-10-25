@@ -48,7 +48,7 @@ var
   nibbles are untouched, and coordinates outside the map (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierImpassable(x, y: ShortInt; facing: Byte);
 begin
-  if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
+  if not Types.OnMap(x, y) then Exit;
   case facing of
     C_DIR.WEST: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $3F;
     C_DIR.SOUTH: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $CF;
@@ -61,7 +61,7 @@ end;
   (0..Types.MAP_LAST) are ignored. }
 procedure ChangeBarrierPassable(x, y: ShortInt; facing: Byte);
 begin
-  if (x < 0) or (x > Types.MAP_LAST) or (y < 0) or (y > Types.MAP_LAST) then Exit;
+  if not Types.OnMap(x, y) then Exit;
   case facing of
     C_DIR.WEST: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $3F or $40;
     C_DIR.SOUTH: GameVars.map3d^.barriers[y, x] := GameVars.map3d^.barriers[y, x] and $CF or $10;

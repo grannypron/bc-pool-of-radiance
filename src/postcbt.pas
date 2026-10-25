@@ -14,9 +14,8 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_NPC, C_MSG, C_SPELL, GameDefs, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
-  C_MONEY, Stats, Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party,
-  Dice, ClassCal;
+uses Types, Crt, C_MSG, C_SPELL, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM, C_MONEY, Stats,
+  Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party, Dice, ClassCal;
 
 var
   { Combat outcome. }
@@ -258,7 +257,7 @@ begin
     msg := 'Each character receives ' + numStr;
   TextRend.DisplayString(1, 5, LightGreen, msg);
   TextRend.DisplayString(1, 7, LightGreen, 'experience points.');
-  c := MenuCore.MenuHorizontal(query, 'press <enter>/<return> to continue', White, White, White,
+  c := MenuCore.MenuHorizontal(query, C_MSG.CONTINUE_PROMPT, White, White, White,
                                True, False, ext);
 end;
 
@@ -512,7 +511,7 @@ begin
       end;
       p := p^.nextCharAddr;
     end;
-    c := MenuCore.MenuHorizontal('', 'press <enter>/<return> to continue', White, White, White,
+    c := MenuCore.MenuHorizontal('', C_MSG.CONTINUE_PROMPT, White, White, White,
                                  True, False, ext);
   end;
 end;

@@ -97,10 +97,8 @@ begin
       if fx^.data <> nil then
         FreeMem(fx^.data, fx^.len);
       fx^.rate := 1000000 div (256 - e.timeConstant);
-      if e.format = C_SOUND.SFX_ADPCM4 then
-        fx^.len := 2 * (e.len - 1) + 1
-      else
-        fx^.len := e.len;
+      { GetEntry keeps an ADPCM entry's samples within a Word }
+      fx^.len := SfxFile.DecodedLength(e);
       GetMem(fx^.data, fx^.len);
       if e.format = C_SOUND.SFX_ADPCM4 then
         DecodeAdpcm(p, e.start, e.len, fx^.data)

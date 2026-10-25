@@ -30,8 +30,8 @@ uses C_TIME, C_MSG, GameDefs, GameVars, Crt, TextRend, CharHlp, MenuCore, Magic,
   FxEngine, StrUtil, CharDisp, Dice, Clock, AbilAdj;
 
 var
-  { Spell preparation timers for the eight party slots. }
-  prepTimers: array[1..8] of Byte;
+  { Spell preparation timers for the party slots. }
+  prepTimers: array[1..Types.MAX_PARTY] of Byte;
   { Uninterrupted resting time when disturbable }
   restTicks: Word;
 
@@ -194,7 +194,7 @@ begin
   i := 0;
   while (i <= Types.SPELL_SLOT_LAST) and (lvl = 0) do begin
     if (creature^.memorizedSpells[i] > $7F) and
-        (creature^.memorizedSpells[i] and C_SPELL.ID_MASK in [1..C_SPELL.LAST]) then
+        CharHlp.IsSpell(creature^.memorizedSpells[i] and C_SPELL.ID_MASK) then
       if done then
         lvl := GameDefs.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].level
       else begin
@@ -234,7 +234,7 @@ begin
     if CharHlp.ItemReadable(item) then
       { 3 = High(TItemRec.spells) }
       while (j <= 3) and (lvl = 0) do begin
-        if (item^.spells[j] > $80) and (item^.spells[j] and C_SPELL.ID_MASK <= C_SPELL.LAST) then
+        if (item^.spells[j] > $80) and CharHlp.IsSpell(item^.spells[j] and C_SPELL.ID_MASK) then
           if done then
             lvl := GameDefs.spellTable[item^.spells[j] and C_SPELL.ID_MASK].level
           else begin

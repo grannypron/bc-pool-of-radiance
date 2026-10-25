@@ -23,7 +23,7 @@ procedure BuildDataFiles;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GameVars, DataArc, DataPat, DaxIo, TextRend, MenuCore,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GameVars, DataArc, DataPat, DaxIo, TextRend,
   BldShow, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 const

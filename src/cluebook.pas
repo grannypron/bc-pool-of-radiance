@@ -19,6 +19,8 @@ unit ClueBook;
 
 interface
 
+uses Types;
+
 const
   { as long as a player's note (MapNotes.NOTE_LEN), so the Map tool shows either on the same line }
   CLUE_LEN = 30;
@@ -52,7 +54,7 @@ const
 
 var
   { marksMap's keyed squares: bit x of marks[y] }
-  marks: array[0..15] of Word;
+  marks: array[0..Types.MAP_LAST] of Word;
 
 function Entry(map, i: Byte): string;
 begin
@@ -416,7 +418,7 @@ begin
         v := v * 10 + Ord(e[p]) - Ord('0');
         Inc(p);
       end;
-      if v > 15 then Exit;
+      if v > Types.MAP_LAST then Exit;
       if coord = 1 then begin
         x := v;
         if (p > Length(e)) or (e[p] <> ',') then Exit;
@@ -487,7 +489,7 @@ begin
       e := ClueBook.Entry(map, i);
     end;
   end;
-  Marked := (x >= 0) and (x <= 15) and (y >= 0) and (y <= 15) and (marks[y] and (1 shl x) <> 0);
+  Marked := Types.OnMap(x, y) and (marks[y] and (1 shl x) <> 0);
 end;
 
 end.

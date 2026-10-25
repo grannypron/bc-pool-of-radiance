@@ -58,7 +58,7 @@ procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
 
-uses GameDefs, GameVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
+uses GameVars, DaxIo, Crt, Dos, GameIo, C_KEYS, C_MSG{$IFDEF FPC}, Host{$ENDIF};
 
 {$IFDEF FPC}
 { the native build's count of the same ticks }

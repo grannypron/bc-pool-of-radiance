@@ -522,7 +522,7 @@ begin
   spell := line and C_SPELL.ID_MASK;
   lvl := SpellInf.CasterLevelText(line);
   Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
-  if spell <= C_SPELL.LAST then begin
+  if CharHlp.IsSpell(spell) then begin
     TextRend.DisplayCentered(1, 38, 3, White, GameDefs.spellNames[spell]);
     if GameDefs.spellTable[spell].castClass = C_SPELL.CLASS_CLERIC then
       s := 'CLERIC'
@@ -539,7 +539,7 @@ begin
   TextRend.DisplayString(1, FIGURE_TOP, LightGreen, 'CAST BY');
   if item <> nil then begin
     s := Copy(SpellInf.ItemName(item), 1, VALUE_WIDTH);
-    if spell <= C_SPELL.LAST then
+    if CharHlp.IsSpell(spell) then
       s := s + SpellInf.LevelAfter(Length(s), lvl);
     TextRend.DisplayString(VALUE_COL, FIGURE_TOP, White, s);
   end else if line and C_SPELL.FROM_ITEM <> 0 then

@@ -60,7 +60,7 @@ function HasCharFile(name: String): Boolean;
   sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set; the slot's vault
   becomes the session's (Vault.RestoreFromSlot). The members' single-character files are left alone (SSI erased them).
   The save's game speed and settings word are left in the GBVM zone: the game's own settings stay as they are. Quit on
-  the menu asks to exit to DOS (QuitToDos) and, answered No, opens the menu again (#872). }
+  the menu asks only "Exit to DOS?" (QuitToDos, #910) and, answered No, opens the menu again (#872). }
 procedure LoadGame;
 
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
@@ -72,15 +72,16 @@ procedure LoadGame;
   of the old save's, all or none (FileUtil.CommitSet), the old files of members the party no longer has erased with
   them; then set the recently-saved flag. The members' single-character files are left alone (SSI erased them, here and
   on loading). A save not written whole, or not put in place, leaves the old one as it was and says so. True when the
-  game was saved; False also for Escape on the menu. Quit on the menu asks to exit to DOS (QuitToDos) and, answered No,
-  opens the menu again (#872). The caller redraws the screen. }
+  game was saved; False also for Escape on the menu. Quit on the menu asks only "Exit to DOS?" (QuitToDos, #910) and,
+  answered No, opens the menu again (#872). The caller redraws the screen. }
 function SaveGame: Boolean;
 
-{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With a party not saved since it
-  changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and leaving it
-  without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS and the Load/Save menu's Quit
-  (#872) both ask through it. The caller redraws its screen when it returns. }
-procedure QuitToDos;
+{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With askSave and a party not saved
+  since it changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and
+  leaving it without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS asks to save; the
+  Load/Save menu's Quit (#872), already at the save menu, does not (#910). The caller redraws its screen when it
+  returns. }
+procedure QuitToDos(askSave: Boolean);
 
 const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
@@ -118,7 +119,7 @@ procedure FreeParty;
 implementation
 
 uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_KEYS, C_IFC, C_GBVM, C_NPC, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  C_KEYS, C_GBVM, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt, BeastFil{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
@@ -151,7 +152,7 @@ end;
 
 function HasCharFile(name: String): Boolean;
 begin
-  HasCharFile := DaxIo.FileExists(SaveLoad.CharFileBase(name) + '.cha');
+  HasCharFile := FileUtil.Exists(SaveLoad.CharFileBase(name) + '.cha');
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -165,7 +166,9 @@ var
 begin
   list := nil;
   SaveMenu.CheckSaveDir;
-  if not DaxIo.FileExists(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  { a write the game was ended in is undone first }
+  if not FileUtil.RecoverFile(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  if not FileUtil.Exists(GameVars.saveDirectory + 'charlist.txt') then Exit;
   { an error still pending would make the Reset do nothing }
   ioRes := IOResult;
   Assign(f, GameVars.saveDirectory + 'charlist.txt');
@@ -478,7 +481,7 @@ begin
   if not whole then Exit;
   if (GameVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
-  if DaxIo.FileExists(name + '.itm') then begin
+  if FileUtil.Exists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, False, False, f);
     item := nil;
     whole := found;
@@ -501,7 +504,7 @@ begin
     if found then
       Close(f);
   end;
-  if DaxIo.FileExists(name + '.spc') then begin
+  if FileUtil.Exists(name + '.spc') then begin
     found := DaxIo.OpenWithRetry(name + '.spc', msg, False, False, f);
     effect := nil;
     whole := found;
@@ -640,11 +643,14 @@ begin
   { names holds MAX_PARTY, the most a party has }
   if nChars > Types.MAX_PARTY then
     nChars := Types.MAX_PARTY;
+  { a name whose length byte is past its field is cut to it before it names a file (#917) }
+  for i := 1 to nChars do
+    found := StrUtil.FitLength(names[i], SizeOf(names[i]) - 1);
   { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
   GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := SaveLoad.CharFileName(names[i]);
-    if DaxIo.FileExists(GameVars.saveDirectory + fn + '.sav') then begin
+    if FileUtil.Exists(GameVars.saveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
       { a short or unreadable .sav is left out, as a missing one is }
       if SaveLoad.LoadChar(fn, creature, True) then
@@ -690,16 +696,16 @@ begin
   repeat
     letter := SaveMenu.ChooseSlot(False, C_KEYS.NONE);
     if letter = SaveMenu.QUIT_CHOSEN then
-      SaveLoad.QuitToDos;
+      SaveLoad.QuitToDos(False);
   until letter <> SaveMenu.QUIT_CHOSEN;
   if letter <> C_KEYS.NONE then
     SaveLoad.LoadSlot(letter);
 end;
 
-procedure QuitToDos;
+procedure QuitToDos(askSave: Boolean);
 begin
   if MenuCore.YesNoMenu('Exit to DOS? ', Yellow, LightGreen, White) = 'Y' then
-    if (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
+    if not askSave or (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
       GameIo.ExitGame
     else if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'N' then
       GameIo.ExitGame
@@ -854,7 +860,7 @@ begin
     letter := SaveMenu.ChooseSlot(True, letter);
     if letter = C_KEYS.NONE then Exit;
     if letter = SaveMenu.QUIT_CHOSEN then begin
-      SaveLoad.QuitToDos;
+      SaveLoad.QuitToDos(False);
       letter := C_KEYS.NONE;
       ok := False;
     end else begin
@@ -886,7 +892,7 @@ var
   y: ShortInt;
   disk: Byte;
 begin
-  if DaxIo.FileExists(name) then Exit;
+  if FileUtil.Exists(name) then Exit;
   msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GameVars.virtualDisk);
   repeat
     ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
