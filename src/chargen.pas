@@ -110,15 +110,14 @@ procedure AddCharacterMenu; forward;
   mocks/training-hall.txt (#879): the roster the mock's way (CharDisp.hallMenu), then the commands in two columns, the
   highlight on one and a command not offered in dark gray; PartyMnu.ChooseCmd reads a command's key, or Enter on the
   highlighted one, and Home and End step through the party (Party.SelectPrevNextChar). Offered: with no party Create,
-  Add, Load, Settings and Exit to DOS; with one all but Load; and Train only at a training hall or with free training
-  on (#765), as SSI offered it. Dual Class is always on the two-column menu; SSI's lists it, as Human Change Class
-  (H), with Train for a human selected. ChgClass.Refusal's reason, if any, shows on the bottom line for two seconds or
-  until a key (TextRend.FlashBottomLine), and otherwise ChgClass.ChangeClassMenu opens for the character selected
-  then. Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets
-  ifcState to 4 (C_IFC.INDOORS). Exit to DOS asks through SaveLoad.QuitToDos: with a party not saved since it changed,
-  it asks to save first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved
-  (#660). Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line
-  parameter is STING. }
+  Add, Load, Settings and Exit to DOS; with one all but Load; and Train only at a training hall or with free training on
+  (#765), as SSI offered it. Dual Class is always on the two-column menu and never on SSI's (#885); ChgClass.Refusal's
+  reason, if any, shows on the bottom line for two seconds or until a key (TextRend.FlashBottomLine), and otherwise
+  ChgClass.ChangeClassMenu opens for the character selected then. Returns once a loaded saved game leaves the main-menu
+  state (setting loadedSave) or Begin Adventuring sets ifcState to 4 (C_IFC.INDOORS). Exit to DOS asks through
+  SaveLoad.QuitToDos: with a party not saved since it changed, it asks to save first: Yes opens the save menu, and
+  leaving it without saving stays in the menu; No quits unsaved (#660). Settings opens the Settings screen
+  (Options.OptionsMenu). J sets stingMode when the first command-line parameter is STING. }
 procedure MainMenu(inGame: Boolean);
 var
   ch: Char;
@@ -156,8 +155,6 @@ begin
                               PartyMnu.CMD_SAVE, PartyMnu.CMD_BEGIN];
         if atHall then
           offered := offered + [PartyMnu.CMD_TRAIN];
-        if atHall and (GameVars.curChar^.race = C_RACE.HUMAN) then
-          offered := offered + [PartyMnu.CMD_DUAL];
       end else
         offered := offered + [PartyMnu.CMD_LOAD];
       if inGame then begin
@@ -176,12 +173,10 @@ begin
       ch := PartyMnu.ChooseListed(offered, ext);
     TextRend.ClearBottomLine;
     if ext then begin
-      { Home and End step through the party (Party.SelectPrevNextChar), and on SSI's menu Up and Down too; there,
-        Human Change Class comes and goes with the human selected }
+      { Home and End step through the party (Party.SelectPrevNextChar), and on SSI's menu Up and Down too }
       if (ch in [C_KEYS.HOME, C_KEYS.END_KEY]) or (not inGame and (ch in [C_KEYS.UP, C_KEYS.DOWN])) then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
-        redraw := not inGame and atHall;
       end;
     end else begin
       if not (ch in ['E', 'S']) then
