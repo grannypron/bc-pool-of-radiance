@@ -21,6 +21,8 @@ var
   codePos: Word;
   { the address the new code runs at }
   codeAddr: Word;
+  { a place in the new code }
+  pos: Word;
 
 function SameBlock(a, b: Word): Boolean;
 begin
@@ -157,9 +159,20 @@ begin
   if FindJump(868, 3, 0, '#868 New Phlan') then begin
     TestKit.CheckEqualsL($01, DataPat.patchBytes[codePos + 12], '#868 New Phlan: other squares GOTO');
     TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 14), '#868 New Phlan: where event 20 went');
-    TestKit.CheckEqualsL(C_GBVM.REWARD_SLUMS, PatchWord(codePos + 18), '#868 New Phlan: the Slums cleared');
-    TestKit.CheckEqualsL(C_GBVM.QUEST_DONE, DataPat.patchBytes[codePos + 21], '#868 New Phlan: as QUEST_DONE');
-    TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + 26), '#868 New Phlan: the fortune teller alive');
+    TestKit.CheckEqualsL(C_GBVM.REWARD_SLUMS, PatchWord(codePos + 22), '#868 New Phlan: the Slums cleared');
+    TestKit.CheckEqualsL(C_GBVM.QUEST_DONE, DataPat.patchBytes[codePos + 25], '#868 New Phlan: as QUEST_DONE');
+    TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + 33), '#868 New Phlan: the fortune teller alive');
+    { both GOTOs to the empty shop land on its PRINTCLEAR, inside the new code }
+    pos := PatchWord(codePos + 29) - codeAddr;
+    TestKit.CheckEqualsL(pos, PatchWord(codePos + 40) - codeAddr, '#868 New Phlan: one empty shop');
+    TestKit.Check(pos < DataPat.parts[codePart].newLen, '#868 New Phlan: the empty shop is in the new code');
+    if pos + 22 < DataPat.parts[codePart].newLen then begin
+      TestKit.CheckEqualsL($12, DataPat.patchBytes[codePos + pos], '#868 New Phlan: the empty shop is a PRINTCLEAR');
+      { then the crystal ball for a murdered fortune teller: PRINTCLEAR's 3 bytes and its text, then a COMPARE }
+      pos := pos + 3 + DataPat.patchBytes[codePos + pos + 2];
+      TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + pos + 2),
+                           '#868 New Phlan: the crystal ball for the murdered fortune teller');
+    end;
   end;
   TestKit.Done;
 end.
