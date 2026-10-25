@@ -30,7 +30,7 @@ implementation
 uses Types, Crt, C_AREA, C_NPC, GameDefs, GameVars, SaveLoad, ViewChar, Border, C_CLASS, C_LEVEL, C_RACE,
   C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
-  VidOps, ChgClass{$IFDEF FPC}, TpRand{$ENDIF};
+  VidOps, ChgClass, PartyMnu{$IFDEF FPC}, TpRand{$ENDIF};
 
 const
   { Racial ability adjustments, by race and ability, added to each 3d6 roll before the racial limits apply. }
@@ -101,106 +101,67 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-{ MainMenu: The party-roster main menu (create, drop, modify, train, change class, view, add, remove, load, save, begin,
-  game settings, exit). Human Change Class (ChgClass.ChangeClassMenu, #838) is offered with Train, to a human of one
-  class. Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets
-  ifcState to 4 (C_IFC.INDOORS). Exit to DOS asks through SaveLoad.QuitToDos: with a party not saved since it changed,
-  it asks to save first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved
-  (#660). Game Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line
-  parameter is STING. }
+{ MainMenu: The party menu of the start-up screen and the training halls (PartyMnu, mocks/training-hall.txt, #879):
+  the roster, then the commands in two columns, the highlight on one; PartyMnu.ChooseCmd reads a command's key, or
+  Enter on the highlighted one, and Home and End step through the party (Party.SelectPrevNextChar). A command not
+  offered is dark gray: with no party everything but Create, Dual Class, Add, Load, Settings and Exit to DOS; with
+  one, Load; and Train except at a training hall or with free training on (#765), as SSI offered it. Dual Class is
+  always offered: ChgClass.Refusal's reason, if any, shows on the bottom line for two seconds or until a key
+  (TextRend.FlashBottomLine), and otherwise ChgClass.ChangeClassMenu opens for the character selected then. Returns
+  once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets ifcState to 4
+  (C_IFC.INDOORS). Exit to DOS asks through SaveLoad.QuitToDos: with a party not saved since it changed, it asks to
+  save first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660).
+  Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter
+  is STING. }
 procedure MainMenu;
-const
-  MENU_CREATE = 0;
-  MENU_DROP = 1;
-  MENU_MODIFY = 2;
-  MENU_TRAIN = 3;
-  MENU_CHANGE = 4;
-  MENU_VIEW = 5;
-  MENU_ADD = 6;
-  MENU_REMOVE = 7;
-  MENU_LOAD = 8;
-  MENU_SAVE = 9;
-  MENU_BEGIN = 10;
-  MENU_SETTINGS = 11;
-  MENU_QUIT = 12;
-  menuKeys: String[40] = 'C D M T H V A R L S B G E J';
-  { initial empty-roster state }
-  menuItems: array[0..12] of Types.TMenuItem = (
-    (name: 'Create New Character'; enabled: 1),
-    (name: 'Drop Character'; enabled: 0),
-    (name: 'Modify Character'; enabled: 0),
-    (name: 'Train Character'; enabled: 0),
-    (name: 'Human Change Class'; enabled: 0),
-    (name: 'View Character'; enabled: 0),
-    (name: 'Add Character to Party'; enabled: 1),
-    (name: 'Remove Character from Party'; enabled: 0),
-    (name: 'Load Saved Game'; enabled: 1),
-    (name: 'Save Current Game'; enabled: 0),
-    (name: 'BEGIN Adventuring'; enabled: 0),
-    (name: 'Game Settings'; enabled: 1),
-    (name: 'Exit to DOS'; enabled: 1));
 var
-  i: Byte;
   ch: Char;
   ext: Boolean;
   ext2: Boolean;
-  n: ShortInt;
   redraw: Boolean;
   stateB: Byte;
   { SaveGame's result: the menu goes on either way }
   saved: Boolean;
+  { a training hall here, or free training on }
+  atHall: Boolean;
+  offered: PartyMnu.TCmdSet;
+  { the highlighted command, and the row of the commands' headings }
+  cur: Byte;
+  top: Byte;
+  refusal: Types.TStr40;
 begin
   GameVars.virtualDisk := 3;
   stateB := C_IFC.INDOORS;
   redraw := True;
   stingMode := 0;
+  cur := PartyMnu.CMD_CREATE;
   GameVars.ifcState := C_IFC.MAIN_MENU;
   while True do begin
     if redraw then begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
+      atHall := (GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0);
+      offered := [PartyMnu.CMD_CREATE, PartyMnu.CMD_DUAL, PartyMnu.CMD_ADD, PartyMnu.CMD_SETTINGS, PartyMnu.CMD_EXIT];
+      top := PartyMnu.MENU_TOP;
       if GameVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
-        menuItems[MENU_DROP].enabled := 1;
-        menuItems[MENU_MODIFY].enabled := 1;
-        { Train is offered only at a training hall or with free training on, recomputed on each redraw (#765) }
-        menuItems[MENU_TRAIN].enabled :=
-          Ord((GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0));
-        { a human of one class may change class where training is offered (#838); the screen says what it needs }
-        menuItems[MENU_CHANGE].enabled := Ord((menuItems[MENU_TRAIN].enabled <> 0) and
-          (GameVars.curChar^.race = C_RACE.HUMAN) and (GameVars.curChar^.charClass <= C_CLASS.MONK));
-        menuItems[MENU_VIEW].enabled := 1;
-        menuItems[MENU_REMOVE].enabled := 1;
-        menuItems[MENU_LOAD].enabled := 0;
-        menuItems[MENU_SAVE].enabled := 1;
-        menuItems[MENU_BEGIN].enabled := 1;
-      end else begin
-        menuItems[MENU_DROP].enabled := 0;
-        menuItems[MENU_MODIFY].enabled := 0;
-        menuItems[MENU_TRAIN].enabled := 0;
-        menuItems[MENU_CHANGE].enabled := 0;
-        menuItems[MENU_VIEW].enabled := 0;
-        menuItems[MENU_REMOVE].enabled := 0;
-        menuItems[MENU_LOAD].enabled := 1;
-        menuItems[MENU_SAVE].enabled := 0;
-        menuItems[MENU_BEGIN].enabled := 0;
-      end;
-      n := 0;
-      for i := MENU_CREATE to MENU_QUIT do
-        if menuItems[i].enabled <> 0 then begin
-          TextRend.DisplayString(2, n + 12, White, menuItems[i].name[1]);
-          TextRend.DisplayString(3, n + 12, LightGreen,
-                                 Copy(menuItems[i].name, 2, Length(menuItems[i].name) - 1));
-          Inc(n);
-        end;
+        top := PartyMnu.MenuTop(GameVars.zone1^[C_GBVM.PARTY_SIZE]);
+        offered := offered + [PartyMnu.CMD_VIEW, PartyMnu.CMD_MODIFY, PartyMnu.CMD_DROP, PartyMnu.CMD_REMOVE,
+                              PartyMnu.CMD_SAVE, PartyMnu.CMD_BEGIN];
+        if atHall then
+          offered := offered + [PartyMnu.CMD_TRAIN];
+      end else
+        offered := offered + [PartyMnu.CMD_LOAD];
+      if not (cur in offered) then
+        cur := PartyMnu.StepCmd(offered, cur, 1);
+      PartyMnu.Draw(offered, top, cur);
       redraw := False;
     end;
 
-    ch := MenuCore.MenuHorizontal('pool of radiance ' + GameDefs.GAME_VERSION, menuKeys, CYAN, Black,
-                                  Black, True, False, ext);
+    ch := PartyMnu.ChooseCmd(offered, top, cur, ext);
     TextRend.ClearBottomLine;
     if ext then begin
-      { Home, End, Up and Down step through the party (Party.SelectPrevNextChar) }
-      if ch in [C_KEYS.HOME, C_KEYS.END_KEY, C_KEYS.UP, C_KEYS.DOWN] then begin
+      { Home and End step through the party (Party.SelectPrevNextChar) }
+      if ch in [C_KEYS.HOME, C_KEYS.END_KEY] then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
       end;
@@ -208,46 +169,42 @@ begin
       if not (ch in ['E', 'S']) then
         GameVars.recentSaved := 0;
       case ch of
-        'C': if menuItems[MENU_CREATE].enabled <> 0 then
-               CharGen.CreateCharacterMenu;
-        'D': if menuItems[MENU_DROP].enabled <> 0 then
-               CharGen.DropCharacterMenu;
-        'M': if menuItems[MENU_MODIFY].enabled <> 0 then
-               CharGen.ModifyCharacterMenu;
-        'T': if menuItems[MENU_TRAIN].enabled <> 0 then
-               CharGen.TrainingMenu;
-        'H': if menuItems[MENU_CHANGE].enabled <> 0 then
-               ChgClass.ChangeClassMenu(stingMode <> 0);
-        'V': if menuItems[MENU_VIEW].enabled <> 0 then
-               ViewChar.ViewCharMenu(ext2);
-        'A': if menuItems[MENU_ADD].enabled <> 0 then
-               CharGen.AddCharacterMenu;
-        'R': if (menuItems[MENU_REMOVE].enabled <> 0) and (GameVars.curChar <> nil) then
+        'C': CharGen.CreateCharacterMenu;
+        'D': CharGen.DropCharacterMenu;
+        'M': CharGen.ModifyCharacterMenu;
+        'T': CharGen.TrainingMenu;
+        'U': begin
+               refusal := ChgClass.Refusal(GameVars.curChar, atHall);
+               if refusal <> '' then
+                 TextRend.FlashBottomLine(Yellow, refusal)
+               else if GameVars.curChar <> nil then
+                 ChgClass.ChangeClassMenu(stingMode <> 0);
+             end;
+        'V': ViewChar.ViewCharMenu(ext2);
+        'A': CharGen.AddCharacterMenu;
+        'R': if GameVars.curChar <> nil then
              begin
                { a character whose save failed stays in the party }
                if SaveLoad.SaveChar(Types.PCharRecord(GameVars.curChar), '') then
                  SaveLoad.RemoveCreature(False, True);
              end;
-        'L': if menuItems[MENU_LOAD].enabled <> 0 then
-             begin
+        'L': begin
                SaveLoad.LoadGame;
                if GameVars.ifcState <> C_IFC.MAIN_MENU then begin
                  GameVars.loadedSave := 1;
                  Exit;
                end;
              end;
-        'S': if (menuItems[MENU_SAVE].enabled <> 0) and (GameVars.creatureList <> nil) then
+        'S': if GameVars.creatureList <> nil then
                saved := SaveLoad.SaveGame;
-        'B': if (menuItems[MENU_BEGIN].enabled <> 0) and (GameVars.creatureList <> nil) then
+        'B': if GameVars.creatureList <> nil then
              begin
                GameVars.ifcState := stateB;
                TextRend.ClearBottomLine;
                Exit;
              end;
-        'G': if menuItems[MENU_SETTINGS].enabled <> 0 then
-               Options.OptionsMenu;
-        'E': if menuItems[MENU_QUIT].enabled <> 0 then
-               SaveLoad.QuitToDos;
+        'G': Options.OptionsMenu;
+        'E': SaveLoad.QuitToDos;
         { free training, turned on and off as in Curse }
         'J': if GameVars.stingArg then
              begin
@@ -1075,7 +1032,7 @@ end;
   restoreDrain, one drained level is restored for each; base skills are recalculated; a new magic-user level picks one
   spell; hit points grow by the rolled dice (and, for hpMax, the classes' Con bonus) divided by the class count, at
   least 1, damage kept. A dual-classed human (#838) gains no level in a class it has left, and no hit points until the
-  class it follows passes every class it left (ClassCal.HitDice): then its own die alone, undivided. A class that
+  class it follows passes the class it left (ClassCal.HitDice): then its own die alone, undivided. A class that
   wakes with the level is announced (ChgClass.AnnounceWoken). }
 procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 var

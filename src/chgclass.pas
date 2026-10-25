@@ -1,4 +1,4 @@
-{ Human Change Class (#838): the training hall's screen where a human leaves its class and starts again as a level 1
+{ Dual Class (#838, #879): the training hall's screen where a human leaves its class and starts again as a level 1
   character of another, as the 1st-edition PHB ("Characters With Two Classes", p.33) and Curse of the Azure Bonds let
   it, and the powers that follow a class as it rests and wakes again. The rules are ClassCal's (CanChangeClass,
   CanTakeClass, ChangeClass) and CharHlp's (GetClassLevel, ClassResting). Overlaid; CharGen, EffHndlr and Magic use
@@ -30,38 +30,47 @@ procedure SyncClassPowers(creature: Types.PCharRecord);
   (ClassCal.StartCasterClass), which RecalcBaseSkills leaves to creation; then SyncClassPowers. }
 procedure AnnounceWoken(creature: Types.PCharRecord; wasResting: Byte);
 
-{ The Human Change Class screen for curChar (mocks/change-class.txt): what leaving its class needs and what it has,
-  then the classes a human can take with what each needs and what it has, white for one it qualifies for here, dark
-  gray for one it does not; Up and Down move the yellow highlight between the qualifying ones, and the lines below
-  say what choosing it does. A class qualifies when ClassCal.CanTakeClass allows it and this hall trains it
-  (C_GBVM.TRAIN_CLASS_MASK, GameDefs.classBit); freeTraining (CharGen's STING switch) waives the hall and the fee.
-  Choose asks Yes or No, takes CHANGE_FEE gold and changes the class (ClassCal.ChangeClass, SyncClassPowers). A
-  character not okay, or without the fee, is turned away first, as training turns it away. }
+{ Why creature may not open the Dual Class screen, as line 25 of the party menu says it (#879), or '' when it may:
+  atHall is a training hall here or free training on. In order: no hall ('Dual classing requires a training hall.'),
+  not human ('Only humans can dual class.'), changed class already ('Alias already has two classes.'), not okay
+  ('Alias isn't able to do that.', free training or not) and drained of a level ('Alias needs restoration first.'),
+  as a class left would need restoring after the change. A nil creature at a hall gets ''. }
+function Refusal(creature: Types.PCharRecord; atHall: Boolean): Types.TStr40;
+
+{ The Dual Class screen for curChar (mocks/change-class.txt): the level and class it follows now, then the classes a
+  human can take, each with its prime requisites one to a line, what each needs and what the character has, white for
+  one it qualifies for here and dark gray for one it does not; the explanation of the rule; and a status line for the
+  highlighted class. Up and Down move the yellow highlight through the classes. A class qualifies when
+  ClassCal.CanTakeClass allows it, this hall trains it (C_GBVM.TRAIN_CLASS_MASK, GameDefs.classBit) and the character
+  has the CHANGE_FEE; freeTraining (CharGen's STING switch) waives the hall and the fee. The status line says which of
+  these fails, or what choosing it costs. Choose, offered on a qualifying class, asks Yes or No, takes the fee and
+  changes the class (ClassCal.ChangeClass, SyncClassPowers). A character whose current class's prime requisites are too
+  low has no highlight and the menu is Exit alone. The party menu has turned away a character Refusal refuses. }
 procedure ChangeClassMenu(freeTraining: Boolean);
 
 implementation
 
-uses Crt, C_ABIL, C_CLASS, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
+uses Crt, C_ABIL, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
   CharDisp, CharHlp, ClassCal, FxEngine, MenuCore, Money, MoneyCal, StrUtil, TextRend;
 
 const
-  { the screen's columns: labels, the class names, what is needed and what the character has }
+  { the screen's columns: the labels and class names, what is needed and what the character has }
   LABEL_COL = 2;
-  CLASS_COL = 4;
-  NEEDS_COL = 15;
-  HAS_COL = 30;
-  { its rows: the title, the name, the class followed now and what leaving it needs, the heading of the classes and the
-    first of them, the explanation's first and last }
+  NEEDS_COL = 14;
+  HAS_COL = 29;
+  { its rows: the title, the class followed now, the heading of the classes and the first and last line of them, the
+    explanation's first and last, and the status message's }
   TITLE_ROW = 1;
-  NAME_ROW = 3;
-  NOW_ROW = 5;
-  LEAVE_ROW = 6;
-  HEAD_ROW = 8;
-  FIRST_CLASS_ROW = 9;
-  TEXT_TOP_ROW = 16;
-  TEXT_BOTTOM_ROW = 21;
+  NOW_ROW = 3;
+  HEAD_ROW = 5;
+  FIRST_CLASS_ROW = 6;
+  LAST_CLASS_ROW = 13;
+  TEXT_TOP_ROW = 15;
+  TEXT_BOTTOM_ROW = 19;
+  STATUS_TOP_ROW = 21;
+  STATUS_BOTTOM_ROW = 22;
   { the most classes listed: a human's six less the one it follows }
-  MAX_LISTED = 6;
+  MAX_LISTED = 5;
   abilityNames: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of string[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
 
 function RestingMask(creature: Types.PCharRecord): Byte;
@@ -131,191 +140,196 @@ begin
   ChgClass.SyncClassPowers(creature);
 end;
 
-{ ability names joined with '/', each of class cls's prime requisites (ClassCal.primeRequisites), and the creature's
-  scores in them the same way }
-procedure PrimeText(creature: Types.PCharRecord; cls: ShortInt; var names, scores: Types.TStr40);
+function Refusal(creature: Types.PCharRecord; atHall: Boolean): Types.TStr40;
+begin
+  Refusal := '';
+  if not atHall then
+    Refusal := 'Dual classing requires a training hall.'
+  else if creature = nil then
+    Exit
+  else if creature^.race <> C_RACE.HUMAN then
+    Refusal := 'Only humans can dual class.'
+  else if CharHlp.IsDualClass(creature) then
+    Refusal := creature^.name + ' already has two classes.'
+  else if creature^.status <> C_STATUS.OKAY then
+    Refusal := creature^.name + ' isn''t able to do that.'
+  else if creature^.drainedLevels > 0 then
+    Refusal := creature^.name + ' needs restoration first.';
+end;
+
+{ s in color in the status rows, word-wrapped between the frame's sides. }
+procedure ShowStatus(color: Byte; s: string);
+var
+  delayFlag: Byte;
+begin
+  Border.ClearBox(LABEL_COL, STATUS_TOP_ROW, C_MSG.TEXT_RIGHT - 1, STATUS_BOTTOM_ROW);
+  delayFlag := GameVars.msgDelayFlag;
+  GameVars.msgDelayFlag := 0;
+  TextRend.DisplayMessageWindow(LABEL_COL, STATUS_TOP_ROW, C_MSG.TEXT_RIGHT - 1, STATUS_BOTTOM_ROW, color, False, s);
+  GameVars.msgDelayFlag := delayFlag;
+end;
+
+{ The lines class cls takes on the screen: one for each of its prime requisites (ClassCal.primeRequisites). }
+function PrimeCount(cls: ShortInt): Byte;
+var
+  ab: ShortInt;
+  n: Byte;
+begin
+  n := 0;
+  for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+    if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then
+      Inc(n);
+  PrimeCount := n;
+end;
+
+{ Class cls's lines from row: its name on the first, and on each a prime requisite with the score it needs and the
+  creature's own (Strength CharHlp.PermanentStrength), all in color. }
+procedure DrawClassLines(creature: Types.PCharRecord; cls: ShortInt; row, color: Byte);
 var
   ab: ShortInt;
   score: Byte;
 begin
-  names := '';
-  scores := '';
+  TextRend.DisplayString(LABEL_COL, row, color, GameDefs.classNames[cls]);
   for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
     if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then begin
-      if names <> '' then begin
-        names := names + '/';
-        scores := scores + '/';
-      end;
-      names := names + abilityNames[ab];
       if ab = C_ABIL.STRENGTH then
         score := CharHlp.PermanentStrength(creature)
       else
         score := creature^.stats[ab];
-      scores := scores + StrUtil.NumStr(score);
+      TextRend.DisplayString(NEEDS_COL, row, color, abilityNames[ab] + ' ' + StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE));
+      TextRend.DisplayString(HAS_COL, row, color, StrUtil.NumStr(score));
+      Inc(row);
     end;
 end;
 
-{ True when creature qualifies for class cls here: the rules allow it and the hall trains it, or free training is on. }
+{ True when creature may become a cls here: the rules allow it (ClassCal.CanTakeClass), and the hall trains it and the
+  creature has the fee, or free training is on. }
 function Qualifies(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean): Boolean;
 begin
   Qualifies := ClassCal.CanTakeClass(creature, cls) and
-               (freeTraining or (GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] <> 0));
+               (freeTraining or ((GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] <> 0) and
+                                 (MoneyCal.CreatureGold(creature) >= CHANGE_FEE)));
 end;
 
-{ One class line: its name, what its prime requisites need and what the creature has, in color. }
-procedure DrawClassLine(creature: Types.PCharRecord; cls: ShortInt; row, color: Byte);
+{ The status line for class cls: why creature cannot become one here, in yellow, or what it costs, in white. }
+procedure ShowClassStatus(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean);
 var
-  names: Types.TStr40;
-  scores: Types.TStr40;
+  name: Types.TStr40;
 begin
-  ChgClass.PrimeText(creature, cls, names, scores);
-  TextRend.PrintSpaces(CLASS_COL, row, Black, C_MSG.TEXT_RIGHT - CLASS_COL);
-  TextRend.DisplayString(CLASS_COL, row, color, GameDefs.classNames[cls]);
-  TextRend.DisplayString(NEEDS_COL, row, color, names + ' ' + StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE));
-  TextRend.DisplayString(HAS_COL, row, color, scores);
-end;
-
-{ The explanation under the classes, word-wrapped between the frame's sides. }
-procedure Explain(s: string);
-var
-  delayFlag: Byte;
-begin
-  Border.ClearBox(LABEL_COL, TEXT_TOP_ROW, C_MSG.TEXT_RIGHT - 1, TEXT_BOTTOM_ROW);
-  delayFlag := GameVars.msgDelayFlag;
-  GameVars.msgDelayFlag := 0;
-  TextRend.DisplayMessageWindow(LABEL_COL, TEXT_TOP_ROW, C_MSG.TEXT_RIGHT - 1, TEXT_BOTTOM_ROW, LightGreen, False, s);
-  GameVars.msgDelayFlag := delayFlag;
-end;
-
-{ What choosing cls does, or why no class can be chosen (cls -1). }
-procedure ExplainChoice(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean);
-var
-  old: ShortInt;
-  names: Types.TStr40;
-  scores: Types.TStr40;
-begin
-  old := creature^.charClass;
-  if cls >= 0 then
-    ChgClass.Explain(creature^.name + ' will be a level 1 ' + GameDefs.classNames[cls] + '. The ' +
-                     GameDefs.classNames[old] + '''s skills rest until ' + creature^.name + ' passes level ' +
-                     StrUtil.NumStr(creature^.classLevels[old]) + ' as a ' + GameDefs.classNames[cls] + '.')
-  else if ChgClass.RestingMask(creature) <> 0 then
-    ChgClass.Explain(creature^.name + ' cannot change class again until the skills of every class left come back.')
-  else if not ClassCal.PrimesAtLeast(creature, old, ClassCal.LEAVE_CLASS_SCORE) then begin
-    ChgClass.PrimeText(creature, old, names, scores);
-    ChgClass.Explain('To leave the ' + GameDefs.classNames[old] + ' class ' + creature^.name + ' needs ' + names +
-                     ' of ' + StrUtil.NumStr(ClassCal.LEAVE_CLASS_SCORE) + ' or more.')
-  end else
-    ChgClass.Explain(creature^.name + ' qualifies for no new class this hall trains. A new class needs ' +
-                     StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE) + ' in each of its prime requisites, its minimums ' +
-                     'and an alignment it allows.');
+  name := GameDefs.classNames[cls];
+  if not ClassCal.CanTakeClass(creature, cls) then
+    ChgClass.ShowStatus(Yellow, creature^.name + ' does not meet ' + name + ' requirements.')
+  else if freeTraining then
+    ChgClass.ShowStatus(White, creature^.name + ' can become a ' + name + '.')
+  else if GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] = 0 then
+    ChgClass.ShowStatus(Yellow, 'This hall cannot train a ' + name + '.')
+  else if MoneyCal.CreatureGold(creature) < CHANGE_FEE then
+    ChgClass.ShowStatus(Yellow, creature^.name + ' can''t afford to change class (' + StrUtil.Grouped(CHANGE_FEE) +
+                        ' gp).')
+  else
+    ChgClass.ShowStatus(White, creature^.name + ' can become a ' + name + ' for ' + StrUtil.Grouped(CHANGE_FEE) +
+                        ' gp.');
 end;
 
 procedure ChangeClassMenu(freeTraining: Boolean);
 var
   creature: Types.PCharRecord;
   listed: array[1..MAX_LISTED] of ShortInt;
+  firstRow: array[1..MAX_LISTED] of Byte;
   count: Byte;
   sel: Byte;
   i: Byte;
+  row: Byte;
   cls: ShortInt;
   old: ShortInt;
   ch: Char;
   ext: Boolean;
-  names: Types.TStr40;
-  scores: Types.TStr40;
   done: Boolean;
 
-  { the next qualifying line from sel in direction step (1 or -1), wrapping; sel itself when there is no other }
-  function NextQualifying(step: ShortInt): Byte;
+  { Draw listed class n yellow when highlighted, else white when it qualifies and dark gray when not. }
+  procedure DrawListed(n: Byte; highlighted: Boolean);
   var
-    n: Byte;
-    k: Byte;
+    color: Byte;
   begin
-    NextQualifying := sel;
-    n := sel;
-    for k := 1 to count do begin
-      n := (n + count + step - 1) mod count + 1;
-      if ChgClass.Qualifies(creature, listed[n], freeTraining) then begin
-        NextQualifying := n;
-        Exit;
-      end;
-    end;
+    if highlighted then
+      color := Yellow
+    else if ChgClass.Qualifies(creature, listed[n], freeTraining) then
+      color := White
+    else
+      color := DarkGray;
+    ChgClass.DrawClassLines(creature, listed[n], firstRow[n], color);
   end;
 
   procedure MoveTo(n: Byte);
   begin
     if sel > 0 then
-      ChgClass.DrawClassLine(creature, listed[sel], FIRST_CLASS_ROW + sel - 1, White);
+      DrawListed(sel, False);
     sel := n;
-    ChgClass.DrawClassLine(creature, listed[sel], FIRST_CLASS_ROW + sel - 1, Yellow);
-    ChgClass.ExplainChoice(creature, listed[sel], freeTraining);
+    DrawListed(sel, True);
+    ChgClass.ShowClassStatus(creature, listed[sel], freeTraining);
   end;
 
 begin
   creature := GameVars.curChar;
-  if (creature^.status <> C_STATUS.OKAY) and not freeTraining then begin
-    TextRend.PrintAndPause('we only train conscious people', Yellow);
-    Exit;
-  end;
-  if (MoneyCal.CreatureGold(creature) < CHANGE_FEE) and not freeTraining then begin
-    TextRend.PrintAndPause('Changing class costs ' + StrUtil.NumStr(CHANGE_FEE) + ' gp.', Yellow);
-    Exit;
-  end;
   old := creature^.charClass;
   TextRend.ClearScreen;
   Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
-  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, TITLE_ROW, LightCyan, 'Human Change Class');
-  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, NAME_ROW, LightCyan, creature^.name);
+  TextRend.DisplayCentered(C_MSG.TEXT_LEFT + 1, C_MSG.TEXT_RIGHT - 1, TITLE_ROW, LightCyan,
+                           'Dual Class ' + creature^.name);
   TextRend.DisplayString(LABEL_COL, NOW_ROW, LightGreen, 'Now');
   TextRend.DisplayString(NEEDS_COL, NOW_ROW, White,
-                         GameDefs.classNames[old] + ', level ' + StrUtil.NumStr(creature^.classLevels[old]));
-  ChgClass.PrimeText(creature, old, names, scores);
-  TextRend.DisplayString(LABEL_COL, LEAVE_ROW, LightGreen, 'To leave');
-  TextRend.DisplayString(NEEDS_COL, LEAVE_ROW, White, names + ' ' + StrUtil.NumStr(ClassCal.LEAVE_CLASS_SCORE));
-  TextRend.DisplayString(HAS_COL, LEAVE_ROW, White, scores);
-  TextRend.DisplayString(LABEL_COL, HEAD_ROW, LightGreen, 'New class');
+                         'Level ' + StrUtil.NumStr(creature^.classLevels[old]) + ' ' + GameDefs.classNames[old]);
+  TextRend.DisplayString(LABEL_COL, HEAD_ROW, LightGreen, 'New Class');
   TextRend.DisplayString(NEEDS_COL, HEAD_ROW, LightGreen, 'Needs');
   TextRend.DisplayString(HAS_COL, HEAD_ROW, LightGreen, 'Has');
-  { the classes a human takes, but the one it follows and those it has left }
+  TextRend.DisplayMessageWindow(LABEL_COL, TEXT_TOP_ROW, C_MSG.TEXT_RIGHT - 1, TEXT_BOTTOM_ROW, LightGreen, False,
+                                'To dual class a character must have ' + StrUtil.NumStr(ClassCal.LEAVE_CLASS_SCORE) +
+                                ' or more in the prime requisites of their current class, and ' +
+                                StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE) +
+                                ' or more in their new class'' prime requisites.');
+  { the classes a human takes, but the one it follows, as many as the rows hold }
   count := 0;
+  row := FIRST_CLASS_ROW;
   for i := 1 to ClassCal.classesByRace[C_RACE.HUMAN].count do begin
     cls := ClassCal.classesByRace[C_RACE.HUMAN].classes[i];
-    if (cls <> old) and (creature^.portExt.formerClasses and (1 shl cls) = 0) and (count < MAX_LISTED) then begin
+    if (cls <> old) and (count < MAX_LISTED) and (row + ChgClass.PrimeCount(cls) - 1 <= LAST_CLASS_ROW) then begin
       Inc(count);
       listed[count] := cls;
+      firstRow[count] := row;
+      Inc(row, ChgClass.PrimeCount(cls));
     end;
   end;
   sel := 0;
   for i := 1 to count do
-    if ChgClass.Qualifies(creature, listed[i], freeTraining) then begin
-      ChgClass.DrawClassLine(creature, listed[i], FIRST_CLASS_ROW + i - 1, White);
-      if sel = 0 then
-        sel := i;
-    end else
-      ChgClass.DrawClassLine(creature, listed[i], FIRST_CLASS_ROW + i - 1, DarkGray);
-  if sel > 0 then begin
-    i := sel;
-    sel := 0;
+    DrawListed(i, False);
+  if not ClassCal.CanChangeClass(creature) then
+    ChgClass.ShowStatus(Yellow, creature^.name + ' does not meet current class requirements.')
+  else if count > 0 then begin
+    { the highlight starts on the first class it qualifies for, or else on the first class }
+    i := 1;
+    while (i < count) and not ChgClass.Qualifies(creature, listed[i], freeTraining) do
+      Inc(i);
+    if not ChgClass.Qualifies(creature, listed[i], freeTraining) then
+      i := 1;
     MoveTo(i);
-  end else
-    ChgClass.ExplainChoice(creature, -1, freeTraining);
+  end;
   done := False;
   repeat
     MenuCore.arrowsToCaller := True;
-    MenuCore.enterToCaller := sel > 0;
-    if sel > 0 then
+    if (sel > 0) and ChgClass.Qualifies(creature, listed[sel], freeTraining) then begin
+      MenuCore.enterToCaller := True;
       ch := MenuCore.MenuHorizontal('Change class: ', 'Choose Exit', LightMagenta, LightGreen, White, True, False,
-                                    ext)
-    else
+                                    ext);
+    end else
       ch := MenuCore.MenuHorizontal('Change class: ', 'Exit', LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       if sel > 0 then
         case ch of
-          C_KEYS.UP: MoveTo(NextQualifying(-1));
-          C_KEYS.DOWN: MoveTo(NextQualifying(1));
+          C_KEYS.UP: MoveTo((sel + count - 2) mod count + 1);
+          C_KEYS.DOWN: MoveTo(sel mod count + 1);
         end;
-    end else if (sel > 0) and ((ch = 'C') or (ch = C_KEYS.ENTER)) then begin
+    end else if (sel > 0) and ((ch = 'C') or (ch = C_KEYS.ENTER)) and
+        ChgClass.Qualifies(creature, listed[sel], freeTraining) then begin
       cls := listed[sel];
       if MenuCore.YesNoMenu('Change ' + creature^.name + ' to a ' + GameDefs.classNames[cls] + '? ', LightMagenta,
                             LightGreen, White) = 'Y' then begin

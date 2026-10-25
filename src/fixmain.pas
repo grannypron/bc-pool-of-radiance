@@ -85,6 +85,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O CharEdit}
 {$O CharExt}
 {$O ChgClass}
+{$O PartyMnu}
 {$O KeyHelp}
 {$O BeastMnu}
 {$O BeastFil}

@@ -1,12 +1,13 @@
 { Tests for dual-classing (#838): who may leave a class and take another (ClassCal.CanChangeClass, CanTakeClass), what
   the change does to the record (ClassCal.ChangeClass), the levels a resting class lends (CharHlp.GetClassLevel,
   ClassResting) before and after the class followed passes it, the hit dice each class gives (ClassCal.HitDice,
-  HpMaximum, HpMinimum), training (CharHlp.CanTrain), a second change, and the .chx file that keeps the classes left
-  (CharExt). }
+  HpMaximum, HpMinimum), training (CharHlp.CanTrain), no second change (#879), the party menu's refusals
+  (ChgClass.Refusal), and the .chx file that keeps the class left (CharExt). }
 {$I COMPILER.INC}
 program TDualCls;
 
-uses Types, C_ABIL, C_ALIGN, C_CLASS, C_LEVEL, C_RACE, GameDefs, FileUtil, CharHlp, ClassCal, CharExt, TestKit;
+uses Types, C_ABIL, C_ALIGN, C_CLASS, C_LEVEL, C_RACE, C_STATUS, GameDefs, FileUtil, CharHlp, ClassCal, CharExt,
+  ChgClass, TestKit;
 
 const
   FN = 'TDC';
@@ -156,26 +157,29 @@ begin
   c^.experience := 2000000;
   TestKit.Check(not CharHlp.CanTrain(c), 'the fighter never trains again, whatever the experience');
 
-  { a second change, once every class left is awake }
+  { no second change, even once the class left is awake (#879), as in Curse, Secret and Pools }
   c^.classLevels[C_LEVEL.MAGE] := 6;
   c^.stats[C_ABIL.WISDOM] := 17;
   ClassCal.RecalcBaseSkills(c);
-  TestKit.Check(ClassCal.CanChangeClass(c), 'a magic-user with Intelligence 17 may leave its class');
-  TestKit.Check(ClassCal.CanTakeClass(c, C_LEVEL.CLERIC), 'and become a cleric');
-  TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.FIGHTER), 'but never the fighter it left');
-  ClassCal.ChangeClass(c, C_LEVEL.CLERIC);
-  TestKit.CheckEqualsL(C_LEVEL.FIGHTER_BIT + C_LEVEL.MAGE_BIT, c^.portExt.formerClasses, 'two classes left');
-  TestKit.CheckEqualsL(0, CharHlp.GetClassLevel(c, C_LEVEL.FIGHTER_BIT + C_LEVEL.MAGE_BIT), 'both rest');
-  TestKit.CheckEqualsL(0, c^.mageSpells[1], 'the resting magic-user has no slots');
-  TestKit.CheckEqualsL(5, ClassCal.HitDice(c, C_LEVEL.FIGHTER), 'the fighter''s dice');
-  TestKit.CheckEqualsL(1, ClassCal.HitDice(c, C_LEVEL.MAGE), 'the magic-user''s one past the fighter');
-  c^.classLevels[C_LEVEL.CLERIC] := 6;
-  TestKit.Check(not CharHlp.ClassResting(c, C_LEVEL.FIGHTER), 'cleric 6 wakes the fighter');
-  TestKit.Check(CharHlp.ClassResting(c, C_LEVEL.MAGE), 'but not the magic-user of level 6');
-  TestKit.CheckEqualsL(0, ClassCal.HitDice(c, C_LEVEL.CLERIC), 'nor gives the cleric a die');
-  c^.classLevels[C_LEVEL.CLERIC] := 7;
-  TestKit.Check(not CharHlp.ClassResting(c, C_LEVEL.MAGE), 'cleric 7 wakes the magic-user');
-  TestKit.CheckEqualsL(1, ClassCal.HitDice(c, C_LEVEL.CLERIC), 'and is the cleric''s first die');
+  TestKit.Check(not CharHlp.ClassResting(c, C_LEVEL.FIGHTER), 'the fighter is awake');
+  TestKit.Check(not ClassCal.CanChangeClass(c), 'but a magic-user with Intelligence 17 may not leave its class again');
+  TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.CLERIC), 'nor become a cleric');
+
+  { the party menu's refusals, in their order (#879) }
+  Fighter(5);
+  TestKit.CheckEqualsS('', ChgClass.Refusal(c, True), 'a human fighter at a hall may open the screen');
+  TestKit.CheckEqualsS('Dual classing requires a training hall.', ChgClass.Refusal(c, False), 'but not away from one');
+  TestKit.CheckEqualsS('Dual classing requires a training hall.', ChgClass.Refusal(nil, False),
+                       'nor with no one selected');
+  TestKit.CheckEqualsS('', ChgClass.Refusal(nil, True), 'no one selected at a hall: nothing to say');
+  c^.drainedLevels := 1;
+  TestKit.CheckEqualsS('ALIAS needs restoration first.', ChgClass.Refusal(c, True), 'a drained level needs restoring');
+  c^.status := C_STATUS.UNCONSCIOUS;
+  TestKit.CheckEqualsS('ALIAS isn''t able to do that.', ChgClass.Refusal(c, True), 'unconscious comes first');
+  c^.portExt.formerClasses := C_LEVEL.MAGE_BIT;
+  TestKit.CheckEqualsS('ALIAS already has two classes.', ChgClass.Refusal(c, True), 'a second change before that');
+  c^.race := C_RACE.ELF;
+  TestKit.CheckEqualsS('Only humans can dual class.', ChgClass.Refusal(c, True), 'and an elf before all of them');
 
   { a character never changed is as it was }
   Plain(C_LEVEL.RANGER, 2);

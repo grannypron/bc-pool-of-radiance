@@ -93,22 +93,31 @@ var
 
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
-  each row first, and one extra row after the last. }
+  each row first, and one extra row after the last. On the party menu (C_IFC.MAIN_MENU) the roster is the
+  mock-up's (mocks/training-hall.txt, #879): the headers on row 1 and the creatures from row 2, the names from column
+  2 and AC and HP a column further left; elsewhere the headers are on row 2 and the creatures from row 4, right of the
+  view. }
 procedure DisplayParty(hl: Types.PCharRecord);
 var
   p: Types.PCharRecord;
   col: Byte;
   row: Byte;
   band: Byte;
+  { 1 on the party menu, which moves AC and HP a column left }
+  left: Byte;
 begin
-  if GameVars.ifcState = C_IFC.MAIN_MENU then
-    col := 1
-  else
+  if GameVars.ifcState = C_IFC.MAIN_MENU then begin
+    col := 2;
+    row := 1;
+    left := 1;
+  end else begin
     col := 17;
-  row := 2;
+    row := 2;
+    left := 0;
+  end;
   TextRend.DisplayString(col, row, White, 'Name');
-  TextRend.DisplayString(33, row, White, 'AC  HP');
-  Inc(row, 2);
+  TextRend.DisplayString(33 - left, row, White, 'AC  HP');
+  Inc(row, 2 - left);
   p := GameVars.creatureList;
   while p <> nil do begin
     Border.ClearBox(col, row, 38, row);
@@ -123,14 +132,14 @@ begin
     else
       band := 0;
     end;
-    CharDisp.PrintArmorClass(p, band + 32, row);
+    CharDisp.PrintArmorClass(p, band + 32 - left, row);
     case p^.hpCur of
       0..9: band := 2;
       10..99: band := 1;
     else
       band := 0;
     end;
-    CharDisp.PrintHitPoints(p, band + 36, row, False);
+    CharDisp.PrintHitPoints(p, band + 36 - left, row, False);
     Inc(row);
     p := p^.nextCharAddr;
   end;

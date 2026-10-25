@@ -33,7 +33,7 @@ procedure OptionsMenu;
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, GameVars, TextRend, Border, MenuCore, GameIo,
-  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil, CbtLog{$IFDEF FPC}, NatFile{$ENDIF};
+  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil, CbtLog, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -433,21 +433,6 @@ begin
     FileUtil.DeleteFile(FileUtil.TempName(GameVars.saveDirectory + CFG_NAME));
 end;
 
-{ value with a comma between each group of three digits. }
-function Grouped(value: LongInt): Types.TStr20;
-var
-  s: Types.TStr20;
-  i: Integer;
-begin
-  Str(value, s);
-  i := Length(s) - 3;
-  while i > 0 do begin
-    Insert(',', s, i + 1);
-    Dec(i, 3);
-  end;
-  Grouped := s;
-end;
-
 { True for a setting the Game page can change: the combat log's two only when it has a store. }
 function Changeable(opt: Byte): Boolean;
 begin
@@ -620,10 +605,10 @@ begin
   Options.DrawInfo(FIRST_ROW + 2, 'Version', GameDefs.GAME_VERSION);
   Options.DrawInfo(FIRST_ROW + 3, 'Commit', BUILD_COMMIT);
   Options.CountMerged(merged, present);
-  Options.DrawInfo(FIRST_ROW + 5, 'Data', 'V' + Options.Grouped(C_DATA.VERSION));
-  Options.DrawInfo(FIRST_ROW + 6, 'Merged Files', Options.Grouped(merged) + '/' + Options.Grouped(present));
-  Options.DrawInfo(FIRST_ROW + 8, 'Free Memory', Options.Grouped(MemAvail));
-  Options.DrawInfo(FIRST_ROW + 9, 'Largest Block', Options.Grouped(MaxAvail));
+  Options.DrawInfo(FIRST_ROW + 5, 'Data', 'V' + StrUtil.Grouped(C_DATA.VERSION));
+  Options.DrawInfo(FIRST_ROW + 6, 'Merged Files', StrUtil.Grouped(merged) + '/' + StrUtil.Grouped(present));
+  Options.DrawInfo(FIRST_ROW + 8, 'Free Memory', StrUtil.Grouped(MemAvail));
+  Options.DrawInfo(FIRST_ROW + 9, 'Largest Block', StrUtil.Grouped(MaxAvail));
 {$IFDEF FPC}
   { the native build has no overlays to keep in EMS }
   Options.DrawInfo(FIRST_ROW + 10, 'EMS Active', 'N/A');

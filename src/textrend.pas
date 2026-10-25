@@ -47,6 +47,13 @@ procedure PrintAndPause(msg: Types.TStr40; color: Byte);
 
 procedure PauseOnly;
 
+{ Wait for seconds or a keypress, whichever comes first. The key is left unread. }
+procedure DelayOrKey(seconds: Word);
+
+{ Show msg in color on the bottom line for two seconds or until a key, which is read, then clear the line: a refusal
+  that needs no answer, such as the party menu's for Dual Class (#879). }
+procedure FlashBottomLine(color: Byte; msg: Types.TStr40);
+
 procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 
 implementation
@@ -345,6 +352,32 @@ begin
 end;
 
 { Clear a character-cell rectangle to black (on both EGA pages). }
+procedure DelayOrKey(seconds: Word);
+var
+  start: LongInt;
+  deadline: LongInt;
+  now: LongInt;
+begin
+  start := TextRend.GetTicks;
+  deadline := start + 100 * seconds;
+  repeat
+    now := TextRend.GetTicks;
+    { a reading below the start means the tick count restarted at midnight }
+  until (now >= deadline) or (now < start) or KeyPressed;
+end;
+
+procedure FlashBottomLine(color: Byte; msg: Types.TStr40);
+var
+  key: Char;
+begin
+  TextRend.ClearBottomLine;
+  TextRend.DisplayString(0, 24, color, msg);
+  TextRend.DelayOrKey(2);
+  if KeyPressed then
+    key := GameIo.ReadAnyKey;
+  TextRend.ClearBottomLine;
+end;
+
 procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 begin
   { the rectangle must lie on the 40 x 25 screen, corners in order }

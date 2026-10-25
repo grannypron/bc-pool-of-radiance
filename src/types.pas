@@ -102,9 +102,10 @@ type
     are kept in its .chx file (CharExt), read when it is loaded; a record from SSI's form (DiskRec.CharFromDisk: a
     .cha or .sav, a monster from MONxCHA.DAX) has them all zero. }
   TCharExt = record
-    { The classes a human has left (dual-classing, #838), one C_LEVEL bit (1 shl slot) each: a class it can no longer
+    { The class a human has left (dual-classing, #838), as its C_LEVEL bit (1 shl slot): a class it can no longer
       train, whose levels it may use only once the class it follows now (charClass) is the higher
-      (CharHlp.GetClassLevel). 0 for every other character. }
+      (CharHlp.GetClassLevel). 0 for every other character. A human changes class once (#879); the field stays a mask,
+      as the .chx files already written hold it. }
     formerClasses: Byte;
   end;
   TCharRecord = record
@@ -446,13 +447,6 @@ type
     ds: Word;
     es: Word;
     flags: Word;
-  end;
-  { main-menu entry }
-  TMenuItem = record
-    { first character is the hotkey }
-    name: string[40];
-    { MainMenu updates availability }
-    enabled: Byte;
   end;
   TName15 = string[NAME_LEN];
   TPortraitCacheSlot = record
