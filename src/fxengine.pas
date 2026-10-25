@@ -281,13 +281,12 @@ end;
   and restoring the caller's target list and its count around it (SSI's left the rebuilt list's count). }
 function EffectSource(creature: Types.PCharRecord; effId, side: Byte; var effect: Types.PEffectRec): Boolean;
 var
-  save: Types.TTargetList;
+  save: Types.TTargetSnapshot;
   p: Types.PCharRecord;
   found: Boolean;
   i: Byte;
   range: Byte;
   slot: Byte;
-  saveCount: Byte;
 
   { the creature carries an effId node of the side wanted }
   function Carries(c: Types.PCharRecord): Boolean;
@@ -303,8 +302,7 @@ begin
   if Carries(creature) then
     found := True
   else if range > 0 then begin
-    Move(GameVars.targetList, save, SizeOf(GameVars.targetList));
-    saveCount := GameVars.targetCount;
+    Pathing.SaveTargets(save);
     slot := CbtMap.CombatSlot(creature);
     while (p <> nil) and not found do begin
       if Carries(p) and ((effId = C_EFFECT.SILENCE) or (p^.enabled <> 0))
@@ -320,8 +318,7 @@ begin
       end;
       p := p^.nextCharAddr;
     end;
-    Move(save, GameVars.targetList, SizeOf(GameVars.targetList));
-    GameVars.targetCount := saveCount;
+    Pathing.RestoreTargets(save);
   end;
   EffectSource := found;
 end;
