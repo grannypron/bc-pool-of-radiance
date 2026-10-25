@@ -35,6 +35,9 @@ const
   MAGIC_RES = 18;
   REGENERATES = 19;
   LAST_DEFENSE = 19;
+  { the sage has told all she knows of it (#868, BeastFil.Tell): the entry page shows no ?? after its defenses and
+    attacks }
+  TOLD = 20;
   { its attacks }
   FIRST_ATTACK = 32;
   ATK_POISON = 32;

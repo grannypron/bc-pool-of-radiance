@@ -35,8 +35,8 @@ function WriteTo(fn: FileUtil.TPathName): Boolean;
 
 { Fill in b from creature, a record of its kind as the monster data has it (EclMenu.InitCreature): its size, hit dice
   and exact armor class, and the defenses and attacks its effects stand for (C_BEAST.EFFECT_FACTS). What b knew stays
-  known, and seen, killed and maxHit, the party's own, are left alone. True when b has learned something; the caller
-  that keeps b marks the Bestiary dirty. }
+  known, and seen, killed and maxHit, the party's own, are left alone. b is marked C_BEAST.TOLD, all there is to know.
+  True when b has learned something other than that; the caller that keeps b marks the Bestiary dirty. }
 function Tell(var b: Bestiary.TBeast; creature: Types.PCharRecord): Boolean;
 
 implementation
@@ -151,6 +151,8 @@ begin
         Know(C_BEAST.EFFECT_FACTS[i].fact);
     effect := effect^.next;
   end;
+  Know(C_BEAST.TOLD);
+  was.known[0] := was.known[0] or (LongInt(1) shl C_BEAST.TOLD);
   Tell := (b.known[0] <> was.known[0]) or (b.known[1] <> was.known[1]) or (b.hd <> was.hd) or
           (b.acLo <> was.acLo) or (b.acHi <> was.acHi);
 end;

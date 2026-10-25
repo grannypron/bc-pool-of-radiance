@@ -69,6 +69,10 @@ const
   LIBRARY_SPECTRE = $20;
   LIBRARY_BASILISK = $40;
   LIBRARY_CLEARED = LIBRARY_SPECTRE or LIBRARY_BASILISK;
+  { 1 once the party has murdered the Slums' fortune teller (#868, a DataPat fix to the Slums' script), who then never
+    turns up as New Phlan's sage. SSI marked the murder only in the Slums' own [$4A0B], which the next area's script
+    clears. The first of the free cells DIRTEN_TEMPLE_DAY's note lists. }
+  GYPSY_KILLED = $4A53;
   { The day the Temple of Bane was freed with Dirten in the party (#682, a DataPat fix to its script): year * 360 +
     month * 30 + day + 1 from CLOCK, so 0 is none; $FFFF when it was freed without him. 14 days on, Dirten serves the
     party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71, $4A79..$4A7B:

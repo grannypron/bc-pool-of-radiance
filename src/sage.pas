@@ -1,7 +1,8 @@
-{ The sage in the back room of New Phlan's east tavern (#868), whom a DataPat fix to New Phlan's script brings in with
-  PROGRAM PROG_SAGE (EclVm.EclProgram). For a fee by the creature's hit dice (MoneyCal.SageFee), paid as the temple's
-  services are, he fills in what the party has not learned of a creature it has met: the facts the monster data gives
-  its kind (BeastFil.Tell), from its record, found by the name the Bestiary keeps (FindRecord). }
+{ The sage in her room behind New Phlan's east tavern (#868): the Slums' fortune teller, whom a DataPat fix to New
+  Phlan's script brings in with PROGRAM PROG_SAGE (EclVm.EclProgram) once the Slums are cleared, if the party let her
+  live. For a fee by the creature's hit dice (MoneyCal.SageFee), paid as the temple's services are, she fills in what
+  the party has not learned of a creature it has met: the facts the monster data gives its kind (BeastFil.Tell), from
+  its record, found by the name the Bestiary keeps (FindRecord). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit Sage;
@@ -9,8 +10,9 @@ unit Sage;
 interface
 
 { The sage's counsel until Leave: Ask chooses a creature from the Bestiary's list (BeastMnu.PickBeast), the sage names
-  his fee, and a paid fee fills in its entry, which is then shown. One whose record is not in the monster data he has
-  heard nothing of, and one whose entry holds all he knows costs nothing. The script has shown his portrait. }
+  her fee, and a paid fee fills in its entry, which is then shown. One whose record is not in the monster data she has
+  heard nothing of, and one whose entry holds all she knows costs nothing and is marked told. The script has shown
+  her portrait. }
 procedure SageMenu;
 
 implementation
@@ -148,9 +150,14 @@ begin
     Consult := '''' + b^.name + '? I HAVE HEARD OF NO SUCH THING.'''
   else begin
     t := b^;
-    if not BeastFil.Tell(t, creature) then
-      Consult := '''' + b^.name + '? YOU KNOW AS MUCH OF THAT AS I DO, AND I TAKE NO FEE FOR IT.'''
-    else begin
+    if not BeastFil.Tell(t, creature) then begin
+      { nothing to sell, but the entry is now known to be whole }
+      if t.known[0] <> b^.known[0] then begin
+        b^ := t;
+        Bestiary.dirty := True;
+      end;
+      Consult := '''' + b^.name + '? YOU KNOW AS MUCH OF THAT AS I DO, AND I TAKE NO FEE FOR IT.''';
+    end else begin
       fee := MoneyCal.SageFee(creature^.levelHighest);
       Sage.Say('''' + b^.name + '? FOR ' + StrUtil.Count(fee, 'GOLD PIECE', 'GOLD PIECES') +
                ' I WILL TELL YOU ALL I KNOW.''');
@@ -161,7 +168,7 @@ begin
       else begin
         b^ := t;
         Bestiary.dirty := True;
-        Sage.Say('THE SAGE OPENS A DUSTY TOME AND READS ALOUD. YOU NOTE ALL OF IT IN YOUR BESTIARY.');
+        Sage.Say('THE OLD WOMAN OPENS A DUSTY TOME AND READS ALOUD. YOU NOTE ALL OF IT IN YOUR BESTIARY.');
         CharDisp.MessageWait;
         BeastMnu.ShowEntry(b^);
         Sage.Redraw;
@@ -178,7 +185,7 @@ var
   b: Bestiary.PBeast;
   choice: Byte;
 begin
-  answer := 'IN THE BACK ROOM AN OLD SAGE LOOKS UP FROM HIS BOOKS. ' +
+  answer := 'THE OLD FORTUNE TELLER FROM THE SLUMS LOOKS UP FROM HER BOOKS. ' +
             '''FOR A FEE I WILL TELL YOU ALL I KNOW OF ANY BEAST YOU HAVE MET.''';
   repeat
     Sage.Say(answer);

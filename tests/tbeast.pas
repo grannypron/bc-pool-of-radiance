@@ -298,7 +298,12 @@ begin
                 'nothing its effects do not say');
   TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_POISON), 'what the party learned stays');
   TestKit.Check((t.seen = 3) and (t.killed = 1) and (t.maxHit = 9), 'seen, killed and the worst blow are the party''s');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.TOLD), 'marked told: no ?? on the entry page');
   TestKit.Check(not BeastFil.Tell(t, troll), 'told twice, nothing new');
+  { an entry the party learned whole in play: telling it only marks it told, which is nothing to pay for }
+  t.known[0] := t.known[0] and not (LongInt(1) shl C_BEAST.TOLD);
+  TestKit.Check(not BeastFil.Tell(t, troll), 'all known already: nothing new');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.TOLD), 'but marked told');
   { a man-sized record clears a Large the entry held; the hit dice of less than one stay 0 }
   troll^.iconDimensions := 1;
   troll^.levelHighest := 0;

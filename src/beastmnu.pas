@@ -186,8 +186,9 @@ begin
   KnownCount := n;
 end;
 
-{ heading in cyan on row, then b's known facts first..last under it, ?? after them for what may be still to learn: one a
-  line, or two a line when twoCols. Row comes back as the row after them. }
+{ heading in cyan on row, then b's known facts first..last under it, ?? after them for what may be still to learn
+  unless the sage has told all (C_BEAST.TOLD, #868): one a line, or two a line when twoCols. Row comes back as the row
+  after them. }
 procedure DrawGroup(var b: Bestiary.TBeast; heading: Types.TStr40; first, last: Byte; twoCols: Boolean;
                     var row: Byte);
 var
@@ -207,7 +208,7 @@ begin
       if not twoCols or (k mod 2 = 0) then
         Inc(row);
     end;
-  if row <= LAST_ROW then begin
+  if (row <= LAST_ROW) and not Bestiary.Knows(b, C_BEAST.TOLD) then begin
     if twoCols and (k mod 2 = 1) then
       TextRend.DisplayString(ITEM_COL2, row, Yellow, UNKNOWN)
     else

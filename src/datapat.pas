@@ -14,8 +14,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 80;
-  BYTE_COUNT = 2474;
+  PART_COUNT = 86;
+  BYTE_COUNT = 2514;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -225,15 +225,27 @@ const
       at the end of the script, after #606's }
     (issue: 864; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7525; offset: 5005; origLen: 2; newLen: 2),
     (issue: 864; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7525; offset: 7525; origLen: 0; newLen: 12),
-    { #868: a sage in the back room of New Phlan's east tavern, at (15,12), the dead end of the tavern entered at
-      (15,14). Event 20's address in the event table (script $9B4C), which #606 sent to its code at $B62F, goes to new
-      code at the end of the script, which sends every other event-20 square on to #606's ($B62F) as before, and at
-      (15,12) does what the shops do (the greeting once a visit, C_GBVM.PHLAN_GREETED; the refusal after a fight with
-      the city watch, C_GBVM.WATCH_FOUGHT), shows the sage (head $10, the harbor master's, on body $02, the robe of
-      Tyr's priests) and runs PROGRAM 10 (EclVm.PROG_SAGE). Nothing in the new code jumps into itself, so a fix before
-      this one that lengthens the script moves only its address in the event table. }
+    { #868: a sage in New Phlan, in a room of her own at (15,12), the dead end of the east tavern, which is walled off
+      from it and gets a door from the lane to the west, open at every hour (wall type 10, the tavern's own door);
+      (15,13)'s north wall matches the room's south and (14,12)'s east wall its door }
+    (issue: 868; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 208; origLen: 1; newLen: 1),
+    (issue: 868; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 225; origLen: 1; newLen: 1),
+    (issue: 868; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 465; origLen: 1; newLen: 1),
+    (issue: 868; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 976; origLen: 2; newLen: 2),
+    { #868: the sage is the Slums' fortune teller, there only if she lived. Her murder ($A6E7) left a mark only in
+      [$4A0B], one of the cells the next area's script clears; its GOSUB to the Slums' continue prompt ($A755) goes to
+      new code at the end of the script that sets C_GBVM.GYPSY_KILLED for good and goes on to the prompt }
+    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 3673; origLen: 2; newLen: 2),
+    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 7679; origLen: 0; newLen: 10),
+    { #868: event 20's address in New Phlan's event table (script $9B4C), which #606 sent to its code at $B62F, goes to
+      new code at the end of the script, which sends every other event-20 square on to #606's ($B62F) as before. At
+      (15,12) it does nothing until the Slums are cleared (C_GBVM.REWARD_SLUMS at C_GBVM.QUEST_DONE or past it) with
+      the fortune teller alive (C_GBVM.GYPSY_KILLED 0); then it does what the shops do (the greeting once a visit,
+      C_GBVM.PHLAN_GREETED; the refusal after a fight with the city watch, C_GBVM.WATCH_FOUGHT), shows her as the Slums
+      do (head $19 on body $0D) and runs PROGRAM 10 (EclVm.PROG_SAGE). Nothing in the new code jumps into itself, so a
+      fix before this one that lengthens the script moves only its address in the event table. }
     (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7537; offset: 657; origLen: 2; newLen: 2),
-    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7537; offset: 7537; origLen: 0; newLen: 53));
+    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7537; offset: 7537; origLen: 0; newLen: 69));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -909,24 +921,54 @@ const
     { #864 part 2, added at $B663: the ninth proclamation, CCXIV }
     $09, $80, $05, $0C, $36, $09, $5A, $E0, $81, $5E, $98, { $B663 SAVE "CCXIV.", str[$985E] }
     $13,                                              { $B66E RETURN }
-    { #868 part 1, original }
+    { #868 GEO3 part 1, original }
+    $06,
+    { fixed: (14,12) east: the room's door, open }
+    $0A,
+    { #868 GEO3 part 2, original }
+    $06,
+    { fixed: (15,13) north: a wall }
+    $66,
+    { #868 GEO3 part 3, original }
+    $06,
+    { fixed: (15,12) south: a wall; west: the door }
+    $6A,
+    { #868 GEO3 part 4, original: (14,12) and (15,12) pass no way }
+    $00, $00,
+    { fixed: (14,12) east and (15,12) west pass }
+    $04, $40,
+    { #868 Slums part 1, original }
+    $BC, $B6,                                         { $A757 GOSUB LB6BC, after the fortune teller is murdered }
+    { fixed: the GOSUB goes to new code at the end of the script }
+    $FD, $B6,                                         { $A757 GOSUB LB6FD }
+    { #868 Slums part 2, added at $B6FD: her murder remembered, then the continue prompt }
+    $09, $00, $01, $01, $53, $4A,                     { $B6FD SAVE $01, [$4A53] }
+    $01, $01, $BC, $B6,                               { $B703 GOTO LB6BC }
+    { #868 New Phlan part 1, original }
     $2F, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB62F }
     { fixed: event 20 goes to new code at the end of the script }
     $6F, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB66F }
-    { #868 part 2, added at $B66F: #606's code but at (15,12); there, as the shops, the greeting, then the sage }
-    $14, $01, $4B, $C0, $00, $0F, $01, $4C, $C0, $00, $0C, { $B66F COMPARE AND [$C04B], $0F, [$C04C], $0C }
+    { #868 New Phlan part 2, added at $B66F: #606's code but at (15,12); there, once the Slums are cleared with the
+      fortune teller alive, as the shops, the greeting, then the sage }
+    $14, $01, $4B, $C0, $00, $0F, $01, $4C, $C0, $00, $0C,{ $B66F COMPARE AND [$C04B], $0F, [$C04C], $0C }
     $17,                                              { $B67A IF <> }
     $01, $01, $2F, $B6,                               { $B67B GOTO LB62F }
-    $02, $01, $89, $AE,                               { $B67F GOSUB LAE89 }
-    $09, $00, $10, $01, $E1, $6D,                     { $B683 SAVE $10, [$6DE1] }
-    $0E, $00, $02,                                    { $B689 PICTURE $02 }
-    $03, $01, $C0, $4A, $00, $00,                     { $B68C COMPARE [$4AC0], $00 }
-    $19,                                              { $B692 IF > }
-    $01, $01, $1D, $AE,                               { $B693 GOTO LAE1D }
-    $38, $00, $0A,                                    { $B697 PROGRAM $0A }
-    $09, $00, $FF, $01, $E1, $6D,                     { $B69A SAVE $FF, [$6DE1] }
-    $0E, $00, $FF,                                    { $B6A0 PICTURE $FF }
-    $00);                                             { $B6A3 EXIT }
+    $03, $01, $BB, $4A, $00, $FE,                     { $B67F COMPARE [$4ABB], $FE }
+    $18,                                              { $B685 IF < }
+    $00,                                              { $B686 EXIT }
+    $03, $01, $53, $4A, $00, $00,                     { $B687 COMPARE [$4A53], $00 }
+    $17,                                              { $B68D IF <> }
+    $00,                                              { $B68E EXIT }
+    $02, $01, $89, $AE,                               { $B68F GOSUB LAE89 }
+    $09, $00, $19, $01, $E1, $6D,                     { $B693 SAVE $19, [$6DE1] }
+    $0E, $00, $0D,                                    { $B699 PICTURE $0D }
+    $03, $01, $C0, $4A, $00, $00,                     { $B69C COMPARE [$4AC0], $00 }
+    $19,                                              { $B6A2 IF > }
+    $01, $01, $1D, $AE,                               { $B6A3 GOTO LAE1D }
+    $38, $00, $0A,                                    { $B6A7 PROGRAM $0A }
+    $09, $00, $FF, $01, $E1, $6D,                     { $B6AA SAVE $FF, [$6DE1] }
+    $0E, $00, $FF,                                    { $B6B0 PICTURE $FF }
+    $00);                                             { $B6B3 EXIT }
 
 implementation
 
