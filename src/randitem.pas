@@ -141,14 +141,14 @@ begin
           case itemType of
             { one time in five a Javelin of Lightning (template 14); SSI's word index 144 straddled templates 18 and 19,
               making an item named from neither (POR-0165) }
-            21: begin
+            C_ITEM.JAVELIN: begin
                    r := Dice.RollDice(1, 5);
                    if r = 5 then
                      template := 14;
                    nameIds[3] := 21;
                    nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
-            28: begin
+            C_ITEM.QUARREL: begin
                    nameIds[3] := 28;
                    nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
@@ -170,7 +170,7 @@ begin
                    nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
                    unidMask := 4;
                  end;
-            73: begin
+            C_ITEM.ARROW: begin
                    nameIds[3] := 61;
                    nameIds[2] := plus + C_ITEM.NAME_PLUS_BASE;
                  end;
@@ -185,7 +185,7 @@ begin
                      8: nameIds[1] := C_ITEM.NAME_AC_2;
                    end;
                  end;
-            93: begin
+            C_ITEM.RANDOM_ARMS_LAST: begin
                    nameIds[3] := 66;
                    nameIds[2] := 224;
                    nameIds[1] := plus + C_ITEM.NAME_PLUS_BASE;
@@ -211,18 +211,18 @@ begin
               weight := 150;
             6: weight := 15;
             7: weight := 30;
-            8, 77:
+            C_ITEM.DAGGER, C_ITEM.BRACERS:
               weight := 10;
             { ammunition: weight is per piece, as in every placed stack }
-            9: begin
+            C_ITEM.DART: begin
                  weight := 5;
                  quantity := 5;
                end;
-            28: begin
+            C_ITEM.QUARREL: begin
                   weight := 3;
                   quantity := 10;
                 end;
-            73: begin
+            C_ITEM.ARROW: begin
                   weight := 4;
                   quantity := 10;
                 end;
@@ -231,7 +231,7 @@ begin
             11, 16, 25, 27, 41, 47:
               weight := 80;
             18: weight := 175;
-            21: weight := 20;
+            C_ITEM.JAVELIN: weight := 20;
             22, 30:
               weight := 40;
             37: weight := 35;
@@ -244,7 +244,7 @@ begin
             57: weight := 350;
             58: weight := 450;
             { SSI's arm read 47, 93; 47 is matched above, and Free Pascal rejects a label used twice }
-            93:
+            C_ITEM.RANDOM_ARMS_LAST:
               weight := 1;
             else begin
                    weight := 40;
@@ -255,7 +255,7 @@ begin
           case itemType of
             59: value := Word(plus) * 2500;
             { per bundle of 20 (ItemBundle) }
-            9, 28, 73: value := Word(plus) * 150;
+            C_ITEM.DART, C_ITEM.QUARREL, C_ITEM.ARROW: value := Word(plus) * 150;
             53, 54: value := Word(plus) * 3000;
             55, 56: value := Word(plus) * 3500;
             57: value := Word(plus) * 4000;
