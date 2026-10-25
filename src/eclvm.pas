@@ -995,7 +995,6 @@ var
   tId: Byte;
   j: Byte;
   it: Types.TItemRec;
-  walk: Types.PItemRec;
   roll3: Byte;
   roll: Byte;
   roll2: Byte;
@@ -1072,11 +1071,7 @@ begin
       RandItem.GenerateRandomItem(itemId, @it);
       CharHlp.PrependItemCopy(GameVars.treasureItems, @it);
     end;
-    walk := GameVars.treasureItems;
-    while walk <> nil do begin
-      CharHlp.ItemLabel(walk, False);
-      walk := walk^.next;
-    end;
+    CharHlp.LabelItems(GameVars.treasureItems);
   end;
 end;
 
