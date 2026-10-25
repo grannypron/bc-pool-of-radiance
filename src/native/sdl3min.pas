@@ -141,7 +141,6 @@ function SDL_OpenAudioDeviceStream(devid: LongWord; var spec: TSDL_AudioSpec; ca
 function SDL_ResumeAudioStreamDevice(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 function SDL_PutAudioStreamData(stream: PSDL_AudioStream; buf: Pointer; len: LongInt): Boolean; cdecl;
   external SDL_LIB;
-function SDL_GetAudioStreamQueued(stream: PSDL_AudioStream): LongInt; cdecl; external SDL_LIB;
 procedure SDL_DestroyAudioStream(stream: PSDL_AudioStream); cdecl; external SDL_LIB;
 function SDL_LockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 function SDL_UnlockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
