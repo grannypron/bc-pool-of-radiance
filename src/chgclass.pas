@@ -71,7 +71,6 @@ const
   STATUS_BOTTOM_ROW = 22;
   { the most classes listed: a human's six less the one it follows }
   MAX_LISTED = 5;
-  abilityNames: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of string[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
 
 function RestingMask(creature: Types.PCharRecord): Byte;
 var
@@ -196,7 +195,8 @@ begin
         score := CharHlp.PermanentStrength(creature)
       else
         score := creature^.stats[ab];
-      TextRend.DisplayString(NEEDS_COL, row, color, abilityNames[ab] + ' ' + StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE));
+      TextRend.DisplayString(NEEDS_COL, row, color,
+                             GameDefs.abilityNames[ab] + ' ' + StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE));
       TextRend.DisplayString(HAS_COL, row, color, StrUtil.NumStr(score));
       Inc(row);
     end;

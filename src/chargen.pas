@@ -246,7 +246,6 @@ end;
   race outside Dwarf..Human leaves the panes blank. }
 procedure ShowRaceInfo(race: ShortInt);
 const
-  ABIL_LABELS: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of String[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
   { by classLevels index }
   PART_ABBREVS: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of String[2] = (
     'CL', 'DR', 'FI', 'PA', 'RA', 'MU', 'TH', 'MO');
@@ -301,7 +300,7 @@ begin
   if (race < C_RACE.DWARF) or (race > C_RACE.HUMAN) then
     Exit;
   for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
-    TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, ABIL_LABELS[i]);
+    TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, GameDefs.abilityNames[i]);
     adj := raceAbilityAdj[race].values[i];
     if adj > 0 then
       s := '+' + StrUtil.NumStr(adj)
