@@ -461,7 +461,7 @@ begin
     case ch of
       'G': begin
              done := CharHlp.Guard(creature);
-             CharDisp.PrintBottomLine('Guarding');
+             CharDisp.PrintActionLine(creature, 'Guarding', 'is Guarding');
            end;
       { Delay: act again later this round, at initiative 1 }
       'D': begin

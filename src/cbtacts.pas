@@ -496,7 +496,7 @@ begin
   if ok then
     FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.RUNNING, 'Got Away')
   else
-    CharDisp.PrintBottomLine('Escape is blocked');
+    CharDisp.PrintActionLine(creature, 'Escape is blocked', 'is blocked from escaping');
   CombatFleeAttempt := CharHlp.EndActions(creature);
 end;
 

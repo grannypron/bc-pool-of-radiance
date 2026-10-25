@@ -646,7 +646,7 @@ begin
     FinishRound := CharHlp.EndActions(creature)
   else begin
     FinishRound := CharHlp.Guard(creature);
-    CharDisp.PrintBottomLine('Guarding');
+    CharDisp.PrintActionLine(creature, 'Guarding', 'is Guarding');
   end;
 end;
 
