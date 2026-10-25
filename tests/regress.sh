@@ -74,5 +74,6 @@ for f in "$golden/START.EXE" "$golden/GAME.OVR" "$candidate/START.EXE" "$candida
 done
 [ -x "$player/.venv/bin/python" ] || { echo "regress.sh: no goldbox-player checkout at $player" >&2; exit 2; }
 exec "$player/.venv/bin/python" "$player/tools/regress.py" --golden "$golden" --candidate "$candidate" \
-    --title "$title" --config "$config" --record "$record" "${memsize[@]}" "${sound[@]}" --report "$root/obj/regress.json" \
+    --title "$title" --config "$config" --record "$record" "${memsize[@]}" "${sound[@]}" \
+    --report "$root/obj/regress.json" \
     "${scenarios[@]}"

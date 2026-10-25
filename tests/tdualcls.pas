@@ -157,7 +157,7 @@ begin
   c^.experience := 2000000;
   TestKit.Check(not CharHlp.CanTrain(c), 'the fighter never trains again, whatever the experience');
   c^.classLevels[C_LEVEL.MAGE] := 3;
-  TestKit.CheckEqualsL(1 shl C_LEVEL.MAGE, CharHlp.TrainClasses(c, False), 'a level 3 magic-user trains, not the fighter');
+  TestKit.CheckEqualsL(1 shl C_LEVEL.MAGE, CharHlp.TrainClasses(c, False), 'a level 3 magic-user trains, no fighter');
   c^.experience := 0;
   TestKit.CheckEqualsL(0, CharHlp.TrainClasses(c, False), 'without the experience, nothing trains');
   TestKit.CheckEqualsL(1 shl C_LEVEL.MAGE, CharHlp.TrainClasses(c, True), 'free training needs none');
