@@ -232,6 +232,8 @@ begin
   c^.memorizedSpells[2] := 3;
   CharHlp.RemoveSpell(c, 3);
   TestKit.Check((c^.memorizedSpells[1] = 0) and (c^.memorizedSpells[2] = 3), 'RemoveSpell clears only the first copy');
+  CharHlp.RemoveSpell(c, 9);
+  TestKit.Check((c^.memorizedSpells[0] = 1) and (c^.memorizedSpells[2] = 3), 'and nothing for a spell not there');
   NewItem(0, 0, 0, 0, 0, 0);
   it.spells[2] := $85;
   TestKit.CheckEqualsL(5, CharHlp.ScrollSpellAt(@it, 2), 'a scroll''s spell, without its bit 7');
@@ -332,6 +334,10 @@ begin
   CharHlp.CountTeams;
   TestKit.CheckEqualsL(2, GameVars.teamCount[0], 'hostile 0 and 2 count on team 0');
   TestKit.CheckEqualsL(2, GameVars.teamCount[1], 'hostile 1 and 3 count on team 1');
+  TestKit.CheckEqualsL(1, CharHlp.EnemyTeam(@crs[1]), 'team 0''s enemy is team 1');
+  TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[2]), 'team 1''s enemy is team 0');
+  TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[3]), 'hostile 3 is on team 1, so its enemy is team 0');
+  TestKit.CheckEqualsL(1, CharHlp.EnemyTeam(@crs[4]), 'hostile 2 is on team 0, so its enemy is team 1');
 
   { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
   New(items);
