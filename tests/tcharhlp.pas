@@ -97,8 +97,8 @@ begin
   end;
 end;
 
-{ AtLevelCap against SSI's tests for every race, the capped classes, Strength 3..18 and levels 1..9: capped from the
-  first level SSI caps at, and at every level past it }
+{ AtLevelCap against SSI's tests for every race but the half-orc, which SSI did not cap (#956), the capped classes,
+  Strength 3..18 and levels 1..9: capped from the first level SSI caps at, and at every level past it }
 procedure CheckCapsMatchSsi;
 var
   race: Integer;
@@ -114,6 +114,7 @@ const
 begin
   bad := 0;
   for race := C_RACE.DWARF to C_RACE.HUMAN do
+    if race <> C_RACE.HALFORC then
     for k := 1 to 3 do
       for str := 3 to 18 do
         for lvl := 1 to 9 do begin
@@ -257,6 +258,37 @@ begin
   c^.race := C_RACE.HALFELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
+
+  { a half-orc's cleric and thief caps by Wisdom and Dexterity (PHB pp. 14-15, #956) }
+  ClearCreature;
+  c^.race := C_RACE.HALFORC;
+  c^.wisCur := 14;
+  c^.classLevels[C_LEVEL.CLERIC] := 3;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-orc cleric of Wisdom 14 trains past 3');
+  c^.classLevels[C_LEVEL.CLERIC] := 4;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'and stops at 4');
+  c^.wisCur := 15;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'Wisdom 15: past 4');
+  c^.classLevels[C_LEVEL.CLERIC] := 5;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'to 5');
+  c^.wisCur := 16;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'Wisdom 16: past 5');
+  c^.classLevels[C_LEVEL.CLERIC] := 6;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'to 6');
+  c^.wisCur := 18;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'Wisdom 17 and up: past 6');
+  c^.classLevels[C_LEVEL.CLERIC] := 7;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'to 7');
+  c^.dexCur := 14;
+  c^.classLevels[C_LEVEL.THIEF] := 8;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.THIEF), 'a half-orc thief of Dexterity 14 stops at 8');
+  c^.dexCur := 15;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.THIEF), 'Dexterity 15: past 8');
+  c^.dexCur := 25;
+  c^.classLevels[C_LEVEL.THIEF] := 11;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.THIEF), 'and 11 at most');
+  c^.classLevels[C_LEVEL.FIGHTER] := 8;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a half-orc fighter''s cap is past PoR''s levels');
 
   CheckCapsMatchSsi;
 

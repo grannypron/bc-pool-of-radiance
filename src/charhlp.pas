@@ -90,7 +90,8 @@ function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PI
 function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 
 { Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
-  PermanentStrength, and a half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts. }
+  PermanentStrength, a half-elf cleric's (HALFELF_CLERIC_CAP), and a half-orc cleric's and thief's by Wisdom and
+  Dexterity (HalfOrcCap, #956); a level at or past the cap counts. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
 { The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
@@ -290,7 +291,7 @@ const
   MEDIUM_LOOT = 24;
   MEDIUM_LOOT_PENALTY = 50;
   { a fighter's (and a half-elf ranger's) racial level cap by Strength: below 17, 17, and 18 or more; 0 for none. Humans
-    and half-orcs have none. }
+    have none, and a half-orc's is past PoR's levels (HalfOrcCap). }
   STR_BAND_LOW = 0;
   STR_BAND_17 = 1;
   STR_BAND_18 = 2;
@@ -302,6 +303,13 @@ const
     (4, 5, 6));
   { a half-elf cleric's cap }
   HALFELF_CLERIC_CAP = 5;
+  { a half-orc's caps (1st-edition PHB pp. 14-15): a cleric's 4 to Wisdom 14, then one more a point to 7 at 17; a
+    thief's 8 to Dexterity 14, then one more a point to 11 at 17 }
+  HALFORC_CLERIC_CAP = 4;
+  HALFORC_CLERIC_CAP_MAX = 7;
+  HALFORC_THIEF_CAP = 8;
+  HALFORC_THIEF_CAP_MAX = 11;
+  HALFORC_CAP_SCORE = 14;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_ITEM.PROP_DEX_MISSILE) and Strength to-hit (C_ITEM.PROP_STR_BONUS); the damage dice
@@ -1255,8 +1263,37 @@ begin
   end;
 end;
 
+{ A half-orc's cap in class cls, 0 for none: its cleric cap by Wisdom and its thief cap by Dexterity, each one level
+  more a point above HALFORC_CAP_SCORE. Its fighter caps (10 to 18/99, then 11 to 17 from 18/00) are past every level
+  PoR's experience table gives a fighter, so they are left out; the table's own ends bound the others (CanTrain).
+  Nothing raises Wisdom or Dexterity by magic, so the current scores are the character's own. }
+function HalfOrcCap(creature: Types.PCharRecord; cls: ShortInt): ShortInt;
+var
+  cap: Integer;
+begin
+  HalfOrcCap := 0;
+  case cls of
+    C_LEVEL.CLERIC: begin
+        cap := HALFORC_CLERIC_CAP + Integer(creature^.wisCur) - HALFORC_CAP_SCORE;
+        if cap < HALFORC_CLERIC_CAP then
+          cap := HALFORC_CLERIC_CAP
+        else if cap > HALFORC_CLERIC_CAP_MAX then
+          cap := HALFORC_CLERIC_CAP_MAX;
+        HalfOrcCap := cap;
+      end;
+    C_LEVEL.THIEF: begin
+        cap := HALFORC_THIEF_CAP + Integer(creature^.dexCur) - HALFORC_CAP_SCORE;
+        if cap < HALFORC_THIEF_CAP then
+          cap := HALFORC_THIEF_CAP
+        else if cap > HALFORC_THIEF_CAP_MAX then
+          cap := HALFORC_THIEF_CAP_MAX;
+        HalfOrcCap := cap;
+      end;
+  end;
+end;
+
 { SSI's tests matched some levels past the cap and not others, and read the Strength magic had raised or disease lowered
-  (#702). Monsters, half-orcs and humans have no limit here. }
+  (#702). SSI had no half-orc caps (#956). Monsters and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;
@@ -1277,6 +1314,8 @@ begin
       band := STR_BAND_18;
     if (race = C_RACE.HALFELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
+    else if race = C_RACE.HALFORC then
+      AtLevelCap := (CharHlp.HalfOrcCap(creature, cls) <> 0) and (lvl >= CharHlp.HalfOrcCap(creature, cls))
     else if (race in [C_RACE.DWARF..C_RACE.HALFLING]) and
             ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_RACE.HALFELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
