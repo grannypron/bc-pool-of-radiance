@@ -807,7 +807,7 @@ type
         area: Byte;
         { targeting mode }
         target: Byte;
-        { saving-throw result; Magic reads it as Boolean saveEffect }
+        { what a save does: C_SPELL.SAVE_NONE, SAVE_NEGATES, SAVE_HALF or SAVE_SPECIAL (Magic.ResolveSpell) }
         saveResult: Byte;
         { saving-throw column 0..4 }
         saveType: Byte;

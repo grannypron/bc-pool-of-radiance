@@ -45,16 +45,16 @@ function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean
 procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 
 { Cast spell for GameVars.curChar. Outside combat a combat-only spell (target mode 0) is not cast: a memorized spell
-  offers 'Lose it?' (Yes removes it) and an item offers 'Use it?' (Yes sets sel). Otherwise, when ai is set and no item
-  is in use, announce the cast, then call GameVars.castTargetMenu with b until it picks targets or the cast ends. On a
-  pick, a memorized spell first rolls the caster's chance of spell failure (ClassCal.SpellFailureChance: a cleric's low
-  Wisdom, for a clerical spell, #60); a failure spends the spell and shows "<name> fails to cast <spell>." and nothing
-  else happens. Otherwise, in combat turn to face the aim, play the cast sound and animate the projectile; then remove
-  the caster's invisibility, consume the memorized spell unless GameVars.usingItem, and run GameVars.spellFns[spell]
-  with currentSpellBeing set. With no pick, outside combat it just returns; in combat b, or Yes to 'Abort Spell?',
-  aborts and consumes the spell, and otherwise targeting repeats. b means automatic targeting (AI or quick fight); sel
-  returns whether targets were picked. }
-procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
+  offers 'Lose it?' (Yes removes it) and an item offers 'Use it?' (Yes sets sel). Otherwise, when announce is set and
+  no item is in use, announce the cast, then call GameVars.castTargetMenu with b until it picks targets or the cast
+  ends. On a pick, a memorized spell first rolls the caster's chance of spell failure (ClassCal.SpellFailureChance: a
+  cleric's low Wisdom, for a clerical spell, #60); a failure spends the spell and shows "<name> fails to cast <spell>."
+  and nothing else happens. Otherwise, in combat turn to face the aim (Pathing.DirToward), play the cast sound and
+  animate the projectile; then remove the caster's invisibility, consume the memorized spell unless GameVars.usingItem,
+  and run GameVars.spellFns[spell] with currentSpellBeing set. With no pick, outside combat it just returns; in combat
+  b, or Yes to 'Abort Spell?', aborts and consumes the spell, and otherwise targeting repeats. b means automatic
+  targeting (AI or quick fight); sel returns whether targets were picked. }
+procedure CastSpellNC(spell: Byte; b, announce: Boolean; var sel: Boolean);
 
 { Cast's refusal of a combat-only spell outside combat: show the spell's name and 'is a combat-only spell...' in the
   message window. }
@@ -240,6 +240,7 @@ const
   MARK_COL = 3;
 
 function SpellMark(creature: Types.PCharRecord; spell, mark: Byte): Char; forward;
+procedure ShowCombatOnly(name: Types.TStr40; kind: Types.TStr20); forward;
 
 procedure WalkBolt(boltLen, damage: Byte; saveType: ShortInt; bounce, trace: Boolean; var cells: Types.TCellList);
   forward;
@@ -549,16 +550,17 @@ end;
 
 { Add currentScrollPtr's spells to the list (forScribe: only those queued for scribing, id > $80), each with mark,
   and record the scroll in scrollPtrs for each while scrollPtrs has room. Read Magic (effect 16), or any cleric level
-  with a scroll whose base item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. }
+  with a scroll whose base item slot is 12, identifies the scroll first; an unidentified scroll adds nothing. A slot
+  whose spell is past the spell table (CharHlp.ScrollSpellAt gives none) is skipped, so corrupt item data cannot index
+  the tables past their ends (#922). }
 procedure AddScrollSpells(creature: Types.PCharRecord; forScribe: Boolean; mark: Byte);
 var
   i: Byte;
 begin
   if CharHlp.ScrollLegible(creature, currentScrollPtr) then
-    { 3 = High(TItemRec.spells) }
-    for i := 1 to 3 do begin
-      if (forScribe and (currentScrollPtr^.spells[i] > C_SPELL.PENDING_FLAG)) or
-          (not forScribe and (currentScrollPtr^.spells[i] > 0)) then begin
+    for i := 1 to SizeOf(currentScrollPtr^.spells) do begin
+      if (CharHlp.ScrollSpellAt(currentScrollPtr, i) <> C_SPELL.NONE) and
+          (not forScribe or (currentScrollPtr^.spells[i] > C_SPELL.PENDING_FLAG)) then begin
         Magic.AddSpellToList(creature, currentScrollPtr^.spells[i], mark);
         { 48 = High(scrollPtrs) }
         if scrollCount <= 48 then begin
@@ -720,7 +722,7 @@ begin
   lines := 0;
   for lvl := 1 to SPELL_LEVEL_LAST do begin
     if memOk then
-      for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
+      for i := 0 to Types.SPELL_SLOT_LAST do begin
         id := creature^.memorizedSpells[i];
         if (id >= 1) and (id <= C_SPELL.LAST) then
           if GameDefs.spellTable[id].levelSp = lvl then
@@ -814,13 +816,13 @@ begin
 end;
 
 { Apply spell to every non-nil targetCreaturePtr entry. The save is rolled only when the spell's saveResult is not
-  C_SPELL.SAVE_NONE. When currentSpellBeing's rangeFixed is 255 an attack roll is needed too; a miss counts as saved
-  and zeroes damage for this and every later target. damage > 0 is dealt with elem as GameVars.elementMask and
+  C_SPELL.SAVE_NONE. When its rangeFixed is C_SPELL.ATTACK_ROLL_RANGE an attack roll is needed too; a miss counts as
+  saved and zeroes damage for this and every later target. damage > 0 is dealt with elem as GameVars.elementMask and
   saveResult as the save reduction (C_SPELL.SAVE_NEGATES none, C_SPELL.SAVE_HALF half). The spell's effect, if any, is
   added for CalcSpellDuration minutes at strength eff (0 = caster level) with onRemove and msg, a save negating it for
   C_SPELL.SAVE_NEGATES and C_SPELL.SAVE_SPECIAL (Silence, whose aura then never starts). SSI's code read saveResult as a
-  Boolean, so Silence's 3 negated under Free Pascal and not under Turbo Pascal (#860). With no targets it returns at
-  once, leaving elementMask set. }
+  Boolean, so Silence's 3 negated under Free Pascal and not under Turbo Pascal (#860). With no targets it does nothing
+  but clear elementMask: SSI's set the spell's element first and left it for the next non-weapon damage (#922). }
 procedure ResolveSpell(spell, eff: Byte; onRemove: Boolean; damage, elem: Byte; msg: Types.TStr40);
 var
   effLevel: Byte;
@@ -830,12 +832,11 @@ var
   saveResult: Byte;
 begin
   saveResult := GameDefs.spellTable[spell].saveResult;
-  if damage = 0 then
-    GameVars.elementMask := 0
-  else
-    GameVars.elementMask := elem;
+  GameVars.elementMask := 0;
   if GameVars.spellTargetCount = 0 then
     Exit;
+  if damage > 0 then
+    GameVars.elementMask := elem;
   if eff = 0 then
     effLevel := CharHlp.GetCasterLevel(spell)
   else
@@ -847,7 +848,7 @@ begin
         saved := False
       else
         saved := FxEngine.RollSavingThrow(tgt, GameDefs.spellTable[spell].saveType, 0);
-      if GameDefs.spellTable[GameVars.currentSpellBeing].rangeFixed = 255 then begin
+      if GameDefs.spellTable[spell].rangeFixed = C_SPELL.ATTACK_ROLL_RANGE then begin
         CharHlp.RecalcStats(tgt);
         FxEngine.TriggerEffectsWithCondition(C_COND.DEFENDER_AC, tgt);
         if not FxEngine.AttackRoll(GameVars.curChar, tgt, tgt^.acCur) then begin
@@ -897,7 +898,7 @@ begin
   end;
 end;
 
-procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
+procedure CastSpellNC(spell: Byte; b, announce: Boolean; var sel: Boolean);
 var
   ok: Boolean;
   { the caster's chance of spell failure, and whether this cast failed }
@@ -916,15 +917,14 @@ begin
       if MenuCore.YesNoMenu('Lose it? ', LightMagenta, White, LightGreen) = 'Y' then
         CharHlp.RemoveSpell(GameVars.curChar, spell);
     end else begin
-      TextRend.DisplayString(1, 19, LightGreen, 'That Item');
-      TextRend.DisplayString(1, 20, LightGreen, 'is a combat-only item...');
+      Magic.ShowCombatOnly('That Item', 'item');
       if MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y' then
         sel := True;
     end;
-    ai := False;
+    announce := False;
     ok := False;
   end;
-  if ai then
+  if announce then
     if GameVars.usingItem = False then
       Magic.PrintCastSpellMsg(p, 'casts', spell);
   while ok do begin
@@ -946,10 +946,9 @@ begin
           CharDisp.BuildIconFacings(18);
           x := CbtMap.CombatCellX(p);
           y := CbtMap.CombatCellY(p);
-          k := 0;
-          while not Pathing.IsDirToward(x, y, gTargetX, gTargetY, k) do
-            Inc(k);
-          CbtMap.SetCreatureFacing(p, k, 1, 0);
+          k := Pathing.DirToward(x, y, gTargetX, gTargetY);
+          if k < C_DIR.CENTER then
+            CbtMap.SetCreatureFacing(p, k, 1, 0);
           SoundDrv.SoundSetAutoStop(0);
           case spell of
             C_SPELL.FIREBALL: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.FIREBALL], C_SOUND.GROUP_SPELL);
@@ -992,10 +991,17 @@ begin
     Border.ClearBox(0, 23, 39, 23);
 end;
 
+{ The message window's refusal of something combat-only outside combat: name, then 'is a combat-only <kind>...' under
+  it. }
+procedure ShowCombatOnly(name: Types.TStr40; kind: Types.TStr20);
+begin
+  TextRend.DisplayString(1, 19, LightGreen, name);
+  TextRend.DisplayString(1, 20, LightGreen, 'is a combat-only ' + kind + '...');
+end;
+
 procedure ShowCombatOnlySpell(spell: Byte);
 begin
-  TextRend.DisplayString(1, 19, LightGreen, GameDefs.spellNames[spell]);
-  TextRend.DisplayString(1, 20, LightGreen, 'is a combat-only spell...');
+  Magic.ShowCombatOnly(GameDefs.spellNames[spell], 'spell');
 end;
 
 { Bless and Curse: drop targets not on team hostFlag and, for Bless in combat, targets with an enemy within range 1;
@@ -1706,7 +1712,7 @@ begin
   if crIdx > 0 then begin
     tgt := GameVars.creatureArr[crIdx];
     GameVars.elementMask := C_EFFECT.ELEM_ELEC or C_EFFECT.ELEM_MAGIC;
-    FxEngine.InflictNonWeaponDamage(tgt, damage, 2, FxEngine.RollSavingThrow(tgt, saveType, 0));
+    FxEngine.InflictNonWeaponDamage(tgt, damage, C_SPELL.SAVE_HALF, FxEngine.RollSavingThrow(tgt, saveType, 0));
     CharDisp.BuildIconFacings(19);
     GameVars.elementMask := 0;
   end;
@@ -1901,8 +1907,8 @@ begin
     Inc(tgt^.hpRolled, share);
     Dec(tgt^.drainedHps, share);
     Dec(tgt^.drainedLevels);
-    { 13: above any class level, so the first eligible class passes lvl <= bestLvl }
-    bestLvl := 13;
+    { above any class level, so the first eligible class passes lvl <= bestLvl }
+    bestLvl := C_LEVEL.LEVEL_LAST + 1;
     { sentinel above any table entry }
     bestXp := 10000000;
     { no class picked yet }
@@ -1911,8 +1917,9 @@ begin
       lvl := tgt^.classLevels[cls];
       if tgt^.portExt.formerClasses and (1 shl cls) <> 0 then
         lvl := 0;
-      { xp[] runs to level 9 }
-      if (lvl > 0) and (lvl < 9) and (lvl <= bestLvl) and (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
+      { xp[] runs to level LEVEL_LAST }
+      if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) and (lvl <= bestLvl) and
+          (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0) and
           (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] < bestXp) and
           (not CharHlp.AtLevelCap(tgt, cls)) then begin
         bestLvl := lvl;
@@ -2031,8 +2038,8 @@ end;
 { Bronze dragon breath, effect 88's handler. After the first round (roundCounter <> 0) it holds fire half the time.
   Otherwise the cast-target UI picks an aim for spell 51 (Lightning Bolt) with automatic targeting, and the aim becomes
   one step from the dragon toward it, plus one more step on each axis where that step is +1. A bolt of hpMax damage
-  (save type 3) then hits that cell and runs 10 cells. Charges live in the effect's strength: 255 and 254 are
-  decremented, anything lower removes the effect. removed is unused. }
+  (save type 3) then hits that cell and runs C_SPELL.DRAGON_BOLT_CELLS cells. Charges live in the effect's strength:
+  255 and 254 are decremented, anything lower removes the effect. removed is unused. }
 procedure DragonBreathHandler(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   junk: Boolean;
@@ -2056,7 +2063,7 @@ begin
   CharDisp.BuildIconFacings(19);
   CharDisp.CombatAnimateMovingIcon(x, y, gTargetX, gTargetY, 4, 50);
   Magic.LightningAttackAt(gTargetX, gTargetY, creature^.hpMax, C_SAVE.BREATH, junk);
-  Magic.LightningPath(10, creature^.hpMax, C_SAVE.BREATH, False);
+  Magic.LightningPath(C_SPELL.DRAGON_BOLT_CELLS, creature^.hpMax, C_SAVE.BREATH, False);
   { Remaining breath charges }
   if Types.PEffectRec(p)^.strength > 253 then
     Dec(Types.PEffectRec(p)^.strength)
@@ -2067,23 +2074,24 @@ end;
 
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
 var
+  item: Types.PItemRec;
   sp: Byte;
   i: Byte;
   found: Byte;
 begin
+  item := it;
   sp := spell and C_SPELL.ID_MASK;
   found := 0;
-  { 3 = High(TItemRec.spells) }
-  for i := 1 to 3 do
-    if Types.PItemRec(it)^.spells[i] and C_SPELL.ID_MASK = sp then
+  for i := 1 to SizeOf(item^.spells) do
+    if item^.spells[i] and C_SPELL.ID_MASK = sp then
       found := i;
   if found = 0 then
     Exit;
-  Types.PItemRec(it)^.spells[found] := 0;
+  item^.spells[found] := 0;
   { scroll spell-count name component }
-  Dec(Types.PItemRec(it)^.nameIds[2]);
-  if Types.PItemRec(it)^.nameIds[2] < C_ITEM.NAME_WITH_1_SPELL then
-    CharHlp.RemoveItem(Types.PCharRecord(cr), Types.PItemRec(it));
+  Dec(item^.nameIds[2]);
+  if item^.nameIds[2] < C_ITEM.NAME_WITH_1_SPELL then
+    CharHlp.RemoveItem(Types.PCharRecord(cr), item);
 end;
 
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
@@ -2177,7 +2185,7 @@ begin
   if announce then
     Magic.PrintCastSpellMsg(GameVars.curChar, 'casts', spell);
   cast := False;
-  Magic.CastSpellNC(spell, Boolean(GameVars.curChar^.quickfight), False, cast);
+  Magic.CastSpellNC(spell, GameVars.curChar^.quickfight <> 0, False, cast);
   GameVars.usingItem := False;
   done := cast;
   if GameVars.ifcState = C_IFC.COMBAT then
