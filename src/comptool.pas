@@ -46,10 +46,19 @@ const
   KIND_NAMES: array[EvtKind.KIND_EVENT..EvtKind.KIND_EXIT] of string[8] = ('event', 'message', 'trap', 'treasure',
                                                                            'service', 'fight', 'exit');
 
+{ The walls' colour of a square with the player's note: yellow, or light magenta in CGA's four colours. }
+function NoteColour: Byte;
+begin
+  if GameVars.video.colours >= 16 then
+    NoteColour := Yellow
+  else
+    NoteColour := LightMagenta;
+end;
+
 { Draw symbol at (col, row), straight to the screen, a step darker when dim, on a square of colour fill unless fill is
   DarkGray (the symbols' own); in CGA's four colours, which draw both greys alike, a square not dim has white walls
-  instead. A square marked MARK_NOTE has yellow walls (CGA's light magenta), one marked MARK_CLUE light cyan walls, and
-  the cursor's square black walls on white. }
+  instead. A square marked MARK_NOTE has walls in NoteColour, one marked MARK_CLUE light cyan walls, and the cursor's
+  square black walls on white. }
 procedure ShowSymbol(col, row: ShortInt; symbol: Word; dim: Boolean; fill: Byte; mark: Byte; cursor: Boolean);
 var
   symbols: Types.PImgBuf;
@@ -86,10 +95,8 @@ begin
   if mark <> MARK_NONE then begin
     if mark = MARK_CLUE then
       toT[LightGray] := LightCyan
-    else if GameVars.video.colours >= 16 then
-      toT[LightGray] := Yellow
     else
-      toT[LightGray] := LightMagenta;
+      toT[LightGray] := NoteColour;
     toT[White] := toT[LightGray];
   end;
   if cursor then begin
@@ -177,8 +184,12 @@ begin
     end;
   TextRend.DisplayString(LEGEND_COL, MAP_ROW, White, AreaName.CurrentArea);
   TextRend.DisplayString(LEGEND_COL, MAP_ROW + 2, LightGreen, 'Bright: visited');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: Not Visited');
-  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: Player Note');
+  TextRend.DisplayString(LEGEND_COL, MAP_ROW + 3, DarkGray, 'Dim: not visited');
+  { named for the colour the map draws notes in }
+  if NoteColour = Yellow then
+    TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, Yellow, 'Yellow: Player Note')
+  else
+    TextRend.DisplayString(LEGEND_COL, MAP_ROW + 4, NoteColour, 'Magenta: Player Note');
   row := MAP_ROW + 5;
   if CompTool.CluesShown then begin
     TextRend.DisplayString(LEGEND_COL, row, LightCyan, 'Cyan: Clue Book');
@@ -243,7 +254,7 @@ begin
     TextRend.DisplayString(MAP_COL, KEY_ROW, LightGreen, StrUtil.NumStr(cx) + ',' + StrUtil.NumStr(cy) + ' ');
     if CompTool.CluesShown then
       TextRend.DisplayString(NOTE_COL, KEY_ROW, LightCyan, ClueBook.Note(map, cx, cy));
-    TextRend.DisplayString(NOTE_COL, PLAYER_ROW, Yellow, MapNotes.Note(script, map, cx, cy));
+    TextRend.DisplayString(NOTE_COL, PLAYER_ROW, NoteColour, MapNotes.Note(script, map, cx, cy));
     MenuCore.arrowsToCaller := True;
     ch := MenuCore.MenuHorizontal('Map: ', 'Write Clear Exit', LightMagenta, LightGreen, White, True, False, ext);
     nx := cx;
