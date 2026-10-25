@@ -639,6 +639,20 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **Declarations.** C_EFFECT names the ready-item effects 130 (`READY_FLAME_TONGUE`, the well's Flame Tongue, #20) and 136 (`READY_UNDEAD_SLAYER`, the Two-Handed Sword +1, +3 vs. Undead) and notes that nothing adds 92 or 138 (#1048). TSaveLay checks zone 0's fields at C_GBVM's names for them, which nothing else used, and C_GBVM's `SETTINGS` gives the music bit (#1049). C_VIDEO's EGA mode is 0Dh (#1050). Sdl3Min holds `SDL_SCALEMODE_PIXELART`, which SdlHost declared, and drops four declarations nothing used (#1051, #1052).
 
+**The 2026-10-25 review: video and pictures.** A unit-by-unit review of Blit, BldShow, VidOps, the four video drivers and the four picture units. Nothing changes on screen: a new test, TBlit, pins the output of every picture routine in all four modes (and the screen memory CGA and Tandy write) with hashes taken from the code before the review, and the refactors keep them. 65a410b.
+
+**Blit.** The picture helpers only the overlaid Pic units call (`ComputeMask`, `MirrorBits`, `MirrorPairs`, `MirrorNibbles`) and `ExpandPicFrames` move to the overlaid VidOps; resident code is 496 bytes smaller. `MarkSpan` keeps the dirty-span bookkeeping BlitTile and FillPicRect each wrote out, and `ClearSpans` the reset FlushView and `GameInit.GameInit2` each did; BlitTile and RemapPic find a frame's block with `FrameBlock`. Guards: BlitTileClipped with a negative row stops at the destination's last row (SSI did not check it there), RemapPic leaves a frame past the picture's last alone, and AllocPic takes a frame of no rows or cells without dividing by 0. The descriptions take in VGA. #1034. 6dc17c8, 780aae6.
+
+**The picture units (PicCga, PicEga, PicTdy, PicVga).** Their `ExpandFrames` each ran the same frame, row and cell loop over the DAX chunks; `VidOps.ExpandPicFrames` runs it once and hands each cell row and its mask bits to the driver's `ExpandChunk`, which stores that cell row in its layout (`VidOps.ChunkPixel` gives a chunk's pixel). PicEga's and PicVga's mask mirror is one `VidOps.MirrorCellMask`. RemapColour's dither test loses a redundant `isDithered`. #1039, #1040, #1041, #1042. 6dc17c8, 3a75def.
+
+**VidCga and VidTdy.** Both modes build one row table, `GameVars.bankRowSeg`, in place of `cgaRowSeg` and `tandyRowSeg` (400 bytes of data segment back), and Tandy installs CGA's `FlushSpans` and `ShowPic`, which count with the driver's shifts. CGA's DrawGlyph has one loop for both banks; Tandy's writes each font row through the row table in place of a case over four bank arrays, and its CellFill computes the fill byte. #1036, #1037. 3a75def.
+
+**VidEga.** The second display page was always page 0, so DrawGlyph wrote every byte twice, WriteChar called the BIOS twice and ClearRect and ClearScreen also cleared page 1 (FlushSpans' staging area); they draw once, on page 0, and `pageNum`, `egaOtherPage` and `SetupEgaOtherPage` go. DrawGlyph uses `GameDefs.egaPlaneBit`. #1038. 6e98c6d.
+
+**VidOps.** `MergePic` checks that the destination is as wide and as large as the source (CharGen checked first, SaveLoad did not; the data keeps them in step); `RecolorPic` refuses an empty picture, which VGA's and Tandy's RecolorFrame would loop over 65536 times. #1035. 443d25d.
+
+**BldShow.** Open's memory check counted 32 bytes a cell picture; VGA's are 64. It counts `Blit.FrameBytes(8, 1)`. #1043. 31d1c53.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.

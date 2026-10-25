@@ -37,7 +37,7 @@ procedure ResetGame;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameDefs, GameVars, Blit, GameIo, Border, DaxIo, StrUtil;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameDefs, GameVars, Blit, VidOps, GameIo, Border, DaxIo, StrUtil;
 
 var
   { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
@@ -226,7 +226,7 @@ begin
             for j := offset to offset + xorLast do
               buf^[j] := buf^[j] xor xorBuf^[j - offset];
           end;
-        Blit.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
+        VidOps.ExpandPicFrames(buf, offset, 0, frames[loaded].pic);
         if (transp and 1 > 0) and (Blit.ColourCount = 16) then
           Blit.RemapPic(animRemapFrom, animRemapTo, 0, False, frames[loaded].pic);
         Inc(offset, planeSz + 1);

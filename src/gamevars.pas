@@ -118,13 +118,11 @@ var
   { Offset of the last dirty byte (inclusive) in the view buffer's image data. Reset to 0 when clean so any new span
     compares as later. }
   spanLastOfs: array[0..167] of Word;
-  { Video segment for each CGA scanline, precomputed so row writes need no bank arithmetic: even and odd rows interleave
-    between the B800 and BA00 banks. }
-  cgaRowSeg: array[0..199] of Word;
-  { Offset into the EGA video segment for each scanline; rows are 40 bytes apart. }
+  { Video segment for each scanline in a banked mode, precomputed so row writes need no bank arithmetic: CGA's even and
+    odd rows interleave between the B800 and BA00 banks, Tandy's rows go round its four banks from B800. }
+  bankRowSeg: array[0..199] of Word;
+  { Offset into the video segment for each scanline in EGA (rows 40 bytes apart) and VGA (320). }
   fbRowOfs: array[0..199] of Word;
-  { Video segment for each Tandy scanline, precomputed like cgaRowSeg. }
-  tandyRowSeg: array[0..199] of Word;
 
 var
   { Sound mode }
