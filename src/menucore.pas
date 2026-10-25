@@ -7,6 +7,10 @@ interface
 
 uses Types;
 
+type
+  { Bottom-line options by number, from 1 }
+  TOptionSet = set of 1..20;
+
 var
   { Set just before a MenuVertical call that only shows its list: when the list fits on one page it is drawn and #0
     returned without waiting for a key; a longer list runs the menu as usual so it can be paged. Every return clears
@@ -22,11 +26,12 @@ var
     screen above it, say): a letter or digit in it ends the menu and is returned upper-cased, as a hotkey is, without
     changing the current option. Every return clears it. }
   extraKeys: string[16];
-  { Set just before a MenuHorizontal call whose menu shows an option without a hotkey: its capital letter in here is
-    drawn in the menu colour and does not choose the option, which is reached with the arrows (Enter on it returns the
-    letter, or C_KEYS.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it. Every return
-    clears it. }
-  unmarked: string[4];
+  { Set just before a MenuHorizontal call whose menu shows options without a hotkey, by number: such an option's
+    capital letter is drawn in the menu colour and does not choose it, so another option may have that letter for its
+    hotkey (the Journal's Entries and Exit, #874). It is reached with the arrows (Enter on it returns its letter, or
+    C_KEYS.ENTER under enterToCaller). The key goes to the caller only when extraKeys holds it, or another option has
+    it. Every return clears it. }
+  unmarked: TOptionSet;
   { Set just before a MenuHorizontal call whose caller takes F5 and F8 (quick save and load) itself, as the map menu
     does; every return clears it. Without it those keys end no menu: outside combat they say quick save and load are
     unavailable here, and in combat they are ignored. }
@@ -133,7 +138,6 @@ var
   tick30: LongInt;
   tick80: LongInt;
   ch: Char;
-  j: Byte;
   i: Byte;
   done: Boolean;
   mLen: Byte;
@@ -166,8 +170,19 @@ var
     optCnt := idx;
   end;
 
-  { Draw the menu after the query with option cur wholly in hlCol, the other hotkeys in hlCol and the rest in mCol, then
-    blank the rest of the line. }
+  { The option that starts at menu position i: a hotkey past the 20th belongs to the 20th option. }
+  function OptionAt(i: Byte): Byte;
+  var
+    j: Byte;
+  begin
+    j := 1;
+    while (j < optCnt) and (opt[j].first <> i) do
+      Inc(j);
+    OptionAt := j;
+  end;
+
+  { Draw the menu after the query with option cur wholly in hlCol, the other hotkeys in hlCol (but not an unmarked
+    option's) and the rest in mCol, then blank the rest of the line. }
   procedure DisplayOption(cur: Byte);
   var
     i: Byte;
@@ -177,7 +192,7 @@ var
         if (opt[cur].first <= i) and (opt[cur].last >= i)
            and (hlCol <> 0) then
           TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
-        else if (menu[i] in ['0'..'9', 'A'..'Z']) and (Pos(menu[i], unmarked) = 0) then
+        else if (menu[i] in ['0'..'9', 'A'..'Z']) and not (OptionAt(i) in unmarked) then
           TextRend.RenderChar(qLen + i - 1, 24, hlCol, 1, Ord(menu[i]), 1)
         else
           TextRend.RenderChar(qLen + i - 1, 24, mCol, 1, Ord(menu[i]), 1);
@@ -302,13 +317,9 @@ begin
                 done := True
               else
                 for i := 1 to mLen do
-                  if (menu[i] = ch) and (Pos(ch, unmarked) = 0) then begin
+                  if (menu[i] = ch) and not (OptionAt(i) in unmarked) then begin
                     done := True;
-                    { a hotkey past the 20th belongs to the 20th option }
-                    j := 1;
-                    while (j < optCnt) and (opt[j].first <> i) do
-                      Inc(j);
-                    GameVars.horizChoice := j;
+                    GameVars.horizChoice := OptionAt(i);
                     DisplayOption(GameVars.horizChoice);
                   end;
             if (ch <> ' ') and (Pos(ch, extraKeys) > 0) then
@@ -331,7 +342,7 @@ begin
   arrowsToCaller := False;
   enterToCaller := False;
   extraKeys := '';
-  unmarked := '';
+  unmarked := [];
   quickKeysToCaller := False;
   helpToCaller := False;
   GameVars.zone0^.savedWalls.menuAnimation := 0;
@@ -674,7 +685,7 @@ begin
   movesToCaller := False;
   moved := False;
   extraKeys := '';
-  unmarked := '';
+  unmarked := [];
   quickKeysToCaller := False;
   helpToCaller := False;
   @idleHook := nil;

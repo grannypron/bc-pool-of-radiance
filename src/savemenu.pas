@@ -357,7 +357,7 @@ begin
   GameVars.horizChoice := OPT_TAKE;
   repeat
     MenuCore.extraKeys := listed;
-    MenuCore.unmarked := 'E';
+    MenuCore.unmarked := [OPT_EXIT];
     MenuCore.enterToCaller := True;
     ch := MenuCore.MenuHorizontal('Game: ', 'Next Prev ' + action + ' Exit', LightMagenta, LightGreen, White, True,
                                   False, ext);
