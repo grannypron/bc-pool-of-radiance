@@ -166,9 +166,9 @@ function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
   uses the nearer end, so Con 0..2 (Raise Dead takes a point each time) keep Con 3's penalty. }
 function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
 
-{ Sum ConHpPerDie once per class with levels whose classBit shares a bit with mask ($FF = all), leaving out the classes
-  a dual-classed human has left, which gain no more hit dice. A first-level ranger counts its share twice, once for
-  each of its two hit dice. }
+{ Sum ConHpPerDie over the hit dice each class with levels whose classBit shares a bit with mask ($FF = all) rolls for
+  its level now (RollFirstLevelHp's dice), leaving out the classes a dual-classed human has left, which gain no more hit
+  dice: once a class, twice for a first-level ranger or monk, which rolls two dice. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 
 { The hit dice class cls (C_LEVEL) has given creature: its level, with the ranger's and monk's second die at level 1.
@@ -180,7 +180,9 @@ function HitDice(creature: Types.PCharRecord; cls: ShortInt): Byte;
   dual-classed human, whose classes add their dice one after another. }
 function HpClassCount(creature: Types.PCharRecord): Byte;
 
-function DivideAmongClasses(sum: Byte; conB: ShortInt; clsCount: Byte): Byte;
+{ (sum + conB) div clsCount, the hit points a multi-class character's classes share: 1 when a negative conB would leave
+  sum no more than |conB| + clsCount, a clsCount of 0 counts as 1, and more than 255 gives 255. }
+function DivideAmongClasses(sum, conB: Integer; clsCount: Byte): Byte;
 
 function HpMinimum(creature: Types.PCharRecord): Byte;
 
@@ -230,9 +232,22 @@ const
   (CharHlp.GetClassLevel), so a dual-classed human's resting class lends it no weapons or armor (#838). }
 function ItemLimitsFor(creature: Types.PCharRecord): Byte;
 
-{ A caster's first level in class cls (C_LEVEL), as creation gives it and a change of class does: a cleric gets a
-  first-level slot, the Wisdom bonus and every first-level cleric spell known; a magic-user a first-level slot and
-  Detect Magic, Read Magic, Shield and Sleep known. Other classes get nothing. }
+{ The spell slots of a first-level caster in class cls (C_LEVEL): a cleric's one first-level slot and its Wisdom bonus
+  (AwardWisdomBonus), a magic-user's one first-level slot, and none of a higher level; other classes are left alone.
+  Creation and a change of class (StartCasterClass), a class that wakes at level 1 (ChgClass.AnnounceWoken) and one
+  drained back to level 1 (FitSpellsToLevel) set them, as RecalcBaseSkills sets only the slots of level 2 and up. }
+procedure FirstLevelSlots(creature: Types.PCharRecord; cls: ShortInt);
+
+{ Bring creature's spells into line with the cleric and magic-user levels it can use after losing levels (a drain,
+  EffHndlr.DrainLevels, after RecalcBaseSkills): a class back at level 1 has level 1's slots (FirstLevelSlots), as
+  RecalcBaseSkills sets only those of level 2 and up, and the memorized spells, pending ones too, past the slots of
+  their class and spell level are cleared, the last first. So a caster drained from level 2 keeps no second slot, and
+  no spell it could not have memorized at its new level (POR-0223, #955). }
+procedure FitSpellsToLevel(creature: Types.PCharRecord);
+
+{ A caster's first level in class cls (C_LEVEL), as creation gives it and a change of class does: its first-level slots
+  (FirstLevelSlots); a cleric knows every first-level cleric spell, a magic-user Detect Magic, Read Magic, Shield and
+  Sleep. Other classes get nothing. }
 procedure StartCasterClass(creature: Types.PCharRecord; cls: ShortInt);
 
 { True when creature has every prime requisite of class cls (primeRequisites) at score or more: its own Strength
@@ -267,7 +282,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_ABIL, C_EQUIP, C_ITEM, Dice, CharHlp, AbilAdj;
+uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_ABIL, C_EQUIP, C_ITEM, C_SAVE, Dice, CharHlp, AbilAdj;
 
 const
   { StartingAge's dice: the DMG's starting ages (p.12), by race and class (C_LEVEL); the monk column (7) has only the
@@ -329,27 +344,79 @@ begin
   ItemLimitsFor := limits;
 end;
 
-procedure StartCasterClass(creature: Types.PCharRecord; cls: ShortInt);
-var
-  m: Byte;
+procedure FirstLevelSlots(creature: Types.PCharRecord; cls: ShortInt);
 begin
   with creature^ do
     case cls of
       C_LEVEL.CLERIC: begin
+          FillChar(clericSpells, SizeOf(clericSpells), 0);
           clericSpells[1] := 1;
           ClassCal.AwardWisdomBonus(creature);
-          for m := 1 to SizeOf(spellsKnown) div SizeOf(spellsKnown[1]) do
-            with GameDefs.spellTable[m] do
-              if (castClass = 0) and (level = 1) then
-                spellsKnown[m] := 1;
         end;
       C_LEVEL.MAGE: begin
+          FillChar(mageSpells, SizeOf(mageSpells), 0);
           mageSpells[1] := 1;
-          { Detect Magic, Read Magic, Shield and Sleep }
-          spellsKnown[11] := 1;
-          spellsKnown[18] := 1;
-          spellsKnown[19] := 1;
-          spellsKnown[21] := 1;
+        end;
+    end;
+end;
+
+{ Mark known every cleric spell (castClass C_SPELL.CLASS_CLERIC) of a level creature has cleric slots for. }
+procedure KnowClericSpells(creature: Types.PCharRecord);
+var
+  m: Byte;
+begin
+  { spellsKnown runs to C_SPELL.LAST, a byte a spell }
+  for m := 1 to SizeOf(creature^.spellsKnown) do
+    with GameDefs.spellTable[m] do
+      if (castClass = C_SPELL.CLASS_CLERIC) and (levelSp >= 1) and (levelSp <= Types.CASTER_LEVEL_LAST) and
+          (creature^.clericSpells[levelSp] > 0) then
+        creature^.spellsKnown[m] := 1;
+end;
+
+procedure FitSpellsToLevel(creature: Types.PCharRecord);
+var
+  kind: Byte;
+  lvl: Byte;
+  room: Byte;
+  have: Byte;
+  i: Byte;
+  id: Byte;
+begin
+  if CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT) = 1 then
+    ClassCal.FirstLevelSlots(creature, C_LEVEL.CLERIC);
+  if CharHlp.GetClassLevel(creature, C_LEVEL.MAGE_BIT) = 1 then
+    ClassCal.FirstLevelSlots(creature, C_LEVEL.MAGE);
+  with creature^ do
+    for kind := C_SPELL.CLASS_CLERIC to C_SPELL.CLASS_MAGE do
+      for lvl := 1 to Types.CASTER_LEVEL_LAST do begin
+        if kind = C_SPELL.CLASS_CLERIC then
+          room := clericSpells[lvl]
+        else
+          room := mageSpells[lvl];
+        have := 0;
+        for i := 0 to Types.SPELL_SLOT_LAST do begin
+          id := memorizedSpells[i] and C_SPELL.ID_MASK;
+          if (id >= 1) and (id <= C_SPELL.LAST) then
+            if (GameDefs.spellTable[id].castClass = kind) and (GameDefs.spellTable[id].levelSp = lvl) then begin
+              Inc(have);
+              if have > room then
+                memorizedSpells[i] := 0;
+            end;
+        end;
+      end;
+end;
+
+procedure StartCasterClass(creature: Types.PCharRecord; cls: ShortInt);
+begin
+  ClassCal.FirstLevelSlots(creature, cls);
+  with creature^ do
+    case cls of
+      C_LEVEL.CLERIC: ClassCal.KnowClericSpells(creature);
+      C_LEVEL.MAGE: begin
+          spellsKnown[C_SPELL.DETECT_MAGIC] := 1;
+          spellsKnown[C_SPELL.READ_MAGIC] := 1;
+          spellsKnown[C_SPELL.SHIELD] := 1;
+          spellsKnown[C_SPELL.SLEEP] := 1;
         end;
     end;
 end;
@@ -449,7 +516,8 @@ const
 { Recompute base THAC0 (the highest 60 - THAC0 value across all eight class slots), raise levelHighest, set warrior
   attacks (stored doubled: 3 for a fighter or paladin above level 6 or a ranger above level 7, else 2; set for every
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
-  every cleric spell of a level with slots marked known). The slot table fills only levels 2..6, the player cap, so a
+  every cleric spell of a level with slots marked known, KnowClericSpells; a level-1 caster's slots are FirstLevelSlots'
+  and left as they are). The slot table fills only levels 2..6, the player cap, so a
   higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. thac0Tbl covers
   levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
   (ItemLimitsFor). Each class counts at the level the creature can use
@@ -463,7 +531,6 @@ var
   lvl: ShortInt;
   slotLvl: ShortInt;
   tl: ShortInt;
-  m: Byte;
 begin
   creature^.thac0Base := 0;
   for i := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
@@ -495,21 +562,14 @@ begin
         if lvl > 7 then creature^.attacks := 3;
       C_LEVEL.CLERIC:
         if lvl > 1 then begin
-          { 3 = High(clericSpells) }
-          for k := 1 to 3 do
+          for k := 1 to Types.CASTER_LEVEL_LAST do
             creature^.clericSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
-          { Mark known every cleric spell (castClass 0) of a level with slots; slots exist for levels 1..3 only.
-            56 = High(spellsKnown) }
-          for m := 1 to 56 do
-            with GameDefs.spellTable[m] do
-              if (castClass = 0) and (levelSp >= 1) and (levelSp <= 3) and (creature^.clericSpells[levelSp] > 0) then
-                creature^.spellsKnown[m] := 1;
+          ClassCal.KnowClericSpells(creature);
         end;
       C_LEVEL.MAGE:
         if lvl > 1 then
-          { 3 = High(mageSpells) }
-          for k := 1 to 3 do
+          for k := 1 to Types.CASTER_LEVEL_LAST do
             creature^.mageSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
@@ -559,7 +619,7 @@ end;
   use (CharHlp.GetClassLevel). saveTbl covers levels 1..9, and a higher level uses the level 9 row. }
 procedure RecalcSaves(creature: Types.PCharRecord);
 const
-  { ClassCal: Saving throws indexed by class-level slot (C_LEVEL), level 1..9 and save column 0..4. The paladin's row is
+  { Saving throws indexed by class-level slot (C_LEVEL), level 1..9 and save column 0..4. The paladin's row is
     the fighter's less 2. }
   saveTbl: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 1..9] of Types.TRuleSaves = (
     { cleric }
@@ -647,8 +707,7 @@ var
   k: ShortInt;
   lvl: ShortInt;
 begin
-  { 4 = High(saves) }
-  for i := 0 to 4 do begin
+  for i := C_SAVE.PARALYZE to C_SAVE.SPELL do begin
     creature^.saves[i] := 20;
     for k := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
       lvl := CharHlp.GetClassLevel(creature, 1 shl k);
@@ -681,8 +740,8 @@ begin
   if CharHlp.GetClassLevel(creature, C_LEVEL.THIEF_BIT) < 1 then
     Exit;
   barred := ClassCal.ArmorBarsThiefSkills(creature);
-  { 8 = High(thiefSkills) }
-  for j := 1 to 8 do begin
+  { thiefSkills holds a byte a skill }
+  for j := 1 to SizeOf(creature^.thiefSkills) do begin
     ClassCal.ThiefSkillParts(creature, j, base, racial, dexterity);
     if barred then
       creature^.thiefSkills[j] := 0
@@ -802,10 +861,12 @@ end;
 function TurnLevel(creature: Types.PCharRecord): ShortInt;
 var
   lvl: ShortInt;
+  paladin: ShortInt;
 begin
   lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
-  if CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2 > lvl then
-    lvl := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
+  paladin := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
+  if paladin > lvl then
+    lvl := paladin;
   if lvl < 0 then
     lvl := 0;
   TurnLevel := lvl;
@@ -944,37 +1005,49 @@ begin
   ConHpPerDie := share;
 end;
 
+{ True when class cls rolls hit dice for creature's level in it now: it has a level, its classBit shares a bit with
+  mask ($FF = all), and it is not a class a dual-classed human has left. }
+function RollsHitDice(creature: Types.PCharRecord; cls: ShortInt; mask: Byte): Boolean;
+begin
+  RollsHitDice := (creature^.classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) and
+                  (creature^.portExt.formerClasses and (1 shl cls) = 0);
+end;
+
+{ The hit dice class cls rolls for creature's level in it now: hpDice's at level 1 (two for the ranger and monk), one at
+  each level after. }
+function DiceAtLevel(creature: Types.PCharRecord; cls: ShortInt): Byte;
+begin
+  if creature^.classLevels[cls] > 1 then
+    DiceAtLevel := 1
+  else
+    DiceAtLevel := hpDice[cls];
+end;
+
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 var
   bonus: ShortInt;
   cls: ShortInt;
-  share: ShortInt;
 begin
   bonus := 0;
-  with creature^ do begin
-    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-      if (classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) and
-          (portExt.formerClasses and (1 shl cls) = 0) then begin
-        share := ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION]);
-        if (cls = C_LEVEL.RANGER) and (classLevels[cls] = 1) then
-          share := share * 2;
-        Inc(bonus, share);
-      end;
-  end;
+  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
+    if ClassCal.RollsHitDice(creature, cls, mask) then
+      Inc(bonus, ClassCal.ConHpPerDie(cls, creature^.stats[C_ABIL.CONSTITUTION]) * ClassCal.DiceAtLevel(creature, cls));
   ConHpBonus := bonus;
 end;
 
-{ (sum + conB) div clsCount, the hit points a multi-class character's classes share; 1 when a negative conB would
-  leave sum no more than |conB| + clsCount. }
-function DivideAmongClasses(sum: Byte; conB: ShortInt; clsCount: Byte): Byte;
+function DivideAmongClasses(sum, conB: Integer; clsCount: Byte): Byte;
+var
+  hp: Integer;
 begin
-  if conB < 0 then begin
-    if sum > Abs(conB) + clsCount then
-      DivideAmongClasses := (sum + conB) div clsCount
-    else
-      DivideAmongClasses := 1;
-  end else
-    DivideAmongClasses := (sum + conB) div clsCount;
+  if clsCount = 0 then
+    clsCount := 1;
+  if (conB < 0) and (sum <= Abs(conB) + clsCount) then
+    hp := 1
+  else
+    hp := (sum + conB) div clsCount;
+  if hp > 255 then
+    hp := 255;
+  DivideAmongClasses := hp;
 end;
 
 function HitDice(creature: Types.PCharRecord; cls: ShortInt): Byte;
@@ -1013,50 +1086,47 @@ begin
   HpClassCount := n;
 end;
 
-{ ConHpPerDie once for each class that has given hit dice (HitDice), twice for a ranger whose first level gave two:
-  the Constitution bonus HpMinimum and HpMaximum add. }
-function DiceConBonus(creature: Types.PCharRecord): ShortInt;
+{ ConHpPerDie for Constitution con on every hit die creature's classes have given it (HitDice), before the division
+  by the class count: what creation and training have banked, which HpMinimum, HpMaximum and ConHpTotal add. }
+function DiceConBonus(creature: Types.PCharRecord; con: Byte): Integer;
 var
-  bonus: ShortInt;
+  bonus: Integer;
   cls: ShortInt;
-  share: ShortInt;
 begin
   bonus := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if ClassCal.HitDice(creature, cls) > 0 then begin
-      share := ClassCal.ConHpPerDie(cls, creature^.stats[C_ABIL.CONSTITUTION]);
-      if (cls = C_LEVEL.RANGER) and (creature^.classLevels[cls] = 1) then
-        share := share * 2;
-      Inc(bonus, share);
-    end;
+    Inc(bonus, ClassCal.HitDice(creature, cls) * ClassCal.ConHpPerDie(cls, con));
   DiceConBonus := bonus;
 end;
 
 { The lowest legal hpMax: one point per hit die (HitDice: a level in each class, plus 1 for a ranger or monk), plus the
-  Con bonus, divided by the class count (HpClassCount); 1 if a negative bonus would leave too little. }
+  Con bonus on each of them (DiceConBonus), divided by the class count (HpClassCount); 1 if a negative bonus would leave
+  too little. }
 function HpMinimum(creature: Types.PCharRecord): Byte;
 var
-  sum: Byte;
+  sum: Integer;
   cls: ShortInt;
 begin
   sum := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     Inc(sum, ClassCal.HitDice(creature, cls));
-  HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature), ClassCal.HpClassCount(creature));
+  HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature, creature^.stats[C_ABIL.CONSTITUTION]),
+                                           ClassCal.HpClassCount(creature));
 end;
 
 { The highest legal hpMax: the top of each class's hit dice (HitDice and hpSides: cleric and druid d8 per level,
-  fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the Con bonus,
-  divided by the class count (HpClassCount). }
+  fighter and paladin d10, ranger d8 on level + 1, magic-user d4, thief d6, monk d4 on level + 1) plus the Con bonus on
+  each of them (DiceConBonus), divided by the class count (HpClassCount). }
 function HpMaximum(creature: Types.PCharRecord): Byte;
 var
-  sum: Byte;
+  sum: Integer;
   cls: ShortInt;
 begin
   sum := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     Inc(sum, ClassCal.HitDice(creature, cls) * GameDefs.hpSides[cls]);
-  HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature), ClassCal.HpClassCount(creature));
+  HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature, creature^.stats[C_ABIL.CONSTITUTION]),
+                                           ClassCal.HpClassCount(creature));
 end;
 
 function HitDieFloor(con: Byte): Byte;
@@ -1083,19 +1153,14 @@ var
   floor: Byte;
   sum: Byte;
   cls: ShortInt;
-  dieCount: Byte;
   i: Byte;
 begin
   sum := 0;
   floor := ClassCal.HitDieFloor(creature^.stats[C_ABIL.CONSTITUTION]);
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if (creature^.classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) and
-        (creature^.portExt.formerClasses and (1 shl cls) = 0) then begin
-      dieCount := hpDice[cls];
-      if creature^.classLevels[cls] > 1 then
-        dieCount := 1;
+    if ClassCal.RollsHitDice(creature, cls, mask) then begin
       roll := 0;
-      for i := 1 to dieCount do begin
+      for i := 1 to ClassCal.DiceAtLevel(creature, cls) do begin
         die := Dice.RollDice(1, GameDefs.hpSides[cls]);
         if die < floor then
           die := floor;
@@ -1113,11 +1178,8 @@ function ConHpTotal(creature: Types.PCharRecord; con: Byte): Integer;
 var
   total: Integer;
   clsCount: Byte;
-  cls: ShortInt;
 begin
-  total := 0;
-  for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    Inc(total, ClassCal.HitDice(creature, cls) * ClassCal.ConHpPerDie(cls, con));
+  total := ClassCal.DiceConBonus(creature, con);
   clsCount := ClassCal.HpClassCount(creature);
   if clsCount > 0 then
     total := total div clsCount;
@@ -1127,22 +1189,13 @@ end;
 function ExperienceShare(creature: Types.PCharRecord; experience: LongInt): LongInt;
 var
   share: LongInt;
-  str: Byte;
 begin
   share := experience;
-  str := CharHlp.PermanentStrength(creature);
   case creature^.charClass of
-    C_CLASS.CLERIC: if creature^.wisCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_CLASS.FIGHTER: if str > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_CLASS.PALADIN:
-      if (str > PRIME_STAT_THRESHOLD) and (creature^.wisCur > PRIME_STAT_THRESHOLD) then
+    { a single class is its C_LEVEL slot; the druid and monk earn no bonus }
+    C_CLASS.CLERIC, C_CLASS.FIGHTER, C_CLASS.PALADIN, C_CLASS.RANGER, C_CLASS.MAGE, C_CLASS.THIEF:
+      if ClassCal.PrimesAtLeast(creature, creature^.charClass, PRIME_STAT_THRESHOLD + 1) then
         share := experience div 10 + experience;
-    C_CLASS.RANGER:
-      if (str > PRIME_STAT_THRESHOLD) and (creature^.intCur > PRIME_STAT_THRESHOLD) and
-          (creature^.wisCur > PRIME_STAT_THRESHOLD) then
-        share := experience div 10 + experience;
-    C_CLASS.MAGE: if creature^.intCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
-    C_CLASS.THIEF: if creature^.dexCur > PRIME_STAT_THRESHOLD then share := experience div 10 + experience;
     { 2-class multi }
     C_CLASS.CLERIC_FIGHTER, C_CLASS.CLERIC_RANGER, C_CLASS.CLERIC_MAGE, C_CLASS.CLERIC_THIEF, C_CLASS.FIGHTER_MAGE,
       C_CLASS.FIGHTER_THIEF, C_CLASS.MAGE_THIEF: share := experience div 2;
