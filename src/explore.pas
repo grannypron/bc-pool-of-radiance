@@ -9,6 +9,12 @@ procedure ResolveMovement;
 
 function MapMainMenu: Char;
 
+{ F1, F2 and F6 on the map and camp menus: the Command Keys window (KeyHelp.ShowKeys, #855; quickKeys says whether it
+  lists F5 and F8), the Bestiary (#842) and the Companion Tools while that setting is on (phase 8), each followed by the
+  screen drawn again (CharDisp.DisplayWildernessInterface when wild, else DisplayNoncombatInterface). False for any
+  other key, which the caller handles. }
+function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
+
 var
   { Set by F8 on the map menu when there is a quick save to load: MapMainMenu returns, GameLoop returns, and the
     program loads it (SaveLoad.QuickLoad) and runs GameLoop again; the program clears it. }
@@ -137,9 +143,8 @@ begin
   BashDoor := success;
 end;
 
-{ PickLock: each party member in turn rolls d100 against Open Locks (thiefSkills[2]); the roll counts only for an Okay
-  character. One attempt per door: doorOpen[1] is cleared whatever the result. Success opens the barrier from both
-  sides. }
+{ PickLock: each Okay party member in turn rolls d100 against Open Locks (thiefSkills[2]). One attempt per door:
+  doorOpen[1] is cleared whatever the result. Success opens the barrier from both sides. }
 function PickLock: Boolean;
 var
   p: Types.PCharRecord;
@@ -149,7 +154,7 @@ begin
   p := GameVars.creatureList;
   while (p <> nil) and (not success) do begin
     with p^ do
-      if (Dice.RollDice(1, 100) <= thiefSkills[2]) and (status = C_STATUS.OKAY) then
+      if (status = C_STATUS.OKAY) and (Dice.RollDice(1, 100) <= thiefSkills[2]) then
         success := True;
     p := p^.nextCharAddr;
   end;
@@ -215,16 +220,16 @@ begin
   if View3D.GetBarrierType(nx, ny, f) <> 0 then begin
     Inc(nx, GameDefs.dirDX[f]);
     Inc(ny, GameDefs.dirDY[f]);
-    if nx > 15 then begin
-      GameVars.gMapX := 15;
+    if nx > Types.MAP_LAST then begin
+      GameVars.gMapX := Types.MAP_LAST;
       GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if nx < 0 then begin
       GameVars.gMapX := 0;
       GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
-    if ny > 15 then begin
-      GameVars.gMapY := 15;
+    if ny > Types.MAP_LAST then begin
+      GameVars.gMapY := Types.MAP_LAST;
       GameVars.zone1^[C_GBVM.LEAVE_MAP] := 1;
     end;
     if ny < 0 then begin
@@ -254,8 +259,8 @@ begin
     FxEngine.AdvanceTime(1, C_TIME.MINUTES);
 end;
 
-{ MovePartyWilderness: clamped step on the 36x44 wilderness map (x 0..15 within the region's 16-column window at
-  wildColOfs, y 0..35). Impassable terrain glyphs block; river glyphs block with a message until
+{ MovePartyWilderness: clamped step on the 44x36 wilderness map (x 0..15 within the region's 16-column window at
+  wildColOfs, y 0..35; C_AREA's WILD_ bounds). Impassable terrain glyphs block; river glyphs block with a message until
   zone0^.yarashPyramidLeft is nonzero. A step advances the clock 12 hours. }
 procedure MovePartyWilderness;
 var
@@ -266,10 +271,9 @@ begin
   nx := GameVars.zone0^.partyX.value + GameDefs.dirDX[GameVars.gFacing];
   ny := GameVars.zone0^.partyY.value + GameDefs.dirDY[GameVars.gFacing];
   if nx < 0 then nx := 0;
-  if nx > 15 then nx := 15;
+  if nx > C_AREA.WILD_REGION_LAST_COL then nx := C_AREA.WILD_REGION_LAST_COL;
   if ny < 0 then ny := 0;
-  { High(wildMap) on the first dimension }
-  if ny > 35 then ny := 35;
+  if ny > C_AREA.WILD_LAST_ROW then ny := C_AREA.WILD_LAST_ROW;
   col := nx + GameDefs.wildColOfs[GameVars.gLocType];
   case GameDefs.wildMap[ny, col] of
     78, 126..128, 130..132, 168..172, 174..179, 188, 221..222,
@@ -303,12 +307,37 @@ begin
   end;
 end;
 
+function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
+var
+  shown: Boolean;
+begin
+  shown := True;
+  case c of
+    C_KEYS.F1: KeyHelp.ShowKeys(quickKeys);
+    C_KEYS.F2: BeastMnu.BestiaryMenu;
+    C_KEYS.F6: if GameVars.companionOn <> 0 then
+                 CompTool.ToolsMenu
+               else
+                 shown := False;
+  else begin
+    SideScreen := False;
+    Exit;
+  end;
+  end;
+  SideScreen := True;
+  if shown then
+    if wild then
+      CharDisp.DisplayWildernessInterface
+    else
+      CharDisp.DisplayNoncombatInterface;
+end;
+
 { MapMainMenu: the 3D / wilderness command loop. Returns the key that ended it: 'E' (Encamp), 'L' (Look: sets
   C_GBVM.SEARCH_FLAGS bit 1, advances the clock one turn and points eclIp at the search script entry), an arrow scan
   code (in 3D 'H' after MoveForward, in the wilderness 'H', 'M', 'P' or 'K' after setting the facing), or F8's after
-  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave), F2 opens the Bestiary (#842), F6 the
-  Companion Tools while that setting is on and F1 the Command Keys window (KeyHelp.ShowKeys, #855); the screen is drawn
-  again after each, and the menu goes on. }
+  AskQuickLoad has set quickLoadAsked. F5 quick-saves (SaveLoad.QuickSave) and F1, F2 and F6 open their screens
+  (SideScreen); the menu goes on after each. In 3D the other arrows turn the party. Cast goes to Camp.NoncombatCastMenu,
+  which says why a character who cannot cast cannot; SSI's 3D menu ignored Cast from a character not Okay. }
 function MapMainMenu: Char;
 const
   { 3D exploration menu }
@@ -320,158 +349,85 @@ var
   c: Char;
   ext: Boolean;
   viewDone: Boolean;
+  wild: Boolean;
+
+  { 3D: turn the party by eighths of a circle, with the step sound when sound, and draw the view again. }
+  procedure Turn(eighths: Byte; sound: Boolean);
+  begin
+    GameVars.gFacing := (GameVars.gFacing + eighths) mod 8;
+    if sound then
+      SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
+    GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+    View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+  end;
+
+  { An arrow key: in the wilderness, face dir and end the menu for the step; in 3D, step forward (ahead) or Turn. }
+  procedure Arrow(dir, eighths: Byte; sound, ahead: Boolean);
+  begin
+    if wild then begin
+      GameVars.gFacing := dir;
+      done := True;
+    end else if ahead then begin
+      Explore.MoveForward;
+      done := True;
+    end else
+      Turn(eighths, sound);
+  end;
+
 begin
+  c := C_KEYS.NONE;
   GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
-  case GameVars.gLocType of
-    C_AREA.LOC_3D_MAP: begin
-         done := False;
-         repeat
-           MenuCore.arrowsToCaller := True;
-           MenuCore.quickKeysToCaller := True;
-           MenuCore.helpToCaller := True;
-           c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False, ext);
-           if not ext then begin
-             case c of
-               { STING maps anywhere, as Curse's debug mode does }
-               'A': if (GameVars.zone0^.noAutomap = 0) or GameVars.stingArg then begin
-                      GameVars.automapOn := GameVars.automapOn = False;
-                      View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                    end else
-                      TextRend.PrintAndPause('Not Here', Yellow);
-               'C': if GameVars.curChar^.status = C_STATUS.OKAY then Camp.NoncombatCastMenu;
-               'V': ViewChar.ViewCharMenu(viewDone);
-               'J': JrnlView.JournalMenu;
-               'E': done := True;
-               'S': GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
-               'L': begin
-                      GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
-                      FxEngine.AdvanceTime(1, C_TIME.TURNS);
-                      GameVars.eclIp := GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
-                      done := True;
-                    end;
-             end;
-           end else begin
-             case c of
-               { up arrow: step forward }
-               C_KEYS.UP: begin
-                         Explore.MoveForward;
-                         done := True;
-                       end;
-               { down arrow: turn around }
-               C_KEYS.DOWN: begin
-                           GameVars.gFacing := (GameVars.gFacing + 4) mod 8;
-                           GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                           View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                         end;
-               { left arrow: turn left }
-               C_KEYS.LEFT: begin
-                           GameVars.gFacing := (GameVars.gFacing + 6) mod 8;
-                           SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
-                           GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                           View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                         end;
-               { right arrow: turn right }
-               C_KEYS.RIGHT: begin
-                            GameVars.gFacing := (GameVars.gFacing + 2) mod 8;
-                            SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
-                            GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                            View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
-                          end;
-               C_KEYS.F5: SaveLoad.QuickSave;
-               C_KEYS.F8: done := Explore.AskQuickLoad;
-               { the Bestiary (#842) }
-               C_KEYS.F2: begin
-                            BeastMnu.BestiaryMenu;
-                            CharDisp.DisplayNoncombatInterface;
-                          end;
-               { the Companion Tools, while the setting is on (phase 8) }
-               C_KEYS.F6: if GameVars.companionOn <> 0 then begin
-                            CompTool.ToolsMenu;
-                            CharDisp.DisplayNoncombatInterface;
-                          end;
-               C_KEYS.F1: begin
-                            KeyHelp.ShowKeys(True);
-                            CharDisp.DisplayNoncombatInterface;
-                          end;
-             else begin
-               Party.SelectPrevNextChar(c);
-               CharDisp.DisplayParty(GameVars.curChar);
-             end;
-             end;
-           end;
-           CharDisp.PrintMiscInfo;
-         until done;
-       end;
-    C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
-        if GameVars.locTypePrev < C_AREA.LOC_WILD_WEST then begin
-          MapTiles.LoadIconAnim('ICON', 0, 9);
-          MapTiles.LoadIconAnim('ICON', 1, 10);
-          MapTiles.LoadIconAnim('ICON', 2, 11);
-          CharDisp.DisplayWildernessInterface;
+  wild := GameVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST];
+  if wild or (GameVars.gLocType = C_AREA.LOC_3D_MAP) then begin
+    if wild and (GameVars.locTypePrev < C_AREA.LOC_WILD_WEST) then begin
+      MapTiles.LoadWildIcons;
+      CharDisp.DisplayWildernessInterface;
+    end;
+    done := False;
+    repeat
+      MenuCore.arrowsToCaller := True;
+      MenuCore.quickKeysToCaller := True;
+      MenuCore.helpToCaller := True;
+      if wild then
+        c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False, ext)
+      else
+        c := MenuCore.MenuHorizontal('', menu3D, LightMagenta, LightGreen, White, True, False, ext);
+      if not ext then begin
+        case c of
+          { STING maps anywhere, as Curse's debug mode does }
+          'A': if (GameVars.zone0^.noAutomap = 0) or GameVars.stingArg then begin
+                 GameVars.automapOn := not GameVars.automapOn;
+                 View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+               end else
+                 TextRend.PrintAndPause('Not Here', Yellow);
+          'C': Camp.NoncombatCastMenu;
+          'V': ViewChar.ViewCharMenu(viewDone);
+          'J': JrnlView.JournalMenu;
+          'E': done := True;
+          'S': GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
+          'L': begin
+                 GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
+                 FxEngine.AdvanceTime(1, C_TIME.TURNS);
+                 GameVars.eclIp := GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
+                 done := True;
+               end;
         end;
-        done := False;
-        repeat
-          MenuCore.arrowsToCaller := True;
-          MenuCore.quickKeysToCaller := True;
-          MenuCore.helpToCaller := True;
-          c := MenuCore.MenuHorizontal('', menuWild, LightMagenta, LightGreen, White, True, False, ext);
-          if not ext then begin
-            case c of
-              'C': Camp.NoncombatCastMenu;
-              'V': ViewChar.ViewCharMenu(viewDone);
-              'J': JrnlView.JournalMenu;
-              'E': done := True;
-              'S': GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] xor 1;
-              'L': begin
-                     GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] or 2;
-                     FxEngine.AdvanceTime(1, C_TIME.TURNS);
-                     GameVars.eclIp := GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH];
-                     done := True;
-                   end;
-            end;
-          end else begin
-            done := True;
-            case c of
-              { up arrow }
-              C_KEYS.UP: GameVars.gFacing := C_DIR.NORTH;
-              { right arrow }
-              C_KEYS.RIGHT: GameVars.gFacing := C_DIR.EAST;
-              { down arrow }
-              C_KEYS.DOWN: GameVars.gFacing := C_DIR.SOUTH;
-              { left arrow }
-              C_KEYS.LEFT: GameVars.gFacing := C_DIR.WEST;
-              C_KEYS.F5: begin
-                           SaveLoad.QuickSave;
-                           done := False;
-                         end;
-              C_KEYS.F8: done := Explore.AskQuickLoad;
-              C_KEYS.F2: begin
-                           BeastMnu.BestiaryMenu;
-                           CharDisp.DisplayWildernessInterface;
-                           done := False;
-                         end;
-              C_KEYS.F6: begin
-                           if GameVars.companionOn <> 0 then begin
-                             CompTool.ToolsMenu;
-                             CharDisp.DisplayWildernessInterface;
-                           end;
-                           done := False;
-                         end;
-              C_KEYS.F1: begin
-                           KeyHelp.ShowKeys(True);
-                           CharDisp.DisplayWildernessInterface;
-                           done := False;
-                         end;
-            else begin
-              Party.SelectPrevNextChar(c);
-              CharDisp.DisplayParty(GameVars.curChar);
-              done := False;
-            end;
-            end;
-          end;
-          CharDisp.PrintMiscInfo;
-        until done;
-      end;
+      end else if not Explore.SideScreen(c, True, wild) then
+        case c of
+          C_KEYS.UP: Arrow(C_DIR.NORTH, 0, False, True);
+          { 3D: turn around, without the step sound }
+          C_KEYS.DOWN: Arrow(C_DIR.SOUTH, 4, False, False);
+          C_KEYS.LEFT: Arrow(C_DIR.WEST, 6, True, False);
+          C_KEYS.RIGHT: Arrow(C_DIR.EAST, 2, True, False);
+          C_KEYS.F5: SaveLoad.QuickSave;
+          C_KEYS.F8: done := Explore.AskQuickLoad;
+        else begin
+          Party.SelectPrevNextChar(c);
+          CharDisp.DisplayParty(GameVars.curChar);
+        end;
+        end;
+      CharDisp.PrintMiscInfo;
+    until done;
   end;
   GameVars.locTypePrev := GameVars.gLocType;
   if bottomMsgCleared = 0 then begin
@@ -481,67 +437,60 @@ begin
   MapMainMenu := c;
 end;
 
+{ The 'Locked.' menu for the door ahead, barred when its barrier is type 3, assembled from the door flags: Bash, Pick
+  (party has a thief), Knock (a locked door: someone has Knock memorized; a barred one: party has a mage) and Exit; a
+  bare ' Exit' walls the door off. On a barred door Pick only clears doorOpen[1]. True when the door opens. }
+function DoorMenu(barred: Boolean): Boolean;
+var
+  menuStr: String[40];
+  unusedExtendedKey: Boolean;
+  knock: Boolean;
+begin
+  DoorMenu := False;
+  menuStr := '';
+  if doorOpen[0] <> 0 then
+    menuStr := 'Bash';
+  if (doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
+    menuStr := menuStr + ' Pick';
+  if doorOpen[2] <> 0 then begin
+    if barred then
+      knock := Explore.PartyHasClass(C_LEVEL.MAGE)
+    else
+      knock := Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil;
+    if knock then
+      menuStr := menuStr + ' Knock';
+  end;
+  menuStr := menuStr + ' Exit';
+  if menuStr = ' Exit' then
+    Explore.ChangeBarrierImpassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing)
+  else
+    case MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen, White, False, False,
+                                 unusedExtendedKey) of
+      'B': DoorMenu := Explore.BashDoor;
+      'P': if barred then
+             doorOpen[1] := 0
+           else
+             DoorMenu := Explore.PickLock;
+      'K': DoorMenu := Explore.PartyCastsKnock;
+    end;
+end;
+
 { ResolveMovement: while C_GBVM.MOVE_LOCKED is 255 movement is refused and the flag is reset to 0 instead. On a 3D map
   BARRIER type 1 steps forward and type 0 or an unopened door plays the impact sound. Types 2 and 3 run the 'Locked.'
-  door menu assembled from the door flags: Bash, Pick (party has a thief), Knock (type 2: someone has Knock memorized;
-  type 3: party has a mage) and Exit; a bare ' Exit' walls the door off. On a type 3 door Pick only clears doorOpen[1].
-  A wilderness map takes a MovePartyWilderness step. The portrait and animation buffers are always freed on the way
-  out. }
+  door menu (DoorMenu). A wilderness map takes a MovePartyWilderness step. The portrait and animation buffers are always
+  freed on the way out. }
 procedure ResolveMovement;
 var
   moved: Boolean;
-  unusedExtendedKey: Boolean;
-  menuStr: String[40];
-  c2: Char;
+  barrier: Byte;
 begin
   moved := False;
   case GameVars.gLocType of
     C_AREA.LOC_3D_MAP: if GameVars.zone1^[C_GBVM.MOVE_LOCKED] < 255 then begin
-         case View3D.GetBarrierType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing) of
+         barrier := View3D.GetBarrierType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
+         case barrier of
            1: moved := True;
-           2: begin
-                menuStr[0] := #0;
-                if doorOpen[0] <> 0 then
-                  menuStr := 'Bash';
-                if (doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
-                  menuStr := menuStr + ' Pick';
-                if (doorOpen[2] <> 0) and (Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil)
-                then
-                  menuStr := menuStr + ' Knock';
-                menuStr := menuStr + ' Exit';
-                if menuStr = ' Exit' then
-                  Explore.ChangeBarrierImpassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing)
-                else begin
-                  c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen,
-                                                White, False, False, unusedExtendedKey);
-                  case c2 of
-                    'B': moved := Explore.BashDoor;
-                    'P': moved := Explore.PickLock;
-                    'K': moved := Explore.PartyCastsKnock;
-                  end;
-                end;
-              end;
-           3: begin
-                menuStr[0] := #0;
-                if doorOpen[0] <> 0 then
-                  menuStr := 'Bash';
-                if (doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
-                  menuStr := menuStr + ' Pick';
-                if (doorOpen[2] <> 0) and Explore.PartyHasClass(C_LEVEL.MAGE) then
-                  menuStr := menuStr + ' Knock';
-                menuStr := menuStr + ' Exit';
-                if menuStr = ' Exit' then
-                  Explore.ChangeBarrierImpassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing)
-                else begin
-                  c2 := MenuCore.MenuHorizontal('Locked. ', menuStr, LightMagenta, LightGreen,
-                                                White, False, False, unusedExtendedKey);
-                  case c2 of
-                    'B': moved := Explore.BashDoor;
-                    'P': doorOpen[1] := 0;
-                    'K': moved := Explore.PartyCastsKnock;
-                  end;
-                end;
-              end;
+           2, 3: moved := Explore.DoorMenu(barrier = 3);
          end;
          if moved then
            Explore.MovePartyForward3D
