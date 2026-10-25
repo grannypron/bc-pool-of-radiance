@@ -433,6 +433,43 @@ begin
   c^.classLevels[C_LEVEL.FIGHTER] := 2;
   c^.conCur := 10;
   TestKit.CheckEqualsL(18, ClassCal.HpMaximum(c), 'a cleric/fighter 2/2: (16 + 20) div 2');
+  c^.conCur := 17;
+  TestKit.CheckEqualsL(23, ClassCal.HpMaximum(c), 'at Con 17: (16 + 2 * 2 + 20 + 2 * 3) div 2');
+  TestKit.CheckEqualsL(7, ClassCal.HpMinimum(c), 'and (4 + 4 + 6) div 2');
+  Reset(C_RACE.HUMAN);
+  c^.charClass := C_CLASS.FIGHTER;
+  c^.classLevels[C_LEVEL.FIGHTER] := 5;
+  c^.conCur := 17;
+  TestKit.CheckEqualsL(65, ClassCal.HpMaximum(c), 'a level 5 fighter at Con 17: the bonus on every die, 5 * 13');
+  TestKit.CheckEqualsL(20, ClassCal.HpMinimum(c), 'and at least 5 * 4');
+  c^.conCur := 3;
+  TestKit.CheckEqualsL(40, ClassCal.HpMaximum(c), 'at Con 3: 5 * 8');
+  TestKit.CheckEqualsL(1, ClassCal.HpMinimum(c), 'and at least 1');
+  TestKit.CheckEqualsL(255, ClassCal.DivideAmongClasses(300, 10, 1), 'more than 255 gives 255');
+  TestKit.CheckEqualsL(12, ClassCal.DivideAmongClasses(10, 2, 0), 'no classes counts as one');
+  Reset(C_RACE.HUMAN);
+  c^.charClass := C_CLASS.MONK;
+  c^.classLevels[C_LEVEL.MONK] := 1;
+  c^.conCur := 16;
+  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, $FF), 'a first-level monk counts its share twice, as its two dice do');
+  TestKit.CheckEqualsL(ClassCal.ConHpTotal(c, 16), ClassCal.ConHpBonus(c, $FF), 'as ConHpTotal counts them');
+
+  { a first-level caster's slots and spells }
+  Reset(C_RACE.HUMAN);
+  c^.wisCur := 14;
+  c^.clericSpells[2] := 2;
+  ClassCal.FirstLevelSlots(c, C_LEVEL.CLERIC);
+  TestKit.CheckEqualsL(3, c^.clericSpells[1], 'a first-level cleric of Wisdom 14: one slot and two for Wisdom');
+  TestKit.CheckEqualsL(0, c^.clericSpells[2], 'and none of level 2');
+  Reset(C_RACE.HUMAN);
+  ClassCal.StartCasterClass(c, C_LEVEL.CLERIC);
+  TestKit.CheckEqualsL(1, c^.spellsKnown[C_SPELL.BLESS], 'a new cleric knows Bless');
+  TestKit.CheckEqualsL(0, c^.spellsKnown[C_SPELL.MAGIC_MISSILE], 'and no magic-user spell');
+  Reset(C_RACE.HUMAN);
+  ClassCal.StartCasterClass(c, C_LEVEL.MAGE);
+  TestKit.CheckEqualsL(1, c^.mageSpells[1], 'a new magic-user has one slot');
+  TestKit.CheckEqualsL(1, c^.spellsKnown[C_SPELL.SHIELD], 'and knows Shield');
+  TestKit.CheckEqualsL(0, c^.spellsKnown[C_SPELL.MAGIC_MISSILE], 'but not Magic Missile');
 
   { the Constitution bonus over every hit die }
   Reset(C_RACE.HUMAN);
