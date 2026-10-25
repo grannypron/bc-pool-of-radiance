@@ -1,6 +1,6 @@
 { Startup configuration: initialize the overlay manager, find the combat log's store, read POOL.CFG (through CfgFile,
-  running the set-up program POOLCFG first when there is none, #876), select the video mode and reserve graphics
-  memory. }
+  running the set-up program POOLCFG first when there is none or it is damaged, #876), select the video mode and
+  reserve graphics memory. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit GameBoot;
@@ -77,17 +77,23 @@ begin
 end;
 
 {$IFNDEF FPC}
-{ With no POOL.CFG here, run the set-up program POOLCFG.EXE when it is here, so the player sets the game up there and
-  then, and START carries on with the file it wrote (#876). DOS gives a program all the memory there is, so START's
-  memory block (DOS function 4Ah) is cut back to the top of the heap for the run, and given back whole afterwards. The
-  heap is still empty this early (OvrSetBuf, below, needs it so), and the overlay buffer and the EMS the overlays and
-  the combat log hold are kept. A program that does not run, or writes no POOL.CFG, leaves WaitForFile to ask for it. }
+{ With no POOL.CFG here, or one that is damaged (it would not open, or holds a value START does not know), run the
+  set-up program POOLCFG.EXE when it is here, so the player sets the game up there and then, and START carries on with
+  the file it wrote (#876). POOLCFG is given C_OPT.SETUP_FROM_START, so that for a damaged file it first says why it
+  came up. Leaving it without saving (exit code 1) leaves START too, back to DOS. DOS gives a program all the memory
+  there is, so START's memory block (DOS function 4Ah) is cut back to the top of the heap for the run, and given back
+  whole afterwards. The heap is still empty this early (OvrSetBuf, below, needs it so), and the overlay buffer and the
+  EMS the overlays and the combat log hold are kept. A program that does not run leaves WaitForFile to ask for
+  POOL.CFG, and ReadConfig to read a damaged one as SSI's START did. }
 procedure RunSetup;
 var
   regs: Dos.Registers;
   paras: Word;
+  c: CfgFile.TPoolCfg;
+  notes: CfgFile.TCfgNotes;
 begin
-  if DaxIo.FileExists(C_OPT.CFG_NAME) or not DaxIo.FileExists(C_OPT.SETUP_NAME) then Exit;
+  if not DaxIo.FileExists(C_OPT.SETUP_NAME) or
+     (CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, c, notes) = CfgFile.CFG_READ) then Exit;
   { PSP offset 2: the segment past START's memory block }
   paras := MemW[PrefixSeg:2] - PrefixSeg;
   regs.ah := $4A;
@@ -96,7 +102,7 @@ begin
   MsDos(regs);
   if regs.flags and FCarry <> 0 then Exit;
   SwapVectors;
-  Exec(C_OPT.SETUP_NAME, '');
+  Exec(C_OPT.SETUP_NAME, C_OPT.SETUP_FROM_START);
   SwapVectors;
   regs.ah := $4A;
   regs.es := PrefixSeg;
@@ -106,6 +112,8 @@ begin
     WriteLn('Not enough memory to run game after ', C_OPT.SETUP_NAME, '.');
     Halt;
   end;
+  if (Dos.DosError = 0) and (Dos.DosExitCode <> 0) then
+    Halt;
 end;
 {$ENDIF}
 

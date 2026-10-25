@@ -1,12 +1,13 @@
 { POOLCFG: Pool of Radiance's set-up program (#876), in the classic DOS set-up style on an 80x25 text screen. Run in the
-  game's folder, as START is (START runs it itself when there is no POOL.CFG), it reads POOL.CFG there and POOLOPT.CFG
-  from the save folder POOL.CFG names, and edits both: the video, sound device and introduction (Hardware), every
-  setting on the game's Settings screen (Game Settings), and the four games' data and save folders (Paths). A folder
-  must already exist: Setup checks each path as it is entered and creates none. Nothing is written until Save and Exit
-  (or F10), which writes POOLOPT.CFG into the save folder being written, then POOL.CFG, each through a temporary copy
-  put in place, so a failed write leaves that file as it was. The files are read and written through CfgFile, as the
-  game reads them. The exit code is 0 when it saved or there was nothing to save, and 1 when it left with changes
-  unsaved or a write failed. }
+  game's folder, as START is (START runs it itself when POOL.CFG is missing or damaged), it reads POOL.CFG there and
+  POOLOPT.CFG from the save folder POOL.CFG names, and edits both: the video, sound device and introduction (Hardware),
+  every setting on the game's Settings screen (Game Settings), and the four games' data and save folders (Paths). A
+  folder must already exist: Setup checks each path as it is entered and creates none. Nothing is written until Save and
+  Exit (or F10), which writes POOLOPT.CFG into the save folder being written, then POOL.CFG, each through a temporary
+  copy put in place, so a failed write leaves that file as it was. The files are read and written through CfgFile, as
+  the game reads them. The exit code is 0 when it saved or there was nothing to save, and 1 when it left with changes
+  unsaved (START then leaves to DOS too). Run by START (C_OPT.SETUP_FROM_START) for a damaged POOL.CFG, its notice first
+  says so. }
 {$M 16384,0,16384}
 {$F+,I-}
 {$I COMPILER.INC}
@@ -60,6 +61,8 @@ var
   optDir: string;
   { a stepping setting's choice on the Game Settings page: the right one (Faster, More) }
   stepRight: Boolean;
+  { run by START (C_OPT.SETUP_FROM_START on the command line) }
+  fromStart: Boolean;
   { leave the program, with this exit code }
   leave: Boolean;
   exitCode: Byte;
@@ -975,7 +978,8 @@ begin
   optsRead := opts;
 end;
 
-{ The notice for a POOL.CFG that is missing, could not be read, or holds values START does not know. }
+{ The notice for a POOL.CFG that is missing, could not be read, or holds values START does not know. When START ran
+  Setup for a damaged one, the notice starts by saying why. }
 procedure ShowNotice;
 const
   WHAT: array[1..C_OPT.CFG_LINES] of string[11] = ('video', 'sound', 'data path', 'save path', 'intro');
@@ -986,6 +990,11 @@ var
   reads: string;
 begin
   TuiKit.ClearLines(lines);
+  if fromStart and (cfgState in [CfgFile.CFG_UNREADABLE, CfgFile.CFG_FIXED]) then begin
+    TuiKit.AddLine(lines, 'POOL.CFG was damaged, unreadable, or unparseable.', TuiKit.A_POP_VALUE);
+    TuiKit.AddLine(lines, 'Please reconfigure the game.', TuiKit.A_POP_VALUE);
+    TuiKit.AddLine(lines, '', 0);
+  end;
   case cfgState of
     CfgFile.CFG_MISSING: begin
                            TuiKit.AddLine(lines, 'POOL.CFG was not found in ' + CutPath(homeDir, 30) + '.', 0);
@@ -1098,6 +1107,7 @@ begin
 end;
 
 begin
+  fromStart := ParamStr(1) = C_OPT.SETUP_FROM_START;
   exitCode := 0;
   leave := False;
   TuiKit.Init;

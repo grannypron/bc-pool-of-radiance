@@ -10,6 +10,8 @@ const
   CFG_NAME = 'POOL.CFG';
   OPT_NAME = 'POOLOPT.CFG';
   SETUP_NAME = 'POOLCFG.EXE';
+  { the switch START runs the set-up program with, so it says why it came up and leaves to DOS unsaved }
+  SETUP_FROM_START = '/START';
   { POOL.CFG's first line, the video: CGA, EGA, Tandy or VGA; START reads any other letter as CGA }
   VIDEO_CGA = 'C';
   VIDEO_EGA = 'E';
