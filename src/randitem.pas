@@ -319,8 +319,8 @@ begin
       84: template := 2;
       92: template := 13;
       71: begin
-             { 11 makes nothing }
-             r := Dice.RollDice(1, 11);
+             { 1d10; SSI's 1d11 made, on an 11, an item with no template: nameless, and nothing to drink (POR-0225) }
+             r := Dice.RollDice(1, 10);
              case r of
                1..5: template := 3;
                6..8: template := 1;
