@@ -621,6 +621,16 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **TpRand, Clock, Debug and MemShow (2026-10-25 review).** `TpRand.NextSeed`'s products pass MaxLongInt and are exact only because they wrap: the unit now turns Free Pascal's overflow and range checks off, and its comment says so. Clock's comments say a carry carries on upward in the same call and that a rest can hold 45 days. Debug drops an unused unit; MemShow works out where overlays load from only in the DOS build. #987, #988, #989, #990.
 
+**Bestiary and BeastFil (2026-10-25 review).** `Bestiary.Mark` sets or clears a fact and says whether that changed the entry; `SetFact`, `LearnSize` and `BeastFil.Tell` call it in place of three copies of the bit arithmetic. `BeastFil.LoadFrom` marks the Bestiary read-only for the session when it drops an entry for want of heap (a named one the table does not have), so the next `Flush` cannot write a table short of the file over BESTIARY.DAT. #992, #993.
+
+**BeastMnu (2026-10-25 review).** `DrawEntry` counts the ?? lines under the defenses and attacks only when the entry is not marked told (#868), so a told entry with 9 or 10 known facts keeps one column; `ListPages` and `DrawList` share `PageShape`. #994.
+
+**JrnlList (2026-10-25 review).** The unused `IsImageOnly` is gone; the list's parts are `C_JRNL.LAST_PROCLAMATION` and `LAST_ENTRY`; `EntryLabel` and `EntryTitle` share `Heading`. TJrnl now checks each item's `LineCount` against the lines its text unit holds (its old check could not fail). The text units Journal1 to Journal4 were checked item by item (line counts, runs of 9, widths, the item comments) and are sound. #995.
+
+**LogView (2026-10-25 review).** The comment on `lineCounts` says why it runs one past `CbtLog.MAX_ENTRIES`. #996.
+
+**Portrait (2026-10-25 review).** `LoadPortraitBufs` loads each slot through one local routine; the disk digit comes from `StrUtil.NumStr`; `LoadAnimation`'s cache hit needs the record to hold frames; `Show3DSprite` takes its animation by reference; `DisplayPortraitHead` and `DisplayPortraitBody` are folded into `DisplayPortraitBufs`. #997.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.

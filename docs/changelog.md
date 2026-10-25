@@ -144,6 +144,7 @@
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
 - A full disk no longer cuts the list of saved characters short: the old list stays until a new one is written whole.
 - POOLCFG no longer accepts a default save folder too long for START when the game is installed in a deeply nested folder, no longer takes a folder typed again in other capitals for a change, and on Linux and macOS no longer loses an Escape pressed just before [ or O.
+- A Bestiary entry the fortune teller has told you all about now lists its defenses and attacks one to a line whenever they fit, rather than going to two columns a little early.
 
 ## Pool of Radiance port: October 2026 update
 
