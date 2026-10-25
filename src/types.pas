@@ -925,7 +925,7 @@ type
     WriteChar: TWriteCharProc;
     { The cold entries, in the mode's overlaid Pic unit (PicCga, PicEga, PicTdy, PicVga): }
     { store one DAX cell row (4 bits a pixel) at pic^.data[at] in pic's layout and, when pic has a mask, its mask bits
-      (a bit a pixel, bit 7 the first, from Blit.ComputeMask) at the mask byte for at (Blit.ExpandPicFrames) }
+      (a bit a pixel, bit 7 the first, from VidOps.ComputeMask) at the mask byte for at (VidOps.ExpandPicFrames) }
     ExpandChunk: TExpandChunkProc;
     { a left-right reflection of src's first frame and mask into dst (Blit.MirrorPic, which copies the colour map) }
     MirrorFrame: TMirrorFrameProc;
