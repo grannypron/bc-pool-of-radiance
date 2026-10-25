@@ -178,7 +178,7 @@ var
   { creature per slot }
   creatureArr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { corpses on the arena }
-  downed: array[1..8] of Types.TDownedRec;
+  downed: array[1..Types.DOWNED_SLOTS] of Types.TDownedRec;
   { append and scan limit; cleared entries leave holes }
   downedCount: Byte;
   { allocated combat viewport, borrowed by renderers }
