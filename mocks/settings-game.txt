@@ -14,13 +14,13 @@
 |   DEATH SCREAM        ON             |
 |   WALL HIT            ON             |
 |   SPELL EFFECTS       ON             |
-| QUICK MODE                           |
-|   AUTO END QUICK MODE ON             |
-|   USE MAGIC           OFF            |
+| QUICK MODE: AUTO END  ON             |
+| QUICK MODE: MAGIC ON  ON             |
 | COMPANION TOOLS       ON             |
 |   CLUE BOOK NOTES     ON             |
 | COMBAT LOG            ON             |
 |   LOG LINES (50)      LESS MORE      |
+|                                      |
 |======================================+
 SETTINGS: GAME PATHS SYSTEM EXIT
 
