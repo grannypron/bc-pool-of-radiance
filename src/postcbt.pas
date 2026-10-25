@@ -270,15 +270,10 @@ var
   head: Types.PItemRec;
   { seeded True so MenuVertical paints the list; MenuVertical clears it }
   redraw: Boolean;
-  p: Types.PItemRec;
 begin
   redraw := True;
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Loot');
-  p := GameVars.treasureItems;
-  while p <> nil do begin
-    CharHlp.ItemLabel(p, False);
-    p := p^.next;
-  end;
+  CharHlp.LabelItems(GameVars.treasureItems);
   head := GameVars.treasureItems;
   c := MenuCore.MenuVertical('Items: ', 'Take', LightMagenta, LightGreen, White, 1, 4, 38, 22,
                              head, True, redraw, idx, cursor);

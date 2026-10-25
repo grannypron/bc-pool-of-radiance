@@ -22,6 +22,9 @@ procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
 procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
 
+{ Label every item of list (ItemLabel, not as inventory). }
+procedure LabelItems(list: Types.PItemRec);
+
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
 { Point creature's equipment slots at its readied items (RecalcStats does this first; a character just loaded needs it
@@ -745,6 +748,15 @@ begin
       end else
         item^.name := item^.name + ' ';
     end;
+end;
+
+{ ItemLabel, not as inventory, every item of list: the treasure pool's or a shop's, for its menu. }
+procedure LabelItems(list: Types.PItemRec);
+begin
+  while list <> nil do begin
+    CharHlp.ItemLabel(list, False);
+    list := list^.next;
+  end;
 end;
 
 { Return True if any of the four helplessness effects in GameDefs.helplessFx is active on the creature. }

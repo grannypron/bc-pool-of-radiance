@@ -135,6 +135,10 @@ begin
   name := 'unchanged';
   mType := MoneyCal.ParseMoneyType('Xyz', name);
   TestKit.CheckEqualsS('unchanged', name, 'an unknown letter leaves the name');
+  TestKit.CheckEqualsL(-1, mType, 'an unknown letter is no money type');
+  TestKit.CheckEqualsL(-1, MoneyCal.ParseMoneyType('', name), 'an empty name is no money type');
+  TestKit.CheckEqualsL(-1, MoneyCal.ParseMoneyType('   ', name), 'a blank name is no money type');
+  CheckParse('   Copper 12', C_MONEY.COPPER, 'Copper ');
 
   { temple prices: SSI's in full, or a tenth off in the Temple of Bane that Dirten rebuilds (#682) }
   TestKit.CheckEqualsL(100, MoneyCal.TemplePrice(100, MoneyCal.TEMPLE_FULL_PRICE), 'a temple''s full price');

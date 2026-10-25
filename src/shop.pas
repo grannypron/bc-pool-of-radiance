@@ -62,11 +62,7 @@ begin
   c := MenuCore.MenuVertical('Items: ', 'Buy', LightMagenta, LightGreen, White, 1, 4, 38, 22, head,
                              True, redraw, idx, cursor);
   itemToBuy := cursor;
-  p := GameVars.treasureItems;
-  while p <> nil do begin
-    CharHlp.ItemLabel(p, False);
-    p := p^.next;
-  end;
+  CharHlp.LabelItems(GameVars.treasureItems);
 end;
 
 { Append a copy of item to the current character's item list and recalculate its stats. When the character cannot carry
@@ -132,7 +128,6 @@ var
   hasMoney: Boolean;
   hasItems: Boolean;
   apprOk: Boolean;
-  p: Types.PItemRec;
 begin
   GameVars.ifcState := C_IFC.SHOP_TEMPLE;
   CharDisp.DisplayNoncombatInterface;
@@ -143,11 +138,7 @@ begin
     first := 'Heal'
   else begin
     first := 'Buy';
-    p := GameVars.treasureItems;
-    while p <> nil do begin
-      CharHlp.ItemLabel(p, False);
-      p := p^.next;
-    end;
+    CharHlp.LabelItems(GameVars.treasureItems);
   end;
   repeat
     Money.DetermineTreasure(hasMoney, hasItems);

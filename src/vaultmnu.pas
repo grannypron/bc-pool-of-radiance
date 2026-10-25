@@ -47,10 +47,11 @@ begin
       menu := menu + ' Share';
     menu := menu + ' Exit';
     c := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
-    if ext then begin
-      if (c = C_KEYS.HOME) or (c = C_KEYS.END_KEY) then
-        Party.SelectPrevNextChar(c);
-    end else
+    { an extended key only steps the character, as at the shop's counter (Shop.CounterMenu): the arrows and Home and
+      End; SelectPrevNextChar ignores the rest }
+    if ext then
+      Party.SelectPrevNextChar(c)
+    else
       case c of
         'V': ViewChar.ViewCharMenu(ext);
         'T': if hasMoney or hasItems then begin

@@ -20,6 +20,8 @@
 
 ### Interface improvements
 
+- At the vault's counter the Up and Down arrows now step through the party, as they do at the shop's.
+- The menu for taking coins from the treasure now lists them as a character's coin menus do, jewelry first, with the names lined up.
 - A character's items menu now offers only what you can do with the highlighted item: Halve on a stack of two or more, Join when another stack can join it, and Id in a shop on an item not yet identified. The menu no longer runs off the bottom line in a shop.
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.
 - A character's More Info screen now has its own menu: Saves, Stats, Kills, Thief (for characters with thief levels, single or multi-class) and Exit. Stats and Kills show the game statistics and the kill count on the More Info screen itself, without a menu of their own; on the kill count, the Up and Down arrows scroll a row and Page Up and Page Down a page. Thief shows each thief skill with its racial, Dexterity and level parts and the total.
@@ -51,6 +53,11 @@
 - Magic resistance no longer stops acid, blood drain or the damage of poison and disease.
 - A paladin's protection aura and a cleric's Prayer end while their carrier is down or dead. Silence, 15' Radius stays where it was cast.
 - Damage from poison, disease and blood drain now says so, rather than "from Magic".
+- Stone to Flesh at a temple now calls for a system shock roll, as in the 1st-edition rules: the lower the character's Constitution, the likelier the character "DOESN'T SURVIVE THE TRANSFORMATION." and dies. The fee is spent either way.
+- The temple no longer takes your money for Cure Light, Serious or Critical Wounds on a character the cure cannot help (dead, turned to stone, or with mummy rot, or not wounded) without asking: it says why and asks whether to cast the cure anyway.
+- A random potion found as treasure is always a potion. Before, about one in eleven was a nameless item that did nothing.
+- The lightning on the second title screen now flashes at the same pace on every computer, and in the native version, where it never flashed before.
+- In CGA, the Companion Tools map's legend now names the colour your notes are drawn in, magenta, instead of saying yellow.
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.
