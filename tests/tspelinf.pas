@@ -109,6 +109,11 @@ begin
                        'Stinking Cloud''s save');
   TestKit.CheckEqualsS('HALVES DAMAGE (VS SPELL)', SpellInf.SaveText(C_SPELL.FIREBALL, True), 'Fireball''s save');
   TestKit.CheckEqualsS('NONE', SpellInf.SaveText(C_SPELL.BLESS, True), 'Bless has no save');
+  { an id past the spell table reads no table: no save (#923) }
+  TestKit.CheckEqualsL(C_SPELL.SAVE_NONE, SpellInf.SaveResult(0), 'spell 0 has no save');
+  TestKit.CheckEqualsL(C_SPELL.SAVE_NONE, SpellInf.SaveResult(C_SPELL.TABLE_LAST + 1), 'nor an id past the table');
+  TestKit.CheckEqualsS('NONE', SpellInf.SaveText(C_SPELL.ID_MASK, True), 'and its page says none');
+  TestKit.CheckEqualsS('', SpellInf.SaveText(0, False), 'and its summary nothing');
   TestKit.CheckEqualsS('IN CAMP OR COMBAT', SpellInf.WhenText(C_SPELL.BLESS, True), 'Bless, either');
   TestKit.CheckEqualsS('LATER: -3 INITIATIVE', SpellInf.CastTimeText(C_SPELL.BLESS), 'Bless''s casting time');
   TestKit.CheckEqualsS('AT ONCE', SpellInf.CastTimeText(C_SPELL.MAGIC_MISSILE), 'Magic Missile''s casting time');
