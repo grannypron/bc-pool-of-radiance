@@ -10,11 +10,15 @@ unit SpellTxt;
 
 interface
 
+const
+  { the display lines in one run of a description (TextChunk) }
+  CHUNK_LINES = 6;
+
 { The number of display lines spell's description takes, or 0 for an id this unit does not hold. }
 function LineCount(spell: Byte): Byte;
 
-{ One run of spell's description lines: chunk 0 or 1, up to 6 lines separated by #13, or an empty string past the
-  end. }
+{ One run of spell's description lines: chunk 0 or 1, up to CHUNK_LINES lines separated by #13, or an empty string
+  past the end. }
 function TextChunk(spell, chunk: Byte): string;
 
 implementation
@@ -109,9 +113,9 @@ begin
     2:
       if chunk = 0 then
         TextChunk :=
-          'FOES NOT YET ENGAGED IN MELEE'#13 +
-          'SUFFER -1 TO ATTACK ROLLS AND'#13 +
-          'MORALE.';
+          'FOES IN THE AREA SUFFER -1 TO'#13 +
+          'ATTACK ROLLS AND MORALE, WHETHER'#13 +
+          'ENGAGED IN MELEE OR NOT.';
     { Cure Light Wounds }
     3:
       if chunk = 0 then
@@ -262,12 +266,12 @@ begin
             'POOL OF 4D4 POINTS. A CREATURE COSTS'#13 +
             '1 POINT AT LEVEL 1, 2 AT LEVEL 2,'#13 +
             '4 AT LEVEL 3, 6 AT LEVEL 4, OR 10'#13 +
-            'AT LEVEL 5. STRONGER CREATURES ARE';
+            'AT LEVEL 5 IF A MONSTER; ANY OTHER';
         1:
           TextChunk :=
-            'UNAFFECTED. ANIMATED DEAD, SLEEPERS,'#13 +
-            'AND CREATURES IT CANNOT AFFECT ARE'#13 +
-            'PASSED OVER; SOME ARE IMMUNE.';
+            'IS UNAFFECTED, AS ARE THOSE THE POOL'#13 +
+            'CANNOT PAY FOR, ANIMATED DEAD, AND'#13 +
+            'SLEEPERS. SOME ARE IMMUNE.';
       end;
     { Find Traps }
     22:
