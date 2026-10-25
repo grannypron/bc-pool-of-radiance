@@ -144,6 +144,7 @@
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
 - A dying creature hit again now sinks further toward death: the damage adds to what it has bled. Before, a second hit started its count again, taking it further from death.
 - A cleric or magic-user drained to 1st level now has 1st level's spell slots, and loses memorized spells it no longer has slots for. Before, it kept 2nd level's slots.
+- A half-orc cleric or thief now stops at the rule book's racial level limit: a cleric at 4 to 7 by Wisdom, a thief at 8 to 11 by Dexterity. Before, half-orcs had no limit.
 - The Companion Tools' character editor no longer holds a character above level 1 to fewer hit points than its Constitution gives it: the bonus now counts on every hit die, not once a class.
 
 ## Pool of Radiance port: October 2026 update
