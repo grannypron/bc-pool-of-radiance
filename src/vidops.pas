@@ -18,16 +18,17 @@ function ModeName: Types.TStr20;
 procedure InitRowTables;
 
 { Merge src into dst as one sprite: dst's pixels OR src's (with a colour key, src's opaque pixels replace dst's), and
-  dst's mask AND src's, so either picture's opaque pixels show. Over src's frame size; nothing happens when either is
-  nil, either has no mask, or src is empty. }
+  dst's mask AND src's, so either picture's opaque pixels show. Over src's frame size, which may be fewer rows than
+  dst's (a head over a body); nothing happens when either is nil, either has no mask, src is empty, or dst is not as
+  wide or not as large. }
 procedure MergePic(src, dst: Types.PImgBuf);
 
 { Draw src over dst through src's transparency mask: dst's pixels survive where src is transparent. Nothing happens
   when either is nil, src has no mask, the frame sizes differ, or dst is empty. }
 procedure OverlayPic(src, dst: Types.PImgBuf);
 
-{ Give every pixel of pic's first frame the colour toT gives its own. EGA and Tandy take one pass over the frame; CGA,
-  whose pixels index the picture's colour map, goes through RemapPic. }
+{ Give every pixel of pic's first frame the colour toT gives its own. EGA, Tandy and VGA take one pass over the frame;
+  CGA, whose pixels index the picture's colour map, goes through RemapPic. Nothing happens when pic is nil or empty. }
 procedure RecolorPic(var toT: Types.TColorTab; pic: Types.PImgBuf);
 
 { Put 8 pixel colours (0..15), left to right, into scanline y of cell column 0 of frame frame of pic, in the video
@@ -95,8 +96,9 @@ var
 begin
   if (src = nil) or (dst = nil) then Exit;
   if (src^.transp = nil) or (dst^.transp = nil) then Exit;
-  { an empty picture would make the loops below run 65536 times }
-  if src^.imgSize = 0 then Exit;
+  { an empty picture would make the loops below run 65536 times; src's rows are dst's first, so it is no wider and no
+    larger }
+  if (src^.imgSize = 0) or (src^.width <> dst^.width) or (src^.imgSize > dst^.imgSize) then Exit;
   if GameVars.video.keyed then begin
     { a colour key (VGA): src's opaque pixels replace dst's }
     for n := 0 to src^.imgSize - 1 do
@@ -129,7 +131,8 @@ end;
 
 procedure RecolorPic(var toT: Types.TColorTab; pic: Types.PImgBuf);
 begin
-  if pic = nil then Exit;
+  { an empty picture would make the drivers' loops run 65536 times }
+  if (pic = nil) or (pic^.imgSize = 0) then Exit;
   GameVars.video.RecolorFrame(toT, pic);
 end;
 

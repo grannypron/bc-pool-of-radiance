@@ -183,8 +183,9 @@ begin
   Blit.FreePic(pic);
 end;
 
-{ The guards in the installed mode: a picture of no rows is allocated without dividing by 0; a remap of a frame past
-  the last changes nothing; a clipped blit above the top of a picture taller than dest stops at dest's last row. }
+{ The guards in the installed mode: a picture of no rows is allocated without dividing by 0, and recoloured without
+  running past it; a remap of a frame past the last changes nothing; a clipped blit above the top of a picture taller
+  than dest stops at dest's last row; a merge into a narrower picture does nothing. }
 procedure CheckGuards;
 var
   pic: Types.PImgBuf;
@@ -197,9 +198,10 @@ var
 begin
   Blit.AllocPic(0, 3, 2, 1, pic);
   TestKit.Check((pic <> nil) and (pic^.imgSize = 0) and (pic^.count = 2), 'a picture of no rows is allocated');
-  Blit.FreePic(pic);
   for i := 0 to 15 do
     toT[i] := 15 - i;
+  VidOps.RecolorPic(toT, pic);
+  Blit.FreePic(pic);
   pic := MakePic(1, FRAMES);
   h := PicHash(pic);
   for i := 0 to 15 do
@@ -218,6 +220,13 @@ begin
       spilt := True;
   TestKit.Check(not spilt and (dest^.data[dest^.imgSize - 1] = 7), 'a clipped blit from above stops at dest''s bottom');
   ClearSpans;
+  Blit.FreePic(dest);
+  Blit.FreePic(pic);
+  pic := MakePic(1, 1);
+  Blit.AllocPic(ROWS, 1, 1, 1, dest);
+  h := PicHash(dest);
+  VidOps.MergePic(pic, dest);
+  TestKit.CheckEqualsL(h, PicHash(dest), 'a merge into a narrower picture does nothing');
   Blit.FreePic(dest);
   Blit.FreePic(pic);
 end;
