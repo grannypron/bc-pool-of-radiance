@@ -110,7 +110,7 @@ begin
 
   { the Bivant heir: given when offered; lost is not done, even paid }
   TestKit.Check(not JrnlQst.IsGiven(8), 'the heir not yet offered');
-  Put(C_GBVM.BIVANT_OFFERED, $FF);
+  Put(C_GBVM.BUCCANEERS_BASE_VISIBLE, $FF);
   TestKit.Check(JrnlQst.IsGiven(8), 'the heir offered');
   Put(C_GBVM.REWARD_BIVANT, C_GBVM.BUCCANEER_FLED);
   Put(C_GBVM.BUCCANEER_BASE, C_GBVM.BUCCANEER_FLED);

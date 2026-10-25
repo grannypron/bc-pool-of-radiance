@@ -25,8 +25,6 @@ const
   PRESENT_MS = 15;
   KEY_GAP_MS = 200;
   SHOT_MS = 500;
-  { SDL_ScaleMode: nearest, smoothed where a pixel straddles two (SDL 3.4) }
-  SDL_SCALEMODE_PIXELART = 2;
 
   { SDL_Scancode (USB HID usage) values the table starts and ends at }
   FIRST_SCANCODE = 4;
@@ -294,8 +292,8 @@ end;
 { The SDL_Scancode for a key's name or character in POOLRAD_KEYS, with the modifiers it needs; -1 for none. }
 function ScriptKey(word: String; var keyMod: Word): LongInt;
 const
-  NAMES: array[0..15] of String[5] = ('enter', 'esc', 'bs', 'tab', 'space', 'ins', 'home', 'pgup', 'del', 'end',
-                                      'pgdn', 'right', 'left', 'down', 'up', '');
+  NAMES: array[0..14] of String[5] = ('enter', 'esc', 'bs', 'tab', 'space', 'ins', 'home', 'pgup', 'del', 'end',
+                                      'pgdn', 'right', 'left', 'down', 'up');
   CODES: array[0..14] of Byte = (40, 41, 42, 43, 44, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82);
 var
   i: LongInt;

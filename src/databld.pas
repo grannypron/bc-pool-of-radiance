@@ -33,20 +33,18 @@ const
   MAX_REMAPS = C_DATA.FAMILY_REMAPS;
   { bytes moved per read when copying, comparing or checksumming }
   CHUNK_SIZE = 4096;
-  { per-disk archives are numbered 1 to SOURCE_DISKS }
-  SOURCE_DISKS = 8;
   { the most bytes one literal run of a packed block holds }
   RUN_SIZE = 127;
   { the largest block packed into memory: its literal runs must fit in one heap block }
   MAX_ENCODED = 64000;
-  { the largest block DaxIo.LoadDax can read once packed: it ends the game on a packed size above 36000, and 35718 bytes
-    pack to 35718 + 282 = 36000 }
-  MAX_LOADABLE = 35718;
+  { the largest block DaxIo.LoadDax can read once packed into literal runs of RUN_SIZE bytes, each with its control
+    byte, so no larger than C_DATA.PACKED_LIMIT: 35718 bytes pack to 35718 + 282 = 36000 }
+  MAX_LOADABLE = C_DATA.PACKED_LIMIT * RUN_SIZE div (RUN_SIZE + 1);
   { the free space a merged archive is given beyond its per-disk archives together: its reserved blocks, a patched block
     packed larger than before, the disk's cluster rounding and the log }
   ROOM_MARGIN = 65536;
   { the most bytes the sources block holds }
-  SOURCES_SIZE = SOURCE_DISKS * C_DATA.SOURCE_RECORD;
+  SOURCES_SIZE = Types.LAST_DISK * C_DATA.SOURCE_RECORD;
   { the version block: C_DATA.VERSION and a CRC-32, packed as one literal run }
   VERSION_RAW = 5;
   VERSION_PACKED = 6;
@@ -111,7 +109,7 @@ var
   lastError: Integer;
   { why the game folder could not be written, once it could not; the families after it are not tried }
   writeNote: TNote;
-  { set when there is not memory enough to build at all; no family is tried }
+  { set when the build cannot start: not memory enough, or a fix table that does not add up; no family is tried }
   memNote: TNote;
   builtCount: Byte;
   keptCount: Byte;
@@ -252,12 +250,6 @@ begin
   CrcOfFile := ok;
 end;
 
-{ The file name of the family's per-disk archive of disk. }
-function SourceName(fam, disk: Byte): Types.TStr20;
-begin
-  SourceName := DataArc.SourceName(fam, disk) + '.DAX';
-end;
-
 { The path of the file called name in the game folder. }
 function GamePath(name: Types.TStr20): Types.TPathStr;
 begin
@@ -281,9 +273,9 @@ var
   found: Boolean;
 begin
   found := DataArc.FileLength(DataBld.GamePath(DataArc.MergedName(fam) + '.DAX')) >= 0;
-  for disk := 1 to SOURCE_DISKS do
+  for disk := 1 to Types.LAST_DISK do
     if not found then
-      found := DataArc.FileLength(DataBld.GamePath(DataBld.SourceName(fam, disk))) >= 0;
+      found := DataArc.FileLength(DataBld.GamePath(DataArc.SourceFile(fam, disk))) >= 0;
   HasFiles := found;
 end;
 
@@ -298,8 +290,8 @@ var
   free: LongInt;
 begin
   need := ROOM_MARGIN;
-  for disk := 1 to SOURCE_DISKS do begin
-    size := DataArc.FileLength(DataBld.GamePath(DataBld.SourceName(fam, disk)));
+  for disk := 1 to Types.LAST_DISK do begin
+    size := DataArc.FileLength(DataBld.GamePath(DataArc.SourceFile(fam, disk)));
     if size > 0 then
       Inc(need, size);
   end;
@@ -379,13 +371,13 @@ begin
   end;
   if not ok then
     if lastError <> 0 then
-      DataBld.Fail('reading ' + DataBld.SourceName(fam, disk) + ': DOS error ' + StrUtil.NumStr(lastError))
+      DataBld.Fail('reading ' + DataArc.SourceFile(fam, disk) + ': DOS error ' + StrUtil.NumStr(lastError))
     else
-      DataBld.Fail(DataBld.SourceName(fam, disk) + ' is damaged');
+      DataBld.Fail(DataArc.SourceFile(fam, disk) + ' is damaged');
   ReadSource := ok;
 end;
 
-{ Read the family's per-disk archives that are present, disks 1 to SOURCE_DISKS. False, with failNote set, when one
+{ Read the family's per-disk archives that are present, disks 1 to Types.LAST_DISK. False, with failNote set, when one
   cannot be read or is damaged. }
 function ReadSources(fam: Byte): Boolean;
 var
@@ -396,12 +388,12 @@ begin
   sourceCount := 0;
   sourceListLen := 0;
   ok := True;
-  for disk := 1 to SOURCE_DISKS do
+  for disk := 1 to Types.LAST_DISK do
     if ok then begin
-      Assign(f, DataBld.GamePath(DataBld.SourceName(fam, disk)));
+      Assign(f, DataBld.GamePath(DataArc.SourceFile(fam, disk)));
       Reset(f, 1);
       if IOResult = 0 then begin
-        DataBld.Progress(archiveName + '.DAX: reading ' + DataBld.SourceName(fam, disk));
+        DataBld.Progress(archiveName + '.DAX: reading ' + DataArc.SourceFile(fam, disk));
         BldShow.Reading(fam, disk);
         ok := DataBld.ReadSource(f, fam, disk);
         Close(f);
@@ -428,10 +420,10 @@ begin
   same := (a.packedSize = b.packedSize) and (a.rawSize = b.rawSize);
   if same then begin
     lastError := 0;
-    Assign(fa, DataBld.GamePath(DataBld.SourceName(fam, a.disk)));
+    Assign(fa, DataBld.GamePath(DataArc.SourceFile(fam, a.disk)));
     Reset(fa, 1);
     if DataBld.IoOk then begin
-      Assign(fb, DataBld.GamePath(DataBld.SourceName(fam, b.disk)));
+      Assign(fb, DataBld.GamePath(DataArc.SourceFile(fam, b.disk)));
       Reset(fb, 1);
       if DataBld.IoOk then begin
         left := a.packedSize;
@@ -459,7 +451,7 @@ begin
     end;
     n := IOResult;
     if lastError <> 0 then begin
-      DataBld.Fail('comparing ' + DataBld.SourceName(fam, b.disk) + ': DOS error ' + StrUtil.NumStr(lastError));
+      DataBld.Fail('comparing ' + DataArc.SourceFile(fam, b.disk) + ': DOS error ' + StrUtil.NumStr(lastError));
       same := False;
     end;
   end;
@@ -619,7 +611,7 @@ begin
     BldShow.Advance(b.packedSize);
     ok := DataBld.IoOk;
   end else begin
-    Assign(src, DataBld.GamePath(DataBld.SourceName(fam, b.disk)));
+    Assign(src, DataBld.GamePath(DataArc.SourceFile(fam, b.disk)));
     Reset(src, 1);
     ok := DataBld.IoOk;
     if ok then begin
@@ -705,42 +697,6 @@ begin
   WriteArchive := ok;
 end;
 
-{ Decode packedSize bytes of DAX run-length data at packedBuf into rawSize bytes at raw, as DaxIo.DecompressDax does:
-  controls 0..$7E copy the next b+1 bytes, $81..$FF repeat the next byte -b times, $7F and $80 are skipped; runs are cut
-  at the end of either buffer and output the input does not reach is zero. }
-procedure DecodeRuns(var packedBuf; packedSize: Word; var raw; rawSize: Word);
-var
-  i: Word;
-  o: Word;
-  b: Byte;
-  run: Word;
-begin
-  FillChar(raw, rawSize, 0);
-  i := 0;
-  o := 0;
-  while (i < packedSize) and (o < rawSize) do begin
-    b := TBytes(packedBuf)[i];
-    Inc(i);
-    if b <= $7E then begin
-      run := b + 1;
-      if run > packedSize - i then
-        run := packedSize - i;
-      if run > rawSize - o then
-        run := rawSize - o;
-      Move(TBytes(packedBuf)[i], TBytes(raw)[o], run);
-      Inc(i, run);
-      Inc(o, run);
-    end else if (b >= $81) and (i < packedSize) then begin
-      run := 256 - b;
-      if run > rawSize - o then
-        run := rawSize - o;
-      FillChar(TBytes(raw)[o], run, TBytes(packedBuf)[i]);
-      Inc(i);
-      Inc(o, run);
-    end;
-  end;
-end;
-
 { '#38' for issue 38. }
 function IssueName(issue: Word): Types.TStr20;
 begin
@@ -760,14 +716,14 @@ end;
 { True when parts a and b name the same block. }
 function SameBlockPart(a, b: Word): Boolean;
 begin
-  SameBlockPart := (DataPat.parts[a].family = DataPat.parts[b].family) and
-                   (DataPat.parts[a].disk = DataPat.parts[b].disk) and (DataPat.parts[a].id = DataPat.parts[b].id);
+  SameBlockPart := (DataPat.parts^[a].family = DataPat.parts^[b].family) and
+                   (DataPat.parts^[a].disk = DataPat.parts^[b].disk) and (DataPat.parts^[a].id = DataPat.parts^[b].id);
 end;
 
 { True when part b belongs to the same fix as part a: the same issue and block. }
 function SameFix(a, b: Word): Boolean;
 begin
-  SameFix := (DataPat.parts[a].issue = DataPat.parts[b].issue) and DataBld.SameBlockPart(a, b);
+  SameFix := (DataPat.parts^[a].issue = DataPat.parts^[b].issue) and DataBld.SameBlockPart(a, b);
 end;
 
 { The remap entry for a load of block id from disk, or 0. }
@@ -889,12 +845,12 @@ begin
   p := first;
   q := pos;
   while ok and (p <= DataPat.PART_COUNT) and DataBld.SameFix(first, p) do begin
-    part := DataPat.parts[p];
+    part := DataPat.parts^[p];
     ok := (part.size = len) and (LongInt(part.offset) + part.origLen <= len) and
           (LongInt(q) + part.origLen + part.newLen <= DataPat.BYTE_COUNT);
     k := 0;
     while ok and (k < part.origLen) do begin
-      ok := spare^[part.offset + k] = DataPat.patchBytes[q + k];
+      ok := spare^[part.offset + k] = DataPat.patchBytes^[q + k];
       Inc(k);
     end;
     if not ok then
@@ -906,7 +862,7 @@ begin
         why := 'the block would be too long'
       else begin
         Move(spare^[part.offset + part.origLen], spare^[part.offset + part.newLen], len - part.offset - part.origLen);
-        Move(DataPat.patchBytes[q + part.origLen], spare^[part.offset], part.newLen);
+        Move(DataPat.patchBytes^[q + part.origLen], spare^[part.offset], part.newLen);
         len := newLen;
       end;
     end;
@@ -946,9 +902,9 @@ var
   fixed: Boolean;
   held: Boolean;
 begin
-  disk := DataPat.parts[first].disk;
-  id := DataPat.parts[first].id;
-  DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, disk) + ' block ' + StrUtil.NumStr(id));
+  disk := DataPat.parts^[first].disk;
+  id := DataPat.parts^[first].id;
+  DataBld.Progress(archiveName + '.DAX: fixing ' + DataArc.SourceFile(fam, disk) + ' block ' + StrUtil.NumStr(id));
   BldShow.Fixing(fam, disk);
   ok := True;
   fixed := False;
@@ -965,7 +921,7 @@ begin
     room := blocks^[target].rawSize;
     for p := first to DataPat.PART_COUNT do
       if DataBld.SameBlockPart(first, p) then
-        Inc(room, DataPat.parts[p].newLen);
+        Inc(room, DataPat.parts^[p].newLen);
     if room > MAX_ENCODED then
       room := MAX_ENCODED;
     if (blocks^[target].disk = 0) or (blocks^[target].packedSize = 0) or (blocks^[target].rawSize = 0) or
@@ -982,7 +938,7 @@ begin
     GetMem(spare, room);
     held := True;
     lastError := 0;
-    Assign(f, DataBld.GamePath(DataBld.SourceName(fam, blocks^[target].disk)));
+    Assign(f, DataBld.GamePath(DataArc.SourceFile(fam, blocks^[target].disk)));
     Reset(f, 1);
     ok := DataBld.IoOk;
     if ok then begin
@@ -991,9 +947,9 @@ begin
       n := IOResult;
     end;
     if ok then
-      DataBld.DecodeRuns(packedBuf^, packedLen, raw^, rawLen)
+      DaxIo.DecompressDax(Types.PByteArr(packedBuf), Types.PByteArr(raw), packedLen, rawLen)
     else
-      DataBld.Fail('reading ' + DataBld.SourceName(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
+      DataBld.Fail('reading ' + DataArc.SourceFile(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
                    StrUtil.NumStr(lastError));
     FreeMem(packedBuf, packedLen);
   end;
@@ -1002,13 +958,13 @@ begin
     for p := first to DataPat.PART_COUNT do begin
       if DataBld.SameBlockPart(first, p) and ((p = first) or not DataBld.SameFix(p - 1, p)) then
         if note <> '' then
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' skipped: ' + note)
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts^[p].issue) + ' skipped: ' + note)
         else if DataBld.ApplyFix(fam, p, q, raw, spare, room, rawLen, why) then begin
           fixed := True;
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' applied');
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts^[p].issue) + ' applied');
         end else
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' skipped: ' + why);
-      Inc(q, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts^[p].issue) + ' skipped: ' + why);
+      Inc(q, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
     end;
     if fixed then begin
       blocks^[target].disk := 0;
@@ -1037,7 +993,7 @@ begin
   ok := True;
   pos := 0;
   for p := 1 to DataPat.PART_COUNT do begin
-    if ok and (DataPat.parts[p].family = fam) then begin
+    if ok and (DataPat.parts^[p].family = fam) then begin
       firstOnBlock := True;
       for q := 1 to p - 1 do
         if DataBld.SameBlockPart(q, p) then
@@ -1045,7 +1001,7 @@ begin
       if firstOnBlock then
         ok := DataBld.PatchBlock(fam, p, pos);
     end;
-    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+    Inc(pos, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
   end;
   ApplyPatches := ok;
 end;
@@ -1180,7 +1136,7 @@ begin
     failedCount := 0;
     crcTable := nil;
     { kept apart from writeNote, which BldShow.Open was given above and which means the folder cannot be written }
-    if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + 1024 then
+    if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + DataPat.TABLE_BYTES + 1024 then
       memNote := 'not enough memory'
     else begin
       GetMem(crcTable, SizeOf(TCrcTable));
@@ -1189,6 +1145,9 @@ begin
       GetMem(sources, SizeOf(TBlockList));
       GetMem(blocks, SizeOf(TBlockList));
       DataBld.InitCrcTable;
+      { the data fixes, on the heap only while the archives are built (#964) }
+      if not DataPat.LoadTable then
+        memNote := 'the data fixes do not add up';
     end;
     for fam := 1 to C_DATA.FAMILIES do
       if stale[fam] then begin
@@ -1200,6 +1159,7 @@ begin
         Inc(keptCount);
       end;
     if crcTable <> nil then begin
+      DataPat.FreeTable;
       FreeMem(blocks, SizeOf(TBlockList));
       FreeMem(sources, SizeOf(TBlockList));
       FreeMem(bufB, CHUNK_SIZE);

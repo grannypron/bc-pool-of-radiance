@@ -17,6 +17,8 @@ var
   expected: Byte;
   armor: Types.TItemRec;
   shield: Types.TItemRec;
+  age: Word;
+  over32: Boolean;
 
 { Check the cleric slots Wisdom wis adds at spell levels 1..7 in all, ClassCal.wisBonusSpells' rows from 13 to wis added
   up, against expected, one digit a level. }
@@ -199,6 +201,34 @@ begin
   c^.wisCur := 12;
   ClassCal.RecalcBaseSkills(c);
   TestKit.CheckEqualsL(2, c^.clericSpells[3], 'a level 6 cleric with Wisdom 12: 2 third-level slots, no bonus');
+  { ResetClericSlots: the level's slots and the Wisdom's bonus, however often it runs (Modify Character's Wisdom row) }
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.CLERIC] := 1;
+  c^.wisCur := 14;
+  ClassCal.ResetClericSlots(c);
+  ClassCal.ResetClericSlots(c);
+  TestKit.CheckEqualsL(3, c^.clericSpells[1], 'a level 1 cleric with Wisdom 14, reset twice: 1 + 2 slots');
+  c^.wisCur := 13;
+  ClassCal.ResetClericSlots(c);
+  TestKit.CheckEqualsL(2, c^.clericSpells[1], 'Wisdom 13 takes a bonus slot away');
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.CLERIC] := 4;
+  c^.wisCur := 17;
+  c^.clericSpells[1] := 9;
+  c^.clericSpells[2] := 9;
+  ClassCal.ResetClericSlots(c);
+  ClassCal.ResetClericSlots(c);
+  TestKit.CheckEqualsL(5, c^.clericSpells[1], 'a level 4 cleric with Wisdom 17, reset twice: 3 + 2 first-level');
+  TestKit.CheckEqualsL(4, c^.clericSpells[2], 'and 2 + 2 second-level, whatever the slots were');
+  c^.wisCur := 15;
+  ClassCal.ResetClericSlots(c);
+  TestKit.CheckEqualsL(5, c^.clericSpells[1], 'Wisdom 15: still 3 + 2 first-level');
+  TestKit.CheckEqualsL(3, c^.clericSpells[2], 'and 2 + 1 second-level');
+  Reset(C_RACE.HUMAN);
+  c^.classLevels[C_LEVEL.MAGE] := 3;
+  c^.wisCur := 18;
+  ClassCal.ResetClericSlots(c);
+  TestKit.CheckEqualsL(0, c^.clericSpells[1], 'no cleric level: no cleric slots');
   Reset(C_RACE.HUMAN);
   c^.classLevels[C_LEVEL.MAGE] := 7;
   ClassCal.RecalcBaseSkills(c);
@@ -671,6 +701,34 @@ begin
   TestKit.CheckEqualsL(5, ClassCal.TurnLevel(c), 'until the fighter passes them');
 
   CheckAlignments;
+
+  { starting age: a multiclass takes its oldest class's base plus the dice's maximum (POR-0221, #945) }
+  TestKit.CheckEqualsL(93, ClassCal.StartingAge(C_RACE.DWARF, C_CLASS.FIGHTER_THIEF),
+                       'a dwarf fighter/thief: the thief''s 75 + 3d6 at most, over the fighter''s 60');
+  TestKit.CheckEqualsL(100, ClassCal.StartingAge(C_RACE.GNOME, C_CLASS.FIGHTER_THIEF),
+                       'a gnome fighter/thief: 80 + 5d4');
+  TestKit.CheckEqualsL(48, ClassCal.StartingAge(C_RACE.HALFLING, C_CLASS.FIGHTER_THIEF),
+                       'a halfling fighter/thief: 40 + 2d4');
+  TestKit.CheckEqualsL(46, ClassCal.StartingAge(C_RACE.HALFELF, C_CLASS.FIGHTER_THIEF),
+                       'a half-elf fighter/thief: 22 + 3d8');
+  TestKit.CheckEqualsL(160, ClassCal.StartingAge(C_RACE.ELF, C_CLASS.FIGHTER_THIEF),
+                       'an elf fighter/thief: the fighter''s 130 + 5d6');
+  TestKit.CheckEqualsL(180, ClassCal.StartingAge(C_RACE.ELF, C_CLASS.FIGHTER_MAGE_THIEF),
+                       'an elf fighter/magic-user/thief: the magic-user''s 150 + 5d6');
+  TestKit.CheckEqualsL(48, ClassCal.StartingAge(C_RACE.HALFELF, C_CLASS.CLERIC_RANGER),
+                       'a half-elf cleric/ranger: the cleric''s 40 + 2d4');
+  { a human magic-user rolls 24 + 2d8 (DMG p.12) }
+  inRange := True;
+  over32 := False;
+  for k := 1 to 200 do begin
+    age := ClassCal.StartingAge(C_RACE.HUMAN, C_CLASS.MAGE);
+    if (age < 26) or (age > 40) then
+      inRange := False;
+    if age > 32 then
+      over32 := True;
+  end;
+  TestKit.Check(inRange, 'a human magic-user starts at 26 to 40');
+  TestKit.Check(over32, 'and past 32, which 2d4 never reached');
 
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;
