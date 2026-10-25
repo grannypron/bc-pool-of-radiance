@@ -12,7 +12,6 @@ var
   video: Types.TVideoDriver;
   { the sound driver GameBoot installed }
   sound: Types.TSoundDriver;
-  { Timed effects. }
   { Play session }
   { GameBoot writes 0/1, Intro tests zero }
   fullIntro: Boolean;
@@ -66,6 +65,8 @@ var
   stingHpFlag: Byte;
   { Started as START STING: the debug keys and cheats are on. GameBoot sets it before anything reads a key. }
   stingArg: Boolean;
+  { Started with NORAND as the second argument: the random numbers are seeded with 1. GameBoot sets it with stingArg. }
+  norandArg: Boolean;
   { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
     writes the creatures' effects there }
   debugTraceEnabled: Boolean;
@@ -117,13 +118,11 @@ var
   { Offset of the last dirty byte (inclusive) in the view buffer's image data. Reset to 0 when clean so any new span
     compares as later. }
   spanLastOfs: array[0..167] of Word;
-  { Video segment for each CGA scanline, precomputed so row writes need no bank arithmetic: even and odd rows interleave
-    between the B800 and BA00 banks. }
-  cgaRowSeg: array[0..199] of Word;
-  { Offset into the EGA video segment for each scanline; rows are 40 bytes apart. }
+  { Video segment for each scanline in a banked mode, precomputed so row writes need no bank arithmetic: CGA's even and
+    odd rows interleave between the B800 and BA00 banks, Tandy's rows go round its four banks from B800. }
+  bankRowSeg: array[0..199] of Word;
+  { Offset into the video segment for each scanline in EGA (rows 40 bytes apart) and VGA (320). }
   fbRowOfs: array[0..199] of Word;
-  { Video segment for each Tandy scanline, precomputed like cgaRowSeg. }
-  tandyRowSeg: array[0..199] of Word;
 
 var
   { Sound mode }
@@ -133,14 +132,13 @@ var
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
   { Save directory from line 4 of POOL.CFG. }
-  saveDirectory: String[255];
+  saveDirectory: Types.TPathStr;
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
-  gameDir: String;
+  gameDir: Types.TPathStr;
   { Flag for suppressing insert disk prompt }
   suppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
-  { ITEMS catalogue }
   { Party pointers }
   { Current creature. }
   curChar: Types.PCharRecord;
@@ -235,7 +233,6 @@ var
   { 3D view }
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;
-  { View3D band colors; MapView recomputes them from the ECL color selectors after a script changes them (picRegionW) }
   { Map position, wall cache, animation and portrait cache }
   { automap shown in place of the 3D view }
   automapOn: Boolean;
@@ -311,8 +308,6 @@ var
   gbvmUpperByte: array[1..64] of Byte;
   { Low bytes of decoded ECL variables. }
   gbvmLowerByte: array[1..64] of Byte;
-  { Receives the aim result for the bronze-dragon breath attack. }
-  breathAim: Boolean;
   { Script string buffers, on the heap; GameInit2 allocates and clears them. }
   gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }

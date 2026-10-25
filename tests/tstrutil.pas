@@ -48,5 +48,11 @@ begin
   StrUtil.MenuToOptions(menu, opts);
   TestKit.CheckEqualsS('A ', menu, 'a closing ~ with nothing after it is dropped');
   TestKit.CheckEqualsS('A', opts, 'and adds no hotkey');
+  TestKit.CheckEqualsS('AB', StrUtil.RemoveAll('A....B', '.'), 'RemoveAll takes every period in a row (#960)');
+  TestKit.CheckEqualsS('SIRBOB', StrUtil.RemoveAll('SIR  BOB', ' '), 'and every space');
+  TestKit.CheckEqualsS('ab', StrUtil.RemoveAll('xaxxbx', 'x'), 'at either end too');
+  TestKit.CheckEqualsS('c', StrUtil.RemoveAll('aabbc', 'ab'), 'and what a removal brings together');
+  TestKit.CheckEqualsS('abc', StrUtil.RemoveAll('abc', ''), 'an empty del removes nothing');
+  TestKit.CheckEqualsS('', StrUtil.RemoveAll('', '..'), 'nor from an empty string');
   TestKit.Done;
 end.

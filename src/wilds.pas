@@ -82,7 +82,7 @@ begin
             (mapY = wildernessSpecialLocations[k].y) then begin
           case k of
             WILD_BUCCANEERS_BASE: begin
-              if GameVars.zone0^.buccaneersBaseGate <> 255 then
+              if GameVars.zone0^.buccaneersBaseVisible <> 255 then
                 icon := wildernessSpecialLocations[k].icon - 1;
             end;
             WILD_NOMAD_CAMP: begin
