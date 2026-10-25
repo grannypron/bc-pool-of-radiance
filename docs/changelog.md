@@ -142,6 +142,8 @@
 - A successful saving throw against Silence, 15' Radius now spares the target, as the rule book says. Before, the save was rolled and then ignored.
 - POOL.CFG's sound letter S means silent again, as SSI's data card says; the Sound Blaster is now B. A POOL.CFG set to S for the Sound Blaster now runs without sound until its second line is changed to B.
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
+- A dying creature hit again now sinks further toward death: the damage adds to what it has bled. Before, a second hit started its count again, taking it further from death.
+- A cleric or magic-user drained to 1st level now has 1st level's spell slots, and loses memorized spells it no longer has slots for. Before, it kept 2nd level's slots.
 - The Companion Tools' character editor no longer holds a character above level 1 to fewer hit points than its Constitution gives it: the bonus now counts on every hit die, not once a class.
 
 ## Pool of Radiance port: October 2026 update
