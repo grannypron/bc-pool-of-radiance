@@ -2,7 +2,7 @@
   recorded samples (SBSFX.DAT, built by tools/sbsfx.py: Dark Queen of Krynn's, in its own 4-bit ADPCM, and the first of
   Pools of Darkness's step thumps), each one DMA transfer the DSP plays at the sample's rate. Effects with no sample
   play on the speaker. The driver never hooks the card's IRQ: a single-cycle transfer needs only the port and the DMA
-  channel, from BLASTER (A220 D1 by default). GameBoot installs it when POOL.CFG names S; with no DSP answering, the
+  channel, from BLASTER (A220 D1 by default). GameBoot installs it when POOL.CFG names B; with no DSP answering, the
   AdLib's driver is installed instead (phase 7 of docs/refactor-plan.md). }
 {$F+,I-}
 {$I COMPILER.INC}

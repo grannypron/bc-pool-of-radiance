@@ -756,8 +756,10 @@ trace test of step 0 pins it).
 
      | Letter | Device | Music | Effects | Without the card |
      | --- | --- | --- | --- | --- |
-     | **S** | Sound Blaster | AdLib, on the card's OPL2 | SSI's recorded samples | **A**'s behaviour |
+     | **B** | Sound Blaster | AdLib, on the card's OPL2 | SSI's recorded samples | **A**'s behaviour |
      | **A** | AdLib | AdLib | the speaker, as in Secret | the speaker alone |
+
+     The Sound Blaster's letter was S until #880; S is silent on SSI's data card, as in the Curse port.
 
    - The samples are in `SBSFX.DAT`, built by `tools/sbsfx.py` from the owner's copies of the games. Like all game
      data it is not in git (drive_c is ignored).
@@ -789,7 +791,7 @@ trace test of step 0 pins it).
      placed so that it crosses none.
    - The sequencer switches device per sound: the AdLib for music, the speaker for an effect with no sample.
      Leaving the AdLib silences it.
-   - goldbox-player needs Sound Blaster emulation for a scenario to run with S; the GoldBox Tester has the request.
+   - goldbox-player needs Sound Blaster emulation for a scenario to run with B; the GoldBox Tester has the request.
 
    **Steps 3 and 4 done.**
    - **AdLib.** `sndopl.inc` and `SndOpl` render the Tandy arrangements in FM.
