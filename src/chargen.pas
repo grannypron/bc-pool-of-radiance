@@ -1080,6 +1080,8 @@ var
   trainMask: Byte;
   classMask: Byte;
   trainable: Byte;
+  { the classes that can train, C_LEVEL bits (CharHlp.TrainClasses) }
+  trains: Byte;
   cls: ShortInt;
   row: ShortInt;
   lvl: ShortInt;
@@ -1096,25 +1098,23 @@ begin
   classMask := 0;
   with GameVars.curChar^ do begin
     xpClamp := 0;
+    trains := CharHlp.TrainClasses(Types.PCharRecord(GameVars.curChar), stingMode <> 0);
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       { a class a dual-classed human has left never trains (#838) }
       if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
         Inc(classMask, GameDefs.classBit[cls]);
         lvl := classLevels[cls];
-        { xp[] runs to C_LEVEL.LEVEL_LAST }
-        if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < C_LEVEL.LEVEL_LAST) then
-          if (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
-            if GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
-              Inc(trainMask, GameDefs.classBit[cls]);
-              if lvl < C_LEVEL.LEVEL_LAST - 1 then
-                nextXp := GameDefs.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
-              else
-                nextXp := 0;
-              if nextXp > 0 then
-                if experience >= nextXp then
-                  if nextXp > xpClamp then
-                    xpClamp := nextXp - 1;
-            end;
+        if trains and (1 shl cls) <> 0 then begin
+          Inc(trainMask, GameDefs.classBit[cls]);
+          if lvl < C_LEVEL.LEVEL_LAST - 1 then
+            nextXp := GameDefs.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
+          else
+            nextXp := 0;
+          if nextXp > 0 then
+            if experience >= nextXp then
+              if nextXp > xpClamp then
+                xpClamp := nextXp - 1;
+        end;
       end;
     if stingMode = 0 then begin
       if Byte(classMask and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK]) = 0 then begin
@@ -1559,14 +1559,13 @@ var
   end;
 
   { Merge: OR src's pixels onto the top rows of work and AND their transparency masks (VidOps.MergePic; a head is the
-    top 8 or 10 rows of the icon), taking src's colour map }
+    top 8 or 10 rows of the icon), taking src's colour map when it merges (VidOps.CanMerge) }
   procedure Merge(src: Types.PImgBuf);
   begin
-    if (src = nil) or (work = nil) then Exit;
-    if (src^.transp = nil) or (work^.transp = nil) then Exit;
-    if (src^.width <> work^.width) or (src^.imgSize = 0) or (src^.imgSize > work^.imgSize) then Exit;
-    VidOps.MergePic(src, work);
-    work^.map := src^.map;
+    if VidOps.CanMerge(src, work) then begin
+      VidOps.MergePic(src, work);
+      work^.map := src^.map;
+    end;
   end;
 
   { BuildIcon: Frame frame (0 ready, 1 action) of the icon with head h, weapon b and colours c at tSize into work,

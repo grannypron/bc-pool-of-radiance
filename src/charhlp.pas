@@ -117,6 +117,11 @@ function PermanentStrength(creature: Types.PCharRecord): Byte;
   a dual-classed human has left does not train. }
 function CanTrain(creature: Types.PCharRecord): Boolean;
 
+{ The classes creature can train a level in, as C_LEVEL bits (1 shl slot): a class it follows (a level above 0, not one
+  a dual-classed human has left, #838) that is not at its racial cap (AtLevelCap) and has a next level in the
+  experience table, with the experience for it unless anyXp (free training). CanTrain and CharGen.TrainingMenu ask it. }
+function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
+
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 
 function RawWeight(creature: Types.PCharRecord): LongInt;
@@ -1261,11 +1266,17 @@ begin
 end;
 
 function CanTrain(creature: Types.PCharRecord): Boolean;
+begin
+  CanTrain := CharHlp.TrainClasses(creature, False) <> 0;
+end;
+
+function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
 var
   cls: ShortInt;
   lvl: ShortInt;
+  mask: Byte;
 begin
-  CanTrain := False;
+  mask := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[cls];
     { a class a dual-classed human has left never trains again (#838) }
@@ -1275,9 +1286,10 @@ begin
     if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
         if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
-          if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
-            CanTrain := True;
+          if anyXp or (GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience) then
+            mask := mask or (1 shl cls);
   end;
+  TrainClasses := mask;
 end;
 
 { A half-orc's cap in class cls, 0 for none: its cleric cap by Wisdom and its thief cap by Dexterity, each one level
