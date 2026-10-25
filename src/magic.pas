@@ -2045,7 +2045,7 @@ begin
   x := CbtMap.CombatCellX(creature);
   y := CbtMap.CombatCellY(creature);
   CharDisp.PrintNameString(creature, 'Breathes!', 10, True);
-  GameVars.castTargetMenu(C_SPELL.LIGHTNING_BOLT, True, GameVars.breathAim);
+  GameVars.castTargetMenu(C_SPELL.LIGHTNING_BOLT, True, junk);
   gTargetX := x + Pathing.SignOf(gTargetX - x);
   gTargetY := y + Pathing.SignOf(gTargetY - y);
   if gTargetX = x + 1 then

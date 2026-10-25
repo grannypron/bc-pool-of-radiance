@@ -9,7 +9,7 @@ interface
 
 uses Types;
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 
 procedure MirrorFrame(src, dst: Types.PImgBuf);
 
@@ -23,47 +23,22 @@ procedure InitRowTables;
 
 implementation
 
-uses C_VIDEO, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GameVars, Blit, VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
-{ each DAX cell row (4 bytes, two pixels a byte, high nibble first) becomes 8 bytes; with a mask, a pixel of transpColor
-  becomes PIC_KEY and sets its mask bit (bit 7 the leftmost) }
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+{ eight bytes, a pixel each; with a mask, a transparent pixel becomes PIC_KEY, and the mask byte is the chunk's (bit 7
+  the leftmost) }
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 var
-  chunk: TChunk;
-  frame: Byte;
-  col: Word;
-  row: Word;
-  dstOff: Word;
-  maskOff: Word;
-  mask: Byte;
   k: Byte;
-  color: Byte;
 begin
   with pic^ do begin
-    dstOff := 0;
-    maskOff := 0;
-    for frame := 1 to count do
-      for row := 0 to height - 1 do
-        for col := 0 to width - 1 do begin
-          Move(imgData^[srcOff], chunk, SizeOf(chunk));
-          mask := 0;
-          if transp <> nil then begin
-            mask := Blit.ComputeMask(transpColor, chunk);
-            transp^[maskOff] := mask;
-            Inc(maskOff);
-          end;
-          for k := 0 to 7 do begin
-            if Odd(k) then
-              color := chunk[k shr 1] and $0F
-            else
-              color := chunk[k shr 1] shr 4;
-            if (mask and ($80 shr k)) <> 0 then
-              color := Types.PIC_KEY;
-            data[dstOff + k] := color;
-          end;
-          Inc(dstOff, 8);
-          Inc(srcOff, SizeOf(chunk));
-        end;
+    if transp <> nil then
+      transp^[at shr 3] := mask;
+    for k := 0 to 7 do
+      if (mask and ($80 shr k)) <> 0 then
+        data[at + k] := Types.PIC_KEY
+      else
+        data[at + k] := VidOps.ChunkPixel(chunk, k);
   end;
 end;
 
@@ -74,7 +49,6 @@ var
   row: Word;
   col: Word;
   rowOff: Word;
-  maskOff: Word;
 begin
   with src^ do begin
     rowBytes := width * 8;
@@ -84,15 +58,8 @@ begin
         dst^.data[rowOff + col] := data[rowOff + rowBytes - 1 - col];
       Inc(rowOff, rowBytes);
     end;
-    if transp <> nil then begin
-      maskOff := 0;
-      for row := 1 to height do begin
-        for col := 0 to width - 1 do
-          dst^.transp^[maskOff + width - col - 1] := Blit.MirrorBits(transp^[maskOff + col]);
-        Inc(maskOff, width);
-      end;
-    end;
   end;
+  VidOps.MirrorCellMask(src, dst);
 end;
 
 { Replace fromC with toC in nFrames frames of pic from srcOff, matching the original pixels and writing scratch, which
@@ -107,7 +74,7 @@ begin
   total := nFrames * scratch^.imgSize;
   for n := 1 to total do begin
     if pic^.data[srcOff] = fromC then
-      if not isDithered or isDithered and (Random(4) = 0) then
+      if not isDithered or (Random(4) = 0) then
         scratch^.data[dstOff] := toC;
     Inc(srcOff);
     Inc(dstOff);

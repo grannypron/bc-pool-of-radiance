@@ -469,8 +469,9 @@ var
   bytes: LongInt;
 begin
   st := nil;
-  { the state and both pictures: at most 4 bytes per pixel row of a cell, and a picture's header }
-  if MaxAvail < SizeOf(TShowState) + (FRAMES + 1) * 32 + 2 * 64 + 1024 then Exit;
+  { the state and both pictures, FRAMES cells and one in the video mode's layout (64 bytes a cell on VGA), and a
+    picture's header each }
+  if MaxAvail < SizeOf(TShowState) + (FRAMES + 1) * LongInt(Blit.FrameBytes(8, 1)) + 2 * 64 + 1024 then Exit;
   GetMem(st, SizeOf(TShowState));
   FillChar(st^, SizeOf(TShowState), 0);
   Blit.AllocPic(8, 1, FRAMES, 0, st^.art);

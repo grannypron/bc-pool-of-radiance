@@ -1248,7 +1248,7 @@ begin
         nonNpc := 0;
         { a short or unreadable .cha is not added and keeps its unmarked name; the bottom line says so until a key,
           as the put-save-disk prompt does, with the name cut to fit the line }
-        if not SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False, True) then begin
+        if not SaveLoad.LoadChar(m^.name, Types.PCharRecord(creature), False) then begin
           FreeMem(creature, SizeOf(Types.TCharRecord));
           if not SaveLoad.HasCharFile(m^.name) then begin
             { Escape gave up on a character with no file: it leaves the roster (SSI asked for the disk forever, #794) }

@@ -25,10 +25,10 @@ const
     'GNOLL', 'BUGBEAR', 'ETTIN', 'OGRE', 'OGRE LEADER', 'TROLL', 'HILL GIANT', 'FIRE GIANT');
 
 const
-  { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot; only entries 0..7 are read. Paladins and rangers
-    train with fighters; the monk combines two bits. }
-  classBit: array[0..16] of Byte = (
-    2, 2, 8, 8, 8, 1, 4, 6, 16, 16, 16, 32, 32, 32, 64, 64, 64);
+  { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot. Paladins and rangers train with fighters; the
+    monk combines two bits. }
+  classBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
+    2, 2, 8, 8, 8, 1, 4, 6);
 
 const
   { RollFirstLevelHp }
@@ -60,7 +60,7 @@ const
   coinValuationCopper: array[C_MONEY.COPPER..C_MONEY.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
   { Class names, indexed by TCharRecord.charClass. }
-  classNames: array[C_CLASS.CLERIC..C_CLASS.MAGE_THIEF] of string[26] = (
+  classNames: array[C_CLASS.CLERIC..C_CLASS.MAGE_THIEF] of string[25] = (
     'Cleric',
     'Druid',
     'Fighter',
@@ -79,7 +79,7 @@ const
     'Fighter/Magic-User/Thief',
     'Magic-User/Thief');
   { Race names, indexed by TCharRecord.race. }
-  raceNames: array[C_RACE.MONSTER..C_RACE.HUMAN] of string[9] = (
+  raceNames: array[C_RACE.MONSTER..C_RACE.HUMAN] of string[8] = (
     'Monster',
     'Dwarf',
     'Elf',
@@ -89,7 +89,7 @@ const
     'Half-Orc',
     'Human');
   { Alignment names, indexed by TCharRecord.alignment. }
-  alignNames: array[C_ALIGN.LAWFUL_GOOD..C_ALIGN.CHAOTIC_EVIL] of string[16] = (
+  alignNames: array[C_ALIGN.LAWFUL_GOOD..C_ALIGN.CHAOTIC_EVIL] of string[15] = (
     'Lawful Good',
     'Lawful Neutral',
     'Lawful Evil',
@@ -104,7 +104,7 @@ const
     'Male',
     'Female');
   { Money names, indexed like TCharRecord.coins and TMoney. }
-  moneyNames: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of string[10] = (
+  moneyNames: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of string[8] = (
     'Copper',
     'Silver',
     'Electrum',
@@ -113,7 +113,7 @@ const
     'Gems',
     'Jewelry');
   { Status names, indexed by TCharRecord.status; see C_STATUS. }
-  statusStrs: array[C_STATUS.OKAY..C_STATUS.GONE] of string[12] = (
+  statusStrs: array[C_STATUS.OKAY..C_STATUS.GONE] of string[11] = (
     'Okay',
     'Animated',
     'tempgone',
@@ -205,74 +205,74 @@ const
     0, 1, 1, 1, 0, -1, -1, -1, 0);
   dirDY: array[C_DIR.NORTH..C_DIR.CENTER] of ShortInt = (
     -1, -1, 0, 1, 1, 1, 0, -1, 0);
-  { Combat terrain by arena cell value: movement cost (255 = impassable), line-walk clearance and blocking, and the
-    combat tile graphic }
+  { Combat terrain by arena cell value: movement cost (255 = impassable), what it blocks of a line walk, and the combat
+    tile graphic }
   terrainInfo: array[1..65] of Types.TTerrainRec = (
-    (cost: 255; clearance: 0; blocking: 2; tileId: 0),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 1),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 2),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 3),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 4),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 5),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 6),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 7),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 8),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 9),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 10),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 11),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 12),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 13),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 14),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 15),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 16),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 17),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 18),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 19),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 20),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 21),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 22),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 23),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 24),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 34),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 35),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 36),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 37),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 38),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 39),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 0),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 1),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 2),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 3),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 4),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 5),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 6),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 7),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 8),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 9),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 10),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 11),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 12),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 13),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 14),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 15),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 16),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 17),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 18),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 19),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 20),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 21),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 22),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 23),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 24),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 25),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 26),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 27),
-    (cost: 255; clearance: 0; blocking: 0; tileId: 28),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 29),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 30),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 31),
-    (cost: 1; clearance: 0; blocking: 0; tileId: 32),
-    (cost: 255; clearance: 0; blocking: 2; tileId: 33));
+    (cost: 255; blocking: 2; tileId: 0),
+    (cost: 255; blocking: 2; tileId: 1),
+    (cost: 255; blocking: 2; tileId: 2),
+    (cost: 255; blocking: 2; tileId: 3),
+    (cost: 1; blocking: 0; tileId: 4),
+    (cost: 255; blocking: 2; tileId: 5),
+    (cost: 255; blocking: 2; tileId: 6),
+    (cost: 255; blocking: 2; tileId: 7),
+    (cost: 1; blocking: 0; tileId: 8),
+    (cost: 255; blocking: 2; tileId: 9),
+    (cost: 1; blocking: 0; tileId: 10),
+    (cost: 255; blocking: 2; tileId: 11),
+    (cost: 1; blocking: 0; tileId: 12),
+    (cost: 255; blocking: 2; tileId: 13),
+    (cost: 1; blocking: 0; tileId: 14),
+    (cost: 255; blocking: 2; tileId: 15),
+    (cost: 1; blocking: 0; tileId: 16),
+    (cost: 255; blocking: 2; tileId: 17),
+    (cost: 255; blocking: 2; tileId: 18),
+    (cost: 255; blocking: 2; tileId: 19),
+    (cost: 255; blocking: 2; tileId: 20),
+    (cost: 255; blocking: 2; tileId: 21),
+    (cost: 1; blocking: 0; tileId: 22),
+    (cost: 1; blocking: 0; tileId: 23),
+    (cost: 255; blocking: 2; tileId: 24),
+    (cost: 1; blocking: 0; tileId: 34),
+    (cost: 1; blocking: 0; tileId: 35),
+    (cost: 1; blocking: 0; tileId: 36),
+    (cost: 1; blocking: 0; tileId: 37),
+    (cost: 1; blocking: 0; tileId: 38),
+    (cost: 1; blocking: 0; tileId: 39),
+    (cost: 255; blocking: 2; tileId: 0),
+    (cost: 255; blocking: 2; tileId: 1),
+    (cost: 255; blocking: 2; tileId: 2),
+    (cost: 255; blocking: 2; tileId: 3),
+    (cost: 1; blocking: 0; tileId: 4),
+    (cost: 1; blocking: 0; tileId: 5),
+    (cost: 1; blocking: 0; tileId: 6),
+    (cost: 1; blocking: 0; tileId: 7),
+    (cost: 255; blocking: 0; tileId: 8),
+    (cost: 255; blocking: 0; tileId: 9),
+    (cost: 1; blocking: 0; tileId: 10),
+    (cost: 1; blocking: 0; tileId: 11),
+    (cost: 1; blocking: 0; tileId: 12),
+    (cost: 1; blocking: 0; tileId: 13),
+    (cost: 1; blocking: 0; tileId: 14),
+    (cost: 1; blocking: 0; tileId: 15),
+    (cost: 1; blocking: 0; tileId: 16),
+    (cost: 1; blocking: 0; tileId: 17),
+    (cost: 255; blocking: 0; tileId: 18),
+    (cost: 255; blocking: 0; tileId: 19),
+    (cost: 1; blocking: 0; tileId: 20),
+    (cost: 1; blocking: 0; tileId: 21),
+    (cost: 1; blocking: 0; tileId: 22),
+    (cost: 255; blocking: 0; tileId: 23),
+    (cost: 255; blocking: 0; tileId: 24),
+    (cost: 1; blocking: 0; tileId: 25),
+    (cost: 1; blocking: 0; tileId: 26),
+    (cost: 1; blocking: 0; tileId: 27),
+    (cost: 255; blocking: 0; tileId: 28),
+    (cost: 255; blocking: 2; tileId: 29),
+    (cost: 255; blocking: 2; tileId: 30),
+    (cost: 255; blocking: 2; tileId: 31),
+    (cost: 1; blocking: 0; tileId: 32),
+    (cost: 255; blocking: 2; tileId: 33));
   { Effects that leave a creature helpless }
   HELPLESS_FX_COUNT = 4;
   helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_EFFECT.SNAKE_CHARM, C_EFFECT.PARALYSIS, C_EFFECT.SLEEP,
@@ -306,7 +306,7 @@ const
     'Cause Light Wounds',
     'Detect Magic',
     'Protection From Evil',
-    'Protection from Good',
+    'Protection From Good',
     'Resist Cold',
     'Burning Hands',
     'Charm Person',
@@ -388,7 +388,7 @@ const
      durFixed: 0; durVar: 3; area: 4; target: 2;
      saveResult: 0; saveType: 4; effect: 8; whenCast: 2;
      castTime: 4; aiPriority: 1; offensive: 0; aiRadius: 0),
-    { Spell 7: Protection from Good }
+    { Spell 7: Protection From Good }
     (castClass: 0; level: 1; rangeFixed: 0; rangeVar: 0;
      durFixed: 0; durVar: 3; area: 4; target: 2;
      saveResult: 0; saveType: 4; effect: 9; whenCast: 2;
