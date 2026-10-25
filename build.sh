@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
-# build.sh -- build Pool of Radiance from src/ into obj/START.EXE and obj/GAME.OVR.
+# build.sh -- build Pool of Radiance from src/ into obj/START.EXE and obj/GAME.OVR, and its set-up program into
+# obj/POOLCFG.EXE (#876; a source without src/poolcfg.pas, as SSI's tags, has none).
 #
 #   ./build.sh              build
-#   ./build.sh --install    build, then copy the two files into drive_c/POOLRAD to play
+#   ./build.sh --install    build, then copy the files into drive_c/POOLRAD to play
 #   ./build.sh --test       build, then compile and run the unit tests in tests/ (TestKit) under the same Turbo Pascal
 #
 # --install replaces the play install in this checkout's drive_c/POOLRAD; scripts and worktrees should not pass it.
@@ -125,7 +126,11 @@ if [ -z "$token" ] || [ "${token%#*}" != "$(cd "$root" && pwd -P)/.build.lock" ]
 fi
 
 mkdir -p "$root/obj" "$root/build/logs"
-rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root"/build/logs/*.OUT
+rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root/obj/POOLCFG.EXE" "$root"/build/logs/*.OUT
+
+# the files the build makes: the game, and its set-up program when the source has one
+outputs=(START.EXE GAME.OVR)
+[ -f "$root/src/poolcfg.pas" ] && outputs+=(POOLCFG.EXE)
 
 # obj/BUILDID.INC names the source for the Options screen (tools/buildid.sh says how).
 "$root/tools/buildid.sh"
@@ -172,11 +177,13 @@ fi
 # TPC reports "FILE.PAS(12): Error 3: ..."; TPC.OUT also names every file it opens, so a bare "error" is not enough.
 tpc_error='(^|\): )(Error|Fatal)'
 failed=0
-if grep -qE "$tpc_error" "$root/build/logs/TPC.OUT" 2> /dev/null; then
-    echo "build.sh: the compiler reported errors (build/logs/TPC.OUT):" >&2
-    grep -E -B1 -A2 "$tpc_error" "$root/build/logs/TPC.OUT" >&2
-    failed=1
-fi
+for out in TPC.OUT TPCCFG.OUT; do
+    if grep -qE "$tpc_error" "$root/build/logs/$out" 2> /dev/null; then
+        echo "build.sh: the compiler reported errors (build/logs/$out):" >&2
+        grep -E -B1 -A2 "$tpc_error" "$root/build/logs/$out" >&2
+        failed=1
+    fi
+done
 if grep -qiE "^\*+(error|fatal)" "$root/build/logs/TASM.OUT" 2> /dev/null; then
     echo "build.sh: the assembler reported errors (build/logs/TASM.OUT):" >&2
     grep -iE "error|fatal" "$root/build/logs/TASM.OUT" >&2
@@ -187,7 +194,7 @@ if grep -qi "error" "$root/build/logs/PACK.OUT" 2> /dev/null; then
     grep -i "error" "$root/build/logs/PACK.OUT" >&2
     failed=1
 fi
-for f in START.EXE GAME.OVR; do
+for f in "${outputs[@]}"; do
     if [ ! -f "$root/obj/$f" ]; then
         echo "build.sh: the build did not produce obj/$f; see build/logs." >&2
         failed=1
@@ -196,7 +203,7 @@ done
 [ $failed -eq 0 ] || exit 1
 
 echo "build.sh: built:"
-(cd "$root/obj" && sha256sum START.EXE GAME.OVR | sed 's/^/  /')
+(cd "$root/obj" && sha256sum "${outputs[@]}" | sed 's/^/  /')
 
 # The sizes a change has to watch (docs/refactor-plan.md): the resident code, the data segment's 64 KB, and the
 # overlays, read from TPC's last line ("N lines, S seconds, C bytes code, D bytes data.") and the overlay stubs.
@@ -208,6 +215,8 @@ fi
 if command -v python3 > /dev/null 2>&1 && [ -f "$root/obj/FIXMAIN.EXE" ] && [ -f "$root/obj/FIXMAIN.MAP" ]; then
     python3 -I "$root/build/ovlsizes.py" "$root/obj/FIXMAIN.EXE" "$root/obj/FIXMAIN.MAP" | sed 's/^/build.sh: /'
 fi
+echo "build.sh: files: $(cd "$root/obj" && for f in "${outputs[@]}"; do printf '%s %s bytes; ' "$f" "$(wc -c < "$f")"; done \
+    | sed 's/; $//')"
 
 # --- unit tests ----------------------------------------------------------------------------------
 
@@ -282,7 +291,7 @@ if [ ! -d "$game/SSI" ]; then
     fi
     echo "build.sh: kept the original START.EXE and GAME.OVR in drive_c/POOLRAD/SSI"
 fi
-if ! cp "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$game/"; then
+if ! (cd "$root/obj" && cp "${outputs[@]}" "$game/"); then
     echo "build.sh: could not copy the build into drive_c/POOLRAD; the install there may be incomplete." >&2
     exit 1
 fi

@@ -20,8 +20,8 @@ procedure ResetGameState;
 implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Options, Blit, DaxIo, GameIo,
-  MenuCore, SoundDrv, C_SOUND, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
-  HeapErr, VidOps, Stats, CbtLog, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
+  MenuCore, SoundDrv, TextRend, C_GBVM, CbtActs, C_EFFECT, CbtMap, MemShow, CharHlp, CharDisp, EclVars, View3D,
+  HeapErr, VidOps, Stats, CfgFile, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
   Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -306,6 +306,7 @@ end;
 procedure GameInit2;
 var
   i: Byte;
+  settings: CfgFile.TSettings;
 begin
   GetMem(GameVars.zone0, SizeOf(GameVars.zone0^));
   GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
@@ -347,22 +348,11 @@ begin
     GameVars.wallSetCache[i].wallDefId := -1;
     GameVars.wallSetCache[i].symbolSlot := -1;
   end;
-  GameVars.portraitsAll := 1;
-  GameVars.portraitsOn := 1;
-  GameVars.monsterPics := 1;
-  GameVars.musicOn := 1;
-  GameVars.musicGroups := C_SOUND.MUSIC_GROUPS_ALL;
-  GameVars.soundGroups := C_SOUND.GROUPS_ALL;
-  GameVars.soundOn := 1;
-  GameVars.quickEnds := 1;
-  GameVars.quickMagicOn := 0;
-  GameVars.companionOn := 0;
-  GameVars.clueNotesOn := 1;
-  GameVars.combatLogOn := 1;
-  GameVars.combatLogLines := CbtLog.DEFAULT_ENTRIES;
+  { the settings' defaults, which POOLOPT.CFG is read over below }
+  CfgFile.Defaults(settings);
+  Options.Apply(settings);
   GameVars.stingHpFlag := 0;
   GameVars.msgDelayFlag := 1;
-  GameVars.gameDelay := 1;
   GameInit.ResetGameState;
   SoundDrv.soundAutoStop := 0;
   SoundDrv.SoundSetAutoStop(100);
