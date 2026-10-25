@@ -605,6 +605,16 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **EvtKind: an IF as an event's one instruction (2026-10-25 review).** `KindAt` overwrote its opcode with the one after an IF, so for a COMPARE/IF = dispatch whose instruction is itself an IF, the single-instruction check tested the wrong opcode: the Companion map followed the IF's skip path, code the event does not own, and dropped the instruction it guards unless that was a GOTO or GOSUB. An IF now hands the one instruction on to the one it guards. #953.
 
+**SaveLoad (2026-10-25 review).** `SaveCharlist` rewrote charlist.txt in place without checking its writes, so a full disk left a cut-short roster; it writes charlist.tx$ and puts it in place (`FileUtil.PutInPlace`) only when whole. `LoadCharlist` never checked its `Reset` or read `IOResult`, which could leave an error pending for `SaveCharlist`'s `Rewrite` and ask for the save disk with nothing wrong; it clears a pending error first, gives up on an open or a line that fails, and leaves none behind. `LoadChar` loses its `askDisk` parameter (True at both callers) and the dead game-disk branch; `LoadSlot` uses `CharFileName` and `Types.MAX_PARTY` (#919); `SaveMinSize` counts the five position bytes by their sizes; small cleanups in `AddCharToParty`, `FreeCreature` and `CheckFileElseQuit`. The save layout is unchanged. #967. 9e4aa83.
+
+**SaveMenu (2026-10-25 review).** The menu's per-slot tables are `SLOT_COUNT` (the length of `SLOT_LETTERS`) long instead of 16, 364 bytes of the data segment back; the boxes' columns are `BOX_LEFT`/`BOX_RIGHT`, the title is centred with `TextRend.DisplayCentered`, and `ReadSlot` seeks past `virtualDisk` by its size. #968. 4335f7e.
+
+**FileUtil (2026-10-25 review).** `OpenReadOnly` clears an I/O error already pending before its `Reset`, as the unit's writers do: under `{$I-}` a pending error made the `Reset` do nothing and a file that is there read as missing (TFileUtl now checks it, and fails without the fix). `TempName` and `BackupName` share `WithLast`. #969. 4947c46.
+
+**CfgFile (2026-10-25 review).** `Trim` (spaces and tabs off both ends) replaces the copies in `Tidy` and the native `CheckPath`; `ReadPoolCfg`'s four kept lines are `C_OPT.CFG_EXTRA_LINES`; its comment keeps to 120 columns. #970. 7c86179.
+
+**Options (2026-10-25 review).** `ShownValue` reads the settings `DrawSetting` has just collected instead of collecting them again; `CountMerged` counts to `Types.LAST_DISK` (#919). #971. 3c36600.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.
