@@ -37,9 +37,9 @@ const
   RUN_SIZE = 127;
   { the largest block packed into memory: its literal runs must fit in one heap block }
   MAX_ENCODED = 64000;
-  { the largest block DaxIo.LoadDax can read once packed: it ends the game on a packed size above 36000, and 35718 bytes
-    pack to 35718 + 282 = 36000 }
-  MAX_LOADABLE = 35718;
+  { the largest block DaxIo.LoadDax can read once packed into literal runs of RUN_SIZE bytes, each with its control
+    byte, so no larger than C_DATA.PACKED_LIMIT: 35718 bytes pack to 35718 + 282 = 36000 }
+  MAX_LOADABLE = C_DATA.PACKED_LIMIT * RUN_SIZE div (RUN_SIZE + 1);
   { the free space a merged archive is given beyond its per-disk archives together: its reserved blocks, a patched block
     packed larger than before, the disk's cluster rounding and the log }
   ROOM_MARGIN = 65536;
@@ -697,42 +697,6 @@ begin
   WriteArchive := ok;
 end;
 
-{ Decode packedSize bytes of DAX run-length data at packedBuf into rawSize bytes at raw, as DaxIo.DecompressDax does:
-  controls 0..$7E copy the next b+1 bytes, $81..$FF repeat the next byte -b times, $7F and $80 are skipped; runs are cut
-  at the end of either buffer and output the input does not reach is zero. }
-procedure DecodeRuns(var packedBuf; packedSize: Word; var raw; rawSize: Word);
-var
-  i: Word;
-  o: Word;
-  b: Byte;
-  run: Word;
-begin
-  FillChar(raw, rawSize, 0);
-  i := 0;
-  o := 0;
-  while (i < packedSize) and (o < rawSize) do begin
-    b := TBytes(packedBuf)[i];
-    Inc(i);
-    if b <= $7E then begin
-      run := b + 1;
-      if run > packedSize - i then
-        run := packedSize - i;
-      if run > rawSize - o then
-        run := rawSize - o;
-      Move(TBytes(packedBuf)[i], TBytes(raw)[o], run);
-      Inc(i, run);
-      Inc(o, run);
-    end else if (b >= $81) and (i < packedSize) then begin
-      run := 256 - b;
-      if run > rawSize - o then
-        run := rawSize - o;
-      FillChar(TBytes(raw)[o], run, TBytes(packedBuf)[i]);
-      Inc(i);
-      Inc(o, run);
-    end;
-  end;
-end;
-
 { '#38' for issue 38. }
 function IssueName(issue: Word): Types.TStr20;
 begin
@@ -983,7 +947,7 @@ begin
       n := IOResult;
     end;
     if ok then
-      DataBld.DecodeRuns(packedBuf^, packedLen, raw^, rawLen)
+      DaxIo.DecompressDax(Types.PByteArr(packedBuf), Types.PByteArr(raw), packedLen, rawLen)
     else
       DataBld.Fail('reading ' + DataArc.SourceFile(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
                    StrUtil.NumStr(lastError));

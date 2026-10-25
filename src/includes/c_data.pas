@@ -29,6 +29,9 @@ const
   { the most collisions one family may have: DataBld builds no more into a merged archive's remap block, and DaxIo keeps
     that many for every family }
   FAMILY_REMAPS = 16;
+  { the largest packed block DaxIo.LoadDax reads: a directory entry with a larger one ends the game ('tempsize'), as
+    SSI's did; DataBld keeps every block it packs within it }
+  PACKED_LIMIT = 36000;
   { the sources block's bytes per per-disk archive: disk, then file size and CRC-32 (4 bytes each, low byte first) }
   SOURCE_RECORD = 9;
 

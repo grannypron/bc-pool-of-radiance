@@ -547,8 +547,8 @@ end;
   reads the merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_DATA's
   reserved ids), with fileID remapped where that disk's block was stored under another id. Only the bytes actually read
   are decoded, so a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a
-  compressed size above 36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the
-  archive cannot be opened or the ID is absent. }
+  compressed size above C_DATA.PACKED_LIMIT shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil
+  if the archive cannot be opened or the ID is absent. }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var
   compSize: Word;
@@ -585,7 +585,7 @@ begin
     BlockRead(f2, compSize, SizeOf(compSize), n);
     { an entry cut short by the end of the file ends the scan, unfound }
     cut := n < SizeOf(compSize);
-    if not cut and (compSize > 36000) then begin
+    if not cut and (compSize > C_DATA.PACKED_LIMIT) then begin
       Str(LongInt(compSize), numStr);
       DaxIo.PromptBox(Yellow, 'tempsize ' + numStr);
       GameIo.ExitGame;
