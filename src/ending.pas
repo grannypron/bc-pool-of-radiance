@@ -150,24 +150,6 @@ const
     128 + 95,
     128 + 115,
     128 + 117);
-  { Source side of both remaps: every color, in palette order. }
-  yarRemapFrom: Types.TColorTab = (
-    Black,
-    Blue,
-    Green,
-    Cyan,
-    Red,
-    Magenta,
-    Brown,
-    LightGray,
-    DarkGray,
-    LightBlue,
-    LightGreen,
-    LightCyan,
-    LightRed,
-    LightMagenta,
-    Yellow,
-    White);
   yarBlueGreenTo: Types.TColorTab = (
     { Black -> Blue }
     Blue,
@@ -268,18 +250,18 @@ begin
       { 10 = High(yarBlueGreenTiles) }
       for t := 0 to 10 do
         if yarBlueGreenTiles[t] > C_TILE.ID_MASK then
-          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo,
+          Blit.RemapPic(GameDefs.colorIdentity, yarBlueGreenTo,
                         yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], True, GameVars.mapTilePtr);
+          Blit.RemapPic(GameDefs.colorIdentity, yarBlueGreenTo, yarBlueGreenTiles[t], True, GameVars.mapTilePtr);
       { 17 = High(yarGreenTiles) }
       for t := 0 to 17 do
         if yarGreenTiles[t] > C_TILE.ID_MASK then
-          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK, True,
+          Blit.RemapPic(GameDefs.colorIdentity, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK, True,
                         MapTiles.SecondSheet)
         else
-          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], True, GameVars.mapTilePtr);
+          Blit.RemapPic(GameDefs.colorIdentity, yarGreenTo, yarGreenTiles[t], True, GameVars.mapTilePtr);
       Wilds.BuildWildernessMap(yarViewX[step], yarViewY[step]);
       Blit.FlushView;
     end;
@@ -287,18 +269,18 @@ begin
   { 10 = High(yarBlueGreenTiles) }
   for t := 0 to 10 do
     if yarBlueGreenTiles[t] > C_TILE.ID_MASK then
-      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo,
+      Blit.RemapPic(GameDefs.colorIdentity, yarBlueGreenTo,
                     yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
                     MapTiles.SecondSheet)
     else
-      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], False, GameVars.mapTilePtr);
+      Blit.RemapPic(GameDefs.colorIdentity, yarBlueGreenTo, yarBlueGreenTiles[t], False, GameVars.mapTilePtr);
   { 17 = High(yarGreenTiles) }
   for t := 0 to 17 do
     if yarGreenTiles[t] > C_TILE.ID_MASK then
-      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK,
+      Blit.RemapPic(GameDefs.colorIdentity, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK,
                     False, MapTiles.SecondSheet)
     else
-      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], False, GameVars.mapTilePtr);
+      Blit.RemapPic(GameDefs.colorIdentity, yarGreenTo, yarGreenTiles[t], False, GameVars.mapTilePtr);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);
     Blit.FlushView;
