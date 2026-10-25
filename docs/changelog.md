@@ -40,6 +40,9 @@
 
 ### Fixes
 
+- The temple no longer takes your money for Cure Light, Serious or Critical Wounds on a character the cure cannot help (dead, turned to stone, or with mummy rot, or not wounded) without asking: it says why and asks whether to cast the cure anyway.
+- A random potion found as treasure is always a potion. Before, about one in eleven was a nameless item that did nothing.
+- The lightning on the second title screen now flashes at the same pace on every computer, and in the native version, where it never flashed before.
 - In CGA, the Companion Tools map's legend now names the colour your notes are drawn in, magenta, instead of saying yellow.
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
