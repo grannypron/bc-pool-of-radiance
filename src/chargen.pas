@@ -1340,7 +1340,7 @@ var
       for k := -1 to 1 do
         if body then begin
           Blit.LoadPic('BODY' + diskCh, GameDefs.bodyTbl[Wrap(portraitBody, k, nBodies)], False, 0, bodies[k + 1]);
-          Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW + 5, False, bodies[k + 1]);
+          Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW + Portrait.BODY_ROW_OFFSET, False, bodies[k + 1]);
         end else begin
           Blit.LoadPic('HEAD' + diskCh, GameDefs.headTbl[Wrap(portraitHead, k, nHeads)], False, 0, heads[k + 1]);
           Portrait.DisplayImageBuf(PIC_COL[k + 1], PIC_ROW, False, heads[k + 1]);
