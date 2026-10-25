@@ -125,20 +125,21 @@ var
   effect: Types.PEffectRec;
   i: Byte;
   ac: Integer;
+  { a fact other than TOLD has changed }
+  learned: Boolean;
 
-  procedure Know(fact: Byte);
+  procedure Know(fact: Byte; known: Boolean);
   begin
-    b.known[fact div 32] := b.known[fact div 32] or (LongInt(1) shl (fact mod 32));
+    if Bestiary.Mark(b, fact, known) and (fact <> C_BEAST.TOLD) then
+      learned := True;
   end;
 
 begin
   was := b;
-  Know(C_BEAST.SIZE_KNOWN);
-  if creature^.iconDimensions and Types.ICON_LARGE <> 0 then
-    Know(C_BEAST.LARGE)
-  else
-    b.known[0] := b.known[0] and not (LongInt(1) shl C_BEAST.LARGE);
-  Know(C_BEAST.HD_KNOWN);
+  learned := False;
+  Know(C_BEAST.SIZE_KNOWN, True);
+  Know(C_BEAST.LARGE, creature^.iconDimensions and Types.ICON_LARGE <> 0);
+  Know(C_BEAST.HD_KNOWN, True);
   b.hd := creature^.levelHighest;
   { acCur holds 60 - AC }
   ac := 60 - Integer(creature^.acCur);
@@ -148,13 +149,11 @@ begin
   while effect <> nil do begin
     for i := 1 to C_BEAST.EFFECT_FACTS_COUNT do
       if C_BEAST.EFFECT_FACTS[i].eff = effect^.id then
-        Know(C_BEAST.EFFECT_FACTS[i].fact);
+        Know(C_BEAST.EFFECT_FACTS[i].fact, True);
     effect := effect^.next;
   end;
-  Know(C_BEAST.TOLD);
-  was.known[0] := was.known[0] or (LongInt(1) shl C_BEAST.TOLD);
-  Tell := (b.known[0] <> was.known[0]) or (b.known[1] <> was.known[1]) or (b.hd <> was.hd) or
-          (b.acLo <> was.acLo) or (b.acHi <> was.acHi);
+  Know(C_BEAST.TOLD, True);
+  Tell := learned or (b.hd <> was.hd) or (b.acLo <> was.acLo) or (b.acHi <> was.acHi);
 end;
 
 procedure Load;

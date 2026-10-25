@@ -173,6 +173,21 @@ begin
   TestKit.CheckEqualsL(C_BEAST.AC_NO_LOW + 1, t.acLo, 'a bound is held inside the sentinels, low');
   Bestiary.NarrowArmor(t, 500, False);
   TestKit.CheckEqualsL(C_BEAST.AC_NO_HIGH - 1, t.acHi, 'and high');
+  { Mark sets and clears a fact, and says when that changed the entry }
+  TestKit.Check(Bestiary.Mark(t, C_BEAST.ATK_DRAIN, True), 'a fact marked is a change');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_DRAIN), 'and known');
+  TestKit.Check(not Bestiary.Mark(t, C_BEAST.ATK_DRAIN, True), 'marked again, no change');
+  TestKit.Check(not Bestiary.Mark(t, C_BEAST.LARGE, False), 'clearing an unknown fact, no change');
+  TestKit.Check(Bestiary.Mark(t, C_BEAST.ATK_DRAIN, False) and not Bestiary.Knows(t, C_BEAST.ATK_DRAIN),
+                'cleared, a change');
+  TestKit.Check(not Bestiary.Mark(t, 200, True) and not Bestiary.Knows(t, 200), 'a fact past the format''s is not');
+  { a size already known: nothing to write }
+  Bestiary.dirty := False;
+  Bestiary.LearnSize(troll, a, True);
+  TestKit.Check(not Bestiary.dirty, 'a size learned again leaves the Bestiary clean');
+  Bestiary.LearnSize(troll, a, False);
+  TestKit.Check(Bestiary.dirty and not Bestiary.Knows(Troll_^, C_BEAST.LARGE), 'a changed size dirties it');
+  Bestiary.LearnSize(troll, a, True);
 
   { the most damage in a blow, and kills }
   Bestiary.LearnBlow(troll, a, 9);
@@ -251,7 +266,6 @@ begin
   Close(f);
   BeastFil.LoadFrom('TBEAST.DAT');
   TestKit.CheckEqualsL(0, Bestiary.Count, 'version 0 reads as none');
-
   { the full table }
   Bestiary.Clear;
   for i := 1 to Bestiary.MAX_ENTRIES + 1 do begin

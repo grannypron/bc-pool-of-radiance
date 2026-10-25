@@ -57,6 +57,10 @@ function Find(name: Types.TStr40): Word;
 { True when b has fact (a C_BEAST bit). }
 function Knows(var b: TBeast; fact: Byte): Boolean;
 
+{ Set fact (a C_BEAST bit) in b when known, else clear it: True when that changed b. The caller that keeps b marks the
+  table dirty. }
+function Mark(var b: TBeast; fact: Byte; known: Boolean): Boolean;
+
 { Narrow b's armor class with what one attack roll showed: AC >= bound when lower, else AC <= bound. A bound that
   contradicts the other side (another creature under the same name, or a change in the data) starts that side over. }
 procedure NarrowArmor(var b: TBeast; bound: Integer; lower: Boolean);
@@ -147,12 +151,19 @@ begin
   Knows := (fact <= C_BEAST.LAST_FACT) and (b.known[fact div 32] and (LongInt(1) shl (fact mod 32)) <> 0);
 end;
 
+function Mark(var b: TBeast; fact: Byte; known: Boolean): Boolean;
+begin
+  Mark := False;
+  if (fact > C_BEAST.LAST_FACT) or (Bestiary.Knows(b, fact) = known) then Exit;
+  b.known[fact div 32] := b.known[fact div 32] xor (LongInt(1) shl (fact mod 32));
+  Mark := True;
+end;
+
 { Set fact in b, the bestiary then to be written when it was not set already. }
 procedure SetFact(var b: TBeast; fact: Byte);
 begin
-  if (fact > C_BEAST.LAST_FACT) or Bestiary.Knows(b, fact) then Exit;
-  b.known[fact div 32] := b.known[fact div 32] or (LongInt(1) shl (fact mod 32));
-  dirty := True;
+  if Bestiary.Mark(b, fact, True) then
+    dirty := True;
 end;
 
 procedure NarrowArmor(var b: TBeast; bound: Integer; lower: Boolean);
@@ -297,18 +308,14 @@ end;
 procedure LearnSize(beast, attacker: Types.PCharRecord; large: Boolean);
 var
   i: Word;
-  was: LongInt;
 begin
   if attacker = nil then Exit;
   i := Bestiary.Watched(beast, attacker);
   if i = 0 then Exit;
-  was := table^[i].known[0];
-  table^[i].known[0] := table^[i].known[0] or (LongInt(1) shl C_BEAST.SIZE_KNOWN);
-  if large then
-    table^[i].known[0] := table^[i].known[0] or (LongInt(1) shl C_BEAST.LARGE)
-  else
-    table^[i].known[0] := table^[i].known[0] and not (LongInt(1) shl C_BEAST.LARGE);
-  if table^[i].known[0] <> was then
+  { two statements, as the boolean evaluation is short-circuit }
+  if Bestiary.Mark(table^[i], C_BEAST.SIZE_KNOWN, True) then
+    dirty := True;
+  if Bestiary.Mark(table^[i], C_BEAST.LARGE, large) then
     dirty := True;
 end;
 
@@ -317,7 +324,8 @@ var
   i: Word;
 begin
   if (attacker = nil) or GameVars.gAttackAvoided then Exit;
-  { 1 misses whatever the armor; a natural 20 is 100 and more }
+  { 1 misses whatever the armor; a natural 20 is FxEngine.RollToHit's 100, which no attack-roll modifier brings near
+    50, and no other roll reaches 50 }
   if (GameVars.gAttackRoll <= 1) or (GameVars.gAttackRoll >= 50) then Exit;
   i := Bestiary.Watched(beast, attacker);
   if i = 0 then Exit;
