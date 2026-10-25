@@ -11,21 +11,6 @@ implementation
 
 uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
 
-{ Wait for the requested number of seconds or a keypress, whichever comes first. The key is left unread. }
-procedure DelayOrKey(seconds: Word);
-var
-  start: LongInt;
-  deadline: LongInt;
-  now: LongInt;
-begin
-  start := TextRend.GetTicks;
-  deadline := start + 100 * seconds;
-  repeat
-    now := TextRend.GetTicks;
-    { a reading below the start means the tick count restarted at midnight }
-  until (now >= deadline) or (now < start) or KeyPressed;
-end;
-
 { Show the credits screen for 10 seconds or until a keypress; a key still pending from the title ends it at once. }
 procedure Credits;
 begin
@@ -65,7 +50,7 @@ begin
   TextRend.DisplayString(2, 22, Yellow, 'testing:');
   TextRend.DisplayString(11, 22, LightCyan, 'joel billings,steve salyer');
   TextRend.DisplayString(2, 23, LightCyan, 'james kucera,robert daly,rick white');
-  Intro.DelayOrKey(10);
+  TextRend.DelayOrKey(10);
 end;
 
 { Show the Brazen Crows picture (RAVFULL.DAX, skipped when the file is missing) for 2 seconds, then TITLE picture 1 for
@@ -90,14 +75,14 @@ begin
   if DaxIo.FileExists(GameVars.gameDir + 'RAVFULL.DAX') then begin
     Blit.LoadPic('RAVFULL', 1, False, 0, pic);
     Blit.ShowPic(0, 0, pic);
-    Intro.DelayOrKey(2);
+    TextRend.DelayOrKey(2);
   end;
 
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);
   { the title theme plays out by itself, under the credits or the menu }
   SoundDrv.PlayMusic(C_SOUND.MUSIC_TITLE);
-  Intro.DelayOrKey(5);
+  TextRend.DelayOrKey(5);
   if not GameVars.fullIntro then begin
     GameVars.gameDir := savedDir;
     Blit.FreePic(pic);

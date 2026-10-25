@@ -143,10 +143,8 @@ function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
 
 { The hit dice class cls (C_LEVEL) has given creature: its level, with the ranger's and monk's second die at level 1.
-  A dual-classed human's (#838) classes give dice in the order it took them, which is the order of their levels (it
-  changes class only once the class it follows has passed every class it left): the first its level's dice, each
-  later one only its levels past the one before, and the class it follows now none until it passes them all, as the
-  1st-edition PHB has it. }
+  A dual-classed human's (#838) class left gives its level's dice, and the class it follows now only its levels past
+  that one, none until it passes it, as the 1st-edition PHB has it. }
 function HitDice(creature: Types.PCharRecord; cls: ShortInt): Byte;
 
 { The count hit points are divided by: the classes with levels, as a multi-class character shares them; 1 for a
@@ -212,19 +210,19 @@ procedure StartCasterClass(creature: Types.PCharRecord; cls: ShortInt);
   (CharHlp.PermanentStrength), Intelligence, Wisdom, Dexterity, Constitution and Charisma. }
 function PrimesAtLeast(creature: Types.PCharRecord; cls: ShortInt; score: Byte): Boolean;
 
-{ True when creature may leave the class it follows (#838): a human of one class (charClass CLERIC..MONK) whose prime
-  requisites are all LEAVE_CLASS_SCORE or more, and none of whose former classes is resting (CharHlp.ClassResting): it
-  changes again only once the class it follows has passed every class it left. No level is asked for: Curse, Secret
-  and Pools ask none, nor does the PHB. }
+{ True when creature may leave the class it follows (#838): a human of one class (charClass CLERIC..MONK) that has
+  never changed class (CharHlp.IsDualClass), whose prime requisites are all LEAVE_CLASS_SCORE or more. A human changes
+  class once, as in Curse, Secret and Pools (#879). No level is asked for: Curse, Secret and Pools ask none, nor does
+  the PHB. }
 function CanChangeClass(creature: Types.PCharRecord): Boolean;
 
 { True when creature may change to class cls (C_LEVEL): it may change (CanChangeClass); cls is a class a human takes at
-  creation (classesByRace, which offers paladins and rangers, as Curse does) other than the one it follows and those
-  it has left; its prime requisites for cls are all TAKE_CLASS_SCORE or more, its abilities meet cls's minimums
-  (ClassAbilityMin), and cls allows its alignment (alignByClass). }
+  creation (classesByRace, which offers paladins and rangers, as Curse does) other than the one it follows; its prime
+  requisites for cls are all TAKE_CLASS_SCORE or more, its abilities meet cls's minimums (ClassAbilityMin), and cls
+  allows its alignment (alignByClass). }
 function CanTakeClass(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
-{ Change creature's class to cls, the record's part of it (ChgClass does the rest): the class it followed joins
+{ Change creature's class to cls, the record's part of it (ChgClass does the rest): the class it followed becomes
   portExt.formerClasses with its level kept; cls starts at level 1 with no experience and becomes charClass; drained
   levels are forfeit (Pools zeroes its drain record at the change); memorized spells and spell slots are emptied, and a
   new caster's first level set up (StartCasterClass); itemLimits and the skills follow (RecalcBaseSkills). Hit points
@@ -299,19 +297,10 @@ begin
 end;
 
 function CanChangeClass(creature: Types.PCharRecord): Boolean;
-var
-  ok: Boolean;
-  cls: ShortInt;
 begin
-  ok := (creature^.race = C_RACE.HUMAN) and (creature^.charClass >= C_CLASS.CLERIC) and
-        (creature^.charClass <= C_CLASS.MONK);
-  if ok then
-    ok := ClassCal.PrimesAtLeast(creature, creature^.charClass, LEAVE_CLASS_SCORE);
-  if ok then
-    for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
-      if CharHlp.ClassResting(creature, cls) then
-        ok := False;
-  CanChangeClass := ok;
+  CanChangeClass := (creature^.race = C_RACE.HUMAN) and (creature^.charClass >= C_CLASS.CLERIC) and
+                    (creature^.charClass <= C_CLASS.MONK) and not CharHlp.IsDualClass(creature) and
+                    ClassCal.PrimesAtLeast(creature, creature^.charClass, LEAVE_CLASS_SCORE);
 end;
 
 function CanTakeClass(creature: Types.PCharRecord; cls: ShortInt): Boolean;
@@ -319,8 +308,7 @@ var
   ok: Boolean;
   i: ShortInt;
 begin
-  ok := ClassCal.CanChangeClass(creature) and (cls <> creature^.charClass) and
-        (creature^.portExt.formerClasses and (1 shl cls) = 0) and (creature^.classLevels[cls] <= 0);
+  ok := ClassCal.CanChangeClass(creature) and (cls <> creature^.charClass) and (creature^.classLevels[cls] <= 0);
   if ok then begin
     ok := False;
     with classesByRace[C_RACE.HUMAN] do
@@ -347,7 +335,7 @@ end;
 procedure ChangeClass(creature: Types.PCharRecord; cls: ShortInt);
 begin
   with creature^ do begin
-    portExt.formerClasses := portExt.formerClasses or (1 shl charClass);
+    portExt.formerClasses := 1 shl charClass;
     charClass := cls;
     classLevels[cls] := 1;
     experience := 0;
@@ -848,20 +836,17 @@ var
   lvl: ShortInt;
   before: ShortInt;
   other: ShortInt;
-  former: Boolean;
 begin
   HitDice := 0;
   lvl := creature^.classLevels[cls];
   if lvl <= 0 then
     Exit;
-  { the highest level of a class taken before this one: every class left, for the class followed now; the classes left
-    at lower levels, for a class left }
+  { the level of the class left, for the class followed now }
   before := 0;
-  former := creature^.portExt.formerClasses and (1 shl cls) <> 0;
-  for other := C_LEVEL.CLERIC to C_LEVEL.MONK do
-    if (other <> cls) and (creature^.portExt.formerClasses and (1 shl other) <> 0) and
-        (creature^.classLevels[other] > before) and (not former or (creature^.classLevels[other] < lvl)) then
-      before := creature^.classLevels[other];
+  if creature^.portExt.formerClasses and (1 shl cls) = 0 then
+    for other := C_LEVEL.CLERIC to C_LEVEL.MONK do
+      if (creature^.portExt.formerClasses and (1 shl other) <> 0) and (creature^.classLevels[other] > before) then
+        before := creature^.classLevels[other];
   if before = 0 then
     HitDice := lvl + hpDice[cls] - 1
   else if lvl > before then

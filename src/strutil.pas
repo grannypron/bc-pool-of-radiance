@@ -9,6 +9,8 @@ interface
 type
   { long enough for any LongInt, sign included }
   TNumStr = string[11];
+  { long enough for any LongInt with its commas }
+  TGroupedStr = string[15];
 
 { n in decimal. }
 function NumStr(n: LongInt): TNumStr;
@@ -19,6 +21,9 @@ function ZeroPad2(n: Word): TNumStr;
 { halves, a count of half attacks (TCharRecord.attacks), as attacks a round: a whole number, or an odd count over 2,
   so 2 is '1' and 3 is '3/2'. }
 function HalvesStr(halves: Byte): TNumStr;
+
+{ n, not negative, in decimal with a comma between each group of three digits: 2500 is '2,500'. }
+function Grouped(n: LongInt): TGroupedStr;
 
 { s cut, or padded with spaces on the right, to width. }
 function PadRight(s: String; width: Byte): String;
@@ -56,6 +61,20 @@ begin
   if Length(s) < 2 then
     s := '0' + s;
   ZeroPad2 := s;
+end;
+
+function Grouped(n: LongInt): TGroupedStr;
+var
+  s: TGroupedStr;
+  i: Integer;
+begin
+  Str(n, s);
+  i := Length(s) - 3;
+  while i > 0 do begin
+    Insert(',', s, i + 1);
+    Dec(i, 3);
+  end;
+  Grouped := s;
 end;
 
 function PadRight(s: String; width: Byte): String;
