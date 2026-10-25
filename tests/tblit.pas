@@ -183,6 +183,45 @@ begin
   Blit.FreePic(pic);
 end;
 
+{ The guards in the installed mode: a picture of no rows is allocated without dividing by 0; a remap of a frame past
+  the last changes nothing; a clipped blit above the top of a picture taller than dest stops at dest's last row. }
+procedure CheckGuards;
+var
+  pic: Types.PImgBuf;
+  dest: Types.PImgBuf;
+  fromT: Types.TColorTab;
+  toT: Types.TColorTab;
+  h: LongInt;
+  i: Word;
+  spilt: Boolean;
+begin
+  Blit.AllocPic(0, 3, 2, 1, pic);
+  TestKit.Check((pic <> nil) and (pic^.imgSize = 0) and (pic^.count = 2), 'a picture of no rows is allocated');
+  Blit.FreePic(pic);
+  for i := 0 to 15 do
+    toT[i] := 15 - i;
+  pic := MakePic(1, FRAMES);
+  h := PicHash(pic);
+  for i := 0 to 15 do
+    fromT[i] := i;
+  Blit.RemapPic(fromT, toT, FRAMES, False, pic);
+  TestKit.CheckEqualsL(h, PicHash(pic), 'a remap of a frame past the last changes nothing');
+  Blit.FreePic(pic);
+  Blit.AllocPic(40, 1, 1, 0, pic);
+  FillChar(pic^.data, pic^.imgSize, 7);
+  Blit.AllocPic(16, 1, 2, 0, dest);
+  ClearSpans;
+  Blit.BlitTileClipped(0, -1, 0, 0, pic, dest);
+  spilt := False;
+  for i := dest^.imgSize to 2 * dest^.imgSize - 1 do
+    if dest^.data[i] <> 0 then
+      spilt := True;
+  TestKit.Check(not spilt and (dest^.data[dest^.imgSize - 1] = 7), 'a clipped blit from above stops at dest''s bottom');
+  ClearSpans;
+  Blit.FreePic(dest);
+  Blit.FreePic(pic);
+end;
+
 {$IFNDEF FPC}
 { In a banked mode (CGA, Tandy), the routines that write the screen: a picture shown, glyphs drawn, the view's dirty
   spans flushed and a rectangle cleared, checked by a hash of the 32 KB from B800. The test runs in DOS's text mode,
@@ -241,5 +280,6 @@ begin
   VidVga.Install;
   CheckMode(-1469357773, 1744798254, -1851751357, 828998018, -2103238238, 976113281, -1611165980, 686670744,
             -1722318564, -939524097);
+  CheckGuards;
   TestKit.Done;
 end.

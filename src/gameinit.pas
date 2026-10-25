@@ -326,10 +326,7 @@ begin
   Blit.AllocPic(168, 21, 1, 0, GameVars.viewImageBufferPtr);
   { 24x24 save-under block }
   Blit.AllocPic(24, 3, 1, 0, GameVars.iconImageBufferPtr);
-  FillChar(GameVars.spanActive, SizeOf(GameVars.spanActive), 0);
-  FillChar(GameVars.spanScreenOfs, SizeOf(GameVars.spanScreenOfs), 0);
-  FillChar(GameVars.spanFirstOfs, SizeOf(GameVars.spanFirstOfs), $FF);
-  FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
+  Blit.ClearSpans;
   VidOps.InitRowTables;
   FillChar(GameVars.symbolSetPtrs, SizeOf(GameVars.symbolSetPtrs), 0);
   FillChar(GameVars.mapTilePtr, SizeOf(GameVars.mapTilePtr) + SizeOf(MapTiles.mapTilePtr2), 0);

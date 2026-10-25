@@ -47,9 +47,9 @@ procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byt
 
 { Draws one frame of a graphic into a destination buffer at a character-cell position and marks the touched scanlines
   dirty so FlushView will push them to the screen. Each span records the first and inclusive last byte changed on its
-  scanline. With transparency, the background is kept wherever the mask is set; otherwise rows are copied straight
-  across. On EGA one mask byte covers all four plane bytes of a cell; CGA and Tandy masks match the pixel data byte for
-  byte. The tile is not clipped, so the caller must keep it inside dest.
+  scanline. With transparency, the background is kept wherever the mask is set (on VGA, wherever the pixel is PIC_KEY);
+  otherwise rows are copied straight across. On EGA one mask byte covers all four plane bytes of a cell; CGA and Tandy
+  masks match the pixel data byte for byte. The tile is not clipped, so the caller must keep it inside dest.
   @param(screenX Left edge, in character columns.)
   @param(screenY Top edge, in character rows of eight scanlines.)
   @param(tileIdx Frame within gfx to draw.)
@@ -80,23 +80,28 @@ procedure MirrorPic(src, dst: Types.PImgBuf);
 
 { Draws the first frame of a picture straight to video memory at a character-cell position, bypassing the view buffer
   and its dirty-span staging. No clipping or transparency is applied. CGA and Tandy copy whole rows through the segment
-  tables; EGA writes each of the four planes separately through the sequencer map mask.
+  table, VGA through the row offsets; EGA writes each of the four planes separately through the sequencer map mask.
   @param(screenX Left edge, in character columns.)
   @param(screenY Top edge, in character rows of eight scanlines.)
   @param(pic Picture to show; nothing happens if nil.) }
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
 
-{ Copies every dirty span of the view buffer to video memory, then resets the span tables so the next frame starts
-  clean. On EGA each span is staged plane by plane in off-screen video memory and then copied to the visible page in a
-  single latch-copy pass, so the visible memory is never left with only some planes updated. Spans use inclusive byte
-  offsets; callers must supply valid bounds, and an EGA last offset of $FFFF would keep the plane loop from terminating.
-  The graphics controller is returned to its normal write mode afterwards. }
+{ Copies every dirty span of the view buffer to video memory through the driver's FlushSpans, then resets the span
+  tables (ClearSpans) so the next frame starts clean. Spans use inclusive byte offsets; callers must supply valid
+  bounds. CGA, Tandy and VGA copy each span in one move. On EGA each span is staged plane by plane in off-screen video
+  memory and then copied to the visible page in a single latch-copy pass, so the visible memory is never left with only
+  some planes updated; an EGA last offset of $FFFF would keep the plane loop from ending, and the graphics controller is
+  returned to its normal write mode afterwards. }
 procedure FlushView;
+
+{ Mark no scanline of the view dirty: every row inactive, its first offset past any and its last 0. }
+procedure ClearSpans;
 
 { Recolors a picture by replacing pixels of each source color with the matching destination color. Every replacement is
   matched against the original pixels, not the partly remapped result, so remaps do not cascade (swapping two colors
   works). The work is done in a temporary image that is copied back at the end. Only one frame is remapped, unless frame
-  is negative: then every frame of the picture is remapped, starting at frame zero.
+  is negative: then every frame of the picture is remapped, starting at frame zero. A frame past the picture's last is
+  left alone.
   @param(fromColors Colors to replace, indexed by slot 0..15.)
   @param(toColors Replacement for the same slot; slots where both tables agree are skipped.)
   @param(frame Frame to remap; a negative value remaps every frame.)
@@ -105,8 +110,8 @@ procedure FlushView;
 procedure RemapPic(fromColors, toColors: Types.TColorTab; frame: Integer; isDithered: Boolean; pic: Types.PImgBuf);
 
 { Allocates a zero-filled image buffer with room for a number of frames in the layout of the active video mode,
-  optionally with a transparency mask. The mask is one quarter of the image size on EGA (one byte per four plane bytes)
-  and the full size on CGA and Tandy.
+  optionally with a transparency mask (MaskBytes). Frames past what one heap block holds go to a further block,
+  pic^.more.
   @param(height Frame height, in scanlines.)
   @param(width Frame width, in eight-pixel cells.)
   @param(count Number of frames.)
@@ -121,9 +126,9 @@ procedure AllocPic(height, width: Word; count: Byte; flag: Byte; var pic: Types.
 procedure FreePic(var pic: Types.PImgBuf);
 
 { Fills a rectangle of a destination buffer with one solid color and marks the touched scanlines dirty for FlushView.
-  The rectangle is clipped to the destination, so it may be partly off-screen; one wholly outside it fills nothing. CGA
-  and Tandy use packed fill bytes; EGA fills four plane bytes per cell. A negative y fills from row 0, as much of the
-  rectangle as the picture holds.
+  The rectangle is clipped to the destination, so it may be partly off-screen; one wholly outside it fills nothing. The
+  driver's CellFill gives a cell row in the colour: packed fill bytes on CGA and Tandy, four plane bytes on EGA, eight
+  pixels on VGA. A negative y fills from row 0, as much of the rectangle as the picture holds.
   @param(x Left edge, in character columns; may be negative.)
   @param(y Top edge, in scanlines; may be negative.)
   @param(width Rectangle width, in eight-pixel cells.)
@@ -142,18 +147,19 @@ procedure SetPaletteRegister(registerIndex, color: Byte);
 { What the game asks of the video mode instead of naming it (phase 6, step 1). }
 
 { The bytes a picture frame height scanlines tall and width cells wide takes in the video mode: 2 a cell row on CGA
-  (2 bits a pixel), 4 on EGA (four planes) and Tandy (4 bits a pixel). }
+  (2 bits a pixel), 4 on EGA (four planes) and Tandy (4 bits a pixel), 8 on VGA (a byte a pixel). }
 function FrameBytes(height, width: Word): Word;
 
 { The bytes of transparency mask for imageBytes bytes of picture: a quarter on EGA, where one mask byte covers a cell
-  row's four plane bytes, and the same on CGA and Tandy, where the mask matches the data byte for byte. }
+  row's four plane bytes, an eighth on VGA, where it covers a cell row's eight pixels, and the same on CGA and Tandy,
+  where the mask matches the data byte for byte. }
 function MaskBytes(imageBytes: Word): Word;
 
 { The colours the video mode shows at once: 4 on CGA, which draws the 16 through each picture's colour map, and 16 on
-  EGA and Tandy. }
+  EGA, Tandy and VGA. }
 function ColourCount: Byte;
 
-{ True when the video mode has palette registers SetPaletteRegister can program (EGA). }
+{ True when the video mode has palette registers SetPaletteRegister can program (EGA's registers, VGA's DAC). }
 function HasPalette: Boolean;
 
 { Make pic's first frame wholly transparent: every pixel 0 (PIC_KEY in a keyed mode) and every mask bit set. }
@@ -237,6 +243,19 @@ begin
   FreeMem(data, dataSize);
 end;
 
+{ Mark scanline row of the view dirty from byte first to byte last, first being screenOfs on the screen, widening
+  what the row already has. }
+procedure MarkSpan(row, first, last, screenOfs: Word);
+begin
+  GameVars.spanActive[row] := 1;
+  if GameVars.spanFirstOfs[row] > first then begin
+    GameVars.spanScreenOfs[row] := screenOfs;
+    GameVars.spanFirstOfs[row] := first;
+  end;
+  if last > GameVars.spanLastOfs[row] then
+    GameVars.spanLastOfs[row] := last;
+end;
+
 { BlitTileCell and BlitTileClipped: draw frame tileIdx of gfx into dest at (screenX, screenY), clipped against dest's
   edges when clip is set (BlitTileClipped's description), saving the covered pixels first when flag has bit 2. }
 procedure BlitTile(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf; clip: Boolean);
@@ -265,12 +284,12 @@ var
   useMask: Boolean;
   saveRequested: Boolean;
   i: Word;
+  frame: Word;
+  firstOfs: Word;
 begin
   { a frame past the block's count is in a further block (AllocPic) }
-  while (gfx <> nil) and (gfx^.more <> nil) and (tileIdx >= gfx^.count) do begin
-    Dec(tileIdx, gfx^.count);
-    gfx := gfx^.more;
-  end;
+  frame := tileIdx;
+  Blit.FrameBlock(gfx, frame);
   if (gfx = nil) or (dest = nil) then Exit;
   useMask := ((flag and 1) > 0) and (gfx^.transp <> nil);
   saveRequested := (flag and 4) > 0;
@@ -291,7 +310,6 @@ begin
     end else begin
       clipRight := 0;
       rightSkip := dest^.width - (screenX + gfx^.width);
-      if rightSkip > dest^.width then Exit;
     end;
     if screenY < 0 then begin
       srcOff := Abs(screenY) * gfx^.width * 8;
@@ -300,6 +318,9 @@ begin
       lastRow := gfx^.height - 1 - Abs(screenY) * 8;
       if (gfx^.imgSize - 1 < srcOff) or (gfx^.height - 1 < lastRow) then
         Exit;
+      { no further than dest's last row (SSI did not check the bottom here) }
+      if lastRow > dest^.height - 1 then
+        lastRow := dest^.height - 1;
     end else begin
       srcOff := 0;
       scanline := screenY * 8;
@@ -333,7 +354,7 @@ begin
   rightSkip := rightSkip shl cs;
   srcOff := srcOff shl cs;
   saveOff := srcOff;
-  srcOff := tileIdx * gfx^.imgSize + srcOff;
+  srcOff := frame * gfx^.imgSize + srcOff;
   maskOff := srcOff shr ms;
   maskClipLeft := clipLeft shr ms;
   maskClipRight := clipRight shr ms;
@@ -342,14 +363,10 @@ begin
   maskEach := useMask and (ms = 0);
   destOff := destOff shl cs;
   for y := 0 to lastRow do begin
-    GameVars.spanActive[scanline] := 1;
     Inc(srcOff, clipLeft);
     Inc(saveOff, clipLeft);
     Inc(destOff, leftSkip);
-    if GameVars.spanFirstOfs[scanline] > destOff then begin
-      GameVars.spanScreenOfs[scanline] := screenOff;
-      GameVars.spanFirstOfs[scanline] := destOff;
-    end;
+    firstOfs := destOff;
     if saveRequested then
       Move(dest^.data[destOff], GameVars.iconImageBufferPtr^.data[saveOff], rowBytes);
     Inc(saveOff, rowBytes);
@@ -387,8 +404,7 @@ begin
       Inc(srcOff, rowBytes);
       Inc(destOff, rowBytes);
     end;
-    if destOff - 1 > GameVars.spanLastOfs[scanline] then
-      GameVars.spanLastOfs[scanline] := destOff - 1;
+    Blit.MarkSpan(scanline, firstOfs, destOff - 1, screenOff);
     Inc(srcOff, clipRight);
     Inc(saveOff, clipRight);
     Inc(destOff, rightSkip);
@@ -423,6 +439,11 @@ end;
 procedure FlushView;
 begin
   GameVars.video.FlushSpans;
+  Blit.ClearSpans;
+end;
+
+procedure ClearSpans;
+begin
   FillChar(GameVars.spanActive, SizeOf(GameVars.spanActive), 0);
   FillChar(GameVars.spanFirstOfs, SizeOf(GameVars.spanFirstOfs), $FF);
   FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
@@ -435,15 +456,17 @@ var
   pairIdx: Byte;
   scratchPic: Types.PImgBuf;
   allFrames: Boolean;
+  inBlock: Word;
 begin
   if pic = nil then Exit;
   allFrames := frame < 0;
-  { a frame past the block's count is in a further block (AllocPic) }
-  if not allFrames then
-    while (pic^.more <> nil) and (frame >= pic^.count) do begin
-      Dec(frame, pic^.count);
-      pic := pic^.more;
-    end;
+  if not allFrames then begin
+    { a frame past the block's count is in a further block (AllocPic); one past the last is not there }
+    inBlock := frame;
+    Blit.FrameBlock(pic, inBlock);
+    if inBlock >= pic^.count then Exit;
+    frame := inBlock;
+  end;
   with pic^ do begin
     if frame < 0 then begin
       frame := 0;
@@ -475,8 +498,12 @@ begin
   frameSize := Blit.FrameBytes(height, width);
   { A heap block holds at most 65,520 bytes: frames past what one holds go to a further block, pic^.more. A frame that
     alone is too large cannot be drawn in this mode. }
-  fit := (65520 - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) div frameSize;
-  if fit = 0 then
+  if frameSize = 0 then
+    { a frame of no rows or no cells takes no bytes: they all fit (SSI divided by 0) }
+    fit := count
+  else
+    fit := (65520 - (SizeOf(Types.TImgBuf) - SizeOf(pic^.data))) div frameSize;
+  if (fit = 0) and (frameSize > 0) then
     GameIo.FatalError('A picture of ' + StrUtil.NumStr(height) + ' rows and ' + StrUtil.NumStr(width) +
                       ' cells is too large for the ' + GameVars.video.name + ' video mode.');
   rest := 0;
@@ -539,6 +566,7 @@ var
   cellLen: Byte;
   cells: Word;
   uniform: Boolean;
+  firstOfs: Word;
 begin
   if pic = nil then Exit;
   { an empty rectangle fills nothing (SSI ran its row loop 65536 times for a zero height at a row of 0 or more, #728) }
@@ -591,12 +619,8 @@ begin
         uniform := False;
   end;
   for row := 0 to lastRow do begin
-    GameVars.spanActive[absRow] := 1;
     Inc(dstOff, clampedX);
-    if GameVars.spanFirstOfs[absRow] > dstOff then begin
-      GameVars.spanScreenOfs[absRow] := screenOfs;
-      GameVars.spanFirstOfs[absRow] := dstOff;
-    end;
+    firstOfs := dstOff;
     if uniform then begin
       FillChar(pic^.data[dstOff], runLen, cell[0]);
       Inc(dstOff, runLen);
@@ -611,8 +635,7 @@ begin
         Move(cell, pic^.data[dstOff], cellLen);
         Inc(dstOff, cellLen);
       end;
-    if dstOff - 1 > GameVars.spanLastOfs[absRow] then
-      GameVars.spanLastOfs[absRow] := dstOff - 1;
+    Blit.MarkSpan(absRow, firstOfs, dstOff - 1, screenOfs);
     Inc(dstOff, rightMargin);
     Inc(absRow);
   end;
