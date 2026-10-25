@@ -113,9 +113,7 @@ begin
     TextRend.DisplayString(LIST_LEFT + (k div rows) * LIST_COL_WIDTH, LIST_TOP + k mod rows, colour,
                            At(order, top + k)^.name);
   end;
-  s := StrUtil.NumStr(n) + ' Creature';
-  if n <> 1 then
-    s := s + 's';
+  s := StrUtil.Count(n, 'Creature', 'Creatures');
   TextRend.DisplayCentered(C_MSG.TEXT_LEFT, C_MSG.TEXT_RIGHT, COUNT_ROW, LightCyan, s);
 end;
 
@@ -230,9 +228,7 @@ var
   twoCols: Boolean;
 begin
   DrawFrame(b.name);
-  s := StrUtil.NumStr(b.seen) + ' time';
-  if b.seen <> 1 then
-    s := s + 's';
+  s := StrUtil.Count(b.seen, 'time', 'times');
   DrawFact(FACTS_TOP, 'Seen', True, s);
   DrawFact(FACTS_TOP + 1, 'Killed', True, StrUtil.NumStr(b.killed));
   if Bestiary.Knows(b, C_BEAST.LARGE) then

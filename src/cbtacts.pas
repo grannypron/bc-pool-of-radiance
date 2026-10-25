@@ -238,12 +238,7 @@ begin
     if atkType = 3 then
       verb := 'with one cruel blow'
     else begin
-      verb := verb + 'Hitting for ' + StrUtil.NumStr(dmgDisp);
-      if dmgDisp = 1 then
-        verb := verb + ' point '
-      else
-        verb := verb + ' points ';
-      verb := verb + 'of damage';
+      verb := verb + 'Hitting for ' + StrUtil.Count(dmgDisp, 'point', 'points') + ' of damage';
     end;
     CharHlp.InflictDamage(def, dmg);
     { slaying the helpless is no measure of a blow }

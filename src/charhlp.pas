@@ -1472,16 +1472,10 @@ begin
   s := StrUtil.NumStr(count);
   if (most > 0) and (most < count) then
     s := s + ' OF ' + StrUtil.NumStr(most);
-  if foes then begin
-    if count = 1 then
-      s := s + ' ENEMY'
-    else
-      s := s + ' ENEMIES';
-  end else if count = 1 then
-    s := s + ' ALLY'
+  if foes then
+    CatchText := s + ' ' + StrUtil.Pluralize(count, 'ENEMY', 'ENEMIES')
   else
-    s := s + ' ALLIES';
-  CatchText := s;
+    CatchText := s + ' ' + StrUtil.Pluralize(count, 'ALLY', 'ALLIES');
 end;
 
 function ComesUnderPlayer(creature: Types.PCharRecord): Boolean;

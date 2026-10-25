@@ -113,15 +113,6 @@ begin
   CampOnly := GameDefs.spellTable[spell].whenCast = 0;
 end;
 
-{ n, then unit when n is 1, or units otherwise. }
-function Count(n: Word; unit_, units: Types.TStr20): Types.TStr40;
-begin
-  if n = 1 then
-    Count := '1 ' + unit_
-  else
-    Count := StrUtil.NumStr(n) + ' ' + units;
-end;
-
 function SaveResult(spell: Byte): Byte;
 begin
   if (spell >= 1) and (spell <= C_SPELL.LAST) then
@@ -156,7 +147,7 @@ begin
     end else if (rangeFixed = C_SPELL.ATTACK_ROLL_RANGE) or (rangeFixed + rangeVar = 0) then
       s := 'TOUCH'
     else if long then
-      s := Count(CharHlp.CalcSpellRange(spell), 'SQUARE', 'SQUARES')
+      s := StrUtil.Count(CharHlp.CalcSpellRange(spell), 'SQUARE', 'SQUARES')
     else
       s := StrUtil.NumStr(CharHlp.CalcSpellRange(spell));
   if (s <> '') and not long then
@@ -220,7 +211,7 @@ begin
         C_SPELL.AREA_SPOT: l := '1 CREATURE';
         C_SPELL.AREA_RADIUS: begin
             s := 'AREA R' + StrUtil.NumStr(size);
-            l := 'RADIUS ' + Count(size, 'SQUARE', 'SQUARES');
+            l := 'RADIUS ' + StrUtil.Count(size, 'SQUARE', 'SQUARES');
           end;
         C_SPELL.AREA_CLOUD: begin
             s := 'AREA 2x2';
@@ -282,11 +273,11 @@ begin
       else
         s := 'INST';
     end else if u = 60 then begin
-      if long then s := Count(m div 60, 'HOUR', 'HOURS') else s := StrUtil.NumStr(m div 60) + ' HR';
+      if long then s := StrUtil.Count(m div 60, 'HOUR', 'HOURS') else s := StrUtil.NumStr(m div 60) + ' HR';
     end else if u = 10 then begin
-      if long then s := Count(m div 10, 'TURN', 'TURNS') else s := StrUtil.NumStr(m div 10) + ' TU';
+      if long then s := StrUtil.Count(m div 10, 'TURN', 'TURNS') else s := StrUtil.NumStr(m div 10) + ' TU';
     end else if long then
-      s := Count(m, 'ROUND', 'ROUNDS')
+      s := StrUtil.Count(m, 'ROUND', 'ROUNDS')
     else
       s := StrUtil.NumStr(m) + ' RD';
   end;
