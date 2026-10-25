@@ -60,7 +60,7 @@ function HasCharFile(name: String): Boolean;
   sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set; the slot's vault
   becomes the session's (Vault.RestoreFromSlot). The members' single-character files are left alone (SSI erased them).
   The save's game speed and settings word are left in the GBVM zone: the game's own settings stay as they are. Quit on
-  the menu asks to exit to DOS (QuitToDos) and, answered No, opens the menu again (#872). }
+  the menu asks only "Exit to DOS?" (QuitToDos, #910) and, answered No, opens the menu again (#872). }
 procedure LoadGame;
 
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
@@ -72,15 +72,16 @@ procedure LoadGame;
   of the old save's, all or none (FileUtil.CommitSet), the old files of members the party no longer has erased with
   them; then set the recently-saved flag. The members' single-character files are left alone (SSI erased them, here and
   on loading). A save not written whole, or not put in place, leaves the old one as it was and says so. True when the
-  game was saved; False also for Escape on the menu. Quit on the menu asks to exit to DOS (QuitToDos) and, answered No,
-  opens the menu again (#872). The caller redraws the screen. }
+  game was saved; False also for Escape on the menu. Quit on the menu asks only "Exit to DOS?" (QuitToDos, #910) and,
+  answered No, opens the menu again (#872). The caller redraws the screen. }
 function SaveGame: Boolean;
 
-{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With a party not saved since it
-  changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and leaving it
-  without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS and the Load/Save menu's Quit
-  (#872) both ask through it. The caller redraws its screen when it returns. }
-procedure QuitToDos;
+{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With askSave and a party not saved
+  since it changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and
+  leaving it without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS asks to save; the
+  Load/Save menu's Quit (#872), already at the save menu, does not (#910). The caller redraws its screen when it
+  returns. }
+procedure QuitToDos(askSave: Boolean);
 
 const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
@@ -695,16 +696,16 @@ begin
   repeat
     letter := SaveMenu.ChooseSlot(False, C_KEYS.NONE);
     if letter = SaveMenu.QUIT_CHOSEN then
-      SaveLoad.QuitToDos;
+      SaveLoad.QuitToDos(False);
   until letter <> SaveMenu.QUIT_CHOSEN;
   if letter <> C_KEYS.NONE then
     SaveLoad.LoadSlot(letter);
 end;
 
-procedure QuitToDos;
+procedure QuitToDos(askSave: Boolean);
 begin
   if MenuCore.YesNoMenu('Exit to DOS? ', Yellow, LightGreen, White) = 'Y' then
-    if (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
+    if not askSave or (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
       GameIo.ExitGame
     else if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'N' then
       GameIo.ExitGame
@@ -859,7 +860,7 @@ begin
     letter := SaveMenu.ChooseSlot(True, letter);
     if letter = C_KEYS.NONE then Exit;
     if letter = SaveMenu.QUIT_CHOSEN then begin
-      SaveLoad.QuitToDos;
+      SaveLoad.QuitToDos(False);
       letter := C_KEYS.NONE;
       ok := False;
     end else begin

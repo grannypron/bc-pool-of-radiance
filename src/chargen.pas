@@ -201,7 +201,7 @@ begin
                Exit;
              end;
         'G': Options.OptionsMenu;
-        'E': SaveLoad.QuitToDos;
+        'E': SaveLoad.QuitToDos(True);
         { free training, turned on and off as in Curse }
         'J': if GameVars.stingArg then
              begin
