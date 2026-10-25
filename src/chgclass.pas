@@ -1,8 +1,8 @@
 { Dual Class (#838, #879): the training hall's screen where a human leaves its class and starts again as a level 1
   character of another, as the 1st-edition PHB ("Characters With Two Classes", p.33) and Curse of the Azure Bonds let
   it, and the powers that follow a class as it rests and wakes again. The rules are ClassCal's (CanChangeClass,
-  CanTakeClass, ChangeClass) and CharHlp's (GetClassLevel, ClassResting). Overlaid; CharGen, EffHndlr and Magic use
-  it. }
+  CanTakeClass, ChangeClass) and CharHlp's (GetClassLevel, ClassResting). Overlaid; CharGen, CharEdit, EffHndlr and
+  Magic use it. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit ChgClass;
@@ -71,6 +71,11 @@ const
   STATUS_BOTTOM_ROW = 22;
   { the most classes listed: a human's six less the one it follows }
   MAX_LISTED = 5;
+  { what stands in the way of a class (Obstacle): nothing, the rules, a hall that does not train it, the fee }
+  NO_OBSTACLE = 0;
+  RULES_OBSTACLE = 1;
+  HALL_OBSTACLE = 2;
+  FEE_OBSTACLE = 3;
 
 function RestingMask(creature: Types.PCharRecord): Byte;
 var
@@ -202,33 +207,47 @@ begin
     end;
 end;
 
-{ True when creature may become a cls here: the rules allow it (ClassCal.CanTakeClass), and the hall trains it and the
-  creature has the fee, or free training is on. }
-function Qualifies(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean): Boolean;
+{ What stands in the way of creature becoming a cls here, the first of: the rules (ClassCal.CanTakeClass), and unless
+  free training is on, a hall that does not train it and the fee; NO_OBSTACLE when nothing does. }
+function Obstacle(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean): Byte;
 begin
-  Qualifies := ClassCal.CanTakeClass(creature, cls) and
-               (freeTraining or ((GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] <> 0) and
-                                 (MoneyCal.CreatureGold(creature) >= CHANGE_FEE)));
+  if not ClassCal.CanTakeClass(creature, cls) then
+    Obstacle := RULES_OBSTACLE
+  else if freeTraining then
+    Obstacle := NO_OBSTACLE
+  else if GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] = 0 then
+    Obstacle := HALL_OBSTACLE
+  else if MoneyCal.CreatureGold(creature) < CHANGE_FEE then
+    Obstacle := FEE_OBSTACLE
+  else
+    Obstacle := NO_OBSTACLE;
 end;
 
-{ The status line for class cls: why creature cannot become one here, in yellow, or what it costs, in white. }
+{ True when creature may become a cls here: nothing stands in the way (Obstacle). }
+function Qualifies(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean): Boolean;
+begin
+  Qualifies := ChgClass.Obstacle(creature, cls, freeTraining) = NO_OBSTACLE;
+end;
+
+{ The status line for class cls: why creature cannot become one here (Obstacle), in yellow, or what it costs, in
+  white. }
 procedure ShowClassStatus(creature: Types.PCharRecord; cls: ShortInt; freeTraining: Boolean);
 var
   name: Types.TStr40;
 begin
   name := GameDefs.classNames[cls];
-  if not ClassCal.CanTakeClass(creature, cls) then
-    ChgClass.ShowStatus(Yellow, creature^.name + ' does not meet ' + name + ' requirements.')
-  else if freeTraining then
-    ChgClass.ShowStatus(White, creature^.name + ' can become a ' + name + '.')
-  else if GameDefs.classBit[cls] and GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] = 0 then
-    ChgClass.ShowStatus(Yellow, 'This hall cannot train a ' + name + '.')
-  else if MoneyCal.CreatureGold(creature) < CHANGE_FEE then
-    ChgClass.ShowStatus(Yellow, creature^.name + ' can''t afford to change class (' + StrUtil.Grouped(CHANGE_FEE) +
-                        ' gp).')
+  case ChgClass.Obstacle(creature, cls, freeTraining) of
+    RULES_OBSTACLE: ChgClass.ShowStatus(Yellow, creature^.name + ' does not meet ' + name + ' requirements.');
+    HALL_OBSTACLE: ChgClass.ShowStatus(Yellow, 'This hall cannot train a ' + name + '.');
+    FEE_OBSTACLE: ChgClass.ShowStatus(Yellow, creature^.name + ' can''t afford to change class (' +
+                                      StrUtil.Grouped(CHANGE_FEE) + ' gp).');
   else
-    ChgClass.ShowStatus(White, creature^.name + ' can become a ' + name + ' for ' + StrUtil.Grouped(CHANGE_FEE) +
-                        ' gp.');
+    if freeTraining then
+      ChgClass.ShowStatus(White, creature^.name + ' can become a ' + name + '.')
+    else
+      ChgClass.ShowStatus(White, creature^.name + ' can become a ' + name + ' for ' + StrUtil.Grouped(CHANGE_FEE) +
+                          ' gp.');
+  end;
 end;
 
 procedure ChangeClassMenu(freeTraining: Boolean);
