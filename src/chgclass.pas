@@ -118,12 +118,8 @@ begin
   item := creature^.itemsAddr;
   while item <> nil do begin
     if (item^.equipped <> 0) and (item^.cursed = 0) and
-        (CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0) then begin
-      item^.equipped := 0;
-      { as FxEngine.ToggleReadyItem puts a special item away }
-      if item^.special > $7F then
-        FxEngine.CallEffectHandler(item^.special, creature, item, True);
-    end;
+        (CharHlp.BaseItem(item^.itemType)^.classMask and creature^.itemLimits = 0) then
+      FxEngine.UnreadyItem(creature, item);
     item := item^.next;
   end;
   CharHlp.RecalcStats(creature);
