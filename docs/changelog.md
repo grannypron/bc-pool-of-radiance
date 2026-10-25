@@ -143,6 +143,8 @@
 - POOL.CFG's sound letter S means silent again, as SSI's data card says; the Sound Blaster is now B. A POOL.CFG set to S for the Sound Blaster now runs without sound until its second line is changed to B.
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
 - The spell page's descriptions of Curse and Sleep now match the spells: Curse affects foes already in melee, and Sleep never affects a level-5 creature that is not a monster.
+- Friends no longer leaves a lasting Charisma bonus when cast twice.
+- Every cure of disease now works the same way, and the temple's and a paladin's Cure Disease no longer end the nausea of a Stinking Cloud.
 
 ## Pool of Radiance port: October 2026 update
 
