@@ -1119,13 +1119,10 @@ begin
     end else
       case c of
         'S': begin
+               { the save menu's Quit asks to exit to DOS, in place of SSI's question after a save (#872) }
                saved := SaveLoad.SaveGame;
                { the save menu takes the whole screen }
                CharDisp.DisplayNoncombatInterface;
-               { only after a save: one cancelled or not written goes back to the camp menu }
-               if saved then
-                 if MenuCore.YesNoMenu('Quit TO DOS ', Yellow, LightGreen, White) = 'Y' then
-                   GameIo.ExitGame;
              end;
         'V': ViewChar.ViewCharMenu(viewDone);
         'M': Camp.CampMagicMenu(interrupted);
