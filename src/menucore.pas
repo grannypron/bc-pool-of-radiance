@@ -57,6 +57,9 @@ var
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
+{ The position of member in list, from 0 (FindListMember's inverse); -1 when it is not there. }
+function ListIndex(list, member: Types.PItemRec): Integer;
+
 { Return the number of members in list. }
 function ListCount(list: Types.PItemRec): Integer;
 
@@ -124,6 +127,21 @@ begin
     FindListMember := p
   else
     FindListMember := nil;
+end;
+
+function ListIndex(list, member: Types.PItemRec): Integer;
+var
+  n: Integer;
+begin
+  n := 0;
+  while (list <> nil) and (list <> member) do begin
+    list := list^.next;
+    Inc(n);
+  end;
+  if list = nil then
+    ListIndex := -1
+  else
+    ListIndex := n;
 end;
 
 function ListCount(list: Types.PItemRec): Integer;

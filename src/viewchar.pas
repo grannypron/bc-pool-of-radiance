@@ -878,14 +878,8 @@ begin
     p := p^.next;
   end;
   SpellInf.ShowItemPage(items, count, cur);
-  if count > 0 then begin
-    idx := 0;
-    p := creature^.itemsAddr;
-    while (p <> nil) and (p <> items[cur]) do begin
-      Inc(idx);
-      p := p^.next;
-    end;
-  end;
+  if count > 0 then
+    idx := MenuCore.ListIndex(creature^.itemsAddr, items[cur]);
 end;
 
 { Run curChar's inventory menu, offering actions according to the character's state, the current interface state and

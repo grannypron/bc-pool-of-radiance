@@ -225,22 +225,6 @@ begin
   until key in ['E', C_KEYS.NONE];
 end;
 
-{ The position of line sel in the menu list head, from 0; -1 when it is not there. }
-function LineOf(head, sel: Types.PItemRec): Integer;
-var
-  n: Integer;
-begin
-  n := 0;
-  while (head <> nil) and (head <> sel) do begin
-    head := head^.next;
-    Inc(n);
-  end;
-  if head = nil then
-    LineOf := -1
-  else
-    LineOf := n;
-end;
-
 { Add a line to the Add list with its code, while there is room. }
 procedure AddLine(var head, tail: Types.PItemRec; var codes: TCodes; var n: Byte; name: Types.TStr40; code: Word);
 begin
@@ -384,7 +368,7 @@ begin
                                idx, sel);
   code := 0;
   if (key <> C_KEYS.NONE) and (sel <> nil) then begin
-    line := LineOf(head, sel);
+    line := MenuCore.ListIndex(head, sel);
     if line >= 0 then
       code := codes[line];
   end;
@@ -428,8 +412,8 @@ begin
     key := MenuCore.MenuVertical('Money: ', 'Set', LightMagenta, LightGreen, White, 12, 7, 27, 13, head, True,
                                  redraw, idx, sel);
     m := -1;
-    if (key <> C_KEYS.NONE) and (sel <> nil) and (LineOf(head, sel) >= 0) then
-      m := C_MONEY.COPPER + LineOf(head, sel);
+    if (key <> C_KEYS.NONE) and (sel <> nil) and (MenuCore.ListIndex(head, sel) >= 0) then
+      m := C_MONEY.COPPER + MenuCore.ListIndex(head, sel);
     MenuCore.FreeStringList(head);
     if m >= C_MONEY.COPPER then begin
       s := TextRend.ReadString(GameDefs.moneyNames[m] + ': ', LightGreen, 5);
@@ -495,7 +479,7 @@ begin
                                  redraw, idx, sel);
     k := 0;
     if (key <> C_KEYS.NONE) and (sel <> nil) then
-      k := LineOf(head, sel) + 1;
+      k := MenuCore.ListIndex(head, sel) + 1;
     MenuCore.FreeStringList(head);
     if k <> 0 then
       with GameVars.curChar^ do
