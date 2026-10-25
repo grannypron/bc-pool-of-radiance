@@ -66,6 +66,11 @@ procedure CloseDax(var f1, f2: file);
 
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 
+{ Read and decode one block of f, an archive OpenDax opened with hdrSize bytes before its first block, into a new
+  buffer of sizeRead bytes in data: the block whose directory entry gives its offset and packed size compSize. Only the
+  bytes actually read are decoded, so a block cut short is zeroed past what the file holds. }
+procedure ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word; var data: Types.PByteArr);
+
 { True when the family's merged archive is whole, holds C_DATA.VERSION and was built from the per-disk archives there
   now (DaxIo.SourcesMatch). The answer is remembered until ResetArchiveCache; the first True also reads the archive's
   remap entries, and is False instead when they do not all fit in the table (C_DATA.FAMILY_REMAPS per family). }
@@ -79,6 +84,10 @@ procedure ResetArchiveCache;
   family when fileName names a per-disk archive that exists and the merged archive is usable, otherwise fileName
   itself. A load of one of C_DATA's reserved ids always opens fileName (LoadDax). }
 function ArchiveName(fileName: Types.TStr20): Types.TStr20;
+
+{ The id a load of id from the family's archive on disk reads in the merged archive: id itself unless that disk's block
+  went to a spare id when the merged archive was built (its remap block). Valid once FamilyUsable has said True. }
+function RemapId(family, disk, id: Byte): Byte;
 
 { True when the per-disk archive GameVars.gameDir + fileName + '.DAX' itself, never a merged archive read in its place,
   lists block fileID. False, with no prompt, when that file cannot be read. }
@@ -506,7 +515,6 @@ begin
   remapCount := 0;
 end;
 
-{ The id a load of id from the family's archive on disk reads in the merged archive. }
 function RemapId(family, disk, id: Byte): Byte;
 var
   i: Byte;
@@ -586,17 +594,22 @@ begin
   if cut or (id <> fileID) then begin
     sizeRead := 0;
     data := nil;
-    DaxIo.CloseDax(f1, f2);
-  end else begin
-    DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
-    GetMem(data, sizeRead);
-    Seek(f1, hdrSize + offset);
-    BlockRead(f1, daxCompressedFilePtr^, compSize, n);
-    DaxIo.CloseDax(f1, f2);
-    { n, the bytes read: FreeRounded still needs compSize }
-    DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
-    DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
-  end;
+  end else
+    DaxIo.ReadBlock(f1, hdrSize, offset, compSize, sizeRead, data);
+  DaxIo.CloseDax(f1, f2);
+end;
+
+procedure ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word; var data: Types.PByteArr);
+var
+  n: Word;
+begin
+  DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
+  GetMem(data, sizeRead);
+  Seek(f, hdrSize + offset);
+  BlockRead(f, daxCompressedFilePtr^, compSize, n);
+  { n, the bytes read: FreeRounded still needs compSize }
+  DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
+  DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
 end;
 
 { Save the current resource disk and select a new one. }

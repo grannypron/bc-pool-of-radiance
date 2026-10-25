@@ -1,10 +1,11 @@
 { Tests for Bestiary (#842): meeting creatures once an encounter, facts learned only from the party's side, the armor
   class narrowed from attack rolls, the most damage in a blow, kills and hit dice, the full table, and BESTIARY.DAT
-  written and read back, missing, damaged (set aside when next written) and of a newer format (read, never written). }
+  written and read back, missing, damaged (set aside when next written) and of a newer format (read, never written);
+  and an entry filled in from a creature's record (BeastFil.Tell, the sage's, #868). }
 {$I COMPILER.INC}
 program TBeast;
 
-uses Types, GameVars, C_GBVM, C_STATUS, C_IFC, C_BEAST, FileUtil, Bestiary, BeastFil, TestKit;
+uses Types, GameVars, C_GBVM, C_STATUS, C_IFC, C_BEAST, C_EFFECT, FileUtil, Bestiary, BeastFil, TestKit;
 
 type
   THeader = record
@@ -25,6 +26,20 @@ var
   h: THeader;
   pad: array[1..8] of Byte;
   s: String;
+  e: Types.PEffectRec;
+  ok: Boolean;
+
+{ Put an effect id on the creature's effects list. }
+procedure AddEffect(p: Types.PCharRecord; id: Byte);
+var
+  n: Types.PEffectRec;
+begin
+  GetMem(n, SizeOf(Types.TEffectRec));
+  FillChar(n^, SizeOf(Types.TEffectRec), 0);
+  n^.id := id;
+  n^.next := p^.effectsAddr;
+  p^.effectsAddr := n;
+end;
 
 function NewCreature(name: String; next: Types.PCharRecord): Types.PCharRecord;
 var
@@ -250,6 +265,64 @@ begin
   BeastFil.LoadFrom('TBEAST.DAT');
   TestKit.CheckEqualsL(Bestiary.MAX_ENTRIES, Bestiary.Count, 'and read back whole');
   Bestiary.Clear;
+
+  { the sage's word (#868): a troll's record fills in an entry, the party's counts and what it learned kept }
+  troll^.iconDimensions := 2 or Types.ICON_LARGE;
+  troll^.levelHighest := 6;
+  { acCur holds 60 - AC: AC 4 }
+  troll^.acCur := 56;
+  troll^.effectsAddr := nil;
+  AddEffect(troll, C_EFFECT.BLESS);
+  AddEffect(troll, C_EFFECT.REGEN3);
+  AddEffect(troll, C_EFFECT.NO_PARA_POISON);
+  FillChar(t, SizeOf(t), 0);
+  t.name := 'TROLL';
+  t.acLo := 3;
+  t.acHi := 6;
+  t.seen := 3;
+  t.killed := 1;
+  t.maxHit := 9;
+  t.known[1] := LongInt(1) shl (C_BEAST.ATK_POISON - 32);
+  Bestiary.dirty := False;
+  TestKit.Check(BeastFil.Tell(t, troll), 'the sage tells something new');
+  TestKit.Check(not Bestiary.dirty, 'Tell leaves marking the Bestiary to its caller');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.SIZE_KNOWN) and Bestiary.Knows(t, C_BEAST.LARGE), 'Large, from the icon');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.HD_KNOWN), 'hit dice known');
+  TestKit.CheckEqualsL(6, t.hd, 'six of them');
+  TestKit.CheckEqualsL(4, t.acLo, 'the exact armor class (low)');
+  TestKit.CheckEqualsL(4, t.acHi, 'the exact armor class (high)');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.REGENERATES), 'eff 98 regenerates');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.IMMUNE_PARALYSIS) and Bestiary.Knows(t, C_BEAST.IMMUNE_POISON),
+                'eff 111: both of its immunities');
+  TestKit.Check(not Bestiary.Knows(t, C_BEAST.IMMUNE_FIRE) and not Bestiary.Knows(t, C_BEAST.MAGIC_RES),
+                'nothing its effects do not say');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.ATK_POISON), 'what the party learned stays');
+  TestKit.Check((t.seen = 3) and (t.killed = 1) and (t.maxHit = 9), 'seen, killed and the worst blow are the party''s');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.TOLD), 'marked told: no ?? on the entry page');
+  TestKit.Check(not BeastFil.Tell(t, troll), 'told twice, nothing new');
+  { an entry the party learned whole in play: telling it only marks it told, which is nothing to pay for }
+  t.known[0] := t.known[0] and not (LongInt(1) shl C_BEAST.TOLD);
+  TestKit.Check(not BeastFil.Tell(t, troll), 'all known already: nothing new');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.TOLD), 'but marked told');
+  { a man-sized record clears a Large the entry held; the hit dice of less than one stay 0 }
+  troll^.iconDimensions := 1;
+  troll^.levelHighest := 0;
+  TestKit.Check(BeastFil.Tell(t, troll), 'a different record tells something');
+  TestKit.Check(Bestiary.Knows(t, C_BEAST.SIZE_KNOWN) and not Bestiary.Knows(t, C_BEAST.LARGE), 'man-sized now');
+  TestKit.CheckEqualsL(0, t.hd, 'less than a hit die');
+  { every row of the table stands for a fact the entry page lists }
+  ok := True;
+  for i := 1 to C_BEAST.EFFECT_FACTS_COUNT do
+    with C_BEAST.EFFECT_FACTS[i] do
+      if not ((fact in [C_BEAST.FIRST_DEFENSE..C_BEAST.LAST_DEFENSE]) or
+              (fact in [C_BEAST.FIRST_ATTACK..C_BEAST.LAST_ATTACK])) then
+        ok := False;
+  TestKit.Check(ok, 'every effect''s fact is a defense or an attack');
+  while troll^.effectsAddr <> nil do begin
+    e := troll^.effectsAddr;
+    troll^.effectsAddr := e^.next;
+    FreeMem(e, SizeOf(Types.TEffectRec));
+  end;
 
   FileUtil.DeleteFile('TBEAST.DAT');
   FileUtil.DeleteFile(BeastFil.FILE_NAME);

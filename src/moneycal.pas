@@ -18,6 +18,9 @@ const
     SSI's full prices, or a tenth off (the Temple of Bane that Dirten rebuilds, #682) }
   TEMPLE_FULL_PRICE = 1;
   TEMPLE_TENTH_OFF = 2;
+  { the sage's fee for telling of a creature (SageFee, #868): so much a hit die, and no less than the least }
+  SAGE_FEE_PER_HD = 50;
+  SAGE_FEE_MIN = 100;
 
 { The copper value of the five coin types in m. }
 function CopperValue(var m: Types.TMoney): LongInt;
@@ -56,6 +59,10 @@ function ParseMoneyType(s: String; var typeName: String): ShortInt;
 { What a temple asks for a service listed at cost gold pieces: cost itself, or with mode TEMPLE_TENTH_OFF a tenth less,
   the tenth rounded down (every listed price is a multiple of 10). }
 function TemplePrice(cost: Word; mode: Byte): Word;
+
+{ What the sage asks, in gold pieces, to tell of a creature of hd hit dice (0 or less for less than one):
+  SAGE_FEE_PER_HD a hit die, at least SAGE_FEE_MIN. }
+function SageFee(hd: ShortInt): Word;
 
 implementation
 
@@ -210,6 +217,14 @@ begin
     TemplePrice := cost - cost div 10
   else
     TemplePrice := cost;
+end;
+
+function SageFee(hd: ShortInt): Word;
+begin
+  if hd * MoneyCal.SAGE_FEE_PER_HD > MoneyCal.SAGE_FEE_MIN then
+    SageFee := hd * MoneyCal.SAGE_FEE_PER_HD
+  else
+    SageFee := MoneyCal.SAGE_FEE_MIN;
 end;
 
 end.

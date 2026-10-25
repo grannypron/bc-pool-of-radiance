@@ -1,19 +1,28 @@
 { The Bestiary's pages (#842): F2 on the map, wilderness and camp menus opens them, outside combat, whatever the
   Companion Tools setting. The list page shows every creature the party has met, by name in two columns, a page at a
-  time; the entry page shows what the party has learned of one (Bestiary), and ?? for what it has not. }
+  time; the entry page shows what the party has learned of one (Bestiary), and ?? for what it has not. The sage (#868)
+  has the party choose a creature from the same list page. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit BeastMnu;
 
 interface
 
+uses Types, Bestiary;
+
 { The Bestiary's list page until Exit or Escape, its entry pages from it. The caller redraws its screen afterwards. }
 procedure BestiaryMenu;
 
+{ The Bestiary's list page for choosing a creature, prompt on its menu (Ask Next Prev Exit): the entry chosen with Ask
+  or Enter, nil on Exit or Escape. The caller redraws its screen afterwards. }
+function PickBeast(prompt: Types.TStr40): Bestiary.PBeast;
+
+{ The entry page of b until Exit or Escape. The caller redraws its screen afterwards. }
+procedure ShowEntry(var b: Bestiary.TBeast);
+
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_MSG, C_BEAST, GameVars, TextRend, Border, MenuCore, StrUtil,
-  Bestiary;
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_MSG, C_BEAST, GameVars, TextRend, Border, MenuCore, StrUtil;
 
 const
   { the list page: two columns of up to LIST_ROWS names from LIST_TOP, the count on COUNT_ROW }
@@ -177,8 +186,9 @@ begin
   KnownCount := n;
 end;
 
-{ heading in cyan on row, then b's known facts first..last under it, ?? after them for what may be still to learn: one a
-  line, or two a line when twoCols. Row comes back as the row after them. }
+{ heading in cyan on row, then b's known facts first..last under it, ?? after them for what may be still to learn
+  unless the sage has told all (C_BEAST.TOLD, #868): one a line, or two a line when twoCols. Row comes back as the row
+  after them. }
 procedure DrawGroup(var b: Bestiary.TBeast; heading: Types.TStr40; first, last: Byte; twoCols: Boolean;
                     var row: Byte);
 var
@@ -198,7 +208,7 @@ begin
       if not twoCols or (k mod 2 = 0) then
         Inc(row);
     end;
-  if row <= LAST_ROW then begin
+  if (row <= LAST_ROW) and not Bestiary.Knows(b, C_BEAST.TOLD) then begin
     if twoCols and (k mod 2 = 1) then
       TextRend.DisplayString(ITEM_COL2, row, Yellow, UNKNOWN)
     else
@@ -276,8 +286,24 @@ begin
   until ch in [C_KEYS.NONE, 'E'];
 end;
 
-procedure BestiaryMenu;
+procedure ShowEntry(var b: Bestiary.TBeast);
 var
+  ch: Char;
+  ext: Boolean;
+begin
+  GameVars.horizChoice := 1;
+  DrawEntry(b);
+  repeat
+    ch := MenuCore.MenuHorizontal(b.name + ': ', 'Exit', LightMagenta, LightGreen, White, False, False, ext);
+  until ch in [C_KEYS.NONE, 'E'];
+end;
+
+{ The list page under prompt until Exit or Escape. With pick, Ask (or Enter) gives the creature at the highlight back,
+  nil when the page is left without one; without it, View (or Enter) opens the entry pages there, and the result is
+  nil. }
+function ListPages(prompt: Types.TStr40; pick: Boolean): Bestiary.PBeast;
+var
+  chosen: Bestiary.PBeast;
   order: POrder;
   n: Word;
   top: Word;
@@ -288,6 +314,7 @@ var
   cmd: Char;
   ext: Boolean;
 begin
+  chosen := nil;
   n := Bestiary.Count;
   order := SortedOrder(n);
   top := 1;
@@ -302,10 +329,12 @@ begin
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
     if n = 0 then
-      ch := MenuCore.MenuHorizontal('Bestiary: ', 'Exit', LightMagenta, LightGreen, White, True, False, ext)
+      ch := MenuCore.MenuHorizontal(prompt, 'Exit', LightMagenta, LightGreen, White, True, False, ext)
+    else if pick then
+      ch := MenuCore.MenuHorizontal(prompt, 'Ask Next Prev Exit', LightMagenta, LightGreen, White, True, False, ext)
     else
-      ch := MenuCore.MenuHorizontal('Bestiary: ', 'View Next Prev Exit', LightMagenta, LightGreen, White, True,
-                                    False, ext);
+      ch := MenuCore.MenuHorizontal(prompt, 'View Next Prev Exit', LightMagenta, LightGreen, White, True, False,
+                                    ext);
     { an extended key's scan code can be a letter's (Down is 'P'): the commands are in cmd }
     cmd := ch;
     if ext then
@@ -320,7 +349,9 @@ begin
           C_KEYS.PGUP: cmd := 'P';
           C_KEYS.PGDN: cmd := 'N';
         end;
-      case cmd of
+      if pick and (cmd in ['A', C_KEYS.ENTER]) then
+        chosen := At(order, sel)
+      else case cmd of
         'V', C_KEYS.ENTER: begin
                EntryPages(order, n, sel);
                { the page of the creature last shown }
@@ -337,10 +368,23 @@ begin
              end;
       end;
     end;
-  until (not ext) and (ch in [C_KEYS.NONE, 'E']);
+  until (chosen <> nil) or ((not ext) and (ch in [C_KEYS.NONE, 'E']));
   if order <> nil then
     FreeMem(order, n * SizeOf(Word));
   TextRend.ClearBottomLine;
+  ListPages := chosen;
+end;
+
+procedure BestiaryMenu;
+var
+  none: Bestiary.PBeast;
+begin
+  none := ListPages('Bestiary: ', False);
+end;
+
+function PickBeast(prompt: Types.TStr40): Bestiary.PBeast;
+begin
+  PickBeast := ListPages(prompt, True);
 end;
 
 end.

@@ -58,12 +58,21 @@ const
   ALT_SKY_COLOR = $49FE;
   { SaveLoad packs 2 * monster-pictures flag + portraits flag }
   SETTINGS = $49FF;
+  { New Phlan's script (ECL block 0), one of the cells $4A00..$4A1F each script has to itself (EclMenu.EclInit clears
+    them): 1 once a shop's, the vault's (#606) or the sage's (#868) greeting has been given this visit (the script's
+    subroutine at $AE89), so turning on the square does not give it again. A step onto a square with no event clears
+    it. }
+  PHLAN_GREETED = $4A0F;
   { Mendor's Library's fights won: LIBRARY_SPECTRE the spectre that guards the books, LIBRARY_BASILISK the basilisk;
     the block is cleared, and the clerk pays for it, with both, LIBRARY_CLEARED (#851) }
   LIBRARY_FIGHTS = $4A31;
   LIBRARY_SPECTRE = $20;
   LIBRARY_BASILISK = $40;
   LIBRARY_CLEARED = LIBRARY_SPECTRE or LIBRARY_BASILISK;
+  { 1 once the party has murdered the Slums' fortune teller (#868, a DataPat fix to the Slums' script), who then never
+    turns up as New Phlan's sage. SSI marked the murder only in the Slums' own [$4A0B], which the next area's script
+    clears. The first of the free cells DIRTEN_TEMPLE_DAY's note lists. }
+  GYPSY_KILLED = $4A53;
   { The day the Temple of Bane was freed with Dirten in the party (#682, a DataPat fix to its script): year * 360 +
     month * 30 + day + 1 from CLOCK, so 0 is none; $FFFF when it was freed without him. 14 days on, Dirten serves the
     party there a tenth off. One of the cells that no script and no unit used ($4A53..$4A58, $4A6E..$4A71, $4A79..$4A7B:
@@ -117,6 +126,9 @@ const
   REWARD_BANE_TEMPLE = $4ABD;
   REWARD_CADORNA_TRAITOR = $4ABE;
   REWARD_CADORNA_DEAD = $4ABF;
+  { 1 once the party has fought New Phlan's city watch, the council guards or the temple guards: the city's shops,
+    temples and sage refuse it service until the clerk next pays a reward (ECL block 8 sets it 0) }
+  WATCH_FOUGHT = $4AC0;
   { How many of the major rewards the clerk has paid; the proclamations posted outside City Hall follow it (#851) }
   COUNCIL_REWARDS = $4AC1;
   { QUEST_DONE once the Cadorna Textile House block and Podol Plaza are cleared (#851) }

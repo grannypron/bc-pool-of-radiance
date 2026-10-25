@@ -14,14 +14,13 @@ var
   runsOk: Boolean;
   offsetsOk: Boolean;
   familiesOk: Boolean;
-  { #864's two parts, and where each one's bytes start in patchBytes }
+  { a script fix's two parts, and where each one's bytes start in patchBytes (FindJump) }
   jumpPart: Word;
   codePart: Word;
   jumpPos: Word;
   codePos: Word;
-  { the address #864's new code runs at }
+  { the address the new code runs at }
   codeAddr: Word;
-  pos: Word;
 
 function SameBlock(a, b: Word): Boolean;
 begin
@@ -44,6 +43,44 @@ end;
 function SizeAfter(a: Word): LongInt;
 begin
   SizeAfter := LongInt(DataPat.parts[a].size) - DataPat.parts[a].origLen + DataPat.parts[a].newLen;
+end;
+
+{ The word at patchBytes[pos], low byte first. }
+function PatchWord(pos: Word): Word;
+begin
+  PatchWord := DataPat.patchBytes[pos] + 256 * Word(DataPat.patchBytes[pos + 1]);
+end;
+
+{ Issue fix's change to script block on ECL disk onDisk that sends a 2-byte address to new code at the script's end:
+  jumpPart the part that changes the address, codePart the new code, each with where its bytes start in patchBytes
+  (jumpPos, codePos), and codeAddr the address the code runs at. False, with a failed check named by what, when the
+  fix has not both. }
+function FindJump(fix: Word; onDisk, block: Byte; what: string): Boolean;
+var
+  p: Word;
+  pos: Word;
+begin
+  jumpPart := 0;
+  codePart := 0;
+  pos := 0;
+  for p := 1 to DataPat.PART_COUNT do begin
+    with DataPat.parts[p] do
+      if (issue = fix) and (family = C_DATA.FAMILY_ECL) and (disk = onDisk) and (id = block) then
+        if origLen = 0 then begin
+          codePart := p;
+          codePos := pos;
+        end else if origLen = 2 then begin
+          jumpPart := p;
+          jumpPos := pos;
+        end;
+    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+  end;
+  FindJump := (jumpPart > 0) and (codePart > 0);
+  TestKit.Check((jumpPart > 0) and (codePart > 0), what + ' has its jump and its new code');
+  if (jumpPart > 0) and (codePart > 0) then begin
+    codeAddr := ScriptAddr(DataPat.parts[codePart].offset);
+    TestKit.CheckEqualsL(codeAddr, PatchWord(jumpPos + 2), what + ': the jump goes to the new code');
+  end;
 end;
 
 begin
@@ -95,25 +132,7 @@ begin
   TestKit.Check(runsOk, 'every fix''s parts are together');
 
   { #864: the ninth posted proclamation's ON GOSUB entry goes to the new code, which loads "CCXIV." }
-  jumpPart := 0;
-  codePart := 0;
-  pos := 0;
-  for p := 1 to DataPat.PART_COUNT do begin
-    if DataPat.parts[p].issue = 864 then
-      if DataPat.parts[p].origLen = 0 then begin
-        codePart := p;
-        codePos := pos;
-      end else begin
-        jumpPart := p;
-        jumpPos := pos;
-      end;
-    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
-  end;
-  TestKit.Check((jumpPart > 0) and (codePart > 0), '#864 has its jump and its new code');
-  if (jumpPart > 0) and (codePart > 0) then begin
-    codeAddr := ScriptAddr(DataPat.parts[codePart].offset);
-    TestKit.CheckEqualsL(codeAddr, DataPat.patchBytes[jumpPos + 2] + 256 * Word(DataPat.patchBytes[jumpPos + 3]),
-                         '#864: the ninth entry goes to the new code');
+  if FindJump(864, 3, 0, '#864') then begin
     GetMem(GameVars.zone2, SizeOf(GameVars.zone2^));
     GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
     GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
@@ -126,6 +145,21 @@ begin
     TestKit.CheckEqualsS('CCXIV.', GameVars.gbStrings^[1], '#864: the SAVE loads CCXIV.');
     TestKit.CheckEqualsL($13, GameVars.zone3^[GameVars.eclIp], '#864: then RETURN');
     TestKit.CheckEqualsL(codeAddr + DataPat.parts[codePart].newLen - 1, GameVars.eclIp, '#864: the RETURN ends it');
+  end;
+
+  { #868: the fortune teller's murder goes through new code that marks it, then on to the GOSUB's own target; New
+    Phlan's event 20 goes to the sage's code, whose first GOTO sends other squares where the entry went }
+  if FindJump(868, 2, 20, '#868 Slums') then begin
+    TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + 4), '#868 Slums: the SAVE is to GYPSY_KILLED');
+    TestKit.CheckEqualsL($01, DataPat.patchBytes[codePos + 6], '#868 Slums: then a GOTO');
+    TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 8), '#868 Slums: to where the GOSUB went');
+  end;
+  if FindJump(868, 3, 0, '#868 New Phlan') then begin
+    TestKit.CheckEqualsL($01, DataPat.patchBytes[codePos + 12], '#868 New Phlan: other squares GOTO');
+    TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 14), '#868 New Phlan: where event 20 went');
+    TestKit.CheckEqualsL(C_GBVM.REWARD_SLUMS, PatchWord(codePos + 18), '#868 New Phlan: the Slums cleared');
+    TestKit.CheckEqualsL(C_GBVM.QUEST_DONE, DataPat.patchBytes[codePos + 21], '#868 New Phlan: as QUEST_DONE');
+    TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + 26), '#868 New Phlan: the fortune teller alive');
   end;
   TestKit.Done;
 end.
