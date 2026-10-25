@@ -25,6 +25,10 @@ function Modifiable: Boolean;
   npcTreasureShare as it is. }
 procedure ModifyCharacter(levelled: Boolean);
 
+{ Set curChar's hpMax to hp, but not below ClassCal.HpMinimum or 1, keeping the damage it has taken (hpCur not below
+  0): ModifyCharacter's hit-point row, levelled, and the Companion Tools' lowered level. }
+procedure SetHpMax(hp: Integer);
+
 procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
@@ -789,6 +793,24 @@ begin
     CharGen.ModifyCharacter(False);
 end;
 
+procedure SetHpMax(hp: Integer);
+var
+  dmg: Integer;
+begin
+  with GameVars.curChar^ do begin
+    dmg := hpMax - hpCur;
+    if hp < ClassCal.HpMinimum(GameVars.curChar) then
+      hp := ClassCal.HpMinimum(GameVars.curChar);
+    if hp < 1 then
+      hp := 1;
+    hpMax := hp;
+    if hp - dmg < 0 then
+      hpCur := 0
+    else
+      hpCur := hp - dmg;
+  end;
+end;
+
 { ModifyCharacter: Up and Down pick a row (6 = hit points); Left and Right lower or raise it within racial, class and
   hit-point limits. Keep recalculates a thief's skills for the new Dexterity and, unless levelled, sets npcTreasureShare
   to 1; Exit restores the saved attributes, strExc, hpMax (and, levelled, hpCur) and cleric spell slots. A lowered
@@ -800,7 +822,7 @@ var
   savedExc: Byte;
   savedHp: Byte;
   savedHpCur: Byte;
-  savedClericSpells: array[1..3] of Byte;
+  savedClericSpells: array[1..Types.CASTER_LEVEL_LAST] of Byte;
   hold: ShortInt;
   key: Char;
   ext: Boolean;
@@ -864,24 +886,12 @@ var
   { Levelled, hpMax moved by k within the levels' limits, damage kept. }
   procedure StepHp(k: Integer);
   var
-    dmg: Integer;
     hp: Integer;
   begin
-    with GameVars.curChar^ do begin
-      dmg := hpMax - hpCur;
-      hp := hpMax + k;
-      if hp > ClassCal.HpMaximum(GameVars.curChar) then
-        hp := ClassCal.HpMaximum(GameVars.curChar);
-      if hp < ClassCal.HpMinimum(GameVars.curChar) then
-        hp := ClassCal.HpMinimum(GameVars.curChar);
-      if hp < 1 then
-        hp := 1;
-      hpMax := hp;
-      if hp - dmg < 0 then
-        hpCur := 0
-      else
-        hpCur := hp - dmg;
-    end;
+    hp := GameVars.curChar^.hpMax + k;
+    if hp > ClassCal.HpMaximum(GameVars.curChar) then
+      hp := ClassCal.HpMaximum(GameVars.curChar);
+    CharGen.SetHpMax(hp);
   end;
 
 begin
@@ -935,11 +945,9 @@ begin
                      RaiseToMinimum(hold);
                 C_ABIL.WISDOM: begin
                      RaiseToMinimum(hold);
-                     { Only clericSpells[1] is reset; [2] and [3] are not, so each keypress would re-award their bonus
-                       with no ceiling (they are 0 for a new first-level character) }
-                     if clericSpells[1] > 0 then
-                       clericSpells[1] := 1;
-                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
+                     { the cleric slots again for the new Wisdom, at any level: setting the first-level count to 1
+                       and adding the bonus again was right only at level 1 }
+                     ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
                    end;
                 C_ABIL.CONSTITUTION: begin
                      RaiseToMinimum(hold);
@@ -982,10 +990,7 @@ begin
                    end;
                 C_ABIL.WISDOM: begin
                      LowerToMaximum(hold);
-                     { clericSpells[1] only, same shape as the Left arm above }
-                     if clericSpells[1] > 0 then
-                       clericSpells[1] := 1;
-                     ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
+                     ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
                    end;
                 C_ABIL.CONSTITUTION: begin
                      LowerToMaximum(hold);
@@ -1026,6 +1031,10 @@ begin
               if levelled then
                 GameVars.curChar^.hpCur := savedHpCur;
               Move(savedClericSpells, GameVars.curChar^.clericSpells, SizeOf(savedClericSpells));
+              { a Wisdom change above cleric level 1 ran RecalcBaseSkills, whose thief skills read the Dexterity
+                then }
+              if classLevels[C_LEVEL.THIEF] > 0 then
+                ClassCal.RecalcThiefSkills(Types.PCharRecord(GameVars.curChar));
               CharHlp.RecalcStats(Types.PCharRecord(GameVars.curChar));
               Exit;
             end;

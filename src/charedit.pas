@@ -66,8 +66,6 @@ procedure LowerLevel(cls: ShortInt; clsCount: Byte);
 var
   avg: Integer;
   loss: Integer;
-  dmg: Integer;
-  hp: Integer;
   gave: Boolean;
 begin
   with GameVars.curChar^ do begin
@@ -79,27 +77,13 @@ begin
       loss := 1;
     Dec(classLevels[cls]);
     if gave then begin
-      dmg := hpMax - hpCur;
-      hp := hpMax - loss;
-      if hp < ClassCal.HpMinimum(GameVars.curChar) then
-        hp := ClassCal.HpMinimum(GameVars.curChar);
-      if hp < 1 then
-        hp := 1;
-      hpMax := hp;
-      if hp - dmg < 0 then
-        hpCur := 0
-      else
-        hpCur := hp - dmg;
+      CharGen.SetHpMax(hpMax - loss);
       if hpRolled > avg div clsCount then
         Dec(hpRolled, avg div clsCount);
     end;
     if classLevels[cls] = 1 then
       case cls of
-        C_LEVEL.CLERIC: begin
-            FillChar(clericSpells, SizeOf(clericSpells), 0);
-            clericSpells[1] := 1;
-            ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
-          end;
+        C_LEVEL.CLERIC: ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
         C_LEVEL.MAGE: begin
             FillChar(mageSpells, SizeOf(mageSpells), 0);
             mageSpells[1] := 1;

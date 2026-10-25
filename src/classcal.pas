@@ -97,6 +97,11 @@ procedure RecalcBaseSkills(creature: Types.PCharRecord);
 
 procedure AwardWisdomBonus(creature: Types.PCharRecord);
 
+{ Work creature's cleric spell slots out again from its cleric level (CharHlp.GetClassLevel) and its Wisdom, as a
+  Wisdom change or a lowered level needs: at level 1 the one first-level slot, and above it the level's slots
+  (RecalcBaseSkills), each with the Wisdom bonus (AwardWisdomBonus). No usable cleric level leaves them as they are. }
+procedure ResetClericSlots(creature: Types.PCharRecord);
+
 procedure RecalcSaves(creature: Types.PCharRecord);
 
 procedure RecalcThiefSkills(creature: Types.PCharRecord);
@@ -480,6 +485,20 @@ begin
       for lvl := 1 to Types.CASTER_LEVEL_LAST do
         if clericSpells[lvl] > 0 then
           Inc(clericSpells[lvl], wisBonusSpells[w, lvl]);
+  end;
+end;
+
+procedure ResetClericSlots(creature: Types.PCharRecord);
+var
+  lvl: ShortInt;
+begin
+  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
+  if lvl > 1 then
+    ClassCal.RecalcBaseSkills(creature)
+  else if lvl = 1 then begin
+    FillChar(creature^.clericSpells, SizeOf(creature^.clericSpells), 0);
+    creature^.clericSpells[1] := 1;
+    ClassCal.AwardWisdomBonus(creature);
   end;
 end;
 
