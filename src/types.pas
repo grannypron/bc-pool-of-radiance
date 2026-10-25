@@ -935,7 +935,7 @@ type
     RecolorFrame: TRecolorFrameProc;
     { 8 pixel colours into scanline y of the one-cell-wide frame at pic^.data[at] (VidOps.PutPixelRow) }
     PutPixelRow: TPutPixelRowProc;
-    { build the mode's per-row screen addresses (GameVars.cgaRowSeg, fbRowOfs or tandyRowSeg) }
+    { build the mode's per-row screen addresses (GameVars.bankRowSeg or fbRowOfs) }
     InitRowTables: TVideoProc;
     { give palette register registerIndex the colour color (Blit.SetPaletteRegister; EGA's registers, VGA's DAC) }
     SetPalette: TSetPaletteProc;

@@ -13,8 +13,8 @@ uses Types;
 { The video mode's name, for the settings screen. }
 function ModeName: Types.TStr20;
 
-{ Build the active video mode's per-row screen addresses (GameVars.cgaRowSeg, fbRowOfs or tandyRowSeg); GameInit2 calls
-  it once the mode is set. }
+{ Build the active video mode's per-row screen addresses (GameVars.bankRowSeg or fbRowOfs); GameInit2 calls it once
+  the mode is set. }
 procedure InitRowTables;
 
 { Merge src into dst as one sprite: dst's pixels OR src's (with a colour key, src's opaque pixels replace dst's), and

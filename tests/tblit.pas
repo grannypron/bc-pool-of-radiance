@@ -183,6 +183,45 @@ begin
   Blit.FreePic(pic);
 end;
 
+{$IFNDEF FPC}
+{ In a banked mode (CGA, Tandy), the routines that write the screen: a picture shown, glyphs drawn, the view's dirty
+  spans flushed and a rectangle cleared, checked by a hash of the 32 KB from B800. The test runs in DOS's text mode,
+  whose memory there keeps what is written. }
+procedure CheckBanked(hScreen: LongInt);
+var
+  pic: Types.PImgBuf;
+  h: LongInt;
+  i: Word;
+begin
+  VidOps.InitRowTables;
+  FillChar(Mem[$B800:0], $8000, 0);
+  GetMem(GameVars.gameFont, SizeOf(Types.TFontArr));
+  seed := 5;
+  for i := 0 to SizeOf(Types.TFontArr) - 1 do
+    Types.PByteArr(GameVars.gameFont)^[i] := Next(256);
+  pic := MakePic(3, 1);
+  Blit.ShowPic(2, 3, pic);
+  GameVars.video.DrawGlyph(5, 7, 9, 65);
+  GameVars.video.DrawGlyph(39, 24, 3, 176);
+  GameVars.video.DrawGlyph(0, 0, 14, 1);
+  Blit.AllocPic(168, 21, 1, 0, GameVars.viewImageBufferPtr);
+  for i := 0 to GameVars.viewImageBufferPtr^.imgSize - 1 do
+    GameVars.viewImageBufferPtr^.data[i] := Next(256);
+  ClearSpans;
+  Blit.BlitTileClipped(3, 4, 0, 0, pic, GameVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(19, 19, 0, 1, pic, GameVars.viewImageBufferPtr);
+  Blit.FlushView;
+  GameVars.video.ClearRect(10, 2, 14, 4);
+  h := 0;
+  Hash(h, Types.PByteArr(Ptr($B800, 0)), $8000);
+  TestKit.CheckEqualsL(hScreen, h, GameVars.video.name + ': the screen');
+  FillChar(Mem[$B800:0], $8000, 0);
+  Blit.FreePic(GameVars.viewImageBufferPtr);
+  Blit.FreePic(pic);
+  FreeMem(GameVars.gameFont, SizeOf(Types.TFontArr));
+end;
+{$ENDIF}
+
 begin
   TestKit.Start('TBLIT');
 {$IFNDEF FPC}
@@ -192,7 +231,10 @@ begin
   VidEga.Install;
   CheckMode(1969444250, 1130247146, 1287423695, 955468360, 1361351795, 1889696382, 40432812, -804427705,
             -1026930244, -1431655766);
+  VidTdy.Install;
+  CheckBanked(1547682727);
   VidCga.Install;
+  CheckBanked(-1509349852);
   CheckMode(2013371070, -189610700, 1102751854, 1331543892, -535403827, -1306384808, -1947252339, 453298316,
             -1742296210, -663801968);
 {$ENDIF}

@@ -11,7 +11,7 @@ procedure Install;
 
 implementation
 
-uses Types, C_VIDEO, GameDefs, GameVars, DaxIo, PicTdy;
+uses Types, C_VIDEO, GameVars, DaxIo, PicTdy, VidCga;
 
 var
   { the four banks from $B800: scanline n in bank n mod 4, 160 bytes a scanline }
@@ -24,77 +24,26 @@ procedure Start;
 begin
 end;
 
-procedure FlushSpans;
-var
-  row: Word;
-begin
-  for row := 0 to SizeOf(GameVars.spanActive) - 1 do
-    if GameVars.spanActive[row] <> 0 then
-      Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
-           Mem[GameVars.tandyRowSeg[row + 8]:GameVars.spanScreenOfs[row] + 4],
-           GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
-end;
-
-{ 4 bytes per 8-pixel cell, a row at a time through the row segments }
-procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
-var
-  row: Integer;
-  colOff: Word;
-  firstRow: Word;
-  lastRow: Word;
-  rowBytes: Word;
-  srcOff: Word;
-begin
-  with pic^ do begin
-    rowBytes := width * 4;
-    srcOff := 0;
-    firstRow := screenY * 8;
-    lastRow := firstRow + height - 1;
-    colOff := screenX * 4;
-    for row := firstRow to lastRow do begin
-      Move(pic^.data[srcOff], Mem[GameVars.tandyRowSeg[row]:colOff], rowBytes);
-      Inc(srcOff, rowBytes);
-    end;
-  end;
-end;
-
-{ two pixels a byte across the four banks }
+{ two pixels a byte, each font row a scanline through the row segments }
 procedure DrawGlyph(col, row, color, glyph: Byte);
 var
-  dstOff: Word;
-  cnt: Word;
-  colBase: Word;
-  tandyPx: Byte;
+  fontRow: Byte;
+  bits: Byte;
   k: Byte;
-  mask: Byte;
-  bank: Byte;
-  outerRow: Byte;
+  tandyPx: Byte;
+  seg: Word;
 begin
-  dstOff := 0;
-  cnt := row * 2;
-  colBase := col * 4;
-  for outerRow := 0 to 1 do begin
-    for bank := 0 to 3 do begin
-      mask := $80;
-      for k := 0 to 3 do begin
-        if (GameVars.gameFont^[glyph][dstOff] and mask) > 0 then
-          tandyPx := color shl 4
-        else
-          tandyPx := 0;
-        mask := mask shr 1;
-        if (GameVars.gameFont^[glyph][dstOff] and mask) > 0 then
-          tandyPx := tandyPx or color;
-        mask := mask shr 1;
-        case bank of
-          0: tdyB800[cnt][k + colBase] := tandyPx;
-          1: tdyBA00[cnt][k + colBase] := tandyPx;
-          2: tdyBC00[cnt][k + colBase] := tandyPx;
-          3: tdyBE00[cnt][k + colBase] := tandyPx;
-        end;
-      end;
-      Inc(dstOff);
+  for fontRow := 0 to 7 do begin
+    bits := GameVars.gameFont^[glyph][fontRow];
+    seg := GameVars.bankRowSeg[row * 8 + fontRow];
+    for k := 0 to 3 do begin
+      tandyPx := 0;
+      if (bits and ($80 shr (2 * k))) <> 0 then
+        tandyPx := color shl 4;
+      if (bits and ($40 shr (2 * k))) <> 0 then
+        tandyPx := tandyPx or color;
+      Mem[seg:col * 4 + k] := tandyPx;
     end;
-    Inc(cnt);
   end;
 end;
 
@@ -127,13 +76,10 @@ begin
   DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
 end;
 
+{ two pixels of color in every byte }
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
-const
-  { Packed fill byte for each Tandy color, 0..15 (Black through White): two identical 4-bit pixels. }
-  tandyColorFill: array[0..15] of Byte = (
-    $00, $11, $22, $33, $44, $55, $66, $77, $88, $99, $AA, $BB, $CC, $DD, $EE, $FF);
 begin
-  FillChar(cell, SizeOf(cell), tandyColorFill[color]);
+  FillChar(cell, SizeOf(cell), (color and $0F) * $11);
 end;
 
 { no palette registers }
@@ -155,8 +101,8 @@ begin
     biosMode := 9;
     ramVideoParas := 1024;
     Start := VidTdy.Start;
-    FlushSpans := VidTdy.FlushSpans;
-    ShowPic := VidTdy.ShowPic;
+    FlushSpans := VidCga.FlushSpans;
+    ShowPic := VidCga.ShowPic;
     DrawGlyph := VidTdy.DrawGlyph;
     ClearRect := VidTdy.ClearRect;
     ClearScreen := VidTdy.ClearScreen;

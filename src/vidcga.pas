@@ -7,12 +7,20 @@ unit VidCga;
 
 interface
 
+uses Types;
+
 { Make this the video driver: fill GameVars.video. }
 procedure Install;
 
+{ The banked modes' copies to the screen, CGA's and Tandy's (VidTdy installs them too): each scanline at its
+  GameVars.bankRowSeg segment, 1 shl cellShift bytes a cell row in a picture and 1 shl screenShift a cell column on the
+  screen, which are the same in both. }
+procedure FlushSpans;
+procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
+
 implementation
 
-uses Types, C_VIDEO, GameDefs, GameVars, DaxIo, Blit, PicCga;
+uses C_VIDEO, GameDefs, GameVars, DaxIo, Blit, PicCga;
 
 var
   { the two banks: even scanlines at $B800, odd at $BA00, 80 bytes a scanline and 4 scanlines of each to a text row }
@@ -23,6 +31,7 @@ procedure Start;
 begin
 end;
 
+{ the dirty spans of the view, which starts a cell row down and a cell column in }
 procedure FlushSpans;
 var
   row: Word;
@@ -30,11 +39,11 @@ begin
   for row := 0 to SizeOf(GameVars.spanActive) - 1 do
     if GameVars.spanActive[row] <> 0 then
       Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
-           Mem[GameVars.cgaRowSeg[row + 8]:GameVars.spanScreenOfs[row] + 2],
+           Mem[GameVars.bankRowSeg[row + 8]:GameVars.spanScreenOfs[row] + 1 shl GameVars.video.screenShift],
            GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
 end;
 
-{ 2 bytes per 8-pixel cell, a row at a time through the row segments }
+{ a scanline at a time through the row segments }
 procedure ShowPic(screenX, screenY: Integer; pic: Types.PImgBuf);
 var
   row: Integer;
@@ -45,55 +54,42 @@ var
   srcOff: Word;
 begin
   with pic^ do begin
-    rowBytes := width * 2;
+    rowBytes := width shl GameVars.video.cellShift;
     srcOff := 0;
     firstRow := screenY * 8;
     lastRow := firstRow + height - 1;
-    colOff := screenX * 2;
+    colOff := screenX shl GameVars.video.screenShift;
     for row := firstRow to lastRow do begin
-      Move(pic^.data[srcOff], Mem[GameVars.cgaRowSeg[row]:colOff], rowBytes);
+      Move(pic^.data[srcOff], Mem[GameVars.bankRowSeg[row]:colOff], rowBytes);
       Inc(srcOff, rowBytes);
     end;
   end;
 end;
 
-{ color is mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat }
+{ color is mapped to CGA's through attrTable; each pixel's 2 bits come from cgaColorPat; font rows 0, 2, 4 and 6 go to
+  the even bank, 1, 3, 5 and 7 to the odd }
 procedure DrawGlyph(col, row, color, glyph: Byte);
 const
   { CGA colors 0..3 repeated across eight 2-bit pixels }
   cgaColorPat: array[0..3] of Word = (
     $0000, $5555, $AAAA, $FFFF);
 var
-  dstOff: Word;
-  cnt: Word;
+  bankRow: Word;
+  fontRow: Byte;
   cgaWord: Word;
   k: Byte;
-  mask: Byte;
-  outerRow: Byte;
 begin
   color := GameDefs.attrTable[color];
-  dstOff := row * 4;
-  cnt := 0;
-  for outerRow := 0 to 3 do begin
+  for fontRow := 0 to 7 do begin
     cgaWord := 0;
-    mask := $80;
-    for k := 0 to 7 do begin
-      if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
+    for k := 0 to 7 do
+      if (GameVars.gameFont^[glyph][fontRow] and ($80 shr k)) > 0 then
         cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
-      mask := mask shr 1;
-    end;
-    cgaB800[dstOff][col] := Swap(cgaWord);
-    Inc(cnt);
-    cgaWord := 0;
-    mask := $80;
-    for k := 0 to 7 do begin
-      if (GameVars.gameFont^[glyph][cnt] and mask) > 0 then
-        cgaWord := cgaWord or (GameDefs.cgaPixelMask[k] and cgaColorPat[color]);
-      mask := mask shr 1;
-    end;
-    cgaBA00[dstOff][col] := Swap(cgaWord);
-    Inc(cnt);
-    Inc(dstOff);
+    bankRow := row * 4 + fontRow shr 1;
+    if Odd(fontRow) then
+      cgaBA00[bankRow][col] := Swap(cgaWord)
+    else
+      cgaB800[bankRow][col] := Swap(cgaWord);
   end;
 end;
 

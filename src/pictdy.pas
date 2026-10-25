@@ -124,13 +124,10 @@ procedure InitRowTables;
 var
   i: Byte;
 begin
+  { 160 bytes (10 paragraphs) a scanline, scanline i in bank i mod 4; the banks are $200 paragraphs apart from B800 }
   for i := 0 to 199 do
-    case i mod 4 of
-      0: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG;
-      1: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK1_SEG;
-      2: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK2_SEG;
-      3: GameVars.tandyRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK3_SEG;
-    end;
+    GameVars.bankRowSeg[i] := (i div 4) * 10 + C_VIDEO.GFX_BANK0_SEG +
+                              (i mod 4) * (C_VIDEO.GFX_BANK1_SEG - C_VIDEO.GFX_BANK0_SEG);
 end;
 
 end.

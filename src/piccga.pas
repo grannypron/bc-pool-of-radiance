@@ -147,11 +147,12 @@ procedure InitRowTables;
 var
   i: Byte;
 begin
+  { 80 bytes (5 paragraphs) a scanline, even scanlines in the bank at B800 and odd ones in the bank at BA00 }
   for i := 0 to 199 do
     if Odd(i) then
-      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
+      GameVars.bankRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
     else
-      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
+      GameVars.bankRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
 end;
 
 end.
