@@ -12,22 +12,15 @@ procedure CombatMain;
   for a party member under Quick (CombatAi.AiMoveAttack). }
 function BandageDying(bandage: Boolean): Boolean;
 
-{ Let the Continue Battle prompt show again, for a new game (GameInit.ResetGameState). }
-procedure ResetGame;
-
 implementation
 
-uses Types, C_TIME, C_NPC, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS, C_CLASS,
+uses Types, C_TIME, C_COND, GameDefs, GameVars, Crt, CombatAi, CombatSt, Magic, C_KEYS,
   C_STATUS, C_IFC, C_GBVM, C_DIR, Options, Stats, Blit, Border, CbtActs, CbtMap, CharHlp, FxEngine, MenuCore, ViewChar,
   TextRend, StrUtil, CharDisp, Dice, CbtLog, LogView, ClassCal;
 
 const
   { CombatMenu's answer for F7, the combat log (#841): F7's scan code is the character code of 'A', which is Aim }
   SHOW_LOG = #255;
-
-var
-  { nonzero suppresses Combat's Continue Battle prompt }
-  suppressContinuePrompt: Byte;
 
 procedure NextCreature(var next: Types.PCharRecord); forward;
 
@@ -80,6 +73,8 @@ begin
   CbtLog.Clear(GameVars.combatLogLines, GameVars.combatLogOn <> 0);
   CombatSt.CombatStart;
   done := False;
+  { counted again: placing took out the creatures it found no cell for }
+  CharHlp.CountTeams;
   if (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0) then
     done := True;
   while not done do begin
@@ -132,8 +127,7 @@ end;
   initiative, let the AI (quickfight) or the player act, then redraw its cell to erase the cursor. }
 procedure CreatureAction(creature: Types.PCharRecord);
 begin
-  creature^.combatAddr^.flankCount := 0;
-  creature^.combatAddr^.flankSpread := 0;
+  CbtActs.ResetFlanking(creature);
   creature^.combatAddr^.guarding := 0;
   { turn-start effects, among them those that leave the creature helpless }
   FxEngine.TriggerEffectsWithCondition(C_COND.TURN_START, creature);
@@ -251,6 +245,8 @@ var
   menu: String[40];
   i: Byte;
   hasSpell: Boolean;
+  { the key was an extended one }
+  ext: Boolean;
 begin
   menu := '';
   if creature^.combatAddr^.movement > 0 then
@@ -270,11 +266,11 @@ begin
      and (creature^.combatAddr^.usedTurnUndead = 0) then
     menu := menu + 'Turn ';
   menu := menu + 'Quick Done';
-  { hasSpell doubles as MenuHorizontal's extended-key flag: an extended key other than Alt-Q, Alt-X or Alt-M becomes
-    C_KEYS.NONE and is rejected. SSI's took Alt-R too, which no command answers (#818). }
+  { An extended key other than Alt-Q, Alt-X or Alt-M becomes C_KEYS.NONE and is rejected. SSI's took Alt-R too, which
+    no command answers (#818). }
   repeat
-    ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, hasSpell);
-    if hasSpell then
+    ch := MenuCore.MenuHorizontal('', menu, LightMagenta, LightGreen, White, True, False, ext);
+    if ext then
       if (ch = C_KEYS.F7) and CbtLog.Active then
         ch := SHOW_LOG
       else if not (ch in [C_KEYS.ALT_Q, C_KEYS.ALT_X, C_KEYS.ALT_M]) then
@@ -284,7 +280,7 @@ end;
 
 { Advance the clock one minute, fire round-end effects and stinking-cloud checks, bleed dying creatures (dead at
   overkill 10), warn when a party member is dying, then end combat when a side is empty, unless the party won and the
-  player answers yes to Continue Battle (not asked when suppressContinuePrompt is set). }
+  player answers yes to Continue Battle. }
 procedure EndOfRound(var done: Boolean);
 var
   p: Types.PCharRecord;
@@ -313,8 +309,8 @@ begin
   CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 255, C_DIR.CENTER);
   if (GameVars.teamCount[0] = 0) or (GameVars.teamCount[1] = 0) then
     done := True;
-  if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0)
-     and (suppressContinuePrompt = 0) then
+  { SSI's had a flag to skip the question, which nothing ever set }
+  if (GameVars.teamCount[0] > 0) and (GameVars.teamCount[1] = 0) then
     if MenuCore.YesNoMenu('Continue Battle:', LightMagenta, LightGreen, White) = 'Y' then
       done := False;
 end;
@@ -362,24 +358,9 @@ begin
                      creature^.combatAddr^.direction := savedDir;
                      dir := C_DIR.CENTER;
                    end;
-      { Up arrow }
-      C_KEYS.UP: dir := C_DIR.NORTH;
-      { Page Up }
-      C_KEYS.PGUP: dir := C_DIR.NORTHEAST;
-      { Right arrow }
-      C_KEYS.RIGHT: dir := C_DIR.EAST;
-      { Page Down }
-      C_KEYS.PGDN: dir := C_DIR.SOUTHEAST;
-      { Down arrow }
-      C_KEYS.DOWN: dir := C_DIR.SOUTH;
-      { End }
-      C_KEYS.END_KEY: dir := C_DIR.SOUTHWEST;
-      { Left arrow }
-      C_KEYS.LEFT: dir := C_DIR.WEST;
-      { Home }
-      C_KEYS.HOME: dir := C_DIR.NORTHWEST;
     else
-      dir := C_DIR.CENTER;
+      { an arrow, Home, End, Page Up or Page Down }
+      dir := CbtActs.DirOfKey(ch);
     end;
     if dir < C_DIR.CENTER then begin
       CbtMap.SetCreatureFacing(creature, dir, 0, 0);
@@ -402,18 +383,11 @@ begin
       end else if GameDefs.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
         CharDisp.PrintBottomLine('Blocked')
       else begin
-        { free attacks from the enemies this step leaves }
-        CbtActs.MoveOpportunityAttacks(creature, dir);
-        if creature^.enabled = 0 then
-          done := CharHlp.EndActions(creature)
-        else begin
-          CbtActs.CombatMoveCreature(creature, dir);
-          if creature^.enabled = 0 then
-            done := CharHlp.EndActions(creature);
-          FxEngine.ConsiderStinkingCloud(creature);
-          if CharHlp.IsHelpless(creature) then
-            done := CharHlp.EndActions(creature);
-        end;
+        if CbtActs.StepCreature(creature, dir) then
+          done := True;
+        { helpless now ends the turn; one the free attacks left helpless has still stepped (#933) }
+        if CharHlp.IsHelpless(creature) then
+          done := CharHlp.EndActions(creature);
       end;
     end;
   end;
@@ -541,11 +515,6 @@ begin
      and (creature^.combatAddr^.other^.hostile = creature^.hostile) then begin
     creature^.combatAddr^.other := nil;
   end;
-end;
-
-procedure ResetGame;
-begin
-  suppressContinuePrompt := 0;
 end;
 
 end.
