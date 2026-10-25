@@ -298,24 +298,36 @@ begin
   end;
 end;
 
-{ StoneToFlesh: C_STATUS.STONED (7), 2000 gp; if still stoned after paying, the character becomes C_STATUS.OKAY and
-  enabled, with hpCur 1 }
+{ StoneToFlesh: C_STATUS.STONED (7), 2000 gp. A character still stoned once paid for rolls system shock on d100
+  (AbilAdj.SurvivesSystemShock), as AD&D 1st edition has the spell's recipient do and SSI never did (#1004): a failure
+  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD, the fee spent; a success becomes C_STATUS.OKAY and
+  enabled, with hpCur 1, and "is cured.". }
 procedure StoneToFlesh;
 var
   c: Char;
+  creature: Types.PCharRecord;
 begin
+  creature := GameVars.curChar;
   c := 'Y';
-  if GameVars.curChar^.status <> C_STATUS.STONED then
+  if creature^.status <> C_STATUS.STONED then
     c := Temple.ConfirmCureAnyway('is not stoned.');
-  if c = 'Y' then begin
-    c := Temple.ConfirmCureCost('Stone to Flesh', 2000);
-    if c = 'Y' then
-      if GameVars.curChar^.status = C_STATUS.STONED then begin
-        GameVars.curChar^.status := C_STATUS.OKAY;
-        GameVars.curChar^.enabled := 1;
-        GameVars.curChar^.hpCur := 1;
+  if c = 'Y' then
+    if Temple.PayCureCost('Stone to Flesh', 2000) = 'Y' then
+      if creature^.status <> C_STATUS.STONED then
+        Temple.ReportCure('is cured.')
+      else if not AbilAdj.SurvivesSystemShock(creature^.conCur, Dice.RollDice(1, 100)) then begin
+        { flesh again, and dead: as a death is marked out of combat }
+        creature^.status := C_STATUS.DEAD;
+        creature^.enabled := 0;
+        creature^.hpCur := 0;
+        Stats.Death(creature);
+        Temple.ReportCure('DOESN''T SURVIVE THE TRANSFORMATION.');
+      end else begin
+        creature^.status := C_STATUS.OKAY;
+        creature^.enabled := 1;
+        creature^.hpCur := 1;
+        Temple.ReportCure('is cured.');
       end;
-  end;
 end;
 
 { HealMenu: Allocates a 10-node string list with MenuCore.AllocStringList, fills it from templeSpells, runs

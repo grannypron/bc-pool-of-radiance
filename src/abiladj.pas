@@ -52,6 +52,14 @@ function ClampScore(score: Integer): Byte;
   13, then 2 more a point to 100 at 18, and 100 above it (Deities & Demigods); below 3 counts as 3. }
 function ConResurrectionSurvival(con: Byte): Byte;
 
+{ The system shock survival chance, in percent, for Constitution con (1st-edition PHB): 35 at 3, 5 more a point to 85
+  at 13, then 88, 91, 95, 97 and 99 at 14 to 18, 99 at 19 to 24 and 100 from 25 (Deities & Demigods); below 3 counts
+  as 3. }
+function ConSystemShock(con: Byte): Byte;
+
+{ True when a d100 roll of roll survives system shock at Constitution con: roll at most ConSystemShock. }
+function SurvivesSystemShock(con, roll: Byte): Boolean;
+
 { The poison save bonus any creature gets from a Constitution above 18 (Deities & Demigods): +1 at 19..20, +2 at
   21..22, +3 at 23..24 and +4 from 25; 0 below 19. }
 function ConPoisonSave(con: Byte): Byte;
@@ -242,6 +250,26 @@ begin
     ConResurrectionSurvival := 90 + (con - 13) * 2
   else
     ConResurrectionSurvival := 100;
+end;
+
+function ConSystemShock(con: Byte): Byte;
+begin
+  case con of
+    0..3: ConSystemShock := 35;
+    4..13: ConSystemShock := 35 + (con - 3) * 5;
+    14: ConSystemShock := 88;
+    15: ConSystemShock := 91;
+    16: ConSystemShock := 95;
+    17: ConSystemShock := 97;
+    18..24: ConSystemShock := 99;
+  else
+    ConSystemShock := 100;
+  end;
+end;
+
+function SurvivesSystemShock(con, roll: Byte): Boolean;
+begin
+  SurvivesSystemShock := roll <= AbilAdj.ConSystemShock(con);
 end;
 
 function IntKnowSpellChance(intel: Byte): Byte;

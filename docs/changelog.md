@@ -40,6 +40,7 @@
 
 ### Fixes
 
+- Stone to Flesh at a temple now calls for a system shock roll, as in the 1st-edition rules: the lower the character's Constitution, the likelier the character "DOESN'T SURVIVE THE TRANSFORMATION." and dies. The fee is spent either way.
 - The temple no longer takes your money for Cure Light, Serious or Critical Wounds on a character the cure cannot help (dead, turned to stone, or with mummy rot, or not wounded) without asking: it says why and asks whether to cast the cure anyway.
 - A random potion found as treasure is always a potion. Before, about one in eleven was a nameless item that did nothing.
 - The lightning on the second title screen now flashes at the same pace on every computer, and in the native version, where it never flashed before.
