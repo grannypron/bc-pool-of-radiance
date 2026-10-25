@@ -20,8 +20,11 @@ procedure InitRowTables;
 { Merge src into dst as one sprite: dst's pixels OR src's (with a colour key, src's opaque pixels replace dst's), and
   dst's mask AND src's, so either picture's opaque pixels show. Over src's frame size, which may be fewer rows than
   dst's (a head over a body); nothing happens when either is nil, either has no mask, src is empty, or dst is not as
-  wide or not as large. }
+  wide or not as large (CanMerge). }
 procedure MergePic(src, dst: Types.PImgBuf);
+
+{ True when MergePic would merge src into dst: both there with masks, src not empty, as wide as dst and no larger. }
+function CanMerge(src, dst: Types.PImgBuf): Boolean;
 
 { Draw src over dst through src's transparency mask: dst's pixels survive where src is transparent. Nothing happens
   when either is nil, src has no mask, the frame sizes differ, or dst is empty. }
@@ -94,11 +97,7 @@ procedure MergePic(src, dst: Types.PImgBuf);
 var
   n: Word;
 begin
-  if (src = nil) or (dst = nil) then Exit;
-  if (src^.transp = nil) or (dst^.transp = nil) then Exit;
-  { an empty picture would make the loops below run 65536 times; src's rows are dst's first, so it is no wider and no
-    larger }
-  if (src^.imgSize = 0) or (src^.width <> dst^.width) or (src^.imgSize > dst^.imgSize) then Exit;
+  if not VidOps.CanMerge(src, dst) then Exit;
   if GameVars.video.keyed then begin
     { a colour key (VGA): src's opaque pixels replace dst's }
     for n := 0 to src^.imgSize - 1 do
@@ -109,6 +108,16 @@ begin
       dst^.data[n] := dst^.data[n] or src^.data[n];
   for n := 0 to Blit.MaskBytes(src^.imgSize) - 1 do
     dst^.transp^[n] := dst^.transp^[n] and src^.transp^[n];
+end;
+
+function CanMerge(src, dst: Types.PImgBuf): Boolean;
+begin
+  CanMerge := False;
+  if (src = nil) or (dst = nil) then Exit;
+  if (src^.transp = nil) or (dst^.transp = nil) then Exit;
+  { an empty picture would make MergePic's loops run 65536 times; src's rows are dst's first, so it is no wider and no
+    larger }
+  CanMerge := (src^.imgSize <> 0) and (src^.width = dst^.width) and (src^.imgSize <= dst^.imgSize);
 end;
 
 procedure OverlayPic(src, dst: Types.PImgBuf);
