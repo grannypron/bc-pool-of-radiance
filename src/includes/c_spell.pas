@@ -45,8 +45,12 @@ const
   CURE_LIGHT_WOUNDS = 3;
   { spellFns[1] = BlessHandler; Bless spares a creature already in melee in combat }
   BLESS = 1;
-  { spellFns[15] = MagicMissileHandler; the Magic Missile immunities test for it }
+  { spellFns[15] = MagicMissileHandler }
   MAGIC_MISSILE = 15;
+  { spellFns[65] = WandMagicMissilesHandler, the Wand of Magic Missiles }
+  WAND_MAGIC_MISSILES = 65;
+  { the spells that fire magic missiles: Shield and the Magic Missile immunity stop them all (POR-0210, #890) }
+  MAGIC_MISSILES = [MAGIC_MISSILE, WAND_MAGIC_MISSILES];
   { spellFns[21] = SleepHandler; its pool of hit dice is SLEEP_DICE d SLEEP_DIE, rolled at casting }
   SLEEP = 21;
   SLEEP_DICE = 4;

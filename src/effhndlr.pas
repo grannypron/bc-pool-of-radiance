@@ -549,7 +549,8 @@ begin
   if creature^.acCur < 57 then
     creature^.acCur := 57;
   Inc(FxEngine.gSaveRoll);
-  if GameVars.currentSpellBeing = C_SPELL.MAGIC_MISSILE then
+  { the wand's missiles too, not only the spell's (POR-0210, #890) }
+  if GameVars.currentSpellBeing in C_SPELL.MAGIC_MISSILES then
     GameVars.pendingDamage := 0;
 end;
 
@@ -1567,7 +1568,8 @@ var
 begin
   effId := GameVars.pendingEffectId;
   dmg := GameVars.pendingDamage;
-  if GameVars.currentSpellBeing = C_SPELL.MAGIC_MISSILE then begin
+  { the wand's missiles too, not only the spell's (POR-0210, #890) }
+  if GameVars.currentSpellBeing in C_SPELL.MAGIC_MISSILES then begin
     EffHndlr.NullifyAttack(0);
     CharDisp.PrintNameString(creature, 'is unaffected', 10, True);
     Bestiary.Learn(creature, GameVars.curChar, C_BEAST.IMMUNE_MM);

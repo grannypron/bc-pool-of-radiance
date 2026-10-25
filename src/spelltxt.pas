@@ -668,7 +668,7 @@ begin
         TextChunk :=
           'AN UNERRING MISSILE INFLICTS 2D4+2'#13 +
           'DAMAGE UPON THE TARGETED CREATURE.'#13 +
-          'SHIELD DOES NOT NEGATE IT.';
+          'SHIELD NEGATES IT.';
     { Manual of Bodily Health }
     67:
       case chunk of
