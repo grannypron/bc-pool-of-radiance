@@ -115,6 +115,25 @@ procedure ThiefSkillParts(creature: Types.PCharRecord; j: Byte; var base, racial
   the racial penalty is larger than the base, so it need not equal the sum. }
 function ThiefSkill(base, racial, dexterity: ShortInt): Byte;
 
+{ The cleric level creature turns undead at: the cleric level it can use (CharHlp.GetClassLevel, so a dual-classed
+  human's resting cleric levels give none, #838), or its paladin level less 2 when that is higher, so a paladin turns
+  from level 3 as the 1st-edition PHB has it; 0 when it cannot turn. Combat and the More Info Cleric page (#904) read
+  it. }
+function TurnLevel(creature: Types.PCharRecord): ShortInt;
+
+const
+  { the turning table's undead rows: level 1 (skeleton) to 10 (vampire) }
+  TURN_UNDEAD_KINDS = 10;
+  { TurnValue for undead the cleric cannot turn }
+  TURN_IMMUNE = 99;
+
+{ The turning table's entry for undead of level undeadLevel (1..12; above 10 reads row 10, the vampire's) against turn
+  level lvl (TurnLevel; its columns are levels 1..8 one each, then 9..13, then 14 and up). A d20 roll of Abs(value) or
+  more succeeds: a positive value turns, zero or a negative one destroys, so 1 turns automatically, 0 destroys
+  automatically and TURN_IMMUNE cannot succeed. A level below 1 gives TURN_IMMUNE. Combat and the More Info Cleric
+  page (#904) read it. }
+function TurnValue(undeadLevel, lvl: ShortInt): ShortInt;
+
 { The racial limits on ability (C_ABIL) for race 1..7 (C_RACE.DWARF..HUMAN) and gender (C_GENDER, which only Strength
   depends on), from GameDefs.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
@@ -706,6 +725,61 @@ begin
       total := 0;
     ThiefSkill := total;
   end;
+end;
+
+function TurnLevel(creature: Types.PCharRecord): ShortInt;
+var
+  lvl: ShortInt;
+begin
+  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
+  if CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2 > lvl then
+    lvl := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
+  if lvl < 0 then
+    lvl := 0;
+  TurnLevel := lvl;
+end;
+
+function TurnValue(undeadLevel, lvl: ShortInt): ShortInt;
+const
+  { Rows by undead level, columns by turn level, as TurnValue reads them. A negative value lets
+    CbtActs.CombatTurnUndead go on past its 1d12 targets until six succeed. }
+  turnTable: Types.TTurnUndeadTable = (
+    { 1: Skeleton }
+    (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
+    { 2: Zombie }
+    (13, 10, 7, 1, 1, 0, 0, 0, -1, -1),
+    { 3: Ghoul }
+    (16, 13, 10, 4, 1, 1, 0, 0, 0, -1),
+    { 4: Shadow }
+    (19, 16, 13, 7, 4, 1, 1, 0, 0, -1),
+    { 5: Wight }
+    (20, 19, 16, 10, 7, 4, 1, 1, 0, 0),
+    { 6: Ghast }
+    (99, 20, 19, 13, 10, 7, 4, 1, 1, 0),
+    { 7: Wraith }
+    (99, 99, 20, 16, 13, 10, 7, 4, 1, 0),
+    { 8: Mummy }
+    (99, 99, 99, 20, 16, 13, 10, 7, 4, 1),
+    { 9: Spectre }
+    (99, 99, 99, 99, 20, 16, 13, 10, 7, 1),
+    { 10: Vampire }
+    (99, 99, 99, 99, 99, 20, 16, 13, 10, 4));
+var
+  col: ShortInt;
+begin
+  if (lvl < 1) or (undeadLevel < 1) then begin
+    TurnValue := TURN_IMMUNE;
+    Exit;
+  end;
+  case lvl of
+    1..8: col := lvl;
+    9..13: col := 9;
+  else
+    col := 10;
+  end;
+  if undeadLevel > TURN_UNDEAD_KINDS then
+    undeadLevel := TURN_UNDEAD_KINDS;
+  TurnValue := turnTable[undeadLevel, col];
 end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;

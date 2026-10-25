@@ -406,7 +406,7 @@ begin
   GameInit.InitSpellFns;
   { Install effect function pointers. }
   GameInit.InitEffectHandlers;
-  CbtMap.boltTracer := Magic.TraceLightningBolt;
+  CbtMap.boltTracer := Magic.TraceBolt;
   CbtMap.aimReport := CbtActs.ReportAreaCatch;
   GameIo.showMemory := MemShow.ShowMemory;
   CharHlp.faultHook := CharDisp.ShowFault;
