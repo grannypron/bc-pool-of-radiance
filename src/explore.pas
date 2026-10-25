@@ -5,6 +5,8 @@ unit Explore;
 
 interface
 
+uses Types;
+
 procedure ResolveMovement;
 
 function MapMainMenu: Char;
@@ -14,6 +16,11 @@ function MapMainMenu: Char;
   screen drawn again (CharDisp.DisplayWildernessInterface when wild, else DisplayNoncombatInterface). False for any
   other key, which the caller handles. }
 function SideScreen(c: Char; quickKeys, wild: Boolean): Boolean;
+
+{ The party member who would cast Knock at a door (#1015): the first Okay member with it memorized (scroll nil), or
+  else the first Okay member who can use items and carries a scroll with Knock on it that it can read and use
+  (Magic.FindScrollCopies; scroll the one to read). False, with caster nil, when nobody can. }
+function FindKnockCaster(var caster: Types.PCharRecord; var scroll: Types.PItemRec): Boolean;
 
 var
   { Set by F8 on the map menu when there is a quick save to load: MapMainMenu returns, GameLoop returns, and the
@@ -29,9 +36,9 @@ procedure ResetGame;
 
 implementation
 
-uses Types, Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
+uses Crt, C_AREA, C_TIME, C_MSG, GameDefs, GameVars, SoundDrv, Camp, ViewChar, JrnlView, View3D, MapTiles, C_ECL,
   C_KEYS, C_LEVEL, C_STATUS, C_GBVM, C_DIR, C_SOUND, C_SPELL, SaveLoad, Blit, Border, CharHlp, FxEngine,
-  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu;
+  MenuCore, Portrait, TextRend, CharDisp, Party, Dice, CompTool, KeyHelp, BeastMnu, Magic;
 
 var
   { Door-opening flags: bash, pick and knock. }
@@ -190,19 +197,44 @@ begin
   FindCharWithSpell := p;
 end;
 
-{ PartyCastsKnock: the first party member with Knock (C_SPELL.KNOCK) memorized uses it, clearing that slot, and the
-  barrier opens from both sides; False when nobody has it. }
+function FindKnockCaster(var caster: Types.PCharRecord; var scroll: Types.PItemRec): Boolean;
+var
+  p: Types.PCharRecord;
+  copies: Byte;
+begin
+  scroll := nil;
+  caster := Explore.FindCharWithSpell(C_SPELL.KNOCK);
+  p := GameVars.creatureList;
+  while (caster = nil) and (p <> nil) do begin
+    if (p^.status = C_STATUS.OKAY) and CharHlp.CanUseItems(p) then begin
+      Magic.FindScrollCopies(p, C_SPELL.KNOCK, copies, scroll);
+      if scroll <> nil then
+        caster := p;
+    end;
+    p := p^.nextCharAddr;
+  end;
+  FindKnockCaster := caster <> nil;
+end;
+
+{ PartyCastsKnock: the party member FindKnockCaster names casts Knock (C_SPELL.KNOCK), clearing the memorized slot or
+  taking the spell off the scroll (which may use it up), and the barrier opens from both sides; False when nobody
+  can. }
 function PartyCastsKnock: Boolean;
 var
   p: Types.PCharRecord;
+  scroll: Types.PItemRec;
 begin
-  p := Explore.FindCharWithSpell(C_SPELL.KNOCK);
+  PartyCastsKnock := Explore.FindKnockCaster(p, scroll);
   if p <> nil then begin
-    CharHlp.RemoveSpell(p, C_SPELL.KNOCK);
+    if scroll = nil then
+      CharHlp.RemoveSpell(p, C_SPELL.KNOCK)
+    else begin
+      Magic.RemoveSpellFromScroll(p, scroll, C_SPELL.KNOCK);
+      { recount the items and their weight, as Items > Use does: the scroll may be gone }
+      CharHlp.RecalcStats(p);
+    end;
     Explore.OpenBarrierAhead;
-    PartyCastsKnock := True;
-  end else
-    PartyCastsKnock := False;
+  end;
 end;
 
 { MoveForward: clear C_GBVM.LEAVE_MAP, then, unless the barrier ahead is type 0, compute the next square without moving
@@ -438,13 +470,16 @@ begin
 end;
 
 { The 'Locked.' menu for the door ahead, barred when its barrier is type 3, assembled from the door flags: Bash, Pick
-  (party has a thief), Knock (a locked door: someone has Knock memorized; a barred one: party has a mage) and Exit; a
-  bare ' Exit' walls the door off. On a barred door Pick only clears doorOpen[1]. True when the door opens. }
+  (party has a thief), Knock (someone has it memorized or on a scroll it can read, FindKnockCaster) and Exit; a bare
+  ' Exit' walls the door off. On a barred door Pick only clears doorOpen[1]. SSI's code offered Knock at a barred door
+  to any party with a magic-user, though only a memorized Knock opened it, so the door was never walled off (POR-0229,
+  #1015). True when the door opens. }
 function DoorMenu(barred: Boolean): Boolean;
 var
   menuStr: String[40];
   unusedExtendedKey: Boolean;
-  knock: Boolean;
+  caster: Types.PCharRecord;
+  scroll: Types.PItemRec;
 begin
   DoorMenu := False;
   menuStr := '';
@@ -452,14 +487,8 @@ begin
     menuStr := 'Bash';
   if (doorOpen[1] <> 0) and Explore.PartyHasClass(C_LEVEL.THIEF) then
     menuStr := menuStr + ' Pick';
-  if doorOpen[2] <> 0 then begin
-    if barred then
-      knock := Explore.PartyHasClass(C_LEVEL.MAGE)
-    else
-      knock := Explore.FindCharWithSpell(C_SPELL.KNOCK) <> nil;
-    if knock then
-      menuStr := menuStr + ' Knock';
-  end;
+  if (doorOpen[2] <> 0) and Explore.FindKnockCaster(caster, scroll) then
+    menuStr := menuStr + ' Knock';
   menuStr := menuStr + ' Exit';
   if menuStr = ' Exit' then
     Explore.ChangeBarrierImpassable(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing)

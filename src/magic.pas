@@ -60,6 +60,11 @@ procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
   message window. }
 procedure ShowCombatOnlySpell(spell: Byte);
 
+{ How many times spell is on the scrolls creature can read and use (CharHlp.CastableScroll), and the one of them to
+  read it from: the scroll with the fewest spells on it, the first in the inventory among equals, so a part-used scroll
+  is used up before a full one is started (#833). best is nil when no such scroll holds spell. }
+procedure FindScrollCopies(creature: Types.PCharRecord; spell: Byte; var copies: Byte; var best: Types.PItemRec);
+
 { Clear a scroll spell slot holding spell and decrement its spell-count name component, nameIds[2]; remove the item
   from cr once that drops below 210. The slot is the last holding spell exactly, its pending flag (C_SPELL.PENDING_FLAG)
   included, or else the last holding it with either flag, so that a scribed spell clears its own slot and a used one a

@@ -39,6 +39,7 @@
 
 ### Fixes
 
+- A locked or barred door offers Knock only when someone in the party can cast it, from memory or from a scroll they can read, and a scroll's Knock works on it; before, a barred door offered Knock to any party with a magic-user, and choosing it did nothing.
 - Standing at the edge of a map, the 3D view now shows the walls of the squares beyond it that you would walk into, not those of the edge squares again.
 - Scribing a spell from a scroll that holds it twice now takes the copy you chose off the scroll; before, the other copy went, and a long rest could scribe the chosen one again.
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
