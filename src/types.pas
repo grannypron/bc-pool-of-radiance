@@ -436,25 +436,7 @@ type
     { image data (open-ended) }
     data: array[0..32000] of Byte;
   end;
-  TInterruptRegisters = record
-    ax: Word;
-    bx: Word;
-    cx: Word;
-    dx: Word;
-    bp: Word;
-    si: Word;
-    di: Word;
-    ds: Word;
-    es: Word;
-    flags: Word;
-  end;
   TName15 = string[NAME_LEN];
-  TPortraitCacheSlot = record
-    { HEAD/BODY DAX entry ID; 255 invalidates }
-    pictureId: Byte;
-    { image buffer }
-    pic: Pointer;
-  end;
   TRandomItemTemplate = record
     { low bytes copied to TItemRec nameIds (components 3, 2, 1) }
     nameIds: array[1..3] of Word;
@@ -587,9 +569,11 @@ type
   end;
 
   { Game-memory (GBVM) zone types. }
+  { the game clock's seven words, in C_TIME order (C_GBVM.CLOCK) }
+  TClock = array[0..6] of Word;
   TGbvmClock = packed record
     case Byte of
-      0: (values: array[0..6] of Word);
+      0: (values: TClock);
       1: (segment: Word; minute: Word; turn: Word; hour: Word; day: Word; month: Word; year: Word);
   end;
   TGbvmSavedWalls = packed record
@@ -678,7 +662,6 @@ type
 
   { Camp types. }
   PZone0State = ^TGbvmZone0State;
-  TClock = array[0..6] of Word;
 
   { CbtActs types. }
   PAttackPhaseView = ^TAttackPhaseView;
@@ -707,10 +690,11 @@ type
   end;
   { Shows who the spell being aimed will catch, given them nearest first: CbtMap.aimReport. }
   TAimReport = procedure(var caught: TSlotList);
-  { TCharRecord view: armor class and attacks as arrays }
+  { TCharRecord view: armor class and attacks as arrays. Its pad skips to acCur, past 17 pointers (effectsAddr,
+    itemsAddr, the 13 equipped and nextCharAddr, combatAddr), each PTR_GROWTH bigger in a 64-bit build (TRecLay). }
   TAttackPhaseView = record
     { skips to acCur }
-    fill: array[0..272] of Byte;
+    fill: array[0..272 + 17 * PTR_GROWTH] of Byte;
     { Current and rear armor class. }
     acCurArr: array[0..1] of Byte;
     curAtt: array[1..2] of Byte;
@@ -735,47 +719,13 @@ type
     cells: array[0..24, 0..49] of Byte;
   end;
 
-  { CharGen types. }
-  { startingAge entries }
-  TAgeRec = record
-    base: Word;
-    { dice count }
-    num: Byte;
-    { dice sides }
-    sides: Byte;
-  end;
-  { startingGoldClass }
-  TGoldDice = record
-    num: Byte;
-    sides: Byte;
-  end;
-  { minimumMaximumStatistics entry }
-  TRaceLim = record
-    { by gender }
-    strMin: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
-    strMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
-    { exceptional-Str cap }
-    excMax: array[C_GENDER.MALE..C_GENDER.FEMALE] of Byte;
-    intMin: Byte;
-    intMax: Byte;
-    wisMin: Byte;
-    wisMax: Byte;
-    dexMin: Byte;
-    dexMax: Byte;
-    conMin: Byte;
-    conMax: Byte;
-    chaMin: Byte;
-    chaMax: Byte;
-  end;
-
   { CharHlp types. }
   PAcAdjust = ^TAcAdjust;
   PBoolean = ^Boolean;
   { the parts of armour class CharHlp.RecalcStats adds up, by the AC_ constants }
   TAcAdjust = array[AC_DEX..AC_ARMOR] of ShortInt;
 
-  { Spell and downed-record types. }
-  PDownedRec = ^TDownedRec;
+  { Spell types. }
   { A spell's duration in minutes, as CharHlp.SpellDuration gives it: count dice of sides, plus add, all times mult
     (rounds 1, turns 10, hours 60); count 0 for one that rolls nothing, add then holding the whole figure }
   TDurDice = record
@@ -862,18 +812,19 @@ type
   { Load a tune into a sound device's voices; tune 0 silences them. }
   TSoundPlay = procedure(tune: Word);
   { One sound device's driver (docs/refactor-plan.md, phase 7): SoundDrv reaches the device only through it. GameBoot
-    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndNone) into GameVars.sound. }
+    installs one from POOL.CFG's sound letter (SndTdy, SndSpk, SndOpl, SndSb, SndNone; natively SndDig, SndSpk or
+    SndNone) into GameVars.sound. }
   TSoundDriver = record
     { the device's name, for the settings screen }
     name: TStr20;
-    { the sequencer's device value (C_SOUND.MODE_TANDY, MODE_SPEAKER or MODE_DISABLED), which SetSoundDevice takes and
-      soundMode holds while sound is on }
+    { the sequencer's device value (a C_SOUND.MODE_ constant), which SetSoundDevice takes and soundMode holds while
+      sound is on }
     mode: Byte;
     { load a tune into the device's voices }
     Play: TSoundPlay;
     { a step in the 3D map plays its footstep once, not twice as SSI's code does (Explore.MovePartyForward3D and
-      EclVm.GameLoop): set for the Sound Blaster, whose recorded step doubled sounds wrong, and clear for the speaker
-      and the Tandy, whose double tick is kept (POR-0170) }
+      EclVm.GameLoop): set for the recorded steps (the Sound Blaster, and SndDig natively), which sound wrong doubled,
+      and clear for the speaker, the Tandy and the AdLib, whose double tick is kept (POR-0170) }
     singleStep: Boolean;
   end;
   { The video mode as the rest of the game sees it: the picture layout's numbers, what the mode can show, and its
@@ -968,10 +919,6 @@ type
   end;
 
   { Money types. }
-  TLoW = record
-    lo: Word;
-    hi: Word;
-  end;
   TMoney = array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
 
   { Pathing types. }
@@ -1061,14 +1008,6 @@ type
   TView3dWallDef = array[1..5, 0..155] of Byte;
   { the three wall-set slots' 15 wall types in a row: slot s holds wall types 5s - 4 .. 5s }
   TWallSlices = array[1..15, 0..155] of Byte;
-
-  { ViewChar types. }
-  TStr10 = String[10];
-  TStr12 = String[12];
-  TStr16 = String[16];
-  TStr26 = String[26];
-  TStr6 = String[6];
-  TStr9 = String[9];
 
 implementation
 

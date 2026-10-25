@@ -114,6 +114,11 @@ begin
   At(158, DiskRec.CharDiskOfs(Ofs(ch.genderIdx) - Ofs(ch)), 'TCharRecord.genderIdx');
   At(159, DiskRec.CharDiskOfs(Ofs(ch.viewPad1) - Ofs(ch)), 'TCharRecord.viewPad1');
   At(160, DiskRec.CharDiskOfs(Ofs(ch.alignmentIdx) - Ofs(ch)), 'TCharRecord.alignmentIdx');
+  { CbtActs' view of the armor class and attacks: in memory, its fields are the record's (64 bits included) }
+  TestKit.CheckEqualsL(Ofs(ch.acCur) - Ofs(ch), Ofs(Types.PAttackPhaseView(@ch)^.acCurArr) - Ofs(ch),
+                       'TAttackPhaseView.acCurArr is TCharRecord.acCur');
+  TestKit.CheckEqualsL(Ofs(ch.curAttacks) - Ofs(ch), Ofs(Types.PAttackPhaseView(@ch)^.curAtt) - Ofs(ch),
+                       'TAttackPhaseView.curAtt is TCharRecord.curAttacks');
   TestKit.CheckEqualsL(63, DiskRec.ItemDiskSize, 'TItemRec on disk');
   At(0, DiskRec.ItemDiskOfs(Ofs(it.name) - Ofs(it)), 'TItemRec.name');
   At(41, DiskRec.ItemDiskOfs(Ofs(it.inUse) - Ofs(it)), 'TItemRec.inUse');
