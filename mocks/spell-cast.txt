@@ -1,0 +1,48 @@
++======================================+
+|            RAVEN'S SPELLS            |
++======================================+
+| 1ST LEVEL                            |
+|    BLESS (X3)                        |
+|    CURE LIGHT WOUNDS                 |
+|    DETECT MAGIC                      |
+|    PROTECTION FROM EVIL              |
+|    RESIST COLD                       |
+| 2ND LEVEL                            |
+|    HOLD PERSON (X2)                  |
+|    RESIST FIRE                       |
+|    SILENCE, 15' RADIUS               |
+|    SPIRITUAL HAMMER                  |
+| 3RD LEVEL                            |
+|    ANIMATE DEAD                      |
+|    DISPEL MAGIC                      |
+|    PRAYER                            |
+|    REMOVE CURSE                      |
+|                                      |
+|                                      |
+|                                      |
+| RNG 6  AREA R2  DUR 6 RD             |
++======================================+
+CAST: CAST INFO EXIT
+
+The character heading is the same on every spell-selection screen. Cast uses rows 4 through 21 for its list. Row 22
+is left blank, and the highlighted spell's summary is always shown on row 23, directly above the bottom border.
+
+This example fits on one page, so Next and Prev are absent. When the list is longer than its viewport, the bottom line
+is:
+
+    CAST: CAST INFO NEXT PREV EXIT
+
+Color Key:
+    CHARACTER HEADING   CYAN
+    LEVEL HEADING       MAGENTA
+    SPELL NAME          GREEN
+    HIGHLIGHTED SPELL   WHITE
+    SUMMARY LINE        GREEN
+    CAST:               MAGENTA
+
+Command Key:
+    CAST                C / ENTER
+    INFO                I
+    NEXT                N / PAGE DOWN (only when the list has another page)
+    PREV                P / PAGE UP (only when the list has another page)
+    EXIT                E / ESCAPE
