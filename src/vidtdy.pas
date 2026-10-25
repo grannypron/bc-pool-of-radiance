@@ -161,7 +161,7 @@ begin
     ClearRect := VidTdy.ClearRect;
     ClearScreen := VidTdy.ClearScreen;
     WriteChar := VidTdy.WriteChar;
-    ExpandFrames := PicTdy.ExpandFrames;
+    ExpandChunk := PicTdy.ExpandChunk;
     MirrorFrame := PicTdy.MirrorFrame;
     RemapColour := PicTdy.RemapColour;
     RecolorFrame := PicTdy.RecolorFrame;

@@ -152,7 +152,7 @@ begin
     ClearRect := VidCga.ClearRect;
     ClearScreen := VidCga.ClearScreen;
     WriteChar := VidCga.WriteChar;
-    ExpandFrames := PicCga.ExpandFrames;
+    ExpandChunk := PicCga.ExpandChunk;
     MirrorFrame := PicCga.MirrorFrame;
     RemapColour := PicCga.RemapColour;
     RecolorFrame := PicCga.RecolorFrame;

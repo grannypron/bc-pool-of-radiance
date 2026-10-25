@@ -855,7 +855,9 @@ type
   TDrawGlyphProc = procedure(col, row, color, glyph: Byte);
   TClearRectProc = procedure(ulCol, ulRow, lrCol, lrRow: Byte);
   TWriteCharProc = procedure(col, row, attr, count, ch: Byte);
-  TExpandFramesProc = procedure(imgData: PByteArr; srcOff: Word; transpColor: Byte; pic: PImgBuf);
+  { An 8-pixel cell row as DAX stores it: two pixels to a byte, the first in the high nibble. }
+  TChunk = array[0..3] of Byte;
+  TExpandChunkProc = procedure(var chunk: TChunk; mask: Byte; pic: PImgBuf; at: Word);
   TMirrorFrameProc = procedure(src, dst: PImgBuf);
   TRemapColourProc = procedure(pic, scratch: PImgBuf; srcOff: Word; nFrames: Byte; fromC, toC: Byte;
                                isDithered: Boolean);
@@ -922,8 +924,9 @@ type
     { BIOS text output: count copies of ch in attr at a text cell (DaxIo.WriteChar) }
     WriteChar: TWriteCharProc;
     { The cold entries, in the mode's overlaid Pic unit (PicCga, PicEga, PicTdy, PicVga): }
-    { convert DAX frames (4 bits a pixel) at imgData^[srcOff] into pic's layout, with its mask (Blit.ExpandPicFrames) }
-    ExpandFrames: TExpandFramesProc;
+    { store one DAX cell row (4 bits a pixel) at pic^.data[at] in pic's layout and, when pic has a mask, its mask bits
+      (a bit a pixel, bit 7 the first, from Blit.ComputeMask) at the mask byte for at (Blit.ExpandPicFrames) }
+    ExpandChunk: TExpandChunkProc;
     { a left-right reflection of src's first frame and mask into dst (Blit.MirrorPic, which copies the colour map) }
     MirrorFrame: TMirrorFrameProc;
     { one colour pair of Blit.RemapPic: fromC becomes toC in nFrames frames of pic from srcOff, written into scratch }

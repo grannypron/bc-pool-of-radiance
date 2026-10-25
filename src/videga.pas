@@ -262,7 +262,7 @@ begin
     ClearRect := VidEga.ClearRect;
     ClearScreen := VidEga.ClearScreen;
     WriteChar := VidEga.WriteChar;
-    ExpandFrames := PicEga.ExpandFrames;
+    ExpandChunk := PicEga.ExpandChunk;
     MirrorFrame := PicEga.MirrorFrame;
     RemapColour := PicEga.RemapColour;
     RecolorFrame := PicEga.RecolorFrame;

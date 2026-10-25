@@ -13,20 +13,10 @@ interface
 
 uses Types;
 
-type
-  { An 8-pixel chunk as stored in a picture: two pixels to a byte, the first in the high nibble. }
-  TChunk = array[0..3] of Byte;
-
 var
   { heap bytes held by pictures (AllocPic less FreePic), and the most they have reached; STING Ctrl-Y shows them }
   picBytes: LongInt;
   picPeak: LongInt;
-
-{ Returns the transparency mask of an 8-pixel chunk. A transpColor above 15 can match a high nibble but never a low one.
-  @param(transpColor The colour that is transparent, 0..15.)
-  @param(chunk The chunk's eight pixels, two to a byte, the first in the high nibble of chunk[0].)
-  @returns(A bit set for each pixel equal to transpColor, bit 7 for the first pixel down to bit 0 for the last.) }
-function ComputeMask(transpColor: Byte; chunk: TChunk): Byte;
 
 { Translates a logical color through a picture's color map into the device color used by the active video mode. The map
   packs two colors per byte: even colors use the high nibble, odd colors the low nibble. CGA consumers expect the result
@@ -55,17 +45,6 @@ procedure RestoreVideoMode;
   @param(pic Receives the new image buffer; any previous buffer is freed first.) }
 procedure LoadPic(name: string; fileId: Byte; hasMask: Boolean; transpColor: Byte; var pic: Types.PImgBuf);
 
-{ Converts raw packed 4-bit artwork into the pixel layout of the active video mode, filling an already-allocated image
-  buffer, block by block (pic^.more), and, when the buffer has one, its transparency mask. CGA produces two pixel bytes
-  and a two-byte mask per eight-pixel cell; EGA produces four plane bytes and one mask byte; Tandy copies the pixels
-  as-is and derives its mask in place. Transparent pixels are cleared in the pixel data so masked drawing can keep the
-  background under them and OR the graphic in. A mask is built when the buffer has one.
-  @param(imgData Raw decompressed block holding the artwork.)
-  @param(srcOff Offset within imgData of the first pixel byte, just past the picture header.)
-  @param(transpColor Color index treated as transparent when building masks.)
-  @param(pic Destination buffer, sized by AllocPic; nothing happens if nil.) }
-procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
-
 { Draws one frame of a graphic into a destination buffer at a character-cell position and marks the touched scanlines
   dirty so FlushView will push them to the screen. Each span records the first and inclusive last byte changed on its
   scanline. With transparency, the background is kept wherever the mask is set; otherwise rows are copied straight
@@ -91,21 +70,6 @@ procedure BlitTileCell(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest
   @param(gfx Source graphic; nothing is drawn if nil.)
   @param(dest Buffer drawn into; nothing is drawn if nil.) }
 procedure BlitTileClipped(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
-
-{ Reverses the bit order of a byte, reflecting eight EGA pixels (one plane byte or mask byte) left to right.
-  @param(value Byte to reflect.)
-  @returns(The byte with bits 0..7 swapped with bits 7..0.) }
-function MirrorBits(value: Byte): Byte;
-
-{ Reverses the order of the eight 2-bit CGA pixels packed in a word, reflecting them left to right.
-  @param(value Two CGA pixel bytes of one cell.)
-  @returns(The word with its pixel order reversed.) }
-function MirrorPairs(value: Word): Word;
-
-{ Swaps the two 4-bit Tandy pixels of a byte, reflecting them left to right.
-  @param(value Byte holding two pixels.)
-  @returns(The byte with its nibbles exchanged.) }
-function MirrorNibbles(value: Byte): Byte;
 
 { Produces a left-right reflected copy of the first frame of a graphic, including its color map and any transparency
   mask. The destination must already be large enough, must not overlap unread source data, and must have a mask if the
@@ -204,7 +168,7 @@ function FrameCount(pic: Types.PImgBuf): Word;
 
 implementation
 
-uses GameDefs, GameVars, DaxIo, Dos, GameIo, StrUtil{$IFDEF FPC}, Host{$ENDIF};
+uses GameDefs, GameVars, DaxIo, Dos, GameIo, StrUtil, VidOps{$IFDEF FPC}, Host{$ENDIF};
 
 type
   PLongInt = ^LongInt;
@@ -218,25 +182,6 @@ type
     count: Byte;
     map: Types.TColorMap;
   end;
-
-function ComputeMask(transpColor: Byte; chunk: TChunk): Byte;
-var
-  mask: Byte;
-  transpHigh: Byte;
-  bit: Byte;
-  i: Byte;
-begin
-  mask := 0;
-  transpHigh := transpColor shl 4;
-  bit := $80;
-  for i := 0 to 3 do begin
-    if (chunk[i] and $F0) = transpHigh then Inc(mask, bit);
-    bit := bit shr 1;
-    if (chunk[i] and $0F) = transpColor then Inc(mask, bit);
-    bit := bit shr 1;
-  end;
-  ComputeMask := mask;
-end;
 
 function SrcNibble(color: Byte; map: Types.TColorMap): Byte;
 begin
@@ -288,18 +233,8 @@ begin
     map := colorMap;
   end;
   readOfs := SizeOf(TDaxPicHeader);
-  Blit.ExpandPicFrames(data, readOfs, transpColor, pic);
+  VidOps.ExpandPicFrames(data, readOfs, transpColor, pic);
   FreeMem(data, dataSize);
-end;
-
-procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
-begin
-  { each block of the picture (pic^.more), its frames taking 4 DAX bytes a cell row }
-  while pic <> nil do begin
-    GameVars.video.ExpandFrames(imgData, srcOff, transpColor, pic);
-    Inc(srcOff, pic^.count * pic^.height * pic^.width * 4);
-    pic := pic^.more;
-  end;
 end;
 
 { BlitTileCell and BlitTileClipped: draw frame tileIdx of gfx into dest at (screenX, screenY), clipped against dest's
@@ -470,45 +405,6 @@ end;
 procedure BlitTileClipped(screenX, screenY: Integer; tileIdx, flag: Byte; gfx, dest: Types.PImgBuf);
 begin
   Blit.BlitTile(screenX, screenY, tileIdx, flag, gfx, dest, True);
-end;
-
-function MirrorBits(value: Byte): Byte;
-var
-  mirrored: Byte;
-begin
-  mirrored := value shl 7;
-  Inc(mirrored, (value and 2) shl 5);
-  Inc(mirrored, (value and 4) shl 3);
-  Inc(mirrored, (value and 8) shl 1);
-  Inc(mirrored, (value and $10) shr 1);
-  Inc(mirrored, (value and $20) shr 3);
-  Inc(mirrored, (value and $40) shr 5);
-  Inc(mirrored, (value and $80) shr 7);
-  MirrorBits := mirrored;
-end;
-
-function MirrorPairs(value: Word): Word;
-var
-  mirrored: Word;
-begin
-  mirrored := (value and GameDefs.cgaPixelMask[7]) shl 14;
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[6]) shl 10);
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[5]) shl 6);
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[4]) shl 2);
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[3]) shr 2);
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[2]) shr 6);
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[1]) shr 10);
-  Inc(mirrored, (value and GameDefs.cgaPixelMask[0]) shr 14);
-  MirrorPairs := mirrored;
-end;
-
-function MirrorNibbles(value: Byte): Byte;
-var
-  mirrored: Byte;
-begin
-  mirrored := value shl 4;
-  Inc(mirrored, (value and $F0) shr 4);
-  MirrorNibbles := mirrored;
 end;
 
 procedure MirrorPic(src, dst: Types.PImgBuf);

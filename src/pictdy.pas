@@ -9,7 +9,7 @@ interface
 
 uses Types;
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 
 procedure MirrorFrame(src, dst: Types.PImgBuf);
 
@@ -23,30 +23,27 @@ procedure InitRowTables;
 
 implementation
 
-uses C_VIDEO, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GameVars, Blit, VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+{ the four bytes as they are, two pixels a byte; a mask byte for each, a nibble of F for each transparent pixel }
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 var
-  frame: Byte;
-  col: Word;
-  dstOff: Word;
+  k: Byte;
+  m: Byte;
 begin
-  with pic^ do begin
-    dstOff := 0;
-    for frame := 1 to count do begin
-      Move(imgData^[srcOff], data[dstOff], imgSize);
-      if transp <> nil then
-        for col := dstOff to dstOff + imgSize - 1 do begin
-          if (data[col] shr 4) = transpColor then
-            transp^[col] := $F0;
-          if (data[col] and $0F) = transpColor then
-            Inc(transp^[col], $0F);
-          data[col] := data[col] and not transp^[col];
-        end;
-      Inc(dstOff, imgSize);
-      Inc(srcOff, imgSize);
+  with pic^ do
+    for k := 0 to 3 do begin
+      data[at + k] := chunk[k];
+      if transp <> nil then begin
+        m := 0;
+        if (mask and ($80 shr (2 * k))) <> 0 then
+          m := $F0;
+        if (mask and ($40 shr (2 * k))) <> 0 then
+          Inc(m, $0F);
+        transp^[at + k] := m;
+        data[at + k] := data[at + k] and not m;
+      end;
     end;
-  end;
 end;
 
 procedure MirrorFrame(src, dst: Types.PImgBuf);
@@ -65,9 +62,9 @@ begin
     for row := 1 to height do begin
       rowStart := dstOff;
       for col := 1 to rowBytes do begin
-        dst^.data[dstOff] := Blit.MirrorNibbles(data[srcOff - dstOff + rowStart]);
+        dst^.data[dstOff] := VidOps.MirrorNibbles(data[srcOff - dstOff + rowStart]);
         if transp <> nil then
-          dst^.transp^[dstOff] := Blit.MirrorNibbles(transp^[srcOff - dstOff + rowStart]);
+          dst^.transp^[dstOff] := VidOps.MirrorNibbles(transp^[srcOff - dstOff + rowStart]);
         Inc(dstOff);
       end;
       Inc(srcOff, rowBytes);
@@ -96,10 +93,10 @@ begin
       for row := 1 to height do
         for col := 1 to rowBytes do begin
           if pic^.data[srcOff] and $F0 = fromHigh then
-            if not isDithered or isDithered and (Random(4) = 0) then
+            if not isDithered or (Random(4) = 0) then
               data[dstOff] := data[dstOff] and $F or toHigh;
           if pic^.data[srcOff] and $F = fromC then
-            if not isDithered or isDithered and (Random(4) = 0) then
+            if not isDithered or (Random(4) = 0) then
               data[dstOff] := data[dstOff] and $F0 or toC;
           Inc(srcOff);
           Inc(dstOff);

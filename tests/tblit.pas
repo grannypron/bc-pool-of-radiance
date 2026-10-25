@@ -104,7 +104,7 @@ begin
   Blit.AllocPic(ROWS, CELLS, frames, 1, pic);
   for i := 0 to 7 do
     pic^.map[i] := (((2 * i + 1) mod 4) shl 4) or ((2 * i + 2) mod 4);
-  Blit.ExpandPicFrames(Types.PByteArr(@dax), 0, 0, pic);
+  VidOps.ExpandPicFrames(Types.PByteArr(@dax), 0, 0, pic);
   MakePic := pic;
 end;
 
