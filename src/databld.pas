@@ -109,7 +109,7 @@ var
   lastError: Integer;
   { why the game folder could not be written, once it could not; the families after it are not tried }
   writeNote: TNote;
-  { set when there is not memory enough to build at all; no family is tried }
+  { set when the build cannot start: not memory enough, or a fix table that does not add up; no family is tried }
   memNote: TNote;
   builtCount: Byte;
   keptCount: Byte;
@@ -716,14 +716,14 @@ end;
 { True when parts a and b name the same block. }
 function SameBlockPart(a, b: Word): Boolean;
 begin
-  SameBlockPart := (DataPat.parts[a].family = DataPat.parts[b].family) and
-                   (DataPat.parts[a].disk = DataPat.parts[b].disk) and (DataPat.parts[a].id = DataPat.parts[b].id);
+  SameBlockPart := (DataPat.parts^[a].family = DataPat.parts^[b].family) and
+                   (DataPat.parts^[a].disk = DataPat.parts^[b].disk) and (DataPat.parts^[a].id = DataPat.parts^[b].id);
 end;
 
 { True when part b belongs to the same fix as part a: the same issue and block. }
 function SameFix(a, b: Word): Boolean;
 begin
-  SameFix := (DataPat.parts[a].issue = DataPat.parts[b].issue) and DataBld.SameBlockPart(a, b);
+  SameFix := (DataPat.parts^[a].issue = DataPat.parts^[b].issue) and DataBld.SameBlockPart(a, b);
 end;
 
 { The remap entry for a load of block id from disk, or 0. }
@@ -845,12 +845,12 @@ begin
   p := first;
   q := pos;
   while ok and (p <= DataPat.PART_COUNT) and DataBld.SameFix(first, p) do begin
-    part := DataPat.parts[p];
+    part := DataPat.parts^[p];
     ok := (part.size = len) and (LongInt(part.offset) + part.origLen <= len) and
           (LongInt(q) + part.origLen + part.newLen <= DataPat.BYTE_COUNT);
     k := 0;
     while ok and (k < part.origLen) do begin
-      ok := spare^[part.offset + k] = DataPat.patchBytes[q + k];
+      ok := spare^[part.offset + k] = DataPat.patchBytes^[q + k];
       Inc(k);
     end;
     if not ok then
@@ -862,7 +862,7 @@ begin
         why := 'the block would be too long'
       else begin
         Move(spare^[part.offset + part.origLen], spare^[part.offset + part.newLen], len - part.offset - part.origLen);
-        Move(DataPat.patchBytes[q + part.origLen], spare^[part.offset], part.newLen);
+        Move(DataPat.patchBytes^[q + part.origLen], spare^[part.offset], part.newLen);
         len := newLen;
       end;
     end;
@@ -902,8 +902,8 @@ var
   fixed: Boolean;
   held: Boolean;
 begin
-  disk := DataPat.parts[first].disk;
-  id := DataPat.parts[first].id;
+  disk := DataPat.parts^[first].disk;
+  id := DataPat.parts^[first].id;
   DataBld.Progress(archiveName + '.DAX: fixing ' + DataArc.SourceFile(fam, disk) + ' block ' + StrUtil.NumStr(id));
   BldShow.Fixing(fam, disk);
   ok := True;
@@ -921,7 +921,7 @@ begin
     room := blocks^[target].rawSize;
     for p := first to DataPat.PART_COUNT do
       if DataBld.SameBlockPart(first, p) then
-        Inc(room, DataPat.parts[p].newLen);
+        Inc(room, DataPat.parts^[p].newLen);
     if room > MAX_ENCODED then
       room := MAX_ENCODED;
     if (blocks^[target].disk = 0) or (blocks^[target].packedSize = 0) or (blocks^[target].rawSize = 0) or
@@ -958,13 +958,13 @@ begin
     for p := first to DataPat.PART_COUNT do begin
       if DataBld.SameBlockPart(first, p) and ((p = first) or not DataBld.SameFix(p - 1, p)) then
         if note <> '' then
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' skipped: ' + note)
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts^[p].issue) + ' skipped: ' + note)
         else if DataBld.ApplyFix(fam, p, q, raw, spare, room, rawLen, why) then begin
           fixed := True;
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' applied');
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts^[p].issue) + ' applied');
         end else
-          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts[p].issue) + ' skipped: ' + why);
-      Inc(q, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+          DataBld.LogLine(archiveName + '.DAX: ' + DataBld.IssueName(DataPat.parts^[p].issue) + ' skipped: ' + why);
+      Inc(q, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
     end;
     if fixed then begin
       blocks^[target].disk := 0;
@@ -993,7 +993,7 @@ begin
   ok := True;
   pos := 0;
   for p := 1 to DataPat.PART_COUNT do begin
-    if ok and (DataPat.parts[p].family = fam) then begin
+    if ok and (DataPat.parts^[p].family = fam) then begin
       firstOnBlock := True;
       for q := 1 to p - 1 do
         if DataBld.SameBlockPart(q, p) then
@@ -1001,7 +1001,7 @@ begin
       if firstOnBlock then
         ok := DataBld.PatchBlock(fam, p, pos);
     end;
-    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+    Inc(pos, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
   end;
   ApplyPatches := ok;
 end;
@@ -1136,7 +1136,7 @@ begin
     failedCount := 0;
     crcTable := nil;
     { kept apart from writeNote, which BldShow.Open was given above and which means the folder cannot be written }
-    if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + 1024 then
+    if MaxAvail < SizeOf(TCrcTable) + 2 * CHUNK_SIZE + 2 * SizeOf(TBlockList) + DataPat.TABLE_BYTES + 1024 then
       memNote := 'not enough memory'
     else begin
       GetMem(crcTable, SizeOf(TCrcTable));
@@ -1145,6 +1145,9 @@ begin
       GetMem(sources, SizeOf(TBlockList));
       GetMem(blocks, SizeOf(TBlockList));
       DataBld.InitCrcTable;
+      { the data fixes, on the heap only while the archives are built (#964) }
+      if not DataPat.LoadTable then
+        memNote := 'the data fixes do not add up';
     end;
     for fam := 1 to C_DATA.FAMILIES do
       if stale[fam] then begin
@@ -1156,6 +1159,7 @@ begin
         Inc(keptCount);
       end;
     if crcTable <> nil then begin
+      DataPat.FreeTable;
       FreeMem(blocks, SizeOf(TBlockList));
       FreeMem(sources, SizeOf(TBlockList));
       FreeMem(bufB, CHUNK_SIZE);
