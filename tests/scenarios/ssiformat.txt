@@ -1,6 +1,6 @@
 # The rebuild writes SSI's file formats: run with SSI's own v1.3 as the golden build,
 #   tests/regress.sh drive_c/POOLRAD/SSI obj tests/scenarios/ssiformat.txt
-# Add Ardith to an empty party and remove him again (the main menu's Remove writes ARDITH.CHA and CHARLIST.TXT), load
+# Add Ardith to an empty party and remove him again (the main menu's Remove writes ARDITH.CHA), load
 # saved game A, camp and save it into D (SAVGAMD.DAT and the CHRDATDn .SAV/.ITM/.SPC files), and compare those files.
 # A's party is not on Quick: a loaded party member leaves Quick when "Quick ends with the fight" is on (our default),
 # so a party saved on Quick would differ at the character record's quickfight (271) by design.
@@ -36,10 +36,14 @@ press e
 wait CAMP
 press s d
 # ours opens a menu of the slots (D picks it) and asks for a description: Enter takes the default
-candidate: wait SAVE: EXIT
+candidate: wait ^SAVE: EXIT
 candidate: press ret
-wait QUIT
+# SSI asks about quitting after a save; ours goes back to the camp menu, its save menu's Quit asking instead (#872)
+golden: wait QUIT
+candidate: wait CAMP
 checkpoint saved
-press n
-# SSI's own files only: PoR's sidecars (SAVGAMD.INF, SAVGAMD.STS) are left out
-saves files ARDITH.CHA CHARLIST.TXT SAVGAMD.DAT CHRDATD?.SAV CHRDATD?.ITM CHRDATD?.SPC
+golden: press n
+# SSI's own files only: PoR's sidecars (SAVGAMD.INF, SAVGAMD.STS) are left out, and so is CHARLIST.TXT, whose lines
+# differ by design: a party member stays on ours's roster (#754), where SSI drops Ardith on Add and appends him on
+# Remove
+saves files ARDITH.CHA SAVGAMD.DAT CHRDATD?.SAV CHRDATD?.ITM CHRDATD?.SPC

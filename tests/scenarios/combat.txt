@@ -3,9 +3,8 @@
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once in ours (#652)
-golden: press l i ret
-candidate: press l i
+# a slot's letter loads it at once (#652)
+press l i
 wait AREA
 checkpoint podal-plaza
 press e
@@ -19,38 +18,28 @@ wait QUICK 60
 checkpoint encounter
 press alt-q
 wait CONTINUE 180
-# the AI walks round walls and bodies since #668, so the fight goes differently: from here the two builds' screens
-# are recorded apart, not compared
-golden: checkpoint won
-candidate: checkpoint won-668
+# the AI walks round walls and bodies (#668)
+checkpoint won
 press n
 wait ENTER 60
 press ret
 wait TAKE 60
-golden: checkpoint loot
-candidate: checkpoint loot-668
+checkpoint loot
 press t
-golden: checkpoint take
-candidate: checkpoint take-668
+checkpoint take
 # the silver's amount, typed
 press ret 6 0 0 ret
 wait VIEW POOL
-golden: checkpoint taken
-candidate: checkpoint taken-668
-# ours's More Info has Saves on S, and its Game Stats (T) and Kill Count (K) pages in its own screen (#685)
-golden: press v m s
-candidate: press v m t
-golden: checkpoint stats
-candidate: checkpoint stats-685
-golden: press g
-golden: checkpoint game-stats
-candidate: press k
-candidate: checkpoint kills-685
+checkpoint taken
+# More Info has Saves on S, and its Game Stats (T) and Kill Count (K) pages in its own screen (#685)
+press v m t
+checkpoint stats
+press k
+checkpoint kills
 # the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
 ignore OVERLAY LOADS
 press ctrl-y
-golden: checkpoint overlay-loads
-candidate: checkpoint overlay-loads-668
+checkpoint overlay-loads
 press ret ret ret
-# the picture-memory line (phase 6), which the golden build does not have
-candidate: press ret
+# and the picture-memory line (phase 6)
+press ret

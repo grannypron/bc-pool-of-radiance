@@ -10,6 +10,4 @@ strip V\d+ +MERGED
 wait RADIANCE
 checkpoint main-menu
 press g
-# ours has the Companion Tools line (phase 8), which moves the lines under it: recorded apart, not compared
-golden: checkpoint settings
-candidate: checkpoint settings-companion
+checkpoint settings

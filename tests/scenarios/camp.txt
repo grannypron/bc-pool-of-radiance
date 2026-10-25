@@ -1,13 +1,9 @@
 # Camp in Valhingen Graveyard (save J), where resting is quiet: Fix, then the rest menu and a rest. Fixed dice.
 boot NORAND
-# ours drops the space after Camp:, so the menu's last letter fits the line (#674); the two lines differ only there
-strip (?<=CAMP:)\s
-strip (?<=ALTER FIX EXI)T
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once in ours (#652)
-golden: press l j ret
-candidate: press l j
+# a slot's letter loads it at once (#652)
+press l j
 wait AREA
 press e
 wait CAMP
@@ -20,22 +16,22 @@ checkpoint rest-menu
 press d i r
 wait CAMP 120
 checkpoint rested
-# Scribe tells the first, a fighter, that it needs arcane training (#671, after the golden build); ours leaves the
+# Scribe tells the first, a fighter, that it needs arcane training (#671); it leaves the
 # message without a key (#681), and the next character takes it away
-candidate: press m s
-candidate: checkpoint scribe-681
-candidate: press end
-candidate: checkpoint next-char-681
-# Alter's portrait picker from camp: Escape leaves it with the portrait the character had (#686, after the golden build)
-candidate: press esc
-candidate: wait CAMP
-candidate: press a c p
-candidate: checkpoint portrait-686
-candidate: press right
-candidate: checkpoint portrait-next-686
-candidate: press esc
-candidate: checkpoint portrait-escaped-686
+press m s
+checkpoint scribe
+press end
+checkpoint next-char
+# Alter's portrait picker from camp: Escape leaves it with the portrait the character had (#686)
+press esc
+wait CAMP
+press a c p
+checkpoint portrait
+press right
+checkpoint portrait-next
+press esc
+checkpoint portrait-escaped
 # opened again, the picker shows the head the character had, not the one stepped to
-candidate: press p
-candidate: checkpoint portrait-kept-686
-candidate: press esc
+press p
+checkpoint portrait-kept
+press esc

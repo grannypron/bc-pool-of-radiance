@@ -1,13 +1,12 @@
 # A fight in the central wilderness (save G, as in wilderness.txt): under NORAND the 32nd step of this walk meets
-# a random encounter. Records the encounter, the fight's start, and the memory there (Ctrl-Y; heap and pictures in
-# ours only): the wilderness's second tile set and combat's pictures at once, VGA's tightest spot (phase 6).
+# a random encounter. Records the encounter, the fight's start, and the memory there (Ctrl-Y, with the heap and
+# pictures): the wilderness's second tile set and combat's pictures at once, VGA's tightest spot (phase 6).
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
 put saves/wild
-# a slot's letter loads it at once in ours (#652)
-golden: press l g ret
-candidate: press l g
+# a slot's letter loads it at once (#652)
+press l g
 wait ^CAST VIEW ENCAMP 60
 press up
 wait ^CAST VIEW ENCAMP 60
@@ -80,10 +79,9 @@ checkpoint fight
 ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
-golden: press ret ret ret
-candidate: press ret ret
+press ret ret
 ignore HEAP FREE
-candidate: checkpoint heap
-candidate: press ret
-candidate: checkpoint pictures
-candidate: press ret
+checkpoint heap
+press ret
+checkpoint pictures
+press ret

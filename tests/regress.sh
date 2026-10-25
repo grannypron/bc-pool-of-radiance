@@ -10,10 +10,11 @@
 #   git stash; ./build.sh; mkdir -p .golden/$(git rev-parse --short HEAD); cp obj/START.EXE obj/GAME.OVR .golden/...
 # A change that makes saves differ in a way that is not behaviour (a heap address cleared, say) is applied to the golden
 # commit as well, and that build kept beside it with the patch (.golden/<commit>-eq/PATCH.diff).
-# With no SCENARIO, every tests/scenarios/*.txt runs. Needs goldbox-player's server running (systemctl --user status
-# gbplayer) and its checkout at GBPLAYER_HOME (~/repos/goldbox-player unless set). The golden build's results are kept
-# in GOLDEN/record.json and reused while the scenario and the build are unchanged, so after the first run only the
-# candidate runs. The report goes to obj/regress.json; the exit status is 0 only when every scenario matches.
+# With no SCENARIO, every tests/scenarios/*.txt runs but ssiformat, whose golden build is SSI's own (see its file).
+# Needs goldbox-player's server running (systemctl --user status gbplayer) and its checkout at GBPLAYER_HOME
+# (~/repos/goldbox-player unless set). The golden build's results are kept in GOLDEN/record.json and reused while the
+# scenario and the build are unchanged, so after the first run only the candidate runs. The report goes to
+# obj/regress.json; the exit status is 0 only when every scenario matches.
 # VIDEO=cga, tandy or vga runs the game in that video mode (tests/scenarios/POOL-CGA.CFG, POOL-TANDY.CFG, POOL-VGA.CFG)
 # instead of EGA (POOL.CFG), and keeps the golden build's results apart, in GOLDEN/record-<mode>.json. Tandy and VGA
 # need goldbox-player's por-v13-tandy and por-v13-vga titles (a Tandy machine, a VGA one).
@@ -29,12 +30,16 @@
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 player="${GBPLAYER_HOME:-$HOME/repos/goldbox-player}"
-[ $# -ge 1 ] || { sed -n '3,22p' "$0" >&2; exit 2; }
+[ $# -ge 1 ] || { sed -n '3,28p' "$0" >&2; exit 2; }
 golden="$1"; shift
 candidate="$root/obj"
 if [ $# -ge 1 ] && [ -d "$1" ]; then candidate="$1"; shift; fi
 scenarios=("$@")
-[ ${#scenarios[@]} -gt 0 ] || scenarios=("$root"/tests/scenarios/*.txt)
+if [ ${#scenarios[@]} -eq 0 ]; then
+    for f in "$root"/tests/scenarios/*.txt; do
+        [ "$(basename "$f")" = ssiformat.txt ] || scenarios+=("$f")
+    done
+fi
 case "${VIDEO:-ega}" in
     ega) config="$root/tests/scenarios/POOL.CFG"; record="$golden/record.json"; title=por-v13 ;;
     cga) config="$root/tests/scenarios/POOL-CGA.CFG"; record="$golden/record-cga.json"; title=por-v13 ;;
