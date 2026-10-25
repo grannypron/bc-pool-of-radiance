@@ -15,7 +15,11 @@ To build you'll need:
 - Turbo Pascal 6.0 (1991 RTL) for v1.3
 - DOSBox or DOSBox-X
 
-`./build.sh` builds `obj/START.EXE` and `obj/GAME.OVR` and reports the code, data and overlay sizes. `./build.sh --install` also copies them into `drive_c/POOLRAD` to play.
+`./build.sh` builds `obj/START.EXE` and `obj/GAME.OVR`, and the set-up program `obj/POOLCFG.EXE`, and reports the code, data and overlay sizes. `./build.sh --install` also copies them into `drive_c/POOLRAD` to play.
+
+## Installing and setting up
+
+Copy `START.EXE`, `GAME.OVR` and `POOLCFG.EXE` into your Pool of Radiance folder. Run `POOLCFG` there to choose the video mode, the sound device, the introduction, the game's settings and the data and save folders; it writes `POOL.CFG` and `POOLOPT.CFG`, and creates no folders. With no `POOL.CFG`, `START` runs `POOLCFG` itself first, then starts the game with what it wrote. Run it again whenever you want to change them.
 
 ## Tests
 

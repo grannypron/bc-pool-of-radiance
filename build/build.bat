@@ -13,6 +13,7 @@ if exist e:\obj\FIXMAIN.OVR del e:\obj\FIXMAIN.OVR
 if exist e:\obj\FIXMAIN.MAP del e:\obj\FIXMAIN.MAP
 if exist e:\obj\START.EXE del e:\obj\START.EXE
 if exist e:\obj\GAME.OVR del e:\obj\GAME.OVR
+if exist e:\obj\POOLCFG.EXE del e:\obj\POOLCFG.EXE
 f:\tasm sounddrv,e:\obj\sounddrv > e:\build\logs\TASM.OUT
 rem  The trace build of the sequencer, for the tests (tests\sndtrc.pas): its port writes go to a buffer.
 f:\tasm /dTRACE sounddrv,e:\obj\sndtrace >> e:\build\logs\TASM.OUT
@@ -21,3 +22,5 @@ tpc fixmain.pas /B /E..\obj /O..\obj > e:\build\logs\TPC.OUT
 rem  TPC names the overlay after the root; SSI shipped it as GAME.OVR.
 ren e:\obj\FIXMAIN.OVR GAME.OVR
 g:\exepack e:\obj\FIXMAIN.EXE e:\obj\START.EXE > e:\build\logs\PACK.OUT
+rem  The set-up program (#876), from the same units: a source without it (SSI's tags) builds the game alone.
+if exist poolcfg.pas tpc poolcfg.pas /B /E..\obj /O..\obj > e:\build\logs\TPCCFG.OUT

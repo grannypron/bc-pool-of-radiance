@@ -8,20 +8,22 @@ interface
 
 const
   { When a line shows: always; only where the menu takes quick save and load (the map menus); only while the
-    Companion Tools setting is on; only under STING; only when POOL.CFG names a sound device. }
+    Companion Tools setting is on; only under STING; only when POOL.CFG names a sound device; only while the Combat Log
+    setting is on (#903). }
   SHOW_ALWAYS = 0;
   SHOW_QUICK = 1;
   SHOW_COMPANION = 2;
   SHOW_STING = 3;
   SHOW_SOUND = 4;
+  SHOW_LOG = 5;
   { the table's lines }
-  KEY_LINES = 7;
+  KEY_LINES = 8;
 
 type
   { A line of the window: the key, padded to where its description starts, the description and when it shows. }
   TKeyLine = record
     key: string[7];
-    what: string[16];
+    what: string[24];
     show: Byte;
   end;
 
@@ -32,6 +34,7 @@ const
     (key: 'F2  '; what: 'Bestiary'; show: SHOW_ALWAYS),
     (key: 'F5  '; what: 'Quick Save'; show: SHOW_QUICK),
     (key: 'F6  '; what: 'Companion Tools'; show: SHOW_COMPANION),
+    (key: 'F7  '; what: 'Action Log (Combat Only)'; show: SHOW_LOG),
     (key: 'F8  '; what: 'Quick Load'; show: SHOW_QUICK),
     (key: 'CTRL-S '; what: 'Sound On/Off'; show: SHOW_SOUND),
     (key: 'CTRL-Y '; what: 'Memory Stats'; show: SHOW_STING));
@@ -70,6 +73,7 @@ begin
     SHOW_COMPANION: LineShown := GameVars.companionOn <> 0;
     SHOW_STING: LineShown := GameVars.stingArg;
     SHOW_SOUND: LineShown := GameVars.sound.mode <> C_SOUND.MODE_DISABLED;
+    SHOW_LOG: LineShown := GameVars.combatLogOn <> 0;
   else
     LineShown := True;
   end;

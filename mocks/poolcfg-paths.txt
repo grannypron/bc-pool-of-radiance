@@ -1,0 +1,108 @@
+POOLCFG (#876): Paths
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+ ╔══════════════════════════════════ Paths ═══════════════════════════════════╗
+ ║                                                                            ║
+ ║  Pool of Radiance                                                          ║
+ ║    Data Path    C:\POOLRAD\                                                ║
+ ║    Save Path    C:\POOLRAD\SAVE\                                           ║
+ ║                                                                            ║
+ ║  Curse of the Azure Bonds                                                  ║
+ ║    Data Path    C:\CURSE\                                                  ║
+ ║    Save Path    C:\CURSE\SAVE\                                             ║
+ ║                                                                            ║
+ ║  Secret of the Silver Blades                                               ║
+ ║    Data Path    C:\SECRET\                                                 ║
+ ║    Save Path    C:\SECRET\SAVE\                                            ║
+ ║                                                                            ║
+ ║  Pools of Darkness                                                         ║
+ ║    Data Path    C:\POOLS\                                                  ║
+ ║    Save Path    C:\POOLS\SAVE\                                             ║
+ ║                                                                            ║
+ ╟────────────────────────────────────────────────────────────────────────────╢
+ ║  A folder must already exist: Setup checks each path as it is entered      ║
+ ║  and creates none. Pool of Radiance's are POOL.CFG's; the others are       ║
+ ║  kept in POOLOPT.CFG for the later games' ports.                           ║
+ ╚════════════════════════════════════════════════════════════════════════════╝
+ Up Dn Move  Enter Edit  F5 Default  Esc Main Menu  F10 Save and Exit
+
+Enter edits the highlighted path in place:
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+ ╔══════════════════════════════════ Paths ═══════════════════════════════════╗
+ ║                                                                            ║
+ ║  Pool of Radiance                                                          ║
+ ║    Data Path    C:\POOLRAD\                                                ║
+ ║    Save Path   [C:\POOLRAD\SAVX\_                                       ]  ║
+ ║                                                                            ║
+ ║  Curse of the Azure Bonds                                                  ║
+ ║    Data Path    C:\CURSE\                                                  ║
+ ║    Save Path    C:\CURSE\SAVE\                                             ║
+ ║                                                                            ║
+ ║  Secret of the Silver Blades                                               ║
+ ║    Data Path    C:\SECRET\                                                 ║
+ ║    Save Path    C:\SECRET\SAVE\                                            ║
+ ║                                                                            ║
+ ║  Pools of Darkness                                                         ║
+ ║    Data Path    C:\POOLS\                                                  ║
+ ║    Save Path    C:\POOLS\SAVE\                                             ║
+ ║                                                                            ║
+ ╟────────────────────────────────────────────────────────────────────────────╢
+ ║  A folder must already exist: Setup checks each path as it is entered      ║
+ ║  and creates none. Pool of Radiance's are POOL.CFG's; the others are       ║
+ ║  kept in POOLOPT.CFG for the later games' ports.                           ║
+ ╚════════════════════════════════════════════════════════════════════════════╝
+ Type the folder   Lt Rt Home End Del Bksp   Enter Accept   Esc Cancel
+
+Enter on a folder that isn't there:
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+ ╔══════════════════════════════════ Paths ═══════════════════════════════════╗
+ ║                                                                            ║
+ ║  Pool of Radiance                                                          ║
+ ║    Data Path    C:\POOLRAD\                                                ║
+ ║    Save Path   [C:\POOLRAD\SAVX\_                                       ]  ║
+ ║                                                                            ║
+ ║  Curse of the Azure Bonds                                                  ║
+ ║    Data Path   ╔═════════════════ Error ══════════════════╗                ║
+ ║    Save Path   ║                                          ║                ║
+ ║                ║  Please verify the directory exists.     ║                ║
+ ║  Secret of the ║                                          ║                ║
+ ║    Data Path   ║  C:\POOLRAD\SAVX\                        ║                ║
+ ║    Save Path   ║                                          ║                ║
+ ║                ║             Press any key                ║                ║
+ ║  Pools of Darkn╚══════════════════════════════════════════╝                ║
+ ║    Data Path    C:\POOLS\                                                  ║
+ ║    Save Path    C:\POOLS\SAVE\                                             ║
+ ║                                                                            ║
+ ╟────────────────────────────────────────────────────────────────────────────╢
+ ║  A folder must already exist: Setup checks each path as it is entered      ║
+ ║  and creates none. Pool of Radiance's are POOL.CFG's; the others are       ║
+ ║  kept in POOLOPT.CFG for the later games' ports.                           ║
+ ╚════════════════════════════════════════════════════════════════════════════╝
+ Type the folder   Lt Rt Home End Del Bksp   Enter Accept   Esc Cancel
+
+Color Key:
+    GAME NAME           WHITE ON BLUE
+    DATA PATH/SAVE PATH LIGHT GRAY ON BLUE
+    PATH VALUE          YELLOW ON BLUE (A LONG ONE CUT AT THE LEFT WITH "...", AS DrawInfo DOES)
+    HIGHLIGHTED PATH    BLACK ON CYAN
+    CHANGED PATH        WHITE ON BLUE, WITH A "*" AFTER IT
+    EDIT FIELD          WHITE ON BLACK, BRACKETS LIGHT GRAY, CURSOR SHOWN (UNDERLINE INSERTING, BLOCK OVERWRITING)
+    NOTE TEXT           LIGHT CYAN ON BLUE
+    ERROR BOX           WHITE ON RED, FRAME YELLOW; THE PATH LIGHT GRAY ON RED
+
+Command Key:
+    UP / DOWN           UP, DOWN, HOME, END (THE EIGHT PATHS)
+    EDIT                ENTER, OR TYPING A CHARACTER (STARTS THE EDIT WITH IT)
+    DEFAULT             F5 (POOL: THE GAME FOLDER AND ITS SAVE\; THE OTHERS: C:\CURSE\ ... AS NOW)
+    BACK                ESC
+    SAVE AND EXIT       F10
+  While editing:
+    MOVE                LEFT, RIGHT, HOME, END
+    DELETE              DEL, BACKSPACE
+    INSERT/OVERWRITE    INS
+    ACCEPT              ENTER (CHECKED; SEE THE RULES BELOW)
+    CANCEL              ESC (THE OLD PATH BACK)
+  Error box:
+    DISMISS             ANY KEY (BACK TO THE EDIT, TEXT KEPT, CURSOR AT ITS END)

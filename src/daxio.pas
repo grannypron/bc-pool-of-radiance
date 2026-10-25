@@ -43,7 +43,7 @@ function DataDiskMsg: Types.TStr40;
 
 { Before the game's screen is up (plain DOS text): until file name is there, say it is not, with its path, and ask
   with diskMsg, each time until a key; Escape quits to DOS (SSI asked until it was there). }
-procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
+procedure WaitForFile(name: Types.TPathStr; diskMsg: string);
 
 function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noPrompt, escQuits: Boolean;
   var f: file): Boolean;
@@ -227,7 +227,7 @@ begin
   DataDiskMsg := insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
-procedure WaitForFile(name: Types.TPathStr; diskMsg: Types.TStr40);
+procedure WaitForFile(name: Types.TPathStr; diskMsg: string);
 begin
   while not DaxIo.FileExists(name) do begin
     WriteLn('Not found: ', DaxIo.PathForLine(name, 68));

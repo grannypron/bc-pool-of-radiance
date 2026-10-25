@@ -5,12 +5,15 @@
   before the title music, and every change writes it back; a saved game no longer changes them. The screen has three
   pages (#835): the settings, the games' paths, and the system's details (video, sound device, build, data archives and
   memory). The combat log and its size (#841) are settings too, which only a combat log with a store (CbtLog.Usable)
-  can change. }
+  can change. POOLOPT.CFG is read and written through CfgFile, which the set-up program POOLCFG shares (#876): Collect
+  and Apply are the one place the game's GameVars meet its TSettings. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Options;
 
 interface
+
+uses CfgFile;
 
 { Read POOLOPT.CFG from the save folder over the defaults GameInit has set, then apply the Sound setting. A missing or
   unreadable file, an unknown key or a value out of range leaves the default. }
@@ -20,6 +23,10 @@ procedure LoadOptions;
   beside it as POOLOPT.CF$ (FileUtil.TempName) and put in its place, so a failed write leaves the old file, and the
   settings then hold for this session only. }
 procedure SaveOptions;
+
+{ Set the game's settings (GameVars) from s, and keep its later games' paths for POOLOPT.CFG. GameInit gives it
+  CfgFile.Defaults at start-up. }
+procedure Apply(var s: CfgFile.TSettings);
 
 { Show the Settings screen until Exit or Escape. Game, Paths and System on the bottom line show its pages. On the Game
   page Up and Down (also Home and End) move the highlight through the settings, wrapping at either end, past the Quick
@@ -32,48 +39,13 @@ procedure OptionsMenu;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, GameVars, TextRend, Border, MenuCore, GameIo,
-  SoundDrv, DaxIo, DataArc, GameDefs, VidOps, FileUtil, CbtLog, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_KEYS, C_SOUND, C_DATA, C_OPT, GameVars, TextRend, Border, MenuCore,
+  GameIo, SoundDrv, DaxIo, DataArc, GameDefs, VidOps, CbtLog, StrUtil;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
 
 const
-  CFG_NAME = 'POOLOPT.CFG';
-  { the most lines read from POOLOPT.CFG; anything after them is ignored, and dropped when the file is written }
-  MAX_LINES = 100;
-  { The settings, in the Game page's order; the sub-settings follow the setting they come under. }
-  OPT_SPEED = 1;
-  OPT_PORTRAITS_ALL = 2;
-  OPT_MONSTERS = 3;
-  OPT_PORTRAITS = 4;
-  OPT_MUSIC = 5;
-  OPT_TITLE_MUSIC = 6;
-  OPT_BATTLE_MUSIC = 7;
-  OPT_SOUND = 8;
-  OPT_FOOTSTEPS = 9;
-  OPT_RANGED = 10;
-  OPT_MELEE = 11;
-  OPT_DEATH = 12;
-  OPT_WALL = 13;
-  OPT_SPELLS = 14;
-  { the first setting under the Quick Mode heading }
-  OPT_QUICK = 15;
-  OPT_MAGIC = 16;
-  OPT_COMPANION = 17;
-  OPT_CLUES = 18;
-  { the combat log (#841), and how many messages it keeps }
-  OPT_COMBAT_LOG = 19;
-  OPT_LOG_LINES = 20;
-  OPT_COUNT = 20;
-  { POOLOPT.CFG's keys past the settings: the later games' data and save paths, by laterPaths index }
-  KEY_PATHS = OPT_COUNT;
-  LATER_PATHS = 6;
-  KEY_COUNT = KEY_PATHS + LATER_PATHS;
-  { the slowest game speed; 0 is the fastest }
-  SLOWEST = 9;
-  { Log Lines' step, between CbtLog.MIN_ENTRIES and MAX_ENTRIES }
-  LOG_STEP = 5;
   { The two choices of a line that steps a number (speed, log lines), by stepChoice: Slower or Less on the left, Faster
     or More on the right. }
   CHOICE_LEFT = 0;
@@ -103,373 +75,124 @@ const
 var
   { a stepping line's choice, CHOICE_LEFT or CHOICE_RIGHT, while the screen is up }
   stepChoice: Byte;
-  { the later games' paths POOLOPT.CFG holds: Curse's data and save paths, then Secret's, then Pools' }
-  laterPaths: array[1..LATER_PATHS] of Types.TPathStr;
-
-{ The key of setting or path key in POOLOPT.CFG. }
-function KeyName(key: Byte): Types.TStr20;
-begin
-  case key of
-    OPT_SPEED: KeyName := 'SPEED';
-    OPT_PORTRAITS_ALL: KeyName := 'ALLPORTRAITS';
-    OPT_MONSTERS: KeyName := 'MONSTERS';
-    OPT_PORTRAITS: KeyName := 'PORTRAITS';
-    OPT_MUSIC: KeyName := 'MUSIC';
-    OPT_TITLE_MUSIC: KeyName := 'TITLEMUSIC';
-    OPT_BATTLE_MUSIC: KeyName := 'BATTLEMUSIC';
-    OPT_SOUND: KeyName := 'SOUND';
-    OPT_FOOTSTEPS: KeyName := 'FOOTSTEPS';
-    OPT_RANGED: KeyName := 'RANGEDSOUND';
-    OPT_MELEE: KeyName := 'MELEESOUND';
-    OPT_DEATH: KeyName := 'DEATHSCREAM';
-    OPT_WALL: KeyName := 'WALLHIT';
-    OPT_SPELLS: KeyName := 'SPELLSOUND';
-    OPT_QUICK: KeyName := 'AUTOENDQUICK';
-    OPT_MAGIC: KeyName := 'QUICKMAGIC';
-    OPT_COMPANION: KeyName := 'COMPANION';
-    OPT_CLUES: KeyName := 'CLUENOTES';
-    OPT_COMBAT_LOG: KeyName := 'COMBATLOG';
-    OPT_LOG_LINES: KeyName := 'LOGLINES';
-    KEY_PATHS + 1: KeyName := 'CURSEDATA';
-    KEY_PATHS + 2: KeyName := 'CURSESAVE';
-    KEY_PATHS + 3: KeyName := 'SECRETDATA';
-    KEY_PATHS + 4: KeyName := 'SECRETSAVE';
-    KEY_PATHS + 5: KeyName := 'POOLSDATA';
-    KEY_PATHS + 6: KeyName := 'POOLSSAVE';
-  else
-    KeyName := '';
-  end;
-end;
-
-{ The label of setting opt on the Game page, a sub-setting's indented under its setting. }
-function SettingLabel(opt: Byte): Types.TStr40;
-var
-  n: Types.TStr20;
-begin
-  case opt of
-    OPT_SPEED: SettingLabel := 'Game Speed (' + Chr(Ord('0') + GameVars.gameDelay mod (SLOWEST + 1)) + ')';
-    OPT_PORTRAITS_ALL: SettingLabel := 'Portraits';
-    OPT_MONSTERS: SettingLabel := '  Monster Portraits';
-    OPT_PORTRAITS: SettingLabel := '  Character Portraits';
-    OPT_MUSIC: SettingLabel := 'Music';
-    OPT_TITLE_MUSIC: SettingLabel := '  Title Music';
-    OPT_BATTLE_MUSIC: SettingLabel := '  Battle Music';
-    OPT_SOUND: SettingLabel := 'Sound';
-    OPT_FOOTSTEPS: SettingLabel := '  Footsteps';
-    OPT_RANGED: SettingLabel := '  Ranged Weapon Usage';
-    OPT_MELEE: SettingLabel := '  Melee Attacks';
-    OPT_DEATH: SettingLabel := '  Death Scream';
-    OPT_WALL: SettingLabel := '  Wall Hit';
-    OPT_SPELLS: SettingLabel := '  Spell Effects';
-    OPT_QUICK: SettingLabel := '  Auto End Quick Mode';
-    OPT_MAGIC: SettingLabel := '  Use Magic';
-    OPT_COMPANION: SettingLabel := 'Companion Tools';
-    OPT_CLUES: SettingLabel := '  Clue Book Notes';
-    OPT_COMBAT_LOG: SettingLabel := 'Combat Log';
-    OPT_LOG_LINES: begin
-                     Str(GameVars.combatLogLines, n);
-                     SettingLabel := '  Log Lines (' + n + ')';
-                   end;
-  else
-    SettingLabel := '';
-  end;
-end;
-
-{ The Game page row of setting opt: one a row from FIRST_ROW, the Quick Mode heading's row before OPT_QUICK. }
-function SettingRow(opt: Byte): Byte;
-begin
-  SettingRow := FIRST_ROW + opt - 1 + Ord(opt >= OPT_QUICK);
-end;
-
-{ ON for a nonzero flag, OFF for zero. }
-function OnOff(flag: Byte): Types.TStr20;
-begin
-  if flag <> 0 then
-    OnOff := 'ON'
-  else
-    OnOff := 'OFF';
-end;
+  { the settings as POOLOPT.CFG keeps them: the later games' paths, which only POOLCFG sets, and the rest as Collect
+    last copied them from GameVars }
+  cur: CfgFile.TSettings;
+  { the settings the Game page passes by, while the screen is up: the combat log's two without a store for it
+    (CbtLog.Usable) }
+  unchangeable: CfgFile.TOptSet;
 
 { The GameVars.soundGroups bit of a sound setting, or musicGroups bit of a music setting; 0 for any other setting. }
 function GroupBit(opt: Byte): Byte;
 begin
   case opt of
-    OPT_TITLE_MUSIC: GroupBit := C_SOUND.GROUP_TITLE_MUSIC;
-    OPT_BATTLE_MUSIC: GroupBit := C_SOUND.GROUP_BATTLE_MUSIC;
-    OPT_FOOTSTEPS: GroupBit := C_SOUND.GROUP_FOOTSTEPS;
-    OPT_RANGED: GroupBit := C_SOUND.GROUP_RANGED;
-    OPT_MELEE: GroupBit := C_SOUND.GROUP_MELEE;
-    OPT_DEATH: GroupBit := C_SOUND.GROUP_DEATH;
-    OPT_WALL: GroupBit := C_SOUND.GROUP_WALL;
-    OPT_SPELLS: GroupBit := C_SOUND.GROUP_SPELL;
+    C_OPT.OPT_TITLE_MUSIC: GroupBit := C_SOUND.GROUP_TITLE_MUSIC;
+    C_OPT.OPT_BATTLE_MUSIC: GroupBit := C_SOUND.GROUP_BATTLE_MUSIC;
+    C_OPT.OPT_FOOTSTEPS: GroupBit := C_SOUND.GROUP_FOOTSTEPS;
+    C_OPT.OPT_RANGED: GroupBit := C_SOUND.GROUP_RANGED;
+    C_OPT.OPT_MELEE: GroupBit := C_SOUND.GROUP_MELEE;
+    C_OPT.OPT_DEATH: GroupBit := C_SOUND.GROUP_DEATH;
+    C_OPT.OPT_WALL: GroupBit := C_SOUND.GROUP_WALL;
+    C_OPT.OPT_SPELLS: GroupBit := C_SOUND.GROUP_SPELL;
   else
     GroupBit := 0;
   end;
 end;
 
-{ Setting opt (not the speed or log lines) as 1 for on and 0 for off. }
-function Flag(opt: Byte): Byte;
+{ The game's settings (GameVars) into s, its paths left as they are; each bit of the music and sound groups is a
+  setting of its own. }
+procedure Collect(var s: CfgFile.TSettings);
+var
+  opt: Byte;
 begin
-  case opt of
-    OPT_PORTRAITS_ALL: Flag := GameVars.portraitsAll;
-    OPT_MONSTERS: Flag := GameVars.monsterPics;
-    OPT_PORTRAITS: Flag := GameVars.portraitsOn;
-    OPT_MUSIC: Flag := GameVars.musicOn;
-    OPT_TITLE_MUSIC, OPT_BATTLE_MUSIC: Flag := Ord(GameVars.musicGroups and Options.GroupBit(opt) <> 0);
-    OPT_SOUND: Flag := GameVars.soundOn;
-    OPT_FOOTSTEPS..OPT_SPELLS: Flag := Ord(GameVars.soundGroups and Options.GroupBit(opt) <> 0);
-    OPT_QUICK: Flag := GameVars.quickEnds;
-    OPT_MAGIC: Flag := GameVars.quickMagicOn;
-    OPT_COMPANION: Flag := GameVars.companionOn;
-    OPT_CLUES: Flag := GameVars.clueNotesOn;
-    OPT_COMBAT_LOG: Flag := GameVars.combatLogOn;
-  else
-    Flag := 0;
-  end;
+  s.speed := GameVars.gameDelay;
+  s.logLines := GameVars.combatLogLines;
+  for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
+    case opt of
+      C_OPT.OPT_PORTRAITS_ALL: s.flags[opt] := GameVars.portraitsAll;
+      C_OPT.OPT_MONSTERS: s.flags[opt] := GameVars.monsterPics;
+      C_OPT.OPT_PORTRAITS: s.flags[opt] := GameVars.portraitsOn;
+      C_OPT.OPT_MUSIC: s.flags[opt] := GameVars.musicOn;
+      C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
+        s.flags[opt] := Ord(GameVars.musicGroups and Options.GroupBit(opt) <> 0);
+      C_OPT.OPT_SOUND: s.flags[opt] := GameVars.soundOn;
+      C_OPT.OPT_FOOTSTEPS..C_OPT.OPT_SPELLS: s.flags[opt] := Ord(GameVars.soundGroups and Options.GroupBit(opt) <> 0);
+      C_OPT.OPT_QUICK: s.flags[opt] := GameVars.quickEnds;
+      C_OPT.OPT_MAGIC: s.flags[opt] := GameVars.quickMagicOn;
+      C_OPT.OPT_COMPANION: s.flags[opt] := GameVars.companionOn;
+      C_OPT.OPT_CLUES: s.flags[opt] := GameVars.clueNotesOn;
+      C_OPT.OPT_COMBAT_LOG: s.flags[opt] := GameVars.combatLogOn;
+    end;
 end;
 
-{ Set setting opt (not the speed or log lines) on for a nonzero value, else off. }
-procedure SetFlag(opt, value: Byte);
+procedure Apply(var s: CfgFile.TSettings);
 var
-  isOn: Byte;
+  opt: Byte;
 begin
-  isOn := Ord(value <> 0);
-  case opt of
-    OPT_PORTRAITS_ALL: GameVars.portraitsAll := isOn;
-    OPT_MONSTERS: GameVars.monsterPics := isOn;
-    OPT_PORTRAITS: GameVars.portraitsOn := isOn;
-    OPT_MUSIC: GameVars.musicOn := isOn;
-    OPT_TITLE_MUSIC, OPT_BATTLE_MUSIC:
-      if isOn <> 0 then
-        GameVars.musicGroups := GameVars.musicGroups or Options.GroupBit(opt)
-      else
-        GameVars.musicGroups := GameVars.musicGroups and not Options.GroupBit(opt);
-    OPT_SOUND: GameVars.soundOn := isOn;
-    OPT_FOOTSTEPS..OPT_SPELLS:
-      if isOn <> 0 then
-        GameVars.soundGroups := GameVars.soundGroups or Options.GroupBit(opt)
-      else
-        GameVars.soundGroups := GameVars.soundGroups and not Options.GroupBit(opt);
-    OPT_QUICK: GameVars.quickEnds := isOn;
-    OPT_MAGIC: GameVars.quickMagicOn := isOn;
-    OPT_COMPANION: GameVars.companionOn := isOn;
-    OPT_CLUES: GameVars.clueNotesOn := isOn;
-    OPT_COMBAT_LOG: GameVars.combatLogOn := isOn;
-  end;
+  GameVars.gameDelay := s.speed;
+  GameVars.combatLogLines := s.logLines;
+  GameVars.musicGroups := 0;
+  GameVars.soundGroups := 0;
+  for opt := C_OPT.OPT_FIRST_FLAG to C_OPT.OPT_LAST_FLAG do
+    case opt of
+      C_OPT.OPT_PORTRAITS_ALL: GameVars.portraitsAll := s.flags[opt];
+      C_OPT.OPT_MONSTERS: GameVars.monsterPics := s.flags[opt];
+      C_OPT.OPT_PORTRAITS: GameVars.portraitsOn := s.flags[opt];
+      C_OPT.OPT_MUSIC: GameVars.musicOn := s.flags[opt];
+      C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC:
+        if s.flags[opt] <> 0 then
+          GameVars.musicGroups := GameVars.musicGroups or Options.GroupBit(opt);
+      C_OPT.OPT_SOUND: GameVars.soundOn := s.flags[opt];
+      C_OPT.OPT_FOOTSTEPS..C_OPT.OPT_SPELLS:
+        if s.flags[opt] <> 0 then
+          GameVars.soundGroups := GameVars.soundGroups or Options.GroupBit(opt);
+      C_OPT.OPT_QUICK: GameVars.quickEnds := s.flags[opt];
+      C_OPT.OPT_MAGIC: GameVars.quickMagicOn := s.flags[opt];
+      C_OPT.OPT_COMPANION: GameVars.companionOn := s.flags[opt];
+      C_OPT.OPT_CLUES: GameVars.clueNotesOn := s.flags[opt];
+      C_OPT.OPT_COMBAT_LOG: GameVars.combatLogOn := s.flags[opt];
+    end;
+  cur.paths := s.paths;
 end;
 
-{ The value of setting or path key as POOLOPT.CFG keeps it. Sound is the setting, which stays as it was when POOL.CFG
-  names no sound device. }
-function StoredValue(key: Byte): Types.TPathStr;
-var
-  n: Types.TStr20;
+{ The Game page row of setting opt: one a row from FIRST_ROW, the Quick Mode heading's row before OPT_QUICK. }
+function SettingRow(opt: Byte): Byte;
 begin
-  if key = OPT_SPEED then
-    StoredValue := Chr(Ord('0') + GameVars.gameDelay mod (SLOWEST + 1))
-  else if key = OPT_LOG_LINES then begin
-    Str(GameVars.combatLogLines, n);
-    StoredValue := n;
-  end else if key > KEY_PATHS then
-    StoredValue := laterPaths[key - KEY_PATHS]
-  else
-    StoredValue := Options.OnOff(Options.Flag(key));
+  SettingRow := FIRST_ROW + opt - 1 + Ord(opt >= C_OPT.OPT_QUICK);
 end;
 
 { The value of setting opt as the screen shows it: Sound shows whether sound is on now, and Combat Log that it needs
   EMS when it has no store. }
 function ShownValue(opt: Byte): Types.TStr20;
 begin
-  if opt = OPT_SOUND then
-    ShownValue := Options.OnOff(Ord(GameVars.soundMode <> C_SOUND.MODE_DISABLED))
-  else if (opt = OPT_COMBAT_LOG) and not CbtLog.Usable then
+  if opt = C_OPT.OPT_SOUND then
+    ShownValue := CfgFile.OnOff(Ord(GameVars.soundMode <> C_SOUND.MODE_DISABLED))
+  else if (opt = C_OPT.OPT_COMBAT_LOG) and not CbtLog.Usable then
     ShownValue := 'Needs EMS'
-  else
-    ShownValue := Options.StoredValue(opt);
-end;
-
-{ s without the spaces and tabs at either end, upper-cased. }
-function Tidy(s: string): string;
-var
-  i: Byte;
-begin
-  while (Length(s) > 0) and (s[1] in [' ', #9]) do
-    Delete(s, 1, 1);
-  while (Length(s) > 0) and (s[Length(s)] in [' ', #9]) do
-    Dec(s[0]);
-  for i := 1 to Length(s) do
-    s[i] := UpCase(s[i]);
-  Tidy := s;
-end;
-
-{ The setting or path key whose key line names before its '=', or 0 for none. }
-function KeyOf(line: string): Byte;
-var
-  eq: Byte;
-  key: string;
-  k: Byte;
-begin
-  KeyOf := 0;
-  eq := Pos('=', line);
-  if eq = 0 then Exit;
-  key := Options.Tidy(Copy(line, 1, eq - 1));
-  for k := 1 to KEY_COUNT do
-    if key = Options.KeyName(k) then
-      KeyOf := k;
-end;
-
-{ Set setting or path key from value (tidied): a digit 0..9 for the speed, a number from CbtLog.MIN_ENTRIES to
-  MAX_ENTRIES for the log lines, a path as it is, ON or OFF (or 1 or 0) for the others. Any other value leaves the
-  setting as it is. }
-procedure ReadValue(key: Byte; value: string);
-var
-  n: Integer;
-  code: Integer;
-begin
-  if key = OPT_SPEED then begin
-    if (Length(value) = 1) and (value[1] in ['0'..'9']) then
-      GameVars.gameDelay := Ord(value[1]) - Ord('0');
-  end else if key = OPT_LOG_LINES then begin
-    Val(value, n, code);
-    if (code = 0) and (n >= CbtLog.MIN_ENTRIES) and (n <= CbtLog.MAX_ENTRIES) then
-      GameVars.combatLogLines := n;
-  end else if key > KEY_PATHS then begin
-    if value <> '' then
-      laterPaths[key - KEY_PATHS] := value;
-  end else if (value = 'ON') or (value = '1') then
-    Options.SetFlag(key, 1)
-  else if (value = 'OFF') or (value = '0') then
-    Options.SetFlag(key, 0);
+  else begin
+    Options.Collect(cur);
+    ShownValue := CfgFile.StoredValue(cur, opt);
+  end;
 end;
 
 procedure LoadOptions;
 var
-  f: Text;
-  line: string;
-  opt: Byte;
-  lines: Integer;
-  done: Boolean;
-  n: Integer;
+  bad: Byte;
+  found: CfgFile.TReadResult;
 begin
-  laterPaths[1] := 'C:\CURSE\';
-  laterPaths[2] := 'C:\CURSE\SAVE\';
-  laterPaths[3] := 'C:\SECRET\';
-  laterPaths[4] := 'C:\SECRET\SAVE\';
-  laterPaths[5] := 'C:\POOLS\';
-  laterPaths[6] := 'C:\POOLS\SAVE\';
-  Assign(f, GameVars.saveDirectory + CFG_NAME);
-  Reset(f);
-  if IOResult = 0 then begin
-    lines := 0;
-    done := False;
-    repeat
-      if Eof(f) then
-        done := True
-      else begin
-        ReadLn(f, line);
-        Inc(lines);
-        opt := Options.KeyOf(line);
-        if opt <> 0 then
-          Options.ReadValue(opt, Options.Tidy(Copy(line, Pos('=', line) + 1, 255)));
-      end;
-      if (IOResult <> 0) or (lines >= MAX_LINES) then
-        done := True;
-    until done;
-    Close(f);
-    n := IOResult;
-  end;
+  Options.Collect(cur);
+  found := CfgFile.ReadOptions(GameVars.saveDirectory, cur, bad);
+  Options.Apply(cur);
   GameIo.SetSound(GameVars.soundOn <> 0);
   GameIo.saveSettings := Options.SaveOptions;
 end;
 
 procedure SaveOptions;
 var
-  newFile: Text;
-  oldFile: Text;
-  line: string;
-  opt: Byte;
-  lines: Integer;
-  done: Boolean;
-  ok: Boolean;
-  n: Integer;
+  written: Boolean;
 begin
-  Assign(newFile, FileUtil.TempName(GameVars.saveDirectory + CFG_NAME));
-  Rewrite(newFile);
-  if IOResult <> 0 then Exit;
-  for opt := 1 to KEY_COUNT do
-    WriteLn(newFile, Options.KeyName(opt), '=', Options.StoredValue(opt));
-  ok := IOResult = 0;
-  Assign(oldFile, GameVars.saveDirectory + CFG_NAME);
-  if ok then begin
-    Reset(oldFile);
-    if IOResult = 0 then begin
-      lines := 0;
-      done := False;
-      repeat
-        if Eof(oldFile) then
-          done := True
-        else begin
-          ReadLn(oldFile, line);
-          Inc(lines);
-          if (Options.KeyOf(line) = 0) and (Options.Tidy(line) <> '') then
-            WriteLn(newFile, line);
-        end;
-        if IOResult <> 0 then begin
-          ok := False;
-          done := True;
-        end;
-        if lines >= MAX_LINES then
-          done := True;
-      until done;
-      Close(oldFile);
-      n := IOResult;
-    end;
-  end;
-  Close(newFile);
-  if IOResult <> 0 then
-    ok := False;
-  if ok then
-    ok := FileUtil.PutInPlace(GameVars.saveDirectory + CFG_NAME)
-  else
-    FileUtil.DeleteFile(FileUtil.TempName(GameVars.saveDirectory + CFG_NAME));
-end;
-
-{ True for a setting the Game page can change: the combat log's two only when it has a store. }
-function Changeable(opt: Byte): Boolean;
-begin
-  Changeable := not (opt in [OPT_COMBAT_LOG, OPT_LOG_LINES]) or CbtLog.Usable;
-end;
-
-{ The setting after opt that can be changed, or before it when down is clear, wrapping at either end. }
-function NextSetting(opt: Byte; down: Boolean): Byte;
-begin
-  repeat
-    if down then
-      opt := opt mod OPT_COUNT + 1
-    else if opt > 1 then
-      Dec(opt)
-    else
-      opt := OPT_COUNT;
-  until Options.Changeable(opt);
-  NextSetting := opt;
-end;
-
-{ True when setting opt steps a number with two choices, the left lowering it and the right raising it, and if so
-  their names. }
-function StepNames(opt: Byte; var left, right: Types.TStr20): Boolean;
-begin
-  StepNames := True;
-  case opt of
-    OPT_SPEED: begin
-                 left := 'Slower';
-                 right := 'Faster';
-               end;
-    OPT_LOG_LINES: begin
-                     left := 'Less';
-                     right := 'More';
-                   end;
-  else
-    StepNames := False;
-  end;
+  Options.Collect(cur);
+  written := CfgFile.WriteOptions(GameVars.saveDirectory, cur);
 end;
 
 { Draw setting opt on its row, its label and value in color, or in OFF_COLOR when the page cannot change it. A stepping
@@ -479,16 +202,17 @@ var
   row: Byte;
   leftColor: Byte;
   rightColor: Byte;
-  left: Types.TStr20;
-  right: Types.TStr20;
+  left: CfgFile.TName;
+  right: CfgFile.TName;
 begin
-  if (opt < 1) or (opt > OPT_COUNT) then Exit;
-  if not Options.Changeable(opt) then
+  if (opt < 1) or (opt > C_OPT.OPT_COUNT) then Exit;
+  if opt in unchangeable then
     color := OFF_COLOR;
   row := Options.SettingRow(opt);
   TextRend.PrintSpaces(LABEL_COL, row, Black, RIGHT_COL - LABEL_COL + 1);
-  TextRend.DisplayString(LABEL_COL, row, color, Options.SettingLabel(opt));
-  if Options.StepNames(opt, left, right) then begin
+  Options.Collect(cur);
+  TextRend.DisplayString(LABEL_COL, row, color, CfgFile.SettingLabel(cur, opt));
+  if CfgFile.StepNames(opt, left, right) then begin
     leftColor := color;
     rightColor := color;
     if color = TITLE_COLOR then
@@ -548,12 +272,12 @@ procedure DrawGamePage(sel: Byte);
 var
   opt: Byte;
 begin
-  for opt := 1 to OPT_COUNT do
+  for opt := 1 to C_OPT.OPT_COUNT do
     if opt = sel then
       Options.DrawSetting(opt, TITLE_COLOR)
     else
       Options.DrawSetting(opt, LINE_COLOR);
-  TextRend.DisplayString(LABEL_COL, Options.SettingRow(OPT_QUICK) - 1, LINE_COLOR, 'Quick Mode');
+  TextRend.DisplayString(LABEL_COL, Options.SettingRow(C_OPT.OPT_QUICK) - 1, LINE_COLOR, 'Quick Mode');
 end;
 
 { The Paths page: each game's name, then its data and save paths. Pool of Radiance's are the ones POOL.CFG gives this
@@ -582,8 +306,8 @@ begin
       dataPath := GameVars.gameDir;
       savePath := GameVars.saveDirectory;
     end else begin
-      dataPath := laterPaths[2 * g - 3];
-      savePath := laterPaths[2 * g - 2];
+      dataPath := cur.paths[2 * g - 3];
+      savePath := cur.paths[2 * g - 2];
     end;
     row := FIRST_ROW + (g - 1) * GAME_ROWS;
     TextRend.DisplayString(LABEL_COL, row, TITLE_COLOR, name);
@@ -648,34 +372,20 @@ begin
   end;
 end;
 
-{ Change setting opt, as Enter does. The speed takes the speed line's choice, a step within 0..SLOWEST: Slower raises
+{ Change setting opt, as Enter does (CfgFile.ChangeSetting). The speed takes the speed line's choice: Slower raises
   gameDelay (the game's text and animation delays grow with it) and Faster lowers it. Log Lines takes its line's choice
-  too, LOG_STEP less or more within CbtLog.MIN_ENTRIES..MAX_ENTRIES; the next fight's log has the new size. Every other
-  setting turns over. A music setting turned off ends the tune it covers now; Sound goes through GameIo.SetSound, as
-  Ctrl-S does. }
+  too; the next fight's log has the new size. Every other setting turns over. A music setting turned off ends the tune
+  it covers now; Sound goes through GameIo.SetSound, as Ctrl-S does. }
 procedure ChangeSetting(opt: Byte);
 begin
-  case opt of
-    OPT_SPEED: if stepChoice = CHOICE_LEFT then begin
-                 if GameVars.gameDelay < SLOWEST then
-                   Inc(GameVars.gameDelay);
-               end else if GameVars.gameDelay > 0 then
-                 Dec(GameVars.gameDelay);
-    OPT_LOG_LINES: if stepChoice = CHOICE_LEFT then begin
-                     if GameVars.combatLogLines >= CbtLog.MIN_ENTRIES + LOG_STEP then
-                       Dec(GameVars.combatLogLines, LOG_STEP)
-                     else
-                       GameVars.combatLogLines := CbtLog.MIN_ENTRIES;
-                   end else if GameVars.combatLogLines <= CbtLog.MAX_ENTRIES - LOG_STEP then
-                     Inc(GameVars.combatLogLines, LOG_STEP)
-                   else
-                     GameVars.combatLogLines := CbtLog.MAX_ENTRIES;
-    OPT_SOUND: GameIo.SetSound(GameVars.soundMode = C_SOUND.MODE_DISABLED);
+  if opt = C_OPT.OPT_SOUND then
+    GameIo.SetSound(GameVars.soundMode = C_SOUND.MODE_DISABLED)
   else begin
-      Options.SetFlag(opt, Ord(Options.Flag(opt) = 0));
-      if opt in [OPT_MUSIC, OPT_TITLE_MUSIC, OPT_BATTLE_MUSIC] then
-        SoundDrv.ApplyMusicSettings;
-    end;
+    Options.Collect(cur);
+    CfgFile.ChangeSetting(cur, opt, stepChoice = CHOICE_RIGHT);
+    Options.Apply(cur);
+    if opt in [C_OPT.OPT_MUSIC, C_OPT.OPT_TITLE_MUSIC, C_OPT.OPT_BATTLE_MUSIC] then
+      SoundDrv.ApplyMusicSettings;
   end;
 end;
 
@@ -702,10 +412,10 @@ var
   { Turn setting sel over, or on a stepping line pick choice. }
   procedure Arrow(choice: Byte);
   var
-    left: Types.TStr20;
-    right: Types.TStr20;
+    left: CfgFile.TName;
+    right: CfgFile.TName;
   begin
-    if Options.StepNames(sel, left, right) then begin
+    if CfgFile.StepNames(sel, left, right) then begin
       stepChoice := choice;
       Options.DrawSetting(sel, TITLE_COLOR);
     end else begin
@@ -723,6 +433,10 @@ var
 
 begin
   savedChoice := GameVars.horizChoice;
+  if CbtLog.Usable then
+    unchangeable := []
+  else
+    unchangeable := [C_OPT.OPT_COMBAT_LOG, C_OPT.OPT_LOG_LINES];
   sel := 1;
   stepChoice := CHOICE_LEFT;
   changed := False;
@@ -740,8 +454,8 @@ begin
     if ext then begin
       if page = PAGE_GAME then
         case ch of
-          C_KEYS.UP, C_KEYS.HOME: MoveTo(Options.NextSetting(sel, False));
-          C_KEYS.DOWN, C_KEYS.END_KEY: MoveTo(Options.NextSetting(sel, True));
+          C_KEYS.UP, C_KEYS.HOME: MoveTo(CfgFile.NextSetting(sel, False, unchangeable));
+          C_KEYS.DOWN, C_KEYS.END_KEY: MoveTo(CfgFile.NextSetting(sel, True, unchangeable));
           C_KEYS.LEFT: Arrow(CHOICE_LEFT);
           C_KEYS.RIGHT: Arrow(CHOICE_RIGHT);
         end;
@@ -761,8 +475,8 @@ begin
     if touched then
       changed := True;
     if (page = PAGE_GAME) and (touched or (GameVars.soundMode <> soundState)) then begin
-      if sel <> OPT_SOUND then
-        Options.DrawSetting(OPT_SOUND, LINE_COLOR);
+      if sel <> C_OPT.OPT_SOUND then
+        Options.DrawSetting(C_OPT.OPT_SOUND, LINE_COLOR);
       Options.DrawSetting(sel, TITLE_COLOR);
     end;
   until not ext and (ch in [C_KEYS.NONE, 'E']);

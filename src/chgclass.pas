@@ -157,15 +157,15 @@ begin
     Refusal := creature^.name + ' needs restoration first.';
 end;
 
-{ s in color in the status rows, word-wrapped between the frame's sides. }
+{ s in color in the status rows, word-wrapped between the frame's sides. The rows are cleared and the text starts at
+  their corner, not where an earlier message left the cursor (#888). }
 procedure ShowStatus(color: Byte; s: string);
 var
   delayFlag: Byte;
 begin
-  Border.ClearBox(LABEL_COL, STATUS_TOP_ROW, C_MSG.TEXT_RIGHT - 1, STATUS_BOTTOM_ROW);
   delayFlag := GameVars.msgDelayFlag;
   GameVars.msgDelayFlag := 0;
-  TextRend.DisplayMessageWindow(LABEL_COL, STATUS_TOP_ROW, C_MSG.TEXT_RIGHT - 1, STATUS_BOTTOM_ROW, color, False, s);
+  TextRend.DisplayMessageWindow(LABEL_COL, STATUS_TOP_ROW, C_MSG.TEXT_RIGHT - 1, STATUS_BOTTOM_ROW, color, True, s);
   GameVars.msgDelayFlag := delayFlag;
 end;
 
@@ -282,7 +282,8 @@ begin
   TextRend.DisplayString(LABEL_COL, HEAD_ROW, LightGreen, 'New Class');
   TextRend.DisplayString(NEEDS_COL, HEAD_ROW, LightGreen, 'Needs');
   TextRend.DisplayString(HAS_COL, HEAD_ROW, LightGreen, 'Has');
-  TextRend.DisplayMessageWindow(LABEL_COL, TEXT_TOP_ROW, C_MSG.TEXT_RIGHT - 1, TEXT_BOTTOM_ROW, LightGreen, False,
+  { from the explanation's corner: the cursor an earlier message left inside these rows ran it past them (#888) }
+  TextRend.DisplayMessageWindow(LABEL_COL, TEXT_TOP_ROW, C_MSG.TEXT_RIGHT - 1, TEXT_BOTTOM_ROW, LightGreen, True,
                                 'To dual class a character must have ' + StrUtil.NumStr(ClassCal.LEAVE_CLASS_SCORE) +
                                 ' or more in the prime requisites of their current class, and ' +
                                 StrUtil.NumStr(ClassCal.TAKE_CLASS_SCORE) +

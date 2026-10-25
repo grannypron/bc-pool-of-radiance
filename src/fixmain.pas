@@ -39,6 +39,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O CbtActs}
 {$O Explore}
 {$O Options}
+{$O CfgFile}
 {$O LogView}
 {$O LogWrap}
 {$O JrnlList}
