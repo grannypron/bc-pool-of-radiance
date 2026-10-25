@@ -1,0 +1,60 @@
+POOLCFG (#876): Starting with a missing or damaged file
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+
+
+
+
+
+
+        ╔═══════════════════════════ Notice ═══════════════════════════╗
+        ║                                                              ║
+        ║  POOL.CFG was not found in C:\POOLRAD\.                      ║
+        ║                                                              ║
+        ║  Setup starts from the defaults: VGA, no sound, the full     ║
+        ║  introduction, the data in this folder and the saves in      ║
+        ║  SAVE\ under it. Nothing is written until you save.          ║
+        ║                                                              ║
+        ║                       Press any key                          ║
+        ╚══════════════════════════════════════════════════════════════╝
+
+
+
+
+
+
+
+ Press any key
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+
+
+
+
+
+        ╔═══════════════════════════ Notice ═══════════════════════════╗
+        ║                                                              ║
+        ║  POOL.CFG holds values START does not know:                  ║
+        ║                                                              ║
+        ║    Line 1 (video)  'X'   START reads it as CGA               ║
+        ║    Line 2 (sound)  'q'   START reads it as none              ║
+        ║                                                              ║
+        ║  Setup shows what START would use. Saving writes the         ║
+        ║  file back in the form START expects.                        ║
+        ║                                                              ║
+        ║                       Press any key                          ║
+        ╚══════════════════════════════════════════════════════════════╝
+
+
+
+
+
+
+ Press any key
+
+Color Key:
+    NOTICE BOX          BLACK ON LIGHT GRAY, FRAME WHITE
+    FILE NAME, VALUES   BLUE ON LIGHT GRAY
+
+Command Key:
+    CONTINUE            ANY KEY (TO THE MAIN MENU)
