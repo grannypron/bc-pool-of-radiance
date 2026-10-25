@@ -235,13 +235,13 @@ begin
   GameVars.effectFns[C_EFFECT.GAZE_REFLECTABLE] := EffHndlr.EffNull;
   GameVars.effectFns[C_EFFECT.READY_FEATHER_FALL] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.READY_FIRE_RES] := EffHndlr.EffReadyItem;
-  GameVars.effectFns[130] := EffHndlr.EffReadyItem;
+  GameVars.effectFns[C_EFFECT.READY_FLAME_TONGUE] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.GAUNTLETS] := EffHndlr.EffGauntlets;
   GameVars.effectFns[C_EFFECT.ALIGNED_WEAPON] := EffHndlr.EffAlignedWeapon;
   GameVars.effectFns[C_EFFECT.READY_DISPLACEMENT] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.READY_ELVENKIND] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.BOULDER] := EffHndlr.EffBoulder;
-  GameVars.effectFns[136] := EffHndlr.EffReadyItem;
+  GameVars.effectFns[C_EFFECT.READY_UNDEAD_SLAYER] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.SPIRIT_HAMMER_GONE] := EffHndlr.EffHammerGone;
   GameVars.effectFns[138] := EffHndlr.EffReadyItem;
   GameVars.effectFns[C_EFFECT.READY_RING_INVIS] := EffHndlr.EffReadyItem;

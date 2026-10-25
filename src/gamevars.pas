@@ -5,7 +5,7 @@ unit GameVars;
 
 interface
 
-uses Types, Dos, C_EFFECT, C_SPELL, C_TILE{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_ECL, C_EFFECT, C_SPELL, C_TILE{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
@@ -29,7 +29,7 @@ var
   { Five GBVM addresses loaded from the ECL entry header. [1] runs before movement and after on-load; [2] search/Look;
     [3] pre-camp; [4] camp interruption; [5] on-load }
   { ECL entry GBVM addresses }
-  scriptEntryAddrs: array[1..5] of Word;
+  scriptEntryAddrs: array[1..C_ECL.ENTRY_COUNT] of Word;
   { ECL instruction pointer into zone3 }
   eclIp: Word;
   { Interface state, one of the IFC_ constants of C_IFC and Ending }
