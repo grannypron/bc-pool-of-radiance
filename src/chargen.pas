@@ -67,29 +67,6 @@ const
 
 procedure CreateCharacterMenu; forward;
 const
-  { race, class; the monk column (7) has only the DMG's human monk, 21 + 1d4, as creation offers no monk }
-  startingAge: array[1..7, C_CLASS.CLERIC..C_CLASS.MONK] of Types.TRuleAge = (
-    ((base: 250; num: 2; sides: 20), (base: 0; num: 0; sides: 0), (base: 40; num: 5; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 75; num: 3; sides: 6), (base: 0; num: 0; sides: 0)),
-    ((base: 650; num: 10; sides: 10), (base: 0; num: 0; sides: 0), (base: 130; num: 5; sides: 6),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 150; num: 5; sides: 6),
-     (base: 100; num: 5; sides: 6), (base: 0; num: 0; sides: 0)),
-    ((base: 300; num: 3; sides: 12), (base: 0; num: 0; sides: 0), (base: 60; num: 5; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 100; num: 2; sides: 12),
-     (base: 80; num: 5; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 22; num: 3; sides: 4), (base: 30; num: 2; sides: 8),
-     (base: 22; num: 3; sides: 8), (base: 0; num: 0; sides: 0)),
-    ((base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 20; num: 3; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 40; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 20; num: 1; sides: 4), (base: 0; num: 0; sides: 0), (base: 13; num: 1; sides: 4),
-     (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0), (base: 0; num: 0; sides: 0),
-     (base: 20; num: 2; sides: 4), (base: 0; num: 0; sides: 0)),
-    ((base: 18; num: 1; sides: 4), (base: 18; num: 1; sides: 4), (base: 15; num: 1; sides: 4),
-     (base: 17; num: 1; sides: 4), (base: 20; num: 1; sides: 4), (base: 24; num: 2; sides: 4),
-     (base: 18; num: 1; sides: 4), (base: 21; num: 1; sides: 4)));
   { The oldest age in each age category, in years, by race }
   ageCat: array[1..7] of Types.TRuleAgeCategories = (
     (youngAdult: 50; mature: 150; middleAged: 250; old: 350; venerable: 450), { dwarf }
@@ -593,24 +570,7 @@ begin
   if not PickFromList then Exit;
   creature^.alignment := ClassCal.alignByClass[creature^.charClass].alignments[sel];
   MenuCore.FreeStringList(list);
-  { Starting age: single classes (0..7, monk included) roll the age dice; multiclasses take base + sides * num (the dice
-    maximum) of one component class. }
-  if creature^.charClass <= C_CLASS.MONK then
-    with startingAge[creature^.race, creature^.charClass] do
-      creature^.age := Dice.RollDice(num, sides) + base
-  else
-  begin
-    case creature^.charClass of
-      C_CLASS.CLERIC_FIGHTER, C_CLASS.CLERIC_FIGHTER_MAGE, C_CLASS.CLERIC_RANGER, C_CLASS.CLERIC_MAGE,
-        C_CLASS.CLERIC_THIEF: cls := C_CLASS.CLERIC;
-      C_CLASS.FIGHTER_THIEF: cls := C_CLASS.FIGHTER;
-    else
-      { FIGHTER_MAGE, FIGHTER_MAGE_THIEF, MAGE_THIEF }
-      cls := C_CLASS.MAGE;
-    end;
-    with startingAge[creature^.race, cls] do
-      creature^.age := base + sides * num;
-  end;
+  creature^.age := ClassCal.StartingAge(creature^.race, creature^.charClass);
   { stat roll / derived / keep loop }
   savedCur := GameVars.curChar;
   GameVars.curChar := creature;
