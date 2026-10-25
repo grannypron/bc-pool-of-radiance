@@ -1,7 +1,8 @@
 { Tests for CfgFile (#876): the settings' defaults (as GameInit set them before the move), POOLOPT.CFG's keys and
-  values as the game reads them, its write (keys in order, unknown lines kept, a failed write leaving the old file),
-  POOL.CFG read as START reads it (letters in either case, unknown ones noted, a short file, extra lines kept) and
-  written with CR LF, and the path rules: NormalizePath, DirExists and CheckPath. }
+  values as the game reads them (Trim and Tidy), its write (keys in order, unknown lines kept, a failed write leaving
+  the old file), POOL.CFG read as START reads it (letters in either case, unknown ones noted, a short file, extra lines
+  kept) and written with CR LF, POOL.CFG's defaults, and the path rules: NormalizePath, DirExists and CheckPath, with
+  the native build's separators and its save folder inside the game's (SaveFolderIn, #894). }
 {$I COMPILER.INC}
 program TCfgFile;
 
@@ -150,6 +151,9 @@ begin
   TestKit.CheckEqualsS('POOLSSAVE', CfgFile.KeyName(C_OPT.KEY_COUNT), 'the last key');
 
   { keys and values }
+  TestKit.CheckEqualsS('a B', CfgFile.Trim(#9' a B '#9), 'Trim takes spaces and tabs off both ends, keeping case');
+  TestKit.CheckEqualsS('A B', CfgFile.Tidy(#9' a B '#9), 'Tidy trims and capitalizes');
+  TestKit.CheckEqualsS('', CfgFile.Trim(' '#9' '), 'a blank line trims to nothing');
   TestKit.CheckEqualsL(C_OPT.OPT_SPEED, CfgFile.KeyOf(' speed'#9'= 3'), 'a key in lower case, spaced');
   TestKit.CheckEqualsL(0, CfgFile.KeyOf('SPEED 3'), 'a line without = has no key');
   TestKit.CheckEqualsL(0, CfgFile.KeyOf('SPEEDS=3'), 'an unknown key');
@@ -278,8 +282,25 @@ begin
   TestKit.Check(not CfgFile.WritePoolCfg('NODIR\' + POOL_NAME, c), 'a write into a missing folder fails');
   FileUtil.DeleteFile(POOL_NAME);
 
+  { POOL.CFG's defaults }
+  CfgFile.PoolDefaults(c, 'C:\GAME\');
+  TestKit.Check((c.video = 'V') and (c.intro = 'F') and (c.extraCount = 0), 'defaults: VGA, the full introduction');
+{$IFDEF FPC}
+  TestKit.Check(c.sound = 'B', 'natively Digital Audio (the Sound Blaster''s letter)');
+{$ELSE}
+  TestKit.Check(c.sound = 'S', 'under DOS no sound');
+{$ENDIF}
+  TestKit.CheckEqualsS('C:\GAME\', c.dataDir, 'the data in the folder given');
+  TestKit.CheckEqualsS('C:\GAME\SAVE\', c.saveDir, 'the saves in SAVE\ under it');
+
   { paths }
   GetDir(0, cur);
+{$IFDEF FPC}
+  { natively the separators are backslashes, as in POOL.CFG }
+  for i := 1 to Length(cur) do
+    if cur[i] = '/' then
+      cur[i] := '\';
+{$ENDIF}
   if cur[Length(cur)] <> '\' then
     cur := cur + '\';
   TestKit.Check(CfgFile.NormalizePath(' GAME ', full), 'a relative path');
@@ -292,6 +313,22 @@ begin
   TestKit.Check(CfgFile.NormalizePath('C:\', full) and (full = 'C:\'), 'a drive''s root stays');
   TestKit.Check(CfgFile.NormalizePath(Copy(cur, 1, 2), full), 'a drive alone');
   TestKit.CheckEqualsS(cur, full, 'is its current folder');
+{$ENDIF}
+{$IFDEF FPC}
+  TestKit.Check(CfgFile.NormalizePath('GAME/SAVE/', full), 'a path with slashes');
+  TestKit.CheckEqualsS(cur + 'GAME\SAVE\', full, 'has backslashes, and one at its end');
+{$IFDEF UNIX}
+  TestKit.Check(CfgFile.NormalizePath('/home/pool', full), 'a path from the root');
+  TestKit.CheckEqualsS('\home\pool\', full, 'is whole on a system without drives');
+{$ENDIF}
+  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('C:\POOLRAD\', 'C:\POOLRAD\SAVE\'),
+                       'SaveFolderIn: SSI''s install');
+  TestKit.CheckEqualsS('games\one\', CfgFile.SaveFolderIn('C:\POOLRAD', 'c:\poolrad\games\one'),
+                       'a folder deeper, whatever its case');
+  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('C:\POOLRAD\', 'D:\SAVES\'), 'a folder elsewhere is SAVE\');
+  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('C:\POOLRAD\', 'C:\POOLRAD\'), 'and the game''s own');
+  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('', ''), 'and an empty one');
+  TestKit.CheckEqualsS('Saves\', CfgFile.SaveFolderIn('', 'Saves'), 'a relative one under the current folder');
 {$ENDIF}
   body := 'C:\';
   while Length(body) < C_OPT.MAX_PATH_TEXT - 1 do
@@ -316,7 +353,11 @@ begin
   TestKit.Check(CfgFile.DirExists(Copy(cur, 1, 3)), 'the drive''s root');
 {$ENDIF}
   TestKit.Check(CfgFile.CheckPath(' ' + DIR_NAME + ' ', full) = CfgFile.PATH_OK, 'CheckPath takes a folder');
+{$IFDEF FPC}
+  TestKit.CheckEqualsS(cur + DIR_NAME + '\', full, 'normalized, its case kept natively');
+{$ELSE}
   TestKit.CheckEqualsS(CfgFile.Tidy(cur + DIR_NAME + '\'), full, 'normalized, in capitals');
+{$ENDIF}
   TestKit.Check(CfgFile.CheckPath('NOSUCHD', full) = CfgFile.PATH_MISSING, 'refuses a missing folder');
   TestKit.Check(not CfgFile.DirExists(cur + 'NOSUCHD\'), 'and does not create it');
   TestKit.Check(CfgFile.CheckPath('  ', full) = CfgFile.PATH_EMPTY, 'refuses an empty path');

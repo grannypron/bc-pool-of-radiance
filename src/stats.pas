@@ -97,7 +97,7 @@ procedure ReadGame(fn: Types.TPathStr);
 
 implementation
 
-uses GameDefs, GameVars, C_GBVM, C_STATUS, C_IFC, C_MONEY, Party, MoneyCal, Bestiary;
+uses GameVars, C_GBVM, C_STATUS, C_IFC, Party, MoneyCal, Bestiary, StrUtil;
 
 const
   ENTRIES = Types.MAX_PARTY;
@@ -329,9 +329,18 @@ end;
 
 { Read a TStatFile from name into rec: True when it is whole and of this format. }
 function ReadFile(name: Types.TPathStr): Boolean;
+var
+  ok: Boolean;
+  i: Byte;
 begin
-  ReadFile := FileUtil.ReadRecord(name, rec, SizeOf(rec)) and (rec.sig = SIG) and (rec.version = VERSION) and
-              (rec.block.kindCount <= KINDS);
+  ok := FileUtil.ReadRecord(name, rec, SizeOf(rec)) and StrUtil.FitLength(rec.sig, SizeOf(rec.sig) - 1) and
+        (rec.sig = SIG) and (rec.version = VERSION) and (rec.block.kindCount <= KINDS) and
+        StrUtil.FitLength(rec.name, SizeOf(rec.name) - 1);
+  { a name whose length byte is past its field refuses the file, as a foreign one is (#917) }
+  if ok then
+    for i := 1 to rec.block.kindCount do
+      ok := ok and StrUtil.FitLength(rec.block.kills[i].name, SizeOf(rec.block.kills[i].name) - 1);
+  ReadFile := ok;
 end;
 
 procedure ReadChar(creature: Types.PCharRecord; fn: Types.TPathStr);

@@ -7,10 +7,15 @@ interface
 
 procedure CombatStart;
 
+{ The feature classes, a bitmask, that steer the random wilderness arena's generators for the wilderness terrain char
+  ch under the party; an unmatched ch (the special sites' tiles) is plain ground, $01. Once yarashDone (zone0's
+  yarashMissionDone is 255), the bit 7 classes collapse to bit 0. }
+function TerrainClass(ch: Byte; yarashDone: Boolean): Byte;
+
 implementation
 
-uses Types, Crt, C_AREA, C_NPC, C_TERR, C_COND, GameDefs, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
-  MapTiles, Blit, GameIo, C_IFC, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, MenuCore, TextRend, CharDisp, Dice,
+uses Types, Crt, C_AREA, C_NPC, C_COND, GameDefs, GameVars, CbtActs, SaveLoad, FxEngine, Portrait, View3D,
+  MapTiles, Blit, GameIo, C_GBVM, C_DIR, C_SOUND, SoundDrv, CbtMap, CharHlp, TextRend, CharDisp, Dice,
   EffHndlr, Bestiary;
 
 const
@@ -18,8 +23,8 @@ const
      7, 2, 3, 6);
 
 var
-  { wildMap cell under party }
-  terrainChar: Byte;
+  { TerrainClass of the wilderness terrain under the party, for the arena being built }
+  terrainCls: Byte;
   { Combat placement, by team }
   { quad occupancy [team, ring 0..3, qy 0..5, qx 0..10]; 1 = free }
   quadFree: array[0..1, 0..3, 0..5, 0..10] of Byte;
@@ -68,7 +73,7 @@ var
     map, east/west probes on the party's row are open; all other cells are solid. }
   function GetWallKind(px, py: ShortInt; pdir: Byte): Byte;
   begin
-    if (px >= 0) and (px <= 15) and (py >= 0) and (py <= 15) then begin
+    if Types.OnMap(px, py) then begin
       if View3D.GetBarrierType(px, py, pdir) = 0 then
         GetWallKind := 1
       else if View3D.GetWallType(px, py, pdir) = 0 then
@@ -110,7 +115,7 @@ var
   begin
     x := dx * 6 + dy * 5 + 21 + i;
     y := dy * 5 + 10 + j;
-    if (x >= 0) and (x <= 49) and (y >= 0) and (y <= 24) then
+    if (x >= 0) and (x <= Types.ARENA_LAST_X) and (y >= 0) and (y <= Types.ARENA_LAST_Y) then
       GameVars.arenaPtr^.cells[y, x] := t + 1;
   end;
 
@@ -154,60 +159,54 @@ var
   { NW corner: spots (1..2, 0..1). open = both far-side edges open (N-neighbour's W wall and W-neighbour's N wall) }
   procedure FillCornerNW;
   var
-    k: Byte;
     c1: Byte;
     c3: Byte;
     c2: Byte;
     c4: Byte;
-    open: Byte;
+    open: Boolean;
   begin
-    if (CombatSt.WallBetween(cellX, cellY - 1, C_DIR.WEST) = 0) and
-        (CombatSt.WallBetween(cellX - 1, cellY, C_DIR.NORTH) = 0) then
-      open := 1
-    else
-      open := 0;
-    for k := 1 to 4 do
-      case k of
-        1: case wallN of
-             0: case wallW of
-                  0: c1 := 22;
-                  3: c1 := 13;
-                  1: if open <> 0 then c1 := 0 else c1 := 13;
-                end;
-             3, 1: if wallW = 0 then begin
-                     if open <> 0 then c1 := 15 else c1 := 5;
-                   end else begin
-                     if open <> 0 then c1 := 18 else c1 := 2;
-                   end;
-           end;
-        2: case wallN of
-             0: c2 := 22;
-             3: c2 := 17;
-             1: c2 := 5;
-           end;
-        3: case wallW of
-             0: if wallN = 0 then
-                  c3 := 22
-                else if open <> 0 then
-                  c3 := 16
-                else
-                  c3 := 10;
-             3: if open <> 0 then c3 := 20 else c3 := 7;
-             1: if open <> 0 then c3 := 1 else c3 := 3;
-           end;
-        4: case wallW of
-             0, 3: case wallN of
-                     0: c4 := 22;
-                     3: c4 := 23;
-                     1: c4 := 10;
-                   end;
-             1: case wallN of
-                  0: c4 := 13;
-                  3: c4 := 21;
-                  1: c4 := 6;
-                end;
-           end;
-      end;
+    open := (CombatSt.WallBetween(cellX, cellY - 1, C_DIR.WEST) = 0) and
+            (CombatSt.WallBetween(cellX - 1, cellY, C_DIR.NORTH) = 0);
+    { wall kinds are 0, 1 and 3 (WallBetween), so every case below sets its spot }
+    case wallN of
+      0: case wallW of
+           0: c1 := 22;
+           3: c1 := 13;
+           1: if open then c1 := 0 else c1 := 13;
+         end;
+      3, 1: if wallW = 0 then begin
+              if open then c1 := 15 else c1 := 5;
+            end else begin
+              if open then c1 := 18 else c1 := 2;
+            end;
+    end;
+    case wallN of
+      0: c2 := 22;
+      3: c2 := 17;
+      1: c2 := 5;
+    end;
+    case wallW of
+      0: if wallN = 0 then
+           c3 := 22
+         else if open then
+           c3 := 16
+         else
+           c3 := 10;
+      3: if open then c3 := 20 else c3 := 7;
+      1: if open then c3 := 1 else c3 := 3;
+    end;
+    case wallW of
+      0, 3: case wallN of
+              0: c4 := 22;
+              3: c4 := 23;
+              1: c4 := 10;
+            end;
+      1: case wallN of
+           0: c4 := 13;
+           3: c4 := 21;
+           1: c4 := 6;
+         end;
+    end;
     PlotCell(1, 0, c1);
     PlotCell(2, 0, c2);
     PlotCell(1, 1, c3);
@@ -218,73 +217,65 @@ var
     E-neighbour's N wall; open = both are open }
   procedure FillCornerNE;
   var
-    k: Byte;
     c1: Byte;
     c3: Byte;
     c2: Byte;
     c4: Byte;
-    open: Byte;
     kN: Byte;
     kE: Byte;
   begin
     kN := CombatSt.WallBetween(cellX, cellY - 1, C_DIR.EAST);
     kE := CombatSt.WallBetween(cellX + 1, cellY, C_DIR.NORTH);
-    if (kN = 0) and (kE = 0) then
-      open := 1
-    else
-      open := 0;
-    for k := 1 to 4 do
-      case k of
-        1: case wallN of
-             0: if kN = 1 then c1 := 4 else c1 := 22;
-             3: c1 := 15;
-             1: c1 := 5;
-           end;
-        2: if wallN = 0 then begin
-             case kN of
-               0: c2 := 22;
-               3: if (wallE = 0) and (kE <> 0) then
-                    c2 := 24
-                  else
-                    c2 := 1;
-               1: if (wallE = 0) and (kE <> 0) then
-                    c2 := 11
-                  else
-                    c2 := 3;
-             end;
-           end else begin
-             if wallE <> 0 then
-               c2 := 9
-             else if kE <> 0 then
-               c2 := 5
-             else if open <> 0 then
-               c2 := 17
-             else
-               c2 := 19;
-           end;
-        3: case wallN of
-             0: c3 := 22;
-             3: c3 := 16;
-             1: c3 := 10;
-           end;
-        4: if wallN = 0 then begin
-             if kN = 0 then
-               c4 := 22
-             else if wallE <> 0 then
-               c4 := 4
-             else if kE = 0 then
-               c4 := 8
-             else
-               c4 := 12;
-           end else begin
-             if wallE <> 0 then
-               c4 := 14
-             else if kE = 0 then
-               c4 := 23
-             else
-               c4 := 10;
-           end;
+    case wallN of
+      0: if kN = 1 then c1 := 4 else c1 := 22;
+      3: c1 := 15;
+      1: c1 := 5;
+    end;
+    if wallN = 0 then begin
+      case kN of
+        0: c2 := 22;
+        3: if (wallE = 0) and (kE <> 0) then
+             c2 := 24
+           else
+             c2 := 1;
+        1: if (wallE = 0) and (kE <> 0) then
+             c2 := 11
+           else
+             c2 := 3;
       end;
+    end else begin
+      if wallE <> 0 then
+        c2 := 9
+      else if kE <> 0 then
+        c2 := 5
+      { open: both far-side edges open (kE is 0 here) }
+      else if kN = 0 then
+        c2 := 17
+      else
+        c2 := 19;
+    end;
+    case wallN of
+      0: c3 := 22;
+      3: c3 := 16;
+      1: c3 := 10;
+    end;
+    if wallN = 0 then begin
+      if kN = 0 then
+        c4 := 22
+      else if wallE <> 0 then
+        c4 := 4
+      else if kE = 0 then
+        c4 := 8
+      else
+        c4 := 12;
+    end else begin
+      if wallE <> 0 then
+        c4 := 14
+      else if kE = 0 then
+        c4 := 23
+      else
+        c4 := 10;
+    end;
     PlotCell(5, 0, c1);
     PlotCell(6, 0, c2);
     PlotCell(5, 1, c3);
@@ -307,15 +298,12 @@ begin
   CombatSt.SprinkleRareFeatures;
 end;
 
-{ Map the wilderness terrain char under the party to a feature-class bitmask steering the random-arena generators; an
-  unmatched terrainChar (the special sites' tiles) is plain ground, $01. Once zone0^.yarashMissionDone is 255, bit 7
-  classes collapse to bit 0. }
-function TerrainClassOf: Byte;
+function TerrainClass(ch: Byte; yarashDone: Boolean): Byte;
 var
   cls: Byte;
 begin
   { SSI repeated some values in later arms, where the first arm took them; those are left out }
-  case terrainChar of
+  case ch of
     1..2, 40..41, 79..86, 91..92, 43, 241:
       cls := $01;
     168..177:
@@ -368,12 +356,9 @@ begin
   else
     cls := $01;
   end;
-  if cls and $80 <> 0 then
-    if GameVars.zone0^.yarashMissionDone = 255 then begin
-      Dec(cls, $80);
-      cls := cls or 1;
-    end;
-  TerrainClassOf := cls;
+  if (cls and $80 <> 0) and yarashDone then
+    cls := (cls - $80) or 1;
+  TerrainClass := cls;
 end;
 
 { Lay a diagonal river (terrain pair 50/51, drifting one column per row) with 2-row fords (52/53: a 1-in-20 roll starts
@@ -398,8 +383,8 @@ var
 begin
   thresh := 0;
   fordCnt := 0;
-  if CombatSt.TerrainClassOf and $20 <> 0 then thresh := 35;
-  if CombatSt.TerrainClassOf and $10 <> 0 then thresh := 75;
+  if terrainCls and $20 <> 0 then thresh := 35;
+  if terrainCls and $10 <> 0 then thresh := 75;
   if Dice.RollDice(1, 100) > thresh then Exit;
   col := 34 - Dice.RollDice(5, 4);
   while (col + 2) mod 7 > 0 do
@@ -434,10 +419,10 @@ var
   row: ShortInt;
 begin
   dens := 1;
-  if CombatSt.TerrainClassOf and $04 <> 0 then dens := 3;
-  if CombatSt.TerrainClassOf and $40 <> 0 then dens := 4;
-  if CombatSt.TerrainClassOf and $08 <> 0 then dens := 7;
-  if CombatSt.TerrainClassOf and $80 <> 0 then dens := 0;
+  if terrainCls and $04 <> 0 then dens := 3;
+  if terrainCls and $40 <> 0 then dens := 4;
+  if terrainCls and $08 <> 0 then dens := 7;
+  if terrainCls and $80 <> 0 then dens := 0;
   for col := 0 to 49 do
     for row := 1 to 24 do
       if (GameDefs.terrainInfo[GameVars.arenaPtr^.cells[row, col]].tileId = 22) and
@@ -448,7 +433,7 @@ begin
           h := Dice.RollDice(1, 2) + 4
         else
           h := (h + 1) div 2;
-        if CombatSt.TerrainClassOf and $40 <> 0 then
+        if terrainCls and $40 <> 0 then
           h := Dice.RollDice(1, 3) + 3;
         GameVars.arenaPtr^.cells[row, col] := h + 31 + 4;
         if h < 5 then
@@ -475,17 +460,17 @@ begin
   tB := 15;
   tC := 40;
   tD := 0;
-  if CombatSt.TerrainClassOf and $02 <> 0 then begin
+  if terrainCls and $02 <> 0 then begin
     tB := 45;
     tC := 10;
   end;
-  if CombatSt.TerrainClassOf and $04 <> 0 then
+  if terrainCls and $04 <> 0 then
     tB := 25;
-  if CombatSt.TerrainClassOf and $40 <> 0 then begin
+  if terrainCls and $40 <> 0 then begin
     tC := 5;
     tD := 30;
   end;
-  if CombatSt.TerrainClassOf and $80 <> 0 then begin
+  if terrainCls and $80 <> 0 then begin
     tSwamp := 15;
     tC := 25;
     tB := 10;
@@ -512,15 +497,15 @@ begin
           GameVars.arenaPtr^.cells[row, col] := r + 31 + 25;
         end else if r <= tA + (tC + tD + tB + tSwamp) then begin
           r := Dice.RollDice(1, 4);
-          if (r = 4) and (CombatSt.TerrainClassOf and $40 = 0) then
+          if (r = 4) and (terrainCls and $40 = 0) then
             r := Dice.RollDice(1, 3);
           GameVars.arenaPtr^.cells[row, col] := r + 31 + 14;
         end;
       end;
 end;
 
-{ Fill the arena with terrain 23, read the wilderness terrain char under the party (columns offset by 13 for the central
-  map and 26 for the east map) and run the river, tree, scatter and rare-feature generators. }
+{ Fill the arena with terrain 23, class the wilderness terrain char under the party (columns offset by 13 for the
+  central map and 26 for the east map; TerrainClass) and run the river, tree, scatter and rare-feature generators. }
 procedure BuildWildernessArena;
 var
   mapX: ShortInt;
@@ -531,7 +516,7 @@ begin
   mapY := GameVars.zone0^.partyY.lo;
   if GameVars.gLocType = C_AREA.LOC_WILD_CENTRAL then Inc(mapX, 13);
   if GameVars.gLocType = C_AREA.LOC_WILD_EAST then Inc(mapX, 26);
-  terrainChar := GameDefs.wildMap[mapY, mapX];
+  terrainCls := CombatSt.TerrainClass(GameDefs.wildMap[mapY, mapX], GameVars.zone0^.yarashMissionDone = 255);
   CombatSt.PlaceRiver;
   CombatSt.PlaceTrees;
   CombatSt.ScatterFeatures;
@@ -545,10 +530,10 @@ begin
   { combat's terrain is tiles 0..39 of the first set; the second is loaded again when next needed }
   MapTiles.FreeSecondSheet;
   if GameVars.gLocType = C_AREA.LOC_3D_MAP then
-    MapTiles.Load24x24Set('DungCom', 0, 24)
+    MapTiles.Load24x24Set('DungCom', 0)
   else
-    MapTiles.Load24x24Set('WildCom', 0, 33);
-  MapTiles.Load24x24Set('RandCom', 34, 5);
+    MapTiles.Load24x24Set('WildCom', 0);
+  MapTiles.Load24x24Set('RandCom', 34);
   GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
   GameVars.arenaPtr^.cursorOn := False;
   GameVars.arenaPtr^.cursorSize := 1;
@@ -787,12 +772,8 @@ var
   slot: Byte;
   g: Byte;
   d: Byte;
-  placedCnt: Byte;
-  removedCnt: Byte;
 begin
   CharHlp.CountTeams;
-  removedCnt := 0;
-  placedCnt := 0;
   for slot := 1 to Types.ARENA_SLOTS do
     GameVars.arenaLoc[slot].size := 0;
   CbtMap.BuildArenaArrays;
@@ -803,7 +784,7 @@ begin
   placeY[1] := GameDefs.dirDY[GameVars.gFacing] * GameVars.zone1^[C_GBVM.MONSTER_DIST] + placeY[0];
   teamDir[1] := (GameVars.gFacing + 4) mod 8 div 2;
   for team := 0 to 1 do
-    teamRows[team] := (teamCount[team] + 1) div 2;
+    teamRows[team] := (GameVars.teamCount[team] + 1) div 2;
   for team := 0 to 1 do
     for g := 0 to 3 do begin
       if g = 1 then
@@ -846,11 +827,9 @@ begin
       CbtMap.BuildArenaArrays;
       Inc(slot);
       Inc(GameVars.arenaCount);
-      Inc(placedCnt);
     end else begin
       GameVars.arenaLoc[slot].size := 0;
       if p^.combatAddr^.notPcNpc = 1 then begin
-        Inc(removedCnt);
         GameVars.creatureArr[slot] := nil;
         GameVars.curChar := p;
         SaveLoad.RemoveCreature(True, False);
@@ -913,7 +892,6 @@ begin
     p := p^.nextCharAddr;
   end;
   CbtActs.CalcHostileHpPercent;
-  GameVars.ifcState := C_IFC.COMBAT;
 end;
 
 end.

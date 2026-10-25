@@ -3,7 +3,8 @@
   removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
   vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free,
   FxEngine.HasEffectNode, FxEngine.EffectImmune, and the Strength a disease takes (CharHlp.DiseaseStrLoss,
-  AdjustForNewStrength). }
+  AdjustForNewStrength). And the one cure of disease (FxEngine.RemoveDiseases, HasDisease, #922) and what Friends
+  gives back as it ends (FxEngine.FriendsEndCha, #920). }
 {$I COMPILER.INC}
 program TFxRemov;
 
@@ -45,6 +46,52 @@ begin
     GameVars.pendingEffectId := 0;
 end;
 {$F-}
+
+{ Give c a list of quiet nodes (no handler on removal) of the ids in ids, in order. }
+procedure SetEffects(ids: String);
+var
+  i: Byte;
+  e: Types.PEffectRec;
+begin
+  c^.effectsAddr := nil;
+  for i := Length(ids) downto 1 do begin
+    GetMem(e, SizeOf(Types.TEffectRec));
+    FillChar(e^, SizeOf(Types.TEffectRec), 0);
+    e^.id := Ord(ids[i]);
+    e^.next := c^.effectsAddr;
+    c^.effectsAddr := e;
+  end;
+end;
+
+{ The ids left on c, in order. }
+function EffectIds: String;
+var
+  s: String;
+  e: Types.PEffectRec;
+begin
+  s := '';
+  e := c^.effectsAddr;
+  while e <> nil do begin
+    s := s + Chr(e^.id);
+    e := e^.next;
+  end;
+  EffectIds := s;
+end;
+
+{ The ids as numbers, for a failed check's message. }
+function IdList(ids: String): String;
+var
+  s: String;
+  n: String[3];
+  i: Byte;
+begin
+  s := '';
+  for i := 1 to Length(ids) do begin
+    Str(Ord(ids[i]), n);
+    s := s + ' ' + n;
+  end;
+  IdList := s;
+end;
 
 function NewEffect(id: Byte; next: Types.PEffectRec): Types.PEffectRec;
 var
@@ -152,5 +199,32 @@ begin
   FreeMem(c^.effectsAddr, SizeOf(Types.TEffectRec));
   c^.effectsAddr := nil;
   TestKit.CheckEqualsL(0, CharHlp.DiseaseStrLoss(c), 'no disease, no loss');
+
+  { the one cure of disease (#922): the Strength drain takes its hit-point drain and helplessness with it, rot takes
+    mummy rot, a stray hit-point drain or mummy rot goes, and helplessness alone (a Stinking Cloud's nausea) stays }
+  SetEffects(Chr(C_EFFECT.BLESS) + Chr(C_EFFECT.DISEASE_STR) + Chr(C_EFFECT.DISEASE_HP) + Chr(C_EFFECT.HELPLESS) +
+             Chr(C_EFFECT.DISEASED));
+  TestKit.Check(FxEngine.HasDisease(c), 'the Strength drain is a disease');
+  TestKit.Check(FxEngine.RemoveDiseases(c), 'and is cured');
+  TestKit.CheckEqualsS(IdList(Chr(C_EFFECT.BLESS)), IdList(EffectIds), 'with its drains and helplessness');
+  SetEffects(Chr(C_EFFECT.HELPLESS) + Chr(C_EFFECT.ROT_NO_HEAL) + Chr(C_EFFECT.MUMMY_ROT));
+  TestKit.Check(FxEngine.RemoveDiseases(c), 'rot is cured');
+  TestKit.CheckEqualsS(IdList(Chr(C_EFFECT.HELPLESS)), IdList(EffectIds),
+                       'with mummy rot, and a cloud''s helplessness stays');
+  TestKit.Check(not FxEngine.HasDisease(c), 'helplessness alone is no disease');
+  TestKit.Check(not FxEngine.RemoveDiseases(c), 'and nothing is cured');
+  TestKit.CheckEqualsS(IdList(Chr(C_EFFECT.HELPLESS)), IdList(EffectIds), 'it is left');
+  SetEffects(Chr(C_EFFECT.DISEASE_HP) + Chr(C_EFFECT.MUMMY_ROT));
+  TestKit.Check(FxEngine.HasDisease(c), 'a stray drain is a disease');
+  TestKit.Check(FxEngine.RemoveDiseases(c) and (c^.effectsAddr = nil), 'a stray drain and mummy rot are cured');
+  TestKit.CheckEqualsL(0, GameVars.effectLock, 'the effect lock is let go');
+
+  { Friends gives back what it gave (#920): 10 + 5 = 15, + 3 = 18; the first ends, 13; the second, 10 }
+  TestKit.CheckEqualsL(13, FxEngine.FriendsEndCha(18, C_EFFECT.FRIENDS_BONUS or 5), 'the first Friends takes its 5');
+  TestKit.CheckEqualsL(10, FxEngine.FriendsEndCha(13, C_EFFECT.FRIENDS_BONUS or 3), 'the second its 3: no gain');
+  TestKit.CheckEqualsL(11, FxEngine.FriendsEndCha(13, C_EFFECT.FRIENDS_BONUS or 2),
+                       'Charisma lost while it lasted stays lost');
+  TestKit.CheckEqualsL(3, FxEngine.FriendsEndCha(4, C_EFFECT.FRIENDS_BONUS or 8), 'never below 3');
+  TestKit.CheckEqualsL(12, FxEngine.FriendsEndCha(20, 12), 'one saved before #920 restores its stored Charisma');
   TestKit.Done;
 end.

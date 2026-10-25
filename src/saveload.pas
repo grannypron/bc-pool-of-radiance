@@ -10,14 +10,15 @@ interface
 uses Types;
 
 { Read <saveDir>charlist.txt into a fresh list of string nodes (the TItemRec prefix used by
-  MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist. Names of characters currently in
-  the party get '* ' prepended. }
+  MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist or will not open, and a line that
+  will not read ends it. Names of characters currently in the party get '* ' prepended. }
 procedure LoadCharlist(var list: Types.PItemRec);
 
 { Rewrite <saveDir>charlist.txt, one name per line, a party member's without its '* ' mark: a character in the party
   keeps its own files, so it stays on the roster (SSI dropped it, as saving or loading a game erased them). A line
-  naming omit, marked or not, is left out ('' leaves out none). Retries with a put-save-disk prompt until the file opens
-  or Escape gives up, which leaves the roster as it was. }
+  naming omit, marked or not, is left out ('' leaves out none). It is written as charlist.tx$ (FileUtil.TempName) and
+  put in its place only when whole, so a full disk leaves the old roster. Retries with a put-save-disk prompt until the
+  copy opens or Escape gives up, which leaves the roster as it was. }
 procedure SaveCharlist(list: Types.PItemRec; omit: String);
 
 { Load curChar's CHEAD into icon-anim slot 11 and CBODY into slot orderNumber, OR-merge head onto body; when loading,
@@ -29,27 +30,26 @@ procedure LoadCharIconAnim(loading: Boolean);
   fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc/.mem/.sts/.chx. They are written to temporary
   copies and put in place of the old ones together, all or none (FileUtil.CommitSet); an empty item or effect list's
   old file, and the .mem, .sts or .chx of a character with no usual spells, statistics or port fields, is erased with
-  them. A set that cannot be
-  written whole (a full disk) or put in place leaves the old files and CHARLIST.TXT as they were and is reported on the
-  bottom line. True when the character was saved. }
+  them. A set that cannot be written whole (a full disk) or put in place leaves the old files and CHARLIST.TXT as they
+  were and is reported on the bottom line. True when the character was saved. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
 { Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, .chx, those there are) and take its name off
   CHARLIST.TXT: a character dropped forever, whose files loading or saving a game no longer erases (#754). }
 procedure EraseChar(name: String);
 
-{ Load one character: askDisk -> name the file as SaveChar does (CharFileBase) and prompt for the save disk (a .cha save
-  the game was ended in is undone first, FileUtil.RecoverSet), else prompt with the insert-game-disk message
-  (DaxIo.DataDiskMsg, Escape quits); ext = '.sav'/'.cha' by savedGame. The list and combat pointers are cleared, then
+{ Load one character, its files named as SaveChar names them (CharFileBase): savedGame -> a saved game's member's .sav,
+  else a single-character .cha, a save of which the game was ended in is undone first (FileUtil.RecoverSet). A file
+  that is not there asks for the save disk (SaveMenu.SaveDiskMsg). The list and combat pointers are cleared, then
   the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a trailing
   part record, the usual spells are read from the .mem file (none when it is missing or not a usual-spells file for this
   character), and the port's own fields (TCharRecord.portExt) from the .chx (CharExt.ReadExt; 0 without one). False,
   with nothing read after the record, when the .sav/.cha file holds less than a whole record or cannot be read, or is
-  not there and Escape at the save disk prompt gave up (askDisk); the caller then frees the record unused. While the
+  not there and Escape at the save disk prompt gave up; the caller then frees the record unused. While the
   Quick Ends With Fight setting is on (GameVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game
   or an added character starts under manual control; NPCs and animated creatures keep quickfight, as
   PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the saved quickfight stays. }
-function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
+function LoadChar(name: String; creature: Types.PCharRecord; savedGame: Boolean): Boolean;
 
 { True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
 function HasCharFile(name: String): Boolean;
@@ -60,7 +60,7 @@ function HasCharFile(name: String): Boolean;
   sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set; the slot's vault
   becomes the session's (Vault.RestoreFromSlot). The members' single-character files are left alone (SSI erased them).
   The save's game speed and settings word are left in the GBVM zone: the game's own settings stay as they are. Quit on
-  the menu asks to exit to DOS (QuitToDos) and, answered No, opens the menu again (#872). }
+  the menu asks only "Exit to DOS?" (QuitToDos, #910) and, answered No, opens the menu again (#872). }
 procedure LoadGame;
 
 { Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
@@ -72,15 +72,16 @@ procedure LoadGame;
   of the old save's, all or none (FileUtil.CommitSet), the old files of members the party no longer has erased with
   them; then set the recently-saved flag. The members' single-character files are left alone (SSI erased them, here and
   on loading). A save not written whole, or not put in place, leaves the old one as it was and says so. True when the
-  game was saved; False also for Escape on the menu. Quit on the menu asks to exit to DOS (QuitToDos) and, answered No,
-  opens the menu again (#872). The caller redraws the screen. }
+  game was saved; False also for Escape on the menu. Quit on the menu asks only "Exit to DOS?" (QuitToDos, #910) and,
+  answered No, opens the menu again (#872). The caller redraws the screen. }
 function SaveGame: Boolean;
 
-{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With a party not saved since it
-  changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and leaving it
-  without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS and the Load/Save menu's Quit
-  (#872) both ask through it. The caller redraws its screen when it returns. }
-procedure QuitToDos;
+{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With askSave and a party not saved
+  since it changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and
+  leaving it without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS asks to save; the
+  Load/Save menu's Quit (#872), already at the save menu, does not (#910). The caller redraws its screen when it
+  returns. }
+procedure QuitToDos(askSave: Boolean);
 
 const
   { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
@@ -118,7 +119,7 @@ procedure FreeParty;
 implementation
 
 uses DiskRec, Crt, C_AREA, GameDefs, GameVars, Blit, TextRend, GameIo, MenuCore, Ending, ClassCal, View3D, MapTiles,
-  C_KEYS, C_IFC, C_GBVM, C_NPC, C_STATUS, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
+  C_KEYS, C_GBVM, SaveMenu, AreaName, Vault, Stats, DaxIo, CharHlp, FileUtil, Party, StrUtil,
   UsualSpl, VidOps, Explored, MapNotes, C_EFFECT, C_LEVEL, CharDisp, CharExt, BeastFil{$IFDEF FPC}, NatFile{$ENDIF};
 
 type
@@ -141,7 +142,7 @@ end;
   it. }
 function CharFileName(name: String): FileUtil.TSetName;
 begin
-  CharFileName := DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
+  CharFileName := DaxIo.SanitizeFileName(name);
 end;
 
 function CharFileBase(name: String): Types.TPathStr;
@@ -151,7 +152,7 @@ end;
 
 function HasCharFile(name: String): Boolean;
 begin
-  HasCharFile := DaxIo.FileExists(SaveLoad.CharFileBase(name) + '.cha');
+  HasCharFile := FileUtil.Exists(SaveLoad.CharFileBase(name) + '.cha');
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -160,22 +161,35 @@ var
   tail: Types.PItemRec;
   p: Types.PCharRecord;
   f: Text;
+  ioRes: Integer;
+  name: Types.TStr40;
 begin
   list := nil;
   SaveMenu.CheckSaveDir;
-  if not DaxIo.FileExists(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  { a write the game was ended in is undone first }
+  if not FileUtil.RecoverFile(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  if not FileUtil.Exists(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  { an error still pending would make the Reset do nothing }
+  ioRes := IOResult;
   Assign(f, GameVars.saveDirectory + 'charlist.txt');
   Reset(f);
-  while not Eof(f) do begin
-    MenuCore.AppendMenuLine(list, tail, '', False);
-    ReadLn(f, tail^.name);
-    p := GameVars.creatureList;
-    while (p <> nil) and (p^.name <> tail^.name) do
-      p := p^.nextCharAddr;
-    if p <> nil then
-      tail^.name := '* ' + tail^.name;
+  if IOResult <> 0 then Exit;
+  { a line that does not read ends the list, and leaves no error pending for the next file (SaveCharlist's) }
+  ioRes := 0;
+  while (ioRes = 0) and not Eof(f) do begin
+    ReadLn(f, name);
+    ioRes := IOResult;
+    if ioRes = 0 then begin
+      p := GameVars.creatureList;
+      while (p <> nil) and (p^.name <> name) do
+        p := p^.nextCharAddr;
+      if p <> nil then
+        name := '* ' + name;
+      MenuCore.AppendMenuLine(list, tail, name, False);
+    end;
   end;
   Close(f);
+  ioRes := IOResult;
 end;
 
 procedure SaveCharlist(list: Types.PItemRec; omit: String);
@@ -184,25 +198,39 @@ var
   f: Text;
   ioRes: Integer;
   name: String;
+  fn: Types.TPathStr;
+  ok: Boolean;
 begin
   SaveMenu.CheckSaveDir;
+  fn := GameVars.saveDirectory + 'charlist.txt';
   repeat
-    Assign(f, GameVars.saveDirectory + 'charlist.txt');
+    { an error still pending would make the Rewrite do nothing }
+    ioRes := IOResult;
+    Assign(f, FileUtil.TempName(fn));
     Rewrite(f);
     ioRes := IOResult;
-  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', GameVars.saveDirectory + 'charlist.txt');
+  until (ioRes = 0) or not SaveMenu.AskSaveDisk('Cannot write', fn);
   { Escape gave up: the roster stays as it was }
   if ioRes <> 0 then Exit;
   p := list;
-  while p <> nil do begin
+  ok := True;
+  while ok and (p <> nil) do begin
     name := p^.name;
     if Copy(name, 1, 2) = '* ' then
       Delete(name, 1, 2);
     if (Length(omit) = 0) or (name <> omit) then
       WriteLn(f, name);
+    ok := IOResult = 0;
     p := p^.next;
   end;
+  { the Close writes the last of it }
   Close(f);
+  ok := (IOResult = 0) and ok;
+  { a roster not written whole (a full disk) leaves the old one }
+  if ok then
+    ok := FileUtil.PutInPlace(fn)
+  else
+    FileUtil.DeleteFile(FileUtil.TempName(fn));
 end;
 
 procedure LoadCharIconAnim(loading: Boolean);
@@ -407,7 +435,7 @@ begin
   end;
 end;
 
-function LoadChar(name: String; creature: Types.PCharRecord; savedGame, askDisk: Boolean): Boolean;
+function LoadChar(name: String; creature: Types.PCharRecord; savedGame: Boolean): Boolean;
 var
   f: file;
   res: Word;
@@ -424,22 +452,18 @@ var
   itemDisk: DiskRec.TItemDisk;
   effectDisk: DiskRec.TEffectDisk;
 begin
-  if askDisk then begin
-    { a single-character save the game was ended in gives the character back its old files }
-    if not savedGame then
-      found := SaveLoad.RecoverChar(name);
-    { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for the
-      extension }
-    name := SaveLoad.CharFileBase(name);
-    msg := SaveMenu.SaveDiskMsg;
-  end else
-    msg := DaxIo.DataDiskMsg;
+  { a single-character save the game was ended in gives the character back its old files }
+  if not savedGame then
+    found := SaveLoad.RecoverChar(name);
+  { as SaveChar names it (CharFileBase) }
+  name := SaveLoad.CharFileBase(name);
+  msg := SaveMenu.SaveDiskMsg;
   if savedGame then
     ext := '.sav'
   else
     ext := '.cha';
   { Escape at the save disk prompt gives up on a character whose file is gone (#794) }
-  found := DaxIo.OpenWithRetry(name + ext, msg, False, not askDisk, f);
+  found := DaxIo.OpenWithRetry(name + ext, msg, False, False, f);
   LoadChar := False;
   if not found then Exit;
   res := 0;
@@ -457,8 +481,8 @@ begin
   if not whole then Exit;
   if (GameVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
-  if DaxIo.FileExists(name + '.itm') then begin
-    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, not askDisk, f);
+  if FileUtil.Exists(name + '.itm') then begin
+    found := DaxIo.OpenWithRetry(name + '.itm', msg, False, False, f);
     item := nil;
     whole := found;
     while whole and not Eof(f) do begin
@@ -480,8 +504,8 @@ begin
     if found then
       Close(f);
   end;
-  if DaxIo.FileExists(name + '.spc') then begin
-    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, not askDisk, f);
+  if FileUtil.Exists(name + '.spc') then begin
+    found := DaxIo.OpenWithRetry(name + '.spc', msg, False, False, f);
     effect := nil;
     whole := found;
     while whole and not Eof(f) do begin
@@ -526,10 +550,9 @@ var
   used: array[0..Types.MAX_PARTY - 1] of Byte;
 begin
   creature^.orderNumber := 255;
-  if GameVars.creatureList = nil then begin
-    GameVars.creatureList := creature;
-    GameVars.curChar := creature;
-  end else
+  if GameVars.creatureList = nil then
+    GameVars.creatureList := creature
+  else
     Party.LastCreature^.nextCharAddr := creature;
   FillChar(used, SizeOf(used), 0);
   p := GameVars.creatureList;
@@ -552,8 +575,10 @@ end;
 function SaveMinSize: LongInt;
 begin
   SaveMinSize := LongInt(SizeOf(GameVars.virtualDisk)) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) +
-                 SizeOf(GameVars.zone2^) + C_GBVM.SAVED_SCRIPT_BYTES + 5 + SizeOf(GameVars.gLocType) +
-                 SizeOf(GameVars.ifcState) + SizeOf(Byte) + SizeOf(TSaveNames);
+                 SizeOf(GameVars.zone2^) + C_GBVM.SAVED_SCRIPT_BYTES + SizeOf(GameVars.gMapX) +
+                 SizeOf(GameVars.gMapY) + SizeOf(GameVars.gFacing) + SizeOf(GameVars.wallAhead) +
+                 SizeOf(GameVars.eventAtCell) + SizeOf(GameVars.gLocType) + SizeOf(GameVars.ifcState) +
+                 SizeOf(Byte) + SizeOf(TSaveNames);
 end;
 
 { Load saved game letter: the save file (one too short to hold it all is refused, with a message, before anything is
@@ -615,17 +640,20 @@ begin
   Stats.ReadGame(SaveMenu.SlotFile(letter, '.sts'));
   Explored.ReadSlot(SaveMenu.SlotFile(letter, '.map'));
   MapNotes.ReadSlot(SaveMenu.SlotFile(letter, '.nts'));
-  { names holds 8, the most a party has }
-  if nChars > 8 then
-    nChars := 8;
+  { names holds MAX_PARTY, the most a party has }
+  if nChars > Types.MAX_PARTY then
+    nChars := Types.MAX_PARTY;
+  { a name whose length byte is past its field is cut to it before it names a file (#917) }
+  for i := 1 to nChars do
+    found := StrUtil.FitLength(names[i], SizeOf(names[i]) - 1);
   { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
   GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
-    fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
-    if DaxIo.FileExists(GameVars.saveDirectory + fn + '.sav') then begin
+    fn := SaveLoad.CharFileName(names[i]);
+    if FileUtil.Exists(GameVars.saveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
       { a short or unreadable .sav is left out, as a missing one is }
-      if SaveLoad.LoadChar(fn, creature, True, True) then
+      if SaveLoad.LoadChar(fn, creature, True) then
         SaveLoad.AddCharToParty(creature)
       else
         FreeMem(creature, SizeOf(Types.TCharRecord));
@@ -668,16 +696,16 @@ begin
   repeat
     letter := SaveMenu.ChooseSlot(False, C_KEYS.NONE);
     if letter = SaveMenu.QUIT_CHOSEN then
-      SaveLoad.QuitToDos;
+      SaveLoad.QuitToDos(False);
   until letter <> SaveMenu.QUIT_CHOSEN;
   if letter <> C_KEYS.NONE then
     SaveLoad.LoadSlot(letter);
 end;
 
-procedure QuitToDos;
+procedure QuitToDos(askSave: Boolean);
 begin
   if MenuCore.YesNoMenu('Exit to DOS? ', Yellow, LightGreen, White) = 'Y' then
-    if (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
+    if not askSave or (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
       GameIo.ExitGame
     else if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'N' then
       GameIo.ExitGame
@@ -776,7 +804,7 @@ begin
   FileUtil.WriteChecked(f, GameVars.eventAtCell, SizeOf(GameVars.eventAtCell), ok);
   FileUtil.WriteChecked(f, GameVars.gLocType, SizeOf(GameVars.gLocType), ok);
   FileUtil.WriteChecked(f, GameVars.ifcState, SizeOf(GameVars.ifcState), ok);
-  { names holds 8, the most a party has }
+  { names holds MAX_PARTY, the most a party has }
   count := 0;
   p := GameVars.creatureList;
   while (p <> nil) and (count < Types.MAX_PARTY) do begin
@@ -832,7 +860,7 @@ begin
     letter := SaveMenu.ChooseSlot(True, letter);
     if letter = C_KEYS.NONE then Exit;
     if letter = SaveMenu.QUIT_CHOSEN then begin
-      SaveLoad.QuitToDos;
+      SaveLoad.QuitToDos(False);
       letter := C_KEYS.NONE;
       ok := False;
     end else begin
@@ -860,11 +888,11 @@ var
   ch: Char;
   ext: Boolean;
   saving: Boolean;
-  x: Byte;
-  y: Byte;
+  x: ShortInt;
+  y: ShortInt;
   disk: Byte;
 begin
-  if DaxIo.FileExists(name) then Exit;
+  if FileUtil.Exists(name) then Exit;
   msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GameVars.virtualDisk);
   repeat
     ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
@@ -889,7 +917,7 @@ begin
 end;
 
 { Free the combat record, every item, every effect node, then the record itself, forgetting its usual spells and
-  statistics; the closing creature := nil clears only the local parameter. }
+  statistics. The caller's pointer is left as it was. }
 procedure FreeCreature(creature: Types.PCharRecord);
 var
   holdE: Types.PEffectRec;
@@ -909,7 +937,6 @@ begin
   UsualSpl.ForgetUsualSpells(creature);
   Stats.Forget(creature);
   FreeMem(creature, SizeOf(Types.TCharRecord));
-  creature := nil;
 end;
 
 { Unlink curChar from the creature list and free it (and its icon animation if freeAnim); curChar becomes the next

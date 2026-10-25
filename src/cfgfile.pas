@@ -25,7 +25,7 @@ type
     dataDir: FileUtil.TPathName;
     saveDir: FileUtil.TPathName;
     extraCount: Byte;
-    extra: array[1..4] of string[79];
+    extra: array[1..C_OPT.CFG_EXTRA_LINES] of string[79];
   end;
   { a POOL.CFG line START would not take as written: its number, and what it held (cut to 12 characters), or missing
     when the file ended before it }
@@ -74,7 +74,10 @@ function NextSetting(opt: Byte; down: Boolean; skip: TOptSet): Byte;
 { ON for a nonzero flag, OFF for zero. }
 function OnOff(flag: Byte): TName;
 
-{ s without the spaces and tabs at either end, upper-cased. }
+{ s without the spaces and tabs at either end. }
+function Trim(s: string): string;
+
+{ s trimmed (Trim) and upper-cased. }
 function Tidy(s: string): string;
 
 { The setting or path key whose key line names before its '=' (in any case, spaces around it), or 0 for none. }
@@ -116,10 +119,15 @@ function ReadOptions(dir: FileUtil.TPathName; var s: TSettings; var bad: Byte): 
 function WriteOptions(dir: FileUtil.TPathName; var s: TSettings): Boolean;
 
 { Read POOL.CFG file name into c as START reads it. A letter is taken in either case (#895); an unknown video letter
-  is CGA, an unknown sound letter silent and an introduction other than F the short one. notes lists each letter line START
-  would not take as written, and each line missing from a short file (whose paths are then empty, the current folder,
-  and its introduction the short one). CFG_FIXED when there are notes. }
+  is CGA, an unknown sound letter silent and an introduction other than F the short one. notes lists each letter line
+  START would not take as written, and each line missing from a short file (whose paths are then empty, the current
+  folder, and its introduction the short one). CFG_FIXED when there are notes. }
 function ReadPoolCfg(name: FileUtil.TPathName; var c: TPoolCfg; var notes: TCfgNotes): TReadResult;
+
+{ POOL.CFG's defaults, for a game with none: VGA, the full introduction, the data in folder home and the saves in SAVE\
+  under it; no sound under DOS, where the card is not known, and natively Digital Audio (the Sound Blaster's letter),
+  which every system plays (#894). }
+procedure PoolDefaults(var c: TPoolCfg; home: string);
 
 { Write c as POOL.CFG file name: the five lines, then the extra ones, each ending CR LF whatever the system, through a
   temporary copy put in place (FileUtil.PutInPlace). True when it was written; else the old file is as it was. }
@@ -129,7 +137,8 @@ function WritePoolCfg(name: FileUtil.TPathName; var c: TPoolCfg): Boolean;
   drive (or, for a relative path, the current directory) put in front of a path without a drive letter, and a closing
   backslash. An empty path gives the current directory, and a drive alone (C:) the current directory on that drive.
   False when the result leaves no room for a file name within a DOS path (longer than C_OPT.MAX_PATH_TEXT); full is
-  the result either way. }
+  the result either way. Natively every '/' is a backslash too (NatFile turns them back), and on Linux and macOS, which
+  have no drives, a path from '\' is whole (#894). }
 function NormalizePath(path: string; var full: string): Boolean;
 
 { True when path (a full one, as NormalizePath makes) names a folder that exists: a drive's root when the drive
@@ -138,8 +147,14 @@ function DirExists(path: string): Boolean;
 
 { Check text as a folder for a POOL.CFG or POOLOPT.CFG path: tidied (Tidy), not empty, no * ? " < > or |, normalized
   (NormalizePath) within C_OPT.MAX_PATH_TEXT, and an existing folder; nothing is created. full is the normalized
-  path. }
+  path. Natively its case is kept, as a system that tells cases apart shows it. }
 function CheckPath(text: string; var full: string): TPathCheck;
+
+{$IFDEF FPC}
+{ The save folder as the native game takes POOL.CFG's (GameBoot.NativeFolders, #894): saveDir's part under dataDir
+  (both normalized), with its closing backslash, when it lies inside it; SAVE\ when it does not. }
+function SaveFolderIn(dataDir, saveDir: string): string;
+{$ENDIF}
 
 implementation
 
@@ -257,14 +272,20 @@ begin
     OnOff := 'OFF';
 end;
 
-function Tidy(s: string): string;
-var
-  i: Byte;
+function Trim(s: string): string;
 begin
   while (Length(s) > 0) and (s[1] in [' ', #9]) do
     Delete(s, 1, 1);
   while (Length(s) > 0) and (s[Length(s)] in [' ', #9]) do
     Dec(s[0]);
+  Trim := s;
+end;
+
+function Tidy(s: string): string;
+var
+  i: Byte;
+begin
+  s := CfgFile.Trim(s);
   for i := 1 to Length(s) do
     s[i] := UpCase(s[i]);
   Tidy := s;
@@ -381,11 +402,14 @@ begin
 end;
 
 { Open text file name for reading: CFG_READ when it opened, CFG_MISSING when there is no such file (or folder),
-  CFG_UNREADABLE when it is there but would not open. }
+  CFG_UNREADABLE when it is there but would not open. A write of it the game was ended in is undone first
+  (FileUtil.RecoverFile). }
 function OpenText(var f: Text; name: FileUtil.TPathName): TReadResult;
 var
   ioRes: Integer;
+  recovered: Boolean;
 begin
+  recovered := FileUtil.RecoverFile(name);
   ioRes := IOResult;
   Assign(f, name);
   Reset(f);
@@ -548,7 +572,7 @@ begin
       notes.items[notes.count].raw := Copy(line, 1, 12);
     end;
   end;
-  while not Eof(f) and (c.extraCount < 4) and (IOResult = 0) do begin
+  while not Eof(f) and (c.extraCount < C_OPT.CFG_EXTRA_LINES) and (IOResult = 0) do begin
     Inc(c.extraCount);
     ReadLn(f, c.extra[c.extraCount]);
   end;
@@ -558,6 +582,20 @@ begin
     ReadPoolCfg := CFG_FIXED
   else
     ReadPoolCfg := CFG_READ;
+end;
+
+procedure PoolDefaults(var c: TPoolCfg; home: string);
+begin
+  c.video := C_OPT.VIDEO_VGA;
+{$IFDEF FPC}
+  c.sound := C_OPT.SOUND_BLASTER;
+{$ELSE}
+  c.sound := C_OPT.SOUND_SILENT;
+{$ENDIF}
+  c.intro := C_OPT.INTRO_FULL;
+  c.dataDir := home;
+  c.saveDir := home + 'SAVE\';
+  c.extraCount := 0;
 end;
 
 function WritePoolCfg(name: FileUtil.TPathName; var c: TPoolCfg): Boolean;
@@ -588,6 +626,19 @@ begin
     WritePoolCfg := FileUtil.PutInPlace(name);
 end;
 
+{$IFDEF FPC}
+{ s with each '/' a backslash. }
+function Backslashed(s: string): string;
+var
+  i: Byte;
+begin
+  for i := 1 to Length(s) do
+    if s[i] = '/' then
+      s[i] := '\';
+  Backslashed := s;
+end;
+{$ENDIF}
+
 function NormalizePath(path: string; var full: string): Boolean;
 var
   cur: string;
@@ -596,17 +647,28 @@ begin
     Delete(path, 1, 1);
   while (Length(path) > 0) and (path[Length(path)] = ' ') do
     Dec(path[0]);
+{$IFDEF FPC}
+  path := CfgFile.Backslashed(path);
+{$ENDIF}
   if (Length(path) = 2) and (path[2] = ':') then
     GetDir(Ord(UpCase(path[1])) - Ord('A') + 1, path)
   else begin
     GetDir(0, cur);
+{$IFDEF FPC}
+    cur := CfgFile.Backslashed(cur);
+{$ENDIF}
     if cur[Length(cur)] <> '\' then cur := cur + '\';
     if (Length(path) < 2) or (path[2] <> ':') then
-      if (Length(path) > 0) and (path[1] = '\') then
-        path := Copy(cur, 1, 2) + path
-      else
+      if (Length(path) > 0) and (path[1] = '\') then begin
+{$IFNDEF UNIX}
+        path := Copy(cur, 1, 2) + path;
+{$ENDIF}
+      end else
         path := cur + path;
   end;
+{$IFDEF FPC}
+  path := CfgFile.Backslashed(path);
+{$ENDIF}
   if path[Length(path)] <> '\' then path := path + '\';
   full := path;
   NormalizePath := Length(path) <= C_OPT.MAX_PATH_TEXT;
@@ -640,7 +702,11 @@ function CheckPath(text: string; var full: string): TPathCheck;
 var
   i: Byte;
 begin
+{$IFDEF FPC}
+  text := CfgFile.Trim(text);
+{$ELSE}
   text := CfgFile.Tidy(text);
+{$ENDIF}
   full := text;
   if text = '' then begin
     CheckPath := PATH_EMPTY;
@@ -654,12 +720,31 @@ begin
   if not CfgFile.NormalizePath(text, full) then
     CheckPath := PATH_TOO_LONG
   else begin
+{$IFNDEF FPC}
     full := CfgFile.Tidy(full);
+{$ENDIF}
     if CfgFile.DirExists(full) then
       CheckPath := PATH_OK
     else
       CheckPath := PATH_MISSING;
   end;
 end;
+
+{$IFDEF FPC}
+function SaveFolderIn(dataDir, saveDir: string): string;
+var
+  game: string;
+  save: string;
+  ok: Boolean;
+begin
+  { a path too long is compared as it is: SaveFolderIn only places the saves }
+  ok := CfgFile.NormalizePath(dataDir, game);
+  ok := CfgFile.NormalizePath(saveDir, save);
+  if (Length(save) > Length(game)) and NatFile.SameName(Copy(save, 1, Length(game)), game) then
+    SaveFolderIn := Copy(save, Length(game) + 1, 255)
+  else
+    SaveFolderIn := 'SAVE\';
+end;
+{$ENDIF}
 
 end.

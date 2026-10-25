@@ -138,7 +138,7 @@ uses Crt, C_TERR, GameDefs, GameVars, MapTiles, TextRend, SoundDrv, C_IFC, C_DIR
 
 var
   { creature slot per arena cell }
-  crIdxArr: array[0..24, 0..49] of Byte;
+  crIdxArr: array[0..Types.ARENA_LAST_Y, 0..Types.ARENA_LAST_X] of Byte;
 
 const
   { The cursor sprite cell in GameVars.iconAnimation ([24, 0] is the COMSPR 11 skull) }
@@ -222,7 +222,7 @@ begin
   relX := x - GameVars.arenaPtr^.ox;
   relY := y - GameVars.arenaPtr^.oy;
   if CbtMap.ViewCoordsValid(relX, relY) then begin
-    MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId, 0);
+    MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y, x]].tileId);
     DrawCellTop(x, y, relX, relY);
   end;
 end;
@@ -253,7 +253,7 @@ begin
     relX := areaX[i] - GameVars.arenaPtr^.ox;
     relY := areaY[i] - GameVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId, 0);
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId);
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -304,21 +304,18 @@ end;
 procedure ReportCaught(x, y: ShortInt);
 var
   caught: Types.TSlotList;
-  saved: Types.TTargetList;
-  savedCount: Byte;
+  saved: Types.TTargetSnapshot;
   i: Byte;
   c: Byte;
   t: Byte;
 begin
   caught.count := 0;
   if previewShape = Types.AimBlast then begin
-    Move(GameVars.targetList, saved, SizeOf(GameVars.targetList));
-    savedCount := GameVars.targetCount;
+    Pathing.SaveTargets(saved);
     Pathing.BuildAreaList(x, y, previewRadius);
     for i := 1 to GameVars.targetCount do
       AddCaught(caught, GameVars.targetList[i].idx);
-    Move(saved, GameVars.targetList, SizeOf(GameVars.targetList));
-    GameVars.targetCount := savedCount;
+    Pathing.RestoreTargets(saved);
   end else
     for i := 1 to areaCount do begin
       CbtMap.GetArenaContents(areaX[i], areaY[i], c, t);
@@ -449,7 +446,7 @@ procedure CalcGridDeltas;
 var
   i: Byte;
 begin
-  for i := 1 to GameVars.arenaCount do begin
+  for i := 1 to Pathing.LastSlot do begin
     gridX[i] := GameVars.arenaLoc[i].x - GameVars.arenaPtr^.ox;
     gridY[i] := GameVars.arenaLoc[i].y - GameVars.arenaPtr^.oy;
   end;
@@ -488,7 +485,7 @@ begin
     if Pathing.GetIconTileDelta(GameVars.arenaPtr^.cursorSize, i, tdx, tdy) then
       if CbtMap.ViewCoordsValid(relX + tdx, relY + tdy) then begin
         MapTiles.Copy2DTile((relX + tdx) * 3, (relY + tdy) * 3,
-                            GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId, 0);
+                            GameDefs.terrainInfo[GameVars.arenaPtr^.cells[y + tdy, x + tdx]].tileId);
         if GameVars.arenaPtr^.cursorOn then
           MapTiles.DrawIconAnimSprite(relX + tdx, relY + tdy, 0, 0, CURSOR_CELL);
       end;
@@ -517,20 +514,17 @@ var
   tdy: ShortInt;
 begin
   FillChar(crIdxArr, SizeOf(crIdxArr), 0);
-  for i := 1 to GameVars.arenaCount do begin
-    if GameVars.arenaLoc[i].size > 0 then begin
+  for i := 1 to Pathing.LastSlot do
+    if GameVars.arenaLoc[i].size > 0 then
       for j := 0 to 3 do
         if Pathing.GetIconTileDelta(GameVars.arenaLoc[i].size, j, tdx, tdy) then
           crIdxArr[GameVars.arenaLoc[i].y + tdy, GameVars.arenaLoc[i].x + tdx] := i;
-      gridX[i] := GameVars.arenaLoc[i].x - GameVars.arenaPtr^.ox;
-      gridY[i] := GameVars.arenaLoc[i].y - GameVars.arenaPtr^.oy;
-    end;
-  end;
+  CbtMap.CalcGridDeltas;
 end;
 
 procedure GetArenaContents(x, y: ShortInt; var crIdx, terrIdx: Byte);
 begin
-  if (x >= 0) and (x <= 49) and (y >= 0) and (y <= 24) then begin
+  if Pathing.OnArena(x, y) then begin
     terrIdx := GameVars.arenaPtr^.cells[y, x];
     crIdx := crIdxArr[y, x];
   end else begin
@@ -573,9 +567,9 @@ begin
       if Pathing.GetIconTileDelta(size, i, tdx, tdy) then
         if CbtMap.ViewCoordsValid(x + tdx, y + tdy) then
           MapTiles.Copy2DTile((x + tdx) * 3, (y + tdy) * 3,
-                              GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId, 0);
+                              GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY + tdy, absX + tdx]].tileId);
   end else if CbtMap.ViewCoordsValid(x, y) then
-    MapTiles.Copy2DTile(x * 3, y * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId, 0);
+    MapTiles.Copy2DTile(x * 3, y * 3, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[absY, absX]].tileId);
 end;
 
 function ViewCoordsValid(x, y: ShortInt): Boolean;
@@ -643,11 +637,11 @@ begin
   if x < minX then
     while (x < cX) and (cX > 3) do Dec(cX)
   else if x > maxX then
-    while (x > cX) and (cX < 46) do Inc(cX);
+    while (x > cX) and (cX < Types.ARENA_LAST_X - 3) do Inc(cX);
   if y < minY then
     while (y < cY) and (cY > 3) do Dec(cY)
   else if y > maxY then
-    while (y > cY) and (cY < 21) do Inc(cY);
+    while (y > cY) and (cY < Types.ARENA_LAST_Y - 3) do Inc(cY);
   GameVars.arenaPtr^.ox := cX - 3;
   GameVars.arenaPtr^.oy := cY - 3;
   pixY := 0;
@@ -656,7 +650,7 @@ begin
     pixX := 0;
     cX := GameVars.arenaPtr^.ox;
     for i := 0 to 6 do begin
-      MapTiles.Copy2DTile(pixX, pixY, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId, 1);
+      MapTiles.Copy2DTile(pixX, pixY, GameDefs.terrainInfo[GameVars.arenaPtr^.cells[cY, cX]].tileId);
       Inc(pixX, 3);
       Inc(cX);
     end;
@@ -677,18 +671,19 @@ begin
   tx := x + GameDefs.dirDX[dir];
   ty := y + GameDefs.dirDY[dir];
   if CbtMap.BuildViewBuffer(tx, ty, delta) then begin
-    for i := 1 to GameVars.arenaCount do begin
+    for i := 1 to Pathing.LastSlot do begin
       p := GameVars.creatureArr[i];
-      if (p^.enabled <> 0) and (GameVars.arenaLoc[i].size > 0) then
-        if CbtMap.CombatIconVisible(p, 0) then
+      { arenaCount's own slot is past the last creature placed, and nil in a session's first fight: size first }
+      if (GameVars.arenaLoc[i].size > 0) and (p <> nil) then
+        if (p^.enabled <> 0) and CbtMap.CombatIconVisible(p, 0) then
           MapTiles.DrawIconAnimSprite(gridX[i], gridY[i], p^.combatAddr^.direction, 0, p^.orderNumber);
     end;
   end;
   CbtMap.RedrawArenaCell(x, y);
   if not CbtMap.ViewCoordsValid(tx - GameVars.arenaPtr^.ox, ty - GameVars.arenaPtr^.oy) then begin
-    if tx > 49 then tx := 49;
+    if tx > Types.ARENA_LAST_X then tx := Types.ARENA_LAST_X;
     if tx < 0 then tx := 0;
-    if ty > 24 then ty := 24;
+    if ty > Types.ARENA_LAST_Y then ty := Types.ARENA_LAST_Y;
     if ty < 0 then ty := 0;
   end;
   CbtMap.DrawCursorCell(tx, ty);
@@ -754,13 +749,14 @@ begin
     GetIconSize := GameVars.arenaLoc[slot].size;
 end;
 
+{ nil is in no slot: arenaCount's own slot, past the last creature placed, can hold nil }
 function CombatSlot(creature: Types.PCharRecord): Byte;
 var
   i: Byte;
 begin
   CombatSlot := 0;
-  for i := 1 to GameVars.arenaCount do
-    if i <= Types.ARENA_SLOTS then
+  if creature <> nil then
+    for i := 1 to Pathing.LastSlot do
       if GameVars.creatureArr[i] = creature then begin
         CombatSlot := i;
         Exit;
@@ -825,7 +821,7 @@ begin
     else if (GameVars.downed[k].cr = nil) and (free = 0) then
       free := k;
   if free = 0 then begin
-    if GameVars.downedCount >= 8 then Exit;
+    if GameVars.downedCount >= Types.DOWNED_SLOTS then Exit;
     Inc(GameVars.downedCount);
     free := GameVars.downedCount;
   end;
@@ -962,7 +958,7 @@ begin
   cnt := 0;
   if n > 0 then begin
     for i := 1 to n do
-      if CharHlp.EnemyTeam(creature) = GameVars.creatureArr[GameVars.targetList[i].idx]^.hostile then begin
+      if CharHlp.EnemyTeam(creature) = CharHlp.Team(GameVars.creatureArr[GameVars.targetList[i].idx]) then begin
         Inc(cnt);
         Move(GameVars.targetList[i], GameVars.targetList[cnt], SizeOf(GameVars.targetList[i]));
       end;
@@ -976,12 +972,10 @@ end;
 
 function CalcDistance(creature, other: Types.PCharRecord): Byte;
 var
-  saved: Types.TTargetList;
-  savedCount: Byte;
+  saved: Types.TTargetSnapshot;
   i: Byte;
 begin
-  Move(GameVars.targetList, saved, SizeOf(GameVars.targetList));
-  savedCount := GameVars.targetCount;
+  Pathing.SaveTargets(saved);
   GameVars.arenaPtr^.distMode := 1;
   Pathing.BuildTargetList(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 255, 255,
                           CbtMap.GetIconSize(creature), GameVars.arenaPtr);
@@ -993,8 +987,7 @@ begin
     CalcDistance := GameVars.targetList[i].dist shr 1
   else
     CalcDistance := 255;
-  Move(saved, GameVars.targetList, SizeOf(GameVars.targetList));
-  GameVars.targetCount := savedCount;
+  Pathing.RestoreTargets(saved);
 end;
 
 begin

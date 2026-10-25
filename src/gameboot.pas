@@ -9,15 +9,13 @@ interface
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_SOUND, C_OPT, CfgFile, GameDefs, GameVars, Crt, Dos,
-  {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, GameIo, CbtLog,
+uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_OPT, CfgFile, GameVars, Crt, Dos,
+  {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, FileUtil, GameIo, CbtLog,
   {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
   {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
-  { lowered HeapEnd snapshot }
-  gfxReserve: Pointer;
   { POOL.CFG's video, sound and introduction letters, as START takes them (CfgFile.ReadPoolCfg) }
   cfgVideo: Char;
   cfgSound: Char;
@@ -41,10 +39,9 @@ begin
   Inc(GameVars.ovrLoads);
   CountOvrRead := ovrRead(ovrSeg);
 end;
-{$ENDIF}
 
 { A POOL.CFG path made ready for file names to be appended (CfgFile.NormalizePath). A path that leaves no room for a
-  file name within a DOS path stops the game with a message. }
+  file name within a DOS path stops the game with a message. Natively NativeFolders places the folders instead. }
 function NormalizePath(path: String): String;
 var
   full: String;
@@ -57,17 +54,24 @@ begin
   end;
   NormalizePath := full;
 end;
+{$ENDIF}
 
 { Read POOL.CFG (CfgFile.ReadPoolCfg): its letters into cfgVideo, cfgSound and cfgIntro, and its paths, as written,
-  into GameVars.gameDir and saveDirectory. A file that will not open stops the game with a message. }
+  into GameVars.gameDir and saveDirectory. A file that will not open stops the game with a message; natively, where
+  nothing asks for a startup disk, the game goes on with CfgFile.PoolDefaults and a line on the error output (#894). }
 procedure ReadConfig;
 var
   c: CfgFile.TPoolCfg;
   notes: CfgFile.TCfgNotes;
 begin
   if CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, c, notes) in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then begin
+{$IFDEF FPC}
+    WriteLn(StdErr, 'POOL.CFG is missing or unreadable: playing with the defaults. Run poolcfg to set up the game.');
+    CfgFile.PoolDefaults(c, '');
+{$ELSE}
     WriteLn('Unable to read POOL.CFG. Run POOLCFG to set up the game.');
     Halt;
+{$ENDIF}
   end;
   cfgVideo := c.video;
   cfgSound := c.sound;
@@ -92,7 +96,7 @@ var
   c: CfgFile.TPoolCfg;
   notes: CfgFile.TCfgNotes;
 begin
-  if not DaxIo.FileExists(C_OPT.SETUP_NAME) or
+  if not FileUtil.Exists(C_OPT.SETUP_NAME) or
      (CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, c, notes) = CfgFile.CFG_READ) then Exit;
   { PSP offset 2: the segment past START's memory block }
   paras := MemW[PrefixSeg:2] - PrefixSeg;
@@ -120,27 +124,24 @@ end;
 {$IFDEF FPC}
 { POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game is the current folder
   (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\
-  when it names one elsewhere. NatFile turns the backslashes into the system's separator as each file is opened. }
+  when it names one elsewhere (CfgFile.SaveFolderIn, which POOLCFG shows too). NatFile turns the backslashes into the
+  system's separator as each file is opened. }
 procedure NativeFolders(var gameDir, saveDir: String);
 var
-  game: String;
-  save: String;
+  inside: String;
 begin
-  game := NormalizePath(gameDir);
-  save := NormalizePath(saveDir);
+  inside := CfgFile.SaveFolderIn(gameDir, saveDir);
   GetDir(0, gameDir);
   if gameDir[Length(gameDir)] <> '/' then
     gameDir := gameDir + '/';
-  if (Length(save) > Length(game)) and NatFile.SameName(Copy(save, 1, Length(game)), game) then
-    saveDir := gameDir + Copy(save, Length(game) + 1, 255)
-  else
-    saveDir := gameDir + 'SAVE\';
+  saveDir := gameDir + inside;
 end;
 {$ENDIF}
 
 { Game startup runs through this unit's initialization section. }
 begin
   GameVars.stingArg := ParamStr(1) = 'STING';
+  GameVars.norandArg := ParamStr(2) = 'NORAND';
 {$IFDEF FPC}
   NatFile.EnterGameFolder;
   GameVars.ovrInEms := False;
@@ -160,9 +161,9 @@ begin
   CbtLog.Startup;
 {$IFNDEF FPC}
   GameBoot.RunSetup;
-{$ENDIF}
-  { a read-only POOL.CFG is there too (DaxIo.FileExists) }
+  { a read-only POOL.CFG is there too (FileUtil.Exists) }
   DaxIo.WaitForFile(C_OPT.CFG_NAME, 'Run POOLCFG to set up the game, or insert the startup disk.');
+{$ENDIF}
   CheckBreak := False;
   GameBoot.ReadConfig;
   { INT 10h AH=0Fh: get current video mode into AL }
@@ -184,10 +185,8 @@ begin
   end;
   { Keep a screen that lives in system RAM (Tandy's) out of the heap: lower HeapEnd by it. The common code after the
     sound setting lowers HeapEnd by GFX_RESERVE_PARAS once more, so Tandy reserves twice as much. }
-  if GameVars.video.ramVideoParas > 0 then begin
-    gfxReserve := Ptr(heapEndW.s - GameVars.video.ramVideoParas, heapEndW.o);
-    HeapEnd := gfxReserve;
-  end;
+  if GameVars.video.ramVideoParas > 0 then
+    HeapEnd := Ptr(heapEndW.s - GameVars.video.ramVideoParas, heapEndW.o);
 {$ENDIF}
   Blit.SetVideoMode(GameVars.video.biosMode);
   GameVars.video.Start;
@@ -228,10 +227,9 @@ begin
     SndNone.Install;
   end;
   GameVars.soundMode := GameVars.sound.mode;
-  { Lower HeapEnd by GFX_RESERVE_PARAS (16 KB) and record the new limit in gfxReserve }
 {$IFNDEF FPC}
-  gfxReserve := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
-  HeapEnd := gfxReserve;
+  { lower HeapEnd by GFX_RESERVE_PARAS (16 KB) }
+  HeapEnd := Ptr(heapEndW.s - GFX_RESERVE_PARAS, heapEndW.o);
 {$ENDIF}
   SoundDrv.SoundSuspend;
 {$IFDEF FPC}

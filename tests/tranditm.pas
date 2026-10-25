@@ -67,6 +67,16 @@ begin
   TestKit.Check(ok, 'kind 78 always makes template 7, 9 or 15');
   TestKit.Check((made[1] > 50) and (made[2] > 50) and (made[3] > 50), 'kind 78 makes each of its templates often');
 
+  { kind 71: templates 3, 1, 4 and 11, the potions and the ointment; SSI's 1d11 made a nameless item on an 11
+    (POR-0225) }
+  ok := True;
+  for i := 1 to 300 do begin
+    RandItem.GenerateRandomItem(71, @it);
+    if not (IsTemplate(3) or IsTemplate(1) or IsTemplate(4) or IsTemplate(11)) then
+      ok := False;
+  end;
+  TestKit.Check(ok, 'kind 71 always makes template 3, 1, 4 or 11');
+
   { a long sword (kind 1..59): a plus of 1..3 named "+plus", no save bonus }
   ok := True;
   for i := 1 to 200 do begin

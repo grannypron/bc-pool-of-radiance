@@ -53,11 +53,10 @@ const
   SDL_PIXELFORMAT_XRGB8888 = $16161804;
   { SDL_TextureAccess }
   SDL_TEXTUREACCESS_STREAMING = 1;
-  { SDL_ScaleMode }
-  SDL_SCALEMODE_NEAREST = 0;
+  { SDL_ScaleMode: nearest, smoothed where a pixel straddles two (SDL 3.4) }
+  SDL_SCALEMODE_PIXELART = 2;
   { SDL_RendererLogicalPresentation }
   SDL_LOGICAL_PRESENTATION_LETTERBOX = 2;
-  SDL_LOGICAL_PRESENTATION_INTEGER_SCALE = 4;
 
   { SDL_EventType }
   SDL_EVENT_QUIT = $100;
@@ -114,7 +113,6 @@ type
 function SDL_Init(flags: LongWord): Boolean; cdecl; external SDL_LIB;
 procedure SDL_Quit; cdecl; external SDL_LIB;
 function SDL_GetError: PChar; cdecl; external SDL_LIB;
-function SDL_SetHint(name, value: PChar): Boolean; cdecl; external SDL_LIB;
 
 function SDL_CreateWindow(title: PChar; w, h: LongInt; flags: QWord): PSDL_Window; cdecl; external SDL_LIB;
 procedure SDL_DestroyWindow(window: PSDL_Window); cdecl; external SDL_LIB;
@@ -137,14 +135,12 @@ function SDL_RenderPresent(renderer: PSDL_Renderer): Boolean; cdecl; external SD
 function SDL_PollEvent(var event: TSDL_Event): Boolean; cdecl; external SDL_LIB;
 
 function SDL_GetTicks: QWord; cdecl; external SDL_LIB;
-procedure SDL_Delay(ms: LongWord); cdecl; external SDL_LIB;
 
 function SDL_OpenAudioDeviceStream(devid: LongWord; var spec: TSDL_AudioSpec; callback: Pointer;
   userdata: Pointer): PSDL_AudioStream; cdecl; external SDL_LIB;
 function SDL_ResumeAudioStreamDevice(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 function SDL_PutAudioStreamData(stream: PSDL_AudioStream; buf: Pointer; len: LongInt): Boolean; cdecl;
   external SDL_LIB;
-function SDL_GetAudioStreamQueued(stream: PSDL_AudioStream): LongInt; cdecl; external SDL_LIB;
 procedure SDL_DestroyAudioStream(stream: PSDL_AudioStream); cdecl; external SDL_LIB;
 function SDL_LockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 function SDL_UnlockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;

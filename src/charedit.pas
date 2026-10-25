@@ -28,7 +28,8 @@ const
   TEMPLATE_CODE = 256;
   { the item type each of RandItem.randomItemTemplates is made on, as RandItem rolls them; 0 for the Scroll of Restoring
     Levels, which RandItem never makes }
-  TEMPLATE_KINDS: array[1..19] of Byte = (71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
+  TEMPLATE_KINDS: array[1..RandItem.TEMPLATE_LAST] of Byte = (
+    71, 84, 71, 71, 0, 69, 78, 79, 78, 63, 71, 70, 92, 21, 78, 69, 69, 70, 67);
   { the highest plus a weapon or armour takes here: name parts run to +5 (C_ITEM.NAME_PLUS_BASE) }
   PLUS_LAST = 5;
   { the bracers' choices, AC 6, 4 and 2: their plus, as RandItem gives it, and their name part; each is worth 3000 gp a
@@ -66,8 +67,6 @@ procedure LowerLevel(cls: ShortInt; clsCount: Byte);
 var
   avg: Integer;
   loss: Integer;
-  dmg: Integer;
-  hp: Integer;
   gave: Boolean;
 begin
   with GameVars.curChar^ do begin
@@ -79,27 +78,13 @@ begin
       loss := 1;
     Dec(classLevels[cls]);
     if gave then begin
-      dmg := hpMax - hpCur;
-      hp := hpMax - loss;
-      if hp < ClassCal.HpMinimum(GameVars.curChar) then
-        hp := ClassCal.HpMinimum(GameVars.curChar);
-      if hp < 1 then
-        hp := 1;
-      hpMax := hp;
-      if hp - dmg < 0 then
-        hpCur := 0
-      else
-        hpCur := hp - dmg;
+      CharGen.SetHpMax(hpMax - loss);
       if hpRolled > avg div clsCount then
         Dec(hpRolled, avg div clsCount);
     end;
     if classLevels[cls] = 1 then
       case cls of
-        C_LEVEL.CLERIC: begin
-            FillChar(clericSpells, SizeOf(clericSpells), 0);
-            clericSpells[1] := 1;
-            ClassCal.AwardWisdomBonus(Types.PCharRecord(GameVars.curChar));
-          end;
+        C_LEVEL.CLERIC: ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
         C_LEVEL.MAGE: begin
             FillChar(mageSpells, SizeOf(mageSpells), 0);
             mageSpells[1] := 1;
@@ -112,7 +97,8 @@ begin
   ChgClass.SyncClassPowers(Types.PCharRecord(GameVars.curChar));
 end;
 
-{ The experience a level of class slot cls starts at: 0 for level 1. }
+{ The experience a level of class slot cls starts at: 0 for level 1, and -1 for a level past the experience table's for
+  the class (GameDefs.experienceSpellsClass). }
 function LevelXp(cls: ShortInt; level: Byte): LongInt;
 begin
   if level < 2 then
@@ -177,8 +163,9 @@ begin
           C_KEYS.LEFT:
             if classLevels[cls] > 1 then begin
               LowerLevel(cls, ClassCal.HpClassCount(Types.PCharRecord(GameVars.curChar)));
-              { past the level's range, the experience comes down to one short of the next level }
-              if experience >= LevelXp(cls, classLevels[cls] + 1) then
+              { past the level's range, the experience comes down to one short of the next level; a next level
+                the table does not reach (-1) leaves it, as one short of that is negative }
+              if (LevelXp(cls, classLevels[cls] + 1) > 0) and (experience >= LevelXp(cls, classLevels[cls] + 1)) then
                 experience := LevelXp(cls, classLevels[cls] + 1) - 1;
             end;
           C_KEYS.RIGHT:
@@ -340,11 +327,11 @@ var
   head: Types.PItemRec;
   tail: Types.PItemRec;
   sel: Types.PItemRec;
-  p: Types.PItemRec;
   item: Types.PItemRec;
   codes: TCodes;
   n: Byte;
   k: Byte;
+  line: Integer;
   idx: Integer;
   redraw: Boolean;
   key: Char;
@@ -363,7 +350,7 @@ begin
         AddLine(head, tail, codes, n, Named(item), k);
     end;
   AddLine(head, tail, codes, n, 'Magic items', 0);
-  for k := 1 to 19 do
+  for k := 1 to RandItem.TEMPLATE_LAST do
     if TEMPLATE_KINDS[k] <> 0 then begin
       Make(TEMPLATE_CODE + k, item);
       item^.unidMask := 0;
@@ -381,20 +368,16 @@ begin
                                idx, sel);
   code := 0;
   if (key <> C_KEYS.NONE) and (sel <> nil) then begin
-    p := head;
-    k := 0;
-    while (p <> nil) and (p <> sel) do begin
-      p := p^.next;
-      Inc(k);
-    end;
-    if p <> nil then
-      code := codes[k];
+    line := MenuCore.ListIndex(head, sel);
+    if line >= 0 then
+      code := codes[line];
   end;
   MenuCore.FreeStringList(head);
   if code <> 0 then begin
     Make(code, item);
     item^.unidMask := 0;
-    if (code > TEMPLATE_CODE) or (code = 61) or (code = 62) or ChoosePlus(item) then begin
+    if (code > TEMPLATE_CODE) or (code = C_ITEM.MAGE_SCROLL) or (code = C_ITEM.CLERIC_SCROLL) or ChoosePlus(item) then
+    begin
       Shop.GiveItemCopyToCreature(item, failed);
       if failed then
         TextRend.PauseOnly;
@@ -409,7 +392,6 @@ var
   head: Types.PItemRec;
   tail: Types.PItemRec;
   sel: Types.PItemRec;
-  p: Types.PItemRec;
   m: ShortInt;
   idx: Integer;
   redraw: Boolean;
@@ -430,14 +412,8 @@ begin
     key := MenuCore.MenuVertical('Money: ', 'Set', LightMagenta, LightGreen, White, 12, 7, 27, 13, head, True,
                                  redraw, idx, sel);
     m := -1;
-    if (key <> C_KEYS.NONE) and (sel <> nil) then begin
-      m := C_MONEY.COPPER;
-      p := head;
-      while (p <> nil) and (p <> sel) do begin
-        p := p^.next;
-        Inc(m);
-      end;
-    end;
+    if (key <> C_KEYS.NONE) and (sel <> nil) and (MenuCore.ListIndex(head, sel) >= 0) then
+      m := C_MONEY.COPPER + MenuCore.ListIndex(head, sel);
     MenuCore.FreeStringList(head);
     if m >= C_MONEY.COPPER then begin
       s := TextRend.ReadString(GameDefs.moneyNames[m] + ': ', LightGreen, 5);
@@ -472,8 +448,7 @@ var
   head: Types.PItemRec;
   tail: Types.PItemRec;
   sel: Types.PItemRec;
-  p: Types.PItemRec;
-  spells: array[1..56] of Byte;
+  spells: array[1..C_SPELL.LAST] of Byte;
   n: Byte;
   m: Byte;
   k: Byte;
@@ -503,16 +478,8 @@ begin
     key := MenuCore.MenuVertical('Known: ', 'Toggle', LightMagenta, LightGreen, White, 1, 1, 38, 22, head, True,
                                  redraw, idx, sel);
     k := 0;
-    if (key <> C_KEYS.NONE) and (sel <> nil) then begin
-      p := head;
-      k := 1;
-      while (p <> nil) and (p <> sel) do begin
-        p := p^.next;
-        Inc(k);
-      end;
-      if p = nil then
-        k := 0;
-    end;
+    if (key <> C_KEYS.NONE) and (sel <> nil) then
+      k := MenuCore.ListIndex(head, sel) + 1;
     MenuCore.FreeStringList(head);
     if k <> 0 then
       with GameVars.curChar^ do

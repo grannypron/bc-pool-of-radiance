@@ -1,5 +1,6 @@
-{ The EGA video driver: BIOS mode 0Dh, 320x200 in 16 colours on four planes at $A000, two pages. Resident, since its
-  routines are the hot ones; GameBoot installs it when POOL.CFG names EGA (phase 6 of docs/refactor-plan.md). }
+{ The EGA video driver: BIOS mode 0Dh, 320x200 in 16 colours on four planes at $A000; page 0 is shown, page 1 is
+  FlushSpans' staging area. Resident, since its routines are the hot ones; GameBoot installs it when POOL.CFG names EGA
+  (phase 6 of docs/refactor-plan.md). }
 {$F+}
 {$I COMPILER.INC}
 unit VidEga;
@@ -16,15 +17,14 @@ uses Types, C_VIDEO, C_EGA, GameDefs, GameVars, DaxIo, Crt, Dos, PicEga;
 const
   { write-mode 1: CPU write stores the 4 latched planes (a 4-plane block copy through the latches) }
   GC_WRITE_MODE_1 = 1;
+  { write-mode 2: the CPU byte's low four bits are a colour written to every pixel of the byte }
+  GC_WRITE_MODE_2 = 2;
   { off-screen planar staging area (0x200 para = 8 KB up) }
   EGA_STAGE_SEG = $A200;
 
 var
-  { the video segments of the displayed page and of the other page; DrawGlyph writes both }
+  { the video segment of the displayed page, page 0 (Start); page 1, at EGA_STAGE_SEG, is FlushSpans' staging area }
   egaCurPage: Word;
-  egaOtherPage: Word;
-  { the other page's number (always 0; Start sets it) }
-  pageNum: Byte;
 
 { Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
 procedure ResetEgaGC;
@@ -49,8 +49,8 @@ begin
   Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
 end;
 
-{ Make page the active display page (INT10 AH=5) and store its segment base, with a 512-paragraph stride, in egaCurPage.
-  Start sets both page selectors to 0; DrawGlyph then writes through both equal page segments. }
+{ Make page the active display page (INT10 AH=5) and store its segment base, with a 512-paragraph stride, in
+  egaCurPage. }
 procedure SetupEgaCurrentPage(page: Byte);
 begin
   GameVars.interruptRegisters.ah := 5;
@@ -59,15 +59,8 @@ begin
   egaCurPage := C_VIDEO.EGA_VIDEO_SEG + (Word(page) shl 9);
 end;
 
-{ Store the other page's segment base in egaOtherPage, with the same 512-paragraph stride and no BIOS call. }
-procedure SetupEgaOtherPage(page: Byte);
-begin
-  egaOtherPage := C_VIDEO.EGA_VIDEO_SEG + (Word(page) shl 9);
-end;
-
-{ Fill a character-cell rectangle on an EGA page using write mode 2. The fill goes through egaOtherPage, temporarily
-  pointed at page, and afterwards write mode 0 is restored and egaOtherPage is re-pointed at pageNum. }
-procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: Byte; page, color: Byte);
+{ Fill a character-cell rectangle of the displayed page with color using write mode 2, then restore write mode 0. }
+procedure FillRectEga(ulCol, ulRow, lrCol, lrRow: Byte; color: Byte);
 var
   dstOff: Word;
   rowCount: Word;
@@ -75,26 +68,22 @@ var
 begin
   dstOff := Word(ulRow) * 40 * 8 + ulCol;
   rowCount := (lrRow - ulRow + 1) * 8 - 1;
-  VidEga.SetupEgaOtherPage(page);
   VidEga.ResetEgaGC;
   Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
-  Port[C_EGA.GC_DATA_PORT] := 2;
+  Port[C_EGA.GC_DATA_PORT] := GC_WRITE_MODE_2;
   for i := 0 to rowCount do begin
-    FillChar(Mem[egaOtherPage: dstOff], lrCol - ulCol + 1, color);
+    FillChar(Mem[egaCurPage: dstOff], lrCol - ulCol + 1, color);
     Inc(dstOff, 40);
   end;
   Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
   Port[C_EGA.GC_DATA_PORT] := C_EGA.GC_WRITE_MODE_0;
-  VidEga.SetupEgaOtherPage(pageNum);
 end;
 
-{ both display pages 0 }
+{ page 0 shown and drawn on (SSI's second page is gone: its memory is FlushSpans' staging area) }
 procedure Start;
 begin
   GameVars.pageMain := 0;
-  pageNum := 0;
   VidEga.SetupEgaCurrentPage(GameVars.pageMain);
-  VidEga.SetupEgaOtherPage(pageNum);
 end;
 
 { Each span is staged plane by plane in off-screen video memory and then copied to the visible page in one latch-copy
@@ -168,52 +157,41 @@ begin
   end;
 end;
 
-{ all four planes, on both pages }
+{ all four planes: the font row in each plane of color, 0 in the others }
 procedure DrawGlyph(col, row, color, glyph: Byte);
-const
-  { EGA plane masks, highest plane first: plane k's is [3 - k] }
-  egaPlaneMask: array[0..3] of Byte = ($08, $04, $02, $01);
 var
   dstOff: Word;
-  k: Byte;
-  outerRow: Byte;
+  plane: Byte;
+  fontRow: Byte;
 begin
   dstOff := (row * 8) * 40 + col;
   Port[C_EGA.SEQ_ADDR_PORT] := C_EGA.SEQ_MAP_MASK_REG;
-  for outerRow := 0 to 7 do begin
-    for k := 0 to 3 do begin
-      Port[C_EGA.SEQ_DATA_PORT] := egaPlaneMask[3 - k];
-      if (egaPlaneMask[3 - k] and color) > 0 then begin
-        Mem[egaCurPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
-        Mem[egaOtherPage: dstOff] := GameVars.gameFont^[glyph][outerRow];
-      end else begin
+  for fontRow := 0 to 7 do begin
+    for plane := 0 to 3 do begin
+      Port[C_EGA.SEQ_DATA_PORT] := GameDefs.egaPlaneBit[plane];
+      if (GameDefs.egaPlaneBit[plane] and color) > 0 then
+        Mem[egaCurPage: dstOff] := GameVars.gameFont^[glyph][fontRow]
+      else
         Mem[egaCurPage: dstOff] := 0;
-        Mem[egaOtherPage: dstOff] := 0;
-      end;
     end;
     Inc(dstOff, 40);
   end;
   Port[C_EGA.SEQ_DATA_PORT] := C_EGA.MAP_MASK_ALL_PLANES;
 end;
 
-{ on both pages }
 procedure ClearRect(ulCol, ulRow, lrCol, lrRow: Byte);
 begin
-  VidEga.FillRectEga(ulCol, ulRow, lrCol, lrRow, 0, Black);
-  VidEga.FillRectEga(ulCol, ulRow, lrCol, lrRow, 1, Black);
+  VidEga.FillRectEga(ulCol, ulRow, lrCol, lrRow, Black);
 end;
 
 procedure ClearScreen;
 begin
-  VidEga.FillRectEga(0, 0, 39, 24, 0, Black);
-  VidEga.FillRectEga(0, 0, 39, 24, 1, Black);
+  VidEga.FillRectEga(0, 0, 39, 24, Black);
 end;
 
-{ the main page, then the same again, unmapped, on the other page }
 procedure WriteChar(col, row, attr, count, ch: Byte);
 begin
   DaxIo.BiosWriteChar(GameVars.pageMain, col, row, attr, count, ch);
-  DaxIo.BiosWriteChar(pageNum, col, row, attr, count, ch);
 end;
 
 procedure CellFill(color: Byte; var colorMap: Types.TColorMap; var cell: Types.TCellBytes);
@@ -262,7 +240,7 @@ begin
     ClearRect := VidEga.ClearRect;
     ClearScreen := VidEga.ClearScreen;
     WriteChar := VidEga.WriteChar;
-    ExpandFrames := PicEga.ExpandFrames;
+    ExpandChunk := PicEga.ExpandChunk;
     MirrorFrame := PicEga.MirrorFrame;
     RemapColour := PicEga.RemapColour;
     RecolorFrame := PicEga.RecolorFrame;

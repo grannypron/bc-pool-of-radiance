@@ -23,46 +23,46 @@ var
   { Party icon frame, 0..5: parity selects the icon frame, div 2 the icon animation. }
   wildAnimFrame: Byte;
 
-{ Draw the party icon at its cell wx/wy in the 5x5 view. The view is centered on the party except near a map edge, where
-  DisplayMapView pins it and the icon moves off center: below 2 the icon keeps the party's own cell, and 42/43 and 34/35
-  are the last two columns and rows of GameDefs.wildMap. Nothing is drawn outside a wilderness location. }
+{ The party's map cell, column (col) and row, in the wilderness of location type loc. }
+procedure PartyCell(loc: Byte; var col, row: Integer);
+begin
+  col := GameDefs.wildColOfs[loc] + Integer(GameVars.zone0^.partyX.value);
+  row := Integer(GameVars.zone0^.partyY.value);
+end;
+
+{ The corner of the 5x5 view centered on map cell cell, along a map side whose last cell is last, moved inside the map
+  as Wilds.BuildWildernessMap moves it. }
+function CenteredCorner(cell, last: Integer): Integer;
+begin
+  CenteredCorner := Wilds.ViewCorner(cell - C_AREA.WILD_VIEW_LAST div 2, last);
+end;
+
+{ Draw the party icon at its cell in the 5x5 view. The view is centered on the party except near a map edge, where it
+  is moved inside the map (CenteredCorner) and the icon moves off center. Nothing is drawn outside a wilderness
+  location. }
 procedure DisplayWildMapView;
 var
-  wx: ShortInt;
-  wy: Byte;
+  col: Integer;
+  row: Integer;
 begin
   if not (GameVars.gLocType in [C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST]) then Exit;
-  wx := GameDefs.wildColOfs[GameVars.gLocType] + GameVars.zone0^.partyX.value;
-  if wx < 2 then
-  else if wx < 42 then wx := 2
-  else if wx < 43 then wx := 3
-  else wx := 4;
-  if GameVars.zone0^.partyY.value < 2 then wy := GameVars.zone0^.partyY.value
-  else if GameVars.zone0^.partyY.value < 34 then wy := 2
-  else if GameVars.zone0^.partyY.value < 35 then wy := 3
-  else wy := 4;
-  MapTiles.DrawIconAnimSprite(wx, wy, GameVars.gFacing, wildAnimFrame mod 2,
-                              wildAnimFrame div 2 + 9);
+  MapView.PartyCell(GameVars.gLocType, col, row);
+  MapTiles.DrawIconAnimSprite(col - MapView.CenteredCorner(col, C_AREA.WILD_LAST_COL),
+                              row - MapView.CenteredCorner(row, C_AREA.WILD_LAST_ROW), GameVars.gFacing,
+                              wildAnimFrame mod 2, wildAnimFrame div 2 + MapTiles.FIRST_WILD_ICON);
   wildAnimFrame := (wildAnimFrame + 1) mod 6;
   Blit.FlushView;
 end;
 
 { Draw the current map view. For the 3D view, take the sky or ceiling color from the zone (its alternate color when the
-  cell's event value is above $7F; a selector counts modulo 16), recompute the ceiling, floor and wall colors from their
-  selectors while picRegionW is set, and pass all four to View3D.SetView3DColors before View3D.Display3DMapView draws.
-  For the wilderness, center the 5x5 view on the party, clamped to the map, then draw the party icon. }
+  cell's event value is above $7F; a selector counts modulo 8), recompute the horizon line, horizon band and floor
+  colors from their selectors while picRegionW is set, and pass all four to View3D.SetView3DColors before
+  View3D.Display3DMapView draws. For the wilderness, center the 5x5 view on the party, moved inside the map, then draw
+  the party icon. }
 procedure DisplayMapView;
 const
-  { Display color for each zone sky/ceiling selector; selectors 8..15 repeat 0..7. }
-  skyCeilingColors: array[0..15] of Byte = (
-    Black,
-    White,
-    LightRed,
-    LightCyan,
-    LightMagenta,
-    LightGreen,
-    LightBlue,
-    Yellow,
+  { Display color for each zone sky/ceiling selector, counted modulo 8. }
+  skyCeilingColors: array[0..7] of Byte = (
     Black,
     White,
     LightRed,
@@ -72,41 +72,38 @@ const
     LightBlue,
     Yellow);
 var
-  wx: ShortInt;
-  wy: ShortInt;
+  col: Integer;
+  row: Integer;
   loc: Byte;
 
-  { Ceiling color for a ceiling/floor color selector. }
+  { The horizon line's color (View3D.wallColorA) for a ceiling/floor color selector; SSI's code also named 232, as
+    White. }
   function CeilColor(w: Byte): Byte;
   begin
-    case w of
-      8: CeilColor := Black;
-      65: CeilColor := Black;
-      232: CeilColor := White;
-      else CeilColor := White;
-    end;
+    if w in [8, 65] then
+      CeilColor := Black
+    else
+      CeilColor := White;
   end;
 
-  { Floor color for a ceiling/floor color selector. }
+  { The horizon band's color (View3D.wallColorB) for a ceiling/floor color selector; SSI's code also named 65 and 232,
+    as LightGray. }
   function FloorColor(w: Byte): Byte;
   begin
-    case w of
-      8: FloorColor := DarkGray;
-      65: FloorColor := LightGray;
-      232: FloorColor := LightGray;
-      else FloorColor := LightGray;
-    end;
+    if w = 8 then
+      FloorColor := DarkGray
+    else
+      FloorColor := LightGray;
   end;
 
-  { Wall color for a wall color selector. }
+  { The floor band's color (View3D.wallColorC) for a wall color selector; SSI's code also named 9 and 219, as Brown. }
   function WallColor(w: Byte): Byte;
   begin
     case w of
       11: WallColor := DarkGray;
-      9: WallColor := Brown;
-      219: WallColor := Brown;
       6: WallColor := Blue;
-      else WallColor := Brown;
+    else
+      WallColor := Brown;
     end;
   end;
 
@@ -117,9 +114,9 @@ begin
     C_AREA.LOC_3D_MAP: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if GameVars.eventAtCell > $7F then
-        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.alternateSkyColor and $0F]
+        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.alternateSkyColor and 7]
       else
-        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.skyCeilingColor and $0F];
+        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.skyCeilingColor and 7];
       if GameVars.picRegionW then begin
         View3D.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
         View3D.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
@@ -130,15 +127,9 @@ begin
       View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;
     C_AREA.LOC_WILD_WEST..C_AREA.LOC_WILD_EAST: begin
-      wx := GameDefs.wildColOfs[loc] + GameVars.zone0^.partyX.value - 1 - 1;
-      if wx < 0 then wx := 0;
-      { last column origin for the 5-wide view }
-      if wx > 39 then wx := 39;
-      wy := GameVars.zone0^.partyY.value - 1 - 1;
-      if wy < 0 then wy := 0;
-      { last row origin for the 5-tall view }
-      if wy > 31 then wy := 31;
-      Wilds.BuildWildernessMap(wx, wy);
+      MapView.PartyCell(loc, col, row);
+      Wilds.BuildWildernessMap(MapView.CenteredCorner(col, C_AREA.WILD_LAST_COL),
+                               MapView.CenteredCorner(row, C_AREA.WILD_LAST_ROW));
       MapView.DisplayWildMapView;
     end;
   end;

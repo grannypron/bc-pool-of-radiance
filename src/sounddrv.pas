@@ -1,4 +1,5 @@
-{ PC-speaker and Tandy SN76489 sound controls and clock delays. SoundCommand selects tunes, output gating and optional
+{ The game's sound controls and clock delays, over whichever driver GameBoot installed in GameVars.sound (the speaker,
+  the Tandy's SN76489, the AdLib's OPL2 or the Sound Blaster). SoundCommand selects tunes, output gating and optional
   per-command cleanup. SoundSuspend saves the mode and silences the devices; PlayMusic and StopMusic start and end a
   piece of music; SoundSetAutoStop controls the timer driver's lifetime. The timer stays hooked while a resident window
   (auto-stop 0), a sound command or the music needs it. SOUNDDRV.OBJ owns the timer sequencer, streams and device voice
@@ -89,7 +90,7 @@ procedure SetSoundDevice(mode: Word);
 
 implementation
 
-uses C_SOUND, Dos, GameDefs, GameVars{$IFDEF FPC}, SndSeq{$ENDIF};
+uses C_SOUND, Dos, GameVars{$IFDEF FPC}, SndSeq{$ENDIF};
 
 var
   { the exit procedure SoundDrv.SoundExit hands on to }
@@ -110,8 +111,6 @@ const
   OUTPUT_DISABLED = 0;
   { Value passed to SetSoundOutputEnabled to allow output. }
   OUTPUT_ENABLED = 1;
-  { Timer driver ticks in 1000 centiseconds: PIT ch0 runs at 1193182 / 5041 = 236.7 Hz while the driver is hooked. }
-  TICKS_PER_1000_CS = 2367;
   { SoundTime samples after which an unhooked SoundDelay gives up on a clock that does not move. }
   MAX_CLOCK_PASSES = 60000;
 
@@ -192,7 +191,8 @@ var
   sample: Word;
 begin
   if SoundDrv.SoundTimerHooked then begin
-    ticks := (LongInt(centiseconds) * TICKS_PER_1000_CS + 500) div 1000;
+    { the PIT's clocks in that time over the driver's divisor, rounded: 2.367 ticks a centisecond }
+    ticks := (LongInt(centiseconds) * (C_SOUND.PIT_HZ div 100) + C_SOUND.TIMER_DIVISOR div 2) div C_SOUND.TIMER_DIVISOR;
     elapsed := 0;
     last := SoundDrv.SoundTimerTicks;
     while elapsed < ticks do begin
@@ -243,8 +243,7 @@ begin
   musicTune := 0;
   SoundDrv.SetSoundDevice(GameVars.sound.mode);
   SoundDrv.InstallSoundTimer;
-  SoundDrv.ProgramSpeakerVoices(SILENT_TUNE);
-  SoundDrv.ProgramTandyVoices(SILENT_TUNE);
+  SoundDrv.SilenceAll;
   SoundDrv.UninstallSoundTimer;
 end;
 

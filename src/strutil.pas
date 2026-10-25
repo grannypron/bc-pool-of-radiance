@@ -36,6 +36,11 @@ function Pluralize(n: LongInt; singular, plural: TNounStr): TNounStr;
 { n and a blank, then its noun (Pluralize): '1 SQUARE', '3 SQUARES', '0 points'. }
 function Count(n: LongInt; singular, plural: TNounStr): TCountStr;
 
+{ Hold the length byte of s, a string[max] read raw from a file, to max: True when it was within it already, else
+  the string is cut to max (#917). A raw length byte past its field would carry an assignment, a comparison or a
+  display past the string into whatever follows it. }
+function FitLength(var s; max: Byte): Boolean;
+
 { s cut, or padded with spaces on the right, to width. }
 function PadRight(s: String; width: Byte): String;
 
@@ -46,7 +51,19 @@ function PadLeft(s: String; width: Byte): String;
   hotkeys collected in opts. Digits are left alone (SSI shifted them by 32 as well, so a '1' showed as a 'Q', #810). }
 procedure MenuToOptions(var menu, opts: String);
 
+{ s with every occurrence of del removed, adjacent ones and ones the removals bring together included: 'A....B' less '.'
+  is 'AB' (SSI's pass moved on after each removal and kept one of two in a row, POR-0224, #960). An empty del removes
+  nothing. }
+function RemoveAll(s, del: String): String;
+
 implementation
+
+function FitLength(var s; max: Byte): Boolean;
+begin
+  FitLength := Byte(s) <= max;
+  if Byte(s) > max then
+    Byte(s) := max;
+end;
 
 function NumStr(n: LongInt): TNumStr;
 var
@@ -135,6 +152,25 @@ begin
     end;
     Inc(i);
   end;
+end;
+
+function RemoveAll(s, del: String): String;
+var
+  i: Byte;
+begin
+  i := 1;
+  if del <> '' then
+    while i + Length(del) - 1 <= Length(s) do
+      if Copy(s, i, Length(del)) = del then begin
+        Delete(s, i, Length(del));
+        { a match the removal brought together starts at most Length(del) - 1 places back }
+        if i > Length(del) then
+          Dec(i, Length(del) - 1)
+        else
+          i := 1;
+      end else
+        Inc(i);
+  RemoveAll := s;
 end;
 
 end.

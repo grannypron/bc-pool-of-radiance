@@ -5,14 +5,13 @@ unit GameVars;
 
 interface
 
-uses Types, Dos, C_EFFECT, C_GBVM, C_SPELL{$IFDEF FPC}, Host{$ENDIF};
+uses Types, Dos, C_ECL, C_EFFECT, C_SPELL, C_TILE{$IFDEF FPC}, Host{$ENDIF};
 
 var
   { The video driver GameBoot installed for the video mode (Types.TVideoDriver). }
   video: Types.TVideoDriver;
   { the sound driver GameBoot installed }
   sound: Types.TSoundDriver;
-  { Timed effects. }
   { Play session }
   { GameBoot writes 0/1, Intro tests zero }
   fullIntro: Boolean;
@@ -30,7 +29,7 @@ var
   { Five GBVM addresses loaded from the ECL entry header. [1] runs before movement and after on-load; [2] search/Look;
     [3] pre-camp; [4] camp interruption; [5] on-load }
   { ECL entry GBVM addresses }
-  scriptEntryAddrs: array[1..5] of Word;
+  scriptEntryAddrs: array[1..C_ECL.ENTRY_COUNT] of Word;
   { ECL instruction pointer into zone3 }
   eclIp: Word;
   { Interface state, one of the IFC_ constants of C_IFC and Ending }
@@ -66,6 +65,8 @@ var
   stingHpFlag: Byte;
   { Started as START STING: the debug keys and cheats are on. GameBoot sets it before anything reads a key. }
   stingArg: Boolean;
+  { Started with NORAND as the second argument: the random numbers are seeded with 1. GameBoot sets it with stingArg. }
+  norandArg: Boolean;
   { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
     writes the creatures' effects there }
   debugTraceEnabled: Boolean;
@@ -117,13 +118,11 @@ var
   { Offset of the last dirty byte (inclusive) in the view buffer's image data. Reset to 0 when clean so any new span
     compares as later. }
   spanLastOfs: array[0..167] of Word;
-  { Video segment for each CGA scanline, precomputed so row writes need no bank arithmetic: even and odd rows interleave
-    between the B800 and BA00 banks. }
-  cgaRowSeg: array[0..199] of Word;
-  { Offset into the EGA video segment for each scanline; rows are 40 bytes apart. }
+  { Video segment for each scanline in a banked mode, precomputed so row writes need no bank arithmetic: CGA's even and
+    odd rows interleave between the B800 and BA00 banks, Tandy's rows go round its four banks from B800. }
+  bankRowSeg: array[0..199] of Word;
+  { Offset into the video segment for each scanline in EGA (rows 40 bytes apart) and VGA (320). }
   fbRowOfs: array[0..199] of Word;
-  { Video segment for each Tandy scanline, precomputed like cgaRowSeg. }
-  tandyRowSeg: array[0..199] of Word;
 
 var
   { Sound mode }
@@ -133,14 +132,13 @@ var
   { current resource disk; saved by SaveLoad }
   virtualDisk: Byte;
   { Save directory from line 4 of POOL.CFG. }
-  saveDirectory: String[255];
+  saveDirectory: Types.TPathStr;
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
-  gameDir: String;
+  gameDir: Types.TPathStr;
   { Flag for suppressing insert disk prompt }
   suppressingInsertDiskFlag: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
   recentSaved: Byte;
-  { ITEMS catalogue }
   { Party pointers }
   { Current creature. }
   curChar: Types.PCharRecord;
@@ -169,7 +167,7 @@ var
   mapTilePtr: Types.PImgBuf;
   { Icon images }
   { Animation images for creature, death and cursor icons. }
-  iconAnimation: array[0..25, 0..1] of Types.PImgBuf;
+  iconAnimation: array[0..C_TILE.ICON_LAST, 0..1] of Types.PImgBuf;
   { Combat arena }
   { next registration slot, inclusive scan limit }
   arenaCount: Byte;
@@ -178,7 +176,7 @@ var
   { creature per slot }
   creatureArr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { corpses on the arena }
-  downed: array[1..8] of Types.TDownedRec;
+  downed: array[1..Types.DOWNED_SLOTS] of Types.TDownedRec;
   { append and scan limit; cleared entries leave holes }
   downedCount: Byte;
   { allocated combat viewport, borrowed by renderers }
@@ -202,7 +200,7 @@ var
   pendingEffectId: Byte;
   { damage before hit-point subtraction }
   pendingDamage: Byte;
-  { C_EFFECT.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid }
+  { C_EFFECT.ELEM_*: 1 fire, 2 cold, 4 electricity, 8 magic, 16 acid; 32 poison, 64 disease, 128 blood drain }
   elementMask: Byte;
   { current attack *or* current movement times 2 }
   currentAttackCurrent: Byte;
@@ -235,7 +233,6 @@ var
   { 3D view }
   { four 256-byte GEO planes; View3D/Explore views }
   map3d: Types.PGeoMap;
-  { View3D band colors; MapView recomputes them from the ECL color selectors after a script changes them (picRegionW) }
   { Map position, wall cache, animation and portrait cache }
   { automap shown in place of the 3D view }
   automapOn: Boolean;
@@ -311,8 +308,6 @@ var
   gbvmUpperByte: array[1..64] of Byte;
   { Low bytes of decoded ECL variables. }
   gbvmLowerByte: array[1..64] of Byte;
-  { Receives the aim result for the bronze-dragon breath attack. }
-  breathAim: Boolean;
   { Script string buffers, on the heap; GameInit2 allocates and clears them. }
   gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }

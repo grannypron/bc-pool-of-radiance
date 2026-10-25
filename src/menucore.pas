@@ -57,6 +57,12 @@ var
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
+{ The position of member in list, from 0 (FindListMember's inverse); -1 when it is not there. }
+function ListIndex(list, member: Types.PItemRec): Integer;
+
+{ Return the number of members in list. }
+function ListCount(list: Types.PItemRec): Integer;
+
 { The lines of list a MenuVertical box from ulRow to lrRow shows at once: every row of it, or, under fullPaging (paged)
   with the list longer than the box, one fewer, the last row being kept for '(more)'. }
 function PageRows(list: Types.PItemRec; ulRow, lrRow: ShortInt; paged: Boolean): Integer;
@@ -78,12 +84,13 @@ function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; rein
 
 { Vertical list menu in the box ulCol,ulRow..lrCol,lrRow with menu (plus Next/Prev/Exit as they apply) on the bottom
   line. The Up arrow or Home moves the highlight up a line and the Down arrow or End moves it down, wrapping within the
-  page; Page Up and Page Down turn the page. idx is zero-based; redraw requests repainting. Label rows have inUse set;
-  they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list
-  also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a list
-  that fits on one page is drawn and #0 returned with sel=nil at once. With movesToCaller set, a key that moves the
-  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for. Under
-  fullPaging a list longer than the box offers Next and Prev on every page and marks a page with more below it. }
+  page; Page Up and Page Down turn the page. idx is zero-based, held to the list, and the page opens on it; redraw
+  requests repainting. Label rows have inUse set; they are drawn in qCol and skipped by the cursor. An empty list, Exit
+  or Escape returns #0 with sel=nil (an empty list also sets idx=0). Any other menu key returns that key with sel set to
+  the highlighted entry. With listOnly set, a list that fits on one page is drawn and #0 returned with sel=nil at once.
+  With movesToCaller set, a key that moves the highlight returns too. A key in extraKeys returns as any other menu key
+  does, on every key the list waits for. Under fullPaging a list longer than the box offers Next and Prev on every page
+  and marks a page with more below it. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -103,7 +110,7 @@ procedure FreeStringList(var list: Types.PItemRec);
 
 implementation
 
-uses GameDefs, GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
+uses GameVars, Crt, GameIo, Blit, Border, Portrait, C_KEYS, C_IFC, TextRend;
 
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 var
@@ -122,7 +129,21 @@ begin
     FindListMember := nil;
 end;
 
-{ Return the number of members in list. }
+function ListIndex(list, member: Types.PItemRec): Integer;
+var
+  n: Integer;
+begin
+  n := 0;
+  while (list <> nil) and (list <> member) do begin
+    list := list^.next;
+    Inc(n);
+  end;
+  if list = nil then
+    ListIndex := -1
+  else
+    ListIndex := n;
+end;
+
 function ListCount(list: Types.PItemRec): Integer;
 var
   p: Types.PItemRec;
@@ -157,13 +178,11 @@ end;
 function HorizontalMenu(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; reinterpret, animate, takeOption: Boolean;
                         var ext: Boolean): Char;
 const
-  { keypad digits 1..9 to scan codes; MenuCore indexes Ord(ch) - Ord('1') }
+  { keypad digits 1..9 to scan codes, indexed by Ord(ch) - Ord('1') }
   keypadScan: array[0..8] of Byte = (
     79, 80, 81, 75, 32, 77, 71, 72, 73);
 var
   frameTick: LongInt;
-  tick30: LongInt;
-  tick80: LongInt;
   ch: Char;
   i: Byte;
   done: Boolean;
@@ -272,8 +291,6 @@ begin
   ext := False;
   done := False;
   frameTick := TextRend.GetTicks;
-  tick30 := TextRend.GetTicks + 30;
-  tick80 := tick30 + 50;
   if Length(query) <> 0 then
     TextRend.DisplayString(0, 24, qCol, query);
   qLen := Length(query);
@@ -579,6 +596,13 @@ begin
     end;
     if GameVars.vertTop > count then begin
       GameVars.vertTop := 0;
+      redraw := True;
+    end;
+    { vertTop is every list's: an idx past the list, or below the page, brings the page down to it (#975) }
+    if idx > count - 1 then
+      idx := count - 1;
+    if idx > GameVars.vertTop + rows - 1 then begin
+      GameVars.vertTop := idx - rows + 1;
       redraw := True;
     end;
     Inc(idx);

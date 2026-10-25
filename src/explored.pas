@@ -8,7 +8,7 @@ unit Explored;
 
 interface
 
-uses FileUtil;
+uses Types, FileUtil;
 
 const
   { areas kept; PoR has about thirty 3D maps }
@@ -43,7 +43,7 @@ type
     script: Byte;
     map: Byte;
     { a bit a square: bit x of cells[y] }
-    cells: array[0..15] of Word;
+    cells: array[0..Types.MAP_LAST] of Word;
   end;
   TExploredFile = record
     sig: string[4];
@@ -81,7 +81,7 @@ var
   script: Byte;
   map: Byte;
 begin
-  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
+  if not Types.OnMap(x, y) then Exit;
   script := GameVars.eclScriptId;
   map := GameVars.zone0^.mapId.lo;
   i := Explored.Find(script, map);
@@ -100,7 +100,7 @@ var
   i: Byte;
 begin
   Visited := False;
-  if (x < 0) or (x > 15) or (y < 0) or (y > 15) then Exit;
+  if not Types.OnMap(x, y) then Exit;
   i := Explored.Find(script, map);
   if i <> 0 then
     Visited := rec.areas[i].cells[y] and (1 shl x) <> 0;

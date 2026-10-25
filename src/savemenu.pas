@@ -12,6 +12,8 @@ uses Types, FileUtil;
 const
   { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
   SLOT_LETTERS = 'ABCDEFGHIJQ';
+  { how many slots there are: the menu's tables are this long }
+  SLOT_COUNT = Length(SLOT_LETTERS);
   { the longest description and area name a slot keeps }
   DESC_LEN = 30;
   AREA_LEN = 18;
@@ -24,14 +26,15 @@ type
   TSlotDesc = string[DESC_LEN];
   TSlotArea = string[AREA_LEN];
 
-{ Run the menu and return the slot chosen, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape or Exit. Saving lists every
-  slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and returns C_KEYS.NONE at once when
-  there are none. A slot shows its letter (white: the key that takes it), description and time saved, and below them
-  its area and date. Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a
-  time, scrolling the list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load)
-  takes the selected slot, and a slot's letter takes that slot at once. Quit (#872) and Exit have no key (Q and E are
-  slots'); the arrows reach them. The caller asks whether to exit to DOS (SaveLoad.QuitToDos). The selection starts on
-  slot start when it is listed, else on the newest saved game. The caller redraws the screen afterwards. }
+{ Run the menu and return the slot chosen, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape or Exit (X, #910). Saving
+  lists every slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and returns C_KEYS.NONE
+  at once when there are none. A slot shows its letter (white: the key that takes it), description and time saved, and
+  below them its area and date. Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a
+  slot at a time, scrolling the list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save
+  (or Load) takes the selected slot, and a slot's letter takes that slot at once. Quit (#872) has no key (Q is a slot's)
+  and Exit's is X (E is a slot's), not marked on the line; the arrows reach both. The caller asks whether to exit to DOS
+  (SaveLoad.QuitToDos). The selection starts on slot start when it is listed, else on the newest saved game. The caller
+  redraws the screen afterwards. }
 function ChooseSlot(saving: Boolean; start: Char): Char;
 
 { The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
@@ -87,7 +90,9 @@ uses Crt, Dos, GameVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_
 const
   INFO_SIG = 'SINF';
   INFO_VERSION = 1;
-  { the list's frame: the title box on row 1, the list box rows 3..22 }
+  { the list's frame: the title box on row 1, the list box rows 3..22, both boxes columns 1..38 }
+  BOX_LEFT = 1;
+  BOX_RIGHT = 38;
   TITLE_ROW = 1;
   LIST_TOP = 3;
   LIST_BOTTOM = 22;
@@ -106,6 +111,8 @@ const
   OPT_TAKE = 3;
   OPT_QUIT = 4;
   OPT_EXIT = 5;
+  { Exit's key, which no slot has (#910) }
+  EXIT_KEY = 'X';
 
 type
   { A savgam<x>.inf file. }
@@ -118,15 +125,15 @@ type
 
 var
   { the slots listed, by letter, with what is shown for each }
-  listed: string[16];
+  listed: string[SLOT_COUNT];
   count: Byte;
-  used: array[1..16] of Boolean;
-  descs: array[1..16] of TSlotDesc;
-  areas: array[1..16] of TSlotArea;
+  used: array[1..SLOT_COUNT] of Boolean;
+  descs: array[1..SLOT_COUNT] of TSlotDesc;
+  areas: array[1..SLOT_COUNT] of TSlotArea;
   { when each was saved: hh:mm and YYYY/MM/DD }
-  clocks: array[1..16] of string[5];
-  dates: array[1..16] of string[10];
-  times: array[1..16] of LongInt;
+  clocks: array[1..SLOT_COUNT] of string[5];
+  dates: array[1..SLOT_COUNT] of string[10];
+  times: array[1..SLOT_COUNT] of LongInt;
   { the selected slot, and the first one shown, as indexes into listed }
   sel: Byte;
   top: Byte;
@@ -246,9 +253,9 @@ begin
       dates[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day);
     end;
     if not SaveMenu.ReadSlotInfo(letter, descs[i], areas[i]) then begin
-      Seek(f, 1 + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
+      Seek(f, SizeOf(GameVars.virtualDisk) + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
       BlockRead(f, script, SizeOf(script), n1);
-      Seek(f, 1 + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
+      Seek(f, SizeOf(GameVars.virtualDisk) + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
       BlockRead(f, map, SizeOf(map), n2);
       if (IOResult = 0) and (n1 = SizeOf(script)) and (n2 = SizeOf(map)) then
         areas[i] := AreaName.AreaFor(Lo(script), map.lo)
@@ -269,9 +276,9 @@ var
   row: Byte;
   color: Byte;
 begin
-  Border.ClearBox(1, LIST_TOP, 38, LIST_BOTTOM);
+  Border.ClearBox(BOX_LEFT, LIST_TOP, BOX_RIGHT, LIST_BOTTOM);
   if top > 1 then
-    MenuCore.DrawMore(1, 38, LIST_TOP);
+    MenuCore.DrawMore(BOX_LEFT, BOX_RIGHT, LIST_TOP);
   for k := 0 to VISIBLE - 1 do begin
     i := top + k;
     if i <= count then begin
@@ -292,7 +299,7 @@ begin
     end;
   end;
   if top + VISIBLE - 1 < count then
-    MenuCore.DrawMore(1, 38, LIST_BOTTOM);
+    MenuCore.DrawMore(BOX_LEFT, BOX_RIGHT, LIST_BOTTOM);
 end;
 
 { Select listed entry i, wrapping past either end, scroll it into view and redraw the list. }
@@ -318,7 +325,7 @@ var
   action: Types.TStr8;
   newest: LongInt;
   chosen: Char;
-  letters: string[16];
+  letters: string[SLOT_COUNT];
 begin
   ChooseSlot := C_KEYS.NONE;
   { a string constant cannot be indexed }
@@ -343,9 +350,9 @@ begin
     sel := Pos(start, listed);
   top := 1;
   TextRend.ClearScreen;
-  Border.DrawBorder(1, LIST_TOP, 38, LIST_BOTTOM, 0);
-  Border.DrawBorder(1, TITLE_ROW, 38, TITLE_ROW, 0);
-  TextRend.DisplayString(1 + (38 - 19) div 2, TITLE_ROW, White, 'Load/Save Game Menu');
+  Border.DrawBorder(BOX_LEFT, LIST_TOP, BOX_RIGHT, LIST_BOTTOM, 0);
+  Border.DrawBorder(BOX_LEFT, TITLE_ROW, BOX_RIGHT, TITLE_ROW, 0);
+  TextRend.DisplayCentered(BOX_LEFT, BOX_RIGHT, TITLE_ROW, White, 'Load/Save Game Menu');
   SaveMenu.MoveTo(sel);
   if saving then
     action := 'Save'
@@ -354,7 +361,8 @@ begin
   chosen := ' ';
   GameVars.horizChoice := OPT_TAKE;
   repeat
-    MenuCore.extraKeys := listed;
+    { the slots' letters, and X for Exit (#910) }
+    MenuCore.extraKeys := listed + EXIT_KEY;
     MenuCore.unmarked := [OPT_QUIT, OPT_EXIT];
     MenuCore.enterToCaller := True;
     ch := MenuCore.MenuHorizontal('Game: ', 'Next Prev ' + action + ' Quit Exit', LightMagenta, LightGreen, White,
@@ -385,6 +393,8 @@ begin
       end
     else if (ch = C_KEYS.NONE) or (ch = QUIT_CHOSEN) then
       chosen := ch
+    else if ch = EXIT_KEY then
+      chosen := C_KEYS.NONE
     { a slot's letter takes it, as Save or Load on it does (#652) }
     else if (ch <> ' ') and (Pos(ch, listed) > 0) then
       chosen := ch
@@ -418,7 +428,7 @@ var
 begin
   { the list is cleared behind it: the slot and area on its second and third rows, the description on its fifth and
     sixth }
-  Border.ClearBox(1, LIST_TOP, 38, LIST_BOTTOM);
+  Border.ClearBox(BOX_LEFT, LIST_TOP, BOX_RIGHT, LIST_BOTTOM);
   default := 'SAVE GAME ' + letter;
   TextRend.DisplayString(LEFT_COL, LIST_TOP + 1, LightGreen, default);
   TextRend.DisplayString(LEFT_COL, LIST_TOP + 2, LightGreen, 'Location: ' + area);

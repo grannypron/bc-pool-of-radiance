@@ -7,6 +7,10 @@ interface
 
 uses Types;
 
+const
+  { TCharRecord.charType of the undead }
+  UNDEAD_TYPE = 4;
+
 procedure WeaponAdjust(creature: Types.PCharRecord);
 
 procedure ArmorMoveAdjust(creature: Types.PCharRecord; item: Types.PItemRec);
@@ -17,6 +21,9 @@ procedure ArmorAdjustHelper(creature: Types.PCharRecord; item: Types.PItemRec; a
 procedure EncumbranceAdjust(creature: Types.PCharRecord);
 
 procedure ItemLabel(item: Types.PItemRec; isInv: Boolean);
+
+{ Label every item of list (ItemLabel, not as inventory). }
+procedure LabelItems(list: Types.PItemRec);
 
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 
@@ -90,7 +97,8 @@ function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PI
 function FindAmmo(creature: Types.PCharRecord; w: Types.PItemRec; var sel: Types.PItemRec): Boolean;
 
 { Check the racial level limit for a class: a fighter's, and a half-elf ranger's, from FIGHTER_CAP by the character's
-  PermanentStrength, and a half-elf cleric's (HALFELF_CLERIC_CAP); a level at or past the cap counts. }
+  PermanentStrength, a half-elf cleric's (HALFELF_CLERIC_CAP), and a half-orc cleric's and thief's by Wisdom and
+  Dexterity (HalfOrcCap, #956); a level at or past the cap counts. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 
 { The Strength points the creature's disease (eff 43) has taken so far, which a cure gives back: the upper nibble of the
@@ -108,6 +116,11 @@ function PermanentStrength(creature: Types.PCharRecord): Byte;
   racial cap, a next level in the experience table, and the experience for it), ignoring the fee and the hall. A class
   a dual-classed human has left does not train. }
 function CanTrain(creature: Types.PCharRecord): Boolean;
+
+{ The classes creature can train a level in, as C_LEVEL bits (1 shl slot): a class it follows (a level above 0, not one
+  a dual-classed human has left, #838) that is not at its racial cap (AtLevelCap) and has a next level in the
+  experience table, with the experience for it unless anyXp (free training). CanTrain and CharGen.TrainingMenu ask it. }
+function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
 
 function HasBagOfHolding(creature: Types.PCharRecord): Boolean;
 
@@ -204,6 +217,9 @@ function ItemReadable(it: Pointer): Boolean;
   cleric level with a cleric's scroll (base slot C_ITEM.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
+{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row. }
+function IsSpell(id: Byte): Boolean;
+
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
 { The spell Use casts from item: its effect, an effect past C_SPELL.LAST being item spell effect -
@@ -221,8 +237,10 @@ function CastableScroll(creature: Types.PCharRecord; item: Types.PItemRec): Bool
   it: the scroll spells the Cast list offers. }
 function HasScrollSpells(creature: Types.PCharRecord): Boolean;
 
-{ Spell range: rangeFixed + rangeVar * caster level, using C_SPELL.ITEM_CASTER_LEVEL when GameVars.usingItem. A zero
-  range with a nonzero area (touch) and the attack-roll encoding (C_SPELL.ATTACK_ROLL_RANGE) both become 1. }
+{ Spell range: rangeFixed + rangeVar * caster level, using C_SPELL.ITEM_CASTER_LEVEL when GameVars.usingItem, even for
+  a C_SPELL.CLASS_SPECIAL spell, whose other figures GetCasterLevel gives at C_SPELL.SPECIAL_CASTER_LEVEL (SSI's; only
+  the Javelin of Lightning has a rangeVar among them). A zero range with a nonzero area (touch) and the attack-roll
+  encoding (C_SPELL.ATTACK_ROLL_RANGE) both become 1. }
 function CalcSpellRange(spell: Byte): Byte;
 
 { The shape of the cells spell reaches in combat (a C_SPELL.AREA_* kind), from spellTable's area mode and the shapes
@@ -270,8 +288,6 @@ const
   MOVE_LOADED = 9;
   MOVE_HEAVY = 6;
   MOVE_OVERLOADED = 3;
-  { TCharRecord.charType of the undead }
-  UNDEAD_TYPE = 4;
   { coins carried over the weight allowance: up to OVER_LIGHT, no change; up to OVER_LOADED, MOVE_LOADED; up to
     OVER_HEAVY, MOVE_HEAVY; more, MOVE_OVERLOADED }
   OVER_LIGHT = 512;
@@ -288,7 +304,7 @@ const
   MEDIUM_LOOT = 24;
   MEDIUM_LOOT_PENALTY = 50;
   { a fighter's (and a half-elf ranger's) racial level cap by Strength: below 17, 17, and 18 or more; 0 for none. Humans
-    and half-orcs have none. }
+    have none, and a half-orc's is past PoR's levels (HalfOrcCap). }
   STR_BAND_LOW = 0;
   STR_BAND_17 = 1;
   STR_BAND_18 = 2;
@@ -300,10 +316,13 @@ const
     (4, 5, 6));
   { a half-elf cleric's cap }
   HALFELF_CLERIC_CAP = 5;
-
-var
-  { equipped-items weight }
-  gEquipWeight: Word;
+  { a half-orc's caps (1st-edition PHB pp. 14-15): a cleric's 4 to Wisdom 14, then one more a point to 7 at 17; a
+    thief's 8 to Dexterity 14, then one more a point to 11 at 17 }
+  HALFORC_CLERIC_CAP = 4;
+  HALFORC_CLERIC_CAP_MAX = 7;
+  HALFORC_THIEF_CAP = 8;
+  HALFORC_THIEF_CAP_MAX = 11;
+  HALFORC_CAP_SCORE = 14;
 
 { With a readied weapon, recompute to-hit and the primary attack's damage. thac0Cur restarts from thac0Base plus the
   Dexterity missile adjustment (C_ITEM.PROP_DEX_MISSILE) and Strength to-hit (C_ITEM.PROP_STR_BONUS); the damage dice
@@ -316,17 +335,17 @@ procedure WeaponAdjust(creature: Types.PCharRecord);
 var
   w: Types.PItemRec;
   ammo: Types.PItemRec;
-  wtype: Byte;
+  base: Types.PBaseItemRec;
   plus: ShortInt;
 begin
   w := creature^.equipped[C_EQUIP.WEAPON];
   if w = nil then Exit;
-  wtype := w^.itemType;
+  base := CharHlp.BaseItem(w^.itemType);
   creature^.thac0Cur := creature^.thac0Base;
-  if (CharHlp.BaseItem(wtype)^.props and C_ITEM.PROP_DEX_MISSILE) <> 0 then
+  if (base^.props and C_ITEM.PROP_DEX_MISSILE) <> 0 then
     creature^.thac0Cur := AbilAdj.DexMissileAdjust(creature) + creature^.thac0Cur;
-  creature^.curModA[1] := CharHlp.BaseItem(wtype)^.dmgSmMod;
-  if (CharHlp.BaseItem(wtype)^.props and C_ITEM.PROP_STR_BONUS) <> 0 then begin
+  creature^.curModA[1] := base^.dmgSmMod;
+  if (base^.props and C_ITEM.PROP_STR_BONUS) <> 0 then begin
     creature^.thac0Cur := AbilAdj.StrToHitAdjust(creature) + creature^.thac0Cur;
     creature^.curModA[1] := AbilAdj.StrDamageAdjust(creature) + creature^.curModA[1];
   end;
@@ -343,8 +362,8 @@ begin
         (w^.nameIds[2] in [C_ITEM.NAME_COMPOSITE_LONG_BOW..C_ITEM.NAME_SHORT_BOW]))) then
     Inc(plus);
   creature^.thac0Cur := creature^.thac0Cur + plus;
-  creature^.curRollsA[1] := CharHlp.BaseItem(wtype)^.dmgSmRolls;
-  creature^.curDiceA[1] := CharHlp.BaseItem(wtype)^.dmgSmDice;
+  creature^.curRollsA[1] := base^.dmgSmRolls;
+  creature^.curDiceA[1] := base^.dmgSmDice;
 end;
 
 { Body armor only (base slot C_EQUIP.ARMOR): set current movement from the armor's weight (up to LIGHT_ARMOR, the base
@@ -739,6 +758,15 @@ begin
     end;
 end;
 
+{ ItemLabel, not as inventory, every item of list: the treasure pool's or a shop's, for its menu. }
+procedure LabelItems(list: Types.PItemRec);
+begin
+  while list <> nil do begin
+    CharHlp.ItemLabel(list, False);
+    list := list^.next;
+  end;
+end;
+
 { Return True if any of the four helplessness effects in GameDefs.helplessFx is active on the creature. }
 function IsHelpless(creature: Types.PCharRecord): Boolean;
 var
@@ -786,43 +814,34 @@ end;
 { Rebuild equipment slots (LinkEquipped) and encumbrance, apply strength, dexterity and item adjustments, then calculate
   armor class, rear armor class (no shield or Dexterity bonus, but any Dexterity penalty), attack level
   (CharHlp.WarriorLevel for a non-monster warrior, else 1), movement and, for a thief, the thief skills
-  (ClassCal.RecalcThiefSkills). An equipped Bag of Holding (name component 'Holding') removes up to BAG_OF_HOLDING_COINS
-  of encumbrance, never leaving less than the equipped items' weight. The weight is summed in 32 bits and stored as at
-  most MAX_ENCUMBRANCE. }
+  (ClassCal.RecalcThiefSkills). The encumbrance is RawWeight, less up to BAG_OF_HOLDING_COINS when a Bag of Holding is
+  readied (HasBagOfHolding) but never less than the equipped items' weight, summed in 32 bits and stored as at most
+  MAX_ENCUMBRANCE. }
 procedure RecalcStats(creature: Types.PCharRecord);
 var
   j: Byte;
   k: ShortInt;
   item: Types.PItemRec;
   magicBody: Boolean;
-  bag: Boolean;
   adj: Types.TAcAdjust;
-  c: ShortInt;
-  w: LongInt;
+  equipWeight: LongInt;
   raw: LongInt;
   ringSave: ShortInt;
 begin
   CharHlp.LinkEquipped(creature);
-  bag := False;
   creature^.numberOfItems := 0;
   item := creature^.itemsAddr;
   creature^.handsEquipped := 0;
-  raw := 0;
-  gEquipWeight := 0;
+  equipWeight := 0;
   while item <> nil do begin
     Inc(creature^.numberOfItems);
-    w := CharHlp.ItemWeight(item);
-    Inc(raw, w);
     if item^.equipped <> 0 then begin
-      Inc(gEquipWeight, w);
-      if item^.nameIds[1] = C_ITEM.NAME_HOLDING then
-        bag := True;
+      Inc(equipWeight, CharHlp.ItemWeight(item));
       creature^.handsEquipped := creature^.handsEquipped + CharHlp.BaseItem(item^.itemType)^.hands;
     end;
     item := item^.next;
   end;
-  for c := C_MONEY.COPPER to C_MONEY.JEWELRY do
-    Inc(raw, creature^.coins[c]);
+  raw := CharHlp.RawWeight(creature);
   for j := 1 to 2 do begin
     creature^.curRollsA[j] := creature^.unarmedRollsA[j];
     creature^.curDiceA[j] := creature^.unarmedDiceA[j];
@@ -856,13 +875,13 @@ begin
   { rings do not add to magical body armor }
   if magicBody then
     adj[Types.AC_RING] := 0;
-  if bag then begin
+  if CharHlp.HasBagOfHolding(creature) then begin
     if raw < BAG_OF_HOLDING_COINS then
       raw := 0
     else
       Dec(raw, BAG_OF_HOLDING_COINS);
-    if raw < gEquipWeight then
-      raw := gEquipWeight;
+    if raw < equipWeight then
+      raw := equipWeight;
   end;
   if raw > MAX_ENCUMBRANCE then
     raw := MAX_ENCUMBRANCE;
@@ -957,14 +976,10 @@ var
   i: Byte;
 begin
   i := 0;
-  { scan the memorized-spell slots, stopping after the first match }
-  while i <= Types.SPELL_SLOT_LAST do begin
-    if creature^.memorizedSpells[i] = spell then begin
-      creature^.memorizedSpells[i] := 0;
-      i := Types.SPELL_SLOT_LAST + 1;
-    end;
+  while (i <= Types.SPELL_SLOT_LAST) and (creature^.memorizedSpells[i] <> spell) do
     Inc(i);
-  end;
+  if i <= Types.SPELL_SLOT_LAST then
+    creature^.memorizedSpells[i] := 0;
 end;
 
 procedure FreeItemList(var list: Types.PItemRec);
@@ -1091,10 +1106,12 @@ end;
 { Apply damage and update status. More than nine points of overkill kills; lesser overkill leaves the creature dying.
   Exactly zero hit points leaves it unconscious, except an animated creature dies. A creature that is no longer okay or
   animated is taken out of action, and in combat also out of its team count and the initiative order. A dead, stoned or
-  gone creature takes no damage, so a small hit on a corpse cannot turn it back into a dying one. }
+  gone creature takes no damage, so a small hit on a corpse cannot turn it back into a dying one. A creature already
+  dying in combat goes further below 0: the damage adds to the overkill it has bled to, so it dies once the total passes
+  nine, where SSI's started the count again from the new hit (POR-0222, #954). }
 procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 var
-  over: Byte;
+  over: Integer;
   remain: Byte;
   wasUp: Boolean;
   hpBefore: Byte;
@@ -1104,7 +1121,9 @@ begin
   hpBefore := creature^.hpCur;
   over := 0;
   remain := 0;
-  if creature^.hpCur >= dmg then
+  if (creature^.status = C_STATUS.DYING) and (GameVars.ifcState = C_IFC.COMBAT) then
+    over := creature^.combatAddr^.overkill + dmg
+  else if creature^.hpCur >= dmg then
     remain := creature^.hpCur - dmg
   else
     over := dmg - creature^.hpCur;
@@ -1131,13 +1150,11 @@ begin
   Stats.Damaged(GameVars.curChar, creature, hpBefore - creature^.hpCur, wasUp);
 end;
 
-{ Return the opposing team index: 1 for a friendly creature (hostile = 0), else 0. }
+{ The opposing team: 1 for a creature on team 0 (Team), else 0, so a damaged save's larger hostile byte gives its
+  creature the enemy its Team has. }
 function EnemyTeam(creature: Types.PCharRecord): ShortInt;
 begin
-  if creature^.hostile = 0 then
-    EnemyTeam := 1
-  else
-    EnemyTeam := 0;
+  EnemyTeam := 1 - CharHlp.Team(creature);
 end;
 
 function Team(creature: Types.PCharRecord): Byte;
@@ -1209,22 +1226,16 @@ end;
 { True when the readied weapon has a range past 1 (thrown weapons count). }
 function HasRangedWeapon(creature: Types.PCharRecord): Boolean;
 begin
-  if (creature^.equipped[C_EQUIP.WEAPON] <> nil) and
-      (CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.range > 1) then
-    HasRangedWeapon := True
-  else
-    HasRangedWeapon := False;
+  HasRangedWeapon := (creature^.equipped[C_EQUIP.WEAPON] <> nil) and
+                     (CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.range > 1);
 end;
 
 { True when the readied weapon is ranged and carries both C_ITEM.PROPS_THROWABLE bits (thrown, Strength bonus). }
 function HasThrowableWeapon(creature: Types.PCharRecord): Boolean;
 begin
-  if CharHlp.HasRangedWeapon(creature) and
-      ((CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.props and
-        C_ITEM.PROPS_THROWABLE) = C_ITEM.PROPS_THROWABLE) then
-    HasThrowableWeapon := True
-  else
-    HasThrowableWeapon := False;
+  HasThrowableWeapon := CharHlp.HasRangedWeapon(creature) and
+                        ((CharHlp.BaseItem(creature^.equipped[C_EQUIP.WEAPON]^.itemType)^.props and
+                          C_ITEM.PROPS_THROWABLE) = C_ITEM.PROPS_THROWABLE);
 end;
 
 function FindDamagingRangedWeapon(creature: Types.PCharRecord; var sel: Types.PItemRec): Boolean;
@@ -1255,11 +1266,17 @@ begin
 end;
 
 function CanTrain(creature: Types.PCharRecord): Boolean;
+begin
+  CanTrain := CharHlp.TrainClasses(creature, False) <> 0;
+end;
+
+function TrainClasses(creature: Types.PCharRecord; anyXp: Boolean): Byte;
 var
   cls: ShortInt;
   lvl: ShortInt;
+  mask: Byte;
 begin
-  CanTrain := False;
+  mask := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do begin
     lvl := creature^.classLevels[cls];
     { a class a dual-classed human has left never trains again (#838) }
@@ -1269,13 +1286,43 @@ begin
     if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
         if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
-          if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience then
-            CanTrain := True;
+          if anyXp or (GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience) then
+            mask := mask or (1 shl cls);
+  end;
+  TrainClasses := mask;
+end;
+
+{ A half-orc's cap in class cls, 0 for none: its cleric cap by Wisdom and its thief cap by Dexterity, each one level
+  more a point above HALFORC_CAP_SCORE. Its fighter caps (10 to 18/99, then 11 to 17 from 18/00) are past every level
+  PoR's experience table gives a fighter, so they are left out; the table's own ends bound the others (CanTrain).
+  Nothing raises Wisdom or Dexterity by magic, so the current scores are the character's own. }
+function HalfOrcCap(creature: Types.PCharRecord; cls: ShortInt): ShortInt;
+var
+  cap: Integer;
+begin
+  HalfOrcCap := 0;
+  case cls of
+    C_LEVEL.CLERIC: begin
+        cap := HALFORC_CLERIC_CAP + Integer(creature^.wisCur) - HALFORC_CAP_SCORE;
+        if cap < HALFORC_CLERIC_CAP then
+          cap := HALFORC_CLERIC_CAP
+        else if cap > HALFORC_CLERIC_CAP_MAX then
+          cap := HALFORC_CLERIC_CAP_MAX;
+        HalfOrcCap := cap;
+      end;
+    C_LEVEL.THIEF: begin
+        cap := HALFORC_THIEF_CAP + Integer(creature^.dexCur) - HALFORC_CAP_SCORE;
+        if cap < HALFORC_THIEF_CAP then
+          cap := HALFORC_THIEF_CAP
+        else if cap > HALFORC_THIEF_CAP_MAX then
+          cap := HALFORC_THIEF_CAP_MAX;
+        HalfOrcCap := cap;
+      end;
   end;
 end;
 
 { SSI's tests matched some levels past the cap and not others, and read the Strength magic had raised or disease lowered
-  (#702). Monsters, half-orcs and humans have no limit here. }
+  (#702). SSI had no half-orc caps (#956). Monsters and humans have no limit here. }
 function AtLevelCap(creature: Types.PCharRecord; cls: ShortInt): Boolean;
 var
   lvl: ShortInt;
@@ -1296,6 +1343,8 @@ begin
       band := STR_BAND_18;
     if (race = C_RACE.HALFELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
+    else if race = C_RACE.HALFORC then
+      AtLevelCap := (CharHlp.HalfOrcCap(creature, cls) <> 0) and (lvl >= CharHlp.HalfOrcCap(creature, cls))
     else if (race in [C_RACE.DWARF..C_RACE.HALFLING]) and
             ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_RACE.HALFELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
@@ -1462,7 +1511,7 @@ begin
     for i := 1 to caught.count do begin
       cr := GameVars.creatureArr[caught.slot[i]];
       if CharHlp.SleepTakes(cr, left) then
-        Inc(asleep[cr^.hostile = enemy]);
+        Inc(asleep[CharHlp.Team(cr) = enemy]);
     end;
     if asleep[True] > foes then
       foes := asleep[True];
@@ -1491,11 +1540,10 @@ end;
 
 function ItemReadable(it: Pointer): Boolean;
 begin
-  if (it <> nil) and
-     (CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot in [C_ITEM.SLOT_MAGE_SCROLL..C_ITEM.SLOT_LAST_READABLE]) then
-    ItemReadable := True
-  else
-    ItemReadable := False;
+  ItemReadable := False;
+  if it <> nil then
+    ItemReadable := CharHlp.BaseItem(Types.PItemRec(it)^.itemType)^.slot in
+                    [C_ITEM.SLOT_MAGE_SCROLL..C_ITEM.SLOT_LAST_READABLE];
 end;
 
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
@@ -1511,6 +1559,11 @@ end;
 
 { The spell in item's spell slot (1..3), bit 7 ignored, or C_SPELL.NONE when the slot is out of range or holds no
   spell. }
+function IsSpell(id: Byte): Boolean;
+begin
+  IsSpell := (id >= 1) and (id <= C_SPELL.LAST);
+end;
+
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 var
   id: Byte;
@@ -1518,7 +1571,7 @@ begin
   ScrollSpellAt := C_SPELL.NONE;
   if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
     id := item^.spells[slot] and C_SPELL.ID_MASK;
-    if (id >= 1) and (id <= C_SPELL.LAST) then
+    if CharHlp.IsSpell(id) then
       ScrollSpellAt := id;
   end;
 end;
@@ -1569,7 +1622,7 @@ function CalcSpellRange(spell: Byte): Byte;
 var
   r: Byte;
 begin
-  if GameVars.usingItem = False then
+  if not GameVars.usingItem then
     r := GameDefs.spellTable[spell].rangeFixed + GameDefs.spellTable[spell].rangeVar * CharHlp.GetCasterLevel(spell)
   else
     r := GameDefs.spellTable[spell].rangeVar * C_SPELL.ITEM_CASTER_LEVEL + GameDefs.spellTable[spell].rangeFixed;
@@ -1626,18 +1679,18 @@ procedure SpellDuration(spell: Byte; var d: Types.TDurDice);
 begin
   case spell of
     { Cause Disease: the disease sets in after 1d6 turns }
-    40: Rolled(1, 6, 0, 10);
+    C_SPELL.CAUSE_DISEASE: Rolled(1, 6, 0, 10);
     { Potion of Speed, Wand of Paralyzation }
-    57, 61: Rolled(5, 4, 0, 1);
+    C_SPELL.ITEM_SPEED, C_SPELL.ITEM_PARALYZATION: Rolled(5, 4, 0, 1);
     { Giant Strength: 1d4 * 10 + 40 }
-    59: Rolled(1, 4, 4, 10);
+    C_SPELL.ITEM_GIANT_STRENGTH: Rolled(1, 4, 4, 10);
     { Dust of Disappearance }
-    63: if GameVars.ifcState = C_IFC.COMBAT then
+    C_SPELL.ITEM_DISAPPEARANCE: if GameVars.ifcState = C_IFC.COMBAT then
           Rolled(2, 10, 0, 10)
         else
           Rolled(1, 10, 10, 10);
     { Manual of Bodily Health: 24 hours }
-    67: Rolled(0, 0, 24, 60);
+    C_SPELL.ITEM_BODILY_HEALTH: Rolled(0, 0, 24, 60);
   else
     with GameDefs.spellTable[spell] do
       Rolled(0, 0, durFixed + durVar * CharHlp.GetCasterLevel(spell), 1);

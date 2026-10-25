@@ -462,7 +462,8 @@ them), except where a step says otherwise.
 
    **2c done.**
    - The cold entries are `ExpandFrames`, `MirrorFrame`, `RemapColour` (one colour pair of `RemapPic`),
-     `RecolorFrame`, `PutPixelRow` and `InitRowTables`.
+     `RecolorFrame`, `PutPixelRow` and `InitRowTables`. (The 2026-10-25 review made `ExpandFrames` `ExpandChunk`, one
+     cell row, under the one loop in `VidOps.ExpandPicFrames`, #1034.)
    - They live in an overlaid unit per mode, `PicCga`, `PicEga` and `PicTdy`, which the resident driver points the
      record into.
    - Blit and VidOps keep the nil checks, RemapPic's scratch copy and colour-pair loop, and the copy back.

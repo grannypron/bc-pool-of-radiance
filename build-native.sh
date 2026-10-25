@@ -9,7 +9,8 @@
 # macos (that, in obj/native/macos/Pool of Radiance.app); Intel Macs are not a target (deprecated as of macOS 26).
 # Windows tests run under Wine. On Linux and macOS SDL3 is linked in statically
 # (from tools/sdl3-setup.sh's libSDL3.a), so the program needs no SDL library beside it. Output goes to
-# obj/native/<target>/ (the game) and obj/native/<target>/tests/ (the tests, each test's compiler output beside it as
+# obj/native/<target>/ (the game, poolrad, and its set-up program, poolcfg, #894; on a Mac poolcfg stays there, beside
+# the app) and obj/native/<target>/tests/ (the tests, each test's compiler output beside it as
 # <name>.OUT, and TEST.LOG).
 #
 # The toolchain comes from tools/fpc-setup.sh (Free Pascal) and tools/sdl3-setup.sh (SDL3); FPC_PREFIX moves both.
@@ -143,6 +144,18 @@ for target in "${targets[@]}"; do
         units="$out/units"
         rm -rf "$units"
         mkdir -p "$units"
+        # POOLCFG (#894): the set-up program, a terminal program on every system (Free Pascal's Video unit, not SDL,
+        # so it is built first, without SDL's library), and on Windows a console program: no -WG
+        cfg_exe=poolcfg
+        case "$target" in *-win*) cfg_exe=poolcfg.exe ;; esac
+        if ! $(fpc_for "$target") -FU"$units" -FE"$out" -o"$cfg_exe" "$root/src/poolcfg.pas" > "$out/POOLCFG.OUT" 2>&1 \
+                || grep -qE "$fpc_error" "$out/POOLCFG.OUT"; then
+            echo "build-native.sh: $target: POOLCFG did not compile (obj/native/$target/POOLCFG.OUT):" >&2
+            grep -E "$fpc_error" "$out/POOLCFG.OUT" | head -n 20 | sed 's/^/    /' >&2
+            failed=1
+            continue
+        fi
+        echo "build-native.sh: $target: built obj/native/$target/$cfg_exe"
         # Windows: poolrad.exe, a GUI program (no console window opens beside the game's)
         exe=poolrad
         extra=""

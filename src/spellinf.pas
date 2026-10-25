@@ -32,7 +32,7 @@ type
   PPageItems = ^TPageItems;
 
 { What a saving throw does against spell (C_SPELL.SAVE_NONE, SAVE_NEGATES, SAVE_HALF or SAVE_PARTIAL), as its handler
-  decides it: the spell table's saveResult says only whether one is rolled. }
+  decides it: the spell table's saveResult says only whether one is rolled. SAVE_NONE for an id past the table. }
 function SaveResult(spell: Byte): Byte;
 
 { The figures, each for a list line's spell. Short (long False) is the summary line's term, empty when it does not
@@ -133,8 +133,7 @@ begin
   UseLine := line and C_SPELL.ID_MASK;
 end;
 
-{ True for a spell cast only in camp: its target is a character picked from the party, or the party (spellTable's
-  target), not a place on the combat map. }
+{ True for a spell cast only in camp: spellTable's whenCast 0 (CbtActs turns such a spell away in combat). }
 function CampOnly(spell: Byte): Boolean;
 begin
   CampOnly := GameDefs.spellTable[spell].whenCast = 0;
@@ -145,7 +144,7 @@ begin
   if (spell >= 1) and (spell <= C_SPELL.TABLE_LAST) then
     SaveResult := saveResults[spell]
   else
-    SaveResult := GameDefs.spellTable[spell].saveResult;
+    SaveResult := C_SPELL.SAVE_NONE;
 end;
 
 function RangeText(line: Byte; long: Boolean): Types.TStr40;
@@ -335,7 +334,10 @@ var
   vs: Types.TStr20;
 begin
   spell := spell and C_SPELL.ID_MASK;
-  vs := ' (VS ' + saveNames[GameDefs.spellTable[spell].saveType mod 5] + ')';
+  { an id past the table has no save (SaveResult) and no column to read }
+  vs := '';
+  if (spell >= 1) and (spell <= C_SPELL.TABLE_LAST) then
+    vs := ' (VS ' + saveNames[GameDefs.spellTable[spell].saveType mod 5] + ')';
   case SpellInf.SaveResult(spell) of
     C_SPELL.SAVE_NEGATES: if long then s := 'NEGATES' + vs else s := 'SAVE NEG';
     C_SPELL.SAVE_HALF: if long then s := 'HALVES DAMAGE' + vs else s := 'SAVE 1/2';
@@ -443,9 +445,8 @@ begin
   TextLine := '';
   if (n < 1) or (n > SpellTxt.LineCount(spell)) then
     Exit;
-  { 6 lines a chunk }
-  chunk := SpellTxt.TextChunk(spell, (n - 1) div 6);
-  for i := 1 to (n - 1) mod 6 do begin
+  chunk := SpellTxt.TextChunk(spell, (n - 1) div SpellTxt.CHUNK_LINES);
+  for i := 1 to (n - 1) mod SpellTxt.CHUNK_LINES do begin
     p := Pos(#13, chunk);
     if p = 0 then
       chunk := ''
@@ -521,7 +522,7 @@ begin
   spell := line and C_SPELL.ID_MASK;
   lvl := SpellInf.CasterLevelText(line);
   Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
-  if spell <= C_SPELL.LAST then begin
+  if CharHlp.IsSpell(spell) then begin
     TextRend.DisplayCentered(1, 38, 3, White, GameDefs.spellNames[spell]);
     if GameDefs.spellTable[spell].castClass = C_SPELL.CLASS_CLERIC then
       s := 'CLERIC'
@@ -538,7 +539,7 @@ begin
   TextRend.DisplayString(1, FIGURE_TOP, LightGreen, 'CAST BY');
   if item <> nil then begin
     s := Copy(SpellInf.ItemName(item), 1, VALUE_WIDTH);
-    if spell <= C_SPELL.LAST then
+    if CharHlp.IsSpell(spell) then
       s := s + SpellInf.LevelAfter(Length(s), lvl);
     TextRend.DisplayString(VALUE_COL, FIGURE_TOP, White, s);
   end else if line and C_SPELL.FROM_ITEM <> 0 then

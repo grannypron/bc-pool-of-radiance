@@ -1,9 +1,10 @@
 ; PC-speaker, Tandy SN76489 and AdLib (OPL2) timer sequencer, linked into SoundDrv
 ; by SOUNDDRV.OBJ.  This file is the core: the voice stepping, the stream
 ; interpreter, envelopes and LFO, the timer interrupt and the Pascal far entries
-; that install and remove INT 8 and control the output gate.  Each device's part --
-; note table, voice blocks, song table, streams, tick and tune loader -- is an
-; include: sndspk.inc, sndtdy.inc, and sndopl.inc for the AdLib, which plays the
+; that install and remove INT 8, load a tune and control the output gate.  Each
+; device's part -- note table, voice blocks, song table, streams, tick and the
+; Pascal entry that loads its tunes -- is an include: sndspk.inc, sndtdy.inc, and
+; sndopl.inc for the AdLib, which plays the
 ; Tandy's arrangements.  The interrupt runs the configured device's tick through
 ; tickProc, which SetSoundDevice sets.  Four voices of the device are stepped; the
 ; speaker uses the first active voice.  The displaced BIOS handler runs every
@@ -91,7 +92,9 @@ curTune         dw      0               ; tune id loaded; 0 = silent
 seqVoice        dw      0               ; the voice block seq_proc is running
 voiceBase       dw      0               ; block array of the device being ticked
 freqBase        dw      0               ; note table of the device being ticked
-seqRet          dw      0               ; the stream pointer SCALL saved -- one level only; 0 = none
+seqRet          dw      0               ; the stream pointer SCALL saved -- one level only, shared
+                                        ;   by every voice, so a called stream must not yield
+                                        ;   (the tunes' setups do not); 0 = none
 voiceTune       db      0,0,0,0         ; tune id per voice; seq_end clears a voice's entry
                                         ;   when that voice runs out of stream
 outputOn        db      1               ; zero mutes output while the sequencers keep running
@@ -300,9 +303,7 @@ UninstallSoundTimer:
         xor     ax, ax
         out     40h, al
         out     40h, al
-        in      al, 61h                 ; drop the speaker gate and the timer gate
-        and     al, 0FCh
-        out     61h, al
+        call    spkr_gate_off
         cmp     cs:[device], DEV_ADLIB
         jnz     ust_tandy
         call    opl_silence
@@ -310,14 +311,7 @@ UninstallSoundTimer:
 ust_tandy:
         cmp     cs:[device], DEV_TANDY  ; C0h is the SN76489 only on a Tandy
         jnz     ust_done
-        mov     al, 09Fh                ; full attenuation on the SN76489's
-        out     0C0h, al                ;   three tone voices and its noise voice
-        mov     al, 0BFh
-        out     0C0h, al
-        mov     al, 0DFh
-        out     0C0h, al
-        mov     al, 0FFh
-        out     0C0h, al
+        call    tandy_off               ; full attenuation on its four voices
 ust_done:
         pop     ds
         retf
@@ -633,9 +627,7 @@ ssd_valid:
 ssd_spkr:
         cmp     ds:[device], DEV_SPEAKER
         jnz     ssd_set
-        PORT_IN 61h                     ; the speaker and timer gates off
-        and     al, 0FCh
-        PORT_OUT 61h
+        call    spkr_gate_off
 ssd_set:
         mov     cs:[device], bl
         add     bx, bx
@@ -650,6 +642,65 @@ ssd_set:
 ; No device: nothing to step or write.
 tick_none:
         ret
+
+; Drop the speaker's gate and PIT channel 2's: the speaker falls silent.  Clobbers AL.
+spkr_gate_off:
+        PORT_IN 61h
+        and     al, 0FCh
+        PORT_OUT 61h
+        ret
+
+; Start a tune, for ProgramSpeakerVoices and ProgramTandyVoices, which push BP (as
+; the frame), AX, BX, CX, DI, SI and DS and jump here with the song table in BX,
+; its rows in CX and the device's voice blocks in DI.  Clears each voice block the
+; tune gives a stream for, points it at that stream and arms it to step on the next
+; tick; a zero pointer leaves that voice as it is.  An id past the last row plays
+; tune 0, silence.  seqBusy keeps the ISR out.
+program_voices:
+        mov     si, CODE
+        mov     ds, si
+        mov     si, [bp+6]              ; the tune id
+        cmp     si, cx
+        jb      pv_tune
+        xor     si, si
+pv_tune:
+        mov     ds:[curTune], si
+        add     si, si
+        add     si, si
+        add     si, si                  ; * 8: four words per table row
+        add     si, bx
+        mov     ds:[seqBusy], 1
+        mov     ds:[voiceLeft], 4
+pv_loop:
+        mov     ax, [si]
+        cmp     ax, 0
+        jz      pv_next
+        mov     bx, SIZE VOICE - 2
+pv_clr:
+        mov     word ptr [bx+di], 0
+        sub     bx, 2
+        jge     pv_clr
+        mov     [di].vfStream, ax
+        mov     bl, 4
+        sub     bl, ds:[voiceLeft]
+        sub     bh, bh
+        mov     ax, ds:[curTune]
+        mov     voiceTune[bx], al
+        mov     [di].vfDuration, 1
+pv_next:
+        add     di, SIZE VOICE
+        add     si, 2
+        dec     ds:[voiceLeft]
+        jnz     pv_loop
+        mov     ds:[seqBusy], 0
+        pop     ds
+        pop     si
+        pop     di
+        pop     cx
+        pop     bx
+        pop     ax
+        pop     bp
+        retf    2
 
 ; Pascal function: the tune voice [bp+6] (taken modulo 4) is still playing, in AX.
 SoundVoiceTune:

@@ -52,10 +52,6 @@ function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noProm
   (GameInit and the introduction clear it to read their files from the current directory, as SSI's startup disk). }
 function DataDrive: Char;
 
-function FileExists(name: Types.TPathStr): Boolean;
-
-function SanitizeString(src, del: string): string;
-
 function SanitizeFileName(name: string): Types.TStr40;
 
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
@@ -68,8 +64,11 @@ procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word;
 
 { Read and decode one block of f, an archive OpenDax opened with hdrSize bytes before its first block, into a new
   buffer of sizeRead bytes in data: the block whose directory entry gives its offset and packed size compSize. Only the
-  bytes actually read are decoded, so a block cut short is zeroed past what the file holds. }
-procedure ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word; var data: Types.PByteArr);
+  bytes actually read are decoded, so a block cut short is zeroed past what the file holds (#122). False, with data nil
+  and nothing allocated, for an entry whose block does not start inside the file (a negative offset, or one at or past
+  its end), or when the seek or the read fails (#915). }
+function ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word;
+                   var data: Types.PByteArr): Boolean;
 
 { True when the family's merged archive is whole, holds C_DATA.VERSION and was built from the per-disk archives there
   now (DaxIo.SourcesMatch). The answer is remembered until ResetArchiveCache; the first True also reads the archive's
@@ -99,7 +98,8 @@ procedure PopState;
 
 implementation
 
-uses Crt, GameDefs, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil
+  {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -191,7 +191,7 @@ begin
   DaxIo.WriteBlock(0, 24, Black, 40);
 end;
 
-{ I/O checking is off ($I-) across WaitForFile/OpenWithRetry/FileExists so IOResult is usable; it is back on ($I+) for
+{ I/O checking is off ($I-) across WaitForFile/OpenWithRetry so IOResult is usable; it is back on ($I+) for
   the rest of the unit }
 {$I-}
 
@@ -212,24 +212,20 @@ begin
 end;
 
 function DataDiskMsg: Types.TStr40;
-const
-  { Insert-disk prompts, indexed by virtualDisk, which SaveLoad and the ECL keep in 1..LAST_DISK }
-  insertDiskMsg: array[1..Types.LAST_DISK] of string[29] = (
-    'Insert disk 1 in drive ',
-    'Insert disk 2 in drive ',
-    'Insert disk 3 in drive ',
-    'Insert disk 4 in drive ',
-    'Insert disk 5 in drive ',
-    'Insert disk 6 in drive ',
-    'Insert disk 7 in drive ',
-    'Insert disk 8 in drive ');
+var
+  disk: Types.TStr40;
 begin
-  DataDiskMsg := insertDiskMsg[GameVars.virtualDisk] + DaxIo.DataDrive + ': (Esc quits)';
+  { SaveLoad and the ECL keep virtualDisk in 1..LAST_DISK; another names no disk rather than reading past SSI's table of
+    eight lines }
+  disk := '';
+  if (GameVars.virtualDisk >= 1) and (GameVars.virtualDisk <= Types.LAST_DISK) then
+    disk := Chr(Ord('0') + GameVars.virtualDisk) + ' ';
+  DataDiskMsg := 'Insert disk ' + disk + 'in drive ' + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
 procedure WaitForFile(name: Types.TPathStr; diskMsg: string);
 begin
-  while not DaxIo.FileExists(name) do begin
+  while not FileUtil.Exists(name) do begin
     WriteLn('Not found: ', DaxIo.PathForLine(name, 68));
     WriteLn(diskMsg, ' (Esc quits)');
     { nothing is set up yet: no screen mode or sound to put back }
@@ -263,7 +259,7 @@ var
 begin
   gaveUp := False;
   repeat
-    found := DaxIo.FileExists(fileName);
+    found := FileUtil.Exists(fileName);
     if (not found) and not noPrompt then
       if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_KEYS.ESC then begin
         if escQuits then
@@ -276,40 +272,9 @@ begin
   OpenWithRetry := found;
 end;
 
-{ Open name for reading only (FileUtil.OpenReadOnly, so a read-only file counts), close it and report success: opened
-  and closed clean AND the name non-empty. }
-function FileExists(name: Types.TPathStr): Boolean;
-var
-  f: file;
-  found: Boolean;
-begin
-  found := FileUtil.OpenReadOnly(f, name);
-  if found then begin
-    Close(f);
-    found := IOResult = 0;
-  end;
-  FileExists := found and (name <> '');
-end;
-
 {$I+}
 
-{ Remove occurrences of del from src in one left-to-right pass. After a deletion the scan moves on, so an occurrence
-  that slides into the deleted position is kept (adjacent repeats lose only every other copy). }
-function SanitizeString(src, del: string): string;
-var
-  limit: Byte;
-  delLen: Byte;
-  i: Byte;
-begin
-  delLen := Length(del);
-  limit := Length(src) - delLen + 1;
-  for i := 1 to limit do
-    if Copy(src, i, delLen) = del then
-      Delete(src, i, delLen);
-  SanitizeString := src;
-end;
-
-{ Remove invalid filename characters (with SanitizeString's single-pass rule), limit the name to eight characters and
+{ Remove invalid filename characters (every one, StrUtil.RemoveAll), limit the name to eight characters and
   uppercase it. A DOS device's name (FileUtil.IsDeviceName) gets an underscore, so a character called Con or Lpt1 is
   kept in a file, as in Curse. }
 function SanitizeFileName(name: string): Types.TStr40;
@@ -338,7 +303,7 @@ const
 var i: Byte;
 begin
   for i := 1 to 10 do
-    name := DaxIo.SanitizeString(name, invalidFileChars[i]);
+    name := StrUtil.RemoveAll(name, invalidFileChars[i]);
   name := Copy(name, 1, 8);
   for i := 1 to Length(name) do
     name[i] := UpCase(name[i]);
@@ -440,17 +405,17 @@ begin
   i := 0;
   while ok and (i < size) do begin
     d := Byte(data^[i]);
-    ok := (d >= 1) and (d <= 8);
+    ok := (d >= 1) and (d <= Types.LAST_DISK);
     if ok then begin
       Move(data^[i + 1], listed, SizeOf(listed));
       familyDisks[family] := familyDisks[family] or (1 shl (d - 1));
-      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(family, d) + '.DAX') = listed;
+      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceFile(family, d)) = listed;
     end;
     Inc(i, C_DATA.SOURCE_RECORD);
   end;
-  for d := 1 to 8 do
+  for d := 1 to Types.LAST_DISK do
     if ok and not DaxIo.DiskHasSource(family, d) then
-      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(family, d) + '.DAX') < 0;
+      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceFile(family, d)) < 0;
   SourcesMatch := ok;
 end;
 
@@ -485,7 +450,7 @@ begin
         while (i + 2 < size) and (familyState[family] = 1) do begin
           { an entry naming no disk, or a reserved id on either side, is skipped: a load is never sent to the merged
             archive's own blocks }
-          if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_DATA.SOURCES_BLOCK) and
+          if (Byte(data^[i]) in [1..Types.LAST_DISK]) and (Byte(data^[i + 1]) < C_DATA.SOURCES_BLOCK) and
               (Byte(data^[i + 2]) < C_DATA.SOURCES_BLOCK) then
             if remapCount = MAX_REMAPS then begin
               { more than the table holds: the family's entries are dropped and it reads its per-disk archives,
@@ -547,13 +512,11 @@ end;
   reads the merged archive instead (when that disk has its own per-disk archive and fileID is not one of C_DATA's
   reserved ids), with fileID remapped where that disk's block was stored under another id. Only the bytes actually read
   are decoded, so a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a
-  compressed size above 36000 shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil if the
-  archive cannot be opened or the ID is absent. }
+  compressed size above C_DATA.PACKED_LIMIT shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil
+  if the archive cannot be opened, the ID is absent, or its block does not start inside the archive (ReadBlock). }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var
-  compSize: Word;
-  offset: LongInt;
-  id: Byte;
+  e: DataArc.TDirEntry;
   n: Word;
   f1: file;
   f2: file;
@@ -561,7 +524,8 @@ var
   numStr: String[6];
   family: Byte;
   disk: Byte;
-  cut: Boolean;
+  whole: Boolean;
+  found: Boolean;
 begin
   family := DataArc.MatchFamily(fileName, disk);
   { the reserved ids name the merged archive's own blocks, which no per-disk archive holds: such a load reads the
@@ -576,40 +540,60 @@ begin
     data := nil;
     Exit;
   end;
-  repeat
-    BlockRead(f2, id, SizeOf(id), n);
-    BlockRead(f2, offset, SizeOf(offset), n);
-    { decompressed size }
-    BlockRead(f2, sizeRead, SizeOf(sizeRead), n);
-    { compressed size }
-    BlockRead(f2, compSize, SizeOf(compSize), n);
-    { an entry cut short by the end of the file ends the scan, unfound }
-    cut := n < SizeOf(compSize);
-    if not cut and (compSize > 36000) then begin
-      Str(LongInt(compSize), numStr);
+  { only whole entries inside the directory: SSI read one before asking, so an empty directory, or one that is not a
+    whole number of entries, had the first data bytes read as an entry (#962) }
+  found := False;
+  whole := True;
+  while whole and not found and (FilePos(f2) + SizeOf(e) <= hdrSize) do begin
+    BlockRead(f2, e, SizeOf(e), n);
+    whole := n = SizeOf(e);
+    if whole and (e.packedSize > C_DATA.PACKED_LIMIT) then begin
+      Str(LongInt(e.packedSize), numStr);
       DaxIo.PromptBox(Yellow, 'tempsize ' + numStr);
       GameIo.ExitGame;
     end;
-  until cut or (id = fileID) or (FilePos(f2) >= hdrSize);
-  if cut or (id <> fileID) then begin
+    found := whole and (e.id = fileID);
+  end;
+  if found then begin
+    sizeRead := e.rawSize;
+    if not DaxIo.ReadBlock(f1, hdrSize, e.offset, e.packedSize, sizeRead, data) then
+      sizeRead := 0;
+  end else begin
     sizeRead := 0;
     data := nil;
-  end else
-    DaxIo.ReadBlock(f1, hdrSize, offset, compSize, sizeRead, data);
+  end;
   DaxIo.CloseDax(f1, f2);
 end;
 
-procedure ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word; var data: Types.PByteArr);
+function ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word;
+                   var data: Types.PByteArr): Boolean;
 var
   n: Word;
+  ioRes: Integer;
+  ok: Boolean;
 begin
-  DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
-  GetMem(data, sizeRead);
-  Seek(f, hdrSize + offset);
-  BlockRead(f, daxCompressedFilePtr^, compSize, n);
-  { n, the bytes read: FreeRounded still needs compSize }
-  DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
-  DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
+  data := nil;
+  { an error still pending would make the Seek and the read do nothing }
+  ioRes := IOResult;
+  { compared by subtraction, so a large offset cannot overflow the sum }
+  ok := (offset >= 0) and (offset < FileSize(f) - hdrSize) and (IOResult = 0);
+  if ok then begin
+    Seek(f, hdrSize + offset);
+    ok := IOResult = 0;
+  end;
+  if ok then begin
+    n := 0;
+    DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
+    BlockRead(f, daxCompressedFilePtr^, compSize, n);
+    ok := IOResult = 0;
+    if ok then begin
+      GetMem(data, sizeRead);
+      { n, the bytes read: FreeRounded still needs compSize }
+      DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
+    end;
+    DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
+  end;
+  ReadBlock := ok;
 end;
 
 { Save the current resource disk and select a new one. }

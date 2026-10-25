@@ -8,6 +8,7 @@ uses StrUtil, TestKit;
 var
   menu: String;
   opts: String;
+  short: string[5];
 
 begin
   TestKit.Start('TSTRUTIL');
@@ -48,5 +49,20 @@ begin
   StrUtil.MenuToOptions(menu, opts);
   TestKit.CheckEqualsS('A ', menu, 'a closing ~ with nothing after it is dropped');
   TestKit.CheckEqualsS('A', opts, 'and adds no hotkey');
+  TestKit.CheckEqualsS('AB', StrUtil.RemoveAll('A....B', '.'), 'RemoveAll takes every period in a row (#960)');
+  TestKit.CheckEqualsS('SIRBOB', StrUtil.RemoveAll('SIR  BOB', ' '), 'and every space');
+  TestKit.CheckEqualsS('ab', StrUtil.RemoveAll('xaxxbx', 'x'), 'at either end too');
+  TestKit.CheckEqualsS('c', StrUtil.RemoveAll('aabbc', 'ab'), 'and what a removal brings together');
+  TestKit.CheckEqualsS('abc', StrUtil.RemoveAll('abc', ''), 'an empty del removes nothing');
+  TestKit.CheckEqualsS('', StrUtil.RemoveAll('', '..'), 'nor from an empty string');
+  short := 'abc';
+  TestKit.Check(StrUtil.FitLength(short, SizeOf(short) - 1), 'a string within its field fits');
+  TestKit.CheckEqualsS('abc', short, 'and is left as it is');
+  short[0] := #6;
+  TestKit.Check(not StrUtil.FitLength(short, SizeOf(short) - 1), 'a length byte one past its field does not (#917)');
+  TestKit.CheckEqualsL(5, Length(short), 'and is cut to the field');
+  short[0] := #255;
+  TestKit.Check(not StrUtil.FitLength(short, SizeOf(short) - 1), 'nor does $FF');
+  TestKit.CheckEqualsL(5, Length(short), 'cut to the field too');
   TestKit.Done;
 end.

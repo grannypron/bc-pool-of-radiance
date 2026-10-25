@@ -11,14 +11,14 @@ unit DiskRec;
 
 interface
 
-uses Types;
+uses Types, C_EQUIP;
 
 const
   CHAR_DISK_BYTES = 285;
   ITEM_DISK_BYTES = 63;
   EFFECT_DISK_BYTES = 9;
   { the pointers each record holds: TCharRecord's effects, items, 13 equipped items, next character and combatant }
-  CHAR_POINTERS = 17;
+  CHAR_POINTERS = 4 + C_EQUIP.BOLT - C_EQUIP.WEAPON + 1;
   ITEM_POINTERS = 1;
   EFFECT_POINTERS = 1;
 
@@ -33,7 +33,9 @@ procedure ItemToDisk(var it: Types.TItemRec; var disk);
 procedure EffectToDisk(var ef: Types.TEffectRec; var disk);
 
 { A record from its disk form: a file's or a DAX block's bytes. Its pointers are nil natively; under Turbo Pascal they
-  are the bytes the file held, which the callers clear. A character's port fields (portExt) are cleared. }
+  are the bytes the file held, which the callers clear. A character's port fields (portExt) are cleared. A name whose
+  length byte is past its field is cut to the field (StrUtil.FitLength, #917): a damaged save or DAX record is read
+  whatever it holds. }
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
 procedure EffectFromDisk(var disk; var ef: Types.TEffectRec);
@@ -49,6 +51,8 @@ function ItemDiskSize: Word;
 function EffectDiskSize: Word;
 
 implementation
+
+uses StrUtil;
 
 {$IFDEF FPC}
 type
@@ -131,10 +135,10 @@ begin
   charMem := PtrUInt(@c.portExt) - PtrUInt(@c);
   charPtrs[0] := PtrUInt(@c.effectsAddr) - PtrUInt(@c);
   charPtrs[1] := PtrUInt(@c.itemsAddr) - PtrUInt(@c);
-  for i := 0 to 12 do
-    charPtrs[2 + i] := PtrUInt(@c.equipped[i]) - PtrUInt(@c);
-  charPtrs[15] := PtrUInt(@c.nextCharAddr) - PtrUInt(@c);
-  charPtrs[16] := PtrUInt(@c.combatAddr) - PtrUInt(@c);
+  for i := C_EQUIP.WEAPON to C_EQUIP.BOLT do
+    charPtrs[2 + i - C_EQUIP.WEAPON] := PtrUInt(@c.equipped[i]) - PtrUInt(@c);
+  charPtrs[CHAR_POINTERS - 2] := PtrUInt(@c.nextCharAddr) - PtrUInt(@c);
+  charPtrs[CHAR_POINTERS - 1] := PtrUInt(@c.combatAddr) - PtrUInt(@c);
   itemPtrs[0] := PtrUInt(@it.next) - PtrUInt(@it);
   effectPtrs[0] := PtrUInt(@ef.next) - PtrUInt(@ef);
 end;
@@ -168,6 +172,8 @@ begin
 end;
 
 procedure CharFromDisk(var disk; var c: Types.TCharRecord);
+var
+  ok: Boolean;
 begin
 {$IFDEF FPC}
   Unpack(disk, c, charMem, charPtrs, CHAR_POINTERS);
@@ -175,15 +181,19 @@ begin
   Move(disk, c, CHAR_DISK_BYTES);
 {$ENDIF}
   FillChar(c.portExt, SizeOf(c.portExt), 0);
+  ok := StrUtil.FitLength(c.name, SizeOf(c.name) - 1);
 end;
 
 procedure ItemFromDisk(var disk; var it: Types.TItemRec);
+var
+  ok: Boolean;
 begin
 {$IFDEF FPC}
   Unpack(disk, it, SizeOf(it), itemPtrs, ITEM_POINTERS);
 {$ELSE}
   Move(disk, it, ITEM_DISK_BYTES);
 {$ENDIF}
+  ok := StrUtil.FitLength(it.name, SizeOf(it.name) - 1);
 end;
 
 procedure EffectFromDisk(var disk; var ef: Types.TEffectRec);

@@ -2,10 +2,10 @@
   Clue Book's map of the area prints their numbers, in the book's own words shortened to fit. A note is the key's name
   without its number (#878), which means nothing off the book's page, but with the book's 'Maze' or 'Tower' where an
   area holds part of another's map, as 'Maze: Teleporters'; the teleporter keys of the Pool of Radiance (A0, B1 and so
-  on) keep their labels, which the keys name one another by. A key printed at several
-  places is on each of them; a number printed across a grid line is on each square it straddles. The keys are the
-  book's, not the player's: MapNotes keeps the player's notes apart, and nothing here is saved. The table is string
-  literals in code, as the Journal's text is, so it lives in the overlay and costs no data segment.
+  on) keep their labels, which the keys name one another by. A key printed at several places is on each of them; a
+  number printed across a grid line is on each square it straddles. The keys are the book's, not the player's:
+  MapNotes keeps the player's notes apart, and nothing here is saved. The table is string literals in code, as the
+  Journal's text is, so it lives in the overlay and costs no data segment.
 
   The coordinates were read off the book's maps (the 1988 Clue Book's grid is the game's own: x across from 0 at the
   left, y down from 0 at the top) and checked against each area's GEO walls and event squares, and the scripts where a
@@ -18,6 +18,8 @@
 unit ClueBook;
 
 interface
+
+uses Types;
 
 const
   { as long as a player's note (MapNotes.NOTE_LEN), so the Map tool shows either on the same line }
@@ -52,7 +54,7 @@ const
 
 var
   { marksMap's keyed squares: bit x of marks[y] }
-  marks: array[0..15] of Word;
+  marks: array[0..Types.MAP_LAST] of Word;
 
 function Entry(map, i: Byte): string;
 begin
@@ -416,7 +418,7 @@ begin
         v := v * 10 + Ord(e[p]) - Ord('0');
         Inc(p);
       end;
-      if v > 15 then Exit;
+      if v > Types.MAP_LAST then Exit;
       if coord = 1 then begin
         x := v;
         if (p > Length(e)) or (e[p] <> ',') then Exit;
@@ -487,7 +489,7 @@ begin
       e := ClueBook.Entry(map, i);
     end;
   end;
-  Marked := (x >= 0) and (x <= 15) and (y >= 0) and (y <= 15) and (marks[y] and (1 shl x) <> 0);
+  Marked := Types.OnMap(x, y) and (marks[y] and (1 shl x) <> 0);
 end;
 
 end.

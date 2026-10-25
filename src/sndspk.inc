@@ -1722,56 +1722,17 @@ spkr_set:
         PORT_OUT 61h
         ret
 
-; Start a tune: clear each voice block that the tune gives a stream for, point it
-; at that stream and arm it to step on the next tick.  seqBusy keeps the ISR out.
+; Pascal procedure ProgramSpeakerVoices(tuneId: Word): the speaker's tune, by program_voices.
 ProgramSpeakerVoices:
         push    bp
         mov     bp, sp
         push    ax
         push    bx
+        push    cx
         push    di
         push    si
         push    ds
-        mov     si, CODE
-        mov     ds, si
-        mov     si, [bp+6]              ; the tune id
-        cmp     si, SONG_ROWS_A         ; an id past the last row plays tune 0, silence
-        jb      vwa_tune
-        xor     si, si
-vwa_tune:
-        mov     ds:[curTune], si
-        add     si, si
-        add     si, si
-        add     si, si                  ; * 8: four words per table row
-        mov     ds:[seqBusy], 1
-        mov     ds:[voiceLeft], 4
+        mov     bx, offset songTableA
+        mov     cx, SONG_ROWS_A
         mov     di, offset spkrBlocks
-vwa_loop:
-        mov     ax, songTableA[si]
-        cmp     ax, 0
-        jz      vwa_next
-        mov     bx, SIZE VOICE - 2
-vwa_clr:
-        mov     word ptr [bx+di], 0
-        sub     bx, 2
-        jge     vwa_clr
-        mov     [di].vfStream, ax
-        mov     bl, 4
-        sub     bl, ds:[voiceLeft]
-        sub     bh, bh
-        mov     ax, ds:[curTune]
-        mov     voiceTune[bx], al
-        mov     [di].vfDuration, 1
-vwa_next:
-        add     di, SIZE VOICE
-        add     si, 2
-        dec     ds:[voiceLeft]
-        jnz     vwa_loop
-        mov     ds:[seqBusy], 0
-        pop     ds
-        pop     si
-        pop     di
-        pop     bx
-        pop     ax
-        pop     bp
-        retf    2
+        jmp     program_voices

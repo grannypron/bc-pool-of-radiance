@@ -22,7 +22,8 @@ type
   LPT1..LPT3, CLOCK$): DOS opens the device for it, whatever the extension or directory, and makes no file. }
 function IsDeviceName(base: TPathName): Boolean;
 
-{ True when file name is there (it opens, read-only). }
+{ True when file name is there: it opens read-only (OpenReadOnly, so a read-only file counts) and closes clean. An empty
+  name is no file and is not opened: an unnamed file opens standard input (#962). }
 function Exists(name: TPathName): Boolean;
 
 { Erase file name; a missing file, or any other error, is ignored. }
@@ -57,9 +58,16 @@ function CloseTemp(var f: file; name: TPathName; ok: Boolean): Boolean;
 { Rename file from to name: True when it was. }
 function RenameChecked(from, name: TPathName): Boolean;
 
-{ Put name's whole temporary copy in its place: erase name (a missing one is no error) and rename the copy to it. True
-  when it did; else the copy is erased, and name is left as it was when it could not be erased (a read-only file). }
+{ Put name's whole temporary copy in its place, as a set of one file (CommitSet): the old file is renamed to its backup
+  before the copy is renamed in, and put back if that fails, so a failure, or a game ended between the two
+  (RecoverFile), never leaves name without its old file (#914). True when the copy is in place; else the copy is
+  erased and name is as it was. A read-only name is left as it was and fails, as is a name whose file part is longer
+  than a set's 8.3 names. }
 function PutInPlace(name: TPathName): Boolean;
+
+{ Undo a PutInPlace of name the game was ended in (RecoverSet on a set of one file), so a reader finds the old file:
+  call it before reading a file PutInPlace writes. True when nothing is left to undo. }
+function RecoverFile(name: TPathName): Boolean;
 
 const
   { the most files a set holds: a saved game's savgam .dat, .inf, .sts, .map and .nts, its vault copy, and six files
@@ -141,14 +149,14 @@ end;
 function Exists(name: TPathName): Boolean;
 var
   f: file;
-  ioRes: Integer;
+  found: Boolean;
 begin
-  Exists := False;
-  if FileUtil.OpenReadOnly(f, name) then begin
+  found := (name <> '') and FileUtil.OpenReadOnly(f, name);
+  if found then begin
     Close(f);
-    ioRes := IOResult;
-    Exists := True;
+    found := IOResult = 0;
   end;
+  Exists := found;
 end;
 
 function DeleteChecked(name: TPathName): Boolean;
@@ -165,7 +173,10 @@ end;
 function OpenReadOnly(var f: file; name: TPathName): Boolean;
 var
   mode: Byte;
+  ioRes: Integer;
 begin
+  { an error still pending would make the Reset do nothing, and a file that is there read as missing }
+  ioRes := IOResult;
   Assign(f, name);
   mode := FileMode;
   FileMode := 0;
@@ -194,11 +205,17 @@ begin
   ReadRecord := ok;
 end;
 
-function TempName(name: TPathName): TPathName;
+{ name with its last character c: a temporary copy's or a backup's name. }
+function WithLast(name: TPathName; c: Char): TPathName;
 begin
   if Length(name) > 0 then
-    name[Length(name)] := '$';
-  TempName := name;
+    name[Length(name)] := c;
+  WithLast := name;
+end;
+
+function TempName(name: TPathName): TPathName;
+begin
+  TempName := FileUtil.WithLast(name, '$');
 end;
 
 function RewriteTemp(var f: file; name: TPathName): Boolean;
@@ -231,28 +248,64 @@ begin
   CloseTemp := ok;
 end;
 
-function PutInPlace(name: TPathName): Boolean;
+{ Make s the set of one file, name: True when name's file part fits a set's names. }
+function SetOfOne(var s: TFileSet; name: TPathName): Boolean;
+var
+  i: Byte;
+  fits: Boolean;
+begin
+  { the folder is name up to its last separator }
+  i := Length(name);
+  while (i > 0) and not (name[i] in ['\', '/', ':']) do
+    Dec(i);
+  FileUtil.NewSet(s, Copy(name, 1, i));
+  fits := Length(name) - i < SizeOf(TSetName);
+  if fits then
+    FileUtil.AddToSet(s, Copy(name, i + 1, Length(name) - i), True);
+  SetOfOne := fits;
+end;
+
+{ True when file name is there and read-only. }
+function IsReadOnly(name: TPathName): Boolean;
 var
   f: file;
+  attr: Word;
   ioRes: Integer;
 begin
-  ioRes := IOResult;
+  IsReadOnly := False;
+  if not FileUtil.Exists(name) then Exit;
   Assign(f, name);
-  Erase(f);
+  GetFAttr(f, attr);
   ioRes := IOResult;
-  Assign(f, FileUtil.TempName(name));
-  Rename(f, name);
-  ioRes := IOResult;
-  if ioRes <> 0 then
+  IsReadOnly := (ioRes = 0) and (attr and ReadOnly <> 0);
+end;
+
+function PutInPlace(name: TPathName): Boolean;
+var
+  s: TFileSet;
+  ok: Boolean;
+begin
+  ok := not FileUtil.IsReadOnly(name) and FileUtil.SetOfOne(s, name);
+  if ok then
+    { a failed commit erases the copy itself }
+    ok := FileUtil.CommitSet(s)
+  else
     FileUtil.DeleteFile(FileUtil.TempName(name));
-  PutInPlace := ioRes = 0;
+  PutInPlace := ok;
+end;
+
+function RecoverFile(name: TPathName): Boolean;
+var
+  s: TFileSet;
+begin
+  RecoverFile := True;
+  if FileUtil.SetOfOne(s, name) then
+    RecoverFile := FileUtil.RecoverSet(s);
 end;
 
 function BackupName(name: TPathName): TPathName;
 begin
-  if Length(name) > 0 then
-    name[Length(name)] := '%';
-  BackupName := name;
+  BackupName := FileUtil.WithLast(name, '%');
 end;
 
 procedure NewSet(var s: TFileSet; dir: TPathName);

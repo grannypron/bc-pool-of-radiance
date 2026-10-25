@@ -14,14 +14,6 @@ implementation
 uses Types, Crt, C_TILE, C_MSG, GameDefs, GameVars, CharHlp, Wilds, Portrait, C_GBVM, C_IFC, Blit, TextRend, CharDisp,
   MapTiles;
 
-var
-  { WinGame passes it by var to Blit.LoadPic }
-  finalPic: Types.PImgBuf;
-  { WinGame saves and restores ifcState }
-  savedIfc: Byte;
-  { virtual disk digit appended to the FINAL picture names }
-  finalSfx: String[1];
-
 { Play FINAL picture picId at (col, row) for nCycles passes through its frames; nothing is played if it does not load. }
 procedure PlayFinalAnim(col, row: Integer; picId, nCycles: Byte);
 var
@@ -61,7 +53,16 @@ end;
   party figure when the party has more than 1, 2 and 3 members. The interface state is C_IFC.WON_GAME for the duration,
   then the saved state is restored and the non-combat interface redrawn. }
 procedure WinGame;
+var
+  { the picture each block is loaded into in turn (Blit.LoadPic frees the last) }
+  finalPic: Types.PImgBuf;
+  savedIfc: Byte;
+  { virtual disk digit appended to the FINAL picture names }
+  finalSfx: String[1];
+  { the passes of the first two animations: fewer the slower the game's speed }
+  cycles: Byte;
 begin
+  cycles := Word(10 - GameVars.gameDelay) * 5 div 2;
   Str(GameVars.virtualDisk, finalSfx);
   savedIfc := GameVars.ifcState;
   GameVars.ifcState := C_IFC.WON_GAME;
@@ -73,7 +74,7 @@ begin
   CharDisp.DisplayNoncombatInterface;
   Blit.LoadPic('FINAL' + finalSfx, 1, False, 0, finalPic);
   Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
-  Ending.PlayFinalAnim(3, 5, 2, Word(10 - GameVars.gameDelay) * 5 div 2);
+  Ending.PlayFinalAnim(3, 5, 2, cycles);
   Blit.LoadPic('FINAL' + finalSfx, 3, False, 0, finalPic);
   Blit.BlitTileClipped(0, 0, 0, 0, finalPic, GameVars.viewImageBufferPtr);
   if GameVars.zone1^[C_GBVM.PARTY_SIZE] > 1 then begin
@@ -95,7 +96,7 @@ begin
   TextRend.DisplayString(1, 20, LightGreen, 'which I moved here, to my lair,');
   TextRend.DisplayString(1, 21, LightGreen, 'I will still rule, by possessing one');
   TextRend.DisplayString(1, 22, LightGreen, 'of you!"');
-  Ending.PlayFinalAnim(3, 1, 7, Word(10 - GameVars.gameDelay) * 5 div 2);
+  Ending.PlayFinalAnim(3, 1, 7, cycles);
   TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 17, LightGreen, '"No Lord Bane!  I can still rule here!');
   TextRend.DisplayString(1, 18, LightGreen, 'I have not failed.  Do not call me back');
@@ -118,191 +119,66 @@ procedure YarashComplete(animate: Boolean);
 const
   { Wilderness tiles remapped Black to Blue and LightGray to Green. Bit 7 selects the second tile set (mapTilePtr2),
     the low 7 bits the frame. }
-  yarBlueGreenTiles: array[0..10] of Byte = (
-    101,
-    102,
-    103,
-    104,
-    105,
-    106,
-    107,
-    113,
-    128 + 96,
-    128 + 97,
-    128 + 98);
+  yarBlueGreenTiles: array[0..10] of Byte = (101, 102, 103, 104, 105, 106, 107, 113, 128 + 96, 128 + 97, 128 + 98);
   { Wilderness tiles remapped LightGray to Green. Bit 7 selects the second tile set, the low 7 bits the frame. }
-  yarGreenTiles: array[0..17] of Byte = (
-    86,
-    87,
-    88,
-    89,
-    108,
-    109,
-    110,
-    111,
-    112,
-    114,
-    115,
-    116,
-    117,
-    118,
-    119,
-    128 + 95,
-    128 + 115,
-    128 + 117);
-  { Source side of both remaps: every color, in palette order. }
-  yarRemapFrom: Types.TColorTab = (
-    Black,
-    Blue,
-    Green,
-    Cyan,
-    Red,
-    Magenta,
-    Brown,
-    LightGray,
-    DarkGray,
-    LightBlue,
-    LightGreen,
-    LightCyan,
-    LightRed,
-    LightMagenta,
-    Yellow,
-    White);
-  yarBlueGreenTo: Types.TColorTab = (
-    { Black -> Blue }
-    Blue,
-    { Blue -> Blue }
-    Blue,
-    { Green -> Green }
-    Green,
-    { Cyan -> Cyan }
-    Cyan,
-    { Red -> Red }
-    Red,
-    { Magenta -> Magenta }
-    Magenta,
-    { Brown -> Brown }
-    Brown,
-    { LightGray -> Green }
-    Green,
-    { DarkGray -> DarkGray }
-    DarkGray,
-    { LightBlue -> LightBlue }
-    LightBlue,
-    { LightGreen -> LightGreen }
-    LightGreen,
-    { LightCyan -> LightCyan }
-    LightCyan,
-    { LightRed -> LightRed }
-    LightRed,
-    { LightMagenta -> LightMagenta }
-    LightMagenta,
-    { Yellow -> Yellow }
-    Yellow,
-    { White -> White }
-    White);
-  yarGreenTo: Types.TColorTab = (
-    { Black -> Black }
-    Black,
-    { Blue -> Blue }
-    Blue,
-    { Green -> Green }
-    Green,
-    { Cyan -> Cyan }
-    Cyan,
-    { Red -> Red }
-    Red,
-    { Magenta -> Magenta }
-    Magenta,
-    { Brown -> Brown }
-    Brown,
-    { LightGray -> Green }
-    Green,
-    { DarkGray -> DarkGray }
-    DarkGray,
-    { LightBlue -> LightBlue }
-    LightBlue,
-    { LightGreen -> LightGreen }
-    LightGreen,
-    { LightCyan -> LightCyan }
-    LightCyan,
-    { LightRed -> LightRed }
-    LightRed,
-    { LightMagenta -> LightMagenta }
-    LightMagenta,
-    { Yellow -> Yellow }
-    Yellow,
-    { White -> White }
-    White);
-  { Wilderness viewport left column for each animation step }
-  yarViewX: array[0..8] of Word = (
-    17,
-    17,
-    17,
-    19,
-    19,
-    19,
-    23,
-    23,
-    23);
-  { Wilderness viewport top row for each animation step }
-  yarViewY: array[0..8] of Word = (
-    15,
-    15,
-    15,
-    20,
-    20,
-    20,
-    25,
-    25,
-    25);
+  yarGreenTiles: array[0..17] of Byte = (86, 87, 88, 89, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 119,
+                                         128 + 95, 128 + 115, 128 + 117);
+  { Wilderness viewport left column and top row for each animation step }
+  yarViewX: array[0..8] of Byte = (17, 17, 17, 19, 19, 19, 23, 23, 23);
+  yarViewY: array[0..8] of Byte = (15, 15, 15, 20, 20, 20, 25, 25, 25);
 var
-  t: Byte;
+  { GameDefs.colorIdentity, every colour to itself, is the source side of both remaps; blueGreenTo and greenTo differ
+    from it only as named }
+  blueGreenTo: Types.TColorTab;
+  greenTo: Types.TColorTab;
   step: Byte;
+
+  { Remap tile (bit 7 the second sheet) to toT, dithered or whole. }
+  procedure RemapTile(tile: Byte; var toT: Types.TColorTab; dither: Boolean);
+  begin
+    if tile > C_TILE.ID_MASK then
+      Blit.RemapPic(GameDefs.colorIdentity, toT, tile and C_TILE.ID_MASK, dither, MapTiles.SecondSheet)
+    else
+      Blit.RemapPic(GameDefs.colorIdentity, toT, tile, dither, GameVars.mapTilePtr);
+  end;
+
+  { Remap every pyramid tile, dithered or whole. }
+  procedure RemapPyramid(dither: Boolean);
+  var
+    t: Byte;
+  begin
+    { 10 = High(yarBlueGreenTiles), 17 = High(yarGreenTiles) }
+    for t := 0 to 10 do
+      RemapTile(yarBlueGreenTiles[t], blueGreenTo, dither);
+    for t := 0 to 17 do
+      RemapTile(yarGreenTiles[t], greenTo, dither);
+  end;
+
 begin
+  greenTo := GameDefs.colorIdentity;
+  greenTo[LightGray] := Green;
+  blueGreenTo := greenTo;
+  blueGreenTo[Black] := Blue;
   if animate then begin
     Wilds.BuildWildernessMap(17, 15);
     Blit.FlushView;
     { 8 = High(yarViewX) = High(yarViewY) }
     for step := 0 to 8 do begin
-      { 10 = High(yarBlueGreenTiles) }
-      for t := 0 to 10 do
-        if yarBlueGreenTiles[t] > C_TILE.ID_MASK then
-          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo,
-                        yarBlueGreenTiles[t] and C_TILE.ID_MASK, True,
-                        MapTiles.SecondSheet)
-        else
-          Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], True, GameVars.mapTilePtr);
-      { 17 = High(yarGreenTiles) }
-      for t := 0 to 17 do
-        if yarGreenTiles[t] > C_TILE.ID_MASK then
-          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK, True,
-                        MapTiles.SecondSheet)
-        else
-          Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], True, GameVars.mapTilePtr);
+      RemapPyramid(True);
       Wilds.BuildWildernessMap(yarViewX[step], yarViewY[step]);
       Blit.FlushView;
     end;
   end;
-  { 10 = High(yarBlueGreenTiles) }
-  for t := 0 to 10 do
-    if yarBlueGreenTiles[t] > C_TILE.ID_MASK then
-      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo,
-                    yarBlueGreenTiles[t] and C_TILE.ID_MASK, False,
-                    MapTiles.SecondSheet)
-    else
-      Blit.RemapPic(yarRemapFrom, yarBlueGreenTo, yarBlueGreenTiles[t], False, GameVars.mapTilePtr);
-  { 17 = High(yarGreenTiles) }
-  for t := 0 to 17 do
-    if yarGreenTiles[t] > C_TILE.ID_MASK then
-      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t] and C_TILE.ID_MASK,
-                    False, MapTiles.SecondSheet)
-    else
-      Blit.RemapPic(yarRemapFrom, yarGreenTo, yarGreenTiles[t], False, GameVars.mapTilePtr);
+  RemapPyramid(False);
   if animate then begin
     Wilds.BuildWildernessMap(23, 25);
     Blit.FlushView;
     TextRend.PauseOnly;
+    TextRend.PauseOnly;
+  end;
+end;
+
+end.PauseOnly;
     TextRend.PauseOnly;
   end;
 end;
