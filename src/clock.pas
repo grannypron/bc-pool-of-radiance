@@ -8,19 +8,20 @@ interface
 
 uses Types;
 
+{ Carry each clock component that has reached its GameDefs.unitScale limit into the next one, from the segments up, so
+  a carry can carry on (one carry per component per call); the year has no limit. When ageOnYear is set, every creature
+  in GameVars.creatureList ages by one as the months carry into a new year. }
 procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
 
-{ Set clock to a duration of minutes: days, hours, turns (ten minutes) and minutes, each within its limit, and the
-  segments, months and years 0. Camp's rests start the rest clock with it (#644). }
+{ Set clock to a duration of minutes: hours, turns (ten minutes) and minutes, each within its limit, the days the rest
+  (up to 45, past their limit of 30, as the rest clock only counts down), and the segments, months and years 0. Camp's
+  rests start the rest clock with it (#644). }
 procedure SetFromMinutes(var clock: Types.TClock; minutes: Word);
 
 implementation
 
 uses GameDefs, GameVars, C_TIME;
 
-{ Carry each clock component that has reached its GameDefs.unitScale limit into the next one (one carry per component
-  per call); the year has no limit. When ageOnYear is set, every creature in GameVars.creatureList ages by one as the
-  months carry into a new year. }
 procedure ValidateClock(var clock: Types.TClock; ageOnYear: Boolean);
 var
   i: ShortInt;

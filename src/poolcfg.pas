@@ -20,7 +20,7 @@
 {$I COMPILER.INC}
 program PoolCfg;
 
-uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, TuiKit{$IFDEF FPC}, NatFile{$ENDIF};
+uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, StrUtil, TuiKit{$IFDEF FPC}, NatFile{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -45,6 +45,8 @@ const
   { the Paths page's path values: their column, and the edit field's }
   PATH_COL = 20;
   FIELD_WIDTH = 56;
+  { the longest path that can be typed: a DOS path's 79 characters, natively 255 }
+  PATH_TYPED = C_OPT.MAX_PATH_TEXT + C_OPT.LONGEST_NAME;
   { the program that reads POOL.CFG: START under DOS, the game itself natively }
 {$IFDEF FPC}
   GAME_PROG = 'POOLRAD';
@@ -81,23 +83,6 @@ var
   { leave the program, with this exit code }
   leave: Boolean;
   exitCode: Byte;
-
-{ n as text. }
-function NumStr(n: LongInt): string;
-var
-  s: string;
-begin
-  Str(n, s);
-  NumStr := s;
-end;
-
-{ s with spaces after it to width characters. }
-function Pad(s: string; width: Byte): string;
-begin
-  while Length(s) < width do
-    s := s + ' ';
-  Pad := s;
-end;
 
 { path as shown, cut to width characters: a path too long keeps its end, after '...', as its last folders say the most.
   On Linux and macOS its backslashes are shown as the system's '/'. }
@@ -168,6 +153,14 @@ begin
   end;
 end;
 
+{ Hardware line's label, on the page and over its pick list. }
+function LineName(line: Byte): TuiKit.TLine;
+const
+  NAMES: array[1..HW_LINES] of string[12] = ('Video', 'Sound Device', 'Introduction');
+begin
+  LineName := NAMES[line];
+end;
+
 { Hardware line's letter in c. }
 function LineLetter(var c: CfgFile.TPoolCfg; line: Byte): Char;
 begin
@@ -214,6 +207,8 @@ begin
   end;
 end;
 
+{ Set Paths line to path (a normalized one); a Pool path is marked when it is too long for START (tooLong), as a
+  default can be in a folder too deep for DOS. }
 procedure SetPath(line: Byte; path: string);
 begin
   case line of
@@ -223,7 +218,7 @@ begin
     opts.paths[line - 2] := path;
   end;
   if line <= PATH_SAVE then
-    tooLong[line] := False;
+    tooLong[line] := Length(path) > C_OPT.MAX_PATH_TEXT;
 end;
 
 { Paths line's default: Pool's data in the folder Setup runs in and its saves in SAVE\ under it, the later games' as
@@ -322,72 +317,57 @@ end;
 
 { --- the Main Menu --------------------------------------------------------------------------------------------- }
 
+{ What a file's read found (state), as the Files box says it, and its colour in attr; fixed is what CFG_FIXED says. }
+function ReadState(state: CfgFile.TReadResult; fixed: string; var attr: Byte): string;
+begin
+  attr := TuiKit.A_WARN;
+  case state of
+    CfgFile.CFG_READ: begin
+                        ReadState := 'read';
+                        attr := TuiKit.A_GOOD;
+                      end;
+    CfgFile.CFG_MISSING: ReadState := 'not found: defaults';
+    CfgFile.CFG_FIXED: ReadState := fixed;
+  else begin
+      ReadState := 'cannot read';
+      attr := TuiKit.A_BAD;
+    end;
+  end;
+end;
+
 { The Files box: each file's name, where it is and what the read found, and the pages with changes. }
 procedure DrawFiles;
 var
   state: string;
   attr: Byte;
   changes: string;
+
+  { Add page to the pages with changes. }
+  procedure Changed(page: string);
+  begin
+    if changes <> '' then
+      changes := changes + ', ';
+    changes := changes + page;
+  end;
+
 begin
   TuiKit.Box(3, 15, 78, 19, TuiKit.A_FRAME, 'Files');
   TuiKit.PutText(5, 16, TuiKit.A_TEXT, C_OPT.CFG_NAME);
   TuiKit.PutText(18, 16, TuiKit.A_TEXT, CutPath(cfgName, 30));
-  case cfgState of
-    CfgFile.CFG_READ: begin
-                        state := 'read';
-                        attr := TuiKit.A_GOOD;
-                      end;
-    CfgFile.CFG_MISSING: begin
-                           state := 'not found: defaults';
-                           attr := TuiKit.A_WARN;
-                         end;
-    CfgFile.CFG_FIXED: begin
-                         state := 'fixed';
-                         attr := TuiKit.A_WARN;
-                       end;
-  else begin
-      state := 'cannot read';
-      attr := TuiKit.A_BAD;
-    end;
-  end;
+  state := ReadState(cfgState, 'fixed', attr);
   TuiKit.PutText(49, 16, attr, state);
   TuiKit.PutText(5, 17, TuiKit.A_TEXT, C_OPT.OPT_NAME);
   TuiKit.PutText(18, 17, TuiKit.A_TEXT, CutPath(optDir + C_OPT.OPT_NAME, 30));
-  case optState of
-    CfgFile.CFG_READ: begin
-                        state := 'read';
-                        attr := TuiKit.A_GOOD;
-                      end;
-    CfgFile.CFG_MISSING: begin
-                           state := 'not found: defaults';
-                           attr := TuiKit.A_WARN;
-                         end;
-    CfgFile.CFG_FIXED: begin
-                         state := 'fixed: ' + NumStr(optBad) + ' values out of range';
-                         if optBad = 1 then
-                           state := 'fixed: 1 value out of range';
-                         attr := TuiKit.A_WARN;
-                       end;
-  else begin
-      state := 'cannot read';
-      attr := TuiKit.A_BAD;
-    end;
-  end;
+  state := ReadState(optState, 'fixed: ' + StrUtil.Count(optBad, 'value', 'values') + ' out of range', attr);
   TuiKit.PutText(49, 17, attr, state);
   TuiKit.PutText(5, 18, TuiKit.A_TEXT, 'Changes');
   changes := '';
   if HardwareChanged then
-    changes := 'Hardware';
-  if SettingsChanged then begin
-    if changes <> '' then
-      changes := changes + ', ';
-    changes := changes + 'Game Settings';
-  end;
-  if PathsChanged then begin
-    if changes <> '' then
-      changes := changes + ', ';
-    changes := changes + 'Paths';
-  end;
+    Changed('Hardware');
+  if SettingsChanged then
+    Changed('Game Settings');
+  if PathsChanged then
+    Changed('Paths');
   if (changes = '') and PoolCfgDue then
     changes := 'none; saving writes POOL.CFG';
   if changes <> '' then
@@ -577,15 +557,13 @@ end;
 
 { Hardware line on its row, highlighted when sel. }
 procedure DrawHardwareLine(line: Byte; sel: Boolean);
-const
-  LABELS: array[1..HW_LINES] of string[12] = ('Video', 'Sound Device', 'Introduction');
 var
   row: Byte;
   value: string;
 begin
   row := 4 + line;
   TuiKit.PutRun(4, row, TuiKit.A_TEXT, ' ', 74);
-  TuiKit.PutText(6, row, TuiKit.A_TEXT, LABELS[line]);
+  TuiKit.PutText(6, row, TuiKit.A_TEXT, LineName(line));
   value := ChoiceName(line, ChoiceOf(cfg, line));
   if LineLetter(cfg, line) <> LineLetter(cfgRead, line) then
     TuiKit.PutText(26, row, TuiKit.A_CHANGED, value + '*')
@@ -617,7 +595,6 @@ var
   ext: Boolean;
   done: Boolean;
   items: TuiKit.TLines;
-  titles: string;
 begin
   sel := HW_VIDEO;
   DrawHardware(sel);
@@ -625,26 +602,18 @@ begin
   repeat
     TuiKit.GetKey(ch, ext);
     i := ChoiceOf(cfg, sel);
-    if ext then
+    if ext then begin
+      TuiKit.MoveInList(ch, sel, HW_LINES);
       case ch of
-        C_KEYS.UP: if sel > 1 then Dec(sel) else sel := HW_LINES;
-        C_KEYS.DOWN: if sel < HW_LINES then Inc(sel) else sel := 1;
-        C_KEYS.HOME: sel := 1;
-        C_KEYS.END_KEY: sel := HW_LINES;
         C_KEYS.LEFT: if i > 1 then SetChoice(sel, i - 1) else SetChoice(sel, ChoiceCount(sel));
         C_KEYS.RIGHT: SetChoice(sel, i mod ChoiceCount(sel) + 1);
-        C_KEYS.F5: case sel of
-                     HW_VIDEO: cfg.video := cfgDefaults.video;
-                     HW_SOUND: cfg.sound := cfgDefaults.sound;
-                   else
-                     cfg.intro := cfgDefaults.intro;
-                   end;
+        C_KEYS.F5: SetChoice(sel, ChoiceOf(cfgDefaults, sel));
         C_KEYS.F10: begin
                       SaveAndLeave;
                       done := leave;
                     end;
-      end
-    else
+      end;
+    end else
       case ch of
         ' ': SetChoice(sel, i mod ChoiceCount(sel) + 1);
         C_KEYS.ENTER: begin
@@ -652,14 +621,8 @@ begin
                         for i := 1 to ChoiceCount(sel) do
                           TuiKit.AddLine(items, ChoiceName(sel, i), 0);
                         i := ChoiceOf(cfg, sel);
-                        case sel of
-                          HW_VIDEO: titles := 'Video';
-                          HW_SOUND: titles := 'Sound Device';
-                        else
-                          titles := 'Introduction';
-                        end;
                         TuiKit.KeyLine('~Up Dn~ Move  ~Enter~ Choose  ~Esc~ Cancel');
-                        if TuiKit.PickList(41, 4, titles, items, i) then
+                        if TuiKit.PickList(41, 4, LineName(sel), items, i) then
                           SetChoice(sel, i);
                       end;
         C_KEYS.ESC: done := True;
@@ -852,7 +815,7 @@ begin
   end else
 {$ENDIF}
   if (line <= PATH_SAVE) and tooLong[line] then begin
-    TuiKit.PutText(5, 21, TuiKit.A_BAD, 'This path is too long for DOS (' + NumStr(C_OPT.MAX_PATH_TEXT) +
+    TuiKit.PutText(5, 21, TuiKit.A_BAD, 'This path is too long for DOS (' + StrUtil.NumStr(C_OPT.MAX_PATH_TEXT) +
                    ' characters at most).');
     TuiKit.PutText(5, 22, TuiKit.A_BAD, 'START will not run until it is corrected.');
   end else if (line <= PATH_SAVE) and not CfgFile.DirExists(PathOf(cfg, opts, line)) then begin
@@ -934,7 +897,7 @@ begin
   DrawPathLine(line, False);
   repeat
     TuiKit.KeyLine('Type the folder   ~Lt Rt Home End Del Bksp~   ~Enter~ Accept   ~Esc~ Cancel');
-    key := TuiKit.EditLine(PATH_COL, PathRow(line), FIELD_WIDTH, text, 79, first);
+    key := TuiKit.EditLine(PATH_COL, PathRow(line), FIELD_WIDTH, text, PATH_TYPED, first);
     first := #0;
     if key = C_KEYS.ENTER then begin
       check := CfgFile.CheckPath(text, full);
@@ -949,7 +912,7 @@ begin
 {$ENDIF}
         CfgFile.PATH_EMPTY: ShowError('Please type the folder''s path.', '');
         CfgFile.PATH_BAD_CHAR: ShowError('A folder''s path cannot hold * ? " < > or |.', CutPath(full, 38));
-        CfgFile.PATH_TOO_LONG: ShowError('This path is too long for DOS (' + NumStr(C_OPT.MAX_PATH_TEXT) +
+        CfgFile.PATH_TOO_LONG: ShowError('This path is too long for DOS (' + StrUtil.NumStr(C_OPT.MAX_PATH_TEXT) +
                                          ' characters at most).', CutPath(full, 38));
       else
         ShowError('Please verify the directory exists.', CutPath(full, 38));
@@ -989,18 +952,16 @@ begin
   done := False;
   repeat
     TuiKit.GetKey(ch, ext);
-    if ext then
+    if ext then begin
+      TuiKit.MoveInList(ch, sel, PATH_LINES);
       case ch of
-        C_KEYS.UP: if sel > 1 then Dec(sel) else sel := PATH_LINES;
-        C_KEYS.DOWN: if sel < PATH_LINES then Inc(sel) else sel := 1;
-        C_KEYS.HOME: sel := 1;
-        C_KEYS.END_KEY: sel := PATH_LINES;
         C_KEYS.F5: SetPath(sel, DefaultPath(sel));
         C_KEYS.F10: begin
                       SaveAndLeave;
                       done := leave;
                     end;
-      end
+      end;
+    end
 {$IFDEF FPC}
     else if (sel = PATH_DATA) and (ch <> C_KEYS.ESC) then
       { the native game's data is its own folder: not edited }
@@ -1018,16 +979,18 @@ end;
 
 { --- starting ---------------------------------------------------------------------------------------------------- }
 
-{ POOL.CFG's path line, normalized as START would: too long for DOS, kept as it is and marked. }
+{ POOL.CFG's path line, normalized as START would: too long for DOS, kept as it is and marked (SetPath). Under DOS in
+  capitals, as CheckPath gives a path typed in, so the same folder typed again is no change. }
 procedure NormalizeRead(line: Byte);
 var
   full: string;
+  ok: Boolean;
 begin
-  tooLong[line] := not CfgFile.NormalizePath(PathOf(cfg, opts, line), full);
-  if line = PATH_DATA then
-    cfg.dataDir := full
-  else
-    cfg.saveDir := full;
+  ok := CfgFile.NormalizePath(PathOf(cfg, opts, line), full);
+{$IFNDEF FPC}
+  full := CfgFile.Tidy(full);
+{$ENDIF}
+  SetPath(line, full);
 end;
 
 { Read POOL.CFG (or start from the defaults without it) and then POOLOPT.CFG from the save folder it names. }
@@ -1038,19 +1001,16 @@ begin
   ok := CfgFile.NormalizePath('', homeDir);
   cfgName := FExpand(C_OPT.CFG_NAME);
   cfgState := CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, cfg, notes);
-  tooLong[PATH_DATA] := False;
-  tooLong[PATH_SAVE] := False;
   CfgFile.PoolDefaults(cfgDefaults, homeDir);
   if cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then
-    cfg := cfgDefaults
-  else begin
-    NormalizeRead(PATH_DATA);
-    NormalizeRead(PATH_SAVE);
-  end;
+    cfg := cfgDefaults;
+  { the defaults too, which in a folder too deep for DOS START would refuse }
+  NormalizeRead(PATH_DATA);
+  NormalizeRead(PATH_SAVE);
 {$IFDEF FPC}
   { the folders as the native game takes them (GameBoot.NativeFolders) }
-  cfg.saveDir := homeDir + CfgFile.SaveFolderIn(cfg.dataDir, cfg.saveDir);
-  cfg.dataDir := homeDir;
+  SetPath(PATH_SAVE, homeDir + CfgFile.SaveFolderIn(cfg.dataDir, cfg.saveDir));
+  SetPath(PATH_DATA, homeDir);
 {$ENDIF}
   cfgRead := cfg;
   optDir := cfg.saveDir;
@@ -1112,9 +1072,9 @@ begin
                            else
                              reads := GAME_PROG + ' uses this folder';
                            end;
-                           TuiKit.AddLine(lines, '  ' + Pad('Line ' + NumStr(notes.items[i].line) + ' (' +
-                                          WHAT[notes.items[i].line] + ')', 21) + Pad(raw, 15) + reads,
-                                          TuiKit.A_POP_VALUE);
+                           TuiKit.AddLine(lines, '  ' + StrUtil.PadRight('Line ' + StrUtil.NumStr(notes.items[i].line) +
+                                          ' (' + WHAT[notes.items[i].line] + ')', 21) + StrUtil.PadRight(raw, 15) +
+                                          reads, TuiKit.A_POP_VALUE);
                          end;
                          TuiKit.AddLine(lines, '', 0);
                          TuiKit.AddLine(lines, 'Setup shows what ' + GAME_PROG + ' would use. Saving writes the', 0);
@@ -1160,15 +1120,11 @@ begin
     DrawMain(sel);
     TuiKit.GetKey(ch, ext);
     item := 0;
-    if ext then
-      case ch of
-        C_KEYS.UP: if sel > 1 then Dec(sel) else sel := ITEMS;
-        C_KEYS.DOWN: if sel < ITEMS then Inc(sel) else sel := 1;
-        C_KEYS.HOME: sel := 1;
-        C_KEYS.END_KEY: sel := ITEMS;
-        C_KEYS.F10: item := ITEM_SAVE;
-      end
-    else
+    if ext then begin
+      TuiKit.MoveInList(ch, sel, ITEMS);
+      if ch = C_KEYS.F10 then
+        item := ITEM_SAVE;
+    end else
       case UpCase(ch) of
         C_KEYS.ENTER: item := sel;
         'H': item := ITEM_HARDWARE;

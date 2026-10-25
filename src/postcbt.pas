@@ -14,7 +14,7 @@ procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation
 
-uses Types, Crt, C_NPC, C_MSG, GameDefs, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
+uses Types, Crt, C_NPC, C_MSG, C_SPELL, GameDefs, GameVars, Shop, SaveLoad, Magic, C_KEYS, C_STATUS, C_IFC, C_GBVM,
   C_MONEY, Stats, Bestiary, BeastFil, Border, CharHlp, EclMenu, MenuCore, Money, TextRend, ViewChar, CharDisp, Party,
   Dice, ClassCal;
 
@@ -117,8 +117,8 @@ end;
   experience is awarded; otherwise a Running member means the party fled. Not fled: Running members return Okay, Dying
   ones become Unconscious and Unconscious ones with HP above 0 recover. Fled: C_GBVM.COMBAT_RESULT becomes $81, Running
   members return and every other member is removed. Defeated: every party member is removed and the party size is set to
-  0. In a duel the party is never defeated: each enabled, Okay, non-hostile creature sets combatWon and triggers an
-  experience award, Okay and Animated creatures are re-enabled and Dying ones become Unconscious. }
+  0. In a duel the party is never defeated: an enabled, Okay, non-hostile creature wins it (combatWon), and experience
+  is awarded once; Okay and Animated creatures are re-enabled and Dying ones become Unconscious. }
 procedure DetermineCombatResults;
 var
   p: Types.PCharRecord;
@@ -204,12 +204,14 @@ begin
   end else begin
     p := GameVars.creatureList;
     while p <> nil do begin
-      if (p^.enabled = 1) and (p^.status = C_STATUS.OKAY) and (p^.hostile <> 1) then begin
+      if (p^.enabled = 1) and (p^.status = C_STATUS.OKAY) and (p^.hostile <> 1) then
         combatWon := True;
-        PostCbt.DetermineLootExp(expShare);
-        PostCbt.AwardExperience(expShare);
-      end;
       p := p^.nextCharAddr;
+    end;
+    { once: SSI gathered the loot and awarded the experience again for each such creature }
+    if combatWon then begin
+      PostCbt.DetermineLootExp(expShare);
+      PostCbt.AwardExperience(expShare);
     end;
     p := GameVars.creatureList;
     while p <> nil do begin
@@ -268,15 +270,10 @@ var
   head: Types.PItemRec;
   { seeded True so MenuVertical paints the list; MenuVertical clears it }
   redraw: Boolean;
-  p: Types.PItemRec;
 begin
   redraw := True;
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, 'Loot');
-  p := GameVars.treasureItems;
-  while p <> nil do begin
-    CharHlp.ItemLabel(p, False);
-    p := p^.next;
-  end;
+  CharHlp.LabelItems(GameVars.treasureItems);
   head := GameVars.treasureItems;
   c := MenuCore.MenuVertical('Items: ', 'Take', LightMagenta, LightGreen, White, 1, 4, 38, 22,
                              head, True, redraw, idx, cursor);
@@ -367,8 +364,8 @@ begin
 end;
 
 { The loot menu is 'View Take Pool Share' with money left, 'View Take Pool' with only items left (each followed by
-  ' Detect Exit' when items are left and the current character has Detect Magic, spell 5 cleric / 11 magic-user,
-  memorized, else ' Exit'), or 'View Pool Exit' with nothing left. Leaving with treasure left asks for confirmation. }
+  ' Detect Exit' when items are left and the current character has Detect Magic (C_SPELL.DETECT_MAGIC) memorized,
+  else ' Exit'), or 'View Pool Exit' with nothing left. Leaving with treasure left asks for confirmation. }
 procedure LootMenu;
 var
   treasure: Boolean;
@@ -395,7 +392,7 @@ begin
     hasDetect := False;
     if items then
       while (i <= Types.SPELL_SLOT_LAST) and not hasDetect do begin
-        if (GameVars.curChar^.memorizedSpells[i] = 5) or (GameVars.curChar^.memorizedSpells[i] = 11) then begin
+        if GameVars.curChar^.memorizedSpells[i] in C_SPELL.DETECT_MAGIC then begin
           hasDetect := True;
           detectSpell := GameVars.curChar^.memorizedSpells[i];
         end;

@@ -26,13 +26,13 @@ var
 
 function SameBlock(a, b: Word): Boolean;
 begin
-  SameBlock := (DataPat.parts[a].family = DataPat.parts[b].family) and (DataPat.parts[a].disk = DataPat.parts[b].disk)
-               and (DataPat.parts[a].id = DataPat.parts[b].id);
+  SameBlock := (DataPat.parts^[a].family = DataPat.parts^[b].family) and
+               (DataPat.parts^[a].disk = DataPat.parts^[b].disk) and (DataPat.parts^[a].id = DataPat.parts^[b].id);
 end;
 
 function SameFix(a, b: Word): Boolean;
 begin
-  SameFix := (DataPat.parts[a].issue = DataPat.parts[b].issue) and SameBlock(a, b);
+  SameFix := (DataPat.parts^[a].issue = DataPat.parts^[b].issue) and SameBlock(a, b);
 end;
 
 { The GBVM address of offset in a script block: the block's two-byte leader is not loaded (EclMenu). }
@@ -44,13 +44,13 @@ end;
 { The block's size once part a is made. }
 function SizeAfter(a: Word): LongInt;
 begin
-  SizeAfter := LongInt(DataPat.parts[a].size) - DataPat.parts[a].origLen + DataPat.parts[a].newLen;
+  SizeAfter := LongInt(DataPat.parts^[a].size) - DataPat.parts^[a].origLen + DataPat.parts^[a].newLen;
 end;
 
 { The word at patchBytes[pos], low byte first. }
 function PatchWord(pos: Word): Word;
 begin
-  PatchWord := DataPat.patchBytes[pos] + 256 * Word(DataPat.patchBytes[pos + 1]);
+  PatchWord := DataPat.patchBytes^[pos] + 256 * Word(DataPat.patchBytes^[pos + 1]);
 end;
 
 { Issue fix's change to script block on ECL disk onDisk that sends a 2-byte address to new code at the script's end:
@@ -66,7 +66,7 @@ begin
   codePart := 0;
   pos := 0;
   for p := 1 to DataPat.PART_COUNT do begin
-    with DataPat.parts[p] do
+    with DataPat.parts^[p] do
       if (issue = fix) and (family = C_DATA.FAMILY_ECL) and (disk = onDisk) and (id = block) then
         if origLen = 0 then begin
           codePart := p;
@@ -75,21 +75,22 @@ begin
           jumpPart := p;
           jumpPos := pos;
         end;
-    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+    Inc(pos, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
   end;
   FindJump := (jumpPart > 0) and (codePart > 0);
   TestKit.Check((jumpPart > 0) and (codePart > 0), what + ' has its jump and its new code');
   if (jumpPart > 0) and (codePart > 0) then begin
-    codeAddr := ScriptAddr(DataPat.parts[codePart].offset);
+    codeAddr := ScriptAddr(DataPat.parts^[codePart].offset);
     TestKit.CheckEqualsL(codeAddr, PatchWord(jumpPos + 2), what + ': the jump goes to the new code');
   end;
 end;
 
 begin
   TestKit.Start('TDATAPAT');
+  TestKit.Check(DataPat.LoadTable, 'the table gives PART_COUNT parts and BYTE_COUNT bytes');
   total := 0;
   for p := 1 to DataPat.PART_COUNT do
-    Inc(total, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+    Inc(total, DataPat.parts^[p].origLen + DataPat.parts^[p].newLen);
   TestKit.CheckEqualsL(DataPat.BYTE_COUNT, total, 'the parts use every byte of patchBytes');
 
   familiesOk := True;
@@ -97,7 +98,7 @@ begin
   sizesOk := True;
   runsOk := True;
   for p := 1 to DataPat.PART_COUNT do begin
-    with DataPat.parts[p] do begin
+    with DataPat.parts^[p] do begin
       if not (family in [C_DATA.FAMILY_ECL, C_DATA.FAMILY_GEO, C_DATA.FAMILY_ITEM, C_DATA.FAMILY_MONCHA,
                          C_DATA.FAMILY_MONITM]) then begin
         familiesOk := False;
@@ -112,7 +113,7 @@ begin
     ok := True;
     for q := 1 to p - 1 do
       if SameBlock(q, p) then
-        ok := SizeAfter(q) = DataPat.parts[p].size;
+        ok := SizeAfter(q) = DataPat.parts^[p].size;
     if not ok then begin
       sizesOk := False;
       TestKit.Check(False, 'part ' + StrUtil.NumStr(p) + ': the size is not the block''s after the parts before it');
@@ -140,39 +141,40 @@ begin
     GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
     FillChar(GameVars.zone2^, SizeOf(GameVars.zone2^), 0);
     FillChar(GameVars.zone3^, SizeOf(GameVars.zone3^), 0);
-    Move(DataPat.patchBytes[codePos], GameVars.zone3^[codeAddr], DataPat.parts[codePart].newLen);
+    Move(DataPat.patchBytes^[codePos], GameVars.zone3^[codeAddr], DataPat.parts^[codePart].newLen);
     TestKit.CheckEqualsL($09, GameVars.zone3^[codeAddr], '#864: the new code is a SAVE');
     GameVars.eclIp := codeAddr;
     EclVars.LoadEclVars(2);
     TestKit.CheckEqualsS('CCXIV.', GameVars.gbStrings^[1], '#864: the SAVE loads CCXIV.');
     TestKit.CheckEqualsL($13, GameVars.zone3^[GameVars.eclIp], '#864: then RETURN');
-    TestKit.CheckEqualsL(codeAddr + DataPat.parts[codePart].newLen - 1, GameVars.eclIp, '#864: the RETURN ends it');
+    TestKit.CheckEqualsL(codeAddr + DataPat.parts^[codePart].newLen - 1, GameVars.eclIp, '#864: the RETURN ends it');
   end;
 
   { #868: the fortune teller's murder goes through new code that marks it, then on to the GOSUB's own target; New
     Phlan's event 20 goes to the sage's code, whose first GOTO sends other squares where the entry went }
   if FindJump(868, 2, 20, '#868 Slums') then begin
     TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + 4), '#868 Slums: the SAVE is to GYPSY_KILLED');
-    TestKit.CheckEqualsL($01, DataPat.patchBytes[codePos + 6], '#868 Slums: then a GOTO');
+    TestKit.CheckEqualsL($01, DataPat.patchBytes^[codePos + 6], '#868 Slums: then a GOTO');
     TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 8), '#868 Slums: to where the GOSUB went');
   end;
   if FindJump(868, 3, 0, '#868 New Phlan') then begin
-    TestKit.CheckEqualsL($01, DataPat.patchBytes[codePos + 12], '#868 New Phlan: other squares GOTO');
+    TestKit.CheckEqualsL($01, DataPat.patchBytes^[codePos + 12], '#868 New Phlan: other squares GOTO');
     TestKit.CheckEqualsL(PatchWord(jumpPos), PatchWord(codePos + 14), '#868 New Phlan: where event 20 went');
     TestKit.CheckEqualsL(C_GBVM.REWARD_SLUMS, PatchWord(codePos + 22), '#868 New Phlan: the Slums cleared');
-    TestKit.CheckEqualsL(C_GBVM.QUEST_DONE, DataPat.patchBytes[codePos + 25], '#868 New Phlan: as QUEST_DONE');
+    TestKit.CheckEqualsL(C_GBVM.QUEST_DONE, DataPat.patchBytes^[codePos + 25], '#868 New Phlan: as QUEST_DONE');
     TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + 33), '#868 New Phlan: the fortune teller alive');
     { both GOTOs to the empty shop land on its PRINTCLEAR, inside the new code }
     pos := PatchWord(codePos + 29) - codeAddr;
     TestKit.CheckEqualsL(pos, PatchWord(codePos + 40) - codeAddr, '#868 New Phlan: one empty shop');
-    TestKit.Check(pos < DataPat.parts[codePart].newLen, '#868 New Phlan: the empty shop is in the new code');
-    if pos + 22 < DataPat.parts[codePart].newLen then begin
-      TestKit.CheckEqualsL($12, DataPat.patchBytes[codePos + pos], '#868 New Phlan: the empty shop is a PRINTCLEAR');
+    TestKit.Check(pos < DataPat.parts^[codePart].newLen, '#868 New Phlan: the empty shop is in the new code');
+    if pos + 22 < DataPat.parts^[codePart].newLen then begin
+      TestKit.CheckEqualsL($12, DataPat.patchBytes^[codePos + pos], '#868 New Phlan: the empty shop is a PRINTCLEAR');
       { then the crystal ball for a murdered fortune teller: PRINTCLEAR's 3 bytes and its text, then a COMPARE }
-      pos := pos + 3 + DataPat.patchBytes[codePos + pos + 2];
+      pos := pos + 3 + DataPat.patchBytes^[codePos + pos + 2];
       TestKit.CheckEqualsL(C_GBVM.GYPSY_KILLED, PatchWord(codePos + pos + 2),
                            '#868 New Phlan: the crystal ball for the murdered fortune teller');
     end;
   end;
+  DataPat.FreeTable;
   TestKit.Done;
 end.

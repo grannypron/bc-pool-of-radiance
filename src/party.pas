@@ -21,10 +21,12 @@ procedure SelectPrevNextChar(c: Char);
 { The last creature in GameVars.creatureList, or nil for an empty list. }
 function LastCreature: Types.PCharRecord;
 
-{ The creature before c in GameVars.creatureList, wrapping from the head to the last; nil when c is not in the list. }
+{ The creature before c in GameVars.creatureList, wrapping from the head to the last; nil when c is not in the list.
+  For nil it is the last, as nil follows the last. }
 function PrevCreature(c: Types.PCharRecord): Types.PCharRecord;
 
-{ The creature after c in GameVars.creatureList, wrapping from the last to the head. }
+{ The creature after c in GameVars.creatureList, wrapping from the last to the head; for nil the head, as
+  PrevCreature takes nil for the place after the last. }
 function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
 
 implementation
@@ -93,7 +95,7 @@ end;
 
 function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
 begin
-  if c^.nextCharAddr <> nil then
+  if (c <> nil) and (c^.nextCharAddr <> nil) then
     NextCreature := c^.nextCharAddr
   else
     NextCreature := GameVars.creatureList;

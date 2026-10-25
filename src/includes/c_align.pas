@@ -29,6 +29,9 @@ const
   CN = CHAOTIC_NEUTRAL;
   CE = CHAOTIC_EVIL;
 
+  { the evil alignments, as a set for alignment in EVIL_ALIGNMENTS }
+  EVIL_ALIGNMENTS = [LAWFUL_EVIL, NEUTRAL_EVIL, CHAOTIC_EVIL];
+
 implementation
 
 end.

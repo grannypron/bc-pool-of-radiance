@@ -16,6 +16,18 @@ type
 { Return the sign of an Integer: -1, 0 or 1. }
 function SignOf(v: Integer): Integer;
 
+{ True when cell (x, y) is on the combat arena: x in 0..Types.ARENA_LAST_X and y in 0..Types.ARENA_LAST_Y. }
+function OnArena(x, y: ShortInt): Boolean;
+
+{ The last combat slot to scan: GameVars.arenaCount, the next free slot, kept within Types.ARENA_SLOTS (a full arena
+  leaves arenaCount one past the table). }
+function LastSlot: Byte;
+
+{ Copy the target list and its count to snap, and put them back from it: for a caller that builds a list of its own
+  (CbtMap.CalcDistance, the spell-aim preview's count) in the middle of someone else's. }
+procedure SaveTargets(var snap: Types.TTargetSnapshot);
+procedure RestoreTargets(var snap: Types.TTargetSnapshot);
+
 { Initialize the line's direction, current point, Bresenham error terms and zero distance. }
 procedure PathFind(var req: Types.TPathReq);
 
@@ -24,14 +36,18 @@ procedure PathFind(var req: Types.TPathReq);
 function NextPathStep(var req: Types.TPathReq): Boolean;
 
 { True when dir (0..7) is a best direction from (x,y) toward (tx,ty), by a 90-degree cone test around the cell one step
-  in dir; 8 and above (no direction) is always True. False if any coordinate is outside 0..49 / 0..24. }
+  in dir; 8 and above (no direction) is always True. False if either cell is off the arena (OnArena). }
 function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
+
+{ The first direction 0..7 that IsDirToward holds from (x,y) toward (tx,ty), 0 for the same cell, or C_DIR.CENTER when
+  none does (a cell off the arena): a creature turns to face its target this way (#922). }
+function DirToward(x, y, tx, ty: ShortInt): Byte;
 
 { Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
   the doubled distance (2 per straight step, 3 per diagonal) exceeds dist * 2 + 1, or, when the arena's distMode is 0,
-  at a cell whose terrain blocking exceeds the start cell's clearance. On failure, return the blocking cell in tx,ty and
-  the doubled distance in dist; reaching the target returns True with the doubled distance. An endpoint outside 0..49 /
-  0..24 fails at once, with dist 0 and tx,ty unchanged. }
+  at a cell whose terrain blocks it (blocking above 0). On failure, return the blocking cell in tx,ty and the doubled
+  distance in dist; reaching the target returns True with the doubled distance. An endpoint off the arena (OnArena)
+  fails at once, with dist 0 and tx,ty unchanged. }
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
 
 { Build the potential-target list by testing icon-tile pairs for direction, line of sight and range. Keep each
@@ -72,6 +88,31 @@ begin
     SignOf := 1
   else
     SignOf := 0;
+end;
+
+function OnArena(x, y: ShortInt): Boolean;
+begin
+  OnArena := (x >= 0) and (x <= Types.ARENA_LAST_X) and (y >= 0) and (y <= Types.ARENA_LAST_Y);
+end;
+
+function LastSlot: Byte;
+begin
+  if GameVars.arenaCount > Types.ARENA_SLOTS then
+    LastSlot := Types.ARENA_SLOTS
+  else
+    LastSlot := GameVars.arenaCount;
+end;
+
+procedure SaveTargets(var snap: Types.TTargetSnapshot);
+begin
+  snap.list := GameVars.targetList;
+  snap.count := GameVars.targetCount;
+end;
+
+procedure RestoreTargets(var snap: Types.TTargetSnapshot);
+begin
+  GameVars.targetList := snap.list;
+  GameVars.targetCount := snap.count;
 end;
 
 { Exchange-sort the target list ascending by doubled distance. On a distance tie, entry j moves ahead of entry i only
@@ -178,11 +219,10 @@ end;
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
 var
   walk: Types.TPathReq;
-  meter: Types.TPathReq;
   done: Boolean;
   maxDist: Word;
 begin
-  if (x < 0) or (x > 49) or (y < 0) or (y > 24) or (tx < 0) or (tx > 49) or (ty < 0) or (ty > 24) then begin
+  if not Pathing.OnArena(x, y) or not Pathing.OnArena(tx, ty) then begin
     dist := 0;
     WalkLine := False;
     Exit;
@@ -193,18 +233,12 @@ begin
   walk.ex := tx;
   walk.ey := ty;
   Pathing.PathFind(walk);
-  meter.sx := 0;
-  meter.sy := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
-  if walk.adx > walk.ady then
-    meter.ex := walk.adx
-  else
-    meter.ex := walk.ady;
-  meter.ey := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
-  Pathing.PathFind(meter);
+  { SSI stepped a second line alongside this one, from the start cell's clearance to the same clearance, and every
+    terrain's clearance was 0: a cell blocks the walk when its terrain's blocking is above 0 }
   done := False;
   repeat
     if ((Types.PArena(view)^.distMode = 0) and
-        (GameDefs.terrainInfo[Types.PArena(view)^.cells[walk.cy, walk.cx]].blocking > meter.cy)) or
+        (GameDefs.terrainInfo[Types.PArena(view)^.cells[walk.cy, walk.cx]].blocking > 0)) or
           (walk.dist > maxDist) then begin
       tx := walk.cx;
       ty := walk.cy;
@@ -212,7 +246,6 @@ begin
       WalkLine := False;
       Exit;
     end;
-    if Pathing.NextPathStep(meter) then ;
     done := not Pathing.NextPathStep(walk);
   until done;
   dist := walk.dist;
@@ -224,7 +257,7 @@ var
   nx: ShortInt;
   ny: ShortInt;
 begin
-  if (x < 0) or (x > 49) or (y < 0) or (y > 24) or (tx < 0) or (tx > 49) or (ty < 0) or (ty > 24) then begin
+  if not Pathing.OnArena(x, y) or not Pathing.OnArena(tx, ty) then begin
     IsDirToward := False;
     Exit;
   end;
@@ -252,6 +285,16 @@ begin
       ((tx <= nx) and (ty <= (tx - nx) + ny));
     C_DIR.CENTER: IsDirToward := True;
   end;
+end;
+
+function DirToward(x, y, tx, ty: ShortInt): Byte;
+var
+  d: Byte;
+begin
+  d := C_DIR.NORTH;
+  while (d < C_DIR.CENTER) and not Pathing.IsDirToward(x, y, tx, ty, d) do
+    Inc(d);
+  DirToward := d;
 end;
 
 procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte; view: Pointer);
@@ -282,9 +325,7 @@ begin
     end else
       myX[k] := -1;
   GameVars.targetCount := 0;
-  last := GameVars.arenaCount;
-  if last > Types.ARENA_SLOTS then
-    last := Types.ARENA_SLOTS;
+  last := Pathing.LastSlot;
   for i := 1 to last do
     if GameVars.arenaLoc[i].size > 0 then begin
       found := False;
@@ -363,9 +404,6 @@ begin
 end;
 
 const
-  { the arena's cells (TArena.cells) }
-  ARENA_LAST_X = 49;
-  ARENA_LAST_Y = 24;
   { a wall's terrain cost }
   WALL_COST = 255;
   { RouteStep's marks: a cell not reached yet, and the start }
@@ -376,9 +414,9 @@ const
 
 type
   { per cell, the first step of the walk that reached it; or the goal next to it }
-  TRouteMarks = array[0..ARENA_LAST_Y, 0..ARENA_LAST_X] of Byte;
+  TRouteMarks = array[0..Types.ARENA_LAST_Y, 0..Types.ARENA_LAST_X] of Byte;
   { the cells to visit, x + 50 * y }
-  TRouteQueue = array[0..(ARENA_LAST_X + 1) * (ARENA_LAST_Y + 1) - 1] of Word;
+  TRouteQueue = array[0..(Types.ARENA_LAST_X + 1) * (Types.ARENA_LAST_Y + 1) - 1] of Word;
 
 { True when a body of size, its upper-left cell at (x, y), fits there: every cell on the arena, not terrain 0, no wall,
   not terrain avoid, and nobody on it but slot itself and the creatures in open. }
@@ -397,7 +435,7 @@ begin
     if Pathing.GetIconTileDelta(size, i, dx, dy) then begin
       cx := x + dx;
       cy := y + dy;
-      if (cx < 0) or (cx > ARENA_LAST_X) or (cy < 0) or (cy > ARENA_LAST_Y) then
+      if not Pathing.OnArena(cx, cy) then
         Exit;
       t := GameVars.arenaPtr^.cells[cy, cx];
       if (t = 0) or (t = avoid) or (GameDefs.terrainInfo[t].cost = WALL_COST) then
@@ -451,7 +489,7 @@ begin
         if Pathing.GetIconTileDelta(GameVars.arenaLoc[s].size, i, dx, dy) then
           for y := GameVars.arenaLoc[s].y + dy - 1 to GameVars.arenaLoc[s].y + dy + 1 do
             for x := GameVars.arenaLoc[s].x + dx - 1 to GameVars.arenaLoc[s].x + dx + 1 do
-              if (x >= 0) and (x <= ARENA_LAST_X) and (y >= 0) and (y <= ARENA_LAST_Y) then
+              if Pathing.OnArena(x, y) then
                 if near[y, x] = 0 then
                   near[y, x] := s;
       span := Abs(GameVars.arenaLoc[s].x - sx);
@@ -504,20 +542,20 @@ begin
     GetMem(queue, SizeOf(TRouteQueue));
     FillChar(marks^, SizeOf(TRouteMarks), UNREACHED);
     marks^[sy, sx] := START;
-    queue^[0] := sx + (ARENA_LAST_X + 1) * sy;
+    queue^[0] := sx + (Types.ARENA_LAST_X + 1) * sy;
     head := 0;
     tail := 1;
     reached := 0;
     while (head < tail) and (reached = 0) do begin
-      x := queue^[head] mod (ARENA_LAST_X + 1);
-      y := queue^[head] div (ARENA_LAST_X + 1);
+      x := queue^[head] mod (Types.ARENA_LAST_X + 1);
+      y := queue^[head] div (Types.ARENA_LAST_X + 1);
       Inc(head);
       k := 0;
       while (k <= 7) and (reached = 0) do begin
         d := (heading + TURNS[k]) mod 8;
         nx := x + GameDefs.dirDX[d];
         ny := y + GameDefs.dirDY[d];
-        if (nx >= 0) and (nx <= ARENA_LAST_X) and (ny >= 0) and (ny <= ARENA_LAST_Y) then
+        if Pathing.OnArena(nx, ny) then
           if (marks^[ny, nx] = UNREACHED) and CanStand(nx, ny, size, slot, open, avoid, occupant) then begin
             first := marks^[y, x];
             if first = START then
@@ -529,7 +567,7 @@ begin
               goal := reached;
               RouteStep := True;
             end else begin
-              queue^[tail] := nx + (ARENA_LAST_X + 1) * ny;
+              queue^[tail] := nx + (Types.ARENA_LAST_X + 1) * ny;
               Inc(tail);
             end;
           end;

@@ -2,10 +2,10 @@
   Clue Book's map of the area prints their numbers, in the book's own words shortened to fit. A note is the key's name
   without its number (#878), which means nothing off the book's page, but with the book's 'Maze' or 'Tower' where an
   area holds part of another's map, as 'Maze: Teleporters'; the teleporter keys of the Pool of Radiance (A0, B1 and so
-  on) keep their labels, which the keys name one another by. A key printed at several
-  places is on each of them; a number printed across a grid line is on each square it straddles. The keys are the
-  book's, not the player's: MapNotes keeps the player's notes apart, and nothing here is saved. The table is string
-  literals in code, as the Journal's text is, so it lives in the overlay and costs no data segment.
+  on) keep their labels, which the keys name one another by. A key printed at several places is on each of them; a
+  number printed across a grid line is on each square it straddles. The keys are the book's, not the player's:
+  MapNotes keeps the player's notes apart, and nothing here is saved. The table is string literals in code, as the
+  Journal's text is, so it lives in the overlay and costs no data segment.
 
   The coordinates were read off the book's maps (the 1988 Clue Book's grid is the game's own: x across from 0 at the
   left, y down from 0 at the top) and checked against each area's GEO walls and event squares, and the scripts where a

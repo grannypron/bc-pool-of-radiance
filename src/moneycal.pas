@@ -66,7 +66,7 @@ function SageFee(hd: ShortInt): Word;
 
 implementation
 
-uses GameDefs, GameVars, C_MONEY;
+uses GameDefs, GameVars, C_ITEM, C_MONEY;
 
 function CopperValue(var m: Types.TMoney): LongInt;
 var
@@ -145,7 +145,7 @@ end;
 function ItemBundle(item: Types.PItemRec): Byte;
 begin
   case item^.itemType of
-    9, 28, 73: ItemBundle := 20;
+    C_ITEM.DART, C_ITEM.QUARREL, C_ITEM.ARROW: ItemBundle := 20;
     else ItemBundle := 1;
   end;
 end;
@@ -170,16 +170,18 @@ begin
   ItemSalePrice := v;
 end;
 
-{ Return the money type named by s and its display name in typeName. Leading spaces are skipped (no bounds check); the
-  first letter selects the type, and for 'G' the second letter, upper-cased, tells Gems from Gold. An unmatched letter
-  leaves the result and typeName unset. }
+{ Return the money type named by s and its display name in typeName. Leading spaces are skipped; the first letter
+  selects the type, and for 'G' the second letter, upper-cased, tells Gems from Gold. An unmatched letter, or a blank s,
+  returns -1 and leaves typeName as it was. }
 function ParseMoneyType(s: String; var typeName: String): ShortInt;
 var
   i: Byte;
 begin
+  ParseMoneyType := -1;
   i := 1;
-  while s[i] = ' ' do
+  while (i < Length(s)) and (s[i] = ' ') do
     Inc(i);
+  if i > Length(s) then Exit;
   case s[i] of
     'G': if UpCase(s[i + 1]) = 'E' then begin
            ParseMoneyType := C_MONEY.GEMS;

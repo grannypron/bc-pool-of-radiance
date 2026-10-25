@@ -93,20 +93,40 @@ begin
     c := Temple.ConfirmCureAnyway('is not Diseased.');
   if c = 'Y' then
     if Temple.ConfirmCureCost('Cure Disease', 1000) = 'Y' then
-      FxEngine.RemoveDiseases(GameVars.curChar);
+      if FxEngine.RemoveDiseases(GameVars.curChar) then ;
 end;
 
-{ CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp; the RestoreHitPoints result is
-  ignored }
+{ Why a cure of wounds would do nothing for the current character, as FxEngine.RestoreHitPoints decides it: dead,
+  stoned, gone or otherwise out of the party's reach, mummy rot, or no wound; '' when it would heal. }
+function NoWoundCure: String;
+var
+  effect: Types.PEffectRec;
+begin
+  NoWoundCure := '';
+  case GameVars.curChar^.status of
+    C_STATUS.OKAY, C_STATUS.ANIMATED, C_STATUS.UNCONSCIOUS, C_STATUS.DYING:
+      if CharHlp.HasEffect(GameVars.curChar, C_EFFECT.ROT_NO_HEAL, effect) then
+        NoWoundCure := 'has mummy rot, which stops healing.'
+      else if GameVars.curChar^.hpCur >= GameVars.curChar^.hpMax then
+        NoWoundCure := 'is not wounded.';
+    C_STATUS.DEAD: NoWoundCure := 'is dead.';
+    C_STATUS.STONED: NoWoundCure := 'is stoned.';
+  else
+    NoWoundCure := 'cannot be healed.';
+  end;
+end;
+
+{ CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp. When the cure would do nothing
+  (NoWoundCure) the temple says why and asks first, as its other cures do; "is cured." follows only a cure that healed.
+  SSI took the fee and said the character was cured whatever RestoreHitPoints did (POR-0226). }
 procedure CureWounds(spell: Byte);
 var
   hp: Byte;
   c: Char;
-  { Turbo Pascal 6 cannot call a function as a statement }
-  restored: Boolean;
   name: Types.TStr40;
   cost: Word;
   bonus: Byte;
+  why: Types.TStr40;
 begin
   case spell of
     1: begin
@@ -127,12 +147,19 @@ begin
   else
     Exit;
   end;
-  c := Temple.ConfirmCureCost(name, cost);
-  if c = 'Y' then begin
-    { spell d8, plus the bonus }
-    hp := Dice.RollDice(spell, 8) + bonus;
-    restored := FxEngine.RestoreHitPoints(GameVars.curChar, hp, False);
-  end;
+  c := 'Y';
+  why := Temple.NoWoundCure;
+  if why <> '' then
+    c := Temple.ConfirmCureAnyway(why);
+  if c = 'Y' then
+    if Temple.PayCureCost(name, cost) = 'Y' then begin
+      { spell d8, plus the bonus }
+      hp := Dice.RollDice(spell, 8) + bonus;
+      if FxEngine.RestoreHitPoints(GameVars.curChar, hp, False) then
+        Temple.ReportCure('is cured.')
+      else
+        Temple.ReportCure('is not helped.');
+    end;
 end;
 
 { RaiseDead: For 5500 gold, raise a dead or animated character (paying for anyone else changes nothing). A dead or
@@ -271,24 +298,36 @@ begin
   end;
 end;
 
-{ StoneToFlesh: C_STATUS.STONED (7), 2000 gp; if still stoned after paying, the character becomes C_STATUS.OKAY and
-  enabled, with hpCur 1 }
+{ StoneToFlesh: C_STATUS.STONED (7), 2000 gp. A character still stoned once paid for rolls system shock on d100
+  (AbilAdj.SurvivesSystemShock), as AD&D 1st edition has the spell's recipient do and SSI never did (#1004): a failure
+  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD, the fee spent; a success becomes C_STATUS.OKAY and
+  enabled, with hpCur 1, and "is cured.". }
 procedure StoneToFlesh;
 var
   c: Char;
+  creature: Types.PCharRecord;
 begin
+  creature := GameVars.curChar;
   c := 'Y';
-  if GameVars.curChar^.status <> C_STATUS.STONED then
+  if creature^.status <> C_STATUS.STONED then
     c := Temple.ConfirmCureAnyway('is not stoned.');
-  if c = 'Y' then begin
-    c := Temple.ConfirmCureCost('Stone to Flesh', 2000);
-    if c = 'Y' then
-      if GameVars.curChar^.status = C_STATUS.STONED then begin
-        GameVars.curChar^.status := C_STATUS.OKAY;
-        GameVars.curChar^.enabled := 1;
-        GameVars.curChar^.hpCur := 1;
+  if c = 'Y' then
+    if Temple.PayCureCost('Stone to Flesh', 2000) = 'Y' then
+      if creature^.status <> C_STATUS.STONED then
+        Temple.ReportCure('is cured.')
+      else if not AbilAdj.SurvivesSystemShock(creature^.conCur, Dice.RollDice(1, 100)) then begin
+        { flesh again, and dead: as a death is marked out of combat }
+        creature^.status := C_STATUS.DEAD;
+        creature^.enabled := 0;
+        creature^.hpCur := 0;
+        Stats.Death(creature);
+        Temple.ReportCure('DOESN''T SURVIVE THE TRANSFORMATION.');
+      end else begin
+        creature^.status := C_STATUS.OKAY;
+        creature^.enabled := 1;
+        creature^.hpCur := 1;
+        Temple.ReportCure('is cured.');
       end;
-  end;
 end;
 
 { HealMenu: Allocates a 10-node string list with MenuCore.AllocStringList, fills it from templeSpells, runs

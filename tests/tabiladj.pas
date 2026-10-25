@@ -111,6 +111,25 @@ begin
   TestKit.CheckEqualsL(25, AbilAdj.ClampScore(26), '26 counts as 25');
   TestKit.CheckEqualsL(25, AbilAdj.ClampScore(300), 'and so does 300');
 
+  { system shock, the PHB's Constitution table and Deities & Demigods' above 18 (#1004) }
+  TestKit.CheckEqualsL(35, AbilAdj.ConSystemShock(3), 'system shock, Constitution 3: 35%');
+  TestKit.CheckEqualsL(35, AbilAdj.ConSystemShock(1), 'system shock below 3 counts as 3');
+  TestKit.CheckEqualsL(40, AbilAdj.ConSystemShock(4), 'system shock 4: 40%');
+  TestKit.CheckEqualsL(70, AbilAdj.ConSystemShock(10), 'system shock 10: 70%');
+  TestKit.CheckEqualsL(85, AbilAdj.ConSystemShock(13), 'system shock 13: 85%');
+  TestKit.CheckEqualsL(88, AbilAdj.ConSystemShock(14), 'system shock 14: 88%');
+  TestKit.CheckEqualsL(91, AbilAdj.ConSystemShock(15), 'system shock 15: 91%');
+  TestKit.CheckEqualsL(95, AbilAdj.ConSystemShock(16), 'system shock 16: 95%');
+  TestKit.CheckEqualsL(97, AbilAdj.ConSystemShock(17), 'system shock 17: 97%');
+  TestKit.CheckEqualsL(99, AbilAdj.ConSystemShock(18), 'system shock 18: 99%');
+  TestKit.CheckEqualsL(99, AbilAdj.ConSystemShock(24), 'system shock 24: 99%');
+  TestKit.CheckEqualsL(100, AbilAdj.ConSystemShock(25), 'system shock 25: 100%');
+  TestKit.Check(AbilAdj.SurvivesSystemShock(10, 70), 'Constitution 10 survives a roll of 70');
+  TestKit.Check(not AbilAdj.SurvivesSystemShock(10, 71), 'and not 71');
+  TestKit.Check(AbilAdj.SurvivesSystemShock(18, 99), 'Constitution 18 survives 99');
+  TestKit.Check(not AbilAdj.SurvivesSystemShock(18, 100), 'but not 100');
+  TestKit.Check(AbilAdj.SurvivesSystemShock(25, 100), 'Constitution 25 survives every roll');
+
   { resurrection survival, the PHB's Constitution table and Deities & Demigods' 100 above 18 (#752) }
   TestKit.CheckEqualsL(40, AbilAdj.ConResurrectionSurvival(3), 'Constitution 3: 40%');
   TestKit.CheckEqualsL(40, AbilAdj.ConResurrectionSurvival(1), 'below 3 counts as 3');

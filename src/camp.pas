@@ -19,7 +19,7 @@ implementation
 
 uses Types, Crt, C_MSG, GameDefs, GameVars, CharGen, GameTime, C_EFFECT, C_KEYS, C_STATUS, C_IFC, C_SPELL, C_LEVEL,
   FxEngine, Portrait, Options, Border, C_TIME, CharHlp, GameIo, Magic, MenuCore, SaveLoad, TextRend, ViewChar, StrUtil,
-  CharDisp, Party, Dice, UsualSpl, Clock, CompTool, KeyHelp, BeastMnu;
+  CharDisp, Party, Dice, UsualSpl, Clock, Explore;
 
 const
   { CanDoSpellActivity's activity selector: ACT_CAST, ACT_MEMORIZE or ACT_SCRIBE. }
@@ -30,9 +30,18 @@ const
   { scribe scrolls into spellbook }
   ACT_SCRIBE = 3;
 
+{ The level of the spell in a memorized-spell or scroll slot holding b while it is pending (C_SPELL.PENDING_FLAG set);
+  0 for one not pending, or whose id is outside 1..C_SPELL.LAST. }
+function PendingLevel(b: Byte): Byte;
+begin
+  PendingLevel := 0;
+  if (b > C_SPELL.ID_MASK) and (b and C_SPELL.ID_MASK >= 1) and (b and C_SPELL.ID_MASK <= C_SPELL.LAST) then
+    PendingLevel := GameDefs.spellTable[b and C_SPELL.ID_MASK].levelSp;
+end;
+
 { Return preparation time in minutes: 15 minutes per pending spell level, plus four hours if any spells are pending, or
   six hours if any is level 3 or higher. Count both memorizing and scribing (readable items only), and store the base
-  hours (0, 4 or 6) in spellPrepTime. }
+  hours (0, 4 or 6) in spellPrepTime. A slot whose id is outside the spells (PendingLevel) counts for none. }
 function CampSpellPrepTime(creature: Types.PCharRecord): Word;
 var
   { highest pending level per kind }
@@ -50,21 +59,19 @@ begin
   maxScr := 0;
   cntMem := 0;
   cntScr := 0;
-  for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do
-    if creature^.memorizedSpells[i] > C_SPELL.ID_MASK then begin
-      lvl := GameDefs.spellTable[creature^.memorizedSpells[i] and C_SPELL.ID_MASK].levelSp;
-      if lvl > maxMem then maxMem := lvl;
-      Inc(cntMem, lvl);
-    end;
+  for i := 0 to SizeOf(creature^.memorizedSpells) - 1 do begin
+    lvl := Camp.PendingLevel(creature^.memorizedSpells[i]);
+    if lvl > maxMem then maxMem := lvl;
+    Inc(cntMem, lvl);
+  end;
   p := creature^.itemsAddr;
   while p <> nil do begin
     if CharHlp.ItemReadable(p) then
-      for i := 1 to SizeOf(p^.spells) do
-        if p^.spells[i] > C_SPELL.ID_MASK then begin
-          lvl := GameDefs.spellTable[p^.spells[i] and C_SPELL.ID_MASK].levelSp;
-          if lvl > maxScr then maxScr := lvl;
-          Inc(cntScr, lvl);
-        end;
+      for i := 1 to SizeOf(p^.spells) do begin
+        lvl := Camp.PendingLevel(p^.spells[i]);
+        if lvl > maxScr then maxScr := lvl;
+        Inc(cntScr, lvl);
+      end;
     p := p^.next;
   end;
   base := 0;
@@ -127,7 +134,7 @@ begin
   count := 0;
   for i := 0 to SizeOf(GameVars.curChar^.memorizedSpells) - 1 do begin
     id := GameVars.curChar^.memorizedSpells[i] and C_SPELL.ID_MASK;
-    if (id >= 1) and (id <= SizeOf(GameDefs.spellTable) div SizeOf(GameDefs.spellTable[1])) then
+    if (id >= 1) and (id <= C_SPELL.LAST) then
       if (GameDefs.spellTable[id].levelSp = lvl) and (GameDefs.spellTable[id].castClassSp = typ) then
         Inc(count);
   end;
@@ -148,17 +155,26 @@ begin
     GameVars.curChar^.memorizedSpells[i] := id + C_SPELL.PENDING_FLAG;
 end;
 
+{ True when spells of class typ (0 cleric, 1 magic-user) and level lvl have memorize slots (TCharRecord.slots): levels
+  1..3 of the two classes. }
+function HasSlotKind(lvl, typ: ShortInt): Boolean;
+begin
+  HasSlotKind := (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1);
+end;
+
 { Return the current character's spell allowance for a class and level minus its memorized and pending spells of that
-  class and level, or 0 when as many or more are memorized than allowed (e.g. after level drain). }
+  class and level, or 0 when as many or more are memorized than allowed (e.g. after level drain), or for a class and
+  level with no slots (HasSlotKind). }
 function SpellSlotsRemaining(lvl, typ: ShortInt): Byte;
 var
   count: Byte;
 begin
-  count := Camp.SlotsUsed(lvl, typ);
-  if count >= GameVars.curChar^.slots[typ, lvl] then
-    SpellSlotsRemaining := 0
-  else
-    SpellSlotsRemaining := GameVars.curChar^.slots[typ, lvl] - count;
+  SpellSlotsRemaining := 0;
+  if Camp.HasSlotKind(lvl, typ) then begin
+    count := Camp.SlotsUsed(lvl, typ);
+    if count < GameVars.curChar^.slots[typ, lvl] then
+      SpellSlotsRemaining := GameVars.curChar^.slots[typ, lvl] - count;
+  end;
 end;
 
 { Check whether the current character can cast, memorize or scribe. Anti-magic blocks casting; animated or disabled
@@ -345,15 +361,6 @@ begin
   UsualSpl.SetUsualSpells(GameVars.curChar, spells);
 end;
 
-{ True when the current character has a slot of this class and level left. Unlike SpellSlotsRemaining it bounds the
-  level (levels past 3 have no slots) and the class. }
-function SlotFree(lvl, typ: ShortInt): Boolean;
-begin
-  SlotFree := False;
-  if (lvl >= 1) and (lvl <= 3) and (typ >= 0) and (typ <= 1) then
-    SlotFree := Camp.SlotsUsed(lvl, typ) < GameVars.curChar^.slots[typ, lvl];
-end;
-
 { Mark as pending each of the current character's usual spells that it lacks, still knows and has a free slot for, in
   turn, so later ones see the slots the earlier ones took. }
 procedure QueueUsualSpells;
@@ -380,7 +387,7 @@ begin
             found := True;
           end;
         if (not found) and (GameVars.curChar^.spellsKnown[id] <> 0) then
-          if Camp.SlotFree(GameDefs.spellTable[id].levelSp, GameDefs.spellTable[id].castClassSp) then
+          if Camp.SpellSlotsRemaining(GameDefs.spellTable[id].levelSp, GameDefs.spellTable[id].castClassSp) > 0 then
             Camp.PutPending(id, placed);
       end;
     end;
@@ -508,9 +515,9 @@ begin
           CharDisp.PrintNameString(GameVars.curChar, 'has no copyable scrolls.', 10, True)
         else
           redraw := True;
-      end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or (GameDefs.spellTable[spellId].levelSp < 1) or
-          (GameDefs.spellTable[spellId].levelSp > 3) or (GameDefs.spellTable[spellId].castClassSp < 0) or
-          (GameDefs.spellTable[spellId].castClassSp > 1) then begin
+      end else if (spellId > SizeOf(GameVars.curChar^.spellsKnown)) or
+          not Camp.HasSlotKind(GameDefs.spellTable[spellId].levelSp, GameDefs.spellTable[spellId].castClassSp)
+      then begin
         { a scroll byte past the spells a character can know, or a spell with no memorize slot, is not scribed }
         redraw := True;
         CharDisp.PrintBottomLine('You can not scribe that spell.');
@@ -609,11 +616,11 @@ begin
             C_EFFECT.PROT_EVIL_10FT, C_EFFECT.PROT_GOOD_10FT,
         C_EFFECT.PRAYER, C_EFFECT.SNAKE_CHARM..C_EFFECT.SLEEP:
           begin
-            { Find the named spell that produces this effect. Only IDs 1..56 have spell names; higher IDs are item
-              effects. }
+            { Find the named spell that produces this effect. Only IDs 1..C_SPELL.LAST have spell names; higher IDs
+              are item effects. }
             k := 1;
             found := False;
-            while (k <= 56) and (found = False) do
+            while (k <= C_SPELL.LAST) and (found = False) do
               if GameDefs.spellTable[k].effect = id then begin
                 s := GameDefs.spellNames[k];
                 found := True;
@@ -870,20 +877,19 @@ end;
   "Spells cannot be cast in this area." and nobody rests (#877). }
 procedure CampFixMenu(var interrupted: Boolean);
 const
-  { the members planned for; a longer creature list is not looked at past this }
-  MAX_PARTY = 8;
   { Conditions, cured in this order. }
   FIX_DISEASE = 1;
   FIX_BLIND = 2;
   FIX_CURSE = 3;
 var
-  members: array[1..MAX_PARTY] of Types.PCharRecord;
+  { the members planned for; a longer creature list is not looked at past Types.MAX_PARTY }
+  members: array[1..Types.MAX_PARTY] of Types.PCharRecord;
   { Free level-1 (Cure Light Wounds) and level-3 slots, and the casts given to each member. }
-  l1Free: array[1..MAX_PARTY] of Byte;
-  l3Free: array[1..MAX_PARTY] of Byte;
-  l1Casts: array[1..MAX_PARTY] of Byte;
-  l3Casts: array[1..MAX_PARTY] of Byte;
-  cures: array[1..MAX_PARTY, FIX_DISEASE..FIX_CURSE] of Boolean;
+  l1Free: array[1..Types.MAX_PARTY] of Byte;
+  l3Free: array[1..Types.MAX_PARTY] of Byte;
+  l1Casts: array[1..Types.MAX_PARTY] of Byte;
+  l3Casts: array[1..Types.MAX_PARTY] of Byte;
+  cures: array[1..Types.MAX_PARTY, FIX_DISEASE..FIX_CURSE] of Boolean;
   p: Types.PCharRecord;
   n: Byte;
   i: Byte;
@@ -986,7 +992,7 @@ begin
   clerics := 0;
   ableClerics := 0;
   p := GameVars.creatureList;
-  while (p <> nil) and (n < MAX_PARTY) do begin
+  while (p <> nil) and (n < Types.MAX_PARTY) do begin
     Inc(n);
     members[n] := p;
     l1Free[n] := 0;
@@ -1104,23 +1110,9 @@ begin
     MenuCore.helpToCaller := True;
     c := MenuCore.MenuHorizontal('Camp:', campMenu, LightMagenta, LightGreen, White, True, True, ext);
     if ext then begin
-      if c = C_KEYS.F2 then begin
-        { the Bestiary (#842) }
-        BeastMnu.BestiaryMenu;
-        CharDisp.DisplayNoncombatInterface;
-      end else if c = C_KEYS.F6 then begin
-        { the Companion Tools, while the setting is on (phase 8) }
-        if GameVars.companionOn <> 0 then begin
-          CompTool.ToolsMenu;
-          CharDisp.DisplayNoncombatInterface;
-        end;
-      end else if c = C_KEYS.F1 then begin
-        { the Command Keys window, without F5 and F8, which camp does not take (#855) }
-        KeyHelp.ShowKeys(False);
-        CharDisp.DisplayNoncombatInterface;
-      end else begin
+      { F1's Command Keys window leaves out F5 and F8, which camp does not take (#855) }
+      if not Explore.SideScreen(c, False, False) then
         Camp.SelectOtherChar(c);
-      end;
     end else
       case c of
         'S': begin

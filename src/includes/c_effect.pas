@@ -22,6 +22,9 @@ const
   { EffNull handler. }
   REDUCE = 13;
   FRIENDS = 14;
+  { a Friends effect's strength: this flag plus the Charisma it gave (FxEngine.FriendsEndCha, #920); one saved before
+    holds the Charisma to restore, below the flag }
+  FRIENDS_BONUS = $80;
   SLOW_POISON_HIT = 15;
   READ_MAGIC = 16;
   SHIELD = 17;
@@ -114,6 +117,7 @@ const
   DISPLACED = 89;
   CON_PSN_SAVE = 90;
   IMMUNE_MM = 91;
+  { 92 is EffNull's (GameInit), and nothing in the game's data or code adds it }
   HALF_FIRE = 93;
   HALF_BASH = 94;
   FIGHT_ON = 95;
@@ -153,6 +157,8 @@ const
   READY_FEATHER_FALL = 128;
   { Ring of Fire Resistance, effect 61 }
   READY_FIRE_RES = 129;
+  { the Flame Tongue Long Sword, effect 6 (the well's, DataPat #20) }
+  READY_FLAME_TONGUE = 130;
   { Gauntlets of Ogre Power, effect 38 }
   GAUNTLETS = 131;
   ALIGNED_WEAPON = 132;
@@ -161,8 +167,11 @@ const
   { Cloak of Elvenkind, effect 72 }
   READY_ELVENKIND = 134;
   BOULDER = 135;
+  { the Two-Handed Sword +1, +3 vs. Undead, effect 3 }
+  READY_UNDEAD_SLAYER = 136;
   { Spiritual Hammer TItemRec.special, run when unreadied }
   SPIRIT_HAMMER_GONE = 137;
+  { 138 is EffReadyItem's (GameInit), and no item carries it }
   { Ring of Invisibility, effect 56 }
   READY_RING_INVIS = 139;
   { A paladin has laid on hands today. }
@@ -172,12 +181,17 @@ const
   { the diseases: Diseased, its Strength and hit point drains, and rot; paladins catch none (FxEngine.DiseaseImmune),
     and Dispel Magic leaves them to Cure Disease (#787) }
   DISEASES = [DISEASED, DISEASE_STR, DISEASE_HP, ROT_NO_HEAL, MUMMY_ROT];
-  { GameVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". }
+  { GameVars.elementMask's bits: what damage is made of. Magic set alone, or with no other bit, reads "from Magic". The
+    last three name a source of damage that is no element, for its message (FxEngine.NonWeaponDamage): the poison and
+    disease ticks and blood drain. }
   ELEM_FIRE = 1;
   ELEM_COLD = 2;
   ELEM_ELEC = 4;
   ELEM_MAGIC = 8;
   ELEM_ACID = $10;
+  ELEM_POISON = $20;
+  ELEM_DISEASE = $40;
+  ELEM_BLOOD = $80;
 
 implementation
 

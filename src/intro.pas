@@ -11,6 +11,14 @@ implementation
 
 uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, DaxIo{$IFDEF FPC}, TpRand{$ENDIF};
 
+const
+  { title picture 2's lightning: a chance of one in FLASH_TICKS on each timer tick (18.2 a second), so a flash comes
+    about every 16 seconds. SSI paced it by loop passes, adding Random(4) a pass and flashing past 50,000; under
+    DOSBox's default 3,000 cycles the loop makes about 2,090 passes a second (measured in DOSBox-X: 10,464 in five
+    seconds), so about 16 seconds, 290 ticks, to a flash. The native build, which sleeps a millisecond a pass, never
+    reached it, and a fast DOS machine flashed far more often (#1011). }
+  FLASH_TICKS = 290;
+
 { Show the credits screen for 10 seconds or until a keypress; a key still pending from the title ends it at once. }
 procedure Credits;
 begin
@@ -55,18 +63,17 @@ end;
 
 { Show the Brazen Crows picture (RAVFULL.DAX, skipped when the file is missing) for 2 seconds, then TITLE picture 1 for
   5 seconds or until a key, with the game directory blanked while loading. With the full intro, show picture 2 for
-  another 5 seconds, flashing EGA palette register 1 at random, then the credits. No screen reads the key, so one key
-  ends the screen it is pressed on and every screen after it; FixMain discards it afterwards. }
+  another 5 seconds, flashing EGA palette register 1 now and then (FLASH_TICKS), then the credits. No screen reads the
+  key, so one key ends the screen it is pressed on and every screen after it; FixMain discards it afterwards. }
 procedure Introduction;
 var
   pic: Types.PImgBuf;
-  rndAcc: LongInt;
   i: Byte;
   savedDir: Types.TPathStr;
   deadline: LongInt;
   now: LongInt;
+  last: LongInt;
 begin
-  rndAcc := 0;
   pic := nil;
   savedDir := GameVars.gameDir;
   GameVars.gameDir[0] := #0;
@@ -92,12 +99,14 @@ begin
   GameVars.gameDir := savedDir;
   Blit.ShowPic(0, 0, pic);
   Blit.FreePic(pic);
-  deadline := TextRend.GetTicks + 500;
+  last := TextRend.GetTicks;
+  deadline := last + 500;
   repeat
-    if Blit.HasPalette then begin
-      Inc(rndAcc, Random(4));
-      if rndAcc > 50000 then begin
-        rndAcc := 0;
+    now := TextRend.GetTicks;
+    { a new timer tick: GetTicks counts in hundredths, so it moves only with the tick count }
+    if now <> last then begin
+      last := now;
+      if Blit.HasPalette and (Random(FLASH_TICKS) = 0) then
         for i := 0 to Random(3) + 1 do begin
           Blit.SetPaletteRegister(1, LightBlue);
           Delay(150);
@@ -111,9 +120,7 @@ begin
           Delay(150);
           Blit.SetPaletteRegister(1, Blue);
         end;
-      end;
     end;
-    now := TextRend.GetTicks;
     { a reading below the start means the tick count restarted at midnight }
   until KeyPressed or (now >= deadline) or (now < deadline - 500);
   Intro.Credits;

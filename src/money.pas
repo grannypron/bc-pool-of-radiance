@@ -17,11 +17,16 @@ procedure TakeMoneyMenu;
 
 function InputNumberMax(max: Word; query: Types.TStr40; color: Byte): Word;
 
-procedure TradeMoney(var giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
+procedure TradeMoney(giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
+
+{ The coin-type menu for creature's coins, or the treasure pool's when creature is nil: a line for each type held,
+  jewelry first, its name right-aligned in 8 columns and then the count, for MenuCore.MenuVertical and then
+  MenuCore.FreeStringList; nil when there is none. MoneyCal.ParseMoneyType reads a line's type back. }
+function CoinMenu(creature: Types.PCharRecord): Types.PItemRec;
 
 { Leaving with treasure still on the table: show said in green, then ask (in white) whether to go back for it. True when
   the party goes back (the message window is cleared for the menu again), False when it leaves. }
@@ -47,7 +52,7 @@ procedure AppraiseMenu(var ok: Boolean);
 implementation
 
 uses Crt, C_NPC, GameDefs, GameVars, TextRend, Border, CharHlp, C_KEYS, C_IFC, C_MONEY, GameIo, MenuCore, C_MSG,
-  C_ITEM, EclMenu, CharDisp, AbilAdj, MoneyCal, Dice{$IFDEF FPC}, TpRand{$ENDIF};
+  C_ITEM, EclMenu, CharDisp, AbilAdj, MoneyCal, Dice, StrUtil{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Carrying capacity is the weight allowance plus 1500 coins, and 5000 more with a Bag of Holding readied. It is measured
   against CharHlp.RawWeight, the weight before the bag takes its share. }
@@ -141,8 +146,8 @@ begin
 end;
 
 { Read an amount from the bottom line. Accept digits, Backspace, Return and Escape; clamp to max as digits are entered.
-  Escape returns zero. The number is drawn afresh after each change: SSI kept a column that Backspace blanked one cell
-  past the last digit, so the digit deleted stayed on screen (#734). }
+  Escape, or Return with nothing typed, returns zero. The number is drawn afresh after each change: SSI kept a column
+  that Backspace blanked one cell past the last digit, so the digit deleted stayed on screen (#734). }
 function InputNumberMax;
 var
   qLen: Byte;
@@ -178,7 +183,8 @@ begin
     end;
   until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
   TextRend.ClearBottomLine;
-  if ch = C_KEYS.ESC then
+  { Val of '' fails, and what it leaves in n then is not promised }
+  if (ch = C_KEYS.ESC) or (s = '') then
     n := 0
   else
     Val(s, n, code);
@@ -187,7 +193,7 @@ end;
 
 { Move qty coins of mType, and their weight, from giver to rcv if rcv can carry and hold them (Takable), else print
   'Overloaded'. }
-procedure TradeMoney(var giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
+procedure TradeMoney(giver, rcv: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
   if qty <= Money.Takable(rcv, mType) then begin
     giver^.coins[mType] := giver^.coins[mType] - qty;
@@ -203,15 +209,12 @@ procedure PoolMoney;
 var
   p: Types.PCharRecord;
   i: ShortInt;
-  mt: ShortInt;
 begin
   p := GameVars.creatureList;
   while p <> nil do begin
     if (p^.npc = 0) or (p^.npc = C_NPC.ANIMATED_PC) then begin
-      for i := C_MONEY.COPPER to C_MONEY.JEWELRY do begin
-        mt := i;
-        GameVars.treasureMoney[mt] := p^.coins[mt] + GameVars.treasureMoney[mt];
-      end;
+      for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+        Inc(GameVars.treasureMoney[i], p^.coins[i]);
       FillChar(p^.coins, SizeOf(p^.coins), 0);
       CharHlp.RecalcStats(p);
     end;
@@ -246,26 +249,18 @@ procedure ShareMoney;
 var
   p: Types.PCharRecord;
   cnt: Byte;
-  done: Boolean;
   takable: Word;
   share: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
   rem: array[C_MONEY.COPPER..C_MONEY.JEWELRY] of LongInt;
   i: ShortInt;
 begin
   p := GameVars.creatureList;
-  done := False;
   cnt := Money.CountSharers;
   if cnt = 0 then Exit;
-  FillChar(share, SizeOf(share), 0);
-  FillChar(rem, SizeOf(rem), 0);
-  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
-    if GameVars.treasureMoney[i] > 0 then begin
-      share[i] := GameVars.treasureMoney[i] div cnt;
-      rem[i] := GameVars.treasureMoney[i] mod cnt;
-    end else begin
-      share[i] := 0;
-      rem[i] := 0;
-    end;
+  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do begin
+    share[i] := GameVars.treasureMoney[i] div cnt;
+    rem[i] := GameVars.treasureMoney[i] mod cnt;
+  end;
   { pass 1: shares }
   while p <> nil do begin
     { C_NPC.FLAG clear }
@@ -323,7 +318,7 @@ begin
     GameVars.treasureMoney[mType] := GameVars.treasureMoney[mType] + qty;
 end;
 
-{ Take qty of mType from the pool; a qty above the pool amount is cut to the pool's low word. The whole take is refused
+{ Take qty of mType from the pool; a qty above the pool amount is cut to what the pool holds. The whole take is refused
   ('Overloaded') if the uncapped qty is more than p can carry or hold (Takable); there is no partial take. }
 procedure TakeMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 begin
@@ -338,15 +333,52 @@ begin
   end;
 end;
 
-{ Build the money menu (copper first), prompt for an amount and take it from the treasure pool; repeat while money
-  remains. The prompt limit is the available amount, at most 65535. }
-procedure TakeMoneyMenu;
+{ True when the treasure pool holds money of any type. }
+function PoolHasMoney: Boolean;
 var
   i: ShortInt;
-  mType: ShortInt;
+  has: Boolean;
+begin
+  has := False;
+  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
+    if GameVars.treasureMoney[i] <> 0 then
+      has := True;
+  PoolHasMoney := has;
+end;
+
+function CoinMenu(creature: Types.PCharRecord): Types.PItemRec;
+var
+  m: ShortInt;
+  amount: LongInt;
   p: Types.PItemRec;
+  prev: Types.PItemRec;
+begin
+  p := nil;
+  { each line goes in front, so the list ends highest first }
+  for m := C_MONEY.COPPER to C_MONEY.JEWELRY do begin
+    if creature = nil then
+      amount := GameVars.treasureMoney[m]
+    else
+      amount := creature^.coins[m];
+    if amount > 0 then begin
+      { a menu-list node: only the name, inUse and next fields of a TItemRec }
+      prev := p;
+      GetMem(p, SizeOf(Types.TMenuNode));
+      p^.next := prev;
+      p^.name := StrUtil.PadLeft(GameDefs.moneyNames[m], 8) + ' ' + StrUtil.NumStr(amount);
+      p^.inUse := 0;
+    end;
+  end;
+  CoinMenu := p;
+end;
+
+{ The pool's money menu (CoinMenu): prompt for an amount of the type picked and take it from the treasure pool; repeat
+  while money remains. The prompt limit is the available amount, at most 65535. }
+procedure TakeMoneyMenu;
+var
+  mType: ShortInt;
+  list: Types.PItemRec;
   sel: Types.PItemRec;
-  save: Types.PItemRec;
   idx: Integer;
   numStr: String;
   n: Word;
@@ -358,31 +390,12 @@ begin
   idx := 0;
   repeat
     redraw := True;
-    p := nil;
-    sel := nil;
-    for i := C_MONEY.JEWELRY downto C_MONEY.COPPER do
-      if GameVars.treasureMoney[i] > 0 then begin
-        if p = nil then begin
-          GetMem(p, SizeOf(Types.TMenuNode));
-          p^.next := nil;
-        end else begin
-          sel := p;
-          GetMem(p, SizeOf(Types.TMenuNode));
-          p^.next := sel;
-        end;
-        Str(GameVars.treasureMoney[i], numStr);
-        p^.name := GameDefs.moneyNames[i] + ' ' + numStr;
-        p^.inUse := 0;
-      end;
-    sel := p;
-    save := p;
+    list := Money.CoinMenu(nil);
+    sel := list;
     ch := MenuCore.MenuVertical('Select type of coin', '', LightMagenta, LightGreen, White, 2, 2,
-                                15, 8, p, True, redraw, idx, sel);
-    if (sel = nil) or (ch = C_KEYS.NONE) then begin
-      MenuCore.FreeStringList(save);
-      exitF := True;
-    end else begin
-      exitF := False;
+                                15, 8, list, True, redraw, idx, sel);
+    exitF := (sel = nil) or (ch = C_KEYS.NONE);
+    if not exitF then begin
       mType := MoneyCal.ParseMoneyType(sel^.name, numStr);
       numStr := 'How much ' + numStr + 'will you take? ';
       if GameVars.treasureMoney[mType] > 65535 then
@@ -391,27 +404,17 @@ begin
         n := GameVars.treasureMoney[mType];
       n := Money.InputNumberMax(n, numStr, LightGreen);
       Money.TakeMoney(GameVars.curChar, n, mType);
-      MenuCore.FreeStringList(save);
-      exitF := True;
-      for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
-        if GameVars.treasureMoney[i] > 0 then
-          exitF := False;
+      exitF := not Money.PoolHasMoney;
     end;
+    MenuCore.FreeStringList(list);
   until exitF;
 end;
 
 { Report whether the treasure pool contains money or items. }
 procedure DetermineTreasure(var treasure, items: Boolean);
-var
-  i: ShortInt;
 begin
-  treasure := False;
-  items := False;
-  for i := C_MONEY.COPPER to C_MONEY.JEWELRY do
-    if GameVars.treasureMoney[i] <> 0 then
-      treasure := True;
-  if GameVars.treasureItems <> nil then
-    items := True;
+  treasure := Money.PoolHasMoney;
+  items := GameVars.treasureItems <> nil;
 end;
 
 { Appraise the current character's gems and jewelry one at a time. Sell pays the value div 5 in platinum through
@@ -551,13 +554,13 @@ begin
               Dec(GameVars.curChar^.coins[C_MONEY.JEWELRY]);
               r := Dice.RollDice(1, 100);
               case r of
-                1..10: value := Trunc(Random(900)) + 100;
-                11..20: value := Trunc(Random(1000)) + 200;
-                21..40: value := Trunc(Random(1500)) + 300;
-                41..50: value := Trunc(Random(2500)) + 500;
-                51..70: value := Trunc(Random(5000)) + 1000;
-                71..90: value := Trunc(Random(6000)) + 2000;
-                91..100: value := Trunc(Random(10000)) + 2000;
+                1..10: value := Random(900) + 100;
+                11..20: value := Random(1000) + 200;
+                21..40: value := Random(1500) + 300;
+                41..50: value := Random(2500) + 500;
+                51..70: value := Random(5000) + 1000;
+                71..90: value := Random(6000) + 2000;
+                91..100: value := Random(10000) + 2000;
               end;
               Str(value, jwlStr);
               gemStr := 'The Jewel is Valued at ' + jwlStr + ' gp.';

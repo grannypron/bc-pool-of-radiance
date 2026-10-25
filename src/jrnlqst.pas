@@ -115,7 +115,7 @@ end;
 function Recorded(n: Integer): Boolean;
 begin
   case n of
-    8: Recorded := JrnlQst.Cell(C_GBVM.BIVANT_OFFERED) = $FF;
+    8: Recorded := JrnlQst.Cell(C_GBVM.BUCCANEERS_BASE_VISIBLE) = $FF;
     12: Recorded := JrnlQst.Cell(C_GBVM.GRAVEYARD_ACCEPTED) = $FF;
     16: Recorded := JrnlQst.Cell(C_GBVM.REWARD_AUCTION) <> 0;
     17: Recorded := JrnlQst.Done(C_GBVM.BRACCIO_SUMMONS);

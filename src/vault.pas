@@ -46,7 +46,7 @@ function WasVisited: Boolean;
 
 implementation
 
-uses Crt, GameVars, Dos, CharHlp, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
+uses Crt, GameVars, Dos, CharHlp, MenuCore, TextRend, SaveMenu, DiskRec{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   SESSION_FILE = 'tmpvault.dat';
@@ -140,23 +140,9 @@ begin
   end;
 end;
 
-function ItemCount: Word;
-var
-  p: Types.PItemRec;
-  n: Word;
-begin
-  n := 0;
-  p := GameVars.treasureItems;
-  while p <> nil do begin
-    Inc(n);
-    p := p^.next;
-  end;
-  ItemCount := n;
-end;
-
 function HasRoom: Boolean;
 begin
-  HasRoom := Vault.ItemCount < MAX_ITEMS;
+  HasRoom := MenuCore.ListCount(GameVars.treasureItems) < MAX_ITEMS;
 end;
 
 procedure DepositItem(creature: Types.PCharRecord; item: Types.PItemRec);
