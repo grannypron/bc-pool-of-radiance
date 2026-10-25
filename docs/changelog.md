@@ -142,6 +142,7 @@
 - A successful saving throw against Silence, 15' Radius now spares the target, as the rule book says. Before, the save was rolled and then ignored.
 - POOL.CFG's sound letter S means silent again, as SSI's data card says; the Sound Blaster is now B. A POOL.CFG set to S for the Sound Blaster now runs without sound until its second line is changed to B.
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
+- POOLCFG no longer accepts a default save folder too long for START when the game is installed in a deeply nested folder, no longer takes a folder typed again in other capitals for a change, and on Linux and macOS no longer loses an Escape pressed just before [ or O.
 
 ## Pool of Radiance port: October 2026 update
 
