@@ -35,12 +35,9 @@ procedure Render(buf: PSmallInts; count: LongInt);
 
 implementation
 
-uses SndSeq;
+uses C_SOUND, SndSeq;
 
 const
-  PIT_HZ = 1193182;
-  { the PIT's channel 0 divisor while the sequencer has it: 236.7 ticks a second }
-  TICK_DIVISOR = 5041;
   { the SN76489's input clock, and the divider before its counters }
   TANDY_HZ = 3579545;
   TANDY_DIVIDER = 16;
@@ -120,17 +117,18 @@ end;
 procedure Write(port, value: Byte);
 begin
   case port of
-    $42: if not spkSecond then begin
-           spkLowByte := value;
-           spkSecond := True;
-         end else begin
-           spkDivisor := spkLowByte or (Word(value) shl 8);
-           if spkDivisor = 0 then
-             spkDivisor := 65536;
-           spkSecond := False;
-         end;
-    $61: spkGates := value and 3;
-    $C0: WriteTandy(value);
+    C_SOUND.PORT_PIT2:
+      if not spkSecond then begin
+        spkLowByte := value;
+        spkSecond := True;
+      end else begin
+        spkDivisor := spkLowByte or (Word(value) shl 8);
+        if spkDivisor = 0 then
+          spkDivisor := 65536;
+        spkSecond := False;
+      end;
+    C_SOUND.PORT_GATE: spkGates := value and 3;
+    C_SOUND.PORT_TANDY: WriteTandy(value);
   end;
 end;
 
@@ -158,7 +156,7 @@ var
   n: LongInt;
   half: LongWord;
 begin
-  spkAcc := spkAcc + PIT_HZ;
+  spkAcc := spkAcc + C_SOUND.PIT_HZ;
   clocks := spkAcc div RATE;
   spkAcc := spkAcc mod RATE;
   if spkGates <> 3 then begin
@@ -275,9 +273,9 @@ var
   s: LongInt;
 begin
   for i := 0 to count - 1 do begin
-    tickAcc := tickAcc + PIT_HZ;
-    if tickAcc >= TICK_DIVISOR * RATE then begin
-      tickAcc := tickAcc - TICK_DIVISOR * RATE;
+    tickAcc := tickAcc + C_SOUND.PIT_HZ;
+    if tickAcc >= C_SOUND.TIMER_DIVISOR * RATE then begin
+      tickAcc := tickAcc - C_SOUND.TIMER_DIVISOR * RATE;
       SndSeq.Tick;
     end;
     s := SpeakerSample + TandySample + SampleSample;

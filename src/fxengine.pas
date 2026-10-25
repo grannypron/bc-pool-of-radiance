@@ -28,12 +28,21 @@ procedure RemoveEffect(creature: Types.PCharRecord; effId: Byte; eff: Pointer);
   since the removal's handler may have removed and freed it. }
 function HasEffectNode(creature: Types.PCharRecord; eff: Pointer): Boolean;
 
-{ True when the creature has any of the effects a cure of disease removes (cureDiseaseEffects). }
+{ True when the creature has a disease, one of C_EFFECT.DISEASES: what RemoveDiseases cures. }
 function HasDisease(creature: Types.PCharRecord): Boolean;
 
-{ Remove every effect a cure of disease removes, quietly, with the effect lock held: the temple's cure and the
-  paladin's. }
-procedure RemoveDiseases(creature: Types.PCharRecord);
+{ Cure the creature's diseases, quietly, with the effect lock held, and return whether there was one: every cure of
+  disease (the Cure Disease spell, Keoghtom's Ointment, the temple's and the paladin's) runs this one rule, and each
+  caller says what it did. Diseased goes; the Strength-draining disease goes with its hit-point drain and the
+  helplessness it brings; rot goes with mummy rot; and a hit-point drain or mummy rot found alone goes too. HELPLESS
+  is not taken on its own, since a Stinking Cloud's nausea is that effect too (#922). }
+function RemoveDiseases(creature: Types.PCharRecord): Boolean;
+
+{ The Charisma a creature with Charisma cha has once a Friends effect of strength strength ends (#920). A Friends
+  effect holds C_EFFECT.FRIENDS_BONUS plus the Charisma it gave, which comes off again, so two at once, or a Charisma
+  change while one lasts, leave nothing behind; one saved before the change holds the Charisma to restore. Kept to
+  the score range. }
+function FriendsEndCha(cha, strength: Byte): Byte;
 
 { Fire, on one creature, every effect id registered under condition cond (0..19, the C_COND constants). Each id goes
   through the private TriggerEffect, which also honours the aura effects 21, 45, 46 and 49 carried by other creatures;
@@ -210,10 +219,6 @@ uses Stats, StrUtil, AbilAdj, C_GBVM, CharDisp, C_TIME, Dice, Clock, C_TERR, C_S
 const
   { EffectSource's side for a node cast by either side }
   ANY_SIDE = 255;
-  { the disease effects HasDisease looks for and RemoveDiseases removes }
-  cureDiseaseEffects: array[1..6] of Byte = (
-    C_EFFECT.HELPLESS, C_EFFECT.DISEASED, C_EFFECT.DISEASE_STR, C_EFFECT.DISEASE_HP,
-    C_EFFECT.ROT_NO_HEAL, C_EFFECT.MUMMY_ROT);
 
 procedure CallEffectHandler(effId: Byte; creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
@@ -982,25 +987,56 @@ end;
 
 function HasDisease(creature: Types.PCharRecord): Boolean;
 var
-  i: Byte;
+  p: Types.PEffectRec;
+begin
+  p := creature^.effectsAddr;
+  while (p <> nil) and not (p^.id in C_EFFECT.DISEASES) do
+    p := p^.next;
+  HasDisease := p <> nil;
+end;
+
+{ Remove every node of effId from the creature; True when there was one. }
+function RemoveAll(creature: Types.PCharRecord; effId: Byte): Boolean;
+var
   effect: Types.PEffectRec;
   found: Boolean;
 begin
   found := False;
-  for i := 1 to SizeOf(cureDiseaseEffects) do
-    if CharHlp.HasEffect(creature, cureDiseaseEffects[i], effect) then
-      found := True;
-  HasDisease := found;
+  while CharHlp.HasEffect(creature, effId, effect) do begin
+    FxEngine.RemoveEffect(creature, effId, effect);
+    found := True;
+  end;
+  RemoveAll := found;
 end;
 
-procedure RemoveDiseases(creature: Types.PCharRecord);
+function RemoveDiseases(creature: Types.PCharRecord): Boolean;
 var
-  i: Byte;
+  cured: Boolean;
+  effect: Types.PEffectRec;
 begin
   GameVars.effectLock := 1;
-  for i := 1 to SizeOf(cureDiseaseEffects) do
-    FxEngine.RemoveEffect(creature, cureDiseaseEffects[i], nil);
+  cured := FxEngine.RemoveAll(creature, C_EFFECT.DISEASED);
+  if FxEngine.RemoveAll(creature, C_EFFECT.DISEASE_STR) then begin
+    cured := True;
+    if CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then
+      FxEngine.RemoveEffect(creature, C_EFFECT.HELPLESS, effect);
+  end;
+  if FxEngine.RemoveAll(creature, C_EFFECT.DISEASE_HP) then
+    cured := True;
+  if FxEngine.RemoveAll(creature, C_EFFECT.ROT_NO_HEAL) then
+    cured := True;
+  if FxEngine.RemoveAll(creature, C_EFFECT.MUMMY_ROT) then
+    cured := True;
   GameVars.effectLock := 0;
+  RemoveDiseases := cured;
+end;
+
+function FriendsEndCha(cha, strength: Byte): Byte;
+begin
+  if strength and C_EFFECT.FRIENDS_BONUS <> 0 then
+    FriendsEndCha := AbilAdj.ClampScore(Integer(cha) - (strength and not C_EFFECT.FRIENDS_BONUS))
+  else
+    FriendsEndCha := AbilAdj.ClampScore(strength);
 end;
 
 procedure ToggleReadyItem(item: Types.PItemRec);

@@ -25,7 +25,7 @@ type
     dataDir: FileUtil.TPathName;
     saveDir: FileUtil.TPathName;
     extraCount: Byte;
-    extra: array[1..4] of string[79];
+    extra: array[1..C_OPT.CFG_EXTRA_LINES] of string[79];
   end;
   { a POOL.CFG line START would not take as written: its number, and what it held (cut to 12 characters), or missing
     when the file ended before it }
@@ -74,7 +74,10 @@ function NextSetting(opt: Byte; down: Boolean; skip: TOptSet): Byte;
 { ON for a nonzero flag, OFF for zero. }
 function OnOff(flag: Byte): TName;
 
-{ s without the spaces and tabs at either end, upper-cased. }
+{ s without the spaces and tabs at either end. }
+function Trim(s: string): string;
+
+{ s trimmed (Trim) and upper-cased. }
 function Tidy(s: string): string;
 
 { The setting or path key whose key line names before its '=' (in any case, spaces around it), or 0 for none. }
@@ -116,9 +119,9 @@ function ReadOptions(dir: FileUtil.TPathName; var s: TSettings; var bad: Byte): 
 function WriteOptions(dir: FileUtil.TPathName; var s: TSettings): Boolean;
 
 { Read POOL.CFG file name into c as START reads it. A letter is taken in either case (#895); an unknown video letter
-  is CGA, an unknown sound letter silent and an introduction other than F the short one. notes lists each letter line START
-  would not take as written, and each line missing from a short file (whose paths are then empty, the current folder,
-  and its introduction the short one). CFG_FIXED when there are notes. }
+  is CGA, an unknown sound letter silent and an introduction other than F the short one. notes lists each letter line
+  START would not take as written, and each line missing from a short file (whose paths are then empty, the current
+  folder, and its introduction the short one). CFG_FIXED when there are notes. }
 function ReadPoolCfg(name: FileUtil.TPathName; var c: TPoolCfg; var notes: TCfgNotes): TReadResult;
 
 { POOL.CFG's defaults, for a game with none: VGA, the full introduction, the data in folder home and the saves in SAVE\
@@ -269,14 +272,20 @@ begin
     OnOff := 'OFF';
 end;
 
-function Tidy(s: string): string;
-var
-  i: Byte;
+function Trim(s: string): string;
 begin
   while (Length(s) > 0) and (s[1] in [' ', #9]) do
     Delete(s, 1, 1);
   while (Length(s) > 0) and (s[Length(s)] in [' ', #9]) do
     Dec(s[0]);
+  Trim := s;
+end;
+
+function Tidy(s: string): string;
+var
+  i: Byte;
+begin
+  s := CfgFile.Trim(s);
   for i := 1 to Length(s) do
     s[i] := UpCase(s[i]);
   Tidy := s;
@@ -560,7 +569,7 @@ begin
       notes.items[notes.count].raw := Copy(line, 1, 12);
     end;
   end;
-  while not Eof(f) and (c.extraCount < 4) and (IOResult = 0) do begin
+  while not Eof(f) and (c.extraCount < C_OPT.CFG_EXTRA_LINES) and (IOResult = 0) do begin
     Inc(c.extraCount);
     ReadLn(f, c.extra[c.extraCount]);
   end;
@@ -691,11 +700,7 @@ var
   i: Byte;
 begin
 {$IFDEF FPC}
-  { trimmed: Tidy without its capitals }
-  while (Length(text) > 0) and (text[1] in [' ', #9]) do
-    Delete(text, 1, 1);
-  while (Length(text) > 0) and (text[Length(text)] in [' ', #9]) do
-    Dec(text[0]);
+  text := CfgFile.Trim(text);
 {$ELSE}
   text := CfgFile.Tidy(text);
 {$ENDIF}

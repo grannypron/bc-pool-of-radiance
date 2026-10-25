@@ -14,7 +14,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
   VidOps, PicCga, PicEga, PicTdy, PicVga, UsualSpl, SaveLoad, CharGen, Camp,
   Journal1, Journal2, Journal3, Journal4, JrnlList, JrnlQst, JrnlView, Options, CbtLog, LogWrap, LogView,
   Explore, CbtActs, EffHndlr, GameInit, CombatSt, CombatAi, Combat, EclVars, EclMenu, Shop, PostCbt, Temple,
-  EclVm, BldShow, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp;
+  EclVm, BldShow, DataPat, DataBld, Intro, HeapErr, SaveMenu, AreaName, Vault, VaultMnu, EclTrace, KeyHelp;
 
 {$O EclTrace}
 {$O Vault}
@@ -23,6 +23,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O SaveMenu}
 {$O HeapErr}
 {$O Intro}
+{$O DataPat}
 {$O DataBld}
 {$O BldShow}
 {$O EclVm}
@@ -40,6 +41,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O Explore}
 {$O Options}
 {$O CfgFile}
+{$O SfxFile}
 {$O LogView}
 {$O LogWrap}
 {$O JrnlList}

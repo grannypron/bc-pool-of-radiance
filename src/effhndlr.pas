@@ -555,8 +555,7 @@ end;
 { Protection from Evil (eff 8, 45) }
 procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.Protection(creature, GameVars.curChar^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL,
-                                                                C_ALIGN.CHAOTIC_EVIL]);
+  EffHndlr.Protection(creature, GameVars.curChar^.alignment in C_ALIGN.EVIL_ALIGNMENTS);
 end;
 
 { Protection from Good (eff 9, 46) }
@@ -639,10 +638,13 @@ begin
   end;
 end;
 
-{ Friends (eff 14) }
+{ Friends (eff 14), as it ends: take back the Charisma it gave (FxEngine.FriendsEndCha). SSI's put back the Charisma
+  stored at casting, so a second Friends, which stored the first one's raised score, left a lasting gain (POR-0212,
+  #920). }
 procedure EffFriends(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  creature^.chaCur := AbilAdj.ClampScore(Types.PEffectRec(p)^.strength);
+  if p <> nil then
+    creature^.chaCur := FxEngine.FriendsEndCha(creature^.chaCur, Types.PEffectRec(p)^.strength);
 end;
 
 { Slow Poison periodic damage (eff 15): re-arm for 10 minutes and deal 1 damage while HP > 1 }
@@ -1452,12 +1454,13 @@ end;
 
 { Drain levels from a creature; an animated creature, or one with no class levels, is destroyed instead. For each level
   the creature loses hpMax div (total class levels) from hpMax, hpRolled and hpCur, then either dies forever (highest
-  level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0. Its highest level and
-  experience are then reset from the class ClassToDrain picks after the loss. A dual-classed human (#838) is drained in
-  the class it follows alone, as Pools of Darkness drains it (pools-disassembly v11 effhndlr.pas:1829-1834): it loses
-  hit points only for a level that gave them (ClassCal.HitDice), it is dead forever when that class is below level 2,
-  a class it left rests again when the class it follows falls back to it (ChgClass.SyncClassPowers), and its highest
-  level is that of its highest class. }
+  level below 2) or loses a level in the class picked by ClassToDrain, dying if its HP reached 0, its skills and
+  spell slots recalculated and the memorized spells past the new slots cleared (ClassCal.FitSpellsToLevel, POR-0223).
+  Its highest level and experience are then reset from the class ClassToDrain picks after the loss. A dual-classed
+  human (#838) is drained in the class it follows alone, as Pools of Darkness drains it (pools-disassembly v11
+  effhndlr.pas:1829-1834): it loses hit points only for a level that gave them (ClassCal.HitDice), it is dead forever
+  when that class is below level 2, a class it left rests again when the class it follows falls back to it
+  (ChgClass.SyncClassPowers), and its highest level is that of its highest class. }
 procedure DrainLevels(creature: Types.PCharRecord; levels: Byte);
 var
   numStr: Types.TStr40;
@@ -1564,6 +1567,7 @@ begin
           if creature^.status <> C_STATUS.DEAD then
             EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'is killed');
         ClassCal.RecalcBaseSkills(creature);
+        ClassCal.FitSpellsToLevel(creature);
       end;
       { picked again, after the loss, with xpMin for it }
       cls := ClassToDrain;

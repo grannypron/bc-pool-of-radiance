@@ -1,8 +1,8 @@
 { Tests for CfgFile (#876): the settings' defaults (as GameInit set them before the move), POOLOPT.CFG's keys and
-  values as the game reads them, its write (keys in order, unknown lines kept, a failed write leaving the old file),
-  POOL.CFG read as START reads it (letters in either case, unknown ones noted, a short file, extra lines kept) and
-  written with CR LF, POOL.CFG's defaults, and the path rules: NormalizePath, DirExists and CheckPath, with the native
-  build's separators and its save folder inside the game's (SaveFolderIn, #894). }
+  values as the game reads them (Trim and Tidy), its write (keys in order, unknown lines kept, a failed write leaving
+  the old file), POOL.CFG read as START reads it (letters in either case, unknown ones noted, a short file, extra lines
+  kept) and written with CR LF, POOL.CFG's defaults, and the path rules: NormalizePath, DirExists and CheckPath, with
+  the native build's separators and its save folder inside the game's (SaveFolderIn, #894). }
 {$I COMPILER.INC}
 program TCfgFile;
 
@@ -151,6 +151,9 @@ begin
   TestKit.CheckEqualsS('POOLSSAVE', CfgFile.KeyName(C_OPT.KEY_COUNT), 'the last key');
 
   { keys and values }
+  TestKit.CheckEqualsS('a B', CfgFile.Trim(#9' a B '#9), 'Trim takes spaces and tabs off both ends, keeping case');
+  TestKit.CheckEqualsS('A B', CfgFile.Tidy(#9' a B '#9), 'Tidy trims and capitalizes');
+  TestKit.CheckEqualsS('', CfgFile.Trim(' '#9' '), 'a blank line trims to nothing');
   TestKit.CheckEqualsL(C_OPT.OPT_SPEED, CfgFile.KeyOf(' speed'#9'= 3'), 'a key in lower case, spaced');
   TestKit.CheckEqualsL(0, CfgFile.KeyOf('SPEED 3'), 'a line without = has no key');
   TestKit.CheckEqualsL(0, CfgFile.KeyOf('SPEEDS=3'), 'an unknown key');
