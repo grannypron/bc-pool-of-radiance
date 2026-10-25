@@ -5,7 +5,9 @@
 #   ./package.sh v1.1
 #
 # Run it after build.sh. The zip holds START.EXE and GAME.OVR from obj/ (and POOLCFG.EXE, the set-up program, for a
-# source with src/poolcfg.pas), a README.TXT and their SHA-256 sums in SHA256.TXT; every name fits DOS's 8.3 limit, so the files read the same inside DOSBox.
+# source with src/poolcfg.pas), every file in src/binaries (the game's own data files, kept in Git: the title picture,
+# the Sound Blaster's recorded effects), a README.TXT and their SHA-256 sums in SHA256.TXT. Every name fits DOS's 8.3
+# limit, so the files read the same inside DOSBox.
 
 set -eu
 
@@ -31,6 +33,18 @@ files=(START.EXE GAME.OVR)
 for f in "${files[@]}"; do
     [ -f "$root/obj/$f" ] || { echo "package.sh: obj/$f is missing; run ./build.sh first." >&2; exit 1; }
 done
+# the data files the source carries itself, beside the programs in the game's folder (older tags have none)
+data=()
+dos_name='^[A-Z0-9_]{1,8}(\.[A-Z0-9_]{1,3})?$'
+if [ -d "$root/src/binaries" ]; then
+    for f in "$root"/src/binaries/*; do
+        [ -f "$f" ] || continue
+        f="$(basename "$f")"
+        [[ "$f" =~ $dos_name ]] \
+            || { echo "package.sh: src/binaries/$f is not an 8.3 name in capitals, as DOS reads it." >&2; exit 1; }
+        data+=("$f")
+    done
+fi
 
 name="pool-of-radiance-$version-dos"
 # The game version whose data the build expects: v1.1 and v1.2 are SSI's own; every later tag is built on v1.3.
@@ -43,6 +57,8 @@ stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
 (cd "$root/obj" && cp "${files[@]}" "$stage/")
+[ ${#data[@]} -eq 0 ] || (cd "$root/src/binaries" && cp "${data[@]}" "$stage/")
+files+=(${data[@]+"${data[@]}"})
 (cd "$stage" && sha256sum "${files[@]}") > "$stage/SHA256.TXT"
 
 cat > "$stage/README.TXT" <<EOF
@@ -66,6 +82,15 @@ settings. Copy it into the game's folder with the other two, and run
 it there before the first START, and whenever you want to change
 them. With no POOL.CFG, START runs it itself first. It creates no
 folders: a folder you type must already exist.
+EOF
+fi
+if [ ${#data[@]} -gt 0 ]; then
+    cat >> "$stage/README.TXT" <<EOF
+
+$(printf '%s, ' "${data[@]}" | sed 's/, $//; s/\(.*\), /\1 and /') are data files of this release
+(the title picture, the Sound Blaster's recorded effects): copy them
+into the game's folder too. The game runs without them, with SSI's
+title and the speaker's effects.
 EOF
 fi
 # Sources with src/databld.pas build the combined data files at startup (older tags do not).
