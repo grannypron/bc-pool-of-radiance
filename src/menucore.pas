@@ -47,11 +47,22 @@ var
   { Set by every MenuVertical return: True when it returned because the highlight moved (movesToCaller), so the key it
     returns is a movement key, which may share its code with a letter (Page Up's scan code is 'I'), and not a choice. }
   moved: Boolean;
+  { Set just before a MenuVertical call for a list paged as the spell lists are (#900): when the list is longer than
+    its box, the bottom line offers Next and Prev on every page, and the box's last row is kept for '(more)' (DrawMore)
+    while a page has lines below it. The call clears it. }
+  fullPaging: Boolean;
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
 
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
+
+{ The lines of list a MenuVertical box from ulRow to lrRow shows at once: every row of it, or, under fullPaging (paged)
+  with the list longer than the box, one fewer, the last row being kept for '(more)'. }
+function PageRows(list: Types.PItemRec; ulRow, lrRow: ShortInt; paged: Boolean): Integer;
+
+{ Draw '(more)' in white, centred between columns leftCol and rightCol on row: a list that goes on past what is shown. }
+procedure DrawMore(leftCol, rightCol, row: Byte);
 
 { Bottom-line menu: query in qCol, then menu with its digits and capital letters (the hotkeys) in hlCol, the current
   option (GameVars.horizChoice, reset to 1 when out of range) wholly in hlCol and the rest in mCol. ',' and '.' move the
@@ -71,7 +82,8 @@ function MenuHorizontal(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; rein
   they are drawn in qCol and skipped by the cursor. An empty list, Exit or Escape returns #0 with sel=nil (an empty list
   also sets idx=0). Any other menu key returns that key with sel set to the highlighted entry. With listOnly set, a list
   that fits on one page is drawn and #0 returned with sel=nil at once. With movesToCaller set, a key that moves the
-  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for. }
+  highlight returns too. A key in extraKeys returns as any other menu key does, on every key the list waits for. Under
+  fullPaging a list longer than the box offers Next and Prev on every page and marks a page with more below it. }
 function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol, lrRow: ShortInt;
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
@@ -123,6 +135,21 @@ begin
     p := p^.next;
   end;
   ListCount := n;
+end;
+
+function PageRows(list: Types.PItemRec; ulRow, lrRow: ShortInt; paged: Boolean): Integer;
+var
+  rows: Integer;
+begin
+  rows := lrRow - ulRow + 1;
+  if paged and (MenuCore.ListCount(list) > rows) then
+    Dec(rows);
+  PageRows := rows;
+end;
+
+procedure DrawMore(leftCol, rightCol, row: Byte);
+begin
+  TextRend.DisplayCentered(leftCol, rightCol, row, White, '(more)');
 end;
 
 { Highlight the menu's choice characters and select an item by keypress. With takeOption, Enter returns the current
@@ -374,8 +401,11 @@ var
   oldTop: Integer;
   { the caller's extraKeys, given to every HorizontalMenu call }
   keep: string[16];
+  { fullPaging with the list longer than the box: Next and Prev on every page, and '(more)' on the box's last row }
+  paged: Boolean;
 
-  { Clear the box and draw the list from member top, labels in qCol and entries in mCol, each padded to the box width. }
+  { Clear the box and draw the list from member top, labels in qCol and entries in mCol, each padded to the box width,
+    and, when paged, '(more)' on the box's last row while lines follow the page. }
   procedure DrawPage(top: Integer);
   var
     pp: Types.PItemRec;
@@ -384,7 +414,7 @@ var
     Border.ClearBox(ulCol, ulRow, lrCol, lrRow);
     pp := MenuCore.FindListMember(top, list);
     row := ulRow;
-    while (pp <> nil) and (row <= lrRow) do begin
+    while (pp <> nil) and (row < ulRow + rows) do begin
       if pp^.inUse <> 0 then
         TextRend.DisplayString(ulCol, row, qCol, pp^.name)
       else
@@ -394,6 +424,8 @@ var
       pp := pp^.next;
       Inc(row);
     end;
+    if paged and (top + rows < count) then
+      MenuCore.DrawMore(ulCol, lrCol, lrRow);
   end;
 
   { Position of the first non-blank character of s (the last position when s is all blanks). }
@@ -522,6 +554,8 @@ begin
   toCaller := movesToCaller;
   movesToCaller := False;
   moved := False;
+  paged := fullPaging;
+  fullPaging := False;
   if list = nil then begin
     listOnly := False;
     idx := 0;
@@ -531,7 +565,8 @@ begin
     GameVars.horizChoice := 1;
     width := lrCol - ulCol + 1;
     count := MenuCore.ListCount(list);
-    rows := lrRow - ulRow + 1;
+    rows := MenuCore.PageRows(list, ulRow, lrRow, paged);
+    paged := paged and (rows < lrRow - ulRow + 1);
     p := list;
     headerCnt := 0;
     while (p <> nil) and (p^.inUse <> 0) do begin
@@ -564,11 +599,11 @@ begin
       hMenu := menu;
       hasNext := False;
       hasPrev := False;
-      if count - rows > GameVars.vertTop then begin
+      if paged or (count - rows > GameVars.vertTop) then begin
         hMenu := hMenu + ' Next';
         hasNext := True;
       end;
-      if GameVars.vertTop > headerCnt then begin
+      if paged or (GameVars.vertTop > headerCnt) then begin
         hMenu := hMenu + ' Prev';
         hasPrev := True;
       end;
@@ -684,6 +719,7 @@ begin
   enterToCaller := False;
   movesToCaller := False;
   moved := False;
+  fullPaging := False;
   extraKeys := '';
   unmarked := [];
   quickKeysToCaller := False;

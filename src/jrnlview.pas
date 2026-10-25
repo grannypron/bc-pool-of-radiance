@@ -90,13 +90,6 @@ begin
   end;
 end;
 
-{ Draw "(more)" centered on a row of the pane.
-  @param(row The pane's row.) }
-procedure DrawMore(row: Integer);
-begin
-  TextRend.DisplayCentered(PANE_LEFT, PANE_RIGHT, row, White, '(more)');
-end;
-
 { The shown item's first line on page p: past the first page, which holds TEXT_ROWS - 1 lines under a "(more)", each
   page between holds TEXT_ROWS - 2 between two.
   @param(p The page, from 1.) }
@@ -124,11 +117,11 @@ begin
   row := TEXT_TOP;
   lastRow := BOTTOM_ROW;
   if page > 1 then begin
-    JrnlView.DrawMore(TEXT_TOP);
+    MenuCore.DrawMore(PANE_LEFT, PANE_RIGHT, TEXT_TOP);
     Inc(row);
   end;
   if page < pages then begin
-    JrnlView.DrawMore(BOTTOM_ROW);
+    MenuCore.DrawMore(PANE_LEFT, PANE_RIGHT, BOTTOM_ROW);
     Dec(lastRow);
   end;
   line := JrnlView.PageStart(page);

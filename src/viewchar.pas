@@ -342,7 +342,7 @@ begin
     if Length(StrUtil.NumStr(b^.kills[i].count)) > width then
       width := Length(StrUtil.NumStr(b^.kills[i].count));
   if top > 1 then
-    TextRend.DisplayCentered(1, 38, KILL_TOP - 1, White, '(more)');
+    MenuCore.DrawMore(1, 38, KILL_TOP - 1);
   for k := 0 to KILLS_SHOWN - 1 do
     if top + k <= kinds then begin
       i := order[top + k];
@@ -351,7 +351,7 @@ begin
       TextRend.DisplayString(2 + (k mod 2) * KILL_COL_WIDTH, KILL_TOP + k div 2, LightGreen, s);
     end;
   if top + KILLS_SHOWN <= kinds then
-    TextRend.DisplayCentered(1, 38, KILL_TOP + KILL_ROWS, White, '(more)');
+    MenuCore.DrawMore(1, 38, KILL_TOP + KILL_ROWS);
 end;
 
 { creature's statistics block (#611, #672), made the first time, and the kinds it has killed in alphabetical order. }

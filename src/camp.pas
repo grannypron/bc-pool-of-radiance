@@ -248,49 +248,49 @@ begin
     CharDisp.DisplayNoncombatInterface;
 end;
 
-{ Show remaining spell slots by class and level. A level with no allowance is blank; a full level shows zero. Return
-  True whenever the character has any spell allowance, even if all slots are occupied. }
+{ Show the remaining spell slots in the window under the memorize list (#900): 'Spell Slots Remaining' in light cyan
+  on C_SPELL.SLOTS_TOP, then a light green row for each class with an allowance, cleric first, as
+  'Magic-User  1:2  2:1  3:0'; a level with no allowance is left blank, a full one shows zero, and an unused class row
+  is blank. Return True whenever the character has any spell allowance, even if all slots are occupied. }
 function DisplaySpellSlots: Boolean;
 var
   s: Types.TStr40;
-  slotStr: array[1..3, 0..1] of String[2];
-  canDo: array[0..1] of Byte;
   typ: ShortInt;
   lvl: ShortInt;
-  col: Byte;
   row: Byte;
   any: Boolean;
+  has: Boolean;
 begin
   any := False;
+  row := C_SPELL.SLOTS_TOP + 1;
   for typ := 0 to 1 do begin
-    canDo[typ] := 0;
-    for lvl := 1 to 3 do begin
-      slotStr[lvl, typ] := StrUtil.NumStr(Camp.SpellSlotsRemaining(lvl, typ));
+    has := False;
+    case typ of
+      0: s := 'Cleric';
+    else
+      s := 'Magic-User';
+    end;
+    s := StrUtil.PadRight(s, 10);
+    for lvl := 1 to 3 do
       if GameVars.curChar^.slots[typ, lvl] = 0 then
-        slotStr[lvl, typ] := ' '
+        s := s + '     '
       else begin
-        canDo[typ] := 1;
-        any := True;
+        s := s + '  ' + StrUtil.NumStr(lvl) + ':' + StrUtil.NumStr(Camp.SpellSlotsRemaining(lvl, typ));
+        has := True;
       end;
+    if has then begin
+      any := True;
+      TextRend.PrintSpaces(1, row, Black, 38);
+      TextRend.DisplayString(1, row, LightGreen, s);
+      Inc(row);
     end;
   end;
   if any then begin
-    CharDisp.PrintNameString(GameVars.curChar, 'can memorize:', 10, False);
-    row := 3;
-    for typ := 0 to 1 do begin
-      if canDo[typ] <> 0 then begin
-        case typ of
-          0: s := '    Cleric Spells:';
-          1: s := 'Magic-User Spells:';
-        end;
-        TextRend.DisplayString(1, row + 17, LightGreen, s);
-        col := 19;
-        for lvl := 1 to 3 do begin
-          TextRend.DisplayString(col + 1, row + 17, LightGreen, slotStr[lvl, typ]);
-          Inc(col, 3);
-        end;
-        Inc(row);
-      end;
+    TextRend.DisplayString(1, C_SPELL.SLOTS_TOP, LightCyan, 'Spell Slots Remaining');
+    { a single-class character's second row }
+    while row <= C_SPELL.SLOTS_TOP + 2 do begin
+      TextRend.PrintSpaces(1, row, Black, 38);
+      Inc(row);
     end;
   end;
   DisplaySpellSlots := any;
