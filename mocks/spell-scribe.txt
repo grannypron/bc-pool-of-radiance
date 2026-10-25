@@ -1,0 +1,49 @@
++======================================+
+|            RAVEN'S SPELLS            |
++======================================+
+| 1ST LEVEL                            |
+|    REDUCE                            |
+|    REDUCE                            |
+|    REDUCE                            |
+| 3RD LEVEL                            |
+|    HOLD PERSON                       |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+| RNG 12 TGT 1-4 DUR 12 RD SAVE NEG CBT|
++======================================+
+SCRIBE: SCRIBE INFO EXIT
+
+Scribe uses rows 4 through 21 for the scroll-spell list. Row 22 is left blank, and the highlighted spell's summary is
+always shown on row 23. The action prefix identifies this as the scribing workflow, so the common character heading
+does not need to say "SPELLS ON SCROLLS."
+
+This example fits on one page, so Next and Prev are absent. When the list is longer than its viewport, the bottom line
+is:
+
+    SCRIBE: SCRIBE INFO NEXT PREV EXIT
+
+Color Key:
+    CHARACTER HEADING   CYAN
+    LEVEL HEADING       MAGENTA
+    SPELL NAME          GREEN
+    HIGHLIGHTED SPELL   WHITE
+    SUMMARY LINE        GREEN
+    SCRIBE:             MAGENTA
+
+Command Key:
+    SCRIBE              S / ENTER
+    INFO                I
+    NEXT                N / PAGE DOWN (only when the list has another page)
+    PREV                P / PAGE UP (only when the list has another page)
+    EXIT                E / ESCAPE

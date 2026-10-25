@@ -21,29 +21,29 @@ implementation
 function LineCount(spell: Byte): Byte;
 begin
   case spell of
-    1: LineCount := 3;
-    2: LineCount := 2;
-    3: LineCount := 2;
-    4: LineCount := 2;
+    1: LineCount := 4;
+    2: LineCount := 3;
+    3: LineCount := 3;
+    4: LineCount := 3;
     5: LineCount := 4;
-    6: LineCount := 3;
-    7: LineCount := 3;
+    6: LineCount := 4;
+    7: LineCount := 4;
     8: LineCount := 3;
     9: LineCount := 4;
     10: LineCount := 6;
     11: LineCount := 4;
-    12: LineCount := 4;
+    12: LineCount := 5;
     13: LineCount := 2;
     14: LineCount := 2;
-    15: LineCount := 4;
-    16: LineCount := 3;
-    17: LineCount := 3;
+    15: LineCount := 5;
+    16: LineCount := 4;
+    17: LineCount := 4;
     18: LineCount := 3;
-    19: LineCount := 3;
-    20: LineCount := 3;
+    19: LineCount := 4;
+    20: LineCount := 4;
     21: LineCount := 9;
-    22: LineCount := 3;
-    23: LineCount := 4;
+    22: LineCount := 2;
+    23: LineCount := 5;
     24: LineCount := 3;
     25: LineCount := 4;
     26: LineCount := 5;
@@ -51,32 +51,32 @@ begin
     28: LineCount := 5;
     29: LineCount := 2;
     30: LineCount := 5;
-    31: LineCount := 3;
-    32: LineCount := 5;
-    33: LineCount := 2;
+    31: LineCount := 4;
+    32: LineCount := 6;
+    33: LineCount := 3;
     34: LineCount := 7;
     35: LineCount := 7;
-    36: LineCount := 5;
+    36: LineCount := 4;
     37: LineCount := 1;
-    38: LineCount := 5;
-    39: LineCount := 2;
+    38: LineCount := 6;
+    39: LineCount := 3;
     40: LineCount := 6;
-    41: LineCount := 7;
-    42: LineCount := 3;
-    43: LineCount := 3;
-    44: LineCount := 3;
+    41: LineCount := 8;
+    42: LineCount := 4;
+    43: LineCount := 4;
+    44: LineCount := 4;
     45: LineCount := 3;
-    46: LineCount := 7;
-    47: LineCount := 4;
+    46: LineCount := 8;
+    47: LineCount := 6;
     48: LineCount := 4;
-    49: LineCount := 4;
+    49: LineCount := 5;
     50: LineCount := 6;
     51: LineCount := 6;
     52: LineCount := 3;
     53: LineCount := 3;
-    54: LineCount := 3;
+    54: LineCount := 4;
     55: LineCount := 4;
-    56: LineCount := 2;
+    56: LineCount := 3;
   else
     LineCount := 0;
   end;
@@ -90,281 +90,296 @@ begin
     1:
       if chunk = 0 then
         TextChunk :=
-          'ALLIES IN THE AREA NOT YET IN MELEE'#13 +
-          'GET +1 TO HIT AND BETTER MORALE. IN'#13 +
-          'CAMP IT BLESSES THE WHOLE PARTY.';
+          'ALLIES NOT YET ENGAGED IN MELEE'#13 +
+          'GAIN +1 TO ATTACK ROLLS AND MORALE.'#13 +
+          'WHEN CAST IN CAMP, THE BLESSING'#13 +
+          'EXTENDS TO THE ENTIRE PARTY.';
     { Curse }
     2:
       if chunk = 0 then
         TextChunk :=
-          'FOES IN THE AREA NOT YET IN MELEE'#13 +
-          'GET -1 TO HIT AND WORSE MORALE.';
+          'FOES NOT YET ENGAGED IN MELEE'#13 +
+          'SUFFER -1 TO ATTACK ROLLS AND'#13 +
+          'MORALE.';
     { Cure Light Wounds }
     3:
       if chunk = 0 then
         TextChunk :=
-          'HEALS 1D8 HIT POINTS. IT CANNOT HEAL'#13 +
-          'A CREATURE WITH MUMMY ROT.';
+          'THE RECIPIENT REGAINS 1D8 HIT'#13 +
+          'POINTS. WOUNDS CAUSED BY MUMMY ROT'#13 +
+          'CANNOT BE SO CURED.';
     { Cause Light Wounds }
     4:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER TOUCHES A FOE, NEEDING A'#13 +
-          'HIT, FOR 1D8 DAMAGE.';
+          'BY LAYING A HAND UPON AN OPPONENT,'#13 +
+          'THE CASTER INFLICTS 1D8 DAMAGE; A'#13 +
+          'SUCCESSFUL ATTACK ROLL IS REQUIRED.';
     { Detect Magic }
     5:
       if chunk = 0 then
         TextChunk :=
-          'WHILE IT LASTS, MAGIC ITEMS (WITH A'#13 +
-          'PLUS, A SAVING THROW BONUS OR A'#13 +
-          'CURSE) SHOW A * ON THE PARTY''S ITEM'#13 +
-          'LISTS.';
+          'FOR THE SPELL''S DURATION, ITEMS'#13 +
+          'WITH A MAGICAL BONUS OR CURSE ARE'#13 +
+          'MARKED WITH A * IN THE PARTY''S'#13 +
+          'ITEM LISTS.';
     { Protection From Evil }
     6:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET GETS +2 ON SAVING THROWS,'#13 +
-          'AND EVIL FOES ATTACK IT AT -2. IT'#13 +
-          'DOES NOT ADD TO ANOTHER PROTECTION.';
+          'THE RECIPIENT GAINS +2 ON SAVING'#13 +
+          'THROWS; EVIL OPPONENTS ATTACK AT -2.'#13 +
+          'THESE BONUSES ARE NOT CUMULATIVE'#13 +
+          'WITH OTHER PROTECTION SPELLS.';
     { Protection from Good }
     7:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET GETS +2 ON SAVING THROWS,'#13 +
-          'AND GOOD FOES ATTACK IT AT -2. IT'#13 +
-          'DOES NOT ADD TO ANOTHER PROTECTION.';
+          'THE RECIPIENT GAINS +2 ON SAVING'#13 +
+          'THROWS; GOOD OPPONENTS ATTACK AT -2.'#13 +
+          'THESE BONUSES ARE NOT CUMULATIVE'#13 +
+          'WITH OTHER PROTECTION SPELLS.';
     { Resist Cold }
     8:
       if chunk = 0 then
         TextChunk :=
-          'COLD DOES THE TARGET HALF DAMAGE,'#13 +
-          'AND IT GETS +3 ON SAVING THROWS'#13 +
-          'AGAINST COLD.';
+          'THE RECIPIENT SUFFERS HALF DAMAGE'#13 +
+          'FROM COLD AND GAINS +3 ON SAVING'#13 +
+          'THROWS AGAINST COLD ATTACKS.';
     { Burning Hands }
     9:
       if chunk = 0 then
         TextChunk :=
-          'FIRE FROM THE CASTER''S HANDS BURNS'#13 +
-          'ONE ADJACENT FOE FOR 1 POINT PER'#13 +
-          'CASTER LEVEL. NO ATTACK ROLL IS'#13 +
-          'NEEDED.';
+          'FLAMES SPRING FROM THE CASTER''S'#13 +
+          'HANDS, INFLICTING 1 POINT OF DAMAGE'#13 +
+          'PER CASTER LEVEL UPON ONE ADJACENT'#13 +
+          'OPPONENT. NO ATTACK ROLL IS NEEDED.';
     { Charm Person }
     10:
       if chunk = 0 then
         TextChunk :=
-          'A PERSON (A HUMAN, DEMIHUMAN OR'#13 +
-          'HUMANOID SUCH AS AN ORC OR GNOLL)'#13 +
-          'WHO FAILS TO SAVE JOINS THE CASTER''S'#13 +
-          'SIDE UNDER THE COMPUTER''S CONTROL,'#13 +
-          'UNTIL DISPELLED. OTHER CREATURES ARE'#13 +
-          'UNAFFECTED.';
+          'THIS SPELL AFFECTS ONE HUMAN,'#13 +
+          'DEMIHUMAN, OR HUMANOID, SUCH AS AN'#13 +
+          'ORC OR GNOLL. IF ITS SAVING THROW'#13 +
+          'FAILS, THE CREATURE SERVES THE'#13 +
+          'CASTER UNDER COMPUTER CONTROL UNTIL'#13 +
+          'THE ENCHANTMENT IS DISPELLED.';
     { Detect Magic }
     11:
       if chunk = 0 then
         TextChunk :=
-          'WHILE IT LASTS, MAGIC ITEMS (WITH A'#13 +
-          'PLUS, A SAVING THROW BONUS OR A'#13 +
-          'CURSE) SHOW A * ON THE PARTY''S ITEM'#13 +
-          'LISTS.';
+          'FOR THE SPELL''S DURATION, ITEMS'#13 +
+          'WITH A MAGICAL BONUS OR CURSE ARE'#13 +
+          'MARKED WITH A * IN THE PARTY''S'#13 +
+          'ITEM LISTS.';
     { Enlarge }
     12:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET''S STRENGTH BECOMES 18 AT'#13 +
-          'CASTER LEVEL 1, RISING TO 18/01,'#13 +
-          '18/51, 18/76, 18/91 AND 18/00 AT'#13 +
-          'LEVEL 6 AND UP. REDUCE ENDS IT.';
+          'THE RECIPIENT GAINS 18 STRENGTH AT'#13 +
+          'CASTER LEVEL 1. THIS RISES TO 18/01,'#13 +
+          '18/51, 18/76, 18/91, AND 18/00 AT'#13 +
+          'LEVEL 6 AND ABOVE. REDUCE NEGATES'#13 +
+          'THE ENCHANTMENT.';
     { Reduce }
     13:
       if chunk = 0 then
         TextChunk :=
-          'ENDS ENLARGE ON A TARGET THAT FAILS'#13 +
-          'ITS SAVE.';
+          'THIS SPELL NEGATES ENLARGE IF THE'#13 +
+          'RECIPIENT FAILS A SAVING THROW.';
     { Friends }
     14:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER''S CHARISMA RISES BY 2D4,'#13 +
-          'TO NO MORE THAN 25, WHILE IT LASTS.';
+          'THE CASTER GAINS 2D4 CHARISMA, TO A'#13 +
+          'MAXIMUM OF 25, FOR THE DURATION.';
     { Magic Missile }
     15:
       if chunk = 0 then
         TextChunk :=
-          'ONE MISSILE FOR EVERY TWO CASTER'#13 +
-          'LEVELS, THE FIRST AT LEVEL 1, EACH'#13 +
-          'STRIKING A FOE FOR 1D4+1. THEY NEVER'#13 +
-          'MISS. SHIELD STOPS THEM.';
+          'THE CASTER CREATES ONE MISSILE AT'#13 +
+          'LEVEL 1, AND ONE ADDITIONAL MISSILE'#13 +
+          'FOR EVERY TWO LEVELS THEREAFTER.'#13 +
+          'EACH UNERRING MISSILE INFLICTS'#13 +
+          '1D4+1 DAMAGE. SHIELD NEGATES THEM.';
     { Protection From Evil }
     16:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET GETS +2 ON SAVING THROWS,'#13 +
-          'AND EVIL FOES ATTACK IT AT -2. IT'#13 +
-          'DOES NOT ADD TO ANOTHER PROTECTION.';
+          'THE RECIPIENT GAINS +2 ON SAVING'#13 +
+          'THROWS; EVIL OPPONENTS ATTACK AT -2.'#13 +
+          'THESE BONUSES ARE NOT CUMULATIVE'#13 +
+          'WITH OTHER PROTECTION SPELLS.';
     { Protection From Good }
     17:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET GETS +2 ON SAVING THROWS,'#13 +
-          'AND GOOD FOES ATTACK IT AT -2. IT'#13 +
-          'DOES NOT ADD TO ANOTHER PROTECTION.';
+          'THE RECIPIENT GAINS +2 ON SAVING'#13 +
+          'THROWS; GOOD OPPONENTS ATTACK AT -2.'#13 +
+          'THESE BONUSES ARE NOT CUMULATIVE'#13 +
+          'WITH OTHER PROTECTION SPELLS.';
     { Read Magic }
     18:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER CAN READ MAGIC-USER'#13 +
-          'SCROLLS WHILE IT LASTS, SO THEIR'#13 +
-          'SPELLS CAN BE CAST OR SCRIBED.';
+          'FOR THE DURATION, THE CASTER MAY'#13 +
+          'READ MAGIC-USER SCROLLS, ALLOWING'#13 +
+          'THEIR SPELLS TO BE CAST OR SCRIBED.';
     { Shield }
     19:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER''S ARMOR CLASS IS AT LEAST'#13 +
-          '3, IT GETS +1 ON SAVING THROWS, AND'#13 +
-          'MAGIC MISSILES DO IT NO HARM.';
+          'THE CASTER''S ARMOR CLASS BECOMES 3'#13 +
+          'UNLESS ALREADY BETTER. THE CASTER'#13 +
+          'ALSO GAINS +1 ON SAVING THROWS AND'#13 +
+          'IS IMMUNE TO MAGIC MISSILES.';
     { Shocking Grasp }
     20:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER TOUCHES A FOE, NEEDING A'#13 +
-          'HIT, FOR 1D8 ELECTRICAL DAMAGE PLUS'#13 +
-          '1 PER CASTER LEVEL.';
+          'THE CASTER DELIVERS AN ELECTRICAL'#13 +
+          'CHARGE BY TOUCH. A SUCCESSFUL'#13 +
+          'ATTACK ROLL INFLICTS 1D8 DAMAGE,'#13 +
+          'PLUS 1 PER CASTER LEVEL.';
     { Sleep }
     21:
       case chunk of
         0:
           TextChunk :=
-            'PUTS CREATURES IN THE AREA TO SLEEP,'#13 +
-            'HELPLESS, FROM A POOL OF 4D4. EACH'#13 +
-            'COSTS 1 UP TO LEVEL 1, 2 AT LEVEL 2,'#13 +
-            '4 AT 3, 6 AT 4 AND 10 FOR A LEVEL 5'#13 +
-            'MONSTER; STRONGER ONES NEVER SLEEP.'#13 +
-            'ANIMATED DEAD, CREATURES ALREADY';
+            'THIS SPELL SENDS CREATURES INTO A'#13 +
+            'HELPLESS SLUMBER, BEGINNING WITH A'#13 +
+            'POOL OF 4D4 POINTS. A CREATURE COSTS'#13 +
+            '1 POINT AT LEVEL 1, 2 AT LEVEL 2,'#13 +
+            '4 AT LEVEL 3, 6 AT LEVEL 4, OR 10'#13 +
+            'AT LEVEL 5. STRONGER CREATURES ARE';
         1:
           TextChunk :=
-            'ASLEEP AND THOSE THE POOL CANNOT PAY'#13 +
-            'FOR ARE PASSED OVER. SOME CREATURES'#13 +
-            'ARE IMMUNE.';
+            'UNAFFECTED. ANIMATED DEAD, SLEEPERS,'#13 +
+            'AND CREATURES IT CANNOT AFFECT ARE'#13 +
+            'PASSED OVER; SOME ARE IMMUNE.';
       end;
     { Find Traps }
     22:
       if chunk = 0 then
         TextChunk :=
-          'WHILE IT LASTS, THE CASTER NOTICES'#13 +
-          'TRAPS THE ADVENTURE HAS HIDDEN'#13 +
-          'AHEAD.';
+          'FOR THE DURATION, THE CASTER'#13 +
+          'PERCEIVES ANY CONCEALED TRAPS AHEAD.';
     { Hold Person }
     23:
       if chunk = 0 then
         TextChunk :=
-          'PERSONS WHO FAIL TO SAVE ARE HELD,'#13 +
-          'HELPLESS. A SINGLE TARGET SAVES AT'#13 +
-          '-2, EACH OF TWO AT -1. CREATURES'#13 +
-          'THAT ARE NOT PERSONS ARE UNAFFECTED.';
+          'ONE OR MORE PERSONS WHO FAIL THEIR'#13 +
+          'SAVING THROWS ARE HELD MOTIONLESS'#13 +
+          'AND HELPLESS. ONE TARGET SAVES AT'#13 +
+          '-2; TWO TARGETS SAVE AT -1 EACH.'#13 +
+          'NON-PERSONS ARE UNAFFECTED.';
     { Resist Fire }
     24:
       if chunk = 0 then
         TextChunk :=
-          'FIRE DOES THE TARGET HALF DAMAGE,'#13 +
-          'AND IT GETS +3 ON SAVING THROWS'#13 +
-          'AGAINST FIRE.';
+          'THE RECIPIENT SUFFERS HALF DAMAGE'#13 +
+          'FROM FIRE AND GAINS +3 ON SAVING'#13 +
+          'THROWS AGAINST FIRE ATTACKS.';
     { Silence, 15' Radius }
     25:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET, UNLESS IT SAVES, CARRIES'#13 +
-          'A SILENCE WITH IT: NO ONE WITHIN 1'#13 +
-          'SQUARE OF IT CAN CAST SPELLS OR USE'#13 +
-          'ITEMS.';
+          'UNLESS A SAVING THROW IS MADE, THE'#13 +
+          'TARGET IS SURROUNDED BY SILENCE.'#13 +
+          'NO CREATURE WITHIN 1 SQUARE MAY'#13 +
+          'CAST SPELLS OR EMPLOY ITEMS.';
     { Slow Poison }
     26:
       if chunk = 0 then
         TextChunk :=
-          'A POISONED CHARACTER GETS BACK UP'#13 +
-          'WITH AT LEAST 1 HIT POINT AND LOSES'#13 +
-          '1 HIT POINT A TURN WHILE IT LASTS.'#13 +
-          'WHEN IT ENDS, ONE STILL POISONED'#13 +
-          'DIES.';
+          'THE POISONED RECIPIENT REVIVES WITH'#13 +
+          'AT LEAST 1 HIT POINT, THEN LOSES 1'#13 +
+          'HIT POINT PER TURN FOR THE DURATION.'#13 +
+          'IF STILL POISONED WHEN THE SPELL'#13 +
+          'EXPIRES, THE RECIPIENT DIES.';
     { Snake Charm }
     27:
       if chunk = 0 then
         TextChunk :=
-          'EVERY GIANT SNAKE IN THE FIGHT WHOSE'#13 +
-          'HIT POINTS, ADDED UP, FIT WITHIN THE'#13 +
-          'CASTER''S OWN IS CHARMED HELPLESS FOR'#13 +
-          'THE REST OF THE FIGHT.';
+          'THIS SPELL RENDERS GIANT SNAKES'#13 +
+          'HELPLESS FOR THE REST OF THE BATTLE.'#13 +
+          'IT AFFECTS AS MANY AS HAVE TOTAL HIT'#13 +
+          'POINTS NO GREATER THAN THE CASTER''S.';
     { Spiritual Hammer }
     28:
       if chunk = 0 then
         TextChunk :=
-          'A +1 MAGIC HAMMER APPEARS AMONG THE'#13 +
-          'CASTER''S ITEMS, ABLE TO STRIKE'#13 +
-          'CREATURES ONLY MAGIC WEAPONS CAN'#13 +
-          'HARM. IT IS GONE WHEN THE SPELL'#13 +
-          'ENDS.';
+          'THIS SPELL CREATES A +1 MAGICAL'#13 +
+          'HAMMER AMONG THE CASTER''S ITEMS.'#13 +
+          'IT CAN STRIKE CREATURES HARMED ONLY'#13 +
+          'BY MAGICAL WEAPONS, AND VANISHES'#13 +
+          'WHEN THE SPELL EXPIRES.';
     { Detect Invisibility }
     29:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER CAN SEE AND AIM AT'#13 +
-          'INVISIBLE CREATURES WHILE IT LASTS.';
+          'FOR THE DURATION, THE CASTER CAN'#13 +
+          'SEE AND TARGET INVISIBLE CREATURES.';
     { Invisibility }
     30:
       if chunk = 0 then
         TextChunk :=
-          'THE TARGET CANNOT BE AIMED AT BY'#13 +
-          'FOES WHO CANNOT SEE INVISIBLE'#13 +
-          'THINGS, AND OTHERS ATTACK IT AT -4.'#13 +
-          'IT ENDS WHEN THE TARGET ATTACKS OR'#13 +
-          'CASTS A SPELL.';
+          'THE RECIPIENT CANNOT BE TARGETED BY'#13 +
+          'FOES UNABLE TO SEE INVISIBLE'#13 +
+          'CREATURES; OTHERS ATTACK AT -4.'#13 +
+          'THE SPELL ENDS WHEN THE RECIPIENT'#13 +
+          'ATTACKS OR CASTS A SPELL.';
     { Knock }
     31:
       if chunk = 0 then
         TextChunk :=
-          'OPENS A LOCKED DOOR. IT IS NOT CAST'#13 +
-          'FROM THIS LIST: THE GAME OFFERS IT'#13 +
-          'WHEN THE PARTY FINDS A LOCKED DOOR.';
+          'THIS SPELL OPENS A LOCKED DOOR. IT'#13 +
+          'CANNOT BE CAST FROM THIS LIST; THE'#13 +
+          'GAME OFFERS IT UPON ENCOUNTERING'#13 +
+          'SUCH A DOOR.';
     { Mirror Image }
     32:
       if chunk = 0 then
         TextChunk :=
-          '1D4 IMAGES OF THE CASTER APPEAR.'#13 +
-          'WITH N IMAGES, AN ATTACK OR A SPELL'#13 +
-          'AIMED AT THE CASTER ALONE STRIKES AN'#13 +
-          'IMAGE N TIMES IN N+1, AND THAT IMAGE'#13 +
-          'IS GONE.';
+          'THIS SPELL CREATES 1D4 ILLUSORY'#13 +
+          'DUPLICATES OF THE CASTER. WHILE N'#13 +
+          'IMAGES REMAIN, AN ATTACK OR SPELL'#13 +
+          'AIMED SOLELY AT THE CASTER HAS AN'#13 +
+          'N-IN-(N+1) CHANCE TO STRIKE ONE.'#13 +
+          'AN IMAGE SO STRUCK VANISHES.';
     { Ray of Enfeeblement }
     33:
       if chunk = 0 then
         TextChunk :=
-          'A CREATURE THAT FAILS TO SAVE DOES A'#13 +
-          'QUARTER LESS DAMAGE WHILE IT LASTS.';
+          'UNLESS THE CREATURE SAVES, THIS RAY'#13 +
+          'REDUCES ITS DAMAGE BY ONE-QUARTER'#13 +
+          'FOR THE DURATION.';
     { Stinking Cloud }
     34:
       case chunk of
         0:
           TextChunk :=
             'A CLOUD FILLS FOUR SQUARES. A'#13 +
-            'CREATURE IN IT WHO FAILS TO SAVE IS'#13 +
-            'HELPLESS WITH COUGHING FOR 2 TO 5'#13 +
-            'ROUNDS; ONE WHO SAVES CAN USE NO'#13 +
-            'ITEMS OR SPELLS, AND IS EASIER TO'#13 +
-            'HIT, FOR A ROUND. CREATURES IMMUNE';
+            'CREATURE THAT FAILS ITS SAVE IS'#13 +
+            'HELPLESS WITH COUGHING FOR 2-5'#13 +
+            'ROUNDS. ONE THAT SAVES CANNOT USE'#13 +
+            'ITEMS OR CAST SPELLS, AND IS MORE'#13 +
+            'EASILY HIT, FOR 1 ROUND. CREATURES';
         1:
           TextChunk :=
-            'TO POISON ARE UNHARMED.';
+            'IMMUNE TO POISON ARE UNAFFECTED.';
       end;
     { Strength }
     35:
       case chunk of
         0:
           TextChunk :=
-            'THE TARGET''S STRENGTH RISES BY 1D4'#13 +
-            'FOR A MAGIC-USER, 1D6 FOR A CLERIC'#13 +
-            'OR THIEF AND 1D8 FOR A FIGHTER,'#13 +
-            'PALADIN OR RANGER, FOR WHOM EACH'#13 +
-            'POINT PAST 18 BECOMES 10 POINTS OF'#13 +
-            'EXCEPTIONAL STRENGTH. OTHERS STOP AT';
+            'A MAGIC-USER GAINS 1D4 STRENGTH; A'#13 +
+            'CLERIC OR THIEF GAINS 1D6; A'#13 +
+            'FIGHTER, PALADIN, OR RANGER GAINS'#13 +
+            '1D8. FOR A WARRIOR, EACH POINT ABOVE'#13 +
+            '18 BECOMES 10 POINTS OF EXCEPTIONAL'#13 +
+            'STRENGTH. ALL OTHERS ARE LIMITED TO';
         1:
           TextChunk :=
             '18.';
@@ -373,178 +388,189 @@ begin
     36:
       if chunk = 0 then
         TextChunk :=
-          'UP TO ONE DEAD HUMAN PER CASTER'#13 +
-          'LEVEL IN THE FIGHT RISES AS A'#13 +
-          'ZOMBIE, FIGHTING FOR THE CASTER'#13 +
-          'UNDER THE COMPUTER''S CONTROL UNTIL'#13 +
-          'DESTROYED.';
+          'THIS SPELL ANIMATES UP TO ONE DEAD'#13 +
+          'HUMAN PER CASTER LEVEL AS A ZOMBIE.'#13 +
+          'EACH FIGHTS FOR THE CASTER UNDER'#13 +
+          'COMPUTER CONTROL UNTIL DESTROYED.';
     { Cure Blindness }
     37:
       if chunk = 0 then
         TextChunk :=
-          'ENDS A BLINDNESS.';
+          'THIS SPELL REMOVES BLINDNESS.';
     { Cause Blindness }
     38:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER TOUCHES A FOE, NEEDING A'#13 +
-          'HIT. ONE WHO FAILS TO SAVE IS'#13 +
-          'BLINDED UNTIL CURED: -4 TO HIT, -4'#13 +
-          'TO SAVING THROWS AND 4 WORSE ARMOR'#13 +
-          'CLASS.';
+          'THE CASTER MUST TOUCH AN OPPONENT.'#13 +
+          'IF THE ATTACK HITS AND THE VICTIM'#13 +
+          'FAILS A SAVING THROW, IT IS BLINDED'#13 +
+          'UNTIL CURED, SUFFERING -4 TO ATTACK'#13 +
+          'ROLLS AND SAVING THROWS, AND A'#13 +
+          '4-POINT ARMOR CLASS PENALTY.';
     { Cure Disease }
     39:
       if chunk = 0 then
         TextChunk :=
-          'CURES A DISEASE, FROM MUMMY ROT OR'#13 +
-          'CAUSE DISEASE.';
+          'THIS SPELL CURES DISEASE, INCLUDING'#13 +
+          'MUMMY ROT AND THE EFFECTS OF CAUSE'#13 +
+          'DISEASE.';
     { Cause Disease }
     40:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER TOUCHES A FOE, NEEDING A'#13 +
-          'HIT. ONE WHO FAILS TO SAVE FALLS ILL'#13 +
-          'WHEN THE TIME SHOWN IS UP, THEN'#13 +
-          'LOSES A POINT OF STRENGTH EACH HOUR'#13 +
-          'AND A HIT POINT EACH TURN UNTIL'#13 +
+          'A SUCCESSFUL TOUCH ATTACK INFECTS AN'#13 +
+          'OPPONENT THAT FAILS A SAVING THROW.'#13 +
+          'THE DISEASE BEGINS AFTER THE TIME'#13 +
+          'SHOWN, THEN DRAINS 1 STRENGTH EACH'#13 +
+          'HOUR AND 1 HIT POINT EACH TURN UNTIL'#13 +
           'CURED. PALADINS ARE IMMUNE.';
     { Dispel Magic }
     41:
       case chunk of
         0:
           TextChunk :=
-            'TRIES TO END EACH SPELL ON THE'#13 +
-            'CREATURES IN THE AREA: A 50 IN 100'#13 +
-            'CHANCE, 5 MORE FOR EACH LEVEL THE'#13 +
-            'CASTER HAS ABOVE THE SPELL''S CASTER'#13 +
-            'AND 2 LESS FOR EACH BELOW. DISEASES'#13 +
-            'ARE LEFT FOR CURE DISEASE. IN CAMP';
+            'THIS SPELL ATTEMPTS TO NEGATE EACH'#13 +
+            'SPELL AFFECTING CREATURES IN THE'#13 +
+            'AREA. THE BASE CHANCE IS 50%, PLUS'#13 +
+            '5% PER CASTER LEVEL ABOVE THE'#13 +
+            'OPPOSING CASTER, OR MINUS 2% PER'#13 +
+            'LEVEL BELOW. IT DOES NOT CURE';
         1:
           TextChunk :=
-            'IT WORKS ON ONE CHARACTER.';
+            'DISEASE. IN CAMP, IT AFFECTS ONE'#13 +
+            'CHARACTER.';
       end;
     { Prayer }
     42:
       if chunk = 0 then
         TextChunk :=
-          'ALLIES WITHIN 6 SQUARES OF THE'#13 +
-          'CASTER GET +1 TO HIT AND ON SAVING'#13 +
-          'THROWS, AND FOES THERE -1.';
+          'ALLIES WITHIN 6 SQUARES GAIN +1 ON'#13 +
+          'ATTACK ROLLS AND SAVING THROWS;'#13 +
+          'FOES WITHIN THAT AREA SUFFER -1 ON'#13 +
+          'BOTH.';
     { Remove Curse }
     43:
       if chunk = 0 then
         TextChunk :=
-          'ENDS A BESTOW CURSE ON THE TARGET,'#13 +
-          'OR ELSE FREES ONE CURSED ITEM IT'#13 +
-          'CARRIES SO THAT IT CAN BE REMOVED.';
+          'THIS SPELL NEGATES BESTOW CURSE ON'#13 +
+          'THE RECIPIENT. OTHERWISE, IT ALLOWS'#13 +
+          'ONE CURSED ITEM CARRIED TO BE'#13 +
+          'REMOVED.';
     { Bestow Curse }
     44:
       if chunk = 0 then
         TextChunk :=
-          'THE CASTER TOUCHES A FOE, NEEDING A'#13 +
-          'HIT. ONE WHO FAILS TO SAVE IS AT -4'#13 +
-          'TO HIT AND ON SAVING THROWS.';
+          'THE CASTER MUST TOUCH AN OPPONENT.'#13 +
+          'IF THE ATTACK HITS AND THE VICTIM'#13 +
+          'FAILS A SAVING THROW, IT SUFFERS -4'#13 +
+          'ON ATTACK ROLLS AND SAVING THROWS.';
     { Blink }
     45:
       if chunk = 0 then
         TextChunk :=
           'UNTIL THE CASTER ACTS EACH ROUND,'#13 +
-          'FOES CANNOT AIM AT IT, AND THEIR'#13 +
-          'ATTACKS MISS.';
+          'FOES CANNOT TARGET THE CASTER, AND'#13 +
+          'ALL THEIR ATTACKS MISS.';
     { Dispel Magic }
     46:
       case chunk of
         0:
           TextChunk :=
-            'TRIES TO END EACH SPELL ON THE'#13 +
-            'CREATURES IN THE AREA: A 50 IN 100'#13 +
-            'CHANCE, 5 MORE FOR EACH LEVEL THE'#13 +
-            'CASTER HAS ABOVE THE SPELL''S CASTER'#13 +
-            'AND 2 LESS FOR EACH BELOW. DISEASES'#13 +
-            'ARE LEFT FOR CURE DISEASE. IN CAMP';
+            'THIS SPELL ATTEMPTS TO NEGATE EACH'#13 +
+            'SPELL AFFECTING CREATURES IN THE'#13 +
+            'AREA. THE BASE CHANCE IS 50%, PLUS'#13 +
+            '5% PER CASTER LEVEL ABOVE THE'#13 +
+            'OPPOSING CASTER, OR MINUS 2% PER'#13 +
+            'LEVEL BELOW. IT DOES NOT CURE';
         1:
           TextChunk :=
-            'IT WORKS ON ONE CHARACTER.';
+            'DISEASE. IN CAMP, IT AFFECTS ONE'#13 +
+            'CHARACTER.';
       end;
     { Fireball }
     47:
       if chunk = 0 then
         TextChunk :=
-          'A BURST OF FLAME DOES 1D6 PER CASTER'#13 +
-          'LEVEL TO EVERYONE IN THE AREA,'#13 +
-          'FRIEND OR FOE; A SAVE HALVES IT. ITS'#13 +
-          'RADIUS IS 3 SQUARES, BUT 2 OUTDOORS.';
+          'A FIERY EXPLOSION INFLICTS 1D6'#13 +
+          'DAMAGE PER CASTER LEVEL UPON ALL'#13 +
+          'CREATURES IN THE AREA, FRIEND OR'#13 +
+          'FOE. A SUCCESSFUL SAVE HALVES THE'#13 +
+          'DAMAGE. ITS RADIUS IS 3 SQUARES'#13 +
+          'INDOORS AND 2 SQUARES OUTDOORS.';
     { Haste }
     48:
       if chunk = 0 then
         TextChunk :=
           'UP TO ONE ALLY PER CASTER LEVEL IN'#13 +
-          'THE AREA MOVES AND ATTACKS TWICE AS'#13 +
-          'OFTEN, AND AGES A YEAR. AN ALLY'#13 +
-          'SLOWED IS FREED OF SLOW INSTEAD.';
+          'THE AREA MOVES AND ATTACKS AT TWICE'#13 +
+          'THE NORMAL RATE, BUT AGES ONE YEAR.'#13 +
+          'A SLOWED ALLY INSTEAD LOSES SLOW.';
     { Hold Person }
     49:
       if chunk = 0 then
         TextChunk :=
-          'PERSONS WHO FAIL TO SAVE ARE HELD,'#13 +
-          'HELPLESS. A SINGLE TARGET SAVES AT'#13 +
-          '-3, EACH OF TWO AT -1. CREATURES'#13 +
-          'THAT ARE NOT PERSONS ARE UNAFFECTED.';
+          'ONE OR MORE PERSONS WHO FAIL THEIR'#13 +
+          'SAVING THROWS ARE HELD MOTIONLESS'#13 +
+          'AND HELPLESS. ONE TARGET SAVES AT'#13 +
+          '-3; TWO TARGETS SAVE AT -1 EACH.'#13 +
+          'NON-PERSONS ARE UNAFFECTED.';
     { Invisibility, 10' Radius }
     50:
       if chunk = 0 then
         TextChunk :=
-          'EVERYONE WITHIN 1 SQUARE OF THE AIM,'#13 +
-          'FOES TOO, BECOMES INVISIBLE: FOES'#13 +
-          'WHO CANNOT SEE INVISIBLE THINGS'#13 +
-          'CANNOT AIM AT THEM, AND OTHERS'#13 +
-          'ATTACK THEM AT -4. IT ENDS FOR EACH'#13 +
-          'WHEN IT ATTACKS OR CASTS.';
+          'ALL CREATURES WITHIN 1 SQUARE OF'#13 +
+          'THE TARGET, INCLUDING FOES, BECOME'#13 +
+          'INVISIBLE. FOES UNABLE TO SEE THEM'#13 +
+          'CANNOT TARGET THEM; OTHERS ATTACK'#13 +
+          'AT -4. THE SPELL ENDS FOR ANY'#13 +
+          'RECIPIENT WHO ATTACKS OR CASTS.';
     { Lightning Bolt }
     51:
       if chunk = 0 then
         TextChunk :=
-          'A BOLT RUNS FROM THE AIMED SQUARE 8'#13 +
-          'SQUARES ON, AWAY FROM THE CASTER,'#13 +
-          'REBOUNDING FROM WALLS, AND DOES 1D6'#13 +
-          'PER CASTER LEVEL TO EVERYONE IT'#13 +
-          'PASSES, FRIEND OR FOE; A SAVE HALVES'#13 +
-          'IT.';
+          'A LIGHTNING BOLT EXTENDS 8 SQUARES'#13 +
+          'FROM THE TARGETED SQUARE, AWAY FROM'#13 +
+          'THE CASTER, REBOUNDING FROM WALLS.'#13 +
+          'IT INFLICTS 1D6 DAMAGE PER CASTER'#13 +
+          'LEVEL ON ALL IN ITS PATH, FRIEND OR'#13 +
+          'FOE; A SAVE HALVES THE DAMAGE.';
     { Protection From Evil, 10' Radius }
     52:
       if chunk = 0 then
         TextChunk :=
-          'AS PROTECTION FROM EVIL, FOR THE'#13 +
-          'TARGET AND ITS ALLIES WITHIN 1'#13 +
-          'SQUARE OF IT.';
+          'THIS SPELL FUNCTIONS AS PROTECTION'#13 +
+          'FROM EVIL, BUT EXTENDS TO THE'#13 +
+          'RECIPIENT''S ALLIES WITHIN 1 SQUARE.';
     { Protection From Good, 10' Radius }
     53:
       if chunk = 0 then
         TextChunk :=
-          'AS PROTECTION FROM GOOD, FOR THE'#13 +
-          'TARGET AND ITS ALLIES WITHIN 1'#13 +
-          'SQUARE OF IT.';
+          'THIS SPELL FUNCTIONS AS PROTECTION'#13 +
+          'FROM GOOD, BUT EXTENDS TO THE'#13 +
+          'RECIPIENT''S ALLIES WITHIN 1 SQUARE.';
     { Protection From Normal Missiles }
     54:
       if chunk = 0 then
         TextChunk :=
-          'MISSILES WITHOUT A PLUS DO THE'#13 +
-          'TARGET NO HARM, AND MAGIC ONES DO 1'#13 +
-          'LESS DAMAGE PER DIE.';
+          'THE RECIPIENT IS IMMUNE TO MISSILES'#13 +
+          'WITHOUT MAGICAL BONUSES. MISSILES'#13 +
+          'BEARING SUCH BONUSES INFLICT 1 LESS'#13 +
+          'DIE.';
     { Slow }
     55:
       if chunk = 0 then
         TextChunk :=
           'UP TO ONE FOE PER CASTER LEVEL IN'#13 +
-          'THE AREA MOVES AND ATTACKS HALF AS'#13 +
-          'OFTEN. A FOE HASTED LOSES ITS HASTE'#13 +
-          'INSTEAD.';
+          'THE AREA MOVES AND ATTACKS AT HALF'#13 +
+          'THE NORMAL RATE. A HASTED FOE'#13 +
+          'INSTEAD LOSES HASTE.';
     { Restoration }
     56:
       if chunk = 0 then
         TextChunk :=
-          'GIVES BACK ONE LEVEL LOST TO LEVEL'#13 +
-          'DRAIN, WITH ITS HIT POINTS.';
+          'THE RECIPIENT REGAINS ONE LEVEL'#13 +
+          'LOST TO LEVEL DRAIN, TOGETHER WITH'#13 +
+          'THE LEVEL''S HIT POINTS.';
   end;
 end;
 

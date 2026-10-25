@@ -200,7 +200,7 @@ var
   rewards: Byte;
 begin
   { City Hall's script ($AC58 on): none paid notes LXIV, LXXVIII, CIX and LIX, then each reward one more. SSI's ninth
-    names CXIV again where CCXIV, the one left, is meant (POR-0209, #864). }
+    named CXIV again where CCXIV, the one left, is meant; DataPat makes it CCXIV (POR-0209, #864). }
   case number of
     59, 64, 78, 109: rewards := 0;
     101: rewards := 1;

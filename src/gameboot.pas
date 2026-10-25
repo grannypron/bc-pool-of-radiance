@@ -203,8 +203,8 @@ begin
   end;
 {$ENDIF}
   { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib music and speaker effects, B a Sound Blaster's
-    recorded effects with its AdLib music (each falling back to the next when its card does not answer), else none; S
-    is silent, as in SSI's data card (#880) }
+    recorded effects with its AdLib music (each falling back to the next when its card does not answer), anything else
+    none. S is silent, as SSI's data card has it and the Curse port reads it; it read as the Sound Blaster until #880. }
   case cfgSound of
 {$IFDEF FPC}
     { natively, the Tandy's music and the Sound Blaster's recorded effects for any of the three (SndDig) }

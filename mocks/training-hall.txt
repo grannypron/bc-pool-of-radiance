@@ -6,21 +6,21 @@
 | MORGAN                        -9  26 |
 | SHADOW                        -5  53 |
 |                                      |
-| CHARACTER         PARTY              |
-|   CREATE            ADD              |
-|   VIEW              REMOVE           |
-|   MODIFY                             |
-|   DROP            GAME               |
-|   TRAIN             SAVE             |
-|   DUAL CLASS        LOAD             |
-|                     SETTINGS         |
-|                     EXIT TO DOS      |
+| PARTY             CHARACTER          |
+|   ADD               CREATE           |
+|   REMOVE            VIEW             |
+|                     MODIFY           |
+| GAME                DROP             |
+|   SAVE              TRAIN            |
+|   LOAD              DUAL CLASS       |
 |                                      |
-|                                      |
-|                                      |
-|                                      |
+| SETTINGS          EXIT TO DOS        |
 |                                      |
 | BEGIN ADVENTURING                    |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
 |======================================+
                           V1.3-1202 (BC)
 
@@ -37,4 +37,4 @@ Command Key:
     LOAD GAME               L
     SETTINGS                G
     EXIT TO DOS             E
-    
+    BEGIN ADVENTURING       B
