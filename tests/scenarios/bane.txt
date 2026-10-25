@@ -35,7 +35,8 @@ checkpoint rebuilding
 press e
 wait CAMP
 press s b
-wait SAVE
+wait ^SAVE: EXIT
 press ret
-wait QUIT
+# saving returns to the camp menu (#872)
+wait CAMP
 saves freed SAVGAMB.DAT

@@ -4,8 +4,7 @@ boot NORAND
 ignore POOL OF RADIANCE V
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
 wait RADIANCE
-golden: press l a ret
-candidate: press l a
+press l a
 wait AREA
 checkpoint new-phlan
 # north to (5,2), then east onto (6,2)
@@ -14,16 +13,15 @@ wait AREA
 checkpoint training-hall
 press e
 wait CAMP
-golden: press s d ret
-candidate: press s d
-# ours lays the popup out anew (#656): recorded apart, not compared
-golden: checkpoint save-popup
-candidate: checkpoint save-popup-656
+press s d
+wait ^SAVE: EXIT
+# the popup's own layout (#656)
+checkpoint save-popup
 press esc esc
 # the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
 ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
 press ret ret ret
-# the picture-memory line (phase 6), which the golden build does not have
-candidate: press ret
+# and the picture-memory line (phase 6)
+press ret

@@ -2,9 +2,8 @@
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once in ours (#652)
-golden: press l a ret
-candidate: press l a
+# a slot's letter loads it at once (#652)
+press l a
 wait AREA
 # east twice, south six times to (7,9), then east through the door
 press down up up right up up up up up up left
@@ -27,5 +26,5 @@ ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
 press ret ret ret
-# the picture-memory line (phase 6), which the golden build does not have
-candidate: press ret
+# and the picture-memory line (phase 6)
+press ret

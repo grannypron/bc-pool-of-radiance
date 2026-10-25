@@ -5,42 +5,36 @@ ignore POOL OF RADIANCE V
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
 wait RADIANCE
 press l
-# ours lays the menu out anew (#657), so the two builds' menus are recorded apart and not compared
-golden: checkpoint load-menu
-candidate: checkpoint load-menu-657
-# a slot's letter loads it at once in ours (#652)
-golden: press a ret
-candidate: press a
+# the menu's own layout (#657)
+checkpoint load-menu
+# a slot's letter loads it at once (#652)
+press a
 wait AREA
 checkpoint loaded
 press v
 checkpoint view
 press m
-# ours's More Info opens on the saves with Saves Stats Kills (and Thief) and Exit on its menu (#685)
-golden: checkpoint more-info
-candidate: checkpoint more-info-685
-golden: press e esc
-candidate: press esc esc
+# More Info opens on the saves with Saves Stats Kills (and Thief) and Exit on its menu (#685)
+checkpoint more-info
+press esc esc
 wait AREA
 press e
 wait CAMP
-# a slot's letter opens the save popup at once in ours (#652), which saves on Enter (#656)
-golden: press s d ret
-candidate: press s d
-golden: checkpoint save-popup
-candidate: checkpoint save-popup-656
-golden: press t e s t ret o
-candidate: press t e s t ret
-wait QUIT
-press n
-# every file the save writes, but ours's .MAP of the visited squares (phase 8), which the golden build has not
-saves after-save *.CHA *.DAT *.INF *.ITM *.SAV *.SPC *.STS *.TXT
+# a slot's letter opens the save popup at once (#652), which saves on Enter (#656)
+press s d
+wait ^SAVE: EXIT
+checkpoint save-popup
+press t e s t ret
+# saving returns to the camp menu: the save menu's Quit asks about leaving for DOS instead (#872)
+wait CAMP
+# every file the save writes, the .MAP of the visited squares (phase 8) with them
+saves after-save
 # More Info's other pages, after the save: opening Stats gives a character a statistics block, which a save would write
-# as a .STS file the golden build has not. Stats and Kills turn More Info's own pages (#685). Spawn, the fourth, is a
+# as a .STS file. Stats and Kills turn More Info's own pages (#685). Spawn, the fourth, is a
 # thief: her More Info has Thief, with her skills.
-candidate: press v m t
-candidate: checkpoint more-info-stats
-candidate: press k
-candidate: checkpoint more-info-kills
-candidate: press esc esc end end end v m h
-candidate: checkpoint more-info-thief
+press v m t
+checkpoint more-info-stats
+press k
+checkpoint more-info-kills
+press esc esc end end end v m h
+checkpoint more-info-thief
