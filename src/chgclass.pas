@@ -32,7 +32,7 @@ procedure AnnounceWoken(creature: Types.PCharRecord; wasResting: Byte);
 
 { Why creature may not open the Dual Class screen, as line 25 of the party menu says it (#879), or '' when it may:
   atHall is a training hall here or free training on. In order: no hall ('Dual classing requires a training hall.'),
-  not human ('Only humans can dual class.'), changed class already ('Alias can dual class only once.'), not okay
+  not human ('Only humans can dual class.'), changed class already ('Alias already has two classes.'), not okay
   ('Alias isn't able to do that.', free training or not) and drained of a level ('Alias needs restoration first.'),
   as a class left would need restoring after the change. A nil creature at a hall gets ''. }
 function Refusal(creature: Types.PCharRecord; atHall: Boolean): Types.TStr40;
@@ -150,7 +150,7 @@ begin
   else if creature^.race <> C_RACE.HUMAN then
     Refusal := 'Only humans can dual class.'
   else if CharHlp.IsDualClass(creature) then
-    Refusal := creature^.name + ' can dual class only once.'
+    Refusal := creature^.name + ' already has two classes.'
   else if creature^.status <> C_STATUS.OKAY then
     Refusal := creature^.name + ' isn''t able to do that.'
   else if creature^.drainedLevels > 0 then

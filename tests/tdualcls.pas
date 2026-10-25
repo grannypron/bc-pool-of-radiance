@@ -177,7 +177,7 @@ begin
   c^.status := C_STATUS.UNCONSCIOUS;
   TestKit.CheckEqualsS('ALIAS isn''t able to do that.', ChgClass.Refusal(c, True), 'unconscious comes first');
   c^.portExt.formerClasses := C_LEVEL.MAGE_BIT;
-  TestKit.CheckEqualsS('ALIAS can dual class only once.', ChgClass.Refusal(c, True), 'a second change before that');
+  TestKit.CheckEqualsS('ALIAS already has two classes.', ChgClass.Refusal(c, True), 'a second change before that');
   c^.race := C_RACE.ELF;
   TestKit.CheckEqualsS('Only humans can dual class.', ChgClass.Refusal(c, True), 'and an elf before all of them');
 
