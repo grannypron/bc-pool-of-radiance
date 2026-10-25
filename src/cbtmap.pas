@@ -9,8 +9,8 @@ interface
 uses Types;
 
 var
-  { Lightning Bolt's path for the spell-aim preview; GameInit sets it to Magic.TraceLightningBolt, so CbtMap does not
-    call Magic }
+  { A bolt spell's path for the spell-aim preview; GameInit sets it to Magic.TraceBolt, so CbtMap does not call
+    Magic }
   boltTracer: Types.TCellTracer;
   { Who the spell being aimed will catch, for the spell-aim preview's count on line 23 (#840); GameInit sets it to
     CbtActs.ReportAreaCatch, so CbtMap does not call CbtActs }
@@ -107,12 +107,13 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   the spell will reach light up ring by ring outward from the cursor cell in combat sprite areaCell, hold, clear, and
   the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
-  Lightning Bolt's path from the cursor cell (boltTracer). AimCloud covers the passable cells of
-  Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead of areaCell. The
-  frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands aimReport the
-  creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at radius, over the
-  whole arena and not just the view, as the spell gathers them; for a bolt or cloud the creatures on its cells. }
-procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte; report: Boolean);
+  spell's bolt (Lightning Bolt's, or the Javelin of Lightning's) from the cursor cell (boltTracer). AimCloud covers the
+  passable cells of Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead
+  of areaCell. The frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands
+  aimReport the creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at
+  radius, over the whole arena and not just the view, as the spell gathers them; for a bolt or cloud the creatures on
+  its cells. }
+procedure StartSpellPreview(shape: Types.TAimShape; spell, radius, areaCell: Byte; report: Boolean);
 
 { Advance the spell-aim preview by one frame once enough time has passed since the last one. }
 procedure TickSpellPreview;
@@ -155,6 +156,7 @@ var
   previewOn: Boolean;
   previewRadius: Byte;
   previewShape: Types.TAimShape;
+  previewSpell: Byte;
   areaArt: Byte;
   previewReport: Boolean;
   { The cursor cell and footprint size the preview is aimed at; aimSet is clear until a cursor draw sets them. }
@@ -349,7 +351,7 @@ begin
   case previewShape of
     Types.AimBolt: begin
         AddAreaCell(x, y, 0);
-        CbtMap.boltTracer(x, y, bolt);
+        CbtMap.boltTracer(previewSpell, x, y, bolt);
         { two cells a frame }
         for i := 1 to bolt.count do
           AddAreaCell(bolt.x[i], bolt.y[i], (i + 1) div 2);
@@ -381,10 +383,11 @@ begin
   lastTick := TextRend.GetTicks - PREVIEW_PACE;
 end;
 
-procedure StartSpellPreview(shape: Types.TAimShape; radius, areaCell: Byte; report: Boolean);
+procedure StartSpellPreview(shape: Types.TAimShape; spell, radius, areaCell: Byte; report: Boolean);
 begin
   CbtMap.StopSpellPreview;
   previewShape := shape;
+  previewSpell := spell;
   previewRadius := radius;
   areaArt := areaCell;
   previewReport := report;

@@ -620,7 +620,7 @@ begin
     CharHlp.RemoveItem(creature, item);
   if not removed then
     if found = 0 then
-      if creature^.numberOfItems < 16 then begin
+      if creature^.numberOfItems < C_ITEM.CARRY_MAX then begin
         GetMem(item, SizeOf(Types.TItemRec));
         FillChar(item^, SizeOf(Types.TItemRec), 0);
         item^.itemType := C_ITEM.HAMMER;
