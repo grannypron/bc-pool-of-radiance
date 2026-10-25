@@ -80,5 +80,6 @@ begin
   DiskRec.EffectFromDisk(efDisk, efBack);
   TestKit.CheckEqualsL(300, efBack.duration, 'duration comes back');
   TestKit.Check(efBack.next = nil, 'next comes back nil');
+  TestKit.CheckEqualsL(17, DiskRec.CHAR_POINTERS, 'a character holds 17 pointers, 13 of them equipped items');
   TestKit.Done;
 end.

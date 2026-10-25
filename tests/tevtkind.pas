@@ -40,6 +40,9 @@ begin
   Put($A030, #$24#$00);
   Put($A040, #$27#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00#$00);
   Put($A050, #$20#$00#$03);
+  { 5, an IF as the one instruction (#953): COMPARE [C04F] #12; IF =; IF =; COMBAT; PRINT ""; EXIT. Event 12 runs the
+    second IF, whose instruction is the COMBAT; the PRINT past it is not the event's }
+  Put($99A0, #$03#$01#$4F#$C0#$00#$0C#$16#$16#$24#$11#$80#$00#$00);
   GameVars.scriptEntryAddrs[1] := $9900;
   GameVars.scriptEntryAddrs[2] := $9920;
   GameVars.scriptEntryAddrs[3] := $9940;
@@ -54,6 +57,7 @@ begin
   TestKit.CheckEqualsL(EvtKind.KIND_TREASURE, EvtKind.Kind(10), 'a counted copy, less 10: treasure');
   TestKit.CheckEqualsL(EvtKind.KIND_EVENT, EvtKind.Kind(5), 'no dispatch found: an event');
   TestKit.CheckEqualsL(EvtKind.KIND_EVENT, EvtKind.Kind(11), 'a variable written over no longer holds the event');
+  TestKit.CheckEqualsL(EvtKind.KIND_FIGHT, EvtKind.Kind(12), 'an IF as the one instruction: the one it guards');
   { the answers are kept until the next Prepare (#692): 9's code made a message, PRINT ""; EXIT }
   Put($A030, #$11#$80#$00#$00);
   TestKit.CheckEqualsL(EvtKind.KIND_FIGHT, EvtKind.Kind(9), 'an answer kept until Prepare');

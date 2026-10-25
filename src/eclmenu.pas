@@ -20,8 +20,9 @@ var
     clears it }
   protTextShown: Byte;
 
-{ Reset ECL state, read the five script entry addresses from the header at $9900 and, unless a saved game was just
-  loaded, zero GBVM $4A00..$4A1F and $6E79..$6E82 }
+{ Reset ECL state, read the script entry addresses (C_ECL.ENTRY_*) from the header at the script's start
+  (C_GBVM.SCRIPT_FIRST) and, unless a saved game was just loaded, zero the area's cells (C_GBVM.AREA_CELLS_FIRST..LAST
+  and AREA_TEMPS_FIRST..LAST) }
 procedure EclInit;
 
 { Load ECL script block scriptId from ECL<disk>.dax; a block missing from that disk is taken from the first disk that
@@ -48,11 +49,6 @@ procedure DisplayMonster(sprId, picId, dist: Byte; var flags: Types.TMonFlags);
   hotkey, 0 for Enter (only when enterOk) and 255 for a letter or digit that is not a hotkey }
 function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
 
-{ ECL vertical menu -- thin wrapper over MenuCore.MenuVertical (result char discarded) }
-procedure EclVerticalMenu(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol,
-                          lrRow: ShortInt; list: Types.PItemRec; addExit: Boolean; var redraw: Boolean;
-                          var idx: Integer; var sel: Types.PItemRec);
-
 { Set the six comparison flags from s1 and s2. }
 procedure EclCompareStr(s1, s2: String);
 
@@ -65,7 +61,8 @@ procedure EclGosub(varIdx: Byte);
   clone }
 procedure CharFightsAlone(mirror: ShortInt);
 
-{ Script CALL $C01E: step the party forward one cell with 0..15 wraparound, then refresh the event and wall bytes }
+{ Script CALL C_GBVM.CALL_MOVE_FORWARD: step the party forward one cell with 0..15 wraparound, then refresh the event
+  and wall bytes }
 procedure EclMoveForward;
 
 { Scale all 7 coin slots by fraction, truncating }
@@ -93,7 +90,7 @@ procedure AddCreatureToParty(id: Byte);
 
 implementation
 
-uses Crt, C_AREA, C_NPC, C_MSG, GameVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
+uses Crt, C_AREA, C_ECL, C_NPC, C_MSG, GameVars, MapView, SaveLoad, C_EFFECT, C_KEYS, C_STATUS, C_GBVM, C_DIR,
   C_MONEY, CharHlp, DaxIo, FxEngine, GameIo, MapTiles, MenuCore, Portrait, TextRend, View3D, EclVars, CharDisp, Party,
   C_RACE, C_LEVEL, GameDefs, StrUtil, Dice, DiskRec{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -115,8 +112,7 @@ begin
   GameVars.picRegionW := True;
   FillChar(monsterFlags, SizeOf(monsterFlags), 0);
   gIconAnim := MapTiles.FIRST_MONSTER_ICON;
-  GameVars.eclIp := $9900;
-  GameVars.breathAim := False;
+  GameVars.eclIp := C_GBVM.SCRIPT_FIRST;
   GameVars.eclStackTopPtr := nil;
   GameVars.eclStackSecondPtr := nil;
   FillChar(cmpFlags, SizeOf(cmpFlags), 0);
@@ -126,19 +122,17 @@ begin
   GameVars.zone1^[C_GBVM.REST_SAFE_TIME] := 0;
   GameVars.zone1^[C_GBVM.REST_INTERRUPT_PCT] := 0;
   GameVars.zone0^.antimagic := 0;
-  for i := 1 to 5 do begin
+  for i := 1 to C_ECL.ENTRY_COUNT do begin
     EclVars.LoadEclVars(1);
     GameVars.scriptEntryAddrs[i] := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
   end;
   { Select the 3D view (MapView treats view3dFlag <> 0 as location type 1) }
   GameVars.zone0^.view3dFlag := 1;
   if GameVars.loadedSave = 0 then begin
-    for i := 1 to 32 do
-      { GBVM $4A00..$4A1F }
-      GameVars.zone0^.words[i + $49FF] := 0;
-    for i := 0 to 9 do
-      { GBVM $6E79..$6E82 }
-      GameVars.zone1^[i + $6E79] := 0;
+    for i := C_GBVM.AREA_CELLS_FIRST to C_GBVM.AREA_CELLS_LAST do
+      GameVars.zone0^.words[i] := 0;
+    for i := C_GBVM.AREA_TEMPS_FIRST to C_GBVM.AREA_TEMPS_LAST do
+      GameVars.zone1^[i] := 0;
   end else
     GameVars.loadedSave := 0;
 end;
@@ -331,19 +325,6 @@ begin
   end;
 end;
 
-{ MenuToOptions edits menu; opts and MenuVertical's returned character are discarded }
-procedure EclVerticalMenu(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; ulCol, ulRow, lrCol,
-                          lrRow: ShortInt; list: Types.PItemRec; addExit: Boolean; var redraw: Boolean;
-                          var idx: Integer; var sel: Types.PItemRec);
-var
-  ch: Char;
-  opts: String;
-begin
-  StrUtil.MenuToOptions(menu, opts);
-  ch := MenuCore.MenuVertical(query, menu, qCol, mCol, hlCol, ulCol, ulRow, lrCol, lrRow, list, addExit, redraw, idx,
-                              sel);
-end;
-
 { Set each of the six comparison flags: equal, not equal, less, greater, less or equal, greater or equal }
 procedure EclCompareStr(s1, s2: String);
 begin
@@ -370,14 +351,9 @@ end;
 { Push IP on the ECL return stack, then jump to the address word in variable varIdx }
 procedure EclGosub(varIdx: Byte);
 begin
-  if GameVars.eclStackTopPtr = nil then begin
-    GetMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-    GameVars.eclStackTopPtr^.next := nil;
-  end else begin
-    GameVars.eclStackSecondPtr := GameVars.eclStackTopPtr;
-    GetMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-    GameVars.eclStackTopPtr^.next := GameVars.eclStackSecondPtr;
-  end;
+  GameVars.eclStackSecondPtr := GameVars.eclStackTopPtr;
+  GetMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
+  GameVars.eclStackTopPtr^.next := GameVars.eclStackSecondPtr;
   GameVars.eclStackTopPtr^.addr := GameVars.eclIp;
   GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[varIdx], GameVars.gbvmUpperByte[varIdx]);
 end;
@@ -551,15 +527,13 @@ begin
       C_RACE.DWARF, C_RACE.GNOME, C_RACE.HALFLING: iconSize := 1;
       C_RACE.ELF, C_RACE.HALFELF, C_RACE.HALFORC, C_RACE.HUMAN: iconSize := 2;
     end;
-    for i := 1 to 3 do begin
-      roll := Dice.RollDice(1, 6);
-      iconColors1[i] := roll + (roll + 8) shl 4;
-    end;
-    iconColors1[4] := $C4;
-    for i := 5 to 6 do begin
-      roll := Dice.RollDice(1, 6);
-      iconColors1[i] := roll + (roll + 8) shl 4;
-    end;
+    for i := 1 to 6 do
+      if i = 4 then
+        iconColors1[i] := $C4
+      else begin
+        roll := Dice.RollDice(1, 6);
+        iconColors1[i] := roll + (roll + 8) shl 4;
+      end;
   end;
   FreeMem(data, size);
   GameVars.suppressingInsertDiskFlag := True;
@@ -678,4 +652,5 @@ begin
   FillChar(monsterFlags, SizeOf(monsterFlags), 0);
   picDrawn := False;
   protTextShown := 0;
+  picIdShown := 0;
 end.

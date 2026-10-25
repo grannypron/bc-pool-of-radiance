@@ -3,6 +3,9 @@
   rolls uses this one under Free Pascal, after System, so its RandSeed, Random and Randomize are the ones it calls; the
   DOS build keeps System's, which these match (tests/ttprand.pas checks them against each other under Turbo Pascal). }
 {$I COMPILER.INC}
+{$IFDEF FPC}
+{$Q-,R-}
+{$ENDIF}
 unit TpRand;
 
 interface
@@ -21,8 +24,9 @@ implementation
 
 uses Dos;
 
-{ seed * 134775813 + 1, modulo 2^32, in 16-bit halves: Turbo Pascal's own way, which neither overflows a LongInt nor
-  needs a 64-bit type }
+{ seed * 134775813 + 1, modulo 2^32, in 16-bit halves: Turbo Pascal's own way, with no 64-bit type. The products can
+  pass MaxLongInt (lo * $8405 reaches $84047BFB); they wrap, with overflow and range checks off (Turbo Pascal 6 has
+  none; the unit turns Free Pascal's off), and only their low halves are kept, so the seed is exact. }
 procedure NextSeed;
 var
   lo, hi: Word;

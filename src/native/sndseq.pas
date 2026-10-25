@@ -57,7 +57,7 @@ procedure TraceTick;
 
 implementation
 
-uses SysUtils;
+uses SysUtils, C_SOUND;
 
 {$I SNDIMAGE.INC}
 
@@ -83,14 +83,8 @@ const
   CMD_SET = $FF;
   LAST_FLAG = $80;
   PITCH_MASK = $7F;
-  { the ports: PIT channel 2, the speaker's gate, the SN76489 }
-  PORT_PIT2 = $42;
-  PORT_GATE = $61;
-  PORT_TANDY = $C0;
   { the SN76489's latch bytes: full attenuation on each voice }
   TANDY_SILENCE: array[0..3] of Byte = ($9F, $BF, $DF, $FF);
-  { PIT channel 0 at 1193182 / 5041 Hz while hooked, in ticks per 1000 seconds, for the clock's ticks }
-  TICKS_PER_KILOSECOND = 236697;
 
 var
   { the driver's segment: the image at SND_ORG, the rest zero }
@@ -152,7 +146,7 @@ begin
       Inc(traceLen);
     end;
   end else begin
-    if port = PORT_GATE then
+    if port = C_SOUND.PORT_GATE then
       gate := value;
     if Assigned(PortWrite) then
       PortWrite(port, value);
@@ -400,13 +394,13 @@ begin
     if (outputOn <> 0) and (spkrVoice <> 0) then begin
       si := spkrVoice;
       ax := W(si + VF_OUT_PERIOD);
-      PortOut(PORT_PIT2, Lo(ax));
-      PortOut(PORT_PIT2, Hi(ax));
+      PortOut(C_SOUND.PORT_PIT2, Lo(ax));
+      PortOut(C_SOUND.PORT_PIT2, Hi(ax));
       { the low two bits are the 61h gate bits }
       bl := W(si + VF_LEVEL) and 3;
     end;
   end;
-  PortOut(PORT_GATE, (GateIn and $FC) or bl);
+  PortOut(C_SOUND.PORT_GATE, (GateIn and $FC) or bl);
 end;
 
 { tick_tandy: step the four Tandy voices, then write all four to the SN76489. dl walks the latch bytes 80h, 0A0h, 0C0h,
@@ -438,12 +432,12 @@ begin
         { the period shifted left 6: the low 4 period bits in AL and the high 6 in AH }
         ax := W(si + VF_OUT_PERIOD) shr 2;
         al := Lo(ax) shr 4;
-        PortOut(PORT_TANDY, al xor dl);
+        PortOut(C_SOUND.PORT_TANDY, al xor dl);
         if dl <> $E0 then
-          PortOut(PORT_TANDY, Hi(ax));
+          PortOut(C_SOUND.PORT_TANDY, Hi(ax));
         { the chip attenuates, so invert the level, and keep its top 4 bits }
         ax := Word($FFFF - W(si + VF_LEVEL));
-        PortOut(PORT_TANDY, Byte(((Hi(ax) shr 4) xor dl) + $10));
+        PortOut(C_SOUND.PORT_TANDY, Byte(((Hi(ax) shr 4) xor dl) + $10));
         dl := Byte(dl + $20);
         si := Word(si + VOICE_SIZE);
         Dec(voiceLeft);
@@ -452,7 +446,7 @@ begin
     end;
   end;
   for i := 0 to 3 do
-    PortOut(PORT_TANDY, TANDY_SILENCE[i]);
+    PortOut(C_SOUND.PORT_TANDY, TANDY_SILENCE[i]);
 end;
 
 { the configured device's tick (tickProc); the AdLib is not played natively, and ticks nothing }
@@ -483,7 +477,8 @@ var
 begin
   if Rendered or not hooked then
     Exit;
-  due := (GetTickCount64 - clockStart) * TICKS_PER_KILOSECOND div 1000000;
+  { the PIT's clocks in the milliseconds since, over the driver's divisor }
+  due := (GetTickCount64 - clockStart) * C_SOUND.PIT_HZ div (C_SOUND.TIMER_DIVISOR * 1000);
   while clockRun < due do begin
     Inc(clockRun);
     Tick;
@@ -548,10 +543,10 @@ begin
     hooked := False;
     saved := tracing;
     tracing := False;
-    PortOut(PORT_GATE, gate and $FC);
+    PortOut(C_SOUND.PORT_GATE, gate and $FC);
     if device = DEV_TANDY then
       for i := 0 to 3 do
-        PortOut(PORT_TANDY, TANDY_SILENCE[i]);
+        PortOut(C_SOUND.PORT_TANDY, TANDY_SILENCE[i]);
     tracing := saved;
   end;
   LeaveSeq;
@@ -594,7 +589,7 @@ begin
   if dev > DEV_ADLIB then
     dev := DEV_NONE;
   if (dev <> device) and (device = DEV_SPEAKER) then
-    PortOut(PORT_GATE, GateIn and $FC);
+    PortOut(C_SOUND.PORT_GATE, GateIn and $FC);
   device := dev;
   LeaveSeq;
 end;
