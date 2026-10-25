@@ -1076,10 +1076,12 @@ end;
 { Apply damage and update status. More than nine points of overkill kills; lesser overkill leaves the creature dying.
   Exactly zero hit points leaves it unconscious, except an animated creature dies. A creature that is no longer okay or
   animated is taken out of action, and in combat also out of its team count and the initiative order. A dead, stoned or
-  gone creature takes no damage, so a small hit on a corpse cannot turn it back into a dying one. }
+  gone creature takes no damage, so a small hit on a corpse cannot turn it back into a dying one. A creature already
+  dying in combat goes further below 0: the damage adds to the overkill it has bled to, so it dies once the total passes
+  nine, where SSI's started the count again from the new hit (POR-0222, #954). }
 procedure InflictDamage(creature: Types.PCharRecord; dmg: Byte);
 var
-  over: Byte;
+  over: Integer;
   remain: Byte;
   wasUp: Boolean;
   hpBefore: Byte;
@@ -1089,7 +1091,9 @@ begin
   hpBefore := creature^.hpCur;
   over := 0;
   remain := 0;
-  if creature^.hpCur >= dmg then
+  if (creature^.status = C_STATUS.DYING) and (GameVars.ifcState = C_IFC.COMBAT) then
+    over := creature^.combatAddr^.overkill + dmg
+  else if creature^.hpCur >= dmg then
     remain := creature^.hpCur - dmg
   else
     over := dmg - creature^.hpCur;

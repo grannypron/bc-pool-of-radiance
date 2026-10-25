@@ -4,7 +4,8 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
+uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, C_IFC, CharHlp, AbilAdj,
+  TestKit;
 
 var
   c: Types.PCharRecord;
@@ -19,6 +20,7 @@ var
   crs: array[1..4] of Types.TCharRecord;
   i: Byte;
   items: Types.PBaseItems;
+  cbt: Types.TCombatRec;
 
 procedure NewItem(itemType, n1, n2, n3: Byte; quantity: Byte; weight: Word);
 begin
@@ -338,6 +340,36 @@ begin
   TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[2]), 'team 1''s enemy is team 0');
   TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[3]), 'hostile 3 is on team 1, so its enemy is team 0');
   TestKit.CheckEqualsL(1, CharHlp.EnemyTeam(@crs[4]), 'hostile 2 is on team 0, so its enemy is team 1');
+
+  { InflictDamage on a dying creature in combat adds to its overkill (POR-0222, #954) }
+  GetMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
+  FillChar(GameVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
+  GameVars.curChar := nil;
+  GameVars.ifcState := C_IFC.COMBAT;
+  FillChar(cbt, SizeOf(cbt), 0);
+  ClearCreature;
+  c^.combatAddr := @cbt;
+  c^.status := C_STATUS.OKAY;
+  c^.enabled := 1;
+  c^.hostile := 1;
+  c^.hpCur := 5;
+  GameVars.teamCount[1] := 1;
+  CharHlp.InflictDamage(c, 8);
+  TestKit.Check(c^.status = C_STATUS.DYING, '3 below 0 is dying');
+  TestKit.CheckEqualsL(3, cbt.overkill, 'with overkill 3');
+  TestKit.CheckEqualsL(0, GameVars.teamCount[1], 'and out of its team''s count');
+  CharHlp.InflictDamage(c, 4);
+  TestKit.Check(c^.status = C_STATUS.DYING, 'hit again for 4: still dying');
+  TestKit.CheckEqualsL(7, cbt.overkill, 'its overkill 3 + 4, not 4');
+  TestKit.CheckEqualsL(0, GameVars.teamCount[1], 'counted out once only');
+  CharHlp.InflictDamage(c, 0);
+  TestKit.CheckEqualsL(7, cbt.overkill, 'a hit of 0 leaves it as it was');
+  TestKit.Check(c^.status = C_STATUS.DYING, 'and dying');
+  CharHlp.InflictDamage(c, 3);
+  TestKit.Check(c^.status = C_STATUS.DEAD, 'past 9 in all it dies');
+  GameVars.ifcState := C_IFC.INDOORS;
+  FreeMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
+  GameVars.zone1 := nil;
 
   { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
   New(items);
