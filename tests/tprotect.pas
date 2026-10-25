@@ -207,5 +207,20 @@ begin
   TestKit.CheckEqualsL(1, SaveBonus, 'a defender with hostile 2 is on side 0: +1');
   ClearEffects(ally);
   def^.hostile := 0;
+
+  { Protection's sides are teams too (2026-10-25 review): an attacker with hostile 2 is on side 0 }
+  att^.alignment := C_ALIGN.CHAOTIC_EVIL;
+  att^.hostile := 2;
+  FxEngine.AddEffect(def, C_EFFECT.PROT_EVIL, 10, 1, False);
+  TestKit.CheckEqualsL(0, SaveBonus, 'no protection against an evil attacker with hostile 2, on the defender''s side');
+  att^.hostile := 3;
+  TestKit.CheckEqualsL(2, SaveBonus, 'but against one with hostile 3, on the other');
+  ClearEffects(def);
+  att^.hostile := 1;
+  ally^.hostile := 2;
+  FxEngine.AddEffect(ally, C_EFFECT.PROT_EVIL_10FT, 0, 255, False);
+  TestKit.CheckEqualsL(2, SaveBonus, 'an ally with hostile 2 lends its aura');
+  ClearEffects(ally);
+  ally^.hostile := 0;
   TestKit.Done;
 end.
