@@ -40,6 +40,7 @@ uses {$IFDEF FPC}{$IFDEF UNIX}CThreads, {$ENDIF}SdlHost, SdlSound, {$ENDIF}Types
 {$O Explore}
 {$O Options}
 {$O CfgFile}
+{$O SfxFile}
 {$O LogView}
 {$O LogWrap}
 {$O JrnlList}
