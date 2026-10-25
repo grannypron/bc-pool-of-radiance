@@ -1,5 +1,5 @@
-{ Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws, thief skills, racial and class
-  ability limits, hit points and experience shares; and ClassCal.alignByClass' rows. }
+{ Tests for ClassCal: THAC0, attacks, spell slots and the Wisdom bonus, saving throws, thief skills, turning undead,
+  racial and class ability limits, hit points and experience shares; and ClassCal.alignByClass' rows. }
 {$I COMPILER.INC}
 program TClasCal;
 
@@ -572,6 +572,45 @@ begin
   TestKit.CheckEqualsL(5, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'Wisdom 12: 5%');
   c^.wisCur := 13;
   TestKit.CheckEqualsL(0, ClassCal.SpellFailureChance(c, C_SPELL.BLESS), 'Wisdom 13: none');
+
+  { turning undead: the table combat and the More Info Cleric page read (#904) }
+  TestKit.CheckEqualsL(10, ClassCal.TurnValue(1, 1), 'a level 1 cleric turns skeletons on 10');
+  TestKit.CheckEqualsL(ClassCal.TURN_IMMUNE, ClassCal.TurnValue(10, 1), 'but not vampires');
+  TestKit.CheckEqualsL(0, ClassCal.TurnValue(1, 6), 'level 6 destroys skeletons automatically');
+  TestKit.CheckEqualsL(1, ClassCal.TurnValue(4, 6), 'and turns shadows automatically');
+  TestKit.CheckEqualsL(4, ClassCal.TurnValue(5, 6), 'wights on 4');
+  TestKit.CheckEqualsL(20, ClassCal.TurnValue(10, 6), 'vampires on 20');
+  TestKit.CheckEqualsL(-1, ClassCal.TurnValue(1, 8), 'level 8 destroys skeletons, extending its attempts');
+  TestKit.CheckEqualsL(7, ClassCal.TurnValue(9, 9), 'levels 9..13 share a column: 9 turns spectres on 7');
+  TestKit.CheckEqualsL(7, ClassCal.TurnValue(9, 13), 'and so does 13');
+  TestKit.CheckEqualsL(1, ClassCal.TurnValue(9, 14), '14 and up the last: spectres automatically');
+  TestKit.CheckEqualsL(4, ClassCal.TurnValue(10, 30), 'vampires on 4');
+  TestKit.CheckEqualsL(4, ClassCal.TurnValue(12, 14), 'undead above level 10 read the vampire row');
+  TestKit.CheckEqualsL(ClassCal.TURN_IMMUNE, ClassCal.TurnValue(1, 0), 'level 0 turns nothing');
+  TestKit.CheckEqualsL(ClassCal.TURN_IMMUNE, ClassCal.TurnValue(0, 6), 'and level 0 undead is none');
+  FillChar(c^, SizeOf(Types.TCharRecord), 0);
+  c^.race := C_RACE.HUMAN;
+  c^.charClass := C_CLASS.FIGHTER;
+  c^.classLevels[C_LEVEL.FIGHTER] := 9;
+  TestKit.CheckEqualsL(0, ClassCal.TurnLevel(c), 'a fighter does not turn');
+  c^.charClass := C_CLASS.CLERIC;
+  c^.classLevels[C_LEVEL.FIGHTER] := 0;
+  c^.classLevels[C_LEVEL.CLERIC] := 6;
+  TestKit.CheckEqualsL(6, ClassCal.TurnLevel(c), 'a cleric turns at its level');
+  c^.charClass := C_CLASS.PALADIN;
+  c^.classLevels[C_LEVEL.CLERIC] := 0;
+  c^.classLevels[C_LEVEL.PALADIN] := 2;
+  TestKit.CheckEqualsL(0, ClassCal.TurnLevel(c), 'a level 2 paladin does not');
+  c^.classLevels[C_LEVEL.PALADIN] := 3;
+  TestKit.CheckEqualsL(1, ClassCal.TurnLevel(c), 'a level 3 paladin turns as a level 1 cleric');
+  c^.charClass := C_CLASS.FIGHTER;
+  c^.classLevels[C_LEVEL.PALADIN] := 0;
+  c^.classLevels[C_LEVEL.CLERIC] := 5;
+  c^.classLevels[C_LEVEL.FIGHTER] := 3;
+  c^.portExt.formerClasses := C_LEVEL.CLERIC_BIT;
+  TestKit.CheckEqualsL(0, ClassCal.TurnLevel(c), 'a dual-class human''s resting cleric levels do not turn (#838)');
+  c^.classLevels[C_LEVEL.FIGHTER] := 6;
+  TestKit.CheckEqualsL(5, ClassCal.TurnLevel(c), 'until the fighter passes them');
 
   CheckAlignments;
 

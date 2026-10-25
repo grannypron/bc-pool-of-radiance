@@ -1,0 +1,49 @@
+POOLCFG (#876): Main menu
+
+ Pool of Radiance Setup                                       POOLCFG V1.3-1170
+
+               ╔══════════════════ Main Menu ═══════════════════╗
+               ║                                                ║
+               ║   Hardware        Video, sound, introduction   ║
+               ║   Game Settings   The Settings screen's list   ║
+               ║   Paths           Data and save folders        ║
+               ║                                                ║
+               ║   Save and Exit                                ║
+               ║   Exit Without Saving                          ║
+               ║                                                ║
+               ╚════════════════════════════════════════════════╝
+
+
+  ╔═════════════════════════════════ Files ══════════════════════════════════╗
+  ║ POOL.CFG     C:\POOLRAD\POOL.CFG             read                        ║
+  ║ POOLOPT.CFG  C:\POOLRAD\SAVE\POOLOPT.CFG    not found: defaults          ║
+  ║ Changes      none                                                        ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+
+
+
+
+ Enter Select   Esc Exit   F10 Save and Exit
+
+Color Key:
+    BACKGROUND          BLUE
+    TITLE BAR           BLACK ON CYAN (VERSION AT THE RIGHT)
+    FRAMES, BOX TITLES  WHITE ON BLUE
+    MENU ITEM           LIGHT GRAY ON BLUE, ITS HOT LETTER YELLOW
+    HIGHLIGHTED ITEM    BLACK ON CYAN (WHOLE ROW OF THE BOX)
+    ITEM DESCRIPTION    LIGHT CYAN ON BLUE
+    FILES BOX LABELS    LIGHT GRAY ON BLUE
+    FILES BOX STATE     LIGHT GREEN "read", YELLOW "not found: defaults" / "fixed", LIGHT RED "cannot read"
+    CHANGES             LIGHT GRAY "none", YELLOW the pages with changes
+    KEY LINE            BLACK ON LIGHT GRAY, EACH KEY NAME RED
+
+Command Key:
+    UP / DOWN           UP, DOWN (WRAPS), HOME, END
+    HARDWARE            H
+    GAME SETTINGS       G
+    PATHS               P
+    SAVE AND EXIT       S / F10
+    EXIT WITHOUT SAVING X
+    SELECT              ENTER
+    EXIT                ESC (ASKS FIRST WHEN THERE ARE CHANGES)

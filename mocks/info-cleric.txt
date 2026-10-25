@@ -1,0 +1,51 @@
++======================================+
+|                PC NAME               |
+|                                      |
+|             TURN UNDEAD              |
+|                                      |
+| CLERIC LEVEL                       6 |
+|                                      |
+| UNDEAD                        RESULT |
+| SKELETON                           D |
+| ZOMBIE                             D |
+| GHOUL                              T |
+| SHADOW                             T |
+| WIGHT                              4 |
+| GHAST                              7 |
+| WRAITH                            10 |
+| MUMMY                             13 |
+| SPECTRE                           16 |
+| VAMPIRE                           20 |
+|                                      |
+| D  DESTROYED AUTOMATICALLY           |
+| T  TURNED AUTOMATICALLY              |
+| #  MINIMUM D20 ROLL TO TURN          |
+|                                      |
++======================================+
+INFO: SAVES STATS KILLS THIEF CLER EXIT
+
+The Cleric page shows the character's effective cleric level and the result used against each kind of undead. The
+values are the game's turning table for that level: D destroys automatically, T turns automatically, and a number is
+the minimum result required on the turning roll. An unavailable result would be shown as a dash.
+
+CLER is used instead of CLERIC so that both class-information pages fit on the 40-column menu at once. THIEF appears
+only when the character has a usable thief level; CLER appears only when the character has a usable cleric level.
+
+Color Key:
+    PC NAME             CYAN
+    TURN UNDEAD         WHITE
+    CLERIC LEVEL        GREEN
+    LEVEL NUMBER        WHITE
+    COLUMN HEADING      WHITE
+    UNDEAD NAME         GREEN
+    TURN RESULT         WHITE
+    LEGEND              GREEN
+    INFO:               MAGENTA
+
+Command Key:
+    SAVES               S
+    STATS               T
+    KILLS               K
+    THIEF               H
+    CLER                 C
+    EXIT                 E
