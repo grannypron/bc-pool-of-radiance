@@ -1495,8 +1495,7 @@ begin
   end;
   SoundDrv.SoundSetAutoStop(0);
   SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.RANGED_START], C_SOUND.GROUP_RANGED);
-  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(att), CbtMap.CombatCellY(att), CbtMap.CombatCellX(def),
-                                  CbtMap.CombatCellY(def), frames, pace);
+  CharDisp.AnimateIconBetween(att, def, frames, pace);
   SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.RANGED_END], C_SOUND.GROUP_RANGED);
   SoundDrv.SoundSetAutoStop(10);
 end;
@@ -1714,10 +1713,10 @@ begin
       cx := 0;
     if cy < 0 then
       cy := 0;
-    if cx > 49 then
-      cx := 49;
-    if cy > 24 then
-      cy := 24;
+    if cx > Types.ARENA_LAST_X then
+      cx := Types.ARENA_LAST_X;
+    if cy > Types.ARENA_LAST_Y then
+      cy := Types.ARENA_LAST_Y;
     CbtMap.GetArenaContents(cx, cy, crIdx, terrIdx);
     valid := False;
     dist := 255;

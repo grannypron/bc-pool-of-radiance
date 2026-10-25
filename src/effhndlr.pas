@@ -428,14 +428,6 @@ begin
         Inc(GameVars.gAttackRoll);
 end;
 
-{ Draw combat sprite sprite moving from one creature's cell to another's, in frames frames at pace. }
-procedure AnimateBetween(from, dest: Types.PCharRecord; sprite, frames, pace: Byte);
-begin
-  CharDisp.BuildIconFacings(sprite);
-  CharDisp.CombatAnimateMovingIcon(CbtMap.CombatCellX(from), CbtMap.CombatCellY(from), CbtMap.CombatCellX(dest),
-                                  CbtMap.CombatCellY(dest), frames, pace);
-end;
-
 { True for a mirror: an item with a "Mirror" name component (C_ITEM.NAME_MIRROR), which turns back a gaze. }
 function IsMirror(item: Types.PItemRec): Boolean;
 begin
@@ -1411,14 +1403,14 @@ begin
   if not EffHndlr.PetrifyGazeReaches(creature, GameVars.otherCreatureCurrentPtr) then Exit;
   Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_PETRIFY);
   CharDisp.PrintNameString(creature, 'gazes...', 10, False);
-  EffHndlr.AnimateBetween(creature, GameVars.otherCreatureCurrentPtr, C_SPRITE.MISSILE, 4, 45);
+  CharDisp.AnimateBetween(creature, GameVars.otherCreatureCurrentPtr, C_SPRITE.MISSILE, 4, 45);
   if CharHlp.HasEffect(creature, C_EFFECT.GAZE_REFLECTABLE, effect) then begin
     reflected := False;
     item := GameVars.otherCreatureCurrentPtr^.itemsAddr;
     while (item <> nil) and not reflected do begin
       if (item^.equipped <> 0) and EffHndlr.IsMirror(item) then begin
         CharDisp.PrintNameString(GameVars.otherCreatureCurrentPtr, 'reflects it!', 12, False);
-        EffHndlr.AnimateBetween(GameVars.otherCreatureCurrentPtr, creature, C_SPRITE.MISSILE, 4, 45);
+        CharDisp.AnimateBetween(GameVars.otherCreatureCurrentPtr, creature, C_SPRITE.MISSILE, 4, 45);
         reflected := True;
         GameVars.otherCreatureCurrentPtr := creature;
       end;
@@ -1445,7 +1437,7 @@ begin
   if not EffHndlr.InSight(creature, target, GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
   Bestiary.Learn(creature, target, C_BEAST.ATK_CHARM);
-  EffHndlr.AnimateBetween(creature, target, C_SPRITE.MISSILE, 4, 45);
+  CharDisp.AnimateBetween(creature, target, C_SPRITE.MISSILE, 4, 45);
   FxEngine.AddEffectWithMessage(target, C_EFFECT.CHARM, 0, CharHlp.Team(creature) * 128 + 12, True, True,
                                 FxEngine.RollSavingThrow(target, C_SAVE.SPELL, -2), 'is charmed');
   if CharHlp.HasEffect(target, C_EFFECT.CHARM, effect) then
@@ -1978,7 +1970,7 @@ begin
   if CbtMap.CalcDistance(creature, GameVars.otherCreatureCurrentPtr) >= 4 then Exit;
   if CharHlp.EndActions(creature) then ;
   CharDisp.PrintNameString(creature, 'Spits Acid', 10, True);
-  EffHndlr.AnimateBetween(creature, GameVars.otherCreatureCurrentPtr, C_SPRITE.BURST, 1, 30);
+  CharDisp.AnimateBetween(creature, GameVars.otherCreatureCurrentPtr, C_SPRITE.BURST, 1, 30);
   { acid, set before the save, whose effects read it too: SSI left the type of the last damage dealt (#721) }
   GameVars.elementMask := C_EFFECT.ELEM_ACID;
   FxEngine.InflictNonWeaponDamage(GameVars.otherCreatureCurrentPtr, Dice.RollDamageDice(8, 4), 2,
