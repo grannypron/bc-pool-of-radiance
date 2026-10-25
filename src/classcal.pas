@@ -413,7 +413,7 @@ begin
     case cls of
       C_LEVEL.CLERIC: ClassCal.KnowClericSpells(creature);
       C_LEVEL.MAGE: begin
-          spellsKnown[C_SPELL.DETECT_MAGIC] := 1;
+          spellsKnown[C_SPELL.DETECT_MAGIC_MU] := 1;
           spellsKnown[C_SPELL.READ_MAGIC] := 1;
           spellsKnown[C_SPELL.SHIELD] := 1;
           spellsKnown[C_SPELL.SLEEP] := 1;

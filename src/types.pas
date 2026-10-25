@@ -18,6 +18,11 @@ const
   { the most creatures in play at once, party and monsters: combat's slots (GameVars.creatureArr, arenaLoc and the
     target lists) and the creature list's ordinals }
   ARENA_SLOTS = 72;
+  { the combat arena's last column and row (TArena.cells): 50 cells by 25 }
+  ARENA_LAST_X = 49;
+  ARENA_LAST_Y = 24;
+  { the most party corpses the arena keeps (GameVars.downed) }
+  DOWNED_SLOTS = 8;
   { the data disks the game shipped on, 1..LAST_DISK }
   LAST_DISK = 8;
   { a 3D map's last row and column: maps are 16 by 16 }
@@ -409,6 +414,12 @@ type
   end;
   { the creatures Pathing.BuildTargetList finds, nearest first (GameVars.targetList) }
   TTargetList = array[1..ARENA_SLOTS] of TCombatTarget;
+  { a copy of the target list and its count, which a caller that builds a list of its own puts back after it
+    (Pathing.SaveTargets, RestoreTargets) }
+  TTargetSnapshot = record
+    list: TTargetList;
+    count: Byte;
+  end;
   TIconCoordinateDelta = record
     { cell X offset; negative marks an absent footprint cell }
     dx: ShortInt;
@@ -720,7 +731,7 @@ type
     { line-walk distance mode (Pathing.WalkLine) }
     distMode: Byte;
     { terrain-info indices }
-    cells: array[0..24, 0..49] of Byte;
+    cells: array[0..ARENA_LAST_Y, 0..ARENA_LAST_X] of Byte;
   end;
 
   { CharHlp types. }

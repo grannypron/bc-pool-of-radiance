@@ -41,6 +41,10 @@ const
   SUMMARY_ROW = 22;
   MEMORIZE_LIST_BOTTOM = 16;
   SLOTS_TOP = 18;
+  { Detect Magic, the cleric's and the magic-user's: the loot menu's Detect }
+  DETECT_MAGIC_CLERIC = 5;
+  DETECT_MAGIC_MU = 11;
+  DETECT_MAGIC = [DETECT_MAGIC_CLERIC, DETECT_MAGIC_MU];
   { spellFns[3] = CureLightWoundsHandler; the cure-targeting special case in the AI + manual cast paths }
   CURE_LIGHT_WOUNDS = 3;
   { spellFns[1] = BlessHandler; Bless spares a creature already in melee in combat }
@@ -59,8 +63,7 @@ const
   HOLD_PERSON = 23;
   { the magic-user's Charm Person, which a charming gaze applies }
   CHARM_PERSON = 10;
-  { a first-level magic-user's spells besides Sleep (ClassCal.StartCasterClass) }
-  DETECT_MAGIC = 11;
+  { a first-level magic-user's spells besides Sleep (ClassCal.StartCasterClass), with DETECT_MAGIC_MU }
   READ_MAGIC = 18;
   SHIELD = 19;
   { the spells whose durations CharHlp.SpellDuration rolls: Cause Disease, and the item spells Potion of Speed, Giant

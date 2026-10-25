@@ -44,6 +44,7 @@
 - In the Companion's character editor, changing a cleric's Wisdom now gives the right number of spells at any level. Before, a cleric above first level lost first-level spells and gained an extra second-level spell with each key. Lowering a level there no longer leaves the experience below zero.
 - A new multi-class character now starts at the oldest age of its classes, as the Dungeon Master's Guide has it. A gnome, halfling or half-elf fighter/thief used to start younger, and missed the Strength and Wisdom a mature character gains. A new human magic-user's age is 24 plus 2d8, as in the Guide.
 - Changing the settings or turning on free training at the party menu no longer makes Exit to DOS ask you to save a party you have just saved.
+- The native version no longer quits as the first fight of a session begins.
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.
