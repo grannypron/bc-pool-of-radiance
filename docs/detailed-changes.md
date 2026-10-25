@@ -597,6 +597,16 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **A game, new or loaded, starts with no monsters.** EclVm's monster state (`creatureCnt`, `monstersOn`, `monId`, `monPicId`) was reset only by CLEAR MONSTERS, SETUP MONSTER and, since #826, at startup, so a new game or a load kept what the last area set up: a script that loaded monsters without CLEAR MONSTERS first started from the old count, and fewer kinds loaded before the cap. `EclVm.ForgetMonsters` clears all four at startup and at the start of every `GameLoop`, which every new game and every load (main menu, training hall, quick load) runs. #829.
 
+**DataArc, the archives' names (2026-10-25 review).** The game's disk count was a private `SOURCE_DISKS = 8` in DataArc, DataBld and BldShow, a literal 8 in `DaxIo.SourcesMatch`, `FamilyUsable` and `Options.CountMerged`, and `['1'..'8']` in `DataArc.MatchFamily`; all use `Types.LAST_DISK`. A per-disk archive's file name, built by hand as `SourceName + '.DAX'` in DaxIo, BldShow, Options and Sage and by DataBld's own `SourceName`, is `DataArc.SourceFile`. TDataArc checks it. #963. 176376b.
+
+**DataBld (2026-10-25 review).** `DecodeRuns`, a copy of `DaxIo.DecompressDax`, is gone: `PatchBlock` decodes a block to fix with DaxIo's decoder. The 36000-byte packed-block limit at which `LoadDax` ends the game is `C_DATA.PACKED_LIMIT`, and `MAX_LOADABLE` (35718) is computed from it. #961. d258374.
+
+**DaxIo (2026-10-25 review).** `LoadDax` read a directory entry before asking whether one was left, so an archive with an empty directory, or one that is not a whole number of 9-byte entries, had its first data bytes taken for an entry, whose id could match and whose packed size could end the game with 'tempsize'; it now reads only whole entries inside the directory, each as one `DataArc.TDirEntry`. `DataDiskMsg` builds its line from the disk number instead of eight typed-constant lines (240 bytes of the data segment) and names no disk for a `virtualDisk` outside 1..8. `FileExists` answers False for an empty name without opening standard input. The single-pass `SanitizeString` is left for a decision (POR-0224, #960). SSI's code. #962. d5e6002.
+
+**DataPat (2026-10-25 review).** Every part was checked against the shipped v1.3 archives in table order (sizes, offsets, original bytes) and each of the 452 instruction comments decoded from its bytes; all agree but #868's Slums part, whose comments gave the GOSUB's operand address ($A757) for the GOSUB's ($A755). Comments only; the bytes and `C_DATA.VERSION` are unchanged. The table's 3,564 bytes of typed constants in the data segment are left for a decision. #964. 9dcb2f5.
+
+**DiskRec (2026-10-25 review).** `FindPointers` and `CHAR_POINTERS` count the equipped-item pointers from `C_EQUIP.WEAPON..BOLT` rather than 0..12 and 17. TDiskRec checks the count. #965. c93e4be.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.
