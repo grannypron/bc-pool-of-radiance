@@ -153,7 +153,7 @@ begin
     ClearRect := VidVga.ClearRect;
     ClearScreen := VidVga.ClearScreen;
     WriteChar := VidVga.WriteChar;
-    ExpandFrames := PicVga.ExpandFrames;
+    ExpandChunk := PicVga.ExpandChunk;
     MirrorFrame := PicVga.MirrorFrame;
     RemapColour := PicVga.RemapColour;
     RecolorFrame := PicVga.RecolorFrame;

@@ -1,6 +1,7 @@
-{ Tests for FileUtil: a record written and read back, the size check, a read-only file, erasing (DeleteChecked
-  saying whether the file is gone), the temporary copy put in place only when whole, a set of files put in place all or
-  none (CommitSet), a commit ended part way undone or finished (RecoverSet), and DOS device names. }
+{ Tests for FileUtil: a record written and read back, the size check, a read-only file, a file opened with an I/O error
+  pending, erasing (DeleteChecked saying whether the file is gone), the temporary copy and backup names, the copy put in
+  place only when whole, a set of files put in place all or none (CommitSet), a commit ended part way undone or
+  finished (RecoverSet), and DOS device names. }
 {$I COMPILER.INC}
 program TFileUtl;
 
@@ -168,6 +169,13 @@ begin
   TestKit.CheckEqualsS(TEMP, FileUtil.TempName(NAME), 'the copy''s name ends in $');
   TestKit.Check(WriteOne(NAME, r, SizeOf(r)), 'a record writes again');
   TestKit.Check(not FileUtil.OpenReadOnly(f, TEMP), 'and leaves no copy behind');
+  TestKit.CheckEqualsS('TFU.TM%', FileUtil.BackupName(NAME), 'the backup''s name ends in %');
+  { an I/O error left pending (a missing file opened) does not make a file that is there read as missing }
+{$I-}
+  Assign(f, 'TFUZ.ZZZ');
+  Reset(f, 1);
+{$I+}
+  TestKit.Check(FileUtil.Exists(NAME), 'a file is there with an error pending');
   { a copy not whole is dropped, and the old file stays }
   TestKit.Check(FileUtil.RewriteTemp(f, NAME), 'a copy opens');
   ok := True;
