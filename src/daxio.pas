@@ -440,17 +440,17 @@ begin
   i := 0;
   while ok and (i < size) do begin
     d := Byte(data^[i]);
-    ok := (d >= 1) and (d <= 8);
+    ok := (d >= 1) and (d <= Types.LAST_DISK);
     if ok then begin
       Move(data^[i + 1], listed, SizeOf(listed));
       familyDisks[family] := familyDisks[family] or (1 shl (d - 1));
-      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(family, d) + '.DAX') = listed;
+      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceFile(family, d)) = listed;
     end;
     Inc(i, C_DATA.SOURCE_RECORD);
   end;
-  for d := 1 to 8 do
+  for d := 1 to Types.LAST_DISK do
     if ok and not DaxIo.DiskHasSource(family, d) then
-      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(family, d) + '.DAX') < 0;
+      ok := DataArc.FileLength(GameVars.gameDir + DataArc.SourceFile(family, d)) < 0;
   SourcesMatch := ok;
 end;
 
@@ -485,7 +485,7 @@ begin
         while (i + 2 < size) and (familyState[family] = 1) do begin
           { an entry naming no disk, or a reserved id on either side, is skipped: a load is never sent to the merged
             archive's own blocks }
-          if (Byte(data^[i]) in [1..8]) and (Byte(data^[i + 1]) < C_DATA.SOURCES_BLOCK) and
+          if (Byte(data^[i]) in [1..Types.LAST_DISK]) and (Byte(data^[i + 1]) < C_DATA.SOURCES_BLOCK) and
               (Byte(data^[i + 2]) < C_DATA.SOURCES_BLOCK) then
             if remapCount = MAX_REMAPS then begin
               { more than the table holds: the family's entries are dropped and it reads its per-disk archives,

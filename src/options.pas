@@ -259,9 +259,9 @@ begin
       Inc(present);
     end else begin
       found := False;
-      for disk := 1 to 8 do
+      for disk := 1 to Types.LAST_DISK do
         if not found then
-          found := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX') >= 0;
+          found := DataArc.FileLength(GameVars.gameDir + DataArc.SourceFile(fam, disk)) >= 0;
       if found then
         Inc(present);
     end;

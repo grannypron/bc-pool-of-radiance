@@ -33,8 +33,6 @@ const
   MAX_REMAPS = C_DATA.FAMILY_REMAPS;
   { bytes moved per read when copying, comparing or checksumming }
   CHUNK_SIZE = 4096;
-  { per-disk archives are numbered 1 to SOURCE_DISKS }
-  SOURCE_DISKS = 8;
   { the most bytes one literal run of a packed block holds }
   RUN_SIZE = 127;
   { the largest block packed into memory: its literal runs must fit in one heap block }
@@ -46,7 +44,7 @@ const
     packed larger than before, the disk's cluster rounding and the log }
   ROOM_MARGIN = 65536;
   { the most bytes the sources block holds }
-  SOURCES_SIZE = SOURCE_DISKS * C_DATA.SOURCE_RECORD;
+  SOURCES_SIZE = Types.LAST_DISK * C_DATA.SOURCE_RECORD;
   { the version block: C_DATA.VERSION and a CRC-32, packed as one literal run }
   VERSION_RAW = 5;
   VERSION_PACKED = 6;
@@ -252,12 +250,6 @@ begin
   CrcOfFile := ok;
 end;
 
-{ The file name of the family's per-disk archive of disk. }
-function SourceName(fam, disk: Byte): Types.TStr20;
-begin
-  SourceName := DataArc.SourceName(fam, disk) + '.DAX';
-end;
-
 { The path of the file called name in the game folder. }
 function GamePath(name: Types.TStr20): Types.TPathStr;
 begin
@@ -281,9 +273,9 @@ var
   found: Boolean;
 begin
   found := DataArc.FileLength(DataBld.GamePath(DataArc.MergedName(fam) + '.DAX')) >= 0;
-  for disk := 1 to SOURCE_DISKS do
+  for disk := 1 to Types.LAST_DISK do
     if not found then
-      found := DataArc.FileLength(DataBld.GamePath(DataBld.SourceName(fam, disk))) >= 0;
+      found := DataArc.FileLength(DataBld.GamePath(DataArc.SourceFile(fam, disk))) >= 0;
   HasFiles := found;
 end;
 
@@ -298,8 +290,8 @@ var
   free: LongInt;
 begin
   need := ROOM_MARGIN;
-  for disk := 1 to SOURCE_DISKS do begin
-    size := DataArc.FileLength(DataBld.GamePath(DataBld.SourceName(fam, disk)));
+  for disk := 1 to Types.LAST_DISK do begin
+    size := DataArc.FileLength(DataBld.GamePath(DataArc.SourceFile(fam, disk)));
     if size > 0 then
       Inc(need, size);
   end;
@@ -379,13 +371,13 @@ begin
   end;
   if not ok then
     if lastError <> 0 then
-      DataBld.Fail('reading ' + DataBld.SourceName(fam, disk) + ': DOS error ' + StrUtil.NumStr(lastError))
+      DataBld.Fail('reading ' + DataArc.SourceFile(fam, disk) + ': DOS error ' + StrUtil.NumStr(lastError))
     else
-      DataBld.Fail(DataBld.SourceName(fam, disk) + ' is damaged');
+      DataBld.Fail(DataArc.SourceFile(fam, disk) + ' is damaged');
   ReadSource := ok;
 end;
 
-{ Read the family's per-disk archives that are present, disks 1 to SOURCE_DISKS. False, with failNote set, when one
+{ Read the family's per-disk archives that are present, disks 1 to Types.LAST_DISK. False, with failNote set, when one
   cannot be read or is damaged. }
 function ReadSources(fam: Byte): Boolean;
 var
@@ -396,12 +388,12 @@ begin
   sourceCount := 0;
   sourceListLen := 0;
   ok := True;
-  for disk := 1 to SOURCE_DISKS do
+  for disk := 1 to Types.LAST_DISK do
     if ok then begin
-      Assign(f, DataBld.GamePath(DataBld.SourceName(fam, disk)));
+      Assign(f, DataBld.GamePath(DataArc.SourceFile(fam, disk)));
       Reset(f, 1);
       if IOResult = 0 then begin
-        DataBld.Progress(archiveName + '.DAX: reading ' + DataBld.SourceName(fam, disk));
+        DataBld.Progress(archiveName + '.DAX: reading ' + DataArc.SourceFile(fam, disk));
         BldShow.Reading(fam, disk);
         ok := DataBld.ReadSource(f, fam, disk);
         Close(f);
@@ -428,10 +420,10 @@ begin
   same := (a.packedSize = b.packedSize) and (a.rawSize = b.rawSize);
   if same then begin
     lastError := 0;
-    Assign(fa, DataBld.GamePath(DataBld.SourceName(fam, a.disk)));
+    Assign(fa, DataBld.GamePath(DataArc.SourceFile(fam, a.disk)));
     Reset(fa, 1);
     if DataBld.IoOk then begin
-      Assign(fb, DataBld.GamePath(DataBld.SourceName(fam, b.disk)));
+      Assign(fb, DataBld.GamePath(DataArc.SourceFile(fam, b.disk)));
       Reset(fb, 1);
       if DataBld.IoOk then begin
         left := a.packedSize;
@@ -459,7 +451,7 @@ begin
     end;
     n := IOResult;
     if lastError <> 0 then begin
-      DataBld.Fail('comparing ' + DataBld.SourceName(fam, b.disk) + ': DOS error ' + StrUtil.NumStr(lastError));
+      DataBld.Fail('comparing ' + DataArc.SourceFile(fam, b.disk) + ': DOS error ' + StrUtil.NumStr(lastError));
       same := False;
     end;
   end;
@@ -619,7 +611,7 @@ begin
     BldShow.Advance(b.packedSize);
     ok := DataBld.IoOk;
   end else begin
-    Assign(src, DataBld.GamePath(DataBld.SourceName(fam, b.disk)));
+    Assign(src, DataBld.GamePath(DataArc.SourceFile(fam, b.disk)));
     Reset(src, 1);
     ok := DataBld.IoOk;
     if ok then begin
@@ -948,7 +940,7 @@ var
 begin
   disk := DataPat.parts[first].disk;
   id := DataPat.parts[first].id;
-  DataBld.Progress(archiveName + '.DAX: fixing ' + DataBld.SourceName(fam, disk) + ' block ' + StrUtil.NumStr(id));
+  DataBld.Progress(archiveName + '.DAX: fixing ' + DataArc.SourceFile(fam, disk) + ' block ' + StrUtil.NumStr(id));
   BldShow.Fixing(fam, disk);
   ok := True;
   fixed := False;
@@ -982,7 +974,7 @@ begin
     GetMem(spare, room);
     held := True;
     lastError := 0;
-    Assign(f, DataBld.GamePath(DataBld.SourceName(fam, blocks^[target].disk)));
+    Assign(f, DataBld.GamePath(DataArc.SourceFile(fam, blocks^[target].disk)));
     Reset(f, 1);
     ok := DataBld.IoOk;
     if ok then begin
@@ -993,7 +985,7 @@ begin
     if ok then
       DataBld.DecodeRuns(packedBuf^, packedLen, raw^, rawLen)
     else
-      DataBld.Fail('reading ' + DataBld.SourceName(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
+      DataBld.Fail('reading ' + DataArc.SourceFile(fam, blocks^[target].disk) + ' for a fix: DOS error ' +
                    StrUtil.NumStr(lastError));
     FreeMem(packedBuf, packedLen);
   end;

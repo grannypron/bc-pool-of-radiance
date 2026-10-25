@@ -85,7 +85,7 @@ begin
         id := 0;
         repeat
           found := (DaxIo.RemapId(C_DATA.FAMILY_MONCHA, disk, id) = m) and
-                   DataArc.HasBlock(GameVars.gameDir + DataArc.SourceName(C_DATA.FAMILY_MONCHA, disk) + '.DAX', id);
+                   DataArc.HasBlock(GameVars.gameDir + DataArc.SourceFile(C_DATA.FAMILY_MONCHA, disk), id);
           if not found then
             Inc(id);
         until found or (id = C_DATA.SOURCES_BLOCK);
