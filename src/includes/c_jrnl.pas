@@ -16,6 +16,9 @@ const
   PART3_LAST = 67;
   { Columns of the Journal pane the text is wrapped to }
   JOURNAL_WIDTH = 27;
+  { The list's parts: proclamations 1..LAST_PROCLAMATION, journal entries to LAST_ENTRY, tavern tales the rest }
+  LAST_PROCLAMATION = 18;
+  LAST_ENTRY = 76;
   { Kinds of Journal item; KIND_NONE answers for an index outside the list }
   KIND_NONE = 0;
   KIND_PROCLAMATION = 1;

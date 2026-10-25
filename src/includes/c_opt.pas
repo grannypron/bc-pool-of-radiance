@@ -30,6 +30,8 @@ const
   INTRO_SHORT = 'N';
   { POOL.CFG's lines: video, sound, data path, save path, introduction }
   CFG_LINES = 5;
+  { the most lines after the fifth that a POOL.CFG read keeps, for a write to put back }
+  CFG_EXTRA_LINES = 4;
   { the longest file name the game appends to a path (WALLDEF1.DAX), and so the longest path START takes: a path and
     that name fit a DOS path of 79 characters }
   LONGEST_NAME = 12;

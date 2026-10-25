@@ -241,6 +241,8 @@ var
   i: Byte;
   w: Word;
   isAddr3: Boolean;
+  { the opcode an IF guards, decoded only to find the address past it }
+  guarded: Byte;
 
   procedure Follow(t: Word; l: Byte);
   var
@@ -295,7 +297,7 @@ begin
             end;
           end;
       C_ECL.IF_EQ..C_ECL.IF_GE: begin
-            op := Decode(next, afterIf);
+            guarded := Decode(next, afterIf);
             Follow(afterIf, live);
           end;
       C_ECL.ADD, C_ECL.SUBTRACT: begin
@@ -354,13 +356,15 @@ var
   n: Byte;
   head: Word;
   eventBit: Byte;
+  { the opcode an IF guards, decoded only to find the address past it }
+  guarded: Byte;
 begin
   dispatchCount := 0;
   queueLen := 0;
   FillChar(kinds, SizeOf(kinds), UNKNOWN);
   New(visited);
   FillChar(visited^, SizeOf(TVisited), 0);
-  for i := 1 to 5 do
+  for i := 1 to C_ECL.ENTRY_COUNT do
     Push(GameVars.scriptEntryAddrs[i]);
   head := 1;
   while head <= queueLen do begin
@@ -384,7 +388,7 @@ begin
       C_ECL.IF_EQ..C_ECL.IF_GE: begin
             { the next instruction runs or is skipped }
             Push(next);
-            op := Decode(next, afterIf);
+            guarded := Decode(next, afterIf);
             Push(afterIf);
           end;
     else begin
@@ -414,7 +418,8 @@ end;
 
 { The kind of the code at a: its control flow followed (jumps, calls, both ways past an IF, every ON GOTO address) for
   at most MAX_FOLLOW instructions, each path ending at EXIT, RETURN or NEWECL; with single, the instruction at a alone
-  unless it is a GOTO or GOSUB. The strongest found wins: an area change, then a shop, temple or training hall (whose
+  unless it is a GOTO or GOSUB, and when it is an IF, the instruction that IF guards in its place (#953). The strongest
+  found wins: an area change, then a shop, temple or training hall (whose
   flag comes before the COMBAT that opens it), a fight, treasure, a trap, a message. }
 function KindAt(a: Word; single: Boolean): Byte;
 var
@@ -435,6 +440,10 @@ var
   sawTreasure: Boolean;
   sawTrap: Boolean;
   sawMessage: Boolean;
+  { with single, the one instruction that is the code's }
+  only: Word;
+  { the opcode an IF guards, decoded only to find the address past it }
+  guarded: Byte;
 
   procedure Follow(t: Word);
   var
@@ -455,6 +464,7 @@ begin
   sawTrap := False;
   sawMessage := False;
   todoLen := 0;
+  only := a;
   Follow(a);
   head := 1;
   while head <= todoLen do begin
@@ -490,12 +500,16 @@ begin
             if op = C_ECL.ONGOTO then
               next := 0;
           end;
-      C_ECL.IF_EQ..C_ECL.IF_GE: begin
-            op := Decode(next, afterIf);
-            Follow(afterIf);
-          end;
+      C_ECL.IF_EQ..C_ECL.IF_GE:
+        if single and (a = only) then
+          { the IF's own instruction is the code's; past it is not }
+          only := next
+        else begin
+          guarded := Decode(next, afterIf);
+          Follow(afterIf);
+        end;
     end;
-    if single and (head = 2) and not (op in [C_ECL.JUMP, C_ECL.GOSUB]) then
+    if single and (a = only) and not (op in [C_ECL.JUMP, C_ECL.GOSUB]) then
       next := 0;
     if next <> 0 then
       Follow(next);

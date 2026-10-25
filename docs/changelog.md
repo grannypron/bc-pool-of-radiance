@@ -29,7 +29,7 @@
 - The Companion Tools (F6, when turned on in Settings) open straight onto the area's map. Map and Notes are now one tool: Map puts a cursor on the map to write and clear your notes on squares. The map also draws much faster in areas with many event squares, such as the Temple of Bane.
 - The Settings screen now has three pages, chosen on the bottom line: Game, Paths and System. Game holds the settings, and each can now be turned off on its own: monster and character portraits under Portraits, the title and battle music under Music, and under Sound the footsteps, ranged weapons, melee attacks, the death scream and walking into a wall. Paths shows where Pool of Radiance's data and saves are, with places for Curse of the Azure Bonds, Secret of the Silver Blades and Pools of Darkness that a configuration program will set later. System shows the video and sound device, the game, data and memory details, and whether the overlays are in EMS.
 - Spell sounds can now be turned off on their own in Settings: Spell Effects, under Sound, silences spells being cast and the flash and damage of their effects, while the other sounds play on.
-- The character screen shows the attacks a round the character's classes give (Att/Rnd), under Damage: 1, or 3/2 for a fighter of 7th level or more.
+- The character screen shows the attacks a round the character's classes give (Att/Rd), under Damage: 1, or 3/2 for a fighter of 7th level or more.
 - A spell memorized more than once now shows once, with how many copies are memorized after it ("Bless (x3)"), on the Cast list, the Spells in Memory list and the Memorize screen's list of spells still to be memorized. Spells on scrolls show once on the Cast list too, counted across all your scrolls, and casting one uses up the scroll with the fewest spells left on it first.
 - F1 on the map or in camp shows the command keys on a full screen of their own, framed as the Quests page is: F5 and F8 (quick save and load) on the map, F6 while the Companion Tools are on, F7 (the combat log, in combat only) while the Combat Log is on, and, set apart below the function keys, Ctrl-S to turn the sound on or off. Escape or Exit closes it.
 - When adding bracers with the Companion's character editor, Left and Right now choose Bracers of AC 6, 4 or 2, as they choose a weapon's plus; before, the AC was whatever was rolled.
@@ -40,6 +40,19 @@
 
 ### Fixes
 
+- A Sound Blaster with no AdLib on the card now plays the music on the PC speaker. Before, the music was silent.
+- A character whose name has two spaces or several periods in a row now saves under a proper file name. Before, "SIR  BOB" was saved with a space in its file name and "A....B" under a name DOS took for another file's.
+- Depositing a scroll in the vault that a character was going to scribe from now asks once. Before, a No asked again, and a Yes to the repeat offered to drop the scroll for good instead of depositing it.
+- In the Companion's character editor, changing a cleric's Wisdom now gives the right number of spells at any level. Before, a cleric above first level lost first-level spells and gained an extra second-level spell with each key. Lowering a level there no longer leaves the experience below zero.
+- A new multi-class character now starts at the oldest age of its classes, as the Dungeon Master's Guide has it. A gnome, halfling or half-elf fighter/thief used to start younger, and missed the Strength and Wisdom a mature character gains. A new human magic-user's age is 24 plus 2d8, as in the Guide.
+- Changing the settings or turning on free training at the party menu no longer makes Exit to DOS ask you to save a party you have just saved.
+- The native version no longer quits as the first fight of a session begins.
+- A combatant paralysed, held or put to sleep by the free attacks of the enemies it steps away from now stays where it is, and its turn ends. Before, it finished the step, and a monster could even attack afterwards.
+- A basilisk's or medusa's petrifying gaze now reaches only a character who is up, within 3 squares and in sight. Before, it could stone a dying character anywhere on the map, and on the monster's first turn it gazed at no one, which could crash the native game or corrupt memory under DOS.
+- A creature that saves against a Stinking Cloud, or resists it, is now unaffected. Before, a save still left it coughing, and a creature whose magic resistance refused the cloud coughed or retched all the same.
+- Magic resistance no longer stops acid, blood drain or the damage of poison and disease.
+- A paladin's protection aura and a cleric's Prayer end while their carrier is down or dead. Silence, 15' Radius stays where it was cast.
+- Damage from poison, disease and blood drain now says so, rather than "from Magic".
 - Stone to Flesh at a temple now calls for a system shock roll, as in the 1st-edition rules: the lower the character's Constitution, the likelier the character "DOESN'T SURVIVE THE TRANSFORMATION." and dies. The fee is spent either way.
 - The temple no longer takes your money for Cure Light, Serious or Critical Wounds on a character the cure cannot help (dead, turned to stone, or with mummy rot, or not wounded) without asking: it says why and asks whether to cast the cure anyway.
 - A random potion found as treasure is always a potion. Before, about one in eleven was a nameless item that did nothing.
@@ -149,6 +162,17 @@
 - A successful saving throw against Silence, 15' Radius now spares the target, as the rule book says. Before, the save was rolled and then ignored.
 - POOL.CFG's sound letter S means silent again, as SSI's data card says; the Sound Blaster is now B. A POOL.CFG set to S for the Sound Blaster now runs without sound until its second line is changed to B.
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
+- A full disk no longer cuts the list of saved characters short: the old list stays until a new one is written whole.
+- POOLCFG no longer accepts a default save folder too long for START when the game is installed in a deeply nested folder, no longer takes a folder typed again in other capitals for a change, and on Linux and macOS no longer loses an Escape pressed just before [ or O.
+- A Bestiary entry the fortune teller has told you all about now lists its defenses and attacks one to a line whenever they fit, rather than going to two columns a little early.
+- In the 64-bit native game, characters and monsters now make their attacks in combat. Before, the number of attacks was read from the wrong place, so most made none.
+- A dying creature hit again now sinks further toward death: the damage adds to what it has bled. Before, a second hit started its count again, taking it further from death.
+- A cleric or magic-user drained to 1st level now has 1st level's spell slots, and loses memorized spells it no longer has slots for. Before, it kept 2nd level's slots.
+- A half-orc cleric or thief now stops at the rule book's racial level limit: a cleric at 4 to 7 by Wisdom, a thief at 8 to 11 by Dexterity. Before, half-orcs had no limit.
+- The Companion Tools' character editor no longer holds a character above level 1 to fewer hit points than its Constitution gives it: the bonus now counts on every hit die, not once a class.
+- The spell page's descriptions of Curse and Sleep now match the spells: Curse affects foes already in melee, and Sleep never affects a level-5 creature that is not a monster.
+- Friends no longer leaves a lasting Charisma bonus when cast twice.
+- Every cure of disease now works the same way, and the temple's and a paladin's Cure Disease no longer end the nausea of a Stinking Cloud.
 
 ## Pool of Radiance port: October 2026 update
 

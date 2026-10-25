@@ -9,8 +9,10 @@ interface
 uses Types;
 
 const
+  { the last of randomItemTemplates, 1..TEMPLATE_LAST }
+  TEMPLATE_LAST = 19;
   { Random item templates }
-  randomItemTemplates: array[1..19] of Types.TRandomItemTemplate = (
+  randomItemTemplates: array[1..TEMPLATE_LAST] of Types.TRandomItemTemplate = (
     { Template 1: Potion of Extra Healing }
     (nameIds: (187, 167, 64); weight: 1; value: 800;
      properties: (3, 3, 0)),

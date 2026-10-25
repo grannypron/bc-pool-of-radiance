@@ -1,4 +1,5 @@
-{ Tests for Party: stepping the current character with SelectPrevNextChar, from a character and from none (#806). }
+{ Tests for Party: stepping the current character with SelectPrevNextChar, from a character and from none (#806),
+  and the creature before and after nil (#949). }
 {$I COMPILER.INC}
 program TParty;
 
@@ -51,6 +52,10 @@ begin
   GameVars.curChar := nil;
   Party.SelectPrevNextChar('1');
   TestKit.Check(GameVars.curChar = a, 'another key with no one selected takes the head');
+
+  { PrevCreature and NextCreature of nil: nil is the place after the last }
+  TestKit.Check(Party.PrevCreature(nil) = c, 'the creature before nil is the last');
+  TestKit.Check(Party.NextCreature(nil) = a, 'the creature after nil is the head');
 
   { an empty list leaves no one selected }
   GameVars.creatureList := nil;

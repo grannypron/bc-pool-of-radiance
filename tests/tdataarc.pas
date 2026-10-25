@@ -1,9 +1,9 @@
-{ Tests for DataArc's archive names: a family's per-disk and merged names, matching a file name back to its family and
-  disk in any case, and FileLength. }
+{ Tests for DataArc's archive names: a family's per-disk and merged names and files, matching a file name back to its
+  family and disk in any case, and FileLength. }
 {$I COMPILER.INC}
 program TDataArc;
 
-uses C_DATA, DataArc, StrUtil, TestKit;
+uses Types, C_DATA, DataArc, StrUtil, TestKit;
 
 var
   f: Byte;
@@ -22,11 +22,13 @@ begin
   TestKit.CheckEqualsS('', DataArc.SourceName(0, 1), 'no family 0');
   TestKit.CheckEqualsS('', DataArc.SourceName(C_DATA.FAMILY_ECL, 9), 'no disk 9');
   TestKit.CheckEqualsS('', DataArc.MergedName(C_DATA.FAMILIES + 1), 'no family past the last');
+  TestKit.CheckEqualsS('MON5CHA.DAX', DataArc.SourceFile(C_DATA.FAMILY_MONCHA, 5), 'the disk-5 archive''s file');
+  TestKit.CheckEqualsS('', DataArc.SourceFile(C_DATA.FAMILY_ECL, Types.LAST_DISK + 1), 'no file past the last disk');
 
   { every family's per-disk names match back to that family and disk, in upper and lower case }
   ok := True;
   for f := 1 to C_DATA.FAMILIES do
-    for d := 1 to 8 do begin
+    for d := 1 to Types.LAST_DISK do begin
       name := DataArc.SourceName(f, d);
       if name <> '' then begin
         disk := 0;

@@ -17,15 +17,17 @@ implementation
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameVars, Blit, TextRend, StrUtil{$IFNDEF FPC}, Overlay{$ENDIF};
 
 procedure ShowMemory;
+{ the native build has no overlays }
+{$IFNDEF FPC}
 var
   source: string[5];
+{$ENDIF}
 begin
+{$IFNDEF FPC}
   if GameVars.ovrInEms then
     source := 'EMS'
   else
     source := 'disk';
-  { the native build has no overlays }
-{$IFNDEF FPC}
   TextRend.DisplayAndPause(LightGreen, 'Overlay loads ' + StrUtil.NumStr(GameVars.ovrLoads));
   TextRend.DisplayAndPause(LightGreen, 'Ovr buffer ' + StrUtil.NumStr(OvrGetBuf) + ' retry ' +
                                        StrUtil.NumStr(OvrGetRetry) + ' from ' + source);

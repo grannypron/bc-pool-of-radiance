@@ -93,7 +93,7 @@ begin
     c := Temple.ConfirmCureAnyway('is not Diseased.');
   if c = 'Y' then
     if Temple.ConfirmCureCost('Cure Disease', 1000) = 'Y' then
-      FxEngine.RemoveDiseases(GameVars.curChar);
+      if FxEngine.RemoveDiseases(GameVars.curChar) then ;
 end;
 
 { Why a cure of wounds would do nothing for the current character, as FxEngine.RestoreHitPoints decides it: dead,
