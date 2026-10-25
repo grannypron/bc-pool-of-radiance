@@ -38,7 +38,7 @@
 
 ### Fixes
 
-- A monster's petrifying gaze on its first turn no longer reads a target that isn't there, which could crash the native game or corrupt memory under DOS.
+- A basilisk's or medusa's petrifying gaze now reaches only a character who is up, within 3 squares and in sight. Before, it could stone a dying character anywhere on the map, and on the monster's first turn it gazed at no one, which could crash the native game or corrupt memory under DOS.
 - A creature that saves against a Stinking Cloud, or resists it, is now unaffected. Before, a save still left it coughing, and a creature whose magic resistance refused the cloud coughed or retched all the same.
 - Magic resistance no longer stops acid, blood drain or the damage of poison and disease.
 - A paladin's protection aura and a cleric's Prayer end while their carrier is down or dead. Silence, 15' Radius stays where it was cast.
