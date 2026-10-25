@@ -151,7 +151,7 @@ end;
 
 function HasCharFile(name: String): Boolean;
 begin
-  HasCharFile := DaxIo.FileExists(SaveLoad.CharFileBase(name) + '.cha');
+  HasCharFile := FileUtil.Exists(SaveLoad.CharFileBase(name) + '.cha');
 end;
 
 { Nodes are TMenuNode-sized: the TItemRec prefix (name, inUse, next), not the full record. '* ' marks party members. }
@@ -165,7 +165,7 @@ var
 begin
   list := nil;
   SaveMenu.CheckSaveDir;
-  if not DaxIo.FileExists(GameVars.saveDirectory + 'charlist.txt') then Exit;
+  if not FileUtil.Exists(GameVars.saveDirectory + 'charlist.txt') then Exit;
   { an error still pending would make the Reset do nothing }
   ioRes := IOResult;
   Assign(f, GameVars.saveDirectory + 'charlist.txt');
@@ -478,7 +478,7 @@ begin
   if not whole then Exit;
   if (GameVars.quickEnds <> 0) and CharHlp.ComesUnderPlayer(creature) then
     creature^.quickfight := 0;
-  if DaxIo.FileExists(name + '.itm') then begin
+  if FileUtil.Exists(name + '.itm') then begin
     found := DaxIo.OpenWithRetry(name + '.itm', msg, False, False, f);
     item := nil;
     whole := found;
@@ -501,7 +501,7 @@ begin
     if found then
       Close(f);
   end;
-  if DaxIo.FileExists(name + '.spc') then begin
+  if FileUtil.Exists(name + '.spc') then begin
     found := DaxIo.OpenWithRetry(name + '.spc', msg, False, False, f);
     effect := nil;
     whole := found;
@@ -644,7 +644,7 @@ begin
   GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
     fn := SaveLoad.CharFileName(names[i]);
-    if DaxIo.FileExists(GameVars.saveDirectory + fn + '.sav') then begin
+    if FileUtil.Exists(GameVars.saveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
       { a short or unreadable .sav is left out, as a missing one is }
       if SaveLoad.LoadChar(fn, creature, True) then
@@ -886,7 +886,7 @@ var
   y: ShortInt;
   disk: Byte;
 begin
-  if DaxIo.FileExists(name) then Exit;
+  if FileUtil.Exists(name) then Exit;
   msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GameVars.virtualDisk);
   repeat
     ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);

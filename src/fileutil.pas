@@ -22,7 +22,8 @@ type
   LPT1..LPT3, CLOCK$): DOS opens the device for it, whatever the extension or directory, and makes no file. }
 function IsDeviceName(base: TPathName): Boolean;
 
-{ True when file name is there (it opens, read-only). }
+{ True when file name is there: it opens read-only (OpenReadOnly, so a read-only file counts) and closes clean. An empty
+  name is no file and is not opened: an unnamed file opens standard input (#962). }
 function Exists(name: TPathName): Boolean;
 
 { Erase file name; a missing file, or any other error, is ignored. }
@@ -141,14 +142,14 @@ end;
 function Exists(name: TPathName): Boolean;
 var
   f: file;
-  ioRes: Integer;
+  found: Boolean;
 begin
-  Exists := False;
-  if FileUtil.OpenReadOnly(f, name) then begin
+  found := (name <> '') and FileUtil.OpenReadOnly(f, name);
+  if found then begin
     Close(f);
-    ioRes := IOResult;
-    Exists := True;
+    found := IOResult = 0;
   end;
+  Exists := found;
 end;
 
 function DeleteChecked(name: TPathName): Boolean;

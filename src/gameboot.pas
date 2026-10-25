@@ -10,7 +10,7 @@ interface
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_OPT, CfgFile, GameVars, Crt, Dos,
-  {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, GameIo, CbtLog,
+  {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, FileUtil, GameIo, CbtLog,
   {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
   {$IFDEF FPC}, Host, NatFile{$ENDIF};
@@ -96,7 +96,7 @@ var
   c: CfgFile.TPoolCfg;
   notes: CfgFile.TCfgNotes;
 begin
-  if not DaxIo.FileExists(C_OPT.SETUP_NAME) or
+  if not FileUtil.Exists(C_OPT.SETUP_NAME) or
      (CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, c, notes) = CfgFile.CFG_READ) then Exit;
   { PSP offset 2: the segment past START's memory block }
   paras := MemW[PrefixSeg:2] - PrefixSeg;
@@ -161,7 +161,7 @@ begin
   CbtLog.Startup;
 {$IFNDEF FPC}
   GameBoot.RunSetup;
-  { a read-only POOL.CFG is there too (DaxIo.FileExists) }
+  { a read-only POOL.CFG is there too (FileUtil.Exists) }
   DaxIo.WaitForFile(C_OPT.CFG_NAME, 'Run POOLCFG to set up the game, or insert the startup disk.');
 {$ENDIF}
   CheckBreak := False;

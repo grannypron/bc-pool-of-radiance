@@ -52,8 +52,6 @@ function OpenWithRetry(fileName: Types.TPathStr; promptMsg: Types.TStr40; noProm
   (GameInit and the introduction clear it to read their files from the current directory, as SSI's startup disk). }
 function DataDrive: Char;
 
-function FileExists(name: Types.TPathStr): Boolean;
-
 function SanitizeFileName(name: string): Types.TStr40;
 
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
@@ -97,7 +95,8 @@ procedure PopState;
 
 implementation
 
-uses Crt, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil
+  {$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -189,7 +188,7 @@ begin
   DaxIo.WriteBlock(0, 24, Black, 40);
 end;
 
-{ I/O checking is off ($I-) across WaitForFile/OpenWithRetry/FileExists so IOResult is usable; it is back on ($I+) for
+{ I/O checking is off ($I-) across WaitForFile/OpenWithRetry so IOResult is usable; it is back on ($I+) for
   the rest of the unit }
 {$I-}
 
@@ -223,7 +222,7 @@ end;
 
 procedure WaitForFile(name: Types.TPathStr; diskMsg: string);
 begin
-  while not DaxIo.FileExists(name) do begin
+  while not FileUtil.Exists(name) do begin
     WriteLn('Not found: ', DaxIo.PathForLine(name, 68));
     WriteLn(diskMsg, ' (Esc quits)');
     { nothing is set up yet: no screen mode or sound to put back }
@@ -257,7 +256,7 @@ var
 begin
   gaveUp := False;
   repeat
-    found := DaxIo.FileExists(fileName);
+    found := FileUtil.Exists(fileName);
     if (not found) and not noPrompt then
       if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_KEYS.ESC then begin
         if escQuits then
@@ -268,21 +267,6 @@ begin
   if found then
     found := FileUtil.OpenReadOnly(f, fileName);
   OpenWithRetry := found;
-end;
-
-{ Open name for reading only (FileUtil.OpenReadOnly, so a read-only file counts), close it and report success: opened
-  and closed clean. An empty name is no file and is not opened: an unnamed file opens standard input (#962). }
-function FileExists(name: Types.TPathStr): Boolean;
-var
-  f: file;
-  found: Boolean;
-begin
-  found := (name <> '') and FileUtil.OpenReadOnly(f, name);
-  if found then begin
-    Close(f);
-    found := IOResult = 0;
-  end;
-  FileExists := found;
 end;
 
 {$I+}

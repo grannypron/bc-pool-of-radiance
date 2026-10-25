@@ -176,6 +176,7 @@ begin
   Reset(f, 1);
 {$I+}
   TestKit.Check(FileUtil.Exists(NAME), 'a file is there with an error pending');
+  TestKit.Check(not FileUtil.Exists(''), 'an empty name is no file, and standard input is not opened (#962)');
   { a copy not whole is dropped, and the old file stays }
   TestKit.Check(FileUtil.RewriteTemp(f, NAME), 'a copy opens');
   ok := True;
