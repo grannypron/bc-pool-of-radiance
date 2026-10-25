@@ -39,9 +39,10 @@ const
 { Whether table line n shows now, on a menu that takes F5 and F8 when quickKeys is set. }
 function LineShown(n: Byte; quickKeys: Boolean): Boolean;
 
-{ Clear the screen and show the Command Keys window at its top, framed as the Settings screen is and as tall as the
-  lines LineShown gives, until Exit or Escape on the 'Help:' line. quickKeys: the menu it was opened from takes F5 and
-  F8. The caller redraws its screen afterwards. }
+{ Clear the screen and show the Command Keys window full screen, framed as the Quests page and the Load/Save menu are: a
+  title box over a box to the bottom of the screen holding the lines LineShown gives, the function keys and then, after
+  a blank row, the Ctrl keys, until Exit or Escape on the 'Help:' line. quickKeys: the menu it was opened from takes F5
+  and F8. The caller redraws its screen afterwards. }
 procedure ShowKeys(quickKeys: Boolean);
 
 implementation
@@ -49,12 +50,14 @@ implementation
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, C_KEYS, C_SOUND, GameVars, TextRend, Border, MenuCore;
 
 const
-  { The window's frame and rows, as the Settings screen's: the title on TOP_ROW, a blank row, the lines from FIRST_ROW
-    and a blank row after them. Keys start at KEY_COL. }
+  { The window's frame and rows, as the Quests page's (#855): the title box on TITLE_ROW, the lines' box from LIST_TOP
+    to BOTTOM_ROW, and the lines from a blank row into it. Keys start at KEY_COL. }
   LEFT_COL = 1;
   RIGHT_COL = 38;
-  TOP_ROW = 1;
-  FIRST_ROW = TOP_ROW + 2;
+  TITLE_ROW = 1;
+  LIST_TOP = 3;
+  BOTTOM_ROW = 22;
+  FIRST_ROW = LIST_TOP + 1;
   KEY_COL = 2;
   TITLE_COLOR = White;
   KEY_COLOR = White;
@@ -75,24 +78,28 @@ end;
 procedure ShowKeys(quickKeys: Boolean);
 var
   n: Byte;
-  count: Byte;
   row: Byte;
+  { the first character of the last line shown: F for a function key, C for a Ctrl key }
+  group: Char;
   ch: Char;
   ext: Boolean;
   savedChoice: Byte;
 begin
   savedChoice := GameVars.horizChoice;
-  count := 0;
-  for n := 1 to KEY_LINES do
-    if KeyHelp.LineShown(n, quickKeys) then
-      Inc(count);
-  { the whole screen, as a window over the map's would run into its frames }
+  { the whole screen, as a window over the map's would run into its frames; the lines' box first, then the title's, so
+    the corners stay where the borders meet }
   Border.ClearBox(0, 0, 39, 23);
-  Border.DrawBorder(LEFT_COL, TOP_ROW, RIGHT_COL, FIRST_ROW + count, 0);
-  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TOP_ROW, TITLE_COLOR, 'Command Keys');
+  Border.DrawBorder(LEFT_COL, LIST_TOP, RIGHT_COL, BOTTOM_ROW, 0);
+  Border.DrawBorder(LEFT_COL, TITLE_ROW, RIGHT_COL, TITLE_ROW, 0);
+  TextRend.DisplayCentered(LEFT_COL, RIGHT_COL, TITLE_ROW, TITLE_COLOR, 'Command Keys');
   row := FIRST_ROW;
+  group := ' ';
   for n := 1 to KEY_LINES do
     if KeyHelp.LineShown(n, quickKeys) then begin
+      { a blank row between the function keys and the Ctrl keys }
+      if (group <> ' ') and (KEYS[n].key[1] <> group) then
+        Inc(row);
+      group := KEYS[n].key[1];
       TextRend.DisplayString(KEY_COL, row, KEY_COLOR, KEYS[n].key);
       TextRend.DisplayString(KEY_COL + Length(KEYS[n].key), row, LINE_COLOR, KEYS[n].what);
       Inc(row);

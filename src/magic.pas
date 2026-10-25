@@ -966,7 +966,7 @@ begin
         ok := False
       else if b or (MenuCore.YesNoMenu('Abort Spell? ', Yellow, LightGreen, White) = 'Y') then
       begin
-        CharDisp.PrintBottomLine('Spell Aborted');
+        CharDisp.PrintActionLine(GameVars.curChar, 'Spell Aborted', 'aborts the spell');
         if GameVars.usingItem = False then
           CharHlp.RemoveSpell(GameVars.curChar, spell);
         ok := False;
