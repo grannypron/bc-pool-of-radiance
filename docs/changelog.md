@@ -38,6 +38,7 @@
 
 ### Fixes
 
+- Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.
 - Monsters now strike the character they moved to attack. Before, they hit a random character within reach.
