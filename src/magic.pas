@@ -731,7 +731,7 @@ begin
     if memOk then
       for i := 0 to Types.SPELL_SLOT_LAST do begin
         id := creature^.memorizedSpells[i];
-        if (id >= 1) and (id <= C_SPELL.LAST) then
+        if CharHlp.IsSpell(id) then
           if GameDefs.spellTable[id].levelSp = lvl then
             Magic.AddMemorizedSpell(creature, i, lines);
       end;

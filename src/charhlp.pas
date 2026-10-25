@@ -212,6 +212,9 @@ function ItemReadable(it: Pointer): Boolean;
   cleric level with a cleric's scroll (base slot C_ITEM.SLOT_CLERIC_SCROLL), identifies it first. }
 function ScrollLegible(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 
+{ True when id is a named spell, 1..C_SPELL.LAST: one with a spellNames entry and its own spellTable row. }
+function IsSpell(id: Byte): Boolean;
+
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 
 { The spell Use casts from item: its effect, an effect past C_SPELL.LAST being item spell effect -
@@ -1544,6 +1547,11 @@ end;
 
 { The spell in item's spell slot (1..3), bit 7 ignored, or C_SPELL.NONE when the slot is out of range or holds no
   spell. }
+function IsSpell(id: Byte): Boolean;
+begin
+  IsSpell := (id >= 1) and (id <= C_SPELL.LAST);
+end;
+
 function ScrollSpellAt(item: Types.PItemRec; slot: Byte): Byte;
 var
   id: Byte;
@@ -1551,7 +1559,7 @@ begin
   ScrollSpellAt := C_SPELL.NONE;
   if (slot >= 1) and (slot <= SizeOf(item^.spells)) then begin
     id := item^.spells[slot] and C_SPELL.ID_MASK;
-    if (id >= 1) and (id <= C_SPELL.LAST) then
+    if CharHlp.IsSpell(id) then
       ScrollSpellAt := id;
   end;
 end;

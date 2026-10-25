@@ -1157,7 +1157,7 @@ begin
   AimSpellName := '';
   if spell = C_SPELL.ITEM_FIREBALL then
     spell := C_SPELL.FIREBALL;
-  if (spell >= 1) and (spell <= C_SPELL.LAST) then
+  if CharHlp.IsSpell(spell) then
     AimSpellName := GameDefs.spellNames[spell];
 end;
 
