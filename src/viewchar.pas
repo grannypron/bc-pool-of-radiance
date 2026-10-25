@@ -519,10 +519,10 @@ end;
 { The More Info page for the current character (#592, #685, #904): its bottom line, Info: Saves sTats Kills tHief Cler
   Exit, turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with a thief level it
   can use, Thief, and only for one that can turn undead (ClassCal.TurnLevel), Cler. "Info:" and "Cler" keep the line
-  within 40 columns when both class pages are offered. On
-  Kill Count, Up and Down scroll the list a row (two entries) at a time and Page Up and Page Down a page. The statistics
-  block is read when Stats or Kills is first chosen, since reading it makes one for the character, which a save then
-  writes. Exit or Escape returns to the character sheet, which the caller redraws. }
+  within 40 columns when both class pages are offered. On Kill Count, Up and Down scroll the list a row (two entries)
+  at a time and Page Up and Page Down a page. The statistics block is read when Stats or Kills is first chosen, since
+  reading it makes one for the character, which a save then writes. Exit or Escape returns to the character sheet,
+  which the caller redraws. }
 procedure MorePage;
 var
   p: Types.PCharRecord;
@@ -771,12 +771,9 @@ end;
 
 { STING's raw item viewer (V in the Items menu, #612), Curse's ViewItemDetail: the item's type, name ids, plus, save
   bonus, ready, identified mask, cursed, value, charges, effect and special, and its base type's large-creature damage
-  dice, until a key. The caller redraws the screen. }
+  dice, until a key. The caller redraws the screen. The labels are literals, in the overlay, rather than a typed
+  constant in the data segment (#973). }
 procedure ViewItemDetail(it: Types.PItemRec);
-const
-  labels: array[1..15] of string[13] = ('itemtype:', 'namenum(1):', 'namenum(2):', 'namenum(3):', 'plus:',
-    'plussave:', 'ready:', 'identified:', 'cursed:', 'value:', 'charges:', 'effect:', 'special:', 'dice large:',
-    'sides large:');
 var
   v: array[1..15] of LongInt;
   i: Byte;
@@ -802,9 +799,26 @@ begin
   TextRend.ClearScreen;
   Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
   for i := 1 to 15 do begin
-    Str(v[i], s);
-    TextRend.DisplayString(2, i + 1, LightGreen, labels[i]);
-    TextRend.DisplayString(20, i + 1, LightGreen, s);
+    case i of
+      1: s := 'itemtype:';
+      2: s := 'namenum(1):';
+      3: s := 'namenum(2):';
+      4: s := 'namenum(3):';
+      5: s := 'plus:';
+      6: s := 'plussave:';
+      7: s := 'ready:';
+      8: s := 'identified:';
+      9: s := 'cursed:';
+      10: s := 'value:';
+      11: s := 'charges:';
+      12: s := 'effect:';
+      13: s := 'special:';
+      14: s := 'dice large:';
+    else
+      s := 'sides large:';
+    end;
+    TextRend.DisplayString(2, i + 1, LightGreen, s);
+    TextRend.DisplayString(20, i + 1, LightGreen, StrUtil.NumStr(v[i]));
   end;
   TextRend.DisplayAndPause(LightGreen, 'press a key');
 end;
@@ -906,104 +920,103 @@ begin
   while not (ch in [C_KEYS.NONE, 'E']) and not done and (creature^.numberOfItems > 0) and
       (creature^.itemsAddr <> nil) do begin
     itemCount := creature^.numberOfItems;
-    if creature^.itemsAddr <> nil then begin
-      { the highlighted item, as MenuVertical takes it: a line past the list's end is its last item }
+    { the highlighted item, as MenuVertical takes it: a line past the list's end is its last item }
+    p := MenuCore.FindListMember(idx, creature^.itemsAddr);
+    while (p = nil) and (idx > 0) do begin
+      Dec(idx);
       p := MenuCore.FindListMember(idx, creature^.itemsAddr);
-      while (p = nil) and (idx > 0) do begin
-        Dec(idx);
-        p := MenuCore.FindListMember(idx, creature^.itemsAddr);
-      end;
-      s := ViewChar.ItemMenuLine(creature, p);
-      { rebuild every item name }
-      p := creature^.itemsAddr;
-      while p <> nil do begin
-        CharHlp.ItemLabel(p, True);
-        p := p^.next;
-      end;
-      if needRedraw or (GameVars.redrawInventoryMenuFlag <> 0) then begin
-        TextRend.ClearScreen;
-        Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
-        CharDisp.DisplayCreatureName(creature, 1, 1, True);
-        TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
-        Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
-        TextRend.DisplayString(1, 3, White, 'Ready Item');
-        vmRedraw := True;
-        needRedraw := False;
-        GameVars.redrawInventoryMenuFlag := 0;
-      end;
-      { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
-      if GameVars.stingArg then
-        MenuCore.extraKeys := 'V';
-      { a move returns, so that the line follows the highlighted item }
-      MenuCore.movesToCaller := True;
-      ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
-                                  creature^.itemsAddr, True, vmRedraw, idx, sel);
-      if MenuCore.moved then
-        { Page Up's scan code is 'I': a move is no choice }
-        ch := ' '
-      else if sel <> nil then
-        case ch of
-          'V': if GameVars.stingArg then begin
-                 ViewChar.ViewItemDetail(sel);
+    end;
+    s := ViewChar.ItemMenuLine(creature, p);
+    { rebuild every item name }
+    p := creature^.itemsAddr;
+    while p <> nil do begin
+      CharHlp.ItemLabel(p, True);
+      p := p^.next;
+    end;
+    if needRedraw or (GameVars.redrawInventoryMenuFlag <> 0) then begin
+      TextRend.ClearScreen;
+      Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
+      CharDisp.DisplayCreatureName(creature, 1, 1, True);
+      TextRend.DisplayString(Length(creature^.name) + 4, 1, LightGreen, 'Items');
+      Border.DrawWindow(1, 3, 38, 22, 0, Black, '');
+      TextRend.DisplayString(1, 3, White, 'Ready Item');
+      vmRedraw := True;
+      needRedraw := False;
+      GameVars.redrawInventoryMenuFlag := 0;
+    end;
+    { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
+    if GameVars.stingArg then
+      MenuCore.extraKeys := 'V';
+    { a move returns, so that the line follows the highlighted item }
+    MenuCore.movesToCaller := True;
+    ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
+                                creature^.itemsAddr, True, vmRedraw, idx, sel);
+    if MenuCore.moved then
+      { Page Up's scan code is 'I': a move is no choice }
+      ch := ' '
+    else if sel <> nil then
+      case ch of
+        'V': if GameVars.stingArg then begin
+               ViewChar.ViewItemDetail(sel);
+               needRedraw := True;
+             end;
+        'R': FxEngine.ToggleReadyItem(sel);
+        { a scroll the Cast list offers (CharHlp.CastableScroll) need not be readied; other items must be }
+        'U': if (sel^.equipped = 0) and not CharHlp.CastableScroll(creature, sel) then
+             begin
+               CharDisp.PrintBottomLine('Must be Readied');
+               ch := ' ';
+             end else if CharHlp.ItemReadable(sel) or (CharHlp.ItemSpell(sel) <> C_SPELL.NONE) then begin
+               Magic.UseItem(sel, done);
+               if GameVars.ifcState <> C_IFC.COMBAT then
+                 { outside combat, using an item does not end the menu }
+                 done := False;
+               if not done then
                  needRedraw := True;
-               end;
-          'R': FxEngine.ToggleReadyItem(sel);
-          { a scroll the Cast list offers (CharHlp.CastableScroll) need not be readied; other items must be }
-          'U': if (sel^.equipped = 0) and not CharHlp.CastableScroll(creature, sel) then
-               begin
-                 CharDisp.PrintBottomLine('Must be Readied');
-                 ch := ' ';
-               end else if CharHlp.ItemReadable(sel) or (CharHlp.ItemSpell(sel) <> C_SPELL.NONE) then begin
-                 Magic.UseItem(sel, done);
-                 if GameVars.ifcState <> C_IFC.COMBAT then
-                   { outside combat, using an item does not end the menu }
-                   done := False;
-                 if not done then
-                   needRedraw := True;
-               end;
-          'T': begin
-                 if ViewChar.CheckItemAvail(sel) then
-                   ViewChar.ItemTradeMenu(sel)
-                 else
-                   ch := ' ';
-                 needRedraw := True;
-               end;
-          'D': if (GameVars.ifcState = C_IFC.VAULT) and ViewChar.CheckItemAvail(sel) then begin
-                 { the vault keeps it, with the game it is saved with }
-                 if Vault.HasRoom then begin
-                   Vault.DepositItem(GameVars.curChar, sel);
-                   vmRedraw := True;
-                 end else
-                   TextRend.DisplayAndPause(Yellow, 'The vault is full.');
-               end else if ViewChar.CheckItemAvail(sel) then
-               begin
-                 { the item label ends in a space }
-                 CharHlp.ItemLabel(sel, False);
-                 ViewChar.SayBelow(True, 'Your ' + sel^.name + 'will be gone forever');
-                 if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
-                 begin
-                   CharHlp.RemoveItem(GameVars.curChar, sel);
-                   vmRedraw := True;
-                 end;
-                 Border.ClearBox(1, 21, 38, 22);
-               end else
-                 ch := ' ';
-          'H': ViewChar.HalveItem(sel);
-          'J': ViewChar.JoinItem(sel);
-          'S': if ViewChar.CheckItemAvail(sel) then
-                 ViewChar.SellItem(sel)
+             end;
+        'T': begin
+               if ViewChar.CheckItemAvail(sel) then
+                 ViewChar.ItemTradeMenu(sel)
                else
                  ch := ' ';
-          'I': if (GameVars.ifcState = C_IFC.SHOP_TEMPLE) and (sel^.unidMask <> 0) then
-                 ViewChar.IdentifyItem(sel, vmRedraw)
-               else if SpellInf.HasItemPage(sel) then begin
-                 ViewChar.ItemInfo(creature, sel, idx);
-                 needRedraw := True;
+               needRedraw := True;
+             end;
+        { asked once: a refusal in the vault must not fall through to Drop and ask again (#973) }
+        'D': if not ViewChar.CheckItemAvail(sel) then
+               ch := ' '
+             else if GameVars.ifcState = C_IFC.VAULT then begin
+               { the vault keeps it, with the game it is saved with }
+               if Vault.HasRoom then begin
+                 Vault.DepositItem(GameVars.curChar, sel);
+                 vmRedraw := True;
+               end else
+                 TextRend.DisplayAndPause(Yellow, 'The vault is full.');
+             end else begin
+               { the item label ends in a space }
+               CharHlp.ItemLabel(sel, False);
+               ViewChar.SayBelow(True, 'Your ' + sel^.name + 'will be gone forever');
+               if MenuCore.YesNoMenu('Drop It? ', LightMagenta, LightGreen, White) = 'Y' then
+               begin
+                 CharHlp.RemoveItem(GameVars.curChar, sel);
+                 vmRedraw := True;
                end;
-        end;
-      if not MenuCore.moved then
-        CharHlp.RecalcStats(creature);
-    end;
+               Border.ClearBox(1, 21, 38, 22);
+             end;
+        'H': ViewChar.HalveItem(sel);
+        'J': ViewChar.JoinItem(sel);
+        'S': if ViewChar.CheckItemAvail(sel) then
+               ViewChar.SellItem(sel)
+             else
+               ch := ' ';
+        'I': if (GameVars.ifcState = C_IFC.SHOP_TEMPLE) and (sel^.unidMask <> 0) then
+               ViewChar.IdentifyItem(sel, vmRedraw)
+             else if SpellInf.HasItemPage(sel) then begin
+               ViewChar.ItemInfo(creature, sel, idx);
+               needRedraw := True;
+             end;
+      end;
+    if not MenuCore.moved then
+      CharHlp.RecalcStats(creature);
     if creature^.numberOfItems <> itemCount then
       vmRedraw := True;
   end;
@@ -1157,9 +1170,8 @@ begin
       ViewChar.SayBelow(True, 'It looks like some sort of ' + item^.name);
       newInfo := True;
     end;
-  end;
-  if paid then
     TextRend.PauseOnly;
+  end;
   Border.ClearBox(1, 21, 38, 22);
 end;
 
@@ -1230,7 +1242,7 @@ begin
           s2 := '';
           mType := MoneyCal.ParseMoneyType(prev^.name, s2);
           s2 := 'How much ' + s2 + 'will you trade? ';
-          amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, 10);
+          amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, LightGreen);
           Money.TradeMoney(GameVars.curChar, tgt, amount, mType);
           exitInner := True;
           exitOuter := True;
@@ -1270,7 +1282,7 @@ begin
         s2 := 'How much ' + s2 + 'will you deposit? '
       else
         s2 := 'How much ' + s2 + 'will you drop? ';
-      amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, 10);
+      amount := Money.InputNumberMax(GameVars.curChar^.coins[mType], s2, LightGreen);
       Money.DropMoney(GameVars.curChar, amount, mType);
       exitFlag := True;
       for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
@@ -1282,22 +1294,16 @@ begin
   until exitFlag;
 end;
 
-{ True when the creature already holds 16 or more items, or the item's weight (times its quantity) is more than it can
-  still carry (Money.CheckOverload, which counts a readied Bag of Holding). Recalculates the creature's stats first. }
+{ True when the creature already holds C_ITEM.CARRY_MAX (16) items or more, or the item's weight (times its quantity)
+  is more than it can still carry (Money.CheckOverload, which counts a readied Bag of Holding). Recalculates the
+  creature's stats first. }
 function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boolean;
 var
-  f: Boolean;
-  w: LongInt;
   takable: Word;
 begin
   CharHlp.RecalcStats(creature);
-  f := False;
-  if creature^.numberOfItems > 15 then
-    f := True;
-  w := CharHlp.ItemWeight(item);
-  if Money.CheckOverload(creature, w, takable) then
-    f := True;
-  CannotCarryItem := f;
+  CannotCarryItem := (creature^.numberOfItems >= C_ITEM.CARRY_MAX) or
+    Money.CheckOverload(creature, CharHlp.ItemWeight(item), takable);
 end;
 
 end.
