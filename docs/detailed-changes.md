@@ -597,6 +597,20 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **A game, new or loaded, starts with no monsters.** EclVm's monster state (`creatureCnt`, `monstersOn`, `monId`, `monPicId`) was reset only by CLEAR MONSTERS, SETUP MONSTER and, since #826, at startup, so a new game or a load kept what the last area set up: a script that loaded monsters without CLEAR MONSTERS first started from the old count, and fewer kinds loaded before the cap. `EclVm.ForgetMonsters` clears all four at startup and at the start of every `GameLoop`, which every new game and every load (main menu, training hall, quick load) runs. #829.
 
+**Exploring, camp and time (the 2026-10-25 code review).** AreaName, Explored and MapNotes had nothing new (their open items are #917 to #919).
+
+**Explore.** `MapMainMenu` is one loop for 3D and the wilderness (local `Turn` and `Arrow`), and `SideScreen` runs F1, F2 and F6 for it and for camp, in place of three copies. Cast in 3D no longer ignores a character who is not Okay: `Camp.NoncombatCastMenu` says why the character cannot cast, as in the wilderness. `ResolveMovement`'s two door arms are `DoorMenu(barred)`, keeping v1.3's barred-door Knock test (POR-0229, #1015, is left to Brian). `MoveForward` and `MovePartyWilderness` use `Types.MAP_LAST` and C_AREA's new wilderness bounds; `PickLock` tests status before rolling. #1017.
+
+**View3D.** `WrapCoords` masks with `MAP_LAST`, so the view's far rows, two to five squares past an edge, read the right wrapped square instead of the edge one (POR-0227, #1013). `MapSquare` holds the off-map guard and wrap the three map readers repeated; `Display3DMapView`'s facing steps are ShortInts, not Words; the band color comments match `DrawBackdrop`. Tested by TView3D. #1018.
+
+**MapView and Wilds.** `Wilds.ViewCorner` moves the 5x5 view's corner inside the map for `BuildWildernessMap` and `MapView`, which clamped it a second time and found the party icon's cell from a ladder of literals; the icon's cell is the party's less the corner. `CeilColor`, `FloorColor` and `WallColor` lose their dead arms, `skyCeilingColors` has its eight colors once, and `WILD_LAST_SITE` names the special-location table's end. #1019, #1020.
+
+**MapTiles.** `C_TILE.ICON_LAST` names the last icon-animation slot (GameVars declares the table by it); `LoadIconAnim` loads and remaps both frames in one loop; `LoadWildIcons` loads the party's wilderness icon for Explore and EclVm. `GameDefs.colorIdentity` and `colorPinkToBlack` replace five copies of two color tables in MapTiles, Ending and Portrait. #1021.
+
+**GameTime.** `CheckScribeDone` passes `Magic.RemoveSpellFromScroll` the queued slot's byte, and that now clears the slot holding it exactly before the last copy, so on a scroll holding a spell twice the scribed copy is the one taken (POR-0228, #1014; tested by TScribe). `healTicks`' comment says camp clears it; `CampRest` loses an unread variable. #1022.
+
+**Camp.** `PendingLevel` bounds a pending slot's id to the spells before `CampSpellPrepTime` reads `spellTable`; `HasSlotKind` bounds a class and level for `SpellSlotsRemaining` (which indexed `slots` unbounded) and `CampScribeMenu`, and `SlotFree` folds into `SpellSlotsRemaining > 0`; `SlotsUsed` and `CampDisplayMenu` use `C_SPELL.LAST`, `CampFixMenu` `Types.MAX_PARTY`. #1023.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.

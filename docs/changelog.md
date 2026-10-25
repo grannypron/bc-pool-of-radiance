@@ -20,6 +20,7 @@
 
 ### Interface improvements
 
+- Cast on the map for a character who cannot cast now says why, as it does in the wilderness and in camp, instead of doing nothing.
 - A character's items menu now offers only what you can do with the highlighted item: Halve on a stack of two or more, Join when another stack can join it, and Id in a shop on an item not yet identified. The menu no longer runs off the bottom line in a shop.
 - When you change a character's portrait from camp, Escape now leaves the portrait picker and keeps the portrait the character had.
 - A character's More Info screen now has its own menu: Saves, Stats, Kills, Thief (for characters with thief levels, single or multi-class) and Exit. Stats and Kills show the game statistics and the kill count on the More Info screen itself, without a menu of their own; on the kill count, the Up and Down arrows scroll a row and Page Up and Page Down a page. Thief shows each thief skill with its racial, Dexterity and level parts and the total.
@@ -38,6 +39,8 @@
 
 ### Fixes
 
+- Standing at the edge of a map, the 3D view now shows the walls of the squares beyond it that you would walk into, not those of the edge squares again.
+- Scribing a spell from a scroll that holds it twice now takes the copy you chose off the scroll; before, the other copy went, and a long rest could scribe the chosen one again.
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.
