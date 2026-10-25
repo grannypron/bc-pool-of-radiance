@@ -14,8 +14,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 76;
-  BYTE_COUNT = 2401;
+  PART_COUNT = 78;
+  BYTE_COUNT = 2417;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -218,7 +218,13 @@ const
     (issue: 748; family: C_DATA.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1),
     { #792: the ogre leader (MON1CHA block 9), size L, gets the Large bit its one-tile icon lacked, as the bugbear has:
       weapons do their large damage to it, and it is no person for Charm Person and Hold Person }
-    (issue: 792; family: C_DATA.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1));
+    (issue: 792; family: C_DATA.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1),
+    { #864 (POR-0209): outside City Hall the posted proclamations (script $AC58) follow the major rewards paid
+      ([$4AC1], C_GBVM.COUNCIL_REWARDS); the ninth arm ($AD21) named CXIV again, the fifth's, where CCXIV, the one
+      left, is meant. The packed "CCXIV." is a byte longer than the arm's room, so its ON GOSUB entry goes to new code
+      at the end of the script, after #606's }
+    (issue: 864; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7525; offset: 5005; origLen: 2; newLen: 2),
+    (issue: 864; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7525; offset: 7525; origLen: 0; newLen: 12));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -886,7 +892,14 @@ const
     { #792, MON1CHA ogre leader, original }
     $01,
     { fixed: one tile and Large }
-    $81);
+    $81,
+    { #864 part 1, original }
+    $21, $AD,                                         { $AC8B ON GOSUB [$4A18] entry 9: LAD21 }
+    { fixed: the ninth proclamation goes to new code at the end of the script }
+    $63, $B6,                                         { $AC8B ON GOSUB [$4A18] entry 9: LB663 }
+    { #864 part 2, added at $B663: the ninth proclamation, CCXIV }
+    $09, $80, $05, $0C, $36, $09, $5A, $E0, $81, $5E, $98, { $B663 SAVE "CCXIV.", str[$985E] }
+    $13);                                             { $B66E RETURN }
 
 implementation
 
