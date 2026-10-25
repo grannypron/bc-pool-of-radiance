@@ -172,19 +172,19 @@ begin
   end;
 {$ENDIF}
   ReadLn(cfgText, cfgChar);
-  { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib music and speaker effects, S a Sound Blaster's
+  { the sound driver POOL.CFG names: T Tandy, P the speaker, A AdLib music and speaker effects, B a Sound Blaster's
     recorded effects with its AdLib music (each falling back to the next when its card does not answer), anything else
-    none }
+    none. S is silent, as SSI's data card has it and the Curse port reads it; it read as the Sound Blaster until #880. }
   case cfgChar of
 {$IFDEF FPC}
     { natively, the Tandy's music and the Sound Blaster's recorded effects for any of the three (SndDig) }
-    'T', 'A', 'S': SndDig.Install;
+    'T', 'A', 'B': SndDig.Install;
     'P': SndSpk.Install;
 {$ELSE}
     'T': SndTdy.Install;
     'P': SndSpk.Install;
     'A': SndOpl.Install;
-    'S': SndSb.Install;
+    'B': SndSb.Install;
 {$ENDIF}
   else
     SndNone.Install;

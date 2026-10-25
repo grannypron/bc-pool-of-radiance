@@ -1,0 +1,51 @@
++======================================+
+|            RAVEN'S SPELLS            |
++======================================+
+| 1ST LEVEL                            |
+|    BURNING HANDS                     |
+|    CHARM PERSON                      |
+|    DETECT MAGIC                      |
+|    ENLARGE                           |
+|    REDUCE                            |
+|    FRIENDS                           |
+|    MAGIC MISSILE (X2)                |
+|    PROTECTION FROM EVIL              |
+|    PROTECTION FROM GOOD              |
+|    READ MAGIC                        |
+|    SHIELD                            |
+|    SLEEP                             |
+|                (MORE)                |
++======================================+
+| SPELL SLOTS REMAINING                |
+| MAGIC-USER  1:0  2:0  3:0            |
+|                                      |
+|                                      |
+| RNG 30  DUR INST  CBT                |
++======================================+
+MEMORIZE: MEMORIZE INFO NEXT PREV EXIT
+
+Memorize uses rows 4 through 18 for its list. Rows 19 through 21 are reserved for the spell-slot heading and as many
+as two class rows. A single-class character leaves the unused class row blank. Row 22 separates that status block from
+the highlighted spell's summary on row 23.
+
+This example has additional second- and third-level spells beyond the viewport, so Next and Prev are shown. When every
+known spell fits, the bottom line is:
+
+    MEMORIZE: MEMORIZE INFO EXIT
+
+Color Key:
+    CHARACTER HEADING   CYAN
+    LEVEL HEADING       MAGENTA
+    SPELL NAME          GREEN
+    HIGHLIGHTED SPELL   WHITE
+    SLOT HEADING        CYAN
+    SLOT COUNTS         GREEN
+    SUMMARY LINE        GREEN
+    MEMORIZE:           MAGENTA
+
+Command Key:
+    MEMORIZE            M / ENTER
+    INFO                I
+    NEXT                N / PAGE DOWN (only when the list has another page)
+    PREV                P / PAGE UP (only when the list has another page)
+    EXIT                E / ESCAPE

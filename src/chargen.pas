@@ -5,7 +5,9 @@ unit CharGen;
 
 interface
 
-procedure MainMenu;
+{ The party menu: SSI's at start-up and after the party is destroyed, the two-column one at a training hall in a game in
+  play (inGame), #885. }
+procedure MainMenu(inGame: Boolean);
 
 procedure CustomizeIcon;
 
@@ -101,19 +103,23 @@ procedure TrainingMenu; forward;
 
 procedure AddCharacterMenu; forward;
 
-{ MainMenu: The party menu of the start-up screen and the training halls (PartyMnu, mocks/training-hall.txt, #879):
-  the roster, then the commands in two columns, the highlight on one; PartyMnu.ChooseCmd reads a command's key, or
-  Enter on the highlighted one, and Home and End step through the party (Party.SelectPrevNextChar). A command not
-  offered is dark gray: with no party everything but Create, Dual Class, Add, Load, Settings and Exit to DOS; with
-  one, Load; and Train except at a training hall or with free training on (#765), as SSI offered it. Dual Class is
-  always offered: ChgClass.Refusal's reason, if any, shows on the bottom line for two seconds or until a key
-  (TextRend.FlashBottomLine), and otherwise ChgClass.ChangeClassMenu opens for the character selected then. Returns
-  once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets ifcState to 4
-  (C_IFC.INDOORS). Exit to DOS asks through SaveLoad.QuitToDos: with a party not saved since it changed, it asks to
-  save first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved (#660).
-  Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line parameter
-  is STING. }
-procedure MainMenu;
+{ MainMenu: The party menu, in one of its two forms (PartyMnu, #885). With inGame clear, the start-up menu (fixmain's,
+  after the title screen and after the party is destroyed) is SSI's: the roster as SSI drew it, then the commands
+  offered in one column (PartyMnu.DrawList, ChooseListed), and Home, End, Up and Down step through the party. With
+  inGame set, a training hall's in a game in play (EclVm.EclProgram's PROG_TRAINING), it is the two-column menu of
+  mocks/training-hall.txt (#879): the roster the mock's way (CharDisp.hallMenu), then the commands in two columns, the
+  highlight on one and a command not offered in dark gray; PartyMnu.ChooseCmd reads a command's key, or Enter on the
+  highlighted one, and Home and End step through the party (Party.SelectPrevNextChar). Offered: with no party Create,
+  Add, Load, Settings and Exit to DOS; with one all but Load; and Train only at a training hall or with free training
+  on (#765), as SSI offered it. Dual Class is always on the two-column menu; SSI's lists it, as Human Change Class
+  (H), with Train for a human selected. ChgClass.Refusal's reason, if any, shows on the bottom line for two seconds or
+  until a key (TextRend.FlashBottomLine), and otherwise ChgClass.ChangeClassMenu opens for the character selected
+  then. Returns once a loaded saved game leaves the main-menu state (setting loadedSave) or Begin Adventuring sets
+  ifcState to 4 (C_IFC.INDOORS). Exit to DOS asks through SaveLoad.QuitToDos: with a party not saved since it changed,
+  it asks to save first: Yes opens the save menu, and leaving it without saving stays in the menu; No quits unsaved
+  (#660). Settings opens the Settings screen (Options.OptionsMenu). J sets stingMode when the first command-line
+  parameter is STING. }
+procedure MainMenu(inGame: Boolean);
 var
   ch: Char;
   ext: Boolean;
@@ -125,7 +131,7 @@ var
   { a training hall here, or free training on }
   atHall: Boolean;
   offered: PartyMnu.TCmdSet;
-  { the highlighted command, and the row of the commands' headings }
+  { the highlighted command, and the row of the commands' headings, of the two-column menu }
   cur: Byte;
   top: Byte;
   refusal: Types.TStr40;
@@ -134,13 +140,14 @@ begin
   stateB := C_IFC.INDOORS;
   redraw := True;
   stingMode := 0;
-  cur := PartyMnu.CMD_CREATE;
+  cur := PartyMnu.CMD_ADD;
+  CharDisp.hallMenu := inGame;
   GameVars.ifcState := C_IFC.MAIN_MENU;
   while True do begin
     if redraw then begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
       atHall := (GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0);
-      offered := [PartyMnu.CMD_CREATE, PartyMnu.CMD_DUAL, PartyMnu.CMD_ADD, PartyMnu.CMD_SETTINGS, PartyMnu.CMD_EXIT];
+      offered := [PartyMnu.CMD_CREATE, PartyMnu.CMD_ADD, PartyMnu.CMD_SETTINGS, PartyMnu.CMD_EXIT];
       top := PartyMnu.MENU_TOP;
       if GameVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
@@ -149,21 +156,32 @@ begin
                               PartyMnu.CMD_SAVE, PartyMnu.CMD_BEGIN];
         if atHall then
           offered := offered + [PartyMnu.CMD_TRAIN];
+        if atHall and (GameVars.curChar^.race = C_RACE.HUMAN) then
+          offered := offered + [PartyMnu.CMD_DUAL];
       end else
         offered := offered + [PartyMnu.CMD_LOAD];
-      if not (cur in offered) then
-        cur := PartyMnu.StepCmd(offered, cur, 1);
-      PartyMnu.Draw(offered, top, cur);
+      if inGame then begin
+        offered := offered + [PartyMnu.CMD_DUAL];
+        if not (cur in offered) then
+          cur := PartyMnu.StepCmd(offered, cur, 1);
+        PartyMnu.Draw(offered, top, cur);
+      end else
+        PartyMnu.DrawList(offered);
       redraw := False;
     end;
 
-    ch := PartyMnu.ChooseCmd(offered, top, cur, ext);
+    if inGame then
+      ch := PartyMnu.ChooseCmd(offered, top, cur, ext)
+    else
+      ch := PartyMnu.ChooseListed(offered, ext);
     TextRend.ClearBottomLine;
     if ext then begin
-      { Home and End step through the party (Party.SelectPrevNextChar) }
-      if ch in [C_KEYS.HOME, C_KEYS.END_KEY] then begin
+      { Home and End step through the party (Party.SelectPrevNextChar), and on SSI's menu Up and Down too; there,
+        Human Change Class comes and goes with the human selected }
+      if (ch in [C_KEYS.HOME, C_KEYS.END_KEY]) or (not inGame and (ch in [C_KEYS.UP, C_KEYS.DOWN])) then begin
         Party.SelectPrevNextChar(ch);
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
+        redraw := not inGame and atHall;
       end;
     end else begin
       if not (ch in ['E', 'S']) then

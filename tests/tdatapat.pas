@@ -1,8 +1,9 @@
-{ Tests for DataPat's table: the rules DataBld relies on when it makes the fixes. }
+{ Tests for DataPat's table: the rules DataBld relies on when it makes the fixes, and a script fix run through the
+  interpreter's operand loader. }
 {$I COMPILER.INC}
 program TDataPat;
 
-uses C_DATA, DataPat, StrUtil, TestKit;
+uses C_DATA, C_GBVM, GameVars, DataPat, EclVars, StrUtil, TestKit;
 
 var
   p: Word;
@@ -13,6 +14,14 @@ var
   runsOk: Boolean;
   offsetsOk: Boolean;
   familiesOk: Boolean;
+  { #864's two parts, and where each one's bytes start in patchBytes }
+  jumpPart: Word;
+  codePart: Word;
+  jumpPos: Word;
+  codePos: Word;
+  { the address #864's new code runs at }
+  codeAddr: Word;
+  pos: Word;
 
 function SameBlock(a, b: Word): Boolean;
 begin
@@ -23,6 +32,12 @@ end;
 function SameFix(a, b: Word): Boolean;
 begin
   SameFix := (DataPat.parts[a].issue = DataPat.parts[b].issue) and SameBlock(a, b);
+end;
+
+{ The GBVM address of offset in a script block: the block's two-byte leader is not loaded (EclMenu). }
+function ScriptAddr(offset: Word): Word;
+begin
+  ScriptAddr := C_GBVM.SCRIPT_FIRST + offset - 2;
 end;
 
 { The block's size once part a is made. }
@@ -78,5 +93,39 @@ begin
   TestKit.Check(offsetsOk, 'every part''s original bytes lie inside the block');
   TestKit.Check(sizesOk, 'every part''s size is the block''s after the fixes before it');
   TestKit.Check(runsOk, 'every fix''s parts are together');
+
+  { #864: the ninth posted proclamation's ON GOSUB entry goes to the new code, which loads "CCXIV." }
+  jumpPart := 0;
+  codePart := 0;
+  pos := 0;
+  for p := 1 to DataPat.PART_COUNT do begin
+    if DataPat.parts[p].issue = 864 then
+      if DataPat.parts[p].origLen = 0 then begin
+        codePart := p;
+        codePos := pos;
+      end else begin
+        jumpPart := p;
+        jumpPos := pos;
+      end;
+    Inc(pos, DataPat.parts[p].origLen + DataPat.parts[p].newLen);
+  end;
+  TestKit.Check((jumpPart > 0) and (codePart > 0), '#864 has its jump and its new code');
+  if (jumpPart > 0) and (codePart > 0) then begin
+    codeAddr := ScriptAddr(DataPat.parts[codePart].offset);
+    TestKit.CheckEqualsL(codeAddr, DataPat.patchBytes[jumpPos + 2] + 256 * Word(DataPat.patchBytes[jumpPos + 3]),
+                         '#864: the ninth entry goes to the new code');
+    GetMem(GameVars.zone2, SizeOf(GameVars.zone2^));
+    GetMem(GameVars.zone3, SizeOf(GameVars.zone3^));
+    GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
+    FillChar(GameVars.zone2^, SizeOf(GameVars.zone2^), 0);
+    FillChar(GameVars.zone3^, SizeOf(GameVars.zone3^), 0);
+    Move(DataPat.patchBytes[codePos], GameVars.zone3^[codeAddr], DataPat.parts[codePart].newLen);
+    TestKit.CheckEqualsL($09, GameVars.zone3^[codeAddr], '#864: the new code is a SAVE');
+    GameVars.eclIp := codeAddr;
+    EclVars.LoadEclVars(2);
+    TestKit.CheckEqualsS('CCXIV.', GameVars.gbStrings^[1], '#864: the SAVE loads CCXIV.');
+    TestKit.CheckEqualsL($13, GameVars.zone3^[GameVars.eclIp], '#864: then RETURN');
+    TestKit.CheckEqualsL(codeAddr + DataPat.parts[codePart].newLen - 1, GameVars.eclIp, '#864: the RETURN ends it');
+  end;
   TestKit.Done;
 end.

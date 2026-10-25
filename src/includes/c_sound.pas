@@ -11,7 +11,7 @@ const
   IMPACT = 3;
   MISS = 5;
   STEP = 6;
-  { The Tandy SN76489 chip, chosen by a T in the sound line of POOL.CFG; natively T, A and S all choose it (SndDig). }
+  { The Tandy SN76489 chip, chosen by a T in the sound line of POOL.CFG; natively T, A and B all choose it (SndDig). }
   MODE_TANDY = 0;
   { The PC speaker, chosen by a P. }
   MODE_SPEAKER = 1;
