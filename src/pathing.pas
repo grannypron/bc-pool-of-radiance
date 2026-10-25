@@ -41,9 +41,9 @@ function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
 
 { Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
   the doubled distance (2 per straight step, 3 per diagonal) exceeds dist * 2 + 1, or, when the arena's distMode is 0,
-  at a cell whose terrain blocking exceeds the start cell's clearance. On failure, return the blocking cell in tx,ty and
-  the doubled distance in dist; reaching the target returns True with the doubled distance. An endpoint off the arena
-  (OnArena) fails at once, with dist 0 and tx,ty unchanged. }
+  at a cell whose terrain blocks it (blocking above 0). On failure, return the blocking cell in tx,ty and the doubled
+  distance in dist; reaching the target returns True with the doubled distance. An endpoint off the arena (OnArena)
+  fails at once, with dist 0 and tx,ty unchanged. }
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
 
 { Build the potential-target list by testing icon-tile pairs for direction, line of sight and range. Keep each
@@ -215,7 +215,6 @@ end;
 function WalkLine(x, y: ShortInt; var tx, ty: ShortInt; var dist: Word; view: Pointer): Boolean;
 var
   walk: Types.TPathReq;
-  clearance: Byte;
   done: Boolean;
   maxDist: Word;
 begin
@@ -230,13 +229,12 @@ begin
   walk.ex := tx;
   walk.ey := ty;
   Pathing.PathFind(walk);
-  { SSI stepped a second line alongside this one from the start cell's clearance to the same clearance, so its height
-    never changed: the start cell's clearance is the bar along the whole walk }
-  clearance := GameDefs.terrainInfo[Types.PArena(view)^.cells[y, x]].clearance;
+  { SSI stepped a second line alongside this one, from the start cell's clearance to the same clearance, and every
+    terrain's clearance was 0: a cell blocks the walk when its terrain's blocking is above 0 }
   done := False;
   repeat
     if ((Types.PArena(view)^.distMode = 0) and
-        (GameDefs.terrainInfo[Types.PArena(view)^.cells[walk.cy, walk.cx]].blocking > clearance)) or
+        (GameDefs.terrainInfo[Types.PArena(view)^.cells[walk.cy, walk.cx]].blocking > 0)) or
           (walk.dist > maxDist) then begin
       tx := walk.cx;
       ty := walk.cy;

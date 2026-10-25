@@ -5,7 +5,7 @@ unit C_VIDEO;
 interface
 
 const
-  { visible EGA framebuffer (planar, mode 13) }
+  { visible EGA framebuffer (planar, mode 0Dh) }
   EGA_VIDEO_SEG = $A000;
   { the VGA framebuffer (mode 13h): linear, a byte a pixel, 320 bytes a scanline }
   VGA_VIDEO_SEG = $A000;

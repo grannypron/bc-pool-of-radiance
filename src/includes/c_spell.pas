@@ -63,6 +63,18 @@ const
   HOLD_PERSON = 23;
   { the magic-user's Charm Person, which a charming gaze applies }
   CHARM_PERSON = 10;
+  { a first-level magic-user's spells besides Sleep (ClassCal.StartCasterClass) }
+  DETECT_MAGIC = 11;
+  READ_MAGIC = 18;
+  SHIELD = 19;
+  { the spells whose durations CharHlp.SpellDuration rolls: Cause Disease, and the item spells Potion of Speed, Giant
+    Strength, Wand of Paralyzation, Dust of Disappearance and Manual of Bodily Health }
+  CAUSE_DISEASE = 40;
+  ITEM_SPEED = 57;
+  ITEM_GIANT_STRENGTH = 59;
+  ITEM_PARALYZATION = 61;
+  ITEM_DISAPPEARANCE = 63;
+  ITEM_BODILY_HEALTH = 67;
   { spellFns[34] = StinkingCloudHandler }
   STINKING_CLOUD = 34;
   { spellFns[37] = CureBlindnessHandler }

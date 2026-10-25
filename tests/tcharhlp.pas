@@ -4,7 +4,8 @@
 {$I COMPILER.INC}
 program TCharHlp;
 
-uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, CharHlp, AbilAdj, TestKit;
+uses Types, GameVars, C_ITEM, C_EQUIP, C_LEVEL, C_RACE, C_EFFECT, C_STATUS, C_MONEY, C_NPC, C_IFC, CharHlp, AbilAdj,
+  TestKit;
 
 var
   c: Types.PCharRecord;
@@ -19,6 +20,7 @@ var
   crs: array[1..4] of Types.TCharRecord;
   i: Byte;
   items: Types.PBaseItems;
+  cbt: Types.TCombatRec;
 
 procedure NewItem(itemType, n1, n2, n3: Byte; quantity: Byte; weight: Word);
 begin
@@ -95,8 +97,8 @@ begin
   end;
 end;
 
-{ AtLevelCap against SSI's tests for every race, the capped classes, Strength 3..18 and levels 1..9: capped from the
-  first level SSI caps at, and at every level past it }
+{ AtLevelCap against SSI's tests for every race but the half-orc, which SSI did not cap (#956), the capped classes,
+  Strength 3..18 and levels 1..9: capped from the first level SSI caps at, and at every level past it }
 procedure CheckCapsMatchSsi;
 var
   race: Integer;
@@ -112,6 +114,7 @@ const
 begin
   bad := 0;
   for race := C_RACE.DWARF to C_RACE.HUMAN do
+    if race <> C_RACE.HALFORC then
     for k := 1 to 3 do
       for str := 3 to 18 do
         for lvl := 1 to 9 do begin
@@ -232,6 +235,8 @@ begin
   c^.memorizedSpells[2] := 3;
   CharHlp.RemoveSpell(c, 3);
   TestKit.Check((c^.memorizedSpells[1] = 0) and (c^.memorizedSpells[2] = 3), 'RemoveSpell clears only the first copy');
+  CharHlp.RemoveSpell(c, 9);
+  TestKit.Check((c^.memorizedSpells[0] = 1) and (c^.memorizedSpells[2] = 3), 'and nothing for a spell not there');
   NewItem(0, 0, 0, 0, 0, 0);
   it.spells[2] := $85;
   TestKit.CheckEqualsL(5, CharHlp.ScrollSpellAt(@it, 2), 'a scroll''s spell, without its bit 7');
@@ -253,6 +258,37 @@ begin
   c^.race := C_RACE.HALFELF;
   c^.classLevels[C_LEVEL.CLERIC] := 5;
   TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-elf cleric stops at 5');
+
+  { a half-orc's cleric and thief caps by Wisdom and Dexterity (PHB pp. 14-15, #956) }
+  ClearCreature;
+  c^.race := C_RACE.HALFORC;
+  c^.wisCur := 14;
+  c^.classLevels[C_LEVEL.CLERIC] := 3;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'a half-orc cleric of Wisdom 14 trains past 3');
+  c^.classLevels[C_LEVEL.CLERIC] := 4;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'and stops at 4');
+  c^.wisCur := 15;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'Wisdom 15: past 4');
+  c^.classLevels[C_LEVEL.CLERIC] := 5;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'to 5');
+  c^.wisCur := 16;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'Wisdom 16: past 5');
+  c^.classLevels[C_LEVEL.CLERIC] := 6;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'to 6');
+  c^.wisCur := 18;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'Wisdom 17 and up: past 6');
+  c^.classLevels[C_LEVEL.CLERIC] := 7;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.CLERIC), 'to 7');
+  c^.dexCur := 14;
+  c^.classLevels[C_LEVEL.THIEF] := 8;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.THIEF), 'a half-orc thief of Dexterity 14 stops at 8');
+  c^.dexCur := 15;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.THIEF), 'Dexterity 15: past 8');
+  c^.dexCur := 25;
+  c^.classLevels[C_LEVEL.THIEF] := 11;
+  TestKit.Check(CharHlp.AtLevelCap(c, C_LEVEL.THIEF), 'and 11 at most');
+  c^.classLevels[C_LEVEL.FIGHTER] := 8;
+  TestKit.Check(not CharHlp.AtLevelCap(c, C_LEVEL.FIGHTER), 'a half-orc fighter''s cap is past PoR''s levels');
 
   CheckCapsMatchSsi;
 
@@ -332,6 +368,40 @@ begin
   CharHlp.CountTeams;
   TestKit.CheckEqualsL(2, GameVars.teamCount[0], 'hostile 0 and 2 count on team 0');
   TestKit.CheckEqualsL(2, GameVars.teamCount[1], 'hostile 1 and 3 count on team 1');
+  TestKit.CheckEqualsL(1, CharHlp.EnemyTeam(@crs[1]), 'team 0''s enemy is team 1');
+  TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[2]), 'team 1''s enemy is team 0');
+  TestKit.CheckEqualsL(0, CharHlp.EnemyTeam(@crs[3]), 'hostile 3 is on team 1, so its enemy is team 0');
+  TestKit.CheckEqualsL(1, CharHlp.EnemyTeam(@crs[4]), 'hostile 2 is on team 0, so its enemy is team 1');
+
+  { InflictDamage on a dying creature in combat adds to its overkill (POR-0222, #954) }
+  GetMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
+  FillChar(GameVars.zone1^, SizeOf(Types.TGbvmZone1), 0);
+  GameVars.curChar := nil;
+  GameVars.ifcState := C_IFC.COMBAT;
+  FillChar(cbt, SizeOf(cbt), 0);
+  ClearCreature;
+  c^.combatAddr := @cbt;
+  c^.status := C_STATUS.OKAY;
+  c^.enabled := 1;
+  c^.hostile := 1;
+  c^.hpCur := 5;
+  GameVars.teamCount[1] := 1;
+  CharHlp.InflictDamage(c, 8);
+  TestKit.Check(c^.status = C_STATUS.DYING, '3 below 0 is dying');
+  TestKit.CheckEqualsL(3, cbt.overkill, 'with overkill 3');
+  TestKit.CheckEqualsL(0, GameVars.teamCount[1], 'and out of its team''s count');
+  CharHlp.InflictDamage(c, 4);
+  TestKit.Check(c^.status = C_STATUS.DYING, 'hit again for 4: still dying');
+  TestKit.CheckEqualsL(7, cbt.overkill, 'its overkill 3 + 4, not 4');
+  TestKit.CheckEqualsL(0, GameVars.teamCount[1], 'counted out once only');
+  CharHlp.InflictDamage(c, 0);
+  TestKit.CheckEqualsL(7, cbt.overkill, 'a hit of 0 leaves it as it was');
+  TestKit.Check(c^.status = C_STATUS.DYING, 'and dying');
+  CharHlp.InflictDamage(c, 3);
+  TestKit.Check(c^.status = C_STATUS.DEAD, 'past 9 in all it dies');
+  GameVars.ifcState := C_IFC.INDOORS;
+  FreeMem(GameVars.zone1, SizeOf(Types.TGbvmZone1));
+  GameVars.zone1 := nil;
 
   { FixWeaponClasses (#746) over the shipped ITEMS file's damage types for the weapons it changes and a few it keeps }
   New(items);

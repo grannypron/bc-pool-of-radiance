@@ -25,13 +25,18 @@ var
   redrawSky: Boolean;
 
 { Value of loaded ECL variable idx: type 0 gives its byte; 1 and 3 read the GBVM at its address word; 2 gives its word;
-  $81 (string reference) gives its GBVM address; $80 (string value) gives 0, as its text is in gbStrings. }
+  $81 (string reference) gives its GBVM address; $80 (string value) gives 0, as its text is in gbStrings, and so does
+  any other type. }
 function GetEclVar(idx: ShortInt): Word;
 
 { Read count ECL variables at the ECL IP into gbvmType/gbvmLowerByte/gbvmUpperByte, decoding string values and
   string references into gbStrings. Only the first 64 variables and 20 strings are kept (later strings overwrite the
   20th); the IP still steps past them all. }
 procedure LoadEclVars(count: Byte);
+
+{ Load the count variables that follow the ones just loaded, as VMENU, HMENU, ON GOTO and ON GOSUB load the list after
+  their count: LoadEclVars leaves the IP one past the last variable, on the next opcode, so this steps back one first. }
+procedure LoadEclList(count: Byte);
 
 { Join two bytes into a word. }
 function CombineBytesToWord(lowByte, highByte: Byte): Word;
@@ -110,12 +115,20 @@ begin
   Inc(GameVars.eclIp);
 end;
 
+procedure LoadEclList(count: Byte);
+begin
+  Dec(GameVars.eclIp);
+  EclVars.LoadEclVars(count);
+end;
+
 function GetEclVar(idx: ShortInt): Word;
 var
   lo: Byte;
   hi: Byte;
 begin
-  lo := GameVars.gbvmLowerByte[idx];
+  { a type with no value reads 0; v1.3 left the result unassigned (#952) }
+  GetEclVar := 0;
+  lo :=GameVars.gbvmLowerByte[idx];
   hi := GameVars.gbvmUpperByte[idx];
   case GameVars.gbvmType[idx] of
     0: GetEclVar := lo;
@@ -173,13 +186,15 @@ begin
   FindCurCharIdx := idx;
 end;
 
-{ Special read handling for GBVM zone 1: found is True when address has a handler, even one that leaves the result
-  unassigned (CHAR_CONTROL_HI, or CHAR_LOYALTY with charisma outside 3..25). Most handlers read the current character }
+{ Special read handling for GBVM zone 1: found is True when address has a handler, even one with no value, which reads 0
+  (CHAR_CONTROL_HI, or CHAR_LOYALTY with charisma outside 3..25; v1.3 left the result unassigned, #952). Most handlers
+  read the current character }
 function SpecialReadZ1(address: Word; var found: Boolean): Word;
 var
   t: Byte;
 begin
   found := True;
+  SpecialReadZ1 := 0;
   case address of
     C_GBVM.CHAR_CON: SpecialReadZ1 := GameVars.curChar^.conCur;
     C_GBVM.CHAR_SAVE_PETRIFY: SpecialReadZ1 := GameVars.curChar^.saves[C_SAVE.PETRIFY];
@@ -210,11 +225,10 @@ begin
         SpecialReadZ1 := $81
       else
         SpecialReadZ1 := 0;
-    { handled, but no value is returned }
+    { handled, but has no value }
     C_GBVM.CHAR_CONTROL_HI: ;
     C_GBVM.CHAR_MOVEMENT: SpecialReadZ1 := GameVars.curChar^.movementCur;
-    C_GBVM.CHAR_PARTY_INDEX: SpecialReadZ1 := EclVars.FindCurCharIdx(GameVars.curChar);
-    C_GBVM.CHAR_PARTY_INDEX2: SpecialReadZ1 := EclVars.FindCurCharIdx(GameVars.curChar);
+    C_GBVM.CHAR_PARTY_INDEX, C_GBVM.CHAR_PARTY_INDEX2: SpecialReadZ1 := EclVars.FindCurCharIdx(GameVars.curChar);
     C_GBVM.CHAR_LOYALTY:
       { no result for charisma outside 3..25 }
       if GameVars.curChar^.chaCur in [AbilAdj.SCORE_MIN..AbilAdj.SCORE_MAX] then
@@ -241,8 +255,8 @@ begin
       GameVars.curChar^.memorizedSpells[t] := value;
     end;
     C_GBVM.CHAR_NPC: begin
-      { values above C_NPC.ANIMATED_NPC ($B2) lose $32 (= C_NPC.ANIMATED_NPC and C_NPC.MORALE_MASK) }
-      if value > C_NPC.ANIMATED_NPC then Dec(value, $32);
+      { values above C_NPC.ANIMATED_NPC ($B2) lose its morale bits ($32) }
+      if value > C_NPC.ANIMATED_NPC then Dec(value, C_NPC.ANIMATED_NPC and C_NPC.MORALE_MASK);
       GameVars.curChar^.npc := value;
     end;
     C_GBVM.CHAR_COPPER: GameVars.curChar^.coins[C_MONEY.COPPER] := value;
@@ -274,9 +288,9 @@ begin
           GameVars.curChar^.quickfight := 1;
         end;
       end;
-    { disks 1..8 only }
+    { the game's disks only }
     C_GBVM.DISK_NUM:
-      if (value >= 1) and (value <= 8) then EclVars.diskHook(value);
+      if (value >= 1) and (value <= Types.LAST_DISK) then EclVars.diskHook(value);
     { $80 + id loads wall set id into slot 1, 2 or 3, the cells a word apart }
     C_GBVM.WALLSET_LOAD1, C_GBVM.WALLSET_LOAD2, C_GBVM.WALLSET_LOAD3:
       if value > $80 then
@@ -287,26 +301,43 @@ begin
     CharHlp.RecalcStats(GameVars.curChar);
 end;
 
+{ The stored cell at address in GBVM zone 0..3, as it is kept: a word, or in zone 3 (the script) a byte; 0 for zone 4,
+  which stores nothing. }
+function GetCell(zone: Byte; address: Word): Word;
+begin
+  case zone of
+    0: GetCell := GameVars.zone0^.words[address];
+    1: GetCell := GameVars.zone1^[address];
+    2: GetCell := GameVars.zone2^[address];
+    3: GetCell := GameVars.zone3^[address];
+  else
+    GetCell := 0;
+  end;
+end;
+
+{ Store value in the cell at address in GBVM zone 0..3 (its low byte in zone 3); zone 4 stores nothing. }
+procedure PutCell(zone: Byte; address, value: Word);
+begin
+  case zone of
+    0: GameVars.zone0^.words[address] := value;
+    1: GameVars.zone1^[address] := value;
+    2: GameVars.zone2^[address] := value;
+    3: GameVars.zone3^[address] := Lo(value);
+  end;
+end;
+
 procedure WriteGbvm(address, value: Word);
 var
   zone: Byte;
-  ok: Boolean;
 begin
   zone := EclVars.GbvmZone(address);
+  EclVars.PutCell(zone, address, value);
   case zone of
-    0: begin
-      GameVars.zone0^.words[address] := value;
+    0:
       if (address = C_GBVM.SKY_CEILING_COLOR) or (address = C_GBVM.ALT_SKY_COLOR) then
         redrawSky := True;
-    end;
-    1: begin
-      GameVars.zone1^[address] := value;
+    1:
       EclVars.SpecialWriteZ1(address, value);
-    end;
-    2:
-      GameVars.zone2^[address] := value;
-    3:
-      GameVars.zone3^[address] := value;
     4:
       case address of
         { the script registers keep nothing written to them }
@@ -320,21 +351,14 @@ begin
           GameVars.gMapY := value;
           movedParty := True;
         end;
-        { facing, mod-4 loop }
+        { facing 0..3, taken mod 4 }
         C_GBVM.CELL_FACING: begin
-          repeat
-            ok := True;
-            case value of
-              0: GameVars.gFacing := C_DIR.NORTH;
-              1: GameVars.gFacing := C_DIR.EAST;
-              2: GameVars.gFacing := C_DIR.SOUTH;
-              3: GameVars.gFacing := C_DIR.WEST;
-            else begin
-              ok := False;
-              Dec(value, 4);
-            end;
-            end;
-          until ok = True;
+          case value mod 4 of
+            0: GameVars.gFacing := C_DIR.NORTH;
+            1: GameVars.gFacing := C_DIR.EAST;
+            2: GameVars.gFacing := C_DIR.SOUTH;
+            3: GameVars.gFacing := C_DIR.WEST;
+          end;
           movedParty := True;
         end;
         C_GBVM.CELL_WALL_COLOR: begin
@@ -385,13 +409,14 @@ begin
 end;
 
 { Zone 0 reads of $4900..$497F come from the party's effects (PartyEffectsTable), the rest from storage. Zone 4 reads
-  are the special cells C_GBVM names: registers, the party's position and facing, and the view. Unhandled zone-4
-  addresses leave the result unassigned }
+  are the special cells C_GBVM names: registers, the party's position and facing, and the view. A zone-4 address with
+  no value reads 0 (v1.3 left the result unassigned, #952) }
 function ReadGbvm(address: Word): Word;
 var
   zone: Byte;
   found: Boolean;
 begin
+  ReadGbvm := 0;
   zone := EclVars.GbvmZone(address);
   found := False;
   case zone of
@@ -399,22 +424,20 @@ begin
       if address <= C_GBVM.PARTY_EFFECTS_LAST then
         ReadGbvm := EclVars.PartyEffectsTable(address)
       else
-        ReadGbvm := GameVars.zone0^.words[address];
+        ReadGbvm := EclVars.GetCell(zone, address);
     1: begin
       ReadGbvm := EclVars.SpecialReadZ1(address, found);
       if not found then
-        ReadGbvm := GameVars.zone1^[address];
+        ReadGbvm := EclVars.GetCell(zone, address);
     end;
-    2:
-      ReadGbvm := GameVars.zone2^[address];
-    3:
-      ReadGbvm := GameVars.zone3^[address];
+    2, 3:
+      ReadGbvm := EclVars.GetCell(zone, address);
     4:
       case address of
         { the read registers always read 0 }
         C_GBVM.READ_REG1, C_GBVM.READ_REG2, C_GBVM.READ_REG3: ReadGbvm := 0;
         C_GBVM.FACING_RAW: ReadGbvm := GameVars.gFacing;
-        { handled, but no value is returned }
+        { handled, but has no value }
         C_GBVM.CELL_35F: ;
         { sign-extends (ShortInt) }
         C_GBVM.CELL_PARTY_X: ReadGbvm := GameVars.gMapX;
@@ -422,7 +445,7 @@ begin
         C_GBVM.CELL_FACING: ReadGbvm := GameVars.gFacing div 2;
         C_GBVM.CELL_WALL_AHEAD: ReadGbvm := GameVars.wallAhead;
         C_GBVM.CELL_EVENT: ReadGbvm := GameVars.eventAtCell;
-        { write only: the result is unassigned }
+        { write only: no value }
         C_GBVM.CELL_WALL_COLOR: ;
       end;
   end;
@@ -454,33 +477,14 @@ begin
   len := Length(s);
   { the zone's last address, which the terminator may take }
   last := EclVars.ZoneLast(zone);
-  if zone < 4 then
+  if (zone = 1) and (address = C_GBVM.CHAR_NAME) then
+    GameVars.curChar^.name := s
+  else if zone < 4 then begin
     if last - address < len then
       len := last - address;
-  case zone of
-    0: begin
-      for i := 0 to len - 1 do
-        GameVars.zone0^.words[address + i] := Ord(s[i + 1]);
-      GameVars.zone0^.words[address + len] := 0;
-    end;
-    1:
-      if address = C_GBVM.CHAR_NAME then
-        GameVars.curChar^.name := s
-      else begin
-        for i := 0 to len - 1 do
-          GameVars.zone1^[address + i] := Ord(s[i + 1]);
-        GameVars.zone1^[address + len] := 0;
-      end;
-    2: begin
-      for i := 0 to len - 1 do
-        GameVars.zone2^[address + i] := Ord(s[i + 1]);
-      GameVars.zone2^[address + len] := 0;
-    end;
-    3: begin
-      for i := 0 to len - 1 do
-        GameVars.zone3^[address + i] := Ord(s[i + 1]);
-      GameVars.zone3^[address + len] := 0;
-    end;
+    for i := 0 to len - 1 do
+      EclVars.PutCell(zone, address + i, Ord(s[i + 1]));
+    EclVars.PutCell(zone, address + len, 0);
   end;
 end;
 
@@ -555,12 +559,7 @@ begin
     last := EclVars.ZoneLast(zone);
     a := address;
     repeat
-      case zone of
-        0: c := GameVars.zone0^.words[a];
-        1: c := GameVars.zone1^[a];
-        2: c := GameVars.zone2^[a];
-        3: c := GameVars.zone3^[a];
-      end;
+      c := EclVars.GetCell(zone, a);
       if c <> 0 then
         GameVars.gbStrings^[strIdx] := Concat(GameVars.gbStrings^[strIdx], Char(c));
       Inc(a);
@@ -583,7 +582,7 @@ begin
     C_ECL.FIND_ITEM, C_ECL.CLOCK, C_ECL.RUN_PROGRAM, C_ECL.WHO, C_ECL.PROTECTION:
       EclVars.LoadEclVars(1);
     C_ECL.COMPARE, C_ECL.RANDOM_NUMBER, C_ECL.SAVE, C_ECL.INPUT_NUM, C_ECL.INPUT_STR,
-        $1F, C_ECL.PARTY_SURPR, C_ECL.ADD_NPC:
+        C_ECL.UNUSED_1F, C_ECL.PARTY_SURPR, C_ECL.ADD_NPC:
       EclVars.LoadEclVars(2);
     C_ECL.ADD..C_ECL.MULTIPLY, C_ECL.LOAD_MON, C_ECL.LOADFILES, C_ECL.ROB, C_ECL.GETTABLE,
         C_ECL.BIT_AND, C_ECL.BIT_OR, C_ECL.SAVE_TABLE,
@@ -593,14 +592,12 @@ begin
     C_ECL.VMENU: begin
       EclVars.LoadEclVars(3);
       count := EclVars.GetEclVar(3);
-      Dec(GameVars.eclIp);
-      EclVars.LoadEclVars(count);
+      EclVars.LoadEclList(count);
     end;
     C_ECL.HMENU, C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
       EclVars.LoadEclVars(2);
       count := EclVars.GetEclVar(2);
-      Dec(GameVars.eclIp);
-      EclVars.LoadEclVars(count);
+      EclVars.LoadEclList(count);
     end;
     C_ECL.COMPARE_AND, C_ECL.SURPRISE:
       EclVars.LoadEclVars(4);

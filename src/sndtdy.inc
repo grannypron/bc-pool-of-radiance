@@ -1720,54 +1720,17 @@ tandy_off:
         PORT_OUT 0C0h
         ret
 
+; Pascal procedure ProgramTandyVoices(tuneId: Word): the Tandy's tune, by program_voices.
 ProgramTandyVoices:
         push    bp
         mov     bp, sp
         push    ax
         push    bx
+        push    cx
         push    di
         push    si
         push    ds
-        mov     si, CODE
-        mov     ds, si
-        mov     si, [bp+6]
-        cmp     si, SONG_ROWS_B
-        jb      vwb_tune
-        xor     si, si
-vwb_tune:
-        mov     ds:[curTune], si
-        add     si, si
-        add     si, si
-        add     si, si
-        mov     ds:[seqBusy], 1
-        mov     ds:[voiceLeft], 4
+        mov     bx, offset songTableB
+        mov     cx, SONG_ROWS_B
         mov     di, offset tandyBlocks
-vwb_loop:
-        mov     ax, songTableB[si]
-        cmp     ax, 0
-        jz      vwb_next
-        mov     bx, SIZE VOICE - 2
-vwb_clr:
-        mov     word ptr [bx+di], 0
-        sub     bx, 2
-        jge     vwb_clr
-        mov     [di].vfStream, ax
-        mov     bl, 4
-        sub     bl, ds:[voiceLeft]
-        sub     bh, bh
-        mov     ax, ds:[curTune]
-        mov     voiceTune[bx], al
-        mov     [di].vfDuration, 1
-vwb_next:
-        add     di, SIZE VOICE
-        add     si, 2
-        dec     ds:[voiceLeft]
-        jnz     vwb_loop
-        mov     ds:[seqBusy], 0
-        pop     ds
-        pop     si
-        pop     di
-        pop     bx
-        pop     ax
-        pop     bp
-        retf    2
+        jmp     program_voices

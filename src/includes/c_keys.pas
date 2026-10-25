@@ -10,6 +10,15 @@ const
   ENTER = #13;
   ESC = #27;
   BACKSPACE = #8;
+  TAB = #9;
+  { the control keys GameIo.ReadGameKey acts on: Ctrl-S turns the sound over; the rest are STING's (Ctrl-C quits,
+    Ctrl-D the hit-point pop-up, Ctrl-L the script trace log, Ctrl-Y the memory display, Ctrl-Z the effects dump) }
+  CTRL_C = #3;
+  CTRL_D = #4;
+  CTRL_L = #12;
+  CTRL_S = #19;
+  CTRL_Y = #25;
+  CTRL_Z = #26;
   UP = #72;
   DOWN = #80;
   LEFT = #75;
