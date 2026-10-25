@@ -39,6 +39,10 @@ function NextPathStep(var req: Types.TPathReq): Boolean;
   in dir; 8 and above (no direction) is always True. False if either cell is off the arena (OnArena). }
 function IsDirToward(x, y, tx, ty: ShortInt; dir: Byte): Boolean;
 
+{ The first direction 0..7 that IsDirToward holds from (x,y) toward (tx,ty), 0 for the same cell, or C_DIR.CENTER when
+  none does (a cell off the arena): a creature turns to face its target this way (#922). }
+function DirToward(x, y, tx, ty: ShortInt): Byte;
+
 { Walk a line until terrain or the distance budget blocks it. On entry dist is the budget in cells; the walk fails once
   the doubled distance (2 per straight step, 3 per diagonal) exceeds dist * 2 + 1, or, when the arena's distMode is 0,
   at a cell whose terrain blocks it (blocking above 0). On failure, return the blocking cell in tx,ty and the doubled
@@ -281,6 +285,16 @@ begin
       ((tx <= nx) and (ty <= (tx - nx) + ny));
     C_DIR.CENTER: IsDirToward := True;
   end;
+end;
+
+function DirToward(x, y, tx, ty: ShortInt): Byte;
+var
+  d: Byte;
+begin
+  d := C_DIR.NORTH;
+  while (d < C_DIR.CENTER) and not Pathing.IsDirToward(x, y, tx, ty, d) do
+    Inc(d);
+  DirToward := d;
 end;
 
 procedure BuildTargetList(x, y: ShortInt; range: Word; filter: Byte; size: Byte; view: Pointer);

@@ -91,6 +91,8 @@ const
   LIGHTNING_BOLT = 51;
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;
+  { the bronze dragon's breath bolt's length past its aim cell (Magic.DragonBreathHandler) }
+  DRAGON_BOLT_CELLS = 10;
   { the shape of the cells a spell reaches, as CharHlp.SpellArea gives it from spellTable's area mode and the handlers'
     own shapes: the caster alone (area mode 0); some creatures picked one at a time (modes 1..7); one creature, or a
     bare square (mode 15); everything within a radius of the aim (modes 8..14); Stinking Cloud's 2x2 block; or

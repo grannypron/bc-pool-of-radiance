@@ -523,10 +523,13 @@ begin
   end;
 end;
 
-{ Friends (eff 14) }
+{ Friends (eff 14), as it ends: take back the Charisma it gave (FxEngine.FriendsEndCha). SSI's put back the Charisma
+  stored at casting, so a second Friends, which stored the first one's raised score, left a lasting gain (POR-0212,
+  #920). }
 procedure EffFriends(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  creature^.chaCur := AbilAdj.ClampScore(Types.PEffectRec(p)^.strength);
+  if p <> nil then
+    creature^.chaCur := FxEngine.FriendsEndCha(creature^.chaCur, Types.PEffectRec(p)^.strength);
 end;
 
 { Slow Poison periodic damage (eff 15): re-arm for 10 minutes and deal 1 damage while HP > 1 }

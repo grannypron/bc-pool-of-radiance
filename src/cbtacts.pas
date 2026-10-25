@@ -1449,23 +1449,11 @@ begin
     IsBackstab := False;
 end;
 
-{ The first direction 0..7 whose cone (Pathing.IsDirToward) holds the other creature's cell; the same cell gives 0. }
+{ The direction from creature's cell toward the other creature's (Pathing.DirToward); the same cell gives 0. }
 function DirTowardTarget(creature, other: Types.PCharRecord): Byte;
-var
-  d: Byte;
-  x1: ShortInt;
-  y1: ShortInt;
-  x2: ShortInt;
-  y2: ShortInt;
 begin
-  x1 := CbtMap.CombatCellX(creature);
-  y1 := CbtMap.CombatCellY(creature);
-  x2 := CbtMap.CombatCellX(other);
-  y2 := CbtMap.CombatCellY(other);
-  d := 0;
-  while not Pathing.IsDirToward(x1, y1, x2, y2, d) do
-    Inc(d);
-  DirTowardTarget := d;
+  DirTowardTarget := Pathing.DirToward(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature),
+                                       CbtMap.CombatCellX(other), CbtMap.CombatCellY(other));
 end;
 
 { Build the missile icon for weapon's type and fly it from att to def between the ranged-attack sounds. }

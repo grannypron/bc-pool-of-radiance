@@ -22,6 +22,9 @@ const
   { EffNull handler. }
   REDUCE = 13;
   FRIENDS = 14;
+  { a Friends effect's strength: this flag plus the Charisma it gave (FxEngine.FriendsEndCha, #920); one saved before
+    holds the Charisma to restore, below the flag }
+  FRIENDS_BONUS = $80;
   SLOW_POISON_HIT = 15;
   READ_MAGIC = 16;
   SHIELD = 17;

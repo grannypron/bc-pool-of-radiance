@@ -1,7 +1,7 @@
 { Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
-  straight step, 3 a diagonal one), IsDirToward and GetIconTileDelta; and RouteStep's walks on an arena of the test's
-  own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807); and OnArena,
-  LastSlot, SaveTargets and RestoreTargets. }
+  straight step, 3 a diagonal one), IsDirToward, DirToward and GetIconTileDelta; and RouteStep's walks on an arena of
+  the test's own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807); and
+  OnArena, LastSlot, SaveTargets and RestoreTargets. }
 {$I COMPILER.INC}
 program TPathing;
 
@@ -335,6 +335,11 @@ begin
   TestKit.Check(not Pathing.IsDirToward(10, 10, 15, 10, C_DIR.WEST), 'west is not');
   TestKit.Check(Pathing.IsDirToward(10, 10, 15, 10, C_DIR.CENTER), 'no direction is always toward');
   TestKit.Check(not Pathing.IsDirToward(10, 10, 50, 10, C_DIR.EAST), 'a target off the arena is never toward');
+  { DirToward, the facing a caster and an attacker turn to (#922) }
+  TestKit.CheckEqualsL(C_DIR.EAST, Pathing.DirToward(10, 10, 15, 10), 'DirToward: a cell east is east');
+  TestKit.CheckEqualsL(C_DIR.NORTH, Pathing.DirToward(10, 10, 10, 10), 'DirToward: the same cell is north');
+  TestKit.CheckEqualsL(C_DIR.CENTER, Pathing.DirToward(10, 10, 50, 10),
+                       'DirToward: a target off the arena has no direction, and the search ends');
 
   TestKit.Check(Pathing.GetIconTileDelta(1, 0, dx, dy) and (dx = 0) and (dy = 0),
                 'a one-cell icon''s only tile is at its corner');
