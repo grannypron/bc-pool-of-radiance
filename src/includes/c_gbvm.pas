@@ -58,6 +58,10 @@ const
   ALT_SKY_COLOR = $49FE;
   { SaveLoad packs 4 * music off + 2 * monster-pictures flag + portraits flag (TGbvmZone0State.settings) }
   SETTINGS = $49FF;
+  { The cells each area's script has to itself, which EclMenu.EclInit clears when a script is started (not when a saved
+    game is loaded). }
+  AREA_CELLS_FIRST = $4A00;
+  AREA_CELLS_LAST = $4A1F;
   { New Phlan's script (ECL block 0), one of the cells $4A00..$4A1F each script has to itself (EclMenu.EclInit clears
     them): 1 once a shop's, the vault's (#606) or the sage's (#868) greeting has been given this visit (the script's
     subroutine at $AE89), so turning on the square does not give it again. A step onto a square with no event clears
@@ -228,6 +232,9 @@ const
   PARTY_HIT_MOD = $6E71;
   { int8 ad-hoc party movement modifier }
   MOD_PARTY_MOVE = $6E72;
+  { scratch cells the scripts keep sums and copies in, cleared with AREA_CELLS_FIRST..LAST }
+  AREA_TEMPS_FIRST = $6E79;
+  AREA_TEMPS_LAST = $6E82;
   { zone 4: special cells }
   { registers: the read ones always read 0; the written ones keep the value, which nothing reads }
   READ_REG3 = $B1;
@@ -252,6 +259,16 @@ const
   CELL_CEIL_FLOOR_COLOR = $C05F;
   { written by scripts and ignored }
   CELL_IGNORED = $D022;
+  { The CALL command's targets, addresses in SSI's code (EclVm.EclCall): refresh the view after a script moved the
+    party or changed its colours; start a mirror duel against a copy of the current character, or have it fight
+    alone (EclMenu.CharFightsAlone); play the footstep or cue sound selected by SOUND_EFFECT; step the party forward
+    (EclMenu.EclMoveForward); reread the wall ahead. }
+  CALL_REFRESH_VIEW = $2C90;
+  CALL_MIRROR_DUEL = $8000;
+  CALL_FIGHT_ALONE = $8001;
+  CALL_SOUND = $BA03;
+  CALL_WALL_AHEAD = $C018;
+  CALL_MOVE_FORWARD = $C01E;
 
 implementation
 

@@ -96,6 +96,16 @@ begin
   SortedOrder := order;
 end;
 
+{ The page from place top of the list (n entries, top <= n): shown, the names on it, and rows, those in its left
+  column (the right has the rest). }
+procedure PageShape(n, top: Word; var shown, rows: Word);
+begin
+  shown := n - top + 1;
+  if shown > PER_PAGE then
+    shown := PER_PAGE;
+  rows := (shown + 1) div 2;
+end;
+
 { The names on the page from place top (of n), down the left column, then the right, the one at place sel in white and
   the rest in green; the count under them. }
 procedure DrawList(order: POrder; n, top, sel: Word);
@@ -111,10 +121,7 @@ begin
     TextRend.DisplayString(LIST_LEFT, LIST_TOP, LightGreen, 'None met yet');
     Exit;
   end;
-  shown := n - top + 1;
-  if shown > PER_PAGE then
-    shown := PER_PAGE;
-  rows := (shown + 1) div 2;
+  PageShape(n, top, shown, rows);
   for k := 0 to shown - 1 do begin
     colour := LightGreen;
     if top + k = sel then
@@ -233,8 +240,8 @@ procedure DrawEntry(var b: Bestiary.TBeast);
 var
   row: Byte;
   s: Types.TStr40;
-  defenses: Byte;
-  attacks: Byte;
+  { the rows the two lists take one a line }
+  needed: Byte;
   twoCols: Boolean;
 begin
   DrawFrame(b.name);
@@ -254,11 +261,14 @@ begin
     s := StrUtil.NumStr(b.hd);
   DrawFact(FACTS_TOP + 4, 'Hit Dice', Bestiary.Knows(b, C_BEAST.HD_KNOWN), s);
   DrawFact(FACTS_TOP + 5, 'Most Damage Done', b.maxHit > 0, StrUtil.NumStr(b.maxHit) + ' in one blow');
-  { each list a heading, its facts, ?? and a blank line, in the rows from the facts' blank line down }
+  { each list a heading, its facts, ?? (none once the sage has told all) and a blank line, in the rows from the facts'
+    blank line down }
   row := FACTS_TOP + 7;
-  defenses := KnownCount(b, C_BEAST.FIRST_DEFENSE, C_BEAST.LAST_DEFENSE);
-  attacks := KnownCount(b, C_BEAST.FIRST_ATTACK, C_BEAST.LAST_ATTACK);
-  twoCols := defenses + attacks + 5 > LAST_ROW - row + 1;
+  needed := KnownCount(b, C_BEAST.FIRST_DEFENSE, C_BEAST.LAST_DEFENSE) +
+            KnownCount(b, C_BEAST.FIRST_ATTACK, C_BEAST.LAST_ATTACK) + 3;
+  if not Bestiary.Knows(b, C_BEAST.TOLD) then
+    Inc(needed, 2);
+  twoCols := needed > LAST_ROW - row + 1;
   DrawGroup(b, 'Defenses', C_BEAST.FIRST_DEFENSE, C_BEAST.LAST_DEFENSE, twoCols, row);
   Inc(row);
   if row <= LAST_ROW then
@@ -322,10 +332,7 @@ begin
   GameVars.horizChoice := 1;
   repeat
     DrawList(order, n, top, sel);
-    shown := n - top + 1;
-    if shown > PER_PAGE then
-      shown := PER_PAGE;
-    rows := (shown + 1) div 2;
+    PageShape(n, top, shown, rows);
     MenuCore.arrowsToCaller := True;
     MenuCore.enterToCaller := True;
     if n = 0 then

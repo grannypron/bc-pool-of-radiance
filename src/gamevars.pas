@@ -65,6 +65,8 @@ var
   stingHpFlag: Byte;
   { Started as START STING: the debug keys and cheats are on. GameBoot sets it before anything reads a key. }
   stingArg: Boolean;
+  { Started with NORAND as the second argument: the random numbers are seeded with 1. GameBoot sets it with stingArg. }
+  norandArg: Boolean;
   { STING Ctrl-L (#612): the script trace log is open; each opcode's mnemonic goes to debugFile (debug.txt), and Ctrl-Z
     writes the creatures' effects there }
   debugTraceEnabled: Boolean;
