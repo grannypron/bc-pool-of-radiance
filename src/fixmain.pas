@@ -104,7 +104,7 @@ begin
   Vault.ForgetSessionVault;
   { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu }
   while True do begin
-    CharGen.MainMenu;
+    CharGen.MainMenu(False);
     View3D.SetView3DColors(LightCyan, Black, LightGray, Brown);
     EclVm.GameLoop;
     { F8 on the map menu ends GameLoop to load the quick save, and a load from the training hall's party menu ends it

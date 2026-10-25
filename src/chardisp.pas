@@ -14,6 +14,9 @@ var
   currentPortraitHead: Byte;
   { Portrait body ID. }
   currentPortraitHead2: Byte;
+  { Set while the party menu is a training hall's in a game in play, the two-column one, and clear while it is SSI's
+    start-up menu (CharGen.MainMenu, #885): DisplayParty draws the roster of the one or the other. }
+  hallMenu: Boolean;
 
 procedure DisplayParty(hl: Types.PCharRecord);
 
@@ -93,9 +96,10 @@ var
 
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
-  each row first, and one extra row after the last. On the party menu (C_IFC.MAIN_MENU) the roster is the
-  mock-up's (mocks/training-hall.txt, #879): the headers on row 1 and the creatures from row 2, the names from column
-  2 and AC and HP a column further left; elsewhere the headers are on row 2 and the creatures from row 4, right of the
+  each row first, and one extra row after the last. On a training hall's two-column party menu (C_IFC.MAIN_MENU with
+  hallMenu set, #885) the roster is the mock-up's (mocks/training-hall.txt, #879): the headers on row 1 and the
+  creatures from row 2, the names from column 2 and AC and HP a column further left. On SSI's start-up menu the
+  headers are on row 2 and the creatures from row 4, the names from column 1; elsewhere the same rows, right of the
   view. }
 procedure DisplayParty(hl: Types.PCharRecord);
 var
@@ -103,18 +107,19 @@ var
   col: Byte;
   row: Byte;
   band: Byte;
-  { 1 on the party menu, which moves AC and HP a column left }
+  { 1 on the two-column party menu, which moves AC and HP a column left }
   left: Byte;
 begin
-  if GameVars.ifcState = C_IFC.MAIN_MENU then begin
-    col := 2;
-    row := 1;
-    left := 1;
-  end else begin
-    col := 17;
-    row := 2;
-    left := 0;
-  end;
+  col := 17;
+  row := 2;
+  left := 0;
+  if GameVars.ifcState = C_IFC.MAIN_MENU then
+    if CharDisp.hallMenu then begin
+      col := 2;
+      row := 1;
+      left := 1;
+    end else
+      col := 1;
   TextRend.DisplayString(col, row, White, 'Name');
   TextRend.DisplayString(33 - left, row, White, 'AC  HP');
   Inc(row, 2 - left);
