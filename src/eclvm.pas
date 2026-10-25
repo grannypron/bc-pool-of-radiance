@@ -539,7 +539,7 @@ begin
       GameVars.zone1^[C_GBVM.MOVE_LOCKED] := 0;
     end;
     if (f[3] <> 255) and (GameVars.zone0^.view3dFlag = 0) then
-      MapTiles.Load24x24Set('BACPAC', 0, 40);
+      MapTiles.Load24x24Set('BACPAC', 0);
   end else begin
     piecesLoaded := 1;
     if f[1] = 127 then
@@ -932,7 +932,7 @@ begin
     Combat.CombatMain;
     PostCbt.PostCombat;
     if GameVars.zone0^.view3dFlag = 0 then begin
-      MapTiles.Load24x24Set('BACPAC', 0, 40);
+      MapTiles.Load24x24Set('BACPAC', 0);
       MapTiles.LoadWildIcons;
     end;
     GameVars.duelFlag := False;

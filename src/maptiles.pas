@@ -22,9 +22,9 @@ var
   { 2D map tile set image buffer 2; bit 7 of a tile id selects it }
   mapTilePtr2: Types.PImgBuf;
 
-procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
+procedure Load24x24Set(name: string; mult: Byte);
 
-procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
+procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 
 { The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into mapTilePtr2 the first time
   it is needed: only the wilderness and the ending draw from it, so it is not loaded at start-up and combat frees it
@@ -50,7 +50,7 @@ uses Crt, C_TILE, GameDefs, GameVars, Blit, GameIo, C_DIR;
 { Load the 24x24 tile set <name> (block 1) and, when the first tile-set buffer is allocated, copy its tiles into that
   buffer starting at tile slot mult, as many as fit. A mult above 127, the last slot, restores the video mode and ends
   the game with a range error. Nothing is copied if the set does not load. }
-procedure Load24x24Set(name: string; mult: Byte; unused: ShortInt);
+procedure Load24x24Set(name: string; mult: Byte);
 var
   pic: Types.PImgBuf;
   dst: Types.PImgBuf;
@@ -80,7 +80,7 @@ end;
 
 { Draw one 24x24 map tile into the view buffer at (col, row); tile IDs 128 and up come from the second tile set. Nothing
   is drawn from a tile set that is not loaded. }
-procedure Copy2DTile(col, row: ShortInt; tile: Byte; unused: ShortInt);
+procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 begin
   if tile > C_TILE.ID_MASK then begin
     if MapTiles.SecondSheet <> nil then
