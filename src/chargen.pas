@@ -9,6 +9,8 @@ interface
   play (inGame), #885. }
 procedure MainMenu(inGame: Boolean);
 
+{ The combat-icon editor for curChar: head, weapon, size and colours, each picked from a grid of the icon with every
+  option; Keep keeps the icon, Exit puts it back as it was. }
 procedure CustomizeIcon;
 
 { The portrait picker for curChar; canCancel lets Escape leave it with the portrait unchanged (camp's Alter). }
@@ -29,6 +31,8 @@ procedure ModifyCharacter(levelled: Boolean);
   0): ModifyCharacter's hit-point row, levelled, and the Companion Tools' lowered level. }
 procedure SetHpMax(hp: Integer);
 
+{ curChar gains a level in each class of trainable (GameDefs.classBit), with its hit points, as a training hall gives
+  it; restoreDrain restores a drained level for each. The Companion Tools' editor raises levels with it too. }
 procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
 implementation
@@ -128,7 +132,6 @@ var
   ext: Boolean;
   ext2: Boolean;
   redraw: Boolean;
-  stateB: Byte;
   { SaveGame's result: the menu goes on either way }
   saved: Boolean;
   { a training hall here, or free training on }
@@ -140,7 +143,6 @@ var
   refusal: Types.TStr40;
 begin
   GameVars.virtualDisk := 3;
-  stateB := C_IFC.INDOORS;
   redraw := True;
   stingMode := 0;
   cur := PartyMnu.CMD_ADD;
@@ -183,7 +185,8 @@ begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
       end;
     end else begin
-      if not (ch in ['E', 'S']) then
+      { a command that may change the party marks it unsaved; Exit, Save, Settings and free training do not }
+      if not (ch in ['E', 'S', 'G', 'J']) then
         GameVars.recentSaved := 0;
       case ch of
         'C': CharGen.CreateCharacterMenu;
@@ -216,7 +219,7 @@ begin
                saved := SaveLoad.SaveGame;
         'B': if GameVars.creatureList <> nil then
              begin
-               GameVars.ifcState := stateB;
+               GameVars.ifcState := C_IFC.INDOORS;
                TextRend.ClearBottomLine;
                Exit;
              end;
@@ -314,8 +317,8 @@ begin
   FillChar(isSingle, SizeOf(isSingle), 0);
   hasMulti := False;
   cnt := ClassCal.classesByRace[race].count;
-  if cnt > 13 then
-    cnt := 13;
+  if cnt > Types.RACE_CLASSES_LAST then
+    cnt := Types.RACE_CLASSES_LAST;
   row := FIRST_ROW;
   for slot := 1 to cnt do begin
     cls := ClassCal.classesByRace[race].classes[slot];
@@ -382,7 +385,6 @@ var
   cls: ShortInt;
   i: ShortInt;
   cnt: Byte;
-  conB: Integer;
   clsCount: Byte;
   goldDice: Byte;
   addExit: Boolean;
@@ -543,8 +545,8 @@ begin
   MenuCore.FreeStringList(list);
   cnt := ClassCal.classesByRace[creature^.race].count;
   { the table's width }
-  if cnt > 13 then
-    cnt := 13;
+  if cnt > Types.RACE_CLASSES_LAST then
+    cnt := Types.RACE_CLASSES_LAST;
   MenuCore.AllocStringList(cnt + 1, list);
   list^.inUse := 1;
   list^.name := 'Pick Class';
@@ -696,7 +698,6 @@ begin
     if creature^.classLevels[C_LEVEL.THIEF] > 0 then
       ClassCal.RecalcThiefSkills(Types.PCharRecord(creature));
     with creature^ do begin
-      hpCur := hpMax;
       attacks := 2;
       unarmedRollsA[1] := 1;
       unarmedDiceA[1] := 2;
@@ -716,15 +717,7 @@ begin
       { Hit points: roll every class, add the Con bonus and divide by the class count (1 if a negative bonus would leave
         too little) }
       hpRolled := ClassCal.RollFirstLevelHp(creature, $FF);
-      hpMax := hpRolled;
-      conB := ClassCal.ConHpBonus(creature, $FF);
-      if conB < 0 then begin
-        if hpMax > Abs(conB) + clsCount then
-          hpMax := (hpMax + conB) div clsCount
-        else
-          hpMax := 1;
-      end else
-        hpMax := (hpMax + conB) div clsCount;
+      hpMax := ClassCal.DivideAmongClasses(hpRolled, ClassCal.ConHpBonus(creature, $FF), clsCount);
       hpCur := hpMax;
       hpRolled := hpRolled div clsCount;
     end;
@@ -1148,12 +1141,12 @@ begin
       if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
         Inc(classMask, GameDefs.classBit[cls]);
         lvl := classLevels[cls];
-        { xp[] runs to level 9 }
-        if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < 9) then
+        { xp[] runs to C_LEVEL.LEVEL_LAST }
+        if (not CharHlp.AtLevelCap(Types.PCharRecord(GameVars.curChar), cls)) and (lvl < C_LEVEL.LEVEL_LAST) then
           if (GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] <= experience) or (stingMode <> 0) then
             if GameDefs.experienceSpellsClass[cls].xp[Succ(lvl)] > 0 then begin
               Inc(trainMask, GameDefs.classBit[cls]);
-              if lvl < 8 then
+              if lvl < C_LEVEL.LEVEL_LAST - 1 then
                 nextXp := GameDefs.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
               else
                 nextXp := 0;
@@ -1221,6 +1214,9 @@ end;
   a script adds. A character with no file, once Escape gives up at the save disk prompt, is taken off the roster. Added
   entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
 procedure AddCharacterMenu;
+const
+  { the most player characters, not NPCs, a party takes }
+  MAX_PCS = 6;
 var
   list: Types.PItemRec;
   m: Types.PItemRec;
@@ -1315,7 +1311,7 @@ begin
               non-NPCs, or an NPC (C_NPC.FLAG set). v1.3 took a non-NPC into a full party with 3 or more NPCs as a
               ninth member. }
             else if (p = nil) and (GameVars.zone1^[C_GBVM.PARTY_SIZE] < Types.MAX_PARTY) and
-                (CharHlp.IsNpc(creature) or (nonNpc < 6)) then begin
+                (CharHlp.IsNpc(creature) or (nonNpc < MAX_PCS)) then begin
               SaveLoad.AddCharToParty(Types.PCharRecord(creature));
               SaveLoad.LoadCharIconAnim(True);
               { C_NPC.FLAG clear }
@@ -1331,7 +1327,8 @@ begin
           end;
         end;
       end;
-  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc > 5) or (GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
+  until (key = 'E') or (key = C_KEYS.NONE) or (nonNpc >= MAX_PCS) or
+        (GameVars.zone1^[C_GBVM.PARTY_SIZE] >= Types.MAX_PARTY);
   SaveLoad.SaveCharlist(list, '');
   MenuCore.FreeStringList(list);
 end;
@@ -1579,7 +1576,6 @@ var
   readyPic: Types.PImgBuf;
   actionPic: Types.PImgBuf;
   shownPic: Types.PImgBuf;
-  p: Types.PCharRecord;
 
   { PartPic: Frame frame of head (kind 0) or weapon (kind 1) id at tSize, loaded from CHEAD or CBODY on disk 3 unless
     it is the one loaded last; nil when id is past the ones there are or the block is missing }
@@ -2112,10 +2108,7 @@ begin
   Blit.FreePic(actionPic);
   Blit.FreePic(shownPic);
   { a party member's combat icon; a character being created has no slot of its own yet }
-  p := GameVars.creatureList;
-  while (p <> nil) and (p <> GameVars.curChar) do
-    p := p^.nextCharAddr;
-  if (p <> nil) and (GameVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
+  if Party.IsPartyMember(GameVars.curChar) and (GameVars.curChar^.orderNumber < Types.MAX_PARTY) then begin
     SaveLoad.LoadCharIconAnim(True);
     if GameVars.gLocType > C_AREA.LOC_3D_MAP then
       { the party map icon LoadCharIconAnim freed }
