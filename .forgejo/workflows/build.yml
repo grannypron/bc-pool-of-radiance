@@ -20,6 +20,14 @@
 #
 # Pull requests from forks never run: their code would run in that image. The checkout is a plain git fetch from this
 # forge rather than actions/checkout, so nothing is downloaded from anywhere else.
+#
+# The macOS jobs run on the Apple Silicon Mac at home (runs-on: macos-arm64; brazencrows.com's
+# provisioning/bc-forgejo-runner-macos), directly on the Mac as its ci-runner account, not in the image: macos builds
+# the app and runs the native unit tests for every push and pull request, and release-macos signs, notarizes and
+# staples the app for a release and attaches it, once release has made the release. The Mac keeps the Free Pascal and
+# SDL3 that tools/fpc-setup.sh and tools/sdl3-setup.sh build for build/toolchain's pins (the first job builds them).
+# Signing uses the runner's own keychain and notarizing its App Store Connect API key, both under
+# /etc/forgejo-runner/signing; no secret passes through Forgejo.
 
 # 2026-10-16 - bms - Forgejo splits the YAML up when doing job parsing, so YAML anchors don't work as intended. Removed
 #                    the container and checkout anchor definitions; cut and paste for the win. The jobs have to remain
@@ -158,3 +166,84 @@ jobs:
           REPO_API: ${{ github.event.repository.url }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: .forgejo/scripts/release.sh "$TAG"
+
+  macos:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-arm64
+    # Minutes once the toolchain is built; the first job builds Free Pascal and SDL3.
+    timeout-minutes: 120
+    steps:
+      # As the other jobs' checkout, but on the Mac: its base64 has no -w0, and the workspace may hold a previous job's.
+      - name: Check out
+        env:
+          CLONE_URL: ${{ github.event.repository.clone_url }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git remote remove origin 2> /dev/null || true
+          git remote add origin "$CLONE_URL"
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraHeader="$auth" fetch -q --tags --force origin '+refs/heads/*:refs/remotes/origin/*' \
+              "+$REF:refs/ci/head"
+          git checkout -q -f --detach "$SHA"
+          git clean -qfdx
+      - name: Toolchain (Free Pascal and SDL3, built once)
+        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+      - name: Run the native unit tests
+        run: ./build-native.sh --test macos
+      - name: Build the app
+        run: ./build-native.sh macos
+
+  release-macos:
+    needs: [release]
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-arm64
+    # Notarization usually answers within minutes, and the toolchain is built by then.
+    timeout-minutes: 120
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Check out
+        env:
+          CLONE_URL: ${{ github.event.repository.clone_url }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git remote remove origin 2> /dev/null || true
+          git remote add origin "$CLONE_URL"
+          auth="Authorization: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraHeader="$auth" fetch -q --tags --force origin '+refs/heads/*:refs/remotes/origin/*' \
+              "+$REF:refs/ci/head"
+          git checkout -q -f --detach "$SHA"
+          git clean -qfdx
+      - name: Use the dispatched tag's source
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
+          rm -rf src build
+          git checkout "$TAG" -- src build
+          echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
+      - name: Toolchain (Free Pascal and SDL3, built once)
+        run: tools/fpc-setup.sh && tools/sdl3-setup.sh
+      - name: Build the app
+        run: ./build-native.sh macos
+      - name: Sign, notarize and staple
+        env:
+          SIGN_KEYCHAIN: /Users/ci-runner/Library/Keychains/signing.keychain-db
+          SIGN_KEYCHAIN_PASSWORD_FILE: /etc/forgejo-runner/signing/keychain-password
+          NOTARY_KEY: /etc/forgejo-runner/signing/notary-key.p8
+        run: |
+          export NOTARY_KEY_ID="$(cat /etc/forgejo-runner/signing/notary-key-id)"
+          export NOTARY_ISSUER="$(cat /etc/forgejo-runner/signing/notary-issuer)"
+          tools/macos-sign.sh
+          mkdir -p dist
+          mv "obj/native/macos/Pool of Radiance.zip" "dist/pool-of-radiance-$TAG-macos.zip"
+      - name: Attach to the release
+        env:
+          REPO_API: ${{ github.event.repository.url }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .forgejo/scripts/release-asset.sh "$TAG" "dist/pool-of-radiance-$TAG-macos.zip"
