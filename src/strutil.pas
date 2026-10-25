@@ -46,6 +46,11 @@ function PadLeft(s: String; width: Byte): String;
   hotkeys collected in opts. Digits are left alone (SSI shifted them by 32 as well, so a '1' showed as a 'Q', #810). }
 procedure MenuToOptions(var menu, opts: String);
 
+{ s with every occurrence of del removed, adjacent ones and ones the removals bring together included: 'A....B' less '.'
+  is 'AB' (SSI's pass moved on after each removal and kept one of two in a row, POR-0224, #960). An empty del removes
+  nothing. }
+function RemoveAll(s, del: String): String;
+
 implementation
 
 function NumStr(n: LongInt): TNumStr;
@@ -135,6 +140,25 @@ begin
     end;
     Inc(i);
   end;
+end;
+
+function RemoveAll(s, del: String): String;
+var
+  i: Byte;
+begin
+  i := 1;
+  if del <> '' then
+    while i + Length(del) - 1 <= Length(s) do
+      if Copy(s, i, Length(del)) = del then begin
+        Delete(s, i, Length(del));
+        { a match the removal brought together starts at most Length(del) - 1 places back }
+        if i > Length(del) then
+          Dec(i, Length(del) - 1)
+        else
+          i := 1;
+      end else
+        Inc(i);
+  RemoveAll := s;
 end;
 
 end.

@@ -54,8 +54,6 @@ function DataDrive: Char;
 
 function FileExists(name: Types.TPathStr): Boolean;
 
-function SanitizeString(src, del: string): string;
-
 function SanitizeFileName(name: string): Types.TStr40;
 
 procedure DecompressDax(var src, dst: Types.PByteArr; var lenCompressed, lenDecompressed: Word);
@@ -99,7 +97,7 @@ procedure PopState;
 
 implementation
 
-uses Crt, GameDefs, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
+uses Crt, GameDefs, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil{$IFDEF FPC}, Host, NatFile{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -289,23 +287,7 @@ end;
 
 {$I+}
 
-{ Remove occurrences of del from src in one left-to-right pass. After a deletion the scan moves on, so an occurrence
-  that slides into the deleted position is kept (adjacent repeats lose only every other copy). }
-function SanitizeString(src, del: string): string;
-var
-  limit: Byte;
-  delLen: Byte;
-  i: Byte;
-begin
-  delLen := Length(del);
-  limit := Length(src) - delLen + 1;
-  for i := 1 to limit do
-    if Copy(src, i, delLen) = del then
-      Delete(src, i, delLen);
-  SanitizeString := src;
-end;
-
-{ Remove invalid filename characters (with SanitizeString's single-pass rule), limit the name to eight characters and
+{ Remove invalid filename characters (every one, StrUtil.RemoveAll), limit the name to eight characters and
   uppercase it. A DOS device's name (FileUtil.IsDeviceName) gets an underscore, so a character called Con or Lpt1 is
   kept in a file, as in Curse. }
 function SanitizeFileName(name: string): Types.TStr40;
@@ -334,7 +316,7 @@ const
 var i: Byte;
 begin
   for i := 1 to 10 do
-    name := DaxIo.SanitizeString(name, invalidFileChars[i]);
+    name := StrUtil.RemoveAll(name, invalidFileChars[i]);
   name := Copy(name, 1, 8);
   for i := 1 to Length(name) do
     name[i] := UpCase(name[i]);

@@ -141,7 +141,7 @@ end;
   it. }
 function CharFileName(name: String): FileUtil.TSetName;
 begin
-  CharFileName := DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
+  CharFileName := DaxIo.SanitizeFileName(name);
 end;
 
 function CharFileBase(name: String): Types.TPathStr;
@@ -428,8 +428,7 @@ begin
     { a single-character save the game was ended in gives the character back its old files }
     if not savedGame then
       found := SaveLoad.RecoverChar(name);
-    { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for the
-      extension }
+    { as SaveChar names it (CharFileBase) }
     name := SaveLoad.CharFileBase(name);
     msg := SaveMenu.SaveDiskMsg;
   end else
@@ -621,7 +620,7 @@ begin
   { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
   GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin
-    fn := DaxIo.SanitizeFileName(DaxIo.SanitizeString(names[i], '.'));
+    fn := SaveLoad.CharFileName(names[i]);
     if DaxIo.FileExists(GameVars.saveDirectory + fn + '.sav') then begin
       GetMem(creature, SizeOf(Types.TCharRecord));
       { a short or unreadable .sav is left out, as a missing one is }
