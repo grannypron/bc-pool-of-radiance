@@ -27,7 +27,7 @@
 - The Companion Tools (F6, when turned on in Settings) open straight onto the area's map. Map and Notes are now one tool: Map puts a cursor on the map to write and clear your notes on squares. The map also draws much faster in areas with many event squares, such as the Temple of Bane.
 - The Settings screen now has three pages, chosen on the bottom line: Game, Paths and System. Game holds the settings, and each can now be turned off on its own: monster and character portraits under Portraits, the title and battle music under Music, and under Sound the footsteps, ranged weapons, melee attacks, the death scream and walking into a wall. Paths shows where Pool of Radiance's data and saves are, with places for Curse of the Azure Bonds, Secret of the Silver Blades and Pools of Darkness that a configuration program will set later. System shows the video and sound device, the game, data and memory details, and whether the overlays are in EMS.
 - Spell sounds can now be turned off on their own in Settings: Spell Effects, under Sound, silences spells being cast and the flash and damage of their effects, while the other sounds play on.
-- The character screen shows the attacks a round the character's classes give (Att/Rnd), under Damage: 1, or 3/2 for a fighter of 7th level or more.
+- The character screen shows the attacks a round the character's classes give (Att/Rd), under Damage: 1, or 3/2 for a fighter of 7th level or more.
 - A spell memorized more than once now shows once, with how many copies are memorized after it ("Bless (x3)"), on the Cast list, the Spells in Memory list and the Memorize screen's list of spells still to be memorized. Spells on scrolls show once on the Cast list too, counted across all your scrolls, and casting one uses up the scroll with the fewest spells left on it first.
 - F1 on the map or in camp shows the command keys on a full screen of their own, framed as the Quests page is: F5 and F8 (quick save and load) on the map, F6 while the Companion Tools are on, F7 (the combat log, in combat only) while the Combat Log is on, and, set apart below the function keys, Ctrl-S to turn the sound on or off. Escape or Exit closes it.
 - When adding bracers with the Companion's character editor, Left and Right now choose Bracers of AC 6, 4 or 2, as they choose a weapon's plus; before, the AC was whatever was rolled.
@@ -142,6 +142,10 @@
 - A successful saving throw against Silence, 15' Radius now spares the target, as the rule book says. Before, the save was rolled and then ignored.
 - POOL.CFG's sound letter S means silent again, as SSI's data card says; the Sound Blaster is now B. A POOL.CFG set to S for the Sound Blaster now runs without sound until its second line is changed to B.
 - With nine of the council's rewards paid, the proclamations you note outside City Hall now end with CCXIV, the nomads' proclamation, which was never named. Before, the ninth repeated CXIV.
+- A full disk no longer cuts the list of saved characters short: the old list stays until a new one is written whole.
+- POOLCFG no longer accepts a default save folder too long for START when the game is installed in a deeply nested folder, no longer takes a folder typed again in other capitals for a change, and on Linux and macOS no longer loses an Escape pressed just before [ or O.
+- A Bestiary entry the fortune teller has told you all about now lists its defenses and attacks one to a line whenever they fit, rather than going to two columns a little early.
+- In the 64-bit native game, characters and monsters now make their attacks in combat. Before, the number of attacks was read from the wrong place, so most made none.
 
 ## Pool of Radiance port: October 2026 update
 

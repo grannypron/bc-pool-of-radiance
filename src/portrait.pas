@@ -29,7 +29,7 @@ procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 
 procedure LoadPortraitBufs(headId, bodyId: Byte);
 
-procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
+procedure Show3DSprite(dist: Byte; var a: Types.TAnimRec);
 
 { Forget which archive and picture are cached, so the next picture is loaded afresh, for a new game
   (GameInit.ResetGameState). }
@@ -41,7 +41,7 @@ uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, GameDefs, GameVars, Blit, VidOps, GameIo
 
 var
   { Archive of the cached picture: name and virtual-disk digit, as LoadAnimation opens it. }
-  picArcName: String[8];
+  picArcName: String[9];
   { picture id loaded from picArcName; 255 invalidates the pair }
   picArcId: Byte;
 
@@ -56,18 +56,6 @@ begin
       Blit.FlushView;
     end else
       Blit.ShowPic(col, row, pic);
-end;
-
-{ Draw a portrait head at (col, row). }
-procedure DisplayPortraitHead(col, row: Byte; pic: Types.PImgBuf);
-begin
-  Portrait.DisplayImageBuf(col, row, False, pic);
-end;
-
-{ Draw a portrait body five character rows below (col, row), under the head drawn there. }
-procedure DisplayPortraitBody(col, row: Byte; pic: Types.PImgBuf);
-begin
-  Portrait.DisplayImageBuf(col, row + 5, False, pic);
 end;
 
 { Load picture picId of <name><disk>.DAX into a, unless that archive and id are already the cached picture
@@ -138,7 +126,8 @@ var
   f: Byte;
   h: Word;
   w: Word;
-  diskCh: String[1];
+  { name and the disk's digit: the archive }
+  arc: String[9];
   xorBuf: Types.PByteArr;
   j: Word;
   planeSz: Word;
@@ -173,11 +162,12 @@ var
   end;
 
 begin
-  Str(LongInt(GameVars.virtualDisk), diskCh);
-  if (name + diskCh = picArcName) and (picId = picArcId) then Exit;
+  arc := name + StrUtil.NumStr(GameVars.virtualDisk);
+  { the cached picture is the one a holds, when a holds any }
+  if (a.count > 0) and (arc = picArcName) and (picId = picArcId) then Exit;
   Portrait.FreeAnimation(a);
   isPic := (name = 'PIC') or (name = 'FINAL');
-  DaxIo.LoadDax(name + diskCh, '.dax', picId, sz, buf);
+  DaxIo.LoadDax(arc, '.dax', picId, sz, buf);
   if sz = 0 then Exit;
   offset := 0;
   gotXor := False;
@@ -253,7 +243,7 @@ begin
   { only a picture with frames is cached, so one that loaded none is tried again (SSI cached it and kept it blank,
     #726) }
   if loaded > 0 then begin
-    picArcName := name + diskCh;
+    picArcName := arc;
     picArcId := picId;
   end;
   if isPic and gotXor then FreeMem(xorBuf, xorSz);
@@ -319,54 +309,46 @@ end;
 { Load headId from HEAD<disk>.DAX and bodyId from BODY<disk>.DAX into the head and body portrait cache slots, skipping
   an id that is 255 or already loaded from this disk. A load that finds nothing leaves its slot invalid (255). }
 procedure LoadPortraitBufs(headId, bodyId: Byte);
-var
-  diskCh: String[1];
+
+  { Load picture id of archive (HEAD or BODY) into portrait cache slot. }
+  procedure LoadSlot(slot: Byte; archive: Types.TStr8; id: Byte);
+  begin
+    if id = 255 then Exit;
+    with GameVars.portraitCache[slot] do
+      if (pictureId <> id) or (disk <> GameVars.virtualDisk) then begin
+        Blit.LoadPic(archive + StrUtil.NumStr(GameVars.virtualDisk), id, False, 0, pic);
+        if pic <> nil then begin
+          pictureId := id;
+          disk := GameVars.virtualDisk;
+        end else
+          pictureId := 255;
+      end;
+  end;
+
 begin
-  Str(LongInt(GameVars.virtualDisk), diskCh);
-  if headId <> 255 then
-    if (GameVars.portraitCache[1].pictureId = 255) or (GameVars.portraitCache[1].pictureId <> headId) or
-        (GameVars.portraitCache[1].disk <> GameVars.virtualDisk) then begin
-      Blit.LoadPic('HEAD' + diskCh, headId, False, 0, GameVars.portraitCache[1].pic);
-      if GameVars.portraitCache[1].pic <> nil then begin
-        GameVars.portraitCache[1].pictureId := headId;
-        GameVars.portraitCache[1].disk := GameVars.virtualDisk;
-      end else
-        GameVars.portraitCache[1].pictureId := 255;
-    end;
-  if bodyId <> 255 then
-    if (GameVars.portraitCache[2].pictureId = 255) or (GameVars.portraitCache[2].pictureId <> bodyId) or
-        (GameVars.portraitCache[2].disk <> GameVars.virtualDisk) then begin
-      Blit.LoadPic('BODY' + diskCh, bodyId, False, 0, GameVars.portraitCache[2].pic);
-      if GameVars.portraitCache[2].pic <> nil then begin
-        GameVars.portraitCache[2].pictureId := bodyId;
-        GameVars.portraitCache[2].disk := GameVars.virtualDisk;
-      end else
-        GameVars.portraitCache[2].pictureId := 255;
-    end;
+  LoadSlot(1, 'HEAD', headId);
+  LoadSlot(2, 'BODY', bodyId);
 end;
 
-{ Draw the cached portrait at (col, row): head and body when both is True, the head alone otherwise. }
+{ Draw the cached portrait at (col, row): its head, and when both is True its body five character rows below. }
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
 begin
-  if both then begin
-    Portrait.DisplayPortraitHead(col, row, GameVars.portraitCache[1].pic);
-    Portrait.DisplayPortraitBody(col, row, GameVars.portraitCache[2].pic);
-  end else
-    Portrait.DisplayImageBuf(col, row, False, GameVars.portraitCache[1].pic);
+  Portrait.DisplayImageBuf(col, row, False, GameVars.portraitCache[1].pic);
+  if both then
+    Portrait.DisplayImageBuf(col, row + 5, False, GameVars.portraitCache[2].pic);
 end;
 
 { Draw frame dist (1..3, by view distance) of a into the view buffer at its origin + 2, then flush. Any other dist
   restores the video mode, prints an error and exits the game. }
-procedure Show3DSprite(dist: Byte; a: Types.TAnimRec);
+procedure Show3DSprite(dist: Byte; var a: Types.TAnimRec);
 begin
   if (dist < 1) or (dist > 3) then
     GameIo.FatalError('Illegal range in Show3DSprite.');
-  if a.frames[dist].pic <> nil then
+  if a.frames[dist].pic <> nil then begin
     with a.frames[dist].pic^ do
-      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GameVars.viewImageBufferPtr)
-  else
-    Exit;
-  Blit.FlushView;
+      Blit.BlitTileClipped(originX + 3 - 1, originY + 3 - 1, 0, 1, a.frames[dist].pic, GameVars.viewImageBufferPtr);
+    Blit.FlushView;
+  end;
 end;
 
 procedure ResetGame;

@@ -33,7 +33,8 @@ const
   TITLE_COLOR = White;
 
 var
-  { the lines each entry wraps to, by entry; the lines in all; and the line on the page's first row }
+  { the lines each entry wraps to, by entry (CbtLog.Count's, the ring's MAX_ENTRIES and the entry still being built);
+    the lines in all; and the line on the page's first row }
   lineCounts: array[1..CbtLog.MAX_ENTRIES + 1] of Byte;
   total: Integer;
   top: Integer;

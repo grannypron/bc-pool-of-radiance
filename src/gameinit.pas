@@ -24,16 +24,8 @@ uses Types, Crt, C_AREA, GameDefs, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, 
   HeapErr, VidOps, Stats, CfgFile, Explored, MapNotes, Explore, GameTime, Combat, MapView, EclVm,
   Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
-var
-  { directory saved across resource loading }
-  savedDir: Types.TPathStr;
-  { ITEMS loading file record }
-  itemsFile: file;
-  { bytes read from ITEMS }
-  itemsRead: Word;
-
-{ Install every spell handler in GameVars.spellFns, the noncombat cast-target menu, and Magic.DragonBreathHandler as
-  effect 88's handler; clear effectLock, GameVars.usingItem and GameVars.castTarget, and set redrawInventoryMenuFlag. }
+{ Install every spell handler in GameVars.spellFns and the noncombat cast-target menu; clear effectLock,
+  GameVars.usingItem and GameVars.castTarget, and set redrawInventoryMenuFlag. }
 procedure InitSpellFns;
 begin
   GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
@@ -108,11 +100,9 @@ begin
   GameVars.spellFns[65] := Magic.WandMagicMissilesHandler;
   GameVars.spellFns[66] := Magic.UnusedSpellHandler;
   GameVars.spellFns[67] := Magic.ManualBodilyHealthHandler;
-  GameVars.effectFns[88] := Magic.DragonBreathHandler;
 end;
 
-{ Install the effect handlers. InitSpellFns assigns slot 88 (Magic.DragonBreathHandler); slots 73 and 74 use the CbtActs
-  combat action handlers. }
+{ Install the effect handlers: REAR_CLAW_RAKE and BITE_HOLD are CbtActs' combat actions, and DRAGON_BREATH is Magic's. }
 procedure InitEffectHandlers;
 begin
   GameVars.effectFns[C_EFFECT.BLESS] := EffHndlr.EffBless;
@@ -203,6 +193,7 @@ begin
   GameVars.effectFns[C_EFFECT.DRAIN_ONE] := EffHndlr.EffDrainOne;
   GameVars.effectFns[C_EFFECT.DRAIN_TWO] := EffHndlr.EffDrainTwo;
   GameVars.effectFns[C_EFFECT.ROT_TOUCH] := EffHndlr.EffRotTouch;
+  GameVars.effectFns[C_EFFECT.DRAGON_BREATH] := Magic.DragonBreathHandler;
   GameVars.effectFns[C_EFFECT.DISPLACED] := EffHndlr.EffDisplaced;
   GameVars.effectFns[C_EFFECT.CON_PSN_SAVE] := EffHndlr.EffConPsnSave;
   GameVars.effectFns[C_EFFECT.IMMUNE_MM] := EffHndlr.EffImmuneMM;
@@ -276,13 +267,12 @@ begin
   GameVars.loadedSave := 0;
   GameVars.creatureList := nil;
   GameVars.curChar := nil;
-  GameVars.eclIp := $9900;
+  GameVars.eclIp := C_GBVM.SCRIPT_FIRST;
   GameVars.virtualDisk := 1;
   DaxIo.prevVirtualDisk := 1;
   GameVars.automapOn := False;
   GameVars.locTypePrev := C_AREA.LOC_3D_MAP;
   GameVars.gLocType := C_AREA.LOC_3D_MAP;
-  GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   GameVars.vertTop := 1;
   GameVars.duelFlag := False;
   GameVars.suppressDrawingBorderFlag := 0;
@@ -307,6 +297,10 @@ procedure GameInit2;
 var
   i: Byte;
   settings: CfgFile.TSettings;
+  { the game folder, set aside while the resources load from the current one }
+  savedDir: Types.TPathStr;
+  itemsFile: file;
+  itemsRead: Word;
 begin
   GetMem(GameVars.zone0, SizeOf(GameVars.zone0^));
   GetMem(GameVars.zone1, SizeOf(GameVars.zone1^));
@@ -329,7 +323,8 @@ begin
   Blit.ClearSpans;
   VidOps.InitRowTables;
   FillChar(GameVars.symbolSetPtrs, SizeOf(GameVars.symbolSetPtrs), 0);
-  FillChar(GameVars.mapTilePtr, SizeOf(GameVars.mapTilePtr) + SizeOf(MapTiles.mapTilePtr2), 0);
+  { the second tile set's pointer, MapTiles.mapTilePtr2, starts nil in MapTiles }
+  GameVars.mapTilePtr := nil;
   FillChar(GameVars.iconAnimation, SizeOf(GameVars.iconAnimation), 0);
   for i := 1 to 2 do begin
     GameVars.portraitCache[i].pictureId := 255;
@@ -385,7 +380,7 @@ begin
   GameIo.beforeExit := BeastFil.Flush;
   { Started with NORAND as the second argument, for testing, the game seeds the random numbers with 1, so two runs given
     the same keys roll the same dice. }
-  if ParamStr(2) = 'NORAND' then
+  if GameVars.norandArg then
     RandSeed := 1
   else
     Randomize;
