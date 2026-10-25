@@ -36,10 +36,6 @@ procedure CombatTurnUndead(creature: Types.PCharRecord);
 
 function FindTurnUndeadTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
-{ The cleric level the creature turns undead at: its cleric level, or its paladin level less 2 when that is higher, so a
-  paladin turns from level 3; 0 when it cannot turn. }
-function TurnLevel(creature: Types.PCharRecord): ShortInt;
-
 procedure NoteAttackDirection(att, def: Types.PCharRecord);
 
 procedure CombatAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
@@ -624,35 +620,10 @@ begin
   CanAttackTarget := currentSuppressTargetingFlag = 0;
 end;
 
-{ Turn undead at CbtActs.TurnLevel: one d20 roll against the turning table, applied to up to 1d12 targets (lowest-level
-  undead first) until a target resists. }
+{ Turn undead at ClassCal.TurnLevel: one d20 roll against the turning table (ClassCal.TurnValue), applied to up to 1d12
+  targets (lowest-level undead first) until a target resists. A negative value extends exhausted attempts until six
+  successes. }
 procedure CombatTurnUndead(creature: Types.PCharRecord);
-const
-  { Turning table by undead level (row) and cleric level (column: levels 1..8 one each, then 9..13, then 14+). Roll
-    d20 >= Abs(value): positive values turn, zero or negative values destroy. 1 turns automatically, 0 destroys
-    automatically, and 99 is immune. A negative result extends exhausted attempts until six successes. An undead level
-    above 10 (CbtActs.FindTurnUndeadTarget admits up to 12) is read from row 10. }
-  turnTable: Types.TTurnUndeadTable = (
-    { 1: Skeleton }
-    (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
-    { 2: Zombie }
-    (13, 10, 7, 1, 1, 0, 0, 0, -1, -1),
-    { 3: Ghoul }
-    (16, 13, 10, 4, 1, 1, 0, 0, 0, -1),
-    { 4: Shadow }
-    (19, 16, 13, 7, 4, 1, 1, 0, 0, -1),
-    { 5: Wight }
-    (20, 19, 16, 10, 7, 4, 1, 1, 0, 0),
-    { 6: Ghast }
-    (99, 20, 19, 13, 10, 7, 4, 1, 1, 0),
-    { 7: Wraith }
-    (99, 99, 20, 16, 13, 10, 7, 4, 1, 0),
-    { 8: Mummy }
-    (99, 99, 99, 20, 16, 13, 10, 7, 4, 1),
-    { 9: Spectre }
-    (99, 99, 99, 99, 20, 16, 13, 10, 7, 1),
-    { 10: Vampire }
-    (99, 99, 99, 99, 99, 20, 16, 13, 10, 4));
 var
   roll: Byte;
   attempts: Byte;
@@ -661,8 +632,7 @@ var
   any: Boolean;
   stop: Boolean;
   tgt: Pointer;
-  col: ShortInt;
-  row: ShortInt;
+  lvl: ShortInt;
 begin
   CharDisp.PrintNameString(creature, 'turns undead...', 10, False);
   TextRend.ClearBottomLine;
@@ -673,19 +643,11 @@ begin
   destroys := 6;
   attempts := Dice.RollDice(1, 12);
   roll := Dice.RollDice(1, 20);
-  case CbtActs.TurnLevel(creature) of
-    1..8: col := CbtActs.TurnLevel(creature);
-    9..13: col := 9;
-  else
-    col := 10;
-  end;
+  lvl := ClassCal.TurnLevel(creature);
   while CbtActs.FindTurnUndeadTarget(creature, tgt) and (attempts > 0)
         and (stop = False) do begin
-    { FindTurnUndeadTarget admits undead levels up to 12; the table's rows stop at 10 }
-    row := Types.PCharRecord(tgt)^.levelUndead;
-    if row > 10 then
-      row := 10;
-    turnVal := turnTable[row, col];
+    { FindTurnUndeadTarget admits undead levels up to 12; TurnValue reads those above 10 from row 10 }
+    turnVal := ClassCal.TurnValue(Types.PCharRecord(tgt)^.levelUndead, lvl);
     if roll >= Abs(turnVal) then begin
       any := True;
       CbtMap.DisplayMapViewCentered(Types.PCharRecord(tgt), 3, False);
@@ -716,18 +678,6 @@ begin
   CharHlp.CountTeams;
   doneRoundFlag := CharHlp.EndActions(creature);
   CharDisp.ClearMessageWindow;
-end;
-
-function TurnLevel(creature: Types.PCharRecord): ShortInt;
-var
-  lvl: ShortInt;
-begin
-  lvl := CharHlp.GetClassLevel(creature, C_LEVEL.CLERIC_BIT);
-  if CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2 > lvl then
-    lvl := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) - 2;
-  if lvl < 0 then
-    lvl := 0;
-  TurnLevel := lvl;
 end;
 
 { The lowest-level unturned undead in the target list (any range); equal levels keep the earlier, nearer one. }
