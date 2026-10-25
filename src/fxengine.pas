@@ -47,7 +47,7 @@ procedure TriggerEffectsWithCondition(cond: Byte; creature: Types.PCharRecord);
 function CloudProof(creature: Types.PCharRecord): Boolean;
 
 { True when a Stinking Cloud does nothing to creature now: it is disabled, nauseated already (C_EFFECT.HELPLESS) or
-  CloudProof. ConsiderStinkingCloud passes over it, and the spell-aim count (#840) calls it immune. }
+  CloudProof. ConsiderStinkingCloud passes over it. }
 function CloudSpares(creature: Types.PCharRecord): Boolean;
 
 { Stinking-cloud check for a creature the cloud does not spare (CloudSpares): CbtMap.ProbeDirection (dir 8, its own
