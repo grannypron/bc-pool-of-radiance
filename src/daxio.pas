@@ -64,8 +64,11 @@ procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word;
 
 { Read and decode one block of f, an archive OpenDax opened with hdrSize bytes before its first block, into a new
   buffer of sizeRead bytes in data: the block whose directory entry gives its offset and packed size compSize. Only the
-  bytes actually read are decoded, so a block cut short is zeroed past what the file holds. }
-procedure ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word; var data: Types.PByteArr);
+  bytes actually read are decoded, so a block cut short is zeroed past what the file holds (#122). False, with data nil
+  and nothing allocated, for an entry whose block does not start inside the file (a negative offset, or one at or past
+  its end), or when the seek or the read fails (#915). }
+function ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word;
+                   var data: Types.PByteArr): Boolean;
 
 { True when the family's merged archive is whole, holds C_DATA.VERSION and was built from the per-disk archives there
   now (DaxIo.SourcesMatch). The answer is remembered until ResetArchiveCache; the first True also reads the archive's
@@ -510,7 +513,7 @@ end;
   reserved ids), with fileID remapped where that disk's block was stored under another id. Only the bytes actually read
   are decoded, so a truncated archive yields a block zeroed past what it holds. Any directory entry scanned with a
   compressed size above C_DATA.PACKED_LIMIT shows a 'tempsize' prompt and exits the game. Return sizeRead=0 and data=nil
-  if the archive cannot be opened or the ID is absent. }
+  if the archive cannot be opened, the ID is absent, or its block does not start inside the archive (ReadBlock). }
 procedure LoadDax(fileName, ext: Types.TStr20; fileID: Byte; var sizeRead: Word; var data: Types.PByteArr);
 var
   e: DataArc.TDirEntry;
@@ -553,7 +556,8 @@ begin
   end;
   if found then begin
     sizeRead := e.rawSize;
-    DaxIo.ReadBlock(f1, hdrSize, e.offset, e.packedSize, sizeRead, data);
+    if not DaxIo.ReadBlock(f1, hdrSize, e.offset, e.packedSize, sizeRead, data) then
+      sizeRead := 0;
   end else begin
     sizeRead := 0;
     data := nil;
@@ -561,17 +565,35 @@ begin
   DaxIo.CloseDax(f1, f2);
 end;
 
-procedure ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word; var data: Types.PByteArr);
+function ReadBlock(var f: file; hdrSize: Word; offset: LongInt; compSize, sizeRead: Word;
+                   var data: Types.PByteArr): Boolean;
 var
   n: Word;
+  ioRes: Integer;
+  ok: Boolean;
 begin
-  DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
-  GetMem(data, sizeRead);
-  Seek(f, hdrSize + offset);
-  BlockRead(f, daxCompressedFilePtr^, compSize, n);
-  { n, the bytes read: FreeRounded still needs compSize }
-  DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
-  DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
+  data := nil;
+  { an error still pending would make the Seek and the read do nothing }
+  ioRes := IOResult;
+  { compared by subtraction, so a large offset cannot overflow the sum }
+  ok := (offset >= 0) and (offset < FileSize(f) - hdrSize) and (IOResult = 0);
+  if ok then begin
+    Seek(f, hdrSize + offset);
+    ok := IOResult = 0;
+  end;
+  if ok then begin
+    n := 0;
+    DaxIo.AllocRounded(Pointer(daxCompressedFilePtr), compSize);
+    BlockRead(f, daxCompressedFilePtr^, compSize, n);
+    ok := IOResult = 0;
+    if ok then begin
+      GetMem(data, sizeRead);
+      { n, the bytes read: FreeRounded still needs compSize }
+      DaxIo.DecompressDax(daxCompressedFilePtr, data, n, sizeRead);
+    end;
+    DaxIo.FreeRounded(Pointer(daxCompressedFilePtr), compSize);
+  end;
+  ReadBlock := ok;
 end;
 
 { Save the current resource disk and select a new one. }
