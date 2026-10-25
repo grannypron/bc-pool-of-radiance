@@ -642,6 +642,9 @@ begin
   { names holds MAX_PARTY, the most a party has }
   if nChars > Types.MAX_PARTY then
     nChars := Types.MAX_PARTY;
+  { a name whose length byte is past its field is cut to it before it names a file (#917) }
+  for i := 1 to nChars do
+    found := StrUtil.FitLength(names[i], SizeOf(names[i]) - 1);
   { the save's speed and settings word are SSI's copies: the game keeps its own settings (POOLOPT.CFG) }
   GameVars.zone1^[C_GBVM.PARTY_SIZE] := 0;
   for i := 1 to nChars do begin

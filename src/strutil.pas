@@ -36,6 +36,11 @@ function Pluralize(n: LongInt; singular, plural: TNounStr): TNounStr;
 { n and a blank, then its noun (Pluralize): '1 SQUARE', '3 SQUARES', '0 points'. }
 function Count(n: LongInt; singular, plural: TNounStr): TCountStr;
 
+{ Hold the length byte of s, a string[max] read raw from a file, to max: True when it was within it already, else
+  the string is cut to max (#917). A raw length byte past its field would carry an assignment, a comparison or a
+  display past the string into whatever follows it. }
+function FitLength(var s; max: Byte): Boolean;
+
 { s cut, or padded with spaces on the right, to width. }
 function PadRight(s: String; width: Byte): String;
 
@@ -52,6 +57,13 @@ procedure MenuToOptions(var menu, opts: String);
 function RemoveAll(s, del: String): String;
 
 implementation
+
+function FitLength(var s; max: Byte): Boolean;
+begin
+  FitLength := Byte(s) <= max;
+  if Byte(s) > max then
+    Byte(s) := max;
+end;
 
 function NumStr(n: LongInt): TNumStr;
 var

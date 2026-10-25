@@ -81,5 +81,18 @@ begin
   TestKit.CheckEqualsL(300, efBack.duration, 'duration comes back');
   TestKit.Check(efBack.next = nil, 'next comes back nil');
   TestKit.CheckEqualsL(17, DiskRec.CHAR_POINTERS, 'a character holds 17 pointers, 13 of them equipped items');
+  { a name's length byte past its field is cut to it (#917): the name is the first field of both records }
+  chDisk[0] := $FF;
+  DiskRec.CharFromDisk(chDisk, back);
+  TestKit.CheckEqualsL(Types.NAME_LEN, Length(back.name), 'a character''s name of length $FF is cut to NAME_LEN');
+  chDisk[0] := Types.NAME_LEN + 1;
+  DiskRec.CharFromDisk(chDisk, back);
+  TestKit.CheckEqualsL(Types.NAME_LEN, Length(back.name), 'and one of NAME_LEN + 1');
+  itDisk[0] := 41;
+  DiskRec.ItemFromDisk(itDisk, itBack);
+  TestKit.CheckEqualsL(40, Length(itBack.name), 'an item''s name of length 41 is cut to 40');
+  itDisk[0] := 10;
+  DiskRec.ItemFromDisk(itDisk, itBack);
+  TestKit.CheckEqualsS('Long Sword', itBack.name, 'and a whole one is left alone');
   TestKit.Done;
 end.
