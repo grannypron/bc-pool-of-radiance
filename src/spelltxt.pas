@@ -26,8 +26,8 @@ implementation
 function LineCount(spell: Byte): Byte;
 begin
   case spell of
-    1: LineCount := 4;
-    2: LineCount := 3;
+    1: LineCount := 5;
+    2: LineCount := 4;
     3: LineCount := 3;
     4: LineCount := 3;
     5: LineCount := 4;
@@ -105,17 +105,19 @@ begin
     1:
       if chunk = 0 then
         TextChunk :=
-          'ALLIES NOT YET ENGAGED IN MELEE'#13 +
-          'GAIN +1 TO ATTACK ROLLS AND MORALE.'#13 +
-          'WHEN CAST IN CAMP, THE BLESSING'#13 +
-          'EXTENDS TO THE ENTIRE PARTY.';
+          'ALLIES IN THE AREA NOT YET ENGAGED'#13 +
+          'IN MELEE GAIN +1 TO ATTACK ROLLS AND'#13 +
+          'MORALE; FOES ARE UNAFFECTED. WHEN'#13 +
+          'CAST IN CAMP, THE BLESSING EXTENDS'#13 +
+          'TO THE ENTIRE PARTY.';
     { Curse }
     2:
       if chunk = 0 then
         TextChunk :=
           'FOES IN THE AREA SUFFER -1 TO'#13 +
           'ATTACK ROLLS AND MORALE, WHETHER'#13 +
-          'ENGAGED IN MELEE OR NOT.';
+          'ENGAGED IN MELEE OR NOT. ALLIES'#13 +
+          'ARE UNAFFECTED.';
     { Cure Light Wounds }
     3:
       if chunk = 0 then

@@ -243,5 +243,9 @@ begin
   TestKit.CheckEqualsL(0, SpellTxt.LineCount(66), 'no text for the unused item spell');
   TestKit.CheckEqualsS('THE DRINKER MOVES AND ATTACKS AT', SpellInf.TextLine(57, 1),
                        'the Potion of Speed''s first line');
+  { Bless reaches only allies and Curse only foes (#1027) }
+  TestKit.CheckEqualsS('MORALE; FOES ARE UNAFFECTED. WHEN', SpellInf.TextLine(C_SPELL.BLESS, 3),
+                       'Bless''s text spares foes');
+  TestKit.CheckEqualsS('ARE UNAFFECTED.', SpellInf.TextLine(2, 4), 'Curse''s text spares allies');
   TestKit.Done;
 end.

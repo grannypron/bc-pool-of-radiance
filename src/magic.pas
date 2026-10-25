@@ -1004,32 +1004,35 @@ begin
   Magic.ShowCombatOnly(GameDefs.spellNames[spell], 'spell');
 end;
 
-{ Bless and Curse: drop targets not on team hostFlag and, for Bless in combat, targets with an enemy within range 1;
-  resolve the rest as a multi-target spell with msg. }
-procedure CastOneSide(hostFlag: ShortInt; msg: Types.TStr40);
+{ Bless and Curse: drop targets not on team side (CharHlp.Team, 0 or 1) and, for Bless in combat, targets with an enemy
+  within range 1 (1st edition: Bless spares those already in melee); resolve the rest as a multi-target spell with msg.
+  SSI's compared the raw hostile byte, so a byte above 1 (a damaged save) put a creature on neither side and turned
+  such a caster's Curse on its own side (POR-0230, #1027). }
+procedure CastOneSide(side: Byte; msg: Types.TStr40);
 var
   i: Byte;
 begin
   GameVars.gMultiTarget := 1;
   for i := 1 to GameVars.spellTargetCount do begin
-    if (GameVars.targetCreaturePtr[i]^.hostile <> hostFlag) or
-        ((GameVars.currentSpellBeing = C_SPELL.BLESS) and (GameVars.ifcState = C_IFC.COMBAT) and
-         (CbtMap.CountTargets(GameVars.targetCreaturePtr[i], 1) > 0)) then
-      GameVars.targetCreaturePtr[i] := nil;
+    if GameVars.targetCreaturePtr[i] <> nil then
+      if (CharHlp.Team(GameVars.targetCreaturePtr[i]) <> side) or
+          ((GameVars.currentSpellBeing = C_SPELL.BLESS) and (GameVars.ifcState = C_IFC.COMBAT) and
+           (CbtMap.CountTargets(GameVars.targetCreaturePtr[i], 1) > 0)) then
+        GameVars.targetCreaturePtr[i] := nil;
   end;
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, 0, 0, msg);
 end;
 
-{ Bless: apply the spell to the caster's own team (see CastOneSide). }
+{ Bless: apply the spell to the caster's own team only (see CastOneSide). }
 procedure BlessHandler;
 begin
-  Magic.CastOneSide(GameVars.curChar^.hostile, 'is Blessed');
+  Magic.CastOneSide(CharHlp.Team(GameVars.curChar), 'is Blessed');
 end;
 
-{ Curse: apply the spell to the caster's enemies (see CastOneSide). }
+{ Curse: apply the spell to the caster's enemies only (see CastOneSide). }
 procedure CurseHandler;
 begin
-  Magic.CastOneSide(CharHlp.EnemyTeam(GameVars.curChar), 'is Cursed');
+  Magic.CastOneSide(1 - CharHlp.Team(GameVars.curChar), 'is Cursed');
 end;
 
 { Cure Light Wounds: restore 1d8 hit points to the first target. }
@@ -1662,11 +1665,12 @@ begin
                      C_EFFECT.ELEM_FIRE or C_EFFECT.ELEM_MAGIC, '');
 end;
 
-{ Haste and Slow: keep up to caster-level targets on team hostFlag and drop the rest. A kept target carrying removeId,
+{ Haste and Slow: keep up to caster-level targets on team side (CharHlp.Team; SSI's compared the raw hostile byte,
+  POR-0230, #1027) and drop the rest. A kept target carrying removeId,
   the opposing Slowed or Hasted effect, just loses it; the others get the spell's effect and have their
   C_COND.MOVE_ATTACK_RATE effects re-run on their own attack count, as at a round's start (#797), so a hasted one ages
   at once; its rates are worked out where they are used (CbtActs). }
-procedure HasteSlowLogic(removeId: Byte; hostFlag: ShortInt; msg: Types.TStr40);
+procedure HasteSlowLogic(removeId: Byte; side: Byte; msg: Types.TStr40);
 var
   cl: Byte;
   i: Byte;
@@ -1674,7 +1678,8 @@ begin
   GameVars.gMultiTarget := 1;
   cl := CharHlp.GetCasterLevel(GameVars.currentSpellBeing);
   for i := 1 to GameVars.spellTargetCount do begin
-    if (GameVars.targetCreaturePtr[i]^.hostile = hostFlag) and (cl > 0) then begin
+    if (GameVars.targetCreaturePtr[i] <> nil) and (CharHlp.Team(GameVars.targetCreaturePtr[i]) = side) and
+        (cl > 0) then begin
       Dec(cl);
       if FxEngine.RemoveEffectWithMessage(GameVars.targetCreaturePtr[i], removeId) then
         GameVars.targetCreaturePtr[i] := nil;
@@ -1693,7 +1698,7 @@ end;
 { Haste: the caster's team loses Slowed or is hasted (see HasteSlowLogic). }
 procedure HasteHandler;
 begin
-  Magic.HasteSlowLogic(C_EFFECT.SLOWED, GameVars.curChar^.hostile, 'is Hasted');
+  Magic.HasteSlowLogic(C_EFFECT.SLOWED, CharHlp.Team(GameVars.curChar), 'is Hasted');
 end;
 
 { Lightning damage to the creature at one bolt cell (half on a save of saveType). blocked returns whether the cell's
@@ -1878,7 +1883,7 @@ end;
 { Slow: the caster's enemies lose Hasted or are slowed (see HasteSlowLogic). }
 procedure SlowHandler;
 begin
-  Magic.HasteSlowLogic(C_EFFECT.HASTED, CharHlp.EnemyTeam(GameVars.curChar), 'is Slowed');
+  Magic.HasteSlowLogic(C_EFFECT.HASTED, 1 - CharHlp.Team(GameVars.curChar), 'is Slowed');
 end;
 
 { Restoration: give back one drained level. hpMax, hpCur and hpRolled regain drainedHps div drainedLevels. Scanning
