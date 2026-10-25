@@ -24,6 +24,32 @@ procedure CombatMoveCreature(creature: Types.PCharRecord; dir: Byte);
 
 procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
 
+{ One combat step in dir with what comes with it: the free attacks of the enemies the step leaves
+  (MoveOpportunityAttacks), then, while the mover is still up and not helpless, the step (CombatMoveCreature, where
+  guarding enemies attack) and the Stinking Cloud check. A mover that goes down or is left helpless on the way ends its
+  actions, and True is returned: one paralysed, held or put to sleep by the free attacks does not take the step
+  (POR-0216, #933). Combat's move menu and CombatAi's step share it. }
+function StepCreature(creature: Types.PCharRecord; dir: Byte): Boolean;
+
+{ Clear creature's flanking accumulators (flankCount, flankSpread): at the start of its turn and when it moves. }
+procedure ResetFlanking(creature: Types.PCharRecord);
+
+{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_DIR.CENTER for any other
+  key: the steps of the combat move menu and of the aim cursor. }
+function DirOfKey(ch: Char): Byte;
+
+{ att attacks def, noted for flanking (NoteAttackDirection), with the item that does a ranged weapon's damage (its
+  ammunition, or the thrown weapon itself; CharHlp.FindDamagingRangedWeapon), except that a throwable weapon used at
+  distance 1 strikes as melee, with none. done is CombatAttack's. The aim menu and CombatAi's attack share it. }
+procedure AttackWithReadied(att, def: Types.PCharRecord; var done: Boolean);
+
+{ A weapon blow's damage: base (the dice and modifier) floored at 0, times mult (the backstab's multiplier, 1 for
+  none), plus bonus (a ranger's level against a giant-class foe), held to 255. }
+function WeaponDamage(base: Integer; mult, bonus: Byte): Byte;
+
+{ The missiles left when used are taken from quantity: never below 0. }
+function AmmoLeft(quantity, used: Byte): Byte;
+
 function CombatFleeAttempt(creature: Types.PCharRecord): Boolean;
 
 procedure SetCurAttacksX2(creature: Types.PCharRecord);
@@ -175,34 +201,51 @@ end;
 
 { Roll attack idx's (1 or 2) current dice plus modifier into pendingDamage, multiply it on a backstab by the AD&D band
   for the thief level (x2 at 1-4, x3 at 5-8, x4 at 9-12), add the attacker's ranger level against a giant-class foe
-  (GameDefs.rangerFoes) in melee, up to 255, clear elementMask and fire the attacker's and defender's weapon-damage
-  effect conditions. }
+  (GameDefs.rangerFoes) in melee, up to 255 (WeaponDamage), clear elementMask and fire the attacker's and defender's
+  weapon-damage effect conditions. }
 procedure CalcWeaponDamage(att, def: Types.PCharRecord; idx: Byte);
 var
   i: Byte;
-  dmg: Integer;
+  mult: Byte;
+  bonus: Byte;
 begin
-  { summed as an Integer so that a negative modifier stops at 0 instead of wrapping in the Byte }
-  dmg := att^.curModA[idx] + Dice.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]);
-  if dmg < 0 then
-    dmg := 0;
-  if dmg > 255 then
-    dmg := 255;
-  GameVars.pendingDamage := dmg;
+  mult := 1;
   if CbtActs.IsBackstab(att, def) then
     { (level + 3) div 4 + 1 is (level - 1) div 4 + 2 without the underflow at level 0 }
-    GameVars.pendingDamage := GameVars.pendingDamage *
-                              ((Word(CharHlp.GetClassLevel(att, C_LEVEL.THIEF_BIT)) + 3) div 4 + 1);
+    mult := (Word(CharHlp.GetClassLevel(att, C_LEVEL.THIEF_BIT)) + 3) div 4 + 1;
+  bonus := 0;
   if (CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT) > 0) and (CbtMap.CalcDistance(att, def) <= 1) then
     for i := 1 to SizeOf(GameDefs.rangerFoes) div SizeOf(GameDefs.rangerFoes[1]) do
       if def^.name = GameDefs.rangerFoes[i] then
-        if GameVars.pendingDamage > 255 - CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT) then
-          GameVars.pendingDamage := 255
-        else
-          Inc(GameVars.pendingDamage, CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT));
+        bonus := CharHlp.GetClassLevel(att, C_LEVEL.RANGER_BIT);
+  GameVars.pendingDamage := CbtActs.WeaponDamage(att^.curModA[idx] +
+                                                 Dice.RollDamageDice(att^.curRollsA[idx], att^.curDiceA[idx]),
+                                                 mult, bonus);
   GameVars.elementMask := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_ATT, att);
   FxEngine.TriggerEffectsWithCondition(C_COND.WEAPON_DAMAGE_DEF, def);
+end;
+
+{ Worked in a LongInt: SSI's Byte wrapped a backstab's product past 255, so a x5 backstab of 52 did 4. }
+function WeaponDamage(base: Integer; mult, bonus: Byte): Byte;
+var
+  d: LongInt;
+begin
+  d := base;
+  if d < 0 then
+    d := 0;
+  d := d * mult + bonus;
+  if d > 255 then
+    d := 255;
+  WeaponDamage := d;
+end;
+
+function AmmoLeft(quantity, used: Byte): Byte;
+begin
+  if quantity > used then
+    AmmoLeft := quantity - used
+  else
+    AmmoLeft := 0;
 end;
 
 { Print the attack message and inflict the damage (dmg = inflicted, dmgDisp = displayed). atkType: 1 = from behind, 2 =
@@ -341,9 +384,7 @@ begin
   GameVars.arenaLoc[slot].y := ny;
   CbtMap.BuildArenaArrays;
   CbtMap.ScrollView(nx, ny, cost, C_DIR.CENTER);
-  { flanking accumulators reset }
-  creature^.combatAddr^.flankCount := 0;
-  creature^.combatAddr^.flankSpread := 0;
+  CbtActs.ResetFlanking(creature);
   SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
   CbtActs.GuardingAttacks(creature);
   if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
@@ -463,6 +504,33 @@ begin
       end;
 end;
 
+function StepCreature(creature: Types.PCharRecord; dir: Byte): Boolean;
+var
+  done: Boolean;
+begin
+  done := False;
+  CbtActs.MoveOpportunityAttacks(creature, dir);
+  { a mover the free attacks leave down or helpless neither steps nor acts again this turn (POR-0216, #933) }
+  if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
+    done := CharHlp.EndActions(creature)
+  else begin
+    CbtActs.CombatMoveCreature(creature, dir);
+    if creature^.enabled = 0 then
+      done := CharHlp.EndActions(creature);
+    FxEngine.ConsiderStinkingCloud(creature);
+    { helpless after the step (a guarding enemy's blow, the cloud): the turn ends }
+    if CharHlp.IsHelpless(creature) then
+      done := CharHlp.EndActions(creature);
+  end;
+  StepCreature := done;
+end;
+
+procedure ResetFlanking(creature: Types.PCharRecord);
+begin
+  creature^.combatAddr^.flankCount := 0;
+  creature^.combatAddr^.flankSpread := 0;
+end;
+
 { Flee: automatic when the target list (range 255) holds no enemy; otherwise it succeeds when the creature's movement in
   whole moves beats the fastest enemy's (HighestEnemyMovement), on 1 in 2 when they tie. Success takes it out of play as
   'Got Away' (C_STATUS.RUNNING). EndActions runs on both outcomes and supplies the result. }
@@ -543,7 +611,7 @@ end;
 
 { Sweep sub-1-HD foes: when def is an adjacent level-0 foe, the sweep budget (attack level) exceeds the current attacks
   and more adjacent level-0 enemies stand around than there are current attacks, make one attack on each of up to
-  sweepBudget of them, def first. Returns True if it swept. }
+  sweepBudget of them, def first, while att stays up. Returns True if it swept. }
 function SweepAttempt(att, def: Types.PCharRecord): Boolean;
 var
   cnt: Byte;
@@ -583,8 +651,9 @@ begin
     GameVars.potentialTargetCreature[defIdx] := GameVars.potentialTargetCreature[1];
     GameVars.potentialTargetCreature[1] := CbtMap.CombatSlot(def);
   end;
+  { a sweeper that goes down stops }
   for i := 1 to cnt do
-    if weak > 0 then
+    if (weak > 0) and (att^.enabled <> 0) then
       if GameVars.creatureArr[GameVars.potentialTargetCreature[i]]^.levelHighest = 0 then begin
         p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
         CbtActs.NoteAttackDirection(att, p);
@@ -729,6 +798,7 @@ var
   group: Byte;
   { the attack roll hit }
   rolled: Boolean;
+  backstab: Boolean;
 begin
   if ranged then
     group := C_SOUND.GROUP_RANGED
@@ -777,7 +847,8 @@ begin
     CharHlp.RecalcStats(def);
     FxEngine.TriggerEffectsWithCondition(C_COND.DEFENDER_AC, def);
     behindIdx := 0;
-    if CbtActs.IsBackstab(att, def) then
+    backstab := CbtActs.IsBackstab(att, def);
+    if backstab then
       defense := def^.acBehind - 2
     else begin
       if def^.combatAddr^.flankCount > 1 then
@@ -792,7 +863,7 @@ begin
     atkType := 0;
     if behind then
       atkType := 1;
-    if CbtActs.IsBackstab(att, def) then
+    if backstab then
       atkType := 2;
     startPhase := att^.combatAddr^.attackPhase;
     { the downto's own entry guard covers startPhase < 1 }
@@ -824,8 +895,7 @@ begin
             CbtActs.CalcWeaponDamage(att, def, phase);
             CbtActs.ProcessAttackResult(att, def, atkType, GameVars.pendingDamage, GameVars.pendingDamage, True);
             if def^.enabled <> 0 then
-              { C_COND.HIT_PHASE_1/2 }
-              FxEngine.TriggerEffectsWithCondition(phase + 1, att);
+              FxEngine.TriggerEffectsWithCondition(C_COND.HIT_PHASE_1 + phase - 1, att);
             if def^.enabled = 0 then
               defDowned := True;
           end;
@@ -901,8 +971,8 @@ begin
     GameVars.curChar := att;
     CbtActs.DoAttack(att, def, fromBehind, ranged, done);
     if weapon <> nil then begin
-      if weapon^.quantity > 0 then
-        Dec(weapon^.quantity, attacksMade[1]);
+      { a quantity of 0 is a single item, thrown and gone }
+      weapon^.quantity := CbtActs.AmmoLeft(weapon^.quantity, attacksMade[1]);
       if weapon^.quantity = 0 then
         if CharHlp.HasThrowableWeapon(att) and (weapon^.special <> C_EFFECT.SPIRIT_HAMMER_GONE) then begin
           { the expended thrown weapon drops into the loot pile }
@@ -1222,8 +1292,9 @@ begin
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
-          if GameVars.curChar^.combatAddr^.other <> nil then begin
-            GameVars.targetCreaturePtr[1] := GameVars.curChar^.combatAddr^.other;
+          { the pick, not combatAddr^.other: the AI's pick of a non-offensive spell's target leaves its lock there }
+          if sel.cr <> nil then begin
+            GameVars.targetCreaturePtr[1] := sel.cr;
             GameVars.spellTargetCount := 1;
           end else begin
             { radius 0: the picked cell alone }
@@ -1522,8 +1593,6 @@ begin
   end;
 end;
 
-{ The direction a cursor key (an arrow, Home, End, Page Up or Page Down scan code) points, or C_DIR.CENTER for any other
-  key. }
 function DirOfKey(ch: Char): Byte;
 begin
   case ch of
@@ -1540,35 +1609,45 @@ begin
   end;
 end;
 
+{ Line 23's range to the target, in the weapon aim. }
+procedure ShowRange(dist: Byte);
+begin
+  TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist) + '  ');
+end;
+
+{ True when cur's readied weapon may strike now: no ranged weapon, or one with damaging ammunition
+  (CharHlp.FindDamagingRangedWeapon) and either no enemy adjacent or a throwable weapon. }
+function WeaponCanStrike(cur: Types.PCharRecord): Boolean;
+var
+  weapon: Types.PItemRec;
+begin
+  if not CharHlp.HasRangedWeapon(cur) then
+    WeaponCanStrike := True
+  else if not CharHlp.FindDamagingRangedWeapon(cur, weapon) then
+    WeaponCanStrike := False
+  else
+    WeaponCanStrike := (CbtMap.CountTargets(cur, 1) = 0) or CharHlp.HasThrowableWeapon(cur);
+end;
+
 { One aim-menu round on the target: center the view on it, show the range (weapon mode) and offer Target when it is in
-  range (a weapon attack needs another creature, and a ranged weapon needs damaging ammunition plus either no adjacent
-  enemy or a throwable weapon), then Next/Prev/Manual/Center/Exit. A cursor key (keypad digits included) returns through
-  dir the direction it points, so the caller can switch to manual aim and move the cursor that way; any other choice
-  sets dir to C_DIR.CENTER. ground is unused. }
-function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode, ground: Byte; var dir: Byte): Char;
+  range (a weapon attack needs another creature and WeaponCanStrike), then Next/Prev/Manual/Center/Exit. A cursor key
+  (keypad digits included) returns through dir the direction it points, so the caller can switch to manual aim and move
+  the cursor that way; any other choice sets dir to C_DIR.CENTER. }
+function AimTargetMenu(cur, tgt: Types.PCharRecord; range, weaponMode: Byte; var dir: Byte): Char;
 var
   menu: String[40];
   ext: Boolean;
-  weapon: Types.PItemRec;
   dist: Byte;
   ch: Char;
 begin
   menu := '';
   dist := CbtMap.CalcDistance(cur, tgt);
   if weaponMode <> 0 then
-    TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist) + '  ');
-  if dist <= range then begin
-    if weaponMode = 0 then
-      menu := 'Target '
-    else if cur <> tgt then begin
-      if not CharHlp.HasRangedWeapon(cur) then
-        menu := 'Target '
-      else if CharHlp.FindDamagingRangedWeapon(cur, weapon) then
-        if (CbtMap.CountTargets(cur, 1) = 0) or CharHlp.HasThrowableWeapon(cur) then
-          menu := 'Target ';
-    end;
-  end;
-  menu := 'Next Prev Manual ' + menu + 'Center Exit';
+    CbtActs.ShowRange(dist);
+  if dist <= range then
+    if (weaponMode = 0) or ((cur <> tgt) and CbtActs.WeaponCanStrike(cur)) then
+      menu := 'Target ';
+  menu :='Next Prev Manual ' + menu + 'Center Exit';
   CbtMap.DisplayMapViewCentered(tgt, 3, True);
   CharDisp.CombatPrintCreatureInfo(tgt);
   repeat
@@ -1581,15 +1660,26 @@ begin
   AimTargetMenu := ch;
 end;
 
-{ Confirm an aim selection. weaponMode=1 performs a weapon attack; 0 selects a spell target. An attack on an ally needs
-  CheckAttackAlly's consent, else sel is cleared and done is False. The attack tries a sweep first; a throwable ranged
-  weapon used at distance 1 strikes as melee (weapon nil). }
-procedure ConfirmAttackTarget(cur, tgt: Types.PCharRecord; weaponMode: Byte; var done: Boolean;
-                              var sel: Types.TAimTarget);
+procedure AttackWithReadied(att, def: Types.PCharRecord; var done: Boolean);
 var
   weapon: Types.PItemRec;
 begin
+  CbtActs.NoteAttackDirection(att, def);
   weapon := nil;
+  if CharHlp.HasRangedWeapon(att) then
+    if CharHlp.FindDamagingRangedWeapon(att, weapon) then
+      if CharHlp.HasThrowableWeapon(att) then
+        if CbtMap.CalcDistance(att, def) = 1 then
+          weapon := nil;
+  CbtActs.CombatAttack(att, def, False, weapon, done);
+end;
+
+{ Confirm an aim selection. weaponMode=1 performs a weapon attack; 0 selects a spell target. An attack on an ally needs
+  CheckAttackAlly's consent, else sel is cleared and done is False. The attack tries a sweep first, then
+  AttackWithReadied. }
+procedure ConfirmAttackTarget(cur, tgt: Types.PCharRecord; weaponMode: Byte; var done: Boolean;
+                              var sel: Types.TAimTarget);
+begin
   done := True;
   if weaponMode = 1 then
     if not CbtActs.CheckAttackAlly(cur, tgt) then
@@ -1600,19 +1690,11 @@ begin
     sel.y := CbtMap.CombatCellY(tgt);
     GameVars.arenaPtr^.cursorOn := False;
     CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
-    if weaponMode = 1 then begin
+    if weaponMode = 1 then
       if CbtActs.SweepAttempt(cur, tgt) then
         done := CharHlp.EndActions(cur)
-      else begin
-        CbtActs.NoteAttackDirection(cur, tgt);
-        if CharHlp.HasRangedWeapon(cur) then
-          if CharHlp.FindDamagingRangedWeapon(cur, weapon) then
-            if CharHlp.HasThrowableWeapon(cur) then
-              if CbtMap.CalcDistance(cur, tgt) = 1 then
-                weapon := nil;
-        CbtActs.CombatAttack(cur, tgt, False, weapon, done);
-      end;
-    end;
+      else
+        CbtActs.AttackWithReadied(cur, tgt, done);
   end else
     FillChar(sel, SizeOf(sel), 0);
 end;
@@ -1626,7 +1708,6 @@ procedure ManualAimCursor(cur, underCursor: Types.PCharRecord; range, weaponMode
 var
   menu: String[40];
   ch: Char;
-  weapon: Types.PItemRec;
   dir: Byte;
   j: Byte;
   wx: ShortInt;
@@ -1667,7 +1748,7 @@ begin
     if Pathing.WalkLine(CbtMap.CombatCellX(cur), CbtMap.CombatCellY(cur), wx, wy, dist, GameVars.arenaPtr) then begin
       valid := True;
       if weaponMode <> 0 then
-        TextRend.DisplayString(0, 23, LightGreen, 'Range = ' + StrUtil.NumStr(dist div 2) + '  ');
+        CbtActs.ShowRange(dist div 2);
     end else if weaponMode <> 0 then
       Border.ClearBox(0, 23, 39, 23);
     dist := dist div 2;
@@ -1694,10 +1775,8 @@ begin
         if (cur = underCursor)
            or ((crIdx = 0) and (terrIdx = C_TERR.CORPSE)) then
           valid := False
-        else if CharHlp.HasRangedWeapon(cur) then
-          if (not CharHlp.FindDamagingRangedWeapon(cur, weapon)) or
-              ((CbtMap.CountTargets(cur, 1) > 0) and (not CharHlp.HasThrowableWeapon(cur))) then
-            valid := False;
+        else if not CbtActs.WeaponCanStrike(cur) then
+          valid := False;
     end else if ground = 0 then
       valid := False;
     menu := 'Center Exit';
@@ -1750,7 +1829,7 @@ end;
   minus 1 (1 unarmed); targets the creature may not attack are skipped. }
 procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk: Byte; var done: Boolean; var tgt);
 var
-  targets: array[1..72] of Types.TCombatTarget;
+  targets: Types.TTargetList;
   effRange: Byte;
   tgtCount: Byte;
   curIdx: Byte;
@@ -1818,13 +1897,15 @@ begin
   skipStep := 0;
   p := AdvanceAimTarget(skipStep, True);
   skipStep := 1;
+  { Exit or Escape as the first choice moves nowhere }
+  menuStep := 0;
   ch := ' ';
   while (done = False) and (not (ch in [C_KEYS.NONE, 'E'])) do
   begin
     if not CbtActs.CanAttackTarget(creature, p) then
       p := AdvanceAimTarget(skipStep, False)
     else begin
-      ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, groundOk, keyDir);
+      ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, keyDir);
       { a cursor key goes straight to manual aim }
       if keyDir <> C_DIR.CENTER then
         ch := 'M';

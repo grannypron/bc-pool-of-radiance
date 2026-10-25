@@ -484,15 +484,7 @@ begin
     { flee and step paths rejoin }
     if not done then begin
       CbtMap.SetCreatureFacing(creature, adjDir, 0, 0);
-      CbtActs.MoveOpportunityAttacks(creature, creature^.combatAddr^.direction);
-      if creature^.enabled = 0 then
-        done := CharHlp.EndActions(creature)
-      else begin
-        CbtActs.CombatMoveCreature(creature, creature^.combatAddr^.direction);
-        if creature^.enabled = 0 then
-          done := CharHlp.EndActions(creature);
-        FxEngine.ConsiderStinkingCloud(creature);
-      end;
+      done := CbtActs.StepCreature(creature, creature^.combatAddr^.direction);
     end;
   end else
     done := CombatAi.FinishRound(creature);
@@ -511,7 +503,6 @@ var
   range: Word;
   cnt: Byte;
   pick: Byte;
-  weapon: Types.PItemRec;
   target: Types.PCharRecord;
   tx: ShortInt;
   ty: ShortInt;
@@ -602,16 +593,7 @@ begin
         if CbtActs.SweepAttempt(creature, target) then
           done := CharHlp.EndActions(creature)
         else begin
-          CbtActs.NoteAttackDirection(creature, target);
-          weapon := nil;
-          if CharHlp.HasRangedWeapon(creature) then begin
-            inRange := CharHlp.FindDamagingRangedWeapon(creature, weapon);
-            if CharHlp.HasThrowableWeapon(creature) then
-              if CbtMap.CalcDistance(creature, target) = 1 then
-                { adjacent: melee the throwable }
-                weapon := nil;
-          end;
-          CbtActs.CombatAttack(creature, target, False, weapon, done);
+          CbtActs.AttackWithReadied(creature, target, done);
           if done then
             canAct := False
           else if target^.enabled = 0 then
