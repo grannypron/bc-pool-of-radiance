@@ -23,7 +23,8 @@ type
 function IsDeviceName(base: TPathName): Boolean;
 
 { True when file name is there: it opens read-only (OpenReadOnly, so a read-only file counts) and closes clean. An empty
-  name is no file and is not opened: an unnamed file opens standard input (#962). }
+  name is no file and is not opened: an unnamed file opens standard input (#962). A folder is no file, natively as
+  under DOS (#1057). }
 function Exists(name: TPathName): Boolean;
 
 { Erase file name; a missing file, or any other error, is ignored. }
@@ -34,7 +35,8 @@ procedure DeleteFile(name: TPathName);
 function DeleteChecked(name: TPathName): Boolean;
 
 { Open name for reading only, whatever FileMode is (a read-only file opens too), with record size 1. True when it
-  opened; the caller closes it. }
+  opened; the caller closes it. A folder does not open: DOS refuses it, and natively, where Linux would open it, it is
+  refused first (#1057). }
 function OpenReadOnly(var f: file; name: TPathName): Boolean;
 
 { Read file name into rec: True only when it is exactly size bytes and they read. The caller checks what they hold. }
@@ -127,7 +129,7 @@ function BackupName(name: TPathName): TPathName;
 
 implementation
 
-uses Dos{$IFDEF FPC}, NatFile{$ENDIF};
+uses Dos{$IFDEF FPC}, SysUtils, NatFile{$ENDIF};
 
 function IsDeviceName(base: TPathName): Boolean;
 begin
@@ -177,6 +179,12 @@ var
 begin
   { an error still pending would make the Reset do nothing, and a file that is there read as missing }
   ioRes := IOResult;
+{$IFDEF FPC}
+  if SysUtils.DirectoryExists(name) then begin
+    OpenReadOnly := False;
+    Exit;
+  end;
+{$ENDIF}
   Assign(f, name);
   mode := FileMode;
   FileMode := 0;

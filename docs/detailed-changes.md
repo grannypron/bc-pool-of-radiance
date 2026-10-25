@@ -761,6 +761,8 @@ A review of every unit (issues #424 to #466) turned up places where damaged data
 
 **Smaller guards (the review's cross-batch leftovers).** `CharHlp.IsSpell` is the one test for a named spell id (1..`C_SPELL.LAST`); GameTime's item scan and SpellInf's page had checked only the top, so an id of 0 read `spellNames[0]`, which does not exist. The enemy-team tests in CbtActs, CbtMap, CombatAi and `CharHlp.SleepMost` compare `CharHlp.Team` with `EnemyTeam` rather than a raw hostile byte, so a damaged save's byte above 1 counts on its team. `FileUtil.Exists` takes DaxIo's empty-name guard (#962), and DaxIo's `FileExists` copy is gone.
 
+**A folder is no file natively (#1057).** On Linux a folder opens read-only like a file, so the native `FileUtil.Exists` took a folder for a file of its name (a save, a commit's backup). `FileUtil.OpenReadOnly` now refuses a folder natively (`SysUtils.DirectoryExists`) before it opens anything, as DOS's open refuses one, so `Exists`, `ReadRecord` and every reader agree on both builds. TFileUtl checks a folder natively too, and its backup-name-held-by-a-folder case, DOS-only before, now runs on both. #1057.
+
 ## 10. Refactor phases 0 to 6 (structure, units, tests, sizes)
 
 The build no longer matches SSI's bytes, so identical bytes prove nothing. `docs/refactor-plan.md` replaces that guarantee with tests (phase 0), then consolidates duplication and improves structure. Sizes quoted are from the build's size report. Phase 6 is in section 8.
