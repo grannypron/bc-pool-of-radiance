@@ -1163,28 +1163,17 @@ begin
   Border.ClearBox(1, 21, 38, 22);
 end;
 
-{ Show the current character's coins as a menu (one line per type it holds: the name right-aligned in 8 columns and the
-  count, jewelry first) and return the line picked, or nil on Escape. list receives the menu list, for
-  MenuCore.FreeStringList (nil when there is no coin). }
+{ Show the current character's coins as a menu (Money.CoinMenu) and return the line picked, or nil on Escape. list
+  receives the menu list, for MenuCore.FreeStringList (nil when there is no coin). }
 function PickCoinType(var list: Types.PItemRec): Types.PItemRec;
 var
-  m: ShortInt;
   p: Types.PItemRec;
   prev: Types.PItemRec;
   idx: Integer;
   redraw: Boolean;
   ch: Char;
 begin
-  p := nil;
-  for m := C_MONEY.COPPER to C_MONEY.JEWELRY do
-    if GameVars.curChar^.coins[m] <> 0 then begin
-      { a menu-list node: only the name, inUse and next fields of a TItemRec }
-      prev := p;
-      GetMem(p, SizeOf(Types.TMenuNode));
-      p^.next := prev;
-      p^.name := StrUtil.PadLeft(GameDefs.moneyNames[m], 8) + ' ' + StrUtil.NumStr(GameVars.curChar^.coins[m]);
-      p^.inUse := 0;
-    end;
+  p := Money.CoinMenu(GameVars.curChar);
   list := p;
   prev := nil;
   idx := 0;
