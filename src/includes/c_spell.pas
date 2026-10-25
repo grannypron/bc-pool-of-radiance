@@ -63,8 +63,7 @@ const
   HOLD_PERSON = 23;
   { the magic-user's Charm Person, which a charming gaze applies }
   CHARM_PERSON = 10;
-  { a first-level magic-user's spells besides Sleep (ClassCal.StartCasterClass) }
-  DETECT_MAGIC = 11;
+  { a first-level magic-user's spells besides Sleep (ClassCal.StartCasterClass), with DETECT_MAGIC_MU }
   READ_MAGIC = 18;
   SHIELD = 19;
   { the spells whose durations CharHlp.SpellDuration rolls: Cause Disease, and the item spells Potion of Speed, Giant
