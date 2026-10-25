@@ -25,7 +25,7 @@ implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_COND, GameDefs, GameVars, Crt, MenuCore, CbtActs, FxEngine, C_EFFECT, C_EQUIP,
   C_CLASS, C_STATUS, C_GBVM, C_DIR, C_SPELL, C_KEYS, CbtMap, CharHlp, GameIo, Magic, Pathing, TextRend, StrUtil,
-  CharDisp, Dice, Combat;
+  CharDisp, Dice, Combat, ClassCal;
 
 const
   { AiMoveAttack's runaway-turn guard allows a pass for each step the creature's movement pays for and this many more,
@@ -153,7 +153,7 @@ var
   tgt: Pointer;
 begin
   if (creature^.combatAddr^.usedTurnUndead = 0)
-     and (CbtActs.TurnLevel(creature) > 0)
+     and (ClassCal.TurnLevel(creature) > 0)
      and CbtActs.FindTurnUndeadTarget(creature, tgt) then begin
     TurnUndeadAI := True;
     CbtActs.CombatTurnUndead(creature);

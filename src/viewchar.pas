@@ -282,6 +282,7 @@ const
   PAGE_STATS = 2;
   PAGE_KILLS = 3;
   PAGE_THIEF = 4;
+  PAGE_CLERIC = 5;
 
 { Clear the screen, draw the border and centre creature's name in light cyan on row 2: the top of a More Info page. }
 procedure MoreHeading(creature: Types.PCharRecord);
@@ -462,8 +463,61 @@ begin
     TextRend.DisplayString(2, 14, Yellow, 'Armor or shield bars these skills');
 end;
 
-{ The More Info page for the current character (#592, #685): its bottom line, More Info: Saves sTats Kills tHief Exit,
-  turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with thief levels, Thief. On
+{ The Cleric page (#904): under its title, Turn Undead, the level the character turns undead at (ClassCal.TurnLevel:
+  the cleric level it can use, or a paladin's level less 2), then for each of the turning table's ten kinds of undead
+  the result combat reads for that level (ClassCal.TurnValue): D destroys automatically, T turns automatically, a
+  number is the least d20 roll that succeeds and a dash is undead the level cannot turn. A key to the letters is under
+  the table. }
+procedure DrawCleric(p: Types.PCharRecord);
+var
+  i: Byte;
+  lvl: ShortInt;
+  v: ShortInt;
+  s: Types.TStr40;
+begin
+  ViewChar.MoreTitle(p, 'Turn Undead');
+  lvl := ClassCal.TurnLevel(p);
+  TextRend.DisplayString(2, 6, LightGreen, 'Cleric Level');
+  s := StrUtil.NumStr(lvl);
+  TextRend.DisplayString(38 - Length(s), 6, White, s);
+  TextRend.DisplayString(2, 8, White, 'Undead');
+  TextRend.DisplayString(32, 8, White, 'Result');
+  for i := 1 to ClassCal.TURN_UNDEAD_KINDS do begin
+    case i of
+      1: s := 'Skeleton';
+      2: s := 'Zombie';
+      3: s := 'Ghoul';
+      4: s := 'Shadow';
+      5: s := 'Wight';
+      6: s := 'Ghast';
+      7: s := 'Wraith';
+      8: s := 'Mummy';
+      9: s := 'Spectre';
+    else
+      s := 'Vampire';
+    end;
+    TextRend.DisplayString(2, 8 + i, LightGreen, s);
+    v := ClassCal.TurnValue(i, lvl);
+    if v = ClassCal.TURN_IMMUNE then
+      s := '-'
+    { any roll succeeds: a 0 or -1 destroys, a 1 turns }
+    else if v = 1 then
+      s := 'T'
+    else if Abs(v) <= 1 then
+      s := 'D'
+    else
+      s := StrUtil.NumStr(Abs(v));
+    TextRend.DisplayString(38 - Length(s), 8 + i, White, s);
+  end;
+  TextRend.DisplayString(2, 20, LightGreen, 'D  Destroyed automatically');
+  TextRend.DisplayString(2, 21, LightGreen, 'T  Turned automatically');
+  TextRend.DisplayString(2, 22, LightGreen, '#  Minimum d20 roll to turn');
+end;
+
+{ The More Info page for the current character (#592, #685, #904): its bottom line, Info: Saves sTats Kills tHief Cler
+  Exit, turns its pages, Saves (where it opens), Game Stats, Kill Count and, only for a character with a thief level it
+  can use, Thief, and only for one that can turn undead (ClassCal.TurnLevel), Cler. "Info:" and "Cler" keep the line
+  within 40 columns when both class pages are offered. On
   Kill Count, Up and Down scroll the list a row (two entries) at a time and Page Up and Page Down a page. The statistics
   block is read when Stats or Kills is first chosen, since reading it makes one for the character, which a save then
   writes. Exit or Escape returns to the character sheet, which the caller redraws. }
@@ -485,6 +539,8 @@ begin
   menu := 'Saves sTats Kills';
   if CharHlp.GetClassLevel(p, C_LEVEL.THIEF_BIT) > 0 then
     menu := menu + ' tHief';
+  if ClassCal.TurnLevel(p) > 0 then
+    menu := menu + ' Cler';
   menu := menu + ' Exit';
   page := PAGE_SAVES;
   haveStats := False;
@@ -495,10 +551,11 @@ begin
       PAGE_STATS: ViewChar.DrawGameStats(p, b);
       PAGE_KILLS: ViewChar.DrawKills(p, b, order, kinds, top);
       PAGE_THIEF: ViewChar.DrawThief(p);
+      PAGE_CLERIC: ViewChar.DrawCleric(p);
     else
       ViewChar.DrawSaves(p);
     end;
-    ch := MenuCore.MenuHorizontal('More Info: ', menu, LightMagenta, LightGreen, White, True, False, ext);
+    ch := MenuCore.MenuHorizontal('Info: ', menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       if page = PAGE_KILLS then
         case ch of
@@ -518,6 +575,7 @@ begin
       case ch of
         'S': page := PAGE_SAVES;
         'H': page := PAGE_THIEF;
+        'C': page := PAGE_CLERIC;
         'T', 'K': begin
                if not haveStats then
                  ViewChar.ReadStats(p, b, order, kinds);
