@@ -462,7 +462,7 @@ begin
     TextRend.DisplayString(38 - Length(s), 4 + j, White, s);
   end;
   if ClassCal.ArmorBarsThiefSkills(p) then
-    TextRend.DisplayString(2, 14, Yellow, 'Armor or shield bars these skills');
+    TextRend.DisplayString(2, 14, Yellow, 'Most armor or a shield bars the use of thief skills.');
 end;
 
 { The Cleric page (#904): under its title, Turn Undead, the level the character turns undead at (ClassCal.TurnLevel:
