@@ -437,8 +437,7 @@ end;
 { Protection from Evil (eff 8, 45) }
 procedure EffProtEvil(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  EffHndlr.Protection(creature, GameVars.curChar^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL,
-                                                                C_ALIGN.CHAOTIC_EVIL]);
+  EffHndlr.Protection(creature, GameVars.curChar^.alignment in C_ALIGN.EVIL_ALIGNMENTS);
 end;
 
 { Protection from Good (eff 9, 46) }

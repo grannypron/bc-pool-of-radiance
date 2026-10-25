@@ -1288,7 +1288,7 @@ begin
                 Inc(nonNpc);
               if CharHlp.GetClassLevel(p, C_LEVEL.RANGER_BIT) > 0 then
                 Inc(rangers);
-              if p^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL] then
+              if p^.alignment in C_ALIGN.EVIL_ALIGNMENTS then
                 hasEvil := True;
               if CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0 then
                 paladin := p;
@@ -1296,7 +1296,7 @@ begin
             end;
             newPaladin := CharHlp.GetClassLevel(creature, C_LEVEL.PALADIN_BIT) > 0;
             newRanger := CharHlp.GetClassLevel(creature, C_LEVEL.RANGER_BIT) > 0;
-            newEvil := creature^.alignment in [C_ALIGN.LAWFUL_EVIL, C_ALIGN.NEUTRAL_EVIL, C_ALIGN.CHAOTIC_EVIL];
+            newEvil := creature^.alignment in C_ALIGN.EVIL_ALIGNMENTS;
             if (p = nil) and
                 ((newPaladin and hasEvil) or (newRanger and (rangers >= 3)) or
                  (newEvil and (paladin <> nil))) then begin
