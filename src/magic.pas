@@ -1139,14 +1139,32 @@ begin
         CharDisp.PrintNameString(GameVars.targetCreaturePtr[1], 'has been reduced', 10, True);
 end;
 
-{ Friends: +2d4 Charisma, capped at 25; the effect's strength is the old Charisma, restored on removal }
+{ Friends: +2d4 Charisma for the spell's duration, capped at 25. The effect's strength is C_EFFECT.FRIENDS_BONUS plus
+  the Charisma it gave, which EffHndlr.EffFriends takes back as it ends (FxEngine.FriendsEndCha), so each of two at once
+  takes back its own. Charisma rises only once the effect is on: a creature immune to it is unaffected. SSI's stored
+  the Charisma before the cast and put it back, so casting it twice, or once more as the first lasted, left a lasting
+  gain (POR-0212, #920). }
 procedure FriendsHandler;
 var
-  oldCha: Byte;
+  tgt: Types.PCharRecord;
+  newCha: Byte;
 begin
-  oldCha := GameVars.targetCreaturePtr[1]^.chaCur;
-  GameVars.targetCreaturePtr[1]^.chaCur := AbilAdj.ClampScore(oldCha + Dice.RollDice(2, 4));
-  Magic.ResolveSpell(GameVars.currentSpellBeing, oldCha, True, 0, 0, 'is friendly');
+  if GameVars.spellTargetCount = 0 then Exit;
+  tgt := GameVars.targetCreaturePtr[1];
+  if tgt = nil then Exit;
+  if FxEngine.EffectImmune(tgt, C_EFFECT.FRIENDS) then
+    CharDisp.PrintNameString(tgt, 'is Unaffected', 10, True)
+  else begin
+    newCha := AbilAdj.ClampScore(tgt^.chaCur + Dice.RollDice(2, 4));
+    { a score already past the cap is left as it is }
+    if newCha < tgt^.chaCur then
+      newCha := tgt^.chaCur;
+    FxEngine.AddEffect(tgt, C_EFFECT.FRIENDS, Magic.CalcSpellDuration(GameVars.currentSpellBeing),
+                       C_EFFECT.FRIENDS_BONUS or (newCha - tgt^.chaCur), True);
+    tgt^.chaCur := newCha;
+    CharDisp.PrintNameStringAnim(tgt, True, 'is friendly');
+    CharDisp.ClearMessageWindow;
+  end;
 end;
 
 { Magic Missile: one missile of 1d4 + 1 for every two caster levels, the first at level 1 (1st edition and the rule
@@ -1341,7 +1359,7 @@ end;
   number and its end clear the older cloud). The cloud covers the 2x2 block whose upper-left is the aim cell
   (GameDefs.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
   takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_TERR.STINK_CLOUD;
-  every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud. }
+  every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud, once however many cells it fills. }
 procedure StinkingCloudHandler;
 var
   p2: Types.PStinkRec;
@@ -1353,6 +1371,8 @@ var
   cl: Byte;
   k: Byte;
   d: Byte;
+  { crIdx[k] is not in an earlier cell }
+  first: Boolean;
 begin
   GameVars.gMultiTarget := 1;
   cl := CharHlp.GetCasterLevel(GameVars.currentSpellBeing);
@@ -1406,9 +1426,16 @@ begin
   CbtMap.ScrollView(gTargetX, gTargetY, 255, C_DIR.CENTER);
   TextRend.PauseOnly;
   CharDisp.ClearMessageWindow;
+  { one saving throw for each creature, however many of the four cells its body fills (POR-0213, #921) }
   for k := 1 to 4 do
-    if crIdx[k] > 0 then
-      FxEngine.ConsiderStinkingCloud(GameVars.creatureArr[crIdx[k]]);
+    if crIdx[k] > 0 then begin
+      first := True;
+      for j := 1 to k - 1 do
+        if crIdx[j] = crIdx[k] then
+          first := False;
+      if first then
+        FxEngine.ConsiderStinkingCloud(GameVars.creatureArr[crIdx[k]]);
+    end;
 end;
 
 { Strength: add 1d4 for a mage, 1d6 for a cleric or thief, 1d8 for a fighter, paladin or ranger; when several classes
@@ -1514,32 +1541,24 @@ begin
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, False, 0, 0, 'is blind');
 end;
 
-{ Remove disease from tgt with effectLock held: Diseased, the Strength-draining disease (also dropping its hit-point and
-  helpless effects) and rot (also dropping mummy rot). Returns True if any of the three was present. }
-function RemoveDiseaseEffects(tgt: Types.PCharRecord): Boolean;
+{ Cure tgt's diseases (FxEngine.RemoveDiseases, the rule every cure shares, #922) and, when there was one, say
+  "<name> is Cured". Returns whether there was one. }
+function CureDiseaseOf(tgt: Types.PCharRecord): Boolean;
 begin
-  RemoveDiseaseEffects := False;
-  GameVars.effectLock := 1;
-  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.DISEASED) then
-    RemoveDiseaseEffects := True;
-  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.DISEASE_STR) then begin
-    RemoveDiseaseEffects := True;
-    FxEngine.RemoveEffect(tgt, C_EFFECT.DISEASE_HP, nil);
-    FxEngine.RemoveEffect(tgt, C_EFFECT.HELPLESS, nil);
+  CureDiseaseOf := False;
+  if FxEngine.RemoveDiseases(tgt) then begin
+    CharDisp.PrintNameString(tgt, 'is Cured', 10, True);
+    CureDiseaseOf := True;
   end;
-  if FxEngine.RemoveEffectWithMessage(tgt, C_EFFECT.ROT_NO_HEAL) then begin
-    RemoveDiseaseEffects := True;
-    FxEngine.RemoveEffect(tgt, C_EFFECT.MUMMY_ROT, nil);
-  end;
-  GameVars.effectLock := 0;
 end;
 
-{ Cure Disease: remove the first target's disease effects. }
+{ Cure Disease: cure the first target's diseases (CureDiseaseOf). }
 procedure CureDiseaseHandler;
 var
   junk: Boolean;
 begin
-  junk := Magic.RemoveDiseaseEffects(GameVars.targetCreaturePtr[1]);
+  if GameVars.targetCreaturePtr[1] <> nil then
+    junk := Magic.CureDiseaseOf(GameVars.targetCreaturePtr[1]);
 end;
 
 { Cause Disease: apply the spell's effect. }
@@ -1973,7 +1992,7 @@ begin
         tgt^.hpCur := 1;
       StandUpOrWake(tgt);
     end;
-  end else if not Magic.RemoveDiseaseEffects(tgt) then begin
+  end else if not Magic.CureDiseaseOf(tgt) then begin
     if FxEngine.RestoreHitPoints(GameVars.targetCreaturePtr[1], Dice.RollDice(1, 4) + 8, False) then
       CharDisp.PrintNameStringAnim(GameVars.targetCreaturePtr[1], True, 'is Healed');
   end;

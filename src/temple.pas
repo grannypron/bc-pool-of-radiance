@@ -93,7 +93,7 @@ begin
     c := Temple.ConfirmCureAnyway('is not Diseased.');
   if c = 'Y' then
     if Temple.ConfirmCureCost('Cure Disease', 1000) = 'Y' then
-      FxEngine.RemoveDiseases(GameVars.curChar);
+      if FxEngine.RemoveDiseases(GameVars.curChar) then ;
 end;
 
 { CureWounds: spell 1/2/3 = CLW 1d8 100 gp / CSW 2d8+1 350 gp / CCW 3d8+3 600 gp; the RestoreHitPoints result is
