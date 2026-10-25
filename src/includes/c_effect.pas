@@ -114,6 +114,7 @@ const
   DISPLACED = 89;
   CON_PSN_SAVE = 90;
   IMMUNE_MM = 91;
+  { 92 is EffNull's (GameInit), and nothing in the game's data or code adds it }
   HALF_FIRE = 93;
   HALF_BASH = 94;
   FIGHT_ON = 95;
@@ -153,6 +154,8 @@ const
   READY_FEATHER_FALL = 128;
   { Ring of Fire Resistance, effect 61 }
   READY_FIRE_RES = 129;
+  { the Flame Tongue Long Sword, effect 6 (the well's, DataPat #20) }
+  READY_FLAME_TONGUE = 130;
   { Gauntlets of Ogre Power, effect 38 }
   GAUNTLETS = 131;
   ALIGNED_WEAPON = 132;
@@ -161,8 +164,11 @@ const
   { Cloak of Elvenkind, effect 72 }
   READY_ELVENKIND = 134;
   BOULDER = 135;
+  { the Two-Handed Sword +1, +3 vs. Undead, effect 3 }
+  READY_UNDEAD_SLAYER = 136;
   { Spiritual Hammer TItemRec.special, run when unreadied }
   SPIRIT_HAMMER_GONE = 137;
+  { 138 is EffReadyItem's (GameInit), and no item carries it }
   { Ring of Invisibility, effect 56 }
   READY_RING_INVIS = 139;
   { A paladin has laid on hands today. }

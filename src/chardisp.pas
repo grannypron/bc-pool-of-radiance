@@ -196,7 +196,7 @@ begin
   if creature^.equipped[C_EQUIP.WEAPON] <> nil then begin
     Inc(row, 2);
     CharHlp.ItemLabel(creature^.equipped[C_EQUIP.WEAPON], False);
-    TextRend.DisplayMessageWindow(23, row + 1, 38, row + 1 + 1 + 1, LightGreen, True,
+    TextRend.DisplayMessageWindow(23, row + 1, 38, row + 3, LightGreen, True,
                                   creature^.equipped[C_EQUIP.WEAPON]^.name);
   end;
   row := GameVars.curRow + 1;
@@ -206,7 +206,8 @@ begin
     TextRend.DisplayString(23, row + 1, White, '(Helpless)');
 end;
 
-{ Show s on the bottom row in light green, wait for a key, then clear the row again. }
+{ Show s on the bottom row in light green, pause on the text delay (TextRend.PauseOnly; no key is read), then clear the
+  row again. }
 procedure ShowBottomLine(s: Types.TStr40);
 begin
   Border.ClearBox(0, 24, 39, 24);
@@ -215,8 +216,8 @@ begin
   Border.ClearBox(0, 24, 39, 24);
 end;
 
-{ Show a message on the bottom row in light green, wait for a key, then clear the row again. In combat it is a combat
-  log message of its own (#841). }
+{ Show a message on the bottom row in light green, pause on the text delay (no key is read), then clear the row again.
+  In combat it is a combat log message of its own (#841). }
 procedure PrintBottomLine(s: Types.TStr40);
 begin
   if GameVars.ifcState = C_IFC.COMBAT then begin
@@ -555,9 +556,9 @@ end;
 
 { Show "<name> <text>" with the damage or effect flash: build the facings from icon cell 23 (damage) or 22 (effect),
   scroll the creature on screen if needed, play the sound, print, then flash the four facing frames at the creature's
-  grid cell (gameDelay + 1 times for an effect, once for damage, which then waits for a key). The effect's sound, the
-  spells' own wherever it plays, and a spell's damage are of the Settings screen's Spell Effects kind (#854); other
-  damage, a breath's or a touch's, follows the Sound setting alone.
+  grid cell (gameDelay + 1 times for an effect, once for damage, which then pauses on the text delay). The effect's
+  sound, the spells' own wherever it plays, and a spell's damage are of the Settings screen's Spell Effects kind (#854);
+  other damage, a breath's or a touch's, follows the Sound setting alone.
   SoundDrv.SoundSetAutoStop(0) keeps the sound driver resident during the flash, then 10 restores per-sound cleanup. Out
   of combat it is just PrintNameString with a pause. }
 procedure PrintNameStringAnim(creature: Types.PCharRecord; effect: Boolean; s: string);
@@ -763,7 +764,7 @@ begin
     exitStr := ' Exit';
   { open on Select: the highlight is shared by every menu, and Enter takes it }
   GameVars.horizChoice := 1;
-  while not ((ch in [C_KEYS.ENTER, C_KEYS.ESC, 'E', 'S']) or ((ch = C_KEYS.NONE) and addExit)) do
+  while not ((ch in [C_KEYS.ENTER, 'E', 'S']) or ((ch = C_KEYS.NONE) and addExit)) do
   begin
     CharDisp.DisplayParty(sel);
     if (GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.LOOT) then

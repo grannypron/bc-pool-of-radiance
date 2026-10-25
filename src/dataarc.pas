@@ -22,12 +22,15 @@ type
   family or disk out of range. }
 function SourceName(family, disk: Byte): Types.TStr20;
 
+{ The per-disk archive's file name: SourceFile(10, 5) = 'MON5CHA.DAX'. Empty for a family or disk out of range. }
+function SourceFile(family, disk: Byte): Types.TStr20;
+
 { The merged archive name of a data family, without extension: MergedName(10) = 'MONCHA'. Empty for a family out of
   range. }
 function MergedName(family: Byte): Types.TStr20;
 
-{ The family whose per-disk archive fileName (any case, no extension) names, with that archive's disk, 1..8, in disk; 0
-  when it names none. }
+{ The family whose per-disk archive fileName (any case, no extension) names, with that archive's disk,
+  1..Types.LAST_DISK, in disk; 0 when it names none. }
 function MatchFamily(fileName: Types.TStr20; var disk: Byte): Byte;
 
 { True when the file at path is a whole merged archive: its directory is non-empty, its last entry is the version block,
@@ -69,15 +72,23 @@ const
     (prefix: 'MON'; suffix: 'SPC'; merged: 'MONSPC'),
     (prefix: 'HEAD'; suffix: ''; merged: 'HEAD'),
     (prefix: 'BODY'; suffix: ''; merged: 'BODY'));
-  { per-disk archives are numbered 1 to SOURCE_DISKS }
-  SOURCE_DISKS = 8;
 
 function SourceName(family, disk: Byte): Types.TStr20;
 begin
-  if (family >= 1) and (family <= C_DATA.FAMILIES) and (disk >= 1) and (disk <= SOURCE_DISKS) then
+  if (family >= 1) and (family <= C_DATA.FAMILIES) and (disk >= 1) and (disk <= Types.LAST_DISK) then
     SourceName := families[family].prefix + Chr(Ord('0') + disk) + families[family].suffix
   else
     SourceName := '';
+end;
+
+function SourceFile(family, disk: Byte): Types.TStr20;
+var
+  name: Types.TStr20;
+begin
+  name := DataArc.SourceName(family, disk);
+  if name <> '' then
+    name := name + '.DAX';
+  SourceFile := name;
 end;
 
 function MergedName(family: Byte): Types.TStr20;
@@ -103,7 +114,8 @@ begin
     with families[f] do begin
       digit := Length(prefix) + 1;
       if Length(u) = digit + Length(suffix) then
-        if (Copy(u, 1, digit - 1) = prefix) and (u[digit] in ['1'..'8']) and
+        if (Copy(u, 1, digit - 1) = prefix) and (u[digit] >= '1') and
+            (u[digit] <= Chr(Ord('0') + Types.LAST_DISK)) and
             (Copy(u, digit + 1, Length(suffix)) = suffix) then begin
           disk := Ord(u[digit]) - Ord('0');
           MatchFamily := f;

@@ -12,6 +12,8 @@ uses Types, FileUtil;
 const
   { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
   SLOT_LETTERS = 'ABCDEFGHIJQ';
+  { how many slots there are: the menu's tables are this long }
+  SLOT_COUNT = Length(SLOT_LETTERS);
   { the longest description and area name a slot keeps }
   DESC_LEN = 30;
   AREA_LEN = 18;
@@ -87,7 +89,9 @@ uses Crt, Dos, GameVars, TextRend, Border, GameIo, DaxIo, MenuCore, AreaName, C_
 const
   INFO_SIG = 'SINF';
   INFO_VERSION = 1;
-  { the list's frame: the title box on row 1, the list box rows 3..22 }
+  { the list's frame: the title box on row 1, the list box rows 3..22, both boxes columns 1..38 }
+  BOX_LEFT = 1;
+  BOX_RIGHT = 38;
   TITLE_ROW = 1;
   LIST_TOP = 3;
   LIST_BOTTOM = 22;
@@ -118,15 +122,15 @@ type
 
 var
   { the slots listed, by letter, with what is shown for each }
-  listed: string[16];
+  listed: string[SLOT_COUNT];
   count: Byte;
-  used: array[1..16] of Boolean;
-  descs: array[1..16] of TSlotDesc;
-  areas: array[1..16] of TSlotArea;
+  used: array[1..SLOT_COUNT] of Boolean;
+  descs: array[1..SLOT_COUNT] of TSlotDesc;
+  areas: array[1..SLOT_COUNT] of TSlotArea;
   { when each was saved: hh:mm and YYYY/MM/DD }
-  clocks: array[1..16] of string[5];
-  dates: array[1..16] of string[10];
-  times: array[1..16] of LongInt;
+  clocks: array[1..SLOT_COUNT] of string[5];
+  dates: array[1..SLOT_COUNT] of string[10];
+  times: array[1..SLOT_COUNT] of LongInt;
   { the selected slot, and the first one shown, as indexes into listed }
   sel: Byte;
   top: Byte;
@@ -246,9 +250,9 @@ begin
       dates[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day);
     end;
     if not SaveMenu.ReadSlotInfo(letter, descs[i], areas[i]) then begin
-      Seek(f, 1 + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
+      Seek(f, SizeOf(GameVars.virtualDisk) + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
       BlockRead(f, script, SizeOf(script), n1);
-      Seek(f, 1 + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
+      Seek(f, SizeOf(GameVars.virtualDisk) + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
       BlockRead(f, map, SizeOf(map), n2);
       if (IOResult = 0) and (n1 = SizeOf(script)) and (n2 = SizeOf(map)) then
         areas[i] := AreaName.AreaFor(Lo(script), map.lo)
@@ -269,9 +273,9 @@ var
   row: Byte;
   color: Byte;
 begin
-  Border.ClearBox(1, LIST_TOP, 38, LIST_BOTTOM);
+  Border.ClearBox(BOX_LEFT, LIST_TOP, BOX_RIGHT, LIST_BOTTOM);
   if top > 1 then
-    MenuCore.DrawMore(1, 38, LIST_TOP);
+    MenuCore.DrawMore(BOX_LEFT, BOX_RIGHT, LIST_TOP);
   for k := 0 to VISIBLE - 1 do begin
     i := top + k;
     if i <= count then begin
@@ -292,7 +296,7 @@ begin
     end;
   end;
   if top + VISIBLE - 1 < count then
-    MenuCore.DrawMore(1, 38, LIST_BOTTOM);
+    MenuCore.DrawMore(BOX_LEFT, BOX_RIGHT, LIST_BOTTOM);
 end;
 
 { Select listed entry i, wrapping past either end, scroll it into view and redraw the list. }
@@ -318,7 +322,7 @@ var
   action: Types.TStr8;
   newest: LongInt;
   chosen: Char;
-  letters: string[16];
+  letters: string[SLOT_COUNT];
 begin
   ChooseSlot := C_KEYS.NONE;
   { a string constant cannot be indexed }
@@ -343,9 +347,9 @@ begin
     sel := Pos(start, listed);
   top := 1;
   TextRend.ClearScreen;
-  Border.DrawBorder(1, LIST_TOP, 38, LIST_BOTTOM, 0);
-  Border.DrawBorder(1, TITLE_ROW, 38, TITLE_ROW, 0);
-  TextRend.DisplayString(1 + (38 - 19) div 2, TITLE_ROW, White, 'Load/Save Game Menu');
+  Border.DrawBorder(BOX_LEFT, LIST_TOP, BOX_RIGHT, LIST_BOTTOM, 0);
+  Border.DrawBorder(BOX_LEFT, TITLE_ROW, BOX_RIGHT, TITLE_ROW, 0);
+  TextRend.DisplayCentered(BOX_LEFT, BOX_RIGHT, TITLE_ROW, White, 'Load/Save Game Menu');
   SaveMenu.MoveTo(sel);
   if saving then
     action := 'Save'
@@ -418,7 +422,7 @@ var
 begin
   { the list is cleared behind it: the slot and area on its second and third rows, the description on its fifth and
     sixth }
-  Border.ClearBox(1, LIST_TOP, 38, LIST_BOTTOM);
+  Border.ClearBox(BOX_LEFT, LIST_TOP, BOX_RIGHT, LIST_BOTTOM);
   default := 'SAVE GAME ' + letter;
   TextRend.DisplayString(LEFT_COL, LIST_TOP + 1, LightGreen, default);
   TextRend.DisplayString(LEFT_COL, LIST_TOP + 2, LightGreen, 'Location: ' + area);

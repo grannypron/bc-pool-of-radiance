@@ -206,5 +206,47 @@ begin
   TestKit.CheckEqualsL(0, EclVars.GetEclVar(5), 'a string value reads as 0');
   GameVars.gbvmType[5] := 2;
   TestKit.CheckEqualsL($6B07, EclVars.GetEclVar(5), 'a word gives its value');
+
+  { reads with no value give 0 (#952), where v1.3 left the result unassigned }
+  GameVars.gbvmType[5] := $40;
+  TestKit.CheckEqualsL(0, EclVars.GetEclVar(5), 'a variable of an unknown type reads 0');
+  Same(0, C_GBVM.CELL_35F, 'CELL_35F reads 0');
+  Same(0, C_GBVM.CELL_WALL_COLOR, 'CELL_WALL_COLOR, write only, reads 0');
+  Same(0, $0100, 'an unlisted zone-4 address reads 0');
+  GameVars.zone1^[C_GBVM.CHAR_CONTROL_HI] := 77;
+  Same(0, C_GBVM.CHAR_CONTROL_HI, 'CHAR_CONTROL_HI reads 0, not its cell');
+  c^.chaCur := 30;
+  Same(0, C_GBVM.CHAR_LOYALTY, 'Charisma past 25 gives no loyalty: 0');
+
+  { facing mod 4, however large }
+  EclVars.WriteGbvm(C_GBVM.CELL_FACING, 4099);
+  TestKit.CheckEqualsL(C_DIR.WEST, GameVars.gFacing, 'CELL_FACING 4099 is west');
+
+  { strings in the other zones }
+  EclVars.WriteGbvmString($9710, 'AB');
+  TestKit.Check((EclVars.ReadGbvm($9710) = Ord('A')) and (EclVars.ReadGbvm($9712) = 0), 'a string in zone 2');
+  EclVars.WriteGbvmString(C_GBVM.SCRIPT_LAST - 2, 'WXYZ');
+  TestKit.Check((EclVars.ReadGbvm(C_GBVM.SCRIPT_LAST - 2) = Ord('W')) and
+                (EclVars.ReadGbvm(C_GBVM.SCRIPT_LAST - 1) = Ord('X')) and
+                (EclVars.ReadGbvm(C_GBVM.SCRIPT_LAST) = 0), 'a script string stops with its terminator at the end');
+
+  { operands: a count, then the list after it (LoadEclList), and a string reference }
+  GetMem(GameVars.gbStrings, SizeOf(GameVars.gbStrings^));
+  EclVars.WriteGbvmString($4A20, 'HI');
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST] := $2B;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 1] := 0;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 2] := 2;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 3] := 0;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 4] := 7;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 5] := $81;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 6] := $20;
+  GameVars.zone3^[C_GBVM.SCRIPT_FIRST + 7] := $4A;
+  GameVars.eclIp := C_GBVM.SCRIPT_FIRST;
+  EclVars.LoadEclVars(1);
+  TestKit.CheckEqualsL(2, EclVars.GetEclVar(1), 'the count');
+  EclVars.LoadEclList(2);
+  TestKit.Check((EclVars.GetEclVar(1) = 7) and (GameVars.gbStrings^[1] = 'HI'),
+                'LoadEclList loads the list right after it');
+  TestKit.CheckEqualsL(C_GBVM.SCRIPT_FIRST + 8, GameVars.eclIp, 'and leaves the IP on the next opcode');
   TestKit.Done;
 end.
