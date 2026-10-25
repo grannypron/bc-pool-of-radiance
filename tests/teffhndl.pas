@@ -3,7 +3,8 @@
   to sleep and charm (SleepCharmResist), the racial to-hit and armor bonuses by the foe's name (NamedIn,
   RacialFoeBonus), Mirror Image's roll (FxEngine.ImageStruck), and Healed from Unconscious (eff 78) called with no node,
   as FxEngine.RestoreHitPoints calls it, whose retry SSI read through nil. And the immunity check leaves no effect
-  pending, so magic resistance passes over later damage of no magic (POR-0219, #940). }
+  pending, so magic resistance passes over later damage of no magic (POR-0219, #940). And the petrifying gaze's reach:
+  a target in action, within 3 squares and in sight (POR-0217, #938). }
 {$I COMPILER.INC}
 program TEffHndl;
 
@@ -11,6 +12,9 @@ uses Types, C_EFFECT, C_IFC, C_SPELL, GameVars, FxEngine, EffHndlr, CharHlp, Tes
 
 const
   TRIES = 400;
+  { open ground and wall, as TPathing's arena }
+  GROUND = 5;
+  WALL = 1;
 
 var
   c: Types.PCharRecord;
@@ -88,6 +92,23 @@ begin
     C_EFFECT.DWARF_AC_GIANT: EffHndlr.EffDwarfAcGiant(c, nil, False);
   end;
   RollChange := Integer(GameVars.gAttackRoll) - 10;
+end;
+
+{ An open arena (terrain 5, cost 1) with c in slot 1 at (10, 10) and foe in slot 2 at (x, y). }
+procedure Arena(x, y: ShortInt);
+begin
+  FillChar(GameVars.arenaPtr^.cells, SizeOf(GameVars.arenaPtr^.cells), GROUND);
+  FillChar(GameVars.arenaLoc, SizeOf(GameVars.arenaLoc), 0);
+  GameVars.arenaPtr^.distMode := 0;
+  GameVars.arenaCount := 2;
+  GameVars.creatureArr[1] := c;
+  GameVars.creatureArr[2] := foe;
+  GameVars.arenaLoc[1].x := 10;
+  GameVars.arenaLoc[1].y := 10;
+  GameVars.arenaLoc[1].size := 1;
+  GameVars.arenaLoc[2].x := x;
+  GameVars.arenaLoc[2].y := y;
+  GameVars.arenaLoc[2].size := 1;
 end;
 
 procedure SetFoe(name: Types.TName15; charType, size: Byte);
@@ -184,6 +205,28 @@ begin
       Inc(n);
   end;
   TestKit.Check((n > 20) and (n < 80), 'but resists magical fire about half the time');
+
+  { the petrifying gaze takes a target in action, within 3 squares and in sight (POR-0217, #938) }
+  GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
+  foe^.enabled := 1;
+  Arena(13, 10);
+  TestKit.Check(EffHndlr.PetrifyGazeReaches(c, foe), 'the gaze reaches a target 3 squares away');
+  Arena(14, 10);
+  TestKit.Check(not EffHndlr.PetrifyGazeReaches(c, foe), 'not one 4 squares away');
+  Arena(12, 12);
+  TestKit.Check(EffHndlr.PetrifyGazeReaches(c, foe), 'and two diagonal squares (3) reach');
+  Arena(13, 10);
+  GameVars.arenaPtr^.cells[10, 12] := WALL;
+  TestKit.Check(not EffHndlr.PetrifyGazeReaches(c, foe), 'not through a wall');
+  Arena(13, 10);
+  foe^.enabled := 0;
+  TestKit.Check(not EffHndlr.PetrifyGazeReaches(c, foe), 'nor a target that is down');
+  foe^.enabled := 1;
+  TestKit.Check(not EffHndlr.PetrifyGazeReaches(c, nil), 'nor no target');
+  GameVars.arenaCount := 1;
+  TestKit.Check(not EffHndlr.PetrifyGazeReaches(c, foe), 'nor one off the map');
+  GameVars.arenaCount := 0;
+  FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));
 
   { Healed from Unconscious with no node: a revival that fails retries in a minute, at strength 0 }
   GameVars.ifcState := C_IFC.COMBAT;

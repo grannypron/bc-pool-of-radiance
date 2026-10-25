@@ -246,6 +246,14 @@ procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
+{ True when gazer has a clear line to target on the combat map within range squares (Pathing.WalkLine from cell to
+  cell, as a ranged attack's: a diagonal step counts 1.5). False for no target, or one off the map. }
+function InSight(gazer, target: Types.PCharRecord; range: Byte): Boolean;
+
+{ True when a petrifying gaze can take target: it is in action (enabled: not down, dead or fled) and InSight within
+  PETRIFY_GAZE_RANGE. }
+function PetrifyGazeReaches(gazer, target: Types.PCharRecord): Boolean;
+
 implementation
 
 uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCal, FxEngine, Debug, C_EFFECT, C_EQUIP,
@@ -253,6 +261,9 @@ uses C_ITEM, C_NPC, C_TERR, C_SAVE, C_COND, GameDefs, GameVars, CbtActs, ClassCa
   C_LEVEL, Dice, Stats, ChgClass, Bestiary, C_BEAST, C_SPRITE;
 
 const
+  { The petrifying gaze's range in squares (1" a square). The Monster Manual gives the medusa's 3"; the basilisk's, the
+    one other gazer in the monster data (MON*SPC eff 83, #938), has none listed, and takes the medusa's. }
+  PETRIFY_GAZE_RANGE = 3;
   { set by TouchImmune for its immunity check: a monster's poisonous or paralyzing touch is no magic, so magic
     resistance does not meet it (MagicResistance; #800) }
   mundaneCheck: Boolean = False;
@@ -1360,10 +1371,34 @@ begin
   end;
 end;
 
+function InSight(gazer, target: Types.PCharRecord; range: Byte): Boolean;
+var
+  dist: Word;
+  x: ShortInt;
+  y: ShortInt;
+begin
+  InSight := False;
+  if target = nil then Exit;
+  if CbtMap.CombatSlot(target) = 0 then Exit;
+  { the budget in squares, read by WalkLine on entry }
+  dist := range;
+  x := CbtMap.CombatCellX(target);
+  y := CbtMap.CombatCellY(target);
+  InSight := Pathing.WalkLine(CbtMap.CombatCellX(gazer), CbtMap.CombatCellY(gazer), x, y, dist, GameVars.arenaPtr);
+end;
+
+function PetrifyGazeReaches(gazer, target: Types.PCharRecord): Boolean;
+begin
+  PetrifyGazeReaches := (target <> nil) and (target^.enabled <> 0) and
+                        EffHndlr.InSight(gazer, target, PETRIFY_GAZE_RANGE);
+end;
+
 { Petrifying gaze (eff 83): the target saves vs. petrification or is stoned. Effect 127 on the gazer marks the gaze
   reflectable: an equipped mirror (EffHndlr.IsMirror) turns it back on the gazer. The gaze runs as the gazer's AI turn
-  starts (C_COND.MONSTER_SPECIAL), before it picks a target: with none yet (nil on its first turn, combatAddr being
-  zeroed as combat starts) there is no gaze. SSI's gazed at nil, saving and stoning through it. }
+  starts (C_COND.MONSTER_SPECIAL), at the target it last chose: there is a gaze only when PetrifyGazeReaches it (in
+  action, within PETRIFY_GAZE_RANGE squares and in sight). SSI's gazed at that target wherever it was and whatever its
+  state, so a basilisk stoned a dying character across the map, and on the gazer's first turn, with no target yet
+  (combatAddr is zeroed as combat starts), it gazed at nil, saving and stoning through it (POR-0217, #938). }
 procedure EffPetrifyGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
@@ -1371,7 +1406,7 @@ var
   effect: Types.PEffectRec;
 begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
-  if GameVars.otherCreatureCurrentPtr = nil then Exit;
+  if not EffHndlr.PetrifyGazeReaches(creature, GameVars.otherCreatureCurrentPtr) then Exit;
   Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_PETRIFY);
   CharDisp.PrintNameString(creature, 'gazes...', 10, False);
   EffHndlr.AnimateBetween(creature, GameVars.otherCreatureCurrentPtr, C_SPRITE.MISSILE, 4, 45);
@@ -1398,21 +1433,14 @@ end;
   Person while it applied the charm, so the resistance was adjusted by the gazer's mage level (#799). }
 procedure EffCharmGaze(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
-  dist: Word;
   effect: Types.PEffectRec;
   target: Types.PCharRecord;
-  x: ShortInt;
-  y: ShortInt;
 begin
   target := creature^.combatAddr^.other;
   GameVars.otherCreatureCurrentPtr := target;
   if not CbtActs.CanAttackTarget(creature, target) then Exit;
-  { the range budget in cells, read by WalkLine on entry: that of the Charm Person the gaze applies }
-  dist := GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed;
-  x := CbtMap.CombatCellX(target);
-  y := CbtMap.CombatCellY(target);
-  if not Pathing.WalkLine(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), x, y, dist,
-                          GameVars.arenaPtr) then Exit;
+  { the range of the Charm Person the gaze applies }
+  if not EffHndlr.InSight(creature, target, GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
   Bestiary.Learn(creature, target, C_BEAST.ATK_CHARM);
   EffHndlr.AnimateBetween(creature, target, C_SPRITE.MISSILE, 4, 45);
