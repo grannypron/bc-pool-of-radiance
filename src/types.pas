@@ -565,9 +565,7 @@ type
   TTerrainRec = record
     { movement cost multiplier and passability threshold }
     cost: Byte;
-    { initial line-walk clearance }
-    clearance: Byte;
-    { compared against line-walk clearance }
+    { a line walk (Pathing.WalkLine) stops at a cell whose blocking is above 0 }
     blocking: Byte;
     { combat tile graphic index }
     tileId: Byte;
