@@ -219,20 +219,13 @@ begin
     for i := 1 to roll do begin
       item := creature^.itemsAddr;
       while (item <> nil) and (chosen = nil) do begin
-        effect := item^.effect;
+        { the spell Use would cast: none past spellTable, which is not rated, as SelectSpellToCast leaves such entries
+          out (#708) }
+        effect := CharHlp.ItemSpell(item);
         slot := CharHlp.BaseItem(item^.itemType)^.slot;
-        if (not CharHlp.ItemReadable(item))
-           and (item^.special < $80)
-           and (item^.equipped <> 0)
-           and (effect > 0) then begin
-          { Item effects 80..90 map to spell entries 57..67; 56 is the last real spell id. An effect above 90 would read
-            past spellTable and is not rated, as SelectSpellToCast leaves such entries out (#708) }
-          if effect > C_SPELL.LAST then
-            effect := effect - C_SPELL.ITEM_EFFECT_SHIFT;
-          if effect <= C_SPELL.TABLE_LAST then
-            if CombatAi.DecideCastSpell(creature, effect, lowPri) then
-              chosen := item;
-        end;
+        if (item^.equipped <> 0) and (effect <> C_SPELL.NONE) then
+          if CombatAi.DecideCastSpell(creature, effect, lowPri) then
+            chosen := item;
         item := item^.next;
       end;
       Dec(lowPri);

@@ -25,7 +25,7 @@ implementation
 
 uses Crt, C_NPC, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic,
   FxEngine, C_EFFECT, C_EQUIP, C_KEYS, C_CLASS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats,
-  StrUtil, CharDisp, MoneyCal, C_MSG, ClassCal;
+  StrUtil, CharDisp, MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf;
 
 var
   { the last character traded to, offered first by the next trade; ViewCharMenu starts it at curChar }
@@ -36,6 +36,8 @@ procedure ItemTradeMenu(item: Types.PItemRec); forward;
 procedure HalveItem(item: Types.PItemRec); forward;
 
 procedure JoinItem(item: Types.PItemRec); forward;
+
+function CanJoin(item: Types.PItemRec): Boolean; forward;
 
 procedure SellItem(item: Types.PItemRec); forward;
 
@@ -807,8 +809,81 @@ begin
   TextRend.DisplayAndPause(LightGreen, 'press a key');
 end;
 
-{ Run curChar's inventory menu, offering actions according to the character's state and the current interface state,
-  until Escape, done, or no items remain. }
+{ The item menu's bottom line for creature's item, without the Exit MenuVertical adds: each action the character's
+  state, the interface state and the item allow. Halve is offered on a stack of 2 or more when there is room for
+  another item, Join when another stack can join it, Id in a shop on an item not yet identified, and Info on one whose
+  Use casts a spell the spell page describes (SpellInf.HasItemPage, #861); Id and Info, which share I, never both. When
+  the line and Exit would pass the bottom line's 40 columns, Halve gives way. }
+function ItemMenuLine(creature: Types.PCharRecord; item: Types.PItemRec): Types.TStr40;
+const
+  { the bottom line's columns, and MenuVertical's ' Exit' }
+  LINE_WIDTH = 40;
+  EXIT_WIDTH = 5;
+var
+  s: String;
+  halve: Boolean;
+begin
+  s := 'Ready';
+  if CharHlp.CanUseItems(creature) then
+    s := s + ' Use';
+  if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.COMBAT) then
+    s := s + ' Trade';
+  if GameVars.ifcState = C_IFC.VAULT then
+    s := s + ' Deposit'
+  else
+    s := s + ' Drop';
+  halve := (creature^.numberOfItems < C_ITEM.CARRY_MAX) and (item^.quantity > 1);
+  if halve then
+    s := s + ' Halve';
+  if ViewChar.CanJoin(item) then
+    s := s + ' Join';
+  { the characters that may trade may sell, but only in a shop }
+  if CharHlp.MayTrade(creature) and (GameVars.ifcState = C_IFC.SHOP_TEMPLE) then
+    s := s + ' Sell';
+  if (GameVars.ifcState = C_IFC.SHOP_TEMPLE) and (item^.unidMask <> 0) then
+    s := s + ' Id'
+  else if SpellInf.HasItemPage(item) then
+    s := s + ' Info';
+  if halve and (Length(s) + EXIT_WIDTH > LINE_WIDTH) then
+    Delete(s, Pos(' Halve', s), Length(' Halve'));
+  ItemMenuLine := s;
+end;
+
+{ The spell page for sel (SpellInf.ShowItemPage), stepping through every item of creature's that has one; idx
+  receives the list line of the item shown last. }
+procedure ItemInfo(creature: Types.PCharRecord; sel: Types.PItemRec; var idx: Integer);
+var
+  items: SpellInf.TPageItems;
+  count: Integer;
+  cur: Integer;
+  p: Types.PItemRec;
+begin
+  count := 0;
+  cur := 0;
+  p := creature^.itemsAddr;
+  while (p <> nil) and (count < C_ITEM.CARRY_MAX) do begin
+    if SpellInf.HasItemPage(p) then begin
+      if p = sel then
+        cur := count;
+      items[count] := p;
+      Inc(count);
+    end;
+    p := p^.next;
+  end;
+  SpellInf.ShowItemPage(items, count, cur);
+  if count > 0 then begin
+    idx := 0;
+    p := creature^.itemsAddr;
+    while (p <> nil) and (p <> items[cur]) do begin
+      Inc(idx);
+      p := p^.next;
+    end;
+  end;
+end;
+
+{ Run curChar's inventory menu, offering actions according to the character's state, the current interface state and
+  the highlighted item (ItemMenuLine), until Escape, done, or no items remain. The line is rebuilt as the highlight
+  moves. }
 procedure UseItemMenu(var done: Boolean);
 var
   ch: Char;
@@ -832,23 +907,13 @@ begin
       (creature^.itemsAddr <> nil) do begin
     itemCount := creature^.numberOfItems;
     if creature^.itemsAddr <> nil then begin
-      s := 'Ready';
-      if CharHlp.CanUseItems(creature) then
-        s := s + ' Use';
-      if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.COMBAT) then
-        s := s + ' Trade';
-      if GameVars.ifcState = C_IFC.VAULT then
-        s := s + ' Deposit'
-      else
-        s := s + ' Drop';
-      if creature^.numberOfItems < 16 then
-        s := s + ' Halve';
-      s := s + ' Join';
-      { the characters that may trade may sell, but only in a shop }
-      if CharHlp.MayTrade(creature) and (GameVars.ifcState = C_IFC.SHOP_TEMPLE) then
-        s := s + ' Sell';
-      if GameVars.ifcState = C_IFC.SHOP_TEMPLE then
-        s := s + ' Id';
+      { the highlighted item, as MenuVertical takes it: a line past the list's end is its last item }
+      p := MenuCore.FindListMember(idx, creature^.itemsAddr);
+      while (p = nil) and (idx > 0) do begin
+        Dec(idx);
+        p := MenuCore.FindListMember(idx, creature^.itemsAddr);
+      end;
+      s := ViewChar.ItemMenuLine(creature, p);
       { rebuild every item name }
       p := creature^.itemsAddr;
       while p <> nil do begin
@@ -869,9 +934,14 @@ begin
       { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
       if GameVars.stingArg then
         MenuCore.extraKeys := 'V';
+      { a move returns, so that the line follows the highlighted item }
+      MenuCore.movesToCaller := True;
       ch := MenuCore.MenuVertical('', s, LightMagenta, LightGreen, White, 1, 5, 38, 22,
                                   creature^.itemsAddr, True, vmRedraw, idx, sel);
-      if sel <> nil then
+      if MenuCore.moved then
+        { Page Up's scan code is 'I': a move is no choice }
+        ch := ' '
+      else if sel <> nil then
         case ch of
           'V': if GameVars.stingArg then begin
                  ViewChar.ViewItemDetail(sel);
@@ -883,7 +953,7 @@ begin
                begin
                  CharDisp.PrintBottomLine('Must be Readied');
                  ch := ' ';
-               end else if CharHlp.ItemReadable(sel) or ((sel^.effect > 0) and (sel^.special < $80)) then begin
+               end else if CharHlp.ItemReadable(sel) or (CharHlp.ItemSpell(sel) <> C_SPELL.NONE) then begin
                  Magic.UseItem(sel, done);
                  if GameVars.ifcState <> C_IFC.COMBAT then
                    { outside combat, using an item does not end the menu }
@@ -924,9 +994,15 @@ begin
                  ViewChar.SellItem(sel)
                else
                  ch := ' ';
-          'I': ViewChar.IdentifyItem(sel, vmRedraw);
+          'I': if (GameVars.ifcState = C_IFC.SHOP_TEMPLE) and (sel^.unidMask <> 0) then
+                 ViewChar.IdentifyItem(sel, vmRedraw)
+               else if SpellInf.HasItemPage(sel) then begin
+                 ViewChar.ItemInfo(creature, sel, idx);
+                 needRedraw := True;
+               end;
         end;
-      CharHlp.RecalcStats(creature);
+      if not MenuCore.moved then
+        CharHlp.RecalcStats(creature);
     end;
     if creature^.numberOfItems <> itemCount then
       vmRedraw := True;
@@ -975,8 +1051,34 @@ begin
     CharDisp.PrintBottomLine('Can''t halve that');
 end;
 
-{ Merge into item every other stack (quantity > 0) of curChar's with the same name components, type, plus, save bonus,
-  curse, weight, charges, effect and special, and fewer than 2 charges. Save the next node before merging, since
+{ True when other is a stack (quantity > 0) that can join item's: not item itself, with the same name components, type,
+  plus, save bonus, curse, weight, charges, effect and special, and fewer than 2 charges. }
+function SameStack(item, other: Types.PItemRec): Boolean;
+begin
+  SameStack := (other <> item) and (other^.quantity > 0) and (other^.nameIds[1] = item^.nameIds[1]) and
+    (other^.nameIds[2] = item^.nameIds[2]) and (other^.nameIds[3] = item^.nameIds[3]) and
+    (other^.itemType = item^.itemType) and (other^.plus = item^.plus) and (other^.saveBonus = item^.saveBonus) and
+    (other^.cursed = item^.cursed) and (other^.weight = item^.weight) and (other^.charges = item^.charges) and
+    (other^.charges < 2) and (other^.effect = item^.effect) and (other^.special = item^.special);
+end;
+
+{ True when item is a stack (quantity > 0) another of curChar's stacks can join (SameStack): Join has something to do. }
+function CanJoin(item: Types.PItemRec): Boolean;
+var
+  p: Types.PItemRec;
+begin
+  CanJoin := False;
+  if item^.quantity > 0 then begin
+    p := GameVars.curChar^.itemsAddr;
+    while p <> nil do begin
+      if ViewChar.SameStack(item, p) then
+        CanJoin := True;
+      p := p^.next;
+    end;
+  end;
+end;
+
+{ Merge into item every other stack of curChar's that can join it (SameStack). Save the next node before merging, since
   RemoveItem frees the current node. If the total would exceed 255, fill the destination to 255, keep the excess in the
   current stack, and continue merging into that stack. A readied stack merged away leaves the stack it joins readied:
   the two are the same item type, so the slot and hands it held pass over, and no more stacks end up readied than
@@ -995,11 +1097,7 @@ begin
   cur := GameVars.curChar^.itemsAddr;
   while cur <> nil do begin
     next := cur^.next;
-    if (cur <> dst) and (cur^.quantity > 0) and (cur^.nameIds[1] = dst^.nameIds[1]) and
-        (cur^.nameIds[2] = dst^.nameIds[2]) and (cur^.nameIds[3] = dst^.nameIds[3]) and
-        (cur^.itemType = dst^.itemType) and (cur^.plus = dst^.plus) and (cur^.saveBonus = dst^.saveBonus) and
-        (cur^.cursed = dst^.cursed) and (cur^.weight = dst^.weight) and (cur^.charges = dst^.charges) and
-        (cur^.charges < 2) and (cur^.effect = dst^.effect) and (cur^.special = dst^.special) then begin
+    if ViewChar.SameStack(dst, cur) then begin
       if qty + cur^.quantity <= 255 then begin
         Inc(qty, cur^.quantity);
         if cur^.equipped <> 0 then

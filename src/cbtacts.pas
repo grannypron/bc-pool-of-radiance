@@ -1184,7 +1184,8 @@ end;
   Stinking Cloud handlers then take their own cells); or up to its count of creatures picked one at a time. b is the
   AI flag, passed to PickSpellTarget. While the player aims, the CbtMap spell-aim preview shows the cells the spell
   will reach: Lightning Bolt's path, Stinking Cloud's 2x2 block, or the blast at SpellArea's radius (a fireball bursts
-  in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). }
+  in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). The Javelin of
+  Lightning is aimed at one creature, but its preview and count show the bolt that runs on past it (#861). }
 procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
@@ -1213,7 +1214,11 @@ begin
       { the picked creature, or an area at the picked cell }
       begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell), False);
+          if spell = C_SPELL.ITEM_JAVELIN_LIGHTNING then begin
+            aimSpell := spell;
+            CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, SPRITE_LIGHTNING, True);
+          end else
+            CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
@@ -1235,13 +1240,13 @@ begin
           { line 23 counts who the spell will catch (#840) }
           aimSpell := spell;
           case kind of
-            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, 0, SPRITE_LIGHTNING, True);
-            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, 0, SPRITE_SPARKLE, True);
+            C_SPELL.AREA_BOLT: CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, SPRITE_LIGHTNING, True);
+            C_SPELL.AREA_CLOUD: CbtMap.StartSpellPreview(Types.AimCloud, spell, 0, SPRITE_SPARKLE, True);
           else
             if (spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL) then
-              CbtMap.StartSpellPreview(Types.AimBlast, size, SPRITE_BURST, True)
+              CbtMap.StartSpellPreview(Types.AimBlast, spell, size, SPRITE_BURST, True)
             else
-              CbtMap.StartSpellPreview(Types.AimBlast, size, CbtActs.AimMarker(spell), True);
+              CbtMap.StartSpellPreview(Types.AimBlast, spell, size, CbtActs.AimMarker(spell), True);
           end;
         end;
         picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
@@ -1259,7 +1264,7 @@ begin
       k := 0;
       while remaining > 0 do begin
         if not b then
-          CbtMap.StartSpellPreview(Types.AimBlast, 0, CbtActs.AimMarker(spell), False);
+          CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
         picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin

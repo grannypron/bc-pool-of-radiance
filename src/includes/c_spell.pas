@@ -27,8 +27,9 @@ const
   TABLE_LAST = 67;
   { an item effect above LAST is the spell id effect - ITEM_EFFECT_SHIFT (item effects 80..90 are 57..67) }
   ITEM_EFFECT_SHIFT = 23;
-  { the Javelin of Lightning's spell (item effect 83) }
+  { the Javelin of Lightning's spell (item effect 83), and the cells its bolt runs past the aim cell }
   ITEM_JAVELIN_LIGHTNING = 60;
+  JAVELIN_BOLT_CELLS = 3;
   { the last line of a spell menu (spellIds, spellScrolls): Cast lists up to 21 memorized spells and 48 scroll spells,
     three on each of 16 items }
   LINE_LAST = 68;
@@ -57,6 +58,8 @@ const
   { spellFns[47] and spellFns[64] (the item fireball) = FireballHandler }
   FIREBALL = 47;
   ITEM_FIREBALL = 64;
+  { the item fireball's caster level: 1d ITEM_FIREBALL_DIE * 2 + 1, so 3, 5 or 7 }
+  ITEM_FIREBALL_DIE = 3;
   { spellFns[51] = LightningBoltHandler }
   LIGHTNING_BOLT = 51;
   { Lightning Bolt's length, in cells past the aim cell }
