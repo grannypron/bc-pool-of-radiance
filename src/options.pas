@@ -161,18 +161,16 @@ begin
   SettingRow := FIRST_ROW + opt - 1 + Ord(opt >= C_OPT.OPT_QUICK);
 end;
 
-{ The value of setting opt as the screen shows it: Sound shows whether sound is on now, and Combat Log that it needs
-  EMS when it has no store. }
+{ The value of setting opt as the screen shows it, from cur as DrawSetting has just collected it: Sound shows whether
+  sound is on now, and Combat Log that it needs EMS when it has no store. }
 function ShownValue(opt: Byte): Types.TStr20;
 begin
   if opt = C_OPT.OPT_SOUND then
     ShownValue := CfgFile.OnOff(Ord(GameVars.soundMode <> C_SOUND.MODE_DISABLED))
   else if (opt = C_OPT.OPT_COMBAT_LOG) and not CbtLog.Usable then
     ShownValue := 'Needs EMS'
-  else begin
-    Options.Collect(cur);
+  else
     ShownValue := CfgFile.StoredValue(cur, opt);
-  end;
 end;
 
 procedure LoadOptions;
@@ -259,7 +257,7 @@ begin
       Inc(present);
     end else begin
       found := False;
-      for disk := 1 to 8 do
+      for disk := 1 to Types.LAST_DISK do
         if not found then
           found := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX') >= 0;
       if found then
@@ -470,7 +468,7 @@ begin
         'P': if page <> PAGE_PATHS then
                ShowPage(PAGE_PATHS);
         'S': if page <> PAGE_SYSTEM then
-                    ShowPage(PAGE_SYSTEM);
+               ShowPage(PAGE_SYSTEM);
       end;
     if touched then
       changed := True;
