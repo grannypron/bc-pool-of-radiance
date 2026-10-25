@@ -629,8 +629,9 @@ begin
     s := s + '-' + StrUtil.NumStr(Abs(p^.curModA[1]));
   TextRend.DisplayString(col, row + 1, White, 'Damage        ');
   TextRend.DisplayString(col + 7, row + 1, LightGreen, s);
-  { the attacks a round the character's classes give (ClassCal.RecalcBaseSkills), under Damage (#836) }
-  TextRend.DisplayString(col - 1, row + 2, White, 'Att/Rnd       ');
+  { the attacks a round the character's classes give (ClassCal.RecalcBaseSkills), under Damage and lined up with it
+    (#836, #911) }
+  TextRend.DisplayString(col, row + 2, White, 'Att/Rd        ');
   TextRend.DisplayString(col + 7, row + 2, LightGreen, StrUtil.HalvesStr(p^.attacks));
   col := 22;
   TextRend.DisplayString(col, row, White, 'Encumbrance      ');
