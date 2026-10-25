@@ -145,6 +145,14 @@ begin
   TestKit.CheckEqualsL(59, MoneyCal.TemplePrice(65, MoneyCal.TEMPLE_TENTH_OFF), 'the tenth taken off is rounded down');
   TestKit.CheckEqualsL(58982, MoneyCal.TemplePrice(65535, MoneyCal.TEMPLE_TENTH_OFF), 'the largest price');
 
+  { the sage's fee (#868): 50 gold a hit die, no less than 100 }
+  TestKit.CheckEqualsL(100, MoneyCal.SageFee(0), 'the sage: less than a hit die costs the least');
+  TestKit.CheckEqualsL(100, MoneyCal.SageFee(1), 'one hit die costs the least');
+  TestKit.CheckEqualsL(100, MoneyCal.SageFee(2), 'two cost the least too');
+  TestKit.CheckEqualsL(150, MoneyCal.SageFee(3), 'three cost 150');
+  TestKit.CheckEqualsL(600, MoneyCal.SageFee(12), 'twelve cost 600');
+  TestKit.CheckEqualsL(100, MoneyCal.SageFee(-1), 'a negative hit die count costs the least');
+
   FreeMem(item, SizeOf(Types.TItemRec));
   FreeMem(c, SizeOf(Types.TCharRecord));
   TestKit.Done;

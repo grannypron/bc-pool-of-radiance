@@ -14,8 +14,8 @@ uses C_DATA;
 
 const
   { the parts of all the fixes, and their bytes together }
-  PART_COUNT = 76;
-  BYTE_COUNT = 2401;
+  PART_COUNT = 78;
+  BYTE_COUNT = 2458;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -218,7 +218,16 @@ const
     (issue: 748; family: C_DATA.FAMILY_MONCHA; disk: 8; id: 116; size: 285; offset: 108; origLen: 1; newLen: 1),
     { #792: the ogre leader (MON1CHA block 9), size L, gets the Large bit its one-tile icon lacked, as the bugbear has:
       weapons do their large damage to it, and it is no person for Charm Person and Hold Person }
-    (issue: 792; family: C_DATA.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1));
+    (issue: 792; family: C_DATA.FAMILY_MONCHA; disk: 1; id: 9; size: 285; offset: 108; origLen: 1; newLen: 1),
+    { #868: a sage in the back room of New Phlan's east tavern, at (15,12), the dead end of the tavern entered at
+      (15,14). Event 20's address in the event table (script $9B4C), which #606 sent to its code at $B62F, goes to new
+      code at the end of the script, which sends every other event-20 square on to #606's ($B62F) as before, and at
+      (15,12) does what the shops do (the greeting once a visit, C_GBVM.PHLAN_GREETED; the refusal after a fight with
+      the city watch, C_GBVM.WATCH_FOUGHT), shows the sage (head $10, the harbor master's, on body $02, the robe of
+      Tyr's priests) and runs PROGRAM 10 (EclVm.PROG_SAGE). Nothing in the new code jumps into itself, so a fix before
+      this one that lengthens the script moves only its address in the event table. }
+    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7525; offset: 657; origLen: 2; newLen: 2),
+    (issue: 868; family: C_DATA.FAMILY_ECL; disk: 3; id: 0; size: 7525; offset: 7525; origLen: 0; newLen: 53));
   patchBytes: array[0..BYTE_COUNT - 1] of Byte = (
     { #20, original }
     $16, $00,
@@ -886,7 +895,25 @@ const
     { #792, MON1CHA ogre leader, original }
     $01,
     { fixed: one tile and Large }
-    $81);
+    $81,
+    { #868 part 1, original }
+    $2F, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB62F }
+    { fixed: event 20 goes to new code at the end of the script }
+    $63, $B6,                                         { $9B8F ON GOTO [$9800] entry 20: LB663 }
+    { #868 part 2, added at $B663: #606's code but at (15,12); there, as the shops, the greeting, then the sage }
+    $14, $01, $4B, $C0, $00, $0F, $01, $4C, $C0, $00, $0C, { $B663 COMPARE AND [$C04B], $0F, [$C04C], $0C }
+    $17,                                              { $B66E IF <> }
+    $01, $01, $2F, $B6,                               { $B66F GOTO LB62F }
+    $02, $01, $89, $AE,                               { $B673 GOSUB LAE89 }
+    $09, $00, $10, $01, $E1, $6D,                     { $B677 SAVE $10, [$6DE1] }
+    $0E, $00, $02,                                    { $B67D PICTURE $02 }
+    $03, $01, $C0, $4A, $00, $00,                     { $B680 COMPARE [$4AC0], $00 }
+    $19,                                              { $B686 IF > }
+    $01, $01, $1D, $AE,                               { $B687 GOTO LAE1D }
+    $38, $00, $0A,                                    { $B68B PROGRAM $0A }
+    $09, $00, $FF, $01, $E1, $6D,                     { $B68E SAVE $FF, [$6DE1] }
+    $0E, $00, $FF,                                    { $B694 PICTURE $FF }
+    $00);                                             { $B697 EXIT }
 
 implementation
 

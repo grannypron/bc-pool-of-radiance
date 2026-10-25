@@ -4,14 +4,16 @@
   empty bestiary. A damaged one (a foreign signature, a version before the first, a size that does not add up) reads as
   empty and is renamed BESTIARY.BAD when the next is written. One of a newer format is read, since a newer format only
   adds to the end of an entry, and never written, so an older game does not throw away what a newer one learned.
-  Overlaid: it is read at start-up and written after a fight, after a save and on the way out to DOS. }
+  Overlaid: it is read at start-up and written after a fight, after a save and on the way out to DOS. Tell fills in an
+  entry from a creature's own record, the monster data's word on its kind, which the party did not learn in play: the
+  sage's service (#868), and a later import's. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit BeastFil;
 
 interface
 
-uses FileUtil;
+uses FileUtil, Types, Bestiary;
 
 const
   FILE_NAME = 'BESTIARY.DAT';
@@ -31,9 +33,15 @@ procedure LoadFrom(fn: FileUtil.TPathName);
 { Write the Bestiary as file fn, safely (FileUtil's temporary copy, put in place once whole): True when it is there. }
 function WriteTo(fn: FileUtil.TPathName): Boolean;
 
+{ Fill in b from creature, a record of its kind as the monster data has it (EclMenu.InitCreature): its size, hit dice
+  and exact armor class, and the defenses and attacks its effects stand for (C_BEAST.EFFECT_FACTS). What b knew stays
+  known, and seen, killed and maxHit, the party's own, are left alone. True when b has learned something; the caller
+  that keeps b marks the Bestiary dirty. }
+function Tell(var b: Bestiary.TBeast; creature: Types.PCharRecord): Boolean;
+
 implementation
 
-uses GameVars, Bestiary;
+uses GameVars, C_BEAST;
 
 const
   SIG = 'BEST';
@@ -109,6 +117,42 @@ begin
     ok := FileUtil.CloseTemp(f, fn, ok) and FileUtil.PutInPlace(fn);
   end;
   WriteTo := ok;
+end;
+
+function Tell(var b: Bestiary.TBeast; creature: Types.PCharRecord): Boolean;
+var
+  was: Bestiary.TBeast;
+  effect: Types.PEffectRec;
+  i: Byte;
+  ac: Integer;
+
+  procedure Know(fact: Byte);
+  begin
+    b.known[fact div 32] := b.known[fact div 32] or (LongInt(1) shl (fact mod 32));
+  end;
+
+begin
+  was := b;
+  Know(C_BEAST.SIZE_KNOWN);
+  if creature^.iconDimensions and Types.ICON_LARGE <> 0 then
+    Know(C_BEAST.LARGE)
+  else
+    b.known[0] := b.known[0] and not (LongInt(1) shl C_BEAST.LARGE);
+  Know(C_BEAST.HD_KNOWN);
+  b.hd := creature^.levelHighest;
+  { acCur holds 60 - AC }
+  ac := 60 - Integer(creature^.acCur);
+  b.acLo := ac;
+  b.acHi := ac;
+  effect := creature^.effectsAddr;
+  while effect <> nil do begin
+    for i := 1 to C_BEAST.EFFECT_FACTS_COUNT do
+      if C_BEAST.EFFECT_FACTS[i].eff = effect^.id then
+        Know(C_BEAST.EFFECT_FACTS[i].fact);
+    effect := effect^.next;
+  end;
+  Tell := (b.known[0] <> was.known[0]) or (b.known[1] <> was.known[1]) or (b.hd <> was.hd) or
+          (b.acLo <> was.acLo) or (b.acHi <> was.acHi);
 end;
 
 procedure Load;
