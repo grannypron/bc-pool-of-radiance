@@ -57,6 +57,9 @@ var
 { Return member n (0-based) of list, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
+{ Return the number of members in list. }
+function ListCount(list: Types.PItemRec): Integer;
+
 { The lines of list a MenuVertical box from ulRow to lrRow shows at once: every row of it, or, under fullPaging (paged)
   with the list longer than the box, one fewer, the last row being kept for '(more)'. }
 function PageRows(list: Types.PItemRec; ulRow, lrRow: ShortInt; paged: Boolean): Integer;
@@ -122,7 +125,6 @@ begin
     FindListMember := nil;
 end;
 
-{ Return the number of members in list. }
 function ListCount(list: Types.PItemRec): Integer;
 var
   p: Types.PItemRec;
