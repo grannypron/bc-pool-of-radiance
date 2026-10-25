@@ -233,8 +233,8 @@ const
     (issue: 868; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 465; origLen: 1; newLen: 1),
     (issue: 868; family: C_DATA.FAMILY_GEO; disk: 3; id: 0; size: 1026; offset: 976; origLen: 2; newLen: 2),
     { #868: the sage is the Slums' fortune teller, there only if she lived. Her murder ($A6E7) left a mark only in
-      [$4A0B], one of the cells the next area's script clears; its GOSUB to the Slums' continue prompt ($A755) goes to
-      new code at the end of the script that sets C_GBVM.GYPSY_KILLED for good and goes on to the prompt }
+      [$4A0B], one of the cells the next area's script clears; its GOSUB ($A755) to the Slums' continue prompt ($B6BC)
+      goes to new code at the end of the script that sets C_GBVM.GYPSY_KILLED for good and goes on to the prompt }
     (issue: 868; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 3673; origLen: 2; newLen: 2),
     (issue: 868; family: C_DATA.FAMILY_ECL; disk: 2; id: 20; size: 7679; offset: 7679; origLen: 0; newLen: 10),
     { #868: event 20's address in New Phlan's event table (script $9B4C), which #606 sent to its code at $B62F, goes to
@@ -939,9 +939,9 @@ const
     { fixed: (14,12) east and (15,12) west pass }
     $04, $40,
     { #868 Slums part 1, original }
-    $BC, $B6,                                         { $A757 GOSUB LB6BC, after the fortune teller is murdered }
+    $BC, $B6,                                         { $A755 GOSUB LB6BC, after the fortune teller is murdered }
     { fixed: the GOSUB goes to new code at the end of the script }
-    $FD, $B6,                                         { $A757 GOSUB LB6FD }
+    $FD, $B6,                                         { $A755 GOSUB LB6FD }
     { #868 Slums part 2, added at $B6FD: her murder remembered, then the continue prompt }
     $09, $00, $01, $01, $53, $4A,                     { $B6FD SAVE $01, [$4A53] }
     $01, $01, $BC, $B6,                               { $B703 GOTO LB6BC }
