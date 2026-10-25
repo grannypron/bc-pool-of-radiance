@@ -12,7 +12,8 @@ var
   { Remaining rest time as a seven-word GBVM clock; TClock-typed so it passes to Clock.ValidateClock as a var
     parameter }
   restingTimeGbvm: Types.TClock;
-  { Time rested today, in five-minute ticks. }
+  { Time rested since the party made camp (Camp.CampMainMenu clears it), in five-minute ticks: CheckRestingHeal heals
+    at every 288 (a day). }
   healTicks: Word;
 
 { Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
@@ -118,20 +119,20 @@ begin
         C_KEYS.UP: ch := 'I';
         { down arrow -> 'D'ec }
         C_KEYS.DOWN: ch := 'D';
-        { left arrow }
+        { left arrow; ch becomes a key the menu does not take, ' ' }
         C_KEYS.LEFT: begin
                        Inc(sel);
                        if sel > C_TIME.DAYS then sel := C_TIME.TURNS;
-                       ch := #88;
+                       ch := ' ';
                      end;
         { right arrow }
         C_KEYS.RIGHT: begin
                         Dec(sel);
                         if sel < C_TIME.TURNS then sel := C_TIME.DAYS;
-                        ch := #88;
+                        ch := ' ';
                       end;
       else
-        ch := #88;
+        ch := ' ';
       end;
     case ch of
       'R': CampRestMenu := True;
@@ -208,13 +209,14 @@ begin
 end;
 
 { The scribing counterpart of CheckMemorizeDone over the readable items' scroll spells queued for scribing (id > $80, in
-  TItemRec's spells[1..3]). Finishing one removes it with Magic.RemoveSpellFromScroll and rolls d100 against the
-  scriber's chance to know it (AbilAdj.IntKnowSpellChance, the 1st-edition Intelligence rule SSI left out, #59): a
-  success marks it known and announces it ("has scribed"), a failure shows "<name> failed to scribe <spell>." and
-  "<spell> has been lost.", the spell gone from the scroll and not learned. The roll is made here rather than when the
-  spell is queued, since a queued spell can still be dropped (Camp.ResetScribe) and the time spent is part of
-  the attempt. A scroll freed with its last spell is left and the scan goes on with the next item. A spell id outside
-  1..C_SPELL.LAST is passed over. }
+  TItemRec's spells[1..3]). Finishing one removes that slot itself with Magic.RemoveSpellFromScroll (SSI's code
+  cleared the scroll's last copy of the spell, which could be another, leaving the pending one to be scribed again,
+  POR-0228) and rolls d100 against the scriber's chance to know it (AbilAdj.IntKnowSpellChance, the 1st-edition
+  Intelligence rule SSI left out, #59): a success marks it known and announces it ("has scribed"), a failure shows
+  "<name> failed to scribe <spell>." and "<spell> has been lost.", the spell gone from the scroll and not learned. The
+  roll is made here rather than when the spell is queued, since a queued spell can still be dropped (Camp.ResetScribe)
+  and the time spent is part of the attempt. A scroll freed with its last spell is left and the scan goes on with the
+  next item. A spell id outside 1..C_SPELL.LAST is passed over. }
 function CheckScribeDone(creature: Types.PCharRecord; var done: Boolean): Byte;
 var
   j: Byte;
@@ -237,7 +239,8 @@ begin
             lvl := GameDefs.spellTable[item^.spells[j] and C_SPELL.ID_MASK].level
           else begin
             sp := item^.spells[j] and C_SPELL.ID_MASK;
-            Magic.RemoveSpellFromScroll(creature, item, sp);
+            { the pending copy, flag and all, not another copy of the spell on the scroll (POR-0228) }
+            Magic.RemoveSpellFromScroll(creature, item, item^.spells[j]);
             GameTime.DisplayRestTime(0);
             { the chance to know the spell, rolled as the scribing ends (#59) }
             if Dice.RollDice(1, 100) <= AbilAdj.IntKnowSpellChance(creature^.intCur) then begin
@@ -327,10 +330,8 @@ var
   tick: Byte;
   cnt: Byte;
   stop: Boolean;
-  dead3: Boolean;
 begin
   CampRest := False;
-  dead3 := False;
   i := 1;
   cur := GameVars.creatureList;
   while (cur <> nil) and (i <= SizeOf(prepTimers)) do begin

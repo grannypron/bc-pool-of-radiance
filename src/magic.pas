@@ -60,8 +60,10 @@ procedure CastSpellNC(spell: Byte; b, ai: Boolean; var sel: Boolean);
   message window. }
 procedure ShowCombatOnlySpell(spell: Byte);
 
-{ Clear the last of the scroll's spell slots holding spell (bit 7 ignored) and decrement its spell-count name component,
-  nameIds[2]; remove the item from cr once that drops below 210. Does nothing if no slot matches. }
+{ Clear a scroll spell slot holding spell and decrement its spell-count name component, nameIds[2]; remove the item
+  from cr once that drops below 210. The slot is the last holding spell exactly, its pending flag (C_SPELL.PENDING_FLAG)
+  included, or else the last holding it with either flag, so that a scribed spell clears its own slot and a used one a
+  copy not queued for scribing (POR-0228). Does nothing if no slot matches. }
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
 
 { Announce a cast. In combat, print 'Casts a Spell' for the creature (msg is ignored) and show the spell name on the
@@ -2076,6 +2078,9 @@ begin
   { 3 = High(TItemRec.spells) }
   for i := 1 to 3 do
     if Types.PItemRec(it)^.spells[i] and C_SPELL.ID_MASK = sp then
+      found := i;
+  for i := 1 to 3 do
+    if Types.PItemRec(it)^.spells[i] = spell then
       found := i;
   if found = 0 then
     Exit;
