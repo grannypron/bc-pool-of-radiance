@@ -788,10 +788,7 @@ begin
       2: GameVars.pendingDamage := GameVars.pendingDamage div 2;
     end;
   if GameVars.pendingDamage > 0 then begin
-    if GameVars.pendingDamage <> 1 then
-      s := 'takes ' + StrUtil.NumStr(GameVars.pendingDamage) + ' points of damage '
-    else
-      s := 'takes 1 point of damage ';
+    s := 'takes ' + StrUtil.Count(GameVars.pendingDamage, 'point', 'points') + ' of damage ';
     case GameVars.elementMask and not C_EFFECT.ELEM_MAGIC of
       C_EFFECT.ELEM_FIRE: s := s + 'from Fire';
       C_EFFECT.ELEM_COLD: s := s + 'from Cold';

@@ -11,6 +11,10 @@ type
   TNumStr = string[11];
   { long enough for any LongInt with its commas }
   TGroupedStr = string[15];
+  { a noun for Pluralize and Count }
+  TNounStr = string[20];
+  { a count and its noun: any LongInt, a blank and a TNounStr }
+  TCountStr = string[32];
 
 { n in decimal. }
 function NumStr(n: LongInt): TNumStr;
@@ -24,6 +28,13 @@ function HalvesStr(halves: Byte): TNumStr;
 
 { n, not negative, in decimal with a comma between each group of three digits: 2500 is '2,500'. }
 function Grouped(n: LongInt): TGroupedStr;
+
+{ singular when n is 1, plural otherwise: the noun alone, for a caller that puts something between the number and it,
+  as CharHlp.CatchText's '3 OF 2 ENEMIES'. }
+function Pluralize(n: LongInt; singular, plural: TNounStr): TNounStr;
+
+{ n and a blank, then its noun (Pluralize): '1 SQUARE', '3 SQUARES', '0 points'. }
+function Count(n: LongInt; singular, plural: TNounStr): TCountStr;
 
 { s cut, or padded with spaces on the right, to width. }
 function PadRight(s: String; width: Byte): String;
@@ -75,6 +86,19 @@ begin
     Dec(i, 3);
   end;
   Grouped := s;
+end;
+
+function Pluralize(n: LongInt; singular, plural: TNounStr): TNounStr;
+begin
+  if n = 1 then
+    Pluralize := singular
+  else
+    Pluralize := plural;
+end;
+
+function Count(n: LongInt; singular, plural: TNounStr): TCountStr;
+begin
+  Count := StrUtil.NumStr(n) + ' ' + StrUtil.Pluralize(n, singular, plural);
 end;
 
 function PadRight(s: String; width: Byte): String;
