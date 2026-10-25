@@ -59,7 +59,9 @@ begin
   TextRend.ClearRect(ulCol, ulRow, lrCol, lrRow);
 end;
 
-{ Clear the window, draw its border and center a nonempty title on the window's first text row (ulRow). }
+{ Clear the window, draw its border and center a nonempty title on the window's first text row (ulRow). The title is
+  centred between ulCol and lrCol - 1, not lrCol: that is SSI's (ulCol + lrCol - Length(title)) div 2, so the titles
+  sit where SSI put them (#977). }
 procedure DrawWindow(ulCol, ulRow, lrCol, lrRow: ShortInt; corner, color: Byte; title: Types.TStr40);
 begin
   Border.ClearBox(ulCol, ulRow, lrCol, lrRow);

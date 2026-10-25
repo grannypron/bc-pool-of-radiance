@@ -9,7 +9,7 @@ interface
 
 uses Types;
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 
 procedure MirrorFrame(src, dst: Types.PImgBuf);
 
@@ -23,7 +23,7 @@ procedure InitRowTables;
 
 implementation
 
-uses C_VIDEO, GameDefs, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses C_VIDEO, GameDefs, GameVars, Blit, VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
 const
   { CGA color by pixel position within a packed byte. }
@@ -33,58 +33,28 @@ const
     ($80, $20, $08, $02),
     ($C0, $30, $0C, $03));
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+{ two bytes of four 2-bit pixels, each colour through the picture's colour map; a mask byte for each, 2 bits a pixel }
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 var
-  chunk: TChunk;
-  frame: Byte;
-  col: Word;
-  row: Word;
-  dstOff: Word;
-  maskOff: Word;
-  mask: Byte;
   k: Byte;
-  j: Byte;
-  bit: Byte;
+  m: Byte;
+  half: Byte;
+  color: Byte;
 begin
   with pic^ do begin
-    dstOff := 0;
-    maskOff := 0;
-    for frame := 1 to count do
-      for row := 0 to height - 1 do
-        for col := 0 to width - 1 do begin
-          Move(imgData^[srcOff], chunk, SizeOf(chunk));
-          if transp <> nil then begin
-            mask := Blit.ComputeMask(transpColor, chunk);
-            bit := $80;
-            for j := 1 to 2 do begin
-              for k := 4 to 7 do begin
-                if (bit and mask) > 0 then
-                  transp^[maskOff] := transp^[maskOff] or GameDefs.cgaPixelMask[k];
-                bit := bit shr 1;
-              end;
-              Inc(maskOff);
-            end;
-          end;
-          for k := 0 to 3 do
-            if Odd(k) then
-              data[dstOff] := data[dstOff] or cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k]
-            else
-              data[dstOff] := data[dstOff] or
-                cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k];
-          if transp <> nil then
-            data[dstOff] := data[dstOff] and not transp^[maskOff - 2];
-          Inc(dstOff);
-          for k := 4 to 7 do
-            if Odd(k) then
-              data[dstOff] := data[dstOff] or cgaPixPos[Blit.SrcNibble(chunk[k shr 1] and $0F, map)][k - 4]
-            else
-              data[dstOff] := data[dstOff] or
-                cgaPixPos[Blit.SrcNibble((chunk[k shr 1] and $F0) shr 4, map)][k - 4];
-          if transp <> nil then
-            data[dstOff] := data[dstOff] and not transp^[maskOff - 1];
-          Inc(dstOff);
-          Inc(srcOff, SizeOf(chunk));
-        end;
+    for k := 0 to 7 do begin
+      color := Blit.SrcNibble(VidOps.ChunkPixel(chunk, k), map);
+      data[at + k shr 2] := data[at + k shr 2] or cgaPixPos[color][k and 3];
+    end;
+    if transp <> nil then
+      for half := 0 to 1 do begin
+        m := 0;
+        for k := 0 to 3 do
+          if (mask and ($80 shr (half * 4 + k))) <> 0 then
+            m := m or GameDefs.cgaPixelMask[k + 4];
+        transp^[at + half] := transp^[at + half] or m;
+        data[at + half] := data[at + half] and not transp^[at + half];
+      end;
   end;
 end;
 
@@ -106,11 +76,11 @@ begin
       rowStart := dstOff;
       for col := 0 to width - 1 do begin
         Move(data[srcOff - dstOff + rowStart], cell, SizeOf(cell));
-        cell := Blit.MirrorPairs(cell);
+        cell := VidOps.MirrorPairs(cell);
         Move(cell, dst^.data[dstOff], SizeOf(cell));
         if transp <> nil then begin
           Move(transp^[srcOff - dstOff + rowStart], cell, SizeOf(cell));
-          cell := Blit.MirrorPairs(cell);
+          cell := VidOps.MirrorPairs(cell);
           Move(cell, dst^.transp^[dstOff], SizeOf(cell));
         end;
         Inc(dstOff, SizeOf(cell));
@@ -140,7 +110,7 @@ begin
           for pixPos := 0 to 3 do
             if pic^.data[srcOff] and GameDefs.cgaPixelMask[pixPos + 4] =
                 cgaPixPos[Blit.SrcNibble(fromC, map)][pixPos] then
-              if not isDithered or isDithered and (Random(4) = 0) then
+              if not isDithered or (Random(4) = 0) then
                 data[dstOff] := data[dstOff] and not GameDefs.cgaPixelMask[pixPos + 4] or
                   cgaPixPos[Blit.SrcNibble(toC, map)][pixPos];
           Inc(srcOff);
@@ -177,11 +147,12 @@ procedure InitRowTables;
 var
   i: Byte;
 begin
+  { 80 bytes (5 paragraphs) a scanline, even scanlines in the bank at B800 and odd ones in the bank at BA00 }
   for i := 0 to 199 do
     if Odd(i) then
-      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
+      GameVars.bankRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
     else
-      GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
+      GameVars.bankRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK0_SEG;
 end;
 
 end.

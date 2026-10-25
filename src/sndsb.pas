@@ -15,20 +15,9 @@ procedure Install;
 
 implementation
 
-uses {$IFDEF FPC}TpCompat, PortIO, {$ENDIF}Dos, Types, C_SOUND, GameVars, FileUtil, SoundDrv, SndOpl;
+uses {$IFDEF FPC}TpCompat, PortIO, {$ENDIF}Dos, Types, C_SOUND, GameVars, SfxFile, SoundDrv, SndOpl;
 
 const
-  EFFECTS_FILE = 'SBSFX.DAT';
-  EFFECTS_SIG = 'SBFX';
-  EFFECTS_VERSION = 2;
-  { an entry: tune, format, time constant, length, offset }
-  ENTRY_BYTES = 7;
-  HEADER_BYTES = 6;
-  { a sample's format: unsigned 8-bit PCM, or 4-bit Creative ADPCM led by its reference byte }
-  FORMAT_PCM8 = 0;
-  FORMAT_ADPCM4 = 1;
-  { the tunes SBSFX.DAT may have a sample for: the effects (music starts at C_SOUND.MUSIC_TITLE) }
-  LAST_EFFECT = 20;
   { the DSP's ports, from its base }
   DSP_RESET = $6;
   DSP_READ = $A;
@@ -61,15 +50,6 @@ const
   { blocks tried for a bounce buffer that crosses no 64 KB page }
   PLACE_TRIES = 4;
 
-type
-  TEffect = record
-    format: Byte;
-    timeConstant: Byte;
-    len: Word;
-    { offset of its bytes in the loaded file; 0 for none }
-    start: Word;
-  end;
-
 var
   base: Word;
   dma: Byte;
@@ -77,12 +57,16 @@ var
     play on the speaker) }
   store: Types.PBytes;
   storeSize: Word;
-  { a buffer that crosses no 64 KB page, as long as the longest sample: one whose bytes in store cross a page (which DMA
-    cannot) is copied here to play; nil if none could be placed, and such a sample then plays on the speaker }
+  { a buffer that crosses no 64 KB page, as long as the longest sample whose bytes in store cross one (which DMA
+    cannot): such a sample is copied here to play; nil when none crosses, or none could be placed, and such a sample
+    then plays on the speaker }
   bounce: ^Byte;
   bounceSize: Word;
   loadTried: Boolean;
-  effects: array[1..LAST_EFFECT] of TEffect;
+  { each effect's recording; start 0 for none }
+  effects: array[1..C_SOUND.SFX_LAST] of SfxFile.TSfxEntry;
+  { the music's driver, which plays every effect with no recording too: SndOpl's, or with no OPL2 the speaker's }
+  musicPlay: Types.TSoundPlay;
   { the exit procedure SndSb.SbExit hands on to }
   sbExitSaved: Pointer;
 
@@ -123,10 +107,11 @@ end;
 procedure ReadBlaster;
 var
   s: String;
-  i: Byte;
+  { Words, so a 255-character BLASTER cannot wrap them }
+  i: Word;
   v: Word;
   code: Integer;
-  k: Byte;
+  k: Word;
 begin
   base := DEFAULT_BASE;
   dma := DEFAULT_DMA;
@@ -194,68 +179,24 @@ begin
   PlaceBlock := p;
 end;
 
-{ Load SBSFX.DAT, then a bounce buffer for its longest sample; on any failure of the file the store stays nil and the
-  effects go to the speaker. }
+{ Load SBSFX.DAT, then a bounce buffer for the longest sample that crosses a 64 KB page in it; on any failure of the
+  file the store stays nil and the effects go to the speaker. }
 procedure LoadEffects;
 var
-  f: file;
-  size: LongInt;
-  got: Word;
-  p: Types.PBytes;
-  sig: string[4];
   count: Byte;
   i: Byte;
-  { the next header byte or entry's offset in p^ }
-  rec: Word;
-  tune: Byte;
-  ok: Boolean;
-  ioRes: Integer;
+  e: SfxFile.TSfxEntry;
 begin
   loadTried := True;
   FillChar(effects, SizeOf(effects), 0);
-  if not FileUtil.OpenReadOnly(f, GameVars.gameDir + EFFECTS_FILE) then Exit;
-  size := FileSize(f);
-  if (IOResult <> 0) or (size < HEADER_BYTES) or (size > $FFF0) or (size > MaxAvail) then begin
-    Close(f);
-    ioRes := IOResult;
-    Exit;
-  end;
-  storeSize := size;
-  GetMem(p, storeSize);
-  BlockRead(f, p^, storeSize, got);
-  Close(f);
-  ok := (IOResult = 0) and (got = storeSize);
-  if ok then begin
-    sig[0] := #4;
-    Move(p^[0], sig[1], 4);
-    rec := 4;
-    ok := (sig = EFFECTS_SIG) and (p^[rec] = EFFECTS_VERSION);
-    Inc(rec);
-    count := p^[rec];
-    Inc(rec);
-    ok := ok and (HEADER_BYTES + ENTRY_BYTES * Word(count) <= storeSize);
-  end;
-  if not ok then begin
-    FreeMem(p, storeSize);
-    Exit;
-  end;
+  if not SfxFile.Load(store, storeSize, count) then Exit;
   bounceSize := 0;
-  for i := 1 to count do begin
-    tune := p^[rec];
-    if (tune >= 1) and (tune <= LAST_EFFECT) then
-      with effects[tune] do begin
-        format := p^[rec + 1];
-        timeConstant := p^[rec + 2];
-        Move(p^[rec + 3], len, 2);
-        Move(p^[rec + 5], start, 2);
-        if (len = 0) or (format > FORMAT_ADPCM4) or (LongInt(start) + len > storeSize) then
-          start := 0
-        else if len > bounceSize then
-          bounceSize := len;
-      end;
-    Inc(rec, ENTRY_BYTES);
-  end;
-  store := p;
+  for i := 1 to count do
+    if SfxFile.GetEntry(store, storeSize, i - 1, e) then begin
+      effects[e.tune] := e;
+      if SndSb.Crosses(@store^[e.start], e.len) and (e.len > bounceSize) then
+        bounceSize := e.len;
+    end;
   if bounceSize > 0 then
     bounce := SndSb.PlaceBlock(bounceSize);
 end;
@@ -263,7 +204,7 @@ end;
 { Play the effect as one single-cycle DMA transfer: its bytes in place, or copied to the bounce buffer when they cross a
   64 KB page. False when it cannot be played (crossing, with no bounce buffer) or the DSP did not take the commands
   that start it. }
-function PlayEffect(var e: TEffect): Boolean;
+function PlayEffect(var e: SfxFile.TSfxEntry): Boolean;
 var
   p: Pointer;
   phys: LongInt;
@@ -292,7 +233,7 @@ begin
   Port[DMA_COUNT[dma]] := Hi(e.len - 1);
   Port[DMA_MASK] := dma;
   ok := DspWrite(DSP_TIME_CONSTANT) and DspWrite(e.timeConstant);
-  if e.format = FORMAT_ADPCM4 then
+  if e.format = C_SOUND.SFX_ADPCM4 then
     ok := ok and DspWrite(DSP_DMA_ADPCM4_REF)
   else
     ok := ok and DspWrite(DSP_DMA_8BIT);
@@ -300,25 +241,25 @@ begin
   PlayEffect := ok;
 end;
 
-{ Music on the AdLib, as SndOpl plays it; an effect with a sample on the DSP, the AdLib's voices silenced first so the
-  effect ends the music as every effect does; any other effect, and silence, on the speaker. }
+{ An effect with a sample on the DSP, the music's voices silenced first so the effect ends the music as every effect
+  does; the music, any other effect, and silence as the music's driver plays them: SndOpl's (the music on the AdLib, the
+  rest on the speaker), or with no OPL2 the speaker's. }
 procedure Play(tune: Word);
 var
   ok: Boolean;
 begin
-  if (tune >= 1) and (tune <= LAST_EFFECT) then begin
+  if (tune >= 1) and (tune <= C_SOUND.SFX_LAST) then begin
     if not loadTried then
       SndSb.LoadEffects;
     if (store <> nil) and (effects[tune].start <> 0) then begin
-      SoundDrv.SetSoundDevice(C_SOUND.MODE_ADLIB);
-      SoundDrv.ProgramTandyVoices(0);
+      musicPlay(0);
       if SndSb.PlayEffect(effects[tune]) then
         Exit;
     end;
   end;
   if tune = 0 then
     ok := DspWrite(DSP_HALT_DMA);
-  SndOpl.Play(tune);
+  musicPlay(tune);
 end;
 
 { Stop a sample still playing on every way out of the program. }
@@ -337,14 +278,14 @@ begin
   ReadBlaster;
   if SndSb.DspReset then begin
     ok := DspWrite(DSP_SPEAKER_ON);
-    { the card's OPL2 plays the music; without one it is the speaker's, and the effects still the DSP's }
+    { the card's OPL2 plays the music; without one it is the speaker's (SndOpl.Install leaves its mode and Play), and
+      the effects still the DSP's }
     SndOpl.Install;
+    musicPlay := GameVars.sound.Play;
     if GameVars.sound.mode = C_SOUND.MODE_ADLIB then
       GameVars.sound.name := 'Sound Blaster'
-    else begin
-      GameVars.sound.mode := C_SOUND.MODE_ADLIB;
+    else
       GameVars.sound.name := 'Blaster (no AdLib)';
-    end;
     GameVars.sound.Play := SndSb.Play;
     GameVars.sound.singleStep := True;
     sbExitSaved := ExitProc;
