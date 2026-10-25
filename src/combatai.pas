@@ -203,7 +203,6 @@ var
   lowPri: Byte;
   roll: Byte;
   i: Byte;
-  slot: Byte;
   effect: Byte;
   item: Types.PItemRec;
   chosen: Types.PItemRec;
@@ -222,7 +221,6 @@ begin
         { the spell Use would cast: none past spellTable, which is not rated, as SelectSpellToCast leaves such entries
           out (#708) }
         effect := CharHlp.ItemSpell(item);
-        slot := CharHlp.BaseItem(item^.itemType)^.slot;
         if (item^.equipped <> 0) and (effect <> C_SPELL.NONE) then
           if CombatAi.DecideCastSpell(creature, effect, lowPri) then
             chosen := item;
@@ -242,7 +240,7 @@ end;
   per pass; the first spell DecideCastSpell accepts goes to CbtActs.CastSpellCombat, whose result is returned. }
 function SelectSpellToCast(creature: Types.PCharRecord): Boolean;
 var
-  list: array[0..20] of Byte;
+  list: Types.TSpellSlots;
   lowPri: Byte;
   roll: Byte;
   ext: Boolean;
@@ -255,7 +253,7 @@ var
 begin
   count := 0;
   if creature^.combatAddr^.castAllowed <> 0 then
-    for k := 0 to SizeOf(creature^.memorizedSpells) div SizeOf(creature^.memorizedSpells[0]) - 1 do
+    for k := 0 to Types.SPELL_SLOT_LAST do
       { a pending entry (bit 7) is past the table too }
       if (creature^.memorizedSpells[k] > 0) and (creature^.memorizedSpells[k] <= C_SPELL.TABLE_LAST) then begin
         list[count] := creature^.memorizedSpells[k];
@@ -370,9 +368,7 @@ begin
   if not found then begin
     enemies := [];
     friends := [];
-    last := GameVars.arenaCount;
-    if last > Types.ARENA_SLOTS then
-      last := Types.ARENA_SLOTS;
+    last := Pathing.LastSlot;
     for i := 1 to last do begin
       p := GameVars.creatureArr[i];
       if (i <> slot) and (p <> nil) and (GameVars.arenaLoc[i].size <> 0) then
@@ -488,15 +484,7 @@ begin
     { flee and step paths rejoin }
     if not done then begin
       CbtMap.SetCreatureFacing(creature, adjDir, 0, 0);
-      CbtActs.MoveOpportunityAttacks(creature, creature^.combatAddr^.direction);
-      if creature^.enabled = 0 then
-        done := CharHlp.EndActions(creature)
-      else begin
-        CbtActs.CombatMoveCreature(creature, creature^.combatAddr^.direction);
-        if creature^.enabled = 0 then
-          done := CharHlp.EndActions(creature);
-        FxEngine.ConsiderStinkingCloud(creature);
-      end;
+      done := CbtActs.StepCreature(creature, creature^.combatAddr^.direction);
     end;
   end else
     done := CombatAi.FinishRound(creature);
@@ -515,7 +503,6 @@ var
   range: Word;
   cnt: Byte;
   pick: Byte;
-  weapon: Types.PItemRec;
   target: Types.PCharRecord;
   tx: ShortInt;
   ty: ShortInt;
@@ -543,16 +530,15 @@ begin
         CombatAi.AiMoveStep(creature);
     if (creature^.combatAddr^.initiative = 0)
        or (creature^.combatAddr^.initiative = 20) then
-      canAct := False
-    else
-      done := False;
+      canAct := False;
+    Inc(loopCount);
+    if canAct and (loopCount > loopLimit) then begin
+      { runaway-turn guard: the round ends here. SSI went on with the pass, so a creature it had just set Guarding
+        could still step or strike }
+      done := True;
+      canAct := not CombatAi.FinishRound(creature);
+    end;
     if (not done) and canAct then begin
-      Inc(loopCount);
-      { runaway-turn guard }
-      if loopCount > loopLimit then begin
-        done := True;
-        canAct := CombatAi.FinishRound(creature) = False;
-      end;
       inRange := False;
       weaponRange := 1;
       if creature^.equipped[C_EQUIP.WEAPON] <> nil then
@@ -594,7 +580,7 @@ begin
             CombatAi.EquipWeaponAndShield(creature);
             done := True;
             if CharHlp.HasRangedWeapon(creature) and (not CharHlp.HasThrowableWeapon(creature)) then
-              canAct := CombatAi.FinishRound(creature) = False;
+              canAct := not CombatAi.FinishRound(creature);
           end else if (CbtMap.CalcDistance(creature, target) = 1)
                   or CbtActs.CanAttackTarget(creature, target) then
             inRange := True;
@@ -607,16 +593,7 @@ begin
         if CbtActs.SweepAttempt(creature, target) then
           done := CharHlp.EndActions(creature)
         else begin
-          CbtActs.NoteAttackDirection(creature, target);
-          weapon := nil;
-          if CharHlp.HasRangedWeapon(creature) then begin
-            inRange := CharHlp.FindDamagingRangedWeapon(creature, weapon);
-            if CharHlp.HasThrowableWeapon(creature) then
-              if CbtMap.CalcDistance(creature, target) = 1 then
-                { adjacent: melee the throwable }
-                weapon := nil;
-          end;
-          CbtActs.CombatAttack(creature, target, False, weapon, done);
+          CbtActs.AttackWithReadied(creature, target, done);
           if done then
             canAct := False
           else if target^.enabled = 0 then
@@ -731,9 +708,8 @@ begin
   enemyMove := CbtActs.HighestEnemyMovement(creature);
   if enemyMove <= CbtActs.CalcCreatureMovement(creature) div 2 then begin
     { fast enough to get away: flee in panic }
+    { RemoveAiEffects has already let go of any bite-hold or blood drain }
     creature^.combatAddr^.fleeing := 1;
-    FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, nil);
-    FxEngine.RemoveEffect(creature, C_EFFECT.BLOOD_DRAIN, nil);
   end else if creature^.intCur > 5 then begin
     { Int 6+ creatures give up instead }
     FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.UNCONSCIOUS, 'Surrenders');
@@ -835,7 +811,8 @@ begin
     { shield slot }
     if CharHlp.BaseItem(itType)^.slot = C_EQUIP.SHIELD then
       if (CharHlp.BaseItem(itType)^.classMask and creature^.itemLimits) > 0 then begin
-        if item^.plus >= 0 then
+        { a cursed shield is never picked, as CalcWeaponPriority scores a cursed weapon 0 }
+        if (item^.plus >= 0) and (item^.cursed = 0) then
           pri := item^.plus + 1
         else
           pri := 0;
@@ -916,7 +893,7 @@ end;
 
 procedure ToggleQuickMagic;
 begin
-  GameVars.quickMagic := GameVars.quickMagic = False;
+  GameVars.quickMagic := not GameVars.quickMagic;
   { the Quick line shows it; with no one under Quick, say which way it went }
   if not CombatAi.QuickLine then
     if GameVars.quickMagic then

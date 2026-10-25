@@ -66,7 +66,8 @@ type
   off. The screen as it was is kept for Done. }
 procedure Init;
 
-{ Give the screen back as Init found it: its mode, characters, cursor and cursor shape. }
+{ Give the screen back as Init found it: its mode, characters, cursor and cursor shape; natively, the terminal's
+  settings (the Video unit's own, and the raw keys' on Linux and macOS) and an underline cursor. }
 procedure Done;
 
 { Write s at column x of row y in colour attr, cut at the screen's right edge. }
@@ -104,6 +105,10 @@ procedure ShowCursor(x, y: Byte; block: Boolean);
 
 { Wait for a key: ch its character, or for a key with none (an arrow, a function key) ext set and ch its scan code. }
 procedure GetKey(var ch: Char; var ext: Boolean);
+
+{ Move sel, an item of a list of count, by an extended key's scan code ch: Up and Down one, wrapping at either end, Home
+  to the first and End to the last. Any other key leaves sel alone. }
+procedure MoveInList(ch: Char; var sel: Byte; count: Byte);
 
 { Empty lines, then add s to them in colour color (0 for the box's own). }
 procedure ClearLines(var lines: TLines);
@@ -312,6 +317,7 @@ var
   b: Byte;
   params: string;
   done: Boolean;
+  got: Boolean;
 begin
   TuiKit.Flush;
   repeat
@@ -328,14 +334,20 @@ begin
       ch := C_KEYS.ESC;
       if (b = Ord('[')) or (b = Ord('O')) then begin
         params := '';
-        while TuiKit.ReadByte(SEQ_WAIT, b) and (Chr(b) in ['0'..'9', ';', '[']) and (Length(params) < 8) do
+        got := TuiKit.ReadByte(SEQ_WAIT, b);
+        while got and (Chr(b) in ['0'..'9', ';', '[']) and (Length(params) < 8) do begin
           params := params + Chr(b);
-        ch := TuiKit.SeqKey(params, Chr(b));
-        ext := True;
-        { the Linux console's Escape key, as the Keyboard unit sets it: ESC [ 0 ~ }
-        if params = '0' then begin
-          ch := C_KEYS.ESC;
-          ext := False;
+          got := TuiKit.ReadByte(SEQ_WAIT, b);
+        end;
+        { a sequence with no final character (Alt and '[' or 'O') is the Escape before it }
+        if got then begin
+          ch := TuiKit.SeqKey(params, Chr(b));
+          ext := True;
+          { the Linux console's Escape key, as the Keyboard unit sets it: ESC [ 0 ~ }
+          if (params = '0') and (b = Ord('~')) then begin
+            ch := C_KEYS.ESC;
+            ext := False;
+          end;
         end;
         done := ch <> #0;
       end;
@@ -372,6 +384,14 @@ procedure Init;
 var
   regs: Registers;
 begin
+  { the cursor and its shape before any switch, which would put them at the new mode's }
+  oldX := WhereX;
+  oldY := WhereY;
+  { INT 10h AH=3: the cursor's shape in CX }
+  regs.ah := 3;
+  regs.bh := 0;
+  Intr($10, regs);
+  oldShape := regs.cx;
   oldMode := LastMode;
   switched := (LastMode <> CO80) and (LastMode <> Mono);
   if switched then
@@ -381,13 +401,6 @@ begin
   else
     cells := Ptr($B800, 0);
   TuiKit.SaveScreen(oldScreen);
-  oldX := WhereX;
-  oldY := WhereY;
-  { INT 10h AH=3: the cursor's shape in CX }
-  regs.ah := 3;
-  regs.bh := 0;
-  Intr($10, regs);
-  oldShape := regs.cx;
   CheckBreak := False;
   TuiKit.HideCursor;
 end;
@@ -549,6 +562,16 @@ begin
   cells^ := s;
 end;
 
+procedure MoveInList(ch: Char; var sel: Byte; count: Byte);
+begin
+  case ch of
+    C_KEYS.UP: if sel > 1 then Dec(sel) else sel := count;
+    C_KEYS.DOWN: if sel < count then Inc(sel) else sel := 1;
+    C_KEYS.HOME: sel := 1;
+    C_KEYS.END_KEY: sel := count;
+  end;
+end;
+
 procedure ClearLines(var lines: TLines);
 begin
   lines.count := 0;
@@ -645,7 +668,7 @@ begin
       end
     else
       case UpCase(ch) of
-        #9: sel := (sel + 1) mod 3;
+        C_KEYS.TAB: sel := (sel + 1) mod 3;
         C_KEYS.ENTER: answer := KEYS[sel];
         C_KEYS.ESC: answer := 'C';
         'Y', 'N', 'C': answer := UpCase(ch);
@@ -687,12 +710,7 @@ begin
     TuiKit.Recolor(x + 1, y + sel, w - 2, A_POP_HIGHLIGHT);
     TuiKit.GetKey(ch, ext);
     if ext then
-      case ch of
-        C_KEYS.UP: if sel > 1 then Dec(sel) else sel := items.count;
-        C_KEYS.DOWN: if sel < items.count then Inc(sel) else sel := 1;
-        C_KEYS.HOME: sel := 1;
-        C_KEYS.END_KEY: sel := items.count;
-      end
+      TuiKit.MoveInList(ch, sel, items.count)
     else
       case ch of
         C_KEYS.ENTER: begin

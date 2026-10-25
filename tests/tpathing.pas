@@ -1,6 +1,7 @@
 { Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
-  straight step, 3 a diagonal one), IsDirToward and GetIconTileDelta; and RouteStep's walks on an arena of the test's
-  own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807). }
+  straight step, 3 a diagonal one), IsDirToward, DirToward and GetIconTileDelta; and RouteStep's walks on an arena of
+  the test's own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807); and
+  OnArena, LastSlot, SaveTargets and RestoreTargets. }
 {$I COMPILER.INC}
 program TPathing;
 
@@ -228,6 +229,32 @@ begin
   TestKit.CheckEqualsL(1, GameVars.targetCount, 'and a range of 2 reaches the looker alone');
 end;
 
+{ OnArena's bounds, LastSlot's cap on arenaCount, and a target list saved and put back round another one. }
+procedure CheckHelpers;
+var
+  snap: Types.TTargetSnapshot;
+begin
+  TestKit.Check(Pathing.OnArena(0, 0) and Pathing.OnArena(49, 24), 'the arena''s corners are on it');
+  TestKit.Check(not Pathing.OnArena(-1, 0) and not Pathing.OnArena(50, 0) and not Pathing.OnArena(0, 25),
+                'a cell past any edge is not');
+  GameVars.arenaCount := 4;
+  TestKit.CheckEqualsL(4, Pathing.LastSlot, 'LastSlot is arenaCount');
+  GameVars.arenaCount := Types.ARENA_SLOTS + 1;
+  TestKit.CheckEqualsL(Types.ARENA_SLOTS, Pathing.LastSlot, 'kept within the slots on a full arena');
+  ClearArena;
+  GameVars.arenaPtr^.distMode := 0;
+  GameVars.arenaCount := 3;
+  Place(WALKER, 5, 5, 1);
+  Place(TARGET, 10, 5, 1);
+  Pathing.BuildTargetList(5, 5, 127, 255, 1, GameVars.arenaPtr);
+  Pathing.SaveTargets(snap);
+  Pathing.BuildTargetList(5, 5, 2, 255, 1, GameVars.arenaPtr);
+  TestKit.CheckEqualsL(1, GameVars.targetCount, 'a shorter list built in between');
+  Pathing.RestoreTargets(snap);
+  TestKit.Check((GameVars.targetCount = 2) and (GameVars.targetList[2].idx = TARGET) and
+                (GameVars.targetList[2].dist = 10), 'RestoreTargets puts the list and its count back');
+end;
+
 procedure CheckRoutes;
 begin
   GetMem(GameVars.arenaPtr, SizeOf(Types.TArena));
@@ -288,6 +315,7 @@ begin
   TestKit.Check(RouteToTarget, 'but fits a two-cell one');
   CheckReachable;
   CheckTargetList;
+  CheckHelpers;
   FreeMem(GameVars.arenaPtr, SizeOf(Types.TArena));
 end;
 
@@ -307,6 +335,11 @@ begin
   TestKit.Check(not Pathing.IsDirToward(10, 10, 15, 10, C_DIR.WEST), 'west is not');
   TestKit.Check(Pathing.IsDirToward(10, 10, 15, 10, C_DIR.CENTER), 'no direction is always toward');
   TestKit.Check(not Pathing.IsDirToward(10, 10, 50, 10, C_DIR.EAST), 'a target off the arena is never toward');
+  { DirToward, the facing a caster and an attacker turn to (#922) }
+  TestKit.CheckEqualsL(C_DIR.EAST, Pathing.DirToward(10, 10, 15, 10), 'DirToward: a cell east is east');
+  TestKit.CheckEqualsL(C_DIR.NORTH, Pathing.DirToward(10, 10, 10, 10), 'DirToward: the same cell is north');
+  TestKit.CheckEqualsL(C_DIR.CENTER, Pathing.DirToward(10, 10, 50, 10),
+                       'DirToward: a target off the arena has no direction, and the search ends');
 
   TestKit.Check(Pathing.GetIconTileDelta(1, 0, dx, dy) and (dx = 0) and (dy = 0),
                 'a one-cell icon''s only tile is at its corner');

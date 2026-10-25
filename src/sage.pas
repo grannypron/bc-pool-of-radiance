@@ -26,10 +26,10 @@ const
   CHOICE_ASK = 0;
   CHOICE_LEAVE = 1;
 
-{ True, with its id in id, when the DAX archive name (in the game folder, without extension) holds a block, other than
-  C_DATA's reserved ones, that is a creature record named name; the first such, in the archive's order. False when it
-  has none, or cannot be read; no disk is asked for. }
-function FindNamed(name: Types.TStr20; var wanted: Types.TStr40; var id: Byte): Boolean;
+{ True, with its id in id, when the DAX archive archive (in the game folder, without extension) holds a block, other
+  than C_DATA's reserved ones, that is a creature record named wanted; the first such, in the archive's order. False
+  when it has none, or cannot be read; no disk is asked for. }
+function FindNamed(archive: Types.TStr20; var wanted: Types.TStr40; var id: Byte): Boolean;
 var
   f1: file;
   f2: file;
@@ -45,7 +45,7 @@ begin
   found := False;
   suppressed := GameVars.suppressingInsertDiskFlag;
   GameVars.suppressingInsertDiskFlag := True;
-  if DaxIo.OpenDax(GameVars.gameDir + name, '.DAX', hdrSize, f1, f2) then begin
+  if DaxIo.OpenDax(GameVars.gameDir + archive, '.DAX', hdrSize, f1, f2) then begin
     ended := False;
     while not found and not ended do begin
       BlockRead(f2, e, SizeOf(e), n);
@@ -85,7 +85,7 @@ begin
         id := 0;
         repeat
           found := (DaxIo.RemapId(C_DATA.FAMILY_MONCHA, disk, id) = m) and
-                   DataArc.HasBlock(GameVars.gameDir + DataArc.SourceName(C_DATA.FAMILY_MONCHA, disk) + '.DAX', id);
+                   DataArc.HasBlock(GameVars.gameDir + DataArc.SourceFile(C_DATA.FAMILY_MONCHA, disk), id);
           if not found then
             Inc(id);
         until found or (id = C_DATA.SOURCES_BLOCK);

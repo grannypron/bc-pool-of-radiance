@@ -11,14 +11,14 @@ unit DiskRec;
 
 interface
 
-uses Types;
+uses Types, C_EQUIP;
 
 const
   CHAR_DISK_BYTES = 285;
   ITEM_DISK_BYTES = 63;
   EFFECT_DISK_BYTES = 9;
   { the pointers each record holds: TCharRecord's effects, items, 13 equipped items, next character and combatant }
-  CHAR_POINTERS = 17;
+  CHAR_POINTERS = 4 + C_EQUIP.BOLT - C_EQUIP.WEAPON + 1;
   ITEM_POINTERS = 1;
   EFFECT_POINTERS = 1;
 
@@ -131,10 +131,10 @@ begin
   charMem := PtrUInt(@c.portExt) - PtrUInt(@c);
   charPtrs[0] := PtrUInt(@c.effectsAddr) - PtrUInt(@c);
   charPtrs[1] := PtrUInt(@c.itemsAddr) - PtrUInt(@c);
-  for i := 0 to 12 do
-    charPtrs[2 + i] := PtrUInt(@c.equipped[i]) - PtrUInt(@c);
-  charPtrs[15] := PtrUInt(@c.nextCharAddr) - PtrUInt(@c);
-  charPtrs[16] := PtrUInt(@c.combatAddr) - PtrUInt(@c);
+  for i := C_EQUIP.WEAPON to C_EQUIP.BOLT do
+    charPtrs[2 + i - C_EQUIP.WEAPON] := PtrUInt(@c.equipped[i]) - PtrUInt(@c);
+  charPtrs[CHAR_POINTERS - 2] := PtrUInt(@c.nextCharAddr) - PtrUInt(@c);
+  charPtrs[CHAR_POINTERS - 1] := PtrUInt(@c.combatAddr) - PtrUInt(@c);
   itemPtrs[0] := PtrUInt(@it.next) - PtrUInt(@it);
   effectPtrs[0] := PtrUInt(@ef.next) - PtrUInt(@ef);
 end;

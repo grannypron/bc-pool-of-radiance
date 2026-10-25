@@ -18,8 +18,8 @@ procedure ResetGame;
 implementation
 
 uses Types, C_AREA, C_NPC, C_MSG, GameDefs, GameVars, Crt, Temple, PostCbt, Combat, Explore, CharGen, Ending, CharHlp,
-  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, VaultMnu, EclTrace, Border, Camp,
-  EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
+  DaxIo, GameIo, C_ECL, C_CLASS, C_LEVEL, C_IFC, C_GBVM, C_SOUND, C_MONEY, C_STATUS, C_TIME, VaultMnu, EclTrace, Border,
+  Camp, EclMenu, FxEngine, MapTiles, MapView, MenuCore, RandItem, Portrait, SaveLoad, Shop, SoundDrv, TextRend, View3D,
   StrUtil, EclVars, CharDisp, Party, Dice, DiskRec, MoneyCal, Bestiary, Sage{$IFDEF FPC}, TpRand{$ENDIF};
 
 var
@@ -119,6 +119,16 @@ begin
   end;
 end;
 
+{ After a LOAD CHARACTER (restoreChar), make the character current before it (savedChar) current again; EXIT and
+  PROGRAM do. }
+procedure RestoreLoadedChar;
+begin
+  if restoreChar <> 0 then begin
+    GameVars.curChar := GameVars.savedChar;
+    restoreChar := 0;
+  end;
+end;
+
 { EXIT: redraw the borders if PROTECTION text was shown, restore the backed-up current character, clear the graphic
   flags, stop the VM, step past the opcode, free the whole GOSUB return stack and park the message cursor }
 procedure EclExit;
@@ -128,10 +138,7 @@ begin
     if GameVars.zone0^.view3dFlag <> 0 then
       Border.DrawWindow(3, 3, 13, 13, 0, White, '');
   end;
-  if restoreChar <> 0 then begin
-    GameVars.curChar := GameVars.savedChar;
-    restoreChar := 0;
-  end;
+  EclVm.RestoreLoadedChar;
   FillChar(EclMenu.monsterFlags, SizeOf(EclMenu.monsterFlags), 0);
   GameVars.eclGraphics := False;
   EclMenu.protTextShown := 0;
@@ -159,22 +166,12 @@ end;
 
 { COMPARE: set the comparison flags from vars 1 and 2, as strings when either is a string (type bit 7 set) }
 procedure EclCompare;
-var
-  v1: Word;
-  v2: Word;
-  s1: String;
-  s2: String;
 begin
   EclVars.LoadEclVars(2);
-  if (GameVars.gbvmType[1] >= $80) or (GameVars.gbvmType[2] >= $80) then begin
-    s1 := GameVars.gbStrings^[1];
-    s2 := GameVars.gbStrings^[2];
-    EclMenu.EclCompareStr(s1, s2);
-  end else begin
-    v1 := EclVars.GetEclVar(1);
-    v2 := EclVars.GetEclVar(2);
-    EclMenu.EclCompareInt(v1, v2);
-  end;
+  if (GameVars.gbvmType[1] >= $80) or (GameVars.gbvmType[2] >= $80) then
+    EclMenu.EclCompareStr(GameVars.gbStrings^[1], GameVars.gbStrings^[2])
+  else
+    EclMenu.EclCompareInt(EclVars.GetEclVar(1), EclVars.GetEclVar(2));
 end;
 
 { ADD, SUBTRACT, DIVIDE, MULTIPLY: combine vars 1 and 2 and store the result at var 3's address. SUBTRACT computes
@@ -214,7 +211,7 @@ begin
   n := EclVars.GetEclVar(1);
   if n < 255 then Inc(n);
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
-  roll := Trunc(Random(n));
+  roll := Random(n);
   EclVars.WriteGbvm(address, roll);
 end;
 
@@ -634,6 +631,8 @@ var
   idx: Integer;
   redraw: Boolean;
   address: Word;
+  { the key MenuVertical returns; the choice is idx and list }
+  key: Char;
 begin
   Explore.bottomMsgCleared := 0;
   redraw := True;
@@ -643,8 +642,7 @@ begin
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
   msg := GameVars.gbStrings^[1];
   count := EclVars.GetEclVar(3);
-  Dec(GameVars.eclIp);
-  EclVars.LoadEclVars(count);
+  EclVars.LoadEclList(count);
   if count > Types.GB_STRING_LAST then
     count := Types.GB_STRING_LAST;
   MenuCore.AllocStringList(count, list);
@@ -664,9 +662,8 @@ begin
   repeat
     list := head;
     redraw := True;
-    EclMenu.EclVerticalMenu(q, q, LightMagenta, LightGreen, White, C_MSG.TEXT_LEFT, GameVars.curRow + 1,
-                            C_MSG.TEXT_RIGHT,
-                            C_MSG.TEXT_BOTTOM, list, False, redraw, idx, list);
+    key := MenuCore.MenuVertical(q, q, LightMagenta, LightGreen, White, C_MSG.TEXT_LEFT, GameVars.curRow + 1,
+                          C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, list, False, redraw, idx, list);
   until (list <> nil) or (head = nil);
   EclVars.WriteGbvm(address, idx);
   { the menu leaves list on the chosen line (nil on Escape), so free from the head }
@@ -695,8 +692,7 @@ begin
   EclVars.LoadEclVars(2);
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
   count := EclVars.GetEclVar(2);
-  Dec(GameVars.eclIp);
-  EclVars.LoadEclVars(count);
+  EclVars.LoadEclList(count);
   { a count of 0 shows gbStrings^[1] alone }
   if count > Types.GB_STRING_LAST then
     count := Types.GB_STRING_LAST
@@ -800,7 +796,7 @@ var
     EclVars.WriteGbvm(addr1, outv[1]);
     EclVars.WriteGbvm(addr2, outv[2]);
     EclVars.WriteGbvm(addr3, outv[3]);
-    EclVars.WriteGbvm(addr4, ShortInt(found));
+    EclVars.WriteGbvm(addr4, Ord(found));
   end;
 
 begin
@@ -834,7 +830,7 @@ begin
       while p <> nil do begin
         Inc(count);
         if attr = C_GBVM.CHAR_FIND_TRAPS then
-          value := p^.thiefSkills[3]
+          value := p^.thiefSkills[C_GBVM.CHAR_FIND_TRAPS - C_GBVM.CHAR_THIEF_SKILLS + 1]
         else
           value := p^.movementCur;
         if value < outv[1] then
@@ -939,8 +935,7 @@ begin
       MapTiles.Load24x24Set('BACPAC', 0, 40);
       MapTiles.LoadWildIcons;
     end;
-    if GameVars.duelFlag then
-      GameVars.duelFlag := False;
+    GameVars.duelFlag := False;
   end;
   if GameVars.gLocType = C_AREA.LOC_3D_MAP then
     GameVars.ifcState := C_IFC.INDOORS
@@ -965,9 +960,8 @@ begin
   EclVars.LoadEclVars(2);
   sel := EclVars.GetEclVar(1);
   count := EclVars.GetEclVar(2);
-  Dec(GameVars.eclIp);
-  EclVars.LoadEclVars(count);
-  { 64 = High(gbvmLowerByte), the most addresses LoadEclVars keeps; a selector past them falls through }
+  EclVars.LoadEclList(count);
+  { 64 =High(gbvmLowerByte), the most addresses LoadEclVars keeps; a selector past them falls through }
   if count > 64 then
     count := 64;
   i := 0;
@@ -993,7 +987,6 @@ var
   tId: Byte;
   j: Byte;
   it: Types.TItemRec;
-  walk: Types.PItemRec;
   roll3: Byte;
   roll: Byte;
   roll2: Byte;
@@ -1070,11 +1063,7 @@ begin
       RandItem.GenerateRandomItem(itemId, @it);
       CharHlp.PrependItemCopy(GameVars.treasureItems, @it);
     end;
-    walk := GameVars.treasureItems;
-    while walk <> nil do begin
-      CharHlp.ItemLabel(walk, False);
-      walk := walk^.next;
-    end;
+    CharHlp.LabelItems(GameVars.treasureItems);
   end;
 end;
 
@@ -1437,10 +1426,10 @@ begin
   EclVars.LoadEclVars(1);
   n := EclVars.GetEclVar(1);
   while n > 255 do begin
-    FxEngine.AdvanceTime(255, 1);
+    FxEngine.AdvanceTime(255, C_TIME.MINUTES);
     Dec(n, 255);
   end;
-  FxEngine.AdvanceTime(n, 1);
+  FxEngine.AdvanceTime(n, C_TIME.MINUTES);
 end;
 
 { PRINTRETURN: move the message cursor to the start of the next line and clear protNewLine }
@@ -1515,9 +1504,10 @@ end;
 
 { SPELL: find the first party member, in party order, who is okay and has spell var 1 memorized (not pending) in
   memorizedSpells[1..20]. Write the slot to var 2's address as its index - 1, which is how scripts reach it through the
-  character window at $6B20 (SpecialWriteZ1 maps $6B20 to memorizedSpells[1]), and the member's party position (0 =
-  the first, as LOAD CHARACTER counts) to var 3's. With nobody found, the slot is 255. memorizedSpells[0] cannot be
-  reached through the window, so it is not searched. Kovel Mansion's locked chest uses it for "Cast Knock". }
+  character window at C_GBVM.CHAR_MEMORIZED_FIRST (SpecialWriteZ1 maps it to memorizedSpells[1]), and the member's
+  party position (0 = the first, as LOAD CHARACTER counts) to var 3's. With nobody found, the slot is 255.
+  memorizedSpells[0] cannot be reached through the window, so it is not searched. Kovel Mansion's locked chest uses it
+  for "Cast Knock". }
 procedure EclSpell;
 var
   spellId: Byte;
@@ -1553,19 +1543,16 @@ begin
   EclVars.WriteGbvm(addr2, idx);
 end;
 
-{ CALL: dispatch ECL service calls by address: refresh the view, start a duel or solo fight, play a sound, step forward
-  or update the wall state. }
+{ CALL: dispatch ECL service calls by address (C_GBVM.CALL_*): refresh the view, start a duel or solo fight, play a
+  sound, step forward or update the wall state. v1.3 cased on the address less $7FFF. }
 procedure EclCall;
 var
   address: Word;
-  key: Word;
 begin
   EclVars.LoadEclVars(1);
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
-  key := address - $7FFF;
-  case key of
-    { address $2C90 }
-    $AC91: begin
+  case address of
+    C_GBVM.CALL_REFRESH_VIEW: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if filesLoaded <> 0 then
         if GameVars.eclGraphics or GameVars.sprShown or GameVars.picRegionW or EclVars.movedParty or
@@ -1579,41 +1566,36 @@ begin
           GameVars.sprShown := False;
         end;
     end;
-    { address $8000 }
-    1:
+    C_GBVM.CALL_MIRROR_DUEL:
       EclMenu.CharFightsAlone(1);
-    { address $8001 }
-    2:
+    C_GBVM.CALL_FIGHT_ALONE:
       EclMenu.CharFightsAlone(0);
-    { address $BA03 }
-    $3A04: begin
+    C_GBVM.CALL_SOUND: begin
       case EclVars.sndEffect of
         8: SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
         10: SoundDrv.SoundCommand(GameDefs.soundIds.combat[C_SOUND.ECL_CUE]);
       end;
     end;
-    { address $C01E }
-    $401F:
+    C_GBVM.CALL_MOVE_FORWARD:
       EclMenu.EclMoveForward;
-    { address $C018 }
-    $4019:
+    C_GBVM.CALL_WALL_AHEAD:
       if GameVars.gLocType = C_AREA.LOC_3D_MAP then
         GameVars.wallAhead := View3D.GetWallType(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
   end;
 end;
 
-{ Run the pre-camp script entry (scriptEntryAddrs[3]) and the camp menu, then the camp-interruption entry
-  (scriptEntryAddrs[4]) if camp was interrupted. Redraw the map view and clear recentSaved. }
+{ Run the pre-camp script entry (C_ECL.ENTRY_PRE_CAMP) and the camp menu, then the camp-interruption entry
+  (C_ECL.ENTRY_CAMP_INTERRUPT) if camp was interrupted. Redraw the map view and clear recentSaved. }
 procedure EnterCamp;
 var
   interrupted: Boolean;
 begin
   interrupted := False;
-  EclVm.CallEclScript(GameVars.scriptEntryAddrs[3]);
+  EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_PRE_CAMP]);
   Camp.CampMainMenu(interrupted);
   if interrupted then begin
     CharDisp.DisplayNoncombatInterface;
-    EclVm.CallEclScript(GameVars.scriptEntryAddrs[4]);
+    EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_CAMP_INTERRUPT]);
   end;
   MapView.DisplayMapView;
   GameVars.recentSaved := 0;
@@ -1627,10 +1609,7 @@ var
   v: Byte;
   savedIp: Word;
 begin
-  if restoreChar <> 0 then begin
-    GameVars.curChar := GameVars.savedChar;
-    restoreChar := 0;
-  end;
+  EclVm.RestoreLoadedChar;
   EclVars.LoadEclVars(1);
   v := EclVars.GetEclVar(1);
   case v of
@@ -1693,9 +1672,9 @@ begin
   Inc(GameVars.curRow);
 end;
 
-{ Run the command at the IP (curOpcode). An opcode with no handler, such as $1F, is stepped over as SkipEclCmd steps
-  over it (its operands where SkipEclCmd knows them, otherwise the opcode byte alone); v1.3 left the IP on it, so
-  CallEclScript ran it forever. }
+{ Run the command at the IP (curOpcode). An opcode with no handler, such as C_ECL.UNUSED_1F, is stepped over as
+  SkipEclCmd steps over it (its operands where SkipEclCmd knows them, otherwise the opcode byte alone); v1.3 left the
+  IP on it, so CallEclScript ran it forever. }
 procedure ExecNextEclCmd;
 begin
   case GameVars.curOpcode of
@@ -1769,11 +1748,11 @@ begin
   eclStop := 0;
 end;
 
-{ Refresh the event byte, run the new script's on-load entry (scriptEntryAddrs[5]), and when view3dFlag = 0 set the
+{ Refresh the event byte, run the new script's on-load entry (C_ECL.ENTRY_LOAD), and when view3dFlag = 0 set the
   location type for the three wilderness scripts (on the central one, call Ending.YarashComplete once the Yarash pyramid
-  is done). Redraw, then run scriptEntryAddrs[1] and the search entry, and make the character current at the start
-  (savedChar) current again. newEclFlag is cleared before scriptEntryAddrs[1] runs, so this repeats while that entry
-  itself runs NEWECL. }
+  is done). Redraw, then run the C_ECL.ENTRY_MOVE entry and the search entry, and make the character current at the
+  start (savedChar) current again. newEclFlag is cleared before the ENTRY_MOVE entry runs, so this repeats while that
+  entry itself runs NEWECL. }
 procedure NewEclDone;
 begin
   repeat
@@ -1783,7 +1762,7 @@ begin
     GameVars.savedChar := GameVars.curChar;
     GameVars.locTypePrev := GameVars.gLocType;
     GameVars.gLocType := C_AREA.LOC_3D_MAP;
-    EclVm.CallEclScript(GameVars.scriptEntryAddrs[5]);
+    EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_LOAD]);
     GameVars.ifcState := C_IFC.INDOORS;
     if GameVars.zone0^.view3dFlag = 0 then
       case GameVars.eclScriptId of
@@ -1809,7 +1788,7 @@ begin
         ((GameVars.locTypePrev = C_AREA.LOC_3D_MAP) and (GameVars.gLocType = C_AREA.LOC_3D_MAP)) then
       MapView.DisplayMapView;
     newEclFlag := 0;
-    EclVm.CallEclScript(GameVars.scriptEntryAddrs[1]);
+    EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_MOVE]);
     if newEclFlag = 0 then begin
       EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_SEARCH]);
       GameVars.curChar := GameVars.savedChar;
@@ -1842,7 +1821,7 @@ begin
     copy a save holds would keep a script from before a data fix (DataPat), and is SSI's size only }
   EclMenu.LoadEclScript(GameVars.eclScriptId);
   EclMenu.EclInit;
-  EclVm.CallEclScript(GameVars.scriptEntryAddrs[5]);
+  EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_LOAD]);
   if GameVars.ifcState <> C_IFC.OUTDOORS then begin
     if enteringLoop = 1 then begin
       CharDisp.DisplayNoncombatInterface;
@@ -1877,7 +1856,7 @@ begin
       program runs it again on that game }
     if not EclVm.Reloading then begin
       if not GameVars.partyDefeated then
-        EclVm.CallEclScript(GameVars.scriptEntryAddrs[1]);
+        EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_MOVE]);
       if newEclFlag <> 0 then
         EclVm.NewEclDone
       else if not GameVars.partyDefeated and not EclVm.Reloading then begin

@@ -76,17 +76,18 @@ var
   Nothing is copied if the block cannot be loaded. }
 procedure LoadGameFont;
 var
-  compSize: Word;
+  { the unpacked block's size, which is also the buffer's }
+  size: Word;
   dataPtr: Types.PByteArr;
   n: Word;
 begin
-  DaxIo.LoadDax('8X8d1', '.dax', 201, compSize, dataPtr);
-  if compSize = 0 then Exit;
-  n := compSize;
+  DaxIo.LoadDax('8X8d1', '.dax', 201, size, dataPtr);
+  if size = 0 then Exit;
+  n := size;
   if n > SizeOf(Types.TFontArr) then
     n := SizeOf(Types.TFontArr);
   Move(dataPtr^, GameVars.gameFont^, n);
-  FreeMem(dataPtr, compSize);
+  FreeMem(dataPtr, size);
 end;
 
 { Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
@@ -351,7 +352,6 @@ begin
   Delay(GameVars.gameDelay * 225);
 end;
 
-{ Clear a character-cell rectangle to black (on both EGA pages). }
 procedure DelayOrKey(seconds: Word);
 var
   start: LongInt;
@@ -378,6 +378,7 @@ begin
   TextRend.ClearBottomLine;
 end;
 
+{ Clear a character-cell rectangle to black (on both EGA pages). }
 procedure ClearRect(ulCol, ulRow, lrCol, lrRow: ShortInt);
 begin
   { the rectangle must lie on the 40 x 25 screen, corners in order }

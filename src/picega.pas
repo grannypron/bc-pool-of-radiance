@@ -9,7 +9,7 @@ interface
 
 uses Types;
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 
 procedure MirrorFrame(src, dst: Types.PImgBuf);
 
@@ -23,49 +23,30 @@ procedure InitRowTables;
 
 implementation
 
-uses GameDefs, GameVars, Blit{$IFDEF FPC}, TpRand{$ENDIF};
+uses GameDefs, GameVars, Blit, VidOps{$IFDEF FPC}, TpRand{$ENDIF};
 
-procedure ExpandFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
+{ four plane bytes, plane p holding bit p of each pixel's colour (the first pixel in bit 7); one mask byte }
+procedure ExpandChunk(var chunk: Types.TChunk; mask: Byte; pic: Types.PImgBuf; at: Word);
 var
-  chunk: TChunk;
-  frame: Byte;
-  col: Word;
-  row: Word;
-  dstOff: Word;
-  maskOff: Word;
   k: Byte;
   bit: Byte;
   plane: Byte;
   color: Byte;
 begin
   with pic^ do begin
-    dstOff := 0;
-    maskOff := 0;
-    for frame := 1 to count do
-      for row := 0 to height - 1 do
-        for col := 0 to width - 1 do begin
-          Move(imgData^[srcOff], chunk, SizeOf(chunk));
-          if transp <> nil then begin
-            transp^[maskOff] := Blit.ComputeMask(transpColor, chunk);
-            Inc(maskOff);
-          end;
-          bit := $80;
-          for k := 0 to 7 do begin
-            if Odd(k) then
-              color := chunk[k shr 1] and $0F
-            else
-              color := chunk[k shr 1] shr 4;
-            for plane := 0 to 3 do
-              if (GameDefs.egaPlaneBit[plane] and color) > 0 then
-                data[plane + dstOff] := data[plane + dstOff] or bit;
-            bit := bit shr 1;
-          end;
-          if transp <> nil then
-            for plane := 0 to 3 do
-              data[plane + dstOff] := data[plane + dstOff] and not transp^[maskOff - 1];
-          Inc(dstOff, 4);
-          Inc(srcOff, SizeOf(chunk));
-        end;
+    if transp <> nil then
+      transp^[at shr 2] := mask;
+    bit := $80;
+    for k := 0 to 7 do begin
+      color := VidOps.ChunkPixel(chunk, k);
+      for plane := 0 to 3 do
+        if (GameDefs.egaPlaneBit[plane] and color) > 0 then
+          data[plane + at] := data[plane + at] or bit;
+      bit := bit shr 1;
+    end;
+    if transp <> nil then
+      for plane := 0 to 3 do
+        data[plane + at] := data[plane + at] and not mask;
   end;
 end;
 
@@ -87,20 +68,13 @@ begin
       rowStart := dstOff;
       for col := 1 to width do begin
         for plane := 0 to 3 do
-          dst^.data[plane + dstOff] := Blit.MirrorBits(data[srcOff - dstOff + rowStart + plane]);
+          dst^.data[plane + dstOff] := VidOps.MirrorBits(data[srcOff - dstOff + rowStart + plane]);
         Inc(dstOff, 4);
       end;
       Inc(srcOff, rowBytes);
     end;
-    if transp <> nil then begin
-      srcOff := 0;
-      for row := 1 to height do begin
-        for col := 0 to width - 1 do
-          dst^.transp^[srcOff + width - col - 1] := Blit.MirrorBits(transp^[srcOff + col]);
-        Inc(srcOff, width);
-      end;
-    end;
   end;
+  VidOps.MirrorCellMask(src, dst);
 end;
 
 { Replace fromC with toC in nFrames frames of pic from srcOff, matching the original pixels and writing scratch, which
