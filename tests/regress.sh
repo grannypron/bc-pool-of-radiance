@@ -17,7 +17,7 @@
 # VIDEO=cga, tandy or vga runs the game in that video mode (tests/scenarios/POOL-CGA.CFG, POOL-TANDY.CFG, POOL-VGA.CFG)
 # instead of EGA (POOL.CFG), and keeps the golden build's results apart, in GOLDEN/record-<mode>.json. Tandy and VGA
 # need goldbox-player's por-v13-tandy and por-v13-vga titles (a Tandy machine, a VGA one).
-# SOUND=adlib or sb sets the config's sound letter to A (AdLib music, speaker effects) or S (a Sound Blaster) and
+# SOUND=adlib or sb sets the config's sound letter to A (AdLib music, speaker effects) or B (a Sound Blaster) and
 # gives the machine that card (goldbox-player's opl2, or sb2 with its OPL2); the golden build's results are kept apart,
 # in record-adlib.json or record-sb.json. With sb, the candidate's SBSFX.DAT is staged too (copied from
 # drive_c/POOLRAD, where tools/sbsfx.py writes it, when the candidate folder has none); a golden build without one runs
@@ -54,7 +54,7 @@ sound=()
 case "${SOUND:-}" in
     "") ;;
     adlib) letter=A; sound=(--opl opl2) ;;
-    sb) letter=S; sound=(--sb sb2 --stage SBSFX.DAT) ;;
+    sb) letter=B; sound=(--sb sb2 --stage SBSFX.DAT) ;;
     *) echo "regress.sh: SOUND is adlib or sb" >&2; exit 2 ;;
 esac
 if [ ${#sound[@]} -gt 0 ]; then
