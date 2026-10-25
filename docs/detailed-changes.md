@@ -471,6 +471,8 @@ DataPat is the table of patches DataBld applies to SSI's data when it builds the
 
 **Creature sizes (#792).** An inventory of the 104 monster records found SSI's Large bit nearly right. DataPat sets it on the Ogre Leader (MON1CHA 9, $01 to $81), an ogre chieftain, and no longer sets it on the huge scorpion (Medium, as the huge spider), which #748 had made Large. `C_DATA.VERSION` is 36. POR-0185, #792.
 
+**The ninth posted proclamation is CCXIV (data version 37).** Outside City Hall (ECL3 block 0, `$AC58`) the script notes the proclamations posted so far: none paid gives LXIV, LXXVIII, CIX and LIX, and otherwise it ON GOSUBs one of nine string loads by the major rewards paid (`[$4AC1]`, `C_GBVM.COUNCIL_REWARDS`). SSI's ninth arm (`$AD21`) loaded "CXIV.", the fifth's, so CCXIV, the nomads, the one proclamation left, was never named. The packed "CCXIV." is five bytes to "CXIV."'s four, a byte more than the arm's room, so the DataPat fix points the ON GOSUB's ninth entry (`$AC8B`) at new code after #606's at the end of the script (`$B663`): SAVE "CCXIV.", str[$985E]; RETURN. 12 bytes; the script is 7,537 bytes. `JrnlQst.IsPosted` (#851) already counted CCXIV as posted at nine rewards. Checked with `gbt ecl disasm` on the patched block (the entry reads LB663, the SAVE "CCXIV.") and in TDataPat, which runs the new code through `EclVars.LoadEclVars` and checks the jump's target. SSI's data. POR-0209, #864.
+
 ## 8. Video (the driver refactor, VGA), memory, overlays and EMS
 
 This is phase 6 of the refactor plan, with the overlay and memory work around it.
@@ -512,6 +514,8 @@ Phase 5's overlay working-set changes are in section 10.
 **Monster icons stay in slots 8..12.** `EclLoadMon` capped its slot at 25, so a sixth monster kind between CLEAR MONSTERS loaded over the COMSPR combat sprites (13 on), and a mirror duel (`EclMenu.CharFightsAlone`) after five kinds put its icon there too. `MapTiles.FIRST_MONSTER_ICON` and `LAST_MONSTER_ICON` name the slots; a sixth LOAD MONSTER is ignored and the duel's clone shares slot 12, as in Curse. Latent with the shipped scripts. SSI's code. CURSE-0248, #724; CURSE-0264, #725.
 
 **The Sound Blaster falls back to the speaker.** `SndSb.PlayEffect` ignored whether the DSP took its start commands and returned True, so `Play` never fell back. It returns the result. #820.
+
+**POOL.CFG's S is silent; B is the Sound Blaster.** SSI's IBM data card gives POOL.CFG's sound letters as P (the speaker), T (Tandy) and S (silent). Phase 7 step 4 (248f50f) took S for the Sound Blaster, so an SSI-written POOL.CFG set to silent played sound. `GameBoot` now installs `SndSb` for B and `SndNone` for S and any other letter, as the Curse port does with CURSE.CFG; natively `SndDig` plays T, A and B. `tests/regress.sh` writes B for `SOUND=sb`, and the sound table in docs/refactor-plan.md names it. A POOL.CFG written with S for the Blaster now runs silent until it says B. Port-only. #880.
 
 ## 9. Robustness guards from the source review
 

@@ -2,7 +2,7 @@
   them (SSI's own arrangements, emulated by SndChip), and the effects SBSFX.DAT has a recording for as the Sound
   Blaster's DSP plays them (SndSb's samples: Dark Queen of Krynn's, and the first of Pools of Darkness's step thumps).
   An effect with a recording silences the Tandy's voices first, so it ends the music as every effect does. Without
-  SBSFX.DAT every effect is the Tandy's. GameBoot installs it when POOL.CFG names T, A or S. Free Pascal only. }
+  SBSFX.DAT every effect is the Tandy's. GameBoot installs it when POOL.CFG names T, A or B. Free Pascal only. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit SndDig;
