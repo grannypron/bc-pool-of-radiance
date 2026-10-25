@@ -266,6 +266,19 @@ begin
   Close(f);
   BeastFil.LoadFrom('TBEAST.DAT');
   TestKit.CheckEqualsL(0, Bestiary.Count, 'version 0 reads as none');
+  { the same name twice: the second is dropped, and that is no reason to keep from writing the file }
+  h.version := 1;
+  h.count := 2;
+  Assign(f, 'TBEAST.DAT');
+  Rewrite(f, 1);
+  BlockWrite(f, h, SizeOf(h));
+  BlockWrite(f, t, SizeOf(t));
+  BlockWrite(f, t, SizeOf(t));
+  Close(f);
+  BeastFil.LoadFrom('TBEAST.DAT');
+  TestKit.CheckEqualsL(1, Bestiary.Count, 'a name twice is read once');
+  TestKit.Check(not Bestiary.readOnly, 'and the file stays writable');
+
   { the full table }
   Bestiary.Clear;
   for i := 1 to Bestiary.MAX_ENTRIES + 1 do begin

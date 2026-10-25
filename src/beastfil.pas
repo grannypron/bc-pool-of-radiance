@@ -3,7 +3,8 @@
   version, the bytes of an entry and their count) and then the entries, each a Bestiary.TBeast. A missing file is an
   empty bestiary. A damaged one (a foreign signature, a version before the first, a size that does not add up) reads as
   empty and is renamed BESTIARY.BAD when the next is written. One of a newer format is read, since a newer format only
-  adds to the end of an entry, and never written, so an older game does not throw away what a newer one learned.
+  adds to the end of an entry, and never written, so an older game does not throw away what a newer one learned; so is
+  one the heap had no room for all of, so what did not fit is not lost.
   Overlaid: it is read at start-up and written after a fight, after a save and on the way out to DOS. Tell fills in an
   entry from a creature's own record, the monster data's word on its kind, which the party did not learn in play: the
   sage's service (#868), and a later import's. }
@@ -66,6 +67,8 @@ var
   b: Bestiary.TBeast;
   { the entry was kept }
   kept: Boolean;
+  { an entry was dropped for want of heap: the table is short of the file }
+  short: Boolean;
 begin
   Bestiary.Clear;
   if not FileUtil.OpenReadOnly(f, fn) then Exit;
@@ -77,19 +80,24 @@ begin
   if ok and (h.version = VERSION) then
     ok := h.entrySize = SizeOf(Bestiary.TBeast);
   i := 0;
+  short := False;
   while ok and (i < h.count) do begin
     Inc(i);
     Seek(f, SizeOf(h) + LongInt(i - 1) * h.entrySize);
     BlockRead(f, b, SizeOf(b), n);
     ok := (IOResult = 0) and (n = SizeOf(b));
-    { an entry without a name or under a name already read is dropped; past the heap's room the rest are }
-    if ok then
+    { an entry without a name or under a name already read is dropped; past the heap's room the rest are, and the
+      file is not written short of them }
+    if ok then begin
       kept := Bestiary.Append(b);
+      if not kept and (Length(b.name) >= 1) and (Length(b.name) <= Types.NAME_LEN) and (Bestiary.Find(b.name) = 0) then
+        short := True;
+    end;
   end;
   Close(f);
   ioRes := IOResult;
   if ok then
-    Bestiary.readOnly := h.version > VERSION
+    Bestiary.readOnly := (h.version > VERSION) or short
   else begin
     { what was read of a damaged file is let go; the next write sets it aside and puts a sound one in its place }
     Bestiary.Clear;
