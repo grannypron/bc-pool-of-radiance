@@ -51,8 +51,6 @@ implementation
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, GameVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil, VidOps;
 
 const
-  { per-disk archives are numbered 1 to SOURCE_DISKS }
-  SOURCE_DISKS = 8;
   { the frame's three parts: title, status and families, each a text rectangle inside its border }
   TITLE_ROW = 1;
   STATUS_TOP = 3;
@@ -114,10 +112,10 @@ type
   PShowState = ^TShowState;
   TShowState = record
     { each per-disk archive's size, -1 when it is not there, and its cell's place in the family's row, 0 for none }
-    size: array[1..C_DATA.FAMILIES, 1..SOURCE_DISKS] of LongInt;
-    place: array[1..C_DATA.FAMILIES, 1..SOURCE_DISKS] of Byte;
+    size: array[1..C_DATA.FAMILIES, 1..Types.LAST_DISK] of LongInt;
+    place: array[1..C_DATA.FAMILIES, 1..Types.LAST_DISK] of Byte;
     { what each cell and name shows now }
-    cell: array[1..C_DATA.FAMILIES, 1..SOURCE_DISKS] of Byte;
+    cell: array[1..C_DATA.FAMILIES, 1..Types.LAST_DISK] of Byte;
     name: array[1..C_DATA.FAMILIES] of Byte;
     shown: array[0..FIELDS - 1] of String[FIELD_WIDTH];
     { the families shown: those with files }
@@ -241,7 +239,7 @@ var
   row: Byte;
   col: Byte;
 begin
-  if (fam < 1) or (fam > C_DATA.FAMILIES) or (disk < 1) or (disk > SOURCE_DISKS) then Exit;
+  if (fam < 1) or (fam > C_DATA.FAMILIES) or (disk < 1) or (disk > Types.LAST_DISK) then Exit;
   if (st^.place[fam, disk] = 0) or (st^.cell[fam, disk] = state) then Exit;
   if not BldShow.FamilyPlace(fam, row, col) then Exit;
   st^.cell[fam, disk] := state;
@@ -255,7 +253,7 @@ procedure SetCells(fam, state: Byte);
 var
   disk: Byte;
 begin
-  for disk := 1 to SOURCE_DISKS do
+  for disk := 1 to Types.LAST_DISK do
     BldShow.SetCell(fam, disk, state);
 end;
 
@@ -487,8 +485,8 @@ begin
   for fam := 1 to C_DATA.FAMILIES do begin
     n := 0;
     bytes := 0;
-    for disk := 1 to SOURCE_DISKS do begin
-      st^.size[fam, disk] := DataArc.FileLength(GameVars.gameDir + DataArc.SourceName(fam, disk) + '.DAX');
+    for disk := 1 to Types.LAST_DISK do begin
+      st^.size[fam, disk] := DataArc.FileLength(GameVars.gameDir + DataArc.SourceFile(fam, disk));
       if st^.size[fam, disk] >= 0 then begin
         Inc(n);
         st^.place[fam, disk] := n;
@@ -543,7 +541,7 @@ begin
   if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   st^.family := fam;
   st^.familyBytes := 0;
-  for disk := 1 to SOURCE_DISKS do
+  for disk := 1 to Types.LAST_DISK do
     if st^.size[fam, disk] > 0 then
       Inc(st^.familyBytes, st^.size[fam, disk]);
   st^.base := st^.done;
@@ -556,12 +554,12 @@ var
   d: Byte;
 begin
   if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
-  for d := 1 to SOURCE_DISKS do
+  for d := 1 to Types.LAST_DISK do
     if d < disk then
       BldShow.SetCell(fam, d, CELL_DONE)
     else if d = disk then
       BldShow.SetCell(fam, d, CELL_CURRENT);
-  BldShow.Step('Reading:', DataArc.SourceName(fam, disk) + '.DAX');
+  BldShow.Step('Reading:', DataArc.SourceFile(fam, disk));
   BldShow.Tick;
 end;
 
@@ -569,7 +567,7 @@ procedure Fixing(fam, disk: Byte);
 begin
   if not BldShow.Active or (fam < 1) or (fam > C_DATA.FAMILIES) then Exit;
   BldShow.SetCells(fam, CELL_DONE);
-  BldShow.Step('Fixing:', DataArc.SourceName(fam, disk) + '.DAX');
+  BldShow.Step('Fixing:', DataArc.SourceFile(fam, disk));
   BldShow.Tick;
 end;
 

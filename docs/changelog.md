@@ -39,6 +39,7 @@
 ### Fixes
 
 - A Sound Blaster with no AdLib on the card now plays the music on the PC speaker. Before, the music was silent.
+- A character whose name has two spaces or several periods in a row now saves under a proper file name. Before, "SIR  BOB" was saved with a space in its file name and "A....B" under a name DOS took for another file's.
 - Shield now stops the missiles of a Wand of Magic Missiles, as it does the spell's, and creatures immune to Magic Missile are immune to the wand too.
 - Fix in camp no longer heals where magic does not work; it says "Spells cannot be cast in this area." as Cast does.
 - A character whose status is changed with the Companion's character editor (Health, Status) is now put in or out of action to match. Before, a character set back to Okay stayed in red on the party list and lay as a body in combat, and one knocked down stayed in action.

@@ -141,7 +141,7 @@ end;
   it. }
 function CharFileName(name: String): FileUtil.TSetName;
 begin
-  CharFileName := DaxIo.SanitizeFileName(DaxIo.SanitizeString(name, '.'));
+  CharFileName := DaxIo.SanitizeFileName(name);
 end;
 
 function CharFileBase(name: String): Types.TPathStr;
@@ -452,8 +452,7 @@ begin
   { a single-character save the game was ended in gives the character back its old files }
   if not savedGame then
     found := SaveLoad.RecoverChar(name);
-  { as SaveChar names it: SanitizeFileName alone keeps one of two periods in a row (A..B), which DOS then took for the
-    extension }
+  { as SaveChar names it (CharFileBase) }
   name := SaveLoad.CharFileBase(name);
   msg := SaveMenu.SaveDiskMsg;
   if savedGame then
