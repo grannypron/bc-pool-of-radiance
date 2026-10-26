@@ -40,7 +40,7 @@ procedure EffSlowPoisonHit(creature: Types.PCharRecord; p: Pointer; removed: Boo
 
 procedure EffShield(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffGnomeHitBonus(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffResistFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -48,17 +48,17 @@ procedure EffSilence(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffSlowPoisonEnd(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffSpiritHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffSpiritualHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffInvisible(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffDwarfThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDwarfHitBonus(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffEnfeeble(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffCoughing(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffAnimateDead(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -76,17 +76,17 @@ procedure EffHasted(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffCastStink(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffProtMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffProtNormalMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffSlowed(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffDiseaseStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDiseaseStrength(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffDiseaseHp(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDiseaseHitPoints(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffDwarfAcGiant(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDwarfGiantDefense(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffGnomeAcBug(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffGnomeBugDefense(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffPrayer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -105,7 +105,7 @@ procedure EffTrollRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 
 procedure EffRingFireRes(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffConRegeneration(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffPoisonHit0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -121,7 +121,7 @@ procedure EffDriderPara(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 
 procedure EffPoisonHitM2(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffDustDisappear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDustOfDisappearance(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffCamouflage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -190,21 +190,21 @@ procedure EffMagicRes50(creature: Types.PCharRecord; p: Pointer; removed: Boolea
 
 procedure EffMagicRes85(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffElfResistance(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffNoSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffNoParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffNoCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneParalysisPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffNoFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffEfreetiFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffHalfElec(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffHalfElectricity(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffHalfPierce(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -216,7 +216,7 @@ procedure EffHalfCold(creature: Types.PCharRecord; p: Pointer; removed: Boolean)
 
 procedure EffNeedMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffBoulderDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDodgeBoulders(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffAnhkhegAcid(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -224,7 +224,7 @@ procedure EffMummyFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 
 procedure EffSilverMagic(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-procedure EffHalfElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffHalfElfResistance(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure EffNoCharmPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
@@ -242,7 +242,7 @@ procedure EffBoulder(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 { The handler for effects whose presence is all that matters: eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127 }
-procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffNone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 function TouchImmune(target: Types.PCharRecord; effId: Byte): Boolean;
 
@@ -676,7 +676,7 @@ begin
 end;
 
 { Gnome THAC0 bonus (eff 18) }
-procedure EffGnomeThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffGnomeHitBonus(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 const
   { the monsters a gnome gets its THAC0 bonus against }
   gnomeFoes: array[1..5] of Types.TName15 = (
@@ -715,7 +715,7 @@ end;
 { Spiritual Hammer (eff 23). The hammer is a C_ITEM.HAMMER whose nameIds[3] is C_ITEM.NAME_SPIRITUAL. Removal deletes
   the hammer; otherwise one is created (+1, special = eff 137) when missing and the creature has fewer than
   C_ITEM.CARRY_MAX items. }
-procedure EffSpiritHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffSpiritualHammer(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
   found: Byte;
@@ -758,7 +758,7 @@ begin
 end;
 
 { Dwarf THAC0 bonus (eff 26) }
-procedure EffDwarfThac0(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDwarfHitBonus(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 const
   dwarfFoes: array[1..11] of Types.TName15 = (
     'ORC', 'ORC LEADER', 'GOBLIN', 'GOBLIN LEADER',
@@ -768,8 +768,8 @@ begin
   EffHndlr.RacialFoeBonus(creature, dwarfFoes, SizeOf(dwarfFoes) div SizeOf(Types.TName15));
 end;
 
-{ Mirror Image (eff 28). strength = images left; against a single-target spell (spellId > 0, gMultiTarget =
-  0) an image absorbs it (FxEngine.ImageStruck) and is lost (LoseImage). Weapon hits are tested in CbtActs.DoAttack. }
+{ Mirror Image (eff 28). strength = images left; against a single-target spell (spellId > 0, gMultiTarget = 0) an image
+  absorbs it (FxEngine.ImageStruck) and is lost (LoseImage). Weapon hits are tested in CbtActs.RollAttacks. }
 procedure EffMirrorImage(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if FxEngine.ImageStruck(p) then
@@ -788,7 +788,7 @@ end;
 
 { Coughing from Stinking Cloud (eff 30): no items or spells, and its AC from the front and behind is its rear AC less 2.
   It recalculates the creature's stats, so C_COND.DEFENDER_AC runs it before Blindness and Shield change the AC. }
-procedure EffStinkCough(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffCoughing(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if creature^.combatAddr^.itemUseAllowed <> 0 then
     CharDisp.PrintNameString(creature, 'is coughing', 10, True);
@@ -969,7 +969,7 @@ end;
 
 { Protection from Normal Missiles (eff 41): a normal missile (the damaging item has no plus) is stopped; a magical one
   does 1 less per die, no die below 1 (#745) }
-procedure EffProtMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffProtNormalMissiles(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   missile: Types.PItemRec;
 begin
@@ -992,7 +992,7 @@ end;
   nibble (CharHlp.DiseaseStrLoss), up to 15, the most a natural 18 can lose; the lower keeps the caster level, at most
   15. A cure removes the node under the effect lock, and the count is given back: SSI kept no count, and the Strength
   stayed lost (#705). }
-procedure EffDiseaseStr(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDiseaseStrength(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
   loss: Byte;
@@ -1024,7 +1024,7 @@ begin
 end;
 
 { Disease hit point drain (eff 44): re-arm for 10 minutes and deal 1 damage; at 1 HP become helpless }
-procedure EffDiseaseHp(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDiseaseHitPoints(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effect: Types.PEffectRec;
 begin
@@ -1035,7 +1035,7 @@ begin
 end;
 
 { Dwarf/gnome AC bonus vs giants (eff 47) }
-procedure EffDwarfAcGiant(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDwarfGiantDefense(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 const
   { The giant class whose attacks a dwarf or gnome makes at -4: ogres, trolls, giants and the ettin (#749) }
   giantFoes: array[1..6] of Types.TName15 = (
@@ -1051,7 +1051,7 @@ begin
 end;
 
 { Gnome AC bonus vs bugbears/gnolls (eff 48) }
-procedure EffGnomeAcBug(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffGnomeBugDefense(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.curChar^.charType = 1 then
     if (GameVars.curChar^.name = 'BUGBEAR') or (GameVars.curChar^.name = 'GNOLL') then
@@ -1134,7 +1134,7 @@ end;
 
 { Regenerating from high Con (eff 62): re-arm for the creature's Constitution's interval (AbilAdj.ConRegenMinutes; 60,
   Constitution 20's, once it has fallen below 20) and restore 1 HP }
-procedure EffConRegen(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffConRegeneration(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   minutes: Word;
 begin
@@ -1239,7 +1239,7 @@ end;
 
 { Dust of Disappearance (eff 71): a stronger form of invisibility. Sets suppressTargeting and lowers
   gAttackRoll by 4. }
-procedure EffDustDisappear(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDustOfDisappearance(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   CbtActs.suppressTargeting := 1;
   Dec(GameVars.gAttackRoll, 4);
@@ -1454,7 +1454,7 @@ var
 begin
   target := creature^.combatAddr^.other;
   GameVars.combatTarget := target;
-  if not CbtActs.CanAttackTarget(creature, target) then Exit;
+  if not CbtActs.CanTarget(creature, target) then Exit;
   { the range of the Charm Person the gaze applies }
   if not EffHndlr.InSight(creature, target, GameDefs.spellTable[C_SPELL.CHARM_PERSON].rangeFixed) then Exit;
   CharDisp.PrintNameString(creature, 'Gazes...', 10, False);
@@ -1847,13 +1847,13 @@ begin
 end;
 
 { Elf 90% resistance to sleep/charm (eff 107) }
-procedure EffElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffElfResistance(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.SleepCharmResist(90);
 end;
 
 { Immunity to sleep/charm (eff 108) }
-procedure EffNoSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneSleepCharm(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effId: Byte;
 begin
@@ -1864,7 +1864,7 @@ begin
 end;
 
 { Immunity to paralysis (eff 109) }
-procedure EffNoParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effId: Byte;
 begin
@@ -1881,7 +1881,7 @@ end;
 
 { Immunity to paralysis + poison (eff 111). Saves of type 0 (paralyzation/poison, e.g. Stinking Cloud) succeed
   automatically }
-procedure EffNoParaPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneParalysisPoison(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   effId: Byte;
 begin
@@ -1894,7 +1894,7 @@ begin
 end;
 
 { Immunity to fire (eff 112) }
-procedure EffNoFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffImmuneFire(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.ElementImmunity(creature, C_EFFECT.ELEM_FIRE, C_BEAST.IMMUNE_FIRE);
 end;
@@ -1907,7 +1907,7 @@ begin
 end;
 
 { Half damage from electricity (eff 114) }
-procedure EffHalfElec(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffHalfElectricity(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.elementMask and C_EFFECT.ELEM_ELEC <> 0 then
     EffHndlr.HalveDamage(creature, C_BEAST.HALF_ELEC);
@@ -1971,7 +1971,7 @@ begin
 end;
 
 { Boulder evasion (eff 120): 50% chance to avoid a thrown C_ITEM.BOULDER or C_ITEM.LARGE_BOULDER }
-procedure EffBoulderDodge(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffDodgeBoulders(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   item: Types.PItemRec;
 begin
@@ -2030,7 +2030,7 @@ begin
 end;
 
 { Half-elf 30% resistance (eff 124) }
-procedure EffHalfElfResist(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffHalfElfResistance(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   EffHndlr.SleepCharmResist(30);
 end;
@@ -2182,7 +2182,7 @@ begin
 end;
 
 { the do-nothing handler (eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127) }
-procedure EffNull(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure EffNone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
 end;
 

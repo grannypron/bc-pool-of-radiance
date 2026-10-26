@@ -1,4 +1,4 @@
-{ Tests for Sleep's rules in CharHlp, which Magic.SleepHandler and the spell-aim count (#840) share: what a creature
+{ Tests for Sleep's rules in CharHlp, which Magic.SpellSleep and the spell-aim count (#840) share: what a creature
   costs the pool (SleepCost), who the pool takes and how it is spent (SleepTakes), the most the spell-aim count says
   may fall asleep on each side (SleepMost), and how the aim line puts a side's count (CatchText). }
 {$I COMPILER.INC}
@@ -106,7 +106,7 @@ begin
   arena[1].levelHighest := 6;
   CharHlp.SleepMost(caught, 1, foes, friends);
   TestKit.CheckEqualsL(4, foes, 'an aide immune to sleep still counts');
-  { those asleep already are passed over: a group all asleep counts 0, as SleepHandler would put none to sleep }
+  { those asleep already are passed over: a group all asleep counts 0, as SpellSleep would put none to sleep }
   e.id := C_EFFECT.SLEEP;
   for i := 2 to 5 do
     arena[i].effectsAddr := @e;

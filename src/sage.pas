@@ -21,7 +21,7 @@ uses Crt, Types, C_DATA, DiskRec, GameVars, DaxIo, DataArc, EclMenu, SaveLoad, B
   MoneyCal, MenuCore, TextRend, CharDisp, StrUtil;
 
 const
-  { SageMenu's menu: its choices, as MenuHorizontalCS numbers them }
+  { SageMenu's menu: its choices, as MenuHorizontalCharacterSelect numbers them }
   MENU = '~Ask ~Leave';
   CHOICE_ASK = 0;
   CHOICE_LEAVE = 1;
@@ -191,7 +191,7 @@ begin
             '''FOR A FEE I WILL TELL YOU ALL I KNOW OF ANY BEAST YOU HAVE MET.''';
   repeat
     Sage.Say(answer);
-    choice := EclMenu.MenuHorizontalCS('', MENU, LightMagenta, LightGreen, White, True, False);
+    choice := EclMenu.MenuHorizontalCharacterSelect('', MENU, LightMagenta, LightGreen, White, True, False);
     if choice = CHOICE_ASK then begin
       b := BeastMnu.PickBeast('Ask about: ');
       Sage.Redraw;

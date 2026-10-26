@@ -218,7 +218,7 @@ begin
 end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
-  memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (Magic.UseItemSpell,
+  memorized spell through Magic.CastSpell, or a scroll spell from its own scroll as Use does (Magic.UseItemSpell,
   which asks 'Use it?' of a combat-only one and otherwise names the spell as a memorized cast does), followed by Use's
   CharHlp.RecalcStats. An empty list prints 'has no spells memorized'. }
 procedure NoncombatCastMenu;
@@ -226,7 +226,7 @@ var
   idx: Integer;
   notEmpty: Boolean;
   redraw: Boolean;
-  { CastSpellNC's and UseItemSpell's var out, unread }
+  { CastSpell's and UseItemSpell's var out, unread }
   castSel: Boolean;
   spellId: Byte;
   { the scroll the spell is cast from, nil for a memorized one }
@@ -244,7 +244,7 @@ begin
         Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
         Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
         if scroll = nil then
-          Magic.CastSpellNC(spellId, False, True, castSel)
+          Magic.CastSpell(spellId, False, True, castSel)
         else begin
           caster := GameVars.curChar;
           Magic.UseItemSpell(scroll, spellId, True, castSel);
@@ -314,7 +314,7 @@ end;
 
 { Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest, then clear
   the clock and update the misc-info line. }
-procedure CampRestMenu(var interrupted: Boolean);
+procedure RestForSpellPrep(var interrupted: Boolean);
 var
   p: Types.PCharRecord;
   total: Word;
@@ -687,7 +687,7 @@ begin
         'M': Camp.CampMemorizeMenu;
         'S': Camp.CampScribeMenu;
         'D': Camp.CampDisplayMenu;
-        'R': Camp.CampRestMenu(interrupted);
+        'R': Camp.RestForSpellPrep(interrupted);
       end;
   end;
 end;
@@ -1062,9 +1062,9 @@ begin
         if cures[i, kind] then begin
           GameVars.spellTargets[1] := members[i];
           case kind of
-            FIX_DISEASE: Magic.CureDiseaseHandler;
-            FIX_BLIND: Magic.CureBlindnessHandler;
-            FIX_CURSE: Magic.RemoveCurseSpell;
+            FIX_DISEASE: Magic.SpellCureDisease;
+            FIX_BLIND: Magic.SpellCureBlindness;
+            FIX_CURSE: Magic.SpellRemoveCurse;
           end;
         end;
     healPool := 0;
@@ -1123,7 +1123,7 @@ begin
              end;
         'V': ViewChar.ViewCharMenu(viewDone);
         'M': Camp.CampMagicMenu(interrupted);
-        'R': Camp.CampRestMenu(interrupted);
+        'R': Camp.RestForSpellPrep(interrupted);
         'A': Camp.CampAlterMenu;
         'F': Camp.CampFixMenu(interrupted);
       end;

@@ -39,7 +39,7 @@ begin
   FxEngine.RemoveEffect(creature, C_EFFECT.FIGHT_ON, nil);
 end;
 
-{ A paralysis ward, as EffNoParalysis is (eff 109): it refuses paralysis under the immunity check. }
+{ A paralysis ward, as EffImmuneParalysis is (eff 109): it refuses paralysis under the immunity check. }
 procedure WardsParalysis(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if GameVars.pendingEffectId = C_EFFECT.PARALYZED then

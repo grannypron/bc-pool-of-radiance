@@ -108,7 +108,7 @@ procedure DisplayMapViewCentered(creature: Types.PCharRecord; delta: Byte; curso
   the cycle repeats. AimBlast reaches every cell within radius of the cursor cell by the Pathing.WalkLine test
   Pathing.BuildTargetList applies, so walls cut it the same way; radius 0 is the cursor cell alone. AimBolt follows
   spell's bolt (Lightning Bolt's, or the Javelin of Lightning's) from the cursor cell (boltTracer). AimCloud covers the
-  passable cells of Magic.StinkingCloudHandler's 2x2 block and draws them with the stinking-cloud terrain tile instead
+  passable cells of Magic.SpellStinkingCloud's 2x2 block and draws them with the stinking-cloud terrain tile instead
   of areaCell. The frames are drawn from MenuCore.MenuHorizontal's idle hook. With report set, each restart also hands
   aimReport the creatures the spell will catch there (#840): for a blast everyone Pathing.BuildAreaList gathers at
   radius, over the whole arena and not just the view, as the spell gathers them; for a bolt or cloud the creatures on

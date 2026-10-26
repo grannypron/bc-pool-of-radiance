@@ -414,7 +414,7 @@ begin
   EclVars.LoadEclVars(2);
   q := '';
   address := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
-  v := TextRend.InputUint16(q, LightGreen);
+  v := TextRend.ReadNumber(q, LightGreen);
   EclVars.WriteGbvm(address, v);
 end;
 
@@ -723,7 +723,7 @@ begin
   for i := 1 to count - 1 do
     menu := menu + '~' + GameVars.gbStrings^[i] + ' ';
   menu := menu + '~' + GameVars.gbStrings^[count];
-  ch := EclMenu.MenuHorizontalCS(q, menu, LightMagenta, mCol, hlCol, enterOk, anim);
+  ch := EclMenu.MenuHorizontalCharacterSelect(q, menu, LightMagenta, mCol, hlCol, enterOk, anim);
   EclVars.WriteGbvm(address, ch);
   TextRend.ClearRect(0, 24, 39, 24);
 end;
@@ -1214,7 +1214,7 @@ begin
       menu := '~COMBAT ~WAIT ~FLEE ~PARLAY'
     else
       menu := '~COMBAT ~WAIT ~FLEE ~ADVANCE';
-    sel := EclMenu.MenuHorizontalCS(q, menu, LightMagenta, LightGreen, White, False, anim);
+    sel := EclMenu.MenuHorizontalCharacterSelect(q, menu, LightMagenta, LightGreen, White, False, anim);
     if ((GameVars.zone1^[C_GBVM.MONSTER_DIST] = 0) or (GameVars.zone0^.view3dFlag = 0)) and (sel = 3) then
       sel := 4;
     choice := resp[sel];
@@ -1282,7 +1282,7 @@ begin
   space := ' ';
   for i := 0 to 4 do
     v[i] := EclVars.GetEclVar(i + 1);
-  sel := EclMenu.MenuHorizontalCS(space, '~HAUGHTY ~SLY ~NICE ~MEEK ~ABUSIVE', LightMagenta, LightGreen,
+  sel := EclMenu.MenuHorizontalCharacterSelect(space, '~HAUGHTY ~SLY ~NICE ~MEEK ~ABUSIVE', LightMagenta, LightGreen,
                                   White, False, False);
   address := EclVars.CombineBytesToWord(GameVars.varLo[6], GameVars.varHi[6]);
   v5 := v[sel];

@@ -47,7 +47,8 @@ procedure DisplayMonster(sprId, picId, dist: Byte; var flags: Types.TMonFlags);
 
 { Horizontal '~'-hotkey menu; extended keys switch the current character. Returns the 0-based index of the pressed
   hotkey, 0 for Enter (only when enterOk) and 255 for a letter or digit that is not a hotkey }
-function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
+function MenuHorizontalCharacterSelect(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte;
+                                       enterOk, animate: Boolean): Byte;
 
 { Set the six comparison flags from s1 and s2. }
 procedure EclCompareStr(s1, s2: String);
@@ -294,7 +295,8 @@ end;
 { Horizontal menu with character selection; query is limited to 40 characters and menu text to 255. Each script menu
   starts with its first option highlighted, so Enter never takes a highlight another menu left behind; switching
   characters keeps the highlight. }
-function MenuHorizontalCS(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte; enterOk, animate: Boolean): Byte;
+function MenuHorizontalCharacterSelect(query: Types.TStr40; menu: String; qCol, mCol, hlCol: Byte;
+                                       enterOk, animate: Boolean): Byte;
 var
   opts: String;
   idx: Byte;
@@ -312,15 +314,15 @@ begin
     end;
   until (ch in ['0'..'9', 'A'..'Z']) or ((ch = C_KEYS.ENTER) and enterOk);
   case ch of
-    C_KEYS.ENTER: MenuHorizontalCS := 0;
+    C_KEYS.ENTER: MenuHorizontalCharacterSelect := 0;
   else begin
     idx := 1;
     while (idx <= Length(opts)) and (opts[idx] <> ch) do
       Inc(idx);
     if idx <= Length(opts) then
-      MenuHorizontalCS := idx - 1
+      MenuHorizontalCharacterSelect := idx - 1
     else
-      MenuHorizontalCS := 255;
+      MenuHorizontalCharacterSelect := 255;
   end;
   end;
 end;

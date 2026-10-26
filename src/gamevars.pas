@@ -259,7 +259,7 @@ var
 
 var
   { Spell casting and targeting }
-  { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.CombatCastTargetMenu in combat }
+  { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.SelectCombatTargets in combat }
   castTargetMenu: Types.TCastUI;
   { Spell handlers indexed by spell ID. }
   spellFns: array[1..C_SPELL.TABLE_LAST] of Types.TSpellProc;

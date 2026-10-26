@@ -580,7 +580,7 @@ begin
   TextRend.ShowMessage(LightGreen, True, said);
   TextRend.ShowMessage(White, False, ask);
   { 0-based: 1 is No }
-  if EclMenu.MenuHorizontalCS('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
+  if EclMenu.MenuHorizontalCharacterSelect('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
     GoBackForIt := False
   else begin
     TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);

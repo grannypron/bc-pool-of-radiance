@@ -69,7 +69,7 @@ var
   creature: Types.PCharRecord;
 begin
   GameVars.ifcState := C_IFC.IN_COMBAT;
-  GameVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
+  GameVars.castTargetMenu := CbtActs.SelectCombatTargets;
   CbtLog.Clear(GameVars.combatLogLines, GameVars.combatLogOn <> 0);
   CombatSt.CombatStart;
   done := False;
@@ -82,7 +82,7 @@ begin
     CharHlp.CountTeams;
     creature := GameVars.creatureList;
     while creature <> nil do begin
-      CbtActs.CombatRoundStartSetup(creature);
+      CbtActs.BeginRound(creature);
       creature := creature^.nextCharAddr;
     end;
     GameVars.zone1^[C_GBVM.SURPRISE] := 0;
@@ -166,7 +166,7 @@ begin
       { a spell begun earlier (CbtActs.CastSpellCombat) resolves now }
       spell := creature^.combatAddr^.spellCast;
       creature^.combatAddr^.spellCast := 0;
-      Magic.CastSpellNC(spell, False, True, done);
+      Magic.CastSpell(spell, False, True, done);
       done := CharHlp.EndActions(creature);
     end else begin
       done := False;
@@ -176,14 +176,14 @@ begin
           'M': Combat.MoveMenu(creature, done);
           'V': begin
                  ViewChar.ViewCharMenu(done);
-                 CbtActs.SetCurAttacksX2(creature);
+                 CbtActs.RecalcAttacksLeft(creature);
                  if not done then
                    CharDisp.DisplayCombatInterface;
                end;
           'A': CbtActs.CombatAimMenu(creature, 255, 1, 0, done, aimTgt);
           'U': begin
                  ViewChar.UseItemMenu(done);
-                 CbtActs.SetCurAttacksX2(creature);
+                 CbtActs.RecalcAttacksLeft(creature);
                  if not done then
                    CharDisp.DisplayCombatInterface;
                end;
@@ -222,7 +222,7 @@ begin
                           done := True;
                         end;
           { Alt-X scan code: the STING cheat }
-          C_KEYS.ALT_X: if CbtActs.StingVictoryCheat then begin
+          C_KEYS.ALT_X: if CbtActs.VictoryCheat then begin
                           CbtMap.DisplayMapViewCentered(creature, 3, False);
                           done := True;
                         end else
@@ -288,7 +288,7 @@ begin
   { one minute }
   FxEngine.AdvanceTime(1, C_TIME.MINUTES);
   Inc(GameVars.roundCounter);
-  CbtActs.CalcHostileHpPercent;
+  CbtActs.UpdateHostileHpPercent;
   p := GameVars.creatureList;
   while p <> nil do begin
     FxEngine.TriggerEffectsWithCondition(C_COND.ROUND_END, p);
@@ -377,7 +377,7 @@ begin
         end;
       end else if terrIdx = 0 then begin
         case MenuCore.YesNoMenu('Flee:', LightMagenta, LightGreen, White) of
-          'Y': done := CbtActs.CombatFleeAttempt(creature);
+          'Y': done := CbtActs.AttemptFlee(creature);
           'N': done := False;
         end;
       end else if GameDefs.terrainInfo[terrIdx].cost > creature^.combatAddr^.movement then
@@ -400,11 +400,11 @@ begin
     CharDisp.PrintBottomLine('Not with that weapon')
   else if CbtActs.CheckAttackAlly(att, def) then begin
     att^.combatAddr^.other := def;
-    if CbtActs.SweepAttempt(att, def) then
+    if CbtActs.SweepAttack(att, def) then
       done := True
     else begin
       CbtActs.NoteAttackDirection(att, def);
-      CbtActs.CombatAttack(att, def, False, nil, done);
+      CbtActs.MakeAttack(att, def, False, nil, done);
     end;
   end;
 end;

@@ -30,7 +30,7 @@ procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
 
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 
-function InputUint16(query: Types.TStr40; color: Byte): Word;
+function ReadNumber(query: Types.TStr40; color: Byte): Word;
 
 { Show msg on the bottom line and wait for a key; an extended key is read whole (GameIo.ReadAnyKey). }
 procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
@@ -281,7 +281,7 @@ begin
 end;
 
 { Prompt for up to six characters until they parse as an integer in 0..65535, the range of the Word result. }
-function InputUint16(query: Types.TStr40; color: Byte): Word;
+function ReadNumber(query: Types.TStr40; color: Byte): Word;
 var
   num: LongInt;
   reply: Types.TStr40;
@@ -293,7 +293,7 @@ begin
     if code = 0 then
       if (num > 65535) or (num < 0) then code := 1;
   until code = 0;
-  InputUint16 := num;
+  ReadNumber := num;
 end;
 
 { Clear the bottom row, print a message in the requested color and wait for a key. }

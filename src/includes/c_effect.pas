@@ -10,7 +10,7 @@ const
   CURSE = 2;
   UNDEAD_SLAYER = 3;
   TRAIN_START = 4;
-  { EffNull handler; item labels mark magic items while any creature has it }
+  { EffNone handler; item labels mark magic items while any creature has it }
   DETECT_MAGIC = 5;
   FLAME_TONGUE = 6;
   TRAIN_MANUAL = 7;
@@ -19,7 +19,7 @@ const
   RESIST_COLD = 10;
   CHARM = 11;
   ENLARGE = 12;
-  { EffNull handler. }
+  { EffNone handler. }
   REDUCE = 13;
   FRIENDS = 14;
   { a Friends effect's strength: this flag plus the Charisma it gave (FxEngine.FriendsEndCha, #920); one saved before
@@ -29,7 +29,7 @@ const
   READ_MAGIC = 16;
   SHIELD = 17;
   GNOME_ATTACK_BONUS = 18;
-  { EffNull handler. }
+  { EffNone handler. }
   FIND_TRAPS = 19;
   RESIST_FIRE = 20;
   SILENCE = 21;
@@ -38,7 +38,7 @@ const
   SEE_INVISIBLE = 24;
   INVISIBLE = 25;
   DWARF_ATTACK_BONUS = 26;
-  { EffNull handler; readying the Ring of Feather Falling adds it }
+  { EffNone handler; readying the Ring of Feather Falling adds it }
   FEATHER_FALL = 27;
   MIRROR_IMAGE = 28;
   ENFEEBLE = 29;
@@ -81,11 +81,11 @@ const
   MUMMY_ROT = 57;
   IMMOBILE = 58;
   TROLL_REGEN = 59;
-  { EffNull handler: C_COND.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
+  { EffNone handler: C_COND.WEAPON_DAMAGE_DEF and NONWEAPON_DAMAGE trigger it, to no effect }
   NULL_DAMAGE = 60;
   RING_FIRE_RES = 61;
   CON_REGEN = 62;
-  { EffNull handler: C_COND.TARGET_VETO triggers it, to no effect }
+  { EffNone handler: C_COND.TARGET_VETO triggers it, to no effect }
   NULL_TARGET_VETO = 63;
   POISON_HIT0 = 64;
   POISON_HIT4 = 65;
@@ -117,7 +117,7 @@ const
   DISPLACED = 89;
   CON_PSN_SAVE = 90;
   IMMUNE_MM = 91;
-  { 92 is EffNull's (GameInit), and nothing in the game's data or code adds it }
+  { 92 is EffNone's (GameInit), and nothing in the game's data or code adds it }
   HALF_FIRE = 93;
   HALF_BASH = 94;
   FIGHT_ON = 95;

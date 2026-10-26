@@ -891,7 +891,7 @@ begin
     FxEngine.TriggerEffectsWithCondition(C_COND.COMBAT_START, p);
     p := p^.nextCharAddr;
   end;
-  CbtActs.CalcHostileHpPercent;
+  CbtActs.UpdateHostileHpPercent;
 end;
 
 end.

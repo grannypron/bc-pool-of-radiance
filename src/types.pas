@@ -766,7 +766,7 @@ type
         durVar: Byte;
         { the low nibble is the area mode (C_SPELL.AREA_MODE_*): 0 the caster, 1..7 (mode and 3) + 1 creatures picked
           one at a time, 8..14 everything within radius (mode and 7) of the aim, 15 one creature or a bare square
-          (CbtActs.CombatCastTargetMenu, CharHlp.SpellArea); no code reads the high nibble }
+          (CbtActs.SelectCombatTargets, CharHlp.SpellArea); no code reads the high nibble }
         area: Byte;
         { targeting mode }
         target: Byte;

@@ -188,13 +188,13 @@ function IsPerson(creature: Types.PCharRecord): Boolean;
 function SleepCost(creature: Types.PCharRecord): Byte;
 
 { True when Sleep, with pool hit dice left, takes creature: not animated dead (C_STATUS.ANIMATED), not asleep already
-  (C_EFFECT.SLEEP), and pool covers SleepCost, which is then taken from pool. Magic.SleepHandler spends its pool through
+  (C_EFFECT.SLEEP), and pool covers SleepCost, which is then taken from pool. Magic.SpellSleep spends its pool through
   it in target order, and the spell-aim count (#840, SleepMost) through it too. }
 function SleepTakes(creature: Types.PCharRecord; var pool: Byte): Boolean;
 
 { The most of the creatures in caught (arena slots, GameVars.creatureArr, nearest first) that one Sleep may put to sleep
   on each side, for the spell-aim count (#840): foes for those on team enemy, friends for the rest. Sleep spends one
-  pool on both sides in target order, as Magic.SleepHandler does through SleepTakes, so every pool the dice can roll is
+  pool on both sides in target order, as Magic.SpellSleep does through SleepTakes, so every pool the dice can roll is
   tried and each side keeps its best. A creature with an immunity to sleep counts as one that may fall asleep: it takes
   its share of the pool, and the count does not give its immunity away. The asleep already and the animated dead,
   which Sleep passes over, do not count; so a group that is all asleep counts 0. }
@@ -1652,7 +1652,7 @@ begin
         SpellArea := C_SPELL.AREA_CLOUD;
       end else begin
         size := mode and 7;
-        { FireballHandler's outdoor radius }
+        { SpellFireball's outdoor radius }
         if ((spell = C_SPELL.FIREBALL) or (spell = C_SPELL.ITEM_FIREBALL)) and (GameVars.zone0 <> nil) then
           if GameVars.zone0^.view3dFlag = 0 then
             size := 2;

@@ -58,7 +58,7 @@ begin
   GameVars.pendingDamage := 9;
   GameVars.pendingEffectId := 0;
   case effId of
-    C_EFFECT.NO_FIRE: EffHndlr.EffNoFire(c, nil, False);
+    C_EFFECT.NO_FIRE: EffHndlr.EffImmuneFire(c, nil, False);
     C_EFFECT.NO_COLD: EffHndlr.EffNoCold(c, nil, False);
     C_EFFECT.IMMUNE_MM: EffHndlr.EffImmuneMM(c, nil, False);
   end;
@@ -74,9 +74,9 @@ begin
   for i := 1 to TRIES do begin
     GameVars.pendingEffectId := effId;
     if elf then
-      EffHndlr.EffElfResist(c, nil, False)
+      EffHndlr.EffElfResistance(c, nil, False)
     else
-      EffHndlr.EffHalfElfResist(c, nil, False);
+      EffHndlr.EffHalfElfResistance(c, nil, False);
     if GameVars.pendingEffectId = 0 then
       Inc(k);
   end;
@@ -88,9 +88,9 @@ function RollChange(effId: Byte): Integer;
 begin
   GameVars.gAttackRoll := 10;
   case effId of
-    C_EFFECT.DWARF_ATTACK_BONUS: EffHndlr.EffDwarfThac0(c, nil, False);
-    C_EFFECT.GNOME_ATTACK_BONUS: EffHndlr.EffGnomeThac0(c, nil, False);
-    C_EFFECT.DWARF_GIANT_DEFENSE: EffHndlr.EffDwarfAcGiant(c, nil, False);
+    C_EFFECT.DWARF_ATTACK_BONUS: EffHndlr.EffDwarfHitBonus(c, nil, False);
+    C_EFFECT.GNOME_ATTACK_BONUS: EffHndlr.EffGnomeHitBonus(c, nil, False);
+    C_EFFECT.DWARF_GIANT_DEFENSE: EffHndlr.EffDwarfGiantDefense(c, nil, False);
   end;
   RollChange := Integer(GameVars.gAttackRoll) - 10;
 end;

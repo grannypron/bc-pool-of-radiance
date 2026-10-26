@@ -268,7 +268,7 @@ begin
 end;
 
 { RemoveCurse: Looks for a cursed item in the inventory, else for C_EFFECT.BESTOW_CURSE (36); for 3500 gp sets
-  spellTargets[1] to the current character and calls the Remove Curse spell handler, Magic.RemoveCurseSpell
+  spellTargets[1] to the current character and calls the Remove Curse spell handler, Magic.SpellRemoveCurse
   (spell 43) }
 procedure RemoveCurse;
 var
@@ -292,7 +292,7 @@ begin
     c := Temple.ConfirmCureCost('Remove Curse', 3500);
     if c = 'Y' then begin
       GameVars.spellTargets[1] := GameVars.curChar;
-      Magic.RemoveCurseSpell;
+      Magic.SpellRemoveCurse;
     end;
   end;
 end;

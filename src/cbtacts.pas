@@ -16,16 +16,16 @@ var
   { Done flag for the acting creature's attacks; combat menus also return their extended-key flag here }
   doneRoundFlag: Boolean;
 
-procedure CombatRoundStartSetup(creature: Types.PCharRecord);
+procedure BeginRound(creature: Types.PCharRecord);
 
 function CalcCreatureMovement(creature: Types.PCharRecord): Byte;
 
 procedure CombatMoveCreature(creature: Types.PCharRecord; dir: Byte);
 
-procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
+procedure AttacksOfOpportunity(creature: Types.PCharRecord; dir: Byte);
 
 { One combat step in dir with what comes with it: the free attacks of the enemies the step leaves
-  (MoveOpportunityAttacks), then, while the mover is still up and not helpless, the step (CombatMoveCreature, where
+  (AttacksOfOpportunity), then, while the mover is still up and not helpless, the step (CombatMoveCreature, where
   guarding enemies attack) and the Stinking Cloud check. A mover that goes down or is left helpless on the way ends its
   actions, and True is returned: one paralysed, held or put to sleep by the free attacks does not take the step
   (POR-0216, #933). Combat's move menu and CombatAi's step share it. }
@@ -40,7 +40,7 @@ function DirOfKey(ch: Char): Byte;
 
 { att attacks def, noted for flanking (NoteAttackDirection), with the item that does a ranged weapon's damage (its
   ammunition, or the thrown weapon itself; CharHlp.FindDamagingRangedWeapon), except that a throwable weapon used at
-  distance 1 strikes as melee, with none. done is CombatAttack's. The aim menu and CombatAi's attack share it. }
+  distance 1 strikes as melee, with none. done is MakeAttack's. The aim menu and CombatAi's attack share it. }
 procedure AttackWithReadied(att, def: Types.PCharRecord; var done: Boolean);
 
 { A weapon blow's damage: base (the dice and modifier) floored at 0, times mult (the backstab's multiplier, 1 for
@@ -50,13 +50,13 @@ function WeaponDamage(base: Integer; mult, bonus: Byte): Byte;
 { The missiles left when used are taken from quantity: never below 0. }
 function AmmoLeft(quantity, used: Byte): Byte;
 
-function CombatFleeAttempt(creature: Types.PCharRecord): Boolean;
+function AttemptFlee(creature: Types.PCharRecord): Boolean;
 
-procedure SetCurAttacksX2(creature: Types.PCharRecord);
+procedure RecalcAttacksLeft(creature: Types.PCharRecord);
 
-function SweepAttempt(att, def: Types.PCharRecord): Boolean;
+function SweepAttack(att, def: Types.PCharRecord): Boolean;
 
-function CanAttackTarget(creature, other: Types.PCharRecord): Boolean;
+function CanTarget(creature, other: Types.PCharRecord): Boolean;
 
 procedure CombatTurnUndead(creature: Types.PCharRecord);
 
@@ -64,11 +64,11 @@ function FindTurnUndeadTarget(creature: Types.PCharRecord; var tgt: Pointer): Bo
 
 procedure NoteAttackDirection(att, def: Types.PCharRecord);
 
-procedure CombatAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
+procedure MakeAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
 
 function FindCureTarget(creature: Types.PCharRecord; var tgt: Pointer): Boolean;
 
-procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
+procedure SelectCombatTargets(spell: Byte; b: Boolean; var cast: Boolean);
 
 procedure CastSpellCombat(spell, ai: Byte; var cast: Boolean);
 
@@ -78,17 +78,17 @@ procedure CombatAimMenu(creature: Types.PCharRecord; range, weaponMode, groundOk
 
 function DirTowardTarget(creature, other: Types.PCharRecord): Byte;
 
-procedure CalcHostileHpPercent;
+procedure UpdateHostileHpPercent;
 
 function HighestEnemyMovement(creature: Types.PCharRecord): Byte;
 
 function AcquireTarget(creature: Types.PCharRecord; range, relaxed, forceNew: Byte): Boolean;
 
-procedure RearClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure AttackClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
 procedure BiteAndHold(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 
-function StingVictoryCheat: Boolean;
+function VictoryCheat: Boolean;
 
 { Would an area spell aimed at cell (x, y) with walk budget radius catch anyone not on GameVars.curChar's enemy team?
   Rebuilds the target list around the aim point. }
@@ -135,18 +135,18 @@ const
   areaRules: array[1..1] of TAreaRule = (
     (spell: C_SPELL.SLEEP; rule: RULE_SLEEP));
 
-function AdjustedAttacks(n: Byte): Byte; forward;
+function AttacksFromRate(n: Byte): Byte; forward;
 
-procedure ModifyDefenseForDistance(att, def: Types.PCharRecord; var defense: Byte); forward;
+procedure ApplyRangePenalty(att, def: Types.PCharRecord; var defense: Byte); forward;
 
 function IsBackstab(att, def: Types.PCharRecord): Boolean; forward;
 
-procedure RangedAttackAnim(att, def: Types.PCharRecord; weapon: Types.PItemRec); forward;
+procedure AnimateMissile(att, def: Types.PCharRecord; weapon: Types.PItemRec); forward;
 
-{ Per-creature round reset: combat record flags, current attacks (SetCurAttacksX2, then the secondary attacks through
-  AdjustedAttacks), the sweep budget, initiative (1d6 + missile dex adjustment, at least 1, -6 when surprised, 0 if
+{ Per-creature round reset: combat record flags, current attacks (RecalcAttacksLeft, then the secondary attacks through
+  AttacksFromRate), the sweep budget, initiative (1d6 + missile dex adjustment, at least 1, -6 when surprised, 0 if
   disabled or outside 0..20) and movement. }
-procedure CombatRoundStartSetup(creature: Types.PCharRecord);
+procedure BeginRound(creature: Types.PCharRecord);
 begin
   with creature^.combatAddr^ do begin
     spellCast := 0;
@@ -154,11 +154,11 @@ begin
     itemUseAllowed := 1;
     madeAttack := 0;
     attackPhase := 2;
-    CbtActs.SetCurAttacksX2(creature);
+    CbtActs.RecalcAttacksLeft(creature);
     GameVars.currentAttackCurrent := creature^.attacks2;
     GameVars.currentCreatureCalculatingFlag := 0;
     FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
-    creature^.curAttacks2 := CbtActs.AdjustedAttacks(GameVars.currentAttackCurrent);
+    creature^.curAttacks2 := CbtActs.AttacksFromRate(GameVars.currentAttackCurrent);
     sweepBudget := creature^.attackLevel;
     if creature^.enabled <> 0 then begin
       initiative := Dice.RollDice(1, 6) + AbilAdj.DexMissileAdjust(creature);
@@ -315,7 +315,7 @@ begin
 end;
 
 { Each adjacent enemy that is guarding and not helpless spends its guard on a free attack against the mover. }
-procedure GuardingAttacks(creature: Types.PCharRecord);
+procedure GuardersAttack(creature: Types.PCharRecord);
 var
   cnt: Byte;
   i: Byte;
@@ -330,7 +330,7 @@ begin
         CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2, C_DIR.CENTER);
         p^.combatAddr^.guarding := 0;
         CbtActs.NoteAttackDirection(p, creature);
-        CbtActs.CombatAttack(p, creature, False, nil, done);
+        CbtActs.MakeAttack(p, creature, False, nil, done);
       end;
     end;
 end;
@@ -380,7 +380,7 @@ begin
   CbtMap.ScrollView(nx, ny, cost, C_DIR.CENTER);
   CbtActs.ResetFlanking(creature);
   SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.STEP], C_SOUND.GROUP_FOOTSTEPS);
-  CbtActs.GuardingAttacks(creature);
+  CbtActs.GuardersAttack(creature);
   if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
     creature^.combatAddr^.movement := 0;
 end;
@@ -388,11 +388,11 @@ end;
 { Enemies adjacent before a step in dir but not after it get one free attack on the mover, made as from behind.
   Helpless, effect-vetoed, blood-draining and bite-holding enemies are skipped. An enemy with no initiative left that
   has already been attacked this round (flankCount > 0) attacks only if the mover is in its 5-direction front cone. The
-  free attack is one attack and costs the enemy nothing: CombatAttack would spend every attack it has left and end its
+  free attack is one attack and costs the enemy nothing: MakeAttack would spend every attack it has left and end its
   turn, so its attacks, phase, turn state and sweep (madeAttack, sweepBudget) are put back afterwards while it is still
   up (#711, #770). Its special attacks (breath, gaze, acid) still come at the start of its own move
   (CombatAi.AiMoveAttack). }
-procedure MoveOpportunityAttacks(creature: Types.PCharRecord; dir: Byte);
+procedure AttacksOfOpportunity(creature: Types.PCharRecord; dir: Byte);
 var
   adj: array[1..12] of Byte;
   effect: Types.PEffectRec;
@@ -448,7 +448,7 @@ begin
         attacked := False;
         p := GameVars.creatureArr[adj[i]];
         if not CharHlp.IsHelpless(p) then
-          if CbtActs.CanAttackTarget(p, creature) then
+          if CbtActs.CanTarget(p, creature) then
             if not CharHlp.HasEffect(p, C_EFFECT.BLOOD_DRAIN, effect) then
               if not CharHlp.HasEffect(p, C_EFFECT.BITE_HOLD, effect) then
                 for a := p^.combatAddr^.direction + 6 to p^.combatAddr^.direction + 10 do
@@ -478,7 +478,7 @@ begin
                       Types.PAttackPhaseView(p)^.curAtt[phase] := 1;
                       p^.combatAddr^.attackPhase := phase;
                       savedOther := p^.combatAddr^.other;
-                      CbtActs.CombatAttack(p, creature, True, nil, doneRoundFlag);
+                      CbtActs.MakeAttack(p, creature, True, nil, doneRoundFlag);
                       attacked := True;
                       p^.combatAddr^.other := savedOther;
                       if p^.enabled <> 0 then begin
@@ -503,7 +503,7 @@ var
   done: Boolean;
 begin
   done := False;
-  CbtActs.MoveOpportunityAttacks(creature, dir);
+  CbtActs.AttacksOfOpportunity(creature, dir);
   { a mover the free attacks leave down or helpless neither steps nor acts again this turn (POR-0216, #933) }
   if (creature^.enabled = 0) or CharHlp.IsHelpless(creature) then
     done := CharHlp.EndActions(creature)
@@ -528,7 +528,7 @@ end;
 { Flee: automatic when the target list (range 255) holds no enemy; otherwise it succeeds when the creature's movement in
   whole moves beats the fastest enemy's (HighestEnemyMovement), on 1 in 2 when they tie. Success takes it out of play as
   'Got Away' (C_STATUS.RUNNING). EndActions runs on both outcomes and supplies the result. }
-function CombatFleeAttempt(creature: Types.PCharRecord): Boolean;
+function AttemptFlee(creature: Types.PCharRecord): Boolean;
 var
   ok: Boolean;
   enemyMove: Byte;
@@ -550,14 +550,14 @@ begin
     FxEngine.PutOutOfPlayWithStatus(creature, C_STATUS.RUNNING, 'Got Away')
   else
     CharDisp.PrintActionLine(creature, 'Escape is blocked', 'is blocked from escaping');
-  CombatFleeAttempt := CharHlp.EndActions(creature);
+  AttemptFlee := CharHlp.EndActions(creature);
 end;
 
 { Set curAttacks for the round. Start from the weapon's rate of fire (at least 2) for a damaging ranged weapon, else the
-  base attacks, both in half-attacks; apply haste/slow effects, then AdjustedAttacks (odd rounds round up, then halve)
+  base attacks, both in half-attacks; apply haste/slow effects, then AttacksFromRate (odd rounds round up, then halve)
   and cap a ranged weapon by its ammunition. Once an attack has been made the result is used only when it is below the
   previous curAttacks (melee: below twice it); otherwise curAttacks keeps the previous value. }
-procedure SetCurAttacksX2(creature: Types.PCharRecord);
+procedure RecalcAttacksLeft(creature: Types.PCharRecord);
 var
   adj: Byte;
   saved: Byte;
@@ -578,7 +578,7 @@ begin
     GameVars.currentAttackCurrent := creature^.attacks;
   GameVars.currentCreatureCalculatingFlag := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.MOVE_ATTACK_RATE, creature);
-  adj := CbtActs.AdjustedAttacks(GameVars.currentAttackCurrent);
+  adj := CbtActs.AttacksFromRate(GameVars.currentAttackCurrent);
   if ranged and (weapon <> nil) then begin
     qty := 1;
     if weapon^.quantity > qty then
@@ -593,20 +593,20 @@ begin
 end;
 
 { Half-attacks to attacks: add 1 on odd rounds, then halve. }
-function AdjustedAttacks(n: Byte): Byte;
+function AttacksFromRate(n: Byte): Byte;
 var
   v: Byte;
 begin
   v := n;
   if Odd(GameVars.roundCounter) then
     Inc(v);
-  AdjustedAttacks := v div 2;
+  AttacksFromRate := v div 2;
 end;
 
 { Sweep sub-1-HD foes: when def is an adjacent level-0 foe, the sweep budget (attack level) exceeds the current attacks
   and more adjacent level-0 enemies stand around than there are current attacks, make one attack on each of up to
   sweepBudget of them, def first, while att stays up. Returns True if it swept. }
-function SweepAttempt(att, def: Types.PCharRecord): Boolean;
+function SweepAttack(att, def: Types.PCharRecord): Boolean;
 var
   cnt: Byte;
   weak: Byte;
@@ -614,7 +614,7 @@ var
   defIdx: Byte;
   p: Types.PCharRecord;
 begin
-  SweepAttempt := False;
+  SweepAttack := False;
   if att^.curAttacks >= att^.combatAddr^.sweepBudget then
     Exit;
   if def^.levelHighest <> 0 then
@@ -652,24 +652,24 @@ begin
         p := GameVars.creatureArr[GameVars.combatTargetSlots[i]];
         CbtActs.NoteAttackDirection(att, p);
         att^.curAttacks := 1;
-        CbtActs.CombatAttack(att, p, False, nil, doneRoundFlag);
+        CbtActs.MakeAttack(att, p, False, nil, doneRoundFlag);
         Dec(weak);
       end;
-  SweepAttempt := True;
+  SweepAttack := True;
 end;
 
 { Check whether effects permit creature to attack other: False for nil, True for itself. Otherwise the target's veto
   effects run first, then the attacker's with other as its temporary target; any veto sets
   suppressTargeting. }
-function CanAttackTarget(creature, other: Types.PCharRecord): Boolean;
+function CanTarget(creature, other: Types.PCharRecord): Boolean;
 var
   saved: Types.PCharRecord;
 begin
-  CanAttackTarget := False;
+  CanTarget := False;
   if other = nil then
     Exit;
   if creature = other then begin
-    CanAttackTarget := True;
+    CanTarget := True;
     Exit;
   end;
   suppressTargeting := 0;
@@ -680,7 +680,7 @@ begin
     FxEngine.TriggerEffectsWithCondition(C_COND.ATTACKER_VETO, creature);
     creature^.combatAddr^.other := saved;
   end;
-  CanAttackTarget := suppressTargeting = 0;
+  CanTarget := suppressTargeting = 0;
 end;
 
 { Turn undead at ClassCal.TurnLevel: one d20 roll against the turning table (ClassCal.TurnValue), applied to up to 1d12
@@ -775,7 +775,7 @@ end;
   att's actions end. The blows' sounds are of the Settings screen's ranged kind for a ranged attack, else melee. A
   party member's armed blow shows the Bestiary whether def is Large, and each roll from the front narrows def's armor
   class there (#842). }
-procedure DoAttack(att, def: Types.PCharRecord; fromBehind, ranged: Boolean; var done: Boolean);
+procedure RollAttacks(att, def: Types.PCharRecord; fromBehind, ranged: Boolean; var done: Boolean);
 var
   base: Types.TBaseItemRec;
   anyHit: Boolean;
@@ -853,7 +853,7 @@ begin
         behindIdx := 1;
       defense := Types.PAttackPhaseView(def)^.acCurArr[behindIdx];
     end;
-    CbtActs.ModifyDefenseForDistance(att, def, defense);
+    CbtActs.ApplyRangePenalty(att, def, defense);
     atkType := 0;
     if behind then
       atkType := 1;
@@ -908,8 +908,8 @@ begin
 end;
 
 { The flanking accumulator: count attacks on def (flankCount) and add each attacker's angular offset from def's facing
-  (0..4) into flankSpread (mod 8). DoAttack's from-behind test and IsBackstab read them; they reset when def moves and
-  at the start of its turn. }
+  (0..4) into flankSpread (mod 8). RollAttacks's from-behind test and IsBackstab read them; they reset when def moves
+  and at the start of its turn. }
 procedure NoteAttackDirection(att, def: Types.PCharRecord);
 var
   rel: Byte;
@@ -924,10 +924,10 @@ begin
 end;
 
 { The public attack wrapper. def turns to face att (unless fromBehind or already attacked three times) and att turns and
-  animates, with a missile flight for weapon and for an equipped sling. If attacks remain, DoAttack runs; weapon (the
+  animates, with a missile flight for weapon and for an equipped sling. If attacks remain, RollAttacks runs; weapon (the
   missile or thrown item, nil for melee) then loses attacksMade[1] from its quantity, and once used up it is removed, an
   expended thrown weapon other than a spirit hammer dropping into the treasure pile. }
-procedure CombatAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
+procedure MakeAttack(att, def: Types.PCharRecord; fromBehind: Boolean; weapon: Types.PItemRec; var done: Boolean);
 var
   item: Types.PItemRec;
   savedCur: Types.PCharRecord;
@@ -949,17 +949,17 @@ begin
   att^.combatAddr^.other := def;
   Delay(100);
   if weapon <> nil then
-    CbtActs.RangedAttackAnim(att, def, weapon);
+    CbtActs.AnimateMissile(att, def, weapon);
   { a sling's stone animates a second time }
   if (att^.equipped[C_EQUIP.WEAPON] <> nil) and (att^.equipped[C_EQUIP.WEAPON]^.itemType = C_ITEM.SLING) then begin
-    CbtActs.RangedAttackAnim(att, def, att^.equipped[C_EQUIP.WEAPON]);
+    CbtActs.AnimateMissile(att, def, att^.equipped[C_EQUIP.WEAPON]);
     ranged := True;
   end;
   done := True;
   if (att^.curAttacks > 0) or (att^.curAttacks2 > 0) then begin
     savedCur := GameVars.curChar;
     GameVars.curChar := att;
-    CbtActs.DoAttack(att, def, fromBehind, ranged, done);
+    CbtActs.RollAttacks(att, def, fromBehind, ranged, done);
     if weapon <> nil then begin
       { a quantity of 0 is a single item, thrown and gone }
       weapon^.quantity := CbtActs.AmmoLeft(weapon^.quantity, attacksMade[1]);
@@ -987,7 +987,7 @@ end;
 
 { Range penalty: with a ranged weapon the subrange is (range - 1) div 3, and defense rises by 2 beyond one subrange and
   by 3 more beyond two. Melee adds nothing. }
-procedure ModifyDefenseForDistance(att, def: Types.PCharRecord; var defense: Byte);
+procedure ApplyRangePenalty(att, def: Types.PCharRecord; var defense: Byte);
 var
   subrange: ShortInt;
   dist: ShortInt;
@@ -1065,7 +1065,7 @@ end;
   the caster (Cure Light Wounds: FindCureTarget's pick); an offensive one makes up to 20 AcquireTarget picks, vetoing
   any with a non-enemy within aiRadius of it, or that is helpless when the spell's effect is one of helplessFx. On
   success set gTargetX/gTargetY; on failure clear tgt. }
-function PickSpellTarget(spell: Byte; ai: Boolean; ground: Byte; var tgt: Types.TAimTarget): Boolean;
+function SelectSpellTarget(spell: Byte; ai: Boolean; ground: Byte; var tgt: Types.TAimTarget): Boolean;
 var
   found: Boolean;
   ok: Boolean;
@@ -1112,11 +1112,11 @@ begin
     end;
   end;
   if found then begin
-    PickSpellTarget := True;
+    SelectSpellTarget := True;
     Magic.gTargetX := tgt.x;
     Magic.gTargetY := tgt.y;
   end else begin
-    PickSpellTarget := False;
+    SelectSpellTarget := False;
     FillChar(tgt, SizeOf(tgt), 0);
   end;
 end;
@@ -1242,11 +1242,11 @@ end;
   (CharHlp.SpellArea). The caster alone; one picked creature (a bare cell gets a zero-radius area); everything within
   the table radius (area and 7) of the picked cell, for a radius, a bolt or a cloud (the Fireball, Lightning Bolt and
   Stinking Cloud handlers then take their own cells); or up to its count of creatures picked one at a time. b is the
-  AI flag, passed to PickSpellTarget. While the player aims, the CbtMap spell-aim preview shows the cells the spell
+  AI flag, passed to SelectSpellTarget. While the player aims, the CbtMap spell-aim preview shows the cells the spell
   will reach: Lightning Bolt's path, Stinking Cloud's 2x2 block, or the blast at SpellArea's radius (a fireball bursts
   in flame); for a radius, a bolt or a cloud, line 23 shows who it will catch (ReportAreaCatch). The Javelin of
   Lightning is aimed at one creature, but its preview and count show the bolt that runs on past it (#861). }
-procedure CombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
+procedure SelectCombatTargets(spell: Byte; b: Boolean; var cast: Boolean);
 var
   remaining: Byte;
   k: Byte;
@@ -1279,7 +1279,7 @@ begin
             CbtMap.StartSpellPreview(Types.AimBolt, spell, 0, C_SPRITE.LIGHTNING, True);
           end else
             CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
-        picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
+        picked := CbtActs.SelectSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
           { the pick, not combatAddr^.other: the AI's pick of a non-offensive spell's target leaves its lock there }
@@ -1310,7 +1310,7 @@ begin
               CbtMap.StartSpellPreview(Types.AimBlast, spell, size, CbtActs.AimMarker(spell), True);
           end;
         end;
-        picked := CbtActs.PickSpellTarget(spell, b, 1, sel);
+        picked := CbtActs.SelectSpellTarget(spell, b, 1, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
           Pathing.TargetArea(Magic.gTargetX, Magic.gTargetY, GameDefs.spellTable[spell].area and 7);
@@ -1326,7 +1326,7 @@ begin
       while remaining > 0 do begin
         if not b then
           CbtMap.StartSpellPreview(Types.AimBlast, spell, 0, CbtActs.AimMarker(spell), False);
-        picked := CbtActs.PickSpellTarget(spell, b, 0, sel);
+        picked := CbtActs.SelectSpellTarget(spell, b, 0, sel);
         CbtMap.StopSpellPreview;
         if picked then begin
           dup := False;
@@ -1387,7 +1387,7 @@ begin
   if scroll <> nil then begin
     Magic.UseItemSpell(scroll, spellId, True, cast);
     CharHlp.RecalcStats(caster);
-    CbtActs.SetCurAttacksX2(caster);
+    CbtActs.RecalcAttacksLeft(caster);
     if not cast then
       CharDisp.DisplayCombatInterface;
     Exit;
@@ -1400,7 +1400,7 @@ begin
   if spellId > C_SPELL.NONE then begin
     castTime := GameDefs.spellTable[spellId].castTime div 3;
     if castTime = 0 then begin
-      Magic.CastSpellNC(spellId, Boolean(ai), True, cast);
+      Magic.CastSpell(spellId, Boolean(ai), True, cast);
       cast := CharHlp.EndActions(caster);
     end else begin
       cast := True;
@@ -1447,7 +1447,7 @@ begin
 end;
 
 { Build the missile icon for weapon's type and fly it from att to def between the ranged-attack sounds. }
-procedure RangedAttackAnim(att, def: Types.PCharRecord; weapon: Types.PItemRec);
+procedure AnimateMissile(att, def: Types.PCharRecord; weapon: Types.PItemRec);
 var
   sym: Byte;
   frames: Byte;
@@ -1502,7 +1502,7 @@ end;
 
 { Set hostileHpPct to the enabled hostiles' current HP as a percentage of all hostiles' maximum HP, rounded down to a
   multiple of five; it is left unchanged when there are no hostiles. }
-procedure CalcHostileHpPercent;
+procedure UpdateHostileHpPercent;
 var
   maxSum: Word;
   curSum: Word;
@@ -1648,7 +1648,7 @@ begin
       if CharHlp.HasThrowableWeapon(att) then
         if CbtMap.CalcDistance(att, def) = 1 then
           weapon := nil;
-  CbtActs.CombatAttack(att, def, False, weapon, done);
+  CbtActs.MakeAttack(att, def, False, weapon, done);
 end;
 
 { Confirm an aim selection. weaponMode=1 performs a weapon attack; 0 selects a spell target. An attack on an ally needs
@@ -1668,7 +1668,7 @@ begin
     GameVars.arenaPtr^.cursorOn := False;
     CbtMap.ScrollView(GameVars.arenaPtr^.ox + 3, GameVars.arenaPtr^.oy + 3, 3, C_DIR.CENTER);
     if weaponMode = 1 then
-      if CbtActs.SweepAttempt(cur, tgt) then
+      if CbtActs.SweepAttack(cur, tgt) then
         done := CharHlp.EndActions(cur)
       else
         CbtActs.AttackWithReadied(cur, tgt, done);
@@ -1746,7 +1746,7 @@ begin
     if (range < dist) or (GameDefs.terrainInfo[terrIdx].cost = 255) then
       valid := False;
     if underCursor <> nil then begin
-      if not CbtActs.CanAttackTarget(cur, underCursor) then
+      if not CbtActs.CanTarget(cur, underCursor) then
         valid := False;
       if weaponMode = 1 then
         if (cur = underCursor)
@@ -1879,7 +1879,7 @@ begin
   ch := ' ';
   while (done = False) and (not (ch in [C_KEYS.NONE, 'E'])) do
   begin
-    if not CbtActs.CanAttackTarget(creature, p) then
+    if not CbtActs.CanTarget(creature, p) then
       p := AdvanceAimTarget(skipStep, False)
     else begin
       ch := CbtActs.AimTargetMenu(creature, p, effRange, weaponMode, keyDir);
@@ -1927,9 +1927,9 @@ begin
 end;
 
 { Make sure combatAddr^.other holds a target. An existing lock is kept (without a range check) unless forceNew is set or
-  it is now an ally, disabled or vetoed by CanAttackTarget. Otherwise make up to 20 random picks among the enemies
+  it is now an ally, disabled or vetoed by CanTarget. Otherwise make up to 20 random picks among the enemies
   within range, dropping vetoed ones. If that fails a second pass repeats it, with the arena's distMode set (terrain no
-  longer blocks) unless forceNew; there relaxed <> 0 accepts a pick without CanAttackTarget. }
+  longer blocks) unless forceNew; there relaxed <> 0 accepts a pick without CanTarget. }
 function AcquireTarget(creature: Types.PCharRecord; range, relaxed, forceNew: Byte): Boolean;
 var
   cnt: Byte;
@@ -1947,7 +1947,7 @@ begin
   { Drop the lock when forceNew is set or the locked target is no longer valid; a nil lock skips the checks }
   if (forceNew <> 0) or
       ((p <> nil) and
-       ((p^.hostile = creature^.hostile) or (p^.enabled = 0) or (not CbtActs.CanAttackTarget(creature, p)))) then
+       ((p^.hostile = creature^.hostile) or (p^.enabled = 0) or (not CbtActs.CanTarget(creature, p)))) then
     creature^.combatAddr^.other := nil;
   if creature^.combatAddr^.other <> nil then
     found := True;
@@ -1963,7 +1963,7 @@ begin
       if GameVars.combatTargetSlots[pick] > 0 then begin
         p := GameVars.creatureArr[GameVars.combatTargetSlots[pick]];
         if ((relaxed <> 0) and (GameVars.arenaPtr^.distMode <> 0))
-           or CbtActs.CanAttackTarget(creature, p) then begin
+           or CbtActs.CanTarget(creature, p) then begin
           found := True;
           creature^.combatAddr^.other := p;
         end else begin
@@ -1989,7 +1989,7 @@ end;
 { C_EFFECT.REAR_CLAW_RAKE (73) handler (TEffectHandler shape; p and removed unused): when both primary attacks hit
   (hitsMade[1] = 2) and the locked target is still up, rake it with two 2d4 secondary attacks, then end the creature's
   actions. }
-procedure RearClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
+procedure AttackClawRake(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 var
   done: Boolean;
 begin
@@ -2001,7 +2001,7 @@ begin
       creature^.curDiceA[2] := 4;
       creature^.curAttacks := 0;
       CharDisp.PrintNameString(creature, 'Rakes...', 10, True);
-      CbtActs.CombatAttack(creature, creature^.combatAddr^.other, False, nil, done);
+      CbtActs.MakeAttack(creature, creature^.combatAddr^.other, False, nil, done);
       done := CharHlp.EndActions(creature);
     end;
 end;
@@ -2022,7 +2022,7 @@ begin
     creature^.curAttacks2 := 0;
     creature^.curRollsA[1] := 3;
     creature^.curDiceA[1] := 4;
-    CbtActs.CombatAttack(creature, GameVars.combatTarget, True, nil, done);
+    CbtActs.MakeAttack(creature, GameVars.combatTarget, True, nil, done);
     done := CharHlp.EndActions(creature);
     if GameVars.combatTarget^.enabled = 0 then
       FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, p);
@@ -2031,16 +2031,16 @@ end;
 
 { Alt-X cheat, active only when the first command-line parameter is STING: every hostile drops dead, every creature's
   actions end and the view is rebuilt. Returns False without STING. }
-function StingVictoryCheat: Boolean;
+function VictoryCheat: Boolean;
 var
   done: Boolean;
   p: Types.PCharRecord;
   slot: Byte;
 begin
-  StingVictoryCheat := False;
+  VictoryCheat := False;
   if not GameVars.stingArg then
     Exit;
-  StingVictoryCheat := True;
+  VictoryCheat := True;
   CharDisp.PrintBottomLine('The Gods intervene!');
   p := GameVars.creatureList;
   while p <> nil do begin

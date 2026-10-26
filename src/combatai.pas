@@ -126,7 +126,7 @@ begin
       cleared first, as there, so that the caster hurt by its own spell does not lose a second copy of it }
     spell := creature^.combatAddr^.spellCast;
     creature^.combatAddr^.spellCast := 0;
-    Magic.CastSpellNC(spell, True, True, done);
+    Magic.CastSpell(spell, True, True, done);
     done := CharHlp.EndActions(creature);
   end else if CombatAi.SelectItemToUse(creature) then
     done := CharHlp.EndActions(creature)
@@ -374,7 +374,7 @@ begin
       if (i <> slot) and (p <> nil) and (GameVars.arenaLoc[i].size <> 0) then
         if CharHlp.Team(p) <> CharHlp.EnemyTeam(creature) then
           friends := friends + [i]
-        else if (p^.enabled <> 0) and CbtActs.CanAttackTarget(creature, p) then
+        else if (p^.enabled <> 0) and CbtActs.CanTarget(creature, p) then
           enemies := enemies + [i];
     end;
     found := Pathing.RouteStep(slot, enemies, [], avoid, CbtMap.OccupantAt, dir, goal);
@@ -445,7 +445,7 @@ begin
       while (attempt < 6) and (not done)
             and (not CombatAi.AiCanStep(creature, attempt, dir, edge)) do
         if (creature^.combatAddr^.fleeing <> 0) and edge then
-          done := CbtActs.CombatFleeAttempt(creature)
+          done := CbtActs.AttemptFlee(creature)
         else
           Inc(attempt);
       if done then
@@ -552,7 +552,7 @@ begin
       if (target <> nil) and ((target^.enabled = 0) or (target^.hostile = creature^.hostile)) then
         target := nil;
       if target <> nil then
-        if CbtActs.CanAttackTarget(creature, target) then begin
+        if CbtActs.CanTarget(creature, target) then begin
           tx := CbtMap.CombatCellX(target);
           ty := CbtMap.CombatCellY(target);
           range := weaponRange;
@@ -582,7 +582,7 @@ begin
             if CharHlp.HasRangedWeapon(creature) and (not CharHlp.HasThrowableWeapon(creature)) then
               canAct := not CombatAi.FinishRound(creature);
           end else if (CbtMap.CalcDistance(creature, target) = 1)
-                  or CbtActs.CanAttackTarget(creature, target) then
+                  or CbtActs.CanTarget(creature, target) then
             inRange := True;
         end;
       end;
@@ -590,7 +590,7 @@ begin
         CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2,
                           CbtActs.DirTowardTarget(creature, target));
       if inRange then begin
-        if CbtActs.SweepAttempt(creature, target) then
+        if CbtActs.SweepAttack(creature, target) then
           done := CharHlp.EndActions(creature)
         else begin
           CbtActs.AttackWithReadied(creature, target, done);
@@ -651,7 +651,7 @@ begin
       { result ignored }
       C_KEYS.ALT_X:
         if ext then
-          if CbtActs.StingVictoryCheat then
+          if CbtActs.VictoryCheat then
             begin end;
     end;
   end;
@@ -860,7 +860,7 @@ begin
     changed := True;
   end;
   CharHlp.RecalcStats(creature);
-  CbtActs.SetCurAttacksX2(creature);
+  CbtActs.RecalcAttacksLeft(creature);
   needSwap := True;
   if creature^.equipped[C_EQUIP.SHIELD] <> nil then
     if (creature^.equipped[C_EQUIP.SHIELD] = bestShield)

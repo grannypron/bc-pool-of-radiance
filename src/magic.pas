@@ -54,7 +54,7 @@ procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
   and run GameVars.spellFns[spell] with spellId set. With no pick, outside combat it just returns; in combat
   b, or Yes to 'Abort Spell?', aborts and consumes the spell, and otherwise targeting repeats. b means automatic
   targeting (AI or quick fight); sel returns whether targets were picked. }
-procedure CastSpellNC(spell: Byte; b, announce: Boolean; var sel: Boolean);
+procedure CastSpell(spell: Byte; b, announce: Boolean; var sel: Boolean);
 
 { Cast's refusal of a combat-only spell outside combat: show the spell's name and 'is a combat-only spell...' in the
   message window. }
@@ -78,114 +78,114 @@ procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spel
 
 { Remove Curse (spellFns[43], also called by Temple): remove Bestow Curse (effect 36) from spellTargets[1], or
   else clear the curse on its first cursed item. }
-procedure RemoveCurseSpell;
+procedure SpellRemoveCurse;
 
 { Spell handlers: each acts on GameVars.curChar, spellTargets and spellId; GameInit.InitSpellFns maps
   spell IDs to them }
-procedure BlessHandler;
+procedure SpellBless;
 
-procedure CurseHandler;
+procedure SpellCurse;
 
-procedure CureLightWoundsHandler;
+procedure SpellCureLightWounds;
 
-procedure CauseLightWoundsHandler;
+procedure SpellCauseLightWounds;
 
-procedure DetectionHandler;
+procedure SpellDetection;
 
-procedure ProtectionHandler;
+procedure SpellProtection;
 
-procedure ResistColdHandler;
+procedure SpellResistCold;
 
-procedure BurningHandsHandler;
+procedure SpellBurningHands;
 
-procedure CharmPersonHandler;
+procedure SpellCharmPerson;
 
-procedure EnlargeHandler;
+procedure SpellEnlarge;
 
-procedure ReduceHandler;
+procedure SpellReduce;
 
-procedure FriendsHandler;
+procedure SpellFriends;
 
-procedure MagicMissileHandler;
+procedure SpellMagicMissile;
 
-procedure ShieldHandler;
+procedure SpellShield;
 
-procedure ShockingGraspHandler;
+procedure SpellShockingGrasp;
 
-procedure SleepHandler;
+procedure SpellSleep;
 
-procedure HoldPersonHandler;
+procedure SpellHold;
 
-procedure ResistFireHandler;
+procedure SpellResistFire;
 
-procedure SilenceHandler;
+procedure SpellSilence;
 
-procedure SlowPoisonHandler;
+procedure SpellSlowPoison;
 
-procedure SnakeCharmHandler;
+procedure SpellSnakeCharm;
 
-procedure SpiritualHammerHandler;
+procedure SpellSpiritualHammer;
 
-procedure InvisibilityHandler;
+procedure SpellInvisibility;
 
-procedure KnockHandler;
+procedure SpellKnock;
 
-procedure MirrorImageHandler;
+procedure SpellMirrorImage;
 
-procedure RayOfEnfeeblementHandler;
+procedure SpellRayOfEnfeeblement;
 
-procedure StinkingCloudHandler;
+procedure SpellStinkingCloud;
 
-procedure StrengthHandler;
+procedure SpellStrength;
 
-procedure AnimateDeadHandler;
+procedure SpellAnimateDead;
 
-procedure CureBlindnessHandler;
+procedure SpellCureBlindness;
 
-procedure CauseBlindnessHandler;
+procedure SpellCauseBlindness;
 
-procedure CureDiseaseHandler;
+procedure SpellCureDisease;
 
-procedure CauseDiseaseHandler;
+procedure SpellCauseDisease;
 
-procedure DispelMagicHandler;
+procedure SpellDispelMagic;
 
-procedure PrayerHandler;
+procedure SpellPrayer;
 
-procedure BestowCurseHandler;
+procedure SpellBestowCurse;
 
-procedure BlinkHandler;
+procedure SpellBlink;
 
-procedure FireballHandler;
+procedure SpellFireball;
 
-procedure HasteHandler;
+procedure SpellHaste;
 
-procedure LightningBoltHandler;
+procedure SpellLightningBolt;
 
 { The cells the bolt of spell (Lightning Bolt, or the Javelin of Lightning's, BoltShape) aimed at (x, y) by
   GameVars.curChar would cross after the aim cell itself, in order, bounces included, judged on the arena as it
   stands. Nothing is drawn or damaged. }
 procedure TraceBolt(spell: Byte; x, y: ShortInt; var cells: Types.TCellList);
 
-procedure SlowHandler;
+procedure SpellSlow;
 
-procedure RestorationHandler;
+procedure SpellRestoration;
 
-procedure PotionOfSpeedHandler;
+procedure SpellPotionOfSpeed;
 
 procedure KeoghtomsOintmentHandler;
 
-procedure GiantStrengthHandler;
+procedure SpellGiantStrength;
 
-procedure JavelinOfLightningHandler;
+procedure SpellJavelinOfLightning;
 
-procedure WandParalyzationHandler;
+procedure SpellWandOfParalyzation;
 
-procedure PotionOfHealingHandler;
+procedure SpellPotionOfHealing;
 
-procedure DustDisappearanceHandler;
+procedure SpellDustOfDisappearance;
 
-procedure WandMagicMissilesHandler;
+procedure SpellWandOfMagicMissiles;
 
 procedure UnusedSpellHandler;
 
@@ -905,7 +905,7 @@ begin
   end;
 end;
 
-procedure CastSpellNC(spell: Byte; b, announce: Boolean; var sel: Boolean);
+procedure CastSpell(spell: Byte; b, announce: Boolean; var sel: Boolean);
 var
   ok: Boolean;
   { the caster's chance of spell failure, and whether this cast failed }
@@ -1031,19 +1031,19 @@ begin
 end;
 
 { Bless: apply the spell to the caster's own team only (see CastOneSide). }
-procedure BlessHandler;
+procedure SpellBless;
 begin
   Magic.CastOneSide(CharHlp.Team(GameVars.curChar), 'is Blessed');
 end;
 
 { Curse: apply the spell to the caster's enemies only (see CastOneSide). }
-procedure CurseHandler;
+procedure SpellCurse;
 begin
   Magic.CastOneSide(1 - CharHlp.Team(GameVars.curChar), 'is Cursed');
 end;
 
 { Cure Light Wounds: restore 1d8 hit points to the first target. }
-procedure CureLightWoundsHandler;
+procedure SpellCureLightWounds;
 begin
   if GameVars.spellTargetCount = 0 then
     Exit;
@@ -1052,31 +1052,31 @@ begin
 end;
 
 { Cause Light Wounds: 1d8 damage, element mask 8. }
-procedure CauseLightWoundsHandler;
+procedure SpellCauseLightWounds;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(1, 8), C_EFFECT.ELEM_MAGIC, '');
 end;
 
 { Shared handler for the detection-style spells: apply the spell's effect. }
-procedure DetectionHandler;
+procedure SpellDetection;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is affected');
 end;
 
 { Shared handler for the protection spells: apply the spell's effect. }
-procedure ProtectionHandler;
+procedure SpellProtection;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is protected');
 end;
 
 { Resist Cold: apply the spell's effect. }
-procedure ResistColdHandler;
+procedure SpellResistCold;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is cold-resistant');
 end;
 
 { Burning Hands: caster-level damage, element mask 9. }
-procedure BurningHandsHandler;
+procedure SpellBurningHands;
 begin
   { no dice are rolled: the fixed damage counts as one die for the per-die fire protections (effects 61 and 113),
     which otherwise used the die count of whatever damage roll came before }
@@ -1088,7 +1088,7 @@ end;
 { Charm Person: only persons (CharHlp.IsPerson) can be charmed (#792). The Charm effect's strength is the caster's
   team (CharHlp.Team) * 128 + caster level; afterwards the target's first Charm effect (normally the one just added)
   has its handler called with removed = False. }
-procedure CharmPersonHandler;
+procedure SpellCharmPerson;
 var
   effect: Types.PEffectRec;
   tgt: Types.PCharRecord;
@@ -1107,7 +1107,7 @@ end;
 
 { Enlarge: set the first target's Strength from the caster level and add the Enlarge effect, which keeps the Strength
   encoding AdjustForNewStrength returns. }
-procedure EnlargeHandler;
+procedure SpellEnlarge;
 var
   baseStr: Byte;
   excStr: Byte;
@@ -1138,7 +1138,7 @@ begin
 end;
 
 { Reduce: if spellTargets[1] fails a spell save, remove its Enlarge effect (12) }
-procedure ReduceHandler;
+procedure SpellReduce;
 begin
   if GameVars.spellTargetCount > 0 then
     if not FxEngine.RollSavingThrow(GameVars.spellTargets[1], C_SAVE.SPELL, 0) then
@@ -1151,7 +1151,7 @@ end;
   takes back its own. Charisma rises only once the effect is on: a creature immune to it is unaffected. SSI's stored
   the Charisma before the cast and put it back, so casting it twice, or once more as the first lasted, left a lasting
   gain (POR-0212, #920). }
-procedure FriendsHandler;
+procedure SpellFriends;
 var
   tgt: Types.PCharRecord;
   newCha: Byte;
@@ -1177,7 +1177,7 @@ end;
 { Magic Missile: one missile of 1d4 + 1 for every two caster levels, the first at level 1 (1st edition and the rule
   book: two at levels 3 and 4, three at 5 and 6), element mask 8. SSI's counted caster level div 2, so a 1st-level
   caster's did no damage and every later pair of levels got its missile a level late (#859). }
-procedure MagicMissileHandler;
+procedure SpellMagicMissile;
 var
   missiles: Byte;
 begin
@@ -1187,13 +1187,13 @@ begin
 end;
 
 { Shield: apply the spell's effect. }
-procedure ShieldHandler;
+procedure SpellShield;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is shielded');
 end;
 
 { Shocking Grasp: 1d8 + caster level damage, element mask $C. }
-procedure ShockingGraspHandler;
+procedure SpellShockingGrasp;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False,
                       Dice.RollDamageDice(1, 8) + CharHlp.GetCasterLevel(GameVars.spellId),
@@ -1203,7 +1203,7 @@ end;
 { Sleep: a 4d4 hit-dice pool (C_SPELL.SLEEP_DICE d SLEEP_DIE), spent greedily in target order through
   CharHlp.SleepTakes: animated dead, targets already asleep and targets the remaining pool cannot pay for
   (CharHlp.SleepCost) are dropped. }
-procedure SleepHandler;
+procedure SpellSleep;
 var
   pool: Byte;
   i: Byte;
@@ -1219,7 +1219,7 @@ end;
 { Hold Person (spells 23 and 49): save modifier -2 (cleric) or -3 (mage) for one target, -1 for two, 0 for three or
   more. Targets are processed in reverse; each one after the first processed (i < spellTargetCount) gets its own
   projectile animation. Targets that are not persons (CharHlp.IsPerson, #792) always save. }
-procedure HoldPersonHandler;
+procedure SpellHold;
 var
   tgt: Types.PCharRecord;
   saved: Boolean;
@@ -1257,13 +1257,13 @@ begin
 end;
 
 { Resist Fire: apply the spell's effect. }
-procedure ResistFireHandler;
+procedure SpellResistFire;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is fire resistant');
 end;
 
 { Silence: apply the spell's effect. }
-procedure SilenceHandler;
+procedure SpellSilence;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is silenced');
 end;
@@ -1281,7 +1281,7 @@ end;
   not fled, petrified or gone) gets back up (StandUpOrWake, as under Keoghtom's Ointment); one still standing is left
   as it is. SSI stood up every poisoned target, so a standing one "got back up" again and a stoned, disintegrated or
   fled one was set Okay. }
-procedure SlowPoisonHandler;
+procedure SpellSlowPoison;
 var
   effect: Types.PEffectRec;
   tgt: Types.PCharRecord;
@@ -1303,7 +1303,7 @@ end;
 { Snake Charm: rebuild the target list from GameVars.creatureList: snakes (SNAKE_NAME) whose hpCur still fits
   in a pool equal to the caster's hpCur, paid in list order. SSI's took charType 14, which the large and huge scorpions
   share with the giant snake (#802). }
-procedure SnakeCharmHandler;
+procedure SpellSnakeCharm;
 const
   { The game's one snake, the creature Snake Charm affects (#802): its charType, 14, the scorpions share }
   SNAKE_NAME = 'GIANT SNAKE';
@@ -1327,32 +1327,32 @@ begin
 end;
 
 { Spiritual Hammer: apply the spell's effect, then run the Spiritual Hammer effect handler for the first target. }
-procedure SpiritualHammerHandler;
+procedure SpellSpiritualHammer;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, True, 0, 0, '');
   FxEngine.CallEffectHandler(C_EFFECT.SPIRITUAL_HAMMER, GameVars.spellTargets[1], nil, False);
 end;
 
 { Invisibility: apply the spell's effect. }
-procedure InvisibilityHandler;
+procedure SpellInvisibility;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is invisible');
 end;
 
 { Knock: apply the spell's effect. }
-procedure KnockHandler;
+procedure SpellKnock;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'Knock-Knock');
 end;
 
 { Mirror Image: apply the spell's effect with 1d4 images as its strength. }
-procedure MirrorImageHandler;
+procedure SpellMirrorImage;
 begin
   Magic.ResolveSpell(GameVars.spellId, Dice.RollDice(1, 4), False, 0, 0, 'is duplicated');
 end;
 
 { Ray of Enfeeblement: apply the spell's effect. }
-procedure RayOfEnfeeblementHandler;
+procedure SpellRayOfEnfeeblement;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is weakened');
 end;
@@ -1365,7 +1365,7 @@ end;
   (GameDefs.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
   takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_TERR.STINKING_CLOUD;
   every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud, once however many cells it fills. }
-procedure StinkingCloudHandler;
+procedure SpellStinkingCloud;
 var
   p2: Types.PStinkRec;
   node: Types.PStinkRec;
@@ -1446,7 +1446,7 @@ end;
 { Strength: add 1d4 for a mage, 1d6 for a cleric or thief, 1d8 for a fighter, paladin or ranger; when several classes
   match, the last test wins, and with none of them nothing is added. Above 18, those warriors turn each extra point into
   10 points of exceptional Strength (capped at 100) and others are held at 18. }
-procedure StrengthHandler;
+procedure SpellStrength;
 var
   tgt: Types.PCharRecord;
   exStr: Byte;
@@ -1485,7 +1485,7 @@ end;
   caster's team under computer control (quickfight 1), becomes undead (charType 4, levelUndead 2, movementBase 6,
   attackLevel 0), loses its memorized spells and gets the animated NPC or PC npc code; if ReviveDeadCreature succeeds at
   full hpMax it also gets effect 32 and C_STATUS.ANIMATED. }
-procedure AnimateDeadHandler;
+procedure SpellAnimateDead;
 var
   i: Byte;
   strength: Byte;
@@ -1534,14 +1534,14 @@ begin
 end;
 
 { Cure Blindness: remove the first target's blindness. }
-procedure CureBlindnessHandler;
+procedure SpellCureBlindness;
 begin
   if FxEngine.RemoveEffectWithMessage(GameVars.spellTargets[1], C_EFFECT.BLIND) then
     CharDisp.PrintNameStringAnim(GameVars.spellTargets[1], True, 'can see');
 end;
 
 { Cause Blindness: apply the spell's effect. }
-procedure CauseBlindnessHandler;
+procedure SpellCauseBlindness;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is blind');
 end;
@@ -1558,7 +1558,7 @@ begin
 end;
 
 { Cure Disease: cure the first target's diseases (CureDiseaseOf). }
-procedure CureDiseaseHandler;
+procedure SpellCureDisease;
 var
   junk: Boolean;
 begin
@@ -1567,7 +1567,7 @@ begin
 end;
 
 { Cause Disease: apply the spell's effect. }
-procedure CauseDiseaseHandler;
+procedure SpellCauseDisease;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, True, 0, 0, 'is diseased');
 end;
@@ -1577,7 +1577,7 @@ end;
   left alone, and so are the diseases (C_EFFECT.DISEASES), which Cure Disease removes: SSI's dispelled Strength drain
   re-armed itself and took another point (#787). A removal that frees the next effect (dispelled Animate Dead) ends that
   target's walk; SSI read on into the freed node. }
-procedure DispelMagicHandler;
+procedure SpellDispelMagic;
 var
   chance: Byte;
   effLevel: Byte;
@@ -1629,14 +1629,14 @@ begin
 end;
 
 { Prayer: apply the spell's effect at FxEngine.PrayerStrength, the caster's team and level. }
-procedure PrayerHandler;
+procedure SpellPrayer;
 begin
   Magic.ResolveSpell(GameVars.spellId,
                       FxEngine.PrayerStrength(GameVars.curChar, CharHlp.GetCasterLevel(GameVars.spellId)),
                       False, 0, 0, 'is praying');
 end;
 
-procedure RemoveCurseSpell;
+procedure SpellRemoveCurse;
 var
   item: Types.PItemRec;
   found: Boolean;
@@ -1659,20 +1659,20 @@ begin
 end;
 
 { Bestow Curse: apply the spell's effect. }
-procedure BestowCurseHandler;
+procedure SpellBestowCurse;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'has been cursed!');
 end;
 
 { Blink: apply the spell's effect. }
-procedure BlinkHandler;
+procedure SpellBlink;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is blinking');
 end;
 
 { Fireball: spell 64 (an item fireball) uses level 1d C_SPELL.ITEM_FIREBALL_DIE * 2 + 1. When zone0^.view3dFlag is 0 the
   target list is rebuilt with Pathing.TargetArea, radius 2 around the aim cell. Damage is level d6, element mask 9. }
-procedure FireballHandler;
+procedure SpellFireball;
 var
   cl: Byte;
 begin
@@ -1720,7 +1720,7 @@ begin
 end;
 
 { Haste: the caster's team loses Slowed or is hasted (see HasteSlowLogic). }
-procedure HasteHandler;
+procedure SpellHaste;
 begin
   Magic.HasteSlowLogic(C_EFFECT.SLOWED, CharHlp.Team(GameVars.curChar), 'is Hasted');
 end;
@@ -1874,7 +1874,7 @@ begin
 end;
 
 { Lightning Bolt: caster-level d6 damage at the aim cell, then a bouncing bolt of 8 cells. }
-procedure LightningBoltHandler;
+procedure SpellLightningBolt;
 var
   dmg: Byte;
   junk: Boolean;
@@ -1905,7 +1905,7 @@ begin
 end;
 
 { Slow: the caster's enemies lose Hasted or are slowed (see HasteSlowLogic). }
-procedure SlowHandler;
+procedure SpellSlow;
 begin
   Magic.HasteSlowLogic(C_EFFECT.HASTED, 1 - CharHlp.Team(GameVars.curChar), 'is Slowed');
 end;
@@ -1916,7 +1916,7 @@ end;
   lower; with no pick the hit points alone come back. A class a dual-classed human has left is never the pick, as
   Curse restores classLevels alone (curse-disassembly v13 magic.pas:2016-2047), and a class the restored level passes
   wakes again (ChgClass.AnnounceWoken, #838). }
-procedure RestorationHandler;
+procedure SpellRestoration;
 var
   tgt: Types.PCharRecord;
   share: Byte;
@@ -1969,7 +1969,7 @@ begin
 end;
 
 { Potion of Speed: remove Slowed, or else apply the potion's effect. }
-procedure PotionOfSpeedHandler;
+procedure SpellPotionOfSpeed;
 begin
   if not FxEngine.RemoveEffectWithMessage(GameVars.spellTargets[1], C_EFFECT.SLOWED) then
     Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is Speedy');
@@ -2005,7 +2005,7 @@ end;
 
 { Giant Strength: raise Strength to 21 and add the Strength effect, which keeps the Strength encoding
   AdjustForNewStrength returns. }
-procedure GiantStrengthHandler;
+procedure SpellGiantStrength;
 var
   enc: Byte;
 begin
@@ -2017,7 +2017,7 @@ end;
 
 { Javelin of Lightning: 1d6 + 20 damage at the aim cell, then a bolt of 20 damage C_SPELL.JAVELIN_BOLT_CELLS cells
   on. }
-procedure JavelinOfLightningHandler;
+procedure SpellJavelinOfLightning;
 var
   junk: Boolean;
   boltLen: Byte;
@@ -2029,26 +2029,26 @@ begin
 end;
 
 { Wand of Paralyzation: apply the item's effect. }
-procedure WandParalyzationHandler;
+procedure SpellWandOfParalyzation;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is paralyzed');
 end;
 
 { Potion of Healing: restore 2d4 + 2 hit points. }
-procedure PotionOfHealingHandler;
+procedure SpellPotionOfHealing;
 begin
   if FxEngine.RestoreHitPoints(GameVars.spellTargets[1], Dice.RollDice(2, 4) + 2, False) then
     CharDisp.PrintNameStringAnim(GameVars.spellTargets[1], True, 'is Healed');
 end;
 
 { Dust of Disappearance: apply the item's effect. }
-procedure DustDisappearanceHandler;
+procedure SpellDustOfDisappearance;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, 0, 0, 'is invisible');
 end;
 
 { Wand of Magic Missiles: 2d4 + 2 damage, element C_EFFECT.ELEM_MAGIC. }
-procedure WandMagicMissilesHandler;
+procedure SpellWandOfMagicMissiles;
 begin
   Magic.ResolveSpell(GameVars.spellId, 0, False, Dice.RollDamageDice(2, 4) + 2, C_EFFECT.ELEM_MAGIC, '');
 end;
@@ -2217,7 +2217,7 @@ begin
   if announce then
     Magic.PrintCastSpellMsg(GameVars.curChar, 'casts', spell);
   cast := False;
-  Magic.CastSpellNC(spell, GameVars.curChar^.quickfight <> 0, False, cast);
+  Magic.CastSpell(spell, GameVars.curChar^.quickfight <> 0, False, cast);
   GameVars.usingItem := False;
   done := cast;
   if GameVars.ifcState = C_IFC.IN_COMBAT then
