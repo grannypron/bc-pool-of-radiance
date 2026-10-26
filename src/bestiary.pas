@@ -213,7 +213,8 @@ begin
   Reserve := True;
 end;
 
-{ The index of the entry for name, a new empty one at the end when there is none; 0 for no name, or no room. }
+{ The index of the entry for name, a new empty one at the end when there is none, marked met in this game
+  (C_BEAST.MET_HERE); 0 for no name, or no room. }
 function Add(name: Types.TStr40): Word;
 var
   i: Word;
@@ -233,6 +234,7 @@ begin
     table^[i].acHi := C_BEAST.AC_NO_HIGH;
     dirty := True;
   end;
+  Bestiary.SetFact(table^[i], C_BEAST.MET_HERE);
   Add := i;
 end;
 

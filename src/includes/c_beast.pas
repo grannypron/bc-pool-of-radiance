@@ -38,6 +38,13 @@ const
   { the sage has told all she knows of it (#868, BeastFil.Tell): the entry page shows no ?? after its defenses and
     attacks }
   TOLD = 20;
+  { Met in this game, Pool of Radiance. Bits 28..31 are the four games' marks, one each in the order the games came out
+    (Pool, Curse, Secret, Pools), this game's the first: in a BESTIARY.DAT several games share, an entry without this
+    bit was met only in another game, and one with it and another game's bit was met in both. Curse of the Azure Bonds
+    sets bit 29. A game that sets no mark of its own leaves its entries with none. }
+  FIRST_GAME_MARK = 28;
+  MET_HERE = 28;
+  LAST_GAME_MARK = 31;
   { its attacks }
   FIRST_ATTACK = 32;
   ATK_POISON = 32;

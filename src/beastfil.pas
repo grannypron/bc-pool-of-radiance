@@ -1,5 +1,6 @@
 { BESTIARY.DAT (#842): the Bestiary's knowledge, kept in the save folder and not in a save, so it carries from game to
-  game; the format is meant for Curse, Secret and Pools as well. The file is a header (the signature BEST, the format's
+  game; the format is meant for Curse, Secret and Pools as well, and an entry this game has met carries
+  C_BEAST.MET_HERE (another game's entries carry its own mark). The file is a header (the signature BEST, the format's
   version, the bytes of an entry and their count) and then the entries, each a Bestiary.TBeast. A missing file is an
   empty bestiary. A damaged one (a foreign signature, a version before the first, a size that does not add up) reads as
   empty and is renamed BESTIARY.BAD when the next is written. One of a newer format is read, since a newer format only

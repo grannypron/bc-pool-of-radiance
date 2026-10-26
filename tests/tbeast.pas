@@ -19,6 +19,8 @@ var
   a: Types.PCharRecord;
   troll: Types.PCharRecord;
   kobold: Types.PCharRecord;
+  { a kind another game met, met here too }
+  beholder: Types.PCharRecord;
   b: Bestiary.PBeast;
   t: Bestiary.TBeast;
   i: Word;
@@ -112,6 +114,11 @@ begin
   TestKit.CheckEqualsL(2, Troll_^.seen, 'a new encounter counts again');
   TestKit.CheckEqualsL(0, Bestiary.Find('ORC'), 'an unmet kind is not found');
   TestKit.Check(not Bestiary.Knows(Troll_^, C_BEAST.SIZE_KNOWN), 'a new entry knows nothing');
+  TestKit.Check(Bestiary.Knows(Troll_^, C_BEAST.MET_HERE), 'but that it was met in this game');
+  TestKit.CheckEqualsL(28, C_BEAST.MET_HERE, 'Pool''s mark is bit 28, the first game''s');
+  TestKit.Check((C_BEAST.MET_HERE >= C_BEAST.FIRST_GAME_MARK) and (C_BEAST.MET_HERE <= C_BEAST.LAST_GAME_MARK) and
+                (C_BEAST.TOLD < C_BEAST.FIRST_GAME_MARK) and (C_BEAST.LAST_GAME_MARK < C_BEAST.FIRST_ATTACK),
+                'the game marks are bits of their own');
   TestKit.CheckEqualsL(C_BEAST.AC_NO_LOW, Troll_^.acLo, 'nor its armor class, low');
   TestKit.CheckEqualsL(C_BEAST.AC_NO_HIGH, Troll_^.acHi, 'nor high');
 
@@ -350,6 +357,23 @@ begin
     troll^.effectsAddr := e^.next;
     FreeMem(e, SizeOf(Types.TEffectRec));
   end;
+
+  { another game's entry, read from a shared file: its mark stays, and this game's is added once it is met here }
+  FillChar(t, SizeOf(t), 0);
+  t.name := 'BEHOLDER';
+  t.acLo := C_BEAST.AC_NO_LOW;
+  t.acHi := C_BEAST.AC_NO_HIGH;
+  { bit 29, Curse of the Azure Bonds' mark }
+  ok := Bestiary.Mark(t, 29, True);
+  TestKit.Check(Bestiary.Append(t), 'an entry Curse met');
+  b := Bestiary.Entry(Bestiary.Find('BEHOLDER'));
+  TestKit.Check(not Bestiary.Knows(b^, C_BEAST.MET_HERE), 'is not marked met here when read');
+  beholder := NewCreature('BEHOLDER', nil);
+  Bestiary.Met(beholder);
+  b := Bestiary.Entry(Bestiary.Find('BEHOLDER'));
+  TestKit.Check(Bestiary.Knows(b^, C_BEAST.MET_HERE) and Bestiary.Knows(b^, 29),
+                'met here too, it carries both games'' marks');
+  FreeMem(beholder, SizeOf(Types.TCharRecord));
 
   FileUtil.DeleteFile('TBEAST.DAT');
   FileUtil.DeleteFile(BeastFil.FILE_NAME);
