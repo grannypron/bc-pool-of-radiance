@@ -1,13 +1,13 @@
-{ The fixes DataBld makes to the shipped data as it builds the merged archives, each to a known fault in one block of
-  a per-disk archive and named, here and in DATABLD.LOG, by the number of its issue in the pool-of-radiance
-  repository. A fix is one part, or a run of parts with the same issue and block, made together or not at all. A part
-  replaces origLen bytes at offset in the decoded block with newLen bytes, so a fix may lengthen a block (a script
-  that gains code at its end). It is made only when the block is size bytes long and holds the original bytes there;
-  offsets and sizes are those of the block as the fixes before it in this table leave it. A part's bytes are the next
-  origLen + newLen bytes of patchBytes, the original first. Changing the fixes means raising C_DATA.VERSION.
-  The table is code, not typed constants, so the game's data segment holds none of it (#964): LoadTable builds it on
-  the heap for DataBld, which frees it once the archives are built. Its bytes are string constants, which Turbo Pascal
-  keeps with this overlaid unit's code. }
+{ Defines the data fixes applied while DataBld creates merged archives. Each fix
+  is identified by its repository issue number and contains one or more atomic
+  replacements for a single decoded block. A replacement is applied only when
+  the block size and original bytes match exactly. Later offsets refer to the
+  results of earlier fixes in this table. Changing the table requires raising
+  C_DATA.VERSION.
+
+  LoadTable builds the patch table on the heap so its large byte strings remain
+  in this overlay instead of occupying the game's data segment (#964). DataBld
+  frees the table after building the archives. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit DataPat;

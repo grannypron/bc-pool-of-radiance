@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# build.sh -- build Pool of Radiance from src/ into obj/START.EXE and obj/GAME.OVR, and its set-up program into
-# obj/POOLCFG.EXE (#876; a source without src/poolcfg.pas, as SSI's tags, has none).
+# Build the DOS game as obj/START.EXE and obj/GAME.OVR. Sources that include poolcfg.pas also produce
+# obj/POOLCFG.EXE (#876); the historical SSI tags do not contain that program.
 #
 #   ./build.sh              build
 #   ./build.sh --install    build, then copy the files into drive_c/POOLRAD to play
 #   ./build.sh --test       build, then compile and run the unit tests in tests/ (TestKit) under the same Turbo Pascal
 #
-# --install replaces the play install in this checkout's drive_c/POOLRAD; scripts and worktrees should not pass it.
+# --install updates the playable copy in drive_c/POOLRAD. Automated scripts and temporary worktrees should not use it.
 #
 # DOSBox-X runs build/build.bat with these drives:
 #   D:  $TOOLS/<compiler>       Turbo Pascal (TPC.EXE, TURBO.TPL); build/toolchain names the folder, TP50 if absent
@@ -16,7 +16,7 @@
 #   G:  $TOOLS/EXEPACK          Microsoft EXEPACK (EXEPACK.EXE)
 # TOOLS is the folder holding the DOS toolchains, drive_c unless set (the CI workflow sets it to /drive_d).
 #
-# Everything the build needs is checked first; every missing piece is reported before the script stops.
+# Prerequisites are checked together so one run reports every missing file or tool.
 
 set -u
 
@@ -24,7 +24,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 drive_c="$root/drive_c"
 game="$drive_c/POOLRAD"
 tools="${TOOLS:-$drive_c}"
-# The source's compiler: build/toolchain holds a line like "compiler=TP6-1991".
+# build/toolchain selects the compiler directory, for example TP6-1991.
 compiler="$(sed -n 's/^compiler=\([A-Za-z0-9._-]*\).*/\1/p' "$root/build/toolchain" 2> /dev/null | head -n 1)"
 compiler="${compiler:-TP50}"
 tp="$tools/$compiler"
@@ -49,7 +49,7 @@ problem() {
 }
 
 need_dir() {
-    # need_dir <path> <what it is, for the message>
+    # Arguments: path, followed by its description for an error message.
     [ -d "$1" ] || problem "Missing folder ${1#$root/}: $2"
 }
 
@@ -115,8 +115,8 @@ fi
 
 # --- build -------------------------------------------------------------------------------------
 
-# One build at a time in this checkout: two would delete and write the same obj/, build/logs and src/*.TPU. gametools
-# takes the same lock (goldbox.treelock); a build it starts carries its token for this lock and goes ahead under it.
+# Only one build may use a checkout at a time because builds share obj/, build/logs/, and src/*.TPU. gametools uses
+# the same lock. A build started by gametools inherits a token that lets it continue while that outer lock is held.
 lock="$root/.build.lock"
 token="${GOLDBOX_TREE_LOCK_TOKEN:-}"
 if [ -z "$token" ] || [ "${token%#*}" != "$(cd "$root" && pwd -P)/.build.lock" ] \
@@ -128,22 +128,21 @@ fi
 mkdir -p "$root/obj" "$root/build/logs"
 rm -f "$root/obj/START.EXE" "$root/obj/GAME.OVR" "$root/obj/POOLCFG.EXE" "$root"/build/logs/*.OUT
 
-# the files the build makes: the game, and its set-up program when the source has one
+# Track the expected outputs. Historical sources do not include the setup program.
 outputs=(START.EXE GAME.OVR)
 [ -f "$root/src/poolcfg.pas" ] && outputs+=(POOLCFG.EXE)
 
-# obj/BUILDID.INC names the source for the Options screen (tools/buildid.sh says how).
+# Generate the version and commit shown on the Options screen.
 "$root/tools/buildid.sh"
 
 echo "build.sh: compiling in DOSBox-X..."
-# DOSBox-X's own messages go to build/logs/DOSBOX.OUT. A build takes seconds; one that has not finished in ten minutes
-# is stuck (DOSBox-X waiting at a prompt, say) and is stopped. -defaultconf: DOSBox-X's built-in settings, not the
-# user's config file, so a local build runs as CI's does.
+# Send DOSBox-X's messages to DOSBOX.OUT and stop it after ten minutes. Normal builds take seconds, so reaching the
+# timeout usually means DOSBox-X is waiting at a prompt. -defaultconf ignores the user's configuration and keeps
+# local builds consistent with CI.
 dosbox_timeout=600
-# run_dosbox ARGS...: DOSBox-X with no desktop window (no display, SDL's dummy drivers, stdin closed), stopped with
-# SIGKILL: a SIGTERM makes DOSBox-X quit gracefully, which raises a "Quit DOSBox-X" dialog on the desktop (#775).
-# Each file the run writes is capped at 2 GB (ulimit -f counts 1 KB blocks), so a test that loops writing can't fill
-# the disk.
+# Run DOSBox-X headlessly with standard input closed. Use SIGKILL for timeouts because SIGTERM opens DOSBox-X's
+# graphical quit dialog (#775). Limit output files to 2 GB so a test stuck in a write loop cannot fill the disk;
+# ulimit -f measures 1 KB blocks here.
 run_dosbox() {
     (
         ulimit -f 2097152
@@ -162,8 +161,8 @@ run_dosbox -defaultconf -silent -exit -noautoexec -set "cpu cycles=max" \
     -c "exit" > "$root/build/logs/DOSBOX.OUT" 2>&1
 dosbox_status=$?
 
-# DOSBox-X's own exit status says nothing about the build; the logs and the outputs do. It does say when timeout
-# stopped it, and a missing TPC.OUT means build.bat never ran.
+# DOSBox-X does not propagate the batch file's status, so validate the logs and expected outputs instead. Its status
+# still reveals a timeout, and a missing TPC.OUT means build.bat never started.
 if [ $dosbox_status -eq 124 ] || [ $dosbox_status -eq 137 ]; then
     echo "build.sh: DOSBox-X had not finished after $dosbox_timeout seconds and was stopped;" \
         "see build/logs/DOSBOX.OUT." >&2
@@ -205,8 +204,8 @@ done
 echo "build.sh: built:"
 (cd "$root/obj" && sha256sum "${outputs[@]}" | sed 's/^/  /')
 
-# The sizes a change has to watch (docs/refactor-plan.md): the resident code, the data segment's 64 KB, and the
-# overlays, read from TPC's last line ("N lines, S seconds, C bytes code, D bytes data.") and the overlay stubs.
+# Report the size limits tracked by the refactor plan: resident code, the 64 KB data segment, and overlay load sizes.
+# TPC prints code and data sizes on its final line; ovlsizes.py reads the overlay stubs.
 sizes="$(tail -n 1 "$root/build/logs/TPC.OUT" | sed -n 's/.* \([0-9]*\) bytes code, \([0-9]*\) bytes data.*/\1 \2/p')"
 if [ -n "$sizes" ]; then
     set -- $sizes
@@ -228,15 +227,15 @@ if [ $run_tests -eq 1 ]; then
             echo "build.sh: tests/$name.pas: DOS cannot open a name longer than 8 characters" >&2
             exit 1
         fi
-        # a unit the tests use (TestKit, SndTrc) is not a test
+        # TestKit and SndTrc are support units, not executable tests.
         grep -qiE '^unit ' "$t" || tests+=("${name^^}")
     done
     mkdir -p "$root/obj/tests"
-    # each test's compiler output is build/logs/tests/<name>.OUT: a DOS name, so a test's name is at most 8 characters
+    # Compiler logs use the test name as a DOS filename, so test names must fit in eight characters.
     mkdir -p "$root/build/logs/tests"
     rm -f "$root"/obj/tests/* "$root"/build/logs/tests/*.OUT "$root"/build/logs/TEST_*.OUT
-    # RUNTESTS.BAT compiles each test program (with every unit it uses, /B) into obj\tests and runs it there; each
-    # appends its checks to TEST.LOG. Objects come from obj\tests, then obj, where the build assembles SOUNDDRV.OBJ.
+    # Generate a batch file that rebuilds every test and runs it from obj\tests. Tests append their results to
+    # TEST.LOG. The compiler searches obj\tests first, then obj for shared objects such as SOUNDDRV.OBJ.
     {
         printf '@echo off\r\npath d:\\\r\n'
         for t in "${tests[@]}"; do
@@ -277,8 +276,8 @@ fi
 
 # --- install -----------------------------------------------------------------------------------
 
-# Keep SSI's originals once, the first time a build replaces them. Nothing is installed unless both are kept: SSI/
-# left half-filled would stop every later run from trying again.
+# Back up SSI's executables the first time an install replaces them. Do not install anything unless both copies
+# succeed; a partially populated SSI directory would prevent later runs from retrying the backup.
 if [ ! -d "$game/SSI" ]; then
     if ! mkdir "$game/SSI"; then
         echo "build.sh: could not create drive_c/POOLRAD/SSI for the originals; nothing installed." >&2

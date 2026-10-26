@@ -1,7 +1,6 @@
-{ The video mode's cold operations: run at start-up, when pictures load and are mirrored, when a character's icon is
-  built or loaded, and when the data archives are built, so kept in an overlay with the drivers' Pic units, which share
-  its helpers. Blit holds the hot primitives and the size and capability questions. Both work through the installed
-  video driver, GameVars.video (phase 6 of docs/refactor-plan.md). }
+{ Infrequent video operations used during startup, picture loading, icon
+  building, and data-archive generation. These live in an overlay; the hot
+  drawing primitives stay in Blit. Both use the driver in GameVars.video. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit VidOps;
@@ -38,41 +37,29 @@ procedure RecolorPic(var toT: Types.TColorTab; pic: Types.PImgBuf);
   mode's layout. Pictures one cell wide only, as BldShow's cells are. }
 procedure PutPixelRow(pic: Types.PImgBuf; frame, y: Byte; var px: Types.TPixelRow);
 
-{ Returns the transparency mask of an 8-pixel chunk. A transpColor above 15 can match a high nibble but never a low one.
-  @param(transpColor The colour that is transparent, 0..15.)
-  @param(chunk The chunk's eight pixels, two to a byte, the first in the high nibble of chunk[0].)
-  @returns(A bit set for each pixel equal to transpColor, bit 7 for the first pixel down to bit 0 for the last.) }
+{ Builds the transparency mask for eight packed pixels. Bit 7 represents the
+  first pixel and bit 0 the last. chunk stores two pixels per byte, high nibble
+  first. }
 function ComputeMask(transpColor: Byte; chunk: Types.TChunk): Byte;
 
 { Pixel k (0..7, left to right) of an 8-pixel chunk: the high nibble of chunk[k div 2] for an even k, the low for an
   odd one. }
 function ChunkPixel(var chunk: Types.TChunk; k: Byte): Byte;
 
-{ Converts raw packed 4-bit artwork into the pixel layout of the active video mode, filling an already-allocated image
-  buffer, block by block (pic^.more), and, when the buffer has one, its transparency mask. Each 4-byte cell row of the
-  artwork goes to the driver's ExpandChunk with its mask bits: CGA makes two pixel bytes and two mask bytes of it, EGA
-  four plane bytes and one mask byte, Tandy the four bytes as they are and a mask byte for each, VGA eight bytes and
-  one mask byte. Transparent pixels are cleared in the pixel data (VGA's become PIC_KEY) so masked drawing can keep the
-  background under them and OR the graphic in.
-  @param(imgData Raw decompressed block holding the artwork.)
-  @param(srcOff Offset within imgData of the first pixel byte, just past the picture header.)
-  @param(transpColor Color index treated as transparent when building masks.)
-  @param(pic Destination buffer, sized by AllocPic; nothing happens if nil.) }
+{ Converts packed 4-bit artwork to the active driver's pixel layout. pic must
+  already be allocated. Each four-byte cell row is expanded by the driver, and
+  a transparency mask is generated when the destination supports one.
+  Transparent pixels are cleared (or changed to PIC_KEY for VGA) so masked
+  drawing preserves the background. A nil destination is ignored. }
 procedure ExpandPicFrames(imgData: Types.PByteArr; srcOff: Word; transpColor: Byte; pic: Types.PImgBuf);
 
-{ Reverses the bit order of a byte, reflecting eight EGA pixels (one plane byte or mask byte) left to right.
-  @param(value Byte to reflect.)
-  @returns(The byte with bits 0..7 swapped with bits 7..0.) }
+{ Reverses a byte's bits to mirror eight EGA pixels or mask bits. }
 function MirrorBits(value: Byte): Byte;
 
-{ Reverses the order of the eight 2-bit CGA pixels packed in a word, reflecting them left to right.
-  @param(value Two CGA pixel bytes of one cell.)
-  @returns(The word with its pixel order reversed.) }
+{ Reverses the eight packed 2-bit CGA pixels in a word. }
 function MirrorPairs(value: Word): Word;
 
-{ Swaps the two 4-bit Tandy pixels of a byte, reflecting them left to right.
-  @param(value Byte holding two pixels.)
-  @returns(The byte with its nibbles exchanged.) }
+{ Swaps a byte's two 4-bit Tandy pixels. }
 function MirrorNibbles(value: Byte): Byte;
 
 { Mirror src's first-frame mask into dst's, where a mask byte is a cell row (EGA's and VGA's): each row's bytes in

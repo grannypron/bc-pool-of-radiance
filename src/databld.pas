@@ -1,14 +1,14 @@
-{ The merged data archives, built at startup from the player's own copy of the game in the game folder. Each data
-  family's per-disk archives (ECL1-8.DAX, MON1-8CHA.DAX and so on; DataArc's family table) are gathered into one archive
-  (ECL.DAX, MONCHA.DAX) that DaxIo.LoadDax reads in their place, so nothing is tied to the current disk. Blocks are
-  copied packed, byte for byte. When two disks give one block id different contents, the first disk's block keeps the id
-  and the other is stored under a spare id, listed in the archive's remap block. The data fixes in DataPat are then
-  made, each only when its block still holds the bytes it replaces; a block that several disks share is first copied for
-  the fixed disk alone.
-  Each archive records the size and CRC-32 of every per-disk archive it was built from, and ends with its version and
-  the CRC-32 of everything before that. An archive the game can use (DaxIo.FamilyUsable) is kept; any other is rebuilt:
-  written as <name>.$$$, read back and checked, then renamed. Progress shows on the bottom line and on BldShow's full
-  screen, and every step goes to DATABLD.LOG. The game's own files are only read. }
+{ Builds merged data archives at startup from the player's installed game. Each
+  family combines its per-disk DAX files into one archive so runtime loading no
+  longer depends on the active disk. Packed blocks are copied byte for byte. If
+  the same block ID has different contents on two disks, later versions receive
+  spare IDs recorded in the remap table.
+
+  DataPat fixes are applied only when the target block still matches the known
+  original bytes. Each merged archive records the size and CRC-32 of its source
+  files, plus a version and checksum for the completed output. New archives are
+  written to a temporary file, verified, and then renamed into place. The
+  original game files are never modified. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit DataBld;

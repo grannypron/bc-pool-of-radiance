@@ -1,12 +1,12 @@
-# The arms shop in New Phlan (save A): walk there, pool the party's money, buy a hand axe for Andrea (Talonia's pack is
-# full, so the purchase goes to the fifth member), look at her pack, sell it back.
+# Tests the New Phlan arms shop using save A. Walk there, pool the party's money, and buy a hand axe. Talonia's pack is
+# full, so the purchase should go to Andrea, the fifth member. Inspect her inventory and sell the axe back.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA
-# east twice, south nine times to (7,11), then east into the shop at (8,11)
+# Walk east twice and south nine times to (7,11), then enter the shop at (8,11).
 press down up up right up up up up up up up up left up
 wait YES NO
 checkpoint greeting
@@ -15,16 +15,16 @@ wait BUY
 checkpoint shop
 press p
 checkpoint pooled
-# the fifth member, Andrea
+# Select Andrea, the fifth party member.
 press end end end end
 press b
 checkpoint stock
-# the hand axe, second in the list
+# Select the Hand Axe, second in the list.
 press end b esc
 wait BUY
 press v i
 checkpoint andreas-pack
-# the last item, the axe: Sell, and accept the offer
+# Select the axe at the end of the inventory, choose Sell, and accept the offer.
 press home s
 wait DEAL
 checkpoint offer

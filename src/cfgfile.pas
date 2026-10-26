@@ -1,9 +1,10 @@
-{ The configuration files (#876): POOL.CFG, which START reads first (the video, the sound device, the data and save
-  paths, the introduction), and POOLOPT.CFG in the save folder, the Settings screen's settings as KEY=VALUE lines with
-  the later games' paths. The game (GameBoot, Options) and the set-up program POOLCFG read and write them only through
-  this unit, so the two cannot read a file differently. Nothing here knows the game's state or screen: the settings are
-  a TSettings record, which Options copies to and from GameVars. Depends on nothing of the game's but FileUtil, so the
-  tests and POOLCFG link it alone; overlaid in the game. I/O errors are caught, never raised. }
+{ Reads and writes the configuration files (#876). POOL.CFG contains the video,
+  sound, introduction, data path, and save path used at startup. POOLOPT.CFG
+  contains the Settings screen values and paths for the later games.
+
+  Both the game and POOLCFG use this unit, so they parse the files identically.
+  The routines operate on TSettings rather than global game state and report
+  I/O failures instead of raising them. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit CfgFile;

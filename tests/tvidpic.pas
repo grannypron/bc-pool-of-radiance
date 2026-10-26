@@ -1,8 +1,6 @@
-{ Tests for the video drivers' picture routines in each mode (CGA, EGA, Tandy, VGA), without video hardware: installing
-  a driver only fills GameVars.video. A one-cell-wide picture of two rows, colours 0..7 and then 7..0 with 0
-  transparent, is converted from DAX's 4 bits a pixel (VidOps.ExpandPicFrames) and its bytes and mask checked against
-  the mode's layout; then the frame and mask sizes, a mirror (row 0 mirrored is row 1), a one-colour remap, a one-cell
-  fill and the picture blitted through its mask. CGA's colour map takes colour c to CGA colour c mod 4. }
+{ Tests picture conversion and drawing for CGA, EGA, Tandy, and VGA without
+  touching video hardware. A small known image verifies each mode's bytes,
+  transparency mask, dimensions, mirroring, remapping, filling, and masked blit. }
 {$I COMPILER.INC}
 program TVidPic;
 

@@ -1,9 +1,7 @@
-{ Tests for Protection from Evil and from Good (EffHndlr.EffProtEvil, EffProtGood, triggered through FxEngine): a
-  paladin's aura (eff 45) reaches only his own side (#782), and a protection applies once however many sources there
-  are, a spell (eff 8) and an aura together giving +2 to saves, not +4 (#783), and its -2 to be hit is taken off the
-  rolled d20, not before it (#789). Prayer applies once from each side in reach (#801), and its side is the caster's
-  team, hostile and 1, whatever larger hostile byte a damaged save holds (#827). A protection aura or Prayer lapses
-  while its carrier is out of action (POR-0220, #941). }
+{ Tests Protection from Evil/Good and Prayer. Coverage includes aura teams,
+  overlapping sources, save and attack modifiers, damaged team values, range,
+  and effects lapsing while their source is out of action (#782, #783, #789,
+  #801, #827, #941). }
 {$I COMPILER.INC}
 program TProtect;
 

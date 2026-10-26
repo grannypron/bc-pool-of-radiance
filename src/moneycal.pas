@@ -1,6 +1,6 @@
-{ Money arithmetic: coin values, making change, who pays a price, what items are worth, money type names and temple
-  prices. Using only data units, so Stats can use it and tests can too; overlaid, as only menus and the end of a combat
-  call it. }
+{ Money calculations shared by menus, combat results, Stats, and tests. This
+  unit handles coin values, change, payment sources, item values, and service
+  prices without depending on UI code. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit MoneyCal;
@@ -41,11 +41,12 @@ function CreatureGold(creature: Types.PCharRecord): LongInt;
 
 procedure MakeChange(rem, cap: LongInt; var m: Types.TMoney);
 
-{ Who pays gp gold pieces for buyer: buyer when its coins cover it, else the treasure pool when it does. }
+{ Selects buyer or the treasure pool as the payment source, or PAY_NOBODY when
+  neither can cover the price. }
 function WhoPays(buyer: Types.PCharRecord; gp: LongInt): Byte;
 
-{ How many pieces an item's value is for: ammunition (darts, quarrels and arrows) is valued per bundle of 20, as the
-  game's own 20 Arrows +1 for 100 gp are; anything else is valued per piece (3 Potions of Healing at 400 each). }
+{ Returns the bundle size used when valuing an item. Ammunition is priced in
+  bundles of 20; everything else is priced per piece. }
 function ItemBundle(item: Types.PItemRec): Byte;
 
 { What an item or stack is worth in gold: value * quantity div ItemBundle (quantity 0 is a single unstacked item). }
@@ -60,8 +61,7 @@ function ParseMoneyType(s: String; var typeName: String): ShortInt;
   the tenth rounded down (every listed price is a multiple of 10). }
 function TemplePrice(cost: Word; mode: Byte): Word;
 
-{ What the sage asks, in gold pieces, to tell of a creature of hd hit dice (0 or less for less than one):
-  SAGE_FEE_PER_HD a hit die, at least SAGE_FEE_MIN. }
+{ Calculates the sage's fee from hit dice, subject to the minimum charge. }
 function SageFee(hd: ShortInt): Word;
 
 implementation

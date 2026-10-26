@@ -1,12 +1,11 @@
-{ The Settings screen and POOLOPT.CFG. The game's settings (speed, portraits, music and sound with the kinds of each
-  that can be turned off on their own, Quick ending with the fight, quick-mode magic, the Companion Tools and their Clue
-  Book notes) are global: POOLOPT.CFG in the save folder keeps them as KEY=VALUE lines, with the provisional data and
-  save paths of the later Gold Box games, which only the configuration program will set. GameInit reads it at start-up,
-  before the title music, and every change writes it back; a saved game no longer changes them. The screen has three
-  pages (#835): the settings, the games' paths, and the system's details (video, sound device, build, data archives and
-  memory). The combat log and its size (#841) are settings too, which only a combat log with a store (CbtLog.Usable)
-  can change. POOLOPT.CFG is read and written through CfgFile, which the set-up program POOLCFG shares (#876): Collect
-  and Apply are the one place the game's GameVars meet its TSettings. }
+{ Implements the Settings screen and its POOLOPT.CFG storage. Settings are
+  global rather than part of a saved game. CfgFile reads and writes the shared
+  KEY=VALUE format used by both the game and POOLCFG (#876), while Collect and
+  Apply translate between TSettings and GameVars.
+
+  The screen has Game, Paths, and System pages (#835). Combat-log settings are
+  editable only when CbtLog has a backing store (#841). Changes are written when
+  the player leaves the screen. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Options;
@@ -15,17 +14,15 @@ interface
 
 uses CfgFile;
 
-{ Read POOLOPT.CFG from the save folder over the defaults GameInit has set, then apply the Sound setting. A missing or
-  unreadable file, an unknown key or a value out of range leaves the default. }
+{ Loads POOLOPT.CFG over GameInit's defaults and applies the result. Missing,
+  unreadable, unknown, or invalid values leave their defaults unchanged. }
 procedure LoadOptions;
 
-{ Write the settings to POOLOPT.CFG, keeping the lines whose keys this version does not know. The new file is written
-  beside it as POOLOPT.CF$ (FileUtil.TempName) and put in its place, so a failed write leaves the old file, and the
-  settings then hold for this session only. }
+{ Saves POOLOPT.CFG while preserving unknown keys. A temporary replacement
+  keeps the old file intact if writing fails. }
 procedure SaveOptions;
 
-{ Set the game's settings (GameVars) from s, and keep its later games' paths for POOLOPT.CFG. GameInit gives it
-  CfgFile.Defaults at start-up. }
+{ Applies s to GameVars and retains its later-game paths for the next save. }
 procedure Apply(var s: CfgFile.TSettings);
 
 { Show the Settings screen until Exit or Escape. Game, Paths and System on the bottom line show its pages. On the Game

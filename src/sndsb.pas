@@ -1,16 +1,16 @@
-{ The Sound Blaster sound driver: AdLib music through the card's OPL2, as SndOpl plays it, and the effects as SSI's
-  recorded samples (SBSFX.DAT, built by tools/sbsfx.py: Dark Queen of Krynn's, in its own 4-bit ADPCM, and the first of
-  Pools of Darkness's step thumps), each one DMA transfer the DSP plays at the sample's rate. Effects with no sample
-  play on the speaker. The driver never hooks the card's IRQ: a single-cycle transfer needs only the port and the DMA
-  channel, from BLASTER (A220 D1 by default). GameBoot installs it when POOL.CFG names B; with no DSP answering, the
-  AdLib's driver is installed instead (phase 7 of docs/refactor-plan.md). }
+{ Sound Blaster driver. Music uses the card's OPL2 through SndOpl. Effects use
+  samples from SBSFX.DAT when available and fall back to the PC speaker.
+
+  Each sample is a single-cycle DMA transfer, so the driver only needs the DSP
+  port and DMA channel from BLASTER (A220 D1 by default); it does not hook the
+  card's IRQ. Install falls back to AdLib when no DSP responds. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit SndSb;
 
 interface
 
-{ Make this the sound driver if a DSP answers, else the AdLib's (or the speaker's): fill GameVars.sound. }
+{ Installs this driver when a DSP responds, or the AdLib/speaker fallback otherwise. }
 procedure Install;
 
 implementation
@@ -57,9 +57,8 @@ var
     play on the speaker) }
   store: Types.PBytes;
   storeSize: Word;
-  { a buffer that crosses no 64 KB page, as long as the longest sample whose bytes in store cross one (which DMA
-    cannot): such a sample is copied here to play; nil when none crosses, or none could be placed, and such a sample
-    then plays on the speaker }
+  { DMA cannot cross a 64 KB boundary. Samples that do are copied into this
+    page-aligned bounce buffer. A nil buffer makes those effects use the speaker. }
   bounce: ^Byte;
   bounceSize: Word;
   loadTried: Boolean;
@@ -153,8 +152,8 @@ begin
   Crosses := (Physical(p) and $FFFF) + len > $10000;
 end;
 
-{ A block of size bytes that crosses no 64 KB page, or nil: blocks that cross one are held while another is tried, then
-  freed. }
+{ Allocates a block that does not cross a 64 KB boundary. Temporarily hold
+  unsuitable blocks so the heap allocator will try a different address. }
 function PlaceBlock(size: Word): Pointer;
 var
   held: array[1..PLACE_TRIES] of Pointer;
@@ -179,8 +178,8 @@ begin
   PlaceBlock := p;
 end;
 
-{ Load SBSFX.DAT, then a bounce buffer for the longest sample that crosses a 64 KB page in it; on any failure of the
-  file the store stays nil and the effects go to the speaker. }
+{ Loads SBSFX.DAT and allocates a bounce buffer large enough for any sample that
+  crosses a 64 KB boundary. File failures leave all effects on the speaker. }
 procedure LoadEffects;
 var
   count: Byte;
@@ -201,9 +200,9 @@ begin
     bounce := SndSb.PlaceBlock(bounceSize);
 end;
 
-{ Play the effect as one single-cycle DMA transfer: its bytes in place, or copied to the bounce buffer when they cross a
-  64 KB page. False when it cannot be played (crossing, with no bounce buffer) or the DSP did not take the commands
-  that start it. }
+{ Plays one effect with a single-cycle DMA transfer. Copy it to the bounce
+  buffer when necessary. Returns False if the sample cannot be placed or the
+  DSP rejects the startup commands. }
 function PlayEffect(var e: SfxFile.TSfxEntry): Boolean;
 var
   p: Pointer;

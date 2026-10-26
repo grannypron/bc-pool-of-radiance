@@ -1,10 +1,10 @@
-{ The full screen DataBld shows while it builds the merged data archives: the archive being made and its step, how many
-  families are finished with a bar and the time left, and a row for each family with one cell per per-disk archive. The
-  bar and the time left count bytes: each stale family's per-disk archives are read, then written and checked as its
-  merged archive, and each of those three passes counts as the family's per-disk bytes. Only what changed is drawn
-  again. When the game folder cannot be written, the status lines give way to a warning, the families that cannot be
-  built show as failed, and the build's own calls draw nothing. The screen is cleared when the build ends. With too
-  little memory for it, nothing is drawn and every call does nothing. }
+{ Displays DataBld's full-screen progress view. It shows the current archive and
+  phase, overall byte progress and estimated time, and the status of each
+  per-disk archive. Only changed regions are redrawn.
+
+  If the game directory is not writable, the display shows a warning and marks
+  affected families as failed. If the display cannot allocate its buffers, all
+  drawing routines quietly do nothing. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit BldShow;

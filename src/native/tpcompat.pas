@@ -1,12 +1,12 @@
 {$I COMPILER.INC}
-{ Turbo Pascal System routines Free Pascal lacks. build-native.sh loads this unit into every unit after System (-Fa), as
-  Turbo Pascal's System has them, so the game's units use them unchanged. Free Pascal only. }
+{ Implements Turbo Pascal System routines that Free Pascal lacks. The native
+  build loads this unit after System so existing game units need no changes. }
 unit TpCompat;
 
 interface
 
-{ The heap's free bytes and its largest free block. DOS had about 600 KB in all; a native heap grows as it needs to, so
-  both report a fixed 16 MB, more than any of the game's checks (a frame, a sound, a data file's buffer) asks for. }
+{ Native heaps grow on demand, so these return a fixed 16 MB—more than any
+  allocation guard in the original game requires. }
 function MemAvail: LongInt;
 function MaxAvail: LongInt;
 

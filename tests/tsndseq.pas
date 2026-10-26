@@ -1,8 +1,7 @@
-{ Tests for the sound sequencer's output (refactor phase 7, step 0): every tune, on the speaker and on the Tandy, run
-  tick by tick through the trace build (SndTrc), each tick's port writes folded into a CRC-32 with their count, until
-  every voice has run out or MAX_TICKS have passed. Each digest must match the record taken from SSI's sequencer before
-  the phase began, so the driver work changes no write. With no record (RECORDED False), the digests are written to
-  SNDSEQ.TXT as the record's source lines, and the test fails. }
+{ Golden tests for PC-speaker and Tandy sequencer output. Run every tune through
+  the trace driver and fold each tick's port writes into a CRC-32. Digests must
+  match SSI's original sequencer. Setting RECORDED to False regenerates source
+  lines in SNDSEQ.TXT and deliberately fails the test. }
 {$I COMPILER.INC}
 program TSndSeq;
 

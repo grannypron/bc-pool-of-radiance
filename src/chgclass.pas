@@ -1,8 +1,8 @@
-{ Dual Class (#838, #879): the training hall's screen where a human leaves its class and starts again as a level 1
-  character of another, as the 1st-edition PHB ("Characters With Two Classes", p.33) and Curse of the Azure Bonds let
-  it, and the powers that follow a class as it rests and wakes again. The rules are ClassCal's (CanChangeClass,
-  CanTakeClass, ChangeClass) and CharHlp's (GetClassLevel, ClassResting). Overlaid; CharGen, CharEdit, EffHndlr and
-  Magic use it. }
+{ Implements dual-classing at the training hall (#838, #879). An eligible human
+  leaves the current class and begins another at level 1, following the
+  first-edition rules used by Curse of the Azure Bonds. ClassCal applies the
+  transition rules, while CharHlp determines when the former class's abilities
+  become available again. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit ChgClass;

@@ -5,14 +5,13 @@ unit MapView;
 
 interface
 
-{ Draw the 3D view (location type 1, or any location while zone0^.view3dFlag is set) or the wilderness map (types
-  2..4) }
+{ Draws either the 3D view or the wilderness map for the current location. }
 procedure DisplayMapView;
 
-{ Draw the party's animated icon on the wilderness map, advance the 6-step animation frame and flush the view }
+{ Draws and advances the party's six-frame wilderness animation. }
 procedure DisplayWildMapView;
 
-{ Start the party's wilderness icon at its first frame, for a new game (GameInit.ResetGameState). }
+{ Resets the wilderness animation for a new game. }
 procedure ResetGame;
 
 implementation

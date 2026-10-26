@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# sndbench.sh -- the sound interrupt's cost on each device (refactor plan, phase 7, step 0).
+# Measure the sound interrupt's cost for each supported device (refactor plan, phase 7, step 0).
 #
 #   bench/sndbench.sh [CYCLES]
 #
-# Compiles bench/sndbench.pas, which links obj/SOUNDDRV.OBJ, so run ./build.sh first. Then runs it under DOSBox-X at a
-# fixed speed, CYCLES (default 10000) emulated cycles a millisecond: the Tandy on a Tandy machine, the speaker on an EGA
-# machine. Prints obj/bench/SNDBENCH.LOG: device, state (off, silent, music), loop count, and the interrupt's cost in
-# hundredths of a percent of the processor. Only figures taken at the same CYCLES compare.
+# Run ./build.sh first because the benchmark links obj/SOUNDDRV.OBJ. The script runs the Tandy driver on an emulated
+# Tandy and the speaker driver on an emulated EGA machine. DOSBox-X is fixed at CYCLES emulated cycles per millisecond
+# (10,000 by default), so only results recorded with the same value are comparable. SNDBENCH.LOG reports the device,
+# state, loop count, and interrupt cost in hundredths of a percent of CPU time.
 
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

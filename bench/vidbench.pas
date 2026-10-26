@@ -1,14 +1,14 @@
-{ The video primitives' speed in one video mode, for the refactor plan's phase 6 (step 0): how many times a second each
-  hot primitive's workload runs, on workloads shaped like the game's. bench/vidbench.sh compiles it and runs it once per
-  mode under DOSBox-X at a fixed speed; the first argument is POOL.CFG's video letter (C, E or T). Each line of
-  VIDBENCH.LOG is the mode, the workload, the runs, the BIOS ticks they took (18.2 a second) and the runs a second.
-  Only rates measured at the same DOSBox-X speed compare. }
+{ Benchmarks the video primitives using workloads modeled on the game.
+  bench/vidbench.sh runs this program once per video mode in DOSBox-X at a fixed
+  speed. Pass the POOL.CFG video letter C, E, or T. VIDBENCH.LOG records the
+  mode, workload, run count, elapsed BIOS ticks, and runs per second. Results
+  are comparable only when measured at the same DOSBox-X speed. }
 program VidBench;
 
 uses Types, C_VIDEO, GameVars, Blit, TextRend, VidCga, VidEga, VidTdy;
 
 const
-  { BIOS ticks each workload runs for, about 3 seconds }
+  { Run each workload for roughly three seconds. }
   RUN_TICKS = 54;
   LOG_NAME = 'VIDBENCH.LOG';
 
@@ -20,13 +20,13 @@ var
   i: Integer;
   arg: String;
 
-{ The BIOS tick count, as TextRend reads it. }
+{ Returns the BIOS tick count through TextRend. }
 function Ticks: LongInt;
 begin
   Ticks := TextRend.TickCount;
 end;
 
-{ 1,000 characters, 40 a row on rows 0..24 }
+{ Draws 1,000 characters, 40 per row across rows 0..24. }
 procedure Text1000;
 var
   n: Integer;
@@ -35,7 +35,7 @@ begin
     TextRend.RenderChar(n mod 40, (n div 40) mod 25, 15, 1, Ord('A') + n mod 26, 1);
 end;
 
-{ A 3D view's worth of 8x8 tiles: 21 x 21 masked tiles into the view buffer }
+{ Draws a 21x21 grid of masked tiles, matching one 3D view. }
 procedure Tiles441;
 var
   x: Integer;
@@ -46,13 +46,13 @@ begin
       Blit.BlitTileCell(x, y, 0, 1, tile, GameVars.dsViewImageBufferPtr);
 end;
 
-{ The 3D view's backdrop: the whole 168 x 168 view filled }
+{ Fills the complete 168x168 3D view. }
 procedure FillView;
 begin
   Blit.FillPicRect(0, 0, 21, 168, 1, noMap, GameVars.dsViewImageBufferPtr);
 end;
 
-{ The backdrop, then every one of its 168 dirty rows flushed to the screen }
+{ Fills the backdrop and flushes all 168 dirty rows to the screen. }
 procedure FillAndFlush;
 begin
   Blit.FillPicRect(0, 0, 21, 168, 1, noMap, GameVars.dsViewImageBufferPtr);
@@ -62,7 +62,7 @@ end;
 type
   TWorkload = procedure;
 
-{ Run work until RUN_TICKS ticks pass and log the rate. }
+{ Runs work for RUN_TICKS and logs its rate. }
 procedure Measure(name: String; work: TWorkload);
 var
   start: LongInt;
@@ -72,7 +72,7 @@ var
 begin
   runs := 0;
   start := Ticks;
-  { begin on a tick edge, so the first tick is a whole one }
+  { Start on a tick boundary so the first measured tick is complete. }
   repeat until Ticks <> start;
   start := Ticks;
   repeat
@@ -87,7 +87,7 @@ end;
 begin
   arg := ParamStr(1) + ' ';
   mode := UpCase(arg[1]);
-  { RestoreVideoMode returns to it: 80-column text }
+  { RestoreVideoMode returns to 80-column text mode. }
   GameVars.savedVideoMode := 3;
   case mode of
     'E': VidEga.Install;
@@ -99,7 +99,7 @@ begin
   end;
   Blit.SetVideoMode(GameVars.video.biosMode);
   GameVars.video.Start;
-  { as GameInit2 sets them up }
+  { Build the same row tables as GameInit2. }
   for i := 0 to 199 do begin
     if Odd(i) then
       GameVars.cgaRowSeg[i] := (i div 2) * 5 + C_VIDEO.GFX_BANK1_SEG
@@ -120,7 +120,7 @@ begin
   FillChar(GameVars.spanScreenOfs, SizeOf(GameVars.spanScreenOfs), 0);
   FillChar(GameVars.spanFirstOfs, SizeOf(GameVars.spanFirstOfs), $FF);
   FillChar(GameVars.spanLastOfs, SizeOf(GameVars.spanLastOfs), 0);
-  { one 8x8 tile with a mask }
+  { Allocate one masked 8x8 tile. }
   Blit.AllocPic(8, 1, 1, 1, tile);
   FillChar(noMap, SizeOf(noMap), 0);
 

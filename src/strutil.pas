@@ -1,5 +1,5 @@
-{ Number, padding and menu-text helpers for text the game shows. Resident and depending on nothing, so any unit can use
-  it, even the ones that start before the overlay manager (GameIo, TextRend). }
+{ Small formatting helpers used throughout the UI. This unit has no dependencies
+  and stays resident, so startup code can use it before overlays are available. }
 {$F+}
 {$I COMPILER.INC}
 unit StrUtil;
@@ -36,9 +36,9 @@ function Pluralize(n: LongInt; singular, plural: TNounStr): TNounStr;
 { n and a blank, then its noun (Pluralize): '1 SQUARE', '3 SQUARES', '0 points'. }
 function Count(n: LongInt; singular, plural: TNounStr): TCountStr;
 
-{ Hold the length byte of s, a string[max] read raw from a file, to max: True when it was within it already, else
-  the string is cut to max (#917). A raw length byte past its field would carry an assignment, a comparison or a
-  display past the string into whatever follows it. }
+{ Validates the length byte of a short string read directly from disk. Truncate
+  corrupt values to the field size so later string operations cannot read into
+  the following field (#917). Returns True when no repair was needed. }
 function FitLength(var s; max: Byte): Boolean;
 
 { s cut, or padded with spaces on the right, to width. }

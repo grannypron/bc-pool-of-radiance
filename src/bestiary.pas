@@ -1,11 +1,11 @@
-{ The Bestiary (#842): what the party has learned of each kind of creature it has met, keyed by the name the player sees
-  (as Stats keys its kills). Nothing is read out of the monster data: each fact goes in when the rule behind it acts on
-  the party or on a party member's blow, so the player learns what the game's rules make true. The facts are bits
-  (C_BEAST); the armor class is narrowed from the party's attack rolls; the times met, the kills, the hit dice once one
-  is killed and the most damage one has done in a blow are counted. The knowledge is the player's, not a save's: it is
-  kept in BESTIARY.DAT (BeastFil) and carries from game to game. The table is on the heap, grown GROW entries at a time
-  as new kinds are met, and only while the heap has room. Resident, as Stats is, so a blow in combat loads no overlay;
-  the file's reading and writing are overlaid, in BeastFil. }
+{ Tracks what the party has learned about each kind of creature (#842). Entries
+  are keyed by the name shown to the player. Facts are learned when the
+  corresponding rule is observed in play; armor class is narrowed from attack
+  rolls, while encounters, kills, hit dice, and maximum damage are counted.
+
+  This knowledge belongs to the player rather than a saved game. BeastFil keeps
+  it in BESTIARY.DAT so it carries between games. The resident table grows on
+  the heap as new creatures are encountered. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit Bestiary;
@@ -45,27 +45,27 @@ var
   readOnly: Boolean;
   damaged: Boolean;
 
-{ The kinds in the table; Entry(1) to Entry(Count) are they, in the order they were met. }
+{ Returns the number of creature kinds in the table. }
 function Count: Word;
 
-{ Entry i of the table, 1..Count; nil outside it. }
+{ Returns entry 1..Count, or nil when i is outside the table. }
 function Entry(i: Word): PBeast;
 
 { The index of the entry for name, or 0 when there is none. }
 function Find(name: Types.TStr40): Word;
 
-{ True when b has fact (a C_BEAST bit). }
+{ Returns whether b knows the given C_BEAST fact. }
 function Knows(var b: TBeast; fact: Byte): Boolean;
 
-{ Set fact (a C_BEAST bit) in b when known, else clear it: True when that changed b. The caller that keeps b marks the
-  table dirty. }
+{ Sets or clears a C_BEAST fact in b. Returns True when b changed; the caller
+  must mark the table dirty if the entry is retained. }
 function Mark(var b: TBeast; fact: Byte; known: Boolean): Boolean;
 
 { Narrow b's armor class with what one attack roll showed: AC >= bound when lower, else AC <= bound. A bound that
   contradicts the other side (another creature under the same name, or a change in the data) starts that side over. }
 procedure NarrowArmor(var b: TBeast; bound: Integer; lower: Boolean);
 
-{ Forget the whole table and free it: before BESTIARY.DAT is read. }
+{ Frees the table and resets it to empty. }
 procedure Clear;
 
 { Add b, an entry read from BESTIARY.DAT, to the end of the table, its armor bounds forgotten when they cross: False,
@@ -76,7 +76,7 @@ function Append(var b: TBeast): Boolean;
   kind there are (EclVm's LOAD MONSTER, a fight's start; a meeting that does not fight counts too). }
 procedure Met(creature: Types.PCharRecord);
 
-{ A new encounter: the kinds met so far count again when next met (CLEAR MONSTERS, a fight's end). }
+{ Starts a new encounter so previously seen kinds can increment their counts again. }
 procedure NewEncounter;
 
 { In combat, beast, a creature outside the party, shows fact to the party; witness is the party member on the other

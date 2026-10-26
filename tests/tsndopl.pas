@@ -1,10 +1,7 @@
-{ Tests for the AdLib's rendering of the Tandy arrangements (refactor phase 7, step 3): each tune is played on the
-  Tandy and then on the AdLib through the trace build (SndTrc), and the writes decoded tick by tick. The SN76489's
-  writes give each tone voice's period and attenuation; the OPL2's give each channel's fnum, block and carrier level.
-  Wherever a Tandy tone voice sounds, the AdLib channel must play its pitch within 1% at the level SN76489 attenuation
-  maps to; where it is silent, the channel must be silent too. The noise voice plays the OPL's snare drum: its level
-  must follow the same way, with the rhythm register keying it. Only the first CHECK_TICKS ticks of each tune are
-  compared. }
+{ Compares AdLib rendering with the original Tandy arrangements. Decode both
+  devices' traced writes tick by tick, requiring each AdLib channel to match the
+  Tandy voice's pitch within 1%, mapped volume, and silence. The noise voice is
+  compared with the OPL snare drum for the first CHECK_TICKS of each tune. }
 {$I COMPILER.INC}
 program TSndOpl;
 

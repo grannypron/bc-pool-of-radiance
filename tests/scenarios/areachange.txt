@@ -1,5 +1,5 @@
-# An area change: from New Phlan (save A) onto the training hall's notice board at (6,2), where New Phlan's script
-# hands over to the training hall's (NEWECL 11); the save popup then names the new area.
+# Tests an area transition from New Phlan in save A to the training hall. At (6,2), New Phlan's script runs NEWECL 11.
+# The save popup should then show the training hall as the current area.
 boot NORAND
 ignore POOL OF RADIANCE V
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
@@ -7,7 +7,7 @@ wait RADIANCE
 press l a
 wait AREA
 checkpoint new-phlan
-# north to (5,2), then east onto (6,2)
+# Walk north to (5,2), then east onto (6,2).
 press right up right up
 wait AREA
 checkpoint training-hall
@@ -15,13 +15,13 @@ press e
 wait CAMP
 press s d
 wait ^SAVE: EXIT
-# the popup's own layout (#656)
+# Capture the popup layout (#656).
 checkpoint save-popup
 press esc esc
-# the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
+# Record the current overlay-load count with STING Ctrl-Y. It is reported by tests/ovlloads.py but not compared.
 ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
 press ret ret ret
-# and the picture-memory line (phase 6)
+# Capture the picture-memory line for phase 6.
 press ret

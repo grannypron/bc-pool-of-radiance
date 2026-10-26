@@ -9,9 +9,9 @@ uses Types;
 
 procedure ShopMainMenu;
 
-{ The counter menu a shop and a temple share: Buy (a shop) or Heal (a temple), then View, Take, Pool, Share, Appraise
-  and Exit. command is the Buy or Heal command (Shop.ShopBuyMenu or Temple.HealMenu), so the shop need not know the
-  temple. Leaving with money on the counter asks first whether to go back for it. }
+{ Runs the counter menu shared by shops and temples. command supplies the Buy
+  or Heal action, keeping this unit independent of Temple. Leaving money on the
+  counter prompts the player before exiting. }
 procedure CounterMenu(atTemple: Boolean; command: Types.TMenuAction);
 
 procedure GiveItemCopyToCreature(item: Types.PItemRec; var failed: Boolean);
@@ -21,10 +21,9 @@ implementation
 uses Crt, C_MSG, GameVars, EclMenu, ViewChar, Money, C_KEYS, C_IFC, Border, CharHlp, MenuCore, TextRend, CharDisp,
   MoneyCal, Party;
 
-{ Rewrite every shop item name as a 30-column line, name at the left and price right-justified (a zero price is bumped
-  to 1), run the vertical Buy menu over the item list, then rebuild the real names with CharHlp.ItemLabel. Returns
-  the menu key in c and the highlighted item in itemToBuy; cursor and idx carry the menu position from one call to the
-  next. }
+{ Temporarily formats each item name as a 30-column menu row with a right-aligned
+  price, runs the Buy menu, then restores the normal labels. cursor and idx
+  preserve the selection between calls. }
 procedure ShopBuyItemSelection(var c: Char; var itemToBuy: Types.PItemRec; var cursor: Types.PItemRec;
                                var idx: Integer);
 var

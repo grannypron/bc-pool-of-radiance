@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 #
-# package.sh -- zip a build for release: dist/pool-of-radiance-<version>-dos.zip.
+# Package a DOS build as dist/pool-of-radiance-<version>-dos.zip.
 #
 #   ./package.sh v1.1
 #
-# Run it after build.sh. The zip holds START.EXE and GAME.OVR from obj/ (and POOLCFG.EXE, the set-up program, for a
-# source with src/poolcfg.pas), every file in src/binaries (the game's own data files, kept in Git: the title picture,
-# the Sound Blaster's recorded effects), a README.TXT and their SHA-256 sums in SHA256.TXT. Every name fits DOS's 8.3
-# limit, so the files read the same inside DOSBox.
+# Run this after build.sh. The archive contains START.EXE, GAME.OVR, and, when available, POOLCFG.EXE. It also includes
+# the project-generated files from src/binaries, a README, and SHA-256 checksums. All archive names fit DOS's 8.3
+# limit so DOSBox sees them unchanged.
 
 set -eu
 
@@ -19,21 +18,22 @@ if [ $# -ne 1 ]; then
 fi
 version="$1"
 
-# README.TXT says the files are built from the source tagged $version. The release workflow's dispatch path builds the
-# tag's src/ in another commit's checkout and sets SOURCE_DATE_EPOCH, so the check is left to it there.
+# README.TXT claims the archive was built from $version. Warn when a local build's HEAD is not that tag. Dispatched
+# release builds intentionally use a tag's source in another commit's checkout and set SOURCE_DATE_EPOCH, so skip the
+# warning there.
 if [ -z "${SOURCE_DATE_EPOCH:-}" ] \
         && [ "$(git -C "$root" rev-parse -q --verify "refs/tags/$version^{commit}" 2> /dev/null)" \
             != "$(git -C "$root" rev-parse -q --verify HEAD 2> /dev/null)" ]; then
     echo "package.sh: warning: HEAD is not the commit tagged $version, which README.TXT names as the source." >&2
 fi
 
-# the programs the zip holds: the game, and its set-up program when the source has one (#876)
+# Include the setup program when this source tree provides it (#876).
 files=(START.EXE GAME.OVR)
 [ -f "$root/src/poolcfg.pas" ] && files+=(POOLCFG.EXE)
 for f in "${files[@]}"; do
     [ -f "$root/obj/$f" ] || { echo "package.sh: obj/$f is missing; run ./build.sh first." >&2; exit 1; }
 done
-# the data files the source carries itself, beside the programs in the game's folder (older tags have none)
+# Include project-generated data files. Older tags do not have this directory.
 data=()
 dos_name='^[A-Z0-9_]{1,8}(\.[A-Z0-9_]{1,3})?$'
 if [ -d "$root/src/binaries" ]; then
@@ -47,7 +47,7 @@ if [ -d "$root/src/binaries" ]; then
 fi
 
 name="pool-of-radiance-$version-dos"
-# The game version whose data the build expects: v1.1 and v1.2 are SSI's own; every later tag is built on v1.3.
+# v1.1 and v1.2 use their matching retail data. Later releases are based on the v1.3 data sold by GOG and Steam.
 case "$version" in
     v1.1) game="1.1" release="" ;;
     v1.2) game="1.2" release="" ;;
@@ -93,7 +93,7 @@ into the game's folder too. The game runs without them, with SSI's
 title and the speaker's effects.
 EOF
 fi
-# Sources with src/databld.pas build the combined data files at startup (older tags do not).
+# Newer sources combine the per-disk archives at startup; historical tags do not.
 if [ -f "$root/src/databld.pas" ]; then
     cat >> "$stage/README.TXT" <<EOF
 
@@ -112,8 +112,7 @@ fi
 # DOS reads CRLF line endings.
 sed -i 's/$/\r/' "$stage/README.TXT" "$stage/SHA256.TXT"
 
-# Stamp every file with the commit's time and give it the same mode whatever the umask, so the same source gives the
-# same zip on any machine, on any day.
+# Normalize timestamps and permissions so the same source produces the same archive on any machine.
 stamp="${SOURCE_DATE_EPOCH:-$(git -C "$root" log -1 --format=%ct 2> /dev/null)}" || stamp=""
 [ -n "$stamp" ] || { echo "package.sh: cannot date the zip from git; set SOURCE_DATE_EPOCH." >&2; exit 1; }
 chmod 0644 "$stage"/*

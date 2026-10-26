@@ -1,16 +1,15 @@
-{ The native game's two folders (#1064): the data folder, which holds SSI's files and is only read, and the writable
-  folder, where the game writes what it makes (the merged archives, DATABLD.LOG, POOL.CFG from poolcfg, the saves with
-  POOLOPT.CFG, BESTIARY.DAT and the vault). They are one folder when the data is beside the program and may be written
-  (the release zip unpacked into the game's folder, as before); otherwise the writable folder is the player's own
-  (UserFolder), so a store's install, and GOG's signed Mac app above all, is never written.
+{ Locates the read-only game data and the directory used for generated files
+  (#1064). When a writable data directory sits beside the executable, both are
+  the same. Store installations and signed app bundles instead use a per-user
+  writable directory so the original installation is never modified.
 
-  The data folder is found without asking where it can be (Settle): --data-folder PATH, then beside the program (as
-  NatFile.EnterGameFolder found it before), then the folder found or chosen before (Remembered), then the stores' own
-  folders (Candidates: every Steam library, GOG's install from the Windows registry or its default folders, GOG's Mac
-  app, Heroic's), each taken only when it holds the data (HoldsData). DataPick asks the player when that finds several
-  or none. Each store's folder for a game is a TStoreGame, so Curse, Secret and Pools need only their own entry.
+  Settle checks an explicit command-line path, locations beside the executable,
+  the previously remembered choice, and known Steam, GOG, and Heroic layouts.
+  DataPick handles ambiguous or unsuccessful searches. Store-specific paths are
+  described by TStoreGame so the later Gold Box games can reuse this code.
 
-  No SDL and no game unit, so poolcfg and the unit tests link it. Free Pascal only. }
+  This unit deliberately has no SDL or game-unit dependencies, allowing poolcfg
+  and the unit tests to link it. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 {$I-}
@@ -19,10 +18,10 @@ unit GameDirs;
 interface
 
 type
-  { the system whose folders are searched }
+  { Operating system whose standard locations should be searched. }
   TOs = (OS_LINUX, OS_MAC, OS_WINDOWS);
 
-  { Where the stores put one game's data, each path under its install with '/' between folders (#1064's table). }
+  { Store-specific locations and identifiers for one game. }
   TStoreGame = record
     { the game's name: GOG's and Heroic's install folder, and the per-user folder's on macOS and Windows }
     name: string[40];
@@ -42,7 +41,7 @@ type
     gogMacFolder: ShortString;
   end;
 
-  { a folder that may hold the data, and the store it would be (shown when the player picks one) }
+  { Candidate data directory and the store name shown to the player. }
   TCandidate = record
     path: ShortString;
     store: string[24];
@@ -50,7 +49,8 @@ type
   TCandidates = array of TCandidate;
   TPaths = array of ShortString;
 
-  { the folders the search starts from: DefaultRoots's for this system, or a test's }
+  { Root directories searched for store installations. Tests can supply their
+    own roots instead of DefaultRoots. }
   TSearchRoots = record
     { Steam's own folders, each with steamapps/libraryfolders.vdf }
     steamRoots: TPaths;
@@ -93,39 +93,37 @@ const
   OPT_CHOOSE = '--choose-data-folder';
 
 var
-  { the data folder and the writable folder, each with its closing separator, once Settle or Take has placed them;
-    empty before }
+  { Selected data and writable directories, including trailing separators.
+    Both are empty until Settle or Take succeeds. }
   dataFolder: ShortString;
   writeFolder: ShortString;
 
-{ Every library folder libraryfolders.vdf (text) names: each "path" value, and in the older form each numbered one,
-  with VDF's escapes (\\ \") undone. }
+{ Parses every Steam library path from libraryfolders.vdf, including its older
+  numbered format, and decodes VDF escapes. }
 function ParseLibraryFolders(const text: AnsiString): TPaths;
 
-{ The search's roots on system os for a user whose home folder is home, from the environment and, on Windows, the
-  registry. }
+{ Builds the default search roots for an operating system and home directory. }
 function DefaultRoots(const game: TStoreGame; os: TOs; const home: ShortString): TSearchRoots;
 
-{ Every folder the stores would have put game's data in, from roots, in the order they are tried: Steam's libraries,
-  GOG's registry installs, GOG's marked Windows installs, GOG's Linux installs, GOG's Mac app, Heroic's. Whether each
-  holds the data is not looked at (Found does). }
+{ Expands the search roots into candidate installation directories, in search
+  order. This does not check whether the directories contain game data. }
 function Candidates(const roots: TSearchRoots; const game: TStoreGame): TCandidates;
 
-{ The candidates that hold game's data (HoldsData), each folder once. }
+{ Filters candidates to unique directories that contain the game's data. }
 function Found(const list: TCandidates; const game: TStoreGame): TCandidates;
 
-{ True when folder dir holds game's data (its dataFile, whatever its case). }
+{ Returns whether dir contains the game's identifying data file. }
 function HoldsData(const dir: ShortString; const game: TStoreGame): Boolean;
 
-{ True when folder dir holds POOL.CFG or, for a game not set up yet (#894), the game's data (GEO1.DAX), whatever its
-  case: the test for a folder beside the program. }
+{ Returns whether dir looks like a Pool of Radiance directory. A configured
+  game contains POOL.CFG; a fresh one contains GEO1.DAX (#894). }
 function HoldsGame(const dir: ShortString): Boolean;
 
 { True when a and b are one folder (on Linux and macOS, one file system entry, so a link and its target are one). }
 function SameFolder(const a, b: ShortString): Boolean;
 
-{ The player's own folder for the game on system os, with its closing separator: macOS ~/Library/Application
-  Support/<name>/, Windows %APPDATA%\<name>\, Linux $XDG_DATA_HOME/<linuxName>/ (~/.local/share/ without it). }
+{ Returns the game's per-user writable directory, with a trailing separator,
+  using the platform's normal application-data location. }
 function UserFolder(const game: TStoreGame; os: TOs; const home: ShortString): ShortString;
 
 { True when folder dir is inside a macOS app bundle (a signed bundle that writing would break). }
@@ -134,25 +132,26 @@ function InAppBundle(const dir: ShortString): Boolean;
 { True when the game must not write in folder dir: it is inside an app bundle, or a file cannot be made in it. }
 function MustNotWrite(const dir: ShortString): Boolean;
 
-{ The folder the program is beside, with its closing separator: its own, or for a program in a macOS app (<folder>/
-  <name>.app/Contents/MacOS) the one the app is in. }
+{ Returns the directory beside the executable, or the directory containing its
+  .app bundle on macOS. Includes a trailing separator. }
 function AppFolder: ShortString;
 
-{ The folder this release's own file name (RAVFULL.DAX, SBSFX.DAT) is read from, with its closing separator: beside the
-  program (AppFolder), where the release zip puts it, when it is there; else the data folder. }
+{ Finds a release-provided file such as RAVFULL.DAX or SBSFX.DAT. Files beside
+  the executable take precedence over the original data directory. }
 function OwnFolder(const name: ShortString): ShortString;
 
 { The file name (POOL.CFG) as the game reads it: the writable folder's when it has one, else the data folder's. }
 function ReadName(const name: ShortString): ShortString;
 
-{ The data folder found or chosen before (written by Remember), as it was written; empty when there is none. }
+{ Returns the previously remembered data directory, or an empty string. }
 function Remembered(const game: TStoreGame): ShortString;
 
-{ Write dir as the data folder to use from now on, in the player's own folder. False when it could not be written. }
+{ Stores dir as the preferred data directory. Returns False on write failure. }
 function Remember(const game: TStoreGame; const dir: ShortString): Boolean;
 
-{ Place the folders: dir is the data folder, and the writable folder too when beside (the program's own folder) and it
-  may be written (MustNotWrite); else the player's own folder, made when it is not there. }
+{ Selects dir as the data directory. It is also used for writes when it is a
+  writable directory beside the program; otherwise a per-user directory is
+  created and selected for writes. }
 procedure Place(const game: TStoreGame; const dir: ShortString; beside: Boolean);
 
 { Place dir as a data folder found or chosen (not beside the program), and remember it. }
@@ -164,11 +163,11 @@ function OptionValue(const opt: ShortString): ShortString;
 { True when the command line holds option opt. }
 function HasOption(const opt: ShortString): Boolean;
 
-{ Find the data folder without asking, and Place it: --data-folder PATH (remembered), then beside the program
-  (POOLRAD_DIR, the current folder, the program's folder, the folder its macOS app is in: HoldsGame), then the folder
-  remembered, then the stores' folders when exactly one holds the data (remembered). True when placed. Otherwise hits
-  is what the search found (several, or none), and ask is set when the player is to choose even so: by
-  --choose-data-folder, or a --data-folder without the data. }
+{ Searches for and places the data directory without prompting. The order is an
+  explicit --data-folder, directories beside the program, the remembered path,
+  then known store installations. Returns True when one directory was selected.
+  Otherwise hits contains all matches and ask says whether the player explicitly
+  requested a choice. }
 function Settle(const game: TStoreGame; var hits: TCandidates; var ask: Boolean): Boolean;
 
 implementation

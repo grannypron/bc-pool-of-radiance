@@ -1,7 +1,6 @@
-{ The Bestiary's facts (#842): the bits of Bestiary.TBeast.known, numbered as BESTIARY.DAT keeps them. The file's format
-  is meant for all four games (Pool, Curse, Secret, Pools), so a bit keeps its meaning once given: a game that learns
-  something new takes a free bit. Bits 0..31 (known[0]) are what the creature is and resists, bits 32..63 (known[1]) the
-  harm its attacks do. }
+{ Bestiary fact bits stored in Bestiary.TBeast.known (#842). Bit assignments are
+  shared by all four games and must never change once published. Bits 0..31
+  describe the creature and its defenses; bits 32..63 describe its attacks. }
 {$I COMPILER.INC}
 unit C_BEAST;
 

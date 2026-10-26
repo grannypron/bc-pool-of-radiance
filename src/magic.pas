@@ -9,71 +9,73 @@ interface
 uses Types;
 
 var
-  { Set by a caller whose screen below a memorize list (Camp's spell slots) is drawn by the caller: SpellSelection calls
-    it, when set, after it frames the window under the list, when the list opens and after the spell page closes. }
+  { Optional callback that redraws the caller-owned area below a memorization
+    list. SpellSelection invokes it when the list opens and after returning
+    from a spell-information page. }
   belowListHook: Types.TIdleProc;
   { combat arena column, 0..Types.ARENA_LAST_X }
   gTargetX: ShortInt;
   { combat arena row, 0..Types.ARENA_LAST_Y }
   gTargetY: ShortInt;
 
-{ Spell-selection menu: MenuCore.MenuVertical over spellList as built by GenerateSpellList, its list from row 3, paged
-  with MenuCore.fullPaging (Next and Prev on every page of a list longer than its window, '(more)' under a page with
-  more below it). selType: 1 cast, 2 memorize (its list ends at row 16, above a window of spell slots that
-  belowListHook fills, rows 18 to 20), 3 scribe, 4 learn (on gaining a level; no Exit entry), 5 show only (drawn and
-  left for the caller's question, unless it needs paging; MenuCore.listOnly), anything else view only (no prompt). The
-  bottom line names the action: 'Cast: Cast Info Exit' (#900). idx is the menu cursor and persists across calls; idx <
-  0 clears the windows and opens at the top of the list on its first spell (cast and learn always redraw). Every list
-  but show only has the highlighted spell's summary line (SpellInf.ShowSummary) on row 22, above the window's bottom
-  border (a list other than memorize's ends at row 20), and Info (I) on the bottom line, which opens the spell page
-  (SpellInf.ShowPage) and comes back to the list on the spell the page showed last (#839). A line read from a scroll
-  is worked out at the scroll's caster level. Returns the chosen spell id, or 0 for Exit, with scroll the chosen line's
-  scroll in spellScrolls (nil for Exit or a memorized spell); scribe also sets currentScrollPtr to the chosen spell's
-  scroll. Frees spellList before returning. }
+{ Runs the selection menu for the list built by GenerateSpellList. selType is
+  1 to cast, 2 to memorize, 3 to scribe, 4 to learn after gaining a level,
+  and 5 to display the list without prompting. Other values create a read-only
+  list. Long lists use the full-paging behavior from MenuCore (#900).
+
+  idx preserves the cursor between calls; a negative value resets the display
+  and starts at the first spell. Except in display-only mode, the highlighted
+  spell has a summary and an Info command that opens SpellInf.ShowPage (#839).
+  Scroll entries use the scroll's caster level.
+
+  Returns the selected spell ID, or 0 on Exit. scroll receives the source
+  scroll for an item spell and nil for a memorized spell. Scribe mode also sets
+  currentScrollPtr. The global spellList is freed before returning. }
 function SpellSelection(selType: Byte; var idx: Integer; var scroll: Types.PItemRec): Byte;
 
-{ Build spellList and spellIds for a menu of creature's spells. menuType: 0 memorized, 5 still being memorized (bit 7
-  set), 1 spell book, 2 current scroll, 3 spells on every readable item, 6 scroll spells queued for scribing (bit 7
-  set), 4 spells learnable on gaining a level (creature has slots of the spell's class and level and does not know it
-  yet), 7 the spells creature can cast now (AddAvailableSpells). Returns True if the list has a spell; a list of level
-  headings alone is freed and counts as empty. }
+{ Builds spellList and spellIds for creature. menuType selects memorized spells
+  (0), the spell book (1), the current scroll (2), all readable items (3),
+  spells offered after gaining a level (4), pending memorization (5), pending
+  scribing (6), or everything currently castable (7). Returns True only when
+  the finished list contains a spell; heading-only lists are freed. }
 function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean;
 
-{ The cast-target menu outside combat (GameVars.castTargetMenu). spellTable target mode 1 targets the caster, 2 asks for
-  one party member (remembered in GameVars.castTarget; cancelling clears the targets and the cast) and 4 targets every
-  creature in GameVars.creatureList; any other mode cancels the cast. b is unused; it matches Types.TCastUi. }
+{ Selects targets outside combat. Target mode 1 selects the caster, mode 2 asks
+  for a party member, and mode 4 selects the entire creature list. Any other
+  mode cancels the cast. b is unused but required by Types.TCastUi. }
 procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 
-{ Cast spell for GameVars.curChar. Outside combat a combat-only spell (target mode 0) is not cast: a memorized spell
-  offers 'Lose it?' (Yes removes it) and an item offers 'Use it?' (Yes sets sel). Otherwise, when announce is set and
-  no item is in use, announce the cast, then call GameVars.castTargetMenu with b until it picks targets or the cast
-  ends. On a pick, a memorized spell first rolls the caster's chance of spell failure (ClassCal.SpellFailureChance: a
-  cleric's low Wisdom, for a clerical spell, #60); a failure spends the spell and shows "<name> fails to cast <spell>."
-  and nothing else happens. Otherwise, in combat turn to face the aim (Pathing.DirToward), play the cast sound and
-  animate the projectile; then remove the caster's invisibility, consume the memorized spell unless GameVars.usingItem,
-  and run GameVars.spellFns[spell] with spellId set. With no pick, outside combat it just returns; in combat
-  b, or Yes to 'Abort Spell?', aborts and consumes the spell, and otherwise targeting repeats. b means automatic
-  targeting (AI or quick fight); sel returns whether targets were picked. }
+{ Casts spell for GameVars.curChar. Combat-only spells cannot be cast while
+  exploring; the player may instead discard a memorized copy or use an item.
+  Otherwise this announces the spell, obtains targets through castTargetMenu,
+  applies spell-failure checks, animation, invisibility removal, and resource
+  consumption, then calls the handler in GameVars.spellFns.
+
+  b enables automatic targeting for AI or Quick mode. In manual combat the
+  player may retry targeting or confirm an abort. sel reports whether targets
+  were selected. A failed clerical spell still consumes its memorized copy
+  (#60); item spells are consumed by their own item-handling path. }
 procedure CastSpell(spell: Byte; b, announce: Boolean; var sel: Boolean);
 
 { Cast's refusal of a combat-only spell outside combat: show the spell's name and 'is a combat-only spell...' in the
   message window. }
 procedure ShowCombatOnlySpell(spell: Byte);
 
-{ How many times spell is on the scrolls creature can read and use (CharHlp.CastableScroll), and the one of them to
-  read it from: the scroll with the fewest spells on it, the first in the inventory among equals, so a part-used scroll
-  is used up before a full one is started (#833). best is nil when no such scroll holds spell. }
+{ Counts readable copies of spell on creature's scrolls and chooses the scroll
+  with the fewest spells remaining. Inventory order breaks ties, so a partial
+  scroll is exhausted before a full one is started (#833). best is nil when no
+  usable scroll contains the spell. }
 procedure FindScrollCopies(creature: Types.PCharRecord; spell: Byte; var copies: Byte; var best: Types.PItemRec);
 
-{ Clear a scroll spell slot holding spell and decrement its spell-count name component, nameIds[2]; remove the item
-  from cr once that drops below 210. The slot is the last holding spell exactly, its pending flag (C_SPELL.PENDING_FLAG)
-  included, or else the last holding it with either flag, so that a scribed spell clears its own slot and a used one a
-  copy not queued for scribing (POR-0228). Does nothing if no slot matches. }
+{ Removes one copy of spell from a scroll and updates its displayed spell
+  count. Exact pending-state matches are preferred so scribing removes the
+  queued copy while casting preserves queued copies (POR-0228). The scroll is
+  removed from cr when its count reaches zero. }
 procedure RemoveSpellFromScroll(cr, it: Pointer; spell: Byte);
 
-{ Announce a cast. In combat, print 'Casts a Spell' for the creature (msg is ignored) and show the spell name on the
-  line above the bottom line, the combat log naming it after the message (#841). Otherwise show the creature name, msg
-  and the spell name in the message window, pause, then clear it. }
+{ Announces a cast. Combat uses the standard "Casts a Spell" message and logs
+  the spell name (#841); exploration uses msg, pauses, and clears the message
+  window afterward. }
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 
 { Remove Curse (spellFns[43], also called by Temple): remove Bestow Curse (effect 36) from spellTargets[1], or
@@ -162,9 +164,9 @@ procedure SpellHaste;
 
 procedure SpellLightningBolt;
 
-{ The cells the bolt of spell (Lightning Bolt, or the Javelin of Lightning's, BoltShape) aimed at (x, y) by
-  GameVars.curChar would cross after the aim cell itself, in order, bounces included, judged on the arena as it
-  stands. Nothing is drawn or damaged. }
+{ Calculates the arena cells crossed after the target by a lightning bolt or
+  Javelin of Lightning, including bounces. This only traces the current arena;
+  it does not draw or apply damage. }
 procedure TraceBolt(spell: Byte; x, y: ShortInt; var cells: Types.TCellList);
 
 procedure SpellSlow;

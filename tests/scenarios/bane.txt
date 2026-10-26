@@ -1,13 +1,13 @@
-# The Temple of Bane freed with Dirten in the party (#682): save A moved to (13,7) beside the altar, the temple not
-# yet freed, its sixth member made Dirten, an NPC (saves/bane). The altar is destroyed and the half-orc's horde
-# beaten (STING's Alt-X); Dirten bids farewell, and the day goes into [$4A79], which the save records. Back on the
-# altar the same day, the rebuilding is underway.
+# Tests freeing the Temple of Bane with Dirten in the party (#682). The fixture moves save A beside the altar at
+# (13,7), leaves the temple occupied, and replaces the sixth party member with Dirten. Destroy the altar and defeat
+# the half-orc horde with STING Alt-X. Dirten should leave, the current day should be saved in [$4A79], and returning
+# to the altar that day should show rebuilding in progress.
 boot NORAND
 ignore POOL OF RADIANCE V
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
 wait RADIANCE
 put saves/bane
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA 120
 press up
@@ -18,7 +18,7 @@ wait DONE 90
 press alt-x
 wait CONTINUE BATTLE
 press n
-# Dirten takes his share, then the party has won
+# Dirten takes his share before the victory sequence.
 wait CONTINUE 60
 press ret
 wait CONTINUE
@@ -37,6 +37,6 @@ wait CAMP
 press s b
 wait ^SAVE: EXIT
 press ret
-# saving returns to the camp menu (#872)
+# Saving should return to the camp menu (#872).
 wait CAMP
 saves freed SAVGAMB.DAT

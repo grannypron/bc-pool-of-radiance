@@ -41,9 +41,8 @@ procedure LoadWallSet(fileId, wsSlot: Byte);
 { Load GEO map mapId into the 3D map }
 procedure Load3DMap(mapId: Byte);
 
-{ Bring a square off the 16 by 16 map back on from the other edge, as the party walks off one side of a map and on at
-  the other: x or y of -1 becomes MAP_LAST, MAP_LAST + 1 becomes 0, and so on for squares further off, which the 3D
-  view's far rows read (POR-0227). }
+{ Wraps coordinates around the 16x16 map. The renderer can ask for cells several
+  squares beyond an edge while drawing its far rows (POR-0227). }
 procedure WrapCoords(var x, y: ShortInt);
 
 implementation
@@ -66,10 +65,9 @@ const
 
 procedure DisplayViewBuf; forward;
 
-{ The 11x11 automap, drawn at char (2,2) of the view buffer and then flushed: wall symbols 260 + N|E*2|S*4|W*8 from the
-  wall-TYPE nibbles, then the party arrow 256 + facing div 2. 256 is symSetFirst[4], so the four arrows are 256..259 and
-  the sixteen wall combinations 260..275, all inside 8x8 symbol set 4. The window origin clamps to 0..5 (16-wide map,
-  11-wide window). }
+{ Draws the 11x11 automap into the view buffer. Symbol set 4 contains party
+  arrows 256..259 and the sixteen wall combinations 260..275. Clamp the origin
+  to 0..5 so the window remains inside the 16x16 map. }
 procedure DrawAutoMap(x, y: ShortInt; facing: Byte);
 var
   pwx: ShortInt;
@@ -153,8 +151,8 @@ begin
   y := y and Types.MAP_LAST;
 end;
 
-{ The square GetBarrierType, GetWallType and GetMapEvent read: False for a square off the map in the areas of scripts
-  0 (New Phlan) and 10 (Valhingen Graves), which read as 0 there; otherwise True, with (x, y) wrapped onto the map. }
+{ Resolves the square read by the map accessors. Most areas wrap coordinates.
+  New Phlan and Valhingen Graves instead treat off-map cells as empty. }
 function MapSquare(var x, y: ShortInt): Boolean;
 const
   SCRIPT_NEW_PHLAN = 0;
@@ -439,8 +437,8 @@ begin
   GameVars.wallSetCache[wsSlot].symbolSlot := wsSlot;
 end;
 
-{ Load GEO<disk>.DAX record mapId (must decompress to exactly 1026 = 2-byte header + the four 256-byte planes of a
-  TGeoMap), copy the planes, free the record, and record the map id in the GBVM mapId variable. }
+{ Loads mapId from GEO<disk>.DAX. A valid map is exactly 1026 bytes: a two-byte
+  header followed by four 256-byte planes. Also updates the GBVM map ID. }
 procedure Load3DMap(mapId: Byte);
 var
   sizeRead: Word;

@@ -1,16 +1,16 @@
-{ What happens on an event square (phase 8 of docs/refactor-plan.md, the Companion Tools' map), read from the loaded
-  area script without running it.
+{ Classifies event squares for the Companion Tools map without executing their
+  area scripts.
 
-  Each area script dispatches on the square's event byte (GBVM CELL_EVENT) in one of two ways: the byte masked into a
-  variable (AND [C04F] #mask [v]) and an ON GOTO on that variable, the k-th address for event k; or a COMPARE of the
-  byte, or of such a variable, with a number, then IF = and the instruction to run. A variable compared equal to such a
-  variable stands for it too: New Phlan counts one up from 0 until it equals the event and goes ON GOTO on the count. A
-  variable holds the event only until the script writes it (Podal Plaza's goes on to hold menu choices). Prepare walks
-  the script's control flow from its entry points, never running an instruction (EclVars.SkipEclCmd decodes each one),
-  and from each read of the event byte follows where it goes to find those dispatches. Kind follows an event's code from
-  its address a bounded way and names the strongest thing it does: an area change, a shop, temple or training hall, a
-  fight, treasure, a trap (damage), or a message. A square whose code does none of these (New Phlan's building squares,
-  say, which only clear flags) is KIND_NONE, and one whose dispatch is not found KIND_EVENT. }
+  Prepare walks control flow from the script entry points and follows reads of
+  GBVM CELL_EVENT to find each event's dispatch address. Scripts may dispatch
+  through a masked ON GOTO value or through COMPARE and IF instructions, so the
+  analysis also tracks variables derived from the event byte until they are
+  overwritten.
+
+  Kind follows an event's code for a bounded distance and reports its strongest
+  visible action: area change, shop, temple, training hall, combat, treasure,
+  trap, or message. Code with no such action is KIND_NONE. An event whose
+  dispatch cannot be found remains KIND_EVENT. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit EvtKind;

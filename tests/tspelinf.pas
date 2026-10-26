@@ -1,8 +1,6 @@
-{ Tests for the spell information on the spell lists (#839): SpellInf's summary line at set caster levels (Bless at
-  level 1, Hold Person at level 5, Fireball from a scroll, touch, camp-only and aura spells, Cause Disease's rolled
-  duration), the page's figures, CharHlp.SpellArea's shapes and SpellDuration's dice, every summary within the list's
-  38 columns and every page value within its 24, and every description within the page's 9 lines of 36 columns; the
-  item spells Use casts (#861): CharHlp.ItemSpell, which items have a page, and their figures and caster levels. }
+{ Tests spell summaries and Info pages at representative caster levels (#839).
+  Verifies range, area, duration, saves, layout limits, and description sizes.
+  Item tests cover spell lookup, page availability, and caster levels (#861). }
 {$I COMPILER.INC}
 program TSpelInf;
 

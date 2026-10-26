@@ -1,21 +1,20 @@
 {$I COMPILER.INC}
-{ The few SDL3 calls the native build makes (a window, a texture the screen is copied to, events, the clock, an
-  audio stream, the folder picker and a message box), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h,
-  SDL_render.h, SDL_events.h, SDL_audio.h, SDL_dialog.h, SDL_messagebox.h).
-  Only these: a full binding is not needed, and these are all that must be kept right.
+{ Minimal SDL 3.4 binding for the native build. It declares only the window,
+  renderer, event, timing, audio, folder-picker, and message-box APIs used by
+  the game.
 
-  On Linux and macOS SDL is linked into the program: build-native.sh copies SDL's static libSDL3.a as libSDL3static.a
-  into a folder it gives the linker, and that name is linked here, so a shared libSDL3 in a system folder (which the
-  linker searches first) is never taken instead. What the static library needs besides is named here too: the maths
-  library, and on macOS the system frameworks SDL's sdl3.pc lists. Free Pascal only. }
+  Linux and macOS link the pinned static library under the private name
+  SDL3static so the linker cannot accidentally select a system SDL. This unit
+  also names that library's platform dependencies. Windows loads SDL3.dll.
+  Free Pascal only. }
 unit Sdl3Min;
 
 interface
 
 {$IFDEF DARWIN}
-{ on macOS Free Pascal passes no library to the linker for a routine's external name: named here }
+{ Free Pascal needs the macOS static library named explicitly. }
 {$LINKLIB SDL3static}
-{ clang's runtime, which a C compiler's link adds by itself: SDL's @available checks call into it }
+{ SDL's @available checks depend on Clang's runtime. }
 {$LINKLIB clang_rt.osx}
 {$LINKFRAMEWORK CoreMedia}
 {$LINKFRAMEWORK CoreVideo}
@@ -112,8 +111,9 @@ type
       2: (padding: array[0..127] of Byte);
   end;
 
-  { SDL_DialogFileCallback: filelist is nil after an error, points to nil when nothing was chosen, else to the chosen
-    paths (UTF-8), ending in nil; it may be called on another thread }
+  { Folder-picker callback. filelist is nil on error, contains only a nil entry
+    on cancel, or contains a nil-terminated list of UTF-8 paths. SDL may invoke
+    it from another thread. }
   TSDL_DialogFileCallback = procedure(userdata: Pointer; filelist: PPChar; filter: LongInt); cdecl;
 
 { C's alignment for these, not COMPILER.INC's PACKRECORDS 1: their pointers follow 4-byte fields }
@@ -183,12 +183,12 @@ procedure SDL_DestroyAudioStream(stream: PSDL_AudioStream); cdecl; external SDL_
 function SDL_LockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 function SDL_UnlockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 
-{ Open the system's folder picker, which answers through callback when the player has chosen or cancelled (SDL 3.2) }
+{ Opens the system folder picker and reports completion through callback. }
 procedure SDL_ShowOpenFolderDialog(callback: TSDL_DialogFileCallback; userdata: Pointer; window: PSDL_Window;
   defaultLocation: PChar; allowMany: Boolean); cdecl; external SDL_LIB;
 
-{ Show a message box and wait for a button: buttonid is the chosen button's ID, or -1 if the box was closed without
-  one. False if it could not be shown. }
+{ Shows a modal message box. buttonid is -1 when it closes without a choice;
+  False means the box could not be shown. }
 function SDL_ShowMessageBox(var messageboxdata: TSDL_MessageBoxData; var buttonid: LongInt): Boolean; cdecl;
   external SDL_LIB;
 

@@ -1,18 +1,18 @@
-# Save A in New Phlan: walk from (5,3) to the vault at (8,9), deposit gold, leave and come back for it.
+# Using save A in New Phlan, walk from (5,3) to the vault at (8,9), make a deposit, leave, and return for it.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA
-# east twice, south six times to (7,9), then east through the door
+# Walk east twice and south six times to (7,9), then go east through the door.
 press down up up right up up up up up up left
 wait AREA
 checkpoint at-door
 press up
 wait VIEW
 checkpoint vault
-# Deposit: the first coin type (jewelry), 10 of it; the coin menu asks again until Escape; then leave View
+# Deposit 10 of the first coin type, jewelry. The coin menu repeats until Escape; then leave the View screen.
 press v d ret 1 0 ret
 checkpoint deposited
 press esc e
@@ -21,10 +21,10 @@ checkpoint vault-holds-gold
 press e
 wait AREA
 checkpoint street
-# the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
+# Record the current overlay-load count with STING Ctrl-Y. It is reported by tests/ovlloads.py but not compared.
 ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
 press ret ret ret
-# and the picture-memory line (phase 6)
+# Capture the picture-memory line for phase 6.
 press ret

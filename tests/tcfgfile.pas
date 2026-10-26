@@ -1,9 +1,7 @@
-{ Tests for CfgFile (#876): the settings' defaults (as GameInit set them before the move), POOLOPT.CFG's keys and
-  values as the game reads them (Trim and Tidy), its write (keys in order, unknown lines kept, a missing folder made
-  (#1067), a failed write leaving the old file), POOL.CFG read as START reads it (letters in either case, unknown ones
-  noted, a short file, extra lines kept) and written with CR LF, POOL.CFG's defaults, and the path rules:
-  NormalizePath, DirExists and CheckPath, with the native build's separators and its save folder (NativeSaveFolder,
-  #894, #1064). }
+{ Tests CfgFile defaults, POOLOPT.CFG parsing and safe writes, POOL.CFG
+  compatibility with START, and path validation (#876). Includes unknown lines,
+  short files, failed writes, directory creation, native separators, and the
+  native save directory (#894, #1064, #1067). }
 {$I COMPILER.INC}
 program TCfgFile;
 

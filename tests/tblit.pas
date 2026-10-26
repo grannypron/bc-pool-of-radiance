@@ -1,8 +1,7 @@
-{ Golden tests for Blit and the picture drivers in each mode (CGA, EGA, Tandy, VGA), over pictures larger than
-  TVidPic's: a three-frame picture three cells wide and 16 rows tall, made from fixed pseudo-random DAX bytes with
-  colour 0 transparent, is converted, mirrored, remapped (plainly and dithered), recoloured, merged and overlaid, and
-  drawn into a view-sized buffer with fills and clipped blits. Each result is checked by a hash of its bytes, recorded
-  from the code as it stood at 6ba5b5e, so a refactor that keeps behaviour keeps them. }
+{ Golden tests for Blit and the CGA, EGA, Tandy, and VGA picture drivers. A
+  fixed multi-frame image is converted, mirrored, remapped, recolored, merged,
+  overlaid, filled, and clipped. Byte hashes recorded at commit 6ba5b5e catch
+  any behavioral change during refactoring. }
 {$I COMPILER.INC}
 program TBlit;
 

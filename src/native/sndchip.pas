@@ -1,12 +1,11 @@
-{ The native build's sound hardware: the PC speaker (PIT channel 2 and port 61h's gates) and the Tandy's SN76489,
-  emulated from the sequencer's port writes (SndSeq.PortWrite), and one recorded sample playing beside them, as the
-  Sound Blaster's DSP plays one. Render makes the sound: it runs the sequencer's timer interrupt (SndSeq.Tick) 236.7
-  times a second of sound, at the sample it falls on, so each write lands where the DOS machine's tick would put it, and
-  mixes the chips and the sample into signed 16-bit mono at RATE. Each chip is stepped at its own clock (the PIT's
-  1193182 Hz, the SN76489's 3579545 Hz / 16) and averaged over each output sample, which keeps their square waves from
-  aliasing. SdlSound calls Render from the audio thread with the stream locked, and the game's calls reach the chips
-  only through the sequencer's entries, which take the same lock. No floating point, so the audio thread needs none of
-  the RTL's state. Objfpc mode. Free Pascal only. }
+{ Emulates the native build's PC speaker, Tandy SN76489, and one concurrent
+  recorded sample. Sequencer port writes update the chips, while Render advances
+  their original clocks and mixes signed 16-bit mono output at RATE. Sequencer
+  ticks are scheduled at their original 236.7 Hz positions in the output.
+
+  SdlSound calls Render on the locked audio thread, and all game-thread access
+  uses the same sequencer lock. Rendering uses no floating point and therefore
+  needs no thread-local floating-point state. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 {$R-}
@@ -22,15 +21,14 @@ const
 type
   PSmallInts = ^SmallInt;
 
-{ A port write from the sequencer: 42h PIT channel 2's divisor (low byte, then high), 61h the speaker's gates, 0C0h the
-  SN76489. }
+{ Applies a sequencer write to the PIT, speaker gate, or SN76489 ports. }
 procedure Write(port, value: Byte);
 
-{ Play a recorded sample, unsigned 8-bit at rate Hz, replacing one still playing; len 0 stops it. The bytes must stay
-  put while it plays. }
+{ Starts an unsigned 8-bit sample, replacing any sample already playing. A zero
+  length stops playback. data must remain valid until playback ends. }
 procedure PlaySample(data: Pointer; len: LongWord; rate: LongWord);
 
-{ count samples of sound into buf, running the sequencer's ticks as they fall. }
+{ Renders count samples and runs sequencer ticks at their sample positions. }
 procedure Render(buf: PSmallInts; count: LongInt);
 
 implementation

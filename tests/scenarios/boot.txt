@@ -1,11 +1,11 @@
-# Boot to the main menu, and the settings screen.
+# Boots to the main menu and opens the Settings screen.
 boot NORAND
 ignore POOL OF RADIANCE V
-# the settings screen names the build
+# Verify the displayed build name.
 ignore COMMIT  |VERSION  
-# and the memory left, which moves with the size of the code
+# Record free memory, which changes with code size.
 ignore FREE MEMORY|LARGEST BLOCK
-# and the data version, which a data fix raises (DataPat, C_DATA.VERSION)
+# Record the data version maintained by DataPat and C_DATA.VERSION.
 strip V\d+ +MERGED
 wait RADIANCE
 checkpoint main-menu

@@ -1,27 +1,27 @@
-# Stojanow Gate once the party has taken it (#683): save A moved to (7,10), facing the gate, with the gate taken
-# ([$4A77] = $7F; saves/stojanow). The guards on the wall cheer at (7,9), with no portrait and no wait; the cheer
-# comes once a visit (#1068), so (7,6), after the way through the gatehouse, and a step back onto it are quiet; the
-# stairs up from (4,5) lead to the west guard room, now makeshift barracks.
+# Tests Stojanow Gate after its capture (#683). The fixture puts save A at (7,10), facing the captured gate with
+# [$4A77] = $7F. Guards should cheer once at (7,9), without a portrait or wait (#1068). Reaching (7,6) through the
+# gatehouse and stepping away and back should remain quiet. The stairs at (4,5) should lead to makeshift barracks in
+# the west guard room.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
 put saves/stojanow
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA 120
 checkpoint gate
 press up
 wait AREA
 checkpoint cheer-south
-# through the gatehouse, (7,8) and (7,7), out onto (7,6): no second cheer
+# Walk through (7,8) and (7,7) to (7,6); there should be no second cheer.
 press up up up
 wait AREA
 checkpoint cheer-north
-# north to (7,5), turn round and back onto (7,6): still none
+# Walk north to (7,5), turn around, and return to (7,6); it should remain quiet.
 press up down up
 wait AREA
 checkpoint once-a-visit
-# round to (4,5) and up the stairs to the guard room at (4,7)
+# Walk to (4,5) and take the stairs to the guard room at (4,7).
 press down up left up up up left up
 wait YES NO
 press y

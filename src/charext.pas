@@ -1,7 +1,7 @@
-{ The port's own fields of a character (Types.TCharExt: the classes a dual-classed human has left, #838), kept in a
-  .chx file beside the character's files, as the usual spells are in a .mem: SSI's record has no room for them, and its
-  285 bytes stay as SSI's game and Curse read them. The fields live in the record in memory, past its saved bytes, so a
-  copy of the record carries them. Overlaid; SaveLoad uses it. }
+{ Saves the fields added to Types.TCharExt, currently the classes left by a
+  dual-classed human (#838). SSI's 285-byte character format has no room for
+  these fields, so they are stored in a separate .chx file. They remain part of
+  the in-memory record, allowing normal record copies to preserve them. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit CharExt;

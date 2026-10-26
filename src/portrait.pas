@@ -20,13 +20,13 @@ procedure FreeAnimation(var a: Types.TAnimRec);
 
 procedure DisplayCharPortrait;
 
-{ True when the player portraits can be shown on the current disk: on disk 3, whose HEAD3.DAX and BODY3.DAX hold them,
-  or on any disk once the merged HEAD.DAX and BODY.DAX are read in place of its own. }
+{ Returns whether player portraits are available: either disk 3 is active or
+  the merged HEAD.DAX and BODY.DAX archives are in use. }
 function PlayerPortraitsHere: Boolean;
 
-{ How many GameDefs.headTbl entries (bodyTbl entries when body is set) the portrait picker offers on the current disk:
-  all of them once the merged HEAD.DAX and BODY.DAX are read in place of its own, otherwise the ones HEAD3.DAX and
-  BODY3.DAX hold (DISK3_HEADS and DISK3_BODIES). }
+{ Returns the number of heads or bodies available to the portrait picker. The
+  merged archives expose the complete tables; disk 3 exposes only its original
+  subsets. }
 function PlayerPortraitCount(body: Boolean): Byte;
 
 procedure DisplayPortraitBufs(col, row: Byte; both: Boolean);
@@ -35,8 +35,7 @@ procedure LoadPortraitBufs(headId, bodyId: Byte);
 
 procedure Show3DSprite(dist: Byte; var a: Types.TAnimRec);
 
-{ Forget which archive and picture are cached, so the next picture is loaded afresh, for a new game
-  (GameInit.ResetGameState). }
+{ Invalidates the picture cache when starting a new game. }
 procedure ResetGame;
 
 implementation

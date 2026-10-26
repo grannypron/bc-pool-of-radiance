@@ -65,9 +65,7 @@ var
   previewDue: Boolean;
   movedAt: LongInt;
 
-{ Draw item n's label on its row of the list in color.
-  @param(n The item's place in the list, on the column's visible rows.)
-  @param(color The label's color.) }
+{ Draws a visible item's label on its list row in the requested color. }
 procedure DrawLabel(n: Integer; color: Byte);
 begin
   TextRend.DisplayString(LIST_LEFT, TOP_ROW + n - top, color,
@@ -90,9 +88,8 @@ begin
   end;
 end;
 
-{ The shown item's first line on page p: past the first page, which holds TEXT_ROWS - 1 lines under a "(more)", each
-  page between holds TEXT_ROWS - 2 between two.
-  @param(p The page, from 1.) }
+{ Returns the first line on a 1-based page. The first and last pages lose one
+  row to a "(more)" marker; middle pages lose two. }
 function PageStart(p: Integer): Integer;
 begin
   if p <= 1 then
@@ -156,8 +153,7 @@ begin
   end;
 end;
 
-{ Start the wait before the pane follows the highlight, when it has moved from item old.
-  @param(old The item highlighted before the move.) }
+{ Starts the preview delay if the highlighted item has changed. }
 procedure Moved(old: Integer);
 begin
   if sel <> old then begin
@@ -207,13 +203,14 @@ begin
     QuestLine := line + '----';
 end;
 
-{ Show the Quests page until Entries or Exit: its heading over the list of the quests the party has been given
-  (JrnlQst.IsGiven), each DONE or not yet (----), a page at a time, with the Journal's menu below (#874). Entries (E)
+{ Shows the Quests page until the player chooses Entries or Exit. Its heading
+  is above the quests the party has been given (JrnlQst.IsGiven), each DONE or
+  not yet (----), a page at a time, with the Journal's menu below (#874). Entries (E)
   turns back to the Journal's list, Quests (Q) stays on the page, and Exit, which has no key since E is Entries', or
   Escape leaves the Journal. Next and Prev, offered while the list has a page after or before this one, and Page Down
   and Page Up turn its pages. The list is only read: Enter takes the bottom line's current option, as it does on every
-  menu, and nothing on the list is selected. The list is never empty: LIX is posted from the start.
-  @returns(True when Exit or Escape left the Journal; False when Entries turned back to it.) }
+  menu, and nothing on the list is selected. The list is never empty: LIX is posted from the start. Returns True for
+  Exit or Escape, and False when Entries returns to the Journal. }
 function ShowQuests: Boolean;
 const
   ROWS = BOTTOM_ROW - QUESTS_TOP + 1;
@@ -310,9 +307,8 @@ begin
   ShowQuests := ch <> 'E';
 end;
 
-{ Move the highlight to item n, kept within the list, scrolling the list when n is off the column, and start the wait
-  before the pane follows it.
-  @param(n The item's place in the list.) }
+{ Moves the highlight to a valid item, scrolls it into view, and starts the
+  preview delay. }
 procedure MoveTo(n: Integer);
 var
   old: Integer;
@@ -337,8 +333,7 @@ begin
   JrnlView.Moved(old);
 end;
 
-{ Scroll the list a column down or up, kept within the list, with the highlight staying on its row.
-  @param(down True for down, False for up.) }
+{ Scrolls the list one column while keeping the highlight on the same row. }
 procedure ScrollColumn(down: Boolean);
 var
   row: Integer;

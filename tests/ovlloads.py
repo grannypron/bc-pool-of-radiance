@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-"""Print each scenario's overlay load count (its overlay-loads checkpoint, STING Ctrl-Y) for the golden and candidate
-builds of the last tests/regress.sh run, from obj/regress.json: the working-set measure for refactor phase 5."""
+"""Compare overlay-load counts from the last regression run.
+
+The counts come from each scenario's ``overlay-loads`` checkpoint in
+``obj/regress.json`` and measure the refactor's working-set impact.
+"""
 import json
 import re
 import sys

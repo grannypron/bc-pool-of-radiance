@@ -1,14 +1,13 @@
-# The Companion Tools (phase 8): the Settings line turned on, F6 from New Phlan (save A) after a short walk, opening on
-# the map (the visited squares bright, the events marked; #691), the character editor, and a note written with Map's
-# cursor.
+# Exercises the Companion Tools from New Phlan using save A. Enable the setting, walk briefly, and press F6. Verify
+# that the map highlights visited squares and marks events (#691), edit a character, and add a note with the map cursor.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# Companion Tools, the 17th setting: Down 16 times from Game Speed (Up wraps to the combat log's lines, which the
-# highlight passes by without EMS, so the count from the top holds in every memory size)
+# Companion Tools is the 17th setting. Move down 16 times from Game Speed. Counting from the top works with every
+# memory size because unavailable combat-log settings are skipped.
 press g down down down down down down down down down down down down down down down down ret esc
 wait RADIANCE
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA
 checkpoint new-phlan
@@ -23,8 +22,8 @@ wait WRITE CLEAR
 checkpoint map
 press e
 wait TOOLS
-# the character editor on the first character's sheet: a level raised and its experience, Modify Character's
-# abilities left with Exit (the abilities restored), gear, magic and health
+# Open the first character's editor. Raise a level and verify experience; leave Modify Character with Exit so the
+# abilities are restored; then exercise the gear, magic, and health tools.
 press c
 wait ABILITIES
 checkpoint editor
@@ -39,7 +38,7 @@ wait MODIFY
 checkpoint modify
 press e
 wait ABILITIES
-# Gear: the Add list, a Hand Axe made +2 and taken, the coins; Magic: the magic-user's spells
+# In Gear, add a +2 Hand Axe and edit the coins. In Magic, inspect the magic-user spells.
 press g a
 wait TAKE NEXT
 checkpoint add-list
@@ -50,7 +49,7 @@ checkpoint add-plus
 press t
 wait GEAR
 checkpoint gear
-# Bracers choose their AC like a plus (#772): AC 6 first, Right twice to AC 2, taken
+# Bracers choose armor class like an enchantment bonus (#772). Start at AC 6, move right twice to AC 2, and take them.
 press a
 wait TAKE NEXT
 press pgdn pgdn up up up ret
@@ -74,10 +73,10 @@ wait ABILITIES
 press h s
 wait HEALTH
 checkpoint status
-# out of action as well as unconscious: her name red on the party list (#694); Heal brings her back into action
+# Mark her out of action as well as unconscious. Her party-list name should be red (#694); Heal should restore her.
 press e e e
 wait AREA
-# the next character selected, as the selected one is always drawn white
+# Select the next character; the selected entry is always drawn in white.
 press end
 checkpoint status-down
 press home
@@ -94,7 +93,7 @@ checkpoint status-healed
 press home
 press f6
 wait TOOLS
-# Map: the cursor a square east of the party, a note written there
+# Move the map cursor one square east of the party and write a note there.
 press m
 wait WRITE CLEAR
 press right w t a v e r n ret
@@ -104,5 +103,5 @@ press e
 wait TOOLS
 press e
 wait AREA
-# the edited party (Talonia healed to 91)
+# Capture the edited party with Talonia healed to 91 hit points.
 checkpoint back-edited

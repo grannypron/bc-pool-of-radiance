@@ -1,20 +1,21 @@
-{ The AdLib (OPL2) sound driver: the music from the sequencer's Tandy arrangements, played as FM through the OPL2 by
-  SOUNDDRV.OBJ's timer driver (sndopl.inc), and the effects on the speaker. GameBoot installs it when POOL.CFG names A,
-  and the Sound Blaster's driver (SndSb) when it finds no DSP; with no OPL2 answering at ports 388h and 389h the
-  speaker's driver is installed instead, and the settings screen says so (phase 7 of docs/refactor-plan.md). }
+{ AdLib (OPL2) sound driver. The timer sequencer plays the Tandy music
+  arrangements through the OPL2 while effects use the PC speaker. GameBoot
+  installs this driver for AdLib sound and as Sound Blaster's fallback. If no
+  OPL2 responds at ports 388h/389h, Install falls back to the speaker driver. }
 {$F+}
 {$I COMPILER.INC}
 unit SndOpl;
 
 interface
 
-{ Make this the sound driver if an OPL2 answers, else the speaker's: fill GameVars.sound. }
+{ Installs this driver when an OPL2 responds, or the speaker driver otherwise. }
 procedure Install;
 
-{ Music on the AdLib, an effect on the speaker (SndSb plays the effects it has no sample for this way). }
+{ Plays music through the AdLib and effects through the speaker. SndSb also
+  uses this for effects without a recorded sample. }
 procedure Play(tune: Word);
 
-{ True when an OPL2 answers: its first timer, started, sets the status port's timer flags, and was clear before. }
+{ Detects an OPL2 by checking that timer 1 changes the expected status bits. }
 function Detect: Boolean;
 
 implementation
@@ -55,9 +56,9 @@ begin
   Detect := (before and STATUS_FLAGS = 0) and (after and STATUS_FLAGS = TIMER1_DONE);
 end;
 
-{ Music on the AdLib, from the Tandy arrangements; an effect, or silence, on the speaker, as Secret of the Silver Blades
-  plays its effects beside AdLib music (no Gold Box game played effects through FM). Moving to the speaker silences the
-  AdLib. }
+{ Music uses the Tandy arrangements on the AdLib. Effects and silence switch to
+  the PC speaker, which also silences the AdLib. Gold Box games did not play
+  their effects through FM. }
 procedure Play(tune: Word);
 begin
   if tune >= C_SOUND.MUSIC_TITLE then begin

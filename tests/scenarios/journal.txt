@@ -1,16 +1,16 @@
-# The journal, from the map menu: its list, the first item previewed, and the second selected.
+# Opens the Journal from the map menu, previews the first item, and selects the second.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA
 press j
 wait JOURNAL
-# the pane shows the highlighted item once the highlight has rested a quarter second (JrnlView.TickPreview)
+# The preview pane should update after the highlight rests for a quarter second (JrnlView.TickPreview).
 sleep 1
 checkpoint journal
-# Select on the second item shows it at once
+# Selecting the second item should display it immediately.
 press down ret
 checkpoint entry
 press esc
