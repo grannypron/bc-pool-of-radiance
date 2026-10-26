@@ -9,7 +9,7 @@ uses Types;
 
 var
   { suppress targeting }
-  currentSuppressTargetingFlag: Byte;
+  suppressTargeting: Byte;
   hitsMade: array[1..2] of Byte;
   { Hostile creatures' hit points, percent remaining }
   hostileHpPct: Byte;
@@ -325,7 +325,7 @@ begin
   cnt := CbtMap.CountTargets(creature, 1);
   for i := 1 to cnt do
     if creature^.enabled <> 0 then begin
-      p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
+      p := GameVars.creatureArr[GameVars.combatTargetSlots[i]];
       if (p^.combatAddr^.guarding <> 0) and (not CharHlp.IsHelpless(p)) then begin
         CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2, C_DIR.CENTER);
         p^.combatAddr^.guarding := 0;
@@ -426,7 +426,7 @@ begin
   if cntBefore = 0 then
     Exit;
   for i := 1 to cntBefore do
-    adj[i] := GameVars.potentialTargetCreature[i];
+    adj[i] := GameVars.combatTargetSlots[i];
   { probe: step the icon, recount, step back }
   Inc(GameVars.arenaLoc[slot].x, GameDefs.dirDX[dir]);
   Inc(GameVars.arenaLoc[slot].y, GameDefs.dirDY[dir]);
@@ -437,7 +437,7 @@ begin
   for i := 1 to cntBefore do begin
     still := False;
     for j := 1 to cntAfter do
-      if GameVars.potentialTargetCreature[j] = adj[i] then
+      if GameVars.combatTargetSlots[j] = adj[i] then
         still := True;
     if still then
       adj[i] := 0;
@@ -625,7 +625,7 @@ begin
   weak := 0;
   defIdx := 0;
   for i := 1 to cnt do begin
-    p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
+    p := GameVars.creatureArr[GameVars.combatTargetSlots[i]];
     if p = def then
       defIdx := i;
     if p^.levelHighest = 0 then
@@ -640,16 +640,16 @@ begin
     weak := att^.combatAddr^.sweepBudget;
   CharDisp.PrintNameString(att, 'sweeps', 10, True);
   { def becomes the first sweep target }
-  p := GameVars.creatureArr[GameVars.potentialTargetCreature[1]];
+  p := GameVars.creatureArr[GameVars.combatTargetSlots[1]];
   if p <> def then begin
-    GameVars.potentialTargetCreature[defIdx] := GameVars.potentialTargetCreature[1];
-    GameVars.potentialTargetCreature[1] := CbtMap.CombatSlot(def);
+    GameVars.combatTargetSlots[defIdx] := GameVars.combatTargetSlots[1];
+    GameVars.combatTargetSlots[1] := CbtMap.CombatSlot(def);
   end;
   { a sweeper that goes down stops }
   for i := 1 to cnt do
     if (weak > 0) and (att^.enabled <> 0) then
-      if GameVars.creatureArr[GameVars.potentialTargetCreature[i]]^.levelHighest = 0 then begin
-        p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
+      if GameVars.creatureArr[GameVars.combatTargetSlots[i]]^.levelHighest = 0 then begin
+        p := GameVars.creatureArr[GameVars.combatTargetSlots[i]];
         CbtActs.NoteAttackDirection(att, p);
         att^.curAttacks := 1;
         CbtActs.CombatAttack(att, p, False, nil, doneRoundFlag);
@@ -660,7 +660,7 @@ end;
 
 { Check whether effects permit creature to attack other: False for nil, True for itself. Otherwise the target's veto
   effects run first, then the attacker's with other as its temporary target; any veto sets
-  currentSuppressTargetingFlag. }
+  suppressTargeting. }
 function CanAttackTarget(creature, other: Types.PCharRecord): Boolean;
 var
   saved: Types.PCharRecord;
@@ -672,15 +672,15 @@ begin
     CanAttackTarget := True;
     Exit;
   end;
-  currentSuppressTargetingFlag := 0;
+  suppressTargeting := 0;
   FxEngine.TriggerEffectsWithCondition(C_COND.TARGET_VETO, other);
-  if currentSuppressTargetingFlag = 0 then begin
+  if suppressTargeting = 0 then begin
     saved := creature^.combatAddr^.other;
     creature^.combatAddr^.other := other;
     FxEngine.TriggerEffectsWithCondition(C_COND.ATTACKER_VETO, creature);
     creature^.combatAddr^.other := saved;
   end;
-  CanAttackTarget := currentSuppressTargetingFlag = 0;
+  CanAttackTarget := suppressTargeting = 0;
 end;
 
 { Turn undead at ClassCal.TurnLevel: one d20 roll against the turning table (ClassCal.TurnValue), applied to up to 1d12
@@ -756,7 +756,7 @@ begin
   cnt := CbtMap.CountTargets(creature, 255);
   FindTurnUndeadTarget := False;
   for i := 1 to cnt do begin
-    p := GameVars.creatureArr[GameVars.potentialTargetCreature[i]];
+    p := GameVars.creatureArr[GameVars.combatTargetSlots[i]];
     if (p^.combatAddr^.turned = 0) and (p^.levelUndead > 0)
        and (p^.levelUndead < best) then begin
       best := p^.levelUndead;
@@ -1267,7 +1267,7 @@ begin
   case kind of
     C_SPELL.AREA_SELF:
       begin
-        GameVars.targetCreaturePtr[1] := GameVars.curChar;
+        GameVars.spellTargets[1] := GameVars.curChar;
         GameVars.spellTargetCount := 1;
       end;
     C_SPELL.AREA_SPOT:
@@ -1284,7 +1284,7 @@ begin
         if picked then begin
           { the pick, not combatAddr^.other: the AI's pick of a non-offensive spell's target leaves its lock there }
           if sel.cr <> nil then begin
-            GameVars.targetCreaturePtr[1] := sel.cr;
+            GameVars.spellTargets[1] := sel.cr;
             GameVars.spellTargetCount := 1;
           end else begin
             { radius 0: the picked cell alone }
@@ -1331,18 +1331,18 @@ begin
         if picked then begin
           dup := False;
           for j := 1 to k do
-            if GameVars.targetCreaturePtr[j] = sel.cr then
+            if GameVars.spellTargets[j] = sel.cr then
               dup := True;
           if not dup then begin
             Inc(k);
-            GameVars.targetCreaturePtr[k] := sel.cr;
+            GameVars.spellTargets[k] := sel.cr;
             Dec(remaining);
           end else if not b then
             CharDisp.PrintBottomLine('Already been targeted')
           else
             Dec(remaining);
-          CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GameVars.targetCreaturePtr[k]),
-                                 CbtMap.CombatCellY(GameVars.targetCreaturePtr[k]));
+          CbtMap.RedrawArenaCell(CbtMap.CombatCellX(GameVars.spellTargets[k]),
+                                 CbtMap.CombatCellY(GameVars.spellTargets[k]));
         end else
           Dec(remaining);
       end;
@@ -1960,17 +1960,17 @@ begin
     while (tries > 0) and (not found) and (cnt > 0) do begin
       Dec(tries);
       pick := Dice.RollDice(1, cnt);
-      if GameVars.potentialTargetCreature[pick] > 0 then begin
-        p := GameVars.creatureArr[GameVars.potentialTargetCreature[pick]];
+      if GameVars.combatTargetSlots[pick] > 0 then begin
+        p := GameVars.creatureArr[GameVars.combatTargetSlots[pick]];
         if ((relaxed <> 0) and (GameVars.arenaPtr^.distMode <> 0))
            or CbtActs.CanAttackTarget(creature, p) then begin
           found := True;
           creature^.combatAddr^.other := p;
         end else begin
-          GameVars.potentialTargetCreature[pick] := 0;
+          GameVars.combatTargetSlots[pick] := 0;
           { pick is reused as the index: do any targets remain? }
           for pick := 1 to cnt do
-            if GameVars.potentialTargetCreature[pick] > 0 then
+            if GameVars.combatTargetSlots[pick] > 0 then
               found := True;
           if found then
             found := False
@@ -2022,9 +2022,9 @@ begin
     creature^.curAttacks2 := 0;
     creature^.curRollsA[1] := 3;
     creature^.curDiceA[1] := 4;
-    CbtActs.CombatAttack(creature, GameVars.otherCreatureCurrentPtr, True, nil, done);
+    CbtActs.CombatAttack(creature, GameVars.combatTarget, True, nil, done);
     done := CharHlp.EndActions(creature);
-    if GameVars.otherCreatureCurrentPtr^.enabled = 0 then
+    if GameVars.combatTarget^.enabled = 0 then
       FxEngine.RemoveEffect(creature, C_EFFECT.BITE_HOLD, p);
   end;
 end;
@@ -2071,7 +2071,7 @@ end;
 
 begin
   { Turbo Pascal clears no variable }
-  currentSuppressTargetingFlag := 0;
+  suppressTargeting := 0;
   aimSpell := C_SPELL.NONE;
   FillChar(hitsMade, SizeOf(hitsMade), 0);
   hostileHpPct := 0;

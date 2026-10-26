@@ -123,7 +123,7 @@ procedure TickSpellPreview;
 procedure StopSpellPreview;
 
 { Build the potential-target list around creature within range, keep only creatures on the opposing team, and copy their
-  indices into GameVars.potentialTargetCreature. Return the remaining count. }
+  indices into GameVars.combatTargetSlots. Return the remaining count. }
 function CountTargets(creature: Types.PCharRecord; range: Byte): Byte;
 
 { Find the distance to another creature by temporarily rebuilding the target list with terrain ignored (distMode 1).
@@ -871,7 +871,7 @@ begin
       if Pathing.GetIconTileDelta(GameVars.arenaLoc[slot].size, k, tdx, tdy) then
         Blit.BlitTileClipped((gridX[slot] + tdx) * 3, (gridY[slot] + tdy) * 3, 0, 5,
                              GameVars.iconAnimation[24, 0],
-                             GameVars.viewImageBufferPtr);
+                             GameVars.viewBuffer);
     Blit.FlushView;
     if creature^.combatAddr^.notPcNpc = 0 then
       CbtMap.RegisterDowned(creature, cellX, cellY);
@@ -967,7 +967,7 @@ begin
   end;
   CountTargets := n;
   for i := 1 to n do
-    GameVars.potentialTargetCreature[i] := GameVars.targetList[i].idx;
+    GameVars.combatTargetSlots[i] := GameVars.targetList[i].idx;
 end;
 
 function CalcDistance(creature, other: Types.PCharRecord): Byte;

@@ -438,7 +438,7 @@ begin
   c^.classLevels[C_LEVEL.FIGHTER] := 1;
   c^.conCur := 18;
   TestKit.CheckEqualsL(6, ClassCal.ConHpBonus(c, $FF), 'a cleric/fighter at 18: +2 for the cleric, +4 for the fighter');
-  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, GameDefs.classBit[C_LEVEL.FIGHTER]), 'the fighter''s share alone');
+  TestKit.CheckEqualsL(4, ClassCal.ConHpBonus(c, GameDefs.classBits[C_LEVEL.FIGHTER]), 'the fighter''s share alone');
 
   TestKit.CheckEqualsL(6, ClassCal.DivideAmongClasses(10, 2, 2), '(10 + 2) div 2');
   TestKit.CheckEqualsL(4, ClassCal.DivideAmongClasses(10, -2, 2), '(10 - 2) div 2');

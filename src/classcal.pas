@@ -166,7 +166,7 @@ function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
   uses the nearer end, so Con 0..2 (Raise Dead takes a point each time) keep Con 3's penalty. }
 function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
 
-{ Sum ConHpPerDie over the hit dice each class with levels whose classBit shares a bit with mask ($FF = all) rolls for
+{ Sum ConHpPerDie over the hit dice each class with levels whose classBits shares a bit with mask ($FF = all) rolls for
   its level now (RollFirstLevelHp's dice), leaving out the classes a dual-classed human has left, which gain no more hit
   dice: once a class, twice for a first-level ranger or monk, which rolls two dice. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
@@ -518,7 +518,7 @@ const
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
   every cleric spell of a level with slots marked known, KnowClericSpells; a level-1 caster's slots are FirstLevelSlots'
   and left as they are). The slot table fills only levels 2..6, the player cap, so a
-  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. thac0Tbl covers
+  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. classThac0 covers
   levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
   (ItemLimitsFor). Each class counts at the level the creature can use
   (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
@@ -550,8 +550,8 @@ begin
       tl := 0
     else if tl > 10 then
       tl := 10;
-    if GameDefs.thac0Tbl[i, tl] > creature^.thac0Base then
-      creature^.thac0Base := GameDefs.thac0Tbl[i, tl];
+    if GameDefs.classThac0[i, tl] > creature^.thac0Base then
+      creature^.thac0Base := GameDefs.classThac0[i, tl];
     case i of
       C_LEVEL.FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
@@ -563,14 +563,14 @@ begin
       C_LEVEL.CLERIC:
         if lvl > 1 then begin
           for k := 1 to Types.CASTER_LEVEL_LAST do
-            creature^.clericSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GameDefs.classExperience[C_LEVEL.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           ClassCal.KnowClericSpells(creature);
         end;
       C_LEVEL.MAGE:
         if lvl > 1 then
           for k := 1 to Types.CASTER_LEVEL_LAST do
-            creature^.mageSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GameDefs.classExperience[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
   { a dual-classed human's weapons and armor follow the classes it can use; anyone else keeps creation's }
@@ -876,7 +876,7 @@ function TurnValue(undeadLevel, lvl: ShortInt): ShortInt;
 const
   { Rows by undead level, columns by turn level, as TurnValue reads them. A negative value lets
     CbtActs.CombatTurnUndead go on past its 1d12 targets until six succeed. }
-  turnTable: Types.TTurnUndeadTable = (
+  turnUndeadResults: Types.TTurnUndeadTable = (
     { 1: Skeleton }
     (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
     { 2: Zombie }
@@ -912,7 +912,7 @@ begin
   end;
   if undeadLevel > TURN_UNDEAD_KINDS then
     undeadLevel := TURN_UNDEAD_KINDS;
-  TurnValue := turnTable[undeadLevel, col];
+  TurnValue := turnUndeadResults[undeadLevel, col];
 end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
@@ -1005,11 +1005,11 @@ begin
   ConHpPerDie := share;
 end;
 
-{ True when class cls rolls hit dice for creature's level in it now: it has a level, its classBit shares a bit with
+{ True when class cls rolls hit dice for creature's level in it now: it has a level, its classBits shares a bit with
   mask ($FF = all), and it is not a class a dual-classed human has left. }
 function RollsHitDice(creature: Types.PCharRecord; cls: ShortInt; mask: Byte): Boolean;
 begin
-  RollsHitDice := (creature^.classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) and
+  RollsHitDice := (creature^.classLevels[cls] > 0) and (GameDefs.classBits[cls] and mask > 0) and
                   (creature^.portExt.formerClasses and (1 shl cls) = 0);
 end;
 
@@ -1140,7 +1140,7 @@ begin
   end;
 end;
 
-{ Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all), but for a class a
+{ Roll the hit dice of each class with levels whose classBits shares a bit with mask ($FF = all), but for a class a
   dual-classed human has left (#838): hpDice d hpSides at
   level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as the others do. Each
   die rolls at least HitDieFloor for the creature's Constitution, and a class at level 1 gets at least

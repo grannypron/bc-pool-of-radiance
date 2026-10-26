@@ -103,10 +103,10 @@ var
 var
   { Off-screen 168x168 view buffer that the compositors draw into and Blit.FlushView copies to the screen; GameInit
     allocates it. }
-  viewImageBufferPtr: Types.PImgBuf;
+  viewBuffer: Types.PImgBuf;
   { Backdrop buffer that Blit.BlitTileClipped fills with the destination bytes it is about to cover (when the save flag
     is set), so CharHlp can restore the background afterwards. }
-  iconImageBufferPtr: Types.PImgBuf;
+  saveUnder: Types.PImgBuf;
   { Dirty-span tables, one slot per view scanline (21 character rows x 8 = 168); GameInit initializes all four. }
   { Nonzero when that view scanline holds changes that Blit.FlushView still has to copy to the screen. }
   spanActive: array[0..167] of Byte;
@@ -130,15 +130,15 @@ var
   soundMode: Byte;
   { Disks, directories and the DAX buffer }
   { current resource disk; saved by SaveLoad }
-  virtualDisk: Byte;
+  diskIndex: Byte;
   { Save directory from line 4 of POOL.CFG. }
   saveDirectory: Types.TPathStr;
   { POOL.CFG line 3, the game directory; gameDir[1] is its drive letter }
   gameDir: Types.TPathStr;
   { Flag for suppressing insert disk prompt }
-  suppressingInsertDiskFlag: Boolean;
+  suppressDiskPrompt: Boolean;
   { Set by SaveLoad once a save completes; HeapErr and the Exit to DOS loop use it to tell whether a save succeeded. }
-  recentSaved: Byte;
+  recentlySaved: Byte;
   { Party pointers }
   { Current creature. }
   curChar: Types.PCharRecord;
@@ -162,7 +162,7 @@ var
     draws from it }
   symbolSetPtrs: array[0..4] of Types.PImgBuf;
   { Pointer to current 8x8 symbol image buffer }
-  current8x8SymbolPtr2: Types.PImgBuf;
+  sym8x8Buf: Types.PImgBuf;
   { 2D map tile set image buffer 1 }
   mapTilePtr: Types.PImgBuf;
   { Icon images }
@@ -205,7 +205,7 @@ var
   { current attack *or* current movement times 2 }
   currentAttackCurrent: Byte;
   { spell being cast }
-  currentSpellBeing: Byte;
+  spellId: Byte;
   { dice count of the current damage roll; Burning Hands, which rolls none, sets it to 1. The fire protections and the
     mummy's fire vulnerability work per die. }
   gDamageDice: Byte;
@@ -216,15 +216,15 @@ var
   { the spell affects multiple targets }
   gMultiTarget: Byte;
   { redraw the inventory menu }
-  redrawInventoryMenuFlag: Byte;
+  invRedraw: Byte;
   { the attack roll as effects modify it; signed, as penalties can take it below 0 }
   gAttackRoll: ShortInt;
   { an effect (Blink, Displacement, an avoided missile) forced the attack to miss }
-  gAttackAvoided: Boolean;
+  forcedMiss: Boolean;
   { current morale }
-  currentMorale: Byte;
+  combatMorale: Byte;
   { creature this one is interacting with }
-  otherCreatureCurrentPtr: Types.PCharRecord;
+  combatTarget: Types.PCharRecord;
 
 var
   { Effect dispatch }
@@ -250,10 +250,10 @@ var
   { the picture animation showing (PIC or SPRIT) }
   animData: Types.TAnimRec;
   { HEAD and BODY image caches. }
-  portraitCache: array[1..2] of Types.TPortSlot;
+  portraits: array[1..2] of Types.TPortSlot;
   { Menu state }
   { Zero-based position of the first visible list entry. }
-  vertTop: Integer;
+  verticalMenuTop: Integer;
   { Current horizontal menu choice, starting at 1. }
   horizChoice: Byte;
 
@@ -266,7 +266,7 @@ var
   { Number of targeted creatures }
   spellTargetCount: Byte;
   { Selected target creatures. }
-  targetCreaturePtr: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
+  spellTargets: array[1..Types.ARENA_SLOTS] of Types.PCharRecord;
   { Remembered noncombat spell target, initially the caster. }
   castTarget: Types.PCharRecord;
   { Pointer to linked list of Stinking Clouds }
@@ -283,7 +283,7 @@ var
   { Combat round counter, 0-indexed }
   roundCounter: Byte;
   { Potential-target creature indices. }
-  potentialTargetCreature: array[1..Types.ARENA_SLOTS] of Byte;
+  combatTargetSlots: array[1..Types.ARENA_SLOTS] of Byte;
   { quick combat magic; toggled by Alt-M }
   quickMagic: Boolean;
   { The combat moving-icon sheet: CombatSt allocates it, CharHlp copies icon facings in and draws from it, Combat frees
@@ -296,18 +296,18 @@ var
   ceilFloorColorSel: Byte;
   { ECL interpreter }
   { Top ECL return-stack node. }
-  eclStackTopPtr: Types.PEclRet;
+  scriptReturnStack: Types.PEclRet;
   { Previous ECL return-stack node. }
-  eclStackSecondPtr: Types.PEclRet;
+  prevScriptReturnStack: Types.PEclRet;
   { Current ECL opcode }
   curOpcode: Byte;
   { ECL variables and strings }
   { Decoded ECL variable types. }
-  gbvmType: array[1..64] of Byte;
+  varTypes: array[1..64] of Byte;
   { High bytes of decoded ECL variables. }
-  gbvmUpperByte: array[1..64] of Byte;
+  varHi: array[1..64] of Byte;
   { Low bytes of decoded ECL variables. }
-  gbvmLowerByte: array[1..64] of Byte;
+  varLo: array[1..64] of Byte;
   { Script string buffers, on the heap; GameInit2 allocates and clears them. }
   gbStrings: Types.PGbStrings;
   { ECL monster and post-combat state }

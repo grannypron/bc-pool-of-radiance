@@ -98,13 +98,13 @@ begin
 end;
 
 { The experience a level of class slot cls starts at: 0 for level 1, and -1 for a level past the experience table's for
-  the class (GameDefs.experienceSpellsClass). }
+  the class (GameDefs.classExperience). }
 function LevelXp(cls: ShortInt; level: Byte): LongInt;
 begin
   if level < 2 then
     LevelXp := 0
   else
-    LevelXp := GameDefs.experienceSpellsClass[cls].xp[level];
+    LevelXp := GameDefs.classExperience[cls].xp[level];
 end;
 
 { The Levels screen: each class's level, the experience and hit points; row sel highlighted. }
@@ -170,7 +170,7 @@ begin
             end;
           C_KEYS.RIGHT:
             if classLevels[cls] < C_LEVEL.LEVEL_LAST then begin
-              CharGen.GainLevels(GameDefs.classBit[cls], False);
+              CharGen.GainLevels(GameDefs.classBits[cls], False);
               if experience < LevelXp(cls, classLevels[cls]) then
                 experience := LevelXp(cls, classLevels[cls]);
             end;

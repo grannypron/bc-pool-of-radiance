@@ -9,7 +9,7 @@ uses Types;
 
 var
   { disk saved by DaxIo.PushState for PopState }
-  prevVirtualDisk: Byte;
+  savedDiskIndex: Byte;
 
 procedure FreeRounded(var p: Pointer; n: Word);
 
@@ -223,11 +223,11 @@ function DataDiskMsg: Types.TStr40;
 var
   disk: Types.TStr40;
 begin
-  { SaveLoad and the ECL keep virtualDisk in 1..LAST_DISK; another names no disk rather than reading past SSI's table of
+  { SaveLoad and the ECL keep diskIndex in 1..LAST_DISK; another names no disk rather than reading past SSI's table of
     eight lines }
   disk := '';
-  if (GameVars.virtualDisk >= 1) and (GameVars.virtualDisk <= Types.LAST_DISK) then
-    disk := Chr(Ord('0') + GameVars.virtualDisk) + ' ';
+  if (GameVars.diskIndex >= 1) and (GameVars.diskIndex <= Types.LAST_DISK) then
+    disk := Chr(Ord('0') + GameVars.diskIndex) + ' ';
   DataDiskMsg := 'Insert disk ' + disk + 'in drive ' + DaxIo.DataDrive + ': (Esc quits)';
 end;
 
@@ -360,12 +360,12 @@ end;
 
 { Open two handles on the same DAX archive. Use one for directory entries and position the other at the data area, after
   the two-byte header size and directory. Missing media prompts through OpenWithRetry with DataDiskMsg (Escape quits),
-  unless GameVars.suppressingInsertDiskFlag is set. False, with both handles closed, when the header size cannot be read
+  unless GameVars.suppressDiskPrompt is set. False, with both handles closed, when the header size cannot be read
   or the directory it gives runs past the end of the file, whose scan would never end. }
 function OpenDax(dirName, ext: Types.TPathStr; var headerSize: Word; var f1, f2: file): Boolean;
 var nread: Word;
 begin
-  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GameVars.suppressingInsertDiskFlag, True, f1) then begin
+  if DaxIo.OpenWithRetry(dirName + ext, DaxIo.DataDiskMsg, GameVars.suppressDiskPrompt, True, f1) then begin
     { read-only, as f1 is }
     if not FileUtil.OpenReadOnly(f2, dirName + ext) then begin
       Close(f1);
@@ -609,14 +609,14 @@ end;
 { Save the current resource disk and select a new one. }
 procedure PushState(v: Byte);
 begin
-  prevVirtualDisk := GameVars.virtualDisk;
-  GameVars.virtualDisk := v;
+  savedDiskIndex := GameVars.diskIndex;
+  GameVars.diskIndex := v;
 end;
 
 { Restore the saved resource disk. }
 procedure PopState;
 begin
-  GameVars.virtualDisk := prevVirtualDisk;
+  GameVars.diskIndex := savedDiskIndex;
 end;
 
 {$IFDEF FPC}
@@ -644,6 +644,6 @@ end;
 
 begin
   DaxIo.ResetArchiveCache;
-  prevVirtualDisk := 0;
+  savedDiskIndex := 0;
 
 end.

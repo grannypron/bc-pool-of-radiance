@@ -42,14 +42,14 @@ begin
   GameVars.usingItem := False;
   GameVars.elementMask := 0;
 
-  GameVars.currentSpellBeing := C_SPELL.MAGIC_MISSILE;
+  GameVars.spellId := C_SPELL.MAGIC_MISSILE;
   caster^.classLevels[C_LEVEL.MAGE] := 1;
   TestKit.CheckEqualsL(TRIES, Resisted, '50% against level 11 is 100% against level 1');
   caster^.classLevels[C_LEVEL.MAGE] := 21;
   TestKit.CheckEqualsL(0, Resisted, 'and 0% against level 21');
 
   { no spell (#786) }
-  GameVars.currentSpellBeing := C_SPELL.NONE;
+  GameVars.spellId := C_SPELL.NONE;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'an effect that is no spell meets the listed 50%');
   caster^.classLevels[C_LEVEL.MAGE] := 1;
   TestKit.Check(Abs(Resisted - TRIES div 2) < TRIES div 10, 'whatever the creature''s own level');

@@ -107,7 +107,7 @@ begin
         srcOff := GameVars.spanFirstOfs[row] + plane;
         dstOff := dstBase;
         repeat
-          Mem[EGA_STAGE_SEG:dstOff] := GameVars.viewImageBufferPtr^.data[srcOff];
+          Mem[EGA_STAGE_SEG:dstOff] := GameVars.viewBuffer^.data[srcOff];
           Inc(srcOff, 4);
           Inc(dstOff);
         until srcOff > GameVars.spanLastOfs[row];

@@ -29,7 +29,7 @@ var
   any other type. }
 function GetEclVar(idx: ShortInt): Word;
 
-{ Read count ECL variables at the ECL IP into gbvmType/gbvmLowerByte/gbvmUpperByte, decoding string values and
+{ Read count ECL variables at the ECL IP into varTypes/varLo/varHi, decoding string values and
   string references into gbStrings. Only the first 64 variables and 20 strings are kept (later strings overwrite the
   20th); the IP still steps past them all. }
 procedure LoadEclVars(count: Byte);
@@ -104,12 +104,12 @@ begin
         EclVars.DerefGbString(strIdx, v);
       end;
     end;
-    { 64 = High(gbvmType); the upper byte is kept only for the types that carry one }
+    { 64 = High(varTypes); the upper byte is kept only for the types that carry one }
     if i <= 64 then begin
-      GameVars.gbvmType[i] := t;
-      GameVars.gbvmLowerByte[i] := lo;
+      GameVars.varTypes[i] := t;
+      GameVars.varLo[i] := lo;
       if (t in [1, 2, 3]) or (t = $81) then
-        GameVars.gbvmUpperByte[i] := hi;
+        GameVars.varHi[i] := hi;
     end;
   end;
   Inc(GameVars.eclIp);
@@ -128,9 +128,9 @@ var
 begin
   { a type with no value reads 0; v1.3 left the result unassigned (#952) }
   GetEclVar := 0;
-  lo :=GameVars.gbvmLowerByte[idx];
-  hi := GameVars.gbvmUpperByte[idx];
-  case GameVars.gbvmType[idx] of
+  lo :=GameVars.varLo[idx];
+  hi := GameVars.varHi[idx];
+  case GameVars.varTypes[idx] of
     0: GetEclVar := lo;
     1, 3: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
     { a string value has no number: its text is in gbStrings (SSI read the GBVM at an address made of the packed length
@@ -233,7 +233,7 @@ begin
       { no result for charisma outside 3..25 }
       if GameVars.curChar^.chaCur in [AbilAdj.SCORE_MIN..AbilAdj.SCORE_MAX] then
         SpecialReadZ1 := AbilAdj.ChaLoyaltyBase(GameVars.curChar^.chaCur);
-    C_GBVM.DISK_NUM: SpecialReadZ1 := GameVars.virtualDisk;
+    C_GBVM.DISK_NUM: SpecialReadZ1 := GameVars.diskIndex;
     C_GBVM.PARTY_SIZE: SpecialReadZ1 := GameVars.zone1^[C_GBVM.PARTY_SIZE];
   else
     found := False;

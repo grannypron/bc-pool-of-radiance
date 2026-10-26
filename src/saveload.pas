@@ -77,7 +77,7 @@ procedure LoadGame;
 function SaveGame: Boolean;
 
 { Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With askSave and a party not saved
-  since it changed (GameVars.recentSaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and
+  since it changed (GameVars.recentlySaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and
   leaving it without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS asks to save; the
   Load/Save menu's Quit (#872), already at the save menu, does not (#910). The caller redraws its screen when it
   returns. }
@@ -263,8 +263,8 @@ begin
         toMap[i] := i;
       end;
       for i := 1 to 6 do begin
-        toMap[GameDefs.defIconCol[i]] := iconColors1[i] and $F;
-        toMap[GameDefs.defIconCol[i] + 8] := (iconColors1[i] and $F0) shr 4;
+        toMap[GameDefs.defaultIconColors[i]] := iconColors1[i] and $F;
+        toMap[GameDefs.defaultIconColors[i] + 8] := (iconColors1[i] and $F0) shr 4;
       end;
       Blit.RemapPic(fromMap, toMap, 0, False, GameVars.iconAnimation[orderNumber, 0]);
       Blit.RemapPic(fromMap, toMap, 0, False, GameVars.iconAnimation[orderNumber, 1]);
@@ -574,7 +574,7 @@ end;
 { The least a savgam file holds: everything LoadSlot reads from it. }
 function SaveMinSize: LongInt;
 begin
-  SaveMinSize := LongInt(SizeOf(GameVars.virtualDisk)) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) +
+  SaveMinSize := LongInt(SizeOf(GameVars.diskIndex)) + SizeOf(GameVars.zone0^) + SizeOf(GameVars.zone1^) +
                  SizeOf(GameVars.zone2^) + C_GBVM.SAVED_SCRIPT_BYTES + SizeOf(GameVars.gMapX) +
                  SizeOf(GameVars.gMapY) + SizeOf(GameVars.gFacing) + SizeOf(GameVars.wallAhead) +
                  SizeOf(GameVars.eventAtCell) + SizeOf(GameVars.gLocType) + SizeOf(GameVars.ifcState) +
@@ -611,10 +611,10 @@ begin
     Exit;
   end;
   TextRend.DisplayString(0, 24, LightGreen, 'Loading...Please Wait');
-  BlockRead(f, GameVars.virtualDisk, SizeOf(GameVars.virtualDisk), res);
+  BlockRead(f, GameVars.diskIndex, SizeOf(GameVars.diskIndex), res);
   { disks 1..8 only }
-  if not (GameVars.virtualDisk in [1..Types.LAST_DISK]) then
-    GameVars.virtualDisk := 1;
+  if not (GameVars.diskIndex in [1..Types.LAST_DISK]) then
+    GameVars.diskIndex := 1;
   BlockRead(f, GameVars.zone0^, SizeOf(GameVars.zone0^), res);
   BlockRead(f, GameVars.zone1^, SizeOf(GameVars.zone1^), res);
   BlockRead(f, GameVars.zone2^, SizeOf(GameVars.zone2^), res);
@@ -667,9 +667,9 @@ begin
   end;
   GameVars.curChar := GameVars.creatureList;
   { the disk number SaveGame stored at C_GBVM.DISK_NUM }
-  GameVars.virtualDisk := Lo(GameVars.zone1^[C_GBVM.DISK_NUM]);
-  if not (GameVars.virtualDisk in [1..Types.LAST_DISK]) then
-    GameVars.virtualDisk := 1;
+  GameVars.diskIndex := Lo(GameVars.zone1^[C_GBVM.DISK_NUM]);
+  if not (GameVars.diskIndex in [1..Types.LAST_DISK]) then
+    GameVars.diskIndex := 1;
   if GameVars.gLocType < C_AREA.LOC_WILD_WEST then
     View3D.Load3DMap(GameVars.zone0^.mapId.lo);
   if GameVars.gLocType > C_AREA.LOC_3D_MAP then
@@ -705,7 +705,7 @@ end;
 procedure QuitToDos(askSave: Boolean);
 begin
   if MenuCore.YesNoMenu('Exit to DOS? ', Yellow, LightGreen, White) = 'Y' then
-    if not askSave or (GameVars.recentSaved <> 0) or (GameVars.creatureList = nil) then
+    if not askSave or (GameVars.recentlySaved <> 0) or (GameVars.creatureList = nil) then
       GameIo.ExitGame
     else if MenuCore.YesNoMenu('Save first? ', Yellow, LightGreen, White) = 'N' then
       GameIo.ExitGame
@@ -788,8 +788,8 @@ begin
   GameVars.zone0^.gameSpeed.value := GameVars.gameDelay;
   GameVars.zone0^.settings := (1 - GameVars.musicOn) * 4 + GameVars.portraitsAll * GameVars.monsterPics * 2 +
                                GameVars.portraitsAll * GameVars.portraitsOn;
-  GameVars.zone1^[C_GBVM.DISK_NUM] := GameVars.virtualDisk;
-  FileUtil.WriteChecked(f, GameVars.virtualDisk, SizeOf(GameVars.virtualDisk), ok);
+  GameVars.zone1^[C_GBVM.DISK_NUM] := GameVars.diskIndex;
+  FileUtil.WriteChecked(f, GameVars.diskIndex, SizeOf(GameVars.diskIndex), ok);
   FileUtil.WriteChecked(f, GameVars.zone0^, SizeOf(GameVars.zone0^), ok);
   GameVars.zone0^.savedWalls := walls;
   FileUtil.WriteChecked(f, GameVars.zone1^, SizeOf(GameVars.zone1^), ok);
@@ -835,7 +835,7 @@ begin
   BeastFil.Flush;
   TextRend.ClearBottomLine;
   if ok then
-    GameVars.recentSaved := 1
+    GameVars.recentlySaved := 1
   else begin
     TextRend.DisplayAndPause(Yellow, 'The game was not saved.');
     TextRend.ClearBottomLine;
@@ -893,14 +893,14 @@ var
   disk: Byte;
 begin
   if FileUtil.Exists(name) then Exit;
-  msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GameVars.virtualDisk);
+  msg := 'Save and exit  Insert disk #' + StrUtil.NumStr(GameVars.diskIndex);
   repeat
     ch := MenuCore.MenuHorizontal('', msg, LightMagenta, LightGreen, White, False, False, ext);
     saving := (not ext) and (ch = 'S');
     if saving then begin
       x := GameVars.gMapX;
       y := GameVars.gMapY;
-      disk := GameVars.virtualDisk;
+      disk := GameVars.diskIndex;
       Dec(GameVars.gMapX, GameDefs.dirDX[GameVars.gFacing]);
       Dec(GameVars.gMapY, GameDefs.dirDY[GameVars.gFacing]);
       View3D.WrapCoords(GameVars.gMapX, GameVars.gMapY);
@@ -910,7 +910,7 @@ begin
       { not saved: the party stands where it was, on the new disk, and chooses again over the redrawn view }
       GameVars.gMapX := x;
       GameVars.gMapY := y;
-      GameVars.virtualDisk := disk;
+      GameVars.diskIndex := disk;
       CharDisp.DisplayNoncombatInterface;
     end;
   until not saving;

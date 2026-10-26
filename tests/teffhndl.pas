@@ -42,12 +42,12 @@ begin
   GameVars.elementMask := elem;
   GameVars.pendingDamage := 9;
   GameVars.pendingEffectId := 0;
-  FxEngine.gSaveRoll := 10;
+  FxEngine.saveRoll := 10;
   if fire then
     EffHndlr.EffResistFire(c, nil, False)
   else
     EffHndlr.EffResistCold(c, nil, False);
-  save := FxEngine.gSaveRoll;
+  save := FxEngine.saveRoll;
   After := GameVars.pendingDamage;
 end;
 
@@ -124,7 +124,7 @@ begin
   GameVars.creatureList := nil;
   GameVars.ifcState := 0;
   GameVars.effectLock := 0;
-  GameVars.currentSpellBeing := C_SPELL.NONE;
+  GameVars.spellId := C_SPELL.NONE;
   c := NewCreature;
   foe := NewCreature;
   GameVars.curChar := c;

@@ -109,7 +109,7 @@ var
   i: ShortInt;
 begin
   MoneyCal.CoinsOf(creature, m);
-  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD], C_MONEY.MAX_COINS,
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GameDefs.coinValues[C_MONEY.GOLD], C_MONEY.MAX_COINS,
                       m);
   for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
     creature^.coins[i] := m[i];
@@ -119,7 +119,7 @@ end;
 { Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
 procedure PayFromPool(gp: LongInt);
 begin
-  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD],
+  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GameDefs.coinValues[C_MONEY.GOLD],
                       MaxLongInt, GameVars.treasureMoney);
 end;
 

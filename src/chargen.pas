@@ -31,7 +31,7 @@ procedure ModifyCharacter(levelled: Boolean);
   0): ModifyCharacter's hit-point row, levelled, and the Companion Tools' lowered level. }
 procedure SetHpMax(hp: Integer);
 
-{ curChar gains a level in each class of trainable (GameDefs.classBit), with its hit points, as a training hall gives
+{ curChar gains a level in each class of trainable (GameDefs.classBits), with its hit points, as a training hall gives
   it; restoreDrain restores a drained level for each. The Companion Tools' editor raises levels with it too. }
 procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 
@@ -68,7 +68,7 @@ const
 procedure CreateCharacterMenu; forward;
 const
   { The oldest age in each age category, in years, by race }
-  ageCat: array[1..7] of Types.TRuleAgeCategories = (
+  ageThresholds: array[1..7] of Types.TRuleAgeCategories = (
     (youngAdult: 50; mature: 150; middleAged: 250; old: 350; venerable: 450), { dwarf }
     (youngAdult: 175; mature: 550; middleAged: 875; old: 1200; venerable: 1600), { elf }
     (youngAdult: 90; mature: 300; middleAged: 450; old: 600; venerable: 750), { gnome }
@@ -119,7 +119,7 @@ var
   top: Byte;
   refusal: Types.TStr40;
 begin
-  GameVars.virtualDisk := 3;
+  GameVars.diskIndex := 3;
   redraw := True;
   stingMode := 0;
   cur := PartyMnu.CMD_ADD;
@@ -164,7 +164,7 @@ begin
     end else begin
       { a command that may change the party marks it unsaved; Exit, Save, Settings and free training do not }
       if not (ch in ['E', 'S', 'G', 'J']) then
-        GameVars.recentSaved := 0;
+        GameVars.recentlySaved := 0;
       case ch of
         'C': CharGen.CreateCharacterMenu;
         'D': CharGen.DropCharacterMenu;
@@ -412,7 +412,7 @@ begin
   FillChar(creature^, SizeOf(Types.TCharRecord), 0);
   with creature^ do begin
     for slot := 1 to 6 do
-      iconColors1[slot] := GameDefs.defIconCol[slot] + (GameDefs.defIconCol[slot] + 8) * 16;
+      iconColors1[slot] := GameDefs.defaultIconColors[slot] + (GameDefs.defaultIconColors[slot] + 8) * 16;
     acBase := 50;
     thac0Base := 40;
     status := C_STATUS.OKAY;
@@ -447,7 +447,7 @@ begin
   m := list;
   sel := 1;
   { the list starts at Dwarf, with the label row above the box }
-  GameVars.vertTop := 1;
+  GameVars.verticalMenuTop := 1;
   redraw := True;
   addExit := True;
   repeat
@@ -551,8 +551,8 @@ begin
     thac0Base := 0;
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
-        if GameDefs.thac0Tbl[cls, classLevels[cls]] > thac0Base then
-          thac0Base := GameDefs.thac0Tbl[cls, classLevels[cls]];
+        if GameDefs.classThac0[cls, classLevels[cls]] > thac0Base then
+          thac0Base := GameDefs.classThac0[cls, classLevels[cls]];
         itemLimits := itemLimits or ClassCal.usabilityBit[cls];
       end;
   end;
@@ -591,13 +591,13 @@ begin
         case i of
           { Strength }
           C_STAT.STRENGTH: begin
-               if (stats[i] > 0) and (ageCat[race].youngAdult < age) then
+               if (stats[i] > 0) and (ageThresholds[race].youngAdult < age) then
                  Inc(stats[i]);
-               if (stats[i] > 0) and (ageCat[race].mature < age) then
+               if (stats[i] > 0) and (ageThresholds[race].mature < age) then
                  Dec(stats[i]);
-               if (stats[i] > 0) and (ageCat[race].middleAged < age) then
+               if (stats[i] > 0) and (ageThresholds[race].middleAged < age) then
                  Dec(stats[i], 2);
-               if (stats[i] > 0) and (ageCat[race].old < age) then
+               if (stats[i] > 0) and (ageThresholds[race].old < age) then
                  Dec(stats[i]);
                ClampToLimits(i);
                if (stats[C_STAT.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
@@ -608,29 +608,29 @@ begin
              end;
           { Intelligence }
           C_STAT.INTELLIGENCE: begin
-               if ageCat[race].mature < age then
+               if ageThresholds[race].mature < age then
                  Inc(stats[i]);
-               if ageCat[race].old < age then
+               if ageThresholds[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
              end;
           { Wisdom }
           C_STAT.WISDOM: begin
-               if ageCat[race].youngAdult >= age then
+               if ageThresholds[race].youngAdult >= age then
                  Dec(stats[i]);
-               if ageCat[race].mature < age then
+               if ageThresholds[race].mature < age then
                  Inc(stats[i]);
-               if ageCat[race].middleAged < age then
+               if ageThresholds[race].middleAged < age then
                  Inc(stats[i]);
-               if ageCat[race].old < age then
+               if ageThresholds[race].old < age then
                  Inc(stats[i]);
                ClampToLimits(i);
              end;
           { Dexterity }
           C_STAT.DEXTERITY: begin
-               if ageCat[race].middleAged < age then
+               if ageThresholds[race].middleAged < age then
                  Dec(stats[i], 2);
-               if ageCat[race].old < age then
+               if ageThresholds[race].old < age then
                  Dec(stats[i]);
                ClampToLimits(i);
              end;
@@ -639,11 +639,11 @@ begin
                { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
                  out the +1, so every age came out one lower (#704). }
                Inc(stats[i]);
-               if ageCat[race].mature < age then
+               if ageThresholds[race].mature < age then
                  Dec(stats[i]);
-               if ageCat[race].middleAged < age then
+               if ageThresholds[race].middleAged < age then
                  Dec(stats[i]);
-               if ageCat[race].old < age then
+               if ageThresholds[race].old < age then
                  Dec(stats[i]);
                ClampToLimits(i);
              end;
@@ -1002,7 +1002,7 @@ begin
   end;
 end;
 
-{ GainLevels: curChar gains a level in each of its classes in mask (GameDefs.classBit), as training gives it: with
+{ GainLevels: curChar gains a level in each of its classes in mask (GameDefs.classBits), as training gives it: with
   restoreDrain, one drained level is restored for each; base skills are recalculated; a new magic-user level picks one
   spell; hit points grow by the rolled dice (and, for hpMax, the classes' Con bonus) divided by the class count, at
   least 1, damage kept. A dual-classed human (#838) gains no level in a class it has left, and no hit points until the
@@ -1028,7 +1028,7 @@ begin
     oldMage := classLevels[C_LEVEL.MAGE];
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if classLevels[cls] > 0 then begin
-        if (GameDefs.classBit[cls] and trainable > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
+        if (GameDefs.classBits[cls] and trainable > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
           Inc(classLevels[cls]);
           if restoreDrain and (drainedLevels > 0) then begin
             Dec(drainedHps, drainedHps div drainedLevels);
@@ -1102,12 +1102,12 @@ begin
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       { a class a dual-classed human has left never trains (#838) }
       if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then begin
-        Inc(classMask, GameDefs.classBit[cls]);
+        Inc(classMask, GameDefs.classBits[cls]);
         lvl := classLevels[cls];
         if trains and (1 shl cls) <> 0 then begin
-          Inc(trainMask, GameDefs.classBit[cls]);
+          Inc(trainMask, GameDefs.classBits[cls]);
           if lvl < C_LEVEL.LEVEL_LAST - 1 then
-            nextXp := GameDefs.experienceSpellsClass[cls].xp[Succ(Succ(lvl))]
+            nextXp := GameDefs.classExperience[cls].xp[Succ(Succ(lvl))]
           else
             nextXp := 0;
           if nextXp > 0 then
@@ -1141,7 +1141,7 @@ begin
     TextRend.DisplayString(Length(name) + 4, row, LightGreen, ' will become:');
     for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
       if (classLevels[cls] > 0) and (portExt.formerClasses and (1 shl cls) = 0) then
-        if GameDefs.classBit[cls] and trainable > 0 then begin
+        if GameDefs.classBits[cls] and trainable > 0 then begin
           Inc(row);
           if row = 5 then
             TextRend.DisplayString(6, row, LightGreen,
@@ -1374,7 +1374,7 @@ var
   end;
 
 begin
-  Str(LongInt(GameVars.virtualDisk), diskCh);
+  Str(LongInt(GameVars.diskIndex), diskCh);
   nHeads := Portrait.PlayerPortraitCount(False);
   nBodies := Portrait.PlayerPortraitCount(True);
   for i := 0 to 2 do begin
@@ -1589,8 +1589,8 @@ var
     for k := 0 to 15 do
       toT[k] := k;
     for k := 1 to 6 do begin
-      toT[GameDefs.defIconCol[k] and $F] := c[k] and $F;
-      toT[(GameDefs.defIconCol[k] + 8) and $F] := c[k] shr 4;
+      toT[GameDefs.defaultIconColors[k] and $F] := c[k] and $F;
+      toT[(GameDefs.defaultIconColors[k] + 8) and $F] := c[k] shr 4;
     end;
     VidOps.RecolorPic(toT, work);
   end;

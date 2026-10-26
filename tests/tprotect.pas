@@ -59,9 +59,9 @@ end;
 function SaveBonus: Integer;
 begin
   GameVars.curChar := att;
-  FxEngine.gSaveRoll := 10;
+  FxEngine.saveRoll := 10;
   FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, def);
-  SaveBonus := Integer(FxEngine.gSaveRoll) - 10;
+  SaveBonus := Integer(FxEngine.saveRoll) - 10;
 end;
 
 { What the defender's protection takes off the attacker's (GameVars.curChar's) d20 }

@@ -11,9 +11,9 @@ var
   { Creatures whose timed effects need processing, by list ordinal. }
   effFlags: array[1..Types.ARENA_SLOTS] of Byte;
   { modified saving-throw roll; signed, so a penalty can take it below 0 }
-  gSaveRoll: Integer;
+  saveRoll: Integer;
   { saving throw type, 0..4 }
-  gSaveType: Byte;
+  saveType: Byte;
 
 { Call the effect handler for effId (1..141) through GameVars.effectFns; an id outside the table calls nothing. p is the
   item or effect node the handler concerns; removed is True when the item is being unreadied or the effect removed. }
@@ -85,14 +85,14 @@ function PrayerSide(effect: Types.PEffectRec): Byte;
 
 { Attack roll with no attacking creature (used by ECL script attacks): d20 into gAttackRoll, where 1 misses and 20
   becomes 100, then the defender's C_COND.ATTACK_ROLL_DEF (16) effects run. Hit when no effect forced a miss
-  (GameVars.gAttackAvoided) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
+  (GameVars.forcedMiss) and roll + sixtyMinusThac0 >= defender^.acCur, AttackRoll's test; SSI's needed more than
   acCur, so a script's attack hit 5% less often than a creature's with the same THAC0 (#719). }
 function AttackRollNoAttacker(defender: Types.PCharRecord; sixtyMinusThac0: Byte): Boolean;
 
 { Full attack roll: strip the attacker's invisibility (effect 25), roll d20 into gAttackRoll (1 misses, 20 becomes 100),
   run the attacker's C_COND.ATTACK_ROLL_ATT (10) and the defender's C_COND.ATTACK_ROLL_DEF (16) effects, and take the
   GBVM modifier zmod (the low byte of C_GBVM.PARTY_HIT_MOD when the attacker is allied, of C_GBVM.MONSTER_HIT_MOD when
-  hostile). Hit when no effect forced a miss (GameVars.gAttackAvoided) and roll + attacker^.thac0Cur + zmod >=
+  hostile). Hit when no effect forced a miss (GameVars.forcedMiss) and roll + attacker^.thac0Cur + zmod >=
   sixtyMinusAc. Penalties that take the roll below 0 only lower it; SSI's took any roll below 0 for a forced miss
   (#718). }
 function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): Boolean;
@@ -100,10 +100,10 @@ function AttackRoll(attacker, defender: Types.PCharRecord; sixtyMinusAc: Byte): 
 { What AttackRoll adds to attacker's roll: its thac0Cur (60 - THAC0) and the GBVM modifier zmod of its side. }
 function HitBonus(attacker: Types.PCharRecord): Integer;
 
-{ d20 saving throw into gSaveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
-  creature^.saveBonus + modifier, gSaveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects run, and
-  the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside C_SAVE.PARALYZE..SPELL (an
-  ECL script supplies it) is rolled as C_SAVE.SPELL. }
+{ d20 saving throw into saveRoll: 1 always fails and 20 always succeeds. Otherwise the roll becomes roll +
+  creature^.saveBonus + modifier, FxEngine.saveType is set to saveType, the creature's C_COND.SAVING_THROW (12) effects
+  run, and the save succeeds when creature^.saves[saveType] <= the modified roll. A saveType outside
+  C_SAVE.PARALYZE..SPELL (an ECL script supplies it) is rolled as C_SAVE.SPELL. }
 function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortInt): Boolean;
 
 { Allocate an effect node, append it to the creature's effect list (as the head if the list is empty) and fill in id,
@@ -129,7 +129,7 @@ procedure LoseImage(creature: Types.PCharRecord; image: Types.PEffectRec);
 { Remove the effects listed in hpZeroEffects (the first node of each id). }
 procedure RemoveEffectsHp0(creature: Types.PCharRecord);
 
-{ Remove the effects listed in aiRoundRemoveEffects, 74 and 75 (the first node of each id). }
+{ Remove the effects listed in combatAiEffects, 74 and 75 (the first node of each id). }
 procedure RemoveAiEffects(creature: Types.PCharRecord);
 
 { If the creature has effect effId, print "<name> is Cured", remove that node and return True; otherwise return False. }
@@ -202,7 +202,7 @@ procedure UnreadyItem(creature: Types.PCharRecord; item: Types.PItemRec);
 procedure AdvanceTime(amount: Byte; tUnit: ShortInt);
 
 { The start of a hold effect's handler (bite and hold, blood drain): p is the effect, its strength the victim's creature
-  index. Returns the victim (also set in GameVars.otherCreatureCurrentPtr) while the hold lasts, else nil: with no
+  index. Returns the victim (also set in GameVars.combatTarget) while the hold lasts, else nil: with no
   victim in the arena the effect just goes (released False); when the effect is being removed, either side is down or
   the victim is no longer C_EFFECT.IMMOBILE (it broke free, #709), the victim loses C_EFFECT.IMMOBILE and the effect
   goes (released True). The effect is removed here with onRemove cleared first, unless removed says it is already being
@@ -590,14 +590,14 @@ end;
 function RollToHit(attacker, defender: Types.PCharRecord; toHit: Integer; sixtyMinusAc: Byte): Boolean;
 begin
   RollToHit := False;
-  GameVars.gAttackAvoided := False;
+  GameVars.forcedMiss := False;
   GameVars.gAttackRoll := Dice.RollDice(1, 20);
   if GameVars.gAttackRoll > 1 then begin
     if GameVars.gAttackRoll = 20 then GameVars.gAttackRoll := 100;
     if attacker <> nil then
       FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_ATT, attacker);
     FxEngine.TriggerEffectsWithCondition(C_COND.ATTACK_ROLL_DEF, defender);
-    if not GameVars.gAttackAvoided and (GameVars.gAttackRoll + toHit >= sixtyMinusAc) then
+    if not GameVars.forcedMiss and (GameVars.gAttackRoll + toHit >= sixtyMinusAc) then
       RollToHit := True;
   end;
 end;
@@ -628,15 +628,15 @@ function RollSavingThrow(creature: Types.PCharRecord; saveType, modifier: ShortI
 begin
   if (saveType < C_SAVE.PARALYZE) or (saveType > C_SAVE.SPELL) then
     saveType := C_SAVE.SPELL;
-  gSaveRoll := Dice.RollDice(1, 20);
-  case gSaveRoll of
+  FxEngine.saveRoll := Dice.RollDice(1, 20);
+  case FxEngine.saveRoll of
     1: RollSavingThrow := False;
     20: RollSavingThrow := True;
   else begin
-    gSaveRoll := gSaveRoll + creature^.saveBonus + modifier;
-    gSaveType := saveType;
+    FxEngine.saveRoll := FxEngine.saveRoll + creature^.saveBonus + modifier;
+    FxEngine.saveType := saveType;
     FxEngine.TriggerEffectsWithCondition(C_COND.SAVING_THROW, creature);
-    if creature^.saves[saveType] <= gSaveRoll then
+    if creature^.saves[saveType] <= FxEngine.saveRoll then
       RollSavingThrow := True
     else
       RollSavingThrow := False;
@@ -759,7 +759,7 @@ end;
 procedure RemoveAiEffects(creature: Types.PCharRecord);
 const
   { Effects removed by RemoveAiEffects at the start of CombatAi.CheckMorale }
-  aiRoundRemoveEffects: array[1..2] of Byte = (
+  combatAiEffects: array[1..2] of Byte = (
     { Bite-and-Hold }
     C_EFFECT.BITE_HOLD,
     { Blood Drain }
@@ -767,8 +767,8 @@ const
 var
   i: Byte;
 begin
-  for i := 1 to SizeOf(aiRoundRemoveEffects) do
-    FxEngine.RemoveEffect(creature, aiRoundRemoveEffects[i], nil);
+  for i := 1 to SizeOf(combatAiEffects) do
+    FxEngine.RemoveEffect(creature, combatAiEffects[i], nil);
 end;
 
 function RemoveEffectWithMessage(creature: Types.PCharRecord; effId: Byte): Boolean;
@@ -1233,22 +1233,22 @@ begin
     end;
     Exit;
   end;
-  GameVars.otherCreatureCurrentPtr := GameVars.creatureArr[Types.PEffectRec(p)^.strength];
-  if removed or (creature^.enabled = 0) or (GameVars.otherCreatureCurrentPtr^.enabled = 0)
-     or not CharHlp.HasEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.IMMOBILE, held) then begin
-    FxEngine.RemoveEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.IMMOBILE, nil);
+  GameVars.combatTarget := GameVars.creatureArr[Types.PEffectRec(p)^.strength];
+  if removed or (creature^.enabled = 0) or (GameVars.combatTarget^.enabled = 0)
+     or not CharHlp.HasEffect(GameVars.combatTarget, C_EFFECT.IMMOBILE, held) then begin
+    FxEngine.RemoveEffect(GameVars.combatTarget, C_EFFECT.IMMOBILE, nil);
     if not removed then begin
       Types.PEffectRec(p)^.onRemove := False;
       FxEngine.RemoveEffect(creature, effId, p);
     end;
     released := True;
   end else
-    HoldTarget := GameVars.otherCreatureCurrentPtr;
+    HoldTarget := GameVars.combatTarget;
 end;
 
 begin
   { Turbo Pascal clears no variable }
   FillChar(effFlags, SizeOf(effFlags), 0);
-  gSaveRoll := 0;
-  gSaveType := 0;
+  FxEngine.saveRoll := 0;
+  FxEngine.saveType := 0;
 end.

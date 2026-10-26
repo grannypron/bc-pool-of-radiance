@@ -43,8 +43,8 @@ var
   s: string[Types.NAME_LEN];
 begin
   found := False;
-  suppressed := GameVars.suppressingInsertDiskFlag;
-  GameVars.suppressingInsertDiskFlag := True;
+  suppressed := GameVars.suppressDiskPrompt;
+  GameVars.suppressDiskPrompt := True;
   if DaxIo.OpenDax({$IFDEF FPC}DaxIo.FolderOf(archive){$ELSE}GameVars.gameDir{$ENDIF} + archive, '.DAX', hdrSize, f1,
                    f2) then begin
     ended := False;
@@ -66,7 +66,7 @@ begin
     end;
     DaxIo.CloseDax(f1, f2);
   end;
-  GameVars.suppressingInsertDiskFlag := suppressed;
+  GameVars.suppressDiskPrompt := suppressed;
   FindNamed := found;
 end;
 
@@ -118,10 +118,10 @@ begin
   creature := nil;
   name := b.name;
   if Sage.FindRecord(name, disk, id) then begin
-    saved := GameVars.virtualDisk;
-    GameVars.virtualDisk := disk;
+    saved := GameVars.diskIndex;
+    GameVars.diskIndex := disk;
     EclMenu.InitCreature(id, creature, items, effects);
-    GameVars.virtualDisk := saved;
+    GameVars.diskIndex := saved;
   end;
   LoadKind := creature;
 end;
@@ -137,7 +137,7 @@ procedure Redraw;
 begin
   TextRend.ClearRect(0, 0, 39, 24);
   CharDisp.DisplayNoncombatInterface;
-  EclMenu.DisplayPortrait(CharDisp.currentPortraitHead, CharDisp.currentPortraitHead2);
+  EclMenu.DisplayPortrait(CharDisp.portraitHeadId, CharDisp.portraitBodyId);
 end;
 
 { The sage tells of b's kind, for a fee: the answer the menu is then shown under. }

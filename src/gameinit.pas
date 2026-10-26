@@ -25,14 +25,14 @@ uses Types, Crt, C_AREA, GameVars, Sym8x8, MapTiles, Magic, EffHndlr, C_DIR, Opt
   Portrait, BeastFil{$IFDEF FPC}, TpRand{$ENDIF};
 
 { Install every spell handler in GameVars.spellFns and the noncombat cast-target menu; clear effectLock,
-  GameVars.usingItem and GameVars.castTarget, and set redrawInventoryMenuFlag. }
+  GameVars.usingItem and GameVars.castTarget, and set invRedraw. }
 procedure InitSpellFns;
 begin
   GameVars.castTargetMenu := Magic.NoncombatCastTargetMenu;
   GameVars.effectLock := 0;
   GameVars.usingItem := False;
   GameVars.castTarget := nil;
-  GameVars.redrawInventoryMenuFlag := 1;
+  GameVars.invRedraw := 1;
   GameVars.spellFns[1] := Magic.BlessHandler;
   GameVars.spellFns[2] := Magic.CurseHandler;
   GameVars.spellFns[3] := Magic.CureLightWoundsHandler;
@@ -268,19 +268,19 @@ begin
   GameVars.creatureList := nil;
   GameVars.curChar := nil;
   GameVars.eclIp := C_GBVM.SCRIPT_FIRST;
-  GameVars.virtualDisk := 1;
-  DaxIo.prevVirtualDisk := 1;
+  GameVars.diskIndex := 1;
+  DaxIo.savedDiskIndex := 1;
   GameVars.automapOn := False;
   GameVars.locTypePrev := C_AREA.LOC_3D_MAP;
   GameVars.gLocType := C_AREA.LOC_3D_MAP;
-  GameVars.vertTop := 1;
+  GameVars.verticalMenuTop := 1;
   GameVars.duelFlag := False;
   GameVars.suppressDrawingBorderFlag := 0;
   GameVars.eclGraphics := False;
   GameVars.partyDefeated := False;
   GameVars.sprShown := False;
-  GameVars.suppressingInsertDiskFlag := False;
-  GameVars.recentSaved := 0;
+  GameVars.suppressDiskPrompt := False;
+  GameVars.recentlySaved := 0;
   GameVars.ceilFloorColorSel := 232;
   GameVars.wallColorSel := 219;
   GameVars.inEncMenu := 0;
@@ -314,11 +314,11 @@ begin
   GetMem(GameVars.gameFont, SizeOf(Types.TFontArr));
   GetMem(View3D.wallGfx, SizeOf(View3D.wallGfx^));
   GetMem(GameVars.map3d, SizeOf(Types.TGeoMap));
-  Blit.AllocPic(8, 1, 1, 0, GameVars.current8x8SymbolPtr2);
+  Blit.AllocPic(8, 1, 1, 0, GameVars.sym8x8Buf);
   { the 168x168 view area }
-  Blit.AllocPic(168, 21, 1, 0, GameVars.viewImageBufferPtr);
+  Blit.AllocPic(168, 21, 1, 0, GameVars.viewBuffer);
   { 24x24 save-under block }
-  Blit.AllocPic(24, 3, 1, 0, GameVars.iconImageBufferPtr);
+  Blit.AllocPic(24, 3, 1, 0, GameVars.saveUnder);
   Blit.ClearSpans;
   VidOps.InitRowTables;
   FillChar(GameVars.symbolSetPtrs, SizeOf(GameVars.symbolSetPtrs), 0);
@@ -326,8 +326,8 @@ begin
   GameVars.mapTilePtr := nil;
   FillChar(GameVars.iconAnimation, SizeOf(GameVars.iconAnimation), 0);
   for i := 1 to 2 do begin
-    GameVars.portraitCache[i].pictureId := 255;
-    GameVars.portraitCache[i].pic := nil;
+    GameVars.portraits[i].pictureId := 255;
+    GameVars.portraits[i].pic := nil;
   end;
   FillChar(GameVars.animData, SizeOf(GameVars.animData), 0);
   GameVars.treasureItems := nil;

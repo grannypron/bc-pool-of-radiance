@@ -268,7 +268,7 @@ begin
 end;
 
 { RemoveCurse: Looks for a cursed item in the inventory, else for C_EFFECT.BESTOW_CURSE (36); for 3500 gp sets
-  targetCreaturePtr[1] to the current character and calls the Remove Curse spell handler, Magic.RemoveCurseSpell
+  spellTargets[1] to the current character and calls the Remove Curse spell handler, Magic.RemoveCurseSpell
   (spell 43) }
 procedure RemoveCurse;
 var
@@ -291,7 +291,7 @@ begin
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Remove Curse', 3500);
     if c = 'Y' then begin
-      GameVars.targetCreaturePtr[1] := GameVars.curChar;
+      GameVars.spellTargets[1] := GameVars.curChar;
       Magic.RemoveCurseSpell;
     end;
   end;
@@ -372,7 +372,7 @@ begin
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
   { the top divider row }
   Border.DrawWindow(1, 1, 38, 1, 0, White, '');
-  { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }
+  { open on the first cure; MenuVertical also brings a verticalMenuTop left by an earlier menu back to it }
   idx := 0;
   repeat
     s := GameVars.curChar^.name + ', how can we help you?';

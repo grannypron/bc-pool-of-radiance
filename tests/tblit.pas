@@ -157,7 +157,7 @@ begin
   Blit.FreePic(other);
   { the view: fills and blits, clipped at each edge, with a save-under }
   Blit.AllocPic(168, 21, 1, 0, dest);
-  Blit.AllocPic(24, 3, 1, 0, GameVars.iconImageBufferPtr);
+  Blit.AllocPic(24, 3, 1, 0, GameVars.saveUnder);
   ClearSpans;
   for i := 0 to 7 do
     map[i] := (((2 * i) mod 4) shl 4) or ((2 * i + 1) mod 4);
@@ -175,9 +175,9 @@ begin
   Blit.BlitTileClipped(12, 30, 0, 1, pic, dest);
   TestKit.CheckEqualsL(hView, PicHash(dest), name + ': the view');
   TestKit.CheckEqualsL(hSpans, SpanHash, name + ': its dirty spans');
-  TestKit.CheckEqualsL(hSave, PicHash(GameVars.iconImageBufferPtr), name + ': the save-under');
+  TestKit.CheckEqualsL(hSave, PicHash(GameVars.saveUnder), name + ': the save-under');
   ClearSpans;
-  Blit.FreePic(GameVars.iconImageBufferPtr);
+  Blit.FreePic(GameVars.saveUnder);
   Blit.FreePic(dest);
   Blit.FreePic(mir);
   Blit.FreePic(pic);
@@ -252,19 +252,19 @@ begin
   GameVars.video.DrawGlyph(5, 7, 9, 65);
   GameVars.video.DrawGlyph(39, 24, 3, 176);
   GameVars.video.DrawGlyph(0, 0, 14, 1);
-  Blit.AllocPic(168, 21, 1, 0, GameVars.viewImageBufferPtr);
-  for i := 0 to GameVars.viewImageBufferPtr^.imgSize - 1 do
-    GameVars.viewImageBufferPtr^.data[i] := Next(256);
+  Blit.AllocPic(168, 21, 1, 0, GameVars.viewBuffer);
+  for i := 0 to GameVars.viewBuffer^.imgSize - 1 do
+    GameVars.viewBuffer^.data[i] := Next(256);
   ClearSpans;
-  Blit.BlitTileClipped(3, 4, 0, 0, pic, GameVars.viewImageBufferPtr);
-  Blit.BlitTileClipped(19, 19, 0, 1, pic, GameVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(3, 4, 0, 0, pic, GameVars.viewBuffer);
+  Blit.BlitTileClipped(19, 19, 0, 1, pic, GameVars.viewBuffer);
   Blit.FlushView;
   GameVars.video.ClearRect(10, 2, 14, 4);
   h := 0;
   Hash(h, Types.PByteArr(Ptr($B800, 0)), $8000);
   TestKit.CheckEqualsL(hScreen, h, GameVars.video.name + ': the screen');
   FillChar(Mem[$B800:0], $8000, 0);
-  Blit.FreePic(GameVars.viewImageBufferPtr);
+  Blit.FreePic(GameVars.viewBuffer);
   Blit.FreePic(pic);
   FreeMem(GameVars.gameFont, SizeOf(Types.TFontArr));
 end;

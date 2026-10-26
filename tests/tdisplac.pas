@@ -39,7 +39,7 @@ begin
     GameVars.gAttackRoll := 0;
     hit := FxEngine.AttackRoll(att, def, 0);
   until GameVars.gAttackRoll = rollTo;
-  Displaced := GameVars.gAttackAvoided;
+  Displaced := GameVars.forcedMiss;
 end;
 
 begin

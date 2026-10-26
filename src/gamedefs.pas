@@ -26,7 +26,7 @@ const
 const
   { Training-hall class bits (C_GBVM.TRAIN_CLASS_MASK) by class slot. Paladins and rangers train with fighters; the
     monk combines two bits. }
-  classBit: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
+  classBits: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Byte = (
     2, 2, 8, 8, 8, 1, 4, 6);
 
 const
@@ -56,7 +56,7 @@ const
   cgaColorFill: array[0..3] of Byte = ($00, $55, $AA, $FF);
   { Character and money names }
   { Coin values in copper: copper 1, silver 10, electrum 100, gold 200, platinum 1000. }
-  coinValuationCopper: array[C_MONEY.COPPER..C_MONEY.PLATINUM] of LongInt = (
+  coinValues: array[C_MONEY.COPPER..C_MONEY.PLATINUM] of LongInt = (
     1, 10, 100, 200, 1000);
   { Class names, indexed by TCharRecord.charClass. }
   classNames: array[C_CLASS.CLERIC..C_CLASS.MAGE_THIEF] of string[25] = (
@@ -115,7 +115,7 @@ const
     'Gems',
     'Jewelry');
   { Status names, indexed by TCharRecord.status; see C_STATUS. }
-  statusStrs: array[C_STATUS.OKAY..C_STATUS.GONE] of string[11] = (
+  statusNames: array[C_STATUS.OKAY..C_STATUS.GONE] of string[11] = (
     'Okay',
     'Animated',
     'tempgone',
@@ -817,7 +817,7 @@ const
 const
   { Class, race and level rules }
   { 60 - THAC0 }
-  thac0Tbl: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 0..10] of Byte = (
+  classThac0: array[C_LEVEL.CLERIC..C_LEVEL.MONK, 0..10] of Byte = (
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46),
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46),
     (40, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49),
@@ -826,7 +826,7 @@ const
     (40, 40, 40, 40, 40, 40, 41, 41, 41, 41, 41),
     (40, 40, 40, 40, 40, 41, 41, 41, 41, 44, 44),
     (40, 40, 40, 40, 42, 42, 42, 44, 44, 44, 46));
-  defIconCol: array[1..6] of Byte = (1, 2, 3, 4, 6, 7);
+  defaultIconColors: array[1..6] of Byte = (1, 2, 3, 4, 6, 7);
   { Racial ability limits, by race; the strength columns are by gender. Human women reach 18/00 like human men. }
   minimumMaximumStatistics: array[1..7] of Types.TRuleRace = (
     (strMin: (8, 8); strMax: (18, 17); excMax: (99, 0); intMin: 3; intMax: 18;
@@ -864,7 +864,7 @@ const
     (first: 5; second: 6; third: -1)); { magic-user/thief }
   { Experience and spell slots by class slot. A -1 marks a level the class cannot reach, so cleric and magic-user stop
     at 6, paladin and ranger at 7 and fighter at 8; the thief's row runs to the end of the table at 9. }
-  experienceSpellsClass: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleXp = (
+  classExperience: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Types.TRuleXp = (
     (xp: (1501, 3001, 6001, 13001, 27501, -1, -1, -1);
      slots: ((2, 0, 0), (2, 1, 0), (3, 2, 0), (3, 3, 1), (3, 3, 2), (0, 0, 0), (0, 0, 0), (0, 0, 0))),
     (xp: (-1, -1, -1, -1, -1, -1, -1, -1);

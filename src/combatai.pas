@@ -186,8 +186,8 @@ begin
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
-          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].x,
-                                      GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].y,
+          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.combatTargetSlots[j]].x,
+                                      GameVars.arenaLoc[GameVars.combatTargetSlots[j]].y,
                                       GameDefs.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
@@ -571,7 +571,7 @@ begin
             done := CombatAi.FinishRound(creature);
         end else begin
           pick := Dice.RollDice(1, cnt);
-          target := GameVars.creatureArr[GameVars.potentialTargetCreature[pick]];
+          target := GameVars.creatureArr[GameVars.combatTargetSlots[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
              and (CbtMap.CountTargets(creature, 1) > 0) then begin
@@ -680,10 +680,10 @@ begin
     { PCs never check morale }
     Exit;
   { packed morale rating }
-  GameVars.currentMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
-  if GameVars.currentMorale > 102 then
+  GameVars.combatMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
+  if GameVars.combatMorale > 102 then
     { 0 is the fail sentinel: both checks below require morale <> 0 }
-    GameVars.currentMorale := 0;
+    GameVars.combatMorale := 0;
   { Effects adjust morale here: Bless +5, Curse -5 floored at 0 (so a curse below 5 fails both checks), Charm sets 100
     and flips the creature's side on its first call. Bless and Curse also adjust the attack roll. }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
@@ -692,16 +692,16 @@ begin
     hpPct := 0
   else
     hpPct := creature^.hpCur * 100 div creature^.hpMax;
-  if (GameVars.currentMorale >= 100 - hpPct)
-     and (GameVars.currentMorale <> 0) then
+  if (GameVars.combatMorale >= 100 - hpPct)
+     and (GameVars.combatMorale <> 0) then
     { own-HP check holds }
     Exit;
-  moraleSave := GameVars.currentMorale;
-  GameVars.currentMorale := CbtActs.hostileHpPct;
+  moraleSave := GameVars.combatMorale;
+  GameVars.combatMorale := CbtActs.hostileHpPct;
   { the same effect adjustments, now to the group figure }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
-  if (GameVars.currentMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])
-     and (GameVars.currentMorale <> 0)
+  if (GameVars.combatMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])
+     and (GameVars.combatMorale <> 0)
      and (creature^.hostile <> 0) then
     { group check holds (hostiles) }
     Exit;

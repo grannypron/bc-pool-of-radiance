@@ -323,7 +323,7 @@ procedure LearnArmor(beast, attacker: Types.PCharRecord; reach: Integer; hit: Bo
 var
   i: Word;
 begin
-  if (attacker = nil) or GameVars.gAttackAvoided then Exit;
+  if (attacker = nil) or GameVars.forcedMiss then Exit;
   { 1 misses whatever the armor; a natural 20 is FxEngine.RollToHit's 100, which no attack-roll modifier brings near
     50, and no other roll reaches 50 }
   if (GameVars.gAttackRoll <= 1) or (GameVars.gAttackRoll >= 50) then Exit;

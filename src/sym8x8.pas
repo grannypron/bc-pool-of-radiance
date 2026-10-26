@@ -25,7 +25,7 @@ var
   s1: String[1];
 begin
   if setID in [0..4] then begin
-    Str(GameVars.virtualDisk, s1);
+    Str(GameVars.diskIndex, s1);
     Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GameVars.symbolSetPtrs[setID]);
     if GameVars.symbolSetPtrs[setID] = nil then begin
       GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
@@ -52,11 +52,11 @@ begin
     with GameVars.symbolSetPtrs[setIdx]^ do
       if (height <> 8) or (width <> 1) or (symbol >= count) then Exit;
     if inCombat then
-      Blit.BlitTileCell(col, row, symbol, Ord(other), GameVars.symbolSetPtrs[setIdx], GameVars.viewImageBufferPtr)
+      Blit.BlitTileCell(col, row, symbol, Ord(other), GameVars.symbolSetPtrs[setIdx], GameVars.viewBuffer)
     else begin
       with GameVars.symbolSetPtrs[setIdx]^ do
-        Move(data[symbol * imgSize], GameVars.current8x8SymbolPtr2^.data, imgSize);
-      Blit.ShowPic(col, row, GameVars.current8x8SymbolPtr2);
+        Move(data[symbol * imgSize], GameVars.sym8x8Buf^.data, imgSize);
+      Blit.ShowPic(col, row, GameVars.sym8x8Buf);
     end;
   end;
 end;

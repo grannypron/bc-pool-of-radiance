@@ -327,9 +327,9 @@ begin
     if total < t then total := t;
     p := p^.nextCharAddr;
   end;
-  Clock.SetFromMinutes(GameTime.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameTime.restTime, total);
   interrupted := GameTime.CampRest(True);
-  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
+  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
   CharDisp.PrintMiscInfo;
 end;
 
@@ -1051,16 +1051,16 @@ begin
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
-  Clock.SetFromMinutes(GameTime.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameTime.restTime, total);
   interrupted := GameTime.CampRest(False);
-  done := (GameTime.restingTimeGbvm[C_TIME.DAYS] = 0) and (GameTime.restingTimeGbvm[C_TIME.HOURS] = 0) and
-          (GameTime.restingTimeGbvm[C_TIME.TURNS] = 0) and (GameTime.restingTimeGbvm[C_TIME.MINUTES] = 0);
-  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
+  done := (GameTime.restTime[C_TIME.DAYS] = 0) and (GameTime.restTime[C_TIME.HOURS] = 0) and
+          (GameTime.restTime[C_TIME.TURNS] = 0) and (GameTime.restTime[C_TIME.MINUTES] = 0);
+  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
   if done and not interrupted then begin
     for i := 1 to n do
       for kind := FIX_DISEASE to FIX_CURSE do
         if cures[i, kind] then begin
-          GameVars.targetCreaturePtr[1] := members[i];
+          GameVars.spellTargets[1] := members[i];
           case kind of
             FIX_DISEASE: Magic.CureDiseaseHandler;
             FIX_BLIND: Magic.CureBlindnessHandler;
@@ -1097,7 +1097,7 @@ begin
   savedIfc := GameVars.ifcState;
   GameVars.ifcState := C_IFC.CAMPING;
   GameTime.healTicks := 0;
-  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
+  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
   CharDisp.DisplayNoncombatInterface;
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 18, LightGreen, 'The party makes camp...');

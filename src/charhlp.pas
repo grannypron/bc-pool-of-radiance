@@ -1285,8 +1285,8 @@ begin
     { xp[] runs to C_LEVEL.LEVEL_LAST }
     if (lvl > 0) and (lvl < C_LEVEL.LEVEL_LAST) then
       if not CharHlp.AtLevelCap(creature, cls) then
-        if GameDefs.experienceSpellsClass[cls].xp[lvl + 1] > 0 then
-          if anyXp or (GameDefs.experienceSpellsClass[cls].xp[lvl + 1] <= creature^.experience) then
+        if GameDefs.classExperience[cls].xp[lvl + 1] > 0 then
+          if anyXp or (GameDefs.classExperience[cls].xp[lvl + 1] <= creature^.experience) then
             mask := mask or (1 shl cls);
   end;
   TrainClasses := mask;

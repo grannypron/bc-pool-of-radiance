@@ -528,7 +528,7 @@ type
       1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
           thief: ShortInt; monk: ShortInt);
   end;
-  { the oldest age in each age category (CharGen.CreateCharacterMenu's ageCat), by category number or by name }
+  { the oldest age in each age category (CharGen.CreateCharacterMenu's ageThresholds), by category number or by name }
   TRuleAgeCategories = packed record
     case Byte of
       0: (values: array[1..5] of Word);

@@ -606,8 +606,8 @@ begin
   end;
 end;
 
-{ Search for a free quad for slot on team's grid in zigzag legs. A leg starts at startQX/startQY for the ring's
-  quadrant, shifted legShift steps along quadDir[(quad + 2) mod 4], then alternates outward along
+{ Search for a free quad for slot on team's grid in zigzag legs. A leg starts at combatQuadrantX/combatQuadrantY for the
+  ring's quadrant, shifted legShift steps along quadDir[(quad + 2) mod 4], then alternates outward along
   quadDir[(quad + 1) mod 4] and quadDir[(quad + 3) mod 4], trying TryPlaceAt at each in-grid quad. A leg ends at a
   partially-off quad or after teamRows quads (first leg) or 12 (later legs); the next leg starts one step further, or
   two on team 0's first leg in ring 0 when Odd(teamDir[0]) and any ringDirTbl direction 1..3 is not a solid wall. A
@@ -626,10 +626,10 @@ const
     ( 2, 2, 0, 4),
     ( 4, 4, 2, 6),
     ( 6, 6, 4, 0));
-  startQX: array[Boolean, 0..3] of ShortInt = (
+  combatQuadrantX: array[Boolean, 0..3] of ShortInt = (
     ( 5, 4, 5, 6),
     ( 3, 8, 7, 2));
-  startQY: array[Boolean, 0..3] of ShortInt = (
+  combatQuadrantY: array[Boolean, 0..3] of ShortInt = (
     ( 3, 2, 2, 3),
     ( 0, 2, 5, 3));
 var
@@ -671,8 +671,8 @@ begin
       1: begin
            stepX := GameDefs.dirDX[quadDir[(quad + 2) mod 4]];
            stepY := GameDefs.dirDY[quadDir[(quad + 2) mod 4]];
-           legX := startQX[ring > 0, quad] + stepX * legShift;
-           legY := startQY[ring > 0, quad] + stepY * legShift;
+           legX := combatQuadrantX[ring > 0, quad] + stepX * legShift;
+           legY := combatQuadrantY[ring > 0, quad] + stepY * legShift;
            qx := legX;
            qy := legY;
            legLen := 1;
@@ -853,10 +853,10 @@ var
   p: Types.PCharRecord;
 begin
   Portrait.FreeAnimation(GameVars.animData);
-  Blit.FreePic(GameVars.portraitCache[1].pic);
-  Blit.FreePic(GameVars.portraitCache[2].pic);
-  GameVars.portraitCache[1].pictureId := 255;
-  GameVars.portraitCache[2].pictureId := 255;
+  Blit.FreePic(GameVars.portraits[1].pic);
+  Blit.FreePic(GameVars.portraits[2].pic);
+  GameVars.portraits[1].pictureId := 255;
+  GameVars.portraits[2].pictureId := 255;
   TextRend.ClearBottomLine;
   TextRend.PauseOnly;
   TextRend.DisplayString(0, 24, LightGreen, 'A battle begins...');

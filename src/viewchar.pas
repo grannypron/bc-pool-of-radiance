@@ -155,7 +155,7 @@ begin
   end;
   Inc(row);
   TextRend.DisplayString(1, row, White, 'Status');
-  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusStrs[creature^.status]);
+  TextRend.DisplayString(8, row, LightGreen, GameDefs.statusNames[creature^.status]);
   if (GameVars.portraitsAll <> 0) and (GameVars.portraitsOn <> 0) and Portrait.PlayerPortraitsHere then
     Portrait.DisplayCharPortrait;
 end;
@@ -307,7 +307,7 @@ begin
     if b <> nil then
       n := b^.counts[i];
     if i = Stats.COIN_LOOTED then
-      n := n div GameDefs.coinValuationCopper[C_MONEY.GOLD];
+      n := n div GameDefs.coinValues[C_MONEY.GOLD];
     Str(n, s);
     TextRend.DisplayString(3, 5 + i, White, Stats.NAMES[i]);
     TextRend.DisplayString(36 - Length(s), 5 + i, LightGreen, s);
@@ -920,7 +920,7 @@ begin
       CharHlp.ItemLabel(p, True);
       p := p^.next;
     end;
-    if needRedraw or (GameVars.redrawInventoryMenuFlag <> 0) then begin
+    if needRedraw or (GameVars.invRedraw <> 0) then begin
       TextRend.ClearScreen;
       Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
       CharDisp.DisplayCreatureName(creature, 1, 1, True);
@@ -929,7 +929,7 @@ begin
       TextRend.DisplayString(1, 3, White, 'Ready Item');
       vmRedraw := True;
       needRedraw := False;
-      GameVars.redrawInventoryMenuFlag := 0;
+      GameVars.invRedraw := 0;
     end;
     { STING: V, not on the menu line, shows the selected item's raw record, as Curse's debug mode does }
     if GameVars.stingArg then

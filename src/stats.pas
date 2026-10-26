@@ -244,7 +244,7 @@ end;
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 begin
   Stats.Count(target, HEALED_TAKEN, hp);
-  if byPower or (GameVars.currentSpellBeing <> 0) then
+  if byPower or (GameVars.spellId <> 0) then
     Stats.Count(actor, HEALED_GIVEN, hp);
 end;
 

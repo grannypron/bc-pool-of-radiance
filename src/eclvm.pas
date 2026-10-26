@@ -112,10 +112,10 @@ end;
 { Free the whole GOSUB return stack. }
 procedure FreeEclStack;
 begin
-  while GameVars.eclStackTopPtr <> nil do begin
-    GameVars.eclStackSecondPtr := GameVars.eclStackTopPtr^.next;
-    FreeMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-    GameVars.eclStackTopPtr := GameVars.eclStackSecondPtr;
+  while GameVars.scriptReturnStack <> nil do begin
+    GameVars.prevScriptReturnStack := GameVars.scriptReturnStack^.next;
+    FreeMem(GameVars.scriptReturnStack, SizeOf(Types.TEclRet));
+    GameVars.scriptReturnStack := GameVars.prevScriptReturnStack;
   end;
 end;
 
@@ -154,7 +154,7 @@ end;
 procedure EclGoto;
 begin
   EclVars.LoadEclVars(1);
-  GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
 end;
 
 { GOSUB: push the return address and jump to var 1's address }
@@ -168,7 +168,7 @@ end;
 procedure EclCompare;
 begin
   EclVars.LoadEclVars(2);
-  if (GameVars.gbvmType[1] >= $80) or (GameVars.gbvmType[2] >= $80) then
+  if (GameVars.varTypes[1] >= $80) or (GameVars.varTypes[2] >= $80) then
     EclMenu.EclCompareStr(GameVars.gbStrings^[1], GameVars.gbStrings^[2])
   else
     EclMenu.EclCompareInt(EclVars.GetEclVar(1), EclVars.GetEclVar(2));
@@ -186,7 +186,7 @@ begin
   EclVars.LoadEclVars(3);
   for i := 1 to 2 do
     v[i] := EclVars.GetEclVar(i);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[3], GameVars.gbvmUpperByte[3]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[3], GameVars.varHi[3]);
   case GameVars.curOpcode of
     C_ECL.ADD: r := v[1] + v[2];
     C_ECL.SUBTRACT: r := v[2] - v[1];
@@ -210,7 +210,7 @@ begin
   EclVars.LoadEclVars(2);
   n := EclVars.GetEclVar(1);
   if n < 255 then Inc(n);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
   roll := Random(n);
   EclVars.WriteGbvm(address, roll);
 end;
@@ -222,8 +222,8 @@ var
   address: Word;
 begin
   EclVars.LoadEclVars(2);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
-  if GameVars.gbvmType[1] < $80 then begin
+  address := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
+  if GameVars.varTypes[1] < $80 then begin
     v := EclVars.GetEclVar(1);
     EclVars.WriteGbvm(address, v);
   end else
@@ -314,7 +314,7 @@ begin
   { at most 63 monsters, and an icon slot for them }
   if creatureCnt >= MAX_LOADED_MONSTERS then Exit;
   { SSI went on to slot 25, loading a sixth kind over the combat sprites (#724) }
-  if EclMenu.gIconAnim > MapTiles.LAST_MONSTER_ICON then Exit;
+  if EclMenu.iconAnimId > MapTiles.LAST_MONSTER_ICON then Exit;
   p := nil;
   q := nil;
   id := EclVars.GetEclVar(1);
@@ -327,11 +327,11 @@ begin
   if count = 0 then count := 1;
   picId := EclVars.GetEclVar(3);
   nm := 'CPIC';
-  MapTiles.LoadIconAnim(nm, picId, EclMenu.gIconAnim);
+  MapTiles.LoadIconAnim(nm, picId, EclMenu.iconAnimId);
   p := Party.LastCreature;
   p^.nextCharAddr := creature;
   p := p^.nextCharAddr;
-  p^.orderNumber := EclMenu.gIconAnim;
+  p^.orderNumber := EclMenu.iconAnimId;
   p^.nextCharAddr := nil;
   Inc(creatureCnt);
   Inc(i);
@@ -340,7 +340,7 @@ begin
     p^.nextCharAddr := q;
     p := p^.nextCharAddr;
     p^ := tmpl;
-    p^.orderNumber := EclMenu.gIconAnim;
+    p^.orderNumber := EclMenu.iconAnimId;
     p^.nextCharAddr := nil;
     p^.effectsAddr := nil;
     p^.itemsAddr := nil;
@@ -357,7 +357,7 @@ begin
     end;
     ef := effHead;
   end;
-  Inc(EclMenu.gIconAnim);
+  Inc(EclMenu.iconAnimId);
   monstersOn := 1;
   GameVars.curChar := savedCur;
 end;
@@ -413,7 +413,7 @@ var
 begin
   EclVars.LoadEclVars(2);
   q := '';
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
   v := TextRend.InputUint16(q, LightGreen);
   EclVars.WriteGbvm(address, v);
 end;
@@ -427,7 +427,7 @@ var
 begin
   EclVars.LoadEclVars(2);
   q := '';
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
   s := TextRend.ReadString(q, LightGreen, 40);
   if s = '' then s := ' ';
   EclVars.WriteGbvmString(address, s);
@@ -438,9 +438,9 @@ end;
 procedure EclPrint;
 begin
   EclVars.LoadEclVars(1);
-  Explore.bottomMsgCleared := 0;
+  Explore.bottomMessageCleared := 0;
   GameVars.msgDelayFlag := 1;
-  if GameVars.gbvmType[1] < $80 then
+  if GameVars.varTypes[1] < $80 then
     GameVars.gbStrings^[1] := StrUtil.NumStr(EclVars.GetEclVar(1));
   if GameVars.curOpcode = C_ECL.PRINT then
     TextRend.ShowMessage(LightGreen, False, GameVars.gbStrings^[1])
@@ -458,11 +458,11 @@ end;
 procedure EclReturn;
 begin
   Inc(GameVars.eclIp);
-  if GameVars.eclStackTopPtr <> nil then begin
-    GameVars.eclIp := GameVars.eclStackTopPtr^.addr;
-    GameVars.eclStackSecondPtr := GameVars.eclStackTopPtr^.next;
-    FreeMem(GameVars.eclStackTopPtr, SizeOf(Types.TEclRet));
-    GameVars.eclStackTopPtr := GameVars.eclStackSecondPtr;
+  if GameVars.scriptReturnStack <> nil then begin
+    GameVars.eclIp := GameVars.scriptReturnStack^.addr;
+    GameVars.prevScriptReturnStack := GameVars.scriptReturnStack^.next;
+    FreeMem(GameVars.scriptReturnStack, SizeOf(Types.TEclRet));
+    GameVars.scriptReturnStack := GameVars.prevScriptReturnStack;
   end;
 end;
 
@@ -512,10 +512,10 @@ begin
   GameVars.eclScriptId := id;
 {$IFDEF FPC}
   { natively a merged archive is in the writable folder (#1064) }
-  archive := DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GameVars.virtualDisk));
+  archive := DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GameVars.diskIndex));
   SaveLoad.CheckFileElseQuit(DaxIo.FolderOf(archive) + archive + '.dax');
 {$ELSE}
-  SaveLoad.CheckFileElseQuit(GameVars.gameDir + DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GameVars.virtualDisk)) +
+  SaveLoad.CheckFileElseQuit(GameVars.gameDir + DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GameVars.diskIndex)) +
                              '.dax');
 {$ENDIF}
   EclMenu.LoadEclScript(id);
@@ -584,7 +584,7 @@ begin
   EclVars.LoadEclVars(3);
   v1 := EclVars.GetEclVar(1);
   v2 := EclVars.GetEclVar(2);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[3], GameVars.gbvmUpperByte[3]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[3], GameVars.varHi[3]);
   if GameVars.curOpcode = C_ECL.OP_AND then
     r := v1 and v2
   else
@@ -603,9 +603,9 @@ var
   idx: Byte;
 begin
   EclVars.LoadEclVars(3);
-  addr1 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  addr1 := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   idx := EclVars.GetEclVar(2);
-  addr2 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[3], GameVars.gbvmUpperByte[3]);
+  addr2 := EclVars.CombineBytesToWord(GameVars.varLo[3], GameVars.varHi[3]);
   sum := addr1 + idx;
   v := EclVars.ReadGbvm(sum);
   EclVars.WriteGbvm(addr2, v);
@@ -621,7 +621,7 @@ var
 begin
   EclVars.LoadEclVars(3);
   v := EclVars.GetEclVar(1);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
   idx := EclVars.GetEclVar(3);
   sum := address + idx;
   EclVars.WriteGbvm(sum, v);
@@ -643,12 +643,12 @@ var
   { the key MenuVertical returns; the choice is idx and list }
   key: Char;
 begin
-  Explore.bottomMsgCleared := 0;
+  Explore.bottomMessageCleared := 0;
   redraw := True;
   q := '';
   i := 1;
   EclVars.LoadEclVars(3);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   msg := GameVars.gbStrings^[1];
   count := EclVars.GetEclVar(3);
   EclVars.LoadEclList(count);
@@ -699,7 +699,7 @@ begin
   q := '';
   menu := '';
   EclVars.LoadEclVars(2);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   count := EclVars.GetEclVar(2);
   EclVars.LoadEclList(count);
   { a count of 0 shows gbStrings^[1] alone }
@@ -736,7 +736,7 @@ begin
   Bestiary.NewEncounter;
   creatureCnt := 0;
   monstersOn := 0;
-  EclMenu.gIconAnim := MapTiles.FIRST_MONSTER_ICON;
+  EclMenu.iconAnimId := MapTiles.FIRST_MONSTER_ICON;
   CharHlp.ClearTreasure;
 end;
 
@@ -774,7 +774,7 @@ begin
     Inc(strength, (cleric * 4 + (hp + ac * 5 + th * 5 + mage * 8)) div 10);
     p := p^.nextCharAddr;
   end;
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   if strength > 255 then
     strength := 255;
   EclVars.WriteGbvm(address, strength);
@@ -812,15 +812,15 @@ begin
   EclVars.LoadEclVars(6);
   p := GameVars.creatureList;
   found := False;
-  if GameVars.gbvmType[1] = 1 then
-    attr := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1])
+  if GameVars.varTypes[1] = 1 then
+    attr := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1])
   else
     attr := EclVars.GetEclVar(1);
   effId := EclVars.GetEclVar(2);
-  addr1 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[3], GameVars.gbvmUpperByte[3]);
-  addr2 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[4], GameVars.gbvmUpperByte[4]);
-  addr3 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[5], GameVars.gbvmUpperByte[5]);
-  addr4 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[6], GameVars.gbvmUpperByte[6]);
+  addr1 := EclVars.CombineBytesToWord(GameVars.varLo[3], GameVars.varHi[3]);
+  addr2 := EclVars.CombineBytesToWord(GameVars.varLo[4], GameVars.varHi[4]);
+  addr3 := EclVars.CombineBytesToWord(GameVars.varLo[5], GameVars.varHi[5]);
+  addr4 := EclVars.CombineBytesToWord(GameVars.varLo[6], GameVars.varHi[6]);
   sum := 0;
   count := 0;
   outv[1] := 255;
@@ -875,8 +875,8 @@ begin
       mod1 := 1;
     p := p^.nextCharAddr;
   end;
-  addr1 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
-  addr2 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
+  addr1 := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
+  addr2 := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
   EclVars.WriteGbvm(addr1, mod1);
   EclVars.WriteGbvm(addr2, 0);
 end;
@@ -970,14 +970,14 @@ begin
   sel := EclVars.GetEclVar(1);
   count := EclVars.GetEclVar(2);
   EclVars.LoadEclList(count);
-  { 64 =High(gbvmLowerByte), the most addresses LoadEclVars keeps; a selector past them falls through }
+  { 64 =High(varLo), the most addresses LoadEclVars keeps; a selector past them falls through }
   if count > 64 then
     count := 64;
   i := 0;
   while (i < count) and (not done) do begin
     if sel = i then begin
       if GameVars.curOpcode = C_ECL.ON_GOTO then
-        GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[i + 1], GameVars.gbvmUpperByte[i + 1])
+        GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.varLo[i + 1], GameVars.varHi[i + 1])
       else
         EclMenu.EclGosub(i + 1);
       done := True;
@@ -1009,7 +1009,7 @@ begin
     GameVars.treasureMoney[i] := EclVars.GetEclVar(Byte(i) + 1);
   tId := EclVars.GetEclVar(8);
   if tId < $80 then begin
-    DaxIo.LoadDax('ITEM' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', tId, sizeRead, data);
+    DaxIo.LoadDax('ITEM' + StrUtil.NumStr(GameVars.diskIndex), '.dax', tId, sizeRead, data);
     if sizeRead = 0 then begin
       TextRend.DisplayAndPause(White, 'Unable to find item file');
       GameIo.ExitGame;
@@ -1170,7 +1170,7 @@ var
 
 begin
   GameVars.inEncMenu := 1;
-  Explore.bottomMsgCleared := 0;
+  Explore.bottomMessageCleared := 0;
   GameVars.msgDelayFlag := 1;
   EclMenu.MoveExtremes(hiMove, loMove);
   q := '';
@@ -1178,7 +1178,7 @@ begin
   monId := EclVars.GetEclVar(1);
   GameVars.zone1^[C_GBVM.MONSTER_DIST_REQ] := EclVars.GetEclVar(2);
   monPicId := EclVars.GetEclVar(3);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[4], GameVars.gbvmUpperByte[4]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[4], GameVars.varHi[4]);
   for i := 0 to 4 do
     resp[i] := EclVars.GetEclVar(i + 5);
   for i := 1 to 3 do
@@ -1284,7 +1284,7 @@ begin
     v[i] := EclVars.GetEclVar(i + 1);
   sel := EclMenu.MenuHorizontalCS(space, '~HAUGHTY ~SLY ~NICE ~MEEK ~ABUSIVE', LightMagenta, LightGreen,
                                   White, False, False);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[6], GameVars.gbvmUpperByte[6]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[6], GameVars.varHi[6]);
   v5 := v[sel];
   EclVars.WriteGbvm(address, v5);
 end;
@@ -1530,8 +1530,8 @@ var
 begin
   EclVars.LoadEclVars(3);
   spellId := EclVars.GetEclVar(1);
-  addr1 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[2], GameVars.gbvmUpperByte[2]);
-  addr2 := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[3], GameVars.gbvmUpperByte[3]);
+  addr1 := EclVars.CombineBytesToWord(GameVars.varLo[2], GameVars.varHi[2]);
+  addr2 := EclVars.CombineBytesToWord(GameVars.varLo[3], GameVars.varHi[3]);
   slot := 255;
   idx := 0;
   found := False;
@@ -1559,7 +1559,7 @@ var
   address: Word;
 begin
   EclVars.LoadEclVars(1);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   case address of
     C_GBVM.CALL_REFRESH_VIEW: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
@@ -1594,7 +1594,7 @@ begin
 end;
 
 { Run the pre-camp script entry (C_ECL.ENTRY_PRE_CAMP) and the camp menu, then the camp-interruption entry
-  (C_ECL.ENTRY_CAMP_INTERRUPT) if camp was interrupted. Redraw the map view and clear recentSaved. }
+  (C_ECL.ENTRY_CAMP_INTERRUPT) if camp was interrupted. Redraw the map view and clear recentlySaved. }
 procedure EnterCamp;
 var
   interrupted: Boolean;
@@ -1607,7 +1607,7 @@ begin
     EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_CAMP_INTERRUPT]);
   end;
   MapView.DisplayMapView;
-  GameVars.recentSaved := 0;
+  GameVars.recentlySaved := 0;
 end;
 
 { PROGRAM: restore the backed-up current character, then run program var 1: PROG_TRAINING (the training hall menu),
@@ -1658,7 +1658,7 @@ begin
   FillChar(EclMenu.monsterFlags, SizeOf(EclMenu.monsterFlags), 0);
   GameVars.eclGraphics := False;
   EclVars.LoadEclVars(1);
-  address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[1], GameVars.gbvmUpperByte[1]);
+  address := EclVars.CombineBytesToWord(GameVars.varLo[1], GameVars.varHi[1]);
   i := 0;
   done := False;
   if (ecl3dClearFlag <> 0) and (GameVars.curRow > 13) then begin
