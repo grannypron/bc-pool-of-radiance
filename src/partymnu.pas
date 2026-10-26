@@ -37,6 +37,12 @@ const
 type
   TCmdSet = set of CMD_ADD..CMD_LAST;
 
+{ The commands the party menu offers: Create, Add, Settings and Exit to DOS always; with a character selected View,
+  Modify, Drop, Remove, Save and Begin Adventuring, Train with a training hall here or free training on (atHall, #765),
+  and Dual Class on the two-column menu (inGame); with none, Load. SSI's start-up menu never offers Dual Class (#885),
+  and the two-column menu does not without a character, who would be the one to change class. }
+procedure OfferedCmds(hasChar, atHall, inGame: Boolean; var offered: TCmdSet);
+
 { The row of the PARTY and CHARACTER headings under a roster of members creatures (CharDisp.DisplayParty's, from row 4
   on the two-column menu, #1071): MENU_TOP, or lower, so a blank row stays between, for a party of six or seven. Under
   eight there is no room for the blank row: the headings follow the roster at once, so Begin Adventuring stays in the
@@ -110,6 +116,19 @@ const
     'BEGIN Adventuring', 'Game Settings', 'Exit to DOS');
   { SSI's menu's keys, given as the bottom-line menu's options in black so that none shows }
   LIST_KEYS = 'C D M T V A R L S B G E J';
+
+procedure OfferedCmds(hasChar, atHall, inGame: Boolean; var offered: TCmdSet);
+begin
+  offered := [CMD_CREATE, CMD_ADD, CMD_SETTINGS, CMD_EXIT];
+  if hasChar then begin
+    offered := offered + [CMD_VIEW, CMD_MODIFY, CMD_DROP, CMD_REMOVE, CMD_SAVE, CMD_BEGIN];
+    if atHall then
+      offered := offered + [CMD_TRAIN];
+    if inGame then
+      offered := offered + [CMD_DUAL];
+  end else
+    offered := offered + [CMD_LOAD];
+end;
 
 function MenuTop(members: Byte): Byte;
 var
