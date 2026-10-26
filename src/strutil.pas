@@ -51,6 +51,13 @@ function PadLeft(s: String; width: Byte): String;
   hotkeys collected in opts. Digits are left alone (SSI shifted them by 32 as well, so a '1' showed as a 'Q', #810). }
 procedure MenuToOptions(var menu, opts: String);
 
+{ A script menu option marked with '~' before its hotkey, for MenuToOptions: its first character, unless an earlier
+  option of the menu took that key and the option has a later letter or digit no earlier option took, which is then
+  marked instead, so every option can be chosen (the Nomad Camp's ATTACK after ADVANCE CAUTIOUSLY is aTtack). taken
+  holds the keys the menu's earlier options took, upper case, and gets this one's. An empty option is '~' alone and
+  takes no key. }
+function MarkHotkey(option: String; var taken: String): String;
+
 { s with every occurrence of del removed, adjacent ones and ones the removals bring together included: 'A....B' less '.'
   is 'AB' (SSI's pass moved on after each removal and kept one of two in a row, POR-0224, #960). An empty del removes
   nothing. }
@@ -152,6 +159,26 @@ begin
     end;
     Inc(i);
   end;
+end;
+
+function MarkHotkey(option: String; var taken: String): String;
+var
+  at: Byte;
+  i: Byte;
+begin
+  at := 1;
+  if (option <> '') and (Pos(UpCase(option[1]), taken) > 0) then begin
+    i := 2;
+    while (i <= Length(option)) and (at = 1) do begin
+      if (UpCase(option[i]) in ['A'..'Z', '0'..'9']) and (Pos(UpCase(option[i]), taken) = 0) then
+        at := i;
+      Inc(i);
+    end;
+  end;
+  if option <> '' then
+    taken := taken + UpCase(option[at]);
+  Insert('~', option, at);
+  MarkHotkey := option;
 end;
 
 function RemoveAll(s, del: String): String;
