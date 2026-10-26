@@ -41,9 +41,13 @@
 - The Journal's bottom line now reads JOURNAL: and offers Quests, which turns to a Quests page; Entries there turns back to the Journal as you left it, and Escape or Exit leaves the Journal.
 - The Cast, Memorize and Scribe screens now look alike. Each is headed with the character's name, "RAVEN'S SPELLS", whatever the list, so a cleric's spells no longer claim to be in a spell book. The spells sit indented under their level, the highlighted spell's summary is on the line just above the window's bottom edge, and the bottom line names the screen: CAST: CAST INFO EXIT. Next and Prev appear only when the list runs past one page, and then on every page, with (MORE) under a page that has more below it. Memorize shows the spell slots you have left in a box of their own under the list, a line for each of your classes ("MAGIC-USER  1:0  2:0  3:0").
 - The Load/Save menu has a Quit option, which asks "Exit to DOS?", as SSI asked after a save in camp. If the game has changed since it was last saved, Yes asks whether to save first. Camp no longer asks to quit after every save.
+- On the menu after the title screen, Add Character to Party with no characters to add now says "No characters found to add." on the bottom line, and Load Saved Game with no saved games says "No saved games found to load.", until a key or for two seconds. Before, nothing happened.
+- The training hall's party menu has a blank line above and below the Name, AC and HP headings, and its Party, Character and Game headings are now magenta, so the highlighted command, in white, stands out.
+- The summary line under the spell lists shows its labels (RNG, AREA, TGT, DUR, SAVE, CAMP, CBT) in white and their values in green.
 
 ### Fixes
 
+- The title music now stops when the main menu comes up. Before, it played on under the menu.
 - A settings file, the Bestiary, the character roster or the vault that could not be written in full, or whose writing was cut off, now keeps its old copy. Before, the old file could be lost.
 - A Sound Blaster with no AdLib on the card now plays the music on the PC speaker. Before, the music was silent.
 - A character whose name has two spaces or several periods in a row now saves under a proper file name. Before, "SIR  BOB" was saved with a space in its file name and "A....B" under a name DOS took for another file's.

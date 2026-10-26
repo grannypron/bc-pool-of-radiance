@@ -88,6 +88,12 @@ begin
   TestKit.CheckEqualsS('RNG 12 AREA R1 DUR 10 RD SAVE NEG CBT', SpellInf.Summary(25), 'Silence: an aura of 1');
   TestKit.CheckEqualsS('AREA ALL  DUR PERM  CBT', SpellInf.Summary(27), 'Snake Charm: not aimed, lasts the fight');
   TestKit.CheckEqualsS('RNG 12  DUR PERM  SAVE NEG  CBT', SpellInf.Summary(C_SPELL.CHARM_PERSON), 'Charm Person');
+  { the keys, drawn in white over the values' light green (#1072) }
+  TestKit.CheckEqualsS('KKK     KKK       KKKK      KKK', SpellInf.SummaryKeys(C_SPELL.CHARM_PERSON),
+                       'Charm Person''s keys: RNG, DUR, SAVE, and CBT alone');
+  TestKit.CheckEqualsS('KKKK      KKK       KKK', SpellInf.SummaryKeys(27), 'Snake Charm''s, with no range');
+  TestKit.CheckEqualsS('KKK   KKK     KKK      KKKK     KKK', SpellInf.SummaryKeys(C_SPELL.HOLD_PERSON),
+                       'Hold Person''s, one blank apart: TGT is a key');
   TestKit.CheckEqualsS('DUR INST  DOORS', SpellInf.Summary(C_SPELL.KNOCK), 'Knock');
 
   { the page's figures }

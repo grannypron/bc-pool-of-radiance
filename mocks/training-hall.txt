@@ -1,5 +1,7 @@
 +======================================+
+|                                      |
 | NAME                          AC  HP |
+|                                      |
 | MORRIGAN                     -14  74 |
 | GINS                         -14  46 |
 | BLAIR                         -7  28 |
@@ -19,10 +21,15 @@
 | BEGIN ADVENTURING                    |
 |                                      |
 |                                      |
-|                                      |
-|                                      |
 |======================================+
                           V1.3-1202 (BC)
+
+Color Key:
+    NAME, AC, HP            white
+    PARTY, CHARACTER, GAME  light magenta (#1071)
+    a command               light green, its key in white
+    the highlighted command white
+    a command not offered   dark gray
 
 Command Key:
     CREATE CHARACTER        C

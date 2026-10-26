@@ -104,6 +104,8 @@ begin
     while KeyPressed do
       GameIo.DiscardPendingKeys;
   end;
+  { the title theme, still playing under the credits, ends at the main menu (#1070) }
+  SoundDrv.StopMusic;
   { the vault of a game left unsaved last time is gone with it }
   Vault.ForgetSessionVault;
   { the main menu's Exit is the way out; a destroyed party ends GameLoop and the game returns to the main menu }
