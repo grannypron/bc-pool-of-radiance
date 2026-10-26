@@ -76,10 +76,15 @@ function CastTimeText(line: Byte): Types.TStr40;
   apart, or one when two would run past SUMMARY_WIDTH. }
 function Summary(line: Byte): Types.TStr40;
 
+{ A string as long as Summary(line), K under each term's key (its first word) and a blank under the rest: ShowSummary
+  draws the one in white and the other in light green (#1072). }
+function SummaryKeys(line: Byte): Types.TStr40;
+
 { Line n (from 1) of spell's description (SpellTxt), or an empty string past its last. }
 function TextLine(spell, n: Byte): Types.TStr40;
 
-{ Draw line's summary on row, in light green, over the list window's columns; line 0 (a level heading) clears it. }
+{ Draw line's summary on row over the list window's columns, each term's key (its first word) in white and its value in
+  light green (#1072); line 0 (a level heading) clears it. }
 procedure ShowSummary(line, row: Byte);
 
 { The spell page for lines[cur] over the list window (rows 3 to 22): its name, class and level, the figures, and its
@@ -406,12 +411,17 @@ begin
     CastTimeText := 'LATER: -' + StrUtil.NumStr(n) + ' INITIATIVE';
 end;
 
-function Summary(line: Byte): Types.TStr40;
+{ Line's summary, as Summary describes it, and in keys a string as long, K under each term's key (its first word: RNG,
+  AREA, TGT, DUR, SAVE, or CAMP, CBT or DOORS alone) and a blank under the rest (#1072). }
+function BuildSummary(line: Byte; var keys: Types.TStr40): Types.TStr40;
 var
   terms: array[1..5] of Types.TStr40;
   s: String;
+  k: String;
   gap: Types.TStr20;
   i: Byte;
+  j: Byte;
+  n: Byte;
   pass: Byte;
 begin
   terms[1] := SpellInf.RangeText(line, False);
@@ -422,18 +432,48 @@ begin
   gap := '  ';
   for pass := 1 to 2 do begin
     s := '';
+    k := '';
     for i := 1 to 5 do
       if terms[i] <> '' then begin
-        if s <> '' then
+        if s <> '' then begin
           s := s + gap;
+          k := k + gap;
+        end;
         s := s + terms[i];
+        n := Pos(' ', terms[i]);
+        if n = 0 then
+          n := Length(terms[i]) + 1;
+        for j := 1 to Length(terms[i]) do
+          if j < n then
+            k := k + 'K'
+          else
+            k := k + ' ';
       end;
     if Length(s) > SUMMARY_WIDTH then
       gap := ' ';
   end;
-  if Length(s) > SUMMARY_WIDTH then
+  if Length(s) > SUMMARY_WIDTH then begin
     s[0] := Chr(SUMMARY_WIDTH);
-  Summary := s;
+    k[0] := Chr(SUMMARY_WIDTH);
+  end;
+  keys := k;
+  BuildSummary := s;
+end;
+
+function Summary(line: Byte): Types.TStr40;
+var
+  keys: Types.TStr40;
+begin
+  Summary := SpellInf.BuildSummary(line, keys);
+end;
+
+function SummaryKeys(line: Byte): Types.TStr40;
+var
+  keys: Types.TStr40;
+  s: Types.TStr40;
+begin
+  s := SpellInf.BuildSummary(line, keys);
+  SummaryKeys := keys;
 end;
 
 function TextLine(spell, n: Byte): Types.TStr40;
@@ -460,10 +500,28 @@ begin
 end;
 
 procedure ShowSummary(line, row: Byte);
+var
+  s: Types.TStr40;
+  keys: Types.TStr40;
+  i: Byte;
+  first: Byte;
+  color: Byte;
 begin
   TextRend.PrintSpaces(1, row, Black, SUMMARY_WIDTH);
-  if line and C_SPELL.ID_MASK <> 0 then
-    TextRend.DisplayString(1, row, LightGreen, SpellInf.Summary(line));
+  if line and C_SPELL.ID_MASK = 0 then
+    Exit;
+  s := SpellInf.BuildSummary(line, keys);
+  { a run of key letters, or of the rest, at a time }
+  first := 1;
+  for i := 1 to Length(s) do
+    if (i = Length(s)) or (keys[i + 1] <> keys[first]) then begin
+      if keys[first] = 'K' then
+        color := White
+      else
+        color := LightGreen;
+      TextRend.DisplayString(first, row, color, Copy(s, first, i - first + 1));
+      first := i + 1;
+    end;
 end;
 
 { One figure row: label in light green, value in white from VALUE_COL. }
