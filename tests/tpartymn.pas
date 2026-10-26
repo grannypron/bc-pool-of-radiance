@@ -20,21 +20,23 @@ begin
   { a party away from a hall: all but Train and Load }
   hall := all - [PartyMnu.CMD_TRAIN, PartyMnu.CMD_LOAD];
 
-  { the layout }
-  TestKit.CheckEqualsL(8, PartyMnu.MenuTop(0), 'the headings on row 8 with no party');
-  TestKit.CheckEqualsL(8, PartyMnu.MenuTop(5), 'and under five, as the mock-up has them');
-  TestKit.CheckEqualsL(9, PartyMnu.MenuTop(6), 'a row lower under six, a blank row between');
-  TestKit.CheckEqualsL(11, PartyMnu.MenuTop(8), 'and on row 11 under eight');
-  TestKit.CheckEqualsL(9, PartyMnu.CmdRow(PartyMnu.CMD_ADD, 8), 'Add under PARTY');
-  TestKit.CheckEqualsL(9, PartyMnu.CmdRow(PartyMnu.CMD_CREATE, 8), 'Create beside it, under CHARACTER');
-  TestKit.CheckEqualsL(13, PartyMnu.CmdRow(PartyMnu.CMD_SAVE, 8), 'Save under GAME, beside Train');
-  TestKit.CheckEqualsL(13, PartyMnu.CmdRow(PartyMnu.CMD_TRAIN, 8), 'Train on row 13');
-  TestKit.CheckEqualsL(14, PartyMnu.CmdRow(PartyMnu.CMD_LOAD, 8), 'Load beside Dual Class');
-  TestKit.CheckEqualsL(14, PartyMnu.CmdRow(PartyMnu.CMD_DUAL, 8), 'Dual Class on row 14');
-  TestKit.CheckEqualsL(16, PartyMnu.CmdRow(PartyMnu.CMD_SETTINGS, 8), 'Settings on row 16');
-  TestKit.CheckEqualsL(16, PartyMnu.CmdRow(PartyMnu.CMD_EXIT, 8), 'Exit to DOS beside it');
-  TestKit.CheckEqualsL(18, PartyMnu.CmdRow(PartyMnu.CMD_BEGIN, 8), 'Begin Adventuring two rows below');
-  TestKit.CheckEqualsL(21, PartyMnu.CmdRow(PartyMnu.CMD_BEGIN, 11), 'and on row 21 under a party of eight');
+  { the layout: the roster's headers on row 2 and its members from row 4 (#1071) }
+  TestKit.CheckEqualsL(10, PartyMnu.MenuTop(0), 'the headings on row 10 with no party');
+  TestKit.CheckEqualsL(10, PartyMnu.MenuTop(5), 'and under five, as the mock-up has them');
+  TestKit.CheckEqualsL(11, PartyMnu.MenuTop(6), 'a row lower under six, a blank row between');
+  TestKit.CheckEqualsL(12, PartyMnu.MenuTop(7), 'and under seven');
+  TestKit.CheckEqualsL(12, PartyMnu.MenuTop(8), 'under eight on row 12 too, right under the roster, to fit');
+  TestKit.CheckEqualsL(11, PartyMnu.CmdRow(PartyMnu.CMD_ADD, 10), 'Add under PARTY');
+  TestKit.CheckEqualsL(11, PartyMnu.CmdRow(PartyMnu.CMD_CREATE, 10), 'Create beside it, under CHARACTER');
+  TestKit.CheckEqualsL(15, PartyMnu.CmdRow(PartyMnu.CMD_SAVE, 10), 'Save under GAME, beside Train');
+  TestKit.CheckEqualsL(15, PartyMnu.CmdRow(PartyMnu.CMD_TRAIN, 10), 'Train on row 15');
+  TestKit.CheckEqualsL(16, PartyMnu.CmdRow(PartyMnu.CMD_LOAD, 10), 'Load beside Dual Class');
+  TestKit.CheckEqualsL(16, PartyMnu.CmdRow(PartyMnu.CMD_DUAL, 10), 'Dual Class on row 16');
+  TestKit.CheckEqualsL(18, PartyMnu.CmdRow(PartyMnu.CMD_SETTINGS, 10), 'Settings on row 18');
+  TestKit.CheckEqualsL(18, PartyMnu.CmdRow(PartyMnu.CMD_EXIT, 10), 'Exit to DOS beside it');
+  TestKit.CheckEqualsL(20, PartyMnu.CmdRow(PartyMnu.CMD_BEGIN, 10), 'Begin Adventuring two rows below');
+  TestKit.CheckEqualsL(C_MSG.TEXT_BOTTOM, PartyMnu.CmdRow(PartyMnu.CMD_BEGIN, PartyMnu.MenuTop(8)),
+                       'and on the window''s last row under a party of eight');
   TestKit.CheckEqualsS('ARSLGBCVMDTUE', PartyMnu.cmdKeys, 'the keys of the Command Key');
   TestKit.CheckEqualsS('U', PartyMnu.cmdKeys[PartyMnu.CMD_DUAL + 1], 'Dual Class is U');
   TestKit.CheckEqualsS('B', PartyMnu.cmdKeys[PartyMnu.CMD_BEGIN + 1], 'Begin Adventuring is B');

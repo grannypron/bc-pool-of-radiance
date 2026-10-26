@@ -34,6 +34,12 @@ procedure DeleteFile(name: TPathName);
   erased (a read-only file). }
 function DeleteChecked(name: TPathName): Boolean;
 
+{ Make folder dir (with its trailing separator) and each folder above it that is not there yet, as a save's folder is
+  made before the first save: True when dir is there afterwards (IOResult 5, a folder already there, counts). A drive's
+  root (C:\, or / natively) is never made. Natively either separator divides it, so a per-user folder written with
+  slashes is made too (#1067). }
+function MakeFolder(dir: TPathName): Boolean;
+
 { Open name for reading only, whatever FileMode is (a read-only file opens too), with record size 1. True when it
   opened; the caller closes it. A folder does not open: DOS refuses it, and natively, where Linux would open it, it is
   refused first (#1057). }
@@ -170,6 +176,44 @@ begin
   Assign(f, name);
   Erase(f);
   DeleteChecked := IOResult = 0;
+end;
+
+{ True when c divides the folders of a path: a backslash, or natively also a slash. }
+function IsSeparator(c: Char): Boolean;
+begin
+{$IFDEF FPC}
+  IsSeparator := (c = '\') or (c = '/');
+{$ELSE}
+  IsSeparator := c = '\';
+{$ENDIF}
+end;
+
+function MakeFolder(dir: TPathName): Boolean;
+var
+  ioRes: Integer;
+  i: Byte;
+  first: Byte;
+begin
+  ioRes := IOResult;
+  if (Length(dir) > 0) and FileUtil.IsSeparator(dir[Length(dir)]) then
+    Dec(dir[0]);
+  { a drive's root, or the root itself, is there or cannot be made }
+  first := 2;
+  if (Length(dir) >= 2) and (dir[2] = ':') then
+    first := 4;
+  if Length(dir) < first then begin
+    MakeFolder := True;
+    Exit;
+  end;
+  { each parent first; its errors show again in the last MkDir }
+  for i := first to Length(dir) - 1 do
+    if FileUtil.IsSeparator(dir[i]) then begin
+      MkDir(Copy(dir, 1, i - 1));
+      ioRes := IOResult;
+    end;
+  MkDir(dir);
+  ioRes := IOResult;
+  MakeFolder := (ioRes = 0) or (ioRes = 5);
 end;
 
 function OpenReadOnly(var f: file; name: TPathName): Boolean;

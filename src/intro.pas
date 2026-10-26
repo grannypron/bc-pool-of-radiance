@@ -95,7 +95,7 @@ begin
 
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);
-  { the title theme plays out by itself, under the credits or the menu }
+  { the title theme plays on under the credits, and FixMain ends it at the main menu (#1070) }
   SoundDrv.PlayMusic(C_SOUND.MUSIC_TITLE);
   TextRend.DelayOrKey(5);
   if not GameVars.fullIntro then begin

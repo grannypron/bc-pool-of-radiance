@@ -1,8 +1,9 @@
 { Tests for CfgFile (#876): the settings' defaults (as GameInit set them before the move), POOLOPT.CFG's keys and
-  values as the game reads them (Trim and Tidy), its write (keys in order, unknown lines kept, a failed write leaving
-  the old file), POOL.CFG read as START reads it (letters in either case, unknown ones noted, a short file, extra lines
-  kept) and written with CR LF, POOL.CFG's defaults, and the path rules: NormalizePath, DirExists and CheckPath, with
-  the native build's separators and its save folder (NativeSaveFolder, #894, #1064). }
+  values as the game reads them (Trim and Tidy), its write (keys in order, unknown lines kept, a missing folder made
+  (#1067), a failed write leaving the old file), POOL.CFG read as START reads it (letters in either case, unknown ones
+  noted, a short file, extra lines kept) and written with CR LF, POOL.CFG's defaults, and the path rules:
+  NormalizePath, DirExists and CheckPath, with the native build's separators and its save folder (NativeSaveFolder,
+  #894, #1064). }
 {$I COMPILER.INC}
 program TCfgFile;
 
@@ -11,6 +12,16 @@ uses Dos, C_OPT, FileUtil, CfgFile, TestKit;
 const
   CRLF = #13#10;
   DIR_NAME = 'TCFGDIR';
+  { a save folder not there yet, and one in it (#1067), in the system's separators: natively MakeFolder splits on a
+    slash as on a backslash }
+{$IFDEF FPC}
+  SEP = '/';
+{$ELSE}
+  SEP = '\';
+{$ENDIF}
+  NEW_DIR = 'TCFGNEW';
+  NEW_SUB = 'SUB';
+  NEW_PATH = NEW_DIR + SEP + NEW_SUB + SEP;
   FILE_NAME = 'TCFG.TMP';
   POOL_NAME = 'TCFGPOOL.CFG';
 
@@ -209,7 +220,21 @@ begin
   TestKit.Check(CfgFile.ReadOptions('', t, bad) = CfgFile.CFG_READ, 'the written file reads');
   TestKit.Check(CfgFile.WriteOptions('', t), 'and is written again');
   TestKit.Check(SameBytes(C_OPT.OPT_NAME), 'a round trip gives the same bytes');
-  TestKit.Check(not CfgFile.WriteOptions('NODIR\', t), 'a write into a missing folder fails');
+  { a save folder not there yet is made, with the folder above it, and the settings land (#1067) }
+  TestKit.Check(not CfgFile.DirExists(NEW_DIR), 'no new folder yet');
+  TestKit.Check(CfgFile.WriteOptions(NEW_PATH, t), 'a write into a missing folder');
+  TestKit.CheckEqualsL(1, LineNo(NEW_PATH + C_OPT.OPT_NAME, 'SPEED=4'), 'lands, the folders made');
+  CfgFile.Defaults(s);
+  TestKit.Check(CfgFile.ReadOptions(NEW_PATH, s, bad) = CfgFile.CFG_READ, 'and reads back');
+  TestKit.Check(CfgFile.WriteOptions(NEW_PATH, t), 'a folder already there is written again');
+  FileUtil.DeleteFile(NEW_PATH + C_OPT.OPT_NAME);
+  RmDir(NEW_DIR + SEP + NEW_SUB);
+  ioRes := IOResult;
+  RmDir(NEW_DIR);
+  ioRes := IOResult;
+  TestKit.Check(PutFile(FILE_NAME, 'x'), 'a file for the test');
+  TestKit.Check(not CfgFile.WriteOptions(FILE_NAME + '\', t), 'a write into a file, as a folder, fails');
+  FileUtil.DeleteFile(FILE_NAME);
   { a folder in the way of the temporary copy fails the write }
   MkDir(FileUtil.TempName(C_OPT.OPT_NAME));
   ioRes := IOResult;
