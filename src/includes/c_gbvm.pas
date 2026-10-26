@@ -67,6 +67,12 @@ const
     subroutine at $AE89), so turning on the square does not give it again. A step onto a square with no event clears
     it. }
   PHLAN_GREETED = $4A0F;
+  { Stojanow Gate's script (ECL2 block 9), another of those cells: what has been shown this visit, once the gate is
+    taken. SSI's guard rooms keep their text's bits there (1 the west, 2 the east, which the makeshift barracks share);
+    the cheer from the wall (#683) adds STOJANOW_CHEERED, set at either pair of squares, so it comes once a visit
+    (#1068). }
+  STOJANOW_SHOWN = $4A01;
+  STOJANOW_CHEERED = $04;
   { Mendor's Library's fights won: LIBRARY_SPECTRE the spectre that guards the books, LIBRARY_BASILISK the basilisk;
     the block is cleared, and the clerk pays for it, with both, LIBRARY_CLEARED (#851) }
   LIBRARY_FIGHTS = $4A31;
