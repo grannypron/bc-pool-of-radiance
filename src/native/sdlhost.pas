@@ -20,6 +20,12 @@ uses Sdl3Min;
 { The game's window, for a dialog to belong to (DataPick's folder picker, #1064). }
 function GameWindow: PSDL_Window;
 
+var
+  { False while there is nothing to lose (DataPick, before the game starts): a quit then ends the program without
+    asking. On a Mac the question could not be asked there anyway while the folder picker is open: both are sheets on
+    the game's window, and the question would wait for the picker to close (#1073). }
+  askBeforeQuit: Boolean = True;
+
 implementation
 
 uses SysUtils, Math, Host;
@@ -372,7 +378,8 @@ end;
 
 { A quit asked for by the system (Command-Q, the app menu's Quit, the window's close button, Alt-F4): ask the player in
   the system's own message box, Cancel the default for Return and Escape, and end the program on Quit (#1073). A
-  box that cannot be shown ends it, as before there was one. A scripted run (POOLRAD_KEYS, POOLRAD_SHOT) ends without
+  box that cannot be shown ends it, as before there was one, and so does a quit while askBeforeQuit is off (DataPick:
+  nothing to lose yet). A scripted run (POOLRAD_KEYS, POOLRAD_SHOT) ends without
   asking: nothing would answer, and the run would wait for ever. On Cancel the quit leaves nothing behind: SDL has not
   closed the window, and the quit events still queued are dropped, as closing the last window sends both
   SDL_EVENT_WINDOW_CLOSE_REQUESTED and SDL_EVENT_QUIT, which would otherwise ask twice. }
@@ -385,7 +392,7 @@ var
   box: TSDL_MessageBoxData;
   chosen: LongInt;
 begin
-  if scripted then
+  if scripted or not askBeforeQuit then
     Halt(0);
   buttons[0].flags := 0;
   buttons[0].buttonID := BUTTON_QUIT;

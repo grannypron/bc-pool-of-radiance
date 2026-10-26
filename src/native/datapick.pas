@@ -3,7 +3,9 @@
   so the game's own font, is not found yet). Several copies found: a list to pick from, with Another Folder. None: the
   system's folder picker (SDL_ShowOpenFolderDialog), or, where it cannot open (a Linux desktop without the XDG portal or
   zenity), a typed path. A folder chosen is taken only when it holds the data, and remembered (GameDirs.Take).
-  Escape on the list, or cancelling the picker with nothing found, leaves the game with a message. Free Pascal only. }
+  Escape on the list, or cancelling the picker with nothing found, leaves the game with a message. A quit from the
+  system (Command-Q, the window's close button) leaves at once, even while the picker is open: nothing is lost yet
+  (SdlHost.askBeforeQuit, #1073). Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 unit DataPick;
@@ -316,6 +318,7 @@ var
   hits: TCandidates;
   ask: Boolean;
 begin
+  SdlHost.askBeforeQuit := False;
   if not GameDirs.Settle(GameDirs.POOL, hits, ask) then begin
     if Length(hits) > 0 then
       PickCopy(hits)
@@ -328,6 +331,7 @@ begin
     FillChar(Host.dac, SizeOf(Host.dac), 0);
   end;
   ChDir(GameDirs.dataFolder);
+  SdlHost.askBeforeQuit := True;
 end;
 
 end.
