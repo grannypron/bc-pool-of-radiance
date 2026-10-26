@@ -115,7 +115,9 @@ function ReadOptions(dir: FileUtil.TPathName; var s: TSettings; var bad: Byte): 
 
 { Write s as POOLOPT.CFG in folder dir: every key in order, then each line of the old file whose key this version does
   not know, kept for a newer one (blank lines dropped). It is written beside the old file as POOLOPT.CF$
-  (FileUtil.TempName) and put in its place, so a failed write leaves the old file. True when it was written. }
+  (FileUtil.TempName) and put in its place, so a failed write leaves the old file. A folder dir that is not there yet
+  is made first, with any above it, as a save makes its folder (FileUtil.MakeFolder): a new save folder, or natively a
+  new per-user one, keeps the settings from the first change (#1067). True when it was written. }
 function WriteOptions(dir: FileUtil.TPathName; var s: TSettings): Boolean;
 
 { Read POOL.CFG file name into c as START reads it. A letter is taken in either case (#895); an unknown video letter
@@ -477,6 +479,7 @@ begin
   WriteOptions := False;
   name := dir + C_OPT.OPT_NAME;
   ioRes := IOResult;
+  if not FileUtil.MakeFolder(dir) then Exit;
   Assign(newFile, FileUtil.TempName(name));
   Rewrite(newFile);
   if IOResult <> 0 then Exit;
