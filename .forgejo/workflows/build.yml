@@ -244,12 +244,14 @@ jobs:
           tools/macos-sign.sh
       # The stapled app, and beside it src/binaries' data files (the title picture, the Sound Blaster's recorded
       # effects), which the game reads from its folder as the DOS zip's are; outside the bundle, so no signature
-      # covers them. The zip's top level unpacks straight into the game's folder.
+      # covers them. The zip's top level unpacks straight into the game's folder. README.TXT is tools/macos-readme.txt:
+      # how the game finds a GOG or Steam copy's data and where it saves (#1064).
       - name: Package
         run: |
           stage="$(mktemp -d)"
           ditto "obj/native/macos/Pool of Radiance.app" "$stage/Pool of Radiance.app"
           [ ! -d src/binaries ] || find src/binaries -maxdepth 1 -type f -exec cp {} "$stage/" \;
+          cp tools/macos-readme.txt "$stage/README.TXT"
           mkdir -p dist
           rm -f "dist/pool-of-radiance-$TAG-macos.zip"
           (cd "$stage" && ditto -c -k --sequesterRsrc . "$OLDPWD/dist/pool-of-radiance-$TAG-macos.zip")

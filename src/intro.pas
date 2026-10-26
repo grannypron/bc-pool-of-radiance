@@ -9,7 +9,8 @@ procedure Introduction;
 
 implementation
 
-uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, FileUtil{$IFDEF FPC}, TpRand{$ENDIF};
+uses Types, GameDefs, GameVars, Crt, TextRend, Blit, Border, C_SOUND, SoundDrv, FileUtil
+  {$IFDEF FPC}, TpRand, GameDirs{$ENDIF};
 
 const
   { title picture 2's lightning: a chance of one in FLASH_TICKS on each timer tick (18.2 a second), so a flash comes
@@ -77,6 +78,10 @@ begin
   pic := nil;
   savedDir := GameVars.gameDir;
   GameVars.gameDir[0] := #0;
+{$IFDEF FPC}
+  { natively from beside the program, where the release zip puts it, else the data folder (#1064) }
+  GameVars.gameDir := GameDirs.OwnFolder('RAVFULL.DAX');
+{$ENDIF}
   { Brazen Crows, when its picture is there: it is not one of the game's own files, so without it the introduction goes
     straight on to the title rather than asking for a disk }
   if FileUtil.Exists(GameVars.gameDir + 'RAVFULL.DAX') then begin
@@ -84,6 +89,9 @@ begin
     Blit.ShowPic(0, 0, pic);
     TextRend.DelayOrKey(2);
   end;
+{$IFDEF FPC}
+  GameVars.gameDir[0] := #0;
+{$ENDIF}
 
   Blit.LoadPic('title', 1, False, 0, pic);
   Blit.ShowPic(0, 0, pic);

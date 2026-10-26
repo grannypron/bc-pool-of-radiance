@@ -2,7 +2,7 @@
   values as the game reads them (Trim and Tidy), its write (keys in order, unknown lines kept, a failed write leaving
   the old file), POOL.CFG read as START reads it (letters in either case, unknown ones noted, a short file, extra lines
   kept) and written with CR LF, POOL.CFG's defaults, and the path rules: NormalizePath, DirExists and CheckPath, with
-  the native build's separators and its save folder inside the game's (SaveFolderIn, #894). }
+  the native build's separators and its save folder (NativeSaveFolder, #894, #1064). }
 {$I COMPILER.INC}
 program TCfgFile;
 
@@ -321,14 +321,18 @@ begin
   TestKit.Check(CfgFile.NormalizePath('/home/pool', full), 'a path from the root');
   TestKit.CheckEqualsS('\home\pool\', full, 'is whole on a system without drives');
 {$ENDIF}
-  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('C:\POOLRAD\', 'C:\POOLRAD\SAVE\'),
-                       'SaveFolderIn: SSI''s install');
-  TestKit.CheckEqualsS('games\one\', CfgFile.SaveFolderIn('C:\POOLRAD', 'c:\poolrad\games\one'),
+  TestKit.CheckEqualsS('H/SAVE\', CfgFile.NativeSaveFolder('C:\POOLRAD\', 'C:\POOLRAD\SAVE\', 'H/'),
+                       'NativeSaveFolder: SSI''s install, in the writable folder');
+  TestKit.CheckEqualsS('H/games\one\', CfgFile.NativeSaveFolder('C:\POOLRAD', 'c:\poolrad\games\one', 'H/'),
                        'a folder deeper, whatever its case');
-  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('C:\POOLRAD\', 'D:\SAVES\'), 'a folder elsewhere is SAVE\');
-  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('C:\POOLRAD\', 'C:\POOLRAD\'), 'and the game''s own');
-  TestKit.CheckEqualsS('SAVE\', CfgFile.SaveFolderIn('', ''), 'and an empty one');
-  TestKit.CheckEqualsS('Saves\', CfgFile.SaveFolderIn('', 'Saves'), 'a relative one under the current folder');
+  TestKit.CheckEqualsS('H/SAVE\', CfgFile.NativeSaveFolder('C:\POOLRAD\', 'D:\NO SUCH SAVES\', 'H/'),
+                       'a folder elsewhere that is not there is SAVE\');
+  TestKit.CheckEqualsS('H/SAVE\', CfgFile.NativeSaveFolder('C:\POOLRAD\', 'C:\POOLRAD\', 'H/'), 'and the game''s own');
+  TestKit.CheckEqualsS('H/SAVE\', CfgFile.NativeSaveFolder('', '', 'H/'), 'and an empty one');
+  TestKit.CheckEqualsS('H/Saves\', CfgFile.NativeSaveFolder('', 'Saves', 'H/'),
+                       'a relative one under the current folder');
+  TestKit.CheckEqualsS(cur, CfgFile.NativeSaveFolder('C:\POOLRAD\', cur, 'H/'),
+                       'a whole path to a folder that is there, outside the game''s, is kept (#1064)');
 {$ENDIF}
   body := 'C:\';
   while Length(body) < C_OPT.MAX_PATH_TEXT - 1 do
