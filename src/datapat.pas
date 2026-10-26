@@ -19,7 +19,7 @@ uses C_DATA;
 const
   { the parts of all the fixes, and their bytes together }
   PART_COUNT = 86;
-  BYTE_COUNT = 2618;
+  BYTE_COUNT = 2603;
 
 type
   { One part of a fix: the family's per-disk archive of disk, block id, which is size bytes long before this part;
@@ -261,17 +261,16 @@ begin
   { #683: Stojanow Gate once the party has taken it ([$4A77] holds both barracks and the bugbears, $1C): new code at
     the end of the script, reached through events 1, 2, 7 and 13 of the event table (script $9D84). The guard rooms
     at (4,7) and (11,7) are makeshift barracks for New Phlan's troops, and at (7,9) and (8,9), before the gatehouse,
-    and (7,6) and (8,6), behind it, the guards on the wall cheer, with a guard's portrait (head $39, body 5); each
-    once a visit, kept in [$4A01] as the guard rooms' text was, which entering the area clears. None waits for
-    Return. Going through the gatehouse (script $A11F) makes the move without running the new square's event before
-    the view is redrawn, so the cheer at (7,6) keeps its portrait }
+    and (7,6) and (8,6), behind it, the guards on the wall cheer, with no portrait (#1068). Each barracks' text, and
+    the cheer at whichever pair the party comes to first, comes once a visit (#1068), kept in [$4A01]
+    (C_GBVM.STOJANOW_SHOWN) as the guard rooms' text was, which entering the area clears. None waits for Return }
   DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6476, 1168, 2, 2);
   DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6476, 1171, 2, 2);
   DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6476, 1186, 2, 2);
   DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6476, 1204, 2, 2);
   DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6476, 2083, 2, 2);
   DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6476, 6476, 0, 130);
-  DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6606, 6606, 0, 181);
+  DataPat.Part(683, C_DATA.FAMILY_ECL, 2, 9, 6606, 6606, 0, 166);
   { #748: weapons do their damage against large targets to a Large creature (Types.ICON_LARGE), no longer to every
     two-tile one; the gnolls (MON2CHA and MON8CHA block 73) and the phase spider (MON8CHA block 116), two-tile and
     size L, get the Large bit, so they take it as before. The huge scorpion, two-tile, is size M (#792) }
@@ -907,7 +906,7 @@ begin
   { #683 part 5, original }
   DataPat.Put(#$6A#$A1);                                     { $A11F GOTO LA16A }
   { fixed: through the gatehouse by new code once the gate is taken }
-  DataPat.Put(#$4F#$B3);                                     { $A11F GOTO LB34F }
+  DataPat.Put(#$40#$B3);                                     { $A11F GOTO LB340 }
   { #683 part 6, added at $B24A: the gate taken, as the script counts it (both barracks and the bugbears); the
     barracks' new text, once a visit }
   DataPat.Put(#$2F#$01#$77#$4A#$00#$1C#$01#$82#$6E);         { $B24A AND [$4A77], $1C, [$6E82] }
@@ -932,8 +931,8 @@ begin
   DataPat.Put(#$52#$16#$01#$8F#$4A#$02#$0F#$55#$32#$4E#$1E#$03#$85#$5E#$04#$08);
   DataPat.Put(#$30#$13#$A0#$51#$23#$CF#$41#$3B#$80);
   DataPat.Put(#$00);                                         { $B2CB EXIT }
-  { #683 part 7, added at $B2CC: the cheer at (7,9) and (8,9), and at (7,6) and (8,6), once a visit; then the way
-    through the gatehouse }
+  { #683 part 7, added at $B2CC: the cheer at (7,9) and (8,9), or at (7,6) and (8,6), once a visit between them
+    (C_GBVM.STOJANOW_CHEERED, #1068), without a portrait; then the way through the gatehouse }
   DataPat.Put(#$02#$01#$4A#$B2);                             { $B2CC GOSUB LB24A }
   DataPat.Put(#$17);                                         { $B2D0 IF <> }
   DataPat.Put(#$01#$01#$A1#$A0);                             { $B2D1 GOTO LA0A1 }
@@ -942,29 +941,26 @@ begin
   DataPat.Put(#$02#$01#$4A#$B2);                             { $B2DF GOSUB LB24A }
   DataPat.Put(#$17);                                         { $B2E3 IF <> }
   DataPat.Put(#$01#$01#$81#$B0);                             { $B2E4 GOTO LB081 }
-  DataPat.Put(#$09#$00#$08#$01#$7A#$6E);                     { $B2E8 SAVE $08, [$6E7A] }
+  DataPat.Put(#$09#$00#$04#$01#$7A#$6E);                     { $B2E8 SAVE $04, [$6E7A] }
   DataPat.Put(#$2F#$01#$01#$4A#$01#$7A#$6E#$01#$82#$6E);     { $B2EE AND [$4A01], [$6E7A], [$6E82] }
   DataPat.Put(#$17);                                         { $B2F8 IF <> }
   DataPat.Put(#$00);                                         { $B2F9 EXIT }
   DataPat.Put(#$30#$01#$01#$4A#$01#$7A#$6E#$01#$01#$4A);     { $B2FA OR [$4A01], [$6E7A], [$4A01] }
-  DataPat.Put(#$09#$00#$39#$01#$E1#$6D);                     { $B304 SAVE $39, [$6DE1] }
-  DataPat.Put(#$0E#$00#$05);                                 { $B30A PICTURE $05 }
-  DataPat.Put(#$09#$00#$FF#$01#$E1#$6D);                     { $B30D SAVE $FF, [$6DE1] }
-  { $B313 PRINTCLEAR "THE GUARDS ON THE WALL RAISE A CHEER AS YOU PASS. 'HAIL, HEROES OF PHLAN!'" }
+  { $B304 PRINTCLEAR "THE GUARDS ON THE WALL RAISE A CHEER AS YOU PASS. 'HAIL, HEROES OF PHLAN!'" }
   DataPat.Put(#$12#$80#$38#$50#$81#$60#$1D#$50#$52#$11#$38#$0F#$3A#$05#$08#$16);
   DataPat.Put(#$05#$C1#$30#$C8#$12#$04#$94#$C5#$80#$18#$03#$20#$51#$52#$80#$14);
   DataPat.Put(#$E0#$64#$F5#$60#$40#$14#$D3#$BA#$09#$C8#$04#$93#$2C#$80#$81#$52);
   DataPat.Put(#$3C#$54#$E0#$3C#$68#$10#$20#$C0#$4E#$86#$70);
-  DataPat.Put(#$00);                                         { $B34E EXIT }
-  DataPat.Put(#$02#$01#$4A#$B2);                             { $B34F GOSUB LB24A }
-  DataPat.Put(#$17);                                         { $B353 IF <> }
-  DataPat.Put(#$01#$01#$6A#$A1);                             { $B354 GOTO LA16A }
-  DataPat.Put(#$2A#$01#$96#$A1#$01#$7D#$6E#$01#$4B#$C0);     { $B358 GETTABLE [$A196], [$6E7D], [$C04B] }
-  DataPat.Put(#$2A#$01#$9C#$A1#$01#$7D#$6E#$01#$4C#$C0);     { $B362 GETTABLE [$A19C], [$6E7D], [$C04C] }
-  DataPat.Put(#$2A#$01#$A2#$A1#$01#$7D#$6E#$01#$4F#$C0);     { $B36C GETTABLE [$A1A2], [$6E7D], [$C04F] }
-  DataPat.Put(#$09#$00#$FF#$01#$C9#$6D);                     { $B376 SAVE $FF, [$6DC9] }
-  DataPat.Put(#$2D#$01#$90#$2C);                             { $B37C CALL [$2C90] }
-  DataPat.Put(#$00);                                         { $B380 EXIT }
+  DataPat.Put(#$00);                                         { $B33F EXIT }
+  DataPat.Put(#$02#$01#$4A#$B2);                             { $B340 GOSUB LB24A }
+  DataPat.Put(#$17);                                         { $B344 IF <> }
+  DataPat.Put(#$01#$01#$6A#$A1);                             { $B345 GOTO LA16A }
+  DataPat.Put(#$2A#$01#$96#$A1#$01#$7D#$6E#$01#$4B#$C0);     { $B349 GETTABLE [$A196], [$6E7D], [$C04B] }
+  DataPat.Put(#$2A#$01#$9C#$A1#$01#$7D#$6E#$01#$4C#$C0);     { $B353 GETTABLE [$A19C], [$6E7D], [$C04C] }
+  DataPat.Put(#$2A#$01#$A2#$A1#$01#$7D#$6E#$01#$4F#$C0);     { $B35D GETTABLE [$A1A2], [$6E7D], [$C04F] }
+  DataPat.Put(#$09#$00#$FF#$01#$C9#$6D);                     { $B367 SAVE $FF, [$6DC9] }
+  DataPat.Put(#$2D#$01#$90#$2C);                             { $B36D CALL [$2C90] }
+  DataPat.Put(#$00);                                         { $B371 EXIT }
   { #748, MON2CHA gnoll, original }
   DataPat.Put(#$02);
   { fixed: two tiles and Large }

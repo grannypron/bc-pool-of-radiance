@@ -78,9 +78,8 @@ function SaveDiskMsg: Types.TStr40;
   until the disk was there, so a folder that could not be written held the player for good, #794). }
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 
-{ Create the save directory (path minus the trailing backslash), and any parent directory it needs; IOResult 5 (the
-  directory already exists) counts as success. Prompt for the save disk until MkDir succeeds or Escape gives up
-  (AskSaveDisk). A drive root such as C:\ cannot be made and is left alone. }
+{ Create the save directory and any parent directory it needs (FileUtil.MakeFolder, which POOLOPT.CFG's write shares,
+  #1067). Prompt for the save disk until it is there or Escape gives up (AskSaveDisk). }
 procedure CheckSaveDir;
 
 implementation
@@ -477,24 +476,10 @@ begin
 end;
 
 procedure CheckSaveDir;
-var
-  ioRes: Integer;
-  i: Byte;
-  made: Boolean;
 begin
-  if Length(GameVars.saveDirectory) <= 3 then Exit;
-  repeat
-    { each parent first, from the one below the root; its errors show again in the last MkDir }
-    for i := 4 to Length(GameVars.saveDirectory) - 1 do
-      if GameVars.saveDirectory[i] = '\' then begin
-        MkDir(Copy(GameVars.saveDirectory, 1, i - 1));
-        ioRes := IOResult;
-      end;
-    MkDir(Copy(GameVars.saveDirectory, 1, Length(GameVars.saveDirectory) - 1));
-    ioRes := IOResult;
-    made := (ioRes = 0) or (ioRes = 5);
-  until made or not SaveMenu.AskSaveDisk('Cannot create',
-                                         Copy(GameVars.saveDirectory, 1, Length(GameVars.saveDirectory) - 1));
+  while not FileUtil.MakeFolder(GameVars.saveDirectory) and
+        SaveMenu.AskSaveDisk('Cannot create', Copy(GameVars.saveDirectory, 1, Length(GameVars.saveDirectory) - 1)) do
+    ;
 end;
 
 end.
