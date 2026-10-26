@@ -29,16 +29,18 @@ const
   CMD_LAST = 12;
   { each command's key, by command (index CMD_ + 1), as the two-column menu's Command Key has them }
   cmdKeys: string[CMD_LAST + 1] = 'ARSLGBCVMDTUE';
-  { the row of the PARTY and CHARACTER headings under a roster of up to five, as the mock-up has it }
-  MENU_TOP = 8;
+  { the row of the PARTY and CHARACTER headings under a roster of up to five, as the mock-up has it (#1071) }
+  MENU_TOP = 10;
   { the row of SSI's menu's first command, under a roster of up to eight }
   LIST_TOP = 12;
 
 type
   TCmdSet = set of CMD_ADD..CMD_LAST;
 
-{ The row of the PARTY and CHARACTER headings under a roster of members creatures (CharDisp.DisplayParty's, from row 2
-  on the two-column menu): MENU_TOP, or lower, so a blank row stays between, for a party of six to eight. }
+{ The row of the PARTY and CHARACTER headings under a roster of members creatures (CharDisp.DisplayParty's, from row 4
+  on the two-column menu, #1071): MENU_TOP, or lower, so a blank row stays between, for a party of six or seven. Under
+  eight there is no room for the blank row: the headings follow the roster at once, so Begin Adventuring stays in the
+  window. }
 function MenuTop(members: Byte): Byte;
 
 { The row of command cmd of the two-column menu with the headings on row top. }
@@ -52,8 +54,9 @@ function StepCmd(offered: TCmdSet; cmd: Byte; step: ShortInt): Byte;
   whose row is nearest cmd's, the upper of two as near; cmd when that column offers none. }
 function OtherColumn(offered: TCmdSet; cmd, top: Byte): Byte;
 
-{ Draw the two-column menu with the headings on row top: the headings in white, a command offered in light green with
-  its key in white, cur wholly in white, and one not offered in dark gray. }
+{ Draw the two-column menu with the headings on row top: the headings in light magenta, so the highlighted command
+  stands out (#1071), a command offered in light green with its key in white, cur wholly in white, and one not offered
+  in dark gray. }
 procedure Draw(offered: TCmdSet; top, cur: Byte);
 
 { Wait for a command of the two-column menu with the version (GameDefs.GAME_VERSION) on the bottom line. Up and Down
@@ -92,6 +95,8 @@ const
   RIGHT_HEAD_COL = 20;
   { the GAME heading's row below the PARTY heading's }
   GAME_HEAD_ROW = 4;
+  { the row of the roster's first member (CharDisp.DisplayParty's, its headers two rows above) }
+  ROSTER_ROW = 4;
   { the commands of the left column; the others are the right's }
   leftCmds: TCmdSet = [CMD_ADD..CMD_BEGIN];
   { SSI's menu: its commands in its order, and their names (START.EXE's, with the port's Game Settings); Dual Class is
@@ -107,11 +112,16 @@ const
   LIST_KEYS = 'C D M T V A R L S B G E J';
 
 function MenuTop(members: Byte): Byte;
+var
+  top: Byte;
 begin
-  if members + 3 > MENU_TOP then
-    MenuTop := members + 3
-  else
-    MenuTop := MENU_TOP;
+  { the members from ROSTER_ROW, then a blank row }
+  top := ROSTER_ROW + members + 1;
+  if top < MENU_TOP then
+    top := MENU_TOP;
+  if top + cmdRows[CMD_BEGIN] > C_MSG.TEXT_BOTTOM then
+    top := C_MSG.TEXT_BOTTOM - cmdRows[CMD_BEGIN];
+  MenuTop := top;
 end;
 
 function CmdRow(cmd, top: Byte): Byte;
@@ -185,9 +195,9 @@ procedure Draw(offered: TCmdSet; top, cur: Byte);
 var
   cmd: Byte;
 begin
-  TextRend.DisplayString(LEFT_HEAD_COL, top, White, 'Party');
-  TextRend.DisplayString(LEFT_HEAD_COL, top + GAME_HEAD_ROW, White, 'Game');
-  TextRend.DisplayString(RIGHT_HEAD_COL, top, White, 'Character');
+  TextRend.DisplayString(LEFT_HEAD_COL, top, LightMagenta, 'Party');
+  TextRend.DisplayString(LEFT_HEAD_COL, top + GAME_HEAD_ROW, LightMagenta, 'Game');
+  TextRend.DisplayString(RIGHT_HEAD_COL, top, LightMagenta, 'Character');
   for cmd := CMD_ADD to CMD_LAST do
     PartyMnu.DrawCmd(offered, top, cmd, cur);
 end;

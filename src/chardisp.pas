@@ -108,10 +108,9 @@ var
 { Draw the party roster panel: 'Name' / 'AC HP' headers, then one row per creature -- the name (hl in white, others
   colored by DisplayCreatureName), then AC and HP right-aligned by nudging their columns by their digit counts. Clear
   each row first, and one extra row after the last. On a training hall's two-column party menu (C_IFC.MAIN_MENU with
-  hallMenu set, #885) the roster is the mock-up's (mocks/training-hall.txt, #879): the headers on row 1 and the
-  creatures from row 2, the names from column 2 and AC and HP a column further left. On SSI's start-up menu the
-  headers are on row 2 and the creatures from row 4, the names from column 1; elsewhere the same rows, right of the
-  view. }
+  hallMenu set, #885) the roster is the mock-up's (mocks/training-hall.txt, #879): the names from column 2 and AC and
+  HP a column further left. On SSI's start-up menu the names are from column 1; elsewhere the roster is right of the
+  view. Everywhere the headers are on row 2, a blank row above and below them (#1071), and the creatures from row 4. }
 procedure DisplayParty(hl: Types.PCharRecord);
 var
   p: Types.PCharRecord;
@@ -127,13 +126,12 @@ begin
   if GameVars.ifcState = C_IFC.MAIN_MENU then
     if CharDisp.hallMenu then begin
       col := 2;
-      row := 1;
       left := 1;
     end else
       col := 1;
   TextRend.DisplayString(col, row, White, 'Name');
   TextRend.DisplayString(33 - left, row, White, 'AC  HP');
-  Inc(row, 2 - left);
+  Inc(row, 2);
   p := GameVars.creatureList;
   while p <> nil do begin
     Border.ClearBox(col, row, 38, row);
