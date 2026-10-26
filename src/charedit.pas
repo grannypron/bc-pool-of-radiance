@@ -14,7 +14,7 @@ procedure EditMenu;
 
 implementation
 
-uses Crt, Types, C_ABIL, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GameDefs, GameVars, Border,
+uses Crt, Types, C_STAT, C_ITEM, C_KEYS, C_LEVEL, C_MONEY, C_MSG, C_SPELL, C_STATUS, GameDefs, GameVars, Border,
   CharDisp, CharGen, CharHlp, ChgClass, ClassCal, MenuCore, Party, RandItem, Shop, StrUtil, TextRend, ViewChar;
 
 const
@@ -73,7 +73,7 @@ begin
     if classLevels[cls] <= 1 then Exit;
     gave := ClassCal.HitDice(GameVars.curChar, cls) > 0;
     avg := GameDefs.hpSides[cls] div 2 + 1;
-    loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_ABIL.CONSTITUTION])) div clsCount;
+    loss := (avg + ClassCal.ConHpPerDie(cls, stats[C_STAT.CONSTITUTION])) div clsCount;
     if loss < 1 then
       loss := 1;
     Dec(classLevels[cls]);
@@ -208,8 +208,8 @@ begin
                case status of
                  C_STATUS.OKAY: status := C_STATUS.UNCONSCIOUS;
                  C_STATUS.UNCONSCIOUS: status := C_STATUS.DYING;
-                 C_STATUS.DYING: status := C_STATUS.DEAD;
-                 C_STATUS.DEAD: status := C_STATUS.STONED;
+                 C_STATUS.DYING: status := C_STATUS.DEAD_STATUS;
+                 C_STATUS.DEAD_STATUS: status := C_STATUS.STONED;
                  C_STATUS.STONED: status := C_STATUS.GONE;
                else
                  status := C_STATUS.OKAY;

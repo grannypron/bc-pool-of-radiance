@@ -577,24 +577,24 @@ begin
   { v1.3 skipped 2 operands for SETUP MONSTER and 1 for ADD NPC, which take 3 and 2, and only the opcode byte of the
     four commands with a count }
   case GameVars.curOpcode of
-    C_ECL.JUMP, C_ECL.GOSUB, C_ECL.LOAD_CHAR, C_ECL.PICTURE, C_ECL.PRINT, C_ECL.PRINTCLEAR,
-        C_ECL.PARTY_STR, C_ECL.NEWECL, C_ECL.CALL,
-    C_ECL.FIND_ITEM, C_ECL.CLOCK, C_ECL.RUN_PROGRAM, C_ECL.WHO, C_ECL.PROTECTION:
+    C_ECL.OP_GOTO, C_ECL.GOSUB, C_ECL.LOAD_CHARACTER, C_ECL.PICTURE, C_ECL.PRINT, C_ECL.PRINT_CLEAR,
+        C_ECL.PARTY_STRENGTH, C_ECL.NEW_ECL, C_ECL.CALL,
+    C_ECL.FIND_ITEM, C_ECL.CLOCK, C_ECL.OP_PROGRAM, C_ECL.WHO, C_ECL.PROTECTION:
       EclVars.LoadEclVars(1);
-    C_ECL.COMPARE, C_ECL.RANDOM_NUMBER, C_ECL.SAVE, C_ECL.INPUT_NUM, C_ECL.INPUT_STR,
-        C_ECL.UNUSED_1F, C_ECL.PARTY_SURPR, C_ECL.ADD_NPC:
+    C_ECL.COMPARE, C_ECL.OP_RANDOM, C_ECL.SAVE, C_ECL.INPUT_NUMBER, C_ECL.INPUT_STRING,
+        C_ECL.UNUSED_1F, C_ECL.PARTY_SURPRISE, C_ECL.ADD_NPC:
       EclVars.LoadEclVars(2);
-    C_ECL.ADD..C_ECL.MULTIPLY, C_ECL.LOAD_MON, C_ECL.LOADFILES, C_ECL.ROB, C_ECL.GETTABLE,
-        C_ECL.BIT_AND, C_ECL.BIT_OR, C_ECL.SAVE_TABLE,
-    C_ECL.LOADPIECES, C_ECL.SPELL, C_ECL.SETUP_MON:
+    C_ECL.ADD..C_ECL.MULTIPLY, C_ECL.LOAD_MONSTER, C_ECL.LOAD_FILES, C_ECL.ROB, C_ECL.GET_TABLE,
+        C_ECL.OP_AND, C_ECL.OP_OR, C_ECL.SAVE_TABLE,
+    C_ECL.LOAD_PIECES, C_ECL.SPELL, C_ECL.SETUP_MONSTER:
       EclVars.LoadEclVars(3);
     { the count is the last operand before the list, as EclVMenu, EclHMenu and EclOnGoto read it }
-    C_ECL.VMENU: begin
+    C_ECL.VERTICAL_MENU: begin
       EclVars.LoadEclVars(3);
       count := EclVars.GetEclVar(3);
       EclVars.LoadEclList(count);
     end;
-    C_ECL.HMENU, C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
+    C_ECL.HORIZONTAL_MENU, C_ECL.ON_GOTO, C_ECL.ON_GOSUB: begin
       EclVars.LoadEclVars(2);
       count := EclVars.GetEclVar(2);
       EclVars.LoadEclList(count);
@@ -607,7 +607,7 @@ begin
       EclVars.LoadEclVars(6);
     C_ECL.TREASURE:
       EclVars.LoadEclVars(8);
-    C_ECL.ENCOUNTER:
+    C_ECL.ENCOUNTER_MENU:
       EclVars.LoadEclVars(14);
   else
     Inc(GameVars.eclIp);

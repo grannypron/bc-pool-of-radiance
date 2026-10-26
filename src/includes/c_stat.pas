@@ -1,6 +1,6 @@
 { Ability-score indexes (TCharRecord.stats). }
 {$I COMPILER.INC}
-unit C_ABIL;
+unit C_STAT;
 
 interface
 

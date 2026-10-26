@@ -302,7 +302,7 @@ begin
       CbtLog.Add(LightGreen, 'and is Dying');
       TextRend.DisplayString(23, row, LightGreen, 'and is Dying');
     end;
-    if def^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then
+    if def^.status in [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE] then
       CharDisp.PrintNameString(def, 'is killed', row, False);
     FxEngine.RemoveEffectsHp0(def);
     FxEngine.TriggerEffectsWithCondition(C_COND.HP_ZERO, def);
@@ -1044,7 +1044,7 @@ begin
       for j := 1 to GameVars.downedCount do
         if GameVars.downed[j].cr <> nil then
           if not (GameVars.downed[j].cr^.status in
-                  [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE]) then
+                  [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE]) then
             if GameVars.downed[j].x = nx then
               if GameVars.downed[j].y = ny then
                 { a body of its own side only: downed holds the party's, which a hostile cleric healed (#714) }
@@ -1574,9 +1574,9 @@ function DirOfKey(ch: Char): Byte;
 begin
   case ch of
     C_KEYS.UP: DirOfKey := C_DIR.NORTH;
-    C_KEYS.PGUP: DirOfKey := C_DIR.NORTHEAST;
+    C_KEYS.PAGE_UP: DirOfKey := C_DIR.NORTHEAST;
     C_KEYS.RIGHT: DirOfKey := C_DIR.EAST;
-    C_KEYS.PGDN: DirOfKey := C_DIR.SOUTHEAST;
+    C_KEYS.PAGE_DOWN: DirOfKey := C_DIR.SOUTHEAST;
     C_KEYS.DOWN: DirOfKey := C_DIR.SOUTH;
     C_KEYS.END_KEY: DirOfKey := C_DIR.SOUTHWEST;
     C_KEYS.LEFT: DirOfKey := C_DIR.WEST;
@@ -2046,7 +2046,7 @@ begin
   while p <> nil do begin
     if p^.hostile = 1 then begin
       p^.enabled := 0;
-      p^.status := C_STATUS.DEAD;
+      p^.status := C_STATUS.DEAD_STATUS;
       slot := CbtMap.CombatSlot(p);
       { slot 0: not on the map }
       if slot > 0 then

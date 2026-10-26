@@ -139,8 +139,8 @@ begin
       case ch of
         C_KEYS.UP: LogView.ScrollTo(top - 1);
         C_KEYS.DOWN: LogView.ScrollTo(top + 1);
-        C_KEYS.PGUP: LogView.ScrollTo(top - PAGE_ROWS);
-        C_KEYS.PGDN: LogView.ScrollTo(top + PAGE_ROWS);
+        C_KEYS.PAGE_UP: LogView.ScrollTo(top - PAGE_ROWS);
+        C_KEYS.PAGE_DOWN: LogView.ScrollTo(top + PAGE_ROWS);
         C_KEYS.HOME: LogView.ScrollTo(1);
         C_KEYS.END_KEY: LogView.ScrollTo(total);
       end

@@ -237,7 +237,7 @@ begin
     WriteLn('Not found: ', DaxIo.PathForLine(name, 68));
     WriteLn(diskMsg, ' (Esc quits)');
     { nothing is set up yet: no screen mode or sound to put back }
-    if GameIo.ReadAnyKey = C_KEYS.ESC then
+    if GameIo.ReadAnyKey = C_KEYS.ESCAPE then
       Halt;
   end;
 end;
@@ -269,7 +269,7 @@ begin
   repeat
     found := FileUtil.Exists(fileName);
     if (not found) and not noPrompt then
-      if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_KEYS.ESC then begin
+      if DaxIo.AskForDisk('Not found', fileName, promptMsg) = C_KEYS.ESCAPE then begin
         if escQuits then
           GameIo.ExitGame;
         gaveUp := True;

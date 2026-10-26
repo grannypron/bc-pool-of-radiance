@@ -59,12 +59,12 @@ begin
   FxEngine.AddEffect(target, C_EFFECT.MAGIC_RES85, 0, 0, False);
   n := 0;
   for i := 1 to TRIES do
-    if EffHndlr.TouchImmune(target, C_EFFECT.PARALYSIS) or EffHndlr.TouchImmune(target, C_EFFECT.POISONED) then
+    if EffHndlr.TouchImmune(target, C_EFFECT.PARALYZED) or EffHndlr.TouchImmune(target, C_EFFECT.POISONED) then
       Inc(n);
   TestKit.CheckEqualsL(0, n, 'magic resistance does not meet a touch');
   n := 0;
   for i := 1 to TRIES do
-    if FxEngine.EffectImmune(target, C_EFFECT.PARALYSIS) then
+    if FxEngine.EffectImmune(target, C_EFFECT.PARALYZED) then
       Inc(n);
   TestKit.Check(Abs(n - TRIES * 85 div 100) < TRIES div 10, 'it meets a spell''s paralysis at 85%');
   TestKit.Done;

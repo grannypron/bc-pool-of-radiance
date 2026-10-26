@@ -38,7 +38,7 @@ procedure GainLevels(trainable: Byte; restoreDrain: Boolean);
 implementation
 
 uses Types, Crt, C_AREA, GameDefs, GameVars, SaveLoad, ViewChar, Border, C_CLASS, C_LEVEL, C_RACE,
-  C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_ABIL, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
+  C_KEYS, C_EFFECT, C_STATUS, C_IFC, C_GBVM, C_STAT, C_MONEY, Money, C_ALIGN, Options, Blit, CbtMap, CharHlp, ClassCal,
   DaxIo, FxEngine, MapTiles, MenuCore, Portrait, TextRend, StrUtil, CharDisp, MoneyCal, Party, Magic, C_MSG, Dice,
   VidOps, ChgClass, PartyMnu{$IFDEF FPC}, TpRand{$ENDIF};
 
@@ -275,11 +275,11 @@ var
   hasMulti: Boolean;
   isSingle: array[C_LEVEL.CLERIC..C_LEVEL.MONK] of Boolean;
 begin
-  Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_ABIL.CHARISMA);
+  Border.ClearBox(ADJ_COL, RACE_LIST_ROW, LAST_COL, RACE_LIST_ROW + C_STAT.CHARISMA);
   Border.ClearBox(1, HEADING_ROW, LAST_COL, NOTE_ROW + 1);
   if (race < C_RACE.DWARF) or (race > C_RACE.HUMAN) then
     Exit;
-  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
+  for i := C_STAT.STRENGTH to C_STAT.CHARISMA do begin
     TextRend.DisplayString(ABIL_COL, RACE_LIST_ROW + i, LightGreen, GameDefs.abilityNames[i]);
     adj := raceAbilityAdj[race].values[i];
     if adj > 0 then
@@ -478,29 +478,29 @@ begin
       C_RACE.HALFLING: begin
            iconSize := 1;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_PSN_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CONSTITUTION_SAVE_BONUS, 0, 255, False);
          end;
       C_RACE.DWARF: begin
            iconSize := 1;
            FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_PSN_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_THAC0, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_AC_GIANT, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CONSTITUTION_SAVE_BONUS, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_ATTACK_BONUS, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_GIANT_DEFENSE, 0, 255, False);
          end;
       C_RACE.GNOME: begin
            iconSize := 1;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CON_SPELL_SAVE, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_THAC0, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_AC_GIANT, 0, 255, False);
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_AC_BUG, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.CONSTITUTION_SAVE_BONUS, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_ATTACK_BONUS, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.DWARF_GIANT_DEFENSE, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.GNOME_BUGBEAR_DEFENSE, 0, 255, False);
          end;
       C_RACE.ELF: begin
            iconSize := 2;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.ELF_RESIST, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.ELF_RESISTANCE, 0, 255, False);
          end;
-      C_RACE.HALFELF: begin
+      C_RACE.HALF_ELF: begin
            iconSize := 2;
-           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.HALF_ELF_RESIST, 0, 255, False);
+           FxEngine.AddEffect(Types.PCharRecord(creature), C_EFFECT.HALF_ELF_RESISTANCE, 0, 255, False);
          end;
       else
         { human }
@@ -590,7 +590,7 @@ begin
       with creature^ do
         case i of
           { Strength }
-          C_ABIL.STRENGTH: begin
+          C_STAT.STRENGTH: begin
                if (stats[i] > 0) and (ageCat[race].youngAdult < age) then
                  Inc(stats[i]);
                if (stats[i] > 0) and (ageCat[race].mature < age) then
@@ -600,14 +600,14 @@ begin
                if (stats[i] > 0) and (ageCat[race].old < age) then
                  Dec(stats[i]);
                ClampToLimits(i);
-               if (stats[C_ABIL.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
+               if (stats[C_STAT.STRENGTH] = 18) and (CharHlp.WarriorLevel(creature) > 0) then begin
                  strExc := Random(100) + 1;
                  if GameDefs.minimumMaximumStatistics[race].excMax[genderSp] < strExc then
                    strExc := GameDefs.minimumMaximumStatistics[race].excMax[genderSp];
                end;
              end;
           { Intelligence }
-          C_ABIL.INTELLIGENCE: begin
+          C_STAT.INTELLIGENCE: begin
                if ageCat[race].mature < age then
                  Inc(stats[i]);
                if ageCat[race].old < age then
@@ -615,7 +615,7 @@ begin
                ClampToLimits(i);
              end;
           { Wisdom }
-          C_ABIL.WISDOM: begin
+          C_STAT.WISDOM: begin
                if ageCat[race].youngAdult >= age then
                  Dec(stats[i]);
                if ageCat[race].mature < age then
@@ -627,7 +627,7 @@ begin
                ClampToLimits(i);
              end;
           { Dexterity }
-          C_ABIL.DEXTERITY: begin
+          C_STAT.DEXTERITY: begin
                if ageCat[race].middleAged < age then
                  Dec(stats[i], 2);
                if ageCat[race].old < age then
@@ -635,7 +635,7 @@ begin
                ClampToLimits(i);
              end;
           { Constitution }
-          C_ABIL.CONSTITUTION: begin
+          C_STAT.CONSTITUTION: begin
                { the DMG's young adult +1, kept when mature; middle age, old and venerable each take 1 off. SSI left
                  out the +1, so every age came out one lower (#704). }
                Inc(stats[i]);
@@ -648,7 +648,7 @@ begin
                ClampToLimits(i);
              end;
           { Charisma }
-          C_ABIL.CHARISMA: begin
+          C_STAT.CHARISMA: begin
                ClampToLimits(i);
              end;
         end;
@@ -823,7 +823,7 @@ var
   procedure ShiftHp;
   begin
     with GameVars.curChar^ do begin
-      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GameVars.curChar), stats[C_ABIL.CONSTITUTION]) -
+      hpShift := ClassCal.ConHpTotal(Types.PCharRecord(GameVars.curChar), stats[C_STAT.CONSTITUTION]) -
                  ClassCal.ConHpTotal(Types.PCharRecord(GameVars.curChar), oldCon);
       if hpMax + hpShift < 1 then
         hpShift := 1 - hpMax;
@@ -868,7 +868,7 @@ begin
       key := MenuCore.MenuHorizontal('Modify character: ', 'Keep Exit', LightMagenta, LightGreen,
                                      White, True, False, ext);
       RedrawStat(False);
-      oldCon := stats[C_ABIL.CONSTITUTION];
+      oldCon := stats[C_STAT.CONSTITUTION];
       if ext then
         case key of
           C_KEYS.DOWN, C_KEYS.ENTER:
@@ -890,18 +890,18 @@ begin
               if stats[hold] > 0 then
                 Dec(stats[hold]);
               case hold of
-                C_ABIL.STRENGTH: if strExc > 0 then begin
+                C_STAT.STRENGTH: if strExc > 0 then begin
                      Dec(strExc);
                      Inc(stats[hold]);
                    end else
                      RaiseToMinimum(hold);
-                C_ABIL.WISDOM: begin
+                C_STAT.WISDOM: begin
                      RaiseToMinimum(hold);
                      { the cleric slots again for the new Wisdom, at any level: setting the first-level count to 1
                        and adding the bonus again was right only at level 1 }
                      ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
                    end;
-                C_ABIL.CONSTITUTION: begin
+                C_STAT.CONSTITUTION: begin
                      RaiseToMinimum(hold);
                      if levelled then
                        ShiftHp
@@ -912,7 +912,7 @@ begin
                      end;
                      statIdx := 6;
                      RedrawStat(False);
-                     statIdx := C_ABIL.CONSTITUTION;
+                     statIdx := C_STAT.CONSTITUTION;
                    end;
               else
                 { Intelligence, Dexterity, Charisma }
@@ -934,17 +934,17 @@ begin
               hold := statIdx;
               Inc(stats[hold]);
               case hold of
-                C_ABIL.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
+                C_STAT.STRENGTH: if stats[hold] > ClassCal.RaceAbilityMax(race, genderSp, hold) then begin
                      if (stats[hold] > 18) and (CharHlp.WarriorLevel(GameVars.curChar) > 0) and
                          (GameDefs.minimumMaximumStatistics[race].excMax[genderSp] > strExc) then
                        Inc(strExc);
                      stats[hold] := ClassCal.RaceAbilityMax(race, genderSp, hold);
                    end;
-                C_ABIL.WISDOM: begin
+                C_STAT.WISDOM: begin
                      LowerToMaximum(hold);
                      ClassCal.ResetClericSlots(Types.PCharRecord(GameVars.curChar));
                    end;
-                C_ABIL.CONSTITUTION: begin
+                C_STAT.CONSTITUTION: begin
                      LowerToMaximum(hold);
                      if levelled then
                        ShiftHp
@@ -955,7 +955,7 @@ begin
                      end;
                      statIdx := 6;
                      RedrawStat(False);
-                     statIdx := C_ABIL.CONSTITUTION;
+                     statIdx := C_STAT.CONSTITUTION;
                    end;
               else
                 { Intelligence, Dexterity, Charisma }

@@ -51,7 +51,7 @@ begin
   TestKit.CheckEqualsL(0, Stats.game.counts[Stats.RAISED], 'a monster''s count reaches neither block nor game');
 
   { a party member fells a monster in combat }
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   monster^.status := C_STATUS.DYING;
   Stats.Damaged(a, monster, 7, True);
   blk := Stats.BlockOf(a);
@@ -70,7 +70,7 @@ begin
   TestKit.CheckEqualsL(9, blk^.counts[Stats.DAMAGE_DONE], 'no damage done outside combat');
 
   { a party member is hurt, knocked down, killed }
-  b^.status := C_STATUS.DEAD;
+  b^.status := C_STATUS.DEAD_STATUS;
   Stats.Damaged(monster, b, 12, True);
   blk := Stats.BlockOf(b);
   TestKit.CheckEqualsL(12, blk^.counts[Stats.DAMAGE_TAKEN], 'damage taken');
@@ -83,11 +83,11 @@ begin
   TestKit.CheckEqualsL(2, Stats.game.counts[Stats.DIED], 'a monster''s death is not the party''s');
 
   { kinds past the table go under OTHER }
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   for i := 1 to Stats.KINDS + 2 do begin
     Str(i, s);
     monster^.name := 'BEAST' + s;
-    monster^.status := C_STATUS.DEAD;
+    monster^.status := C_STATUS.DEAD_STATUS;
     Stats.Damaged(a, monster, 1, True);
   end;
   blk := Stats.BlockOf(a);

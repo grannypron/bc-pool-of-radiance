@@ -5,7 +5,7 @@ unit GameDefs;
 
 interface
 
-uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_ABIL, C_SPELL;
+uses C_GENDER, C_CLASS, C_LEVEL, C_MONEY, Types, Crt, C_EFFECT, C_DIR, C_RACE, C_STATUS, C_ALIGN, C_STAT, C_SPELL;
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -77,9 +77,9 @@ const
     'Fighter/Thief',
     'Fighter/Magic-User/Thief',
     'Magic-User/Thief');
-  { The abilities' three-letter labels, indexed like TCharRecord.stats (C_ABIL): the character sheet's, the race
+  { The abilities' three-letter labels, indexed like TCharRecord.stats (C_STAT): the character sheet's, the race
     screen's and the Dual Class screen's. }
-  abilityNames: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of string[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
+  abilityNames: array[C_STAT.STRENGTH..C_STAT.CHARISMA] of string[3] = ('STR', 'INT', 'WIS', 'DEX', 'CON', 'CHA');
   { Race names, indexed by TCharRecord.race. }
   raceNames: array[C_RACE.MONSTER..C_RACE.HUMAN] of string[8] = (
     'Monster',
@@ -314,7 +314,7 @@ const
     (cost: 255; blocking: 2; tileId: 33));
   { Effects that leave a creature helpless }
   HELPLESS_FX_COUNT = 4;
-  helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_EFFECT.SNAKE_CHARM, C_EFFECT.PARALYSIS, C_EFFECT.SLEEP,
+  helplessFx: array[1..HELPLESS_FX_COUNT] of Byte = (C_EFFECT.SNAKE_CHARM, C_EFFECT.PARALYZED, C_EFFECT.SLEEP,
     C_EFFECT.HELPLESS);
   { Portrait head and body tables }
   { portraitHead -> HEAD DAX ID: SSI's 14 player heads, then the other heads HEAD3.DAX holds, then the heads only the

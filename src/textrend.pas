@@ -273,7 +273,7 @@ begin
           TextRend.PrintSpaces(col, 24, Black, 1);
         end;
     end;
-  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESC);
+  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESCAPE);
   TextRend.ClearBottomLine;
   for col := 1 to Length(reply) do
     reply[col] := UpCase(reply[col]);

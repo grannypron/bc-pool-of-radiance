@@ -14,7 +14,7 @@ const
   RUNNING = 3;
   UNCONSCIOUS = 4;
   DYING = 5;
-  DEAD = 6;
+  DEAD_STATUS = 6;
   { petrified }
   STONED = 7;
   GONE = 8;

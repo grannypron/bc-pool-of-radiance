@@ -118,7 +118,7 @@ begin
   { facts: only in combat, only on the party's side }
   Bestiary.Learn(troll, a, C_BEAST.REGENERATES);
   TestKit.Check(not Bestiary.Knows(Troll_^, C_BEAST.REGENERATES), 'nothing is learned outside combat');
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   Bestiary.Learn(troll, kobold, C_BEAST.REGENERATES);
   TestKit.Check(not Bestiary.Knows(Troll_^, C_BEAST.REGENERATES), 'nor from a monster''s side');
   Bestiary.Learn(a, nil, C_BEAST.REGENERATES);

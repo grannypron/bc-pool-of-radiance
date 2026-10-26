@@ -482,7 +482,7 @@ var
   pause: Boolean;
 begin
   { a dead, stoned or gone character takes no damage, as in CharHlp.InflictDamage }
-  if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
+  if creature^.status in [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE] then Exit;
   if creature^.hpCur + 10 < dmg then
     msg := '  ' + creature^.name + ' dies. '
   else
@@ -525,7 +525,7 @@ begin
     combatAddr := nil;
     case race of
       C_RACE.DWARF, C_RACE.GNOME, C_RACE.HALFLING: iconSize := 1;
-      C_RACE.ELF, C_RACE.HALFELF, C_RACE.HALFORC, C_RACE.HUMAN: iconSize := 2;
+      C_RACE.ELF, C_RACE.HALF_ELF, C_RACE.HALF_ORC, C_RACE.HUMAN: iconSize := 2;
     end;
     for i := 1 to 6 do
       if i = 4 then

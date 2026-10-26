@@ -608,7 +608,7 @@ begin
       show := True;
       id := effect^.id;
       case id of
-        C_EFFECT.BLESS, C_EFFECT.CURSE, C_EFFECT.DETECT_MAGIC, C_EFFECT.PROT_EVIL..C_EFFECT.FRIENDS,
+        C_EFFECT.BLESS, C_EFFECT.CURSE, C_EFFECT.DETECT_MAGIC, C_EFFECT.PROTECTION_FROM_EVIL..C_EFFECT.FRIENDS,
             C_EFFECT.READ_MAGIC, C_EFFECT.SHIELD,
         C_EFFECT.FIND_TRAPS..C_EFFECT.INVISIBLE, C_EFFECT.MIRROR_IMAGE, C_EFFECT.ENFEEBLE,
             C_EFFECT.ANIMATE_DEAD..C_EFFECT.DISEASED,
@@ -634,7 +634,7 @@ begin
         C_EFFECT.FEATHER_FALL: s := 'Feather Fall';
         C_EFFECT.HELPLESS: s := 'Helpless';
         C_EFFECT.ALLIED_PRAYER: s := 'Prayer';
-        C_EFFECT.DISEASE_HP: s := 'Cause Disease';
+        C_EFFECT.DISEASE_HIT_POINTS: s := 'Cause Disease';
         C_EFFECT.ROT_NO_HEAL: s := 'Dreaded Mummy Disease';
         C_EFFECT.DRAGON_AURA: s := 'Repulsed';
         C_EFFECT.POISONED: s := 'Poisoned';
@@ -922,7 +922,7 @@ var
   begin
     case cond of
       FIX_DISEASE: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.DISEASED, effect) or
-                                   CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STR, effect) or
+                                   CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STRENGTH, effect) or
                                    CharHlp.HasEffect(creature, C_EFFECT.ROT_NO_HEAL, effect);
       FIX_BLIND: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.BLIND, effect);
     else

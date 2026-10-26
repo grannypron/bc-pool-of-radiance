@@ -320,7 +320,7 @@ begin
   if Odd(dir) then
     stepCost := 3;
   stepCost := stepCost * GameDefs.terrainInfo[terrIdx].cost;
-  if (terrIdx = C_TERR.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
+  if (terrIdx = C_TERR.STINKING_CLOUD) and CombatAi.AvoidsCloud(creature) then
     stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
     CanStepDir := True;
@@ -363,7 +363,7 @@ begin
     Exit;
   avoid := 0;
   if CombatAi.AvoidsCloud(creature) then
-    avoid := C_TERR.STINK_CLOUD;
+    avoid := C_TERR.STINKING_CLOUD;
   found := Pathing.RouteStep(slot, [targetSlot], [], avoid, CbtMap.OccupantAt, dir, goal);
   if not found then begin
     enemies := [];

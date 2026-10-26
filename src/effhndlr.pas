@@ -288,7 +288,7 @@ function ImmunityFact(effId: Byte): Byte;
 begin
   case effId of
     C_EFFECT.SLEEP, C_EFFECT.CHARM: ImmunityFact := C_BEAST.IMMUNE_SLEEP_CHARM;
-    C_EFFECT.PARALYSIS: ImmunityFact := C_BEAST.IMMUNE_PARALYSIS;
+    C_EFFECT.PARALYZED: ImmunityFact := C_BEAST.IMMUNE_PARALYSIS;
     C_EFFECT.POISONED: ImmunityFact := C_BEAST.IMMUNE_POISON;
   else
     ImmunityFact := 255;
@@ -341,12 +341,12 @@ procedure InflictStatusMsg(creature: Types.PCharRecord; status: Byte; msg: Types
 begin
   CharDisp.PrintNameString(creature, msg, 10, False);
   case creature^.status of
-    C_STATUS.STONED, C_STATUS.DEAD, C_STATUS.GONE: Exit;
+    C_STATUS.STONED, C_STATUS.DEAD_STATUS, C_STATUS.GONE: Exit;
   end;
   creature^.status := status;
   creature^.enabled := 0;
   creature^.hpCur := 0;
-  if status in [C_STATUS.DEAD, C_STATUS.GONE] then
+  if status in [C_STATUS.DEAD_STATUS, C_STATUS.GONE] then
     Stats.Death(creature);
   FxEngine.RemoveEffectsHp0(creature);
   FxEngine.TriggerEffectsWithCondition(C_COND.HP_ZERO, creature);
@@ -706,7 +706,7 @@ var
   effect: Types.PEffectRec;
 begin
   if CharHlp.HasEffect(creature, C_EFFECT.POISONED, effect) then
-    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'dies from poison');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD_STATUS, 'dies from poison');
   GameVars.effectLock := 1;
   FxEngine.RemoveEffect(creature, C_EFFECT.SLOW_POISON_HIT, nil);
   GameVars.effectLock := 0;
@@ -738,7 +738,7 @@ begin
         item^.nameIds[2] := C_ITEM.NAME_HAMMER;
         item^.nameIds[3] := C_ITEM.NAME_SPIRITUAL;
         item^.plus := 1;
-        item^.effect := C_EFFECT.SPIRIT_HAMMER;
+        item^.effect := C_EFFECT.SPIRITUAL_HAMMER;
         item^.special := C_EFFECT.SPIRIT_HAMMER_GONE;
         CharHlp.AppendItemCopy(creature^.itemsAddr, item);
         FreeMem(item, SizeOf(Types.TItemRec));
@@ -813,7 +813,7 @@ begin
   Types.PEffectRec(p)^.onRemove := False;
   side := Types.PEffectRec(p)^.strength div 16 and 1;
   if GameVars.effectLock = 0 then
-    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'collapses');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD_STATUS, 'collapses');
   creature^.hostile := side;
   creature^.quickfight := 1;
   creature^.levelUndead := 0;
@@ -836,8 +836,8 @@ end;
 { Diseased (eff 34): chains 43 + 44 }
 procedure EffDiseased(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
-  FxEngine.CallEffectHandler(C_EFFECT.DISEASE_STR, creature, p, removed);
-  FxEngine.CallEffectHandler(C_EFFECT.DISEASE_HP, creature, p, removed);
+  FxEngine.CallEffectHandler(C_EFFECT.DISEASE_STRENGTH, creature, p, removed);
+  FxEngine.CallEffectHandler(C_EFFECT.DISEASE_HIT_POINTS, creature, p, removed);
 end;
 
 { Allied Prayer (eff 35): Prayer's bonus to the caster's side, +1 to saving throws and +1 to attack rolls. EffPrayer
@@ -925,7 +925,7 @@ begin
     for i := 1 to 4 do
       if q^.exists[i] <> 0 then
         GameVars.arenaPtr^.cells[q^.ulY + GameDefs.dirDY[GameDefs.cloudDir[i]],
-                                 q^.ulX + GameDefs.dirDX[GameDefs.cloudDir[i]]] := C_TERR.STINK_CLOUD;
+                                 q^.ulX + GameDefs.dirDX[GameDefs.cloudDir[i]]] := C_TERR.STINKING_CLOUD;
     q := q^.next;
   end;
 end;
@@ -999,7 +999,7 @@ var
   level: Byte;
   weaken: Boolean;
 begin
-  if Types.PEffectRec(p)^.id = C_EFFECT.DISEASE_STR then begin
+  if Types.PEffectRec(p)^.id = C_EFFECT.DISEASE_STRENGTH then begin
     loss := Types.PEffectRec(p)^.strength shr 4;
     level := Types.PEffectRec(p)^.strength and $F;
   end else begin
@@ -1009,7 +1009,7 @@ begin
       level := 15;
   end;
   weaken := (creature^.strCur > 3) and (loss < 15);
-  if EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.DISEASE_STR, (loss + Ord(weaken)) * 16 + level, 60) then begin
+  if EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.DISEASE_STRENGTH, (loss + Ord(weaken)) * 16 + level, 60) then begin
     if weaken then begin
       CharDisp.PrintNameString(creature, 'is weakened', 10, True);
       Dec(creature^.strCur);
@@ -1017,7 +1017,7 @@ begin
     end else if creature^.strCur <= 3 then
       if not CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_EFFECT.HELPLESS, 0, 255, False);
-  end else if removed and (Types.PEffectRec(p)^.id = C_EFFECT.DISEASE_STR) and (loss > 0) then begin
+  end else if removed and (Types.PEffectRec(p)^.id = C_EFFECT.DISEASE_STRENGTH) and (loss > 0) then begin
     creature^.strCur := AbilAdj.ClampScore(creature^.strCur + loss);
     CharHlp.RecalcStats(creature);
   end;
@@ -1028,7 +1028,7 @@ procedure EffDiseaseHp(creature: Types.PCharRecord; p: Pointer; removed: Boolean
 var
   effect: Types.PEffectRec;
 begin
-  if EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.DISEASE_HP, Types.PEffectRec(p)^.strength, 10) then
+  if EffHndlr.AddEffectIfNoLock(creature, C_EFFECT.DISEASE_HIT_POINTS, Types.PEffectRec(p)^.strength, 10) then
     if not EffHndlr.TickDamage(creature, C_EFFECT.ELEM_DISEASE) then
       if not CharHlp.HasEffect(creature, C_EFFECT.HELPLESS, effect) then
         FxEngine.AddEffect(creature, C_EFFECT.HELPLESS, 0, 255, False);
@@ -1176,7 +1176,7 @@ begin
       CharDisp.PrintNameString(GameVars.otherCreatureCurrentPtr, 'is Poisoned', 10, False);
       TextRend.PauseOnly;
       FxEngine.AddEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.POISONED, 0, 255, False);
-      EffHndlr.InflictStatusMsg(GameVars.otherCreatureCurrentPtr, C_STATUS.DEAD, 'is killed');
+      EffHndlr.InflictStatusMsg(GameVars.otherCreatureCurrentPtr, C_STATUS.DEAD_STATUS, 'is killed');
     end;
 end;
 
@@ -1188,9 +1188,9 @@ begin
   GameVars.otherCreatureCurrentPtr := creature^.combatAddr^.other;
   Bestiary.Learn(creature, GameVars.otherCreatureCurrentPtr, C_BEAST.ATK_PARALYZE);
   if not FxEngine.RollSavingThrow(GameVars.otherCreatureCurrentPtr, C_SAVE.PARALYZE, saveMod) then
-    if not EffHndlr.TouchImmune(GameVars.otherCreatureCurrentPtr, C_EFFECT.PARALYSIS) then begin
+    if not EffHndlr.TouchImmune(GameVars.otherCreatureCurrentPtr, C_EFFECT.PARALYZED) then begin
       CharDisp.PrintNameStringAnim(GameVars.otherCreatureCurrentPtr, True, 'is Paralyzed');
-      FxEngine.AddEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.PARALYSIS, minutes, 12, False);
+      FxEngine.AddEffect(GameVars.otherCreatureCurrentPtr, C_EFFECT.PARALYZED, minutes, 12, False);
     end;
 end;
 
@@ -1347,7 +1347,7 @@ begin
       if CharHlp.Team(q) <> CharHlp.Team(creature) then begin
         saved := FxEngine.RollSavingThrow(q, C_SAVE.SPELL, 0);
         case q^.levelHighest of
-          0..3: FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYSIS, 0, 12, False, True, saved,
+          0..3: FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYZED, 0, 12, False, True, saved,
                                               'is paralyzed with fear');
           4, 5: FxEngine.AddEffectWithMessage(q, C_EFFECT.CURSE, 0, 12, False, True, saved, 'is weakened by fear');
         end;
@@ -1375,7 +1375,7 @@ begin
         if q^.race = C_RACE.HUMAN then
           Inc(bonus, 2);
         saved := FxEngine.RollSavingThrow(q, C_SAVE.PARALYZE, bonus);
-        FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYSIS, Dice.RollDice(1, 4), 12, False, True, saved,
+        FxEngine.AddEffectWithMessage(q, C_EFFECT.PARALYZED, Dice.RollDice(1, 4), 12, False, True, saved,
                                       'is paralyzed with fear');
       end;
     q := q^.nextCharAddr;
@@ -1578,8 +1578,8 @@ begin
       end else begin
         Dec(creature^.classLevels[cls]);
         if creature^.hpCur = 0 then
-          if creature^.status <> C_STATUS.DEAD then
-            EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'is killed');
+          if creature^.status <> C_STATUS.DEAD_STATUS then
+            EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD_STATUS, 'is killed');
         ClassCal.RecalcBaseSkills(creature);
         ClassCal.FitSpellsToLevel(creature);
       end;
@@ -1700,7 +1700,7 @@ procedure EffFightOn(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   Types.PEffectRec(p)^.onRemove := False;
   if creature^.enabled <> 0 then
-    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD, 'Falls dead');
+    EffHndlr.InflictStatusMsg(creature, C_STATUS.DEAD_STATUS, 'Falls dead');
 end;
 
 { Immune to weapons neither magical nor silver (C_ITEM.NAME_SILVER), and to attacks without a weapon (eff 96) }
@@ -1869,7 +1869,7 @@ var
   effId: Byte;
 begin
   effId := GameVars.pendingEffectId;
-  EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
+  EffHndlr.NullifyAttack(C_EFFECT.PARALYZED);
   EffHndlr.NoteImmunity(creature, effId);
 end;
 
@@ -1887,7 +1887,7 @@ var
 begin
   effId := GameVars.pendingEffectId;
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
-  EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
+  EffHndlr.NullifyAttack(C_EFFECT.PARALYZED);
   EffHndlr.NoteImmunity(creature, effId);
   if FxEngine.gSaveType = C_SAVE.PARALYZE then
     FxEngine.gSaveRoll := 100;
@@ -2043,7 +2043,7 @@ begin
   effId := GameVars.pendingEffectId;
   EffHndlr.NullifyAttack(C_EFFECT.CHARM);
   EffHndlr.NullifyAttack(C_EFFECT.SLEEP);
-  EffHndlr.NullifyAttack(C_EFFECT.PARALYSIS);
+  EffHndlr.NullifyAttack(C_EFFECT.PARALYZED);
   EffHndlr.NullifyAttack(C_EFFECT.POISONED);
   EffHndlr.NoteImmunity(creature, effId);
   if FxEngine.gSaveType = C_SAVE.PARALYZE then
@@ -2130,10 +2130,10 @@ begin
     end;
   end else begin
     if FxEngine.AdjustForNewStrength(creature, 18, 100, enc) and (creature = GameVars.curChar) then
-      if GameVars.ifcState = C_IFC.COMBAT then begin
+      if GameVars.ifcState = C_IFC.IN_COMBAT then begin
         GameVars.ifcState := C_IFC.CAMPING;
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);
-        GameVars.ifcState := C_IFC.COMBAT;
+        GameVars.ifcState := C_IFC.IN_COMBAT;
       end else
         CharDisp.PrintNameString(creature, 'is stronger', 10, True);
     GameVars.redrawInventoryMenuFlag := 1;
@@ -2154,7 +2154,7 @@ begin
     item^.equipped := 0;
     dmg := item^.effect div 16;
     GameVars.elementMask := C_EFFECT.ELEM_MAGIC;
-    if GameVars.ifcState = C_IFC.COMBAT then
+    if GameVars.ifcState = C_IFC.IN_COMBAT then
       CharDisp.DisplayCombatInterface;
     FxEngine.InflictItemShock(creature, item, dmg);
     GameVars.redrawInventoryMenuFlag := 1;
@@ -2178,7 +2178,7 @@ end;
 procedure EffHammerGone(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   if removed then
-    FxEngine.RemoveEffect(creature, C_EFFECT.SPIRIT_HAMMER, nil);
+    FxEngine.RemoveEffect(creature, C_EFFECT.SPIRITUAL_HAMMER, nil);
 end;
 
 { the do-nothing handler (eff 5, 13, 16, 19, 24, 27, 54, 55, 60, 63, 92, 127) }

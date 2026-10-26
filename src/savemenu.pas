@@ -385,11 +385,11 @@ begin
         C_KEYS.UP, C_KEYS.HOME: SaveMenu.MoveTo(sel - 1);
         C_KEYS.DOWN, C_KEYS.END_KEY: SaveMenu.MoveTo(sel + 1);
         { a screenful, stopping at the first or last slot rather than wrapping }
-        C_KEYS.PGUP: if sel > VISIBLE then
+        C_KEYS.PAGE_UP: if sel > VISIBLE then
                        SaveMenu.MoveTo(sel - VISIBLE)
                      else
                        SaveMenu.MoveTo(1);
-        C_KEYS.PGDN: if sel + VISIBLE < count then
+        C_KEYS.PAGE_DOWN: if sel + VISIBLE < count then
                        SaveMenu.MoveTo(sel + VISIBLE)
                      else
                        SaveMenu.MoveTo(count);
@@ -456,7 +456,7 @@ begin
         if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
     end;
-  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESC);
+  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESCAPE);
   TextRend.ClearBottomLine;
   if s = '' then
     s := default;
@@ -472,7 +472,7 @@ end;
 
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 begin
-  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_KEYS.ESC;
+  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_KEYS.ESCAPE;
 end;
 
 procedure CheckSaveDir;

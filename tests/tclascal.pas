@@ -319,7 +319,7 @@ begin
   c^.classLevels[C_LEVEL.THIEF] := 1;
   c^.dexCur := 9;
   CheckParts(4, 0, 15, 0, -20, 'a dwarf, Dexterity 9: move silently stops at 0');
-  Reset(C_RACE.HALFORC);
+  Reset(C_RACE.HALF_ORC);
   c^.classLevels[C_LEVEL.THIEF] := 12;
   c^.classLevels[C_LEVEL.FIGHTER] := 11;
   c^.dexCur := 17;
@@ -383,16 +383,16 @@ begin
     'a magic-user''s least Constitution');
   TestKit.CheckEqualsL(17, ClassCal.ClassAbilityMin(C_RACE.HUMAN, C_CLASS.PALADIN, 5), 'a paladin''s least Charisma');
   TestKit.CheckEqualsL(6, ClassCal.ClassAbilityMin(C_RACE.HUMAN, C_CLASS.RANGER, 3), 'a ranger''s least Dexterity');
-  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_RACE.HALFELF, C_CLASS.CLERIC_FIGHTER, 4),
+  TestKit.CheckEqualsL(7, ClassCal.ClassAbilityMin(C_RACE.HALF_ELF, C_CLASS.CLERIC_FIGHTER, 4),
     'a cleric/fighter, the fighter''s Con');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_RACE.HALFORC, C_CLASS.CLERIC_FIGHTER, 2),
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_RACE.HALF_ORC, C_CLASS.CLERIC_FIGHTER, 2),
     'and a half-orc''s the cleric''s Wisdom 9');
-  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_RACE.HALFELF, C_CLASS.CLERIC_FIGHTER, 2),
+  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_RACE.HALF_ELF, C_CLASS.CLERIC_FIGHTER, 2),
     'a half-elf''s Wisdom 13 (#780)');
-  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_RACE.HALFELF, C_CLASS.CLERIC_FIGHTER_MAGE, 2),
+  TestKit.CheckEqualsL(13, ClassCal.ClassAbilityMin(C_RACE.HALF_ELF, C_CLASS.CLERIC_FIGHTER_MAGE, 2),
     'a half-elf cleric/fighter/magic-user''s too');
-  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_RACE.HALFELF, C_CLASS.CLERIC, 2), 'a half-elf cleric''s only 9');
-  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_RACE.HALFELF, C_CLASS.CLERIC_RANGER, 2),
+  TestKit.CheckEqualsL(9, ClassCal.ClassAbilityMin(C_RACE.HALF_ELF, C_CLASS.CLERIC, 2), 'a half-elf cleric''s only 9');
+  TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_RACE.HALF_ELF, C_CLASS.CLERIC_RANGER, 2),
     'a half-elf cleric/ranger''s the ranger''s 14');
   TestKit.CheckEqualsL(14, ClassCal.ClassAbilityMin(C_RACE.HUMAN, C_CLASS.CLERIC_RANGER, 2),
     'a cleric/ranger: the ranger''s Wis 14');
@@ -709,13 +709,13 @@ begin
                        'a gnome fighter/thief: 80 + 5d4');
   TestKit.CheckEqualsL(48, ClassCal.StartingAge(C_RACE.HALFLING, C_CLASS.FIGHTER_THIEF),
                        'a halfling fighter/thief: 40 + 2d4');
-  TestKit.CheckEqualsL(46, ClassCal.StartingAge(C_RACE.HALFELF, C_CLASS.FIGHTER_THIEF),
+  TestKit.CheckEqualsL(46, ClassCal.StartingAge(C_RACE.HALF_ELF, C_CLASS.FIGHTER_THIEF),
                        'a half-elf fighter/thief: 22 + 3d8');
   TestKit.CheckEqualsL(160, ClassCal.StartingAge(C_RACE.ELF, C_CLASS.FIGHTER_THIEF),
                        'an elf fighter/thief: the fighter''s 130 + 5d6');
   TestKit.CheckEqualsL(180, ClassCal.StartingAge(C_RACE.ELF, C_CLASS.FIGHTER_MAGE_THIEF),
                        'an elf fighter/magic-user/thief: the magic-user''s 150 + 5d6');
-  TestKit.CheckEqualsL(48, ClassCal.StartingAge(C_RACE.HALFELF, C_CLASS.CLERIC_RANGER),
+  TestKit.CheckEqualsL(48, ClassCal.StartingAge(C_RACE.HALF_ELF, C_CLASS.CLERIC_RANGER),
                        'a half-elf cleric/ranger: the cleric''s 40 + 2d4');
   { a human magic-user rolls 24 + 2d8 (DMG p.12) }
   inRange := True;

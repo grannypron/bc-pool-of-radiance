@@ -229,7 +229,7 @@ end;
   In combat it is a combat log message of its own (#841). }
 procedure PrintBottomLine(s: Types.TStr40);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     CbtLog.NewEntry;
     CbtLog.Add(LightGreen, s);
     CbtLog.NewEntry;
@@ -239,7 +239,7 @@ end;
 
 procedure PrintActionLine(creature: Types.PCharRecord; s: Types.TStr40; logged: string);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     CbtLog.NewEntry;
     CharDisp.LogCreatureName(creature);
     CbtLog.NextLine;
@@ -273,7 +273,7 @@ procedure PrintNameString(creature: Types.PCharRecord; s: string; row: Byte; pau
 var
   top: Byte;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     if row >= C_MSG.COMBAT_MESSAGE_TOP then begin
       CbtLog.NewEntry;
       CharDisp.LogCreatureName(creature);
@@ -305,7 +305,7 @@ end;
 
 procedure MessageText(s: string; color: Byte; first: Boolean);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     if first then
       CbtLog.NewEntry;
     CbtLog.Add(color, s);
@@ -331,7 +331,7 @@ procedure PrintTwoLines(line1, line2: string);
 var
   left: Byte;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     left := C_MSG.COMBAT_LEFT
   else
     left := C_MSG.TEXT_LEFT;
@@ -341,7 +341,7 @@ begin
     GameVars.curCol := left;
     Inc(GameVars.curRow);
   end;
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     CbtLog.NextLine;
   CharDisp.MessageText(line2, LightGreen, False);
   TextRend.PauseOnly;
@@ -351,7 +351,7 @@ end;
 { Clear whichever message window is active (combat or bottom), leaving its border alone. }
 procedure ClearMessageWindow;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     Border.ClearBox(C_MSG.COMBAT_LEFT, C_MSG.COMBAT_MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.COMBAT_BOTTOM)
   else
     Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP + 1, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
@@ -592,7 +592,7 @@ var
   reps: Byte;
   slot: Byte;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     SoundDrv.SoundSetAutoStop(0);
     if effect then
       cell := 22
@@ -648,7 +648,7 @@ end;
 
 procedure RedrawPartyOutOfCombat;
 begin
-  if GameVars.ifcState <> C_IFC.COMBAT then
+  if GameVars.ifcState <> C_IFC.IN_COMBAT then
     CharDisp.DisplayParty(GameVars.curChar);
 end;
 
@@ -691,7 +691,7 @@ begin
       CharDisp.DisplayParty(GameVars.curChar);
       CharDisp.PrintMiscInfo;
     end;
-    C_IFC.OUTDOORS: begin
+    C_IFC.OVERLAND: begin
       CharDisp.DrawNoncombatWindows(False);
       MapView.DisplayMapView;
       CharDisp.DisplayParty(GameVars.curChar);
@@ -753,7 +753,7 @@ end;
 { Switch to the outdoor interface and draw it: the wilderness windows and map views, status line and party. }
 procedure DisplayWildernessInterface;
 begin
-  GameVars.ifcState := C_IFC.OUTDOORS;
+  GameVars.ifcState := C_IFC.OVERLAND;
   Wilds.DrawWildWindows;
   MapView.DisplayMapView;
   MapView.DisplayWildMapView;

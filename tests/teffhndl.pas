@@ -88,9 +88,9 @@ function RollChange(effId: Byte): Integer;
 begin
   GameVars.gAttackRoll := 10;
   case effId of
-    C_EFFECT.DWARF_THAC0: EffHndlr.EffDwarfThac0(c, nil, False);
-    C_EFFECT.GNOME_THAC0: EffHndlr.EffGnomeThac0(c, nil, False);
-    C_EFFECT.DWARF_AC_GIANT: EffHndlr.EffDwarfAcGiant(c, nil, False);
+    C_EFFECT.DWARF_ATTACK_BONUS: EffHndlr.EffDwarfThac0(c, nil, False);
+    C_EFFECT.GNOME_ATTACK_BONUS: EffHndlr.EffGnomeThac0(c, nil, False);
+    C_EFFECT.DWARF_GIANT_DEFENSE: EffHndlr.EffDwarfAcGiant(c, nil, False);
   end;
   RollChange := Integer(GameVars.gAttackRoll) - 10;
 end;
@@ -151,7 +151,7 @@ begin
   TestKit.Check((n > TRIES * 8 div 10) and (n < TRIES), 'an elf resists sleep about 90% of the time');
   n := Resisted(True, C_EFFECT.CHARM);
   TestKit.Check((n > TRIES * 8 div 10) and (n < TRIES), 'and charm');
-  TestKit.CheckEqualsL(0, Resisted(True, C_EFFECT.PARALYSIS), 'and not paralysis');
+  TestKit.CheckEqualsL(0, Resisted(True, C_EFFECT.PARALYZED), 'and not paralysis');
   n := Resisted(False, C_EFFECT.SLEEP);
   TestKit.Check((n > TRIES div 5) and (n < TRIES * 2 div 5), 'a half-elf resists sleep about 30% of the time');
   TestKit.CheckEqualsL(0, Resisted(False, C_EFFECT.POISONED), 'and not poison');
@@ -159,22 +159,22 @@ begin
   { the racial bonuses by name }
   c^.combatAddr^.other := foe;
   SetFoe('GRISHNAK', 0, 1);
-  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_THAC0), 'a dwarf hits Grishnak (type 0) at +1');
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.GNOME_THAC0), 'a gnome does not');
+  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'a dwarf hits Grishnak (type 0) at +1');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.GNOME_ATTACK_BONUS), 'a gnome does not');
   SetFoe('KOBOLD', 1, 1);
-  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.GNOME_THAC0), 'a gnome hits a kobold at +1');
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_THAC0), 'a dwarf does not');
+  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.GNOME_ATTACK_BONUS), 'a gnome hits a kobold at +1');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'a dwarf does not');
   SetFoe('ORC', 1, 2);
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_THAC0), 'nor a two-tile orc');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'nor a two-tile orc');
   SetFoe('ORC', 1, 1);
-  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_THAC0), 'but a one-tile one');
+  TestKit.CheckEqualsL(1, RollChange(C_EFFECT.DWARF_ATTACK_BONUS), 'but a one-tile one');
   GameVars.curChar := foe;
   SetFoe('TROLL', 10, 1);
-  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_AC_GIANT), 'a troll attacks a dwarf at -4');
+  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_GIANT_DEFENSE), 'a troll attacks a dwarf at -4');
   SetFoe('ETTIN', 1, 2);
-  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_AC_GIANT), 'and so does an ettin');
+  TestKit.CheckEqualsL(-4, RollChange(C_EFFECT.DWARF_GIANT_DEFENSE), 'and so does an ettin');
   SetFoe('ORC', 1, 1);
-  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_AC_GIANT), 'an orc does not');
+  TestKit.CheckEqualsL(0, RollChange(C_EFFECT.DWARF_GIANT_DEFENSE), 'an orc does not');
   GameVars.curChar := c;
 
   { Mirror Image: 1d(images + 1) rolls 1 with no image left }
@@ -245,7 +245,7 @@ begin
   foe^.equipped[C_EQUIP.WEAPON] := nil;
 
   { Healed from Unconscious with no node: a revival that fails retries in a minute, at strength 0 }
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   GameVars.arenaCount := 0;
   EffHndlr.EffHealWake(c, nil, True);
   TestKit.Check(CharHlp.HasEffect(c, C_EFFECT.HEAL_WAKE, effect), 'a failed revival with no node retries');

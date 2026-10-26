@@ -185,7 +185,7 @@ begin
   TestKit.CheckEqualsS('NEGATES (VS PARALYSIS)', SpellInf.SaveText(61, True), 'the Wand of Paralyzation''s save');
   TestKit.CheckEqualsS('RNG TOUCH  TGT 1-4  DUR 1D10+10 TU', SpellInf.Summary(63 or C_SPELL.FROM_ITEM),
                        'Dust of Disappearance in camp');
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   TestKit.CheckEqualsS('2D10 TURNS', SpellInf.DurationText(63 or C_SPELL.FROM_ITEM, True), 'and in combat');
   GameVars.ifcState := C_IFC.CAMPING;
   TestKit.CheckEqualsS('RNG SELF  DUR 24 HR  CAMP', SpellInf.Summary(67 or C_SPELL.FROM_ITEM),

@@ -259,7 +259,7 @@ var
   { Outside combat, show msg on the bottom line until a key, then the menu again; in combat, nothing. }
   procedure Unavailable(msg: Types.TStr40);
   begin
-    if GameVars.ifcState <> C_IFC.COMBAT then begin
+    if GameVars.ifcState <> C_IFC.IN_COMBAT then begin
       TextRend.DisplayAndPause(Yellow, msg);
       TextRend.ClearBottomLine;
       RedrawLine;
@@ -341,7 +341,7 @@ begin
       end else
         case ch of
           { Escape returns #0. }
-          C_KEYS.ESC: begin
+          C_KEYS.ESCAPE: begin
                  done := True;
                  ch := C_KEYS.NONE;
                end;
@@ -646,15 +646,15 @@ begin
           { line down }
           C_KEYS.END_KEY, C_KEYS.DOWN: MoveLine(True);
           { Page Up = previous page, when Prev is offered }
-          C_KEYS.PGUP: if hasPrev then MovePage(False);
+          C_KEYS.PAGE_UP: if hasPrev then MovePage(False);
           { Page Down = next page, when Next is offered }
-          C_KEYS.PGDN: if hasNext then MovePage(True);
+          C_KEYS.PAGE_DOWN: if hasNext then MovePage(True);
         end else
         case ch of
           { as for Page Up and Page Down, only when the bottom line offers Prev or Next }
           'P': if hasPrev then MovePage(False);
           'N': if hasNext then MovePage(True);
-          C_KEYS.ESC, 'E', C_KEYS.NONE:
+          C_KEYS.ESCAPE, 'E', C_KEYS.NONE:
             begin
               sel := nil;
               MenuVertical := C_KEYS.NONE;

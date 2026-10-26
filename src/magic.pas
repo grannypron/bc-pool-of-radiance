@@ -724,7 +724,7 @@ var
   listed: set of Byte;
 begin
   listed := [];
-  memOk := (GameVars.ifcState <> C_IFC.COMBAT) or (creature^.combatAddr^.castAllowed <> 0);
+  memOk := (GameVars.ifcState <> C_IFC.IN_COMBAT) or (creature^.combatAddr^.castAllowed <> 0);
   scrollOk := CharHlp.CanUseItems(creature);
   lines := 0;
   for lvl := 1 to SPELL_LEVEL_LAST do begin
@@ -918,7 +918,7 @@ var
 begin
   p := GameVars.curChar;
   ok := True;
-  if (GameVars.ifcState <> C_IFC.COMBAT) and (GameDefs.spellTable[spell].target = 0) then begin
+  if (GameVars.ifcState <> C_IFC.IN_COMBAT) and (GameDefs.spellTable[spell].target = 0) then begin
     if GameVars.usingItem = False then begin
       Magic.ShowCombatOnlySpell(spell);
       if MenuCore.YesNoMenu('Lose it? ', LightMagenta, White, LightGreen) = 'Y' then
@@ -949,7 +949,7 @@ begin
         CharHlp.RemoveSpell(p, spell);
         CharDisp.PrintNameString(p, 'fails to cast ' + GameDefs.spellNames[spell] + '.', 10, True);
       end else begin
-        if GameVars.ifcState = C_IFC.COMBAT then begin
+        if GameVars.ifcState = C_IFC.IN_COMBAT then begin
           CharDisp.BuildIconFacings(C_SPRITE.MISSILE);
           x := CbtMap.CombatCellX(p);
           y := CbtMap.CombatCellY(p);
@@ -982,7 +982,7 @@ begin
         GameVars.gMultiTarget := 0;
       end;
     end else begin
-      if GameVars.ifcState <> C_IFC.COMBAT then
+      if GameVars.ifcState <> C_IFC.IN_COMBAT then
         ok := False
       else if b or (MenuCore.YesNoMenu('Abort Spell? ', Yellow, LightGreen, White) = 'Y') then
       begin
@@ -994,7 +994,7 @@ begin
     end;
   end;
   CharDisp.ClearMessageWindow;
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     Border.ClearBox(0, 23, 39, 23);
 end;
 
@@ -1023,7 +1023,7 @@ begin
   for i := 1 to GameVars.spellTargetCount do begin
     if GameVars.targetCreaturePtr[i] <> nil then
       if (CharHlp.Team(GameVars.targetCreaturePtr[i]) <> side) or
-          ((GameVars.currentSpellBeing = C_SPELL.BLESS) and (GameVars.ifcState = C_IFC.COMBAT) and
+          ((GameVars.currentSpellBeing = C_SPELL.BLESS) and (GameVars.ifcState = C_IFC.IN_COMBAT) and
            (CbtMap.CountTargets(GameVars.targetCreaturePtr[i], 1) > 0)) then
         GameVars.targetCreaturePtr[i] := nil;
   end;
@@ -1293,7 +1293,7 @@ begin
     if tgt^.hpCur = 0 then
       tgt^.hpCur := 1;
     Magic.ResolveSpell(GameVars.currentSpellBeing, 255, True, 0, 0, 'is affected');
-    if ((tgt^.status = C_STATUS.DEAD) or (tgt^.enabled = 0)) and
+    if ((tgt^.status = C_STATUS.DEAD_STATUS) or (tgt^.enabled = 0)) and
         not (tgt^.status in [C_STATUS.TEMPGONE, C_STATUS.RUNNING, C_STATUS.STONED, C_STATUS.GONE]) then
       StandUpOrWake(tgt);
     FxEngine.AddEffect(tgt, C_EFFECT.SLOW_POISON_HIT, 10, 255, True);
@@ -1330,7 +1330,7 @@ end;
 procedure SpiritualHammerHandler;
 begin
   Magic.ResolveSpell(GameVars.currentSpellBeing, 0, True, 0, 0, '');
-  FxEngine.CallEffectHandler(C_EFFECT.SPIRIT_HAMMER, GameVars.targetCreaturePtr[1], nil, False);
+  FxEngine.CallEffectHandler(C_EFFECT.SPIRITUAL_HAMMER, GameVars.targetCreaturePtr[1], nil, False);
 end;
 
 { Invisibility: apply the spell's effect. }
@@ -1363,7 +1363,7 @@ end;
   caster's nodes on the walk to the tail and never checked the tail, so a second cloud could share the first one's
   number and its end clear the older cloud). The cloud covers the 2x2 block whose upper-left is the aim cell
   (GameDefs.cloudDir: center, E, SE, S). Each cell records the terrain underneath (a cell already under another cloud
-  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_TERR.STINK_CLOUD;
+  takes that cloud's saved terrain, a corpse cell the corpse's), and passable cells are stamped C_TERR.STINKING_CLOUD;
   every creature found in the four cells then gets FxEngine.ConsiderStinkingCloud, once however many cells it fills. }
 procedure StinkingCloudHandler;
 var
@@ -1393,7 +1393,7 @@ begin
     node := node^.next;
   end;
   FillChar(node^, SizeOf(Types.TStinkRec), 0);
-  FxEngine.AddEffect(GameVars.curChar, C_EFFECT.CAST_STINK, cl, FxEngine.CloudStrength(cl, myClouds), True);
+  FxEngine.AddEffect(GameVars.curChar, C_EFFECT.CAST_STINKING_CLOUD, cl, FxEngine.CloudStrength(cl, myClouds), True);
   node^.caster := GameVars.curChar;
   node^.idx := myClouds;
   node^.ulX := gTargetX;
@@ -1405,7 +1405,7 @@ begin
       node^.exists[k] := 1
     else
       node^.exists[k] := 0;
-    if terr = C_TERR.STINK_CLOUD then begin
+    if terr = C_TERR.STINKING_CLOUD then begin
       p2 := GameVars.stinkHead;
       while p2 <> nil do begin
         if p2 <> node then
@@ -1413,7 +1413,7 @@ begin
             if (p2^.exists[j] <> 0) and
                 (p2^.ulX + GameDefs.dirDX[GameDefs.cloudDir[j]] = gTargetX + GameDefs.dirDX[d]) and
                 (p2^.ulY + GameDefs.dirDY[GameDefs.cloudDir[j]] = gTargetY + GameDefs.dirDY[d]) then
-              if p2^.under[j] <> C_TERR.STINK_CLOUD then
+              if p2^.under[j] <> C_TERR.STINKING_CLOUD then
                 terr := p2^.under[j];
         p2 := p2^.next;
       end;
@@ -1425,7 +1425,7 @@ begin
     end;
     node^.under[k] := terr;
     if node^.exists[k] <> 0 then
-      GameVars.arenaPtr^.cells[gTargetY + GameDefs.dirDY[d], gTargetX + GameDefs.dirDX[d]] := C_TERR.STINK_CLOUD;
+      GameVars.arenaPtr^.cells[gTargetY + GameDefs.dirDY[d], gTargetX + GameDefs.dirDX[d]] := C_TERR.STINKING_CLOUD;
   end;
   CharDisp.PrintNameString(GameVars.curChar, 'Creates a noxious cloud', 10, False);
   CbtMap.ScrollView(gTargetX, gTargetY, 255, C_DIR.CENTER);
@@ -1480,11 +1480,11 @@ begin
   FxEngine.AddEffect(tgt, C_EFFECT.STRENGTH, Magic.CalcSpellDuration(GameVars.currentSpellBeing), enc, True);
 end;
 
-{ Animate Dead: animate up to caster-level dead (C_STATUS.DEAD) human (charType 0) creatures whose cell is still a valid
-  location. Effect 32's strength is the old side * 16 + caster level (at most 15). Each corpse joins the caster's team
-  under computer control (quickfight 1), becomes undead (charType 4, levelUndead 2, movementBase 6, attackLevel 0),
-  loses its memorized spells and gets the animated NPC or PC npc code; if ReviveDeadCreature succeeds at full hpMax it
-  also gets effect 32 and C_STATUS.ANIMATED. }
+{ Animate Dead: animate up to caster-level dead (C_STATUS.DEAD_STATUS) human (charType 0) creatures whose cell is still
+  a valid location. Effect 32's strength is the old side * 16 + caster level (at most 15). Each corpse joins the
+  caster's team under computer control (quickfight 1), becomes undead (charType 4, levelUndead 2, movementBase 6,
+  attackLevel 0), loses its memorized spells and gets the animated NPC or PC npc code; if ReviveDeadCreature succeeds at
+  full hpMax it also gets effect 32 and C_STATUS.ANIMATED. }
 procedure AnimateDeadHandler;
 var
   i: Byte;
@@ -1497,7 +1497,7 @@ begin
   GameVars.spellTargetCount := 0;
   p := GameVars.creatureList;
   while (p <> nil) and (n > 0) do begin
-    if p^.status = C_STATUS.DEAD then
+    if p^.status = C_STATUS.DEAD_STATUS then
       { Human }
       if p^.charType = 0 then
         if CbtMap.IsValidCreatureLoc(p, CbtMap.CombatCellX(p), CbtMap.CombatCellY(p), True) then begin
@@ -1521,7 +1521,7 @@ begin
             p^.npc := C_NPC.ANIMATED_PC;
           { Undead }
           p^.charType := 4;
-          if GameVars.ifcState = C_IFC.COMBAT then
+          if GameVars.ifcState = C_IFC.IN_COMBAT then
             p^.combatAddr^.other := nil;
           Dec(n);
           if FxEngine.ReviveDeadCreature(p, p^.hpMax) then begin
@@ -1992,7 +1992,7 @@ begin
     GameVars.effectLock := 1;
     FxEngine.RemoveEffect(tgt, C_EFFECT.SLOW_POISON_END, nil);
     GameVars.effectLock := 0;
-    if (tgt^.status = C_STATUS.DEAD) and not slowed then begin
+    if (tgt^.status = C_STATUS.DEAD_STATUS) and not slowed then begin
       if tgt^.hpCur = 0 then
         tgt^.hpCur := 1;
       StandUpOrWake(tgt);
@@ -2128,7 +2128,7 @@ end;
 
 procedure PrintCastSpellMsg(creature: Types.PCharRecord; msg: Types.TStr40; spell: Byte);
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     CharDisp.PrintNameString(creature, 'Casts a Spell', 10, True);
     { the combat log names the spell after the message (#841) }
     CbtLog.Add(LightGreen, ' (' + GameDefs.spellNames[spell] + ')');
@@ -2192,7 +2192,7 @@ begin
     done := False;
     Exit;
   end;
-  if CharHlp.ItemReadable(item) and (GameVars.ifcState <> C_IFC.COMBAT) and
+  if CharHlp.ItemReadable(item) and (GameVars.ifcState <> C_IFC.IN_COMBAT) and
       (GameDefs.spellTable[spell].target = 0) then begin
     Magic.ShowCombatOnlySpell(spell);
     done := MenuCore.YesNoMenu('Use it? ', LightMagenta, White, LightGreen) = 'Y';
@@ -2201,11 +2201,11 @@ begin
       Magic.RemoveSpellFromScroll(GameVars.curChar, item, spell);
     Exit;
   end;
-  if (GameVars.ifcState = C_IFC.COMBAT) and (GameVars.curChar^.quickfight = 0) then
+  if (GameVars.ifcState = C_IFC.IN_COMBAT) and (GameVars.curChar^.quickfight = 0) then
     CharDisp.DisplayCombatInterface;
   if not CharHlp.ItemReadable(item) then begin
     CharDisp.PrintNameString(GameVars.curChar, 'uses an item', 10, False);
-    if GameVars.ifcState = C_IFC.COMBAT then begin
+    if GameVars.ifcState = C_IFC.IN_COMBAT then begin
       TextRend.DisplayString(0, 23, LightGreen, 'Item:');
       CharDisp.PrintItemLabel(item, 5, 23);
     end else
@@ -2220,7 +2220,7 @@ begin
   Magic.CastSpellNC(spell, GameVars.curChar^.quickfight <> 0, False, cast);
   GameVars.usingItem := False;
   done := cast;
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     if GameDefs.spellTable[spell].whenCast <> 0 then
       done := CharHlp.EndActions(GameVars.curChar);
   if cast then begin

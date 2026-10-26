@@ -69,7 +69,7 @@ begin
 
   { a cloak readied in combat (#784) }
   FxEngine.RemoveEffect(def, C_EFFECT.DISPLACED, nil);
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   GameVars.roundCounter := 3;
   FillChar(cloak, SizeOf(cloak), 0);
   cloak.effect := C_EFFECT.DISPLACED;

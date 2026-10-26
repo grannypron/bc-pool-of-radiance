@@ -353,8 +353,8 @@ begin
           C_KEYS.DOWN: if sel < top + shown - 1 then Inc(sel);
           C_KEYS.LEFT: if sel >= top + rows then Dec(sel, rows);
           C_KEYS.RIGHT: if sel + rows < top + shown then Inc(sel, rows);
-          C_KEYS.PGUP: cmd := 'P';
-          C_KEYS.PGDN: cmd := 'N';
+          C_KEYS.PAGE_UP: cmd := 'P';
+          C_KEYS.PAGE_DOWN: cmd := 'N';
         end;
       if pick and (cmd in ['A', C_KEYS.ENTER]) then
         chosen := At(order, sel)

@@ -632,7 +632,7 @@ begin
                         if TuiKit.PickList(41, 4, LineName(sel), items, i) then
                           SetChoice(sel, i);
                       end;
-        C_KEYS.ESC: done := True;
+        C_KEYS.ESCAPE: done := True;
       end;
     if not done then
       DrawHardware(sel);
@@ -795,7 +795,7 @@ begin
     else
       case ch of
         ' ', C_KEYS.ENTER: CfgFile.ChangeSetting(opts, sel, stepRight);
-        C_KEYS.ESC: done := True;
+        C_KEYS.ESCAPE: done := True;
       end;
     if not done then
       DrawSettings(sel);
@@ -926,7 +926,7 @@ begin
         ShowError('Please verify the directory exists.', CutPath(full, 38));
       end;
     end;
-  until accepted or (key = C_KEYS.ESC);
+  until accepted or (key = C_KEYS.ESCAPE);
   if not accepted then Exit;
 {$IFNDEF FPC}
   if (line = PATH_DATA) and not HasPoolData(full) then begin
@@ -975,7 +975,7 @@ begin
     else
       case ch of
         C_KEYS.ENTER: EditPath(sel, #0);
-        C_KEYS.ESC: done := True;
+        C_KEYS.ESCAPE: done := True;
         '!'..'~': EditPath(sel, ch);
       end;
     if not done then
@@ -1166,7 +1166,7 @@ begin
         'P': item := ITEM_PATHS;
         'S': item := ITEM_SAVE;
         'X': item := ITEM_QUIT;
-        C_KEYS.ESC: AskToLeave;
+        C_KEYS.ESCAPE: AskToLeave;
       end;
     if item <> 0 then
       sel := item;

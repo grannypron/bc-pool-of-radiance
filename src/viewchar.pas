@@ -24,7 +24,7 @@ function CannotCarryItem(creature: Types.PCharRecord; item: Types.PItemRec): Boo
 implementation
 
 uses Crt, GameDefs, GameVars, DaxIo, TextRend, Border, CharHlp, MenuCore, Portrait, CbtMap, Money, Magic, FxEngine,
-  C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_ABIL, C_MONEY, C_SAVE, Vault, Stats, StrUtil, CharDisp,
+  C_EFFECT, C_EQUIP, C_KEYS, C_LEVEL, C_STATUS, C_IFC, C_STAT, C_MONEY, C_SAVE, Vault, Stats, StrUtil, CharDisp,
   MoneyCal, C_MSG, ClassCal, C_ITEM, C_SPELL, SpellInf;
 
 var
@@ -119,7 +119,7 @@ begin
   if not CharHlp.IsDualClass(creature) then
     TextRend.DisplayString(1, 5, White, GameDefs.classNames[creature^.charClass]);
   { the six ability scores }
-  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do begin
+  for i := C_STAT.STRENGTH to C_STAT.CHARISMA do begin
     TextRend.DisplayString(1, i + 7, LightGreen, GameDefs.abilityNames[i] + ' ');
     ViewChar.PrintStat(i, False);
   end;
@@ -183,7 +183,7 @@ end;
 function PaladinReady(p: Types.PCharRecord): Boolean;
 begin
   PaladinReady := (CharHlp.GetClassLevel(p, C_LEVEL.PALADIN_BIT) > 0) and (p^.status = C_STATUS.OKAY) and
-    (GameVars.ifcState <> C_IFC.COMBAT);
+    (GameVars.ifcState <> C_IFC.IN_COMBAT);
 end;
 
 { True when paladin p has not laid on hands in the last day. }
@@ -557,12 +557,12 @@ begin
                        Dec(top, 2);
           C_KEYS.DOWN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, 2);
-          C_KEYS.PGUP: begin
+          C_KEYS.PAGE_UP: begin
                          Dec(top, KILLS_SHOWN);
                          if top < 1 then
                            top := 1;
                        end;
-          C_KEYS.PGDN: if top + KILLS_SHOWN <= kinds then
+          C_KEYS.PAGE_DOWN: if top + KILLS_SHOWN <= kinds then
                          Inc(top, KILLS_SHOWN);
         end;
     end else
@@ -650,7 +650,7 @@ begin
   if GameVars.curChar^.stats[statIdx] < 10 then
     Inc(col);
   TextRend.DisplayString(col, statIdx + 7, hlCol, StrUtil.NumStr(GameVars.curChar^.stats[statIdx]));
-  if (statIdx = C_ABIL.STRENGTH) and (GameVars.curChar^.strCur = 18) and (GameVars.curChar^.strExc > 0) then begin
+  if (statIdx = C_STAT.STRENGTH) and (GameVars.curChar^.strCur = 18) and (GameVars.curChar^.strExc > 0) then begin
     { 100 shows as 00 }
     s := StrUtil.ZeroPad2(GameVars.curChar^.strExc);
     TextRend.DisplayString(7, 7, hlCol, '(' + s + ')');
@@ -673,7 +673,7 @@ var
   idx: Integer;
   shown: Types.PCharRecord;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     CbtMap.SetNoncombatPalette;
   ch := ' ';
   done := False;
@@ -699,7 +699,7 @@ begin
     if hasSpells then
       s := s + 'Spells ';
     if CharHlp.MayTrade(shown) and hasMoney and
-        (GameVars.ifcState <> C_IFC.COMBAT) then
+        (GameVars.ifcState <> C_IFC.IN_COMBAT) then
       s := s + 'Trade ';
     { in the vault, dropped money is deposited there (Money.DropMoney) }
     if hasMoney and (GameVars.ifcState = C_IFC.VAULT) then
@@ -736,7 +736,7 @@ begin
       ViewChar.DrawMoreInfoLabel;
     end;
   end;
-  if GameVars.ifcState = C_IFC.COMBAT then
+  if GameVars.ifcState = C_IFC.IN_COMBAT then
     CbtMap.SetCombatPalette;
   CharDisp.DisplayNoncombatInterface;
 end;
@@ -833,7 +833,7 @@ begin
   s := 'Ready';
   if CharHlp.CanUseItems(creature) then
     s := s + ' Use';
-  if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.COMBAT) then
+  if CharHlp.MayTrade(creature) and (GameVars.ifcState <> C_IFC.IN_COMBAT) then
     s := s + ' Trade';
   if GameVars.ifcState = C_IFC.VAULT then
     s := s + ' Deposit'
@@ -955,7 +955,7 @@ begin
                ch := ' ';
              end else if CharHlp.ItemReadable(sel) or (CharHlp.ItemSpell(sel) <> C_SPELL.NONE) then begin
                Magic.UseItem(sel, done);
-               if GameVars.ifcState <> C_IFC.COMBAT then
+               if GameVars.ifcState <> C_IFC.IN_COMBAT then
                  { outside combat, using an item does not end the menu }
                  done := False;
                if not done then

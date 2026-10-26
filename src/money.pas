@@ -181,10 +181,10 @@ begin
       TextRend.PrintSpaces(qLen, 24, Black, 6);
       TextRend.DisplayString(qLen, 24, White, s);
     end;
-  until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
+  until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESCAPE);
   TextRend.ClearBottomLine;
   { Val of '' fails, and what it leaves in n then is not promised }
-  if (ch = C_KEYS.ESC) or (s = '') then
+  if (ch = C_KEYS.ESCAPE) or (s = '') then
     n := 0
   else
     Val(s, n, code);

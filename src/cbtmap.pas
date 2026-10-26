@@ -78,8 +78,8 @@ function CombatSlot(creature: Types.PCharRecord): Byte;
 
 { Probe the cells one step in dir from each of the creature's icon tiles. crIdx returns an adjacent creature (0 = none;
   the creature itself is ignored and the last one found wins). terrIdx returns the dominant terrain: 0 (off the arena)
-  beats everything, then C_TERR.STINK_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset pair
-  is terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
+  beats everything, then C_TERR.STINKING_CLOUD, otherwise the highest cost wins (the later tile on a tie). The preset
+  pair is terrIdx 23 / best 1: terrainInfo[23] is a cost-1 passable entry, so any real terrain of cost >= 1 replaces it.
   Combat.MoveMenu uses it for bump attacks and terrain cost; IsValidCreatureLoc probes dir 8, the creature's own
   cells. }
 procedure ProbeDirection(creature: Types.PCharRecord; dir: Byte; var crIdx, terrIdx: Byte);
@@ -253,7 +253,7 @@ begin
     relX := areaX[i] - GameVars.arenaPtr^.ox;
     relY := areaY[i] - GameVars.arenaPtr^.oy;
     if CbtMap.ViewCoordsValid(relX, relY) then begin
-      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINK_CLOUD].tileId);
+      MapTiles.Copy2DTile(relX * 3, relY * 3, GameDefs.terrainInfo[C_TERR.STINKING_CLOUD].tileId);
       DrawCellTop(areaX[i], areaY[i], relX, relY);
     end;
   end else
@@ -799,8 +799,8 @@ begin
         crIdx := c;
       if (t = 0) or (terrIdx = 0) then
         terrIdx := 0
-      else if (t = C_TERR.STINK_CLOUD) or (terrIdx = C_TERR.STINK_CLOUD) then
-        terrIdx := C_TERR.STINK_CLOUD
+      else if (t = C_TERR.STINKING_CLOUD) or (terrIdx = C_TERR.STINKING_CLOUD) then
+        terrIdx := C_TERR.STINKING_CLOUD
       else if GameDefs.terrainInfo[t].cost >= best then begin
         best := GameDefs.terrainInfo[t].cost;
         terrIdx := t;
@@ -826,7 +826,7 @@ begin
     free := GameVars.downedCount;
   end;
   GameVars.downed[free].terrain := GameVars.arenaPtr^.cells[y, x];
-  if GameVars.arenaPtr^.cells[y, x] <> C_TERR.STINK_CLOUD then
+  if GameVars.arenaPtr^.cells[y, x] <> C_TERR.STINKING_CLOUD then
     GameVars.arenaPtr^.cells[y, x] := C_TERR.CORPSE;
   GameVars.downed[free].cr := creature;
   GameVars.downed[free].x := x;
@@ -845,7 +845,7 @@ var
   cellY: ShortInt;
 begin
   SoundDrv.SoundSetAutoStop(0);
-  if GameVars.ifcState <> C_IFC.COMBAT then begin
+  if GameVars.ifcState <> C_IFC.IN_COMBAT then begin
     SoundDrv.SoundEffect(GameDefs.soundIds.combat[C_SOUND.DOWNED], C_SOUND.GROUP_DEATH);
     TextRend.PauseOnly;
   end else begin
@@ -901,7 +901,7 @@ var
   t: Byte;
   found: Boolean;
 begin
-  if GameVars.ifcState = C_IFC.COMBAT then begin
+  if GameVars.ifcState = C_IFC.IN_COMBAT then begin
     IsValidCreatureLoc := False;
     slot := CbtMap.CombatSlot(creature);
     { not in the combat arrays }

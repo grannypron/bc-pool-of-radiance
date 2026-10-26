@@ -532,7 +532,7 @@ begin
   if creature^.classLevels[C_LEVEL.PALADIN] > 0 then begin
     effect := creature^.effectsAddr;
     while effect <> nil do begin
-      if (effect^.id = C_EFFECT.PROT_EVIL) and (effect^.duration = 0) and (effect^.strength = 255) then
+      if (effect^.id = C_EFFECT.PROTECTION_FROM_EVIL) and (effect^.duration = 0) and (effect^.strength = 255) then
         effect^.id := C_EFFECT.PROT_EVIL_10FT;
       effect := effect^.next;
     end;

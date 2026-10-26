@@ -291,7 +291,7 @@ end;
 function Watched(beast, witness: Types.PCharRecord): Word;
 begin
   Watched := 0;
-  if (beast = nil) or (GameVars.ifcState <> C_IFC.COMBAT) or Party.IsPartyMember(beast) then Exit;
+  if (beast = nil) or (GameVars.ifcState <> C_IFC.IN_COMBAT) or Party.IsPartyMember(beast) then Exit;
   if (witness <> nil) and not Party.IsPartyMember(witness) then Exit;
   Watched := Bestiary.Add(beast^.name);
 end;

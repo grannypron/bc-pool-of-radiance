@@ -1116,29 +1116,29 @@ var
   wasUp: Boolean;
   hpBefore: Byte;
 begin
-  if creature^.status in [C_STATUS.DEAD, C_STATUS.STONED, C_STATUS.GONE] then Exit;
+  if creature^.status in [C_STATUS.DEAD_STATUS, C_STATUS.STONED, C_STATUS.GONE] then Exit;
   wasUp := creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED];
   hpBefore := creature^.hpCur;
   over := 0;
   remain := 0;
-  if (creature^.status = C_STATUS.DYING) and (GameVars.ifcState = C_IFC.COMBAT) then
+  if (creature^.status = C_STATUS.DYING) and (GameVars.ifcState = C_IFC.IN_COMBAT) then
     over := creature^.combatAddr^.overkill + dmg
   else if creature^.hpCur >= dmg then
     remain := creature^.hpCur - dmg
   else
     over := dmg - creature^.hpCur;
   if (over > 9) or ((remain = 0) and (creature^.status = C_STATUS.ANIMATED)) then
-    creature^.status := C_STATUS.DEAD
+    creature^.status := C_STATUS.DEAD_STATUS
   else if over > 0 then begin
     creature^.status := C_STATUS.DYING;
-    if GameVars.ifcState = C_IFC.COMBAT then
+    if GameVars.ifcState = C_IFC.IN_COMBAT then
       creature^.combatAddr^.overkill := over;
   end else if remain = 0 then
     creature^.status := C_STATUS.UNCONSCIOUS;
   if not (creature^.status in [C_STATUS.OKAY, C_STATUS.ANIMATED]) then begin
     creature^.enabled := 0;
     creature^.hpCur := 0;
-    if GameVars.ifcState = C_IFC.COMBAT then begin
+    if GameVars.ifcState = C_IFC.IN_COMBAT then begin
       { a creature already down (dying or unconscious) left its team count when it fell }
       if wasUp then
         Dec(GameVars.teamCount[CharHlp.Team(creature)]);
@@ -1197,9 +1197,9 @@ end;
 function CanUseItems(creature: Types.PCharRecord): Boolean;
 begin
   CanUseItems := (creature^.enabled <> 0) and not CharHlp.AntiMagicArea and
-                 ((GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.OUTDOORS) or
+                 ((GameVars.ifcState = C_IFC.CAMPING) or (GameVars.ifcState = C_IFC.OVERLAND) or
                   (GameVars.ifcState = C_IFC.INDOORS) or
-                  ((GameVars.ifcState = C_IFC.COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
+                  ((GameVars.ifcState = C_IFC.IN_COMBAT) and (creature^.combatAddr^.itemUseAllowed <> 0)));
 end;
 
 { End the creature's round and raise its guarding flag; the caller announces it ('Guarding'). Always returns True. }
@@ -1341,12 +1341,12 @@ begin
       band := STR_BAND_17
     else
       band := STR_BAND_18;
-    if (race = C_RACE.HALFELF) and (cls = C_LEVEL.CLERIC) then
+    if (race = C_RACE.HALF_ELF) and (cls = C_LEVEL.CLERIC) then
       AtLevelCap := lvl >= HALFELF_CLERIC_CAP
-    else if race = C_RACE.HALFORC then
+    else if race = C_RACE.HALF_ORC then
       AtLevelCap := (CharHlp.HalfOrcCap(creature, cls) <> 0) and (lvl >= CharHlp.HalfOrcCap(creature, cls))
     else if (race in [C_RACE.DWARF..C_RACE.HALFLING]) and
-            ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_RACE.HALFELF))) then
+            ((cls = C_LEVEL.FIGHTER) or ((cls = C_LEVEL.RANGER) and (race = C_RACE.HALF_ELF))) then
       AtLevelCap := (FIGHTER_CAP[race, band] <> 0) and (lvl >= FIGHTER_CAP[race, band]);
   end;
 end;
@@ -1355,7 +1355,7 @@ function DiseaseStrLoss(creature: Types.PCharRecord): Byte;
 var
   effect: Types.PEffectRec;
 begin
-  if CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STR, effect) then
+  if CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STRENGTH, effect) then
     DiseaseStrLoss := effect^.strength shr 4
   else
     DiseaseStrLoss := 0;
@@ -1685,7 +1685,7 @@ begin
     { Giant Strength: 1d4 * 10 + 40 }
     C_SPELL.ITEM_GIANT_STRENGTH: Rolled(1, 4, 4, 10);
     { Dust of Disappearance }
-    C_SPELL.ITEM_DISAPPEARANCE: if GameVars.ifcState = C_IFC.COMBAT then
+    C_SPELL.ITEM_DISAPPEARANCE: if GameVars.ifcState = C_IFC.IN_COMBAT then
           Rolled(2, 10, 0, 10)
         else
           Rolled(1, 10, 10, 10);

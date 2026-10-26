@@ -540,7 +540,7 @@ begin
   filesLoaded := 1;
   for i := 1 to 3 do
     f[i] := EclVars.GetEclVar(i);
-  if GameVars.curOpcode = C_ECL.LOADFILES then begin
+  if GameVars.curOpcode = C_ECL.LOAD_FILES then begin
     mapLoaded := 1;
     if (f[1] <> 255) and (f[1] <> 127) and (GameVars.zone0^.view3dFlag <> 0) then begin
       GameVars.zone0^.mapId.value := f[1];
@@ -585,7 +585,7 @@ begin
   v1 := EclVars.GetEclVar(1);
   v2 := EclVars.GetEclVar(2);
   address := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[3], GameVars.gbvmUpperByte[3]);
-  if GameVars.curOpcode = C_ECL.BIT_AND then
+  if GameVars.curOpcode = C_ECL.OP_AND then
     r := v1 and v2
   else
     r := v1 or v2;
@@ -949,7 +949,7 @@ begin
   if GameVars.gLocType = C_AREA.LOC_3D_MAP then
     GameVars.ifcState := C_IFC.INDOORS
   else
-    GameVars.ifcState := C_IFC.OUTDOORS;
+    GameVars.ifcState := C_IFC.OVERLAND;
   GameVars.zone1^[C_GBVM.SEARCH_FLAGS] := GameVars.zone1^[C_GBVM.SEARCH_FLAGS] and 1;
   FillChar(EclMenu.monsterFlags, SizeOf(EclMenu.monsterFlags), 0);
   GameVars.eclGraphics := False;
@@ -976,7 +976,7 @@ begin
   i := 0;
   while (i < count) and (not done) do begin
     if sel = i then begin
-      if GameVars.curOpcode = C_ECL.ONGOTO then
+      if GameVars.curOpcode = C_ECL.ON_GOTO then
         GameVars.eclIp := EclVars.CombineBytesToWord(GameVars.gbvmLowerByte[i + 1], GameVars.gbvmUpperByte[i + 1])
       else
         EclMenu.EclGosub(i + 1);
@@ -1687,52 +1687,52 @@ end;
 procedure ExecNextEclCmd;
 begin
   case GameVars.curOpcode of
-    C_ECL.EXIT_SCRIPT: EclVm.EclExit;
-    C_ECL.JUMP: EclVm.EclGoto;
+    C_ECL.OP_EXIT: EclVm.EclExit;
+    C_ECL.OP_GOTO: EclVm.EclGoto;
     C_ECL.GOSUB: EclVm.EclGosubCmd;
     C_ECL.COMPARE: EclVm.EclCompare;
     C_ECL.ADD, C_ECL.SUBTRACT, C_ECL.DIVIDE, C_ECL.MULTIPLY: EclVm.EclArith;
-    C_ECL.RANDOM_NUMBER: EclVm.EclRandom;
+    C_ECL.OP_RANDOM: EclVm.EclRandom;
     C_ECL.SAVE: EclVm.EclSave;
-    C_ECL.LOAD_CHAR: EclVm.EclLoadChar;
-    C_ECL.LOAD_MON: EclVm.EclLoadMon;
-    C_ECL.SETUP_MON: EclVm.EclSetupMon;
+    C_ECL.LOAD_CHARACTER: EclVm.EclLoadChar;
+    C_ECL.LOAD_MONSTER: EclVm.EclLoadMon;
+    C_ECL.SETUP_MONSTER: EclVm.EclSetupMon;
     C_ECL.APPROACH: EclVm.EclApproach;
     C_ECL.PICTURE: EclVm.EclPicture;
-    C_ECL.INPUT_NUM: EclVm.EclInputNum;
-    C_ECL.INPUT_STR: EclVm.EclInputStr;
-    C_ECL.PRINT, C_ECL.PRINTCLEAR: EclVm.EclPrint;
+    C_ECL.INPUT_NUMBER: EclVm.EclInputNum;
+    C_ECL.INPUT_STRING: EclVm.EclInputStr;
+    C_ECL.PRINT, C_ECL.PRINT_CLEAR: EclVm.EclPrint;
     C_ECL.RETURN: EclVm.EclReturn;
     C_ECL.COMPARE_AND: EclVm.EclCompareAnd;
-    C_ECL.VMENU: EclVm.EclVMenu;
+    C_ECL.VERTICAL_MENU: EclVm.EclVMenu;
     C_ECL.IF_EQ, C_ECL.IF_NE, C_ECL.IF_LT, C_ECL.IF_GT, C_ECL.IF_LE, C_ECL.IF_GE: EclVm.EclIf;
-    C_ECL.CLEAR_MON: EclVm.EclClearMon;
-    C_ECL.PARTY_STR: EclVm.EclPartyStr;
+    C_ECL.CLEAR_MONSTERS: EclVm.EclClearMon;
+    C_ECL.PARTY_STRENGTH: EclVm.EclPartyStr;
     C_ECL.CHECK_PARTY: EclVm.EclCheckParty;
-    C_ECL.NEWECL: EclVm.EclNewEcl;
-    C_ECL.LOADFILES, C_ECL.LOADPIECES: EclVm.EclLoadFiles;
-    C_ECL.PARTY_SURPR: EclVm.EclPartySurprise;
+    C_ECL.NEW_ECL: EclVm.EclNewEcl;
+    C_ECL.LOAD_FILES, C_ECL.LOAD_PIECES: EclVm.EclLoadFiles;
+    C_ECL.PARTY_SURPRISE: EclVm.EclPartySurprise;
     C_ECL.SURPRISE: EclVm.EclSurprise;
-    C_ECL.START_COMBAT: EclVm.EclCombat;
-    C_ECL.ONGOTO, C_ECL.ONGOSUB: EclVm.EclOnGoto;
+    C_ECL.OP_COMBAT: EclVm.EclCombat;
+    C_ECL.ON_GOTO, C_ECL.ON_GOSUB: EclVm.EclOnGoto;
     C_ECL.TREASURE: EclVm.EclTreasure;
     C_ECL.ROB: EclVm.EclRob;
-    C_ECL.ENCOUNTER: EclVm.EclEncounter;
-    C_ECL.GETTABLE: EclVm.EclGetTable;
-    C_ECL.HMENU: EclVm.EclHMenu;
+    C_ECL.ENCOUNTER_MENU: EclVm.EclEncounter;
+    C_ECL.GET_TABLE: EclVm.EclGetTable;
+    C_ECL.HORIZONTAL_MENU: EclVm.EclHMenu;
     C_ECL.PARLAY: EclVm.EclParlay;
     C_ECL.CALL: EclVm.EclCall;
     C_ECL.DAMAGE: EclVm.EclDamage;
-    C_ECL.BIT_AND, C_ECL.BIT_OR: EclVm.EclAndOr;
+    C_ECL.OP_AND, C_ECL.OP_OR: EclVm.EclAndOr;
     C_ECL.SPRITE_OFF: EclVm.EclSpriteOff;
     C_ECL.FIND_ITEM: EclVm.EclFindItem;
-    C_ECL.PRINT_RET: EclVm.EclPrintRet;
+    C_ECL.PRINT_RETURN: EclVm.EclPrintRet;
     C_ECL.CLOCK: EclVm.EclClock;
     C_ECL.SAVE_TABLE: EclVm.EclSaveTable;
     C_ECL.ADD_NPC: EclVm.EclAddNpc;
-    C_ECL.RUN_PROGRAM: EclVm.EclProgram;
+    C_ECL.OP_PROGRAM: EclVm.EclProgram;
     C_ECL.WHO: EclVm.EclWho;
-    C_ECL.PAUSE: EclVm.EclDelay;
+    C_ECL.OP_DELAY: EclVm.EclDelay;
     C_ECL.SPELL: EclVm.EclSpell;
     C_ECL.PROTECTION: EclVm.EclProtection;
     C_ECL.CLEAR_BOX: EclVm.EclClearBox;
@@ -1777,17 +1777,17 @@ begin
       case GameVars.eclScriptId of
         WILD_WEST_SCRIPT: begin
           GameVars.gLocType := C_AREA.LOC_WILD_WEST;
-          GameVars.ifcState := C_IFC.OUTDOORS;
+          GameVars.ifcState := C_IFC.OVERLAND;
         end;
         WILD_CENTRAL_SCRIPT: begin
           GameVars.gLocType := C_AREA.LOC_WILD_CENTRAL;
-          GameVars.ifcState := C_IFC.OUTDOORS;
+          GameVars.ifcState := C_IFC.OVERLAND;
           if (GameVars.zone0^.yarashMissionDone = 254) and (GameVars.zone0^.yarashPyramidLeft = 0) then
             Ending.YarashComplete(True);
         end;
         WILD_EAST_SCRIPT: begin
           GameVars.gLocType := C_AREA.LOC_WILD_EAST;
-          GameVars.ifcState := C_IFC.OUTDOORS;
+          GameVars.ifcState := C_IFC.OVERLAND;
         end;
       end;
     if (GameVars.locTypePrev > C_AREA.LOC_3D_MAP) and (GameVars.gLocType = C_AREA.LOC_3D_MAP) then
@@ -1824,14 +1824,14 @@ begin
   case GameVars.eclScriptId of
     WILD_WEST_SCRIPT, WILD_CENTRAL_SCRIPT, WILD_EAST_SCRIPT:
       if GameVars.zone0^.view3dFlag = 0 then
-        GameVars.ifcState := C_IFC.OUTDOORS;
+        GameVars.ifcState := C_IFC.OVERLAND;
   end;
   { the area's script is loaded from the data even for a saved game (#609), as Secret of the Silver Blades does: the
     copy a save holds would keep a script from before a data fix (DataPat), and is SSI's size only }
   EclMenu.LoadEclScript(GameVars.eclScriptId);
   EclMenu.EclInit;
   EclVm.CallEclScript(GameVars.scriptEntryAddrs[C_ECL.ENTRY_LOAD]);
-  if GameVars.ifcState <> C_IFC.OUTDOORS then begin
+  if GameVars.ifcState <> C_IFC.OVERLAND then begin
     if enteringLoop = 1 then begin
       CharDisp.DisplayNoncombatInterface;
       enteringLoop := 0;

@@ -108,7 +108,7 @@ begin
         NoWoundCure := 'has mummy rot, which stops healing.'
       else if GameVars.curChar^.hpCur >= GameVars.curChar^.hpMax then
         NoWoundCure := 'is not wounded.';
-    C_STATUS.DEAD: NoWoundCure := 'is dead.';
+    C_STATUS.DEAD_STATUS: NoWoundCure := 'is dead.';
     C_STATUS.STONED: NoWoundCure := 'is stoned.';
   else
     NoWoundCure := 'cannot be healed.';
@@ -182,7 +182,7 @@ begin
   creature := GameVars.curChar;
   wasDead := False;
   c := 'Y';
-  if (creature^.status = C_STATUS.DEAD) or (creature^.status = C_STATUS.ANIMATED) then
+  if (creature^.status = C_STATUS.DEAD_STATUS) or (creature^.status = C_STATUS.ANIMATED) then
     wasDead := True;
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
@@ -258,7 +258,7 @@ begin
       FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_END, nil);
       FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_HIT, nil);
       GameVars.effectLock := 0;
-      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD) then begin
+      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD_STATUS) then begin
         GameVars.curChar^.hpCur := 1;
         GameVars.curChar^.status := C_STATUS.OKAY;
         GameVars.curChar^.enabled := 1;
@@ -299,7 +299,7 @@ end;
 
 { StoneToFlesh: C_STATUS.STONED (7), 2000 gp. A character still stoned once paid for rolls system shock on d100
   (AbilAdj.SurvivesSystemShock), as AD&D 1st edition has the spell's recipient do and SSI never did (#1004): a failure
-  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD, the fee spent; a success becomes C_STATUS.OKAY and
+  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD_STATUS, the fee spent; a success becomes C_STATUS.OKAY and
   enabled, with hpCur 1, and "is cured.". }
 procedure StoneToFlesh;
 var
@@ -316,7 +316,7 @@ begin
         Temple.ReportCure('is cured.')
       else if not AbilAdj.SurvivesSystemShock(creature^.conCur, Dice.RollDice(1, 100)) then begin
         { flesh again, and dead: as a death is marked out of combat }
-        creature^.status := C_STATUS.DEAD;
+        creature^.status := C_STATUS.DEAD_STATUS;
         creature^.enabled := 0;
         creature^.hpCur := 0;
         Stats.Death(creature);

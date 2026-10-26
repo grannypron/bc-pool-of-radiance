@@ -50,7 +50,7 @@ procedure ChangeClassMenu(freeTraining: Boolean);
 
 implementation
 
-uses Crt, C_ABIL, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
+uses Crt, C_STAT, C_EFFECT, C_GBVM, C_KEYS, C_LEVEL, C_MSG, C_RACE, C_STATUS, GameDefs, GameVars, Border,
   CharDisp, CharHlp, ClassCal, FxEngine, MenuCore, Money, MoneyCal, StrUtil, TextRend;
 
 const
@@ -176,7 +176,7 @@ var
   n: Byte;
 begin
   n := 0;
-  for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+  for ab := C_STAT.STRENGTH to C_STAT.CHARISMA do
     if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then
       Inc(n);
   PrimeCount := n;
@@ -190,9 +190,9 @@ var
   score: Byte;
 begin
   TextRend.DisplayString(LABEL_COL, row, color, GameDefs.classNames[cls]);
-  for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+  for ab := C_STAT.STRENGTH to C_STAT.CHARISMA do
     if ClassCal.primeRequisites[cls] and (1 shl ab) <> 0 then begin
-      if ab = C_ABIL.STRENGTH then
+      if ab = C_STAT.STRENGTH then
         score := CharHlp.PermanentStrength(creature)
       else
         score := creature^.stats[ab];

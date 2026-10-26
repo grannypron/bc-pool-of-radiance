@@ -68,7 +68,7 @@ var
   done: Boolean;
   creature: Types.PCharRecord;
 begin
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   GameVars.castTargetMenu := CbtActs.CombatCastTargetMenu;
   CbtLog.Clear(GameVars.combatLogLines, GameVars.combatLogOn <> 0);
   CombatSt.CombatStart;
@@ -297,7 +297,7 @@ begin
       Inc(p^.combatAddr^.overkill);
       if p^.combatAddr^.overkill > 9 then begin
         { dead at -10 }
-        p^.status := C_STATUS.DEAD;
+        p^.status := C_STATUS.DEAD_STATUS;
         Stats.Death(p);
       end;
     end;

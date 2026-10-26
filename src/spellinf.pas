@@ -652,8 +652,8 @@ begin
       ch := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, True, False, ext);
       if ext then
         case ch of
-          C_KEYS.UP, C_KEYS.PGUP: step := -1;
-          C_KEYS.DOWN, C_KEYS.PGDN: step := 1;
+          C_KEYS.UP, C_KEYS.PAGE_UP: step := -1;
+          C_KEYS.DOWN, C_KEYS.PAGE_DOWN: step := 1;
         end
       else
         case ch of
