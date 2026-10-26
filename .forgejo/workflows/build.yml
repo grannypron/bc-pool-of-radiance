@@ -24,8 +24,9 @@
 # The macOS jobs run on the Apple Silicon Mac at home (runs-on: macos-arm64; brazencrows.com's
 # provisioning/bc-forgejo-runner-macos), directly on the Mac as its ci-runner account, not in the image: macos builds
 # the app and runs the native unit tests for every push and pull request, and release-macos signs, notarizes and
-# staples the app for a release and attaches it, once release has made the release. The Mac keeps the Free Pascal and
-# SDL3 that tools/fpc-setup.sh and tools/sdl3-setup.sh build for build/toolchain's pins (the first job builds them).
+# staples the app for a release and attaches it, with src/binaries' data files beside it, once release has made the
+# release. The Mac keeps the Free Pascal and SDL3 that tools/fpc-setup.sh and tools/sdl3-setup.sh build for
+# build/toolchain's pins (the first job builds them).
 # Signing uses the runner's Developer ID .p12 (with rcodesign: under launchd, codesign searches only the System
 # keychain) and notarizing its App Store Connect API key, both under /etc/forgejo-runner/signing, readable by
 # ci-runner only; no secret passes through Forgejo.
@@ -241,8 +242,19 @@ jobs:
           export NOTARY_KEY_ID="$(cat /etc/forgejo-runner/signing/notary-key-id)"
           export NOTARY_ISSUER="$(cat /etc/forgejo-runner/signing/notary-issuer)"
           tools/macos-sign.sh
+      # The stapled app, and beside it src/binaries' data files (the title picture, the Sound Blaster's recorded
+      # effects), which the game reads from its folder as the DOS zip's are; outside the bundle, so no signature
+      # covers them. The zip's top level unpacks straight into the game's folder.
+      - name: Package
+        run: |
+          stage="$(mktemp -d)"
+          ditto "obj/native/macos/Pool of Radiance.app" "$stage/Pool of Radiance.app"
+          [ ! -d src/binaries ] || find src/binaries -maxdepth 1 -type f -exec cp {} "$stage/" \;
           mkdir -p dist
-          mv "obj/native/macos/Pool of Radiance.zip" "dist/pool-of-radiance-$TAG-macos.zip"
+          rm -f "dist/pool-of-radiance-$TAG-macos.zip"
+          (cd "$stage" && ditto -c -k --sequesterRsrc . "$OLDPWD/dist/pool-of-radiance-$TAG-macos.zip")
+          rm -rf "$stage"
+          unzip -l "dist/pool-of-radiance-$TAG-macos.zip" | tail -n 3
       - name: Attach to the release
         env:
           REPO_API: ${{ github.event.repository.url }}
