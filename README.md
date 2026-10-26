@@ -44,11 +44,11 @@ See [the changelog](docs/changelog.md) for the player-facing list and [the detai
 
 On its first start, the game builds combined archives from your legally obtained game data. This allows the project to patch scripts and other data without distributing the original files. The originals are only read. The build normally happens once and writes its progress to `DATABLD.LOG`; if the combined files cannot be created, the game can still run, but data fixes will not be active.
 
-Installation should be similar for MacOS and Linux users: drop the files into the appropriate directory and start the game normally.
+Installation should be similar for macOS and Linux users: drop the files into the appropriate directory and start the game normally.
 
 ## Building From Source
 
-See [COMPILE.md](COMPILE.md) for the compilers, tools and commands needed to build the DOS and native versions.
+See [COMPILING.md](COMPILING.md) for the compilers, tools and commands needed to build the DOS and native versions.
 
 ## Credits and Thanks
 
