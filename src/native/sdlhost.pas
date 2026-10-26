@@ -14,9 +14,14 @@ unit SdlHost;
 
 interface
 
+uses Sdl3Min;
+
+{ The game's window, for a dialog to belong to (DataPick's folder picker, #1064). }
+function GameWindow: PSDL_Window;
+
 implementation
 
-uses SysUtils, Math, Sdl3Min, Host;
+uses SysUtils, Math, Host;
 
 const
   { the screen is 320x200 shown at 4:3, as on a PC's monitor: each pixel 1.2 times as tall as wide }
@@ -374,6 +379,11 @@ begin
     end;
   if SDL_GetTicks - lastPresent >= PRESENT_MS then
     Present;
+end;
+
+function GameWindow: PSDL_Window;
+begin
+  GameWindow := window;
 end;
 
 procedure Open;

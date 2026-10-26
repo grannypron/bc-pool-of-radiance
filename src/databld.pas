@@ -250,10 +250,15 @@ begin
   CrcOfFile := ok;
 end;
 
-{ The path of the file called name in the game folder. }
+{ The path of the file called name in the game folder; natively a file DataBld writes is in the writable folder,
+  which may be another (DaxIo.FolderOf, #1064). }
 function GamePath(name: Types.TStr20): Types.TPathStr;
 begin
+{$IFDEF FPC}
+  GamePath := DaxIo.FolderOf(name) + name;
+{$ELSE}
   GamePath := GameVars.gameDir + name;
+{$ENDIF}
 end;
 
 { Remove a file from the game folder if it is there; an error is ignored. }

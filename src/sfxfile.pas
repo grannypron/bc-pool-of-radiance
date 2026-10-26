@@ -22,9 +22,10 @@ type
     start: Word;
   end;
 
-{ Read SBSFX.DAT from the game's folder onto the heap: p holds its size bytes, and count is the entries the header
-  gives. False, with nothing held, when the file is missing or unreadable, larger than one heap block or (under DOS)
-  the heap's largest free block, or CheckHeader refuses it. }
+{ Read SBSFX.DAT from the game's folder (natively from beside the program when it is there, where the release zip puts
+  it, else the data folder: GameDirs.OwnFolder, #1064) onto the heap: p holds its size bytes, and count is the entries
+  the header gives. False, with nothing held, when the file is missing or unreadable, larger than one heap block or
+  (under DOS) the heap's largest free block, or CheckHeader refuses it. }
 function Load(var p: Types.PBytes; var size: Word; var count: Byte): Boolean;
 
 { True when the size bytes at p start with the signature and the version and hold the entries they count; count is
@@ -43,7 +44,7 @@ function DecodedLength(var e: TSfxEntry): LongInt;
 
 implementation
 
-uses C_SOUND, FileUtil, GameVars;
+uses C_SOUND, FileUtil, GameVars{$IFDEF FPC}, GameDirs{$ENDIF};
 
 const
   FILE_NAME = 'SBSFX.DAT';
@@ -104,7 +105,8 @@ begin
   p := nil;
   size := 0;
   count := 0;
-  if not FileUtil.OpenReadOnly(f, GameVars.gameDir + FILE_NAME) then Exit;
+  if not FileUtil.OpenReadOnly(f, {$IFDEF FPC}GameDirs.OwnFolder(FILE_NAME){$ELSE}GameVars.gameDir{$ENDIF} + FILE_NAME)
+    then Exit;
   bytes := FileSize(f);
   ok := (IOResult = 0) and (bytes >= HEADER_BYTES) and (bytes <= MAX_SIZE);
 {$IFNDEF FPC}
