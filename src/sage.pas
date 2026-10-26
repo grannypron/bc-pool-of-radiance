@@ -171,11 +171,11 @@ begin
       else begin
         b^ := t;
         Bestiary.dirty := True;
-        Sage.Say('SHE TAKES A WELL READ TOME DOWN FROM A SHELF FILLED WITH MANY OTHERS, AND READS ALOUD.');
+        Sage.Say('SHE TAKES A TOME DOWN FROM A SHELF FILLED WITH MANY OTHERS, AND READS ALOUD.');
         CharDisp.MessageWait;
         BeastMnu.ShowEntry(b^);
         Sage.Redraw;
-        Consult := '''IS THERE SOMETHING ELSE YOU WANT TO ASK ABOUT?''';
+        Consult := '''IS THERE ANOTHER THAT STANDS AGAINST YOU?''';
       end;
     end;
     SaveLoad.FreeCreature(creature);
@@ -188,8 +188,8 @@ var
   b: Bestiary.PBeast;
   choice: Byte;
 begin
-  answer := 'THE SAGE LOOKS UP FROM THE OPENED BOOK ON HER DESK. ' +
-            '''I CAN ENLIGHTEN YOU ON MANY THINGS, IF YOU CAN NAME THEM.''';
+  answer := 'THE SAGE LOOKS UP FROM THE ANCIENT TOME SHE IS STUDYING. ' +
+            '''KNOWLEDGE IS A WEAPON. NAME YOUR FOE, AND I CAN SHARPEN YOUR BLADE.''';
   repeat
     Sage.Say(answer);
     choice := EclMenu.MenuHorizontalCharacterSelect('', MENU, LightMagenta, LightGreen, White, True, False);
