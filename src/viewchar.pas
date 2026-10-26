@@ -417,10 +417,11 @@ end;
 
 { The Thief page (#685): each thief skill's name, then its racial and Dexterity adjustments and its base for the thief
   level (ClassCal.ThiefSkillParts), and the total the game uses (thiefSkills), which is stopped at 0 and so need not be
-  the sum of the three; armor that bars the skills (ClassCal.ArmorBarsThiefSkills) makes every total 0, which a line
-  under the table explains. All are percentages, shown without the sign, which the game's font does not have. The window
-  has 36 columns where the design has 44: the names start at column 2 and the headings fill 18..37, one space apart,
-  each figure right-aligned under its heading. }
+  the sum of the three; armor that bars the skills (ClassCal.ArmorBarsThiefSkills) makes every total 0, which a note
+  under the table explains, in yellow, wrapped over rows 14 and 15 (it is 52 characters, the page 36 wide). All are
+  percentages, shown without the sign, which the game's font does not have. The window has 36 columns where the design
+  has 44: the names start at column 2 and the headings fill 18..37, one space apart, each figure right-aligned under
+  its heading. }
 procedure DrawThief(p: Types.PCharRecord);
 var
   j: Byte;
@@ -454,7 +455,8 @@ begin
     TextRend.DisplayString(38 - Length(s), 4 + j, White, s);
   end;
   if ClassCal.ArmorBarsThiefSkills(p) then
-    TextRend.DisplayString(2, 14, Yellow, 'Most armor or a shield bars the use of thief skills.');
+    { two rows: the line is longer than the page is wide }
+    TextRend.DisplayMessageWindow(2, 14, 37, 15, Yellow, True, 'Most armor or a shield bars the use of thief skills.');
 end;
 
 { The Cleric page (#904): under its title, Turn Undead, the level the character turns undead at (ClassCal.TurnLevel:
