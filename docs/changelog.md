@@ -22,6 +22,7 @@
 
 ### Interface improvements
 
+- In the Linux, Windows and macOS versions, Command-Q, the app menu's Quit, the window's close button and Alt-F4 now ask "Quit Pool of Radiance? Progress since your last save will be lost." before ending the game, with Quit and Cancel; Return and Escape choose Cancel. On a Mac the game's Alt is Option, so Option-Q is Quick: reaching for Alt-Q no longer loses your game. The macOS README says so.
 - On the Load/Save menu, Quit now just asks "Exit to DOS?", without offering to save first, and X chooses Exit.
 - At the vault's counter the Up and Down arrows now step through the party, as they do at the shop's.
 - The menu for taking coins from the treasure now lists them as a character's coin menus do, jewelry first, with the names lined up.

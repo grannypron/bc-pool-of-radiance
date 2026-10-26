@@ -1,7 +1,7 @@
 {$I COMPILER.INC}
-{ The few SDL3 calls the native build makes (a window, a texture the screen is copied to, events, the clock, and an
-  audio stream, and the folder picker), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h, SDL_render.h,
-  SDL_events.h, SDL_audio.h, SDL_dialog.h).
+{ The few SDL3 calls the native build makes (a window, a texture the screen is copied to, events, the clock, an
+  audio stream, the folder picker and a message box), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h,
+  SDL_render.h, SDL_events.h, SDL_audio.h, SDL_dialog.h, SDL_messagebox.h).
   Only these: a full binding is not needed, and these are all that must be kept right.
 
   On Linux and macOS SDL is linked into the program: build-native.sh copies SDL's static libSDL3.a as libSDL3static.a
@@ -68,12 +68,20 @@ const
   SDL_KMOD_SHIFT = $0003;
   SDL_KMOD_CTRL = $00C0;
   SDL_KMOD_ALT = $0300;
+  { Command on a Mac, the Windows key elsewhere }
+  SDL_KMOD_GUI = $0C00;
   SDL_KMOD_NUM = $1000;
   SDL_KMOD_CAPS = $2000;
 
   { SDL_AudioFormat: signed 16-bit little-endian samples (the machine's byte order on every target here) }
   SDL_AUDIO_S16LE = $8010;
   SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK = $FFFFFFFF;
+
+  { SDL_MessageBoxFlags }
+  SDL_MESSAGEBOX_WARNING = $00000020;
+  { SDL_MessageBoxButtonFlags: the button Return, and the one Escape, chooses }
+  SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT = $00000001;
+  SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT = $00000002;
 
 type
   PSDL_Window = Pointer;
@@ -108,6 +116,30 @@ type
     paths (UTF-8), ending in nil; it may be called on another thread }
   TSDL_DialogFileCallback = procedure(userdata: Pointer; filelist: PPChar; filter: LongInt); cdecl;
 
+{ C's alignment for these, not COMPILER.INC's PACKRECORDS 1: their pointers follow 4-byte fields }
+{$PUSH}
+{$PACKRECORDS C}
+  { SDL_MessageBoxButtonData: 16 bytes on 64-bit, 12 on 32-bit }
+  TSDL_MessageBoxButtonData = record
+    flags: LongWord;
+    buttonID: LongInt;
+    text: PChar;
+  end;
+  PSDL_MessageBoxButtonData = ^TSDL_MessageBoxButtonData;
+
+  { SDL_MessageBoxData: 56 bytes on 64-bit (padding after flags and numbuttons), 28 on 32-bit; colorScheme nil is
+    the system's colours }
+  TSDL_MessageBoxData = record
+    flags: LongWord;
+    window: PSDL_Window;
+    title: PChar;
+    message: PChar;
+    numbuttons: LongInt;
+    buttons: PSDL_MessageBoxButtonData;
+    colorScheme: Pointer;
+  end;
+{$POP}
+
   { SDL_AudioSpec }
   TSDL_AudioSpec = record
     format: LongInt;
@@ -138,6 +170,7 @@ function SDL_RenderTexture(renderer: PSDL_Renderer; texture: PSDL_Texture; srcre
 function SDL_RenderPresent(renderer: PSDL_Renderer): Boolean; cdecl; external SDL_LIB;
 
 function SDL_PollEvent(var event: TSDL_Event): Boolean; cdecl; external SDL_LIB;
+procedure SDL_FlushEvent(eventType: LongWord); cdecl; external SDL_LIB;
 
 function SDL_GetTicks: QWord; cdecl; external SDL_LIB;
 
@@ -153,6 +186,22 @@ function SDL_UnlockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; extern
 { Open the system's folder picker, which answers through callback when the player has chosen or cancelled (SDL 3.2) }
 procedure SDL_ShowOpenFolderDialog(callback: TSDL_DialogFileCallback; userdata: Pointer; window: PSDL_Window;
   defaultLocation: PChar; allowMany: Boolean); cdecl; external SDL_LIB;
+
+{ Show a message box and wait for a button: buttonid is the chosen button's ID, or -1 if the box was closed without
+  one. False if it could not be shown. }
+function SDL_ShowMessageBox(var messageboxdata: TSDL_MessageBoxData; var buttonid: LongInt): Boolean; cdecl;
+  external SDL_LIB;
+
+{ the records' layouts, as SDL_messagebox.h's }
+{$IFDEF CPU64}
+{$IF (SizeOf(TSDL_MessageBoxButtonData) <> 16) or (SizeOf(TSDL_MessageBoxData) <> 56)}
+{$ERROR SDL_MessageBox records' layout}
+{$ENDIF}
+{$ELSE}
+{$IF (SizeOf(TSDL_MessageBoxButtonData) <> 12) or (SizeOf(TSDL_MessageBoxData) <> 28)}
+{$ERROR SDL_MessageBox records' layout}
+{$ENDIF}
+{$ENDIF}
 
 implementation
 
