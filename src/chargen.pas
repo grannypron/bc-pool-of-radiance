@@ -1172,7 +1172,9 @@ end;
   with a paladin, and a party has at most 3 rangers. A character they refuse gets Curse's message on the bottom line
   until a key, keeps its unmarked name and is freed. The first character into an empty party joins unchecked, as do NPCs
   a script adds. A character with no file, once Escape gives up at the save disk prompt, is taken off the roster. Added
-  entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). }
+  entries get a leading '* ' and the roster is saved back, the added ones still on it (SaveLoad.SaveCharlist). With no
+  roster, or an empty one, the bottom line says there are no characters to add, for two seconds or until a key
+  (TextRend.FlashBottomLine), over the menu it was chosen from (#1069). }
 procedure AddCharacterMenu;
 const
   { the most player characters, not NPCs, a party takes }
@@ -1193,9 +1195,13 @@ var
   newPaladin: Boolean;
   newRanger: Boolean;
 begin
-  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   SaveLoad.LoadCharlist(list);
-  if list = nil then Exit;
+  if list = nil then begin
+    { the menu stays up behind it (#1069) }
+    TextRend.FlashBottomLine(Yellow, 'No characters found to add.');
+    Exit;
+  end;
+  Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   idx := 0;
   m := list;
   redraw := True;

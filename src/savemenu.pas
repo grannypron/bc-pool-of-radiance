@@ -27,14 +27,15 @@ type
   TSlotArea = string[AREA_LEN];
 
 { Run the menu and return the slot chosen, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape or Exit (X, #910). Saving
-  lists every slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and returns C_KEYS.NONE
-  at once when there are none. A slot shows its letter (white: the key that takes it), description and time saved, and
-  below them its area and date. Up and Down (Home and End), and Next and Prev on the bottom line, move the selection a
-  slot at a time, scrolling the list a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save
-  (or Load) takes the selected slot, and a slot's letter takes that slot at once. Quit (#872) has no key (Q is a slot's)
-  and Exit's is X (E is a slot's), not marked on the line; the arrows reach both. The caller asks whether to exit to DOS
-  (SaveLoad.QuitToDos). The selection starts on slot start when it is listed, else on the newest saved game. The caller
-  redraws the screen afterwards. }
+  lists every slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and when there are none
+  says so on the bottom line for two seconds or until a key (TextRend.FlashBottomLine, #1069) and returns C_KEYS.NONE. A
+  slot shows its letter (white: the key that takes it), description and time saved, and below them its area and date. Up
+  and Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a time, scrolling the list
+  a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load) takes the selected slot,
+  and a slot's letter takes that slot at once. Quit (#872) has no key (Q is a slot's) and Exit's is X (E is a slot's),
+  not marked on the line; the arrows reach both. The caller asks whether to exit to DOS (SaveLoad.QuitToDos). The
+  selection starts on slot start when it is listed, else on the newest saved game. The caller redraws the screen
+  afterwards. }
 function ChooseSlot(saving: Boolean; start: Char): Char;
 
 { The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
@@ -337,8 +338,11 @@ begin
       Inc(count);
   end;
   listed[0] := Chr(count);
-  if count = 0 then
+  { only loading lists none; the caller's screen stays up behind the message (#1069) }
+  if count = 0 then begin
+    TextRend.FlashBottomLine(Yellow, 'No saved games found to load.');
     Exit;
+  end;
   sel := 1;
   newest := 0;
   for i := 1 to count do
