@@ -78,7 +78,7 @@ begin
     TextRend.DisplayString(25, 24, White, 'Off (Alt-M)');
 end;
 
-function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
+function TurnUndeadAi(creature: Types.PCharRecord): Boolean; forward;
 
 function SelectItemToUse(creature: Types.PCharRecord): Boolean; forward;
 
@@ -130,7 +130,7 @@ begin
     done := CharHlp.EndActions(creature);
   end else if CombatAi.SelectItemToUse(creature) then
     done := CharHlp.EndActions(creature)
-  else if CombatAi.TurnUndeadAI(creature) then
+  else if CombatAi.TurnUndeadAi(creature) then
     done := CharHlp.EndActions(creature)
   else if CombatAi.SelectSpellToCast(creature) then
     done := True
@@ -148,17 +148,17 @@ end;
 
 { Turn undead whenever creature can turn (a cleric, or a paladin of level 3 or more) and has not tried this combat, and
   a turnable undead target exists. }
-function TurnUndeadAI(creature: Types.PCharRecord): Boolean;
+function TurnUndeadAi(creature: Types.PCharRecord): Boolean;
 var
   tgt: Pointer;
 begin
   if (creature^.combatAddr^.usedTurnUndead = 0)
      and (ClassCal.TurnLevel(creature) > 0)
      and CbtActs.FindTurnUndeadTarget(creature, tgt) then begin
-    TurnUndeadAI := True;
+    TurnUndeadAi := True;
     CbtActs.CombatTurnUndead(creature);
   end else
-    TurnUndeadAI := False;
+    TurnUndeadAi := False;
 end;
 
 { Should the AI use spell (memorized, or an item's spell effect)? Its aiPriority must be at least minPri. Non-offensive

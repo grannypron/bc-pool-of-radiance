@@ -5,10 +5,10 @@ unit Sym8x8;
 
 interface
 
-{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> symbolSetPtrs[setID] (with a transparency mask
-  for color 13, hot pink). No-op when setID is outside 0..4; on load failure prints the file name and fileID, waits for
+{ Load 8x8 graphics symbol set: picture fileID of "8X8D<disk>.DAX" -> symbolSetPtrs[setId] (with a transparency mask
+  for color 13, hot pink). No-op when setId is outside 0..4; on load failure prints the file name and fileID, waits for
   a key and quits to DOS. }
-procedure Load8x8Set(fileID, setID: Byte);
+procedure Load8x8Set(fileID, setId: Byte);
 
 { Put 8x8 symbol: map symbol 1..286 to its set (symSetFirst) + local index. inCombat=True composites it into the view
   buffer with Blit.BlitTileCell (other = transparency flag); otherwise copies the glyph to the current-8x8 buffer and
@@ -20,14 +20,14 @@ implementation
 
 uses Crt, GameDefs, GameVars, Blit, GameIo, StrUtil;
 
-procedure Load8x8Set(fileID, setID: Byte);
+procedure Load8x8Set(fileID, setId: Byte);
 var
   s1: String[1];
 begin
-  if setID in [0..4] then begin
+  if setId in [0..4] then begin
     Str(GameVars.diskIndex, s1);
-    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GameVars.symbolSetPtrs[setID]);
-    if GameVars.symbolSetPtrs[setID] = nil then begin
+    Blit.LoadPic('8x8d' + s1, fileID, True, LightMagenta, GameVars.symbolSetPtrs[setId]);
+    if GameVars.symbolSetPtrs[setId] = nil then begin
       GameIo.FatalError('Unable to load 8x8D' + s1 + '-' + StrUtil.NumStr(fileID));
     end;
   end;

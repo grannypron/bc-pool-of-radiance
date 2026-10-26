@@ -260,7 +260,7 @@ var
 var
   { Spell casting and targeting }
   { the cast-target menu: Magic.NoncombatCastTargetMenu, or CbtActs.SelectCombatTargets in combat }
-  castTargetMenu: Types.TCastUI;
+  castTargetMenu: Types.TCastUi;
   { Spell handlers indexed by spell ID. }
   spellFns: array[1..C_SPELL.TABLE_LAST] of Types.TSpellProc;
   { Number of targeted creatures }

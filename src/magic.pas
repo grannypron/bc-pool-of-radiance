@@ -41,7 +41,7 @@ function GenerateSpellList(creature: Types.PCharRecord; menuType: Byte): Boolean
 
 { The cast-target menu outside combat (GameVars.castTargetMenu). spellTable target mode 1 targets the caster, 2 asks for
   one party member (remembered in GameVars.castTarget; cancelling clears the targets and the cast) and 4 targets every
-  creature in GameVars.creatureList; any other mode cancels the cast. b is unused; it matches Types.TCastUI. }
+  creature in GameVars.creatureList; any other mode cancels the cast. b is unused; it matches Types.TCastUi. }
 procedure NoncombatCastTargetMenu(spell: Byte; b: Boolean; var cast: Boolean);
 
 { Cast spell for GameVars.curChar. Outside combat a combat-only spell (target mode 0) is not cast: a memorized spell

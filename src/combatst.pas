@@ -648,8 +648,8 @@ var
   wallY: ShortInt;
   legShift: Byte;
   legLen: Byte;
-  baseQX: ShortInt;
-  baseQY: ShortInt;
+  baseQx: ShortInt;
+  baseQy: ShortInt;
   tries: Byte;
   ring: Byte;
   legX: ShortInt;
@@ -663,8 +663,8 @@ begin
   state := 1;
   legShift := 0;
   ring := 0;
-  baseQX := placeX[team];
-  baseQY := placeY[team];
+  baseQx := placeX[team];
+  baseQy := placeY[team];
   repeat
     quad := ringStart[teamDir[team], ring] div 2;
     case state of
@@ -731,8 +731,8 @@ begin
         wallY := placeY[team] + GameVars.gMapY;
         dir := ringDirTbl[teamDir[team], ring];
         if (GameVars.gLocType > C_AREA.LOC_3D_MAP) or (CombatSt.WallBetween(wallX, wallY, dir) <> 1) then begin
-          baseQX := placeX[team] + GameDefs.dirDX[dir];
-          baseQY := placeY[team] + GameDefs.dirDY[dir];
+          baseQx := placeX[team] + GameDefs.dirDX[dir];
+          baseQy := placeY[team] + GameDefs.dirDY[dir];
           legShift := 0;
           state := 1;
         end;
@@ -741,7 +741,7 @@ begin
         giveUp := 1;
     end;
     if offGrid = 0 then
-      placed := CombatSt.TryPlaceAt(team, slot, qx, qy, baseQX, baseQY, ring);
+      placed := CombatSt.TryPlaceAt(team, slot, qx, qy, baseQx, baseQy, ring);
   until (placed <> 0) or (giveUp <> 0);
   if giveUp <> 0 then
     FindPlacement := False

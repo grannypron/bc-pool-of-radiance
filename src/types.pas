@@ -987,7 +987,7 @@ type
 
   { Magic types. }
   PStinkRec = ^TStinkRec;
-  TCastUI = procedure(spell: Byte; b: Boolean; var sel: Boolean);
+  TCastUi = procedure(spell: Byte; b: Boolean; var sel: Boolean);
   TSpellProc = procedure;
   TStinkRec = record
     caster: PCharRecord;

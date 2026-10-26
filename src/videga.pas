@@ -27,7 +27,7 @@ var
   egaCurPage: Word;
 
 { Reset EGA graphics-controller registers, enable all color planes and set the full bit mask. }
-procedure ResetEgaGC;
+procedure ResetEgaGc;
 begin
   Port[C_EGA.GC_ADDR_PORT] := 0;
   Port[C_EGA.GC_DATA_PORT] := 0;
@@ -68,7 +68,7 @@ var
 begin
   dstOff := Word(ulRow) * 40 * 8 + ulCol;
   rowCount := (lrRow - ulRow + 1) * 8 - 1;
-  VidEga.ResetEgaGC;
+  VidEga.ResetEgaGc;
   Port[C_EGA.GC_ADDR_PORT] := C_EGA.GC_MODE_REG;
   Port[C_EGA.GC_DATA_PORT] := GC_WRITE_MODE_2;
   for i := 0 to rowCount do begin
