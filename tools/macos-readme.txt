@@ -9,6 +9,13 @@ project's fixes and features. The game's data is not included: it
 reads it from your own copy, which it finds by itself.
 
 
+Keys
+----
+
+The game's Alt is Option (⌥): Option-Q is Quick, Option-M quick
+magic. Command-Q asks before quitting.
+
+
 Finding the game's data
 -----------------------
 

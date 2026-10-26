@@ -1,7 +1,8 @@
 { The native build's window: shows Host's screen through its DAC and turns the window's key presses into the BIOS's scan
   codes and characters in Host's keyboard buffer, as a PC's keyboard and BIOS did (a US layout, as the BIOS's). It hooks
   Host.Service, which Crt's ReadKey, KeyPressed and Delay run, so the screen is shown and keys arrive while the game
-  waits; the screen is shown at most once every 15 ms. Closing the window ends the program. For testing, POOLRAD_SHOT
+  waits; the screen is shown at most once every 15 ms. Closing the window, or the system's Quit, asks before ending the
+  program (ConfirmQuit, #1073). For testing, POOLRAD_SHOT
   names a file the screen is written to (a PPM image) twice a second, and POOLRAD_KEYS gives keys to press, as if typed:
   words separated by spaces, each a wait in milliseconds (a number of two digits or more), a character (a, A, 1, ?) or a
   key's name (enter, esc, space, tab, bs, up, down, left, right, home, end, pgup, pgdn, ins, del, f1..f12), the names
@@ -133,6 +134,8 @@ var
   { POOLRAD_KEYS: the words not yet pressed, and when the next may be }
   keyScript: AnsiString;
   keyDue: QWord;
+  { POOLRAD_KEYS or POOLRAD_SHOT was given: a scripted run, which no one is there to answer a dialog for }
+  scripted: Boolean;
 
 procedure Fail(what: String);
 begin
@@ -207,6 +210,9 @@ var
 begin
   sc := key.scancode;
   if (sc < FIRST_SCANCODE) or (sc > LAST_SCANCODE) then
+    Exit;
+  { Command (a Mac's) or the Windows key: the system's shortcuts (Command-Q), not the game's; nor is it Alt (#1073) }
+  if (key.keyMod and SDL_KMOD_GUI) <> 0 then
     Exit;
   k := BIOS_KEYS[sc];
   if k.scan = 0 then
@@ -364,6 +370,43 @@ begin
   end;
 end;
 
+{ A quit asked for by the system (Command-Q, the app menu's Quit, the window's close button, Alt-F4): ask the player in
+  the system's own message box, Cancel the default for Return and Escape, and end the program on Quit (#1073). A
+  box that cannot be shown ends it, as before there was one. A scripted run (POOLRAD_KEYS, POOLRAD_SHOT) ends without
+  asking: nothing would answer, and the run would wait for ever. On Cancel the quit leaves nothing behind: SDL has not
+  closed the window, and the quit events still queued are dropped, as closing the last window sends both
+  SDL_EVENT_WINDOW_CLOSE_REQUESTED and SDL_EVENT_QUIT, which would otherwise ask twice. }
+procedure ConfirmQuit;
+const
+  BUTTON_QUIT = 1;
+  BUTTON_CANCEL = 0;
+var
+  buttons: array[0..1] of TSDL_MessageBoxButtonData;
+  box: TSDL_MessageBoxData;
+  chosen: LongInt;
+begin
+  if scripted then
+    Halt(0);
+  buttons[0].flags := 0;
+  buttons[0].buttonID := BUTTON_QUIT;
+  buttons[0].text := 'Quit';
+  buttons[1].flags := SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT or SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+  buttons[1].buttonID := BUTTON_CANCEL;
+  buttons[1].text := 'Cancel';
+  FillChar(box, SizeOf(box), 0);
+  box.flags := SDL_MESSAGEBOX_WARNING;
+  box.window := window;
+  box.title := 'Pool of Radiance';
+  box.message := 'Quit Pool of Radiance? Progress since your last save will be lost.';
+  box.numbuttons := 2;
+  box.buttons := @buttons[0];
+  chosen := BUTTON_CANCEL;
+  if not SDL_ShowMessageBox(box, chosen) or (chosen = BUTTON_QUIT) then
+    Halt(0);
+  SDL_FlushEvent(SDL_EVENT_QUIT);
+  SDL_FlushEvent(SDL_EVENT_WINDOW_CLOSE_REQUESTED);
+end;
+
 procedure Service;
 var
   event: TSDL_Event;
@@ -373,7 +416,7 @@ begin
   while SDL_PollEvent(event) do
     case event.eventType of
       SDL_EVENT_QUIT, SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        Halt(0);
+        ConfirmQuit;
       SDL_EVENT_KEY_DOWN:
         KeyDown(event.key);
     end;
@@ -411,6 +454,7 @@ begin
   Host.serviceHook := @Service;
   shotPath := GetEnvironmentVariable('POOLRAD_SHOT');
   keyScript := GetEnvironmentVariable('POOLRAD_KEYS');
+  scripted := (shotPath <> '') or (keyScript <> '');
   keyDue := 0;
   Present;
 end;
