@@ -282,8 +282,8 @@ begin
     ch := MenuCore.MenuHorizontal(PROMPT, menu, LightMagenta, LightGreen, White, True, False, ext);
     if ext then begin
       case ch of
-        C_KEYS.PGDN: ch := 'N';
-        C_KEYS.PGUP: ch := 'P';
+        C_KEYS.PAGE_DOWN: ch := 'N';
+        C_KEYS.PAGE_UP: ch := 'P';
       else
         ch := ' ';
       end;
@@ -421,8 +421,8 @@ begin
                                        JrnlView.MoveTo(sel + 1)
                                      else
                                        JrnlView.MoveTo(1);
-        C_KEYS.PGUP: JrnlView.ScrollColumn(False);
-        C_KEYS.PGDN: JrnlView.ScrollColumn(True);
+        C_KEYS.PAGE_UP: JrnlView.ScrollColumn(False);
+        C_KEYS.PAGE_DOWN: JrnlView.ScrollColumn(True);
       end;
       if previewDue then begin
         reading := False;

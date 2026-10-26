@@ -220,7 +220,7 @@ end;
 { Fill in listed entry i for slot letter: whether its savgam<x>.dat exists, the file's time (packed, and as hh:mm and
   YYYY/MM/DD), and its description and area. A save with no slot-info file (one made before the menu kept them) has no
   description, and its area is read from the save itself: the GBVM previousScriptId and mapId in its zone 0, which
-  follows the one-byte virtualDisk. }
+  follows the one-byte diskIndex. }
 procedure ReadSlot(i: Byte; letter: Char);
 var
   f: file;
@@ -253,9 +253,9 @@ begin
       dates[i] := y + '/' + StrUtil.ZeroPad2(dt.Month) + '/' + StrUtil.ZeroPad2(dt.Day);
     end;
     if not SaveMenu.ReadSlotInfo(letter, descs[i], areas[i]) then begin
-      Seek(f, SizeOf(GameVars.virtualDisk) + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
+      Seek(f, SizeOf(GameVars.diskIndex) + Ofs(GameVars.zone0^.previousScriptId) - Ofs(GameVars.zone0^));
       BlockRead(f, script, SizeOf(script), n1);
-      Seek(f, SizeOf(GameVars.virtualDisk) + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
+      Seek(f, SizeOf(GameVars.diskIndex) + Ofs(GameVars.zone0^.mapId) - Ofs(GameVars.zone0^));
       BlockRead(f, map, SizeOf(map), n2);
       if (IOResult = 0) and (n1 = SizeOf(script)) and (n2 = SizeOf(map)) then
         areas[i] := AreaName.AreaFor(Lo(script), map.lo)
@@ -385,11 +385,11 @@ begin
         C_KEYS.UP, C_KEYS.HOME: SaveMenu.MoveTo(sel - 1);
         C_KEYS.DOWN, C_KEYS.END_KEY: SaveMenu.MoveTo(sel + 1);
         { a screenful, stopping at the first or last slot rather than wrapping }
-        C_KEYS.PGUP: if sel > VISIBLE then
+        C_KEYS.PAGE_UP: if sel > VISIBLE then
                        SaveMenu.MoveTo(sel - VISIBLE)
                      else
                        SaveMenu.MoveTo(1);
-        C_KEYS.PGDN: if sel + VISIBLE < count then
+        C_KEYS.PAGE_DOWN: if sel + VISIBLE < count then
                        SaveMenu.MoveTo(sel + VISIBLE)
                      else
                        SaveMenu.MoveTo(count);
@@ -456,7 +456,7 @@ begin
         if Length(s) > 0 then
           s := Copy(s, 1, Length(s) - 1);
     end;
-  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESC);
+  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESCAPE);
   TextRend.ClearBottomLine;
   if s = '' then
     s := default;
@@ -472,7 +472,7 @@ end;
 
 function AskSaveDisk(problem: Types.TStr40; name: Types.TPathStr): Boolean;
 begin
-  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_KEYS.ESC;
+  AskSaveDisk := DaxIo.AskForDisk(problem, name, SaveMenu.SaveDiskMsg) <> C_KEYS.ESCAPE;
 end;
 
 procedure CheckSaveDir;

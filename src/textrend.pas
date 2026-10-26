@@ -10,7 +10,7 @@ uses Types;
 
 procedure LoadGameFont;
 
-procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
+procedure RenderChar(col, row, color, count, ch, isAscii: Byte);
 
 procedure PrintSpaces(col, row, color, count: Byte);
 
@@ -30,7 +30,7 @@ procedure ShowMessage(color: Byte; clearFirst: Boolean; s: string);
 
 function ReadString(query: Types.TStr40; color, maxLen: Byte): Types.TStr40;
 
-function InputUint16(query: Types.TStr40; color: Byte): Word;
+function ReadNumber(query: Types.TStr40; color: Byte): Word;
 
 { Show msg on the bottom line and wait for a key; an extended key is read whole (GameIo.ReadAnyKey). }
 procedure DisplayAndPause(color: Byte; msg: Types.TStr40);
@@ -90,17 +90,17 @@ begin
   FreeMem(dataPtr, size);
 end;
 
-{ Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isASCII <> 0 maps ch
+{ Draw count copies of a game-font glyph at character coordinates, advancing one column per copy. isAscii <> 0 maps ch
   through UpCase mod 64; otherwise ch is the glyph index. Ignore an out-of-range starting position or an unloaded font;
   later copies are not range-checked. A glyph index past the font draws nothing. The video driver draws each copy
   (GameVars.video.DrawGlyph). }
-procedure RenderChar(col, row, color, count, ch, isASCII: Byte);
+procedure RenderChar(col, row, color, count, ch, isAscii: Byte);
 var
   i: Byte;
   charIdx: Byte;
 begin
   if (col > 39) or (row > 24) or (GameVars.gameFont = nil) then Exit;
-  if isASCII <> 0 then
+  if isAscii <> 0 then
     charIdx := Ord(UpCase(Chr(ch))) mod 64
   else begin
     if ch >= SizeOf(Types.TFontArr) div SizeOf(GameVars.gameFont^[0]) then Exit;
@@ -273,7 +273,7 @@ begin
           TextRend.PrintSpaces(col, 24, Black, 1);
         end;
     end;
-  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESC);
+  until (key = C_KEYS.ENTER) or (key = C_KEYS.ESCAPE);
   TextRend.ClearBottomLine;
   for col := 1 to Length(reply) do
     reply[col] := UpCase(reply[col]);
@@ -281,7 +281,7 @@ begin
 end;
 
 { Prompt for up to six characters until they parse as an integer in 0..65535, the range of the Word result. }
-function InputUint16(query: Types.TStr40; color: Byte): Word;
+function ReadNumber(query: Types.TStr40; color: Byte): Word;
 var
   num: LongInt;
   reply: Types.TStr40;
@@ -293,7 +293,7 @@ begin
     if code = 0 then
       if (num > 65535) or (num < 0) then code := 1;
   until code = 0;
-  InputUint16 := num;
+  ReadNumber := num;
 end;
 
 { Clear the bottom row, print a message in the requested color and wait for a key. }

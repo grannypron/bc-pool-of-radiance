@@ -34,7 +34,7 @@ procedure Defend(creature: Types.PCharRecord; p: Pointer; removed: Boolean);
 begin
   natural := GameVars.gAttackRoll;
   if forceMiss then
-    GameVars.gAttackAvoided := True;
+    GameVars.forcedMiss := True;
 end;
 {$F-}
 

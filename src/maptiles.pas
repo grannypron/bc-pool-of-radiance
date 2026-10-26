@@ -84,9 +84,9 @@ procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 begin
   if tile > C_TILE.ID_MASK then begin
     if MapTiles.SecondSheet <> nil then
-      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2, GameVars.viewImageBufferPtr);
+      Blit.BlitTileCell(col, row, tile and C_TILE.ID_MASK, 0, mapTilePtr2, GameVars.viewBuffer);
   end else if GameVars.mapTilePtr <> nil then
-    Blit.BlitTileCell(col, row, tile, 0, GameVars.mapTilePtr, GameVars.viewImageBufferPtr);
+    Blit.BlitTileCell(col, row, tile, 0, GameVars.mapTilePtr, GameVars.viewBuffer);
 end;
 
 function SecondSheet: Types.PImgBuf;
@@ -160,7 +160,7 @@ begin
       Inc(fileId, 64);
     name := Copy(name, 1, Length(name) - 1);
   end else if (name <> 'COMSPR') and (name <> 'ICON') then
-    Str(GameVars.virtualDisk, disk);
+    Str(GameVars.diskIndex, disk);
   for frame := 0 to 1 do begin
     Blit.LoadPic(name + disk, fileId + 128 * frame, True, 0, GameVars.iconAnimation[animIdx, frame]);
     if name = 'ICON' then
@@ -198,7 +198,7 @@ begin
       Move(transp^, work^.transp^, Blit.MaskBytes(imgSize));
     end;
   end;
-  Blit.BlitTileClipped(col * 3, row * 3, 0, 1, work, GameVars.viewImageBufferPtr);
+  Blit.BlitTileClipped(col * 3, row * 3, 0, 1, work, GameVars.viewBuffer);
   Blit.FreePic(work);
 end;
 

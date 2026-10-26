@@ -63,7 +63,7 @@ function GetIconTileDelta(size, idx: Byte; var dx, dy: ShortInt): Boolean;
   spell-aim preview's count (CbtMap, #840) all gather through it, so they agree on who is in the area. }
 procedure BuildAreaList(x, y: ShortInt; radius: Byte);
 
-{ Make the spell's targets everyone within radius of cell (x, y) (BuildAreaList): targetCreaturePtr and
+{ Make the spell's targets everyone within radius of cell (x, y) (BuildAreaList): spellTargets and
   spellTargetCount. }
 procedure TargetArea(x, y: ShortInt; radius: Byte);
 
@@ -399,7 +399,7 @@ var
 begin
   Pathing.BuildAreaList(x, y, radius);
   for k := 1 to GameVars.targetCount do
-    GameVars.targetCreaturePtr[k] := GameVars.creatureArr[GameVars.targetList[k].idx];
+    GameVars.spellTargets[k] := GameVars.creatureArr[GameVars.targetList[k].idx];
   GameVars.spellTargetCount := GameVars.targetCount;
 end;
 

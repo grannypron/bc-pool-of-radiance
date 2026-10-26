@@ -6,7 +6,7 @@
 {$I COMPILER.INC}
 program TDualCls;
 
-uses Types, C_ABIL, C_ALIGN, C_CLASS, C_LEVEL, C_RACE, C_STATUS, GameDefs, FileUtil, CharHlp, ClassCal, CharExt,
+uses Types, C_STAT, C_ALIGN, C_CLASS, C_LEVEL, C_RACE, C_STATUS, GameDefs, FileUtil, CharHlp, ClassCal, CharExt,
   ChgClass, TestKit;
 
 const
@@ -28,12 +28,12 @@ begin
   c^.charClass := C_CLASS.FIGHTER;
   c^.alignment := C_ALIGN.LN;
   c^.classLevels[C_LEVEL.FIGHTER] := lvl;
-  c^.stats[C_ABIL.STRENGTH] := 18;
-  c^.stats[C_ABIL.INTELLIGENCE] := 17;
-  c^.stats[C_ABIL.WISDOM] := 12;
-  c^.stats[C_ABIL.DEXTERITY] := 16;
-  c^.stats[C_ABIL.CONSTITUTION] := 14;
-  c^.stats[C_ABIL.CHARISMA] := 10;
+  c^.stats[C_STAT.STRENGTH] := 18;
+  c^.stats[C_STAT.INTELLIGENCE] := 17;
+  c^.stats[C_STAT.WISDOM] := 12;
+  c^.stats[C_STAT.DEXTERITY] := 16;
+  c^.stats[C_STAT.CONSTITUTION] := 14;
+  c^.stats[C_STAT.CHARISMA] := 10;
   c^.experience := 40000;
   ClassCal.RecalcBaseSkills(c);
 end;
@@ -67,12 +67,12 @@ begin
   Fighter(5);
   TestKit.Check(not CharHlp.IsDualClass(c), 'a fighter who has never changed is not dual-classed');
   TestKit.Check(ClassCal.CanChangeClass(c), 'a human fighter with Strength 18 may leave the class');
-  c^.stats[C_ABIL.STRENGTH] := 14;
+  c^.stats[C_STAT.STRENGTH] := 14;
   TestKit.Check(not ClassCal.CanChangeClass(c), 'not with Strength 14: leaving needs 15');
-  c^.stats[C_ABIL.STRENGTH] := 15;
+  c^.stats[C_STAT.STRENGTH] := 15;
   TestKit.Check(ClassCal.CanChangeClass(c), 'Strength 15 is enough');
-  c^.stats[C_ABIL.STRENGTH] := 18;
-  c^.race := C_RACE.HALFELF;
+  c^.stats[C_STAT.STRENGTH] := 18;
+  c^.race := C_RACE.HALF_ELF;
   TestKit.Check(not ClassCal.CanChangeClass(c), 'a half-elf never changes class');
   c^.race := C_RACE.HUMAN;
   c^.charClass := C_CLASS.FIGHTER_MAGE;
@@ -87,14 +87,14 @@ begin
   TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.THIEF), 'Dexterity 16 does not take the thief: it needs 17');
   TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.FIGHTER), 'nor the class it follows');
   TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.DRUID), 'nor a class creation does not offer a human');
-  for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+  for i := C_STAT.STRENGTH to C_STAT.CHARISMA do
     c^.stats[i] := 17;
-  c^.stats[C_ABIL.STRENGTH] := 18;
+  c^.stats[C_STAT.STRENGTH] := 18;
   TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.PALADIN), 'a lawful neutral never becomes a paladin');
   c^.alignment := C_ALIGN.LG;
   TestKit.Check(ClassCal.CanTakeClass(c, C_LEVEL.PALADIN), 'a lawful good one with 17s does');
   TestKit.Check(ClassCal.CanTakeClass(c, C_LEVEL.RANGER), 'and may become a ranger: Curse offers both');
-  c^.stats[C_ABIL.CHARISMA] := 16;
+  c^.stats[C_STAT.CHARISMA] := 16;
   TestKit.Check(not ClassCal.CanTakeClass(c, C_LEVEL.PALADIN), 'not with Charisma 16, below the paladin''s minimum');
 
   { the change }
@@ -164,7 +164,7 @@ begin
 
   { no second change, even once the class left is awake (#879), as in Curse, Secret and Pools }
   c^.classLevels[C_LEVEL.MAGE] := 6;
-  c^.stats[C_ABIL.WISDOM] := 17;
+  c^.stats[C_STAT.WISDOM] := 17;
   ClassCal.RecalcBaseSkills(c);
   TestKit.Check(not CharHlp.ClassResting(c, C_LEVEL.FIGHTER), 'the fighter is awake');
   TestKit.Check(not ClassCal.CanChangeClass(c), 'but a magic-user with Intelligence 17 may not leave its class again');

@@ -62,7 +62,7 @@ end;
 procedure DisplayMapView;
 const
   { Display color for each zone sky/ceiling selector, counted modulo 8. }
-  skyCeilingColors: array[0..7] of Byte = (
+  skyColors: array[0..7] of Byte = (
     Black,
     White,
     LightRed,
@@ -76,7 +76,7 @@ var
   row: Integer;
   loc: Byte;
 
-  { The horizon line's color (View3D.wallColorA) for a ceiling/floor color selector; SSI's code also named 232, as
+  { The horizon line's color (View3D.ceilingBandColor) for a ceiling/floor color selector; SSI's code also named 232, as
     White. }
   function CeilColor(w: Byte): Byte;
   begin
@@ -86,7 +86,7 @@ var
       CeilColor := White;
   end;
 
-  { The horizon band's color (View3D.wallColorB) for a ceiling/floor color selector; SSI's code also named 65 and 232,
+  { The horizon band's color (View3D.midBandColor) for a ceiling/floor color selector; SSI's code also named 65 and 232,
     as LightGray. }
   function FloorColor(w: Byte): Byte;
   begin
@@ -96,7 +96,8 @@ var
       FloorColor := LightGray;
   end;
 
-  { The floor band's color (View3D.wallColorC) for a wall color selector; SSI's code also named 9 and 219, as Brown. }
+  { The floor band's color (View3D.floorBandColor) for a wall color selector; SSI's code also named 9 and 219, as
+    Brown. }
   function WallColor(w: Byte): Byte;
   begin
     case w of
@@ -114,15 +115,16 @@ begin
     C_AREA.LOC_3D_MAP: begin
       GameVars.eventAtCell := View3D.GetMapEvent(GameVars.gMapX, GameVars.gMapY);
       if GameVars.eventAtCell > $7F then
-        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.alternateSkyColor and 7]
+        View3D.skyCeilingColor := skyColors[GameVars.zone0^.alternateSkyColor and 7]
       else
-        View3D.colorSkyCeiling := skyCeilingColors[GameVars.zone0^.skyCeilingColor and 7];
+        View3D.skyCeilingColor := skyColors[GameVars.zone0^.skyCeilingColor and 7];
       if GameVars.picRegionW then begin
-        View3D.wallColorA := CeilColor(GameVars.ceilFloorColorSel);
-        View3D.wallColorB := FloorColor(GameVars.ceilFloorColorSel);
-        View3D.wallColorC := WallColor(GameVars.wallColorSel);
+        View3D.ceilingBandColor := CeilColor(GameVars.ceilFloorColorSel);
+        View3D.midBandColor := FloorColor(GameVars.ceilFloorColorSel);
+        View3D.floorBandColor := WallColor(GameVars.wallColorSel);
       end;
-      View3D.SetView3DColors(View3D.colorSkyCeiling, View3D.wallColorA, View3D.wallColorB, View3D.wallColorC);
+      View3D.SetView3DColors(View3D.skyCeilingColor, View3D.ceilingBandColor, View3D.midBandColor,
+                             View3D.floorBandColor);
       if GameVars.zone0^.noAutomap <> 0 then GameVars.automapOn := False;
       View3D.Display3DMapView(GameVars.gMapX, GameVars.gMapY, GameVars.gFacing);
     end;

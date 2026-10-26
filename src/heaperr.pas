@@ -62,8 +62,8 @@ begin
     repeat
       { an extended key's scan byte is read and passed over }
       ch := GameIo.ReadAnyKey;
-    until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
-    if ch = C_KEYS.ESC then
+    until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESCAPE);
+    if ch = C_KEYS.ESCAPE then
       done := True
     else begin
       done := SaveLoad.SaveGame;

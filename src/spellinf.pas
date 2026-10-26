@@ -201,7 +201,7 @@ begin
   s := '';
   l := '';
   kind := CharHlp.SpellArea(spell, size);
-  { the Javelin of Lightning strikes the creature aimed at, then runs on as a bolt (Magic.JavelinOfLightningHandler) }
+  { the Javelin of Lightning strikes the creature aimed at, then runs on as a bolt (Magic.SpellJavelinOfLightning) }
   if spell = C_SPELL.ITEM_JAVELIN_LIGHTNING then begin
     kind := C_SPELL.AREA_BOLT;
     size := C_SPELL.JAVELIN_BOLT_CELLS;
@@ -379,7 +379,7 @@ var
 begin
   spell := UseLine(line, old);
   if spell = C_SPELL.ITEM_FIREBALL then begin
-    { Magic.FireballHandler's 1d ITEM_FIREBALL_DIE * 2 + 1 }
+    { Magic.SpellFireball's 1d ITEM_FIREBALL_DIE * 2 + 1 }
     s := '';
     for i := 1 to C_SPELL.ITEM_FIREBALL_DIE do begin
       if i = C_SPELL.ITEM_FIREBALL_DIE then
@@ -652,8 +652,8 @@ begin
       ch := MenuCore.MenuHorizontal(query, menu, LightMagenta, LightGreen, White, True, False, ext);
       if ext then
         case ch of
-          C_KEYS.UP, C_KEYS.PGUP: step := -1;
-          C_KEYS.DOWN, C_KEYS.PGDN: step := 1;
+          C_KEYS.UP, C_KEYS.PAGE_UP: step := -1;
+          C_KEYS.DOWN, C_KEYS.PAGE_DOWN: step := 1;
         end
       else
         case ch of

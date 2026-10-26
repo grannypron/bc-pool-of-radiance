@@ -144,7 +144,7 @@ const
   page (#904) read it. }
 function TurnValue(undeadLevel, lvl: ShortInt): ShortInt;
 
-{ The racial limits on ability (C_ABIL) for race 1..7 (C_RACE.DWARF..HUMAN) and gender (C_GENDER, which only Strength
+{ The racial limits on ability (C_STAT) for race 1..7 (C_RACE.DWARF..HUMAN) and gender (C_GENDER, which only Strength
   depends on), from GameDefs.minimumMaximumStatistics. }
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
@@ -154,7 +154,7 @@ const
     (the 1st-edition PHB, p. 20) }
   HALFELF_MULTI_CLERIC_WIS = 13;
 
-{ The class minimum on ability (C_ABIL) for charClass (C_CLASS) of race (C_RACE): a single class's from
+{ The class minimum on ability (C_STAT) for charClass (C_CLASS) of race (C_RACE): a single class's from
   classMin, a multiclass's the highest of its classes' (GameDefs.classParts), as the 1st-edition PHB has it,
   and a half-elf's multiclass with cleric at least HALFELF_MULTI_CLERIC_WIS Wisdom. }
 function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
@@ -166,7 +166,7 @@ function ClassAbilityMin(race, charClass, ability: ShortInt): Byte;
   uses the nearer end, so Con 0..2 (Raise Dead takes a point each time) keep Con 3's penalty. }
 function ConHpPerDie(cls: ShortInt; con: Byte): ShortInt;
 
-{ Sum ConHpPerDie over the hit dice each class with levels whose classBit shares a bit with mask ($FF = all) rolls for
+{ Sum ConHpPerDie over the hit dice each class with levels whose classBits shares a bit with mask ($FF = all) rolls for
   its level now (RollFirstLevelHp's dice), leaving out the classes a dual-classed human has left, which gain no more hit
   dice: once a class, twice for a first-level ranger or monk, which rolls two dice. }
 function ConHpBonus(creature: Types.PCharRecord; mask: Byte): ShortInt;
@@ -218,7 +218,7 @@ const
     item data gives it to the fighter's weapons and armor, and no item type carries 1 shl 7. }
   usabilityBit: array[0..7] of Byte = (
     1 shl 1, 1 shl 4, 1 shl 3, 1 shl 6, 1 shl 6, 1 shl 0, 1 shl 2, 1 shl 5);
-  { Each class's prime requisites (C_LEVEL slot), one bit per ability (1 shl C_ABIL): cleric Wisdom, druid Wisdom and
+  { Each class's prime requisites (C_LEVEL slot), one bit per ability (1 shl C_STAT): cleric Wisdom, druid Wisdom and
     Charisma, fighter Strength, paladin Strength and Wisdom, ranger Strength, Intelligence and Wisdom, magic-user
     Intelligence, thief Dexterity, monk Strength, Wisdom and Dexterity (1st-edition PHB; the Curse port's
     primeRequisites). ExperienceShare's bonus asks the same abilities. }
@@ -282,7 +282,7 @@ function SpellFailureChance(creature: Types.PCharRecord; spell: Byte): Byte;
 
 implementation
 
-uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_ABIL, C_EQUIP, C_ITEM, C_SAVE, Dice, CharHlp, AbilAdj;
+uses GameDefs, GameVars, C_CLASS, C_LEVEL, C_STAT, C_EQUIP, C_ITEM, C_SAVE, Dice, CharHlp, AbilAdj;
 
 const
   { StartingAge's dice: the DMG's starting ages (p.12), by race and class (C_LEVEL); the monk column (7) has only the
@@ -428,9 +428,9 @@ var
   ok: Boolean;
 begin
   ok := True;
-  for ab := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+  for ab := C_STAT.STRENGTH to C_STAT.CHARISMA do
     if primeRequisites[cls] and (1 shl ab) <> 0 then begin
-      if ab = C_ABIL.STRENGTH then
+      if ab = C_STAT.STRENGTH then
         have := CharHlp.PermanentStrength(creature)
       else
         have := creature^.stats[ab];
@@ -463,7 +463,7 @@ begin
   if ok then
     ok := ClassCal.PrimesAtLeast(creature, cls, TAKE_CLASS_SCORE);
   if ok then
-    for i := C_ABIL.STRENGTH to C_ABIL.CHARISMA do
+    for i := C_STAT.STRENGTH to C_STAT.CHARISMA do
       if creature^.stats[i] < ClassCal.ClassAbilityMin(creature^.race, cls, i) then
         ok := False;
   if ok then begin
@@ -518,7 +518,7 @@ const
   character), and for cleric or magic-user levels above 1 set the spell slots (clerics also get the Wisdom bonus and
   every cleric spell of a level with slots marked known, KnowClericSpells; a level-1 caster's slots are FirstLevelSlots'
   and left as they are). The slot table fills only levels 2..6, the player cap, so a
-  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. thac0Tbl covers
+  higher-level caster (Genheeris, a level 7 magic-user who joins the party) takes the level 6 row. classThac0 covers
   levels 0..10, and a level outside that uses the nearer end. A dual-classed human's itemLimits are set
   (ItemLimitsFor). Each class counts at the level the creature can use
   (CharHlp.GetClassLevel): a class a dual-classed human has left and cannot use yet gives nothing, and a resting
@@ -550,8 +550,8 @@ begin
       tl := 0
     else if tl > 10 then
       tl := 10;
-    if GameDefs.thac0Tbl[i, tl] > creature^.thac0Base then
-      creature^.thac0Base := GameDefs.thac0Tbl[i, tl];
+    if GameDefs.classThac0[i, tl] > creature^.thac0Base then
+      creature^.thac0Base := GameDefs.classThac0[i, tl];
     case i of
       C_LEVEL.FIGHTER:
         if lvl > 6 then creature^.attacks := 3 else creature^.attacks := 2;
@@ -563,14 +563,14 @@ begin
       C_LEVEL.CLERIC:
         if lvl > 1 then begin
           for k := 1 to Types.CASTER_LEVEL_LAST do
-            creature^.clericSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.CLERIC].slots[slotLvl, k];
+            creature^.clericSpells[k] := GameDefs.classExperience[C_LEVEL.CLERIC].slots[slotLvl, k];
           ClassCal.AwardWisdomBonus(creature);
           ClassCal.KnowClericSpells(creature);
         end;
       C_LEVEL.MAGE:
         if lvl > 1 then
           for k := 1 to Types.CASTER_LEVEL_LAST do
-            creature^.mageSpells[k] := GameDefs.experienceSpellsClass[C_LEVEL.MAGE].slots[slotLvl, k];
+            creature^.mageSpells[k] := GameDefs.classExperience[C_LEVEL.MAGE].slots[slotLvl, k];
     end;
   end;
   { a dual-classed human's weapons and armor follow the classes it can use; anyone else keeps creation's }
@@ -876,7 +876,7 @@ function TurnValue(undeadLevel, lvl: ShortInt): ShortInt;
 const
   { Rows by undead level, columns by turn level, as TurnValue reads them. A negative value lets
     CbtActs.CombatTurnUndead go on past its 1d12 targets until six succeed. }
-  turnTable: Types.TTurnUndeadTable = (
+  turnUndeadResults: Types.TTurnUndeadTable = (
     { 1: Skeleton }
     (10, 7, 4, 1, 1, 0, 0, -1, -1, -1),
     { 2: Zombie }
@@ -912,18 +912,18 @@ begin
   end;
   if undeadLevel > TURN_UNDEAD_KINDS then
     undeadLevel := TURN_UNDEAD_KINDS;
-  TurnValue := turnTable[undeadLevel, col];
+  TurnValue := turnUndeadResults[undeadLevel, col];
 end;
 
 function RaceAbilityMin(race, gender, ability: ShortInt): Byte;
 begin
   with GameDefs.minimumMaximumStatistics[race] do
     case ability of
-      C_ABIL.STRENGTH: RaceAbilityMin := strMin[gender];
-      C_ABIL.INTELLIGENCE: RaceAbilityMin := intMin;
-      C_ABIL.WISDOM: RaceAbilityMin := wisMin;
-      C_ABIL.DEXTERITY: RaceAbilityMin := dexMin;
-      C_ABIL.CONSTITUTION: RaceAbilityMin := conMin;
+      C_STAT.STRENGTH: RaceAbilityMin := strMin[gender];
+      C_STAT.INTELLIGENCE: RaceAbilityMin := intMin;
+      C_STAT.WISDOM: RaceAbilityMin := wisMin;
+      C_STAT.DEXTERITY: RaceAbilityMin := dexMin;
+      C_STAT.CONSTITUTION: RaceAbilityMin := conMin;
     else
       RaceAbilityMin := chaMin;
     end;
@@ -933,11 +933,11 @@ function RaceAbilityMax(race, gender, ability: ShortInt): Byte;
 begin
   with GameDefs.minimumMaximumStatistics[race] do
     case ability of
-      C_ABIL.STRENGTH: RaceAbilityMax := strMax[gender];
-      C_ABIL.INTELLIGENCE: RaceAbilityMax := intMax;
-      C_ABIL.WISDOM: RaceAbilityMax := wisMax;
-      C_ABIL.DEXTERITY: RaceAbilityMax := dexMax;
-      C_ABIL.CONSTITUTION: RaceAbilityMax := conMax;
+      C_STAT.STRENGTH: RaceAbilityMax := strMax[gender];
+      C_STAT.INTELLIGENCE: RaceAbilityMax := intMax;
+      C_STAT.WISDOM: RaceAbilityMax := wisMax;
+      C_STAT.DEXTERITY: RaceAbilityMax := dexMax;
+      C_STAT.CONSTITUTION: RaceAbilityMax := conMax;
     else
       RaceAbilityMax := chaMax;
     end;
@@ -976,7 +976,7 @@ begin
       if classMin[part].values[ability] > least then
         least := classMin[part].values[ability];
   end;
-  if (race = C_RACE.HALFELF) and (ability = C_ABIL.WISDOM)
+  if (race = C_RACE.HALF_ELF) and (ability = C_STAT.WISDOM)
      and (charClass in [C_CLASS.CLERIC_FIGHTER..C_CLASS.CLERIC_THIEF]) and (least < HALFELF_MULTI_CLERIC_WIS) then
     least := HALFELF_MULTI_CLERIC_WIS;
   ClassAbilityMin := least;
@@ -1005,11 +1005,11 @@ begin
   ConHpPerDie := share;
 end;
 
-{ True when class cls rolls hit dice for creature's level in it now: it has a level, its classBit shares a bit with
+{ True when class cls rolls hit dice for creature's level in it now: it has a level, its classBits shares a bit with
   mask ($FF = all), and it is not a class a dual-classed human has left. }
 function RollsHitDice(creature: Types.PCharRecord; cls: ShortInt; mask: Byte): Boolean;
 begin
-  RollsHitDice := (creature^.classLevels[cls] > 0) and (GameDefs.classBit[cls] and mask > 0) and
+  RollsHitDice := (creature^.classLevels[cls] > 0) and (GameDefs.classBits[cls] and mask > 0) and
                   (creature^.portExt.formerClasses and (1 shl cls) = 0);
 end;
 
@@ -1031,7 +1031,7 @@ begin
   bonus := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if ClassCal.RollsHitDice(creature, cls, mask) then
-      Inc(bonus, ClassCal.ConHpPerDie(cls, creature^.stats[C_ABIL.CONSTITUTION]) * ClassCal.DiceAtLevel(creature, cls));
+      Inc(bonus, ClassCal.ConHpPerDie(cls, creature^.stats[C_STAT.CONSTITUTION]) * ClassCal.DiceAtLevel(creature, cls));
   ConHpBonus := bonus;
 end;
 
@@ -1110,7 +1110,7 @@ begin
   sum := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     Inc(sum, ClassCal.HitDice(creature, cls));
-  HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature, creature^.stats[C_ABIL.CONSTITUTION]),
+  HpMinimum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature, creature^.stats[C_STAT.CONSTITUTION]),
                                            ClassCal.HpClassCount(creature));
 end;
 
@@ -1125,7 +1125,7 @@ begin
   sum := 0;
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     Inc(sum, ClassCal.HitDice(creature, cls) * GameDefs.hpSides[cls]);
-  HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature, creature^.stats[C_ABIL.CONSTITUTION]),
+  HpMaximum := ClassCal.DivideAmongClasses(sum, ClassCal.DiceConBonus(creature, creature^.stats[C_STAT.CONSTITUTION]),
                                            ClassCal.HpClassCount(creature));
 end;
 
@@ -1140,7 +1140,7 @@ begin
   end;
 end;
 
-{ Roll the hit dice of each class with levels whose classBit shares a bit with mask ($FF = all), but for a class a
+{ Roll the hit dice of each class with levels whose classBits shares a bit with mask ($FF = all), but for a class a
   dual-classed human has left (#838): hpDice d hpSides at
   level 1, and one die at each level after, so the two-dice ranger and monk gain one die a level as the others do. Each
   die rolls at least HitDieFloor for the creature's Constitution, and a class at level 1 gets at least
@@ -1156,7 +1156,7 @@ var
   i: Byte;
 begin
   sum := 0;
-  floor := ClassCal.HitDieFloor(creature^.stats[C_ABIL.CONSTITUTION]);
+  floor := ClassCal.HitDieFloor(creature^.stats[C_STAT.CONSTITUTION]);
   for cls := C_LEVEL.CLERIC to C_LEVEL.MONK do
     if ClassCal.RollsHitDice(creature, cls, mask) then begin
       roll := 0;

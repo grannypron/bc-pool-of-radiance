@@ -78,7 +78,7 @@ begin
     TextRend.DisplayString(25, 24, White, 'Off (Alt-M)');
 end;
 
-function TurnUndeadAI(creature: Types.PCharRecord): Boolean; forward;
+function TurnUndeadAi(creature: Types.PCharRecord): Boolean; forward;
 
 function SelectItemToUse(creature: Types.PCharRecord): Boolean; forward;
 
@@ -126,11 +126,11 @@ begin
       cleared first, as there, so that the caster hurt by its own spell does not lose a second copy of it }
     spell := creature^.combatAddr^.spellCast;
     creature^.combatAddr^.spellCast := 0;
-    Magic.CastSpellNC(spell, True, True, done);
+    Magic.CastSpell(spell, True, True, done);
     done := CharHlp.EndActions(creature);
   end else if CombatAi.SelectItemToUse(creature) then
     done := CharHlp.EndActions(creature)
-  else if CombatAi.TurnUndeadAI(creature) then
+  else if CombatAi.TurnUndeadAi(creature) then
     done := CharHlp.EndActions(creature)
   else if CombatAi.SelectSpellToCast(creature) then
     done := True
@@ -148,17 +148,17 @@ end;
 
 { Turn undead whenever creature can turn (a cleric, or a paladin of level 3 or more) and has not tried this combat, and
   a turnable undead target exists. }
-function TurnUndeadAI(creature: Types.PCharRecord): Boolean;
+function TurnUndeadAi(creature: Types.PCharRecord): Boolean;
 var
   tgt: Pointer;
 begin
   if (creature^.combatAddr^.usedTurnUndead = 0)
      and (ClassCal.TurnLevel(creature) > 0)
      and CbtActs.FindTurnUndeadTarget(creature, tgt) then begin
-    TurnUndeadAI := True;
+    TurnUndeadAi := True;
     CbtActs.CombatTurnUndead(creature);
   end else
-    TurnUndeadAI := False;
+    TurnUndeadAi := False;
 end;
 
 { Should the AI use spell (memorized, or an item's spell effect)? Its aiPriority must be at least minPri. Non-offensive
@@ -186,8 +186,8 @@ begin
       else begin
         { Reject the spell if any candidate aim point would also catch a non-enemy }
         for j := 1 to cnt do
-          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].x,
-                                      GameVars.arenaLoc[GameVars.potentialTargetCreature[j]].y,
+          if CbtActs.AreaHitsNonEnemy(GameVars.arenaLoc[GameVars.combatTargetSlots[j]].x,
+                                      GameVars.arenaLoc[GameVars.combatTargetSlots[j]].y,
                                       GameDefs.spellTable[spell].aiRadius) then
             Exit;
         DecideCastSpell := True;
@@ -320,7 +320,7 @@ begin
   if Odd(dir) then
     stepCost := 3;
   stepCost := stepCost * GameDefs.terrainInfo[terrIdx].cost;
-  if (terrIdx = C_TERR.STINK_CLOUD) and CombatAi.AvoidsCloud(creature) then
+  if (terrIdx = C_TERR.STINKING_CLOUD) and CombatAi.AvoidsCloud(creature) then
     stepCost := creature^.combatAddr^.movement + 1;
   if creature^.combatAddr^.movement >= stepCost then
     CanStepDir := True;
@@ -363,7 +363,7 @@ begin
     Exit;
   avoid := 0;
   if CombatAi.AvoidsCloud(creature) then
-    avoid := C_TERR.STINK_CLOUD;
+    avoid := C_TERR.STINKING_CLOUD;
   found := Pathing.RouteStep(slot, [targetSlot], [], avoid, CbtMap.OccupantAt, dir, goal);
   if not found then begin
     enemies := [];
@@ -374,7 +374,7 @@ begin
       if (i <> slot) and (p <> nil) and (GameVars.arenaLoc[i].size <> 0) then
         if CharHlp.Team(p) <> CharHlp.EnemyTeam(creature) then
           friends := friends + [i]
-        else if (p^.enabled <> 0) and CbtActs.CanAttackTarget(creature, p) then
+        else if (p^.enabled <> 0) and CbtActs.CanTarget(creature, p) then
           enemies := enemies + [i];
     end;
     found := Pathing.RouteStep(slot, enemies, [], avoid, CbtMap.OccupantAt, dir, goal);
@@ -445,7 +445,7 @@ begin
       while (attempt < 6) and (not done)
             and (not CombatAi.AiCanStep(creature, attempt, dir, edge)) do
         if (creature^.combatAddr^.fleeing <> 0) and edge then
-          done := CbtActs.CombatFleeAttempt(creature)
+          done := CbtActs.AttemptFlee(creature)
         else
           Inc(attempt);
       if done then
@@ -552,7 +552,7 @@ begin
       if (target <> nil) and ((target^.enabled = 0) or (target^.hostile = creature^.hostile)) then
         target := nil;
       if target <> nil then
-        if CbtActs.CanAttackTarget(creature, target) then begin
+        if CbtActs.CanTarget(creature, target) then begin
           tx := CbtMap.CombatCellX(target);
           ty := CbtMap.CombatCellY(target);
           range := weaponRange;
@@ -571,7 +571,7 @@ begin
             done := CombatAi.FinishRound(creature);
         end else begin
           pick := Dice.RollDice(1, cnt);
-          target := GameVars.creatureArr[GameVars.potentialTargetCreature[pick]];
+          target := GameVars.creatureArr[GameVars.combatTargetSlots[pick]];
           if CharHlp.HasRangedWeapon(creature)
              and (not CharHlp.HasThrowableWeapon(creature))
              and (CbtMap.CountTargets(creature, 1) > 0) then begin
@@ -582,7 +582,7 @@ begin
             if CharHlp.HasRangedWeapon(creature) and (not CharHlp.HasThrowableWeapon(creature)) then
               canAct := not CombatAi.FinishRound(creature);
           end else if (CbtMap.CalcDistance(creature, target) = 1)
-                  or CbtActs.CanAttackTarget(creature, target) then
+                  or CbtActs.CanTarget(creature, target) then
             inRange := True;
         end;
       end;
@@ -590,7 +590,7 @@ begin
         CbtMap.ScrollView(CbtMap.CombatCellX(creature), CbtMap.CombatCellY(creature), 2,
                           CbtActs.DirTowardTarget(creature, target));
       if inRange then begin
-        if CbtActs.SweepAttempt(creature, target) then
+        if CbtActs.SweepAttack(creature, target) then
           done := CharHlp.EndActions(creature)
         else begin
           CbtActs.AttackWithReadied(creature, target, done);
@@ -651,7 +651,7 @@ begin
       { result ignored }
       C_KEYS.ALT_X:
         if ext then
-          if CbtActs.StingVictoryCheat then
+          if CbtActs.VictoryCheat then
             begin end;
     end;
   end;
@@ -680,10 +680,10 @@ begin
     { PCs never check morale }
     Exit;
   { packed morale rating }
-  GameVars.currentMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
-  if GameVars.currentMorale > 102 then
+  GameVars.combatMorale := (creature^.npc and C_NPC.MORALE_MASK) * 2;
+  if GameVars.combatMorale > 102 then
     { 0 is the fail sentinel: both checks below require morale <> 0 }
-    GameVars.currentMorale := 0;
+    GameVars.combatMorale := 0;
   { Effects adjust morale here: Bless +5, Curse -5 floored at 0 (so a curse below 5 fails both checks), Charm sets 100
     and flips the creature's side on its first call. Bless and Curse also adjust the attack roll. }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
@@ -692,16 +692,16 @@ begin
     hpPct := 0
   else
     hpPct := creature^.hpCur * 100 div creature^.hpMax;
-  if (GameVars.currentMorale >= 100 - hpPct)
-     and (GameVars.currentMorale <> 0) then
+  if (GameVars.combatMorale >= 100 - hpPct)
+     and (GameVars.combatMorale <> 0) then
     { own-HP check holds }
     Exit;
-  moraleSave := GameVars.currentMorale;
-  GameVars.currentMorale := CbtActs.hostileHpPct;
+  moraleSave := GameVars.combatMorale;
+  GameVars.combatMorale := CbtActs.hostileHpPct;
   { the same effect adjustments, now to the group figure }
   FxEngine.TriggerEffectsWithCondition(C_COND.MORALE_CHECK, creature);
-  if (GameVars.currentMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])
-     and (GameVars.currentMorale <> 0)
+  if (GameVars.combatMorale >= 100 - GameVars.zone1^[C_GBVM.MORALE_THRESHOLD])
+     and (GameVars.combatMorale <> 0)
      and (creature^.hostile <> 0) then
     { group check holds (hostiles) }
     Exit;
@@ -860,7 +860,7 @@ begin
     changed := True;
   end;
   CharHlp.RecalcStats(creature);
-  CbtActs.SetCurAttacksX2(creature);
+  CbtActs.RecalcAttacksLeft(creature);
   needSwap := True;
   if creature^.equipped[C_EQUIP.SHIELD] <> nil then
     if (creature^.equipped[C_EQUIP.SHIELD] = bestShield)

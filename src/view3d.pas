@@ -11,13 +11,13 @@ var
   { the wall types' symbol slices, by wall type 1..15 (View3D.LoadWallSet fills a slot's five) }
   wallGfx: Types.PWallSlices;
   { the sky or ceiling band's color (rows 16..58 of the view) }
-  colorSkyCeiling: Byte;
+  skyCeilingColor: Byte;
   { the horizon line's color (row 59) }
-  wallColorA: Byte;
+  ceilingBandColor: Byte;
   { the horizon band's color (rows 60..61) }
-  wallColorB: Byte;
+  midBandColor: Byte;
   { the floor band's color (rows 62..103) }
-  wallColorC: Byte;
+  floorBandColor: Byte;
 
 { Stores the four 3D-view band colours (sky, horizon line, horizon band, floor). FixMain's boot sequence passes
   (11,0,7,6) for the default palette; MapView re-sets them for each 3D view }
@@ -108,20 +108,20 @@ end;
 
 procedure SetView3DColors(cSky, cHorz1, cHorz2, cFloor: Byte);
 begin
-  colorSkyCeiling := cSky;
-  wallColorA := cHorz1;
-  wallColorB := cHorz2;
-  wallColorC := cFloor;
+  skyCeilingColor := cSky;
+  ceilingBandColor := cHorz1;
+  midBandColor := cHorz2;
+  floorBandColor := cFloor;
 end;
 
 { Fill the four 3D-view bands into the view buffer: sky rows 16..58, horizon rows 59 and 60..61, floor rows 62..103;
   x=2, width=11 chars. }
 procedure DrawBackdrop;
 begin
-  Blit.FillPicRect(2, 16, 11, 43, colorSkyCeiling, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 59, 11, 1, wallColorA, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 60, 11, 2, wallColorB, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
-  Blit.FillPicRect(2, 62, 11, 42, wallColorC, GameDefs.iconColorMap, GameVars.viewImageBufferPtr);
+  Blit.FillPicRect(2, 16, 11, 43, skyCeilingColor, GameDefs.iconColorMap, GameVars.viewBuffer);
+  Blit.FillPicRect(2, 59, 11, 1, ceilingBandColor, GameDefs.iconColorMap, GameVars.viewBuffer);
+  Blit.FillPicRect(2, 60, 11, 2, midBandColor, GameDefs.iconColorMap, GameVars.viewBuffer);
+  Blit.FillPicRect(2, 62, 11, 42, floorBandColor, GameDefs.iconColorMap, GameVars.viewBuffer);
 end;
 
 { Blit view slot slot's symbol rectangle for wallType at char (x+2, y+2), walking the 156-cell slice from
@@ -398,7 +398,7 @@ var
   setFile: Byte;
 begin
   if (wsSlot < 1) or (wsSlot > 3) then Exit;
-  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', fileId, sizeRead, data);
+  DaxIo.LoadDax('WALLDEF' + StrUtil.NumStr(GameVars.diskIndex), '.dax', fileId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead mod SizeOf(Types.TView3dWallDef) <> 0) or
       (sizeRead div SizeOf(Types.TView3dWallDef) + wsSlot > 4) or
       ((sizeRead > SizeOf(Types.TView3dWallDef)) and (fileId > 25)) then begin
@@ -447,7 +447,7 @@ var
   data: Types.PByteArr;
   offset: Word;
 begin
-  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GameVars.virtualDisk), '.dax', mapId, sizeRead, data);
+  DaxIo.LoadDax('GEO' + StrUtil.NumStr(GameVars.diskIndex), '.dax', mapId, sizeRead, data);
   if (sizeRead = 0) or (sizeRead <> SizeOf(Types.TGeoMap) + 2) then begin
     GameIo.FatalError('Unable to load geo in Load3DMap.');
   end;
@@ -466,8 +466,8 @@ end;
 begin
   { Turbo Pascal clears no variable }
   wallGfx := nil;
-  colorSkyCeiling := 0;
-  wallColorA := 0;
-  wallColorB := 0;
-  wallColorC := 0;
+  skyCeilingColor := 0;
+  ceilingBandColor := 0;
+  midBandColor := 0;
+  floorBandColor := 0;
 end.

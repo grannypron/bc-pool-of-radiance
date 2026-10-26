@@ -8,7 +8,7 @@ interface
 
 const
   ENTER = #13;
-  ESC = #27;
+  ESCAPE = #27;
   BACKSPACE = #8;
   TAB = #9;
   { the control keys GameIo.ReadGameKey acts on: Ctrl-S turns the sound over; the rest are STING's (Ctrl-C quits,
@@ -29,8 +29,8 @@ const
     also for Exit or an empty list. }
   NONE = #0;
   { extended scan codes }
-  PGUP = #73;
-  PGDN = #81;
+  PAGE_UP = #73;
+  PAGE_DOWN = #81;
   ALT_Q = #16;
   ALT_X = #45;
   ALT_M = #50;

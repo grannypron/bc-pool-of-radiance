@@ -291,7 +291,7 @@ end;
 function Watched(beast, witness: Types.PCharRecord): Word;
 begin
   Watched := 0;
-  if (beast = nil) or (GameVars.ifcState <> C_IFC.COMBAT) or Party.IsPartyMember(beast) then Exit;
+  if (beast = nil) or (GameVars.ifcState <> C_IFC.IN_COMBAT) or Party.IsPartyMember(beast) then Exit;
   if (witness <> nil) and not Party.IsPartyMember(witness) then Exit;
   Watched := Bestiary.Add(beast^.name);
 end;
@@ -323,7 +323,7 @@ procedure LearnArmor(beast, attacker: Types.PCharRecord; reach: Integer; hit: Bo
 var
   i: Word;
 begin
-  if (attacker = nil) or GameVars.gAttackAvoided then Exit;
+  if (attacker = nil) or GameVars.forcedMiss then Exit;
   { 1 misses whatever the armor; a natural 20 is FxEngine.RollToHit's 100, which no attack-roll modifier brings near
     50, and no other roll reaches 50 }
   if (GameVars.gAttackRoll <= 1) or (GameVars.gAttackRoll >= 50) then Exit;

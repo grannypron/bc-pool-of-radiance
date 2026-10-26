@@ -45,21 +45,21 @@ const
   DETECT_MAGIC_CLERIC = 5;
   DETECT_MAGIC_MU = 11;
   DETECT_MAGIC = [DETECT_MAGIC_CLERIC, DETECT_MAGIC_MU];
-  { spellFns[3] = CureLightWoundsHandler; the cure-targeting special case in the AI + manual cast paths }
+  { spellFns[3] = SpellCureLightWounds; the cure-targeting special case in the AI + manual cast paths }
   CURE_LIGHT_WOUNDS = 3;
-  { spellFns[1] = BlessHandler; Bless spares a creature already in melee in combat }
+  { spellFns[1] = SpellBless; Bless spares a creature already in melee in combat }
   BLESS = 1;
-  { spellFns[15] = MagicMissileHandler }
+  { spellFns[15] = SpellMagicMissile }
   MAGIC_MISSILE = 15;
-  { spellFns[65] = WandMagicMissilesHandler, the Wand of Magic Missiles }
+  { spellFns[65] = SpellWandOfMagicMissiles, the Wand of Magic Missiles }
   WAND_MAGIC_MISSILES = 65;
   { the spells that fire magic missiles: Shield and the Magic Missile immunity stop them all (POR-0210, #890) }
   MAGIC_MISSILES = [MAGIC_MISSILE, WAND_MAGIC_MISSILES];
-  { spellFns[21] = SleepHandler; its pool of hit dice is SLEEP_DICE d SLEEP_DIE, rolled at casting }
+  { spellFns[21] = SpellSleep; its pool of hit dice is SLEEP_DICE d SLEEP_DIE, rolled at casting }
   SLEEP = 21;
   SLEEP_DICE = 4;
   SLEEP_DIE = 4;
-  { spellFns[23] = HoldPersonHandler; one target saves at -2 }
+  { spellFns[23] = SpellHold; one target saves at -2 }
   HOLD_PERSON = 23;
   { the magic-user's Charm Person, which a charming gaze applies }
   CHARM_PERSON = 10;
@@ -74,20 +74,20 @@ const
   ITEM_PARALYZATION = 61;
   ITEM_DISAPPEARANCE = 63;
   ITEM_BODILY_HEALTH = 67;
-  { spellFns[34] = StinkingCloudHandler }
+  { spellFns[34] = SpellStinkingCloud }
   STINKING_CLOUD = 34;
-  { spellFns[37] = CureBlindnessHandler }
+  { spellFns[37] = SpellCureBlindness }
   CURE_BLINDNESS = 37;
-  { spellFns[39] = CureDiseaseHandler }
+  { spellFns[39] = SpellCureDisease }
   CURE_DISEASE = 39;
-  { spellFns[43] = RemoveCurseSpell }
+  { spellFns[43] = SpellRemoveCurse }
   REMOVE_CURSE = 43;
-  { spellFns[47] and spellFns[64] (the item fireball) = FireballHandler }
+  { spellFns[47] and spellFns[64] (the item fireball) = SpellFireball }
   FIREBALL = 47;
   ITEM_FIREBALL = 64;
   { the item fireball's caster level: 1d ITEM_FIREBALL_DIE * 2 + 1, so 3, 5 or 7 }
   ITEM_FIREBALL_DIE = 3;
-  { spellFns[51] = LightningBoltHandler }
+  { spellFns[51] = SpellLightningBolt }
   LIGHTNING_BOLT = 51;
   { Lightning Bolt's length, in cells past the aim cell }
   LIGHTNING_BOLT_CELLS = 8;

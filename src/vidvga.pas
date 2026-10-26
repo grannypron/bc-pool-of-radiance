@@ -54,7 +54,7 @@ var
 begin
   for row := 0 to SizeOf(GameVars.spanActive) - 1 do
     if GameVars.spanActive[row] <> 0 then
-      Move(GameVars.viewImageBufferPtr^.data[GameVars.spanFirstOfs[row]],
+      Move(GameVars.viewBuffer^.data[GameVars.spanFirstOfs[row]],
            vgaMem[GameVars.fbRowOfs[row + 8] + GameVars.spanScreenOfs[row] + 8],
            GameVars.spanLastOfs[row] - GameVars.spanFirstOfs[row] + 1);
 end;

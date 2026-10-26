@@ -221,9 +221,9 @@ begin
     Stats.Count(victim, DAMAGE_TAKEN, hp);
     if down then
       Stats.Count(victim, KNOCKED_DOWN, 1);
-    if victim^.status = C_STATUS.DEAD then
+    if victim^.status = C_STATUS.DEAD_STATUS then
       Stats.Count(victim, DIED, 1);
-  end else if (GameVars.ifcState = C_IFC.COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
+  end else if (GameVars.ifcState = C_IFC.IN_COMBAT) and (actor <> victim) and Party.IsPartyMember(actor) then begin
     Stats.Count(actor, DAMAGE_DONE, hp);
     if down then begin
       Stats.Count(actor, KILLS, 1);
@@ -244,7 +244,7 @@ end;
 procedure Healed(actor, target: Types.PCharRecord; hp: Byte; byPower: Boolean);
 begin
   Stats.Count(target, HEALED_TAKEN, hp);
-  if byPower or (GameVars.currentSpellBeing <> 0) then
+  if byPower or (GameVars.spellId <> 0) then
     Stats.Count(actor, HEALED_GIVEN, hp);
 end;
 

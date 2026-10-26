@@ -419,7 +419,7 @@ begin
         'S': if treasure then
                Money.ShareMoney;
         'D': if hasDetect then
-               Magic.CastSpellNC(detectSpell, False, False, ext);
+               Magic.CastSpell(detectSpell, False, False, ext);
         'E', C_KEYS.NONE: begin
                             Money.DetermineTreasure(treasure, items);
                             done := not (treasure or items) or

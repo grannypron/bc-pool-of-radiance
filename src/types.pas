@@ -4,7 +4,7 @@ unit Types;
 
 interface
 
-uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_ABIL, C_MONEY, C_GBVM;
+uses C_GENDER, C_SAVE, C_EQUIP, C_LEVEL, C_STAT, C_MONEY, C_GBVM;
 
 const
   { the longest name a character or creature has }
@@ -251,7 +251,7 @@ type
     portExt: TCharExt);
       1: (
     { Current attributes as an array for character creation and display. }
-    stats: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of Byte);
+    stats: array[C_STAT.STRENGTH..C_STAT.CHARISMA] of Byte);
       2: (
     { skips to gender }
     genderPad: array[0..141 + PTR_GROWTH] of Byte;
@@ -514,10 +514,10 @@ type
       0: (values: array[1..3] of ShortInt);
       1: (first: ShortInt; second: ShortInt; third: ShortInt);
   end;
-  { one value per ability (CharGen's raceAbilityAdj, ClassCal.ClassAbilityMin's classMin), by C_ABIL index or by name }
+  { one value per ability (CharGen's raceAbilityAdj, ClassCal.ClassAbilityMin's classMin), by C_STAT index or by name }
   TRuleAbilities = packed record
     case Byte of
-      0: (values: array[C_ABIL.STRENGTH..C_ABIL.CHARISMA] of ShortInt);
+      0: (values: array[C_STAT.STRENGTH..C_STAT.CHARISMA] of ShortInt);
       1: (strength: ShortInt; intelligence: ShortInt; wisdom: ShortInt; dexterity: ShortInt; constitution: ShortInt;
           charisma: ShortInt);
   end;
@@ -528,7 +528,7 @@ type
       1: (cleric: ShortInt; druid: ShortInt; fighter: ShortInt; paladin: ShortInt; ranger: ShortInt; mage: ShortInt;
           thief: ShortInt; monk: ShortInt);
   end;
-  { the oldest age in each age category (CharGen.CreateCharacterMenu's ageCat), by category number or by name }
+  { the oldest age in each age category (CharGen.CreateCharacterMenu's ageThresholds), by category number or by name }
   TRuleAgeCategories = packed record
     case Byte of
       0: (values: array[1..5] of Word);
@@ -766,7 +766,7 @@ type
         durVar: Byte;
         { the low nibble is the area mode (C_SPELL.AREA_MODE_*): 0 the caster, 1..7 (mode and 3) + 1 creatures picked
           one at a time, 8..14 everything within radius (mode and 7) of the aim, 15 one creature or a bare square
-          (CbtActs.CombatCastTargetMenu, CharHlp.SpellArea); no code reads the high nibble }
+          (CbtActs.SelectCombatTargets, CharHlp.SpellArea); no code reads the high nibble }
         area: Byte;
         { targeting mode }
         target: Byte;
@@ -987,7 +987,7 @@ type
 
   { Magic types. }
   PStinkRec = ^TStinkRec;
-  TCastUI = procedure(spell: Byte; b: Boolean; var sel: Boolean);
+  TCastUi = procedure(spell: Byte; b: Boolean; var sel: Boolean);
   TSpellProc = procedure;
   TStinkRec = record
     caster: PCharRecord;

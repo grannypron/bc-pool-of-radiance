@@ -368,7 +368,7 @@ begin
     Inc(destOff, leftSkip);
     firstOfs := destOff;
     if saveRequested then
-      Move(dest^.data[destOff], GameVars.iconImageBufferPtr^.data[saveOff], rowBytes);
+      Move(dest^.data[destOff], GameVars.saveUnder^.data[saveOff], rowBytes);
     Inc(saveOff, rowBytes);
     if useMask and GameVars.video.keyed then begin
       { a colour key (VGA): every pixel but PIC_KEY is drawn }

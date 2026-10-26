@@ -218,7 +218,7 @@ begin
 end;
 
 { Loop the Cast list (memorized spells and readable scroll spells); on a pick, frame the message window and cast a
-  memorized spell through Magic.CastSpellNC, or a scroll spell from its own scroll as Use does (Magic.UseItemSpell,
+  memorized spell through Magic.CastSpell, or a scroll spell from its own scroll as Use does (Magic.UseItemSpell,
   which asks 'Use it?' of a combat-only one and otherwise names the spell as a memorized cast does), followed by Use's
   CharHlp.RecalcStats. An empty list prints 'has no spells memorized'. }
 procedure NoncombatCastMenu;
@@ -226,7 +226,7 @@ var
   idx: Integer;
   notEmpty: Boolean;
   redraw: Boolean;
-  { CastSpellNC's and UseItemSpell's var out, unread }
+  { CastSpell's and UseItemSpell's var out, unread }
   castSel: Boolean;
   spellId: Byte;
   { the scroll the spell is cast from, nil for a memorized one }
@@ -244,7 +244,7 @@ begin
         Border.DrawBorder(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0);
         Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
         if scroll = nil then
-          Magic.CastSpellNC(spellId, False, True, castSel)
+          Magic.CastSpell(spellId, False, True, castSel)
         else begin
           caster := GameVars.curChar;
           Magic.UseItemSpell(scroll, spellId, True, castSel);
@@ -314,7 +314,7 @@ end;
 
 { Seed the rest clock (Clock.SetFromMinutes) from the party's longest spell-prep time, run GameTime.CampRest, then clear
   the clock and update the misc-info line. }
-procedure CampRestMenu(var interrupted: Boolean);
+procedure RestForSpellPrep(var interrupted: Boolean);
 var
   p: Types.PCharRecord;
   total: Word;
@@ -327,9 +327,9 @@ begin
     if total < t then total := t;
     p := p^.nextCharAddr;
   end;
-  Clock.SetFromMinutes(GameTime.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameTime.restTime, total);
   interrupted := GameTime.CampRest(True);
-  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
+  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
   CharDisp.PrintMiscInfo;
 end;
 
@@ -608,7 +608,7 @@ begin
       show := True;
       id := effect^.id;
       case id of
-        C_EFFECT.BLESS, C_EFFECT.CURSE, C_EFFECT.DETECT_MAGIC, C_EFFECT.PROT_EVIL..C_EFFECT.FRIENDS,
+        C_EFFECT.BLESS, C_EFFECT.CURSE, C_EFFECT.DETECT_MAGIC, C_EFFECT.PROTECTION_FROM_EVIL..C_EFFECT.FRIENDS,
             C_EFFECT.READ_MAGIC, C_EFFECT.SHIELD,
         C_EFFECT.FIND_TRAPS..C_EFFECT.INVISIBLE, C_EFFECT.MIRROR_IMAGE, C_EFFECT.ENFEEBLE,
             C_EFFECT.ANIMATE_DEAD..C_EFFECT.DISEASED,
@@ -634,7 +634,7 @@ begin
         C_EFFECT.FEATHER_FALL: s := 'Feather Fall';
         C_EFFECT.HELPLESS: s := 'Helpless';
         C_EFFECT.ALLIED_PRAYER: s := 'Prayer';
-        C_EFFECT.DISEASE_HP: s := 'Cause Disease';
+        C_EFFECT.DISEASE_HIT_POINTS: s := 'Cause Disease';
         C_EFFECT.ROT_NO_HEAL: s := 'Dreaded Mummy Disease';
         C_EFFECT.DRAGON_AURA: s := 'Repulsed';
         C_EFFECT.POISONED: s := 'Poisoned';
@@ -687,7 +687,7 @@ begin
         'M': Camp.CampMemorizeMenu;
         'S': Camp.CampScribeMenu;
         'D': Camp.CampDisplayMenu;
-        'R': Camp.CampRestMenu(interrupted);
+        'R': Camp.RestForSpellPrep(interrupted);
       end;
   end;
 end;
@@ -922,7 +922,7 @@ var
   begin
     case cond of
       FIX_DISEASE: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.DISEASED, effect) or
-                                   CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STR, effect) or
+                                   CharHlp.HasEffect(creature, C_EFFECT.DISEASE_STRENGTH, effect) or
                                    CharHlp.HasEffect(creature, C_EFFECT.ROT_NO_HEAL, effect);
       FIX_BLIND: HasCondition := CharHlp.HasEffect(creature, C_EFFECT.BLIND, effect);
     else
@@ -1051,20 +1051,20 @@ begin
   total := 0;
   for i := 1 to n do
     if total < CasterTime(i) then total := CasterTime(i);
-  Clock.SetFromMinutes(GameTime.restingTimeGbvm, total);
+  Clock.SetFromMinutes(GameTime.restTime, total);
   interrupted := GameTime.CampRest(False);
-  done := (GameTime.restingTimeGbvm[C_TIME.DAYS] = 0) and (GameTime.restingTimeGbvm[C_TIME.HOURS] = 0) and
-          (GameTime.restingTimeGbvm[C_TIME.TURNS] = 0) and (GameTime.restingTimeGbvm[C_TIME.MINUTES] = 0);
-  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
+  done := (GameTime.restTime[C_TIME.DAYS] = 0) and (GameTime.restTime[C_TIME.HOURS] = 0) and
+          (GameTime.restTime[C_TIME.TURNS] = 0) and (GameTime.restTime[C_TIME.MINUTES] = 0);
+  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
   if done and not interrupted then begin
     for i := 1 to n do
       for kind := FIX_DISEASE to FIX_CURSE do
         if cures[i, kind] then begin
-          GameVars.targetCreaturePtr[1] := members[i];
+          GameVars.spellTargets[1] := members[i];
           case kind of
-            FIX_DISEASE: Magic.CureDiseaseHandler;
-            FIX_BLIND: Magic.CureBlindnessHandler;
-            FIX_CURSE: Magic.RemoveCurseSpell;
+            FIX_DISEASE: Magic.SpellCureDisease;
+            FIX_BLIND: Magic.SpellCureBlindness;
+            FIX_CURSE: Magic.SpellRemoveCurse;
           end;
         end;
     healPool := 0;
@@ -1097,7 +1097,7 @@ begin
   savedIfc := GameVars.ifcState;
   GameVars.ifcState := C_IFC.CAMPING;
   GameTime.healTicks := 0;
-  FillChar(GameTime.restingTimeGbvm, SizeOf(GameTime.restingTimeGbvm), 0);
+  FillChar(GameTime.restTime, SizeOf(GameTime.restTime), 0);
   CharDisp.DisplayNoncombatInterface;
   Border.ClearBox(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
   TextRend.DisplayString(1, 18, LightGreen, 'The party makes camp...');
@@ -1123,7 +1123,7 @@ begin
              end;
         'V': ViewChar.ViewCharMenu(viewDone);
         'M': Camp.CampMagicMenu(interrupted);
-        'R': Camp.CampRestMenu(interrupted);
+        'R': Camp.RestForSpellPrep(interrupted);
         'A': Camp.CampAlterMenu;
         'F': Camp.CampFixMenu(interrupted);
       end;

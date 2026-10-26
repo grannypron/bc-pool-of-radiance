@@ -190,14 +190,14 @@ begin
   WallColumn(8, 0, 4);
   WallColumn(8, 6, 19);
   WallColumn(8, 21, 24);
-  GameVars.arenaPtr^.cells[5, 8] := C_TERR.STINK_CLOUD;
+  GameVars.arenaPtr^.cells[5, 8] := C_TERR.STINKING_CLOUD;
   Place(WALKER, 5, 5, 1);
   Place(TARGET, 11, 5, 1);
   TestKit.Check(RouteToTarget and (dir = C_DIR.EAST),
                 'a walker that does not mind the cloud goes through it');
-  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], C_TERR.STINK_CLOUD, TestOccupant, dir, goal) and
+  TestKit.Check(Pathing.RouteStep(WALKER, [TARGET], [], C_TERR.STINKING_CLOUD, TestOccupant, dir, goal) and
                 (dir in [C_DIR.SOUTHWEST, C_DIR.SOUTH, C_DIR.SOUTHEAST]), 'one that keeps out heads for the far gap');
-  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_TERR.STINK_CLOUD, 60), 'and goes round by it');
+  TestKit.CheckEqualsL(29, WalkSteps([TARGET], [], C_TERR.STINKING_CLOUD, 60), 'and goes round by it');
 end;
 
 { BuildTargetList from WALKER's cell: every creature it sees, nearest first, with the doubled distance and the facing

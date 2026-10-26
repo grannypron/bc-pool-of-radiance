@@ -39,7 +39,7 @@ begin
     GameVars.gAttackRoll := 0;
     hit := FxEngine.AttackRoll(att, def, 0);
   until GameVars.gAttackRoll = rollTo;
-  Displaced := GameVars.gAttackAvoided;
+  Displaced := GameVars.forcedMiss;
 end;
 
 begin
@@ -69,7 +69,7 @@ begin
 
   { a cloak readied in combat (#784) }
   FxEngine.RemoveEffect(def, C_EFFECT.DISPLACED, nil);
-  GameVars.ifcState := C_IFC.COMBAT;
+  GameVars.ifcState := C_IFC.IN_COMBAT;
   GameVars.roundCounter := 3;
   FillChar(cloak, SizeOf(cloak), 0);
   cloak.effect := C_EFFECT.DISPLACED;

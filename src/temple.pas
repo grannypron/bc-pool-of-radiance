@@ -108,7 +108,7 @@ begin
         NoWoundCure := 'has mummy rot, which stops healing.'
       else if GameVars.curChar^.hpCur >= GameVars.curChar^.hpMax then
         NoWoundCure := 'is not wounded.';
-    C_STATUS.DEAD: NoWoundCure := 'is dead.';
+    C_STATUS.DEAD_STATUS: NoWoundCure := 'is dead.';
     C_STATUS.STONED: NoWoundCure := 'is stoned.';
   else
     NoWoundCure := 'cannot be healed.';
@@ -182,7 +182,7 @@ begin
   creature := GameVars.curChar;
   wasDead := False;
   c := 'Y';
-  if (creature^.status = C_STATUS.DEAD) or (creature^.status = C_STATUS.ANIMATED) then
+  if (creature^.status = C_STATUS.DEAD_STATUS) or (creature^.status = C_STATUS.ANIMATED) then
     wasDead := True;
   if not wasDead then
     c := Temple.ConfirmCureAnyway('is not dead.')
@@ -258,7 +258,7 @@ begin
       FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_END, nil);
       FxEngine.RemoveEffect(GameVars.curChar, C_EFFECT.SLOW_POISON_HIT, nil);
       GameVars.effectLock := 0;
-      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD) then begin
+      if found and not slowed and (GameVars.curChar^.status = C_STATUS.DEAD_STATUS) then begin
         GameVars.curChar^.hpCur := 1;
         GameVars.curChar^.status := C_STATUS.OKAY;
         GameVars.curChar^.enabled := 1;
@@ -268,7 +268,7 @@ begin
 end;
 
 { RemoveCurse: Looks for a cursed item in the inventory, else for C_EFFECT.BESTOW_CURSE (36); for 3500 gp sets
-  targetCreaturePtr[1] to the current character and calls the Remove Curse spell handler, Magic.RemoveCurseSpell
+  spellTargets[1] to the current character and calls the Remove Curse spell handler, Magic.SpellRemoveCurse
   (spell 43) }
 procedure RemoveCurse;
 var
@@ -291,15 +291,15 @@ begin
   if c = 'Y' then begin
     c := Temple.ConfirmCureCost('Remove Curse', 3500);
     if c = 'Y' then begin
-      GameVars.targetCreaturePtr[1] := GameVars.curChar;
-      Magic.RemoveCurseSpell;
+      GameVars.spellTargets[1] := GameVars.curChar;
+      Magic.SpellRemoveCurse;
     end;
   end;
 end;
 
 { StoneToFlesh: C_STATUS.STONED (7), 2000 gp. A character still stoned once paid for rolls system shock on d100
   (AbilAdj.SurvivesSystemShock), as AD&D 1st edition has the spell's recipient do and SSI never did (#1004): a failure
-  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD, the fee spent; a success becomes C_STATUS.OKAY and
+  "DOESN'T SURVIVE THE TRANSFORMATION." and is C_STATUS.DEAD_STATUS, the fee spent; a success becomes C_STATUS.OKAY and
   enabled, with hpCur 1, and "is cured.". }
 procedure StoneToFlesh;
 var
@@ -316,7 +316,7 @@ begin
         Temple.ReportCure('is cured.')
       else if not AbilAdj.SurvivesSystemShock(creature^.conCur, Dice.RollDice(1, 100)) then begin
         { flesh again, and dead: as a death is marked out of combat }
-        creature^.status := C_STATUS.DEAD;
+        creature^.status := C_STATUS.DEAD_STATUS;
         creature^.enabled := 0;
         creature^.hpCur := 0;
         Stats.Death(creature);
@@ -372,7 +372,7 @@ begin
   Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, White, '');
   { the top divider row }
   Border.DrawWindow(1, 1, 38, 1, 0, White, '');
-  { open on the first cure; MenuVertical also brings a vertTop left by an earlier menu back to it }
+  { open on the first cure; MenuVertical also brings a verticalMenuTop left by an earlier menu back to it }
   idx := 0;
   repeat
     s := GameVars.curChar^.name + ', how can we help you?';

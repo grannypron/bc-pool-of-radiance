@@ -29,7 +29,7 @@ var
   any other type. }
 function GetEclVar(idx: ShortInt): Word;
 
-{ Read count ECL variables at the ECL IP into gbvmType/gbvmLowerByte/gbvmUpperByte, decoding string values and
+{ Read count ECL variables at the ECL IP into varTypes/varLo/varHi, decoding string values and
   string references into gbStrings. Only the first 64 variables and 20 strings are kept (later strings overwrite the
   20th); the IP still steps past them all. }
 procedure LoadEclVars(count: Byte);
@@ -104,12 +104,12 @@ begin
         EclVars.DerefGbString(strIdx, v);
       end;
     end;
-    { 64 = High(gbvmType); the upper byte is kept only for the types that carry one }
+    { 64 = High(varTypes); the upper byte is kept only for the types that carry one }
     if i <= 64 then begin
-      GameVars.gbvmType[i] := t;
-      GameVars.gbvmLowerByte[i] := lo;
+      GameVars.varTypes[i] := t;
+      GameVars.varLo[i] := lo;
       if (t in [1, 2, 3]) or (t = $81) then
-        GameVars.gbvmUpperByte[i] := hi;
+        GameVars.varHi[i] := hi;
     end;
   end;
   Inc(GameVars.eclIp);
@@ -128,9 +128,9 @@ var
 begin
   { a type with no value reads 0; v1.3 left the result unassigned (#952) }
   GetEclVar := 0;
-  lo :=GameVars.gbvmLowerByte[idx];
-  hi := GameVars.gbvmUpperByte[idx];
-  case GameVars.gbvmType[idx] of
+  lo :=GameVars.varLo[idx];
+  hi := GameVars.varHi[idx];
+  case GameVars.varTypes[idx] of
     0: GetEclVar := lo;
     1, 3: GetEclVar := EclVars.ReadGbvm(hi * 256 + lo);
     { a string value has no number: its text is in gbStrings (SSI read the GBVM at an address made of the packed length
@@ -233,7 +233,7 @@ begin
       { no result for charisma outside 3..25 }
       if GameVars.curChar^.chaCur in [AbilAdj.SCORE_MIN..AbilAdj.SCORE_MAX] then
         SpecialReadZ1 := AbilAdj.ChaLoyaltyBase(GameVars.curChar^.chaCur);
-    C_GBVM.DISK_NUM: SpecialReadZ1 := GameVars.virtualDisk;
+    C_GBVM.DISK_NUM: SpecialReadZ1 := GameVars.diskIndex;
     C_GBVM.PARTY_SIZE: SpecialReadZ1 := GameVars.zone1^[C_GBVM.PARTY_SIZE];
   else
     found := False;
@@ -577,24 +577,24 @@ begin
   { v1.3 skipped 2 operands for SETUP MONSTER and 1 for ADD NPC, which take 3 and 2, and only the opcode byte of the
     four commands with a count }
   case GameVars.curOpcode of
-    C_ECL.JUMP, C_ECL.GOSUB, C_ECL.LOAD_CHAR, C_ECL.PICTURE, C_ECL.PRINT, C_ECL.PRINTCLEAR,
-        C_ECL.PARTY_STR, C_ECL.NEWECL, C_ECL.CALL,
-    C_ECL.FIND_ITEM, C_ECL.CLOCK, C_ECL.RUN_PROGRAM, C_ECL.WHO, C_ECL.PROTECTION:
+    C_ECL.OP_GOTO, C_ECL.GOSUB, C_ECL.LOAD_CHARACTER, C_ECL.PICTURE, C_ECL.PRINT, C_ECL.PRINT_CLEAR,
+        C_ECL.PARTY_STRENGTH, C_ECL.NEW_ECL, C_ECL.CALL,
+    C_ECL.FIND_ITEM, C_ECL.CLOCK, C_ECL.OP_PROGRAM, C_ECL.WHO, C_ECL.PROTECTION:
       EclVars.LoadEclVars(1);
-    C_ECL.COMPARE, C_ECL.RANDOM_NUMBER, C_ECL.SAVE, C_ECL.INPUT_NUM, C_ECL.INPUT_STR,
-        C_ECL.UNUSED_1F, C_ECL.PARTY_SURPR, C_ECL.ADD_NPC:
+    C_ECL.COMPARE, C_ECL.OP_RANDOM, C_ECL.SAVE, C_ECL.INPUT_NUMBER, C_ECL.INPUT_STRING,
+        C_ECL.UNUSED_1F, C_ECL.PARTY_SURPRISE, C_ECL.ADD_NPC:
       EclVars.LoadEclVars(2);
-    C_ECL.ADD..C_ECL.MULTIPLY, C_ECL.LOAD_MON, C_ECL.LOADFILES, C_ECL.ROB, C_ECL.GETTABLE,
-        C_ECL.BIT_AND, C_ECL.BIT_OR, C_ECL.SAVE_TABLE,
-    C_ECL.LOADPIECES, C_ECL.SPELL, C_ECL.SETUP_MON:
+    C_ECL.ADD..C_ECL.MULTIPLY, C_ECL.LOAD_MONSTER, C_ECL.LOAD_FILES, C_ECL.ROB, C_ECL.GET_TABLE,
+        C_ECL.OP_AND, C_ECL.OP_OR, C_ECL.SAVE_TABLE,
+    C_ECL.LOAD_PIECES, C_ECL.SPELL, C_ECL.SETUP_MONSTER:
       EclVars.LoadEclVars(3);
     { the count is the last operand before the list, as EclVMenu, EclHMenu and EclOnGoto read it }
-    C_ECL.VMENU: begin
+    C_ECL.VERTICAL_MENU: begin
       EclVars.LoadEclVars(3);
       count := EclVars.GetEclVar(3);
       EclVars.LoadEclList(count);
     end;
-    C_ECL.HMENU, C_ECL.ONGOTO, C_ECL.ONGOSUB: begin
+    C_ECL.HORIZONTAL_MENU, C_ECL.ON_GOTO, C_ECL.ON_GOSUB: begin
       EclVars.LoadEclVars(2);
       count := EclVars.GetEclVar(2);
       EclVars.LoadEclList(count);
@@ -607,7 +607,7 @@ begin
       EclVars.LoadEclVars(6);
     C_ECL.TREASURE:
       EclVars.LoadEclVars(8);
-    C_ECL.ENCOUNTER:
+    C_ECL.ENCOUNTER_MENU:
       EclVars.LoadEclVars(14);
   else
     Inc(GameVars.eclIp);

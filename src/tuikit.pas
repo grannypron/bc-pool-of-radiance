@@ -297,8 +297,8 @@ begin
                2: SeqKey := C_KEYS.INS;
                3: SeqKey := C_KEYS.DEL;
                4, 8: SeqKey := C_KEYS.END_KEY;
-               5: SeqKey := C_KEYS.PGUP;
-               6: SeqKey := C_KEYS.PGDN;
+               5: SeqKey := C_KEYS.PAGE_UP;
+               6: SeqKey := C_KEYS.PAGE_DOWN;
                11..15: SeqKey := Chr(Ord(C_KEYS.F1) + n - 11);
                17..21: SeqKey := Chr(Ord(C_KEYS.F1) + 5 + n - 17);
              end;
@@ -331,7 +331,7 @@ begin
     else if b = 10 then
       ch := C_KEYS.ENTER
     else if (b = 27) and TuiKit.ReadByte(SEQ_WAIT, b) then begin
-      ch := C_KEYS.ESC;
+      ch := C_KEYS.ESCAPE;
       if (b = Ord('[')) or (b = Ord('O')) then begin
         params := '';
         got := TuiKit.ReadByte(SEQ_WAIT, b);
@@ -345,7 +345,7 @@ begin
           ext := True;
           { the Linux console's Escape key, as the Keyboard unit sets it: ESC [ 0 ~ }
           if (params = '0') and (b = Ord('~')) then begin
-            ch := C_KEYS.ESC;
+            ch := C_KEYS.ESCAPE;
             ext := False;
           end;
         end;
@@ -670,7 +670,7 @@ begin
       case UpCase(ch) of
         C_KEYS.TAB: sel := (sel + 1) mod 3;
         C_KEYS.ENTER: answer := KEYS[sel];
-        C_KEYS.ESC: answer := 'C';
+        C_KEYS.ESCAPE: answer := 'C';
         'Y', 'N', 'C': answer := UpCase(ch);
       end;
   until answer <> #0;
@@ -718,7 +718,7 @@ begin
                         PickList := True;
                         done := True;
                       end;
-        C_KEYS.ESC: done := True;
+        C_KEYS.ESCAPE: done := True;
       end;
   until done;
   TuiKit.RestoreScreen(under);
@@ -754,7 +754,7 @@ begin
     TuiKit.ShowCursor(x + pos - start, y, not insertMode);
     TuiKit.GetKey(ch, ext);
     if not LineEdit.EditKey(work, pos, insertMode, maxLen, ch, ext) and not ext then
-      if ch in [C_KEYS.ENTER, C_KEYS.ESC] then
+      if ch in [C_KEYS.ENTER, C_KEYS.ESCAPE] then
         key := ch;
   until key <> #0;
   TuiKit.HideCursor;

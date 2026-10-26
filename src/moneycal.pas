@@ -75,7 +75,7 @@ var
 begin
   total := 0;
   for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
-    Inc(total, GameDefs.coinValuationCopper[i] * m[i]);
+    Inc(total, GameDefs.coinValues[i] * m[i]);
   CopperValue := total;
 end;
 
@@ -83,7 +83,7 @@ end;
   electrum piece cannot pay 1000. }
 function CoinValueInGold(m: Types.TMoney): LongInt;
 begin
-  CoinValueInGold := MoneyCal.CopperValue(m) div GameDefs.coinValuationCopper[C_MONEY.GOLD];
+  CoinValueInGold := MoneyCal.CopperValue(m) div GameDefs.coinValues[C_MONEY.GOLD];
 end;
 
 procedure CoinsOf(creature: Types.PCharRecord; var m: Types.TMoney);
@@ -110,7 +110,7 @@ end;
 
 function CreatureGold(creature: Types.PCharRecord): LongInt;
 begin
-  CreatureGold := MoneyCal.CreatureCopper(creature) div GameDefs.coinValuationCopper[C_MONEY.GOLD];
+  CreatureGold := MoneyCal.CreatureCopper(creature) div GameDefs.coinValues[C_MONEY.GOLD];
 end;
 
 { Replace the five coin types in m with rem copper given as the largest coins, platinum first, each type at most cap.
@@ -124,11 +124,11 @@ begin
   if rem < 0 then
     rem := 0;
   for i := C_MONEY.PLATINUM downto C_MONEY.COPPER do begin
-    n := rem div GameDefs.coinValuationCopper[i];
+    n := rem div GameDefs.coinValues[i];
     if n > cap then
       n := cap;
     m[i] := n;
-    Dec(rem, n * GameDefs.coinValuationCopper[i]);
+    Dec(rem, n * GameDefs.coinValues[i]);
   end;
 end;
 

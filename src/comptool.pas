@@ -69,7 +69,7 @@ var
   remap: Boolean;
 begin
   symbols := GameVars.symbolSetPtrs[SYM_SET];
-  glyph := GameVars.current8x8SymbolPtr2;
+  glyph := GameVars.sym8x8Buf;
   if (symbols = nil) or (glyph = nil) then Exit;
   Move(symbols^.data[(symbol - GameDefs.symSetFirst[SYM_SET]) * symbols^.imgSize], glyph^.data, symbols^.imgSize);
   { the set's colour map, which CGA's remap translates the tables' colours through }

@@ -109,7 +109,7 @@ var
   i: ShortInt;
 begin
   MoneyCal.CoinsOf(creature, m);
-  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD], C_MONEY.MAX_COINS,
+  MoneyCal.MakeChange(MoneyCal.CopperValue(m) - gp * GameDefs.coinValues[C_MONEY.GOLD], C_MONEY.MAX_COINS,
                       m);
   for i := C_MONEY.COPPER to C_MONEY.PLATINUM do
     creature^.coins[i] := m[i];
@@ -119,7 +119,7 @@ end;
 { Pay gp gold pieces from the treasure pool, as PayFromCreature does; the pool's coins have no 65535 limit. }
 procedure PayFromPool(gp: LongInt);
 begin
-  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GameDefs.coinValuationCopper[C_MONEY.GOLD],
+  MoneyCal.MakeChange(MoneyCal.CopperValue(GameVars.treasureMoney) - gp * GameDefs.coinValues[C_MONEY.GOLD],
                       MaxLongInt, GameVars.treasureMoney);
 end;
 
@@ -181,10 +181,10 @@ begin
       TextRend.PrintSpaces(qLen, 24, Black, 6);
       TextRend.DisplayString(qLen, 24, White, s);
     end;
-  until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESC);
+  until (ch = C_KEYS.ENTER) or (ch = C_KEYS.ESCAPE);
   TextRend.ClearBottomLine;
   { Val of '' fails, and what it leaves in n then is not promised }
-  if (ch = C_KEYS.ESC) or (s = '') then
+  if (ch = C_KEYS.ESCAPE) or (s = '') then
     n := 0
   else
     Val(s, n, code);
@@ -580,7 +580,7 @@ begin
   TextRend.ShowMessage(LightGreen, True, said);
   TextRend.ShowMessage(White, False, ask);
   { 0-based: 1 is No }
-  if EclMenu.MenuHorizontalCS('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
+  if EclMenu.MenuHorizontalCharacterSelect('', '~Yes ~No', LightMagenta, LightGreen, White, False, False) = 1 then
     GoBackForIt := False
   else begin
     TextRend.ClearRect(C_MSG.TEXT_LEFT, C_MSG.MESSAGE_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM);
