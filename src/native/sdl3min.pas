@@ -1,6 +1,7 @@
 {$I COMPILER.INC}
 { The few SDL3 calls the native build makes (a window, a texture the screen is copied to, events, the clock, and an
-  audio stream), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h, SDL_render.h, SDL_events.h, SDL_audio.h).
+  audio stream, and the folder picker), declared from SDL 3.4's headers (SDL_init.h, SDL_video.h, SDL_render.h,
+  SDL_events.h, SDL_audio.h, SDL_dialog.h).
   Only these: a full binding is not needed, and these are all that must be kept right.
 
   On Linux and macOS SDL is linked into the program: build-native.sh copies SDL's static libSDL3.a as libSDL3static.a
@@ -103,6 +104,10 @@ type
       2: (padding: array[0..127] of Byte);
   end;
 
+  { SDL_DialogFileCallback: filelist is nil after an error, points to nil when nothing was chosen, else to the chosen
+    paths (UTF-8), ending in nil; it may be called on another thread }
+  TSDL_DialogFileCallback = procedure(userdata: Pointer; filelist: PPChar; filter: LongInt); cdecl;
+
   { SDL_AudioSpec }
   TSDL_AudioSpec = record
     format: LongInt;
@@ -144,6 +149,10 @@ function SDL_PutAudioStreamData(stream: PSDL_AudioStream; buf: Pointer; len: Lon
 procedure SDL_DestroyAudioStream(stream: PSDL_AudioStream); cdecl; external SDL_LIB;
 function SDL_LockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
 function SDL_UnlockAudioStream(stream: PSDL_AudioStream): Boolean; cdecl; external SDL_LIB;
+
+{ Open the system's folder picker, which answers through callback when the player has chosen or cancelled (SDL 3.2) }
+procedure SDL_ShowOpenFolderDialog(callback: TSDL_DialogFileCallback; userdata: Pointer; window: PSDL_Window;
+  defaultLocation: PChar; allowMany: Boolean); cdecl; external SDL_LIB;
 
 implementation
 

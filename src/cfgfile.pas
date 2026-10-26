@@ -151,9 +151,12 @@ function DirExists(path: string): Boolean;
 function CheckPath(text: string; var full: string): TPathCheck;
 
 {$IFDEF FPC}
-{ The save folder as the native game takes POOL.CFG's (GameBoot.NativeFolders, #894): saveDir's part under dataDir
-  (both normalized), with its closing backslash, when it lies inside it; SAVE\ when it does not. }
-function SaveFolderIn(dataDir, saveDir: string): string;
+{ The save folder the native game uses for POOL.CFG's dataDir and saveDir (GameBoot.NativeFolders; POOLCFG shows it),
+  with its closing separator, where home is the writable folder (GameDirs.writeFolder, with its own): a save folder
+  inside the data folder (SSI's C:\POOLRAD\SAVE\, both normalized, #894) is that part in home; else a whole path (from
+  a drive or the root) to a folder that is there is that folder, normalized, which need not lie in the game's (#1064);
+  else SAVE\ in home. }
+function NativeSaveFolder(dataDir, saveDir, home: string): string;
 {$ENDIF}
 
 implementation
@@ -731,19 +734,24 @@ begin
 end;
 
 {$IFDEF FPC}
-function SaveFolderIn(dataDir, saveDir: string): string;
+function NativeSaveFolder(dataDir, saveDir, home: string): string;
 var
   game: string;
   save: string;
+  t: string;
   ok: Boolean;
 begin
-  { a path too long is compared as it is: SaveFolderIn only places the saves }
+  { a path too long is compared as it is: this only places the saves }
   ok := CfgFile.NormalizePath(dataDir, game);
   ok := CfgFile.NormalizePath(saveDir, save);
+  t := CfgFile.Trim(saveDir);
   if (Length(save) > Length(game)) and NatFile.SameName(Copy(save, 1, Length(game)), game) then
-    SaveFolderIn := Copy(save, Length(game) + 1, 255)
+    NativeSaveFolder := home + Copy(save, Length(game) + 1, 255)
+  else if (Length(t) > 0) and ((t[1] in ['\', '/']) or ((Length(t) >= 2) and (t[2] = ':'))) and
+          CfgFile.DirExists(save) then
+    NativeSaveFolder := save
   else
-    SaveFolderIn := 'SAVE\';
+    NativeSaveFolder := home + 'SAVE\';
 end;
 {$ENDIF}
 

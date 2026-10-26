@@ -9,10 +9,13 @@
   unsaved (START then leaves to DOS too). Run by START (C_OPT.SETUP_FROM_START) for a damaged POOL.CFG, its notice first
   says so.
 
-  Natively (#894) it is poolcfg, a terminal program beside poolrad, which never runs it. It finds the game's folder as
-  the game does (NatFile.EnterGameFolder), and shows the folders as the native game takes them: the data is always
-  that folder, shown and not edited, and the saves must lie inside it (CfgFile.SaveFolderIn). The Hardware page says
-  what each letter does natively, where the video is always VGA and every sound card Digital Audio. }
+  Natively (#894) it is poolcfg, a terminal program beside poolrad, which never runs it. It finds the game's data
+  folder as the game does, without asking (GameDirs.Settle; the first copy the search found when there are several),
+  and shows the folders as the native game takes them (#1064): the data path is that folder, and changing it (to a
+  folder that holds the data) changes the one the game remembers; POOL.CFG is read from and written to the writable
+  folder (GameDirs.writeFolder, the data folder's own POOL.CFG read when it has none), and the save folder is
+  CfgFile.NativeSaveFolder's, any folder that is there. The Hardware page says what each letter does natively, where
+  the video is always VGA and every sound card Digital Audio. }
 {$IFNDEF FPC}
 {$M 16384,0,16384}
 {$ENDIF}
@@ -20,7 +23,7 @@
 {$I COMPILER.INC}
 program PoolCfg;
 
-uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, StrUtil, TuiKit{$IFDEF FPC}, NatFile{$ENDIF};
+uses Dos, C_KEYS, C_OPT, FileUtil, CfgFile, StrUtil, TuiKit{$IFDEF FPC}, SysUtils, NatFile, GameDirs{$ENDIF};
 
 { BUILD_VERSION and BUILD_COMMIT: build.sh writes them from git before each build. }
 {$I BUILDID.INC}
@@ -76,6 +79,10 @@ var
   homeDir: string;
   cfgName: string;
   optDir: string;
+{$IFDEF FPC}
+  { the data folder the game finds (GameDirs.dataFolder), normalized as POOL.CFG holds it: the data path's default }
+  dataHome: string;
+{$ENDIF}
   { a stepping setting's choice on the Game Settings page: the right one (Faster, More) }
   stepRight: Boolean;
   { run by START (C_OPT.SETUP_FROM_START on the command line) }
@@ -221,25 +228,17 @@ begin
     tooLong[line] := Length(path) > C_OPT.MAX_PATH_TEXT;
 end;
 
-{ Paths line's default: Pool's data in the folder Setup runs in and its saves in SAVE\ under it, the later games' as
-  CfgFile.Defaults has them. }
+{ Paths line's default: Pool's data in the folder Setup runs in (natively the data folder the game finds) and its saves
+  in SAVE\ under it (natively under the writable folder), the later games' as CfgFile.Defaults has them. }
 function DefaultPath(line: Byte): string;
 begin
   case line of
-    PATH_DATA: DefaultPath := homeDir;
+    PATH_DATA: DefaultPath := {$IFDEF FPC}dataHome{$ELSE}homeDir{$ENDIF};
     PATH_SAVE: DefaultPath := homeDir + 'SAVE\';
   else
     DefaultPath := defaults.paths[line - 2];
   end;
 end;
-
-{$IFDEF FPC}
-{ True when folder path (a normalized one) lies inside the game's folder, as the native game takes a save folder. }
-function InGameFolder(path: string): Boolean;
-begin
-  InGameFolder := NatFile.SameName(homeDir + CfgFile.SaveFolderIn(homeDir, path), path);
-end;
-{$ENDIF}
 
 { True when folder dir holds Pool of Radiance's data: ITEMS or GEO1.DAX. }
 function HasPoolData(dir: string): Boolean;
@@ -448,10 +447,18 @@ begin
               'missing or read-only: ' + CutPath(cfg.saveDir, 20));
     Exit;
   end;
-  if poolDue and not CfgFile.WritePoolCfg(C_OPT.CFG_NAME, cfg) then begin
+  if poolDue and not CfgFile.WritePoolCfg({$IFDEF FPC}cfgName{$ELSE}C_OPT.CFG_NAME{$ENDIF}, cfg) then begin
     ShowError('Could not write ' + C_OPT.CFG_NAME + '. The folder may be', 'read-only; nothing in it was changed.');
     Exit;
   end;
+{$IFDEF FPC}
+  { the data folder the game is to use from now on (#1064) }
+  if PathChanged(PATH_DATA) and not GameDirs.Remember(GameDirs.POOL, NatFile.NativeName(cfg.dataDir)) then begin
+    ShowError('Could not remember the data folder in', CutPath(GameDirs.UserFolder(GameDirs.POOL, GameDirs.THIS_OS,
+              GetUserDir), 38));
+    Exit;
+  end;
+{$ENDIF}
   TuiKit.ClearLines(lines);
   if not optDue and not poolDue then
     TuiKit.AddLine(lines, 'Nothing has changed, so no file was written.', 0)
@@ -810,8 +817,9 @@ begin
   TuiKit.Fill(3, 21, 78, 23, TuiKit.A_TEXT);
 {$IFDEF FPC}
   if line = PATH_DATA then begin
-    TuiKit.PutText(5, 21, TuiKit.A_HELP, 'The native game reads its data from the folder it runs in, so this is');
-    TuiKit.PutText(5, 22, TuiKit.A_HELP, 'shown and not edited. Its save folder must lie inside it.');
+    TuiKit.PutText(5, 21, TuiKit.A_HELP, 'The folder the native game reads SSI''s files from, found beside it or');
+    TuiKit.PutText(5, 22, TuiKit.A_HELP, 'in GOG''s or Steam''s folders. Saving a change makes the game use it.');
+    TuiKit.PutText(5, 23, TuiKit.A_HELP, 'It needs GEO1.DAX; poolrad --choose-data-folder chooses it too.');
   end else
 {$ENDIF}
   if (line <= PATH_SAVE) and tooLong[line] then begin
@@ -903,10 +911,10 @@ begin
       check := CfgFile.CheckPath(text, full);
       case check of
 {$IFDEF FPC}
-        CfgFile.PATH_OK: if (line <> PATH_SAVE) or InGameFolder(full) then
+        CfgFile.PATH_OK: if (line <> PATH_DATA) or GameDirs.HoldsData(NatFile.NativeName(full), GameDirs.POOL) then
                            accepted := True
                          else
-                           ShowError('The save folder must lie inside the game''s:', CutPath(homeDir, 38));
+                           ShowError('No Pool of Radiance data (GEO1.DAX) is in', CutPath(full, 38));
 {$ELSE}
         CfgFile.PATH_OK: accepted := True;
 {$ENDIF}
@@ -920,6 +928,7 @@ begin
     end;
   until accepted or (key = C_KEYS.ESC);
   if not accepted then Exit;
+{$IFNDEF FPC}
   if (line = PATH_DATA) and not HasPoolData(full) then begin
     TuiKit.ClearLines(lines);
     TuiKit.AddLine(lines, 'No Pool of Radiance data (ITEMS, GEO1.DAX) is in', 0);
@@ -929,6 +938,7 @@ begin
     TuiKit.AddLine(lines, 'Setup takes it, but START will ask for the disk.', 0);
     TuiKit.Message('Warning', lines, TuiKit.STYLE_NOTICE, 64);
   end;
+{$ENDIF}
   if (line = PATH_SAVE) and (full <> cfgRead.saveDir) and (full <> cfg.saveDir) then begin
     TuiKit.ClearLines(lines);
     TuiKit.AddLine(lines, 'Saved games stay in ' + CutPath(cfgRead.saveDir, 38), 0);
@@ -962,10 +972,6 @@ begin
                     end;
       end;
     end
-{$IFDEF FPC}
-    else if (sel = PATH_DATA) and (ch <> C_KEYS.ESC) then
-      { the native game's data is its own folder: not edited }
-{$ENDIF}
     else
       case ch of
         C_KEYS.ENTER: EditPath(sel, #0);
@@ -998,9 +1004,19 @@ procedure ReadFiles;
 var
   ok: Boolean;
 begin
+{$IFDEF FPC}
+  { POOL.CFG in the writable folder, or until one is written there the data folder's (#1064) }
+  ok := CfgFile.NormalizePath(GameDirs.writeFolder, homeDir);
+  ok := CfgFile.NormalizePath(GameDirs.dataFolder, dataHome);
+  if GameDirs.dataFolder = '' then
+    dataHome := '';
+  cfgName := GameDirs.writeFolder + C_OPT.CFG_NAME;
+  cfgState := CfgFile.ReadPoolCfg(GameDirs.ReadName(C_OPT.CFG_NAME), cfg, notes);
+{$ELSE}
   ok := CfgFile.NormalizePath('', homeDir);
   cfgName := FExpand(C_OPT.CFG_NAME);
   cfgState := CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, cfg, notes);
+{$ENDIF}
   CfgFile.PoolDefaults(cfgDefaults, homeDir);
   if cfgState in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then
     cfg := cfgDefaults;
@@ -1009,8 +1025,8 @@ begin
   NormalizeRead(PATH_SAVE);
 {$IFDEF FPC}
   { the folders as the native game takes them (GameBoot.NativeFolders) }
-  SetPath(PATH_SAVE, homeDir + CfgFile.SaveFolderIn(cfg.dataDir, cfg.saveDir));
-  SetPath(PATH_DATA, homeDir);
+  SetPath(PATH_SAVE, CfgFile.NativeSaveFolder(cfg.dataDir, cfg.saveDir, homeDir));
+  SetPath(PATH_DATA, dataHome);
 {$ENDIF}
   cfgRead := cfg;
   optDir := cfg.saveDir;
@@ -1107,6 +1123,24 @@ begin
   end;
 end;
 
+{$IFDEF FPC}
+{ The game's folders, as the game finds them (GameDirs.Settle) but without asking: of several copies the first, and
+  with none no data folder and the player's own folder to write in. }
+procedure FindFolders;
+var
+  hits: GameDirs.TCandidates;
+  ask: Boolean;
+begin
+  if GameDirs.Settle(GameDirs.POOL, hits, ask) then Exit;
+  if Length(hits) > 0 then
+    GameDirs.Place(GameDirs.POOL, hits[0].path, False)
+  else begin
+    GameDirs.writeFolder := GameDirs.UserFolder(GameDirs.POOL, GameDirs.THIS_OS, GetUserDir);
+    ForceDirectories(GameDirs.writeFolder);
+  end;
+end;
+{$ENDIF}
+
 { The Main Menu until the program leaves. }
 procedure MainMenu;
 var
@@ -1151,7 +1185,7 @@ end;
 
 begin
 {$IFDEF FPC}
-  NatFile.EnterGameFolder;
+  FindFolders;
 {$ENDIF}
   fromStart := ParamStr(1) = C_OPT.SETUP_FROM_START;
   exitCode := 0;

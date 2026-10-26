@@ -96,10 +96,18 @@ procedure PushState(v: Byte);
 
 procedure PopState;
 
+{$IFDEF FPC}
+{ The folder file name (a name and extension) is in, with its closing separator. Natively a file DataBld makes (a merged
+  archive, its temporary .$$$ copy, DATABLD.LOG) is in the writable folder, GameDirs.writeFolder, which is another than
+  the game's when the data must not be written (#1064); any other file is in GameVars.gameDir. Under DOS every file is
+  in GameVars.gameDir, and the callers name it themselves. }
+function FolderOf(name: Types.TStr20): Types.TPathStr;
+{$ENDIF}
+
 implementation
 
 uses Crt, GameVars, Dos, GameIo, C_DATA, C_KEYS, DataArc, FileUtil, StrUtil
-  {$IFDEF FPC}, Host, NatFile{$ENDIF};
+  {$IFDEF FPC}, Host, NatFile, GameDirs{$ENDIF};
 
 var
   { Temporary compressed DAX data buffer. }
@@ -428,7 +436,8 @@ var
 begin
   if familyState[family] = 0 then begin
     familyState[family] := 2;
-    if DataArc.ArchiveIntact(GameVars.gameDir + DataArc.MergedName(family) + '.DAX') then begin
+    if DataArc.ArchiveIntact({$IFDEF FPC}GameDirs.writeFolder{$ELSE}GameVars.gameDir{$ENDIF} +
+                             DataArc.MergedName(family) + '.DAX') then begin
       DaxIo.LoadDax(DataArc.MergedName(family), '.dax', C_DATA.VERSION_BLOCK, size, data);
       if data <> nil then begin
         if (size >= 1) and (Byte(data^[0]) = C_DATA.VERSION) then begin
@@ -535,7 +544,8 @@ begin
       fileID := DaxIo.RemapId(family, disk, fileID);
       fileName := DataArc.MergedName(family);
     end;
-  if not DaxIo.OpenDax(GameVars.gameDir + fileName, ext, hdrSize, f1, f2) then begin
+  if not DaxIo.OpenDax({$IFDEF FPC}DaxIo.FolderOf(fileName){$ELSE}GameVars.gameDir{$ENDIF} + fileName, ext, hdrSize,
+                       f1, f2) then begin
     sizeRead := 0;
     data := nil;
     Exit;
@@ -609,7 +619,31 @@ begin
   GameVars.virtualDisk := prevVirtualDisk;
 end;
 
+{$IFDEF FPC}
+function FolderOf(name: Types.TStr20): Types.TPathStr;
+var
+  base: Types.TStr20;
+  family: Byte;
+  i: Byte;
+  built: Boolean;
+begin
+  base := name;
+  if Pos('.', base) > 0 then
+    base[0] := Chr(Pos('.', base) - 1);
+  for i := 1 to Length(base) do
+    base[i] := UpCase(base[i]);
+  built := base = 'DATABLD';
+  for family := 1 to C_DATA.FAMILIES do
+    built := built or (base = DataArc.MergedName(family));
+  if built then
+    FolderOf := GameDirs.writeFolder
+  else
+    FolderOf := GameVars.gameDir;
+end;
+{$ENDIF}
+
 begin
   DaxIo.ResetArchiveCache;
   prevVirtualDisk := 0;
+
 end.

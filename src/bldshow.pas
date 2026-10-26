@@ -49,7 +49,7 @@ procedure Finish(failed: Boolean);
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Types, C_MSG, GameVars, DataArc, TextRend, Blit, Border, GameIo, StrUtil,
-  VidOps;
+  VidOps{$IFDEF FPC}, DaxIo{$ENDIF};
 
 const
   { the frame's three parts: title, status and families, each a text rectangle inside its border }
@@ -632,7 +632,8 @@ begin
     BldShow.Field(FIELD_ETA, VALUE_COL, ETA_ROW, LightCyan, '0:00', COUNT_WIDTH);
   end;
   if failed or st^.readOnly then begin
-    if not st^.readOnly and (DataArc.FileLength(GameVars.gameDir + LOG_NAME) > 0) then
+    if not st^.readOnly and
+       (DataArc.FileLength({$IFDEF FPC}DaxIo.FolderOf(LOG_NAME){$ELSE}GameVars.gameDir{$ENDIF} + LOG_NAME) > 0) then
       TextRend.DisplayCentered(1, 38, NOTE_ROW, LightRed, NOTE);
     while KeyPressed do
       GameIo.DiscardPendingKeys;

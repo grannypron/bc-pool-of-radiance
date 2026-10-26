@@ -45,7 +45,8 @@ begin
   found := False;
   suppressed := GameVars.suppressingInsertDiskFlag;
   GameVars.suppressingInsertDiskFlag := True;
-  if DaxIo.OpenDax(GameVars.gameDir + archive, '.DAX', hdrSize, f1, f2) then begin
+  if DaxIo.OpenDax({$IFDEF FPC}DaxIo.FolderOf(archive){$ELSE}GameVars.gameDir{$ENDIF} + archive, '.DAX', hdrSize, f1,
+                   f2) then begin
     ended := False;
     while not found and not ended do begin
       BlockRead(f2, e, SizeOf(e), n);

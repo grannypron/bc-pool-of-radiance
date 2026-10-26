@@ -502,13 +502,22 @@ end;
 procedure EclNewEcl;
 var
   id: Byte;
+{$IFDEF FPC}
+  archive: Types.TStr20;
+{$ENDIF}
 begin
   EclVars.LoadEclVars(1);
   GameVars.zone0^.previousScriptId := GameVars.eclScriptId;
   id := EclVars.GetEclVar(1);
   GameVars.eclScriptId := id;
+{$IFDEF FPC}
+  { natively a merged archive is in the writable folder (#1064) }
+  archive := DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GameVars.virtualDisk));
+  SaveLoad.CheckFileElseQuit(DaxIo.FolderOf(archive) + archive + '.dax');
+{$ELSE}
   SaveLoad.CheckFileElseQuit(GameVars.gameDir + DaxIo.ArchiveName('ECL' + StrUtil.NumStr(GameVars.virtualDisk)) +
                              '.dax');
+{$ENDIF}
   EclMenu.LoadEclScript(id);
   { a NEWECL inside a subroutine leaves return addresses on the stack, and EclInit only clears the pointer }
   FreeEclStack;

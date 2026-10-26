@@ -13,7 +13,7 @@ uses {$IFDEF FPC}TpCompat, {$ENDIF}Types, C_OPT, CfgFile, GameVars, Crt, Dos,
   {$IFNDEF FPC}Overlay, {$ENDIF}Blit, SoundDrv, DaxIo, FileUtil, GameIo, CbtLog,
   {$IFNDEF FPC}VidCga, VidEga, VidTdy, {$ENDIF}VidVga,
   {$IFDEF FPC}SndDig{$ELSE}SndTdy{$ENDIF}, SndSpk, {$IFNDEF FPC}SndOpl, SndSb, {$ENDIF}SndNone
-  {$IFDEF FPC}, Host, NatFile{$ENDIF};
+  {$IFDEF FPC}, Host, GameDirs, DataPick{$ENDIF};
 
 var
   { POOL.CFG's video, sound and introduction letters, as START takes them (CfgFile.ReadPoolCfg) }
@@ -58,13 +58,15 @@ end;
 
 { Read POOL.CFG (CfgFile.ReadPoolCfg): its letters into cfgVideo, cfgSound and cfgIntro, and its paths, as written,
   into GameVars.gameDir and saveDirectory. A file that will not open stops the game with a message; natively, where
-  nothing asks for a startup disk, the game goes on with CfgFile.PoolDefaults and a line on the error output (#894). }
+  nothing asks for a startup disk, the game goes on with CfgFile.PoolDefaults and a line on the error output (#894),
+  and POOL.CFG is the writable folder's when it has one, else the data folder's (GameDirs.ReadName, #1064). }
 procedure ReadConfig;
 var
   c: CfgFile.TPoolCfg;
   notes: CfgFile.TCfgNotes;
 begin
-  if CfgFile.ReadPoolCfg(C_OPT.CFG_NAME, c, notes) in [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then begin
+  if CfgFile.ReadPoolCfg({$IFDEF FPC}GameDirs.ReadName(C_OPT.CFG_NAME){$ELSE}C_OPT.CFG_NAME{$ENDIF}, c, notes) in
+     [CfgFile.CFG_MISSING, CfgFile.CFG_UNREADABLE] then begin
 {$IFDEF FPC}
     WriteLn(StdErr, 'POOL.CFG is missing or unreadable: playing with the defaults. Run poolcfg to set up the game.');
     CfgFile.PoolDefaults(c, '');
@@ -122,19 +124,14 @@ end;
 {$ENDIF}
 
 {$IFDEF FPC}
-{ POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game is the current folder
-  (the one NatFile.EnterGameFolder found), and the saves the folder POOL.CFG names inside the game's (SAVE\), or SAVE\
-  when it names one elsewhere (CfgFile.SaveFolderIn, which POOLCFG shows too). NatFile turns the backslashes into the
-  system's separator as each file is opened. }
+{ POOL.CFG's folders are a DOS install's (C:\POOLRAD\ and C:\POOLRAD\SAVE\). Natively the game's data is the folder
+  DataPick.FindGame found (GameDirs.dataFolder, the current one), and the saves are where CfgFile.NativeSaveFolder puts
+  them: in the writable folder (GameDirs.writeFolder) unless POOL.CFG names another folder that is there (#1064), as
+  POOLCFG shows them. NatFile turns the backslashes into the system's separator as each file is opened. }
 procedure NativeFolders(var gameDir, saveDir: String);
-var
-  inside: String;
 begin
-  inside := CfgFile.SaveFolderIn(gameDir, saveDir);
-  GetDir(0, gameDir);
-  if gameDir[Length(gameDir)] <> '/' then
-    gameDir := gameDir + '/';
-  saveDir := gameDir + inside;
+  saveDir := CfgFile.NativeSaveFolder(gameDir, saveDir, GameDirs.writeFolder);
+  gameDir := GameDirs.dataFolder;
 end;
 {$ENDIF}
 
@@ -143,7 +140,7 @@ begin
   GameVars.stingArg := ParamStr(1) = 'STING';
   GameVars.norandArg := ParamStr(2) = 'NORAND';
 {$IFDEF FPC}
-  NatFile.EnterGameFolder;
+  DataPick.FindGame;
   GameVars.ovrInEms := False;
 {$ELSE}
   DaxIo.WaitForFile('game.ovr', 'Please insert overlay disk.');
