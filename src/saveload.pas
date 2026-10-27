@@ -65,21 +65,17 @@ function SaveGame: Boolean;
   redraws its screen if this routine returns. }
 procedure QuitToDos(askSave: Boolean);
 
-const
-  { the quick-save slot: F5 saves to it and F8 loads it, from the map menu }
-  QUICK_SLOT = 'Q';
-
-{ Quick save: save into QUICK_SLOT, described as QUICK SAVE, with no menu, and say on the bottom line whether it was
-  saved. }
+{ Quick save: save into SaveMenu.QUICK_SLOT, described as QUICK SAVE, with no menu, and say on the bottom line whether
+  it was saved. }
 procedure QuickSave;
 
-{ True when QUICK_SLOT holds a save file big enough to load, once a save into it that the game was ended in is undone
-  (SaveMenu.RecoverSlot). }
+{ True when SaveMenu.QUICK_SLOT holds a save file big enough to load, once a save into it that the game was ended in is
+  undone (SaveMenu.RecoverSlot). }
 function QuickLoadable: Boolean;
 
 { Quick load, between two runs of EclVm.GameLoop: free the party (records, items, effects, usual spells and icon
-  animations), load QUICK_SLOT as LoadGame loads a slot, and set loadedSave so the next GameLoop resumes it. With no
-  loadable quick save it says so and frees nothing, and the next GameLoop resumes the game in memory. }
+  animations), load SaveMenu.QUICK_SLOT as LoadGame loads a slot, and set loadedSave so the next GameLoop resumes it.
+  With no loadable quick save it says so and frees nothing, and the next GameLoop resumes the game in memory. }
 procedure QuickLoad;
 
 { Append to creatureList, make it current, give it the lowest free orderNumber (its icon-anim slot, 0..7), bump the GBVM
@@ -703,8 +699,8 @@ var
   recovered: Boolean;
 begin
   QuickLoadable := False;
-  recovered := SaveMenu.RecoverSlot(QUICK_SLOT);
-  if FileUtil.OpenReadOnly(f, SaveMenu.SlotFile(QUICK_SLOT, '.dat')) then begin
+  recovered := SaveMenu.RecoverSlot(SaveMenu.QUICK_SLOT);
+  if FileUtil.OpenReadOnly(f, SaveMenu.SlotFile(SaveMenu.QUICK_SLOT, '.dat')) then begin
     QuickLoadable := (FileSize(f) >= SaveLoad.SaveMinSize) and (IOResult = 0);
     Close(f);
   end;
@@ -722,7 +718,7 @@ begin
     Exit;
   end;
   SaveLoad.FreeParty;
-  SaveLoad.LoadSlot(QUICK_SLOT);
+  SaveLoad.LoadSlot(SaveMenu.QUICK_SLOT);
   { as CharGen.MainMenu does after a load: GameLoop keeps the loaded script }
   GameVars.loadedSave := 1;
   GameVars.locTypePrev := C_AREA.LOC_3D_MAP;
@@ -858,7 +854,7 @@ end;
 procedure QuickSave;
 begin
   { a save that failed has said so }
-  if SaveLoad.SaveToSlot(QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea) then begin
+  if SaveLoad.SaveToSlot(SaveMenu.QUICK_SLOT, 'QUICK SAVE', AreaName.CurrentArea) then begin
     TextRend.DisplayAndPause(LightGreen, 'Quick save done.');
     TextRend.ClearBottomLine;
   end;

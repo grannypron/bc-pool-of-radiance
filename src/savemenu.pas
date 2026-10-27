@@ -10,8 +10,11 @@ interface
 uses Types, FileUtil;
 
 const
-  { the saved-game slots, in the order the menu lists them: A..J, then Q, the quick save (F5 and F8) }
-  SLOT_LETTERS = 'ABCDEFGHIJQ';
+  { the saved-game slots, in the order the menu lists them: A..J, then Z, the quick save (F5 and F8), so Q is Quit's key
+    (#1080) }
+  SLOT_LETTERS = 'ABCDEFGHIJZ';
+  { the quick save's slot before #1080, whose files MoveOldQuickSave moves to slot Z }
+  OLD_QUICK_SLOT = 'Q';
   { how many slots there are: the menu's tables are this long }
   SLOT_COUNT = Length(SLOT_LETTERS);
   { the longest description and area name a slot keeps }
@@ -21,6 +24,8 @@ const
   DESC_SHOWN = 27;
   { what ChooseSlot returns for Quit (#872): no slot's letter }
   QUIT_CHOSEN = '!';
+  { the quick save's slot: F5 saves to it and F8 loads it, from the map menu }
+  QUICK_SLOT = 'Z';
 
 type
   TSlotDesc = string[DESC_LEN];
@@ -61,6 +66,11 @@ procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext
 { Recovers a slot after an interrupted commit. Every reader calls this before
   inspecting the slot. Returns True when recovery is complete. }
 function RecoverSlot(letter: Char): Boolean;
+
+{ Move a quick save made before #1080, in slot Q, to slot Z, the quick save's slot now: every file of the save (its
+  savgam .dat, .inf, .sts, .map and .nts, its vault copy and its members' files), savgamQ.dat last, so a move the game
+  was ended in is done again at the next start. Nothing moves while slot Z holds a save. }
+procedure MoveOldQuickSave;
 
 { Write slot letter's savgam<x>.inf as a file of save s (FileUtil.WriteToSet): True when it was written. }
 function WriteSlotInfo(var s: FileUtil.TFileSet; letter: Char; desc: TSlotDesc; area: TSlotArea): Boolean;
@@ -106,8 +116,9 @@ const
   OPT_TAKE = 3;
   OPT_QUIT = 4;
   OPT_EXIT = 5;
-  { Exit's key, which no slot has (#910) }
+  { Exit's key, which no slot has (#910); Quit's is its Q (#1080) }
   EXIT_KEY = 'X';
+  QUIT_KEY = 'Q';
 
 type
   { A savgam<x>.inf file. }
@@ -166,13 +177,12 @@ begin
   FileUtil.AddToSet(s, base + '.chx', False);
 end;
 
-function RecoverSlot(letter: Char): Boolean;
+{ Start s as the set of every file a save in slot letter may have, the .dat first, as SaveLoad.SaveToSlot puts it. }
+procedure SlotSet(var s: FileUtil.TFileSet; letter: Char);
 var
-  s: FileUtil.TFileSet;
   n: Byte;
 begin
   FileUtil.NewSet(s, GameVars.saveDirectory);
-  { the .dat first, as SaveLoad.SaveToSlot puts it }
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.dat'), False);
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.inf'), False);
   FileUtil.AddToSet(s, SaveMenu.SlotName(letter, '.sts'), False);
@@ -181,7 +191,38 @@ begin
   FileUtil.AddToSet(s, SaveMenu.VaultName(letter), False);
   for n := 1 to Types.MAX_PARTY do
     SaveMenu.RemoveCharFiles(s, SaveMenu.MemberName(letter, n), '.sav');
+end;
+
+function RecoverSlot(letter: Char): Boolean;
+var
+  s: FileUtil.TFileSet;
+begin
+  SaveMenu.SlotSet(s, letter);
   RecoverSlot := FileUtil.RecoverSet(s);
+end;
+
+procedure MoveOldQuickSave;
+var
+  oldSet: FileUtil.TFileSet;
+  newSet: FileUtil.TFileSet;
+  i: Byte;
+  ok: Boolean;
+begin
+  if not SaveMenu.RecoverSlot(OLD_QUICK_SLOT) or not SaveMenu.RecoverSlot(QUICK_SLOT) or
+      not FileUtil.Exists(SaveMenu.SlotFile(OLD_QUICK_SLOT, '.dat')) or
+      FileUtil.Exists(SaveMenu.SlotFile(QUICK_SLOT, '.dat')) then
+    Exit;
+  SaveMenu.SlotSet(oldSet, OLD_QUICK_SLOT);
+  SaveMenu.SlotSet(newSet, QUICK_SLOT);
+  { slot Z holds no save, so a file of its left by a move the game was ended in goes, and no file of another save
+    stays with this one }
+  ok := True;
+  for i := oldSet.count downto 1 do
+    if ok then begin
+      ok := FileUtil.DeleteChecked(newSet.dir + newSet.names[i]);
+      if ok and FileUtil.Exists(oldSet.dir + oldSet.names[i]) then
+        ok := FileUtil.RenameChecked(oldSet.dir + oldSet.names[i], newSet.dir + newSet.names[i]);
+    end;
 end;
 
 function ReadSlotInfo(letter: Char; var desc: TSlotDesc; var area: TSlotArea): Boolean;
@@ -361,7 +402,7 @@ begin
   repeat
     { the slots' letters, and X for Exit (#910) }
     MenuCore.extraKeys := listed + EXIT_KEY;
-    MenuCore.unmarked := [OPT_QUIT, OPT_EXIT];
+    MenuCore.unmarked := [OPT_EXIT];
     MenuCore.enterToCaller := True;
     ch := MenuCore.MenuHorizontal('Game: ', 'Next Prev ' + action + ' Quit Exit', LightMagenta, LightGreen, White,
                                   True, False, ext);
@@ -393,6 +434,8 @@ begin
       chosen := ch
     else if ch = EXIT_KEY then
       chosen := C_KEYS.NONE
+    else if ch = QUIT_KEY then
+      chosen := QUIT_CHOSEN
     { a slot's letter takes it, as Save or Load on it does (#652) }
     else if (ch <> ' ') and (Pos(ch, listed) > 0) then
       chosen := ch

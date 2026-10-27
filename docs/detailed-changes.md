@@ -449,6 +449,8 @@ The picture cache's disk-blind key (POR-0134) is in section 9.
 
 **Quit on the Load/Save menu.** `SaveMenu.ChooseSlot`'s bottom line reads GAME: NEXT PREV LOAD QUIT EXIT (SAVE when saving), and Quit returns `SaveMenu.QUIT_CHOSEN`. It has no key, as Exit has none: Q is the quick save's slot and E a slot's letter. `SaveLoad.LoadGame` and `SaveGame` then ask through the new `SaveLoad.QuitToDos`, the main menu's Exit to DOS moved out of `CharGen.MainMenu`: "Exit to DOS?", and for a party not saved since it changed "Save first?" (#660), whose Yes opens the save menu and quits once the game is saved. Answered No, the menu opens again. Camp asked "Quit TO DOS" after every save, as SSI did; the menu's Quit takes its place, and `Camp.CampMainMenu` no longer asks. #872.
 
+**Q for Quit on the Load/Save menu; the quick save moves to slot Z.** The quick save's slot is now Z (`SaveMenu.QUICK_SLOT`, which `SaveLoad`'s own `QUICK_SLOT` became), listed after J, so Quit takes Q as its hotkey (`OPT_QUIT` is no longer `unmarked`, and `ChooseSlot` turns Q into `QUIT_CHOSEN`). At every start `DataBld.BuildDataFiles` first calls the new `SaveMenu.MoveOldQuickSave`, which renames a quick save left in slot Q, every file `SaveMenu.RecoverSlot` knows of (savgam .dat, .inf, .sts, .map, .nts, the vault copy and each member's files), to slot Z, savgamQ.dat last so a move the game was ended in is done again next time. A file slot Z holds without a savgamZ.dat is erased first; while savgamZ.dat is there, nothing moves. `RecoverSlot` and the move share the new `SlotSet`. TSaveMnu checks the move. #1080.
+
 **Load-time guards.** `LoadGame` holds `gameDelay` to 9 (see section 9, #440).
 
 ---
