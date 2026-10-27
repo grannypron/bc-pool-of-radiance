@@ -1,5 +1,5 @@
 { Tests for StrUtil: numbers, numbers with commas, attacks a round, two-digit padding, nouns for a count, padding to a
-  width, and '~'-hotkey menus. }
+  width, '~'-hotkey menus, and a script menu option's hotkey marked so that no two options share one. }
 {$I COMPILER.INC}
 program TStrUtil;
 
@@ -9,6 +9,7 @@ var
   menu: String;
   opts: String;
   short: string[5];
+  taken: String;
 
 begin
   TestKit.Start('TSTRUTIL');
@@ -49,6 +50,30 @@ begin
   StrUtil.MenuToOptions(menu, opts);
   TestKit.CheckEqualsS('A ', menu, 'a closing ~ with nothing after it is dropped');
   TestKit.CheckEqualsS('A', opts, 'and adds no hotkey');
+
+  { MarkHotkey: the Nomad Camp's tripwire menu (ECL7 block 17), ATTACK after ADVANCE CAUTIOUSLY }
+  taken := '';
+  menu := StrUtil.MarkHotkey('FLEE', taken) + ' ' + StrUtil.MarkHotkey('ADVANCE CAUTIOUSLY', taken) + ' ' +
+          StrUtil.MarkHotkey('ATTACK', taken);
+  TestKit.CheckEqualsS('~FLEE ~ADVANCE CAUTIOUSLY A~TTACK', menu, 'ATTACK takes its T, as A is taken');
+  TestKit.CheckEqualsS('FAT', taken, 'every key once');
+  StrUtil.MenuToOptions(menu, opts);
+  TestKit.CheckEqualsS('Flee Advance cautiously aTtack', menu, 'shown as aTtack');
+  TestKit.CheckEqualsS('FAT', opts, 'and chosen by T');
+  taken := '';
+  menu := StrUtil.MarkHotkey('YES', taken) + ' ' + StrUtil.MarkHotkey('NO', taken);
+  TestKit.CheckEqualsS('~YES ~NO', menu, 'options with their own initials keep them');
+  taken := 'ABC';
+  TestKit.CheckEqualsS('~CAB', StrUtil.MarkHotkey('CAB', taken), 'with no free key it keeps its first');
+  TestKit.CheckEqualsS('ABCC', taken, 'which is noted again');
+  taken := '';
+  TestKit.CheckEqualsS('~', StrUtil.MarkHotkey('', taken), 'an empty option is marked as before');
+  TestKit.CheckEqualsS('', taken, 'and takes no key');
+  taken := 'A';
+  TestKit.CheckEqualsS('a~2', StrUtil.MarkHotkey('a2', taken), 'a digit can be the key');
+  taken := 'P';
+  TestKit.CheckEqualsS('P~ASS ON BY', StrUtil.MarkHotkey('PASS ON BY', taken),
+                       'the first free letter of the option, not of a later word');
   TestKit.CheckEqualsS('AB', StrUtil.RemoveAll('A....B', '.'), 'RemoveAll takes every period in a row (#960)');
   TestKit.CheckEqualsS('SIRBOB', StrUtil.RemoveAll('SIR  BOB', ' '), 'and every space');
   TestKit.CheckEqualsS('ab', StrUtil.RemoveAll('xaxxbx', 'x'), 'at either end too');

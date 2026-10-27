@@ -10,15 +10,29 @@ var
   all: PartyMnu.TCmdSet;
   start: PartyMnu.TCmdSet;
   hall: PartyMnu.TCmdSet;
+  offered: PartyMnu.TCmdSet;
 
 begin
   TestKit.Start('TPARTYMN');
   all := [PartyMnu.CMD_ADD..PartyMnu.CMD_LAST];
-  { no party: Create, Dual Class, Add, Load, Settings and Exit to DOS }
-  start := [PartyMnu.CMD_CREATE, PartyMnu.CMD_DUAL, PartyMnu.CMD_ADD, PartyMnu.CMD_LOAD, PartyMnu.CMD_SETTINGS,
-            PartyMnu.CMD_EXIT];
-  { a party away from a hall: all but Train and Load }
-  hall := all - [PartyMnu.CMD_TRAIN, PartyMnu.CMD_LOAD];
+  { no party at a hall: Create, Add, Load, Settings and Exit to DOS }
+  PartyMnu.OfferedCmds(False, True, True, start);
+  { a party in play away from a hall: all but Train and Load }
+  PartyMnu.OfferedCmds(True, False, True, hall);
+
+  { the commands offered (OfferedCmds) }
+  TestKit.Check(start = [PartyMnu.CMD_CREATE, PartyMnu.CMD_ADD, PartyMnu.CMD_LOAD, PartyMnu.CMD_SETTINGS,
+                         PartyMnu.CMD_EXIT], 'no character: Create, Add, Load, Settings and Exit, no Dual Class');
+  TestKit.Check(hall = all - [PartyMnu.CMD_TRAIN, PartyMnu.CMD_LOAD], 'a character in play: all but Train and Load');
+  PartyMnu.OfferedCmds(True, True, True, offered);
+  TestKit.Check(offered = all - [PartyMnu.CMD_LOAD], 'and Train at a hall');
+  PartyMnu.OfferedCmds(True, True, False, offered);
+  TestKit.Check(offered = all - [PartyMnu.CMD_LOAD, PartyMnu.CMD_DUAL],
+                'SSI''s start-up menu never offers Dual Class, free training or not');
+  PartyMnu.OfferedCmds(False, True, False, offered);
+  TestKit.Check(offered = start, 'nor with no character');
+  TestKit.CheckEqualsL(PartyMnu.CMD_EXIT, PartyMnu.StepCmd(start, PartyMnu.CMD_CREATE, 1),
+                       'no character: Down from Create passes Dual Class, gray, to Exit to DOS');
 
   { the layout: the roster's headers on row 2 and its members from row 4 (#1071) }
   TestKit.CheckEqualsL(10, PartyMnu.MenuTop(0), 'the headings on row 10 with no party');

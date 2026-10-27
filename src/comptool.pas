@@ -21,8 +21,9 @@ const
   { the map's top-left character cell; a square is one 8x8 symbol }
   MAP_COL = 2;
   MAP_ROW = 3;
-  { the legend's column, right of the map }
-  LEGEND_COL = 20;
+  { the legend's column, right of the map: its longest line, CGA's 'Magenta: Player Note' (20 characters), ends on
+    column 38, inside the frame on column 39 }
+  LEGEND_COL = 19;
   { the Map tool's lines below the map: the cursor's square and the Clue Book's key there, then the player's note }
   KEY_ROW = 20;
   PLAYER_ROW = KEY_ROW + 1;

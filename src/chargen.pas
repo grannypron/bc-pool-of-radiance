@@ -94,11 +94,12 @@ procedure AddCharacterMenu; forward;
   inGame set, a training hall's in a game in play (EclVm.EclProgram's PROG_TRAINING), it is the two-column menu of
   mocks/training-hall.txt (#879): the roster the mock's way (CharDisp.hallMenu), then the commands in two columns, the
   highlight on one and a command not offered in dark gray; PartyMnu.ChooseCmd reads a command's key, or Enter on the
-  highlighted one, and Home and End step through the party (Party.SelectPrevNextChar). Offered: with no party Create,
-  Add, Load, Settings and Exit to DOS; with one all but Load; and Train only at a training hall or with free training on
-  (#765), as SSI offered it. Dual Class is always on the two-column menu and never on SSI's (#885); ChgClass.Refusal's
-  reason, if any, shows on the bottom line for two seconds or until a key (TextRend.FlashBottomLine), and otherwise
-  ChgClass.ChangeClassMenu opens for the character selected then. Returns once a loaded saved game leaves the main-menu
+  highlighted one, and Home and End step through the party (Party.SelectPrevNextChar). The commands offered are
+  PartyMnu.OfferedCmds's: with no party Create, Add, Load, Settings and Exit to DOS; with one all but Load; Train only
+  at a training hall or with free training on (#765), as SSI offered it; Dual Class on the two-column menu alone (#885),
+  and there only with a character selected, dark gray without one. ChgClass.Refusal's reason, if any, shows on the
+  bottom line for two seconds or until a key (TextRend.FlashBottomLine), and otherwise ChgClass.ChangeClassMenu opens
+  for the character selected then. Returns once a loaded saved game leaves the main-menu
   state (setting loadedSave) or Begin Adventuring sets ifcState to 4 (C_IFC.INDOORS). Exit to DOS asks through
   SaveLoad.QuitToDos: with a party not saved since it changed, it asks to save first: Yes opens the save menu, and
   leaving it without saving stays in the menu; No quits unsaved (#660). Settings opens the Settings screen
@@ -129,19 +130,13 @@ begin
     if redraw then begin
       Border.DrawWindow(C_MSG.TEXT_LEFT, C_MSG.TEXT_TOP, C_MSG.TEXT_RIGHT, C_MSG.TEXT_BOTTOM, 0, Black, '');
       atHall := (GameVars.zone1^[C_GBVM.TRAIN_CLASS_MASK] > 0) or (stingMode <> 0);
-      offered := [PartyMnu.CMD_CREATE, PartyMnu.CMD_ADD, PartyMnu.CMD_SETTINGS, PartyMnu.CMD_EXIT];
+      PartyMnu.OfferedCmds(GameVars.curChar <> nil, atHall, inGame, offered);
       top := PartyMnu.MENU_TOP;
       if GameVars.curChar <> nil then begin
         CharDisp.DisplayParty(Types.PCharRecord(GameVars.curChar));
         top := PartyMnu.MenuTop(GameVars.zone1^[C_GBVM.PARTY_SIZE]);
-        offered := offered + [PartyMnu.CMD_VIEW, PartyMnu.CMD_MODIFY, PartyMnu.CMD_DROP, PartyMnu.CMD_REMOVE,
-                              PartyMnu.CMD_SAVE, PartyMnu.CMD_BEGIN];
-        if atHall then
-          offered := offered + [PartyMnu.CMD_TRAIN];
-      end else
-        offered := offered + [PartyMnu.CMD_LOAD];
+      end;
       if inGame then begin
-        offered := offered + [PartyMnu.CMD_DUAL];
         if not (cur in offered) then
           cur := PartyMnu.StepCmd(offered, cur, 1);
         PartyMnu.Draw(offered, top, cur);
@@ -174,7 +169,7 @@ begin
                refusal := ChgClass.Refusal(GameVars.curChar, atHall);
                if refusal <> '' then
                  TextRend.FlashBottomLine(Yellow, refusal)
-               else if GameVars.curChar <> nil then
+               else
                  ChgClass.ChangeClassMenu(stingMode <> 0);
              end;
         'V': ViewChar.ViewCharMenu(ext2);
