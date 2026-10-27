@@ -68,6 +68,10 @@ fpc_for() {
     # Match SDL's minimum macOS version and add clang's runtime library directory. The generated FPC configuration
     # does not include libclang_rt.osx.a for aarch64.
     [ "$os" = darwin ] && extra="-WM11.0 -Fl$(xcrun clang -print-runtime-dir)"
+    # The 32-bit C runtime is wherever the distribution keeps it (/usr/lib32 on Arch, /usr/lib/i386-linux-gnu on
+    # Debian). FPC would take /lib's 64-bit crti.o first: -Xd keeps it from its default folders, and gcc names the one.
+    [ "$1" = i386-linux ] && command -v gcc > /dev/null 2>&1 \
+        && extra="-Xd -Fl$(dirname "$(gcc -m32 -print-file-name=crti.o)")"
     [ -n "${2:-}" ] && libs="-Fl$2"
     echo "$fpc $libs -n @$fpc_cfg -Mtp -gl -P$cpu -T$os -Fu$root/src -Fu$root/src/includes -Fu$root/src/native" \
         "-Fi$root/src/includes -Fi$root/obj -FaTpCompat $extra"
@@ -165,8 +169,16 @@ for target in "${targets[@]}"; do
                 # Give the static library a unique name. Sdl3Min links -lSDL3static, which prevents an installed
                 # shared SDL3 library from being selected accidentally.
                 mkdir -p "$out/sdl"
-                cp "$(sdl_lib_for "$target")/libSDL3.a" "$out/sdl/libSDL3static.a" \
+                [ -f "$(sdl_lib_for "$target")/libSDL3.a" ] \
                     || { echo "build-native.sh: $target: no libSDL3.a: run tools/sdl3-setup.sh." >&2; failed=1; continue; }
+                if [ "$target" = i386-linux ]; then
+                    # SDL3's C needs 32-bit libgcc for its 64-bit division (__udivdi3), after SDL3 on the link line:
+                    # the "library" is a GNU ld script that groups the two.
+                    echo "GROUP ( $(sdl_lib_for "$target")/libSDL3.a $(gcc -m32 -print-libgcc-file-name) )" \
+                        > "$out/sdl/libSDL3static.a"
+                else
+                    cp "$(sdl_lib_for "$target")/libSDL3.a" "$out/sdl/libSDL3static.a"
+                fi
                 lib_dir="$out/sdl" ;;
         esac
         echo "build-native.sh: $target: compiling the game..."

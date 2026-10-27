@@ -8,6 +8,8 @@
 # build/toolchain selects the SDL version. Each target installs below $FPC_PREFIX/sdl3-<version>/<target>, using
 # ~/fpc as the default prefix. Static libraries keep the Linux and macOS game builds self-contained:
 #   x86_64-linux    lib/libSDL3.a
+#   i386-linux      lib/libSDL3.a, when gcc -m32 links (a 32-bit C library is installed: Arch's lib32-glibc, Debian's
+#                   gcc-multilib); otherwise it is left out, and said so
 #   i386-win32      lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
 #   x86_64-win64    lib/libSDL3.a (mingw), and bin/SDL3.dll as the fallback
 #   aarch64-darwin  lib/libSDL3.a (on an Apple Silicon Mac; there is no Intel Mac target)
@@ -36,6 +38,13 @@ case "$(uname -s)-$(uname -m)" in
     Darwin-arm64) targets=(aarch64-darwin) ;;
     *) echo "sdl3-setup.sh: no recipe for this host." >&2; exit 1 ;;
 esac
+if [ "${targets[0]}" = x86_64-linux ]; then
+    if echo 'int main(void) { return 0; }' | gcc -m32 -x c - -o /dev/null > /dev/null 2>&1; then
+        targets+=(i386-linux)
+    else
+        echo "sdl3-setup.sh: no 32-bit C library (gcc -m32 does not link), so no SDL3 for i386-linux." >&2
+    fi
+fi
 
 # Every target already built needs neither the tools nor the source, which a CI image deletes once it has built them.
 missing=0
@@ -127,6 +136,7 @@ for t in "${targets[@]}"; do
         x86_64-win64) extra=(-DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc
                              -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
                              -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres) ;;
+        i386-linux) extra=(-DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_SYSTEM_PROCESSOR=i686) ;;
         aarch64-darwin) extra=(-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0) ;;
     esac
     echo "sdl3-setup.sh: building SDL3 $version for $t (log: $log)..."

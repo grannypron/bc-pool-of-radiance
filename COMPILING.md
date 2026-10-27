@@ -213,7 +213,7 @@ See the comments at the top of `tools/macos-sign.sh` for API-key and `.p12` opti
 
 ### Supported host and target
 
-The full Linux game currently builds for x86-64 Linux. An `i386-linux` compiler/test target exists, but the normal SDL setup does not build a 32-bit Linux SDL library, so `x86_64-linux` is the supported complete game build.
+The Linux game builds for x86-64 (`x86_64-linux`) and, on an x86-64 host with a 32-bit C library installed, for 32-bit x86 (`i386-linux`): `tools/sdl3-setup.sh` builds the 32-bit SDL3 only when `gcc -m32` can link, and says so when it cannot. Install the 32-bit C library first: `gcc-multilib` on Debian or Ubuntu, `glibc-devel.i686` and `libgcc.i686` on Fedora, `lib32-glibc` and `lib32-gcc-libs` on Arch. Then `./build-native.sh i386-linux` builds it.
 
 ### Install the prerequisites
 
