@@ -414,7 +414,8 @@ end;
 
 { Shows each thief skill's racial, Dexterity, and level contributions alongside
   the final percentage used by the game (#685). The final value may differ from
-  their sum because it is clamped to zero or disabled by armor. }
+  their sum because it is clamped to zero or disabled by armor; a note under the
+  table, wrapped over two rows, says when armor disables them. }
 procedure DrawThief(p: Types.PCharRecord);
 var
   j: Byte;
@@ -448,7 +449,8 @@ begin
     TextRend.DisplayString(38 - Length(s), 4 + j, White, s);
   end;
   if ClassCal.ArmorBarsThiefSkills(p) then
-    TextRend.DisplayString(2, 14, Yellow, 'Most armor or a shield bars the use of thief skills.');
+    { two rows: the line is longer than the page is wide }
+    TextRend.DisplayMessageWindow(2, 14, 37, 15, Yellow, True, 'Most armor or a shield bars the use of thief skills.');
 end;
 
 { Shows the character's effective turning level and result against each undead

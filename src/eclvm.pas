@@ -681,8 +681,9 @@ begin
 end;
 
 { HMENU: build a '~A ~B ~C' horizontal menu from the var 2 strings that follow (1 to 20) and store the chosen index at
-  var 1's address. A single choice also accepts Enter, and the joystick wording of the continue prompt becomes the
-  keyboard wording. }
+  var 1's address. An option's hotkey is its first letter, or a later one no earlier option took when that one is taken
+  (StrUtil.MarkHotkey), so every option can be chosen. A single choice also accepts Enter, and the joystick wording of
+  the continue prompt becomes the keyboard wording. }
 procedure EclHMenu;
 var
   count: Byte;
@@ -695,6 +696,8 @@ var
   anim: Boolean;
   hlCol: Byte;
   mCol: Byte;
+  { the hotkeys the options before this one took }
+  taken: String;
 begin
   q := '';
   menu := '';
@@ -720,9 +723,10 @@ begin
     mCol := LightGreen;
   end;
   anim := GameVars.eclGraphics and EclMenu.picDrawn;
+  taken := '';
   for i := 1 to count - 1 do
-    menu := menu + '~' + GameVars.gbStrings^[i] + ' ';
-  menu := menu + '~' + GameVars.gbStrings^[count];
+    menu := menu + StrUtil.MarkHotkey(GameVars.gbStrings^[i], taken) + ' ';
+  menu := menu + StrUtil.MarkHotkey(GameVars.gbStrings^[count], taken);
   ch := EclMenu.MenuHorizontalCharacterSelect(q, menu, LightMagenta, mCol, hlCol, enterOk, anim);
   EclVars.WriteGbvm(address, ch);
   TextRend.ClearRect(0, 24, 39, 24);

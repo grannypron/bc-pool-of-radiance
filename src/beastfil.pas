@@ -1,6 +1,7 @@
 { Reads and writes BESTIARY.DAT (#842). The Bestiary belongs to the player rather
   than one saved game, so the file lives in the save directory and carries
-  between games.
+  between games. Each entry this game has met carries C_BEAST.MET_HERE; another
+  game's entries keep their own mark.
 
   The file contains a header followed by Bestiary.TBeast records. A missing or
   invalid file loads as an empty Bestiary. An invalid file is preserved as
