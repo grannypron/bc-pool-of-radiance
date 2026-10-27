@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 #
-# vidbench.sh -- time the video primitives in each video mode (refactor plan, phase 6, step 0).
+# Benchmark the drawing primitives in each video mode (refactor plan, phase 6, step 0).
 #
 #   bench/vidbench.sh [CYCLES]
 #
-# Compiles bench/vidbench.pas against src, as build.sh compiles the unit tests. SOUNDDRV.OBJ comes from obj, so run
-# ./build.sh first. Then runs it once per mode under DOSBox-X at a fixed speed, CYCLES (default 10000) emulated cycles
-# a millisecond: CGA and EGA on an EGA machine, Tandy on a Tandy machine. Prints obj/bench/VIDBENCH.LOG: mode,
-# workload, runs, BIOS ticks, runs a second. Only rates taken at the same CYCLES compare; the speed is fixed so the
-# host's load does not move them.
+# Run ./build.sh first because the benchmark links obj/SOUNDDRV.OBJ. The script tests CGA and EGA on an emulated EGA
+# machine and Tandy video on an emulated Tandy. DOSBox-X is fixed at CYCLES emulated cycles per millisecond (10,000
+# by default), which keeps host load from affecting the result. VIDBENCH.LOG reports the mode, workload, run count,
+# BIOS ticks, and runs per second. Compare only results recorded with the same CYCLES value.
 
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -1,8 +1,7 @@
-{ Where the party has been (phase 8 of docs/refactor-plan.md, the Companion Tools' map): a 16x16 bit map of the squares
-  visited in each 3D area, keyed as AreaName keys areas (the script, and the map for the scripts that run two). The 3D
-  view marks the party's square whenever it is drawn there, so moves, turns, arrivals and the scripts' teleports all
-  count, whether or not the Companion Tools are on. Saved beside each save as savgam<x>.map. Resident, since every step
-  marks a square. }
+{ Tracks explored squares for the Companion Tools map. Each 3D area has a 16x16
+  bitmap keyed by script and, where needed, map ID. The current square is marked
+  whenever the 3D view is drawn, including after turns, arrivals, and scripted
+  teleports. Exploration data is stored beside each save as savgam<x>.map. }
 {$I COMPILER.INC}
 unit Explored;
 

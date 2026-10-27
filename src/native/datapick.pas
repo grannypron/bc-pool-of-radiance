@@ -1,18 +1,19 @@
-{ Finding the game's data at start (#1064): GameDirs.Settle finds it without asking where it can; otherwise the player
-  chooses here, in the game's window before anything of the game is shown, in the BIOS's 40-column text (the data, and
-  so the game's own font, is not found yet). Several copies found: a list to pick from, with Another Folder. None: the
-  system's folder picker (SDL_ShowOpenFolderDialog), or, where it cannot open (a Linux desktop without the XDG portal or
-  zenity), a typed path. A folder chosen is taken only when it holds the data, and remembered (GameDirs.Take).
-  Escape on the list, or cancelling the picker with nothing found, leaves the game with a message. A quit from the
-  system (Command-Q, the window's close button) leaves at once, even while the picker is open: nothing is lost yet
-  (SdlHost.askBeforeQuit, #1073). Free Pascal only. }
+{ Handles data-folder selection during native startup (#1064). GameDirs.Settle
+  first searches without prompting. If it finds several installations, this
+  displays a list; if it finds none, it opens the system folder picker or falls
+  back to a typed path. Only folders containing the required game data are
+  accepted and remembered.
+
+  This runs before the game's fonts are available, so it uses the emulated BIOS
+  text display. Canceling without a usable folder exits with a message. System
+  quit events exit immediately because no game state exists yet (#1073). }
 {$MODE OBJFPC}
 {$H-}
 unit DataPick;
 
 interface
 
-{ Find the game's data folder (GameDirs.Settle), asking the player when that cannot, and make it the current folder. }
+{ Finds the game's data folder, prompts when necessary, and makes it current. }
 procedure FindGame;
 
 implementation

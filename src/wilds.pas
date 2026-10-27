@@ -5,13 +5,11 @@ unit Wilds;
 
 interface
 
-{ Build the wilderness view: walk the 5x5 cells from map cell (ulX, ulY), look each up in GameDefs.wildMap, apply the
-  special-location overrides gated on zone-0 quest flags, and draw each 24x24 tile three character cells apart through
-  MapTiles.Copy2DTile. The corner is first moved so the 5x5 view lies inside the 44x36 map (ViewCorner). }
+{ Draws a 5x5 wilderness view from the 44x36 map. Clamp the requested corner,
+  apply quest-dependent location icons, then draw each 24x24 tile. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
 
-{ Corner ul of the 5x5 wilderness view, along a map side whose last cell is last (C_AREA.WILD_LAST_COL or
-  WILD_LAST_ROW), moved so that the view lies inside the map. }
+{ Clamps one coordinate of the 5x5 view so it remains inside the map. }
 function ViewCorner(ul, last: Integer): Integer;
 
 { Draw the empty bordered windows of the wilderness screen: two side by side at the top and the message area. }
@@ -53,8 +51,9 @@ end;
 { GameDefs.wildMap and the override table both hold 1-based tile ids, hence each - 1. }
 procedure BuildWildernessMap(ulX, ulY: Integer);
 const
-  { Special-location overrides on the 44x36 wilderness map, indexed by the WILD_* constants. Entries 1 and 2 have no
-    case arm in BuildWildernessMap, so their icons are never applied. x/y are map cells; icon is a 1-based tile id. }
+  { Quest-dependent wilderness icons, indexed by the WILD_* constants. x/y are
+    map cells and icon is a one-based tile ID. Entries 1 and 2 intentionally
+    have no case arm and are never applied. }
   wildernessSpecialLocations: array[1..WILD_LAST_SITE] of Types.TSpecLoc = (
     { 1 WILD_SILVER_DRAGON_DEN }  (x: 10; y:  9; icon: 240),
     { 2 WILD_ZHENTIL_OUTPOST }    (x:  3; y: 32; icon:   2),

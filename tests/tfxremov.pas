@@ -1,10 +1,7 @@
-{ Tests for FxEngine.RemoveEffect when the removed effect's own handler removes the node first, as Fight On's does
-  (eff 95: the creature falls dead, and RemoveEffectsHp0 takes its 0-HP effects, Fight On among them). The outer
-  removal must leave the freed node alone: it once walked off the list and wrote through nil, into the interrupt
-  vectors, and freed the node twice. And for FxEngine.HoldTarget, which lets a hold go once its victim is free,
-  FxEngine.HasEffectNode, FxEngine.EffectImmune, and the Strength a disease takes (CharHlp.DiseaseStrLoss,
-  AdjustForNewStrength). And the one cure of disease (FxEngine.RemoveDiseases, HasDisease, #922) and what Friends
-  gives back as it ends (FxEngine.FriendsEndCha, #920). }
+{ Tests effect removal when an effect's own handler has already freed its node,
+  preventing the old double-free and nil write. Also covers hold release,
+  immunity checks, disease-related Strength loss and cures (#922), and restoring
+  Charisma when Friends ends (#920). }
 {$I COMPILER.INC}
 program TFxRemov;
 

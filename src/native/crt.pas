@@ -1,8 +1,7 @@
-{ The native build's Crt: the parts of Turbo Pascal's Crt the game uses (the colour constants, ReadKey, KeyPressed,
-  Delay and CheckBreak) on Host's keyboard buffer and clock. build-native.sh puts src/native on the unit path, so this
-  unit, not Free Pascal's own Crt (which drives a text terminal), is the Crt every unit uses. Each call that waits or
-  polls runs Host.Service, which takes the window's events in and shows the screen, as DOS's hardware did meanwhile.
-  Free Pascal only. }
+{ Native replacement for the subset of Turbo Pascal's Crt used by the game.
+  It provides the color constants and implements keyboard and timing routines
+  on top of Host. Calls that wait or poll also run Host.Service so window events
+  and screen updates continue while the game is idle. Free Pascal only. }
 {$I COMPILER.INC}
 unit Crt;
 
@@ -28,11 +27,11 @@ const
   Blink = 128;
 
 var
-  { Ctrl-Break's check, which the game turns off; a native program has none, so it only keeps the value }
+  { Retained for compatibility; native builds do not handle Ctrl-Break. }
   CheckBreak: Boolean;
 
-{ The next key's character, waiting for one; a key with none (a function or cursor key, an Alt combination) gives #0 and
-  then its scan code on the next call, as Turbo Pascal's ReadKey does. }
+{ Waits for and returns the next key. Extended keys return #0 first and their
+  scan code on the next call, matching Turbo Pascal's ReadKey. }
 function ReadKey: Char;
 
 { True when a key is waiting. }

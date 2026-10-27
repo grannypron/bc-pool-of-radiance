@@ -1,5 +1,6 @@
-{ The party: which creatures in GameVars.creatureList are its members. Resident and using only GameVars, so units with
-  tests (Stats) can use it. }
+{ Identifies and navigates party members in GameVars.creatureList. This unit is
+  resident and depends only on GameVars so lightweight units such as Stats can
+  use it. }
 {$F+}
 {$I COMPILER.INC}
 unit Party;
@@ -8,8 +9,9 @@ interface
 
 uses Types;
 
-{ True when creature is one of the party's PARTY_SIZE members, which lead GameVars.creatureList: in combat the monsters
-  follow them in the list, and are not members. False for nil. }
+{ Returns True when creature is among the PARTY_SIZE entries at the head of
+  GameVars.creatureList. Returns False for nil and for combatants that follow
+  the party. }
 function IsPartyMember(creature: Types.PCharRecord): Boolean;
 
 { Step curChar through the party on the extended scan codes the menus return: C_KEYS.HOME or C_KEYS.UP selects the
@@ -18,15 +20,15 @@ function IsPartyMember(creature: Types.PCharRecord): Boolean;
   #733). With no current character the step starts from the head (#806). }
 procedure SelectPrevNextChar(c: Char);
 
-{ The last creature in GameVars.creatureList, or nil for an empty list. }
+{ Returns the last creature in the list, or nil when the list is empty. }
 function LastCreature: Types.PCharRecord;
 
-{ The creature before c in GameVars.creatureList, wrapping from the head to the last; nil when c is not in the list.
-  For nil it is the last, as nil follows the last. }
+{ Returns the creature before c, wrapping from the head to the tail. Passing
+  nil returns the tail; a non-nil creature outside the list returns nil. }
 function PrevCreature(c: Types.PCharRecord): Types.PCharRecord;
 
-{ The creature after c in GameVars.creatureList, wrapping from the last to the head; for nil the head, as
-  PrevCreature takes nil for the place after the last. }
+{ Returns the creature after c, wrapping from the tail to the head. Passing nil
+  returns the head. }
 function NextCreature(c: Types.PCharRecord): Types.PCharRecord;
 
 implementation

@@ -1,14 +1,16 @@
-{ BESTIARY.DAT (#842): the Bestiary's knowledge, kept in the save folder and not in a save, so it carries from game to
-  game; the format is meant for Curse, Secret and Pools as well, and an entry this game has met carries
-  C_BEAST.MET_HERE (another game's entries carry its own mark). The file is a header (the signature BEST, the format's
-  version, the bytes of an entry and their count) and then the entries, each a Bestiary.TBeast. A missing file is an
-  empty bestiary. A damaged one (a foreign signature, a version before the first, a size that does not add up) reads as
-  empty and is renamed BESTIARY.BAD when the next is written. One of a newer format is read, since a newer format only
-  adds to the end of an entry, and never written, so an older game does not throw away what a newer one learned; so is
-  one the heap had no room for all of, so what did not fit is not lost.
-  Overlaid: it is read at start-up and written after a fight, after a save and on the way out to DOS. Tell fills in an
-  entry from a creature's own record, the monster data's word on its kind, which the party did not learn in play: the
-  sage's service (#868), and a later import's. }
+{ Reads and writes BESTIARY.DAT (#842). The Bestiary belongs to the player rather
+  than one saved game, so the file lives in the save directory and carries
+  between games. Each entry this game has met carries C_BEAST.MET_HERE; another
+  game's entries keep their own mark.
+
+  The file contains a header followed by Bestiary.TBeast records. A missing or
+  invalid file loads as an empty Bestiary. An invalid file is preserved as
+  BESTIARY.BAD on the next successful write. Files from newer compatible
+  versions may be read but are never overwritten, and a partial load caused by
+  low memory is likewise left untouched.
+
+  Tell adds facts taken directly from a monster record. The sage uses it to
+  reveal information the party has not learned during play (#868). }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit BeastFil;
@@ -19,26 +21,26 @@ uses FileUtil, Types, Bestiary;
 
 const
   FILE_NAME = 'BESTIARY.DAT';
-  { a damaged BESTIARY.DAT, kept aside rather than written over }
+  { Name used to preserve an invalid Bestiary instead of overwriting it. }
   BAD_NAME = 'BESTIARY.BAD';
 
-{ Read the Bestiary from BESTIARY.DAT in the save folder (LoadFrom), at start-up, once the paths are known. }
+{ Loads BESTIARY.DAT from the configured save directory. }
 procedure Load;
 
-{ Write the Bestiary to BESTIARY.DAT in the save folder when it has learned something since it was last written, the
-  damaged file it read set aside first. A failed write is tried again the next time. }
+{ Writes a changed Bestiary to the save directory. An invalid input file is
+  moved aside first. A failed write leaves the Bestiary dirty for a later retry. }
 procedure Flush;
 
-{ Read the Bestiary from file fn in place of what it holds. }
+{ Replaces the current Bestiary with the contents of fn. }
 procedure LoadFrom(fn: FileUtil.TPathName);
 
-{ Write the Bestiary as file fn, safely (FileUtil's temporary copy, put in place once whole): True when it is there. }
+{ Safely writes the Bestiary to fn through FileUtil's temporary-file mechanism. }
 function WriteTo(fn: FileUtil.TPathName): Boolean;
 
-{ Fill in b from creature, a record of its kind as the monster data has it (EclMenu.InitCreature): its size, hit dice
-  and exact armor class, and the defenses and attacks its effects stand for (C_BEAST.EFFECT_FACTS). What b knew stays
-  known, and seen, killed and maxHit, the party's own, are left alone. b is marked C_BEAST.TOLD, all there is to know.
-  True when b has learned something other than that; the caller that keeps b marks the Bestiary dirty. }
+{ Adds every fact available from creature's monster-data record to b. Existing
+  knowledge and observed counters are preserved. The entry is marked
+  C_BEAST.TOLD even when there was nothing new to add. Returns True when another
+  fact changed; the caller must then mark the Bestiary dirty. }
 function Tell(var b: Bestiary.TBeast; creature: Types.PCharRecord): Boolean;
 
 implementation

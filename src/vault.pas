@@ -1,9 +1,10 @@
-{ The vault, The Hoarder's Respite in New Phlan (#606): money and items the party leaves there are kept with the saved
-  game, as Pools of Darkness keeps its vault. While a game is played its vault is the session file tmpvault.dat in the
-  save directory; saving a game copies it to vault<x>.dat beside savgam<x>.dat, and loading one copies that back, so
-  what is left in the vault and then given up with an unsaved game is gone with it. Each file is written to a
-  temporary copy put in its place only once it is whole, the slot's copy with the rest of the save (FileUtil.CommitSet),
-  so a failed write leaves the old one. }
+{ Persistence for The Hoarder's Respite vault in New Phlan (#606). During play,
+  the session vault is tmpvault.dat. Saving copies it into the selected slot as
+  vault<x>.dat; loading restores that copy to the session file. This makes vault
+  changes part of the saved game rather than global state.
+
+  Writes use temporary files and atomic file-set commits, so a failed write
+  leaves the previous vault intact. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit Vault;

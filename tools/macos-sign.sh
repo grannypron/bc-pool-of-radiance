@@ -1,39 +1,36 @@
 #!/usr/bin/env bash
 #
-# macos-sign.sh -- sign Pool of Radiance.app with a Developer ID, notarize it with Apple and staple the ticket, so
-# Gatekeeper opens it on any Mac. Run on a Mac after ./build-native.sh macos.
+# Sign Pool of Radiance.app with a Developer ID, submit it for notarization, and staple Apple's ticket. Run this on
+# a Mac after ./build-native.sh macos.
 #
 #   tools/macos-sign.sh [APP]
 #
-# APP defaults to obj/native/macos/Pool of Radiance.app. The environment chooses the credentials:
-#   SIGN_P12         a .p12 holding the Developer ID Application certificate and its key, with its password in the file
-#                    SIGN_P12_PASSWORD_FILE: the app is signed with rcodesign (apple-codesign), which needs no keychain
-#                    and no login session. The Forgejo runner signs this way: under launchd, codesign searches only the
-#                    System keychain. rcodesign is downloaded once into $FPC_PREFIX/tools/bin (FPC_PREFIX is ~/fpc
-#                    unless set), checked against its release's SHA-256.
-#   SIGN_IDENTITY    otherwise, codesign signs from the keychain with this identity (default: the keychain's first
-#                    "Developer ID Application" one); over SSH, unlock the login keychain first
-#                    (security unlock-keychain ~/Library/Keychains/login.keychain-db)
-#   NOTARY_KEY       an App Store Connect API key (.p8) to notarize with, with NOTARY_KEY_ID and NOTARY_ISSUER (the
-#                    runner's /etc/forgejo-runner/signing/notary-key.p8, notary-key-id and notary-issuer); or else
-#   NOTARY_PROFILE   a notarytool keychain profile, made once with
+# APP defaults to obj/native/macos/Pool of Radiance.app. Environment variables select the credentials:
+#   SIGN_P12         A .p12 containing the Developer ID certificate and private key. Put its password in
+#                    SIGN_P12_PASSWORD_FILE. This uses rcodesign and does not require a login keychain. The Forgejo
+#                    runner uses this path because codesign launched as a service sees only the System keychain.
+#                    rcodesign is downloaded once, verified, and stored below $FPC_PREFIX/tools/bin.
+#   SIGN_IDENTITY    Otherwise, use this identity from the login keychain. By default the first Developer ID
+#                    Application identity is selected. Unlock the login keychain before signing over SSH.
+#   NOTARY_KEY       An App Store Connect API key (.p8), accompanied by NOTARY_KEY_ID and NOTARY_ISSUER; or
+#   NOTARY_PROFILE   A notarytool keychain profile created with
 #                      xcrun notarytool store-credentials <name> --apple-id <id> --team-id <team>
-#                    (default: poolrad); with NOTARY_PROFILE=none the app is signed but not notarized
-# The notarized app is zipped beside it as Pool of Radiance.zip (ditto keeps what the signature covers).
+#                    The default profile is poolrad. Set this to none to sign without notarizing.
+# The finished app is zipped beside it as Pool of Radiance.zip. ditto preserves everything covered by the signature.
 
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 app="${1:-$root/obj/native/macos/Pool of Radiance.app}"
 profile="${NOTARY_PROFILE:-poolrad}"
-# rcodesign's release, and the SHA-256 its SHA256SUMS gives for the Apple Silicon build
+# Pin rcodesign and its published Apple Silicon SHA-256.
 rcodesign_version=0.29.0
 rcodesign_sha=d1a532150adaf90048260d76359261aa716abafc45c53c5dc18845029184334a
 
 [ "$(uname -s)" = Darwin ] || { echo "macos-sign.sh: run this on a Mac." >&2; exit 1; }
 [ -d "$app" ] || { echo "macos-sign.sh: no $app: run ./build-native.sh macos first." >&2; exit 1; }
 
-# rcodesign: the program, fetched into $FPC_PREFIX/tools/bin the first time
+# Download and verify rcodesign on first use, then pass through the caller's arguments.
 rcodesign() {
     local bin="${FPC_PREFIX:-$HOME/fpc}/tools/bin" dl name url
     if ! "$bin/rcodesign" --version 2> /dev/null | grep -q " $rcodesign_version"; then
@@ -56,7 +53,7 @@ if [ -n "${SIGN_P12:-}" ]; then
     [ -r "$SIGN_P12" ] && [ -r "${SIGN_P12_PASSWORD_FILE:-}" ] \
         || { echo "macos-sign.sh: SIGN_P12 needs a readable .p12 and SIGN_P12_PASSWORD_FILE." >&2; exit 1; }
     echo "macos-sign.sh: signing with $SIGN_P12 (rcodesign)..."
-    # the hardened runtime, which notarization requires; rcodesign asks Apple's time-stamp server by default
+    # Notarization requires the hardened runtime. rcodesign requests Apple's secure timestamp by default.
     rcodesign sign --p12-file "$SIGN_P12" --p12-password-file "$SIGN_P12_PASSWORD_FILE" \
         --code-signature-flags runtime "$app"
 else
@@ -68,7 +65,7 @@ else
     [ -n "$identity" ] || { echo "macos-sign.sh: no Developer ID Application identity in the keychain" \
         "(over SSH, unlock the login keychain first), and neither SIGN_IDENTITY nor SIGN_P12 is set." >&2; exit 1; }
     echo "macos-sign.sh: signing with $identity..."
-    # the hardened runtime, which notarization requires; a secure timestamp, likewise
+    # Notarization requires both the hardened runtime and a secure timestamp.
     codesign --force --options runtime --timestamp --sign "$identity" "$app"
 fi
 codesign --verify --strict --verbose=2 "$app"
@@ -90,14 +87,14 @@ else
 fi
 
 echo "macos-sign.sh: notarizing ($how); Apple usually answers within minutes..."
-# notarytool returns success for a submission Apple rejected too: only "status: Accepted" will do
+# notarytool can exit successfully for a rejected submission, so require an explicit Accepted status.
 result="$(xcrun notarytool submit "$zip" "${notary[@]}" --wait 2>&1)" || { echo "$result" >&2; exit 1; }
 echo "$result"
 echo "$result" | grep -q "status: Accepted" \
     || { echo "macos-sign.sh: Apple did not accept it; xcrun notarytool log <submission id> says why." >&2
          exit 1; }
 xcrun stapler staple "$app"
-# the zip again, now with the stapled ticket inside
+# Recreate the archive so it includes the stapled ticket.
 rm -f "$zip"
 ditto -c -k --keepParent "$app" "$zip"
 spctl --assess --type execute --verbose=2 "$app"

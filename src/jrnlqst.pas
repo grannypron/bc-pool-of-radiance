@@ -17,30 +17,22 @@ unit JrnlQst;
 interface
 
 { The quest's line on the Quests page: its proclamation's numeral, or who gives it, and what to do, as
-  CI: CLEAR SOKAL KEEP, at most C_JRNL.QUEST_WIDTH characters.
-  @param(n The quest's place on the page.)
-  @returns(The label, or an empty string outside the list.) }
+  CI: CLEAR SOKAL KEEP. Returns an empty string outside the 1-based quest list. }
 function QuestLabel(n: Integer): string;
 
-{ The Journal item of the proclamation that gives the quest.
-  @param(n The quest's place on the page.)
-  @returns(Its place in the Journal's list, or 0 for a quest no proclamation gives.) }
+{ Returns the Journal item for the proclamation that gives this quest, or 0
+  when the quest has no proclamation. }
 function QuestItem(n: Integer): Integer;
 
-{ Whether the party has done the quest.
-  @param(n The quest's place on the page.)
-  @returns(True when its reward cell says so; False outside the list.) }
+{ Returns True when the quest's reward cell shows that it is complete. }
 function IsDone(n: Integer): Boolean;
 
-{ Whether the party has been given the quest: its proclamation is posted, the scripts record that it was given, or
-  it is done.
-  @param(n The quest's place on the page.)
-  @returns(True when the quest belongs on the page; False outside the list.) }
+{ Returns True when the quest belongs on the page. A quest counts as given if
+  its proclamation is posted, a script records it as given, or it is complete. }
 function IsGiven(n: Integer): Boolean;
 
-{ Whether proclamation number is posted outside City Hall yet.
-  @param(number The proclamation's number, 59 for LIX.)
-  @returns(True once the clerk has paid the rewards that bring it; False for one never posted.) }
+{ Returns True when a proclamation has been posted outside City Hall. The
+  number is numeric, so LIX is passed as 59. }
 function IsPosted(number: Integer): Boolean;
 
 implementation

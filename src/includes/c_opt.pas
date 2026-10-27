@@ -1,5 +1,5 @@
-{ The configuration files (#876): POOL.CFG's letters and paths, and POOLOPT.CFG's settings and keys, which the game
-  (Options, GameBoot) and the set-up program POOLCFG share through CfgFile. }
+{ Shared constants for POOL.CFG and POOLOPT.CFG (#876). The game and POOLCFG
+  both use these values through CfgFile. }
 {$I COMPILER.INC}
 unit C_OPT;
 

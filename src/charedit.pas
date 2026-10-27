@@ -1,8 +1,8 @@
-{ The Companion Tools' character editor (phase 8 of docs/refactor-plan.md): the party's characters changed in place, on
-  their character sheets. Abilities and hit points are CharGen's Modify Character, without its no-experience check;
-  levels go up as training raises them (CharGen.GainLevels) and down by a hit die's average, to the experience tables'
-  last level whatever the race; gear adds any item RandItem makes and sets the coins; magic sets the spells known;
-  health heals and sets the status. Edited characters are not marked. }
+{ Implements the Companion Tools character editor. It edits party members in
+  place from their character sheets. The tools can change abilities, hit
+  points, levels, equipment, money, known spells, and health. Level increases
+  use the normal training code; decreases remove the average hit points for the
+  lost hit die. Edited characters are not specially marked. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit CharEdit;

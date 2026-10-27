@@ -26,22 +26,18 @@ type
   TSlotDesc = string[DESC_LEN];
   TSlotArea = string[AREA_LEN];
 
-{ Run the menu and return the slot chosen, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape or Exit (X, #910). Saving
-  lists every slot, an unused one as EMPTY; loading lists only the slots holding a saved game, and when there are none
-  says so on the bottom line for two seconds or until a key (TextRend.FlashBottomLine, #1069) and returns C_KEYS.NONE. A
-  slot shows its letter (white: the key that takes it), description and time saved, and below them its area and date. Up
-  and Down (Home and End), and Next and Prev on the bottom line, move the selection a slot at a time, scrolling the list
-  a slot at a time past its top or bottom, Page Up and Page Down a screenful; Save (or Load) takes the selected slot,
-  and a slot's letter takes that slot at once. Quit (#872) has no key (Q is a slot's) and Exit's is X (E is a slot's),
-  not marked on the line; the arrows reach both. The caller asks whether to exit to DOS (SaveLoad.QuitToDos). The
-  selection starts on slot start when it is listed, else on the newest saved game. The caller redraws the screen
-  afterwards. }
+{ Runs the full-screen slot browser. Save mode lists every slot; Load mode lists
+  only usable saves and reports when none exist (#1069). Arrow, paging, and
+  direct-letter keys select a slot. The initial selection is start when present,
+  otherwise the newest save.
+
+  Returns a slot letter, QUIT_CHOSEN for Quit, or C_KEYS.NONE for Escape/Exit.
+  The caller handles Quit and redraws its own screen. }
 function ChooseSlot(saving: Boolean; start: Char): Char;
 
-{ The popup for saving into slot letter, in place of the menu's list: the slot, the area, and the description, which
-  starts as desc and is edited on its line (up to DESC_SHOWN characters, upper case; Backspace deletes). While it is
-  empty it shows, and is, SAVE GAME and the letter. The bottom line reads Save: Exit, with no hotkey, since every letter
-  is typed: Enter saves, True with desc set; Escape is Exit, False. }
+{ Edits a slot description in a popup. Input is uppercase and limited to
+  DESC_SHOWN characters. An empty description becomes "SAVE GAME <letter>".
+  Enter accepts it; Escape returns False. }
 function AskDescription(letter: Char; area: TSlotArea; var desc: TSlotDesc): Boolean;
 
 { The description and area kept for slot letter: True when its savgam<x>.inf is a slot-info file of this format, else
@@ -62,9 +58,8 @@ function VaultName(letter: Char): FileUtil.TSetName;
   .chx. }
 procedure RemoveCharFiles(var s: FileUtil.TFileSet; base: FileUtil.TSetName; ext: Types.TStr8);
 
-{ Undo a save into slot letter that the game was ended in before it was done (FileUtil.RecoverSet), over every file a
-  save of the slot has, so the slot holds its old save again: True when nothing was left to undo. Each reader of a slot
-  calls it first: the menu's list, a load, the quick load. }
+{ Recovers a slot after an interrupted commit. Every reader calls this before
+  inspecting the slot. Returns True when recovery is complete. }
 function RecoverSlot(letter: Char): Boolean;
 
 { Write slot letter's savgam<x>.inf as a file of save s (FileUtil.WriteToSet): True when it was written. }

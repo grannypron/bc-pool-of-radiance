@@ -1,9 +1,11 @@
-{ The sound interrupt's cost (refactor plan, phase 7, step 0): how much of the processor the sequencer's timer
-  interrupt takes on one device, while silent and while playing the title music. A busy loop counts for RUN_TICKS BIOS
-  ticks with the sound timer off, then on and silent, then on and playing; the cost is the share of the loop's count
-  lost. bench/sndbench.sh compiles it and runs it under DOSBox-X at a fixed speed; the first argument is the device,
-  T (Tandy) or P (speaker). Each line of SNDBENCH.LOG is the device, the state, the loop count and the cost in
-  hundredths of a percent. Only figures taken at the same DOSBox-X speed compare. }
+{ Measures the CPU cost of the sound sequencer's timer interrupt. A busy loop
+  runs with the timer disabled, enabled but silent, and playing the title music.
+  The reduction in loop iterations gives the interrupt's cost.
+
+  bench/sndbench.sh runs this program in DOSBox-X at a fixed speed. Pass T for
+  Tandy or P for PC speaker. SNDBENCH.LOG records the device, state, loop count,
+  and cost in hundredths of a percent. Results are comparable only when they
+  were measured at the same DOSBox-X speed. }
 program SndBench;
 
 const
@@ -34,7 +36,7 @@ function SoundTimerHooked: Boolean; external;
 procedure SetSoundDevice(mode: Word); external;
 function SoundVoiceTune(voice: Word): Word; external;
 
-{ Count a busy loop for RUN_TICKS BIOS ticks, starting on a tick edge. }
+{ Counts busy-loop iterations for RUN_TICKS complete BIOS ticks. }
 function Count: LongInt;
 var
   start: LongInt;
@@ -50,7 +52,7 @@ begin
   Count := c;
 end;
 
-{ Log the state's count and its cost against the idle count. }
+{ Logs the loop count and its cost relative to the idle measurement. }
 procedure Report(state: String; c: LongInt);
 begin
   WriteLn(log, dev, ' ', state, ' ', c, ' ', Round((1 - c / idle) * 10000));

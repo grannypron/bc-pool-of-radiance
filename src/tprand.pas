@@ -1,7 +1,7 @@
-{ Turbo Pascal's random numbers, for the native build: Free Pascal's Random is a Mersenne twister, so the same RandSeed
-  (STING NORAND's 1) would roll other dice, and a replay of the DOS game's keys would play out otherwise. Each unit that
-  rolls uses this one under Free Pascal, after System, so its RandSeed, Random and Randomize are the ones it calls; the
-  DOS build keeps System's, which these match (tests/ttprand.pas checks them against each other under Turbo Pascal). }
+{ Turbo Pascal's random-number generator for native builds. Free Pascal uses a
+  different algorithm, which would change dice rolls and make DOS input replays
+  diverge. Units import this after System so these compatible RandSeed, Random,
+  and Randomize definitions win. tests/ttprand.pas compares them with TP6. }
 {$I COMPILER.INC}
 {$IFDEF FPC}
 {$Q-,R-}

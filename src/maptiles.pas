@@ -10,12 +10,11 @@ interface
 uses Types;
 
 const
-  { The combat icon slots (GameVars.iconAnimation): 0..7 the party's, 8..12 the monster kinds (LOAD MONSTER takes the
-    next, CLEAR MONSTERS starts them again), 13..24 the combat sprites (COMSPR) and 25 the cursor. }
+  { Combat icon slots: 0..7 are party members, 8..12 are monster kinds,
+    13..24 are COMSPR sprites, and 25 is the cursor. }
   FIRST_MONSTER_ICON = 8;
   LAST_MONSTER_ICON = 12;
-  { Outside combat, slots 9..11 hold the party's wilderness icon, ICON blocks 0..2 (LoadWildIcons): the animation
-    MapView.DisplayWildMapView steps through. }
+  { Outside combat, slots 9..11 hold the three wilderness-icon frames. }
   FIRST_WILD_ICON = 9;
 
 var
@@ -26,9 +25,9 @@ procedure Load24x24Set(name: string; mult: Byte);
 
 procedure Copy2DTile(col, row: ShortInt; tile: Byte);
 
-{ The second 24x24 tile set (SQRPACI block 2, tile IDs 128 and up), loaded into mapTilePtr2 the first time
-  it is needed: only the wilderness and the ending draw from it, so it is not loaded at start-up and combat frees it
-  (FreeSecondSheet). Nil when it does not load. }
+{ Lazily loads the second 24x24 tile sheet (SQRPACI block 2, IDs 128 and up).
+  Only the wilderness and ending need it, and combat frees it. Returns nil if
+  it cannot be loaded. }
 function SecondSheet: Types.PImgBuf;
 
 { Free the second tile set, for SecondSheet to load again when it is next needed. }

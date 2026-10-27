@@ -1,7 +1,6 @@
-{ SBSFX.DAT, the Sound Blaster's recorded effects (built by tools/sbsfx.py), read for the two drivers that play them:
-  SndSb's DSP under DOS and SndDig natively. The file is a header (the signature SBFX, its version and the count of
-  entries), the entries (an effect's tune, format, time constant, length and offset, 7 bytes each) and the recordings'
-  bytes. }
+{ Reads the recorded effects in SBSFX.DAT for the DOS Sound Blaster and native
+  digital-audio drivers. The file contains an SBFX header, seven-byte directory
+  entries, and the sample data. tools/sbsfx.py creates it. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit SfxFile;
@@ -22,24 +21,24 @@ type
     start: Word;
   end;
 
-{ Read SBSFX.DAT from the game's folder (natively from beside the program when it is there, where the release zip puts
-  it, else the data folder: GameDirs.OwnFolder, #1064) onto the heap: p holds its size bytes, and count is the entries
-  the header gives. False, with nothing held, when the file is missing or unreadable, larger than one heap block or
-  (under DOS) the heap's largest free block, or CheckHeader refuses it. }
+{ Loads SBSFX.DAT into one heap block. Native builds prefer the copy beside the
+  executable and otherwise use the game-data directory (#1064). Returns False
+  and leaves p nil when the file cannot be read, does not fit, or has an invalid
+  header. The caller owns the returned block. }
 function Load(var p: Types.PBytes; var size: Word; var count: Byte): Boolean;
 
-{ True when the size bytes at p start with the signature and the version and hold the entries they count; count is
-  that number. }
+{ Validates the signature, version, and directory size, and returns the number
+  of entries in count. }
 function CheckHeader(p: Types.PBytes; size: Word; var count: Byte): Boolean;
 
-{ Entry i (0 to count - 1) of a file CheckHeader passed, in e. True when it is a recording that can play: tune 1 to
-  C_SOUND.SFX_LAST, a known format, and at least one byte, all past the header and inside the file, and for ADPCM no
-  more bytes than decode to a Word's count of samples (MAX_ADPCM_BYTES), for SndDig's buffer (#916). The drivers both
-  take a later entry for a tune over an earlier one. }
+{ Reads and validates directory entry i. A playable entry must name a known
+  tune and format, contain sample data entirely inside the file, and fit the
+  native decoder's Word-sized sample count (#916). Drivers let later entries
+  replace earlier entries for the same tune. }
 function GetEntry(p: Types.PBytes; size: Word; i: Byte; var e: TSfxEntry): Boolean;
 
-{ The samples entry e plays: its bytes for 8-bit PCM; for 4-bit ADPCM a first byte that is a sample and two in each
-  byte after it. }
+{ Returns the decoded sample count. PCM has one sample per byte. ADPCM stores
+  the first sample directly and two samples in each remaining byte. }
 function DecodedLength(var e: TSfxEntry): LongInt;
 
 implementation

@@ -1,16 +1,16 @@
-{ A one-line text editor's keys, with no screen in them (#876): TuiKit.EditLine draws the line and passes each key here,
-  so the editing rules can be tested on their own, natively too. }
+{ Keyboard handling for the one-line editor (#876). TuiKit.EditLine handles
+  drawing and passes each key here, which keeps the editing rules independently
+  testable. }
 {$I COMPILER.INC}
 unit LineEdit;
 
 interface
 
-{ Apply key ch (ext set for an extended key's scan code) to text, whose cursor sits before character pos + 1 (0 the
-  start, Length(text) the end). Left, Right, Home and End move the cursor; Backspace deletes the character before it
-  and Del the one under it; Ins turns insertMode over; a printable character is inserted at the cursor, or with
-  insertMode clear replaces the one under it, while text stays within maxLen characters. True when the key was the
-  editor's, whether or not it changed anything; False for any other key (Enter, Escape, a function key), for the
-  caller. }
+{ Applies one key to text. pos is the cursor position between characters, from
+  0 through Length(text), and ext identifies an extended-key scan code. Cursor,
+  deletion, insert, and overwrite keys are handled here without letting text
+  exceed maxLen. Returns True for any editor key, even if it made no change;
+  returns False when the caller should handle the key. }
 function EditKey(var text: string; var pos: Byte; var insertMode: Boolean; maxLen: Byte; ch: Char;
   ext: Boolean): Boolean;
 

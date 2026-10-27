@@ -1,11 +1,11 @@
-# Dirten's temple (#682): save A moved to (13,7) in the freed Temple of Bane, Dirten's day 14 days back
-# (saves/banetemple). On the altar square he welcomes the party, with his portrait, and opens the temple a tenth off:
-# Cure Light Wounds for 90 gold pieces. Leaving the temple restores the view.
+# Tests Dirten's restored temple (#682). The fixture places save A at (13,7) in the freed temple, 14 days after
+# Dirten left. On the altar square he should greet the party with his portrait and open a temple charging ten percent
+# less: Cure Light Wounds costs 90 gold pieces. Leaving the temple should restore the normal view.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
 put saves/banetemple
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l a
 wait AREA 120
 press up

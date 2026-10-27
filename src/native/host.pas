@@ -1,8 +1,8 @@
 {$I COMPILER.INC}
-{ The native build's stand-ins for the PC the game ran on: the VGA's memory and DAC, the video BIOS's INT 10h, the BIOS
-  clock and the BIOS's keyboard buffer. Plain memory, no SDL, so the unit tests link without it: SdlHost shows this
-  screen and fills the keyboard buffer, through serviceHook. Free Pascal only: the DOS build has the hardware. The units
-  that call INT 10h use this unit after Dos, so its Registers and Intr are the ones they see. }
+{ Emulates the PC services used by the native build: VGA memory and palette,
+  the INT 10h video functions, the BIOS clock, and the keyboard buffer. This
+  unit has no SDL dependency, which keeps it usable by unit tests. SdlHost
+  connects the emulated screen and keyboard through serviceHook. }
 unit Host;
 
 interface
@@ -33,23 +33,22 @@ var
   { the mode INT 10h AH=0 last set }
   videoMode: Byte;
 
-  { SdlHost's routine that takes the window's events in (keys to PushKey) and shows the screen; nil in the unit tests }
+  { Set by SdlHost to process events and present the screen; nil in tests. }
   serviceHook: procedure;
 
-{ Run serviceHook, when there is one: the game calls this wherever DOS would have let the hardware get on with it
-  (waiting for a key, Delay). }
+{ Runs the platform service hook when one is installed. }
 procedure Service;
 
-{ The BIOS keyboard buffer: a key as INT 16h gives it, scan code in the high byte and character in the low (0 for a key
-  with no character: a function key, a cursor key, an Alt combination). A full buffer drops the key, as the BIOS's
-  does. }
+{ Adds a key to the BIOS-style keyboard buffer. The scan code occupies the high
+  byte and the character the low byte. Extended keys have character 0. Like the
+  BIOS, a full buffer drops new input. }
 procedure PushKey(scan, ch: Byte);
 function KeyWaiting: Boolean;
 { The next key; 0 when there is none. }
 function PopKey: Word;
 
-{ The BIOS timer's count, 18.2 ticks a second, as DOS keeps it at 0040:006C: here counted from the program's start
-  rather than from midnight, which the game does not depend on (its waits handle the count's wrap). }
+{ Returns the BIOS-style 18.2 Hz timer count. Native builds count from program
+  startup rather than midnight; callers already handle wraparound. }
 function BiosTicks: LongInt;
 
 { The video BIOS's functions the game calls, on screen and videoMode; any other interrupt or function does nothing.

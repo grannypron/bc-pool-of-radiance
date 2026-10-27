@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 #
-# release.sh -- create (or update) the Forgejo release for a tag and attach its zip from dist/.
+# Create or update a Forgejo release and attach its DOS archive from dist/.
 #
 #   .forgejo/scripts/release.sh v1.1
 #
-# Runs in the build workflow, which provides the repository's API URL in REPO_API (the event's repository.url) and,
-# in TOKEN, the job's token. Not GITHUB_SERVER_URL: the runner sets that to its own connection, which on
-# forgejo.brazencrows.com is Forgejo's loopback address and unreachable from a job.
-# A re-run replaces the asset and the notes, so a release can be rebuilt without editing it by hand. The new zip is
-# attached before the old one is removed, so a failed upload leaves the release as it was.
+# The build workflow supplies the repository API URL as REPO_API and its job token as TOKEN. GITHUB_SERVER_URL cannot
+# be used because this runner sets it to Forgejo's loopback address, which jobs cannot reach. Reruns update both the
+# archive and release notes. The replacement is uploaded before the old asset is deleted so failed uploads are safe.
 
 set -euo pipefail
 
@@ -21,14 +19,14 @@ auth="Authorization: token $TOKEN"
 
 [ -f "$zip" ] || { echo "release.sh: dist/$asset is missing; run package.sh first." >&2; exit 1; }
 
-# The zip's own SHA-256, and those of the two files package.sh put in it (obj/ is what it zipped).
+# Record checksums for the archive and the two game files package.sh placed in it.
 notes="$(printf 'START.EXE and GAME.OVR built from the source tagged %s.\n\nSHA-256:\n\n```\n%s\n%s\n```\n' \
     "$tag" "$(cd "$root/obj" && sha256sum START.EXE GAME.OVR)" "$(cd "$root/dist" && sha256sum "$asset")")"
 
 resp="$(mktemp)"
 trap 'rm -f "$resp"' EXIT
 
-# The release for the tag, created with the notes if there is none yet. Only a 404 means there is none.
+# Reuse the tag's release when present. Only HTTP 404 means a new release should be created.
 status="$(curl -sS -o "$resp" -w '%{http_code}' -H "$auth" "$api/releases/tags/$tag")"
 case "$status" in
     200)
@@ -50,8 +48,7 @@ case "$status" in
         ;;
 esac
 
-# Attach the new zip first; only then bring the notes up to date and remove any other asset of the same name an
-# earlier run left.
+# Upload the replacement first, then update the notes and remove older assets with the same name.
 new="$(curl -fsS -X POST -H "$auth" -F "attachment=@$zip" "$api/releases/$id/assets?name=$asset" \
     | jq -r '.id // empty')"
 [ -n "$new" ] || { echo "release.sh: the upload of $asset returned no asset id; nothing removed." >&2; exit 1; }

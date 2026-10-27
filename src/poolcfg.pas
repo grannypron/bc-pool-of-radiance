@@ -1,21 +1,15 @@
-{ POOLCFG: Pool of Radiance's set-up program (#876), in the classic DOS set-up style on an 80x25 text screen. Run in the
-  game's folder, as START is (START runs it itself when POOL.CFG is missing or damaged), it reads POOL.CFG there and
-  POOLOPT.CFG from the save folder POOL.CFG names, and edits both: the video, sound device and introduction (Hardware),
-  every setting on the game's Settings screen (Game Settings), and the four games' data and save folders (Paths). A
-  folder must already exist: Setup checks each path as it is entered and creates none. Nothing is written until Save and
-  Exit (or F10), which writes POOLOPT.CFG into the save folder being written, then POOL.CFG, each through a temporary
-  copy put in place, so a failed write leaves that file as it was. The files are read and written through CfgFile, as
-  the game reads them. The exit code is 0 when it saved or there was nothing to save, and 1 when it left with changes
-  unsaved (START then leaves to DOS too). Run by START (C_OPT.SETUP_FROM_START) for a damaged POOL.CFG, its notice first
-  says so.
+{ Pool of Radiance's 80x25 setup program (#876). It edits POOL.CFG hardware and
+  path settings, plus the gameplay settings and later-game paths stored in
+  POOLOPT.CFG. Paths must already exist. Save and Exit writes each file through
+  a temporary replacement so a failed write leaves the old file intact. Exit
+  status 0 means the configuration was saved or unchanged; status 1 means the
+  user left with unsaved changes.
 
-  Natively (#894) it is poolcfg, a terminal program beside poolrad, which never runs it. It finds the game's data
-  folder as the game does, without asking (GameDirs.Settle; the first copy the search found when there are several),
-  and shows the folders as the native game takes them (#1064): the data path is that folder, and changing it (to a
-  folder that holds the data) changes the one the game remembers; POOL.CFG is read from and written to the writable
-  folder (GameDirs.writeFolder, the data folder's own POOL.CFG read when it has none), and the save folder is
-  CfgFile.NativeSaveFolder's, any folder that is there. The Hardware page says what each letter does natively, where
-  the video is always VGA and every sound card Digital Audio. }
+  Under DOS, START runs POOLCFG from the game directory when POOL.CFG is missing
+  or damaged. The native poolcfg program runs separately beside poolrad (#894).
+  It uses the same data and writable-folder discovery as the game and translates
+  DOS hardware choices to the native VGA and Digital Audio implementations
+  (#1064). }
 {$IFNDEF FPC}
 {$M 16384,0,16384}
 {$ENDIF}

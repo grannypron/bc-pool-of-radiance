@@ -1,15 +1,14 @@
-{ STING Ctrl-Y's memory display. Resident, so looking at the overlay load count loads no overlay and leaves the count
-  as it was; GameIo calls it through its showMemory hook, since GameIo cannot use TextRend. }
+{ Implements STING's Ctrl-Y memory display. It stays resident so opening the
+  display does not itself increase the overlay-load count. GameIo reaches it
+  through showMemory because GameIo cannot depend on TextRend. }
 {$F+}
 {$I COMPILER.INC}
 unit MemShow;
 
 interface
 
-{ STING Ctrl-Y (#612): the overlay loads so far; the overlay buffer, its probation area and where the overlays load
-  from (EMS or disk); the heap's free memory and largest block; and the heap pictures hold, with its peak. On the bottom
-  line one after another, each until a key; the menu line is drawn again after. GameIo.ReadGameKey calls it through
-  GameIo.showMemory. }
+{ Shows overlay and heap statistics one screen at a time until dismissed
+  (#612), then restores the menu line. }
 procedure ShowMemory;
 
 implementation

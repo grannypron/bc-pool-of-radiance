@@ -1,6 +1,5 @@
-{ The EGA video driver's cold routines, which convert and recolour pictures: run when pictures load, icons are built,
-  the data archives are built, and at start-up, so kept in an overlay. VidEga installs them into GameVars.video (phase 6
-  of docs/refactor-plan.md). }
+{ Less frequently used EGA picture-conversion routines. Keeping them overlaid
+  saves resident memory; VidEga installs them in GameVars.video. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit PicEga;

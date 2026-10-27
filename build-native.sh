@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 #
-# build-native.sh -- build Pool of Radiance with Free Pascal as a native program, and run the unit tests natively.
+# Build the native Pool of Radiance ports with Free Pascal, or run their unit tests.
 #
 #   ./build-native.sh [TARGET...]           build the game for each target (the default: x86_64-linux)
 #   ./build-native.sh --test [TARGET...]    build each target's unit tests from tests/ and run them
 #
-# The targets are i386-linux, x86_64-linux, i386-win32 and x86_64-win64, and on an Apple Silicon Mac aarch64-darwin and
-# macos (that, in obj/native/macos/Pool of Radiance.app); Intel Macs are not a target (deprecated as of macOS 26).
-# Windows tests run under Wine. On Linux and macOS SDL3 is linked in statically
-# (from tools/sdl3-setup.sh's libSDL3.a), so the program needs no SDL library beside it. Output goes to
-# obj/native/<target>/ (the game, poolrad, and its set-up program, poolcfg, #894; on a Mac poolcfg stays there, beside
-# the app) and obj/native/<target>/tests/ (the tests, each test's compiler output beside it as
-# <name>.OUT, and TEST.LOG).
+# Supported targets are i386-linux, x86_64-linux, i386-win32, and x86_64-win64. Apple Silicon Macs also support
+# aarch64-darwin and macos; the latter packages the executable as obj/native/macos/Pool of Radiance.app. Intel Macs
+# are not supported because Apple deprecated them in macOS 26.
+#
+# Windows tests run under Wine. Linux and macOS link SDL3 statically, so they do not need an SDL library beside the
+# executable. Builds go to obj/native/<target>/. Tests and their logs go to obj/native/<target>/tests/. On macOS,
+# poolcfg remains in the aarch64-darwin output directory beside the packaged app (#894).
 #
 # The toolchain comes from tools/fpc-setup.sh (Free Pascal) and tools/sdl3-setup.sh (SDL3); FPC_PREFIX moves both.
-# This script is the exploration-time driver; build.sh --target takes it over when the port joins the main build.
+# This is the native port's development build driver. It can eventually be folded into the main build script.
 
 set -u
 
@@ -60,33 +60,32 @@ if [ ${#problems[@]} -gt 0 ]; then
     exit 1
 fi
 
-# fpc_for <target> [library folder]: the compiler command for a target, with a folder for the linker to search. -Mtp
-# keeps Turbo Pascal's 16-bit Integer, short strings and procedure variables; -gl puts line numbers in a runtime
-# error's trace; COMPILER.INC (included by every unit) sets the rest; TpCompat (-Fa) supplies the System routines Free
-# Pascal lacks.
+# Print the compiler command for a target, optionally adding a library search directory. -Mtp preserves Turbo
+# Pascal's 16-bit Integer, short strings, and procedure variables. -gl adds source lines to runtime stack traces.
+# COMPILER.INC sets the remaining compatibility options, and TpCompat supplies missing System routines.
 fpc_for() {
     local cpu="${1%%-*}" os="${1#*-}" extra="" libs=""
-    # macOS: the oldest version the program runs on, SDL3's own (sdl3-setup.sh)
-    # and clang's runtime folder, for libclang_rt.osx.a (Sdl3Min), which fpc.cfg does not give for aarch64
+    # Match SDL's minimum macOS version and add clang's runtime library directory. The generated FPC configuration
+    # does not include libclang_rt.osx.a for aarch64.
     [ "$os" = darwin ] && extra="-WM11.0 -Fl$(xcrun clang -print-runtime-dir)"
     [ -n "${2:-}" ] && libs="-Fl$2"
     echo "$fpc $libs -n @$fpc_cfg -Mtp -gl -P$cpu -T$os -Fu$root/src -Fu$root/src/includes -Fu$root/src/native" \
         "-Fi$root/src/includes -Fi$root/obj -FaTpCompat $extra"
 }
 
-# sdl_lib_for <target>: the folder of SDL3's libraries for a target
+# Print the SDL3 library directory for a target.
 sdl_lib_for() {
     case "$1" in
         *) echo "$sdl_home/$1/lib" ;;
     esac
 }
 
-# upper <words>: in capitals (macOS's bash 3.2 has no ${x^^})
+# Uppercase text without Bash 4's ${value^^}, which is unavailable in macOS's Bash 3.2.
 upper() {
     echo "$*" | tr '[:lower:]' '[:upper:]'
 }
 
-# run_exe <target> <folder> <program>: run a built program from its folder, under Wine for Windows.
+# Run a built program from its output directory. Windows targets use Wine.
 run_exe() {
     case "$1" in
         *-win*) (cd "$2" && WINEDEBUG=-all wine "./$3.exe" > /dev/null 2>&1) ;;
@@ -94,8 +93,8 @@ run_exe() {
     esac
 }
 
-# The headless tests. A unit in tests/ (TestKit, SndTrc) is not a test. TSndOpl checks the AdLib's output, which the
-# native build does not play (its Digital Audio is the Tandy's music and the Sound Blaster's samples): skipped.
+# Collect the headless test programs, skipping support units. TSndOpl is also skipped because the native port does
+# not play AdLib output; its Digital Audio mode uses Tandy music and Sound Blaster samples instead.
 tests=()
 skipped=()
 for t in "$root"/tests/*.pas; do
@@ -110,7 +109,7 @@ done
 fpc_error='(Error|Fatal):'
 failed=0
 "$root/tools/buildid.sh"
-# the sound sequencer's tunes, as SndSeq's image of the driver's segment
+# Generate the DOS sound driver's data image used by the native sequencer.
 python3 -I "$root/tools/snd2pas.py" --src "$root/src" --out "$root/obj/SNDIMAGE.INC" || exit 1
 
 for target in "${targets[@]}"; do
@@ -144,8 +143,8 @@ for target in "${targets[@]}"; do
         units="$out/units"
         rm -rf "$units"
         mkdir -p "$units"
-        # POOLCFG (#894): the set-up program, a terminal program on every system (Free Pascal's Video unit, not SDL,
-        # so it is built first, without SDL's library), and on Windows a console program: no -WG
+        # POOLCFG is a terminal program on every platform (#894). It uses Free Pascal's Video unit rather than SDL,
+        # so build it first without SDL. The Windows version remains a console application and does not use -WG.
         cfg_exe=poolcfg
         case "$target" in *-win*) cfg_exe=poolcfg.exe ;; esac
         if ! $(fpc_for "$target") -FU"$units" -FE"$out" -o"$cfg_exe" "$root/src/poolcfg.pas" > "$out/POOLCFG.OUT" 2>&1 \
@@ -156,15 +155,15 @@ for target in "${targets[@]}"; do
             continue
         fi
         echo "build-native.sh: $target: built obj/native/$target/$cfg_exe"
-        # Windows: poolrad.exe, a GUI program (no console window opens beside the game's)
+        # The Windows game uses the GUI subsystem so it does not open a console window.
         exe=poolrad
         extra=""
         lib_dir=""
         case "$target" in
             *-win*) exe=poolrad.exe; extra="-WG" ;;
             *)
-                # the static library under a name of its own (Sdl3Min links -lSDL3static), so no shared libSDL3 in
-                # a system folder can be taken instead
+                # Give the static library a unique name. Sdl3Min links -lSDL3static, which prevents an installed
+                # shared SDL3 library from being selected accidentally.
                 mkdir -p "$out/sdl"
                 cp "$(sdl_lib_for "$target")/libSDL3.a" "$out/sdl/libSDL3static.a" \
                     || { echo "build-native.sh: $target: no libSDL3.a: run tools/sdl3-setup.sh." >&2; failed=1; continue; }
@@ -182,12 +181,12 @@ for target in "${targets[@]}"; do
     fi
 done
 
-# macos: the program in Pool of Radiance.app, signed ad hoc so it runs here (tools/macos-sign.sh
-# signs it with a Developer ID and notarizes it). The game's data is found beside the app (NatFile.EnterGameFolder).
+# Package the macos target as Pool of Radiance.app and apply an ad-hoc signature for local use. tools/macos-sign.sh
+# replaces it with a Developer ID signature and notarizes release builds. NatFile finds the game data beside the app.
 if [ $failed -eq 0 ] && [ $run_tests -eq 0 ] && [ $make_app -eq 1 ]; then
     app="$root/obj/native/macos/Pool of Radiance.app"
     version="$(sed -n "s/.*BUILD_VERSION = 'v\([0-9.]*\)-\([0-9]*\)'.*/\1.\2/p" "$root/obj/BUILDID.INC")"
-    # a checkout without the version tags (BUILD_VERSION 'UNKNOWN'): a version macOS still accepts
+    # Untagged source reports UNKNOWN; use a valid fallback bundle version in that case.
     [ -n "$version" ] || version=0.0
     rm -rf "$app"
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"

@@ -1,8 +1,7 @@
-{ Tests for GameDirs (#1064), the native game's search for its data: libraryfolders.vdf's library folders (Steam's
-  current form, Windows' escaped paths, the older numbered form), the candidates each store's layout gives from a set
-  of roots (a Steam library, GOG's registry install, a marked GOG Windows install, a GOG Linux install, GOG's Mac app),
-  built as folders here, and which of them Found keeps (the data's file in any case, each folder once); the per-user
-  folders, the default roots, and the app-bundle and writability tests. Native only: under DOS it checks nothing. }
+{ Tests native game-data discovery (#1064): Steam library files, GOG layouts on
+  each platform, default and per-user roots, duplicate removal, case-insensitive
+  data files, application bundles, and writable-directory checks. The DOS build
+  intentionally has no assertions here. }
 {$IFDEF FPC}
 {$MODE OBJFPC}
 {$H-}

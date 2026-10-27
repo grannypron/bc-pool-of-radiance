@@ -1,10 +1,7 @@
-{ Tests for the effect handlers the 2026-10-25 review consolidated (EffHndlr): Resist Fire and Resist Cold
-  (ResistElement), the immunities to fire, cold and electricity (ElementImmunity), the elves' and half-elves' resistance
-  to sleep and charm (SleepCharmResist), the racial to-hit and armor bonuses by the foe's name (NamedIn,
-  RacialFoeBonus), Mirror Image's roll (FxEngine.ImageStruck), and Healed from Unconscious (eff 78) called with no node,
-  as FxEngine.RestoreHitPoints calls it, whose retry SSI read through nil. And the immunity check leaves no effect
-  pending, so magic resistance passes over later damage of no magic (POR-0219, #940). And the petrifying gaze's reach:
-  a target in action, within 3 squares and in sight (POR-0217, #938), and the silver shield that turns it (#981). }
+{ Tests shared effect-handler rules: elemental resistance and immunity, racial
+  defenses, Mirror Image, recovery from unconsciousness, magic-resistance state,
+  and racial combat bonuses. Also checks petrifying-gaze range and line of sight,
+  including reflection by the silver shield (#938, #940, #981). }
 {$I COMPILER.INC}
 program TEffHndl;
 

@@ -1,5 +1,4 @@
-{ The name of the area the party is in, as the Load/Save Game menu shows it beside a saved game: the Clue Book's name,
-  shortened to fit 18 columns. }
+{ Provides the short Clue Book area names shown in the load and save menus. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit AreaName;
@@ -8,12 +7,12 @@ interface
 
 uses Types;
 
-{ The name of the area of script scriptId on map mapId: the script a saved game reopens (GBVM previousScriptId's low
-  byte, which GameLoop sets after every turn on the map) names it, and the map tells apart the two halves of the four
-  scripts that run two. UNKNOWN AREA for a script the game does not have. }
+{ Returns the short name for scriptId and mapId. The map distinguishes areas
+  when one script controls more than one map. Unknown scripts return
+  'UNKNOWN AREA'. }
 function AreaFor(scriptId, mapId: Byte): Types.TStr40;
 
-{ The current area's name: AreaFor the GBVM previousScriptId and mapId. }
+{ Returns the current area's short name. }
 function CurrentArea: Types.TStr40;
 
 implementation

@@ -9,78 +9,60 @@ interface
 
 uses Types;
 
-{ Read <saveDir>charlist.txt into a fresh list of string nodes (the TItemRec prefix used by
-  MenuCore.AllocStringList/FreeStringList); list is nil when the file does not exist or will not open, and a line that
-  will not read ends it. Names of characters currently in the party get '* ' prepended. }
+{ Loads CHARLIST.TXT into a newly allocated menu list. Party members are marked
+  with a leading '* '. A missing or unreadable file produces an empty list. }
 procedure LoadCharlist(var list: Types.PItemRec);
 
-{ Rewrite <saveDir>charlist.txt, one name per line, a party member's without its '* ' mark: a character in the party
-  keeps its own files, so it stays on the roster (SSI dropped it, as saving or loading a game erased them). A line
-  naming omit, marked or not, is left out ('' leaves out none). It is written as charlist.tx$ (FileUtil.TempName) and
-  put in its place only when whole, so a full disk leaves the old roster. Retries with a put-save-disk prompt until the
-  copy opens or Escape gives up, which leaves the roster as it was. }
+{ Rewrites CHARLIST.TXT, omitting the requested name when nonempty. Party marks
+  are removed before writing, but party members remain on the roster (#754).
+  Write through a temporary file so an error or full disk leaves the old roster
+  intact. The player may retry with another save disk or press Escape. }
 procedure SaveCharlist(list: Types.PItemRec; omit: String);
 
 { Load curChar's CHEAD into icon-anim slot 11 and CBODY into slot orderNumber, OR-merge head onto body; when loading,
   remap the default icon colours to the character's iconColors1 nibbles. Icons live on virtual disk 3. }
 procedure LoadCharIconAnim(loading: Boolean);
 
-{ fname='' -> single-character save: write <saveDir><sanitized-name>.cha/.itm/.spc/.mem/.sts/.chx and add the name to
-  CHARLIST.TXT when it is not there;
-  fname<>'' -> saved-game member: write <saveDir><fname>.sav/.itm/.spc/.mem/.sts/.chx. They are written to temporary
-  copies and put in place of the old ones together, all or none (FileUtil.CommitSet); an empty item or effect list's
-  old file, and the .mem, .sts or .chx of a character with no usual spells, statistics or port fields, is erased with
-  them. A set that cannot be written whole (a full disk) or put in place leaves the old files and CHARLIST.TXT as they
-  were and is reported on the bottom line. True when the character was saved. }
+{ Saves one character and its inventory, effects, usual spells, statistics, and
+  extension data. An empty fname creates a standalone .cha character and adds
+  it to CHARLIST.TXT; otherwise fname names a saved-game member's .sav file.
+
+  All related files are committed together through temporary copies. A failed
+  write leaves both the previous files and CHARLIST.TXT unchanged. }
 function SaveChar(creature: Types.PCharRecord; fname: Types.TStr8): Boolean;
 
 { Erase a character's single-character files (.cha, .itm, .spc, .mem, .sts, .chx, those there are) and take its name off
   CHARLIST.TXT: a character dropped forever, whose files loading or saving a game no longer erases (#754). }
 procedure EraseChar(name: String);
 
-{ Load one character, its files named as SaveChar names them (CharFileBase): savedGame -> a saved game's member's .sav,
-  else a single-character .cha, a save of which the game was ended in is undone first (FileUtil.RecoverSet). A file
-  that is not there asks for the save disk (SaveMenu.SaveDiskMsg). The list and combat pointers are cleared, then
-  the item/effect lists are rebuilt from the .itm/.spc files when they exist, stopping at a read error or a trailing
-  part record, the usual spells are read from the .mem file (none when it is missing or not a usual-spells file for this
-  character), and the port's own fields (TCharRecord.portExt) from the .chx (CharExt.ReadExt; 0 without one). False,
-  with nothing read after the record, when the .sav/.cha file holds less than a whole record or cannot be read, or is
-  not there and Escape at the save disk prompt gave up; the caller then frees the record unused. While the
-  Quick Ends With Fight setting is on (GameVars.quickEnds), a party member leaves Quick (quickfight 0), so a loaded game
-  or an added character starts under manual control; NPCs and animated creatures keep quickfight, as
-  PostCbt.PostCombatCreatureCleanup leaves them. With the setting off the saved quickfight stays. }
+{ Loads a standalone character or a saved-game member. Rebuilds heap-based item
+  and effect lists, then reads optional usual-spell, statistics, and extension
+  files. Missing optional files are treated as empty.
+
+  Returns False for a missing, unreadable, or short character record. The caller
+  must then free the unused record. With Quick Ends With Fight enabled, loaded
+  party members return to manual control; NPC and animation settings are kept. }
 function LoadChar(name: String; creature: Types.PCharRecord; savedGame: Boolean): Boolean;
 
 { True when the character's single-character record, <saveDir><name>.cha (as SaveChar names it), is there. }
 function HasCharFile(name: String): Boolean;
 
-{ Load game: offer the existing SAVGAMA..J.DAT on the full-screen SaveMenu (Escape aborts), read the save file (one too
-  short to hold it all is refused, with a message, before anything is read), reload each listed character, at most 8,
-  from its CHRDATxN.sav (one that is missing, short or unreadable is left out), reload icon anims, the 3D map and wall
-  sets ('ICON' in the wilderness), and run Ending.YarashComplete when the Yarash pyramid flag is set; the slot's vault
-  becomes the session's (Vault.RestoreFromSlot). The members' single-character files are left alone (SSI erased them).
-  The save's game speed and settings word are left in the GBVM zone: the game's own settings stay as they are. Quit on
-  the menu asks only "Exit to DOS?" (QuitToDos, #910) and, answered No, opens the menu again (#872). }
+{ Opens the Load menu and restores the selected game. Rejects a short save before
+  changing memory, skips missing or damaged party-member files, and reloads the
+  map, wall sets, icons, and slot vault. Standalone character files and the
+  current application settings are left alone. Escape cancels the load. }
 procedure LoadGame;
 
-{ Save game: choose a slot on the full-screen SaveMenu and give it a description (the slot's old one to start from;
-  Escape on the menu aborts, Exit in the description popup goes back to the menu), store wall slots, game speed, picture
-  and music settings (SSI's copies, which loading leaves alone) and disk number in the GBVM zones, write SAVGAMx.DAT,
-  each party member (the first 8) as CHRDATxN.sav with its .itm, .spc, .mem, .sts and .chx, the slot's description and
-  the current area (AreaName.CurrentArea) as SAVGAMx.INF, the game's statistics, explored map and notes (.sts, .map,
-  .nts) and the session vault's copy (Vault.AddToSave), and only when every one was written whole put them all in place
-  of the old save's, all or none (FileUtil.CommitSet), the old files of members the party no longer has erased with
-  them; then set the recently-saved flag. The members' single-character files are left alone (SSI erased them, here and
-  on loading). A save not written whole, or not put in place, leaves the old one as it was and says so. True when the
-  game was saved; False also for Escape on the menu. Quit on the menu asks only "Exit to DOS?" (QuitToDos, #910) and,
-  answered No, opens the menu again (#872). The caller redraws the screen. }
+{ Opens the Save menu, asks for a description, and writes the complete slot:
+  world state, party members, slot information, statistics, explored map,
+  notes, and vault. Every file is prepared first and committed as one set, so a
+  failed write leaves the previous slot intact. Returns True only after a
+  successful commit. The caller redraws the screen. }
 function SaveGame: Boolean;
 
-{ Ask "Exit to DOS?" on the bottom line, and on Yes leave the game (GameIo.ExitGame). With askSave and a party not saved
-  since it changed (GameVars.recentlySaved clear), Yes first asks "Save first?": Yes opens the save menu (SaveGame), and
-  leaving it without saving does not quit; No quits unsaved (#660). The main menu's Exit to DOS asks to save; the
-  Load/Save menu's Quit (#872), already at the save menu, does not (#910). The caller redraws its screen when it
-  returns. }
+{ Confirms Exit to DOS. When askSave is set and the party has changed, offer to
+  save first; cancelling that save also cancels the exit (#660). The caller
+  redraws its screen if this routine returns. }
 procedure QuitToDos(askSave: Boolean);
 
 const

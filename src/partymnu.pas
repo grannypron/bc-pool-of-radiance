@@ -49,15 +49,16 @@ procedure OfferedCmds(hasChar, atHall, inGame: Boolean; var offered: TCmdSet);
   window. }
 function MenuTop(members: Byte): Byte;
 
-{ The row of command cmd of the two-column menu with the headings on row top. }
+{ Returns the screen row for cmd when the headings are on row top. }
 function CmdRow(cmd, top: Byte): Byte;
 
-{ The next command of offered from cmd, down the columns (step 1) or up them (step -1), wrapping from Exit to DOS to
-  Add and back; cmd when no other is offered. }
+{ Finds the next offered command in the requested vertical direction, wrapping
+  between the first and last commands. Returns cmd if no other command is
+  offered. }
 function StepCmd(offered: TCmdSet; cmd: Byte; step: ShortInt): Byte;
 
-{ The command of offered in the other column (Settings and Begin Adventuring are in the left, Exit to DOS in the right)
-  whose row is nearest cmd's, the upper of two as near; cmd when that column offers none. }
+{ Finds the offered command nearest cmd's row in the other column. Ties choose
+  the upper command; if the other column is empty, cmd is returned. }
 function OtherColumn(offered: TCmdSet; cmd, top: Byte): Byte;
 
 { Draw the two-column menu with the headings on row top: the headings in light magenta, so the highlighted command

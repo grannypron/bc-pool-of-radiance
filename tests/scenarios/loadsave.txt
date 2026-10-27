@@ -1,37 +1,37 @@
-# Load saved game A, look at the party, camp, save into D with a description, and compare the files written.
+# Loads save A, inspects the party, camps, saves to slot D with a description, and compares the files written.
 boot NORAND
 ignore POOL OF RADIANCE V
-# the save menu shows each file's time, which differs from run to run
+# Save timestamps vary between runs, so do not compare them.
 ignore \d{4}/\d\d/\d\d \d\d:\d\d
 wait RADIANCE
 press l
-# the menu's own layout (#657)
+# Capture the save menu layout (#657).
 checkpoint load-menu
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press a
 wait AREA
 checkpoint loaded
 press v
 checkpoint view
 press m
-# More Info opens on the saves with Saves Stats Kills (and Thief) and Exit on its menu (#685)
+# More Info should open on Saves and offer Saves, Stats, Kills, Thief where applicable, and Exit (#685).
 checkpoint more-info
 press esc esc
 wait AREA
 press e
 wait CAMP
-# a slot's letter opens the save popup at once (#652), which saves on Enter (#656)
+# Pressing a slot letter should open its save popup immediately (#652); Enter confirms the save (#656).
 press s d
 wait ^SAVE: EXIT
 checkpoint save-popup
 press t e s t ret
-# saving returns to the camp menu: the save menu's Quit asks about leaving for DOS instead (#872)
+# Saving returns to camp. Quit from the save menu is reserved for leaving the game (#872).
 wait CAMP
-# every file the save writes, the .MAP of the visited squares (phase 8) with them
+# Compare every file written by the save, including the phase-8 .MAP exploration file.
 saves after-save
-# More Info's other pages, after the save: opening Stats gives a character a statistics block, which a save would write
-# as a .STS file. Stats and Kills turn More Info's own pages (#685). Spawn, the fourth, is a
-# thief: her More Info has Thief, with her skills.
+# Exercise the remaining More Info pages after saving. Opening Stats allocates a statistics block that a later save
+# would write as .STS. Stats and Kills use More Info's own pages (#685). Spawn, the fourth character, is a thief and
+# should also have a Thief page showing her skills.
 press v m t
 checkpoint more-info-stats
 press k

@@ -1,7 +1,7 @@
-{ The Bestiary's pages (#842): F2 on the map, wilderness and camp menus opens them, outside combat, whatever the
-  Companion Tools setting. The list page shows every creature the party has met, by name in two columns, a page at a
-  time; the entry page shows what the party has learned of one (Bestiary), and ?? for what it has not. The sage (#868)
-  has the party choose a creature from the same list page. }
+{ Displays the Bestiary pages (#842). The list shows every creature the party
+  has met, and each detail page shows known facts while hiding unknown ones.
+  The sage uses the same list when asking the player to choose a creature
+  (#868). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit BeastMnu;
@@ -10,14 +10,15 @@ interface
 
 uses Types, Bestiary;
 
-{ The Bestiary's list page until Exit or Escape, its entry pages from it. The caller redraws its screen afterwards. }
+{ Runs the Bestiary list and detail pages until Exit or Escape. The caller must
+  redraw its own screen afterward. }
 procedure BestiaryMenu;
 
-{ The Bestiary's list page for choosing a creature, prompt on its menu (Ask Next Prev Exit): the entry chosen with Ask
-  or Enter, nil on Exit or Escape. The caller redraws its screen afterwards. }
+{ Lets the player choose a creature from the Bestiary. prompt labels the select
+  action. Returns nil for Exit or Escape. The caller redraws afterward. }
 function PickBeast(prompt: Types.TStr40): Bestiary.PBeast;
 
-{ The entry page of b until Exit or Escape. The caller redraws its screen afterwards. }
+{ Shows b's detail page until Exit or Escape. The caller redraws afterward. }
 procedure ShowEntry(var b: Bestiary.TBeast);
 
 implementation
@@ -47,7 +48,7 @@ type
   TOrder = array[1..Bestiary.MAX_ENTRIES] of Word;
   POrder = ^TOrder;
 
-{ The frame, and title centred in white on its top row. }
+{ Draws a cleared frame with a centered white title. }
 procedure DrawFrame(title: Types.TStr40);
 begin
   TextRend.ClearScreen;
@@ -55,7 +56,7 @@ begin
   TextRend.DisplayCentered(C_MSG.TEXT_LEFT, C_MSG.TEXT_RIGHT, TITLE_ROW, White, title);
 end;
 
-{ The entry at place i of the list. }
+{ Returns list entry i, using order when a sorted index is available. }
 function At(order: POrder; i: Word): PBeast;
 begin
   if order <> nil then
@@ -64,8 +65,8 @@ begin
     At := Bestiary.Entry(i);
 end;
 
-{ The table's entries sorted by name, in a list on the heap (n entries); nil, the table's own order, when the heap has
-  no room for it. }
+{ Builds a heap-allocated index of the first n entries sorted by name. Returns
+  nil when there is no room, in which case callers use the table's own order. }
 function SortedOrder(n: Word): POrder;
 var
   order: POrder;

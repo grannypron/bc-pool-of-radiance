@@ -1,14 +1,13 @@
-{ The native build's window: shows Host's screen through its DAC and turns the window's key presses into the BIOS's scan
-  codes and characters in Host's keyboard buffer, as a PC's keyboard and BIOS did (a US layout, as the BIOS's). It hooks
-  Host.Service, which Crt's ReadKey, KeyPressed and Delay run, so the screen is shown and keys arrive while the game
-  waits; the screen is shown at most once every 15 ms. Closing the window, or the system's Quit, asks before ending the
-  program (ConfirmQuit, #1073). For testing, POOLRAD_SHOT
-  names a file the screen is written to (a PPM image) twice a second, and POOLRAD_KEYS gives keys to press, as if typed:
-  words separated by spaces, each a wait in milliseconds (a number of two digits or more), a character (a, A, 1, ?) or a
-  key's name (enter, esc, space, tab, bs, up, down, left, right, home, end, pgup, pgdn, ins, del, f1..f12), the names
-  optionally after shift-, ctrl- or alt-. Each key is followed by KEY_GAP_MS: the game drops keys typed ahead of the one
-  it reads (GameIo.ReadGameKey), as a player's are not. The program uses this unit (the unit tests do not, so they need
-  no SDL). Objfpc mode, for its initialization and finalization. Free Pascal only. }
+{ SDL window and input adapter for the native build. It presents Host.screen
+  through Host.dac and converts SDL keys to the US-layout BIOS scan codes and
+  characters expected by the game. Host.Service calls this adapter while the
+  game waits, with presentation limited to once every 15 ms. Closing the window
+  asks for confirmation once game state can be lost (#1073).
+
+  Automated tests can set POOLRAD_SHOT to capture a PPM twice per second and
+  POOLRAD_KEYS to feed delayed characters or named keys with optional Shift,
+  Ctrl, or Alt modifiers. A short gap follows each injected key so the game has
+  time to consume it. Unit tests omit this unit and therefore need no SDL. }
 {$MODE OBJFPC}
 {$H-}
 unit SdlHost;
@@ -17,13 +16,12 @@ interface
 
 uses Sdl3Min;
 
-{ The game's window, for a dialog to belong to (DataPick's folder picker, #1064). }
+{ Returns the game window to use as the parent for native dialogs. }
 function GameWindow: PSDL_Window;
 
 var
-  { False while there is nothing to lose (DataPick, before the game starts): a quit then ends the program without
-    asking. On a Mac the question could not be asked there anyway while the folder picker is open: both are sheets on
-    the game's window, and the question would wait for the picker to close (#1073). }
+  { Set False during startup, when quitting cannot lose game state and a macOS
+    confirmation sheet would conflict with the folder picker (#1073). }
   askBeforeQuit: Boolean = True;
 
 implementation

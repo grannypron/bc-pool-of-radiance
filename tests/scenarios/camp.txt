@@ -1,8 +1,9 @@
-# Camp in Valhingen Graveyard (save J), where resting is quiet: Fix, then the rest menu and a rest. Fixed dice.
+# Camps in Valhingen Graveyard using save J, where resting is safe. Exercise Fix, choose a rest duration, and rest
+# with fixed dice.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l j
 wait AREA
 press e
@@ -16,13 +17,13 @@ checkpoint rest-menu
 press d i r
 wait CAMP 120
 checkpoint rested
-# Scribe tells the first, a fighter, that it needs arcane training (#671); it leaves the
-# message without a key (#681), and the next character takes it away
+# Scribe should tell the first character, a fighter, that arcane training is required (#671). The message closes
+# without another keypress (#681), and selecting the next character removes it.
 press m s
 checkpoint scribe
 press end
 checkpoint next-char
-# Alter's portrait picker from camp: Escape leaves it with the portrait the character had (#686)
+# In Alter's portrait picker, Escape should preserve the character's original portrait (#686).
 press esc
 wait CAMP
 press a c p
@@ -31,7 +32,7 @@ press right
 checkpoint portrait-next
 press esc
 checkpoint portrait-escaped
-# opened again, the picker shows the head the character had, not the one stepped to
+# Reopening the picker should select the original head, not the previewed one.
 press p
 checkpoint portrait-kept
 press esc

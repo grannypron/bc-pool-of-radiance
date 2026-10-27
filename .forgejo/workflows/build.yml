@@ -1,39 +1,34 @@
-# Build every push to main and every pull request and run the unit tests (tests/, TestKit); release every pushed version
-# tag. Alongside, rebuild each SSI release this repository reproduces (v1.1, v1.2, v1.3) from its tag and require SSI's
-# exact bytes.
+# Build and test every push to main and every pull request. Version tags also create releases. Each run rebuilds the
+# v1.1, v1.2, and v1.3 tags and compares them with SSI's original executables.
 #
-# A release can also be cut for a tag that predates this workflow: run it by hand (workflow_dispatch) with the tag.
-# The tag's src/ and build/ are built with the current scripts.
+# workflow_dispatch can release a tag that predates this workflow. It uses that tag's src/ and build/ directories
+# with the current top-level build and release scripts.
 #
-# A release, pushed or dispatched, waits for both build and reproduce: a toolchain or image change that no longer
-# reproduces SSI's releases stops it before anything is published.
+# Publishing waits for both the normal build and historical reproduction jobs. A toolchain or image change that
+# alters SSI's executables therefore stops the release.
 #
-# Every job runs in the CI image named by the repository variable CI_IMAGE. The image holds proprietary DOS toolchains,
-# so it never comes from a public registry:
+# Linux jobs use the image named by CI_IMAGE. It contains proprietary DOS toolchains and is never published:
 #   forge.schkerke.com       forge.schkerke.com/brian/dosbox-x-ci@sha256:<digest>, pulled with REGISTRY_USER and
 #                            REGISTRY_TOKEN; docker buildx imagetools inspect forge.schkerke.com/brian/dosbox-x-ci:<tag>
 #                            prints the digest of a newly pushed image.
 #   forgejo.brazencrows.com  local/dosbox-x-ci:<date>, loaded into its runner over SFTP (brazencrows.com's
 #                            provisioning/bc-forgejo-runner/load-ci-image.sh); there is no registry, so the credentials
 #                            fall back to 'none', which the runner never uses for an image it already has.
-# Rebuilding the image changes nothing here until CI_IMAGE does.
+# A rebuilt image is not used until CI_IMAGE is updated.
 #
-# Pull requests from forks never run: their code would run in that image. The checkout is a plain git fetch from this
-# forge rather than actions/checkout, so nothing is downloaded from anywhere else.
+# Pull requests from forks are blocked because their code would run inside the private image. Checkout uses git
+# directly instead of actions/checkout, so jobs do not download actions from another service.
 #
-# The macOS jobs run on the Apple Silicon Mac at home (runs-on: macos-arm64; brazencrows.com's
-# provisioning/bc-forgejo-runner-macos), directly on the Mac as its ci-runner account, not in the image: macos builds
-# the app and runs the native unit tests for every push and pull request, and release-macos signs, notarizes and
-# staples the app for a release and attaches it, with src/binaries' data files beside it, once release has made the
-# release. The Mac keeps the Free Pascal and SDL3 that tools/fpc-setup.sh and tools/sdl3-setup.sh build for
-# build/toolchain's pins (the first job builds them).
-# Signing uses the runner's Developer ID .p12 (with rcodesign: under launchd, codesign searches only the System
-# keychain) and notarizing its App Store Connect API key, both under /etc/forgejo-runner/signing, readable by
-# ci-runner only; no secret passes through Forgejo.
+# macOS jobs run directly on the private Apple Silicon runner, not in the Linux image. The macos job builds and tests
+# every push and pull request. release-macos signs, notarizes, staples, packages, and uploads the app after the DOS
+# release exists. The runner caches the pinned Free Pascal and SDL builds.
+#
+# Signing uses a Developer ID .p12 through rcodesign because services launched by launchd cannot see the login
+# keychain. Notarization uses an App Store Connect API key. Both live under /etc/forgejo-runner/signing and are
+# readable only by ci-runner; Forgejo never receives them.
 
-# 2026-10-16 - bms - Forgejo splits the YAML up when doing job parsing, so YAML anchors don't work as intended. Removed
-#                    the container and checkout anchor definitions; cut and paste for the win. The jobs have to remain
-#                    identical.
+# Forgejo splits this YAML while parsing jobs, so YAML anchors do not work reliably. The duplicated container and
+# checkout definitions must remain synchronized. (bms, 2026-10-16)
 
 name: build
 
@@ -53,7 +48,7 @@ jobs:
   build:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: docker
-    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
     container:
       image: ${{ vars.CI_IMAGE }}
@@ -64,7 +59,7 @@ jobs:
       # The DOS toolchains live in the image.
       TOOLS: /drive_d
     steps:
-      # All branches and tags: reproduce.sh builds SSI's release tags, and a release names one.
+      # Fetch all branches and tags because reproduction and release jobs refer to historical tags.
       - name: Check out
         env:
           CLONE_URL: ${{ github.event.repository.clone_url }}
@@ -84,7 +79,7 @@ jobs:
   reproduce:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: docker
-    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
     container:
       image: ${{ vars.CI_IMAGE }}
@@ -93,7 +88,7 @@ jobs:
         password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
     strategy:
       matrix:
-        # Keep in step with the tags in .forgejo/ssi-releases.txt.
+        # Keep this list synchronized with .forgejo/ssi-releases.txt.
         tag: [v1.1, v1.2, v1.3]
     env:
       TOOLS: /drive_d
@@ -118,7 +113,7 @@ jobs:
     needs: [build, reproduce]
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: docker
-    # A build takes seconds; build.sh stops a stuck DOSBox-X after ten minutes, and this stops anything else.
+    # build.sh gives DOSBox-X ten minutes; this catches hangs elsewhere in the job.
     timeout-minutes: 20
     container:
       image: ${{ vars.CI_IMAGE }}
@@ -127,7 +122,7 @@ jobs:
         password: ${{ secrets.REGISTRY_TOKEN || 'none' }}
     env:
       TOOLS: /drive_d
-      # The version being released: the dispatched tag, or the pushed one.
+      # Release the manually selected tag or the tag that triggered the workflow.
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - name: Check out
@@ -146,17 +141,17 @@ jobs:
       - name: Use the dispatched tag's source
         if: github.event_name == 'workflow_dispatch'
         run: |
-          # Only a tag: release.sh would otherwise have Forgejo create a tag of that name (a branch's, say) on main.
+          # Require an existing tag; otherwise Forgejo could create that name at the current main commit.
           git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || { echo "$TAG is not a tag." >&2; exit 1; }
-          # The tag's whole src/ and build/, so a file only newer versions have (build/toolchain) can't leak in.
+          # Replace both directories so files added after the tag, such as build/toolchain, cannot leak into the build.
           rm -rf src build
           git checkout "$TAG" -- src build
-          # Date the zip's files by the tag's commit, as a pushed tag would.
+          # Give archive members the tag commit's timestamp, matching a tag-triggered release.
           echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct "$TAG")" >> "$GITHUB_ENV"
-          # HEAD is still the dispatching commit: the build ID names the tag (#849).
+          # HEAD remains the dispatching commit, so explicitly use the tag for the build ID (#849).
           echo "BUILD_REF=$TAG" >> "$GITHUB_ENV"
 
-      # The same source and image as the build job; reproduce shows the build gives the same bytes every time.
+      # Historical reproduction has already verified this source and image are deterministic.
       - name: Build
         run: ./build.sh
 
@@ -172,10 +167,10 @@ jobs:
   macos:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: macos-arm64
-    # Minutes once the toolchain is built; the first job builds Free Pascal and SDL3.
+    # Cached toolchains make this quick; the first run must build Free Pascal and SDL3.
     timeout-minutes: 120
     steps:
-      # As the other jobs' checkout, but on the Mac: its base64 has no -w0, and the workspace may hold a previous job's.
+      # macOS base64 lacks -w0, and this persistent workspace may contain a previous job.
       - name: Check out
         env:
           CLONE_URL: ${{ github.event.repository.clone_url }}
@@ -202,7 +197,7 @@ jobs:
     needs: [release]
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-arm64
-    # Notarization usually answers within minutes, and the toolchain is built by then.
+    # Allow for notarization even though Apple usually responds within a few minutes.
     timeout-minutes: 120
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
@@ -242,10 +237,9 @@ jobs:
           export NOTARY_KEY_ID="$(cat /etc/forgejo-runner/signing/notary-key-id)"
           export NOTARY_ISSUER="$(cat /etc/forgejo-runner/signing/notary-issuer)"
           tools/macos-sign.sh
-      # The stapled app, and beside it src/binaries' data files (the title picture, the Sound Blaster's recorded
-      # effects), which the game reads from its folder as the DOS zip's are; outside the bundle, so no signature
-      # covers them. The zip's top level unpacks straight into the game's folder. README.TXT is tools/macos-readme.txt:
-      # how the game finds a GOG or Steam copy's data and where it saves (#1064).
+      # Put project data files beside the stapled app, where the game expects them. They remain outside the signed
+      # bundle. The archive unpacks directly into a game directory, and tools/macos-readme.txt explains how the app
+      # locates retail data and chooses its writable save directory (#1064).
       - name: Package
         run: |
           stage="$(mktemp -d)"

@@ -5,11 +5,12 @@ unit PostCbt;
 
 interface
 
-{ Wrap up a combat: settle the outcome, award experience, run the loot menus and free the combat state. }
+{ Settles the outcome, awards experience, runs the loot menus, and frees the
+  combat state. }
 procedure PostCombat;
 
-{ With both money and items left, loop on a Money/Items/Exit menu; with only one kind left, go straight to the money or
-  item menu. }
+{ Runs the post-combat loot menu. When only money or items remain, opens that
+  menu directly. }
 procedure LootTakeMenu(var treasure, items: Boolean);
 
 implementation

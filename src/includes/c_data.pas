@@ -1,6 +1,6 @@
-{ The merged data archives DataBld builds from the per-disk ones: the family count, the places of the families the data
-  patches touch, the archive version and the reserved block ids. DataBld and DataPat are the only source for these
-  values; no tool outside this repository keeps a copy. }
+{ Constants for the merged archives built by DataBld: family indexes, archive
+  version, size limits, and reserved block IDs. DataBld and DataPat are the
+  authoritative users of this format. }
 {$I COMPILER.INC}
 unit C_DATA;
 

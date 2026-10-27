@@ -1,11 +1,10 @@
-{ Spell information on the spell lists (#839): the summary line under a list and the spell page its Info opens. The
-  figures come from the spell table and the routines combat uses (CharHlp.CalcSpellRange, GetCasterLevel, SpellArea
-  and SpellDuration, FxEngine.AuraRange), so they match what the spell does in this port; the saving throw, which each
-  handler decides, comes from this unit's save table, and the description from SpellTxt. A list line's spell is its
-  spell id, with C_SPELL.FROM_ITEM set for one read from a scroll, worked out at C_SPELL.ITEM_CASTER_LEVEL as casting
-  from the scroll does (GameVars.usingItem); otherwise for GameVars.curChar. Items > Use opens the same page for a wand,
-  potion or other item that casts a spell (#861), its line the item's spell (CharHlp.ItemSpell) with FROM_ITEM set.
-  Overlaid: it is loaded only while a spell list or the item list is up. }
+{ Spell-list summaries and the full Info page (#839). Values come from the same
+  tables and calculations used when casting, so the displayed range, area,
+  duration, and caster level match the actual spell behavior. SpellTxt supplies
+  the descriptions.
+
+  FROM_ITEM marks scrolls, potions, wands, and other item-cast spells. Those use
+  the same page with the item's caster level and targeting rules (#861). }
 {$O+,F+}
 {$I COMPILER.INC}
 unit SpellInf;
@@ -31,12 +30,12 @@ type
   TPageItems = array[0..C_ITEM.CARRY_MAX - 1] of Types.PItemRec;
   PPageItems = ^TPageItems;
 
-{ What a saving throw does against spell (C_SPELL.SAVE_NONE, SAVE_NEGATES, SAVE_HALF or SAVE_PARTIAL), as its handler
-  decides it: the spell table's saveResult says only whether one is rolled. SAVE_NONE for an id past the table. }
+{ Returns the result of a successful save: none, negates, half, or partial. The
+  spell table only says whether to roll; individual handlers define the result. }
 function SaveResult(spell: Byte): Byte;
 
-{ The figures, each for a list line's spell. Short (long False) is the summary line's term, empty when it does not
-  apply; long is the page's value. }
+{ These helpers format one spell-list entry. long selects the full page value
+  instead of the compact summary term. Inapplicable values are empty. }
 
 { Range in squares (RNG 6), or SELF or TOUCH; none for a spell that is not aimed (Snake Charm, Animate Dead) or is cast
   only in camp on a character the player picks. }
@@ -51,9 +50,9 @@ function AreaText(line: Byte; long: Boolean): Types.TStr40;
   CASTER (#861). }
 function ItemAreaText(line: Byte): Types.TStr40;
 
-{ The duration (CharHlp.SpellDuration) in rounds (RD), turns of 10 (TU) or hours (HR), whichever both its fixed part
-  and its part per caster level come in (Hold Person's 4 + 1 a level stays in rounds at level 6), or as dice for one
-  that rolls it (DUR 1D6 TU); INST for a spell that adds no effect, PERM for one whose effect lasts until it is ended. }
+{ Formats duration in rounds, turns, or hours. Fixed and per-level parts use the
+  same unit. Random durations show their dice; immediate and indefinite effects
+  use INST and PERM. }
 function DurationText(line: Byte; long: Boolean): Types.TStr40;
 
 { The saving throw (SaveResult) and, on the page, its column (VS SPELL); none when no save is rolled. }
@@ -67,9 +66,8 @@ function WhenText(spell: Byte; long: Boolean): Types.TStr40;
   (3, 5 OR 7). }
 function CasterLevelText(line: Byte): Types.TStr40;
 
-{ The page's casting time: AT ONCE when it costs no initiative in combat (castTime div 3 is 0, CbtActs.CastSpellCombat)
-  or is cast from a scroll or other item (C_SPELL.FROM_ITEM), which Magic.UseItemSpell casts on the spot, else the
-  initiative it costs, the spell going off later in the round; empty for a spell cast only in camp. }
+{ Formats casting time. Item spells and zero-initiative spells act at once;
+  other combat spells show their initiative cost. Camp-only spells leave it blank. }
 function CastTimeText(line: Byte): Types.TStr40;
 
 { The summary line: the short terms of RangeText, AreaText, DurationText, SaveText and WhenText that apply, two blanks
@@ -87,9 +85,8 @@ function TextLine(spell, n: Byte): Types.TStr40;
   light green (#1072); line 0 (a level heading) clears it. }
 procedure ShowSummary(line, row: Byte);
 
-{ The spell page for lines[cur] over the list window (rows 3 to 22): its name, class and level, the figures, and its
-  description. Next and Prev (N, P, Down and Up, Page Down and Page Up) step through the count lines, wrapping round;
-  Exit or Escape returns, with cur the line shown last. }
+{ Browses full spell pages over the list window. Next and Previous wrap through
+  the entries. cur is updated to the last page shown. }
 procedure ShowPage(var lines: TLineSpells; count: Integer; var cur: Integer);
 
 { True when Use on item casts a spell (CharHlp.ItemSpell) the page has a description for, and item is identified, so

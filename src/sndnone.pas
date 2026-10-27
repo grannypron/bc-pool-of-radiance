@@ -1,5 +1,5 @@
-{ The silent sound driver, for no sound device: GameBoot installs it when POOL.CFG names none (phase 7 of
-  docs/refactor-plan.md). SoundDrv does nothing while soundMode is C_SOUND.MODE_DISABLED, so Play is never reached. }
+{ Silent sound driver. GameBoot installs it when POOL.CFG disables sound.
+  SoundDrv ignores playback while this driver is active, so Play is never called. }
 {$F+}
 {$I COMPILER.INC}
 unit SndNone;

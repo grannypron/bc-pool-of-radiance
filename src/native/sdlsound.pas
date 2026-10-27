@@ -1,9 +1,8 @@
-{ The native build's sound output: an SDL audio stream whose callback, on SDL's audio thread, fills it from SndChip
-  (which runs the sequencer's ticks as it goes). It sends the sequencer's port writes to SndChip, and gives the
-  sequencer the stream's lock, which SDL holds while the callback runs, so a game's call into the sequencer and a tick
-  never overlap. With no audio device the game plays silent, and the sequencer keeps time on the clock instead
-  (SndSeq.Rendered stays False). The program uses this unit after SdlHost. Objfpc mode, for its initialization and
-  finalization. Free Pascal only. }
+{ Connects the native sound emulation to an SDL audio stream. SDL's audio
+  callback asks SndChip to render samples and advance the sequencer. The stream
+  lock prevents game-thread sequencer calls from overlapping an audio tick.
+  When no audio device is available, the game remains silent and SndSeq falls
+  back to clock-driven timing. Free Pascal only. }
 {$MODE OBJFPC}
 {$H-}
 unit SdlSound;

@@ -1,6 +1,5 @@
-{ The Companion Tools (phase 8 of docs/refactor-plan.md): the port's own versions of the Gold Box Companion's tools,
-  which can no longer attach to it. F6 on the map and camp menus opens the Tools screen, outside combat, while the
-  Companion Tools setting is on. }
+{ Implements the in-game Companion Tools. When enabled, F6 opens the tools from
+  the map and camp menus outside combat. }
 {$O+,F+,I-}
 {$I COMPILER.INC}
 unit CompTool;

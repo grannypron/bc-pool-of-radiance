@@ -1,9 +1,9 @@
-# Podal Plaza (save I): camp and rest three times, which under fixed dice brings orcs; fight them under Quick, then
-# take the loot and look at the statistics.
+# In Podal Plaza using save I, camp and rest three times to trigger an orc encounter under fixed dice. Fight in Quick
+# mode, collect the loot, and inspect the resulting statistics.
 boot NORAND
 ignore POOL OF RADIANCE V
 wait RADIANCE
-# a slot's letter loads it at once (#652)
+# Load the slot directly by pressing its letter (#652).
 press l i
 wait AREA
 checkpoint podal-plaza
@@ -18,7 +18,7 @@ wait QUICK 60
 checkpoint encounter
 press alt-q
 wait CONTINUE 180
-# the AI walks round walls and bodies (#668)
+# Verify that the AI routes around walls and bodies (#668).
 checkpoint won
 press n
 wait ENTER 60
@@ -27,19 +27,19 @@ wait TAKE 60
 checkpoint loot
 press t
 checkpoint take
-# the silver's amount, typed
+# Enter the amount of silver to take.
 press ret 6 0 0 ret
 wait VIEW POOL
 checkpoint taken
-# More Info has Saves on S, and its Game Stats (T) and Kill Count (K) pages in its own screen (#685)
+# More Info should offer Saves on S, Game Stats on T, and Kill Count on K within its own screen (#685).
 press v m t
 checkpoint stats
 press k
 checkpoint kills
-# the overlay loads so far (STING Ctrl-Y), recorded but not compared; tests/ovlloads.py prints both builds' counts
+# Record the current overlay-load count with STING Ctrl-Y. It is reported by tests/ovlloads.py but not compared.
 ignore OVERLAY LOADS
 press ctrl-y
 checkpoint overlay-loads
 press ret ret ret
-# and the picture-memory line (phase 6)
+# Capture the picture-memory line for phase 6.
 press ret

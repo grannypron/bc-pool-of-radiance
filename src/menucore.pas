@@ -54,13 +54,13 @@ var
   { Called on every pass of MenuHorizontal's key wait while set; combat sets it to animate the spell-aim preview. }
   idleHook: Types.TIdleProc;
 
-{ Return member n (0-based) of list, or nil when the list is shorter. }
+{ Returns zero-based member n, or nil when the list is shorter. }
 function FindListMember(n: Integer; list: Types.PItemRec): Types.PItemRec;
 
-{ The position of member in list, from 0 (FindListMember's inverse); -1 when it is not there. }
+{ Returns member's zero-based position, or -1 when it is not in list. }
 function ListIndex(list, member: Types.PItemRec): Integer;
 
-{ Return the number of members in list. }
+{ Returns the number of members in list. }
 function ListCount(list: Types.PItemRec): Integer;
 
 { The lines of list a MenuVertical box from ulRow to lrRow shows at once: every row of it, or, under fullPaging (paged)
@@ -95,14 +95,14 @@ function MenuVertical(query, menu: Types.TStr40; qCol, mCol, hlCol: Byte; ulCol,
                       list: Types.PItemRec; addExit: Boolean; var redraw: Boolean; var idx: Integer;
                       var sel: Types.PItemRec): Char;
 
-{ Ask a Yes/No question on the bottom line until Y or N is chosen; returns 'Y' or 'N'. }
+{ Prompts for Yes or No and returns 'Y' or 'N'. }
 function YesNoMenu(query: Types.TStr40; qCol, mCol, hlCol: Byte): Char;
 
-{ Add a menu line (a TMenuNode: name, inUse = title, next) after tail, or as head when the list is empty, and make it
-  the new tail. }
+{ Appends a display line and updates head/tail. inUse marks title rows. }
 procedure AppendMenuLine(var head, tail: Types.PItemRec; name: Types.TStr40; title: Boolean);
 
-{ Build a list of n empty members; the head is allocated even when n < 1. }
+{ Allocates n empty list nodes. Historical behavior allocates the head even
+  when n is less than 1. }
 procedure AllocStringList(n: Integer; var list: Types.PItemRec);
 
 { Free every member. The caller's list pointer is left dangling, not set to nil. }

@@ -1,8 +1,8 @@
-{ Whole-file helpers for the game's own files (a saved game, a character's files, a save slot's description, the
-  vault): erase one, open one read-only, read one record as the whole file, and write one safely, to a temporary copy
-  put in its place only once it is whole, so a full disk or a failed write leaves the old file as it was. A save's
-  files go together as a set (TFileSet), put in place all or none. Resident and depending on nothing of the game's, so
-  units with tests (Stats) can use it. I/O errors are caught, never raised. }
+{ Provides whole-file operations for saves, characters, descriptions, and the
+  vault. Writes go to a temporary file and replace the original only after they
+  finish successfully. TFileSet extends the same guarantee to a related group
+  of files, replacing all of them or none. I/O errors are returned to callers
+  rather than raised. }
 {$F+,I-}
 {$I COMPILER.INC}
 unit FileUtil;

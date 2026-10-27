@@ -152,10 +152,9 @@ function ClassResting(creature: Types.PCharRecord; cls: ShortInt): Boolean;
   The scripts' CHAR_LEVEL (C_GBVM) reads it. }
 function CurrentClassLevel(creature: Types.PCharRecord): ShortInt;
 
-{ The base item record for an item type: its baseItems entry, or the zeroed overflow entry for a type past the
-  table, which only damaged save or monster data can carry.
-  @param(itemType TItemRec.itemType.)
-  @returns(A pointer to the record; the caller does not change it.) }
+{ Returns the read-only baseItems record for itemType. An out-of-range type,
+  which can only come from damaged save or monster data, returns the zeroed
+  overflow record. }
 function BaseItem(itemType: Byte): Types.PBaseItemRec;
 
 { Correct the damage types (wpnClass) the shipped ITEMS file gets wrong, by the 1st edition weapons (#746): the battle

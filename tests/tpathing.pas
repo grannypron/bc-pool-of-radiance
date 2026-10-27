@@ -1,7 +1,6 @@
-{ Tests for Pathing's line stepping and direction tests, which need no arena: SignOf, PathFind and NextPathStep (2 a
-  straight step, 3 a diagonal one), IsDirToward, DirToward and GetIconTileDelta; and RouteStep's walks on an arena of
-  the test's own, with walls and bodies (#668), and the hard cases of #769; and BuildTargetList on it (#807); and
-  OnArena, LastSlot, SaveTargets and RestoreTargets. }
+{ Tests Pathing's line stepping, directions, arena bounds, target-list state,
+  and route finding. The test arena covers walls, bodies (#668), blocked and
+  dead-end routes (#769), and target visibility and ordering (#807). }
 {$I COMPILER.INC}
 program TPathing;
 

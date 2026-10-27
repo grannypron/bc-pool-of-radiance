@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# release-asset.sh -- attach one more file to the Forgejo release for a tag, which release.sh has made.
+# Attach another file to an existing Forgejo release.
 #
 #   .forgejo/scripts/release-asset.sh v1.4 dist/pool-of-radiance-v1.4-macos.zip
 #
-# As release.sh: REPO_API is the event's repository.url and TOKEN the job's token. The release must exist (the job
-# runs after release). The new file is attached before an older asset of the same name is removed, so a failed upload
-# leaves the release as it was, and its SHA-256 is added to the notes once.
+# REPO_API is the event's repository URL and TOKEN is the job token, as in release.sh. Upload the replacement before
+# deleting an older asset with the same name so a failed upload leaves the release intact. The script also replaces
+# that asset's checksum block in the release notes.
 
 set -euo pipefail
 
@@ -34,7 +34,7 @@ for a in $old; do
     echo "release-asset.sh: removed the earlier $asset (asset $a)"
 done
 
-# The notes give the file's SHA-256 in a block marked with its name, which a re-run replaces whole.
+# Delimit the checksum block with the asset name so a rerun can replace it cleanly.
 sum="$(cd "$(dirname "$file")" && sha256sum "$asset")"
 begin="<!-- $asset -->"
 end="<!-- /$asset -->"

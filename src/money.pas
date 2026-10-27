@@ -23,28 +23,29 @@ procedure DropMoney(p: Types.PCharRecord; qty: Word; mType: ShortInt);
 
 procedure DetermineTreasure(var treasure, items: Boolean);
 
-{ The coin-type menu for creature's coins, or the treasure pool's when creature is nil: a line for each type held,
-  jewelry first, its name right-aligned in 8 columns and then the count, for MenuCore.MenuVertical and then
-  MenuCore.FreeStringList; nil when there is none. MoneyCal.ParseMoneyType reads a line's type back. }
+{ Builds a vertical-menu list of the coin types held by creature, or by the
+  treasure pool when creature is nil. The caller frees the list. Returns nil
+  when no money is available. }
 function CoinMenu(creature: Types.PCharRecord): Types.PItemRec;
 
-{ Leaving with treasure still on the table: show said in green, then ask (in white) whether to go back for it. True when
-  the party goes back (the message window is cleared for the menu again), False when it leaves. }
+{ Warns about abandoned treasure and asks whether to return. Returns True when
+  the party goes back to the loot menu. }
 function GoBackForIt(said, ask: String): Boolean;
 
 procedure PayFromCreature(creature: Types.PCharRecord; gp: LongInt);
 
 procedure PayFromPool(gp: LongInt);
 
-{ Give creature pp platinum and then gp gold, as many as it can carry and hold (Takable); whatever does not fit goes to
-  the treasure pool, which the bottom line reports. SSI capped only by weight, so a count could pass 65535 and wrap
-  (#781). The coins' weight changes, so the creature's stats are recalculated. }
+{ Gives platinum and gold to creature up to its weight and count limits. Excess
+  goes to the treasure pool and is reported on the bottom line. Recalculates
+  the creature's stats after changing coin weight (#781). }
 procedure GiveCoins(creature: Types.PCharRecord; pp, gp: Word);
 
 { Pay gp gold pieces from payer (WhoPays): buyer's coins or the pool's. }
 procedure PayBy(buyer: Types.PCharRecord; payer: Byte; gp: LongInt);
 
-{ Pay gp gold pieces from buyer, else the pool: True when paid; 'Not enough money.' when neither can. }
+{ Pays from buyer when possible, otherwise from the pool. Returns False and
+  reports an error when neither can cover the price. }
 function PayGold(buyer: Types.PCharRecord; gp: LongInt): Boolean;
 
 procedure AppraiseMenu(var ok: Boolean);

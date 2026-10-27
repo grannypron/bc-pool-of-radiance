@@ -1,5 +1,5 @@
-{ Resting: the rest timer and its menu, and the healing and spell preparation a rest brings, advancing the game clock
-  and timing out effects through FxEngine.AdvanceTime. }
+{ Implements the rest timer and menu. Resting advances the game clock, expires
+  timed effects, heals the party, and prepares spells. }
 {$O+,F+}
 {$I COMPILER.INC}
 unit GameTime;
@@ -16,12 +16,13 @@ var
     at every 288 (a day). }
   healTicks: Word;
 
-{ Let the player set the rest duration (CampRestMenu) when interactive, else rest for the duration already in
-  restTime. Rest in five-minute ticks, advancing the clock, healing and spell preparation. A keypress offers to
-  stop. Returns True when a scripted random interruption ends the rest. }
+{ Rests in five-minute ticks, advancing the clock, healing, and preparing
+  spells. In interactive mode the player first chooses the duration. A keypress
+  offers to stop early. Returns True when a scripted encounter interrupts the
+  rest. }
 function CampRest(interactive: Boolean): Boolean;
 
-{ Clear the time rested without a break, for a new game (GameInit.ResetGameState). }
+{ Clears accumulated rest time when starting a new game. }
 procedure ResetGame;
 
 implementation

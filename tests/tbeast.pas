@@ -1,7 +1,6 @@
-{ Tests for Bestiary (#842): meeting creatures once an encounter, facts learned only from the party's side, the armor
-  class narrowed from attack rolls, the most damage in a blow, kills and hit dice, the full table, and BESTIARY.DAT
-  written and read back, missing, damaged (set aside when next written) and of a newer format (read, never written);
-  and an entry filled in from a creature's record (BeastFil.Tell, the sage's, #868). }
+{ Tests Bestiary discovery, learned combat facts, capacity limits, and
+  BESTIARY.DAT persistence (#842). Also covers damaged and newer-format files,
+  plus the sage filling an entry from a creature record (#868). }
 {$I COMPILER.INC}
 program TBeast;
 
