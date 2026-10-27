@@ -37,6 +37,16 @@ case "$(uname -s)-$(uname -m)" in
     *) echo "sdl3-setup.sh: no recipe for this host." >&2; exit 1 ;;
 esac
 
+# Every target already built needs neither the tools nor the source, which a CI image deletes once it has built them.
+missing=0
+for t in "${targets[@]}"; do
+    [ -f "$prefix/$t/lib/libSDL3.a" ] || missing=1
+done
+if [ $missing -eq 0 ]; then
+    echo "sdl3-setup.sh: SDL3 $version is already in $prefix (${targets[*]})"
+    exit 0
+fi
+
 # The Forgejo macOS runner has neither tool on PATH, so install private copies when needed.
 if [ "$(uname -s)" = Darwin ]; then
     bin="$prefix_root/tools/bin"
