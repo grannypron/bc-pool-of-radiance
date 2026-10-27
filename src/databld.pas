@@ -24,7 +24,7 @@ procedure BuildDataFiles;
 implementation
 
 uses {$IFDEF FPC}TpCompat, {$ENDIF}Crt, Dos, Types, C_DATA, GameVars, DataArc, DataPat, DaxIo, TextRend,
-  BldShow, StrUtil{$IFDEF FPC}, NatFile{$ENDIF};
+  BldShow, StrUtil, SaveMenu{$IFDEF FPC}, NatFile{$ENDIF};
 
 const
   { the most directory entries a family's per-disk archives may hold between them, plus the three reserved blocks }
@@ -1114,6 +1114,8 @@ begin
   { the game's files are only read }
   oldFileMode := FileMode;
   FileMode := 0;
+  { a quick save from before #1080 moves from slot Q to slot Z, which frees Q for the Load/Save menu's Quit }
+  SaveMenu.MoveOldQuickSave;
   { GameInit2 looked at 8X8D.DAX before this, with the game folder unset }
   DaxIo.ResetArchiveCache;
   anyStale := False;
